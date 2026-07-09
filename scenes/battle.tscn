@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://bqx8battle001"]
+
+[ext_resource type="Script" path="res://src/battle/scripts/BattleController.cs" id="1_battle"]
+[ext_resource type="Script" path="res://src/battle/scripts/GridView.cs" id="2_grid"]
+[ext_resource type="Script" path="res://src/battle/scripts/BattleCameraController.cs" id="3_camera"]
+
+[node name="Battle" type="Node3D"]
+script = ExtResource("1_battle")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.822715, -0.409576, 0.393536, 0, 0.694272, 0.719724, -0.566498, -0.592091, 0.571209, 22, 20, 26)
+current = true
+fov = 55.0
+script = ExtResource("3_camera")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 12, 0)
+shadow_enabled = true
+
+[node name="GridView" type="Node3D" parent="."]
+script = ExtResource("2_grid")
+
+[node name="Units" type="Node3D" parent="."]
