@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Domain.Grid;
 
 namespace GrimSpace.Battle.Grid;
@@ -10,7 +11,8 @@ public partial class View : Node3D
 
 	private readonly Dictionary<Coord, MeshInstance3D> _cells = new();
 	private StandardMaterial3D? _defaultMaterial;
-	private StandardMaterial3D? _highlightMaterial;
+	private StandardMaterial3D? _endpoint3Ap;
+	private StandardMaterial3D? _endpoint4Ap;
 	private StandardMaterial3D? _pathMaterial;
 	private StandardMaterial3D? _hoverMaterial;
 
@@ -25,9 +27,16 @@ public partial class View : Node3D
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 		};
 
-		_highlightMaterial = new StandardMaterial3D
+		_endpoint3Ap = new StandardMaterial3D
 		{
-			AlbedoColor = new Color(0.25f, 0.55f, 0.85f, 0.5f),
+			AlbedoColor = new Color(0.35f, 0.65f, 0.95f, 0.42f),
+			Roughness = 0.9f,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+		};
+
+		_endpoint4Ap = new StandardMaterial3D
+		{
+			AlbedoColor = new Color(0.12f, 0.28f, 0.62f, 0.58f),
 			Roughness = 0.9f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 		};
@@ -69,24 +78,28 @@ public partial class View : Node3D
 	}
 
 	public void SetHighlights(
-		IEnumerable<Coord> endpoints,
+		IReadOnlyList<Option> options,
 		IReadOnlyList<Coord> path,
 		Coord? target)
 	{
-		if (_defaultMaterial is null || _highlightMaterial is null || _pathMaterial is null || _hoverMaterial is null)
+		if (_defaultMaterial is null || _endpoint3Ap is null || _endpoint4Ap is null
+			|| _pathMaterial is null || _hoverMaterial is null)
 			return;
 
-		var endpointSet = new HashSet<Coord>(endpoints);
+		var endpointAp = new Dictionary<Coord, int>();
+		foreach (var option in options)
+			endpointAp[option.EndPosition] = option.ApCost;
+
 		var pathSet = new HashSet<Coord>(path);
 
 		foreach (var (coord, cell) in _cells)
 		{
 			if (target is not null && coord == target.Value)
 				cell.MaterialOverride = _hoverMaterial;
-			else if (endpointSet.Contains(coord))
-				cell.MaterialOverride = _highlightMaterial;
 			else if (pathSet.Contains(coord))
 				cell.MaterialOverride = _pathMaterial;
+			else if (endpointAp.TryGetValue(coord, out var ap))
+				cell.MaterialOverride = ap == 3 ? _endpoint3Ap : _endpoint4Ap;
 			else
 				cell.MaterialOverride = _defaultMaterial;
 		}

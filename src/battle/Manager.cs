@@ -14,6 +14,8 @@ public sealed class Manager
 	public Turn.Manager Turn { get; }
 	public IReadOnlyList<Unit> Units { get; }
 
+	private readonly Dictionary<string, Option> _pendingMoves = new();
+
 	private Manager(BattleGrid grid, Turn.Manager turn, IReadOnlyList<Unit> units)
 	{
 		Grid = grid;
@@ -50,10 +52,7 @@ public sealed class Manager
 		}
 	}
 
-	public int GetMoveApCost(Unit unit, Option option) =>
-		unit.Actions.GetApCost(new MoveAction(option), unit.State);
-
-	public bool RequestMove(Unit unit, Option option)
+	public bool CommitMove(Unit unit, Option option)
 	{
 		if (!Turn.IsActive(unit.State.Id))
 			return false;
@@ -65,12 +64,26 @@ public sealed class Manager
 		if (!unit.Movement.CanMove(unit.State, option))
 			return false;
 
-		var cost = unit.Actions.GetApCost(moveAction, unit.State);
-		if (unit.State.ActionPoints < cost)
-			return false;
+		if (_pendingMoves.TryGetValue(unit.State.Id, out var existing))
+			unit.State.ActionPoints += existing.ApCost;
 
-		unit.Movement.ApplyMove(unit.State, option);
+		_pendingMoves[unit.State.Id] = option;
 		unit.Actions.ApplyCost(moveAction, unit.State);
+		return true;
+	}
+
+	public bool RequestEndTurn()
+	{
+		foreach (var unit in Units)
+		{
+			if (_pendingMoves.TryGetValue(unit.State.Id, out var move))
+				unit.Movement.ApplyMove(unit.State, move);
+
+			unit.State.ActionPoints = unit.State.Stats.MaxAp;
+		}
+
+		_pendingMoves.Clear();
+		Turn.AdvanceTurn();
 		return true;
 	}
 }

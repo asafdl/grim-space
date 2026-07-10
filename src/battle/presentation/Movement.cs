@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
+using Godot;
 using GrimSpace.Domain.Grid;
 using GrimSpace.Battle.Movement;
+using GridView = GrimSpace.Battle.Grid.View;
 
 namespace GrimSpace.Battle.Presentation;
 
@@ -59,41 +59,68 @@ public enum ClickResult
 
 public static class Movement
 {
-	public static (List<Coord> Endpoints, IReadOnlyList<Coord> Path, Coord? Target) GetHighlights(
+	public static (IReadOnlyList<Coord> Path, Coord? Target) GetHighlights(
 		IReadOnlyList<Option> options,
 		int? selectedIndex,
 		int? hoveredIndex)
 	{
-		var endpoints = options.Select(p => p.EndPosition).ToList();
 		var active = selectedIndex ?? hoveredIndex;
 		if (active is not int i)
-			return (endpoints, [], null);
+			return ([], null);
 
-		return (endpoints, options[i].Path, options[i].EndPosition);
+		return (options[i].Path, options[i].EndPosition);
 	}
 
 	public static string FormatOption(Option option) =>
-		option.Lateral is null ? "4 forward" : $"3 forward + 1 {option.Lateral}";
+		$"{option.Path.Count} cells ({option.ApCost} AP)";
 
 	public static string BuildHint(
 		IReadOnlyList<Option> options,
 		int? selectedIndex,
 		int? hoveredIndex,
-		int currentAp,
-		Func<Option, int> getApCost)
+		int currentAp)
 	{
 		if (selectedIndex is int selected)
-		{
-			var option = options[selected];
-			return $"Selected: {FormatOption(option)}  |  AP cost: {getApCost(option)}  |  Click again to confirm  |  AP: {currentAp}";
-		}
+			return $"Selected: {FormatOption(options[selected])}  |  Click again to confirm  |  AP: {currentAp}";
 
 		if (hoveredIndex is int hovered)
+			return $"Hover: {FormatOption(options[hovered])}  |  Click to select  |  AP: {currentAp}";
+
+		return $"Move preview  |  min 3 AP, no opposing steps  |  forward/lateral 1 AP/step, retro 2 AP/step  |  AP: {currentAp}  |  scroll/+/-: zoom  |  RMB: orbit";
+	}
+
+	private const float PickRadius = 1.4f;
+
+	public static int? PickOptionIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<Option> options)
+	{
+		if (options.Count == 0)
+			return null;
+
+		var origin = camera.ProjectRayOrigin(screenPos);
+		var direction = camera.ProjectRayNormal(screenPos);
+
+		int? bestIndex = null;
+		var bestDistance = PickRadius;
+
+		for (var i = 0; i < options.Count; i++)
 		{
-			var option = options[hovered];
-			return $"Hover: {FormatOption(option)}  |  AP cost: {getApCost(option)}  |  Click to select  |  AP: {currentAp}";
+			var world = GridView.ToWorld(options[i].EndPosition);
+			var distance = DistanceRayToPoint(origin, direction, world);
+			if (distance >= bestDistance)
+				continue;
+
+			bestDistance = distance;
+			bestIndex = i;
 		}
 
-		return $"4-step move preview  |  All forward = 0 AP, lateral = 1 AP  |  AP: {currentAp}  |  +/-: zoom  |  RMB: orbit";
+		return bestIndex;
+	}
+
+	private static float DistanceRayToPoint(Vector3 origin, Vector3 direction, Vector3 point)
+	{
+		var toPoint = point - origin;
+		var t = Mathf.Clamp(toPoint.Dot(direction), 0f, 200f);
+		var closest = origin + direction * t;
+		return closest.DistanceTo(point);
 	}
 }

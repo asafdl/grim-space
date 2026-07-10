@@ -17,7 +17,6 @@ public partial class Controller : Node3D
 
 	private GridView _gridView = null!;
 	private Camera.Controller _camera = null!;
-	private GhostView _ghostView = null!;
 	private Label _hintLabel = null!;
 
 	private readonly Selection _selection = new();
@@ -42,21 +41,34 @@ public partial class Controller : Node3D
 			_unitViews[unit.State.Id] = view;
 		}
 
-		_ghostView = new GhostView { Name = "MoveGhosts" };
-		unitsRoot.AddChild(_ghostView);
-
 		SetupHintLabel();
 		Refresh();
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (@event is InputEventKey { Pressed: true, Keycode: Key.Space })
+		{
+			if (_previewUnit is not null && _selection.SelectedIndex is int selected)
+				_manager.CommitMove(_previewUnit, _options[selected]);
+
+			_manager.RequestEndTurn();
+
+			foreach (var unit in _manager.Units)
+				_unitViews[unit.State.Id].SyncPosition();
+
+			_selection.Clear();
+			Refresh();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (_previewUnit is null)
 			return;
 
 		if (@event is InputEventMouseMotion motion)
 		{
-			var hovered = _ghostView.PickOptionIndex(_camera, motion.Position, _options);
+			var hovered = MoveUi.PickOptionIndex(_camera, motion.Position, _options);
 			_selection.SetHover(hovered, _options.Count);
 			Refresh();
 			return;
@@ -65,7 +77,7 @@ public partial class Controller : Node3D
 		if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click)
 			return;
 
-		var picked = _ghostView.PickOptionIndex(_camera, click.Position, _options);
+		var picked = MoveUi.PickOptionIndex(_camera, click.Position, _options);
 		if (_selection.OnClick(picked, _options.Count) != ClickResult.Confirm)
 		{
 			Refresh();
@@ -75,11 +87,8 @@ public partial class Controller : Node3D
 		if (_selection.SelectedIndex is not int index)
 			return;
 
-		if (_manager.RequestMove(_previewUnit, _options[index]))
-		{
-			_unitViews[_previewUnit.State.Id].SyncPosition();
+		if (_manager.CommitMove(_previewUnit, _options[index]))
 			_selection.Clear();
-		}
 
 		Refresh();
 	}
@@ -91,26 +100,25 @@ public partial class Controller : Node3D
 		_options = activePreview.Preview?.Options ?? [];
 
 		_selection.ClampToCount(_options.Count);
-		_ghostView.ShowOptions(_options, _selection.HoveredIndex, _selection.SelectedIndex);
 
-		var (endpoints, path, target) = MoveUi.GetHighlights(
+		var (path, target) = MoveUi.GetHighlights(
 			_options, _selection.SelectedIndex, _selection.HoveredIndex);
-		_gridView.SetHighlights(endpoints, path, target);
+		_gridView.SetHighlights(_options, path, target);
 
-		_hintLabel.Text = _previewUnit is null
-			? "No movement preview  |  +/-: zoom  |  RMB: orbit"
+		var turnPrefix = $"Turn {_manager.Turn.TurnNumber}  |  Space: end turn  |  ";
+		_hintLabel.Text = turnPrefix + (_previewUnit is null
+			? "No movement preview  |  scroll/+/-: zoom  |  RMB: orbit"
 			: MoveUi.BuildHint(
 				_options,
 				_selection.SelectedIndex,
 				_selection.HoveredIndex,
-				_previewUnit.State.ActionPoints,
-				option => _manager.GetMoveApCost(_previewUnit, option));
+				_previewUnit.State.ActionPoints));
 	}
 
 	private static Color ColorFor(EController controller) =>
 		controller switch
 		{
-			EController.Player => new Color(0.2f, 0.55f, 0.95f),
+			EController.Player => new Color(0.25f, 0.85f, 0.35f),
 			EController.Enemy => new Color(0.9f, 0.25f, 0.2f),
 			_ => Colors.White,
 		};

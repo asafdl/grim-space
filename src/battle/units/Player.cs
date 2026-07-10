@@ -13,5 +13,5 @@ public sealed class Player : Unit
 	}
 
 	public override Preview? ShowMovement(BattleGrid grid) =>
-		new() { Options = Movement.GetPreviews(State, grid) };
+		new() { Options = Movement.GetPreviews(State, grid, Actions) };
 }

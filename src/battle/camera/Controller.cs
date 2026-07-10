@@ -60,6 +60,16 @@ public partial class Controller : Camera3D
 				_panning = false;
 				break;
 
+			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
+				Zoom(-ZoomStep);
+				GetViewport().SetInputAsHandled();
+				break;
+
+			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
+				Zoom(ZoomStep);
+				GetViewport().SetInputAsHandled();
+				break;
+
 			case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Equal or Key.KpAdd }:
 				Zoom(-ZoomStep);
 				GetViewport().SetInputAsHandled();
