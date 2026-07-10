@@ -1,4 +1,4 @@
-using System;
+using GrimSpace.Domain.Grid;
 
 namespace GrimSpace.Battle.Grid;
 

@@ -1,0 +1,35 @@
+using GrimSpace.Domain.Grid;
+using GrimSpace.Domain.Units;
+using GrimSpace.Domain.Units.Enums;
+
+namespace GrimSpace.Domain.Run;
+
+public sealed class Encounter
+{
+	public required IReadOnlyList<Spawn> Spawns { get; init; }
+
+	public static Encounter DevDefault()
+	{
+		var player = new Instance
+		{
+			Id = "player",
+			Type = EType.Fighter,
+			Controller = EController.Player,
+		};
+		var enemy = new Instance
+		{
+			Id = "enemy",
+			Type = EType.Fighter,
+			Controller = EController.Enemy,
+		};
+
+		return new Encounter
+		{
+			Spawns =
+			[
+				new Spawn { Unit = player, Position = new Coord(1, 1, 1) },
+				new Spawn { Unit = enemy, Position = new Coord(6, 6, 6) },
+			],
+		};
+	}
+}

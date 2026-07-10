@@ -3,7 +3,7 @@ using GrimSpace.Battle.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Units.Enums;
+using GrimSpace.Domain.Run;
 using BattleGrid = GrimSpace.Battle.Grid.Grid;
 
 namespace GrimSpace.Battle;
@@ -21,30 +21,19 @@ public sealed class Manager
 		Units = units;
 	}
 
-	public static Manager CreateDefault(int gridSize = 8)
+	public static Manager FromEncounter(Encounter encounter, int gridSize = 8)
 	{
 		var grid = new BattleGrid(gridSize, gridSize, gridSize);
 		var turn = new Turn.Manager();
 
-		var units = new Unit[]
-		{
-			Factory.Create(new Blueprint
-			{
-				Id = "player",
-				Type = EType.Fighter,
-				Controller = EController.Player,
-				Position = new Coord(1, 1, 1),
-			}),
-			Factory.Create(new Blueprint
-			{
-				Id = "enemy",
-				Type = EType.Fighter,
-				Controller = EController.Enemy,
-				Position = new Coord(6, 6, 6),
-			}),
-		};
+		var units = encounter.Spawns
+			.Select(spawn => Factory.Create(spawn.Unit, spawn.Position))
+			.ToArray();
 
-		turn.SetActiveUnit(units[0].State.Id);
+		var firstPlayer = units.FirstOrDefault(u => u.Controller == Domain.Units.Enums.EController.Player);
+		if (firstPlayer is not null)
+			turn.SetActiveUnit(firstPlayer.State.Id);
+
 		return new Manager(grid, turn, units);
 	}
 

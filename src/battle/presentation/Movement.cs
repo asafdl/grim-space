@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using GrimSpace.Battle.Grid;
+using GrimSpace.Domain.Grid;
 using GrimSpace.Battle.Movement;
 
 namespace GrimSpace.Battle.Presentation;

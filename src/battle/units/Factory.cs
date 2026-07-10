@@ -1,33 +1,20 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Grid;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Units.Enums;
+using GrimSpace.Domain.Grid;
+using GrimSpace.Domain.Units;
+using GrimSpace.Domain.Units.Enums;
 
 namespace GrimSpace.Battle.Units;
 
 public static class Factory
 {
-	public static Unit Create(Blueprint blueprint)
+	public static Unit Create(Instance instance, Coord position)
 	{
-		var stats = StatsFor(blueprint.Type);
-		var state = State.CreateDefault(blueprint.Id, blueprint.Position, stats);
-		var movement = MovementFor(blueprint.Type);
-		var actions = ActionsFor(blueprint.Type);
-		return ShellFor(blueprint.Controller, state, movement, actions);
+		var state = State.FromSpawn(instance, position);
+		var movement = MovementFor(instance.Type);
+		var actions = ActionsFor(instance.Type);
+		return ShellFor(instance.Controller, state, movement, actions);
 	}
-
-	private static Stats StatsFor(EType type) =>
-		type switch
-		{
-			EType.Fighter => new Stats
-			{
-				MaxAp = 4,
-				MainThrustPower = 2,
-				RetroThrustPower = 1,
-				LateralThrustPower = 1,
-			},
-			_ => throw new ArgumentOutOfRangeException(nameof(type)),
-		};
 
 	private static IMovement MovementFor(EType type) =>
 		type switch

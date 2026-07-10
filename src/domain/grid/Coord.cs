@@ -1,6 +1,6 @@
 using System;
 
-namespace GrimSpace.Battle.Grid;
+namespace GrimSpace.Domain.Grid;
 
 public readonly record struct Coord(int X, int Y, int Z)
 {

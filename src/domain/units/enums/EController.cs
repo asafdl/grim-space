@@ -1,4 +1,4 @@
-namespace GrimSpace.Battle.Units.Enums;
+namespace GrimSpace.Domain.Units.Enums;
 
 public enum EController
 {

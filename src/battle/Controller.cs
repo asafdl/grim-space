@@ -1,10 +1,10 @@
 using Godot;
 using GrimSpace.Battle.Camera;
-using GrimSpace.Battle.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Units.Enums;
+using GrimSpace.Core;
+using GrimSpace.Domain.Units.Enums;
 using ClickResult = GrimSpace.Battle.Presentation.ClickResult;
 using GridView = GrimSpace.Battle.Grid.View;
 using MoveUi = GrimSpace.Battle.Presentation.Movement;
@@ -28,7 +28,7 @@ public partial class Controller : Node3D
 
 	public override void _Ready()
 	{
-		_manager = Manager.CreateDefault();
+		_manager = Manager.FromEncounter(Session.Instance.CurrentEncounter);
 		_camera = GetNode<Camera.Controller>("Camera3D");
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(_manager.Grid);

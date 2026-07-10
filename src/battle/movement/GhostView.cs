@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
-using GrimSpace.Battle.Grid;
+using GrimSpace.Domain.Grid;
+using GridView = GrimSpace.Battle.Grid.View;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -32,7 +33,7 @@ public partial class GhostView : Node3D
 			var ghost = new MeshInstance3D
 			{
 				Mesh = new BoxMesh { Size = new Vector3(1.2f, 0.8f, 1.8f) },
-				Position = View.ToWorld(options[i].EndPosition),
+				Position = GridView.ToWorld(options[i].EndPosition),
 				MaterialOverride = material,
 			};
 			AddChild(ghost);
@@ -53,7 +54,7 @@ public partial class GhostView : Node3D
 
 		for (var i = 0; i < options.Count; i++)
 		{
-			var world = View.ToWorld(options[i].EndPosition);
+			var world = GridView.ToWorld(options[i].EndPosition);
 			var distance = DistanceRayToPoint(origin, direction, world);
 			if (distance >= bestDistance)
 				continue;

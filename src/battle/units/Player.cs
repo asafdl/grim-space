@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Units.Enums;
+using GrimSpace.Domain.Units.Enums;
 using BattleGrid = GrimSpace.Battle.Grid.Grid;
 
 namespace GrimSpace.Battle.Units;

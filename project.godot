@@ -8,6 +8,10 @@
 
 config_version=5
 
+[autoload]
+
+Session="*res://src/core/Session.cs"
+
 [application]
 
 config/name="grim-space"

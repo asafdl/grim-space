@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using GrimSpace.Domain.Grid;
 
 namespace GrimSpace.Battle.Grid;
 

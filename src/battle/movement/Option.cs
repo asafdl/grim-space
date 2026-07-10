@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Actions.Enums;
-using GrimSpace.Battle.Grid;
+using GrimSpace.Domain.Grid;
 
 namespace GrimSpace.Battle.Movement;
 

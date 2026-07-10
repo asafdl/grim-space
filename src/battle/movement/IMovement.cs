@@ -1,5 +1,5 @@
-using GrimSpace.Battle.Grid;
 using GrimSpace.Battle.Units;
+using GrimSpace.Domain.Grid;
 using BattleGrid = GrimSpace.Battle.Grid.Grid;
 
 namespace GrimSpace.Battle.Movement;
