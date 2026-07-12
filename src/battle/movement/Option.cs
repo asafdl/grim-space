@@ -1,4 +1,4 @@
-using GrimSpace.Domain.Grid;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Movement;
 

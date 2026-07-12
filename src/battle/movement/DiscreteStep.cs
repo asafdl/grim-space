@@ -1,9 +1,7 @@
-using GrimSpace.Battle.Actions;
+using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
-using GrimSpace.Domain.Grid;
-using GrimSpace.Domain.Units;
-using BattleGrid = GrimSpace.Battle.Grid.Grid;
+using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -13,7 +11,7 @@ public sealed class DiscreteStep : IMovement
 
 	private static readonly EStepDirection[] Directions = Enum.GetValues<EStepDirection>();
 
-	public IReadOnlyList<Option> GetPreviews(State unit, BattleGrid grid, IActions actions)
+	public IReadOnlyList<Option> GetPreviews(State unit, BoundedGrid grid)
 	{
 		var byEndpoint = new Dictionary<Coord, Option>();
 		var visited = new Dictionary<SearchNode, int>();
@@ -23,7 +21,6 @@ public sealed class DiscreteStep : IMovement
 			0,
 			unit,
 			grid,
-			actions,
 			[],
 			byEndpoint,
 			visited);
@@ -49,8 +46,7 @@ public sealed class DiscreteStep : IMovement
 		int apRemaining,
 		int apSpent,
 		State unit,
-		BattleGrid grid,
-		IActions actions,
+		BoundedGrid grid,
 		List<Coord> pathSoFar,
 		Dictionary<Coord, Option> results,
 		Dictionary<SearchNode, int> visited)
@@ -69,7 +65,7 @@ public sealed class DiscreteStep : IMovement
 				continue;
 
 			var forwardStepsInPath = CountForwardSteps(pathSoFar, unit);
-			var stepCost = actions.GetMoveStepApCost(
+			var stepCost = StepCosts.GetMoveStepApCost(
 				direction,
 				unit,
 				new MoveStepContext(forwardStepsInPath));
@@ -96,7 +92,7 @@ public sealed class DiscreteStep : IMovement
 				}
 			}
 
-			Search(nextNode, apRemaining - stepCost, totalAp, unit, grid, actions, fullPath, results, visited);
+			Search(nextNode, apRemaining - stepCost, totalAp, unit, grid, fullPath, results, visited);
 		}
 	}
 
@@ -201,9 +197,9 @@ public sealed class DiscreteStep : IMovement
 		{
 			var direction = DirectionOfStep(unit, pos, next);
 			if (direction == EStepDirection.Forward)
-				unit.MomentumLevel = Math.Min(unit.MomentumLevel + 1, MomentumConfig.MaxLevel);
+				unit.MomentumLevel = System.Math.Min(unit.MomentumLevel + 1, MomentumConfig.MaxLevel);
 			else if (direction == EStepDirection.Retro)
-				unit.MomentumLevel = Math.Max(unit.MomentumLevel - 1, 0);
+				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - 1, 0);
 
 			pos = next;
 		}

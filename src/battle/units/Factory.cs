@@ -1,8 +1,7 @@
-using GrimSpace.Battle.Actions;
+using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Domain.Grid;
-using GrimSpace.Domain.Units;
-using GrimSpace.Domain.Units.Enums;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Units;
 
@@ -11,10 +10,9 @@ public static class Factory
 	public static Unit Create(Instance instance, Coord position, int initialMomentum = 0)
 	{
 		var state = State.FromSpawn(instance, position);
-		state.MomentumLevel = Math.Clamp(initialMomentum, 0, Domain.Units.MomentumConfig.MaxLevel);
+		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
 		var movement = MovementFor(instance.Type);
-		var actions = ActionsFor(instance.Type);
-		return ShellFor(instance.Controller, state, movement, actions);
+		return ShellFor(instance.Controller, state, movement);
 	}
 
 	private static IMovement MovementFor(EType type) =>
@@ -24,18 +22,11 @@ public static class Factory
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 
-	private static IActions ActionsFor(EType type) =>
-		type switch
-		{
-			EType.Fighter => new Fighter(),
-			_ => throw new ArgumentOutOfRangeException(nameof(type)),
-		};
-
-	private static Unit ShellFor(EController controller, State state, IMovement movement, IActions actions) =>
+	private static Unit ShellFor(EController controller, State state, IMovement movement) =>
 		controller switch
 		{
-			EController.Player => new Player(state, movement, actions),
-			EController.Enemy => new Enemy(state, movement, actions),
+			EController.Player => new Player(state, movement),
+			EController.Enemy => new EnemyUnit(state, movement),
 			_ => throw new ArgumentOutOfRangeException(nameof(controller)),
 		};
 }

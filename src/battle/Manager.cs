@@ -1,26 +1,24 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.Combat;
-using GrimSpace.Battle.Grid;
+using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
-using GrimSpace.Domain.Combat;
-using GrimSpace.Domain.Grid;
-using GrimSpace.Domain.Units.Enums;
-using BattleGrid = GrimSpace.Battle.Grid.Grid;
-using EnemyAi = GrimSpace.Battle.Ai.Enemy;
+using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Run;
+using GrimSpace.Units.Enums;
+using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using UnitState = GrimSpace.Battle.Units.State;
 
 namespace GrimSpace.Battle;
 
 public sealed class Manager
 {
-	public BattleGrid Grid { get; }
+	public BoundedGrid Grid { get; }
 	public Turn.Manager Turn { get; }
 	public IReadOnlyList<Unit> Units { get; }
-	public IReadOnlyList<PlannedAction> PlannedActions => _planQueue.Actions;
+	public IReadOnlyList<IAction> PlannedActions => _planQueue.Actions;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
 
@@ -28,18 +26,18 @@ public sealed class Manager
 	private readonly List<Hazard> _activeHazards = [];
 
 	public int MissilesRemainingThisTurn =>
-		Math.Max(CombatConfig.MissilesPerTurn - _planQueue.CountOf<PlannedMissile>(), 0);
+		System.Math.Max(CombatConfig.MissilesPerTurn - _planQueue.CountOf<MissileAction>(), 0);
 
-	private Manager(BattleGrid grid, Turn.Manager turn, IReadOnlyList<Unit> units)
+	private Manager(BoundedGrid grid, Turn.Manager turn, IReadOnlyList<Unit> units)
 	{
 		Grid = grid;
 		Turn = turn;
 		Units = units;
 	}
 
-	public static Manager FromEncounter(Domain.Run.Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
+	public static Manager FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
-		var grid = new BattleGrid(gridSize, gridSize, gridSize);
+		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var turn = new Turn.Manager();
 
 		var units = encounter.Spawns
@@ -63,7 +61,7 @@ public sealed class Manager
 	{
 		var player = GetPlayer()!;
 		var enemy = GetEnemy()!;
-		return PlanSimulator.Simulate(player, enemy, Grid, _planQueue.Actions);
+		return PlanExecutor.Simulate(player, enemy, Grid, _planQueue.Actions);
 	}
 
 	public HashSet<Coord> GetPlannedHazardCells()
@@ -103,7 +101,7 @@ public sealed class Manager
 		var simulation = GetSimulation();
 		return new Preview
 		{
-			Options = unit.Movement.GetPreviews(simulation.Player, Grid, unit.Actions),
+			Options = unit.Movement.GetPreviews(simulation.Player, Grid),
 		};
 	}
 
@@ -136,14 +134,13 @@ public sealed class Manager
 			return false;
 
 		var simulation = GetSimulation();
-		var moveAction = new MoveAction(option);
-		if (!unit.Actions.CanPerform(moveAction, simulation.Player))
+		if (!StepCosts.CanAffordMove(simulation.Player, option))
 			return false;
 
 		if (!unit.Movement.CanMove(simulation.Player, option))
 			return false;
 
-		_planQueue.ReplaceOrAdd(new PlannedMove(option), action => action is PlannedMove);
+		_planQueue.ReplaceOrAdd(new MoveAction(option), action => action is MoveAction);
 		return true;
 	}
 
@@ -156,7 +153,7 @@ public sealed class Manager
 		if (simulation.Player.ActionPoints < CombatConfig.RollApCost)
 			return false;
 
-		_planQueue.Add(new PlannedRoll(direction));
+		_planQueue.Add(new RollAction(direction));
 		return true;
 	}
 
@@ -170,7 +167,7 @@ public sealed class Manager
 		if (simulation.Player.ActionPoints < cost)
 			return false;
 
-		_planQueue.Add(new PlannedHeadingTurn(turn));
+		_planQueue.Add(new HeadingTurnAction(turn));
 		return true;
 	}
 
@@ -212,7 +209,7 @@ public sealed class Manager
 		if (!CanPlanMissileAt(unit, center, mount))
 			return false;
 
-		_planQueue.Add(new PlannedMissile(center, mount));
+		_planQueue.Add(new MissileAction(center, mount));
 		return true;
 	}
 
@@ -246,8 +243,8 @@ public sealed class Manager
 			return false;
 
 		_planQueue.ReplaceOrAdd(
-			new PlannedRailgun(target.State.Id),
-			action => action is PlannedRailgun);
+			new RailgunAction(target.State.Id),
+			action => action is RailgunAction);
 		return true;
 	}
 
@@ -282,52 +279,18 @@ public sealed class Manager
 	private void ExecutePlan()
 	{
 		var player = GetPlayer();
-		if (player is null)
+		var enemy = GetEnemy();
+		if (player is null || enemy is null)
 			return;
 
-		foreach (var action in _planQueue.Actions)
-		{
-			switch (action)
-			{
-				case PlannedMove move:
-					player.Movement.ApplyMove(player.State, move.Option);
-					player.State.ActionPoints -= move.Option.ApCost;
-					break;
+		PlanExecutor.Apply(
+			_planQueue.Actions,
+			player,
+			enemy,
+			Grid,
+			_activeHazards);
 
-				case PlannedRoll roll:
-					Orientation.ApplyRoll(player.State, roll.Direction);
-					player.State.ActionPoints -= CombatConfig.RollApCost;
-					break;
-
-				case PlannedHeadingTurn headingTurn:
-					var turnCost = CombatConfig.HeadingTurnBaseApCost + player.State.MomentumLevel;
-					Orientation.ApplyHeadingTurn(player.State, headingTurn.Turn);
-					player.State.ActionPoints -= turnCost;
-					break;
-
-				case PlannedMissile missile:
-					_activeHazards.Add(Hazard.MissileZone(
-						missile.Center,
-						Grid,
-						CombatConfig.MissileRadius,
-						CombatConfig.MissileDamage,
-						CombatConfig.MissileMomentumLoss));
-					break;
-
-				case PlannedRailgun railgun:
-					var target = Units.FirstOrDefault(u => u.State.Id == railgun.TargetUnitId);
-					if (target is not null)
-					{
-						ApplyDamage(target.State, CombatConfig.RailgunDamage);
-						CheckBattleOver();
-					}
-
-					break;
-			}
-
-			if (IsBattleOver)
-				return;
-		}
+		CheckBattleOver();
 	}
 
 	private void RunEnemyTurn()
@@ -337,7 +300,7 @@ public sealed class Manager
 			return;
 
 		var hazardCells = GetExecutedHazardCells();
-		var move = EnemyAi.ChooseMove(enemy, Grid, enemy.Actions, hazardCells);
+		var move = EnemyPlanner.ChooseMove(enemy, Grid, hazardCells);
 		if (move is null)
 			return;
 
@@ -356,7 +319,7 @@ public sealed class Manager
 				continue;
 
 			ApplyDamage(enemy.State, hazard.Damage);
-			enemy.State.MomentumLevel = Math.Max(
+			enemy.State.MomentumLevel = System.Math.Max(
 				enemy.State.MomentumLevel - hazard.MomentumLoss,
 				0);
 		}
@@ -365,7 +328,7 @@ public sealed class Manager
 	}
 
 	private static void ApplyDamage(UnitState target, int damage) =>
-		target.Hp = Math.Max(target.Hp - damage, 0);
+		target.Hp = System.Math.Max(target.Hp - damage, 0);
 
 	private void CheckBattleOver()
 	{

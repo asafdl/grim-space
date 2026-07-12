@@ -1,5 +1,5 @@
-using GrimSpace.Domain.Grid;
-using GrimSpace.Domain.Units;
+using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 
 namespace GrimSpace.Battle.Units;
 

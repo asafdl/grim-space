@@ -1,17 +1,16 @@
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Domain.Units.Enums;
-using BattleGrid = GrimSpace.Battle.Grid.Grid;
+using GrimSpace.Units.Enums;
+using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Units;
 
 public sealed class Player : Unit
 {
-	public Player(State state, IMovement movement, IActions actions)
-		: base(EController.Player, state, movement, actions)
+	public Player(State state, IMovement movement)
+		: base(EController.Player, state, movement)
 	{
 	}
 
-	public override Preview? ShowMovement(BattleGrid grid) =>
-		new() { Options = Movement.GetPreviews(State, grid, Actions) };
+	public override Preview? ShowMovement(BoundedGrid grid) =>
+		new() { Options = Movement.GetPreviews(State, grid) };
 }

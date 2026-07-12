@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bqx8battle001"]
 
-[ext_resource type="Script" path="res://src/battle/presentation/BattleController.cs" id="1_battle"]
-[ext_resource type="Script" path="res://src/battle/grid/View.cs" id="2_grid"]
-[ext_resource type="Script" path="res://src/battle/camera/Controller.cs" id="3_camera"]
+[ext_resource type="Script" path="res://src/battle/presentation/scene/BattleController.cs" id="1_battle"]
+[ext_resource type="Script" path="res://src/battle/presentation/graphics/GridView.cs" id="2_grid"]
+[ext_resource type="Script" path="res://src/battle/presentation/camera/Controller.cs" id="3_camera"]
 
 [node name="Battle" type="Node3D"]
 script = ExtResource("1_battle")

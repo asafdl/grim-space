@@ -4,18 +4,34 @@ A 3D roguelike space game with tactical turn-based combat on a discrete 3D grid.
 
 ## Architecture
 
-Code is organized in layers. Dependencies flow **presentation → battle → domain**.
+Code is organized around **battle systems** with a slim external surface. Dependencies flow **presentation → battle → units/run**.
 
 | Layer | Path | Role |
 |-------|------|------|
-| **Domain** | `src/domain/` | Pure data and tuning shared across the app — coordinates, stats, momentum/combat config, encounter spawns. No Godot. |
-| **Battle** | `src/battle/` | Battle-only rules and orchestration — turn flow, movement search, planning queue, combat resolution, AI. No Godot. |
-| **Presentation** | `src/battle/presentation/` | Godot-facing — `BattleController` (scene connector), `BattlePresenter` (UI state + read models), picking, highlights, action bar. |
-| **Core** | `src/core/` | Session / run glue between scenes and domain. |
+| **Units** | `src/units/` | Unit definitions only — `Instance`, `Stats`, enums. No Godot. |
+| **Run** | `src/run/` | Placeholder encounter/spawn/party data until roguelike sector map exists. No Godot. |
+| **Battle** | `src/battle/` | Battle rules and orchestration — grid, movement, weapons, actions, turn, AI, runtime units. No Godot. |
+| **Presentation** | `src/battle/presentation/` | All Godot code — scene, UI, camera, graphics, picking. |
+| **Core** | `src/core/` | Session autoload bridging run data into battle entry. |
 
-**`Manager`** owns battle orchestration: grid, units, plan queue, turn resolution. **`BattlePresenter`** holds player UI mode and builds a `PresentationFrame` snapshot for each refresh. **`BattleController`** is the thin scene script — input in, frame applied to nodes.
+### Battle systems (`src/battle/`)
 
-`domain/` definitions (e.g. `Encounter`, `Instance`) describe *what* a run contains; `battle/units/State` is mutable runtime state *during* a fight.
+| System | Path | Responsibility |
+|--------|------|----------------|
+| **grid** | `grid/` | `Coord`, bounds, cell math |
+| **movement** | `movement/` | Discrete steps, path search, momentum, orientation, step AP costs |
+| **weapons** | `weapons/` | Missile mounts/targeting, railgun tuning, hazard zones |
+| **actions** | `actions/` | Planned action types, queue, undo; `PlanExecutor` simulates and applies |
+| **turn** | `turn/` | Turn counter, active unit |
+| **ai** | `ai/` | `EnemyPlanner` — enemy move selection |
+| **units** | `units/` | Runtime `State`, `Unit` shells, `Factory` |
+| **manager** | `Manager.cs` | Thin orchestrator wiring systems and end-turn pipeline |
+
+Presentation subfolders: `scene/` (`BattleController`), `ui/` (`BattlePresenter`, action bar, HUD), `camera/`, `graphics/`, `picking/`, plus `WorldMapping` for `Coord → Vector3`.
+
+**`Manager`** owns battle orchestration. **`BattlePresenter`** holds player UI mode and builds a `PresentationFrame` snapshot. **`BattleController`** is the thin scene script — input in, frame applied to nodes.
+
+`units/` and `run/` describe *what* a run contains; `battle/units/State` is mutable runtime state *during* a fight.
 
 ---
 
@@ -82,10 +98,10 @@ Each candidate path is an **option**: a sequence of cells ending at a reachable 
 ### Player flow
 
 1. All reachable endpoints are highlighted
-2. Player hovers/clicks to preview a path (two-click confirm, or auto-commit on end turn if already selected)
-3. **Committing** a move deducts AP immediately and stores the choice as **pending**
-4. Re-selecting a different move refunds the previous AP cost
-5. **Position and momentum apply** when the turn ends
+2. Player hovers/clicks to queue a move (single click)
+3. Actions are **planned** — nothing commits until end turn; board preview updates from simulation
+4. **Ctrl/Cmd+Z** undoes the last planned action
+5. **Position, momentum, and combat effects apply** when the turn ends
 
 ### Enemy movement
 
@@ -124,7 +140,7 @@ Missile zones persist for the remainder of the player's turn. Multiple missiles 
 
 **End-of-turn sequence:**
 
-1. Apply the player's pending move
+1. Apply all planned actions via `PlanExecutor`
 2. Run enemy AI movement
 3. Resolve all hazards — enemy in a blast cell takes damage and loses momentum
 4. Clear hazards, refresh AP, reset missile count, advance turn counter
