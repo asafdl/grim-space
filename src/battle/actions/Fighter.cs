@@ -1,19 +1,27 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
+using GrimSpace.Domain.Units;
 
 namespace GrimSpace.Battle.Actions;
 
 public sealed class Fighter : IActions
 {
-	public int GetMoveStepApCost(EStepDirection direction, State unit) =>
-		direction switch
+	public int GetMoveStepApCost(EStepDirection direction, State unit, MoveStepContext context)
+	{
+		var config = MomentumConfig.ForLevel(unit.MomentumLevel);
+
+		return direction switch
 		{
-			EStepDirection.Forward => 1,
-			EStepDirection.Dorsal or EStepDirection.Ventral or EStepDirection.Port or EStepDirection.Starboard => 1,
-			EStepDirection.Retro => 2,
+			EStepDirection.Forward => context.ForwardStepsInPath < config.FreeForwardSteps
+				? 0
+				: config.ForwardStepCost,
+			EStepDirection.Port or EStepDirection.Starboard
+				or EStepDirection.Dorsal or EStepDirection.Ventral => config.LateralCost,
+			EStepDirection.Retro => config.BrakeCost,
 			_ => int.MaxValue,
 		};
+	}
 
 	public int GetApCost(IAction action, State unit) =>
 		action is MoveAction move ? move.Option.ApCost : int.MaxValue;

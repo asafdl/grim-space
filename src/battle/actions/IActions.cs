@@ -5,7 +5,7 @@ namespace GrimSpace.Battle.Actions;
 
 public interface IActions
 {
-	int GetMoveStepApCost(EStepDirection direction, State unit);
+	int GetMoveStepApCost(EStepDirection direction, State unit, MoveStepContext context);
 
 	int GetApCost(IAction action, State unit);
 	bool CanPerform(IAction action, State unit);

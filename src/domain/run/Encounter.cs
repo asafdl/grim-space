@@ -27,8 +27,8 @@ public sealed class Encounter
 		{
 			Spawns =
 			[
-				new Spawn { Unit = player, Position = new Coord(1, 1, 1) },
-				new Spawn { Unit = enemy, Position = new Coord(6, 6, 6) },
+				new Spawn { Unit = player, Position = new Coord(30, 32, 32), InitialMomentum = 0 },
+				new Spawn { Unit = enemy, Position = new Coord(36, 32, 32), InitialMomentum = 2 },
 			],
 		};
 	}

@@ -8,9 +8,10 @@ namespace GrimSpace.Battle.Units;
 
 public static class Factory
 {
-	public static Unit Create(Instance instance, Coord position)
+	public static Unit Create(Instance instance, Coord position, int initialMomentum = 0)
 	{
 		var state = State.FromSpawn(instance, position);
+		state.MomentumLevel = Math.Clamp(initialMomentum, 0, Domain.Units.MomentumConfig.MaxLevel);
 		var movement = MovementFor(instance.Type);
 		var actions = ActionsFor(instance.Type);
 		return ShellFor(instance.Controller, state, movement, actions);

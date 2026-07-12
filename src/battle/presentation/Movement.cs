@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Godot;
 using GrimSpace.Domain.Grid;
+using GrimSpace.Domain.Units;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Units;
 using GridView = GrimSpace.Battle.Grid.View;
 
 namespace GrimSpace.Battle.Presentation;
@@ -78,15 +80,25 @@ public static class Movement
 		IReadOnlyList<Option> options,
 		int? selectedIndex,
 		int? hoveredIndex,
-		int currentAp)
+		State unit)
 	{
+		var momentum = FormatMomentum(unit);
+		var ap = unit.ActionPoints;
+
 		if (selectedIndex is int selected)
-			return $"Selected: {FormatOption(options[selected])}  |  Click again to confirm  |  AP: {currentAp}";
+			return $"Selected: {FormatOption(options[selected])}  |  {momentum}  |  Click again to confirm  |  AP: {ap}";
 
 		if (hoveredIndex is int hovered)
-			return $"Hover: {FormatOption(options[hovered])}  |  Click to select  |  AP: {currentAp}";
+			return $"Hover: {FormatOption(options[hovered])}  |  {momentum}  |  Click to select  |  AP: {ap}";
 
-		return $"Move preview  |  min 3 AP, no opposing steps  |  forward/lateral 1 AP/step, retro 2 AP/step  |  AP: {currentAp}  |  scroll/+/-: zoom  |  RMB: orbit";
+		return $"Move preview  |  {momentum}  |  min 3 AP (or free carry)  |  AP: {ap}  |  scroll/+/-: zoom  |  RMB: orbit";
+	}
+
+	public static string FormatMomentum(State unit)
+	{
+		var config = MomentumConfig.ForLevel(unit.MomentumLevel);
+		var evasion = (int)(config.Evasion * 100);
+		return $"M{unit.MomentumLevel} ({evasion}% eva)";
 	}
 
 	private const float PickRadius = 1.4f;

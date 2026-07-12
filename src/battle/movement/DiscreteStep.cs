@@ -2,6 +2,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
 using GrimSpace.Domain.Grid;
+using GrimSpace.Domain.Units;
 using BattleGrid = GrimSpace.Battle.Grid.Grid;
 
 namespace GrimSpace.Battle.Movement;
@@ -31,12 +32,15 @@ public sealed class DiscreteStep : IMovement
 
 	public bool CanMove(State unit, Option option) =>
 		option.Path.Count > 0
-		&& option.ApCost >= MinMoveApCost
+		&& (option.ApCost == 0 || option.ApCost >= MinMoveApCost)
 		&& unit.ActionPoints >= option.ApCost
 		&& !PathUsesOpposingDirections(unit, unit.Position, option.Path);
 
-	public void ApplyMove(State unit, Option option) =>
+	public void ApplyMove(State unit, Option option)
+	{
+		ApplyMomentumFromPath(unit, option.Path);
 		unit.Position = option.EndPosition;
+	}
 
 	private readonly record struct SearchNode(Coord Position, int UsedDirectionsMask);
 
@@ -64,7 +68,11 @@ public sealed class DiscreteStep : IMovement
 			if (UsesOpposite(node.UsedDirectionsMask, direction))
 				continue;
 
-			var stepCost = actions.GetMoveStepApCost(direction, unit);
+			var forwardStepsInPath = CountForwardSteps(pathSoFar, unit);
+			var stepCost = actions.GetMoveStepApCost(
+				direction,
+				unit,
+				new MoveStepContext(forwardStepsInPath));
 			if (stepCost > apRemaining)
 				continue;
 
@@ -76,14 +84,16 @@ public sealed class DiscreteStep : IMovement
 			var totalAp = apSpent + stepCost;
 			var nextNode = new SearchNode(next, node.UsedDirectionsMask | DirectionBit(direction));
 
-			if (totalAp >= MinMoveApCost
-				&& (!results.TryGetValue(next, out var existing) || totalAp < existing.ApCost))
+			if (totalAp >= MinMoveApCost || totalAp == 0)
 			{
-				results[next] = new Option
+				if (!results.TryGetValue(next, out var existing) || totalAp < existing.ApCost)
 				{
-					ApCost = totalAp,
-					Path = fullPath,
-				};
+					results[next] = new Option
+					{
+						ApCost = totalAp,
+						Path = fullPath,
+					};
+				}
 			}
 
 			Search(nextNode, apRemaining - stepCost, totalAp, unit, grid, actions, fullPath, results, visited);
@@ -163,4 +173,39 @@ public sealed class DiscreteStep : IMovement
 			EStepDirection.Port => Coord.Zero - unit.RightDirection,
 			_ => Coord.Zero,
 		};
+
+	private static int CountForwardSteps(IReadOnlyList<Coord> pathSoFar, State unit)
+	{
+		if (pathSoFar.Count == 0)
+			return 0;
+
+		var pos = unit.Position;
+		var count = 0;
+
+		foreach (var next in pathSoFar)
+		{
+			if (DirectionOfStep(unit, pos, next) == EStepDirection.Forward)
+				count++;
+
+			pos = next;
+		}
+
+		return count;
+	}
+
+	private static void ApplyMomentumFromPath(State unit, IReadOnlyList<Coord> path)
+	{
+		var pos = unit.Position;
+
+		foreach (var next in path)
+		{
+			var direction = DirectionOfStep(unit, pos, next);
+			if (direction == EStepDirection.Forward)
+				unit.MomentumLevel = Math.Min(unit.MomentumLevel + 1, MomentumConfig.MaxLevel);
+			else if (direction == EStepDirection.Retro)
+				unit.MomentumLevel = Math.Max(unit.MomentumLevel - 1, 0);
+
+			pos = next;
+		}
+	}
 }

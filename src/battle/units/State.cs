@@ -11,7 +11,11 @@ public sealed class State
 	public Coord UpDirection { get; set; }
 	public Coord RightDirection { get; set; }
 	public int ActionPoints { get; set; }
+	public int Hp { get; set; }
+	public int MomentumLevel { get; set; }
 	public required Stats Stats { get; init; }
+
+	public bool IsAlive => Hp > 0;
 
 	public static State FromSpawn(Instance instance, Coord position)
 	{
@@ -26,6 +30,8 @@ public sealed class State
 			UpDirection = upDir,
 			RightDirection = Coord.Cross(upDir, fwd),
 			ActionPoints = stats.MaxAp,
+			Hp = stats.MaxHp,
+			MomentumLevel = 0,
 			Stats = stats,
 		};
 	}
