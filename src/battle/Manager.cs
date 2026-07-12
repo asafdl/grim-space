@@ -143,19 +143,7 @@ public sealed class Manager
 		if (!IsLegal(action))
 			return false;
 
-		switch (action)
-		{
-			case MoveAction:
-				_planQueue.ReplaceOrAdd(action, queued => queued is MoveAction);
-				break;
-			case RailgunAction:
-				_planQueue.ReplaceOrAdd(action, queued => queued is RailgunAction);
-				break;
-			default:
-				_planQueue.Add(action);
-				break;
-		}
-
+		_planQueue.Enqueue(action);
 		return true;
 	}
 

@@ -1,6 +1,6 @@
 namespace GrimSpace.Core.Actions;
 
-public sealed class PlanQueue<TAction>
+public sealed class PlanQueue<TAction> where TAction : IEnqueueable
 {
 	private readonly List<TAction> _actions = [];
 
@@ -24,22 +24,24 @@ public sealed class PlanQueue<TAction>
 		return true;
 	}
 
-	public void ReplaceOrAdd(TAction action, Func<TAction, bool> matcher)
+	public void Enqueue(TAction action)
 	{
-		for (var i = 0; i < _actions.Count; i++)
+		if (action.EnqueuePolicy == EnqueuePolicy.ReplaceSameType)
 		{
-			if (!matcher(_actions[i]))
-				continue;
+			var actionType = action.GetType();
+			for (var i = 0; i < _actions.Count; i++)
+			{
+				if (_actions[i]?.GetType() != actionType)
+					continue;
 
-			_actions[i] = action;
-			return;
+				_actions[i] = action;
+				return;
+			}
 		}
 
 		_actions.Add(action);
 	}
 
-	public void Add(TAction action) => _actions.Add(action);
-
 	public int CountOf<T>() where T : TAction =>
-		_actions.Count(action => action is T);
+		_actions.Count(queued => queued is T);
 }

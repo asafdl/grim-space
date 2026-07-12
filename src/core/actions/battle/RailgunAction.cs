@@ -11,6 +11,8 @@ public sealed class RailgunAction(string targetUnitId) : IBattleAction
 {
 	public string TargetUnitId { get; } = targetUnitId;
 
+	public EnqueuePolicy EnqueuePolicy => EnqueuePolicy.ReplaceSameType;
+
 	public bool IsLegal(BattleBoard board, BattlePlanContext context)
 	{
 		if (TargetUnitId != board.Enemy.Id || !board.Enemy.IsAlive)

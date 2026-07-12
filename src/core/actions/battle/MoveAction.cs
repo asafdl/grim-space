@@ -11,6 +11,8 @@ public sealed class MoveAction(Option option) : IBattleAction
 {
 	public Option Option { get; } = option;
 
+	public EnqueuePolicy EnqueuePolicy => EnqueuePolicy.ReplaceSameType;
+
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) =>
 		StepCosts.CanAffordMove(board.Player, Option)
 		&& board.PlayerUnit.Movement.CanMove(board.Player, Option);
