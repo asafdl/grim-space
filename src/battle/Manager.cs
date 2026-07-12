@@ -147,6 +147,33 @@ public sealed class Manager
 		return true;
 	}
 
+	public bool EnqueueRoll(Unit unit, ERollDirection direction)
+	{
+		if (!CanAct(unit))
+			return false;
+
+		var simulation = GetSimulation();
+		if (simulation.Player.ActionPoints < CombatConfig.RollApCost)
+			return false;
+
+		_planQueue.Add(new PlannedRoll(direction));
+		return true;
+	}
+
+	public bool EnqueueHeadingTurn(Unit unit, EHeadingTurn turn)
+	{
+		if (!CanAct(unit))
+			return false;
+
+		var simulation = GetSimulation();
+		var cost = CombatConfig.HeadingTurnBaseApCost + simulation.Player.MomentumLevel;
+		if (simulation.Player.ActionPoints < cost)
+			return false;
+
+		_planQueue.Add(new PlannedHeadingTurn(turn));
+		return true;
+	}
+
 	public bool CanPlanMissileAt(Unit unit, Coord center, EMissileMount mount)
 	{
 		if (!CanAct(unit) || unit.Controller != EController.Player)
@@ -265,6 +292,17 @@ public sealed class Manager
 				case PlannedMove move:
 					player.Movement.ApplyMove(player.State, move.Option);
 					player.State.ActionPoints -= move.Option.ApCost;
+					break;
+
+				case PlannedRoll roll:
+					Orientation.ApplyRoll(player.State, roll.Direction);
+					player.State.ActionPoints -= CombatConfig.RollApCost;
+					break;
+
+				case PlannedHeadingTurn headingTurn:
+					var turnCost = CombatConfig.HeadingTurnBaseApCost + player.State.MomentumLevel;
+					Orientation.ApplyHeadingTurn(player.State, headingTurn.Turn);
+					player.State.ActionPoints -= turnCost;
 					break;
 
 				case PlannedMissile missile:

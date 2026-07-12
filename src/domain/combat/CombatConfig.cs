@@ -24,4 +24,7 @@ public static class CombatConfig
 	public const int RailgunDamage = 999;
 	public const int RailgunMaxRange = 30;
 	public const int RailgunRequiredTargetMomentum = 0;
+
+	public const int RollApCost = 1;
+	public const int HeadingTurnBaseApCost = 1;
 }

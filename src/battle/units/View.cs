@@ -87,12 +87,13 @@ public partial class View : Node3D
 
 	private void SyncOrientation(State displayState)
 	{
-		var forward = displayState.ForwardDirection;
-		if (forward == GrimSpace.Domain.Grid.Coord.Forward)
-			Rotation = Vector3.Zero;
-		else if (forward == GrimSpace.Domain.Grid.Coord.Zero - GrimSpace.Domain.Grid.Coord.Forward)
-			Rotation = new Vector3(0f, Mathf.Pi, 0f);
-		else
-			Rotation = Vector3.Zero;
+		var forward = ToVector3(displayState.ForwardDirection);
+		var up = ToVector3(displayState.UpDirection);
+		var right = ToVector3(displayState.RightDirection);
+		// Hull mesh is modeled along local +Z (nose); align that axis with grid forward.
+		Basis = new Basis(right, up, forward);
 	}
+
+	private static Vector3 ToVector3(Domain.Grid.Coord coord) =>
+		new(coord.X, coord.Y, coord.Z);
 }

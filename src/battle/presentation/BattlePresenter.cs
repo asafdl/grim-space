@@ -1,7 +1,9 @@
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Units;
 using GrimSpace.Domain.Combat;
 using GrimSpace.Domain.Grid;
+using GrimSpace.Domain.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation;
 
@@ -111,6 +113,18 @@ public sealed class BattlePresenter
 		return true;
 	}
 
+	public bool TryQueueRoll(ERollDirection direction)
+	{
+		var unit = _manager.GetActivePlayer();
+		return unit is not null && _manager.EnqueueRoll(unit, direction);
+	}
+
+	public bool TryQueueHeadingTurn(EHeadingTurn turn)
+	{
+		var unit = _manager.GetActivePlayer();
+		return unit is not null && _manager.EnqueueHeadingTurn(unit, turn);
+	}
+
 	public bool CanPlanRailgun(Unit target)
 	{
 		var unit = _manager.GetActivePlayer();
@@ -139,8 +153,8 @@ public sealed class BattlePresenter
 
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
-			&& unit is not null
-			&& _manager.CanPlanMissileAt(unit, hover, mount);
+			&& active.Unit is not null
+			&& _manager.CanPlanMissileAt(active.Unit, hover, mount);
 
 		return new PresentationFrame
 		{

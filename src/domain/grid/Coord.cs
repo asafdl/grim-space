@@ -14,6 +14,9 @@ public readonly record struct Coord(int X, int Y, int Z)
 	public static Coord operator -(Coord a, Coord b) =>
 		new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 
+	public static Coord operator -(Coord a) =>
+		new(-a.X, -a.Y, -a.Z);
+
 	public static Coord operator *(Coord a, int multiplier) =>
 		new(a.X * multiplier, a.Y * multiplier, a.Z * multiplier);
 

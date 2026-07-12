@@ -21,6 +21,7 @@ public partial class BattleController : Node3D
 	private Camera.Controller _camera = null!;
 	private Label _hintLabel = null!;
 	private ActionBar _actionBar = null!;
+	private ShipOrientationHud _orientationHud = null!;
 	private MissileRangeIndicator _missileRangeIndicator = null!;
 
 	private readonly Dictionary<string, Units.View> _unitViews = new();
@@ -53,7 +54,24 @@ public partial class BattleController : Node3D
 
 		SetupHintLabel();
 		SetupActionBar();
+		SetupOrientationHud();
 		Refresh();
+	}
+
+	private void SetupOrientationHud()
+	{
+		_orientationHud = new ShipOrientationHud();
+		_orientationHud.HeadingTurnRequested += turn =>
+		{
+			if (_presenter.TryQueueHeadingTurn(turn))
+				Refresh();
+		};
+		_orientationHud.RollRequested += direction =>
+		{
+			if (_presenter.TryQueueRoll(direction))
+				Refresh();
+		};
+		AddChild(_orientationHud);
 	}
 
 	private void SetupActionBar()
@@ -178,7 +196,13 @@ public partial class BattleController : Node3D
 		ApplyCamera(frame);
 		ApplyGrid(frame);
 		ApplyActionBar(frame);
+		ApplyOrientationHud(frame);
 		_hintLabel.Text = frame.HintText;
+	}
+
+	private void ApplyOrientationHud(PresentationFrame frame)
+	{
+		_orientationHud.Show(frame.CanAct && !frame.MissileAimActive);
 	}
 
 	private void ApplyUnitViews(PresentationFrame frame)

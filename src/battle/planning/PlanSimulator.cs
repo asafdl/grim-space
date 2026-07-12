@@ -37,6 +37,17 @@ public static class PlanSimulator
 					playerState.ActionPoints -= move.Option.ApCost;
 					break;
 
+				case PlannedRoll roll:
+					Orientation.ApplyRoll(playerState, roll.Direction);
+					playerState.ActionPoints -= CombatConfig.RollApCost;
+					break;
+
+				case PlannedHeadingTurn headingTurn:
+					var turnCost = CombatConfig.HeadingTurnBaseApCost + playerState.MomentumLevel;
+					Orientation.ApplyHeadingTurn(playerState, headingTurn.Turn);
+					playerState.ActionPoints -= turnCost;
+					break;
+
 				case PlannedMissile missile:
 					hazards.Add(Hazard.MissileZone(
 						missile.Center,
