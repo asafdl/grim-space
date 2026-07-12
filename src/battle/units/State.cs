@@ -17,6 +17,20 @@ public sealed class State
 
 	public bool IsAlive => Hp > 0;
 
+	public State Clone() =>
+		new()
+		{
+			Id = Id,
+			Position = Position,
+			ForwardDirection = ForwardDirection,
+			UpDirection = UpDirection,
+			RightDirection = RightDirection,
+			ActionPoints = ActionPoints,
+			Hp = Hp,
+			MomentumLevel = MomentumLevel,
+			Stats = Stats,
+		};
+
 	public static State FromSpawn(Instance instance, Coord position)
 	{
 		var stats = Stats.ForType(instance.Type);

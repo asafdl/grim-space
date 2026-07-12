@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Actions;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;

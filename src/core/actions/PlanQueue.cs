@@ -1,20 +1,20 @@
-namespace GrimSpace.Battle.Actions;
+namespace GrimSpace.Core.Actions;
 
-public sealed class PlanQueue
+public sealed class PlanQueue<TAction>
 {
-	private readonly List<IAction> _actions = [];
+	private readonly List<TAction> _actions = [];
 
-	public IReadOnlyList<IAction> Actions => _actions;
+	public IReadOnlyList<TAction> Actions => _actions;
 
 	public int Count => _actions.Count;
 
 	public void Clear() => _actions.Clear();
 
-	public bool TryPopLast(out IAction? action)
+	public bool TryPopLast(out TAction? action)
 	{
 		if (_actions.Count == 0)
 		{
-			action = null;
+			action = default;
 			return false;
 		}
 
@@ -24,7 +24,7 @@ public sealed class PlanQueue
 		return true;
 	}
 
-	public void ReplaceOrAdd(IAction action, Func<IAction, bool> matcher)
+	public void ReplaceOrAdd(TAction action, Func<TAction, bool> matcher)
 	{
 		for (var i = 0; i < _actions.Count; i++)
 		{
@@ -38,8 +38,8 @@ public sealed class PlanQueue
 		_actions.Add(action);
 	}
 
-	public void Add(IAction action) => _actions.Add(action);
+	public void Add(TAction action) => _actions.Add(action);
 
-	public int CountOf<T>() where T : IAction =>
+	public int CountOf<T>() where T : TAction =>
 		_actions.Count(action => action is T);
 }

@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Actions;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
@@ -69,18 +69,14 @@ public sealed class BattlePresenter
 	public void SetMissileHover(Coord? cell) => MissileHover = cell;
 
 	public void SetRailgunHover(Unit? target) =>
-		RailgunHover = target is not null && CanPlanRailgun(target) ? target : null;
+		RailgunHover = target is not null && IsRailgunLegal(target) ? target : null;
 
 	public bool TryQueueMove(int optionIndex, IReadOnlyList<Option> options)
 	{
 		if (optionIndex < 0 || optionIndex >= options.Count)
 			return false;
 
-		var unit = _manager.GetActivePlayer();
-		if (unit is null)
-			return false;
-
-		if (!_manager.EnqueueMove(unit, options[optionIndex]))
+		if (!_manager.TryEnqueue(new MoveAction(options[optionIndex])))
 			return false;
 
 		_selection.Clear();
@@ -92,8 +88,7 @@ public sealed class BattlePresenter
 		if (MissileMount is not EMissileMount mount)
 			return false;
 
-		var unit = _manager.GetActivePlayer();
-		if (unit is null || !_manager.EnqueueMissile(unit, center, mount))
+		if (!_manager.TryEnqueue(new MissileAction(center, mount)))
 			return false;
 
 		MissileHover = null;
@@ -102,30 +97,25 @@ public sealed class BattlePresenter
 
 	public bool TryQueueRailgun(Unit target)
 	{
-		var unit = _manager.GetActivePlayer();
-		if (unit is null || !_manager.EnqueueRailgun(unit, target))
+		if (!_manager.TryEnqueue(new RailgunAction(target.State.Id)))
 			return false;
 
 		RailgunHover = null;
 		return true;
 	}
 
-	public bool TryQueueRoll(ERollDirection direction)
-	{
-		var unit = _manager.GetActivePlayer();
-		return unit is not null && _manager.EnqueueRoll(unit, direction);
-	}
+	public bool TryQueueRoll(ERollDirection direction) =>
+		_manager.TryEnqueue(new RollAction(direction));
 
-	public bool TryQueueHeadingTurn(EHeadingTurn turn)
-	{
-		var unit = _manager.GetActivePlayer();
-		return unit is not null && _manager.EnqueueHeadingTurn(unit, turn);
-	}
+	public bool TryQueueHeadingTurn(EHeadingTurn turn) =>
+		_manager.TryEnqueue(new HeadingTurnAction(turn));
 
-	public bool CanPlanRailgun(Unit target)
+	public bool IsRailgunLegal(Unit target)
 	{
-		var unit = _manager.GetActivePlayer();
-		return unit is not null && _manager.CanPlanRailgun(unit, target);
+		var enemy = _manager.GetEnemy();
+		return enemy is not null
+			&& target.State.Id == enemy.State.Id
+			&& _manager.IsLegal(new RailgunAction(target.State.Id));
 	}
 
 	public PresentationFrame BuildFrame()
@@ -150,8 +140,7 @@ public sealed class BattlePresenter
 
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
-			&& active.Unit is not null
-			&& _manager.CanPlanMissileAt(active.Unit, hover, mount);
+			&& _manager.IsLegal(new MissileAction(hover, mount));
 
 		return new PresentationFrame
 		{
@@ -181,7 +170,7 @@ public sealed class BattlePresenter
 		if (Mode != EPlayerMode.Missile || MissileMount is not EMissileMount mount || unit is null)
 			return [];
 
-		return _manager.GetValidMissileCells(unit, mount);
+		return _manager.GetValidMissileCells(mount);
 	}
 
 	private HashSet<Coord> GetMissilePreviewCells(Unit? unit)
@@ -190,7 +179,7 @@ public sealed class BattlePresenter
 			|| MissileMount is not EMissileMount mount
 			|| unit is null
 			|| MissileHover is not Coord hover
-			|| !_manager.CanPlanMissileAt(unit, hover, mount))
+			|| !_manager.IsLegal(new MissileAction(hover, mount)))
 		{
 			return [];
 		}
@@ -199,7 +188,7 @@ public sealed class BattlePresenter
 	}
 
 	private Coord? GetRailgunHoveredCell() =>
-		RailgunHover is not null && CanPlanRailgun(RailgunHover)
+		RailgunHover is not null && IsRailgunLegal(RailgunHover)
 			? _manager.GetSimulation().Enemy.Position
 			: null;
 

@@ -1,8 +1,8 @@
-namespace GrimSpace.Battle.Actions.Contexts;
+namespace GrimSpace.Core.Actions.Battle.Contexts;
 
-public readonly struct ActionSlices(ActionBoard board)
+public readonly struct BattleSlices(BattleBoard board)
 {
-	public static ActionSlices From(ActionBoard board) => new(board);
+	public static BattleSlices From(BattleBoard board) => new(board);
 
 	public ApContext Ap => new(board.Player);
 

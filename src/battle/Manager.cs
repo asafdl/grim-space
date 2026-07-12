@@ -1,11 +1,11 @@
-using GrimSpace.Battle.Actions;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -18,15 +18,14 @@ public sealed class Manager
 	public BoundedGrid Grid { get; }
 	public Turn.Manager Turn { get; }
 	public IReadOnlyList<Unit> Units { get; }
-	public IReadOnlyList<IAction> PlannedActions => _planQueue.Actions;
+	public IReadOnlyList<IBattleAction> PlannedActions => _planQueue.Actions;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
 
-	private readonly PlanQueue _planQueue = new();
+	private readonly PlanQueue<IBattleAction> _planQueue = new();
 	private readonly List<Hazard> _activeHazards = [];
 
-	public int MissilesRemainingThisTurn =>
-		System.Math.Max(CombatConfig.MissilesPerTurn - _planQueue.CountOf<MissileAction>(), 0);
+	public int MissilesRemainingThisTurn => GetPlanContext().MissilesRemaining;
 
 	private Manager(BoundedGrid grid, Turn.Manager turn, IReadOnlyList<Unit> units)
 	{
@@ -61,7 +60,7 @@ public sealed class Manager
 	{
 		var player = GetPlayer()!;
 		var enemy = GetEnemy()!;
-		return PlanExecutor.Simulate(player, enemy, Grid, _planQueue.Actions);
+		return BattlePlanExecutor.Simulate(player, enemy, Grid, _planQueue.Actions);
 	}
 
 	public HashSet<Coord> GetPlannedHazardCells()
@@ -98,10 +97,11 @@ public sealed class Manager
 		if (!CanAct(unit))
 			return null;
 
-		var simulation = GetSimulation();
+		var board = GetPlanBoard();
+		var context = GetPlanContext();
 		return new Preview
 		{
-			Options = unit.Movement.GetPreviews(simulation.Player, Grid),
+			Options = LegalActions.GetMoveOptions(board, context),
 		};
 	}
 
@@ -120,132 +120,61 @@ public sealed class Manager
 	public HashSet<Coord> GetRailgunTargetCells(Unit? activeUnit)
 	{
 		var cells = new HashSet<Coord>();
-		var enemy = GetEnemy();
-		if (enemy is null || activeUnit is null || !CanPlanRailgun(activeUnit, enemy))
+		if (activeUnit is null || !CanAct(activeUnit))
 			return cells;
 
-		cells.Add(GetSimulation().Enemy.Position);
+		var board = GetPlanBoard();
+		var context = GetPlanContext();
+		if (!LegalActions.IsRailgunAvailable(board, context))
+			return cells;
+
+		cells.Add(board.Enemy.Position);
 		return cells;
 	}
 
-	public bool EnqueueMove(Unit unit, Option option)
+	public bool IsLegal(IBattleAction action)
 	{
-		if (!CanAct(unit))
-			return false;
-
-		var simulation = GetSimulation();
-		if (!StepCosts.CanAffordMove(simulation.Player, option))
-			return false;
-
-		if (!unit.Movement.CanMove(simulation.Player, option))
-			return false;
-
-		_planQueue.ReplaceOrAdd(new MoveAction(option), action => action is MoveAction);
-		return true;
+		var player = GetActivePlayer();
+		return player is not null && CanAct(player) && action.IsLegal(GetPlanBoard(), GetPlanContext());
 	}
 
-	public bool EnqueueRoll(Unit unit, ERollDirection direction)
+	public bool TryEnqueue(IBattleAction action)
 	{
-		if (!CanAct(unit))
+		if (!IsLegal(action))
 			return false;
 
-		var simulation = GetSimulation();
-		if (simulation.Player.ActionPoints < CombatConfig.RollApCost)
-			return false;
-
-		_planQueue.Add(new RollAction(direction));
-		return true;
-	}
-
-	public bool EnqueueHeadingTurn(Unit unit, EHeadingTurn turn)
-	{
-		if (!CanAct(unit))
-			return false;
-
-		var simulation = GetSimulation();
-		var cost = CombatConfig.HeadingTurnBaseApCost + simulation.Player.MomentumLevel;
-		if (simulation.Player.ActionPoints < cost)
-			return false;
-
-		_planQueue.Add(new HeadingTurnAction(turn));
-		return true;
-	}
-
-	public bool CanPlanMissileAt(Unit unit, Coord center, EMissileMount mount)
-	{
-		if (!CanAct(unit) || unit.Controller != EController.Player)
-			return false;
-
-		if (MissilesRemainingThisTurn <= 0)
-			return false;
-
-		var simulation = GetSimulation();
-		var config = MissileMountConfig.For(mount);
-		return MissileTargeting.IsValidTarget(
-			simulation.Player.Position,
-			simulation.Player.ForwardDirection,
-			simulation.Player.RightDirection,
-			simulation.Player.UpDirection,
-			center,
-			config,
-			Grid.IsInBounds);
-	}
-
-	public HashSet<Coord> GetValidMissileCells(Unit unit, EMissileMount mount)
-	{
-		var simulation = GetSimulation();
-		var config = MissileMountConfig.For(mount);
-		return MissileTargeting.GetValidCells(
-			simulation.Player.Position,
-			simulation.Player.ForwardDirection,
-			simulation.Player.RightDirection,
-			simulation.Player.UpDirection,
-			config,
-			Grid.IsInBounds);
-	}
-
-	public bool EnqueueMissile(Unit unit, Coord center, EMissileMount mount)
-	{
-		if (!CanPlanMissileAt(unit, center, mount))
-			return false;
-
-		_planQueue.Add(new MissileAction(center, mount));
-		return true;
-	}
-
-	public bool CanPlanRailgun(Unit attacker, Unit target)
-	{
-		if (!CanAct(attacker) || attacker.Controller != EController.Player)
-			return false;
-
-		if (target.Controller == attacker.Controller)
-			return false;
-
-		var simulation = GetSimulation();
-		if (!simulation.Enemy.IsAlive)
-			return false;
-
-		if (simulation.Enemy.MomentumLevel != CombatConfig.RailgunRequiredTargetMomentum)
-			return false;
-
-		if (simulation.Player.Position.ManhattanDistanceTo(simulation.Enemy.Position)
-			> CombatConfig.RailgunMaxRange)
+		switch (action)
 		{
-			return false;
+			case MoveAction:
+				_planQueue.ReplaceOrAdd(action, queued => queued is MoveAction);
+				break;
+			case RailgunAction:
+				_planQueue.ReplaceOrAdd(action, queued => queued is RailgunAction);
+				break;
+			default:
+				_planQueue.Add(action);
+				break;
 		}
 
 		return true;
 	}
 
-	public bool EnqueueRailgun(Unit attacker, Unit target)
+	public HashSet<Coord> GetValidMissileCells(EMissileMount mount)
 	{
-		if (!CanPlanRailgun(attacker, target))
-			return false;
+		var player = GetActivePlayer();
+		if (player is null || !CanAct(player))
+			return [];
 
-		_planQueue.ReplaceOrAdd(
-			new RailgunAction(target.State.Id),
-			action => action is RailgunAction);
-		return true;
+		return LegalActions.GetMissileCells(GetPlanBoard(), GetPlanContext(), mount);
+	}
+
+	private BattlePlanContext GetPlanContext() => new(_planQueue.Actions);
+
+	private BattleBoard GetPlanBoard()
+	{
+		var player = GetPlayer()!;
+		var enemy = GetEnemy()!;
+		return BattlePlanExecutor.BuildPlanBoard(player, enemy, Grid, _planQueue.Actions);
 	}
 
 	public bool TryUndoLast() => _planQueue.TryPopLast(out _);
@@ -283,7 +212,7 @@ public sealed class Manager
 		if (player is null || enemy is null)
 			return;
 
-		PlanExecutor.Apply(
+		BattlePlanExecutor.Apply(
 			_planQueue.Actions,
 			player,
 			enemy,
