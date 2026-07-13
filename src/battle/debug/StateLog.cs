@@ -15,7 +15,7 @@ public static class StateLog
 	public static void LogTurnResolution(
 		int turnNumber,
 		IReadOnlyList<IBattleAction> plannedActions,
-		Option? enemyMove,
+		IReadOnlyList<IBattleAction> enemyActions,
 		IReadOnlyList<Hazard> hazards,
 		IReadOnlyDictionary<string, State> unitsAtTurnStart,
 		IReadOnlyDictionary<string, State> unitsAfterPlayer,
@@ -38,10 +38,14 @@ public static class StateLog
 
 		AppendSection(log, "Units (after player plan)", unitsAfterPlayer.Values);
 
-		if (enemyMove is not null)
-			log.AppendLine($"Enemy move: ap={enemyMove.ApCost} path={FormatPath(enemyMove.Path)}");
+		if (enemyActions.Count == 0)
+			log.AppendLine("Enemy actions: (none)");
 		else
-			log.AppendLine("Enemy move: (none)");
+		{
+			log.AppendLine("Enemy actions:");
+			for (var i = 0; i < enemyActions.Count; i++)
+				log.AppendLine($"  [{i}] {DescribeAction(enemyActions[i])}");
+		}
 
 		AppendSection(log, "Units (after enemy turn)", unitsAfterEnemy.Values);
 

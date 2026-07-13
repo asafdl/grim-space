@@ -3,6 +3,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Contexts;
+using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
@@ -50,11 +51,22 @@ public static class BattlePlanExecutor
 		Unit enemy,
 		BoundedGrid grid,
 		ICollection<Hazard> activeHazards,
-		PlayerPlan plan)
+		PlayerPlan plan) =>
+		Apply(actions, player, enemy, grid, activeHazards, plan.StartFacing);
+
+	public static void Apply(
+		IReadOnlyList<IBattleAction> actions,
+		Unit actor,
+		Unit opponent,
+		BoundedGrid grid,
+		ICollection<Hazard> activeHazards,
+		GridBasis? yawSettleFacing = null)
 	{
-		var board = BattleBoard.ForCommit(player, enemy, grid, activeHazards);
+		var board = BattleBoard.ForCommit(actor, opponent, grid, activeHazards);
 		ApplyAll(actions, board);
-		Orientation.SettleNetYaw(board.Player, plan.StartFacing);
+
+		if (yawSettleFacing is { } facing)
+			Orientation.SettleNetYaw(board.Player, facing);
 	}
 
 	private static void ApplyAll(IReadOnlyList<IBattleAction> actions, BattleBoard board) =>

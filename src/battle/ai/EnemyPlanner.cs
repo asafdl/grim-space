@@ -1,3 +1,4 @@
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
@@ -7,6 +8,15 @@ namespace GrimSpace.Battle.Ai;
 
 public static class EnemyPlanner
 {
+	public static IReadOnlyList<IBattleAction> PlanTurn(
+		Unit unit,
+		BoundedGrid grid,
+		IReadOnlySet<Coord> hazardCells)
+	{
+		var move = ChooseMove(unit, grid, hazardCells);
+		return move is null ? [] : [new MoveAction(move)];
+	}
+
 	public static Option? ChooseMove(
 		Unit unit,
 		BoundedGrid grid,
