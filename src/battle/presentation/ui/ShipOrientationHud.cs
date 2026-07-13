@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Movement.Enums;
+using ShipOrientation = GrimSpace.Battle.Movement.Orientation;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -68,6 +69,7 @@ public sealed partial class ShipOrientationHud : CanvasLayer
 	{
 		var column = new VBoxContainer();
 		column.AddThemeConstantOverride("separation", 2);
+		column.AddChild(HeadingButton("180", EHeadingTurn.Yaw180));
 		column.AddChild(RollButton("↺", ERollDirection.CounterClockwise));
 		column.AddChild(RollButton("↻", ERollDirection.Clockwise));
 		return column;
@@ -78,11 +80,14 @@ public sealed partial class ShipOrientationHud : CanvasLayer
 
 	private Button HeadingButton(string symbol, EHeadingTurn turn)
 	{
+		var ap = turn == EHeadingTurn.Yaw180 ? 2 : 1;
 		var button = new Button
 		{
 			Text = symbol,
 			CustomMinimumSize = new Vector2(36, 32),
-			TooltipText = $"Turn {turn} (1 + momentum AP, -1 momentum)",
+			TooltipText = ShipOrientation.IsYawTurn(turn)
+				? $"Yaw {turn} (net 0°=0 AP, 90°=1 AP, 180°=2 AP on commit)"
+				: $"Pitch {turn} (1 AP)",
 		};
 		button.Pressed += () => HeadingTurnRequested?.Invoke(turn);
 		return button;

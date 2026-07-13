@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Debug;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Turn;
@@ -18,12 +19,14 @@ public sealed class Manager
 	public BoundedGrid Grid { get; }
 	public Turn.Manager Turn { get; }
 	public IReadOnlyList<Unit> Units { get; }
-	public IReadOnlyList<IBattleAction> PlannedActions => _planQueue.Actions;
+	public IReadOnlyList<IBattleAction> PlannedActions => _playerPlan.Actions;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
 
-	private readonly PlanQueue<IBattleAction> _planQueue = new();
+	private readonly PlayerPlan _playerPlan = new();
 	private readonly List<Hazard> _activeHazards = [];
+
+	public void BeginPlanning(UnitState player) => _playerPlan.ResetFrom(player);
 
 	public int MissilesRemainingThisTurn => GetPlanContext().MissilesRemaining;
 
@@ -47,7 +50,11 @@ public sealed class Manager
 		if (firstPlayer is not null)
 			turn.SetActiveUnit(firstPlayer.State.Id);
 
-		return new Manager(grid, turn, units);
+		var manager = new Manager(grid, turn, units);
+		var player = manager.GetPlayer();
+		if (player is not null)
+			manager.BeginPlanning(player.State);
+		return manager;
 	}
 
 	public Unit? GetPlayer() =>
@@ -60,7 +67,7 @@ public sealed class Manager
 	{
 		var player = GetPlayer()!;
 		var enemy = GetEnemy()!;
-		return BattlePlanExecutor.Simulate(player, enemy, Grid, _planQueue.Actions);
+		return BattlePlanExecutor.Simulate(player, enemy, Grid, _playerPlan);
 	}
 
 	public HashSet<Coord> GetPlannedHazardCells()
@@ -140,10 +147,26 @@ public sealed class Manager
 
 	public bool TryEnqueue(IBattleAction action)
 	{
+		var player = GetActivePlayer();
+		if (player is null || !CanAct(player))
+			return false;
+
+		if (action is HeadingTurnAction heading && Orientation.IsYawTurn(heading.Turn))
+		{
+			_playerPlan.Enqueue(action);
+			if (!CanAffordPlan())
+			{
+				_playerPlan.TryUndoLast();
+				return false;
+			}
+
+			return true;
+		}
+
 		if (!IsLegal(action))
 			return false;
 
-		_planQueue.Enqueue(action);
+		_playerPlan.Enqueue(action);
 		return true;
 	}
 
@@ -156,39 +179,63 @@ public sealed class Manager
 		return LegalActions.GetMissileCells(GetPlanBoard(), GetPlanContext(), mount);
 	}
 
-	private BattlePlanContext GetPlanContext() => new(_planQueue.Actions);
+	private BattlePlanContext GetPlanContext() => _playerPlan.Context;
 
 	private BattleBoard GetPlanBoard()
 	{
 		var player = GetPlayer()!;
 		var enemy = GetEnemy()!;
-		return BattlePlanExecutor.BuildPlanBoard(player, enemy, Grid, _planQueue.Actions);
+		return BattlePlanExecutor.BuildPlanBoard(player, enemy, Grid, _playerPlan);
 	}
 
-	public bool TryUndoLast() => _planQueue.TryPopLast(out _);
+	private bool CanAffordPlan() =>
+		GetPlanBoard().Player.ActionPoints >= 0;
+
+	public bool TryUndoLast() => _playerPlan.TryUndoLast();
 
 	public bool RequestEndTurn()
 	{
 		if (IsBattleOver)
 			return false;
 
+		var turnNumber = Turn.TurnNumber;
+		var plannedActions = _playerPlan.Actions.ToList();
+		var unitsAtTurnStart = SnapshotAll();
+
 		ExecutePlan();
+		var unitsAfterPlayer = SnapshotAll();
 
+		Option? enemyMove = null;
 		if (!IsBattleOver)
-			RunEnemyTurn();
+			enemyMove = RunEnemyTurn();
 
+		var unitsAfterEnemy = SnapshotAll();
+
+		var hazardsBeforeResolve = _activeHazards.ToList();
 		ResolveHazards();
 		_activeHazards.Clear();
 
 		foreach (var unit in Units)
 			unit.State.ActionPoints = unit.State.Stats.MaxAp;
 
-		_planQueue.Clear();
+		StateLog.LogTurnResolution(
+			turnNumber,
+			plannedActions,
+			enemyMove,
+			hazardsBeforeResolve,
+			unitsAtTurnStart,
+			unitsAfterPlayer,
+			unitsAfterEnemy,
+			SnapshotAll());
+
 		Turn.AdvanceTurn();
 
 		var player = GetPlayer();
 		if (player is not null)
+		{
 			Turn.SetActiveUnit(player.State.Id);
+			BeginPlanning(player.State);
+		}
 
 		return true;
 	}
@@ -201,27 +248,29 @@ public sealed class Manager
 			return;
 
 		BattlePlanExecutor.Apply(
-			_planQueue.Actions,
+			_playerPlan.Actions,
 			player,
 			enemy,
 			Grid,
-			_activeHazards);
+			_activeHazards,
+			_playerPlan);
 
 		CheckBattleOver();
 	}
 
-	private void RunEnemyTurn()
+	private Option? RunEnemyTurn()
 	{
 		var enemy = GetEnemy();
 		if (enemy is null || !enemy.State.IsAlive)
-			return;
+			return null;
 
 		var hazardCells = GetExecutedHazardCells();
 		var move = EnemyPlanner.ChooseMove(enemy, Grid, hazardCells);
 		if (move is null)
-			return;
+			return null;
 
 		enemy.Movement.ApplyMove(enemy.State, move);
+		return move;
 	}
 
 	private void ResolveHazards()
@@ -246,6 +295,9 @@ public sealed class Manager
 
 	private static void ApplyDamage(UnitState target, int damage) =>
 		target.Hp = System.Math.Max(target.Hp - damage, 0);
+
+	private Dictionary<string, UnitState> SnapshotAll() =>
+		Units.ToDictionary(u => u.State.Id, u => u.State.Clone());
 
 	private void CheckBattleOver()
 	{

@@ -195,7 +195,7 @@ public sealed class BattlePresenter
 	private string BuildHint(Unit? unit, SimulatedTurn simulation, bool missileInRange)
 	{
 		if (unit is null)
-			return "No active unit  |  scroll/+/-: zoom  |  RMB: orbit";
+			return "No active unit  |  WASD: pan  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
 
 		var turnPrefix = _manager.IsBattleOver
 			? $"Battle over — winner: {_manager.WinnerId}  |  "

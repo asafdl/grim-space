@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -31,6 +32,10 @@ public static class Orientation
 				-basis.Right,
 				basis.Up,
 				basis.Forward),
+			EHeadingTurn.Yaw180 => new GridBasis(
+				-basis.Forward,
+				basis.Up,
+				-basis.Right),
 			EHeadingTurn.PitchUp => new GridBasis(
 				basis.Up,
 				-basis.Forward,
@@ -52,8 +57,51 @@ public static class Orientation
 	{
 		var basis = HeadingTurn(CurrentGridBasis(state), turn);
 		ApplyGridBasis(state, basis);
-		state.MomentumLevel = System.Math.Max(state.MomentumLevel - 1, 0);
 	}
+
+	public static bool IsYawTurn(EHeadingTurn turn) =>
+		turn is EHeadingTurn.YawLeft or EHeadingTurn.YawRight or EHeadingTurn.Yaw180;
+
+	public static int NormalizeQuarters(int quarters) => ((quarters % 4) + 4) % 4;
+
+	public static int ApCostForNetYaw(int netQuarters) =>
+		NormalizeQuarters(netQuarters) switch
+		{
+			0 => 0,
+			2 => CombatConfig.HeadingTurn180ApCost,
+			_ => CombatConfig.HeadingTurn90ApCost,
+		};
+
+	public static int YawQuartersBetween(GridBasis from, GridBasis to)
+	{
+		for (var quarters = 0; quarters < 4; quarters++)
+		{
+			var candidate = ApplyNetYaw(from, quarters);
+			if (candidate.Forward == to.Forward && candidate.Right == to.Right)
+				return quarters;
+		}
+
+		return 0;
+	}
+
+	public static int MomentumLossForNetYaw(int netQuarters) => ApCostForNetYaw(netQuarters);
+
+	public static void SettleNetYaw(State player, GridBasis planStartFacing)
+	{
+		var loss = MomentumLossForNetYaw(YawQuartersBetween(planStartFacing, CurrentGridBasis(player)));
+		player.ActionPoints -= loss;
+		player.MomentumLevel = System.Math.Max(player.MomentumLevel - loss, 0);
+	}
+
+	public static GridBasis ApplyNetYaw(GridBasis basis, int netQuarters) =>
+		NormalizeQuarters(netQuarters) switch
+		{
+			0 => basis,
+			1 => HeadingTurn(basis, EHeadingTurn.YawRight),
+			2 => HeadingTurn(basis, EHeadingTurn.Yaw180),
+			3 => HeadingTurn(basis, EHeadingTurn.YawLeft),
+			_ => basis,
+		};
 
 	private static GridBasis CurrentGridBasis(State state) =>
 		GridBasis.From(state.ForwardDirection, state.UpDirection, state.RightDirection);

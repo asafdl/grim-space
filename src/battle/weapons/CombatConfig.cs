@@ -24,5 +24,6 @@ public static class CombatConfig
 	public const int RailgunRequiredTargetMomentum = 0;
 
 	public const int RollApCost = 1;
-	public const int HeadingTurnBaseApCost = 1;
+	public const int HeadingTurn90ApCost = 1;
+	public const int HeadingTurn180ApCost = 2;
 }

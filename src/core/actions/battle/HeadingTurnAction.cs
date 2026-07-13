@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -13,18 +14,20 @@ public sealed class HeadingTurnAction(EHeadingTurn turn) : IBattleAction
 	public EHeadingTurn Turn { get; } = turn;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) =>
-		board.Player.ActionPoints >= GetApCost(board.Player);
+		Orientation.IsYawTurn(Turn) || board.Player.ActionPoints >= CombatConfig.HeadingTurn90ApCost;
 
 	public int GetApCost(State player) =>
-		CombatConfig.HeadingTurnBaseApCost + player.MomentumLevel;
+		Orientation.IsYawTurn(Turn) ? 0 : CombatConfig.HeadingTurn90ApCost;
 
 	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board)
 	{
-		var cost = GetApCost(board.Player);
+		if (Orientation.IsYawTurn(Turn))
+			return [new HeadingTurnEffect(Turn)];
+
 		return
 		[
 			new HeadingTurnEffect(Turn),
-			new ApChangeEffect(-cost),
+			new ApChangeEffect(-CombatConfig.HeadingTurn90ApCost),
 		];
 	}
 }

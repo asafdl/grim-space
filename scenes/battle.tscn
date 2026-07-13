@@ -8,7 +8,7 @@
 script = ExtResource("1_battle")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(0.822715, -0.409576, 0.393536, 0, 0.694272, 0.719724, -0.566498, -0.592091, 0.571209, 22, 20, 26)
+transform = Transform3D(0.822715, -0.409576, 0.393536, 0, 0.694272, 0.719724, -0.566498, -0.592091, 0.571209, 10, 9, 12)
 current = true
 fov = 55.0
 script = ExtResource("3_camera")

@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -19,10 +20,11 @@ public static class BattlePlanExecutor
 		Unit player,
 		Unit enemy,
 		BoundedGrid grid,
-		IReadOnlyList<IBattleAction> actions)
+		PlayerPlan plan)
 	{
 		var board = BattleBoard.ForSimulation(player, enemy, grid);
-		ApplyAll(actions, board);
+		ApplyAll(plan.Actions, board);
+		Orientation.SettleNetYaw(board.Player, plan.StartFacing);
 		return board;
 	}
 
@@ -30,9 +32,9 @@ public static class BattlePlanExecutor
 		Unit player,
 		Unit enemy,
 		BoundedGrid grid,
-		IReadOnlyList<IBattleAction> actions)
+		PlayerPlan plan)
 	{
-		var board = BuildPlanBoard(player, enemy, grid, actions);
+		var board = BuildPlanBoard(player, enemy, grid, plan);
 
 		return new SimulatedTurn
 		{
@@ -47,10 +49,12 @@ public static class BattlePlanExecutor
 		Unit player,
 		Unit enemy,
 		BoundedGrid grid,
-		ICollection<Hazard> activeHazards)
+		ICollection<Hazard> activeHazards,
+		PlayerPlan plan)
 	{
 		var board = BattleBoard.ForCommit(player, enemy, grid, activeHazards);
 		ApplyAll(actions, board);
+		Orientation.SettleNetYaw(board.Player, plan.StartFacing);
 	}
 
 	private static void ApplyAll(IReadOnlyList<IBattleAction> actions, BattleBoard board) =>

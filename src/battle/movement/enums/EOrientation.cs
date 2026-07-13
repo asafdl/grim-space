@@ -10,6 +10,7 @@ public enum EHeadingTurn
 {
 	YawLeft,
 	YawRight,
+	Yaw180,
 	PitchUp,
 	PitchDown,
 }

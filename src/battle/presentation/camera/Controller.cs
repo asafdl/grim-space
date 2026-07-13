@@ -8,7 +8,9 @@ public partial class Controller : Camera3D
 {
 	private const float OrbitSensitivity = 0.004f;
 	private const float PanSensitivity = 0.025f;
+	private const float KeyboardPanSpeed = 28f;
 	private const float ZoomStep = 1.5f;
+	private const float DefaultDistance = 22f;
 	private const float MinDistance = 8f;
 	private const float MaxDistance = 280f;
 	private const float MinPitch = -1.2f;
@@ -33,7 +35,7 @@ public partial class Controller : Camera3D
 	public void SetPivot(Vector3 pivot)
 	{
 		_pivot = pivot;
-		SyncFromTransform();
+		ApplyTransform();
 	}
 
 	public override void _Ready()
@@ -43,6 +45,8 @@ public partial class Controller : Camera3D
 			WorldMapping.CellSize * 4f,
 			WorldMapping.CellSize * 4f);
 		SyncFromTransform();
+		_distance = DefaultDistance;
+		ApplyTransform();
 	}
 
 	public void EnterDorsalAim(State ship)
@@ -77,6 +81,38 @@ public partial class Controller : Camera3D
 		_yaw = _savedYaw;
 		_pitch = _savedPitch;
 		_distance = _savedDistance;
+		ApplyTransform();
+	}
+
+	public override void _Process(double delta)
+	{
+		if (_aimLocked)
+			return;
+
+		var pan = Vector2.Zero;
+		if (Input.IsKeyPressed(Key.W))
+			pan.Y -= 1f;
+		if (Input.IsKeyPressed(Key.S))
+			pan.Y += 1f;
+		if (Input.IsKeyPressed(Key.A))
+			pan.X -= 1f;
+		if (Input.IsKeyPressed(Key.D))
+			pan.X += 1f;
+
+		if (pan == Vector2.Zero)
+			return;
+
+		pan = pan.Normalized();
+		var right = GlobalTransform.Basis.X;
+		var forward = -GlobalTransform.Basis.Z;
+		forward.Y = 0f;
+		right.Y = 0f;
+		if (forward.LengthSquared() > 0.001f)
+			forward = forward.Normalized();
+		if (right.LengthSquared() > 0.001f)
+			right = right.Normalized();
+
+		_pivot += (right * pan.X + forward * pan.Y) * KeyboardPanSpeed * (float)delta;
 		ApplyTransform();
 	}
 
