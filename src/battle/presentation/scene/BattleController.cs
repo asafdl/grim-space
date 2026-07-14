@@ -119,6 +119,18 @@ public partial class BattleController : Node3D
 			return;
 		}
 
+		if (_presenter.Mode == EPlayerMode.Missile
+			&& @event is InputEventMouseButton { Pressed: true } scroll
+			&& scroll.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
+		{
+			var delta = scroll.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+			if (_presenter.AdjustMissileRange(delta))
+				Refresh();
+
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		var frame = _presenter.BuildFrame();
 		if (_presenter.Manager.IsBattleOver || frame.ActiveUnit is null)
 			return;
@@ -232,11 +244,10 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		_missileRangeIndicator.SetActive(null, 0);
-
 		switch (frame.Mode)
 		{
 			case EPlayerMode.Move:
+				_missileRangeIndicator.SetActive(null, 0);
 				_gridView.SetMoveHighlights(
 					frame.MoveOptions,
 					frame.MovePath,
@@ -245,6 +256,7 @@ public partial class BattleController : Node3D
 				break;
 
 			case EPlayerMode.Missile:
+				_missileRangeIndicator.SetActive(frame.Simulation.Player.Position, frame.MissileRange);
 				_gridView.SetMissileHighlights(
 					frame.PlannedHazardCells,
 					frame.ValidMissileCells,
@@ -252,6 +264,7 @@ public partial class BattleController : Node3D
 				break;
 
 			case EPlayerMode.Railgun:
+				_missileRangeIndicator.SetActive(null, 0);
 				_gridView.SetRailgunHighlights(
 					frame.RailgunTargetCells,
 					frame.RailgunHoveredCell,

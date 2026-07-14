@@ -1,6 +1,5 @@
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -8,97 +7,97 @@ namespace GrimSpace.Battle.Ai;
 
 public static class EnemyPlanner
 {
+	private const int MaxPlanLength = 16;
+	private const int HazardDeathPenalty = 1_000_000;
+	private const int EscapeHazardBonus = 500_000;
+
 	public static IReadOnlyList<IBattleAction> PlanTurn(
-		Unit unit,
+		Unit actor,
+		Unit opponent,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> hazardCells)
 	{
-		var move = ChooseMove(unit, grid, hazardCells);
-		return move is null ? [] : [new MoveAction(move)];
-	}
+		var startFacing = GridBasis.From(
+			actor.State.ForwardDirection,
+			actor.State.UpDirection,
+			actor.State.RightDirection);
+		var startedInHazard = hazardCells.Contains(actor.State.Position);
+		var plan = new List<IBattleAction>();
 
-	public static Option? ChooseMove(
-		Unit unit,
-		BoundedGrid grid,
-		IReadOnlySet<Coord> hazardCells)
-	{
-		var options = unit.Movement.GetPreviews(unit.State, grid);
-		if (options.Count == 0)
-			return null;
-
-		Option? best = null;
-		var bestScore = int.MinValue;
-		var currentlyInHazard = hazardCells.Contains(unit.State.Position);
-
-		foreach (var option in options)
+		for (var step = 0; step < MaxPlanLength; step++)
 		{
-			var score = ScoreOption(unit.State, option, hazardCells, currentlyInHazard);
-			if (score <= bestScore)
-				continue;
+			var currentScore = ScorePlan(actor, opponent, grid, plan, startFacing, hazardCells, startedInHazard);
 
-			bestScore = score;
-			best = option;
+			IBattleAction? bestAction = null;
+			var bestScore = currentScore;
+
+			foreach (var candidate in LegalActions.EnumerateMovement(actor, opponent, grid, plan, startFacing))
+			{
+				var trial = AppendAction(plan, candidate);
+				var actorState = PlanSimulator.Simulate(actor, opponent, grid, trial, startFacing).Player;
+				if (actorState.ActionPoints < 0)
+					continue;
+
+				var score = ScorePosition(actorState.Position, hazardCells, startedInHazard);
+				if (score <= bestScore)
+					continue;
+
+				bestScore = score;
+				bestAction = candidate;
+			}
+
+			if (bestAction is null)
+				break;
+
+			AppendActionInPlace(plan, bestAction);
 		}
 
-		return best;
+		return plan;
 	}
 
-	private static int ScoreOption(
-		State state,
-		Option option,
+	private static int ScorePlan(
+		Unit actor,
+		Unit opponent,
+		BoundedGrid grid,
+		IReadOnlyList<IBattleAction> plan,
+		GridBasis startFacing,
 		IReadOnlySet<Coord> hazardCells,
-		bool currentlyInHazard)
+		bool startedInHazard)
 	{
-		var score = 0;
-		var end = option.EndPosition;
-		var endsInHazard = hazardCells.Contains(end);
-
-		if (endsInHazard)
-			score -= 10_000;
-
-		if (currentlyInHazard && !endsInHazard)
-			score += 5_000;
-
-		var projectedMomentum = ProjectMomentum(state, option.Path);
-		score += projectedMomentum * 200;
-		score += CountForwardSteps(state, option.Path) * 25;
-		score -= option.ApCost;
-
-		return score;
+		var position = PlanSimulator.Simulate(actor, opponent, grid, plan, startFacing).Player.Position;
+		return ScorePosition(position, hazardCells, startedInHazard);
 	}
 
-	private static int ProjectMomentum(State state, IReadOnlyList<Coord> path)
+	private static int ScorePosition(Coord position, IReadOnlySet<Coord> hazardCells, bool startedInHazard)
 	{
-		var momentum = state.MomentumLevel;
-		var pos = state.Position;
+		if (hazardCells.Contains(position))
+			return -HazardDeathPenalty;
 
-		foreach (var next in path)
-		{
-			var delta = next - pos;
-			if (delta == state.ForwardDirection)
-				momentum = System.Math.Min(momentum + 1, MomentumConfig.MaxLevel);
-			else if (delta == Coord.Zero - state.ForwardDirection)
-				momentum = System.Math.Max(momentum - 1, 0);
+		if (startedInHazard)
+			return EscapeHazardBonus;
 
-			pos = next;
-		}
-
-		return momentum;
+		return 0;
 	}
 
-	private static int CountForwardSteps(State state, IReadOnlyList<Coord> path)
+	private static List<IBattleAction> AppendAction(IReadOnlyList<IBattleAction> plan, IBattleAction action)
 	{
-		var count = 0;
-		var pos = state.Position;
+		var trial = plan.ToList();
+		AppendActionInPlace(trial, action);
+		return trial;
+	}
 
-		foreach (var next in path)
+	private static void AppendActionInPlace(List<IBattleAction> plan, IBattleAction action)
+	{
+		if (action is MoveAction)
 		{
-			if (next - pos == state.ForwardDirection)
-				count++;
-
-			pos = next;
+			var index = plan.FindIndex(queued => queued is MoveAction);
+			if (index >= 0)
+				plan[index] = action;
+			else
+				plan.Add(action);
+			return;
 		}
 
-		return count;
+		plan.Add(action);
 	}
 }

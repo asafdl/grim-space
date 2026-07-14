@@ -6,8 +6,6 @@ public sealed class PlanQueue<TAction> where TAction : IEnqueueable
 
 	public IReadOnlyList<TAction> Actions => _actions;
 
-	public int Count => _actions.Count;
-
 	public void Clear() => _actions.Clear();
 
 	public bool TryPopLast(out TAction? action)
@@ -41,7 +39,4 @@ public sealed class PlanQueue<TAction> where TAction : IEnqueueable
 
 		_actions.Add(action);
 	}
-
-	public int CountOf<T>() where T : TAction =>
-		_actions.Count(queued => queued is T);
 }

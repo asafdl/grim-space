@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Effects;
@@ -24,8 +23,6 @@ public sealed class RailgunAction(string targetUnitId) : IBattleAction
 		return board.Player.Position.ManhattanDistanceTo(board.Enemy.Position)
 			<= CombatConfig.RailgunMaxRange;
 	}
-
-	public int GetApCost(State player) => 0;
 
 	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board) =>
 		[new DamageEffect(TargetUnitId, CombatConfig.RailgunDamage)];

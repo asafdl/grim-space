@@ -1,6 +1,5 @@
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
-using GrimSpace.Core.Actions;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;

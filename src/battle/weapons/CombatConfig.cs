@@ -16,6 +16,9 @@ public static class CombatConfig
 		MaxUp = 2,
 	};
 
+	public const int DorsalMissileMinRange = 10;
+	public const int DorsalMissileMaxRange = 15;
+
 	public const int MissileDamage = 1;
 	public const int MissileMomentumLoss = 1;
 

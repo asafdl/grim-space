@@ -6,7 +6,7 @@ namespace GrimSpace.Battle.Movement;
 
 public interface IMovement
 {
-	IReadOnlyList<Option> GetPreviews(State unit, BoundedGrid grid);
+	IReadOnlyList<Option> GetMoveOptions(State unit, BoundedGrid grid);
 	bool CanMove(State unit, Option option);
 	void ApplyMove(State unit, Option option);
 }

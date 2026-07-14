@@ -1,27 +1,62 @@
+using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
+using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
 
+/// <summary>
+/// Rules-layer queries: which actions and cells are legal given board state and plan context.
+/// </summary>
 public static class LegalActions
 {
+	public static IEnumerable<IBattleAction> EnumerateMovement(
+		Unit actor,
+		Unit opponent,
+		BoundedGrid grid,
+		IReadOnlyList<IBattleAction> plan,
+		GridBasis startFacing)
+	{
+		var context = new BattlePlanContext(plan, startFacing);
+		var board = PlanSimulator.BuildBoard(actor, opponent, grid, plan);
+
+		foreach (var turn in Enum.GetValues<EHeadingTurn>())
+		{
+			var action = new HeadingTurnAction(turn);
+			if (action.IsLegal(board, context))
+				yield return action;
+		}
+
+		foreach (var direction in Enum.GetValues<ERollDirection>())
+		{
+			var action = new RollAction(direction);
+			if (action.IsLegal(board, context))
+				yield return action;
+		}
+
+		var moveBoard = PlanSimulator.BuildBoard(actor, opponent, grid, plan, excludeMoves: true);
+		foreach (var option in GetMoveOptions(moveBoard, context))
+			yield return new MoveAction(option);
+	}
+
 	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context) =>
 		board.PlayerUnit.Movement
-			.GetPreviews(board.Player, board.Grid)
+			.GetMoveOptions(board.Player, board.Grid)
 			.Where(option => new MoveAction(option).IsLegal(board, context))
 			.ToList();
 
 	public static HashSet<Coord> GetMissileCells(
 		BattleBoard board,
 		BattlePlanContext context,
-		EMissileMount mount)
+		EMissileMount mount,
+		int range)
 	{
 		if (context.MissilesRemaining <= 0)
 			return [];
 
-		var config = MissileMountConfig.For(mount);
+		var config = MissileMountConfig.For(mount).WithRange(range);
 		var cells = MissileTargeting.GetValidCells(
 			board.Player.Position,
 			board.Player.ForwardDirection,
@@ -31,18 +66,10 @@ public static class LegalActions
 			board.Grid.IsInBounds);
 
 		return cells
-			.Where(cell => new MissileAction(cell, mount).IsLegal(board, context))
+			.Where(cell => new MissileAction(cell, mount, range).IsLegal(board, context))
 			.ToHashSet();
 	}
 
 	public static bool IsRailgunAvailable(BattleBoard board, BattlePlanContext context) =>
 		new RailgunAction(board.Enemy.Id).IsLegal(board, context);
-
-	public static bool IsRollAvailable(BattleBoard board, BattlePlanContext context) =>
-		Enum.GetValues<ERollDirection>()
-			.Any(direction => new RollAction(direction).IsLegal(board, context));
-
-	public static bool IsHeadingTurnAvailable(BattleBoard board, BattlePlanContext context) =>
-		Enum.GetValues<EHeadingTurn>()
-			.Any(turn => new HeadingTurnAction(turn).IsLegal(board, context));
 }

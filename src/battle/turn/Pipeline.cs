@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Environment;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions.Battle;
@@ -91,16 +92,26 @@ public sealed class Pipeline
 		if (enemy is null || player is null || !enemy.State.IsAlive)
 			return [];
 
-		var actions = EnemyPlanner.PlanTurn(enemy, _grid, _hazards.GetOccupiedCells());
+		var actions = EnemyPlanner.PlanTurn(
+			enemy,
+			player,
+			_grid,
+			_hazards.GetOccupiedCells());
 		if (actions.Count == 0)
 			return actions;
+
+		var startFacing = GridBasis.From(
+			enemy.State.ForwardDirection,
+			enemy.State.UpDirection,
+			enemy.State.RightDirection);
 
 		BattlePlanExecutor.Apply(
 			actions,
 			enemy,
 			player,
 			_grid,
-			_hazards.RegisterTarget);
+			_hazards.RegisterTarget,
+			startFacing);
 
 		return actions;
 	}

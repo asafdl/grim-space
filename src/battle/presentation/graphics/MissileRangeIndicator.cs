@@ -9,6 +9,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public partial class MissileRangeIndicator : Node3D
 {
 	private MeshInstance3D? _mesh;
+	private int _meshRange;
 
 	public void SetActive(Coord? shipCell, int rangeTiles)
 	{
@@ -27,8 +28,12 @@ public partial class MissileRangeIndicator : Node3D
 
 	private void EnsureMesh(int rangeTiles)
 	{
-		if (_mesh is not null)
+		if (_mesh is not null && _meshRange == rangeTiles)
 			return;
+
+		_mesh?.QueueFree();
+		_mesh = null;
+		_meshRange = rangeTiles;
 
 		var radius = rangeTiles * WorldMapping.CellSize;
 		_mesh = new MeshInstance3D

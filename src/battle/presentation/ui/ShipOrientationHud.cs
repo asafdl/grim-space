@@ -80,7 +80,6 @@ public sealed partial class ShipOrientationHud : CanvasLayer
 
 	private Button HeadingButton(string symbol, EHeadingTurn turn)
 	{
-		var ap = turn == EHeadingTurn.Yaw180 ? 2 : 1;
 		var button = new Button
 		{
 			Text = symbol,

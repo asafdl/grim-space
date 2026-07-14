@@ -11,7 +11,7 @@ public sealed class DiscreteStep : IMovement
 
 	private static readonly EStepDirection[] Directions = Enum.GetValues<EStepDirection>();
 
-	public IReadOnlyList<Option> GetPreviews(State unit, BoundedGrid grid)
+	public IReadOnlyList<Option> GetMoveOptions(State unit, BoundedGrid grid)
 	{
 		var byEndpoint = new Dictionary<Coord, Option>();
 		var visited = new Dictionary<SearchNode, int>();

@@ -1,14 +1,13 @@
+using GrimSpace.Battle.Movement;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Player;
 
 /// <summary>
-/// Owns the player planning queue and UI-facing legality/preview queries.
+/// Player turn planning: action queue, enqueue policy, and legality checks.
 /// </summary>
 public sealed class PlayerController
 {
@@ -33,7 +32,13 @@ public sealed class PlayerController
 		_getActivePlayer = getActivePlayer;
 	}
 
-	public IReadOnlyList<IBattleAction> PlannedActions => _plan.Actions;
+	public Unit Actor => _player;
+	public Unit Opponent => _enemy;
+	public BoundedGrid Grid => _grid;
+	public PlayerPlan Plan => _plan;
+	public IReadOnlyList<IBattleAction> Actions => _plan.Actions;
+	public BattlePlanContext Context => _plan.Context;
+	public GridBasis StartFacing => _plan.StartFacing;
 	public int MissilesRemainingThisTurn => _plan.Context.MissilesRemaining;
 
 	public void ResetFrom(State player) => _plan.ResetFrom(player);
@@ -41,70 +46,20 @@ public sealed class PlayerController
 	public FinalizedPlan FinalizePlan() =>
 		new(_plan.Actions.ToList(), _plan.Context.StartFacing);
 
-	public SimulatedTurn GetSimulation() =>
-		BattlePlanExecutor.Simulate(_player, _enemy, _grid, _plan);
+	public bool CanAct(Unit unit) => _canAct(unit);
 
-	public HashSet<Coord> GetPlannedHazardCells()
-	{
-		var cells = new HashSet<Coord>();
-		foreach (var hazard in GetSimulation().Hazards)
-			cells.UnionWith(hazard.Cells);
-
-		return cells;
-	}
-
-	public HashSet<Coord> GetMissilePreviewCells(Coord center)
-	{
-		var hazard = Hazard.MissileZone(
-			center,
-			_grid,
-			CombatConfig.MissileRadius,
-			CombatConfig.MissileDamage,
-			CombatConfig.MissileMomentumLoss);
-		return hazard.Cells;
-	}
-
-	public Preview? GetMovementPreview(Unit unit)
-	{
-		if (!_canAct(unit))
-			return null;
-
-		var board = GetPlanBoard();
-		var context = _plan.Context;
-		return new Preview
-		{
-			Options = LegalActions.GetMoveOptions(board, context),
-		};
-	}
-
-	public (Unit? Unit, Preview? Preview) GetActivePlayerPreview()
-	{
-		var unit = _getActivePlayer();
-		if (unit is null)
-			return (null, null);
-
-		return (unit, GetMovementPreview(unit));
-	}
-
-	public HashSet<Coord> GetRailgunTargetCells(Unit? activeUnit)
-	{
-		var cells = new HashSet<Coord>();
-		if (activeUnit is null || !_canAct(activeUnit))
-			return cells;
-
-		var board = GetPlanBoard();
-		var context = _plan.Context;
-		if (!LegalActions.IsRailgunAvailable(board, context))
-			return cells;
-
-		cells.Add(board.Enemy.Position);
-		return cells;
-	}
+	public Unit? GetActiveActor() => _getActivePlayer();
 
 	public bool IsLegal(IBattleAction action)
 	{
 		var player = _getActivePlayer();
-		return player is not null && _canAct(player) && action.IsLegal(GetPlanBoard(), _plan.Context);
+		if (player is null || !_canAct(player))
+			return false;
+
+		var board = action is MoveAction
+			? LegalityBoard(excludeMoves: true)
+			: CommittedPlanBoard();
+		return action.IsLegal(board, _plan.Context);
 	}
 
 	public bool TryEnqueue(IBattleAction action)
@@ -132,22 +87,16 @@ public sealed class PlayerController
 		return true;
 	}
 
-	public HashSet<Coord> GetValidMissileCells(EMissileMount mount)
-	{
-		var player = _getActivePlayer();
-		if (player is null || !_canAct(player))
-			return [];
-
-		return LegalActions.GetMissileCells(GetPlanBoard(), _plan.Context, mount);
-	}
-
 	public bool TryUndoLast() => _plan.TryUndoLast();
 
-	private BattleBoard GetPlanBoard() =>
-		BattlePlanExecutor.BuildPlanBoard(_player, _enemy, _grid, _plan);
+	private BattleBoard CommittedPlanBoard() =>
+		PlanSimulator.Simulate(_player, _enemy, _grid, _plan.Actions, _plan.StartFacing);
+
+	private BattleBoard LegalityBoard(bool excludeMoves) =>
+		PlanSimulator.Simulate(_player, _enemy, _grid, _plan.Actions, _plan.StartFacing, excludeMoves);
 
 	private bool CanAffordPlan() =>
-		GetPlanBoard().Player.ActionPoints >= 0;
+		CommittedPlanBoard().Player.ActionPoints >= 0;
 }
 
 public readonly record struct FinalizedPlan(

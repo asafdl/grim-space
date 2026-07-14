@@ -19,4 +19,14 @@ public sealed class MissileMountConfig
 			EMissileMount.Dorsal => CombatConfig.DorsalMissile,
 			_ => throw new ArgumentOutOfRangeException(nameof(mount)),
 		};
+
+	public MissileMountConfig WithRange(int range) =>
+		new()
+		{
+			Range = range,
+			MinForward = MinForward,
+			MaxAbsRight = MaxAbsRight,
+			MinUp = MinUp,
+			MaxUp = MaxUp,
+		};
 }

@@ -89,7 +89,7 @@ public static class StateLog
 			: $"HeadingTurn {heading.Turn} (1 AP)",
 		RollAction roll => $"Roll {roll.Direction}",
 		RailgunAction railgun => $"Railgun -> {railgun.TargetUnitId}",
-		MissileAction missile => $"Missile {missile.Mount} @ {missile.Center}",
+		MissileAction missile => $"Missile {missile.Mount} @ {missile.Center} (range {missile.Range})",
 		_ => action.GetType().Name,
 	};
 }

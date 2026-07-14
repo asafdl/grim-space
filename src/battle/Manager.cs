@@ -14,7 +14,6 @@ public sealed class Manager
 	public BoundedGrid Grid { get; }
 	public Turn.Manager Turn { get; }
 	public IReadOnlyList<Unit> Units { get; }
-	public HazardSystem Hazards { get; }
 	public PlayerController Player { get; }
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
@@ -25,14 +24,12 @@ public sealed class Manager
 		BoundedGrid grid,
 		Turn.Manager turn,
 		IReadOnlyList<Unit> units,
-		HazardSystem hazards,
 		PlayerController player,
 		Pipeline pipeline)
 	{
 		Grid = grid;
 		Turn = turn;
 		Units = units;
-		Hazards = hazards;
 		Player = player;
 		_pipeline = pipeline;
 	}
@@ -61,7 +58,7 @@ public sealed class Manager
 			unit => self!.CanAct(unit),
 			() => self!.GetActivePlayer());
 
-		self = new Manager(grid, turn, units, hazards, playerController, pipeline);
+		self = new Manager(grid, turn, units, playerController, pipeline);
 
 		if (self.GetPlayer() is { } player)
 			self.Player.ResetFrom(player.State);
@@ -75,7 +72,7 @@ public sealed class Manager
 	public Unit? GetEnemy() =>
 		Units.FirstOrDefault(u => u.Controller == EController.Enemy);
 
-	public Unit? GetActivePlayer() =>
+	private Unit? GetActivePlayer() =>
 		GetActiveUnits().FirstOrDefault(u => u.Controller == EController.Player);
 
 	public bool ExecuteTurn(FinalizedPlan playerPlan)
@@ -93,9 +90,9 @@ public sealed class Manager
 		return true;
 	}
 
-	public bool CanAct(Unit unit) =>
+	private bool CanAct(Unit unit) =>
 		!IsBattleOver && Turn.IsActive(unit.State.Id) && unit.State.IsAlive;
 
-	public IEnumerable<Unit> GetActiveUnits() =>
+	private IEnumerable<Unit> GetActiveUnits() =>
 		Units.Where(u => Turn.IsActive(u.State.Id) && u.State.IsAlive);
 }

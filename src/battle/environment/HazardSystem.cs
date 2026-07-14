@@ -17,8 +17,6 @@ public sealed class HazardSystem
 	/// <summary>Collection passed to action commit boards for hazard spawning.</summary>
 	public ICollection<Hazard> RegisterTarget => _active;
 
-	public void Register(Hazard hazard) => _active.Add(hazard);
-
 	public HashSet<Coord> GetOccupiedCells()
 	{
 		var cells = new HashSet<Coord>();

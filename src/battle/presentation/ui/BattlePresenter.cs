@@ -2,6 +2,8 @@ using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Planning;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 
@@ -18,6 +20,7 @@ public sealed class BattlePresenter
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public EMissileMount? MissileMount { get; private set; }
+	public int MissileRange { get; private set; } = CombatConfig.DorsalMissileMinRange;
 	public Coord? MissileHover { get; private set; }
 	public Unit? RailgunHover { get; private set; }
 
@@ -32,6 +35,7 @@ public sealed class BattlePresenter
 	{
 		Mode = EPlayerMode.Missile;
 		MissileMount = mount;
+		MissileRange = CombatConfig.DorsalMissileMinRange;
 		ClearInteraction();
 	}
 
@@ -68,6 +72,23 @@ public sealed class BattlePresenter
 
 	public void SetMissileHover(Coord? cell) => MissileHover = cell;
 
+	public bool AdjustMissileRange(int delta)
+	{
+		if (Mode != EPlayerMode.Missile || MissileMount is not EMissileMount.Dorsal)
+			return false;
+
+		var next = System.Math.Clamp(
+			MissileRange + delta,
+			CombatConfig.DorsalMissileMinRange,
+			CombatConfig.DorsalMissileMaxRange);
+		if (next == MissileRange)
+			return false;
+
+		MissileRange = next;
+		MissileHover = null;
+		return true;
+	}
+
 	public void SetRailgunHover(Unit? target) =>
 		RailgunHover = target is not null && IsRailgunLegal(target) ? target : null;
 
@@ -88,7 +109,7 @@ public sealed class BattlePresenter
 		if (MissileMount is not EMissileMount mount)
 			return false;
 
-		if (!_manager.Player.TryEnqueue(new MissileAction(center, mount)))
+		if (!_manager.Player.TryEnqueue(new MissileAction(center, mount, MissileRange)))
 			return false;
 
 		MissileHover = null;
@@ -120,48 +141,46 @@ public sealed class BattlePresenter
 
 	public PresentationFrame BuildFrame()
 	{
-		var player = _manager.Player;
-		var active = player.GetActivePlayerPreview();
-		var options = active.Preview?.Options ?? [];
+		var planning = _manager.Player;
+		var activeUnit = planning.GetActiveActor();
+		var options = View.GetMoveHighlights(planning, activeUnit);
 		_selection.ClampToCount(options.Count);
 
-		var exitMissileMode = Mode == EPlayerMode.Missile && player.MissilesRemainingThisTurn <= 0;
+		var exitMissileMode = Mode == EPlayerMode.Missile && planning.MissilesRemainingThisTurn <= 0;
 		if (exitMissileMode)
 			CancelMissileMode();
 
-		var simulation = player.GetSimulation();
-		var hazardCells = player.GetPlannedHazardCells();
-		var validMissileCells = GetValidMissileCells(active.Unit);
-		var missilePreviewCells = GetMissilePreviewCells(active.Unit);
-		var railgunTargets = player.GetRailgunTargetCells(active.Unit);
-		var (path, target) = MovementSelection.GetHighlights(
-			options,
-			_selection.SelectedIndex,
-			_selection.HoveredIndex);
+		var simulation = View.GetTurnGhost(planning);
+		var hazardCells = View.GetPlannedHazardHighlights(planning);
+		var validMissileCells = GetValidMissileCells(activeUnit);
+		var missilePreviewCells = GetMissilePreviewCells(activeUnit);
+		var railgunTargets = View.GetRailgunTargetHighlights(planning, activeUnit);
+		var (path, target) = MovementSelection.GetHighlights(options, _selection.HoveredIndex);
 
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
-			&& player.IsLegal(new MissileAction(hover, mount));
+			&& planning.IsLegal(new MissileAction(hover, mount, MissileRange));
 
 		return new PresentationFrame
 		{
 			Mode = Mode,
 			MissileMount = MissileMount,
-			ActiveUnit = active.Unit,
+			MissileRange = MissileRange,
+			ActiveUnit = activeUnit,
 			MoveOptions = options,
 			Simulation = simulation,
 			PlannedHazardCells = hazardCells,
 			ValidMissileCells = validMissileCells,
 			MissilePreviewCells = missilePreviewCells,
 			RailgunTargetCells = railgunTargets,
-			RailgunHoveredCell = GetRailgunHoveredCell(),
+			RailgunHoveredCell = GetRailgunHoveredCell(simulation),
 			MovePath = path,
 			MoveTarget = target,
-			MissileAimActive = Mode == EPlayerMode.Missile && MissileMount is not null && active.Unit is not null,
+			MissileAimActive = Mode == EPlayerMode.Missile && MissileMount is not null && activeUnit is not null,
 			MissileAimShip = Mode == EPlayerMode.Missile ? simulation.Player : null,
-			HintText = BuildHint(active.Unit, simulation, missileInRange),
-			CanAct = !_manager.IsBattleOver && active.Unit is not null,
-			MissilesRemaining = player.MissilesRemainingThisTurn,
+			HintText = BuildHint(activeUnit, simulation, missileInRange, planning),
+			CanAct = !_manager.IsBattleOver && activeUnit is not null,
+			MissilesRemaining = planning.MissilesRemainingThisTurn,
 			ExitMissileMode = exitMissileMode,
 		};
 	}
@@ -171,7 +190,7 @@ public sealed class BattlePresenter
 		if (Mode != EPlayerMode.Missile || MissileMount is not EMissileMount mount || unit is null)
 			return [];
 
-		return _manager.Player.GetValidMissileCells(mount);
+		return View.GetMissileTargetHighlights(_manager.Player, mount, MissileRange);
 	}
 
 	private HashSet<Coord> GetMissilePreviewCells(Unit? unit)
@@ -180,20 +199,24 @@ public sealed class BattlePresenter
 			|| MissileMount is not EMissileMount mount
 			|| unit is null
 			|| MissileHover is not Coord hover
-			|| !_manager.Player.IsLegal(new MissileAction(hover, mount)))
+			|| !_manager.Player.IsLegal(new MissileAction(hover, mount, MissileRange)))
 		{
 			return [];
 		}
 
-		return _manager.Player.GetMissilePreviewCells(hover);
+		return View.GetMissileBlastHighlights(hover, _manager.Player.Grid);
 	}
 
-	private Coord? GetRailgunHoveredCell() =>
+	private Coord? GetRailgunHoveredCell(SimulatedTurn simulation) =>
 		RailgunHover is not null && IsRailgunLegal(RailgunHover)
-			? _manager.Player.GetSimulation().Enemy.Position
+			? simulation.Enemy.Position
 			: null;
 
-	private string BuildHint(Unit? unit, SimulatedTurn simulation, bool missileInRange)
+	private string BuildHint(
+		Unit? unit,
+		SimulatedTurn simulation,
+		bool missileInRange,
+		PlayerController planning)
 	{
 		if (unit is null)
 			return "No active unit  |  WASD: pan  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
@@ -205,10 +228,11 @@ public sealed class BattlePresenter
 		return turnPrefix + CombatHints.BuildHint(
 			Mode,
 			simulation.Player,
-			_manager.Player.MissilesRemainingThisTurn,
-			_manager.Player.PlannedActions.Count,
+			planning.MissilesRemainingThisTurn,
+			planning.Actions.Count,
 			RailgunHover,
 			MissileMount,
+			MissileRange,
 			MissileHover,
 			missileInRange);
 	}

@@ -11,6 +11,7 @@ public sealed class PresentationFrame
 {
 	public required EPlayerMode Mode { get; init; }
 	public EMissileMount? MissileMount { get; init; }
+	public int MissileRange { get; init; }
 	public Unit? ActiveUnit { get; init; }
 	public required IReadOnlyList<Option> MoveOptions { get; init; }
 	public required SimulatedTurn Simulation { get; init; }

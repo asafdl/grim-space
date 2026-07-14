@@ -9,37 +9,14 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public sealed class Selection
 {
 	public int? HoveredIndex { get; private set; }
-	public int? SelectedIndex { get; private set; }
 
 	public void SetHover(int? index, int optionCount) =>
 		HoveredIndex = ClampIndex(index, optionCount);
 
-	public ClickResult OnClick(int? pickedIndex, int optionCount)
-	{
-		var picked = ClampIndex(pickedIndex, optionCount);
-		if (picked is null)
-			return ClickResult.Ignored;
+	public void Clear() => HoveredIndex = null;
 
-		if (SelectedIndex != picked)
-		{
-			SelectedIndex = picked;
-			return ClickResult.Selected;
-		}
-
-		return ClickResult.Confirm;
-	}
-
-	public void Clear()
-	{
-		SelectedIndex = null;
-		HoveredIndex = null;
-	}
-
-	public void ClampToCount(int optionCount)
-	{
+	public void ClampToCount(int optionCount) =>
 		HoveredIndex = ClampIndex(HoveredIndex, optionCount);
-		SelectedIndex = ClampIndex(SelectedIndex, optionCount);
-	}
 
 	private static int? ClampIndex(int? index, int optionCount)
 	{
@@ -50,29 +27,17 @@ public sealed class Selection
 	}
 }
 
-public enum ClickResult
-{
-	Ignored,
-	Selected,
-	Confirm,
-}
-
 public static class MovementSelection
 {
 	public static (IReadOnlyList<Coord> Path, Coord? Target) GetHighlights(
 		IReadOnlyList<Option> options,
-		int? selectedIndex,
 		int? hoveredIndex)
 	{
-		var active = selectedIndex ?? hoveredIndex;
-		if (active is not int i)
+		if (hoveredIndex is not int i)
 			return ([], null);
 
 		return (options[i].Path, options[i].EndPosition);
 	}
-
-	public static string FormatOption(Option option) =>
-		$"{option.Path.Count} cells ({option.ApCost} AP)";
 
 	public static string FormatMomentum(State unit)
 	{

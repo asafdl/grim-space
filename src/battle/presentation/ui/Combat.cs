@@ -4,7 +4,6 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -17,15 +16,6 @@ public enum EPlayerMode
 
 public static class CombatHints
 {
-	public static string ModeLabel(EPlayerMode mode) =>
-		mode switch
-		{
-			EPlayerMode.Move => "Move",
-			EPlayerMode.Missile => "Missile",
-			EPlayerMode.Railgun => "Railgun",
-			_ => mode.ToString(),
-		};
-
 	public static string BuildHint(
 		EPlayerMode mode,
 		State unit,
@@ -33,6 +23,7 @@ public static class CombatHints
 		int plannedActionCount,
 		Unit? railgunTarget,
 		EMissileMount? missileMount,
+		int missileRange,
 		Coord? missileCenter,
 		bool missileInRange)
 	{
@@ -47,7 +38,7 @@ public static class CombatHints
 			EPlayerMode.Move =>
 				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}  |  click path to queue{planSuffix}",
 			EPlayerMode.Missile =>
-				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {MountRange(missileMount)}"
+				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {missileRange} ({CombatConfig.DorsalMissileMinRange}-{CombatConfig.DorsalMissileMaxRange}, scroll)"
 				+ (missileCenter is Coord center
 					? missileInRange ? $"  |  center {center}" : $"  |  center {center} OUT OF ARC"
 					: "  |  click arc cell  |  Esc: cancel")
@@ -69,13 +60,4 @@ public static class CombatHints
 			null => "Missile",
 			_ => mount.ToString()!,
 		};
-
-	private static int MountRange(EMissileMount? mount) =>
-		mount is EMissileMount value
-			? MissileMountConfig.For(value).Range
-			: 0;
-
-	public static bool CanTargetRailgun(Unit target) =>
-		target.State.IsAlive
-		&& target.State.MomentumLevel == CombatConfig.RailgunRequiredTargetMomentum;
 }

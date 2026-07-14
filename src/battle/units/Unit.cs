@@ -1,6 +1,5 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Units.Enums;
-using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Units;
 
@@ -16,6 +15,4 @@ public abstract class Unit
 		State = state;
 		Movement = movement;
 	}
-
-	public abstract Preview? ShowMovement(BoundedGrid grid);
 }

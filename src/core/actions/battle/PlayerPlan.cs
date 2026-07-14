@@ -28,7 +28,5 @@ public sealed class PlayerPlan
 
 	public bool TryUndoLast() => _actions.TryPopLast(out _);
 
-	public void Clear() => _actions.Clear();
-
 	public BattlePlanContext Context => new(_actions.Actions, StartFacing);
 }
