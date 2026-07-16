@@ -208,7 +208,8 @@ public sealed class BattlePresenter
 			CanAct = !_manager.IsBattleOver && activeUnit is not null && !_manager.IsResolving,
 			MissilesRemaining = planning.MissilesRemainingThisTurn,
 			ExitMissileMode = exitMissileMode,
-			ShowVictoryOverlay = IsPlayerVictory(),
+			ShowOutcomeOverlay = _manager.IsBattleOver,
+			PlayerWon = IsPlayerVictory(),
 		};
 	}
 

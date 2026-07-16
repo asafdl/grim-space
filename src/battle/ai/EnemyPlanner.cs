@@ -2,7 +2,6 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -11,6 +10,8 @@ namespace GrimSpace.Battle.Ai;
 public static class EnemyPlanner
 {
 	private const int MaxPlanLength = 16;
+	private const int MomentumWeight = 1_000;
+	private const int UnusedApPenalty = 100;
 
 	public static HashSet<Coord> CollectHazardCells(
 		IReadOnlySet<Coord> activeHazardCells,
@@ -52,7 +53,7 @@ public static class EnemyPlanner
 
 		for (var step = 0; step < MaxPlanLength; step++)
 		{
-			var currentScore = MomentumAtTurnEnd(plan, actorId, hazardCells);
+			var currentScore = ScoreTurn(plan, actorId, hazardCells);
 			IBattleAction? bestAction = null;
 			var bestScore = currentScore;
 
@@ -67,13 +68,10 @@ public static class EnemyPlanner
 					continue;
 				}
 
-				var score = ScoreBestTurnEnd(plan, actorId, hazardCells);
+				var score = ScoreTurn(plan, actorId, hazardCells);
 				plan.TryUndoLast();
 
-				if (score < bestScore)
-					continue;
-
-				if (score == bestScore && bestAction is not null)
+				if (score <= bestScore)
 					continue;
 
 				bestScore = score;
@@ -89,41 +87,7 @@ public static class EnemyPlanner
 		return plan;
 	}
 
-	private static bool TryEnqueueTrial(UnitPlan plan, string ownerId, IBattleAction candidate)
-	{
-		if (candidate is MoveAction && plan.Actions.Any(action => action is MoveAction))
-			return false;
-
-		return plan.TryApplyAndEnqueue(BattleActionFactory.AsQueued(ownerId, candidate));
-	}
-
-	/// <summary>
-	/// Best achievable end-of-turn momentum: safe position required; includes one optional move lookahead.
-	/// </summary>
-	private static int ScoreBestTurnEnd(UnitPlan plan, string actorId, IReadOnlySet<Coord> hazardCells)
-	{
-		var stopNow = MomentumAtTurnEnd(plan, actorId, hazardCells);
-		if (stopNow == int.MinValue)
-			return int.MinValue;
-
-		if (plan.Actions.Any(action => action is MoveAction))
-			return stopNow;
-
-		var best = stopNow;
-		foreach (var option in LegalActions.GetMoveOptions(plan.Board, plan.Context, actorId))
-		{
-			var move = new MoveAction(actorId, option);
-			if (!TryEnqueueTrial(plan, actorId, move))
-				continue;
-
-			best = System.Math.Max(best, MomentumAtTurnEnd(plan, actorId, hazardCells));
-			plan.TryUndoLast();
-		}
-
-		return best;
-	}
-
-	private static int MomentumAtTurnEnd(UnitPlan plan, string actorId, IReadOnlySet<Coord> hazardCells)
+	private static int ScoreTurn(UnitPlan plan, string actorId, IReadOnlySet<Coord> hazardCells)
 	{
 		var state = plan.Board.StateOf(actorId);
 		if (hazardCells.Contains(state.Position))
@@ -133,6 +97,14 @@ public static class EnemyPlanner
 		if (!plan.BattleActions.Any(action => action is MoveAction))
 			momentum = System.Math.Max(0, momentum - 1);
 
-		return momentum;
+		return momentum * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+	}
+
+	private static bool TryEnqueueTrial(UnitPlan plan, string ownerId, IBattleAction candidate)
+	{
+		if (candidate is MoveAction && plan.Actions.Any(action => action is MoveAction))
+			return false;
+
+		return plan.TryApplyAndEnqueue(BattleActionFactory.AsQueued(ownerId, candidate));
 	}
 }

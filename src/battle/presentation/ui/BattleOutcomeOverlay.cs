@@ -7,6 +7,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 	public event Action? ResetRequested;
 
 	private Control _root = null!;
+	private Label _title = null!;
 
 	public BattleOutcomeOverlay()
 	{
@@ -16,6 +17,8 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 	}
 
 	public new void SetVisible(bool visible) => Visible = visible;
+
+	public void SetOutcome(bool playerWon) => _title.Text = playerWon ? "You Win!" : "You Lose";
 
 	private void Build()
 	{
@@ -78,13 +81,13 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		content.AddThemeConstantOverride("separation", 20);
 		margin.AddChild(content);
 
-		var title = new Label
+		_title = new Label
 		{
 			Text = "You Win!",
 			HorizontalAlignment = HorizontalAlignment.Center,
 		};
-		title.AddThemeFontSizeOverride("font_size", 36);
-		content.AddChild(title);
+		_title.AddThemeFontSizeOverride("font_size", 36);
+		content.AddChild(_title);
 
 		var resetButton = new Button
 		{

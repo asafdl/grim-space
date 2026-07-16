@@ -269,12 +269,16 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		ApplyActionBar(frame);
 		ApplyOrientationHud(frame);
 		ApplyOutcomeOverlay(frame);
-		_hintLabel.Visible = !frame.ShowVictoryOverlay;
+		_hintLabel.Visible = !frame.ShowOutcomeOverlay;
 		_hintLabel.Text = frame.HintText;
 	}
 
-	private void ApplyOutcomeOverlay(PresentationFrame frame) =>
-		_outcomeOverlay.SetVisible(frame.ShowVictoryOverlay);
+	private void ApplyOutcomeOverlay(PresentationFrame frame)
+	{
+		_outcomeOverlay.SetVisible(frame.ShowOutcomeOverlay);
+		if (frame.ShowOutcomeOverlay)
+			_outcomeOverlay.SetOutcome(frame.PlayerWon);
+	}
 
 	private void ResetBattle()
 	{
@@ -284,7 +288,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ApplyOrientationHud(PresentationFrame frame)
 	{
-		if (frame.ShowVictoryOverlay)
+		if (frame.ShowOutcomeOverlay)
 		{
 			_orientationHud.Show(false);
 			return;
@@ -350,8 +354,8 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ApplyActionBar(PresentationFrame frame)
 	{
-		_actionBar.Visible = !frame.ShowVictoryOverlay;
-		if (frame.ShowVictoryOverlay)
+		_actionBar.Visible = !frame.ShowOutcomeOverlay;
+		if (frame.ShowOutcomeOverlay)
 			return;
 
 		_actionBar.SetMode(frame.Mode, frame.MissileMount);

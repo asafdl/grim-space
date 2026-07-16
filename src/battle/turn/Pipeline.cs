@@ -58,12 +58,10 @@ public sealed class Pipeline
 
 		StateLog.LogTurnResolution(
 			turnNumber,
-			commit.PlayerPlan.BattleActions,
-			commit.EnemyPlan.BattleActions,
+			execution.Applied,
 			hazardsBeforeResolve,
 			unitsAtTurnStart,
 			execution.UnitsAfterPlayer,
-			SnapshotAll(),
 			SnapshotAll());
 
 		return new PipelineResult(outcome.IsOver, outcome.WinnerId);

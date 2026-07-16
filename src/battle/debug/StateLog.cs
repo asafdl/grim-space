@@ -2,6 +2,7 @@ using System.Text;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
@@ -14,12 +15,10 @@ public static class StateLog
 {
 	public static void LogTurnResolution(
 		int turnNumber,
-		IReadOnlyList<IBattleAction> plannedActions,
-		IReadOnlyList<IBattleAction> enemyActions,
+		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Hazard> hazards,
 		IReadOnlyDictionary<string, State> unitsAtTurnStart,
 		IReadOnlyDictionary<string, State> unitsAfterPlayer,
-		IReadOnlyDictionary<string, State> unitsAfterEnemy,
 		IReadOnlyDictionary<string, State> unitsAtTurnEnd)
 	{
 		var log = new StringBuilder();
@@ -27,27 +26,16 @@ public static class StateLog
 
 		AppendSection(log, "Units (turn start)", unitsAtTurnStart.Values);
 
-		log.AppendLine("Player plan:");
-		if (plannedActions.Count == 0)
+		log.AppendLine($"Turn actions ({actions.Count}):");
+		if (actions.Count == 0)
 			log.AppendLine("  (none)");
 		else
 		{
-			for (var i = 0; i < plannedActions.Count; i++)
-				log.AppendLine($"  [{i}] {DescribeAction(plannedActions[i])}");
+			for (var i = 0; i < actions.Count; i++)
+				log.AppendLine($"  [{i}] {DescribeAction(actions[i])}");
 		}
 
-		AppendSection(log, "Units (after player plan)", unitsAfterPlayer.Values);
-
-		if (enemyActions.Count == 0)
-			log.AppendLine("Enemy actions: (none)");
-		else
-		{
-			log.AppendLine("Enemy actions:");
-			for (var i = 0; i < enemyActions.Count; i++)
-				log.AppendLine($"  [{i}] {DescribeAction(enemyActions[i])}");
-		}
-
-		AppendSection(log, "Units (after enemy turn)", unitsAfterEnemy.Values);
+		AppendSection(log, "Units (after player phase)", unitsAfterPlayer.Values);
 
 		if (hazards.Count == 0)
 			log.AppendLine("Active hazards: (none)");
@@ -81,7 +69,15 @@ public static class StateLog
 	private static string FormatPath(IReadOnlyList<Coord> path) =>
 		path.Count == 0 ? "[]" : string.Join(" -> ", path);
 
-	private static string DescribeAction(IBattleAction action) => action switch
+	private static string DescribeAction(IAction action)
+	{
+		var detail = action is IBattleAction battle
+			? DescribeBattleAction(battle)
+			: action.GetType().Name;
+		return $"{action.OwnerId}: {detail}";
+	}
+
+	private static string DescribeBattleAction(IBattleAction action) => action switch
 	{
 		MoveAction move => $"Move ap={move.Option.ApCost} path={FormatPath(move.Option.Path)}",
 		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
