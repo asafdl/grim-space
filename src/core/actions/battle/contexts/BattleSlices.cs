@@ -6,7 +6,7 @@ public readonly struct BattleSlices(BattleBoard board)
 
 	public ApContext Ap => new(board.Player);
 
-	public MoveContext Move => new(board.Player, board.PlayerUnit);
+	public MoveContext Move => new(board.Player, board.PlayerUnit, board.CommitMomentum);
 
 	public OrientationContext Orientation => new(board.Player);
 

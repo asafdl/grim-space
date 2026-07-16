@@ -19,6 +19,7 @@ public partial class UnitView : Node3D
 		var hull = new MeshInstance3D
 		{
 			Mesh = ShipMesh.CreateHull(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.On,
 			MaterialOverride = new StandardMaterial3D
 			{
 				AlbedoColor = color,
@@ -31,6 +32,7 @@ public partial class UnitView : Node3D
 		var nose = new MeshInstance3D
 		{
 			Mesh = ShipMesh.CreateNoseMarker(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = new StandardMaterial3D
 			{
 				AlbedoColor = color.Lightened(0.35f),

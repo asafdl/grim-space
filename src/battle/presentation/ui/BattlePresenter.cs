@@ -65,7 +65,14 @@ public sealed class BattlePresenter
 		return true;
 	}
 
-	public bool Undo() => _manager.Player.TryUndoLast();
+	public bool Undo()
+	{
+		if (!_manager.Player.TryUndoLast())
+			return false;
+
+		ClearInteraction();
+		return true;
+	}
 
 	public void SetMoveHover(int? index, int optionCount) =>
 		_selection.SetHover(index, optionCount);
@@ -143,8 +150,14 @@ public sealed class BattlePresenter
 	{
 		var planning = _manager.Player;
 		var activeUnit = planning.GetActiveActor();
-		var options = View.GetMoveHighlights(planning, activeUnit);
-		_selection.ClampToCount(options.Count);
+		var pickOptions = View.GetMoveSelectionHighlights(planning, activeUnit);
+		var previewOptions = View.GetMoveHighlights(planning, activeUnit);
+		var hasCommittedMove = planning.Actions.Any(action => action is MoveAction);
+		var exploring = _selection.HoveredIndex is not null;
+		var displayOptions = hasCommittedMove && !exploring
+			? previewOptions
+			: pickOptions;
+		_selection.ClampToCount(pickOptions.Count);
 
 		var exitMissileMode = Mode == EPlayerMode.Missile && planning.MissilesRemainingThisTurn <= 0;
 		if (exitMissileMode)
@@ -155,7 +168,9 @@ public sealed class BattlePresenter
 		var validMissileCells = GetValidMissileCells(activeUnit);
 		var missilePreviewCells = GetMissilePreviewCells(activeUnit);
 		var railgunTargets = View.GetRailgunTargetHighlights(planning, activeUnit);
-		var (path, target) = MovementSelection.GetHighlights(options, _selection.HoveredIndex);
+		var (path, target) = MovementSelection.GetHighlights(pickOptions, _selection.HoveredIndex);
+		if (!exploring)
+			(path, target) = MovementSelection.WithCommittedMove(planning.Actions, path, target);
 
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
@@ -167,7 +182,8 @@ public sealed class BattlePresenter
 			MissileMount = MissileMount,
 			MissileRange = MissileRange,
 			ActiveUnit = activeUnit,
-			MoveOptions = options,
+			MoveOptions = displayOptions,
+			MovePickOptions = pickOptions,
 			Simulation = simulation,
 			PlannedHazardCells = hazardCells,
 			ValidMissileCells = validMissileCells,

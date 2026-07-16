@@ -6,16 +6,32 @@ using UnitState = GrimSpace.Battle.Units.State;
 namespace GrimSpace.Battle.Environment;
 
 /// <summary>
-/// Tracks active hazard zones and resolves their effects against units.
+/// Board hazards are persistent terrain; turn hazards are temporary zones resolved each environment phase.
 /// </summary>
 public sealed class HazardSystem
 {
+	private readonly List<Hazard> _board = [];
 	private readonly List<Hazard> _active = [];
 
+	public IReadOnlyList<Hazard> Board => _board;
 	public IReadOnlyList<Hazard> Active => _active;
 
-	/// <summary>Collection passed to action commit boards for hazard spawning.</summary>
+	/// <summary>Collection passed to action commit boards for turn hazard spawning.</summary>
 	public ICollection<Hazard> RegisterTarget => _active;
+
+	public void RegisterBoard(IEnumerable<Hazard> hazards) => _board.AddRange(hazards);
+
+	public HashSet<Coord> GetBlockedCells()
+	{
+		var cells = new HashSet<Coord>();
+		foreach (var hazard in _board)
+		{
+			if (!hazard.Passable)
+				cells.UnionWith(hazard.Cells);
+		}
+
+		return cells;
+	}
 
 	public HashSet<Coord> GetOccupiedCells()
 	{

@@ -19,9 +19,16 @@ public static class BattlePlanExecutor
 		Unit player,
 		Unit enemy,
 		BoundedGrid grid,
-		PlayerPlan plan)
+		PlayerPlan plan,
+		IReadOnlySet<Coord> blockedCells)
 	{
-		var board = PlanSimulator.Simulate(player, enemy, grid, plan.Actions, plan.StartFacing);
+		var board = PlanSimulator.Simulate(
+			player,
+			enemy,
+			grid,
+			plan.Actions,
+			plan.StartFacing,
+			blockedCells);
 
 		return new SimulatedTurn
 		{
@@ -37,8 +44,9 @@ public static class BattlePlanExecutor
 		Unit enemy,
 		BoundedGrid grid,
 		ICollection<Hazard> activeHazards,
+		IReadOnlySet<Coord> blockedCells,
 		PlayerPlan plan) =>
-		Apply(actions, player, enemy, grid, activeHazards, plan.StartFacing);
+		Apply(actions, player, enemy, grid, activeHazards, blockedCells, plan.StartFacing);
 
 	public static void Apply(
 		IReadOnlyList<IBattleAction> actions,
@@ -46,10 +54,14 @@ public static class BattlePlanExecutor
 		Unit opponent,
 		BoundedGrid grid,
 		ICollection<Hazard> activeHazards,
+		IReadOnlySet<Coord> blockedCells,
 		GridBasis? yawSettleFacing = null)
 	{
-		var board = BattleBoard.ForCommit(actor, opponent, grid, activeHazards);
+		var board = BattleBoard.ForCommit(actor, opponent, grid, activeHazards, blockedCells);
 		PlanSimulator.Apply(actions, board);
+
+		if (actions.Count == 0)
+			board.Player.MomentumLevel = System.Math.Max(board.Player.MomentumLevel - 1, 0);
 
 		if (yawSettleFacing is { } facing)
 			Orientation.SettleNetYaw(board.Player, facing);

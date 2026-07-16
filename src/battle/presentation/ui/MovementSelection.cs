@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
@@ -37,6 +38,25 @@ public static class MovementSelection
 			return ([], null);
 
 		return (options[i].Path, options[i].EndPosition);
+	}
+
+	public static (IReadOnlyList<Coord> Path, Coord? Target) WithCommittedMove(
+		IReadOnlyList<IBattleAction> actions,
+		IReadOnlyList<Coord> path,
+		Coord? target)
+	{
+		if (path.Count > 0 || target is not null)
+			return (path, target);
+
+		foreach (var action in actions)
+		{
+			if (action is not MoveAction move)
+				continue;
+
+			return (move.Option.Path, move.Option.EndPosition);
+		}
+
+		return (path, target);
 	}
 
 	public static string FormatMomentum(State unit)

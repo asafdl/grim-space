@@ -165,7 +165,7 @@ public partial class GridView : Node3D
 	private void ClearHighlightMeshes()
 	{
 		foreach (var child in _highlights.Values)
-			child.QueueFree();
+			child.Free();
 
 		_highlights.Clear();
 	}

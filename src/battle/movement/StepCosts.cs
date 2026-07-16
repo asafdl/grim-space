@@ -5,9 +5,9 @@ namespace GrimSpace.Battle.Movement;
 
 public static class StepCosts
 {
-	public static int GetMoveStepApCost(EStepDirection direction, State unit, MoveStepContext context)
+	public static int GetMoveStepApCost(EStepDirection direction, MoveStepContext context)
 	{
-		var config = MomentumConfig.ForLevel(unit.MomentumLevel);
+		var config = MomentumConfig.ForLevel(context.MomentumLevel);
 
 		return direction switch
 		{

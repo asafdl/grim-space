@@ -15,6 +15,7 @@ public sealed class Manager
 	public Turn.Manager Turn { get; }
 	public IReadOnlyList<Unit> Units { get; }
 	public PlayerController Player { get; }
+	public HazardSystem Hazards { get; }
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
 
@@ -25,12 +26,14 @@ public sealed class Manager
 		Turn.Manager turn,
 		IReadOnlyList<Unit> units,
 		PlayerController player,
+		HazardSystem hazards,
 		Pipeline pipeline)
 	{
 		Grid = grid;
 		Turn = turn;
 		Units = units;
 		Player = player;
+		Hazards = hazards;
 		_pipeline = pipeline;
 	}
 
@@ -39,6 +42,9 @@ public sealed class Manager
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var turn = new Turn.Manager();
 		var hazards = new HazardSystem();
+		hazards.RegisterBoard(
+			encounter.BoardHazards.Select(spawn =>
+				Hazard.Asteroid(spawn.Center, grid, spawn.Radius, spawn.VisualId)));
 
 		var units = encounter.Spawns
 			.Select(spawn => Factory.Create(spawn.Unit, spawn.Position, spawn.InitialMomentum))
@@ -48,6 +54,7 @@ public sealed class Manager
 		if (firstPlayer is not null)
 			turn.SetActiveUnit(firstPlayer.State.Id);
 
+		var blockedCells = hazards.GetBlockedCells();
 		var pipeline = new Pipeline(grid, units, turn, hazards);
 
 		Manager? self = null;
@@ -55,10 +62,11 @@ public sealed class Manager
 			units.First(u => u.Controller == EController.Player),
 			units.First(u => u.Controller == EController.Enemy),
 			grid,
+			blockedCells,
 			unit => self!.CanAct(unit),
 			() => self!.GetActivePlayer());
 
-		self = new Manager(grid, turn, units, playerController, pipeline);
+		self = new Manager(grid, turn, units, playerController, hazards, pipeline);
 
 		if (self.GetPlayer() is { } player)
 			self.Player.ResetFrom(player.State);

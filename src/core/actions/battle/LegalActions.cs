@@ -17,10 +17,11 @@ public static class LegalActions
 		Unit opponent,
 		BoundedGrid grid,
 		IReadOnlyList<IBattleAction> plan,
-		GridBasis startFacing)
+		GridBasis startFacing,
+		IReadOnlySet<Coord> blockedCells)
 	{
 		var context = new BattlePlanContext(plan, startFacing);
-		var board = PlanSimulator.BuildBoard(actor, opponent, grid, plan);
+		var board = PlanSimulator.BuildBoard(actor, opponent, grid, plan, blockedCells);
 
 		foreach (var turn in Enum.GetValues<EHeadingTurn>())
 		{
@@ -36,16 +37,19 @@ public static class LegalActions
 				yield return action;
 		}
 
-		var moveBoard = PlanSimulator.BuildBoard(actor, opponent, grid, plan, excludeMoves: true);
+		var moveBoard = PlanSimulator.BuildBoard(actor, opponent, grid, plan, blockedCells, excludeMoves: true);
 		foreach (var option in GetMoveOptions(moveBoard, context))
 			yield return new MoveAction(option);
 	}
 
-	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context) =>
-		board.PlayerUnit.Movement
-			.GetMoveOptions(board.Player, board.Grid)
+	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context)
+	{
+		var blocked = new HashSet<Coord>(board.BlockedCells) { board.Enemy.Position };
+		return board.PlayerUnit.Movement
+			.GetMoveOptions(board.Player, board.Grid, blocked)
 			.Where(option => new MoveAction(option).IsLegal(board, context))
 			.ToList();
+	}
 
 	public static HashSet<Coord> GetMissileCells(
 		BattleBoard board,

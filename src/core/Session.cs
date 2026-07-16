@@ -26,6 +26,6 @@ public partial class Session : Node
 	public void StartNewRun()
 	{
 		Run = State.CreateDevDefault();
-		CurrentEncounter = Encounter.DevDefault();
+		CurrentEncounter = Encounter.DevDefault(Random.Shared.Next());
 	}
 }

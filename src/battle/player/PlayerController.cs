@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Units;
@@ -15,6 +16,7 @@ public sealed class PlayerController
 	private readonly Unit _player;
 	private readonly Unit _enemy;
 	private readonly BoundedGrid _grid;
+	private readonly IReadOnlySet<Coord> _blockedCells;
 	private readonly Func<Unit, bool> _canAct;
 	private readonly Func<Unit?> _getActivePlayer;
 
@@ -22,16 +24,19 @@ public sealed class PlayerController
 		Unit player,
 		Unit enemy,
 		BoundedGrid grid,
+		IReadOnlySet<Coord> blockedCells,
 		Func<Unit, bool> canAct,
 		Func<Unit?> getActivePlayer)
 	{
 		_player = player;
 		_enemy = enemy;
 		_grid = grid;
+		_blockedCells = blockedCells;
 		_canAct = canAct;
 		_getActivePlayer = getActivePlayer;
 	}
 
+	public IReadOnlySet<Coord> BlockedCells => _blockedCells;
 	public Unit Actor => _player;
 	public Unit Opponent => _enemy;
 	public BoundedGrid Grid => _grid;
@@ -57,7 +62,7 @@ public sealed class PlayerController
 			return false;
 
 		var board = action is MoveAction
-			? LegalityBoard(excludeMoves: true)
+			? BoardBeforeQueuedMove()
 			: CommittedPlanBoard();
 		return action.IsLegal(board, _plan.Context);
 	}
@@ -90,10 +95,16 @@ public sealed class PlayerController
 	public bool TryUndoLast() => _plan.TryUndoLast();
 
 	private BattleBoard CommittedPlanBoard() =>
-		PlanSimulator.Simulate(_player, _enemy, _grid, _plan.Actions, _plan.StartFacing);
+		PlanSimulator.Simulate(_player, _enemy, _grid, _plan.Actions, _plan.StartFacing, _blockedCells);
 
-	private BattleBoard LegalityBoard(bool excludeMoves) =>
-		PlanSimulator.Simulate(_player, _enemy, _grid, _plan.Actions, _plan.StartFacing, excludeMoves);
+	private BattleBoard BoardBeforeQueuedMove() =>
+		PlanSimulator.Simulate(
+			_player,
+			_enemy,
+			_grid,
+			PlanActions.WithoutQueuedMove(_plan.Actions),
+			_plan.StartFacing,
+			_blockedCells);
 
 	private bool CanAffordPlan() =>
 		CommittedPlanBoard().Player.ActionPoints >= 0;

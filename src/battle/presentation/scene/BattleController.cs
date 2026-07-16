@@ -24,6 +24,7 @@ public partial class BattleController : Node3D
 	private MissileRangeIndicator _missileRangeIndicator = null!;
 
 	private readonly Dictionary<string, UnitView> _unitViews = new();
+	private int? _lastHoveredMoveIndex;
 
 	public override void _Ready()
 	{
@@ -31,13 +32,24 @@ public partial class BattleController : Node3D
 		_presenter = new BattlePresenter(manager);
 
 		var backdrop = new SpaceBackdrop();
+		backdrop.Build(manager.Grid);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
 		_camera = GetNode<Controller>("Camera3D");
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(manager.Grid);
-		_camera.SetPivot(WorldMapping.GridCenter(manager.Grid));
+
+		var gridCenter = WorldMapping.GridCenter(manager.Grid);
+		_camera.SetPivot(gridCenter);
+		var chamberRadius = manager.Grid.Width * WorldMapping.CellSize * 0.5f;
+		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
+
+		var hazardsRoot = new Node3D { Name = "BoardHazards" };
+		AddChild(hazardsRoot);
+		var hazardView = new BoardHazardView();
+		hazardView.Build(manager.Hazards.Board);
+		hazardsRoot.AddChild(hazardView);
 
 		_missileRangeIndicator = new MissileRangeIndicator();
 		AddChild(_missileRangeIndicator);
@@ -57,18 +69,44 @@ public partial class BattleController : Node3D
 		Refresh();
 	}
 
+	public override void _Process(double _)
+	{
+		if (_presenter.Mode != EPlayerMode.Move
+			|| _presenter.Manager.IsBattleOver
+			|| _presenter.Manager.Player.GetActiveActor() is null)
+		{
+			_lastHoveredMoveIndex = null;
+			return;
+		}
+
+		var frame = _presenter.BuildFrame();
+		var index = MovementSelection.PickOptionIndex(_camera, GetViewport().GetMousePosition(), frame.MovePickOptions);
+		if (index == _lastHoveredMoveIndex)
+			return;
+
+		_lastHoveredMoveIndex = index;
+		_presenter.SetMoveHover(index, frame.MovePickOptions.Count);
+		Refresh();
+	}
+
 	private void SetupOrientationHud()
 	{
 		_orientationHud = new ShipOrientationHud();
 		_orientationHud.HeadingTurnRequested += turn =>
 		{
 			if (_presenter.TryQueueHeadingTurn(turn))
+			{
+				_lastHoveredMoveIndex = null;
 				Refresh();
+			}
 		};
 		_orientationHud.RollRequested += direction =>
 		{
 			if (_presenter.TryQueueRoll(direction))
+			{
+				_lastHoveredMoveIndex = null;
 				Refresh();
+			}
 		};
 		AddChild(_orientationHud);
 	}
@@ -101,7 +139,10 @@ public partial class BattleController : Node3D
 			&& (key.CtrlPressed || key.MetaPressed))
 		{
 			if (_presenter.Undo())
+			{
+				_lastHoveredMoveIndex = null;
 				Refresh();
+			}
 
 			GetViewport().SetInputAsHandled();
 			return;
@@ -152,10 +193,7 @@ public partial class BattleController : Node3D
 		switch (_presenter.Mode)
 		{
 			case EPlayerMode.Move:
-				_presenter.SetMoveHover(
-					MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions),
-					frame.MoveOptions.Count);
-				break;
+				return;
 
 			case EPlayerMode.Missile:
 				_presenter.SetMissileHover(
@@ -176,8 +214,11 @@ public partial class BattleController : Node3D
 		switch (_presenter.Mode)
 		{
 			case EPlayerMode.Move:
-				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
-					_presenter.TryQueueMove(index, frame.MoveOptions);
+				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MovePickOptions) is int index)
+				{
+					_presenter.TryQueueMove(index, frame.MovePickOptions);
+					_lastHoveredMoveIndex = null;
+				}
 				break;
 
 			case EPlayerMode.Missile:

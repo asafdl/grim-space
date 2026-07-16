@@ -84,6 +84,7 @@ public sealed class Pipeline
 			enemy,
 			_grid,
 			_hazards.RegisterTarget,
+			_hazards.GetBlockedCells(),
 			playerPlan.StartFacing);
 	}
 
@@ -96,7 +97,8 @@ public sealed class Pipeline
 			enemy,
 			player,
 			_grid,
-			_hazards.GetOccupiedCells());
+			_hazards.GetOccupiedCells(),
+			_hazards.GetBlockedCells());
 		if (actions.Count == 0)
 			return actions;
 
@@ -111,6 +113,7 @@ public sealed class Pipeline
 			player,
 			_grid,
 			_hazards.RegisterTarget,
+			_hazards.GetBlockedCells(),
 			startFacing);
 
 		return actions;

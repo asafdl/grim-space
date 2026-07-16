@@ -11,16 +11,17 @@ public sealed class DiscreteStep : IMovement
 
 	private static readonly EStepDirection[] Directions = Enum.GetValues<EStepDirection>();
 
-	public IReadOnlyList<Option> GetMoveOptions(State unit, BoundedGrid grid)
+	public IReadOnlyList<Option> GetMoveOptions(State unit, BoundedGrid grid, IReadOnlySet<Coord> blockedCells)
 	{
 		var byEndpoint = new Dictionary<Coord, Option>();
 		var visited = new Dictionary<SearchNode, int>();
 		Search(
-			new SearchNode(unit.Position, UsedDirectionsMask: 0),
+			new SearchNode(unit.Position, UsedDirectionsMask: 0, unit.MomentumLevel),
 			unit.ActionPoints,
 			0,
 			unit,
 			grid,
+			blockedCells,
 			[],
 			byEndpoint,
 			visited);
@@ -33,13 +34,13 @@ public sealed class DiscreteStep : IMovement
 		&& unit.ActionPoints >= option.ApCost
 		&& !PathUsesOpposingDirections(unit, unit.Position, option.Path);
 
-	public void ApplyMove(State unit, Option option)
-	{
-		ApplyMomentumFromPath(unit, option.Path);
+	public void ApplyMove(State unit, Option option) =>
 		unit.Position = option.EndPosition;
-	}
 
-	private readonly record struct SearchNode(Coord Position, int UsedDirectionsMask);
+	public void ApplyMomentum(State unit, IReadOnlyList<Coord> path) =>
+		ApplyMomentumFromPath(unit, path);
+
+	private readonly record struct SearchNode(Coord Position, int UsedDirectionsMask, int MomentumLevel);
 
 	private static void Search(
 		SearchNode node,
@@ -47,6 +48,7 @@ public sealed class DiscreteStep : IMovement
 		int apSpent,
 		State unit,
 		BoundedGrid grid,
+		IReadOnlySet<Coord> blockedCells,
 		List<Coord> pathSoFar,
 		Dictionary<Coord, Option> results,
 		Dictionary<SearchNode, int> visited)
@@ -67,18 +69,26 @@ public sealed class DiscreteStep : IMovement
 			var forwardStepsInPath = CountForwardSteps(pathSoFar, unit);
 			var stepCost = StepCosts.GetMoveStepApCost(
 				direction,
-				unit,
-				new MoveStepContext(forwardStepsInPath));
+				new MoveStepContext(forwardStepsInPath, node.MomentumLevel));
 			if (stepCost > apRemaining)
 				continue;
 
 			var next = node.Position + StepDelta(unit, direction);
-			if (!grid.IsInBounds(next))
+			if (!grid.IsInBounds(next) || blockedCells.Contains(next))
 				continue;
 
 			var fullPath = new List<Coord>(pathSoFar) { next };
 			var totalAp = apSpent + stepCost;
-			var nextNode = new SearchNode(next, node.UsedDirectionsMask | DirectionBit(direction));
+			var nextMomentum = node.MomentumLevel;
+			if (direction == EStepDirection.Forward)
+				nextMomentum = System.Math.Min(nextMomentum + 1, MomentumConfig.MaxLevel);
+			else if (direction == EStepDirection.Retro)
+				nextMomentum = System.Math.Max(nextMomentum - 1, 0);
+
+			var nextNode = new SearchNode(
+				next,
+				node.UsedDirectionsMask | DirectionBit(direction),
+				nextMomentum);
 
 			if (totalAp >= MinMoveApCost || totalAp == 0)
 			{
@@ -92,7 +102,7 @@ public sealed class DiscreteStep : IMovement
 				}
 			}
 
-			Search(nextNode, apRemaining - stepCost, totalAp, unit, grid, fullPath, results, visited);
+			Search(nextNode, apRemaining - stepCost, totalAp, unit, grid, blockedCells, fullPath, results, visited);
 		}
 	}
 

@@ -23,9 +23,10 @@ public static class PlanSimulator
 		Unit opponent,
 		BoundedGrid grid,
 		IReadOnlyList<IBattleAction> actions,
+		IReadOnlySet<Coord> blockedCells,
 		bool excludeMoves = false)
 	{
-		var board = BattleBoard.ForSimulation(actor, opponent, grid);
+		var board = BattleBoard.ForSimulation(actor, opponent, grid, blockedCells);
 		var toApply = excludeMoves
 			? actions.Where(action => action is not MoveAction).ToList()
 			: actions;
@@ -39,9 +40,10 @@ public static class PlanSimulator
 		BoundedGrid grid,
 		IReadOnlyList<IBattleAction> actions,
 		GridBasis startFacing,
+		IReadOnlySet<Coord> blockedCells,
 		bool excludeMoves = false)
 	{
-		var board = BuildBoard(actor, opponent, grid, actions, excludeMoves);
+		var board = BuildBoard(actor, opponent, grid, actions, blockedCells, excludeMoves);
 		Orientation.SettleNetYaw(board.Player, startFacing);
 		return board;
 	}
