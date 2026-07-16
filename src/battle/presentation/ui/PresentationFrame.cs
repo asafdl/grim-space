@@ -14,7 +14,6 @@ public sealed class PresentationFrame
 	public int MissileRange { get; init; }
 	public Unit? ActiveUnit { get; init; }
 	public required IReadOnlyList<Option> MoveOptions { get; init; }
-	public required IReadOnlyList<Option> MovePickOptions { get; init; }
 	public required SimulatedTurn Simulation { get; init; }
 	public required IReadOnlySet<Coord> PlannedHazardCells { get; init; }
 	public required IReadOnlySet<Coord> ValidMissileCells { get; init; }

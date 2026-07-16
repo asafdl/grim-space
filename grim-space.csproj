@@ -9,4 +9,7 @@
   <ItemGroup>
     <Compile Remove="grim-space.Tests/**" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="UniqueNameGenerator" Version="1.0.1" />
+  </ItemGroup>
 </Project>

@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
+using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
@@ -12,7 +13,7 @@ namespace GrimSpace.Battle.Presentation.Scene;
 /// <summary>
 /// Thin scene connector: wires Godot input and nodes to <see cref="BattlePresenter"/> and <see cref="Manager"/>.
 /// </summary>
-public partial class BattleController : Node3D
+public partial class BattleController : Node3D, IPresentationEventSink
 {
 	private BattlePresenter _presenter = null!;
 
@@ -28,6 +29,8 @@ public partial class BattleController : Node3D
 
 	public override void _Ready()
 	{
+		GameLog.Logger = new GodotGameLogger();
+
 		var manager = Manager.FromEncounter(Session.Instance.CurrentEncounter);
 		_presenter = new BattlePresenter(manager);
 
@@ -71,7 +74,8 @@ public partial class BattleController : Node3D
 
 	public override void _Process(double _)
 	{
-		if (_presenter.Mode != EPlayerMode.Move
+		if (_presenter.Manager.IsResolving
+			|| _presenter.Mode != EPlayerMode.Move
 			|| _presenter.Manager.IsBattleOver
 			|| _presenter.Manager.Player.GetActiveActor() is null)
 		{
@@ -80,12 +84,12 @@ public partial class BattleController : Node3D
 		}
 
 		var frame = _presenter.BuildFrame();
-		var index = MovementSelection.PickOptionIndex(_camera, GetViewport().GetMousePosition(), frame.MovePickOptions);
+		var index = MovementSelection.PickOptionIndex(_camera, GetViewport().GetMousePosition(), frame.MoveOptions);
 		if (index == _lastHoveredMoveIndex)
 			return;
 
 		_lastHoveredMoveIndex = index;
-		_presenter.SetMoveHover(index, frame.MovePickOptions.Count);
+		_presenter.SetMoveHover(index, frame.MoveOptions.Count);
 		Refresh();
 	}
 
@@ -116,12 +120,15 @@ public partial class BattleController : Node3D
 		_actionBar = new ActionBar();
 		_actionBar.ModeChanged += mode => { _presenter.SetMode(mode); ExitAimIfNeeded(); Refresh(); };
 		_actionBar.MissileMountSelected += mount => { _presenter.SelectMissileMount(mount); Refresh(); };
-		_actionBar.EndTurnRequested += () => { if (_presenter.EndTurn()) { ExitAimIfNeeded(); Refresh(); } };
+		_actionBar.EndTurnRequested += () => { if (_presenter.EndTurn(this)) { ExitAimIfNeeded(); Refresh(); } };
 		AddChild(_actionBar);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_presenter.Manager.IsResolving)
+			return;
+
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
 			if (_presenter.Mode == EPlayerMode.Missile)
@@ -150,7 +157,7 @@ public partial class BattleController : Node3D
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
 		{
-			if (_presenter.EndTurn())
+			if (_presenter.EndTurn(this))
 			{
 				_camera.ExitAim();
 				Refresh();
@@ -214,9 +221,9 @@ public partial class BattleController : Node3D
 		switch (_presenter.Mode)
 		{
 			case EPlayerMode.Move:
-				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MovePickOptions) is int index)
+				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
 				{
-					_presenter.TryQueueMove(index, frame.MovePickOptions);
+					_presenter.TryQueueMove(index, frame.MoveOptions);
 					_lastHoveredMoveIndex = null;
 				}
 				break;
@@ -261,9 +268,7 @@ public partial class BattleController : Node3D
 	{
 		foreach (var unit in _presenter.Manager.Units)
 		{
-			var display = unit.Controller == EController.Player
-				? frame.Simulation.Player
-				: frame.Simulation.Enemy;
+			var display = frame.Simulation.Board.StateOf(unit.State.Id);
 			_unitViews[unit.State.Id].SyncFromState(display);
 		}
 	}
@@ -297,7 +302,7 @@ public partial class BattleController : Node3D
 				break;
 
 			case EPlayerMode.Missile:
-				_missileRangeIndicator.SetActive(frame.Simulation.Player.Position, frame.MissileRange);
+				_missileRangeIndicator.SetActive(frame.Simulation.Actor.Position, frame.MissileRange);
 				_gridView.SetMissileHighlights(
 					frame.PlannedHazardCells,
 					frame.ValidMissileCells,
@@ -343,5 +348,11 @@ public partial class BattleController : Node3D
 		_hintLabel = new Label { Position = new Vector2(16, 16) };
 		canvas.AddChild(_hintLabel);
 		AddChild(canvas);
+	}
+
+	public void OnActionApplied(PresentationEvent presentationEvent)
+	{
+		foreach (var unit in _presenter.Manager.Units)
+			_unitViews[unit.State.Id].SyncFromState(unit.State);
 	}
 }

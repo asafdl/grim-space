@@ -3,13 +3,11 @@ using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Core.Actions.Battle.Contexts;
 
-public readonly struct MoveContext(State player, Unit playerUnit, bool commitMomentum)
+public readonly struct MoveContext(State actor, Unit actorUnit)
 {
 	public void Apply(Option option)
 	{
-		if (commitMomentum)
-			playerUnit.Movement.ApplyMomentum(player, option.Path);
-
-		playerUnit.Movement.ApplyMove(player, option);
+		actorUnit.Movement.ApplyMomentum(actor, option.Path);
+		actorUnit.Movement.ApplyMove(actor, option);
 	}
 }

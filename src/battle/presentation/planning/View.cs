@@ -1,3 +1,5 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Player;
@@ -22,14 +24,6 @@ public static class View
 		return Preview.GetLegalMoves(planning);
 	}
 
-	public static IReadOnlyList<Option> GetMoveSelectionHighlights(PlayerController planning, Unit? actor)
-	{
-		if (actor is null || !planning.CanAct(actor))
-			return [];
-
-		return Preview.GetSelectionMoves(planning);
-	}
-
 	public static SimulatedTurn GetTurnGhost(PlayerController planning) =>
 		Preview.Simulate(planning);
 
@@ -45,21 +39,13 @@ public static class View
 	public static HashSet<Coord> GetMissileTargetHighlights(
 		PlayerController planning,
 		EMissileMount mount,
-		int range)
-	{
-		var board = PlanSimulator.Simulate(
-			planning.Actor,
-			planning.Opponent,
-			planning.Grid,
-			planning.Actions,
-			planning.StartFacing,
-			planning.BlockedCells);
-
-		return LegalActions.GetMissileCells(board, planning.Context, mount, range);
-	}
+		int range) =>
+		LegalActions.GetMissileCells(planning.Board, planning.Context, planning.OwnerId, mount, range);
 
 	public static HashSet<Coord> GetMissileBlastHighlights(Coord center, BoundedGrid grid) =>
 		Hazard.MissileZone(
+			"preview",
+			EntityIds.Board,
 			center,
 			grid,
 			CombatConfig.MissileRadius,
@@ -72,18 +58,11 @@ public static class View
 		if (actor is null || !planning.CanAct(actor))
 			return cells;
 
-		var board = PlanSimulator.Simulate(
-			planning.Actor,
-			planning.Opponent,
-			planning.Grid,
-			planning.Actions,
-			planning.StartFacing,
-			planning.BlockedCells);
-
-		if (!LegalActions.IsRailgunAvailable(board, planning.Context))
+		var enemy = planning.Opponent;
+		if (!LegalActions.IsRailgunAvailable(planning.Board, planning.Context, planning.OwnerId, enemy.State.Id))
 			return cells;
 
-		cells.Add(board.Enemy.Position);
+		cells.Add(planning.Board.StateOf(enemy.State.Id).Position);
 		return cells;
 	}
 }

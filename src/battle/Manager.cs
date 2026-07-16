@@ -1,5 +1,8 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Environment;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -18,10 +21,11 @@ public sealed class Manager
 	public HazardSystem Hazards { get; }
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
+	public bool IsResolving { get; private set; }
 
 	private readonly Pipeline _pipeline;
 
-	private Manager(
+	public Manager(
 		BoundedGrid grid,
 		Turn.Manager turn,
 		IReadOnlyList<Unit> units,
@@ -42,12 +46,19 @@ public sealed class Manager
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var turn = new Turn.Manager();
 		var hazards = new HazardSystem();
+		var ids = new UnitIdRegistry();
+
 		hazards.RegisterBoard(
 			encounter.BoardHazards.Select(spawn =>
-				Hazard.Asteroid(spawn.Center, grid, spawn.Radius, spawn.VisualId)));
+				Hazard.Asteroid(
+					ids.NextNonUnitId("asteroid"),
+					spawn.Center,
+					grid,
+					spawn.Radius,
+					spawn.VisualId)));
 
 		var units = encounter.Spawns
-			.Select(spawn => Factory.Create(spawn.Unit, spawn.Position, spawn.InitialMomentum))
+			.Select(spawn => Factory.Create(spawn.Unit, spawn.Position, ids, spawn.InitialMomentum))
 			.ToArray();
 
 		var firstPlayer = units.FirstOrDefault(u => u.Controller == EController.Player);
@@ -57,10 +68,15 @@ public sealed class Manager
 		var blockedCells = hazards.GetBlockedCells();
 		var pipeline = new Pipeline(grid, units, turn, hazards);
 
+		var player = units.First(u => u.Controller == EController.Player);
+		var enemy = units.First(u => u.Controller == EController.Enemy);
+
 		Manager? self = null;
 		var playerController = new PlayerController(
-			units.First(u => u.Controller == EController.Player),
-			units.First(u => u.Controller == EController.Enemy),
+			player,
+			enemy,
+			units,
+			hazards.NonUnits,
 			grid,
 			blockedCells,
 			unit => self!.CanAct(unit),
@@ -68,8 +84,8 @@ public sealed class Manager
 
 		self = new Manager(grid, turn, units, playerController, hazards, pipeline);
 
-		if (self.GetPlayer() is { } player)
-			self.Player.ResetFrom(player.State);
+		if (self.GetPlayer() is not null)
+			self.Player.BeginTurn();
 
 		return self;
 	}
@@ -83,23 +99,31 @@ public sealed class Manager
 	private Unit? GetActivePlayer() =>
 		GetActiveUnits().FirstOrDefault(u => u.Controller == EController.Player);
 
-	public bool ExecuteTurn(FinalizedPlan playerPlan)
+	public bool ExecuteTurn(FinalizedPlan playerPlan, IPresentationEventSink? sink = null)
 	{
-		if (IsBattleOver)
+		if (IsBattleOver || IsResolving)
 			return false;
 
-		var result = _pipeline.Resolve(playerPlan, GetPlayer, GetEnemy);
-		IsBattleOver = result.IsBattleOver;
-		WinnerId = result.WinnerId;
+		IsResolving = true;
+		try
+		{
+			var result = _pipeline.Resolve(playerPlan, sink);
+			IsBattleOver = result.IsBattleOver;
+			WinnerId = result.WinnerId;
 
-		if (GetPlayer() is { } player)
-			Player.ResetFrom(player.State);
+			if (GetPlayer() is not null)
+				Player.BeginTurn();
 
-		return true;
+			return true;
+		}
+		finally
+		{
+			IsResolving = false;
+		}
 	}
 
 	private bool CanAct(Unit unit) =>
-		!IsBattleOver && Turn.IsActive(unit.State.Id) && unit.State.IsAlive;
+		!IsBattleOver && !IsResolving && Turn.IsActive(unit.State.Id) && unit.State.IsAlive;
 
 	private IEnumerable<Unit> GetActiveUnits() =>
 		Units.Where(u => Turn.IsActive(u.State.Id) && u.State.IsAlive);

@@ -1,14 +1,13 @@
-using GrimSpace.Battle.Units;
-
 namespace GrimSpace.Core.Actions.Battle.Contexts;
 
-public readonly struct DamageContext(State enemy)
+public readonly struct DamageContext(BattleBoard board)
 {
 	public void ApplyTo(string targetUnitId, int damage)
 	{
-		if (targetUnitId != enemy.Id)
+		if (!board.Units.TryGetValue(targetUnitId, out var unit))
 			return;
 
-		enemy.Hp = System.Math.Max(enemy.Hp - damage, 0);
+		var target = unit.State;
+		target.Hp = System.Math.Max(target.Hp - damage, 0);
 	}
 }

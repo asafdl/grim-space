@@ -7,11 +7,12 @@ public sealed class Stats
 {
 	public int MaxAp { get; init; }
 	public int MaxHp { get; init; }
+	public int MissilesPerTurn { get; init; }
 
 	public static Stats ForType(EType type) =>
 		type switch
 		{
-			EType.Fighter => new Stats { MaxAp = 4, MaxHp = 1 },
+			EType.Fighter => new Stats { MaxAp = 4, MaxHp = 1, MissilesPerTurn = 2 },
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 }

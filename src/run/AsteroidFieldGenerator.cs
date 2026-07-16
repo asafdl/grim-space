@@ -1,5 +1,5 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Run;
 

@@ -1,5 +1,6 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 using UnitState = GrimSpace.Battle.Units.State;
 
@@ -10,21 +11,32 @@ namespace GrimSpace.Battle.Environment;
 /// </summary>
 public sealed class HazardSystem
 {
-	private readonly List<Hazard> _board = [];
-	private readonly List<Hazard> _active = [];
+	private readonly Dictionary<string, NonUnit> _nonUnits = new();
 
-	public IReadOnlyList<Hazard> Board => _board;
-	public IReadOnlyList<Hazard> Active => _active;
+	public IReadOnlyDictionary<string, NonUnit> NonUnits => _nonUnits;
 
-	/// <summary>Collection passed to action commit boards for turn hazard spawning.</summary>
-	public ICollection<Hazard> RegisterTarget => _active;
+	public IReadOnlyList<Hazard> Board => _nonUnits.Values
+		.OfType<Hazard>()
+		.Where(hazard => hazard.OwnerId == EntityIds.Board)
+		.ToList();
 
-	public void RegisterBoard(IEnumerable<Hazard> hazards) => _board.AddRange(hazards);
+	public IReadOnlyList<Hazard> Active => _nonUnits.Values
+		.OfType<Hazard>()
+		.Where(hazard => hazard.OwnerId != EntityIds.Board)
+		.ToList();
+
+	public IDictionary<string, NonUnit> MutableNonUnits => _nonUnits;
+
+	public void RegisterBoard(IEnumerable<Hazard> hazards)
+	{
+		foreach (var hazard in hazards)
+			_nonUnits[hazard.Id] = hazard;
+	}
 
 	public HashSet<Coord> GetBlockedCells()
 	{
 		var cells = new HashSet<Coord>();
-		foreach (var hazard in _board)
+		foreach (var hazard in Board)
 		{
 			if (!hazard.Passable)
 				cells.UnionWith(hazard.Cells);
@@ -36,7 +48,7 @@ public sealed class HazardSystem
 	public HashSet<Coord> GetOccupiedCells()
 	{
 		var cells = new HashSet<Coord>();
-		foreach (var hazard in _active)
+		foreach (var hazard in Active)
 			cells.UnionWith(hazard.Cells);
 
 		return cells;
@@ -49,7 +61,7 @@ public sealed class HazardSystem
 			if (!unit.State.IsAlive)
 				continue;
 
-			foreach (var hazard in _active)
+			foreach (var hazard in Active)
 			{
 				if (!hazard.Cells.Contains(unit.State.Position))
 					continue;
@@ -62,7 +74,16 @@ public sealed class HazardSystem
 		}
 	}
 
-	public void Clear() => _active.Clear();
+	public void Clear()
+	{
+		var turnScoped = _nonUnits.Values
+			.Where(nonUnit => nonUnit.OwnerId != EntityIds.Board)
+			.Select(nonUnit => nonUnit.Id)
+			.ToList();
+
+		foreach (var id in turnScoped)
+			_nonUnits.Remove(id);
+	}
 
 	private static void ApplyDamage(UnitState target, int damage) =>
 		target.Hp = System.Math.Max(target.Hp - damage, 0);

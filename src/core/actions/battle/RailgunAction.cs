@@ -1,27 +1,26 @@
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Effects;
-
 using GrimSpace.Core.Actions.Battle.Contexts;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class RailgunAction(string targetUnitId) : IBattleAction
+public sealed class RailgunAction(string ownerId, string targetUnitId) : IAction, IBattleAction
 {
+	public string OwnerId { get; } = ownerId;
 	public string TargetUnitId { get; } = targetUnitId;
-
-	public EnqueuePolicy EnqueuePolicy => EnqueuePolicy.ReplaceSameType;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context)
 	{
-		if (TargetUnitId != board.Enemy.Id || !board.Enemy.IsAlive)
+		if (!board.Units.TryGetValue(TargetUnitId, out var targetUnit) || !targetUnit.State.IsAlive)
 			return false;
 
-		if (board.Enemy.MomentumLevel != CombatConfig.RailgunRequiredTargetMomentum)
+		var target = targetUnit.State;
+		if (target.MomentumLevel != CombatConfig.RailgunRequiredTargetMomentum)
 			return false;
 
-		return board.Player.Position.ManhattanDistanceTo(board.Enemy.Position)
-			<= CombatConfig.RailgunMaxRange;
+		var actor = board.StateOf(OwnerId);
+		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
 	}
 
 	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board) =>

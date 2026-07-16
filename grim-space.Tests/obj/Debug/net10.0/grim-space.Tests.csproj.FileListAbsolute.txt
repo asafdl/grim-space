@@ -100,3 +100,4 @@
 /Users/asafd/git/grim-space/grim-space.Tests/obj/Debug/net10.0/grim-space.Tests.pdb
 /Users/asafd/git/grim-space/grim-space.Tests/obj/Debug/net10.0/grim-space.Tests.genruntimeconfig.cache
 /Users/asafd/git/grim-space/grim-space.Tests/obj/Debug/net10.0/ref/grim-space.Tests.dll
+/Users/asafd/git/grim-space/grim-space.Tests/bin/Debug/net10.0/UniqueNameGenerator.dll

@@ -1,5 +1,8 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -13,33 +16,37 @@ public static class EnemyPlanner
 	private const int MomentumReductionBonus = 1_000;
 	private const int MovementBonus = 50;
 
-	public static IReadOnlyList<IBattleAction> PlanTurn(
+	public static UnitPlan PlanTurn(
 		Unit actor,
-		Unit opponent,
+		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
+		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> hazardCells,
 		IReadOnlySet<Coord> blockedCells)
 	{
-		var startFacing = GridBasis.From(
-			actor.State.ForwardDirection,
-			actor.State.UpDirection,
-			actor.State.RightDirection);
+		var plan = new UnitPlan();
+		plan.BeginTurn(actor.State.Id, roster, grid, nonUnits, blockedCells);
+
 		var startedInHazard = hazardCells.Contains(actor.State.Position);
 		var startMomentum = actor.State.MomentumLevel;
-		var plan = new List<IBattleAction>();
+		var actorId = actor.State.Id;
 
 		for (var step = 0; step < MaxPlanLength; step++)
 		{
-			var currentState = PlanSimulator.Simulate(actor, opponent, grid, plan, startFacing, blockedCells).Player;
+			var currentState = plan.Board.StateOf(actorId);
 			var currentScore = ScoreState(currentState, startMomentum, hazardCells, startedInHazard);
 
 			IBattleAction? bestAction = null;
 			var bestScore = currentScore;
 
-			foreach (var candidate in LegalActions.EnumerateMovement(actor, opponent, grid, plan, startFacing, blockedCells))
+			foreach (var candidate in LegalActions.EnumerateMovement(plan.Board, plan.Context, actorId, blockedCells))
 			{
-				var trial = AppendAction(plan, candidate);
-				var actorState = PlanSimulator.Simulate(actor, opponent, grid, trial, startFacing, blockedCells).Player;
+				if (!TryEnqueueTrial(plan, actorId, candidate))
+					continue;
+
+				var actorState = plan.Board.StateOf(actorId);
+				plan.TryUndoLast();
+
 				if (actorState.ActionPoints < 0)
 					continue;
 
@@ -57,10 +64,18 @@ public static class EnemyPlanner
 			if (bestAction is null)
 				break;
 
-			AppendActionInPlace(plan, bestAction);
+			TryEnqueueTrial(plan, actorId, bestAction);
 		}
 
 		return plan;
+	}
+
+	private static bool TryEnqueueTrial(UnitPlan plan, string ownerId, IBattleAction candidate)
+	{
+		if (candidate is MoveAction && plan.Actions.Any(action => action is MoveAction))
+			return false;
+
+		return plan.TryApplyAndEnqueue(BattleActionFactory.AsQueued(ownerId, candidate));
 	}
 
 	private static int ScoreState(
@@ -83,27 +98,5 @@ public static class EnemyPlanner
 			return EscapeHazardBonus;
 
 		return 0;
-	}
-
-	private static List<IBattleAction> AppendAction(IReadOnlyList<IBattleAction> plan, IBattleAction action)
-	{
-		var trial = plan.ToList();
-		AppendActionInPlace(trial, action);
-		return trial;
-	}
-
-	private static void AppendActionInPlace(List<IBattleAction> plan, IBattleAction action)
-	{
-		if (action is MoveAction)
-		{
-			var index = plan.FindIndex(queued => queued is MoveAction);
-			if (index >= 0)
-				plan[index] = action;
-			else
-				plan.Add(action);
-			return;
-		}
-
-		plan.Add(action);
 	}
 }

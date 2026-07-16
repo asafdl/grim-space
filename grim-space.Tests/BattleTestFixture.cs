@@ -48,7 +48,7 @@ internal static class BattleTestFixture
 			Controller = controller,
 		};
 
-		return Factory.Create(instance, position, momentum);
+		return Factory.Create(instance, position, initialMomentum: momentum);
 	}
 
 	private static Unit WithAp(Unit unit, int actionPoints)

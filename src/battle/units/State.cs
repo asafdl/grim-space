@@ -13,6 +13,7 @@ public sealed class State
 	public int ActionPoints { get; set; }
 	public int Hp { get; set; }
 	public int MomentumLevel { get; set; }
+	public int MissilesRemaining { get; set; }
 	public required Stats Stats { get; init; }
 
 	public bool IsAlive => Hp > 0;
@@ -28,6 +29,7 @@ public sealed class State
 			ActionPoints = ActionPoints,
 			Hp = Hp,
 			MomentumLevel = MomentumLevel,
+			MissilesRemaining = MissilesRemaining,
 			Stats = Stats,
 		};
 
@@ -46,6 +48,7 @@ public sealed class State
 			ActionPoints = stats.MaxAp,
 			Hp = stats.MaxHp,
 			MomentumLevel = 0,
+			MissilesRemaining = stats.MissilesPerTurn,
 			Stats = stats,
 		};
 	}

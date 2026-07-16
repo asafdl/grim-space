@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
@@ -8,25 +9,23 @@ using BoundedGrid = GrimSpace.Math.Grid.Grid;
 namespace GrimSpace.Core.Actions.Battle;
 
 /// <summary>
-/// Applies queued actions to cloned battle state (rules simulation, not presentation).
+/// Replays queued actions on a turn-start board snapshot (planning / legality).
 /// </summary>
 public static class PlanSimulator
 {
 	public static void Apply(IReadOnlyList<IBattleAction> actions, BattleBoard board) =>
-		PlanExecutor.Apply<IBattleAction, BattleBoard, BattleSlices, BattlePlanContext>(
-			actions,
-			board,
-			BattleSlices.From);
+		PlanExecutor.Apply(actions, board);
 
 	public static BattleBoard BuildBoard(
-		Unit actor,
-		Unit opponent,
+		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IReadOnlyList<IBattleAction> actions,
 		IReadOnlySet<Coord> blockedCells,
+		string actorId,
+		IReadOnlyDictionary<string, NonUnit>? nonUnits = null,
 		bool excludeMoves = false)
 	{
-		var board = BattleBoard.ForSimulation(actor, opponent, grid, blockedCells);
+		var board = BattleBoard.FromSnapshot(roster, nonUnits ?? new Dictionary<string, NonUnit>(), grid, blockedCells);
 		var toApply = excludeMoves
 			? actions.Where(action => action is not MoveAction).ToList()
 			: actions;
@@ -35,16 +34,17 @@ public static class PlanSimulator
 	}
 
 	public static BattleBoard Simulate(
-		Unit actor,
-		Unit opponent,
+		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IReadOnlyList<IBattleAction> actions,
 		GridBasis startFacing,
 		IReadOnlySet<Coord> blockedCells,
+		string actorId,
+		IReadOnlyDictionary<string, NonUnit>? nonUnits = null,
 		bool excludeMoves = false)
 	{
-		var board = BuildBoard(actor, opponent, grid, actions, blockedCells, excludeMoves);
-		Orientation.SettleNetYaw(board.Player, startFacing);
+		var board = BuildBoard(roster, grid, actions, blockedCells, actorId, nonUnits, excludeMoves);
+		Orientation.SettleNetYaw(board.StateOf(actorId), startFacing);
 		return board;
 	}
 }

@@ -4,6 +4,7 @@ namespace GrimSpace.Battle.Movement;
 
 public sealed class Option
 {
+	public Coord Origin { get; init; }
 	public int ApCost { get; init; }
 	public required IReadOnlyList<Coord> Path { get; init; }
 

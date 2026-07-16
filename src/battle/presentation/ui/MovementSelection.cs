@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
@@ -41,7 +42,7 @@ public static class MovementSelection
 	}
 
 	public static (IReadOnlyList<Coord> Path, Coord? Target) WithCommittedMove(
-		IReadOnlyList<IBattleAction> actions,
+		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Coord> path,
 		Coord? target)
 	{

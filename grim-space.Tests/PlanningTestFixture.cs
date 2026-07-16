@@ -1,5 +1,8 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -11,10 +14,13 @@ internal static class PlanningTestFixture
 		Unit player,
 		Unit enemy,
 		BoundedGrid? grid = null,
-		IReadOnlySet<Coord>? blocked = null)
+		IReadOnlySet<Coord>? blocked = null,
+		IReadOnlyDictionary<string, NonUnit>? nonUnits = null)
 	{
 		grid ??= BattleTestFixture.Grid();
 		blocked ??= new HashSet<Coord> { enemy.State.Position };
-		return new PlayerController(player, enemy, grid, blocked, _ => true, () => player);
+		nonUnits ??= new Dictionary<string, NonUnit>();
+		var roster = new[] { player, enemy };
+		return new PlayerController(player, enemy, roster, nonUnits, grid, blocked, _ => true, () => player);
 	}
 }

@@ -8,7 +8,7 @@
           "build/netstandard2.0/coverlet.collector.targets": {}
         }
       },
-      "GodotSharp/4.7.0": {
+      "GodotSharp/4.7.1": {
         "type": "package",
         "compile": {
           "lib/net8.0/GodotSharp.dll": {
@@ -21,10 +21,10 @@
           }
         }
       },
-      "GodotSharpEditor/4.7.0": {
+      "GodotSharpEditor/4.7.1": {
         "type": "package",
         "dependencies": {
-          "GodotSharp": "4.7.0"
+          "GodotSharp": "4.7.1"
         },
         "compile": {
           "lib/net8.0/GodotSharpEditor.dll": {
@@ -327,6 +327,15 @@
           }
         }
       },
+      "UniqueNameGenerator/1.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/UniqueNameGenerator.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/UniqueNameGenerator.dll": {}
+        }
+      },
       "xunit/2.9.3": {
         "type": "package",
         "dependencies": {
@@ -425,10 +434,11 @@
       },
       "grim-space/1.0.0": {
         "type": "project",
-        "framework": ".NETCoreApp,Version=v8.0",
+        "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "GodotSharp": "4.7.0",
-          "GodotSharpEditor": "4.7.0"
+          "GodotSharp": "4.7.1",
+          "GodotSharpEditor": "4.7.1",
+          "UniqueNameGenerator": "1.0.1"
         },
         "compile": {
           "bin/placeholder/grim-space.dll": {}
@@ -510,27 +520,27 @@
         "coverlet.collector.nuspec"
       ]
     },
-    "GodotSharp/4.7.0": {
-      "sha512": "cSlT7ziWnORTOxRz0LpmQNM+ZHBt5CWgegreJXiTinj37XucRZSQ65GIloblaozOju21L/FCBs4Y35WteHfQrw==",
+    "GodotSharp/4.7.1": {
+      "sha512": "OCTPz0MtENY0J1e9Sw4VB9qxS0DK9xpEQLAIMRzCtnVKiJvHZUAAnJ9mU4ewW5+88V4beewp3dl8OE813Qw73g==",
       "type": "package",
-      "path": "godotsharp/4.7.0",
+      "path": "godotsharp/4.7.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "godotsharp.4.7.0.nupkg.sha512",
+        "godotsharp.4.7.1.nupkg.sha512",
         "godotsharp.nuspec",
         "lib/net8.0/GodotSharp.dll",
         "lib/net8.0/GodotSharp.xml"
       ]
     },
-    "GodotSharpEditor/4.7.0": {
-      "sha512": "vXYw6PXzKVCTQCgPeGxLnw5Qlub8SY43yQYEPZNYlDN1/OOiLnaaKxJvLf2Wk5D+8/+K/pxRQXGPqj65bnWohQ==",
+    "GodotSharpEditor/4.7.1": {
+      "sha512": "MAX9wPgjX9BM+EOMxuF++mWKdvO2y0ZiEAfv6D68HGseQc8mX//yc7QrJizXSJ4ii1nh3krXZSyIJ77nmjOgYA==",
       "type": "package",
-      "path": "godotsharpeditor/4.7.0",
+      "path": "godotsharpeditor/4.7.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "godotsharpeditor.4.7.0.nupkg.sha512",
+        "godotsharpeditor.4.7.1.nupkg.sha512",
         "godotsharpeditor.nuspec",
         "lib/net8.0/GodotSharpEditor.dll",
         "lib/net8.0/GodotSharpEditor.xml"
@@ -833,6 +843,21 @@
         "packageIcon.png"
       ]
     },
+    "UniqueNameGenerator/1.0.1": {
+      "sha512": "RDSHGAyfjtWbZPFmpGUQe90uuA4uO9hwyM59tA39Ls8tFRklRQUkUQ+Ba0u/8dwnw/b+qtYwK6AUwJaFa6sEhg==",
+      "type": "package",
+      "path": "uniquenamegenerator/1.0.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "PackageIcon.png",
+        "README.md",
+        "lib/netstandard2.0/UniqueNameGenerator.dll",
+        "uniquenamegenerator.1.0.1.nupkg.sha512",
+        "uniquenamegenerator.nuspec"
+      ]
+    },
     "xunit/2.9.3": {
       "sha512": "TlXQBinK35LpOPKHAqbLY4xlEen9TBafjs0V5KnA4wZsoQLQJiirCR4CbIXvOH8NzkW4YeJKP5P/Bnrodm0h9Q==",
       "type": "package",
@@ -989,7 +1014,7 @@
     ]
   },
   "packageFolders": {
-    "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/bf851c7f2f2b19ae0d5bcfb0b6e3c051/nuget": {}
+    "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/7cb3570a9984de39f0675fb705c005e0/nuget": {}
   },
   "project": {
     "version": "1.0.0",
@@ -997,7 +1022,7 @@
       "projectUniqueName": "/Users/asafd/git/grim-space/grim-space.Tests/grim-space.Tests.csproj",
       "projectName": "grim-space.Tests",
       "projectPath": "/Users/asafd/git/grim-space/grim-space.Tests/grim-space.Tests.csproj",
-      "packagesPath": "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/bf851c7f2f2b19ae0d5bcfb0b6e3c051/nuget",
+      "packagesPath": "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/7cb3570a9984de39f0675fb705c005e0/nuget",
       "outputPath": "/Users/asafd/git/grim-space/grim-space.Tests/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [

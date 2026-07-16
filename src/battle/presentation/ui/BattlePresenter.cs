@@ -1,8 +1,10 @@
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Planning;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -55,12 +57,12 @@ public sealed class BattlePresenter
 
 	public void ResetAfterTurn() => CancelMissileMode();
 
-	public bool EndTurn()
+	public bool EndTurn(IPresentationEventSink? sink = null)
 	{
 		if (_manager.IsBattleOver)
 			return false;
 
-		_manager.ExecuteTurn(_manager.Player.FinalizePlan());
+		_manager.ExecuteTurn(_manager.Player.FinalizePlan(), sink);
 		ResetAfterTurn();
 		return true;
 	}
@@ -104,7 +106,8 @@ public sealed class BattlePresenter
 		if (optionIndex < 0 || optionIndex >= options.Count)
 			return false;
 
-		if (!_manager.Player.TryEnqueue(new MoveAction(options[optionIndex])))
+		var ownerId = _manager.Player.OwnerId;
+		if (!_manager.Player.TryEnqueue(new MoveAction(ownerId, options[optionIndex])))
 			return false;
 
 		_selection.Clear();
@@ -116,7 +119,8 @@ public sealed class BattlePresenter
 		if (MissileMount is not EMissileMount mount)
 			return false;
 
-		if (!_manager.Player.TryEnqueue(new MissileAction(center, mount, MissileRange)))
+		var ownerId = _manager.Player.OwnerId;
+		if (!_manager.Player.TryEnqueue(new MissileAction(ownerId, center, mount, MissileRange)))
 			return false;
 
 		MissileHover = null;
@@ -125,39 +129,41 @@ public sealed class BattlePresenter
 
 	public bool TryQueueRailgun(Unit target)
 	{
-		if (!_manager.Player.TryEnqueue(new RailgunAction(target.State.Id)))
+		var ownerId = _manager.Player.OwnerId;
+		if (!_manager.Player.TryEnqueue(new RailgunAction(ownerId, target.State.Id)))
 			return false;
 
 		RailgunHover = null;
 		return true;
 	}
 
-	public bool TryQueueRoll(ERollDirection direction) =>
-		_manager.Player.TryEnqueue(new RollAction(direction));
+	public bool TryQueueRoll(ERollDirection direction)
+	{
+		var ownerId = _manager.Player.OwnerId;
+		return _manager.Player.TryEnqueue(new RollAction(ownerId, direction));
+	}
 
-	public bool TryQueueHeadingTurn(EHeadingTurn turn) =>
-		_manager.Player.TryEnqueue(new HeadingTurnAction(turn));
+	public bool TryQueueHeadingTurn(EHeadingTurn turn)
+	{
+		var ownerId = _manager.Player.OwnerId;
+		return _manager.Player.TryEnqueue(new HeadingTurnAction(ownerId, turn));
+	}
 
 	public bool IsRailgunLegal(Unit target)
 	{
 		var enemy = _manager.GetEnemy();
+		var ownerId = _manager.Player.OwnerId;
 		return enemy is not null
 			&& target.State.Id == enemy.State.Id
-			&& _manager.Player.IsLegal(new RailgunAction(target.State.Id));
+			&& _manager.Player.IsLegal(new RailgunAction(ownerId, target.State.Id));
 	}
 
 	public PresentationFrame BuildFrame()
 	{
 		var planning = _manager.Player;
 		var activeUnit = planning.GetActiveActor();
-		var pickOptions = View.GetMoveSelectionHighlights(planning, activeUnit);
-		var previewOptions = View.GetMoveHighlights(planning, activeUnit);
-		var hasCommittedMove = planning.Actions.Any(action => action is MoveAction);
-		var exploring = _selection.HoveredIndex is not null;
-		var displayOptions = hasCommittedMove && !exploring
-			? previewOptions
-			: pickOptions;
-		_selection.ClampToCount(pickOptions.Count);
+		var moveOptions = View.GetMoveHighlights(planning, activeUnit);
+		_selection.ClampToCount(moveOptions.Count);
 
 		var exitMissileMode = Mode == EPlayerMode.Missile && planning.MissilesRemainingThisTurn <= 0;
 		if (exitMissileMode)
@@ -168,13 +174,14 @@ public sealed class BattlePresenter
 		var validMissileCells = GetValidMissileCells(activeUnit);
 		var missilePreviewCells = GetMissilePreviewCells(activeUnit);
 		var railgunTargets = View.GetRailgunTargetHighlights(planning, activeUnit);
-		var (path, target) = MovementSelection.GetHighlights(pickOptions, _selection.HoveredIndex);
-		if (!exploring)
-			(path, target) = MovementSelection.WithCommittedMove(planning.Actions, path, target);
+		var enemyId = planning.Opponent.State.Id;
+		var (path, target) = MovementSelection.GetHighlights(moveOptions, _selection.HoveredIndex);
+		(path, target) = MovementSelection.WithCommittedMove(planning.Actions, path, target);
 
+		var ownerId = planning.OwnerId;
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
-			&& planning.IsLegal(new MissileAction(hover, mount, MissileRange));
+			&& planning.IsLegal(new MissileAction(ownerId, hover, mount, MissileRange));
 
 		return new PresentationFrame
 		{
@@ -182,20 +189,19 @@ public sealed class BattlePresenter
 			MissileMount = MissileMount,
 			MissileRange = MissileRange,
 			ActiveUnit = activeUnit,
-			MoveOptions = displayOptions,
-			MovePickOptions = pickOptions,
+			MoveOptions = moveOptions,
 			Simulation = simulation,
 			PlannedHazardCells = hazardCells,
 			ValidMissileCells = validMissileCells,
 			MissilePreviewCells = missilePreviewCells,
 			RailgunTargetCells = railgunTargets,
-			RailgunHoveredCell = GetRailgunHoveredCell(simulation),
+			RailgunHoveredCell = GetRailgunHoveredCell(simulation, enemyId),
 			MovePath = path,
 			MoveTarget = target,
 			MissileAimActive = Mode == EPlayerMode.Missile && MissileMount is not null && activeUnit is not null,
-			MissileAimShip = Mode == EPlayerMode.Missile ? simulation.Player : null,
+			MissileAimShip = Mode == EPlayerMode.Missile ? simulation.Actor : null,
 			HintText = BuildHint(activeUnit, simulation, missileInRange, planning),
-			CanAct = !_manager.IsBattleOver && activeUnit is not null,
+			CanAct = !_manager.IsBattleOver && activeUnit is not null && !_manager.IsResolving,
 			MissilesRemaining = planning.MissilesRemainingThisTurn,
 			ExitMissileMode = exitMissileMode,
 		};
@@ -215,7 +221,7 @@ public sealed class BattlePresenter
 			|| MissileMount is not EMissileMount mount
 			|| unit is null
 			|| MissileHover is not Coord hover
-			|| !_manager.Player.IsLegal(new MissileAction(hover, mount, MissileRange)))
+			|| !_manager.Player.IsLegal(new MissileAction(_manager.Player.OwnerId, hover, mount, MissileRange)))
 		{
 			return [];
 		}
@@ -223,9 +229,9 @@ public sealed class BattlePresenter
 		return View.GetMissileBlastHighlights(hover, _manager.Player.Grid);
 	}
 
-	private Coord? GetRailgunHoveredCell(SimulatedTurn simulation) =>
+	private Coord? GetRailgunHoveredCell(SimulatedTurn simulation, string targetUnitId) =>
 		RailgunHover is not null && IsRailgunLegal(RailgunHover)
-			? simulation.Enemy.Position
+			? simulation.Board.StateOf(targetUnitId).Position
 			: null;
 
 	private string BuildHint(
@@ -243,7 +249,7 @@ public sealed class BattlePresenter
 
 		return turnPrefix + CombatHints.BuildHint(
 			Mode,
-			simulation.Player,
+			simulation.Actor,
 			planning.MissilesRemainingThisTurn,
 			planning.Actions.Count,
 			RailgunHover,

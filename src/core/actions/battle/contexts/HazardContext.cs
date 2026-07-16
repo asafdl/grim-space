@@ -1,18 +1,24 @@
-using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Core.Actions.Battle.Contexts;
 
-public readonly struct HazardContext(ICollection<Hazard> hazards, BoundedGrid grid)
+public readonly struct HazardContext(BattleBoard board, string actorId)
 {
 	public void SpawnMissile(Coord center)
 	{
-		hazards.Add(Hazard.MissileZone(
+		var hazard = Hazard.MissileZone(
+			board.IdRegistry.NextNonUnitId("missile-zone"),
+			actorId,
 			center,
-			grid,
+			board.Grid,
 			CombatConfig.MissileRadius,
 			CombatConfig.MissileDamage,
-			CombatConfig.MissileMomentumLoss));
+			CombatConfig.MissileMomentumLoss);
+
+		board.MutableNonUnits[hazard.Id] = hazard;
 	}
 }

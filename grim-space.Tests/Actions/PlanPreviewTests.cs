@@ -1,7 +1,9 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Presentation.Planning;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
@@ -17,15 +19,16 @@ public sealed class PlanPreviewTests
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var planning = PlanningTestFixture.Controller(player, enemy);
-		planning.ResetFrom(player.State);
+		planning.BeginTurn();
 
 		var move = Preview
-			.GetSelectionMoves(planning)
+			.GetLegalMoves(planning)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 
-		Assert.True(planning.TryEnqueue(new MoveAction(move)));
+		Assert.True(planning.TryEnqueue(new MoveAction(planning.OwnerId, move)));
 		Assert.Single(planning.Actions);
 		Assert.Equal(move.EndPosition, ((MoveAction)planning.Actions[0]).Option.EndPosition);
+		Assert.Equal(origin, ((MoveAction)planning.Actions[0]).Option.Origin);
 	}
 
 	[Fact]
@@ -35,7 +38,7 @@ public sealed class PlanPreviewTests
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var planning = PlanningTestFixture.Controller(player, enemy);
-		planning.ResetFrom(player.State);
+		planning.BeginTurn();
 
 		var legalMoves = Preview.GetLegalMoves(planning);
 		var endpoints = legalMoves.Select(option => option.EndPosition).ToHashSet();
@@ -53,7 +56,7 @@ public sealed class PlanPreviewTests
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var planning = PlanningTestFixture.Controller(player, enemy);
-		planning.ResetFrom(player.State);
+		planning.BeginTurn();
 
 		var beforePlan = Preview.GetLegalMoves(planning);
 		Assert.Contains(
@@ -61,15 +64,14 @@ public sealed class PlanPreviewTests
 			option => option.EndPosition == origin + Coord.Forward * 4);
 
 		var threeStep = beforePlan.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		planning.TryEnqueue(new MoveAction(threeStep));
+		planning.TryEnqueue(new MoveAction(planning.OwnerId, threeStep));
 
 		var afterPlan = Preview.GetLegalMoves(planning);
-		var endpoints = afterPlan.Select(option => option.EndPosition).ToHashSet();
 
-		Assert.DoesNotContain(origin + Coord.Forward * 4, endpoints);
+		Assert.Empty(afterPlan);
 		Assert.Equal(
 			origin + Coord.Forward * 3,
-			Preview.Simulate(planning).Player.Position);
+			Preview.Simulate(planning).Actor.Position);
 	}
 
 	[Fact]
@@ -79,7 +81,7 @@ public sealed class PlanPreviewTests
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var planning = PlanningTestFixture.Controller(player, enemy);
-		planning.ResetFrom(player.State);
+		planning.BeginTurn();
 
 		var expected = Preview.GetLegalMoves(planning);
 		var highlights = View.GetMoveHighlights(planning, player);
@@ -96,27 +98,27 @@ public sealed class PlanPreviewTests
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var planning = PlanningTestFixture.Controller(player, enemy);
-		planning.ResetFrom(player.State);
+		planning.BeginTurn();
 
 		var move = Preview
-			.GetSelectionMoves(planning)
+			.GetLegalMoves(planning)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		planning.TryEnqueue(new MoveAction(move));
+		planning.TryEnqueue(new MoveAction(planning.OwnerId, move));
 
 		var committed = planning.FinalizePlan();
-		var hazards = new List<GrimSpace.Battle.Weapons.Hazard>();
+		var nonUnits = new Dictionary<string, NonUnit>();
 
 		Assert.Single(committed.Actions);
 		Assert.IsType<MoveAction>(committed.Actions[0]);
 
 		BattlePlanExecutor.Apply(
-			committed.Actions,
-			player,
-			enemy,
+			committed.Actions.Cast<IBattleAction>().ToList(),
+			[player, enemy],
 			planning.Grid,
-			hazards,
+			nonUnits,
 			planning.BlockedCells,
-			committed.StartFacing);
+			committed.StartFacing,
+			planning.OwnerId);
 
 		Assert.Equal(origin + Coord.Forward * 3, player.State.Position);
 		Assert.Equal(
@@ -125,5 +127,29 @@ public sealed class PlanPreviewTests
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - move.ApCost,
 			player.State.ActionPoints);
+	}
+
+	[Fact]
+	public void QueuedMissilesConsumeBudgetThroughSimulation()
+	{
+		var origin = new Coord(5, 5, 1);
+		var target = origin + Coord.Forward * CombatConfig.DorsalMissileMinRange;
+		var player = BattleTestFixture.Player(origin);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var planning = PlanningTestFixture.Controller(player, enemy);
+		planning.BeginTurn();
+
+		var missile = new MissileAction(
+			planning.OwnerId,
+			target,
+			EMissileMount.Dorsal,
+			CombatConfig.DorsalMissileMinRange);
+
+		Assert.Equal(CombatConfig.MissilesPerTurn, planning.MissilesRemainingThisTurn);
+		Assert.True(planning.TryEnqueue(missile));
+		Assert.Equal(CombatConfig.MissilesPerTurn - 1, planning.MissilesRemainingThisTurn);
+		Assert.True(planning.TryEnqueue(missile));
+		Assert.Equal(0, planning.MissilesRemainingThisTurn);
+		Assert.False(planning.TryEnqueue(missile));
 	}
 }

@@ -17,16 +17,16 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var manager = CreateManager(origin, new Coord(0, 0, 0));
 		var presenter = new BattlePresenter(manager);
-		var selection = Preview.GetSelectionMoves(manager.Player).ToList();
-		var threeStepIndex = selection.FindIndex(
+		var options = Preview.GetLegalMoves(manager.Player).ToList();
+		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
-		Assert.True(presenter.TryQueueMove(threeStepIndex, selection));
+		Assert.True(presenter.TryQueueMove(threeStepIndex, options));
 
 		var frame = presenter.BuildFrame();
 		var endpoints = frame.MoveOptions.Select(option => option.EndPosition).ToHashSet();
 
-		Assert.Equal(origin + Coord.Forward * 3, frame.Simulation.Player.Position);
+		Assert.Equal(origin + Coord.Forward * 3, frame.Simulation.Actor.Position);
 		Assert.DoesNotContain(origin + Coord.Forward * 4, endpoints);
 		Assert.Equal(origin + Coord.Forward * 3, frame.MoveTarget);
 		Assert.Equal(3, frame.MovePath.Count);
@@ -38,16 +38,16 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var manager = CreateManager(origin, new Coord(0, 0, 0));
 		var presenter = new BattlePresenter(manager);
-		var selection = Preview.GetSelectionMoves(manager.Player).ToList();
-		var threeStepIndex = selection.FindIndex(
+		var options = Preview.GetLegalMoves(manager.Player).ToList();
+		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
-		presenter.TryQueueMove(threeStepIndex, selection);
+		presenter.TryQueueMove(threeStepIndex, options);
 		Assert.True(presenter.Undo());
 
 		var frame = presenter.BuildFrame();
 
-		Assert.Equal(origin, frame.Simulation.Player.Position);
+		Assert.Equal(origin, frame.Simulation.Actor.Position);
 		Assert.Null(frame.MoveTarget);
 		Assert.Empty(frame.MovePath);
 		Assert.Contains(

@@ -1,8 +1,10 @@
-using GrimSpace.Battle.Units;
-using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Actions.Battle.Contexts;
+using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
@@ -13,6 +15,33 @@ namespace GrimSpace.Core.Actions.Battle;
 public static class LegalActions
 {
 	public static IEnumerable<IBattleAction> EnumerateMovement(
+		BattleBoard board,
+		BattlePlanContext context,
+		string actorId,
+		IReadOnlySet<Coord> blockedCells)
+	{
+		foreach (var turn in Enum.GetValues<EHeadingTurn>())
+		{
+			var action = new HeadingTurnAction(actorId, turn);
+			if (action.IsLegal(board, context))
+				yield return action;
+		}
+
+		foreach (var direction in Enum.GetValues<ERollDirection>())
+		{
+			var action = new RollAction(actorId, direction);
+			if (action.IsLegal(board, context))
+				yield return action;
+		}
+
+		if (context.QueuedActions.Any(action => action is MoveAction))
+			yield break;
+
+		foreach (var option in GetMoveOptions(board, context, actorId))
+			yield return new MoveAction(actorId, option);
+	}
+
+	public static IEnumerable<IBattleAction> EnumerateMovement(
 		Unit actor,
 		Unit opponent,
 		BoundedGrid grid,
@@ -21,59 +50,42 @@ public static class LegalActions
 		IReadOnlySet<Coord> blockedCells)
 	{
 		var context = new BattlePlanContext(plan, startFacing);
-		var board = PlanSimulator.BuildBoard(actor, opponent, grid, plan, blockedCells);
-
-		foreach (var turn in Enum.GetValues<EHeadingTurn>())
-		{
-			var action = new HeadingTurnAction(turn);
-			if (action.IsLegal(board, context))
-				yield return action;
-		}
-
-		foreach (var direction in Enum.GetValues<ERollDirection>())
-		{
-			var action = new RollAction(direction);
-			if (action.IsLegal(board, context))
-				yield return action;
-		}
-
-		var moveBoard = PlanSimulator.BuildBoard(actor, opponent, grid, plan, blockedCells, excludeMoves: true);
-		foreach (var option in GetMoveOptions(moveBoard, context))
-			yield return new MoveAction(option);
+		var board = PlanSimulator.BuildBoard([actor, opponent], grid, plan, blockedCells, actor.State.Id);
+		return EnumerateMovement(board, context, actor.State.Id, blockedCells);
 	}
 
-	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context)
+	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context, string actorId)
 	{
-		var blocked = new HashSet<Coord>(board.BlockedCells) { board.Enemy.Position };
-		return board.PlayerUnit.Movement
-			.GetMoveOptions(board.Player, board.Grid, blocked)
-			.Where(option => new MoveAction(option).IsLegal(board, context))
+		var actor = board.StateOf(actorId);
+		var blocked = board.BlockedFor(actorId);
+		return board.UnitOf(actorId).Movement
+			.GetMoveOptions(actor, board.Grid, blocked)
+			.Where(option => new MoveAction(actorId, option).IsLegal(board, context))
 			.ToList();
 	}
 
 	public static HashSet<Coord> GetMissileCells(
 		BattleBoard board,
 		BattlePlanContext context,
+		string actorId,
 		EMissileMount mount,
 		int range)
 	{
-		if (context.MissilesRemaining <= 0)
-			return [];
-
+		var actor = board.StateOf(actorId);
 		var config = MissileMountConfig.For(mount).WithRange(range);
 		var cells = MissileTargeting.GetValidCells(
-			board.Player.Position,
-			board.Player.ForwardDirection,
-			board.Player.RightDirection,
-			board.Player.UpDirection,
+			actor.Position,
+			actor.ForwardDirection,
+			actor.RightDirection,
+			actor.UpDirection,
 			config,
 			board.Grid.IsInBounds);
 
 		return cells
-			.Where(cell => new MissileAction(cell, mount, range).IsLegal(board, context))
+			.Where(cell => new MissileAction(actorId, cell, mount, range).IsLegal(board, context))
 			.ToHashSet();
 	}
 
-	public static bool IsRailgunAvailable(BattleBoard board, BattlePlanContext context) =>
-		new RailgunAction(board.Enemy.Id).IsLegal(board, context);
+	public static bool IsRailgunAvailable(BattleBoard board, BattlePlanContext context, string actorId, string targetUnitId) =>
+		new RailgunAction(actorId, targetUnitId).IsLegal(board, context);
 }

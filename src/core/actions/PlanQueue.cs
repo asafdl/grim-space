@@ -22,21 +22,5 @@ public sealed class PlanQueue<TAction> where TAction : IEnqueueable
 		return true;
 	}
 
-	public void Enqueue(TAction action)
-	{
-		if (action.EnqueuePolicy == EnqueuePolicy.ReplaceSameType)
-		{
-			var actionType = action.GetType();
-			for (var i = 0; i < _actions.Count; i++)
-			{
-				if (_actions[i]?.GetType() != actionType)
-					continue;
-
-				_actions[i] = action;
-				return;
-			}
-		}
-
-		_actions.Add(action);
-	}
+	public void Enqueue(TAction action) => _actions.Add(action);
 }

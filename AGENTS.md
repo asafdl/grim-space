@@ -13,15 +13,15 @@ The near-term goal is **gameplay systems in code**, not polish. Use primitive/pl
 
 | Layer | Choice |
 |-------|--------|
-| Engine | Godot **4.7** (Forward Plus renderer) |
-| Language | **C#** (`net8.0`, `Godot.NET.Sdk/4.7.0`) |
+| Engine | Godot **4.7.1** (Forward Plus renderer) |
+| Language | **C#** (`net1.0`, `Godot.NET.Sdk/4.7.1`) |
 | Physics | Jolt (3D) |
 | Dev OS | macOS primary; Linux secondary |
 | Editor | Godot .NET build (`godot-mono`); Cursor/VS Code + C# extension for scripting |
 
 ### Prerequisites (local machine)
 
-- `dotnet` SDK 8+
+- `dotnet` SDK 10+
 - `godot-mono` (not the standard Godot build — C# requires the .NET edition)
 - Open this repo root in Cursor; Godot generates `grim-space.sln` / `grim-space.csproj`
 

@@ -1,8 +1,9 @@
 namespace GrimSpace.Core.Actions;
 
-public interface IAction<TBoard, TSlice, in TContext> : IEnqueueable
+/// <summary>
+/// Queue identity for planned actions. Board-neutral; execution uses capability interfaces (e.g. <see cref="Battle.IBattleAction"/>).
+/// </summary>
+public interface IAction : IEnqueueable
 {
-	bool IsLegal(TBoard board, TContext context);
-
-	IReadOnlyList<IEffect<TSlice>> Resolve(TBoard board);
+	string OwnerId { get; }
 }

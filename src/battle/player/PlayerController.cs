@@ -1,5 +1,7 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Planning;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Units;
@@ -12,9 +14,11 @@ namespace GrimSpace.Battle.Player;
 /// </summary>
 public sealed class PlayerController
 {
-	private readonly PlayerPlan _plan = new();
+	private readonly UnitPlan _plan = new();
 	private readonly Unit _player;
 	private readonly Unit _enemy;
+	private readonly IReadOnlyList<Unit> _roster;
+	private readonly IReadOnlyDictionary<string, NonUnit> _nonUnits;
 	private readonly BoundedGrid _grid;
 	private readonly IReadOnlySet<Coord> _blockedCells;
 	private readonly Func<Unit, bool> _canAct;
@@ -23,6 +27,8 @@ public sealed class PlayerController
 	public PlayerController(
 		Unit player,
 		Unit enemy,
+		IReadOnlyList<Unit> roster,
+		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
 		Func<Unit, bool> canAct,
@@ -30,23 +36,28 @@ public sealed class PlayerController
 	{
 		_player = player;
 		_enemy = enemy;
+		_roster = roster;
+		_nonUnits = nonUnits;
 		_grid = grid;
 		_blockedCells = blockedCells;
 		_canAct = canAct;
 		_getActivePlayer = getActivePlayer;
 	}
 
+	public string OwnerId => _player.State.Id;
 	public IReadOnlySet<Coord> BlockedCells => _blockedCells;
 	public Unit Actor => _player;
 	public Unit Opponent => _enemy;
 	public BoundedGrid Grid => _grid;
-	public PlayerPlan Plan => _plan;
-	public IReadOnlyList<IBattleAction> Actions => _plan.Actions;
+	public UnitPlan Plan => _plan;
+	public BattleBoard Board => _plan.Board;
+	public IReadOnlyList<IAction> Actions => _plan.Actions;
 	public BattlePlanContext Context => _plan.Context;
 	public GridBasis StartFacing => _plan.StartFacing;
-	public int MissilesRemainingThisTurn => _plan.Context.MissilesRemaining;
+	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
 
-	public void ResetFrom(State player) => _plan.ResetFrom(player);
+	public void BeginTurn() =>
+		_plan.BeginTurn(OwnerId, _roster, _grid, _nonUnits, _blockedCells);
 
 	public FinalizedPlan FinalizePlan() =>
 		new(_plan.Actions.ToList(), _plan.Context.StartFacing);
@@ -61,10 +72,7 @@ public sealed class PlayerController
 		if (player is null || !_canAct(player))
 			return false;
 
-		var board = action is MoveAction
-			? BoardBeforeQueuedMove()
-			: CommittedPlanBoard();
-		return action.IsLegal(board, _plan.Context);
+		return BattleActionFactory.WithOwner(OwnerId, action).IsLegal(Board, _plan.Context);
 	}
 
 	public bool TryEnqueue(IBattleAction action)
@@ -73,10 +81,18 @@ public sealed class PlayerController
 		if (player is null || !_canAct(player))
 			return false;
 
-		if (action is HeadingTurnAction heading && Orientation.IsYawTurn(heading.Turn))
+		if (action is MoveAction && _plan.Actions.Any(queued => queued is MoveAction))
+			return false;
+
+		if (action is RailgunAction && _plan.Actions.Any(queued => queued is RailgunAction))
+			return false;
+
+		var stamped = StampForEnqueue(action);
+
+		if (stamped is HeadingTurnAction heading && Orientation.IsYawTurn(heading.Turn))
 		{
-			_plan.Enqueue(action);
-			if (!CanAffordPlan())
+			_plan.ForceApplyAndEnqueue(stamped);
+			if (Board.StateOf(OwnerId).ActionPoints < 0)
 			{
 				_plan.TryUndoLast();
 				return false;
@@ -85,31 +101,28 @@ public sealed class PlayerController
 			return true;
 		}
 
-		if (!IsLegal(action))
-			return false;
-
-		_plan.Enqueue(action);
-		return true;
+		return _plan.TryApplyAndEnqueue(stamped);
 	}
 
 	public bool TryUndoLast() => _plan.TryUndoLast();
 
-	private BattleBoard CommittedPlanBoard() =>
-		PlanSimulator.Simulate(_player, _enemy, _grid, _plan.Actions, _plan.StartFacing, _blockedCells);
+	private IAction StampForEnqueue(IBattleAction action)
+	{
+		if (action is MoveAction move)
+		{
+			var option = new Option
+			{
+				Origin = Board.StateOf(OwnerId).Position,
+				ApCost = move.Option.ApCost,
+				Path = move.Option.Path,
+			};
+			return new MoveAction(OwnerId, option);
+		}
 
-	private BattleBoard BoardBeforeQueuedMove() =>
-		PlanSimulator.Simulate(
-			_player,
-			_enemy,
-			_grid,
-			PlanActions.WithoutQueuedMove(_plan.Actions),
-			_plan.StartFacing,
-			_blockedCells);
-
-	private bool CanAffordPlan() =>
-		CommittedPlanBoard().Player.ActionPoints >= 0;
+		return BattleActionFactory.AsQueued(OwnerId, action);
+	}
 }
 
 public readonly record struct FinalizedPlan(
-	IReadOnlyList<IBattleAction> Actions,
+	IReadOnlyList<IAction> Actions,
 	GridBasis StartFacing);
