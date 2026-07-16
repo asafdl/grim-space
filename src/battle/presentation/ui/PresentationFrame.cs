@@ -28,4 +28,5 @@ public sealed class PresentationFrame
 	public bool CanAct { get; init; }
 	public int MissilesRemaining { get; init; }
 	public bool ExitMissileMode { get; init; }
+	public bool ShowVictoryOverlay { get; init; }
 }

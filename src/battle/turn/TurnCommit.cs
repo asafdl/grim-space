@@ -31,12 +31,21 @@ public static class TurnCommit
 		var playerUnitPlan = new UnitPlan();
 		playerUnitPlan.CopyFrom(player.State, playerPlan.Actions);
 
+		var resolvedHazardCells = EnemyPlanner.CollectHazardCells(
+			hazardCells,
+			player,
+			units,
+			grid,
+			nonUnits,
+			blockedCells,
+			playerPlan.Actions);
+
 		var enemyPlan = EnemyPlanner.PlanTurn(
 			enemy,
 			units,
 			grid,
 			nonUnits,
-			hazardCells,
+			resolvedHazardCells,
 			blockedCells);
 
 		var queue = new GlobalActionQueue();

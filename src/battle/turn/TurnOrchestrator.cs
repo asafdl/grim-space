@@ -63,7 +63,7 @@ public sealed class TurnOrchestrator
 		}
 
 		var enemy = _units.First(unit => unit.Controller == EController.Enemy);
-		if (enemyCount > 0 && enemy.State.IsAlive)
+		if (enemy.State.IsAlive)
 			FinalizeActorPhase(enemy, commit.EnemyPlan);
 
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());

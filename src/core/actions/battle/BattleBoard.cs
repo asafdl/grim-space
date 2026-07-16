@@ -35,6 +35,9 @@ public sealed class BattleBoard
 
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
+	public IEnumerable<Hazard> TurnHazards =>
+		Hazards.Where(hazard => hazard.OwnerId != EntityIds.Board);
+
 	public IEnumerable<NonUnit> NonUnitsOwnedBy(string actorId) =>
 		_nonUnits.Values.Where(nonUnit => nonUnit.OwnerId == actorId);
 

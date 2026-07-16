@@ -15,7 +15,7 @@ public sealed class SimulatedTurn
 
 	public State Actor => Board.StateOf(ActorId);
 
-	public IEnumerable<Hazard> Hazards => Board.Hazards;
+	public IEnumerable<Hazard> Hazards => Board.TurnHazards;
 }
 
 public static class BattlePlanExecutor

@@ -158,6 +158,10 @@ public sealed class BattlePresenter
 			&& _manager.Player.IsLegal(new RailgunAction(ownerId, target.State.Id));
 	}
 
+	public bool IsPlayerVictory() =>
+		_manager.IsBattleOver
+		&& _manager.WinnerId == _manager.Player.OwnerId;
+
 	public PresentationFrame BuildFrame()
 	{
 		var planning = _manager.Player;
@@ -204,6 +208,7 @@ public sealed class BattlePresenter
 			CanAct = !_manager.IsBattleOver && activeUnit is not null && !_manager.IsResolving,
 			MissilesRemaining = planning.MissilesRemainingThisTurn,
 			ExitMissileMode = exitMissileMode,
+			ShowVictoryOverlay = IsPlayerVictory(),
 		};
 	}
 

@@ -21,6 +21,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 	private Controller _camera = null!;
 	private Label _hintLabel = null!;
 	private ActionBar _actionBar = null!;
+	private BattleOutcomeOverlay _outcomeOverlay = null!;
 	private ShipOrientationHud _orientationHud = null!;
 	private MissileRangeIndicator _missileRangeIndicator = null!;
 
@@ -68,6 +69,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 		SetupHintLabel();
 		SetupActionBar();
+		SetupOutcomeOverlay();
 		SetupOrientationHud();
 		Refresh();
 	}
@@ -115,6 +117,13 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		AddChild(_orientationHud);
 	}
 
+	private void SetupOutcomeOverlay()
+	{
+		_outcomeOverlay = new BattleOutcomeOverlay();
+		_outcomeOverlay.ResetRequested += ResetBattle;
+		AddChild(_outcomeOverlay);
+	}
+
 	private void SetupActionBar()
 	{
 		_actionBar = new ActionBar();
@@ -126,6 +135,9 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_presenter.Manager.IsBattleOver)
+			return;
+
 		if (_presenter.Manager.IsResolving)
 			return;
 
@@ -256,11 +268,28 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		ApplyGrid(frame);
 		ApplyActionBar(frame);
 		ApplyOrientationHud(frame);
+		ApplyOutcomeOverlay(frame);
+		_hintLabel.Visible = !frame.ShowVictoryOverlay;
 		_hintLabel.Text = frame.HintText;
+	}
+
+	private void ApplyOutcomeOverlay(PresentationFrame frame) =>
+		_outcomeOverlay.SetVisible(frame.ShowVictoryOverlay);
+
+	private void ResetBattle()
+	{
+		Session.Instance.StartNewRun();
+		GetTree().ReloadCurrentScene();
 	}
 
 	private void ApplyOrientationHud(PresentationFrame frame)
 	{
+		if (frame.ShowVictoryOverlay)
+		{
+			_orientationHud.Show(false);
+			return;
+		}
+
 		_orientationHud.Show(frame.CanAct && !frame.MissileAimActive);
 	}
 
@@ -321,6 +350,10 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ApplyActionBar(PresentationFrame frame)
 	{
+		_actionBar.Visible = !frame.ShowVictoryOverlay;
+		if (frame.ShowVictoryOverlay)
+			return;
+
 		_actionBar.SetMode(frame.Mode, frame.MissileMount);
 		_actionBar.Configure(
 			frame.MissilesRemaining,
