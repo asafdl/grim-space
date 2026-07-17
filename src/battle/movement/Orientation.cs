@@ -72,26 +72,7 @@ public static class Orientation
 			_ => CombatConfig.HeadingTurn90ApCost,
 		};
 
-	public static int YawQuartersBetween(GridBasis from, GridBasis to)
-	{
-		for (var quarters = 0; quarters < 4; quarters++)
-		{
-			var candidate = ApplyNetYaw(from, quarters);
-			if (candidate.Forward == to.Forward && candidate.Right == to.Right)
-				return quarters;
-		}
-
-		return 0;
-	}
-
 	public static int MomentumLossForNetYaw(int netQuarters) => ApCostForNetYaw(netQuarters);
-
-	public static void SettleNetYaw(State player, GridBasis planStartFacing)
-	{
-		var loss = MomentumLossForNetYaw(YawQuartersBetween(planStartFacing, CurrentGridBasis(player)));
-		player.ActionPoints -= loss;
-		player.MomentumLevel = System.Math.Max(player.MomentumLevel - loss, 0);
-	}
 
 	public static GridBasis ApplyNetYaw(GridBasis basis, int netQuarters) =>
 		NormalizeQuarters(netQuarters) switch

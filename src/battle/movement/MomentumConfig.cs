@@ -20,7 +20,7 @@ public sealed class MomentumConfig
 			FreeForwardSteps = 0,
 			ForwardStepCost = 1,
 			LateralCost = 1,
-			BrakeCost = 2,
+			BrakeCost = 1,
 		},
 		new()
 		{
@@ -29,7 +29,7 @@ public sealed class MomentumConfig
 			FreeForwardSteps = 1,
 			ForwardStepCost = 1,
 			LateralCost = 2,
-			BrakeCost = 3,
+			BrakeCost = 1,
 		},
 		new()
 		{
@@ -38,7 +38,7 @@ public sealed class MomentumConfig
 			FreeForwardSteps = 2,
 			ForwardStepCost = 1,
 			LateralCost = 3,
-			BrakeCost = 4,
+			BrakeCost = 2,
 		},
 		new()
 		{
@@ -47,7 +47,7 @@ public sealed class MomentumConfig
 			FreeForwardSteps = 3,
 			ForwardStepCost = 1,
 			LateralCost = 4,
-			BrakeCost = 5,
+			BrakeCost = 2,
 		},
 	];
 

@@ -1,8 +1,6 @@
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle.Contexts;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -42,27 +40,28 @@ public static class BattlePlanExecutor
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blockedCells,
-		GridBasis? yawSettleFacing = null,
+		GridBasis startFacing,
 		string? actorId = null)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
-		PlanSimulator.Apply(actions, board);
+		var tags = new BattleTurnTags();
+		var context = new BattlePlanContext(actions, startFacing, tags);
+		PlanPipeline.TryApplyAll(actions, board, context, actorId!);
 
-		if (actions.Count == 0 && actorId is not null)
-			board.StateOf(actorId).MomentumLevel = System.Math.Max(board.StateOf(actorId).MomentumLevel - 1, 0);
-
-		if (yawSettleFacing is { } facing && actorId is not null)
-			Orientation.SettleNetYaw(board.StateOf(actorId), facing);
+		if (actorId is not null)
+			PlanPipeline.RunPhaseEnd(board, actions, actorId);
 	}
 
-	public static void Apply(
+	public static void ApplyCommittedAction(
 		IBattleAction action,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
-		IReadOnlySet<Coord> blockedCells)
+		IReadOnlySet<Coord> blockedCells,
+		BattlePlanContext context,
+		string actorId)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
-		PlanExecutor.Apply(action, board);
+		PlanPipeline.TryApplyOne(action, board, context, actorId, checkLegal: false);
 	}
 }

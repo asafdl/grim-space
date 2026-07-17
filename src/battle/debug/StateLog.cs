@@ -81,7 +81,7 @@ public static class StateLog
 	{
 		MoveAction move => $"Move ap={move.Option.ApCost} path={FormatPath(move.Option.Path)}",
 		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
-			? $"HeadingTurn {heading.Turn} (yaw, settled on commit)"
+			? $"HeadingTurn {heading.Turn} (yaw, billed via tags)"
 			: $"HeadingTurn {heading.Turn} (1 AP)",
 		RollAction roll => $"Roll {roll.Direction}",
 		RailgunAction railgun => $"Railgun -> {railgun.TargetUnitId}",

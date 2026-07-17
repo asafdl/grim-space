@@ -10,5 +10,5 @@ public interface IBattleAction
 {
 	bool IsLegal(BattleBoard board, BattlePlanContext context);
 
-	IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board);
+	IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context);
 }

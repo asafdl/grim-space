@@ -49,8 +49,15 @@ public static class LegalActions
 		GridBasis startFacing,
 		IReadOnlySet<Coord> blockedCells)
 	{
-		var context = new BattlePlanContext(plan, startFacing);
-		var board = PlanSimulator.BuildBoard([actor, opponent], grid, plan, blockedCells, actor.State.Id);
+		var tags = new BattleTurnTags();
+		var context = new BattlePlanContext(plan, startFacing, tags);
+		var board = PlanSimulator.BuildBoard(
+			[actor, opponent],
+			grid,
+			plan,
+			startFacing,
+			blockedCells,
+			actor.State.Id);
 		return EnumerateMovement(board, context, actor.State.Id, blockedCells);
 	}
 

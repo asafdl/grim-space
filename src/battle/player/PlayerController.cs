@@ -88,19 +88,6 @@ public sealed class PlayerController
 			return false;
 
 		var stamped = StampForEnqueue(action);
-
-		if (stamped is HeadingTurnAction heading && Orientation.IsYawTurn(heading.Turn))
-		{
-			_plan.ForceApplyAndEnqueue(stamped);
-			if (Board.StateOf(OwnerId).ActionPoints < 0)
-			{
-				_plan.TryUndoLast();
-				return false;
-			}
-
-			return true;
-		}
-
 		return _plan.TryApplyAndEnqueue(stamped);
 	}
 

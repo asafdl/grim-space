@@ -17,7 +17,7 @@ public sealed class MissileAction(string ownerId, Coord center, EMissileMount mo
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) =>
 		BattleRuleEnforcer.AllSatisfied(Rules, board, context);
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
 	[
 		new SpawnHazardEffect(Center),
 		new MissileChangeEffect(-1),

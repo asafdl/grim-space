@@ -41,12 +41,24 @@ public sealed class StepCostsTests
 		}
 	}
 
-	[Fact]
-	public void BrakingCostsMoreThanForwardThrustAndRisesWithMomentum()
+	[Theory]
+	[InlineData(0, 1)]
+	[InlineData(1, 1)]
+	[InlineData(2, 2)]
+	[InlineData(3, 2)]
+	public void RetroApCostFollowsMomentumBands(int momentum, int expectedCost)
 	{
-		var previous = 0;
+		var cost = StepCosts.GetMoveStepApCost(
+			EStepDirection.Retro,
+			new MoveStepContext(0, momentum));
 
-		for (var momentum = 0; momentum <= MovementExpectations.MaxMomentum; momentum++)
+		Assert.Equal(expectedCost, cost);
+	}
+
+	[Fact]
+	public void BrakingCostsMoreThanForwardThrustAtHigherMomentum()
+	{
+		for (var momentum = 2; momentum <= MovementExpectations.MaxMomentum; momentum++)
 		{
 			var retro = StepCosts.GetMoveStepApCost(
 				EStepDirection.Retro,
@@ -55,9 +67,7 @@ public sealed class StepCostsTests
 				EStepDirection.Forward,
 				new MoveStepContext(momentum, momentum));
 
-			Assert.True(retro > forward);
-			Assert.True(momentum == 0 || retro > previous);
-			previous = retro;
+			Assert.True(retro >= forward);
 		}
 	}
 }

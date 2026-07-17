@@ -1,8 +1,6 @@
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle.Contexts;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -14,6 +12,7 @@ namespace GrimSpace.Core.Actions.Battle;
 public sealed class UnitPlan
 {
 	private readonly PlanQueue<IAction> _actions = new();
+	private readonly BattleTurnTags _tags = new();
 	private string? _ownerId;
 	private IReadOnlyList<Unit>? _roster;
 	private BoundedGrid? _grid;
@@ -33,7 +32,7 @@ public sealed class UnitPlan
 
 	public bool HasBoard => _board is not null;
 
-	public BattlePlanContext Context => new(BattleActions, StartFacing);
+	public BattlePlanContext Context => new(BattleActions, StartFacing, _tags);
 
 	public string? OwnerId => _ownerId;
 
@@ -56,6 +55,7 @@ public sealed class UnitPlan
 			actor.State.UpDirection,
 			actor.State.RightDirection);
 		_actions.Clear();
+		_tags.Clear();
 		_board = BattleBoard.FromSnapshot(roster, nonUnits, grid, blockedCells);
 	}
 
@@ -66,6 +66,7 @@ public sealed class UnitPlan
 			actor.UpDirection,
 			actor.RightDirection);
 		_actions.Clear();
+		_tags.Clear();
 		_ownerId = null;
 		_roster = null;
 		_grid = null;
@@ -84,16 +85,16 @@ public sealed class UnitPlan
 		if (!battleAction.IsLegal(Board, Context))
 			return false;
 
-		Apply(battleAction);
 		_actions.Enqueue(action);
+		ReplayState();
 		return true;
 	}
 
 	public void ForceApplyAndEnqueue(IAction action)
 	{
 		EnsureBoard();
-		Apply((IBattleAction)action);
 		_actions.Enqueue(action);
+		ReplayState();
 	}
 
 	public bool TryUndoLast()
@@ -101,30 +102,15 @@ public sealed class UnitPlan
 		if (!_actions.TryPopLast(out _))
 			return false;
 
-		RebuildBoard();
+		ReplayState();
 		return true;
 	}
 
-	private void Apply(IBattleAction action)
-	{
-		PlanExecutor.Apply(action, Board);
-		SettleFacing();
-	}
-
-	private void RebuildBoard()
+	private void ReplayState()
 	{
 		EnsureTurnContext();
 		_board = BattleBoard.FromSnapshot(_roster!, _nonUnits!, _grid!, _blockedCells!);
-		PlanSimulator.Apply(BattleActions, Board);
-		SettleFacing();
-	}
-
-	private void SettleFacing()
-	{
-		if (_ownerId is null)
-			return;
-
-		Orientation.SettleNetYaw(Board.StateOf(_ownerId), StartFacing);
+		PlanPipeline.TryApplyAll(BattleActions, _board, Context, _ownerId!);
 	}
 
 	private void EnsureBoard()

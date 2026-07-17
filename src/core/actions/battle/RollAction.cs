@@ -14,7 +14,7 @@ public sealed class RollAction(string ownerId, ERollDirection direction) : IActi
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) =>
 		board.StateOf(OwnerId).ActionPoints >= CombatConfig.RollApCost;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
 	[
 		new RollEffect(Direction),
 		new ApChangeEffect(-CombatConfig.RollApCost),

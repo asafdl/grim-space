@@ -23,6 +23,6 @@ public sealed class RailgunAction(string ownerId, string targetUnitId) : IAction
 		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
 		[new DamageEffect(TargetUnitId, CombatConfig.RailgunDamage)];
 }
