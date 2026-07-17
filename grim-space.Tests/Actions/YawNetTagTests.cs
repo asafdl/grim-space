@@ -21,7 +21,7 @@ public sealed class YawNetTagTests
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, actor.ActionPoints);
-		Assert.Equal(0, plan.Context.Tags.Yaw.NetQuarters);
+		Assert.Equal(0, plan.Context.TurnState.NetYaw);
 	}
 
 	[Fact]
@@ -34,7 +34,7 @@ public sealed class YawNetTagTests
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn180ApCost, actor.ActionPoints);
-		Assert.Equal(2, plan.Context.Tags.Yaw.NetQuarters);
+		Assert.Equal(2, plan.Context.TurnState.NetYaw);
 	}
 
 	[Fact]
@@ -50,7 +50,7 @@ public sealed class YawNetTagTests
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Single(plan.Actions);
-		Assert.Equal(1, plan.Context.Tags.Yaw.NetQuarters);
+		Assert.Equal(1, plan.Context.TurnState.NetYaw);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost, actor.ActionPoints);
 	}
 
@@ -61,7 +61,7 @@ public sealed class YawNetTagTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new UnitPlan();
+		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
@@ -70,13 +70,13 @@ public sealed class YawNetTagTests
 		Assert.Equal(0, plan.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
-	private static UnitPlan BeginPlan(Coord origin)
+	private static TurnPlanner BeginPlan(Coord origin)
 	{
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new UnitPlan();
+		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
 		return plan;
 	}

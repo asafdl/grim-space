@@ -23,14 +23,11 @@ public static class EnemyPlanner
 		IEnumerable<IAction> playerActions)
 	{
 		var cells = new HashSet<Coord>(activeHazardCells);
-		var sim = new UnitPlan();
+		var sim = new TurnPlanner();
 		sim.BeginTurn(player.State.Id, roster, grid, nonUnits, blockedCells);
 
 		foreach (var action in playerActions)
-		{
-			if (action is IBattleAction battleAction)
-				sim.ForceApplyAndEnqueue(BattleActionFactory.AsQueued(player.State.Id, battleAction));
-		}
+			sim.ForceApplyAndEnqueue(BattleActionFactory.WithOwner(player.State.Id, action));
 
 		foreach (var hazard in sim.Board.TurnHazards)
 			cells.UnionWith(hazard.Cells);
@@ -38,7 +35,7 @@ public static class EnemyPlanner
 		return cells;
 	}
 
-	public static UnitPlan PlanTurn(
+	public static TurnPlanner PlanTurn(
 		Unit actor,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
@@ -46,7 +43,7 @@ public static class EnemyPlanner
 		IReadOnlySet<Coord> hazardCells,
 		IReadOnlySet<Coord> blockedCells)
 	{
-		var plan = new UnitPlan();
+		var plan = new TurnPlanner();
 		plan.BeginTurn(actor.State.Id, roster, grid, nonUnits, blockedCells);
 
 		var actorId = actor.State.Id;
@@ -54,10 +51,10 @@ public static class EnemyPlanner
 		for (var step = 0; step < MaxPlanLength; step++)
 		{
 			var currentScore = ScoreTurn(plan, actorId, hazardCells);
-			IBattleAction? bestAction = null;
+			IAction? bestAction = null;
 			var bestScore = currentScore;
 
-			foreach (var candidate in LegalActions.EnumerateMovement(plan.Board, plan.Context, actorId, blockedCells))
+			foreach (var candidate in LegalActions.EnumerateMovement(plan.Board, plan.Context, actorId))
 			{
 				if (!TryEnqueueTrial(plan, actorId, candidate))
 					continue;
@@ -87,24 +84,24 @@ public static class EnemyPlanner
 		return plan;
 	}
 
-	private static int ScoreTurn(UnitPlan plan, string actorId, IReadOnlySet<Coord> hazardCells)
+	private static int ScoreTurn(TurnPlanner plan, string actorId, IReadOnlySet<Coord> hazardCells)
 	{
 		var state = plan.Board.StateOf(actorId);
 		if (hazardCells.Contains(state.Position))
 			return int.MinValue;
 
 		var momentum = state.MomentumLevel;
-		if (!plan.BattleActions.Any(action => action is MoveAction))
+		if (!plan.Actions.Any(action => action is MoveAction))
 			momentum = System.Math.Max(0, momentum - 1);
 
 		return momentum * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 	}
 
-	private static bool TryEnqueueTrial(UnitPlan plan, string ownerId, IBattleAction candidate)
+	private static bool TryEnqueueTrial(TurnPlanner plan, string ownerId, IAction candidate)
 	{
 		if (candidate is MoveAction && plan.Actions.Any(action => action is MoveAction))
 			return false;
 
-		return plan.TryApplyAndEnqueue(BattleActionFactory.AsQueued(ownerId, candidate));
+		return plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(ownerId, candidate));
 	}
 }

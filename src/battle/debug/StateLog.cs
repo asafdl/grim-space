@@ -69,19 +69,14 @@ public static class StateLog
 	private static string FormatPath(IReadOnlyList<Coord> path) =>
 		path.Count == 0 ? "[]" : string.Join(" -> ", path);
 
-	private static string DescribeAction(IAction action)
-	{
-		var detail = action is IBattleAction battle
-			? DescribeBattleAction(battle)
-			: action.GetType().Name;
-		return $"{action.OwnerId}: {detail}";
-	}
+	private static string DescribeAction(IAction action) =>
+		$"{action.OwnerId}: {DescribeActionDetail(action)}";
 
-	private static string DescribeBattleAction(IBattleAction action) => action switch
+	private static string DescribeActionDetail(IAction action) => action switch
 	{
 		MoveAction move => $"Move ap={move.Option.ApCost} path={FormatPath(move.Option.Path)}",
 		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
-			? $"HeadingTurn {heading.Turn} (yaw, billed via tags)"
+			? $"HeadingTurn {heading.Turn} (yaw, billed via turn state)"
 			: $"HeadingTurn {heading.Turn} (1 AP)",
 		RollAction roll => $"Roll {roll.Direction}",
 		RailgunAction railgun => $"Railgun -> {railgun.TargetUnitId}",

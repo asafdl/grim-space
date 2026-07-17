@@ -35,26 +35,24 @@ public sealed class TurnOrchestrator
 		var applied = new List<IAction>();
 		var player = _units.First(unit => unit.Controller == EController.Player);
 		var playerCount = commit.PlayerPlan.Actions.Count;
-		var enemyCount = commit.EnemyPlan.Actions.Count;
 		IReadOnlyDictionary<string, State>? unitsAfterPlayer = null;
 
-		var playerTags = new BattleTurnTags();
-		var enemyTags = new BattleTurnTags();
-		var playerActionsApplied = new List<IBattleAction>();
-		var enemyActionsApplied = new List<IBattleAction>();
+		var playerTurnState = new TurnState();
+		var enemyTurnState = new TurnState();
+		var playerActionsApplied = new List<IAction>();
+		var enemyActionsApplied = new List<IAction>();
 
 		var index = 0;
 		while (commit.Queue.TryDequeue(out var action) && action is not null)
 		{
-			if (action is IBattleAction battleAction)
-				ApplyBattleAction(
-					battleAction,
-					commit,
-					player,
-					playerTags,
-					enemyTags,
-					playerActionsApplied,
-					enemyActionsApplied);
+			ApplyBattleAction(
+				action,
+				commit,
+				player,
+				playerTurnState,
+				enemyTurnState,
+				playerActionsApplied,
+				enemyActionsApplied);
 
 			applied.Add(action);
 			sink?.OnActionApplied(new PresentationEvent(action));
@@ -62,41 +60,40 @@ public sealed class TurnOrchestrator
 
 			if (index == playerCount)
 			{
-				FinalizeActorPhase(player, commit.PlayerPlan);
+				TurnPlanner.RunPhaseEnd(player.State, commit.PlayerPlan.Actions);
 				unitsAfterPlayer = SnapshotAll();
 			}
 		}
 
 		if (playerCount == 0)
 		{
-			FinalizeActorPhase(player, commit.PlayerPlan);
+			TurnPlanner.RunPhaseEnd(player.State, commit.PlayerPlan.Actions);
 			unitsAfterPlayer = SnapshotAll();
 		}
 
 		var enemy = _units.First(unit => unit.Controller == EController.Enemy);
 		if (enemy.State.IsAlive)
-			FinalizeActorPhase(enemy, commit.EnemyPlan);
+			TurnPlanner.RunPhaseEnd(enemy.State, commit.EnemyPlan.Actions);
 
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
 	}
 
 	private void ApplyBattleAction(
-		IBattleAction action,
+		IAction action,
 		TurnCommitResult commit,
 		Unit player,
-		BattleTurnTags playerTags,
-		BattleTurnTags enemyTags,
-		List<IBattleAction> playerActionsApplied,
-		List<IBattleAction> enemyActionsApplied)
+		TurnState playerTurnState,
+		TurnState enemyTurnState,
+		List<IAction> playerActionsApplied,
+		List<IAction> enemyActionsApplied)
 	{
-		var ownerId = ((IAction)action).OwnerId;
+		var ownerId = action.OwnerId;
 		var isPlayer = ownerId == player.State.Id;
-		var tags = isPlayer ? playerTags : enemyTags;
-		var startFacing = isPlayer ? commit.PlayerPlan.StartFacing : commit.EnemyPlan.StartFacing;
+		var turnState = isPlayer ? playerTurnState : enemyTurnState;
 		var applied = isPlayer ? playerActionsApplied : enemyActionsApplied;
-		var context = new BattlePlanContext(applied, startFacing, tags);
+		var context = new BattlePlanContext(applied, turnState);
 
-		BattlePlanExecutor.ApplyCommittedAction(
+		TurnPlanner.ApplyCommittedAction(
 			action,
 			_units,
 			_grid,
@@ -106,12 +103,6 @@ public sealed class TurnOrchestrator
 			ownerId);
 
 		applied.Add(action);
-	}
-
-	private static void FinalizeActorPhase(Unit actor, UnitPlan plan)
-	{
-		if (!plan.BattleActions.Any(action => action is MoveAction))
-			actor.State.MomentumLevel = System.Math.Max(actor.State.MomentumLevel - 1, 0);
 	}
 
 	public void ExecuteEnvironmentPhase() =>

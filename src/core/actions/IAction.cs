@@ -1,9 +1,13 @@
+using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Actions.Battle.Contexts;
+
 namespace GrimSpace.Core.Actions;
 
-/// <summary>
-/// Queue identity for planned actions. Board-neutral; execution uses capability interfaces (e.g. <see cref="Battle.IBattleAction"/>).
-/// </summary>
-public interface IAction : IEnqueueable
+public interface IAction
 {
 	string OwnerId { get; }
+
+	bool IsLegal(BattleBoard board, BattlePlanContext context);
+
+	IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context);
 }

@@ -10,11 +10,11 @@ using BoundedGrid = GrimSpace.Math.Grid.Grid;
 namespace GrimSpace.Battle.Player;
 
 /// <summary>
-/// Player turn planning: action queue, enqueue policy, and legality checks.
+/// Player turn planning: action queue and legality checks.
 /// </summary>
 public sealed class PlayerController
 {
-	private readonly UnitPlan _plan = new();
+	private readonly TurnPlanner _plan = new();
 	private readonly Unit _player;
 	private readonly Unit _enemy;
 	private readonly IReadOnlyList<Unit> _roster;
@@ -49,24 +49,22 @@ public sealed class PlayerController
 	public Unit Actor => _player;
 	public Unit Opponent => _enemy;
 	public BoundedGrid Grid => _grid;
-	public UnitPlan Plan => _plan;
+	public TurnPlanner Plan => _plan;
 	public BattleBoard Board => _plan.Board;
 	public IReadOnlyList<IAction> Actions => _plan.Actions;
 	public BattlePlanContext Context => _plan.Context;
-	public GridBasis StartFacing => _plan.StartFacing;
 	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
 
 	public void BeginTurn() =>
 		_plan.BeginTurn(OwnerId, _roster, _grid, _nonUnits, _blockedCells);
 
-	public FinalizedPlan FinalizePlan() =>
-		new(_plan.Actions.ToList(), _plan.Context.StartFacing);
+	public FinalizedPlan FinalizePlan() => new(_plan.Actions.ToList());
 
 	public bool CanAct(Unit unit) => _canAct(unit);
 
 	public Unit? GetActiveActor() => _getActivePlayer();
 
-	public bool IsLegal(IBattleAction action)
+	public bool IsLegal(IAction action)
 	{
 		var player = _getActivePlayer();
 		if (player is null || !_canAct(player))
@@ -75,7 +73,7 @@ public sealed class PlayerController
 		return BattleActionFactory.WithOwner(OwnerId, action).IsLegal(Board, _plan.Context);
 	}
 
-	public bool TryEnqueue(IBattleAction action)
+	public bool TryEnqueue(IAction action)
 	{
 		var player = _getActivePlayer();
 		if (player is null || !_canAct(player))
@@ -93,7 +91,7 @@ public sealed class PlayerController
 
 	public bool TryUndoLast() => _plan.TryUndoLast();
 
-	private IAction StampForEnqueue(IBattleAction action)
+	private IAction StampForEnqueue(IAction action)
 	{
 		if (action is MoveAction move)
 		{
@@ -106,10 +104,8 @@ public sealed class PlayerController
 			return new MoveAction(OwnerId, option);
 		}
 
-		return BattleActionFactory.AsQueued(OwnerId, action);
+		return BattleActionFactory.WithOwner(OwnerId, action);
 	}
 }
 
-public readonly record struct FinalizedPlan(
-	IReadOnlyList<IAction> Actions,
-	GridBasis StartFacing);
+public readonly record struct FinalizedPlan(IReadOnlyList<IAction> Actions);

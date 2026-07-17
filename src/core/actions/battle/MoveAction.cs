@@ -8,7 +8,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class MoveAction(string ownerId, Option option) : IAction, IBattleAction
+public sealed class MoveAction(string ownerId, Option option) : IAction
 {
 	public string OwnerId { get; } = ownerId;
 	public Option Option { get; } = option;
@@ -24,14 +24,16 @@ public sealed class MoveAction(string ownerId, Option option) : IAction, IBattle
 	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context)
 	{
 		var actor = board.StateOf(OwnerId);
-		if (PathContainsRetro(actor, Option.Origin, Option.Path))
-			context.Tags.Spin.MarkBrakedFromRetro();
-
-		return
-		[
+		var effects = new List<IEffect<BattleSlices>>
+		{
 			new MoveEffect(Option),
 			new ApChangeEffect(-Option.ApCost),
-		];
+		};
+
+		if (PathContainsRetro(actor, Option.Origin, Option.Path))
+			effects.Add(new MarkSpinBrakedEffect());
+
+		return effects;
 	}
 
 	private static bool PathContainsRetro(State unit, Coord origin, IReadOnlyList<Coord> path)

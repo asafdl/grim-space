@@ -3,9 +3,7 @@ using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle.Contexts;
 using GrimSpace.Math.Grid;
-using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
 
@@ -14,11 +12,10 @@ namespace GrimSpace.Core.Actions.Battle;
 /// </summary>
 public static class LegalActions
 {
-	public static IEnumerable<IBattleAction> EnumerateMovement(
+	public static IEnumerable<IAction> EnumerateMovement(
 		BattleBoard board,
 		BattlePlanContext context,
-		string actorId,
-		IReadOnlySet<Coord> blockedCells)
+		string actorId)
 	{
 		foreach (var turn in Enum.GetValues<EHeadingTurn>())
 		{
@@ -39,26 +36,6 @@ public static class LegalActions
 
 		foreach (var option in GetMoveOptions(board, context, actorId))
 			yield return new MoveAction(actorId, option);
-	}
-
-	public static IEnumerable<IBattleAction> EnumerateMovement(
-		Unit actor,
-		Unit opponent,
-		BoundedGrid grid,
-		IReadOnlyList<IBattleAction> plan,
-		GridBasis startFacing,
-		IReadOnlySet<Coord> blockedCells)
-	{
-		var tags = new BattleTurnTags();
-		var context = new BattlePlanContext(plan, startFacing, tags);
-		var board = PlanSimulator.BuildBoard(
-			[actor, opponent],
-			grid,
-			plan,
-			startFacing,
-			blockedCells,
-			actor.State.Id);
-		return EnumerateMovement(board, context, actor.State.Id, blockedCells);
 	}
 
 	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context, string actorId)

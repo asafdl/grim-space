@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
@@ -34,7 +35,7 @@ public sealed class PlanCommitTests
 		var move = PlannedForwardMove(origin, stepCount, startMomentum);
 		Assert.True(plan.TryApplyAndEnqueue(move));
 
-		var preview = BattlePlanExecutor.Simulate(plan, PlayerId);
+		var preview = plan.GetPreview(PlayerId);
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 		var expectedMomentum = MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount);
 
@@ -58,14 +59,14 @@ public sealed class PlanCommitTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = BeginPlan(player, enemy, grid, blocked);
 
-		var emptyPreview = BattlePlanExecutor.Simulate(plan, PlayerId);
+		var emptyPreview = plan.GetPreview(PlayerId);
 		Assert.Equal(origin, emptyPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.Actor.ActionPoints);
 
 		var threeStepMove = PlannedForwardMove(origin, steps: 3, startMomentum);
 		Assert.True(plan.TryApplyAndEnqueue(threeStepMove));
 
-		var threeStepPreview = BattlePlanExecutor.Simulate(plan, PlayerId);
+		var threeStepPreview = plan.GetPreview(PlayerId);
 		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.Actor.ActionPoints);
@@ -74,7 +75,7 @@ public sealed class PlanCommitTests
 		var fourStepMove = PlannedForwardMove(origin, steps: 4, startMomentum);
 		Assert.True(plan.TryApplyAndEnqueue(fourStepMove));
 
-		var fourStepPreview = BattlePlanExecutor.Simulate(plan, PlayerId);
+		var fourStepPreview = plan.GetPreview(PlayerId);
 		var fourStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 4);
 		Assert.Equal(origin + Coord.Forward * 4, fourStepPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - fourStepCost, fourStepPreview.Actor.ActionPoints);
@@ -96,11 +97,11 @@ public sealed class PlanCommitTests
 		var plan = BeginPlan(player, enemy, grid, blocked);
 
 		var move = PlannedForwardMove(origin, stepCount, startMomentum);
-		var actions = new List<IBattleAction> { move };
+		var actions = new List<IAction> { move };
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
-		BattlePlanExecutor.Apply(actions, [player, enemy], grid, nonUnits, blocked, plan.StartFacing, PlayerId);
+		TurnPlanner.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, PlayerId);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, player.State.Position);
 		Assert.Equal(
@@ -150,13 +151,13 @@ public sealed class PlanCommitTests
 			((MoveAction)planning.Actions[0]).Option.EndPosition);
 	}
 
-	private static UnitPlan BeginPlan(
+	private static TurnPlanner BeginPlan(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		GrimSpace.Math.Grid.Grid grid,
 		IReadOnlySet<Coord> blocked)
 	{
-		var plan = new UnitPlan();
+		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
 		return plan;
 	}

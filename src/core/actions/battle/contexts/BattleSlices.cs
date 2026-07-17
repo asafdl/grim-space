@@ -4,14 +4,19 @@ public readonly struct BattleSlices
 {
 	private readonly BattleBoard _board;
 	private readonly string _actorId;
+	private readonly TurnState _turnState;
 
-	public BattleSlices(BattleBoard board, string actorId)
+	public BattleSlices(BattleBoard board, string actorId, TurnState turnState)
 	{
 		_board = board;
 		_actorId = actorId;
+		_turnState = turnState;
 	}
 
-	public static BattleSlices For(BattleBoard board, string actorId) => new(board, actorId);
+	public static BattleSlices For(BattleBoard board, string actorId, TurnState turnState) =>
+		new(board, actorId, turnState);
+
+	public TurnState TurnState => _turnState;
 
 	public ApContext Ap => new(_board.StateOf(_actorId));
 

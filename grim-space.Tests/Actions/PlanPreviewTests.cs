@@ -111,13 +111,12 @@ public sealed class PlanPreviewTests
 		Assert.Single(committed.Actions);
 		Assert.IsType<MoveAction>(committed.Actions[0]);
 
-		BattlePlanExecutor.Apply(
-			committed.Actions.Cast<IBattleAction>().ToList(),
+		TurnPlanner.ApplyToLive(
+			committed.Actions.ToList(),
 			[player, enemy],
 			planning.Grid,
 			nonUnits,
 			planning.BlockedCells,
-			committed.StartFacing,
 			planning.OwnerId);
 
 		Assert.Equal(origin + Coord.Forward * 3, player.State.Position);

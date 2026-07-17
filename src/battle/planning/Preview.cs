@@ -17,9 +17,9 @@ public static class Preview
 		GetLegalMoves(planning.Plan, planning.OwnerId);
 
 	public static SimulatedTurn Simulate(PlayerController planning) =>
-		BattlePlanExecutor.Simulate(planning.Plan, planning.OwnerId);
+		planning.Plan.GetPreview(planning.OwnerId);
 
-	public static IReadOnlyList<Option> GetLegalMoves(UnitPlan plan, string actorId)
+	public static IReadOnlyList<Option> GetLegalMoves(TurnPlanner plan, string actorId)
 	{
 		if (plan.Actions.Any(action => action is MoveAction))
 			return [];

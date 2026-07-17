@@ -20,19 +20,19 @@ public sealed class ActionTagSynergyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new UnitPlan();
+		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
 
 		var retro = RetroMove(origin, player);
 		Assert.True(plan.TryApplyAndEnqueue(retro));
-		Assert.True(plan.Context.Tags.Spin.IsBraked);
-		Assert.True(plan.Context.Tags.Spin.HasDiscount);
+		Assert.True(plan.Context.TurnState.SpinBraked);
+		Assert.True(plan.Context.TurnState.HasSpinDiscount);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - retro.Option.ApCost, actor.ActionPoints);
-		Assert.False(plan.Context.Tags.Spin.HasDiscount);
+		Assert.False(plan.Context.TurnState.HasSpinDiscount);
 		Assert.Equal(1, actor.MomentumLevel);
 	}
 
@@ -44,7 +44,7 @@ public sealed class ActionTagSynergyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new UnitPlan();
+		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
 
 		var retro = RetroMove(origin, player);

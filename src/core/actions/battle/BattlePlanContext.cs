@@ -1,15 +1,12 @@
-using GrimSpace.Math.Grid;
+using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Core.Actions.Battle;
 
 public sealed class BattlePlanContext(
-	IReadOnlyList<IBattleAction> queuedActions,
-	GridBasis startFacing,
-	BattleTurnTags tags)
+	IReadOnlyList<IAction> queuedActions,
+	TurnState turnState)
 {
-	public IReadOnlyList<IBattleAction> QueuedActions { get; } = queuedActions;
+	public IReadOnlyList<IAction> QueuedActions { get; } = queuedActions;
 
-	public GridBasis StartFacing { get; } = startFacing;
-
-	public BattleTurnTags Tags { get; } = tags;
+	public TurnState TurnState { get; } = turnState;
 }

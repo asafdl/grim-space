@@ -1,6 +1,6 @@
 namespace GrimSpace.Core.Actions;
 
-public sealed class PlanQueue<TAction> where TAction : IEnqueueable
+public sealed class PlanQueue<TAction> where TAction : IAction
 {
 	private readonly List<TAction> _actions = [];
 

@@ -1,11 +1,13 @@
+using GrimSpace.Core.Actions;
+
 namespace GrimSpace.Core.Actions.Battle;
 
 /// <summary>
-/// Stamps <see cref="IAction.OwnerId"/> on battle action prototypes used for legality probes and AI candidates.
+/// Stamps <see cref="IAction.OwnerId"/> on action prototypes used for legality probes and AI candidates.
 /// </summary>
 public static class BattleActionFactory
 {
-	public static IBattleAction WithOwner(string ownerId, IBattleAction action) => action switch
+	public static IAction WithOwner(string ownerId, IAction action) => action switch
 	{
 		MoveAction move => new MoveAction(ownerId, move.Option),
 		HeadingTurnAction heading => new HeadingTurnAction(ownerId, heading.Turn),
@@ -14,7 +16,4 @@ public static class BattleActionFactory
 		RailgunAction railgun => new RailgunAction(ownerId, railgun.TargetUnitId),
 		_ => action,
 	};
-
-	public static IAction AsQueued(string ownerId, IBattleAction action) =>
-		(IAction)WithOwner(ownerId, action);
 }

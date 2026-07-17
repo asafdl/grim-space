@@ -5,7 +5,7 @@ using GrimSpace.Core.Actions.Battle.Contexts;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class RailgunAction(string ownerId, string targetUnitId) : IAction, IBattleAction
+public sealed class RailgunAction(string ownerId, string targetUnitId) : IAction
 {
 	public string OwnerId { get; } = ownerId;
 	public string TargetUnitId { get; } = targetUnitId;
