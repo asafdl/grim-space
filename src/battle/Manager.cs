@@ -6,6 +6,7 @@ using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -16,6 +17,7 @@ public sealed class Manager
 {
 	public BoundedGrid Grid { get; }
 	public Turn.Manager Turn { get; }
+	public Timeline Timeline { get; }
 	public IReadOnlyList<Unit> Units { get; }
 	public PlayerController Player { get; }
 	public HazardSystem Hazards { get; }
@@ -28,6 +30,7 @@ public sealed class Manager
 	public Manager(
 		BoundedGrid grid,
 		Turn.Manager turn,
+		Timeline timeline,
 		IReadOnlyList<Unit> units,
 		PlayerController player,
 		HazardSystem hazards,
@@ -35,6 +38,7 @@ public sealed class Manager
 	{
 		Grid = grid;
 		Turn = turn;
+		Timeline = timeline;
 		Units = units;
 		Player = player;
 		Hazards = hazards;
@@ -45,6 +49,7 @@ public sealed class Manager
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var turn = new Turn.Manager();
+		var timeline = new Timeline();
 		var hazards = new HazardSystem();
 		var ids = new UnitIdRegistry();
 
@@ -66,7 +71,7 @@ public sealed class Manager
 			turn.SetActiveUnit(firstPlayer.State.Id);
 
 		var blockedCells = hazards.GetBlockedCells();
-		var pipeline = new Pipeline(grid, units, turn, hazards);
+		var pipeline = new Pipeline(grid, units, turn, hazards, timeline);
 
 		var player = units.First(u => u.Controller == EController.Player);
 		var enemy = units.First(u => u.Controller == EController.Enemy);
@@ -82,10 +87,10 @@ public sealed class Manager
 			unit => self!.CanAct(unit),
 			() => self!.GetActivePlayer());
 
-		self = new Manager(grid, turn, units, playerController, hazards, pipeline);
+		self = new Manager(grid, turn, timeline, units, playerController, hazards, pipeline);
 
 		if (self.GetPlayer() is not null)
-			self.Player.BeginTurn();
+			self.Player.BeginTurn(timeline.Clock.Current);
 
 		return self;
 	}
@@ -112,7 +117,7 @@ public sealed class Manager
 			WinnerId = result.WinnerId;
 
 			if (GetPlayer() is not null)
-				Player.BeginTurn();
+				Player.BeginTurn(Timeline.Clock.Current);
 
 			return true;
 		}

@@ -4,6 +4,7 @@ using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using UnitState = GrimSpace.Battle.Units.State;
@@ -16,18 +17,21 @@ public sealed class Pipeline
 	private readonly IReadOnlyList<Unit> _units;
 	private readonly Manager _turn;
 	private readonly HazardSystem _hazards;
+	private readonly Timeline _timeline;
 	private readonly TurnOrchestrator _orchestrator;
 
 	public Pipeline(
 		BoundedGrid grid,
 		IReadOnlyList<Unit> units,
 		Manager turn,
-		HazardSystem hazards)
+		HazardSystem hazards,
+		Timeline timeline)
 	{
 		_grid = grid;
 		_units = units;
 		_turn = turn;
 		_hazards = hazards;
+		_timeline = timeline;
 		_orchestrator = new TurnOrchestrator(grid, units, hazards);
 	}
 
@@ -35,25 +39,25 @@ public sealed class Pipeline
 	{
 		var turnNumber = _turn.TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
+		var turnStart = _timeline.Clock.Current;
 
 		var commit = TurnCommit.Build(
 			playerPlan,
+			_timeline,
 			_units,
 			_grid,
 			_hazards.NonUnits,
 			_hazards.GetOccupiedCells(),
 			_hazards.GetBlockedCells());
 
-		var execution = _orchestrator.Execute(commit, sink);
+		var execution = _orchestrator.Execute(commit, _timeline, sink);
 		var outcome = RulesEngine.Evaluate(_units);
 
 		var hazardsBeforeResolve = _hazards.Active.ToList();
-		if (!outcome.IsOver)
-			_orchestrator.ExecuteEnvironmentPhase();
-
 		_hazards.Clear();
 		outcome = RulesEngine.Evaluate(_units);
 
+		_timeline.Clock.Set(turnStart + TurnPhases.End);
 		ExecuteUpkeepPhase();
 
 		StateLog.LogTurnResolution(
@@ -71,7 +75,14 @@ public sealed class Pipeline
 	{
 		foreach (var unit in _units)
 		{
-			unit.State.ActionPoints = unit.State.Stats.MaxAp;
+			var maxAp = unit.State.Stats.MaxAp;
+			if (unit.State.ApPenaltyNextTurn)
+			{
+				maxAp = System.Math.Max(0, maxAp - 1);
+				unit.State.ApPenaltyNextTurn = false;
+			}
+
+			unit.State.ActionPoints = maxAp;
 			unit.State.MissilesRemaining = unit.State.Stats.MissilesPerTurn;
 		}
 

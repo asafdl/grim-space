@@ -101,7 +101,7 @@ public sealed class PlanCommitTests
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
-		TurnPlanner.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, PlayerId);
+		TurnPlanner.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, player.State.Position);
 		Assert.Equal(
@@ -135,7 +135,7 @@ public sealed class PlanCommitTests
 		var planning = PlanningTestFixture.Controller(
 			BattleTestFixture.Player(origin),
 			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
-		planning.BeginTurn();
+		planning.BeginTurn(0);
 
 		var shortMove = PlannedForwardMove(origin, steps: 3, startMomentum: 0);
 		var longMove = PlannedForwardMove(origin, steps: 4, startMomentum: 0);
@@ -158,7 +158,7 @@ public sealed class PlanCommitTests
 		IReadOnlySet<Coord> blocked)
 	{
 		var plan = new TurnPlanner();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
+		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 		return plan;
 	}
 

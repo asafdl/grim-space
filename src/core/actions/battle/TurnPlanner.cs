@@ -24,14 +24,20 @@ public sealed class TurnPlanner
 {
 	private readonly PlanQueue<IAction> _actions = new();
 	private readonly TurnState _turnState = new();
+	private readonly Timeline _previewTimeline = new();
 	private string? _ownerId;
 	private IReadOnlyList<Unit>? _roster;
 	private BoundedGrid? _grid;
 	private IReadOnlySet<Coord>? _blockedCells;
 	private IReadOnlyDictionary<string, NonUnit>? _nonUnits;
 	private BattleBoard? _board;
+	private int _turnStartTick;
 
 	public IReadOnlyList<IAction> Actions => _actions.Actions;
+
+	public IReadOnlyTimeline FutureSchedule => _previewTimeline;
+
+	public int TurnStartTick => _turnStartTick;
 
 	public BattleBoard Board =>
 		_board ?? throw new InvalidOperationException("Call BeginTurn before planning.");
@@ -45,16 +51,19 @@ public sealed class TurnPlanner
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
-		IReadOnlySet<Coord> blockedCells)
+		IReadOnlySet<Coord> blockedCells,
+		int turnStartTick)
 	{
 		_ownerId = ownerId;
 		_roster = roster;
 		_grid = grid;
 		_nonUnits = nonUnits;
 		_blockedCells = blockedCells;
+		_turnStartTick = turnStartTick;
 
 		_actions.Clear();
 		_turnState.Clear();
+		_previewTimeline.ResetPreviewFork(turnStartTick);
 		_board = BattleBoard.FromSnapshot(roster, nonUnits, grid, blockedCells);
 	}
 
@@ -68,6 +77,7 @@ public sealed class TurnPlanner
 		_blockedCells = null;
 		_nonUnits = null;
 		_board = null;
+		_turnStartTick = 0;
 
 		foreach (var action in actions)
 			_actions.Enqueue(action);
@@ -107,18 +117,39 @@ public sealed class TurnPlanner
 			ActorId = actorId,
 		};
 
+	public void AdvanceToTick(int tick)
+	{
+		EnsureTurnContext();
+
+		for (var t = _turnStartTick + 1; t <= tick; t++)
+		{
+			_previewTimeline.Clock.Set(t);
+			while (_previewTimeline.At(t).TryDequeue(out var scheduled) && scheduled is not null)
+			{
+				var applied = new List<IAction>();
+				var context = new BattlePlanContext(applied, _turnState);
+				TryApplyOne(scheduled, Board, context, _previewTimeline, _ownerId!, checkLegal: false);
+			}
+		}
+	}
+
 	public static bool TryApplyAll(
 		IReadOnlyList<IAction> actions,
 		BattleBoard board,
 		BattlePlanContext context,
+		Timeline timeline,
 		string actorId)
 	{
 		context.TurnState.Clear();
+		var applied = new List<IAction>();
 
 		foreach (var action in actions)
 		{
-			if (!TryApplyOne(action, board, context, actorId))
+			var stepContext = new BattlePlanContext(applied, context.TurnState);
+			if (!TryApplyOne(action, board, stepContext, timeline, actorId))
 				return false;
+
+			applied.Add(action);
 		}
 
 		return true;
@@ -128,13 +159,14 @@ public sealed class TurnPlanner
 		IAction action,
 		BattleBoard board,
 		BattlePlanContext context,
+		Timeline timeline,
 		string actorId,
 		bool checkLegal = true)
 	{
 		if (checkLegal && !action.IsLegal(board, context))
 			return false;
 
-		var slices = BattleSlices.For(board, actorId, context.TurnState);
+		var slices = BattleSlices.For(board, actorId, context.TurnState, timeline);
 		foreach (var effect in action.Resolve(board, context))
 			effect.Apply(slices);
 
@@ -150,33 +182,19 @@ public sealed class TurnPlanner
 	public static void RunPhaseEnd(BattleBoard board, string actorId, IReadOnlyList<IAction> plan) =>
 		RunPhaseEnd(board.StateOf(actorId), plan);
 
-	public static BattleBoard BuildPreviewBoard(
-		IReadOnlyList<Unit> roster,
-		BoundedGrid grid,
-		IReadOnlyList<IAction> actions,
-		IReadOnlySet<Coord> blockedCells,
-		string actorId,
-		IReadOnlyDictionary<string, NonUnit>? nonUnits = null)
-	{
-		var board = BattleBoard.FromSnapshot(roster, nonUnits ?? new Dictionary<string, NonUnit>(), grid, blockedCells);
-		var turnState = new TurnState();
-		var context = new BattlePlanContext(actions, turnState);
-		TryApplyAll(actions, board, context, actorId);
-		return board;
-	}
-
 	public static void ApplyToLive(
 		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blockedCells,
+		Timeline timeline,
 		string? actorId = null)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
 		var turnState = new TurnState();
 		var context = new BattlePlanContext(actions, turnState);
-		TryApplyAll(actions, board, context, actorId!);
+		TryApplyAll(actions, board, context, timeline, actorId!);
 
 		if (actorId is not null)
 			RunPhaseEnd(board, actorId, actions);
@@ -189,17 +207,20 @@ public sealed class TurnPlanner
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blockedCells,
 		BattlePlanContext context,
+		Timeline timeline,
 		string actorId)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
-		TryApplyOne(action, board, context, actorId, checkLegal: false);
+		TryApplyOne(action, board, context, timeline, actorId, checkLegal: false);
 	}
 
 	private void Replay()
 	{
 		EnsureTurnContext();
 		_board = BattleBoard.FromSnapshot(_roster!, _nonUnits!, _grid!, _blockedCells!);
-		TryApplyAll(Actions, _board, Context, _ownerId!);
+		_previewTimeline.ResetPreviewFork(_turnStartTick);
+		_previewTimeline.Clock.Set(_turnStartTick);
+		TryApplyAll(Actions, _board, Context, _previewTimeline, _ownerId!);
 	}
 
 	private void EnsureBoard()

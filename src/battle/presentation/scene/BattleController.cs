@@ -127,7 +127,16 @@ public partial class BattleController : Node3D, IPresentationEventSink
 	private void SetupActionBar()
 	{
 		_actionBar = new ActionBar();
-		_actionBar.ModeChanged += mode => { _presenter.SetMode(mode); ExitAimIfNeeded(); Refresh(); };
+		_actionBar.ModeChanged += mode =>
+		{
+			if (mode == EPlayerMode.Flak)
+				_presenter.SelectFlakMode();
+			else
+				_presenter.SetMode(mode);
+
+			ExitAimIfNeeded();
+			Refresh();
+		};
 		_actionBar.MissileMountSelected += mount => { _presenter.SelectMissileMount(mount); Refresh(); };
 		_actionBar.EndTurnRequested += () => { if (_presenter.EndTurn(this)) { ExitAimIfNeeded(); Refresh(); } };
 		AddChild(_actionBar);
@@ -147,6 +156,11 @@ public partial class BattleController : Node3D, IPresentationEventSink
 			{
 				_presenter.CancelMissileMode();
 				_camera.ExitAim();
+				Refresh();
+			}
+			else if (_presenter.Mode == EPlayerMode.Flak)
+			{
+				_presenter.CancelFlakMode();
 				Refresh();
 			}
 
@@ -219,6 +233,11 @@ public partial class BattleController : Node3D, IPresentationEventSink
 					GridPick.PickFromSet(_camera, screenPos, frame.ValidMissileCells));
 				break;
 
+			case EPlayerMode.Flak:
+				_presenter.SetFlakHover(
+					GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells));
+				break;
+
 			case EPlayerMode.Railgun:
 				var picked = GridPick.PickUnit(_camera, screenPos, _presenter.Manager.Units);
 				_presenter.SetRailgunHover(picked);
@@ -243,6 +262,11 @@ public partial class BattleController : Node3D, IPresentationEventSink
 			case EPlayerMode.Missile:
 				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidMissileCells) is { } center)
 					_presenter.TryQueueMissile(center);
+				break;
+
+			case EPlayerMode.Flak:
+				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells) is { } flakCell)
+					_presenter.TryQueueFlak(flakCell);
 				break;
 
 			case EPlayerMode.Railgun:
@@ -294,7 +318,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 			return;
 		}
 
-		_orientationHud.Show(frame.CanAct && !frame.MissileAimActive);
+		_orientationHud.Show(frame.CanAct && !frame.MissileAimActive && frame.Mode != EPlayerMode.Flak);
 	}
 
 	private void ApplyUnitViews(PresentationFrame frame)
@@ -309,7 +333,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 	private void ApplyCamera(PresentationFrame frame)
 	{
 		if (frame.MissileAimActive && frame.MissileAimShip is not null)
-			_camera.EnterDorsalAim(frame.MissileAimShip);
+			_camera.EnterForeAim(frame.MissileAimShip);
 		else if (frame.ExitMissileMode)
 			_camera.ExitAim();
 	}
@@ -342,6 +366,15 @@ public partial class BattleController : Node3D, IPresentationEventSink
 					frame.MissilePreviewCells);
 				break;
 
+			case EPlayerMode.Flak:
+				_missileRangeIndicator.SetActive(null, 0);
+				_gridView.SetFlakHighlights(
+					frame.PlannedHazardCells,
+					frame.ValidFlakPortCells,
+					frame.ValidFlakStarboardCells,
+					frame.FlakPreviewCells);
+				break;
+
 			case EPlayerMode.Railgun:
 				_missileRangeIndicator.SetActive(null, 0);
 				_gridView.SetRailgunHighlights(
@@ -362,6 +395,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		_actionBar.Configure(
 			frame.MissilesRemaining,
 			CombatConfig.MissilesPerTurn,
+			frame.FlakAvailable,
 			frame.CanAct);
 	}
 

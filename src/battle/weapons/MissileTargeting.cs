@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Weapons;
@@ -5,22 +6,20 @@ namespace GrimSpace.Battle.Weapons;
 public static class MissileTargeting
 {
 	public static HashSet<Coord> GetValidCells(
-		Coord origin,
-		Coord forward,
-		Coord right,
-		Coord up,
+		BodyFrame frame,
 		MissileMountConfig config,
 		Func<Coord, bool> isInBounds)
 	{
 		var result = new HashSet<Coord>();
-		var basis = GridBasis.From(forward, up, right);
 
-		foreach (var (localForward, localRight, localUp) in Manhattan.EnumerateShell(config.Range))
+		foreach (var (localFore, localRight, localUp) in Manhattan.EnumerateShell(config.Range))
 		{
-			if (!PassesArc(localForward, localRight, localUp, config))
+			var port = -localRight;
+			var dorsal = localUp;
+			if (!PassesArc(localFore, port, dorsal, config))
 				continue;
 
-			var cell = basis.ToWorldCell(origin, localForward, localRight, localUp);
+			var cell = frame.ToWorld(localFore, port, dorsal);
 			if (isInBounds(cell))
 				result.Add(cell);
 		}
@@ -29,10 +28,7 @@ public static class MissileTargeting
 	}
 
 	public static bool IsValidTarget(
-		Coord origin,
-		Coord forward,
-		Coord right,
-		Coord up,
+		BodyFrame frame,
 		Coord center,
 		MissileMountConfig config,
 		Func<Coord, bool> isInBounds)
@@ -40,20 +36,18 @@ public static class MissileTargeting
 		if (!isInBounds(center))
 			return false;
 
-		var basis = GridBasis.From(forward, up, right);
-		var delta = center - origin;
-		if (!basis.TryToLocal(delta, out var localForward, out var localRight, out var localUp))
+		if (!frame.TryFromWorld(center, out var fore, out var port, out var dorsal))
 			return false;
 
-		if (Manhattan.L1Norm(localForward, localRight, localUp) != config.Range)
+		if (Manhattan.L1Norm(fore, -port, dorsal) != config.Range)
 			return false;
 
-		return PassesArc(localForward, localRight, localUp, config);
+		return PassesArc(fore, port, dorsal, config);
 	}
 
-	private static bool PassesArc(int localForward, int localRight, int localUp, MissileMountConfig config) =>
-		localForward >= config.MinForward
-		&& System.Math.Abs(localRight) <= config.MaxAbsRight
-		&& localUp >= config.MinUp
-		&& localUp <= config.MaxUp;
+	private static bool PassesArc(int fore, int port, int dorsal, MissileMountConfig config) =>
+		fore >= config.MinFore
+		&& System.Math.Abs(port) <= config.MaxAbsPort
+		&& dorsal >= config.MinDorsal
+		&& dorsal <= config.MaxDorsal;
 }

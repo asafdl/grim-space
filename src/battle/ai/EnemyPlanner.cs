@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
@@ -20,17 +21,20 @@ public static class EnemyPlanner
 		BoundedGrid grid,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blockedCells,
-		IEnumerable<IAction> playerActions)
+		IEnumerable<IAction> playerActions,
+		int turnStartTick)
 	{
 		var cells = new HashSet<Coord>(activeHazardCells);
 		var sim = new TurnPlanner();
-		sim.BeginTurn(player.State.Id, roster, grid, nonUnits, blockedCells);
+		sim.BeginTurn(player.State.Id, roster, grid, nonUnits, blockedCells, turnStartTick);
 
 		foreach (var action in playerActions)
 			sim.ForceApplyAndEnqueue(BattleActionFactory.WithOwner(player.State.Id, action));
 
 		foreach (var hazard in sim.Board.TurnHazards)
 			cells.UnionWith(hazard.Cells);
+
+		cells.UnionWith(CollectResolveHazardCells(sim, turnStartTick));
 
 		return cells;
 	}
@@ -41,16 +45,17 @@ public static class EnemyPlanner
 		BoundedGrid grid,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> hazardCells,
-		IReadOnlySet<Coord> blockedCells)
+		IReadOnlySet<Coord> blockedCells,
+		int turnStartTick)
 	{
 		var plan = new TurnPlanner();
-		plan.BeginTurn(actor.State.Id, roster, grid, nonUnits, blockedCells);
+		plan.BeginTurn(actor.State.Id, roster, grid, nonUnits, blockedCells, turnStartTick);
 
 		var actorId = actor.State.Id;
 
 		for (var step = 0; step < MaxPlanLength; step++)
 		{
-			var currentScore = ScoreTurn(plan, actorId, hazardCells);
+			var currentScore = ScoreTurn(plan, actorId, hazardCells, turnStartTick);
 			IAction? bestAction = null;
 			var bestScore = currentScore;
 
@@ -65,7 +70,7 @@ public static class EnemyPlanner
 					continue;
 				}
 
-				var score = ScoreTurn(plan, actorId, hazardCells);
+				var score = ScoreTurn(plan, actorId, hazardCells, turnStartTick);
 				plan.TryUndoLast();
 
 				if (score <= bestScore)
@@ -84,11 +89,45 @@ public static class EnemyPlanner
 		return plan;
 	}
 
-	private static int ScoreTurn(TurnPlanner plan, string actorId, IReadOnlySet<Coord> hazardCells)
+	private static HashSet<Coord> CollectResolveHazardCells(TurnPlanner sim, int turnStartTick)
+	{
+		var cells = new HashSet<Coord>();
+		foreach (var (tick, action) in sim.FutureSchedule.From(turnStartTick + TurnPhases.Enemy))
+		{
+			if (action is not ResolveHazardAction resolve)
+				continue;
+
+			if (!sim.Board.NonUnits.TryGetValue(resolve.HazardId, out var nonUnit) || nonUnit is not Hazard hazard)
+				continue;
+
+			if (tick <= turnStartTick + TurnPhases.Enemy)
+				cells.UnionWith(hazard.Cells);
+		}
+
+		return cells;
+	}
+
+	private static int ScoreTurn(
+		TurnPlanner plan,
+		string actorId,
+		IReadOnlySet<Coord> hazardCells,
+		int turnStartTick)
 	{
 		var state = plan.Board.StateOf(actorId);
 		if (hazardCells.Contains(state.Position))
 			return int.MinValue;
+
+		foreach (var (tick, action) in plan.FutureSchedule.From(turnStartTick + TurnPhases.Enemy))
+		{
+			if (action is not ResolveHazardAction resolve)
+				continue;
+
+			if (!plan.Board.NonUnits.TryGetValue(resolve.HazardId, out var nonUnit) || nonUnit is not Hazard hazard)
+				continue;
+
+			if (tick <= turnStartTick + TurnPhases.Enemy && hazard.Cells.Contains(state.Position))
+				return int.MinValue / 2;
+		}
 
 		var momentum = state.MomentumLevel;
 		if (!plan.Actions.Any(action => action is MoveAction))

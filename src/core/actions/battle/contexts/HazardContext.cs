@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
@@ -8,17 +9,26 @@ namespace GrimSpace.Core.Actions.Battle.Contexts;
 
 public readonly struct HazardContext(BattleBoard board, string actorId)
 {
-	public void SpawnMissile(Coord center)
+	public void SpawnMissile(string hazardId, Coord center)
 	{
+		var ownerFrame = BodyFrame.From(board.StateOf(actorId));
 		var hazard = Hazard.MissileZone(
-			board.IdRegistry.NextNonUnitId("missile-zone"),
+			hazardId,
 			actorId,
 			center,
+			ownerFrame,
 			board.Grid,
 			CombatConfig.MissileRadius,
 			CombatConfig.MissileDamage,
 			CombatConfig.MissileMomentumLoss);
 
+		board.MutableNonUnits[hazard.Id] = hazard;
+	}
+
+	public void SpawnFlakBurst(string hazardId, IEnumerable<Coord> cells)
+	{
+		var ownerFrame = BodyFrame.From(board.StateOf(actorId));
+		var hazard = Hazard.FlakBurst(hazardId, actorId, ownerFrame, cells);
 		board.MutableNonUnits[hazard.Id] = hazard;
 	}
 }

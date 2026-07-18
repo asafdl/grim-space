@@ -2,21 +2,21 @@ namespace GrimSpace.Battle.Weapons;
 
 public enum EMissileMount
 {
-	Dorsal,
+	Fore,
 }
 
 public sealed class MissileMountConfig
 {
 	public required int Range { get; init; }
-	public required int MinForward { get; init; }
-	public required int MaxAbsRight { get; init; }
-	public required int MinUp { get; init; }
-	public required int MaxUp { get; init; }
+	public required int MinFore { get; init; }
+	public required int MaxAbsPort { get; init; }
+	public required int MinDorsal { get; init; }
+	public required int MaxDorsal { get; init; }
 
 	public static MissileMountConfig For(EMissileMount mount) =>
 		mount switch
 		{
-			EMissileMount.Dorsal => CombatConfig.DorsalMissile,
+			EMissileMount.Fore => CombatConfig.ForeMissile,
 			_ => throw new ArgumentOutOfRangeException(nameof(mount)),
 		};
 
@@ -24,9 +24,9 @@ public sealed class MissileMountConfig
 		new()
 		{
 			Range = range,
-			MinForward = MinForward,
-			MaxAbsRight = MaxAbsRight,
-			MinUp = MinUp,
-			MaxUp = MaxUp,
+			MinFore = MinFore,
+			MaxAbsPort = MaxAbsPort,
+			MinDorsal = MinDorsal,
+			MaxDorsal = MaxDorsal,
 		};
 }

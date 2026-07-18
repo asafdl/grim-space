@@ -90,10 +90,10 @@ public partial class UnitView : Node3D
 
 	private void SyncOrientation(State displayState)
 	{
-		var forward = ToVector3(displayState.ForwardDirection);
-		var up = ToVector3(displayState.UpDirection);
-		var right = ToVector3(displayState.RightDirection);
-		Basis = new Basis(right, up, forward);
+		var fore = ToVector3(displayState.Fore);
+		var dorsal = ToVector3(displayState.Dorsal);
+		var starboard = ToVector3(displayState.Starboard);
+		Basis = new Basis(starboard, dorsal, fore);
 	}
 
 	private static Vector3 ToVector3(Coord coord) =>

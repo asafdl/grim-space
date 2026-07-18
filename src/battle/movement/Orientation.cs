@@ -85,12 +85,12 @@ public static class Orientation
 		};
 
 	private static GridBasis CurrentGridBasis(State state) =>
-		GridBasis.From(state.ForwardDirection, state.UpDirection, state.RightDirection);
+		GridBasis.From(state.Fore, state.Dorsal, state.Starboard);
 
 	private static void ApplyGridBasis(State state, GridBasis basis)
 	{
-		state.ForwardDirection = basis.Forward;
-		state.UpDirection = basis.Up;
-		state.RightDirection = basis.Right;
+		state.Fore = basis.Forward;
+		state.Dorsal = basis.Up;
+		state.Starboard = basis.Right;
 	}
 }

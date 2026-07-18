@@ -21,7 +21,7 @@ public sealed class ActionTagSynergyTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = new TurnPlanner();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
+		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
 		var retro = RetroMove(origin, player);
 		Assert.True(plan.TryApplyAndEnqueue(retro));
@@ -45,7 +45,7 @@ public sealed class ActionTagSynergyTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = new TurnPlanner();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked);
+		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
 		var retro = RetroMove(origin, player);
 		Assert.True(plan.TryApplyAndEnqueue(retro));
@@ -64,7 +64,7 @@ public sealed class ActionTagSynergyTests
 		var retroPath = BattleTestFixture.Path(
 			origin,
 			apCost: 0,
-			Coord.Zero - player.State.ForwardDirection);
+			Coord.Zero - player.State.Fore);
 
 		return new MoveAction(PlayerId, new Option
 		{

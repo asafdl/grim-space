@@ -14,11 +14,11 @@ namespace GrimSpace.Tests.Actions;
 public sealed class TurnOrchestrationTests
 {
 	[Fact]
-	public void GlobalQueuePreservesPlayerThenEnemyOrder()
+	public void TimelinePreservesPlayerThenEnemyOrder()
 	{
 		var origin = new Coord(5, 5, 5);
 		var manager = CreateManager(origin, new Coord(0, 0, 0));
-		manager.Player.BeginTurn();
+		manager.Player.BeginTurn(0);
 
 		var move = Preview.GetLegalMoves(manager.Player)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
@@ -26,25 +26,23 @@ public sealed class TurnOrchestrationTests
 
 		var commit = TurnCommit.Build(
 			manager.Player.FinalizePlan(),
+			manager.Timeline,
 			manager.Units,
 			manager.Grid,
 			manager.Hazards.NonUnits,
 			manager.Hazards.GetOccupiedCells(),
 			manager.Hazards.GetBlockedCells());
 
-		var snapshot = commit.Queue.Snapshot();
-		Assert.True(snapshot.Count >= 1);
-		Assert.Equal(manager.Player.OwnerId, snapshot[0].OwnerId);
-		Assert.All(
-			snapshot.Take(commit.PlayerPlan.Actions.Count),
-			action => Assert.Equal(manager.Player.OwnerId, action.OwnerId));
+		var playerTick = commit.TurnStart + TurnPhases.Player;
+		var enemyTick = commit.TurnStart + TurnPhases.Enemy;
+		var playerBucket = manager.Timeline.At(playerTick).Snapshot();
+		var enemyBucket = manager.Timeline.At(enemyTick).Snapshot();
+
+		Assert.Single(playerBucket);
+		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
 
 		if (commit.EnemyPlan.Actions.Count > 0)
-		{
-			Assert.Equal(
-				manager.GetEnemy()!.State.Id,
-				snapshot[commit.PlayerPlan.Actions.Count].OwnerId);
-		}
+			Assert.Equal(manager.GetEnemy()!.State.Id, enemyBucket[0].OwnerId);
 	}
 
 	[Fact]

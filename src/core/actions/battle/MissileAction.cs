@@ -1,3 +1,5 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Effects;
@@ -18,21 +20,21 @@ public sealed class MissileAction(string ownerId, Coord center, EMissileMount mo
 		if (board.StateOf(OwnerId).MissilesRemaining <= 0)
 			return false;
 
-		var actor = board.StateOf(OwnerId);
+		var frame = BodyFrame.From(board.StateOf(OwnerId));
 		var config = MissileMountConfig.For(Mount).WithRange(Range);
-		return MissileTargeting.IsValidTarget(
-			actor.Position,
-			actor.ForwardDirection,
-			actor.RightDirection,
-			actor.UpDirection,
-			Center,
-			config,
-			board.Grid.IsInBounds);
+		return MissileTargeting.IsValidTarget(frame, Center, config, board.Grid.IsInBounds);
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
-	[
-		new SpawnHazardEffect(Center),
-		new MissileChangeEffect(-1),
-	];
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context)
+	{
+		var hazardId = board.IdRegistry.NextNonUnitId("missile-zone");
+		return
+		[
+			new SpawnHazardEffect(hazardId, Center, EHazardKind.MissileZone),
+			new ScheduleActionEffect(
+				CombatConfig.MissileResolveDelay,
+				new ResolveHazardAction(OwnerId, hazardId)),
+			new MissileChangeEffect(-1),
+		];
+	}
 }

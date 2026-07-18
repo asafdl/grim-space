@@ -6,6 +6,7 @@ using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Planning;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 
@@ -22,8 +23,9 @@ public sealed class BattlePresenter
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public EMissileMount? MissileMount { get; private set; }
-	public int MissileRange { get; private set; } = CombatConfig.DorsalMissileMinRange;
+	public int MissileRange { get; private set; } = CombatConfig.ForeMissileMinRange;
 	public Coord? MissileHover { get; private set; }
+	public Coord? FlakHover { get; private set; }
 	public Unit? RailgunHover { get; private set; }
 
 	public void SetMode(EPlayerMode mode)
@@ -37,7 +39,20 @@ public sealed class BattlePresenter
 	{
 		Mode = EPlayerMode.Missile;
 		MissileMount = mount;
-		MissileRange = CombatConfig.DorsalMissileMinRange;
+		MissileRange = CombatConfig.ForeMissileMinRange;
+		ClearInteraction();
+	}
+
+	public void SelectFlakMode()
+	{
+		Mode = EPlayerMode.Flak;
+		MissileMount = null;
+		ClearInteraction();
+	}
+
+	public void CancelFlakMode()
+	{
+		Mode = EPlayerMode.Move;
 		ClearInteraction();
 	}
 
@@ -52,6 +67,7 @@ public sealed class BattlePresenter
 	{
 		_selection.Clear();
 		MissileHover = null;
+		FlakHover = null;
 		RailgunHover = null;
 	}
 
@@ -81,15 +97,17 @@ public sealed class BattlePresenter
 
 	public void SetMissileHover(Coord? cell) => MissileHover = cell;
 
+	public void SetFlakHover(Coord? cell) => FlakHover = cell;
+
 	public bool AdjustMissileRange(int delta)
 	{
-		if (Mode != EPlayerMode.Missile || MissileMount is not EMissileMount.Dorsal)
+		if (Mode != EPlayerMode.Missile || MissileMount is not EMissileMount.Fore)
 			return false;
 
 		var next = System.Math.Clamp(
 			MissileRange + delta,
-			CombatConfig.DorsalMissileMinRange,
-			CombatConfig.DorsalMissileMaxRange);
+			CombatConfig.ForeMissileMinRange,
+			CombatConfig.ForeMissileMaxRange);
 		if (next == MissileRange)
 			return false;
 
@@ -124,6 +142,23 @@ public sealed class BattlePresenter
 			return false;
 
 		MissileHover = null;
+		return true;
+	}
+
+	public bool TryQueueFlak(Coord cell)
+	{
+		var planning = _manager.Player;
+		var frame = BodyFrame.From(planning.Board.StateOf(planning.OwnerId));
+		var mount = FlakTargeting.MountForCell(frame, cell);
+		if (mount is null)
+			return false;
+
+		var ownerId = planning.OwnerId;
+		if (!planning.TryEnqueue(new FlakAction(ownerId, mount.Value)))
+			return false;
+
+		FlakHover = null;
+		Mode = EPlayerMode.Move;
 		return true;
 	}
 
@@ -177,6 +212,11 @@ public sealed class BattlePresenter
 		var hazardCells = View.GetPlannedHazardHighlights(planning);
 		var validMissileCells = GetValidMissileCells(activeUnit);
 		var missilePreviewCells = GetMissilePreviewCells(activeUnit);
+		var validFlakPortCells = GetFlakBurstCells(EFlakMount.Port);
+		var validFlakStarboardCells = GetFlakBurstCells(EFlakMount.Starboard);
+		var validFlakPickCells = new HashSet<Coord>(validFlakPortCells);
+		validFlakPickCells.UnionWith(validFlakStarboardCells);
+		var flakPreviewCells = GetFlakPreviewCells();
 		var railgunTargets = View.GetRailgunTargetHighlights(planning, activeUnit);
 		var enemyId = planning.Opponent.State.Id;
 		var (path, target) = MovementSelection.GetHighlights(moveOptions, _selection.HoveredIndex);
@@ -198,6 +238,10 @@ public sealed class BattlePresenter
 			PlannedHazardCells = hazardCells,
 			ValidMissileCells = validMissileCells,
 			MissilePreviewCells = missilePreviewCells,
+			ValidFlakPortCells = validFlakPortCells,
+			ValidFlakStarboardCells = validFlakStarboardCells,
+			FlakPreviewCells = flakPreviewCells,
+			ValidFlakPickCells = validFlakPickCells,
 			RailgunTargetCells = railgunTargets,
 			RailgunHoveredCell = GetRailgunHoveredCell(simulation, enemyId),
 			MovePath = path,
@@ -207,6 +251,7 @@ public sealed class BattlePresenter
 			HintText = BuildHint(activeUnit, simulation, missileInRange, planning),
 			CanAct = !_manager.IsBattleOver && activeUnit is not null && !_manager.IsResolving,
 			MissilesRemaining = planning.MissilesRemainingThisTurn,
+			FlakAvailable = LegalActions.IsFlakAvailable(planning.Board, planning.Context, planning.OwnerId),
 			ExitMissileMode = exitMissileMode,
 			ShowOutcomeOverlay = _manager.IsBattleOver,
 			PlayerWon = IsPlayerVictory(),
@@ -233,6 +278,31 @@ public sealed class BattlePresenter
 		}
 
 		return View.GetMissileBlastHighlights(hover, _manager.Player.Grid);
+	}
+
+	private HashSet<Coord> GetFlakBurstCells(EFlakMount mount)
+	{
+		if (Mode != EPlayerMode.Flak)
+			return [];
+
+		return View.GetFlakBurstHighlights(_manager.Player, mount);
+	}
+
+	private HashSet<Coord> GetFlakPreviewCells()
+	{
+		if (Mode != EPlayerMode.Flak || FlakHover is not Coord hover)
+			return [];
+
+		var planning = _manager.Player;
+		var frame = BodyFrame.From(planning.Board.StateOf(planning.OwnerId));
+		var mount = FlakTargeting.MountForCell(frame, hover);
+		if (mount is null)
+			return [];
+
+		if (!planning.IsLegal(new FlakAction(planning.OwnerId, mount.Value)))
+			return [];
+
+		return View.GetFlakBurstHighlights(planning, mount.Value);
 	}
 
 	private Coord? GetRailgunHoveredCell(SimulatedTurn simulation, string targetUnitId) =>

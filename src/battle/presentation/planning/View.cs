@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions.Battle;
@@ -47,6 +48,7 @@ public static class View
 			"preview",
 			EntityIds.Board,
 			center,
+			BodyFrame.WorldAligned(center),
 			grid,
 			CombatConfig.MissileRadius,
 			CombatConfig.MissileDamage,
@@ -65,4 +67,7 @@ public static class View
 		cells.Add(planning.Board.StateOf(enemy.State.Id).Position);
 		return cells;
 	}
+
+	public static HashSet<Coord> GetFlakBurstHighlights(PlayerController planning, EFlakMount mount) =>
+		LegalActions.GetFlakBurstCells(planning.Board, planning.Context, planning.OwnerId, mount);
 }

@@ -18,6 +18,10 @@ public sealed class PresentationFrame
 	public required IReadOnlySet<Coord> PlannedHazardCells { get; init; }
 	public required IReadOnlySet<Coord> ValidMissileCells { get; init; }
 	public required IReadOnlySet<Coord> MissilePreviewCells { get; init; }
+	public required IReadOnlySet<Coord> ValidFlakPortCells { get; init; }
+	public required IReadOnlySet<Coord> ValidFlakStarboardCells { get; init; }
+	public required IReadOnlySet<Coord> FlakPreviewCells { get; init; }
+	public required IReadOnlySet<Coord> ValidFlakPickCells { get; init; }
 	public required IReadOnlySet<Coord> RailgunTargetCells { get; init; }
 	public Coord? RailgunHoveredCell { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }
@@ -28,6 +32,7 @@ public sealed class PresentationFrame
 	public bool CanAct { get; init; }
 	public int MissilesRemaining { get; init; }
 	public bool ExitMissileMode { get; init; }
+	public bool FlakAvailable { get; init; }
 	public bool ShowOutcomeOverlay { get; init; }
 	public bool PlayerWon { get; init; }
 }

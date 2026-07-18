@@ -30,11 +30,12 @@ public sealed class TurnOrchestrator
 
 	public TurnExecutionResult Execute(
 		TurnCommitResult commit,
+		Timeline timeline,
 		IPresentationEventSink? sink = null)
 	{
 		var applied = new List<IAction>();
 		var player = _units.First(unit => unit.Controller == EController.Player);
-		var playerCount = commit.PlayerPlan.Actions.Count;
+		var enemy = _units.First(unit => unit.Controller == EController.Enemy);
 		IReadOnlyDictionary<string, State>? unitsAfterPlayer = null;
 
 		var playerTurnState = new TurnState();
@@ -42,36 +43,43 @@ public sealed class TurnOrchestrator
 		var playerActionsApplied = new List<IAction>();
 		var enemyActionsApplied = new List<IAction>();
 
-		var index = 0;
-		while (commit.Queue.TryDequeue(out var action) && action is not null)
+		var turnStart = commit.TurnStart;
+		var tick = turnStart;
+		while (tick <= timeline.MaxTick)
 		{
-			ApplyBattleAction(
-				action,
-				commit,
-				player,
-				playerTurnState,
-				enemyTurnState,
-				playerActionsApplied,
-				enemyActionsApplied);
+			timeline.Clock.Set(tick);
 
-			applied.Add(action);
-			sink?.OnActionApplied(new PresentationEvent(action));
-			index++;
+			while (timeline.At(tick).TryDequeue(out var action) && action is not null)
+			{
+				ApplyBattleAction(
+					action,
+					player,
+					enemy,
+					playerTurnState,
+					enemyTurnState,
+					playerActionsApplied,
+					enemyActionsApplied,
+					timeline);
 
-			if (index == playerCount)
+				applied.Add(action);
+				sink?.OnActionApplied(new PresentationEvent(action));
+			}
+
+			if (tick == turnStart + TurnPhases.Player)
 			{
 				TurnPlanner.RunPhaseEnd(player.State, commit.PlayerPlan.Actions);
 				unitsAfterPlayer = SnapshotAll();
 			}
+
+			tick++;
 		}
 
-		if (playerCount == 0)
+		if (commit.PlayerPlan.Actions.Count == 0)
 		{
 			TurnPlanner.RunPhaseEnd(player.State, commit.PlayerPlan.Actions);
 			unitsAfterPlayer = SnapshotAll();
 		}
 
-		var enemy = _units.First(unit => unit.Controller == EController.Enemy);
 		if (enemy.State.IsAlive)
 			TurnPlanner.RunPhaseEnd(enemy.State, commit.EnemyPlan.Actions);
 
@@ -80,12 +88,13 @@ public sealed class TurnOrchestrator
 
 	private void ApplyBattleAction(
 		IAction action,
-		TurnCommitResult commit,
 		Unit player,
+		Unit enemy,
 		TurnState playerTurnState,
 		TurnState enemyTurnState,
 		List<IAction> playerActionsApplied,
-		List<IAction> enemyActionsApplied)
+		List<IAction> enemyActionsApplied,
+		Timeline timeline)
 	{
 		var ownerId = action.OwnerId;
 		var isPlayer = ownerId == player.State.Id;
@@ -100,13 +109,11 @@ public sealed class TurnOrchestrator
 			_hazards.MutableNonUnits,
 			_hazards.GetBlockedCells(),
 			context,
+			timeline,
 			ownerId);
 
 		applied.Add(action);
 	}
-
-	public void ExecuteEnvironmentPhase() =>
-		_hazards.ResolveAgainst(_units);
 
 	private Dictionary<string, State> SnapshotAll() =>
 		_units.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());

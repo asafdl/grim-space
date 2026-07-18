@@ -1,4 +1,6 @@
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -12,6 +14,7 @@ public sealed class Hazard : NonUnit
 	public required bool Passable { get; init; }
 	public required int Damage { get; init; }
 	public required int MomentumLoss { get; init; }
+	public required EHazardKind Kind { get; init; }
 	public int Radius { get; init; }
 	public string? VisualId { get; init; }
 
@@ -19,6 +22,7 @@ public sealed class Hazard : NonUnit
 		string id,
 		string ownerId,
 		Coord center,
+		BodyFrame ownerFrame,
 		BoundedGrid grid,
 		int radius,
 		int damage,
@@ -28,10 +32,30 @@ public sealed class Hazard : NonUnit
 			Id = id,
 			OwnerId = ownerId,
 			Center = center,
+			Frame = ownerFrame with { Origin = center },
 			Cells = new HashSet<Coord>(grid.EnumerateCube(center, radius)),
 			Passable = true,
 			Damage = damage,
 			MomentumLoss = momentumLoss,
+			Kind = EHazardKind.MissileZone,
+		};
+
+	public static Hazard FlakBurst(
+		string id,
+		string ownerId,
+		BodyFrame ownerFrame,
+		IEnumerable<Coord> cells) =>
+		new()
+		{
+			Id = id,
+			OwnerId = ownerId,
+			Center = ownerFrame.Origin,
+			Frame = ownerFrame,
+			Cells = new HashSet<Coord>(cells),
+			Passable = true,
+			Damage = 0,
+			MomentumLoss = CombatConfig.FlakMomentumLoss,
+			Kind = EHazardKind.FlakBurst,
 		};
 
 	public static int BlockRadiusFor(int radius) => radius + AsteroidBlockPadding;
@@ -47,10 +71,12 @@ public sealed class Hazard : NonUnit
 			Id = id,
 			OwnerId = EntityIds.Board,
 			Center = center,
+			Frame = BodyFrame.WorldAligned(center),
 			Cells = new HashSet<Coord>(grid.EnumerateCube(center, BlockRadiusFor(radius))),
 			Passable = false,
 			Damage = 0,
 			MomentumLoss = 0,
+			Kind = EHazardKind.MissileZone,
 			Radius = radius,
 			VisualId = visualId,
 		};
@@ -61,10 +87,12 @@ public sealed class Hazard : NonUnit
 			Id = Id,
 			OwnerId = OwnerId,
 			Center = Center,
+			Frame = Frame,
 			Cells = new HashSet<Coord>(Cells),
 			Passable = Passable,
 			Damage = Damage,
 			MomentumLoss = MomentumLoss,
+			Kind = Kind,
 			Radius = Radius,
 			VisualId = VisualId,
 		};

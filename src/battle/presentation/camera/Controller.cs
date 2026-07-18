@@ -15,9 +15,9 @@ public partial class Controller : Camera3D
 	private const float MaxDistance = 280f;
 	private const float MinPitch = -1.2f;
 	private const float MaxPitch = 1.2f;
-	private const float DorsalAimBackOffset = 7f;
-	private const float DorsalAimUpOffset = 4.5f;
-	private const float DorsalAimLookAhead = 22f;
+	private const float ForeAimBackOffset = 7f;
+	private const float ForeAimUpOffset = 4.5f;
+	private const float ForeAimLookAhead = 22f;
 
 	private Vector3 _pivot;
 	private float _yaw;
@@ -49,7 +49,7 @@ public partial class Controller : Camera3D
 		ApplyTransform();
 	}
 
-	public void EnterDorsalAim(State ship)
+	public void EnterForeAim(State ship)
 	{
 		if (!_aimLocked)
 		{
@@ -64,11 +64,11 @@ public partial class Controller : Camera3D
 		_panning = false;
 
 		_pivot = WorldMapping.ToWorld(ship.Position);
-		var forward = ToVector3(ship.ForwardDirection).Normalized();
-		var up = ToVector3(ship.UpDirection).Normalized();
+		var fore = ToVector3(ship.Fore).Normalized();
+		var dorsal = ToVector3(ship.Dorsal).Normalized();
 
-		GlobalPosition = _pivot - forward * DorsalAimBackOffset + up * DorsalAimUpOffset;
-		LookAt(_pivot + forward * DorsalAimLookAhead, up);
+		GlobalPosition = _pivot - fore * ForeAimBackOffset + dorsal * ForeAimUpOffset;
+		LookAt(_pivot + fore * ForeAimLookAhead, dorsal);
 	}
 
 	public void ExitAim()

@@ -55,8 +55,8 @@ public sealed class PlayerController
 	public BattlePlanContext Context => _plan.Context;
 	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
 
-	public void BeginTurn() =>
-		_plan.BeginTurn(OwnerId, _roster, _grid, _nonUnits, _blockedCells);
+	public void BeginTurn(int turnStartTick) =>
+		_plan.BeginTurn(OwnerId, _roster, _grid, _nonUnits, _blockedCells, turnStartTick);
 
 	public FinalizedPlan FinalizePlan() => new(_plan.Actions.ToList());
 
@@ -80,6 +80,9 @@ public sealed class PlayerController
 			return false;
 
 		if (action is MoveAction && _plan.Actions.Any(queued => queued is MoveAction))
+			return false;
+
+		if (action is FlakAction && _plan.Actions.Any(queued => queued is FlakAction))
 			return false;
 
 		if (action is RailgunAction && _plan.Actions.Any(queued => queued is RailgunAction))

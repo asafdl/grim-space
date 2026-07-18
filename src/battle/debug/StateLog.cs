@@ -62,8 +62,8 @@ public static class StateLog
 	}
 
 	private static string FormatUnit(State state) =>
-		$"{state.Id}: pos={state.Position} fwd={state.ForwardDirection} up={state.UpDirection} "
-		+ $"right={state.RightDirection} mom={state.MomentumLevel} "
+		$"{state.Id}: pos={state.Position} fore={state.Fore} dorsal={state.Dorsal} "
+		+ $"starboard={state.Starboard} mom={state.MomentumLevel} "
 		+ $"hp={state.Hp}/{state.Stats.MaxHp} ap={state.ActionPoints}/{state.Stats.MaxAp}";
 
 	private static string FormatPath(IReadOnlyList<Coord> path) =>

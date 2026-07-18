@@ -11,6 +11,7 @@ public enum EPlayerMode
 {
 	Move,
 	Missile,
+	Flak,
 	Railgun,
 }
 
@@ -38,11 +39,13 @@ public static class CombatHints
 			EPlayerMode.Move =>
 				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}  |  click path to queue{planSuffix}",
 			EPlayerMode.Missile =>
-				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {missileRange} ({CombatConfig.DorsalMissileMinRange}-{CombatConfig.DorsalMissileMaxRange}, scroll)"
+				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {missileRange} ({CombatConfig.ForeMissileMinRange}-{CombatConfig.ForeMissileMaxRange}, scroll)"
 				+ (missileCenter is Coord center
 					? missileInRange ? $"  |  center {center}" : $"  |  center {center} OUT OF ARC"
 					: "  |  click arc cell  |  Esc: cancel")
 				+ planSuffix,
+			EPlayerMode.Flak =>
+				$"Mode: Flak  |  {status}  |  click port or starboard arc  |  Esc: cancel{planSuffix}",
 			EPlayerMode.Railgun =>
 				$"Mode: Railgun (target M0)  |  {status}"
 				+ (railgunTarget is not null
@@ -56,7 +59,7 @@ public static class CombatHints
 	private static string MountLabel(EMissileMount? mount) =>
 		mount switch
 		{
-			EMissileMount.Dorsal => "Dorsal Missile",
+			EMissileMount.Fore => "Fore Missile",
 			null => "Missile",
 			_ => mount.ToString()!,
 		};

@@ -111,7 +111,7 @@ Enemy AI scores all reachable options. It avoids ending in active hazard zones, 
 
 ## Combat
 
-The player toggles between three modes via the action bar: **Move**, **Dorsal Missile**, and **Railgun**.
+The player toggles between three modes via the action bar: **Move**, **Fore Missile**, and **Railgun**.
 
 ### Missiles (mount-based targeting)
 

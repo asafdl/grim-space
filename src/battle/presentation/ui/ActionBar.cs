@@ -11,7 +11,8 @@ public sealed partial class ActionBar : CanvasLayer
 
 	private readonly ButtonGroup _modeGroup = new();
 	private Button _moveButton = null!;
-	private Button _dorsalMissileButton = null!;
+	private Button _foreMissileButton = null!;
+	private Button _flakButton = null!;
 	private Button _railgunButton = null!;
 	private Button _endTurnButton = null!;
 
@@ -24,22 +25,26 @@ public sealed partial class ActionBar : CanvasLayer
 	public void SetMode(EPlayerMode mode, EMissileMount? missileMount)
 	{
 		_moveButton.SetBlockSignals(true);
-		_dorsalMissileButton.SetBlockSignals(true);
+		_foreMissileButton.SetBlockSignals(true);
+		_flakButton.SetBlockSignals(true);
 		_railgunButton.SetBlockSignals(true);
 
 		_moveButton.ButtonPressed = mode == EPlayerMode.Move;
-		_dorsalMissileButton.ButtonPressed = mode == EPlayerMode.Missile && missileMount == EMissileMount.Dorsal;
+		_foreMissileButton.ButtonPressed = mode == EPlayerMode.Missile && missileMount == EMissileMount.Fore;
+		_flakButton.ButtonPressed = mode == EPlayerMode.Flak;
 		_railgunButton.ButtonPressed = mode == EPlayerMode.Railgun;
 
 		_moveButton.SetBlockSignals(false);
-		_dorsalMissileButton.SetBlockSignals(false);
+		_foreMissileButton.SetBlockSignals(false);
+		_flakButton.SetBlockSignals(false);
 		_railgunButton.SetBlockSignals(false);
 	}
 
-	public void Configure(int missilesRemaining, int missilesMax, bool canAct)
+	public void Configure(int missilesRemaining, int missilesMax, bool flakAvailable, bool canAct)
 	{
-		_dorsalMissileButton.Text = $"Dorsal Missile ({missilesRemaining}/{missilesMax})";
-		_dorsalMissileButton.Disabled = !canAct || missilesRemaining <= 0;
+		_foreMissileButton.Text = $"Fore Missile ({missilesRemaining}/{missilesMax})";
+		_foreMissileButton.Disabled = !canAct || missilesRemaining <= 0;
+		_flakButton.Disabled = !canAct || !flakAvailable;
 		_moveButton.Disabled = !canAct;
 		_railgunButton.Disabled = !canAct;
 		_endTurnButton.Disabled = !canAct;
@@ -72,14 +77,16 @@ public sealed partial class ActionBar : CanvasLayer
 		panel.AddChild(row);
 
 		_moveButton = CreateModeButton("Move", () => ModeChanged?.Invoke(EPlayerMode.Move));
-		_dorsalMissileButton = CreateModeButton(
-			"Dorsal Missile",
-			() => MissileMountSelected?.Invoke(EMissileMount.Dorsal));
+		_foreMissileButton = CreateModeButton(
+			"Fore Missile",
+			() => MissileMountSelected?.Invoke(EMissileMount.Fore));
+		_flakButton = CreateModeButton("Flak", () => ModeChanged?.Invoke(EPlayerMode.Flak));
 		_railgunButton = CreateModeButton("Railgun", () => ModeChanged?.Invoke(EPlayerMode.Railgun));
 		_endTurnButton = CreateActionButton("End Turn");
 
 		row.AddChild(_moveButton);
-		row.AddChild(_dorsalMissileButton);
+		row.AddChild(_foreMissileButton);
+		row.AddChild(_flakButton);
 		row.AddChild(_railgunButton);
 		row.AddChild(new VSeparator());
 		row.AddChild(_endTurnButton);

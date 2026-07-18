@@ -13,6 +13,7 @@ public static class BattleActionFactory
 		HeadingTurnAction heading => new HeadingTurnAction(ownerId, heading.Turn),
 		RollAction roll => new RollAction(ownerId, roll.Direction),
 		MissileAction missile => new MissileAction(ownerId, missile.Center, missile.Mount, missile.Range),
+		FlakAction flak => new FlakAction(ownerId, flak.Mount),
 		RailgunAction railgun => new RailgunAction(ownerId, railgun.TargetUnitId),
 		_ => action,
 	};

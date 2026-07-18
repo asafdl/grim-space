@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Effects;
@@ -38,42 +39,18 @@ public sealed class MoveAction(string ownerId, Option option) : IAction
 
 	private static bool PathContainsRetro(State unit, Coord origin, IReadOnlyList<Coord> path)
 	{
+		var frame = BodyFrame.From(unit);
 		var position = origin;
 
 		foreach (var next in path)
 		{
-			if (DirectionOfStep(unit, position, next) == EStepDirection.Retro)
+			if (frame.DirectionOfStep(position, next) == EStepDirection.Retro)
 				return true;
 
 			position = next;
 		}
 
 		return false;
-	}
-
-	private static EStepDirection? DirectionOfStep(State unit, Coord from, Coord to)
-	{
-		var delta = to - from;
-
-		if (delta == unit.ForwardDirection)
-			return EStepDirection.Forward;
-
-		if (delta == Coord.Zero - unit.ForwardDirection)
-			return EStepDirection.Retro;
-
-		if (delta == unit.UpDirection)
-			return EStepDirection.Dorsal;
-
-		if (delta == Coord.Zero - unit.UpDirection)
-			return EStepDirection.Ventral;
-
-		if (delta == unit.RightDirection)
-			return EStepDirection.Starboard;
-
-		if (delta == Coord.Zero - unit.RightDirection)
-			return EStepDirection.Port;
-
-		return null;
 	}
 
 	private static bool PathCrossesBlockedCells(IReadOnlySet<Coord> blockedCells, Option option)

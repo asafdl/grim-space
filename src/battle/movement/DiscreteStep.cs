@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
@@ -61,19 +62,21 @@ public sealed class DiscreteStep : IMovement
 
 		visited[node] = apRemaining;
 
+		var frame = BodyFrame.From(unit);
+
 		foreach (var direction in Directions)
 		{
 			if (UsesOpposite(node.UsedDirectionsMask, direction))
 				continue;
 
-			var forwardStepsInPath = CountForwardSteps(pathSoFar, unit);
+			var forwardStepsInPath = CountForwardSteps(frame, pathSoFar, unit.Position);
 			var stepCost = StepCosts.GetMoveStepApCost(
 				direction,
 				new MoveStepContext(forwardStepsInPath, node.MomentumLevel));
 			if (stepCost > apRemaining)
 				continue;
 
-			var next = node.Position + StepDelta(unit, direction);
+			var next = node.Position + frame.Step(direction);
 			if (!grid.IsInBounds(next) || blockedCells.Contains(next))
 				continue;
 
@@ -108,12 +111,13 @@ public sealed class DiscreteStep : IMovement
 
 	private static bool PathUsesOpposingDirections(State unit, Coord origin, IReadOnlyList<Coord> path)
 	{
+		var frame = BodyFrame.From(unit);
 		var usedMask = 0;
 		var pos = origin;
 
 		foreach (var next in path)
 		{
-			if (DirectionOfStep(unit, pos, next) is not EStepDirection direction)
+			if (frame.DirectionOfStep(pos, next) is not EStepDirection direction)
 				return true;
 
 			if (UsesOpposite(usedMask, direction))
@@ -124,31 +128,6 @@ public sealed class DiscreteStep : IMovement
 		}
 
 		return false;
-	}
-
-	private static EStepDirection? DirectionOfStep(State unit, Coord from, Coord to)
-	{
-		var delta = to - from;
-
-		if (delta == unit.ForwardDirection)
-			return EStepDirection.Forward;
-
-		if (delta == Coord.Zero - unit.ForwardDirection)
-			return EStepDirection.Retro;
-
-		if (delta == unit.UpDirection)
-			return EStepDirection.Dorsal;
-
-		if (delta == Coord.Zero - unit.UpDirection)
-			return EStepDirection.Ventral;
-
-		if (delta == unit.RightDirection)
-			return EStepDirection.Starboard;
-
-		if (delta == Coord.Zero - unit.RightDirection)
-			return EStepDirection.Port;
-
-		return null;
 	}
 
 	private static int DirectionBit(EStepDirection direction) => 1 << (int)direction;
@@ -168,29 +147,17 @@ public sealed class DiscreteStep : IMovement
 			_ => direction,
 		};
 
-	private static Coord StepDelta(State unit, EStepDirection direction) =>
-		direction switch
-		{
-			EStepDirection.Forward => unit.ForwardDirection,
-			EStepDirection.Retro => Coord.Zero - unit.ForwardDirection,
-			EStepDirection.Dorsal => unit.UpDirection,
-			EStepDirection.Ventral => Coord.Zero - unit.UpDirection,
-			EStepDirection.Starboard => unit.RightDirection,
-			EStepDirection.Port => Coord.Zero - unit.RightDirection,
-			_ => Coord.Zero,
-		};
-
-	private static int CountForwardSteps(IReadOnlyList<Coord> pathSoFar, State unit)
+	private static int CountForwardSteps(BodyFrame frame, IReadOnlyList<Coord> pathSoFar, Coord origin)
 	{
 		if (pathSoFar.Count == 0)
 			return 0;
 
-		var pos = unit.Position;
+		var pos = origin;
 		var count = 0;
 
 		foreach (var next in pathSoFar)
 		{
-			if (DirectionOfStep(unit, pos, next) == EStepDirection.Forward)
+			if (frame.DirectionOfStep(pos, next) == EStepDirection.Forward)
 				count++;
 
 			pos = next;
@@ -201,11 +168,12 @@ public sealed class DiscreteStep : IMovement
 
 	private static void ApplyMomentumFromPath(State unit, IReadOnlyList<Coord> path)
 	{
+		var frame = BodyFrame.From(unit);
 		var pos = unit.Position;
 
 		foreach (var next in path)
 		{
-			var direction = DirectionOfStep(unit, pos, next);
+			var direction = frame.DirectionOfStep(pos, next);
 			if (direction == EStepDirection.Forward)
 				unit.MomentumLevel = System.Math.Min(unit.MomentumLevel + 1, MomentumConfig.MaxLevel);
 			else if (direction == EStepDirection.Retro)

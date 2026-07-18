@@ -11,7 +11,7 @@ using BoundedGrid = GrimSpace.Math.Grid.Grid;
 namespace GrimSpace.Battle.Turn;
 
 public readonly record struct TurnCommitResult(
-	GlobalActionQueue Queue,
+	int TurnStart,
 	TurnPlanner PlayerPlan,
 	TurnPlanner EnemyPlan);
 
@@ -19,6 +19,7 @@ public static class TurnCommit
 {
 	public static TurnCommitResult Build(
 		FinalizedPlan playerPlan,
+		Timeline timeline,
 		IReadOnlyList<Unit> units,
 		BoundedGrid grid,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
@@ -27,6 +28,7 @@ public static class TurnCommit
 	{
 		var player = units.First(unit => unit.Controller == EController.Player);
 		var enemy = units.First(unit => unit.Controller == EController.Enemy);
+		var turnStart = timeline.Clock.Current;
 
 		var playerTurnPlanner = new TurnPlanner();
 		playerTurnPlanner.CopyFrom(playerPlan.Actions);
@@ -38,7 +40,8 @@ public static class TurnCommit
 			grid,
 			nonUnits,
 			blockedCells,
-			playerPlan.Actions);
+			playerPlan.Actions,
+			turnStart);
 
 		var enemyPlan = EnemyPlanner.PlanTurn(
 			enemy,
@@ -46,12 +49,12 @@ public static class TurnCommit
 			grid,
 			nonUnits,
 			resolvedHazardCells,
-			blockedCells);
+			blockedCells,
+			turnStart);
 
-		var queue = new GlobalActionQueue();
-		queue.EnqueueAll(playerPlan.Actions);
-		queue.EnqueueAll(enemyPlan.Actions);
+		timeline.At(turnStart + TurnPhases.Player).EnqueueAll(playerPlan.Actions);
+		timeline.At(turnStart + TurnPhases.Enemy).EnqueueAll(enemyPlan.Actions);
 
-		return new TurnCommitResult(queue, playerTurnPlanner, enemyPlan);
+		return new TurnCommitResult(turnStart, playerTurnPlanner, enemyPlan);
 	}
 }

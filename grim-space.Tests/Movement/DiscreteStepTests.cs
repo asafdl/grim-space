@@ -58,7 +58,7 @@ public sealed class DiscreteStepTests
 			origin,
 			0,
 			Coord.Forward,
-			Coord.Zero - player.State.ForwardDirection);
+			Coord.Zero - player.State.Fore);
 
 		Assert.False(_movement.CanMove(player.State, zigzag));
 	}
@@ -99,7 +99,7 @@ public sealed class DiscreteStepTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 2);
-		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.ForwardDirection);
+		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.Fore);
 
 		_movement.ApplyMomentum(player.State, retro.Path);
 		_movement.ApplyMove(player.State, retro);

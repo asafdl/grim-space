@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -31,7 +32,7 @@ public static class LegalActions
 				yield return action;
 		}
 
-		if (context.QueuedActions.Any(action => action is MoveAction))
+		if (context.PhaseActions.Any(action => action is MoveAction))
 			yield break;
 
 		foreach (var option in GetMoveOptions(board, context, actorId))
@@ -55,15 +56,9 @@ public static class LegalActions
 		EMissileMount mount,
 		int range)
 	{
-		var actor = board.StateOf(actorId);
+		var frame = BodyFrame.From(board.StateOf(actorId));
 		var config = MissileMountConfig.For(mount).WithRange(range);
-		var cells = MissileTargeting.GetValidCells(
-			actor.Position,
-			actor.ForwardDirection,
-			actor.RightDirection,
-			actor.UpDirection,
-			config,
-			board.Grid.IsInBounds);
+		var cells = MissileTargeting.GetValidCells(frame, config, board.Grid.IsInBounds);
 
 		return cells
 			.Where(cell => new MissileAction(actorId, cell, mount, range).IsLegal(board, context))
@@ -72,4 +67,21 @@ public static class LegalActions
 
 	public static bool IsRailgunAvailable(BattleBoard board, BattlePlanContext context, string actorId, string targetUnitId) =>
 		new RailgunAction(actorId, targetUnitId).IsLegal(board, context);
+
+	public static bool IsFlakAvailable(BattleBoard board, BattlePlanContext context, string actorId) =>
+		Enum.GetValues<EFlakMount>().Any(mount => new FlakAction(actorId, mount).IsLegal(board, context));
+
+	public static HashSet<Coord> GetFlakBurstCells(
+		BattleBoard board,
+		BattlePlanContext context,
+		string actorId,
+		EFlakMount mount)
+	{
+		if (!new FlakAction(actorId, mount).IsLegal(board, context))
+			return [];
+
+		var frame = BodyFrame.From(board.StateOf(actorId));
+		var config = FlakMountConfig.For(mount);
+		return FlakTargeting.GetBurstCells(frame, config, board.Grid.IsInBounds);
+	}
 }
