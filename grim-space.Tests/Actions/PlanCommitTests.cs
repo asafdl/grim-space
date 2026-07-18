@@ -32,8 +32,7 @@ public sealed class PlanCommitTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = BeginPlan(player, enemy, grid, blocked);
 
-		var move = PlannedForwardMove(origin, stepCount, startMomentum);
-		Assert.True(plan.TryApplyAndEnqueue(move));
+		EnqueueForwardMove(plan, origin, stepCount, startMomentum);
 
 		var preview = plan.GetPreview(PlayerId);
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
@@ -63,17 +62,14 @@ public sealed class PlanCommitTests
 		Assert.Equal(origin, emptyPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.Actor.ActionPoints);
 
-		var threeStepMove = PlannedForwardMove(origin, steps: 3, startMomentum);
-		Assert.True(plan.TryApplyAndEnqueue(threeStepMove));
-
+		EnqueueForwardMove(plan, origin, steps: 3, startMomentum);
 		var threeStepPreview = plan.GetPreview(PlayerId);
 		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.Actor.ActionPoints);
 
 		Assert.True(plan.TryUndoLast());
-		var fourStepMove = PlannedForwardMove(origin, steps: 4, startMomentum);
-		Assert.True(plan.TryApplyAndEnqueue(fourStepMove));
+		EnqueueForwardMove(plan, origin, steps: 4, startMomentum);
 
 		var fourStepPreview = plan.GetPreview(PlayerId);
 		var fourStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 4);
@@ -96,8 +92,8 @@ public sealed class PlanCommitTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = BeginPlan(player, enemy, grid, blocked);
 
-		var move = PlannedForwardMove(origin, stepCount, startMomentum);
-		var actions = new List<IAction> { move };
+		EnqueueForwardMove(plan, origin, stepCount, startMomentum);
+		var actions = plan.Actions.ToList();
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
@@ -120,12 +116,12 @@ public sealed class PlanCommitTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = BeginPlan(player, enemy, grid, blocked);
 
-		Assert.True(plan.TryApplyAndEnqueue(PlannedForwardMove(origin, steps: 3, startMomentum: 0)));
+		EnqueueForwardMove(plan, origin, steps: 3, startMomentum: 0);
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		Assert.True(plan.TryUndoLast());
-		Assert.Single(plan.Actions);
-		Assert.IsType<MoveAction>(plan.Actions[0]);
+		Assert.Equal(3, plan.Actions.Count);
+		Assert.All(plan.Actions, action => Assert.IsType<MoveStepAction>(action));
 	}
 
 	[Fact]
@@ -137,18 +133,18 @@ public sealed class PlanCommitTests
 			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 		planning.BeginTurn(0);
 
-		var shortMove = PlannedForwardMove(origin, steps: 3, startMomentum: 0);
-		var longMove = PlannedForwardMove(origin, steps: 4, startMomentum: 0);
+		var shortMove = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var longMove = MovementExpectations.PureForwardMove(origin, stepCount: 4, startMomentum: 0);
 
-		Assert.True(planning.TryEnqueue(shortMove));
-		Assert.False(planning.TryEnqueue(longMove));
-		Assert.Single(planning.Actions);
+		Assert.True(planning.TryEnqueueMovePath(shortMove));
+		Assert.False(planning.TryEnqueueMovePath(longMove));
+		Assert.Equal(3, planning.Actions.Count);
 
 		Assert.True(planning.TryUndoLast());
-		Assert.True(planning.TryEnqueue(longMove));
+		Assert.True(planning.TryEnqueueMovePath(longMove));
 		Assert.Equal(
 			origin + Coord.Forward * 4,
-			((MoveAction)planning.Actions[0]).Option.EndPosition);
+			((MoveStepAction)planning.Actions[^1]).To);
 	}
 
 	private static TurnPlanner BeginPlan(
@@ -162,14 +158,9 @@ public sealed class PlanCommitTests
 		return plan;
 	}
 
-	private static MoveAction PlannedForwardMove(Coord origin, int steps, int startMomentum)
+	private static void EnqueueForwardMove(TurnPlanner plan, Coord origin, int steps, int startMomentum)
 	{
 		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
-		return new MoveAction(PlayerId, new Option
-		{
-			Origin = origin,
-			ApCost = option.ApCost,
-			Path = option.Path,
-		});
+		plan.EnqueueMovePath(PlayerId, option);
 	}
 }

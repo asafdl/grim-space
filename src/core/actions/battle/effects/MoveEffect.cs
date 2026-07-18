@@ -1,12 +1,13 @@
-using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Contexts;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Core.Actions.Battle.Effects;
 
-public sealed class MoveEffect(Option option) : IEffect<BattleSlices>
+public sealed class MoveEffect(Coord destination) : IEffect<BattleSlices>
 {
-	public void Apply(MoveContext move) => move.Apply(option);
+	public void Apply(State actor) => actor.Position = destination;
 
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.Move);
+	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.Ap.Player);
 }

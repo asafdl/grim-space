@@ -31,23 +31,25 @@ public static class LegalActions
 			if (action.IsLegal(board, context))
 				yield return action;
 		}
+	}
 
-		if (context.PhaseActions.Any(action => action is MoveAction))
+	public static IEnumerable<Option> EnumerateMovePaths(
+		BattleBoard board,
+		BattlePlanContext context,
+		string actorId)
+	{
+		if (TurnPlanner.HasMoveSteps(context.PhaseActions))
 			yield break;
 
 		foreach (var option in GetMoveOptions(board, context, actorId))
-			yield return new MoveAction(actorId, option);
+			yield return option;
 	}
 
-	public static IReadOnlyList<Option> GetMoveOptions(BattleBoard board, BattlePlanContext context, string actorId)
-	{
-		var actor = board.StateOf(actorId);
-		var blocked = board.BlockedFor(actorId);
-		return board.UnitOf(actorId).Movement
-			.GetMoveOptions(actor, board.Grid, blocked)
-			.Where(option => new MoveAction(actorId, option).IsLegal(board, context))
-			.ToList();
-	}
+	public static IReadOnlyList<Option> GetMoveOptions(
+		BattleBoard board,
+		BattlePlanContext context,
+		string actorId) =>
+		MovePathFinder.Find(board, context, actorId);
 
 	public static HashSet<Coord> GetMissileCells(
 		BattleBoard board,

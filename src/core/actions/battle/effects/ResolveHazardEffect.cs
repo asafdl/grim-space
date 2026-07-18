@@ -17,22 +17,7 @@ public sealed class ResolveHazardEffect(string hazardId) : IEffect<BattleSlices>
 			if (!unit.State.IsAlive || !hazard.Cells.Contains(unit.State.Position))
 				continue;
 
-			switch (hazard.Kind)
-			{
-				case EHazardKind.MissileZone:
-					unit.State.Hp = System.Math.Max(unit.State.Hp - hazard.Damage, 0);
-					unit.State.MomentumLevel = System.Math.Max(
-						unit.State.MomentumLevel - hazard.MomentumLoss,
-						0);
-					break;
-				case EHazardKind.FlakBurst:
-					unit.State.MomentumLevel = System.Math.Max(
-						unit.State.MomentumLevel - hazard.MomentumLoss,
-						0);
-					if (unit.State.MomentumLevel < CombatConfig.FlakApPenaltyThreshold)
-						unit.State.ApPenaltyNextTurn = true;
-					break;
-			}
+			HazardResolution.ApplyToUnitAt(hazard, unit.State);
 		}
 	}
 }

@@ -2,11 +2,15 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class BattlePlanContext(
-	IReadOnlyList<IAction> phaseActions,
-	TurnState turnState)
+public sealed class BattlePlanContext
 {
-	public IReadOnlyList<IAction> PhaseActions { get; } = phaseActions;
+	public BattlePlanContext(IList<IAction> phaseActions, TurnState turnState)
+	{
+		PhaseActions = phaseActions;
+		TurnState = turnState;
+	}
 
-	public TurnState TurnState { get; } = turnState;
+	public IList<IAction> PhaseActions { get; }
+
+	public TurnState TurnState { get; }
 }

@@ -23,15 +23,16 @@ public sealed class ActionTagSynergyTests
 		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
-		var retro = RetroMove(origin, player);
-		Assert.True(plan.TryApplyAndEnqueue(retro));
+		var retro = RetroMoveOption(origin, player);
+		plan.EnqueueMovePath(PlayerId, retro);
 		Assert.True(plan.Context.TurnState.SpinBraked);
 		Assert.True(plan.Context.TurnState.HasSpinDiscount);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		var actor = plan.Board.StateOf(PlayerId);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - retro.Option.ApCost, actor.ActionPoints);
+		var retroApCost = MomentumConfig.ForLevel(2).BrakeCost;
+		Assert.Equal(MovementExpectations.FighterApPerTurn - retroApCost, actor.ActionPoints);
 		Assert.False(plan.Context.TurnState.HasSpinDiscount);
 		Assert.Equal(1, actor.MomentumLevel);
 	}
@@ -47,30 +48,26 @@ public sealed class ActionTagSynergyTests
 		var plan = new TurnPlanner();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
-		var retro = RetroMove(origin, player);
-		Assert.True(plan.TryApplyAndEnqueue(retro));
+		var retro = RetroMoveOption(origin, player);
+		plan.EnqueueMovePath(PlayerId, retro);
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		var actor = plan.Board.StateOf(PlayerId);
+		var retroApCost = MomentumConfig.ForLevel(2).BrakeCost;
 		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - retro.Option.ApCost - CombatConfig.HeadingTurn90ApCost,
+			MovementExpectations.FighterApPerTurn - retroApCost - CombatConfig.HeadingTurn90ApCost,
 			actor.ActionPoints);
 		Assert.Equal(0, actor.MomentumLevel);
 	}
 
-	private static MoveAction RetroMove(Coord origin, GrimSpace.Battle.Units.Unit player)
+	private static Option RetroMoveOption(Coord origin, GrimSpace.Battle.Units.Unit player)
 	{
 		var retroPath = BattleTestFixture.Path(
 			origin,
 			apCost: 0,
 			Coord.Zero - player.State.Fore);
 
-		return new MoveAction(PlayerId, new Option
-		{
-			Origin = origin,
-			ApCost = 3,
-			Path = retroPath.Path,
-		});
+		return retroPath;
 	}
 }

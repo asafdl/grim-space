@@ -32,8 +32,6 @@ public readonly struct BattleSlices
 
 	public ApContext Ap => new(_board.StateOf(_actorId));
 
-	public MoveContext Move => new(_board.StateOf(_actorId), _board.UnitOf(_actorId));
-
 	public OrientationContext Orientation => new(_board.StateOf(_actorId));
 
 	public HazardContext Hazards => new(_board, _actorId);

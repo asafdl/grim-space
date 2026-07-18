@@ -76,7 +76,7 @@ Each ship has a **momentum level (0–3)** that shapes how moves feel:
 | Effect | Behavior |
 |--------|----------|
 | **Free forward carry** | First N forward steps in a path cost no AP (N rises with momentum) |
-| **Forward thrust** | Each forward step after the free allowance costs 1 AP and raises momentum |
+| **Forward thrust** | Every 2 forward steps raise momentum by 1, up to +1 per turn from movement |
 | **Braking (retro)** | Costs extra AP and lowers momentum |
 | **Lateral drift** | Port/starboard/dorsal/ventral steps cost more AP at higher momentum |
 | **Evasion** | Displayed per level; not yet rolled in combat |

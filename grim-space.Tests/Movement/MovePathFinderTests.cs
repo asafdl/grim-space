@@ -1,11 +1,14 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
 
-public sealed class DiscreteStepTests
+public sealed class MovePathFinderTests
 {
-	private readonly DiscreteStep _movement = new();
+	private const string PlayerId = "player";
 
 	[Fact]
 	public void OneAndTwoApForwardMovesAreNotReachableEndpoints()
@@ -14,8 +17,7 @@ public sealed class DiscreteStepTests
 		var player = BattleTestFixture.Player(origin, momentum: 0);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-
-		var options = _movement.GetMoveOptions(player.State, BattleTestFixture.Grid(), blocked);
+		var options = GetMoveOptions(player, enemy, blocked, origin);
 		var endpoints = options.ToDictionary(option => option.EndPosition);
 
 		var oneForward = origin + Coord.Forward;
@@ -40,7 +42,7 @@ public sealed class DiscreteStepTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 
-		var options = _movement.GetMoveOptions(player.State, BattleTestFixture.Grid(), blocked);
+		var options = GetMoveOptions(player, enemy, blocked, origin);
 		var endpoint = origin + Coord.Forward * stepCount;
 		var expectedCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
@@ -60,7 +62,18 @@ public sealed class DiscreteStepTests
 			Coord.Forward,
 			Coord.Zero - player.State.Fore);
 
-		Assert.False(_movement.CanMove(player.State, zigzag));
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(player.State);
+		var steps = MoveStepAction.BuildSteps(PlayerId, frame, origin, zigzag.Path);
+		var board = BattleBoard.FromSnapshot(
+			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
+			new Dictionary<string, NonUnit>(),
+			BattleTestFixture.Grid(),
+			new HashSet<Coord>());
+		var turnState = new TurnState();
+		var applied = new List<IAction>();
+		var context = new BattlePlanContext(applied, turnState);
+
+		Assert.False(steps[^1].IsLegal(board, context));
 	}
 
 	[Fact]
@@ -68,9 +81,10 @@ public sealed class DiscreteStepTests
 	{
 		var origin = new Coord(0, 5, 5);
 		var player = BattleTestFixture.Player(origin);
-		var blocked = new HashSet<Coord> { origin + Coord.Forward * 2 };
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var blocked = new HashSet<Coord> { origin + Coord.Forward * 2, enemy.State.Position };
 
-		var options = _movement.GetMoveOptions(player.State, BattleTestFixture.Grid(), blocked);
+		var options = GetMoveOptions(player, enemy, blocked, origin);
 
 		Assert.DoesNotContain(options, option => option.EndPosition.X < 0);
 		Assert.DoesNotContain(options, option => option.Path.Contains(origin + Coord.Forward * 2));
@@ -83,15 +97,23 @@ public sealed class DiscreteStepTests
 		var startMomentum = 1;
 		var stepCount = 3;
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var move = MovementExpectations.PureForwardMove(origin, stepCount, startMomentum);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var plan = new TurnPlanner();
+		plan.BeginTurn(
+			PlayerId,
+			[player, enemy],
+			BattleTestFixture.Grid(),
+			new Dictionary<string, NonUnit>(),
+			new HashSet<Coord> { enemy.State.Position },
+			turnStartTick: 0);
 
-		_movement.ApplyMomentum(player.State, move.Path);
-		_movement.ApplyMove(player.State, move);
+		var option = MovementExpectations.PureForwardMove(origin, stepCount, startMomentum);
+		plan.EnqueueMovePath(PlayerId, option);
 
-		Assert.Equal(origin + Coord.Forward * stepCount, player.State.Position);
+		Assert.Equal(origin + Coord.Forward * stepCount, plan.Board.StateOf(PlayerId).Position);
 		Assert.Equal(
 			MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount),
-			player.State.MomentumLevel);
+			plan.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
@@ -99,11 +121,36 @@ public sealed class DiscreteStepTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 2);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.Fore);
+		var plan = new TurnPlanner();
+		plan.BeginTurn(
+			PlayerId,
+			[player, enemy],
+			BattleTestFixture.Grid(),
+			new Dictionary<string, NonUnit>(),
+			new HashSet<Coord> { enemy.State.Position },
+			turnStartTick: 0);
 
-		_movement.ApplyMomentum(player.State, retro.Path);
-		_movement.ApplyMove(player.State, retro);
+		plan.EnqueueMovePath(PlayerId, retro);
 
-		Assert.Equal(1, player.State.MomentumLevel);
+		Assert.Equal(1, plan.Board.StateOf(PlayerId).MomentumLevel);
+	}
+
+	private static IReadOnlyList<Option> GetMoveOptions(
+		GrimSpace.Battle.Units.Unit player,
+		GrimSpace.Battle.Units.Unit enemy,
+		IReadOnlySet<Coord> blocked,
+		Coord origin)
+	{
+		var board = BattleBoard.FromSnapshot(
+			[player, enemy],
+			new Dictionary<string, NonUnit>(),
+			BattleTestFixture.Grid(),
+			blocked);
+		var turnState = new TurnState();
+		var applied = new List<IAction>();
+		var context = new BattlePlanContext(applied, turnState);
+		return MovePathFinder.Find(board, context, PlayerId);
 	}
 }

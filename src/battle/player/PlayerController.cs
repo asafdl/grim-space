@@ -79,36 +79,18 @@ public sealed class PlayerController
 		if (player is null || !_canAct(player))
 			return false;
 
-		if (action is MoveAction && _plan.Actions.Any(queued => queued is MoveAction))
-			return false;
-
 		if (action is FlakAction && _plan.Actions.Any(queued => queued is FlakAction))
 			return false;
 
 		if (action is RailgunAction && _plan.Actions.Any(queued => queued is RailgunAction))
 			return false;
 
-		var stamped = StampForEnqueue(action);
-		return _plan.TryApplyAndEnqueue(stamped);
+		return _plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(OwnerId, action));
 	}
+
+	public bool TryEnqueueMovePath(Option option) => _plan.TryEnqueueMovePath(OwnerId, option);
 
 	public bool TryUndoLast() => _plan.TryUndoLast();
-
-	private IAction StampForEnqueue(IAction action)
-	{
-		if (action is MoveAction move)
-		{
-			var option = new Option
-			{
-				Origin = Board.StateOf(OwnerId).Position,
-				ApCost = move.Option.ApCost,
-				Path = move.Option.Path,
-			};
-			return new MoveAction(OwnerId, option);
-		}
-
-		return BattleActionFactory.WithOwner(OwnerId, action);
-	}
 }
 
 public readonly record struct FinalizedPlan(IReadOnlyList<IAction> Actions);

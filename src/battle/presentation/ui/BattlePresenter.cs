@@ -125,7 +125,7 @@ public sealed class BattlePresenter
 			return false;
 
 		var ownerId = _manager.Player.OwnerId;
-		if (!_manager.Player.TryEnqueue(new MoveAction(ownerId, options[optionIndex])))
+		if (!_manager.Player.TryEnqueueMovePath(options[optionIndex]))
 			return false;
 
 		_selection.Clear();

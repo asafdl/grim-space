@@ -1,8 +1,6 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
-using UnitState = GrimSpace.Battle.Units.State;
 
 namespace GrimSpace.Battle.Environment;
 
@@ -54,26 +52,6 @@ public sealed class HazardSystem
 		return cells;
 	}
 
-	public void ResolveAgainst(IReadOnlyList<Unit> units)
-	{
-		foreach (var unit in units)
-		{
-			if (!unit.State.IsAlive)
-				continue;
-
-			foreach (var hazard in Active)
-			{
-				if (!hazard.Cells.Contains(unit.State.Position))
-					continue;
-
-				ApplyDamage(unit.State, hazard.Damage);
-				unit.State.MomentumLevel = System.Math.Max(
-					unit.State.MomentumLevel - hazard.MomentumLoss,
-					0);
-			}
-		}
-	}
-
 	public void Clear()
 	{
 		var turnScoped = _nonUnits.Values
@@ -84,7 +62,4 @@ public sealed class HazardSystem
 		foreach (var id in turnScoped)
 			_nonUnits.Remove(id);
 	}
-
-	private static void ApplyDamage(UnitState target, int damage) =>
-		target.Hp = System.Math.Max(target.Hp - damage, 0);
 }

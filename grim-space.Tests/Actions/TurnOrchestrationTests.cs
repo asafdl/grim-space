@@ -22,7 +22,7 @@ public sealed class TurnOrchestrationTests
 
 		var move = Preview.GetLegalMoves(manager.Player)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		manager.Player.TryEnqueue(new MoveAction(manager.Player.OwnerId, move));
+		manager.Player.TryEnqueueMovePath(move);
 
 		var commit = TurnCommit.Build(
 			manager.Player.FinalizePlan(),
@@ -38,7 +38,8 @@ public sealed class TurnOrchestrationTests
 		var playerBucket = manager.Timeline.At(playerTick).Snapshot();
 		var enemyBucket = manager.Timeline.At(enemyTick).Snapshot();
 
-		Assert.Single(playerBucket);
+		Assert.Equal(3, playerBucket.Count);
+		Assert.All(playerBucket, action => Assert.IsType<MoveStepAction>(action));
 		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
 
 		if (commit.EnemyPlan.Actions.Count > 0)

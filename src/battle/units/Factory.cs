@@ -22,8 +22,7 @@ public static class Factory
 			Controller = instance.Controller,
 		}, position);
 		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
-		var movement = MovementFor(instance.Type);
-		return ShellFor(instance.Controller, state, movement);
+		return ShellFor(instance.Controller, state);
 	}
 
 	private static string ResolveId(Instance instance, UnitIdRegistry? ids)
@@ -40,18 +39,11 @@ public static class Factory
 		return ids.NextUnitId(instance.Type);
 	}
 
-	private static IMovement MovementFor(EType type) =>
-		type switch
-		{
-			EType.Fighter => new DiscreteStep(),
-			_ => throw new ArgumentOutOfRangeException(nameof(type)),
-		};
-
-	private static Unit ShellFor(EController controller, State state, IMovement movement) =>
+	private static Unit ShellFor(EController controller, State state) =>
 		controller switch
 		{
-			EController.Player => new Player(state, movement),
-			EController.Enemy => new EnemyUnit(state, movement),
+			EController.Player => new Player(state),
+			EController.Enemy => new EnemyUnit(state),
 			_ => throw new ArgumentOutOfRangeException(nameof(controller)),
 		};
 }

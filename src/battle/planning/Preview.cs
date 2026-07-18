@@ -21,7 +21,7 @@ public static class Preview
 
 	public static IReadOnlyList<Option> GetLegalMoves(TurnPlanner plan, string actorId)
 	{
-		if (plan.Actions.Any(action => action is MoveAction))
+		if (TurnPlanner.HasMoveSteps(plan.Actions))
 			return [];
 
 		return LegalActions.GetMoveOptions(plan.Board, plan.Context, actorId);

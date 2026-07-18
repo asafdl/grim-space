@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Turn;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
@@ -57,6 +58,7 @@ public static class EnemyPlanner
 		{
 			var currentScore = ScoreTurn(plan, actorId, hazardCells, turnStartTick);
 			IAction? bestAction = null;
+			Option? bestMove = null;
 			var bestScore = currentScore;
 
 			foreach (var candidate in LegalActions.EnumerateMovement(plan.Board, plan.Context, actorId))
@@ -78,12 +80,41 @@ public static class EnemyPlanner
 
 				bestScore = score;
 				bestAction = candidate;
+				bestMove = null;
 			}
 
-			if (bestAction is null || bestScore <= currentScore)
+			foreach (var move in LegalActions.EnumerateMovePaths(plan.Board, plan.Context, actorId))
+			{
+				if (!TryEnqueueMoveTrial(plan, actorId, move))
+					continue;
+
+				if (plan.Board.StateOf(actorId).ActionPoints < 0)
+				{
+					plan.TryUndoLast();
+					continue;
+				}
+
+				var score = ScoreTurn(plan, actorId, hazardCells, turnStartTick);
+				plan.TryUndoLast();
+
+				if (score <= bestScore)
+					continue;
+
+				bestScore = score;
+				bestAction = null;
+				bestMove = move;
+			}
+
+			if (bestAction is null && bestMove is null)
 				break;
 
-			TryEnqueueTrial(plan, actorId, bestAction);
+			if (bestScore <= currentScore)
+				break;
+
+			if (bestMove is not null)
+				TryEnqueueMoveTrial(plan, actorId, bestMove);
+			else if (bestAction is not null)
+				TryEnqueueTrial(plan, actorId, bestAction);
 		}
 
 		return plan;
@@ -130,17 +161,21 @@ public static class EnemyPlanner
 		}
 
 		var momentum = state.MomentumLevel;
-		if (!plan.Actions.Any(action => action is MoveAction))
+		if (!TurnPlanner.HasMoveSteps(plan.Actions))
 			momentum = System.Math.Max(0, momentum - 1);
 
 		return momentum * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 	}
 
-	private static bool TryEnqueueTrial(TurnPlanner plan, string ownerId, IAction candidate)
+	private static bool TryEnqueueTrial(TurnPlanner plan, string ownerId, IAction candidate) =>
+		plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(ownerId, candidate));
+
+	private static bool TryEnqueueMoveTrial(TurnPlanner plan, string ownerId, Option move)
 	{
-		if (candidate is MoveAction && plan.Actions.Any(action => action is MoveAction))
+		if (TurnPlanner.HasMoveSteps(plan.Actions))
 			return false;
 
-		return plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(ownerId, candidate));
+		plan.EnqueueMovePath(ownerId, move);
+		return true;
 	}
 }

@@ -9,7 +9,7 @@ public static class BattleActionFactory
 {
 	public static IAction WithOwner(string ownerId, IAction action) => action switch
 	{
-		MoveAction move => new MoveAction(ownerId, move.Option),
+		MoveStepAction step => new MoveStepAction(ownerId, step.From, step.To, step.UsedDirectionsMaskBefore),
 		HeadingTurnAction heading => new HeadingTurnAction(ownerId, heading.Turn),
 		RollAction roll => new RollAction(ownerId, roll.Direction),
 		MissileAction missile => new MissileAction(ownerId, missile.Center, missile.Mount, missile.Range),

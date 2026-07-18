@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -20,7 +19,4 @@ public static class StepCosts
 			_ => int.MaxValue,
 		};
 	}
-
-	public static bool CanAffordMove(State unit, Option option) =>
-		option.Path.Count > 0 && unit.ActionPoints >= option.ApCost;
 }

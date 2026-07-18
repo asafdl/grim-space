@@ -49,15 +49,12 @@ public static class MovementSelection
 		if (path.Count > 0 || target is not null)
 			return (path, target);
 
-		foreach (var action in actions)
-		{
-			if (action is not MoveAction move)
-				continue;
+		var moveSteps = actions.OfType<MoveStepAction>().ToList();
+		if (moveSteps.Count == 0)
+			return (path, target);
 
-			return (move.Option.Path, move.Option.EndPosition);
-		}
-
-		return (path, target);
+		var committedPath = moveSteps.Select(step => step.To).ToList();
+		return (committedPath, committedPath[^1]);
 	}
 
 	public static string FormatMomentum(State unit)

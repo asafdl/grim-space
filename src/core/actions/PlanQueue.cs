@@ -1,26 +1,31 @@
 namespace GrimSpace.Core.Actions;
 
-public sealed class PlanQueue<TAction> where TAction : IAction
+public sealed class PlanQueue
 {
-	private readonly List<TAction> _actions = [];
+	private readonly List<PlanBatch> _batches = [];
 
-	public IReadOnlyList<TAction> Actions => _actions;
+	public IReadOnlyList<IAction> Actions =>
+		_batches.SelectMany(batch => batch.Actions).ToList();
 
-	public void Clear() => _actions.Clear();
+	public IReadOnlyList<PlanBatch> Batches => _batches;
 
-	public bool TryPopLast(out TAction? action)
+	public void Clear() => _batches.Clear();
+
+	public bool TryPopLastBatch(out PlanBatch batch)
 	{
-		if (_actions.Count == 0)
+		if (_batches.Count == 0)
 		{
-			action = default;
+			batch = default;
 			return false;
 		}
 
-		var index = _actions.Count - 1;
-		action = _actions[index];
-		_actions.RemoveAt(index);
+		var index = _batches.Count - 1;
+		batch = _batches[index];
+		_batches.RemoveAt(index);
 		return true;
 	}
 
-	public void Enqueue(TAction action) => _actions.Add(action);
+	public void Enqueue(PlanBatch batch) => _batches.Add(batch);
+
+	public void Enqueue(IAction action) => Enqueue(new PlanBatch([action]));
 }

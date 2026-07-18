@@ -3,6 +3,8 @@ namespace GrimSpace.Battle.Movement;
 public sealed class MomentumConfig
 {
 	public const int MaxLevel = 3;
+	public const int ForwardStepsPerMomentumGain = 2;
+	public const int MaxGainFromMovementPerTurn = 1;
 
 	public required int Level { get; init; }
 	public required float Evasion { get; init; }
@@ -53,4 +55,53 @@ public sealed class MomentumConfig
 
 	public static MomentumConfig ForLevel(int level) =>
 		Levels[System.Math.Clamp(level, 0, MaxLevel)];
+
+	public readonly record struct Buildup(int Level, int ForwardStepsTowardGain);
+
+	public static Buildup ApplyStep(Buildup state, Enums.EStepDirection direction)
+	{
+		if (direction == Enums.EStepDirection.Forward)
+		{
+			var toward = state.ForwardStepsTowardGain + 1;
+			if (toward < ForwardStepsPerMomentumGain)
+				return state with { ForwardStepsTowardGain = toward };
+
+			return new Buildup(System.Math.Min(state.Level + 1, MaxLevel), 0);
+		}
+
+		if (direction == Enums.EStepDirection.Retro)
+			return new Buildup(System.Math.Max(state.Level - 1, 0), 0);
+
+		return state;
+	}
+
+	public static Buildup CapMovementGain(
+		Buildup state,
+		int moveStartLevel,
+		int momentumGainedFromMovementThisTurn)
+	{
+		var maxLevel = System.Math.Min(
+			moveStartLevel + MaxGainFromMovementPerTurn - momentumGainedFromMovementThisTurn,
+			MaxLevel);
+		if (state.Level <= maxLevel)
+			return state;
+
+		return new Buildup(maxLevel, 0);
+	}
+
+	public static Buildup ApplyMovementStep(
+		Buildup state,
+		Enums.EStepDirection direction,
+		int moveStartLevel,
+		int momentumGainedFromMovementThisTurn) =>
+		CapMovementGain(ApplyStep(state, direction), moveStartLevel, momentumGainedFromMovementThisTurn);
+
+	public static int MomentumAfterPureForwardPath(int startMomentum, int stepCount)
+	{
+		var buildup = new Buildup(startMomentum, 0);
+		for (var step = 0; step < stepCount; step++)
+			buildup = ApplyMovementStep(buildup, Enums.EStepDirection.Forward, startMomentum, 0);
+
+		return buildup.Level;
+	}
 }

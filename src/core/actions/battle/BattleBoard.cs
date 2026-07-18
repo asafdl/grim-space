@@ -115,11 +115,14 @@ public sealed class BattleBoard
 		var cloned = unit.State.Clone();
 		return unit.Controller switch
 		{
-			EController.Player => new Player(cloned, unit.Movement),
-			EController.Enemy => new EnemyUnit(cloned, unit.Movement),
+			EController.Player => new Player(cloned),
+			EController.Enemy => new EnemyUnit(cloned),
 			_ => throw new ArgumentOutOfRangeException(nameof(unit)),
 		};
 	}
+
+	public BattleBoard Clone() =>
+		FromSnapshot(Units.Values.ToList(), NonUnits, Grid, BlockedCells);
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch

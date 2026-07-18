@@ -1,7 +1,10 @@
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Contexts;
+using GrimSpace.Core.Actions.Battle.Effects;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -22,9 +25,10 @@ public sealed class SimulatedTurn
 /// </summary>
 public sealed class TurnPlanner
 {
-	private readonly PlanQueue<IAction> _actions = new();
+	private readonly PlanQueue _actions = new();
 	private readonly TurnState _turnState = new();
 	private readonly Timeline _previewTimeline = new();
+	private readonly List<IAction> _appliedActions = [];
 	private string? _ownerId;
 	private IReadOnlyList<Unit>? _roster;
 	private BoundedGrid? _grid;
@@ -42,7 +46,7 @@ public sealed class TurnPlanner
 	public BattleBoard Board =>
 		_board ?? throw new InvalidOperationException("Call BeginTurn before planning.");
 
-	public BattlePlanContext Context => new(Actions, _turnState);
+	public BattlePlanContext Context => new(_appliedActions, _turnState);
 
 	public string? OwnerId => _ownerId;
 
@@ -63,6 +67,7 @@ public sealed class TurnPlanner
 
 		_actions.Clear();
 		_turnState.Clear();
+		_appliedActions.Clear();
 		_previewTimeline.ResetPreviewFork(turnStartTick);
 		_board = BattleBoard.FromSnapshot(roster, nonUnits, grid, blockedCells);
 	}
@@ -71,6 +76,7 @@ public sealed class TurnPlanner
 	{
 		_actions.Clear();
 		_turnState.Clear();
+		_appliedActions.Clear();
 		_ownerId = null;
 		_roster = null;
 		_grid = null;
@@ -101,9 +107,30 @@ public sealed class TurnPlanner
 		Replay();
 	}
 
+	public void EnqueueMovePath(string actorId, Option option)
+	{
+		EnsureBoard();
+		var origin = Board.StateOf(actorId).Position;
+		var frame = BodyFrame.From(Board.StateOf(actorId));
+		var steps = MoveStepAction.BuildSteps(actorId, frame, origin, option.Path)
+			.Cast<IAction>()
+			.ToList();
+		_actions.Enqueue(new PlanBatch(steps));
+		Replay();
+	}
+
+	public bool TryEnqueueMovePath(string actorId, Option option)
+	{
+		if (HasMoveSteps(Actions))
+			return false;
+
+		EnqueueMovePath(actorId, option);
+		return true;
+	}
+
 	public bool TryUndoLast()
 	{
-		if (!_actions.TryPopLast(out _))
+		if (!_actions.TryPopLastBatch(out _))
 			return false;
 
 		Replay();
@@ -175,12 +202,15 @@ public sealed class TurnPlanner
 
 	public static void RunPhaseEnd(State actor, IReadOnlyList<IAction> plan)
 	{
-		if (!plan.Any(action => action is MoveAction))
-			actor.MomentumLevel = System.Math.Max(actor.MomentumLevel - 1, 0);
+		if (!HasMoveSteps(plan))
+			MomentumDecayEffect.ApplyTo(actor);
 	}
 
 	public static void RunPhaseEnd(BattleBoard board, string actorId, IReadOnlyList<IAction> plan) =>
 		RunPhaseEnd(board.StateOf(actorId), plan);
+
+	public static bool HasMoveSteps(IEnumerable<IAction> actions) =>
+		actions.Any(action => action is MoveStepAction);
 
 	public static void ApplyToLive(
 		IReadOnlyList<IAction> actions,
@@ -193,7 +223,8 @@ public sealed class TurnPlanner
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
 		var turnState = new TurnState();
-		var context = new BattlePlanContext(actions, turnState);
+		var applied = new List<IAction>();
+		var context = new BattlePlanContext(applied, turnState);
 		TryApplyAll(actions, board, context, timeline, actorId!);
 
 		if (actorId is not null)
@@ -220,6 +251,8 @@ public sealed class TurnPlanner
 		_board = BattleBoard.FromSnapshot(_roster!, _nonUnits!, _grid!, _blockedCells!);
 		_previewTimeline.ResetPreviewFork(_turnStartTick);
 		_previewTimeline.Clock.Set(_turnStartTick);
+		_turnState.Clear();
+		_appliedActions.Clear();
 		TryApplyAll(Actions, _board, Context, _previewTimeline, _ownerId!);
 	}
 

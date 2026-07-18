@@ -23,23 +23,27 @@ internal static class MovementExpectations
 
 	public static int TotalApForPureForwardPath(int startMomentum, int stepCount)
 	{
-		var momentum = startMomentum;
+		var buildup = new MomentumConfig.Buildup(startMomentum, 0);
 		var forwardSteps = 0;
 		var totalAp = 0;
 
 		for (var step = 0; step < stepCount; step++)
 		{
-			totalAp += ForwardStepApCost(forwardSteps, momentum);
+			totalAp += ForwardStepApCost(forwardSteps, buildup.Level);
 
 			forwardSteps++;
-			momentum = System.Math.Min(momentum + 1, MaxMomentum);
+			buildup = MomentumConfig.ApplyMovementStep(
+				buildup,
+				GrimSpace.Battle.Movement.Enums.EStepDirection.Forward,
+				startMomentum,
+				momentumGainedFromMovementThisTurn: 0);
 		}
 
 		return totalAp;
 	}
 
 	public static int MomentumAfterPureForwardPath(int startMomentum, int stepCount) =>
-		System.Math.Min(startMomentum + stepCount, MaxMomentum);
+		MomentumConfig.MomentumAfterPureForwardPath(startMomentum, stepCount);
 
 	/// <summary>Valid move endpoints spend at least 3 AP, unless the whole path is free.</summary>
 	public static bool IsValidMoveEndpoint(int totalApSpent) =>

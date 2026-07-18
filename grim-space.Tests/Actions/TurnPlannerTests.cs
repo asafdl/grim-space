@@ -17,13 +17,9 @@ public sealed class TurnPlannerTests
 	public void TryApplyAndEnqueueRejectsIllegalActionWithoutMutatingQueue()
 	{
 		var origin = new Coord(5, 5, 5);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var plan = BeginPlan(origin);
-		var blockedMove = new MoveAction(PlayerId, new Option
-		{
-			Origin = origin,
-			ApCost = 0,
-			Path = [new Coord(0, 0, 0)],
-		});
+		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
 
 		Assert.False(plan.TryApplyAndEnqueue(blockedMove));
 		Assert.Empty(plan.Actions);
@@ -34,13 +30,9 @@ public sealed class TurnPlannerTests
 	public void ForceApplyAndEnqueueSkipsLegalityCheck()
 	{
 		var origin = new Coord(5, 5, 5);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var plan = BeginPlan(origin);
-		var blockedMove = new MoveAction(PlayerId, new Option
-		{
-			Origin = origin,
-			ApCost = 0,
-			Path = [new Coord(0, 0, 0)],
-		});
+		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
 
 		plan.ForceApplyAndEnqueue(blockedMove);
 
@@ -90,10 +82,7 @@ public sealed class TurnPlannerTests
 		var actions = new List<IAction> { new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight) };
 
 		if (includesMove)
-		{
-			var move = PlannedForwardMove(origin, steps: 3, startMomentum);
-			actions.Add(move);
-		}
+			actions.AddRange(BuildForwardSteps(origin, steps: 3, startMomentum));
 
 		TurnPlanner.RunPhaseEnd(player.State, actions);
 
@@ -110,21 +99,24 @@ public sealed class TurnPlannerTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var nonUnits = new Dictionary<string, NonUnit>();
-		var move = PlannedForwardMove(origin, steps: 3, startMomentum);
 		var turnState = new TurnState();
 		var applied = new List<IAction>();
 		var timeline = new Timeline();
 		var context = new BattlePlanContext(applied, turnState);
 
-		TurnPlanner.ApplyCommittedAction(
-			move,
-			[player, enemy],
-			grid,
-			nonUnits,
-			blocked,
-			context,
-			timeline,
-			PlayerId);
+		foreach (var step in BuildForwardSteps(origin, steps: 3, startMomentum))
+		{
+			TurnPlanner.ApplyCommittedAction(
+				step,
+				[player, enemy],
+				grid,
+				nonUnits,
+				blocked,
+				context,
+				timeline,
+				PlayerId);
+			applied.Add(step);
+		}
 
 		Assert.Equal(origin + Coord.Forward * 3, player.State.Position);
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
@@ -145,16 +137,12 @@ public sealed class TurnPlannerTests
 			grid,
 			blocked);
 		var turnState = new TurnState();
+		var applied = new List<IAction>();
 		var yaw = new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight);
-		var blockedMove = new MoveAction(PlayerId, new Option
-		{
-			Origin = origin,
-			ApCost = 0,
-			Path = [enemy.State.Position],
-		});
+		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
 		var actions = new List<IAction> { yaw, blockedMove };
 		var timeline = new Timeline();
-		var context = new BattlePlanContext(actions, turnState);
+		var context = new BattlePlanContext(applied, turnState);
 
 		Assert.False(TurnPlanner.TryApplyAll(actions, board, context, timeline, PlayerId));
 		Assert.Equal(
@@ -174,14 +162,11 @@ public sealed class TurnPlannerTests
 		return plan;
 	}
 
-	private static MoveAction PlannedForwardMove(Coord origin, int steps, int startMomentum)
+	private static IReadOnlyList<MoveStepAction> BuildForwardSteps(Coord origin, int steps, int startMomentum)
 	{
 		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
-		return new MoveAction(PlayerId, new Option
-		{
-			Origin = origin,
-			ApCost = option.ApCost,
-			Path = option.Path,
-		});
+		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(player.State);
+		return MoveStepAction.BuildSteps(PlayerId, frame, origin, option.Path);
 	}
 }

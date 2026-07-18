@@ -14,7 +14,7 @@ namespace GrimSpace.Tests.Actions;
 public sealed class PlanPreviewTests
 {
 	[Fact]
-	public void QueuingMoveStoresItOnPlanActionList()
+	public void QueuingMoveStoresStepActionsOnPlanActionList()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -26,10 +26,11 @@ public sealed class PlanPreviewTests
 			.GetLegalMoves(planning)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 
-		Assert.True(planning.TryEnqueue(new MoveAction(planning.OwnerId, move)));
-		Assert.Single(planning.Actions);
-		Assert.Equal(move.EndPosition, ((MoveAction)planning.Actions[0]).Option.EndPosition);
-		Assert.Equal(origin, ((MoveAction)planning.Actions[0]).Option.Origin);
+		Assert.True(planning.TryEnqueueMovePath(move));
+		Assert.Equal(3, planning.Actions.Count);
+		Assert.All(planning.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(move.EndPosition, ((MoveStepAction)planning.Actions[^1]).To);
+		Assert.Equal(origin, ((MoveStepAction)planning.Actions[0]).From);
 	}
 
 	[Fact]
@@ -65,7 +66,7 @@ public sealed class PlanPreviewTests
 			option => option.EndPosition == origin + Coord.Forward * 4);
 
 		var threeStep = beforePlan.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		planning.TryEnqueue(new MoveAction(planning.OwnerId, threeStep));
+		planning.TryEnqueueMovePath(threeStep);
 
 		var afterPlan = Preview.GetLegalMoves(planning);
 
@@ -104,13 +105,13 @@ public sealed class PlanPreviewTests
 		var move = Preview
 			.GetLegalMoves(planning)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		planning.TryEnqueue(new MoveAction(planning.OwnerId, move));
+		planning.TryEnqueueMovePath(move);
 
 		var committed = planning.FinalizePlan();
 		var nonUnits = new Dictionary<string, NonUnit>();
 
-		Assert.Single(committed.Actions);
-		Assert.IsType<MoveAction>(committed.Actions[0]);
+		Assert.Equal(3, committed.Actions.Count);
+		Assert.All(committed.Actions, action => Assert.IsType<MoveStepAction>(action));
 
 		TurnPlanner.ApplyToLive(
 			committed.Actions.ToList(),
