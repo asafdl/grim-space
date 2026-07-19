@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Turn;
@@ -42,6 +43,13 @@ public sealed class TurnOrchestrationTests
 		Assert.All(playerBucket.Take(3), action => Assert.IsType<MoveStepAction>(action));
 		Assert.IsType<EndOfPhaseAction>(playerBucket[^1]);
 		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
+
+		var endTick = commit.TurnStart + TurnPhases.End;
+		var endBucket = manager.Timeline.At(endTick).Snapshot();
+		Assert.Equal(manager.Units.Count + 1, endBucket.Count);
+		Assert.All(endBucket.Take(manager.Units.Count), action => Assert.IsType<RoundUpkeepAction>(action));
+		Assert.IsType<ClearTurnHazardsAction>(endBucket[^1]);
+		Assert.Equal(EntityIds.System, endBucket[^1].OwnerId);
 
 		if (commit.EnemyPlan.Actions.Count > 0)
 			Assert.Equal(manager.GetEnemy()!.State.Id, enemyBucket[0].OwnerId);

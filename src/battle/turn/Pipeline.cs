@@ -54,8 +54,6 @@ public sealed class Pipeline
 		var outcome = RulesEngine.Evaluate(_units);
 
 		var hazardsBeforeResolve = _hazards.Active.ToList();
-		_hazards.Clear();
-		outcome = RulesEngine.Evaluate(_units);
 
 		_timeline.Clock.Set(turnStart + TurnPhases.End);
 		ExecuteUpkeepPhase();

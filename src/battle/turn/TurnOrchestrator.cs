@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Environment;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Core.Actions;
@@ -51,15 +52,18 @@ public sealed class TurnOrchestrator
 
 			while (timeline.At(tick).TryDequeue(out var action) && action is not null)
 			{
-				ApplyBattleAction(
-					action,
-					player,
-					enemy,
-					playerTurnState,
-					enemyTurnState,
-					playerActionsApplied,
-					enemyActionsApplied,
-					timeline);
+				if (SystemAction.Is(action))
+					ApplySystemAction(action, timeline);
+				else
+					ApplyUnitAction(
+						action,
+						player,
+						enemy,
+						playerTurnState,
+						enemyTurnState,
+						playerActionsApplied,
+						enemyActionsApplied,
+						timeline);
 
 				applied.Add(action);
 				sink?.OnActionApplied(new PresentationEvent(action));
@@ -74,7 +78,21 @@ public sealed class TurnOrchestrator
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
 	}
 
-	private void ApplyBattleAction(
+	private void ApplySystemAction(IAction action, Timeline timeline)
+	{
+		var context = new BattlePlanContext([], new TurnState());
+		TurnPlanner.ApplyCommittedAction(
+			action,
+			_units,
+			_grid,
+			_hazards.MutableNonUnits,
+			_hazards.GetBlockedCells(),
+			context,
+			timeline,
+			EntityIds.System);
+	}
+
+	private void ApplyUnitAction(
 		IAction action,
 		Unit player,
 		Unit enemy,

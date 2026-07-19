@@ -75,5 +75,7 @@ public static class TurnCommit
 	{
 		foreach (var unit in units)
 			timeline.At(tick).Enqueue(new RoundUpkeepAction(unit.State.Id));
+
+		timeline.At(tick).Enqueue(new ClearTurnHazardsAction());
 	}
 }

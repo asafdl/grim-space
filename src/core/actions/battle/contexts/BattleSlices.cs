@@ -24,6 +24,9 @@ public readonly struct BattleSlices
 		Timeline timeline) =>
 		new(board, actorId, turnState, timeline);
 
+	public static BattleSlices ForSystem(BattleBoard board, Timeline timeline) =>
+		new(board, actorId: string.Empty, turnState: new TurnState(), timeline);
+
 	public BattleBoard Board => _board;
 
 	public TurnState TurnState => _turnState;

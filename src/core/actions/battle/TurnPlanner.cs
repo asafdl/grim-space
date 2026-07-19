@@ -193,7 +193,9 @@ public sealed class TurnPlanner
 		if (checkLegal && !action.IsLegal(board, context))
 			return false;
 
-		var slices = BattleSlices.For(board, actorId, context.TurnState, timeline);
+		var slices = SystemAction.Is(actorId)
+			? BattleSlices.ForSystem(board, timeline)
+			: BattleSlices.For(board, actorId, context.TurnState, timeline);
 		foreach (var effect in action.Resolve(board, context))
 			effect.Apply(slices);
 

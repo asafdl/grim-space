@@ -18,7 +18,7 @@ public sealed class UnitIdRegistry
 		for (var attempt = 0; attempt < 64; attempt++)
 		{
 			var id = UnitIdGenerator.Format(typeSlug, _generator.NextInstanceSlug());
-			if (id == EntityIds.Board)
+			if (id is EntityIds.Board or EntityIds.System)
 				continue;
 
 			if (_used.Add(id))

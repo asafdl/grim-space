@@ -16,6 +16,7 @@ public sealed class UnitIdGeneratorTests
 			var id = registry.NextUnitId(EType.Fighter);
 			Assert.StartsWith("fighter-", id);
 			Assert.NotEqual(EntityIds.Board, id);
+			Assert.NotEqual(EntityIds.System, id);
 			Assert.True(ids.Add(id), $"Duplicate id generated: {id}");
 		}
 	}
