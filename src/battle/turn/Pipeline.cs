@@ -73,19 +73,6 @@ public sealed class Pipeline
 
 	private void ExecuteUpkeepPhase()
 	{
-		foreach (var unit in _units)
-		{
-			var maxAp = unit.State.Stats.MaxAp;
-			if (unit.State.ApPenaltyNextTurn)
-			{
-				maxAp = System.Math.Max(0, maxAp - 1);
-				unit.State.ApPenaltyNextTurn = false;
-			}
-
-			unit.State.ActionPoints = maxAp;
-			unit.State.MissilesRemaining = unit.State.Stats.MissilesPerTurn;
-		}
-
 		_turn.AdvanceTurn();
 
 		var player = _units.FirstOrDefault(unit => unit.Controller == EController.Player);

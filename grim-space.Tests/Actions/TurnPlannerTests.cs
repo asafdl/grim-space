@@ -75,18 +75,43 @@ public sealed class TurnPlannerTests
 	[Theory]
 	[InlineData(2, false, 1)]
 	[InlineData(2, true, 2)]
-	public void RunPhaseEndAdjustsMomentumBasedOnMovePresence(int startMomentum, bool includesMove, int expectedMomentum)
+	public void EndOfPhaseActionAdjustsMomentumWhenStationary(int startMomentum, bool moved, int expectedMomentum)
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var actions = new List<IAction> { new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight) };
+		var turnState = new TurnState();
 
-		if (includesMove)
-			actions.AddRange(BuildForwardSteps(origin, steps: 3, startMomentum));
+		if (moved)
+			turnState.RecordMoveStep(EStepDirection.Forward, directionBit: 1);
 
-		TurnPlanner.RunPhaseEnd(player.State, actions);
+		var board = BattleBoard.FromSnapshot(
+			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
+			new Dictionary<string, NonUnit>(),
+			BattleTestFixture.Grid(),
+			new HashSet<Coord>());
+		var applied = new List<IAction>();
+		var context = new BattlePlanContext(applied, turnState);
+		var timeline = new Timeline();
 
-		Assert.Equal(expectedMomentum, player.State.MomentumLevel);
+		TurnPlanner.TryApplyOne(new EndOfPhaseAction(PlayerId), board, context, timeline, PlayerId);
+
+		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
+	}
+
+	[Fact]
+	public void ReplayAppliesMomentumDecayWhenStationary()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin, momentum: 2);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var grid = BattleTestFixture.Grid();
+		var blocked = new HashSet<Coord> { enemy.State.Position };
+		var plan = new TurnPlanner();
+		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
+
+		plan.TryApplyAndEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
+
+		Assert.Equal(1, plan.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
 	[Fact]

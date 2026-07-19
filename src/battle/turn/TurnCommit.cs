@@ -31,7 +31,9 @@ public static class TurnCommit
 		var turnStart = timeline.Clock.Current;
 
 		var playerTurnPlanner = new TurnPlanner();
-		playerTurnPlanner.CopyFrom(playerPlan.Actions);
+		playerTurnPlanner.BeginTurn(player.State.Id, units, grid, nonUnits, blockedCells, turnStart);
+		foreach (var action in playerPlan.Actions)
+			playerTurnPlanner.ForceApplyAndEnqueue(action);
 
 		var resolvedHazardCells = EnemyPlanner.CollectHazardCells(
 			hazardCells,
@@ -52,9 +54,26 @@ public static class TurnCommit
 			blockedCells,
 			turnStart);
 
-		timeline.At(turnStart + TurnPhases.Player).EnqueueAll(playerPlan.Actions);
-		timeline.At(turnStart + TurnPhases.Enemy).EnqueueAll(enemyPlan.Actions);
+		EnqueuePhase(timeline, turnStart + TurnPhases.Player, player.State.Id, playerPlan.Actions);
+		EnqueuePhase(timeline, turnStart + TurnPhases.Enemy, enemy.State.Id, enemyPlan.Actions);
+		EnqueueRoundUpkeep(timeline, turnStart + TurnPhases.End, units);
 
 		return new TurnCommitResult(turnStart, playerTurnPlanner, enemyPlan);
+	}
+
+	private static void EnqueuePhase(
+		Timeline timeline,
+		int tick,
+		string actorId,
+		IReadOnlyList<IAction> actions)
+	{
+		timeline.At(tick).EnqueueAll(actions);
+		timeline.At(tick).Enqueue(new EndOfPhaseAction(actorId));
+	}
+
+	private static void EnqueueRoundUpkeep(Timeline timeline, int tick, IReadOnlyList<Unit> units)
+	{
+		foreach (var unit in units)
+			timeline.At(tick).Enqueue(new RoundUpkeepAction(unit.State.Id));
 	}
 }

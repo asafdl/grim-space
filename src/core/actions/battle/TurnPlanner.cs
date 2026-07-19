@@ -121,7 +121,7 @@ public sealed class TurnPlanner
 
 	public bool TryEnqueueMovePath(string actorId, Option option)
 	{
-		if (HasMoveSteps(Actions))
+		if (_turnState.IsMovePathStarted)
 			return false;
 
 		EnqueueMovePath(actorId, option);
@@ -200,18 +200,6 @@ public sealed class TurnPlanner
 		return true;
 	}
 
-	public static void RunPhaseEnd(State actor, IReadOnlyList<IAction> plan)
-	{
-		if (!HasMoveSteps(plan))
-			MomentumDecayEffect.ApplyTo(actor);
-	}
-
-	public static void RunPhaseEnd(BattleBoard board, string actorId, IReadOnlyList<IAction> plan) =>
-		RunPhaseEnd(board.StateOf(actorId), plan);
-
-	public static bool HasMoveSteps(IEnumerable<IAction> actions) =>
-		actions.Any(action => action is MoveStepAction);
-
 	public static void ApplyToLive(
 		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Unit> roster,
@@ -225,10 +213,17 @@ public sealed class TurnPlanner
 		var turnState = new TurnState();
 		var applied = new List<IAction>();
 		var context = new BattlePlanContext(applied, turnState);
-		TryApplyAll(actions, board, context, timeline, actorId!);
+		var phaseActions = WithPhaseEnd(actions, actorId);
+		TryApplyAll(phaseActions, board, context, timeline, actorId!);
+	}
 
-		if (actorId is not null)
-			RunPhaseEnd(board, actorId, actions);
+	private static IReadOnlyList<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string? actorId)
+	{
+		if (actorId is null)
+			return actions;
+
+		var phaseActions = new List<IAction>(actions) { new EndOfPhaseAction(actorId) };
+		return phaseActions;
 	}
 
 	public static void ApplyCommittedAction(
@@ -253,7 +248,7 @@ public sealed class TurnPlanner
 		_previewTimeline.Clock.Set(_turnStartTick);
 		_turnState.Clear();
 		_appliedActions.Clear();
-		TryApplyAll(Actions, _board, Context, _previewTimeline, _ownerId!);
+		TryApplyAll(WithPhaseEnd(Actions, _ownerId), _board, Context, _previewTimeline, _ownerId!);
 	}
 
 	private void EnsureBoard()

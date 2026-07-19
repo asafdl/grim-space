@@ -160,22 +160,12 @@ public static class EnemyPlanner
 				return int.MinValue / 2;
 		}
 
-		var momentum = state.MomentumLevel;
-		if (!TurnPlanner.HasMoveSteps(plan.Actions))
-			momentum = System.Math.Max(0, momentum - 1);
-
-		return momentum * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+		return state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 	}
 
 	private static bool TryEnqueueTrial(TurnPlanner plan, string ownerId, IAction candidate) =>
 		plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(ownerId, candidate));
 
-	private static bool TryEnqueueMoveTrial(TurnPlanner plan, string ownerId, Option move)
-	{
-		if (TurnPlanner.HasMoveSteps(plan.Actions))
-			return false;
-
-		plan.EnqueueMovePath(ownerId, move);
-		return true;
-	}
+	private static bool TryEnqueueMoveTrial(TurnPlanner plan, string ownerId, Option move) =>
+		plan.TryEnqueueMovePath(ownerId, move);
 }

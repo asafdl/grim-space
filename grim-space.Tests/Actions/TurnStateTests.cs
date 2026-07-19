@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Core.Actions.Battle;
 
 namespace GrimSpace.Tests.Actions;
@@ -36,18 +37,32 @@ public sealed class TurnStateTests
 	}
 
 	[Fact]
+	public void IsMovePathStartedAfterRecordingMoveStep()
+	{
+		var state = new TurnState();
+
+		Assert.False(state.IsMovePathStarted);
+
+		state.RecordMoveStep(EStepDirection.Forward, directionBit: 1);
+
+		Assert.True(state.IsMovePathStarted);
+	}
+
+	[Fact]
 	public void ClearResetsAllTurnState()
 	{
 		var state = new TurnState();
 		state.AddYawQuarters(2);
 		state.AddMomentumPaid(1);
 		state.MarkBrakedFromRetro();
+		state.RecordMoveStep(EStepDirection.Forward, directionBit: 1);
 		state.Clear();
 
 		Assert.Equal(0, state.RawYawQuarters);
 		Assert.Equal(0, state.MomentumPaidThisTurn);
 		Assert.False(state.SpinBraked);
 		Assert.False(state.HasSpinDiscount);
+		Assert.False(state.IsMovePathStarted);
 	}
 
 	[Theory]

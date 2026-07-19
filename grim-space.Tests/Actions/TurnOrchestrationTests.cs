@@ -38,8 +38,9 @@ public sealed class TurnOrchestrationTests
 		var playerBucket = manager.Timeline.At(playerTick).Snapshot();
 		var enemyBucket = manager.Timeline.At(enemyTick).Snapshot();
 
-		Assert.Equal(3, playerBucket.Count);
-		Assert.All(playerBucket, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(4, playerBucket.Count);
+		Assert.All(playerBucket.Take(3), action => Assert.IsType<MoveStepAction>(action));
+		Assert.IsType<EndOfPhaseAction>(playerBucket[^1]);
 		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
 
 		if (commit.EnemyPlan.Actions.Count > 0)
@@ -58,7 +59,7 @@ public sealed class TurnOrchestrationTests
 		Assert.False(manager.IsResolving);
 	}
 
-	private static GrimSpace.Battle.Manager CreateManager(Coord playerPos, Coord enemyPos)
+	public static GrimSpace.Battle.Manager CreateManager(Coord playerPos, Coord enemyPos)
 	{
 		var encounter = new Encounter
 		{

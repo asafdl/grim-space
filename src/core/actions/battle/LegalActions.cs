@@ -38,7 +38,7 @@ public static class LegalActions
 		BattlePlanContext context,
 		string actorId)
 	{
-		if (TurnPlanner.HasMoveSteps(context.PhaseActions))
+		if (context.TurnState.IsMovePathStarted)
 			yield break;
 
 		foreach (var option in GetMoveOptions(board, context, actorId))

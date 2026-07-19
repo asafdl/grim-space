@@ -66,22 +66,10 @@ public sealed class TurnOrchestrator
 			}
 
 			if (tick == turnStart + TurnPhases.Player)
-			{
-				TurnPlanner.RunPhaseEnd(player.State, commit.PlayerPlan.Actions);
 				unitsAfterPlayer = SnapshotAll();
-			}
 
 			tick++;
 		}
-
-		if (commit.PlayerPlan.Actions.Count == 0)
-		{
-			TurnPlanner.RunPhaseEnd(player.State, commit.PlayerPlan.Actions);
-			unitsAfterPlayer = SnapshotAll();
-		}
-
-		if (enemy.State.IsAlive)
-			TurnPlanner.RunPhaseEnd(enemy.State, commit.EnemyPlan.Actions);
 
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
 	}
