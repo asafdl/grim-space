@@ -19,7 +19,7 @@ public sealed class FlakActionTests
 		Assert.True(plan.TryApplyAndEnqueue(flak));
 
 		var resolveTick = plan.TurnStartTick + CombatConfig.FlakResolveDelay;
-		var scheduled = plan.FutureSchedule.At(resolveTick);
+		var scheduled = plan.PreviewTimeline.SnapshotAt(resolveTick);
 		Assert.Single(scheduled);
 		Assert.IsType<ResolveHazardAction>(scheduled[0]);
 		Assert.NotEmpty(plan.Board.TurnHazards);
@@ -42,13 +42,13 @@ public sealed class FlakActionTests
 		Assert.True(enemy.State.ApPenaltyNextTurn);
 	}
 
-	private static TurnPlanner BeginPlan(Coord origin, int momentum = 0)
+	private static BattleSession BeginPlan(Coord origin, int momentum = 0)
 	{
 		var player = BattleTestFixture.Player(origin, momentum: momentum);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 		return plan;
 	}

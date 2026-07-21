@@ -5,9 +5,10 @@ using GrimSpace.Core.Actions.Battle.Contexts;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class RailgunAction(string ownerId, string targetUnitId) : IAction
+public sealed class RailgunAction(string ownerId, string targetUnitId, int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 	public string TargetUnitId { get; } = targetUnitId;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context)

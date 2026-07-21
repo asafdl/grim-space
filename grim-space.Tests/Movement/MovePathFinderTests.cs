@@ -98,7 +98,7 @@ public sealed class MovePathFinderTests
 		var stepCount = 3;
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(
 			PlayerId,
 			[player, enemy],
@@ -123,7 +123,7 @@ public sealed class MovePathFinderTests
 		var player = BattleTestFixture.Player(origin, momentum: 2);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.Fore);
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(
 			PlayerId,
 			[player, enemy],

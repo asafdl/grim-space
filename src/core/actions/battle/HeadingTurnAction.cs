@@ -8,9 +8,10 @@ using GrimSpace.Core.Actions.Battle.Contexts;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class HeadingTurnAction(string ownerId, EHeadingTurn turn) : IAction
+public sealed class HeadingTurnAction(string ownerId, EHeadingTurn turn, int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 	public EHeadingTurn Turn { get; } = turn;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context)

@@ -4,6 +4,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Engine;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -81,7 +82,7 @@ public sealed class TurnOrchestrator
 	private void ApplySystemAction(IAction action, Timeline timeline)
 	{
 		var context = new BattlePlanContext([], new TurnState());
-		TurnPlanner.ApplyCommittedAction(
+		ActionApplicator.ApplyCommittedAction(
 			action,
 			_units,
 			_grid,
@@ -108,7 +109,7 @@ public sealed class TurnOrchestrator
 		var applied = isPlayer ? playerActionsApplied : enemyActionsApplied;
 		var context = new BattlePlanContext(applied, turnState);
 
-		TurnPlanner.ApplyCommittedAction(
+		ActionApplicator.ApplyCommittedAction(
 			action,
 			_units,
 			_grid,

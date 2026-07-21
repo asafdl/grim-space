@@ -14,7 +14,7 @@ namespace GrimSpace.Battle.Player;
 /// </summary>
 public sealed class PlayerController
 {
-	private readonly TurnPlanner _plan = new();
+	private readonly BattleSession _plan = new();
 	private readonly Unit _player;
 	private readonly Unit _enemy;
 	private readonly IReadOnlyList<Unit> _roster;
@@ -49,7 +49,7 @@ public sealed class PlayerController
 	public Unit Actor => _player;
 	public Unit Opponent => _enemy;
 	public BoundedGrid Grid => _grid;
-	public TurnPlanner Plan => _plan;
+	public BattleSession Plan => _plan;
 	public BattleBoard Board => _plan.Board;
 	public IReadOnlyList<IAction> Actions => _plan.Actions;
 	public BattlePlanContext Context => _plan.Context;

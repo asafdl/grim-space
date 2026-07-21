@@ -4,6 +4,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle.Contexts;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
@@ -106,7 +107,7 @@ public static class MovePathFinder
 
 			var step = new MoveStepAction(actorId, position, next, turnState.UsedDirectionsMask);
 			PushFrame(undoStack, actor, turnState);
-			if (!TurnPlanner.TryApplyOne(step, board, context, timeline, actorId))
+			if (!ActionApplicator.TryApplyOne(step, board, context, timeline, actorId))
 			{
 				PopFrame(undoStack, actor, turnState);
 				continue;

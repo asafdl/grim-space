@@ -1,4 +1,4 @@
-namespace GrimSpace.Core.Actions;
+namespace GrimSpace.Core.Engine;
 
 public sealed class TickClock
 {

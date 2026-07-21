@@ -26,7 +26,7 @@ public static class EnemyPlanner
 		int turnStartTick)
 	{
 		var cells = new HashSet<Coord>(activeHazardCells);
-		var sim = new TurnPlanner();
+		var sim = new BattleSession();
 		sim.BeginTurn(player.State.Id, roster, grid, nonUnits, blockedCells, turnStartTick);
 
 		foreach (var action in playerActions)
@@ -40,7 +40,7 @@ public static class EnemyPlanner
 		return cells;
 	}
 
-	public static TurnPlanner PlanTurn(
+	public static BattleSession PlanTurn(
 		Unit actor,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
@@ -49,7 +49,7 @@ public static class EnemyPlanner
 		IReadOnlySet<Coord> blockedCells,
 		int turnStartTick)
 	{
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(actor.State.Id, roster, grid, nonUnits, blockedCells, turnStartTick);
 
 		var actorId = actor.State.Id;
@@ -120,10 +120,10 @@ public static class EnemyPlanner
 		return plan;
 	}
 
-	private static HashSet<Coord> CollectResolveHazardCells(TurnPlanner sim, int turnStartTick)
+	private static HashSet<Coord> CollectResolveHazardCells(BattleSession sim, int turnStartTick)
 	{
 		var cells = new HashSet<Coord>();
-		foreach (var (tick, action) in sim.FutureSchedule.From(turnStartTick + TurnPhases.Enemy))
+		foreach (var (tick, action) in sim.PreviewTimeline.From(turnStartTick + TurnPhases.Enemy))
 		{
 			if (action is not ResolveHazardAction resolve)
 				continue;
@@ -139,7 +139,7 @@ public static class EnemyPlanner
 	}
 
 	private static int ScoreTurn(
-		TurnPlanner plan,
+		BattleSession plan,
 		string actorId,
 		IReadOnlySet<Coord> hazardCells,
 		int turnStartTick)
@@ -148,7 +148,7 @@ public static class EnemyPlanner
 		if (hazardCells.Contains(state.Position))
 			return int.MinValue;
 
-		foreach (var (tick, action) in plan.FutureSchedule.From(turnStartTick + TurnPhases.Enemy))
+		foreach (var (tick, action) in plan.PreviewTimeline.From(turnStartTick + TurnPhases.Enemy))
 		{
 			if (action is not ResolveHazardAction resolve)
 				continue;
@@ -163,9 +163,9 @@ public static class EnemyPlanner
 		return state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 	}
 
-	private static bool TryEnqueueTrial(TurnPlanner plan, string ownerId, IAction candidate) =>
+	private static bool TryEnqueueTrial(BattleSession plan, string ownerId, IAction candidate) =>
 		plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(ownerId, candidate));
 
-	private static bool TryEnqueueMoveTrial(TurnPlanner plan, string ownerId, Option move) =>
+	private static bool TryEnqueueMoveTrial(BattleSession plan, string ownerId, Option move) =>
 		plan.TryEnqueueMovePath(ownerId, move);
 }

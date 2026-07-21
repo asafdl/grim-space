@@ -1,6 +1,8 @@
-namespace GrimSpace.Core.Actions;
+using GrimSpace.Core.Actions;
 
-public sealed class Timeline : IReadOnlyTimeline
+namespace GrimSpace.Core.Engine;
+
+public sealed class Timeline
 {
 	private readonly Dictionary<int, ActionQueue> _buckets = new();
 
@@ -32,7 +34,7 @@ public sealed class Timeline : IReadOnlyTimeline
 		return clone;
 	}
 
-	IReadOnlyList<IAction> IReadOnlyTimeline.At(int tick) =>
+	public IReadOnlyList<IAction> SnapshotAt(int tick) =>
 		_buckets.TryGetValue(tick, out var queue) ? queue.Snapshot() : [];
 
 	public IEnumerable<(int Tick, IAction Action)> From(int startTick)

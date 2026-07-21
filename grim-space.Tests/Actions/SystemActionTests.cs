@@ -70,11 +70,11 @@ public sealed class SystemActionTests
 		Assert.Empty(plan.Board.TurnHazards);
 	}
 
-	private static TurnPlanner BeginPlan(Coord origin)
+	private static BattleSession BeginPlan(Coord origin)
 	{
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(
 			PlayerId,
 			[player, enemy],

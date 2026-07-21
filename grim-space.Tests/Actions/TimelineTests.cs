@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -30,7 +31,7 @@ public sealed class TimelineTests
 		var clone = timeline.Clone();
 
 		Assert.Equal(1, clone.Clock.Current);
-		Assert.Single(((IReadOnlyTimeline)clone).At(2));
+		Assert.Single(clone.SnapshotAt(2));
 	}
 
 	[Fact]

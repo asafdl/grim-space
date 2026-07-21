@@ -4,9 +4,10 @@ using GrimSpace.Core.Actions.Battle.Effects;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class EndOfPhaseAction(string ownerId) : IAction
+public sealed class EndOfPhaseAction(string ownerId, int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) => true;
 

@@ -4,12 +4,13 @@ using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class TurnPlannerTests
+public sealed class BattleSessionTests
 {
 	private const string PlayerId = "player";
 
@@ -45,7 +46,7 @@ public sealed class TurnPlannerTests
 		var plan = BeginPlan(new Coord(5, 5, 5));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var copied = new TurnPlanner();
+		var copied = new BattleSession();
 		copied.CopyFrom(plan.Actions);
 
 		Assert.Single(copied.Actions);
@@ -60,7 +61,7 @@ public sealed class TurnPlannerTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
@@ -93,7 +94,7 @@ public sealed class TurnPlannerTests
 		var context = new BattlePlanContext(applied, turnState);
 		var timeline = new Timeline();
 
-		TurnPlanner.TryApplyOne(new EndOfPhaseAction(PlayerId), board, context, timeline, PlayerId);
+		ActionApplicator.TryApplyOne(new EndOfPhaseAction(PlayerId), board, context, timeline, PlayerId);
 
 		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
 	}
@@ -106,7 +107,7 @@ public sealed class TurnPlannerTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
 		plan.TryApplyAndEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
@@ -131,7 +132,7 @@ public sealed class TurnPlannerTests
 
 		foreach (var step in BuildForwardSteps(origin, steps: 3, startMomentum))
 		{
-			TurnPlanner.ApplyCommittedAction(
+			ActionApplicator.ApplyCommittedAction(
 				step,
 				[player, enemy],
 				grid,
@@ -169,20 +170,20 @@ public sealed class TurnPlannerTests
 		var timeline = new Timeline();
 		var context = new BattlePlanContext(applied, turnState);
 
-		Assert.False(TurnPlanner.TryApplyAll(actions, board, context, timeline, PlayerId));
+		Assert.False(ActionApplicator.TryApplyAll(actions, board, context, timeline, PlayerId));
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost,
 			board.StateOf(PlayerId).ActionPoints);
 		Assert.Equal(origin, board.StateOf(PlayerId).Position);
 	}
 
-	private static TurnPlanner BeginPlan(Coord origin)
+	private static BattleSession BeginPlan(Coord origin)
 	{
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 		return plan;
 	}

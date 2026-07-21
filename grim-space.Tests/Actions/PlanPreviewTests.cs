@@ -6,6 +6,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
 
@@ -113,7 +114,7 @@ public sealed class PlanPreviewTests
 		Assert.Equal(3, committed.Actions.Count);
 		Assert.All(committed.Actions, action => Assert.IsType<MoveStepAction>(action));
 
-		TurnPlanner.ApplyToLive(
+		ActionApplicator.ApplyToLive(
 			committed.Actions.ToList(),
 			[player, enemy],
 			planning.Grid,

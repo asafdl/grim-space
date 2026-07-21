@@ -8,6 +8,7 @@ namespace GrimSpace.Core.Actions.Battle;
 public sealed class ClearTurnHazardsAction : IAction
 {
 	public string OwnerId { get; } = EntityIds.System;
+	public int? UndoGroup { get; } = null;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) => true;
 

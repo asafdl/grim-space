@@ -9,9 +9,15 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class MoveStepAction(string ownerId, Coord from, Coord to, int usedDirectionsMaskBefore) : IAction
+public sealed class MoveStepAction(
+	string ownerId,
+	Coord from,
+	Coord to,
+	int usedDirectionsMaskBefore,
+	int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 	public Coord From { get; } = from;
 	public Coord To { get; } = to;
 	public int UsedDirectionsMaskBefore { get; } = usedDirectionsMaskBefore;

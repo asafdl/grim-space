@@ -1,7 +1,7 @@
 using System.Text;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Units;
-using GrimSpace.Core;
+using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
@@ -51,7 +51,7 @@ public static class StateLog
 		}
 
 		AppendSection(log, "Units (turn end)", unitsAtTurnEnd.Values);
-		GameLog.Logger.Log(log.ToString());
+		GameLog.Log(log.ToString());
 	}
 
 	private static void AppendSection(StringBuilder log, string title, IEnumerable<State> units)

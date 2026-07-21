@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Turn;
+using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Math.Grid;
@@ -58,7 +59,7 @@ public sealed class TurnOrchestrationTests
 	[Fact]
 	public void ExecuteTurnSetsResolvingOnlyDuringPipeline()
 	{
-		using var _ = new GameLogTestScope(new TestGameLogger());
+		using var _ = GameLog.BeginScope(_ => { });
 
 		var manager = CreateManager(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		Assert.False(manager.IsResolving);

@@ -1,4 +1,6 @@
-namespace GrimSpace.Core.Actions;
+using GrimSpace.Core.Actions;
+
+namespace GrimSpace.Core.Engine;
 
 public sealed class ActionQueue
 {

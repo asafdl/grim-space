@@ -6,6 +6,7 @@ using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
+using GrimSpace.Core.Log;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Scene;
@@ -30,7 +31,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	public override void _Ready()
 	{
-		GameLog.Logger = new GodotGameLogger();
+		GameLog.Configure(GD.Print);
 
 		var manager = Manager.FromEncounter(Session.Instance.CurrentEncounter);
 		_presenter = new BattlePresenter(manager);

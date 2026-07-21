@@ -3,6 +3,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
 
@@ -97,7 +98,7 @@ public sealed class PlanCommitTests
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
-		TurnPlanner.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
+		ActionApplicator.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, player.State.Position);
 		Assert.Equal(
@@ -147,18 +148,18 @@ public sealed class PlanCommitTests
 			((MoveStepAction)planning.Actions[^1]).To);
 	}
 
-	private static TurnPlanner BeginPlan(
+	private static BattleSession BeginPlan(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		GrimSpace.Math.Grid.Grid grid,
 		IReadOnlySet<Coord> blocked)
 	{
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 		return plan;
 	}
 
-	private static void EnqueueForwardMove(TurnPlanner plan, Coord origin, int steps, int startMomentum)
+	private static void EnqueueForwardMove(BattleSession plan, Coord origin, int steps, int startMomentum)
 	{
 		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
 		plan.EnqueueMovePath(PlayerId, option);

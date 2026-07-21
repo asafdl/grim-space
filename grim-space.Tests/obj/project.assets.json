@@ -1014,7 +1014,7 @@
     ]
   },
   "packageFolders": {
-    "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/f9b1455366059666be3d3f37dcea9724/nuget": {}
+    "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/2bbc6268978a9b4db3ef8fe20e0b14cb/nuget": {}
   },
   "project": {
     "version": "1.0.0",
@@ -1022,7 +1022,7 @@
       "projectUniqueName": "/Users/asafd/git/grim-space/grim-space.Tests/grim-space.Tests.csproj",
       "projectName": "grim-space.Tests",
       "projectPath": "/Users/asafd/git/grim-space/grim-space.Tests/grim-space.Tests.csproj",
-      "packagesPath": "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/f9b1455366059666be3d3f37dcea9724/nuget",
+      "packagesPath": "/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/2bbc6268978a9b4db3ef8fe20e0b14cb/nuget",
       "outputPath": "/Users/asafd/git/grim-space/grim-space.Tests/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [

@@ -6,9 +6,10 @@ using GrimSpace.Core.Actions.Battle.Contexts;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class RollAction(string ownerId, ERollDirection direction) : IAction
+public sealed class RollAction(string ownerId, ERollDirection direction, int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 	public ERollDirection Direction { get; } = direction;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context) =>

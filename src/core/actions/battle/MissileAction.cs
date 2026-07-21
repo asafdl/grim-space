@@ -8,9 +8,15 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class MissileAction(string ownerId, Coord center, EMissileMount mount, int range) : IAction
+public sealed class MissileAction(
+	string ownerId,
+	Coord center,
+	EMissileMount mount,
+	int range,
+	int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 	public Coord Center { get; } = center;
 	public EMissileMount Mount { get; } = mount;
 	public int Range { get; } = range;

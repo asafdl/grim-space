@@ -3,6 +3,7 @@ using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
 
@@ -66,7 +67,7 @@ public sealed class RoundUpkeepTests
 		var context = new BattlePlanContext(applied, turnState);
 		var timeline = new Timeline();
 
-		TurnPlanner.TryApplyOne(
+		ActionApplicator.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),
 			board,
 			context,

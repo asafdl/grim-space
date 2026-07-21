@@ -61,7 +61,7 @@ public sealed class YawNetTagTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
@@ -70,13 +70,13 @@ public sealed class YawNetTagTests
 		Assert.Equal(0, plan.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
-	private static TurnPlanner BeginPlan(Coord origin)
+	private static BattleSession BeginPlan(Coord origin)
 	{
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new TurnPlanner();
+		var plan = new BattleSession();
 		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
 		return plan;
 	}

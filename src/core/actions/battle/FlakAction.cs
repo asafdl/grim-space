@@ -6,9 +6,10 @@ using GrimSpace.Core.Actions.Battle.Effects;
 
 namespace GrimSpace.Core.Actions.Battle;
 
-public sealed class FlakAction(string ownerId, EFlakMount mount) : IAction
+public sealed class FlakAction(string ownerId, EFlakMount mount, int? undoGroup = null) : IAction
 {
 	public string OwnerId { get; } = ownerId;
+	public int? UndoGroup { get; } = undoGroup;
 	public EFlakMount Mount { get; } = mount;
 
 	public bool IsLegal(BattleBoard board, BattlePlanContext context)

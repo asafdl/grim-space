@@ -19,7 +19,7 @@ public static class Preview
 	public static SimulatedTurn Simulate(PlayerController planning) =>
 		planning.Plan.GetPreview(planning.OwnerId);
 
-	public static IReadOnlyList<Option> GetLegalMoves(TurnPlanner plan, string actorId)
+	public static IReadOnlyList<Option> GetLegalMoves(BattleSession plan, string actorId)
 	{
 		if (plan.Context.TurnState.IsMovePathStarted)
 			return [];
