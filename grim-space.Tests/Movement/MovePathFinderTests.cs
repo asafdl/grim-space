@@ -2,6 +2,7 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;

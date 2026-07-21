@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Core;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -36,7 +37,7 @@ public sealed class BattleBoard
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
 	public IEnumerable<Hazard> TurnHazards =>
-		Hazards.Where(hazard => hazard.OwnerId != EntityIds.Board);
+		Hazards.Where(hazard => hazard.OwnerId != EntityIds.World);
 
 	public IEnumerable<NonUnit> NonUnitsOwnedBy(string actorId) =>
 		_nonUnits.Values.Where(nonUnit => nonUnit.OwnerId == actorId);

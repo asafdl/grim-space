@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions.Battle;
-using GrimSpace.Core.Actions.Battle.Contexts;
+using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Core.Actions;
 

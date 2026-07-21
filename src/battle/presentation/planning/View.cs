@@ -1,12 +1,13 @@
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -46,7 +47,7 @@ public static class View
 	public static HashSet<Coord> GetMissileBlastHighlights(Coord center, BoundedGrid grid) =>
 		Hazard.MissileZone(
 			"preview",
-			EntityIds.Board,
+			EntityIds.World,
 			center,
 			BodyFrame.WorldAligned(center),
 			grid,

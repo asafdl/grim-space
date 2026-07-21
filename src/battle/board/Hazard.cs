@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Ids;
+using GrimSpace.Core;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -69,7 +69,7 @@ public sealed class Hazard : NonUnit
 		new()
 		{
 			Id = id,
-			OwnerId = EntityIds.Board,
+			OwnerId = EntityIds.World,
 			Center = center,
 			Frame = BodyFrame.WorldAligned(center),
 			Cells = new HashSet<Coord>(grid.EnumerateCube(center, BlockRadiusFor(radius))),

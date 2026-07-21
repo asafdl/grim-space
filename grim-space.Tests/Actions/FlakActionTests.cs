@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;

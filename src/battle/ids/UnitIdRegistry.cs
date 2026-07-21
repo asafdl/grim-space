@@ -1,3 +1,4 @@
+using GrimSpace.Core;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ids;
@@ -18,7 +19,7 @@ public sealed class UnitIdRegistry
 		for (var attempt = 0; attempt < 64; attempt++)
 		{
 			var id = UnitIdGenerator.Format(typeSlug, _generator.NextInstanceSlug());
-			if (id is EntityIds.Board or EntityIds.System)
+			if (id is EntityIds.World or EntityIds.System)
 				continue;
 
 			if (_used.Add(id))

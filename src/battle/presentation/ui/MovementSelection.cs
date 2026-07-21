@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;

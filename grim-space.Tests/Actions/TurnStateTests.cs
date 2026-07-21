@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Actions;
 
 namespace GrimSpace.Tests.Actions;
 

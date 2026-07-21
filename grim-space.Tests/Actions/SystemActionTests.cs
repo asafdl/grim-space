@@ -1,9 +1,10 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Ids;
+using GrimSpace.Core;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
@@ -55,7 +56,7 @@ public sealed class SystemActionTests
 		Assert.True(manager.ExecuteTurn(manager.Player.FinalizePlan()));
 
 		Assert.Contains(asteroid.Id, manager.Hazards.NonUnits.Keys);
-		Assert.Equal(EntityIds.Board, manager.Hazards.NonUnits[asteroid.Id].OwnerId);
+		Assert.Equal(EntityIds.World, manager.Hazards.NonUnits[asteroid.Id].OwnerId);
 	}
 
 	[Fact]
