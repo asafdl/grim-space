@@ -1,11 +1,8 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions.Battle;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
-using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Planning;
 
@@ -15,16 +12,17 @@ namespace GrimSpace.Battle.Planning;
 public static class Preview
 {
 	public static IReadOnlyList<Option> GetLegalMoves(PlayerController planning) =>
-		GetLegalMoves(planning.Plan, planning.OwnerId);
+		GetLegalMoves(planning.Simulation, planning.OwnerId);
 
 	public static SimulatedTurn Simulate(PlayerController planning) =>
-		planning.Plan.GetPreview(planning.OwnerId);
+		new() { Board = planning.Board, ActorId = planning.OwnerId };
 
-	public static IReadOnlyList<Option> GetLegalMoves(BattleSession plan, string actorId)
+	public static IReadOnlyList<Option> GetLegalMoves(PlanSimulation plan, string actorId)
 	{
-		if (plan.Context.TurnState.IsMovePathStarted)
+		var ctx = BattleActionContext.For(plan.PreviewWorld, plan.PreviewRuntime, actorId);
+		if (ctx.TurnState.IsMovePathStarted)
 			return [];
 
-		return LegalActions.GetMoveOptions(plan.Board, plan.Context, actorId);
+		return LegalActions.GetMoveOptions(plan.PreviewWorld, ctx, actorId);
 	}
 }

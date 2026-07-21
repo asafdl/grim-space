@@ -1,6 +1,5 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Weapons;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
@@ -14,7 +13,7 @@ public sealed class FlakActionTests
 	public void FlakSchedulesResolveOnPreviewTimeline()
 	{
 		var origin = new Coord(5, 5, 5);
-		var plan = BeginPlan(origin);
+		var plan = TestPlan.Begin(PlayerId, origin);
 		var flak = new FlakAction(PlayerId, EFlakMount.Port);
 
 		Assert.True(plan.TryApplyAndEnqueue(flak));
@@ -30,7 +29,7 @@ public sealed class FlakActionTests
 	public void AdvanceToTickAppliesFlakMomentumLoss()
 	{
 		var origin = new Coord(5, 5, 5);
-		var plan = BeginPlan(origin, momentum: 1);
+		var plan = TestPlan.Begin(PlayerId, origin, momentum: 1);
 		Assert.True(plan.TryApplyAndEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
 		var hazard = plan.Board.TurnHazards.First();
@@ -41,16 +40,5 @@ public sealed class FlakActionTests
 
 		Assert.Equal(0, enemy.State.MomentumLevel);
 		Assert.True(enemy.State.ApPenaltyNextTurn);
-	}
-
-	private static BattleSession BeginPlan(Coord origin, int momentum = 0)
-	{
-		var player = BattleTestFixture.Player(origin, momentum: momentum);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
-		return plan;
 	}
 }

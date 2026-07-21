@@ -122,8 +122,8 @@ public sealed class PlanCommitTests
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		Assert.True(plan.TryUndoLast());
-		Assert.Equal(3, plan.Actions.Count);
-		Assert.All(plan.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Single(plan.Actions);
+		Assert.IsType<MovePathAction>(plan.Actions[0]);
 	}
 
 	[Fact]
@@ -140,29 +140,25 @@ public sealed class PlanCommitTests
 
 		Assert.True(planning.TryEnqueueMovePath(shortMove));
 		Assert.False(planning.TryEnqueueMovePath(longMove));
-		Assert.Equal(3, planning.Actions.Count);
+		Assert.Single(planning.Actions);
 
 		Assert.True(planning.TryUndoLast());
 		Assert.True(planning.TryEnqueueMovePath(longMove));
 		Assert.Equal(
 			origin + Coord.Forward * 4,
-			((MoveStepAction)planning.Actions[^1]).To);
+			((MovePathAction)planning.Actions[0]).Option.EndPosition);
 	}
 
-	private static BattleSession BeginPlan(
+	private static TestPlan BeginPlan(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		GrimSpace.Math.Grid.Grid grid,
-		IReadOnlySet<Coord> blocked)
-	{
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
-		return plan;
-	}
+		IReadOnlySet<Coord> blocked) =>
+		TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
-	private static void EnqueueForwardMove(BattleSession plan, Coord origin, int steps, int startMomentum)
+	private static void EnqueueForwardMove(TestPlan plan, Coord origin, int steps, int startMomentum)
 	{
 		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
-		plan.EnqueueMovePath(PlayerId, option);
+		plan.EnqueueMovePath(option);
 	}
 }

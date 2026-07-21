@@ -1,5 +1,4 @@
 using GrimSpace.Core;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Effects;

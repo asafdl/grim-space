@@ -1,7 +1,6 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
@@ -15,7 +14,7 @@ public sealed class YawNetTagTests
 	[Fact]
 	public void YawRightThenLeftCostsZeroAp()
 	{
-		var plan = BeginPlan(new Coord(5, 5, 5));
+		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
@@ -28,7 +27,7 @@ public sealed class YawNetTagTests
 	[Fact]
 	public void YawRightTwiceCostsTwoApForOneEighty()
 	{
-		var plan = BeginPlan(new Coord(5, 5, 5));
+		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
@@ -41,7 +40,7 @@ public sealed class YawNetTagTests
 	[Fact]
 	public void UndoRebuildsYawTagsFromReplay()
 	{
-		var plan = BeginPlan(new Coord(5, 5, 5));
+		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
@@ -62,23 +61,11 @@ public sealed class YawNetTagTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
+		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 
 		Assert.Equal(0, plan.Board.StateOf(PlayerId).MomentumLevel);
-	}
-
-	private static BattleSession BeginPlan(Coord origin)
-	{
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
-		return plan;
 	}
 }

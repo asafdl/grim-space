@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;

@@ -15,6 +15,7 @@ public static class BattleActionFactory
 			step.To,
 			step.UsedDirectionsMaskBefore,
 			step.UndoGroup),
+		MovePathAction movePath => new MovePathAction(ownerId, movePath.Option, movePath.UndoGroup),
 		HeadingTurnAction heading => new HeadingTurnAction(ownerId, heading.Turn, heading.UndoGroup),
 		RollAction roll => new RollAction(ownerId, roll.Direction, roll.UndoGroup),
 		MissileAction missile => new MissileAction(

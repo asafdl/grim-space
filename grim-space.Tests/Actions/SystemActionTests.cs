@@ -62,27 +62,12 @@ public sealed class SystemActionTests
 	[Fact]
 	public void ResolveHazardActionRemovesHazardAfterApplying()
 	{
-		var plan = BeginPlan(new Coord(5, 5, 5));
+		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
 		Assert.True(plan.TryApplyAndEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 		Assert.NotEmpty(plan.Board.TurnHazards);
 
 		plan.AdvanceToTick(plan.TurnStartTick + CombatConfig.FlakResolveDelay);
 
 		Assert.Empty(plan.Board.TurnHazards);
-	}
-
-	private static BattleSession BeginPlan(Coord origin)
-	{
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var plan = new BattleSession();
-		plan.BeginTurn(
-			PlayerId,
-			[player, enemy],
-			BattleTestFixture.Grid(),
-			new Dictionary<string, GrimSpace.Battle.Board.NonUnit>(),
-			new HashSet<Coord> { enemy.State.Position },
-			turnStartTick: 0);
-		return plan;
 	}
 }

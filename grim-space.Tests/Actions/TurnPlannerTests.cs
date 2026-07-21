@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
@@ -11,7 +12,7 @@ using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class BattleSessionTests
+public sealed class TurnPlannerTests
 {
 	private const string PlayerId = "player";
 
@@ -20,7 +21,7 @@ public sealed class BattleSessionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var plan = BeginPlan(origin);
+		var plan = TestPlan.Begin(PlayerId, origin);
 		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
 
 		Assert.False(plan.TryApplyAndEnqueue(blockedMove));
@@ -33,7 +34,7 @@ public sealed class BattleSessionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var plan = BeginPlan(origin);
+		var plan = TestPlan.Begin(PlayerId, origin);
 		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
 
 		plan.ForceApplyAndEnqueue(blockedMove);
@@ -44,14 +45,14 @@ public sealed class BattleSessionTests
 	[Fact]
 	public void CopyFromPreservesActionsButClearsBoard()
 	{
-		var plan = BeginPlan(new Coord(5, 5, 5));
+		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var copied = new BattleSession();
-		copied.CopyFrom(plan.Actions);
+		var copied = new PlanSimulation();
+		copied.CopyActionsFrom(plan.Actions);
 
 		Assert.Single(copied.Actions);
-		Assert.Throws<InvalidOperationException>(() => _ = copied.Board);
+		Assert.Null(copied.PreviewWorld);
 	}
 
 	[Fact]
@@ -62,13 +63,12 @@ public sealed class BattleSessionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
+		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.Equal(1, plan.Context.TurnState.NetYaw);
 
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
+		plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
 		Assert.Empty(plan.Actions);
 		Assert.Equal(0, plan.Context.TurnState.NetYaw);
@@ -104,8 +104,7 @@ public sealed class BattleSessionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
+		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
 		plan.TryApplyAndEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
 
@@ -166,17 +165,6 @@ public sealed class BattleSessionTests
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost,
 			board.StateOf(PlayerId).ActionPoints);
 		Assert.Equal(origin, board.StateOf(PlayerId).Position);
-	}
-
-	private static BattleSession BeginPlan(Coord origin)
-	{
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = new BattleSession();
-		plan.BeginTurn(PlayerId, [player, enemy], grid, new Dictionary<string, NonUnit>(), blocked, turnStartTick: 0);
-		return plan;
 	}
 
 	private static IReadOnlyList<MoveStepAction> BuildForwardSteps(Coord origin, int steps, int startMomentum)

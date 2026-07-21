@@ -6,7 +6,6 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;

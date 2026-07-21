@@ -1,5 +1,5 @@
 namespace GrimSpace.Battle.Slices;
-using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Actions;
 
 public readonly struct DamageContext(BattleBoard board)

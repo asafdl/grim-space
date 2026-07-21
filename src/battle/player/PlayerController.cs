@@ -1,9 +1,11 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
-using GrimSpace.Battle.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Units;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -15,7 +17,8 @@ namespace GrimSpace.Battle.Player;
 /// </summary>
 public sealed class PlayerController
 {
-	private readonly BattleSession _plan = new();
+	private readonly PlanSimulation _plan;
+	private string _ownerId = string.Empty;
 	private readonly Unit _player;
 	private readonly Unit _enemy;
 	private readonly IReadOnlyList<Unit> _roster;
@@ -43,6 +46,7 @@ public sealed class PlayerController
 		_blockedCells = blockedCells;
 		_canAct = canAct;
 		_getActivePlayer = getActivePlayer;
+		_plan = new PlanSimulation(ExpandPlayback);
 	}
 
 	public string OwnerId => _player.State.Id;
@@ -50,14 +54,20 @@ public sealed class PlayerController
 	public Unit Actor => _player;
 	public Unit Opponent => _enemy;
 	public BoundedGrid Grid => _grid;
-	public BattleSession Plan => _plan;
-	public BattleBoard Board => _plan.Board;
+	public PlanSimulation Simulation => _plan;
+	public BattleBoard Board => _plan.PreviewWorld;
 	public IReadOnlyList<IAction> Actions => _plan.Actions;
-	public BattleActionContext Context => _plan.Context;
+	public BattleActionContext Context => BattleActionContext.For(Board, _plan.PreviewRuntime, _ownerId);
+	public Timeline PreviewTimeline => Board.Timeline;
+	public int TurnStartTick => _plan.AnchorTick;
 	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
 
-	public void BeginTurn(int turnStartTick) =>
-		_plan.BeginTurn(OwnerId, _roster, _grid, _nonUnits, _blockedCells, turnStartTick);
+	public void BeginTurn(int turnStartTick)
+	{
+		_ownerId = OwnerId;
+		var anchor = BattleBoard.FromSnapshot(_roster, _nonUnits, _grid, _blockedCells);
+		_plan.Begin(anchor, turnStartTick);
+	}
 
 	public FinalizedPlan FinalizePlan() => new(_plan.Actions.ToList());
 
@@ -90,12 +100,17 @@ public sealed class PlayerController
 		if (action is RailgunAction && _plan.Actions.Any(queued => queued is RailgunAction))
 			return false;
 
-		return _plan.TryApplyAndEnqueue(BattleActionFactory.WithOwner(OwnerId, action));
+		return BattleActionFactory.WithOwner(OwnerId, action) is IBattleAction battleAction
+			&& _plan.TryEnqueue(battleAction);
 	}
 
-	public bool TryEnqueueMovePath(Option option) => _plan.TryEnqueueMovePath(OwnerId, option);
+	public bool TryEnqueueMovePath(Option option) =>
+		_plan.TryEnqueue(new MovePathAction(OwnerId, option));
 
 	public bool TryUndoLast() => _plan.TryUndoLast();
+
+	private IReadOnlyList<IBattleAction> ExpandPlayback(IReadOnlyList<IBattleAction> actions) =>
+		BattlePlayback.WithPhaseEnd(actions, string.IsNullOrEmpty(_ownerId) ? null : _ownerId);
 }
 
 public readonly record struct FinalizedPlan(IReadOnlyList<IAction> Actions);

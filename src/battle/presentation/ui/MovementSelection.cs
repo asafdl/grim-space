@@ -50,6 +50,10 @@ public static class MovementSelection
 		if (path.Count > 0 || target is not null)
 			return (path, target);
 
+		var movePath = actions.OfType<MovePathAction>().FirstOrDefault();
+		if (movePath is not null)
+			return (movePath.Option.Path, movePath.Option.EndPosition);
+
 		var moveSteps = actions.OfType<MoveStepAction>().ToList();
 		if (moveSteps.Count == 0)
 			return (path, target);

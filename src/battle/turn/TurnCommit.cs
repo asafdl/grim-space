@@ -3,7 +3,6 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -14,8 +13,7 @@ namespace GrimSpace.Battle.Turn;
 
 public readonly record struct TurnCommitResult(
 	int TurnStart,
-	BattleSession PlayerPlan,
-	BattleSession EnemyPlan);
+	IReadOnlyList<IBattleAction> EnemyActions);
 
 public static class TurnCommit
 {
@@ -32,11 +30,6 @@ public static class TurnCommit
 		var enemy = units.First(unit => unit.Controller == EController.Enemy);
 		var turnStart = timeline.Clock.Current;
 
-		var playerBattleSession = new BattleSession();
-		playerBattleSession.BeginTurn(player.State.Id, units, grid, nonUnits, blockedCells, turnStart);
-		foreach (var action in playerPlan.Actions)
-			playerBattleSession.ForceApplyAndEnqueue(action);
-
 		var resolvedHazardCells = EnemyPlanner.CollectHazardCells(
 			hazardCells,
 			player,
@@ -47,7 +40,7 @@ public static class TurnCommit
 			playerPlan.Actions,
 			turnStart);
 
-		var enemyPlan = EnemyPlanner.PlanTurn(
+		var enemyActions = EnemyPlanner.PlanTurn(
 			enemy,
 			units,
 			grid,
@@ -57,10 +50,10 @@ public static class TurnCommit
 			turnStart);
 
 		EnqueuePhase(timeline, turnStart + TurnPhases.Player, player.State.Id, playerPlan.Actions);
-		EnqueuePhase(timeline, turnStart + TurnPhases.Enemy, enemy.State.Id, enemyPlan.Actions);
+		EnqueuePhase(timeline, turnStart + TurnPhases.Enemy, enemy.State.Id, enemyActions);
 		EnqueueRoundUpkeep(timeline, turnStart + TurnPhases.End, units);
 
-		return new TurnCommitResult(turnStart, playerBattleSession, enemyPlan);
+		return new TurnCommitResult(turnStart, enemyActions);
 	}
 
 	private static void EnqueuePhase(

@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
 using GrimSpace.Battle.Units;
@@ -7,13 +6,13 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
-namespace GrimSpace.Core.Actions.Battle;
+namespace GrimSpace.Battle.Board;
 
 /// <summary>
 /// Mutable battlefield for action resolution. Each turn opens a planning board
 /// cloned from current unit state; commit applies the queued actions to live state.
 /// </summary>
-public sealed class BattleBoard : IForkable<BattleBoard>, IHasTimeline
+public sealed class BattleBoard : IWorld<BattleBoard>
 {
 	private readonly Dictionary<string, Unit> _units;
 	private readonly Dictionary<string, NonUnit> _nonUnits;
@@ -124,16 +123,14 @@ public sealed class BattleBoard : IForkable<BattleBoard>, IHasTimeline
 		var cloned = unit.State.Clone();
 		return unit.Controller switch
 		{
-			EController.Player => new Player(cloned),
+			EController.Player => new Units.Player(cloned),
 			EController.Enemy => new EnemyUnit(cloned),
 			_ => throw new ArgumentOutOfRangeException(nameof(unit)),
 		};
 	}
 
-	public BattleBoard Clone() =>
+	public BattleBoard Fork() =>
 		FromSnapshot(Units.Values.ToList(), NonUnits, Grid, BlockedCells, Timeline.Clone());
-
-	public BattleBoard Fork() => Clone();
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch

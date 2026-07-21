@@ -5,8 +5,8 @@ namespace GrimSpace.Core.Engine;
 /// <summary>
 /// Stateful planning workspace: anchor world, preview fork, runtime, and action queue.
 /// </summary>
-public sealed class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
-	where TWorld : IForkable<TWorld>, IHasTimeline
+public class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
+	where TWorld : IWorld<TWorld>
 	where TRuntime : IRuntimeContext, new()
 	where TContext : ActionContext<TSlice>
 	where TAction : class, IAction<TContext, TSlice>

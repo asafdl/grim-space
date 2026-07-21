@@ -45,10 +45,4 @@ public sealed class Timeline
 				yield return (tick, action);
 		}
 	}
-
-	public void ResetPreviewFork(int turnStartTick)
-	{
-		_buckets.Clear();
-		Clock.Set(turnStartTick);
-	}
 }

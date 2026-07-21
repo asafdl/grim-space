@@ -76,6 +76,7 @@ public static class StateLog
 	private static string DescribeActionDetail(IAction action) => action switch
 	{
 		MoveStepAction step => $"MoveStep {step.From} -> {step.To}",
+		MovePathAction movePath => $"MovePath {FormatPath(movePath.Option.Path)}",
 		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
 			? $"HeadingTurn {heading.Turn} (yaw, billed via turn state)"
 			: $"HeadingTurn {heading.Turn} (1 AP)",

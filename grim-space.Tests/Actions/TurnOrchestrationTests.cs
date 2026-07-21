@@ -41,8 +41,8 @@ public sealed class TurnOrchestrationTests
 		var playerBucket = manager.Timeline.At(playerTick).Snapshot();
 		var enemyBucket = manager.Timeline.At(enemyTick).Snapshot();
 
-		Assert.Equal(4, playerBucket.Count);
-		Assert.All(playerBucket.Take(3), action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(2, playerBucket.Count);
+		Assert.IsType<MovePathAction>(playerBucket[0]);
 		Assert.IsType<EndOfPhaseAction>(playerBucket[^1]);
 		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
 
@@ -53,7 +53,7 @@ public sealed class TurnOrchestrationTests
 		Assert.IsType<ClearTurnHazardsAction>(endBucket[^1]);
 		Assert.Equal(EntityIds.System, endBucket[^1].OwnerId);
 
-		if (commit.EnemyPlan.Actions.Count > 0)
+		if (commit.EnemyActions.Count > 0)
 			Assert.Equal(manager.GetEnemy()!.State.Id, enemyBucket[0].OwnerId);
 	}
 

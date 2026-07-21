@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Movement;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Slices;

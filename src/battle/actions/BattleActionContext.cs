@@ -1,10 +1,11 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Slices;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
 
-namespace GrimSpace.Core.Actions.Battle;
+namespace GrimSpace.Battle.Actions;
 
 public sealed class BattleActionContext : ActionContext<BattleSlices>
 {

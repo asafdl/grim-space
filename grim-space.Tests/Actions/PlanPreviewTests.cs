@@ -16,7 +16,7 @@ namespace GrimSpace.Tests.Actions;
 public sealed class PlanPreviewTests
 {
 	[Fact]
-	public void QueuingMoveStoresStepActionsOnPlanActionList()
+	public void QueuingMoveStoresPathActionOnPlanActionList()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -29,10 +29,8 @@ public sealed class PlanPreviewTests
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 
 		Assert.True(planning.TryEnqueueMovePath(move));
-		Assert.Equal(3, planning.Actions.Count);
-		Assert.All(planning.Actions, action => Assert.IsType<MoveStepAction>(action));
-		Assert.Equal(move.EndPosition, ((MoveStepAction)planning.Actions[^1]).To);
-		Assert.Equal(origin, ((MoveStepAction)planning.Actions[0]).From);
+		var moveAction = Assert.IsType<MovePathAction>(Assert.Single(planning.Actions));
+		Assert.Equal(move.EndPosition, moveAction.Option.EndPosition);
 	}
 
 	[Fact]
@@ -112,8 +110,7 @@ public sealed class PlanPreviewTests
 		var committed = planning.FinalizePlan();
 		var nonUnits = new Dictionary<string, NonUnit>();
 
-		Assert.Equal(3, committed.Actions.Count);
-		Assert.All(committed.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.IsType<MovePathAction>(Assert.Single(committed.Actions));
 
 		BattleTestApply.ApplyToLive(
 			committed.Actions.Cast<IBattleAction>().ToList(),

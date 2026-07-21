@@ -1,4 +1,6 @@
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Board;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
@@ -32,7 +34,7 @@ public static class MovePathFinder
 		TurnState turnState,
 		string actorId)
 	{
-		var scratchBoard = board.Clone();
+		var scratchBoard = board.Fork();
 		var actor = scratchBoard.StateOf(actorId);
 		var scratchTurnState = turnState.Clone();
 		scratchTurnState.ResetMovePath(actor.MomentumLevel);
