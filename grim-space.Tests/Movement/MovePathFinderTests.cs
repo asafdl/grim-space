@@ -74,7 +74,7 @@ public sealed class MovePathFinderTests
 		var applied = new List<IAction>();
 		var context = new BattlePlanContext(applied, turnState);
 
-		Assert.False(steps[^1].IsLegal(board, context));
+		Assert.False(steps[^1].IsLegal(board, turnState, applied));
 	}
 
 	[Fact]

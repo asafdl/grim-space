@@ -108,7 +108,7 @@ public static class MovePathFinder
 
 			var step = new MoveStepAction(actorId, position, next, turnState.UsedDirectionsMask);
 			PushFrame(undoStack, actor, turnState);
-			if (!ActionApplicator.TryApplyOne(step, board, context, timeline, actorId))
+			if (!ActionApplicator.TryApplyOne(step, board, context.TurnState, context.PhaseActions, timeline, actorId))
 			{
 				PopFrame(undoStack, actor, turnState);
 				continue;

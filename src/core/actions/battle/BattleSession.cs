@@ -1,9 +1,11 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -21,21 +23,29 @@ public sealed class SimulatedTurn
 }
 
 /// <summary>
-/// Battle planning session: composes engine Simulator with board snapshot and replay apply.
+/// Battle planning session backed by the core planning simulator.
 /// </summary>
 public sealed class BattleSession
 {
-	private readonly Simulator<BattleBoard, TurnState> _sim = new(() => new TurnState());
-	private readonly List<IAction> _appliedActions = [];
+	private readonly Simulator<BattleBoard, TurnState, BattleSlices, IBattleAction> _sim;
 	private string? _ownerId;
 	private IReadOnlyList<Unit>? _roster;
 	private BoundedGrid? _grid;
 	private IReadOnlySet<Coord>? _blockedCells;
 	private IReadOnlyDictionary<string, NonUnit>? _nonUnits;
 
-	public IReadOnlyList<IAction> Actions => _sim.Actions;
+	public BattleSession()
+	{
+		_sim = new Simulator<BattleBoard, TurnState, BattleSlices, IBattleAction>(
+			CreateWorldFromSnapshot,
+			() => new TurnState(),
+			BattleSliceFactory.Create,
+			ExpandPlayback);
+	}
 
-	public Timeline PreviewTimeline => _sim.PreviewTimeline;
+	public IReadOnlyList<IBattleAction> Actions => _sim.Actions;
+
+	public Timeline PreviewTimeline => _sim.Timeline;
 
 	public int TurnStartTick => _sim.AnchorTick;
 
@@ -44,7 +54,7 @@ public sealed class BattleSession
 			? throw new InvalidOperationException("Call BeginTurn before planning.")
 			: _sim.World;
 
-	public BattlePlanContext Context => new(_appliedActions, _sim.State);
+	public BattlePlanContext Context => new(_sim.Actions, _sim.State);
 
 	public string? OwnerId => _ownerId;
 
@@ -61,42 +71,26 @@ public sealed class BattleSession
 		_grid = grid;
 		_nonUnits = nonUnits;
 		_blockedCells = blockedCells;
-
 		_sim.Begin(turnStartTick);
-		_sim.State.Clear();
-		_appliedActions.Clear();
-		_sim.SetWorld(BattleBoard.FromSnapshot(roster, nonUnits, grid, blockedCells));
 	}
 
 	public void CopyFrom(IEnumerable<IAction> actions)
 	{
-		_sim.CopyActionsFrom(actions);
-		_sim.State.Clear();
-		_appliedActions.Clear();
+		_sim.CopyActionsFrom(actions.Cast<IBattleAction>());
 		_ownerId = null;
 		_roster = null;
 		_grid = null;
 		_blockedCells = null;
 		_nonUnits = null;
-		_sim.SetWorld(default!);
 	}
 
-	public bool TryApplyAndEnqueue(IAction action)
-	{
-		EnsureBoard();
-		if (!action.IsLegal(Board, Context))
-			return false;
-
-		_sim.Enqueue(action);
-		Replay();
-		return true;
-	}
+	public bool TryApplyAndEnqueue(IAction action) =>
+		action is IBattleAction battleAction && _sim.TryEnqueue(battleAction);
 
 	public void ForceApplyAndEnqueue(IAction action)
 	{
-		EnsureBoard();
-		_sim.Enqueue(action);
-		Replay();
+		if (action is IBattleAction battleAction)
+			_sim.ForceEnqueue(battleAction);
 	}
 
 	public void EnqueueMovePath(string actorId, Option option)
@@ -108,14 +102,14 @@ public sealed class BattleSession
 		var group = _sim.AllocateUndoGroup();
 
 		foreach (var step in steps)
-			_sim.Enqueue(new MoveStepAction(
+			_sim.ForceEnqueue(new MoveStepAction(
 				step.OwnerId,
 				step.From,
 				step.To,
 				step.UsedDirectionsMaskBefore,
 				group));
 
-		Replay();
+		_sim.Refresh();
 	}
 
 	public bool TryEnqueueMovePath(string actorId, Option option)
@@ -127,14 +121,7 @@ public sealed class BattleSession
 		return true;
 	}
 
-	public bool TryUndoLast()
-	{
-		if (!_sim.TryUndoLast())
-			return false;
-
-		Replay();
-		return true;
-	}
+	public bool TryUndoLast() => _sim.TryUndoLast();
 
 	public SimulatedTurn GetPreview(string actorId) =>
 		new()
@@ -147,33 +134,20 @@ public sealed class BattleSession
 	{
 		EnsureTurnContext();
 		_sim.AdvanceToTick(tick, scheduled =>
-		{
-			var applied = new List<IAction>();
-			var context = new BattlePlanContext(applied, _sim.State);
-			ActionApplicator.TryApplyOne(
+			ActionApplicator.ApplyOne(
 				scheduled,
 				Board,
-				context,
-				_sim.PreviewTimeline,
-				_ownerId!,
-				checkLegal: false);
-		});
+				_sim.State,
+				[],
+				_sim.Timeline,
+				_ownerId!));
 	}
 
-	private void Replay()
-	{
-		EnsureTurnContext();
-		_sim.SetWorld(BattleBoard.FromSnapshot(_roster!, _nonUnits!, _grid!, _blockedCells!));
-		_sim.ResetPreviewFork();
-		_sim.State.Clear();
-		_appliedActions.Clear();
-		ActionApplicator.TryApplyAll(
-			ActionApplicator.WithPhaseEnd(Actions, _ownerId),
-			Board,
-			Context,
-			_sim.PreviewTimeline,
-			_ownerId!);
-	}
+	private BattleBoard CreateWorldFromSnapshot() =>
+		BattleBoard.FromSnapshot(_roster!, _nonUnits!, _grid!, _blockedCells!);
+
+	private IReadOnlyList<IBattleAction> ExpandPlayback(IReadOnlyList<IBattleAction> actions) =>
+		ActionApplicator.WithPhaseEnd(actions, _ownerId);
 
 	private void EnsureBoard()
 	{

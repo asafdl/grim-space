@@ -5,13 +5,13 @@ using GrimSpace.Battle.Effects;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class RoundUpkeepAction(string ownerId, int? undoGroup = null) : IAction
+public sealed class RoundUpkeepAction(string ownerId, int? undoGroup = null) : IBattleAction
 {
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context) => true;
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
 		[new RoundUpkeepEffect()];
 }

@@ -6,13 +6,13 @@ using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class RailgunAction(string ownerId, string targetUnitId, int? undoGroup = null) : IAction
+public sealed class RailgunAction(string ownerId, string targetUnitId, int? undoGroup = null) : IBattleAction
 {
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
 	public string TargetUnitId { get; } = targetUnitId;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context)
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		if (!board.Units.TryGetValue(TargetUnitId, out var targetUnit) || !targetUnit.State.IsAlive)
 			return false;
@@ -25,6 +25,6 @@ public sealed class RailgunAction(string ownerId, string targetUnitId, int? undo
 		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
 		[new DamageEffect(TargetUnitId, CombatConfig.RailgunDamage)];
 }

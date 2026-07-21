@@ -6,13 +6,13 @@ using GrimSpace.Battle.Effects;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class ClearTurnHazardsAction : IAction
+public sealed class ClearTurnHazardsAction : IBattleAction
 {
 	public string OwnerId { get; } = EntityIds.System;
 	public int? UndoGroup { get; } = null;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context) => true;
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
 		[new ClearTurnHazardsEffect()];
 }

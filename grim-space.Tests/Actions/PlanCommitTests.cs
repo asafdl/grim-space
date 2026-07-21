@@ -99,7 +99,7 @@ public sealed class PlanCommitTests
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
-		ActionApplicator.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
+		ActionApplicator.ApplyToLive(actions.Cast<IBattleAction>().ToList(), [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, player.State.Position);
 		Assert.Equal(

@@ -54,11 +54,14 @@ public sealed class TurnOrchestrator
 
 			while (timeline.At(tick).TryDequeue(out var action) && action is not null)
 			{
-				if (SystemAction.Is(action))
-					ApplySystemAction(action, timeline);
+				if (action is not IBattleAction battleAction)
+					continue;
+
+				if (SystemAction.Is(battleAction))
+					ApplySystemAction(battleAction, timeline);
 				else
 					ApplyUnitAction(
-						action,
+						battleAction,
 						player,
 						enemy,
 						playerTurnState,
@@ -67,8 +70,8 @@ public sealed class TurnOrchestrator
 						enemyActionsApplied,
 						timeline);
 
-				applied.Add(action);
-				sink?.OnActionApplied(new PresentationEvent(action));
+				applied.Add(battleAction);
+				sink?.OnActionApplied(new PresentationEvent(battleAction));
 			}
 
 			if (tick == turnStart + TurnPhases.Player)
@@ -80,22 +83,22 @@ public sealed class TurnOrchestrator
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
 	}
 
-	private void ApplySystemAction(IAction action, Timeline timeline)
+	private void ApplySystemAction(IBattleAction action, Timeline timeline)
 	{
-		var context = new BattlePlanContext([], new TurnState());
 		ActionApplicator.ApplyCommittedAction(
 			action,
 			_units,
 			_grid,
 			_hazards.MutableNonUnits,
 			_hazards.GetBlockedCells(),
-			context,
+			new TurnState(),
+			[],
 			timeline,
 			EntityIds.System);
 	}
 
 	private void ApplyUnitAction(
-		IAction action,
+		IBattleAction action,
 		Unit player,
 		Unit enemy,
 		TurnState playerTurnState,
@@ -108,7 +111,6 @@ public sealed class TurnOrchestrator
 		var isPlayer = ownerId == player.State.Id;
 		var turnState = isPlayer ? playerTurnState : enemyTurnState;
 		var applied = isPlayer ? playerActionsApplied : enemyActionsApplied;
-		var context = new BattlePlanContext(applied, turnState);
 
 		ActionApplicator.ApplyCommittedAction(
 			action,
@@ -116,7 +118,8 @@ public sealed class TurnOrchestrator
 			_grid,
 			_hazards.MutableNonUnits,
 			_hazards.GetBlockedCells(),
-			context,
+			turnState,
+			applied,
 			timeline,
 			ownerId);
 

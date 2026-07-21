@@ -9,21 +9,21 @@ using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class HeadingTurnAction(string ownerId, EHeadingTurn turn, int? undoGroup = null) : IAction
+public sealed class HeadingTurnAction(string ownerId, EHeadingTurn turn, int? undoGroup = null) : IBattleAction
 {
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
 	public EHeadingTurn Turn { get; } = turn;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context)
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		if (Orientation.IsYawTurn(Turn))
-			return board.StateOf(OwnerId).ActionPoints >= QuoteYawApCost(context.TurnState, Turn);
+			return board.StateOf(OwnerId).ActionPoints >= QuoteYawApCost(state, Turn);
 
 		return board.StateOf(OwnerId).ActionPoints >= CombatConfig.HeadingTurn90ApCost;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		if (!Orientation.IsYawTurn(Turn))
 		{
@@ -34,15 +34,14 @@ public sealed class HeadingTurnAction(string ownerId, EHeadingTurn turn, int? un
 			];
 		}
 
-		var turnState = context.TurnState;
 		var yawDelta = YawDelta(Turn);
-		var oldNet = turnState.NetYaw;
+		var oldNet = state.NetYaw;
 		var newNet = Orientation.NormalizeQuarters(oldNet + yawDelta);
 		var apDelta = Orientation.ApCostForNetYaw(newNet) - Orientation.ApCostForNetYaw(oldNet);
 		var momDelta = Orientation.MomentumLossForNetYaw(newNet) - Orientation.MomentumLossForNetYaw(oldNet);
 		var consumedDiscount = false;
 
-		if (apDelta > 0 && turnState.SpinBraked && turnState.HasSpinDiscount)
+		if (apDelta > 0 && state.SpinBraked && state.HasSpinDiscount)
 		{
 			apDelta = System.Math.Max(0, apDelta - 1);
 			momDelta = 0;

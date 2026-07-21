@@ -14,7 +14,7 @@ public sealed class MissileAction(
 	Coord center,
 	EMissileMount mount,
 	int range,
-	int? undoGroup = null) : IAction
+	int? undoGroup = null) : IBattleAction
 {
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
@@ -22,7 +22,7 @@ public sealed class MissileAction(
 	public EMissileMount Mount { get; } = mount;
 	public int Range { get; } = range;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context)
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		if (board.StateOf(OwnerId).MissilesRemaining <= 0)
 			return false;
@@ -32,7 +32,7 @@ public sealed class MissileAction(
 		return MissileTargeting.IsValidTarget(frame, Center, config, board.Grid.IsInBounds);
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		var hazardId = board.IdRegistry.NextNonUnitId("missile-zone");
 		return

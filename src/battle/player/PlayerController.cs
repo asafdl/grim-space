@@ -71,7 +71,8 @@ public sealed class PlayerController
 		if (player is null || !_canAct(player))
 			return false;
 
-		return BattleActionFactory.WithOwner(OwnerId, action).IsLegal(Board, _plan.Context);
+		return BattleActionFactory.WithOwner(OwnerId, action) is IBattleAction battleAction
+			&& battleAction.IsLegal(Board, _plan.Context.TurnState, _plan.Context.PhaseActions);
 	}
 
 	public bool TryEnqueue(IAction action)

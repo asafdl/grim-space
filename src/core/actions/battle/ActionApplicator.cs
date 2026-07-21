@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -12,19 +12,18 @@ namespace GrimSpace.Core.Actions.Battle;
 public static class ActionApplicator
 {
 	public static bool TryApplyAll(
-		IReadOnlyList<IAction> actions,
+		IReadOnlyList<IBattleAction> actions,
 		BattleBoard board,
-		BattlePlanContext context,
+		TurnState state,
 		Timeline timeline,
 		string actorId)
 	{
-		context.TurnState.Clear();
+		state.Clear();
 		var applied = new List<IAction>();
 
 		foreach (var action in actions)
 		{
-			var stepContext = new BattlePlanContext(applied, context.TurnState);
-			if (!TryApplyOne(action, board, stepContext, timeline, actorId))
+			if (!TryApplyOne(action, board, state, applied, timeline, actorId))
 				return false;
 
 			applied.Add(action);
@@ -34,27 +33,40 @@ public static class ActionApplicator
 	}
 
 	public static bool TryApplyOne(
-		IAction action,
+		IBattleAction action,
 		BattleBoard board,
-		BattlePlanContext context,
+		TurnState state,
+		IEnumerable<IAction> applied,
 		Timeline timeline,
 		string actorId,
 		bool checkLegal = true)
 	{
-		if (checkLegal && !action.IsLegal(board, context))
+		if (checkLegal && !action.IsLegal(board, state, applied))
 			return false;
 
-		var slices = SystemAction.Is(actorId)
-			? BattleSlices.ForSystem(board, timeline)
-			: BattleSlices.For(board, actorId, context.TurnState, timeline);
-		foreach (var effect in action.Resolve(board, context))
-			effect.Apply(slices);
-
+		ApplyOne(action, board, state, applied, timeline, actorId);
 		return true;
 	}
 
+	public static void ApplyOne(
+		IBattleAction action,
+		BattleBoard board,
+		TurnState state,
+		IEnumerable<IAction> applied,
+		Timeline timeline,
+		string actorId,
+		bool checkLegal = false)
+	{
+		if (checkLegal && !action.IsLegal(board, state, applied))
+			return;
+
+		var slices = BattleSliceFactory.Create(board, state, timeline, actorId);
+		foreach (var effect in action.Resolve(board, state, applied))
+			effect.Apply(slices);
+	}
+
 	public static void ApplyToLive(
-		IReadOnlyList<IAction> actions,
+		IReadOnlyList<IBattleAction> actions,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
@@ -63,32 +75,34 @@ public static class ActionApplicator
 		string? actorId = null)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
-		var turnState = new TurnState();
-		var applied = new List<IAction>();
-		var context = new BattlePlanContext(applied, turnState);
+		var state = new TurnState();
 		var phaseActions = WithPhaseEnd(actions, actorId);
-		TryApplyAll(phaseActions, board, context, timeline, actorId!);
+		TryApplyAll(phaseActions, board, state, timeline, actorId!);
 	}
 
 	public static void ApplyCommittedAction(
-		IAction action,
+		IBattleAction action,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blockedCells,
-		BattlePlanContext context,
+		TurnState state,
+		IEnumerable<IAction> applied,
 		Timeline timeline,
 		string actorId)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blockedCells);
-		TryApplyOne(action, board, context, timeline, actorId, checkLegal: false);
+		ApplyOne(action, board, state, applied, timeline, actorId, checkLegal: false);
 	}
 
-	public static IReadOnlyList<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string? actorId)
+	public static IReadOnlyList<IBattleAction> WithPhaseEnd(
+		IReadOnlyList<IBattleAction> actions,
+		string? actorId)
 	{
 		if (actorId is null)
 			return actions;
 
-		return new List<IAction>(actions) { new EndOfPhaseAction(actorId) };
+		var expanded = new List<IBattleAction>(actions) { new EndOfPhaseAction(actorId) };
+		return expanded;
 	}
 }

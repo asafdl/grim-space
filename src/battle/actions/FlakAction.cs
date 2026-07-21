@@ -7,15 +7,15 @@ using GrimSpace.Battle.Effects;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class FlakAction(string ownerId, EFlakMount mount, int? undoGroup = null) : IAction
+public sealed class FlakAction(string ownerId, EFlakMount mount, int? undoGroup = null) : IBattleAction
 {
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
 	public EFlakMount Mount { get; } = mount;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context)
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
-		if (context.PhaseActions.Any(action => action is FlakAction))
+		if (applied.Any(action => action is FlakAction))
 			return false;
 
 		var frame = BodyFrame.From(board.StateOf(OwnerId));
@@ -23,7 +23,7 @@ public sealed class FlakAction(string ownerId, EFlakMount mount, int? undoGroup 
 		return FlakTargeting.IsValidBurst(frame, config, board.Grid.IsInBounds);
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		var frame = BodyFrame.From(board.StateOf(OwnerId));
 		var config = FlakMountConfig.For(Mount);

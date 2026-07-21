@@ -15,7 +15,7 @@ public sealed class MoveStepAction(
 	Coord from,
 	Coord to,
 	int usedDirectionsMaskBefore,
-	int? undoGroup = null) : IAction
+	int? undoGroup = null) : IBattleAction
 {
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
@@ -23,7 +23,7 @@ public sealed class MoveStepAction(
 	public Coord To { get; } = to;
 	public int UsedDirectionsMaskBefore { get; } = usedDirectionsMaskBefore;
 
-	public bool IsLegal(BattleBoard board, BattlePlanContext context)
+	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		var actor = board.StateOf(OwnerId);
 		if (actor.Position != From)
@@ -42,12 +42,12 @@ public sealed class MoveStepAction(
 
 		var stepCost = StepCosts.GetMoveStepApCost(
 			direction,
-			new MoveStepContext(context.TurnState.PathForwardSteps, actor.MomentumLevel));
+			new MoveStepContext(state.PathForwardSteps, actor.MomentumLevel));
 
 		return stepCost <= actor.ActionPoints;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
 	{
 		var actor = board.StateOf(OwnerId);
 		var frame = BodyFrame.From(actor);
@@ -56,11 +56,11 @@ public sealed class MoveStepAction(
 		var directionBit = MoveDirectionRules.DirectionBit(direction);
 		var stepCost = StepCosts.GetMoveStepApCost(
 			direction,
-			new MoveStepContext(context.TurnState.PathForwardSteps, actor.MomentumLevel));
+			new MoveStepContext(state.PathForwardSteps, actor.MomentumLevel));
 
 		var effects = new List<IEffect<BattleSlices>>();
 
-		if (!context.TurnState.IsMovePathStarted)
+		if (!state.IsMovePathStarted)
 			effects.Add(new BeginMovePathEffect());
 
 		effects.AddRange(

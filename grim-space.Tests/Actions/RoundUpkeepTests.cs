@@ -65,13 +65,13 @@ public sealed class RoundUpkeepTests
 			new HashSet<Coord>());
 		var turnState = new TurnState();
 		var applied = new List<IAction>();
-		var context = new BattlePlanContext(applied, turnState);
 		var timeline = new Timeline();
 
 		ActionApplicator.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),
 			board,
-			context,
+			turnState,
+			applied,
 			timeline,
 			unit.State.Id);
 	}

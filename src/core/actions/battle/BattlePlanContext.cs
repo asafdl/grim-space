@@ -1,16 +1,16 @@
-using GrimSpace.Core.Actions;
-
 namespace GrimSpace.Core.Actions.Battle;
+
+using GrimSpace.Core.Actions;
 
 public sealed class BattlePlanContext
 {
-	public BattlePlanContext(IList<IAction> phaseActions, TurnState turnState)
+	public BattlePlanContext(IEnumerable<IAction> phaseActions, TurnState turnState)
 	{
 		PhaseActions = phaseActions;
 		TurnState = turnState;
 	}
 
-	public IList<IAction> PhaseActions { get; }
+	public IEnumerable<IAction> PhaseActions { get; }
 
 	public TurnState TurnState { get; }
 }

@@ -22,14 +22,14 @@ public static class LegalActions
 		foreach (var turn in Enum.GetValues<EHeadingTurn>())
 		{
 			var action = new HeadingTurnAction(actorId, turn);
-			if (action.IsLegal(board, context))
+			if (action.IsLegal(board, context.TurnState, context.PhaseActions))
 				yield return action;
 		}
 
 		foreach (var direction in Enum.GetValues<ERollDirection>())
 		{
 			var action = new RollAction(actorId, direction);
-			if (action.IsLegal(board, context))
+			if (action.IsLegal(board, context.TurnState, context.PhaseActions))
 				yield return action;
 		}
 	}
@@ -64,15 +64,15 @@ public static class LegalActions
 		var cells = MissileTargeting.GetValidCells(frame, config, board.Grid.IsInBounds);
 
 		return cells
-			.Where(cell => new MissileAction(actorId, cell, mount, range).IsLegal(board, context))
+			.Where(cell => new MissileAction(actorId, cell, mount, range).IsLegal(board, context.TurnState, context.PhaseActions))
 			.ToHashSet();
 	}
 
 	public static bool IsRailgunAvailable(BattleBoard board, BattlePlanContext context, string actorId, string targetUnitId) =>
-		new RailgunAction(actorId, targetUnitId).IsLegal(board, context);
+		new RailgunAction(actorId, targetUnitId).IsLegal(board, context.TurnState, context.PhaseActions);
 
 	public static bool IsFlakAvailable(BattleBoard board, BattlePlanContext context, string actorId) =>
-		Enum.GetValues<EFlakMount>().Any(mount => new FlakAction(actorId, mount).IsLegal(board, context));
+		Enum.GetValues<EFlakMount>().Any(mount => new FlakAction(actorId, mount).IsLegal(board, context.TurnState, context.PhaseActions));
 
 	public static HashSet<Coord> GetFlakBurstCells(
 		BattleBoard board,
@@ -80,7 +80,7 @@ public static class LegalActions
 		string actorId,
 		EFlakMount mount)
 	{
-		if (!new FlakAction(actorId, mount).IsLegal(board, context))
+		if (!new FlakAction(actorId, mount).IsLegal(board, context.TurnState, context.PhaseActions))
 			return [];
 
 		var frame = BodyFrame.From(board.StateOf(actorId));

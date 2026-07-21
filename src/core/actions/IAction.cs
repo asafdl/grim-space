@@ -1,7 +1,3 @@
-using GrimSpace.Core.Actions.Battle;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Slices;
-
 namespace GrimSpace.Core.Actions;
 
 public interface IAction
@@ -9,8 +5,11 @@ public interface IAction
 	string OwnerId { get; }
 
 	int? UndoGroup { get; }
+}
 
-	bool IsLegal(BattleBoard board, BattlePlanContext context);
+public interface IAction<TWorld, TState, TSlice> : IAction
+{
+	bool IsLegal(TWorld world, TState state, IEnumerable<IAction> applied);
 
-	IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, BattlePlanContext context);
+	IReadOnlyList<IEffect<TSlice>> Resolve(TWorld world, TState state, IEnumerable<IAction> applied);
 }

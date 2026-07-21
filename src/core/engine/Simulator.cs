@@ -3,43 +3,70 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Core.Engine;
 
 /// <summary>
-/// Fork-and-replay simulation shell: draft action queue, preview timeline, and batch undo.
-/// Domain-specific world/state reset and action application are wired by the caller.
+/// Planning simulator: queued actions, legality on enqueue, replay via Simulate.
 /// </summary>
-public sealed class Simulator<TWorld, TState>
+public sealed class Simulator<TWorld, TState, TSlice, TAction>
+	where TWorld : ISimulationFork<TWorld>
+	where TState : ISimulationState
+	where TAction : class, IAction<TWorld, TState, TSlice>
 {
-	private readonly List<IAction> _actions = [];
-	private readonly Timeline _previewTimeline = new();
+	private readonly List<TAction> _actions = [];
+	private readonly Timeline _timeline = new();
+	private readonly Func<TWorld, TState, Timeline, string, TSlice> _createSlices;
+	private readonly Func<IReadOnlyList<TAction>, IReadOnlyList<TAction>> _expandPlayback;
+	private TWorld _anchorWorld;
 	private int _anchorTick;
 	private int _nextUndoGroup;
 
-	public Simulator(Func<TState> createState) => State = createState();
+	public Simulator(
+		TWorld world,
+		TState state,
+		Func<TWorld, TState, Timeline, string, TSlice> createSlices,
+		Func<IReadOnlyList<TAction>, IReadOnlyList<TAction>>? expandPlayback = null)
+	{
+		_anchorWorld = world.Fork();
+		World = world;
+		State = state;
+		_createSlices = createSlices;
+		_expandPlayback = expandPlayback ?? (actions => actions);
+	}
 
-	public TWorld World { get; private set; } = default!;
+	public TWorld World { get; private set; }
 
 	public TState State { get; }
 
-	public IReadOnlyList<IAction> Actions => _actions;
+	public IReadOnlyList<TAction> Actions => _actions;
 
-	public Timeline PreviewTimeline => _previewTimeline;
+	public Timeline Timeline => _timeline;
 
 	public int AnchorTick => _anchorTick;
-
-	public void SetWorld(TWorld world) => World = world;
 
 	public void Begin(int anchorTick)
 	{
 		_anchorTick = anchorTick;
 		_actions.Clear();
 		_nextUndoGroup = 0;
-		_previewTimeline.ResetPreviewFork(anchorTick);
+		_timeline.ResetPreviewFork(anchorTick);
+		Replay();
 	}
 
 	public int AllocateUndoGroup() => ++_nextUndoGroup;
 
-	public void Enqueue(IAction action) => _actions.Add(action);
+	public bool TryEnqueue(TAction action)
+	{
+		if (!action.IsLegal(World, State, _actions.Cast<IAction>()))
+			return false;
 
-	public void CopyActionsFrom(IEnumerable<IAction> actions)
+		_actions.Add(action);
+		Replay();
+		return true;
+	}
+
+	public void ForceEnqueue(TAction action) => _actions.Add(action);
+
+	public void Refresh() => Replay();
+
+	public void CopyActionsFrom(IEnumerable<TAction> actions)
 	{
 		_actions.Clear();
 		foreach (var action in actions)
@@ -52,23 +79,41 @@ public sealed class Simulator<TWorld, TState>
 			return false;
 
 		PopUndoGroup();
+		Replay();
 		return true;
 	}
 
-	public void AdvanceToTick(int tick, Action<IAction> applyScheduled)
+	public void Simulate()
 	{
-		for (var t = _anchorTick + 1; t <= tick; t++)
+		_timeline.ResetPreviewFork(_anchorTick);
+		_timeline.Clock.Set(_anchorTick);
+
+		var applied = new List<IAction>();
+		foreach (var action in _expandPlayback(_actions))
 		{
-			_previewTimeline.Clock.Set(t);
-			while (_previewTimeline.At(t).TryDequeue(out var scheduled) && scheduled is not null)
-				applyScheduled(scheduled);
+			var slices = _createSlices(World, State, _timeline, action.OwnerId);
+			foreach (var effect in action.Resolve(World, State, applied))
+				effect.Apply(slices);
+
+			applied.Add(action);
 		}
 	}
 
-	public void ResetPreviewFork()
+	public void AdvanceToTick(int tick, Action<TAction> applyScheduled)
 	{
-		_previewTimeline.ResetPreviewFork(_anchorTick);
-		_previewTimeline.Clock.Set(_anchorTick);
+		for (var t = _anchorTick + 1; t <= tick; t++)
+		{
+			_timeline.Clock.Set(t);
+			while (_timeline.At(t).TryDequeue(out var scheduled) && scheduled is TAction action)
+				applyScheduled(action);
+		}
+	}
+
+	private void Replay()
+	{
+		World = _anchorWorld.Fork();
+		State.Clear();
+		Simulate();
 	}
 
 	private void PopUndoGroup()

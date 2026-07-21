@@ -92,10 +92,9 @@ public sealed class BattleSessionTests
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
 		var applied = new List<IAction>();
-		var context = new BattlePlanContext(applied, turnState);
 		var timeline = new Timeline();
 
-		ActionApplicator.TryApplyOne(new EndOfPhaseAction(PlayerId), board, context, timeline, PlayerId);
+		ActionApplicator.TryApplyOne(new EndOfPhaseAction(PlayerId), board, turnState, applied, timeline, PlayerId);
 
 		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
 	}
@@ -129,7 +128,6 @@ public sealed class BattleSessionTests
 		var turnState = new TurnState();
 		var applied = new List<IAction>();
 		var timeline = new Timeline();
-		var context = new BattlePlanContext(applied, turnState);
 
 		foreach (var step in BuildForwardSteps(origin, steps: 3, startMomentum))
 		{
@@ -139,7 +137,8 @@ public sealed class BattleSessionTests
 				grid,
 				nonUnits,
 				blocked,
-				context,
+				turnState,
+				applied,
 				timeline,
 				PlayerId);
 			applied.Add(step);
@@ -167,11 +166,10 @@ public sealed class BattleSessionTests
 		var applied = new List<IAction>();
 		var yaw = new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight);
 		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
-		var actions = new List<IAction> { yaw, blockedMove };
+		var actions = new List<IBattleAction> { yaw, blockedMove };
 		var timeline = new Timeline();
-		var context = new BattlePlanContext(applied, turnState);
 
-		Assert.False(ActionApplicator.TryApplyAll(actions, board, context, timeline, PlayerId));
+		Assert.False(ActionApplicator.TryApplyAll(actions, board, turnState, timeline, PlayerId));
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost,
 			board.StateOf(PlayerId).ActionPoints);
