@@ -12,8 +12,9 @@ public sealed class RailgunAction(string ownerId, string targetUnitId, int? undo
 	public int? UndoGroup { get; } = undoGroup;
 	public string TargetUnitId { get; } = targetUnitId;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public bool IsLegal(BattleActionContext ctx)
 	{
+		var board = ctx.Board;
 		if (!board.Units.TryGetValue(TargetUnitId, out var targetUnit) || !targetUnit.State.IsAlive)
 			return false;
 
@@ -25,6 +26,6 @@ public sealed class RailgunAction(string ownerId, string targetUnitId, int? undo
 		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx) =>
 		[new DamageEffect(TargetUnitId, CombatConfig.RailgunDamage)];
 }

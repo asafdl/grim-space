@@ -10,11 +10,11 @@ public sealed class EndOfPhaseAction(string ownerId, int? undoGroup = null) : IB
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) => true;
+	public bool IsLegal(BattleActionContext ctx) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx)
 	{
-		if (state.IsMovePathStarted)
+		if (ctx.TurnState.IsMovePathStarted)
 			return [];
 
 		return [new MomentumDecayEffect()];

@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Presentation.Events;
+using GrimSpace.Battle.Slices;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Actions.Battle;
@@ -43,8 +44,6 @@ public sealed class TurnOrchestrator
 
 		var playerTurnState = new TurnState();
 		var enemyTurnState = new TurnState();
-		var playerActionsApplied = new List<IAction>();
-		var enemyActionsApplied = new List<IAction>();
 
 		var turnStart = commit.TurnStart;
 		var tick = turnStart;
@@ -66,8 +65,6 @@ public sealed class TurnOrchestrator
 						enemy,
 						playerTurnState,
 						enemyTurnState,
-						playerActionsApplied,
-						enemyActionsApplied,
 						timeline);
 
 				applied.Add(battleAction);
@@ -85,16 +82,14 @@ public sealed class TurnOrchestrator
 
 	private void ApplySystemAction(IBattleAction action, Timeline timeline)
 	{
-		ActionApplicator.ApplyCommittedAction(
-			action,
+		var board = BattleBoard.FromLive(
 			_units,
-			_grid,
 			_hazards.MutableNonUnits,
+			_grid,
 			_hazards.GetBlockedCells(),
-			new TurnState(),
-			[],
-			timeline,
-			EntityIds.System);
+			timeline);
+		var ctx = BattleActionContext.For(board, new TurnState(), EntityIds.System);
+		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
 	}
 
 	private void ApplyUnitAction(
@@ -103,27 +98,20 @@ public sealed class TurnOrchestrator
 		Unit enemy,
 		TurnState playerTurnState,
 		TurnState enemyTurnState,
-		List<IAction> playerActionsApplied,
-		List<IAction> enemyActionsApplied,
 		Timeline timeline)
 	{
 		var ownerId = action.OwnerId;
 		var isPlayer = ownerId == player.State.Id;
 		var turnState = isPlayer ? playerTurnState : enemyTurnState;
-		var applied = isPlayer ? playerActionsApplied : enemyActionsApplied;
 
-		ActionApplicator.ApplyCommittedAction(
-			action,
+		var board = BattleBoard.FromLive(
 			_units,
-			_grid,
 			_hazards.MutableNonUnits,
+			_grid,
 			_hazards.GetBlockedCells(),
-			turnState,
-			applied,
-			timeline,
-			ownerId);
-
-		applied.Add(action);
+			timeline);
+		var ctx = BattleActionContext.For(board, turnState, ownerId);
+		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
 	}
 
 	private Dictionary<string, State> SnapshotAll() =>

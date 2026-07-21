@@ -3,7 +3,6 @@ using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Slices;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -30,16 +29,14 @@ public static class MovePathFinder
 
 	public static IReadOnlyList<Option> Find(
 		BattleBoard board,
-		BattlePlanContext context,
+		TurnState turnState,
 		string actorId)
 	{
-		var scratchTimeline = new Timeline();
 		var scratchBoard = board.Clone();
 		var actor = scratchBoard.StateOf(actorId);
-		var turnState = context.TurnState.Clone();
-		turnState.ResetMovePath(actor.MomentumLevel);
+		var scratchTurnState = turnState.Clone();
+		scratchTurnState.ResetMovePath(actor.MomentumLevel);
 
-		var simContext = new BattlePlanContext([], turnState);
 		var results = new Dictionary<Coord, Option>();
 		var visited = new Dictionary<SearchNode, int>();
 		var undoStack = new Stack<SimulationFrame>();
@@ -48,8 +45,7 @@ public static class MovePathFinder
 			actor.Position,
 			actor.ActionPoints,
 			scratchBoard,
-			simContext,
-			scratchTimeline,
+			scratchTurnState,
 			actorId,
 			[],
 			results,
@@ -63,8 +59,7 @@ public static class MovePathFinder
 		Coord position,
 		int apRemaining,
 		BattleBoard board,
-		BattlePlanContext context,
-		Timeline timeline,
+		TurnState turnState,
 		string actorId,
 		List<Coord> pathSoFar,
 		Dictionary<Coord, Option> results,
@@ -74,7 +69,6 @@ public static class MovePathFinder
 		if (apRemaining <= 0)
 			return;
 
-		var turnState = context.TurnState;
 		var actor = board.StateOf(actorId);
 		var node = new SearchNode(
 			position,
@@ -108,7 +102,8 @@ public static class MovePathFinder
 
 			var step = new MoveStepAction(actorId, position, next, turnState.UsedDirectionsMask);
 			PushFrame(undoStack, actor, turnState);
-			if (!ActionApplicator.TryApplyOne(step, board, context.TurnState, context.PhaseActions, timeline, actorId))
+			var ctx = BattleActionContext.For(board, turnState, actorId);
+			if (!SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.TryStep(ctx, step))
 			{
 				PopFrame(undoStack, actor, turnState);
 				continue;
@@ -133,8 +128,7 @@ public static class MovePathFinder
 				next,
 				apRemaining - stepCost,
 				board,
-				context,
-				timeline,
+				turnState,
 				actorId,
 				fullPath,
 				results,

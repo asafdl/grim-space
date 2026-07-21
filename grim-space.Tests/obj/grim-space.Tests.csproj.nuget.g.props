@@ -4,13 +4,13 @@
     <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
     <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
-    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/bcdee245f6fc745532bcfe7cc0b21ac1/nuget</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/bcdee245f6fc745532bcfe7cc0b21ac1/nuget</NuGetPackageFolders>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/e10724a21700943448d9bf2f46f77325/nuget</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/e10724a21700943448d9bf2f46f77325/nuget</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
     <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">7.0.0</NuGetToolVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <SourceRoot Include="/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/bcdee245f6fc745532bcfe7cc0b21ac1/nuget/" />
+    <SourceRoot Include="/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/e10724a21700943448d9bf2f46f77325/nuget/" />
   </ItemGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <Import Project="$(NuGetPackageRoot)/xunit.runner.visualstudio/3.1.4/build/net8.0/xunit.runner.visualstudio.props" Condition="Exists('$(NuGetPackageRoot)/xunit.runner.visualstudio/3.1.4/build/net8.0/xunit.runner.visualstudio.props')" />
@@ -20,6 +20,6 @@
     <Import Project="$(NuGetPackageRoot)/microsoft.net.test.sdk/17.14.1/build/net8.0/Microsoft.NET.Test.Sdk.props" Condition="Exists('$(NuGetPackageRoot)/microsoft.net.test.sdk/17.14.1/build/net8.0/Microsoft.NET.Test.Sdk.props')" />
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Pkgxunit_analyzers Condition=" '$(Pkgxunit_analyzers)' == '' ">/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/bcdee245f6fc745532bcfe7cc0b21ac1/nuget/xunit.analyzers/1.18.0</Pkgxunit_analyzers>
+    <Pkgxunit_analyzers Condition=" '$(Pkgxunit_analyzers)' == '' ">/var/folders/6f/nqlrmykj6j5cmr1h1jzzcw7h0000gp/T/cursor-sandbox-cache/e10724a21700943448d9bf2f46f77325/nuget/xunit.analyzers/1.18.0</Pkgxunit_analyzers>
   </PropertyGroup>
 </Project>

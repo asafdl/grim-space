@@ -7,9 +7,16 @@ public interface IAction
 	int? UndoGroup { get; }
 }
 
-public interface IAction<TWorld, TState, TSlice> : IAction
+public interface IAction<TContext, TSlice> : IAction
+	where TContext : ActionContext<TSlice>
 {
-	bool IsLegal(TWorld world, TState state, IEnumerable<IAction> applied);
+	bool IsLegal(TContext context);
 
-	IReadOnlyList<IEffect<TSlice>> Resolve(TWorld world, TState state, IEnumerable<IAction> applied);
+	IReadOnlyList<IEffect<TSlice>> Resolve(TContext context);
+
+	void Apply(TContext context)
+	{
+		foreach (var effect in Resolve(context))
+			effect.Apply(context.Slices);
+	}
 }

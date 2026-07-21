@@ -23,11 +23,11 @@ public sealed class SimulatedTurn
 }
 
 /// <summary>
-/// Battle planning session backed by the core planning simulator.
+/// Battle planning session backed by the core simulation workspace.
 /// </summary>
 public sealed class BattleSession
 {
-	private readonly Simulator<BattleBoard, TurnState, BattleSlices, IBattleAction> _sim;
+	private readonly Simulation<BattleBoard, TurnState, BattleActionContext, BattleSlices, IBattleAction> _sim;
 	private string? _ownerId;
 	private IReadOnlyList<Unit>? _roster;
 	private BoundedGrid? _grid;
@@ -36,25 +36,26 @@ public sealed class BattleSession
 
 	public BattleSession()
 	{
-		_sim = new Simulator<BattleBoard, TurnState, BattleSlices, IBattleAction>(
-			CreateWorldFromSnapshot,
-			() => new TurnState(),
-			BattleSliceFactory.Create,
+		_sim = new Simulation<BattleBoard, TurnState, BattleActionContext, BattleSlices, IBattleAction>(
+			BattleActionContext.For,
 			ExpandPlayback);
 	}
 
 	public IReadOnlyList<IBattleAction> Actions => _sim.Actions;
 
-	public Timeline PreviewTimeline => _sim.Timeline;
+	public Timeline PreviewTimeline => Board.Timeline;
 
 	public int TurnStartTick => _sim.AnchorTick;
 
 	public BattleBoard Board =>
 		_roster is null
 			? throw new InvalidOperationException("Call BeginTurn before planning.")
-			: _sim.World;
+			: _sim.PreviewWorld;
 
-	public BattlePlanContext Context => new(_sim.Actions, _sim.State);
+	public TurnState TurnState => _sim.PreviewRuntime;
+
+	public BattleActionContext Context =>
+		BattleActionContext.For(Board, TurnState, _ownerId ?? string.Empty);
 
 	public string? OwnerId => _ownerId;
 
@@ -71,7 +72,10 @@ public sealed class BattleSession
 		_grid = grid;
 		_nonUnits = nonUnits;
 		_blockedCells = blockedCells;
-		_sim.Begin(turnStartTick);
+
+		var anchor = BattleBoard.FromSnapshot(roster, nonUnits, grid, blockedCells);
+		anchor.Timeline.ResetPreviewFork(turnStartTick);
+		_sim.Begin(anchor, turnStartTick);
 	}
 
 	public void CopyFrom(IEnumerable<IAction> actions)
@@ -114,7 +118,7 @@ public sealed class BattleSession
 
 	public bool TryEnqueueMovePath(string actorId, Option option)
 	{
-		if (_sim.State.IsMovePathStarted)
+		if (_sim.PreviewRuntime.IsMovePathStarted)
 			return false;
 
 		EnqueueMovePath(actorId, option);
@@ -134,20 +138,14 @@ public sealed class BattleSession
 	{
 		EnsureTurnContext();
 		_sim.AdvanceToTick(tick, scheduled =>
-			ActionApplicator.ApplyOne(
-				scheduled,
-				Board,
-				_sim.State,
-				[],
-				_sim.Timeline,
-				_ownerId!));
+		{
+			var ctx = BattleActionContext.For(Board, TurnState, scheduled.OwnerId);
+			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, scheduled);
+		});
 	}
 
-	private BattleBoard CreateWorldFromSnapshot() =>
-		BattleBoard.FromSnapshot(_roster!, _nonUnits!, _grid!, _blockedCells!);
-
 	private IReadOnlyList<IBattleAction> ExpandPlayback(IReadOnlyList<IBattleAction> actions) =>
-		ActionApplicator.WithPhaseEnd(actions, _ownerId);
+		BattlePlayback.WithPhaseEnd(actions, _ownerId);
 
 	private void EnsureBoard()
 	{

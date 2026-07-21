@@ -22,18 +22,19 @@ public sealed class MissileAction(
 	public EMissileMount Mount { get; } = mount;
 	public int Range { get; } = range;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public bool IsLegal(BattleActionContext ctx)
 	{
-		if (board.StateOf(OwnerId).MissilesRemaining <= 0)
+		if (ctx.Board.StateOf(OwnerId).MissilesRemaining <= 0)
 			return false;
 
-		var frame = BodyFrame.From(board.StateOf(OwnerId));
+		var frame = BodyFrame.From(ctx.Board.StateOf(OwnerId));
 		var config = MissileMountConfig.For(Mount).WithRange(Range);
-		return MissileTargeting.IsValidTarget(frame, Center, config, board.Grid.IsInBounds);
+		return MissileTargeting.IsValidTarget(frame, Center, config, ctx.Board.Grid.IsInBounds);
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx)
 	{
+		var board = ctx.Board;
 		var hazardId = board.IdRegistry.NextNonUnitId("missile-zone");
 		return
 		[

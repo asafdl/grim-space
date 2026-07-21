@@ -115,7 +115,7 @@ public sealed class PlanPreviewTests
 		Assert.Equal(3, committed.Actions.Count);
 		Assert.All(committed.Actions, action => Assert.IsType<MoveStepAction>(action));
 
-		ActionApplicator.ApplyToLive(
+		BattleTestApply.ApplyToLive(
 			committed.Actions.Cast<IBattleAction>().ToList(),
 			[player, enemy],
 			planning.Grid,

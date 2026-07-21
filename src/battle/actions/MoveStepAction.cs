@@ -2,7 +2,6 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Effects;
@@ -23,8 +22,10 @@ public sealed class MoveStepAction(
 	public Coord To { get; } = to;
 	public int UsedDirectionsMaskBefore { get; } = usedDirectionsMaskBefore;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public bool IsLegal(BattleActionContext ctx)
 	{
+		var board = ctx.Board;
+		var state = ctx.TurnState;
 		var actor = board.StateOf(OwnerId);
 		if (actor.Position != From)
 			return false;
@@ -47,8 +48,10 @@ public sealed class MoveStepAction(
 		return stepCost <= actor.ActionPoints;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx)
 	{
+		var board = ctx.Board;
+		var state = ctx.TurnState;
 		var actor = board.StateOf(OwnerId);
 		var frame = BodyFrame.From(actor);
 		var direction = frame.DirectionOfStep(From, To)

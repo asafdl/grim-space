@@ -71,10 +71,9 @@ public sealed class MovePathFinderTests
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
 		var turnState = new TurnState();
-		var applied = new List<IAction>();
-		var context = new BattlePlanContext(applied, turnState);
+		var ctx = BattleActionContext.For(board, turnState, PlayerId);
 
-		Assert.False(steps[^1].IsLegal(board, turnState, applied));
+		Assert.False(steps[^1].IsLegal(ctx));
 	}
 
 	[Fact]
@@ -150,8 +149,6 @@ public sealed class MovePathFinderTests
 			BattleTestFixture.Grid(),
 			blocked);
 		var turnState = new TurnState();
-		var applied = new List<IAction>();
-		var context = new BattlePlanContext(applied, turnState);
-		return MovePathFinder.Find(board, context, PlayerId);
+		return MovePathFinder.Find(board, turnState, PlayerId);
 	}
 }

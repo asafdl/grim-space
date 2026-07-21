@@ -13,10 +13,10 @@ public sealed class RollAction(string ownerId, ERollDirection direction, int? un
 	public int? UndoGroup { get; } = undoGroup;
 	public ERollDirection Direction { get; } = direction;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
-		board.StateOf(OwnerId).ActionPoints >= CombatConfig.RollApCost;
+	public bool IsLegal(BattleActionContext ctx) =>
+		ctx.Board.StateOf(OwnerId).ActionPoints >= CombatConfig.RollApCost;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx) =>
 	[
 		new RollEffect(Direction),
 		new ApChangeEffect(-CombatConfig.RollApCost),

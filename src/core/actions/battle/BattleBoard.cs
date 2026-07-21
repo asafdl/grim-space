@@ -2,6 +2,7 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -12,7 +13,7 @@ namespace GrimSpace.Core.Actions.Battle;
 /// Mutable battlefield for action resolution. Each turn opens a planning board
 /// cloned from current unit state; commit applies the queued actions to live state.
 /// </summary>
-public sealed class BattleBoard
+public sealed class BattleBoard : IForkable<BattleBoard>, IHasTimeline
 {
 	private readonly Dictionary<string, Unit> _units;
 	private readonly Dictionary<string, NonUnit> _nonUnits;
@@ -24,6 +25,7 @@ public sealed class BattleBoard
 	public UnitIdRegistry IdRegistry => _idRegistry;
 	public BoundedGrid Grid { get; }
 	public IReadOnlySet<Coord> BlockedCells { get; }
+	public Timeline Timeline { get; }
 
 	public State StateOf(string unitId) => _units[unitId].State;
 
@@ -67,25 +69,29 @@ public sealed class BattleBoard
 		Dictionary<string, Unit> units,
 		Dictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
-		IReadOnlySet<Coord> blockedCells)
+		IReadOnlySet<Coord> blockedCells,
+		Timeline timeline)
 	{
 		_units = units;
 		_nonUnits = nonUnits;
 		Grid = grid;
 		BlockedCells = blockedCells;
+		Timeline = timeline;
 	}
 
 	public static BattleBoard FromSnapshot(
 		IReadOnlyList<Unit> roster,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
-		IReadOnlySet<Coord> blockedCells)
+		IReadOnlySet<Coord> blockedCells,
+		Timeline? timeline = null)
 	{
 		var board = new BattleBoard(
 			roster.ToDictionary(unit => unit.State.Id, CloneForSnapshot),
 			nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
 			grid,
-			blockedCells);
+			blockedCells,
+			timeline ?? new Timeline());
 
 		foreach (var id in roster.Select(unit => unit.State.Id).Concat(nonUnits.Keys))
 			board._idRegistry.Register(id);
@@ -97,13 +103,15 @@ public sealed class BattleBoard
 		IReadOnlyList<Unit> roster,
 		IDictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
-		IReadOnlySet<Coord> blockedCells)
+		IReadOnlySet<Coord> blockedCells,
+		Timeline? timeline = null)
 	{
 		var board = new BattleBoard(
 			roster.ToDictionary(unit => unit.State.Id, unit => unit),
 			(Dictionary<string, NonUnit>)nonUnits,
 			grid,
-			blockedCells);
+			blockedCells,
+			timeline ?? new Timeline());
 
 		foreach (var id in roster.Select(unit => unit.State.Id).Concat(nonUnits.Keys))
 			board._idRegistry.Register(id);
@@ -123,7 +131,9 @@ public sealed class BattleBoard
 	}
 
 	public BattleBoard Clone() =>
-		FromSnapshot(Units.Values.ToList(), NonUnits, Grid, BlockedCells);
+		FromSnapshot(Units.Values.ToList(), NonUnits, Grid, BlockedCells, Timeline.Clone());
+
+	public BattleBoard Fork() => Clone();
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch

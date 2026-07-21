@@ -53,7 +53,7 @@ public sealed class PlayerController
 	public BattleSession Plan => _plan;
 	public BattleBoard Board => _plan.Board;
 	public IReadOnlyList<IAction> Actions => _plan.Actions;
-	public BattlePlanContext Context => _plan.Context;
+	public BattleActionContext Context => _plan.Context;
 	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
 
 	public void BeginTurn(int turnStartTick) =>
@@ -71,8 +71,11 @@ public sealed class PlayerController
 		if (player is null || !_canAct(player))
 			return false;
 
-		return BattleActionFactory.WithOwner(OwnerId, action) is IBattleAction battleAction
-			&& battleAction.IsLegal(Board, _plan.Context.TurnState, _plan.Context.PhaseActions);
+		if (BattleActionFactory.WithOwner(OwnerId, action) is not IBattleAction battleAction)
+			return false;
+
+		var ctx = BattleActionContext.For(Board, Context.TurnState, battleAction.OwnerId);
+		return battleAction.IsLegal(ctx);
 	}
 
 	public bool TryEnqueue(IAction action)

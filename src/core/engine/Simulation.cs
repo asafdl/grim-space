@@ -3,68 +3,64 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Core.Engine;
 
 /// <summary>
-/// Planning simulator: queued actions, legality on enqueue, replay via Simulate.
+/// Stateful planning workspace: anchor world, preview fork, runtime, and action queue.
 /// </summary>
-public sealed class Simulator<TWorld, TState, TSlice, TAction>
-	where TWorld : ISimulationFork<TWorld>
-	where TState : ISimulationState
-	where TAction : class, IAction<TWorld, TState, TSlice>
+public sealed class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
+	where TWorld : IForkable<TWorld>, IHasTimeline
+	where TRuntime : IRuntimeContext, new()
+	where TContext : ActionContext<TSlice>
+	where TAction : class, IAction<TContext, TSlice>
 {
 	private readonly List<TAction> _actions = [];
-	private readonly Timeline _timeline = new();
-	private readonly Func<TWorld, TState, Timeline, string, TSlice> _createSlices;
+	private readonly Func<TWorld, TRuntime, string, TContext> _createContext;
 	private readonly Func<IReadOnlyList<TAction>, IReadOnlyList<TAction>> _expandPlayback;
-	private TWorld _anchorWorld;
+	private TWorld _anchorWorld = default!;
+	private TRuntime _previewRuntime = new();
 	private int _anchorTick;
 	private int _nextUndoGroup;
 
-	public Simulator(
-		TWorld world,
-		TState state,
-		Func<TWorld, TState, Timeline, string, TSlice> createSlices,
+	public Simulation(
+		Func<TWorld, TRuntime, string, TContext> createContext,
 		Func<IReadOnlyList<TAction>, IReadOnlyList<TAction>>? expandPlayback = null)
 	{
-		_anchorWorld = world.Fork();
-		World = world;
-		State = state;
-		_createSlices = createSlices;
+		_createContext = createContext;
 		_expandPlayback = expandPlayback ?? (actions => actions);
 	}
 
-	public TWorld World { get; private set; }
+	public TWorld PreviewWorld { get; private set; } = default!;
 
-	public TState State { get; }
+	public TRuntime PreviewRuntime => _previewRuntime;
 
 	public IReadOnlyList<TAction> Actions => _actions;
 
-	public Timeline Timeline => _timeline;
-
 	public int AnchorTick => _anchorTick;
 
-	public void Begin(int anchorTick)
+	public void Begin(TWorld anchorWorld, int anchorTick)
 	{
+		_anchorWorld = anchorWorld;
 		_anchorTick = anchorTick;
 		_actions.Clear();
 		_nextUndoGroup = 0;
-		_timeline.ResetPreviewFork(anchorTick);
-		Replay();
+		Reevaluate();
 	}
 
 	public int AllocateUndoGroup() => ++_nextUndoGroup;
 
 	public bool TryEnqueue(TAction action)
 	{
-		if (!action.IsLegal(World, State, _actions.Cast<IAction>()))
+		Reevaluate();
+		var ctx = _createContext(PreviewWorld, _previewRuntime, action.OwnerId);
+		if (!action.IsLegal(ctx))
 			return false;
 
 		_actions.Add(action);
-		Replay();
+		Reevaluate();
 		return true;
 	}
 
 	public void ForceEnqueue(TAction action) => _actions.Add(action);
 
-	public void Refresh() => Replay();
+	public void Refresh() => Reevaluate();
 
 	public void CopyActionsFrom(IEnumerable<TAction> actions)
 	{
@@ -79,23 +75,19 @@ public sealed class Simulator<TWorld, TState, TSlice, TAction>
 			return false;
 
 		PopUndoGroup();
-		Replay();
+		Reevaluate();
 		return true;
 	}
 
-	public void Simulate()
+	public void Reevaluate()
 	{
-		_timeline.ResetPreviewFork(_anchorTick);
-		_timeline.Clock.Set(_anchorTick);
+		PreviewWorld = _anchorWorld.Fork();
+		_previewRuntime.Reset();
 
-		var applied = new List<IAction>();
 		foreach (var action in _expandPlayback(_actions))
 		{
-			var slices = _createSlices(World, State, _timeline, action.OwnerId);
-			foreach (var effect in action.Resolve(World, State, applied))
-				effect.Apply(slices);
-
-			applied.Add(action);
+			var ctx = _createContext(PreviewWorld, _previewRuntime, action.OwnerId);
+			SimulationRunner<TContext, TSlice, TAction>.Step(ctx, action);
 		}
 	}
 
@@ -103,17 +95,10 @@ public sealed class Simulator<TWorld, TState, TSlice, TAction>
 	{
 		for (var t = _anchorTick + 1; t <= tick; t++)
 		{
-			_timeline.Clock.Set(t);
-			while (_timeline.At(t).TryDequeue(out var scheduled) && scheduled is TAction action)
+			PreviewWorld.Timeline.Clock.Set(t);
+			while (PreviewWorld.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is TAction action)
 				applyScheduled(action);
 		}
-	}
-
-	private void Replay()
-	{
-		World = _anchorWorld.Fork();
-		State.Clear();
-		Simulate();
 	}
 
 	private void PopUndoGroup()

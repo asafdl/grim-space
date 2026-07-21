@@ -1,7 +1,6 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Effects;
@@ -15,16 +14,18 @@ public sealed class HeadingTurnAction(string ownerId, EHeadingTurn turn, int? un
 	public int? UndoGroup { get; } = undoGroup;
 	public EHeadingTurn Turn { get; } = turn;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public bool IsLegal(BattleActionContext ctx)
 	{
 		if (Orientation.IsYawTurn(Turn))
-			return board.StateOf(OwnerId).ActionPoints >= QuoteYawApCost(state, Turn);
+			return ctx.Board.StateOf(OwnerId).ActionPoints >= QuoteYawApCost(ctx.TurnState, Turn);
 
-		return board.StateOf(OwnerId).ActionPoints >= CombatConfig.HeadingTurn90ApCost;
+		return ctx.Board.StateOf(OwnerId).ActionPoints >= CombatConfig.HeadingTurn90ApCost;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied)
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx)
 	{
+		var state = ctx.TurnState;
+
 		if (!Orientation.IsYawTurn(Turn))
 		{
 			return

@@ -11,8 +11,8 @@ public sealed class ClearTurnHazardsAction : IBattleAction
 	public string OwnerId { get; } = EntityIds.System;
 	public int? UndoGroup { get; } = null;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) => true;
+	public bool IsLegal(BattleActionContext ctx) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx) =>
 		[new ClearTurnHazardsEffect()];
 }

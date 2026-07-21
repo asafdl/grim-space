@@ -64,15 +64,10 @@ public sealed class RoundUpkeepTests
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
 		var turnState = new TurnState();
-		var applied = new List<IAction>();
-		var timeline = new Timeline();
-
-		ActionApplicator.TryApplyOne(
+		BattleTestApply.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),
 			board,
 			turnState,
-			applied,
-			timeline,
 			unit.State.Id);
 	}
 }

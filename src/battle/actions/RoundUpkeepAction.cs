@@ -10,8 +10,8 @@ public sealed class RoundUpkeepAction(string ownerId, int? undoGroup = null) : I
 	public string OwnerId { get; } = ownerId;
 	public int? UndoGroup { get; } = undoGroup;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) => true;
+	public bool IsLegal(BattleActionContext ctx) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx) =>
 		[new RoundUpkeepEffect()];
 }

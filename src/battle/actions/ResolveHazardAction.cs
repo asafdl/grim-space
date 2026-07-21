@@ -11,8 +11,8 @@ public sealed class ResolveHazardAction(string ownerId, string hazardId, int? un
 	public int? UndoGroup { get; } = undoGroup;
 	public string HazardId { get; } = hazardId;
 
-	public bool IsLegal(BattleBoard board, TurnState state, IEnumerable<IAction> applied) => true;
+	public bool IsLegal(BattleActionContext ctx) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleBoard board, TurnState state, IEnumerable<IAction> applied) =>
+	public IReadOnlyList<IEffect<BattleSlices>> Resolve(BattleActionContext ctx) =>
 		[new ResolveHazardEffect(HazardId), new RemoveHazardEffect(HazardId)];
 }

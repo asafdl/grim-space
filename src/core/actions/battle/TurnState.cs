@@ -1,12 +1,13 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Core.Actions.Battle;
 
 /// <summary>
 /// Temporary per-turn planning state. Recreated on replay; never survives commit.
 /// </summary>
-public sealed class TurnState
+public sealed class TurnState : IRuntimeContext
 {
 	public const int InitialMinPathApCost = 3;
 
@@ -22,6 +23,7 @@ public sealed class TurnState
 	private int _moveStartMomentumLevel;
 	private int _movementBuildupLevel;
 	private int _movementBuildupForwardSteps;
+	private bool _flakUsedThisTurn;
 
 	public int RawYawQuarters => _rawYawQuarters;
 
@@ -46,6 +48,8 @@ public sealed class TurnState
 	public int MoveStartMomentumLevel => _moveStartMomentumLevel;
 
 	public bool IsMovePathStarted => _pathForwardSteps > 0 || _usedDirectionsMask > 0;
+
+	public bool FlakUsedThisTurn => _flakUsedThisTurn;
 
 	public MomentumConfig.Buildup MovementBuildup =>
 		new(_movementBuildupLevel, _movementBuildupForwardSteps);
@@ -79,6 +83,8 @@ public sealed class TurnState
 		_spinDiscount = false;
 		return true;
 	}
+
+	public void MarkFlakUsed() => _flakUsedThisTurn = true;
 
 	public void ResetMovePath(int startMomentum)
 	{
@@ -124,7 +130,8 @@ public sealed class TurnState
 			_usedDirectionsMask,
 			_moveStartMomentumLevel,
 			_movementBuildupLevel,
-			_movementBuildupForwardSteps);
+			_movementBuildupForwardSteps,
+			_flakUsedThisTurn);
 
 	public void Restore(TurnStateSnapshot snapshot)
 	{
@@ -140,6 +147,7 @@ public sealed class TurnState
 		_moveStartMomentumLevel = snapshot.MoveStartMomentumLevel;
 		_movementBuildupLevel = snapshot.MovementBuildupLevel;
 		_movementBuildupForwardSteps = snapshot.MovementBuildupForwardSteps;
+		_flakUsedThisTurn = snapshot.FlakUsedThisTurn;
 	}
 
 	public TurnState Clone()
@@ -148,6 +156,8 @@ public sealed class TurnState
 		clone.Restore(Snapshot());
 		return clone;
 	}
+
+	public void Reset() => Clear();
 
 	public void Clear()
 	{
@@ -163,6 +173,7 @@ public sealed class TurnState
 		_moveStartMomentumLevel = 0;
 		_movementBuildupLevel = 0;
 		_movementBuildupForwardSteps = 0;
+		_flakUsedThisTurn = false;
 	}
 }
 
@@ -178,4 +189,5 @@ public readonly record struct TurnStateSnapshot(
 	int UsedDirectionsMask,
 	int MoveStartMomentumLevel,
 	int MovementBuildupLevel,
-	int MovementBuildupForwardSteps);
+	int MovementBuildupForwardSteps,
+	bool FlakUsedThisTurn);
