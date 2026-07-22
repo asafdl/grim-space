@@ -5,39 +5,33 @@ namespace GrimSpace.Core.Engine;
 /// <summary>
 /// Stateful planning workspace: anchor world, preview fork, runtime, and action queue.
 /// </summary>
-public class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
+public abstract class Simulation<TWorld, TRuntime, TContext, TSlice>
 	where TWorld : IWorld<TWorld>
-	where TRuntime : IRuntimeContext, new()
+	where TRuntime : IRuntimeContext<TRuntime>
 	where TContext : ActionContext<TSlice>
-	where TAction : class, IAction<TContext, TSlice>
 {
-	private readonly List<TAction> _actions = [];
-	private readonly Func<TWorld, TRuntime, string, TContext> _createContext;
-	private readonly Func<IReadOnlyList<TAction>, IReadOnlyList<TAction>> _expandPlayback;
+	private readonly List<IAction> _actions = [];
 	private TWorld _anchorWorld = default!;
-	private TRuntime _previewRuntime = new();
+	private TRuntime _anchorRuntime = default!;
 	private int _anchorTick;
 	private int _nextUndoGroup;
 
-	public Simulation(
-		Func<TWorld, TRuntime, string, TContext> createContext,
-		Func<IReadOnlyList<TAction>, IReadOnlyList<TAction>>? expandPlayback = null)
-	{
-		_createContext = createContext;
-		_expandPlayback = expandPlayback ?? (actions => actions);
-	}
-
 	public TWorld PreviewWorld { get; private set; } = default!;
 
-	public TRuntime PreviewRuntime => _previewRuntime;
+	public TRuntime PreviewRuntime { get; private set; } = default!;
 
-	public IReadOnlyList<TAction> Actions => _actions;
+	public IReadOnlyList<IAction> Actions => _actions;
 
 	public int AnchorTick => _anchorTick;
 
-	public void Begin(TWorld anchorWorld, int anchorTick)
+	public TWorld AnchorWorld => _anchorWorld;
+
+	public TRuntime AnchorRuntime => _anchorRuntime;
+
+	public void Begin(TWorld anchorWorld, TRuntime anchorRuntime, int anchorTick)
 	{
 		_anchorWorld = anchorWorld;
+		_anchorRuntime = anchorRuntime;
 		_anchorTick = anchorTick;
 		_actions.Clear();
 		_nextUndoGroup = 0;
@@ -46,11 +40,11 @@ public class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
 
 	public int AllocateUndoGroup() => ++_nextUndoGroup;
 
-	public bool TryEnqueue(TAction action)
+	public bool TryEnqueue(IAction action)
 	{
 		Reevaluate();
-		var ctx = _createContext(PreviewWorld, _previewRuntime, action.OwnerId);
-		if (!action.IsLegal(ctx))
+		var ctx = CreateContext(PreviewWorld, PreviewRuntime, action.OwnerId);
+		if (!IsActionLegal(ctx, action))
 			return false;
 
 		_actions.Add(action);
@@ -58,11 +52,11 @@ public class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
 		return true;
 	}
 
-	public void ForceEnqueue(TAction action) => _actions.Add(action);
+	public void ForceEnqueue(IAction action) => _actions.Add(action);
 
 	public void Refresh() => Reevaluate();
 
-	public void CopyActionsFrom(IEnumerable<TAction> actions)
+	public void CopyActionsFrom(IEnumerable<IAction> actions)
 	{
 		_actions.Clear();
 		foreach (var action in actions)
@@ -82,24 +76,32 @@ public class Simulation<TWorld, TRuntime, TContext, TSlice, TAction>
 	public void Reevaluate()
 	{
 		PreviewWorld = _anchorWorld.Fork();
-		_previewRuntime.Reset();
+		PreviewRuntime = _anchorRuntime.Fork();
 
-		foreach (var action in _expandPlayback(_actions))
+		foreach (var action in ExpandPlayback(_actions))
 		{
-			var ctx = _createContext(PreviewWorld, _previewRuntime, action.OwnerId);
-			SimulationRunner<TContext, TSlice, TAction>.Step(ctx, action);
+			var ctx = CreateContext(PreviewWorld, PreviewRuntime, action.OwnerId);
+			ApplyAction(ctx, action);
 		}
 	}
 
-	public void AdvanceToTick(int tick, Action<TAction> applyScheduled)
+	public void AdvanceToTick(int tick, Action<IAction> applyScheduled)
 	{
 		for (var t = _anchorTick + 1; t <= tick; t++)
 		{
 			PreviewWorld.Timeline.Clock.Set(t);
-			while (PreviewWorld.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is TAction action)
+			while (PreviewWorld.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is IAction action)
 				applyScheduled(action);
 		}
 	}
+
+	protected abstract TContext CreateContext(TWorld world, TRuntime runtime, string ownerId);
+
+	protected abstract bool IsActionLegal(TContext ctx, IAction action);
+
+	protected abstract void ApplyAction(TContext ctx, IAction action);
+
+	protected virtual IReadOnlyList<IAction> ExpandPlayback(IReadOnlyList<IAction> actions) => actions;
 
 	private void PopUndoGroup()
 	{

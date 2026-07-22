@@ -4,8 +4,8 @@ namespace GrimSpace.Battle.Actions;
 
 public static class BattlePlayback
 {
-	public static IReadOnlyList<IBattleAction> WithPhaseEnd(
-		IReadOnlyList<IBattleAction> actions,
+	public static IReadOnlyList<IAction> WithPhaseEnd(
+		IReadOnlyList<IAction> actions,
 		string? actorId)
 	{
 		if (actorId is null)

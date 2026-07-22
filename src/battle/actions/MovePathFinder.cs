@@ -1,11 +1,10 @@
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
-using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Slices;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
@@ -27,17 +26,17 @@ public static class MovePathFinder
 		int MomentumLevel,
 		int ActionPoints,
 		int Hp,
-		TurnStateSnapshot TurnState);
+		TurnPhaseContextSnapshot PhaseContext);
 
 	public static IReadOnlyList<Option> Find(
 		BattleBoard board,
-		TurnState turnState,
+		TurnPhaseContext phaseContext,
 		string actorId)
 	{
 		var scratchBoard = board.Fork();
 		var actor = scratchBoard.StateOf(actorId);
-		var scratchTurnState = turnState.Clone();
-		scratchTurnState.ResetMovePath(actor.MomentumLevel);
+		var scratchPhaseContext = TurnPhaseContextCopy.Clone(phaseContext);
+		BeginMovePath(scratchPhaseContext, actor.MomentumLevel);
 
 		var results = new Dictionary<Coord, Option>();
 		var visited = new Dictionary<SearchNode, int>();
@@ -47,7 +46,7 @@ public static class MovePathFinder
 			actor.Position,
 			actor.ActionPoints,
 			scratchBoard,
-			scratchTurnState,
+			scratchPhaseContext,
 			actorId,
 			[],
 			results,
@@ -61,7 +60,7 @@ public static class MovePathFinder
 		Coord position,
 		int apRemaining,
 		BattleBoard board,
-		TurnState turnState,
+		TurnPhaseContext phaseContext,
 		string actorId,
 		List<Coord> pathSoFar,
 		Dictionary<Coord, Option> results,
@@ -74,9 +73,9 @@ public static class MovePathFinder
 		var actor = board.StateOf(actorId);
 		var node = new SearchNode(
 			position,
-			turnState.UsedDirectionsMask,
+			phaseContext.UsedDirectionsMask,
 			actor.MomentumLevel,
-			turnState.MinPathApCost,
+			phaseContext.MinPathApCost,
 			apRemaining);
 
 		if (visited.TryGetValue(node, out var seenAp) && seenAp >= apRemaining)
@@ -88,12 +87,12 @@ public static class MovePathFinder
 
 		foreach (var direction in Directions)
 		{
-			if (MoveDirectionRules.UsesOpposite(turnState.UsedDirectionsMask, direction))
+			if (MoveDirectionRules.UsesOpposite(phaseContext.UsedDirectionsMask, direction))
 				continue;
 
 			var stepCost = StepCosts.GetMoveStepApCost(
 				direction,
-				new MoveStepContext(turnState.PathForwardSteps, actor.MomentumLevel));
+				new MoveStepContext(phaseContext.PathForwardSteps, actor.MomentumLevel));
 			if (stepCost > apRemaining)
 				continue;
 
@@ -102,19 +101,19 @@ public static class MovePathFinder
 			if (!board.Grid.IsInBounds(next) || blocked.Contains(next))
 				continue;
 
-			var step = new MoveStepAction(actorId, position, next, turnState.UsedDirectionsMask);
-			PushFrame(undoStack, actor, turnState);
-			var ctx = BattleActionContext.For(board, turnState, actorId);
+			var step = new MoveStepAction(actorId, direction);
+			PushFrame(undoStack, actor, phaseContext);
+			var ctx = BattleActionContext.For(board, phaseContext, actorId);
 			if (!SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.TryStep(ctx, step))
 			{
-				PopFrame(undoStack, actor, turnState);
+				PopFrame(undoStack, actor, phaseContext);
 				continue;
 			}
 
 			var fullPath = new List<Coord>(pathSoFar) { next };
-			var totalAp = turnState.PathApSpent;
+			var totalAp = phaseContext.PathApSpent;
 
-			if (turnState.MinPathApCost == 0 || totalAp == 0)
+			if (phaseContext.MinPathApCost == 0 || totalAp == 0)
 			{
 				if (!results.TryGetValue(next, out var existing) || totalAp < existing.ApCost)
 				{
@@ -130,38 +129,49 @@ public static class MovePathFinder
 				next,
 				apRemaining - stepCost,
 				board,
-				turnState,
+				phaseContext,
 				actorId,
 				fullPath,
 				results,
 				visited,
 				undoStack);
 
-			PopFrame(undoStack, actor, turnState);
+			PopFrame(undoStack, actor, phaseContext);
 		}
 	}
 
 	private static void PushFrame(
 		Stack<SimulationFrame> undoStack,
 		State actor,
-		TurnState turnState) =>
+		TurnPhaseContext phaseContext) =>
 		undoStack.Push(new SimulationFrame(
 			actor.Position,
 			actor.MomentumLevel,
 			actor.ActionPoints,
 			actor.Hp,
-			turnState.Snapshot()));
+			TurnPhaseContextCopy.Snapshot(phaseContext)));
 
 	private static void PopFrame(
 		Stack<SimulationFrame> undoStack,
 		State actor,
-		TurnState turnState)
+		TurnPhaseContext phaseContext)
 	{
 		var frame = undoStack.Pop();
 		actor.Position = frame.Position;
 		actor.MomentumLevel = frame.MomentumLevel;
 		actor.ActionPoints = frame.ActionPoints;
 		actor.Hp = frame.Hp;
-		turnState.Restore(frame.TurnState);
+		TurnPhaseContextCopy.Restore(phaseContext, frame.PhaseContext);
+	}
+
+	private static void BeginMovePath(TurnPhaseContext phaseContext, int startMomentum)
+	{
+		phaseContext.MinPathApCost = TurnPhaseContext.InitialMinPathApCost;
+		phaseContext.PathApSpent = 0;
+		phaseContext.PathForwardSteps = 0;
+		phaseContext.UsedDirectionsMask = 0;
+		phaseContext.MoveStartMomentumLevel = startMomentum;
+		phaseContext.MovementBuildupLevel = startMomentum;
+		phaseContext.MovementBuildupForwardSteps = 0;
 	}
 }

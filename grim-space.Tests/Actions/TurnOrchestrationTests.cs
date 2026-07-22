@@ -5,7 +5,6 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -41,8 +40,8 @@ public sealed class TurnOrchestrationTests
 		var playerBucket = manager.Timeline.At(playerTick).Snapshot();
 		var enemyBucket = manager.Timeline.At(enemyTick).Snapshot();
 
-		Assert.Equal(2, playerBucket.Count);
-		Assert.IsType<MovePathAction>(playerBucket[0]);
+		Assert.Equal(4, playerBucket.Count);
+		Assert.Equal(3, playerBucket.Count(action => action is MoveStepAction));
 		Assert.IsType<EndOfPhaseAction>(playerBucket[^1]);
 		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
 

@@ -6,8 +6,8 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -43,8 +43,8 @@ public sealed class TurnOrchestrator
 		var enemy = _units.First(unit => unit.Controller == EController.Enemy);
 		IReadOnlyDictionary<string, State>? unitsAfterPlayer = null;
 
-		var playerTurnState = new TurnState();
-		var enemyTurnState = new TurnState();
+		var playerPhaseContext = new TurnPhaseContext();
+		var enemyPhaseContext = new TurnPhaseContext();
 
 		var turnStart = commit.TurnStart;
 		var tick = turnStart;
@@ -64,8 +64,8 @@ public sealed class TurnOrchestrator
 						battleAction,
 						player,
 						enemy,
-						playerTurnState,
-						enemyTurnState,
+						playerPhaseContext,
+						enemyPhaseContext,
 						timeline);
 
 				applied.Add(battleAction);
@@ -89,7 +89,7 @@ public sealed class TurnOrchestrator
 			_grid,
 			_hazards.GetBlockedCells(),
 			timeline);
-		var ctx = BattleActionContext.For(board, new TurnState(), EntityIds.System);
+		var ctx = BattleActionContext.For(board, new TurnPhaseContext(), EntityIds.System);
 		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
 	}
 
@@ -97,13 +97,13 @@ public sealed class TurnOrchestrator
 		IBattleAction action,
 		Unit player,
 		Unit enemy,
-		TurnState playerTurnState,
-		TurnState enemyTurnState,
+		TurnPhaseContext playerPhaseContext,
+		TurnPhaseContext enemyPhaseContext,
 		Timeline timeline)
 	{
 		var ownerId = action.OwnerId;
 		var isPlayer = ownerId == player.State.Id;
-		var turnState = isPlayer ? playerTurnState : enemyTurnState;
+		var phaseContext = isPlayer ? playerPhaseContext : enemyPhaseContext;
 
 		var board = BattleBoard.FromLive(
 			_units,
@@ -111,7 +111,7 @@ public sealed class TurnOrchestrator
 			_grid,
 			_hazards.GetBlockedCells(),
 			timeline);
-		var ctx = BattleActionContext.For(board, turnState, ownerId);
+		var ctx = BattleActionContext.For(board, phaseContext, ownerId);
 		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
 	}
 

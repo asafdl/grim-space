@@ -13,7 +13,7 @@ namespace GrimSpace.Battle.Turn;
 
 public readonly record struct TurnCommitResult(
 	int TurnStart,
-	IReadOnlyList<IBattleAction> EnemyActions);
+	IReadOnlyList<IAction> EnemyActions);
 
 public static class TurnCommit
 {

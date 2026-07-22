@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
@@ -64,16 +64,16 @@ public sealed class MovePathFinderTests
 			Coord.Zero - player.State.Fore);
 
 		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(player.State);
-		var steps = MoveStepAction.BuildSteps(PlayerId, frame, origin, zigzag.Path);
+		var steps = MoveDef.StepsFromPath(PlayerId, frame, origin, zigzag.Path);
 		var board = BattleBoard.FromSnapshot(
 			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		var turnState = new TurnState();
-		var ctx = BattleActionContext.For(board, turnState, PlayerId);
+		var phaseContext = new TurnPhaseContext();
+		var ctx = BattleActionContext.For(board, phaseContext, PlayerId);
 
-		Assert.False(steps[^1].IsLegal(ctx));
+		Assert.False(MoveDef.Instance.IsLegal(steps[^1], ctx));
 	}
 
 	[Fact]
@@ -144,7 +144,7 @@ public sealed class MovePathFinderTests
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			blocked);
-		var turnState = new TurnState();
-		return MovePathFinder.Find(board, turnState, PlayerId);
+		var phaseContext = new TurnPhaseContext();
+		return MovePathFinder.Find(board, phaseContext, PlayerId);
 	}
 }

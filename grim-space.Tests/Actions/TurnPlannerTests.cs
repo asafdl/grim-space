@@ -4,7 +4,7 @@ using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -22,7 +22,11 @@ public sealed class TurnPlannerTests
 		var origin = new Coord(5, 5, 5);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var plan = TestPlan.Begin(PlayerId, origin);
-		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
+		var enemyPos = enemy.State.Position;
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(plan.Board.StateOf(PlayerId));
+		var direction = frame.DirectionOfStep(origin, enemyPos)
+			?? EStepDirection.Forward;
+		var blockedMove = new MoveStepAction(PlayerId, direction);
 
 		Assert.False(plan.TryApplyAndEnqueue(blockedMove));
 		Assert.Empty(plan.Actions);
@@ -35,7 +39,11 @@ public sealed class TurnPlannerTests
 		var origin = new Coord(5, 5, 5);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var plan = TestPlan.Begin(PlayerId, origin);
-		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
+		var enemyPos = enemy.State.Position;
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(plan.Board.StateOf(PlayerId));
+		var direction = frame.DirectionOfStep(origin, enemyPos)
+			?? EStepDirection.Forward;
+		var blockedMove = new MoveStepAction(PlayerId, direction);
 
 		plan.ForceApplyAndEnqueue(blockedMove);
 
@@ -56,7 +64,7 @@ public sealed class TurnPlannerTests
 	}
 
 	[Fact]
-	public void BeginTurnClearsPriorPlanAndTurnState()
+	public void BeginTurnClearsPriorPlanAndPhaseContext()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -66,12 +74,12 @@ public sealed class TurnPlannerTests
 		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
 		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.Equal(1, plan.Context.TurnState.NetYaw);
+		Assert.Equal(1, plan.Context.PhaseContext.NetYaw);
 
 		plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
 
 		Assert.Empty(plan.Actions);
-		Assert.Equal(0, plan.Context.TurnState.NetYaw);
+		Assert.Equal(0, plan.Context.PhaseContext.NetYaw);
 	}
 
 	[Theory]
@@ -81,17 +89,20 @@ public sealed class TurnPlannerTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var turnState = new TurnState();
+		var phaseContext = new TurnPhaseContext();
 
 		if (moved)
-			turnState.RecordMoveStep(EStepDirection.Forward, directionBit: 1);
+		{
+			phaseContext.UsedDirectionsMask = 1;
+			phaseContext.PathForwardSteps = 1;
+		}
 
 		var board = BattleBoard.FromSnapshot(
 			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		BattleTestApply.TryApplyOne(new EndOfPhaseAction(PlayerId), board, turnState, PlayerId);
+		BattleTestApply.TryApplyOne(new EndOfPhaseAction(PlayerId), board, phaseContext, PlayerId);
 
 		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
 	}
@@ -121,7 +132,7 @@ public sealed class TurnPlannerTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var nonUnits = new Dictionary<string, NonUnit>();
-		var turnState = new TurnState();
+		var phaseContext = new TurnPhaseContext();
 		var timeline = new Timeline();
 
 		foreach (var step in BuildForwardSteps(origin, steps: 3, startMomentum))
@@ -132,7 +143,7 @@ public sealed class TurnPlannerTests
 				grid,
 				nonUnits,
 				blocked,
-				turnState,
+				phaseContext,
 				timeline,
 				PlayerId);
 		}
@@ -155,12 +166,15 @@ public sealed class TurnPlannerTests
 			new Dictionary<string, NonUnit>(),
 			grid,
 			blocked);
-		var turnState = new TurnState();
+		var phaseContext = new TurnPhaseContext();
 		var yaw = new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight);
-		var blockedMove = new MoveStepAction(PlayerId, origin, enemy.State.Position, usedDirectionsMaskBefore: 0);
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(board.StateOf(PlayerId));
+		var direction = frame.DirectionOfStep(origin, enemy.State.Position)
+			?? EStepDirection.Forward;
+		var blockedMove = new MoveStepAction(PlayerId, direction);
 		var actions = new List<IBattleAction> { yaw, blockedMove };
 
-		Assert.False(BattleTestApply.TryApplyAll(actions, board, turnState, PlayerId));
+		Assert.False(BattleTestApply.TryApplyAll(actions, board, phaseContext, PlayerId));
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost,
 			board.StateOf(PlayerId).ActionPoints);
@@ -172,6 +186,6 @@ public sealed class TurnPlannerTests
 		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
 		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(player.State);
-		return MoveStepAction.BuildSteps(PlayerId, frame, origin, option.Path);
+		return MoveDef.StepsFromPath(PlayerId, frame, origin, option.Path);
 	}
 }

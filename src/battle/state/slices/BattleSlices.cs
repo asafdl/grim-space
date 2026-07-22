@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle.Slices;
@@ -10,27 +10,27 @@ public readonly struct BattleSlices
 {
 	private readonly BattleBoard _board;
 	private readonly string _actorId;
-	private readonly TurnState _turnState;
+	private readonly TurnPhaseContext _phaseContext;
 
-	public BattleSlices(BattleBoard board, string actorId, TurnState turnState)
+	public BattleSlices(BattleBoard board, string actorId, TurnPhaseContext phaseContext)
 	{
 		_board = board;
 		_actorId = actorId;
-		_turnState = turnState;
+		_phaseContext = phaseContext;
 	}
 
 	public static BattleSlices For(
 		BattleBoard board,
 		string actorId,
-		TurnState turnState) =>
-		new(board, actorId, turnState);
+		TurnPhaseContext phaseContext) =>
+		new(board, actorId, phaseContext);
 
 	public static BattleSlices ForSystem(BattleBoard board) =>
-		new(board, actorId: string.Empty, turnState: new TurnState());
+		new(board, actorId: string.Empty, phaseContext: new TurnPhaseContext());
 
 	public BattleBoard Board => _board;
 
-	public TurnState TurnState => _turnState;
+	public TurnPhaseContext PhaseContext => _phaseContext;
 
 	public Timeline Timeline => _board.Timeline;
 

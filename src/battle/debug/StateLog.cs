@@ -3,7 +3,6 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
@@ -75,8 +74,7 @@ public static class StateLog
 
 	private static string DescribeActionDetail(IAction action) => action switch
 	{
-		MoveStepAction step => $"MoveStep {step.From} -> {step.To}",
-		MovePathAction movePath => $"MovePath {FormatPath(movePath.Option.Path)}",
+		MoveStepAction step => $"MoveStep {step.Direction}",
 		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
 			? $"HeadingTurn {heading.Turn} (yaw, billed via turn state)"
 			: $"HeadingTurn {heading.Turn} (1 AP)",

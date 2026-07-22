@@ -1,4 +1,6 @@
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -9,23 +11,15 @@ public static class BattleActionFactory
 {
 	public static IAction WithOwner(string ownerId, IAction action) => action switch
 	{
-		MoveStepAction step => new MoveStepAction(
-			ownerId,
-			step.From,
-			step.To,
-			step.UsedDirectionsMaskBefore,
-			step.UndoGroup),
-		MovePathAction movePath => new MovePathAction(ownerId, movePath.Option, movePath.UndoGroup),
-		HeadingTurnAction heading => new HeadingTurnAction(ownerId, heading.Turn, heading.UndoGroup),
-		RollAction roll => new RollAction(ownerId, roll.Direction, roll.UndoGroup),
-		MissileAction missile => new MissileAction(
-			ownerId,
-			missile.Center,
-			missile.Mount,
-			missile.Range,
-			missile.UndoGroup),
-		FlakAction flak => new FlakAction(ownerId, flak.Mount, flak.UndoGroup),
-		RailgunAction railgun => new RailgunAction(ownerId, railgun.TargetUnitId, railgun.UndoGroup),
+		MoveStepAction move => move with { OwnerId = ownerId },
+		HeadingTurnAction heading => heading with { OwnerId = ownerId },
+		RollAction roll => roll with { OwnerId = ownerId },
+		MissileAction missile => missile with { OwnerId = ownerId },
+		FlakAction flak => flak with { OwnerId = ownerId },
+		RailgunAction railgun => railgun with { OwnerId = ownerId },
+		EndOfPhaseAction end => end with { OwnerId = ownerId },
+		RoundUpkeepAction upkeep => upkeep with { OwnerId = ownerId },
+		ResolveHazardAction resolve => resolve with { OwnerId = ownerId },
 		_ => action,
 	};
 }

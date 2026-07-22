@@ -41,7 +41,7 @@ public static class View
 		PlayerController planning,
 		EMissileMount mount,
 		int range) =>
-		LegalActions.GetMissileCells(planning.Board, planning.Context, planning.OwnerId, mount, range);
+		ActionQueries.GetMissileCells(planning.Board, planning.Context, planning.OwnerId, mount, range);
 
 	public static HashSet<Coord> GetMissileBlastHighlights(Coord center, BoundedGrid grid) =>
 		Hazard.MissileZone(
@@ -61,7 +61,7 @@ public static class View
 			return cells;
 
 		var enemy = planning.Opponent;
-		if (!LegalActions.IsRailgunAvailable(planning.Board, planning.Context, planning.OwnerId, enemy.State.Id))
+		if (!ActionQueries.IsRailgunAvailable(planning.Context, planning.OwnerId, enemy.State.Id))
 			return cells;
 
 		cells.Add(planning.Board.StateOf(enemy.State.Id).Position);
@@ -69,5 +69,5 @@ public static class View
 	}
 
 	public static HashSet<Coord> GetFlakBurstHighlights(PlayerController planning, EFlakMount mount) =>
-		LegalActions.GetFlakBurstCells(planning.Board, planning.Context, planning.OwnerId, mount);
+		ActionQueries.GetFlakBurstCells(planning.Board, planning.Context, planning.OwnerId, mount);
 }

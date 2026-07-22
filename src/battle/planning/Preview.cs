@@ -20,9 +20,9 @@ public static class Preview
 	public static IReadOnlyList<Option> GetLegalMoves(PlanSimulation plan, string actorId)
 	{
 		var ctx = BattleActionContext.For(plan.PreviewWorld, plan.PreviewRuntime, actorId);
-		if (ctx.TurnState.IsMovePathStarted)
+		if (ctx.PhaseContext.IsMovePathStarted)
 			return [];
 
-		return LegalActions.GetMoveOptions(plan.PreviewWorld, ctx, actorId);
+		return ActionQueries.GetMoveOptions(plan.PreviewWorld, ctx, actorId);
 	}
 }

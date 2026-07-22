@@ -1,32 +1,32 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle.Actions;
 
 public sealed class BattleActionContext : ActionContext<BattleSlices>
 {
-	private BattleActionContext(BattleBoard board, TurnState turnState, string actorId)
+	private BattleActionContext(BattleBoard board, TurnPhaseContext phaseContext, string actorId)
 	{
 		Board = board;
-		TurnState = turnState;
+		PhaseContext = phaseContext;
 		ActorId = actorId;
 	}
 
 	public BattleBoard Board { get; }
 
-	public TurnState TurnState { get; }
+	public TurnPhaseContext PhaseContext { get; }
 
 	public string ActorId { get; }
 
 	public override BattleSlices Slices =>
 		SystemAction.Is(ActorId)
 			? BattleSlices.ForSystem(Board)
-			: BattleSlices.For(Board, ActorId, TurnState);
+			: BattleSlices.For(Board, ActorId, PhaseContext);
 
-	public static BattleActionContext For(BattleBoard board, TurnState turnState, string actorId) =>
-		new(board, turnState, actorId);
+	public static BattleActionContext For(BattleBoard board, TurnPhaseContext phaseContext, string actorId) =>
+		new(board, phaseContext, actorId);
 }

@@ -1,8 +1,9 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -32,11 +33,11 @@ public sealed class PlanCommitTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = BeginPlan(player, enemy, grid, blocked);
+		var plan = BeginPlanning(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(plan, origin, stepCount, startMomentum);
 
-		var preview = plan.GetPreview(PlayerId);
+		var preview = Preview.Simulate(plan);
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 		var expectedMomentum = MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount);
 
@@ -58,14 +59,14 @@ public sealed class PlanCommitTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = BeginPlan(player, enemy, grid, blocked);
+		var plan = BeginPlanning(player, enemy, grid, blocked);
 
-		var emptyPreview = plan.GetPreview(PlayerId);
+		var emptyPreview = Preview.Simulate(plan);
 		Assert.Equal(origin, emptyPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.Actor.ActionPoints);
 
 		EnqueueForwardMove(plan, origin, steps: 3, startMomentum);
-		var threeStepPreview = plan.GetPreview(PlayerId);
+		var threeStepPreview = Preview.Simulate(plan);
 		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.Actor.ActionPoints);
@@ -73,7 +74,7 @@ public sealed class PlanCommitTests
 		Assert.True(plan.TryUndoLast());
 		EnqueueForwardMove(plan, origin, steps: 4, startMomentum);
 
-		var fourStepPreview = plan.GetPreview(PlayerId);
+		var fourStepPreview = Preview.Simulate(plan);
 		var fourStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 4);
 		Assert.Equal(origin + Coord.Forward * 4, fourStepPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - fourStepCost, fourStepPreview.Actor.ActionPoints);
@@ -92,14 +93,14 @@ public sealed class PlanCommitTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = BeginPlan(player, enemy, grid, blocked);
+		var plan = BeginPlanning(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(plan, origin, stepCount, startMomentum);
 		var actions = plan.Actions.ToList();
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
-		BattleTestApply.ApplyToLive(actions.Cast<IBattleAction>().ToList(), [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
+		BattleTestApply.ApplyToLive(actions, [player, enemy], grid, nonUnits, blocked, new Timeline(), PlayerId);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, player.State.Position);
 		Assert.Equal(
@@ -116,14 +117,14 @@ public sealed class PlanCommitTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = BeginPlan(player, enemy, grid, blocked);
+		var plan = BeginPlanning(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(plan, origin, steps: 3, startMomentum: 0);
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(plan.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		Assert.True(plan.TryUndoLast());
-		Assert.Single(plan.Actions);
-		Assert.IsType<MovePathAction>(plan.Actions[0]);
+		Assert.Equal(3, plan.Actions.Count);
+		Assert.All(plan.Actions, action => Assert.IsType<MoveStepAction>(action));
 	}
 
 	[Fact]
@@ -146,19 +147,23 @@ public sealed class PlanCommitTests
 		Assert.True(planning.TryEnqueueMovePath(longMove));
 		Assert.Equal(
 			origin + Coord.Forward * 4,
-			((MovePathAction)planning.Actions[0]).Option.EndPosition);
+			planning.Board.StateOf(planning.OwnerId).Position);
 	}
 
-	private static TestPlan BeginPlan(
+	private static PlayerController BeginPlanning(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		GrimSpace.Math.Grid.Grid grid,
-		IReadOnlySet<Coord> blocked) =>
-		TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
+		IReadOnlySet<Coord> blocked)
+	{
+		var planning = PlanningTestFixture.Controller(player, enemy, grid, blocked);
+		planning.BeginTurn(0);
+		return planning;
+	}
 
-	private static void EnqueueForwardMove(TestPlan plan, Coord origin, int steps, int startMomentum)
+	private static void EnqueueForwardMove(PlayerController plan, Coord origin, int steps, int startMomentum)
 	{
 		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
-		plan.EnqueueMovePath(option);
+		Assert.True(plan.TryEnqueueMovePath(option));
 	}
 }

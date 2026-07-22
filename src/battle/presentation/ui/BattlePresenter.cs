@@ -221,7 +221,13 @@ public sealed class BattlePresenter
 		var railgunTargets = View.GetRailgunTargetHighlights(planning, activeUnit);
 		var enemyId = planning.Opponent.State.Id;
 		var (path, target) = MovementSelection.GetHighlights(moveOptions, _selection.HoveredIndex);
-		(path, target) = MovementSelection.WithCommittedMove(planning.Actions, path, target);
+		(path, target) = MovementSelection.WithCommittedMove(
+			planning.Actions,
+			path,
+			target,
+			planning.Simulation.AnchorWorld,
+			planning.Simulation.AnchorRuntime,
+			planning.OwnerId);
 
 		var ownerId = planning.OwnerId;
 		var missileInRange = MissileHover is Coord hover
@@ -252,7 +258,7 @@ public sealed class BattlePresenter
 			HintText = BuildHint(activeUnit, simulation, missileInRange, planning),
 			CanAct = !_manager.IsBattleOver && activeUnit is not null && !_manager.IsResolving,
 			MissilesRemaining = planning.MissilesRemainingThisTurn,
-			FlakAvailable = LegalActions.IsFlakAvailable(planning.Board, planning.Context, planning.OwnerId),
+			FlakAvailable = ActionQueries.IsFlakAvailable(planning.Context, planning.OwnerId),
 			ExitMissileMode = exitMissileMode,
 			ShowOutcomeOverlay = _manager.IsBattleOver,
 			PlayerWon = IsPlayerVictory(),

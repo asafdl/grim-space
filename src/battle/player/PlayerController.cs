@@ -3,8 +3,9 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Planning;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Units;
@@ -46,7 +47,7 @@ public sealed class PlayerController
 		_blockedCells = blockedCells;
 		_canAct = canAct;
 		_getActivePlayer = getActivePlayer;
-		_plan = new PlanSimulation(ExpandPlayback);
+		_plan = new PlanSimulation();
 	}
 
 	public string OwnerId => _player.State.Id;
@@ -66,7 +67,7 @@ public sealed class PlayerController
 	{
 		_ownerId = OwnerId;
 		var anchor = BattleBoard.FromSnapshot(_roster, _nonUnits, _grid, _blockedCells);
-		_plan.Begin(anchor, turnStartTick);
+		_plan.Begin(anchor, new TurnPhaseContext(), turnStartTick, _ownerId);
 	}
 
 	public FinalizedPlan FinalizePlan() => new(_plan.Actions.ToList());
@@ -84,8 +85,8 @@ public sealed class PlayerController
 		if (BattleActionFactory.WithOwner(OwnerId, action) is not IBattleAction battleAction)
 			return false;
 
-		var ctx = BattleActionContext.For(Board, Context.TurnState, battleAction.OwnerId);
-		return battleAction.IsLegal(ctx);
+		var ctx = BattleActionContext.For(Board, Context.PhaseContext, battleAction.OwnerId);
+		return battleAction.Definition.IsLegal(battleAction, ctx);
 	}
 
 	public bool TryEnqueue(IAction action)
@@ -104,13 +105,20 @@ public sealed class PlayerController
 			&& _plan.TryEnqueue(battleAction);
 	}
 
-	public bool TryEnqueueMovePath(Option option) =>
-		_plan.TryEnqueue(new MovePathAction(OwnerId, option));
+	public bool TryEnqueueMovePath(Option option)
+	{
+		var actor = Board.StateOf(OwnerId);
+		var steps = MoveDef.StepsFromPath(OwnerId, BodyFrame.From(actor), actor.Position, option.Path);
+		foreach (var step in steps)
+		{
+			if (!_plan.TryEnqueue(step))
+				return false;
+		}
+
+		return true;
+	}
 
 	public bool TryUndoLast() => _plan.TryUndoLast();
-
-	private IReadOnlyList<IBattleAction> ExpandPlayback(IReadOnlyList<IBattleAction> actions) =>
-		BattlePlayback.WithPhaseEnd(actions, string.IsNullOrEmpty(_ownerId) ? null : _ownerId);
 }
 
 public readonly record struct FinalizedPlan(IReadOnlyList<IAction> Actions);

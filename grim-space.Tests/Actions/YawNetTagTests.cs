@@ -21,7 +21,7 @@ public sealed class YawNetTagTests
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, actor.ActionPoints);
-		Assert.Equal(0, plan.Context.TurnState.NetYaw);
+		Assert.Equal(0, plan.Context.PhaseContext.NetYaw);
 	}
 
 	[Fact]
@@ -34,7 +34,7 @@ public sealed class YawNetTagTests
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn180ApCost, actor.ActionPoints);
-		Assert.Equal(2, plan.Context.TurnState.NetYaw);
+		Assert.Equal(2, plan.Context.PhaseContext.NetYaw);
 	}
 
 	[Fact]
@@ -50,7 +50,7 @@ public sealed class YawNetTagTests
 
 		var actor = plan.Board.StateOf(PlayerId);
 		Assert.Single(plan.Actions);
-		Assert.Equal(1, plan.Context.TurnState.NetYaw);
+		Assert.Equal(1, plan.Context.PhaseContext.NetYaw);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost, actor.ActionPoints);
 	}
 

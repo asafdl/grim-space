@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using Godot;
-using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Turn;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
@@ -45,21 +47,40 @@ public static class MovementSelection
 	public static (IReadOnlyList<Coord> Path, Coord? Target) WithCommittedMove(
 		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Coord> path,
-		Coord? target)
+		Coord? target,
+		BattleBoard anchorBoard,
+		TurnPhaseContext anchorRuntime,
+		string ownerId)
 	{
 		if (path.Count > 0 || target is not null)
 			return (path, target);
-
-		var movePath = actions.OfType<MovePathAction>().FirstOrDefault();
-		if (movePath is not null)
-			return (movePath.Option.Path, movePath.Option.EndPosition);
 
 		var moveSteps = actions.OfType<MoveStepAction>().ToList();
 		if (moveSteps.Count == 0)
 			return (path, target);
 
-		var committedPath = moveSteps.Select(step => step.To).ToList();
+		var committedPath = RebuildMovePath(anchorBoard, anchorRuntime, ownerId, moveSteps);
 		return (committedPath, committedPath[^1]);
+	}
+
+	public static IReadOnlyList<Coord> RebuildMovePath(
+		BattleBoard anchorBoard,
+		TurnPhaseContext anchorRuntime,
+		string ownerId,
+		IReadOnlyList<MoveStepAction> steps)
+	{
+		var board = anchorBoard.Fork();
+		var runtime = anchorRuntime.Fork();
+		var path = new List<Coord>();
+
+		foreach (var step in steps)
+		{
+			var ctx = BattleActionContext.For(board, runtime, ownerId);
+			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, step);
+			path.Add(board.StateOf(ownerId).Position);
+		}
+
+		return path;
 	}
 
 	public static string FormatMomentum(State unit)

@@ -2,7 +2,6 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Actions.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -63,11 +62,11 @@ public sealed class RoundUpkeepTests
 			nonUnits,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		var turnState = new TurnState();
+		var phaseContext = new TurnPhaseContext();
 		BattleTestApply.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),
 			board,
-			turnState,
+			phaseContext,
 			unit.State.Id);
 	}
 }

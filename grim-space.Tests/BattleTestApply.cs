@@ -1,8 +1,9 @@
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Core.Actions.Battle;
+using GrimSpace.Battle.Slices;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -12,7 +13,7 @@ namespace GrimSpace.Tests;
 internal static class BattleTestApply
 {
 	public static void ApplyToLive(
-		IReadOnlyList<IBattleAction> actions,
+		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
@@ -20,34 +21,37 @@ internal static class BattleTestApply
 		Timeline timeline,
 		string actorId)
 	{
-		var turnState = new TurnState();
+		var phaseContext = new TurnPhaseContext();
 		foreach (var action in BattlePlayback.WithPhaseEnd(actions, actorId))
 		{
+			if (action is not IBattleAction battleAction)
+				continue;
+
 			var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
-			var ctx = BattleActionContext.For(board, turnState, action.OwnerId);
-			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
+			var ctx = BattleActionContext.For(board, phaseContext, action.OwnerId);
+			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, battleAction);
 		}
 	}
 
 	public static bool TryApplyOne(
 		IBattleAction action,
 		BattleBoard board,
-		TurnState turnState,
+		TurnPhaseContext phaseContext,
 		string actorId)
 	{
-		var ctx = BattleActionContext.For(board, turnState, actorId);
+		var ctx = BattleActionContext.For(board, phaseContext, actorId);
 		return SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.TryStep(ctx, action);
 	}
 
 	public static bool TryApplyAll(
 		IReadOnlyList<IBattleAction> actions,
 		BattleBoard board,
-		TurnState turnState,
+		TurnPhaseContext phaseContext,
 		string actorId)
 	{
 		foreach (var action in actions)
 		{
-			if (!TryApplyOne(action, board, turnState, actorId))
+			if (!TryApplyOne(action, board, phaseContext, actorId))
 				return false;
 		}
 
@@ -60,12 +64,12 @@ internal static class BattleTestApply
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blocked,
-		TurnState turnState,
+		TurnPhaseContext phaseContext,
 		Timeline timeline,
 		string actorId)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
-		var ctx = BattleActionContext.For(board, turnState, actorId);
+		var ctx = BattleActionContext.For(board, phaseContext, actorId);
 		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
 	}
 }
