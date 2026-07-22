@@ -104,7 +104,7 @@ public static class MovePathFinder
 			var step = new MoveStepAction(actorId, direction);
 			PushFrame(undoStack, actor, phaseContext);
 			var ctx = BattleActionContext.For(board, phaseContext, actorId);
-			if (!SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.TryStep(ctx, step))
+			if (!BattleActionRunner.TryApply(step, ctx))
 			{
 				PopFrame(undoStack, actor, phaseContext);
 				continue;

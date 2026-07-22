@@ -1,12 +1,10 @@
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Presentation.Events;
-using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -54,22 +52,22 @@ public sealed class TurnOrchestrator
 
 			while (timeline.At(tick).TryDequeue(out var action) && action is not null)
 			{
-				if (action is not IBattleAction battleAction)
+				if (!BattleActionRunner.IsKnown(action))
 					continue;
 
-				if (SystemAction.Is(battleAction))
-					ApplySystemAction(battleAction, timeline);
+				if (SystemAction.Is(action))
+					ApplySystemAction(action, timeline);
 				else
 					ApplyUnitAction(
-						battleAction,
+						action,
 						player,
 						enemy,
 						playerPhaseContext,
 						enemyPhaseContext,
 						timeline);
 
-				applied.Add(battleAction);
-				sink?.OnActionApplied(new PresentationEvent(battleAction));
+				applied.Add(action);
+				sink?.OnActionApplied(new PresentationEvent(action));
 			}
 
 			if (tick == turnStart + TurnPhases.Player)
@@ -81,7 +79,7 @@ public sealed class TurnOrchestrator
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
 	}
 
-	private void ApplySystemAction(IBattleAction action, Timeline timeline)
+	private void ApplySystemAction(IAction action, Timeline timeline)
 	{
 		var board = BattleBoard.FromLive(
 			_units,
@@ -90,11 +88,11 @@ public sealed class TurnOrchestrator
 			_hazards.GetBlockedCells(),
 			timeline);
 		var ctx = BattleActionContext.For(board, new TurnPhaseContext(), EntityIds.System);
-		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
+		BattleActionRunner.Apply(action, ctx);
 	}
 
 	private void ApplyUnitAction(
-		IBattleAction action,
+		IAction action,
 		Unit player,
 		Unit enemy,
 		TurnPhaseContext playerPhaseContext,
@@ -112,7 +110,7 @@ public sealed class TurnOrchestrator
 			_hazards.GetBlockedCells(),
 			timeline);
 		var ctx = BattleActionContext.For(board, phaseContext, ownerId);
-		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
+		BattleActionRunner.Apply(action, ctx);
 	}
 
 	private Dictionary<string, State> SnapshotAll() =>

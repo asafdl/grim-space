@@ -2,9 +2,7 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Slices;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -24,27 +22,27 @@ internal static class BattleTestApply
 		var phaseContext = new TurnPhaseContext();
 		foreach (var action in BattlePlayback.WithPhaseEnd(actions, actorId))
 		{
-			if (action is not IBattleAction battleAction)
+			if (!BattleActionRunner.IsKnown(action))
 				continue;
 
 			var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
 			var ctx = BattleActionContext.For(board, phaseContext, action.OwnerId);
-			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, battleAction);
+			BattleActionRunner.Apply(action, ctx);
 		}
 	}
 
 	public static bool TryApplyOne(
-		IBattleAction action,
+		IAction action,
 		BattleBoard board,
 		TurnPhaseContext phaseContext,
 		string actorId)
 	{
 		var ctx = BattleActionContext.For(board, phaseContext, actorId);
-		return SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.TryStep(ctx, action);
+		return BattleActionRunner.TryApply(action, ctx);
 	}
 
 	public static bool TryApplyAll(
-		IReadOnlyList<IBattleAction> actions,
+		IReadOnlyList<IAction> actions,
 		BattleBoard board,
 		TurnPhaseContext phaseContext,
 		string actorId)
@@ -59,7 +57,7 @@ internal static class BattleTestApply
 	}
 
 	public static void ApplyCommittedAction(
-		IBattleAction action,
+		IAction action,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
@@ -70,6 +68,6 @@ internal static class BattleTestApply
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
 		var ctx = BattleActionContext.For(board, phaseContext, actorId);
-		SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, action);
+		BattleActionRunner.Apply(action, ctx);
 	}
 }

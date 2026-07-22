@@ -32,8 +32,9 @@ public static class EnemyPlanner
 
 		foreach (var action in playerActions)
 		{
-			if (BattleActionFactory.WithOwner(player.State.Id, action) is IBattleAction battleAction)
-				plan.ForceEnqueue(battleAction);
+			var owned = BattleActionFactory.WithOwner(player.State.Id, action);
+			if (BattleActionRunner.IsKnown(owned))
+				plan.ForceEnqueue(owned);
 		}
 
 		foreach (var hazard in plan.PreviewWorld.TurnHazards)
@@ -183,9 +184,11 @@ public static class EnemyPlanner
 		return state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 	}
 
-	private static bool TryEnqueueTrial(PlanSimulation plan, string ownerId, IAction candidate) =>
-		BattleActionFactory.WithOwner(ownerId, candidate) is IBattleAction battleAction
-		&& plan.TryEnqueue(battleAction);
+	private static bool TryEnqueueTrial(PlanSimulation plan, string ownerId, IAction candidate)
+	{
+		var owned = BattleActionFactory.WithOwner(ownerId, candidate);
+		return BattleActionRunner.IsKnown(owned) && plan.TryEnqueue(owned);
+	}
 
 	private static bool TryEnqueueMoveTrial(PlanSimulation plan, string ownerId, Option move)
 	{

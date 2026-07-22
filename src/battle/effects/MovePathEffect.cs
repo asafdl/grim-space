@@ -1,8 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
@@ -17,6 +15,6 @@ public sealed class MovePathEffect(string ownerId, IReadOnlyList<Coord> path) : 
 		var steps = MoveDef.StepsFromPath(ownerId, BodyFrame.From(actor), actor.Position, path);
 
 		foreach (var step in steps)
-			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, step);
+			BattleActionRunner.Apply(step, ctx);
 	}
 }

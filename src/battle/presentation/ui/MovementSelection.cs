@@ -76,7 +76,7 @@ public static class MovementSelection
 		foreach (var step in steps)
 		{
 			var ctx = BattleActionContext.For(board, runtime, ownerId);
-			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, step);
+			BattleActionRunner.Apply(step, ctx);
 			path.Add(board.StateOf(ownerId).Position);
 		}
 

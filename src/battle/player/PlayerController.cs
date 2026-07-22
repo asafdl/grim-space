@@ -82,11 +82,12 @@ public sealed class PlayerController
 		if (player is null || !_canAct(player))
 			return false;
 
-		if (BattleActionFactory.WithOwner(OwnerId, action) is not IBattleAction battleAction)
+		var owned = BattleActionFactory.WithOwner(OwnerId, action);
+		if (!BattleActionRunner.IsKnown(owned))
 			return false;
 
-		var ctx = BattleActionContext.For(Board, Context.PhaseContext, battleAction.OwnerId);
-		return battleAction.Definition.IsLegal(battleAction, ctx);
+		var ctx = BattleActionContext.For(Board, Context.PhaseContext, owned.OwnerId);
+		return BattleActionRunner.IsLegal(owned, ctx);
 	}
 
 	public bool TryEnqueue(IAction action)
@@ -101,8 +102,8 @@ public sealed class PlayerController
 		if (action is RailgunAction && _plan.Actions.Any(queued => queued is RailgunAction))
 			return false;
 
-		return BattleActionFactory.WithOwner(OwnerId, action) is IBattleAction battleAction
-			&& _plan.TryEnqueue(battleAction);
+		var owned = BattleActionFactory.WithOwner(OwnerId, action);
+		return BattleActionRunner.IsKnown(owned) && _plan.TryEnqueue(owned);
 	}
 
 	public bool TryEnqueueMovePath(Option option)

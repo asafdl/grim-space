@@ -1,8 +1,7 @@
+using GrimSpace.Core.Actions;
+
 namespace GrimSpace.Battle.Actions;
 
 public sealed record RoundUpkeepAction(
 	string OwnerId,
-	int? UndoGroup = null) : IBattleAction
-{
-	public IActionDef Definition => RoundUpkeepDef.Instance;
-}
+	int? UndoGroup = null) : IAction;

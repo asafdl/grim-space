@@ -1,9 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Slices;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Planning;
@@ -30,13 +28,10 @@ public sealed class PlanSimulation : Simulation<BattleBoard, TurnPhaseContext, B
 		BattleActionContext.For(world, runtime, ownerId);
 
 	protected override bool IsActionLegal(BattleActionContext ctx, IAction action) =>
-		action is IBattleAction battleAction && battleAction.IsLegal(ctx);
+		BattleActionRunner.IsLegal(action, ctx);
 
-	protected override void ApplyAction(BattleActionContext ctx, IAction action)
-	{
-		if (action is IBattleAction battleAction)
-			SimulationRunner<BattleActionContext, BattleSlices, IBattleAction>.Step(ctx, battleAction);
-	}
+	protected override void ApplyAction(BattleActionContext ctx, IAction action) =>
+		BattleActionRunner.Apply(action, ctx);
 
 	protected override IReadOnlyList<IAction> ExpandPlayback(IReadOnlyList<IAction> actions) =>
 		BattlePlayback.WithPhaseEnd(actions, _playbackOwnerId);

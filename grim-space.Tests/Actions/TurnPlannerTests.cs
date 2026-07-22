@@ -172,7 +172,7 @@ public sealed class TurnPlannerTests
 		var direction = frame.DirectionOfStep(origin, enemy.State.Position)
 			?? EStepDirection.Forward;
 		var blockedMove = new MoveStepAction(PlayerId, direction);
-		var actions = new List<IBattleAction> { yaw, blockedMove };
+		var actions = new List<IAction> { yaw, blockedMove };
 
 		Assert.False(BattleTestApply.TryApplyAll(actions, board, phaseContext, PlayerId));
 		Assert.Equal(
