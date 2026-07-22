@@ -1,5 +1,6 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Turn;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
@@ -42,15 +43,14 @@ public sealed class RoundUpkeepTests
 	[Fact]
 	public void ExecuteTurnRunsRoundUpkeepOnTimeline()
 	{
-		var manager = TurnOrchestrationTests.CreateManager(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		manager.Player.BeginTurn(0);
-		manager.Player.Actor.State.ActionPoints = 0;
-		manager.Player.Actor.State.MissilesRemaining = 0;
+		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		battle.Actor.State.ActionPoints = 0;
+		battle.Actor.State.MissilesRemaining = 0;
 
-		Assert.True(manager.ExecuteTurn(manager.Player.FinalizePlan()));
+		Assert.True(battle.ResolveTurn([]));
 
-		Assert.Equal(MovementExpectations.FighterApPerTurn, manager.Player.Actor.State.ActionPoints);
-		Assert.Equal(CombatConfig.MissilesPerTurn, manager.Player.Actor.State.MissilesRemaining);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, battle.Actor.State.ActionPoints);
+		Assert.Equal(CombatConfig.MissilesPerTurn, battle.Actor.State.MissilesRemaining);
 	}
 
 	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)
@@ -62,11 +62,11 @@ public sealed class RoundUpkeepTests
 			nonUnits,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		var phaseContext = new TurnPhaseContext();
+		var runtime = new ActorSession();
 		BattleTestApply.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),
 			board,
-			phaseContext,
+			runtime,
 			unit.State.Id);
 	}
 }

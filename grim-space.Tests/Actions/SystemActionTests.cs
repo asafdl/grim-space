@@ -15,47 +15,46 @@ public sealed class SystemActionTests
 	[Fact]
 	public void ExecuteTurnClearsLeftoverTurnHazardsAtEndTick()
 	{
-		var manager = TurnOrchestrationTests.CreateManager(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var hazard = Hazard.FlakBurst(
 			"flak-leftover",
 			PlayerId,
 			BodyFrame.WorldAligned(new Coord(1, 1, 1)),
 			[new Coord(1, 1, 1)]);
-		manager.Hazards.MutableNonUnits[hazard.Id] = hazard;
-		Assert.Single(manager.Hazards.Active);
+		battle.Hazards.MutableNonUnits[hazard.Id] = hazard;
+		Assert.Single(battle.Hazards.Active);
 
-		Assert.True(manager.ExecuteTurn(manager.Player.FinalizePlan()));
+		Assert.True(battle.ResolveTurn([]));
 
-		Assert.Empty(manager.Hazards.Active);
+		Assert.Empty(battle.Hazards.Active);
 	}
 
 	[Fact]
 	public void ExecuteTurnClearsTurnHazardsViaSystemAction()
 	{
-		var manager = TurnOrchestrationTests.CreateManager(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		manager.Player.BeginTurn(0);
-		Assert.True(manager.Player.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
 
-		Assert.True(manager.ExecuteTurn(manager.Player.FinalizePlan()));
-		Assert.Empty(manager.Hazards.Active);
+		Assert.True(battle.ResolveTurn(battle.Actions.ToList()));
+		Assert.Empty(battle.Hazards.Active);
 	}
 
 	[Fact]
 	public void ExecuteTurnPreservesBoardHazards()
 	{
-		var manager = TurnOrchestrationTests.CreateManager(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var asteroid = Hazard.Asteroid(
 			"asteroid-1",
 			new Coord(2, 2, 2),
-			manager.Grid,
+			battle.Grid,
 			radius: 1,
 			visualId: "rock");
-		manager.Hazards.MutableNonUnits[asteroid.Id] = asteroid;
+		battle.Hazards.MutableNonUnits[asteroid.Id] = asteroid;
 
-		Assert.True(manager.ExecuteTurn(manager.Player.FinalizePlan()));
+		Assert.True(battle.ResolveTurn([]));
 
-		Assert.Contains(asteroid.Id, manager.Hazards.NonUnits.Keys);
-		Assert.Equal(EntityIds.World, manager.Hazards.NonUnits[asteroid.Id].OwnerId);
+		Assert.Contains(asteroid.Id, battle.Hazards.NonUnits.Keys);
+		Assert.Equal(EntityIds.World, battle.Hazards.NonUnits[asteroid.Id].OwnerId);
 	}
 
 	[Fact]

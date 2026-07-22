@@ -2,79 +2,83 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class MoveDef : IActionDef
+public sealed class MoveDef
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
 {
 	public static MoveDef Instance { get; } = new();
 
 	private static readonly EStepDirection[] AllDirections = Enum.GetValues<EStepDirection>();
 
-	public IEnumerable<IAction> Discover(BattleActionContext ctx, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
 	{
 		foreach (var direction in AllDirections)
 		{
 			var action = new MoveStepAction(ownerId, direction);
-			if (IsPossible(action, ctx))
+			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public bool IsPossible(IAction action, BattleActionContext ctx) =>
-		IsPossible(Cast(action), ctx);
+	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleActionContext ctx) =>
-		IsLegal(Cast(action), ctx);
+	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(IAction action, BattleActionContext ctx) =>
-		Resolve(Cast(action), ctx);
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		IAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
+		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(MoveStepAction action, BattleActionContext ctx)
+	public bool IsPossible(MoveStepAction action, BattleBoard world, ActorSession runtime)
 	{
-		var actor = ctx.Board.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.OwnerId);
 		var frame = BodyFrame.From(actor);
 		var to = actor.Position + frame.Step(action.Direction);
-		var blocked = ctx.Board.BlockedFor(action.OwnerId);
-		return ctx.Board.Grid.IsInBounds(to) && !blocked.Contains(to);
+		var blocked = world.BlockedFor(action.OwnerId);
+		return world.Grid.IsInBounds(to) && !blocked.Contains(to);
 	}
 
-	public bool IsLegal(MoveStepAction action, BattleActionContext ctx)
+	public bool IsLegal(MoveStepAction action, BattleBoard world, ActorSession runtime)
 	{
-		if (!IsPossible(action, ctx))
+		if (!IsPossible(action, world, runtime))
 			return false;
 
-		var state = ctx.PhaseContext;
-		if (MoveDirectionRules.UsesOpposite(state.UsedDirectionsMask, action.Direction))
+		if (MoveDirectionRules.UsesOpposite(runtime.UsedDirectionsMask, action.Direction))
 			return false;
 
-		var actor = ctx.Board.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.OwnerId);
 		var stepCost = StepCosts.GetMoveStepApCost(
 			action.Direction,
-			new MoveStepContext(state.PathForwardSteps, actor.MomentumLevel));
+			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
 
 		return stepCost <= actor.ActionPoints;
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(MoveStepAction action, BattleActionContext ctx)
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		MoveStepAction action,
+		BattleBoard world,
+		ActorSession runtime)
 	{
-		var board = ctx.Board;
-		var state = ctx.PhaseContext;
-		var actor = board.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.OwnerId);
 		var frame = BodyFrame.From(actor);
 		var to = actor.Position + frame.Step(action.Direction);
 		var directionBit = MoveDirectionRules.DirectionBit(action.Direction);
 		var stepCost = StepCosts.GetMoveStepApCost(
 			action.Direction,
-			new MoveStepContext(state.PathForwardSteps, actor.MomentumLevel));
+			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
 
-		var effects = new List<IEffect<BattleSlices>>();
+		var effects = new List<IEffect<BattleBoard, ActorSession>>();
 
-		if (!state.IsMovePathStarted)
+		if (!runtime.IsMovePathStarted)
 			effects.Add(new BeginMovePathEffect());
 
 		effects.AddRange(

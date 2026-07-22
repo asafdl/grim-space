@@ -1,37 +1,45 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class RollDef : IActionDef
+public sealed class RollDef
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
 {
 	public static RollDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleActionContext ctx, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
 	{
 		foreach (var direction in Enum.GetValues<ERollDirection>())
 		{
 			var action = new RollAction(ownerId, direction);
-			if (IsPossible(action, ctx))
+			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public bool IsPossible(IAction action, BattleActionContext ctx) => true;
+	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
 
-	public bool IsLegal(IAction action, BattleActionContext ctx) =>
-		IsLegal(Cast(action), ctx);
+	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(IAction action, BattleActionContext ctx) =>
-		Resolve(Cast(action), ctx);
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		IAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
+		Resolve(Cast(action), world, runtime);
 
-	public bool IsLegal(RollAction action, BattleActionContext ctx) =>
-		ctx.Board.StateOf(action.OwnerId).ActionPoints >= CombatConfig.RollApCost;
+	public bool IsLegal(RollAction action, BattleBoard world, ActorSession runtime) =>
+		world.StateOf(action.OwnerId).ActionPoints >= CombatConfig.RollApCost;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(RollAction action, BattleActionContext ctx) =>
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		RollAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
 	[
 		new RollEffect(action.Direction),
 		new ApChangeEffect(-CombatConfig.RollApCost),

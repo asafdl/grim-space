@@ -1,7 +1,5 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Planning;
-using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -17,31 +15,45 @@ namespace GrimSpace.Battle.Presentation.Planning;
 /// </summary>
 public static class View
 {
-	public static IReadOnlyList<Option> GetMoveHighlights(PlayerController planning, Unit? actor)
+	public static IReadOnlyList<Option> GetMoveHighlights(BattleOrchestrator battle, Unit? actor)
 	{
-		if (actor is null || !planning.CanAct(actor))
+		if (actor is null || !battle.CanAct(actor))
 			return [];
 
-		return Preview.GetLegalMoves(planning);
+		return GetLegalMoves(battle);
 	}
 
-	public static SimulatedTurn GetTurnGhost(PlayerController planning) =>
-		Preview.Simulate(planning);
+	public static BattleBoard GetTurnGhost(BattleOrchestrator battle) => battle.Board;
 
-	public static HashSet<Coord> GetPlannedHazardHighlights(PlayerController planning)
+	public static HashSet<Coord> GetPlannedHazardHighlights(BattleOrchestrator battle)
 	{
 		var cells = new HashSet<Coord>();
-		foreach (var hazard in GetTurnGhost(planning).Hazards)
+		foreach (var hazard in battle.Board.TurnHazards)
 			cells.UnionWith(hazard.Cells);
 
 		return cells;
 	}
 
+	public static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle)
+	{
+		var actorId = battle.OwnerId;
+		var session = battle.Session;
+		if (session.PreviewRuntime.IsMovePathStarted)
+			return [];
+
+		return ActionQueries.GetMoveOptions(session.PreviewWorld, session.PreviewRuntime, actorId);
+	}
+
 	public static HashSet<Coord> GetMissileTargetHighlights(
-		PlayerController planning,
+		BattleOrchestrator battle,
 		EMissileMount mount,
 		int range) =>
-		ActionQueries.GetMissileCells(planning.Board, planning.Context, planning.OwnerId, mount, range);
+		ActionQueries.GetMissileCells(
+			battle.Board,
+			battle.Runtime,
+			battle.OwnerId,
+			mount,
+			range);
 
 	public static HashSet<Coord> GetMissileBlastHighlights(Coord center, BoundedGrid grid) =>
 		Hazard.MissileZone(
@@ -54,20 +66,24 @@ public static class View
 			CombatConfig.MissileDamage,
 			CombatConfig.MissileMomentumLoss).Cells;
 
-	public static HashSet<Coord> GetRailgunTargetHighlights(PlayerController planning, Unit? actor)
+	public static HashSet<Coord> GetRailgunTargetHighlights(BattleOrchestrator battle, Unit? actor)
 	{
 		var cells = new HashSet<Coord>();
-		if (actor is null || !planning.CanAct(actor))
+		if (actor is null || !battle.CanAct(actor))
 			return cells;
 
-		var enemy = planning.Opponent;
-		if (!ActionQueries.IsRailgunAvailable(planning.Context, planning.OwnerId, enemy.State.Id))
+		var enemy = battle.Opponent;
+		if (!ActionQueries.IsRailgunAvailable(
+			battle.Board,
+			battle.Runtime,
+			battle.OwnerId,
+			enemy.State.Id))
 			return cells;
 
-		cells.Add(planning.Board.StateOf(enemy.State.Id).Position);
+		cells.Add(battle.Board.StateOf(enemy.State.Id).Position);
 		return cells;
 	}
 
-	public static HashSet<Coord> GetFlakBurstHighlights(PlayerController planning, EFlakMount mount) =>
-		ActionQueries.GetFlakBurstCells(planning.Board, planning.Context, planning.OwnerId, mount);
+	public static HashSet<Coord> GetFlakBurstHighlights(BattleOrchestrator battle, EFlakMount mount) =>
+		ActionQueries.GetFlakBurstCells(battle.Board, battle.Runtime, battle.OwnerId, mount);
 }

@@ -1,8 +1,9 @@
-using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Turn;
-using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -19,37 +20,42 @@ internal static class BattleTestApply
 		Timeline timeline,
 		string actorId)
 	{
-		var phaseContext = new TurnPhaseContext();
-		foreach (var action in BattlePlayback.WithPhaseEnd(actions, actorId))
+		var runtime = new ActorSession();
+		foreach (var action in WithPhaseEnd(actions, actorId))
 		{
-			if (!BattleActionRunner.IsKnown(action))
+			if (action is not IAction<BattleBoard, ActorSession> typed)
 				continue;
 
 			var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
-			var ctx = BattleActionContext.For(board, phaseContext, action.OwnerId);
-			BattleActionRunner.Apply(action, ctx);
+			typed.Apply(board, runtime);
 		}
 	}
 
 	public static bool TryApplyOne(
 		IAction action,
 		BattleBoard board,
-		TurnPhaseContext phaseContext,
+		ActorSession runtime,
 		string actorId)
 	{
-		var ctx = BattleActionContext.For(board, phaseContext, actorId);
-		return BattleActionRunner.TryApply(action, ctx);
+		if (action is not IAction<BattleBoard, ActorSession> typed)
+			return false;
+
+		if (!typed.IsLegal(board, runtime))
+			return false;
+
+		typed.Apply(board, runtime);
+		return true;
 	}
 
 	public static bool TryApplyAll(
 		IReadOnlyList<IAction> actions,
 		BattleBoard board,
-		TurnPhaseContext phaseContext,
+		ActorSession runtime,
 		string actorId)
 	{
 		foreach (var action in actions)
 		{
-			if (!TryApplyOne(action, board, phaseContext, actorId))
+			if (!TryApplyOne(action, board, runtime, actorId))
 				return false;
 		}
 
@@ -62,12 +68,21 @@ internal static class BattleTestApply
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blocked,
-		TurnPhaseContext phaseContext,
+		ActorSession runtime,
 		Timeline timeline,
 		string actorId)
 	{
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
-		var ctx = BattleActionContext.For(board, phaseContext, actorId);
-		BattleActionRunner.Apply(action, ctx);
+		if (action is IAction<BattleBoard, ActorSession> typed)
+			typed.Apply(board, runtime);
+	}
+
+	private static IEnumerable<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string actorId)
+	{
+		foreach (var action in actions)
+			yield return action;
+
+		if (!actions.OfType<EndOfPhaseAction>().Any())
+			yield return new EndOfPhaseAction(actorId);
 	}
 }

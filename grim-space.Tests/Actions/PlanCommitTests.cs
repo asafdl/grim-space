@@ -1,10 +1,10 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Planning;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Planning;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
@@ -34,6 +34,7 @@ public sealed class PlanCommitTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = BeginPlanning(player, enemy, grid, blocked);
+		plan.BeginTurn(0);
 
 		EnqueueForwardMove(plan, origin, stepCount, startMomentum);
 
@@ -94,6 +95,7 @@ public sealed class PlanCommitTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var plan = BeginPlanning(player, enemy, grid, blocked);
+		plan.BeginTurn(0);
 
 		EnqueueForwardMove(plan, origin, stepCount, startMomentum);
 		var actions = plan.Actions.ToList();
@@ -141,7 +143,7 @@ public sealed class PlanCommitTests
 
 		Assert.True(planning.TryEnqueueMovePath(shortMove));
 		Assert.False(planning.TryEnqueueMovePath(longMove));
-		Assert.Single(planning.Actions);
+		Assert.Equal(3, planning.Actions.Count);
 
 		Assert.True(planning.TryUndoLast());
 		Assert.True(planning.TryEnqueueMovePath(longMove));
@@ -150,20 +152,17 @@ public sealed class PlanCommitTests
 			planning.Board.StateOf(planning.OwnerId).Position);
 	}
 
-	private static PlayerController BeginPlanning(
+	private static TestPlan BeginPlanning(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		GrimSpace.Math.Grid.Grid grid,
-		IReadOnlySet<Coord> blocked)
-	{
-		var planning = PlanningTestFixture.Controller(player, enemy, grid, blocked);
-		planning.BeginTurn(0);
-		return planning;
-	}
+		IReadOnlySet<Coord> blocked) =>
+		PlanningTestFixture.Controller(player, enemy, grid, blocked);
 
-	private static void EnqueueForwardMove(PlayerController plan, Coord origin, int steps, int startMomentum)
+	private static void EnqueueForwardMove(TestPlan plan, Coord origin, int steps, int startMomentum)
 	{
-		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
+		var option = MovePathFinder.Find(plan.Board, plan.Runtime, plan.OwnerId)
+			.First(o => o.Path.Count == steps);
 		Assert.True(plan.TryEnqueueMovePath(option));
 	}
 }

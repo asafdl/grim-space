@@ -1,17 +1,15 @@
-using GrimSpace.Battle.Turn;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class ConsumeMinPathApEffect(int stepApCost) : IEffect<BattleSlices>
+public sealed class ConsumeMinPathApEffect(int stepApCost) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(TurnPhaseContext phaseContext)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		phaseContext.MinPathApCost = System.Math.Max(0, phaseContext.MinPathApCost - stepApCost);
+		runtime.MinPathApCost = System.Math.Max(0, runtime.MinPathApCost - stepApCost);
 		if (stepApCost > 0)
-			phaseContext.PathApSpent += stepApCost;
+			runtime.PathApSpent += stepApCost;
 	}
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.PhaseContext);
 }

@@ -1,12 +1,13 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class RollEffect(ERollDirection direction) : IEffect<BattleSlices>
+public sealed class RollEffect(ERollDirection direction) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(OrientationContext orientation) => orientation.Roll(direction);
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.Orientation);
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
+		Orientation.ApplyRoll(world.StateOf(actorId), direction);
 }

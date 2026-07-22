@@ -1,11 +1,11 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MissileChangeEffect(int delta) : IEffect<BattleSlices>
+public sealed class MissileChangeEffect(int delta) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(MissileContext missiles) => missiles.Change(delta);
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.Missiles);
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
+		world.StateOf(actorId).MissilesRemaining += delta;
 }

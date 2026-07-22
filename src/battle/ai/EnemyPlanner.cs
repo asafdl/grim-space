@@ -1,12 +1,17 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Planning;
-using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Core.Actions;
-using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
+using BattleSimulation = GrimSpace.Core.Engine.Simulation<
+	GrimSpace.Battle.Board.BattleBoard,
+	GrimSpace.Battle.Runtime.ActorSession>;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -27,15 +32,13 @@ public static class EnemyPlanner
 		int turnStartTick)
 	{
 		var cells = new HashSet<Coord>(activeHazardCells);
-		var plan = CreatePlan();
-		Begin(plan, player.State.Id, roster, grid, nonUnits, blockedCells, turnStartTick);
+		var plan = CreatePlan(roster, grid, nonUnits, blockedCells, turnStartTick, player.State.Id);
 
 		foreach (var action in playerActions)
-		{
-			var owned = BattleActionFactory.WithOwner(player.State.Id, action);
-			if (BattleActionRunner.IsKnown(owned))
-				plan.ForceEnqueue(owned);
-		}
+			plan.ForceEnqueue(action);
+
+		plan.Refresh();
+		BattleOrchestrator.ApplyEndOfPhase(plan.PreviewWorld, plan.PreviewRuntime, player.State.Id);
 
 		foreach (var hazard in plan.PreviewWorld.TurnHazards)
 			cells.UnionWith(hazard.Cells);
@@ -54,10 +57,8 @@ public static class EnemyPlanner
 		IReadOnlySet<Coord> blockedCells,
 		int turnStartTick)
 	{
-		var plan = CreatePlan();
-		Begin(plan, actor.State.Id, roster, grid, nonUnits, blockedCells, turnStartTick);
-
 		var actorId = actor.State.Id;
+		var plan = CreatePlan(roster, grid, nonUnits, blockedCells, turnStartTick, actorId);
 
 		for (var step = 0; step < MaxPlanLength; step++)
 		{
@@ -65,11 +66,13 @@ public static class EnemyPlanner
 			IAction? bestAction = null;
 			Option? bestMove = null;
 			var bestScore = currentScore;
-			var ctx = BattleActionContext.For(plan.PreviewWorld, plan.PreviewRuntime, actorId);
 
-			foreach (var candidate in ActionQueries.EnumerateMovement(ctx, actorId))
+			foreach (var candidate in ActionQueries.EnumerateMovement(
+				plan.PreviewWorld,
+				plan.PreviewRuntime,
+				actorId))
 			{
-				if (!TryEnqueueTrial(plan, actorId, candidate))
+				if (!TryEnqueueTrial(plan, candidate))
 					continue;
 
 				if (plan.PreviewWorld.StateOf(actorId).ActionPoints < 0)
@@ -89,7 +92,10 @@ public static class EnemyPlanner
 				bestMove = null;
 			}
 
-			foreach (var move in ActionQueries.EnumerateMovePaths(plan.PreviewWorld, ctx, actorId))
+			foreach (var move in ActionQueries.EnumerateMovePaths(
+				plan.PreviewWorld,
+				plan.PreviewRuntime,
+				actorId))
 			{
 				if (!TryEnqueueMoveTrial(plan, actorId, move))
 					continue;
@@ -120,28 +126,28 @@ public static class EnemyPlanner
 			if (bestMove is not null)
 				TryEnqueueMoveTrial(plan, actorId, bestMove);
 			else if (bestAction is not null)
-				TryEnqueueTrial(plan, actorId, bestAction);
+				TryEnqueueTrial(plan, bestAction);
 		}
 
 		return plan.Actions;
 	}
 
-	private static PlanSimulation CreatePlan() => new();
-
-	private static void Begin(
-		PlanSimulation plan,
-		string ownerId,
+	private static BattleSimulation CreatePlan(
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blockedCells,
-		int turnStartTick)
+		int turnStartTick,
+		string ownerId)
 	{
 		var anchor = BattleBoard.FromSnapshot(roster, nonUnits, grid, blockedCells);
-		plan.Begin(anchor, new TurnPhaseContext(), turnStartTick, ownerId);
+		var plan = new BattleSimulation(anchor, new ActorSession());
+		plan.Begin(turnStartTick);
+		BattleOrchestrator.ApplyEndOfPhase(plan.PreviewWorld, plan.PreviewRuntime, ownerId);
+		return plan;
 	}
 
-	private static HashSet<Coord> CollectResolveHazardCells(PlanSimulation plan, int turnStartTick)
+	private static HashSet<Coord> CollectResolveHazardCells(BattleSimulation plan, int turnStartTick)
 	{
 		var cells = new HashSet<Coord>();
 		foreach (var (tick, action) in plan.PreviewWorld.Timeline.From(turnStartTick + TurnPhases.Enemy))
@@ -160,11 +166,13 @@ public static class EnemyPlanner
 	}
 
 	private static int ScoreTurn(
-		PlanSimulation plan,
+		BattleSimulation plan,
 		string actorId,
 		IReadOnlySet<Coord> hazardCells,
 		int turnStartTick)
 	{
+		BattleOrchestrator.ApplyEndOfPhase(plan.PreviewWorld, plan.PreviewRuntime, actorId);
+
 		var state = plan.PreviewWorld.StateOf(actorId);
 		if (hazardCells.Contains(state.Position))
 			return int.MinValue;
@@ -184,22 +192,9 @@ public static class EnemyPlanner
 		return state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 	}
 
-	private static bool TryEnqueueTrial(PlanSimulation plan, string ownerId, IAction candidate)
-	{
-		var owned = BattleActionFactory.WithOwner(ownerId, candidate);
-		return BattleActionRunner.IsKnown(owned) && plan.TryEnqueue(owned);
-	}
+	private static bool TryEnqueueTrial(BattleSimulation plan, IAction candidate) =>
+		candidate is IAction<BattleBoard, ActorSession> && plan.TryEnqueue(candidate);
 
-	private static bool TryEnqueueMoveTrial(PlanSimulation plan, string ownerId, Option move)
-	{
-		var actor = plan.PreviewWorld.StateOf(ownerId);
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(actor);
-		foreach (var step in MoveDef.StepsFromPath(ownerId, frame, actor.Position, move.Path))
-		{
-			if (!plan.TryEnqueue(step))
-				return false;
-		}
-
-		return true;
-	}
+	private static bool TryEnqueueMoveTrial(BattleSimulation plan, string ownerId, Option move) =>
+		BattleOrchestrator.TryEnqueueMovePath(plan, ownerId, move);
 }

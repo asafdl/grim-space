@@ -1,26 +1,25 @@
-using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Planning;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed class BattlePresenter
 {
-	private readonly Manager _manager;
+	private readonly BattleOrchestrator _battle;
 	private readonly Selection _selection = new();
 
-	public BattlePresenter(Manager manager) => _manager = manager;
+	public BattlePresenter(BattleOrchestrator battle) => _battle = battle;
 
-	public Manager Manager => _manager;
+	public BattleOrchestrator Battle => _battle;
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public EMissileMount? MissileMount { get; private set; }
@@ -76,17 +75,17 @@ public sealed class BattlePresenter
 
 	public bool EndTurn(IPresentationEventSink? sink = null)
 	{
-		if (_manager.IsBattleOver)
+		if (_battle.IsBattleOver)
 			return false;
 
-		_manager.ExecuteTurn(_manager.Player.FinalizePlan(), sink);
+		_battle.ResolveTurn(_battle.Actions.ToList(), sink);
 		ResetAfterTurn();
 		return true;
 	}
 
 	public bool Undo()
 	{
-		if (!_manager.Player.TryUndoLast())
+		if (!_battle.TryUndoLast())
 			return false;
 
 		ClearInteraction();
@@ -125,8 +124,7 @@ public sealed class BattlePresenter
 		if (optionIndex < 0 || optionIndex >= options.Count)
 			return false;
 
-		var ownerId = _manager.Player.OwnerId;
-		if (!_manager.Player.TryEnqueueMovePath(options[optionIndex]))
+		if (!_battle.TryEnqueueMovePath(options[optionIndex]))
 			return false;
 
 		_selection.Clear();
@@ -138,8 +136,7 @@ public sealed class BattlePresenter
 		if (MissileMount is not EMissileMount mount)
 			return false;
 
-		var ownerId = _manager.Player.OwnerId;
-		if (!_manager.Player.TryEnqueue(new MissileAction(ownerId, center, mount, MissileRange)))
+		if (!_battle.TryEnqueue(new MissileAction(_battle.OwnerId, center, mount, MissileRange)))
 			return false;
 
 		MissileHover = null;
@@ -148,14 +145,12 @@ public sealed class BattlePresenter
 
 	public bool TryQueueFlak(Coord cell)
 	{
-		var planning = _manager.Player;
-		var frame = BodyFrame.From(planning.Board.StateOf(planning.OwnerId));
+		var frame = BodyFrame.From(_battle.Board.StateOf(_battle.OwnerId));
 		var mount = FlakTargeting.MountForCell(frame, cell);
 		if (mount is null)
 			return false;
 
-		var ownerId = planning.OwnerId;
-		if (!planning.TryEnqueue(new FlakAction(ownerId, mount.Value)))
+		if (!_battle.TryEnqueue(new FlakAction(_battle.OwnerId, mount.Value)))
 			return false;
 
 		FlakHover = null;
@@ -165,52 +160,43 @@ public sealed class BattlePresenter
 
 	public bool TryQueueRailgun(Unit target)
 	{
-		var ownerId = _manager.Player.OwnerId;
-		if (!_manager.Player.TryEnqueue(new RailgunAction(ownerId, target.State.Id)))
+		if (!_battle.TryEnqueue(new RailgunAction(_battle.OwnerId, target.State.Id)))
 			return false;
 
 		RailgunHover = null;
 		return true;
 	}
 
-	public bool TryQueueRoll(ERollDirection direction)
-	{
-		var ownerId = _manager.Player.OwnerId;
-		return _manager.Player.TryEnqueue(new RollAction(ownerId, direction));
-	}
+	public bool TryQueueRoll(ERollDirection direction) =>
+		_battle.TryEnqueue(new RollAction(_battle.OwnerId, direction));
 
-	public bool TryQueueHeadingTurn(EHeadingTurn turn)
-	{
-		var ownerId = _manager.Player.OwnerId;
-		return _manager.Player.TryEnqueue(new HeadingTurnAction(ownerId, turn));
-	}
+	public bool TryQueueHeadingTurn(EHeadingTurn turn) =>
+		_battle.TryEnqueue(new HeadingTurnAction(_battle.OwnerId, turn));
 
 	public bool IsRailgunLegal(Unit target)
 	{
-		var enemy = _manager.GetEnemy();
-		var ownerId = _manager.Player.OwnerId;
+		var enemy = _battle.GetEnemy();
 		return enemy is not null
 			&& target.State.Id == enemy.State.Id
-			&& _manager.Player.IsLegal(new RailgunAction(ownerId, target.State.Id));
+			&& _battle.IsLegal(new RailgunAction(_battle.OwnerId, target.State.Id));
 	}
 
 	public bool IsPlayerVictory() =>
-		_manager.IsBattleOver
-		&& _manager.WinnerId == _manager.Player.OwnerId;
+		_battle.IsBattleOver
+		&& _battle.WinnerId == _battle.OwnerId;
 
 	public PresentationFrame BuildFrame()
 	{
-		var planning = _manager.Player;
-		var activeUnit = planning.GetActiveActor();
-		var moveOptions = View.GetMoveHighlights(planning, activeUnit);
+		var activeUnit = _battle.GetActiveActor();
+		var moveOptions = View.GetMoveHighlights(_battle, activeUnit);
 		_selection.ClampToCount(moveOptions.Count);
 
-		var exitMissileMode = Mode == EPlayerMode.Missile && planning.MissilesRemainingThisTurn <= 0;
+		var exitMissileMode = Mode == EPlayerMode.Missile && _battle.MissilesRemainingThisTurn <= 0;
 		if (exitMissileMode)
 			CancelMissileMode();
 
-		var simulation = View.GetTurnGhost(planning);
-		var hazardCells = View.GetPlannedHazardHighlights(planning);
+		var previewBoard = View.GetTurnGhost(_battle);
+		var hazardCells = View.GetPlannedHazardHighlights(_battle);
 		var validMissileCells = GetValidMissileCells(activeUnit);
 		var missilePreviewCells = GetMissilePreviewCells(activeUnit);
 		var validFlakPortCells = GetFlakBurstCells(EFlakMount.Port);
@@ -218,21 +204,23 @@ public sealed class BattlePresenter
 		var validFlakPickCells = new HashSet<Coord>(validFlakPortCells);
 		validFlakPickCells.UnionWith(validFlakStarboardCells);
 		var flakPreviewCells = GetFlakPreviewCells();
-		var railgunTargets = View.GetRailgunTargetHighlights(planning, activeUnit);
-		var enemyId = planning.Opponent.State.Id;
+		var railgunTargets = View.GetRailgunTargetHighlights(_battle, activeUnit);
+		var enemyId = _battle.Opponent.State.Id;
 		var (path, target) = MovementSelection.GetHighlights(moveOptions, _selection.HoveredIndex);
 		(path, target) = MovementSelection.WithCommittedMove(
-			planning.Actions,
+			_battle.Actions,
 			path,
 			target,
-			planning.Simulation.AnchorWorld,
-			planning.Simulation.AnchorRuntime,
-			planning.OwnerId);
+			_battle.Session.AnchorWorld,
+			_battle.Session.AnchorRuntime,
+			_battle.OwnerId);
 
-		var ownerId = planning.OwnerId;
+		var ownerId = _battle.OwnerId;
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
-			&& planning.IsLegal(new MissileAction(ownerId, hover, mount, MissileRange));
+			&& _battle.IsLegal(new MissileAction(ownerId, hover, mount, MissileRange));
+
+		var actorState = previewBoard.StateOf(ownerId);
 
 		return new PresentationFrame
 		{
@@ -241,7 +229,8 @@ public sealed class BattlePresenter
 			MissileRange = MissileRange,
 			ActiveUnit = activeUnit,
 			MoveOptions = moveOptions,
-			Simulation = simulation,
+			PreviewBoard = previewBoard,
+			ActorState = actorState,
 			PlannedHazardCells = hazardCells,
 			ValidMissileCells = validMissileCells,
 			MissilePreviewCells = missilePreviewCells,
@@ -250,17 +239,17 @@ public sealed class BattlePresenter
 			FlakPreviewCells = flakPreviewCells,
 			ValidFlakPickCells = validFlakPickCells,
 			RailgunTargetCells = railgunTargets,
-			RailgunHoveredCell = GetRailgunHoveredCell(simulation, enemyId),
+			RailgunHoveredCell = GetRailgunHoveredCell(previewBoard, enemyId),
 			MovePath = path,
 			MoveTarget = target,
 			MissileAimActive = Mode == EPlayerMode.Missile && MissileMount is not null && activeUnit is not null,
-			MissileAimShip = Mode == EPlayerMode.Missile ? simulation.Actor : null,
-			HintText = BuildHint(activeUnit, simulation, missileInRange, planning),
-			CanAct = !_manager.IsBattleOver && activeUnit is not null && !_manager.IsResolving,
-			MissilesRemaining = planning.MissilesRemainingThisTurn,
-			FlakAvailable = ActionQueries.IsFlakAvailable(planning.Context, planning.OwnerId),
+			MissileAimShip = Mode == EPlayerMode.Missile ? actorState : null,
+			HintText = BuildHint(activeUnit, actorState),
+			CanAct = !_battle.IsBattleOver && activeUnit is not null && !_battle.IsResolving,
+			MissilesRemaining = _battle.MissilesRemainingThisTurn,
+			FlakAvailable = ActionQueries.IsFlakAvailable(_battle.Board, _battle.Runtime, _battle.OwnerId),
 			ExitMissileMode = exitMissileMode,
-			ShowOutcomeOverlay = _manager.IsBattleOver,
+			ShowOutcomeOverlay = _battle.IsBattleOver,
 			PlayerWon = IsPlayerVictory(),
 		};
 	}
@@ -270,7 +259,7 @@ public sealed class BattlePresenter
 		if (Mode != EPlayerMode.Missile || MissileMount is not EMissileMount mount || unit is null)
 			return [];
 
-		return View.GetMissileTargetHighlights(_manager.Player, mount, MissileRange);
+		return View.GetMissileTargetHighlights(_battle, mount, MissileRange);
 	}
 
 	private HashSet<Coord> GetMissilePreviewCells(Unit? unit)
@@ -279,12 +268,12 @@ public sealed class BattlePresenter
 			|| MissileMount is not EMissileMount mount
 			|| unit is null
 			|| MissileHover is not Coord hover
-			|| !_manager.Player.IsLegal(new MissileAction(_manager.Player.OwnerId, hover, mount, MissileRange)))
+			|| !_battle.IsLegal(new MissileAction(_battle.OwnerId, hover, mount, MissileRange)))
 		{
 			return [];
 		}
 
-		return View.GetMissileBlastHighlights(hover, _manager.Player.Grid);
+		return View.GetMissileBlastHighlights(hover, _battle.Grid);
 	}
 
 	private HashSet<Coord> GetFlakBurstCells(EFlakMount mount)
@@ -292,7 +281,7 @@ public sealed class BattlePresenter
 		if (Mode != EPlayerMode.Flak)
 			return [];
 
-		return View.GetFlakBurstHighlights(_manager.Player, mount);
+		return View.GetFlakBurstHighlights(_battle, mount);
 	}
 
 	private HashSet<Coord> GetFlakPreviewCells()
@@ -300,45 +289,42 @@ public sealed class BattlePresenter
 		if (Mode != EPlayerMode.Flak || FlakHover is not Coord hover)
 			return [];
 
-		var planning = _manager.Player;
-		var frame = BodyFrame.From(planning.Board.StateOf(planning.OwnerId));
+		var frame = BodyFrame.From(_battle.Board.StateOf(_battle.OwnerId));
 		var mount = FlakTargeting.MountForCell(frame, hover);
 		if (mount is null)
 			return [];
 
-		if (!planning.IsLegal(new FlakAction(planning.OwnerId, mount.Value)))
+		if (!_battle.IsLegal(new FlakAction(_battle.OwnerId, mount.Value)))
 			return [];
 
-		return View.GetFlakBurstHighlights(planning, mount.Value);
+		return View.GetFlakBurstHighlights(_battle, mount.Value);
 	}
 
-	private Coord? GetRailgunHoveredCell(SimulatedTurn simulation, string targetUnitId) =>
+	private Coord? GetRailgunHoveredCell(BattleBoard previewBoard, string targetUnitId) =>
 		RailgunHover is not null && IsRailgunLegal(RailgunHover)
-			? simulation.Board.StateOf(targetUnitId).Position
+			? previewBoard.StateOf(targetUnitId).Position
 			: null;
 
-	private string BuildHint(
-		Unit? unit,
-		SimulatedTurn simulation,
-		bool missileInRange,
-		PlayerController planning)
+	private string BuildHint(Unit? unit, State actorState)
 	{
 		if (unit is null)
 			return "No active unit  |  WASD: pan  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
 
-		var turnPrefix = _manager.IsBattleOver
-			? $"Battle over — winner: {_manager.WinnerId}  |  "
-			: $"Turn {_manager.Turn.TurnNumber}  |  ";
+		var turnPrefix = _battle.IsBattleOver
+			? $"Battle over — winner: {_battle.WinnerId}  |  "
+			: $"Turn {_battle.TurnNumber}  |  ";
 
 		return turnPrefix + CombatHints.BuildHint(
 			Mode,
-			simulation.Actor,
-			planning.MissilesRemainingThisTurn,
-			planning.Actions.Count,
+			actorState,
+			_battle.MissilesRemainingThisTurn,
+			_battle.Actions.Count,
 			RailgunHover,
 			MissileMount,
 			MissileRange,
 			MissileHover,
-			missileInRange);
+			MissileHover is Coord hover
+				&& MissileMount is EMissileMount mount
+				&& _battle.IsLegal(new MissileAction(_battle.OwnerId, hover, mount, MissileRange)));
 	}
 }

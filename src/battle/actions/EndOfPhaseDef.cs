@@ -1,25 +1,33 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class EndOfPhaseDef : IActionDef
+public sealed class EndOfPhaseDef
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
 {
 	public static EndOfPhaseDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleActionContext ctx, string ownerId) => [];
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId) => [];
 
-	public bool IsPossible(IAction action, BattleActionContext ctx) => true;
+	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
 
-	public bool IsLegal(IAction action, BattleActionContext ctx) => true;
+	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) => true;
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(IAction action, BattleActionContext ctx) =>
-		Resolve(Cast(action), ctx);
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		IAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
+		Resolve(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(EndOfPhaseAction action, BattleActionContext ctx)
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		EndOfPhaseAction action,
+		BattleBoard world,
+		ActorSession runtime)
 	{
-		if (ctx.PhaseContext.IsMovePathStarted)
+		if (runtime.IsMovePathStarted)
 			return [];
 
 		return [new MomentumDecayEffect()];

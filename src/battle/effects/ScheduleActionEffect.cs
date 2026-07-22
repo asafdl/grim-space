@@ -1,9 +1,11 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class ScheduleActionEffect(int delayTicks, IAction action) : IEffect<BattleSlices>
+public sealed class ScheduleActionEffect(int delayTicks, IAction action) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(BattleSlices slices) => slices.Timeline.Schedule(delayTicks, action);
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
+		world.Timeline.Schedule(delayTicks, action);
 }

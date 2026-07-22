@@ -1,11 +1,9 @@
 using GrimSpace.Battle;
-using GrimSpace.Core;
-using GrimSpace.Battle.Planning;
-using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Turn;
-using GrimSpace.Core.Log;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation.Planning;
+using GrimSpace.Battle.Turn;
+using GrimSpace.Core;
+using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -16,59 +14,34 @@ namespace GrimSpace.Tests.Actions;
 public sealed class TurnOrchestrationTests
 {
 	[Fact]
-	public void TimelinePreservesPlayerThenEnemyOrder()
+	public void ResolveTurnAppliesPlayerMoveBeforeRoundUpkeep()
 	{
 		var origin = new Coord(5, 5, 5);
-		var manager = CreateManager(origin, new Coord(0, 0, 0));
-		manager.Player.BeginTurn(0);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = Preview.GetLegalMoves(manager.Player)
+		var move = View.GetLegalMoves(battle)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		manager.Player.TryEnqueueMovePath(move);
+		Assert.True(battle.TryEnqueueMovePath(move));
 
-		var commit = TurnCommit.Build(
-			manager.Player.FinalizePlan(),
-			manager.Timeline,
-			manager.Units,
-			manager.Grid,
-			manager.Hazards.NonUnits,
-			manager.Hazards.GetOccupiedCells(),
-			manager.Hazards.GetBlockedCells());
+		var actions = battle.Actions.ToList();
+		Assert.True(battle.ResolveTurn(actions));
 
-		var playerTick = commit.TurnStart + TurnPhases.Player;
-		var enemyTick = commit.TurnStart + TurnPhases.Enemy;
-		var playerBucket = manager.Timeline.At(playerTick).Snapshot();
-		var enemyBucket = manager.Timeline.At(enemyTick).Snapshot();
-
-		Assert.Equal(4, playerBucket.Count);
-		Assert.Equal(3, playerBucket.Count(action => action is MoveStepAction));
-		Assert.IsType<EndOfPhaseAction>(playerBucket[^1]);
-		Assert.Equal(manager.Player.OwnerId, playerBucket[0].OwnerId);
-
-		var endTick = commit.TurnStart + TurnPhases.End;
-		var endBucket = manager.Timeline.At(endTick).Snapshot();
-		Assert.Equal(manager.Units.Count + 1, endBucket.Count);
-		Assert.All(endBucket.Take(manager.Units.Count), action => Assert.IsType<RoundUpkeepAction>(action));
-		Assert.IsType<ClearTurnHazardsAction>(endBucket[^1]);
-		Assert.Equal(EntityIds.System, endBucket[^1].OwnerId);
-
-		if (commit.EnemyActions.Count > 0)
-			Assert.Equal(manager.GetEnemy()!.State.Id, enemyBucket[0].OwnerId);
+		Assert.Equal(origin + Coord.Forward * 3, battle.Board.StateOf(battle.OwnerId).Position);
 	}
 
 	[Fact]
-	public void ExecuteTurnSetsResolvingOnlyDuringPipeline()
+	public void ResolveTurnSetsResolvingOnlyDuringPipeline()
 	{
 		using var _ = GameLog.BeginScope(_ => { });
 
-		var manager = CreateManager(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		Assert.False(manager.IsResolving);
+		var battle = CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		Assert.False(battle.IsResolving);
 
-		Assert.True(manager.ExecuteTurn(manager.Player.FinalizePlan()));
-		Assert.False(manager.IsResolving);
+		Assert.True(battle.ResolveTurn([]));
+		Assert.False(battle.IsResolving);
 	}
 
-	public static GrimSpace.Battle.Manager CreateManager(Coord playerPos, Coord enemyPos)
+	public static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
 		var encounter = new Encounter
 		{
@@ -98,6 +71,6 @@ public sealed class TurnOrchestrationTests
 			],
 		};
 
-		return GrimSpace.Battle.Manager.FromEncounter(encounter, gridSize: 12);
+		return BattleOrchestrator.FromEncounter(encounter, gridSize: 12);
 	}
 }

@@ -1,6 +1,6 @@
 namespace GrimSpace.Core.Actions;
 
-public interface IEffect<in TSlice>
+public interface IEffect<TWorld, TRuntime>
 {
-	void Apply(TSlice slices);
+	void Apply(TWorld world, TRuntime runtime, string actorId);
 }

@@ -12,7 +12,7 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Battle.Presentation.Scene;
 
 /// <summary>
-/// Thin scene connector: wires Godot input and nodes to <see cref="BattlePresenter"/> and <see cref="Manager"/>.
+/// Thin scene connector: wires Godot input and nodes to <see cref="BattlePresenter"/> and <see cref="BattleOrchestrator"/>.
 /// </summary>
 public partial class BattleController : Node3D, IPresentationEventSink
 {
@@ -33,34 +33,34 @@ public partial class BattleController : Node3D, IPresentationEventSink
 	{
 		GameLog.Configure(GD.Print);
 
-		var manager = Manager.FromEncounter(Session.Instance.CurrentEncounter);
-		_presenter = new BattlePresenter(manager);
+		var battle = BattleOrchestrator.FromEncounter(Session.Instance.CurrentEncounter);
+		_presenter = new BattlePresenter(battle);
 
 		var backdrop = new SpaceBackdrop();
-		backdrop.Build(manager.Grid);
+		backdrop.Build(battle.Grid);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
 		_camera = GetNode<Controller>("Camera3D");
 		_gridView = GetNode<GridView>("GridView");
-		_gridView.Build(manager.Grid);
+		_gridView.Build(battle.Grid);
 
-		var gridCenter = WorldMapping.GridCenter(manager.Grid);
+		var gridCenter = WorldMapping.GridCenter(battle.Grid);
 		_camera.SetPivot(gridCenter);
-		var chamberRadius = manager.Grid.Width * WorldMapping.CellSize * 0.5f;
+		var chamberRadius = battle.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
 		var hazardsRoot = new Node3D { Name = "BoardHazards" };
 		AddChild(hazardsRoot);
 		var hazardView = new BoardHazardView();
-		hazardView.Build(manager.Hazards.Board);
+		hazardView.Build(battle.Hazards.Board);
 		hazardsRoot.AddChild(hazardView);
 
 		_missileRangeIndicator = new MissileRangeIndicator();
 		AddChild(_missileRangeIndicator);
 
 		var unitsRoot = GetNode<Node3D>("Units");
-		foreach (var unit in manager.Units)
+		foreach (var unit in battle.Units)
 		{
 			var view = new UnitView();
 			view.Bind(unit.State, ColorFor(unit.Controller));
@@ -77,10 +77,10 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	public override void _Process(double _)
 	{
-		if (_presenter.Manager.IsResolving
+		if (_presenter.Battle.IsResolving
 			|| _presenter.Mode != EPlayerMode.Move
-			|| _presenter.Manager.IsBattleOver
-			|| _presenter.Manager.Player.GetActiveActor() is null)
+			|| _presenter.Battle.IsBattleOver
+			|| _presenter.Battle.GetActiveActor() is null)
 		{
 			_lastHoveredMoveIndex = null;
 			return;
@@ -145,10 +145,10 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_presenter.Manager.IsBattleOver)
+		if (_presenter.Battle.IsBattleOver)
 			return;
 
-		if (_presenter.Manager.IsResolving)
+		if (_presenter.Battle.IsResolving)
 			return;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -207,7 +207,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		}
 
 		var frame = _presenter.BuildFrame();
-		if (_presenter.Manager.IsBattleOver || frame.ActiveUnit is null)
+		if (_presenter.Battle.IsBattleOver || frame.ActiveUnit is null)
 			return;
 
 		if (@event is InputEventMouseMotion motion)
@@ -240,7 +240,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 				break;
 
 			case EPlayerMode.Railgun:
-				var picked = GridPick.PickUnit(_camera, screenPos, _presenter.Manager.Units);
+				var picked = GridPick.PickUnit(_camera, screenPos, _presenter.Battle.Units);
 				_presenter.SetRailgunHover(picked);
 				break;
 		}
@@ -271,7 +271,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 				break;
 
 			case EPlayerMode.Railgun:
-				var target = GridPick.PickUnit(_camera, screenPos, _presenter.Manager.Units);
+				var target = GridPick.PickUnit(_camera, screenPos, _presenter.Battle.Units);
 				if (target is not null)
 					_presenter.TryQueueRailgun(target);
 				break;
@@ -324,9 +324,9 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ApplyUnitViews(PresentationFrame frame)
 	{
-		foreach (var unit in _presenter.Manager.Units)
+		foreach (var unit in _presenter.Battle.Units)
 		{
-			var display = frame.Simulation.Board.StateOf(unit.State.Id);
+			var display = frame.PreviewBoard.StateOf(unit.State.Id);
 			_unitViews[unit.State.Id].SyncFromState(display);
 		}
 	}
@@ -341,7 +341,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ApplyGrid(PresentationFrame frame)
 	{
-		if (frame.ActiveUnit is null || _presenter.Manager.IsBattleOver)
+		if (frame.ActiveUnit is null || _presenter.Battle.IsBattleOver)
 		{
 			_gridView.ClearHighlights();
 			_missileRangeIndicator.SetActive(null, 0);
@@ -360,7 +360,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 				break;
 
 			case EPlayerMode.Missile:
-				_missileRangeIndicator.SetActive(frame.Simulation.Actor.Position, frame.MissileRange);
+				_missileRangeIndicator.SetActive(frame.ActorState.Position, frame.MissileRange);
 				_gridView.SetMissileHighlights(
 					frame.PlannedHazardCells,
 					frame.ValidMissileCells,
@@ -424,7 +424,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	public void OnActionApplied(PresentationEvent presentationEvent)
 	{
-		foreach (var unit in _presenter.Manager.Units)
+		foreach (var unit in _presenter.Battle.Units)
 			_unitViews[unit.State.Id].SyncFromState(unit.State);
 	}
 }

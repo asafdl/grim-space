@@ -1,26 +1,23 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Turn;
-using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MoveStepMomentumEffect(EStepDirection direction) : IEffect<BattleSlices>
+public sealed class MoveStepMomentumEffect(EStepDirection direction) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(State actor, TurnPhaseContext phaseContext)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
+		var actor = world.StateOf(actorId);
 		var buildup = MomentumConfig.ApplyMovementStep(
-			phaseContext.MovementBuildup,
+			runtime.MovementBuildup,
 			direction,
-			phaseContext.MoveStartMomentumLevel,
-			phaseContext.MomentumGainedFromMovement);
-		phaseContext.MovementBuildupLevel = buildup.Level;
-		phaseContext.MovementBuildupForwardSteps = buildup.ForwardStepsTowardGain;
+			runtime.MoveStartMomentumLevel,
+			runtime.MomentumGainedFromMovement);
+		runtime.MovementBuildupLevel = buildup.Level;
+		runtime.MovementBuildupForwardSteps = buildup.ForwardStepsTowardGain;
 		actor.MomentumLevel = buildup.Level;
 	}
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) =>
-		Apply(slices.Ap.Player, slices.PhaseContext);
 }

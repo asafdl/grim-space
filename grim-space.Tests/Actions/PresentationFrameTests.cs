@@ -1,7 +1,6 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Planning;
+using GrimSpace.Battle.Presentation.Planning;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -15,9 +14,9 @@ public sealed class PresentationFrameTests
 	public void FrameAfterCommittedMoveShowsPostPlanEndpointsNotSelectionEndpoints()
 	{
 		var origin = new Coord(5, 5, 5);
-		var manager = CreateManager(origin, new Coord(0, 0, 0));
-		var presenter = new BattlePresenter(manager);
-		var options = Preview.GetLegalMoves(manager.Player).ToList();
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var presenter = new BattlePresenter(battle);
+		var options = View.GetLegalMoves(battle).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -26,7 +25,7 @@ public sealed class PresentationFrameTests
 		var frame = presenter.BuildFrame();
 		var endpoints = frame.MoveOptions.Select(option => option.EndPosition).ToHashSet();
 
-		Assert.Equal(origin + Coord.Forward * 3, frame.Simulation.Actor.Position);
+		Assert.Equal(origin + Coord.Forward * 3, frame.ActorState.Position);
 		Assert.DoesNotContain(origin + Coord.Forward * 4, endpoints);
 		Assert.Equal(origin + Coord.Forward * 3, frame.MoveTarget);
 		Assert.Equal(3, frame.MovePath.Count);
@@ -36,9 +35,9 @@ public sealed class PresentationFrameTests
 	public void UndoClearsCommittedMoveFromFrame()
 	{
 		var origin = new Coord(5, 5, 5);
-		var manager = CreateManager(origin, new Coord(0, 0, 0));
-		var presenter = new BattlePresenter(manager);
-		var options = Preview.GetLegalMoves(manager.Player).ToList();
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var presenter = new BattlePresenter(battle);
+		var options = View.GetLegalMoves(battle).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -47,7 +46,7 @@ public sealed class PresentationFrameTests
 
 		var frame = presenter.BuildFrame();
 
-		Assert.Equal(origin, frame.Simulation.Actor.Position);
+		Assert.Equal(origin, frame.ActorState.Position);
 		Assert.Null(frame.MoveTarget);
 		Assert.Empty(frame.MovePath);
 		Assert.Contains(
@@ -55,7 +54,7 @@ public sealed class PresentationFrameTests
 			option => option.EndPosition == origin + Coord.Forward * 4);
 	}
 
-	private static Manager CreateManager(Coord playerPos, Coord enemyPos)
+	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
 		var encounter = new Encounter
 		{
@@ -85,6 +84,6 @@ public sealed class PresentationFrameTests
 			],
 		};
 
-		return Manager.FromEncounter(encounter, gridSize: 12);
+		return BattleOrchestrator.FromEncounter(encounter, gridSize: 12);
 	}
 }

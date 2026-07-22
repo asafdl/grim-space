@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
@@ -70,10 +70,11 @@ public sealed class MovePathFinderTests
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		var phaseContext = new TurnPhaseContext();
-		var ctx = BattleActionContext.For(board, phaseContext, PlayerId);
+		var runtime = new ActorSession();
+		for (var i = 0; i < steps.Count - 1; i++)
+			((IAction<BattleBoard, ActorSession>)steps[i]).Apply(board, runtime);
 
-		Assert.False(MoveDef.Instance.IsLegal(steps[^1], ctx));
+		Assert.False(MoveDef.Instance.IsLegal(steps[^1], board, runtime));
 	}
 
 	[Fact]
@@ -144,7 +145,7 @@ public sealed class MovePathFinderTests
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			blocked);
-		var phaseContext = new TurnPhaseContext();
-		return MovePathFinder.Find(board, phaseContext, PlayerId);
+		var runtime = new ActorSession();
+		return MovePathFinder.Find(board, runtime, PlayerId);
 	}
 }

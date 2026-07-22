@@ -1,55 +1,62 @@
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Slices;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed class FlakDef(EFlakMount mount) : IActionDef
+public sealed class FlakDef(EFlakMount mount)
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
 {
 	public EFlakMount Mount { get; } = mount;
 
 	public static FlakDef For(EFlakMount mount) => new(mount);
 
-	public IEnumerable<IAction> Discover(BattleActionContext ctx, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
 	{
 		var action = new FlakAction(ownerId, Mount);
-		if (IsPossible(action, ctx))
+		if (IsPossible(action, world, runtime))
 			yield return action;
 	}
 
-	public bool IsPossible(IAction action, BattleActionContext ctx) =>
-		IsPossible(Cast(action), ctx);
+	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleActionContext ctx) =>
-		IsLegal(Cast(action), ctx);
+	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(IAction action, BattleActionContext ctx) =>
-		Resolve(Cast(action), ctx);
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		IAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
+		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(FlakAction action, BattleActionContext ctx)
+	public bool IsPossible(FlakAction action, BattleBoard world, ActorSession runtime)
 	{
-		var frame = BodyFrame.From(ctx.Board.StateOf(action.OwnerId));
+		var frame = BodyFrame.From(world.StateOf(action.OwnerId));
 		var config = FlakMountConfig.For(action.Mount);
-		return FlakTargeting.IsValidBurst(frame, config, ctx.Board.Grid.IsInBounds);
+		return FlakTargeting.IsValidBurst(frame, config, world.Grid.IsInBounds);
 	}
 
-	public bool IsLegal(FlakAction action, BattleActionContext ctx)
+	public bool IsLegal(FlakAction action, BattleBoard world, ActorSession runtime)
 	{
-		if (ctx.PhaseContext.FlakUsedThisTurn)
+		if (runtime.FlakUsedThisTurn)
 			return false;
 
-		return IsPossible(action, ctx);
+		return IsPossible(action, world, runtime);
 	}
 
-	public IReadOnlyList<IEffect<BattleSlices>> Resolve(FlakAction action, BattleActionContext ctx)
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		FlakAction action,
+		BattleBoard world,
+		ActorSession runtime)
 	{
-		var board = ctx.Board;
-		var frame = BodyFrame.From(board.StateOf(action.OwnerId));
+		var frame = BodyFrame.From(world.StateOf(action.OwnerId));
 		var config = FlakMountConfig.For(action.Mount);
-		var cells = FlakTargeting.GetBurstCells(frame, config, board.Grid.IsInBounds);
-		var hazardId = board.IdRegistry.NextNonUnitId("flak-burst");
+		var cells = FlakTargeting.GetBurstCells(frame, config, world.Grid.IsInBounds);
+		var hazardId = world.IdRegistry.NextNonUnitId("flak-burst");
 
 		return
 		[

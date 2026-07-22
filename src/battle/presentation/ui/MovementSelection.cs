@@ -2,12 +2,11 @@ using System.Collections.Generic;
 using Godot;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Slices;
-using GrimSpace.Battle.Turn;
-using GrimSpace.Core.Engine;
-using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -49,7 +48,7 @@ public static class MovementSelection
 		IReadOnlyList<Coord> path,
 		Coord? target,
 		BattleBoard anchorBoard,
-		TurnPhaseContext anchorRuntime,
+		ActorSession anchorRuntime,
 		string ownerId)
 	{
 		if (path.Count > 0 || target is not null)
@@ -65,7 +64,7 @@ public static class MovementSelection
 
 	public static IReadOnlyList<Coord> RebuildMovePath(
 		BattleBoard anchorBoard,
-		TurnPhaseContext anchorRuntime,
+		ActorSession anchorRuntime,
 		string ownerId,
 		IReadOnlyList<MoveStepAction> steps)
 	{
@@ -75,8 +74,7 @@ public static class MovementSelection
 
 		foreach (var step in steps)
 		{
-			var ctx = BattleActionContext.For(board, runtime, ownerId);
-			BattleActionRunner.Apply(step, ctx);
+			((IAction<BattleBoard, ActorSession>)step).Apply(board, runtime);
 			path.Add(board.StateOf(ownerId).Position);
 		}
 

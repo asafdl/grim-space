@@ -19,7 +19,7 @@ public sealed class FlakActionTests
 		Assert.True(plan.TryApplyAndEnqueue(flak));
 
 		var resolveTick = plan.TurnStartTick + CombatConfig.FlakResolveDelay;
-		var scheduled = plan.PreviewTimeline.SnapshotAt(resolveTick);
+		var scheduled = plan.Board.Timeline.At(resolveTick).Snapshot();
 		Assert.Single(scheduled);
 		Assert.IsType<ResolveHazardAction>(scheduled[0]);
 		Assert.NotEmpty(plan.Board.TurnHazards);

@@ -1,18 +1,17 @@
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
-using GrimSpace.Math.Grid;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleSlices>
+public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(BattleBoard board, State actor)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		foreach (var hazard in board.Hazards)
+		var actor = world.StateOf(actorId);
+		foreach (var hazard in world.Hazards)
 		{
 			if (!hazard.Cells.Contains(cell))
 				continue;
@@ -20,14 +19,11 @@ public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleSlices>
 			HazardResolution.ApplyToUnitAt(hazard, actor);
 		}
 	}
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) =>
-		Apply(slices.Board, slices.Ap.Player);
 }
 
 public static class HazardResolution
 {
-	public static void ApplyToUnitAt(Hazard hazard, State unit)
+	public static void ApplyToUnitAt(Hazard hazard, Units.State unit)
 	{
 		switch (hazard.Kind)
 		{

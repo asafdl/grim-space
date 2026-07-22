@@ -1,3 +1,5 @@
+using GrimSpace.Core.Engine;
+
 namespace GrimSpace.Core.Actions;
 
 public interface IAction
@@ -7,16 +9,17 @@ public interface IAction
 	int? UndoGroup { get; }
 }
 
-public interface IAction<TContext, TSlice> : IAction
-	where TContext : ActionContext<TSlice>
+public interface IAction<TWorld, TRuntime> : IAction
+	where TWorld : IWorld<TWorld>
+	where TRuntime : IRuntimeContext<TRuntime>
 {
-	bool IsLegal(TContext context);
+	bool IsLegal(TWorld world, TRuntime runtime);
 
-	IReadOnlyList<IEffect<TSlice>> Resolve(TContext context);
+	IReadOnlyList<IEffect<TWorld, TRuntime>> Resolve(TWorld world, TRuntime runtime);
 
-	void Apply(TContext context)
+	void Apply(TWorld world, TRuntime runtime)
 	{
-		foreach (var effect in Resolve(context))
-			effect.Apply(context.Slices);
+		foreach (var effect in Resolve(world, runtime))
+			effect.Apply(world, runtime, OwnerId);
 	}
 }

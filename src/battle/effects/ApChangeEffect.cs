@@ -1,11 +1,11 @@
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class ApChangeEffect(int delta) : IEffect<BattleSlices>
+public sealed class ApChangeEffect(int delta) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(ApContext ap) => ap.Change(delta);
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.Ap);
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
+		world.StateOf(actorId).ActionPoints += delta;
 }

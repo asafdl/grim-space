@@ -5,16 +5,21 @@ namespace GrimSpace.Core.Engine;
 /// <summary>
 /// Stateful planning workspace: anchor world, preview fork, runtime, and action queue.
 /// </summary>
-public abstract class Simulation<TWorld, TRuntime, TContext, TSlice>
+public class Simulation<TWorld, TRuntime>
 	where TWorld : IWorld<TWorld>
 	where TRuntime : IRuntimeContext<TRuntime>
-	where TContext : ActionContext<TSlice>
 {
 	private readonly List<IAction> _actions = [];
-	private TWorld _anchorWorld = default!;
-	private TRuntime _anchorRuntime = default!;
+	private readonly TWorld _anchorWorld;
+	private readonly TRuntime _anchorRuntime;
 	private int _anchorTick;
 	private int _nextUndoGroup;
+
+	public Simulation(TWorld anchorWorld, TRuntime anchorRuntime)
+	{
+		_anchorWorld = anchorWorld;
+		_anchorRuntime = anchorRuntime;
+	}
 
 	public TWorld PreviewWorld { get; private set; } = default!;
 
@@ -28,10 +33,8 @@ public abstract class Simulation<TWorld, TRuntime, TContext, TSlice>
 
 	public TRuntime AnchorRuntime => _anchorRuntime;
 
-	public void Begin(TWorld anchorWorld, TRuntime anchorRuntime, int anchorTick)
+	public void Begin(int anchorTick)
 	{
-		_anchorWorld = anchorWorld;
-		_anchorRuntime = anchorRuntime;
 		_anchorTick = anchorTick;
 		_actions.Clear();
 		_nextUndoGroup = 0;
@@ -43,8 +46,10 @@ public abstract class Simulation<TWorld, TRuntime, TContext, TSlice>
 	public bool TryEnqueue(IAction action)
 	{
 		Reevaluate();
-		var ctx = CreateContext(PreviewWorld, PreviewRuntime, action.OwnerId);
-		if (!IsActionLegal(ctx, action))
+		if (action is not IAction<TWorld, TRuntime> typed)
+			return false;
+
+		if (!typed.IsLegal(PreviewWorld, PreviewRuntime))
 			return false;
 
 		_actions.Add(action);
@@ -78,10 +83,12 @@ public abstract class Simulation<TWorld, TRuntime, TContext, TSlice>
 		PreviewWorld = _anchorWorld.Fork();
 		PreviewRuntime = _anchorRuntime.Fork();
 
-		foreach (var action in ExpandPlayback(_actions))
+		foreach (var action in _actions)
 		{
-			var ctx = CreateContext(PreviewWorld, PreviewRuntime, action.OwnerId);
-			ApplyAction(ctx, action);
+			if (action is not IAction<TWorld, TRuntime> typed)
+				continue;
+
+			typed.Apply(PreviewWorld, PreviewRuntime);
 		}
 	}
 
@@ -94,14 +101,6 @@ public abstract class Simulation<TWorld, TRuntime, TContext, TSlice>
 				applyScheduled(action);
 		}
 	}
-
-	protected abstract TContext CreateContext(TWorld world, TRuntime runtime, string ownerId);
-
-	protected abstract bool IsActionLegal(TContext ctx, IAction action);
-
-	protected abstract void ApplyAction(TContext ctx, IAction action);
-
-	protected virtual IReadOnlyList<IAction> ExpandPlayback(IReadOnlyList<IAction> actions) => actions;
 
 	private void PopUndoGroup()
 	{

@@ -1,23 +1,19 @@
-using GrimSpace.Battle.Turn;
-using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class BeginMovePathEffect : IEffect<BattleSlices>
+public sealed class BeginMovePathEffect : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(State actor, TurnPhaseContext phaseContext)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		phaseContext.MinPathApCost = TurnPhaseContext.InitialMinPathApCost;
-		phaseContext.PathApSpent = 0;
-		phaseContext.PathForwardSteps = 0;
-		phaseContext.UsedDirectionsMask = 0;
-		phaseContext.MoveStartMomentumLevel = actor.MomentumLevel;
-		phaseContext.MovementBuildupLevel = actor.MomentumLevel;
-		phaseContext.MovementBuildupForwardSteps = 0;
+		runtime.MinPathApCost = ActorSession.InitialMinPathApCost;
+		runtime.PathApSpent = 0;
+		runtime.PathForwardSteps = 0;
+		runtime.UsedDirectionsMask = 0;
+		runtime.MoveStartMomentumLevel = world.StateOf(actorId).MomentumLevel;
+		runtime.MovementBuildupLevel = world.StateOf(actorId).MomentumLevel;
+		runtime.MovementBuildupForwardSteps = 0;
 	}
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) =>
-		Apply(slices.Ap.Player, slices.PhaseContext);
 }

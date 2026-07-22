@@ -1,13 +1,12 @@
-using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MomentumDecayEffect : IEffect<BattleSlices>
+public sealed class MomentumDecayEffect : IEffect<BattleBoard, ActorSession>
 {
-	public static void ApplyTo(State actor) =>
-		actor.MomentumLevel = System.Math.Max(actor.MomentumLevel - 1, 0);
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => ApplyTo(slices.Ap.Player);
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
+		world.StateOf(actorId).MomentumLevel =
+			System.Math.Max(world.StateOf(actorId).MomentumLevel - 1, 0);
 }

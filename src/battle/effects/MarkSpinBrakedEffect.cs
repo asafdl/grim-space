@@ -1,16 +1,14 @@
-using GrimSpace.Battle.Turn;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MarkSpinBrakedEffect : IEffect<BattleSlices>
+public sealed class MarkSpinBrakedEffect : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(TurnPhaseContext phaseContext)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		phaseContext.SpinBraked = true;
-		phaseContext.SpinDiscount = true;
+		runtime.SpinBraked = true;
+		runtime.SpinDiscount = true;
 	}
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.PhaseContext);
 }

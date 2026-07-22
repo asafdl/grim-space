@@ -1,12 +1,11 @@
-using GrimSpace.Battle.Turn;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class ConsumeSpinDiscountEffect : IEffect<BattleSlices>
+public sealed class ConsumeSpinDiscountEffect : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(TurnPhaseContext phaseContext) => phaseContext.SpinDiscount = false;
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.PhaseContext);
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
+		runtime.SpinDiscount = false;
 }

@@ -1,18 +1,17 @@
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class ResolveHazardEffect(string hazardId) : IEffect<BattleSlices>
+public sealed class ResolveHazardEffect(string hazardId) : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(BattleSlices slices)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		if (!slices.Board.NonUnits.TryGetValue(hazardId, out var nonUnit) || nonUnit is not Hazard hazard)
+		if (!world.NonUnits.TryGetValue(hazardId, out var nonUnit) || nonUnit is not Hazard hazard)
 			return;
 
-		foreach (var unit in slices.Board.Units.Values)
+		foreach (var unit in world.Units.Values)
 		{
 			if (!unit.State.IsAlive || !hazard.Cells.Contains(unit.State.Position))
 				continue;

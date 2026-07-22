@@ -1,3 +1,4 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Planning;
@@ -80,13 +81,11 @@ public sealed class PlanPreviewTests
 	public void ViewMoveHighlightsExposePlanPreviewLegalMoves()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = PlanningTestFixture.Controller(player, enemy);
-		planning.BeginTurn(0);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var expected = Preview.GetLegalMoves(planning);
-		var highlights = View.GetMoveHighlights(planning, player);
+		var expected = Preview.GetLegalMoves(
+			TestPlan.Begin(battle.OwnerId, origin));
+		var highlights = View.GetMoveHighlights(battle, battle.Actor);
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),

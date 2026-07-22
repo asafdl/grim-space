@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Planning;
+using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
@@ -15,7 +15,8 @@ public sealed class PresentationFrame
 	public int MissileRange { get; init; }
 	public Unit? ActiveUnit { get; init; }
 	public required IReadOnlyList<Option> MoveOptions { get; init; }
-	public required SimulatedTurn Simulation { get; init; }
+	public required BattleBoard PreviewBoard { get; init; }
+	public required State ActorState { get; init; }
 	public required IReadOnlySet<Coord> PlannedHazardCells { get; init; }
 	public required IReadOnlySet<Coord> ValidMissileCells { get; init; }
 	public required IReadOnlySet<Coord> MissilePreviewCells { get; init; }

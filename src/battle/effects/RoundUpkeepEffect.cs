@@ -1,13 +1,14 @@
-using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Slices;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class RoundUpkeepEffect : IEffect<BattleSlices>
+public sealed class RoundUpkeepEffect : IEffect<BattleBoard, ActorSession>
 {
-	public void Apply(State actor)
+	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
+		var actor = world.StateOf(actorId);
 		var maxAp = actor.Stats.MaxAp;
 		if (actor.ApPenaltyNextTurn)
 		{
@@ -18,6 +19,4 @@ public sealed class RoundUpkeepEffect : IEffect<BattleSlices>
 		actor.ActionPoints = maxAp;
 		actor.MissilesRemaining = actor.Stats.MissilesPerTurn;
 	}
-
-	void IEffect<BattleSlices>.Apply(BattleSlices slices) => Apply(slices.Ap.Player);
 }
