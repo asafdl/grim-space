@@ -1,5 +1,9 @@
+using GrimSpace.Battle;
+using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -12,6 +16,31 @@ internal static class BattleTestFixture
 	public const int DefaultGridSize = 12;
 
 	public static BoundedGrid Grid(int size = DefaultGridSize) => new(size, size, size);
+
+	public static BattleOrchestrator BeginPlanning(
+		Unit player,
+		Unit enemy,
+		BoundedGrid? grid = null,
+		IReadOnlySet<Coord>? blocked = null)
+	{
+		grid ??= Grid();
+		blocked ??= new HashSet<Coord> { enemy.State.Position };
+
+		var timeline = new Timeline();
+		var hazards = new HazardSystem();
+		var units = new Unit[] { player, enemy };
+		var battle = new BattleOrchestrator(grid, timeline, units, player, enemy, hazards, blocked);
+		battle.SetActiveUnit(player.State.Id);
+		battle.BeginTurn(0);
+		return battle;
+	}
+
+	public static BattleOrchestrator BeginPlanning(Coord origin, int momentum = 0)
+	{
+		var player = Player(origin, momentum: momentum);
+		var enemy = Enemy(new Coord(0, 0, 0));
+		return BeginPlanning(player, enemy);
+	}
 
 	public static Unit Player(
 		Coord position,

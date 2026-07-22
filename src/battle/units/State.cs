@@ -1,11 +1,13 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Units;
 
 public sealed class State
 {
 	public required string Id { get; init; }
+	public required EType Type { get; init; }
 	public Coord Position { get; set; }
 	public Coord Fore { get; set; }
 	public Coord Dorsal { get; set; }
@@ -23,6 +25,7 @@ public sealed class State
 		new()
 		{
 			Id = Id,
+			Type = Type,
 			Position = Position,
 			Fore = Fore,
 			Dorsal = Dorsal,
@@ -43,6 +46,7 @@ public sealed class State
 		return new State
 		{
 			Id = instance.Id,
+			Type = instance.Type,
 			Position = position,
 			Fore = fore,
 			Dorsal = dorsal,

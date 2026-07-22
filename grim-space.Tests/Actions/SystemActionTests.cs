@@ -60,12 +60,14 @@ public sealed class SystemActionTests
 	[Fact]
 	public void ResolveHazardActionRemovesHazardAfterApplying()
 	{
-		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
-		Assert.True(plan.TryApplyAndEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
-		Assert.NotEmpty(plan.Board.TurnHazards);
+		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		Assert.NotEmpty(battle.Board.TurnHazards);
 
-		plan.AdvanceToTick(plan.TurnStartTick + CombatConfig.FlakResolveDelay);
+		BattleTestApply.AdvancePreviewToTick(
+			battle,
+			battle.Session.AnchorTick + CombatConfig.FlakResolveDelay);
 
-		Assert.Empty(plan.Board.TurnHazards);
+		Assert.Empty(battle.Board.TurnHazards);
 	}
 }

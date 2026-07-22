@@ -1,3 +1,4 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Runtime;
@@ -60,6 +61,19 @@ internal static class BattleTestApply
 		}
 
 		return true;
+	}
+
+	public static void AdvancePreviewToTick(BattleOrchestrator battle, int tick)
+	{
+		for (var t = battle.Session.AnchorTick + 1; t <= tick; t++)
+		{
+			battle.Board.Timeline.Clock.Set(t);
+			while (battle.Board.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is IAction action)
+			{
+				if (action is IAction<BattleBoard, ActorSession> typed)
+					typed.Apply(battle.Board, battle.Runtime);
+			}
+		}
 	}
 
 	public static void ApplyCommittedAction(

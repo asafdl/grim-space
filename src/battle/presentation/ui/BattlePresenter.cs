@@ -247,7 +247,12 @@ public sealed class BattlePresenter
 			HintText = BuildHint(activeUnit, actorState),
 			CanAct = !_battle.IsBattleOver && activeUnit is not null && !_battle.IsResolving,
 			MissilesRemaining = _battle.MissilesRemainingThisTurn,
-			FlakAvailable = ActionQueries.IsFlakAvailable(_battle.Board, _battle.Runtime, _battle.OwnerId),
+			FlakAvailable = Capabilities.For(actorState.Type)
+				.OfType<FlakDef>()
+				.Any(def => def.IsLegal(
+					new FlakAction(_battle.OwnerId, def.Mount),
+					_battle.Board,
+					_battle.Runtime)),
 			ExitMissileMode = exitMissileMode,
 			ShowOutcomeOverlay = _battle.IsBattleOver,
 			PlayerWon = IsPlayerVictory(),

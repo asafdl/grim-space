@@ -44,13 +44,14 @@ public sealed class RoundUpkeepTests
 	public void ExecuteTurnRunsRoundUpkeepOnTimeline()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		battle.Actor.State.ActionPoints = 0;
-		battle.Actor.State.MissilesRemaining = 0;
+		var player = battle.GetPlayer()!;
+		player.State.ActionPoints = 0;
+		player.State.MissilesRemaining = 0;
 
 		Assert.True(battle.ResolveTurn([]));
 
-		Assert.Equal(MovementExpectations.FighterApPerTurn, battle.Actor.State.ActionPoints);
-		Assert.Equal(CombatConfig.MissilesPerTurn, battle.Actor.State.MissilesRemaining);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
+		Assert.Equal(CombatConfig.MissilesPerTurn, player.State.MissilesRemaining);
 	}
 
 	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)

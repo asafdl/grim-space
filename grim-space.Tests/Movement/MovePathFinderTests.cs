@@ -99,20 +99,19 @@ public sealed class MovePathFinderTests
 		var stepCount = 3;
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var plan = TestPlan.Begin(
-			PlayerId,
+		var battle = BattleTestFixture.BeginPlanning(
 			player,
 			enemy,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position });
 
 		var option = MovementExpectations.PureForwardMove(origin, stepCount, startMomentum);
-		plan.EnqueueMovePath(option);
+		Assert.True(battle.TryEnqueueMovePath(option));
 
-		Assert.Equal(origin + Coord.Forward * stepCount, plan.Board.StateOf(PlayerId).Position);
+		Assert.Equal(origin + Coord.Forward * stepCount, battle.Board.StateOf(PlayerId).Position);
 		Assert.Equal(
 			MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount),
-			plan.Board.StateOf(PlayerId).MomentumLevel);
+			battle.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
@@ -122,16 +121,15 @@ public sealed class MovePathFinderTests
 		var player = BattleTestFixture.Player(origin, momentum: 2);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.Fore);
-		var plan = TestPlan.Begin(
-			PlayerId,
+		var battle = BattleTestFixture.BeginPlanning(
 			player,
 			enemy,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position });
 
-		plan.EnqueueMovePath(retro);
+		Assert.True(battle.TryEnqueueMovePath(retro));
 
-		Assert.Equal(1, plan.Board.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(1, battle.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
 	private static IReadOnlyList<Option> GetMoveOptions(

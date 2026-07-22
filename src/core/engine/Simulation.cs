@@ -61,13 +61,6 @@ public class Simulation<TWorld, TRuntime>
 
 	public void Refresh() => Reevaluate();
 
-	public void CopyActionsFrom(IEnumerable<IAction> actions)
-	{
-		_actions.Clear();
-		foreach (var action in actions)
-			_actions.Add(action);
-	}
-
 	public bool TryUndoLast()
 	{
 		if (_actions.Count == 0)
@@ -89,16 +82,6 @@ public class Simulation<TWorld, TRuntime>
 				continue;
 
 			typed.Apply(PreviewWorld, PreviewRuntime);
-		}
-	}
-
-	public void AdvanceToTick(int tick, Action<IAction> applyScheduled)
-	{
-		for (var t = _anchorTick + 1; t <= tick; t++)
-		{
-			PreviewWorld.Timeline.Clock.Set(t);
-			while (PreviewWorld.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is IAction action)
-				applyScheduled(action);
 		}
 	}
 

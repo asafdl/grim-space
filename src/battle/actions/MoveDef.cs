@@ -119,6 +119,18 @@ public sealed class MoveDef
 		return steps;
 	}
 
+	public IEnumerable<Option> DiscoverPaths(
+		BattleBoard board,
+		ActorSession runtime,
+		string ownerId)
+	{
+		if (runtime.IsMovePathStarted)
+			yield break;
+
+		foreach (var option in MovePathFinder.Find(board, runtime, ownerId))
+			yield return option;
+	}
+
 	private static MoveStepAction Cast(IAction action) =>
 		action as MoveStepAction ?? throw new ArgumentException($"Expected {nameof(MoveStepAction)}.", nameof(action));
 }

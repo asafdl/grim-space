@@ -41,19 +41,29 @@ public static class View
 		if (session.PreviewRuntime.IsMovePathStarted)
 			return [];
 
-		return ActionQueries.GetMoveOptions(session.PreviewWorld, session.PreviewRuntime, actorId);
+		var board = session.PreviewWorld;
+		var runtime = session.PreviewRuntime;
+		var unitType = board.StateOf(actorId).Type;
+
+		return Capabilities.For(unitType)
+			.OfType<MoveDef>()
+			.SelectMany(def => def.DiscoverPaths(board, runtime, actorId))
+			.ToList();
 	}
 
 	public static HashSet<Coord> GetMissileTargetHighlights(
 		BattleOrchestrator battle,
 		EMissileMount mount,
-		int range) =>
-		ActionQueries.GetMissileCells(
-			battle.Board,
-			battle.Runtime,
-			battle.OwnerId,
-			mount,
-			range);
+		int range)
+	{
+		var board = battle.Board;
+		var ownerId = battle.OwnerId;
+		return MissileDef.For(mount, range)
+			.Discover(board, battle.Runtime, ownerId)
+			.OfType<MissileAction>()
+			.Select(missile => missile.Center)
+			.ToHashSet();
+	}
 
 	public static HashSet<Coord> GetMissileBlastHighlights(Coord center, BoundedGrid grid) =>
 		Hazard.MissileZone(
@@ -73,17 +83,24 @@ public static class View
 			return cells;
 
 		var enemy = battle.Opponent;
-		if (!ActionQueries.IsRailgunAvailable(
-			battle.Board,
-			battle.Runtime,
-			battle.OwnerId,
-			enemy.State.Id))
+		var action = new RailgunAction(battle.OwnerId, enemy.State.Id);
+		if (!RailgunDef.Instance.IsLegal(action, battle.Board, battle.Runtime))
 			return cells;
 
 		cells.Add(battle.Board.StateOf(enemy.State.Id).Position);
 		return cells;
 	}
 
-	public static HashSet<Coord> GetFlakBurstHighlights(BattleOrchestrator battle, EFlakMount mount) =>
-		ActionQueries.GetFlakBurstCells(battle.Board, battle.Runtime, battle.OwnerId, mount);
+	public static HashSet<Coord> GetFlakBurstHighlights(BattleOrchestrator battle, EFlakMount mount)
+	{
+		var board = battle.Board;
+		var ownerId = battle.OwnerId;
+		var action = new FlakAction(ownerId, mount);
+		if (!FlakDef.For(mount).IsLegal(action, board, battle.Runtime))
+			return [];
+
+		var frame = BodyFrame.From(board.StateOf(ownerId));
+		var config = FlakMountConfig.For(mount);
+		return FlakTargeting.GetBurstCells(frame, config, board.Grid.IsInBounds);
+	}
 }

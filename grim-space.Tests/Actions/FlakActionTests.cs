@@ -13,30 +13,32 @@ public sealed class FlakActionTests
 	public void FlakSchedulesResolveOnPreviewTimeline()
 	{
 		var origin = new Coord(5, 5, 5);
-		var plan = TestPlan.Begin(PlayerId, origin);
+		var battle = BattleTestFixture.BeginPlanning(origin);
 		var flak = new FlakAction(PlayerId, EFlakMount.Port);
 
-		Assert.True(plan.TryApplyAndEnqueue(flak));
+		Assert.True(battle.TryEnqueue(flak));
 
-		var resolveTick = plan.TurnStartTick + CombatConfig.FlakResolveDelay;
-		var scheduled = plan.Board.Timeline.At(resolveTick).Snapshot();
+		var resolveTick = battle.Session.AnchorTick + CombatConfig.FlakResolveDelay;
+		var scheduled = battle.Board.Timeline.At(resolveTick).Snapshot();
 		Assert.Single(scheduled);
 		Assert.IsType<ResolveHazardAction>(scheduled[0]);
-		Assert.NotEmpty(plan.Board.TurnHazards);
+		Assert.NotEmpty(battle.Board.TurnHazards);
 	}
 
 	[Fact]
 	public void AdvanceToTickAppliesFlakMomentumLoss()
 	{
 		var origin = new Coord(5, 5, 5);
-		var plan = TestPlan.Begin(PlayerId, origin, momentum: 1);
-		Assert.True(plan.TryApplyAndEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		var battle = BattleTestFixture.BeginPlanning(origin, momentum: 1);
+		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
-		var hazard = plan.Board.TurnHazards.First();
-		var enemy = plan.Board.Units.Values.First(unit => unit.State.Id != PlayerId);
+		var hazard = battle.Board.TurnHazards.First();
+		var enemy = battle.Board.Units.Values.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = hazard.Cells.First();
 
-		plan.AdvanceToTick(plan.TurnStartTick + CombatConfig.FlakResolveDelay);
+		BattleTestApply.AdvancePreviewToTick(
+			battle,
+			battle.Session.AnchorTick + CombatConfig.FlakResolveDelay);
 
 		Assert.Equal(0, enemy.State.MomentumLevel);
 		Assert.True(enemy.State.ApPenaltyNextTurn);

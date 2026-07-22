@@ -67,13 +67,10 @@ public sealed class BattleOrchestrator
 
 	public BattleSimulation Session => _session;
 	public string OwnerId => _player.State.Id;
-	public IReadOnlySet<Coord> BlockedCells => _blockedCells;
-	public Unit Actor => _player;
 	public Unit Opponent => _enemy;
 	public BattleBoard Board => _session.PreviewWorld;
 	public ActorSession Runtime => _session.PreviewRuntime;
 	public IReadOnlyList<IAction> Actions => _session.Actions;
-	public int TurnStartTick => _session.AnchorTick;
 	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
@@ -399,10 +396,10 @@ public sealed class BattleOrchestrator
 
 	private Dictionary<string, UnitState> SnapshotAll() =>
 		Units.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
+
+	private readonly record struct PipelineResult(bool IsBattleOver, string? WinnerId);
+
+	private sealed record TurnExecutionResult(
+		IReadOnlyList<IAction> Applied,
+		IReadOnlyDictionary<string, UnitState> UnitsAfterPlayer);
 }
-
-public readonly record struct PipelineResult(bool IsBattleOver, string? WinnerId);
-
-public sealed record TurnExecutionResult(
-	IReadOnlyList<IAction> Applied,
-	IReadOnlyDictionary<string, UnitState> UnitsAfterPlayer);

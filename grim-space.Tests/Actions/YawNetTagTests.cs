@@ -14,43 +14,43 @@ public sealed class YawNetTagTests
 	[Fact]
 	public void YawRightThenLeftCostsZeroAp()
 	{
-		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 
-		var actor = plan.Board.StateOf(PlayerId);
+		var actor = battle.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, actor.ActionPoints);
-		Assert.Equal(0, plan.Runtime.NetYaw);
+		Assert.Equal(0, battle.Runtime.NetYaw);
 	}
 
 	[Fact]
 	public void YawRightTwiceCostsTwoApForOneEighty()
 	{
-		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var actor = plan.Board.StateOf(PlayerId);
+		var actor = battle.Board.StateOf(PlayerId);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn180ApCost, actor.ActionPoints);
-		Assert.Equal(2, plan.Runtime.NetYaw);
+		Assert.Equal(2, battle.Runtime.NetYaw);
 	}
 
 	[Fact]
 	public void UndoRebuildsYawTagsFromReplay()
 	{
-		var plan = TestPlan.Begin(PlayerId, new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
-		Assert.Equal(MovementExpectations.FighterApPerTurn, plan.Board.StateOf(PlayerId).ActionPoints);
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.Equal(MovementExpectations.FighterApPerTurn, battle.Board.StateOf(PlayerId).ActionPoints);
 
-		Assert.True(plan.TryUndoLast());
+		Assert.True(battle.TryUndoLast());
 
-		var actor = plan.Board.StateOf(PlayerId);
-		Assert.Single(plan.Actions);
-		Assert.Equal(1, plan.Runtime.NetYaw);
+		var actor = battle.Board.StateOf(PlayerId);
+		Assert.Single(battle.Actions);
+		Assert.Equal(1, battle.Runtime.NetYaw);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost, actor.ActionPoints);
 	}
 
@@ -61,11 +61,11 @@ public sealed class YawNetTagTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 
-		Assert.Equal(0, plan.Board.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(0, battle.Board.StateOf(PlayerId).MomentumLevel);
 	}
 }

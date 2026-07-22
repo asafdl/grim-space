@@ -20,19 +20,19 @@ public sealed class ActionTagSynergyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
 		var retro = RetroMoveOption(origin, player);
-		plan.EnqueueMovePath(retro);
-		Assert.True(plan.Runtime.SpinBraked);
-		Assert.True(plan.Runtime.SpinDiscount);
+		Assert.True(battle.TryEnqueueMovePath(retro));
+		Assert.True(battle.Runtime.SpinBraked);
+		Assert.True(battle.Runtime.SpinDiscount);
 
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var actor = plan.Board.StateOf(PlayerId);
+		var actor = battle.Board.StateOf(PlayerId);
 		var retroApCost = MomentumConfig.ForLevel(2).BrakeCost;
 		Assert.Equal(MovementExpectations.FighterApPerTurn - retroApCost, actor.ActionPoints);
-		Assert.False(plan.Runtime.SpinDiscount);
+		Assert.False(battle.Runtime.SpinDiscount);
 		Assert.Equal(1, actor.MomentumLevel);
 	}
 
@@ -44,14 +44,14 @@ public sealed class ActionTagSynergyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var plan = TestPlan.Begin(PlayerId, player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
 		var retro = RetroMoveOption(origin, player);
-		plan.EnqueueMovePath(retro);
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(plan.TryApplyAndEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueueMovePath(retro));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var actor = plan.Board.StateOf(PlayerId);
+		var actor = battle.Board.StateOf(PlayerId);
 		var retroApCost = MomentumConfig.ForLevel(2).BrakeCost;
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - retroApCost - CombatConfig.HeadingTurn90ApCost,

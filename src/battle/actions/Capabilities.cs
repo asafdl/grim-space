@@ -6,6 +6,9 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Actions;
 
+/// <summary>
+/// Unit-type registry: which action defs a ship can use. AI and UI ask here first.
+/// </summary>
 public static class Capabilities
 {
 	public static IReadOnlyList<IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>> For(
@@ -24,15 +27,4 @@ public static class Capabilities
 			],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
-
-	public static IEnumerable<IAction> Discover(
-		BattleBoard world,
-		ActorSession runtime,
-		string ownerId,
-		EType unitType)
-	{
-		foreach (var def in For(unitType))
-		foreach (var action in def.Discover(world, runtime, ownerId))
-			yield return action;
-	}
 }

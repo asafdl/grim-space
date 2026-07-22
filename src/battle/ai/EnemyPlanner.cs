@@ -58,6 +58,7 @@ public static class EnemyPlanner
 		int turnStartTick)
 	{
 		var actorId = actor.State.Id;
+		var unitType = actor.State.Type;
 		var plan = CreatePlan(roster, grid, nonUnits, blockedCells, turnStartTick, actorId);
 
 		for (var step = 0; step < MaxPlanLength; step++)
@@ -67,10 +68,9 @@ public static class EnemyPlanner
 			Option? bestMove = null;
 			var bestScore = currentScore;
 
-			foreach (var candidate in ActionQueries.EnumerateMovement(
-				plan.PreviewWorld,
-				plan.PreviewRuntime,
-				actorId))
+			foreach (var candidate in Capabilities.For(unitType)
+				.Where(def => def is not MoveDef)
+				.SelectMany(def => def.Discover(plan.PreviewWorld, plan.PreviewRuntime, actorId)))
 			{
 				if (!TryEnqueueTrial(plan, candidate))
 					continue;
@@ -92,10 +92,9 @@ public static class EnemyPlanner
 				bestMove = null;
 			}
 
-			foreach (var move in ActionQueries.EnumerateMovePaths(
-				plan.PreviewWorld,
-				plan.PreviewRuntime,
-				actorId))
+			foreach (var move in Capabilities.For(unitType)
+				.OfType<MoveDef>()
+				.SelectMany(def => def.DiscoverPaths(plan.PreviewWorld, plan.PreviewRuntime, actorId)))
 			{
 				if (!TryEnqueueMoveTrial(plan, actorId, move))
 					continue;
