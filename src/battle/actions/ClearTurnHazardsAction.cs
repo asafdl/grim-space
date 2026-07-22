@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
@@ -9,10 +10,26 @@ public sealed record ClearTurnHazardsAction : IAction<BattleBoard, ActorSession>
 {
 	public string OwnerId { get; } = EntityIds.System;
 	public int? UndoGroup { get; } = null;
+	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+		ClearTurnHazardsDef.Instance;
+}
 
-	public bool IsLegal(BattleBoard world, ActorSession runtime) =>
-		ClearTurnHazardsDef.Instance.IsLegal(this, world, runtime);
+public sealed class ClearTurnHazardsDef
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+{
+	public static ClearTurnHazardsDef Instance { get; } = new();
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(BattleBoard world, ActorSession runtime) =>
-		ClearTurnHazardsDef.Instance.Resolve(this, world, runtime);
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId) => [];
+
+	public ClearTurnHazardsAction Bind() => new();
+
+	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
+
+	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) => true;
+
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		IAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
+		[new ClearTurnHazardsEffect()];
 }

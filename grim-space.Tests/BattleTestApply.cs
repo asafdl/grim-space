@@ -28,7 +28,8 @@ internal static class BattleTestApply
 				continue;
 
 			var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
-			typed.Apply(board, runtime);
+			foreach (var effect in typed.Definition.Resolve(action, board, runtime))
+				effect.Apply(board, runtime, action.OwnerId);
 		}
 	}
 
@@ -41,10 +42,12 @@ internal static class BattleTestApply
 		if (action is not IAction<BattleBoard, ActorSession> typed)
 			return false;
 
-		if (!typed.IsLegal(board, runtime))
+		if (!typed.Definition.IsLegal(action, board, runtime))
 			return false;
 
-		typed.Apply(board, runtime);
+		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
+			effect.Apply(board, runtime, action.OwnerId);
+
 		return true;
 	}
 
@@ -70,8 +73,11 @@ internal static class BattleTestApply
 			battle.Board.Timeline.Clock.Set(t);
 			while (battle.Board.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is IAction action)
 			{
-				if (action is IAction<BattleBoard, ActorSession> typed)
-					typed.Apply(battle.Board, battle.Runtime);
+				if (action is not IAction<BattleBoard, ActorSession> typed)
+					continue;
+
+				foreach (var effect in typed.Definition.Resolve(action, battle.Board, battle.Runtime))
+					effect.Apply(battle.Board, battle.Runtime, action.OwnerId);
 			}
 		}
 	}
@@ -86,9 +92,12 @@ internal static class BattleTestApply
 		Timeline timeline,
 		string actorId)
 	{
+		if (action is not IAction<BattleBoard, ActorSession> typed)
+			return;
+
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
-		if (action is IAction<BattleBoard, ActorSession> typed)
-			typed.Apply(board, runtime);
+		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
+			effect.Apply(board, runtime, action.OwnerId);
 	}
 
 	private static IEnumerable<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string actorId)

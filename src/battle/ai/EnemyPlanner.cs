@@ -192,7 +192,7 @@ public static class EnemyPlanner
 	}
 
 	private static bool TryEnqueueTrial(BattleSimulation plan, IAction candidate) =>
-		candidate is IAction<BattleBoard, ActorSession> && plan.TryEnqueue(candidate);
+		plan.TryEnqueue(candidate);
 
 	private static bool TryEnqueueMoveTrial(BattleSimulation plan, string ownerId, Option move) =>
 		BattleOrchestrator.TryEnqueueMovePath(plan, ownerId, move);

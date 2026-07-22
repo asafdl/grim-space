@@ -74,7 +74,8 @@ public static class MovementSelection
 
 		foreach (var step in steps)
 		{
-			((IAction<BattleBoard, ActorSession>)step).Apply(board, runtime);
+			foreach (var effect in step.Definition.Resolve(step, board, runtime))
+				effect.Apply(board, runtime, step.OwnerId);
 			path.Add(board.StateOf(ownerId).Position);
 		}
 

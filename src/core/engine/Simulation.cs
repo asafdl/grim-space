@@ -49,7 +49,7 @@ public class Simulation<TWorld, TRuntime>
 		if (action is not IAction<TWorld, TRuntime> typed)
 			return false;
 
-		if (!typed.IsLegal(PreviewWorld, PreviewRuntime))
+		if (!typed.Definition.IsLegal(action, PreviewWorld, PreviewRuntime))
 			return false;
 
 		_actions.Add(action);
@@ -81,7 +81,8 @@ public class Simulation<TWorld, TRuntime>
 			if (action is not IAction<TWorld, TRuntime> typed)
 				continue;
 
-			typed.Apply(PreviewWorld, PreviewRuntime);
+			foreach (var effect in typed.Definition.Resolve(action, PreviewWorld, PreviewRuntime))
+				effect.Apply(PreviewWorld, PreviewRuntime, action.OwnerId);
 		}
 	}
 

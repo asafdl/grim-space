@@ -100,15 +100,16 @@ public static class MovePathFinder
 			if (!board.Grid.IsInBounds(next) || blocked.Contains(next))
 				continue;
 
-			var step = new MoveStepAction(actorId, direction);
+			var step = MoveDef.Instance.Bind(actorId, direction);
 			PushFrame(undoStack, actor, session);
-			if (!step.IsLegal(board, session))
+			if (!step.Definition.IsLegal(step, board, session))
 			{
 				PopFrame(undoStack, actor, session);
 				continue;
 			}
 
-			((IAction<BattleBoard, ActorSession>)step).Apply(board, session);
+			foreach (var effect in step.Definition.Resolve(step, board, session))
+				effect.Apply(board, session, step.OwnerId);
 
 			var fullPath = new List<Coord>(pathSoFar) { next };
 			var totalAp = session.PathApSpent;

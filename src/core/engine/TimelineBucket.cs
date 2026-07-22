@@ -2,7 +2,7 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Core.Engine;
 
-public sealed class ActionQueue
+public sealed class TimelineBucket
 {
 	private readonly LinkedList<IAction> _actions = new();
 

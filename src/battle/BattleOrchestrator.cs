@@ -139,7 +139,7 @@ public sealed class BattleOrchestrator
 		if (action is not IAction<BattleBoard, ActorSession> typed)
 			return false;
 
-		return typed.IsLegal(Board, Runtime);
+		return typed.Definition.IsLegal(action, Board, Runtime);
 	}
 
 	public bool TryEnqueue(IAction action)
@@ -219,8 +219,9 @@ public sealed class BattleOrchestrator
 
 	public static void ApplyEndOfPhase(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		var action = new EndOfPhaseAction(actorId);
-		((IAction<BattleBoard, ActorSession>)action).Apply(world, runtime);
+		var action = EndOfPhaseDef.Instance.Bind(actorId);
+		foreach (var effect in action.Definition.Resolve(action, world, runtime))
+			effect.Apply(world, runtime, action.OwnerId);
 	}
 
 	public static bool TryEnqueueMovePath(BattleSimulation session, string ownerId, Option option)
@@ -315,13 +316,10 @@ public sealed class BattleOrchestrator
 
 			while (Timeline.At(tick).TryDequeue(out var action) && action is not null)
 			{
-				if (action is not IAction<BattleBoard, ActorSession> battleAction)
-					continue;
-
 				if (SystemAction.Is(action))
-					ApplySystemAction(battleAction);
+					ApplySystemAction(action);
 				else
-					ApplyUnitAction(battleAction, playerSession, enemySession);
+					ApplyUnitAction(action, playerSession, enemySession);
 
 				applied.Add(action);
 				sink?.OnActionApplied(new PresentationEvent(action));
@@ -336,22 +334,29 @@ public sealed class BattleOrchestrator
 		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
 	}
 
-	private void ApplySystemAction(IAction<BattleBoard, ActorSession> action)
+	private void ApplySystemAction(IAction action)
 	{
+		if (action is not IAction<BattleBoard, ActorSession> typed)
+			return;
+
 		var board = BattleBoard.FromLive(
 			Units,
 			Hazards.MutableNonUnits,
 			Grid,
 			Hazards.GetBlockedCells(),
 			Timeline);
-		action.Apply(board, new ActorSession());
+		foreach (var effect in typed.Definition.Resolve(action, board, new ActorSession()))
+			effect.Apply(board, new ActorSession(), action.OwnerId);
 	}
 
 	private void ApplyUnitAction(
-		IAction<BattleBoard, ActorSession> action,
+		IAction action,
 		ActorSession playerSession,
 		ActorSession enemySession)
 	{
+		if (action is not IAction<BattleBoard, ActorSession> typed)
+			return;
+
 		var ownerId = action.OwnerId;
 		var session = ownerId == _player.State.Id ? playerSession : enemySession;
 
@@ -361,7 +366,8 @@ public sealed class BattleOrchestrator
 			Grid,
 			Hazards.GetBlockedCells(),
 			Timeline);
-		action.Apply(board, session);
+		foreach (var effect in typed.Definition.Resolve(action, board, session))
+			effect.Apply(board, session, action.OwnerId);
 	}
 
 	private void FinalizeRound()

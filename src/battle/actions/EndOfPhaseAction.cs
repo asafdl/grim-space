@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 
@@ -8,9 +9,40 @@ public sealed record EndOfPhaseAction(
 	string OwnerId,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
-	public bool IsLegal(BattleBoard world, ActorSession runtime) =>
-		EndOfPhaseDef.Instance.IsLegal(this, world, runtime);
+	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+		EndOfPhaseDef.Instance;
+}
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(BattleBoard world, ActorSession runtime) =>
-		EndOfPhaseDef.Instance.Resolve(this, world, runtime);
+public sealed class EndOfPhaseDef
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+{
+	public static EndOfPhaseDef Instance { get; } = new();
+
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId) => [];
+
+	public EndOfPhaseAction Bind(string ownerId) => new(ownerId);
+
+	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
+
+	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) => true;
+
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		IAction action,
+		BattleBoard world,
+		ActorSession runtime) =>
+		Resolve(Cast(action), world, runtime);
+
+	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+		EndOfPhaseAction action,
+		BattleBoard world,
+		ActorSession runtime)
+	{
+		if (runtime.IsMovePathStarted)
+			return [];
+
+		return [new MomentumDecayEffect()];
+	}
+
+	private static EndOfPhaseAction Cast(IAction action) =>
+		action as EndOfPhaseAction ?? throw new ArgumentException($"Expected {nameof(EndOfPhaseAction)}.", nameof(action));
 }

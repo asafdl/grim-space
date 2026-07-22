@@ -4,19 +4,19 @@ namespace GrimSpace.Core.Engine;
 
 public sealed class Timeline
 {
-	private readonly Dictionary<int, ActionQueue> _buckets = new();
+	private readonly Dictionary<int, TimelineBucket> _buckets = new();
 
 	public TickClock Clock { get; } = new();
 
-	public ActionQueue At(int tick)
+	public TimelineBucket At(int tick)
 	{
-		if (!_buckets.TryGetValue(tick, out var queue))
+		if (!_buckets.TryGetValue(tick, out var bucket))
 		{
-			queue = new ActionQueue();
-			_buckets[tick] = queue;
+			bucket = new TimelineBucket();
+			_buckets[tick] = bucket;
 		}
 
-		return queue;
+		return bucket;
 	}
 
 	public void Schedule(int delayTicks, IAction action) =>
@@ -28,14 +28,14 @@ public sealed class Timeline
 	{
 		var clone = new Timeline();
 		clone.Clock.Set(Clock.Current);
-		foreach (var (tick, queue) in _buckets)
-			clone.At(tick).EnqueueAll(queue.Snapshot());
+		foreach (var (tick, bucket) in _buckets)
+			clone.At(tick).EnqueueAll(bucket.Snapshot());
 
 		return clone;
 	}
 
 	public IReadOnlyList<IAction> SnapshotAt(int tick) =>
-		_buckets.TryGetValue(tick, out var queue) ? queue.Snapshot() : [];
+		_buckets.TryGetValue(tick, out var bucket) ? bucket.Snapshot() : [];
 
 	public IEnumerable<(int Tick, IAction Action)> From(int startTick)
 	{

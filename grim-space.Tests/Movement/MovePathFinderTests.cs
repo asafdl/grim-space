@@ -72,7 +72,10 @@ public sealed class MovePathFinderTests
 			new HashSet<Coord>());
 		var runtime = new ActorSession();
 		for (var i = 0; i < steps.Count - 1; i++)
-			((IAction<BattleBoard, ActorSession>)steps[i]).Apply(board, runtime);
+		{
+			foreach (var effect in steps[i].Definition.Resolve(steps[i], board, runtime))
+				effect.Apply(board, runtime, steps[i].OwnerId);
+		}
 
 		Assert.False(MoveDef.Instance.IsLegal(steps[^1], board, runtime));
 	}
