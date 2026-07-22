@@ -37,6 +37,23 @@ Battle logic is split into three cooperating ideas:
 
 Typical flow: **plan → stage → execute → upkeep**. Presentation observes results; it does not own rules.
 
+### Architecture (rules layer)
+
+Combat state is split into two buckets, passed together through actions and effects:
+
+| Bucket | Holds |
+|--------|--------|
+| **World** (`BattleBoard`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
+| **Runtime** (`ActorSession`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
+
+**Actions** answer “is this legal?” and “what effects does it produce?” against `(world, runtime)`. **Effects** apply the actual mutations. There is no separate context object or slice layer — callers pass world and runtime directly.
+
+**Action defs** (`MoveDef`, `HeadingDef`, …) own discovery and legality for a family of actions. **Capabilities** maps unit type → which defs that ship has; AI and UI start there, then ask each def what is possible. Movement paths are discovered through the move def; other actions come from each def’s `Discover`.
+
+**Planning** uses `Simulation<BattleBoard, ActorSession>`: an anchor world (live state at turn start), a preview fork (replayed queue), and an action list with undo groups. **Commit** runs the timeline — player queue, enemy plan, delayed resolves, round upkeep — via `BattleOrchestrator`.
+
+Presentation (`View`, `BattlePresenter`, scene) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
+
 ### Movement & momentum
 
 Movement is discrete and ship-relative, with action points as the primary turn budget. Momentum gives ships inertia — forward flight gets cheaper at speed, braking and lateral moves cost more. The feel target is thrust and drift, not free grid teleportation.
