@@ -35,7 +35,7 @@ Battle logic is split into three cooperating ideas:
 | **Effects** | Atomic state changes — damage, movement, AP, hazards, scheduling future work |
 | **Timeline** | When things happen — discrete ticks ordering player, enemy, and delayed events |
 
-Typical flow: **plan → stage → execute → upkeep**. Presentation observes results; it does not own rules.
+Typical flow: **plan → commit to timeline → step → repeat**. Player planning uses a throwaway `Simulation` fork (undoable preview). On commit, actions are scheduled on the live timeline and stepped — that becomes world truth. Enemy AI then `CreateSimulation()` from that live state, plans with `StepPreview` to peek ahead, commits its plan, and the orchestrator steps through the rest of the turn. Presentation observes `TickResult`; it does not own rules.
 
 ### Architecture (rules layer)
 
@@ -44,15 +44,17 @@ Combat state is split into two buckets, passed together through actions and effe
 | Bucket | Holds |
 |--------|--------|
 | **World** (`BattleBoard`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
-| **Runtime** (`ActorSession`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
+| **Runtime** (`ActorRuntimes<ActorSession>`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
 
 **Actions** answer “is this legal?” and “what effects does it produce?” against `(world, runtime)`. **Effects** apply the actual mutations. There is no separate context object or slice layer — callers pass world and runtime directly.
 
 **Action defs** (`MoveDef`, `HeadingDef`, …) own discovery and legality for a family of actions. **Capabilities** maps unit type → which defs that ship has; AI and UI start there, then ask each def what is possible. Movement paths are discovered through the move def; other actions come from each def’s `Discover`.
 
-**Planning** uses `Simulation<BattleBoard, ActorSession>`: an anchor world (live state at turn start), a preview fork (replayed queue), and an action list with undo groups. **Commit** runs the timeline — player queue, enemy plan, delayed resolves, round upkeep — via `BattleOrchestrator`.
+**Engine** owns the live `World`, `ActorRuntimes`, and a monotonic `WorldVersion` (incremented on every schedule/step). `CreateSimulation()` stamps the current version on the fork. `TryScheduleFromSimulation` rebases stale sims (save actions → refork → replay) before committing; failed replay is rejected.
 
-Presentation (`View`, `BattlePresenter`, scene) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
+**Planning** uses `Simulation<BattleBoard, ActorSession>`: anchor world + anchor runtimes, preview forks replayed on each enqueue, action list with undo groups. **Commit** returns a `Plan` for scheduling; only the orchestrator writes to the live timeline.
+
+**BattleOrchestrator** builds the encounter, owns turn flow (sequential commit: player → step → AI → step → upkeep), win rules, and presentation hooks. Presentation (`View`, `BattlePresenter`, scene) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
 
 ### Movement & momentum
 

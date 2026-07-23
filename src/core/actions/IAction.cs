@@ -4,7 +4,7 @@ namespace GrimSpace.Core.Actions;
 
 public interface IAction
 {
-	string OwnerId { get; }
+	string ActorId { get; }
 
 	int? UndoGroup { get; }
 }

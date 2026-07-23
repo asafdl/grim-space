@@ -6,7 +6,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record EndOfPhaseAction(
-	string OwnerId,
+	string ActorId,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
@@ -18,9 +18,9 @@ public sealed class EndOfPhaseDef
 {
 	public static EndOfPhaseDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId) => [];
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId) => [];
 
-	public EndOfPhaseAction Bind(string ownerId) => new(ownerId);
+	public EndOfPhaseAction Bind(string actorId) => new(actorId);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
 

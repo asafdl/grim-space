@@ -8,7 +8,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record RollAction(
-	string OwnerId,
+	string ActorId,
 	ERollDirection Direction,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
@@ -21,17 +21,17 @@ public sealed class RollDef
 {
 	public static RollDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
 	{
 		foreach (var direction in Enum.GetValues<ERollDirection>())
 		{
-			var action = Bind(ownerId, direction);
+			var action = Bind(actorId, direction);
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public RollAction Bind(string ownerId, ERollDirection direction) => new(ownerId, direction);
+	public RollAction Bind(string actorId, ERollDirection direction) => new(actorId, direction);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
 
@@ -45,7 +45,7 @@ public sealed class RollDef
 		Resolve(Cast(action), world, runtime);
 
 	public bool IsLegal(RollAction action, BattleBoard world, ActorSession runtime) =>
-		world.StateOf(action.OwnerId).ActionPoints >= CombatConfig.RollApCost;
+		world.StateOf(action.ActorId).ActionPoints >= CombatConfig.RollApCost;
 
 	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
 		RollAction action,

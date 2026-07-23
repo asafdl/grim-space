@@ -10,7 +10,7 @@ public sealed class ClearTurnHazardsEffect : IEffect<BattleBoard, ActorSession>
 	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
 		var turnScoped = world.NonUnits.Values
-			.Where(nonUnit => nonUnit.OwnerId != EntityIds.World)
+			.Where(nonUnit => nonUnit.ActorId != EntityIds.World)
 			.Select(nonUnit => nonUnit.Id)
 			.ToList();
 

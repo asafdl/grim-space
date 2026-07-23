@@ -54,7 +54,7 @@ public sealed class SystemActionTests
 		Assert.True(battle.ResolveTurn([]));
 
 		Assert.Contains(asteroid.Id, battle.Hazards.NonUnits.Keys);
-		Assert.Equal(EntityIds.World, battle.Hazards.NonUnits[asteroid.Id].OwnerId);
+		Assert.Equal(EntityIds.World, battle.Hazards.NonUnits[asteroid.Id].ActorId);
 	}
 
 	[Fact]

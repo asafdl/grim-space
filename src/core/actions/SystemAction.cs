@@ -4,7 +4,7 @@ namespace GrimSpace.Core.Actions;
 
 public static class SystemAction
 {
-	public static bool Is(IAction action) => Is(action.OwnerId);
+	public static bool Is(IAction action) => Is(action.ActorId);
 
-	public static bool Is(string ownerId) => ownerId == EntityIds.System;
+	public static bool Is(string actorId) => actorId == EntityIds.System;
 }

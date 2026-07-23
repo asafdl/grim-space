@@ -3,27 +3,27 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Core.Engine;
 
 /// <summary>
-/// Stateful planning workspace: anchor world, preview fork, runtime, and action queue.
+/// Stateful planning workspace: anchor world, preview fork, per-actor runtimes, and action queue.
 /// </summary>
 public class Simulation<TWorld, TRuntime>
 	where TWorld : IWorld<TWorld>
-	where TRuntime : IRuntimeContext<TRuntime>
+	where TRuntime : IRuntimeContext<TRuntime>, new()
 {
 	private readonly List<IAction> _actions = [];
 	private readonly TWorld _anchorWorld;
-	private readonly TRuntime _anchorRuntime;
+	private readonly ActorRuntimes<TRuntime> _anchorActorRuntimes;
 	private int _anchorTick;
 	private int _nextUndoGroup;
 
-	public Simulation(TWorld anchorWorld, TRuntime anchorRuntime)
+	public Simulation(TWorld anchorWorld, ActorRuntimes<TRuntime> anchorActorRuntimes)
 	{
 		_anchorWorld = anchorWorld;
-		_anchorRuntime = anchorRuntime;
+		_anchorActorRuntimes = anchorActorRuntimes;
 	}
 
 	public TWorld PreviewWorld { get; private set; } = default!;
 
-	public TRuntime PreviewRuntime { get; private set; } = default!;
+	public ActorRuntimes<TRuntime> PreviewActorRuntimes { get; private set; } = default!;
 
 	public IReadOnlyList<IAction> Actions => _actions;
 
@@ -31,11 +31,16 @@ public class Simulation<TWorld, TRuntime>
 
 	public TWorld AnchorWorld => _anchorWorld;
 
-	public TRuntime AnchorRuntime => _anchorRuntime;
+	public ActorRuntimes<TRuntime> AnchorActorRuntimes => _anchorActorRuntimes;
 
-	public void Begin(int anchorTick)
+	public int WorldVersion { get; private set; }
+
+	public bool IsStale(int currentWorldVersion) => WorldVersion != currentWorldVersion;
+
+	public void Begin(int anchorTick, int worldVersion)
 	{
 		_anchorTick = anchorTick;
+		WorldVersion = worldVersion;
 		_actions.Clear();
 		_nextUndoGroup = 0;
 		Reevaluate();
@@ -49,7 +54,8 @@ public class Simulation<TWorld, TRuntime>
 		if (action is not IAction<TWorld, TRuntime> typed)
 			return false;
 
-		if (!typed.Definition.IsLegal(action, PreviewWorld, PreviewRuntime))
+		var runtime = PreviewActorRuntimes.For(action);
+		if (!typed.Definition.IsLegal(action, PreviewWorld, runtime))
 			return false;
 
 		_actions.Add(action);
@@ -57,7 +63,17 @@ public class Simulation<TWorld, TRuntime>
 		return true;
 	}
 
-	public void ForceEnqueue(IAction action) => _actions.Add(action);
+	public IEnumerable<TickResult> StepPreview(int ticksToAdvance) =>
+		TimelineRunner.Step(PreviewWorld.Timeline, PreviewWorld, PreviewActorRuntimes, ticksToAdvance);
+
+	public void AdvanceTo(int endTick)
+	{
+		var ticksToAdvance = endTick - PreviewWorld.Timeline.Clock.Current;
+		if (ticksToAdvance <= 0)
+			return;
+
+		foreach (var _ in StepPreview(ticksToAdvance)) { }
+	}
 
 	public void Refresh() => Reevaluate();
 
@@ -71,19 +87,15 @@ public class Simulation<TWorld, TRuntime>
 		return true;
 	}
 
+	public Plan Commit() => new(_actions.ToList());
+
 	public void Reevaluate()
 	{
 		PreviewWorld = _anchorWorld.Fork();
-		PreviewRuntime = _anchorRuntime.Fork();
+		PreviewActorRuntimes = _anchorActorRuntimes.Fork();
 
 		foreach (var action in _actions)
-		{
-			if (action is not IAction<TWorld, TRuntime> typed)
-				continue;
-
-			foreach (var effect in typed.Definition.Resolve(action, PreviewWorld, PreviewRuntime))
-				effect.Apply(PreviewWorld, PreviewRuntime, action.OwnerId);
-		}
+			ExecutionHelper.Apply(action, PreviewWorld, PreviewActorRuntimes.For(action));
 	}
 
 	private void PopUndoGroup()

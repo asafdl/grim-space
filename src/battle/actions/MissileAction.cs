@@ -9,7 +9,7 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record MissileAction(
-	string OwnerId,
+	string ActorId,
 	Coord Center,
 	EMissileMount Mount,
 	int Range,
@@ -27,19 +27,19 @@ public sealed class MissileDef(EMissileMount mount, int range)
 
 	public static MissileDef For(EMissileMount mount, int range) => new(mount, range);
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		var frame = BodyFrame.From(world.StateOf(ownerId));
+		var frame = BodyFrame.From(world.StateOf(actorId));
 		var config = MissileMountConfig.For(Mount).WithRange(Range);
 		foreach (var cell in MissileTargeting.GetValidCells(frame, config, world.Grid.IsInBounds))
 		{
-			var action = Bind(ownerId, cell);
+			var action = Bind(actorId, cell);
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public MissileAction Bind(string ownerId, Coord center) => new(ownerId, center, Mount, Range);
+	public MissileAction Bind(string actorId, Coord center) => new(actorId, center, Mount, Range);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -55,10 +55,10 @@ public sealed class MissileDef(EMissileMount mount, int range)
 
 	public bool IsPossible(MissileAction action, BattleBoard world, ActorSession runtime)
 	{
-		if (world.StateOf(action.OwnerId).MissilesRemaining <= 0)
+		if (world.StateOf(action.ActorId).MissilesRemaining <= 0)
 			return false;
 
-		var frame = BodyFrame.From(world.StateOf(action.OwnerId));
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = MissileMountConfig.For(action.Mount).WithRange(action.Range);
 		return MissileTargeting.IsValidTarget(frame, action.Center, config, world.Grid.IsInBounds);
 	}
@@ -77,7 +77,7 @@ public sealed class MissileDef(EMissileMount mount, int range)
 			new SpawnHazardEffect(hazardId, action.Center, EHazardKind.MissileZone),
 			new ScheduleActionEffect(
 				CombatConfig.MissileResolveDelay,
-				ResolveHazardDef.Instance.Bind(action.OwnerId, hazardId)),
+				ResolveHazardDef.Instance.Bind(action.ActorId, hazardId)),
 			new MissileChangeEffect(-1),
 		];
 	}

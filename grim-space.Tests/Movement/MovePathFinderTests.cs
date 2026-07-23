@@ -74,7 +74,7 @@ public sealed class MovePathFinderTests
 		for (var i = 0; i < steps.Count - 1; i++)
 		{
 			foreach (var effect in steps[i].Definition.Resolve(steps[i], board, runtime))
-				effect.Apply(board, runtime, steps[i].OwnerId);
+				effect.Apply(board, runtime, steps[i].ActorId);
 		}
 
 		Assert.False(MoveDef.Instance.IsLegal(steps[^1], board, runtime));

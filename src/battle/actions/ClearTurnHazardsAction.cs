@@ -8,7 +8,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record ClearTurnHazardsAction : IAction<BattleBoard, ActorSession>
 {
-	public string OwnerId { get; } = EntityIds.System;
+	public string ActorId { get; } = EntityIds.System;
 	public int? UndoGroup { get; } = null;
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		ClearTurnHazardsDef.Instance;
@@ -19,7 +19,7 @@ public sealed class ClearTurnHazardsDef
 {
 	public static ClearTurnHazardsDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId) => [];
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId) => [];
 
 	public ClearTurnHazardsAction Bind() => new();
 

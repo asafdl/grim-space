@@ -109,7 +109,7 @@ public static class MovePathFinder
 			}
 
 			foreach (var effect in step.Definition.Resolve(step, board, session))
-				effect.Apply(board, session, step.OwnerId);
+				effect.Apply(board, session, step.ActorId);
 
 			var fullPath = new List<Coord>(pathSoFar) { next };
 			var totalAp = session.PathApSpent;

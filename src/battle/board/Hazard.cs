@@ -20,7 +20,7 @@ public sealed class Hazard : NonUnit
 
 	public static Hazard MissileZone(
 		string id,
-		string ownerId,
+		string actorId,
 		Coord center,
 		BodyFrame ownerFrame,
 		BoundedGrid grid,
@@ -30,7 +30,7 @@ public sealed class Hazard : NonUnit
 		new()
 		{
 			Id = id,
-			OwnerId = ownerId,
+			ActorId = actorId,
 			Center = center,
 			Frame = ownerFrame with { Origin = center },
 			Cells = new HashSet<Coord>(grid.EnumerateCube(center, radius)),
@@ -42,13 +42,13 @@ public sealed class Hazard : NonUnit
 
 	public static Hazard FlakBurst(
 		string id,
-		string ownerId,
+		string actorId,
 		BodyFrame ownerFrame,
 		IEnumerable<Coord> cells) =>
 		new()
 		{
 			Id = id,
-			OwnerId = ownerId,
+			ActorId = actorId,
 			Center = ownerFrame.Origin,
 			Frame = ownerFrame,
 			Cells = new HashSet<Coord>(cells),
@@ -69,7 +69,7 @@ public sealed class Hazard : NonUnit
 		new()
 		{
 			Id = id,
-			OwnerId = EntityIds.World,
+			ActorId = EntityIds.World,
 			Center = center,
 			Frame = BodyFrame.WorldAligned(center),
 			Cells = new HashSet<Coord>(grid.EnumerateCube(center, BlockRadiusFor(radius))),
@@ -85,7 +85,7 @@ public sealed class Hazard : NonUnit
 		new()
 		{
 			Id = Id,
-			OwnerId = OwnerId,
+			ActorId = ActorId,
 			Center = Center,
 			Frame = Frame,
 			Cells = new HashSet<Coord>(Cells),

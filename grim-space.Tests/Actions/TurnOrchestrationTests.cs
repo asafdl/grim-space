@@ -26,7 +26,7 @@ public sealed class TurnOrchestrationTests
 		var actions = battle.Actions.ToList();
 		Assert.True(battle.ResolveTurn(actions));
 
-		Assert.Equal(origin + Coord.Forward * 3, battle.Board.StateOf(battle.OwnerId).Position);
+		Assert.Equal(origin + Coord.Forward * 3, battle.Board.StateOf(battle.PlayerId).Position);
 	}
 
 	[Fact]

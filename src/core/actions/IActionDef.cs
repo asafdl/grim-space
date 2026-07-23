@@ -4,7 +4,7 @@ public interface IActionDef<TAction, TWorld, TRuntime, TEffect>
 	where TAction : IAction
 	where TEffect : IEffect<TWorld, TRuntime>
 {
-	IEnumerable<TAction> Discover(TWorld world, TRuntime runtime, string ownerId);
+	IEnumerable<TAction> Discover(TWorld world, TRuntime runtime, string actorId);
 
 	bool IsPossible(TAction action, TWorld world, TRuntime runtime);
 

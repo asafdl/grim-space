@@ -45,7 +45,7 @@ public sealed class TimelineTests
 
 		Assert.Equal(2, entries.Count);
 		Assert.Equal(2, entries[0].Tick);
-		Assert.Equal("a", entries[0].Action.OwnerId);
+		Assert.Equal("a", entries[0].Action.ActorId);
 		Assert.Equal(4, entries[1].Tick);
 	}
 }

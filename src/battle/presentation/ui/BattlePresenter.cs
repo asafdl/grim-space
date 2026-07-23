@@ -136,7 +136,7 @@ public sealed class BattlePresenter
 		if (MissileMount is not EMissileMount mount)
 			return false;
 
-		if (!_battle.TryEnqueue(new MissileAction(_battle.OwnerId, center, mount, MissileRange)))
+		if (!_battle.TryEnqueue(new MissileAction(_battle.PlayerId, center, mount, MissileRange)))
 			return false;
 
 		MissileHover = null;
@@ -145,12 +145,12 @@ public sealed class BattlePresenter
 
 	public bool TryQueueFlak(Coord cell)
 	{
-		var frame = BodyFrame.From(_battle.Board.StateOf(_battle.OwnerId));
+		var frame = BodyFrame.From(_battle.Board.StateOf(_battle.PlayerId));
 		var mount = FlakTargeting.MountForCell(frame, cell);
 		if (mount is null)
 			return false;
 
-		if (!_battle.TryEnqueue(new FlakAction(_battle.OwnerId, mount.Value)))
+		if (!_battle.TryEnqueue(new FlakAction(_battle.PlayerId, mount.Value)))
 			return false;
 
 		FlakHover = null;
@@ -160,7 +160,7 @@ public sealed class BattlePresenter
 
 	public bool TryQueueRailgun(Unit target)
 	{
-		if (!_battle.TryEnqueue(new RailgunAction(_battle.OwnerId, target.State.Id)))
+		if (!_battle.TryEnqueue(new RailgunAction(_battle.PlayerId, target.State.Id)))
 			return false;
 
 		RailgunHover = null;
@@ -168,22 +168,22 @@ public sealed class BattlePresenter
 	}
 
 	public bool TryQueueRoll(ERollDirection direction) =>
-		_battle.TryEnqueue(new RollAction(_battle.OwnerId, direction));
+		_battle.TryEnqueue(new RollAction(_battle.PlayerId, direction));
 
 	public bool TryQueueHeadingTurn(EHeadingTurn turn) =>
-		_battle.TryEnqueue(new HeadingTurnAction(_battle.OwnerId, turn));
+		_battle.TryEnqueue(new HeadingTurnAction(_battle.PlayerId, turn));
 
 	public bool IsRailgunLegal(Unit target)
 	{
 		var enemy = _battle.GetEnemy();
 		return enemy is not null
 			&& target.State.Id == enemy.State.Id
-			&& _battle.IsLegal(new RailgunAction(_battle.OwnerId, target.State.Id));
+			&& _battle.IsLegal(new RailgunAction(_battle.PlayerId, target.State.Id));
 	}
 
 	public bool IsPlayerVictory() =>
 		_battle.IsBattleOver
-		&& _battle.WinnerId == _battle.OwnerId;
+		&& _battle.WinnerId == _battle.PlayerId;
 
 	public PresentationFrame BuildFrame()
 	{
@@ -212,15 +212,15 @@ public sealed class BattlePresenter
 			path,
 			target,
 			_battle.Session.AnchorWorld,
-			_battle.Session.AnchorRuntime,
-			_battle.OwnerId);
+			_battle.Session.AnchorActorRuntimes.For(_battle.PlayerId),
+			_battle.PlayerId);
 
-		var ownerId = _battle.OwnerId;
+		var actorId = _battle.PlayerId;
 		var missileInRange = MissileHover is Coord hover
 			&& MissileMount is EMissileMount mount
-			&& _battle.IsLegal(new MissileAction(ownerId, hover, mount, MissileRange));
+			&& _battle.IsLegal(new MissileAction(actorId, hover, mount, MissileRange));
 
-		var actorState = previewBoard.StateOf(ownerId);
+		var actorState = previewBoard.StateOf(actorId);
 
 		return new PresentationFrame
 		{
@@ -250,7 +250,7 @@ public sealed class BattlePresenter
 			FlakAvailable = Capabilities.For(actorState.Type)
 				.OfType<FlakDef>()
 				.Any(def => def.IsLegal(
-					new FlakAction(_battle.OwnerId, def.Mount),
+					new FlakAction(_battle.PlayerId, def.Mount),
 					_battle.Board,
 					_battle.Runtime)),
 			ExitMissileMode = exitMissileMode,
@@ -273,7 +273,7 @@ public sealed class BattlePresenter
 			|| MissileMount is not EMissileMount mount
 			|| unit is null
 			|| MissileHover is not Coord hover
-			|| !_battle.IsLegal(new MissileAction(_battle.OwnerId, hover, mount, MissileRange)))
+			|| !_battle.IsLegal(new MissileAction(_battle.PlayerId, hover, mount, MissileRange)))
 		{
 			return [];
 		}
@@ -294,12 +294,12 @@ public sealed class BattlePresenter
 		if (Mode != EPlayerMode.Flak || FlakHover is not Coord hover)
 			return [];
 
-		var frame = BodyFrame.From(_battle.Board.StateOf(_battle.OwnerId));
+		var frame = BodyFrame.From(_battle.Board.StateOf(_battle.PlayerId));
 		var mount = FlakTargeting.MountForCell(frame, hover);
 		if (mount is null)
 			return [];
 
-		if (!_battle.IsLegal(new FlakAction(_battle.OwnerId, mount.Value)))
+		if (!_battle.IsLegal(new FlakAction(_battle.PlayerId, mount.Value)))
 			return [];
 
 		return View.GetFlakBurstHighlights(_battle, mount.Value);
@@ -330,6 +330,6 @@ public sealed class BattlePresenter
 			MissileHover,
 			MissileHover is Coord hover
 				&& MissileMount is EMissileMount mount
-				&& _battle.IsLegal(new MissileAction(_battle.OwnerId, hover, mount, MissileRange)));
+				&& _battle.IsLegal(new MissileAction(_battle.PlayerId, hover, mount, MissileRange)));
 	}
 }

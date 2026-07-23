@@ -38,10 +38,10 @@ public sealed class BattleBoard : IWorld<BattleBoard>
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
 	public IEnumerable<Hazard> TurnHazards =>
-		Hazards.Where(hazard => hazard.OwnerId != EntityIds.World);
+		Hazards.Where(hazard => hazard.ActorId != EntityIds.World);
 
 	public IEnumerable<NonUnit> NonUnitsOwnedBy(string actorId) =>
-		_nonUnits.Values.Where(nonUnit => nonUnit.OwnerId == actorId);
+		_nonUnits.Values.Where(nonUnit => nonUnit.ActorId == actorId);
 
 	public HashSet<Coord> OccupiedCellsFor(string actorId)
 	{

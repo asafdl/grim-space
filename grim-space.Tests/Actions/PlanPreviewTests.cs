@@ -30,7 +30,7 @@ public sealed class PlanPreviewTests
 		Assert.True(planning.TryEnqueueMovePath(move));
 		Assert.Equal(3, planning.Actions.Count);
 		Assert.All(planning.Actions, action => Assert.IsType<MoveStepAction>(action));
-		Assert.Equal(move.EndPosition, planning.Board.StateOf(planning.OwnerId).Position);
+		Assert.Equal(move.EndPosition, planning.Board.StateOf(planning.PlayerId).Position);
 	}
 
 	[Fact]
@@ -115,7 +115,7 @@ public sealed class PlanPreviewTests
 			nonUnits,
 			blocked,
 			new Timeline(),
-			planning.OwnerId);
+			planning.PlayerId);
 
 		Assert.Equal(origin + Coord.Forward * 3, player.State.Position);
 		Assert.Equal(
@@ -136,7 +136,7 @@ public sealed class PlanPreviewTests
 		var planning = PlanningTestFixture.Controller(player, enemy);
 
 		var missile = new MissileAction(
-			planning.OwnerId,
+			planning.PlayerId,
 			target,
 			EMissileMount.Fore,
 			CombatConfig.ForeMissileMinRange);

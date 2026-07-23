@@ -6,7 +6,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record ResolveHazardAction(
-	string OwnerId,
+	string ActorId,
 	string HazardId,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
@@ -19,9 +19,9 @@ public sealed class ResolveHazardDef
 {
 	public static ResolveHazardDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId) => [];
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId) => [];
 
-	public ResolveHazardAction Bind(string ownerId, string hazardId) => new(ownerId, hazardId);
+	public ResolveHazardAction Bind(string actorId, string hazardId) => new(actorId, hazardId);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
 

@@ -15,12 +15,12 @@ public sealed class HazardSystem
 
 	public IReadOnlyList<Hazard> Board => _nonUnits.Values
 		.OfType<Hazard>()
-		.Where(hazard => hazard.OwnerId == EntityIds.World)
+		.Where(hazard => hazard.ActorId == EntityIds.World)
 		.ToList();
 
 	public IReadOnlyList<Hazard> Active => _nonUnits.Values
 		.OfType<Hazard>()
-		.Where(hazard => hazard.OwnerId != EntityIds.World)
+		.Where(hazard => hazard.ActorId != EntityIds.World)
 		.ToList();
 
 	public IDictionary<string, NonUnit> MutableNonUnits => _nonUnits;
@@ -55,7 +55,7 @@ public sealed class HazardSystem
 	public void Clear()
 	{
 		var turnScoped = _nonUnits.Values
-			.Where(nonUnit => nonUnit.OwnerId != EntityIds.World)
+			.Where(nonUnit => nonUnit.ActorId != EntityIds.World)
 			.Select(nonUnit => nonUnit.Id)
 			.ToList();
 

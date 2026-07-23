@@ -10,7 +10,7 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record MoveStepAction(
-	string OwnerId,
+	string ActorId,
 	EStepDirection Direction,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
@@ -25,18 +25,18 @@ public sealed class MoveDef
 
 	private static readonly EStepDirection[] AllDirections = Enum.GetValues<EStepDirection>();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
 	{
 		foreach (var direction in AllDirections)
 		{
-			var action = Bind(ownerId, direction);
+			var action = Bind(actorId, direction);
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public MoveStepAction Bind(string ownerId, EStepDirection direction) =>
-		new(ownerId, direction);
+	public MoveStepAction Bind(string actorId, EStepDirection direction) =>
+		new(actorId, direction);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -52,10 +52,10 @@ public sealed class MoveDef
 
 	public bool IsPossible(MoveStepAction action, BattleBoard world, ActorSession runtime)
 	{
-		var actor = world.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.ActorId);
 		var frame = BodyFrame.From(actor);
 		var to = actor.Position + frame.Step(action.Direction);
-		var blocked = world.BlockedFor(action.OwnerId);
+		var blocked = world.BlockedFor(action.ActorId);
 		return world.Grid.IsInBounds(to) && !blocked.Contains(to);
 	}
 
@@ -67,7 +67,7 @@ public sealed class MoveDef
 		if (MoveDirectionRules.UsesOpposite(runtime.UsedDirectionsMask, action.Direction))
 			return false;
 
-		var actor = world.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.ActorId);
 		var stepCost = StepCosts.GetMoveStepApCost(
 			action.Direction,
 			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
@@ -80,7 +80,7 @@ public sealed class MoveDef
 		BattleBoard world,
 		ActorSession runtime)
 	{
-		var actor = world.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.ActorId);
 		var frame = BodyFrame.From(actor);
 		var to = actor.Position + frame.Step(action.Direction);
 		var directionBit = MoveDirectionRules.DirectionBit(action.Direction);
@@ -111,7 +111,7 @@ public sealed class MoveDef
 	}
 
 	public static IReadOnlyList<MoveStepAction> StepsFromPath(
-		string ownerId,
+		string actorId,
 		BodyFrame frame,
 		Coord origin,
 		IReadOnlyList<Coord> path)
@@ -124,7 +124,7 @@ public sealed class MoveDef
 			if (frame.DirectionOfStep(from, to) is not EStepDirection direction)
 				throw new InvalidOperationException("Move step direction is undefined.");
 
-			steps.Add(Instance.Bind(ownerId, direction));
+			steps.Add(Instance.Bind(actorId, direction));
 			from = to;
 		}
 
@@ -134,12 +134,12 @@ public sealed class MoveDef
 	public IEnumerable<Option> DiscoverPaths(
 		BattleBoard board,
 		ActorSession runtime,
-		string ownerId)
+		string actorId)
 	{
 		if (runtime.IsMovePathStarted)
 			yield break;
 
-		foreach (var option in MovePathFinder.Find(board, runtime, ownerId))
+		foreach (var option in MovePathFinder.Find(board, runtime, actorId))
 			yield return option;
 	}
 

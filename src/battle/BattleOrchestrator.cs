@@ -27,51 +27,45 @@ namespace GrimSpace.Battle;
 
 public sealed class BattleOrchestrator
 {
-	public BoundedGrid Grid { get; }
-	public Timeline Timeline { get; }
-	public IReadOnlyList<Unit> Units { get; }
-	public HazardSystem Hazards { get; }
+	private readonly Engine<BattleBoard, ActorSession> _engine;
+	private readonly Unit _player;
+	private readonly Unit _enemy;
+	private readonly IReadOnlyList<Unit> _roster;
+	private readonly HazardSystem _hazards;
+
+	private BattleSimulation _session = null!;
+
+	public BattleOrchestrator(
+		Engine<BattleBoard, ActorSession> engine,
+		IReadOnlyList<Unit> roster,
+		Unit player,
+		Unit enemy,
+		HazardSystem hazards)
+	{
+		_engine = engine;
+		_roster = roster;
+		_player = player;
+		_enemy = enemy;
+		_hazards = hazards;
+	}
+
+	public Engine<BattleBoard, ActorSession> Engine => _engine;
+	public BoundedGrid Grid => _engine.World.Grid;
+	public IReadOnlyList<Unit> Units => _roster;
+	public HazardSystem Hazards => _hazards;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
 	public bool IsResolving { get; private set; }
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
 
-	private readonly Unit _player;
-	private readonly Unit _enemy;
-	private readonly IReadOnlyList<Unit> _roster;
-	private readonly IReadOnlyDictionary<string, NonUnit> _nonUnits;
-	private readonly IReadOnlySet<Coord> _blockedCells;
-
-	private BattleSimulation _session = null!;
-
-	public BattleOrchestrator(
-		BoundedGrid grid,
-		Timeline timeline,
-		IReadOnlyList<Unit> units,
-		Unit player,
-		Unit enemy,
-		HazardSystem hazards,
-		IReadOnlySet<Coord> blockedCells)
-	{
-		Grid = grid;
-		Timeline = timeline;
-		Units = units;
-		_player = player;
-		_enemy = enemy;
-		_roster = units;
-		_nonUnits = hazards.NonUnits;
-		_blockedCells = blockedCells;
-		Hazards = hazards;
-	}
-
 	public BattleSimulation Session => _session;
-	public string OwnerId => _player.State.Id;
+	public string PlayerId => _player.State.Id;
 	public Unit Opponent => _enemy;
 	public BattleBoard Board => _session.PreviewWorld;
-	public ActorSession Runtime => _session.PreviewRuntime;
+	public ActorSession Runtime => _session.PreviewActorRuntimes.For(PlayerId);
 	public IReadOnlyList<IAction> Actions => _session.Actions;
-	public int MissilesRemainingThisTurn => Board.StateOf(OwnerId).MissilesRemaining;
+	public int MissilesRemainingThisTurn => Board.StateOf(PlayerId).MissilesRemaining;
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
@@ -96,13 +90,18 @@ public sealed class BattleOrchestrator
 		var player = units.First(u => u.Controller == EController.Player);
 		var enemy = units.First(u => u.Controller == EController.Enemy);
 		var blockedCells = hazards.GetBlockedCells();
+		var world = BattleBoard.FromLive(units, hazards.MutableNonUnits, grid, blockedCells, timeline);
 
-		var orchestrator = new BattleOrchestrator(grid, timeline, units, player, enemy, hazards, blockedCells);
+		var actorRuntimes = new ActorRuntimes<ActorSession>();
+		actorRuntimes.For(player.State.Id);
+		actorRuntimes.For(enemy.State.Id);
+		actorRuntimes.For(EntityIds.System);
 
-		if (player is not null)
-			orchestrator.SetActiveUnit(player.State.Id);
+		var engine = new Engine<BattleBoard, ActorSession>(world, actorRuntimes);
+		var orchestrator = new BattleOrchestrator(engine, units, player, enemy, hazards);
 
-		orchestrator.BeginTurn(timeline.Clock.Current);
+		orchestrator.SetActiveUnit(player.State.Id);
+		orchestrator.BeginTurn();
 		return orchestrator;
 	}
 
@@ -116,12 +115,10 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn(int turnStartTick)
+	public void BeginTurn()
 	{
-		var anchor = BattleBoard.FromSnapshot(_roster, _nonUnits, Grid, _blockedCells);
-		_session = new BattleSimulation(anchor, new ActorSession());
-		_session.Begin(turnStartTick);
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewRuntime, OwnerId);
+		_session = _engine.CreateSimulation();
+		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
 	}
 
 	public bool CanAct(Unit unit) =>
@@ -139,7 +136,8 @@ public sealed class BattleOrchestrator
 		if (action is not IAction<BattleBoard, ActorSession> typed)
 			return false;
 
-		return typed.Definition.IsLegal(action, Board, Runtime);
+		var runtime = _session.PreviewActorRuntimes.For(action);
+		return typed.Definition.IsLegal(action, Board, runtime);
 	}
 
 	public bool TryEnqueue(IAction action)
@@ -157,17 +155,17 @@ public sealed class BattleOrchestrator
 		if (!_session.TryEnqueue(action))
 			return false;
 
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewRuntime, OwnerId);
+		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
 		return true;
 	}
 
 	public bool TryEnqueueMovePath(Option option)
 	{
-		var actor = Board.StateOf(OwnerId);
+		var actor = Board.StateOf(PlayerId);
 		IReadOnlyList<MoveStepAction> steps;
 		try
 		{
-			steps = MoveDef.StepsFromPath(OwnerId, BodyFrame.From(actor), actor.Position, option.Path);
+			steps = MoveDef.StepsFromPath(PlayerId, BodyFrame.From(actor), actor.Position, option.Path);
 		}
 		catch (InvalidOperationException)
 		{
@@ -181,7 +179,7 @@ public sealed class BattleOrchestrator
 				return false;
 		}
 
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewRuntime, OwnerId);
+		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
 		return true;
 	}
 
@@ -190,7 +188,7 @@ public sealed class BattleOrchestrator
 		if (!_session.TryUndoLast())
 			return false;
 
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewRuntime, OwnerId);
+		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
 		return true;
 	}
 
@@ -203,11 +201,14 @@ public sealed class BattleOrchestrator
 		try
 		{
 			var result = ExecuteTurn(playerActions, sink);
+			if (!result.Success)
+				return false;
+
 			IsBattleOver = result.IsBattleOver;
 			WinnerId = result.WinnerId;
 
 			if (GetPlayer() is not null)
-				BeginTurn(Timeline.Clock.Current);
+				BeginTurn();
 
 			return true;
 		}
@@ -221,16 +222,16 @@ public sealed class BattleOrchestrator
 	{
 		var action = EndOfPhaseDef.Instance.Bind(actorId);
 		foreach (var effect in action.Definition.Resolve(action, world, runtime))
-			effect.Apply(world, runtime, action.OwnerId);
+			effect.Apply(world, runtime, action.ActorId);
 	}
 
-	public static bool TryEnqueueMovePath(BattleSimulation session, string ownerId, Option option)
+	public static bool TryEnqueueMovePath(BattleSimulation session, string actorId, Option option)
 	{
-		var actor = session.PreviewWorld.StateOf(ownerId);
+		var actor = session.PreviewWorld.StateOf(actorId);
 		IReadOnlyList<MoveStepAction> steps;
 		try
 		{
-			steps = MoveDef.StepsFromPath(ownerId, BodyFrame.From(actor), actor.Position, option.Path);
+			steps = MoveDef.StepsFromPath(actorId, BodyFrame.From(actor), actor.Position, option.Path);
 		}
 		catch (InvalidOperationException)
 		{
@@ -251,123 +252,81 @@ public sealed class BattleOrchestrator
 	{
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
-		var turnStart = Timeline.Clock.Current;
-
-		var enemyActions = CommitToTimeline(playerActions, turnStart);
-		var execution = ExecuteTimeline(turnStart, sink);
-		var outcome = RulesEngine.Evaluate(Units);
-
+		var turnStart = _engine.World.Timeline.Clock.Current;
 		var hazardsBeforeResolve = Hazards.Active.ToList();
+		var applied = new List<IAction>();
+		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
 
-		Timeline.Clock.Set(turnStart + TurnPhases.End);
+		_engine.ActorRuntimes.Reset();
+
+		if (!TrySchedulePlayerPhase(_player.State.Id, playerActions, TurnPhases.Player))
+			return new PipelineResult(false, null, Success: false);
+
+		foreach (var tick in _engine.Step(TurnPhases.Player))
+		{
+			CollectTick(tick, sink, applied);
+			if (tick.Tick == turnStart + TurnPhases.Player)
+				unitsAfterPlayer = SnapshotAll();
+		}
+
+		var enemySim = _engine.CreateSimulation();
+		ApplyEndOfPhase(
+			enemySim.PreviewWorld,
+			enemySim.PreviewActorRuntimes.For(_enemy.State.Id),
+			_enemy.State.Id);
+		var enemyActions = EnemyPlanner.PlanTurn(enemySim, _enemy);
+
+		SchedulePhase(_enemy.State.Id, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
+		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))
+			CollectTick(tick, sink, applied);
+
+		ScheduleRoundUpkeep(TurnPhases.End - TurnPhases.Enemy);
+		foreach (var tick in _engine.Step(TurnPhases.End - TurnPhases.Enemy))
+			CollectTick(tick, sink, applied);
+
+		var outcome = RulesEngine.Evaluate(Units);
 		FinalizeRound();
 
 		StateLog.LogTurnResolution(
 			turnNumber,
-			execution.Applied,
+			applied,
 			hazardsBeforeResolve,
 			unitsAtTurnStart,
-			execution.UnitsAfterPlayer,
+			unitsAfterPlayer ?? SnapshotAll(),
 			SnapshotAll());
 
-		return new PipelineResult(outcome.IsOver, outcome.WinnerId);
+		return new PipelineResult(outcome.IsOver, outcome.WinnerId, Success: true);
 	}
 
-	private IReadOnlyList<IAction> CommitToTimeline(IReadOnlyList<IAction> playerActions, int turnStart)
+	private static void CollectTick(TickResult tick, IPresentationEventSink? sink, List<IAction> applied)
 	{
-		var resolvedHazardCells = EnemyPlanner.CollectHazardCells(
-			Hazards.GetOccupiedCells(),
-			_player,
-			Units,
-			Grid,
-			_nonUnits,
-			_blockedCells,
-			playerActions,
-			turnStart);
+		foreach (var action in tick.AppliedActions)
+			sink?.OnActionApplied(new PresentationEvent(action));
 
-		var enemyActions = EnemyPlanner.PlanTurn(
-			_enemy,
-			Units,
-			Grid,
-			_nonUnits,
-			resolvedHazardCells,
-			_blockedCells,
-			turnStart);
-
-		EnqueuePhase(Timeline, turnStart + TurnPhases.Player, _player.State.Id, playerActions);
-		EnqueuePhase(Timeline, turnStart + TurnPhases.Enemy, _enemy.State.Id, enemyActions);
-		EnqueueRoundUpkeep(Timeline, turnStart + TurnPhases.End, Units);
-
-		return enemyActions;
+		applied.AddRange(tick.AppliedActions);
 	}
 
-	private TurnExecutionResult ExecuteTimeline(int turnStart, IPresentationEventSink? sink)
+	private bool TrySchedulePlayerPhase(string actorId, IReadOnlyList<IAction> actions, int delayTicks)
 	{
-		var applied = new List<IAction>();
-		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
+		if (!_engine.TryScheduleFromSimulation(_session, out _session, actions, delayTicks))
+			return false;
 
-		var playerSession = new ActorSession();
-		var enemySession = new ActorSession();
-
-		var tick = turnStart;
-		while (tick <= Timeline.MaxTick)
-		{
-			Timeline.Clock.Set(tick);
-
-			while (Timeline.At(tick).TryDequeue(out var action) && action is not null)
-			{
-				if (SystemAction.Is(action))
-					ApplySystemAction(action);
-				else
-					ApplyUnitAction(action, playerSession, enemySession);
-
-				applied.Add(action);
-				sink?.OnActionApplied(new PresentationEvent(action));
-			}
-
-			if (tick == turnStart + TurnPhases.Player)
-				unitsAfterPlayer = SnapshotAll();
-
-			tick++;
-		}
-
-		return new TurnExecutionResult(applied, unitsAfterPlayer ?? SnapshotAll());
+		_engine.ScheduleToWorldTimeline(new EndOfPhaseAction(actorId), delayTicks);
+		return true;
 	}
 
-	private void ApplySystemAction(IAction action)
+	private void SchedulePhase(string actorId, IReadOnlyList<IAction> actions, int delayTicks)
 	{
-		if (action is not IAction<BattleBoard, ActorSession> typed)
-			return;
-
-		var board = BattleBoard.FromLive(
-			Units,
-			Hazards.MutableNonUnits,
-			Grid,
-			Hazards.GetBlockedCells(),
-			Timeline);
-		foreach (var effect in typed.Definition.Resolve(action, board, new ActorSession()))
-			effect.Apply(board, new ActorSession(), action.OwnerId);
+		_engine.ScheduleToWorldTimeline(actions, delayTicks);
+		_engine.ScheduleToWorldTimeline(new EndOfPhaseAction(actorId), delayTicks);
 	}
 
-	private void ApplyUnitAction(
-		IAction action,
-		ActorSession playerSession,
-		ActorSession enemySession)
+	private void ScheduleRoundUpkeep(int delayTicks)
 	{
-		if (action is not IAction<BattleBoard, ActorSession> typed)
-			return;
+		foreach (var unit in _roster)
+			_engine.ScheduleToWorldTimeline(new RoundUpkeepAction(unit.State.Id), delayTicks);
 
-		var ownerId = action.OwnerId;
-		var session = ownerId == _player.State.Id ? playerSession : enemySession;
-
-		var board = BattleBoard.FromLive(
-			Units,
-			Hazards.MutableNonUnits,
-			Grid,
-			Hazards.GetBlockedCells(),
-			Timeline);
-		foreach (var effect in typed.Definition.Resolve(action, board, session))
-			effect.Apply(board, session, action.OwnerId);
+		_engine.ScheduleToWorldTimeline(new ClearTurnHazardsAction(), delayTicks);
 	}
 
 	private void FinalizeRound()
@@ -379,33 +338,11 @@ public sealed class BattleOrchestrator
 			SetActiveUnit(player.State.Id);
 	}
 
-	private static void EnqueuePhase(
-		Timeline timeline,
-		int tick,
-		string actorId,
-		IReadOnlyList<IAction> actions)
-	{
-		timeline.At(tick).EnqueueAll(actions);
-		timeline.At(tick).Enqueue(new EndOfPhaseAction(actorId));
-	}
-
-	private static void EnqueueRoundUpkeep(Timeline timeline, int tick, IReadOnlyList<Unit> units)
-	{
-		foreach (var unit in units)
-			timeline.At(tick).Enqueue(new RoundUpkeepAction(unit.State.Id));
-
-		timeline.At(tick).Enqueue(new ClearTurnHazardsAction());
-	}
-
 	private IEnumerable<Unit> GetActiveUnits() =>
 		Units.Where(u => IsActive(u.State.Id) && u.State.IsAlive);
 
 	private Dictionary<string, UnitState> SnapshotAll() =>
 		Units.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
 
-	private readonly record struct PipelineResult(bool IsBattleOver, string? WinnerId);
-
-	private sealed record TurnExecutionResult(
-		IReadOnlyList<IAction> Applied,
-		IReadOnlyDictionary<string, UnitState> UnitsAfterPlayer);
+	private readonly record struct PipelineResult(bool IsBattleOver, string? WinnerId, bool Success = true);
 }

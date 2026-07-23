@@ -29,7 +29,7 @@ internal static class BattleTestApply
 
 			var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
 			foreach (var effect in typed.Definition.Resolve(action, board, runtime))
-				effect.Apply(board, runtime, action.OwnerId);
+				effect.Apply(board, runtime, action.ActorId);
 		}
 	}
 
@@ -46,7 +46,7 @@ internal static class BattleTestApply
 			return false;
 
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
-			effect.Apply(board, runtime, action.OwnerId);
+			effect.Apply(board, runtime, action.ActorId);
 
 		return true;
 	}
@@ -66,21 +66,8 @@ internal static class BattleTestApply
 		return true;
 	}
 
-	public static void AdvancePreviewToTick(BattleOrchestrator battle, int tick)
-	{
-		for (var t = battle.Session.AnchorTick + 1; t <= tick; t++)
-		{
-			battle.Board.Timeline.Clock.Set(t);
-			while (battle.Board.Timeline.At(t).TryDequeue(out var scheduled) && scheduled is IAction action)
-			{
-				if (action is not IAction<BattleBoard, ActorSession> typed)
-					continue;
-
-				foreach (var effect in typed.Definition.Resolve(action, battle.Board, battle.Runtime))
-					effect.Apply(battle.Board, battle.Runtime, action.OwnerId);
-			}
-		}
-	}
+	public static void AdvancePreviewToTick(BattleOrchestrator battle, int tick) =>
+		battle.Session.AdvanceTo(tick);
 
 	public static void ApplyCommittedAction(
 		IAction action,
@@ -97,7 +84,7 @@ internal static class BattleTestApply
 
 		var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
-			effect.Apply(board, runtime, action.OwnerId);
+			effect.Apply(board, runtime, action.ActorId);
 	}
 
 	private static IEnumerable<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string actorId)

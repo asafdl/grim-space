@@ -146,7 +146,7 @@ public sealed class PlanCommitTests
 		Assert.True(planning.TryEnqueueMovePath(longMove));
 		Assert.Equal(
 			origin + Coord.Forward * 4,
-			planning.Board.StateOf(planning.OwnerId).Position);
+			planning.Board.StateOf(planning.PlayerId).Position);
 	}
 
 	private static BattleOrchestrator BeginPlanning(
@@ -158,7 +158,7 @@ public sealed class PlanCommitTests
 
 	private static void EnqueueForwardMove(BattleOrchestrator battle, int steps)
 	{
-		var option = MovePathFinder.Find(battle.Board, battle.Runtime, battle.OwnerId)
+		var option = MovePathFinder.Find(battle.Board, battle.Runtime, battle.PlayerId)
 			.First(o => o.Path.Count == steps);
 		Assert.True(battle.TryEnqueueMovePath(option));
 	}

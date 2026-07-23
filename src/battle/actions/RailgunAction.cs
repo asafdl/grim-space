@@ -7,7 +7,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record RailgunAction(
-	string OwnerId,
+	string ActorId,
 	string TargetUnitId,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
@@ -20,20 +20,20 @@ public sealed class RailgunDef
 {
 	public static RailgunDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
 	{
 		foreach (var (unitId, unit) in world.Units)
 		{
-			if (unitId == ownerId || !unit.State.IsAlive)
+			if (unitId == actorId || !unit.State.IsAlive)
 				continue;
 
-			var action = Bind(ownerId, unitId);
+			var action = Bind(actorId, unitId);
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public RailgunAction Bind(string ownerId, string targetUnitId) => new(ownerId, targetUnitId);
+	public RailgunAction Bind(string actorId, string targetUnitId) => new(actorId, targetUnitId);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -59,7 +59,7 @@ public sealed class RailgunDef
 		if (target.MomentumLevel != CombatConfig.RailgunRequiredTargetMomentum)
 			return false;
 
-		var actor = world.StateOf(action.OwnerId);
+		var actor = world.StateOf(action.ActorId);
 		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
 	}
 

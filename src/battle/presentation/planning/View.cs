@@ -36,13 +36,13 @@ public static class View
 
 	public static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle)
 	{
-		var actorId = battle.OwnerId;
+		var actorId = battle.PlayerId;
 		var session = battle.Session;
-		if (session.PreviewRuntime.IsMovePathStarted)
+		if (session.PreviewActorRuntimes.For(actorId).IsMovePathStarted)
 			return [];
 
 		var board = session.PreviewWorld;
-		var runtime = session.PreviewRuntime;
+		var runtime = session.PreviewActorRuntimes.For(actorId);
 		var unitType = board.StateOf(actorId).Type;
 
 		return Capabilities.For(unitType)
@@ -57,9 +57,9 @@ public static class View
 		int range)
 	{
 		var board = battle.Board;
-		var ownerId = battle.OwnerId;
+		var actorId = battle.PlayerId;
 		return MissileDef.For(mount, range)
-			.Discover(board, battle.Runtime, ownerId)
+			.Discover(board, battle.Runtime, actorId)
 			.OfType<MissileAction>()
 			.Select(missile => missile.Center)
 			.ToHashSet();
@@ -83,7 +83,7 @@ public static class View
 			return cells;
 
 		var enemy = battle.Opponent;
-		var action = new RailgunAction(battle.OwnerId, enemy.State.Id);
+		var action = new RailgunAction(battle.PlayerId, enemy.State.Id);
 		if (!RailgunDef.Instance.IsLegal(action, battle.Board, battle.Runtime))
 			return cells;
 
@@ -94,12 +94,12 @@ public static class View
 	public static HashSet<Coord> GetFlakBurstHighlights(BattleOrchestrator battle, EFlakMount mount)
 	{
 		var board = battle.Board;
-		var ownerId = battle.OwnerId;
-		var action = new FlakAction(ownerId, mount);
+		var actorId = battle.PlayerId;
+		var action = new FlakAction(actorId, mount);
 		if (!FlakDef.For(mount).IsLegal(action, board, battle.Runtime))
 			return [];
 
-		var frame = BodyFrame.From(board.StateOf(ownerId));
+		var frame = BodyFrame.From(board.StateOf(actorId));
 		var config = FlakMountConfig.For(mount);
 		return FlakTargeting.GetBurstCells(frame, config, board.Grid.IsInBounds);
 	}

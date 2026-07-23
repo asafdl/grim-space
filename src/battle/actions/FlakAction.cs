@@ -8,7 +8,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record FlakAction(
-	string OwnerId,
+	string ActorId,
 	EFlakMount Mount,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
@@ -23,14 +23,14 @@ public sealed class FlakDef(EFlakMount mount)
 
 	public static FlakDef For(EFlakMount mount) => new(mount);
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		var action = Bind(ownerId);
+		var action = Bind(actorId);
 		if (IsPossible(action, world, runtime))
 			yield return action;
 	}
 
-	public FlakAction Bind(string ownerId) => new(ownerId, Mount);
+	public FlakAction Bind(string actorId) => new(actorId, Mount);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -46,7 +46,7 @@ public sealed class FlakDef(EFlakMount mount)
 
 	public bool IsPossible(FlakAction action, BattleBoard world, ActorSession runtime)
 	{
-		var frame = BodyFrame.From(world.StateOf(action.OwnerId));
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);
 		return FlakTargeting.IsValidBurst(frame, config, world.Grid.IsInBounds);
 	}
@@ -64,7 +64,7 @@ public sealed class FlakDef(EFlakMount mount)
 		BattleBoard world,
 		ActorSession runtime)
 	{
-		var frame = BodyFrame.From(world.StateOf(action.OwnerId));
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);
 		var cells = FlakTargeting.GetBurstCells(frame, config, world.Grid.IsInBounds);
 		var hazardId = world.IdRegistry.NextNonUnitId("flak-burst");
@@ -74,7 +74,7 @@ public sealed class FlakDef(EFlakMount mount)
 			new SpawnFlakHazardEffect(hazardId, cells),
 			new ScheduleActionEffect(
 				CombatConfig.FlakResolveDelay,
-				ResolveHazardDef.Instance.Bind(action.OwnerId, hazardId)),
+				ResolveHazardDef.Instance.Bind(action.ActorId, hazardId)),
 			new MarkFlakUsedEffect(),
 		];
 	}

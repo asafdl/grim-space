@@ -9,7 +9,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record HeadingTurnAction(
-	string OwnerId,
+	string ActorId,
 	EHeadingTurn Turn,
 	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
 {
@@ -22,17 +22,17 @@ public sealed class HeadingDef
 {
 	public static HeadingDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string ownerId)
+	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
 	{
 		foreach (var turn in Enum.GetValues<EHeadingTurn>())
 		{
-			var action = Bind(ownerId, turn);
+			var action = Bind(actorId, turn);
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	public HeadingTurnAction Bind(string ownerId, EHeadingTurn turn) => new(ownerId, turn);
+	public HeadingTurnAction Bind(string actorId, EHeadingTurn turn) => new(actorId, turn);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -51,9 +51,9 @@ public sealed class HeadingDef
 	public bool IsLegal(HeadingTurnAction action, BattleBoard world, ActorSession runtime)
 	{
 		if (Orientation.IsYawTurn(action.Turn))
-			return world.StateOf(action.OwnerId).ActionPoints >= QuoteYawApCost(runtime, action.Turn);
+			return world.StateOf(action.ActorId).ActionPoints >= QuoteYawApCost(runtime, action.Turn);
 
-		return world.StateOf(action.OwnerId).ActionPoints >= CombatConfig.HeadingTurn90ApCost;
+		return world.StateOf(action.ActorId).ActionPoints >= CombatConfig.HeadingTurn90ApCost;
 	}
 
 	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(

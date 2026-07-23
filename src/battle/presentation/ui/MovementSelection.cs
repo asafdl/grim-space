@@ -49,7 +49,7 @@ public static class MovementSelection
 		Coord? target,
 		BattleBoard anchorBoard,
 		ActorSession anchorRuntime,
-		string ownerId)
+		string actorId)
 	{
 		if (path.Count > 0 || target is not null)
 			return (path, target);
@@ -58,14 +58,14 @@ public static class MovementSelection
 		if (moveSteps.Count == 0)
 			return (path, target);
 
-		var committedPath = RebuildMovePath(anchorBoard, anchorRuntime, ownerId, moveSteps);
+		var committedPath = RebuildMovePath(anchorBoard, anchorRuntime, actorId, moveSteps);
 		return (committedPath, committedPath[^1]);
 	}
 
 	public static IReadOnlyList<Coord> RebuildMovePath(
 		BattleBoard anchorBoard,
 		ActorSession anchorRuntime,
-		string ownerId,
+		string actorId,
 		IReadOnlyList<MoveStepAction> steps)
 	{
 		var board = anchorBoard.Fork();
@@ -75,8 +75,8 @@ public static class MovementSelection
 		foreach (var step in steps)
 		{
 			foreach (var effect in step.Definition.Resolve(step, board, runtime))
-				effect.Apply(board, runtime, step.OwnerId);
-			path.Add(board.StateOf(ownerId).Position);
+				effect.Apply(board, runtime, step.ActorId);
+			path.Add(board.StateOf(actorId).Position);
 		}
 
 		return path;

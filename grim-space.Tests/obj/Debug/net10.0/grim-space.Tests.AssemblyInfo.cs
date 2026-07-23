@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("grim-space.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+84b3ea7b0c6d42ae910ec5188301d97dfc33be23")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8b367557664f90d9319d3bf76ba85c6d82d19919")]
 [assembly: System.Reflection.AssemblyProductAttribute("grim-space.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("grim-space.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

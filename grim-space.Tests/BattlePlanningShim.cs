@@ -8,7 +8,7 @@ namespace GrimSpace.Tests.Planning;
 internal static class Preview
 {
 	public static PreviewActor Simulate(BattleOrchestrator battle) =>
-		new(battle.Board.StateOf(battle.OwnerId));
+		new(battle.Board.StateOf(battle.PlayerId));
 
 	public static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle) =>
 		View.GetLegalMoves(battle).ToList();

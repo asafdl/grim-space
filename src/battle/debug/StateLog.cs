@@ -70,7 +70,7 @@ public static class StateLog
 		path.Count == 0 ? "[]" : string.Join(" -> ", path);
 
 	private static string DescribeAction(IAction action) =>
-		$"{action.OwnerId}: {DescribeActionDetail(action)}";
+		$"{action.ActorId}: {DescribeActionDetail(action)}";
 
 	private static string DescribeActionDetail(IAction action) => action switch
 	{

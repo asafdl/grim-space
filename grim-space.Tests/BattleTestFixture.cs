@@ -2,7 +2,9 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -29,9 +31,17 @@ internal static class BattleTestFixture
 		var timeline = new Timeline();
 		var hazards = new HazardSystem();
 		var units = new Unit[] { player, enemy };
-		var battle = new BattleOrchestrator(grid, timeline, units, player, enemy, hazards, blocked);
+		var world = BattleBoard.FromLive(units, hazards.MutableNonUnits, grid, blocked, timeline);
+
+		var actorRuntimes = new ActorRuntimes<ActorSession>();
+		actorRuntimes.For(player.State.Id);
+		actorRuntimes.For(enemy.State.Id);
+		actorRuntimes.For(EntityIds.System);
+
+		var engine = new Engine<BattleBoard, ActorSession>(world, actorRuntimes);
+		var battle = new BattleOrchestrator(engine, units, player, enemy, hazards);
 		battle.SetActiveUnit(player.State.Id);
-		battle.BeginTurn(0);
+		battle.BeginTurn();
 		return battle;
 	}
 
