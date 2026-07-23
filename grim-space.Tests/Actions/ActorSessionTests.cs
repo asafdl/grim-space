@@ -49,7 +49,6 @@ public sealed class ActorSessionTests
 			SpinDiscount = true,
 			PathForwardSteps = 1,
 			UsedDirectionsMask = 1,
-			FlakUsedThisTurn = true,
 		};
 
 		session.Reset();
@@ -59,6 +58,5 @@ public sealed class ActorSessionTests
 		Assert.False(session.SpinBraked);
 		Assert.False(session.SpinDiscount);
 		Assert.False(session.IsMovePathStarted);
-		Assert.False(session.FlakUsedThisTurn);
 	}
 }

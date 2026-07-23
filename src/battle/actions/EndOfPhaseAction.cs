@@ -38,7 +38,7 @@ public sealed class EndOfPhaseDef
 		ActorSession runtime)
 	{
 		if (runtime.IsMovePathStarted)
-			return [];
+			return [new EndMovePathEffect()];
 
 		return [new MomentumDecayEffect()];
 	}

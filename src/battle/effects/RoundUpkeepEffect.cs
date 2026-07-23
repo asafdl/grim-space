@@ -18,5 +18,6 @@ public sealed class RoundUpkeepEffect : IEffect<BattleBoard, ActorSession>
 
 		actor.ActionPoints = maxAp;
 		actor.MissilesRemaining = actor.Stats.MissilesPerTurn;
+		actor.FlakRemaining = actor.Stats.FlaksPerTurn;
 	}
 }

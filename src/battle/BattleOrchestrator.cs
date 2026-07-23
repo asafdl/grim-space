@@ -179,7 +179,6 @@ public sealed class BattleOrchestrator
 				return false;
 		}
 
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
 		return true;
 	}
 

@@ -16,6 +16,7 @@ public sealed class State
 	public int Hp { get; set; }
 	public int MomentumLevel { get; set; }
 	public int MissilesRemaining { get; set; }
+	public int FlakRemaining { get; set; }
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; init; }
 
@@ -34,6 +35,7 @@ public sealed class State
 			Hp = Hp,
 			MomentumLevel = MomentumLevel,
 			MissilesRemaining = MissilesRemaining,
+			FlakRemaining = FlakRemaining,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
 		};
@@ -55,6 +57,7 @@ public sealed class State
 			Hp = stats.MaxHp,
 			MomentumLevel = 0,
 			MissilesRemaining = stats.MissilesPerTurn,
+			FlakRemaining = stats.FlaksPerTurn,
 			Stats = stats,
 		};
 	}

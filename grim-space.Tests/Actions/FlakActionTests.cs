@@ -16,7 +16,10 @@ public sealed class FlakActionTests
 		var battle = BattleTestFixture.BeginPlanning(origin);
 		var flak = new FlakAction(PlayerId, EFlakMount.Port);
 
+		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Board.StateOf(PlayerId).FlakRemaining);
 		Assert.True(battle.TryEnqueue(flak));
+		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.Board.StateOf(PlayerId).FlakRemaining);
+		Assert.False(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
 		var resolveTick = battle.Session.AnchorTick + CombatConfig.FlakResolveDelay;
 		var scheduled = battle.Board.Timeline.At(resolveTick).Snapshot();

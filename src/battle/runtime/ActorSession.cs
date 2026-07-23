@@ -19,11 +19,21 @@ public sealed class ActorSession : IRuntimeContext<ActorSession>
 	public int MoveStartMomentumLevel { get; set; }
 	public int MovementBuildupLevel { get; set; }
 	public int MovementBuildupForwardSteps { get; set; }
-	public bool FlakUsedThisTurn { get; set; }
 
 	public int NetYaw => Orientation.NormalizeQuarters(RawYawQuarters);
 
 	public bool IsMovePathStarted => PathForwardSteps > 0 || UsedDirectionsMask > 0;
+
+	public void EndMovePath()
+	{
+		MinPathApCost = InitialMinPathApCost;
+		PathApSpent = 0;
+		PathForwardSteps = 0;
+		UsedDirectionsMask = 0;
+		MoveStartMomentumLevel = 0;
+		MovementBuildupLevel = 0;
+		MovementBuildupForwardSteps = 0;
+	}
 
 	public MomentumConfig.Buildup MovementBuildup =>
 		new(MovementBuildupLevel, MovementBuildupForwardSteps);
@@ -42,7 +52,6 @@ public sealed class ActorSession : IRuntimeContext<ActorSession>
 		MoveStartMomentumLevel = 0;
 		MovementBuildupLevel = 0;
 		MovementBuildupForwardSteps = 0;
-		FlakUsedThisTurn = false;
 	}
 
 	public ActorSession Fork() => ActorSessionCopy.Clone(this);
@@ -60,8 +69,7 @@ public readonly record struct ActorSessionSnapshot(
 	int UsedDirectionsMask,
 	int MoveStartMomentumLevel,
 	int MovementBuildupLevel,
-	int MovementBuildupForwardSteps,
-	bool FlakUsedThisTurn);
+	int MovementBuildupForwardSteps);
 
 public static class ActorSessionCopy
 {
@@ -78,8 +86,7 @@ public static class ActorSessionCopy
 			session.UsedDirectionsMask,
 			session.MoveStartMomentumLevel,
 			session.MovementBuildupLevel,
-			session.MovementBuildupForwardSteps,
-			session.FlakUsedThisTurn);
+			session.MovementBuildupForwardSteps);
 
 	public static void Restore(ActorSession session, ActorSessionSnapshot snapshot)
 	{
@@ -95,7 +102,6 @@ public static class ActorSessionCopy
 		session.MoveStartMomentumLevel = snapshot.MoveStartMomentumLevel;
 		session.MovementBuildupLevel = snapshot.MovementBuildupLevel;
 		session.MovementBuildupForwardSteps = snapshot.MovementBuildupForwardSteps;
-		session.FlakUsedThisTurn = snapshot.FlakUsedThisTurn;
 	}
 
 	public static ActorSession Clone(ActorSession session)

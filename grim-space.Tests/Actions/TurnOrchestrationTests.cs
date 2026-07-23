@@ -30,6 +30,21 @@ public sealed class TurnOrchestrationTests
 	}
 
 	[Fact]
+	public void ResolveTurnRestoresMoveHighlightsForNextPlanningTurn()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+
+		var move = View.GetLegalMoves(battle)
+			.First(option => option.EndPosition == origin + Coord.Forward * 3);
+		Assert.True(battle.TryEnqueueMovePath(move));
+		Assert.True(battle.ResolveTurn(battle.Actions.ToList()));
+
+		Assert.NotEmpty(View.GetLegalMoves(battle));
+		Assert.False(battle.Runtime.IsMovePathStarted);
+	}
+
+	[Fact]
 	public void ResolveTurnSetsResolvingOnlyDuringPipeline()
 	{
 		using var _ = GameLog.BeginScope(_ => { });

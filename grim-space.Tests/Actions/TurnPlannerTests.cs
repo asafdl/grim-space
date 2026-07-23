@@ -76,6 +76,7 @@ public sealed class TurnPlannerTests
 		BattleTestApply.TryApplyOne(new EndOfPhaseAction(PlayerId), board, runtime, PlayerId);
 
 		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
+		Assert.False(runtime.IsMovePathStarted);
 	}
 
 	[Fact]

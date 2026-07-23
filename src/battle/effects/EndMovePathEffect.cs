@@ -4,8 +4,8 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MarkFlakUsedEffect : IEffect<BattleBoard, ActorSession>
+public sealed class EndMovePathEffect : IEffect<BattleBoard, ActorSession>
 {
 	public void Apply(BattleBoard world, ActorSession runtime, string actorId) =>
-		runtime.FlakUsedThisTurn = true;
+		runtime.EndMovePath();
 }

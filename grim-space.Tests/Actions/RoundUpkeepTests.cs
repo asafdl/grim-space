@@ -15,16 +15,18 @@ public sealed class RoundUpkeepTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RoundUpkeepActionRefillsApAndMissiles()
+	public void RoundUpkeepActionRefillsApMissilesAndFlak()
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ActionPoints = 0;
 		player.State.MissilesRemaining = 0;
+		player.State.FlakRemaining = 0;
 
 		ApplyRoundUpkeep(player);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 		Assert.Equal(CombatConfig.MissilesPerTurn, player.State.MissilesRemaining);
+		Assert.Equal(CombatConfig.FlaksPerTurn, player.State.FlakRemaining);
 	}
 
 	[Fact]
@@ -47,11 +49,13 @@ public sealed class RoundUpkeepTests
 		var player = battle.GetPlayer()!;
 		player.State.ActionPoints = 0;
 		player.State.MissilesRemaining = 0;
+		player.State.FlakRemaining = 0;
 
 		Assert.True(battle.ResolveTurn([]));
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 		Assert.Equal(CombatConfig.MissilesPerTurn, player.State.MissilesRemaining);
+		Assert.Equal(CombatConfig.FlaksPerTurn, player.State.FlakRemaining);
 	}
 
 	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)

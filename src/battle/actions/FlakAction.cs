@@ -53,7 +53,7 @@ public sealed class FlakDef(EFlakMount mount)
 
 	public bool IsLegal(FlakAction action, BattleBoard world, ActorSession runtime)
 	{
-		if (runtime.FlakUsedThisTurn)
+		if (world.StateOf(action.ActorId).FlakRemaining <= 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -75,7 +75,7 @@ public sealed class FlakDef(EFlakMount mount)
 			new ScheduleActionEffect(
 				CombatConfig.FlakResolveDelay,
 				ResolveHazardDef.Instance.Bind(action.ActorId, hazardId)),
-			new MarkFlakUsedEffect(),
+			new FlakChangeEffect(-1),
 		];
 	}
 
