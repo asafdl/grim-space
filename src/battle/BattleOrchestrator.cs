@@ -284,7 +284,7 @@ public sealed class BattleOrchestrator
 		foreach (var tick in _engine.Step(TurnPhases.End - TurnPhases.Enemy))
 			CollectTick(tick, sink, applied);
 
-		var outcome = RulesEngine.Evaluate(Units);
+		var outcome = EvaluateBattleOutcome(Units);
 		FinalizeRound();
 
 		StateLog.LogTurnResolution(
@@ -343,6 +343,22 @@ public sealed class BattleOrchestrator
 
 	private Dictionary<string, UnitState> SnapshotAll() =>
 		Units.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
+
+	private static BattleOutcome EvaluateBattleOutcome(IReadOnlyList<Unit> units)
+	{
+		var player = units.FirstOrDefault(u => u.Controller == EController.Player);
+		var enemy = units.FirstOrDefault(u => u.Controller == EController.Enemy);
+
+		if (enemy is not null && !enemy.State.IsAlive)
+			return new BattleOutcome(true, player?.State.Id);
+
+		if (player is not null && !player.State.IsAlive)
+			return new BattleOutcome(true, enemy?.State.Id);
+
+		return new BattleOutcome(false, null);
+	}
+
+	private readonly record struct BattleOutcome(bool IsOver, string? WinnerId);
 
 	private readonly record struct PipelineResult(bool IsBattleOver, string? WinnerId, bool Success = true);
 }
