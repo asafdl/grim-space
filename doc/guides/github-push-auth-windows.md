@@ -146,3 +146,32 @@ If the denied username matches the account you intend to use, the problem is **r
 | Who does Git HTTPS use? | Error line `denied to <username>` on failed push |
 | Push once as `gh` user | `git -c credential.helper= push "https://x-access-token:$(gh auth token)@github.com/..." ...` |
 | Branch tracking | Always `origin`, never an embedded-token URL |
+
+## PowerShell alias: `gpush`
+
+Repo script [`scripts/git-push-gh.ps1`](../../scripts/git-push-gh.ps1) defines **`gpush`** (uses `gh auth token`, never writes the token into `.git/config`).
+
+**Per session** (from repo root):
+
+```powershell
+. .\scripts\git-push-gh.ps1
+gpush              # push current branch to origin
+gpush -u           # push and set upstream to origin/<branch>
+gpush origin my-branch
+```
+
+**Every new terminal** — add to your [PowerShell profile](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles):
+
+```powershell
+function gpush {
+	$repoRoot = '<path-to-repo>'
+	if (-not (Get-Command Invoke-GitPushGh -ErrorAction SilentlyContinue)) {
+		. (Join-Path $repoRoot 'scripts\git-push-gh.ps1')
+	}
+	Invoke-GitPushGh @args
+}
+```
+
+Replace `<path-to-repo>` with this clone’s root (or use a stable path you keep clones under).
+
+Requires `gh auth login` for the account that can push to `origin`.
