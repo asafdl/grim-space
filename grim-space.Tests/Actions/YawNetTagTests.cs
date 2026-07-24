@@ -12,7 +12,7 @@ public sealed class YawNetTagTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void YawRightThenLeftCostsZeroAp()
+	public void YawRightThenLeftCostsApPerAction()
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
@@ -20,7 +20,9 @@ public sealed class YawNetTagTests
 		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 
 		var actor = battle.Board.StateOf(PlayerId);
-		Assert.Equal(MovementExpectations.FighterApPerTurn, actor.ActionPoints);
+		Assert.Equal(
+			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
+			actor.ActionPoints);
 		Assert.Equal(0, battle.Runtime.NetYaw);
 	}
 
@@ -44,7 +46,9 @@ public sealed class YawNetTagTests
 
 		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
-		Assert.Equal(MovementExpectations.FighterApPerTurn, battle.Board.StateOf(PlayerId).ActionPoints);
+		Assert.Equal(
+			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
+			battle.Board.StateOf(PlayerId).ActionPoints);
 
 		Assert.True(battle.TryUndoLast());
 

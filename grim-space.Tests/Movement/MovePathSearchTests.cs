@@ -1,13 +1,17 @@
+using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
 
-public sealed class MovePathFinderTests
+public sealed class MovePathSearchTests
 {
 	private const string PlayerId = "player";
 
@@ -63,7 +67,7 @@ public sealed class MovePathFinderTests
 			Coord.Forward,
 			Coord.Zero - player.State.Fore);
 
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(player.State);
+		var frame = BodyFrame.From(player.State);
 		var steps = MoveDef.StepsFromPath(PlayerId, frame, origin, zigzag.Path);
 		var board = BattleBoard.FromSnapshot(
 			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
@@ -135,18 +139,89 @@ public sealed class MovePathFinderTests
 		Assert.Equal(1, battle.Board.StateOf(PlayerId).MomentumLevel);
 	}
 
+	[Fact]
+	public void SearchDoesNotMutateSession()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginPlanning(origin);
+		var session = battle.Session;
+		var actionsBefore = session.Actions.ToList();
+		var positionBefore = session.PreviewWorld.StateOf(PlayerId).Position;
+
+		foreach (var _ in session.SearchMoves(PlayerId)) { }
+
+		Assert.Equal(actionsBefore, session.Actions);
+		Assert.Equal(positionBefore, session.PreviewWorld.StateOf(PlayerId).Position);
+	}
+
+	[Fact]
+	public void EndpointOptionsAlignWithTryEnqueueMovePath()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginPlanning(origin);
+		var options = GetMoveOptionsFromSession(battle.Session);
+
+		foreach (var option in options)
+		{
+			var trial = battle.Engine.CreateSimulation();
+			BattleOrchestrator.ApplyEndOfPhase(
+				trial.PreviewWorld,
+				trial.PreviewActorRuntimes.For(PlayerId),
+				PlayerId);
+			Assert.True(BattleOrchestrator.TryEnqueueMovePath(trial, PlayerId, option));
+		}
+	}
+
 	private static IReadOnlyList<Option> GetMoveOptions(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		IReadOnlySet<Coord> blocked,
 		Coord origin)
 	{
-		var board = BattleBoard.FromSnapshot(
+		var timeline = new Timeline();
+		var world = BattleBoard.FromSnapshot(
 			[player, enemy],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
-			blocked);
-		var runtime = new ActorSession();
-		return MovePathFinder.Find(board, runtime, PlayerId);
+			blocked,
+			timeline);
+		var actorRuntimes = new ActorRuntimes<ActorSession>();
+		actorRuntimes.For(PlayerId);
+		var session = new Simulation<BattleBoard, ActorSession>(world, actorRuntimes);
+		session.Begin(0, 0);
+		return GetMoveOptionsFromSession(session, origin, BodyFrame.From(player.State));
+	}
+
+	private static IReadOnlyList<Option> GetMoveOptionsFromSession(
+		Simulation<BattleBoard, ActorSession> session,
+		Coord? origin = null,
+		BodyFrame? frame = null)
+	{
+		origin ??= session.PreviewWorld.StateOf(PlayerId).Position;
+		frame ??= BodyFrame.From(session.PreviewWorld.StateOf(PlayerId));
+		var startCount = session.Actions.Count;
+		var results = new Dictionary<Coord, Option>();
+
+		foreach (var searchFrame in session.SearchMoves(PlayerId))
+		{
+			var steps = searchFrame.Actions
+				.Skip(startCount)
+				.OfType<MoveStepAction>()
+				.Where(step => step.ActorId == PlayerId)
+				.ToList();
+
+			if (steps.Count == 0)
+				continue;
+
+			var runtime = searchFrame.Runtimes.For(PlayerId);
+			var option = MovePathRules.ToEndpointOption(origin.Value, frame.Value, steps, runtime);
+			if (option is null)
+				continue;
+
+			if (!results.TryGetValue(option.EndPosition, out var existing) || option.ApCost < existing.ApCost)
+				results[option.EndPosition] = option;
+		}
+
+		return results.Values.ToList();
 	}
 }

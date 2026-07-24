@@ -146,12 +146,8 @@ public sealed class BattleOrchestrator
 		if (player is null || !CanAct(player))
 			return false;
 
-		if (action is FlakAction && _session.Actions.Any(queued => queued is FlakAction))
-			return false;
-
-		if (action is RailgunAction && _session.Actions.Any(queued => queued is RailgunAction))
-			return false;
-
+		// Drop EndOfPhase overlay so legality runs on action-replay preview.
+		_session.Reevaluate();
 		if (!_session.TryEnqueue(action))
 			return false;
 
@@ -161,6 +157,7 @@ public sealed class BattleOrchestrator
 
 	public bool TryEnqueueMovePath(Option option)
 	{
+		_session.Reevaluate();
 		var actor = Board.StateOf(PlayerId);
 		IReadOnlyList<MoveStepAction> steps;
 		try
@@ -177,6 +174,12 @@ public sealed class BattleOrchestrator
 		{
 			if (!_session.TryEnqueue(step with { UndoGroup = undoGroup }))
 				return false;
+		}
+
+		if (!ValidateMovePathEndpoint(_session, PlayerId))
+		{
+			_session.TryUndoLast();
+			return false;
 		}
 
 		return true;
@@ -226,6 +229,7 @@ public sealed class BattleOrchestrator
 
 	public static bool TryEnqueueMovePath(BattleSimulation session, string actorId, Option option)
 	{
+		session.Reevaluate();
 		var actor = session.PreviewWorld.StateOf(actorId);
 		IReadOnlyList<MoveStepAction> steps;
 		try
@@ -244,7 +248,20 @@ public sealed class BattleOrchestrator
 				return false;
 		}
 
+		if (!ValidateMovePathEndpoint(session, actorId))
+		{
+			session.TryUndoLast();
+			return false;
+		}
+
 		return true;
+	}
+
+	private static bool ValidateMovePathEndpoint(BattleSimulation session, string actorId)
+	{
+		var runtime = session.PreviewActorRuntimes.For(actorId);
+		return MovePathRules.IsValidMovePrefix(session.PreviewWorld, runtime, actorId)
+			&& MovePathRules.CanEndMovePath(runtime);
 	}
 
 	private PipelineResult ExecuteTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink)

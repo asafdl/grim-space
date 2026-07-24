@@ -72,7 +72,18 @@ public sealed class MoveDef
 			action.Direction,
 			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
 
-		return stepCost <= actor.ActionPoints;
+		if (stepCost > actor.ActionPoints)
+			return false;
+
+		if (stepCost == 0 && actor.ActionPoints == 0 && runtime.PathApSpent == 0)
+			return false;
+
+		var scratchBoard = world.Fork();
+		var scratchRuntime = ActorSessionCopy.Clone(runtime);
+		foreach (var effect in Resolve(action, scratchBoard, scratchRuntime))
+			effect.Apply(scratchBoard, scratchRuntime, action.ActorId);
+
+		return MovePathRules.IsValidMovePrefix(scratchBoard, scratchRuntime, action.ActorId);
 	}
 
 	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
@@ -129,18 +140,6 @@ public sealed class MoveDef
 		}
 
 		return steps;
-	}
-
-	public IEnumerable<Option> DiscoverPaths(
-		BattleBoard board,
-		ActorSession runtime,
-		string actorId)
-	{
-		if (runtime.IsMovePathStarted)
-			yield break;
-
-		foreach (var option in MovePathFinder.Find(board, runtime, actorId))
-			yield return option;
 	}
 
 	private static MoveStepAction Cast(IAction action) =>

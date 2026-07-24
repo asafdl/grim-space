@@ -3,6 +3,7 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -158,8 +159,46 @@ public sealed class PlanCommitTests
 
 	private static void EnqueueForwardMove(BattleOrchestrator battle, int steps)
 	{
-		var option = MovePathFinder.Find(battle.Board, battle.Runtime, battle.PlayerId)
+		var origin = battle.Board.StateOf(battle.PlayerId).Position;
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(battle.Board.StateOf(battle.PlayerId));
+		var option = GetMoveOptionsFromSession(battle.Session)
 			.First(o => o.Path.Count == steps);
 		Assert.True(battle.TryEnqueueMovePath(option));
+	}
+
+	private static IReadOnlyList<GrimSpace.Battle.Movement.Option> GetMoveOptionsFromSession(
+		GrimSpace.Core.Engine.Simulation<
+			GrimSpace.Battle.Board.BattleBoard,
+			GrimSpace.Battle.Runtime.ActorSession> session)
+	{
+		var origin = session.PreviewWorld.StateOf("player").Position;
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(session.PreviewWorld.StateOf("player"));
+		var startCount = session.Actions.Count;
+		var results = new Dictionary<Coord, GrimSpace.Battle.Movement.Option>();
+
+		foreach (var searchFrame in session.SearchMoves("player"))
+		{
+			var moveSteps = searchFrame.Actions
+				.Skip(startCount)
+				.OfType<MoveStepAction>()
+				.ToList();
+
+			if (moveSteps.Count == 0)
+				continue;
+
+			var runtime = searchFrame.Runtimes.For("player");
+			var option = GrimSpace.Battle.Movement.MovePathRules.ToEndpointOption(
+				origin,
+				frame,
+				moveSteps,
+				runtime);
+			if (option is null)
+				continue;
+
+			if (!results.TryGetValue(option.EndPosition, out var existing) || option.ApCost < existing.ApCost)
+				results[option.EndPosition] = option;
+		}
+
+		return results.Values.ToList();
 	}
 }

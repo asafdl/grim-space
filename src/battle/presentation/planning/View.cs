@@ -1,10 +1,11 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
@@ -42,13 +43,33 @@ public static class View
 			return [];
 
 		var board = session.PreviewWorld;
-		var runtime = session.PreviewActorRuntimes.For(actorId);
 		var unitType = board.StateOf(actorId).Type;
+		var origin = board.StateOf(actorId).Position;
+		var frame = BodyFrame.From(board.StateOf(actorId));
+		var startCount = session.Actions.Count;
+		var results = new Dictionary<Coord, Option>();
 
-		return Capabilities.For(unitType)
-			.OfType<MoveDef>()
-			.SelectMany(def => def.DiscoverPaths(board, runtime, actorId))
-			.ToList();
+		foreach (var searchFrame in session.SearchMoves(actorId))
+		{
+			var steps = searchFrame.Actions
+				.Skip(startCount)
+				.OfType<MoveStepAction>()
+				.Where(step => step.ActorId == actorId)
+				.ToList();
+
+			if (steps.Count == 0)
+				continue;
+
+			var runtime = searchFrame.Runtimes.For(actorId);
+			var option = MovePathRules.ToEndpointOption(origin, frame, steps, runtime);
+			if (option is null)
+				continue;
+
+			if (!results.TryGetValue(option.EndPosition, out var existing) || option.ApCost < existing.ApCost)
+				results[option.EndPosition] = option;
+		}
+
+		return results.Values.ToList();
 	}
 
 	public static HashSet<Coord> GetMissileTargetHighlights(

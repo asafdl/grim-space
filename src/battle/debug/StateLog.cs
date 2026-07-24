@@ -76,7 +76,7 @@ public static class StateLog
 	{
 		MoveStepAction step => $"MoveStep {step.Direction}",
 		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
-			? $"HeadingTurn {heading.Turn} (yaw, billed via turn state)"
+			? $"HeadingTurn {heading.Turn} ({(heading.Turn == EHeadingTurn.Yaw180 ? 2 : 1)} AP)"
 			: $"HeadingTurn {heading.Turn} (1 AP)",
 		RollAction roll => $"Roll {roll.Direction}",
 		RailgunAction railgun => $"Railgun -> {railgun.TargetUnitId}",

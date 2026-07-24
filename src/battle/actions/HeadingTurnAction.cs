@@ -73,13 +73,13 @@ public sealed class HeadingDef
 		var yawDelta = YawDelta(action.Turn);
 		var oldNet = runtime.NetYaw;
 		var newNet = Orientation.NormalizeQuarters(oldNet + yawDelta);
-		var apDelta = Orientation.ApCostForNetYaw(newNet) - Orientation.ApCostForNetYaw(oldNet);
+		var apCost = YawApCost(action.Turn);
 		var momDelta = Orientation.MomentumLossForNetYaw(newNet) - Orientation.MomentumLossForNetYaw(oldNet);
 		var consumedDiscount = false;
 
-		if (apDelta > 0 && runtime.SpinBraked && runtime.SpinDiscount)
+		if (apCost > 0 && runtime.SpinBraked && runtime.SpinDiscount)
 		{
-			apDelta = System.Math.Max(0, apDelta - 1);
+			apCost = System.Math.Max(0, apCost - 1);
 			momDelta = 0;
 			consumedDiscount = true;
 		}
@@ -87,7 +87,7 @@ public sealed class HeadingDef
 		var effects = new List<IEffect<BattleBoard, ActorSession>>
 		{
 			new AddYawQuartersEffect(yawDelta),
-			new ApChangeEffect(-apDelta),
+			new ApChangeEffect(-apCost),
 			new YawMomentumEffect(momDelta),
 			new HeadingTurnEffect(action.Turn),
 		};
@@ -98,16 +98,23 @@ public sealed class HeadingDef
 		return effects;
 	}
 
+	private static int YawApCost(EHeadingTurn turn) =>
+		turn switch
+		{
+			EHeadingTurn.YawRight => CombatConfig.HeadingTurn90ApCost,
+			EHeadingTurn.YawLeft => CombatConfig.HeadingTurn90ApCost,
+			EHeadingTurn.Yaw180 => CombatConfig.HeadingTurn180ApCost,
+			_ => throw new ArgumentOutOfRangeException(nameof(turn), turn, null),
+		};
+
 	private static int QuoteYawApCost(ActorSession runtime, EHeadingTurn turn)
 	{
-		var oldNet = runtime.NetYaw;
-		var newNet = Orientation.NormalizeQuarters(oldNet + YawDelta(turn));
-		var apDelta = Orientation.ApCostForNetYaw(newNet) - Orientation.ApCostForNetYaw(oldNet);
+		var apCost = YawApCost(turn);
 
-		if (apDelta <= 0 || !runtime.SpinBraked || !runtime.SpinDiscount)
-			return apDelta;
+		if (apCost <= 0 || !runtime.SpinBraked || !runtime.SpinDiscount)
+			return apCost;
 
-		return System.Math.Max(0, apDelta - 1);
+		return System.Math.Max(0, apCost - 1);
 	}
 
 	private static int YawDelta(EHeadingTurn turn) =>

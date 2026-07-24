@@ -6,6 +6,7 @@ public static class CombatConfig
 
 	public const int MissilesPerTurn = 2;
 	public const int FlaksPerTurn = 1;
+	public const int RailgunsPerTurn = 1;
 	public const int MissileRadius = 1;
 
 	public static readonly MissileMountConfig ForeMissile = new()

@@ -9,11 +9,19 @@ public sealed class Stats
 	public int MaxHp { get; init; }
 	public int MissilesPerTurn { get; init; }
 	public int FlaksPerTurn { get; init; }
+	public int RailgunsPerTurn { get; init; }
 
 	public static Stats ForType(EType type) =>
 		type switch
 		{
-			EType.Fighter => new Stats { MaxAp = 4, MaxHp = 1, MissilesPerTurn = 2, FlaksPerTurn = 1 },
+			EType.Fighter => new Stats
+			{
+				MaxAp = 4,
+				MaxHp = 1,
+				MissilesPerTurn = 2,
+				FlaksPerTurn = 1,
+				RailgunsPerTurn = 1,
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 }

@@ -52,6 +52,9 @@ public sealed class RailgunDef
 
 	public bool IsLegal(RailgunAction action, BattleBoard world, ActorSession runtime)
 	{
+		if (world.StateOf(action.ActorId).RailgunRemaining <= 0)
+			return false;
+
 		if (!world.Units.TryGetValue(action.TargetUnitId, out var targetUnit) || !targetUnit.State.IsAlive)
 			return false;
 
@@ -67,7 +70,10 @@ public sealed class RailgunDef
 		RailgunAction action,
 		BattleBoard world,
 		ActorSession runtime) =>
-		[new DamageEffect(action.TargetUnitId, CombatConfig.RailgunDamage)];
+		[
+			new DamageEffect(action.TargetUnitId, CombatConfig.RailgunDamage),
+			new RailgunChangeEffect(-1),
+		];
 
 	private static RailgunAction Cast(IAction action) =>
 		action as RailgunAction ?? throw new ArgumentException($"Expected {nameof(RailgunAction)}.", nameof(action));

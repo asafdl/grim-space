@@ -10,5 +10,6 @@ public sealed class MarkSpinBrakedEffect : IEffect<BattleBoard, ActorSession>
 	{
 		runtime.SpinBraked = true;
 		runtime.SpinDiscount = true;
+		runtime.MinPathApCost = 0;
 	}
 }
