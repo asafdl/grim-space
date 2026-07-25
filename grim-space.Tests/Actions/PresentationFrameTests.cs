@@ -11,7 +11,7 @@ namespace GrimSpace.Tests.Actions;
 public sealed class PresentationFrameTests
 {
 	[Fact]
-	public void FrameAfterCommittedMoveShowsPostPlanEndpointsNotSelectionEndpoints()
+	public void FrameAfterQueuedMoveShowsEndpointNotFurtherOptions()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -32,7 +32,7 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void UndoClearsCommittedMoveFromFrame()
+	public void UndoClearsQueuedMoveFromFrame()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));

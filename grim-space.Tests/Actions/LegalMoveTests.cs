@@ -13,10 +13,10 @@ using GrimSpace.Tests.Planning;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class PlanPreviewTests
+public sealed class LegalMoveTests
 {
 	[Fact]
-	public void QueuingMoveStoresPathActionOnPlanActionList()
+	public void EnqueueMovePathExpandsToMoveStepActions()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -34,7 +34,7 @@ public sealed class PlanPreviewTests
 	}
 
 	[Fact]
-	public void LegalMovesFromEmptyPlanUseSearchAtTurnStart()
+	public void LegalMoveSearchFromEmptyQueueExcludesSubMinApEndpoints()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -51,7 +51,7 @@ public sealed class PlanPreviewTests
 	}
 
 	[Fact]
-	public void LegalMovesAfterPlannedMoveReflectRemainingApAndPosition()
+	public void LegalMovesEmptyAfterMoveThatSpendsAllAp()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -75,7 +75,7 @@ public sealed class PlanPreviewTests
 	}
 
 	[Fact]
-	public void ViewMoveHighlightsExposePlanPreviewLegalMoves()
+	public void ViewMoveHighlightsMatchLegalMoveSearch()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -89,7 +89,7 @@ public sealed class PlanPreviewTests
 	}
 
 	[Fact]
-	public void FinalizedPlanAppliesPlanActionsOnTurnCommit()
+	public void ApplyToLiveAppliesQueuedMoveActions()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -127,7 +127,7 @@ public sealed class PlanPreviewTests
 	}
 
 	[Fact]
-	public void QueuedMissilesConsumeBudgetThroughSimulation()
+	public void EnqueueMissilesConsumesTurnBudget()
 	{
 		var origin = new Coord(5, 5, 1);
 		var target = origin + Coord.Forward * CombatConfig.ForeMissileMinRange;

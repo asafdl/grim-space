@@ -99,7 +99,7 @@ public sealed class MovePathSearchTests
 	}
 
 	[Fact]
-	public void ResolvingForwardMoveRaisesMomentum()
+	public void EnqueueForwardMovePathRaisesMomentum()
 	{
 		var origin = new Coord(5, 5, 5);
 		var startMomentum = 1;
@@ -122,7 +122,7 @@ public sealed class MovePathSearchTests
 	}
 
 	[Fact]
-	public void ResolvingRetroMoveLowersMomentum()
+	public void EnqueueRetroMovePathLowersMomentum()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 2);

@@ -14,7 +14,7 @@ namespace GrimSpace.Tests.Actions;
 public sealed class TurnOrchestrationTests
 {
 	[Fact]
-	public void ResolveTurnAppliesPlayerMoveBeforeRoundUpkeep()
+	public void ResolveTurnAppliesQueuedPlayerMove()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));

@@ -13,7 +13,7 @@ public sealed class SystemActionTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void ExecuteTurnClearsLeftoverTurnHazardsAtEndTick()
+	public void ResolveTurnClearsLeftoverTurnHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var hazard = Hazard.FlakBurst(
@@ -30,7 +30,7 @@ public sealed class SystemActionTests
 	}
 
 	[Fact]
-	public void ExecuteTurnClearsTurnHazardsViaSystemAction()
+	public void ResolveTurnClearsScheduledTurnHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
@@ -40,7 +40,7 @@ public sealed class SystemActionTests
 	}
 
 	[Fact]
-	public void ExecuteTurnPreservesBoardHazards()
+	public void ResolveTurnPreservesBoardHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var asteroid = Hazard.Asteroid(

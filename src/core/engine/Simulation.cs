@@ -14,6 +14,7 @@ public class Simulation<TWorld, TRuntime>
 	private readonly ActorRuntimes<TRuntime> _anchorActorRuntimes;
 	private int _anchorTick;
 	private int _nextUndoGroup;
+	private InvariantStatus _invariantStatus = InvariantStatus.Ok;
 
 	public Simulation(TWorld anchorWorld, ActorRuntimes<TRuntime> anchorActorRuntimes)
 	{
@@ -43,15 +44,12 @@ public class Simulation<TWorld, TRuntime>
 		WorldVersion = worldVersion;
 		_actions.Clear();
 		_nextUndoGroup = 0;
+		_invariantStatus = InvariantStatus.Ok;
 		Reevaluate();
 	}
 
 	public int AllocateUndoGroup() => ++_nextUndoGroup;
 
-	/// <summary>
-	/// Assumes <see cref="PreviewWorld"/> already matches <see cref="Actions"/>.
-	/// Live-world refresh is the engine/session owner's job, not enqueue's.
-	/// </summary>
 	public bool TryEnqueue(IAction action)
 	{
 		if (action is not IAction<TWorld, TRuntime> typed)
@@ -63,12 +61,13 @@ public class Simulation<TWorld, TRuntime>
 
 		_actions.Add(action);
 		ExecutionHelper.Apply(action, PreviewWorld, PreviewActorRuntimes.For(action));
+
+		if (typed.Definition is IActionInvariants<TWorld, TRuntime> invariants)
+			_invariantStatus = invariants.EvaluateInvariants(PreviewWorld, PreviewActorRuntimes.For(action), action.ActorId);
+
 		return true;
 	}
 
-	/// <summary>
-	/// Forks the current preview and applies <paramref name="action"/> without mutating the plan.
-	/// </summary>
 	public PeekFrame<TWorld, TRuntime>? Peek(IAction action)
 	{
 		if (action is not IAction<TWorld, TRuntime>)
@@ -102,7 +101,24 @@ public class Simulation<TWorld, TRuntime>
 		return true;
 	}
 
-	public Plan Commit() => new(_actions.ToList());
+	public bool TryCommit(out IReadOnlyList<IAction> actions, out InvariantStatus status)
+	{
+		status = _invariantStatus;
+		if (_invariantStatus != InvariantStatus.Ok)
+		{
+			actions = null!;
+			return false;
+		}
+
+		actions = _actions.ToList();
+		return true;
+	}
+
+	public IReadOnlyList<IAction> Commit() =>
+		TryCommit(out var actions, out _)
+			? actions
+			: throw new InvalidOperationException(
+				$"Cannot commit while invariant status is {_invariantStatus}.");
 
 	public IEnumerable<SearchFrame<TWorld, TRuntime>> Search<TEffect>(
 		string actorId,
@@ -132,6 +148,28 @@ public class Simulation<TWorld, TRuntime>
 
 		foreach (var action in _actions)
 			ExecutionHelper.Apply(action, PreviewWorld, PreviewActorRuntimes.For(action));
+
+		RefreshInvariantStatus();
+	}
+
+	private void RefreshInvariantStatus()
+	{
+		_invariantStatus = InvariantStatus.Ok;
+
+		for (var i = _actions.Count - 1; i >= 0; i--)
+		{
+			if (_actions[i] is not IAction<TWorld, TRuntime> typed)
+				continue;
+
+			if (typed.Definition is not IActionInvariants<TWorld, TRuntime> invariants)
+				continue;
+
+			_invariantStatus = invariants.EvaluateInvariants(
+				PreviewWorld,
+				PreviewActorRuntimes.For(_actions[i]),
+				_actions[i].ActorId);
+			return;
+		}
 	}
 
 	private Simulation<TWorld, TRuntime> Fork()
@@ -195,6 +233,12 @@ public class Simulation<TWorld, TRuntime>
 				var checkpoint = fork.CaptureSearchCheckpoint();
 				if (!fork.TryEnqueue(candidate))
 					continue;
+
+				if (fork._invariantStatus == InvariantStatus.Impossible)
+				{
+					fork.RestoreSearchCheckpoint(checkpoint);
+					continue;
+				}
 
 				foreach (var frame in SearchDfs(
 					fork,

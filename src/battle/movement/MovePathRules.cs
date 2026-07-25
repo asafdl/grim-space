@@ -8,30 +8,8 @@ namespace GrimSpace.Battle.Movement;
 
 public static class MovePathRules
 {
-	// TODO: Whole-prefix move legality belongs in the effect/runtime model, not a
-	// post-hoc helper. Per-step IsLegal can enqueue prefixes that are stuck mid-path
-	// (not a valid stop, no legal next step). Fold this into effects or post-apply
-	// invariants once the action pipeline owns composite path state.
-
 	public static bool CanEndMovePath(ActorSession runtime) =>
 		!runtime.IsMovePathStarted || runtime.MinPathApCost == 0 || runtime.PathApSpent == 0;
-
-	public static bool IsValidMovePrefix(BattleBoard world, ActorSession runtime, string actorId)
-	{
-		if (!runtime.IsMovePathStarted)
-			return true;
-
-		if (CanEndMovePath(runtime))
-			return true;
-
-		foreach (var candidate in MoveDef.Instance.Discover(world, runtime, actorId))
-		{
-			if (MoveDef.Instance.IsPossible(candidate, world, runtime))
-				return true;
-		}
-
-		return false;
-	}
 
 	public static Option? ToEndpointOption(
 		Coord origin,

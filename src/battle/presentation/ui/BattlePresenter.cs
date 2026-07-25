@@ -78,7 +78,10 @@ public sealed class BattlePresenter
 		if (_battle.IsBattleOver)
 			return false;
 
-		_battle.ResolveTurn(_battle.Actions.ToList(), sink);
+		if (!_battle.TryCommitPreview(out var actions))
+			return false;
+
+		_battle.ResolveTurn(actions, sink);
 		ResetAfterTurn();
 		return true;
 	}

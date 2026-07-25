@@ -52,7 +52,7 @@ public sealed class SimulationSearchTests
 	}
 
 	[Fact]
-	public void HalfPlanSearchExploresFromQueuedActionsWithoutMutatingSession()
+	public void SearchWithQueuedActionsDoesNotMutateSession()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginPlanning(origin);

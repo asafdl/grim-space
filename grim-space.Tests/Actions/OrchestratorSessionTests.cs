@@ -12,12 +12,12 @@ using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class TurnPlannerTests
+public sealed class OrchestratorSessionTests
 {
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void TryApplyAndEnqueueRejectsIllegalActionWithoutMutatingQueue()
+	public void TryEnqueueRejectsBlockedMoveWithoutMutatingQueue()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -35,7 +35,7 @@ public sealed class TurnPlannerTests
 	}
 
 	[Fact]
-	public void BeginTurnClearsPriorPlanAndPhaseContext()
+	public void NewPlanningSessionStartsEmpty()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -99,7 +99,7 @@ public sealed class TurnPlannerTests
 	}
 
 	[Fact]
-	public void ApplyCommittedActionMutatesLiveStateIncrementally()
+	public void ApplyCommittedActionsMutatesLiveStateIncrementally()
 	{
 		var origin = new Coord(5, 5, 5);
 		var startMomentum = 0;

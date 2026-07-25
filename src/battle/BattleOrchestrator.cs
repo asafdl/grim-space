@@ -5,6 +5,7 @@ using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
@@ -168,12 +169,6 @@ public sealed class BattleOrchestrator
 				return false;
 		}
 
-		if (!ValidateMovePathEndpoint(_session, PlayerId))
-		{
-			_session.TryUndoLast();
-			return false;
-		}
-
 		return true;
 	}
 
@@ -225,20 +220,20 @@ public sealed class BattleOrchestrator
 				return false;
 		}
 
-		if (!ValidateMovePathEndpoint(session, actorId))
-		{
-			session.TryUndoLast();
-			return false;
-		}
-
 		return true;
 	}
 
-	private static bool ValidateMovePathEndpoint(BattleSimulation session, string actorId)
+	public bool TryCommitPreview(out IReadOnlyList<IAction> actions)
 	{
-		var runtime = session.PreviewActorRuntimes.For(actorId);
-		return MovePathRules.IsValidMovePrefix(session.PreviewWorld, runtime, actorId)
-			&& MovePathRules.CanEndMovePath(runtime);
+		_session = ActionListStreamline.Apply(_engine, _session, BattleActionStreamliners.All);
+		if (!_session.TryCommit(out var committedActions, out _))
+		{
+			actions = [];
+			return false;
+		}
+
+		actions = committedActions;
+		return true;
 	}
 
 	private PipelineResult ExecuteTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink)

@@ -7,7 +7,7 @@ using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class YawNetTagTests
+public sealed class HeadingTurnTests
 {
 	private const string PlayerId = "player";
 
@@ -27,7 +27,7 @@ public sealed class YawNetTagTests
 	}
 
 	[Fact]
-	public void YawRightTwiceCostsTwoApForOneEighty()
+	public void YawRightTwiceCostsStickerApPerTurn()
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
@@ -35,12 +35,14 @@ public sealed class YawNetTagTests
 		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		var actor = battle.Board.StateOf(PlayerId);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn180ApCost, actor.ActionPoints);
+		Assert.Equal(
+			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
+			actor.ActionPoints);
 		Assert.Equal(2, battle.Runtime.NetYaw);
 	}
 
 	[Fact]
-	public void UndoRebuildsYawTagsFromReplay()
+	public void UndoRebuildsYawQuartersFromReplay()
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 

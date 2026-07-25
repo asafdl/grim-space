@@ -19,7 +19,8 @@ public sealed record MoveStepAction(
 }
 
 public sealed class MoveDef
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>,
+		IActionInvariants<BattleBoard, ActorSession>
 {
 	public static MoveDef Instance { get; } = new();
 
@@ -78,12 +79,24 @@ public sealed class MoveDef
 		if (stepCost == 0 && actor.ActionPoints == 0 && runtime.PathApSpent == 0)
 			return false;
 
-		var scratchBoard = world.Fork();
-		var scratchRuntime = ActorSessionCopy.Clone(runtime);
-		foreach (var effect in Resolve(action, scratchBoard, scratchRuntime))
-			effect.Apply(scratchBoard, scratchRuntime, action.ActorId);
+		return true;
+	}
 
-		return MovePathRules.IsValidMovePrefix(scratchBoard, scratchRuntime, action.ActorId);
+	public InvariantStatus EvaluateInvariants(BattleBoard world, ActorSession runtime, string actorId)
+	{
+		if (!runtime.IsMovePathStarted)
+			return InvariantStatus.Ok;
+
+		if (MovePathRules.CanEndMovePath(runtime))
+			return InvariantStatus.Ok;
+
+		foreach (var candidate in Discover(world, runtime, actorId))
+		{
+			if (IsPossible(candidate, world, runtime))
+				return InvariantStatus.Incomplete;
+		}
+
+		return InvariantStatus.Impossible;
 	}
 
 	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(

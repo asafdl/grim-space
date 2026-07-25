@@ -1,7 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -63,26 +62,6 @@ public static class Orientation
 		turn is EHeadingTurn.YawLeft or EHeadingTurn.YawRight or EHeadingTurn.Yaw180;
 
 	public static int NormalizeQuarters(int quarters) => ((quarters % 4) + 4) % 4;
-
-	public static int ApCostForNetYaw(int netQuarters) =>
-		NormalizeQuarters(netQuarters) switch
-		{
-			0 => 0,
-			2 => CombatConfig.HeadingTurn180ApCost,
-			_ => CombatConfig.HeadingTurn90ApCost,
-		};
-
-	public static int MomentumLossForNetYaw(int netQuarters) => ApCostForNetYaw(netQuarters);
-
-	public static GridBasis ApplyNetYaw(GridBasis basis, int netQuarters) =>
-		NormalizeQuarters(netQuarters) switch
-		{
-			0 => basis,
-			1 => HeadingTurn(basis, EHeadingTurn.YawRight),
-			2 => HeadingTurn(basis, EHeadingTurn.Yaw180),
-			3 => HeadingTurn(basis, EHeadingTurn.YawLeft),
-			_ => basis,
-		};
 
 	private static GridBasis CurrentGridBasis(State state) =>
 		GridBasis.From(state.Fore, state.Dorsal, state.Starboard);

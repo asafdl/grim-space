@@ -79,7 +79,7 @@ public sealed class ActionBudgetExhaustionTests
 	}
 
 	[Fact]
-	public void AfterMaxPitchTurns_NoLegalHeadingActions()
+	public void AfterMaxPitchUps_NoLegalPitchActions()
 	{
 		var session = BeginSessionAt(new Coord(5, 5, 5));
 		var turns = Enumerable

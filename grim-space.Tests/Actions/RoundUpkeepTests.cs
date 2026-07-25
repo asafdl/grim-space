@@ -43,7 +43,7 @@ public sealed class RoundUpkeepTests
 	}
 
 	[Fact]
-	public void ExecuteTurnRunsRoundUpkeepOnTimeline()
+	public void ResolveTurnRunsRoundUpkeepOnTimeline()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var player = battle.GetPlayer()!;

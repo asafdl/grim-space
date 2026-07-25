@@ -47,9 +47,6 @@ public sealed class Engine<TWorld, TRuntime>
 		return true;
 	}
 
-	public void ScheduleToWorldTimeline(Plan plan, int delayTicks = 0) =>
-		ScheduleToWorldTimeline(plan.Actions, delayTicks);
-
 	public void ScheduleToWorldTimeline(IReadOnlyList<IAction> actions, int delayTicks = 0)
 	{
 		var tick = World.Timeline.Clock.Current + delayTicks;
