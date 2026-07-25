@@ -31,9 +31,6 @@ public static class EnemyPlanner
 
 	public static IReadOnlyList<IAction> PlanTurn(BattleSimulation session, Unit actor)
 	{
-		// Preview may carry an EndOfPhase overlay from the caller; plan on action replay only.
-		session.Reevaluate();
-
 		var actorId = actor.State.Id;
 		var start = session.Actions.Count;
 
@@ -152,8 +149,7 @@ public static class EnemyPlanner
 	{
 		var world = frame.World.Fork();
 		var runtimes = frame.Runtimes.Fork();
-
-		BattleOrchestrator.ApplyEndOfPhase(world, runtimes.For(actorId), actorId);
+		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
 
 		var state = world.StateOf(actorId);
 		if (!state.IsAlive)
@@ -169,8 +165,7 @@ public static class EnemyPlanner
 	{
 		var world = frame.World.Fork();
 		var runtimes = frame.Runtimes.Fork();
-
-		BattleOrchestrator.ApplyEndOfPhase(world, runtimes.For(actorId), actorId);
+		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
 
 		foreach (var _ in TimelineRunner.Step(
 			world.Timeline,

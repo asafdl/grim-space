@@ -118,7 +118,6 @@ public sealed class BattleOrchestrator
 	public void BeginTurn()
 	{
 		_session = _engine.CreateSimulation();
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
 	}
 
 	public bool CanAct(Unit unit) =>
@@ -146,18 +145,11 @@ public sealed class BattleOrchestrator
 		if (player is null || !CanAct(player))
 			return false;
 
-		// Drop EndOfPhase overlay so legality runs on action-replay preview.
-		_session.Reevaluate();
-		if (!_session.TryEnqueue(action))
-			return false;
-
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
-		return true;
+		return _session.TryEnqueue(action);
 	}
 
 	public bool TryEnqueueMovePath(Option option)
 	{
-		_session.Reevaluate();
 		var actor = Board.StateOf(PlayerId);
 		IReadOnlyList<MoveStepAction> steps;
 		try
@@ -185,14 +177,7 @@ public sealed class BattleOrchestrator
 		return true;
 	}
 
-	public bool TryUndoLast()
-	{
-		if (!_session.TryUndoLast())
-			return false;
-
-		ApplyEndOfPhase(_session.PreviewWorld, _session.PreviewActorRuntimes.For(PlayerId), PlayerId);
-		return true;
-	}
+	public bool TryUndoLast() => _session.TryUndoLast();
 
 	public bool ResolveTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink = null)
 	{
@@ -220,16 +205,8 @@ public sealed class BattleOrchestrator
 		}
 	}
 
-	public static void ApplyEndOfPhase(BattleBoard world, ActorSession runtime, string actorId)
-	{
-		var action = EndOfPhaseDef.Instance.Bind(actorId);
-		foreach (var effect in action.Definition.Resolve(action, world, runtime))
-			effect.Apply(world, runtime, action.ActorId);
-	}
-
 	public static bool TryEnqueueMovePath(BattleSimulation session, string actorId, Option option)
 	{
-		session.Reevaluate();
 		var actor = session.PreviewWorld.StateOf(actorId);
 		IReadOnlyList<MoveStepAction> steps;
 		try
@@ -286,10 +263,6 @@ public sealed class BattleOrchestrator
 		}
 
 		var enemySim = _engine.CreateSimulation();
-		ApplyEndOfPhase(
-			enemySim.PreviewWorld,
-			enemySim.PreviewActorRuntimes.For(_enemy.State.Id),
-			_enemy.State.Id);
 		var enemyActions = EnemyPlanner.PlanTurn(enemySim, _enemy);
 
 		SchedulePhase(_enemy.State.Id, enemyActions, TurnPhases.Enemy - TurnPhases.Player);

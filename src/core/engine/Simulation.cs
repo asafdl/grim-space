@@ -50,8 +50,7 @@ public class Simulation<TWorld, TRuntime>
 
 	/// <summary>
 	/// Assumes <see cref="PreviewWorld"/> already matches <see cref="Actions"/>.
-	/// Callers that mutate preview outside the action list (overlays) must
-	/// <see cref="Reevaluate"/> first. Live-world refresh is the engine/session owner's job.
+	/// Live-world refresh is the engine/session owner's job, not enqueue's.
 	/// </summary>
 	public bool TryEnqueue(IAction action)
 	{
@@ -65,6 +64,20 @@ public class Simulation<TWorld, TRuntime>
 		_actions.Add(action);
 		ExecutionHelper.Apply(action, PreviewWorld, PreviewActorRuntimes.For(action));
 		return true;
+	}
+
+	/// <summary>
+	/// Forks the current preview and applies <paramref name="action"/> without mutating the plan.
+	/// </summary>
+	public PeekFrame<TWorld, TRuntime>? Peek(IAction action)
+	{
+		if (action is not IAction<TWorld, TRuntime>)
+			return null;
+
+		var world = PreviewWorld.Fork();
+		var runtimes = PreviewActorRuntimes.Fork();
+		ExecutionHelper.Apply(action, world, runtimes.For(action));
+		return new PeekFrame<TWorld, TRuntime>(world, runtimes);
 	}
 
 	public IEnumerable<TickResult> StepPreview(int ticksToAdvance) =>

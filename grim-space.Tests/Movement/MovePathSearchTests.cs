@@ -164,10 +164,6 @@ public sealed class MovePathSearchTests
 		foreach (var option in options)
 		{
 			var trial = battle.Engine.CreateSimulation();
-			BattleOrchestrator.ApplyEndOfPhase(
-				trial.PreviewWorld,
-				trial.PreviewActorRuntimes.For(PlayerId),
-				PlayerId);
 			Assert.True(BattleOrchestrator.TryEnqueueMovePath(trial, PlayerId, option));
 		}
 	}

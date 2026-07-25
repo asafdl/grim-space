@@ -24,7 +24,14 @@ public static class View
 		return GetLegalMoves(battle);
 	}
 
-	public static BattleBoard GetTurnGhost(BattleOrchestrator battle) => battle.Board;
+	/// <summary>
+	/// Projected board after end-of-phase resolves on the current plan (display only).
+	/// </summary>
+	public static BattleBoard GetTurnGhost(BattleOrchestrator battle)
+	{
+		var peek = battle.Session.Peek(EndOfPhaseDef.Instance.Bind(battle.PlayerId));
+		return peek?.World ?? battle.Board;
+	}
 
 	public static HashSet<Coord> GetPlannedHazardHighlights(BattleOrchestrator battle)
 	{

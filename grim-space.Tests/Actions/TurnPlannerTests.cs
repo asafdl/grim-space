@@ -80,7 +80,7 @@ public sealed class TurnPlannerTests
 	}
 
 	[Fact]
-	public void ReplayAppliesMomentumDecayWhenStationary()
+	public void PeekEndOfPhaseAppliesMomentumDecayWhenStationary()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 2);
@@ -91,7 +91,11 @@ public sealed class TurnPlannerTests
 
 		battle.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
 
-		Assert.Equal(1, battle.Board.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(2, battle.Board.StateOf(PlayerId).MomentumLevel);
+
+		var peek = battle.Session.Peek(EndOfPhaseDef.Instance.Bind(PlayerId));
+		Assert.NotNull(peek);
+		Assert.Equal(1, peek.Value.World.StateOf(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
