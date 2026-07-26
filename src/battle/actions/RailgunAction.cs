@@ -8,8 +8,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record RailgunAction(
 	string ActorId,
-	string TargetUnitId,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	string TargetUnitId) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		RailgunDef.Instance;

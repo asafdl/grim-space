@@ -12,7 +12,7 @@ namespace GrimSpace.Battle.Board;
 /// Mutable battlefield for action resolution. Each turn opens a planning board
 /// cloned from current unit state; commit applies the queued actions to live state.
 /// </summary>
-public sealed class BattleBoard : IWorld<BattleBoard>
+public sealed class BattleBoard : IWorld<BattleBoard>, IActorStateWorld<State, BattleBoard>
 {
 	private readonly Dictionary<string, Unit> _units;
 	private readonly Dictionary<string, NonUnit> _nonUnits;
@@ -36,9 +36,6 @@ public sealed class BattleBoard : IWorld<BattleBoard>
 		_units.Values.Where(unit => unit.State.Id != unitId);
 
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
-
-	public IEnumerable<Hazard> TurnHazards =>
-		Hazards.Where(hazard => hazard.ActorId != EntityIds.World);
 
 	public IEnumerable<NonUnit> NonUnitsOwnedBy(string actorId) =>
 		_nonUnits.Values.Where(nonUnit => nonUnit.ActorId == actorId);

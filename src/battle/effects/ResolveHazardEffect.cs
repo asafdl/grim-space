@@ -1,19 +1,37 @@
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class ResolveHazardEffect(string hazardId) : IEffect<BattleBoard, ActorSession>
+public sealed class ResolveHazardEffect(
+	EHazardKind kind,
+	HashSet<Coord> cells,
+	int damage,
+	int momentumLoss) : IEffect<BattleBoard, ActorSession>
 {
 	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
 	{
-		if (!world.NonUnits.TryGetValue(hazardId, out var nonUnit) || nonUnit is not Hazard hazard)
-			return;
+		var center = cells.Count > 0 ? cells.First() : Coord.Zero;
+		var hazard = new Hazard
+		{
+			Id = string.Empty,
+			ActorId = actorId,
+			Center = center,
+			Frame = BodyFrame.WorldAligned(center),
+			Cells = cells,
+			Passable = true,
+			Damage = damage,
+			MomentumLoss = momentumLoss,
+			Kind = kind,
+		};
 
 		foreach (var unit in world.Units.Values)
 		{
-			if (!unit.State.IsAlive || !hazard.Cells.Contains(unit.State.Position))
+			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
 				continue;
 
 			HazardResolution.ApplyToUnitAt(hazard, unit.State);

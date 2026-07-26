@@ -1,6 +1,5 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Planning;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -18,13 +17,13 @@ public sealed class SimulationSearchTests
 	public void RailgunBudgetEnforcedBySimulationTryEnqueue()
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
-		var session = battle.Session;
+		var session = battle.Sim;
 		var enemyId = battle.Opponent.State.Id;
 		var railgun = new RailgunAction(PlayerId, enemyId);
 
-		Assert.Equal(CombatConfig.RailgunsPerTurn, session.PreviewWorld.StateOf(PlayerId).RailgunRemaining);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
 		Assert.True(session.TryEnqueue(railgun));
-		Assert.Equal(CombatConfig.RailgunsPerTurn - 1, session.PreviewWorld.StateOf(PlayerId).RailgunRemaining);
+		Assert.Equal(CombatConfig.RailgunsPerTurn - 1, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
 		Assert.False(session.TryEnqueue(new RailgunAction(PlayerId, enemyId)));
 	}
 
@@ -32,10 +31,35 @@ public sealed class SimulationSearchTests
 	public void FlakBudgetEnforcedBySimulationTryEnqueue()
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
-		var session = battle.Session;
+		var session = battle.Sim;
 
 		Assert.True(session.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
 		Assert.False(session.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+	}
+
+	[Fact]
+	public void PeekReturnsNullForIllegalAction()
+	{
+		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var session = battle.Sim;
+		var enemyId = battle.Opponent.State.Id;
+
+		Assert.True(session.TryEnqueue(new RailgunAction(PlayerId, enemyId)));
+		Assert.Null(session.Peek(new RailgunAction(PlayerId, enemyId)));
+	}
+
+	[Fact]
+	public void PeekReturnsFrameForLegalActionWithoutMutatingQueue()
+	{
+		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var session = battle.Sim;
+		var enemyId = battle.Opponent.State.Id;
+		var railgun = new RailgunAction(PlayerId, enemyId);
+
+		var peek = session.Peek(railgun);
+		Assert.NotNull(peek);
+		Assert.Empty(session.Actions);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
 	}
 
 	[Fact]
@@ -45,7 +69,7 @@ public sealed class SimulationSearchTests
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 		var maxDepth = 0;
 
-		foreach (var frame in battle.Session.SearchMoves(PlayerId))
+		foreach (var frame in battle.Sim.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
 			maxDepth = System.Math.Max(maxDepth, frame.Depth);
 
 		Assert.True(maxDepth <= expectedMaxDepth, maxDepth.ToString());
@@ -56,15 +80,15 @@ public sealed class SimulationSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginPlanning(origin);
-		var session = battle.Session;
+		var session = battle.Sim;
 		var heading = HeadingDef.Instance.Bind(PlayerId, GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight);
 
 		Assert.True(session.TryEnqueue(heading));
 		var actionsBefore = session.Actions.ToList();
-		var apBefore = session.PreviewWorld.StateOf(PlayerId).ActionPoints;
+		var apBefore = session.StateOf<ActorState>(PlayerId).ActionPoints;
 
 		var foundExtension = false;
-		foreach (var frame in session.SearchMoves(PlayerId))
+		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
 		{
 			if (frame.Actions.Count > actionsBefore.Count)
 			{
@@ -74,7 +98,7 @@ public sealed class SimulationSearchTests
 		}
 
 		Assert.Equal(actionsBefore, session.Actions);
-		Assert.Equal(apBefore, session.PreviewWorld.StateOf(PlayerId).ActionPoints);
+		Assert.Equal(apBefore, session.StateOf<ActorState>(PlayerId).ActionPoints);
 		Assert.True(foundExtension);
 	}
 }

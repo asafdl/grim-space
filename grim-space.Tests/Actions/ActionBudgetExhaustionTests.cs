@@ -24,7 +24,7 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterMaxMissiles_NoLegalMissileActions()
 	{
 		var session = BeginSessionAt(new Coord(5, 5, 1));
-		var target = session.PreviewWorld.StateOf(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
+		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
 		var missiles = Enumerable
 			.Range(0, CombatConfig.MissilesPerTurn)
 			.Select(_ => ForeMissile.Bind(PlayerId, target))
@@ -33,7 +33,7 @@ public sealed class ActionBudgetExhaustionTests
 
 		LegalActionProbe.EnqueueAll(session, missiles);
 
-		Assert.Equal(0, session.PreviewWorld.StateOf(PlayerId).MissilesRemaining);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).MissilesRemaining);
 		LegalActionProbe.AssertExhausted(session, PlayerId, ForeMissile);
 		Assert.False(session.TryEnqueue(ForeMissile.Bind(PlayerId, target)));
 	}
@@ -44,7 +44,7 @@ public sealed class ActionBudgetExhaustionTests
 		var session = BeginSessionAt(new Coord(5, 5, 5));
 		LegalActionProbe.EnqueueAll(session, [PortFlak.Bind(PlayerId)]);
 
-		Assert.Equal(0, session.PreviewWorld.StateOf(PlayerId).FlakRemaining);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).FlakRemaining);
 		LegalActionProbe.AssertExhausted(session, PlayerId, PortFlak);
 		LegalActionProbe.AssertExhausted(session, PlayerId, StarboardFlak);
 		Assert.False(session.TryEnqueue(StarboardFlak.Bind(PlayerId)));
@@ -54,10 +54,10 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterMaxRailgun_NoLegalRailgunActions()
 	{
 		var session = BeginSessionAt(new Coord(5, 5, 5));
-		var enemyId = session.PreviewWorld.Units.Keys.First(id => id != PlayerId);
+		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 		LegalActionProbe.EnqueueAll(session, [RailgunDef.Instance.Bind(PlayerId, enemyId)]);
 
-		Assert.Equal(0, session.PreviewWorld.StateOf(PlayerId).RailgunRemaining);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RailgunDef.Instance);
 		Assert.False(session.TryEnqueue(RailgunDef.Instance.Bind(PlayerId, enemyId)));
 	}
@@ -74,7 +74,7 @@ public sealed class ActionBudgetExhaustionTests
 
 		LegalActionProbe.EnqueueAll(session, rolls);
 
-		Assert.Equal(0, session.PreviewWorld.StateOf(PlayerId).ActionPoints);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).ActionPoints);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RollDef.Instance);
 	}
 
@@ -90,7 +90,7 @@ public sealed class ActionBudgetExhaustionTests
 
 		LegalActionProbe.EnqueueAll(session, turns);
 
-		Assert.Equal(0, session.PreviewWorld.StateOf(PlayerId).ActionPoints);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).ActionPoints);
 		LegalActionProbe.AssertExhausted(session, PlayerId, HeadingDef.Instance);
 	}
 
@@ -98,8 +98,8 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterAllWeaponBudgetsExhausted_NoLegalWeaponActions()
 	{
 		var session = BeginSessionAt(new Coord(5, 5, 1));
-		var target = session.PreviewWorld.StateOf(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
-		var enemyId = session.PreviewWorld.Units.Keys.First(id => id != PlayerId);
+		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
+		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 		var actions = new List<IAction>();
 
 		for (var i = 0; i < CombatConfig.MissilesPerTurn; i++)
@@ -110,7 +110,7 @@ public sealed class ActionBudgetExhaustionTests
 
 		LegalActionProbe.EnqueueAll(session, actions);
 
-		var actor = session.PreviewWorld.StateOf(PlayerId);
+		var actor = session.StateOf<ActorState>(PlayerId);
 		Assert.Equal(0, actor.MissilesRemaining);
 		Assert.Equal(0, actor.FlakRemaining);
 		Assert.Equal(0, actor.RailgunRemaining);
@@ -133,7 +133,7 @@ public sealed class ActionBudgetExhaustionTests
 
 		LegalActionProbe.EnqueueAll(session, rolls);
 
-		Assert.Equal(0, session.PreviewWorld.StateOf(PlayerId).ActionPoints);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).ActionPoints);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RollDef.Instance);
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, ForeMissile));
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, PortFlak));
@@ -144,8 +144,8 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterWeaponBudgetsExhausted_RollsRemainLegal()
 	{
 		var session = BeginSessionAt(new Coord(5, 5, 1));
-		var target = session.PreviewWorld.StateOf(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
-		var enemyId = session.PreviewWorld.Units.Keys.First(id => id != PlayerId);
+		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
+		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 
 		LegalActionProbe.EnqueueAll(
 			session,
@@ -163,6 +163,6 @@ public sealed class ActionBudgetExhaustionTests
 	private static Simulation<BattleBoard, ActorSession> BeginSessionAt(Coord origin)
 	{
 		var battle = BattleTestFixture.BeginPlanning(origin);
-		return battle.Session;
+		return battle.Sim;
 	}
 }

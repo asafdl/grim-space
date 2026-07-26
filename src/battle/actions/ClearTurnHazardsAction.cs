@@ -9,7 +9,6 @@ namespace GrimSpace.Battle.Actions;
 public sealed record ClearTurnHazardsAction : IAction<BattleBoard, ActorSession>
 {
 	public string ActorId { get; } = EntityIds.System;
-	public int? UndoGroup { get; } = null;
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		ClearTurnHazardsDef.Instance;
 }

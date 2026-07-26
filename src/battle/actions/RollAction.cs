@@ -9,8 +9,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record RollAction(
 	string ActorId,
-	ERollDirection Direction,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	ERollDirection Direction) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		RollDef.Instance;

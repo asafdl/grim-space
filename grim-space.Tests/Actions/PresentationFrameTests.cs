@@ -1,6 +1,6 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Presentation.Planning;
-using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -15,14 +15,14 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var presenter = new BattlePresenter(battle);
-		var options = View.GetLegalMoves(battle).ToList();
+		var ui = new BattleUi(battle);
+		var options = MoveUi.GetMoveOptions(battle, battle.GetPlayer()).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
-		Assert.True(presenter.TryQueueMove(threeStepIndex, options));
+		Assert.True(ui.TryQueueMove(threeStepIndex, options));
 
-		var frame = presenter.BuildFrame();
+		var frame = ui.BuildFrame();
 		var endpoints = frame.MoveOptions.Select(option => option.EndPosition).ToHashSet();
 
 		Assert.Equal(origin + Coord.Forward * 3, frame.ActorState.Position);
@@ -36,15 +36,15 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var presenter = new BattlePresenter(battle);
-		var options = View.GetLegalMoves(battle).ToList();
+		var ui = new BattleUi(battle);
+		var options = MoveUi.GetMoveOptions(battle, battle.GetPlayer()).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
-		presenter.TryQueueMove(threeStepIndex, options);
-		Assert.True(presenter.Undo());
+		ui.TryQueueMove(threeStepIndex, options);
+		Assert.True(ui.Undo());
 
-		var frame = presenter.BuildFrame();
+		var frame = ui.BuildFrame();
 
 		Assert.Equal(origin, frame.ActorState.Position);
 		Assert.Null(frame.MoveTarget);

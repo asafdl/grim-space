@@ -4,11 +4,8 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -20,9 +17,6 @@ using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using UnitState = GrimSpace.Battle.Units.State;
-using BattleSimulation = GrimSpace.Core.Engine.Simulation<
-	GrimSpace.Battle.Board.BattleBoard,
-	GrimSpace.Battle.Runtime.ActorSession>;
 
 namespace GrimSpace.Battle;
 
@@ -34,7 +28,7 @@ public sealed class BattleOrchestrator
 	private readonly IReadOnlyList<Unit> _roster;
 	private readonly HazardSystem _hazards;
 
-	private BattleSimulation _session = null!;
+	private BattleSimulation _sim = null!;
 
 	public BattleOrchestrator(
 		Engine<BattleBoard, ActorSession> engine,
@@ -50,7 +44,9 @@ public sealed class BattleOrchestrator
 		_hazards = hazards;
 	}
 
-	public Engine<BattleBoard, ActorSession> Engine => _engine;
+	internal Engine<BattleBoard, ActorSession> Engine => _engine;
+
+	public BattleSimulation Sim => _sim;
 	public BoundedGrid Grid => _engine.World.Grid;
 	public IReadOnlyList<Unit> Units => _roster;
 	public HazardSystem Hazards => _hazards;
@@ -59,14 +55,8 @@ public sealed class BattleOrchestrator
 	public bool IsResolving { get; private set; }
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
-
-	public BattleSimulation Session => _session;
 	public string PlayerId => _player.State.Id;
 	public Unit Opponent => _enemy;
-	public BattleBoard Board => _session.PreviewWorld;
-	public ActorSession Runtime => _session.PreviewActorRuntimes.For(PlayerId);
-	public IReadOnlyList<IAction> Actions => _session.Actions;
-	public int MissilesRemainingThisTurn => Board.StateOf(PlayerId).MissilesRemaining;
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
@@ -116,63 +106,13 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn()
-	{
-		_session = _engine.CreateSimulation();
-	}
+	public void BeginTurn() => _sim = _engine.CreateSimulation();
 
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && !IsResolving && IsActive(unit.State.Id) && unit.State.IsAlive;
 
 	public Unit? GetActiveActor() =>
 		GetActiveUnits().FirstOrDefault(u => u.Controller == EController.Player);
-
-	public bool IsLegal(IAction action)
-	{
-		var player = GetActiveActor();
-		if (player is null || !CanAct(player))
-			return false;
-
-		if (action is not IAction<BattleBoard, ActorSession> typed)
-			return false;
-
-		var runtime = _session.PreviewActorRuntimes.For(action);
-		return typed.Definition.IsLegal(action, Board, runtime);
-	}
-
-	public bool TryEnqueue(IAction action)
-	{
-		var player = GetActiveActor();
-		if (player is null || !CanAct(player))
-			return false;
-
-		return _session.TryEnqueue(action);
-	}
-
-	public bool TryEnqueueMovePath(Option option)
-	{
-		var actor = Board.StateOf(PlayerId);
-		IReadOnlyList<MoveStepAction> steps;
-		try
-		{
-			steps = MoveDef.StepsFromPath(PlayerId, BodyFrame.From(actor), actor.Position, option.Path);
-		}
-		catch (InvalidOperationException)
-		{
-			return false;
-		}
-
-		var undoGroup = _session.AllocateUndoGroup();
-		foreach (var step in steps)
-		{
-			if (!_session.TryEnqueue(step with { UndoGroup = undoGroup }))
-				return false;
-		}
-
-		return true;
-	}
-
-	public bool TryUndoLast() => _session.TryUndoLast();
 
 	public bool ResolveTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink = null)
 	{
@@ -198,42 +138,6 @@ public sealed class BattleOrchestrator
 		{
 			IsResolving = false;
 		}
-	}
-
-	public static bool TryEnqueueMovePath(BattleSimulation session, string actorId, Option option)
-	{
-		var actor = session.PreviewWorld.StateOf(actorId);
-		IReadOnlyList<MoveStepAction> steps;
-		try
-		{
-			steps = MoveDef.StepsFromPath(actorId, BodyFrame.From(actor), actor.Position, option.Path);
-		}
-		catch (InvalidOperationException)
-		{
-			return false;
-		}
-
-		var undoGroup = session.AllocateUndoGroup();
-		foreach (var step in steps)
-		{
-			if (!session.TryEnqueue(step with { UndoGroup = undoGroup }))
-				return false;
-		}
-
-		return true;
-	}
-
-	public bool TryCommitPreview(out IReadOnlyList<IAction> actions)
-	{
-		_session = ActionListStreamline.Apply(_engine, _session, BattleActionStreamliners.All);
-		if (!_session.TryCommit(out var committedActions, out _))
-		{
-			actions = [];
-			return false;
-		}
-
-		actions = committedActions;
-		return true;
 	}
 
 	private PipelineResult ExecuteTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink)
@@ -292,7 +196,7 @@ public sealed class BattleOrchestrator
 
 	private bool TrySchedulePlayerPhase(string actorId, IReadOnlyList<IAction> actions, int delayTicks)
 	{
-		if (!_engine.TryScheduleFromSimulation(_session, out _session, actions, delayTicks))
+		if (!_engine.TryScheduleFromSimulation(_sim, out _sim, actions, delayTicks))
 			return false;
 
 		_engine.ScheduleToWorldTimeline(new EndOfPhaseAction(actorId), delayTicks);

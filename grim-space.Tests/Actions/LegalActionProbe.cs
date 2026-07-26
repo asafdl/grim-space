@@ -16,8 +16,8 @@ internal static class LegalActionProbe
 		IReadOnlyList<IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>> defs)
 	{
 		var results = new List<IAction>();
-		var world = session.PreviewWorld;
-		var runtime = session.PreviewActorRuntimes.For(actorId);
+		var world = session.World;
+		var runtime = session.RuntimeFor(actorId);
 
 		foreach (var def in defs)
 		{

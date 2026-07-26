@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
@@ -16,16 +16,15 @@ public sealed class FlakActionTests
 		var battle = BattleTestFixture.BeginPlanning(origin);
 		var flak = new FlakAction(PlayerId, EFlakMount.Port);
 
-		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Board.StateOf(PlayerId).FlakRemaining);
-		Assert.True(battle.TryEnqueue(flak));
-		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.Board.StateOf(PlayerId).FlakRemaining);
-		Assert.False(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
+		Assert.True(battle.Sim.TryEnqueue(flak));
+		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
+		Assert.False(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
-		var resolveTick = battle.Session.AnchorTick + CombatConfig.FlakResolveDelay;
-		var scheduled = battle.Board.Timeline.At(resolveTick).Snapshot();
-		Assert.Single(scheduled);
-		Assert.IsType<ResolveHazardAction>(scheduled[0]);
-		Assert.NotEmpty(battle.Board.TurnHazards);
+		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;
+		var scheduled = battle.Sim.PeekTimeline(resolveTick);
+		var hazard = Assert.Single(scheduled.OfType<ResolveHazardAction>());
+		Assert.NotEmpty(hazard.Cells);
 	}
 
 	[Fact]
@@ -33,15 +32,14 @@ public sealed class FlakActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginPlanning(origin, momentum: 1);
-		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
-		var hazard = battle.Board.TurnHazards.First();
-		var enemy = battle.Board.Units.Values.First(unit => unit.State.Id != PlayerId);
+		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;
+		var hazard = battle.Sim.PeekTimeline(resolveTick).OfType<ResolveHazardAction>().First();
+		var enemy = battle.Sim.World.Units.Values.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = hazard.Cells.First();
 
-		BattleTestApply.AdvancePreviewToTick(
-			battle,
-			battle.Session.AnchorTick + CombatConfig.FlakResolveDelay);
+		BattleTestApply.AdvancePreviewToTick(battle, resolveTick);
 
 		Assert.Equal(0, enemy.State.MomentumLevel);
 		Assert.True(enemy.State.ApPenaltyNextTurn);

@@ -33,9 +33,9 @@ public sealed class SystemActionTests
 	public void ResolveTurnClearsScheduledTurnHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
+		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
 
-		Assert.True(battle.ResolveTurn(battle.Actions.ToList()));
+		Assert.True(battle.ResolveTurn(battle.Sim.Actions.ToList()));
 		Assert.Empty(battle.Hazards.Active);
 	}
 
@@ -58,16 +58,16 @@ public sealed class SystemActionTests
 	}
 
 	[Fact]
-	public void ResolveHazardActionRemovesHazardAfterApplying()
+	public void ResolveHazardActionAppliesAtScheduledTick()
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
-		Assert.True(battle.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
-		Assert.NotEmpty(battle.Board.TurnHazards);
+		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
-		BattleTestApply.AdvancePreviewToTick(
-			battle,
-			battle.Session.AnchorTick + CombatConfig.FlakResolveDelay);
+		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;
+		Assert.Single(battle.Sim.PeekTimeline(resolveTick).OfType<ResolveHazardAction>());
 
-		Assert.Empty(battle.Board.TurnHazards);
+		BattleTestApply.AdvancePreviewToTick(battle, resolveTick);
+
+		Assert.Empty(battle.Sim.PeekTimeline(resolveTick));
 	}
 }

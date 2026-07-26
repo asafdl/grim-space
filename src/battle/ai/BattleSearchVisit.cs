@@ -1,13 +1,10 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.Battle.Planning;
+namespace GrimSpace.Battle.Ai;
 
-/// <summary>
-/// Move-path search state — matches the old MovePathFinder node key.
-/// </summary>
 internal readonly record struct MoveSearchState(
 	Coord Position,
 	int UsedDirectionsMask,
@@ -15,9 +12,6 @@ internal readonly record struct MoveSearchState(
 	int MinPathApCost,
 	int ActionPoints);
 
-/// <summary>
-/// Full-turn search state without consumable budgets (AP, missiles, etc.).
-/// </summary>
 internal readonly record struct BattleSearchState(
 	Coord Position,
 	Coord Fore,
@@ -39,9 +33,16 @@ internal readonly record struct BattleSearchState(
 
 internal static class BattleSearchVisit
 {
-	public static SearchVisitState ForMove(BattleBoard world, ActorSession runtime, string actorId)
+	public static SearchVisitState MoveVisit(BattleSimulation sim, string actorId) =>
+		ForMove(sim, actorId);
+
+	public static SearchVisitState TurnVisit(BattleSimulation sim, string actorId) =>
+		ForTurn(sim, actorId);
+
+	public static SearchVisitState ForMove(BattleSimulation sim, string actorId)
 	{
-		var actor = world.StateOf(actorId);
+		var actor = sim.StateOf<ActorState>(actorId);
+		var runtime = sim.RuntimeFor(actorId);
 		return new SearchVisitState(
 			new MoveSearchState(
 				actor.Position,
@@ -52,9 +53,10 @@ internal static class BattleSearchVisit
 			[]);
 	}
 
-	public static SearchVisitState ForTurn(BattleBoard world, ActorSession runtime, string actorId)
+	public static SearchVisitState ForTurn(BattleSimulation sim, string actorId)
 	{
-		var actor = world.StateOf(actorId);
+		var actor = sim.StateOf<ActorState>(actorId);
+		var runtime = sim.RuntimeFor(actorId);
 		return new SearchVisitState(
 			new BattleSearchState(
 				actor.Position,
@@ -73,7 +75,7 @@ internal static class BattleSearchVisit
 				runtime.MomentumGainedFromMovement,
 				runtime.SpinBraked,
 				runtime.SpinDiscount,
-				HashHazards(world)),
+				HashHazards(sim)),
 			[
 				actor.ActionPoints,
 				actor.MissilesRemaining,
@@ -82,14 +84,20 @@ internal static class BattleSearchVisit
 			]);
 	}
 
-	private static int HashHazards(BattleBoard world)
+	private static int HashHazards(BattleSimulation sim)
 	{
 		var hash = 0;
-		foreach (var hazard in world.TurnHazards)
+		for (var tick = sim.AnchorTick + 1; tick <= sim.TimelineMaxTick; tick++)
 		{
-			hash = HashCode.Combine(hash, hazard.Id);
-			foreach (var cell in hazard.Cells)
-				hash = HashCode.Combine(hash, cell);
+			foreach (var action in sim.PeekTimeline(tick))
+			{
+				if (action is not ResolveHazardAction hazard)
+					continue;
+
+				hash = HashCode.Combine(hash, tick);
+				foreach (var cell in hazard.Cells)
+					hash = HashCode.Combine(hash, cell);
+			}
 		}
 
 		return hash;

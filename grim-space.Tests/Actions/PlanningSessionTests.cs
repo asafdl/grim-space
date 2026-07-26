@@ -1,9 +1,7 @@
-using GrimSpace.Battle;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Planning;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -64,7 +62,7 @@ public sealed class PlanningSessionTests
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Actor.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.Actor.ActionPoints);
 
-		Assert.True(battle.TryUndoLast());
+		Assert.True(battle.Sim.TryUndoLast());
 		EnqueueForwardMove(battle, steps: 4);
 
 		var fourStepPreview = Preview.Simulate(battle);
@@ -87,11 +85,11 @@ public sealed class PlanningSessionTests
 		var battle = BeginPlanning(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(battle, steps: 3);
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		Assert.True(battle.TryUndoLast());
-		Assert.Equal(3, battle.Actions.Count);
-		Assert.All(battle.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.True(battle.Sim.TryUndoLast());
+		Assert.Equal(3, battle.Sim.Actions.Count);
+		Assert.All(battle.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
 	}
 
 	[Fact]
@@ -105,15 +103,15 @@ public sealed class PlanningSessionTests
 		var shortMove = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
 		var longMove = MovementExpectations.PureForwardMove(origin, stepCount: 4, startMomentum: 0);
 
-		Assert.True(planning.TryEnqueueMovePath(shortMove));
-		Assert.False(planning.TryEnqueueMovePath(longMove));
-		Assert.Equal(3, planning.Actions.Count);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, shortMove));
+		Assert.False(BattleTestActions.TryEnqueueMovePath(planning, longMove));
+		Assert.Equal(3, planning.Sim.Actions.Count);
 
-		Assert.True(planning.TryUndoLast());
-		Assert.True(planning.TryEnqueueMovePath(longMove));
+		Assert.True(planning.Sim.TryUndoLast());
+		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, longMove));
 		Assert.Equal(
 			origin + Coord.Forward * 4,
-			planning.Board.StateOf(planning.PlayerId).Position);
+			planning.Sim.StateOf<ActorState>(planning.PlayerId).Position);
 	}
 
 	private static BattleOrchestrator BeginPlanning(
@@ -125,11 +123,11 @@ public sealed class PlanningSessionTests
 
 	private static void EnqueueForwardMove(BattleOrchestrator battle, int steps)
 	{
-		var origin = battle.Board.StateOf(battle.PlayerId).Position;
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(battle.Board.StateOf(battle.PlayerId));
-		var option = GetMoveOptionsFromSession(battle.Session)
+		var origin = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
+		var option = GetMoveOptionsFromSession(battle.Sim)
 			.First(o => o.Path.Count == steps);
-		Assert.True(battle.TryEnqueueMovePath(option));
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 	}
 
 	private static IReadOnlyList<GrimSpace.Battle.Movement.Option> GetMoveOptionsFromSession(
@@ -137,12 +135,12 @@ public sealed class PlanningSessionTests
 			GrimSpace.Battle.Board.BattleBoard,
 			GrimSpace.Battle.Runtime.ActorSession> session)
 	{
-		var origin = session.PreviewWorld.StateOf("player").Position;
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(session.PreviewWorld.StateOf("player"));
+		var origin = session.StateOf<ActorState>("player").Position;
+		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(session.StateOf<ActorState>("player"));
 		var startCount = session.Actions.Count;
 		var results = new Dictionary<Coord, GrimSpace.Battle.Movement.Option>();
 
-		foreach (var searchFrame in session.SearchMoves("player"))
+		foreach (var searchFrame in session.Search("player", [MoveDef.Instance], BattleSearchVisit.MoveVisit))
 		{
 			var moveSteps = searchFrame.Actions
 				.Skip(startCount)

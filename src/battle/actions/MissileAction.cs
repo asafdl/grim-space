@@ -12,8 +12,7 @@ public sealed record MissileAction(
 	string ActorId,
 	Coord Center,
 	EMissileMount Mount,
-	int Range,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	int Range) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		MissileDef.For(Mount, Range);
@@ -71,13 +70,18 @@ public sealed class MissileDef(EMissileMount mount, int range)
 		BattleBoard world,
 		ActorSession runtime)
 	{
-		var hazardId = world.IdRegistry.NextNonUnitId("missile-zone");
+		var cells = new HashSet<Coord>(
+			world.Grid.EnumerateCube(action.Center, CombatConfig.MissileRadius));
 		return
 		[
-			new SpawnHazardEffect(hazardId, action.Center, EHazardKind.MissileZone),
 			new ScheduleActionEffect(
 				CombatConfig.MissileResolveDelay,
-				ResolveHazardDef.Instance.Bind(action.ActorId, hazardId)),
+				ResolveHazardDef.Instance.Bind(
+					action.ActorId,
+					EHazardKind.MissileZone,
+					cells,
+					CombatConfig.MissileDamage,
+					CombatConfig.MissileMomentumLoss)),
 			new MissileChangeEffect(-1),
 		];
 	}

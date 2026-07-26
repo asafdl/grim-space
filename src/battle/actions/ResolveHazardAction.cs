@@ -2,13 +2,16 @@ using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Actions;
 
 public sealed record ResolveHazardAction(
 	string ActorId,
-	string HazardId,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	EHazardKind Kind,
+	HashSet<Coord> Cells,
+	int Damage,
+	int MomentumLoss) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		ResolveHazardDef.Instance;
@@ -21,7 +24,13 @@ public sealed class ResolveHazardDef
 
 	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId) => [];
 
-	public ResolveHazardAction Bind(string actorId, string hazardId) => new(actorId, hazardId);
+	public ResolveHazardAction Bind(
+		string actorId,
+		EHazardKind kind,
+		IEnumerable<Coord> cells,
+		int damage,
+		int momentumLoss) =>
+		new(actorId, kind, cells.ToHashSet(), damage, momentumLoss);
 
 	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
 
@@ -37,7 +46,7 @@ public sealed class ResolveHazardDef
 		ResolveHazardAction action,
 		BattleBoard world,
 		ActorSession runtime) =>
-		[new ResolveHazardEffect(action.HazardId), new RemoveHazardEffect(action.HazardId)];
+		[new ResolveHazardEffect(action.Kind, action.Cells, action.Damage, action.MomentumLoss)];
 
 	private static ResolveHazardAction Cast(IAction action) =>
 		action as ResolveHazardAction ?? throw new ArgumentException($"Expected {nameof(ResolveHazardAction)}.", nameof(action));

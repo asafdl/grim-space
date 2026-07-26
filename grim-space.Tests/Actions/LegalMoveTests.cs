@@ -1,7 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Presentation.Planning;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -27,10 +27,10 @@ public sealed class LegalMoveTests
 			.GetLegalMoves(planning)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 
-		Assert.True(planning.TryEnqueueMovePath(move));
-		Assert.Equal(3, planning.Actions.Count);
-		Assert.All(planning.Actions, action => Assert.IsType<MoveStepAction>(action));
-		Assert.Equal(move.EndPosition, planning.Board.StateOf(planning.PlayerId).Position);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, move));
+		Assert.Equal(3, planning.Sim.Actions.Count);
+		Assert.All(planning.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(move.EndPosition, planning.Sim.StateOf<ActorState>(planning.PlayerId).Position);
 	}
 
 	[Fact]
@@ -64,7 +64,7 @@ public sealed class LegalMoveTests
 			option => option.EndPosition == origin + Coord.Forward * 4);
 
 		var threeStep = beforePlan.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		planning.TryEnqueueMovePath(threeStep);
+		BattleTestActions.TryEnqueueMovePath(planning, threeStep);
 
 		var afterPlan = Preview.GetLegalMoves(planning);
 
@@ -81,7 +81,7 @@ public sealed class LegalMoveTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var expected = Preview.GetLegalMoves(battle);
-		var highlights = View.GetMoveHighlights(battle, battle.GetPlayer());
+		var highlights = MoveUi.GetMoveOptions(battle, battle.GetPlayer());
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),
@@ -100,9 +100,9 @@ public sealed class LegalMoveTests
 		var move = Preview
 			.GetLegalMoves(planning)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		planning.TryEnqueueMovePath(move);
+		BattleTestActions.TryEnqueueMovePath(planning, move);
 
-		var committed = planning.Actions.ToList();
+		var committed = planning.Sim.Actions.ToList();
 		var nonUnits = new Dictionary<string, NonUnit>();
 
 		Assert.Equal(3, committed.Count);
@@ -141,11 +141,11 @@ public sealed class LegalMoveTests
 			EMissileMount.Fore,
 			CombatConfig.ForeMissileMinRange);
 
-		Assert.Equal(CombatConfig.MissilesPerTurn, planning.MissilesRemainingThisTurn);
-		Assert.True(planning.TryEnqueue(missile));
-		Assert.Equal(CombatConfig.MissilesPerTurn - 1, planning.MissilesRemainingThisTurn);
-		Assert.True(planning.TryEnqueue(missile));
-		Assert.Equal(0, planning.MissilesRemainingThisTurn);
-		Assert.False(planning.TryEnqueue(missile));
+		Assert.Equal(CombatConfig.MissilesPerTurn, planning.Sim.StateOf<ActorState>(planning.PlayerId).MissilesRemaining);
+		Assert.True(planning.Sim.TryEnqueue(missile));
+		Assert.Equal(CombatConfig.MissilesPerTurn - 1, planning.Sim.StateOf<ActorState>(planning.PlayerId).MissilesRemaining);
+		Assert.True(planning.Sim.TryEnqueue(missile));
+		Assert.Equal(0, planning.Sim.StateOf<ActorState>(planning.PlayerId).MissilesRemaining);
+		Assert.False(planning.Sim.TryEnqueue(missile));
 	}
 }

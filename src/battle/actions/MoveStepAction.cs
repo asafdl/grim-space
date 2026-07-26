@@ -11,8 +11,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record MoveStepAction(
 	string ActorId,
-	EStepDirection Direction,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	EStepDirection Direction) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		MoveDef.Instance;

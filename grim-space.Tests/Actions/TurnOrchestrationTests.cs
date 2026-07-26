@@ -1,8 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Presentation.Planning;
-using GrimSpace.Battle.Turn;
-using GrimSpace.Core;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -13,20 +10,22 @@ namespace GrimSpace.Tests.Actions;
 
 public sealed class TurnOrchestrationTests
 {
+	private const string PlayerId = "player";
+
 	[Fact]
 	public void ResolveTurnAppliesQueuedPlayerMove()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = View.GetLegalMoves(battle)
+		var move = MoveUi.GetMoveOptions(battle, battle.GetPlayer())
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		Assert.True(battle.TryEnqueueMovePath(move));
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 
-		var actions = battle.Actions.ToList();
+		var actions = battle.Sim.Actions.ToList();
 		Assert.True(battle.ResolveTurn(actions));
 
-		Assert.Equal(origin + Coord.Forward * 3, battle.Board.StateOf(battle.PlayerId).Position);
+		Assert.Equal(origin + Coord.Forward * 3, battle.GetPlayer()!.State.Position);
 	}
 
 	[Fact]
@@ -35,13 +34,13 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = View.GetLegalMoves(battle)
+		var move = MoveUi.GetMoveOptions(battle, battle.GetPlayer())
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		Assert.True(battle.TryEnqueueMovePath(move));
-		Assert.True(battle.ResolveTurn(battle.Actions.ToList()));
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
+		Assert.True(battle.ResolveTurn(battle.Sim.Actions.ToList()));
 
-		Assert.NotEmpty(View.GetLegalMoves(battle));
-		Assert.False(battle.Runtime.IsMovePathStarted);
+		Assert.NotEmpty(MoveUi.GetMoveOptions(battle, battle.GetPlayer()));
+		Assert.False(battle.Sim.RuntimeFor(PlayerId).IsMovePathStarted);
 	}
 
 	[Fact]

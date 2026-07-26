@@ -10,6 +10,7 @@ public class Simulation<TWorld, TRuntime>
 	where TRuntime : IRuntimeContext<TRuntime>, new()
 {
 	private readonly List<IAction> _actions = [];
+	private readonly List<int?> _undoGroups = [];
 	private readonly TWorld _anchorWorld;
 	private readonly ActorRuntimes<TRuntime> _anchorActorRuntimes;
 	private int _anchorTick;
@@ -22,17 +23,20 @@ public class Simulation<TWorld, TRuntime>
 		_anchorActorRuntimes = anchorActorRuntimes;
 	}
 
-	public TWorld PreviewWorld { get; private set; } = default!;
+	public TRuntime RuntimeFor(string actorId) => Runtimes.For(actorId);
 
-	public ActorRuntimes<TRuntime> PreviewActorRuntimes { get; private set; } = default!;
+	public TActorState StateOf<TActorState>(string actorId) where TActorState : notnull =>
+		((IActorStateWorld<TActorState, TWorld>)World).StateOf(actorId);
+
+	internal TWorld World { get; private set; } = default!;
+
+	internal ActorRuntimes<TRuntime> Runtimes { get; private set; } = default!;
 
 	public IReadOnlyList<IAction> Actions => _actions;
 
+	public IReadOnlyList<int?> UndoGroups => _undoGroups;
+
 	public int AnchorTick => _anchorTick;
-
-	public TWorld AnchorWorld => _anchorWorld;
-
-	public ActorRuntimes<TRuntime> AnchorActorRuntimes => _anchorActorRuntimes;
 
 	public int WorldVersion { get; private set; }
 
@@ -43,52 +47,77 @@ public class Simulation<TWorld, TRuntime>
 		_anchorTick = anchorTick;
 		WorldVersion = worldVersion;
 		_actions.Clear();
+		_undoGroups.Clear();
 		_nextUndoGroup = 0;
 		_invariantStatus = InvariantStatus.Ok;
 		Reevaluate();
 	}
 
-	public int AllocateUndoGroup() => ++_nextUndoGroup;
-
-	public bool TryEnqueue(IAction action)
+	public bool TryEnqueue(params IAction[] actions)
 	{
-		if (action is not IAction<TWorld, TRuntime> typed)
-			return false;
+		if (actions.Length == 0)
+			return true;
 
-		var runtime = PreviewActorRuntimes.For(action);
-		if (!typed.Definition.IsLegal(action, PreviewWorld, runtime))
-			return false;
+		int? undoGroup = actions.Length > 1 ? ++_nextUndoGroup : null;
 
-		_actions.Add(action);
-		ExecutionHelper.Apply(action, PreviewWorld, PreviewActorRuntimes.For(action));
+		foreach (var action in actions)
+		{
+			if (action is not IAction<TWorld, TRuntime> typed)
+				return false;
 
-		if (typed.Definition is IActionInvariants<TWorld, TRuntime> invariants)
-			_invariantStatus = invariants.EvaluateInvariants(PreviewWorld, PreviewActorRuntimes.For(action), action.ActorId);
+			var runtime = Runtimes.For(action);
+			if (!typed.Definition.IsLegal(action, World, runtime))
+				return false;
+
+			_actions.Add(action);
+			_undoGroups.Add(undoGroup);
+			ExecutionHelper.Apply(action, World, Runtimes.For(action));
+
+			if (typed.Definition is IActionInvariants<TWorld, TRuntime> invariants)
+				_invariantStatus = invariants.EvaluateInvariants(World, Runtimes.For(action), action.ActorId);
+		}
 
 		return true;
 	}
 
+	/// <summary>
+	/// Projects world state after applying <paramref name="action"/> on top of the current queue.
+	/// Returns null when the action is not legal from the current preview state.
+	/// </summary>
 	public PeekFrame<TWorld, TRuntime>? Peek(IAction action)
 	{
-		if (action is not IAction<TWorld, TRuntime>)
+		if (action is not IAction<TWorld, TRuntime> typed)
 			return null;
 
-		var world = PreviewWorld.Fork();
-		var runtimes = PreviewActorRuntimes.Fork();
+		var runtime = Runtimes.For(action);
+		if (!typed.Definition.IsLegal(action, World, runtime))
+			return null;
+
+		var world = World.Fork();
+		var runtimes = Runtimes.Fork();
 		ExecutionHelper.Apply(action, world, runtimes.For(action));
 		return new PeekFrame<TWorld, TRuntime>(world, runtimes);
 	}
 
 	public IEnumerable<TickResult> StepPreview(int ticksToAdvance) =>
-		TimelineRunner.Step(PreviewWorld.Timeline, PreviewWorld, PreviewActorRuntimes, ticksToAdvance);
+		TimelineRunner.Step(World.Timeline, World, Runtimes, ticksToAdvance);
 
 	public void AdvanceTo(int endTick)
 	{
-		var ticksToAdvance = endTick - PreviewWorld.Timeline.Clock.Current;
+		var ticksToAdvance = endTick - World.Timeline.Clock.Current;
 		if (ticksToAdvance <= 0)
 			return;
 
 		foreach (var _ in StepPreview(ticksToAdvance)) { }
+	}
+
+	public int TimelineMaxTick => World.Timeline.MaxTick;
+
+	public IReadOnlyList<IAction> PeekTimeline(int? tick = null)
+	{
+		var timeline = World.Timeline;
+		var peekTick = tick ?? timeline.Clock.Current + 1;
+		return timeline.SnapshotAt(peekTick);
 	}
 
 	public bool TryUndoLast()
@@ -123,7 +152,7 @@ public class Simulation<TWorld, TRuntime>
 	public IEnumerable<SearchFrame<TWorld, TRuntime>> Search<TEffect>(
 		string actorId,
 		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
-		Func<TWorld, ActorRuntimes<TRuntime>, string, SearchVisitState> visitState)
+		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState)
 		where TEffect : IEffect<TWorld, TRuntime>
 	{
 		var fork = Fork();
@@ -143,11 +172,11 @@ public class Simulation<TWorld, TRuntime>
 
 	public void Reevaluate()
 	{
-		PreviewWorld = _anchorWorld.Fork();
-		PreviewActorRuntimes = _anchorActorRuntimes.Fork();
+		World = _anchorWorld.Fork();
+		Runtimes = _anchorActorRuntimes.Fork();
 
 		foreach (var action in _actions)
-			ExecutionHelper.Apply(action, PreviewWorld, PreviewActorRuntimes.For(action));
+			ExecutionHelper.Apply(action, World, Runtimes.For(action));
 
 		RefreshInvariantStatus();
 	}
@@ -165,8 +194,8 @@ public class Simulation<TWorld, TRuntime>
 				continue;
 
 			_invariantStatus = invariants.EvaluateInvariants(
-				PreviewWorld,
-				PreviewActorRuntimes.For(_actions[i]),
+				World,
+				Runtimes.For(_actions[i]),
 				_actions[i].ActorId);
 			return;
 		}
@@ -181,6 +210,7 @@ public class Simulation<TWorld, TRuntime>
 			_nextUndoGroup = _nextUndoGroup,
 		};
 		fork._actions.AddRange(_actions);
+		fork._undoGroups.AddRange(_undoGroups);
 		fork.Reevaluate();
 		return fork;
 	}
@@ -190,7 +220,10 @@ public class Simulation<TWorld, TRuntime>
 	private void RestoreSearchCheckpoint(int actionCount)
 	{
 		while (_actions.Count > actionCount)
+		{
 			_actions.RemoveAt(_actions.Count - 1);
+			_undoGroups.RemoveAt(_undoGroups.Count - 1);
+		}
 
 		// TODO(search): backtrack rebuilds preview via full Reevaluate (fork+replay).
 		// Effect undos would avoid that but are costly to implement; this is the main
@@ -208,7 +241,7 @@ public class Simulation<TWorld, TRuntime>
 		int startDepth,
 		int depth,
 		Dictionary<object, int[]> visited,
-		Func<TWorld, ActorRuntimes<TRuntime>, string, SearchVisitState> visitState)
+		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState)
 		where TEffect : IEffect<TWorld, TRuntime>
 	{
 		if (depth > MaxSearchDepth || depth >= HardAbortSearchDepth)
@@ -218,15 +251,15 @@ public class Simulation<TWorld, TRuntime>
 			yield break;
 
 		yield return new SearchFrame<TWorld, TRuntime>(
-			fork.PreviewWorld.Fork(),
-			fork.PreviewActorRuntimes.Fork(),
+			fork.World.Fork(),
+			fork.Runtimes.Fork(),
 			fork.Actions.ToList(),
 			fork.Actions.Count - startDepth);
 
 		foreach (var def in actionDefs)
 		{
-			var runtime = fork.PreviewActorRuntimes.For(actorId);
-			var candidates = def.Discover(fork.PreviewWorld, runtime, actorId).ToList();
+			var runtime = fork.Runtimes.For(actorId);
+			var candidates = def.Discover(fork.World, runtime, actorId).ToList();
 
 			foreach (var candidate in candidates)
 			{
@@ -257,11 +290,11 @@ public class Simulation<TWorld, TRuntime>
 
 	private static bool ShouldPruneVisit(
 		Dictionary<object, int[]> visited,
-		Func<TWorld, ActorRuntimes<TRuntime>, string, SearchVisitState> visitState,
+		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState,
 		Simulation<TWorld, TRuntime> fork,
 		string actorId)
 	{
-		var visit = visitState(fork.PreviewWorld, fork.PreviewActorRuntimes, actorId);
+		var visit = visitState(fork, actorId);
 		if (visit.Budget.Length == 0)
 			return !visited.TryAdd(visit.State, []);
 
@@ -293,15 +326,18 @@ public class Simulation<TWorld, TRuntime>
 
 	private void PopUndoGroup()
 	{
-		var last = _actions[^1];
-		if (last.UndoGroup is not int group)
+		if (_undoGroups[^1] is not int group)
 		{
 			_actions.RemoveAt(_actions.Count - 1);
+			_undoGroups.RemoveAt(_undoGroups.Count - 1);
 			return;
 		}
 
-		while (_actions.Count > 0 && _actions[^1].UndoGroup == group)
+		while (_actions.Count > 0 && _undoGroups[^1] == group)
+		{
 			_actions.RemoveAt(_actions.Count - 1);
+			_undoGroups.RemoveAt(_undoGroups.Count - 1);
+		}
 	}
 
 }

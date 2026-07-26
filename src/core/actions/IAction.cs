@@ -5,8 +5,6 @@ namespace GrimSpace.Core.Actions;
 public interface IAction
 {
 	string ActorId { get; }
-
-	int? UndoGroup { get; }
 }
 
 public interface IAction<TWorld, TRuntime> : IAction

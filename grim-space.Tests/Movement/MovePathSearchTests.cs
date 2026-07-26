@@ -1,8 +1,7 @@
-using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Board;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
@@ -113,12 +112,12 @@ public sealed class MovePathSearchTests
 			new HashSet<Coord> { enemy.State.Position });
 
 		var option = MovementExpectations.PureForwardMove(origin, stepCount, startMomentum);
-		Assert.True(battle.TryEnqueueMovePath(option));
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		Assert.Equal(origin + Coord.Forward * stepCount, battle.Board.StateOf(PlayerId).Position);
+		Assert.Equal(origin + Coord.Forward * stepCount, battle.Sim.StateOf<ActorState>(PlayerId).Position);
 		Assert.Equal(
 			MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount),
-			battle.Board.StateOf(PlayerId).MomentumLevel);
+			battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
@@ -134,9 +133,9 @@ public sealed class MovePathSearchTests
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position });
 
-		Assert.True(battle.TryEnqueueMovePath(retro));
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, retro));
 
-		Assert.Equal(1, battle.Board.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(1, battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
@@ -144,14 +143,14 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginPlanning(origin);
-		var session = battle.Session;
+		var session = battle.Sim;
 		var actionsBefore = session.Actions.ToList();
-		var positionBefore = session.PreviewWorld.StateOf(PlayerId).Position;
+		var positionBefore = session.StateOf<ActorState>(PlayerId).Position;
 
-		foreach (var _ in session.SearchMoves(PlayerId)) { }
+		foreach (var _ in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit)) { }
 
 		Assert.Equal(actionsBefore, session.Actions);
-		Assert.Equal(positionBefore, session.PreviewWorld.StateOf(PlayerId).Position);
+		Assert.Equal(positionBefore, session.StateOf<ActorState>(PlayerId).Position);
 	}
 
 	[Fact]
@@ -159,12 +158,12 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginPlanning(origin);
-		var options = GetMoveOptionsFromSession(battle.Session);
+		var options = GetMoveOptionsFromSession(battle.Sim);
 
 		foreach (var option in options)
 		{
 			var trial = battle.Engine.CreateSimulation();
-			Assert.True(BattleOrchestrator.TryEnqueueMovePath(trial, PlayerId, option));
+			Assert.True(BattleTestActions.TryEnqueueMovePath(trial, PlayerId, option));
 		}
 	}
 
@@ -193,12 +192,12 @@ public sealed class MovePathSearchTests
 		Coord? origin = null,
 		BodyFrame? frame = null)
 	{
-		origin ??= session.PreviewWorld.StateOf(PlayerId).Position;
-		frame ??= BodyFrame.From(session.PreviewWorld.StateOf(PlayerId));
+		origin ??= session.StateOf<ActorState>(PlayerId).Position;
+		frame ??= BodyFrame.From(session.StateOf<ActorState>(PlayerId));
 		var startCount = session.Actions.Count;
 		var results = new Dictionary<Coord, Option>();
 
-		foreach (var searchFrame in session.SearchMoves(PlayerId))
+		foreach (var searchFrame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
 		{
 			var steps = searchFrame.Actions
 				.Skip(startCount)

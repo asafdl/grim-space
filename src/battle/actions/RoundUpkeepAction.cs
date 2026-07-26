@@ -5,9 +5,7 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record RoundUpkeepAction(
-	string ActorId,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+public sealed record RoundUpkeepAction(string ActorId) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		RoundUpkeepDef.Instance;

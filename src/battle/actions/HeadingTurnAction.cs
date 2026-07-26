@@ -10,8 +10,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record HeadingTurnAction(
 	string ActorId,
-	EHeadingTurn Turn,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	EHeadingTurn Turn) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		HeadingDef.Instance;
@@ -87,7 +86,7 @@ public sealed class HeadingDef
 		return effects;
 	}
 
-	public IReadOnlyList<IAction> Streamline(IReadOnlyList<IAction> actions)
+	public IReadOnlyList<IAction> Streamline(IReadOnlyList<IAction> actions, IReadOnlyList<int?> undoGroups)
 	{
 		var result = new List<IAction>(actions.Count);
 		var index = 0;
@@ -98,7 +97,7 @@ public sealed class HeadingDef
 			{
 				var actorId = first.ActorId;
 				var net = YawDelta(first.Turn);
-				int? undoGroup = first.UndoGroup;
+				int? undoGroup = undoGroups[index];
 				index++;
 
 				while (index < actions.Count
@@ -107,12 +106,12 @@ public sealed class HeadingDef
 					&& Orientation.IsYawTurn(next.Turn))
 				{
 					net += YawDelta(next.Turn);
-					undoGroup = next.UndoGroup ?? undoGroup;
+					undoGroup = undoGroups[index] ?? undoGroup;
 					index++;
 				}
 
 				foreach (var turn in TurnsForNetYaw(net))
-					result.Add(new HeadingTurnAction(actorId, turn, undoGroup));
+					result.Add(new HeadingTurnAction(actorId, turn));
 
 				continue;
 			}

@@ -9,8 +9,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record FlakAction(
 	string ActorId,
-	EFlakMount Mount,
-	int? UndoGroup = null) : IAction<BattleBoard, ActorSession>
+	EFlakMount Mount) : IAction<BattleBoard, ActorSession>
 {
 	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
 		FlakDef.For(Mount);
@@ -67,14 +66,17 @@ public sealed class FlakDef(EFlakMount mount)
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);
 		var cells = FlakTargeting.GetBurstCells(frame, config, world.Grid.IsInBounds);
-		var hazardId = world.IdRegistry.NextNonUnitId("flak-burst");
 
 		return
 		[
-			new SpawnFlakHazardEffect(hazardId, cells),
 			new ScheduleActionEffect(
 				CombatConfig.FlakResolveDelay,
-				ResolveHazardDef.Instance.Bind(action.ActorId, hazardId)),
+				ResolveHazardDef.Instance.Bind(
+					action.ActorId,
+					EHazardKind.FlakBurst,
+					cells,
+					damage: 0,
+					CombatConfig.FlakMomentumLoss)),
 			new FlakChangeEffect(-1),
 		];
 	}

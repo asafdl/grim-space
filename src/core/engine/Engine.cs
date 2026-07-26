@@ -74,10 +74,9 @@ public sealed class Engine<TWorld, TRuntime>
 
 	private Simulation<TWorld, TRuntime>? Rebase(Simulation<TWorld, TRuntime> simulation)
 	{
-		var saved = simulation.Actions.ToList();
 		var fresh = CreateSimulation();
 
-		foreach (var action in saved)
+		foreach (var action in simulation.Actions)
 		{
 			if (!fresh.TryEnqueue(action))
 				return null;

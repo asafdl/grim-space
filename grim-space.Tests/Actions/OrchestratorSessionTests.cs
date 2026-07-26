@@ -29,9 +29,9 @@ public sealed class OrchestratorSessionTests
 			new HashSet<Coord> { enemy.State.Position });
 		var blockedMove = new MoveStepAction(PlayerId, EStepDirection.Forward);
 
-		Assert.False(battle.TryEnqueue(blockedMove));
-		Assert.Empty(battle.Actions);
-		Assert.Equal(origin, battle.Board.StateOf(PlayerId).Position);
+		Assert.False(battle.Sim.TryEnqueue(blockedMove));
+		Assert.Empty(battle.Sim.Actions);
+		Assert.Equal(origin, battle.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
 
 	[Fact]
@@ -44,13 +44,13 @@ public sealed class OrchestratorSessionTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.Equal(1, battle.Runtime.NetYaw);
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.Equal(1, battle.Sim.RuntimeFor(PlayerId).NetYaw);
 
 		battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
-		Assert.Empty(battle.Actions);
-		Assert.Equal(0, battle.Runtime.NetYaw);
+		Assert.Empty(battle.Sim.Actions);
+		Assert.Equal(0, battle.Sim.RuntimeFor(PlayerId).NetYaw);
 	}
 
 	[Theory]
@@ -89,11 +89,11 @@ public sealed class OrchestratorSessionTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
-		battle.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
+		battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
 
-		Assert.Equal(2, battle.Board.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 
-		var peek = battle.Session.Peek(EndOfPhaseDef.Instance.Bind(PlayerId));
+		var peek = battle.Sim.Peek(EndOfPhaseDef.Instance.Bind(PlayerId));
 		Assert.NotNull(peek);
 		Assert.Equal(1, peek.Value.World.StateOf(PlayerId).MomentumLevel);
 	}

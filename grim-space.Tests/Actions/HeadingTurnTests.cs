@@ -16,14 +16,14 @@ public sealed class HeadingTurnTests
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 
-		var actor = battle.Board.StateOf(PlayerId);
+		var actor = battle.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
 			actor.ActionPoints);
-		Assert.Equal(0, battle.Runtime.NetYaw);
+		Assert.Equal(0, battle.Sim.RuntimeFor(PlayerId).NetYaw);
 	}
 
 	[Fact]
@@ -31,14 +31,14 @@ public sealed class HeadingTurnTests
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var actor = battle.Board.StateOf(PlayerId);
+		var actor = battle.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
 			actor.ActionPoints);
-		Assert.Equal(2, battle.Runtime.NetYaw);
+		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).NetYaw);
 	}
 
 	[Fact]
@@ -46,17 +46,17 @@ public sealed class HeadingTurnTests
 	{
 		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
 
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
-			battle.Board.StateOf(PlayerId).ActionPoints);
+			battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
 
-		Assert.True(battle.TryUndoLast());
+		Assert.True(battle.Sim.TryUndoLast());
 
-		var actor = battle.Board.StateOf(PlayerId);
-		Assert.Single(battle.Actions);
-		Assert.Equal(1, battle.Runtime.NetYaw);
+		var actor = battle.Sim.StateOf<ActorState>(PlayerId);
+		Assert.Single(battle.Sim.Actions);
+		Assert.Equal(1, battle.Sim.RuntimeFor(PlayerId).NetYaw);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost, actor.ActionPoints);
 	}
 
@@ -69,9 +69,9 @@ public sealed class HeadingTurnTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
 
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 
-		Assert.Equal(0, battle.Board.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(0, battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 	}
 }

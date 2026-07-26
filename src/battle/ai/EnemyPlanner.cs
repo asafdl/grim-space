@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Board;
-using GrimSpace.Battle.Planning;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
@@ -8,9 +8,6 @@ using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Units.Enums;
-using BattleSimulation = GrimSpace.Core.Engine.Simulation<
-	GrimSpace.Battle.Board.BattleBoard,
-	GrimSpace.Battle.Runtime.ActorSession>;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -54,8 +51,8 @@ public static class EnemyPlanner
 
 		foreach (var def in FighterWeaponDefs)
 		{
-			var board = session.PreviewWorld;
-			var runtime = session.PreviewActorRuntimes.For(actorId);
+			var board = session.World;
+			var runtime = session.RuntimeFor(actorId);
 
 			foreach (var action in def.Discover(board, runtime, actorId))
 			{
@@ -75,7 +72,7 @@ public static class EnemyPlanner
 		var finalists = new List<(SearchFrame<BattleBoard, ActorSession> Frame, int HeuristicScore)>();
 		var bestHeuristic = int.MinValue;
 
-		foreach (var frame in session.SearchMoves(actorId))
+		foreach (var frame in session.Search(actorId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
 		{
 			if (!IsTerminalMoveFrame(frame, actorId))
 				continue;
@@ -92,8 +89,8 @@ public static class EnemyPlanner
 		if (finalists.Count == 0)
 		{
 			return new SearchFrame<BattleBoard, ActorSession>(
-				session.PreviewWorld.Fork(),
-				session.PreviewActorRuntimes.Fork(),
+				session.World.Fork(),
+				session.Runtimes.Fork(),
 				session.Actions.ToList(),
 				0);
 		}
