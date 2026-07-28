@@ -22,6 +22,14 @@ public sealed class Stats
 				FlaksPerTurn = 1,
 				RailgunsPerTurn = 1,
 			},
+			EType.Patrol => new Stats
+			{
+				MaxAp = 4,
+				MaxHp = 1,
+				MissilesPerTurn = 0,
+				FlaksPerTurn = 0,
+				RailgunsPerTurn = 0,
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 }

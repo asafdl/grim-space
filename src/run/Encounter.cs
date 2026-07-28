@@ -23,7 +23,7 @@ public sealed class Encounter
 		var enemy = new Instance
 		{
 			Id = "enemy",
-			Type = EType.Fighter,
+			Type = EType.Patrol,
 			Controller = EController.Enemy,
 		};
 

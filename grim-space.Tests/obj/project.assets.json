@@ -8,7 +8,7 @@
           "build/netstandard2.0/coverlet.collector.targets": {}
         }
       },
-      "GodotSharp/4.7.1": {
+      "GodotSharp/4.7.0": {
         "type": "package",
         "compile": {
           "lib/net8.0/GodotSharp.dll": {
@@ -21,10 +21,10 @@
           }
         }
       },
-      "GodotSharpEditor/4.7.1": {
+      "GodotSharpEditor/4.7.0": {
         "type": "package",
         "dependencies": {
-          "GodotSharp": "4.7.1"
+          "GodotSharp": "4.7.0"
         },
         "compile": {
           "lib/net8.0/GodotSharpEditor.dll": {
@@ -436,8 +436,8 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "GodotSharp": "4.7.1",
-          "GodotSharpEditor": "4.7.1",
+          "GodotSharp": "4.7.0",
+          "GodotSharpEditor": "4.7.0",
           "UniqueNameGenerator": "1.0.1"
         },
         "compile": {
@@ -520,27 +520,27 @@
         "coverlet.collector.nuspec"
       ]
     },
-    "GodotSharp/4.7.1": {
-      "sha512": "OCTPz0MtENY0J1e9Sw4VB9qxS0DK9xpEQLAIMRzCtnVKiJvHZUAAnJ9mU4ewW5+88V4beewp3dl8OE813Qw73g==",
+    "GodotSharp/4.7.0": {
+      "sha512": "cSlT7ziWnORTOxRz0LpmQNM+ZHBt5CWgegreJXiTinj37XucRZSQ65GIloblaozOju21L/FCBs4Y35WteHfQrw==",
       "type": "package",
-      "path": "godotsharp/4.7.1",
+      "path": "godotsharp/4.7.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "godotsharp.4.7.1.nupkg.sha512",
+        "godotsharp.4.7.0.nupkg.sha512",
         "godotsharp.nuspec",
         "lib/net8.0/GodotSharp.dll",
         "lib/net8.0/GodotSharp.xml"
       ]
     },
-    "GodotSharpEditor/4.7.1": {
-      "sha512": "MAX9wPgjX9BM+EOMxuF++mWKdvO2y0ZiEAfv6D68HGseQc8mX//yc7QrJizXSJ4ii1nh3krXZSyIJ77nmjOgYA==",
+    "GodotSharpEditor/4.7.0": {
+      "sha512": "vXYw6PXzKVCTQCgPeGxLnw5Qlub8SY43yQYEPZNYlDN1/OOiLnaaKxJvLf2Wk5D+8/+K/pxRQXGPqj65bnWohQ==",
       "type": "package",
-      "path": "godotsharpeditor/4.7.1",
+      "path": "godotsharpeditor/4.7.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "godotsharpeditor.4.7.1.nupkg.sha512",
+        "godotsharpeditor.4.7.0.nupkg.sha512",
         "godotsharpeditor.nuspec",
         "lib/net8.0/GodotSharpEditor.dll",
         "lib/net8.0/GodotSharpEditor.xml"

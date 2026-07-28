@@ -11,20 +11,29 @@ namespace GrimSpace.Battle.Actions;
 /// </summary>
 public static class Capabilities
 {
+	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] Movement =
+	[
+		MoveDef.Instance,
+		HeadingDef.Instance,
+		RollDef.Instance,
+	];
+
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(
+		EType type) =>
+		[..Movement, ..WeaponsFor(type)];
+
+	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> WeaponsFor(
 		EType type) =>
 		type switch
 		{
 			EType.Fighter =>
 			[
-				MoveDef.Instance,
-				HeadingDef.Instance,
-				RollDef.Instance,
 				FlakDef.For(EFlakMount.Port),
 				FlakDef.For(EFlakMount.Starboard),
 				MissileDef.For(EMissileMount.Fore, CombatConfig.ForeMissileMinRange),
 				RailgunDef.Instance,
 			],
+			EType.Patrol => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 }

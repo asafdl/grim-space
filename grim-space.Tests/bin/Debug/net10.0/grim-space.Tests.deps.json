@@ -16,22 +16,22 @@
           "grim-space.Tests.dll": {}
         }
       },
-      "GodotSharp/4.7.1": {
+      "GodotSharp/4.7.0": {
         "runtime": {
           "lib/net8.0/GodotSharp.dll": {
-            "assemblyVersion": "4.7.1.0",
-            "fileVersion": "4.7.1.0"
+            "assemblyVersion": "4.7.0.0",
+            "fileVersion": "4.7.0.0"
           }
         }
       },
-      "GodotSharpEditor/4.7.1": {
+      "GodotSharpEditor/4.7.0": {
         "dependencies": {
-          "GodotSharp": "4.7.1"
+          "GodotSharp": "4.7.0"
         },
         "runtime": {
           "lib/net8.0/GodotSharpEditor.dll": {
-            "assemblyVersion": "4.7.1.0",
-            "fileVersion": "4.7.1.0"
+            "assemblyVersion": "4.7.0.0",
+            "fileVersion": "4.7.0.0"
           }
         }
       },
@@ -360,8 +360,8 @@
       },
       "grim-space/1.0.0": {
         "dependencies": {
-          "GodotSharp": "4.7.1",
-          "GodotSharpEditor": "4.7.1",
+          "GodotSharp": "4.7.0",
+          "GodotSharpEditor": "4.7.0",
           "UniqueNameGenerator": "1.0.1"
         },
         "runtime": {
@@ -379,19 +379,19 @@
       "serviceable": false,
       "sha512": ""
     },
-    "GodotSharp/4.7.1": {
+    "GodotSharp/4.7.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-OCTPz0MtENY0J1e9Sw4VB9qxS0DK9xpEQLAIMRzCtnVKiJvHZUAAnJ9mU4ewW5+88V4beewp3dl8OE813Qw73g==",
-      "path": "godotsharp/4.7.1",
-      "hashPath": "godotsharp.4.7.1.nupkg.sha512"
+      "sha512": "sha512-cSlT7ziWnORTOxRz0LpmQNM+ZHBt5CWgegreJXiTinj37XucRZSQ65GIloblaozOju21L/FCBs4Y35WteHfQrw==",
+      "path": "godotsharp/4.7.0",
+      "hashPath": "godotsharp.4.7.0.nupkg.sha512"
     },
-    "GodotSharpEditor/4.7.1": {
+    "GodotSharpEditor/4.7.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-MAX9wPgjX9BM+EOMxuF++mWKdvO2y0ZiEAfv6D68HGseQc8mX//yc7QrJizXSJ4ii1nh3krXZSyIJ77nmjOgYA==",
-      "path": "godotsharpeditor/4.7.1",
-      "hashPath": "godotsharpeditor.4.7.1.nupkg.sha512"
+      "sha512": "sha512-vXYw6PXzKVCTQCgPeGxLnw5Qlub8SY43yQYEPZNYlDN1/OOiLnaaKxJvLf2Wk5D+8/+K/pxRQXGPqj65bnWohQ==",
+      "path": "godotsharpeditor/4.7.0",
+      "hashPath": "godotsharpeditor.4.7.0.nupkg.sha512"
     },
     "Microsoft.CodeCoverage/17.14.1": {
       "type": "package",

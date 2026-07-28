@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "0ArkTd9vK0Q=",
+  "dgSpecHash": "gSaan6m2t/I=",
   "success": true,
   "projectFilePath": "/Users/asafd/git/grim-space/grim-space.Tests/grim-space.Tests.csproj",
   "expectedPackageFiles": [
     "/Users/asafd/.nuget/packages/coverlet.collector/6.0.4/coverlet.collector.6.0.4.nupkg.sha512",
-    "/Users/asafd/.nuget/packages/godotsharp/4.7.1/godotsharp.4.7.1.nupkg.sha512",
-    "/Users/asafd/.nuget/packages/godotsharpeditor/4.7.1/godotsharpeditor.4.7.1.nupkg.sha512",
+    "/Users/asafd/.nuget/packages/godotsharp/4.7.0/godotsharp.4.7.0.nupkg.sha512",
+    "/Users/asafd/.nuget/packages/godotsharpeditor/4.7.0/godotsharpeditor.4.7.0.nupkg.sha512",
     "/Users/asafd/.nuget/packages/microsoft.codecoverage/17.14.1/microsoft.codecoverage.17.14.1.nupkg.sha512",
     "/Users/asafd/.nuget/packages/microsoft.net.test.sdk/17.14.1/microsoft.net.test.sdk.17.14.1.nupkg.sha512",
     "/Users/asafd/.nuget/packages/microsoft.testplatform.objectmodel/17.14.1/microsoft.testplatform.objectmodel.17.14.1.nupkg.sha512",

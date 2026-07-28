@@ -4,10 +4,8 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -18,22 +16,12 @@ public static class EnemySimulation
 	private const int TimelineRefinementLimit = 8;
 	private const int TimelineRefinementSlack = UnusedApPenalty;
 
-	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] FighterWeaponDefs =
-	[
-		RailgunDef.Instance,
-		MissileDef.For(EMissileMount.Fore, CombatConfig.ForeMissileMinRange),
-		FlakDef.For(EFlakMount.Port),
-		FlakDef.For(EFlakMount.Starboard),
-	];
-
 	public static IReadOnlyList<IAction> BuildTurnActions(BattleSimulation session, Unit actor)
 	{
 		var actorId = actor.State.Id;
 		var start = session.Actions.Count;
-
-		EnqueueGreedyWeapons(session, actorId, actor.State.Type);
-
-		var best = SearchBestMove(session, actorId);
+		var capabilities = Capabilities.For(actor.State.Type);
+		var best = SearchBestTurn(session, actorId, capabilities);
 
 		foreach (var action in best.Actions.Skip(session.Actions.Count))
 			session.TryEnqueue(action);
@@ -41,40 +29,17 @@ public static class EnemySimulation
 		return session.Actions.Skip(start).ToList();
 	}
 
-	private static void EnqueueGreedyWeapons(
+	private static SearchFrame<BattleWorld, ActorRuntime> SearchBestTurn(
 		BattleSimulation session,
 		string actorId,
-		EType unitType)
-	{
-		if (unitType != EType.Fighter)
-			return;
-
-		foreach (var def in FighterWeaponDefs)
-		{
-			var board = session.World;
-			var runtime = session.RuntimeFor(actorId);
-
-			foreach (var action in def.Discover(board, runtime, actorId))
-			{
-				if (!def.IsLegal(action, board, runtime))
-					continue;
-
-				session.TryEnqueue(action);
-				break;
-			}
-		}
-	}
-
-	private static SearchFrame<BattleWorld, ActorRuntime> SearchBestMove(
-		BattleSimulation session,
-		string actorId)
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
 	{
 		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
 		var bestHeuristic = int.MinValue;
 
-		foreach (var frame in session.Search(actorId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var frame in session.Search(actorId, capabilities, BattleSearchVisit.ForCapabilities))
 		{
-			if (!IsTerminalMoveFrame(frame, actorId))
+			if (!IsTerminalFrame(frame, actorId, capabilities))
 				continue;
 
 			var heuristicScore = ScoreHeuristic(frame, actorId);
@@ -122,19 +87,23 @@ public static class EnemySimulation
 			.Take(TimelineRefinementLimit);
 	}
 
-	private static bool IsTerminalMoveFrame(
+	private static bool IsTerminalFrame(
 		SearchFrame<BattleWorld, ActorRuntime> frame,
-		string actorId)
+		string actorId,
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
 	{
 		var state = frame.World.StateOf(actorId);
 		if (state.ActionPoints == 0)
 			return true;
 
 		var runtime = frame.Runtimes.For(actorId);
-		foreach (var candidate in MoveDef.Instance.Discover(frame.World, runtime, actorId))
+		foreach (var def in capabilities)
 		{
-			if (MoveDef.Instance.IsLegal(candidate, frame.World, runtime))
-				return false;
+			foreach (var candidate in def.Discover(frame.World, runtime, actorId))
+			{
+				if (def.IsLegal(candidate, frame.World, runtime))
+					return false;
+			}
 		}
 
 		return true;
