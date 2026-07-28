@@ -9,6 +9,24 @@ public sealed partial class SpaceBackdrop : Node3D
 	private const int InteriorWispCount = 10;
 	private const float BoundaryPadding = 4f;
 
+	public void BuildDiagram(BoundedGrid grid)
+	{
+		AddChild(CreateDiagramEnvironment());
+	}
+
+	private static WorldEnvironment CreateDiagramEnvironment() {
+		var environment = new Godot.Environment
+		{
+			BackgroundMode = Godot.Environment.BGMode.Color,
+			BackgroundColor = new Color(0.07f, 0.07f, 0.09f, 1f),
+			FogEnabled = false,
+			AmbientLightSource = Godot.Environment.AmbientSource.Color,
+			AmbientLightColor = new Color(0.45f, 0.45f, 0.48f),
+			AmbientLightEnergy = 0.4f,
+		};
+		return new WorldEnvironment { Environment = environment };	
+	}
+
 	public void Build(BoundedGrid grid)
 	{
 		var center = WorldMapping.GridCenter(grid);
@@ -18,7 +36,7 @@ public sealed partial class SpaceBackdrop : Node3D
 		AddChild(CreateWorldEnvironment(half.Length()));
 		AddChild(CreateNebulaShell(center, half));
 		AddChild(CreateStarfield(center, half));
-		AddChild(RedDwarfSun.CreateVisual(center, half.Length()));
+		AddChild(Lighting.AddSun(center, half.Length()));
 	}
 
 	private static Vector3 GridExtent(BoundedGrid grid) =>

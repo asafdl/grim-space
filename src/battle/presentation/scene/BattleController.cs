@@ -39,7 +39,7 @@ public partial class BattleController : Node3D
 		var layout = battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
-		backdrop.Build(layout.Grid);
+		backdrop.BuildDiagram(layout.Grid);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
@@ -50,7 +50,7 @@ public partial class BattleController : Node3D
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		_camera.SetPivot(gridCenter);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
-		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
+		Lighting.ConfigureDiagram(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);

@@ -2,17 +2,17 @@ using Godot;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-public static class RedDwarfSun
+public static class Lighting
 {
 	public static readonly Vector3 LightDirection = new Vector3(-0.58f, -0.22f, -0.78f).Normalized();
 	public static readonly Color LightColor = new(1f, 0.4f, 0.2f);
 	public static readonly Color SunCoreColor = new(1f, 0.34f, 0.1f);
 	public static readonly Color SunHaloColor = new(1f, 0.18f, 0.06f);
 
-	public static Node3D CreateVisual(Vector3 gridCenter, float chamberRadius)
+	public static Node3D AddSun(Vector3 gridCenter, float chamberRadius)
 	{
 		var sunPosition = gridCenter - LightDirection * chamberRadius * 2.4f;
-		var root = new Node3D { Name = "RedDwarfSun", Position = sunPosition };
+		var root = new Node3D { Name = "Sun", Position = sunPosition };
 
 		var coreRadius = chamberRadius * 0.22f;
 		root.AddChild(new MeshInstance3D
@@ -49,7 +49,7 @@ public static class RedDwarfSun
 		return root;
 	}
 
-	public static void Configure(DirectionalLight3D light, Vector3 gridCenter, float chamberRadius)
+	public static void ConfigureCinematic(DirectionalLight3D light, Vector3 gridCenter, float chamberRadius)
 	{
 		light.GlobalPosition = gridCenter;
 		light.LookAt(gridCenter + LightDirection, Vector3.Up);
@@ -62,4 +62,15 @@ public static class RedDwarfSun
 		light.ShadowNormalBias = 1.6f;
 		light.ShadowBlur = 1.2f;
 	}
+
+	public static void ConfigureDiagram(DirectionalLight3D light, Vector3 gridCenter, float chamberRadius)
+	{
+		light.GlobalPosition = gridCenter;
+		var diagramDirection = new Vector3(-0.4f, -0.7f, -0.5f).Normalized();
+		light.LookAt(gridCenter + diagramDirection, Vector3.Up);
+		light.LightColor = Colors.White;
+		light.LightEnergy = 1.0f;
+		light.ShadowEnabled = false;
+	}
+
 }
