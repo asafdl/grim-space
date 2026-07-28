@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
@@ -36,37 +35,38 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 		var battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
 		_ui = new BattleUi(battle);
+		var layout = battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
-		backdrop.Build(battle.Grid);
+		backdrop.Build(layout.Grid);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
 		_camera = GetNode<Controller>("Camera3D");
 		_gridView = GetNode<GridView>("GridView");
-		_gridView.Build(battle.Grid);
+		_gridView.Build(layout.Grid);
 
-		var gridCenter = WorldMapping.GridCenter(battle.Grid);
+		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		_camera.SetPivot(gridCenter);
-		var chamberRadius = battle.Grid.Width * WorldMapping.CellSize * 0.5f;
+		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);
 		var hazardView = new BoardHazardView();
-		hazardView.Build(battle.Hazards.Terrain);
+		hazardView.Build(layout.TerrainHazards);
 		hazardsRoot.AddChild(hazardView);
 
 		_missileRangeIndicator = new MissileRangeIndicator();
 		AddChild(_missileRangeIndicator);
 
 		var unitsRoot = GetNode<Node3D>("Units");
-		foreach (var unit in battle.Units)
+		foreach (var (unitId, controller) in layout.Participants)
 		{
 			var view = new UnitView();
-			view.Bind(unit.State, ColorFor(unit.Controller));
+			view.Bind(battle.Sim.World.StateOf(unitId), ColorFor(controller));
 			unitsRoot.AddChild(view);
-			_unitViews[unit.State.Id] = view;
+			_unitViews[unitId] = view;
 		}
 
 		SetupHintLabel();
@@ -241,7 +241,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 				break;
 
 			case EPlayerMode.Railgun:
-				var picked = GridPick.PickUnit(_camera, screenPos, _ui.Battle.Units);
+				var picked = GridPick.PickUnit(_camera, screenPos, _ui.Battle.Sim.World.Units.Values.ToList());
 				_ui.SetRailgunHover(picked);
 				break;
 		}
@@ -272,7 +272,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 				break;
 
 			case EPlayerMode.Railgun:
-				var target = GridPick.PickUnit(_camera, screenPos, _ui.Battle.Units);
+				var target = GridPick.PickUnit(_camera, screenPos, _ui.Battle.Sim.World.Units.Values.ToList());
 				if (target is not null)
 					_ui.TryQueueRailgun(target);
 				break;
@@ -325,10 +325,10 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ApplyUnitViews(PresentationFrame frame)
 	{
-		foreach (var unit in _ui.Battle.Units)
+		foreach (var unitId in _ui.Battle.Layout.Participants.Keys)
 		{
-			var display = frame.PreviewWorld.StateOf(unit.State.Id);
-			_unitViews[unit.State.Id].SyncFromState(display);
+			var display = frame.PreviewWorld.StateOf(unitId);
+			_unitViews[unitId].SyncFromState(display);
 		}
 	}
 
@@ -425,7 +425,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	public void OnActionApplied(PresentationEvent presentationEvent)
 	{
-		foreach (var unit in _ui.Battle.Units)
-			_unitViews[unit.State.Id].SyncFromState(unit.State);
+		foreach (var (unitId, state) in _ui.Battle.LiveUnitStates)
+			_unitViews[unitId].SyncFromState(state);
 	}
 }

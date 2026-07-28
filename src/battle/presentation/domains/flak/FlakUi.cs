@@ -46,7 +46,7 @@ public static class FlakUi
 
 		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
 		var config = FlakMountConfig.For(mount);
-		return FlakTargeting.GetBurstCells(frame, config, battle.Grid.IsInBounds);
+		return FlakTargeting.GetBurstCells(frame, config, battle.Layout.Grid.IsInBounds);
 	}
 
 	public static HashSet<Coord> GetPreviewCells(BattleOrchestrator battle, Interaction.InteractionState state)

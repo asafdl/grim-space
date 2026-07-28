@@ -65,7 +65,7 @@ public static class MissileUi
 		if (action is null || battle.Sim.Peek(action) is null)
 			return [];
 
-		return GetBlastCells(hover, battle.Grid);
+		return GetBlastCells(hover, battle.Layout.Grid);
 	}
 
 	public static bool IsHoverLegal(BattleOrchestrator battle, Interaction.InteractionState state) =>

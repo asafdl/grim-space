@@ -21,12 +21,12 @@ public sealed class SystemActionTests
 			PlayerId,
 			BodyFrame.WorldAligned(new Coord(1, 1, 1)),
 			[new Coord(1, 1, 1)]);
-		battle.Hazards.MutableNonUnits[hazard.Id] = hazard;
-		Assert.Single(battle.Hazards.Active);
+		BattleTestWorld.InjectHazard(battle.Engine.World, hazard);
+		Assert.Single(battle.Engine.World.TurnHazards);
 
 		Assert.True(battle.ResolveTurn([]));
 
-		Assert.Empty(battle.Hazards.Active);
+		Assert.Empty(battle.Engine.World.TurnHazards);
 	}
 
 	[Fact]
@@ -36,7 +36,7 @@ public sealed class SystemActionTests
 		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
 
 		Assert.True(battle.ResolveTurn(battle.Sim.Actions.ToList()));
-		Assert.Empty(battle.Hazards.Active);
+		Assert.Empty(battle.Engine.World.TurnHazards);
 	}
 
 	[Fact]
@@ -46,15 +46,15 @@ public sealed class SystemActionTests
 		var asteroid = Hazard.Asteroid(
 			"asteroid-1",
 			new Coord(2, 2, 2),
-			battle.Grid,
+			battle.Layout.Grid,
 			radius: 1,
 			visualId: "rock");
-		battle.Hazards.MutableNonUnits[asteroid.Id] = asteroid;
+		BattleTestWorld.InjectHazard(battle.Engine.World, asteroid);
 
 		Assert.True(battle.ResolveTurn([]));
 
-		Assert.Contains(asteroid.Id, battle.Hazards.NonUnits.Keys);
-		Assert.Equal(EntityIds.World, battle.Hazards.NonUnits[asteroid.Id].ActorId);
+		Assert.Contains(asteroid.Id, battle.Engine.World.NonUnits.Keys);
+		Assert.Equal(EntityIds.World, battle.Engine.World.NonUnits[asteroid.Id].ActorId);
 	}
 
 	[Fact]

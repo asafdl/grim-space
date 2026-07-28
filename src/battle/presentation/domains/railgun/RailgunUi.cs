@@ -25,8 +25,7 @@ public static class RailgunUi
 
 	public static bool IsTargetLegal(BattleOrchestrator battle, Unit target)
 	{
-		var enemy = battle.GetEnemy();
-		if (enemy is null || target.State.Id != enemy.State.Id)
+		if (target.State.Id != battle.OpponentId)
 			return false;
 
 		var action = Translate(battle.PlayerId, target.State.Id);
@@ -39,9 +38,11 @@ public static class RailgunUi
 		if (actor is null || !battle.CanAct(actor))
 			return cells;
 
-		var enemy = battle.Opponent;
-		if (!IsTargetLegal(battle, enemy))
+		if (!battle.Sim.World.Units.TryGetValue(battle.OpponentId, out var enemy)
+			|| !IsTargetLegal(battle, enemy))
+		{
 			return cells;
+		}
 
 		cells.Add(battle.Sim.StateOf<ActorState>(enemy.State.Id).Position);
 		return cells;
@@ -53,6 +54,6 @@ public static class RailgunUi
 			return null;
 
 		var peek = battle.Sim.Peek(Translate(battle.PlayerId, target.State.Id)!);
-		return peek?.World.StateOf(battle.Opponent.State.Id).Position;
+		return peek?.World.StateOf(battle.OpponentId).Position;
 	}
 }

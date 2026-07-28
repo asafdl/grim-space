@@ -162,7 +162,7 @@ public sealed class MovePathSearchTests
 
 		foreach (var option in options)
 		{
-			var trial = battle.Engine.CreateSimulation();
+			var trial = BattleTestFixture.CreateTrialSimulation(battle);
 			Assert.True(BattleTestActions.TryEnqueueMovePath(trial, PlayerId, option));
 		}
 	}

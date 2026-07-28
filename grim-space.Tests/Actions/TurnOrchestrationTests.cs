@@ -18,14 +18,14 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = MoveUi.GetMoveOptions(battle, battle.GetPlayer())
+		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 
 		var actions = battle.Sim.Actions.ToList();
 		Assert.True(battle.ResolveTurn(actions));
 
-		Assert.Equal(origin + Coord.Forward * 3, battle.GetPlayer()!.State.Position);
+		Assert.Equal(origin + Coord.Forward * 3, battle.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
 
 	[Fact]
@@ -34,12 +34,12 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = MoveUi.GetMoveOptions(battle, battle.GetPlayer())
+		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 		Assert.True(battle.ResolveTurn(battle.Sim.Actions.ToList()));
 
-		Assert.NotEmpty(MoveUi.GetMoveOptions(battle, battle.GetPlayer()));
+		Assert.NotEmpty(MoveUi.GetMoveOptions(battle, battle.GetActiveActor()));
 		Assert.False(battle.Sim.RuntimeFor(PlayerId).IsMovePathStarted);
 	}
 

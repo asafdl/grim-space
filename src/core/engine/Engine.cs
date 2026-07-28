@@ -2,7 +2,7 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Core.Engine;
 
-public sealed class Engine<TWorld, TRuntime>
+internal sealed class Engine<TWorld, TRuntime>
 	where TWorld : IWorld<TWorld>
 	where TRuntime : IRuntimeContext<TRuntime>, new()
 {

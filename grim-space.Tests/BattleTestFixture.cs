@@ -1,6 +1,5 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.World;
-using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -29,9 +28,10 @@ internal static class BattleTestFixture
 		blocked ??= new HashSet<Coord> { enemy.State.Position };
 
 		var timeline = new Timeline();
-		var hazards = new HazardSystem();
+		var nonUnits = new Dictionary<string, NonUnit>();
 		var units = new Unit[] { player, enemy };
-		var world = BattleWorld.FromLive(units, hazards.MutableNonUnits, grid, blocked, timeline);
+		var world = BattleWorld.FromLive(units, nonUnits, grid, blocked, timeline);
+		var layout = BattleLayout.FromEncounter(grid, [], units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(player.State.Id);
@@ -39,11 +39,14 @@ internal static class BattleTestFixture
 		actorRuntimes.For(EntityIds.System);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var battle = new BattleOrchestrator(engine, units, player, enemy, hazards);
+		var battle = new BattleOrchestrator(engine, layout, player.State.Id, enemy.State.Id);
 		battle.SetActiveUnit(player.State.Id);
 		battle.BeginTurn();
 		return battle;
 	}
+
+	public static BattleSimulation CreateTrialSimulation(BattleOrchestrator battle) =>
+		battle.Engine.CreateSimulation();
 
 	public static BattleOrchestrator BeginSimulation(Coord origin, int momentum = 0)
 	{

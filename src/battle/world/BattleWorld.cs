@@ -9,8 +9,9 @@ using BoundedGrid = GrimSpace.Math.Grid.Grid;
 namespace GrimSpace.Battle.World;
 
 /// <summary>
-/// Mutable battlefield world state for action resolution. Simulations fork from
-/// the live world; commit applies queued actions back to the live timeline.
+/// Live battlefield world during a fight: units, hazards, grid, and timeline.
+/// <see cref="BattleWorld.Fork"/> snapshots for preview sims; commit writes back to this instance.
+/// Terrain vs turn hazards are partitioned by <see cref="EntityIds.World"/> ownership.
 /// </summary>
 public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, BattleWorld>
 {
@@ -36,6 +37,24 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		_units.Values.Where(unit => unit.State.Id != unitId);
 
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
+
+	public IEnumerable<Hazard> TerrainHazards =>
+		Hazards.Where(hazard => hazard.ActorId == EntityIds.World);
+
+	public IEnumerable<Hazard> TurnHazards =>
+		Hazards.Where(hazard => hazard.ActorId != EntityIds.World);
+
+	public static HashSet<Coord> TerrainBlockedCells(IEnumerable<Hazard> terrain)
+	{
+		var cells = new HashSet<Coord>();
+		foreach (var hazard in terrain)
+		{
+			if (!hazard.Passable)
+				cells.UnionWith(hazard.Cells);
+		}
+
+		return cells;
+	}
 
 	public IEnumerable<NonUnit> NonUnitsOwnedBy(string actorId) =>
 		_nonUnits.Values.Where(nonUnit => nonUnit.ActorId == actorId);

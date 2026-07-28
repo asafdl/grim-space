@@ -18,7 +18,7 @@ public sealed class SimulationSearchTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
-		var enemyId = battle.Opponent.State.Id;
+		var enemyId = battle.OpponentId;
 		var railgun = new RailgunAction(PlayerId, enemyId);
 
 		Assert.Equal(CombatConfig.RailgunsPerTurn, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
@@ -42,7 +42,7 @@ public sealed class SimulationSearchTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
-		var enemyId = battle.Opponent.State.Id;
+		var enemyId = battle.OpponentId;
 
 		Assert.True(session.TryEnqueue(new RailgunAction(PlayerId, enemyId)));
 		Assert.Null(session.Peek(new RailgunAction(PlayerId, enemyId)));
@@ -53,7 +53,7 @@ public sealed class SimulationSearchTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
-		var enemyId = battle.Opponent.State.Id;
+		var enemyId = battle.OpponentId;
 		var railgun = new RailgunAction(PlayerId, enemyId);
 
 		var peek = session.Peek(railgun);

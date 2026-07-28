@@ -2,7 +2,6 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
-using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Runtime;
@@ -12,7 +11,6 @@ using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -20,87 +18,86 @@ using UnitState = GrimSpace.Battle.Units.State;
 
 namespace GrimSpace.Battle;
 
+/// <summary>
+/// Turn coordinator for a battle: owns the live engine, exposes preview <see cref="Sim"/>,
+/// and frozen <see cref="Layout"/> for scene setup. Does not mirror world units or hazards.
+/// </summary>
 public sealed class BattleOrchestrator
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
-	private readonly Unit _player;
-	private readonly Unit _enemy;
-	private readonly IReadOnlyList<Unit> _roster;
-	private readonly HazardSystem _hazards;
+	private readonly string _opponentId;
 
 	private BattleSimulation _sim = null!;
 
-	public BattleOrchestrator(
+	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
-		IReadOnlyList<Unit> roster,
-		Unit player,
-		Unit enemy,
-		HazardSystem hazards)
+		BattleLayout layout,
+		string playerId,
+		string opponentId)
 	{
 		_engine = engine;
-		_roster = roster;
-		_player = player;
-		_enemy = enemy;
-		_hazards = hazards;
+		Layout = layout;
+		PlayerId = playerId;
+		_opponentId = opponentId;
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
+	public BattleLayout Layout { get; }
 	public BattleSimulation Sim => _sim;
-	public BoundedGrid Grid => _engine.World.Grid;
-	public IReadOnlyList<Unit> Units => _roster;
-	public HazardSystem Hazards => _hazards;
+	public string PlayerId { get; }
+	public string OpponentId => _opponentId;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
 	public bool IsResolving { get; private set; }
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
-	public string PlayerId => _player.State.Id;
-	public Unit Opponent => _enemy;
+
+	public IReadOnlyDictionary<string, UnitState> LiveUnitStates =>
+		_engine.World.Units.ToDictionary(pair => pair.Key, pair => pair.Value.State.Clone());
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var timeline = new Timeline();
-		var hazards = new HazardSystem();
+		var nonUnits = new Dictionary<string, NonUnit>();
 		var ids = new UnitIdRegistry();
 
-		hazards.RegisterWorldHazards(
-			encounter.WorldHazards.Select(spawn =>
-				Hazard.Asteroid(
-					ids.NextNonUnitId("asteroid"),
-					spawn.Center,
-					grid,
-					spawn.Radius,
-					spawn.VisualId)));
+		foreach (var spawn in encounter.WorldHazards)
+		{
+			var hazard = Hazard.Asteroid(
+				ids.NextNonUnitId("asteroid"),
+				spawn.Center,
+				grid,
+				spawn.Radius,
+				spawn.VisualId);
+			nonUnits[hazard.Id] = hazard;
+		}
+
+		var terrainHazards = nonUnits.Values.OfType<Hazard>().ToList();
+		var blockedCells = BattleWorld.TerrainBlockedCells(terrainHazards);
 
 		var units = encounter.Spawns
 			.Select(spawn => Factory.Create(spawn.Unit, spawn.Position, ids, spawn.InitialMomentum))
 			.ToArray();
 
-		var player = units.First(u => u.Controller == EController.Player);
-		var enemy = units.First(u => u.Controller == EController.Enemy);
-		var blockedCells = hazards.GetBlockedCells();
-		var world = BattleWorld.FromLive(units, hazards.MutableNonUnits, grid, blockedCells, timeline);
+		var playerId = units.First(unit => unit.Controller == EController.Player).State.Id;
+		var opponentId = units.First(unit => unit.Controller == EController.Enemy).State.Id;
+		var world = BattleWorld.FromLive(units, nonUnits, grid, blockedCells, timeline);
+		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.For(player.State.Id);
-		actorRuntimes.For(enemy.State.Id);
+		actorRuntimes.For(playerId);
+		actorRuntimes.For(opponentId);
 		actorRuntimes.For(EntityIds.System);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var orchestrator = new BattleOrchestrator(engine, units, player, enemy, hazards);
+		var orchestrator = new BattleOrchestrator(engine, layout, playerId, opponentId);
 
-		orchestrator.SetActiveUnit(player.State.Id);
+		orchestrator.SetActiveUnit(playerId);
 		orchestrator.BeginTurn();
 		return orchestrator;
 	}
-
-	public Unit? GetPlayer() =>
-		Units.FirstOrDefault(u => u.Controller == EController.Player);
-
-	public Unit? GetEnemy() =>
-		Units.FirstOrDefault(u => u.Controller == EController.Enemy);
 
 	public void SetActiveUnit(string unitId) => ActiveUnitId = unitId;
 
@@ -111,8 +108,17 @@ public sealed class BattleOrchestrator
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && !IsResolving && IsActive(unit.State.Id) && unit.State.IsAlive;
 
-	public Unit? GetActiveActor() =>
-		GetActiveUnits().FirstOrDefault(u => u.Controller == EController.Player);
+	public Unit? GetActiveActor()
+	{
+		if (ActiveUnitId is not string id
+			|| !_engine.World.Units.TryGetValue(id, out var unit)
+			|| unit.Controller != EController.Player)
+		{
+			return null;
+		}
+
+		return unit;
+	}
 
 	public bool ResolveTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink = null)
 	{
@@ -129,7 +135,7 @@ public sealed class BattleOrchestrator
 			IsBattleOver = result.IsBattleOver;
 			WinnerId = result.WinnerId;
 
-			if (GetPlayer() is not null)
+			if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
 				BeginTurn();
 
 			return true;
@@ -145,13 +151,13 @@ public sealed class BattleOrchestrator
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
 		var turnStart = _engine.World.Timeline.Clock.Current;
-		var hazardsBeforeResolve = Hazards.Active.ToList();
+		var hazardsBeforeResolve = _engine.World.TurnHazards.ToList();
 		var applied = new List<IAction>();
 		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
 
 		_engine.ActorRuntimes.Reset();
 
-		if (!TrySchedulePlayerPhase(_player.State.Id, playerActions, TurnPhases.Player))
+		if (!TrySchedulePlayerPhase(PlayerId, playerActions, TurnPhases.Player))
 			return new PipelineResult(false, null, Success: false);
 
 		foreach (var tick in _engine.Step(TurnPhases.Player))
@@ -162,9 +168,10 @@ public sealed class BattleOrchestrator
 		}
 
 		var enemySim = _engine.CreateSimulation();
-		var enemyActions = EnemySimulation.BuildTurnActions(enemySim, _enemy);
+		var enemy = _engine.World.UnitOf(_opponentId);
+		var enemyActions = EnemySimulation.BuildTurnActions(enemySim, enemy);
 
-		SchedulePhase(_enemy.State.Id, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
+		SchedulePhase(_opponentId, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
 		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))
 			CollectTick(tick, sink, applied);
 
@@ -172,7 +179,7 @@ public sealed class BattleOrchestrator
 		foreach (var tick in _engine.Step(TurnPhases.End - TurnPhases.Enemy))
 			CollectTick(tick, sink, applied);
 
-		var outcome = EvaluateBattleOutcome(Units);
+		var outcome = EvaluateBattleOutcome();
 		FinalizeRound();
 
 		StateLog.LogTurnResolution(
@@ -211,8 +218,8 @@ public sealed class BattleOrchestrator
 
 	private void ScheduleRoundUpkeep(int delayTicks)
 	{
-		foreach (var unit in _roster)
-			_engine.ScheduleToWorldTimeline(new RoundUpkeepAction(unit.State.Id), delayTicks);
+		foreach (var unitId in _engine.World.Units.Keys)
+			_engine.ScheduleToWorldTimeline(new RoundUpkeepAction(unitId), delayTicks);
 
 		_engine.ScheduleToWorldTimeline(new ClearTurnHazardsAction(), delayTicks);
 	}
@@ -221,21 +228,18 @@ public sealed class BattleOrchestrator
 	{
 		TurnNumber++;
 
-		var player = GetPlayer();
-		if (player is not null)
+		if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
 			SetActiveUnit(player.State.Id);
 	}
 
-	private IEnumerable<Unit> GetActiveUnits() =>
-		Units.Where(u => IsActive(u.State.Id) && u.State.IsAlive);
-
 	private Dictionary<string, UnitState> SnapshotAll() =>
-		Units.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
+		_engine.World.Units.ToDictionary(pair => pair.Key, pair => pair.Value.State.Clone());
 
-	private static BattleOutcome EvaluateBattleOutcome(IReadOnlyList<Unit> units)
+	private BattleOutcome EvaluateBattleOutcome()
 	{
-		var player = units.FirstOrDefault(u => u.Controller == EController.Player);
-		var enemy = units.FirstOrDefault(u => u.Controller == EController.Enemy);
+		var units = _engine.World.Units.Values;
+		var player = units.FirstOrDefault(unit => unit.Controller == EController.Player);
+		var enemy = units.FirstOrDefault(unit => unit.Controller == EController.Enemy);
 
 		if (enemy is not null && !enemy.State.IsAlive)
 			return new BattleOutcome(true, player?.State.Id);

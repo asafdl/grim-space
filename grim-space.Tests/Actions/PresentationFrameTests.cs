@@ -16,7 +16,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
-		var options = MoveUi.GetMoveOptions(battle, battle.GetPlayer()).ToList();
+		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -37,7 +37,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
-		var options = MoveUi.GetMoveOptions(battle, battle.GetPlayer()).ToList();
+		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 

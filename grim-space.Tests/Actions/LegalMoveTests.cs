@@ -81,7 +81,7 @@ public sealed class LegalMoveTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var expected = Preview.GetLegalMoves(battle);
-		var highlights = MoveUi.GetMoveOptions(battle, battle.GetPlayer());
+		var highlights = MoveUi.GetMoveOptions(battle, battle.GetActiveActor());
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),
@@ -111,7 +111,7 @@ public sealed class LegalMoveTests
 		BattleTestApply.ApplyToLive(
 			committed,
 			[player, enemy],
-			planning.Grid,
+			planning.Layout.Grid,
 			nonUnits,
 			blocked,
 			new Timeline(),
