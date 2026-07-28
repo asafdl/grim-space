@@ -24,7 +24,7 @@ public sealed class SystemActionTests
 		BattleTestWorld.InjectHazard(battle.Engine.World, hazard);
 		Assert.Single(battle.Engine.World.TurnHazards);
 
-		Assert.True(battle.ResolveTurn([]));
+		battle.ResolveTurn([]);
 
 		Assert.Empty(battle.Engine.World.TurnHazards);
 	}
@@ -35,7 +35,7 @@ public sealed class SystemActionTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
 
-		Assert.True(battle.ResolveTurn(battle.Sim.Actions.ToList()));
+		battle.ResolveTurn(battle.Sim.Actions.ToList());
 		Assert.Empty(battle.Engine.World.TurnHazards);
 	}
 
@@ -51,7 +51,7 @@ public sealed class SystemActionTests
 			visualId: "rock");
 		BattleTestWorld.InjectHazard(battle.Engine.World, asteroid);
 
-		Assert.True(battle.ResolveTurn([]));
+		battle.ResolveTurn([]);
 
 		Assert.Contains(asteroid.Id, battle.Engine.World.NonUnits.Keys);
 		Assert.Equal(EntityIds.World, battle.Engine.World.NonUnits[asteroid.Id].ActorId);

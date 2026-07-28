@@ -3,7 +3,6 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
@@ -120,25 +119,23 @@ public sealed class BattleOrchestrator
 		return unit;
 	}
 
-	public bool ResolveTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink = null)
+	public IReadOnlyList<IAction> ResolveTurn(IReadOnlyList<IAction> playerActions)
 	{
 		if (IsBattleOver || IsResolving)
-			return false;
+			throw new InvalidOperationException("Cannot resolve turn while battle is over or already resolving.");
 
 		IsResolving = true;
 		try
 		{
-			var result = ExecuteTurn(playerActions, sink);
-			if (!result.Success)
-				return false;
-
-			IsBattleOver = result.IsBattleOver;
-			WinnerId = result.WinnerId;
+			var applied = ExecuteTurn(playerActions);
+			var outcome = EvaluateBattleOutcome();
+			IsBattleOver = outcome.IsOver;
+			WinnerId = outcome.WinnerId;
 
 			if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
 				BeginTurn();
 
-			return true;
+			return applied;
 		}
 		finally
 		{
@@ -146,7 +143,7 @@ public sealed class BattleOrchestrator
 		}
 	}
 
-	private PipelineResult ExecuteTurn(IReadOnlyList<IAction> playerActions, IPresentationEventSink? sink)
+	private List<IAction> ExecuteTurn(IReadOnlyList<IAction> playerActions)
 	{
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
@@ -158,11 +155,11 @@ public sealed class BattleOrchestrator
 		_engine.ActorRuntimes.Reset();
 
 		if (!TrySchedulePlayerPhase(PlayerId, playerActions, TurnPhases.Player))
-			return new PipelineResult(false, null, Success: false);
+			throw new InvalidOperationException("Failed to schedule player phase onto live timeline.");
 
 		foreach (var tick in _engine.Step(TurnPhases.Player))
 		{
-			CollectTick(tick, sink, applied);
+			CollectTick(tick, applied);
 			if (tick.Tick == turnStart + TurnPhases.Player)
 				unitsAfterPlayer = SnapshotAll();
 		}
@@ -173,13 +170,12 @@ public sealed class BattleOrchestrator
 
 		SchedulePhase(_opponentId, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
 		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))
-			CollectTick(tick, sink, applied);
+			CollectTick(tick, applied);
 
 		ScheduleRoundUpkeep(TurnPhases.End - TurnPhases.Enemy);
 		foreach (var tick in _engine.Step(TurnPhases.End - TurnPhases.Enemy))
-			CollectTick(tick, sink, applied);
+			CollectTick(tick, applied);
 
-		var outcome = EvaluateBattleOutcome();
 		FinalizeRound();
 
 		StateLog.LogTurnResolution(
@@ -190,16 +186,11 @@ public sealed class BattleOrchestrator
 			unitsAfterPlayer ?? SnapshotAll(),
 			SnapshotAll());
 
-		return new PipelineResult(outcome.IsOver, outcome.WinnerId, Success: true);
+		return applied;
 	}
 
-	private static void CollectTick(TickResult tick, IPresentationEventSink? sink, List<IAction> applied)
-	{
-		foreach (var action in tick.AppliedActions)
-			sink?.OnActionApplied(new PresentationEvent(action));
-
+	private static void CollectTick(TickResult tick, List<IAction> applied) =>
 		applied.AddRange(tick.AppliedActions);
-	}
 
 	private bool TrySchedulePlayerPhase(string actorId, IReadOnlyList<IAction> actions, int delayTicks)
 	{
@@ -251,6 +242,4 @@ public sealed class BattleOrchestrator
 	}
 
 	private readonly record struct BattleOutcome(bool IsOver, string? WinnerId);
-
-	private readonly record struct PipelineResult(bool IsBattleOver, string? WinnerId, bool Success = true);
 }

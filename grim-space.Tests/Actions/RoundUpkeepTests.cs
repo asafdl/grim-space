@@ -51,7 +51,7 @@ public sealed class RoundUpkeepTests
 		playerState.MissilesRemaining = 0;
 		playerState.FlakRemaining = 0;
 
-		Assert.True(battle.ResolveTurn([]));
+		battle.ResolveTurn([]);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
 		Assert.Equal(CombatConfig.MissilesPerTurn, playerState.MissilesRemaining);

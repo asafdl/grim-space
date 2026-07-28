@@ -1,7 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
@@ -10,16 +9,17 @@ namespace GrimSpace.Battle.Presentation.Domains.Turn;
 
 public static class TurnUi
 {
-	public static bool TryEndTurn(BattleOrchestrator battle, IPresentationEventSink? sink = null)
+	public static bool TryCommit(BattleOrchestrator battle, out IReadOnlyList<IAction> playerActions)
 	{
+		playerActions = [];
+
 		if (battle.IsBattleOver)
 			return false;
 
 		if (!battle.Sim.TryCommit(out var actions, out _))
 			return false;
 
-		actions = HeadingDef.Instance.Streamline(actions, battle.Sim.UndoGroups).ToList();
-		battle.ResolveTurn(actions, sink);
+		playerActions = HeadingDef.Instance.Streamline(actions, battle.Sim.UndoGroups).ToList();
 		return true;
 	}
 

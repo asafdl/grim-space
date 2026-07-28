@@ -23,7 +23,7 @@ public sealed class TurnOrchestrationTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 
 		var actions = battle.Sim.Actions.ToList();
-		Assert.True(battle.ResolveTurn(actions));
+		battle.ResolveTurn(actions);
 
 		Assert.Equal(origin + Coord.Forward * 3, battle.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
@@ -37,7 +37,7 @@ public sealed class TurnOrchestrationTests
 		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
-		Assert.True(battle.ResolveTurn(battle.Sim.Actions.ToList()));
+		battle.ResolveTurn(battle.Sim.Actions.ToList());
 
 		Assert.NotEmpty(MoveUi.GetMoveOptions(battle, battle.GetActiveActor()));
 		Assert.False(battle.Sim.RuntimeFor(PlayerId).IsMovePathStarted);
@@ -51,7 +51,7 @@ public sealed class TurnOrchestrationTests
 		var battle = CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		Assert.False(battle.IsResolving);
 
-		Assert.True(battle.ResolveTurn([]));
+		battle.ResolveTurn([]);
 		Assert.False(battle.IsResolving);
 	}
 

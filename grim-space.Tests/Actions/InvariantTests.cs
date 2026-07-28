@@ -130,7 +130,7 @@ public sealed class InvariantTests
 		var ui = new BattleUi(battle);
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
-		Assert.False(ui.EndTurn());
+		Assert.Null(ui.CommitAndResolve());
 	}
 
 	[Fact]

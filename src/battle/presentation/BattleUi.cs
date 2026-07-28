@@ -5,8 +5,8 @@ using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Orientation;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Domains.Turn;
-using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Interaction;
+using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -43,13 +43,14 @@ public sealed class BattleUi
 		_state.ResetAfterTurn();
 	}
 
-	public bool EndTurn(IPresentationEventSink? sink = null)
+	public IReadOnlyList<IAction>? CommitAndResolve()
 	{
-		if (!TurnUi.TryEndTurn(Battle, sink))
-			return false;
+		if (!TurnUi.TryCommit(Battle, out var playerActions))
+			return null;
 
+		var applied = Battle.ResolveTurn(playerActions);
 		ResetAfterTurn();
-		return true;
+		return applied;
 	}
 
 	public bool Undo() => TurnUi.TryUndo(Battle, _state);

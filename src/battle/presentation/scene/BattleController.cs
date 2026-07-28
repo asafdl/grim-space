@@ -2,7 +2,7 @@ using Godot;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
-using GrimSpace.Battle.Presentation.Events;
+using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
@@ -14,9 +14,10 @@ namespace GrimSpace.Battle.Presentation.Scene;
 /// <summary>
 /// Thin scene connector: wires Godot input and nodes to <see cref="BattleUi"/> and <see cref="BattleOrchestrator"/>.
 /// </summary>
-public partial class BattleController : Node3D, IPresentationEventSink
+public partial class BattleController : Node3D
 {
 	private BattleUi _ui = null!;
+	private TurnReplayPlayer _replayPlayer = null!;
 
 	private GridView _gridView = null!;
 	private Controller _camera = null!;
@@ -73,12 +74,19 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		SetupActionBar();
 		SetupOutcomeOverlay();
 		SetupOrientationHud();
+
+		_replayPlayer = new TurnReplayPlayer { Name = "TurnReplayPlayer" };
+		_replayPlayer.Configure(_unitViews, ColorForActor);
+		_replayPlayer.PlaybackComplete += OnPlaybackComplete;
+		AddChild(_replayPlayer);
+
 		Refresh();
 	}
 
 	public override void _Process(double _)
 	{
 		if (_ui.Battle.IsResolving
+			|| _replayPlayer.IsPlaying
 			|| _ui.Mode != EPlayerMode.Move
 			|| _ui.Battle.IsBattleOver
 			|| _ui.Battle.GetActiveActor() is null)
@@ -140,7 +148,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 			Refresh();
 		};
 		_actionBar.MissileMountSelected += mount => { _ui.SelectMissileMount(mount); Refresh(); };
-		_actionBar.EndTurnRequested += () => { if (_ui.EndTurn(this)) { ExitAimIfNeeded(); Refresh(); } };
+		_actionBar.EndTurnRequested += TryEndTurn;
 		AddChild(_actionBar);
 	}
 
@@ -149,7 +157,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		if (_ui.Battle.IsBattleOver)
 			return;
 
-		if (_ui.Battle.IsResolving)
+		if (_ui.Battle.IsResolving || _replayPlayer.IsPlaying)
 			return;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -185,12 +193,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
 		{
-			if (_ui.EndTurn(this))
-			{
-				_camera.ExitAim();
-				Refresh();
-			}
-
+			TryEndTurn();
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -283,9 +286,36 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void Refresh()
 	{
+		if (_replayPlayer.IsPlaying)
+			return;
+
 		var frame = _ui.BuildFrame();
 		ApplyFrame(frame);
 	}
+
+	private void TryEndTurn()
+	{
+		if (_ui.Battle.IsBattleOver || _ui.Battle.IsResolving || _replayPlayer.IsPlaying)
+			return;
+
+		_replayPlayer.PrepareTurnStart(_ui.Battle.LiveUnitStates);
+		var applied = _ui.CommitAndResolve();
+		if (applied is null)
+			return;
+
+		_replayPlayer.Play(applied);
+	}
+
+	private void OnPlaybackComplete()
+	{
+		ExitAimIfNeeded();
+		Refresh();
+	}
+
+	private Color ColorForActor(string actorId) =>
+		_ui.Battle.Layout.Participants.TryGetValue(actorId, out var controller)
+			? ColorFor(controller)
+			: Colors.White;
 
 	private void ApplyFrame(PresentationFrame frame)
 	{
@@ -421,11 +451,5 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		_hintLabel = new Label { Position = new Vector2(16, 16) };
 		canvas.AddChild(_hintLabel);
 		AddChild(canvas);
-	}
-
-	public void OnActionApplied(PresentationEvent presentationEvent)
-	{
-		foreach (var (unitId, state) in _ui.Battle.LiveUnitStates)
-			_unitViews[unitId].SyncFromState(state);
 	}
 }
