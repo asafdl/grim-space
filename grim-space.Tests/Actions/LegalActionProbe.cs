@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
@@ -11,9 +11,9 @@ namespace GrimSpace.Tests.Actions;
 internal static class LegalActionProbe
 {
 	public static IReadOnlyList<IAction> LegalActions(
-		Simulation<BattleBoard, ActorSession> session,
+		Simulation<BattleWorld, ActorRuntime> session,
 		string actorId,
-		IReadOnlyList<IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>> defs)
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> defs)
 	{
 		var results = new List<IAction>();
 		var world = session.World;
@@ -32,21 +32,21 @@ internal static class LegalActionProbe
 	}
 
 	public static IReadOnlyList<IAction> LegalActions(
-		Simulation<BattleBoard, ActorSession> session,
+		Simulation<BattleWorld, ActorRuntime> session,
 		string actorId,
-		IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> def) =>
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
 		LegalActions(session, actorId, [def]);
 
 	public static bool HasAnyLegal(
-		Simulation<BattleBoard, ActorSession> session,
+		Simulation<BattleWorld, ActorRuntime> session,
 		string actorId,
-		IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> def) =>
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
 		LegalActions(session, actorId, def).Count > 0;
 
 	public static void AssertExhausted(
-		Simulation<BattleBoard, ActorSession> session,
+		Simulation<BattleWorld, ActorRuntime> session,
 		string actorId,
-		IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> def,
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def,
 		string? because = null)
 	{
 		var legal = LegalActions(session, actorId, def);
@@ -56,7 +56,7 @@ internal static class LegalActionProbe
 	}
 
 	public static void EnqueueAll(
-		Simulation<BattleBoard, ActorSession> session,
+		Simulation<BattleWorld, ActorRuntime> session,
 		IReadOnlyList<IAction> actions)
 	{
 		foreach (var action in actions)

@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Presentation.Events;
 using GrimSpace.Battle.Presentation.Ui;
@@ -33,13 +33,13 @@ public static class TurnUi
 		return true;
 	}
 
-	public static BattleBoard GetTurnGhost(BattleOrchestrator battle)
+	public static BattleWorld GetPreviewWorld(BattleOrchestrator battle)
 	{
 		var peek = battle.Sim.Peek(EndOfPhaseDef.Instance.Bind(battle.PlayerId));
 		return peek?.World ?? battle.Sim.World;
 	}
 
-	public static HashSet<Coord> GetPlannedHazardCells(BattleOrchestrator battle)
+	public static HashSet<Coord> GetPreviewHazardCells(BattleOrchestrator battle)
 	{
 		var sim = battle.Sim;
 		var cells = new HashSet<Coord>();
@@ -57,7 +57,7 @@ public static class TurnUi
 		Interaction.InteractionState state,
 		Unit? actor,
 		Units.State actorState,
-		int plannedActionCount,
+		int queuedActionCount,
 		bool missileInRange)
 	{
 		if (actor is null)
@@ -71,7 +71,7 @@ public static class TurnUi
 			state.Mode,
 			actorState,
 			actorState.MissilesRemaining,
-			plannedActionCount,
+			queuedActionCount,
 			state.RailgunHover,
 			state.MissileMount,
 			state.MissileRange,

@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -11,7 +11,7 @@ namespace GrimSpace.Battle.Actions;
 /// </summary>
 public static class Capabilities
 {
-	public static IReadOnlyList<IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>> For(
+	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(
 		EType type) =>
 		type switch
 		{

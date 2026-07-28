@@ -3,7 +3,7 @@ using GrimSpace.Core.Actions;
 namespace GrimSpace.Core.Engine;
 
 /// <summary>
-/// Stateful planning workspace: anchor world, preview fork, per-actor runtimes, and action queue.
+/// Stateful simulation workspace: anchor world, preview fork, per-actor runtimes, and action queue.
 /// </summary>
 public class Simulation<TWorld, TRuntime>
 	where TWorld : IWorld<TWorld>

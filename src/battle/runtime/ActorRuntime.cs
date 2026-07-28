@@ -3,7 +3,7 @@ using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle.Runtime;
 
-public sealed class ActorSession : IRuntimeContext<ActorSession>
+public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 {
 	public const int InitialMinPathApCost = 3;
 
@@ -54,10 +54,10 @@ public sealed class ActorSession : IRuntimeContext<ActorSession>
 		MovementBuildupForwardSteps = 0;
 	}
 
-	public ActorSession Fork() => ActorSessionCopy.Clone(this);
+	public ActorRuntime Fork() => ActorRuntimeCopy.Clone(this);
 }
 
-public readonly record struct ActorSessionSnapshot(
+public readonly record struct ActorRuntimeSnapshot(
 	int RawYawQuarters,
 	int MomentumPaid,
 	int MomentumGainedFromMovement,
@@ -71,9 +71,9 @@ public readonly record struct ActorSessionSnapshot(
 	int MovementBuildupLevel,
 	int MovementBuildupForwardSteps);
 
-public static class ActorSessionCopy
+public static class ActorRuntimeCopy
 {
-	public static ActorSessionSnapshot Snapshot(ActorSession session) =>
+	public static ActorRuntimeSnapshot Snapshot(ActorRuntime session) =>
 		new(
 			session.RawYawQuarters,
 			session.MomentumPaid,
@@ -88,7 +88,7 @@ public static class ActorSessionCopy
 			session.MovementBuildupLevel,
 			session.MovementBuildupForwardSteps);
 
-	public static void Restore(ActorSession session, ActorSessionSnapshot snapshot)
+	public static void Restore(ActorRuntime session, ActorRuntimeSnapshot snapshot)
 	{
 		session.RawYawQuarters = snapshot.RawYawQuarters;
 		session.MomentumPaid = snapshot.MomentumPaid;
@@ -104,9 +104,9 @@ public static class ActorSessionCopy
 		session.MovementBuildupForwardSteps = snapshot.MovementBuildupForwardSteps;
 	}
 
-	public static ActorSession Clone(ActorSession session)
+	public static ActorRuntime Clone(ActorRuntime session)
 	{
-		var clone = new ActorSession();
+		var clone = new ActorRuntime();
 		Restore(clone, Snapshot(session));
 		return clone;
 	}

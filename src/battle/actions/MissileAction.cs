@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
@@ -12,21 +12,21 @@ public sealed record MissileAction(
 	string ActorId,
 	Coord Center,
 	EMissileMount Mount,
-	int Range) : IAction<BattleBoard, ActorSession>
+	int Range) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		MissileDef.For(Mount, Range);
 }
 
 public sealed class MissileDef(EMissileMount mount, int range)
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public EMissileMount Mount { get; } = mount;
 	public int Range { get; } = range;
 
 	public static MissileDef For(EMissileMount mount, int range) => new(mount, range);
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var frame = BodyFrame.From(world.StateOf(actorId));
 		var config = MissileMountConfig.For(Mount).WithRange(Range);
@@ -40,19 +40,19 @@ public sealed class MissileDef(EMissileMount mount, int range)
 
 	public MissileAction Bind(string actorId, Coord center) => new(actorId, center, Mount, Range);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(MissileAction action, BattleBoard world, ActorSession runtime)
+	public bool IsPossible(MissileAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (world.StateOf(action.ActorId).MissilesRemaining <= 0)
 			return false;
@@ -62,13 +62,13 @@ public sealed class MissileDef(EMissileMount mount, int range)
 		return MissileTargeting.IsValidTarget(frame, action.Center, config, world.Grid.IsInBounds);
 	}
 
-	public bool IsLegal(MissileAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(MissileAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(action, world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		MissileAction action,
-		BattleBoard world,
-		ActorSession runtime)
+		BattleWorld world,
+		ActorRuntime runtime)
 	{
 		var cells = new HashSet<Coord>(
 			world.Grid.EnumerateCube(action.Center, CombatConfig.MissileRadius));

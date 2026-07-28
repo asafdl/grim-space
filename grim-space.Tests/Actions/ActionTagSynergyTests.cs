@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
@@ -20,7 +20,7 @@ public sealed class ActionTagSynergyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 		var retro = RetroMoveOption(origin, player);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, retro));
@@ -44,7 +44,7 @@ public sealed class ActionTagSynergyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 		var retro = RetroMoveOption(origin, player);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, retro));

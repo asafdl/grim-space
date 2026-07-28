@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.Actions;
@@ -14,7 +14,7 @@ public sealed class HeadingTurnTests
 	[Fact]
 	public void YawRightThenLeftCostsApPerAction()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
@@ -29,7 +29,7 @@ public sealed class HeadingTurnTests
 	[Fact]
 	public void YawRightTwiceCostsStickerApPerTurn()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
@@ -44,7 +44,7 @@ public sealed class HeadingTurnTests
 	[Fact]
 	public void UndoRebuildsYawQuartersFromReplay()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
@@ -67,7 +67,7 @@ public sealed class HeadingTurnTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));

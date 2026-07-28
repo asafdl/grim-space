@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
@@ -10,19 +10,19 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record HeadingTurnAction(
 	string ActorId,
-	EHeadingTurn Turn) : IAction<BattleBoard, ActorSession>
+	EHeadingTurn Turn) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		HeadingDef.Instance;
 }
 
 public sealed class HeadingDef
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>,
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IActionStreamline
 {
 	public static HeadingDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var turn in Enum.GetValues<EHeadingTurn>())
 		{
@@ -34,27 +34,27 @@ public sealed class HeadingDef
 
 	public HeadingTurnAction Bind(string actorId, EHeadingTurn turn) => new(actorId, turn);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(HeadingTurnAction action, BattleBoard world, ActorSession runtime) => true;
+	public bool IsPossible(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) => true;
 
-	public bool IsLegal(HeadingTurnAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) =>
 		world.StateOf(action.ActorId).ActionPoints >= QuoteApCost(runtime, action.Turn);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		HeadingTurnAction action,
-		BattleBoard world,
-		ActorSession runtime)
+		BattleWorld world,
+		ActorRuntime runtime)
 	{
 		var apCost = ApCostForTurn(action.Turn);
 		var momDelta = MomentumDeltaForTurn(action.Turn);
@@ -70,7 +70,7 @@ public sealed class HeadingDef
 			consumedDiscount = true;
 		}
 
-		var effects = new List<IEffect<BattleBoard, ActorSession>>
+		var effects = new List<IEffect<BattleWorld, ActorRuntime>>
 		{
 			new ApChangeEffect(-apCost),
 			new YawMomentumEffect(momDelta),
@@ -123,7 +123,7 @@ public sealed class HeadingDef
 		return result;
 	}
 
-	private static int QuoteApCost(ActorSession runtime, EHeadingTurn turn)
+	private static int QuoteApCost(ActorRuntime runtime, EHeadingTurn turn)
 	{
 		var apCost = ApCostForTurn(turn);
 

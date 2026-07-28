@@ -16,7 +16,7 @@ public sealed class SimulationSearchTests
 	[Fact]
 	public void RailgunBudgetEnforcedBySimulationTryEnqueue()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
 		var enemyId = battle.Opponent.State.Id;
 		var railgun = new RailgunAction(PlayerId, enemyId);
@@ -30,7 +30,7 @@ public sealed class SimulationSearchTests
 	[Fact]
 	public void FlakBudgetEnforcedBySimulationTryEnqueue()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
 
 		Assert.True(session.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
@@ -40,7 +40,7 @@ public sealed class SimulationSearchTests
 	[Fact]
 	public void PeekReturnsNullForIllegalAction()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
 		var enemyId = battle.Opponent.State.Id;
 
@@ -51,7 +51,7 @@ public sealed class SimulationSearchTests
 	[Fact]
 	public void PeekReturnsFrameForLegalActionWithoutMutatingQueue()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.Sim;
 		var enemyId = battle.Opponent.State.Id;
 		var railgun = new RailgunAction(PlayerId, enemyId);
@@ -66,7 +66,7 @@ public sealed class SimulationSearchTests
 	public void MoveOnlySearch_StaysWithinDepthLimit()
 	{
 		const int expectedMaxDepth = 12;
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var maxDepth = 0;
 
 		foreach (var frame in battle.Sim.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
@@ -76,10 +76,10 @@ public sealed class SimulationSearchTests
 	}
 
 	[Fact]
-	public void SearchWithQueuedActionsDoesNotMutateSession()
+	public void SearchWithQueuedActionsDoesNotMutateSimulation()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		var session = battle.Sim;
 		var heading = HeadingDef.Instance.Bind(PlayerId, GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight);
 

@@ -1,5 +1,5 @@
 using System.Text;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;

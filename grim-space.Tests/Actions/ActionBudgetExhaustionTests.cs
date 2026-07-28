@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
@@ -23,7 +23,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterMaxMissiles_NoLegalMissileActions()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 1));
+		var session = BeginSimulationAt(new Coord(5, 5, 1));
 		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
 		var missiles = Enumerable
 			.Range(0, CombatConfig.MissilesPerTurn)
@@ -41,7 +41,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterMaxFlak_NoLegalFlakActionsFromEitherMount()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 5));
+		var session = BeginSimulationAt(new Coord(5, 5, 5));
 		LegalActionProbe.EnqueueAll(session, [PortFlak.Bind(PlayerId)]);
 
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).FlakRemaining);
@@ -53,7 +53,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterMaxRailgun_NoLegalRailgunActions()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 5));
+		var session = BeginSimulationAt(new Coord(5, 5, 5));
 		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 		LegalActionProbe.EnqueueAll(session, [RailgunDef.Instance.Bind(PlayerId, enemyId)]);
 
@@ -65,7 +65,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterMaxRolls_NoLegalRollActions()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 5));
+		var session = BeginSimulationAt(new Coord(5, 5, 5));
 		var rolls = Enumerable
 			.Range(0, MovementExpectations.FighterApPerTurn)
 			.Select(_ => RollDef.Instance.Bind(PlayerId, ERollDirection.Clockwise))
@@ -81,7 +81,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterMaxPitchUps_NoLegalPitchActions()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 5));
+		var session = BeginSimulationAt(new Coord(5, 5, 5));
 		var turns = Enumerable
 			.Range(0, MovementExpectations.FighterApPerTurn)
 			.Select(_ => HeadingDef.Instance.Bind(PlayerId, EHeadingTurn.PitchUp))
@@ -97,7 +97,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterAllWeaponBudgetsExhausted_NoLegalWeaponActions()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 1));
+		var session = BeginSimulationAt(new Coord(5, 5, 1));
 		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
 		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 		var actions = new List<IAction>();
@@ -124,7 +124,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterApSpentOnRolls_WeaponsRemainLegal()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 1));
+		var session = BeginSimulationAt(new Coord(5, 5, 1));
 		var rolls = Enumerable
 			.Range(0, MovementExpectations.FighterApPerTurn)
 			.Select(_ => RollDef.Instance.Bind(PlayerId, ERollDirection.Clockwise))
@@ -143,7 +143,7 @@ public sealed class ActionBudgetExhaustionTests
 	[Fact]
 	public void AfterWeaponBudgetsExhausted_RollsRemainLegal()
 	{
-		var session = BeginSessionAt(new Coord(5, 5, 1));
+		var session = BeginSimulationAt(new Coord(5, 5, 1));
 		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
 		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 
@@ -160,9 +160,9 @@ public sealed class ActionBudgetExhaustionTests
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, HeadingDef.Instance));
 	}
 
-	private static Simulation<BattleBoard, ActorSession> BeginSessionAt(Coord origin)
+	private static Simulation<BattleWorld, ActorRuntime> BeginSimulationAt(Coord origin)
 	{
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		return battle.Sim;
 	}
 }

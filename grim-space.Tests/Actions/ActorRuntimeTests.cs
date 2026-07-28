@@ -3,12 +3,12 @@ using GrimSpace.Battle.Runtime;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class ActorSessionTests
+public sealed class ActorRuntimeTests
 {
 	[Fact]
 	public void NetYawWrapsRawYawQuarters()
 	{
-		var session = new ActorSession { RawYawQuarters = 5 };
+		var session = new ActorRuntime { RawYawQuarters = 5 };
 
 		Assert.Equal(1, session.NetYaw);
 	}
@@ -21,7 +21,7 @@ public sealed class ActorSessionTests
 	[InlineData(5, 1)]
 	public void NetYawWrapsToModRange(int rawQuarters, int expectedNetYaw)
 	{
-		var session = new ActorSession { RawYawQuarters = rawQuarters };
+		var session = new ActorRuntime { RawYawQuarters = rawQuarters };
 
 		Assert.Equal(expectedNetYaw, session.NetYaw);
 	}
@@ -29,7 +29,7 @@ public sealed class ActorSessionTests
 	[Fact]
 	public void IsMovePathStartedWhenPathFieldsAreSet()
 	{
-		var session = new ActorSession();
+		var session = new ActorRuntime();
 
 		Assert.False(session.IsMovePathStarted);
 
@@ -41,7 +41,7 @@ public sealed class ActorSessionTests
 	[Fact]
 	public void ResetResetsAllFields()
 	{
-		var session = new ActorSession
+		var session = new ActorRuntime
 		{
 			RawYawQuarters = 2,
 			MomentumPaid = 1,

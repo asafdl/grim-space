@@ -3,12 +3,12 @@ using GrimSpace.Run;
 
 namespace GrimSpace.Core;
 
-public partial class Session : Node
+public partial class RunSession : Node
 {
-	private static Session? _instance;
+	private static RunSession? _instance;
 
-	public static Session Instance =>
-		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
+	public static RunSession Instance =>
+		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
 
 	public State Run { get; private set; } = null!;
 	public Encounter CurrentEncounter { get; private set; } = null!;

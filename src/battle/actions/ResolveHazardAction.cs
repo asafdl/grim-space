@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
@@ -11,18 +11,18 @@ public sealed record ResolveHazardAction(
 	EHazardKind Kind,
 	HashSet<Coord> Cells,
 	int Damage,
-	int MomentumLoss) : IAction<BattleBoard, ActorSession>
+	int MomentumLoss) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		ResolveHazardDef.Instance;
 }
 
 public sealed class ResolveHazardDef
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public static ResolveHazardDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId) => [];
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) => [];
 
 	public ResolveHazardAction Bind(
 		string actorId,
@@ -32,20 +32,20 @@ public sealed class ResolveHazardDef
 		int momentumLoss) =>
 		new(actorId, kind, cells.ToHashSet(), damage, momentumLoss);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => true;
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) => true;
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) => true;
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		ResolveHazardAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		[new ResolveHazardEffect(action.Kind, action.Cells, action.Damage, action.MomentumLoss)];
 
 	private static ResolveHazardAction Cast(IAction action) =>

@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.Battle.Board;
+namespace GrimSpace.Battle.World;
 
 public abstract class NonUnit
 {

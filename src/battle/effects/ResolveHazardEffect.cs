@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
@@ -11,9 +11,9 @@ public sealed class ResolveHazardEffect(
 	EHazardKind kind,
 	HashSet<Coord> cells,
 	int damage,
-	int momentumLoss) : IEffect<BattleBoard, ActorSession>
+	int momentumLoss) : IEffect<BattleWorld, ActorRuntime>
 {
-	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
+	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var center = cells.Count > 0 ? cells.First() : Coord.Zero;
 		var hazard = new Hazard

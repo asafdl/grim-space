@@ -13,7 +13,7 @@ public sealed class FlakActionTests
 	public void FlakSchedulesResolveOnPreviewTimeline()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		var flak = new FlakAction(PlayerId, EFlakMount.Port);
 
 		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
@@ -31,7 +31,7 @@ public sealed class FlakActionTests
 	public void AdvanceToTickAppliesFlakMomentumLoss()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin, momentum: 1);
+		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
 		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
 		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;

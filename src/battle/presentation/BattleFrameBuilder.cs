@@ -26,8 +26,8 @@ public static class BattleFrameBuilder
 		if (exitMissileMode)
 			state.SetMoveMode();
 
-		var previewBoard = TurnUi.GetTurnGhost(battle);
-		var hazardCells = TurnUi.GetPlannedHazardCells(battle);
+		var previewWorld = TurnUi.GetPreviewWorld(battle);
+		var hazardCells = TurnUi.GetPreviewHazardCells(battle);
 		var validMissileCells = state.Mode == EPlayerMode.Missile && state.MissileMount is EMissileMount mount && activeUnit is not null
 			? MissileUi.GetValidTargetCells(battle, mount, state.MissileRange)
 			: [];
@@ -52,7 +52,7 @@ public static class BattleFrameBuilder
 			state.CommittedMovePath);
 
 		var actorId = battle.PlayerId;
-		var actorState = previewBoard.StateOf(actorId);
+		var actorState = previewWorld.StateOf(actorId);
 		var missileInRange = MissileUi.IsHoverLegal(battle, state);
 
 		return new PresentationFrame
@@ -62,9 +62,9 @@ public static class BattleFrameBuilder
 			MissileRange = state.MissileRange,
 			ActiveUnit = activeUnit,
 			MoveOptions = moveOptions,
-			PreviewBoard = previewBoard,
+			PreviewWorld = previewWorld,
 			ActorState = actorState,
-			PlannedHazardCells = hazardCells,
+			PreviewHazardCells = hazardCells,
 			ValidMissileCells = validMissileCells,
 			MissilePreviewCells = missilePreviewCells,
 			ValidFlakPortCells = validFlakPortCells,

@@ -1,13 +1,13 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class YawMomentumEffect(int momDelta) : IEffect<BattleBoard, ActorSession>
+public sealed class YawMomentumEffect(int momDelta) : IEffect<BattleWorld, ActorRuntime>
 {
-	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
+	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		if (momDelta > 0)

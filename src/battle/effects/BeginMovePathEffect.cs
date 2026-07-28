@@ -1,14 +1,14 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class BeginMovePathEffect : IEffect<BattleBoard, ActorSession>
+public sealed class BeginMovePathEffect : IEffect<BattleWorld, ActorRuntime>
 {
-	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
+	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		runtime.MinPathApCost = ActorSession.InitialMinPathApCost;
+		runtime.MinPathApCost = ActorRuntime.InitialMinPathApCost;
 		runtime.PathApSpent = 0;
 		runtime.PathForwardSteps = 0;
 		runtime.UsedDirectionsMask = 0;

@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
@@ -22,7 +22,7 @@ public sealed class InvariantTests
 	public void IncompleteMovePathAllowsEnqueueButBlocksCommit()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
@@ -33,7 +33,7 @@ public sealed class InvariantTests
 	public void CompleteMovePathSetsOkAndAllowsCommit()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
 
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
@@ -59,7 +59,7 @@ public sealed class InvariantTests
 			trapped + Coord.Up,
 			trapped - Coord.Up,
 		};
-		var battle = BattleTestFixture.BeginPlanning(player, enemy, blocked: blocked);
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, blocked: blocked);
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
@@ -70,7 +70,7 @@ public sealed class InvariantTests
 	public void SearchSkipsImpossibleBranchesButKeepsIncompleteFrames()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		var session = battle.Sim;
 		var sawIncomplete = false;
 		var sawImpossibleEndpoint = false;
@@ -101,7 +101,7 @@ public sealed class InvariantTests
 	[Fact]
 	public void StreamlineCollapsesYawPairsOnCommit()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
 		Assert.Equal(2, battle.Sim.Actions.Count);
@@ -113,7 +113,7 @@ public sealed class InvariantTests
 	[Fact]
 	public void StreamlineCollapsesDoubleYawIntoSingleTurn()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
@@ -126,7 +126,7 @@ public sealed class InvariantTests
 	[Fact]
 	public void EndTurnFailsWhenInvariantStatusIsNotOk()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var ui = new BattleUi(battle);
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
@@ -136,7 +136,7 @@ public sealed class InvariantTests
 	[Fact]
 	public void UndoRefreshesInvariantStatusFromLastMove()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
@@ -150,7 +150,7 @@ public sealed class InvariantTests
 	[Fact]
 	public void CommitStreamlinesHeadingActions()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 

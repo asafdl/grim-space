@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
@@ -19,7 +19,7 @@ internal static class BattleTestFixture
 
 	public static BoundedGrid Grid(int size = DefaultGridSize) => new(size, size, size);
 
-	public static BattleOrchestrator BeginPlanning(
+	public static BattleOrchestrator BeginSimulation(
 		Unit player,
 		Unit enemy,
 		BoundedGrid? grid = null,
@@ -31,25 +31,25 @@ internal static class BattleTestFixture
 		var timeline = new Timeline();
 		var hazards = new HazardSystem();
 		var units = new Unit[] { player, enemy };
-		var world = BattleBoard.FromLive(units, hazards.MutableNonUnits, grid, blocked, timeline);
+		var world = BattleWorld.FromLive(units, hazards.MutableNonUnits, grid, blocked, timeline);
 
-		var actorRuntimes = new ActorRuntimes<ActorSession>();
+		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(player.State.Id);
 		actorRuntimes.For(enemy.State.Id);
 		actorRuntimes.For(EntityIds.System);
 
-		var engine = new Engine<BattleBoard, ActorSession>(world, actorRuntimes);
+		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var battle = new BattleOrchestrator(engine, units, player, enemy, hazards);
 		battle.SetActiveUnit(player.State.Id);
 		battle.BeginTurn();
 		return battle;
 	}
 
-	public static BattleOrchestrator BeginPlanning(Coord origin, int momentum = 0)
+	public static BattleOrchestrator BeginSimulation(Coord origin, int momentum = 0)
 	{
 		var player = Player(origin, momentum: momentum);
 		var enemy = Enemy(new Coord(0, 0, 0));
-		return BeginPlanning(player, enemy);
+		return BeginSimulation(player, enemy);
 	}
 
 	public static Unit Player(

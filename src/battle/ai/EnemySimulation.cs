@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
@@ -11,14 +11,14 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-public static class EnemyPlanner
+public static class EnemySimulation
 {
 	private const int MomentumWeight = 1_000;
 	private const int UnusedApPenalty = 100;
 	private const int TimelineRefinementLimit = 8;
 	private const int TimelineRefinementSlack = UnusedApPenalty;
 
-	private static readonly IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>[] FighterWeaponDefs =
+	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] FighterWeaponDefs =
 	[
 		RailgunDef.Instance,
 		MissileDef.For(EMissileMount.Fore, CombatConfig.ForeMissileMinRange),
@@ -26,7 +26,7 @@ public static class EnemyPlanner
 		FlakDef.For(EFlakMount.Starboard),
 	];
 
-	public static IReadOnlyList<IAction> PlanTurn(BattleSimulation session, Unit actor)
+	public static IReadOnlyList<IAction> BuildTurnActions(BattleSimulation session, Unit actor)
 	{
 		var actorId = actor.State.Id;
 		var start = session.Actions.Count;
@@ -65,11 +65,11 @@ public static class EnemyPlanner
 		}
 	}
 
-	private static SearchFrame<BattleBoard, ActorSession> SearchBestMove(
+	private static SearchFrame<BattleWorld, ActorRuntime> SearchBestMove(
 		BattleSimulation session,
 		string actorId)
 	{
-		var finalists = new List<(SearchFrame<BattleBoard, ActorSession> Frame, int HeuristicScore)>();
+		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
 		var bestHeuristic = int.MinValue;
 
 		foreach (var frame in session.Search(actorId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
@@ -88,14 +88,14 @@ public static class EnemyPlanner
 
 		if (finalists.Count == 0)
 		{
-			return new SearchFrame<BattleBoard, ActorSession>(
+			return new SearchFrame<BattleWorld, ActorRuntime>(
 				session.World.Fork(),
 				session.Runtimes.Fork(),
 				session.Actions.ToList(),
 				0);
 		}
 
-		SearchFrame<BattleBoard, ActorSession>? best = null;
+		SearchFrame<BattleWorld, ActorRuntime>? best = null;
 		var bestTotal = int.MinValue;
 
 		foreach (var (frame, heuristicScore) in SelectTimelineFinalists(finalists, bestHeuristic))
@@ -111,8 +111,8 @@ public static class EnemyPlanner
 		return best ?? finalists[0].Frame;
 	}
 
-	private static IEnumerable<(SearchFrame<BattleBoard, ActorSession> Frame, int HeuristicScore)> SelectTimelineFinalists(
-		List<(SearchFrame<BattleBoard, ActorSession> Frame, int HeuristicScore)> finalists,
+	private static IEnumerable<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> SelectTimelineFinalists(
+		List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> finalists,
 		int bestHeuristic)
 	{
 		var cutoff = bestHeuristic - TimelineRefinementSlack;
@@ -123,7 +123,7 @@ public static class EnemyPlanner
 	}
 
 	private static bool IsTerminalMoveFrame(
-		SearchFrame<BattleBoard, ActorSession> frame,
+		SearchFrame<BattleWorld, ActorRuntime> frame,
 		string actorId)
 	{
 		var state = frame.World.StateOf(actorId);
@@ -141,7 +141,7 @@ public static class EnemyPlanner
 	}
 
 	private static int ScoreHeuristic(
-		SearchFrame<BattleBoard, ActorSession> frame,
+		SearchFrame<BattleWorld, ActorRuntime> frame,
 		string actorId)
 	{
 		var world = frame.World.Fork();
@@ -156,7 +156,7 @@ public static class EnemyPlanner
 	}
 
 	private static int ScoreTimelineAdjustment(
-		SearchFrame<BattleBoard, ActorSession> frame,
+		SearchFrame<BattleWorld, ActorRuntime> frame,
 		string actorId,
 		int heuristicScore)
 	{

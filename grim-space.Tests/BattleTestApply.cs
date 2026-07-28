@@ -1,6 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
@@ -21,13 +21,13 @@ internal static class BattleTestApply
 		Timeline timeline,
 		string actorId)
 	{
-		var runtime = new ActorSession();
+		var runtime = new ActorRuntime();
 		foreach (var action in WithPhaseEnd(actions, actorId))
 		{
-			if (action is not IAction<BattleBoard, ActorSession> typed)
+			if (action is not IAction<BattleWorld, ActorRuntime> typed)
 				continue;
 
-			var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
+			var board = BattleWorld.FromLive(roster, nonUnits, grid, blocked, timeline);
 			foreach (var effect in typed.Definition.Resolve(action, board, runtime))
 				effect.Apply(board, runtime, action.ActorId);
 		}
@@ -35,11 +35,11 @@ internal static class BattleTestApply
 
 	public static bool TryApplyOne(
 		IAction action,
-		BattleBoard board,
-		ActorSession runtime,
+		BattleWorld board,
+		ActorRuntime runtime,
 		string actorId)
 	{
-		if (action is not IAction<BattleBoard, ActorSession> typed)
+		if (action is not IAction<BattleWorld, ActorRuntime> typed)
 			return false;
 
 		if (!typed.Definition.IsLegal(action, board, runtime))
@@ -53,8 +53,8 @@ internal static class BattleTestApply
 
 	public static bool TryApplyAll(
 		IReadOnlyList<IAction> actions,
-		BattleBoard board,
-		ActorSession runtime,
+		BattleWorld board,
+		ActorRuntime runtime,
 		string actorId)
 	{
 		foreach (var action in actions)
@@ -75,14 +75,14 @@ internal static class BattleTestApply
 		BoundedGrid grid,
 		IDictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blocked,
-		ActorSession runtime,
+		ActorRuntime runtime,
 		Timeline timeline,
 		string actorId)
 	{
-		if (action is not IAction<BattleBoard, ActorSession> typed)
+		if (action is not IAction<BattleWorld, ActorRuntime> typed)
 			return;
 
-		var board = BattleBoard.FromLive(roster, nonUnits, grid, blocked, timeline);
+		var board = BattleWorld.FromLive(roster, nonUnits, grid, blocked, timeline);
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
 			effect.Apply(board, runtime, action.ActorId);
 	}

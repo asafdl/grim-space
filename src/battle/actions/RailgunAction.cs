@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
@@ -8,18 +8,18 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record RailgunAction(
 	string ActorId,
-	string TargetUnitId) : IAction<BattleBoard, ActorSession>
+	string TargetUnitId) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		RailgunDef.Instance;
 }
 
 public sealed class RailgunDef
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public static RailgunDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var (unitId, unit) in world.Units)
 		{
@@ -34,22 +34,22 @@ public sealed class RailgunDef
 
 	public RailgunAction Bind(string actorId, string targetUnitId) => new(actorId, targetUnitId);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(RailgunAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(action, world, runtime);
 
-	public bool IsLegal(RailgunAction action, BattleBoard world, ActorSession runtime)
+	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (world.StateOf(action.ActorId).RailgunRemaining <= 0)
 			return false;
@@ -65,10 +65,10 @@ public sealed class RailgunDef
 		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
 	}
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		RailgunAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		[
 			new DamageEffect(action.TargetUnitId, CombatConfig.RailgunDamage),
 			new RailgunChangeEffect(-1),

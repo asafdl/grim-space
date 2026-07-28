@@ -10,7 +10,7 @@ config_version=5
 
 [autoload]
 
-Session="*res://src/core/Session.cs"
+RunSession="*res://src/core/RunSession.cs"
 
 [application]
 

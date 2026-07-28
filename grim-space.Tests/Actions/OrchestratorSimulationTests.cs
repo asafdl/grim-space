@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
@@ -12,7 +12,7 @@ using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class OrchestratorSessionTests
+public sealed class OrchestratorSimulationTests
 {
 	private const string PlayerId = "player";
 
@@ -22,7 +22,7 @@ public sealed class OrchestratorSessionTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward);
-		var battle = BattleTestFixture.BeginPlanning(
+		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,
 			BattleTestFixture.Grid(),
@@ -35,19 +35,19 @@ public sealed class OrchestratorSessionTests
 	}
 
 	[Fact]
-	public void NewPlanningSessionStartsEmpty()
+	public void NewSimulationStartsEmpty()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.Equal(1, battle.Sim.RuntimeFor(PlayerId).NetYaw);
 
-		battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
+		battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 		Assert.Empty(battle.Sim.Actions);
 		Assert.Equal(0, battle.Sim.RuntimeFor(PlayerId).NetYaw);
@@ -60,7 +60,7 @@ public sealed class OrchestratorSessionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var runtime = new ActorSession();
+		var runtime = new ActorRuntime();
 
 		if (moved)
 		{
@@ -68,7 +68,7 @@ public sealed class OrchestratorSessionTests
 			runtime.PathForwardSteps = 1;
 		}
 
-		var board = BattleBoard.FromSnapshot(
+		var board = BattleWorld.FromSnapshot(
 			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
@@ -87,7 +87,7 @@ public sealed class OrchestratorSessionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginPlanning(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 		battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
 
@@ -108,7 +108,7 @@ public sealed class OrchestratorSessionTests
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var nonUnits = new Dictionary<string, NonUnit>();
-		var runtime = new ActorSession();
+		var runtime = new ActorRuntime();
 		var timeline = new Timeline();
 
 		foreach (var step in BuildForwardSteps(origin, steps: 3, startMomentum))
@@ -138,12 +138,12 @@ public sealed class OrchestratorSessionTests
 		var enemy = BattleTestFixture.Enemy(postYawForward);
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var board = BattleBoard.FromSnapshot(
+		var board = BattleWorld.FromSnapshot(
 			[player, enemy],
 			new Dictionary<string, NonUnit>(),
 			grid,
 			blocked);
-		var runtime = new ActorSession();
+		var runtime = new ActorRuntime();
 		var yaw = new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight);
 		var blockedMove = new MoveStepAction(PlayerId, EStepDirection.Forward);
 		var actions = new List<IAction> { yaw, blockedMove };

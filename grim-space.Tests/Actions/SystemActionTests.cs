@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Core;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
@@ -40,7 +40,7 @@ public sealed class SystemActionTests
 	}
 
 	[Fact]
-	public void ResolveTurnPreservesBoardHazards()
+	public void ResolveTurnPreservesWorldHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var asteroid = Hazard.Asteroid(
@@ -60,7 +60,7 @@ public sealed class SystemActionTests
 	[Fact]
 	public void ResolveHazardActionAppliesAtScheduledTick()
 	{
-		var battle = BattleTestFixture.BeginPlanning(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
 		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;

@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
@@ -9,18 +9,18 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record RollAction(
 	string ActorId,
-	ERollDirection Direction) : IAction<BattleBoard, ActorSession>
+	ERollDirection Direction) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		RollDef.Instance;
 }
 
 public sealed class RollDef
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public static RollDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var direction in Enum.GetValues<ERollDirection>())
 		{
@@ -32,24 +32,24 @@ public sealed class RollDef
 
 	public RollAction Bind(string actorId, ERollDirection direction) => new(actorId, direction);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) => true;
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => true;
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsLegal(RollAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(RollAction action, BattleWorld world, ActorRuntime runtime) =>
 		world.StateOf(action.ActorId).ActionPoints >= CombatConfig.RollApCost;
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		RollAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 	[
 		new RollEffect(action.Direction),
 		new ApChangeEffect(-CombatConfig.RollApCost),

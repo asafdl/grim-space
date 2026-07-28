@@ -21,7 +21,7 @@ public static class CombatHints
 		EPlayerMode mode,
 		State unit,
 		int missilesRemaining,
-		int plannedActionCount,
+		int queuedActionCount,
 		Unit? railgunTarget,
 		EMissileMount? missileMount,
 		int missileRange,
@@ -30,28 +30,28 @@ public static class CombatHints
 	{
 		var ap = unit.ActionPoints;
 		var status = $"HP {unit.Hp}  |  {MovementSelection.FormatMomentum(unit)}  |  AP {ap}";
-		var planSuffix = plannedActionCount > 0
-			? $"  |  plan: {plannedActionCount}  |  Ctrl/Cmd+Z undo"
+		var queuedSuffix = queuedActionCount > 0
+			? $"  |  queued: {queuedActionCount}  |  Ctrl/Cmd+Z undo"
 			: "  |  Ctrl/Cmd+Z undo";
 
 		return mode switch
 		{
 			EPlayerMode.Move =>
-				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}  |  click path to queue{planSuffix}",
+				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}  |  click path to queue{queuedSuffix}",
 			EPlayerMode.Missile =>
 				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {missileRange} ({CombatConfig.ForeMissileMinRange}-{CombatConfig.ForeMissileMaxRange}, scroll)"
 				+ (missileCenter is Coord center
 					? missileInRange ? $"  |  center {center}" : $"  |  center {center} OUT OF ARC"
 					: "  |  click arc cell  |  Esc: cancel")
-				+ planSuffix,
+				+ queuedSuffix,
 			EPlayerMode.Flak =>
-				$"Mode: Flak  |  {status}  |  click port or starboard arc  |  Esc: cancel{planSuffix}",
+				$"Mode: Flak  |  {status}  |  click port or starboard arc  |  Esc: cancel{queuedSuffix}",
 			EPlayerMode.Railgun =>
 				$"Mode: Railgun (target M0)  |  {status}"
 				+ (railgunTarget is not null
 					? $"  |  target {railgunTarget.State.Id}"
 					: "  |  click enemy at momentum 0")
-				+ planSuffix,
+				+ queuedSuffix,
 			_ => status,
 		};
 	}

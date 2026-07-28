@@ -10,7 +10,7 @@ public sealed class Encounter
 {
 	public required int Seed { get; init; }
 	public required IReadOnlyList<Spawn> Spawns { get; init; }
-	public IReadOnlyList<BoardHazardSpawn> BoardHazards { get; init; } = [];
+	public IReadOnlyList<WorldHazardSpawn> WorldHazards { get; init; } = [];
 
 	public static Encounter DevDefault(int seed = 42, int gridSize = 64)
 	{
@@ -37,7 +37,7 @@ public sealed class Encounter
 		{
 			Seed = seed,
 			Spawns = spawns,
-			BoardHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
+			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
 			{
 				Seed = seed,
 				GridSize = gridSize,

@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -62,12 +62,12 @@ public sealed class RoundUpkeepTests
 	{
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var nonUnits = new Dictionary<string, NonUnit>();
-		var board = BattleBoard.FromLive(
+		var board = BattleWorld.FromLive(
 			[unit, enemy],
 			nonUnits,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		var runtime = new ActorSession();
+		var runtime = new ActorRuntime();
 		BattleTestApply.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),
 			board,

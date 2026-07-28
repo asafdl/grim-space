@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -6,9 +6,9 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleBoard, ActorSession>
+public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleWorld, ActorRuntime>
 {
-	public void Apply(BattleBoard world, ActorSession runtime, string actorId)
+	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		foreach (var hazard in world.Hazards)

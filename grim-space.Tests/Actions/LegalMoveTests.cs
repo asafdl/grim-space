@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Units;
@@ -9,7 +9,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
-using GrimSpace.Tests.Planning;
+using GrimSpace.Tests.Simulation;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -21,7 +21,7 @@ public sealed class LegalMoveTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = PlanningTestFixture.Controller(player, enemy);
+		var planning = BattleTestFixture.BeginSimulation(player, enemy);
 
 		var move = Preview
 			.GetLegalMoves(planning)
@@ -39,7 +39,7 @@ public sealed class LegalMoveTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = PlanningTestFixture.Controller(player, enemy);
+		var planning = BattleTestFixture.BeginSimulation(player, enemy);
 
 		var legalMoves = Preview.GetLegalMoves(planning);
 		var endpoints = legalMoves.Select(option => option.EndPosition).ToHashSet();
@@ -56,7 +56,7 @@ public sealed class LegalMoveTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = PlanningTestFixture.Controller(player, enemy);
+		var planning = BattleTestFixture.BeginSimulation(player, enemy);
 
 		var beforePlan = Preview.GetLegalMoves(planning);
 		Assert.Contains(
@@ -95,7 +95,7 @@ public sealed class LegalMoveTests
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var planning = PlanningTestFixture.Controller(player, enemy);
+		var planning = BattleTestFixture.BeginSimulation(player, enemy);
 
 		var move = Preview
 			.GetLegalMoves(planning)
@@ -133,7 +133,7 @@ public sealed class LegalMoveTests
 		var target = origin + Coord.Forward * CombatConfig.ForeMissileMinRange;
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = PlanningTestFixture.Controller(player, enemy);
+		var planning = BattleTestFixture.BeginSimulation(player, enemy);
 
 		var missile = new MissileAction(
 			planning.PlayerId,

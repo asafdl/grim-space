@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Environment;
 using GrimSpace.Battle.Ids;
@@ -22,7 +22,7 @@ namespace GrimSpace.Battle;
 
 public sealed class BattleOrchestrator
 {
-	private readonly Engine<BattleBoard, ActorSession> _engine;
+	private readonly Engine<BattleWorld, ActorRuntime> _engine;
 	private readonly Unit _player;
 	private readonly Unit _enemy;
 	private readonly IReadOnlyList<Unit> _roster;
@@ -31,7 +31,7 @@ public sealed class BattleOrchestrator
 	private BattleSimulation _sim = null!;
 
 	public BattleOrchestrator(
-		Engine<BattleBoard, ActorSession> engine,
+		Engine<BattleWorld, ActorRuntime> engine,
 		IReadOnlyList<Unit> roster,
 		Unit player,
 		Unit enemy,
@@ -44,7 +44,7 @@ public sealed class BattleOrchestrator
 		_hazards = hazards;
 	}
 
-	internal Engine<BattleBoard, ActorSession> Engine => _engine;
+	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleSimulation Sim => _sim;
 	public BoundedGrid Grid => _engine.World.Grid;
@@ -65,8 +65,8 @@ public sealed class BattleOrchestrator
 		var hazards = new HazardSystem();
 		var ids = new UnitIdRegistry();
 
-		hazards.RegisterBoard(
-			encounter.BoardHazards.Select(spawn =>
+		hazards.RegisterWorldHazards(
+			encounter.WorldHazards.Select(spawn =>
 				Hazard.Asteroid(
 					ids.NextNonUnitId("asteroid"),
 					spawn.Center,
@@ -81,14 +81,14 @@ public sealed class BattleOrchestrator
 		var player = units.First(u => u.Controller == EController.Player);
 		var enemy = units.First(u => u.Controller == EController.Enemy);
 		var blockedCells = hazards.GetBlockedCells();
-		var world = BattleBoard.FromLive(units, hazards.MutableNonUnits, grid, blockedCells, timeline);
+		var world = BattleWorld.FromLive(units, hazards.MutableNonUnits, grid, blockedCells, timeline);
 
-		var actorRuntimes = new ActorRuntimes<ActorSession>();
+		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(player.State.Id);
 		actorRuntimes.For(enemy.State.Id);
 		actorRuntimes.For(EntityIds.System);
 
-		var engine = new Engine<BattleBoard, ActorSession>(world, actorRuntimes);
+		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var orchestrator = new BattleOrchestrator(engine, units, player, enemy, hazards);
 
 		orchestrator.SetActiveUnit(player.State.Id);
@@ -162,7 +162,7 @@ public sealed class BattleOrchestrator
 		}
 
 		var enemySim = _engine.CreateSimulation();
-		var enemyActions = EnemyPlanner.PlanTurn(enemySim, _enemy);
+		var enemyActions = EnemySimulation.BuildTurnActions(enemySim, _enemy);
 
 		SchedulePhase(_enemy.State.Id, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
 		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))

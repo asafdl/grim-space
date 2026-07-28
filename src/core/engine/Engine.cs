@@ -26,7 +26,7 @@ public sealed class Engine<TWorld, TRuntime>
 	}
 
 	/// <summary>
-	/// Schedule a simulation's plan onto the live timeline. Stale simulations rebase first
+	/// Schedule a simulation's queued actions onto the live timeline. Stale simulations rebase first
 	/// (save actions → refork from live → replay). Returns false if replay fails.
 	/// </summary>
 	public bool TryScheduleFromSimulation(

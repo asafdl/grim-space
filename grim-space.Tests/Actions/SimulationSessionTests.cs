@@ -6,11 +6,11 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
-using GrimSpace.Tests.Planning;
+using GrimSpace.Tests.Simulation;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class PlanningSessionTests
+public sealed class SimulationSessionTests
 {
 	private const string PlayerId = "player";
 
@@ -24,7 +24,7 @@ public sealed class PlanningSessionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BeginPlanning(player, enemy, grid, blocked);
+		var battle = BeginSimulation(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(battle, steps: stepCount);
 
@@ -50,7 +50,7 @@ public sealed class PlanningSessionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BeginPlanning(player, enemy, grid, blocked);
+		var battle = BeginSimulation(player, enemy, grid, blocked);
 
 		var emptyPreview = Preview.Simulate(battle);
 		Assert.Equal(origin, emptyPreview.Actor.Position);
@@ -82,7 +82,7 @@ public sealed class PlanningSessionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BeginPlanning(player, enemy, grid, blocked);
+		var battle = BeginSimulation(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(battle, steps: 3);
 		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
@@ -96,7 +96,7 @@ public sealed class PlanningSessionTests
 	public void SecondMovePathRejectedWhenApInsufficientUntilUndo()
 	{
 		var origin = new Coord(5, 5, 5);
-		var planning = PlanningTestFixture.Controller(
+		var planning = BattleTestFixture.BeginSimulation(
 			BattleTestFixture.Player(origin),
 			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 
@@ -114,26 +114,26 @@ public sealed class PlanningSessionTests
 			planning.Sim.StateOf<ActorState>(planning.PlayerId).Position);
 	}
 
-	private static BattleOrchestrator BeginPlanning(
+	private static BattleOrchestrator BeginSimulation(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		GrimSpace.Math.Grid.Grid grid,
 		IReadOnlySet<Coord> blocked) =>
-		PlanningTestFixture.Controller(player, enemy, grid, blocked);
+		BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
 	private static void EnqueueForwardMove(BattleOrchestrator battle, int steps)
 	{
 		var origin = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
-		var option = GetMoveOptionsFromSession(battle.Sim)
+		var option = GetMoveOptionsFromSimulation(battle.Sim)
 			.First(o => o.Path.Count == steps);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 	}
 
-	private static IReadOnlyList<GrimSpace.Battle.Movement.Option> GetMoveOptionsFromSession(
+	private static IReadOnlyList<GrimSpace.Battle.Movement.Option> GetMoveOptionsFromSimulation(
 		GrimSpace.Core.Engine.Simulation<
-			GrimSpace.Battle.Board.BattleBoard,
-			GrimSpace.Battle.Runtime.ActorSession> session)
+			GrimSpace.Battle.World.BattleWorld,
+			GrimSpace.Battle.Runtime.ActorRuntime> session)
 	{
 		var origin = session.StateOf<ActorState>("player").Position;
 		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(session.StateOf<ActorState>("player"));

@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
@@ -68,12 +68,12 @@ public sealed class MovePathSearchTests
 
 		var frame = BodyFrame.From(player.State);
 		var steps = MoveDef.StepsFromPath(PlayerId, frame, origin, zigzag.Path);
-		var board = BattleBoard.FromSnapshot(
+		var board = BattleWorld.FromSnapshot(
 			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
-		var runtime = new ActorSession();
+		var runtime = new ActorRuntime();
 		for (var i = 0; i < steps.Count - 1; i++)
 		{
 			foreach (var effect in steps[i].Definition.Resolve(steps[i], board, runtime))
@@ -105,7 +105,7 @@ public sealed class MovePathSearchTests
 		var stepCount = 3;
 		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var battle = BattleTestFixture.BeginPlanning(
+		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,
 			BattleTestFixture.Grid(),
@@ -127,7 +127,7 @@ public sealed class MovePathSearchTests
 		var player = BattleTestFixture.Player(origin, momentum: 2);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.Fore);
-		var battle = BattleTestFixture.BeginPlanning(
+		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,
 			BattleTestFixture.Grid(),
@@ -139,10 +139,10 @@ public sealed class MovePathSearchTests
 	}
 
 	[Fact]
-	public void SearchDoesNotMutateSession()
+	public void SearchDoesNotMutateSimulation()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		var session = battle.Sim;
 		var actionsBefore = session.Actions.ToList();
 		var positionBefore = session.StateOf<ActorState>(PlayerId).Position;
@@ -157,8 +157,8 @@ public sealed class MovePathSearchTests
 	public void EndpointOptionsAlignWithTryEnqueueMovePath()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginPlanning(origin);
-		var options = GetMoveOptionsFromSession(battle.Sim);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var options = GetMoveOptionsFromSimulation(battle.Sim);
 
 		foreach (var option in options)
 		{
@@ -174,21 +174,21 @@ public sealed class MovePathSearchTests
 		Coord origin)
 	{
 		var timeline = new Timeline();
-		var world = BattleBoard.FromSnapshot(
+		var world = BattleWorld.FromSnapshot(
 			[player, enemy],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			blocked,
 			timeline);
-		var actorRuntimes = new ActorRuntimes<ActorSession>();
+		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(PlayerId);
-		var session = new Simulation<BattleBoard, ActorSession>(world, actorRuntimes);
+		var session = new Simulation<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		session.Begin(0, 0);
-		return GetMoveOptionsFromSession(session, origin, BodyFrame.From(player.State));
+		return GetMoveOptionsFromSimulation(session, origin, BodyFrame.From(player.State));
 	}
 
-	private static IReadOnlyList<Option> GetMoveOptionsFromSession(
-		Simulation<BattleBoard, ActorSession> session,
+	private static IReadOnlyList<Option> GetMoveOptionsFromSimulation(
+		Simulation<BattleWorld, ActorRuntime> session,
 		Coord? origin = null,
 		BodyFrame? frame = null)
 	{

@@ -3,7 +3,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Units;
 
-namespace GrimSpace.Tests.Planning;
+namespace GrimSpace.Tests.Simulation;
 
 internal static class Preview
 {

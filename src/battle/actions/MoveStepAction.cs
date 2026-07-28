@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
@@ -11,21 +11,21 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record MoveStepAction(
 	string ActorId,
-	EStepDirection Direction) : IAction<BattleBoard, ActorSession>
+	EStepDirection Direction) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		MoveDef.Instance;
 }
 
 public sealed class MoveDef
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>,
-		IActionInvariants<BattleBoard, ActorSession>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActionInvariants<BattleWorld, ActorRuntime>
 {
 	public static MoveDef Instance { get; } = new();
 
 	private static readonly EStepDirection[] AllDirections = Enum.GetValues<EStepDirection>();
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var direction in AllDirections)
 		{
@@ -38,19 +38,19 @@ public sealed class MoveDef
 	public MoveStepAction Bind(string actorId, EStepDirection direction) =>
 		new(actorId, direction);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(MoveStepAction action, BattleBoard world, ActorSession runtime)
+	public bool IsPossible(MoveStepAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
 		var frame = BodyFrame.From(actor);
@@ -59,7 +59,7 @@ public sealed class MoveDef
 		return world.Grid.IsInBounds(to) && !blocked.Contains(to);
 	}
 
-	public bool IsLegal(MoveStepAction action, BattleBoard world, ActorSession runtime)
+	public bool IsLegal(MoveStepAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (!IsPossible(action, world, runtime))
 			return false;
@@ -81,7 +81,7 @@ public sealed class MoveDef
 		return true;
 	}
 
-	public InvariantStatus EvaluateInvariants(BattleBoard world, ActorSession runtime, string actorId)
+	public InvariantStatus EvaluateInvariants(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		if (!runtime.IsMovePathStarted)
 			return InvariantStatus.Ok;
@@ -98,10 +98,10 @@ public sealed class MoveDef
 		return InvariantStatus.Impossible;
 	}
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		MoveStepAction action,
-		BattleBoard world,
-		ActorSession runtime)
+		BattleWorld world,
+		ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
 		var frame = BodyFrame.From(actor);
@@ -111,7 +111,7 @@ public sealed class MoveDef
 			action.Direction,
 			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
 
-		var effects = new List<IEffect<BattleBoard, ActorSession>>();
+		var effects = new List<IEffect<BattleWorld, ActorRuntime>>();
 
 		if (!runtime.IsMovePathStarted)
 			effects.Add(new BeginMovePathEffect());

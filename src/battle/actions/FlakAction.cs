@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
@@ -9,20 +9,20 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record FlakAction(
 	string ActorId,
-	EFlakMount Mount) : IAction<BattleBoard, ActorSession>
+	EFlakMount Mount) : IAction<BattleWorld, ActorRuntime>
 {
-	public IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>> Definition =>
+	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		FlakDef.For(Mount);
 }
 
 public sealed class FlakDef(EFlakMount mount)
-	: IActionDef<IAction, BattleBoard, ActorSession, IEffect<BattleBoard, ActorSession>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public EFlakMount Mount { get; } = mount;
 
 	public static FlakDef For(EFlakMount mount) => new(mount);
 
-	public IEnumerable<IAction> Discover(BattleBoard world, ActorSession runtime, string actorId)
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var action = Bind(actorId);
 		if (IsPossible(action, world, runtime))
@@ -31,26 +31,26 @@ public sealed class FlakDef(EFlakMount mount)
 
 	public FlakAction Bind(string actorId) => new(actorId, Mount);
 
-	public bool IsPossible(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
 
-	public bool IsLegal(IAction action, BattleBoard world, ActorSession runtime) =>
+	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
-		BattleBoard world,
-		ActorSession runtime) =>
+		BattleWorld world,
+		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(FlakAction action, BattleBoard world, ActorSession runtime)
+	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);
 		return FlakTargeting.IsValidBurst(frame, config, world.Grid.IsInBounds);
 	}
 
-	public bool IsLegal(FlakAction action, BattleBoard world, ActorSession runtime)
+	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (world.StateOf(action.ActorId).FlakRemaining <= 0)
 			return false;
@@ -58,10 +58,10 @@ public sealed class FlakDef(EFlakMount mount)
 		return IsPossible(action, world, runtime);
 	}
 
-	public IReadOnlyList<IEffect<BattleBoard, ActorSession>> Resolve(
+	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		FlakAction action,
-		BattleBoard world,
-		ActorSession runtime)
+		BattleWorld world,
+		ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);

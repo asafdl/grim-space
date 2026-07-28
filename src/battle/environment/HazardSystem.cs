@@ -1,11 +1,11 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Core;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Environment;
 
 /// <summary>
-/// Board hazards are persistent terrain; turn hazards are temporary zones resolved each environment phase.
+/// Terrain hazards are persistent world objects; turn hazards are temporary zones resolved each environment phase.
 /// </summary>
 public sealed class HazardSystem
 {
@@ -13,7 +13,7 @@ public sealed class HazardSystem
 
 	public IReadOnlyDictionary<string, NonUnit> NonUnits => _nonUnits;
 
-	public IReadOnlyList<Hazard> Board => _nonUnits.Values
+	public IReadOnlyList<Hazard> Terrain => _nonUnits.Values
 		.OfType<Hazard>()
 		.Where(hazard => hazard.ActorId == EntityIds.World)
 		.ToList();
@@ -25,7 +25,7 @@ public sealed class HazardSystem
 
 	public IDictionary<string, NonUnit> MutableNonUnits => _nonUnits;
 
-	public void RegisterBoard(IEnumerable<Hazard> hazards)
+	public void RegisterWorldHazards(IEnumerable<Hazard> hazards)
 	{
 		foreach (var hazard in hazards)
 			_nonUnits[hazard.Id] = hazard;
@@ -34,7 +34,7 @@ public sealed class HazardSystem
 	public HashSet<Coord> GetBlockedCells()
 	{
 		var cells = new HashSet<Coord>();
-		foreach (var hazard in Board)
+		foreach (var hazard in Terrain)
 		{
 			if (!hazard.Passable)
 				cells.UnionWith(hazard.Cells);

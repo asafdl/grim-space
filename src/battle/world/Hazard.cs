@@ -4,7 +4,7 @@ using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
-namespace GrimSpace.Battle.Board;
+namespace GrimSpace.Battle.World;
 
 public sealed class Hazard : NonUnit
 {

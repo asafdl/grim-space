@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Board;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Run;
@@ -8,10 +8,10 @@ public static class AsteroidFieldGenerator
 	private static readonly string[] LargeVisuals = ["rock_large_a", "rock_large_b", "rock"];
 	private static readonly string[] MediumVisuals = ["rock", "rock_large_a", "rock_large_b"];
 
-	public static IReadOnlyList<BoardHazardSpawn> Generate(AsteroidFieldConfig config)
+	public static IReadOnlyList<WorldHazardSpawn> Generate(AsteroidFieldConfig config)
 	{
 		var rng = new Random(config.Seed);
-		var placed = new List<BoardHazardSpawn>();
+		var placed = new List<WorldHazardSpawn>();
 		var maxAttempts = config.TargetCount * 40;
 
 		for (var attempt = 0; attempt < maxAttempts && placed.Count < config.TargetCount; attempt++)
@@ -26,7 +26,7 @@ public static class AsteroidFieldGenerator
 			if (!IsClearOfAsteroids(center, radius, placed, config.AsteroidGap))
 				continue;
 
-			placed.Add(new BoardHazardSpawn
+			placed.Add(new WorldHazardSpawn
 			{
 				Center = center,
 				Radius = radius,
@@ -82,7 +82,7 @@ public static class AsteroidFieldGenerator
 	private static bool IsClearOfAsteroids(
 		Coord center,
 		int radius,
-		IReadOnlyList<BoardHazardSpawn> placed,
+		IReadOnlyList<WorldHazardSpawn> placed,
 		int gap)
 	{
 		var blockRadius = Hazard.BlockRadiusFor(radius);

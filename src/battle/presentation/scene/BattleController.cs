@@ -34,7 +34,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 	{
 		GameLog.Configure(GD.Print);
 
-		var battle = BattleOrchestrator.FromEncounter(Session.Instance.CurrentEncounter);
+		var battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
 		_ui = new BattleUi(battle);
 
 		var backdrop = new SpaceBackdrop();
@@ -51,10 +51,10 @@ public partial class BattleController : Node3D, IPresentationEventSink
 		var chamberRadius = battle.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
-		var hazardsRoot = new Node3D { Name = "BoardHazards" };
+		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);
 		var hazardView = new BoardHazardView();
-		hazardView.Build(battle.Hazards.Board);
+		hazardView.Build(battle.Hazards.Terrain);
 		hazardsRoot.AddChild(hazardView);
 
 		_missileRangeIndicator = new MissileRangeIndicator();
@@ -308,7 +308,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 
 	private void ResetBattle()
 	{
-		Session.Instance.StartNewRun();
+		RunSession.Instance.StartNewRun();
 		GetTree().ReloadCurrentScene();
 	}
 
@@ -327,7 +327,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 	{
 		foreach (var unit in _ui.Battle.Units)
 		{
-			var display = frame.PreviewBoard.StateOf(unit.State.Id);
+			var display = frame.PreviewWorld.StateOf(unit.State.Id);
 			_unitViews[unit.State.Id].SyncFromState(display);
 		}
 	}
@@ -357,13 +357,13 @@ public partial class BattleController : Node3D, IPresentationEventSink
 					frame.MoveOptions,
 					frame.MovePath,
 					frame.MoveTarget,
-					frame.PlannedHazardCells);
+					frame.PreviewHazardCells);
 				break;
 
 			case EPlayerMode.Missile:
 				_missileRangeIndicator.SetActive(frame.ActorState.Position, frame.MissileRange);
 				_gridView.SetMissileHighlights(
-					frame.PlannedHazardCells,
+					frame.PreviewHazardCells,
 					frame.ValidMissileCells,
 					frame.MissilePreviewCells);
 				break;
@@ -371,7 +371,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 			case EPlayerMode.Flak:
 				_missileRangeIndicator.SetActive(null, 0);
 				_gridView.SetFlakHighlights(
-					frame.PlannedHazardCells,
+					frame.PreviewHazardCells,
 					frame.ValidFlakPortCells,
 					frame.ValidFlakStarboardCells,
 					frame.FlakPreviewCells);
@@ -382,7 +382,7 @@ public partial class BattleController : Node3D, IPresentationEventSink
 				_gridView.SetRailgunHighlights(
 					frame.RailgunTargetCells,
 					frame.RailgunHoveredCell,
-					frame.PlannedHazardCells);
+					frame.PreviewHazardCells);
 				break;
 		}
 	}

@@ -11,7 +11,7 @@ Dependencies flow **presentation → battle → data**. Battle rules are plain C
 | Area | Intent |
 |------|--------|
 | `src/battle/` | Combat rules — grid, movement, weapons, AI, turn orchestration |
-| `src/core/actions/` | Shared action / effect / timeline primitives; battle planning and commit |
+| `src/core/actions/` | Shared action / effect / timeline primitives; battle simulation and commit |
 | `src/units/`, `src/run/` | Unit definitions; encounter and run scaffolding |
 | `src/battle/presentation/` | Godot layer — scene, UI, camera, graphics, picking |
 
@@ -23,7 +23,7 @@ Combat happens on a 3D cell lattice. Each ship has a facing; movement and weapon
 
 ### Turn loop
 
-The player plans a full turn up front, previews the outcome, then commits. The enemy acts when the turn resolves. During planning, actions can be queued and undone; permanent state changes happen on commit and resolution.
+The player queues a full turn up front, previews the outcome, then commits. The enemy acts when the turn resolves. During simulation, actions can be queued and undone; permanent state changes happen on commit and resolution.
 
 ### Actions, effects, and timeline
 
@@ -35,7 +35,7 @@ Battle logic is split into three cooperating ideas:
 | **Effects** | Atomic state changes — damage, movement, AP, hazards, scheduling future work |
 | **Timeline** | When things happen — discrete ticks ordering player, enemy, and delayed events |
 
-Typical flow: **plan → commit to timeline → step → repeat**. Player planning uses a throwaway `Simulation` fork (undoable preview). On commit, actions are scheduled on the live timeline and stepped — that becomes world truth. Enemy AI then `CreateSimulation()` from that live state, plans with `StepPreview` to peek ahead, commits its plan, and the orchestrator steps through the rest of the turn. Presentation observes `TickResult`; it does not own rules.
+Typical flow: **queue → commit to timeline → step → repeat**. Player input uses a throwaway `Simulation` fork (undoable preview). On commit, actions are scheduled on the live timeline and stepped — that becomes world truth. Enemy AI then `CreateSimulation()` from that live state, previews with `StepPreview` to peek ahead, commits its queue, and the orchestrator steps through the rest of the turn. Presentation observes `TickResult`; it does not own rules.
 
 ### Architecture (rules layer)
 
@@ -43,8 +43,8 @@ Combat state is split into two buckets, passed together through actions and effe
 
 | Bucket | Holds |
 |--------|--------|
-| **World** (`BattleBoard`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
-| **Runtime** (`ActorRuntimes<ActorSession>`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
+| **World** (`BattleWorld`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
+| **Runtime** (`ActorRuntimes<ActorRuntime>`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
 
 **Actions** answer “is this legal?” and “what effects does it produce?” against `(world, runtime)`. **Effects** apply the actual mutations. There is no separate context object or slice layer — callers pass world and runtime directly.
 
@@ -52,9 +52,9 @@ Combat state is split into two buckets, passed together through actions and effe
 
 **Engine** owns the live `World`, `ActorRuntimes`, and a monotonic `WorldVersion` (incremented on every schedule/step). `CreateSimulation()` stamps the current version on the fork. `TryScheduleFromSimulation` rebases stale sims (save actions → refork → replay) before committing; failed replay is rejected.
 
-**Planning** uses `Simulation<BattleBoard, ActorSession>`: anchor world + anchor runtimes, preview forks replayed on each enqueue, action list with undo groups. **Commit** returns a `Plan` for scheduling; only the orchestrator writes to the live timeline.
+**Simulation** uses `Simulation<BattleWorld, ActorRuntime>`: anchor world + anchor runtimes, preview forks replayed on each enqueue, action list with undo groups. **Commit** returns the queued `IReadOnlyList<IAction>` for scheduling; only the orchestrator writes to the live timeline.
 
-**BattleOrchestrator** builds the encounter, owns turn flow (sequential commit: player → step → AI → step → upkeep), win rules, and presentation hooks. Presentation (`View`, `BattlePresenter`, scene) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
+**BattleOrchestrator** builds the encounter, owns turn flow (sequential commit: player → step → AI → step → upkeep), win rules, and presentation hooks. Presentation (`BattleUi`, `BattleController`, `BattleFrameBuilder`) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
 
 ### Movement & momentum
 

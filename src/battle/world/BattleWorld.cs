@@ -6,13 +6,13 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
-namespace GrimSpace.Battle.Board;
+namespace GrimSpace.Battle.World;
 
 /// <summary>
-/// Mutable battlefield for action resolution. Each turn opens a planning board
-/// cloned from current unit state; commit applies the queued actions to live state.
+/// Mutable battlefield world state for action resolution. Simulations fork from
+/// the live world; commit applies queued actions back to the live timeline.
 /// </summary>
-public sealed class BattleBoard : IWorld<BattleBoard>, IActorStateWorld<State, BattleBoard>
+public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, BattleWorld>
 {
 	private readonly Dictionary<string, Unit> _units;
 	private readonly Dictionary<string, NonUnit> _nonUnits;
@@ -61,7 +61,7 @@ public sealed class BattleBoard : IWorld<BattleBoard>, IActorStateWorld<State, B
 		return blocked;
 	}
 
-	private BattleBoard(
+	private BattleWorld(
 		Dictionary<string, Unit> units,
 		Dictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
@@ -75,14 +75,14 @@ public sealed class BattleBoard : IWorld<BattleBoard>, IActorStateWorld<State, B
 		Timeline = timeline;
 	}
 
-	public static BattleBoard FromSnapshot(
+	public static BattleWorld FromSnapshot(
 		IReadOnlyList<Unit> roster,
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
 		Timeline? timeline = null)
 	{
-		var board = new BattleBoard(
+		var board = new BattleWorld(
 			roster.ToDictionary(unit => unit.State.Id, CloneForSnapshot),
 			nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
 			grid,
@@ -95,14 +95,14 @@ public sealed class BattleBoard : IWorld<BattleBoard>, IActorStateWorld<State, B
 		return board;
 	}
 
-	public static BattleBoard FromLive(
+	public static BattleWorld FromLive(
 		IReadOnlyList<Unit> roster,
 		IDictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
 		Timeline? timeline = null)
 	{
-		var board = new BattleBoard(
+		var board = new BattleWorld(
 			roster.ToDictionary(unit => unit.State.Id, unit => unit),
 			(Dictionary<string, NonUnit>)nonUnits,
 			grid,
@@ -126,7 +126,7 @@ public sealed class BattleBoard : IWorld<BattleBoard>, IActorStateWorld<State, B
 		};
 	}
 
-	public BattleBoard Fork() =>
+	public BattleWorld Fork() =>
 		FromSnapshot(Units.Values.ToList(), NonUnits, Grid, BlockedCells, Timeline.Clone());
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>

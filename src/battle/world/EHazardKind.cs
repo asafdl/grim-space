@@ -1,4 +1,4 @@
-namespace GrimSpace.Battle.Board;
+namespace GrimSpace.Battle.World;
 
 public enum EHazardKind
 {
