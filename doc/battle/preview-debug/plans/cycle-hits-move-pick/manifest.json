@@ -1,0 +1,24 @@
+﻿{
+  "planSlug": "cycle-hits-move-pick",
+  "parentPlanPath": "C:\\Users\\nadavcoh\\.cursor\\plans\\cycle_hits_move_pick_3cd004dc.plan.md",
+  "destRoot": "doc/battle/preview-debug/plans/cycle-hits-move-pick",
+  "editRoot": "side-branches/preview-debug-friendly/side-branches/simple-preview",
+  "copiedAt": "2026-07-26T00:23:56+03:00",
+  "overview": "Blank diagram backdrop + Tab/Shift+Tab cycle hits for move selection on feature/simple-preview.",
+  "todos": [
+    { "id": "blank-backdrop", "content": "SpaceBackdrop diagram + neutral light in BattleController", "status": "pending" },
+    { "id": "ray-hit-list", "content": "ListOptionIndicesAlongRay in MovementSelection.cs", "status": "pending" },
+    { "id": "controller-cycle", "content": "BattleController ray cycle + Tab", "status": "pending" },
+    { "id": "hints-accessor", "content": "CombatHints + HoveredMoveIndex", "status": "pending" },
+    { "id": "tests", "content": "RayOptionCycleTests.cs", "status": "pending" }
+  ],
+  "files": [
+    { "relativePath": "src/battle/presentation/graphics/SpaceBackdrop.cs", "subplanPath": "subplans/src-battle-presentation-graphics-SpaceBackdrop.cs.plan.md", "todoIds": ["blank-backdrop"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/graphics/RedDwarfSun.cs", "subplanPath": "subplans/src-battle-presentation-graphics-RedDwarfSun.cs.plan.md", "todoIds": ["blank-backdrop"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/scene/BattleController.cs", "subplanPath": "subplans/src-battle-presentation-scene-BattleController.cs.plan.md", "todoIds": ["blank-backdrop", "controller-cycle"], "dependsOn": ["src/battle/presentation/graphics/SpaceBackdrop.cs", "src/battle/presentation/graphics/RedDwarfSun.cs", "src/battle/presentation/ui/MovementSelection.cs"] },
+    { "relativePath": "src/battle/presentation/ui/MovementSelection.cs", "subplanPath": "subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md", "todoIds": ["ray-hit-list"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/ui/BattlePresenter.cs", "subplanPath": "subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md", "todoIds": ["hints-accessor"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/ui/Combat.cs", "subplanPath": "subplans/src-battle-presentation-ui-Combat.cs.plan.md", "todoIds": ["hints-accessor"], "dependsOn": [] },
+    { "relativePath": "grim-space.Tests/Presentation/RayOptionCycleTests.cs", "subplanPath": "subplans/grim-space.Tests-Presentation-RayOptionCycleTests.cs.plan.md", "todoIds": ["tests"], "dependsOn": ["src/battle/presentation/ui/MovementSelection.cs"] }
+  ]
+}

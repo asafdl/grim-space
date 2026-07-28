@@ -1,0 +1,37 @@
+{
+  "planSlug": "lighting-rename-refactor",
+  "parentPlanPath": "C:\\Users\\nadavcoh\\.cursor\\plans\\lighting_rename_refactor_c056e9dc.plan.md",
+  "destRoot": "doc/battle/preview-debug/plans/lighting-rename-refactor",
+  "editRoot": "side-branches/preview-debug-friendly/side-branches/simple-preview",
+  "copiedAt": "2026-07-26T01:30:00+03:00",
+  "overview": "Replace RedDwarfSun with Lighting: ConfigureDiagram/ConfigureCinematic, AddSun for cinematic props; SpaceBackdrop BuildCinematic; controller wiring.",
+  "todos": [
+    { "id": "lighting-file", "content": "Add Lighting.cs: ConfigureDiagram, ConfigureCinematic, AddSun; remove RedDwarfSun.cs", "status": "pending" },
+    { "id": "space-backdrop", "content": "Rename Build→BuildCinematic; call Lighting.AddSun from cinematic build", "status": "pending" },
+    { "id": "controller", "content": "BattleController: Lighting.ConfigureDiagram with diagram backdrop (or export toggle)", "status": "pending" },
+    { "id": "verify", "content": "dotnet build + quick Godot diagram/cinematic smoke check", "status": "pending" }
+  ],
+  "files": [
+    {
+      "relativePath": "src/battle/presentation/graphics/Lighting.cs",
+      "subplanPath": "subplans/src-battle-presentation-graphics-Lighting.cs.plan.md",
+      "todoIds": ["lighting-file"],
+      "dependsOn": []
+    },
+    {
+      "relativePath": "src/battle/presentation/graphics/SpaceBackdrop.cs",
+      "subplanPath": "subplans/src-battle-presentation-graphics-SpaceBackdrop.cs.plan.md",
+      "todoIds": ["space-backdrop"],
+      "dependsOn": ["src/battle/presentation/graphics/Lighting.cs"]
+    },
+    {
+      "relativePath": "src/battle/presentation/scene/BattleController.cs",
+      "subplanPath": "subplans/src-battle-presentation-scene-BattleController.cs.plan.md",
+      "todoIds": ["controller"],
+      "dependsOn": [
+        "src/battle/presentation/graphics/Lighting.cs",
+        "src/battle/presentation/graphics/SpaceBackdrop.cs"
+      ]
+    }
+  ]
+}
