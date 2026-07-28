@@ -1,5 +1,4 @@
 using GrimSpace.Battle.World;
-using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
