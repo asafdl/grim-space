@@ -38,7 +38,7 @@ public partial class TurnReplayPlayer : Node3D
 		AddChild(_hazardBursts);
 	}
 
-	public void PrepareTurnStart(IReadOnlyDictionary<string, State> turnStart)
+	public void ResetToLive(IReadOnlyDictionary<string, State> turnStart)
 	{
 		var replayState = new ReplayState(turnStart);
 		_clipContext = new ReplayClipContext(replayState, _unitViews, _turnHistory, _hazardBursts, _colorFor);

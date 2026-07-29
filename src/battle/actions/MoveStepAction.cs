@@ -128,6 +128,7 @@ public sealed class MoveDef
 		if (action.Direction == ESpatialOrientation.Retro)
 			effects.Add(new MarkSpinBrakedEffect());
 
+		// TODO: Remove — stepping into a hazard should not apply damage; only scheduled ResolveHazardAction should.
 		effects.Add(new HazardCellEntryEffect(to));
 
 		return effects;

@@ -298,7 +298,7 @@ public partial class BattleController : Node3D
 		if (_ui.Battle.IsBattleOver || _ui.Battle.IsResolving || _replayPlayer.IsPlaying)
 			return;
 
-		_replayPlayer.PrepareTurnStart(_ui.Battle.LiveUnitStates);
+		_replayPlayer.ResetToLive(_ui.Battle.LiveUnitStates);
 		var applied = _ui.CommitAndResolve();
 		if (applied is null)
 			return;

@@ -8,6 +8,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
+// TODO: Remove — hazard damage is intended only on ResolveHazardAction, not on cell entry during movement.
 public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleWorld, ActorRuntime>
 {
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
