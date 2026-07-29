@@ -46,7 +46,7 @@ public partial class TurnReplayPlayer : Node3D
 		_hazardBursts.Clear();
 
 		foreach (var (unitId, state) in turnStart)
-			_unitViews[unitId].SyncFromState(state);
+			_unitViews[unitId].Sync(state);
 	}
 
 	public void Play(IReadOnlyList<IAction> actions)

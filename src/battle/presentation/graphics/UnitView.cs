@@ -7,14 +7,11 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class UnitView : Node3D
 {
-	private State? _state;
 	private Label3D? _momentumLabel;
 
 	public void Bind(State state, Color color)
 	{
-		_state = state;
 		Name = state.Id;
-		SyncPosition();
 
 		var hull = new MeshInstance3D
 		{
@@ -53,46 +50,31 @@ public partial class UnitView : Node3D
 			Modulate = Colors.White,
 		};
 		AddChild(_momentumLabel);
-		SyncStatus();
+
+		Sync(state);
 	}
 
-	public void SyncFromState(State displayState)
+	public void Sync(State state)
 	{
-		Position = WorldMapping.ToWorld(displayState.Position);
-		SyncOrientation(displayState);
-		SyncStatus(displayState);
+		Position = WorldMapping.ToWorld(state.Position);
+		ApplyOrientation(state);
+		ApplyStatus(state);
 	}
 
-	public void SyncPosition()
-	{
-		if (_state is null)
-			return;
-
-		SyncFromState(_state);
-	}
-
-	public void SyncStatus()
-	{
-		if (_state is null)
-			return;
-
-		SyncStatus(_state);
-	}
-
-	private void SyncStatus(State displayState)
+	private void ApplyStatus(State state)
 	{
 		if (_momentumLabel is null)
 			return;
 
-		var evasion = (int)(MomentumConfig.ForLevel(displayState.MomentumLevel).Evasion * 100);
-		_momentumLabel.Text = $"H{displayState.HullPoints} M{displayState.MomentumLevel} ({evasion}%)";
+		var evasion = (int)(MomentumConfig.ForLevel(state.MomentumLevel).Evasion * 100);
+		_momentumLabel.Text = $"H{state.HullPoints} M{state.MomentumLevel} ({evasion}%)";
 	}
 
-	private void SyncOrientation(State displayState)
+	private void ApplyOrientation(State state)
 	{
-		var fore = ToVector3(displayState.Fore);
-		var dorsal = ToVector3(displayState.Dorsal);
-		var starboard = ToVector3(displayState.Starboard);
+		var fore = ToVector3(state.Fore);
+		var dorsal = ToVector3(state.Dorsal);
+		var starboard = ToVector3(state.Starboard);
 		Basis = new Basis(starboard, dorsal, fore);
 	}
 

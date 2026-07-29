@@ -358,7 +358,7 @@ public partial class BattleController : Node3D
 		foreach (var unitId in _ui.Battle.Layout.Participants.Keys)
 		{
 			var display = frame.PreviewWorld.StateOf(unitId);
-			_unitViews[unitId].SyncFromState(display);
+			_unitViews[unitId].Sync(display);
 		}
 	}
 

@@ -18,5 +18,5 @@ public sealed class ReplayClipContext(
 	public Func<string, Color> ColorFor { get; } = colorFor;
 
 	public void SyncUnit(string actorId) =>
-		UnitViews[actorId].SyncFromState(ReplayState.StateOf(actorId));
+		UnitViews[actorId].Sync(ReplayState.StateOf(actorId));
 }
