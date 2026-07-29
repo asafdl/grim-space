@@ -5,13 +5,13 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class RecordMovePathStepEffect(EStepDirection direction, int directionBit)
+public sealed class RecordMovePathStepEffect(ESpatialOrientation direction, int directionBit)
 	: IEffect<BattleWorld, ActorRuntime>
 {
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		runtime.UsedDirectionsMask |= directionBit;
-		if (direction == EStepDirection.Forward)
+		if (direction == ESpatialOrientation.Forward)
 			runtime.PathForwardSteps++;
 	}
 }

@@ -1,6 +1,6 @@
 namespace GrimSpace.Battle.Movement.Enums;
 
-public enum EStepDirection
+public enum ESpatialOrientation
 {
 	Forward,
 	Retro,

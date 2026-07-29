@@ -85,7 +85,7 @@ public partial class UnitView : Node3D
 			return;
 
 		var evasion = (int)(MomentumConfig.ForLevel(displayState.MomentumLevel).Evasion * 100);
-		_momentumLabel.Text = $"HP{displayState.Hp} M{displayState.MomentumLevel} ({evasion}%)";
+		_momentumLabel.Text = $"H{displayState.HullPoints} M{displayState.MomentumLevel} ({evasion}%)";
 	}
 
 	private void SyncOrientation(State displayState)

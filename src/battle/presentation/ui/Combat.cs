@@ -29,7 +29,7 @@ public static class CombatHints
 		bool missileInRange)
 	{
 		var ap = unit.ActionPoints;
-		var status = $"HP {unit.Hp}  |  {MovementSelection.FormatMomentum(unit)}  |  AP {ap}";
+		var status = $"Hull {unit.HullPoints}  |  {MovementSelection.FormatMomentum(unit)}  |  AP {ap}";
 		var queuedSuffix = queuedActionCount > 0
 			? $"  |  queued: {queuedActionCount}  |  Ctrl/Cmd+Z undo"
 			: "  |  Ctrl/Cmd+Z undo";

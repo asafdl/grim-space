@@ -1,3 +1,5 @@
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
@@ -16,26 +18,89 @@ public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleWorld, Act
 			if (!hazard.Cells.Contains(cell))
 				continue;
 
-			HazardResolution.ApplyToUnitAt(hazard, actor);
+			HazardResolution.ApplyToUnitAt(hazard, actor, cell);
 		}
 	}
 }
 
 public static class HazardResolution
 {
-	public static void ApplyToUnitAt(Hazard hazard, Units.State unit)
+	public static Coord ResolveCenter(EHazardKind kind, Coord shooterPosition, HashSet<Coord> cells) =>
+		kind switch
+		{
+			EHazardKind.FlakBurst => shooterPosition,
+			_ => cells.Count > 0 ? cells.First() : Coord.Zero,
+		};
+
+	public static Hazard BuildTransient(
+		EHazardKind kind,
+		HashSet<Coord> cells,
+		int damage,
+		int momentumLoss,
+		Coord center,
+		string actorId = "") =>
+		new()
+		{
+			Id = string.Empty,
+			ActorId = actorId,
+			Center = center,
+			Frame = BodyFrame.WorldAligned(center),
+			Cells = cells,
+			Passable = true,
+			Damage = damage,
+			MomentumLoss = momentumLoss,
+			Kind = kind,
+		};
+
+	public static void ApplyToUnitsInCells(Hazard hazard, IEnumerable<State> units)
+	{
+		foreach (var unit in units)
+		{
+			if (!unit.IsAlive || !hazard.Cells.Contains(unit.Position))
+				continue;
+
+			ApplyToUnitAt(hazard, unit);
+		}
+	}
+
+	public static void ApplyScheduledResolve(
+		EHazardKind kind,
+		HashSet<Coord> cells,
+		int damage,
+		int momentumLoss,
+		Coord shooterPosition,
+		string actorId,
+		IEnumerable<State> units)
+	{
+		var center = ResolveCenter(kind, shooterPosition, cells);
+		var hazard = BuildTransient(kind, cells, damage, momentumLoss, center, actorId);
+		ApplyToUnitsInCells(hazard, units);
+	}
+
+	public static void ApplyToUnitAt(Hazard hazard, State unit, Coord? attackOrigin = null)
 	{
 		switch (hazard.Kind)
 		{
 			case EHazardKind.MissileZone:
-				unit.Hp = System.Math.Max(unit.Hp - hazard.Damage, 0);
+				ApplyDirectedDamage(hazard, unit, attackOrigin);
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				break;
 			case EHazardKind.FlakBurst:
+				ApplyDirectedDamage(hazard, unit, attackOrigin);
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				if (unit.MomentumLevel < CombatConfig.FlakApPenaltyThreshold)
 					unit.ApPenaltyNextTurn = true;
 				break;
 		}
+	}
+
+	private static void ApplyDirectedDamage(Hazard hazard, State unit, Coord? attackOrigin)
+	{
+		if (hazard.Damage <= 0)
+			return;
+
+		var origin = attackOrigin ?? hazard.Center;
+		var face = BodyFrame.From(unit).HitFaceFrom(origin);
+		Defense.ApplyDamage(unit, hazard.Damage, face);
 	}
 }

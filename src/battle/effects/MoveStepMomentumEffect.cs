@@ -6,7 +6,7 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MoveStepMomentumEffect(EStepDirection direction) : IEffect<BattleWorld, ActorRuntime>
+public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEffect<BattleWorld, ActorRuntime>
 {
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{

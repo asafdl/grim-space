@@ -27,7 +27,7 @@ public sealed class OrchestratorSimulationTests
 			enemy,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position });
-		var blockedMove = new MoveStepAction(PlayerId, EStepDirection.Forward);
+		var blockedMove = new MoveStepAction(PlayerId, ESpatialOrientation.Forward);
 
 		Assert.False(battle.Sim.TryEnqueue(blockedMove));
 		Assert.Empty(battle.Sim.Actions);
@@ -145,7 +145,7 @@ public sealed class OrchestratorSimulationTests
 			blocked);
 		var runtime = new ActorRuntime();
 		var yaw = new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight);
-		var blockedMove = new MoveStepAction(PlayerId, EStepDirection.Forward);
+		var blockedMove = new MoveStepAction(PlayerId, ESpatialOrientation.Forward);
 		var actions = new List<IAction> { yaw, blockedMove };
 
 		Assert.False(BattleTestApply.TryApplyAll(actions, board, runtime, PlayerId));

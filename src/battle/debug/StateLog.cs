@@ -64,7 +64,14 @@ public static class StateLog
 	private static string FormatUnit(State state) =>
 		$"{state.Id}: pos={state.Position} fore={state.Fore} dorsal={state.Dorsal} "
 		+ $"starboard={state.Starboard} mom={state.MomentumLevel} "
-		+ $"hp={state.Hp}/{state.Stats.MaxHp} ap={state.ActionPoints}/{state.Stats.MaxAp}";
+		+ $"hull={state.HullPoints}/{state.Stats.MaxHullPoints} "
+		+ $"shields=F{state.ShieldPoints[ESpatialOrientation.Forward]}"
+		+ $"/A{state.ShieldPoints[ESpatialOrientation.Retro]}"
+		+ $"/S{state.ShieldPoints[ESpatialOrientation.Starboard]}"
+		+ $"/P{state.ShieldPoints[ESpatialOrientation.Port]}"
+		+ $"/D{state.ShieldPoints[ESpatialOrientation.Dorsal]}"
+		+ $"/V{state.ShieldPoints[ESpatialOrientation.Ventral]} "
+		+ $"ap={state.ActionPoints}/{state.Stats.MaxAp}";
 
 	private static string FormatPath(IReadOnlyList<Coord> path) =>
 		path.Count == 0 ? "[]" : string.Join(" -> ", path);

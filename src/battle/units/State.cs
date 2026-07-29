@@ -13,7 +13,8 @@ public sealed class State
 	public Coord Dorsal { get; set; }
 	public Coord Starboard { get; set; }
 	public int ActionPoints { get; set; }
-	public int Hp { get; set; }
+	public int HullPoints { get; set; }
+	public FaceShieldPoints ShieldPoints { get; set; } = new();
 	public int MomentumLevel { get; set; }
 	public int MissilesRemaining { get; set; }
 	public int FlakRemaining { get; set; }
@@ -21,7 +22,7 @@ public sealed class State
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; init; }
 
-	public bool IsAlive => Hp > 0;
+	public bool IsAlive => HullPoints > 0;
 
 	public State Clone() =>
 		new()
@@ -33,7 +34,8 @@ public sealed class State
 			Dorsal = Dorsal,
 			Starboard = Starboard,
 			ActionPoints = ActionPoints,
-			Hp = Hp,
+			HullPoints = HullPoints,
+			ShieldPoints = ShieldPoints.Clone(),
 			MomentumLevel = MomentumLevel,
 			MissilesRemaining = MissilesRemaining,
 			FlakRemaining = FlakRemaining,
@@ -47,6 +49,8 @@ public sealed class State
 		var stats = Stats.ForType(instance.Type);
 		var fore = Coord.Forward;
 		var dorsal = Coord.Up;
+		var shieldPoints = new FaceShieldPoints();
+		shieldPoints.Fill(stats.MaxShieldPointsPerFace);
 		return new State
 		{
 			Id = instance.Id,
@@ -56,7 +60,8 @@ public sealed class State
 			Dorsal = dorsal,
 			Starboard = Coord.Cross(dorsal, fore),
 			ActionPoints = stats.MaxAp,
-			Hp = stats.MaxHp,
+			HullPoints = stats.MaxHullPoints,
+			ShieldPoints = shieldPoints,
 			MomentumLevel = 0,
 			MissilesRemaining = stats.MissilesPerTurn,
 			FlakRemaining = stats.FlaksPerTurn,

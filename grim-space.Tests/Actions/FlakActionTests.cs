@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
@@ -8,6 +9,14 @@ namespace GrimSpace.Tests.Actions;
 public sealed class FlakActionTests
 {
 	private const string PlayerId = "player";
+
+	private static int TotalShieldPoints(GrimSpace.Battle.Units.State state)
+	{
+		var total = 0;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			total += state.ShieldPoints[face];
+		return total;
+	}
 
 	[Fact]
 	public void FlakSchedulesResolveOnPreviewTimeline()
@@ -25,6 +34,7 @@ public sealed class FlakActionTests
 		var scheduled = battle.Sim.PeekTimeline(resolveTick);
 		var hazard = Assert.Single(scheduled.OfType<ResolveHazardAction>());
 		Assert.NotEmpty(hazard.Cells);
+		Assert.Equal(CombatConfig.FlakDamage, hazard.Damage);
 	}
 
 	[Fact]
@@ -38,9 +48,11 @@ public sealed class FlakActionTests
 		var hazard = battle.Sim.PeekTimeline(resolveTick).OfType<ResolveHazardAction>().First();
 		var enemy = battle.Sim.World.Units.Values.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = hazard.Cells.First();
+		var shieldsBefore = TotalShieldPoints(enemy.State);
 
 		BattleTestApply.AdvancePreviewToTick(battle, resolveTick);
 
+		Assert.Equal(shieldsBefore - CombatConfig.FlakDamage, TotalShieldPoints(enemy.State));
 		Assert.Equal(0, enemy.State.MomentumLevel);
 		Assert.True(enemy.State.ApPenaltyNextTurn);
 	}

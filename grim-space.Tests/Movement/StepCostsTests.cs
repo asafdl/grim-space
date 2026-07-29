@@ -17,7 +17,7 @@ public sealed class StepCostsTests
 		int expectedCost)
 	{
 		var cost = StepCosts.GetMoveStepApCost(
-			EStepDirection.Forward,
+			ESpatialOrientation.Forward,
 			new MoveStepContext(forwardStepsAlreadyTaken, momentum));
 
 		Assert.Equal(MovementExpectations.ForwardStepApCost(forwardStepsAlreadyTaken, momentum), expectedCost);
@@ -32,7 +32,7 @@ public sealed class StepCostsTests
 		for (var momentum = 0; momentum <= MovementExpectations.MaxMomentum; momentum++)
 		{
 			var cost = StepCosts.GetMoveStepApCost(
-				EStepDirection.Starboard,
+				ESpatialOrientation.Starboard,
 				new MoveStepContext(0, momentum));
 
 			Assert.True(cost > 0);
@@ -49,7 +49,7 @@ public sealed class StepCostsTests
 	public void RetroApCostFollowsMomentumBands(int momentum, int expectedCost)
 	{
 		var cost = StepCosts.GetMoveStepApCost(
-			EStepDirection.Retro,
+			ESpatialOrientation.Retro,
 			new MoveStepContext(0, momentum));
 
 		Assert.Equal(expectedCost, cost);
@@ -61,10 +61,10 @@ public sealed class StepCostsTests
 		for (var momentum = 2; momentum <= MovementExpectations.MaxMomentum; momentum++)
 		{
 			var retro = StepCosts.GetMoveStepApCost(
-				EStepDirection.Retro,
+				ESpatialOrientation.Retro,
 				new MoveStepContext(0, momentum));
 			var forward = StepCosts.GetMoveStepApCost(
-				EStepDirection.Forward,
+				ESpatialOrientation.Forward,
 				new MoveStepContext(momentum, momentum));
 
 			Assert.True(retro >= forward);

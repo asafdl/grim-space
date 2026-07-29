@@ -1,10 +1,14 @@
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class DamageEffect(string targetUnitId, int damage) : IEffect<BattleWorld, ActorRuntime>
+public sealed class DamageEffect(string targetUnitId, int damage, Coord attackOrigin)
+	: IEffect<BattleWorld, ActorRuntime>
 {
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
@@ -12,6 +16,7 @@ public sealed class DamageEffect(string targetUnitId, int damage) : IEffect<Batt
 			return;
 
 		var target = unit.State;
-		target.Hp = System.Math.Max(target.Hp - damage, 0);
+		var face = BodyFrame.From(target).HitFaceFrom(attackOrigin);
+		Defense.ApplyDamage(target, damage, face);
 	}
 }

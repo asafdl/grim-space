@@ -24,7 +24,7 @@ public sealed class InvariantTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
+		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Incomplete, status);
 	}
@@ -61,7 +61,7 @@ public sealed class InvariantTests
 		};
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, blocked: blocked);
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
+		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Impossible, status);
 	}
@@ -129,7 +129,7 @@ public sealed class InvariantTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var ui = new BattleUi(battle);
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
+		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
 		Assert.Null(ui.CommitAndResolve());
 	}
 
@@ -138,7 +138,7 @@ public sealed class InvariantTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, EStepDirection.Forward)));
+		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Incomplete, status);
 

@@ -68,11 +68,15 @@ public sealed class RailgunDef
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		RailgunAction action,
 		BattleWorld world,
-		ActorRuntime runtime) =>
+		ActorRuntime runtime)
+	{
+		var attackerPosition = world.StateOf(action.ActorId).Position;
+		return
 		[
-			new DamageEffect(action.TargetUnitId, CombatConfig.RailgunDamage),
+			new DamageEffect(action.TargetUnitId, CombatConfig.RailgunDamage, attackerPosition),
 			new RailgunChangeEffect(-1),
 		];
+	}
 
 	private static RailgunAction Cast(IAction action) =>
 		action as RailgunAction ?? throw new ArgumentException($"Expected {nameof(RailgunAction)}.", nameof(action));

@@ -11,7 +11,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record MoveStepAction(
 	string ActorId,
-	EStepDirection Direction) : IAction<BattleWorld, ActorRuntime>
+	ESpatialOrientation Direction) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		MoveDef.Instance;
@@ -23,7 +23,7 @@ public sealed class MoveDef
 {
 	public static MoveDef Instance { get; } = new();
 
-	private static readonly EStepDirection[] AllDirections = Enum.GetValues<EStepDirection>();
+	private static readonly ESpatialOrientation[] AllDirections = Enum.GetValues<ESpatialOrientation>();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
@@ -35,7 +35,7 @@ public sealed class MoveDef
 		}
 	}
 
-	public MoveStepAction Bind(string actorId, EStepDirection direction) =>
+	public MoveStepAction Bind(string actorId, ESpatialOrientation direction) =>
 		new(actorId, direction);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
@@ -125,7 +125,7 @@ public sealed class MoveDef
 			new RecordMovePathStepEffect(action.Direction, directionBit),
 		]);
 
-		if (action.Direction == EStepDirection.Retro)
+		if (action.Direction == ESpatialOrientation.Retro)
 			effects.Add(new MarkSpinBrakedEffect());
 
 		effects.Add(new HazardCellEntryEffect(to));
@@ -144,7 +144,7 @@ public sealed class MoveDef
 
 		foreach (var to in path)
 		{
-			if (frame.DirectionOfStep(from, to) is not EStepDirection direction)
+			if (frame.DirectionOfStep(from, to) is not ESpatialOrientation direction)
 				throw new InvalidOperationException("Move step direction is undefined.");
 
 			steps.Add(Instance.Bind(actorId, direction));

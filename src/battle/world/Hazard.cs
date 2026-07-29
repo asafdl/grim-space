@@ -53,7 +53,7 @@ public sealed class Hazard : NonUnit
 			Frame = ownerFrame,
 			Cells = new HashSet<Coord>(cells),
 			Passable = true,
-			Damage = 0,
+			Damage = CombatConfig.FlakDamage,
 			MomentumLoss = CombatConfig.FlakMomentumLoss,
 			Kind = EHazardKind.FlakBurst,
 		};

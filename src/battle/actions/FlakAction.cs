@@ -75,7 +75,7 @@ public sealed class FlakDef(EFlakMount mount)
 					action.ActorId,
 					EHazardKind.FlakBurst,
 					cells,
-					damage: 0,
+					damage: CombatConfig.FlakDamage,
 					CombatConfig.FlakMomentumLoss)),
 			new FlakChangeEffect(-1),
 		];

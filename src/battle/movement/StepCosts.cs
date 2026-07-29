@@ -4,18 +4,18 @@ namespace GrimSpace.Battle.Movement;
 
 public static class StepCosts
 {
-	public static int GetMoveStepApCost(EStepDirection direction, MoveStepContext context)
+	public static int GetMoveStepApCost(ESpatialOrientation direction, MoveStepContext context)
 	{
 		var config = MomentumConfig.ForLevel(context.MomentumLevel);
 
 		return direction switch
 		{
-			EStepDirection.Forward => context.ForwardStepsInPath < config.FreeForwardSteps
+			ESpatialOrientation.Forward => context.ForwardStepsInPath < config.FreeForwardSteps
 				? 0
 				: config.ForwardStepCost,
-			EStepDirection.Port or EStepDirection.Starboard
-				or EStepDirection.Dorsal or EStepDirection.Ventral => config.LateralCost,
-			EStepDirection.Retro => config.BrakeCost,
+			ESpatialOrientation.Port or ESpatialOrientation.Starboard
+				or ESpatialOrientation.Dorsal or ESpatialOrientation.Ventral => config.LateralCost,
+			ESpatialOrientation.Retro => config.BrakeCost,
 			_ => int.MaxValue,
 		};
 	}

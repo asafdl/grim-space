@@ -26,6 +26,7 @@ public static class CombatConfig
 	public const int MissileResolveDelay = 2;
 
 	public const int FlakRange = 3;
+	public const int FlakDamage = 1;
 	public const int FlakMomentumLoss = 1;
 	public const int FlakResolveDelay = 1;
 	public const int FlakApPenaltyThreshold = 2;

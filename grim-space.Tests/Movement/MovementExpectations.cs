@@ -34,7 +34,7 @@ internal static class MovementExpectations
 			forwardSteps++;
 			buildup = MomentumConfig.ApplyMovementStep(
 				buildup,
-				GrimSpace.Battle.Movement.Enums.EStepDirection.Forward,
+				GrimSpace.Battle.Movement.Enums.ESpatialOrientation.Forward,
 				startMomentum,
 				momentumGainedFromMovementThisTurn: 0);
 		}
