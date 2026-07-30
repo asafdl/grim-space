@@ -1,41 +1,76 @@
 using Godot;
+using GrimSpace.Battle.Movement.Enums;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 public static class ShipMesh
 {
+	public static int SurfaceIndex(ESpatialOrientation face) => (int)face;
+
 	public static ArrayMesh CreateHull()
 	{
 		const float length = 1.8f;
 		const float width = 1.2f;
 		const float height = 0.45f;
+		const float halfW = width * 0.5f;
+		const float halfH = height;
+		const float bodyFore = length * 0.15f;
+		const float bodyAft = -length * 0.42f;
+		const float noseZ = length * 0.5f;
 
-		var nose = new Vector3(0f, 0f, length * 0.5f);
-		var tailCenter = new Vector3(0f, 0f, -length * 0.42f);
-		var tailPort = new Vector3(-width * 0.5f, 0f, -length * 0.35f);
-		var tailStarboard = new Vector3(width * 0.5f, 0f, -length * 0.35f);
-		var dorsal = new Vector3(0f, height, -length * 0.1f);
-		var ventral = new Vector3(0f, -height, -length * 0.1f);
+		var portDorsal = new Vector3(-halfW, halfH, bodyFore);
+		var starboardDorsal = new Vector3(halfW, halfH, bodyFore);
+		var starboardVentral = new Vector3(halfW, -halfH, bodyFore);
+		var portVentral = new Vector3(-halfW, -halfH, bodyFore);
+		var nose = new Vector3(0f, 0f, noseZ);
 
-		var vertices = new Vector3[]
-		{
-			nose, tailPort, tailStarboard,
-			nose, dorsal, tailPort,
-			nose, tailStarboard, dorsal,
-			nose, ventral, tailPort,
-			nose, tailStarboard, ventral,
-			tailPort, dorsal, tailStarboard,
-			tailPort, ventral, tailStarboard,
-			tailPort, ventral, dorsal,
-			tailStarboard, dorsal, ventral,
-			tailCenter, tailPort, tailStarboard,
-			tailCenter, dorsal, tailPort,
-			tailCenter, tailStarboard, dorsal,
-			tailCenter, ventral, tailPort,
-			tailCenter, tailStarboard, ventral,
-		};
+		var mesh = new ArrayMesh();
 
-		return CreateFromTriangles(vertices);
+		// Forward (+Z): CCW when viewed from in front of the ship.
+		AddSurface(mesh,
+		[
+			nose, portVentral, starboardVentral,
+			nose, starboardVentral, starboardDorsal,
+			nose, starboardDorsal, portDorsal,
+			nose, portDorsal, portVentral,
+		]);
+
+		// Retro (-Z)
+		AddSurface(mesh, Quad(
+			new Vector3(halfW, -halfH, bodyAft),
+			new Vector3(-halfW, -halfH, bodyAft),
+			new Vector3(-halfW, halfH, bodyAft),
+			new Vector3(halfW, halfH, bodyAft)));
+
+		// Dorsal (+Y)
+		AddSurface(mesh, Quad(
+			new Vector3(-halfW, halfH, bodyAft),
+			new Vector3(halfW, halfH, bodyAft),
+			new Vector3(halfW, halfH, bodyFore),
+			new Vector3(-halfW, halfH, bodyFore)));
+
+		// Ventral (-Y)
+		AddSurface(mesh, Quad(
+			new Vector3(-halfW, -halfH, bodyFore),
+			new Vector3(halfW, -halfH, bodyFore),
+			new Vector3(halfW, -halfH, bodyAft),
+			new Vector3(-halfW, -halfH, bodyAft)));
+
+		// Port (-X)
+		AddSurface(mesh, Quad(
+			new Vector3(-halfW, -halfH, bodyAft),
+			new Vector3(-halfW, -halfH, bodyFore),
+			new Vector3(-halfW, halfH, bodyFore),
+			new Vector3(-halfW, halfH, bodyAft)));
+
+		// Starboard (+X)
+		AddSurface(mesh, Quad(
+			new Vector3(halfW, -halfH, bodyFore),
+			new Vector3(halfW, -halfH, bodyAft),
+			new Vector3(halfW, halfH, bodyAft),
+			new Vector3(halfW, halfH, bodyFore)));
+
+		return mesh;
 	}
 
 	public static ArrayMesh CreateNoseMarker()
@@ -46,24 +81,42 @@ public static class ShipMesh
 		var right = new Vector3(0.12f, 0f, length * 0.38f);
 		var top = new Vector3(0f, 0.1f, length * 0.38f);
 
-		var vertices = new Vector3[]
-		{
-			tip, left, right,
-			tip, top, left,
-			tip, right, top,
-		};
+		return CreateFromTriangles(
+		[
+			tip, right, left,
+			tip, left, top,
+			tip, top, right,
+		]);
+	}
 
-		return CreateFromTriangles(vertices);
+	private static Vector3[] Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d) =>
+	[
+		a, b, c,
+		a, c, d,
+	];
+
+	private static void AddSurface(ArrayMesh mesh, Vector3[] vertices)
+	{
+		var normals = new Vector3[vertices.Length];
+		for (var i = 0; i < vertices.Length; i += 3)
+		{
+			var normal = (vertices[i + 1] - vertices[i]).Cross(vertices[i + 2] - vertices[i]).Normalized();
+			normals[i] = normal;
+			normals[i + 1] = normal;
+			normals[i + 2] = normal;
+		}
+
+		var arrays = new Godot.Collections.Array();
+		arrays.Resize((int)Mesh.ArrayType.Max);
+		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
+		arrays[(int)Mesh.ArrayType.Normal] = normals;
+		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
 	}
 
 	private static ArrayMesh CreateFromTriangles(Vector3[] vertices)
 	{
-		var arrays = new Godot.Collections.Array();
-		arrays.Resize((int)Mesh.ArrayType.Max);
-		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
-
 		var mesh = new ArrayMesh();
-		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+		AddSurface(mesh, vertices);
 		return mesh;
 	}
 }

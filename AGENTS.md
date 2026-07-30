@@ -61,3 +61,6 @@ Defer until later: final art, animation, VFX, music, SFX, narrative writing, bal
 
 - [Godot 4 C# basics](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_basics.html)
 - [Godot 4 C# API differences from GDScript](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_differences.html)
+
+## Developer Communication
+The main developer for this project is a corporate software engineer unfamiliar with gaming development, so any gaming specific changes should be challenged, slowed down, and explained 

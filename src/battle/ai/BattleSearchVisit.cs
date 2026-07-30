@@ -6,6 +6,9 @@ namespace GrimSpace.Battle.Ai;
 
 internal readonly record struct CapabilitySearchState(
 	Coord Position,
+	Coord Fore,
+	Coord Dorsal,
+	Coord Starboard,
 	int UsedDirectionsMask,
 	int MomentumLevel,
 	int MinPathApCost,
@@ -26,6 +29,9 @@ internal static class BattleSearchVisit
 		return new SearchVisitState(
 			new CapabilitySearchState(
 				actor.Position,
+				actor.Fore,
+				actor.Dorsal,
+				actor.Starboard,
 				runtime.UsedDirectionsMask,
 				actor.MomentumLevel,
 				runtime.MinPathApCost,

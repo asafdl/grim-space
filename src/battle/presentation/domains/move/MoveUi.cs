@@ -1,14 +1,74 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Domains.Move;
 
-public static class MoveUi
+/// <summary>
+/// Turn-scoped movement preview: search cache, option lookup by committed queue, and apply helpers.
+/// </summary>
+public sealed class MoveUi
 {
+	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] MovementActionDefs =
+	[
+		MoveDef.Instance,
+		HeadingDef.Instance,
+		RollDef.Instance,
+	];
+
+	private readonly string _actorId;
+	private readonly IReadOnlyList<SearchFrame<BattleWorld, ActorRuntime>> _frames;
+	private readonly IReadOnlyDictionary<string, SearchFrame<BattleWorld, ActorRuntime>> _nodesByPrefix;
+
+	private MoveUi(
+		string actorId,
+		IReadOnlyList<SearchFrame<BattleWorld, ActorRuntime>> frames,
+		IReadOnlyDictionary<string, SearchFrame<BattleWorld, ActorRuntime>> nodesByPrefix)
+	{
+		_actorId = actorId;
+		_frames = frames;
+		_nodesByPrefix = nodesByPrefix;
+	}
+
+	public static MoveUi Build(BattleOrchestrator battle)
+	{
+		var actorId = battle.PlayerId;
+		var frames = battle.Sim
+			.Search(actorId, MovementActionDefs, BattleSearchVisit.ForCapabilities)
+			.ToList();
+
+		var nodesByPrefix = new Dictionary<string, SearchFrame<BattleWorld, ActorRuntime>>();
+		foreach (var frame in frames)
+			nodesByPrefix[PrefixKey(frame.Actions)] = frame;
+
+		return new MoveUi(actorId, frames, nodesByPrefix);
+	}
+
+	public IReadOnlyList<Option> GetMoveOptions(IReadOnlyList<IAction> committed) =>
+		_nodesByPrefix.TryGetValue(PrefixKey(committed), out var node)
+			? ExtractMoveOptions(committed.Count, node)
+			: [];
+
+	public bool TryLocate(
+		IReadOnlyList<IAction> committed,
+		out SearchFrame<BattleWorld, ActorRuntime> node) =>
+		_nodesByPrefix.TryGetValue(PrefixKey(committed), out node);
+
+	public static IReadOnlyList<Option> GetMoveOptions(BattleOrchestrator battle, Unit? actor)
+	{
+		if (actor is null || !battle.CanAct(actor))
+			return [];
+
+		return battle.MoveUi.GetMoveOptions(battle.Sim.Actions);
+	}
+
 	public static IReadOnlyList<MoveStepAction>? Translate(
 		BattleSimulation sim,
 		string actorId,
@@ -40,14 +100,6 @@ public static class MoveUi
 		return true;
 	}
 
-	public static IReadOnlyList<Option> GetMoveOptions(BattleOrchestrator battle, Unit? actor)
-	{
-		if (actor is null || !battle.CanAct(actor))
-			return [];
-
-		return GetLegalMoves(battle);
-	}
-
 	public static (IReadOnlyList<Coord> Path, Coord? Target) GetPathHighlights(
 		IReadOnlyList<Option> options,
 		int? hoveredIndex,
@@ -62,30 +114,36 @@ public static class MoveUi
 		return ([], null);
 	}
 
-	private static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle)
+	private IReadOnlyList<Option> ExtractMoveOptions(
+		int startCount,
+		SearchFrame<BattleWorld, ActorRuntime> originNode)
 	{
-		var actorId = battle.PlayerId;
-		var sim = battle.Sim;
-		if (sim.RuntimeFor(actorId).IsMovePathStarted)
+		if (originNode.Runtimes.For(_actorId).IsMovePathStarted)
 			return [];
 
-		var origin = sim.StateOf<ActorState>(actorId).Position;
-		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
-		var startCount = sim.Actions.Count;
+		var actor = originNode.World.StateOf(_actorId);
+		var origin = actor.Position;
+		var frame = BodyFrame.From(actor);
+		var committed = originNode.Actions;
 		var results = new Dictionary<Coord, Option>();
 
-		foreach (var searchFrame in sim.Search(actorId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var searchFrame in _frames)
 		{
+			if (searchFrame.Actions.Count <= startCount)
+				continue;
+
+			if (!PrefixStartsWith(searchFrame.Actions, committed))
+				continue;
+
 			var steps = searchFrame.Actions
 				.Skip(startCount)
 				.OfType<MoveStepAction>()
-				.Where(step => step.ActorId == actorId)
+				.Where(step => step.ActorId == _actorId)
 				.ToList();
-
 			if (steps.Count == 0)
 				continue;
 
-			var runtime = searchFrame.Runtimes.For(actorId);
+			var runtime = searchFrame.Runtimes.For(_actorId);
 			var option = MovePathRules.ToEndpointOption(origin, frame, steps, runtime);
 			if (option is null)
 				continue;
@@ -96,4 +154,34 @@ public static class MoveUi
 
 		return results.Values.ToList();
 	}
+
+	private static string PrefixKey(IReadOnlyList<IAction> actions) =>
+		actions.Count == 0
+			? string.Empty
+			: string.Join('|', actions.Select(ActionKey));
+
+	internal static string PrefixKeyForTests(IReadOnlyList<IAction> actions) => PrefixKey(actions);
+
+	private static bool PrefixStartsWith(IReadOnlyList<IAction> actions, IReadOnlyList<IAction> prefix)
+	{
+		if (actions.Count < prefix.Count)
+			return false;
+
+		for (var i = 0; i < prefix.Count; i++)
+		{
+			if (ActionKey(actions[i]) != ActionKey(prefix[i]))
+				return false;
+		}
+
+		return true;
+	}
+
+	private static string ActionKey(IAction action) =>
+		action switch
+		{
+			MoveStepAction move => $"move:{move.ActorId}:{move.Direction}",
+			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
+			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
+			_ => action.GetType().FullName ?? "action",
+		};
 }

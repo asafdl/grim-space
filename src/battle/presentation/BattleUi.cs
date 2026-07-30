@@ -25,6 +25,8 @@ public sealed class BattleUi
 	public EPlayerMode Mode => _state.Mode;
 	public EMissileMount? MissileMount => _state.MissileMount;
 	public int MissileRange => _state.MissileRange;
+	public IReadOnlyList<Coord> CommittedMovePath => _state.CommittedMovePath;
+	public int? MoveHoveredIndex => _state.MoveHoveredIndex;
 
 	public void SetMode(EPlayerMode mode) => _state.SetMode(mode);
 
@@ -43,14 +45,14 @@ public sealed class BattleUi
 		_state.ResetAfterTurn();
 	}
 
-	public IReadOnlyList<IAction>? CommitAndResolve()
+	public TurnReplay? CommitAndResolve()
 	{
 		if (!TurnUi.TryCommit(Battle, out var playerActions))
 			return null;
 
-		var applied = Battle.ResolveTurn(playerActions);
+		var replay = Battle.ResolveTurn(playerActions);
 		ResetAfterTurn();
-		return applied;
+		return replay;
 	}
 
 	public bool Undo() => TurnUi.TryUndo(Battle, _state);

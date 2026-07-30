@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
@@ -51,6 +52,8 @@ public sealed class BattleOrchestrator
 	public bool IsResolving { get; private set; }
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
+
+	public MoveUi MoveUi { get; private set; } = null!;
 
 	public IReadOnlyDictionary<string, UnitState> LiveUnitStates =>
 		_engine.World.Units.ToDictionary(pair => pair.Key, pair => pair.Value.State.Clone());
@@ -102,7 +105,11 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn() => _sim = _engine.CreateSimulation();
+	public void BeginTurn()
+	{
+		_sim = _engine.CreateSimulation();
+		MoveUi = MoveUi.Build(this);
+	}
 
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && !IsResolving && IsActive(unit.State.Id) && unit.State.IsAlive;
@@ -119,7 +126,7 @@ public sealed class BattleOrchestrator
 		return unit;
 	}
 
-	public IReadOnlyList<IAction> ResolveTurn(IReadOnlyList<IAction> playerActions)
+	public TurnReplay ResolveTurn(IReadOnlyList<IAction> playerActions)
 	{
 		if (IsBattleOver || IsResolving)
 			throw new InvalidOperationException("Cannot resolve turn while battle is over or already resolving.");
@@ -127,7 +134,7 @@ public sealed class BattleOrchestrator
 		IsResolving = true;
 		try
 		{
-			var applied = ExecuteTurn(playerActions);
+			var replay = ExecuteTurn(playerActions);
 			var outcome = EvaluateBattleOutcome();
 			IsBattleOver = outcome.IsOver;
 			WinnerId = outcome.WinnerId;
@@ -135,7 +142,7 @@ public sealed class BattleOrchestrator
 			if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
 				BeginTurn();
 
-			return applied;
+			return replay;
 		}
 		finally
 		{
@@ -143,7 +150,7 @@ public sealed class BattleOrchestrator
 		}
 	}
 
-	private List<IAction> ExecuteTurn(IReadOnlyList<IAction> playerActions)
+	private TurnReplay ExecuteTurn(IReadOnlyList<IAction> playerActions)
 	{
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
@@ -178,15 +185,16 @@ public sealed class BattleOrchestrator
 
 		FinalizeRound();
 
+		var endStates = SnapshotAll();
 		StateLog.LogTurnResolution(
 			turnNumber,
 			applied,
 			hazardsBeforeResolve,
 			unitsAtTurnStart,
-			unitsAfterPlayer ?? SnapshotAll(),
-			SnapshotAll());
+			unitsAfterPlayer ?? endStates,
+			endStates);
 
-		return applied;
+		return new TurnReplay(unitsAtTurnStart, applied, endStates);
 	}
 
 	private static void CollectTick(TickResult tick, List<IAction> applied) =>

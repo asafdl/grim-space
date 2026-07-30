@@ -12,6 +12,9 @@ public sealed class ResolveHazardClip : IReplayClip
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
 		var resolve = (ResolveHazardAction)action;
+		foreach (var unitId in context.ReplayState.ApplyResolveHazard(resolve))
+			context.SyncUnit(unitId);
+
 		context.HazardBursts.RecordBurst(resolve.Kind, resolve.Cells);
 		return ClipPlayback.Pause(DisplaySeconds);
 	}

@@ -9,7 +9,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public partial class GridView : Node3D
 {
 	private BoundedGrid? _grid;
-	private readonly Dictionary<Coord, MeshInstance3D> _highlights = new();
+	private readonly Dictionary<Coord, MeshInstance3D> _activeHighlights = new();
+	private readonly Queue<MeshInstance3D> _freeHighlights = new();
 
 	private StandardMaterial3D? _defaultMaterial;
 	private StandardMaterial3D? _endpoint3Ap;
@@ -27,7 +28,7 @@ public partial class GridView : Node3D
 	public void Build(BoundedGrid grid)
 	{
 		_grid = grid;
-		ClearHighlightMeshes();
+		ReleaseActiveHighlights();
 
 		_defaultMaterial = CreateMaterial(new Color(0.35f, 0.65f, 0.95f, 0.42f));
 		_endpoint3Ap = _defaultMaterial;
@@ -43,7 +44,7 @@ public partial class GridView : Node3D
 		_flakPreviewMaterial = CreateMaterial(new Color(1f, 0.85f, 0.25f, 0.7f));
 	}
 
-	public void ClearHighlights() => ClearHighlightMeshes();
+	public void ClearHighlights() => ReleaseActiveHighlights();
 
 	public void SetMoveHighlights(
 		IReadOnlyList<Option> options,
@@ -54,7 +55,7 @@ public partial class GridView : Node3D
 		if (!EnsureMaterials())
 			return;
 
-		ClearHighlightMeshes();
+		ReleaseActiveHighlights();
 
 		var endpointAp = new Dictionary<Coord, int>();
 		foreach (var option in options)
@@ -91,7 +92,7 @@ public partial class GridView : Node3D
 		if (!EnsureMaterials())
 			return;
 
-		ClearHighlightMeshes();
+		ReleaseActiveHighlights();
 
 		foreach (var coord in hazardCells)
 			SetCellMaterial(coord, _hazardMaterial!);
@@ -116,7 +117,7 @@ public partial class GridView : Node3D
 		if (!EnsureMaterials())
 			return;
 
-		ClearHighlightMeshes();
+		ReleaseActiveHighlights();
 
 		if (hazardCells is not null)
 		{
@@ -140,7 +141,7 @@ public partial class GridView : Node3D
 		if (!EnsureMaterials())
 			return;
 
-		ClearHighlightMeshes();
+		ReleaseActiveHighlights();
 
 		foreach (var coord in hazardCells)
 			SetCellMaterial(coord, _hazardMaterial!);
@@ -181,20 +182,34 @@ public partial class GridView : Node3D
 
 	private void SetCellMaterial(Coord coord, StandardMaterial3D material)
 	{
-		if (_highlights.TryGetValue(coord, out var existing))
+		if (_activeHighlights.TryGetValue(coord, out var existing))
 		{
 			existing.MaterialOverride = material;
 			return;
 		}
 
+		var cell = AcquireHighlightMesh();
+		cell.Position = WorldMapping.ToWorld(coord);
+		cell.MaterialOverride = material;
+		_activeHighlights[coord] = cell;
+	}
+
+	private MeshInstance3D AcquireHighlightMesh()
+	{
+		if (_freeHighlights.Count > 0)
+		{
+			var mesh = _freeHighlights.Dequeue();
+			mesh.Visible = true;
+			return mesh;
+		}
+
 		var cell = new MeshInstance3D
 		{
 			Mesh = new BoxMesh { Size = Vector3.One * WorldMapping.CellSize * 0.92f },
-			Position = WorldMapping.ToWorld(coord),
-			MaterialOverride = material,
+			Visible = true,
 		};
 		AddChild(cell);
-		_highlights[coord] = cell;
+		return cell;
 	}
 
 	private static StandardMaterial3D CreateMaterial(Color color) =>
@@ -205,11 +220,14 @@ public partial class GridView : Node3D
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 		};
 
-	private void ClearHighlightMeshes()
+	private void ReleaseActiveHighlights()
 	{
-		foreach (var child in _highlights.Values)
-			child.Free();
+		foreach (var mesh in _activeHighlights.Values)
+		{
+			mesh.Visible = false;
+			_freeHighlights.Enqueue(mesh);
+		}
 
-		_highlights.Clear();
+		_activeHighlights.Clear();
 	}
 }

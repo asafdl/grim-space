@@ -1,30 +1,32 @@
 using Godot;
-using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class UnitView : Node3D
 {
+	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
+
 	private Label3D? _momentumLabel;
+	private MeshInstance3D? _hull;
+	private Color _hullColor;
+	private readonly int[] _shieldPoints = new int[Faces.Length];
 
 	public void Bind(State state, Color color)
 	{
 		Name = state.Id;
+		_hullColor = color;
+		Array.Fill(_shieldPoints, -1);
 
-		var hull = new MeshInstance3D
+		_hull = new MeshInstance3D
 		{
 			Mesh = ShipMesh.CreateHull(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.On,
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = color,
-				Roughness = 0.45f,
-				Metallic = 0.15f,
-			},
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 		};
-		AddChild(hull);
+		AddChild(_hull);
 
 		var nose = new MeshInstance3D
 		{
@@ -58,7 +60,28 @@ public partial class UnitView : Node3D
 	{
 		Position = WorldMapping.ToWorld(state.Position);
 		ApplyOrientation(state);
+		ApplyShieldColors(state);
 		ApplyStatus(state);
+	}
+
+	private void ApplyShieldColors(State state)
+	{
+		if (_hull is null)
+			return;
+
+		var maxPoints = state.Stats.MaxShieldPointsPerFace;
+		foreach (var face in Faces)
+		{
+			var index = ShipMesh.SurfaceIndex(face);
+			var points = state.ShieldPoints[face];
+			if (_shieldPoints[index] == points)
+				continue;
+
+			_shieldPoints[index] = points;
+			_hull.SetSurfaceOverrideMaterial(
+				index,
+				ShieldFaceMaterials.For(_hullColor, points, maxPoints));
+		}
 	}
 
 	private void ApplyStatus(State state)
@@ -67,7 +90,11 @@ public partial class UnitView : Node3D
 			return;
 
 		var evasion = (int)(MomentumConfig.ForLevel(state.MomentumLevel).Evasion * 100);
-		_momentumLabel.Text = $"H{state.HullPoints} M{state.MomentumLevel} ({evasion}%)";
+		var text = $"H{state.HullPoints} M{state.MomentumLevel} ({evasion}%)";
+		if (_momentumLabel.Text == text)
+			return;
+
+		_momentumLabel.Text = text;
 	}
 
 	private void ApplyOrientation(State state)

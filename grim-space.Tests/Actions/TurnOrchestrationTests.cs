@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
@@ -53,6 +54,23 @@ public sealed class TurnOrchestrationTests
 
 		battle.ResolveTurn([]);
 		Assert.False(battle.IsResolving);
+	}
+
+	[Fact]
+	public void ResolveTurnReturnsStartAndEndSnapshots()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+
+		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
+			.First(option => option.EndPosition == origin + Coord.Forward * 3);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
+
+		var replay = battle.ResolveTurn(battle.Sim.Actions.ToList());
+
+		Assert.Equal(origin, replay.StartStates[PlayerId].Position);
+		Assert.Equal(origin + Coord.Forward * 3, replay.EndStates[PlayerId].Position);
+		Assert.Contains(replay.AppliedActions, action => action is MoveStepAction);
 	}
 
 	public static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
