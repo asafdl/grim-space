@@ -6,6 +6,8 @@ Presentation-only experiments for **planning-friendly** battle UX: readable prev
 
 | Doc | Purpose |
 |-----|---------|
+| [CONTEXT.md](../../../CONTEXT.md) | Worktree ubiquitous language (grid, **Ring**, **Depthkey**, **Raywalk**, …) |
+| [definitions.md](definitions.md) | Move-planning UX definitions (rings, snapshot cache, pointer) |
 | [planning-ux-research.md](planning-ux-research.md) | Reference games, plane slicing, keyboard step-commit, hex vs square |
 | [plans/cycle-hits-move-pick/index.md](plans/cycle-hits-move-pick/index.md) | Cycle hits + blank backdrop (split subplans) |
 

@@ -1,4 +1,4 @@
-﻿---
+---
 parentPlan: ../full.plan.md
 targetFile: src/battle/presentation/ui/Combat.cs
 todoIds: [hints-accessor]
@@ -10,63 +10,32 @@ status: pending
 
 **Source:** [`src/battle/presentation/ui/Combat.cs`](../../../../../../src/battle/presentation/ui/Combat.cs)
 
-[Full plan](../full.plan.md) · [Index](../index.md)
+[Full plan](../full.plan.md) � [Index](../index.md) � [definitions.md](../../../../definitions.md)
 
 ## Why this file
 
-On-screen hints during battle come from **`CombatHints.BuildHint`** in [`Combat.cs`](../../../../../../src/battle/presentation/ui/Combat.cs). Move mode already tells the player to click a path to queue; **cycle hits** is invisible without a short keyboard hint — players will not discover Tab / Shift+Tab on their own.
-
-This subplan is **copy-only** in the hint layer: no dependency on ray math or Godot input.
+**`CombatHints.BuildHint`** � discoverability for **Depthkey**, **Raywalk**, and optional ring position copy.
 
 ## Current behavior
 
-In **`CombatHints.BuildHint`**, branch **`EPlayerMode.Move`** (~lines 39–40): builds a string along the lines of “click path to queue” plus optional **`planSuffix`** from committed planning steps.
-
-Other modes (missile, flak, railgun, etc.) have separate strings — leave unchanged.
+Move branch: click-to-queue + planning suffix. No **Depthkey** line.
 
 ## What to implement
 
-In the **Move** branch only, append a clause (exact punctuation can match existing hint style):
+**Move** branch only:
 
-**`Tab / Shift+Tab: cycle target along sight`**
+1. Append **`Tab / Shift+Tab: cycle ring`** (**Depthkey** � match [CONTEXT.md](../../../../../../CONTEXT.md) wording in player copy).
+2. Optional when **`RingCount > 1`**: **`Ring {i+1}/{n} (k={k})`** from presenter (pass indices into hint builder or read from presenter state refreshed with frame).
+3. Optional dev line when click debug toggle visible: mention **Raywalk** / **long click** queue per mode **C** (short; exact string TBD in implementation).
 
-Suggested placement: **after** the click-to-queue phrase, **before** `planSuffix`, so committed-plan text stays at the end.
+Do not change missile/flak/railgun strings.
 
-Example shape (illustrative):
+## Done when
 
-```csharp
-EPlayerMode.Move => $"… click path to queue. Tab / Shift+Tab: cycle target along sight{planSuffix}",
-```
-
-Use the project’s existing string concatenation / interpolation pattern; do not refactor unrelated hint lines.
-
-## Optional v1.1 (explicitly not required for acceptance)
-
-Extend `BuildHint` signature with `(int? rayHitIndex, int rayHitCount)` or similar:
-
-- When **`rayHitCount > 1`**, show **`target {cursor+1}/{rayHitCount} along sight`** (wording TBD).
-- Requires **BattleController** or **BattlePresenter** to pass live cycle state into whatever builds hints today (`BattlePresenter` → hint label refresh path).
-
-Keep v1 to the static Tab line unless product asks for counts in the same slice.
-
-## Edge cases
-
-- **Single hit along ray** — static Tab hint is still accurate (cycle no-ops in controller); slightly redundant but acceptable.
-- **Not in Move mode** — other branches unchanged; grep to ensure no accidental global append.
-
-## Dependencies
-
-- None — can land after cycle UX works.
-- No reference to `MovementSelection` from this file.
-
-## Verification
-
-- F5, enter move planning: hint shows Tab / Shift+Tab line.
-- Switch to missile/flak: previous hints unchanged.
-- [full.plan.md § Manual test](../full.plan.md) item 3.
+- F5 move mode shows **Depthkey** hint.
+- Ring position line appears when multiple rings exist (if v1 includes optional clause).
 
 ## Out of scope
 
-- `HoveredMoveIndex` — [BattlePresenter subplan](src-battle-presentation-ui-BattlePresenter.cs.plan.md).
-- Rebinding keys or InputMap changes.
-- Tutorial overlay or first-run modal.
+- InputMap / rebinding.
+- **`HoveredMoveIndex`** implementation � [BattlePresenter subplan](src-battle-presentation-ui-BattlePresenter.cs.plan.md).

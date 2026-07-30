@@ -42,8 +42,8 @@ public partial class TurnHistoryView : Node3D
 
 	private void AddTrailSegment(Coord from, Coord to, Color color)
 	{
-		var start = WorldMapping.ToWorld(from) + Vector3.Up * TrailYOffset;
-		var end = WorldMapping.ToWorld(to) + Vector3.Up * TrailYOffset;
+		var start = PointMapping.ToWorld(from) + Vector3.Up * TrailYOffset;
+		var end = PointMapping.ToWorld(to) + Vector3.Up * TrailYOffset;
 		var delta = end - start;
 		var length = delta.Length();
 		if (length < 0.001f)

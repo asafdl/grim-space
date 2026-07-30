@@ -47,9 +47,9 @@ public partial class BattleController : Node3D
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(layout.Grid);
 
-		var gridCenter = WorldMapping.GridCenter(layout.Grid);
+		var gridCenter = PointMapping.GridCenter(layout.Grid);
 		_camera.SetPivot(gridCenter);
-		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
+		var chamberRadius = layout.Grid.Width * PointMapping.CellSize * 0.5f;
 		Lighting.ConfigureDiagram(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };

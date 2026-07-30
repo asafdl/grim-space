@@ -29,7 +29,7 @@ public partial class BoardHazardView : Node3D
 		var instance = packed.Instantiate<Node3D>();
 		var rng = RngFor(hazard.Center);
 
-		instance.Position = WorldMapping.ToWorld(hazard.Center);
+		instance.Position = PointMapping.ToWorld(hazard.Center);
 		instance.Scale = AsymmetricScale(hazard.Radius, rng);
 		instance.RotationDegrees = new Vector3(
 			rng.RandfRange(0f, 360f),
@@ -42,7 +42,7 @@ public partial class BoardHazardView : Node3D
 
 	private static Vector3 AsymmetricScale(int radius, RandomNumberGenerator rng)
 	{
-		var footprint = (radius * 2 + 1) * WorldMapping.CellSize;
+		var footprint = (radius * 2 + 1) * PointMapping.CellSize;
 		var baseScale = footprint * 0.52f;
 
 		return new Vector3(

@@ -29,7 +29,7 @@ public sealed partial class SpaceBackdrop : Node3D
 
 	public void Build(BoundedGrid grid)
 	{
-		var center = WorldMapping.GridCenter(grid);
+		var center = PointMapping.GridCenter(grid);
 		var extent = GridExtent(grid);
 		var half = extent * 0.5f;
 
@@ -41,9 +41,9 @@ public sealed partial class SpaceBackdrop : Node3D
 
 	private static Vector3 GridExtent(BoundedGrid grid) =>
 		new(
-			grid.Width * WorldMapping.CellSize,
-			grid.Height * WorldMapping.CellSize,
-			grid.Depth * WorldMapping.CellSize);
+			grid.Width * PointMapping.CellSize,
+			grid.Height * PointMapping.CellSize,
+			grid.Depth * PointMapping.CellSize);
 
 	private static WorldEnvironment CreateWorldEnvironment(float chamberRadius)
 	{

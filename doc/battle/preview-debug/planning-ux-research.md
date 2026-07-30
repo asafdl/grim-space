@@ -127,15 +127,20 @@ Camera pan already uses WASD in hints; a **move mode** toggle or **hold modifier
 
 **Preview implication:** Hex games often show **one ring** of moves; square 3D needs **plane slice** and/or **direction-colored paths** to avoid an unreadable blob of endpoints.
 
+### Move planning v1: Manhattan rings (`feature/simple-preview`)
+
+On this branch, move preview UX groups legal **Options** by Manhattan **shell** (**Ring** / **k**) from the planning actor **Position**, builds a **snapshot cache** once per preview frame, uses **Depthkey** (**Tab** / **Shift+Tab**) to change the active **ring**, and uses fast click plus **Raywalk** (hold) for near→far selection on that band only. Presentation-only—no rule changes. Vocabulary: [definitions.md](definitions.md), [CONTEXT.md](../../../CONTEXT.md).
+
 ---
 
 ## Recommended roadmap (preview-friendly)
 
 1. **Blank / diagram backdrop** — reduce visual noise.
-2. **Plane slice filter on highlights** — legibility without rule changes.
-3. **Direction-colored path cells** — see `doc/battle/presentation-move-preview.md` on the **docs worktree** (`side-branches/docs-project-guides`, branch `docs/project-guides`).
-4. **Optional keyboard single-step planning** — prototype alongside mouse.
-5. **No hex migration** — document rationale (this file); stay on voxels.
+2. **Manhattan ring bands + Depthkey + Raywalk** — see [definitions.md](definitions.md) (this worktree); debug toggle among queue-hover, repick-at-click, or **fast click** select + **long click** queue.
+3. **Plane slice filter on highlights** — legibility without rule changes (may combine with rings).
+4. **Direction-colored path cells** — see `doc/battle/presentation-move-preview.md` on the **docs worktree** (`side-branches/docs-project-guides`, branch `docs/project-guides`).
+5. **Optional keyboard single-step planning** — prototype alongside mouse.
+6. **No hex migration** — document rationale (this file); stay on voxels.
 
 ---
 

@@ -41,9 +41,9 @@ public partial class Controller : Camera3D
 	public override void _Ready()
 	{
 		_pivot = new Vector3(
-			WorldMapping.CellSize * 4f,
-			WorldMapping.CellSize * 4f,
-			WorldMapping.CellSize * 4f);
+			PointMapping.CellSize * 4f,
+			PointMapping.CellSize * 4f,
+			PointMapping.CellSize * 4f);
 		SyncFromTransform();
 		_distance = DefaultDistance;
 		ApplyTransform();
@@ -63,7 +63,7 @@ public partial class Controller : Camera3D
 		_orbiting = false;
 		_panning = false;
 
-		_pivot = WorldMapping.ToWorld(ship.Position);
+		_pivot = PointMapping.ToWorld(ship.Position);
 		var fore = ToVector3(ship.Fore).Normalized();
 		var dorsal = ToVector3(ship.Dorsal).Normalized();
 

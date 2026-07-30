@@ -1,29 +1,29 @@
-Ôªø---
+---
 parentPlan: ../full.plan.md
 targetFile: src/battle/presentation/graphics/SpaceBackdrop.cs
 todoIds: [blank-backdrop]
 dependsOn: []
-status: pending
+status: done
 ---
 
 # Subplan: `SpaceBackdrop.cs`
 
 **Source:** [`src/battle/presentation/graphics/SpaceBackdrop.cs`](../../../../../../src/battle/presentation/graphics/SpaceBackdrop.cs)
 
-[Full plan](../full.plan.md) ¬∑ [Index](../index.md)
+[Full plan](../full.plan.md) ∑ [Index](../index.md)
 
 ## Why this file
 
-`BattleController._Ready` constructs a [`SpaceBackdrop`](../../../../../../src/battle/presentation/graphics/SpaceBackdrop.cs) and calls **`Build`**, which spawns the entire ‚Äúspace chamber‚Äù look: fog, nebula shells, starfield, and sun mesh. For **planning UX** we want a **diagram board** ‚Äî empty void so [`GridView`](../../../../../../src/battle/presentation/graphics/GridView.cs) endpoint and path materials remain the primary visual signal.
+`BattleController._Ready` constructs a [`SpaceBackdrop`](../../../../../../src/battle/presentation/graphics/SpaceBackdrop.cs) and calls **`Build`**, which spawns the entire ìspace chamberî look: fog, nebula shells, starfield, and sun mesh. For **planning UX** we want a **diagram board** ó empty void so [`GridView`](../../../../../../src/battle/presentation/graphics/GridView.cs) endpoint and path materials remain the primary visual signal.
 
 ## Current behavior
 
 `Build(BoundedGrid grid)`:
 
-1. `CreateWorldEnvironment` ‚Äî dark purple background, **fog enabled**, filmic tonemap.
-2. `CreateNebulaShell` ‚Äî many additive sphere wisps + void membrane box.
-3. `CreateStarfield` ‚Äî 700-instance multimesh.
-4. `RedDwarfSun.CreateVisual` ‚Äî emissive sun at chamber edge.
+1. `CreateWorldEnvironment` ó dark purple background, **fog enabled**, filmic tonemap.
+2. `CreateNebulaShell` ó many additive sphere wisps + void membrane box.
+3. `CreateStarfield` ó 700-instance multimesh.
+4. `RedDwarfSun.CreateVisual` ó emissive sun at chamber edge.
 
 None of this is required for rules; it is pure presentation.
 
@@ -43,8 +43,8 @@ Leave **`Build` unchanged** so integration branch can keep cinematic backdrop vi
 
 ## Edge cases
 
-- **Multiple calls to BuildDiagram** ‚Äî same as Build today (controller calls once in `_Ready`); no hot reload requirement.
-- **Grid size** ‚Äî diagram does not need to scale decorations with `CombatConfig.DefaultGridSize` (64¬≥); environment is infinite clear color.
+- **Multiple calls to BuildDiagram** ó same as Build today (controller calls once in `_Ready`); no hot reload requirement.
+- **Grid size** ó diagram does not need to scale decorations with `CombatConfig.DefaultGridSize` (64≥); environment is infinite clear color.
 
 ## Dependencies
 

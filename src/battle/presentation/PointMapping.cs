@@ -4,7 +4,7 @@ using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Presentation;
 
-public static class WorldMapping
+public static class PointMapping
 {
 	public const float CellSize = 2f;
 
@@ -19,4 +19,10 @@ public static class WorldMapping
 			grid.Width * CellSize * 0.5f,
 			grid.Height * CellSize * 0.5f,
 			grid.Depth * CellSize * 0.5f);
+
+	public static Coord ToCoord(Vector3 location) =>
+		new(
+			Mathf.FloorToInt((location.X / CellSize) - 0.5f),
+			Mathf.FloorToInt((location.Y / CellSize) - 0.5f),
+			Mathf.FloorToInt((location.Z / CellSize) - 0.5f));
 }

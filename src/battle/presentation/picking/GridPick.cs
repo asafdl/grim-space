@@ -17,17 +17,17 @@ public static class GridPick
 		Coord? best = null;
 		var bestDistance = float.MaxValue;
 
-		for (var t = 0f; t <= grid.Width * WorldMapping.CellSize * 2f; t += 0.5f)
+		for (var t = 0f; t <= grid.Width * PointMapping.CellSize * 2f; t += 0.5f)
 		{
 			var point = origin + direction * t;
-			var cell = WorldToCell(point);
+			var cell = PointMapping.ToCoord(point);
 
 			if (!grid.IsInBounds(cell))
 				continue;
 
-			var center = WorldMapping.ToWorld(cell);
+			var center = PointMapping.ToWorld(cell);
 			var distance = center.DistanceTo(point);
-			if (distance >= WorldMapping.CellSize * 0.75f || distance >= bestDistance)
+			if (distance >= PointMapping.CellSize * 0.75f || distance >= bestDistance)
 				continue;
 
 			bestDistance = distance;
@@ -50,9 +50,9 @@ public static class GridPick
 
 		foreach (var cell in validCells)
 		{
-			var center = WorldMapping.ToWorld(cell);
+			var center = PointMapping.ToWorld(cell);
 			var distance = DistanceRayToPoint(origin, direction, center);
-			if (distance >= WorldMapping.CellSize || distance >= bestDistance)
+			if (distance >= PointMapping.CellSize || distance >= bestDistance)
 				continue;
 
 			bestDistance = distance;
@@ -72,7 +72,7 @@ public static class GridPick
 
 		foreach (var unit in units)
 		{
-			var world = WorldMapping.ToWorld(unit.State.Position);
+			var world = PointMapping.ToWorld(unit.State.Position);
 			var distance = DistanceRayToPoint(origin, direction, world);
 			if (distance >= bestDistance)
 				continue;
@@ -82,14 +82,6 @@ public static class GridPick
 		}
 
 		return best;
-	}
-
-	private static Coord WorldToCell(Vector3 world)
-	{
-		var x = Mathf.FloorToInt(world.X / WorldMapping.CellSize);
-		var y = Mathf.FloorToInt(world.Y / WorldMapping.CellSize);
-		var z = Mathf.FloorToInt(world.Z / WorldMapping.CellSize);
-		return new Coord(x, y, z);
 	}
 
 	private static float DistanceRayToPoint(Vector3 origin, Vector3 direction, Vector3 point)

@@ -46,8 +46,8 @@ public partial class HazardBurstView : Node3D
 	{
 		var marker = new MeshInstance3D
 		{
-			Mesh = new BoxMesh { Size = Vector3.One * WorldMapping.CellSize * CellScale },
-			Position = WorldMapping.ToWorld(cell),
+			Mesh = new BoxMesh { Size = Vector3.One * PointMapping.CellSize * CellScale },
+			Position = PointMapping.ToWorld(cell),
 			MaterialOverride = CreateMaterial(color, emissionEnergy: 0.25f),
 		};
 		AddChild(marker);
@@ -59,7 +59,7 @@ public partial class HazardBurstView : Node3D
 		var marker = new MeshInstance3D
 		{
 			Mesh = new SphereMesh { Radius = CenterRadius, Height = CenterRadius * 2f },
-			Position = WorldMapping.ToWorld(center) + Vector3.Up * 0.15f,
+			Position = PointMapping.ToWorld(center) + Vector3.Up * 0.15f,
 			MaterialOverride = CreateMaterial(color, emissionEnergy: 0.8f),
 		};
 		AddChild(marker);

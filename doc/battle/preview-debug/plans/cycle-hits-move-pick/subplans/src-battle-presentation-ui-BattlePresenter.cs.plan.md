@@ -1,8 +1,9 @@
-ï»¿---
+---
 parentPlan: ../full.plan.md
 targetFile: src/battle/presentation/ui/BattlePresenter.cs
-todoIds: [hints-accessor]
-dependsOn: []
+todoIds: [move-preview-rings, hints-accessor]
+dependsOn:
+  - src/battle/presentation/ui/MovePreviewRings.cs
 status: pending
 ---
 
@@ -10,68 +11,46 @@ status: pending
 
 **Source:** [`src/battle/presentation/ui/BattlePresenter.cs`](../../../../../../src/battle/presentation/ui/BattlePresenter.cs)
 
-[Full plan](../full.plan.md) Â· [Index](../index.md)
+[Full plan](../full.plan.md) · [Index](../index.md)
 
 ## Why this file
 
-`BattlePresenter` owns presentation **selection state** for move hover (`MovementSelection` / internal `_selection`). [`SetMoveHover`](../../../../../../src/battle/presentation/ui/BattlePresenter.cs) updates which move option index drives path and endpoint highlights in `BuildFrame` â†’ `GridView`.
+Builds **`PresentationFrame`** and owns move hover selection. Ring UX needs the **snapshot ring table** on the frame and read-only accessors for controller click + hints.
 
-[`BattleController`](../../../../../../src/battle/presentation/scene/BattleController.cs) must **commit the same index on click that the user saw while hovering**, including after Tab cycles. Today the controller re-picks on click; the fix needs a **stable, read-only view** of the hovered move index without duplicating pick logic in the controller.
+## Part 1 — Frame ring table (todo `move-preview-rings`)
 
-## Current behavior
+In **`BuildFrame`** (when preview actor **Coord** **A** or **`MoveOptions`** change):
 
-- Private **`MovementSelection _selection`** (or equivalent) holds hover index and option count.
-- **`SetMoveHover(int? index, int optionCount)`** (~lines 98â€“99) sets hover; **`ClampToCount`** (~195) keeps index valid when option list shrinks.
-- No public property exposes hovered move index to the scene controller.
+- Call **`MovePreviewRings.BuildRingTable(A, moveOptions)`**
+- Store on **`PresentationFrame`** (new field, e.g. **`MoveRingTable`**)
 
-## What to implement
+Invalidate only on snapshot change — not on Tab or mouse.
 
-Add a **read-only** accessor, e.g.:
+## Part 2 — Accessors (todo `hints-accessor`)
+
+Add read-only surface, names illustrative:
 
 ```csharp
-public int? HoveredMoveIndex => _selection.HoveredIndex;
+public int? HoveredMoveIndex => ...;
+public int ActiveRingIndex { get; }  // set via presenter method from controller
+public int RingCount => frame.MoveRingTable.RingCount;
+public int ActiveShellK => ...;
 ```
 
-(Exact member name on `_selection` â€” match existing `MovementSelection` API; goal is **`int?`** when nothing hovered.)
-
-### Contract
-
-- **Set only via** existing `SetMoveHover` / presenter methods â€” not settable from outside.
-- Value reflects **last** hover set by controller `_Process` or Tab handler.
-- When hover cleared (`SetMoveHover(null, count)`), accessor returns **`null`**.
+- **`HoveredMoveIndex`** — set only through existing **`SetMoveHover`**; **`null`** when cleared.
+- **`ActiveRingIndex`** — update via **`SetActiveRingIndex(int)`** (or fold into hover API) when controller handles **Depthkey**; clamp to **`RingCount`**.
 
 ### Consumers
 
-[`BattleController.HandleLeftClick`](../../../../../../src/battle/presentation/scene/BattleController.cs) Move branch:
+- [BattleController](src-battle-presentation-scene-BattleController.cs.plan.md) click mode **A** / **C**
+- [Combat hints](src-battle-presentation-ui-Combat.cs.plan.md) **`Ring i/n (k=…)`**
 
-```csharp
-if (_presenter.HoveredMoveIndex is int index)
-    _presenter.TryQueueMove(index, frame.MoveOptions);
-```
+## Done when
 
-No second call to `PickOptionIndex`.
-
-## Edge cases
-
-- **Hover null at click** â€” no move queued (user clicked empty space or left pick radius).
-- **Index stale after frame rebuild** â€” `TryQueueMove` should validate index against `frame.MoveOptions`; if invalid, no-op (existing behavior).
-- **Option count drops** â€” existing clamp in presenter should run before click; document that controller refreshes frame before click handling (already builds `frame` in `_UnhandledInput`).
-
-## Optional follow-up (not v1)
-
-- Expose **`RayHitCount`** / cursor for hints (`target 2/5 along sight`) â€” requires controller to pass counts into presenter or hint builder; see [Combat subplan](src-battle-presentation-ui-Combat.cs.plan.md) optional v1.1.
-
-## Dependencies
-
-- None for adding the property.
-- **BattleController** click path depends on this accessor.
-
-## Verification
-
-- Breakpoint or log: after Tab, `HoveredMoveIndex` matches highlighted option; click queues that index.
-- No new public setters on selection state.
+- Frame carries stable **`MovePreviewRingTable`** for the planning snapshot.
+- Controller can read ring count / **k** without recomputing table.
 
 ## Out of scope
 
-- Changing highlight colors, path mesh logic, or `BuildFrame` structure beyond what clamp already does.
-- Hint string composition â€” Combat.cs.
+- GridView dimming off-ring cells.
+- Building table inside controller.

@@ -28,7 +28,7 @@ public static class MovementSelection
 
 		for (var i = 0; i < options.Count; i++)
 		{
-			var world = WorldMapping.ToWorld(options[i].EndPosition);
+			var world = PointMapping.ToWorld(options[i].EndPosition);
 			var distance = DistanceRayToPoint(origin, direction, world);
 			if (distance >= bestDistance)
 				continue;

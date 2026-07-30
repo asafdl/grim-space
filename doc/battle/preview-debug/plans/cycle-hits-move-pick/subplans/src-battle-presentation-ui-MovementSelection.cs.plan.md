@@ -1,7 +1,7 @@
-﻿---
+---
 parentPlan: ../full.plan.md
 targetFile: src/battle/presentation/ui/MovementSelection.cs
-todoIds: [ray-hit-list]
+todoIds: [controller-cycle]
 dependsOn: []
 status: pending
 ---
@@ -10,62 +10,40 @@ status: pending
 
 **Source:** [`src/battle/presentation/ui/MovementSelection.cs`](../../../../../../src/battle/presentation/ui/MovementSelection.cs)
 
-[Full plan](../full.plan.md) · [Index](../index.md)
+[Full plan](../full.plan.md) � [Index](../index.md)
 
 ## Why this file
 
-All move **hover picking** math for endpoints lives here. [`PickOptionIndex`](../../../../../../src/battle/presentation/ui/MovementSelection.cs) projects a camera ray and picks the **single** legal `Option` whose endpoint world position is within **`PickRadius`** (1.4f) of the ray in perpendicular distance.
+Historically held move **pick** math. **Primary hover** moves to **`GridPick.PickFromSet`** on the active **ring** ([BattleController subplan](src-battle-presentation-scene-BattleController.cs.plan.md)). This file shrinks: keep **`PickOptionIndex`** for click debug mode **B**; optional **Raywalk** ray-sort helper; **`FormatMomentum`** until [format-momentum-home](refactor-format-momentum-out-of-movement-selection.plan.md).
 
-When several endpoints stack along the **same view direction** (common on a 64³ grid), they share similar perpendicular distance; sort order is unstable and **does not expose “depth along sight”** for cycling.
+## Current behavior
 
-## Current algorithm (reference)
+- **`PickOptionIndex`** � single best option by perpendicular ray distance within **`PickRadius`** (1.4f) over **all** options.
+- **`FormatMomentum`** � hint bar copy (misplaced; refactor subplan).
 
-```csharp
-// For each option i:
-//   world = ToWorld(EndPosition)
-//   distance = DistanceRayToPoint(origin, direction, world)
-//   keep i if distance < bestDistance (starts at PickRadius)
-```
+## Do not implement
 
-`DistanceRayToPoint` computes closest point on ray with `t = clamp(dot(toPoint, direction), 0, 200)`.
+- **`ListOptionIndicesAlongRay`** as primary Tab / **Depthkey** model (superseded by Manhattan rings).
 
-## What to implement
+## Optional (Raywalk)
 
-### 1. `ListOptionIndicesAlongRay(Vector3 origin, Vector3 direction, IReadOnlyList<Option> options, float pickRadius = PickRadius)`
+If **Raywalk** needs near?far ordering among endpoints on one **ring**, add a **small** helper, e.g. sort option indices on a ring by ray parameter **`t`** (same math as today�s **`DistanceRayToPoint`**). Used only from controller during hold-drag � not Tab bands.
 
-- For each option index `i`, compute perpendicular distance as today.
-- If `distance >= pickRadius`, skip.
-- Else record `(i, t, distance)` where **`t = dot(toPoint, direction)`** using same clamp as `DistanceRayToPoint` (0..200 or share helper).
-- Sort ascending by **`t`**, then by **`distance`**, then by **`i`** (stable tie-break).
-- Return `IReadOnlyList<int>` of indices only.
+## Keep for debug mode B
 
-### 2. `ListOptionIndicesAlongRay(Camera3D camera, Vector2 screenPos, IReadOnlyList<Option> options)`
+- **`PickOptionIndex`** unchanged until mode **B** removed after playtest.
 
-- `ProjectRayOrigin` / `ProjectRayNormal` → delegate to vector overload.
+## Behavior changes
 
-### 3. Refactor `PickOptionIndex`
+- Move hover no longer calls **`PickOptionIndex`** in `_Process` once ring UX lands (controller subplan).
 
-- Build list via `ListOptionIndicesAlongRay`.
-- Return **`list.Count > 0 ? list[0] : null`** so default hover remains “nearest along ray” when controller cursor is 0.
+## Done when
 
-Optional (not v1): expose `RayOptionHit` struct with `Index`, `T`, `PerpDistance` for hint “2/5 along sight”.
-
-## Edge cases
-
-- **Empty options** — return empty list (move path in progress may yield zero endpoint options from `GetLegalMoves`; list empty is ok).
-- **Options behind camera** — `t` clamped to 0 minimum; endpoints behind eye may still appear if within radius (same as today).
-- **Duplicate endpoints** — search should not produce duplicate `EndPosition`; if it does, both indices may appear (acceptable).
-
-## Dependencies
-
-None for coding order; **BattleController** and **tests** depend on this API.
-
-## Verification
-
-- **Unit tests** (see RayOptionCycleTests subplan): three synthetic endpoints on a line along +Z, origin at origin, direction +Z → order nearest-first.
-- Option far from ray (> PickRadius) excluded.
+- No **`ListOptionIndicesAlongRay`** in tree.
+- **`PickOptionIndex`** still compiles for mode **B**.
+- Optional Raywalk helper covered by manual test or thin unit test if extracted.
 
 ## Out of scope
 
-- Changing `PickRadius` or path highlight logic (`GetHighlights`, `WithCommittedMove`).
-- Grid cell picking (`GridPick`).
+- **`MovePreviewRings`** table build � [MovePreviewRings subplan](src-battle-presentation-ui-MovePreviewRings.cs.plan.md).
+- Ring Tab � controller only.

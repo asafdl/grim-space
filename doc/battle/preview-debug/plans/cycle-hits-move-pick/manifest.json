@@ -1,24 +1,35 @@
 ﻿{
   "planSlug": "cycle-hits-move-pick",
-  "parentPlanPath": "C:\\Users\\nadavcoh\\.cursor\\plans\\cycle_hits_move_pick_3cd004dc.plan.md",
+  "parentPlanPath": "C:\\Users\\nadavcoh\\.cursor\\plans\\rings_ux_full_plan_3068da5d.plan.md",
+  "legacyParentPlanPath": "C:\\Users\\nadavcoh\\.cursor\\plans\\cycle_hits_move_pick_3cd004dc.plan.md",
   "destRoot": "doc/battle/preview-debug/plans/cycle-hits-move-pick",
   "editRoot": "side-branches/preview-debug-friendly/side-branches/simple-preview",
   "copiedAt": "2026-07-26T00:23:56+03:00",
-  "overview": "Blank diagram backdrop + Tab/Shift+Tab cycle hits for move selection on feature/simple-preview.",
+  "pivotedAt": "2026-07-30T00:00:00+03:00",
+  "overview": "Blank diagram backdrop + Manhattan ring move planning (Depthkey, snapshot cache, GridPick hover, Raywalk) on feature/simple-preview. Supersedes ray-hit-list primary UX.",
+  "glossary": {
+    "context": "../../../CONTEXT.md",
+    "definitions": "../../definitions.md"
+  },
   "todos": [
-    { "id": "blank-backdrop", "content": "SpaceBackdrop diagram + neutral light in BattleController", "status": "pending" },
-    { "id": "ray-hit-list", "content": "ListOptionIndicesAlongRay in MovementSelection.cs", "status": "pending" },
-    { "id": "controller-cycle", "content": "BattleController ray cycle + Tab", "status": "pending" },
-    { "id": "hints-accessor", "content": "CombatHints + HoveredMoveIndex", "status": "pending" },
-    { "id": "tests", "content": "RayOptionCycleTests.cs", "status": "pending" }
+    { "id": "blank-backdrop", "content": "SpaceBackdrop diagram + Lighting.ConfigureDiagram in BattleController", "status": "done" },
+    { "id": "world-mapping", "content": "PointMapping.ToCoord + GridPick delegates to it", "status": "done" },
+    { "id": "move-preview-rings", "content": "MovePreviewRings BuildRingTable + attach to PresentationFrame", "status": "pending" },
+    { "id": "controller-cycle", "content": "BattleController Depthkey, Raywalk, ring hover, click modes", "status": "pending" },
+    { "id": "hints-accessor", "content": "CombatHints + HoveredMoveIndex + ring hint lines", "status": "pending" },
+    { "id": "tests", "content": "MovePreviewRingTests.cs", "status": "pending" },
+    { "id": "format-momentum-home", "content": "Move FormatMomentum to CombatHints (optional cleanup)", "status": "pending" }
   ],
   "files": [
     { "relativePath": "src/battle/presentation/graphics/SpaceBackdrop.cs", "subplanPath": "subplans/src-battle-presentation-graphics-SpaceBackdrop.cs.plan.md", "todoIds": ["blank-backdrop"], "dependsOn": [] },
-    { "relativePath": "src/battle/presentation/graphics/RedDwarfSun.cs", "subplanPath": "subplans/src-battle-presentation-graphics-RedDwarfSun.cs.plan.md", "todoIds": ["blank-backdrop"], "dependsOn": [] },
-    { "relativePath": "src/battle/presentation/scene/BattleController.cs", "subplanPath": "subplans/src-battle-presentation-scene-BattleController.cs.plan.md", "todoIds": ["blank-backdrop", "controller-cycle"], "dependsOn": ["src/battle/presentation/graphics/SpaceBackdrop.cs", "src/battle/presentation/graphics/RedDwarfSun.cs", "src/battle/presentation/ui/MovementSelection.cs"] },
-    { "relativePath": "src/battle/presentation/ui/MovementSelection.cs", "subplanPath": "subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md", "todoIds": ["ray-hit-list"], "dependsOn": [] },
-    { "relativePath": "src/battle/presentation/ui/BattlePresenter.cs", "subplanPath": "subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md", "todoIds": ["hints-accessor"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/graphics/Lighting.cs", "subplanPath": "subplans/src-battle-presentation-graphics-Lighting.cs.plan.md", "todoIds": ["blank-backdrop"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/PointMapping.cs", "subplanPath": "subplans/src-battle-presentation-PointMapping.cs.plan.md", "todoIds": ["world-mapping"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/picking/GridPick.cs", "subplanPath": "subplans/src-battle-presentation-picking-GridPick.cs.plan.md", "todoIds": ["world-mapping"], "dependsOn": ["src/battle/presentation/PointMapping.cs"] },
+    { "relativePath": "src/battle/presentation/ui/MovePreviewRings.cs", "subplanPath": "subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md", "todoIds": ["move-preview-rings"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/ui/BattlePresenter.cs", "subplanPath": "subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md", "todoIds": ["move-preview-rings", "hints-accessor"], "dependsOn": ["src/battle/presentation/ui/MovePreviewRings.cs"] },
+    { "relativePath": "src/battle/presentation/scene/BattleController.cs", "subplanPath": "subplans/src-battle-presentation-scene-BattleController.cs.plan.md", "todoIds": ["blank-backdrop", "controller-cycle"], "dependsOn": ["src/battle/presentation/graphics/SpaceBackdrop.cs", "src/battle/presentation/graphics/Lighting.cs", "src/battle/presentation/ui/MovePreviewRings.cs", "src/battle/presentation/picking/GridPick.cs", "src/battle/presentation/ui/BattlePresenter.cs"] },
+    { "relativePath": "src/battle/presentation/ui/MovementSelection.cs", "subplanPath": "subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md", "todoIds": ["controller-cycle"], "dependsOn": [] },
     { "relativePath": "src/battle/presentation/ui/Combat.cs", "subplanPath": "subplans/src-battle-presentation-ui-Combat.cs.plan.md", "todoIds": ["hints-accessor"], "dependsOn": [] },
-    { "relativePath": "grim-space.Tests/Presentation/RayOptionCycleTests.cs", "subplanPath": "subplans/grim-space.Tests-Presentation-RayOptionCycleTests.cs.plan.md", "todoIds": ["tests"], "dependsOn": ["src/battle/presentation/ui/MovementSelection.cs"] }
+    { "relativePath": "grim-space.Tests/Presentation/MovePreviewRingTests.cs", "subplanPath": "subplans/grim-space.Tests-Presentation-MovePreviewRingTests.cs.plan.md", "todoIds": ["tests"], "dependsOn": ["src/battle/presentation/ui/MovePreviewRings.cs"] }
   ]
 }

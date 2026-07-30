@@ -22,7 +22,7 @@ public partial class MissileRangeIndicator : Node3D
 		}
 
 		EnsureMesh(rangeTiles);
-		Position = WorldMapping.ToWorld(shipCell.Value);
+		Position = PointMapping.ToWorld(shipCell.Value);
 		_mesh!.Visible = true;
 	}
 
@@ -35,7 +35,7 @@ public partial class MissileRangeIndicator : Node3D
 		_mesh = null;
 		_meshRange = rangeTiles;
 
-		var radius = rangeTiles * WorldMapping.CellSize;
+		var radius = rangeTiles * PointMapping.CellSize;
 		_mesh = new MeshInstance3D
 		{
 			Mesh = CreateManhattanShell(radius),

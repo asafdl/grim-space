@@ -58,7 +58,7 @@ public partial class UnitView : Node3D
 
 	public void SyncFromState(State displayState)
 	{
-		Position = WorldMapping.ToWorld(displayState.Position);
+		Position = PointMapping.ToWorld(displayState.Position);
 		SyncOrientation(displayState);
 		SyncStatus(displayState);
 	}

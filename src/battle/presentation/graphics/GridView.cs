@@ -189,8 +189,8 @@ public partial class GridView : Node3D
 
 		var cell = new MeshInstance3D
 		{
-			Mesh = new BoxMesh { Size = Vector3.One * WorldMapping.CellSize * 0.92f },
-			Position = WorldMapping.ToWorld(coord),
+			Mesh = new BoxMesh { Size = Vector3.One * PointMapping.CellSize * 0.92f },
+			Position = PointMapping.ToWorld(coord),
 			MaterialOverride = material,
 		};
 		AddChild(cell);
