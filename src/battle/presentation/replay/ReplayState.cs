@@ -19,8 +19,6 @@ public sealed class ReplayState
 
 	public State StateOf(string actorId) => _states[actorId];
 
-	public Coord Position(string actorId) => _states[actorId].Position;
-
 	public void ApplyHeadingTurn(HeadingTurnAction turn) =>
 		Orientation.ApplyHeadingTurn(_states[turn.ActorId], turn.Turn);
 

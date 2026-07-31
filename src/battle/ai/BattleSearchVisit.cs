@@ -18,9 +18,6 @@ internal readonly record struct CapabilitySearchState(
 
 internal static class BattleSearchVisit
 {
-	public static SearchVisitState MoveVisit(BattleSimulation sim, string actorId) =>
-		ForCapabilities(sim, actorId);
-
 	public static SearchVisitState ForCapabilities(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);

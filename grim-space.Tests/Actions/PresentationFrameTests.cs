@@ -1,7 +1,9 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
+using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -64,7 +66,7 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
 
-		Assert.True(ui.TryQueueRailgun(origin + Coord.Forward));
+		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward));
 		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 		Assert.Single(battle.Sim.Actions);
 
@@ -82,7 +84,7 @@ public sealed class PresentationFrameTests
 		var ui = new BattleUi(battle);
 		var pickCell = origin + new Coord(1, 1, 0);
 
-		Assert.True(ui.TryQueueFlak(pickCell));
+		Assert.True(FlakUi.TryApply(battle, ui.State, pickCell));
 		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
 
 		Assert.True(ui.Undo());
@@ -102,7 +104,7 @@ public sealed class PresentationFrameTests
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
 		Assert.True(ui.TryQueueMove(threeStepIndex, options));
-		Assert.True(ui.TryQueueRailgun(origin + Coord.Forward * 4));
+		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward * 4));
 
 		Assert.Equal(4, battle.Sim.Actions.Count);
 
@@ -127,7 +129,7 @@ public sealed class PresentationFrameTests
 		var pathAfterMove = ui.State.CommittedMovePath.ToList();
 		Assert.NotEmpty(pathAfterMove);
 
-		Assert.True(ui.TryQueueRailgun(origin + Coord.Forward * 4));
+		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward * 4));
 		Assert.True(ui.Undo());
 
 		Assert.Equal(pathAfterMove, ui.State.CommittedMovePath);

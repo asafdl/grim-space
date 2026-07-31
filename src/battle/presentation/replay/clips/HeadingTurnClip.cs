@@ -11,7 +11,7 @@ public sealed class HeadingTurnClip : IReplayClip
 	{
 		var heading = (HeadingTurnAction)action;
 		context.ReplayState.ApplyHeadingTurn(heading);
-		context.SyncUnit(heading.ActorId);
+		context.UnitViews[heading.ActorId].Sync(context.ReplayState.StateOf(heading.ActorId));
 		return ClipPlayback.Instant;
 	}
 }

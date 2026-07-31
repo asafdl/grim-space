@@ -75,7 +75,7 @@ public sealed class InvariantTests
 		var sawIncomplete = false;
 		var sawImpossibleEndpoint = false;
 
-		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			var runtime = frame.Runtimes.For(PlayerId);
 			if (!runtime.IsMovePathStarted)

@@ -55,9 +55,6 @@ public sealed class BattleOrchestrator
 
 	public MoveUi MoveUi { get; private set; } = null!;
 
-	public IReadOnlyDictionary<string, UnitState> LiveUnitStates =>
-		_engine.World.Units.ToDictionary(pair => pair.Key, pair => pair.Value.State.Clone());
-
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);

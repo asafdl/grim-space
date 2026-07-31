@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using Godot;
-using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -42,7 +43,40 @@ public partial class GridView : Node3D
 		_flakPreviewMaterial = CreateMaterial(new Color(1f, 0.85f, 0.25f, 0.7f));
 	}
 
-	public void ClearHighlights() => ReleaseActiveHighlights();
+	public void ApplyFrame(PresentationFrame frame)
+	{
+		if (frame.ActiveUnit is null || frame.ShowOutcomeOverlay)
+		{
+			ReleaseActiveHighlights();
+			return;
+		}
+
+		switch (frame.Mode)
+		{
+			case EPlayerMode.Move:
+				SetMoveHighlights(
+					frame.MoveOptions,
+					frame.MovePath,
+					frame.MoveTarget,
+					frame.PreviewHazardCells);
+				break;
+
+			case EPlayerMode.Flak:
+				SetFlakHighlights(
+					frame.PreviewHazardCells,
+					frame.ValidFlakPortCells,
+					frame.ValidFlakStarboardCells,
+					frame.FlakPreviewCells);
+				break;
+
+			case EPlayerMode.Railgun:
+				SetRailgunHighlights(
+					frame.RailgunCells,
+					frame.RailgunPreviewCells,
+					frame.PreviewHazardCells);
+				break;
+		}
+	}
 
 	public void SetMoveHighlights(
 		IReadOnlyList<Option> options,

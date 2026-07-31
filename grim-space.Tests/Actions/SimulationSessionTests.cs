@@ -140,7 +140,7 @@ public sealed class SimulationSessionTests
 		var startCount = session.Actions.Count;
 		var results = new Dictionary<Coord, GrimSpace.Battle.Movement.Option>();
 
-		foreach (var searchFrame in session.Search("player", [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var searchFrame in session.Search("player", [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			var moveSteps = searchFrame.Actions
 				.Skip(startCount)

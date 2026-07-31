@@ -11,7 +11,7 @@ public sealed class RollClip : IReplayClip
 	{
 		var roll = (RollAction)action;
 		context.ReplayState.ApplyRoll(roll);
-		context.SyncUnit(roll.ActorId);
+		context.UnitViews[roll.ActorId].Sync(context.ReplayState.StateOf(roll.ActorId));
 		return ClipPlayback.Instant;
 	}
 }

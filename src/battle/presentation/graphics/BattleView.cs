@@ -29,6 +29,4 @@ public partial class BattleView : Node3D
 		foreach (var (unitId, state) in states)
 			_unitViews[unitId].Sync(state);
 	}
-
-	public UnitView GetUnit(string id) => _unitViews[id];
 }

@@ -70,7 +70,6 @@ public sealed class MoveUiTests
 			.Search(battle.PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities)
 			.First(frame => frame.Actions is [HeadingTurnAction { Turn: EHeadingTurn.YawRight }]);
 
-		Assert.Equal(MoveUi.PrefixKeyForTests(matchingFrame.Actions), MoveUi.PrefixKeyForTests(battle.Sim.Actions));
 		Assert.True(battle.MoveUi.TryLocate(battle.Sim.Actions, out _));
 
 		var afterHeading = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();

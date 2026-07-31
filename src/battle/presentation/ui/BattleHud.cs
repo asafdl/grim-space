@@ -35,7 +35,7 @@ public partial class BattleHud : Node
 		_hintLabel.Visible = !frame.ShowOutcomeOverlay;
 		_hintLabel.Text = frame.HintText;
 
-		OutcomeOverlay.SetVisible(frame.ShowOutcomeOverlay);
+		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.PlayerWon);
 
@@ -48,10 +48,10 @@ public partial class BattleHud : Node
 
 		if (frame.ShowOutcomeOverlay)
 		{
-			OrientationHud.Show(false);
+			OrientationHud.Visible = false;
 			return;
 		}
 
-		OrientationHud.Show(frame.CanAct && frame.Mode != EPlayerMode.Flak);
+		OrientationHud.Visible = frame.CanAct && frame.Mode != EPlayerMode.Flak;
 	}
 }

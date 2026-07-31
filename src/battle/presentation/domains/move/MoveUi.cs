@@ -74,30 +74,28 @@ public sealed class MoveUi
 		return battle.MoveUi.GetMoveOptions(battle.Sim.Actions);
 	}
 
-	public static IReadOnlyList<MoveStepAction>? Translate(
-		BattleSimulation sim,
-		string actorId,
-		Option option)
-	{
-		var actor = sim.StateOf<ActorState>(actorId);
-		try
-		{
-			return MoveDef.StepsFromPath(actorId, BodyFrame.From(actor), actor.Position, option.Path);
-		}
-		catch (InvalidOperationException)
-		{
-			return null;
-		}
-	}
-
 	public static bool TryApply(BattleOrchestrator battle, Interaction.InteractionState state, Option option)
 	{
 		var actor = battle.GetActiveActor();
 		if (actor is null || !battle.CanAct(actor))
 			return false;
 
-		var steps = Translate(battle.Sim, battle.PlayerId, option);
-		if (steps is null || !battle.Sim.TryEnqueue(actions: [..steps]))
+		var actorState = battle.Sim.StateOf<ActorState>(battle.PlayerId);
+		IReadOnlyList<MoveStepAction> steps;
+		try
+		{
+			steps = MoveDef.StepsFromPath(
+				battle.PlayerId,
+				BodyFrame.From(actorState),
+				actorState.Position,
+				option.Path);
+		}
+		catch (InvalidOperationException)
+		{
+			return false;
+		}
+
+		if (!battle.Sim.TryEnqueue(actions: [..steps]))
 			return false;
 
 		state.CommittedMovePath = option.Path;
@@ -164,8 +162,6 @@ public sealed class MoveUi
 		actions.Count == 0
 			? string.Empty
 			: string.Join('|', actions.Select(ActionKey));
-
-	internal static string PrefixKeyForTests(IReadOnlyList<IAction> actions) => PrefixKey(actions);
 
 	private static bool PrefixStartsWith(IReadOnlyList<IAction> actions, IReadOnlyList<IAction> prefix)
 	{

@@ -11,7 +11,7 @@ public sealed class ResolveHazardClip : IReplayClip
 	{
 		var resolve = (ResolveHazardAction)action;
 		foreach (var unitId in context.ReplayState.ApplyResolveHazard(resolve))
-			context.SyncUnit(unitId);
+			context.UnitViews[unitId].Sync(context.ReplayState.StateOf(unitId));
 
 		return ClipPlayback.Instant;
 	}

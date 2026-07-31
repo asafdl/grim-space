@@ -16,8 +16,6 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		Visible = false;
 	}
 
-	public new void SetVisible(bool visible) => Visible = visible;
-
 	public void SetOutcome(bool playerWon) => _title.Text = playerWon ? "You Win!" : "You Lose";
 
 	private void Build()

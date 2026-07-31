@@ -66,7 +66,7 @@ public sealed class SimulationSearchTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var maxDepth = 0;
 
-		foreach (var frame in battle.Sim.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var frame in battle.Sim.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 			maxDepth = System.Math.Max(maxDepth, frame.Depth);
 
 		Assert.True(maxDepth <= expectedMaxDepth, maxDepth.ToString());
@@ -85,7 +85,7 @@ public sealed class SimulationSearchTests
 		var apBefore = session.StateOf<ActorState>(PlayerId).ActionPoints;
 
 		var foundExtension = false;
-		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			if (frame.Actions.Count > actionsBefore.Count)
 			{

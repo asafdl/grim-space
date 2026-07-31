@@ -147,7 +147,7 @@ public sealed class MovePathSearchTests
 		var actionsBefore = session.Actions.ToList();
 		var positionBefore = session.StateOf<ActorState>(PlayerId).Position;
 
-		foreach (var _ in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit)) { }
+		foreach (var _ in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities)) { }
 
 		Assert.Equal(actionsBefore, session.Actions);
 		Assert.Equal(positionBefore, session.StateOf<ActorState>(PlayerId).Position);
@@ -197,7 +197,7 @@ public sealed class MovePathSearchTests
 		var startCount = session.Actions.Count;
 		var results = new Dictionary<Coord, Option>();
 
-		foreach (var searchFrame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.MoveVisit))
+		foreach (var searchFrame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			var steps = searchFrame.Actions
 				.Skip(startCount)

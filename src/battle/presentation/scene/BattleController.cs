@@ -1,11 +1,16 @@
 using Godot;
+using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation.Camera;
+using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
+using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -26,7 +31,6 @@ public partial class BattleController : Node3D
 	private BattleUi _ui = null!;
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
-	private PreviewOverlay _previewOverlay = null!;
 	private BattleHud _battleHud = null!;
 
 	private GridView _gridView = null!;
@@ -78,10 +82,6 @@ public partial class BattleController : Node3D
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, battle.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
 
-		_previewOverlay = new PreviewOverlay { Name = "PreviewOverlay" };
-		_previewOverlay.Configure(_gridView);
-		AddChild(_previewOverlay);
-
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
 		AddChild(_battleHud);
@@ -124,7 +124,7 @@ public partial class BattleController : Node3D
 			_moveHoverCache.Options,
 			_ui.State.MoveHoveredIndex,
 			_moveHoverCache.CommittedPath);
-		_previewOverlay.ApplyMoveHover(
+		_gridView.SetMoveHighlights(
 			_moveHoverCache.Options,
 			path,
 			target,
@@ -135,7 +135,7 @@ public partial class BattleController : Node3D
 	{
 		_battleHud.OrientationHud.HeadingTurnRequested += turn =>
 		{
-			if (_ui.TryQueueHeadingTurn(turn))
+			if (TryEnqueue(new HeadingTurnAction(_ui.Battle.PlayerId, turn)))
 			{
 				_lastHoveredMoveIndex = null;
 				Refresh();
@@ -143,7 +143,7 @@ public partial class BattleController : Node3D
 		};
 		_battleHud.OrientationHud.RollRequested += direction =>
 		{
-			if (_ui.TryQueueRoll(direction))
+			if (TryEnqueue(new RollAction(_ui.Battle.PlayerId, direction)))
 			{
 				_lastHoveredMoveIndex = null;
 				Refresh();
@@ -252,12 +252,12 @@ public partial class BattleController : Node3D
 
 			case EPlayerMode.Flak:
 				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells) is { } flakCell)
-					_ui.TryQueueFlak(flakCell);
+					FlakUi.TryApply(_ui.Battle, _ui.State, flakCell);
 				break;
 
 			case EPlayerMode.Railgun:
 				if (GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells) is { } railgunCell)
-					_ui.TryQueueRailgun(railgunCell);
+					RailgunUi.TryApply(_ui.Battle, _ui.State, railgunCell);
 				break;
 		}
 
@@ -301,6 +301,14 @@ public partial class BattleController : Node3D
 		Refresh();
 	}
 
+	private bool TryEnqueue(IAction action)
+	{
+		var actor = _ui.Battle.GetActiveActor();
+		return actor is not null
+			&& _ui.Battle.CanAct(actor)
+			&& _ui.Battle.Sim.TryEnqueue(action);
+	}
+
 	private Color ColorForActor(string actorId) =>
 		_ui.Battle.Layout.Participants.TryGetValue(actorId, out var controller)
 			? ColorFor(controller)
@@ -309,7 +317,7 @@ public partial class BattleController : Node3D
 	private void ApplyFrame(PresentationFrame frame)
 	{
 		ApplyUnitStates(frame);
-		_previewOverlay.Apply(frame);
+		_gridView.ApplyFrame(frame);
 		_battleHud.Apply(frame);
 	}
 

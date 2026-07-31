@@ -15,8 +15,6 @@ public sealed partial class ShipOrientationHud : CanvasLayer
 		Visible = false;
 	}
 
-	public void Show(bool show) => Visible = show;
-
 	private void Build()
 	{
 		var margin = new MarginContainer

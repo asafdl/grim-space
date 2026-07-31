@@ -1,6 +1,4 @@
 using Godot;
-using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Presentation.Camera;
 
@@ -15,9 +13,6 @@ public partial class Controller : Camera3D
 	private const float MaxDistance = 280f;
 	private const float MinPitch = -1.2f;
 	private const float MaxPitch = 1.2f;
-	private const float ForeAimBackOffset = 7f;
-	private const float ForeAimUpOffset = 4.5f;
-	private const float ForeAimLookAhead = 22f;
 
 	private Vector3 _pivot;
 	private float _yaw;
@@ -26,11 +21,6 @@ public partial class Controller : Camera3D
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
 	private bool _panning;
-	private bool _aimLocked;
-	private Vector3 _savedPivot;
-	private float _savedYaw;
-	private float _savedPitch;
-	private float _savedDistance;
 
 	public void SetPivot(Vector3 pivot)
 	{
@@ -49,46 +39,8 @@ public partial class Controller : Camera3D
 		ApplyTransform();
 	}
 
-	public void EnterForeAim(State ship)
-	{
-		if (!_aimLocked)
-		{
-			_savedPivot = _pivot;
-			_savedYaw = _yaw;
-			_savedPitch = _pitch;
-			_savedDistance = _distance;
-		}
-
-		_aimLocked = true;
-		_orbiting = false;
-		_panning = false;
-
-		_pivot = WorldMapping.ToWorld(ship.Position);
-		var fore = ToVector3(ship.Fore).Normalized();
-		var dorsal = ToVector3(ship.Dorsal).Normalized();
-
-		GlobalPosition = _pivot - fore * ForeAimBackOffset + dorsal * ForeAimUpOffset;
-		LookAt(_pivot + fore * ForeAimLookAhead, dorsal);
-	}
-
-	public void ExitAim()
-	{
-		if (!_aimLocked)
-			return;
-
-		_aimLocked = false;
-		_pivot = _savedPivot;
-		_yaw = _savedYaw;
-		_pitch = _savedPitch;
-		_distance = _savedDistance;
-		ApplyTransform();
-	}
-
 	public override void _Process(double delta)
 	{
-		if (_aimLocked)
-			return;
-
 		var pan = Vector2.Zero;
 		if (Input.IsKeyPressed(Key.W))
 			pan.Y -= 1f;
@@ -118,8 +70,6 @@ public partial class Controller : Camera3D
 
 	public override void _Input(InputEvent @event)
 	{
-		if (_aimLocked)
-			return;
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mouseButton:
@@ -229,7 +179,4 @@ public partial class Controller : Camera3D
 		GlobalPosition = _pivot + offset;
 		LookAt(_pivot);
 	}
-
-	private static Vector3 ToVector3(Coord coord) =>
-		new(coord.X, coord.Y, coord.Z);
 }

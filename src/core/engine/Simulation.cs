@@ -143,12 +143,6 @@ public class Simulation<TWorld, TRuntime>
 		return true;
 	}
 
-	public IReadOnlyList<IAction> Commit() =>
-		TryCommit(out var actions, out _)
-			? actions
-			: throw new InvalidOperationException(
-				$"Cannot commit while invariant status is {_invariantStatus}.");
-
 	public IEnumerable<SearchFrame<TWorld, TRuntime>> Search<TEffect>(
 		string actorId,
 		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,

@@ -16,7 +16,4 @@ public sealed class ReplayClipContext(
 	public TurnHistoryView TurnHistory { get; } = turnHistory;
 	public HazardBurstView HazardBursts { get; } = hazardBursts;
 	public Func<string, Color> ColorFor { get; } = colorFor;
-
-	public void SyncUnit(string actorId) =>
-		UnitViews[actorId].Sync(ReplayState.StateOf(actorId));
 }

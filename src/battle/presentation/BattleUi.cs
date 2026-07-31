@@ -1,11 +1,12 @@
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
-using GrimSpace.Battle.Presentation.Domains.Orientation;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation;
@@ -38,13 +39,69 @@ public sealed class BattleUi
 		return MoveUi.TryApply(Battle, State, options[optionIndex]);
 	}
 
-	public bool TryQueueFlak(Coord cell) => FlakUi.TryApply(Battle, State, cell);
+	public PresentationFrame BuildFrame()
+	{
+		var state = State;
+		var activeUnit = Battle.GetActiveActor();
+		var moveOptions = MoveUi.GetMoveOptions(Battle, activeUnit);
+		state.ClampMoveHover(moveOptions.Count);
 
-	public bool TryQueueRailgun(Coord cell) => RailgunUi.TryApply(Battle, State, cell);
+		var previewWorld = TurnUi.GetPreviewWorld(Battle);
+		var hazardCells = TurnUi.GetPreviewHazardCells(Battle);
+		var validFlakPortCells = state.Mode == EPlayerMode.Flak
+			? FlakUi.GetBurstCells(Battle, EFlakMount.Port)
+			: [];
+		var validFlakStarboardCells = state.Mode == EPlayerMode.Flak
+			? FlakUi.GetBurstCells(Battle, EFlakMount.Starboard)
+			: [];
+		var validFlakPickCells = new HashSet<Coord>(validFlakPortCells);
+		validFlakPickCells.UnionWith(validFlakStarboardCells);
+		var flakPreviewCells = state.Mode == EPlayerMode.Flak
+			? FlakUi.GetPreviewCells(Battle, state)
+			: [];
+		var railgunCells = state.Mode == EPlayerMode.Railgun
+			? RailgunUi.GetBurstCells(Battle)
+			: [];
+		var railgunPreviewCells = state.Mode == EPlayerMode.Railgun
+			? RailgunUi.GetPreviewCells(Battle, state)
+			: [];
+		var (path, target) = MoveUi.GetPathHighlights(
+			moveOptions,
+			state.MoveHoveredIndex,
+			state.CommittedMovePath);
 
-	public bool TryQueueRoll(ERollDirection direction) => OrientationUi.TryApplyRoll(Battle, direction);
+		var actorId = Battle.PlayerId;
+		var actorState = previewWorld.StateOf(actorId);
 
-	public bool TryQueueHeadingTurn(EHeadingTurn turn) => OrientationUi.TryApplyHeadingTurn(Battle, turn);
-
-	public PresentationFrame BuildFrame() => BattleFrameBuilder.Build(Battle, State);
+		return new PresentationFrame
+		{
+			Mode = state.Mode,
+			ActiveUnit = activeUnit,
+			MoveOptions = moveOptions,
+			PreviewWorld = previewWorld,
+			ActorState = actorState,
+			PreviewHazardCells = hazardCells,
+			ValidFlakPortCells = validFlakPortCells,
+			ValidFlakStarboardCells = validFlakStarboardCells,
+			FlakPreviewCells = flakPreviewCells,
+			ValidFlakPickCells = validFlakPickCells,
+			RailgunCells = railgunCells,
+			RailgunPreviewCells = railgunPreviewCells,
+			MovePath = path,
+			MoveTarget = target,
+			HintText = TurnUi.BuildHint(
+				Battle,
+				state,
+				activeUnit,
+				actorState,
+				Battle.Sim.Actions.Count),
+			CanAct = !Battle.IsBattleOver && activeUnit is not null && !Battle.IsResolving,
+			FlakAvailable = Capabilities.For(actorState.Type)
+				.OfType<FlakDef>()
+				.Any(def => Battle.Sim.Peek(new FlakAction(Battle.PlayerId, def.Mount)) is not null),
+			RailgunAvailable = Battle.Sim.Peek(new RailgunAction(Battle.PlayerId)) is not null,
+			ShowOutcomeOverlay = Battle.IsBattleOver,
+			PlayerWon = Battle.IsBattleOver && Battle.WinnerId == Battle.PlayerId,
+		};
+	}
 }
