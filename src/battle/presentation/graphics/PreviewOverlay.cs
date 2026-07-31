@@ -1,7 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
