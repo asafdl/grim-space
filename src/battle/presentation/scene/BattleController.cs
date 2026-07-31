@@ -45,7 +45,12 @@ public partial class BattleController : Node3D
 
 		_camera = GetNode<Controller>("Camera3D");
 		_gridView = GetNode<GridView>("GridView");
-		_gridView.Build(layout.Grid);
+		var dotRegion = GridDotRegion.FromCombatReach(
+			layout.Grid,
+			battle.Sim,
+			layout.Participants.Keys,
+			_gridView.DotPaddingCells);
+		_gridView.Build(layout.Grid, dotRegion);
 
 		var gridCenter = PointMapping.GridCenter(layout.Grid);
 		_camera.SetPivot(gridCenter);
@@ -72,6 +77,7 @@ public partial class BattleController : Node3D
 
 		SetupHintLabel();
 		SetupActionBar();
+		SetupGridDotStridePanel();
 		SetupOutcomeOverlay();
 		SetupOrientationHud();
 
@@ -105,26 +111,16 @@ public partial class BattleController : Node3D
 		Refresh();
 	}
 
-	private void SetupOrientationHud()
+	private void SetupGridDotStridePanel()
 	{
-		_orientationHud = new ShipOrientationHud();
-		_orientationHud.HeadingTurnRequested += turn =>
-		{
-			if (_ui.TryQueueHeadingTurn(turn))
-			{
-				_lastHoveredMoveIndex = null;
-				Refresh();
-			}
-		};
-		_orientationHud.RollRequested += direction =>
-		{
-			if (_ui.TryQueueRoll(direction))
-			{
-				_lastHoveredMoveIndex = null;
-				Refresh();
-			}
-		};
-		AddChild(_orientationHud);
+		var panel = new GridDotStridePanel(_gridView.DotStride);
+		panel.StrideChanged += stride => _gridView.SetDotStride(stride);
+		panel.CameraPlaneToggled += enabled =>
+			_gridView.SetDotPlacementMode(
+				enabled ? GridDotPlacementMode.CameraPlane : GridDotPlacementMode.Volume);
+		_gridView.DotPlaneLabelChanged += panel.SetActivePlaneLabel;
+		_gridView.SetDotCamera(_camera);
+		AddChild(panel);
 	}
 
 	private void SetupOutcomeOverlay()
@@ -150,6 +146,28 @@ public partial class BattleController : Node3D
 		_actionBar.MissileMountSelected += mount => { _ui.SelectMissileMount(mount); Refresh(); };
 		_actionBar.EndTurnRequested += TryEndTurn;
 		AddChild(_actionBar);
+	}
+
+	private void SetupOrientationHud()
+	{
+		_orientationHud = new ShipOrientationHud();
+		_orientationHud.HeadingTurnRequested += turn =>
+		{
+			if (_ui.TryQueueHeadingTurn(turn))
+			{
+				_lastHoveredMoveIndex = null;
+				Refresh();
+			}
+		};
+		_orientationHud.RollRequested += direction =>
+		{
+			if (_ui.TryQueueRoll(direction))
+			{
+				_lastHoveredMoveIndex = null;
+				Refresh();
+			}
+		};
+		AddChild(_orientationHud);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)

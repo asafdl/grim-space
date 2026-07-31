@@ -62,10 +62,12 @@ public static class MoveUi
 		return ([], null);
 	}
 
-	private static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle)
+	private static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle) =>
+		GetReachOptionsForActor(battle.Sim, battle.PlayerId);
+
+	/// <summary>Legal move endpoints for an actor at the current simulation snapshot (turn-start preview).</summary>
+	public static IReadOnlyList<Option> GetReachOptionsForActor(BattleSimulation sim, string actorId)
 	{
-		var actorId = battle.PlayerId;
-		var sim = battle.Sim;
 		if (sim.RuntimeFor(actorId).IsMovePathStarted)
 			return [];
 
