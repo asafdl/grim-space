@@ -4,7 +4,7 @@ targetFile: grim-space.Tests/Presentation/MovePreviewRingTests.cs
 todoIds: [tests]
 dependsOn:
   - src/battle/presentation/ui/MovePreviewRings.cs
-status: pending
+status: done
 ---
 
 # Subplan: `MovePreviewRingTests.cs` *(new)*

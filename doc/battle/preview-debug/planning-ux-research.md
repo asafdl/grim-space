@@ -8,7 +8,7 @@ Notes on reference games, three design questions (plane slicing, keyboard step-c
 
 - Battle uses a **3D cell lattice** ([`Grid`](../../../src/math/grid/Grid.cs): `Width` × `Height` × `Depth`).
 - Movement is **ship-relative 6-neighbor** steps ([`EStepDirection`](../../../src/battle/movement/enums/EStepDirection.cs)), not eight-way movement on a floor tile.
-- Planning today: **mouse ray → legal endpoint `Option` → enqueue full path** ([`MovementSelection.PickOptionIndex`](../../../src/battle/presentation/ui/MovementSelection.cs), [`BattlePresenter.TryQueueMove`](../../../src/battle/presentation/ui/BattlePresenter.cs)).
+- Planning today: **mouse ray → legal endpoint `Option` → enqueue full path** ([`MovementSelection.PickOptionIndex`](../../../src/battle/presentation/ui/MovementSelection.cs), [`BattleUi.TryQueueMove`](../../../src/battle/presentation/BattleUi.cs)).
 - Camera: **WASD pans**, orbit/zoom; not used for discrete move steps ([`Controller`](../../../src/battle/presentation/camera/Controller.cs)).
 
 ---

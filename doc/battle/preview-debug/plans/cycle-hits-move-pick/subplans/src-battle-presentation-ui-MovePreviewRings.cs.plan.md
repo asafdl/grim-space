@@ -3,7 +3,7 @@ parentPlan: ../full.plan.md
 targetFile: src/battle/presentation/ui/MovePreviewRings.cs
 todoIds: [move-preview-rings]
 dependsOn: []
-status: pending
+status: done
 ---
 
 # Subplan: `MovePreviewRings.cs` *(new)*
@@ -45,7 +45,7 @@ New file — no legacy behavior.
 ## Done when
 
 - Table builds in O(n) over options; empty **`MoveOptions`** → **`RingCount == 0`**.
-- [BattlePresenter subplan](src-battle-presentation-ui-BattlePresenter.cs.plan.md) attaches table to **`PresentationFrame`** on snapshot change only.
+- [BattleFrameBuilder subplan](src-battle-presentation-BattleFrameBuilder.cs.plan.md) attaches table to **`PresentationFrame`** on snapshot change only.
 
 ## Edge cases
 

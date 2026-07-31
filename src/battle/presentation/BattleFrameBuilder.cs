@@ -54,7 +54,7 @@ public static class BattleFrameBuilder
 		var actorId = battle.PlayerId;
 		var actorState = previewWorld.StateOf(actorId);
 		var missileInRange = MissileUi.IsHoverLegal(battle, state);
-
+		var movePreviewRingTable = MovePreviewRings.BuildRingTable(actorState.Position, moveOptions);
 		return new PresentationFrame
 		{
 			Mode = state.Mode,
@@ -62,6 +62,7 @@ public static class BattleFrameBuilder
 			MissileRange = state.MissileRange,
 			ActiveUnit = activeUnit,
 			MoveOptions = moveOptions,
+			MovePreviewRingTable = movePreviewRingTable,
 			PreviewWorld = previewWorld,
 			ActorState = actorState,
 			PreviewHazardCells = hazardCells,

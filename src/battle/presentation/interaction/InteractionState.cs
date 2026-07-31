@@ -17,6 +17,11 @@ public sealed class InteractionState
 	public Unit? RailgunHover { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 	public IReadOnlyList<Coord> CommittedMovePath { get; set; } = [];
+	public int ActiveRingIndex { get; private set; } = 0;
+
+	public void SyncActiveRingForSnapshot(PresentationFrame frame)  {
+		
+	}
 
 	public void ClearInteraction()
 	{

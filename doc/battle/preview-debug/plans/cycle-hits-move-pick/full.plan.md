@@ -3,22 +3,22 @@ parentPlanPath: C:\Users\nadavcoh\.cursor\plans\rings_ux_full_plan_3068da5d.plan
 planSlug: cycle-hits-move-pick
 copiedAt: 2026-07-26T00:23:56+03:00
 pivotedAt: 2026-07-30T00:00:00+03:00
-overview: On feature/simple-preview ó blank diagram backdrop plus Manhattan ring move planning (Depthkey, snapshot cache, GridPick hover, Raywalk; presentation only).
+overview: On feature/simple-preview ù blank diagram backdrop plus Manhattan ring move planning (Depthkey, snapshot cache, GridPick hover, Raywalk; presentation only).
 branch: feature/simple-preview
 editRoot: side-branches/preview-debug-friendly/side-branches/simple-preview
 ---
 
 # Manhattan rings + blank backdrop (simple-preview)
 
-**Glossary:** [definitions.md](../../definitions.md) ∑ [CONTEXT.md](../../../../../CONTEXT.md)
+**Glossary:** [definitions.md](../../definitions.md) ù [CONTEXT.md](../../../../../CONTEXT.md)
 
-**Supersedes:** primary UX based on **`ListOptionIndicesAlongRay`** / ìcycle along sight rayî (legacy [cycle_hits_move_pick](file:///%USERPROFILE%/.cursor/plans/cycle_hits_move_pick_3cd004dc.plan.md)).
+**Supersedes:** primary UX based on **`ListOptionIndicesAlongRay`** / ùcycle along sight rayù (legacy [cycle_hits_move_pick](file:///%USERPROFILE%/.cursor/plans/cycle_hits_move_pick_3cd004dc.plan.md)).
 
 ## Why this plan exists
 
-Battle planning on a **64≥** grid produces many legal move **endpoints**. Picking among all **Options** with a single ray-distance heuristic is ambiguous when endpoints stack in depth. **Manhattan rings** narrow choices to one shell **k** at a time (**Depthkey**). On the active **ring**, **`GridPick.PickFromSet`** chooses the **EndPosition** **cell** closest to the pointer; optional **Raywalk** scrubs near?far along the view on that band.
+Battle planning on a **64ù** grid produces many legal move **endpoints**. Picking among all **Options** with a single ray-distance heuristic is ambiguous when endpoints stack in depth. **Manhattan rings** narrow choices to one shell **k** at a time (**Depthkey**). On the active **ring**, **`GridPick.PickFromSet`** chooses the **EndPosition** **cell** closest to the pointer; optional **Raywalk** scrubs near?far along the view on that band.
 
-Separately, the **space nebula / fog / sun** backdrop reduces contrast on semi-transparent grid highlights ó **diagram backdrop** fixes readability.
+Separately, the **space nebula / fog / sun** backdrop reduces contrast on semi-transparent grid highlights ù **diagram backdrop** fixes readability.
 
 Research: [planning-ux-research.md](../../planning-ux-research.md).
 
@@ -33,7 +33,8 @@ Paths relative to this plan folder ? edit root.
 | [`PointMapping.cs`](../../../../../src/battle/presentation/PointMapping.cs) | [subplans/src-battle-presentation-PointMapping.cs.plan.md](subplans/src-battle-presentation-PointMapping.cs.plan.md) |
 | [`GridPick.cs`](../../../../../src/battle/presentation/picking/GridPick.cs) | [subplans/src-battle-presentation-picking-GridPick.cs.plan.md](subplans/src-battle-presentation-picking-GridPick.cs.plan.md) |
 | [`MovePreviewRings.cs`](../../../../../src/battle/presentation/ui/MovePreviewRings.cs) *(new)* | [subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md](subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md) |
-| [`BattlePresenter.cs`](../../../../../src/battle/presentation/ui/BattlePresenter.cs) | [subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md](subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md) |
+| [`BattleFrameBuilder.cs`](../../../../../src/battle/presentation/BattleFrameBuilder.cs) | [subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md](subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md) |
+| [`InteractionState.cs`](../../../../../src/battle/presentation/Interaction/InteractionState.cs) | [subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md](subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md) |
 | [`BattleController.cs`](../../../../../src/battle/presentation/scene/BattleController.cs) | [subplans/src-battle-presentation-scene-BattleController.cs.plan.md](subplans/src-battle-presentation-scene-BattleController.cs.plan.md) |
 | [`MovementSelection.cs`](../../../../../src/battle/presentation/ui/MovementSelection.cs) | [subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md](subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md) |
 | [`Combat.cs`](../../../../../src/battle/presentation/ui/Combat.cs) | [subplans/src-battle-presentation-ui-Combat.cs.plan.md](subplans/src-battle-presentation-ui-Combat.cs.plan.md) |
@@ -41,14 +42,14 @@ Paths relative to this plan folder ? edit root.
 
 ## Goals
 
-1. **Blank diagram backdrop** ó flat dark environment, neutral light (unchanged from v0 plan).
-2. **Manhattan rings** ó snapshot **ring table** when preview **Position** **A** or **`MoveOptions`** change; **Depthkey** changes active **ring** only (no rebuild).
-3. **Hover** ó on active ring: dedupe one **Option** per **EndPosition**; pick closest **cell** via **`GridPick.PickFromSet`**; **Raywalk** for near?far on that band.
-4. **Click** ó playtest **debug modes** **A / B / C** per [definitions.md ß Click](../../definitions.md#click-target-vs-today); ship one after playtest (mode **C**: **fast click** select on **Raywalk**, **long click** queue).
+1. **Blank diagram backdrop** ù flat dark environment, neutral light (unchanged from v0 plan).
+2. **Manhattan rings** ù snapshot **ring table** when preview **Position** **A** or **`MoveOptions`** change; **Depthkey** changes active **ring** only (no rebuild).
+3. **Hover** ù on active ring: dedupe one **Option** per **EndPosition**; pick closest **cell** via **`GridPick.PickFromSet`**; **Raywalk** for near?far on that band.
+4. **Click** ù playtest **debug modes** **A / B / C** per [definitions.md ù Click](../../definitions.md#click-target-vs-today); ship one after playtest (mode **C**: **fast click** select on **Raywalk**, **long click** queue).
 
 ## Constraints
 
-- **Presentation only** ó no simulation / legality changes.
+- **Presentation only** ù no simulation / legality changes.
 - Keep **`SpaceBackdrop.Build`** / **`Lighting.ConfigureCinematic`** for integration branch.
 - **No** full-grid distance LUT; **snapshot option cache** only.
 - **Do not** add **`ListOptionIndicesAlongRay`** as primary Tab model.
@@ -62,7 +63,7 @@ sequenceDiagram
   participant Frame as PresentationFrame
   participant Rings as MovePreviewRings
   participant GridPick
-  participant Presenter as BattlePresenter
+  participant Ui as BattleUi
   participant GridView
   Note over Frame: snapshot change rebuilds ring table once
   Frame->>Rings: BuildRingTable(A, MoveOptions)
@@ -71,11 +72,11 @@ sequenceDiagram
   Mouse->>BattleController: move / Raywalk
   BattleController->>GridPick: PickFromSet(active ring EndPositions)
   GridPick-->>BattleController: Coord
-  BattleController->>Presenter: SetMoveHover option index
+  BattleController->>Ui: SetMoveHover option index
   BattleController->>BattleController: Refresh BuildFrame
-  Presenter->>GridView: path + endpoint highlights
+  Ui->>GridView: path + endpoint highlights
   Mouse->>BattleController: click (mode A/B/C)
-  BattleController->>Presenter: TryQueueMove per definitions
+  BattleController->>Ui: TryQueueMove per definitions
 ```
 
 Today: `_Process` uses **`PickOptionIndex`** over all options; click re-picks. After: ring-filtered set + stable snapshot cache.
@@ -86,9 +87,9 @@ Today: `_Process` uses **`PickOptionIndex`** over all options; click re-picks. A
 |---------|--------|----------|
 | 0 | Blank backdrop | SpaceBackdrop, Lighting, BattleController (_Ready) |
 | 1 | World ? grid | PointMapping, GridPick |
-| 2 | Snapshot ring table | MovePreviewRings, BattlePresenter |
+| 2 | Snapshot ring table | MovePreviewRings, BattleFrameBuilder |
 | 3 | Depthkey + hover + Raywalk | BattleController, MovementSelection (helpers only) |
-| 4 | Hints + hover accessor | BattlePresenter, Combat |
+| 4 | Hints + hover accessor | InteractionState / BattleUi, Combat |
 | 5 | Tests | MovePreviewRingTests |
 
 ---
@@ -97,7 +98,7 @@ Today: `_Process` uses **`PickOptionIndex`** over all options; click re-picks. A
 
 **`BuildDiagram`**, **`Lighting.ConfigureDiagram`**, **`BattleController._Ready`** wiring. See subplans for SpaceBackdrop, Lighting, BattleController Part A.
 
-**Verification:** F5 ó flat void; grid readable.
+**Verification:** F5 ù flat void; grid readable.
 
 ---
 
@@ -109,7 +110,7 @@ Today: `_Process` uses **`PickOptionIndex`** over all options; click re-picks. A
 
 ### Solution
 
-- Public **`PointMapping.ToCoord(Vector3)`** ó match todayís floor/`CellSize` rule in `GridPick.WorldToCell`.
+- Public **`PointMapping.ToCoord(Vector3)`** ù match todayùs floor/`CellSize` rule in `GridPick.WorldToCell`.
 - **`GridPick`** delegates **`WorldToCell`** ? **`PointMapping.ToCoord`**.
 
 **Verification:** build; picking behavior unchanged for existing modes.
@@ -127,12 +128,12 @@ Filtering **Options** by Manhattan **k** on every frame is wasteful and makes Ta
 - New **`MovePreviewRings.BuildRingTable(Coord actor, IReadOnlyList<Option> options)`** ? **`MovePreviewRingTable`**:
   - **`ShellKValues`**: sorted **k** with =1 deduped endpoint (skip empty shells).
   - **`OptionIndicesOnRing(ringIndex)`**: pre-grouped indices; dedupe **one Option per EndPosition** (lowest **`ApCost`**, then index).
-- Attach table to **`PresentationFrame`** in **`BattlePresenter.BuildFrame`** when **A** or **`MoveOptions`** change.
+- Attach table to **`PresentationFrame`** in **`BattleFrameBuilder.Build`** when **A** or **`MoveOptions`** change.
 - Controller keeps **`_activeRingIndex`**; clamp/reset on snapshot change.
 
-**Verification:** unit tests (ß5); Tab does not rebuild table.
+**Verification:** unit tests (ù5); Tab does not rebuild table.
 
-Design rationale (Manhattan vs ray-list): [definitions.md](../../definitions.md) + rings full plan ß Design reasoning.
+Design rationale (Manhattan vs ray-list): [definitions.md](../../definitions.md) + rings full plan ù Design reasoning.
 
 ---
 
@@ -140,7 +141,7 @@ Design rationale (Manhattan vs ray-list): [definitions.md](../../definitions.md)
 
 ### Depthkey
 
-**Tab** / **Shift+Tab**: increment **`_activeRingIndex`** over **`ShellKValues.Count`** ó no table rebuild.
+**Tab** / **Shift+Tab**: increment **`_activeRingIndex`** over **`ShellKValues.Count`** ù no table rebuild.
 
 ### Hover
 
@@ -154,9 +155,9 @@ While held, scrub selection near?far along view **on active ring only** (impleme
 
 Per [definitions.md](../../definitions.md):
 
-- **A** ó queue **`HoveredMoveIndex`**
-- **B** ó **`PickOptionIndex`** at click (today)
-- **C** ó **fast click** pins selection during **Raywalk**; **long click** queues
+- **A** ù queue **`HoveredMoveIndex`**
+- **B** ù **`PickOptionIndex`** at click (today)
+- **C** ù **fast click** pins selection during **Raywalk**; **long click** queues
 
 **Debug export** or dev toggle to switch modes during playtest.
 
@@ -171,7 +172,7 @@ Per [definitions.md](../../definitions.md):
 Move mode hints:
 
 - **`Tab / Shift+Tab: cycle ring`** (**Depthkey**)
-- Optional: **`Ring i/n (k=Ö)`** when presenter exposes ring accessors
+- Optional: **`Ring i/n (k=Ö)`** when frame ring table + **`ActiveRingIndex`** on **`InteractionState`** (via **`BattleUi`**) are available
 - **Raywalk** / click modes: short line or dev-only hint when debug toggle visible
 
 See Combat subplan.

@@ -15,6 +15,7 @@ public sealed class PresentationFrame
 	public int MissileRange { get; init; }
 	public Unit? ActiveUnit { get; init; }
 	public required IReadOnlyList<Option> MoveOptions { get; init; }
+	public required MovePreviewRings.MovePreviewRingTable MovePreviewRingTable { get; init; }
 	public required BattleWorld PreviewWorld { get; init; }
 	public required State ActorState { get; init; }
 	public required IReadOnlySet<Coord> PreviewHazardCells { get; init; }

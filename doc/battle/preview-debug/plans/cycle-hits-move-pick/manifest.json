@@ -14,10 +14,10 @@
   "todos": [
     { "id": "blank-backdrop", "content": "SpaceBackdrop diagram + Lighting.ConfigureDiagram in BattleController", "status": "done" },
     { "id": "world-mapping", "content": "PointMapping.ToCoord + GridPick delegates to it", "status": "done" },
-    { "id": "move-preview-rings", "content": "MovePreviewRings BuildRingTable + attach to PresentationFrame", "status": "pending" },
+    { "id": "move-preview-rings", "content": "MovePreviewRings BuildRingTable + attach to PresentationFrame", "status": "done" },
     { "id": "controller-cycle", "content": "BattleController Depthkey, Raywalk, ring hover, click modes", "status": "pending" },
     { "id": "hints-accessor", "content": "CombatHints + HoveredMoveIndex + ring hint lines", "status": "pending" },
-    { "id": "tests", "content": "MovePreviewRingTests.cs", "status": "pending" },
+    { "id": "tests", "content": "MovePreviewRingTests.cs", "status": "done" },
     { "id": "format-momentum-home", "content": "Move FormatMomentum to CombatHints (optional cleanup)", "status": "pending" }
   ],
   "files": [
@@ -26,10 +26,22 @@
     { "relativePath": "src/battle/presentation/PointMapping.cs", "subplanPath": "subplans/src-battle-presentation-PointMapping.cs.plan.md", "todoIds": ["world-mapping"], "dependsOn": [] },
     { "relativePath": "src/battle/presentation/picking/GridPick.cs", "subplanPath": "subplans/src-battle-presentation-picking-GridPick.cs.plan.md", "todoIds": ["world-mapping"], "dependsOn": ["src/battle/presentation/PointMapping.cs"] },
     { "relativePath": "src/battle/presentation/ui/MovePreviewRings.cs", "subplanPath": "subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md", "todoIds": ["move-preview-rings"], "dependsOn": [] },
-    { "relativePath": "src/battle/presentation/ui/BattlePresenter.cs", "subplanPath": "subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md", "todoIds": ["move-preview-rings", "hints-accessor"], "dependsOn": ["src/battle/presentation/ui/MovePreviewRings.cs"] },
-    { "relativePath": "src/battle/presentation/scene/BattleController.cs", "subplanPath": "subplans/src-battle-presentation-scene-BattleController.cs.plan.md", "todoIds": ["blank-backdrop", "controller-cycle"], "dependsOn": ["src/battle/presentation/graphics/SpaceBackdrop.cs", "src/battle/presentation/graphics/Lighting.cs", "src/battle/presentation/ui/MovePreviewRings.cs", "src/battle/presentation/picking/GridPick.cs", "src/battle/presentation/ui/BattlePresenter.cs"] },
+    { "relativePath": "src/battle/presentation/BattleFrameBuilder.cs", "subplanPath": "subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md", "todoIds": ["move-preview-rings"], "dependsOn": ["src/battle/presentation/ui/MovePreviewRings.cs"] },
+    { "relativePath": "src/battle/presentation/Interaction/InteractionState.cs", "subplanPath": "subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md", "todoIds": ["controller-cycle", "hints-accessor"], "dependsOn": ["src/battle/presentation/BattleFrameBuilder.cs"] },
+    { "relativePath": "src/battle/presentation/scene/BattleController.cs", "subplanPath": "subplans/src-battle-presentation-scene-BattleController.cs.plan.md", "todoIds": ["blank-backdrop", "controller-cycle"], "dependsOn": ["src/battle/presentation/graphics/SpaceBackdrop.cs", "src/battle/presentation/graphics/Lighting.cs", "src/battle/presentation/ui/MovePreviewRings.cs", "src/battle/presentation/picking/GridPick.cs", "src/battle/presentation/BattleFrameBuilder.cs"] },
     { "relativePath": "src/battle/presentation/ui/MovementSelection.cs", "subplanPath": "subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md", "todoIds": ["controller-cycle"], "dependsOn": [] },
-    { "relativePath": "src/battle/presentation/ui/Combat.cs", "subplanPath": "subplans/src-battle-presentation-ui-Combat.cs.plan.md", "todoIds": ["hints-accessor"], "dependsOn": [] },
+    { "relativePath": "src/battle/presentation/ui/Combat.cs", "subplanPath": "subplans/src-battle-presentation-ui-Combat.cs.plan.md", "todoIds": ["hints-accessor"], "dependsOn": ["src/battle/presentation/Interaction/InteractionState.cs"] },
     { "relativePath": "grim-space.Tests/Presentation/MovePreviewRingTests.cs", "subplanPath": "subplans/grim-space.Tests-Presentation-MovePreviewRingTests.cs.plan.md", "todoIds": ["tests"], "dependsOn": ["src/battle/presentation/ui/MovePreviewRings.cs"] }
+  ],
+  "retiredFiles": [
+    {
+      "relativePath": "src/battle/presentation/ui/BattlePresenter.cs",
+      "subplanPath": "subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md",
+      "reason": "Parent plan façade; worktree uses BattleFrameBuilder + BattleUi/InteractionState",
+      "supersedes": [
+        "src/battle/presentation/BattleFrameBuilder.cs",
+        "src/battle/presentation/Interaction/InteractionState.cs"
+      ]
+    }
   ]
 }

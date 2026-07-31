@@ -1,56 +1,19 @@
 ---
 parentPlan: ../full.plan.md
 targetFile: src/battle/presentation/ui/BattlePresenter.cs
-todoIds: [move-preview-rings, hints-accessor]
-dependsOn:
-  - src/battle/presentation/ui/MovePreviewRings.cs
-status: pending
+status: superseded
+supersedes:
+  - subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md
+  - subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md
 ---
 
-# Subplan: `BattlePresenter.cs`
+# Subplan: `BattlePresenter.cs` *(retired — parent plan name)*
 
-**Source:** [`src/battle/presentation/ui/BattlePresenter.cs`](../../../../../../src/battle/presentation/ui/BattlePresenter.cs)
+This worktree has **no** `BattlePresenter.cs`. UI refactor split responsibilities:
 
-[Full plan](../full.plan.md) · [Index](../index.md)
+| Old plan role | Actual files |
+|---------------|----------------|
+| **`BuildFrame`** + ring table on snapshot | [`BattleFrameBuilder.cs`](../../../../../../src/battle/presentation/BattleFrameBuilder.cs), [`PresentationFrame`](../../../../../../src/battle/presentation/Ui/PresentationFrame.cs) — [subplan](src-battle-presentation-BattleFrameBuilder.cs.plan.md) |
+| Hover + **`TryQueueMove`** | [`BattleUi.cs`](../../../../../../src/battle/presentation/BattleUi.cs), [`InteractionState.cs`](../../../../../../src/battle/presentation/Interaction/InteractionState.cs) — [subplan](src-battle-presentation-Interaction-InteractionState.cs.plan.md) |
 
-## Why this file
-
-Builds **`PresentationFrame`** and owns move hover selection. Ring UX needs the **snapshot ring table** on the frame and read-only accessors for controller click + hints.
-
-## Part 1 — Frame ring table (todo `move-preview-rings`)
-
-In **`BuildFrame`** (when preview actor **Coord** **A** or **`MoveOptions`** change):
-
-- Call **`MovePreviewRings.BuildRingTable(A, moveOptions)`**
-- Store on **`PresentationFrame`** (new field, e.g. **`MoveRingTable`**)
-
-Invalidate only on snapshot change — not on Tab or mouse.
-
-## Part 2 — Accessors (todo `hints-accessor`)
-
-Add read-only surface, names illustrative:
-
-```csharp
-public int? HoveredMoveIndex => ...;
-public int ActiveRingIndex { get; }  // set via presenter method from controller
-public int RingCount => frame.MoveRingTable.RingCount;
-public int ActiveShellK => ...;
-```
-
-- **`HoveredMoveIndex`** — set only through existing **`SetMoveHover`**; **`null`** when cleared.
-- **`ActiveRingIndex`** — update via **`SetActiveRingIndex(int)`** (or fold into hover API) when controller handles **Depthkey**; clamp to **`RingCount`**.
-
-### Consumers
-
-- [BattleController](src-battle-presentation-scene-BattleController.cs.plan.md) click mode **A** / **C**
-- [Combat hints](src-battle-presentation-ui-Combat.cs.plan.md) **`Ring i/n (k=…)`**
-
-## Done when
-
-- Frame carries stable **`MovePreviewRingTable`** for the planning snapshot.
-- Controller can read ring count / **k** without recomputing table.
-
-## Out of scope
-
-- GridView dimming off-ring cells.
-- Building table inside controller.
+Use those subplans for implementation; do not create **`BattlePresenter.cs`** for this feature.

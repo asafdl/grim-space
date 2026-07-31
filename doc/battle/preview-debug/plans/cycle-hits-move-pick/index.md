@@ -22,7 +22,8 @@ Each **subplan** is self-contained: why the file matters, current behavior, step
 | [`PointMapping.cs`](../../../../../src/battle/presentation/PointMapping.cs) | [subplan](subplans/src-battle-presentation-PointMapping.cs.plan.md) | world-mapping |
 | [`GridPick.cs`](../../../../../src/battle/presentation/picking/GridPick.cs) | [subplan](subplans/src-battle-presentation-picking-GridPick.cs.plan.md) | world-mapping |
 | [`MovePreviewRings.cs`](../../../../../src/battle/presentation/ui/MovePreviewRings.cs) *(new)* | [subplan](subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md) | move-preview-rings |
-| [`BattlePresenter.cs`](../../../../../src/battle/presentation/ui/BattlePresenter.cs) | [subplan](subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md) | move-preview-rings, hints-accessor |
+| [`BattleFrameBuilder.cs`](../../../../../src/battle/presentation/BattleFrameBuilder.cs) | [subplan](subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md) | move-preview-rings |
+| [`InteractionState.cs`](../../../../../src/battle/presentation/Interaction/InteractionState.cs) | [subplan](subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md) | controller-cycle, hints-accessor |
 | [`BattleController.cs`](../../../../../src/battle/presentation/scene/BattleController.cs) | [subplan](subplans/src-battle-presentation-scene-BattleController.cs.plan.md) | blank-backdrop, controller-cycle |
 | [`MovementSelection.cs`](../../../../../src/battle/presentation/ui/MovementSelection.cs) | [subplan](subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md) | controller-cycle |
 | [`Combat.cs`](../../../../../src/battle/presentation/ui/Combat.cs) | [subplan](subplans/src-battle-presentation-ui-Combat.cs.plan.md) | hints-accessor |
@@ -34,9 +35,9 @@ Each **subplan** is self-contained: why the file matters, current behavior, step
 
 1. **Backdrop** ? [SpaceBackdrop.cs](../../../../../src/battle/presentation/graphics/SpaceBackdrop.cs) ? [Lighting.cs](../../../../../src/battle/presentation/graphics/Lighting.cs) (`ConfigureDiagram`) ? [BattleController._Ready](../../../../../src/battle/presentation/scene/BattleController.cs) (Godot F5 after wiring).
 2. **World ? grid** ? [PointMapping.ToCoord](../../../../../src/battle/presentation/PointMapping.cs) ? [GridPick](../../../../../src/battle/presentation/picking/GridPick.cs) delegates.
-3. **Ring table** ? [MovePreviewRings.cs](../../../../../src/battle/presentation/ui/MovePreviewRings.cs) + [BattlePresenter.BuildFrame](../../../../../src/battle/presentation/ui/BattlePresenter.cs) snapshot cache.
+3. **Ring table** — [MovePreviewRings.cs](../../../../../src/battle/presentation/ui/MovePreviewRings.cs) *(done)* + [BattleFrameBuilder.Build](../../../../../src/battle/presentation/BattleFrameBuilder.cs) / [PresentationFrame](../../../../../src/battle/presentation/Ui/PresentationFrame.cs) snapshot cache *(done)*.
 4. **Controller UX** ? [BattleController](../../../../../src/battle/presentation/scene/BattleController.cs): **Depthkey**, **Raywalk**, `GridPick.PickFromSet` on active ring; click per [definitions.md](../../definitions.md) debug modes **A / B / C**.
-5. **Discoverability** ? [BattlePresenter](../../../../../src/battle/presentation/ui/BattlePresenter.cs) accessors, [Combat hints](../../../../../src/battle/presentation/ui/Combat.cs).
+5. **Discoverability** — [InteractionState](../../../../../src/battle/presentation/Interaction/InteractionState.cs) / [BattleUi](../../../../../src/battle/presentation/BattleUi.cs) ring accessors, [Combat hints](../../../../../src/battle/presentation/ui/Combat.cs).
 6. **Regression** ? [MovePreviewRingTests.cs](../../../../../grim-space.Tests/Presentation/MovePreviewRingTests.cs) + `dotnet test`.
 
 ## Proposed commits
@@ -48,9 +49,9 @@ Commit when the step is **done and verifiable**. Unit of work: **manifest todo**
 | 0 | ? | CONTEXT + definitions + plan pivot (optional `docs:`) | Links resolve | `docs(preview): rings glossary and plan pivot` |
 | 1 | `blank-backdrop` | SpaceBackdrop, Lighting, BattleController `_Ready` | F5 flat void | `feat(preview): diagram backdrop for planning readability` |
 | 2 | `world-mapping` | PointMapping, GridPick | build | `feat(battle): PointMapping.ToCoord for picking` |
-| 3 | `move-preview-rings` | MovePreviewRings, BattlePresenter frame | unit tests pass | `feat(battle): Manhattan ring snapshot cache for move preview` |
+| 3 | `move-preview-rings` | MovePreviewRings, BattleFrameBuilder + PresentationFrame | unit tests pass | `feat(battle): Manhattan ring snapshot cache for move preview` |
 | 4 | `controller-cycle` | BattleController ring Tab, Raywalk, hover | F5 Depthkey + scrub | `feat(battle): ring hover and Depthkey move planning` |
-| 5 | `hints-accessor` | BattlePresenter + Combat + click contract | hint shows ring line | `feat(battle): ring hints and hovered move accessor` |
+| 5 | `hints-accessor` | InteractionState / BattleUi + Combat + click contract | hint shows ring line | `feat(battle): ring hints and hovered move accessor` |
 | 6 | `tests` | MovePreviewRingTests | `dotnet test` | `test(battle): move preview ring table` |
 
 Plan docs may ship with commit 1 or a separate `docs:` commit.
@@ -64,7 +65,8 @@ Plan docs may ship with commit 1 or a separate `docs:` commit.
 | [`src/battle/presentation/PointMapping.cs`](../../../../../src/battle/presentation/PointMapping.cs) | [subplans/src-battle-presentation-PointMapping.cs.plan.md](subplans/src-battle-presentation-PointMapping.cs.plan.md) | world-mapping |
 | [`src/battle/presentation/picking/GridPick.cs`](../../../../../src/battle/presentation/picking/GridPick.cs) | [subplans/src-battle-presentation-picking-GridPick.cs.plan.md](subplans/src-battle-presentation-picking-GridPick.cs.plan.md) | world-mapping |
 | [`src/battle/presentation/ui/MovePreviewRings.cs`](../../../../../src/battle/presentation/ui/MovePreviewRings.cs) | [subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md](subplans/src-battle-presentation-ui-MovePreviewRings.cs.plan.md) | move-preview-rings |
-| [`src/battle/presentation/ui/BattlePresenter.cs`](../../../../../src/battle/presentation/ui/BattlePresenter.cs) | [subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md](subplans/src-battle-presentation-ui-BattlePresenter.cs.plan.md) | move-preview-rings, hints-accessor |
+| [`src/battle/presentation/BattleFrameBuilder.cs`](../../../../../src/battle/presentation/BattleFrameBuilder.cs) | [subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md](subplans/src-battle-presentation-BattleFrameBuilder.cs.plan.md) | move-preview-rings |
+| [`src/battle/presentation/Interaction/InteractionState.cs`](../../../../../src/battle/presentation/Interaction/InteractionState.cs) | [subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md](subplans/src-battle-presentation-Interaction-InteractionState.cs.plan.md) | controller-cycle, hints-accessor |
 | [`src/battle/presentation/scene/BattleController.cs`](../../../../../src/battle/presentation/scene/BattleController.cs) | [subplans/src-battle-presentation-scene-BattleController.cs.plan.md](subplans/src-battle-presentation-scene-BattleController.cs.plan.md) | blank-backdrop, controller-cycle |
 | [`src/battle/presentation/ui/MovementSelection.cs`](../../../../../src/battle/presentation/ui/MovementSelection.cs) | [subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md](subplans/src-battle-presentation-ui-MovementSelection.cs.plan.md) | controller-cycle |
 | [`src/battle/presentation/ui/Combat.cs`](../../../../../src/battle/presentation/ui/Combat.cs) | [subplans/src-battle-presentation-ui-Combat.cs.plan.md](subplans/src-battle-presentation-ui-Combat.cs.plan.md) | hints-accessor |
@@ -76,8 +78,8 @@ Plan docs may ship with commit 1 or a separate `docs:` commit.
 |----|---------|--------|
 | blank-backdrop | Diagram backdrop + neutral light | done |
 | world-mapping | ToCoord + GridPick | done |
-| move-preview-rings | BuildRingTable on frame | pending |
+| move-preview-rings | BuildRingTable on frame | done |
 | controller-cycle | Depthkey, Raywalk, ring pick, click modes | pending |
 | hints-accessor | Ring hints + HoveredMoveIndex | pending |
-| tests | MovePreviewRingTests | pending |
+| tests | MovePreviewRingTests | done |
 | format-momentum-home | FormatMomentum ? CombatHints (optional) | pending |
