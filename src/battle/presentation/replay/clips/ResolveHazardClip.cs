@@ -5,8 +5,6 @@ namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
 public sealed class ResolveHazardClip : IReplayClip
 {
-	private const double DisplaySeconds = 0.25;
-
 	public Type ActionType => typeof(ResolveHazardAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
@@ -15,7 +13,6 @@ public sealed class ResolveHazardClip : IReplayClip
 		foreach (var unitId in context.ReplayState.ApplyResolveHazard(resolve))
 			context.SyncUnit(unitId);
 
-		context.HazardBursts.RecordBurst(resolve.Kind, resolve.Cells);
-		return ClipPlayback.Pause(DisplaySeconds);
+		return ClipPlayback.Instant;
 	}
 }
