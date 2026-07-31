@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -7,9 +8,6 @@ namespace GrimSpace.Battle.Presentation.Domains.Flak;
 
 public static class FlakUi
 {
-	public static FlakAction? Translate(string actorId, EFlakMount mount) =>
-		new(actorId, mount);
-
 	public static bool TryApply(
 		BattleOrchestrator battle,
 		Interaction.InteractionState state,
@@ -24,12 +22,11 @@ public static class FlakUi
 		if (mount is null)
 			return false;
 
-		var action = Translate(battle.PlayerId, mount.Value);
-		if (action is null || !battle.Sim.TryEnqueue(action))
+		var action = new FlakAction(battle.PlayerId, mount.Value);
+		if (!battle.Sim.TryEnqueue(action))
 			return false;
 
-		state.FlakHover = null;
-		state.SetMoveMode();
+		state.SetMode(EPlayerMode.Move);
 		return true;
 	}
 
@@ -59,8 +56,8 @@ public static class FlakUi
 		if (mount is null)
 			return [];
 
-		var action = Translate(battle.PlayerId, mount.Value);
-		if (action is null || battle.Sim.Peek(action) is null)
+		var action = new FlakAction(battle.PlayerId, mount.Value);
+		if (battle.Sim.Peek(action) is null)
 			return [];
 
 		return GetBurstCells(battle, mount.Value);

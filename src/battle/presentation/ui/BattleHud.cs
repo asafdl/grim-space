@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -43,12 +42,8 @@ public partial class BattleHud : Node
 		ActionBar.Visible = !frame.ShowOutcomeOverlay;
 		if (!frame.ShowOutcomeOverlay)
 		{
-			ActionBar.SetMode(frame.Mode, frame.MissileMount);
-			ActionBar.Configure(
-				frame.MissilesRemaining,
-				CombatConfig.MissilesPerTurn,
-				frame.FlakAvailable,
-				frame.CanAct);
+			ActionBar.SetMode(frame.Mode);
+			ActionBar.Configure(frame.FlakAvailable, frame.RailgunAvailable, frame.CanAct);
 		}
 
 		if (frame.ShowOutcomeOverlay)
@@ -57,6 +52,6 @@ public partial class BattleHud : Node
 			return;
 		}
 
-		OrientationHud.Show(frame.CanAct && !frame.MissileAimActive && frame.Mode != EPlayerMode.Flak);
+		OrientationHud.Show(frame.CanAct && frame.Mode != EPlayerMode.Flak);
 	}
 }

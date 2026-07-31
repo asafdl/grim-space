@@ -13,7 +13,6 @@ internal readonly record struct CapabilitySearchState(
 	int MomentumLevel,
 	int MinPathApCost,
 	int ActionPoints,
-	int MissilesRemaining,
 	int FlakRemaining,
 	int RailgunRemaining);
 
@@ -36,7 +35,6 @@ internal static class BattleSearchVisit
 				actor.MomentumLevel,
 				runtime.MinPathApCost,
 				actor.ActionPoints,
-				actor.MissilesRemaining,
 				actor.FlakRemaining,
 				actor.RailgunRemaining),
 			[]);

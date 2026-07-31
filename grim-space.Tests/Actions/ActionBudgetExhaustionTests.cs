@@ -14,29 +14,8 @@ public sealed class ActionBudgetExhaustionTests
 {
 	private const string PlayerId = "player";
 
-	private static readonly MissileDef ForeMissile =
-		MissileDef.For(EMissileMount.Fore, CombatConfig.ForeMissileMinRange);
-
 	private static readonly FlakDef PortFlak = FlakDef.For(EFlakMount.Port);
 	private static readonly FlakDef StarboardFlak = FlakDef.For(EFlakMount.Starboard);
-
-	[Fact]
-	public void AfterMaxMissiles_NoLegalMissileActions()
-	{
-		var session = BeginSimulationAt(new Coord(5, 5, 1));
-		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
-		var missiles = Enumerable
-			.Range(0, CombatConfig.MissilesPerTurn)
-			.Select(_ => ForeMissile.Bind(PlayerId, target))
-			.Cast<IAction>()
-			.ToList();
-
-		LegalActionProbe.EnqueueAll(session, missiles);
-
-		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).MissilesRemaining);
-		LegalActionProbe.AssertExhausted(session, PlayerId, ForeMissile);
-		Assert.False(session.TryEnqueue(ForeMissile.Bind(PlayerId, target)));
-	}
 
 	[Fact]
 	public void AfterMaxFlak_NoLegalFlakActionsFromEitherMount()
@@ -54,12 +33,11 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterMaxRailgun_NoLegalRailgunActions()
 	{
 		var session = BeginSimulationAt(new Coord(5, 5, 5));
-		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
-		LegalActionProbe.EnqueueAll(session, [RailgunDef.Instance.Bind(PlayerId, enemyId)]);
+		LegalActionProbe.EnqueueAll(session, [RailgunDef.Instance.Bind(PlayerId)]);
 
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RailgunDef.Instance);
-		Assert.False(session.TryEnqueue(RailgunDef.Instance.Bind(PlayerId, enemyId)));
+		Assert.False(session.TryEnqueue(RailgunDef.Instance.Bind(PlayerId)));
 	}
 
 	[Fact]
@@ -98,24 +76,18 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterAllWeaponBudgetsExhausted_NoLegalWeaponActions()
 	{
 		var session = BeginSimulationAt(new Coord(5, 5, 1));
-		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
-		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
-		var actions = new List<IAction>();
 
-		for (var i = 0; i < CombatConfig.MissilesPerTurn; i++)
-			actions.Add(ForeMissile.Bind(PlayerId, target));
-
-		actions.Add(PortFlak.Bind(PlayerId));
-		actions.Add(RailgunDef.Instance.Bind(PlayerId, enemyId));
-
-		LegalActionProbe.EnqueueAll(session, actions);
+		LegalActionProbe.EnqueueAll(
+			session,
+			[
+				PortFlak.Bind(PlayerId),
+				RailgunDef.Instance.Bind(PlayerId),
+			]);
 
 		var actor = session.StateOf<ActorState>(PlayerId);
-		Assert.Equal(0, actor.MissilesRemaining);
 		Assert.Equal(0, actor.FlakRemaining);
 		Assert.Equal(0, actor.RailgunRemaining);
 
-		LegalActionProbe.AssertExhausted(session, PlayerId, ForeMissile);
 		LegalActionProbe.AssertExhausted(session, PlayerId, PortFlak);
 		LegalActionProbe.AssertExhausted(session, PlayerId, StarboardFlak);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RailgunDef.Instance);
@@ -135,7 +107,6 @@ public sealed class ActionBudgetExhaustionTests
 
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).ActionPoints);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RollDef.Instance);
-		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, ForeMissile));
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, PortFlak));
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, RailgunDef.Instance));
 	}
@@ -144,16 +115,12 @@ public sealed class ActionBudgetExhaustionTests
 	public void AfterWeaponBudgetsExhausted_RollsRemainLegal()
 	{
 		var session = BeginSimulationAt(new Coord(5, 5, 1));
-		var target = session.StateOf<ActorState>(PlayerId).Position + Coord.Forward * CombatConfig.ForeMissileMinRange;
-		var enemyId = session.World.Units.Keys.First(id => id != PlayerId);
 
 		LegalActionProbe.EnqueueAll(
 			session,
 			[
-				ForeMissile.Bind(PlayerId, target),
-				ForeMissile.Bind(PlayerId, target),
 				PortFlak.Bind(PlayerId),
-				RailgunDef.Instance.Bind(PlayerId, enemyId),
+				RailgunDef.Instance.Bind(PlayerId),
 			]);
 
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, RollDef.Instance));

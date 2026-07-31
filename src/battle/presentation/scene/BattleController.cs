@@ -5,7 +5,6 @@ using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
@@ -32,7 +31,6 @@ public partial class BattleController : Node3D
 
 	private GridView _gridView = null!;
 	private Controller _camera = null!;
-	private MissileRangeIndicator _missileRangeIndicator = null!;
 
 	private int? _lastHoveredMoveIndex;
 	private IReadOnlyDictionary<string, GrimSpace.Battle.Units.State>? _playbackEndStates;
@@ -74,9 +72,6 @@ public partial class BattleController : Node3D
 		hazardView.Build(layout.TerrainHazards);
 		hazardsRoot.AddChild(hazardView);
 
-		_missileRangeIndicator = new MissileRangeIndicator();
-		AddChild(_missileRangeIndicator);
-
 		var unitsRoot = GetNode<Node3D>("Units");
 		_battleView = new BattleView { Name = "BattleView" };
 		unitsRoot.AddChild(_battleView);
@@ -84,7 +79,7 @@ public partial class BattleController : Node3D
 			(pair.Key, battle.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
 
 		_previewOverlay = new PreviewOverlay { Name = "PreviewOverlay" };
-		_previewOverlay.Configure(_gridView, _missileRangeIndicator);
+		_previewOverlay.Configure(_gridView);
 		AddChild(_previewOverlay);
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
@@ -103,7 +98,7 @@ public partial class BattleController : Node3D
 	public override void _Process(double _)
 	{
 		if (Mode != BattleMode.Planning
-			|| _ui.Mode != EPlayerMode.Move
+			|| _ui.State.Mode != EPlayerMode.Move
 			|| _ui.Battle.IsBattleOver
 			|| _ui.Battle.GetActiveActor() is null)
 		{
@@ -119,7 +114,7 @@ public partial class BattleController : Node3D
 			return;
 
 		_lastHoveredMoveIndex = index;
-		_ui.SetMoveHover(index, _moveHoverCache.Options.Count);
+		_ui.State.SetMoveHover(index, _moveHoverCache.Options.Count);
 		ApplyMoveHoverOverlay();
 	}
 
@@ -127,7 +122,7 @@ public partial class BattleController : Node3D
 	{
 		var (path, target) = MoveUi.GetPathHighlights(
 			_moveHoverCache.Options,
-			_ui.MoveHoveredIndex,
+			_ui.State.MoveHoveredIndex,
 			_moveHoverCache.CommittedPath);
 		_previewOverlay.ApplyMoveHover(
 			_moveHoverCache.Options,
@@ -157,43 +152,16 @@ public partial class BattleController : Node3D
 		_battleHud.OutcomeOverlay.ResetRequested += ResetBattle;
 		_battleHud.ActionBar.ModeChanged += mode =>
 		{
-			if (mode == EPlayerMode.Flak)
-				_ui.SelectFlakMode();
-			else
-				_ui.SetMode(mode);
-
-			ExitAimIfNeeded();
+			_ui.State.SetMode(mode);
 			Refresh();
 		};
-		_battleHud.ActionBar.MissileMountSelected += mount => { _ui.SelectMissileMount(mount); Refresh(); };
 		_battleHud.ActionBar.EndTurnRequested += TryEndTurn;
 	}
 
-	public override void _UnhandledInput(InputEvent @event)
+	public override void _Input(InputEvent @event)
 	{
-		if (_ui.Battle.IsBattleOver)
+		if (_ui.Battle.IsBattleOver || Mode == BattleMode.Playback)
 			return;
-
-		if (Mode == BattleMode.Playback)
-			return;
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
-		{
-			if (_ui.Mode == EPlayerMode.Missile)
-			{
-				_ui.CancelMissileMode();
-				_camera.ExitAim();
-				Refresh();
-			}
-			else if (_ui.Mode == EPlayerMode.Flak)
-			{
-				_ui.CancelFlakMode();
-				Refresh();
-			}
-
-			GetViewport().SetInputAsHandled();
-			return;
-		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Z } key
 			&& (key.CtrlPressed || key.MetaPressed))
@@ -205,24 +173,30 @@ public partial class BattleController : Node3D
 			}
 
 			GetViewport().SetInputAsHandled();
+		}
+	}
+
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (_ui.Battle.IsBattleOver)
+			return;
+
+		if (Mode == BattleMode.Playback)
+			return;
+
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
+			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun)
+		{
+			_ui.State.SetMode(EPlayerMode.Move);
+			Refresh();
+
+			GetViewport().SetInputAsHandled();
 			return;
 		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
 		{
 			TryEndTurn();
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (_ui.Mode == EPlayerMode.Missile
-			&& @event is InputEventMouseButton { Pressed: true } scroll
-			&& scroll.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
-		{
-			var delta = scroll.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
-			if (_ui.AdjustMissileRange(delta))
-				Refresh();
-
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -245,24 +219,19 @@ public partial class BattleController : Node3D
 
 	private void HandleMouseMotion(Vector2 screenPos, PresentationFrame frame)
 	{
-		switch (_ui.Mode)
+		switch (_ui.State.Mode)
 		{
 			case EPlayerMode.Move:
 				return;
 
-			case EPlayerMode.Missile:
-				_ui.SetMissileHover(
-					GridPick.PickFromSet(_camera, screenPos, frame.ValidMissileCells));
-				break;
-
 			case EPlayerMode.Flak:
-				_ui.SetFlakHover(
-					GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells));
+				_ui.State.FlakHover =
+					GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells);
 				break;
 
 			case EPlayerMode.Railgun:
-				var picked = GridPick.PickUnit(_camera, screenPos, _ui.Battle.Sim.World.Units.Values.ToList());
-				_ui.SetRailgunHover(picked);
+				_ui.State.RailgunHover =
+					GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells);
 				break;
 		}
 
@@ -271,7 +240,7 @@ public partial class BattleController : Node3D
 
 	private void HandleLeftClick(Vector2 screenPos, PresentationFrame frame)
 	{
-		switch (_ui.Mode)
+		switch (_ui.State.Mode)
 		{
 			case EPlayerMode.Move:
 				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
@@ -281,20 +250,14 @@ public partial class BattleController : Node3D
 				}
 				break;
 
-			case EPlayerMode.Missile:
-				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidMissileCells) is { } center)
-					_ui.TryQueueMissile(center);
-				break;
-
 			case EPlayerMode.Flak:
 				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells) is { } flakCell)
 					_ui.TryQueueFlak(flakCell);
 				break;
 
 			case EPlayerMode.Railgun:
-				var target = GridPick.PickUnit(_camera, screenPos, _ui.Battle.Sim.World.Units.Values.ToList());
-				if (target is not null)
-					_ui.TryQueueRailgun(target);
+				if (GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells) is { } railgunCell)
+					_ui.TryQueueRailgun(railgunCell);
 				break;
 		}
 
@@ -310,7 +273,7 @@ public partial class BattleController : Node3D
 		_moveHoverCache = new MoveHoverCache(
 			frame.MoveOptions,
 			frame.PreviewHazardCells,
-			_ui.CommittedMovePath);
+			_ui.State.CommittedMovePath);
 		ApplyFrame(frame);
 	}
 
@@ -335,7 +298,6 @@ public partial class BattleController : Node3D
 			_battleView.ApplyUnitStates(_playbackEndStates);
 
 		_playbackEndStates = null;
-		ExitAimIfNeeded();
 		Refresh();
 	}
 
@@ -349,7 +311,6 @@ public partial class BattleController : Node3D
 		ApplyUnitStates(frame);
 		_previewOverlay.Apply(frame);
 		_battleHud.Apply(frame);
-		ApplyCamera(frame);
 	}
 
 	private void ApplyUnitStates(PresentationFrame frame)
@@ -365,20 +326,6 @@ public partial class BattleController : Node3D
 	{
 		RunSession.Instance.StartNewRun();
 		GetTree().ReloadCurrentScene();
-	}
-
-	private void ApplyCamera(PresentationFrame frame)
-	{
-		if (frame.MissileAimActive && frame.MissileAimShip is not null)
-			_camera.EnterForeAim(frame.MissileAimShip);
-		else if (frame.ExitMissileMode)
-			_camera.ExitAim();
-	}
-
-	private void ExitAimIfNeeded()
-	{
-		if (_ui.Mode != EPlayerMode.Missile)
-			_camera.ExitAim();
 	}
 
 	private static Color ColorFor(EController controller) =>

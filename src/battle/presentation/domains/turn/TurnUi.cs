@@ -25,11 +25,17 @@ public static class TurnUi
 
 	public static bool TryUndo(BattleOrchestrator battle, Interaction.InteractionState state)
 	{
+		if (battle.Sim.Actions.Count == 0)
+			return false;
+
+		var undone = battle.Sim.Actions[^1];
 		if (!battle.Sim.TryUndoLast())
 			return false;
 
-		state.ClearInteraction();
-		state.CommittedMovePath = [];
+		state.ClearHovers();
+		if (undone is MoveStepAction)
+			state.CommittedMovePath = [];
+
 		return true;
 	}
 
@@ -57,8 +63,7 @@ public static class TurnUi
 		Interaction.InteractionState state,
 		Unit? actor,
 		Units.State actorState,
-		int queuedActionCount,
-		bool missileInRange)
+		int queuedActionCount)
 	{
 		if (actor is null)
 			return "No active unit  |  WASD: pan  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
@@ -70,12 +75,6 @@ public static class TurnUi
 		return turnPrefix + CombatHints.BuildHint(
 			state.Mode,
 			actorState,
-			actorState.MissilesRemaining,
-			queuedActionCount,
-			state.RailgunHover,
-			state.MissileMount,
-			state.MissileRange,
-			state.MissileHover,
-			missileInRange);
+			queuedActionCount);
 	}
 }

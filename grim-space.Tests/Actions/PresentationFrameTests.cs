@@ -1,6 +1,9 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Domains.Move;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -52,6 +55,84 @@ public sealed class PresentationFrameTests
 		Assert.Contains(
 			frame.MoveOptions,
 			option => option.EndPosition == origin + Coord.Forward * 4);
+	}
+
+	[Fact]
+	public void UndoClearsQueuedRailgun()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = new BattleUi(battle);
+
+		Assert.True(ui.TryQueueRailgun(origin + Coord.Forward));
+		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Single(battle.Sim.Actions);
+
+		Assert.True(ui.Undo());
+
+		Assert.Empty(battle.Sim.Actions);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+	}
+
+	[Fact]
+	public void UndoClearsQueuedFlak()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = new BattleUi(battle);
+		var pickCell = origin + new Coord(1, 1, 0);
+
+		Assert.True(ui.TryQueueFlak(pickCell));
+		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
+
+		Assert.True(ui.Undo());
+
+		Assert.Empty(battle.Sim.Actions);
+		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
+	}
+
+	[Fact]
+	public void UndoClearsRailgunQueuedAfterMove()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = new BattleUi(battle);
+		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
+		var threeStepIndex = options.FindIndex(
+			option => option.EndPosition == origin + Coord.Forward * 3);
+
+		Assert.True(ui.TryQueueMove(threeStepIndex, options));
+		Assert.True(ui.TryQueueRailgun(origin + Coord.Forward * 4));
+
+		Assert.Equal(4, battle.Sim.Actions.Count);
+
+		Assert.True(ui.Undo());
+
+		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(3, battle.Sim.Actions.Count(action => action is MoveStepAction));
+	}
+
+	[Fact]
+	public void UndoRailgunPreservesCommittedMovePath()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = new BattleUi(battle);
+		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
+		var threeStepIndex = options.FindIndex(
+			option => option.EndPosition == origin + Coord.Forward * 3);
+
+		Assert.True(ui.TryQueueMove(threeStepIndex, options));
+		var pathAfterMove = ui.State.CommittedMovePath.ToList();
+		Assert.NotEmpty(pathAfterMove);
+
+		Assert.True(ui.TryQueueRailgun(origin + Coord.Forward * 4));
+		Assert.True(ui.Undo());
+
+		Assert.Equal(pathAfterMove, ui.State.CommittedMovePath);
+		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 	}
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)

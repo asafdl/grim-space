@@ -16,7 +16,6 @@ public sealed class State
 	public int HullPoints { get; set; }
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
 	public int MomentumLevel { get; set; }
-	public int MissilesRemaining { get; set; }
 	public int FlakRemaining { get; set; }
 	public int RailgunRemaining { get; set; }
 	public bool ApPenaltyNextTurn { get; set; }
@@ -37,7 +36,6 @@ public sealed class State
 			HullPoints = HullPoints,
 			ShieldPoints = ShieldPoints.Clone(),
 			MomentumLevel = MomentumLevel,
-			MissilesRemaining = MissilesRemaining,
 			FlakRemaining = FlakRemaining,
 			RailgunRemaining = RailgunRemaining,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
@@ -63,7 +61,6 @@ public sealed class State
 			HullPoints = stats.MaxHullPoints,
 			ShieldPoints = shieldPoints,
 			MomentumLevel = 0,
-			MissilesRemaining = stats.MissilesPerTurn,
 			FlakRemaining = stats.FlaksPerTurn,
 			RailgunRemaining = stats.RailgunsPerTurn,
 			Stats = stats,

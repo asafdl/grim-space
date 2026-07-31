@@ -4,4 +4,5 @@ public enum EHazardKind
 {
 	MissileZone,
 	FlakBurst,
+	RailgunBurst,
 }

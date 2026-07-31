@@ -1,17 +1,14 @@
 using Godot;
-using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class ActionBar : CanvasLayer
 {
 	public event Action<EPlayerMode>? ModeChanged;
-	public event Action<EMissileMount>? MissileMountSelected;
 	public event Action? EndTurnRequested;
 
 	private readonly ButtonGroup _modeGroup = new();
 	private Button _moveButton = null!;
-	private Button _foreMissileButton = null!;
 	private Button _flakButton = null!;
 	private Button _railgunButton = null!;
 	private Button _endTurnButton = null!;
@@ -22,31 +19,26 @@ public sealed partial class ActionBar : CanvasLayer
 		Build();
 	}
 
-	public void SetMode(EPlayerMode mode, EMissileMount? missileMount)
+	public void SetMode(EPlayerMode mode)
 	{
 		_moveButton.SetBlockSignals(true);
-		_foreMissileButton.SetBlockSignals(true);
 		_flakButton.SetBlockSignals(true);
 		_railgunButton.SetBlockSignals(true);
 
 		_moveButton.ButtonPressed = mode == EPlayerMode.Move;
-		_foreMissileButton.ButtonPressed = mode == EPlayerMode.Missile && missileMount == EMissileMount.Fore;
 		_flakButton.ButtonPressed = mode == EPlayerMode.Flak;
 		_railgunButton.ButtonPressed = mode == EPlayerMode.Railgun;
 
 		_moveButton.SetBlockSignals(false);
-		_foreMissileButton.SetBlockSignals(false);
 		_flakButton.SetBlockSignals(false);
 		_railgunButton.SetBlockSignals(false);
 	}
 
-	public void Configure(int missilesRemaining, int missilesMax, bool flakAvailable, bool canAct)
+	public void Configure(bool flakAvailable, bool railgunAvailable, bool canAct)
 	{
-		_foreMissileButton.Text = $"Fore Missile ({missilesRemaining}/{missilesMax})";
-		_foreMissileButton.Disabled = !canAct || missilesRemaining <= 0;
 		_flakButton.Disabled = !canAct || !flakAvailable;
+		_railgunButton.Disabled = !canAct || !railgunAvailable;
 		_moveButton.Disabled = !canAct;
-		_railgunButton.Disabled = !canAct;
 		_endTurnButton.Disabled = !canAct;
 	}
 
@@ -77,15 +69,11 @@ public sealed partial class ActionBar : CanvasLayer
 		panel.AddChild(row);
 
 		_moveButton = CreateModeButton("Move", () => ModeChanged?.Invoke(EPlayerMode.Move));
-		_foreMissileButton = CreateModeButton(
-			"Fore Missile",
-			() => MissileMountSelected?.Invoke(EMissileMount.Fore));
 		_flakButton = CreateModeButton("Flak", () => ModeChanged?.Invoke(EPlayerMode.Flak));
 		_railgunButton = CreateModeButton("Railgun", () => ModeChanged?.Invoke(EPlayerMode.Railgun));
 		_endTurnButton = CreateActionButton("End Turn");
 
 		row.AddChild(_moveButton);
-		row.AddChild(_foreMissileButton);
 		row.AddChild(_flakButton);
 		row.AddChild(_railgunButton);
 		row.AddChild(new VSeparator());

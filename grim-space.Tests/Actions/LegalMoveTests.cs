@@ -125,27 +125,4 @@ public sealed class LegalMoveTests
 			MovementExpectations.FighterApPerTurn - move.ApCost,
 			player.State.ActionPoints);
 	}
-
-	[Fact]
-	public void EnqueueMissilesConsumesTurnBudget()
-	{
-		var origin = new Coord(5, 5, 1);
-		var target = origin + Coord.Forward * CombatConfig.ForeMissileMinRange;
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = BattleTestFixture.BeginSimulation(player, enemy);
-
-		var missile = new MissileAction(
-			planning.PlayerId,
-			target,
-			EMissileMount.Fore,
-			CombatConfig.ForeMissileMinRange);
-
-		Assert.Equal(CombatConfig.MissilesPerTurn, planning.Sim.StateOf<ActorState>(planning.PlayerId).MissilesRemaining);
-		Assert.True(planning.Sim.TryEnqueue(missile));
-		Assert.Equal(CombatConfig.MissilesPerTurn - 1, planning.Sim.StateOf<ActorState>(planning.PlayerId).MissilesRemaining);
-		Assert.True(planning.Sim.TryEnqueue(missile));
-		Assert.Equal(0, planning.Sim.StateOf<ActorState>(planning.PlayerId).MissilesRemaining);
-		Assert.False(planning.Sim.TryEnqueue(missile));
-	}
 }

@@ -30,7 +30,6 @@ public static class Capabilities
 			[
 				FlakDef.For(EFlakMount.Port),
 				FlakDef.For(EFlakMount.Starboard),
-				MissileDef.For(EMissileMount.Fore, CombatConfig.ForeMissileMinRange),
 				RailgunDef.Instance,
 			],
 			EType.Patrol => [],

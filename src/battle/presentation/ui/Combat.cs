@@ -1,16 +1,10 @@
-using GrimSpace.Battle.Actions;
-using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public enum EPlayerMode
 {
 	Move,
-	Missile,
 	Flak,
 	Railgun,
 }
@@ -20,13 +14,7 @@ public static class CombatHints
 	public static string BuildHint(
 		EPlayerMode mode,
 		State unit,
-		int missilesRemaining,
-		int queuedActionCount,
-		Unit? railgunTarget,
-		EMissileMount? missileMount,
-		int missileRange,
-		Coord? missileCenter,
-		bool missileInRange)
+		int queuedActionCount)
 	{
 		var ap = unit.ActionPoints;
 		var status = $"Hull {unit.HullPoints}  |  {MovementSelection.FormatMomentum(unit)}  |  AP {ap}";
@@ -37,30 +25,12 @@ public static class CombatHints
 		return mode switch
 		{
 			EPlayerMode.Move =>
-				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}  |  click path to queue{queuedSuffix}",
-			EPlayerMode.Missile =>
-				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {missileRange} ({CombatConfig.ForeMissileMinRange}-{CombatConfig.ForeMissileMaxRange}, scroll)"
-				+ (missileCenter is Coord center
-					? missileInRange ? $"  |  center {center}" : $"  |  center {center} OUT OF ARC"
-					: "  |  click arc cell  |  Esc: cancel")
-				+ queuedSuffix,
+				$"Mode: Move  |  {status}  |  click path to queue{queuedSuffix}",
 			EPlayerMode.Flak =>
 				$"Mode: Flak  |  {status}  |  click port or starboard arc  |  Esc: cancel{queuedSuffix}",
 			EPlayerMode.Railgun =>
-				$"Mode: Railgun (target M0)  |  {status}"
-				+ (railgunTarget is not null
-					? $"  |  target {railgunTarget.State.Id}"
-					: "  |  click enemy at momentum 0")
-				+ queuedSuffix,
+				$"Mode: Railgun  |  {status}  |  click fore burst to fire  |  Esc: cancel{queuedSuffix}",
 			_ => status,
 		};
 	}
-
-	private static string MountLabel(EMissileMount? mount) =>
-		mount switch
-		{
-			EMissileMount.Fore => "Fore Missile",
-			null => "Missile",
-			_ => mount.ToString()!,
-		};
 }

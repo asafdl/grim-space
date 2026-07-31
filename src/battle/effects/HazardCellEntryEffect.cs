@@ -30,6 +30,7 @@ public static class HazardResolution
 		kind switch
 		{
 			EHazardKind.FlakBurst => shooterPosition,
+			EHazardKind.RailgunBurst => shooterPosition,
 			_ => cells.Count > 0 ? cells.First() : Coord.Zero,
 		};
 
@@ -91,6 +92,10 @@ public static class HazardResolution
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				if (unit.MomentumLevel < CombatConfig.FlakApPenaltyThreshold)
 					unit.ApPenaltyNextTurn = true;
+				break;
+			case EHazardKind.RailgunBurst:
+				ApplyDirectedDamage(hazard, unit, attackOrigin);
+				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				break;
 		}
 	}

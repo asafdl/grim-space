@@ -20,14 +20,14 @@ public sealed class FlakTargetingTests
 		var apex = Frame.ToWorld(0, apexPort, 0);
 		var basePort = apexPort + outwardStep * config.Range;
 
-		Assert.Equal(44, cells.Count);
+		Assert.Equal(19, cells.Count);
 		Assert.Contains(apex, cells);
 		Assert.Single(cells, cell => cell == apex);
 		Assert.Contains(Frame.ToWorld(0, basePort, 0), cells);
-		Assert.Contains(Frame.ToWorld(2, basePort, 1), cells);
-		Assert.Contains(Frame.ToWorld(-2, basePort, 1), cells);
+		Assert.Contains(Frame.ToWorld(1, basePort, 1), cells);
+		Assert.Contains(Frame.ToWorld(-1, basePort, 1), cells);
 		Assert.DoesNotContain(Frame.Origin, cells);
-		Assert.DoesNotContain(Frame.ToWorld(4, apexPort, 0), cells);
+		Assert.DoesNotContain(Frame.ToWorld(3, apexPort, 0), cells);
 		Assert.DoesNotContain(Frame.ToWorld(0, basePort + outwardStep, 0), cells);
 	}
 

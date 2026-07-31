@@ -1,14 +1,13 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record RailgunAction(
-	string ActorId,
-	string TargetUnitId) : IAction<BattleWorld, ActorRuntime>
+public sealed record RailgunAction(string ActorId) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		RailgunDef.Instance;
@@ -21,18 +20,12 @@ public sealed class RailgunDef
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		foreach (var (unitId, unit) in world.Units)
-		{
-			if (unitId == actorId || !unit.State.IsAlive)
-				continue;
-
-			var action = Bind(actorId, unitId);
-			if (IsPossible(action, world, runtime))
-				yield return action;
-		}
+		var action = Bind(actorId);
+		if (IsPossible(action, world, runtime))
+			yield return action;
 	}
 
-	public RailgunAction Bind(string actorId, string targetUnitId) => new(actorId, targetUnitId);
+	public RailgunAction Bind(string actorId) => new(actorId);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -46,23 +39,18 @@ public sealed class RailgunDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime) =>
-		IsLegal(action, world, runtime);
+	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime)
+	{
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
+		return RailgunTargeting.IsValidBurst(frame, world.Grid.IsInBounds);
+	}
 
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (world.StateOf(action.ActorId).RailgunRemaining <= 0)
 			return false;
 
-		if (!world.Units.TryGetValue(action.TargetUnitId, out var targetUnit) || !targetUnit.State.IsAlive)
-			return false;
-
-		var target = targetUnit.State;
-		if (target.MomentumLevel != CombatConfig.RailgunRequiredTargetMomentum)
-			return false;
-
-		var actor = world.StateOf(action.ActorId);
-		return actor.Position.ManhattanDistanceTo(target.Position) <= CombatConfig.RailgunMaxRange;
+		return IsPossible(action, world, runtime);
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
@@ -70,10 +58,19 @@ public sealed class RailgunDef
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
-		var attackerPosition = world.StateOf(action.ActorId).Position;
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
+		var cells = RailgunTargeting.GetBurstCells(frame, world.Grid.IsInBounds);
+
 		return
 		[
-			new DamageEffect(action.TargetUnitId, CombatConfig.RailgunDamage, attackerPosition),
+			new ScheduleActionEffect(
+				CombatConfig.RailgunResolveDelay,
+				ResolveHazardDef.Instance.Bind(
+					action.ActorId,
+					EHazardKind.RailgunBurst,
+					cells,
+					damage: CombatConfig.RailgunDamage,
+					CombatConfig.RailgunMomentumLoss)),
 			new RailgunChangeEffect(-1),
 		];
 	}

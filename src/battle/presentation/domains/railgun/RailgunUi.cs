@@ -1,59 +1,63 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Domains.Railgun;
 
 public static class RailgunUi
 {
-	public static RailgunAction? Translate(string actorId, string targetId) =>
-		new(actorId, targetId);
-
-	public static bool TryApply(BattleOrchestrator battle, Interaction.InteractionState state, Unit target)
+	public static bool TryApply(
+		BattleOrchestrator battle,
+		Interaction.InteractionState state,
+		Coord cell)
 	{
 		var actor = battle.GetActiveActor();
 		if (actor is null || !battle.CanAct(actor))
 			return false;
 
-		var action = Translate(battle.PlayerId, target.State.Id);
-		if (action is null || !battle.Sim.TryEnqueue(action))
+		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
+		var burstCells = RailgunTargeting.GetBurstCells(frame, battle.Layout.Grid.IsInBounds);
+		if (!burstCells.Contains(cell))
 			return false;
 
-		state.RailgunHover = null;
+		var action = new RailgunAction(battle.PlayerId);
+		if (!battle.Sim.TryEnqueue(action))
+			return false;
+
+		state.SetMode(EPlayerMode.Move);
 		return true;
 	}
 
-	public static bool IsTargetLegal(BattleOrchestrator battle, Unit target)
+	public static HashSet<Coord> GetBurstCells(BattleOrchestrator battle)
 	{
-		if (target.State.Id != battle.OpponentId)
-			return false;
+		if (battle.GetActiveActor() is null)
+			return [];
 
-		var action = Translate(battle.PlayerId, target.State.Id);
-		return action is not null && battle.Sim.Peek(action) is not null;
+		var sim = battle.Sim;
+		var actorId = battle.PlayerId;
+		var action = new RailgunAction(actorId);
+		if (!RailgunDef.Instance.IsLegal(action, sim.World, sim.RuntimeFor(actorId)))
+			return [];
+
+		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
+		return RailgunTargeting.GetBurstCells(frame, battle.Layout.Grid.IsInBounds);
 	}
 
-	public static HashSet<Coord> GetTargetCells(BattleOrchestrator battle, Unit? actor)
+	public static HashSet<Coord> GetPreviewCells(BattleOrchestrator battle, Interaction.InteractionState state)
 	{
-		var cells = new HashSet<Coord>();
-		if (actor is null || !battle.CanAct(actor))
-			return cells;
+		if (state.RailgunHover is not Coord hover)
+			return [];
 
-		if (!battle.Sim.World.Units.TryGetValue(battle.OpponentId, out var enemy)
-			|| !IsTargetLegal(battle, enemy))
-		{
-			return cells;
-		}
+		var burstCells = GetBurstCells(battle);
+		if (!burstCells.Contains(hover))
+			return [];
 
-		cells.Add(battle.Sim.StateOf<ActorState>(enemy.State.Id).Position);
-		return cells;
-	}
+		var action = new RailgunAction(battle.PlayerId);
+		if (battle.Sim.Peek(action) is null)
+			return [];
 
-	public static Coord? GetHoveredCell(BattleOrchestrator battle, Interaction.InteractionState state)
-	{
-		if (state.RailgunHover is not Unit target || !IsTargetLegal(battle, target))
-			return null;
-
-		var peek = battle.Sim.Peek(Translate(battle.PlayerId, target.State.Id)!);
-		return peek?.World.StateOf(battle.OpponentId).Position;
+		return burstCells;
 	}
 }

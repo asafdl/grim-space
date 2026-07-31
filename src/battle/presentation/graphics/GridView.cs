@@ -20,7 +20,6 @@ public partial class GridView : Node3D
 	private StandardMaterial3D? _hazardMaterial;
 	private StandardMaterial3D? _targetMaterial;
 	private StandardMaterial3D? _railgunMaterial;
-	private StandardMaterial3D? _aimMaterial;
 	private StandardMaterial3D? _flakPortMaterial;
 	private StandardMaterial3D? _flakStarboardMaterial;
 	private StandardMaterial3D? _flakPreviewMaterial;
@@ -38,7 +37,6 @@ public partial class GridView : Node3D
 		_hazardMaterial = CreateMaterial(new Color(0.95f, 0.25f, 0.15f, 0.55f));
 		_targetMaterial = CreateMaterial(new Color(0.95f, 0.85f, 0.2f, 0.55f));
 		_railgunMaterial = CreateMaterial(new Color(0.85f, 0.35f, 1f, 0.65f));
-		_aimMaterial = CreateMaterial(new Color(0.35f, 0.8f, 1f, 0.45f));
 		_flakPortMaterial = CreateMaterial(new Color(0.9f, 0.55f, 0.15f, 0.5f));
 		_flakStarboardMaterial = CreateMaterial(new Color(0.95f, 0.75f, 0.2f, 0.5f));
 		_flakPreviewMaterial = CreateMaterial(new Color(1f, 0.85f, 0.25f, 0.7f));
@@ -84,34 +82,9 @@ public partial class GridView : Node3D
 		}
 	}
 
-	public void SetMissileHighlights(
-		IReadOnlySet<Coord> hazardCells,
-		IReadOnlySet<Coord> validCells,
-		IReadOnlySet<Coord> previewCells)
-	{
-		if (!EnsureMaterials())
-			return;
-
-		ReleaseActiveHighlights();
-
-		foreach (var coord in hazardCells)
-			SetCellMaterial(coord, _hazardMaterial!);
-
-		foreach (var coord in validCells)
-		{
-			if (previewCells.Contains(coord))
-				continue;
-
-			SetCellMaterial(coord, _aimMaterial!);
-		}
-
-		foreach (var coord in previewCells)
-			SetCellMaterial(coord, _targetMaterial!);
-	}
-
 	public void SetRailgunHighlights(
-		IReadOnlySet<Coord> targetCells,
-		Coord? hoveredCell,
+		IReadOnlySet<Coord> burstCells,
+		IReadOnlySet<Coord> previewCells,
 		IReadOnlySet<Coord>? hazardCells = null)
 	{
 		if (!EnsureMaterials())
@@ -125,11 +98,16 @@ public partial class GridView : Node3D
 				SetCellMaterial(coord, _hazardMaterial!);
 		}
 
-		foreach (var coord in targetCells)
-			SetCellMaterial(coord, _railgunMaterial!);
+		foreach (var coord in burstCells)
+		{
+			if (previewCells.Contains(coord))
+				continue;
 
-		if (hoveredCell is Coord hovered && targetCells.Contains(hovered))
-			SetCellMaterial(hovered, _hoverMaterial!);
+			SetCellMaterial(coord, _railgunMaterial!);
+		}
+
+		foreach (var coord in previewCells)
+			SetCellMaterial(coord, _hoverMaterial!);
 	}
 
 	public void SetFlakHighlights(
@@ -175,7 +153,6 @@ public partial class GridView : Node3D
 		&& _hazardMaterial is not null
 		&& _targetMaterial is not null
 		&& _railgunMaterial is not null
-		&& _aimMaterial is not null
 		&& _flakPortMaterial is not null
 		&& _flakStarboardMaterial is not null
 		&& _flakPreviewMaterial is not null;

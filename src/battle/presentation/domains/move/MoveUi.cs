@@ -51,10 +51,15 @@ public sealed class MoveUi
 		return new MoveUi(actorId, frames, nodesByPrefix);
 	}
 
-	public IReadOnlyList<Option> GetMoveOptions(IReadOnlyList<IAction> committed) =>
-		_nodesByPrefix.TryGetValue(PrefixKey(committed), out var node)
+	public IReadOnlyList<Option> GetMoveOptions(IReadOnlyList<IAction> committed)
+	{
+		if (committed.Any(IsWeaponAction))
+			return [];
+
+		return _nodesByPrefix.TryGetValue(PrefixKey(committed), out var node)
 			? ExtractMoveOptions(committed.Count, node)
 			: [];
+	}
 
 	public bool TryLocate(
 		IReadOnlyList<IAction> committed,
@@ -96,7 +101,7 @@ public sealed class MoveUi
 			return false;
 
 		state.CommittedMovePath = option.Path;
-		state.ClearInteraction();
+		state.ClearHovers();
 		return true;
 	}
 
@@ -182,6 +187,11 @@ public sealed class MoveUi
 			MoveStepAction move => $"move:{move.ActorId}:{move.Direction}",
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
+			FlakAction flak => $"flak:{flak.ActorId}:{flak.Mount}",
+			RailgunAction railgun => $"railgun:{railgun.ActorId}",
 			_ => action.GetType().FullName ?? "action",
 		};
+
+	private static bool IsWeaponAction(IAction action) =>
+		action is FlakAction or RailgunAction;
 }

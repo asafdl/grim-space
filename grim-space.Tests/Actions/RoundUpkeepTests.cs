@@ -15,18 +15,18 @@ public sealed class RoundUpkeepTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RoundUpkeepActionRefillsApMissilesAndFlak()
+	public void RoundUpkeepActionRefillsApAndFlak()
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ActionPoints = 0;
-		player.State.MissilesRemaining = 0;
 		player.State.FlakRemaining = 0;
+		player.State.RailgunRemaining = 0;
 
 		ApplyRoundUpkeep(player);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
-		Assert.Equal(CombatConfig.MissilesPerTurn, player.State.MissilesRemaining);
 		Assert.Equal(CombatConfig.FlaksPerTurn, player.State.FlakRemaining);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, player.State.RailgunRemaining);
 	}
 
 	[Fact]
@@ -48,14 +48,14 @@ public sealed class RoundUpkeepTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var playerState = battle.Engine.World.StateOf(battle.PlayerId);
 		playerState.ActionPoints = 0;
-		playerState.MissilesRemaining = 0;
 		playerState.FlakRemaining = 0;
+		playerState.RailgunRemaining = 0;
 
 		battle.ResolveTurn([]);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
-		Assert.Equal(CombatConfig.MissilesPerTurn, playerState.MissilesRemaining);
 		Assert.Equal(CombatConfig.FlaksPerTurn, playerState.FlakRemaining);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, playerState.RailgunRemaining);
 	}
 
 	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)
