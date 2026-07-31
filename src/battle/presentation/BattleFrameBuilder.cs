@@ -7,6 +7,7 @@ using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -54,7 +55,17 @@ public static class BattleFrameBuilder
 		var actorId = battle.PlayerId;
 		var actorState = previewWorld.StateOf(actorId);
 		var missileInRange = MissileUi.IsHoverLegal(battle, state);
-		var movePreviewRingTable = MovePreviewRings.BuildRingTable(actorState.Position, moveOptions);
+		var bodyFrame = BodyFrame.From(actorState);
+		var movePreviewRingTable = MovePreviewRings.BuildRingTable(
+			bodyFrame,
+			actorState.Position,
+			moveOptions,
+			state.RingBandPreset);
+		state.SyncActiveRingForSnapshot(actorState.Position, moveOptions, movePreviewRingTable);
+		state.RemapActiveRingAfterResort(movePreviewRingTable, moveOptions);
+		var activeRingHint = movePreviewRingTable.RingCount > 0
+			? movePreviewRingTable.FormatRingHint(state.ActiveRingIndex)
+			: null;
 		return new PresentationFrame
 		{
 			Mode = state.Mode,
@@ -63,6 +74,8 @@ public static class BattleFrameBuilder
 			ActiveUnit = activeUnit,
 			MoveOptions = moveOptions,
 			MovePreviewRingTable = movePreviewRingTable,
+			ActiveRingIndex = state.ActiveRingIndex,
+			RingBandPreset = state.RingBandPreset,
 			PreviewWorld = previewWorld,
 			ActorState = actorState,
 			PreviewHazardCells = hazardCells,
@@ -84,7 +97,10 @@ public static class BattleFrameBuilder
 				activeUnit,
 				actorState,
 				battle.Sim.Actions.Count,
-				missileInRange),
+				missileInRange,
+				movePreviewRingTable.RingCount,
+				state.ActiveRingIndex,
+				activeRingHint),
 			CanAct = !battle.IsBattleOver && activeUnit is not null && !battle.IsResolving,
 			MissilesRemaining = actorState.MissilesRemaining,
 			FlakAvailable = Capabilities.For(actorState.Type)

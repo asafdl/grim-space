@@ -26,7 +26,10 @@ public static class CombatHints
 		EMissileMount? missileMount,
 		int missileRange,
 		Coord? missileCenter,
-		bool missileInRange)
+		bool missileInRange,
+		int moveRingCount = 0,
+		int activeRingIndex = 0,
+		string? activeRingHint = null)
 	{
 		var ap = unit.ActionPoints;
 		var status = $"HP {unit.Hp}  |  {MovementSelection.FormatMomentum(unit)}  |  AP {ap}";
@@ -37,7 +40,13 @@ public static class CombatHints
 		return mode switch
 		{
 			EPlayerMode.Move =>
-				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}  |  click path to queue{queuedSuffix}",
+				$"Mode: Move  |  {status}  |  missiles {missilesRemaining}/{CombatConfig.MissilesPerTurn}"
+				+ (moveRingCount > 0 && activeRingHint is not null
+					? $"  |  Q / E / wheel: cycle ring  |  Ring {activeRingIndex + 1}/{moveRingCount} ({activeRingHint})"
+					: moveRingCount > 0
+						? $"  |  Q / E / wheel: cycle ring  |  Ring {activeRingIndex + 1}/{moveRingCount}"
+						: "")
+				+ $"  |  click path to queue{queuedSuffix}",
 			EPlayerMode.Missile =>
 				$"Mode: {MountLabel(missileMount)}  |  {status}  |  {missilesRemaining}/{CombatConfig.MissilesPerTurn} left  |  range {missileRange} ({CombatConfig.ForeMissileMinRange}-{CombatConfig.ForeMissileMaxRange}, scroll)"
 				+ (missileCenter is Coord center

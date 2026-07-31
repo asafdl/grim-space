@@ -17,10 +17,110 @@ public sealed class InteractionState
 	public Unit? RailgunHover { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 	public IReadOnlyList<Coord> CommittedMovePath { get; set; } = [];
-	public int ActiveRingIndex { get; private set; } = 0;
+	public int ActiveRingIndex { get; private set; }
+	public ERingBandPreset RingBandPreset { get; private set; } = ERingBandPreset.ApMomentum;
 
-	public void SyncActiveRingForSnapshot(PresentationFrame frame)  {
-		
+	private HashSet<Coord>? _preserveRingEndpoints;
+
+	private Coord _ringSnapshotActor;
+	private int _ringSnapshotOptionCount;
+	private int _ringSnapshotOptionsFingerprint;
+
+	public void SyncActiveRingForSnapshot(
+		Coord actorPosition,
+		IReadOnlyList<Option> moveOptions,
+		MovePreviewRings.MovePreviewRingTable ringTable)
+	{
+		var fingerprint = OptionsFingerprint(moveOptions);
+		if (actorPosition == _ringSnapshotActor
+			&& moveOptions.Count == _ringSnapshotOptionCount
+			&& fingerprint == _ringSnapshotOptionsFingerprint)
+		{
+			ActiveRingIndex = ClampRingIndex(ActiveRingIndex, ringTable.RingCount);
+			return;
+		}
+
+		_ringSnapshotActor = actorPosition;
+		_ringSnapshotOptionCount = moveOptions.Count;
+		_ringSnapshotOptionsFingerprint = fingerprint;
+		_preserveRingEndpoints = null;
+		ActiveRingIndex = 0;
+		MoveHoveredIndex = null;
+	}
+
+	public void SetRingBandPreset(ERingBandPreset preset, HashSet<Coord>? preserveRingEndpoints)
+	{
+		if (RingBandPreset == preset)
+			return;
+
+		RingBandPreset = preset;
+		_preserveRingEndpoints = preserveRingEndpoints;
+	}
+
+	public void RemapActiveRingAfterResort(
+		MovePreviewRings.MovePreviewRingTable table,
+		IReadOnlyList<Option> moveOptions)
+	{
+		if (_preserveRingEndpoints is not { Count: > 0 } preserve)
+		{
+			ActiveRingIndex = ClampRingIndex(ActiveRingIndex, table.RingCount);
+			return;
+		}
+
+		_preserveRingEndpoints = null;
+		for (var i = 0; i < table.RingCount; i++)
+		{
+			var endpoints = new HashSet<Coord>();
+			foreach (var index in table.OptionIndicesOnRing(i))
+				endpoints.Add(moveOptions[index].EndPosition);
+
+			if (endpoints.SetEquals(preserve))
+			{
+				ActiveRingIndex = i;
+				MoveHoveredIndex = null;
+				return;
+			}
+		}
+
+		ActiveRingIndex = 0;
+		MoveHoveredIndex = null;
+	}
+
+	public void CycleActiveRing(int delta, int ringCount)
+	{
+		if (ringCount <= 0)
+		{
+			ActiveRingIndex = 0;
+			MoveHoveredIndex = null;
+			return;
+		}
+
+		ActiveRingIndex = (ActiveRingIndex + delta % ringCount + ringCount) % ringCount;
+		MoveHoveredIndex = null;
+	}
+
+	private static int ClampRingIndex(int index, int ringCount)
+	{
+		if (ringCount <= 0)
+			return 0;
+
+		return System.Math.Clamp(index, 0, ringCount - 1);
+	}
+
+	private static int OptionsFingerprint(IReadOnlyList<Option> moveOptions)
+	{
+		var hash = new HashCode();
+		hash.Add(moveOptions.Count);
+		for (var i = 0; i < moveOptions.Count; i++)
+		{
+			hash.Add(moveOptions[i].EndPosition);
+			hash.Add(moveOptions[i].ApCost);
+			hash.Add(moveOptions[i].PathLength);
+			hash.Add(moveOptions[i].StartMomentumLevel);
+			hash.Add(moveOptions[i].EndMomentumLevel);
+		}
+
+		return hash.ToHashCode();
 	}
 
 	public void ClearInteraction()

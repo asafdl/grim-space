@@ -55,6 +55,30 @@ public sealed class BattleUi
 
 	public bool Undo() => TurnUi.TryUndo(Battle, _state);
 
+	public int ActiveRingIndex => _state.ActiveRingIndex;
+
+	public int? MoveHoveredIndex => _state.MoveHoveredIndex;
+
+	public ERingBandPreset RingBandPreset => _state.RingBandPreset;
+
+	public void SetRingBandPreset(ERingBandPreset preset)
+	{
+		var frame = BuildFrame();
+		HashSet<Coord>? preserveEndpoints = null;
+		if (frame.MovePreviewRingTable.RingCount > 0
+			&& frame.ActiveRingIndex >= 0
+			&& frame.ActiveRingIndex < frame.MovePreviewRingTable.RingCount)
+		{
+			preserveEndpoints = new HashSet<Coord>();
+			foreach (var index in frame.MovePreviewRingTable.OptionIndicesOnRing(frame.ActiveRingIndex))
+				preserveEndpoints.Add(frame.MoveOptions[index].EndPosition);
+		}
+
+		_state.SetRingBandPreset(preset, preserveEndpoints);
+	}
+
+	public void CycleMoveRing(int delta, int ringCount) => _state.CycleActiveRing(delta, ringCount);
+
 	public void SetMoveHover(int? index, int optionCount) =>
 		_state.SetMoveHover(index, optionCount);
 

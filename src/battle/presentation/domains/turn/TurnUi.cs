@@ -58,7 +58,10 @@ public static class TurnUi
 		Unit? actor,
 		Units.State actorState,
 		int queuedActionCount,
-		bool missileInRange)
+		bool missileInRange,
+		int moveRingCount,
+		int activeRingIndex,
+		string? activeRingHint)
 	{
 		if (actor is null)
 			return "No active unit  |  WASD: pan  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
@@ -76,6 +79,9 @@ public static class TurnUi
 			state.MissileMount,
 			state.MissileRange,
 			state.MissileHover,
-			missileInRange);
+			missileInRange,
+			moveRingCount,
+			activeRingIndex,
+			activeRingHint);
 	}
 }

@@ -26,6 +26,8 @@ public partial class BattleController : Node3D
 	private BattleOutcomeOverlay _outcomeOverlay = null!;
 	private ShipOrientationHud _orientationHud = null!;
 	private MissileRangeIndicator _missileRangeIndicator = null!;
+	private RingBandPresetController _ringBandPresetController = null!;
+	private MovePlanningHud _movePlanningHud = null!;
 
 	private readonly Dictionary<string, UnitView> _unitViews = new();
 	private int? _lastHoveredMoveIndex;
@@ -71,6 +73,8 @@ public partial class BattleController : Node3D
 		}
 
 		SetupHintLabel();
+		SetupRingBandPresetController();
+		SetupMovePlanningHud();
 		SetupActionBar();
 		SetupOutcomeOverlay();
 		SetupOrientationHud();
@@ -96,7 +100,26 @@ public partial class BattleController : Node3D
 		}
 
 		var frame = _ui.BuildFrame();
-		var index = MovementSelection.PickOptionIndex(_camera, GetViewport().GetMousePosition(), frame.MoveOptions);
+		var ringTable = frame.MovePreviewRingTable;
+		if (ringTable.RingCount == 0)
+		{
+			if (_lastHoveredMoveIndex is not null)
+			{
+				_lastHoveredMoveIndex = null;
+				_ui.SetMoveHover(null, frame.MoveOptions.Count);
+				Refresh();
+			}
+
+			return;
+		}
+
+		var ringIndex = _ui.ActiveRingIndex;
+		var indices = ringTable.OptionIndicesOnRing(ringIndex);
+		var index = MovementSelection.PickOptionIndexOnRing(
+			_camera,
+			GetViewport().GetMousePosition(),
+			frame.MoveOptions,
+			indices);
 		if (index == _lastHoveredMoveIndex)
 			return;
 
@@ -210,6 +233,32 @@ public partial class BattleController : Node3D
 			return;
 		}
 
+		if (_ui.Mode == EPlayerMode.Move)
+		{
+			if (@event is InputEventMouseButton { Pressed: true } moveWheel
+				&& moveWheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
+			{
+				var wheelDelta = moveWheel.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+				CycleMoveRing(wheelDelta);
+				GetViewport().SetInputAsHandled();
+				return;
+			}
+
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q })
+			{
+				CycleMoveRing(-1);
+				GetViewport().SetInputAsHandled();
+				return;
+			}
+
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.E })
+			{
+				CycleMoveRing(1);
+				GetViewport().SetInputAsHandled();
+				return;
+			}
+		}
+
 		var frame = _ui.BuildFrame();
 		if (_ui.Battle.IsBattleOver || frame.ActiveUnit is null)
 			return;
@@ -257,9 +306,9 @@ public partial class BattleController : Node3D
 		switch (_ui.Mode)
 		{
 			case EPlayerMode.Move:
-				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
+				if (_ui.MoveHoveredIndex is int hoveredIndex)
 				{
-					_ui.TryQueueMove(index, frame.MoveOptions);
+					_ui.TryQueueMove(hoveredIndex, frame.MoveOptions);
 					_lastHoveredMoveIndex = null;
 				}
 				break;
@@ -325,6 +374,10 @@ public partial class BattleController : Node3D
 		ApplyActionBar(frame);
 		ApplyOrientationHud(frame);
 		ApplyOutcomeOverlay(frame);
+		_ringBandPresetController.Sync(
+			frame.RingBandPreset,
+			!frame.ShowOutcomeOverlay && frame.Mode == EPlayerMode.Move && frame.CanAct);
+		_movePlanningHud.Sync(frame);
 		_hintLabel.Visible = !frame.ShowOutcomeOverlay;
 		_hintLabel.Text = frame.HintText;
 	}
@@ -384,7 +437,10 @@ public partial class BattleController : Node3D
 			case EPlayerMode.Move:
 				_missileRangeIndicator.SetActive(null, 0);
 				_gridView.SetMoveHighlights(
-					frame.MoveOptions,
+					MovePreviewRings.OptionsForRing(
+						frame.MoveOptions,
+						frame.MovePreviewRingTable,
+						frame.ActiveRingIndex),
 					frame.MovePath,
 					frame.MoveTarget,
 					frame.PreviewHazardCells);
@@ -451,5 +507,31 @@ public partial class BattleController : Node3D
 		_hintLabel = new Label { Position = new Vector2(16, 16) };
 		canvas.AddChild(_hintLabel);
 		AddChild(canvas);
+	}
+
+	private void CycleMoveRing(int delta)
+	{
+		var frame = _ui.BuildFrame();
+		_ui.CycleMoveRing(delta, frame.MovePreviewRingTable.RingCount);
+		_lastHoveredMoveIndex = null;
+		Refresh();
+	}
+
+	private void SetupRingBandPresetController()
+	{
+		_ringBandPresetController = new RingBandPresetController();
+		_ringBandPresetController.PresetChanged += preset =>
+		{
+			_ui.SetRingBandPreset(preset);
+			_lastHoveredMoveIndex = null;
+			Refresh();
+		};
+		AddChild(_ringBandPresetController);
+	}
+
+	private void SetupMovePlanningHud()
+	{
+		_movePlanningHud = new MovePlanningHud();
+		AddChild(_movePlanningHud);
 	}
 }

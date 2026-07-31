@@ -16,6 +16,8 @@ public sealed class PresentationFrame
 	public Unit? ActiveUnit { get; init; }
 	public required IReadOnlyList<Option> MoveOptions { get; init; }
 	public required MovePreviewRings.MovePreviewRingTable MovePreviewRingTable { get; init; }
+	public int ActiveRingIndex { get; init; }
+	public ERingBandPreset RingBandPreset { get; init; }
 	public required BattleWorld PreviewWorld { get; init; }
 	public required State ActorState { get; init; }
 	public required IReadOnlySet<Coord> PreviewHazardCells { get; init; }

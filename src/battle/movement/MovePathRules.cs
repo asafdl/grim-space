@@ -33,6 +33,8 @@ public static class MovePathRules
 		{
 			ApCost = runtime.PathApSpent,
 			Path = path,
+			StartMomentumLevel = runtime.MoveStartMomentumLevel,
+			EndMomentumLevel = runtime.MovementBuildupLevel,
 		};
 	}
 }

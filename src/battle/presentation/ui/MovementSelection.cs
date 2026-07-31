@@ -1,6 +1,8 @@
 using Godot;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Units;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -38,6 +40,32 @@ public static class MovementSelection
 		}
 
 		return bestIndex;
+	}
+
+	public static int? PickOptionIndexOnRing(
+		Camera3D camera,
+		Vector2 screenPos,
+		IReadOnlyList<Option> options,
+		IReadOnlyList<int> optionIndicesOnRing)
+	{
+		if (optionIndicesOnRing.Count == 0)
+			return null;
+
+		var cells = new HashSet<Coord>();
+		foreach (var index in optionIndicesOnRing)
+			cells.Add(options[index].EndPosition);
+
+		var picked = GridPick.PickFromSet(camera, screenPos, cells);
+		if (picked is not Coord cell)
+			return null;
+
+		foreach (var index in optionIndicesOnRing)
+		{
+			if (options[index].EndPosition == cell)
+				return index;
+		}
+
+		return null;
 	}
 
 	private static float DistanceRayToPoint(Vector3 origin, Vector3 direction, Vector3 point)
