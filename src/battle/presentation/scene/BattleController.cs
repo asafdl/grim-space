@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Godot;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
@@ -277,12 +278,12 @@ public partial class BattleController : Node3D
 		ApplyFrame(frame);
 	}
 
-	private void TryEndTurn()
+	private async void TryEndTurn()
 	{
-		if (_ui.Battle.IsBattleOver || Mode == BattleMode.Playback)
+		if (_ui.Battle.IsBattleOver || Mode == BattleMode.Playback || _ui.Battle.IsResolving)
 			return;
 
-		var replay = _ui.CommitAndResolve();
+		var replay = await _ui.CommitAndResolveAsync();
 		if (replay is null)
 			return;
 

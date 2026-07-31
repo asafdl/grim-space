@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
@@ -25,6 +26,16 @@ public sealed class BattleUi
 			return null;
 
 		var replay = Battle.ResolveTurn(playerActions);
+		State.ResetAfterTurn();
+		return replay;
+	}
+
+	public async Task<TurnReplay?> CommitAndResolveAsync()
+	{
+		if (!TurnUi.TryCommit(Battle, out var playerActions))
+			return null;
+
+		var replay = await Battle.ResolveTurnAsync(playerActions);
 		State.ResetAfterTurn();
 		return replay;
 	}

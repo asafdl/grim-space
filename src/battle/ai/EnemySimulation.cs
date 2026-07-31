@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
@@ -6,6 +7,7 @@ using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Core.Log;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -36,23 +38,48 @@ public static class EnemySimulation
 	{
 		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
 		var bestHeuristic = int.MinValue;
+		var visitedFrames = 0;
+		var terminalFrames = 0;
+		var scoredFrames = 0;
+		var prunedFrames = 0;
+		var dfsTimer = Stopwatch.StartNew();
 
 		foreach (var frame in session.Search(actorId, capabilities, BattleSearchVisit.ForCapabilities))
 		{
+			visitedFrames++;
 			if (!IsTerminalFrame(frame, actorId, capabilities))
 				continue;
 
+			terminalFrames++;
+			var state = frame.World.StateOf(actorId);
+			if (!state.IsAlive)
+				continue;
+
+			var upperBound = ScoreUpperBound(state);
+			if (ShouldPruneTerminal(upperBound, bestHeuristic, finalists))
+			{
+				prunedFrames++;
+				continue;
+			}
+
+			scoredFrames++;
 			var heuristicScore = ScoreHeuristic(frame, actorId);
 			if (heuristicScore == int.MinValue)
 				continue;
 
-			finalists.Add((frame, heuristicScore));
+			TryAddFinalist(finalists, frame, heuristicScore);
 			if (heuristicScore > bestHeuristic)
 				bestHeuristic = heuristicScore;
 		}
 
+		dfsTimer.Stop();
+
 		if (finalists.Count == 0)
 		{
+			GameLog.Log(
+				$"Enemy DFS ({actorId}): visited={visitedFrames} terminals={terminalFrames} "
+				+ $"scored={scoredFrames} pruned={prunedFrames} finalists=0 "
+				+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
 			return new SearchFrame<BattleWorld, ActorRuntime>(
 				session.World.Fork(),
 				session.Runtimes.Fork(),
@@ -62,6 +89,7 @@ public static class EnemySimulation
 
 		SearchFrame<BattleWorld, ActorRuntime>? best = null;
 		var bestTotal = int.MinValue;
+		var refinementTimer = Stopwatch.StartNew();
 
 		foreach (var (frame, heuristicScore) in SelectTimelineFinalists(finalists, bestHeuristic))
 		{
@@ -73,7 +101,56 @@ public static class EnemySimulation
 			best = frame;
 		}
 
-		return best ?? finalists[0].Frame;
+		refinementTimer.Stop();
+		GameLog.Log(
+			$"Enemy DFS ({actorId}): visited={visitedFrames} terminals={terminalFrames} "
+			+ $"scored={scoredFrames} pruned={prunedFrames} finalists={finalists.Count} "
+			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms "
+			+ $"refinement={refinementTimer.Elapsed.TotalMilliseconds:F1}ms");
+
+		return best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
+	}
+
+	private static int ScoreUpperBound(ActorState state) =>
+		state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+
+	private static bool ShouldPruneTerminal(
+		int upperBound,
+		int bestHeuristic,
+		List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> finalists)
+	{
+		if (bestHeuristic != int.MinValue && upperBound < bestHeuristic - TimelineRefinementSlack)
+			return true;
+
+		if (finalists.Count < TimelineRefinementLimit)
+			return false;
+
+		var worstFinalist = finalists.Min(candidate => candidate.HeuristicScore);
+		return upperBound <= worstFinalist;
+	}
+
+	private static void TryAddFinalist(
+		List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> finalists,
+		SearchFrame<BattleWorld, ActorRuntime> frame,
+		int heuristicScore)
+	{
+		if (finalists.Count < TimelineRefinementLimit)
+		{
+			finalists.Add((frame, heuristicScore));
+			return;
+		}
+
+		var worstIndex = 0;
+		for (var i = 1; i < finalists.Count; i++)
+		{
+			if (finalists[i].HeuristicScore < finalists[worstIndex].HeuristicScore)
+				worstIndex = i;
+		}
+
+		if (heuristicScore <= finalists[worstIndex].HeuristicScore)
+			return;
+
+		finalists[worstIndex] = (frame, heuristicScore);
 	}
 
 	private static IEnumerable<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> SelectTimelineFinalists(

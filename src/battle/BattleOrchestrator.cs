@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
@@ -123,7 +124,15 @@ public sealed class BattleOrchestrator
 		return unit;
 	}
 
-	public TurnReplay ResolveTurn(IReadOnlyList<IAction> playerActions)
+	public TurnReplay ResolveTurn(IReadOnlyList<IAction> playerActions) =>
+		ResolveTurnAsync(playerActions, runAiOnBackgroundThread: false).GetAwaiter().GetResult();
+
+	public Task<TurnReplay> ResolveTurnAsync(IReadOnlyList<IAction> playerActions) =>
+		ResolveTurnAsync(playerActions, runAiOnBackgroundThread: true);
+
+	private async Task<TurnReplay> ResolveTurnAsync(
+		IReadOnlyList<IAction> playerActions,
+		bool runAiOnBackgroundThread)
 	{
 		if (IsBattleOver || IsResolving)
 			throw new InvalidOperationException("Cannot resolve turn while battle is over or already resolving.");
@@ -131,7 +140,7 @@ public sealed class BattleOrchestrator
 		IsResolving = true;
 		try
 		{
-			var replay = ExecuteTurn(playerActions);
+			var replay = await ExecuteTurnAsync(playerActions, runAiOnBackgroundThread);
 			var outcome = EvaluateBattleOutcome();
 			IsBattleOver = outcome.IsOver;
 			WinnerId = outcome.WinnerId;
@@ -147,7 +156,16 @@ public sealed class BattleOrchestrator
 		}
 	}
 
-	private TurnReplay ExecuteTurn(IReadOnlyList<IAction> playerActions)
+	private IReadOnlyList<IAction> PlanEnemyTurn()
+	{
+		var enemySim = _engine.CreateSimulation();
+		var enemy = _engine.World.UnitOf(_opponentId);
+		return EnemySimulation.BuildTurnActions(enemySim, enemy);
+	}
+
+	private async Task<TurnReplay> ExecuteTurnAsync(
+		IReadOnlyList<IAction> playerActions,
+		bool runAiOnBackgroundThread)
 	{
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
@@ -168,9 +186,9 @@ public sealed class BattleOrchestrator
 				unitsAfterPlayer = SnapshotAll();
 		}
 
-		var enemySim = _engine.CreateSimulation();
-		var enemy = _engine.World.UnitOf(_opponentId);
-		var enemyActions = EnemySimulation.BuildTurnActions(enemySim, enemy);
+		var enemyActions = runAiOnBackgroundThread
+			? await Task.Run(PlanEnemyTurn)
+			: PlanEnemyTurn();
 
 		SchedulePhase(_opponentId, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
 		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))
