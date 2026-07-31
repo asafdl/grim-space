@@ -121,13 +121,11 @@ public sealed class MoveUi
 		int startCount,
 		SearchFrame<BattleWorld, ActorRuntime> originNode)
 	{
-		if (originNode.Runtimes.For(_actorId).IsMovePathStarted)
-			return [];
-
 		var actor = originNode.World.StateOf(_actorId);
 		var origin = actor.Position;
 		var frame = BodyFrame.From(actor);
 		var committed = originNode.Actions;
+		var baselinePathApSpent = originNode.Runtimes.For(_actorId).PathApSpent;
 		var results = new Dictionary<Coord, Option>();
 
 		foreach (var searchFrame in _frames)
@@ -147,11 +145,17 @@ public sealed class MoveUi
 				continue;
 
 			var runtime = searchFrame.Runtimes.For(_actorId);
-			var option = MovePathRules.ToEndpointOption(origin, frame, steps, runtime);
+			var option = MovePathRules.ToEndpointOption(
+				origin,
+				frame,
+				steps,
+				runtime,
+				baselinePathApSpent);
 			if (option is null)
 				continue;
 
-			if (!results.TryGetValue(option.EndPosition, out var existing) || option.ApCost < existing.ApCost)
+			if (!results.TryGetValue(option.EndPosition, out var existing)
+				|| MovePathRules.PreferEndpointOption(option, existing))
 				results[option.EndPosition] = option;
 		}
 

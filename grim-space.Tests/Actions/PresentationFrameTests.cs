@@ -16,7 +16,7 @@ namespace GrimSpace.Tests.Actions;
 public sealed class PresentationFrameTests
 {
 	[Fact]
-	public void FrameAfterQueuedMoveShowsEndpointNotFurtherOptions()
+	public void FrameAfterQueuedMoveShowsReachableExtensions()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -31,7 +31,7 @@ public sealed class PresentationFrameTests
 		var endpoints = frame.MoveOptions.Select(option => option.EndPosition).ToHashSet();
 
 		Assert.Equal(origin + Coord.Forward * 3, frame.ActorState.Position);
-		Assert.DoesNotContain(origin + Coord.Forward * 4, endpoints);
+		Assert.Contains(origin + Coord.Forward * 4, endpoints);
 		Assert.Equal(origin + Coord.Forward * 3, frame.MoveTarget);
 		Assert.Equal(3, frame.MovePath.Count);
 	}

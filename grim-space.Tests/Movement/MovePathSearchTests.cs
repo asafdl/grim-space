@@ -15,6 +15,25 @@ public sealed class MovePathSearchTests
 	private const string PlayerId = "player";
 
 	[Fact]
+	public void DuplicateEndpointPrefersShortestPathOverLowerApCost()
+	{
+		var end = new Coord(2, 0, 0);
+		var shorter = new Option
+		{
+			Path = [new Coord(1, 0, 0), end],
+			ApCost = 4,
+		};
+		var longer = new Option
+		{
+			Path = [new Coord(1, 0, 0), new Coord(1, 1, 0), new Coord(2, 1, 0), end],
+			ApCost = 2,
+		};
+
+		Assert.True(MovePathRules.PreferEndpointOption(shorter, longer));
+		Assert.False(MovePathRules.PreferEndpointOption(longer, shorter));
+	}
+
+	[Fact]
 	public void OneAndTwoApForwardMovesAreNotReachableEndpoints()
 	{
 		var origin = new Coord(5, 5, 5);
@@ -195,6 +214,7 @@ public sealed class MovePathSearchTests
 		origin ??= session.StateOf<ActorState>(PlayerId).Position;
 		frame ??= BodyFrame.From(session.StateOf<ActorState>(PlayerId));
 		var startCount = session.Actions.Count;
+		var baselinePathApSpent = session.Runtimes.For(PlayerId).PathApSpent;
 		var results = new Dictionary<Coord, Option>();
 
 		foreach (var searchFrame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
@@ -209,11 +229,17 @@ public sealed class MovePathSearchTests
 				continue;
 
 			var runtime = searchFrame.Runtimes.For(PlayerId);
-			var option = MovePathRules.ToEndpointOption(origin.Value, frame.Value, steps, runtime);
+			var option = MovePathRules.ToEndpointOption(
+				origin.Value,
+				frame.Value,
+				steps,
+				runtime,
+				baselinePathApSpent);
 			if (option is null)
 				continue;
 
-			if (!results.TryGetValue(option.EndPosition, out var existing) || option.ApCost < existing.ApCost)
+			if (!results.TryGetValue(option.EndPosition, out var existing)
+				|| MovePathRules.PreferEndpointOption(option, existing))
 				results[option.EndPosition] = option;
 		}
 

@@ -43,6 +43,22 @@ public sealed class InvariantTests
 	}
 
 	[Fact]
+	public void MovePathWithOnlyTwoApSpentBlocksCommit()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
+		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 1);
+
+		Assert.Equal(2, option.ApCost);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
+		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).PathApSpent);
+		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.False(MovePathRules.CanEndMovePath(battle.Sim.RuntimeFor(PlayerId)));
+		Assert.False(battle.Sim.TryCommit(out _, out var status));
+		Assert.Equal(InvariantStatus.Incomplete, status);
+	}
+
+	[Fact]
 	public void StuckMovePathIsImpossibleAndBlocksCommit()
 	{
 		var origin = new Coord(5, 5, 5);

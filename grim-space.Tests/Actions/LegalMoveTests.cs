@@ -51,7 +51,7 @@ public sealed class LegalMoveTests
 	}
 
 	[Fact]
-	public void LegalMovesEmptyAfterMoveThatSpendsAllAp()
+	public void LegalMovesShowExtensionsAfterThreeStepMove()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -68,10 +68,11 @@ public sealed class LegalMoveTests
 
 		var afterPlan = Preview.GetLegalMoves(planning);
 
-		Assert.Empty(afterPlan);
+		Assert.Contains(afterPlan, option => option.EndPosition == origin + Coord.Forward * 4);
 		Assert.Equal(
 			origin + Coord.Forward * 3,
 			Preview.Simulate(planning).Actor.Position);
+		Assert.True(planning.Sim.TryCommit(out _, out _));
 	}
 
 	[Fact]

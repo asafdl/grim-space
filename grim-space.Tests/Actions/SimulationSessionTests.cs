@@ -138,6 +138,7 @@ public sealed class SimulationSessionTests
 		var origin = session.StateOf<ActorState>("player").Position;
 		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(session.StateOf<ActorState>("player"));
 		var startCount = session.Actions.Count;
+		var baselinePathApSpent = session.Runtimes.For("player").PathApSpent;
 		var results = new Dictionary<Coord, GrimSpace.Battle.Movement.Option>();
 
 		foreach (var searchFrame in session.Search("player", [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
@@ -155,11 +156,13 @@ public sealed class SimulationSessionTests
 				origin,
 				frame,
 				moveSteps,
-				runtime);
+				runtime,
+				baselinePathApSpent);
 			if (option is null)
 				continue;
 
-			if (!results.TryGetValue(option.EndPosition, out var existing) || option.ApCost < existing.ApCost)
+			if (!results.TryGetValue(option.EndPosition, out var existing)
+				|| GrimSpace.Battle.Movement.MovePathRules.PreferEndpointOption(option, existing))
 				results[option.EndPosition] = option;
 		}
 
