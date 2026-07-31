@@ -14,7 +14,7 @@ The near-term goal is **gameplay systems in code**, not polish. Use primitive/pl
 | Layer | Choice |
 |-------|--------|
 | Engine | Godot **4.7.1** (Forward Plus renderer) |
-| Language | **C#** (`net1.0`, `Godot.NET.Sdk/4.7.1`) |
+| Language | **C#** (`net10.0`, `Godot.NET.Sdk/4.7.1`) |
 | Physics | Jolt (3D) |
 | Dev OS | macOS primary; Linux secondary |
 | Editor | Godot .NET build (`godot-mono`); Cursor/VS Code + C# extension for scripting |
@@ -52,10 +52,7 @@ Defer until later: final art, animation, VFX, music, SFX, narrative writing, bal
 
 ### Placeholder assets
 
-- Meshes: `MeshInstance3D` + `BoxMesh` / `SphereMesh` / `CylinderMesh`.
-- Materials: solid `StandardMaterial3D` colors per faction/role.
-- UI: `Control` nodes + labels for HP, AP, turn order, logs.
-- Audio: none for now unless needed to test a timing mechanic.
+assets are mostly for debugging purposes waiting for real artist if game turns out to be any good
 
 ## References
 
