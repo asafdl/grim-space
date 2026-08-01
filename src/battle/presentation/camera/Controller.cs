@@ -43,9 +43,9 @@ public partial class Controller : Camera3D
 	{
 		var pan = Vector2.Zero;
 		if (Input.IsKeyPressed(Key.W))
-			pan.Y -= 1f;
-		if (Input.IsKeyPressed(Key.S))
 			pan.Y += 1f;
+		if (Input.IsKeyPressed(Key.S))
+			pan.Y -= 1f;
 		if (Input.IsKeyPressed(Key.A))
 			pan.X -= 1f;
 		if (Input.IsKeyPressed(Key.D))

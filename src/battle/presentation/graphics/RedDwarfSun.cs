@@ -54,6 +54,7 @@ public static class RedDwarfSun
 		light.GlobalPosition = gridCenter;
 		light.LookAt(gridCenter + LightDirection, Vector3.Up);
 		light.LightColor = LightColor;
+		light.LightCullMask = PresentationLayers.World;
 		light.LightEnergy = 1.35f;
 		light.ShadowEnabled = true;
 		light.DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel4Splits;

@@ -59,13 +59,14 @@ public partial class TurnHistoryView : Node3D
 			},
 			MaterialOverride = new StandardMaterial3D
 			{
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 				AlbedoColor = color,
 				EmissionEnabled = true,
 				Emission = color,
 				EmissionEnergyMultiplier = 0.35f,
-				Roughness = 0.5f,
 			},
 		};
+		PresentationLayers.MarkUx(segment);
 
 		segment.Position = (start + end) * 0.5f;
 		segment.Basis = BasisAlignedToDirection(delta);

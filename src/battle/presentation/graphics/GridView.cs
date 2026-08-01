@@ -219,6 +219,7 @@ public partial class GridView : Node3D
 			Mesh = new BoxMesh { Size = Vector3.One * WorldMapping.CellSize * 0.92f },
 			Visible = true,
 		};
+		PresentationLayers.MarkUx(cell);
 		AddChild(cell);
 		return cell;
 	}
@@ -226,8 +227,8 @@ public partial class GridView : Node3D
 	private static StandardMaterial3D CreateMaterial(Color color) =>
 		new()
 		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			AlbedoColor = color,
-			Roughness = 0.9f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 		};
 

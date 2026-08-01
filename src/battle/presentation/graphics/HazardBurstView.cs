@@ -51,6 +51,7 @@ public partial class HazardBurstView : Node3D
 			Position = WorldMapping.ToWorld(cell),
 			MaterialOverride = CreateMaterial(color, emissionEnergy: 0.25f),
 		};
+		PresentationLayers.MarkUx(marker);
 		AddChild(marker);
 		_markers.Add(marker);
 	}
@@ -63,6 +64,7 @@ public partial class HazardBurstView : Node3D
 			Position = WorldMapping.ToWorld(center) + Vector3.Up * 0.15f,
 			MaterialOverride = CreateMaterial(color, emissionEnergy: 0.8f),
 		};
+		PresentationLayers.MarkUx(marker);
 		AddChild(marker);
 		_markers.Add(marker);
 	}
@@ -70,11 +72,11 @@ public partial class HazardBurstView : Node3D
 	private static StandardMaterial3D CreateMaterial(Color color, float emissionEnergy) =>
 		new()
 		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			AlbedoColor = color,
 			EmissionEnabled = true,
 			Emission = color with { A = 1f },
 			EmissionEnergyMultiplier = emissionEnergy,
-			Roughness = 0.7f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 		};
 
