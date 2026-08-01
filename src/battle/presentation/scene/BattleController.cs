@@ -101,8 +101,10 @@ public partial class BattleController : Node3D
 	private void PreparePlanningTurn(int turnNumber)
 	{
 		var totalTimer = Stopwatch.StartNew();
+		_ui.ResetMoveUi();
+
 		var moveUiTimer = Stopwatch.StartNew();
-		_ = _ui.Battle.MoveUi;
+		_ = _ui.MoveUi;
 		moveUiTimer.Stop();
 
 		var previewTimer = Stopwatch.StartNew();

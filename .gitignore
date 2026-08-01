@@ -2,5 +2,5 @@
 .godot/
 /android/
 **.uid
-grim-space.Tests/bin/*
-grim-space.Tests/obj/*
+grim-space.Tests/bin
+grim-space.Tests/obj

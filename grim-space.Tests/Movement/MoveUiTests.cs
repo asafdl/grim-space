@@ -19,8 +19,9 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 
-		var cached = battle.MoveUi.GetMoveOptions([]);
+		var cached = ui.MoveUi.GetMoveOptions([]);
 		var expected = MoveUiExpectations.FromFreshSearch(battle.Sim, battle.PlayerId, []);
 
 		MoveUiExpectations.AssertEquivalent(expected, cached);
@@ -32,18 +33,19 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 		var state = new InteractionState();
 
-		Assert.True(MoveUiTestActions.ClickMove(battle, state, end));
+		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
 		Assert.Equal(3, battle.Sim.Actions.Count);
 		Assert.All(battle.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
 
-		Assert.True(battle.MoveUi.TryLocate(battle.Sim.Actions));
+		Assert.True(ui.MoveUi.TryLocate(battle.Sim.Actions));
 		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 		Assert.True(battle.Sim.RuntimeFor(battle.PlayerId).IsMovePathStarted);
 		Assert.Equal(1, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
-		var extensions = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var extensions = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		Assert.Contains(extensions, option => option.EndPosition == origin + Coord.Forward * 4);
 		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 	}
@@ -53,26 +55,27 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
 		var state = new InteractionState();
 
 		Assert.True(MoveUiTestActions.ClickHeading(battle, EHeadingTurn.YawRight));
-		var headingOptions = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var headingOptions = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		MoveUiExpectations.AssertEquivalent(
 			MoveUiExpectations.FromIndex(turnStartIndex, battle.Sim.Actions),
 			headingOptions);
 		Assert.NotEmpty(headingOptions);
 
 		var end = headingOptions[0].EndPosition;
-		Assert.True(MoveUiTestActions.ClickMove(battle, state, end));
+		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
 
-		Assert.True(battle.MoveUi.TryLocate(battle.Sim.Actions));
+		Assert.True(ui.MoveUi.TryLocate(battle.Sim.Actions));
 		Assert.Equal(4, battle.Sim.Actions.Count);
 		Assert.IsType<HeadingTurnAction>(battle.Sim.Actions[0]);
 		Assert.All(battle.Sim.Actions.Skip(1), action => Assert.IsType<MoveStepAction>(action));
 		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 		Assert.True(battle.Sim.RuntimeFor(battle.PlayerId).IsMovePathStarted);
-		Assert.Empty(battle.MoveUi.GetMoveOptions(battle.Sim.Actions));
+		Assert.Empty(ui.MoveUi.GetMoveOptions(battle.Sim.Actions));
 	}
 
 	[Fact]
@@ -81,10 +84,11 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 		var state = new InteractionState();
 
-		Assert.True(MoveUiTestActions.ClickMove(battle, state, end));
-		var extensions = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
+		var extensions = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		Assert.NotEmpty(extensions);
 		Assert.Contains(extensions, option => option.EndPosition == origin + Coord.Forward * 4);
 
@@ -97,7 +101,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var ui = new BattleUi(battle);
+		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, end));
@@ -109,10 +113,10 @@ public sealed class MoveUiTests
 		Assert.True(ui.Undo());
 
 		Assert.Empty(battle.Sim.Actions);
-		Assert.True(battle.MoveUi.TryLocate([]));
+		Assert.True(ui.MoveUi.TryLocate([]));
 		MoveUiExpectations.AssertEquivalent(
 			MoveUiExpectations.FromIndex(turnStartIndex, []),
-			battle.MoveUi.GetMoveOptions([]));
+			ui.MoveUi.GetMoveOptions([]));
 		Assert.Empty(ui.State.CommittedMovePath);
 		Assert.Equal(origin, ui.BuildFrame().ActorState.Position);
 	}
@@ -122,12 +126,13 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 
 		var yawRight = new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight);
 		var impossiblePrefix = new IAction[] { yawRight, yawRight };
 
-		Assert.False(battle.MoveUi.TryLocate(impossiblePrefix));
-		Assert.Empty(battle.MoveUi.GetMoveOptions(impossiblePrefix));
+		Assert.False(ui.MoveUi.TryLocate(impossiblePrefix));
+		Assert.Empty(ui.MoveUi.GetMoveOptions(impossiblePrefix));
 	}
 
 	[Fact]
@@ -135,11 +140,12 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 
-		Assert.NotEmpty(battle.MoveUi.GetMoveOptions([]));
+		Assert.NotEmpty(ui.MoveUi.GetMoveOptions([]));
 		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(battle.PlayerId)));
 
-		Assert.Empty(battle.MoveUi.GetMoveOptions(battle.Sim.Actions));
+		Assert.Empty(ui.MoveUi.GetMoveOptions(battle.Sim.Actions));
 	}
 
 	[Fact]
@@ -147,8 +153,9 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
-		var rootEndpoints = battle.MoveUi.GetMoveOptions([])
+		var rootEndpoints = ui.MoveUi.GetMoveOptions([])
 			.Select(option => option.EndPosition)
 			.ToHashSet();
 
@@ -160,9 +167,9 @@ public sealed class MoveUiTests
 		Assert.Equal(2, MovementExpectations.FighterApPerTurn - battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 		Assert.True(runtime.IsMovePathStarted);
 		Assert.False(MovePathRules.CanEndMovePath(runtime));
-		Assert.True(battle.MoveUi.TryLocate(battle.Sim.Actions));
+		Assert.True(ui.MoveUi.TryLocate(battle.Sim.Actions));
 
-		var diluted = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var diluted = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		MoveUiExpectations.AssertEquivalent(
 			MoveUiExpectations.FromIndex(turnStartIndex, battle.Sim.Actions),
 			diluted);
@@ -186,14 +193,15 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
-		var longestRoot = battle.MoveUi.GetMoveOptions([])
+		var longestRoot = ui.MoveUi.GetMoveOptions([])
 			.MaxBy(option => option.Path.Count)!;
 
 		Assert.True(MoveUiTestActions.ClickHeading(battle, EHeadingTurn.YawRight));
 		Assert.Equal(3, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
-		var diluted = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var diluted = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		MoveUiExpectations.AssertEquivalent(
 			MoveUiExpectations.FromIndex(turnStartIndex, battle.Sim.Actions),
 			diluted);
@@ -207,19 +215,24 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var ui = new BattleUi(battle);
+		var ui = BattleTestFixture.Ui(battle);
 		var state = ui.State;
 
-		var shortMove = battle.MoveUi.GetMoveOptions([])
+		var shortMove = ui.MoveUi.GetMoveOptions([])
 			.First(option => option.ApCost == 2);
 		Assert.Equal(2, shortMove.Path.Count);
-		Assert.True(MoveUi.TryApply(battle, state, shortMove));
+		var actorState = battle.Sim.StateOf<ActorState>(battle.PlayerId);
+		var steps = MoveUi.ToMoveActions(battle.PlayerId, actorState, shortMove);
+		Assert.NotNull(steps);
+		Assert.True(battle.Sim.TryEnqueue(actions: [..steps]));
+		state.CommittedMovePath = shortMove.Path;
+		state.ClearHovers();
 		Assert.Equal(2, battle.Sim.RuntimeFor(battle.PlayerId).PathApSpent);
 		Assert.Equal(2, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
-		var followUp = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var followUp = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		Assert.NotEmpty(followUp);
-		Assert.True(followUp.Count < battle.MoveUi.GetMoveOptions([]).Count);
+		Assert.True(followUp.Count < ui.MoveUi.GetMoveOptions([]).Count);
 		Assert.NotEmpty(ui.BuildFrame().MoveOptions);
 	}
 
@@ -229,7 +242,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var ui = new BattleUi(battle);
+		var ui = BattleTestFixture.Ui(battle);
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, end));
 

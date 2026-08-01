@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
@@ -43,6 +44,13 @@ internal static class BattleTestFixture
 		battle.SetActiveUnit(player.State.Id);
 		battle.BeginTurn();
 		return battle;
+	}
+
+	public static BattleUi Ui(BattleOrchestrator battle)
+	{
+		var ui = new BattleUi(battle);
+		_ = ui.MoveUi;
+		return ui;
 	}
 
 	public static BattleSimulation CreateTrialSimulation(BattleOrchestrator battle) =>

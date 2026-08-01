@@ -2,7 +2,6 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Domains.Flak;
-using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
@@ -21,7 +20,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
-		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -42,7 +41,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
-		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -99,7 +98,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
-		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -121,7 +120,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var ui = new BattleUi(battle);
-		var options = MoveUi.GetMoveOptions(battle, battle.GetActiveActor()).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 

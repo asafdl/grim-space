@@ -1,6 +1,5 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -19,7 +18,7 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
+		var move = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 
@@ -35,12 +34,12 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
+		var move = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 		battle.ResolveTurn(battle.Sim.Actions.ToList());
 
-		Assert.NotEmpty(MoveUi.GetMoveOptions(battle, battle.GetActiveActor()));
+		Assert.NotEmpty(BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions));
 		Assert.False(battle.Sim.RuntimeFor(PlayerId).IsMovePathStarted);
 	}
 
@@ -62,7 +61,7 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = MoveUi.GetMoveOptions(battle, battle.GetActiveActor())
+		var move = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 

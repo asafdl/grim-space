@@ -20,6 +20,12 @@ public sealed class BattleUi
 
 	public InteractionState State { get; } = new();
 
+	private MoveUi? _moveUi;
+
+	public MoveUi MoveUi => _moveUi ??= MoveUi.Build(Battle.Sim, Battle.PlayerId);
+
+	public void ResetMoveUi() => _moveUi = null;
+
 	public TurnReplay? CommitAndResolve()
 	{
 		if (!TurnUi.TryCommit(Battle, out var playerActions))
@@ -47,14 +53,28 @@ public sealed class BattleUi
 		if (optionIndex < 0 || optionIndex >= options.Count)
 			return false;
 
-		return MoveUi.TryApply(Battle, State, options[optionIndex]);
+		var actor = Battle.GetActiveActor();
+		if (actor is null || !Battle.CanAct(actor))
+			return false;
+
+		var option = options[optionIndex];
+		var actorState = Battle.Sim.StateOf<ActorState>(Battle.PlayerId);
+		var steps = MoveUi.ToMoveActions(Battle.PlayerId, actorState, option);
+		if (steps is null || !Battle.Sim.TryEnqueue(actions: [..steps]))
+			return false;
+
+		State.CommittedMovePath = option.Path;
+		State.ClearHovers();
+		return true;
 	}
 
 	public PresentationFrame BuildFrame()
 	{
 		var state = State;
 		var activeUnit = Battle.GetActiveActor();
-		var moveOptions = MoveUi.GetMoveOptions(Battle, activeUnit);
+		var moveOptions = activeUnit is not null && Battle.CanAct(activeUnit)
+			? MoveUi.GetMoveOptions(Battle.Sim.Actions)
+			: [];
 		state.ClampMoveHover(moveOptions.Count);
 
 		var previewWorld = TurnUi.GetPreviewWorld(Battle);

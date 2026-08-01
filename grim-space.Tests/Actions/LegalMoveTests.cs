@@ -1,7 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
@@ -82,7 +81,7 @@ public sealed class LegalMoveTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var expected = Preview.GetLegalMoves(battle);
-		var highlights = MoveUi.GetMoveOptions(battle, battle.GetActiveActor());
+		var highlights = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions);
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),

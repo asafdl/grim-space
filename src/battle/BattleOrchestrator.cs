@@ -1,12 +1,10 @@
 using System.Diagnostics;
-using System.Threading.Tasks;
 using GrimSpace.Core.Log;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
@@ -56,10 +54,6 @@ public sealed class BattleOrchestrator
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
 
-	private MoveUi? _moveUi;
-
-	public MoveUi MoveUi => _moveUi ??= MoveUi.Build(this);
-
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
@@ -107,11 +101,7 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn(bool deferMoveUiBuild = false)
-	{
-		_sim = _engine.CreateSimulation();
-		_moveUi = deferMoveUiBuild ? null : MoveUi.Build(this);
-	}
+	public void BeginTurn() => _sim = _engine.CreateSimulation();
 
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && !IsResolving && IsActive(unit.State.Id) && unit.State.IsAlive;
@@ -150,7 +140,7 @@ public sealed class BattleOrchestrator
 			WinnerId = outcome.WinnerId;
 
 			if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
-				BeginTurn(deferMoveUiBuild: true);
+				BeginTurn();
 
 			return replay;
 		}

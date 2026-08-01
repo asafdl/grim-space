@@ -2,7 +2,6 @@ using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
@@ -18,11 +17,10 @@ public sealed class MoveUi
 
 	private MoveUi(MoveOptionIndex index) => _index = index;
 
-	public static MoveUi Build(BattleOrchestrator battle)
+	public static MoveUi Build(BattleSimulation sim, string actorId)
 	{
-		var actorId = battle.PlayerId;
 		var searchTimer = Stopwatch.StartNew();
-		var index = MoveOptionIndex.FromSimulation(battle.Sim, actorId);
+		var index = MoveOptionIndex.FromSimulation(sim, actorId);
 		searchTimer.Stop();
 
 		GameLog.Log(
@@ -38,41 +36,23 @@ public sealed class MoveUi
 	public bool TryLocate(IReadOnlyList<IAction> committed) =>
 		_index.ContainsPrefix(committed);
 
-	public static IReadOnlyList<Option> GetMoveOptions(BattleOrchestrator battle, Unit? actor)
+	public static IReadOnlyList<MoveStepAction>? ToMoveActions(
+		string actorId,
+		ActorState actorState,
+		Option option)
 	{
-		if (actor is null || !battle.CanAct(actor))
-			return [];
-
-		return battle.MoveUi.GetMoveOptions(battle.Sim.Actions);
-	}
-
-	public static bool TryApply(BattleOrchestrator battle, Interaction.InteractionState state, Option option)
-	{
-		var actor = battle.GetActiveActor();
-		if (actor is null || !battle.CanAct(actor))
-			return false;
-
-		var actorState = battle.Sim.StateOf<ActorState>(battle.PlayerId);
-		IReadOnlyList<MoveStepAction> steps;
 		try
 		{
-			steps = MoveDef.StepsFromPath(
-				battle.PlayerId,
+			return MoveDef.StepsFromPath(
+				actorId,
 				BodyFrame.From(actorState),
 				actorState.Position,
 				option.Path);
 		}
 		catch (InvalidOperationException)
 		{
-			return false;
+			return null;
 		}
-
-		if (!battle.Sim.TryEnqueue(actions: [..steps]))
-			return false;
-
-		state.CommittedMovePath = option.Path;
-		state.ClearHovers();
-		return true;
 	}
 
 	public static (IReadOnlyList<Coord> Path, Coord? Target) GetPathHighlights(

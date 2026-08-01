@@ -11,19 +11,23 @@ namespace GrimSpace.Tests.Movement;
 
 internal static class MoveUiTestActions
 {
-	public static bool ClickMove(BattleOrchestrator battle, InteractionState state, Coord endPosition)
+	public static bool ClickMove(BattleUi ui, InteractionState state, Coord endPosition)
 	{
-		var options = battle.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var battle = ui.Battle;
+		var options = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var option = options.First(candidate => candidate.EndPosition == endPosition);
-		return MoveUi.TryApply(battle, state, option);
+		var actorState = battle.Sim.StateOf<ActorState>(battle.PlayerId);
+		var steps = MoveUi.ToMoveActions(battle.PlayerId, actorState, option);
+		if (steps is null || !battle.Sim.TryEnqueue(actions: [..steps]))
+			return false;
+
+		state.CommittedMovePath = option.Path;
+		state.ClearHovers();
+		return true;
 	}
 
-	public static bool ClickMove(BattleUi ui, Coord endPosition)
-	{
-		var options = MoveUi.GetMoveOptions(ui.Battle, ui.Battle.GetActiveActor()).ToList();
-		var index = options.FindIndex(option => option.EndPosition == endPosition);
-		return ui.TryQueueMove(index, options);
-	}
+	public static bool ClickMove(BattleUi ui, Coord endPosition) =>
+		ClickMove(ui, ui.State, endPosition);
 
 	public static bool ClickHeading(BattleOrchestrator battle, EHeadingTurn turn) =>
 		battle.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, turn));
