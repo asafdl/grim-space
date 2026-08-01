@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Godot;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Log;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
@@ -20,6 +22,18 @@ public partial class TurnReplayPlayer : Node3D
 	private ReplayClipContext _clipContext = null!;
 	private IReadOnlyList<IAction> _actions = [];
 	private int _actionIndex;
+
+	private int _turnNumber;
+	private string _playerId = string.Empty;
+	private string _opponentId = string.Empty;
+	private readonly Stopwatch _playbackTimer = new();
+	private readonly Stopwatch _phaseTimer = new();
+	private PlaybackPhase _phase;
+	private double _playerAnimMs;
+	private double _enemyAnimMs;
+	private double _upkeepAnimMs;
+	private double _timeToEnemyAnimMs;
+	private bool _loggedEnemyAnimStart;
 
 	public bool IsPlaying { get; private set; }
 
@@ -49,10 +63,21 @@ public partial class TurnReplayPlayer : Node3D
 			_unitViews[unitId].Sync(state);
 	}
 
-	public void Play(IReadOnlyList<IAction> actions)
+	public void Play(IReadOnlyList<IAction> actions, int turnNumber, string playerId, string opponentId)
 	{
 		_actions = actions;
 		_actionIndex = 0;
+		_turnNumber = turnNumber;
+		_playerId = playerId;
+		_opponentId = opponentId;
+		_playerAnimMs = 0;
+		_enemyAnimMs = 0;
+		_upkeepAnimMs = 0;
+		_timeToEnemyAnimMs = 0;
+		_loggedEnemyAnimStart = false;
+		_phase = PlaybackPhase.Player;
+		_playbackTimer.Restart();
+		_phaseTimer.Restart();
 		IsPlaying = true;
 		PlayNext();
 	}
@@ -62,6 +87,8 @@ public partial class TurnReplayPlayer : Node3D
 		while (_actionIndex < _actions.Count)
 		{
 			var action = _actions[_actionIndex++];
+			BeginPhase(Classify(action.ActorId));
+
 			Clips.TryPlay(action, _clipContext, out var playback);
 
 			if (playback.Pauses)
@@ -74,9 +101,67 @@ public partial class TurnReplayPlayer : Node3D
 		Finish();
 	}
 
+	private void BeginPhase(PlaybackPhase phase)
+	{
+		if (phase == _phase)
+			return;
+
+		FlushPhase();
+		_phase = phase;
+		_phaseTimer.Restart();
+
+		if (phase == PlaybackPhase.Enemy && !_loggedEnemyAnimStart)
+		{
+			_timeToEnemyAnimMs = _playbackTimer.Elapsed.TotalMilliseconds;
+			_loggedEnemyAnimStart = true;
+		}
+	}
+
+	private void FlushPhase()
+	{
+		var elapsed = _phaseTimer.Elapsed.TotalMilliseconds;
+		switch (_phase)
+		{
+			case PlaybackPhase.Player:
+				_playerAnimMs += elapsed;
+				break;
+			case PlaybackPhase.Enemy:
+				_enemyAnimMs += elapsed;
+				break;
+			case PlaybackPhase.Upkeep:
+				_upkeepAnimMs += elapsed;
+				break;
+		}
+	}
+
+	private PlaybackPhase Classify(string actorId) =>
+		actorId == _playerId
+			? PlaybackPhase.Player
+			: actorId == _opponentId
+				? PlaybackPhase.Enemy
+				: PlaybackPhase.Upkeep;
+
 	private void Finish()
 	{
+		FlushPhase();
 		IsPlaying = false;
+
+		var totalMs = _playbackTimer.Elapsed.TotalMilliseconds;
+		GameLog.Log(
+			$"Turn {_turnNumber} replay: total={totalMs:F1}ms "
+			+ $"playerAnim={_playerAnimMs:F1}ms "
+			+ $"enemyAnim={_enemyAnimMs:F1}ms "
+			+ $"upkeepAnim={_upkeepAnimMs:F1}ms "
+			+ $"toEnemyAnim={_timeToEnemyAnimMs:F1}ms "
+			+ $"actions={_actions.Count}");
+
 		EmitSignal(SignalName.PlaybackComplete);
+	}
+
+	private enum PlaybackPhase
+	{
+		Player,
+		Enemy,
+		Upkeep,
 	}
 }

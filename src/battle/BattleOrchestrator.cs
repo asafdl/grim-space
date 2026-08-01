@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Threading.Tasks;
+using GrimSpace.Core.Log;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
@@ -54,7 +56,9 @@ public sealed class BattleOrchestrator
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
 
-	public MoveUi MoveUi { get; private set; } = null!;
+	private MoveUi? _moveUi;
+
+	public MoveUi MoveUi => _moveUi ??= MoveUi.Build(this);
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
@@ -103,10 +107,10 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn()
+	public void BeginTurn(bool deferMoveUiBuild = false)
 	{
 		_sim = _engine.CreateSimulation();
-		MoveUi = MoveUi.Build(this);
+		_moveUi = deferMoveUiBuild ? null : MoveUi.Build(this);
 	}
 
 	public bool CanAct(Unit unit) =>
@@ -146,7 +150,7 @@ public sealed class BattleOrchestrator
 			WinnerId = outcome.WinnerId;
 
 			if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
-				BeginTurn();
+				BeginTurn(deferMoveUiBuild: true);
 
 			return replay;
 		}
@@ -167,6 +171,7 @@ public sealed class BattleOrchestrator
 		IReadOnlyList<IAction> playerActions,
 		bool runAiOnBackgroundThread)
 	{
+		var resolveTimer = Stopwatch.StartNew();
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
 		var turnStart = _engine.World.Timeline.Clock.Current;
@@ -179,26 +184,42 @@ public sealed class BattleOrchestrator
 		if (!TrySchedulePlayerPhase(PlayerId, playerActions, TurnPhases.Player))
 			throw new InvalidOperationException("Failed to schedule player phase onto live timeline.");
 
+		var playerStepTimer = Stopwatch.StartNew();
 		foreach (var tick in _engine.Step(TurnPhases.Player))
 		{
 			CollectTick(tick, applied);
 			if (tick.Tick == turnStart + TurnPhases.Player)
 				unitsAfterPlayer = SnapshotAll();
 		}
+		playerStepTimer.Stop();
 
+		var enemyPlanTimer = Stopwatch.StartNew();
 		var enemyActions = runAiOnBackgroundThread
 			? await Task.Run(PlanEnemyTurn)
 			: PlanEnemyTurn();
+		enemyPlanTimer.Stop();
 
+		var enemyStepTimer = Stopwatch.StartNew();
 		SchedulePhase(_opponentId, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
 		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))
 			CollectTick(tick, applied);
+		enemyStepTimer.Stop();
 
+		var upkeepTimer = Stopwatch.StartNew();
 		ScheduleRoundUpkeep(TurnPhases.End - TurnPhases.Enemy);
 		foreach (var tick in _engine.Step(TurnPhases.End - TurnPhases.Enemy))
 			CollectTick(tick, applied);
+		upkeepTimer.Stop();
 
 		FinalizeRound();
+
+		GameLog.Log(
+			$"Turn {turnNumber} sim: playerStep={playerStepTimer.Elapsed.TotalMilliseconds:F1}ms "
+			+ $"enemyThink={enemyPlanTimer.Elapsed.TotalMilliseconds:F1}ms "
+			+ $"enemyStep={enemyStepTimer.Elapsed.TotalMilliseconds:F1}ms "
+			+ $"upkeep={upkeepTimer.Elapsed.TotalMilliseconds:F1}ms "
+			+ $"total={resolveTimer.Elapsed.TotalMilliseconds:F1}ms "
+			+ $"actions={applied.Count}");
 
 		var endStates = SnapshotAll();
 		StateLog.LogTurnResolution(

@@ -1,70 +1,42 @@
+using System.Diagnostics;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
+using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Domains.Move;
 
 /// <summary>
-/// Turn-scoped movement preview: search cache, option lookup by committed queue, and apply helpers.
+/// Turn-scoped movement preview: prefix-keyed option index for fast lookup as the player queues actions.
 /// </summary>
 public sealed class MoveUi
 {
-	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] MovementActionDefs =
-	[
-		MoveDef.Instance,
-		HeadingDef.Instance,
-		RollDef.Instance,
-	];
+	private readonly MoveOptionIndex _index;
 
-	private readonly string _actorId;
-	private readonly IReadOnlyList<SearchFrame<BattleWorld, ActorRuntime>> _frames;
-	private readonly IReadOnlyDictionary<string, SearchFrame<BattleWorld, ActorRuntime>> _nodesByPrefix;
-
-	private MoveUi(
-		string actorId,
-		IReadOnlyList<SearchFrame<BattleWorld, ActorRuntime>> frames,
-		IReadOnlyDictionary<string, SearchFrame<BattleWorld, ActorRuntime>> nodesByPrefix)
-	{
-		_actorId = actorId;
-		_frames = frames;
-		_nodesByPrefix = nodesByPrefix;
-	}
+	private MoveUi(MoveOptionIndex index) => _index = index;
 
 	public static MoveUi Build(BattleOrchestrator battle)
 	{
 		var actorId = battle.PlayerId;
-		var frames = battle.Sim
-			.Search(actorId, MovementActionDefs, BattleSearchVisit.ForCapabilities)
-			.ToList();
+		var searchTimer = Stopwatch.StartNew();
+		var index = MoveOptionIndex.FromSimulation(battle.Sim, actorId);
+		searchTimer.Stop();
 
-		var nodesByPrefix = new Dictionary<string, SearchFrame<BattleWorld, ActorRuntime>>();
-		foreach (var frame in frames)
-			nodesByPrefix[PrefixKey(frame.Actions)] = frame;
+		GameLog.Log(
+			$"MoveUi.Build ({actorId}): prefixes={index.PrefixCount} "
+			+ $"search={searchTimer.Elapsed.TotalMilliseconds:F1}ms");
 
-		return new MoveUi(actorId, frames, nodesByPrefix);
+		return new MoveUi(index);
 	}
 
-	public IReadOnlyList<Option> GetMoveOptions(IReadOnlyList<IAction> committed)
-	{
-		if (committed.Any(IsWeaponAction))
-			return [];
+	public IReadOnlyList<Option> GetMoveOptions(IReadOnlyList<IAction> committed) =>
+		_index.GetOptions(committed);
 
-		return _nodesByPrefix.TryGetValue(PrefixKey(committed), out var node)
-			? ExtractMoveOptions(committed.Count, node)
-			: [];
-	}
-
-	public bool TryLocate(
-		IReadOnlyList<IAction> committed,
-		out SearchFrame<BattleWorld, ActorRuntime> node) =>
-		_nodesByPrefix.TryGetValue(PrefixKey(committed), out node);
+	public bool TryLocate(IReadOnlyList<IAction> committed) =>
+		_index.ContainsPrefix(committed);
 
 	public static IReadOnlyList<Option> GetMoveOptions(BattleOrchestrator battle, Unit? actor)
 	{
@@ -116,82 +88,4 @@ public sealed class MoveUi
 
 		return ([], null);
 	}
-
-	private IReadOnlyList<Option> ExtractMoveOptions(
-		int startCount,
-		SearchFrame<BattleWorld, ActorRuntime> originNode)
-	{
-		var actor = originNode.World.StateOf(_actorId);
-		var origin = actor.Position;
-		var frame = BodyFrame.From(actor);
-		var committed = originNode.Actions;
-		var baselinePathApSpent = originNode.Runtimes.For(_actorId).PathApSpent;
-		var results = new Dictionary<Coord, Option>();
-
-		foreach (var searchFrame in _frames)
-		{
-			if (searchFrame.Actions.Count <= startCount)
-				continue;
-
-			if (!PrefixStartsWith(searchFrame.Actions, committed))
-				continue;
-
-			var steps = searchFrame.Actions
-				.Skip(startCount)
-				.OfType<MoveStepAction>()
-				.Where(step => step.ActorId == _actorId)
-				.ToList();
-			if (steps.Count == 0)
-				continue;
-
-			var runtime = searchFrame.Runtimes.For(_actorId);
-			var option = MovePathRules.ToEndpointOption(
-				origin,
-				frame,
-				steps,
-				runtime,
-				baselinePathApSpent);
-			if (option is null)
-				continue;
-
-			if (!results.TryGetValue(option.EndPosition, out var existing)
-				|| MovePathRules.PreferEndpointOption(option, existing))
-				results[option.EndPosition] = option;
-		}
-
-		return results.Values.ToList();
-	}
-
-	private static string PrefixKey(IReadOnlyList<IAction> actions) =>
-		actions.Count == 0
-			? string.Empty
-			: string.Join('|', actions.Select(ActionKey));
-
-	private static bool PrefixStartsWith(IReadOnlyList<IAction> actions, IReadOnlyList<IAction> prefix)
-	{
-		if (actions.Count < prefix.Count)
-			return false;
-
-		for (var i = 0; i < prefix.Count; i++)
-		{
-			if (ActionKey(actions[i]) != ActionKey(prefix[i]))
-				return false;
-		}
-
-		return true;
-	}
-
-	private static string ActionKey(IAction action) =>
-		action switch
-		{
-			MoveStepAction move => $"move:{move.ActorId}:{move.Direction}",
-			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
-			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
-			FlakAction flak => $"flak:{flak.ActorId}:{flak.Mount}",
-			RailgunAction railgun => $"railgun:{railgun.ActorId}",
-			_ => action.GetType().FullName ?? "action",
-		};
-
-	private static bool IsWeaponAction(IAction action) =>
-		action is FlakAction or RailgunAction;
 }

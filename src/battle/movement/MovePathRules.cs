@@ -8,22 +8,25 @@ namespace GrimSpace.Battle.Movement;
 
 public static class MovePathRules
 {
-	public static bool CanEndMovePath(ActorRuntime runtime)
+	public static bool CanEndMovePath(ActorRuntime runtime) =>
+		CanEndMovePath(MovePathSnapshot.From(runtime));
+
+	public static bool CanEndMovePath(MovePathSnapshot snapshot)
 	{
-		if (!runtime.IsMovePathStarted)
+		if (!snapshot.IsMovePathStarted)
 			return true;
 
-		if (runtime.MinPathApCost != 0)
+		if (snapshot.MinPathApCost != 0)
 			return false;
 
 		// Retro braking waives the minimum paid-movement requirement.
-		if (runtime.SpinBraked)
+		if (snapshot.SpinBraked)
 			return true;
 
 		// MinPathApCost tracks step count (including free forward steps). PathApSpent
 		// tracks real AP — a path can satisfy the step budget while spending < 3 AP.
-		return runtime.PathApSpent == 0
-			|| runtime.PathApSpent >= ActorRuntime.InitialMinPathApCost;
+		return snapshot.PathApSpent == 0
+			|| snapshot.PathApSpent >= ActorRuntime.InitialMinPathApCost;
 	}
 
 	/// <summary>
@@ -38,9 +41,17 @@ public static class MovePathRules
 		BodyFrame frame,
 		IReadOnlyList<MoveStepAction> steps,
 		ActorRuntime runtime,
+		int baselinePathApSpent = 0) =>
+		ToEndpointOption(origin, frame, steps, MovePathSnapshot.From(runtime), baselinePathApSpent);
+
+	public static Option? ToEndpointOption(
+		Coord origin,
+		BodyFrame frame,
+		IReadOnlyList<MoveStepAction> steps,
+		MovePathSnapshot pathState,
 		int baselinePathApSpent = 0)
 	{
-		if (steps.Count == 0 || !CanEndMovePath(runtime))
+		if (steps.Count == 0 || !CanEndMovePath(pathState))
 			return null;
 
 		var path = new List<Coord>(steps.Count);
@@ -54,7 +65,7 @@ public static class MovePathRules
 
 		return new Option
 		{
-			ApCost = runtime.PathApSpent - baselinePathApSpent,
+			ApCost = pathState.PathApSpent - baselinePathApSpent,
 			Path = path,
 		};
 	}
