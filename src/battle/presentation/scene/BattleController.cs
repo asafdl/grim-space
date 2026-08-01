@@ -64,7 +64,8 @@ public partial class BattleController : Node3D
 		_gridView.Build(layout.Grid);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
-		_camera.SetPivot(gridCenter);
+		var playerPosition = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+		_camera.SetPivot(WorldMapping.ToWorld(playerPosition));
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 

@@ -6,8 +6,8 @@ namespace GrimSpace.Run;
 public static class DeploymentPlacement
 {
 	private const int Margin = 4;
-	private const int PlayerDeployOffset = 6;
-	private const int EnemyDeployDepth = 12;
+	private const int DeploySpreadDivisor = 5;
+	private const int EnemySpreadBand = 4;
 	private const int LaneHalfBand = 8;
 
 	public static (Spawn Player, Spawn Enemy) DevDuel(
@@ -19,7 +19,8 @@ public static class DeploymentPlacement
 		int enemyMomentum = 2)
 	{
 		var center = gridSize / 2;
-		var playerPosition = new Coord(Margin + PlayerDeployOffset, center, center);
+		var deploySpread = gridSize / DeploySpreadDivisor;
+		var playerPosition = new Coord(center - deploySpread, center, center);
 		var enemyPosition = PickEnemyPosition(seed, gridSize, playerPosition);
 		var dorsal = Coord.Up;
 		var playerFore = AxisToward(playerPosition, enemyPosition);
@@ -50,11 +51,13 @@ public static class DeploymentPlacement
 		var half = gridSize / 2;
 		var center = gridSize / 2;
 
+		var deploySpread = gridSize / DeploySpreadDivisor;
+		var enemyCenter = center + deploySpread;
 		var minX = playerPosition.X < half
-			? gridSize - Margin - EnemyDeployDepth
+			? enemyCenter - EnemySpreadBand
 			: Margin;
 		var maxX = playerPosition.X < half
-			? gridSize - Margin - 1
+			? enemyCenter + EnemySpreadBand
 			: half - Margin - 1;
 
 		return new Coord(
