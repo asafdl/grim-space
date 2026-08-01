@@ -97,9 +97,50 @@ public sealed class BattleDirectorTests
 		director.EndTurn();
 		await replayTcs.Task;
 
+		var planningTcs = new TaskCompletionSource();
+		director.FrameChanged += frame =>
+		{
+			if (director.Phase == PresentationPhase.Planning && frame.MoveOptions.Count > 0)
+				planningTcs.TrySetResult();
+		};
+
 		director.NotifyReplayComplete();
+		await planningTcs.Task;
+
 		Assert.Equal(PresentationPhase.Planning, director.Phase);
 		Assert.Equal(2, battle.TurnNumber);
+	}
+
+	[Fact]
+	public async Task MoveUiPreparedDuringReplayOverlapsPlanningEntry()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
+
+		var director = new BattleDirector(new BattleUi(battle));
+		var replayTcs = new TaskCompletionSource<TurnReplay>();
+		director.ReplayRequested += (replay, _) => replayTcs.TrySetResult(replay);
+		director.Start();
+
+		director.EndTurn();
+		await replayTcs.Task;
+
+		// Let background MoveUi search finish before replay ends.
+		await Task.Delay(200);
+
+		var planningTcs = new TaskCompletionSource<PresentationFrame>();
+		director.FrameChanged += frame =>
+		{
+			if (director.Phase == PresentationPhase.Planning)
+				planningTcs.TrySetResult(frame);
+		};
+
+		director.NotifyReplayComplete();
+		var frame = await planningTcs.Task;
+
+		Assert.NotEmpty(frame.MoveOptions);
 	}
 
 	[Fact]

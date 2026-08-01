@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core.Actions;
@@ -22,8 +23,7 @@ public enum PresentationPhase
 /// </summary>
 public sealed class BattleDirector
 {
-	private int _resolveJobVersion;
-	private Task? _resolveJob;
+	private readonly DirectorJobMap _jobs = new();
 
 	public BattleDirector(BattleUi ui) => _ui = ui;
 
@@ -36,23 +36,24 @@ public sealed class BattleDirector
 	public event Action<PresentationFrame>? FrameChanged;
 	public event Action<TurnReplay, int>? ReplayRequested;
 
-	public void Start() => EnterPlanning();
+	public void Start() => EnterPlanningSync();
 
 	public void EndTurn()
 	{
 		if (Phase != PresentationPhase.Planning)
 			return;
 
+		_jobs.Cancel(DirectorJobs.MovePrep);
+
 		if (!TryCommit(out var playerActions))
 			return;
 
 		var completedTurn = _ui.Battle.TurnNumber;
-		var version = ++_resolveJobVersion;
 
 		Phase = PresentationPhase.Resolving;
 		EmitFrame();
 
-		_resolveJob = ResolveAndContinue(playerActions, completedTurn, version);
+		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(playerActions, completedTurn, version));
 	}
 
 	public void NotifyReplayComplete()
@@ -62,12 +63,13 @@ public sealed class BattleDirector
 
 		if (_ui.Battle.IsBattleOver)
 		{
+			_jobs.Cancel(DirectorJobs.MovePrep);
 			Phase = PresentationPhase.BattleOver;
 			EmitFrame();
 			return;
 		}
 
-		EnterPlanning();
+		_ = FinishReplayAndEnterPlanningAsync();
 	}
 
 	public bool SetMode(EPlayerMode mode)
@@ -165,7 +167,20 @@ public sealed class BattleDirector
 		EmitFrame();
 	}
 
-	private void EnterPlanning()
+	private void EnterPlanningSync() => EnterPlanningCore(null, overlappedPrep: false);
+
+	private async Task FinishReplayAndEnterPlanningAsync()
+	{
+		var (prepared, isCurrent, elapsed) = await _jobs.Await<MoveUi>(DirectorJobs.MovePrep);
+		_jobs.Clear(DirectorJobs.MovePrep);
+
+		if (!isCurrent || Phase != PresentationPhase.Replaying)
+			return;
+
+		EnterPlanningCore(prepared, elapsed.TotalMilliseconds < 1.0);
+	}
+
+	private void EnterPlanningCore(MoveUi? preparedMoveUi, bool overlappedPrep)
 	{
 		var turnNumber = _ui.Battle.TurnNumber;
 		var totalTimer = Stopwatch.StartNew();
@@ -174,7 +189,10 @@ public sealed class BattleDirector
 		_ui.ResetMoveUi();
 
 		var moveUiTimer = Stopwatch.StartNew();
-		_ = _ui.MoveUi;
+		if (preparedMoveUi is not null)
+			_ui.InstallMoveUi(preparedMoveUi);
+		else
+			_ = _ui.MoveUi;
 		moveUiTimer.Stop();
 
 		var previewTimer = Stopwatch.StartNew();
@@ -186,8 +204,23 @@ public sealed class BattleDirector
 			turnNumber,
 			moveUiTimer.Elapsed.TotalMilliseconds,
 			previewTimer.Elapsed.TotalMilliseconds,
-			totalTimer.Elapsed.TotalMilliseconds);
+			totalTimer.Elapsed.TotalMilliseconds,
+			overlappedPrep);
 	}
+
+	private void StartMovePreparation()
+	{
+		var battle = _ui.Battle;
+		var playerId = battle.PlayerId;
+		_jobs.Start(
+			DirectorJobs.MovePrep,
+			_ => Task.Run(() => MoveUi.Build(battle.Engine.CreateSimulation(), playerId)));
+	}
+
+	private bool ShouldPrepareMoveUi() =>
+		!_ui.Battle.IsBattleOver
+		&& _ui.Battle.GetActiveUnit() is { State.Id: var id, State.IsAlive: true }
+		&& id == _ui.Battle.PlayerId;
 
 	private void EmitFrame() =>
 		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsInput));
@@ -217,7 +250,7 @@ public sealed class BattleDirector
 			var replay = await _ui.Battle.ResolveTurnAsync(playerActions);
 			resolveTimer.Stop();
 
-			if (version != _resolveJobVersion || Phase != PresentationPhase.Resolving)
+			if (!_jobs.IsCurrent(DirectorJobs.Resolve, version) || Phase != PresentationPhase.Resolving)
 				return;
 
 			_ui.State.ResetAfterTurn();
@@ -225,8 +258,11 @@ public sealed class BattleDirector
 
 			Phase = PresentationPhase.Replaying;
 			ReplayRequested?.Invoke(replay, completedTurn);
+
+			if (ShouldPrepareMoveUi())
+				StartMovePreparation();
 		}
-		catch (Exception ex) when (version == _resolveJobVersion && Phase == PresentationPhase.Resolving)
+		catch (Exception ex) when (_jobs.IsCurrent(DirectorJobs.Resolve, version) && Phase == PresentationPhase.Resolving)
 		{
 			throw new InvalidOperationException("Turn resolve failed after commit.", ex);
 		}

@@ -29,6 +29,8 @@ public sealed class BattleUi
 
 	public void ResetMoveUi() => _moveUi = null;
 
+	public void InstallMoveUi(MoveUi moveUi) => _moveUi = moveUi;
+
 	/// <summary>Active unit when it is the human player's planning turn; null otherwise.</summary>
 	public Unit? GetPlanningActor() =>
 		Battle.GetActiveUnit() is { State.Id: var id } unit && id == Battle.PlayerId
