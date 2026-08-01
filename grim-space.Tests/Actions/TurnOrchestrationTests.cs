@@ -59,6 +59,8 @@ public sealed class TurnOrchestrationTests
 		Assert.Contains(replay.AppliedActions, action => action is MoveStepAction);
 	}
 
+	public static Coord EnemyInRailgunLine(Coord playerPos) => playerPos + Coord.Forward * 6;
+
 	public static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
 		var encounter = new Encounter

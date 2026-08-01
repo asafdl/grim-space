@@ -1,4 +1,6 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
@@ -59,6 +61,9 @@ internal static class MovementExpectations
 		{
 			Path = path,
 			ApCost = TotalApForPureForwardPath(startMomentum, stepCount),
+			Steps = Enumerable.Range(0, stepCount)
+				.Select(_ => new MoveStepAction("player", ESpatialOrientation.Forward))
+				.ToList(),
 		};
 	}
 }

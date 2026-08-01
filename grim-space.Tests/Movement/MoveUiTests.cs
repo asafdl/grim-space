@@ -18,7 +18,7 @@ public sealed class MoveUiTests
 	public void CachedOptionsMatchTurnStartFrames()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 
 		var cached = ui.MoveUi.GetMoveOptions([]);
@@ -32,7 +32,7 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var state = new InteractionState();
 
@@ -54,7 +54,7 @@ public sealed class MoveUiTests
 	public void HeadingThenMoveClickLocatesFullCommittedQueue()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
 		var state = new InteractionState();
@@ -83,7 +83,7 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var state = new InteractionState();
 
@@ -100,7 +100,7 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
 
@@ -125,7 +125,7 @@ public sealed class MoveUiTests
 	public void UnknownCommittedPrefixCannotBeLocated()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 
 		var yawRight = new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight);
@@ -139,7 +139,7 @@ public sealed class MoveUiTests
 	public void WeaponQueuedBlocksMoveOptions()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 
 		Assert.NotEmpty(ui.MoveUi.GetMoveOptions([]));
@@ -152,7 +152,7 @@ public sealed class MoveUiTests
 	public void IncompleteMidPathShowsDilutedExtensionOptions()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
 		var rootEndpoints = ui.MoveUi.GetMoveOptions([])
@@ -192,7 +192,7 @@ public sealed class MoveUiTests
 	public void SpentApOnHeadingDilutesMoveEndpoints()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var turnStartIndex = MoveUiExpectations.CaptureTurnStartIndex(battle);
 		var longestRoot = ui.MoveUi.GetMoveOptions([])
@@ -214,17 +214,14 @@ public sealed class MoveUiTests
 	public void ShortApMoveClickShowsDilutedFollowUpOptions()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var state = ui.State;
 
 		var shortMove = ui.MoveUi.GetMoveOptions([])
 			.First(option => option.ApCost == 2);
 		Assert.Equal(2, shortMove.Path.Count);
-		var actorState = battle.Sim.StateOf<ActorState>(battle.PlayerId);
-		var steps = MoveUi.ToMoveActions(battle.PlayerId, actorState, shortMove);
-		Assert.NotNull(steps);
-		Assert.True(battle.Sim.TryEnqueue(actions: [..steps]));
+		Assert.True(battle.Sim.TryEnqueue(actions: [..shortMove.Steps]));
 		state.CommittedMovePath = shortMove.Path;
 		state.ClearHovers();
 		Assert.Equal(2, battle.Sim.RuntimeFor(battle.PlayerId).PathApSpent);
@@ -241,7 +238,7 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, end));
@@ -253,5 +250,61 @@ public sealed class MoveUiTests
 		Assert.Equal(end, frame.MoveTarget);
 		Assert.Equal(3, frame.MovePath.Count);
 		Assert.Equal(end, frame.ActorState.Position);
+	}
+
+	[Fact]
+	public void RootMoveOptionsDoNotBorrowPathsAcrossFutureYaw()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = BattleTestFixture.Ui(battle);
+
+		var yawedPrefix = new IAction[] { new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight) };
+		var yawedEnds = ui.MoveUi.GetMoveOptions(yawedPrefix)
+			.Select(option => option.EndPosition)
+			.ToHashSet();
+		var rootEnds = ui.MoveUi.GetMoveOptions([])
+			.Select(option => option.EndPosition)
+			.ToHashSet();
+
+		Assert.NotEmpty(yawedEnds);
+		Assert.NotEmpty(rootEnds);
+
+		var yawOnlyEnds = yawedEnds.Except(rootEnds);
+		Assert.NotEmpty(yawOnlyEnds);
+
+		foreach (var end in yawOnlyEnds)
+			Assert.DoesNotContain(end, rootEnds);
+	}
+
+	[Fact]
+	public void EveryCachedTreeOptionEnqueuesViaStoredSteps()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = BattleTestFixture.Ui(battle);
+		var index = MoveUiExpectations.CaptureTurnStartIndex(battle);
+
+		foreach (var prefix in index.EnumeratePrefixes())
+		{
+			var sim = battle.Engine.CreateSimulation();
+			foreach (var action in prefix)
+				Assert.True(sim.TryEnqueue(action), $"Failed to replay prefix action {action}");
+
+			var options = ui.MoveUi.GetMoveOptions(prefix);
+			var expected = MoveUiExpectations.FromIndex(index, prefix);
+			MoveUiExpectations.AssertEquivalent(expected, options);
+
+			foreach (var option in options)
+			{
+				var fork = battle.Engine.CreateSimulation();
+				foreach (var action in prefix)
+					Assert.True(fork.TryEnqueue(action));
+
+				Assert.True(
+					fork.TryEnqueue(actions: [..option.Steps]),
+					$"Cached steps failed at prefix length {prefix.Count}, end {option.EndPosition}");
+			}
+		}
 	}
 }

@@ -27,11 +27,9 @@ public sealed class Encounter
 			Controller = EController.Enemy,
 		};
 
-		var spawns = new[]
-		{
-			new Spawn { Unit = player, Position = new Coord(30, 32, 32), InitialMomentum = 0 },
-			new Spawn { Unit = enemy, Position = new Coord(36, 32, 32), InitialMomentum = 2 },
-		};
+		var (playerSpawn, enemySpawn) = DeploymentPlacement.DevDuel(
+			player, enemy, seed, gridSize);
+		var spawns = new[] { playerSpawn, enemySpawn };
 
 		return new Encounter
 		{

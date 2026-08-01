@@ -42,11 +42,16 @@ public sealed class State
 			Stats = Stats,
 		};
 
-	public static State FromSpawn(Instance instance, Coord position)
+	public static State FromSpawn(Instance instance, Coord position) =>
+		FromSpawn(instance, position, Coord.Forward, Coord.Up);
+
+	public static State FromSpawn(
+		Instance instance,
+		Coord position,
+		Coord fore,
+		Coord dorsal)
 	{
 		var stats = Stats.ForType(instance.Type);
-		var fore = Coord.Forward;
-		var dorsal = Coord.Up;
 		var shieldPoints = new FaceShieldPoints();
 		shieldPoints.Fill(stats.MaxShieldPointsPerFace);
 		return new State

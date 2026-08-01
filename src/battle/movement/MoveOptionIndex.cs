@@ -76,6 +76,10 @@ public sealed class MoveOptionIndex
 	public bool ContainsPrefix(IReadOnlyList<IAction> committed) =>
 		_nodeByPrefix.ContainsKey(PrefixKey(committed));
 
+	/// <summary>All action prefixes materialized in the turn-start search tree.</summary>
+	internal IEnumerable<IReadOnlyList<IAction>> EnumeratePrefixes() =>
+		_nodeByPrefix.Values.Select(node => node.Actions);
+
 	private IReadOnlyList<Option> ExtractMoveOptions(SearchNode origin)
 	{
 		var startCount = origin.Actions.Count;
@@ -89,12 +93,11 @@ public sealed class MoveOptionIndex
 			if (!PrefixStartsWith(searchNode.Actions, origin.Actions))
 				continue;
 
-			var steps = searchNode.Actions
-				.Skip(startCount)
-				.OfType<MoveStepAction>()
-				.ToList();
-			if (steps.Count == 0)
+			var suffix = searchNode.Actions.Skip(startCount).ToList();
+			if (suffix.Count == 0 || suffix.Any(action => action is not MoveStepAction))
 				continue;
+
+			var steps = suffix.Cast<MoveStepAction>().ToList();
 
 			var option = MovePathRules.ToEndpointOption(
 				origin.Position,
@@ -110,7 +113,12 @@ public sealed class MoveOptionIndex
 				results[option.EndPosition] = option;
 		}
 
-		return results.Values.ToList();
+		return results.Values
+			.OrderBy(option => option.EndPosition.X)
+			.ThenBy(option => option.EndPosition.Y)
+			.ThenBy(option => option.EndPosition.Z)
+			.ThenBy(option => option.Path.Count)
+			.ToList();
 	}
 
 	internal static SearchNode Project(

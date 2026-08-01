@@ -59,15 +59,22 @@ public class Simulation<TWorld, TRuntime>
 			return true;
 
 		int? undoGroup = actions.Length > 1 ? ++_nextUndoGroup : null;
+		var checkpoint = _actions.Count;
 
 		foreach (var action in actions)
 		{
 			if (action is not IAction<TWorld, TRuntime> typed)
+			{
+				RestoreEnqueueCheckpoint(checkpoint);
 				return false;
+			}
 
 			var runtime = Runtimes.For(action);
 			if (!typed.Definition.IsLegal(action, World, runtime))
+			{
+				RestoreEnqueueCheckpoint(checkpoint);
 				return false;
+			}
 
 			_actions.Add(action);
 			_undoGroups.Add(undoGroup);
@@ -78,6 +85,17 @@ public class Simulation<TWorld, TRuntime>
 		}
 
 		return true;
+	}
+
+	private void RestoreEnqueueCheckpoint(int actionCount)
+	{
+		while (_actions.Count > actionCount)
+		{
+			_actions.RemoveAt(_actions.Count - 1);
+			_undoGroups.RemoveAt(_undoGroups.Count - 1);
+		}
+
+		Reevaluate();
 	}
 
 	/// <summary>

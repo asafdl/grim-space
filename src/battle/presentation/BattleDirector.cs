@@ -41,16 +41,22 @@ public sealed class BattleDirector
 	public void EndTurn()
 	{
 		if (Phase != PresentationPhase.Planning)
+		{
+			PresentationDiagnostics.LogEndTurnIgnored(Phase);
 			return;
+		}
 
 		_jobs.Cancel(DirectorJobs.MovePrep);
 
 		if (!TryCommit(out var playerActions))
+		{
+			PresentationDiagnostics.LogCommitFailed();
 			return;
+		}
 
 		var completedTurn = _ui.Battle.TurnNumber;
 
-		Phase = PresentationPhase.Resolving;
+		SetPhase(PresentationPhase.Resolving, $"turn {completedTurn} committed ({playerActions.Count} actions)");
 		EmitFrame();
 
 		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(playerActions, completedTurn, version));
@@ -59,12 +65,15 @@ public sealed class BattleDirector
 	public void NotifyReplayComplete()
 	{
 		if (Phase != PresentationPhase.Replaying)
+		{
+			PresentationDiagnostics.LogReplayNotifyIgnored(Phase);
 			return;
+		}
 
 		if (_ui.Battle.IsBattleOver)
 		{
 			_jobs.Cancel(DirectorJobs.MovePrep);
-			Phase = PresentationPhase.BattleOver;
+			SetPhase(PresentationPhase.BattleOver, "battle over after replay");
 			EmitFrame();
 			return;
 		}
@@ -82,19 +91,38 @@ public sealed class BattleDirector
 		return true;
 	}
 
-	public bool QueueMove(int optionIndex)
+	public bool QueueMove(Coord endPosition)
 	{
 		if (!AcceptsInput)
+		{
+			PresentationDiagnostics.LogMoveRejected("not_planning", Phase, optionIndex: -1);
 			return false;
+		}
 
 		var battle = _ui.Battle;
 		var activeUnit = _ui.GetPlanningActor();
-		var moveOptions = activeUnit is not null && battle.CanAct(activeUnit)
-			? _ui.MoveUi.GetMoveOptions(battle.Sim.Actions)
-			: [];
-
-		if (!_ui.TryQueueMove(optionIndex, moveOptions))
+		if (activeUnit is null)
+		{
+			PresentationDiagnostics.LogMoveRejected("no_planning_actor", Phase, optionIndex: -1);
 			return false;
+		}
+
+		if (!battle.CanAct(activeUnit))
+		{
+			PresentationDiagnostics.LogMoveRejected("cannot_act", Phase, optionIndex: -1);
+			return false;
+		}
+
+		if (!_ui.TryQueueMove(endPosition))
+		{
+			var optionCount = _ui.MoveUi.GetMoveOptions(battle.Sim.Actions).Count;
+			PresentationDiagnostics.LogMoveRejected(
+				"queue_failed",
+				Phase,
+				optionIndex: -1,
+				optionCount);
+			return false;
+		}
 
 		EmitFrame();
 		return true;
@@ -167,25 +195,37 @@ public sealed class BattleDirector
 		EmitFrame();
 	}
 
-	private void EnterPlanningSync() => EnterPlanningCore(null, overlappedPrep: false);
+	private void EnterPlanningSync() => EnterPlanningCore(null, overlappedPrep: false, "initial start");
 
 	private async Task FinishReplayAndEnterPlanningAsync()
 	{
 		var (prepared, isCurrent, elapsed) = await _jobs.Await<MoveUi>(DirectorJobs.MovePrep);
 		_jobs.Clear(DirectorJobs.MovePrep);
 
-		if (!isCurrent || Phase != PresentationPhase.Replaying)
+		if (!isCurrent)
+		{
+			PresentationDiagnostics.LogPlanningHandoffAborted(
+				"move_prep_not_current",
+				Phase,
+				prepared is not null);
 			return;
+		}
 
-		EnterPlanningCore(prepared, elapsed.TotalMilliseconds < 1.0);
+		if (Phase != PresentationPhase.Replaying)
+		{
+			PresentationDiagnostics.LogPlanningHandoffAborted($"unexpected_phase", Phase, prepared is not null);
+			return;
+		}
+
+		EnterPlanningCore(prepared, elapsed.TotalMilliseconds < 1.0, "replay complete");
 	}
 
-	private void EnterPlanningCore(MoveUi? preparedMoveUi, bool overlappedPrep)
+	private void EnterPlanningCore(MoveUi? preparedMoveUi, bool overlappedPrep, string reason)
 	{
 		var turnNumber = _ui.Battle.TurnNumber;
 		var totalTimer = Stopwatch.StartNew();
 
-		Phase = PresentationPhase.Planning;
+		SetPhase(PresentationPhase.Planning, reason);
 		_ui.ResetMoveUi();
 
 		var moveUiTimer = Stopwatch.StartNew();
@@ -222,6 +262,16 @@ public sealed class BattleDirector
 		&& _ui.Battle.GetActiveUnit() is { State.Id: var id, State.IsAlive: true }
 		&& id == _ui.Battle.PlayerId;
 
+	private void SetPhase(PresentationPhase phase, string reason)
+	{
+		if (Phase == phase)
+			return;
+
+		var from = Phase;
+		Phase = phase;
+		PresentationDiagnostics.LogPhaseTransition(from, phase, reason);
+	}
+
 	private void EmitFrame() =>
 		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsInput));
 
@@ -250,21 +300,53 @@ public sealed class BattleDirector
 			var replay = await _ui.Battle.ResolveTurnAsync(playerActions);
 			resolveTimer.Stop();
 
-			if (!_jobs.IsCurrent(DirectorJobs.Resolve, version) || Phase != PresentationPhase.Resolving)
+			if (!_jobs.IsCurrent(DirectorJobs.Resolve, version))
+			{
+				PresentationDiagnostics.LogResolveAborted($"resolve_job_stale v{version}", Phase);
 				return;
+			}
+
+			if (Phase != PresentationPhase.Resolving)
+			{
+				PresentationDiagnostics.LogResolveAborted($"unexpected_phase", Phase);
+				return;
+			}
 
 			_ui.State.ResetAfterTurn();
 			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
 
-			Phase = PresentationPhase.Replaying;
+			SetPhase(PresentationPhase.Replaying, $"turn {completedTurn} resolved");
 			ReplayRequested?.Invoke(replay, completedTurn);
 
 			if (ShouldPrepareMoveUi())
 				StartMovePreparation();
+			else
+				PresentationDiagnostics.LogMovePrepSkipped(
+					_ui.Battle.TurnNumber,
+					DescribeMovePrepSkipReason());
 		}
 		catch (Exception ex) when (_jobs.IsCurrent(DirectorJobs.Resolve, version) && Phase == PresentationPhase.Resolving)
 		{
+			PresentationDiagnostics.LogJobFailed(DirectorJobs.Resolve, ex);
 			throw new InvalidOperationException("Turn resolve failed after commit.", ex);
 		}
+	}
+
+	private string DescribeMovePrepSkipReason()
+	{
+		if (_ui.Battle.IsBattleOver)
+			return "battle_over";
+
+		var active = _ui.Battle.GetActiveUnit();
+		if (active is null)
+			return "no_active_unit";
+
+		if (!active.State.IsAlive)
+			return "active_unit_dead";
+
+		if (active.State.Id != _ui.Battle.PlayerId)
+			return $"active_unit_is_{active.State.Id}";
+
+		return "unknown";
 	}
 }

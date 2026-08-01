@@ -76,7 +76,13 @@ public sealed class BattleOrchestrator
 		var blockedCells = BattleWorld.TerrainBlockedCells(terrainHazards);
 
 		var units = encounter.Spawns
-			.Select(spawn => Factory.Create(spawn.Unit, spawn.Position, ids, spawn.InitialMomentum))
+			.Select(spawn => Factory.Create(
+				spawn.Unit,
+				spawn.Position,
+				ids,
+				spawn.InitialMomentum,
+				spawn.Fore,
+				spawn.Dorsal))
 			.ToArray();
 
 		var playerId = units.First(unit => unit.Controller == EController.Player).State.Id;

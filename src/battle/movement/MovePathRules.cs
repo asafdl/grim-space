@@ -67,6 +67,7 @@ public static class MovePathRules
 		{
 			ApCost = pathState.PathApSpent - baselinePathApSpent,
 			Path = path,
+			Steps = steps,
 		};
 	}
 }

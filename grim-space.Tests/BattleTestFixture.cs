@@ -59,7 +59,7 @@ internal static class BattleTestFixture
 	public static BattleOrchestrator BeginSimulation(Coord origin, int momentum = 0)
 	{
 		var player = Player(origin, momentum: momentum);
-		var enemy = Enemy(new Coord(0, 0, 0));
+		var enemy = Enemy(origin + Coord.Forward * 6);
 		return BeginSimulation(player, enemy);
 	}
 
@@ -83,7 +83,7 @@ internal static class BattleTestFixture
 			cells.Add(pos);
 		}
 
-		return new Option { Path = cells, ApCost = apCost };
+		return new Option { Path = cells, ApCost = apCost, Steps = [] };
 	}
 
 	public static Option ForwardPath(Coord origin, int steps, int apCost = 0) =>

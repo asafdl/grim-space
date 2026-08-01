@@ -28,7 +28,7 @@ public sealed class Stats
 				MaxHullPoints = 2,
 				MaxShieldPointsPerFace = 2,
 				FlaksPerTurn = 0,
-				RailgunsPerTurn = 0,
+				RailgunsPerTurn = 1,
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};

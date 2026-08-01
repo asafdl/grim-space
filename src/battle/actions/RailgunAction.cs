@@ -42,7 +42,12 @@ public sealed class RailgunDef
 	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		return RailgunTargeting.IsValidBurst(frame, world.Grid.IsInBounds);
+		if (!RailgunTargeting.IsValidBurst(frame, world.Grid.IsInBounds))
+			return false;
+
+		// TODO: split player (geometry-only) vs AI (must-hit) when hazard/zoning matters.
+		var cells = RailgunTargeting.GetBurstCells(frame, world.Grid.IsInBounds);
+		return RailgunTargeting.BurstHitsAnyOpponent(world, action.ActorId, cells);
 	}
 
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)

@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
@@ -39,20 +40,74 @@ public sealed class BattleUi
 
 	public bool Undo() => TurnUi.TryUndo(Battle, State);
 
+	public bool TryQueueMove(Coord endPosition)
+	{
+		var options = MoveUi.GetMoveOptions(Battle.Sim.Actions);
+		var optionIndex = -1;
+		for (var i = 0; i < options.Count; i++)
+		{
+			if (options[i].EndPosition != endPosition)
+				continue;
+
+			optionIndex = i;
+			break;
+		}
+
+		if (optionIndex < 0)
+		{
+			PresentationDiagnostics.LogMoveQueueDetail("endpoint_not_in_options", endPosition);
+			return false;
+		}
+
+		return TryQueueMove(optionIndex, options);
+	}
+
 	public bool TryQueueMove(int optionIndex, IReadOnlyList<Movement.Option> options)
 	{
 		if (optionIndex < 0 || optionIndex >= options.Count)
+		{
+			PresentationDiagnostics.LogMoveQueueDetail(
+				"index_out_of_range",
+				optionIndex < options.Count && optionIndex >= 0 ? options[optionIndex].EndPosition : null);
 			return false;
+		}
 
 		var actor = GetPlanningActor();
-		if (actor is null || !Battle.CanAct(actor))
+		if (actor is null)
+		{
+			PresentationDiagnostics.LogMoveQueueDetail("no_planning_actor");
 			return false;
+		}
+
+		if (!Battle.CanAct(actor))
+		{
+			PresentationDiagnostics.LogMoveQueueDetail("cannot_act");
+			return false;
+		}
+
+		var committed = Battle.Sim.Actions;
+		if (!MoveUi.TryLocate(committed))
+		{
+			PresentationDiagnostics.LogMoveQueueDetail("prefix_not_in_cached_tree");
+			return false;
+		}
 
 		var option = options[optionIndex];
-		var actorState = Battle.Sim.StateOf<ActorState>(Battle.PlayerId);
-		var steps = MoveUi.ToMoveActions(Battle.PlayerId, actorState, option);
-		if (steps is null || !Battle.Sim.TryEnqueue(actions: [..steps]))
+		if (option.Steps.Count == 0)
+		{
+			PresentationDiagnostics.LogMoveQueueDetail("empty_steps", option.EndPosition);
 			return false;
+		}
+
+		if (!Battle.Sim.TryEnqueue(actions: [..option.Steps]))
+		{
+			var actorState = Battle.Sim.StateOf<ActorState>(Battle.PlayerId);
+			PresentationDiagnostics.LogMoveQueueDetail(
+				$"sim_enqueue_failed steps={option.Steps.Count} pos={actorState.Position} "
+				+ $"fore={actorState.Fore}",
+				option.EndPosition);
+			return false;
+		}
 
 		State.CommittedMovePath = option.Path;
 		State.ClearHovers();

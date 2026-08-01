@@ -5,6 +5,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
@@ -15,6 +16,7 @@ public static class EnemySimulation
 {
 	private const int MomentumWeight = 1_000;
 	private const int UnusedApPenalty = 100;
+	private const int RailgunHitBonus = 2_000;
 	private const int TimelineRefinementLimit = 8;
 	private const int TimelineRefinementSlack = UnusedApPenalty;
 
@@ -112,7 +114,9 @@ public static class EnemySimulation
 	}
 
 	private static int ScoreUpperBound(ActorState state) =>
-		state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+		state.MomentumLevel * MomentumWeight
+		- state.ActionPoints * UnusedApPenalty
+		+ (state.RailgunRemaining > 0 ? RailgunHitBonus : 0);
 
 	private static bool ShouldPruneTerminal(
 		int upperBound,
@@ -198,8 +202,15 @@ public static class EnemySimulation
 		if (!state.IsAlive)
 			return int.MinValue;
 
-		return state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+		if (FrameFiredRailgun(frame, actorId))
+			score += RailgunHitBonus;
+
+		return score;
 	}
+
+	private static bool FrameFiredRailgun(SearchFrame<BattleWorld, ActorRuntime> frame, string actorId) =>
+		frame.Actions.Any(action => action is RailgunAction railgun && railgun.ActorId == actorId);
 
 	private static int ScoreTimelineAdjustment(
 		SearchFrame<BattleWorld, ActorRuntime> frame,

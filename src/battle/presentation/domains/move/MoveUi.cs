@@ -36,6 +36,9 @@ public sealed class MoveUi
 	public bool TryLocate(IReadOnlyList<IAction> committed) =>
 		_index.ContainsPrefix(committed);
 
+	internal IEnumerable<IReadOnlyList<IAction>> EnumeratePrefixes() =>
+		_index.EnumeratePrefixes();
+
 	public static IReadOnlyList<MoveStepAction>? ToMoveActions(
 		string actorId,
 		ActorState actorState,

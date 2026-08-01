@@ -201,7 +201,15 @@ public partial class BattleController : Node3D
 			return;
 
 		if (!_director.AcceptsInput)
+		{
+			if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+				PresentationDiagnostics.LogInputIgnored(_director.Phase, "left_click");
+
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
+				PresentationDiagnostics.LogInputIgnored(_director.Phase, "end_turn");
+
 			return;
+		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
 			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun)
@@ -275,9 +283,11 @@ public partial class BattleController : Node3D
 			case EPlayerMode.Move:
 				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
 				{
-					_director.QueueMove(index);
+					_director.QueueMove(frame.MoveOptions[index].EndPosition);
 					_lastHoveredMoveIndex = null;
 				}
+				else
+					PresentationDiagnostics.LogMovePickMiss(frame.MoveOptions.Count);
 				break;
 
 			case EPlayerMode.Flak:

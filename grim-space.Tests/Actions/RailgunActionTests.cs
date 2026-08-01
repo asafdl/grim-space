@@ -22,7 +22,9 @@ public sealed class RailgunActionTests
 	[Fact]
 	public void RailgunSchedulesResolveOnPreviewTimeline()
 	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var playerPos = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			playerPos, TurnOrchestrationTests.EnemyInRailgunLine(playerPos));
 		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(PlayerId)));
 
 		var resolveTick = battle.Sim.AnchorTick + CombatConfig.RailgunResolveDelay;
@@ -30,6 +32,17 @@ public sealed class RailgunActionTests
 		Assert.NotEmpty(hazard.Cells);
 		Assert.Equal(CombatConfig.RailgunDamage, hazard.Damage);
 		Assert.Equal(EHazardKind.RailgunBurst, hazard.Kind);
+	}
+
+	[Fact]
+	public void RailgunNotPossibleWhenBurstMissesOpponent()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, new Coord(0, 0, 0));
+		var action = new RailgunAction(PlayerId);
+
+		Assert.False(RailgunDef.Instance.IsPossible(action, battle.Sim.World, battle.Sim.RuntimeFor(PlayerId)));
+		Assert.False(battle.Sim.TryEnqueue(action));
 	}
 
 	[Fact]

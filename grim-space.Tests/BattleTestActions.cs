@@ -1,7 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
@@ -15,6 +14,9 @@ internal static class BattleTestActions
 
 	public static bool TryEnqueueMovePath(BattleSimulation sim, string actorId, Option option)
 	{
+		if (option.Steps.Count > 0)
+			return sim.TryEnqueue(actions: [..option.Steps]);
+
 		var actor = sim.StateOf<ActorState>(actorId);
 		try
 		{

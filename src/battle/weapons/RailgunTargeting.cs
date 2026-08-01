@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Weapons;
@@ -40,4 +41,18 @@ public static class RailgunTargeting
 
 	public static bool IsValidBurst(BodyFrame frame, Func<Coord, bool> isInBounds) =>
 		GetBurstCells(frame, isInBounds).Count > 0;
+
+	public static bool BurstHitsAnyOpponent(BattleWorld world, string actorId, HashSet<Coord> cells) =>
+		world.UnitsExcept(actorId).Any(unit => unit.State.IsAlive && cells.Contains(unit.State.Position));
+
+	public static bool WouldHitOpponent(BattleWorld world, string actorId)
+	{
+		var actor = world.StateOf(actorId);
+		if (actor.RailgunRemaining <= 0)
+			return false;
+
+		var frame = BodyFrame.From(actor);
+		var cells = GetBurstCells(frame, world.Grid.IsInBounds);
+		return BurstHitsAnyOpponent(world, actorId, cells);
+	}
 }

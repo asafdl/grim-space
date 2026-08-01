@@ -16,9 +16,7 @@ internal static class MoveUiTestActions
 		var battle = ui.Battle;
 		var options = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var option = options.First(candidate => candidate.EndPosition == endPosition);
-		var actorState = battle.Sim.StateOf<ActorState>(battle.PlayerId);
-		var steps = MoveUi.ToMoveActions(battle.PlayerId, actorState, option);
-		if (steps is null || !battle.Sim.TryEnqueue(actions: [..steps]))
+		if (!battle.Sim.TryEnqueue(actions: [..option.Steps]))
 			return false;
 
 		state.CommittedMovePath = option.Path;

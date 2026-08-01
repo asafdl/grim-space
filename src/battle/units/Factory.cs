@@ -12,7 +12,16 @@ public static class Factory
 		Instance instance,
 		Coord position,
 		UnitIdRegistry? ids = null,
-		int initialMomentum = 0)
+		int initialMomentum = 0) =>
+		Create(instance, position, ids, initialMomentum, Coord.Forward, Coord.Up);
+
+	public static Unit Create(
+		Instance instance,
+		Coord position,
+		UnitIdRegistry? ids,
+		int initialMomentum,
+		Coord fore,
+		Coord dorsal)
 	{
 		var id = ResolveId(instance, ids);
 		var state = State.FromSpawn(new Instance
@@ -20,7 +29,7 @@ public static class Factory
 			Id = id,
 			Type = instance.Type,
 			Controller = instance.Controller,
-		}, position);
+		}, position, fore, dorsal);
 		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
 		return ShellFor(instance.Controller, state);
 	}

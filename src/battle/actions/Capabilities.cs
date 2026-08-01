@@ -32,7 +32,7 @@ public static class Capabilities
 				FlakDef.For(EFlakMount.Starboard),
 				RailgunDef.Instance,
 			],
-			EType.Patrol => [],
+			EType.Patrol => [RailgunDef.Instance],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 }

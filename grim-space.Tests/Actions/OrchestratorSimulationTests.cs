@@ -35,6 +35,28 @@ public sealed class OrchestratorSimulationTests
 	}
 
 	[Fact]
+	public void BatchTryEnqueueRollsBackWhenLaterStepFails()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin, momentum: 0, actionPoints: 1);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			BattleTestFixture.Grid(),
+			new HashSet<Coord>());
+		var steps = new IAction[]
+		{
+			new MoveStepAction(PlayerId, ESpatialOrientation.Forward),
+			new MoveStepAction(PlayerId, ESpatialOrientation.Forward),
+		};
+
+		Assert.False(battle.Sim.TryEnqueue(actions: steps));
+		Assert.Empty(battle.Sim.Actions);
+		Assert.Equal(origin, battle.Sim.StateOf<ActorState>(PlayerId).Position);
+	}
+
+	[Fact]
 	public void NewSimulationStartsEmpty()
 	{
 		var origin = new Coord(5, 5, 5);

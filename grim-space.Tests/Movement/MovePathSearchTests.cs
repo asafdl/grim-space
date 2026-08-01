@@ -22,11 +22,13 @@ public sealed class MovePathSearchTests
 		{
 			Path = [new Coord(1, 0, 0), end],
 			ApCost = 4,
+			Steps = [],
 		};
 		var longer = new Option
 		{
 			Path = [new Coord(1, 0, 0), new Coord(1, 1, 0), new Coord(2, 1, 0), end],
 			ApCost = 2,
+			Steps = [],
 		};
 
 		Assert.True(MovePathRules.PreferEndpointOption(shorter, longer));

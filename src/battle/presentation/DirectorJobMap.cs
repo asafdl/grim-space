@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 namespace GrimSpace.Battle.Presentation;
 
+
 internal static class DirectorJobs
 {
 	public const string Resolve = "resolve";
@@ -19,6 +20,7 @@ internal sealed class DirectorJobMap
 	{
 		var slot = GetOrCreate(key);
 		slot.Version++;
+		PresentationDiagnostics.LogJobCancelled(key, slot.Version);
 	}
 
 	public void Start(string key, Func<int, Task> work)
@@ -27,13 +29,17 @@ internal sealed class DirectorJobMap
 		var version = ++slot.Version;
 		slot.StartedVersion = version;
 		slot.Task = work(version);
+		PresentationDiagnostics.LogJobStarted(key, version);
 	}
 
 	public async Task<(T? Value, bool IsCurrent, TimeSpan Elapsed)> Await<T>(string key)
 	{
 		var slot = GetOrCreate(key);
 		if (slot.Task is not Task<T> task)
+		{
+			PresentationDiagnostics.LogJobAwaited(key, slot.StartedVersion, slot.Version, hasTask: false, succeeded: false);
 			return (default, false, TimeSpan.Zero);
+		}
 
 		var startedVersion = slot.StartedVersion;
 		var sw = Stopwatch.StartNew();
@@ -41,11 +47,15 @@ internal sealed class DirectorJobMap
 		{
 			var value = await task;
 			sw.Stop();
-			return (value, startedVersion == slot.Version, sw.Elapsed);
+			var isCurrent = startedVersion == slot.Version;
+			PresentationDiagnostics.LogJobAwaited(key, startedVersion, slot.Version, hasTask: true, succeeded: true);
+			return (value, isCurrent, sw.Elapsed);
 		}
-		catch
+		catch (Exception ex)
 		{
 			sw.Stop();
+			PresentationDiagnostics.LogJobFailed(key, ex);
+			PresentationDiagnostics.LogJobAwaited(key, startedVersion, slot.Version, hasTask: true, succeeded: false);
 			return (default, startedVersion == slot.Version, sw.Elapsed);
 		}
 	}

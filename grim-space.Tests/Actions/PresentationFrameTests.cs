@@ -18,7 +18,7 @@ public sealed class PresentationFrameTests
 	public void FrameAfterQueuedMoveShowsReachableExtensions()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
 		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
@@ -39,7 +39,7 @@ public sealed class PresentationFrameTests
 	public void UndoClearsQueuedMoveFromFrame()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
 		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
@@ -62,7 +62,7 @@ public sealed class PresentationFrameTests
 	public void UndoClearsQueuedRailgun()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
 
 		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward));
@@ -79,7 +79,7 @@ public sealed class PresentationFrameTests
 	public void UndoClearsQueuedFlak()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
 		var pickCell = origin + new Coord(1, 1, 0);
 
@@ -96,7 +96,7 @@ public sealed class PresentationFrameTests
 	public void UndoClearsRailgunQueuedAfterMove()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
 		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
@@ -118,7 +118,7 @@ public sealed class PresentationFrameTests
 	public void UndoRailgunPreservesCommittedMovePath()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
 		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
