@@ -11,12 +11,15 @@ public partial class Controller : Camera3D
 	private const float DefaultDistance = 22f;
 	private const float MinDistance = 8f;
 	private const float MaxDistance = 280f;
-	private const float MinPitch = -1.2f;
-	private const float MaxPitch = 1.2f;
+	private const float MinPitch = -0.3f;
+	private const float MaxPitch = 1.25f;
 
 	private Vector3 _pivot;
+	private Vector3 _homePivot;
 	private float _yaw;
 	private float _pitch;
+	private float _defaultYaw;
+	private float _defaultPitch;
 	private float _distance;
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
@@ -25,6 +28,23 @@ public partial class Controller : Camera3D
 	public void SetPivot(Vector3 pivot)
 	{
 		_pivot = pivot;
+		_homePivot = pivot;
+		ApplyTransform();
+	}
+
+	public void ResetView()
+	{
+		_pivot = _homePivot;
+		_yaw = _defaultYaw;
+		_pitch = _defaultPitch;
+		ApplyTransform();
+	}
+
+	public void FocusOn(Vector3 worldPosition)
+	{
+		_pivot = worldPosition;
+		_yaw = _defaultYaw;
+		_pitch = _defaultPitch;
 		ApplyTransform();
 	}
 
@@ -36,6 +56,9 @@ public partial class Controller : Camera3D
 			WorldMapping.CellSize * 4f);
 		SyncFromTransform();
 		_distance = DefaultDistance;
+		_defaultYaw = _yaw;
+		_defaultPitch = _pitch;
+		_homePivot = _pivot;
 		ApplyTransform();
 	}
 
@@ -177,6 +200,6 @@ public partial class Controller : Camera3D
 			Mathf.Cos(_pitch) * Mathf.Cos(_yaw)) * _distance;
 
 		GlobalPosition = _pivot + offset;
-		LookAt(_pivot);
+		LookAt(_pivot, Vector3.Up);
 	}
 }

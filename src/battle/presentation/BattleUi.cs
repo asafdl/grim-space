@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
@@ -12,6 +11,10 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation;
 
+/// <summary>
+/// Player interaction and presentation assembly for one battle.
+/// Turn commit/resolve/replay lifecycle lives in <see cref="Scene.BattleController"/>.
+/// </summary>
 public sealed class BattleUi
 {
 	public BattleUi(BattleOrchestrator battle) => Battle = battle;
@@ -25,26 +28,6 @@ public sealed class BattleUi
 	public MoveUi MoveUi => _moveUi ??= MoveUi.Build(Battle.Sim, Battle.PlayerId);
 
 	public void ResetMoveUi() => _moveUi = null;
-
-	public TurnReplay? CommitAndResolve()
-	{
-		if (!TurnUi.TryCommit(Battle, out var playerActions))
-			return null;
-
-		var replay = Battle.ResolveTurn(playerActions);
-		State.ResetAfterTurn();
-		return replay;
-	}
-
-	public async Task<TurnReplay?> CommitAndResolveAsync()
-	{
-		if (!TurnUi.TryCommit(Battle, out var playerActions))
-			return null;
-
-		var replay = await Battle.ResolveTurnAsync(playerActions);
-		State.ResetAfterTurn();
-		return replay;
-	}
 
 	public bool Undo() => TurnUi.TryUndo(Battle, State);
 

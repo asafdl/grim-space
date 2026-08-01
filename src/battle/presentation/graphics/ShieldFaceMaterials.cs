@@ -19,23 +19,37 @@ internal static class ShieldFaceMaterials
 
 	private static StandardMaterial3D Create(Color hullColor, int points, int maxPoints)
 	{
+		var warn = new Color(1f, 0.88f, 0.15f);
+
 		var material = new StandardMaterial3D
 		{
 			Roughness = 0.45f,
-			Metallic = 0.15f,
+			Metallic = 0.1f,
 		};
 
-		if (points <= 0 || maxPoints <= 0)
+		if (maxPoints <= 0 || points <= 0)
 		{
-			material.AlbedoColor = hullColor;
+			material.AlbedoColor = hullColor.Lerp(warn, 0.55f);
+			material.EmissionEnabled = true;
+			material.Emission = warn;
+			material.EmissionEnergyMultiplier = 0.85f;
 			return material;
 		}
 
-		var warn = new Color(1f, 0.82f, 0.3f);
-		var isFull = points >= maxPoints;
-		material.AlbedoColor = isFull
-			? hullColor.Lightened(0.18f)
-			: hullColor.Lerp(warn, 0.4f);
+		if (points >= maxPoints)
+		{
+			material.AlbedoColor = hullColor.Lightened(0.12f);
+			material.EmissionEnabled = true;
+			material.Emission = hullColor.Lightened(0.35f);
+			material.EmissionEnergyMultiplier = 0.25f;
+			return material;
+		}
+
+		var damage = 1f - (float)points / maxPoints;
+		material.AlbedoColor = hullColor.Lerp(warn, 0.35f + damage * 0.25f);
+		material.EmissionEnabled = true;
+		material.Emission = warn;
+		material.EmissionEnergyMultiplier = 0.45f + damage * 0.35f;
 
 		return material;
 	}

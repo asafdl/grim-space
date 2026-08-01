@@ -25,7 +25,7 @@ public static class CombatHints
 		return mode switch
 		{
 			EPlayerMode.Move =>
-				$"Mode: Move  |  {status}  |  click path to queue{queuedSuffix}",
+				$"Mode: Move  |  {status}  |  click path to queue  |  R/F: reset/focus camera{queuedSuffix}",
 			EPlayerMode.Flak =>
 				$"Mode: Flak  |  {status}  |  click port or starboard arc  |  Esc: cancel{queuedSuffix}",
 			EPlayerMode.Railgun =>

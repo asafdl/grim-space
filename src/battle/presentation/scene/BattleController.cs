@@ -8,6 +8,7 @@ using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
+using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Replay;
@@ -95,10 +96,11 @@ public partial class BattleController : Node3D
 		_replayPlayer.PlaybackComplete += OnPlaybackComplete;
 		AddChild(_replayPlayer);
 
-		PreparePlanningTurn(_ui.Battle.TurnNumber);
+		EnterPlanningTurn(_ui.Battle.TurnNumber);
 	}
 
-	private void PreparePlanningTurn(int turnNumber)
+	// Turn loop: planning -> commit + resolve -> replay playback -> planning.
+	private void EnterPlanningTurn(int turnNumber)
 	{
 		var totalTimer = Stopwatch.StartNew();
 		_ui.ResetMoveUi();
@@ -230,6 +232,21 @@ public partial class BattleController : Node3D
 			return;
 		}
 
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.R })
+		{
+			_camera.ResetView();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F })
+		{
+			var player = _ui.Battle.Sim.StateOf<ActorState>(_ui.Battle.PlayerId);
+			_camera.FocusOn(WorldMapping.ToWorld(player.Position));
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		var frame = _ui.BuildFrame();
 		if (_ui.Battle.IsBattleOver || frame.ActiveUnit is null)
 			return;
@@ -311,12 +328,15 @@ public partial class BattleController : Node3D
 		if (_ui.Battle.IsBattleOver || Mode == BattleMode.Playback || _ui.Battle.IsResolving)
 			return;
 
+		if (!TurnUi.TryCommit(_ui.Battle, out var playerActions))
+			return;
+
 		var completedTurn = _ui.Battle.TurnNumber;
 		var resolveTimer = Stopwatch.StartNew();
-		var replay = await _ui.CommitAndResolveAsync();
+		var replay = await _ui.Battle.ResolveTurnAsync(playerActions);
 		resolveTimer.Stop();
-		if (replay is null)
-			return;
+
+		_ui.State.ResetAfterTurn();
 
 		TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
 
@@ -336,7 +356,7 @@ public partial class BattleController : Node3D
 			_battleView.ApplyUnitStates(_playbackEndStates);
 
 		_playbackEndStates = null;
-		PreparePlanningTurn(_ui.Battle.TurnNumber);
+		EnterPlanningTurn(_ui.Battle.TurnNumber);
 	}
 
 	private bool TryEnqueue(IAction action)

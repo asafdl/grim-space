@@ -66,7 +66,7 @@ public static class TurnUi
 		int queuedActionCount)
 	{
 		if (actor is null)
-			return "No active unit  |  WASD: pan  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
+			return "No active unit  |  WASD: pan  |  R/F: reset/focus camera  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
 
 		var turnPrefix = battle.IsBattleOver
 			? $"Battle over — winner: {battle.WinnerId}  |  "
