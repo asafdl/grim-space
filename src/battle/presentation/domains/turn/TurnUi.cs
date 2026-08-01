@@ -9,20 +9,6 @@ namespace GrimSpace.Battle.Presentation.Domains.Turn;
 
 public static class TurnUi
 {
-	public static bool TryCommit(BattleOrchestrator battle, out IReadOnlyList<IAction> playerActions)
-	{
-		playerActions = [];
-
-		if (battle.IsBattleOver)
-			return false;
-
-		if (!battle.Sim.TryCommit(out var actions, out _))
-			return false;
-
-		playerActions = HeadingDef.Instance.Streamline(actions, battle.Sim.UndoGroups).ToList();
-		return true;
-	}
-
 	public static bool TryUndo(BattleOrchestrator battle, Interaction.InteractionState state)
 	{
 		if (battle.Sim.Actions.Count == 0)

@@ -1,14 +1,9 @@
-using System.Diagnostics;
-using System.Threading.Tasks;
 using Godot;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
-using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
-using GrimSpace.Battle.Presentation.Domains.Railgun;
-using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Replay;
@@ -22,17 +17,12 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Battle.Presentation.Scene;
 
 /// <summary>
-/// Thin scene connector: wires Godot input and nodes to <see cref="BattleUi"/> and <see cref="BattleOrchestrator"/>.
+/// Thin Godot adapter: input in, frames and replay playback out. Lifecycle lives in <see cref="BattleDirector"/>.
 /// </summary>
 public partial class BattleController : Node3D
 {
-	private enum BattleMode
-	{
-		Planning,
-		Playback,
-	}
-
 	private BattleUi _ui = null!;
+	private BattleDirector _director = null!;
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BattleHud _battleHud = null!;
@@ -41,16 +31,17 @@ public partial class BattleController : Node3D
 	private Controller _camera = null!;
 
 	private int? _lastHoveredMoveIndex;
+	private PresentationFrame _currentFrame = null!;
 	private IReadOnlyDictionary<string, GrimSpace.Battle.Units.State>? _playbackEndStates;
 	private MoveHoverCache _moveHoverCache;
+
+	private TurnReplay? _pendingReplay;
+	private int _pendingCompletedTurn;
 
 	private readonly record struct MoveHoverCache(
 		IReadOnlyList<Movement.Option> Options,
 		IReadOnlySet<Coord> HazardCells,
 		IReadOnlyList<Coord> CommittedPath);
-
-	private BattleMode Mode =>
-		_replayPlayer.IsPlaying || _ui.Battle.IsResolving ? BattleMode.Playback : BattleMode.Planning;
 
 	public override void _Ready()
 	{
@@ -58,6 +49,9 @@ public partial class BattleController : Node3D
 
 		var battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
 		_ui = new BattleUi(battle);
+		_director = new BattleDirector(_ui);
+		_director.FrameChanged += OnFrameChanged;
+		_director.ReplayRequested += OnReplayRequested;
 		var layout = battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
@@ -96,42 +90,21 @@ public partial class BattleController : Node3D
 		_replayPlayer.PlaybackComplete += OnPlaybackComplete;
 		AddChild(_replayPlayer);
 
-		EnterPlanningTurn(_ui.Battle.TurnNumber);
-	}
-
-	// Turn loop: planning -> commit + resolve -> replay playback -> planning.
-	private void EnterPlanningTurn(int turnNumber)
-	{
-		var totalTimer = Stopwatch.StartNew();
-		_ui.ResetMoveUi();
-
-		var moveUiTimer = Stopwatch.StartNew();
-		_ = _ui.MoveUi;
-		moveUiTimer.Stop();
-
-		var previewTimer = Stopwatch.StartNew();
-		var frame = _ui.BuildFrame();
-		_moveHoverCache = new MoveHoverCache(
-			frame.MoveOptions,
-			frame.PreviewHazardCells,
-			_ui.State.CommittedMovePath);
-		ApplyFrame(frame);
-		previewTimer.Stop();
-		totalTimer.Stop();
-
-		TurnPresentationTiming.LogPlanningReady(
-			turnNumber,
-			moveUiTimer.Elapsed.TotalMilliseconds,
-			previewTimer.Elapsed.TotalMilliseconds,
-			totalTimer.Elapsed.TotalMilliseconds);
+		_director.Start();
 	}
 
 	public override void _Process(double _)
 	{
-		if (Mode != BattleMode.Planning
+		if (_pendingReplay is TurnReplay replay)
+		{
+			_pendingReplay = null;
+			StartReplay(replay, _pendingCompletedTurn);
+		}
+
+		if (!_director.AcceptsInput
 			|| _ui.State.Mode != EPlayerMode.Move
 			|| _ui.Battle.IsBattleOver
-			|| _ui.Battle.GetActiveActor() is null)
+			|| _ui.GetPlanningActor() is null)
 		{
 			_lastHoveredMoveIndex = null;
 			return;
@@ -147,6 +120,34 @@ public partial class BattleController : Node3D
 		_lastHoveredMoveIndex = index;
 		_ui.State.SetMoveHover(index, _moveHoverCache.Options.Count);
 		ApplyMoveHoverOverlay();
+	}
+
+	private void OnFrameChanged(PresentationFrame frame)
+	{
+		_currentFrame = frame;
+		_moveHoverCache = new MoveHoverCache(
+			frame.MoveOptions,
+			frame.PreviewHazardCells,
+			_ui.State.CommittedMovePath);
+		ApplyFrame(frame);
+	}
+
+	private void OnReplayRequested(TurnReplay replay, int completedTurn)
+	{
+		_pendingReplay = replay;
+		_pendingCompletedTurn = completedTurn;
+	}
+
+	private void StartReplay(TurnReplay replay, int completedTurn)
+	{
+		_playbackEndStates = replay.EndStates;
+		_battleView.ApplyUnitStates(replay.StartStates);
+		_replayPlayer.ResetToLive(replay.StartStates);
+		_replayPlayer.Play(
+			replay.AppliedActions,
+			completedTurn,
+			_ui.Battle.PlayerId,
+			_ui.Battle.OpponentId);
 	}
 
 	private void ApplyMoveHoverOverlay()
@@ -166,42 +167,29 @@ public partial class BattleController : Node3D
 	{
 		_battleHud.OrientationHud.HeadingTurnRequested += turn =>
 		{
-			if (TryEnqueue(new HeadingTurnAction(_ui.Battle.PlayerId, turn)))
-			{
+			if (_director.Enqueue(new HeadingTurnAction(_ui.Battle.PlayerId, turn)))
 				_lastHoveredMoveIndex = null;
-				Refresh();
-			}
 		};
 		_battleHud.OrientationHud.RollRequested += direction =>
 		{
-			if (TryEnqueue(new RollAction(_ui.Battle.PlayerId, direction)))
-			{
+			if (_director.Enqueue(new RollAction(_ui.Battle.PlayerId, direction)))
 				_lastHoveredMoveIndex = null;
-				Refresh();
-			}
 		};
 		_battleHud.OutcomeOverlay.ResetRequested += ResetBattle;
-		_battleHud.ActionBar.ModeChanged += mode =>
-		{
-			_ui.State.SetMode(mode);
-			Refresh();
-		};
-		_battleHud.ActionBar.EndTurnRequested += TryEndTurn;
+		_battleHud.ActionBar.ModeChanged += mode => _director.SetMode(mode);
+		_battleHud.ActionBar.EndTurnRequested += () => _director.EndTurn();
 	}
 
 	public override void _Input(InputEvent @event)
 	{
-		if (_ui.Battle.IsBattleOver || Mode == BattleMode.Playback)
+		if (_ui.Battle.IsBattleOver || !_director.AcceptsInput)
 			return;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Z } key
 			&& (key.CtrlPressed || key.MetaPressed))
 		{
-			if (_ui.Undo())
-			{
+			if (_director.Undo())
 				_lastHoveredMoveIndex = null;
-				Refresh();
-			}
 
 			GetViewport().SetInputAsHandled();
 		}
@@ -212,22 +200,20 @@ public partial class BattleController : Node3D
 		if (_ui.Battle.IsBattleOver)
 			return;
 
-		if (Mode == BattleMode.Playback)
+		if (!_director.AcceptsInput)
 			return;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
 			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun)
 		{
-			_ui.State.SetMode(EPlayerMode.Move);
-			Refresh();
-
+			_director.SetMode(EPlayerMode.Move);
 			GetViewport().SetInputAsHandled();
 			return;
 		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
 		{
-			TryEndTurn();
+			_director.EndTurn();
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -247,7 +233,7 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		var frame = _ui.BuildFrame();
+		var frame = _currentFrame;
 		if (_ui.Battle.IsBattleOver || frame.ActiveUnit is null)
 			return;
 
@@ -271,17 +257,15 @@ public partial class BattleController : Node3D
 				return;
 
 			case EPlayerMode.Flak:
-				_ui.State.FlakHover =
-					GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells);
+				_director.SetFlakHover(
+					GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells));
 				break;
 
 			case EPlayerMode.Railgun:
-				_ui.State.RailgunHover =
-					GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells);
+				_director.SetRailgunHover(
+					GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells));
 				break;
 		}
-
-		Refresh();
 	}
 
 	private void HandleLeftClick(Vector2 screenPos, PresentationFrame frame)
@@ -291,63 +275,21 @@ public partial class BattleController : Node3D
 			case EPlayerMode.Move:
 				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
 				{
-					_ui.TryQueueMove(index, frame.MoveOptions);
+					_director.QueueMove(index);
 					_lastHoveredMoveIndex = null;
 				}
 				break;
 
 			case EPlayerMode.Flak:
 				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells) is { } flakCell)
-					FlakUi.TryApply(_ui.Battle, _ui.State, flakCell);
+					_director.ApplyFlak(flakCell);
 				break;
 
 			case EPlayerMode.Railgun:
 				if (GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells) is { } railgunCell)
-					RailgunUi.TryApply(_ui.Battle, _ui.State, railgunCell);
+					_director.ApplyRailgun(railgunCell);
 				break;
 		}
-
-		Refresh();
-	}
-
-	private void Refresh()
-	{
-		if (_replayPlayer.IsPlaying)
-			return;
-
-		var frame = _ui.BuildFrame();
-		_moveHoverCache = new MoveHoverCache(
-			frame.MoveOptions,
-			frame.PreviewHazardCells,
-			_ui.State.CommittedMovePath);
-		ApplyFrame(frame);
-	}
-
-	private async void TryEndTurn()
-	{
-		if (_ui.Battle.IsBattleOver || Mode == BattleMode.Playback || _ui.Battle.IsResolving)
-			return;
-
-		if (!TurnUi.TryCommit(_ui.Battle, out var playerActions))
-			return;
-
-		var completedTurn = _ui.Battle.TurnNumber;
-		var resolveTimer = Stopwatch.StartNew();
-		var replay = await _ui.Battle.ResolveTurnAsync(playerActions);
-		resolveTimer.Stop();
-
-		_ui.State.ResetAfterTurn();
-
-		TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
-
-		_playbackEndStates = replay.EndStates;
-		_battleView.ApplyUnitStates(replay.StartStates);
-		_replayPlayer.ResetToLive(replay.StartStates);
-		_replayPlayer.Play(
-			replay.AppliedActions,
-			completedTurn,
-			_ui.Battle.PlayerId,
-			_ui.Battle.OpponentId);
 	}
 
 	private void OnPlaybackComplete()
@@ -356,15 +298,7 @@ public partial class BattleController : Node3D
 			_battleView.ApplyUnitStates(_playbackEndStates);
 
 		_playbackEndStates = null;
-		EnterPlanningTurn(_ui.Battle.TurnNumber);
-	}
-
-	private bool TryEnqueue(IAction action)
-	{
-		var actor = _ui.Battle.GetActiveActor();
-		return actor is not null
-			&& _ui.Battle.CanAct(actor)
-			&& _ui.Battle.Sim.TryEnqueue(action);
+		_director.NotifyReplayComplete();
 	}
 
 	private Color ColorForActor(string actorId) =>

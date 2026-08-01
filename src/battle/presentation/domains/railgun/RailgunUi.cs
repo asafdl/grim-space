@@ -13,8 +13,8 @@ public static class RailgunUi
 		Interaction.InteractionState state,
 		Coord cell)
 	{
-		var actor = battle.GetActiveActor();
-		if (actor is null || !battle.CanAct(actor))
+		var actor = battle.GetActiveUnit();
+		if (actor is null || actor.State.Id != battle.PlayerId || !battle.CanAct(actor))
 			return false;
 
 		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
@@ -32,7 +32,7 @@ public static class RailgunUi
 
 	public static HashSet<Coord> GetBurstCells(BattleOrchestrator battle)
 	{
-		if (battle.GetActiveActor() is null)
+		if (battle.GetActiveUnit() is not { State.Id: var id } || id != battle.PlayerId)
 			return [];
 
 		var sim = battle.Sim;

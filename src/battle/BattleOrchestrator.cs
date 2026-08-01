@@ -29,6 +29,7 @@ public sealed class BattleOrchestrator
 	private readonly string _opponentId;
 
 	private BattleSimulation _sim = null!;
+	private bool _resolveInProgress;
 
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
@@ -50,7 +51,6 @@ public sealed class BattleOrchestrator
 	public string OpponentId => _opponentId;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
-	public bool IsResolving { get; private set; }
 	public int TurnNumber { get; private set; } = 1;
 	public string? ActiveUnitId { get; private set; }
 
@@ -104,13 +104,12 @@ public sealed class BattleOrchestrator
 	public void BeginTurn() => _sim = _engine.CreateSimulation();
 
 	public bool CanAct(Unit unit) =>
-		!IsBattleOver && !IsResolving && IsActive(unit.State.Id) && unit.State.IsAlive;
+		!IsBattleOver && IsActive(unit.State.Id) && unit.State.IsAlive;
 
-	public Unit? GetActiveActor()
+	public Unit? GetActiveUnit()
 	{
 		if (ActiveUnitId is not string id
-			|| !_engine.World.Units.TryGetValue(id, out var unit)
-			|| unit.Controller != EController.Player)
+			|| !_engine.World.Units.TryGetValue(id, out var unit))
 		{
 			return null;
 		}
@@ -128,10 +127,10 @@ public sealed class BattleOrchestrator
 		IReadOnlyList<IAction> playerActions,
 		bool runAiOnBackgroundThread)
 	{
-		if (IsBattleOver || IsResolving)
+		if (IsBattleOver || _resolveInProgress)
 			throw new InvalidOperationException("Cannot resolve turn while battle is over or already resolving.");
 
-		IsResolving = true;
+		_resolveInProgress = true;
 		try
 		{
 			var replay = await ExecuteTurnAsync(playerActions, runAiOnBackgroundThread);
@@ -146,7 +145,7 @@ public sealed class BattleOrchestrator
 		}
 		finally
 		{
-			IsResolving = false;
+			_resolveInProgress = false;
 		}
 	}
 

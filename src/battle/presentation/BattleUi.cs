@@ -13,7 +13,7 @@ namespace GrimSpace.Battle.Presentation;
 
 /// <summary>
 /// Player interaction and presentation assembly for one battle.
-/// Turn commit/resolve/replay lifecycle lives in <see cref="Scene.BattleController"/>.
+/// Lifecycle and frame emission live in <see cref="BattleDirector"/>.
 /// </summary>
 public sealed class BattleUi
 {
@@ -29,6 +29,12 @@ public sealed class BattleUi
 
 	public void ResetMoveUi() => _moveUi = null;
 
+	/// <summary>Active unit when it is the human player's planning turn; null otherwise.</summary>
+	public Unit? GetPlanningActor() =>
+		Battle.GetActiveUnit() is { State.Id: var id } unit && id == Battle.PlayerId
+			? unit
+			: null;
+
 	public bool Undo() => TurnUi.TryUndo(Battle, State);
 
 	public bool TryQueueMove(int optionIndex, IReadOnlyList<Movement.Option> options)
@@ -36,7 +42,7 @@ public sealed class BattleUi
 		if (optionIndex < 0 || optionIndex >= options.Count)
 			return false;
 
-		var actor = Battle.GetActiveActor();
+		var actor = GetPlanningActor();
 		if (actor is null || !Battle.CanAct(actor))
 			return false;
 
@@ -51,10 +57,10 @@ public sealed class BattleUi
 		return true;
 	}
 
-	public PresentationFrame BuildFrame()
+	public PresentationFrame BuildFrame(bool acceptsCommands = true)
 	{
 		var state = State;
-		var activeUnit = Battle.GetActiveActor();
+		var activeUnit = GetPlanningActor();
 		var moveOptions = activeUnit is not null && Battle.CanAct(activeUnit)
 			? MoveUi.GetMoveOptions(Battle.Sim.Actions)
 			: [];
@@ -109,7 +115,7 @@ public sealed class BattleUi
 				activeUnit,
 				actorState,
 				Battle.Sim.Actions.Count),
-			CanAct = !Battle.IsBattleOver && activeUnit is not null && !Battle.IsResolving,
+			CanAct = acceptsCommands && activeUnit is not null && Battle.CanAct(activeUnit),
 			FlakAvailable = Capabilities.For(actorState.Type)
 				.OfType<FlakDef>()
 				.Any(def => Battle.Sim.Peek(new FlakAction(Battle.PlayerId, def.Mount)) is not null),

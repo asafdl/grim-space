@@ -1,7 +1,5 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
@@ -144,9 +142,12 @@ public sealed class InvariantTests
 	public void EndTurnFailsWhenInvariantStatusIsNotOk()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var director = new BattleDirector(new BattleUi(battle));
+		director.Start();
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.False(TurnUi.TryCommit(battle, out _));
+		director.EndTurn();
+		Assert.Equal(PresentationPhase.Planning, director.Phase);
 	}
 
 	[Fact]

@@ -10,7 +10,9 @@ internal static class Preview
 		new(battle.Sim.StateOf<ActorState>(battle.PlayerId));
 
 	public static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle) =>
-		battle.GetActiveActor() is { } actor && battle.CanAct(actor)
+		battle.GetActiveUnit() is { State.Id: var id } actor
+			&& id == battle.PlayerId
+			&& battle.CanAct(actor)
 			? BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions)
 			: [];
 }

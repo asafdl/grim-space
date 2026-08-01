@@ -1,6 +1,5 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -41,18 +40,6 @@ public sealed class TurnOrchestrationTests
 
 		Assert.NotEmpty(BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions));
 		Assert.False(battle.Sim.RuntimeFor(PlayerId).IsMovePathStarted);
-	}
-
-	[Fact]
-	public void ResolveTurnSetsResolvingOnlyDuringPipeline()
-	{
-		using var _ = GameLog.BeginScope(_ => { });
-
-		var battle = CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		Assert.False(battle.IsResolving);
-
-		battle.ResolveTurn([]);
-		Assert.False(battle.IsResolving);
 	}
 
 	[Fact]
