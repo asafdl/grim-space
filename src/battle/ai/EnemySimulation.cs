@@ -1,11 +1,9 @@
 using System.Diagnostics;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
@@ -14,11 +12,8 @@ namespace GrimSpace.Battle.Ai;
 
 public static class EnemySimulation
 {
-	private const int MomentumWeight = 1_000;
-	private const int UnusedApPenalty = 100;
-	private const int RailgunHitBonus = 2_000;
 	private const int TimelineRefinementLimit = 8;
-	private const int TimelineRefinementSlack = UnusedApPenalty;
+	private const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
 
 	public static IReadOnlyList<IAction> BuildTurnActions(BattleSimulation session, Unit actor)
 	{
@@ -38,34 +33,26 @@ public static class EnemySimulation
 		string actorId,
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
 	{
+		var searchStartDepth = session.Actions.Count;
 		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
 		var bestHeuristic = int.MinValue;
 		var visitedFrames = 0;
 		var terminalFrames = 0;
 		var scoredFrames = 0;
-		var prunedFrames = 0;
 		var dfsTimer = Stopwatch.StartNew();
 
-		foreach (var frame in session.Search(actorId, capabilities, BattleSearchVisit.ForCapabilities))
+		foreach (var frame in session.Search(actorId, capabilities, EnemySearchInput.ForTurn(capabilities)))
 		{
 			visitedFrames++;
 			if (!IsTerminalFrame(frame, actorId, capabilities))
 				continue;
 
 			terminalFrames++;
-			var state = frame.World.StateOf(actorId);
-			if (!state.IsAlive)
+			if (!frame.World.StateOf(actorId).IsAlive)
 				continue;
-
-			var upperBound = ScoreUpperBound(state);
-			if (ShouldPruneTerminal(upperBound, bestHeuristic, finalists))
-			{
-				prunedFrames++;
-				continue;
-			}
 
 			scoredFrames++;
-			var heuristicScore = ScoreHeuristic(frame, actorId);
+			var heuristicScore = EnemySearchInput.ScoreHeuristic(frame, session, actorId, searchStartDepth);
 			if (heuristicScore == int.MinValue)
 				continue;
 
@@ -80,7 +67,7 @@ public static class EnemySimulation
 		{
 			GameLog.Log(
 				$"Enemy DFS ({actorId}): visited={visitedFrames} terminals={terminalFrames} "
-				+ $"scored={scoredFrames} pruned={prunedFrames} finalists=0 "
+				+ $"scored={scoredFrames} finalists=0 "
 				+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
 			return new SearchFrame<BattleWorld, ActorRuntime>(
 				session.World.Fork(),
@@ -106,31 +93,11 @@ public static class EnemySimulation
 		refinementTimer.Stop();
 		GameLog.Log(
 			$"Enemy DFS ({actorId}): visited={visitedFrames} terminals={terminalFrames} "
-			+ $"scored={scoredFrames} pruned={prunedFrames} finalists={finalists.Count} "
+			+ $"scored={scoredFrames} finalists={finalists.Count} "
 			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms "
 			+ $"refinement={refinementTimer.Elapsed.TotalMilliseconds:F1}ms");
 
 		return best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
-	}
-
-	private static int ScoreUpperBound(ActorState state) =>
-		state.MomentumLevel * MomentumWeight
-		- state.ActionPoints * UnusedApPenalty
-		+ (state.RailgunRemaining > 0 ? RailgunHitBonus : 0);
-
-	private static bool ShouldPruneTerminal(
-		int upperBound,
-		int bestHeuristic,
-		List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> finalists)
-	{
-		if (bestHeuristic != int.MinValue && upperBound < bestHeuristic - TimelineRefinementSlack)
-			return true;
-
-		if (finalists.Count < TimelineRefinementLimit)
-			return false;
-
-		var worstFinalist = finalists.Min(candidate => candidate.HeuristicScore);
-		return upperBound <= worstFinalist;
 	}
 
 	private static void TryAddFinalist(
@@ -190,28 +157,6 @@ public static class EnemySimulation
 		return true;
 	}
 
-	private static int ScoreHeuristic(
-		SearchFrame<BattleWorld, ActorRuntime> frame,
-		string actorId)
-	{
-		var world = frame.World.Fork();
-		var runtimes = frame.Runtimes.Fork();
-		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
-
-		var state = world.StateOf(actorId);
-		if (!state.IsAlive)
-			return int.MinValue;
-
-		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
-		if (FrameFiredRailgun(frame, actorId))
-			score += RailgunHitBonus;
-
-		return score;
-	}
-
-	private static bool FrameFiredRailgun(SearchFrame<BattleWorld, ActorRuntime> frame, string actorId) =>
-		frame.Actions.Any(action => action is RailgunAction railgun && railgun.ActorId == actorId);
-
 	private static int ScoreTimelineAdjustment(
 		SearchFrame<BattleWorld, ActorRuntime> frame,
 		string actorId,
@@ -231,7 +176,8 @@ public static class EnemySimulation
 		if (!state.IsAlive)
 			return int.MinValue - heuristicScore;
 
-		var timelineScore = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+		var timelineScore = state.MomentumLevel * EnemySearchInput.MomentumWeight
+			- state.ActionPoints * EnemySearchInput.UnusedApPenalty;
 		return timelineScore - heuristicScore;
 	}
 }

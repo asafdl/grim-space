@@ -165,11 +165,19 @@ public class Simulation<TWorld, TRuntime>
 		string actorId,
 		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
 		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState)
+		where TEffect : IEffect<TWorld, TRuntime> =>
+		Search(actorId, actionDefs, new SearchInput<TWorld, TRuntime>(visitState));
+
+	public IEnumerable<SearchFrame<TWorld, TRuntime>> Search<TEffect>(
+		string actorId,
+		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
+		SearchInput<TWorld, TRuntime> input)
 		where TEffect : IEffect<TWorld, TRuntime>
 	{
 		var fork = Fork();
 		var startDepth = fork._actions.Count;
 		var visited = new Dictionary<object, int[]>();
+		SearchContext? context = input.ShouldPrune is not null ? new SearchContext() : null;
 
 		foreach (var frame in SearchDfs(
 			fork,
@@ -178,8 +186,23 @@ public class Simulation<TWorld, TRuntime>
 			startDepth,
 			0,
 			visited,
-			visitState))
+			input,
+			context))
 			yield return frame;
+	}
+
+	/// <summary>
+	/// Replays committed actions from the anchor up to (but not including) <paramref name="throughExclusive"/>.
+	/// </summary>
+	public TWorld ReplayWorld(int throughExclusive)
+	{
+		var world = _anchorWorld.Fork();
+		var runtimes = _anchorActorRuntimes.Fork();
+		var limit = System.Math.Min(throughExclusive, _actions.Count);
+		for (var i = 0; i < limit; i++)
+			ExecutionHelper.Apply(_actions[i], world, runtimes.For(_actions[i]));
+
+		return world;
 	}
 
 	public void Reevaluate()
@@ -253,13 +276,17 @@ public class Simulation<TWorld, TRuntime>
 		int startDepth,
 		int depth,
 		Dictionary<object, int[]> visited,
-		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState)
+		SearchInput<TWorld, TRuntime> input,
+		SearchContext? context)
 		where TEffect : IEffect<TWorld, TRuntime>
 	{
 		if (depth > MaxSearchDepth || depth >= HardAbortSearchDepth)
 			yield break;
 
-		if (ShouldPruneVisit(visited, visitState, fork, actorId))
+		if (ShouldPruneVisit(visited, input.VisitState, fork, actorId))
+			yield break;
+
+		if (context is not null && input.ShouldPrune?.Invoke(fork, actorId, startDepth, context) == true)
 			yield break;
 
 		yield return new SearchFrame<TWorld, TRuntime>(
@@ -292,7 +319,8 @@ public class Simulation<TWorld, TRuntime>
 					startDepth,
 					depth + 1,
 					visited,
-					visitState))
+					input,
+					context))
 					yield return frame;
 
 				fork.RestoreSearchCheckpoint(checkpoint);

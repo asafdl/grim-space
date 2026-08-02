@@ -35,14 +35,14 @@ public sealed class RailgunActionTests
 	}
 
 	[Fact]
-	public void RailgunNotPossibleWhenBurstMissesOpponent()
+	public void RailgunPossibleWhenBurstMissesOpponent()
 	{
 		var playerPos = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, new Coord(0, 0, 0));
 		var action = new RailgunAction(PlayerId);
 
-		Assert.False(RailgunDef.Instance.IsPossible(action, battle.Sim.World, battle.Sim.RuntimeFor(PlayerId)));
-		Assert.False(battle.Sim.TryEnqueue(action));
+		Assert.True(RailgunDef.Instance.IsPossible(action, battle.Sim.World, battle.Sim.RuntimeFor(PlayerId)));
+		Assert.True(battle.Sim.TryEnqueue(action));
 	}
 
 	[Fact]

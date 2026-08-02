@@ -1,8 +1,8 @@
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
@@ -42,12 +42,7 @@ public sealed class RailgunDef
 	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		if (!RailgunTargeting.IsValidBurst(frame, world.Grid.IsInBounds))
-			return false;
-
-		// TODO: split player (geometry-only) vs AI (must-hit) when hazard/zoning matters.
-		var cells = RailgunTargeting.GetBurstCells(frame, world.Grid.IsInBounds);
-		return RailgunTargeting.BurstHitsAnyOpponent(world, action.ActorId, cells);
+		return WeaponBursts.IsValidRailgunBurst(frame, world.Grid.IsInBounds);
 	}
 
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
@@ -64,7 +59,7 @@ public sealed class RailgunDef
 		ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var cells = RailgunTargeting.GetBurstCells(frame, world.Grid.IsInBounds);
+		var cells = WeaponBursts.RailgunBurstCells(frame, world.Grid.IsInBounds);
 
 		return
 		[

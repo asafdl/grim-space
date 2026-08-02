@@ -36,6 +36,31 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public IEnumerable<Unit> UnitsExcept(string unitId) =>
 		_units.Values.Where(unit => unit.State.Id != unitId);
 
+	public IEnumerable<UnitInArea> UnitsInCells(string actorId, IEnumerable<Coord> cells)
+	{
+		var cellSet = cells as IReadOnlySet<Coord> ?? cells.ToHashSet();
+		var actor = _units[actorId];
+
+		foreach (var unit in _units.Values)
+		{
+			if (!unit.State.IsAlive || !cellSet.Contains(unit.State.Position))
+				continue;
+
+			yield return new UnitInArea(unit, RelationTo(actor, unit));
+		}
+	}
+
+	public bool AnyOpponentInCells(string actorId, IEnumerable<Coord> cells) =>
+		UnitsInCells(actorId, cells).Any(entry => entry.Relation == EUnitRelation.Opponent);
+
+	private static EUnitRelation RelationTo(Unit actor, Unit unit)
+	{
+		if (unit.State.Id == actor.State.Id)
+			return EUnitRelation.Self;
+
+		return unit.Controller == actor.Controller ? EUnitRelation.Ally : EUnitRelation.Opponent;
+	}
+
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
 	public IEnumerable<Hazard> TerrainHazards =>

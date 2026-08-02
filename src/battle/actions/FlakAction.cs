@@ -47,7 +47,7 @@ public sealed class FlakDef(EFlakMount mount)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);
-		return FlakTargeting.IsValidBurst(frame, config, world.Grid.IsInBounds);
+		return WeaponBursts.IsValidFlakBurst(frame, config, world.Grid.IsInBounds);
 	}
 
 	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
@@ -65,7 +65,7 @@ public sealed class FlakDef(EFlakMount mount)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		var config = FlakMountConfig.For(action.Mount);
-		var cells = FlakTargeting.GetBurstCells(frame, config, world.Grid.IsInBounds);
+		var cells = WeaponBursts.FlakBurstCells(frame, config, world.Grid.IsInBounds);
 
 		return
 		[

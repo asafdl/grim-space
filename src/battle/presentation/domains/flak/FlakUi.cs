@@ -2,6 +2,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Domains.Flak;
@@ -18,7 +19,7 @@ public static class FlakUi
 			return false;
 
 		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
-		var mount = FlakTargeting.MountForCell(frame, cell);
+		var mount = WeaponBursts.FlakMountForCell(frame, cell);
 		if (mount is null)
 			return false;
 
@@ -43,7 +44,7 @@ public static class FlakUi
 
 		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
 		var config = FlakMountConfig.For(mount);
-		return FlakTargeting.GetBurstCells(frame, config, battle.Layout.Grid.IsInBounds);
+		return WeaponBursts.FlakBurstCells(frame, config, battle.Layout.Grid.IsInBounds);
 	}
 
 	public static HashSet<Coord> GetPreviewCells(BattleOrchestrator battle, Interaction.InteractionState state)
@@ -52,7 +53,7 @@ public static class FlakUi
 			return [];
 
 		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
-		var mount = FlakTargeting.MountForCell(frame, hover);
+		var mount = WeaponBursts.FlakMountForCell(frame, hover);
 		if (mount is null)
 			return [];
 

@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Domains.Railgun;
@@ -18,7 +18,7 @@ public static class RailgunUi
 			return false;
 
 		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
-		var burstCells = RailgunTargeting.GetBurstCells(frame, battle.Layout.Grid.IsInBounds);
+		var burstCells = WeaponBursts.RailgunBurstCells(frame, battle.Layout.Grid.IsInBounds);
 		if (!burstCells.Contains(cell))
 			return false;
 
@@ -42,7 +42,7 @@ public static class RailgunUi
 			return [];
 
 		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
-		return RailgunTargeting.GetBurstCells(frame, battle.Layout.Grid.IsInBounds);
+		return WeaponBursts.RailgunBurstCells(frame, battle.Layout.Grid.IsInBounds);
 	}
 
 	public static HashSet<Coord> GetPreviewCells(BattleOrchestrator battle, Interaction.InteractionState state)
