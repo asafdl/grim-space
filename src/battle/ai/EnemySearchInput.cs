@@ -1,9 +1,12 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -13,6 +16,8 @@ internal static class EnemySearchInput
 	internal const int UnusedApPenalty = 100;
 	internal const int RailgunHitBonus = 2_000;
 	internal const int TimelineRefinementSlack = UnusedApPenalty;
+	internal const int FacingWeight = 800;
+	internal const int ApproachWeight = 150;
 
 	public static SearchInput<BattleWorld, ActorRuntime> ForTurn(
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities) =>
@@ -37,6 +42,7 @@ internal static class EnemySearchInput
 
 		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 		score += RailgunAdjustment(anchor, frame.Actions, actorId, searchStartDepth);
+		score += EngagementAdjustment(world, actorId, anchor, frame.Actions, searchStartDepth);
 		return score;
 	}
 
@@ -64,8 +70,9 @@ internal static class EnemySearchInput
 	private static int UpperBound(BattleSimulation sim, string actorId)
 	{
 		var state = sim.StateOf<ActorState>(actorId);
-		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
-		if (state.RailgunRemaining > 0 && RailgunWouldHit(sim, actorId, sim.Actions.Count))
+		// Optimistic bound: remaining AP may still be spent productively; momentum can climb to max.
+		var score = MomentumConfig.MaxLevel * MomentumWeight;
+		if (state.RailgunRemaining > 0)
 			score += RailgunHitBonus;
 
 		return score;
@@ -83,6 +90,7 @@ internal static class EnemySearchInput
 
 		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
 		score += RailgunAdjustment(sim, sim.Actions, actorId, searchStartDepth);
+		score += EngagementAdjustment(world, actorId, sim, sim.Actions, searchStartDepth);
 		return score;
 	}
 
@@ -106,6 +114,89 @@ internal static class EnemySearchInput
 		}
 
 		return true;
+	}
+
+	private static int EngagementAdjustment(
+		BattleWorld world,
+		string actorId,
+		BattleSimulation anchor,
+		IReadOnlyList<IAction> actions,
+		int searchStartDepth)
+	{
+		var state = world.StateOf(actorId);
+		if (state.RailgunRemaining <= 0 || RailgunFired(actions, actorId, searchStartDepth))
+			return 0;
+
+		if (RailgunWouldHit(world, actorId))
+			return 0;
+
+		var opponent = NearestOpponent(world, actorId);
+		if (opponent is null)
+			return 0;
+
+		var bonus = 0;
+		if (IsFacing(state, opponent.State.Position))
+			bonus += FacingWeight;
+
+		var startPosition = anchor.ReplayWorld(searchStartDepth).StateOf(actorId).Position;
+		var distanceClosed = startPosition.ManhattanDistanceTo(opponent.State.Position)
+			- state.Position.ManhattanDistanceTo(opponent.State.Position);
+		if (distanceClosed > 0)
+			bonus += distanceClosed * ApproachWeight;
+
+		return bonus;
+	}
+
+	private static bool RailgunFired(IReadOnlyList<IAction> actions, string actorId, int searchStartDepth)
+	{
+		for (var i = searchStartDepth; i < actions.Count; i++)
+		{
+			if (actions[i] is RailgunAction { ActorId: var railgunActorId } && railgunActorId == actorId)
+				return true;
+		}
+
+		return false;
+	}
+
+	private static Unit? NearestOpponent(BattleWorld world, string actorId)
+	{
+		var actor = world.UnitOf(actorId);
+		Unit? nearest = null;
+		var bestDistance = int.MaxValue;
+
+		foreach (var unit in world.UnitsExcept(actorId))
+		{
+			if (!unit.State.IsAlive || unit.Controller == actor.Controller)
+				continue;
+
+			var distance = actor.State.Position.ManhattanDistanceTo(unit.State.Position);
+			if (distance >= bestDistance)
+				continue;
+
+			bestDistance = distance;
+			nearest = unit;
+		}
+
+		return nearest;
+	}
+
+	private static bool IsFacing(State actor, Coord target) =>
+		actor.Fore == AxisToward(actor.Position, target);
+
+	private static Coord AxisToward(Coord from, Coord to)
+	{
+		var delta = to - from;
+		var ax = System.Math.Abs(delta.X);
+		var ay = System.Math.Abs(delta.Y);
+		var az = System.Math.Abs(delta.Z);
+
+		if (ax >= ay && ax >= az)
+			return new Coord(System.Math.Sign(delta.X), 0, 0);
+
+		if (ay >= ax && ay >= az)
+			return new Coord(0, System.Math.Sign(delta.Y), 0);
+
+		return new Coord(0, 0, System.Math.Sign(delta.Z));
 	}
 
 	private static int RailgunAdjustment(

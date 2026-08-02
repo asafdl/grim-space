@@ -42,6 +42,43 @@ public sealed class EnemyRailgunScoringTests
 		Assert.DoesNotContain(actions, action => action is RailgunAction);
 	}
 
+	[Fact]
+	public void BuildTurnActions_TurnsTowardPlayerWhenParallelAndCannotShoot()
+	{
+		var playerPos = new Coord(2, 5, 5);
+		var enemyPos = new Coord(8, 5, 5);
+		var player = CreateUnit(EController.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
+		var enemy = CreateUnit(EController.Enemy, "enemy", enemyPos, EType.Patrol, Coord.Forward, Coord.Up);
+
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var session = battle.Engine.CreateSimulation();
+		var actions = EnemySimulation.BuildTurnActions(session, enemy);
+
+		Assert.Contains(actions, action => action is HeadingTurnAction);
+	}
+
+	[Fact]
+	public void BuildTurnActions_TurnsToFireRailgunWhenShotNeedsAlignment()
+	{
+		var playerPos = new Coord(2, 5, 5);
+		var enemyPos = new Coord(8, 5, 5);
+		var player = CreateUnit(EController.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
+		var enemy = CreateUnit(
+			EController.Enemy,
+			"enemy",
+			enemyPos,
+			EType.Patrol,
+			new Coord(0, 0, 1),
+			Coord.Up);
+
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var session = battle.Engine.CreateSimulation();
+		var actions = EnemySimulation.BuildTurnActions(session, enemy);
+
+		Assert.Contains(actions, action => action is HeadingTurnAction);
+		Assert.Contains(actions, action => action is RailgunAction);
+	}
+
 	private static Unit CreateUnit(
 		EController controller,
 		string id,
