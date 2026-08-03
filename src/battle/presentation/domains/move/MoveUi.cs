@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
@@ -9,7 +8,7 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Presentation.Domains.Move;
 
 /// <summary>
-/// Turn-scoped movement preview: prefix-keyed option index for fast lookup as the player queues actions.
+/// Turn-scoped movement preview: prefix-keyed path index for fast lookup as the player queues actions.
 /// </summary>
 public sealed class MoveUi
 {
@@ -30,8 +29,8 @@ public sealed class MoveUi
 		return new MoveUi(index);
 	}
 
-	public IReadOnlyList<Option> GetMoveOptions(IReadOnlyList<IAction> committed) =>
-		_index.GetOptions(committed);
+	public IReadOnlyList<MovePathSession> GetMovePaths(IReadOnlyList<IAction> committed) =>
+		_index.GetPaths(committed);
 
 	public bool TryLocate(IReadOnlyList<IAction> committed) =>
 		_index.ContainsPrefix(committed);
@@ -39,32 +38,13 @@ public sealed class MoveUi
 	internal IEnumerable<IReadOnlyList<IAction>> EnumeratePrefixes() =>
 		_index.EnumeratePrefixes();
 
-	public static IReadOnlyList<MoveStepAction>? ToMoveActions(
-		string actorId,
-		ActorState actorState,
-		Option option)
-	{
-		try
-		{
-			return MoveDef.StepsFromPath(
-				actorId,
-				BodyFrame.From(actorState),
-				actorState.Position,
-				option.Path);
-		}
-		catch (InvalidOperationException)
-		{
-			return null;
-		}
-	}
-
 	public static (IReadOnlyList<Coord> Path, Coord? Target) GetPathHighlights(
-		IReadOnlyList<Option> options,
+		IReadOnlyList<MovePathSession> paths,
 		int? hoveredIndex,
 		IReadOnlyList<Coord> committedPath)
 	{
 		if (hoveredIndex is int i)
-			return (options[i].Path, options[i].EndPosition);
+			return (paths[i].Cells, paths[i].EndPosition);
 
 		if (committedPath.Count > 0)
 			return (committedPath, committedPath[^1]);

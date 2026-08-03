@@ -55,7 +55,8 @@ public partial class GridView : Node3D
 		{
 			case EPlayerMode.Move:
 				SetMoveHighlights(
-					frame.MoveOptions,
+					frame.MovePaths,
+					frame.MovePathApBaseline,
 					frame.MovePath,
 					frame.MoveTarget,
 					frame.PreviewHazardCells);
@@ -79,7 +80,8 @@ public partial class GridView : Node3D
 	}
 
 	public void SetMoveHighlights(
-		IReadOnlyList<Option> options,
+		IReadOnlyList<MovePathSession> paths,
+		int pathApBaseline,
 		IReadOnlyList<Coord> path,
 		Coord? target,
 		IReadOnlySet<Coord>? hazardCells = null)
@@ -90,21 +92,26 @@ public partial class GridView : Node3D
 		ReleaseActiveHighlights();
 
 		var endpointAp = new Dictionary<Coord, int>();
-		foreach (var option in options)
-			endpointAp[option.EndPosition] = option.ApCost;
+		foreach (var session in paths)
+			endpointAp[session.EndPosition] = session.ExtensionApCost(pathApBaseline);
 
 		var pathSet = new HashSet<Coord>(path);
 
+		foreach (var coord in pathSet)
+		{
+			if (coord == target)
+				continue;
+
+			SetCellMaterial(coord, _pathMaterial!);
+		}
+
 		foreach (var (coord, ap) in endpointAp)
 		{
-			if (pathSet.Contains(coord) || coord == target)
+			if (coord == target)
 				continue;
 
 			SetCellMaterial(coord, ap == 3 ? _endpoint3Ap! : _endpoint4Ap!);
 		}
-
-		foreach (var coord in pathSet)
-			SetCellMaterial(coord, _pathMaterial!);
 
 		if (target is Coord hovered)
 			SetCellMaterial(hovered, _hoverMaterial!);

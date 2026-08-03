@@ -10,7 +10,7 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Movement;
 
 /// <summary>
-/// Turn-scoped movement search with lazy per-prefix option extraction.
+/// Turn-scoped movement search for prefix validation, with live move-only path discovery per prefix.
 /// </summary>
 public sealed class MoveOptionIndex
 {
@@ -21,14 +21,19 @@ public sealed class MoveOptionIndex
 		RollDef.Instance,
 	];
 
-	private readonly IReadOnlyList<SearchNode> _nodes;
 	private readonly Dictionary<string, SearchNode> _nodeByPrefix;
-	private readonly Dictionary<string, IReadOnlyList<Option>> _optionsByPrefix = new();
+	private readonly Dictionary<string, IReadOnlyList<MovePathSession>> _pathsByPrefix = new();
+	private readonly Simulation<BattleWorld, ActorRuntime> _turnStartSim;
+	private readonly string _actorId;
 
-	private MoveOptionIndex(IReadOnlyList<SearchNode> nodes, Dictionary<string, SearchNode> nodeByPrefix)
+	private MoveOptionIndex(
+		Dictionary<string, SearchNode> nodeByPrefix,
+		Simulation<BattleWorld, ActorRuntime> turnStartSim,
+		string actorId)
 	{
-		_nodes = nodes;
 		_nodeByPrefix = nodeByPrefix;
+		_turnStartSim = turnStartSim;
+		_actorId = actorId;
 	}
 
 	public int PrefixCount => _nodeByPrefix.Count;
@@ -37,40 +42,38 @@ public sealed class MoveOptionIndex
 		IReadOnlyList<IAction> Actions,
 		Coord Position,
 		BodyFrame Frame,
-		MovePathSnapshot PathState);
+		MovePathSession? ActivePath);
 
 	public static MoveOptionIndex FromSimulation(
 		Simulation<BattleWorld, ActorRuntime> sim,
 		string actorId)
 	{
 		var nodeByPrefix = new Dictionary<string, SearchNode>();
-		var nodes = new List<SearchNode>();
 
 		foreach (var frame in sim.Search(actorId, MovementActionDefs, BattleSearchVisit.ForCapabilities))
 		{
 			var node = Project(frame, actorId);
-			nodes.Add(node);
 			nodeByPrefix[PrefixKey(node.Actions)] = node;
 		}
 
-		return new MoveOptionIndex(nodes, nodeByPrefix);
+		return new MoveOptionIndex(nodeByPrefix, sim.BranchAtTurnStart(), actorId);
 	}
 
-	public IReadOnlyList<Option> GetOptions(IReadOnlyList<IAction> committed)
+	public IReadOnlyList<MovePathSession> GetPaths(IReadOnlyList<IAction> committed)
 	{
 		if (committed.Any(IsWeaponAction))
 			return [];
 
 		var key = PrefixKey(committed);
-		if (_optionsByPrefix.TryGetValue(key, out var cached))
+		if (_pathsByPrefix.TryGetValue(key, out var cached))
 			return cached;
 
-		if (!_nodeByPrefix.TryGetValue(key, out var origin))
+		if (committed.Count > 0 && !_nodeByPrefix.ContainsKey(key))
 			return [];
 
-		var options = ExtractMoveOptions(origin);
-		_optionsByPrefix[key] = options;
-		return options;
+		var paths = MovePathDiscovery.DiscoverExtensions(_turnStartSim, _actorId, committed);
+		_pathsByPrefix[key] = paths;
+		return paths;
 	}
 
 	public bool ContainsPrefix(IReadOnlyList<IAction> committed) =>
@@ -80,77 +83,23 @@ public sealed class MoveOptionIndex
 	internal IEnumerable<IReadOnlyList<IAction>> EnumeratePrefixes() =>
 		_nodeByPrefix.Values.Select(node => node.Actions);
 
-	private IReadOnlyList<Option> ExtractMoveOptions(SearchNode origin)
-	{
-		var startCount = origin.Actions.Count;
-		var results = new Dictionary<Coord, Option>();
-
-		foreach (var searchNode in _nodes)
-		{
-			if (searchNode.Actions.Count <= startCount)
-				continue;
-
-			if (!PrefixStartsWith(searchNode.Actions, origin.Actions))
-				continue;
-
-			var suffix = searchNode.Actions.Skip(startCount).ToList();
-			if (suffix.Count == 0 || suffix.Any(action => action is not MoveStepAction))
-				continue;
-
-			var steps = suffix.Cast<MoveStepAction>().ToList();
-
-			var option = MovePathRules.ToEndpointOption(
-				origin.Position,
-				origin.Frame,
-				steps,
-				searchNode.PathState,
-				origin.PathState.PathApSpent);
-			if (option is null)
-				continue;
-
-			if (!results.TryGetValue(option.EndPosition, out var existing)
-				|| MovePathRules.PreferEndpointOption(option, existing))
-				results[option.EndPosition] = option;
-		}
-
-		return results.Values
-			.OrderBy(option => option.EndPosition.X)
-			.ThenBy(option => option.EndPosition.Y)
-			.ThenBy(option => option.EndPosition.Z)
-			.ThenBy(option => option.Path.Count)
-			.ToList();
-	}
-
 	internal static SearchNode Project(
 		SearchFrame<BattleWorld, ActorRuntime> frame,
 		string actorId)
 	{
 		var actor = frame.World.StateOf(actorId);
+		var activePath = frame.Runtimes.For(actorId).ActivePath?.Clone();
 		return new SearchNode(
 			frame.Actions,
 			actor.Position,
 			BodyFrame.From(actor),
-			MovePathSnapshot.From(frame.Runtimes.For(actorId)));
+			activePath);
 	}
 
 	public static string PrefixKey(IReadOnlyList<IAction> actions) =>
 		actions.Count == 0
 			? string.Empty
 			: string.Join('|', actions.Select(ActionKey));
-
-	private static bool PrefixStartsWith(IReadOnlyList<IAction> actions, IReadOnlyList<IAction> prefix)
-	{
-		if (actions.Count < prefix.Count)
-			return false;
-
-		for (var i = 0; i < prefix.Count; i++)
-		{
-			if (ActionKey(actions[i]) != ActionKey(prefix[i]))
-				return false;
-		}
-
-		return true;
-	}
 
 	private static string ActionKey(IAction action) =>
 		action switch

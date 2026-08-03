@@ -35,8 +35,11 @@ public sealed class EndOfPhaseDef
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
-		if (runtime.IsMovePathStarted)
-			return [new EndMovePathEffect()];
+		if (runtime.ActivePath is not null)
+		{
+			runtime.ActivePath = null;
+			return [];
+		}
 
 		return [new MomentumDecayEffect()];
 	}

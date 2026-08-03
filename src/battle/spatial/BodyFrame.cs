@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 

@@ -115,12 +115,12 @@ public sealed class BattleDirector
 
 		if (!_ui.TryQueueMove(endPosition))
 		{
-			var optionCount = _ui.MoveUi.GetMoveOptions(battle.Sim.Actions).Count;
+			var pathCount = _ui.MoveUi.GetMovePaths(battle.Sim.Actions).Count;
 			PresentationDiagnostics.LogMoveRejected(
 				"queue_failed",
 				Phase,
 				optionIndex: -1,
-				optionCount);
+				optionCount: pathCount);
 			return false;
 		}
 

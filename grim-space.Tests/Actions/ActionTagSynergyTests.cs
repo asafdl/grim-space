@@ -59,13 +59,10 @@ public sealed class ActionTagSynergyTests
 		Assert.Equal(0, actor.MomentumLevel);
 	}
 
-	private static Option RetroMoveOption(Coord origin, GrimSpace.Battle.Units.Unit player)
-	{
-		var retroPath = BattleTestFixture.Path(
+	private static MovePathSession RetroMoveOption(Coord origin, GrimSpace.Battle.Units.Unit player) =>
+		BattleTestFixture.Path(
+			PlayerId,
 			origin,
-			apCost: 0,
+			pathApSpent: 0,
 			Coord.Zero - player.State.Fore);
-
-		return retroPath;
-	}
 }

@@ -15,9 +15,9 @@ public static class MovementSelection
 
 	private const float PickRadius = 1.4f;
 
-	public static int? PickOptionIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<Option> options)
+	public static int? PickPathIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<MovePathSession> paths)
 	{
-		if (options.Count == 0)
+		if (paths.Count == 0)
 			return null;
 
 		var origin = camera.ProjectRayOrigin(screenPos);
@@ -26,9 +26,9 @@ public static class MovementSelection
 		int? bestIndex = null;
 		var bestDistance = PickRadius;
 
-		for (var i = 0; i < options.Count; i++)
+		for (var i = 0; i < paths.Count; i++)
 		{
-			var world = WorldMapping.ToWorld(options[i].EndPosition);
+			var world = WorldMapping.ToWorld(paths[i].EndPosition);
 			var distance = DistanceRayToPoint(origin, direction, world);
 			if (distance >= bestDistance)
 				continue;

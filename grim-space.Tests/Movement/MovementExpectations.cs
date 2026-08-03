@@ -1,6 +1,5 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
@@ -36,7 +35,7 @@ internal static class MovementExpectations
 			forwardSteps++;
 			buildup = MomentumConfig.ApplyMovementStep(
 				buildup,
-				GrimSpace.Battle.Movement.Enums.ESpatialOrientation.Forward,
+				ESpatialOrientation.Forward,
 				startMomentum,
 				momentumGainedFromMovementThisTurn: 0);
 		}
@@ -51,19 +50,13 @@ internal static class MovementExpectations
 	public static bool IsValidMoveEndpoint(int totalApSpent) =>
 		totalApSpent == 0 || totalApSpent >= MinApSpentOnMove;
 
-	public static Option PureForwardMove(Coord origin, int stepCount, int startMomentum)
+	public static MovePathSession PureForwardMove(
+		string actorId,
+		Coord origin,
+		int stepCount,
+		int startMomentum)
 	{
-		var path = new Coord[stepCount];
-		for (var i = 0; i < stepCount; i++)
-			path[i] = origin + Coord.Forward * (i + 1);
-
-		return new Option
-		{
-			Path = path,
-			ApCost = TotalApForPureForwardPath(startMomentum, stepCount),
-			Steps = Enumerable.Range(0, stepCount)
-				.Select(_ => new MoveStepAction("player", ESpatialOrientation.Forward))
-				.ToList(),
-		};
+		var pathApSpent = TotalApForPureForwardPath(startMomentum, stepCount);
+		return BattleTestFixture.ForwardPath(actorId, origin, stepCount, pathApSpent);
 	}
 }

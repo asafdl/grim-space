@@ -14,12 +14,12 @@ internal static class MoveUiTestActions
 	public static bool ClickMove(BattleUi ui, InteractionState state, Coord endPosition)
 	{
 		var battle = ui.Battle;
-		var options = ui.MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var options = ui.MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
 		var option = options.First(candidate => candidate.EndPosition == endPosition);
 		if (!battle.Sim.TryEnqueue(actions: [..option.Steps]))
 			return false;
 
-		state.CommittedMovePath = option.Path;
+		state.CommittedMovePath = option.Cells;
 		state.ClearHovers();
 		return true;
 	}

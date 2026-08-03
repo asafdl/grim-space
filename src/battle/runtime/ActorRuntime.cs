@@ -5,38 +5,14 @@ namespace GrimSpace.Battle.Runtime;
 
 public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 {
-	public const int InitialMinPathApCost = 3;
-
 	public int RawYawQuarters { get; set; }
 	public int MomentumPaid { get; set; }
 	public int MomentumGainedFromMovement { get; set; }
 	public bool SpinBraked { get; set; }
 	public bool SpinDiscount { get; set; }
-	public int MinPathApCost { get; set; } = InitialMinPathApCost;
-	public int PathApSpent { get; set; }
-	public int PathForwardSteps { get; set; }
-	public int UsedDirectionsMask { get; set; }
-	public int MoveStartMomentumLevel { get; set; }
-	public int MovementBuildupLevel { get; set; }
-	public int MovementBuildupForwardSteps { get; set; }
+	public MovePathSession? ActivePath { get; set; }
 
 	public int NetYaw => Orientation.NormalizeQuarters(RawYawQuarters);
-
-	public bool IsMovePathStarted => PathForwardSteps > 0 || UsedDirectionsMask > 0;
-
-	public void EndMovePath()
-	{
-		MinPathApCost = InitialMinPathApCost;
-		PathApSpent = 0;
-		PathForwardSteps = 0;
-		UsedDirectionsMask = 0;
-		MoveStartMomentumLevel = 0;
-		MovementBuildupLevel = 0;
-		MovementBuildupForwardSteps = 0;
-	}
-
-	public MomentumConfig.Buildup MovementBuildup =>
-		new(MovementBuildupLevel, MovementBuildupForwardSteps);
 
 	public void Reset()
 	{
@@ -45,13 +21,7 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 		MomentumGainedFromMovement = 0;
 		SpinBraked = false;
 		SpinDiscount = false;
-		MinPathApCost = InitialMinPathApCost;
-		PathApSpent = 0;
-		PathForwardSteps = 0;
-		UsedDirectionsMask = 0;
-		MoveStartMomentumLevel = 0;
-		MovementBuildupLevel = 0;
-		MovementBuildupForwardSteps = 0;
+		ActivePath = null;
 	}
 
 	public ActorRuntime Fork() => ActorRuntimeCopy.Clone(this);
@@ -63,13 +33,7 @@ public readonly record struct ActorRuntimeSnapshot(
 	int MomentumGainedFromMovement,
 	bool SpinBraked,
 	bool SpinDiscount,
-	int MinPathApCost,
-	int PathApSpent,
-	int PathForwardSteps,
-	int UsedDirectionsMask,
-	int MoveStartMomentumLevel,
-	int MovementBuildupLevel,
-	int MovementBuildupForwardSteps);
+	MovePathSession? ActivePath);
 
 public static class ActorRuntimeCopy
 {
@@ -80,13 +44,7 @@ public static class ActorRuntimeCopy
 			session.MomentumGainedFromMovement,
 			session.SpinBraked,
 			session.SpinDiscount,
-			session.MinPathApCost,
-			session.PathApSpent,
-			session.PathForwardSteps,
-			session.UsedDirectionsMask,
-			session.MoveStartMomentumLevel,
-			session.MovementBuildupLevel,
-			session.MovementBuildupForwardSteps);
+			session.ActivePath?.Clone());
 
 	public static void Restore(ActorRuntime session, ActorRuntimeSnapshot snapshot)
 	{
@@ -95,13 +53,7 @@ public static class ActorRuntimeCopy
 		session.MomentumGainedFromMovement = snapshot.MomentumGainedFromMovement;
 		session.SpinBraked = snapshot.SpinBraked;
 		session.SpinDiscount = snapshot.SpinDiscount;
-		session.MinPathApCost = snapshot.MinPathApCost;
-		session.PathApSpent = snapshot.PathApSpent;
-		session.PathForwardSteps = snapshot.PathForwardSteps;
-		session.UsedDirectionsMask = snapshot.UsedDirectionsMask;
-		session.MoveStartMomentumLevel = snapshot.MoveStartMomentumLevel;
-		session.MovementBuildupLevel = snapshot.MovementBuildupLevel;
-		session.MovementBuildupForwardSteps = snapshot.MovementBuildupForwardSteps;
+		session.ActivePath = snapshot.ActivePath?.Clone();
 	}
 
 	public static ActorRuntime Clone(ActorRuntime session)

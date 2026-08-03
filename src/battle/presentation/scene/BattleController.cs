@@ -39,7 +39,8 @@ public partial class BattleController : Node3D
 	private int _pendingCompletedTurn;
 
 	private readonly record struct MoveHoverCache(
-		IReadOnlyList<Movement.Option> Options,
+		IReadOnlyList<Movement.MovePathSession> Paths,
+		int PathApBaseline,
 		IReadOnlySet<Coord> HazardCells,
 		IReadOnlyList<Coord> CommittedPath);
 
@@ -111,15 +112,15 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		var index = MovementSelection.PickOptionIndex(
+		var index = MovementSelection.PickPathIndex(
 			_camera,
 			GetViewport().GetMousePosition(),
-			_moveHoverCache.Options);
+			_moveHoverCache.Paths);
 		if (index == _lastHoveredMoveIndex)
 			return;
 
 		_lastHoveredMoveIndex = index;
-		_ui.State.SetMoveHover(index, _moveHoverCache.Options.Count);
+		_ui.State.SetMoveHover(index, _moveHoverCache.Paths.Count);
 		ApplyMoveHoverOverlay();
 	}
 
@@ -127,7 +128,8 @@ public partial class BattleController : Node3D
 	{
 		_currentFrame = frame;
 		_moveHoverCache = new MoveHoverCache(
-			frame.MoveOptions,
+			frame.MovePaths,
+			frame.MovePathApBaseline,
 			frame.PreviewHazardCells,
 			_ui.State.CommittedMovePath);
 		ApplyFrame(frame);
@@ -154,11 +156,12 @@ public partial class BattleController : Node3D
 	private void ApplyMoveHoverOverlay()
 	{
 		var (path, target) = MoveUi.GetPathHighlights(
-			_moveHoverCache.Options,
+			_moveHoverCache.Paths,
 			_ui.State.MoveHoveredIndex,
 			_moveHoverCache.CommittedPath);
 		_gridView.SetMoveHighlights(
-			_moveHoverCache.Options,
+			_moveHoverCache.Paths,
+			_moveHoverCache.PathApBaseline,
 			path,
 			target,
 			_moveHoverCache.HazardCells);
@@ -282,13 +285,13 @@ public partial class BattleController : Node3D
 		switch (_ui.State.Mode)
 		{
 			case EPlayerMode.Move:
-				if (MovementSelection.PickOptionIndex(_camera, screenPos, frame.MoveOptions) is int index)
+				if (MovementSelection.PickPathIndex(_camera, screenPos, frame.MovePaths) is int index)
 				{
-					_director.QueueMove(frame.MoveOptions[index].EndPosition);
+					_director.QueueMove(frame.MovePaths[index].EndPosition);
 					_lastHoveredMoveIndex = null;
 				}
 				else
-					PresentationDiagnostics.LogMovePickMiss(frame.MoveOptions.Count);
+					PresentationDiagnostics.LogMovePickMiss(frame.MovePaths.Count);
 				break;
 
 			case EPlayerMode.Flak:

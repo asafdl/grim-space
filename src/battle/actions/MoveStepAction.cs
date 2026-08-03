@@ -1,7 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
@@ -64,18 +63,21 @@ public sealed class MoveDef
 		if (!IsPossible(action, world, runtime))
 			return false;
 
-		if (MoveDirectionRules.UsesOpposite(runtime.UsedDirectionsMask, action.Direction))
+		var path = runtime.ActivePath;
+		if (path is not null && DirectionRules.UsesOpposite(path.UsedDirectionsMask, action.Direction))
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
+		var forwardSteps = path?.PathForwardSteps ?? 0;
+		var pathApSpent = path?.PathApSpent ?? 0;
 		var stepCost = StepCosts.GetMoveStepApCost(
 			action.Direction,
-			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
+			new MoveStepContext(forwardSteps, actor.MomentumLevel));
 
 		if (stepCost > actor.ActionPoints)
 			return false;
 
-		if (stepCost == 0 && actor.ActionPoints == 0 && runtime.PathApSpent == 0)
+		if (stepCost == 0 && actor.ActionPoints == 0 && pathApSpent == 0)
 			return false;
 
 		return true;
@@ -83,10 +85,10 @@ public sealed class MoveDef
 
 	public InvariantStatus EvaluateInvariants(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		if (!runtime.IsMovePathStarted)
+		if (runtime.ActivePath is null)
 			return InvariantStatus.Ok;
 
-		if (MovePathRules.CanEndMovePath(runtime))
+		if (runtime.ActivePath.CanEnd())
 			return InvariantStatus.Ok;
 
 		foreach (var candidate in Discover(world, runtime, actorId))
@@ -106,53 +108,20 @@ public sealed class MoveDef
 		var actor = world.StateOf(action.ActorId);
 		var frame = BodyFrame.From(actor);
 		var to = actor.Position + frame.Step(action.Direction);
-		var directionBit = MoveDirectionRules.DirectionBit(action.Direction);
+		var directionBit = DirectionRules.DirectionBit(action.Direction);
+		var path = runtime.ActivePath;
+		var forwardSteps = path?.PathForwardSteps ?? 0;
 		var stepCost = StepCosts.GetMoveStepApCost(
 			action.Direction,
-			new MoveStepContext(runtime.PathForwardSteps, actor.MomentumLevel));
+			new MoveStepContext(forwardSteps, actor.MomentumLevel));
 
-		var effects = new List<IEffect<BattleWorld, ActorRuntime>>();
-
-		if (!runtime.IsMovePathStarted)
-			effects.Add(new BeginMovePathEffect());
-
-		effects.AddRange(
-		[
+		return [
+			new MovePathStepEffect(action, to, stepCost, directionBit),
 			new MoveStepMomentumEffect(action.Direction),
 			new MoveEffect(to),
 			new ApChangeEffect(-stepCost),
-			new ConsumeMinPathApEffect(stepCost),
-			new RecordMovePathStepEffect(action.Direction, directionBit),
-		]);
-
-		if (action.Direction == ESpatialOrientation.Retro)
-			effects.Add(new MarkSpinBrakedEffect());
-
-		// TODO: Remove — stepping into a hazard should not apply damage; only scheduled ResolveHazardAction should.
-		effects.Add(new HazardCellEntryEffect(to));
-
-		return effects;
-	}
-
-	public static IReadOnlyList<MoveStepAction> StepsFromPath(
-		string actorId,
-		BodyFrame frame,
-		Coord origin,
-		IReadOnlyList<Coord> path)
-	{
-		var steps = new List<MoveStepAction>();
-		var from = origin;
-
-		foreach (var to in path)
-		{
-			if (frame.DirectionOfStep(from, to) is not ESpatialOrientation direction)
-				throw new InvalidOperationException("Move step direction is undefined.");
-
-			steps.Add(Instance.Bind(actorId, direction));
-			from = to;
-		}
-
-		return steps;
+			new HazardCellEntryEffect(to),
+		];
 	}
 
 	private static MoveStepAction Cast(IAction action) =>

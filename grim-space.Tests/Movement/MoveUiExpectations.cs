@@ -17,19 +17,24 @@ internal static class MoveUiExpectations
 	public static MoveOptionIndex CaptureTurnStartIndex(BattleOrchestrator battle) =>
 		MoveOptionIndex.FromSimulation(battle.Sim, battle.PlayerId);
 
-	public static IReadOnlyList<Option> FromIndex(MoveOptionIndex index, IReadOnlyList<IAction> committed) =>
-		index.GetOptions(committed);
+	public static IReadOnlyList<MovePathSession> FromIndex(
+		MoveOptionIndex index,
+		IReadOnlyList<IAction> committed) =>
+		index.GetPaths(committed);
 
-	public static IReadOnlyList<Option> FromFreshSearch(
+	public static IReadOnlyList<MovePathSession> FromFreshSearch(
 		Simulation<BattleWorld, ActorRuntime> sim,
 		string actorId,
 		IReadOnlyList<IAction> committed) =>
-		MoveOptionIndex.FromSimulation(sim, actorId).GetOptions(committed);
+		MoveOptionIndex.FromSimulation(sim, actorId).GetPaths(committed);
 
-	public static void AssertEquivalent(IReadOnlyList<Option> expected, IReadOnlyList<Option> actual)
+	public static void AssertEquivalent(
+		IReadOnlyList<MovePathSession> expected,
+		IReadOnlyList<MovePathSession> actual,
+		int baselinePathApSpent = 0)
 	{
-		var expectedByEnd = expected.ToDictionary(option => option.EndPosition);
-		var actualByEnd = actual.ToDictionary(option => option.EndPosition);
+		var expectedByEnd = expected.ToDictionary(path => path.EndPosition);
+		var actualByEnd = actual.ToDictionary(path => path.EndPosition);
 
 		Assert.Equal(
 			expectedByEnd.Keys.OrderBy(coord => coord.X).ThenBy(coord => coord.Y).ThenBy(coord => coord.Z),
@@ -37,8 +42,10 @@ internal static class MoveUiExpectations
 
 		foreach (var end in expectedByEnd.Keys)
 		{
-			Assert.Equal(expectedByEnd[end].ApCost, actualByEnd[end].ApCost);
-			Assert.Equal(expectedByEnd[end].Path, actualByEnd[end].Path);
+			Assert.Equal(
+				expectedByEnd[end].ExtensionApCost(baselinePathApSpent),
+				actualByEnd[end].ExtensionApCost(baselinePathApSpent));
+			Assert.Equal(expectedByEnd[end].Cells, actualByEnd[end].Cells);
 		}
 	}
 }

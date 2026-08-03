@@ -17,22 +17,29 @@ public sealed class MovePathSearchTests
 	[Fact]
 	public void DuplicateEndpointPrefersShortestPathOverLowerApCost()
 	{
+		var origin = new Coord(0, 0, 0);
+		var frame = BodyFrame.WorldAligned(origin);
 		var end = new Coord(2, 0, 0);
-		var shorter = new Option
-		{
-			Path = [new Coord(1, 0, 0), end],
-			ApCost = 4,
-			Steps = [],
-		};
-		var longer = new Option
-		{
-			Path = [new Coord(1, 0, 0), new Coord(1, 1, 0), new Coord(2, 1, 0), end],
-			ApCost = 2,
-			Steps = [],
-		};
+		var shorter = MovePathSession.Begin(PlayerId, origin, frame, 0);
+		shorter.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
+		shorter.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
+		shorter.Cells.Add(new Coord(1, 0, 0));
+		shorter.Cells.Add(end);
+		shorter.PathApSpent = 4;
 
-		Assert.True(MovePathRules.PreferEndpointOption(shorter, longer));
-		Assert.False(MovePathRules.PreferEndpointOption(longer, shorter));
+		var longer = MovePathSession.Begin(PlayerId, origin, frame, 0);
+		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
+		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Port));
+		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
+		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Starboard));
+		longer.Cells.Add(new Coord(1, 0, 0));
+		longer.Cells.Add(new Coord(1, 1, 0));
+		longer.Cells.Add(new Coord(2, 1, 0));
+		longer.Cells.Add(end);
+		longer.PathApSpent = 2;
+
+		Assert.True(MovePathSession.PreferPath(shorter, longer));
+		Assert.False(MovePathSession.PreferPath(longer, shorter));
 	}
 
 	[Fact]
@@ -42,8 +49,8 @@ public sealed class MovePathSearchTests
 		var player = BattleTestFixture.Player(origin, momentum: 0);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var options = GetMoveOptions(player, enemy, blocked, origin);
-		var endpoints = options.ToDictionary(option => option.EndPosition);
+		var options = GetMovePaths(player, enemy, blocked, origin);
+		var endpoints = options.ToDictionary(path => path.EndPosition);
 
 		var oneForward = origin + Coord.Forward;
 		var twoForward = origin + Coord.Forward * 2;
@@ -54,7 +61,7 @@ public sealed class MovePathSearchTests
 		Assert.False(endpoints.ContainsKey(twoForward));
 		Assert.True(MovementExpectations.IsValidMoveEndpoint(threeStepCost));
 		Assert.True(endpoints.ContainsKey(threeForward));
-		Assert.Equal(threeStepCost, endpoints[threeForward].ApCost);
+		Assert.Equal(threeStepCost, endpoints[threeForward].PathApSpent);
 	}
 
 	[Fact]
@@ -67,13 +74,13 @@ public sealed class MovePathSearchTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 
-		var options = GetMoveOptions(player, enemy, blocked, origin);
+		var options = GetMovePaths(player, enemy, blocked, origin);
 		var endpoint = origin + Coord.Forward * stepCount;
 		var expectedCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
 
 		Assert.Equal(0, expectedCost);
 		Assert.True(MovementExpectations.IsValidMoveEndpoint(expectedCost));
-		Assert.Contains(options, option => option.EndPosition == endpoint && option.ApCost == expectedCost);
+		Assert.Contains(options, path => path.EndPosition == endpoint && path.PathApSpent == expectedCost);
 	}
 
 	[Fact]
@@ -82,19 +89,19 @@ public sealed class MovePathSearchTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var zigzag = BattleTestFixture.Path(
+			PlayerId,
 			origin,
 			0,
 			Coord.Forward,
 			Coord.Zero - player.State.Fore);
 
-		var frame = BodyFrame.From(player.State);
-		var steps = MoveDef.StepsFromPath(PlayerId, frame, origin, zigzag.Path);
 		var board = BattleWorld.FromSnapshot(
 			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>());
 		var runtime = new ActorRuntime();
+		var steps = zigzag.Steps;
 		for (var i = 0; i < steps.Count - 1; i++)
 		{
 			foreach (var effect in steps[i].Definition.Resolve(steps[i], board, runtime))
@@ -112,10 +119,10 @@ public sealed class MovePathSearchTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var blocked = new HashSet<Coord> { origin + Coord.Forward * 2, enemy.State.Position };
 
-		var options = GetMoveOptions(player, enemy, blocked, origin);
+		var options = GetMovePaths(player, enemy, blocked, origin);
 
-		Assert.DoesNotContain(options, option => option.EndPosition.X < 0);
-		Assert.DoesNotContain(options, option => option.Path.Contains(origin + Coord.Forward * 2));
+		Assert.DoesNotContain(options, path => path.EndPosition.X < 0);
+		Assert.DoesNotContain(options, path => path.Cells.Contains(origin + Coord.Forward * 2));
 	}
 
 	[Fact]
@@ -132,8 +139,8 @@ public sealed class MovePathSearchTests
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position });
 
-		var option = MovementExpectations.PureForwardMove(origin, stepCount, startMomentum);
-		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
+		var path = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount, startMomentum);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, path));
 
 		Assert.Equal(origin + Coord.Forward * stepCount, battle.Sim.StateOf<ActorState>(PlayerId).Position);
 		Assert.Equal(
@@ -147,7 +154,7 @@ public sealed class MovePathSearchTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 2);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var retro = BattleTestFixture.Path(origin, 0, Coord.Zero - player.State.Fore);
+		var retro = BattleTestFixture.Path(PlayerId, origin, 0, Coord.Zero - player.State.Fore);
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,
@@ -179,16 +186,16 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var options = GetMoveOptionsFromSimulation(battle.Sim);
+		var paths = MoveOptionIndex.FromSimulation(battle.Sim, PlayerId).GetPaths([]);
 
-		foreach (var option in options)
+		foreach (var path in paths)
 		{
 			var trial = BattleTestFixture.CreateTrialSimulation(battle);
-			Assert.True(BattleTestActions.TryEnqueueMovePath(trial, PlayerId, option));
+			Assert.True(BattleTestActions.TryEnqueueMovePath(trial, PlayerId, path));
 		}
 	}
 
-	private static IReadOnlyList<Option> GetMoveOptions(
+	private static IReadOnlyList<MovePathSession> GetMovePaths(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,
 		IReadOnlySet<Coord> blocked,
@@ -205,46 +212,6 @@ public sealed class MovePathSearchTests
 		actorRuntimes.For(PlayerId);
 		var session = new Simulation<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		session.Begin(0, 0);
-		return GetMoveOptionsFromSimulation(session, origin, BodyFrame.From(player.State));
-	}
-
-	private static IReadOnlyList<Option> GetMoveOptionsFromSimulation(
-		Simulation<BattleWorld, ActorRuntime> session,
-		Coord? origin = null,
-		BodyFrame? frame = null)
-	{
-		origin ??= session.StateOf<ActorState>(PlayerId).Position;
-		frame ??= BodyFrame.From(session.StateOf<ActorState>(PlayerId));
-		var startCount = session.Actions.Count;
-		var baselinePathApSpent = session.Runtimes.For(PlayerId).PathApSpent;
-		var results = new Dictionary<Coord, Option>();
-
-		foreach (var searchFrame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
-		{
-			var steps = searchFrame.Actions
-				.Skip(startCount)
-				.OfType<MoveStepAction>()
-				.Where(step => step.ActorId == PlayerId)
-				.ToList();
-
-			if (steps.Count == 0)
-				continue;
-
-			var runtime = searchFrame.Runtimes.For(PlayerId);
-			var option = MovePathRules.ToEndpointOption(
-				origin.Value,
-				frame.Value,
-				steps,
-				runtime,
-				baselinePathApSpent);
-			if (option is null)
-				continue;
-
-			if (!results.TryGetValue(option.EndPosition, out var existing)
-				|| MovePathRules.PreferEndpointOption(option, existing))
-				results[option.EndPosition] = option;
-		}
-
-		return results.Values.ToList();
+		return MoveOptionIndex.FromSimulation(session, PlayerId).GetPaths([]);
 	}
 }

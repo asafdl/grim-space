@@ -13,12 +13,13 @@ namespace GrimSpace.Tests.Actions;
 
 public sealed class BattleDirectorTests
 {
+	private const string PlayerId = "player";
 	[Fact]
 	public void EndTurnEntersResolvingWithoutWaitingForResolve()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = new BattleDirector(new BattleUi(battle));
@@ -34,7 +35,7 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = new BattleDirector(new BattleUi(battle));
@@ -69,7 +70,7 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = new BattleDirector(new BattleUi(battle));
@@ -86,7 +87,7 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = new BattleDirector(new BattleUi(battle));
@@ -100,7 +101,7 @@ public sealed class BattleDirectorTests
 		var planningTcs = new TaskCompletionSource();
 		director.FrameChanged += frame =>
 		{
-			if (director.Phase == PresentationPhase.Planning && frame.MoveOptions.Count > 0)
+			if (director.Phase == PresentationPhase.Planning && frame.MovePaths.Count > 0)
 				planningTcs.TrySetResult();
 		};
 
@@ -116,7 +117,7 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = new BattleDirector(new BattleUi(battle));
@@ -140,7 +141,7 @@ public sealed class BattleDirectorTests
 		director.NotifyReplayComplete();
 		var frame = await planningTcs.Task;
 
-		Assert.NotEmpty(frame.MoveOptions);
+		Assert.NotEmpty(frame.MovePaths);
 	}
 
 	[Fact]
@@ -148,7 +149,7 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = new BattleDirector(new BattleUi(battle));

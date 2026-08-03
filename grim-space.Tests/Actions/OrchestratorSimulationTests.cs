@@ -6,6 +6,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
@@ -86,8 +87,13 @@ public sealed class OrchestratorSimulationTests
 
 		if (moved)
 		{
-			runtime.UsedDirectionsMask = 1;
-			runtime.PathForwardSteps = 1;
+			runtime.ActivePath = MovePathSession.Begin(
+				PlayerId,
+				origin,
+				BodyFrame.From(player.State),
+				startMomentum);
+			runtime.ActivePath.UsedDirectionsMask = 1;
+			runtime.ActivePath.PathForwardSteps = 1;
 		}
 
 		var board = BattleWorld.FromSnapshot(
@@ -98,7 +104,7 @@ public sealed class OrchestratorSimulationTests
 		BattleTestApply.TryApplyOne(new EndOfPhaseAction(PlayerId), board, runtime, PlayerId);
 
 		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
-		Assert.False(runtime.IsMovePathStarted);
+		Assert.False(runtime.ActivePath != null);
 	}
 
 	[Fact]
@@ -177,11 +183,6 @@ public sealed class OrchestratorSimulationTests
 		Assert.Equal(origin, board.StateOf(PlayerId).Position);
 	}
 
-	private static IReadOnlyList<MoveStepAction> BuildForwardSteps(Coord origin, int steps, int startMomentum)
-	{
-		var option = MovementExpectations.PureForwardMove(origin, steps, startMomentum);
-		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(player.State);
-		return MoveDef.StepsFromPath(PlayerId, frame, origin, option.Path);
-	}
+	private static IReadOnlyList<MoveStepAction> BuildForwardSteps(Coord origin, int steps, int startMomentum) =>
+		MovementExpectations.PureForwardMove(PlayerId, origin, steps, startMomentum).Steps;
 }

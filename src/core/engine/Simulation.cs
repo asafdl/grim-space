@@ -250,6 +250,21 @@ public class Simulation<TWorld, TRuntime>
 		return fork;
 	}
 
+	/// <summary>Fresh branch from the turn anchor with no queued actions.</summary>
+	public Simulation<TWorld, TRuntime> BranchAtTurnStart()
+	{
+		var branch = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes)
+		{
+			_anchorTick = _anchorTick,
+			WorldVersion = WorldVersion,
+		};
+		branch.Begin(_anchorTick, WorldVersion);
+		return branch;
+	}
+
+	/// <summary>Branch preserving the current queued actions and preview state.</summary>
+	public Simulation<TWorld, TRuntime> Branch() => Fork();
+
 	private int CaptureSearchCheckpoint() => _actions.Count;
 
 	private void RestoreSearchCheckpoint(int actionCount)

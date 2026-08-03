@@ -1,4 +1,4 @@
-namespace GrimSpace.Battle.Movement.Enums;
+namespace GrimSpace.Math.Grid;
 
 public enum ESpatialOrientation
 {

@@ -36,9 +36,9 @@ public sealed class SimulationSessionTests
 		Assert.Equal(startMomentum, player.State.MomentumLevel);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 
-		Assert.Equal(origin + Coord.Forward * stepCount, preview.Actor.Position);
-		Assert.Equal(expectedMomentum, preview.Actor.MomentumLevel);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - expectedApCost, preview.Actor.ActionPoints);
+		Assert.Equal(origin + Coord.Forward * stepCount, preview.Position);
+		Assert.Equal(expectedMomentum, preview.MomentumLevel);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - expectedApCost, preview.ActionPoints);
 	}
 
 	[Fact]
@@ -53,22 +53,22 @@ public sealed class SimulationSessionTests
 		var battle = BeginSimulation(player, enemy, grid, blocked);
 
 		var emptyPreview = Preview.Simulate(battle);
-		Assert.Equal(origin, emptyPreview.Actor.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.Actor.ActionPoints);
+		Assert.Equal(origin, emptyPreview.Position);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.ActionPoints);
 
 		EnqueueForwardMove(battle, steps: 3);
 		var threeStepPreview = Preview.Simulate(battle);
 		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
-		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Actor.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.Actor.ActionPoints);
+		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Position);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.ActionPoints);
 
 		Assert.True(battle.Sim.TryUndoLast());
 		EnqueueForwardMove(battle, steps: 4);
 
 		var fourStepPreview = Preview.Simulate(battle);
 		var fourStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 4);
-		Assert.Equal(origin + Coord.Forward * 4, fourStepPreview.Actor.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - fourStepCost, fourStepPreview.Actor.ActionPoints);
+		Assert.Equal(origin + Coord.Forward * 4, fourStepPreview.Position);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - fourStepCost, fourStepPreview.ActionPoints);
 
 		Assert.Equal(origin, player.State.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
@@ -100,8 +100,8 @@ public sealed class SimulationSessionTests
 			BattleTestFixture.Player(origin),
 			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 
-		var shortMove = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
-		var longMove = MovementExpectations.PureForwardMove(origin, stepCount: 4, startMomentum: 0);
+		var shortMove = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
+		var longMove = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 4, startMomentum: 0);
 
 		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, shortMove));
 		Assert.False(BattleTestActions.TryEnqueueMovePath(planning, longMove));
@@ -124,48 +124,9 @@ public sealed class SimulationSessionTests
 	private static void EnqueueForwardMove(BattleOrchestrator battle, int steps)
 	{
 		var origin = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
-		var option = GetMoveOptionsFromSimulation(battle.Sim)
-			.First(o => o.Path.Count == steps);
-		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-	}
-
-	private static IReadOnlyList<GrimSpace.Battle.Movement.Option> GetMoveOptionsFromSimulation(
-		GrimSpace.Core.Engine.Simulation<
-			GrimSpace.Battle.World.BattleWorld,
-			GrimSpace.Battle.Runtime.ActorRuntime> session)
-	{
-		var origin = session.StateOf<ActorState>("player").Position;
-		var frame = GrimSpace.Battle.Spatial.BodyFrame.From(session.StateOf<ActorState>("player"));
-		var startCount = session.Actions.Count;
-		var baselinePathApSpent = session.Runtimes.For("player").PathApSpent;
-		var results = new Dictionary<Coord, GrimSpace.Battle.Movement.Option>();
-
-		foreach (var searchFrame in session.Search("player", [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
-		{
-			var moveSteps = searchFrame.Actions
-				.Skip(startCount)
-				.OfType<MoveStepAction>()
-				.ToList();
-
-			if (moveSteps.Count == 0)
-				continue;
-
-			var runtime = searchFrame.Runtimes.For("player");
-			var option = GrimSpace.Battle.Movement.MovePathRules.ToEndpointOption(
-				origin,
-				frame,
-				moveSteps,
-				runtime,
-				baselinePathApSpent);
-			if (option is null)
-				continue;
-
-			if (!results.TryGetValue(option.EndPosition, out var existing)
-				|| GrimSpace.Battle.Movement.MovePathRules.PreferEndpointOption(option, existing))
-				results[option.EndPosition] = option;
-		}
-
-		return results.Values.ToList();
+		var end = origin + Coord.Forward * steps;
+		var path = MoveOptionIndex.FromSimulation(battle.Sim, battle.PlayerId).GetPaths([])
+			.First(p => p.EndPosition == end);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, path));
 	}
 }

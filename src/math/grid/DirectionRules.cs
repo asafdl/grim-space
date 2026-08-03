@@ -1,8 +1,6 @@
-using GrimSpace.Battle.Movement.Enums;
+namespace GrimSpace.Math.Grid;
 
-namespace GrimSpace.Battle.Movement;
-
-public static class MoveDirectionRules
+public static class DirectionRules
 {
 	public static int DirectionBit(ESpatialOrientation direction) => 1 << (int)direction;
 

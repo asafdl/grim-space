@@ -10,7 +10,8 @@ public sealed class PresentationFrame
 {
 	public required EPlayerMode Mode { get; init; }
 	public Unit? ActiveUnit { get; init; }
-	public required IReadOnlyList<Option> MoveOptions { get; init; }
+	public required IReadOnlyList<MovePathSession> MovePaths { get; init; }
+	public int MovePathApBaseline { get; init; }
 	public required BattleWorld PreviewWorld { get; init; }
 	public required State ActorState { get; init; }
 	public required IReadOnlySet<Coord> PreviewHazardCells { get; init; }

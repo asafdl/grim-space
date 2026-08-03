@@ -1,7 +1,9 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core;
@@ -72,22 +74,33 @@ internal static class BattleTestFixture
 	public static Unit Enemy(Coord position, int momentum = 0) =>
 		Create(EController.Enemy, "enemy", position, momentum);
 
-	public static Option Path(Coord origin, int apCost, params Coord[] deltas)
+	public static MovePathSession Path(string actorId, Coord origin, int pathApSpent, params Coord[] deltas)
 	{
-		var cells = new List<Coord>(deltas.Length);
+		var frame = BodyFrame.WorldAligned(origin);
+		var session = MovePathSession.Begin(actorId, origin, frame, 0);
 		var pos = origin;
 
 		foreach (var delta in deltas)
 		{
-			pos += delta;
-			cells.Add(pos);
+			var to = pos + delta;
+			var direction = frame.DirectionOfStep(pos, to)
+				?? throw new InvalidOperationException("Move step direction is undefined.");
+			session.Steps.Add(new MoveStepAction(actorId, direction));
+			session.Cells.Add(to);
+			pos = to;
 		}
 
-		return new Option { Path = cells, ApCost = apCost, Steps = [] };
+		session.PathApSpent = pathApSpent;
+		session.MinPathApCost = 0;
+		return session;
 	}
 
-	public static Option ForwardPath(Coord origin, int steps, int apCost = 0) =>
-		Path(origin, apCost, Enumerable.Repeat(Coord.Forward, steps).ToArray());
+	public static MovePathSession ForwardPath(
+		string actorId,
+		Coord origin,
+		int steps,
+		int pathApSpent = 0) =>
+		Path(actorId, origin, pathApSpent, Enumerable.Repeat(Coord.Forward, steps).ToArray());
 
 	private static Unit Create(EController controller, string id, Coord position, int momentum)
 	{

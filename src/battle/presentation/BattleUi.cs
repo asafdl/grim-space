@@ -42,33 +42,33 @@ public sealed class BattleUi
 
 	public bool TryQueueMove(Coord endPosition)
 	{
-		var options = MoveUi.GetMoveOptions(Battle.Sim.Actions);
-		var optionIndex = -1;
-		for (var i = 0; i < options.Count; i++)
+		var paths = MoveUi.GetMovePaths(Battle.Sim.Actions);
+		var pathIndex = -1;
+		for (var i = 0; i < paths.Count; i++)
 		{
-			if (options[i].EndPosition != endPosition)
+			if (paths[i].EndPosition != endPosition)
 				continue;
 
-			optionIndex = i;
+			pathIndex = i;
 			break;
 		}
 
-		if (optionIndex < 0)
+		if (pathIndex < 0)
 		{
 			PresentationDiagnostics.LogMoveQueueDetail("endpoint_not_in_options", endPosition);
 			return false;
 		}
 
-		return TryQueueMove(optionIndex, options);
+		return TryQueueMove(pathIndex, paths);
 	}
 
-	public bool TryQueueMove(int optionIndex, IReadOnlyList<Movement.Option> options)
+	public bool TryQueueMove(int pathIndex, IReadOnlyList<Movement.MovePathSession> paths)
 	{
-		if (optionIndex < 0 || optionIndex >= options.Count)
+		if (pathIndex < 0 || pathIndex >= paths.Count)
 		{
 			PresentationDiagnostics.LogMoveQueueDetail(
 				"index_out_of_range",
-				optionIndex < options.Count && optionIndex >= 0 ? options[optionIndex].EndPosition : null);
+				pathIndex < paths.Count && pathIndex >= 0 ? paths[pathIndex].EndPosition : null);
 			return false;
 		}
 
@@ -92,24 +92,24 @@ public sealed class BattleUi
 			return false;
 		}
 
-		var option = options[optionIndex];
-		if (option.Steps.Count == 0)
+		var path = paths[pathIndex];
+		if (path.Steps.Count == 0)
 		{
-			PresentationDiagnostics.LogMoveQueueDetail("empty_steps", option.EndPosition);
+			PresentationDiagnostics.LogMoveQueueDetail("empty_steps", path.EndPosition);
 			return false;
 		}
 
-		if (!Battle.Sim.TryEnqueue(actions: [..option.Steps]))
+		if (!Battle.Sim.TryEnqueue(actions: [..path.Steps]))
 		{
 			var actorState = Battle.Sim.StateOf<ActorState>(Battle.PlayerId);
 			PresentationDiagnostics.LogMoveQueueDetail(
-				$"sim_enqueue_failed steps={option.Steps.Count} pos={actorState.Position} "
+				$"sim_enqueue_failed steps={path.Steps.Count} pos={actorState.Position} "
 				+ $"fore={actorState.Fore}",
-				option.EndPosition);
+				path.EndPosition);
 			return false;
 		}
 
-		State.CommittedMovePath = option.Path;
+		State.CommittedMovePath = path.Cells;
 		State.ClearHovers();
 		return true;
 	}
@@ -118,10 +118,10 @@ public sealed class BattleUi
 	{
 		var state = State;
 		var activeUnit = GetPlanningActor();
-		var moveOptions = activeUnit is not null && Battle.CanAct(activeUnit)
-			? MoveUi.GetMoveOptions(Battle.Sim.Actions)
+		var movePaths = activeUnit is not null && Battle.CanAct(activeUnit)
+			? MoveUi.GetMovePaths(Battle.Sim.Actions)
 			: [];
-		state.ClampMoveHover(moveOptions.Count);
+		state.ClampMoveHover(movePaths.Count);
 
 		var previewWorld = TurnUi.GetPreviewWorld(Battle);
 		var hazardCells = TurnUi.GetPreviewHazardCells(Battle);
@@ -143,18 +143,20 @@ public sealed class BattleUi
 			? RailgunUi.GetPreviewCells(Battle, state)
 			: [];
 		var (path, target) = MoveUi.GetPathHighlights(
-			moveOptions,
+			movePaths,
 			state.MoveHoveredIndex,
 			state.CommittedMovePath);
 
 		var actorId = Battle.PlayerId;
 		var actorState = previewWorld.StateOf(actorId);
+		var movePathApBaseline = Battle.Sim.RuntimeFor(actorId).ActivePath?.PathApSpent ?? 0;
 
 		return new PresentationFrame
 		{
 			Mode = state.Mode,
 			ActiveUnit = activeUnit,
-			MoveOptions = moveOptions,
+			MovePaths = movePaths,
+			MovePathApBaseline = movePathApBaseline,
 			PreviewWorld = previewWorld,
 			ActorState = actorState,
 			PreviewHazardCells = hazardCells,

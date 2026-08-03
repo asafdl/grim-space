@@ -58,9 +58,9 @@ public sealed class MomentumConfig
 
 	public readonly record struct Buildup(int Level, int ForwardStepsTowardGain);
 
-	public static Buildup ApplyStep(Buildup state, Enums.ESpatialOrientation direction)
+	public static Buildup ApplyStep(Buildup state, GrimSpace.Math.Grid.ESpatialOrientation direction)
 	{
-		if (direction == Enums.ESpatialOrientation.Forward)
+		if (direction == GrimSpace.Math.Grid.ESpatialOrientation.Forward)
 		{
 			var toward = state.ForwardStepsTowardGain + 1;
 			if (toward < ForwardStepsPerMomentumGain)
@@ -69,7 +69,7 @@ public sealed class MomentumConfig
 			return new Buildup(System.Math.Min(state.Level + 1, MaxLevel), 0);
 		}
 
-		if (direction == Enums.ESpatialOrientation.Retro)
+		if (direction == GrimSpace.Math.Grid.ESpatialOrientation.Retro)
 			return new Buildup(System.Math.Max(state.Level - 1, 0), 0);
 
 		return state;
@@ -91,7 +91,7 @@ public sealed class MomentumConfig
 
 	public static Buildup ApplyMovementStep(
 		Buildup state,
-		Enums.ESpatialOrientation direction,
+		GrimSpace.Math.Grid.ESpatialOrientation direction,
 		int moveStartLevel,
 		int momentumGainedFromMovementThisTurn) =>
 		CapMovementGain(ApplyStep(state, direction), moveStartLevel, momentumGainedFromMovementThisTurn);
@@ -100,7 +100,7 @@ public sealed class MomentumConfig
 	{
 		var buildup = new Buildup(startMomentum, 0);
 		for (var step = 0; step < stepCount; step++)
-			buildup = ApplyMovementStep(buildup, Enums.ESpatialOrientation.Forward, startMomentum, 0);
+			buildup = ApplyMovementStep(buildup, GrimSpace.Math.Grid.ESpatialOrientation.Forward, startMomentum, 0);
 
 		return buildup.Level;
 	}

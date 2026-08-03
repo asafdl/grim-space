@@ -33,7 +33,7 @@ public sealed class InvariantTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 		Assert.True(battle.Sim.TryCommit(out var actions, out var status));
@@ -46,13 +46,13 @@ public sealed class InvariantTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
-		var option = MovementExpectations.PureForwardMove(origin, stepCount: 3, startMomentum: 1);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 1);
 
-		Assert.Equal(2, option.ApCost);
+		Assert.Equal(2, option.PathApSpent);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).PathApSpent);
+		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).ActivePath!.PathApSpent);
 		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.False(MovePathRules.CanEndMovePath(battle.Sim.RuntimeFor(PlayerId)));
+		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd());
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Incomplete, status);
 	}
@@ -93,10 +93,10 @@ public sealed class InvariantTests
 		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			var runtime = frame.Runtimes.For(PlayerId);
-			if (!runtime.IsMovePathStarted)
+			if (runtime.ActivePath is null)
 				continue;
 
-			if (MovePathRules.CanEndMovePath(runtime))
+			if (runtime.ActivePath.CanEnd())
 				continue;
 
 			var hasContinuation = MoveDef.Instance

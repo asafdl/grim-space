@@ -20,14 +20,14 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
 		Assert.True(ui.TryQueueMove(threeStepIndex, options));
 
 		var frame = ui.BuildFrame();
-		var endpoints = frame.MoveOptions.Select(option => option.EndPosition).ToHashSet();
+		var endpoints = frame.MovePaths.Select(option => option.EndPosition).ToHashSet();
 
 		Assert.Equal(origin + Coord.Forward * 3, frame.ActorState.Position);
 		Assert.Contains(origin + Coord.Forward * 4, endpoints);
@@ -41,7 +41,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -54,7 +54,7 @@ public sealed class PresentationFrameTests
 		Assert.Null(frame.MoveTarget);
 		Assert.Empty(frame.MovePath);
 		Assert.Contains(
-			frame.MoveOptions,
+			frame.MovePaths,
 			option => option.EndPosition == origin + Coord.Forward * 4);
 	}
 
@@ -98,7 +98,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -120,7 +120,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 

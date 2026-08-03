@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
 

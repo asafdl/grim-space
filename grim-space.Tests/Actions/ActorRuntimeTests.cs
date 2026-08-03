@@ -1,5 +1,7 @@
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -27,19 +29,15 @@ public sealed class ActorRuntimeTests
 	}
 
 	[Fact]
-	public void IsMovePathStartedWhenPathFieldsAreSet()
+	public void ActivePathStartsNull()
 	{
 		var session = new ActorRuntime();
 
-		Assert.False(session.IsMovePathStarted);
-
-		session.UsedDirectionsMask = 1;
-
-		Assert.True(session.IsMovePathStarted);
+		Assert.Null(session.ActivePath);
 	}
 
 	[Fact]
-	public void ResetResetsAllFields()
+	public void ResetClearsActivePath()
 	{
 		var session = new ActorRuntime
 		{
@@ -47,8 +45,11 @@ public sealed class ActorRuntimeTests
 			MomentumPaid = 1,
 			SpinBraked = true,
 			SpinDiscount = true,
-			PathForwardSteps = 1,
-			UsedDirectionsMask = 1,
+			ActivePath = MovePathSession.Begin(
+				"player",
+				Coord.Zero,
+				BodyFrame.WorldAligned(Coord.Zero),
+				0),
 		};
 
 		session.Reset();
@@ -57,6 +58,6 @@ public sealed class ActorRuntimeTests
 		Assert.Equal(0, session.MomentumPaid);
 		Assert.False(session.SpinBraked);
 		Assert.False(session.SpinDiscount);
-		Assert.False(session.IsMovePathStarted);
+		Assert.Null(session.ActivePath);
 	}
 }

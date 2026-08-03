@@ -1,20 +1,14 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Units;
 
-namespace GrimSpace.Tests.Simulation;
+namespace GrimSpace.Tests;
 
-internal static class Preview
+internal static class SimulationPreviewShim
 {
-	public static PreviewActor Simulate(BattleOrchestrator battle) =>
-		new(battle.Sim.StateOf<ActorState>(battle.PlayerId));
-
-	public static IReadOnlyList<Option> GetLegalMoves(BattleOrchestrator battle) =>
-		battle.GetActiveUnit() is { State.Id: var id } actor
-			&& id == battle.PlayerId
-			&& battle.CanAct(actor)
-			? BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions)
+	public static IReadOnlyList<MovePathSession> GetLegalMoves(BattleOrchestrator battle) =>
+		battle.Sim.Actions.Count == 0
+			|| battle.Sim.Actions[^1] is not FlakAction and not RailgunAction
+			? BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions)
 			: [];
 }
-
-internal readonly record struct PreviewActor(State Actor);

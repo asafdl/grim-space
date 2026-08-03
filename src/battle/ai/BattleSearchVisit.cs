@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -26,18 +27,19 @@ internal static class BattleSearchVisit
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
 		var runtime = sim.RuntimeFor(actorId);
+		var path = runtime.ActivePath;
 		return new SearchVisitState(
 			new CapabilitySearchState(
 				actor.Position,
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				runtime.UsedDirectionsMask,
+				path?.UsedDirectionsMask ?? 0,
 				actor.MomentumLevel,
-				runtime.MinPathApCost,
-				runtime.PathForwardSteps,
-				runtime.PathApSpent,
-				runtime.SpinBraked,
+				path?.MinPathApCost ?? MovePathSession.InitialMinPathApCost,
+				path?.PathForwardSteps ?? 0,
+				path?.PathApSpent ?? 0,
+				path?.SpinBraked ?? false,
 				runtime.SpinDiscount,
 				actor.ActionPoints,
 				actor.FlakRemaining,

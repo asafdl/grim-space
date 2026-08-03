@@ -70,7 +70,7 @@ public sealed class LegalMoveTests
 		Assert.Contains(afterPlan, option => option.EndPosition == origin + Coord.Forward * 4);
 		Assert.Equal(
 			origin + Coord.Forward * 3,
-			Preview.Simulate(planning).Actor.Position);
+			Preview.Simulate(planning).Position);
 		Assert.True(planning.Sim.TryCommit(out _, out _));
 	}
 
@@ -81,7 +81,7 @@ public sealed class LegalMoveTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var expected = Preview.GetLegalMoves(battle);
-		var highlights = BattleTestFixture.Ui(battle).MoveUi.GetMoveOptions(battle.Sim.Actions);
+		var highlights = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions);
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),
@@ -122,7 +122,7 @@ public sealed class LegalMoveTests
 			MovementExpectations.MomentumAfterPureForwardPath(0, 3),
 			player.State.MomentumLevel);
 		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - move.ApCost,
+			MovementExpectations.FighterApPerTurn - move.PathApSpent,
 			player.State.ActionPoints);
 	}
 }
