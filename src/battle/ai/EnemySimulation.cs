@@ -5,6 +5,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
 
@@ -41,7 +42,7 @@ public static class EnemySimulation
 		var scoredFrames = 0;
 		var dfsTimer = Stopwatch.StartNew();
 
-		foreach (var frame in session.Search(actorId, capabilities, EnemySearchInput.ForTurn(capabilities)))
+		foreach (var frame in ActionSearch.Run(session, actorId, capabilities, EnemySearchInput.ForTurn(capabilities)))
 		{
 			visitedFrames++;
 			if (!IsTerminalFrame(frame, actorId, capabilities))

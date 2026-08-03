@@ -7,6 +7,7 @@ using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
@@ -90,7 +91,7 @@ public sealed class InvariantTests
 		var sawIncomplete = false;
 		var sawImpossibleEndpoint = false;
 
-		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
+		foreach (var frame in ActionSearch.Run(session, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			var runtime = frame.Runtimes.For(PlayerId);
 			if (runtime.ActivePath is null)

@@ -8,4 +8,7 @@ public sealed class FlakChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 {
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId) =>
 		world.StateOf(actorId).FlakRemaining += delta;
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>
+		world.StateOf(actorId).FlakRemaining -= delta;
 }

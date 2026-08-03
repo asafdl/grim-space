@@ -32,4 +32,18 @@ public sealed class TimelineBucket
 	public IReadOnlyList<IAction> Snapshot() => _actions.ToList();
 
 	public void Clear() => _actions.Clear();
+
+	public bool Remove(IAction action)
+	{
+		for (var node = _actions.First; node is not null; node = node.Next)
+		{
+			if (!ReferenceEquals(node.Value, action))
+				continue;
+
+			_actions.Remove(node);
+			return true;
+		}
+
+		return false;
+	}
 }

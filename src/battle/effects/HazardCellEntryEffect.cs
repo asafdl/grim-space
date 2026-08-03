@@ -11,16 +11,31 @@ namespace GrimSpace.Battle.Effects;
 // TODO: Remove — hazard damage is intended only on ResolveHazardAction, not on cell entry during movement.
 public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleWorld, ActorRuntime>
 {
+	private UnitCombatSnapshot _snapshot;
+	private bool _applied;
+
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
+		_snapshot = UnitCombatSnapshot.Capture(actor);
+		_applied = false;
+
 		foreach (var hazard in world.Hazards)
 		{
 			if (!hazard.Cells.Contains(cell))
 				continue;
 
+			_applied = true;
 			HazardResolution.ApplyToUnitAt(hazard, actor, cell);
 		}
+	}
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
+	{
+		if (!_applied)
+			return;
+
+		_snapshot.Restore(world.StateOf(actorId));
 	}
 }
 

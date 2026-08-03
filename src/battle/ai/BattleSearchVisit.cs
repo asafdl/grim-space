@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Core.Engine;
+using GrimSpace.Core.Dfs;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Ai;

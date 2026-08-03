@@ -4,6 +4,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
@@ -50,7 +51,7 @@ public sealed class MoveOptionIndex
 	{
 		var nodeByPrefix = new Dictionary<string, SearchNode>();
 
-		foreach (var frame in sim.Search(actorId, MovementActionDefs, BattleSearchVisit.ForCapabilities))
+		foreach (var frame in ActionSearch.Run(sim, actorId, MovementActionDefs, BattleSearchVisit.ForCapabilities))
 		{
 			var node = Project(frame, actorId);
 			nodeByPrefix[PrefixKey(node.Actions)] = node;

@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
@@ -66,7 +67,7 @@ public sealed class SimulationSearchTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var maxDepth = 0;
 
-		foreach (var frame in battle.Sim.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
+		foreach (var frame in ActionSearch.Run(battle.Sim, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 			maxDepth = System.Math.Max(maxDepth, frame.Depth);
 
 		Assert.True(maxDepth <= expectedMaxDepth, maxDepth.ToString());
@@ -85,7 +86,7 @@ public sealed class SimulationSearchTests
 		var apBefore = session.StateOf<ActorState>(PlayerId).ActionPoints;
 
 		var foundExtension = false;
-		foreach (var frame in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
+		foreach (var frame in ActionSearch.Run(session, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
 			if (frame.Actions.Count > actionsBefore.Count)
 			{

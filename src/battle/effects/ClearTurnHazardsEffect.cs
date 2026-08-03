@@ -7,14 +7,23 @@ namespace GrimSpace.Battle.Effects;
 
 public sealed class ClearTurnHazardsEffect : IEffect<BattleWorld, ActorRuntime>
 {
+	private List<Hazard> _removed = [];
+
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		var turnScoped = world.NonUnits.Values
+		_removed = world.NonUnits.Values
 			.Where(nonUnit => nonUnit.ActorId != EntityIds.World)
-			.Select(nonUnit => nonUnit.Id)
+			.OfType<Hazard>()
+			.Select(hazard => hazard.Clone())
 			.ToList();
 
-		foreach (var id in turnScoped)
-			world.MutableNonUnits.Remove(id);
+		foreach (var hazard in _removed)
+			world.MutableNonUnits.Remove(hazard.Id);
+	}
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
+	{
+		foreach (var hazard in _removed)
+			world.MutableNonUnits[hazard.Id] = hazard;
 	}
 }

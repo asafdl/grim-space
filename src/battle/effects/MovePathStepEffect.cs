@@ -14,8 +14,16 @@ public sealed class MovePathStepEffect(
 	int stepApCost,
 	int directionBit) : IEffect<BattleWorld, ActorRuntime>
 {
+	private MovePathSession? _previousPath;
+	private bool _previousSpinBraked;
+	private bool _previousSpinDiscount;
+
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
+		_previousPath = runtime.ActivePath?.Clone();
+		_previousSpinBraked = runtime.SpinBraked;
+		_previousSpinDiscount = runtime.SpinDiscount;
+
 		var actor = world.StateOf(actorId);
 		if (runtime.ActivePath is null)
 		{
@@ -34,5 +42,12 @@ public sealed class MovePathStepEffect(
 			runtime.SpinBraked = true;
 			runtime.SpinDiscount = true;
 		}
+	}
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
+	{
+		runtime.ActivePath = _previousPath?.Clone();
+		runtime.SpinBraked = _previousSpinBraked;
+		runtime.SpinDiscount = _previousSpinDiscount;
 	}
 }

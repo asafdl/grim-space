@@ -8,6 +8,10 @@ namespace GrimSpace.Battle.Effects;
 
 public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEffect<BattleWorld, ActorRuntime>
 {
+	private int _previousMomentum;
+	private int _previousBuildupLevel;
+	private int _previousBuildupForwardSteps;
+
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var path = runtime.ActivePath;
@@ -15,6 +19,10 @@ public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEff
 			return;
 
 		var actor = world.StateOf(actorId);
+		_previousMomentum = actor.MomentumLevel;
+		_previousBuildupLevel = path.MovementBuildupLevel;
+		_previousBuildupForwardSteps = path.MovementBuildupForwardSteps;
+
 		var buildup = MomentumConfig.ApplyMovementStep(
 			path.MovementBuildup,
 			direction,
@@ -23,5 +31,16 @@ public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEff
 		path.MovementBuildupLevel = buildup.Level;
 		path.MovementBuildupForwardSteps = buildup.ForwardStepsTowardGain;
 		actor.MomentumLevel = buildup.Level;
+	}
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
+	{
+		var path = runtime.ActivePath;
+		if (path is null)
+			return;
+
+		world.StateOf(actorId).MomentumLevel = _previousMomentum;
+		path.MovementBuildupLevel = _previousBuildupLevel;
+		path.MovementBuildupForwardSteps = _previousBuildupForwardSteps;
 	}
 }

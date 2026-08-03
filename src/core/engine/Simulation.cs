@@ -11,6 +11,7 @@ public class Simulation<TWorld, TRuntime>
 {
 	private readonly List<IAction> _actions = [];
 	private readonly List<int?> _undoGroups = [];
+	private readonly List<IReadOnlyList<IEffect<TWorld, TRuntime>>> _appliedEffects = [];
 	private readonly TWorld _anchorWorld;
 	private readonly ActorRuntimes<TRuntime> _anchorActorRuntimes;
 	private int _anchorTick;
@@ -36,6 +37,8 @@ public class Simulation<TWorld, TRuntime>
 
 	public IReadOnlyList<int?> UndoGroups => _undoGroups;
 
+	public InvariantStatus InvariantStatus => _invariantStatus;
+
 	public int AnchorTick => _anchorTick;
 
 	public int WorldVersion { get; private set; }
@@ -48,6 +51,7 @@ public class Simulation<TWorld, TRuntime>
 		WorldVersion = worldVersion;
 		_actions.Clear();
 		_undoGroups.Clear();
+		_appliedEffects.Clear();
 		_nextUndoGroup = 0;
 		_invariantStatus = InvariantStatus.Ok;
 		Reevaluate();
@@ -65,37 +69,43 @@ public class Simulation<TWorld, TRuntime>
 		{
 			if (action is not IAction<TWorld, TRuntime> typed)
 			{
-				RestoreEnqueueCheckpoint(checkpoint);
+				Dequeue(checkpoint);
 				return false;
 			}
 
 			var runtime = Runtimes.For(action);
 			if (!typed.Definition.IsLegal(action, World, runtime))
 			{
-				RestoreEnqueueCheckpoint(checkpoint);
+				Dequeue(checkpoint);
 				return false;
 			}
 
 			_actions.Add(action);
 			_undoGroups.Add(undoGroup);
-			ExecutionHelper.Apply(action, World, Runtimes.For(action));
+			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime);
+			_appliedEffects.Add(effects);
 
 			if (typed.Definition is IActionInvariants<TWorld, TRuntime> invariants)
-				_invariantStatus = invariants.EvaluateInvariants(World, Runtimes.For(action), action.ActorId);
+				_invariantStatus = invariants.EvaluateInvariants(World, runtime, action.ActorId);
 		}
 
 		return true;
 	}
 
-	private void RestoreEnqueueCheckpoint(int actionCount)
+	/// <summary>
+	/// Pops queued actions and undoes their stored effects.
+	/// With <paramref name="depth"/>, pops individual actions until the queue reaches that count.
+	/// Without depth, pops one undo group (or a single action when not grouped).
+	/// </summary>
+	public void Dequeue(int? depth = null)
 	{
-		while (_actions.Count > actionCount)
-		{
-			_actions.RemoveAt(_actions.Count - 1);
-			_undoGroups.RemoveAt(_undoGroups.Count - 1);
-		}
+		if (depth is null)
+			DequeueUndoGroup();
+		else
+			while (_actions.Count > depth)
+				DequeueSingleAction();
 
-		Reevaluate();
+		RefreshInvariantStatus();
 	}
 
 	/// <summary>
@@ -143,8 +153,7 @@ public class Simulation<TWorld, TRuntime>
 		if (_actions.Count == 0)
 			return false;
 
-		PopUndoGroup();
-		Reevaluate();
+		Dequeue();
 		return true;
 	}
 
@@ -159,36 +168,6 @@ public class Simulation<TWorld, TRuntime>
 
 		actions = _actions.ToList();
 		return true;
-	}
-
-	public IEnumerable<SearchFrame<TWorld, TRuntime>> Search<TEffect>(
-		string actorId,
-		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
-		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState)
-		where TEffect : IEffect<TWorld, TRuntime> =>
-		Search(actorId, actionDefs, new SearchInput<TWorld, TRuntime>(visitState));
-
-	public IEnumerable<SearchFrame<TWorld, TRuntime>> Search<TEffect>(
-		string actorId,
-		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
-		SearchInput<TWorld, TRuntime> input)
-		where TEffect : IEffect<TWorld, TRuntime>
-	{
-		var fork = Fork();
-		var startDepth = fork._actions.Count;
-		var visited = new Dictionary<object, int[]>();
-		SearchContext? context = input.ShouldPrune is not null ? new SearchContext() : null;
-
-		foreach (var frame in SearchDfs(
-			fork,
-			actorId,
-			actionDefs,
-			startDepth,
-			0,
-			visited,
-			input,
-			context))
-			yield return frame;
 	}
 
 	/// <summary>
@@ -209,9 +188,14 @@ public class Simulation<TWorld, TRuntime>
 	{
 		World = _anchorWorld.Fork();
 		Runtimes = _anchorActorRuntimes.Fork();
+		_appliedEffects.Clear();
 
 		foreach (var action in _actions)
-			ExecutionHelper.Apply(action, World, Runtimes.For(action));
+		{
+			var runtime = Runtimes.For(action);
+			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime);
+			_appliedEffects.Add(effects);
+		}
 
 		RefreshInvariantStatus();
 	}
@@ -263,134 +247,25 @@ public class Simulation<TWorld, TRuntime>
 		return fork;
 	}
 
-	private int CaptureSearchCheckpoint() => _actions.Count;
-
-	private void RestoreSearchCheckpoint(int actionCount)
+	private void DequeueSingleAction()
 	{
-		while (_actions.Count > actionCount)
-		{
-			_actions.RemoveAt(_actions.Count - 1);
-			_undoGroups.RemoveAt(_undoGroups.Count - 1);
-		}
-
-		// TODO(search): backtrack rebuilds preview via full Reevaluate (fork+replay).
-		// Effect undos would avoid that but are costly to implement; this is the main
-		// algorithm pain point once search branching grows.
-		Reevaluate();
+		var action = _actions[^1];
+		var effects = _appliedEffects[^1];
+		_actions.RemoveAt(_actions.Count - 1);
+		_undoGroups.RemoveAt(_undoGroups.Count - 1);
+		_appliedEffects.RemoveAt(_appliedEffects.Count - 1);
+		ExecutionHelper.UndoEffects(effects, action, World, Runtimes.For(action));
 	}
 
-	private const int MaxSearchDepth = 12;
-	private const int HardAbortSearchDepth = 64;
-
-	private static IEnumerable<SearchFrame<TWorld, TRuntime>> SearchDfs<TEffect>(
-		Simulation<TWorld, TRuntime> fork,
-		string actorId,
-		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
-		int startDepth,
-		int depth,
-		Dictionary<object, int[]> visited,
-		SearchInput<TWorld, TRuntime> input,
-		SearchContext? context)
-		where TEffect : IEffect<TWorld, TRuntime>
-	{
-		if (depth > MaxSearchDepth || depth >= HardAbortSearchDepth)
-			yield break;
-
-		if (ShouldPruneVisit(visited, input.VisitState, fork, actorId))
-			yield break;
-
-		if (context is not null && input.ShouldPrune?.Invoke(fork, actorId, startDepth, context) == true)
-			yield break;
-
-		yield return new SearchFrame<TWorld, TRuntime>(
-			fork.World.Fork(),
-			fork.Runtimes.Fork(),
-			fork.Actions.ToList(),
-			fork.Actions.Count - startDepth);
-
-		foreach (var def in actionDefs)
-		{
-			var runtime = fork.Runtimes.For(actorId);
-			var candidates = def.Discover(fork.World, runtime, actorId).ToList();
-
-			foreach (var candidate in candidates)
-			{
-				var checkpoint = fork.CaptureSearchCheckpoint();
-				if (!fork.TryEnqueue(candidate))
-					continue;
-
-				if (fork._invariantStatus == InvariantStatus.Impossible)
-				{
-					fork.RestoreSearchCheckpoint(checkpoint);
-					continue;
-				}
-
-				foreach (var frame in SearchDfs(
-					fork,
-					actorId,
-					actionDefs,
-					startDepth,
-					depth + 1,
-					visited,
-					input,
-					context))
-					yield return frame;
-
-				fork.RestoreSearchCheckpoint(checkpoint);
-			}
-		}
-	}
-
-	private static bool ShouldPruneVisit(
-		Dictionary<object, int[]> visited,
-		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState,
-		Simulation<TWorld, TRuntime> fork,
-		string actorId)
-	{
-		var visit = visitState(fork, actorId);
-		if (visit.Budget.Length == 0)
-			return !visited.TryAdd(visit.State, []);
-
-		if (!visited.TryGetValue(visit.State, out var seen))
-		{
-			visited[visit.State] = (int[])visit.Budget.Clone();
-			return false;
-		}
-
-		if (Dominates(seen, visit.Budget))
-			return true;
-
-		for (var i = 0; i < visit.Budget.Length; i++)
-			seen[i] = System.Math.Max(seen[i], visit.Budget[i]);
-
-		return false;
-	}
-
-	private static bool Dominates(int[] seen, int[] current)
-	{
-		for (var i = 0; i < current.Length; i++)
-		{
-			if (seen[i] < current[i])
-				return false;
-		}
-
-		return true;
-	}
-
-	private void PopUndoGroup()
+	private void DequeueUndoGroup()
 	{
 		if (_undoGroups[^1] is not int group)
 		{
-			_actions.RemoveAt(_actions.Count - 1);
-			_undoGroups.RemoveAt(_undoGroups.Count - 1);
+			DequeueSingleAction();
 			return;
 		}
 
 		while (_actions.Count > 0 && _undoGroups[^1] == group)
-		{
-			_actions.RemoveAt(_actions.Count - 1);
-			_undoGroups.RemoveAt(_undoGroups.Count - 1);
-		}
+			DequeueSingleAction();
 	}
-
 }

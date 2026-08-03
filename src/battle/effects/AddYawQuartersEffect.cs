@@ -8,4 +8,7 @@ public sealed class AddYawQuartersEffect(int delta) : IEffect<BattleWorld, Actor
 {
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId) =>
 		runtime.RawYawQuarters += delta;
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>
+		runtime.RawYawQuarters -= delta;
 }

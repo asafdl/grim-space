@@ -5,6 +5,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 
@@ -175,7 +176,7 @@ public sealed class MovePathSearchTests
 		var actionsBefore = session.Actions.ToList();
 		var positionBefore = session.StateOf<ActorState>(PlayerId).Position;
 
-		foreach (var _ in session.Search(PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities)) { }
+		foreach (var _ in ActionSearch.Run(session, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities)) { }
 
 		Assert.Equal(actionsBefore, session.Actions);
 		Assert.Equal(positionBefore, session.StateOf<ActorState>(PlayerId).Position);

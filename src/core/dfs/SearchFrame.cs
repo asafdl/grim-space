@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 
-namespace GrimSpace.Core.Engine;
+namespace GrimSpace.Core.Dfs;
 
 public readonly record struct SearchFrame<TWorld, TRuntime>(
 	TWorld World,

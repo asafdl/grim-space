@@ -7,9 +7,15 @@ namespace GrimSpace.Battle.Effects;
 
 public sealed class YawMomentumEffect(int momDelta) : IEffect<BattleWorld, ActorRuntime>
 {
+	private int _previousMomentum;
+	private int _previousMomentumPaid;
+
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
+		_previousMomentum = actor.MomentumLevel;
+		_previousMomentumPaid = runtime.MomentumPaid;
+
 		if (momDelta > 0)
 		{
 			var loss = System.Math.Min(momDelta, actor.MomentumLevel);
@@ -26,5 +32,12 @@ public sealed class YawMomentumEffect(int momDelta) : IEffect<BattleWorld, Actor
 				actor.MomentumLevel + refund,
 				MomentumConfig.MaxLevel);
 		}
+	}
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
+	{
+		var actor = world.StateOf(actorId);
+		actor.MomentumLevel = _previousMomentum;
+		runtime.MomentumPaid = _previousMomentumPaid;
 	}
 }

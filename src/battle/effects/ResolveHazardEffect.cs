@@ -1,5 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -11,8 +12,19 @@ public sealed class ResolveHazardEffect(
 	int damage,
 	int momentumLoss) : IEffect<BattleWorld, ActorRuntime>
 {
+	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
+
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
+		_snapshots = new Dictionary<string, UnitCombatSnapshot>();
+		foreach (var unit in world.Units.Values)
+		{
+			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
+				continue;
+
+			_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
+		}
+
 		HazardResolution.ApplyScheduledResolve(
 			kind,
 			cells,
@@ -21,5 +33,11 @@ public sealed class ResolveHazardEffect(
 			world.StateOf(actorId).Position,
 			actorId,
 			world.Units.Values.Select(unit => unit.State));
+	}
+
+	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
+	{
+		foreach (var (unitId, snapshot) in _snapshots)
+			snapshot.Restore(world.StateOf(unitId));
 	}
 }
