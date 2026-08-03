@@ -17,7 +17,7 @@ internal static class MovePathDiscovery
 		string actorId,
 		IReadOnlyList<IAction> committedPrefix)
 	{
-		var sim = turnStartSim.BranchAtTurnStart();
+		var sim = turnStartSim.ForkFromAnchor();
 		foreach (var action in committedPrefix)
 		{
 			if (!sim.TryEnqueue(action))
@@ -54,7 +54,7 @@ internal static class MovePathDiscovery
 			if (!MoveDef.Instance.IsLegal(step, world, runtime))
 				continue;
 
-			var fork = sim.Branch();
+			var fork = sim.Fork();
 			if (!fork.TryEnqueue(step))
 				continue;
 

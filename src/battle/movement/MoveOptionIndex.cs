@@ -56,7 +56,7 @@ public sealed class MoveOptionIndex
 			nodeByPrefix[PrefixKey(node.Actions)] = node;
 		}
 
-		return new MoveOptionIndex(nodeByPrefix, sim.BranchAtTurnStart(), actorId);
+		return new MoveOptionIndex(nodeByPrefix, sim.ForkFromAnchor(), actorId);
 	}
 
 	public IReadOnlyList<MovePathSession> GetPaths(IReadOnlyList<IAction> committed)

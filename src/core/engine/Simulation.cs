@@ -236,7 +236,8 @@ public class Simulation<TWorld, TRuntime>
 		}
 	}
 
-	private Simulation<TWorld, TRuntime> Fork()
+	/// <summary>Fork preserving the current queued actions and preview state.</summary>
+	public Simulation<TWorld, TRuntime> Fork()
 	{
 		var fork = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes)
 		{
@@ -250,20 +251,17 @@ public class Simulation<TWorld, TRuntime>
 		return fork;
 	}
 
-	/// <summary>Fresh branch from the turn anchor with no queued actions.</summary>
-	public Simulation<TWorld, TRuntime> BranchAtTurnStart()
+	/// <summary>Fresh fork from the anchor with no queued actions.</summary>
+	public Simulation<TWorld, TRuntime> ForkFromAnchor()
 	{
-		var branch = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes)
+		var fork = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes)
 		{
 			_anchorTick = _anchorTick,
 			WorldVersion = WorldVersion,
 		};
-		branch.Begin(_anchorTick, WorldVersion);
-		return branch;
+		fork.Begin(_anchorTick, WorldVersion);
+		return fork;
 	}
-
-	/// <summary>Branch preserving the current queued actions and preview state.</summary>
-	public Simulation<TWorld, TRuntime> Branch() => Fork();
 
 	private int CaptureSearchCheckpoint() => _actions.Count;
 
