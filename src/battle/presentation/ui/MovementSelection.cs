@@ -6,12 +6,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 public static class MovementSelection
 {
-	public static string FormatMomentum(State unit)
-	{
-		var config = MomentumConfig.ForLevel(unit.MomentumLevel);
-		var evasion = (int)(config.Evasion * 100);
-		return $"M{unit.MomentumLevel} ({evasion}% eva)";
-	}
+	public static string FormatMomentum(State unit) => $"M{unit.MomentumLevel}";
 
 	private const float PickRadius = 1.4f;
 

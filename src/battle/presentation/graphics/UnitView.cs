@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
@@ -88,8 +87,7 @@ public partial class UnitView : Node3D
 		if (_momentumLabel is null)
 			return;
 
-		var evasion = (int)(MomentumConfig.ForLevel(state.MomentumLevel).Evasion * 100);
-		var text = $"H{state.HullPoints} M{state.MomentumLevel} ({evasion}%)";
+		var text = $"H{state.HullPoints} M{state.MomentumLevel}";
 		if (_momentumLabel.Text == text)
 			return;
 
