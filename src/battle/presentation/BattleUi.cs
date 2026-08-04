@@ -30,8 +30,6 @@ public sealed class BattleUi
 
 	public void ResetMoveUi() => _moveUi = null;
 
-	public void InstallMoveUi(MoveUi moveUi) => _moveUi = moveUi;
-
 	/// <summary>Active unit when it is the human player's planning turn; null otherwise.</summary>
 	public Unit? GetPlanningActor() =>
 		Battle.GetActiveUnit() is { State.Id: var id } unit && id == Battle.PlayerId
@@ -42,7 +40,7 @@ public sealed class BattleUi
 
 	public bool TryQueueMove(Coord endPosition)
 	{
-		var paths = MoveUi.GetMovePaths(Battle.Sim.Actions);
+		var paths = MoveUi.GetMovePaths(Battle.Sim, Battle.PlayerId, Battle.Sim.Actions);
 		var pathIndex = -1;
 		for (var i = 0; i < paths.Count; i++)
 		{
@@ -85,13 +83,6 @@ public sealed class BattleUi
 			return false;
 		}
 
-		var committed = Battle.Sim.Actions;
-		if (!MoveUi.TryLocate(committed))
-		{
-			PresentationDiagnostics.LogMoveQueueDetail("prefix_not_in_cached_tree");
-			return false;
-		}
-
 		var path = paths[pathIndex];
 		if (path.Steps.Count == 0)
 		{
@@ -118,8 +109,8 @@ public sealed class BattleUi
 	{
 		var state = State;
 		var activeUnit = GetPlanningActor();
-		var movePaths = activeUnit is not null && Battle.CanAct(activeUnit)
-			? MoveUi.GetMovePaths(Battle.Sim.Actions)
+		var movePaths = acceptsCommands && activeUnit is not null && Battle.CanAct(activeUnit)
+			? MoveUi.GetMovePaths(Battle.Sim, Battle.PlayerId, Battle.Sim.Actions)
 			: [];
 		state.ClampMoveHover(movePaths.Count);
 

@@ -46,4 +46,15 @@ internal static class BattleSearchVisit
 				actor.RailgunRemaining),
 			[]);
 	}
+
+	/// <summary>
+	/// Move-preview visit: equivalent states share a cell; dominance uses remaining AP and momentum.
+	/// </summary>
+	public static SearchVisitState ForMovePreview(BattleSimulation sim, string actorId)
+	{
+		var actor = sim.StateOf<ActorState>(actorId);
+		return new SearchVisitState(
+			actor.Position,
+			[actor.ActionPoints, actor.MomentumLevel]);
+	}
 }

@@ -44,7 +44,7 @@ public sealed class MovePathSearchTests
 	}
 
 	[Fact]
-	public void OneAndTwoApForwardMovesAreNotReachableEndpoints()
+	public void OneAndTwoApForwardMovesAreVisibleIntermediateCells()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 0);
@@ -58,10 +58,13 @@ public sealed class MovePathSearchTests
 		var threeForward = origin + Coord.Forward * 3;
 		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(0, 3);
 
-		Assert.False(endpoints.ContainsKey(oneForward));
-		Assert.False(endpoints.ContainsKey(twoForward));
+		Assert.True(endpoints.ContainsKey(oneForward));
+		Assert.False(endpoints[oneForward].CanEndPath);
+		Assert.True(endpoints.ContainsKey(twoForward));
+		Assert.False(endpoints[twoForward].CanEndPath);
 		Assert.True(MovementExpectations.IsValidMoveEndpoint(threeStepCost));
 		Assert.True(endpoints.ContainsKey(threeForward));
+		Assert.True(endpoints[threeForward].CanEndPath);
 		Assert.Equal(threeStepCost, endpoints[threeForward].PathApSpent);
 	}
 
@@ -187,7 +190,7 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var paths = MoveOptionIndex.FromSimulation(battle.Sim, PlayerId).GetPaths([]);
+		var paths = MovePathEndpoints.DiscoverExtensions(battle.Sim, battle.PlayerId);
 
 		foreach (var path in paths)
 		{
@@ -213,6 +216,6 @@ public sealed class MovePathSearchTests
 		actorRuntimes.For(PlayerId);
 		var session = new Simulation<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		session.Begin(0, 0);
-		return MoveOptionIndex.FromSimulation(session, PlayerId).GetPaths([]);
+		return MovePathEndpoints.DiscoverExtensions(session, PlayerId);
 	}
 }

@@ -31,7 +31,7 @@ public sealed class MovePreviewVisibilityTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
-		var threeStep = ui.MoveUi.GetMovePaths([])
+		var threeStep = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
 			.First(path => path.EndPosition == origin + Coord.Forward * 3);
 
 		Assert.True(ui.TryQueueMove(threeStep.EndPosition));

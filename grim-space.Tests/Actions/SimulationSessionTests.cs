@@ -125,7 +125,7 @@ public sealed class SimulationSessionTests
 	{
 		var origin = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 		var end = origin + Coord.Forward * steps;
-		var path = MoveOptionIndex.FromSimulation(battle.Sim, battle.PlayerId).GetPaths([])
+		var path = MovePathEndpoints.DiscoverExtensions(battle.Sim, battle.PlayerId)
 			.First(p => p.EndPosition == end);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, path));
 	}

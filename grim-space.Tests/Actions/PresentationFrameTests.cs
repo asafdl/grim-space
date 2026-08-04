@@ -20,7 +20,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -41,7 +41,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -98,7 +98,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 
@@ -120,7 +120,7 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions).ToList();
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
 		var threeStepIndex = options.FindIndex(
 			option => option.EndPosition == origin + Coord.Forward * 3);
 

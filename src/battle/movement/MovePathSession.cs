@@ -26,6 +26,8 @@ public sealed class MovePathSession
 	public int MovementBuildupLevel { get; set; }
 	public int MovementBuildupForwardSteps { get; set; }
 
+	public bool CanEndPath { get; set; } = true;
+
 	public Coord EndPosition => Cells[^1];
 
 	public MomentumConfig.Buildup MovementBuildup =>
@@ -101,6 +103,7 @@ public sealed class MovePathSession
 			MoveStartMomentumLevel = MoveStartMomentumLevel,
 			MovementBuildupLevel = MovementBuildupLevel,
 			MovementBuildupForwardSteps = MovementBuildupForwardSteps,
+			CanEndPath = CanEndPath,
 		};
 		clone.Cells.AddRange(Cells);
 		clone.Steps.AddRange(Steps);

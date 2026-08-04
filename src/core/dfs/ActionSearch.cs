@@ -29,8 +29,7 @@ public static class ActionSearch
 	{
 		var fork = sim.Fork();
 		var startDepth = fork.Actions.Count;
-		var visited = new Dictionary<object, int[]>();
-		SearchContext? context = input.ShouldPrune is not null ? new SearchContext() : null;
+		var visited = new Dictionary<object, List<int[]>>();
 
 		foreach (var frame in SearchDfs(
 			fork,
@@ -39,8 +38,7 @@ public static class ActionSearch
 			startDepth,
 			0,
 			visited,
-			input,
-			context))
+			input))
 			yield return frame;
 	}
 
@@ -50,9 +48,8 @@ public static class ActionSearch
 		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
 		int startDepth,
 		int depth,
-		Dictionary<object, int[]> visited,
-		SearchInput<TWorld, TRuntime> input,
-		SearchContext? context)
+		Dictionary<object, List<int[]>> visited,
+		SearchInput<TWorld, TRuntime> input)
 		where TEffect : IEffect<TWorld, TRuntime>
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>, new()
@@ -63,14 +60,19 @@ public static class ActionSearch
 		if (ShouldPruneVisit(visited, input.VisitState, fork, actorId))
 			yield break;
 
-		if (context is not null && input.ShouldPrune?.Invoke(fork, actorId, startDepth, context) == true)
-			yield break;
-
-		yield return new SearchFrame<TWorld, TRuntime>(
+		var frame = new SearchFrame<TWorld, TRuntime>(
 			fork.World.Fork(),
 			fork.Runtimes.Fork(),
 			fork.Actions.ToList(),
 			fork.Actions.Count - startDepth);
+
+		yield return frame;
+
+		var pruneChildren = frame.PruneChildren;
+		frame = null!;
+
+		if (pruneChildren)
+			yield break;
 
 		foreach (var def in actionDefs)
 		{
@@ -89,16 +91,15 @@ public static class ActionSearch
 					continue;
 				}
 
-				foreach (var frame in SearchDfs(
+				foreach (var child in SearchDfs(
 					fork,
 					actorId,
 					actionDefs,
 					startDepth,
 					depth + 1,
 					visited,
-					input,
-					context))
-					yield return frame;
+					input))
+					yield return child;
 
 				fork.Dequeue(checkpoint);
 			}
@@ -106,7 +107,7 @@ public static class ActionSearch
 	}
 
 	private static bool ShouldPruneVisit<TWorld, TRuntime>(
-		Dictionary<object, int[]> visited,
+		Dictionary<object, List<int[]>> visited,
 		Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> visitState,
 		Simulation<TWorld, TRuntime> fork,
 		string actorId)
@@ -115,31 +116,23 @@ public static class ActionSearch
 	{
 		var visit = visitState(fork, actorId);
 		if (visit.Budget.Length == 0)
-			return !visited.TryAdd(visit.State, []);
+			return !TryAddEmptyBudget(visited, visit.State);
 
-		if (!visited.TryGetValue(visit.State, out var seen))
+		if (!visited.TryGetValue(visit.State, out var frontier))
 		{
-			visited[visit.State] = (int[])visit.Budget.Clone();
+			visited[visit.State] = [(int[])visit.Budget.Clone()];
 			return false;
 		}
 
-		if (Dominates(seen, visit.Budget))
-			return true;
-
-		for (var i = 0; i < visit.Budget.Length; i++)
-			seen[i] = System.Math.Max(seen[i], visit.Budget[i]);
-
-		return false;
+		return BudgetFrontier.ShouldPrune(frontier, visit.Budget);
 	}
 
-	private static bool Dominates(int[] seen, int[] current)
+	private static bool TryAddEmptyBudget(Dictionary<object, List<int[]>> visited, object state)
 	{
-		for (var i = 0; i < current.Length; i++)
-		{
-			if (seen[i] < current[i])
-				return false;
-		}
+		if (visited.ContainsKey(state))
+			return false;
 
+		visited[state] = [];
 		return true;
 	}
 }

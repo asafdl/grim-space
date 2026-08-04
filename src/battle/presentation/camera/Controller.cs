@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Presentation.Graphics;
 
 namespace GrimSpace.Battle.Presentation.Camera;
 
@@ -50,6 +51,8 @@ public partial class Controller : Camera3D
 
 	public override void _Ready()
 	{
+		CullMask = PresentationLayers.World | PresentationLayers.Ux;
+
 		_pivot = new Vector3(
 			WorldMapping.CellSize * 4f,
 			WorldMapping.CellSize * 4f,

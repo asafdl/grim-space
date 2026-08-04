@@ -33,7 +33,7 @@ public sealed class LegalMoveTests
 	}
 
 	[Fact]
-	public void LegalMoveSearchFromEmptyQueueExcludesSubMinApEndpoints()
+	public void LegalMoveSearchFromEmptyQueueIncludesIncompleteIntermediateCells()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -41,12 +41,15 @@ public sealed class LegalMoveTests
 		var planning = BattleTestFixture.BeginSimulation(player, enemy);
 
 		var legalMoves = Preview.GetLegalMoves(planning);
-		var endpoints = legalMoves.Select(option => option.EndPosition).ToHashSet();
+		var byEnd = legalMoves.ToDictionary(option => option.EndPosition);
 
-		Assert.Contains(origin + Coord.Forward * 3, endpoints);
-		Assert.Contains(origin + Coord.Forward * 4, endpoints);
-		Assert.DoesNotContain(origin + Coord.Forward, endpoints);
-		Assert.DoesNotContain(origin + Coord.Forward * 2, endpoints);
+		Assert.Contains(origin + Coord.Forward * 3, byEnd.Keys);
+		Assert.Contains(origin + Coord.Forward * 4, byEnd.Keys);
+		Assert.True(byEnd.ContainsKey(origin + Coord.Forward));
+		Assert.False(byEnd[origin + Coord.Forward].CanEndPath);
+		Assert.True(byEnd.ContainsKey(origin + Coord.Forward * 2));
+		Assert.False(byEnd[origin + Coord.Forward * 2].CanEndPath);
+		Assert.True(byEnd[origin + Coord.Forward * 3].CanEndPath);
 	}
 
 	[Fact]
@@ -81,7 +84,7 @@ public sealed class LegalMoveTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var expected = Preview.GetLegalMoves(battle);
-		var highlights = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim.Actions);
+		var highlights = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions);
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),

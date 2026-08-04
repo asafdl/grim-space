@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
-using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core.Actions;
@@ -46,8 +45,6 @@ public sealed class BattleDirector
 			return;
 		}
 
-		_jobs.Cancel(DirectorJobs.MovePrep);
-
 		if (!TryCommit(out var playerActions))
 		{
 			PresentationDiagnostics.LogCommitFailed();
@@ -72,13 +69,12 @@ public sealed class BattleDirector
 
 		if (_ui.Battle.IsBattleOver)
 		{
-			_jobs.Cancel(DirectorJobs.MovePrep);
 			SetPhase(PresentationPhase.BattleOver, "battle over after replay");
 			EmitFrame();
 			return;
 		}
 
-		_ = FinishReplayAndEnterPlanningAsync();
+		EnterPlanningCore("replay complete");
 	}
 
 	public bool SetMode(EPlayerMode mode)
@@ -115,7 +111,7 @@ public sealed class BattleDirector
 
 		if (!_ui.TryQueueMove(endPosition))
 		{
-			var pathCount = _ui.MoveUi.GetMovePaths(battle.Sim.Actions).Count;
+			var pathCount = _ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).Count;
 			PresentationDiagnostics.LogMoveRejected(
 				"queue_failed",
 				Phase,
@@ -195,45 +191,15 @@ public sealed class BattleDirector
 		EmitFrame();
 	}
 
-	private void EnterPlanningSync() => EnterPlanningCore(null, overlappedPrep: false, "initial start");
+	private void EnterPlanningSync() => EnterPlanningCore("initial start");
 
-	private async Task FinishReplayAndEnterPlanningAsync()
-	{
-		var (prepared, isCurrent, elapsed) = await _jobs.Await<MoveUi>(DirectorJobs.MovePrep);
-		_jobs.Clear(DirectorJobs.MovePrep);
-
-		if (!isCurrent)
-		{
-			PresentationDiagnostics.LogPlanningHandoffAborted(
-				"move_prep_not_current",
-				Phase,
-				prepared is not null);
-			return;
-		}
-
-		if (Phase != PresentationPhase.Replaying)
-		{
-			PresentationDiagnostics.LogPlanningHandoffAborted($"unexpected_phase", Phase, prepared is not null);
-			return;
-		}
-
-		EnterPlanningCore(prepared, elapsed.TotalMilliseconds < 1.0, "replay complete");
-	}
-
-	private void EnterPlanningCore(MoveUi? preparedMoveUi, bool overlappedPrep, string reason)
+	private void EnterPlanningCore(string reason)
 	{
 		var turnNumber = _ui.Battle.TurnNumber;
 		var totalTimer = Stopwatch.StartNew();
 
 		SetPhase(PresentationPhase.Planning, reason);
 		_ui.ResetMoveUi();
-
-		var moveUiTimer = Stopwatch.StartNew();
-		if (preparedMoveUi is not null)
-			_ui.InstallMoveUi(preparedMoveUi);
-		else
-			_ = _ui.MoveUi;
-		moveUiTimer.Stop();
 
 		var previewTimer = Stopwatch.StartNew();
 		EmitFrame();
@@ -242,25 +208,11 @@ public sealed class BattleDirector
 
 		TurnPresentationTiming.LogPlanningReady(
 			turnNumber,
-			moveUiTimer.Elapsed.TotalMilliseconds,
+			0,
 			previewTimer.Elapsed.TotalMilliseconds,
 			totalTimer.Elapsed.TotalMilliseconds,
-			overlappedPrep);
+			overlappedPrep: false);
 	}
-
-	private void StartMovePreparation()
-	{
-		var battle = _ui.Battle;
-		var playerId = battle.PlayerId;
-		_jobs.Start(
-			DirectorJobs.MovePrep,
-			_ => Task.Run(() => MoveUi.Build(battle.Engine.CreateSimulation(), playerId)));
-	}
-
-	private bool ShouldPrepareMoveUi() =>
-		!_ui.Battle.IsBattleOver
-		&& _ui.Battle.GetActiveUnit() is { State.Id: var id, State.IsAlive: true }
-		&& id == _ui.Battle.PlayerId;
 
 	private void SetPhase(PresentationPhase phase, string reason)
 	{
@@ -316,37 +268,13 @@ public sealed class BattleDirector
 			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
 
 			SetPhase(PresentationPhase.Replaying, $"turn {completedTurn} resolved");
+			EmitFrame();
 			ReplayRequested?.Invoke(replay, completedTurn);
-
-			if (ShouldPrepareMoveUi())
-				StartMovePreparation();
-			else
-				PresentationDiagnostics.LogMovePrepSkipped(
-					_ui.Battle.TurnNumber,
-					DescribeMovePrepSkipReason());
 		}
 		catch (Exception ex) when (_jobs.IsCurrent(DirectorJobs.Resolve, version) && Phase == PresentationPhase.Resolving)
 		{
 			PresentationDiagnostics.LogJobFailed(DirectorJobs.Resolve, ex);
 			throw new InvalidOperationException("Turn resolve failed after commit.", ex);
 		}
-	}
-
-	private string DescribeMovePrepSkipReason()
-	{
-		if (_ui.Battle.IsBattleOver)
-			return "battle_over";
-
-		var active = _ui.Battle.GetActiveUnit();
-		if (active is null)
-			return "no_active_unit";
-
-		if (!active.State.IsAlive)
-			return "active_unit_dead";
-
-		if (active.State.Id != _ui.Battle.PlayerId)
-			return $"active_unit_is_{active.State.Id}";
-
-		return "unknown";
 	}
 }

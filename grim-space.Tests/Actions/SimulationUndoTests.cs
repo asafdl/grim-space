@@ -1,11 +1,9 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
-using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -64,20 +62,6 @@ public sealed class SimulationUndoTests
 
 			AssertWorldAndRuntimesMatch(reference, sim);
 		}
-	}
-
-	[Fact]
-	public void MoveOptionIndexMatchesAfterUndoRefactor()
-	{
-		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
-		var index = MoveOptionIndex.FromSimulation(battle.Sim, battle.PlayerId);
-
-		Assert.True(index.PrefixCount > 1);
-
-		var indexed = index.GetPaths([]).Select(path => path.EndPosition).ToHashSet();
-		var oracle = MoveEndpointOracle.DiscoverEndpointPositions(battle, []);
-		Assert.Equal(oracle, indexed);
 	}
 
 	private static List<IAction> BuildRandomLegalSequence(

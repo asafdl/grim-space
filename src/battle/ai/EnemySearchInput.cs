@@ -20,12 +20,8 @@ internal static class EnemySearchInput
 	internal const int FacingWeight = 800;
 	internal const int ApproachWeight = 150;
 
-	public static SearchInput<BattleWorld, ActorRuntime> ForTurn(
-		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities) =>
-		new(
-			BattleSearchVisit.ForCapabilities,
-			(sim, actorId, searchStartDepth, context) =>
-				ShouldPrune(sim, actorId, searchStartDepth, context, capabilities));
+	public static SearchInput<BattleWorld, ActorRuntime> ForTurn() =>
+		new(BattleSearchVisit.ForCapabilities);
 
 	public static int ScoreHeuristic(
 		SearchFrame<BattleWorld, ActorRuntime> frame,
@@ -47,74 +43,15 @@ internal static class EnemySearchInput
 		return score;
 	}
 
-	private static bool ShouldPrune(
-		BattleSimulation sim,
-		string actorId,
-		int searchStartDepth,
-		SearchContext context,
-		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
+	public static int UpperBound(BattleWorld world, string actorId)
 	{
-		var upperBound = UpperBound(sim, actorId);
-		if (context.BestScore != int.MinValue && upperBound < context.BestScore - TimelineRefinementSlack)
-			return true;
-
-		if (!IsTerminal(sim, actorId, capabilities))
-			return false;
-
-		var score = ScoreHeuristic(sim, actorId, searchStartDepth);
-		if (score > context.BestScore)
-			context.BestScore = score;
-
-		return false;
-	}
-
-	private static int UpperBound(BattleSimulation sim, string actorId)
-	{
-		var state = sim.StateOf<ActorState>(actorId);
+		var state = world.StateOf(actorId);
 		// Optimistic bound: remaining AP may still be spent productively; momentum can climb to max.
 		var score = MomentumConfig.MaxLevel * MomentumWeight;
 		if (state.RailgunRemaining > 0)
 			score += RailgunHitBonus;
 
 		return score;
-	}
-
-	private static int ScoreHeuristic(BattleSimulation sim, string actorId, int searchStartDepth)
-	{
-		var world = sim.World.Fork();
-		var runtimes = sim.Runtimes.Fork();
-		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
-
-		var state = world.StateOf(actorId);
-		if (!state.IsAlive)
-			return int.MinValue;
-
-		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
-		score += RailgunAdjustment(sim, sim.Actions, actorId, searchStartDepth);
-		score += EngagementAdjustment(world, actorId, sim, sim.Actions, searchStartDepth);
-		return score;
-	}
-
-	private static bool IsTerminal(
-		BattleSimulation sim,
-		string actorId,
-		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
-	{
-		var state = sim.StateOf<ActorState>(actorId);
-		if (state.ActionPoints == 0)
-			return true;
-
-		var runtime = sim.RuntimeFor(actorId);
-		foreach (var def in capabilities)
-		{
-			foreach (var candidate in def.Discover(sim.World, runtime, actorId))
-			{
-				if (def.IsLegal(candidate, sim.World, runtime))
-					return false;
-			}
-		}
-
-		return true;
 	}
 
 	private static int EngagementAdjustment(

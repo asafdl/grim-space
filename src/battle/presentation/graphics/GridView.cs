@@ -237,6 +237,8 @@ public partial class GridView : Node3D
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			AlbedoColor = color,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			// Avoid peer highlight cubes depth-occluding each other.
+			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
 		};
 
 	private void ReleaseActiveHighlights()

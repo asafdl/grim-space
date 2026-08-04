@@ -14,6 +14,38 @@ internal static class MovementExpectations
 	public const int MaxMomentum = 3;
 	public const int ForwardCostAfterFree = 1;
 
+	/// <summary>
+	/// At momentum 0 every step costs 1 AP, so 4 AP reaches the 3D Manhattan ball of radius 4
+	/// (excluding origin): Σ_{d=1..4} (4d² + 2) = 6 + 18 + 38 + 66 = 128.
+	/// </summary>
+	public const int ReachableCellsAtMomentum0With4Ap = 128;
+
+	/// <summary>
+	/// Momentum 1 / 4 AP piecewise reachability in body frame (no opposite directions):
+	/// L=0: 9; L=1: 28; L=2: 32; L=3: 12 → 81.
+	/// </summary>
+	public const int ReachableCellsAtMomentum1With4Ap = 81;
+
+	/// <summary>
+	/// Momentum 2 / 4 AP (unbounded): L=0 → 10 (F1..7, R1..3); L=1 → 28 (F0..4×4, R1..2×4) → 38.
+	/// </summary>
+	public const int ReachableCellsAtMomentum2With4Ap = 38;
+
+	/// <summary>
+	/// Momentum 3 / 4 AP (unbounded): L=0 → 9 (F1..7, R1..2); L=1 → 16 (F0..3×4); no retro+lateral → 25.
+	/// </summary>
+	public const int ReachableCellsAtMomentum3With4Ap = 25;
+
+	/// <summary>4 AP preview expectations on an unbounded (or spacious) grid.</summary>
+	public static TheoryData<int, int, int, int> ReachablePreviewByMomentum { get; } = new()
+	{
+		// momentum, visible cells, CanEndPath cells, furthest pure-forward steps
+		{ 0, 128, 110, 4 },
+		{ 1, 81, 70, 5 },
+		{ 2, 38, 34, 7 },
+		{ 3, 25, 21, 7 },
+	};
+
 	/// <summary>First N forward steps in a path are free; N equals current momentum.</summary>
 	public static int FreeForwardStepsAt(int momentum) => momentum;
 

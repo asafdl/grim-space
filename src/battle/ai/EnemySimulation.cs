@@ -37,14 +37,20 @@ public static class EnemySimulation
 		var searchStartDepth = session.Actions.Count;
 		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
 		var bestHeuristic = int.MinValue;
+		var bestScore = int.MinValue;
 		var visitedFrames = 0;
 		var terminalFrames = 0;
 		var scoredFrames = 0;
 		var dfsTimer = Stopwatch.StartNew();
 
-		foreach (var frame in ActionSearch.Run(session, actorId, capabilities, EnemySearchInput.ForTurn(capabilities)))
+		foreach (var frame in ActionSearch.Run(session, actorId, capabilities, EnemySearchInput.ForTurn()))
 		{
 			visitedFrames++;
+
+			var upperBound = EnemySearchInput.UpperBound(frame.World, actorId);
+			if (bestScore != int.MinValue && upperBound < bestScore - TimelineRefinementSlack)
+				frame.PruneChildren = true;
+
 			if (!IsTerminalFrame(frame, actorId, capabilities))
 				continue;
 
@@ -56,6 +62,9 @@ public static class EnemySimulation
 			var heuristicScore = EnemySearchInput.ScoreHeuristic(frame, session, actorId, searchStartDepth);
 			if (heuristicScore == int.MinValue)
 				continue;
+
+			if (heuristicScore > bestScore)
+				bestScore = heuristicScore;
 
 			TryAddFinalist(finalists, frame, heuristicScore);
 			if (heuristicScore > bestHeuristic)
