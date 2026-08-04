@@ -9,13 +9,18 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class GridView : Node3D
 {
+	private const float HighlightCellScale = 0.8f;
+	private const float EndpointScaleLowAp = 0.85f;
+	private const float EndpointScaleMidAp = 0.7f;
+	private const float EndpointScaleHighAp = 0.55f;
+
 	private BoundedGrid? _grid;
 	private readonly Dictionary<Coord, MeshInstance3D> _activeHighlights = new();
 	private readonly Queue<MeshInstance3D> _freeHighlights = new();
 
-	private StandardMaterial3D? _defaultMaterial;
-	private StandardMaterial3D? _endpoint3Ap;
-	private StandardMaterial3D? _endpoint4Ap;
+	private StandardMaterial3D? _endpointApLow;
+	private StandardMaterial3D? _endpointApMid;
+	private StandardMaterial3D? _endpointApHigh;
 	private StandardMaterial3D? _pathMaterial;
 	private StandardMaterial3D? _hoverMaterial;
 	private StandardMaterial3D? _hazardMaterial;
@@ -30,9 +35,10 @@ public partial class GridView : Node3D
 		_grid = grid;
 		ReleaseActiveHighlights();
 
-		_defaultMaterial = CreateMaterial(new Color(0.35f, 0.65f, 0.95f, 0.42f));
-		_endpoint3Ap = _defaultMaterial;
-		_endpoint4Ap = CreateMaterial(new Color(0.12f, 0.28f, 0.62f, 0.58f));
+		// Categorical AP: ≤2 sage-green, 3 clear blue, ≥4 deep indigo — hues spaced apart.
+		_endpointApLow = CreateMaterial(new Color(0.38f, 0.62f, 0.45f, 0.52f));
+		_endpointApMid = CreateMaterial(new Color(0.32f, 0.48f, 0.78f, 0.54f));
+		_endpointApHigh = CreateMaterial(new Color(0.28f, 0.34f, 0.52f, 0.56f));
 		_pathMaterial = CreateMaterial(new Color(0.45f, 0.5f, 0.6f, 0.22f));
 		_hoverMaterial = CreateMaterial(new Color(0.95f, 0.95f, 1f, 0.65f));
 		_hazardMaterial = CreateMaterial(new Color(0.95f, 0.25f, 0.15f, 0.55f));
@@ -102,7 +108,7 @@ public partial class GridView : Node3D
 			if (coord == target)
 				continue;
 
-			SetCellMaterial(coord, _pathMaterial!);
+			SetCellHighlight(coord, _pathMaterial!);
 		}
 
 		foreach (var (coord, ap) in endpointAp)
@@ -110,16 +116,16 @@ public partial class GridView : Node3D
 			if (coord == target)
 				continue;
 
-			SetCellMaterial(coord, ap == 3 ? _endpoint3Ap! : _endpoint4Ap!);
+			SetCellHighlight(coord, EndpointMaterialForAp(ap), EndpointScaleForAp(ap));
 		}
 
 		if (target is Coord hovered)
-			SetCellMaterial(hovered, _hoverMaterial!);
+			SetCellHighlight(hovered, _hoverMaterial!);
 
 		if (hazardCells is not null)
 		{
 			foreach (var coord in hazardCells)
-				SetCellMaterial(coord, _hazardMaterial!);
+				SetCellHighlight(coord, _hazardMaterial!);
 		}
 	}
 
@@ -136,7 +142,7 @@ public partial class GridView : Node3D
 		if (hazardCells is not null)
 		{
 			foreach (var coord in hazardCells)
-				SetCellMaterial(coord, _hazardMaterial!);
+				SetCellHighlight(coord, _hazardMaterial!);
 		}
 
 		foreach (var coord in burstCells)
@@ -144,11 +150,11 @@ public partial class GridView : Node3D
 			if (previewCells.Contains(coord))
 				continue;
 
-			SetCellMaterial(coord, _railgunMaterial!);
+			SetCellHighlight(coord, _railgunMaterial!);
 		}
 
 		foreach (var coord in previewCells)
-			SetCellMaterial(coord, _hoverMaterial!);
+			SetCellHighlight(coord, _hoverMaterial!);
 	}
 
 	public void SetFlakHighlights(
@@ -163,14 +169,14 @@ public partial class GridView : Node3D
 		ReleaseActiveHighlights();
 
 		foreach (var coord in hazardCells)
-			SetCellMaterial(coord, _hazardMaterial!);
+			SetCellHighlight(coord, _hazardMaterial!);
 
 		foreach (var coord in portCells)
 		{
 			if (previewCells.Contains(coord))
 				continue;
 
-			SetCellMaterial(coord, _flakPortMaterial!);
+			SetCellHighlight(coord, _flakPortMaterial!);
 		}
 
 		foreach (var coord in starboardCells)
@@ -178,17 +184,18 @@ public partial class GridView : Node3D
 			if (previewCells.Contains(coord))
 				continue;
 
-			SetCellMaterial(coord, _flakStarboardMaterial!);
+			SetCellHighlight(coord, _flakStarboardMaterial!);
 		}
 
 		foreach (var coord in previewCells)
-			SetCellMaterial(coord, _flakPreviewMaterial!);
+			SetCellHighlight(coord, _flakPreviewMaterial!);
 	}
 
 	private bool EnsureMaterials() =>
 		_grid is not null
-		&& _defaultMaterial is not null
-		&& _endpoint4Ap is not null
+		&& _endpointApLow is not null
+		&& _endpointApMid is not null
+		&& _endpointApHigh is not null
 		&& _pathMaterial is not null
 		&& _hoverMaterial is not null
 		&& _hazardMaterial is not null
@@ -198,38 +205,65 @@ public partial class GridView : Node3D
 		&& _flakStarboardMaterial is not null
 		&& _flakPreviewMaterial is not null;
 
-	private void SetCellMaterial(Coord coord, StandardMaterial3D material)
+	private StandardMaterial3D EndpointMaterialForAp(int ap) =>
+		ap switch
+		{
+			<= 2 => _endpointApLow!,
+			3 => _endpointApMid!,
+			_ => _endpointApHigh!,
+		};
+
+	private static float EndpointScaleForAp(int ap) =>
+		ap switch
+		{
+			<= 2 => EndpointScaleLowAp,
+			3 => EndpointScaleMidAp,
+			_ => EndpointScaleHighAp,
+		};
+
+	private void SetCellHighlight(Coord coord, StandardMaterial3D material, float scale = HighlightCellScale)
 	{
 		if (_activeHighlights.TryGetValue(coord, out var existing))
 		{
 			existing.MaterialOverride = material;
+			ApplyHighlightScale(existing, scale);
 			return;
 		}
 
-		var cell = AcquireHighlightMesh();
+		var cell = AcquireHighlightMesh(scale);
 		cell.Position = WorldMapping.ToWorld(coord);
 		cell.MaterialOverride = material;
 		_activeHighlights[coord] = cell;
 	}
 
-	private MeshInstance3D AcquireHighlightMesh()
+	private MeshInstance3D AcquireHighlightMesh(float scale)
 	{
 		if (_freeHighlights.Count > 0)
 		{
 			var mesh = _freeHighlights.Dequeue();
+			ApplyHighlightScale(mesh, scale);
 			mesh.Visible = true;
 			return mesh;
 		}
 
 		var cell = new MeshInstance3D
 		{
-			Mesh = new BoxMesh { Size = Vector3.One * WorldMapping.CellSize * 0.92f },
+			Mesh = new BoxMesh { Size = HighlightSize(scale) },
 			Visible = true,
 		};
 		PresentationLayers.MarkUx(cell);
 		AddChild(cell);
 		return cell;
 	}
+
+	private static void ApplyHighlightScale(MeshInstance3D mesh, float scale)
+	{
+		if (mesh.Mesh is BoxMesh box)
+			box.Size = HighlightSize(scale);
+	}
+
+	private static Vector3 HighlightSize(float scale) =>
+		Vector3.One * WorldMapping.CellSize * scale;
 
 	private static StandardMaterial3D CreateMaterial(Color color) =>
 		new()
