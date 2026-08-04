@@ -39,7 +39,6 @@ public static class EnemySimulation
 		var bestHeuristic = int.MinValue;
 		var bestScore = int.MinValue;
 		var visitedFrames = 0;
-		var terminalFrames = 0;
 		var scoredFrames = 0;
 		var dfsTimer = Stopwatch.StartNew();
 
@@ -51,18 +50,14 @@ public static class EnemySimulation
 			if (bestScore != int.MinValue && upperBound < bestScore - TimelineRefinementSlack)
 				frame.PruneChildren = true;
 
-			if (!IsTerminalFrame(frame, actorId, capabilities))
-				continue;
-
-			terminalFrames++;
 			if (!frame.World.StateOf(actorId).IsAlive)
 				continue;
 
-			scoredFrames++;
 			var heuristicScore = EnemySearchInput.ScoreHeuristic(frame, session, actorId, searchStartDepth);
 			if (heuristicScore == int.MinValue)
 				continue;
 
+			scoredFrames++;
 			if (heuristicScore > bestScore)
 				bestScore = heuristicScore;
 
@@ -76,8 +71,7 @@ public static class EnemySimulation
 		if (finalists.Count == 0)
 		{
 			GameLog.Log(
-				$"Enemy DFS ({actorId}): visited={visitedFrames} terminals={terminalFrames} "
-				+ $"scored={scoredFrames} finalists=0 "
+				$"Enemy DFS ({actorId}): visited={visitedFrames} scored={scoredFrames} finalists=0 "
 				+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
 			return new SearchFrame<BattleWorld, ActorRuntime>(
 				session.World.Fork(),
@@ -102,8 +96,7 @@ public static class EnemySimulation
 
 		refinementTimer.Stop();
 		GameLog.Log(
-			$"Enemy DFS ({actorId}): visited={visitedFrames} terminals={terminalFrames} "
-			+ $"scored={scoredFrames} finalists={finalists.Count} "
+			$"Enemy DFS ({actorId}): visited={visitedFrames} scored={scoredFrames} finalists={finalists.Count} "
 			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms "
 			+ $"refinement={refinementTimer.Elapsed.TotalMilliseconds:F1}ms");
 
@@ -143,28 +136,6 @@ public static class EnemySimulation
 			.Where(candidate => candidate.HeuristicScore >= cutoff)
 			.OrderByDescending(candidate => candidate.HeuristicScore)
 			.Take(TimelineRefinementLimit);
-	}
-
-	private static bool IsTerminalFrame(
-		SearchFrame<BattleWorld, ActorRuntime> frame,
-		string actorId,
-		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
-	{
-		var state = frame.World.StateOf(actorId);
-		if (state.ActionPoints == 0)
-			return true;
-
-		var runtime = frame.Runtimes.For(actorId);
-		foreach (var def in capabilities)
-		{
-			foreach (var candidate in def.Discover(frame.World, runtime, actorId))
-			{
-				if (def.IsLegal(candidate, frame.World, runtime))
-					return false;
-			}
-		}
-
-		return true;
 	}
 
 	private static int ScoreTimelineAdjustment(
