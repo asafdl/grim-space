@@ -60,4 +60,13 @@ assets are mostly for debugging purposes waiting for real artist if game turns o
 - [Godot 4 C# API differences from GDScript](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_differences.html)
 
 ## Developer Communication
-The main developer for this project is a corporate software engineer unfamiliar with gaming development, so any gaming specific changes should be challenged, slowed down, and explained 
+The main developer for this project is a corporate software engineer unfamiliar with gaming development, so any gaming specific changes should be challenged, slowed down, and explained.
+
+## Architecture
+
+**Do not invent parallel systems.** Prefer extending the existing system that already owns the concern. Creating a sibling module/path “for the new feature” because the current one was not understood is laziness — that duplication has plagued this project. Find the right home and change it; only add a new system when the concern is genuinely new and has no owner.
+
+- **Logical place** — every type/file belongs in a clear home (system, domain, or shared generic). If you cannot name where it lives, do not invent a dump folder or a parallel system; rethink the design.
+- **Generic stays generic** — anything that can be generic *should* be. Do not bake domain/game knowledge into shared utilities, grids, search, math, or engine wrappers. Specialize at the call site or in a thin domain layer above the generic core.
+- **Systems own; APIs stay minimal** — a system owns its state and invariants. Other systems talk through a small, intentional surface. Reaching into another system’s internals, duplicating its state, or “just this once” coupling is a **leak** — treat leaks as bad code and fix the boundary instead.
+- **Less code is better** — every line needs a purpose. Prefer deleting or inlining over indirection. **Bad code smells**: wrappers that only forward, redirect/alias layers with no behavior, and random helper functions that exist because “it felt tidy” rather than because a real abstraction earned its keep.
