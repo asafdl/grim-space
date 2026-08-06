@@ -8,6 +8,7 @@ public static class UnitTypeSlug
 	{
 		EType.Fighter => "fighter",
 		EType.Patrol => "patrol",
+		EType.Torpedo => "torpedo",
 		_ => throw new ArgumentOutOfRangeException(nameof(type)),
 	};
 }

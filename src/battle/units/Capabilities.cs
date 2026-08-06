@@ -3,12 +3,10 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Enums;
+using GrimSpace.Battle.Actions;
 
-namespace GrimSpace.Battle.Actions;
+namespace GrimSpace.Battle.Units;
 
-/// <summary>
-/// Unit-type registry: which action defs a ship can use. AI and UI ask here first.
-/// </summary>
 public static class Capabilities
 {
 	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] Movement =
@@ -20,7 +18,11 @@ public static class Capabilities
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(
 		EType type) =>
-		[..Movement, ..WeaponsFor(type)];
+		type switch
+		{
+			EType.Torpedo => [MoveDef.Instance],
+			_ => [..Movement, ..WeaponsFor(type)],
+		};
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> WeaponsFor(
 		EType type) =>
@@ -31,8 +33,10 @@ public static class Capabilities
 				FlakDef.For(EFlakMount.Port),
 				FlakDef.For(EFlakMount.Starboard),
 				RailgunDef.Instance,
+				..TorpedoConfig.EnabledMounts.Select(TorpedoDef.For),
 			],
 			EType.Patrol => [RailgunDef.Instance],
+			EType.Torpedo => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 }

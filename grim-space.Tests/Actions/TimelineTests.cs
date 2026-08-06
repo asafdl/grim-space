@@ -1,51 +1,52 @@
-using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
 
 public sealed class TimelineTests
 {
 	[Fact]
-	public void ScheduleEnqueuesAtCurrentPlusDelay()
+	public void CommitRecordsHistoryByActor()
 	{
-		var timeline = new Timeline();
-		timeline.Clock.Set(3);
-		var action = new HeadingTurnAction("player", EHeadingTurn.YawRight);
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var tick = battle.TurnNumber;
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		battle.ResolveTurn();
 
-		timeline.Schedule(2, action);
-
-		Assert.Single(timeline.At(5).Snapshot());
-		Assert.Equal(action, timeline.At(5).Snapshot()[0]);
+		var byActor = battle.Engine.HistoryByActor(tick);
+		Assert.True(byActor.ContainsKey(battle.PlayerId));
+		Assert.Contains(byActor[battle.PlayerId], action => action is HeadingTurnAction or EndOfPhaseAction);
 	}
 
 	[Fact]
-	public void ClonePreservesPendingBuckets()
+	public void ScheduleAppliesOnAdvanceTick()
 	{
 		var timeline = new Timeline();
 		timeline.Clock.Set(1);
 		var action = new HeadingTurnAction("player", EHeadingTurn.YawRight);
 		timeline.Schedule(1, action);
 
-		var clone = timeline.Clone();
+		Assert.Empty(timeline.History(1));
+		Assert.Empty(timeline.TakePending(1));
 
-		Assert.Equal(1, clone.Clock.Current);
-		Assert.Single(clone.SnapshotAt(2));
+		timeline.Clock.Next();
+		Assert.Equal(action, Assert.Single(timeline.TakePending()));
 	}
 
 	[Fact]
-	public void FromReturnsActionsInTickOrder()
+	public void ClonePreservesHistoryAndPending()
 	{
 		var timeline = new Timeline();
-		timeline.At(2).Enqueue(new HeadingTurnAction("a", Battle.Movement.Enums.EHeadingTurn.YawRight));
-		timeline.At(4).Enqueue(new HeadingTurnAction("b", EHeadingTurn.YawLeft));
+		timeline.Clock.Set(1);
+		timeline.Record([new HeadingTurnAction("a", EHeadingTurn.YawRight)], "a");
+		timeline.Schedule(1, new HeadingTurnAction("b", EHeadingTurn.YawLeft));
 
-		var entries = timeline.From(2).ToList();
-
-		Assert.Equal(2, entries.Count);
-		Assert.Equal(2, entries[0].Tick);
-		Assert.Equal("a", entries[0].Action.ActorId);
-		Assert.Equal(4, entries[1].Tick);
+		var clone = timeline.Clone();
+		Assert.Equal(1, clone.Clock.Current);
+		Assert.Single(clone.History(1));
+		clone.Clock.Next();
+		Assert.Single(clone.TakePending());
 	}
 }

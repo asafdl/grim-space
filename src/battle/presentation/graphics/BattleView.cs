@@ -16,17 +16,33 @@ public partial class BattleView : Node3D
 	public void BindInitial(IEnumerable<(string id, State state, Color color)> units)
 	{
 		foreach (var (id, state, color) in units)
-		{
-			var view = new UnitView();
-			view.Bind(state, color);
-			AddChild(view);
-			_unitViews[id] = view;
-		}
+			Ensure(state, color);
 	}
 
-	public void ApplyUnitStates(IReadOnlyDictionary<string, State> states)
+	public void Ensure(State state, Color color)
+	{
+		if (_unitViews.ContainsKey(state.Id))
+			return;
+
+		var view = new UnitView();
+		view.Bind(state, color);
+		AddChild(view);
+		_unitViews[state.Id] = view;
+	}
+
+	public void ApplyUnitStates(
+		IReadOnlyDictionary<string, State> states,
+		Func<string, Color>? colorFor = null)
 	{
 		foreach (var (unitId, state) in states)
-			_unitViews[unitId].Sync(state);
+		{
+			if (!_unitViews.TryGetValue(unitId, out var view))
+			{
+				Ensure(state, colorFor?.Invoke(unitId) ?? Colors.White);
+				view = _unitViews[unitId];
+			}
+
+			view.Sync(state);
+		}
 	}
 }

@@ -10,7 +10,7 @@ public sealed class ReplayClipRegistry
 		new MoveStepClip(),
 		new HeadingTurnClip(),
 		new RollClip(),
-		new ResolveHazardClip(),
+		new TorpedoActionClip(),
 	]);
 
 	private readonly Dictionary<Type, IReplayClip> _clips;

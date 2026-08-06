@@ -10,15 +10,13 @@ namespace GrimSpace.Battle.Movement;
 /// </summary>
 public sealed class MovePathSession
 {
-	public const int InitialMinPathApCost = 3;
-
 	public required string ActorId { get; init; }
 	public required Coord Origin { get; init; }
 	public required BodyFrame Frame { get; init; }
 	public List<Coord> Cells { get; } = [];
 	public List<MoveStepAction> Steps { get; } = [];
 	public int PathApSpent { get; set; }
-	public int MinPathApCost { get; set; } = InitialMinPathApCost;
+	public int MinPathApRemaining { get; set; }
 	public int PathForwardSteps { get; set; }
 	public int UsedDirectionsMask { get; set; }
 	public bool SpinBraked { get; set; }
@@ -35,7 +33,12 @@ public sealed class MovePathSession
 
 	public int ExtensionApCost(int baselinePathApSpent) => PathApSpent - baselinePathApSpent;
 
-	public static MovePathSession Begin(string actorId, Coord origin, BodyFrame frame, int momentumLevel) =>
+	public static MovePathSession Begin(
+		string actorId,
+		Coord origin,
+		BodyFrame frame,
+		int momentumLevel,
+		int minPathApCost) =>
 		new()
 		{
 			ActorId = actorId,
@@ -43,6 +46,7 @@ public sealed class MovePathSession
 			Frame = frame,
 			MoveStartMomentumLevel = momentumLevel,
 			MovementBuildupLevel = momentumLevel,
+			MinPathApRemaining = minPathApCost,
 		};
 
 	public void ApplyStep(
@@ -59,7 +63,7 @@ public sealed class MovePathSession
 			PathForwardSteps++;
 
 		var minPathConsumption = System.Math.Max(1, stepApCost);
-		MinPathApCost = System.Math.Max(0, MinPathApCost - minPathConsumption);
+		MinPathApRemaining = System.Math.Max(0, MinPathApRemaining - minPathConsumption);
 		if (stepApCost > 0)
 			PathApSpent += stepApCost;
 	}
@@ -67,21 +71,21 @@ public sealed class MovePathSession
 	public void MarkSpinBraked()
 	{
 		SpinBraked = true;
-		MinPathApCost = 0;
+		MinPathApRemaining = 0;
 	}
 
-	public bool CanEnd()
+	public bool CanEnd(int minPathApCost)
 	{
 		if (Steps.Count == 0)
 			return true;
 
-		if (MinPathApCost != 0)
+		if (MinPathApRemaining != 0)
 			return false;
 
 		if (SpinBraked)
 			return true;
 
-		return PathApSpent == 0 || PathApSpent >= InitialMinPathApCost;
+		return PathApSpent == 0 || PathApSpent >= minPathApCost;
 	}
 
 	public static bool PreferPath(MovePathSession candidate, MovePathSession existing) =>
@@ -96,7 +100,7 @@ public sealed class MovePathSession
 			Origin = Origin,
 			Frame = Frame,
 			PathApSpent = PathApSpent,
-			MinPathApCost = MinPathApCost,
+			MinPathApRemaining = MinPathApRemaining,
 			PathForwardSteps = PathForwardSteps,
 			UsedDirectionsMask = UsedDirectionsMask,
 			SpinBraked = SpinBraked,

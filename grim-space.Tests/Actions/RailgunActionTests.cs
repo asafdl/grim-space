@@ -20,18 +20,15 @@ public sealed class RailgunActionTests
 	}
 
 	[Fact]
-	public void RailgunSchedulesResolveOnPreviewTimeline()
+	public void RailgunAppliesResolveImmediately()
 	{
 		var playerPos = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			playerPos, TurnOrchestrationTests.EnemyInRailgunLine(playerPos));
-		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(PlayerId)));
+		var shieldsBefore = TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId));
 
-		var resolveTick = battle.Sim.AnchorTick + CombatConfig.RailgunResolveDelay;
-		var hazard = Assert.Single(battle.Sim.PeekTimeline(resolveTick).OfType<ResolveHazardAction>());
-		Assert.NotEmpty(hazard.Cells);
-		Assert.Equal(CombatConfig.RailgunDamage, hazard.Damage);
-		Assert.Equal(EHazardKind.RailgunBurst, hazard.Kind);
+		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(PlayerId)));
+		Assert.True(shieldsBefore > TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId)));
 	}
 
 	[Fact]
@@ -51,14 +48,12 @@ public sealed class RailgunActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var enemyPos = playerPos + Coord.Forward * 6;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
+		var shieldsBefore = TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId));
 		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(PlayerId)));
 
-		var shieldsBefore = TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId));
-		var replay = battle.ResolveTurn(battle.Sim.Actions.ToList());
+		var replay = battle.ResolveTurn();
 
-		Assert.Contains(replay.AppliedActions, action => action is RailgunAction);
-		Assert.Contains(replay.AppliedActions, action => action is ResolveHazardAction resolve
-			&& resolve.Kind == EHazardKind.RailgunBurst);
+		Assert.Contains(replay.Actions, action => action is RailgunAction);
 		Assert.True(shieldsBefore > TotalShieldPoints(battle.Engine.World.StateOf(battle.OpponentId)));
 	}
 }

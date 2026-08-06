@@ -43,8 +43,6 @@ public class Simulation<TWorld, TRuntime>
 
 	public int WorldVersion { get; private set; }
 
-	public bool IsStale(int currentWorldVersion) => WorldVersion != currentWorldVersion;
-
 	public void Begin(int anchorTick, int worldVersion)
 	{
 		_anchorTick = anchorTick;
@@ -125,27 +123,6 @@ public class Simulation<TWorld, TRuntime>
 		var runtimes = Runtimes.Fork();
 		ExecutionHelper.Apply(action, world, runtimes.For(action));
 		return new PeekFrame<TWorld, TRuntime>(world, runtimes);
-	}
-
-	public IEnumerable<TickResult> StepPreview(int ticksToAdvance) =>
-		TimelineRunner.Step(World.Timeline, World, Runtimes, ticksToAdvance);
-
-	public void AdvanceTo(int endTick)
-	{
-		var ticksToAdvance = endTick - World.Timeline.Clock.Current;
-		if (ticksToAdvance <= 0)
-			return;
-
-		foreach (var _ in StepPreview(ticksToAdvance)) { }
-	}
-
-	public int TimelineMaxTick => World.Timeline.MaxTick;
-
-	public IReadOnlyList<IAction> PeekTimeline(int? tick = null)
-	{
-		var timeline = World.Timeline;
-		var peekTick = tick ?? timeline.Clock.Current + 1;
-		return timeline.SnapshotAt(peekTick);
 	}
 
 	public bool TryUndoLast()

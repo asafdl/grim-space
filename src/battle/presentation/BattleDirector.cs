@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
+using GrimSpace.Battle.Presentation.Domains.Torpedo;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -45,7 +45,7 @@ public sealed class BattleDirector
 			return;
 		}
 
-		if (!TryCommit(out var playerActions))
+		if (!TryCommit())
 		{
 			PresentationDiagnostics.LogCommitFailed();
 			return;
@@ -53,10 +53,10 @@ public sealed class BattleDirector
 
 		var completedTurn = _ui.Battle.TurnNumber;
 
-		SetPhase(PresentationPhase.Resolving, $"turn {completedTurn} committed ({playerActions.Count} actions)");
+		SetPhase(PresentationPhase.Resolving, $"turn {completedTurn} committed");
 		EmitFrame();
 
-		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(playerActions, completedTurn, version));
+		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(completedTurn, version));
 	}
 
 	public void NotifyReplayComplete()
@@ -173,6 +173,18 @@ public sealed class BattleDirector
 		return true;
 	}
 
+	public bool ApplyTorpedo(Coord cell)
+	{
+		if (!AcceptsInput)
+			return false;
+
+		if (!TorpedoUi.TryApply(_ui.Battle, _ui.State, cell))
+			return false;
+
+		EmitFrame();
+		return true;
+	}
+
 	public void SetFlakHover(Coord? cell)
 	{
 		if (!AcceptsInput)
@@ -188,6 +200,15 @@ public sealed class BattleDirector
 			return;
 
 		_ui.State.RailgunHover = cell;
+		EmitFrame();
+	}
+
+	public void SetTorpedoHover(Coord? cell)
+	{
+		if (!AcceptsInput)
+			return;
+
+		_ui.State.TorpedoHover = cell;
 		EmitFrame();
 	}
 
@@ -227,29 +248,20 @@ public sealed class BattleDirector
 	private void EmitFrame() =>
 		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsInput));
 
-	private bool TryCommit(out IReadOnlyList<IAction> playerActions)
+	private bool TryCommit()
 	{
-		playerActions = [];
-
 		if (_ui.Battle.IsBattleOver)
 			return false;
 
-		if (!_ui.Battle.Sim.TryCommit(out var actions, out _))
-			return false;
-
-		playerActions = HeadingDef.Instance.Streamline(actions, _ui.Battle.Sim.UndoGroups).ToList();
-		return true;
+		return _ui.Battle.Sim.TryCommit(out _, out _);
 	}
 
-	private async Task ResolveAndContinue(
-		IReadOnlyList<IAction> playerActions,
-		int completedTurn,
-		int version)
+	private async Task ResolveAndContinue(int completedTurn, int version)
 	{
 		var resolveTimer = Stopwatch.StartNew();
 		try
 		{
-			var replay = await _ui.Battle.ResolveTurnAsync(playerActions);
+			var replay = await _ui.Battle.ResolveTurnAsync();
 			resolveTimer.Stop();
 
 			if (!_jobs.IsCurrent(DirectorJobs.Resolve, version))

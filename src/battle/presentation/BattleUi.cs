@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
+using GrimSpace.Battle.Presentation.Domains.Torpedo;
 using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
@@ -115,7 +116,6 @@ public sealed class BattleUi
 		state.ClampMoveHover(movePaths.Count);
 
 		var previewWorld = TurnUi.GetPreviewWorld(Battle);
-		var hazardCells = TurnUi.GetPreviewHazardCells(Battle);
 		var validFlakPortCells = state.Mode == EPlayerMode.Flak
 			? FlakUi.GetBurstCells(Battle, EFlakMount.Port)
 			: [];
@@ -132,6 +132,12 @@ public sealed class BattleUi
 			: [];
 		var railgunPreviewCells = state.Mode == EPlayerMode.Railgun
 			? RailgunUi.GetPreviewCells(Battle, state)
+			: [];
+		var torpedoMountCells = state.Mode == EPlayerMode.Torpedo
+			? TorpedoUi.GetMountCells(Battle)
+			: [];
+		var torpedoPreviewCells = state.Mode == EPlayerMode.Torpedo
+			? TorpedoUi.GetPreviewCells(Battle, state)
 			: [];
 		var (path, target) = MoveUi.GetPathHighlights(
 			movePaths,
@@ -150,13 +156,14 @@ public sealed class BattleUi
 			MovePathApBaseline = movePathApBaseline,
 			PreviewWorld = previewWorld,
 			ActorState = actorState,
-			PreviewHazardCells = hazardCells,
 			ValidFlakPortCells = validFlakPortCells,
 			ValidFlakStarboardCells = validFlakStarboardCells,
 			FlakPreviewCells = flakPreviewCells,
 			ValidFlakPickCells = validFlakPickCells,
 			RailgunCells = railgunCells,
 			RailgunPreviewCells = railgunPreviewCells,
+			TorpedoMountCells = torpedoMountCells,
+			TorpedoPreviewCells = torpedoPreviewCells,
 			MovePath = path,
 			MoveTarget = target,
 			HintText = TurnUi.BuildHint(
@@ -170,6 +177,8 @@ public sealed class BattleUi
 				.OfType<FlakDef>()
 				.Any(def => Battle.Sim.Peek(new FlakAction(Battle.PlayerId, def.Mount)) is not null),
 			RailgunAvailable = Battle.Sim.Peek(new RailgunAction(Battle.PlayerId)) is not null,
+			TorpedoAvailable = TorpedoConfig.EnabledMounts
+				.Any(mount => Battle.Sim.Peek(new TorpedoAction(Battle.PlayerId, mount)) is not null),
 			ShowOutcomeOverlay = Battle.IsBattleOver,
 			PlayerWon = Battle.IsBattleOver && Battle.WinnerId == Battle.PlayerId,
 		};

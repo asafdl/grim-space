@@ -69,14 +69,11 @@ public sealed class FlakDef(EFlakMount mount)
 
 		return
 		[
-			new ScheduleActionEffect(
-				CombatConfig.FlakResolveDelay,
-				ResolveHazardDef.Instance.Bind(
-					action.ActorId,
-					EHazardKind.FlakBurst,
-					cells,
-					damage: CombatConfig.FlakDamage,
-					CombatConfig.FlakMomentumLoss)),
+			new ResolveHazardEffect(
+				EHazardKind.FlakBurst,
+				cells,
+				CombatConfig.FlakDamage,
+				CombatConfig.FlakMomentumLoss),
 			new FlakChangeEffect(-1),
 		];
 	}

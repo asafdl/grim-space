@@ -1,12 +1,22 @@
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle;
 
-/// <summary>
-/// Turn boundary package for presentation: start snapshot, applied actions, end snapshot.
-/// </summary>
 public sealed record TurnReplay(
 	IReadOnlyDictionary<string, State> StartStates,
-	IReadOnlyList<IAction> AppliedActions,
-	IReadOnlyDictionary<string, State> EndStates);
+	IReadOnlyList<TimelineBatch> Batches,
+	IReadOnlyDictionary<string, State> EndStates)
+{
+	public IEnumerable<IAction> Actions =>
+		Batches.SelectMany(batch => batch.Actions);
+
+	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> ActionsByActor =>
+		Batches
+			.GroupBy(batch => batch.ActorId, StringComparer.Ordinal)
+			.ToDictionary(
+				group => group.Key,
+				group => (IReadOnlyList<IAction>)group.SelectMany(batch => batch.Actions).ToList(),
+				StringComparer.Ordinal);
+}

@@ -91,7 +91,8 @@ public sealed class OrchestratorSimulationTests
 				PlayerId,
 				origin,
 				BodyFrame.From(player.State),
-				startMomentum);
+				startMomentum,
+				player.State.Stats.MinPathApCost);
 			runtime.ActivePath.UsedDirectionsMask = 1;
 			runtime.ActivePath.PathForwardSteps = 1;
 		}

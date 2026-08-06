@@ -63,14 +63,11 @@ public sealed class RailgunDef
 
 		return
 		[
-			new ScheduleActionEffect(
-				CombatConfig.RailgunResolveDelay,
-				ResolveHazardDef.Instance.Bind(
-					action.ActorId,
-					EHazardKind.RailgunBurst,
-					cells,
-					damage: CombatConfig.RailgunDamage,
-					CombatConfig.RailgunMomentumLoss)),
+			new ResolveHazardEffect(
+				EHazardKind.RailgunBurst,
+				cells,
+				CombatConfig.RailgunDamage,
+				CombatConfig.RailgunMomentumLoss),
 			new RailgunChangeEffect(-1),
 		];
 	}

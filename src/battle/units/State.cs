@@ -18,6 +18,8 @@ public sealed class State
 	public int MomentumLevel { get; set; }
 	public int FlakRemaining { get; set; }
 	public int RailgunRemaining { get; set; }
+	public int FuelRemaining { get; set; }
+	public int TorpedoCooldownRemaining { get; set; }
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; init; }
 
@@ -38,6 +40,8 @@ public sealed class State
 			MomentumLevel = MomentumLevel,
 			FlakRemaining = FlakRemaining,
 			RailgunRemaining = RailgunRemaining,
+			FuelRemaining = FuelRemaining,
+			TorpedoCooldownRemaining = TorpedoCooldownRemaining,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
 		};
@@ -68,6 +72,8 @@ public sealed class State
 			MomentumLevel = 0,
 			FlakRemaining = stats.FlaksPerTurn,
 			RailgunRemaining = stats.RailgunsPerTurn,
+			FuelRemaining = 0,
+			TorpedoCooldownRemaining = 0,
 			Stats = stats,
 		};
 	}

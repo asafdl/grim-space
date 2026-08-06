@@ -11,6 +11,7 @@ public sealed partial class ActionBar : CanvasLayer
 	private Button _moveButton = null!;
 	private Button _flakButton = null!;
 	private Button _railgunButton = null!;
+	private Button _torpedoButton = null!;
 	private Button _endTurnButton = null!;
 
 	public ActionBar()
@@ -24,20 +25,24 @@ public sealed partial class ActionBar : CanvasLayer
 		_moveButton.SetBlockSignals(true);
 		_flakButton.SetBlockSignals(true);
 		_railgunButton.SetBlockSignals(true);
+		_torpedoButton.SetBlockSignals(true);
 
 		_moveButton.ButtonPressed = mode == EPlayerMode.Move;
 		_flakButton.ButtonPressed = mode == EPlayerMode.Flak;
 		_railgunButton.ButtonPressed = mode == EPlayerMode.Railgun;
+		_torpedoButton.ButtonPressed = mode == EPlayerMode.Torpedo;
 
 		_moveButton.SetBlockSignals(false);
 		_flakButton.SetBlockSignals(false);
 		_railgunButton.SetBlockSignals(false);
+		_torpedoButton.SetBlockSignals(false);
 	}
 
-	public void Configure(bool flakAvailable, bool railgunAvailable, bool canAct)
+	public void Configure(bool flakAvailable, bool railgunAvailable, bool torpedoAvailable, bool canAct)
 	{
 		_flakButton.Disabled = !canAct || !flakAvailable;
 		_railgunButton.Disabled = !canAct || !railgunAvailable;
+		_torpedoButton.Disabled = !canAct || !torpedoAvailable;
 		_moveButton.Disabled = !canAct;
 		_endTurnButton.Disabled = !canAct;
 	}
@@ -71,11 +76,13 @@ public sealed partial class ActionBar : CanvasLayer
 		_moveButton = CreateModeButton("Move", () => ModeChanged?.Invoke(EPlayerMode.Move));
 		_flakButton = CreateModeButton("Flak", () => ModeChanged?.Invoke(EPlayerMode.Flak));
 		_railgunButton = CreateModeButton("Railgun", () => ModeChanged?.Invoke(EPlayerMode.Railgun));
+		_torpedoButton = CreateModeButton("Torpedo", () => ModeChanged?.Invoke(EPlayerMode.Torpedo));
 		_endTurnButton = CreateActionButton("End Turn");
 
 		row.AddChild(_moveButton);
 		row.AddChild(_flakButton);
 		row.AddChild(_railgunButton);
+		row.AddChild(_torpedoButton);
 		row.AddChild(new VSeparator());
 		row.AddChild(_endTurnButton);
 

@@ -41,7 +41,6 @@ public partial class BattleController : Node3D
 	private readonly record struct MoveHoverCache(
 		IReadOnlyList<Movement.MovePathSession> Paths,
 		int PathApBaseline,
-		IReadOnlySet<Coord> HazardCells,
 		IReadOnlyList<Coord> CommittedPath);
 
 	public override void _Ready()
@@ -88,7 +87,10 @@ public partial class BattleController : Node3D
 		WireHudEvents();
 
 		_replayPlayer = new TurnReplayPlayer { Name = "TurnReplayPlayer" };
-		_replayPlayer.Configure(_battleView.UnitViews, ColorForActor);
+		_replayPlayer.Configure(
+			_battleView.UnitViews,
+			ColorForActor,
+			(state, color) => _battleView.Ensure(state, color));
 		_replayPlayer.PlaybackComplete += OnPlaybackComplete;
 		AddChild(_replayPlayer);
 
@@ -130,7 +132,6 @@ public partial class BattleController : Node3D
 		_moveHoverCache = new MoveHoverCache(
 			frame.MovePaths,
 			frame.MovePathApBaseline,
-			frame.PreviewHazardCells,
 			_ui.State.CommittedMovePath);
 		ApplyFrame(frame);
 	}
@@ -144,10 +145,10 @@ public partial class BattleController : Node3D
 	private void StartReplay(TurnReplay replay, int completedTurn)
 	{
 		_playbackEndStates = replay.EndStates;
-		_battleView.ApplyUnitStates(replay.StartStates);
-		_replayPlayer.ResetToLive(replay.StartStates);
+		_battleView.ApplyUnitStates(replay.StartStates, ColorForActor);
+		_replayPlayer.ResetToLive(replay.StartStates, replay.EndStates);
 		_replayPlayer.Play(
-			replay.AppliedActions,
+			replay.Actions.ToList(),
 			completedTurn,
 			_ui.Battle.PlayerId,
 			_ui.Battle.OpponentId);
@@ -163,8 +164,7 @@ public partial class BattleController : Node3D
 			_moveHoverCache.Paths,
 			_moveHoverCache.PathApBaseline,
 			path,
-			target,
-			_moveHoverCache.HazardCells);
+			target);
 	}
 
 	private void WireHudEvents()
@@ -216,7 +216,7 @@ public partial class BattleController : Node3D
 		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
-			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun)
+			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo)
 		{
 			_director.SetMode(EPlayerMode.Move);
 			GetViewport().SetInputAsHandled();
@@ -277,6 +277,11 @@ public partial class BattleController : Node3D
 				_director.SetRailgunHover(
 					GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells));
 				break;
+
+			case EPlayerMode.Torpedo:
+				_director.SetTorpedoHover(
+					GridPick.PickFromSet(_camera, screenPos, frame.TorpedoMountCells));
+				break;
 		}
 	}
 
@@ -303,22 +308,33 @@ public partial class BattleController : Node3D
 				if (GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells) is { } railgunCell)
 					_director.ApplyRailgun(railgunCell);
 				break;
+
+			case EPlayerMode.Torpedo:
+				if (GridPick.PickFromSet(_camera, screenPos, frame.TorpedoMountCells) is { } torpedoCell)
+					_director.ApplyTorpedo(torpedoCell);
+				break;
 		}
 	}
 
 	private void OnPlaybackComplete()
 	{
 		if (_playbackEndStates is not null)
-			_battleView.ApplyUnitStates(_playbackEndStates);
+			_battleView.ApplyUnitStates(_playbackEndStates, ColorForActor);
 
 		_playbackEndStates = null;
 		_director.NotifyReplayComplete();
 	}
 
-	private Color ColorForActor(string actorId) =>
-		_ui.Battle.Layout.Participants.TryGetValue(actorId, out var controller)
-			? ColorFor(controller)
-			: Colors.White;
+	private Color ColorForActor(string actorId)
+	{
+		if (_ui.Battle.Sim.World.Units.TryGetValue(actorId, out var unit))
+			return ColorFor(unit.Controller);
+
+		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var controller))
+			return ColorFor(controller);
+
+		return Colors.White;
+	}
 
 	private void ApplyFrame(PresentationFrame frame)
 	{
@@ -329,12 +345,16 @@ public partial class BattleController : Node3D
 
 	private void ApplyUnitStates(PresentationFrame frame)
 	{
-		var states = new Dictionary<string, GrimSpace.Battle.Units.State>();
-		foreach (var unitId in _ui.Battle.Layout.Participants.Keys)
-			states[unitId] = frame.PreviewWorld.StateOf(unitId);
-
-		_battleView.ApplyUnitStates(states);
+		var states = frame.PreviewWorld.Units.ToDictionary(
+			pair => pair.Key,
+			pair => pair.Value.State);
+		_battleView.ApplyUnitStates(states, id => ColorForPreview(frame, id));
 	}
+
+	private Color ColorForPreview(PresentationFrame frame, string actorId) =>
+		frame.PreviewWorld.Units.TryGetValue(actorId, out var unit)
+			? ColorFor(unit.Controller)
+			: ColorForActor(actorId);
 
 	private void ResetBattle()
 	{

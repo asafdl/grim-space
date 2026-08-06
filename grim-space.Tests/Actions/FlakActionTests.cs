@@ -2,6 +2,8 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
@@ -19,7 +21,7 @@ public sealed class FlakActionTests
 	}
 
 	[Fact]
-	public void FlakSchedulesResolveOnPreviewTimeline()
+	public void FlakAppliesResolveImmediately()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
@@ -29,28 +31,23 @@ public sealed class FlakActionTests
 		Assert.True(battle.Sim.TryEnqueue(flak));
 		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
 		Assert.False(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
-
-		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;
-		var scheduled = battle.Sim.PeekTimeline(resolveTick);
-		var hazard = Assert.Single(scheduled.OfType<ResolveHazardAction>());
-		Assert.NotEmpty(hazard.Cells);
-		Assert.Equal(CombatConfig.FlakDamage, hazard.Damage);
 	}
 
 	[Fact]
-	public void AdvanceToTickAppliesFlakMomentumLoss()
+	public void FlakAppliesMomentumLossOnEnqueue()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
-		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
-
-		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;
-		var hazard = battle.Sim.PeekTimeline(resolveTick).OfType<ResolveHazardAction>().First();
+		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(PlayerId));
+		var cells = WeaponBursts.FlakBurstCells(
+			frame,
+			FlakMountConfig.For(EFlakMount.Starboard),
+			battle.Sim.World.Grid.IsInBounds);
 		var enemy = battle.Sim.World.Units.Values.First(unit => unit.State.Id != PlayerId);
-		enemy.State.Position = hazard.Cells.First();
+		enemy.State.Position = cells.First();
 		var shieldsBefore = TotalShieldPoints(enemy.State);
 
-		BattleTestApply.AdvancePreviewToTick(battle, resolveTick);
+		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
 		Assert.Equal(shieldsBefore - CombatConfig.FlakDamage, TotalShieldPoints(enemy.State));
 		Assert.Equal(0, enemy.State.MomentumLevel);

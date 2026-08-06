@@ -14,19 +14,21 @@ public sealed class PresentationFrame
 	public int MovePathApBaseline { get; init; }
 	public required BattleWorld PreviewWorld { get; init; }
 	public required State ActorState { get; init; }
-	public required IReadOnlySet<Coord> PreviewHazardCells { get; init; }
 	public required IReadOnlySet<Coord> ValidFlakPortCells { get; init; }
 	public required IReadOnlySet<Coord> ValidFlakStarboardCells { get; init; }
 	public required IReadOnlySet<Coord> FlakPreviewCells { get; init; }
 	public required IReadOnlySet<Coord> ValidFlakPickCells { get; init; }
 	public required IReadOnlySet<Coord> RailgunCells { get; init; }
 	public required IReadOnlySet<Coord> RailgunPreviewCells { get; init; }
+	public required IReadOnlySet<Coord> TorpedoMountCells { get; init; }
+	public required IReadOnlySet<Coord> TorpedoPreviewCells { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }
 	public Coord? MoveTarget { get; init; }
 	public required string HintText { get; init; }
 	public bool CanAct { get; init; }
 	public bool FlakAvailable { get; init; }
 	public bool RailgunAvailable { get; init; }
+	public bool TorpedoAvailable { get; init; }
 	public bool ShowOutcomeOverlay { get; init; }
 	public bool PlayerWon { get; init; }
 }

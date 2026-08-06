@@ -53,7 +53,8 @@ public sealed class InvariantTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).ActivePath!.PathApSpent);
 		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd());
+		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd(
+			battle.Sim.StateOf<ActorState>(PlayerId).Stats.MinPathApCost));
 		Assert.False(battle.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Incomplete, status);
 	}
@@ -97,7 +98,7 @@ public sealed class InvariantTests
 			if (runtime.ActivePath is null)
 				continue;
 
-			if (runtime.ActivePath.CanEnd())
+			if (runtime.ActivePath.CanEnd(frame.World.StateOf(PlayerId).Stats.MinPathApCost))
 				continue;
 
 			var hasContinuation = MoveDef.Instance

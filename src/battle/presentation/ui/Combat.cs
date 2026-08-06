@@ -7,6 +7,7 @@ public enum EPlayerMode
 	Move,
 	Flak,
 	Railgun,
+	Torpedo,
 }
 
 public static class CombatHints
@@ -30,6 +31,8 @@ public static class CombatHints
 				$"Mode: Flak  |  {status}  |  click port or starboard arc  |  Esc: cancel{queuedSuffix}",
 			EPlayerMode.Railgun =>
 				$"Mode: Railgun  |  {status}  |  click fore burst to fire  |  Esc: cancel{queuedSuffix}",
+			EPlayerMode.Torpedo =>
+				$"Mode: Torpedo  |  {status}  |  click mount cube to fire  |  Esc: cancel{queuedSuffix}",
 			_ => status,
 		};
 	}

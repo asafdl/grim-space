@@ -24,7 +24,7 @@ public sealed class SystemActionTests
 		BattleTestWorld.InjectHazard(battle.Engine.World, hazard);
 		Assert.Single(battle.Engine.World.TurnHazards);
 
-		battle.ResolveTurn([]);
+		battle.ResolveTurn();
 
 		Assert.Empty(battle.Engine.World.TurnHazards);
 	}
@@ -35,7 +35,7 @@ public sealed class SystemActionTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
 
-		battle.ResolveTurn(battle.Sim.Actions.ToList());
+		battle.ResolveTurn();
 		Assert.Empty(battle.Engine.World.TurnHazards);
 	}
 
@@ -51,23 +51,9 @@ public sealed class SystemActionTests
 			visualId: "rock");
 		BattleTestWorld.InjectHazard(battle.Engine.World, asteroid);
 
-		battle.ResolveTurn([]);
+		battle.ResolveTurn();
 
 		Assert.Contains(asteroid.Id, battle.Engine.World.NonUnits.Keys);
 		Assert.Equal(EntityIds.World, battle.Engine.World.NonUnits[asteroid.Id].ActorId);
-	}
-
-	[Fact]
-	public void ResolveHazardActionAppliesAtScheduledTick()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
-
-		var resolveTick = battle.Sim.AnchorTick + CombatConfig.FlakResolveDelay;
-		Assert.Single(battle.Sim.PeekTimeline(resolveTick).OfType<ResolveHazardAction>());
-
-		BattleTestApply.AdvancePreviewToTick(battle, resolveTick);
-
-		Assert.Empty(battle.Sim.PeekTimeline(resolveTick));
 	}
 }

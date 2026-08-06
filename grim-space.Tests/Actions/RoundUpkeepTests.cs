@@ -51,7 +51,7 @@ public sealed class RoundUpkeepTests
 		playerState.FlakRemaining = 0;
 		playerState.RailgunRemaining = 0;
 
-		battle.ResolveTurn([]);
+		battle.ResolveTurn();
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
 		Assert.Equal(CombatConfig.FlaksPerTurn, playerState.FlakRemaining);

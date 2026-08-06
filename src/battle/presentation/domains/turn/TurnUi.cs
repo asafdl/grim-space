@@ -1,9 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
-using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Domains.Turn;
 
@@ -29,19 +27,6 @@ public static class TurnUi
 	{
 		var peek = battle.Sim.Peek(EndOfPhaseDef.Instance.Bind(battle.PlayerId));
 		return peek?.World ?? battle.Sim.World;
-	}
-
-	public static HashSet<Coord> GetPreviewHazardCells(BattleOrchestrator battle)
-	{
-		var sim = battle.Sim;
-		var cells = new HashSet<Coord>();
-		for (var tick = sim.AnchorTick + 1; tick <= sim.TimelineMaxTick; tick++)
-		{
-			foreach (var action in sim.PeekTimeline(tick).OfType<ResolveHazardAction>())
-				cells.UnionWith(action.Cells);
-		}
-
-		return cells;
 	}
 
 	public static string BuildHint(

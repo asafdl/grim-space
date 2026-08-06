@@ -23,12 +23,13 @@ public partial class GridView : Node3D
 	private StandardMaterial3D? _endpointApHigh;
 	private StandardMaterial3D? _pathMaterial;
 	private StandardMaterial3D? _hoverMaterial;
-	private StandardMaterial3D? _hazardMaterial;
 	private StandardMaterial3D? _targetMaterial;
 	private StandardMaterial3D? _railgunMaterial;
 	private StandardMaterial3D? _flakPortMaterial;
 	private StandardMaterial3D? _flakStarboardMaterial;
 	private StandardMaterial3D? _flakPreviewMaterial;
+	private StandardMaterial3D? _torpedoMountMaterial;
+	private StandardMaterial3D? _torpedoPreviewMaterial;
 
 	public void Build(BoundedGrid grid)
 	{
@@ -41,12 +42,13 @@ public partial class GridView : Node3D
 		_endpointApHigh = CreateMaterial(new Color(0.28f, 0.34f, 0.52f, 0.56f));
 		_pathMaterial = CreateMaterial(new Color(0.45f, 0.5f, 0.6f, 0.22f));
 		_hoverMaterial = CreateMaterial(new Color(0.95f, 0.95f, 1f, 0.65f));
-		_hazardMaterial = CreateMaterial(new Color(0.95f, 0.25f, 0.15f, 0.55f));
 		_targetMaterial = CreateMaterial(new Color(0.95f, 0.85f, 0.2f, 0.55f));
 		_railgunMaterial = CreateMaterial(new Color(0.85f, 0.35f, 1f, 0.65f));
 		_flakPortMaterial = CreateMaterial(new Color(0.9f, 0.55f, 0.15f, 0.5f));
 		_flakStarboardMaterial = CreateMaterial(new Color(0.95f, 0.75f, 0.2f, 0.5f));
 		_flakPreviewMaterial = CreateMaterial(new Color(1f, 0.85f, 0.25f, 0.7f));
+		_torpedoMountMaterial = CreateMaterial(new Color(0.2f, 0.75f, 0.85f, 0.55f));
+		_torpedoPreviewMaterial = CreateMaterial(new Color(0.45f, 0.95f, 1f, 0.75f));
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
@@ -64,13 +66,11 @@ public partial class GridView : Node3D
 					frame.MovePaths,
 					frame.MovePathApBaseline,
 					frame.MovePath,
-					frame.MoveTarget,
-					frame.PreviewHazardCells);
+					frame.MoveTarget);
 				break;
 
 			case EPlayerMode.Flak:
 				SetFlakHighlights(
-					frame.PreviewHazardCells,
 					frame.ValidFlakPortCells,
 					frame.ValidFlakStarboardCells,
 					frame.FlakPreviewCells);
@@ -79,8 +79,13 @@ public partial class GridView : Node3D
 			case EPlayerMode.Railgun:
 				SetRailgunHighlights(
 					frame.RailgunCells,
-					frame.RailgunPreviewCells,
-					frame.PreviewHazardCells);
+					frame.RailgunPreviewCells);
+				break;
+
+			case EPlayerMode.Torpedo:
+				SetTorpedoHighlights(
+					frame.TorpedoMountCells,
+					frame.TorpedoPreviewCells);
 				break;
 		}
 	}
@@ -89,8 +94,7 @@ public partial class GridView : Node3D
 		IReadOnlyList<MovePathSession> paths,
 		int pathApBaseline,
 		IReadOnlyList<Coord> path,
-		Coord? target,
-		IReadOnlySet<Coord>? hazardCells = null)
+		Coord? target)
 	{
 		if (!EnsureMaterials())
 			return;
@@ -121,29 +125,16 @@ public partial class GridView : Node3D
 
 		if (target is Coord hovered)
 			SetCellHighlight(hovered, _hoverMaterial!);
-
-		if (hazardCells is not null)
-		{
-			foreach (var coord in hazardCells)
-				SetCellHighlight(coord, _hazardMaterial!);
-		}
 	}
 
 	public void SetRailgunHighlights(
 		IReadOnlySet<Coord> burstCells,
-		IReadOnlySet<Coord> previewCells,
-		IReadOnlySet<Coord>? hazardCells = null)
+		IReadOnlySet<Coord> previewCells)
 	{
 		if (!EnsureMaterials())
 			return;
 
 		ReleaseActiveHighlights();
-
-		if (hazardCells is not null)
-		{
-			foreach (var coord in hazardCells)
-				SetCellHighlight(coord, _hazardMaterial!);
-		}
 
 		foreach (var coord in burstCells)
 		{
@@ -158,7 +149,6 @@ public partial class GridView : Node3D
 	}
 
 	public void SetFlakHighlights(
-		IReadOnlySet<Coord> hazardCells,
 		IReadOnlySet<Coord> portCells,
 		IReadOnlySet<Coord> starboardCells,
 		IReadOnlySet<Coord> previewCells)
@@ -167,9 +157,6 @@ public partial class GridView : Node3D
 			return;
 
 		ReleaseActiveHighlights();
-
-		foreach (var coord in hazardCells)
-			SetCellHighlight(coord, _hazardMaterial!);
 
 		foreach (var coord in portCells)
 		{
@@ -191,6 +178,27 @@ public partial class GridView : Node3D
 			SetCellHighlight(coord, _flakPreviewMaterial!);
 	}
 
+	public void SetTorpedoHighlights(
+		IReadOnlySet<Coord> mountCells,
+		IReadOnlySet<Coord> previewCells)
+	{
+		if (!EnsureMaterials())
+			return;
+
+		ReleaseActiveHighlights();
+
+		foreach (var coord in mountCells)
+		{
+			if (previewCells.Contains(coord))
+				continue;
+
+			SetCellHighlight(coord, _torpedoMountMaterial!);
+		}
+
+		foreach (var coord in previewCells)
+			SetCellHighlight(coord, _torpedoPreviewMaterial!);
+	}
+
 	private bool EnsureMaterials() =>
 		_grid is not null
 		&& _endpointApLow is not null
@@ -198,12 +206,13 @@ public partial class GridView : Node3D
 		&& _endpointApHigh is not null
 		&& _pathMaterial is not null
 		&& _hoverMaterial is not null
-		&& _hazardMaterial is not null
 		&& _targetMaterial is not null
 		&& _railgunMaterial is not null
 		&& _flakPortMaterial is not null
 		&& _flakStarboardMaterial is not null
-		&& _flakPreviewMaterial is not null;
+		&& _flakPreviewMaterial is not null
+		&& _torpedoMountMaterial is not null
+		&& _torpedoPreviewMaterial is not null;
 
 	private StandardMaterial3D EndpointMaterialForAp(int ap) =>
 		ap switch

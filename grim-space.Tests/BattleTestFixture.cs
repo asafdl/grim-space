@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Actions;
@@ -42,7 +43,8 @@ internal static class BattleTestFixture
 		actorRuntimes.For(EntityIds.System);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var battle = new BattleOrchestrator(engine, layout, player.State.Id, enemy.State.Id);
+		var playerAgent = (HumanExecutionAgent)player.ExecutionAgent;
+		var battle = new BattleOrchestrator(engine, layout, player.State.Id, enemy.State.Id, playerAgent);
 		battle.SetActiveUnit(player.State.Id);
 		battle.BeginTurn();
 		return battle;
@@ -77,7 +79,7 @@ internal static class BattleTestFixture
 	public static MovePathSession Path(string actorId, Coord origin, int pathApSpent, params Coord[] deltas)
 	{
 		var frame = BodyFrame.WorldAligned(origin);
-		var session = MovePathSession.Begin(actorId, origin, frame, 0);
+		var session = MovePathSession.Begin(actorId, origin, frame, 0, Stats.ForType(EType.Fighter).MinPathApCost);
 		var pos = origin;
 
 		foreach (var delta in deltas)
@@ -91,7 +93,7 @@ internal static class BattleTestFixture
 		}
 
 		session.PathApSpent = pathApSpent;
-		session.MinPathApCost = 0;
+		session.MinPathApRemaining = 0;
 		return session;
 	}
 

@@ -31,7 +31,8 @@ public sealed class MovePathStepEffect(
 				actorId,
 				actor.Position,
 				BodyFrame.From(actor),
-				actor.MomentumLevel);
+				actor.MomentumLevel,
+				actor.Stats.MinPathApCost);
 		}
 
 		runtime.ActivePath.ApplyStep(step, destination, stepApCost, directionBit);

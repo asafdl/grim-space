@@ -20,9 +20,6 @@ internal static class EnemySearchInput
 	internal const int FacingWeight = 800;
 	internal const int ApproachWeight = 150;
 
-	public static SearchInput<BattleWorld, ActorRuntime> ForTurn() =>
-		new(BattleSearchVisit.ForCapabilities);
-
 	public static int ScoreHeuristic(
 		SearchFrame<BattleWorld, ActorRuntime> frame,
 		BattleSimulation anchor,

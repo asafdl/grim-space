@@ -49,7 +49,7 @@ public sealed class BattleDirectorTests
 		var (replay, completedTurn) = await replayTcs.Task;
 		Assert.Equal(PresentationPhase.Replaying, director.Phase);
 		Assert.Equal(1, completedTurn);
-		Assert.NotEmpty(replay.AppliedActions);
+		Assert.NotEmpty(replay.Batches);
 	}
 
 	[Fact]

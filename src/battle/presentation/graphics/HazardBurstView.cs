@@ -34,6 +34,7 @@ public partial class HazardBurstView : Node3D
 			EHazardKind.MissileZone => new Color(0.95f, 0.28f, 0.12f, CellAlpha),
 			EHazardKind.FlakBurst => new Color(0.95f, 0.68f, 0.14f, CellAlpha),
 			EHazardKind.RailgunBurst => new Color(0.85f, 0.35f, 1f, CellAlpha),
+			EHazardKind.TorpedoBlast => new Color(0.2f, 0.85f, 0.55f, CellAlpha),
 			_ => new Color(0.9f, 0.4f, 0.2f, CellAlpha),
 		};
 

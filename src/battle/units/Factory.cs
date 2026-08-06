@@ -1,5 +1,9 @@
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.World;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -31,7 +35,7 @@ public static class Factory
 			Controller = instance.Controller,
 		}, position, fore, dorsal);
 		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
-		return ShellFor(instance.Controller, state);
+		return ShellFor(instance.Controller, state, ExecutionAgentFor(instance.Type, instance.Controller));
 	}
 
 	private static string ResolveId(Instance instance, UnitIdRegistry? ids)
@@ -48,11 +52,21 @@ public static class Factory
 		return ids.NextUnitId(instance.Type);
 	}
 
-	private static Unit ShellFor(EController controller, State state) =>
+	private static IExecutionAgent<BattleWorld, ActorRuntime, Unit> ExecutionAgentFor(
+		EType type,
+		EController controller) =>
+		type == EType.Torpedo ? TorpedoExecutionAgent.Instance
+		: controller == EController.Enemy ? AiController.Instance
+		: new HumanExecutionAgent();
+
+	private static Unit ShellFor(
+		EController controller,
+		State state,
+		IExecutionAgent<BattleWorld, ActorRuntime, Unit> executionAgent) =>
 		controller switch
 		{
-			EController.Player => new Player(state),
-			EController.Enemy => new EnemyUnit(state),
+			EController.Player => new Player(state, executionAgent),
+			EController.Enemy => new EnemyUnit(state, executionAgent),
 			_ => throw new ArgumentOutOfRangeException(nameof(controller)),
 		};
 }

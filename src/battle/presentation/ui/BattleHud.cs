@@ -43,7 +43,11 @@ public partial class BattleHud : Node
 		if (!frame.ShowOutcomeOverlay)
 		{
 			ActionBar.SetMode(frame.Mode);
-			ActionBar.Configure(frame.FlakAvailable, frame.RailgunAvailable, frame.CanAct);
+			ActionBar.Configure(
+				frame.FlakAvailable,
+				frame.RailgunAvailable,
+				frame.TorpedoAvailable,
+				frame.CanAct);
 		}
 
 		if (frame.ShowOutcomeOverlay)
@@ -52,6 +56,7 @@ public partial class BattleHud : Node
 			return;
 		}
 
-		OrientationHud.Visible = frame.CanAct && frame.Mode != EPlayerMode.Flak;
+		OrientationHud.Visible = frame.CanAct
+			&& frame.Mode is not (EPlayerMode.Flak or EPlayerMode.Torpedo);
 	}
 }

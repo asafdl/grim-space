@@ -21,4 +21,15 @@ public static class Manhattan
 			}
 		}
 	}
+
+	public static IEnumerable<Coord> EnumerateBall(Coord center, int radius)
+	{
+		foreach (var offset in Coord.OffsetsInCube(radius))
+		{
+			if (L1Norm(offset.X, offset.Y, offset.Z) > radius)
+				continue;
+
+			yield return center + offset;
+		}
+	}
 }

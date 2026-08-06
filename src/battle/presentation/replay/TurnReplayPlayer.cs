@@ -14,8 +14,9 @@ public partial class TurnReplayPlayer : Node3D
 
 	private static readonly ReplayClipRegistry Clips = ReplayClipRegistry.Default;
 
-	private readonly Dictionary<string, UnitView> _unitViews = new();
+	private IReadOnlyDictionary<string, UnitView> _unitViews = new Dictionary<string, UnitView>();
 	private Func<string, Color> _colorFor = _ => Colors.White;
+	private Action<State, Color> _ensureView = (_, _) => { };
 
 	private TurnHistoryView _turnHistory = null!;
 	private HazardBurstView _hazardBursts = null!;
@@ -37,13 +38,14 @@ public partial class TurnReplayPlayer : Node3D
 
 	public bool IsPlaying { get; private set; }
 
-	public void Configure(IReadOnlyDictionary<string, UnitView> unitViews, Func<string, Color> colorFor)
+	public void Configure(
+		IReadOnlyDictionary<string, UnitView> unitViews,
+		Func<string, Color> colorFor,
+		Action<State, Color> ensureView)
 	{
-		_unitViews.Clear();
-		foreach (var (unitId, view) in unitViews)
-			_unitViews[unitId] = view;
-
+		_unitViews = unitViews;
 		_colorFor = colorFor;
+		_ensureView = ensureView;
 
 		_turnHistory = new TurnHistoryView { Name = "TurnHistory" };
 		AddChild(_turnHistory);
@@ -52,10 +54,19 @@ public partial class TurnReplayPlayer : Node3D
 		AddChild(_hazardBursts);
 	}
 
-	public void ResetToLive(IReadOnlyDictionary<string, State> turnStart)
+	public void ResetToLive(
+		IReadOnlyDictionary<string, State> turnStart,
+		IReadOnlyDictionary<string, State> endStates)
 	{
 		var replayState = new ReplayState(turnStart);
-		_clipContext = new ReplayClipContext(replayState, _unitViews, _turnHistory, _hazardBursts, _colorFor);
+		_clipContext = new ReplayClipContext(
+			replayState,
+			_unitViews,
+			_turnHistory,
+			_hazardBursts,
+			_colorFor,
+			endStates,
+			_ensureView);
 		_turnHistory.BeginTurn(turnStart.ToDictionary(pair => pair.Key, pair => pair.Value.Position));
 		_hazardBursts.Clear();
 

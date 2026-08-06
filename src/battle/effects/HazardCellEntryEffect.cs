@@ -8,7 +8,6 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-// TODO: Remove — hazard damage is intended only on ResolveHazardAction, not on cell entry during movement.
 public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleWorld, ActorRuntime>
 {
 	private UnitCombatSnapshot _snapshot;
@@ -46,6 +45,7 @@ public static class HazardResolution
 		{
 			EHazardKind.FlakBurst => shooterPosition,
 			EHazardKind.RailgunBurst => shooterPosition,
+			EHazardKind.TorpedoBlast => shooterPosition,
 			_ => cells.Count > 0 ? cells.First() : Coord.Zero,
 		};
 
@@ -111,6 +111,9 @@ public static class HazardResolution
 			case EHazardKind.RailgunBurst:
 				ApplyDirectedDamage(hazard, unit, attackOrigin);
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
+				break;
+			case EHazardKind.TorpedoBlast:
+				ApplyDirectedDamage(hazard, unit, attackOrigin);
 				break;
 		}
 	}

@@ -9,6 +9,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	private int _previousActionPoints;
 	private int _previousFlakRemaining;
 	private int _previousRailgunRemaining;
+	private int _previousTorpedoCooldownRemaining;
 	private bool _previousApPenaltyNextTurn;
 
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -17,6 +18,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		_previousActionPoints = actor.ActionPoints;
 		_previousFlakRemaining = actor.FlakRemaining;
 		_previousRailgunRemaining = actor.RailgunRemaining;
+		_previousTorpedoCooldownRemaining = actor.TorpedoCooldownRemaining;
 		_previousApPenaltyNextTurn = actor.ApPenaltyNextTurn;
 
 		var maxAp = actor.Stats.MaxAp;
@@ -29,6 +31,8 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.ActionPoints = maxAp;
 		actor.FlakRemaining = actor.Stats.FlaksPerTurn;
 		actor.RailgunRemaining = actor.Stats.RailgunsPerTurn;
+		if (actor.TorpedoCooldownRemaining > 0)
+			actor.TorpedoCooldownRemaining--;
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -37,6 +41,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.ActionPoints = _previousActionPoints;
 		actor.FlakRemaining = _previousFlakRemaining;
 		actor.RailgunRemaining = _previousRailgunRemaining;
+		actor.TorpedoCooldownRemaining = _previousTorpedoCooldownRemaining;
 		actor.ApPenaltyNextTurn = _previousApPenaltyNextTurn;
 	}
 }

@@ -37,7 +37,7 @@ public static class MovePathEndpoints
 			if (session is null)
 				continue;
 
-			session.CanEndPath = path.CanEnd();
+			session.CanEndPath = path.CanEnd(frame.World.StateOf(actorId).Stats.MinPathApCost);
 			var actor = frame.World.StateOf(actorId);
 			var candidate = new DisplayCandidate(
 				session,

@@ -66,9 +66,6 @@ internal static class BattleTestApply
 		return true;
 	}
 
-	public static void AdvancePreviewToTick(BattleOrchestrator battle, int tick) =>
-		battle.Sim.AdvanceTo(tick);
-
 	public static void ApplyCommittedAction(
 		IAction action,
 		IReadOnlyList<Unit> roster,

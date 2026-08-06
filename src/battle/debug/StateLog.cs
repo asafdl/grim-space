@@ -8,6 +8,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using ShipOrientation = GrimSpace.Battle.Movement.Orientation;
+using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle.Debug;
 
@@ -15,7 +16,7 @@ public static class StateLog
 {
 	public static void LogTurnResolution(
 		int turnNumber,
-		IReadOnlyList<IAction> actions,
+		IReadOnlyList<TimelineBatch> history,
 		IReadOnlyList<Hazard> hazards,
 		IReadOnlyDictionary<string, State> unitsAtTurnStart,
 		IReadOnlyDictionary<string, State> unitsAfterPlayer,
@@ -26,13 +27,18 @@ public static class StateLog
 
 		AppendSection(log, "Units (turn start)", unitsAtTurnStart.Values);
 
-		log.AppendLine($"Turn actions ({actions.Count}):");
-		if (actions.Count == 0)
+		log.AppendLine($"Turn batches ({history.Count}):");
+		if (history.Count == 0)
 			log.AppendLine("  (none)");
 		else
 		{
-			for (var i = 0; i < actions.Count; i++)
-				log.AppendLine($"  [{i}] {DescribeAction(actions[i])}");
+			for (var i = 0; i < history.Count; i++)
+			{
+				var batch = history[i];
+				log.AppendLine($"  [{i}] {batch.ActorId} ({batch.Actions.Count}):");
+				foreach (var action in batch.Actions)
+					log.AppendLine($"    {DescribeAction(action)}");
+			}
 		}
 
 		AppendSection(log, "Units (after player phase)", unitsAfterPlayer.Values);

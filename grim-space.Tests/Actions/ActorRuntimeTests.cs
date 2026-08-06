@@ -2,6 +2,8 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -49,7 +51,8 @@ public sealed class ActorRuntimeTests
 				"player",
 				Coord.Zero,
 				BodyFrame.WorldAligned(Coord.Zero),
-				0),
+				0,
+				Stats.ForType(EType.Fighter).MinPathApCost),
 		};
 
 		session.Reset();

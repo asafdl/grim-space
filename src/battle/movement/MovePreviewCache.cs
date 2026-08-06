@@ -46,9 +46,10 @@ public sealed class MovePreviewCache
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
 			FlakAction flak => $"flak:{flak.ActorId}:{flak.Mount}",
 			RailgunAction railgun => $"railgun:{railgun.ActorId}",
+			TorpedoAction torpedo => $"torpedo:{torpedo.ActorId}:{torpedo.Mount}",
 			_ => action.GetType().FullName ?? "action",
 		};
 
 	private static bool IsWeaponAction(IAction action) =>
-		action is FlakAction or RailgunAction;
+		action is FlakAction or RailgunAction or TorpedoAction;
 }

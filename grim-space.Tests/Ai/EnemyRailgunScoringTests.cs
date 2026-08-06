@@ -21,7 +21,7 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = EnemySimulation.BuildTurnActions(session, enemy);
+		var actions = AiController.Instance.Plan(session, enemy);
 
 		Assert.Contains(actions, action => action is RailgunAction);
 	}
@@ -37,7 +37,7 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = EnemySimulation.BuildTurnActions(session, enemy);
+		var actions = AiController.Instance.Plan(session, enemy);
 
 		Assert.DoesNotContain(actions, action => action is RailgunAction);
 	}
@@ -52,7 +52,7 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = EnemySimulation.BuildTurnActions(session, enemy);
+		var actions = AiController.Instance.Plan(session, enemy);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 	}
@@ -73,7 +73,7 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = EnemySimulation.BuildTurnActions(session, enemy);
+		var actions = AiController.Instance.Plan(session, enemy);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 		Assert.Contains(actions, action => action is RailgunAction);

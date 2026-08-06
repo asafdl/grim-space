@@ -10,6 +10,8 @@ internal sealed class Engine<TWorld, TRuntime>
 	{
 		World = world;
 		ActorRuntimes = actorRuntimes;
+		if (World.Timeline.Clock.Current == 0)
+			World.Timeline.Clock.Set(1);
 	}
 
 	public TWorld World { get; }
@@ -18,72 +20,43 @@ internal sealed class Engine<TWorld, TRuntime>
 
 	public int WorldVersion { get; private set; }
 
+	public int Tick => World.Timeline.Clock.Current;
+
 	public Simulation<TWorld, TRuntime> CreateSimulation()
 	{
 		var sim = new Simulation<TWorld, TRuntime>(World.Fork(), ActorRuntimes.Fork());
-		sim.Begin(World.Timeline.Clock.Current, WorldVersion);
+		sim.Begin(Tick, WorldVersion);
 		return sim;
 	}
 
-	/// <summary>
-	/// Schedule a simulation's queued actions onto the live timeline. Stale simulations rebase first
-	/// (save actions → refork from live → replay). Returns false if replay fails.
-	/// </summary>
-	public bool TryScheduleFromSimulation(
-		Simulation<TWorld, TRuntime> simulation,
-		out Simulation<TWorld, TRuntime> current,
-		IReadOnlyList<IAction> actions,
-		int delayTicks = 0)
+	public IReadOnlyList<IAction> Commit(params IAction[] actions)
 	{
-		var resolved = EnsureCurrent(simulation);
-		if (resolved is null)
-		{
-			current = simulation;
-			return false;
-		}
+		foreach (var action in actions)
+			ExecutionHelper.Apply(action, World, ActorRuntimes.For(action));
 
-		current = resolved;
-		ScheduleToWorldTimeline(actions, delayTicks);
-		return true;
+		World.Timeline.Record(actions);
+		BumpWorldVersion();
+		return actions;
 	}
 
-	public void ScheduleToWorldTimeline(IReadOnlyList<IAction> actions, int delayTicks = 0)
+	public void Schedule(int delayTicks, params IAction[] actions)
 	{
-		var tick = World.Timeline.Clock.Current + delayTicks;
-		World.Timeline.At(tick).EnqueueAll(actions);
+		World.Timeline.Schedule(delayTicks, actions);
 		BumpWorldVersion();
 	}
 
-	public void ScheduleToWorldTimeline(IAction action, int delayTicks = 0)
+	public IReadOnlyList<IAction> AdvanceTick()
 	{
-		var tick = World.Timeline.Clock.Current + delayTicks;
-		World.Timeline.At(tick).Enqueue(action);
-		BumpWorldVersion();
+		World.Timeline.Clock.Next();
+		var pending = World.Timeline.TakePending();
+		return pending.Count == 0 ? [] : Commit([..pending]);
 	}
 
-	public IEnumerable<TickResult> Step(int ticksToAdvance)
-	{
-		foreach (var tick in TimelineRunner.Step(World.Timeline, World, ActorRuntimes, ticksToAdvance))
-			yield return tick;
+	public IReadOnlyList<TimelineBatch> History(int? tick = null) =>
+		World.Timeline.History(tick);
 
-		BumpWorldVersion();
-	}
-
-	private Simulation<TWorld, TRuntime>? EnsureCurrent(Simulation<TWorld, TRuntime> simulation) =>
-		simulation.IsStale(WorldVersion) ? Rebase(simulation) : simulation;
-
-	private Simulation<TWorld, TRuntime>? Rebase(Simulation<TWorld, TRuntime> simulation)
-	{
-		var fresh = CreateSimulation();
-
-		foreach (var action in simulation.Actions)
-		{
-			if (!fresh.TryEnqueue(action))
-				return null;
-		}
-
-		return fresh;
-	}
+	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> HistoryByActor(int? tick = null) =>
+		World.Timeline.HistoryByActor(tick);
 
 	private void BumpWorldVersion() => WorldVersion++;
 }

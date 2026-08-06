@@ -19,39 +19,37 @@ using UnitState = GrimSpace.Battle.Units.State;
 
 namespace GrimSpace.Battle;
 
-/// <summary>
-/// Turn coordinator for a battle: owns the live engine, exposes preview <see cref="Sim"/>,
-/// and frozen <see cref="Layout"/> for scene setup. Does not mirror world units or hazards.
-/// </summary>
 public sealed class BattleOrchestrator
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
 	private readonly string _opponentId;
+	private readonly HumanExecutionAgent _playerAgent;
 
-	private BattleSimulation _sim = null!;
 	private bool _resolveInProgress;
 
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
 		BattleLayout layout,
 		string playerId,
-		string opponentId)
+		string opponentId,
+		HumanExecutionAgent playerAgent)
 	{
 		_engine = engine;
 		Layout = layout;
 		PlayerId = playerId;
 		_opponentId = opponentId;
+		_playerAgent = playerAgent;
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
-	public BattleSimulation Sim => _sim;
+	public BattleSimulation Sim => _playerAgent.Sim;
 	public string PlayerId { get; }
 	public string OpponentId => _opponentId;
 	public bool IsBattleOver { get; private set; }
 	public string? WinnerId { get; private set; }
-	public int TurnNumber { get; private set; } = 1;
+	public int TurnNumber => _engine.Tick;
 	public string? ActiveUnitId { get; private set; }
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
@@ -85,20 +83,21 @@ public sealed class BattleOrchestrator
 				spawn.Dorsal))
 			.ToArray();
 
-		var playerId = units.First(unit => unit.Controller == EController.Player).State.Id;
+		var player = units.First(unit => unit.Controller == EController.Player);
 		var opponentId = units.First(unit => unit.Controller == EController.Enemy).State.Id;
 		var world = BattleWorld.FromLive(units, nonUnits, grid, blockedCells, timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.For(playerId);
-		actorRuntimes.For(opponentId);
+		foreach (var unit in units)
+			actorRuntimes.For(unit.State.Id);
 		actorRuntimes.For(EntityIds.System);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var orchestrator = new BattleOrchestrator(engine, layout, playerId, opponentId);
+		var playerAgent = (HumanExecutionAgent)player.ExecutionAgent;
+		var orchestrator = new BattleOrchestrator(engine, layout, player.State.Id, opponentId, playerAgent);
 
-		orchestrator.SetActiveUnit(playerId);
+		orchestrator.SetActiveUnit(player.State.Id);
 		orchestrator.BeginTurn();
 		return orchestrator;
 	}
@@ -107,7 +106,7 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn() => _sim = _engine.CreateSimulation();
+	public void BeginTurn() => _playerAgent.BeginTurn(_engine.CreateSimulation);
 
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && IsActive(unit.State.Id) && unit.State.IsAlive;
@@ -123,15 +122,10 @@ public sealed class BattleOrchestrator
 		return unit;
 	}
 
-	public TurnReplay ResolveTurn(IReadOnlyList<IAction> playerActions) =>
-		ResolveTurnAsync(playerActions, runAiOnBackgroundThread: false).GetAwaiter().GetResult();
+	public TurnReplay ResolveTurn() =>
+		ResolveTurnAsync().GetAwaiter().GetResult();
 
-	public Task<TurnReplay> ResolveTurnAsync(IReadOnlyList<IAction> playerActions) =>
-		ResolveTurnAsync(playerActions, runAiOnBackgroundThread: true);
-
-	private async Task<TurnReplay> ResolveTurnAsync(
-		IReadOnlyList<IAction> playerActions,
-		bool runAiOnBackgroundThread)
+	public async Task<TurnReplay> ResolveTurnAsync()
 	{
 		if (IsBattleOver || _resolveInProgress)
 			throw new InvalidOperationException("Cannot resolve turn while battle is over or already resolving.");
@@ -139,7 +133,7 @@ public sealed class BattleOrchestrator
 		_resolveInProgress = true;
 		try
 		{
-			var replay = await ExecuteTurnAsync(playerActions, runAiOnBackgroundThread);
+			var replay = await ExecuteTurnAsync();
 			var outcome = EvaluateBattleOutcome();
 			IsBattleOver = outcome.IsOver;
 			WinnerId = outcome.WinnerId;
@@ -155,109 +149,69 @@ public sealed class BattleOrchestrator
 		}
 	}
 
-	private IReadOnlyList<IAction> PlanEnemyTurn()
-	{
-		var enemySim = _engine.CreateSimulation();
-		var enemy = _engine.World.UnitOf(_opponentId);
-		return EnemySimulation.BuildTurnActions(enemySim, enemy);
-	}
-
-	private async Task<TurnReplay> ExecuteTurnAsync(
-		IReadOnlyList<IAction> playerActions,
-		bool runAiOnBackgroundThread)
+	private async Task<TurnReplay> ExecuteTurnAsync()
 	{
 		var resolveTimer = Stopwatch.StartNew();
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
-		var turnStart = _engine.World.Timeline.Clock.Current;
 		var hazardsBeforeResolve = _engine.World.TurnHazards.ToList();
-		var applied = new List<IAction>();
 		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
 
 		_engine.ActorRuntimes.Reset();
 
-		if (!TrySchedulePlayerPhase(PlayerId, playerActions, TurnPhases.Player))
-			throw new InvalidOperationException("Failed to schedule player phase onto live timeline.");
-
-		var playerStepTimer = Stopwatch.StartNew();
-		foreach (var tick in _engine.Step(TurnPhases.Player))
+		foreach (var actor in TurnOrder.Living(_engine.World.Units.Values))
 		{
-			CollectTick(tick, applied);
-			if (tick.Tick == turnStart + TurnPhases.Player)
+			if (!_engine.World.Units.TryGetValue(actor.State.Id, out var live) || !live.State.IsAlive)
+				continue;
+
+			var planned = await live.ExecutionAgent.GetActionsAsync(live, _engine.CreateSimulation);
+			CommitActor(live.State.Id, planned);
+
+			if (live.State.Id == PlayerId)
 				unitsAfterPlayer = SnapshotAll();
 		}
-		playerStepTimer.Stop();
 
-		var enemyPlanTimer = Stopwatch.StartNew();
-		var enemyActions = runAiOnBackgroundThread
-			? await Task.Run(PlanEnemyTurn)
-			: PlanEnemyTurn();
-		enemyPlanTimer.Stop();
-
-		var enemyStepTimer = Stopwatch.StartNew();
-		SchedulePhase(_opponentId, enemyActions, TurnPhases.Enemy - TurnPhases.Player);
-		foreach (var tick in _engine.Step(TurnPhases.Enemy - TurnPhases.Player))
-			CollectTick(tick, applied);
-		enemyStepTimer.Stop();
-
-		var upkeepTimer = Stopwatch.StartNew();
-		ScheduleRoundUpkeep(TurnPhases.End - TurnPhases.Enemy);
-		foreach (var tick in _engine.Step(TurnPhases.End - TurnPhases.Enemy))
-			CollectTick(tick, applied);
-		upkeepTimer.Stop();
-
+		CommitRoundUpkeep();
+		var batches = _engine.History();
+		_engine.AdvanceTick();
 		FinalizeRound();
 
 		GameLog.Log(
-			$"Turn {turnNumber} sim: playerStep={playerStepTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"enemyThink={enemyPlanTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"enemyStep={enemyStepTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"upkeep={upkeepTimer.Elapsed.TotalMilliseconds:F1}ms "
+			$"Turn {turnNumber} sim: "
 			+ $"total={resolveTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"actions={applied.Count}");
+			+ $"batches={batches.Count}");
 
 		var endStates = SnapshotAll();
 		StateLog.LogTurnResolution(
 			turnNumber,
-			applied,
+			batches,
 			hazardsBeforeResolve,
 			unitsAtTurnStart,
 			unitsAfterPlayer ?? endStates,
 			endStates);
 
-		return new TurnReplay(unitsAtTurnStart, applied, endStates);
+		return new TurnReplay(unitsAtTurnStart, batches, endStates);
 	}
 
-	private static void CollectTick(TickResult tick, List<IAction> applied) =>
-		applied.AddRange(tick.AppliedActions);
-
-	private bool TrySchedulePlayerPhase(string actorId, IReadOnlyList<IAction> actions, int delayTicks)
+	private IReadOnlyList<IAction> CommitActor(string actorId, IReadOnlyList<IAction> actions)
 	{
-		if (!_engine.TryScheduleFromSimulation(_sim, out _sim, actions, delayTicks))
-			return false;
-
-		_engine.ScheduleToWorldTimeline(new EndOfPhaseAction(actorId), delayTicks);
-		return true;
+		var batch = new List<IAction>(actions.Count + 1);
+		batch.AddRange(actions);
+		batch.Add(new EndOfPhaseAction(actorId));
+		return _engine.Commit([..batch]);
 	}
 
-	private void SchedulePhase(string actorId, IReadOnlyList<IAction> actions, int delayTicks)
+	private IReadOnlyList<IAction> CommitRoundUpkeep()
 	{
-		_engine.ScheduleToWorldTimeline(actions, delayTicks);
-		_engine.ScheduleToWorldTimeline(new EndOfPhaseAction(actorId), delayTicks);
-	}
-
-	private void ScheduleRoundUpkeep(int delayTicks)
-	{
+		var batch = new List<IAction>();
 		foreach (var unitId in _engine.World.Units.Keys)
-			_engine.ScheduleToWorldTimeline(new RoundUpkeepAction(unitId), delayTicks);
-
-		_engine.ScheduleToWorldTimeline(new ClearTurnHazardsAction(), delayTicks);
+			batch.Add(new RoundUpkeepAction(unitId));
+		batch.Add(new ClearTurnHazardsAction());
+		return _engine.Commit([..batch]);
 	}
 
 	private void FinalizeRound()
 	{
-		TurnNumber++;
-
 		if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
 			SetActiveUnit(player.State.Id);
 	}

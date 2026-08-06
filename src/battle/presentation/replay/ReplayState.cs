@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
@@ -19,6 +18,10 @@ public sealed class ReplayState
 
 	public State StateOf(string actorId) => _states[actorId];
 
+	public bool Contains(string actorId) => _states.ContainsKey(actorId);
+
+	public void Add(State state) => _states[state.Id] = state.Clone();
+
 	public void ApplyHeadingTurn(HeadingTurnAction turn) =>
 		Orientation.ApplyHeadingTurn(_states[turn.ActorId], turn.Turn);
 
@@ -30,28 +33,5 @@ public sealed class ReplayState
 		var state = _states[move.ActorId];
 		var frame = BodyFrame.From(state);
 		state.Position += frame.Step(move.Direction);
-	}
-
-	public IReadOnlyList<string> ApplyResolveHazard(ResolveHazardAction action)
-	{
-		var hitUnits = _states.Values
-			.Where(unit => unit.IsAlive && action.Cells.Contains(unit.Position))
-			.Select(unit => unit.Id)
-			.ToList();
-
-		if (hitUnits.Count == 0)
-			return hitUnits;
-
-		var shooterPosition = _states[action.ActorId].Position;
-		HazardResolution.ApplyScheduledResolve(
-			action.Kind,
-			action.Cells,
-			action.Damage,
-			action.MomentumLoss,
-			shooterPosition,
-			action.ActorId,
-			_states.Values);
-
-		return hitUnits;
 	}
 }

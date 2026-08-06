@@ -9,6 +9,7 @@ public sealed class InteractionState
 	public EPlayerMode Mode { get; set; } = EPlayerMode.Move;
 	public Coord? FlakHover { get; set; }
 	public Coord? RailgunHover { get; set; }
+	public Coord? TorpedoHover { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 	public IReadOnlyList<Coord> CommittedMovePath { get; set; } = [];
 
@@ -30,6 +31,7 @@ public sealed class InteractionState
 		MoveHoveredIndex = null;
 		FlakHover = null;
 		RailgunHover = null;
+		TorpedoHover = null;
 	}
 
 	public void SetMoveHover(int? index, int optionCount) =>

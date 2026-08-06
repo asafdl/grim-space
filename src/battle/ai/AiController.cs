@@ -2,7 +2,6 @@ using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
@@ -11,28 +10,29 @@ using GrimSpace.Core.Log;
 
 namespace GrimSpace.Battle.Ai;
 
-public static class EnemySimulation
+public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Unit>
 {
+	public static AiController Instance { get; } = new();
+
 	private const int TimelineRefinementLimit = 8;
 	private const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
 
-	public static IReadOnlyList<IAction> BuildTurnActions(BattleSimulation session, Unit actor)
-	{
-		var actorId = actor.State.Id;
-		var start = session.Actions.Count;
-		var capabilities = Capabilities.For(actor.State.Type);
-		var best = SearchBestTurn(session, actorId, capabilities);
+	public Task<IReadOnlyList<IAction>> GetActionsAsync(
+		Unit actor,
+		Func<BattleSimulation> createSim) =>
+		Task.Run(() => Plan(createSim(), actor));
 
-		foreach (var action in best.Actions.Skip(session.Actions.Count))
-			session.TryEnqueue(action);
+	public IReadOnlyList<IAction> Plan(BattleSimulation session, Unit actor) =>
+		Runner.CalcActions(
+			session,
+			actor,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			frames => SelectBest(session, actor.State.Id, frames));
 
-		return session.Actions.Skip(start).ToList();
-	}
-
-	private static SearchFrame<BattleWorld, ActorRuntime> SearchBestTurn(
+	private static SearchFrame<BattleWorld, ActorRuntime> SelectBest(
 		BattleSimulation session,
 		string actorId,
-		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities)
+		IEnumerable<SearchFrame<BattleWorld, ActorRuntime>> frames)
 	{
 		var searchStartDepth = session.Actions.Count;
 		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
@@ -42,7 +42,7 @@ public static class EnemySimulation
 		var scoredFrames = 0;
 		var dfsTimer = Stopwatch.StartNew();
 
-		foreach (var frame in ActionSearch.Run(session, actorId, capabilities, EnemySearchInput.ForTurn()))
+		foreach (var frame in frames)
 		{
 			visitedFrames++;
 
@@ -146,12 +146,6 @@ public static class EnemySimulation
 		var world = frame.World.Fork();
 		var runtimes = frame.Runtimes.Fork();
 		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
-
-		foreach (var _ in TimelineRunner.Step(
-			world.Timeline,
-			world,
-			runtimes,
-			TurnPhases.Enemy - TurnPhases.Player)) { }
 
 		var state = world.StateOf(actorId);
 		if (!state.IsAlive)

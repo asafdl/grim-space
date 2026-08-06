@@ -88,7 +88,7 @@ public sealed class MoveDef
 		if (runtime.ActivePath is null)
 			return InvariantStatus.Ok;
 
-		if (runtime.ActivePath.CanEnd())
+		if (runtime.ActivePath.CanEnd(world.StateOf(actorId).Stats.MinPathApCost))
 			return InvariantStatus.Ok;
 
 		foreach (var candidate in Discover(world, runtime, actorId))

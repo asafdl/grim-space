@@ -21,6 +21,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 
 	public IReadOnlyDictionary<string, Unit> Units => _units;
 	public IReadOnlyDictionary<string, NonUnit> NonUnits => _nonUnits;
+	public IDictionary<string, Unit> MutableUnits => _units;
 	public IDictionary<string, NonUnit> MutableNonUnits => _nonUnits;
 	public UnitIdRegistry IdRegistry => _idRegistry;
 	public BoundedGrid Grid { get; }
@@ -164,8 +165,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		var cloned = unit.State.Clone();
 		return unit.Controller switch
 		{
-			EController.Player => new Units.Player(cloned),
-			EController.Enemy => new EnemyUnit(cloned),
+			EController.Player => new Units.Player(cloned, unit.ExecutionAgent),
+			EController.Enemy => new EnemyUnit(cloned, unit.ExecutionAgent),
 			_ => throw new ArgumentOutOfRangeException(nameof(unit)),
 		};
 	}

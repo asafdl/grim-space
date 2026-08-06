@@ -21,6 +21,19 @@ internal readonly record struct CapabilitySearchState(
 	int FlakRemaining,
 	int RailgunRemaining);
 
+internal readonly record struct MoveSearchState(
+	Coord Position,
+	Coord Fore,
+	Coord Dorsal,
+	Coord Starboard,
+	int UsedDirectionsMask,
+	int MomentumLevel,
+	int MinPathApRemaining,
+	int PathForwardSteps,
+	int PathApSpent,
+	bool SpinBraked,
+	int ActionPoints);
+
 internal static class BattleSearchVisit
 {
 	public static SearchVisitState ForCapabilities(BattleSimulation sim, string actorId)
@@ -36,7 +49,7 @@ internal static class BattleSearchVisit
 				actor.Starboard,
 				path?.UsedDirectionsMask ?? 0,
 				actor.MomentumLevel,
-				path?.MinPathApCost ?? MovePathSession.InitialMinPathApCost,
+				path?.MinPathApRemaining ?? actor.Stats.MinPathApCost,
 				path?.PathForwardSteps ?? 0,
 				path?.PathApSpent ?? 0,
 				path?.SpinBraked ?? false,
@@ -47,9 +60,27 @@ internal static class BattleSearchVisit
 			[]);
 	}
 
-	/// <summary>
-	/// Move-preview visit: equivalent states share a cell; dominance uses remaining AP and momentum.
-	/// </summary>
+	public static SearchVisitState ForMove(BattleSimulation sim, string actorId)
+	{
+		var actor = sim.StateOf<ActorState>(actorId);
+		var runtime = sim.RuntimeFor(actorId);
+		var path = runtime.ActivePath;
+		return new SearchVisitState(
+			new MoveSearchState(
+				actor.Position,
+				actor.Fore,
+				actor.Dorsal,
+				actor.Starboard,
+				path?.UsedDirectionsMask ?? 0,
+				actor.MomentumLevel,
+				path?.MinPathApRemaining ?? actor.Stats.MinPathApCost,
+				path?.PathForwardSteps ?? 0,
+				path?.PathApSpent ?? 0,
+				path?.SpinBraked ?? false,
+				actor.ActionPoints),
+			[]);
+	}
+
 	public static SearchVisitState ForMovePreview(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);

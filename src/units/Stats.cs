@@ -1,4 +1,3 @@
-using System;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Units;
@@ -10,6 +9,7 @@ public sealed class Stats
 	public int MaxShieldPointsPerFace { get; init; }
 	public int FlaksPerTurn { get; init; }
 	public int RailgunsPerTurn { get; init; }
+	public int MinPathApCost { get; init; }
 
 	public static Stats ForType(EType type) =>
 		type switch
@@ -21,6 +21,7 @@ public sealed class Stats
 				MaxShieldPointsPerFace = 2,
 				FlaksPerTurn = 1,
 				RailgunsPerTurn = 1,
+				MinPathApCost = 3,
 			},
 			EType.Patrol => new Stats
 			{
@@ -29,6 +30,16 @@ public sealed class Stats
 				MaxShieldPointsPerFace = 2,
 				FlaksPerTurn = 0,
 				RailgunsPerTurn = 1,
+				MinPathApCost = 3,
+			},
+			EType.Torpedo => new Stats
+			{
+				MaxAp = 3,
+				MaxHullPoints = 1,
+				MaxShieldPointsPerFace = 0,
+				FlaksPerTurn = 0,
+				RailgunsPerTurn = 0,
+				MinPathApCost = 1,
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};

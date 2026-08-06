@@ -20,9 +20,7 @@ public sealed class TurnOrchestrationTests
 		var move = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
-
-		var actions = battle.Sim.Actions.ToList();
-		battle.ResolveTurn(actions);
+		battle.ResolveTurn();
 
 		Assert.Equal(origin + Coord.Forward * 3, battle.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
@@ -36,7 +34,7 @@ public sealed class TurnOrchestrationTests
 		var move = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
-		battle.ResolveTurn(battle.Sim.Actions.ToList());
+		battle.ResolveTurn();
 
 		Assert.NotEmpty(BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
 		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath != null);
@@ -52,11 +50,11 @@ public sealed class TurnOrchestrationTests
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 
-		var replay = battle.ResolveTurn(battle.Sim.Actions.ToList());
+		var replay = battle.ResolveTurn();
 
 		Assert.Equal(origin, replay.StartStates[PlayerId].Position);
 		Assert.Equal(origin + Coord.Forward * 3, replay.EndStates[PlayerId].Position);
-		Assert.Contains(replay.AppliedActions, action => action is MoveStepAction);
+		Assert.Contains(replay.Actions, action => action is MoveStepAction);
 	}
 
 	public static Coord EnemyInRailgunLine(Coord playerPos) => playerPos + Coord.Forward * 6;
