@@ -8,7 +8,8 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnTorpedoEffect(ETorpedoMount mount) : IEffect<BattleWorld, ActorRuntime>
+public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = null)
+	: IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
 
@@ -19,7 +20,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount) : IEffect<BattleWorl
 		var torpedo = Factory.Create(
 			new Instance
 			{
-				Id = string.Empty,
+				Id = unitId ?? string.Empty,
 				Type = EType.Torpedo,
 				Controller = firer.Controller,
 			},

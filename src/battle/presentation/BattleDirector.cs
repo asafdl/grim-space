@@ -208,6 +208,9 @@ public sealed class BattleDirector
 		if (!AcceptsInput)
 			return;
 
+		if (_ui.State.TorpedoHover == cell)
+			return;
+
 		_ui.State.TorpedoHover = cell;
 		EmitFrame();
 	}

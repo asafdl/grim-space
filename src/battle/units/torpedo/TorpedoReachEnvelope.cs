@@ -11,14 +11,14 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-internal enum TorpedoTargetClass
+internal enum ETorpedoTargetClass
 {
 	Unreachable = 0,
 	Future = 1,
 	InTrajectory = 2,
 }
 
-internal sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> layers)
+public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> layers)
 {
 	public IReadOnlyList<IReadOnlySet<Coord>> Layers { get; } = layers;
 
@@ -38,18 +38,18 @@ internal sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> la
 		return false;
 	}
 
-	public TorpedoTargetClass Classify(Coord target)
+	internal ETorpedoTargetClass Classify(Coord target)
 	{
 		if (WithinBlast(0, target))
-			return TorpedoTargetClass.InTrajectory;
+			return ETorpedoTargetClass.InTrajectory;
 
 		for (var turn = 1; turn < Count; turn++)
 		{
 			if (WithinBlast(turn, target))
-				return TorpedoTargetClass.Future;
+				return ETorpedoTargetClass.Future;
 		}
 
-		return TorpedoTargetClass.Unreachable;
+		return ETorpedoTargetClass.Unreachable;
 	}
 
 	public int EarliestReachTurn(Coord target)

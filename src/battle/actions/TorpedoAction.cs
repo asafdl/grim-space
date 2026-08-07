@@ -10,7 +10,8 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record TorpedoAction(
 	string ActorId,
-	ETorpedoMount Mount) : IAction<BattleWorld, ActorRuntime>
+	ETorpedoMount Mount,
+	string? SpawnedUnitId = null) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		TorpedoDef.For(Mount);
@@ -67,7 +68,7 @@ public sealed class TorpedoDef(ETorpedoMount mount)
 		BattleWorld world,
 		ActorRuntime runtime) =>
 	[
-		new SpawnTorpedoEffect(action.Mount),
+		new SpawnTorpedoEffect(action.Mount, action.SpawnedUnitId),
 		new TorpedoCooldownEffect(TorpedoConfig.CooldownTurns),
 	];
 

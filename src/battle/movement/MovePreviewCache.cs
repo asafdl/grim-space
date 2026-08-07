@@ -46,7 +46,7 @@ public sealed class MovePreviewCache
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
 			FlakAction flak => $"flak:{flak.ActorId}:{flak.Mount}",
 			RailgunAction railgun => $"railgun:{railgun.ActorId}",
-			TorpedoAction torpedo => $"torpedo:{torpedo.ActorId}:{torpedo.Mount}",
+			TorpedoAction torpedo => $"torpedo:{torpedo.ActorId}:{torpedo.Mount}:{torpedo.SpawnedUnitId}",
 			_ => action.GetType().FullName ?? "action",
 		};
 

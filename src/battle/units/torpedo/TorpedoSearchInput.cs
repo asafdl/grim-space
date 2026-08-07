@@ -23,7 +23,7 @@ internal static class TorpedoSearchInput
 		var envelope = TorpedoReachEnvelope.Build(session, actorId);
 		var actor = session.World.UnitOf(actorId);
 		Unit? best = null;
-		var bestClass = TorpedoTargetClass.Unreachable;
+		var bestClass = ETorpedoTargetClass.Unreachable;
 		var bestTurn = int.MaxValue;
 		var bestDistance = int.MaxValue;
 
@@ -37,7 +37,7 @@ internal static class TorpedoSearchInput
 			}
 
 			var targetClass = envelope.Classify(unit.State.Position);
-			if (targetClass == TorpedoTargetClass.Unreachable)
+			if (targetClass == ETorpedoTargetClass.Unreachable)
 				continue;
 
 			var turn = envelope.EarliestReachTurn(unit.State.Position);

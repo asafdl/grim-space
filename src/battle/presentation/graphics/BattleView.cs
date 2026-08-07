@@ -34,8 +34,10 @@ public partial class BattleView : Node3D
 		IReadOnlyDictionary<string, State> states,
 		Func<string, Color>? colorFor = null)
 	{
+		var keep = new HashSet<string>(states.Count);
 		foreach (var (unitId, state) in states)
 		{
+			keep.Add(unitId);
 			if (!_unitViews.TryGetValue(unitId, out var view))
 			{
 				Ensure(state, colorFor?.Invoke(unitId) ?? Colors.White);
@@ -43,6 +45,15 @@ public partial class BattleView : Node3D
 			}
 
 			view.Sync(state);
+		}
+
+		if (keep.Count == _unitViews.Count)
+			return;
+
+		foreach (var id in _unitViews.Keys.Where(id => !keep.Contains(id)).ToList())
+		{
+			_unitViews[id].QueueFree();
+			_unitViews.Remove(id);
 		}
 	}
 }

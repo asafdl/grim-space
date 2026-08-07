@@ -136,8 +136,8 @@ public sealed class BattleUi
 		var torpedoMountCells = state.Mode == EPlayerMode.Torpedo
 			? TorpedoUi.GetMountCells(Battle)
 			: [];
-		var torpedoPreviewCells = state.Mode == EPlayerMode.Torpedo
-			? TorpedoUi.GetPreviewCells(Battle, state)
+		var torpedoEnvelopeLayers = state.Mode == EPlayerMode.Torpedo
+			? TorpedoUi.GetEnvelopeLayers(Battle, state)
 			: [];
 		var (path, target) = MoveUi.GetPathHighlights(
 			movePaths,
@@ -163,7 +163,7 @@ public sealed class BattleUi
 			RailgunCells = railgunCells,
 			RailgunPreviewCells = railgunPreviewCells,
 			TorpedoMountCells = torpedoMountCells,
-			TorpedoPreviewCells = torpedoPreviewCells,
+			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
 			MovePath = path,
 			MoveTarget = target,
 			HintText = TurnUi.BuildHint(

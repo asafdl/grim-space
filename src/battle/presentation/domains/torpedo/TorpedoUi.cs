@@ -1,13 +1,20 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.World;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Domains.Torpedo;
 
 public static class TorpedoUi
 {
+	private static string? _envelopeCacheKey;
+	private static IReadOnlyList<IReadOnlySet<Coord>> _envelopeCache = [];
+
 	public static bool TryApply(
 		BattleOrchestrator battle,
 		Interaction.InteractionState state,
@@ -20,7 +27,13 @@ public static class TorpedoUi
 		if (MountForCell(battle, cell) is not { } mount)
 			return false;
 
-		var action = new TorpedoAction(battle.PlayerId, mount);
+		var def = TorpedoDef.For(mount);
+		var probe = new TorpedoAction(battle.PlayerId, mount);
+		if (!def.IsLegal(probe, battle.Sim.World, battle.Sim.RuntimeFor(battle.PlayerId)))
+			return false;
+
+		var spawnedId = battle.Sim.World.IdRegistry.NextUnitId(EType.Torpedo);
+		var action = new TorpedoAction(battle.PlayerId, mount, spawnedId);
 		if (!battle.Sim.TryEnqueue(action))
 			return false;
 
@@ -51,17 +64,48 @@ public static class TorpedoUi
 		return cells;
 	}
 
-	public static HashSet<Coord> GetPreviewCells(
+	public static IReadOnlyList<IReadOnlySet<Coord>> GetEnvelopeLayers(
 		BattleOrchestrator battle,
 		Interaction.InteractionState state)
 	{
 		if (state.TorpedoHover is not Coord hover)
 			return [];
 
-		if (MountForCell(battle, hover) is null)
+		if (MountForCell(battle, hover) is not { } mount)
 			return [];
 
-		return [hover];
+		var sim = battle.Sim;
+		var cacheKey =
+			$"{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{mount}";
+		if (_envelopeCacheKey == cacheKey)
+			return _envelopeCache;
+
+		var peek = sim.Peek(new TorpedoAction(battle.PlayerId, mount));
+		if (peek is null)
+		{
+			_envelopeCacheKey = cacheKey;
+			_envelopeCache = [];
+			return _envelopeCache;
+		}
+
+		var existingIds = sim.World.Units.Keys.ToHashSet();
+		var spawned = peek.Value.World.Units
+			.FirstOrDefault(pair =>
+				!existingIds.Contains(pair.Key) && pair.Value.State.Type == EType.Torpedo);
+		if (spawned.Key is null)
+		{
+			_envelopeCacheKey = cacheKey;
+			_envelopeCache = [];
+			return _envelopeCache;
+		}
+
+		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
+		session.Begin(sim.AnchorTick, sim.WorldVersion);
+		var envelope = TorpedoReachEnvelope.Build(session, spawned.Key);
+
+		_envelopeCacheKey = cacheKey;
+		_envelopeCache = envelope.Layers;
+		return _envelopeCache;
 	}
 
 	public static ETorpedoMount? MountForCell(BattleOrchestrator battle, Coord cell)

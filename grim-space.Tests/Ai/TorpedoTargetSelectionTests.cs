@@ -26,8 +26,8 @@ public sealed class TorpedoTargetSelectionTests
 
 		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 
-		Assert.Equal(TorpedoTargetClass.InTrajectory, envelope.Classify(start + Coord.Forward * 2));
-		Assert.Equal(TorpedoTargetClass.Unreachable, envelope.Classify(new Coord(5, 5, 0)));
+		Assert.Equal(ETorpedoTargetClass.InTrajectory, envelope.Classify(start + Coord.Forward * 2));
+		Assert.Equal(ETorpedoTargetClass.Unreachable, envelope.Classify(new Coord(5, 5, 0)));
 	}
 
 	[Fact]
@@ -51,8 +51,8 @@ public sealed class TorpedoTargetSelectionTests
 
 		var session = battle.Engine.CreateSimulation();
 		var envelope = TorpedoReachEnvelope.Build(session, torpedoId);
-		Assert.Equal(TorpedoTargetClass.InTrajectory, envelope.Classify(inTrajectory.State.Position));
-		Assert.Equal(TorpedoTargetClass.Future, envelope.Classify(future.State.Position));
+		Assert.Equal(ETorpedoTargetClass.InTrajectory, envelope.Classify(inTrajectory.State.Position));
+		Assert.Equal(ETorpedoTargetClass.Future, envelope.Classify(future.State.Position));
 
 		var chosen = TorpedoSearchInput.BestReachableOpponent(session, torpedoId);
 		Assert.NotNull(chosen);

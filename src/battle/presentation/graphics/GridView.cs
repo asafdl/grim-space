@@ -29,7 +29,7 @@ public partial class GridView : Node3D
 	private StandardMaterial3D? _flakStarboardMaterial;
 	private StandardMaterial3D? _flakPreviewMaterial;
 	private StandardMaterial3D? _torpedoMountMaterial;
-	private StandardMaterial3D? _torpedoPreviewMaterial;
+	private StandardMaterial3D[]? _torpedoEnvelopeMaterials;
 
 	public void Build(BoundedGrid grid)
 	{
@@ -48,7 +48,12 @@ public partial class GridView : Node3D
 		_flakStarboardMaterial = CreateMaterial(new Color(0.95f, 0.75f, 0.2f, 0.5f));
 		_flakPreviewMaterial = CreateMaterial(new Color(1f, 0.85f, 0.25f, 0.7f));
 		_torpedoMountMaterial = CreateMaterial(new Color(0.2f, 0.75f, 0.85f, 0.55f));
-		_torpedoPreviewMaterial = CreateMaterial(new Color(0.45f, 0.95f, 1f, 0.75f));
+		_torpedoEnvelopeMaterials =
+		[
+			CreateMaterial(new Color(0.15f, 0.85f, 0.95f, 0.42f)),
+			CreateMaterial(new Color(0.12f, 0.55f, 0.75f, 0.28f)),
+			CreateMaterial(new Color(0.10f, 0.35f, 0.55f, 0.18f)),
+		];
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
@@ -85,7 +90,7 @@ public partial class GridView : Node3D
 			case EPlayerMode.Torpedo:
 				SetTorpedoHighlights(
 					frame.TorpedoMountCells,
-					frame.TorpedoPreviewCells);
+					frame.TorpedoEnvelopeLayers);
 				break;
 		}
 	}
@@ -180,23 +185,36 @@ public partial class GridView : Node3D
 
 	public void SetTorpedoHighlights(
 		IReadOnlySet<Coord> mountCells,
-		IReadOnlySet<Coord> previewCells)
+		IReadOnlyList<IReadOnlySet<Coord>> envelopeLayers)
 	{
 		if (!EnsureMaterials())
 			return;
 
 		ReleaseActiveHighlights();
 
-		foreach (var coord in mountCells)
+		for (var layer = envelopeLayers.Count - 1; layer >= 0; layer--)
 		{
-			if (previewCells.Contains(coord))
-				continue;
+			var material = EnvelopeMaterialForLayer(layer);
+			foreach (var coord in envelopeLayers[layer])
+			{
+				if (mountCells.Contains(coord))
+					continue;
 
-			SetCellHighlight(coord, _torpedoMountMaterial!);
+				SetCellHighlight(coord, material);
+			}
 		}
 
-		foreach (var coord in previewCells)
-			SetCellHighlight(coord, _torpedoPreviewMaterial!);
+		foreach (var coord in mountCells)
+			SetCellHighlight(coord, _torpedoMountMaterial!);
+	}
+
+	private StandardMaterial3D EnvelopeMaterialForLayer(int layer)
+	{
+		var materials = _torpedoEnvelopeMaterials!;
+		if (layer < materials.Length)
+			return materials[layer];
+
+		return materials[^1];
 	}
 
 	private bool EnsureMaterials() =>
@@ -212,7 +230,7 @@ public partial class GridView : Node3D
 		&& _flakStarboardMaterial is not null
 		&& _flakPreviewMaterial is not null
 		&& _torpedoMountMaterial is not null
-		&& _torpedoPreviewMaterial is not null;
+		&& _torpedoEnvelopeMaterials is { Length: > 0 };
 
 	private StandardMaterial3D EndpointMaterialForAp(int ap) =>
 		ap switch
