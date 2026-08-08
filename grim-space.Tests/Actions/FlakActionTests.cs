@@ -5,6 +5,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -43,7 +44,7 @@ public sealed class FlakActionTests
 			frame,
 			FlakMountConfig.For(EFlakMount.Starboard),
 			battle.Sim.World.Grid.IsInBounds);
-		var enemy = battle.Sim.World.Units.Values.First(unit => unit.State.Id != PlayerId);
+		var enemy = UnitRegistry.For(battle.Sim.World).All.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = cells.First();
 		var shieldsBefore = TotalShieldPoints(enemy.State);
 

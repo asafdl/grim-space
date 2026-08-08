@@ -6,7 +6,6 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Turn;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
@@ -114,7 +113,7 @@ public sealed class BattleOrchestrator
 	public Unit? GetActiveUnit()
 	{
 		if (ActiveUnitId is not string id
-			|| !_engine.World.Units.TryGetValue(id, out var unit))
+			|| !UnitRegistry.For(_engine.World).TryGet(id, out var unit))
 		{
 			return null;
 		}
@@ -138,7 +137,7 @@ public sealed class BattleOrchestrator
 			IsBattleOver = outcome.IsOver;
 			WinnerId = outcome.WinnerId;
 
-			if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
+			if (UnitRegistry.For(_engine.World).TryGet(PlayerId, out var player) && player.State.IsAlive)
 				BeginTurn();
 
 			return replay;
@@ -159,9 +158,10 @@ public sealed class BattleOrchestrator
 
 		_engine.ActorRuntimes.Reset();
 
-		foreach (var actor in TurnOrder.Living(_engine.World.Units.Values))
+		var units = UnitRegistry.For(_engine.World);
+		for (var node = units.First; node is not null; node = node.Next)
 		{
-			if (!_engine.World.Units.TryGetValue(actor.State.Id, out var live) || !live.State.IsAlive)
+			if (!units.TryGet(node.Value, out var live) || !live.State.IsAlive)
 				continue;
 
 			var planned = await live.ExecutionAgent.GetActionsAsync(live, _engine.CreateSimulation);
@@ -204,7 +204,7 @@ public sealed class BattleOrchestrator
 	private IReadOnlyList<IAction> CommitRoundUpkeep()
 	{
 		var batch = new List<IAction>();
-		foreach (var unitId in _engine.World.Units.Keys)
+		foreach (var unitId in UnitRegistry.For(_engine.World).Ids)
 			batch.Add(new RoundUpkeepAction(unitId));
 		batch.Add(new ClearTurnHazardsAction());
 		return _engine.Commit([..batch]);
@@ -212,16 +212,16 @@ public sealed class BattleOrchestrator
 
 	private void FinalizeRound()
 	{
-		if (_engine.World.Units.TryGetValue(PlayerId, out var player) && player.State.IsAlive)
+		if (UnitRegistry.For(_engine.World).TryGet(PlayerId, out var player) && player.State.IsAlive)
 			SetActiveUnit(player.State.Id);
 	}
 
 	private Dictionary<string, UnitState> SnapshotAll() =>
-		_engine.World.Units.ToDictionary(pair => pair.Key, pair => pair.Value.State.Clone());
+		UnitRegistry.For(_engine.World).All.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
 
 	private BattleOutcome EvaluateBattleOutcome()
 	{
-		var units = _engine.World.Units.Values;
+		var units = UnitRegistry.For(_engine.World).All;
 		var player = units.FirstOrDefault(unit => unit.Controller == EController.Player);
 		var enemy = units.FirstOrDefault(unit => unit.Controller == EController.Enemy);
 

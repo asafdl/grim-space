@@ -17,7 +17,8 @@ public sealed class ResolveHazardEffect(
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_snapshots = new Dictionary<string, UnitCombatSnapshot>();
-		foreach (var unit in world.Units.Values)
+		var units = UnitRegistry.For(world);
+		foreach (var unit in units.All)
 		{
 			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
 				continue;
@@ -32,7 +33,7 @@ public sealed class ResolveHazardEffect(
 			momentumLoss,
 			world.StateOf(actorId).Position,
 			actorId,
-			world.Units.Values.Select(unit => unit.State));
+			units.All.Select(unit => unit.State));
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

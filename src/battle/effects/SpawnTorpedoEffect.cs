@@ -15,7 +15,8 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		var firer = world.UnitOf(actorId);
+		var units = UnitRegistry.For(world);
+		var firer = units.UnitOf(actorId);
 		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer.State, mount);
 		var torpedo = Factory.Create(
 			new Instance
@@ -30,7 +31,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 			fore,
 			dorsal);
 		torpedo.State.FuelRemaining = TorpedoConfig.Fuel;
-		world.MutableUnits[torpedo.State.Id] = torpedo;
+		units.Add(torpedo);
 		_spawned = torpedo;
 	}
 
@@ -39,7 +40,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 		if (_spawned is null)
 			return;
 
-		world.MutableUnits.Remove(_spawned.State.Id);
+		UnitRegistry.For(world).Remove(_spawned.State.Id);
 		_spawned = null;
 	}
 }

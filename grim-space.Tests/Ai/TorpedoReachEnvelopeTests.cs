@@ -4,6 +4,7 @@ using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
 using GrimSpace.Units.Enums;
+using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Tests.Ai;
 
@@ -67,7 +68,7 @@ public sealed class TorpedoReachEnvelopeTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		enemy.State.Position = new Coord(5, 5, 0);
 
 		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
@@ -85,7 +86,7 @@ public sealed class TorpedoReachEnvelopeTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 3;
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		enemy.State.Position = new Coord(1, 1, 1);
 		var farAhead = start + Coord.Forward * 10;
 
@@ -110,7 +111,7 @@ public sealed class TorpedoReachEnvelopeTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		battle.Engine.Commit(new TorpedoAction(PlayerId, ETorpedoMount.Aft));
-		var torpedo = Assert.Single(battle.Engine.World.Units.Values, unit => unit.State.Type == EType.Torpedo);
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
 		return battle;
 	}

@@ -2,6 +2,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
@@ -80,19 +81,10 @@ public static class TorpedoUi
 		if (_envelopeCacheKey == cacheKey)
 			return _envelopeCache;
 
-		var peek = sim.Peek(new TorpedoAction(battle.PlayerId, mount));
-		if (peek is null)
-		{
-			_envelopeCacheKey = cacheKey;
-			_envelopeCache = [];
-			return _envelopeCache;
-		}
-
-		var existingIds = sim.World.Units.Keys.ToHashSet();
-		var spawned = peek.Value.World.Units
-			.FirstOrDefault(pair =>
-				!existingIds.Contains(pair.Key) && pair.Value.State.Type == EType.Torpedo);
-		if (spawned.Key is null)
+		var spawnedId = sim.World.IdRegistry.NextUnitId(EType.Torpedo);
+		var peek = sim.Peek(new TorpedoAction(battle.PlayerId, mount, spawnedId));
+		if (peek is null
+			|| !UnitRegistry.For(peek.Value.World).TryGet(spawnedId, out var spawned))
 		{
 			_envelopeCacheKey = cacheKey;
 			_envelopeCache = [];
@@ -101,7 +93,7 @@ public static class TorpedoUi
 
 		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
 		session.Begin(sim.AnchorTick, sim.WorldVersion);
-		var envelope = TorpedoReachEnvelope.Build(session, spawned.Key);
+		var envelope = TorpedoReachEnvelope.Build(session, spawned.State.Id);
 
 		_envelopeCacheKey = cacheKey;
 		_envelopeCache = envelope.Layers;

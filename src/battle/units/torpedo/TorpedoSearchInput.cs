@@ -21,13 +21,14 @@ internal static class TorpedoSearchInput
 	public static Unit? BestReachableOpponent(BattleSimulation session, string actorId)
 	{
 		var envelope = TorpedoReachEnvelope.Build(session, actorId);
-		var actor = session.World.UnitOf(actorId);
+		var units = UnitRegistry.For(session.World);
+		var actor = units.UnitOf(actorId);
 		Unit? best = null;
 		var bestClass = ETorpedoTargetClass.Unreachable;
 		var bestTurn = int.MaxValue;
 		var bestDistance = int.MaxValue;
 
-		foreach (var unit in session.World.UnitsExcept(actorId))
+		foreach (var unit in units.Except(actorId))
 		{
 			if (!unit.State.IsAlive
 				|| unit.Controller == actor.Controller
@@ -70,7 +71,8 @@ internal static class TorpedoSearchInput
 		int searchStartDepth)
 	{
 		var world = frame.World;
-		if (!world.Units.TryGetValue(actorId, out var unit) || !unit.State.IsAlive)
+		var units = UnitRegistry.For(world);
+		if (!units.TryGet(actorId, out var unit) || !unit.State.IsAlive)
 			return int.MinValue;
 
 		var state = unit.State;
@@ -105,8 +107,9 @@ internal static class TorpedoSearchInput
 
 	private static bool HasAllyInBlast(BattleWorld world, string actorId, Coord origin)
 	{
-		var actor = world.UnitOf(actorId);
-		foreach (var unit in world.UnitsExcept(actorId))
+		var units = UnitRegistry.For(world);
+		var actor = units.UnitOf(actorId);
+		foreach (var unit in units.Except(actorId))
 		{
 			if (!unit.State.IsAlive || unit.Controller != actor.Controller)
 				continue;

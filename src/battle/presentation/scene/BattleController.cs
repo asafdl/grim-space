@@ -8,6 +8,7 @@ using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
@@ -327,7 +328,7 @@ public partial class BattleController : Node3D
 
 	private Color ColorForActor(string actorId)
 	{
-		if (_ui.Battle.Sim.World.Units.TryGetValue(actorId, out var unit))
+		if (UnitRegistry.For(_ui.Battle.Sim.World).TryGet(actorId, out var unit))
 			return ColorFor(unit.Controller);
 
 		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var controller))
@@ -345,14 +346,14 @@ public partial class BattleController : Node3D
 
 	private void ApplyUnitStates(PresentationFrame frame)
 	{
-		var states = frame.PreviewWorld.Units.ToDictionary(
-			pair => pair.Key,
-			pair => pair.Value.State);
+		var states = UnitRegistry.For(frame.PreviewWorld).All.ToDictionary(
+			unit => unit.State.Id,
+			unit => unit.State);
 		_battleView.ApplyUnitStates(states, id => ColorForPreview(frame, id));
 	}
 
 	private Color ColorForPreview(PresentationFrame frame, string actorId) =>
-		frame.PreviewWorld.Units.TryGetValue(actorId, out var unit)
+		UnitRegistry.For(frame.PreviewWorld).TryGet(actorId, out var unit)
 			? ColorFor(unit.Controller)
 			: ColorForActor(actorId);
 

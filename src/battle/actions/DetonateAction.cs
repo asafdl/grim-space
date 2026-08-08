@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -40,7 +41,7 @@ public sealed class DetonateDef
 		Resolve(Cast(action), world, runtime);
 
 	public bool IsPossible(DetonateAction action, BattleWorld world, ActorRuntime runtime) =>
-		world.Units.ContainsKey(action.ActorId);
+		UnitRegistry.For(world).Contains(action.ActorId);
 
 	public bool IsLegal(DetonateAction action, BattleWorld world, ActorRuntime runtime)
 	{
@@ -76,7 +77,7 @@ public sealed class DetonateDef
 
 	public static bool HasUnitInBlast(BattleWorld world, string actorId, Coord origin)
 	{
-		foreach (var unit in world.Units.Values)
+		foreach (var unit in UnitRegistry.For(world).All)
 		{
 			if (unit.State.Id == actorId || !unit.State.IsAlive)
 				continue;

@@ -15,7 +15,7 @@ public sealed class DamageEffect(string targetUnitId, int damage, Coord attackOr
 
 	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		if (!world.Units.TryGetValue(targetUnitId, out var unit))
+		if (!UnitRegistry.For(world).TryGet(targetUnitId, out var unit))
 			return;
 
 		_snapshot = UnitCombatSnapshot.Capture(unit.State);
@@ -28,7 +28,7 @@ public sealed class DamageEffect(string targetUnitId, int damage, Coord attackOr
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		if (!_applied || !world.Units.TryGetValue(targetUnitId, out var unit))
+		if (!_applied || !UnitRegistry.For(world).TryGet(targetUnitId, out var unit))
 			return;
 
 		_snapshot.Restore(unit.State);

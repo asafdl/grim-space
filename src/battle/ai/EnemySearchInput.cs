@@ -95,11 +95,12 @@ internal static class EnemySearchInput
 
 	private static Unit? NearestOpponent(BattleWorld world, string actorId)
 	{
-		var actor = world.UnitOf(actorId);
+		var units = UnitRegistry.For(world);
+		var actor = units.UnitOf(actorId);
 		Unit? nearest = null;
 		var bestDistance = int.MaxValue;
 
-		foreach (var unit in world.UnitsExcept(actorId))
+		foreach (var unit in units.Except(actorId))
 		{
 			if (!unit.State.IsAlive || unit.Controller == actor.Controller)
 				continue;

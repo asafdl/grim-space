@@ -3,6 +3,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -51,7 +52,7 @@ public sealed class DetonateActionTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
-		var enemy = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(0, 1, 0);
 
 		var playerShieldsBefore = TotalShields(battle.Engine.World.StateOf(PlayerId));
@@ -60,7 +61,7 @@ public sealed class DetonateActionTests
 		var sim = battle.Engine.CreateSimulation();
 		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
 
-		Assert.True(sim.World.Units.ContainsKey(torpedoId));
+		Assert.True(UnitRegistry.For(sim.World).Contains(torpedoId));
 		Assert.False(sim.StateOf<ActorState>(torpedoId).IsAlive);
 		Assert.True(TotalShields(sim.StateOf<ActorState>(PlayerId)) < playerShieldsBefore
 			|| sim.StateOf<ActorState>(PlayerId).HullPoints < battle.Engine.World.StateOf(PlayerId).HullPoints);
@@ -74,7 +75,7 @@ public sealed class DetonateActionTests
 		var battle = BattleWithTorpedo(out var torpedoId);
 		PlaceFarFromEveryone(battle, torpedoId);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 0;
-		var torpedo = battle.Engine.World.UnitOf(torpedoId);
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 
 		var actions = await torpedo.ExecutionAgent.GetActionsAsync(torpedo, battle.Engine.CreateSimulation);
 
@@ -91,7 +92,7 @@ public sealed class DetonateActionTests
 		battle.Engine.World.StateOf(torpedoId).ActionPoints = 0;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
-		var torpedo = battle.Engine.World.UnitOf(torpedoId);
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 
 		var actions = await torpedo.ExecutionAgent.GetActionsAsync(torpedo, battle.Engine.CreateSimulation);
 
@@ -110,7 +111,7 @@ public sealed class DetonateActionTests
 		var replay = battle.ResolveTurn();
 
 		Assert.Contains(replay.Actions, action => action is DetonateAction);
-		Assert.True(battle.Engine.World.Units.ContainsKey(torpedoId));
+		Assert.True(UnitRegistry.For(battle.Engine.World).Contains(torpedoId));
 		Assert.False(battle.Engine.World.StateOf(torpedoId).IsAlive);
 	}
 
@@ -119,7 +120,7 @@ public sealed class DetonateActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		battle.Engine.Commit(new TorpedoAction(PlayerId, ETorpedoMount.Aft));
-		var torpedo = Assert.Single(battle.Engine.World.Units.Values, unit => unit.State.Type == EType.Torpedo);
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
 		battle.BeginTurn();
 		return battle;
@@ -129,7 +130,7 @@ public sealed class DetonateActionTests
 	{
 		battle.Engine.World.StateOf(torpedoId).Position = new Coord(10, 10, 10);
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(1, 1, 1);
-		var enemy = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		enemy.State.Position = new Coord(0, 0, 0);
 	}
 

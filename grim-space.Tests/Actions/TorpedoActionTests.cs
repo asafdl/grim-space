@@ -23,7 +23,7 @@ public sealed class TorpedoActionTests
 		var ship = battle.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(TorpedoConfig.CooldownTurns, ship.TorpedoCooldownRemaining);
 
-		var torpedo = Assert.Single(battle.Sim.World.Units.Values, unit => unit.State.Type == EType.Torpedo);
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
 		Assert.Equal(TorpedoConfig.SpawnMomentum, torpedo.State.MomentumLevel);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
@@ -70,7 +70,10 @@ public sealed class TorpedoActionTests
 
 		var replay = battle.ResolveTurn();
 
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);
-		Assert.Contains(battle.Engine.World.Units.Values, unit => unit.State.Type == EType.Torpedo);
+		Assert.Contains(
+			replay.Actions,
+			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
 	}
 }

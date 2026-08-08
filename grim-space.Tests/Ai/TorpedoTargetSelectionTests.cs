@@ -41,13 +41,13 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var inTrajectory = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var inTrajectory = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		inTrajectory.State.Position = start + Coord.Forward * 2;
 
 		var future = Factory.Create(
 			new Instance { Id = "future", Type = EType.Patrol, Controller = EController.Enemy },
 			start + Coord.Forward * 10);
-		battle.Engine.World.MutableUnits[future.State.Id] = future;
+		UnitRegistry.For(battle.Engine.World).Add(future);
 
 		var session = battle.Engine.CreateSimulation();
 		var envelope = TorpedoReachEnvelope.Build(session, torpedoId);
@@ -70,13 +70,13 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		ahead.State.Position = start + Coord.Forward * 2;
 
 		var behind = Factory.Create(
 			new Instance { Id = "behind", Type = EType.Patrol, Controller = EController.Enemy },
 			new Coord(5, 5, 0));
-		battle.Engine.World.MutableUnits[behind.State.Id] = behind;
+		UnitRegistry.For(battle.Engine.World).Add(behind);
 
 		var chosen = TorpedoSearchInput.BestReachableOpponent(battle.Engine.CreateSimulation(), torpedoId);
 		Assert.NotNull(chosen);
@@ -93,15 +93,15 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = battle.Engine.World.Units.Values.First(unit => unit.Controller == EController.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
 		ahead.State.Position = torpedoPos + Coord.Forward * 6;
 
 		var behind = Factory.Create(
 			new Instance { Id = "behind", Type = EType.Patrol, Controller = EController.Enemy },
 			torpedoPos + Coord.Forward * -2);
-		battle.Engine.World.MutableUnits[behind.State.Id] = behind;
+		UnitRegistry.For(battle.Engine.World).Add(behind);
 
-		var torpedo = battle.Engine.World.UnitOf(torpedoId);
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var session = battle.Engine.CreateSimulation();
 		TorpedoExecutionAgent.Instance.Plan(torpedo, session);
 
@@ -123,7 +123,7 @@ public sealed class TorpedoTargetSelectionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		battle.Engine.Commit(new TorpedoAction(PlayerId, ETorpedoMount.Aft));
-		var torpedo = Assert.Single(battle.Engine.World.Units.Values, unit => unit.State.Type == EType.Torpedo);
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
 		return battle;
 	}
