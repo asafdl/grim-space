@@ -5,6 +5,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -23,6 +24,7 @@ public sealed class BattleOrchestrator
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
 	private readonly string _opponentId;
 	private readonly HumanExecutionAgent _playerAgent;
+	private readonly Manager _objectives;
 
 	private bool _resolveInProgress;
 
@@ -31,13 +33,15 @@ public sealed class BattleOrchestrator
 		BattleLayout layout,
 		string playerId,
 		string opponentId,
-		HumanExecutionAgent playerAgent)
+		HumanExecutionAgent playerAgent,
+		EObjective objective)
 	{
 		_engine = engine;
 		Layout = layout;
 		PlayerId = playerId;
 		_opponentId = opponentId;
 		_playerAgent = playerAgent;
+		_objectives = new Manager(objective);
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
@@ -46,8 +50,8 @@ public sealed class BattleOrchestrator
 	public BattleSimulation Sim => _playerAgent.Sim;
 	public string PlayerId { get; }
 	public string OpponentId => _opponentId;
-	public bool IsBattleOver { get; private set; }
-	public string? WinnerId { get; private set; }
+	public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
+	public bool IsBattleOver => Outcome.IsOver;
 	public int TurnNumber => _engine.Tick;
 	public string? ActiveUnitId { get; private set; }
 
@@ -94,7 +98,13 @@ public sealed class BattleOrchestrator
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var playerAgent = (HumanExecutionAgent)player.ExecutionAgent;
-		var orchestrator = new BattleOrchestrator(engine, layout, player.State.Id, opponentId, playerAgent);
+		var orchestrator = new BattleOrchestrator(
+			engine,
+			layout,
+			player.State.Id,
+			opponentId,
+			playerAgent,
+			encounter.Objective);
 
 		orchestrator.SetActiveUnit(player.State.Id);
 		orchestrator.BeginTurn();
@@ -133,9 +143,7 @@ public sealed class BattleOrchestrator
 		try
 		{
 			var replay = await ExecuteTurnAsync();
-			var outcome = EvaluateBattleOutcome();
-			IsBattleOver = outcome.IsOver;
-			WinnerId = outcome.WinnerId;
+			Outcome = _objectives.Evaluate(_engine.World, PlayerId);
 
 			if (UnitRegistry.For(_engine.World).TryGet(PlayerId, out var player) && player.State.IsAlive)
 				BeginTurn();
@@ -218,21 +226,4 @@ public sealed class BattleOrchestrator
 
 	private Dictionary<string, UnitState> SnapshotAll() =>
 		UnitRegistry.For(_engine.World).All.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
-
-	private BattleOutcome EvaluateBattleOutcome()
-	{
-		var units = UnitRegistry.For(_engine.World).All;
-		var player = units.FirstOrDefault(unit => unit.Alliance.Team == ETeam.Player);
-		var enemy = units.FirstOrDefault(unit => unit.Alliance.Team == ETeam.Enemy);
-
-		if (enemy is not null && !enemy.State.IsAlive)
-			return new BattleOutcome(true, player?.State.Id);
-
-		if (player is not null && !player.State.IsAlive)
-			return new BattleOutcome(true, enemy?.State.Id);
-
-		return new BattleOutcome(false, null);
-	}
-
-	private readonly record struct BattleOutcome(bool IsOver, string? WinnerId);
 }

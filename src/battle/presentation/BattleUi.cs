@@ -180,7 +180,7 @@ public sealed class BattleUi
 			TorpedoAvailable = TorpedoConfig.EnabledMounts
 				.Any(mount => Battle.Sim.Peek(new TorpedoAction(Battle.PlayerId, mount)) is not null),
 			ShowOutcomeOverlay = Battle.IsBattleOver,
-			PlayerWon = Battle.IsBattleOver && Battle.WinnerId == Battle.PlayerId,
+			Outcome = Battle.Outcome.Result,
 		};
 	}
 }

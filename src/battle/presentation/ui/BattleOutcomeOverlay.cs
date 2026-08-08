@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Objectives;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -16,7 +17,14 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		Visible = false;
 	}
 
-	public void SetOutcome(bool playerWon) => _title.Text = playerWon ? "You Win!" : "You Lose";
+	public void SetOutcome(EBattleResult result) =>
+		_title.Text = result switch
+		{
+			EBattleResult.Win => "You Win!",
+			EBattleResult.Lose => "You Lose",
+			EBattleResult.Tie => "Draw",
+			_ => "Battle Over",
+		};
 
 	private void Build()
 	{

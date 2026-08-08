@@ -37,7 +37,7 @@ public partial class BattleHud : Node
 
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
-			OutcomeOverlay.SetOutcome(frame.PlayerWon);
+			OutcomeOverlay.SetOutcome(frame.Outcome);
 
 		ActionBar.Visible = !frame.ShowOutcomeOverlay;
 		if (!frame.ShowOutcomeOverlay)

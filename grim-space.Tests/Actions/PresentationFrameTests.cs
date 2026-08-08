@@ -141,6 +141,7 @@ public sealed class PresentationFrameTests
 		var encounter = new Encounter
 		{
 			Seed = 1,
+			Objective = EObjective.EliminateOpponents,
 			Spawns =
 			[
 				new Spawn

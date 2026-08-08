@@ -40,7 +40,7 @@ public static class TurnUi
 			return "No active unit  |  WASD: pan  |  R/F: reset/focus camera  |  scroll/+/-: zoom  |  RMB: orbit  |  MMB: drag pan";
 
 		var turnPrefix = battle.IsBattleOver
-			? $"Battle over — winner: {battle.WinnerId}  |  "
+			? $"Battle over — {battle.Outcome.Result}  |  "
 			: $"Turn {battle.TurnNumber}  |  ";
 
 		return turnPrefix + CombatHints.BuildHint(

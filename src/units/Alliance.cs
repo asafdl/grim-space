@@ -12,6 +12,8 @@ public sealed class Alliance
 	public required ETeam Team { get; init; }
 	public required IReadOnlySet<ETeam> AlliedTo { get; init; }
 
-	public bool IsAlliedWith(Alliance other) =>
-		Team == other.Team || AlliedTo.Contains(other.Team);
+	public bool IsAlliedWith(ETeam team) =>
+		Team == team || AlliedTo.Contains(team);
+
+	public bool IsAlliedWith(Alliance other) => IsAlliedWith(other.Team);
 }

@@ -10,6 +10,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Core;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -44,7 +45,13 @@ internal static class BattleTestFixture
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var playerAgent = (HumanExecutionAgent)player.ExecutionAgent;
-		var battle = new BattleOrchestrator(engine, layout, player.State.Id, enemy.State.Id, playerAgent);
+		var battle = new BattleOrchestrator(
+			engine,
+			layout,
+			player.State.Id,
+			enemy.State.Id,
+			playerAgent,
+			EObjective.EliminateOpponents);
 		battle.SetActiveUnit(player.State.Id);
 		battle.BeginTurn();
 		return battle;

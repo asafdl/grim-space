@@ -1,5 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
@@ -30,5 +31,5 @@ public sealed class PresentationFrame
 	public bool RailgunAvailable { get; init; }
 	public bool TorpedoAvailable { get; init; }
 	public bool ShowOutcomeOverlay { get; init; }
-	public bool PlayerWon { get; init; }
+	public EBattleResult Outcome { get; init; }
 }

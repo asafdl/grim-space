@@ -10,6 +10,7 @@ public sealed class Encounter
 {
 	public required int Seed { get; init; }
 	public required IReadOnlyList<Spawn> Spawns { get; init; }
+	public required EObjective Objective { get; init; }
 	public IReadOnlyList<WorldHazardSpawn> WorldHazards { get; init; } = [];
 
 	public static Encounter DevDefault(int seed = 42, int gridSize = 64)
@@ -35,6 +36,7 @@ public sealed class Encounter
 		{
 			Seed = seed,
 			Spawns = spawns,
+			Objective = EObjective.EliminateOpponents,
 			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
 			{
 				Seed = seed,
