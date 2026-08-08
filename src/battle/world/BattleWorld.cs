@@ -3,7 +3,6 @@ using GrimSpace.Core;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.World;
@@ -41,20 +40,12 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			if (!unit.State.IsAlive || !cellSet.Contains(unit.State.Position))
 				continue;
 
-			yield return new UnitInArea(unit, RelationTo(actor, unit));
+			yield return new UnitInArea(unit, actor.RelationTo(unit));
 		}
 	}
 
 	public bool AnyOpponentInCells(string actorId, IEnumerable<Coord> cells) =>
 		UnitsInCells(actorId, cells).Any(entry => entry.Relation == EUnitRelation.Opponent);
-
-	private static EUnitRelation RelationTo(Unit actor, Unit unit)
-	{
-		if (unit.State.Id == actor.State.Id)
-			return EUnitRelation.Self;
-
-		return unit.Controller == actor.Controller ? EUnitRelation.Ally : EUnitRelation.Opponent;
-	}
 
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
@@ -164,16 +155,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		return board;
 	}
 
-	private static Unit CloneForSnapshot(Unit unit)
-	{
-		var cloned = unit.State.Clone();
-		return unit.Controller switch
-		{
-			EController.Player => new Units.Player(cloned, unit.ExecutionAgent),
-			EController.Enemy => new EnemyUnit(cloned, unit.ExecutionAgent),
-			_ => throw new ArgumentOutOfRangeException(nameof(unit)),
-		};
-	}
+	private static Unit CloneForSnapshot(Unit unit) =>
+		new(unit.Alliance, unit.State.Clone(), unit.ExecutionAgent);
 
 	public BattleWorld Fork()
 	{

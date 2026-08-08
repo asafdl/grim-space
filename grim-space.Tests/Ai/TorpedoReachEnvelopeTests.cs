@@ -68,7 +68,7 @@ public sealed class TorpedoReachEnvelopeTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(5, 5, 0);
 
 		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
@@ -86,7 +86,7 @@ public sealed class TorpedoReachEnvelopeTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 3;
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(1, 1, 1);
 		var farAhead = start + Coord.Forward * 10;
 

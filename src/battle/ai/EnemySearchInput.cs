@@ -102,7 +102,7 @@ internal static class EnemySearchInput
 
 		foreach (var unit in units.Except(actorId))
 		{
-			if (!unit.State.IsAlive || unit.Controller == actor.Controller)
+			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Opponent)
 				continue;
 
 			var distance = actor.State.Position.ManhattanDistanceTo(unit.State.Position);

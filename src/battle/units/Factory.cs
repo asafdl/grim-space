@@ -32,10 +32,10 @@ public static class Factory
 		{
 			Id = id,
 			Type = instance.Type,
-			Controller = instance.Controller,
+			Alliance = instance.Alliance,
 		}, position, fore, dorsal);
 		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
-		return ShellFor(instance.Controller, state, ExecutionAgentFor(instance.Type, instance.Controller));
+		return new Unit(instance.Alliance, state, ExecutionAgentFor(instance));
 	}
 
 	private static string ResolveId(Instance instance, UnitIdRegistry? ids)
@@ -52,21 +52,8 @@ public static class Factory
 		return ids.NextUnitId(instance.Type);
 	}
 
-	private static IExecutionAgent<BattleWorld, ActorRuntime, Unit> ExecutionAgentFor(
-		EType type,
-		EController controller) =>
-		type == EType.Torpedo ? TorpedoExecutionAgent.Instance
-		: controller == EController.Enemy ? AiController.Instance
-		: new HumanExecutionAgent();
-
-	private static Unit ShellFor(
-		EController controller,
-		State state,
-		IExecutionAgent<BattleWorld, ActorRuntime, Unit> executionAgent) =>
-		controller switch
-		{
-			EController.Player => new Player(state, executionAgent),
-			EController.Enemy => new EnemyUnit(state, executionAgent),
-			_ => throw new ArgumentOutOfRangeException(nameof(controller)),
-		};
+	private static IExecutionAgent<BattleWorld, ActorRuntime, Unit> ExecutionAgentFor(Instance instance) =>
+		instance.Type == EType.Torpedo ? TorpedoExecutionAgent.Instance
+		: instance.Alliance.Team == ETeam.Player ? new HumanExecutionAgent()
+		: AiController.Instance;
 }

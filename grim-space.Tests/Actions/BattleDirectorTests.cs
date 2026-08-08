@@ -148,7 +148,7 @@ public sealed class BattleDirectorTests
 					{
 						Id = "player",
 						Type = EType.Fighter,
-						Controller = EController.Player,
+						Alliance = Alliance.Player,
 					},
 					Position = playerPos,
 				},
@@ -158,7 +158,7 @@ public sealed class BattleDirectorTests
 					{
 						Id = "enemy",
 						Type = EType.Fighter,
-						Controller = EController.Enemy,
+						Alliance = Alliance.Enemy,
 					},
 					Position = enemyPos,
 				},

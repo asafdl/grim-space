@@ -86,18 +86,10 @@ public sealed class UnitRegistry
 	{
 		var unit = _units[unitId];
 		return unit.State.Type == EType.Torpedo ? 2
-			: unit.Controller == EController.Player ? 0
+			: unit.Alliance.Team == ETeam.Player ? 0
 			: 1;
 	}
 
-	private static Unit CloneUnit(Unit unit)
-	{
-		var cloned = unit.State.Clone();
-		return unit.Controller switch
-		{
-			EController.Player => new Player(cloned, unit.ExecutionAgent),
-			EController.Enemy => new EnemyUnit(cloned, unit.ExecutionAgent),
-			_ => throw new ArgumentOutOfRangeException(nameof(unit)),
-		};
-	}
+	private static Unit CloneUnit(Unit unit) =>
+		new(unit.Alliance, unit.State.Clone(), unit.ExecutionAgent);
 }

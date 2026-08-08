@@ -52,7 +52,7 @@ public sealed class DetonateActionTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(0, 1, 0);
 
 		var playerShieldsBefore = TotalShields(battle.Engine.World.StateOf(PlayerId));
@@ -130,7 +130,7 @@ public sealed class DetonateActionTests
 	{
 		battle.Engine.World.StateOf(torpedoId).Position = new Coord(10, 10, 10);
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(1, 1, 1);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(0, 0, 0);
 	}
 

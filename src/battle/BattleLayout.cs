@@ -12,12 +12,12 @@ public sealed class BattleLayout
 {
 	public BoundedGrid Grid { get; }
 	public IReadOnlyList<Hazard> TerrainHazards { get; }
-	public IReadOnlyDictionary<string, EController> Participants { get; }
+	public IReadOnlyDictionary<string, ETeam> Participants { get; }
 
 	public BattleLayout(
 		BoundedGrid grid,
 		IReadOnlyList<Hazard> terrainHazards,
-		IReadOnlyDictionary<string, EController> participants)
+		IReadOnlyDictionary<string, ETeam> participants)
 	{
 		Grid = grid;
 		TerrainHazards = terrainHazards;
@@ -31,5 +31,5 @@ public sealed class BattleLayout
 		new(
 			grid,
 			terrainHazards.ToList(),
-			units.ToDictionary(unit => unit.State.Id, unit => unit.Controller));
+			units.ToDictionary(unit => unit.State.Id, unit => unit.Alliance.Team));
 }

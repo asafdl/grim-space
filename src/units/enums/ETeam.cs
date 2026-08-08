@@ -1,6 +1,6 @@
 namespace GrimSpace.Units.Enums;
 
-public enum EController
+public enum ETeam
 {
 	Player,
 	Enemy,

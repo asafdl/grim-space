@@ -31,7 +31,7 @@ internal static class TorpedoSearchInput
 		foreach (var unit in units.Except(actorId))
 		{
 			if (!unit.State.IsAlive
-				|| unit.Controller == actor.Controller
+				|| actor.RelationTo(unit) != EUnitRelation.Opponent
 				|| unit.State.Type == EType.Torpedo)
 			{
 				continue;
@@ -111,7 +111,7 @@ internal static class TorpedoSearchInput
 		var actor = units.UnitOf(actorId);
 		foreach (var unit in units.Except(actorId))
 		{
-			if (!unit.State.IsAlive || unit.Controller != actor.Controller)
+			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Ally)
 				continue;
 			if (origin.ManhattanDistanceTo(unit.State.Position) <= TorpedoConfig.BlastRadius)
 				return true;

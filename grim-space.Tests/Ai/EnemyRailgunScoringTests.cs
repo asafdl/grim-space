@@ -15,8 +15,8 @@ public sealed class EnemyRailgunScoringTests
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
-		var player = CreateUnit(EController.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
-		var enemy = CreateUnit(EController.Enemy, "enemy", enemyPos, EType.Patrol, new Coord(-1, 0, 0), Coord.Up);
+		var player = CreateUnit(Alliance.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
+		var enemy = CreateUnit(Alliance.Enemy, "enemy", enemyPos, EType.Patrol, new Coord(-1, 0, 0), Coord.Up);
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
@@ -31,8 +31,8 @@ public sealed class EnemyRailgunScoringTests
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
-		var player = CreateUnit(EController.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
-		var enemy = CreateUnit(EController.Enemy, "enemy", enemyPos, EType.Patrol, Coord.Forward, Coord.Up);
+		var player = CreateUnit(Alliance.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
+		var enemy = CreateUnit(Alliance.Enemy, "enemy", enemyPos, EType.Patrol, Coord.Forward, Coord.Up);
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
@@ -47,8 +47,8 @@ public sealed class EnemyRailgunScoringTests
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
-		var player = CreateUnit(EController.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
-		var enemy = CreateUnit(EController.Enemy, "enemy", enemyPos, EType.Patrol, Coord.Forward, Coord.Up);
+		var player = CreateUnit(Alliance.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
+		var enemy = CreateUnit(Alliance.Enemy, "enemy", enemyPos, EType.Patrol, Coord.Forward, Coord.Up);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
@@ -62,9 +62,9 @@ public sealed class EnemyRailgunScoringTests
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
-		var player = CreateUnit(EController.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
+		var player = CreateUnit(Alliance.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(
-			EController.Enemy,
+			Alliance.Enemy,
 			"enemy",
 			enemyPos,
 			EType.Patrol,
@@ -80,14 +80,19 @@ public sealed class EnemyRailgunScoringTests
 	}
 
 	private static Unit CreateUnit(
-		EController controller,
+		Alliance alliance,
 		string id,
 		Coord position,
 		EType type,
 		Coord fore,
 		Coord dorsal) =>
 		Factory.Create(
-			new Instance { Id = id, Type = type, Controller = controller },
+			new Instance
+			{
+				Id = id,
+				Type = type,
+				Alliance = alliance,
+			},
 			position,
 			null,
 			0,

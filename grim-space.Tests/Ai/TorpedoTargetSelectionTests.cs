@@ -41,11 +41,16 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var inTrajectory = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var inTrajectory = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		inTrajectory.State.Position = start + Coord.Forward * 2;
 
 		var future = Factory.Create(
-			new Instance { Id = "future", Type = EType.Patrol, Controller = EController.Enemy },
+			new Instance
+			{
+				Id = "future",
+				Type = EType.Patrol,
+				Alliance = Alliance.Enemy,
+			},
 			start + Coord.Forward * 10);
 		UnitRegistry.For(battle.Engine.World).Add(future);
 
@@ -70,11 +75,16 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		ahead.State.Position = start + Coord.Forward * 2;
 
 		var behind = Factory.Create(
-			new Instance { Id = "behind", Type = EType.Patrol, Controller = EController.Enemy },
+			new Instance
+			{
+				Id = "behind",
+				Type = EType.Patrol,
+				Alliance = Alliance.Enemy,
+			},
 			new Coord(5, 5, 0));
 		UnitRegistry.For(battle.Engine.World).Add(behind);
 
@@ -93,11 +103,16 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Controller == EController.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		ahead.State.Position = torpedoPos + Coord.Forward * 6;
 
 		var behind = Factory.Create(
-			new Instance { Id = "behind", Type = EType.Patrol, Controller = EController.Enemy },
+			new Instance
+			{
+				Id = "behind",
+				Type = EType.Patrol,
+				Alliance = Alliance.Enemy,
+			},
 			torpedoPos + Coord.Forward * -2);
 		UnitRegistry.For(battle.Engine.World).Add(behind);
 

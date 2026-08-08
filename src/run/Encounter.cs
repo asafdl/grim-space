@@ -18,13 +18,13 @@ public sealed class Encounter
 		{
 			Id = "player",
 			Type = EType.Fighter,
-			Controller = EController.Player,
+			Alliance = Alliance.Player,
 		};
 		var enemy = new Instance
 		{
 			Id = "enemy",
 			Type = EType.Patrol,
-			Controller = EController.Enemy,
+			Alliance = Alliance.Enemy,
 		};
 
 		var (playerSpawn, enemySpawn) = DeploymentPlacement.DevDuel(

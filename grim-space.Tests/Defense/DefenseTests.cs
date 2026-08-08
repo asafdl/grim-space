@@ -13,7 +13,12 @@ public sealed class HitFaceTests
 		BodyFrame.From(MakeState(position));
 
 	private static State MakeState(Coord position) =>
-		State.FromSpawn(new Instance { Id = "test", Type = EType.Fighter }, position);
+		State.FromSpawn(new Instance
+		{
+			Id = "test",
+			Type = EType.Fighter,
+			Alliance = Alliance.Player,
+		}, position);
 
 	[Theory]
 	[InlineData(1, 0, 0, ESpatialOrientation.Starboard)]
@@ -74,7 +79,12 @@ public sealed class HitFaceTests
 public sealed class ApplyDamageTests
 {
 	private static State FreshUnit() =>
-		State.FromSpawn(new Instance { Id = "test", Type = EType.Fighter }, Coord.Zero);
+		State.FromSpawn(new Instance
+		{
+			Id = "test",
+			Type = EType.Fighter,
+			Alliance = Alliance.Player,
+		}, Coord.Zero);
 
 	[Fact]
 	public void OneDamageOnFullFace_ReducesShieldOnly()

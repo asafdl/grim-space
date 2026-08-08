@@ -82,8 +82,8 @@ public sealed class BattleOrchestrator
 				spawn.Dorsal))
 			.ToArray();
 
-		var player = units.First(unit => unit.Controller == EController.Player);
-		var opponentId = units.First(unit => unit.Controller == EController.Enemy).State.Id;
+		var player = units.First(unit => unit.Alliance.Team == ETeam.Player);
+		var opponentId = units.First(unit => unit.Alliance.Team == ETeam.Enemy).State.Id;
 		var world = BattleWorld.FromLive(units, nonUnits, grid, blockedCells, timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
@@ -222,8 +222,8 @@ public sealed class BattleOrchestrator
 	private BattleOutcome EvaluateBattleOutcome()
 	{
 		var units = UnitRegistry.For(_engine.World).All;
-		var player = units.FirstOrDefault(unit => unit.Controller == EController.Player);
-		var enemy = units.FirstOrDefault(unit => unit.Controller == EController.Enemy);
+		var player = units.FirstOrDefault(unit => unit.Alliance.Team == ETeam.Player);
+		var enemy = units.FirstOrDefault(unit => unit.Alliance.Team == ETeam.Enemy);
 
 		if (enemy is not null && !enemy.State.IsAlive)
 			return new BattleOutcome(true, player?.State.Id);

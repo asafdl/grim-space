@@ -55,7 +55,7 @@ public sealed class TorpedoDef(ETorpedoMount mount)
 	public bool IsLegal(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var firer = UnitRegistry.For(world).UnitOf(action.ActorId);
-		if (firer.Controller != EController.Player)
+		if (firer.Alliance.Team != ETeam.Player)
 			return false;
 		if (firer.State.TorpedoCooldownRemaining > 0)
 			return false;

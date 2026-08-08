@@ -71,10 +71,10 @@ internal static class BattleTestFixture
 		Coord position,
 		int momentum = 0,
 		int actionPoints = 4) =>
-		WithAp(Create(EController.Player, "player", position, momentum), actionPoints);
+		WithAp(Create(Alliance.Player, "player", position, momentum), actionPoints);
 
 	public static Unit Enemy(Coord position, int momentum = 0) =>
-		Create(EController.Enemy, "enemy", position, momentum);
+		Create(Alliance.Enemy, "enemy", position, momentum);
 
 	public static MovePathSession Path(string actorId, Coord origin, int pathApSpent, params Coord[] deltas)
 	{
@@ -104,13 +104,13 @@ internal static class BattleTestFixture
 		int pathApSpent = 0) =>
 		Path(actorId, origin, pathApSpent, Enumerable.Repeat(Coord.Forward, steps).ToArray());
 
-	private static Unit Create(EController controller, string id, Coord position, int momentum)
+	private static Unit Create(Alliance alliance, string id, Coord position, int momentum)
 	{
 		var instance = new Instance
 		{
 			Id = id,
 			Type = EType.Fighter,
-			Controller = controller,
+			Alliance = alliance,
 		};
 
 		return Factory.Create(instance, position, initialMomentum: momentum);

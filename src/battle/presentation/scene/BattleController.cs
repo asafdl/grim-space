@@ -329,10 +329,10 @@ public partial class BattleController : Node3D
 	private Color ColorForActor(string actorId)
 	{
 		if (UnitRegistry.For(_ui.Battle.Sim.World).TryGet(actorId, out var unit))
-			return ColorFor(unit.Controller);
+			return ColorFor(unit.Alliance.Team);
 
-		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var controller))
-			return ColorFor(controller);
+		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var team))
+			return ColorFor(team);
 
 		return Colors.White;
 	}
@@ -354,7 +354,7 @@ public partial class BattleController : Node3D
 
 	private Color ColorForPreview(PresentationFrame frame, string actorId) =>
 		UnitRegistry.For(frame.PreviewWorld).TryGet(actorId, out var unit)
-			? ColorFor(unit.Controller)
+			? ColorFor(unit.Alliance.Team)
 			: ColorForActor(actorId);
 
 	private void ResetBattle()
@@ -363,11 +363,11 @@ public partial class BattleController : Node3D
 		GetTree().ReloadCurrentScene();
 	}
 
-	private static Color ColorFor(EController controller) =>
-		controller switch
+	private static Color ColorFor(ETeam team) =>
+		team switch
 		{
-			EController.Player => new Color(0.25f, 0.85f, 0.35f),
-			EController.Enemy => new Color(0.9f, 0.25f, 0.2f),
+			ETeam.Player => new Color(0.25f, 0.85f, 0.35f),
+			ETeam.Enemy => new Color(0.9f, 0.25f, 0.2f),
 			_ => Colors.White,
 		};
 }

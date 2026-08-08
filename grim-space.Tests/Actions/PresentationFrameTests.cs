@@ -149,7 +149,7 @@ public sealed class PresentationFrameTests
 					{
 						Id = "player",
 						Type = EType.Fighter,
-						Controller = EController.Player,
+						Alliance = Alliance.Player,
 					},
 					Position = playerPos,
 				},
@@ -159,7 +159,7 @@ public sealed class PresentationFrameTests
 					{
 						Id = "enemy",
 						Type = EType.Fighter,
-						Controller = EController.Enemy,
+						Alliance = Alliance.Enemy,
 					},
 					Position = enemyPos,
 				},

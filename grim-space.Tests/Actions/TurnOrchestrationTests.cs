@@ -72,7 +72,7 @@ public sealed class TurnOrchestrationTests
 					{
 						Id = "player",
 						Type = EType.Fighter,
-						Controller = EController.Player,
+						Alliance = Alliance.Player,
 					},
 					Position = playerPos,
 				},
@@ -82,7 +82,7 @@ public sealed class TurnOrchestrationTests
 					{
 						Id = "enemy",
 						Type = EType.Fighter,
-						Controller = EController.Enemy,
+						Alliance = Alliance.Enemy,
 					},
 					Position = enemyPos,
 				},

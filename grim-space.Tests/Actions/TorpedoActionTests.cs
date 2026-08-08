@@ -28,7 +28,7 @@ public sealed class TorpedoActionTests
 		Assert.Equal(TorpedoConfig.SpawnMomentum, torpedo.State.MomentumLevel);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
-		Assert.Equal(EController.Player, torpedo.Controller);
+		Assert.Equal(ETeam.Player, torpedo.Alliance.Team);
 	}
 
 	[Fact]

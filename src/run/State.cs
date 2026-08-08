@@ -16,7 +16,7 @@ public sealed class State
 		{
 			Id = "player",
 			Type = EType.Fighter,
-			Controller = EController.Player,
+			Alliance = Alliance.Player,
 		});
 		return run;
 	}

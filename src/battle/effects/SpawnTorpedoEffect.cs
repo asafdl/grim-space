@@ -23,7 +23,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 			{
 				Id = unitId ?? string.Empty,
 				Type = EType.Torpedo,
-				Controller = firer.Controller,
+				Alliance = firer.Alliance,
 			},
 			position,
 			world.IdRegistry,
