@@ -6,4 +6,5 @@ public enum EHazardKind
 	FlakBurst,
 	RailgunBurst,
 	TorpedoBlast,
+	Asteroid,
 }

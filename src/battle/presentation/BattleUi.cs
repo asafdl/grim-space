@@ -121,7 +121,10 @@ public sealed class BattleUi
 	{
 		var state = State;
 		var activeUnit = GetPlanningActor();
-		var movePaths = acceptsCommands && activeUnit is not null && Battle.CanAct(activeUnit)
+		var canAct = activeUnit is not null && Battle.CanAct(activeUnit);
+		var weaponQueued = Battle.Sim.Actions.Any(static action =>
+			action is FlakAction or RailgunAction or TorpedoAction);
+		var movePaths = acceptsCommands && canAct
 			? MoveUi.GetMovePaths(Battle.Sim, Battle.PlayerId, Battle.Sim.Actions)
 			: [];
 		state.ClampMoveHover(movePaths.Count);
@@ -159,6 +162,19 @@ public sealed class BattleUi
 		var actorState = previewWorld.StateOf(actorId);
 		var movePathApBaseline = Battle.Sim.RuntimeFor(actorId).ActivePath?.PathApSpent ?? 0;
 
+		PresentationDiagnostics.LogMovePreview(
+			Battle.TurnNumber,
+			source: "build_frame",
+			state.Mode,
+			acceptsCommands,
+			hasPlanningActor: activeUnit is not null,
+			canAct,
+			weaponQueued,
+			actorState.Position,
+			movePathApBaseline,
+			Battle.Sim.Actions.Count,
+			movePaths);
+
 		return new PresentationFrame
 		{
 			Mode = state.Mode,
@@ -183,7 +199,7 @@ public sealed class BattleUi
 				activeUnit,
 				actorState,
 				Battle.Sim.Actions.Count),
-			CanAct = acceptsCommands && activeUnit is not null && Battle.CanAct(activeUnit),
+			CanAct = acceptsCommands && canAct,
 			FlakAvailable = Capabilities.For(actorState.Type)
 				.OfType<FlakDef>()
 				.Any(def => Battle.Sim.Peek(new FlakAction(Battle.PlayerId, def.Mount)) is not null),

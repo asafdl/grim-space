@@ -8,15 +8,11 @@ namespace GrimSpace.Battle.World;
 
 public sealed class Hazard : NonUnit
 {
-	public const int AsteroidBlockPadding = 1;
-
 	public required Coord Center { get; init; }
 	public required bool Passable { get; init; }
 	public required int Damage { get; init; }
 	public required int MomentumLoss { get; init; }
 	public required EHazardKind Kind { get; init; }
-	public int Radius { get; init; }
-	public string? VisualId { get; init; }
 
 	public static Hazard MissileZone(
 		string id,
@@ -58,28 +54,65 @@ public sealed class Hazard : NonUnit
 			Kind = EHazardKind.FlakBurst,
 		};
 
-	public static int BlockRadiusFor(int radius) => radius + AsteroidBlockPadding;
-
 	public static Hazard Asteroid(
 		string id,
-		Coord center,
+		Coord origin,
 		BoundedGrid grid,
-		int radius,
-		string visualId) =>
-		new()
+		IEnumerable<Coord> cells)
+	{
+		var occupied = cells.ToHashSet();
+		if (occupied.Count == 0)
+			throw new ArgumentException("An asteroid must occupy at least one cell.", nameof(cells));
+		if (!occupied.Contains(origin))
+			throw new ArgumentException("The asteroid origin must be one of its occupied cells.", nameof(origin));
+		if (occupied.Any(cell => !grid.IsInBounds(cell)))
+			throw new ArgumentOutOfRangeException(nameof(cells), "Asteroid cells must be inside the battle grid.");
+		if (!IsFaceConnected(occupied))
+			throw new ArgumentException("An asteroid's occupied cells must form one connected shape.", nameof(cells));
+
+		return new Hazard
 		{
 			Id = id,
 			ActorId = EntityIds.World,
-			Center = center,
-			Frame = BodyFrame.WorldAligned(center),
-			Cells = new HashSet<Coord>(grid.EnumerateCube(center, BlockRadiusFor(radius))),
+			Center = origin,
+			Frame = BodyFrame.WorldAligned(origin),
+			Cells = occupied,
 			Passable = false,
 			Damage = 0,
 			MomentumLoss = 0,
-			Kind = EHazardKind.MissileZone,
-			Radius = radius,
-			VisualId = visualId,
+			Kind = EHazardKind.Asteroid,
 		};
+	}
+
+	private static bool IsFaceConnected(IReadOnlySet<Coord> cells)
+	{
+		var visited = new HashSet<Coord>();
+		var pending = new Queue<Coord>();
+		var first = cells.First();
+		visited.Add(first);
+		pending.Enqueue(first);
+
+		while (pending.TryDequeue(out var cell))
+		{
+			foreach (var neighbor in FaceNeighbors(cell))
+			{
+				if (cells.Contains(neighbor) && visited.Add(neighbor))
+					pending.Enqueue(neighbor);
+			}
+		}
+
+		return visited.Count == cells.Count;
+	}
+
+	private static IEnumerable<Coord> FaceNeighbors(Coord cell)
+	{
+		yield return cell + new Coord(1, 0, 0);
+		yield return cell + new Coord(-1, 0, 0);
+		yield return cell + new Coord(0, 1, 0);
+		yield return cell + new Coord(0, -1, 0);
+		yield return cell + new Coord(0, 0, 1);
+		yield return cell + new Coord(0, 0, -1);
+	}
 
 	public Hazard Clone() =>
 		new()
@@ -93,7 +126,5 @@ public sealed class Hazard : NonUnit
 			Damage = Damage,
 			MomentumLoss = MomentumLoss,
 			Kind = Kind,
-			Radius = Radius,
-			VisualId = VisualId,
 		};
 }

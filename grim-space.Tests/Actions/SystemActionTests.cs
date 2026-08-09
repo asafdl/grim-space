@@ -47,8 +47,7 @@ public sealed class SystemActionTests
 			"asteroid-1",
 			new Coord(2, 2, 2),
 			battle.Layout.Grid,
-			radius: 1,
-			visualId: "rock");
+			[new Coord(2, 2, 2), new Coord(3, 2, 2)]);
 		BattleTestWorld.InjectHazard(battle.Engine.World, asteroid);
 
 		battle.ResolveTurn();

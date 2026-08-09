@@ -67,10 +67,9 @@ public sealed class BattleOrchestrator
 		{
 			var hazard = Hazard.Asteroid(
 				ids.NextNonUnitId("asteroid"),
-				spawn.Center,
+				spawn.Origin,
 				grid,
-				spawn.Radius,
-				spawn.VisualId);
+				spawn.Cells);
 			nonUnits[hazard.Id] = hazard;
 		}
 

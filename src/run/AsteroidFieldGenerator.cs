@@ -1,104 +1,149 @@
-using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Run;
 
 public static class AsteroidFieldGenerator
 {
-	private static readonly string[] LargeVisuals = ["rock_large_a", "rock_large_b", "rock"];
-	private static readonly string[] MediumVisuals = ["rock", "rock_large_a", "rock_large_b"];
+	private static readonly Coord[] Neighbors =
+	[
+		new(1, 0, 0), new(-1, 0, 0),
+		new(0, 1, 0), new(0, -1, 0),
+		new(0, 0, 1), new(0, 0, -1),
+	];
 
 	public static IReadOnlyList<WorldHazardSpawn> Generate(AsteroidFieldConfig config)
 	{
 		var rng = new Random(config.Seed);
 		var placed = new List<WorldHazardSpawn>();
-		var maxAttempts = config.TargetCount * 40;
+		var maxAttempts = config.TargetCount * 100;
 
 		for (var attempt = 0; attempt < maxAttempts && placed.Count < config.TargetCount; attempt++)
 		{
-			var radius = PickRadius(rng);
-			if (!TryPickCenter(config, rng, radius, out var center))
+			var localCells = GrowShape(rng, PickCellCount(rng));
+			var origin = PickOrigin(config, rng);
+			var cells = localCells.Select(cell => cell + origin).ToHashSet();
+
+			if (!FitsField(cells, config))
 				continue;
 
-			if (!IsClearOfUnits(center, radius, config))
+			if (!IsClearOfUnits(cells, config))
 				continue;
 
-			if (!IsClearOfAsteroids(center, radius, placed, config.AsteroidGap))
+			if (!IsClearOfAsteroids(cells, placed, config.AsteroidGap))
 				continue;
 
-			placed.Add(new WorldHazardSpawn
-			{
-				Center = center,
-				Radius = radius,
-				VisualId = PickVisual(rng, radius),
-			});
+			placed.Add(new WorldHazardSpawn { Origin = origin, Cells = cells });
 		}
 
 		return placed;
 	}
 
-	private static int PickRadius(Random rng) =>
+	private static int PickCellCount(Random rng) =>
 		rng.Next(100) switch
 		{
-			< 50 => 2,
-			< 90 => 1,
-			_ => 1,
+			< 35 => rng.Next(1, 4),
+			< 85 => rng.Next(4, 10),
+			_ => rng.Next(10, 19),
 		};
 
-	private static bool TryPickCenter(AsteroidFieldConfig config, Random rng, int radius, out Coord center)
+	private static HashSet<Coord> GrowShape(Random rng, int targetCount)
 	{
-		var blockRadius = Hazard.BlockRadiusFor(radius);
-		var min = blockRadius + config.RegionMargin;
-		var max = config.GridSize - blockRadius - 1 - config.RegionMargin;
-		if (min > max)
+		var cells = new HashSet<Coord> { Coord.Zero };
+		var insertionOrder = new List<Coord> { Coord.Zero };
+		var axisWeights = PickAxisWeights(rng);
+
+		while (cells.Count < targetCount)
 		{
-			center = default;
-			return false;
+			var source = insertionOrder[rng.Next(insertionOrder.Count)];
+			var direction = PickDirection(rng, axisWeights);
+			var candidate = source + direction;
+			if (cells.Add(candidate))
+				insertionOrder.Add(candidate);
 		}
 
-		var offset = new Coord(
+		return cells;
+	}
+
+	private static (int X, int Y, int Z) PickAxisWeights(Random rng)
+	{
+		var mode = rng.Next(3);
+		var dominantAxis = rng.Next(3);
+		return mode switch
+		{
+			0 => (3, 3, 3),
+			1 => AxisWeights(dominantAxis, dominant: 8, secondary: 1),
+			_ => AxisWeights(dominantAxis, dominant: 1, secondary: 5),
+		};
+	}
+
+	private static (int X, int Y, int Z) AxisWeights(int axis, int dominant, int secondary) =>
+		axis switch
+		{
+			0 => (dominant, secondary, secondary),
+			1 => (secondary, dominant, secondary),
+			_ => (secondary, secondary, dominant),
+		};
+
+	private static Coord PickDirection(Random rng, (int X, int Y, int Z) weights)
+	{
+		var total = weights.X + weights.Y + weights.Z;
+		var roll = rng.Next(total);
+		var axis = roll < weights.X ? 0 : roll < weights.X + weights.Y ? 1 : 2;
+		return Neighbors[axis * 2 + rng.Next(2)];
+	}
+
+	private static Coord PickOrigin(AsteroidFieldConfig config, Random rng) =>
+		config.RegionCenter + new Coord(
 			rng.Next(-config.RegionHalfExtent, config.RegionHalfExtent + 1),
 			rng.Next(-config.RegionHalfExtent, config.RegionHalfExtent + 1),
 			rng.Next(-config.RegionHalfExtent, config.RegionHalfExtent + 1));
-		center = config.RegionCenter + offset;
 
-		return center.X >= min && center.X <= max
-			&& center.Y >= min && center.Y <= max
-			&& center.Z >= min && center.Z <= max;
+	private static bool FitsField(IReadOnlySet<Coord> cells, AsteroidFieldConfig config)
+	{
+		var minGrid = config.RegionMargin;
+		var maxGrid = config.GridSize - config.RegionMargin - 1;
+		var regionMin = config.RegionCenter - new Coord(config.RegionHalfExtent, config.RegionHalfExtent, config.RegionHalfExtent);
+		var regionMax = config.RegionCenter + new Coord(config.RegionHalfExtent, config.RegionHalfExtent, config.RegionHalfExtent);
+
+		return cells.All(cell =>
+			cell.X >= minGrid && cell.X <= maxGrid
+			&& cell.Y >= minGrid && cell.Y <= maxGrid
+			&& cell.Z >= minGrid && cell.Z <= maxGrid
+			&& cell.X >= regionMin.X && cell.X <= regionMax.X
+			&& cell.Y >= regionMin.Y && cell.Y <= regionMax.Y
+			&& cell.Z >= regionMin.Z && cell.Z <= regionMax.Z);
 	}
 
-	private static bool IsClearOfUnits(Coord center, int radius, AsteroidFieldConfig config)
+	private static bool IsClearOfUnits(IReadOnlySet<Coord> cells, AsteroidFieldConfig config)
 	{
-		var blockRadius = Hazard.BlockRadiusFor(radius);
-		foreach (var unit in config.UnitPositions)
+		foreach (var cell in cells)
 		{
-			if (ChebyshevDistance(center, unit) <= blockRadius + config.UnitClearance)
-				return false;
+			foreach (var unit in config.UnitPositions)
+			{
+				if (ChebyshevDistance(cell, unit) <= config.UnitClearance)
+					return false;
+			}
 		}
 
 		return true;
 	}
 
 	private static bool IsClearOfAsteroids(
-		Coord center,
-		int radius,
+		IReadOnlySet<Coord> cells,
 		IReadOnlyList<WorldHazardSpawn> placed,
 		int gap)
 	{
-		var blockRadius = Hazard.BlockRadiusFor(radius);
 		foreach (var asteroid in placed)
 		{
-			if (ChebyshevDistance(center, asteroid.Center) <= blockRadius + Hazard.BlockRadiusFor(asteroid.Radius) + gap)
-				return false;
+			foreach (var cell in cells)
+			{
+				if (asteroid.Cells.Any(other => ChebyshevDistance(cell, other) <= gap))
+					return false;
+			}
 		}
 
 		return true;
 	}
-
-	private static string PickVisual(Random rng, int radius) =>
-		radius >= 2
-			? LargeVisuals[rng.Next(LargeVisuals.Length)]
-			: MediumVisuals[rng.Next(MediumVisuals.Length)];
 
 	private static int ChebyshevDistance(Coord a, Coord b) =>
 		System.Math.Max(

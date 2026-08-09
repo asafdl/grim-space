@@ -44,4 +44,6 @@ public readonly record struct Coord(int X, int Y, int Z)
 
 	public int ManhattanDistanceTo(Coord other) =>
 		System.Math.Abs(X - other.X) + System.Math.Abs(Y - other.Y) + System.Math.Abs(Z - other.Z);
+
+	public override string ToString() => $"({X},{Y},{Z})";
 }

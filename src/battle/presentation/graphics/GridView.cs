@@ -61,6 +61,7 @@ public partial class GridView : Node3D
 		if (frame.ActiveUnit is null || frame.ShowOutcomeOverlay)
 		{
 			ReleaseActiveHighlights();
+			PresentationDiagnostics.LogMovePreviewHighlights(0, 0);
 			return;
 		}
 
@@ -111,6 +112,8 @@ public partial class GridView : Node3D
 			endpointAp[session.EndPosition] = session.ExtensionApCost(pathApBaseline);
 
 		var pathSet = new HashSet<Coord>(path);
+
+		PresentationDiagnostics.LogMovePreviewHighlights(paths.Count, endpointAp.Count);
 
 		foreach (var coord in pathSet)
 		{

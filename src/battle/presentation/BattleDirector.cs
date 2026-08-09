@@ -47,7 +47,12 @@ public sealed class BattleDirector
 
 		if (!TryCommit())
 		{
-			PresentationDiagnostics.LogCommitFailed();
+			var sim = _ui.Battle.Sim;
+			PresentationDiagnostics.LogCommitFailed(
+				_ui.Battle.IsBattleOver,
+				sim.InvariantStatus,
+				_ui.Battle.TurnNumber,
+				sim.Actions.Count);
 			return;
 		}
 
