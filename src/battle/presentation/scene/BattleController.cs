@@ -170,12 +170,12 @@ public partial class BattleController : Node3D
 
 	private void WireHudEvents()
 	{
-		_battleHud.OrientationHud.HeadingTurnRequested += turn =>
+		_battleHud.OrientationBar.HeadingTurnRequested += turn =>
 		{
 			if (_director.Enqueue(new HeadingTurnAction(_ui.Battle.PlayerId, turn)))
 				_lastHoveredMoveIndex = null;
 		};
-		_battleHud.OrientationHud.RollRequested += direction =>
+		_battleHud.OrientationBar.RollRequested += direction =>
 		{
 			if (_director.Enqueue(new RollAction(_ui.Battle.PlayerId, direction)))
 				_lastHoveredMoveIndex = null;
@@ -220,6 +220,28 @@ public partial class BattleController : Node3D
 			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo)
 		{
 			_director.SetMode(EPlayerMode.Move);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event is InputEventKey { Pressed: true, Echo: false } abilityKey
+			&& AbilityHotkeySlot(abilityKey.Keycode) is int slot
+			&& _battleHud.ActionBar.TryActivateHotkey(slot))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q }
+			&& _battleHud.OrientationBar.TrySpin())
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.E }
+			&& _battleHud.OrientationBar.TryYaw())
+		{
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -369,5 +391,15 @@ public partial class BattleController : Node3D
 			ETeam.Player => new Color(0.25f, 0.85f, 0.35f),
 			ETeam.Enemy => new Color(0.9f, 0.25f, 0.2f),
 			_ => Colors.White,
+		};
+
+	private static int? AbilityHotkeySlot(Key keycode) =>
+		keycode switch
+		{
+			Key.Key1 => 1,
+			Key.Key2 => 2,
+			Key.Key3 => 3,
+			Key.Key4 => 4,
+			_ => null,
 		};
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Domains.Torpedo;
@@ -138,6 +139,7 @@ public sealed class BattleDirector
 		if (actor is null || !_ui.Battle.CanAct(actor) || !_ui.Battle.Sim.TryEnqueue(action))
 			return false;
 
+		OrientationStreamline.CompactQueue(_ui.Battle.Sim);
 		EmitFrame();
 		return true;
 	}

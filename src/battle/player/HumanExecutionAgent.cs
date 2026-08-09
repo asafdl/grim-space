@@ -22,7 +22,7 @@ public sealed class HumanExecutionAgent : IExecutionAgent<BattleWorld, ActorRunt
 			return Task.FromResult<IReadOnlyList<IAction>>([]);
 
 		IReadOnlyList<IAction> streamlined =
-			HeadingDef.Instance.Streamline(actions, Sim.UndoGroups).ToList();
+			OrientationStreamline.Compact(actions, Sim.UndoGroups);
 		return Task.FromResult(streamlined);
 	}
 }

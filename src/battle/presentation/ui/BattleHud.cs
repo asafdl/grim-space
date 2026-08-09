@@ -8,10 +8,11 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public partial class BattleHud : Node
 {
 	public ActionBar ActionBar { get; private set; } = null!;
-	public ShipOrientationHud OrientationHud { get; private set; } = null!;
+	public OrientationBar OrientationBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 
 	private Label _hintLabel = null!;
+	private CanvasLayer _bottomHud = null!;
 	private CanvasLayer _actionLogLayer = null!;
 	private ActionLogPanel _actionLogPanel = null!;
 
@@ -22,8 +23,46 @@ public partial class BattleHud : Node
 		canvas.AddChild(_hintLabel);
 		AddChild(canvas);
 
-		ActionBar = new ActionBar();
-		AddChild(ActionBar);
+		_bottomHud = new CanvasLayer { Layer = 10 };
+		var margin = new MarginContainer
+		{
+			AnchorsPreset = (int)Control.LayoutPreset.BottomWide,
+			AnchorTop = 1f,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			OffsetTop = -160f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		margin.AddThemeConstantOverride("margin_left", 16);
+		margin.AddThemeConstantOverride("margin_right", 16);
+		margin.AddThemeConstantOverride("margin_bottom", 14);
+		_bottomHud.AddChild(margin);
+
+		var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+		margin.AddChild(center);
+
+		var row = new HBoxContainer
+		{
+			Alignment = BoxContainer.AlignmentMode.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		row.AddThemeConstantOverride("separation", 14);
+		center.AddChild(row);
+
+		OrientationBar = new OrientationBar
+		{
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		row.AddChild(OrientationBar);
+
+		ActionBar = new ActionBar
+		{
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		row.AddChild(ActionBar);
+
+		AddChild(_bottomHud);
 
 		_actionLogLayer = new CanvasLayer { Layer = 15 };
 		var actionLogHost = new MarginContainer
@@ -53,9 +92,6 @@ public partial class BattleHud : Node
 
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
-
-		OrientationHud = new ShipOrientationHud();
-		AddChild(OrientationHud);
 	}
 
 	public void Apply(PresentationFrame frame)
@@ -70,24 +106,18 @@ public partial class BattleHud : Node
 		if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogLines);
 
-		ActionBar.Visible = !frame.ShowOutcomeOverlay;
-		if (!frame.ShowOutcomeOverlay)
-		{
-			ActionBar.SetMode(frame.Mode);
-			ActionBar.Configure(
-				frame.FlakAvailable,
-				frame.RailgunAvailable,
-				frame.TorpedoAvailable,
-				frame.CanAct);
-		}
-
+		_bottomHud.Visible = !frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
-		{
-			OrientationHud.Visible = false;
 			return;
-		}
 
-		OrientationHud.Visible = frame.CanAct
+		var orientationAvailable = frame.CanAct
 			&& frame.Mode is not (EPlayerMode.Flak or EPlayerMode.Torpedo);
+		ActionBar.SetMode(frame.Mode);
+		ActionBar.Configure(
+			frame.FlakAvailable,
+			frame.RailgunAvailable,
+			frame.TorpedoAvailable,
+			frame.CanAct);
+		OrientationBar.Configure(orientationAvailable);
 	}
 }

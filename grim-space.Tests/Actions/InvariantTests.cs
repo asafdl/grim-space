@@ -6,11 +6,15 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -176,5 +180,67 @@ public sealed class InvariantTests
 		var streamlined = HeadingDef.Instance.Streamline(battle.Sim.Actions, battle.Sim.UndoGroups).ToList();
 		var heading = Assert.Single(streamlined.OfType<HeadingTurnAction>());
 		Assert.Equal(EHeadingTurn.Yaw180, heading.Turn);
+	}
+
+	[Fact]
+	public void StreamlineCollapsesTripleRollIntoOpposite()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+
+		Assert.True(BattleTestActions.TryCommitPreview(battle, out var actions));
+
+		var roll = Assert.Single(actions.OfType<RollAction>());
+		Assert.Equal(ERollDirection.CounterClockwise, roll.Direction);
+	}
+
+	[Fact]
+	public void StreamlineCollapsesTripleYawIntoOpposite()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+
+		Assert.True(BattleTestActions.TryCommitPreview(battle, out var actions));
+
+		var heading = Assert.Single(actions.OfType<HeadingTurnAction>());
+		Assert.Equal(EHeadingTurn.YawLeft, heading.Turn);
+	}
+
+	[Fact]
+	public void CompactQueueCollapsesYawWhilePlanning()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+
+		OrientationStreamline.CompactQueue(battle.Sim);
+
+		var heading = Assert.Single(battle.Sim.Actions.OfType<HeadingTurnAction>());
+		Assert.Equal(EHeadingTurn.YawLeft, heading.Turn);
+		Assert.Equal(
+			Stats.ForType(EType.Fighter).MaxAp - CombatConfig.HeadingTurn90ApCost,
+			battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+	}
+
+	[Fact]
+	public void CompactQueueCollapsesRollWhilePlanning()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+
+		OrientationStreamline.CompactQueue(battle.Sim);
+
+		var roll = Assert.Single(battle.Sim.Actions.OfType<RollAction>());
+		Assert.Equal(ERollDirection.CounterClockwise, roll.Direction);
+		Assert.Equal(
+			Stats.ForType(EType.Fighter).MaxAp - CombatConfig.RollApCost,
+			battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
 	}
 }

@@ -20,7 +20,7 @@ internal static class BattleTestActions
 		if (!battle.Sim.TryCommit(out actions, out _))
 			return false;
 
-		actions = HeadingDef.Instance.Streamline(actions, battle.Sim.UndoGroups).ToList();
+		actions = OrientationStreamline.Compact(actions, battle.Sim.UndoGroups);
 		return true;
 	}
 }

@@ -1,0 +1,8 @@
+Icons from https://game-icons.net/ (CC BY 3.0)
+
+move.svg      — rocket-flight by Lorc
+flak.svg      — striking-balls by Lorc
+railgun.svg   — sinusoidal-beam by Lorc
+torpedo.svg   — striking-splinter by Lorc
+spin.svg      — screw by Lorc
+yaw.svg       — twirl-center by Lorc

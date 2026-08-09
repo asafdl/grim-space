@@ -1,5 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
@@ -16,7 +17,8 @@ public sealed record RollAction(
 }
 
 public sealed class RollDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActionStreamline
 {
 	public static RollDef Instance { get; } = new();
 
@@ -54,6 +56,58 @@ public sealed class RollDef
 		new RollEffect(action.Direction),
 		new ApChangeEffect(-CombatConfig.RollApCost),
 	];
+
+	public IReadOnlyList<IAction> Streamline(IReadOnlyList<IAction> actions, IReadOnlyList<int?> undoGroups)
+	{
+		var result = new List<IAction>(actions.Count);
+		var index = 0;
+
+		while (index < actions.Count)
+		{
+			if (actions[index] is RollAction first)
+			{
+				var actorId = first.ActorId;
+				var net = RollDelta(first.Direction);
+				index++;
+
+				while (index < actions.Count
+					&& actions[index] is RollAction next
+					&& next.ActorId == actorId)
+				{
+					net += RollDelta(next.Direction);
+					index++;
+				}
+
+				foreach (var direction in RollsForNet(net))
+					result.Add(new RollAction(actorId, direction));
+
+				continue;
+			}
+
+			result.Add(actions[index]);
+			index++;
+		}
+
+		return result;
+	}
+
+	private static IEnumerable<ERollDirection> RollsForNet(int netQuarters) =>
+		Orientation.NormalizeQuarters(netQuarters) switch
+		{
+			0 => [],
+			1 => [ERollDirection.Clockwise],
+			2 => [ERollDirection.Clockwise, ERollDirection.Clockwise],
+			3 => [ERollDirection.CounterClockwise],
+			_ => throw new InvalidOperationException($"Unexpected net roll quarters: {netQuarters}."),
+		};
+
+	private static int RollDelta(ERollDirection direction) =>
+		direction switch
+		{
+			ERollDirection.Clockwise => 1,
+			ERollDirection.CounterClockwise => -1,
+			_ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+		};
 
 	private static RollAction Cast(IAction action) =>
 		action as RollAction ?? throw new ArgumentException($"Expected {nameof(RollAction)}.", nameof(action));

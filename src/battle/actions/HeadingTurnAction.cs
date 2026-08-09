@@ -97,7 +97,6 @@ public sealed class HeadingDef
 			{
 				var actorId = first.ActorId;
 				var net = YawDelta(first.Turn);
-				int? undoGroup = undoGroups[index];
 				index++;
 
 				while (index < actions.Count
@@ -106,11 +105,31 @@ public sealed class HeadingDef
 					&& Orientation.IsYawTurn(next.Turn))
 				{
 					net += YawDelta(next.Turn);
-					undoGroup = undoGroups[index] ?? undoGroup;
 					index++;
 				}
 
 				foreach (var turn in TurnsForNetYaw(net))
+					result.Add(new HeadingTurnAction(actorId, turn));
+
+				continue;
+			}
+
+			if (actions[index] is HeadingTurnAction pitchFirst && IsPitchTurn(pitchFirst.Turn))
+			{
+				var actorId = pitchFirst.ActorId;
+				var net = PitchDelta(pitchFirst.Turn);
+				index++;
+
+				while (index < actions.Count
+					&& actions[index] is HeadingTurnAction next
+					&& next.ActorId == actorId
+					&& IsPitchTurn(next.Turn))
+				{
+					net += PitchDelta(next.Turn);
+					index++;
+				}
+
+				foreach (var turn in TurnsForNetPitch(net))
 					result.Add(new HeadingTurnAction(actorId, turn));
 
 				continue;
@@ -162,12 +181,33 @@ public sealed class HeadingDef
 		};
 	}
 
+	private static IEnumerable<EHeadingTurn> TurnsForNetPitch(int netQuarters) =>
+		Orientation.NormalizeQuarters(netQuarters) switch
+		{
+			0 => [],
+			1 => [EHeadingTurn.PitchUp],
+			2 => [EHeadingTurn.PitchUp, EHeadingTurn.PitchUp],
+			3 => [EHeadingTurn.PitchDown],
+			_ => throw new InvalidOperationException($"Unexpected net pitch quarters: {netQuarters}."),
+		};
+
+	private static bool IsPitchTurn(EHeadingTurn turn) =>
+		turn is EHeadingTurn.PitchUp or EHeadingTurn.PitchDown;
+
 	private static int YawDelta(EHeadingTurn turn) =>
 		turn switch
 		{
 			EHeadingTurn.YawRight => 1,
 			EHeadingTurn.YawLeft => -1,
 			EHeadingTurn.Yaw180 => 2,
+			_ => throw new ArgumentOutOfRangeException(nameof(turn), turn, null),
+		};
+
+	private static int PitchDelta(EHeadingTurn turn) =>
+		turn switch
+		{
+			EHeadingTurn.PitchUp => 1,
+			EHeadingTurn.PitchDown => -1,
 			_ => throw new ArgumentOutOfRangeException(nameof(turn), turn, null),
 		};
 
