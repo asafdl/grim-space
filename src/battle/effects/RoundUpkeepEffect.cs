@@ -12,7 +12,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	private int _previousTorpedoCooldownRemaining;
 	private bool _previousApPenaltyNextTurn;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_previousActionPoints = actor.ActionPoints;
@@ -33,6 +33,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.RailgunRemaining = actor.Stats.RailgunsPerTurn;
 		if (actor.TorpedoCooldownRemaining > 0)
 			actor.TorpedoCooldownRemaining--;
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

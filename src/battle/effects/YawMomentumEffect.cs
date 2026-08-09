@@ -10,7 +10,7 @@ public sealed class YawMomentumEffect(int momDelta) : IEffect<BattleWorld, Actor
 	private int _previousMomentum;
 	private int _previousMomentumPaid;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_previousMomentum = actor.MomentumLevel;
@@ -32,6 +32,7 @@ public sealed class YawMomentumEffect(int momDelta) : IEffect<BattleWorld, Actor
 				actor.MomentumLevel + refund,
 				MomentumConfig.MaxLevel);
 		}
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

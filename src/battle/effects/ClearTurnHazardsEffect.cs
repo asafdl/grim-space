@@ -9,7 +9,7 @@ public sealed class ClearTurnHazardsEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private List<Hazard> _removed = [];
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_removed = world.NonUnits.Values
 			.Where(nonUnit => nonUnit.ActorId != EntityIds.World)
@@ -19,6 +19,7 @@ public sealed class ClearTurnHazardsEffect : IEffect<BattleWorld, ActorRuntime>
 
 		foreach (var hazard in _removed)
 			world.MutableNonUnits.Remove(hazard.Id);
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

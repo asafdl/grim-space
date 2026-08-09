@@ -8,11 +8,12 @@ public sealed class MomentumDecayEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previous;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_previous = actor.MomentumLevel;
 		actor.MomentumLevel = System.Math.Max(actor.MomentumLevel - 1, 0);
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

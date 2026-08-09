@@ -16,16 +16,23 @@ public static class ExecutionHelper
 
 		var effects = typed.Definition.Resolve(action, world, runtime).ToList();
 		foreach (var effect in effects)
-			effect.Apply(world, runtime, action.ActorId);
+			_ = effect.Apply(world, runtime, action.ActorId);
 
 		return effects;
 	}
 
-	public static void Apply<TWorld, TRuntime>(IAction action, TWorld world, TRuntime runtime)
+	public static IReadOnlyList<IRecord> Apply<TWorld, TRuntime>(IAction action, TWorld world, TRuntime runtime)
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>
 	{
-		ApplyAndResolve(action, world, runtime);
+		if (action is not IAction<TWorld, TRuntime> typed)
+			return [];
+
+		var records = new List<IRecord>();
+		foreach (var effect in typed.Definition.Resolve(action, world, runtime))
+			records.AddRange(effect.Apply(world, runtime, action.ActorId));
+
+		return records;
 	}
 
 	public static void UndoEffects<TWorld, TRuntime>(

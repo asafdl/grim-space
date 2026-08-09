@@ -2,7 +2,7 @@ using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Core.Actions;
 
-public interface IAction
+public interface IAction : ITimelineEntry
 {
 	string ActorId { get; }
 }

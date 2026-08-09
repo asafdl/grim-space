@@ -111,7 +111,7 @@ public sealed class MovePathSearchTests
 		for (var i = 0; i < steps.Count - 1; i++)
 		{
 			foreach (var effect in steps[i].Definition.Resolve(steps[i], board, runtime))
-				effect.Apply(board, runtime, steps[i].ActorId);
+				_ = effect.Apply(board, runtime, steps[i].ActorId);
 		}
 
 		Assert.False(MoveDef.Instance.IsLegal(steps[^1], board, runtime));

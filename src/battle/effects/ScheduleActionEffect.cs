@@ -11,11 +11,12 @@ public sealed class ScheduleActionEffect(int delayTicks, IAction action) : IEffe
 	private int _scheduledTick;
 	private bool _scheduled;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_scheduledTick = world.Timeline.Clock.Current + delayTicks;
 		world.Timeline.Schedule(delayTicks, action);
 		_scheduled = true;
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

@@ -149,7 +149,7 @@ public partial class BattleController : Node3D
 		_battleView.ApplyUnitStates(replay.StartStates, ColorForActor);
 		_replayPlayer.ResetToLive(replay.StartStates, replay.EndStates);
 		_replayPlayer.Play(
-			replay.Actions.ToList(),
+			replay.History,
 			completedTurn,
 			_ui.Battle.PlayerId,
 			_ui.Battle.OpponentId);

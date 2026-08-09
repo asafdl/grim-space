@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
@@ -20,4 +21,5 @@ public sealed class ReplayClipContext(
 	public Func<string, Color> ColorFor { get; } = colorFor;
 	public IReadOnlyDictionary<string, State> EndStates { get; } = endStates;
 	public Action<State, Color> EnsureView { get; } = ensureView;
+	public ETorpedoMount? PendingTorpedoMount { get; set; }
 }

@@ -8,10 +8,11 @@ public sealed class ConsumeSpinDiscountEffect : IEffect<BattleWorld, ActorRuntim
 {
 	private bool _previous;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_previous = runtime.SpinDiscount;
 		runtime.SpinDiscount = false;
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

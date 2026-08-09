@@ -13,20 +13,24 @@ public sealed class HazardCellEntryEffect(Coord cell) : IEffect<BattleWorld, Act
 	private UnitCombatSnapshot _snapshot;
 	private bool _applied;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_snapshot = UnitCombatSnapshot.Capture(actor);
 		_applied = false;
 
+		var records = new List<IRecord>();
 		foreach (var hazard in world.Hazards)
 		{
 			if (!hazard.Cells.Contains(cell))
 				continue;
 
 			_applied = true;
-			HazardResolution.ApplyToUnitAt(hazard, actor, cell);
+			if (HazardResolution.ApplyToUnitAt(hazard, actor, cell) is { } impact)
+				records.Add(new Record<ImpactFacts>(impact));
 		}
+
+		return records;
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -69,18 +73,22 @@ public static class HazardResolution
 			Kind = kind,
 		};
 
-	public static void ApplyToUnitsInCells(Hazard hazard, IEnumerable<State> units)
+	public static IReadOnlyList<ImpactFacts> ApplyToUnitsInCells(Hazard hazard, IEnumerable<State> units)
 	{
+		var impacts = new List<ImpactFacts>();
 		foreach (var unit in units)
 		{
 			if (!unit.IsAlive || !hazard.Cells.Contains(unit.Position))
 				continue;
 
-			ApplyToUnitAt(hazard, unit);
+			if (ApplyToUnitAt(hazard, unit) is { } impact)
+				impacts.Add(impact);
 		}
+
+		return impacts;
 	}
 
-	public static void ApplyScheduledResolve(
+	public static IReadOnlyList<ImpactFacts> ApplyScheduledResolve(
 		EHazardKind kind,
 		HashSet<Coord> cells,
 		int damage,
@@ -91,40 +99,61 @@ public static class HazardResolution
 	{
 		var center = ResolveCenter(kind, shooterPosition, cells);
 		var hazard = BuildTransient(kind, cells, damage, momentumLoss, center, actorId);
-		ApplyToUnitsInCells(hazard, units);
+		return ApplyToUnitsInCells(hazard, units);
 	}
 
-	public static void ApplyToUnitAt(Hazard hazard, State unit, Coord? attackOrigin = null)
+	public static ImpactFacts? ApplyToUnitAt(Hazard hazard, State unit, Coord? attackOrigin = null)
 	{
+		var origin = attackOrigin ?? hazard.Center;
+		var face = BodyFrame.From(unit).HitFaceFrom(origin);
+		var shieldBefore = unit.ShieldPoints[face];
+		var hullBefore = unit.HullPoints;
+		var momBefore = unit.MomentumLevel;
+
 		switch (hazard.Kind)
 		{
 			case EHazardKind.MissileZone:
-				ApplyDirectedDamage(hazard, unit, attackOrigin);
+				ApplyDirectedDamage(hazard, unit, face);
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				break;
 			case EHazardKind.FlakBurst:
-				ApplyDirectedDamage(hazard, unit, attackOrigin);
+				ApplyDirectedDamage(hazard, unit, face);
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				if (unit.MomentumLevel < CombatConfig.FlakApPenaltyThreshold)
 					unit.ApPenaltyNextTurn = true;
 				break;
 			case EHazardKind.RailgunBurst:
-				ApplyDirectedDamage(hazard, unit, attackOrigin);
+				ApplyDirectedDamage(hazard, unit, face);
 				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
 				break;
 			case EHazardKind.TorpedoBlast:
-				ApplyDirectedDamage(hazard, unit, attackOrigin);
+				ApplyDirectedDamage(hazard, unit, face);
 				break;
+			default:
+				return null;
 		}
+
+		var shieldDamage = shieldBefore - unit.ShieldPoints[face];
+		var hullDamage = hullBefore - unit.HullPoints;
+		var momLoss = momBefore - unit.MomentumLevel;
+		if (shieldDamage == 0 && hullDamage == 0 && momLoss == 0)
+			return null;
+
+		return new ImpactFacts(
+			SourceId: hazard.ActorId,
+			TargetId: unit.Id,
+			Cause: hazard.Kind,
+			Face: face,
+			ShieldDamage: shieldDamage,
+			HullDamage: hullDamage,
+			MomentumLoss: momLoss);
 	}
 
-	private static void ApplyDirectedDamage(Hazard hazard, State unit, Coord? attackOrigin)
+	private static void ApplyDirectedDamage(Hazard hazard, State unit, ESpatialOrientation face)
 	{
 		if (hazard.Damage <= 0)
 			return;
 
-		var origin = attackOrigin ?? hazard.Center;
-		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		Defense.ApplyDamage(unit, hazard.Damage, face);
 	}
 }

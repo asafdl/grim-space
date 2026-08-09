@@ -14,7 +14,7 @@ public sealed class ResolveHazardEffect(
 {
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_snapshots = new Dictionary<string, UnitCombatSnapshot>();
 		var units = UnitRegistry.For(world);
@@ -26,7 +26,7 @@ public sealed class ResolveHazardEffect(
 			_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
 		}
 
-		HazardResolution.ApplyScheduledResolve(
+		var impacts = HazardResolution.ApplyScheduledResolve(
 			kind,
 			cells,
 			damage,
@@ -34,6 +34,8 @@ public sealed class ResolveHazardEffect(
 			world.StateOf(actorId).Position,
 			actorId,
 			units.All.Select(unit => unit.State));
+
+		return impacts.Select(impact => (IRecord)new Record<ImpactFacts>(impact)).ToList();
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

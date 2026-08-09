@@ -9,11 +9,12 @@ public sealed class MoveEffect(Coord destination) : IEffect<BattleWorld, ActorRu
 {
 	private Coord _previous;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_previous = actor.Position;
 		actor.Position = destination;
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

@@ -12,11 +12,11 @@ public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEff
 	private int _previousBuildupLevel;
 	private int _previousBuildupForwardSteps;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var path = runtime.ActivePath;
 		if (path is null)
-			return;
+			return [];
 
 		var actor = world.StateOf(actorId);
 		_previousMomentum = actor.MomentumLevel;
@@ -31,6 +31,7 @@ public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEff
 		path.MovementBuildupLevel = buildup.Level;
 		path.MovementBuildupForwardSteps = buildup.ForwardStepsTowardGain;
 		actor.MomentumLevel = buildup.Level;
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

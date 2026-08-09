@@ -8,11 +8,12 @@ public sealed class TorpedoCooldownEffect(int cooldownTurns) : IEffect<BattleWor
 {
 	private int _previous;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_previous = actor.TorpedoCooldownRemaining;
 		actor.TorpedoCooldownRemaining = cooldownTurns;
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

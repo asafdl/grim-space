@@ -11,10 +11,11 @@ public sealed class HeadingTurnEffect(EHeadingTurn turn) : IEffect<BattleWorld, 
 {
 	private OrientationSnapshot _previous;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_previous = OrientationSnapshot.Capture(world.StateOf(actorId));
 		Orientation.ApplyHeadingTurn(world.StateOf(actorId), turn);
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

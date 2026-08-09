@@ -2,42 +2,19 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Core.Engine;
 
-public readonly record struct TimelineBatch(string ActorId, IReadOnlyList<IAction> Actions);
-
 public sealed class Timeline
 {
-	private readonly Dictionary<int, List<TimelineBatch>> _history = new();
+	private readonly Dictionary<int, List<ITimelineEntry>> _history = new();
 	private readonly Dictionary<int, List<IAction>> _pending = new();
 
 	public TickClock Clock { get; } = new();
 
-	public void Record(IReadOnlyList<IAction> actions, string? actorId = null)
+	public void Append(params ITimelineEntry[] entries)
 	{
-		if (actions.Count == 0)
+		if (entries.Length == 0)
 			return;
 
-		if (actorId is not null)
-		{
-			RecordBatch(actorId, actions);
-			return;
-		}
-
-		string? current = null;
-		var batch = new List<IAction>();
-		foreach (var action in actions)
-		{
-			if (current is not null && action.ActorId != current)
-			{
-				RecordBatch(current, batch);
-				batch = [];
-			}
-
-			current = action.ActorId;
-			batch.Add(action);
-		}
-
-		if (current is not null)
-			RecordBatch(current, batch);
+		HistoryList().AddRange(entries);
 	}
 
 	public void Schedule(int delayTicks, params IAction[] actions)
@@ -76,21 +53,24 @@ public sealed class Timeline
 		return removed;
 	}
 
-	public IReadOnlyList<TimelineBatch> History(int? tick = null) =>
-		_history.TryGetValue(tick ?? Clock.Current, out var batches) ? batches : [];
+	public IReadOnlyList<ITimelineEntry> History(int? tick = null) =>
+		_history.TryGetValue(tick ?? Clock.Current, out var entries) ? entries : [];
 
 	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> HistoryByActor(int? tick = null)
 	{
 		var result = new Dictionary<string, List<IAction>>(StringComparer.Ordinal);
-		foreach (var batch in History(tick))
+		foreach (var entry in History(tick))
 		{
-			if (!result.TryGetValue(batch.ActorId, out var list))
+			if (entry is not IAction action)
+				continue;
+
+			if (!result.TryGetValue(action.ActorId, out var list))
 			{
 				list = [];
-				result[batch.ActorId] = list;
+				result[action.ActorId] = list;
 			}
 
-			list.AddRange(batch.Actions);
+			list.Add(action);
 		}
 
 		return result.ToDictionary(
@@ -103,12 +83,8 @@ public sealed class Timeline
 	{
 		var clone = new Timeline();
 		clone.Clock.Set(Clock.Current);
-		foreach (var (tick, batches) in _history)
-		{
-			clone._history[tick] = batches
-				.Select(batch => new TimelineBatch(batch.ActorId, batch.Actions.ToList()))
-				.ToList();
-		}
+		foreach (var (tick, entries) in _history)
+			clone._history[tick] = [..entries];
 
 		foreach (var (tick, actions) in _pending)
 			clone._pending[tick] = [..actions];
@@ -116,15 +92,15 @@ public sealed class Timeline
 		return clone;
 	}
 
-	private void RecordBatch(string actorId, IReadOnlyList<IAction> actions)
+	private List<ITimelineEntry> HistoryList()
 	{
 		var tick = Clock.Current;
-		if (!_history.TryGetValue(tick, out var batches))
+		if (!_history.TryGetValue(tick, out var entries))
 		{
-			batches = [];
-			_history[tick] = batches;
+			entries = [];
+			_history[tick] = entries;
 		}
 
-		batches.Add(new TimelineBatch(actorId, actions.ToList()));
+		return entries;
 	}
 }

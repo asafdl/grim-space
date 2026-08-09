@@ -180,28 +180,28 @@ public sealed class BattleOrchestrator
 		}
 
 		CommitRoundUpkeep();
-		var batches = _engine.History();
+		var history = _engine.History();
 		_engine.AdvanceTick();
 		FinalizeRound();
 
 		GameLog.Log(
 			$"Turn {turnNumber} sim: "
 			+ $"total={resolveTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"batches={batches.Count}");
+			+ $"history={history.Count}");
 
 		var endStates = SnapshotAll();
 		StateLog.LogTurnResolution(
 			turnNumber,
-			batches,
+			history,
 			hazardsBeforeResolve,
 			unitsAtTurnStart,
 			unitsAfterPlayer ?? endStates,
 			endStates);
 
-		return new TurnReplay(unitsAtTurnStart, batches, endStates);
+		return new TurnReplay(unitsAtTurnStart, history, endStates);
 	}
 
-	private IReadOnlyList<IAction> CommitActor(string actorId, IReadOnlyList<IAction> actions)
+	private IReadOnlyList<ITimelineEntry> CommitActor(string actorId, IReadOnlyList<IAction> actions)
 	{
 		var batch = new List<IAction>(actions.Count + 1);
 		batch.AddRange(actions);
@@ -209,7 +209,7 @@ public sealed class BattleOrchestrator
 		return _engine.Commit([..batch]);
 	}
 
-	private IReadOnlyList<IAction> CommitRoundUpkeep()
+	private IReadOnlyList<ITimelineEntry> CommitRoundUpkeep()
 	{
 		var batch = new List<IAction>();
 		foreach (var unitId in UnitRegistry.For(_engine.World).Ids)

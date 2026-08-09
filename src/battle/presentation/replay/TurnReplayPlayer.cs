@@ -1,9 +1,13 @@
 using System.Diagnostics;
 using Godot;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
+using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
@@ -21,8 +25,8 @@ public partial class TurnReplayPlayer : Node3D
 	private TurnHistoryView _turnHistory = null!;
 	private HazardBurstView _hazardBursts = null!;
 	private ReplayClipContext _clipContext = null!;
-	private IReadOnlyList<IAction> _actions = [];
-	private int _actionIndex;
+	private IReadOnlyList<ITimelineEntry> _history = [];
+	private int _entryIndex;
 
 	private int _turnNumber;
 	private string _playerId = string.Empty;
@@ -74,10 +78,10 @@ public partial class TurnReplayPlayer : Node3D
 			_unitViews[unitId].Sync(state);
 	}
 
-	public void Play(IReadOnlyList<IAction> actions, int turnNumber, string playerId, string opponentId)
+	public void Play(IReadOnlyList<ITimelineEntry> history, int turnNumber, string playerId, string opponentId)
 	{
-		_actions = actions;
-		_actionIndex = 0;
+		_history = history;
+		_entryIndex = 0;
 		_turnNumber = turnNumber;
 		_playerId = playerId;
 		_opponentId = opponentId;
@@ -95,21 +99,64 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void PlayNext()
 	{
-		while (_actionIndex < _actions.Count)
+		while (_entryIndex < _history.Count)
 		{
-			var action = _actions[_actionIndex++];
-			BeginPhase(Classify(action.ActorId));
-
-			Clips.TryPlay(action, _clipContext, out var playback);
-
-			if (playback.Pauses)
+			var entry = _history[_entryIndex++];
+			switch (entry)
 			{
-				GetTree().CreateTimer(playback.PauseSeconds).Timeout += PlayNext;
-				return;
+				case IAction action:
+				{
+					BeginPhase(Classify(action.ActorId));
+					Clips.TryPlay(action, _clipContext, out var playback);
+					if (playback.Pauses)
+					{
+						GetTree().CreateTimer(playback.PauseSeconds).Timeout += PlayNext;
+						return;
+					}
+
+					break;
+				}
+				case Record<SpawnFacts> { Value: var spawn }:
+					BeginPhase(Classify(spawn.SourceId));
+					ApplySpawn(spawn);
+					break;
+				case Record<ImpactFacts> { Value: var impact }:
+					BeginPhase(Classify(impact.SourceId));
+					break;
 			}
 		}
 
 		Finish();
+	}
+
+	private void ApplySpawn(SpawnFacts spawn)
+	{
+		if (spawn.EntityType != EType.Torpedo)
+			return;
+
+		if (_clipContext.PendingTorpedoMount is not { } mount)
+			throw new InvalidOperationException($"SpawnFacts for {spawn.TargetId} missing preceding TorpedoAction mount.");
+
+		if (!_clipContext.EndStates.TryGetValue(spawn.TargetId, out var template))
+			throw new InvalidOperationException($"SpawnFacts target {spawn.TargetId} missing from EndStates.");
+
+		var firer = _clipContext.ReplayState.StateOf(spawn.SourceId);
+		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer, mount);
+
+		var spawned = template.Clone();
+		spawned.Position = position;
+		spawned.Fore = fore;
+		spawned.Dorsal = dorsal;
+		spawned.Starboard = Coord.Cross(dorsal, fore);
+		spawned.FuelRemaining = TorpedoConfig.Fuel;
+		spawned.MomentumLevel = TorpedoConfig.SpawnMomentum;
+		spawned.HullPoints = spawned.Stats.MaxHullPoints;
+		spawned.ActionPoints = spawned.Stats.MaxAp;
+
+		_clipContext.ReplayState.Add(spawned);
+		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
+		_clipContext.UnitViews[spawned.Id].Sync(spawned);
+		_clipContext.PendingTorpedoMount = null;
 	}
 
 	private void BeginPhase(PlaybackPhase phase)
@@ -164,7 +211,7 @@ public partial class TurnReplayPlayer : Node3D
 			+ $"enemyAnim={_enemyAnimMs:F1}ms "
 			+ $"upkeepAnim={_upkeepAnimMs:F1}ms "
 			+ $"toEnemyAnim={_timeToEnemyAnimMs:F1}ms "
-			+ $"actions={_actions.Count}");
+			+ $"history={_history.Count}");
 
 		EmitSignal(SignalName.PlaybackComplete);
 	}

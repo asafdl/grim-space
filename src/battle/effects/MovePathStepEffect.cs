@@ -18,7 +18,7 @@ public sealed class MovePathStepEffect(
 	private bool _previousSpinBraked;
 	private bool _previousSpinDiscount;
 
-	public void Apply(BattleWorld world, ActorRuntime runtime, string actorId)
+	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_previousPath = runtime.ActivePath?.Clone();
 		_previousSpinBraked = runtime.SpinBraked;
@@ -43,6 +43,7 @@ public sealed class MovePathStepEffect(
 			runtime.SpinBraked = true;
 			runtime.SpinDiscount = true;
 		}
+		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

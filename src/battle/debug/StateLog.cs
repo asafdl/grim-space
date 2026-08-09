@@ -4,11 +4,11 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using ShipOrientation = GrimSpace.Battle.Movement.Orientation;
-using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle.Debug;
 
@@ -16,7 +16,7 @@ public static class StateLog
 {
 	public static void LogTurnResolution(
 		int turnNumber,
-		IReadOnlyList<TimelineBatch> history,
+		IReadOnlyList<ITimelineEntry> history,
 		IReadOnlyList<Hazard> hazards,
 		IReadOnlyDictionary<string, State> unitsAtTurnStart,
 		IReadOnlyDictionary<string, State> unitsAfterPlayer,
@@ -27,18 +27,13 @@ public static class StateLog
 
 		AppendSection(log, "Units (turn start)", unitsAtTurnStart.Values);
 
-		log.AppendLine($"Turn batches ({history.Count}):");
+		log.AppendLine($"Turn history ({history.Count}):");
 		if (history.Count == 0)
 			log.AppendLine("  (none)");
 		else
 		{
 			for (var i = 0; i < history.Count; i++)
-			{
-				var batch = history[i];
-				log.AppendLine($"  [{i}] {batch.ActorId} ({batch.Actions.Count}):");
-				foreach (var action in batch.Actions)
-					log.AppendLine($"    {DescribeAction(action)}");
-			}
+				log.AppendLine($"  [{i}] {DescribeEntry(history[i])}");
 		}
 
 		AppendSection(log, "Units (after player phase)", unitsAfterPlayer.Values);
@@ -79,8 +74,16 @@ public static class StateLog
 		+ $"/V{state.ShieldPoints[ESpatialOrientation.Ventral]} "
 		+ $"ap={state.ActionPoints}/{state.Stats.MaxAp}";
 
-	private static string FormatPath(IReadOnlyList<Coord> path) =>
-		path.Count == 0 ? "[]" : string.Join(" -> ", path);
+	private static string DescribeEntry(ITimelineEntry entry) => entry switch
+	{
+		IAction action => DescribeAction(action),
+		Record<ImpactFacts> { Value: var impact } =>
+			$"Impact {impact.SourceId}->{impact.TargetId} {impact.Cause} face={impact.Face} "
+			+ $"shield={impact.ShieldDamage} hull={impact.HullDamage} mom={impact.MomentumLoss}",
+		Record<SpawnFacts> { Value: var spawn } =>
+			$"Spawn {spawn.SourceId}->{spawn.TargetId} {spawn.EntityType}",
+		_ => entry.GetType().Name,
+	};
 
 	private static string DescribeAction(IAction action) =>
 		$"{action.ActorId}: {DescribeActionDetail(action)}";

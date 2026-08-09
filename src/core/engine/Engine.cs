@@ -29,14 +29,16 @@ internal sealed class Engine<TWorld, TRuntime>
 		return sim;
 	}
 
-	public IReadOnlyList<IAction> Commit(params IAction[] actions)
+	public IReadOnlyList<ITimelineEntry> Commit(params IAction[] actions)
 	{
 		foreach (var action in actions)
-			ExecutionHelper.Apply(action, World, ActorRuntimes.For(action));
+		{
+			var records = ExecutionHelper.Apply(action, World, ActorRuntimes.For(action));
+			World.Timeline.Append([action, ..records]);
+		}
 
-		World.Timeline.Record(actions);
 		BumpWorldVersion();
-		return actions;
+		return World.Timeline.History();
 	}
 
 	public void Schedule(int delayTicks, params IAction[] actions)
@@ -45,14 +47,14 @@ internal sealed class Engine<TWorld, TRuntime>
 		BumpWorldVersion();
 	}
 
-	public IReadOnlyList<IAction> AdvanceTick()
+	public IReadOnlyList<ITimelineEntry> AdvanceTick()
 	{
 		World.Timeline.Clock.Next();
 		var pending = World.Timeline.TakePending();
 		return pending.Count == 0 ? [] : Commit([..pending]);
 	}
 
-	public IReadOnlyList<TimelineBatch> History(int? tick = null) =>
+	public IReadOnlyList<ITimelineEntry> History(int? tick = null) =>
 		World.Timeline.History(tick);
 
 	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> HistoryByActor(int? tick = null) =>

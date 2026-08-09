@@ -1,22 +1,22 @@
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle;
 
 public sealed record TurnReplay(
 	IReadOnlyDictionary<string, State> StartStates,
-	IReadOnlyList<TimelineBatch> Batches,
+	IReadOnlyList<ITimelineEntry> History,
 	IReadOnlyDictionary<string, State> EndStates)
 {
 	public IEnumerable<IAction> Actions =>
-		Batches.SelectMany(batch => batch.Actions);
+		History.OfType<IAction>();
 
 	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> ActionsByActor =>
-		Batches
-			.GroupBy(batch => batch.ActorId, StringComparer.Ordinal)
+		History
+			.OfType<IAction>()
+			.GroupBy(action => action.ActorId, StringComparer.Ordinal)
 			.ToDictionary(
 				group => group.Key,
-				group => (IReadOnlyList<IAction>)group.SelectMany(batch => batch.Actions).ToList(),
+				group => (IReadOnlyList<IAction>)group.ToList(),
 				StringComparer.Ordinal);
 }

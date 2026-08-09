@@ -1,6 +1,8 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -72,6 +74,10 @@ public sealed class TorpedoActionTests
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);
+		Assert.Contains(
+			replay.History,
+			entry => entry is Record<SpawnFacts> { Value: var spawn }
+				&& spawn.TargetId == torpedo.State.Id);
 		Assert.Contains(
 			replay.Actions,
 			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);

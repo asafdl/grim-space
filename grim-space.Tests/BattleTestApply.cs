@@ -29,7 +29,7 @@ internal static class BattleTestApply
 
 			var board = BattleWorld.FromLive(roster, nonUnits, grid, blocked, timeline);
 			foreach (var effect in typed.Definition.Resolve(action, board, runtime))
-				effect.Apply(board, runtime, action.ActorId);
+				_ = effect.Apply(board, runtime, action.ActorId);
 		}
 	}
 
@@ -46,7 +46,7 @@ internal static class BattleTestApply
 			return false;
 
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
-			effect.Apply(board, runtime, action.ActorId);
+			_ = effect.Apply(board, runtime, action.ActorId);
 
 		return true;
 	}
@@ -81,7 +81,7 @@ internal static class BattleTestApply
 
 		var board = BattleWorld.FromLive(roster, nonUnits, grid, blocked, timeline);
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
-			effect.Apply(board, runtime, action.ActorId);
+			_ = effect.Apply(board, runtime, action.ActorId);
 	}
 
 	private static IEnumerable<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string actorId)
