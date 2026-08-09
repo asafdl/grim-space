@@ -45,7 +45,12 @@ internal static class EnemySearchInput
 		var state = world.StateOf(actorId);
 		// Optimistic bound: remaining AP may still be spent productively; momentum can climb to max.
 		var score = MomentumConfig.MaxLevel * MomentumWeight;
-		if (state.RailgunRemaining > 0)
+		if (state.RailgunRemaining <= 0)
+			return score;
+
+		var opponent = NearestOpponent(world, actorId);
+		if (opponent is not null
+			&& RailgunReach.CouldPossiblyHit(state.Position, state.ActionPoints, opponent.State.Position))
 			score += RailgunHitBonus;
 
 		return score;
@@ -134,6 +139,13 @@ internal static class EnemySearchInput
 
 		return new Coord(0, 0, System.Math.Sign(delta.Z));
 	}
+
+	public static bool HasRailgunHit(
+		BattleSimulation anchor,
+		IReadOnlyList<IAction> actions,
+		string actorId,
+		int searchStartDepth) =>
+		RailgunAdjustment(anchor, actions, actorId, searchStartDepth) == RailgunHitBonus;
 
 	private static int RailgunAdjustment(
 		BattleSimulation anchor,

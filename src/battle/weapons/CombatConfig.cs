@@ -15,6 +15,8 @@ public static class CombatConfig
 	public const int RailgunDamage = 3;
 	public const int RailgunLineLength = 8;
 	public const int RailgunPyramidRange = 2;
+	// Max manhattan from firer to a railgun cell (fore + lateral at pyramid tip).
+	public const int MaxRailgunManhattanRange = RailgunLineLength + 2 * RailgunPyramidRange;
 	public const int RailgunMomentumLoss = 0;
 
 	public const int RollApCost = 1;

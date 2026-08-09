@@ -40,10 +40,16 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 		var bestScore = int.MinValue;
 		var visitedFrames = 0;
 		var scoredFrames = 0;
+		IReadOnlyList<IAction>? hitBranchPrefix = null;
 		var dfsTimer = Stopwatch.StartNew();
 
 		foreach (var frame in frames)
 		{
+			// Good enough for now: once a hitting railgun plan exists, finish that DFS
+			// subtree (children), then stop — no need to search sibling branches.
+			if (hitBranchPrefix is not null && !IsActionPrefixExtension(frame.Actions, hitBranchPrefix))
+				break;
+
 			visitedFrames++;
 
 			var upperBound = EnemySearchInput.UpperBound(frame.World, actorId);
@@ -64,6 +70,10 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 			TryAddFinalist(finalists, frame, heuristicScore);
 			if (heuristicScore > bestHeuristic)
 				bestHeuristic = heuristicScore;
+
+			if (hitBranchPrefix is null
+				&& EnemySearchInput.HasRailgunHit(session, frame.Actions, actorId, searchStartDepth))
+				hitBranchPrefix = frame.Actions;
 		}
 
 		dfsTimer.Stop();
@@ -101,6 +111,22 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 			+ $"refinement={refinementTimer.Elapsed.TotalMilliseconds:F1}ms");
 
 		return best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
+	}
+
+	private static bool IsActionPrefixExtension(
+		IReadOnlyList<IAction> actions,
+		IReadOnlyList<IAction> prefix)
+	{
+		if (actions.Count < prefix.Count)
+			return false;
+
+		for (var i = 0; i < prefix.Count; i++)
+		{
+			if (!ReferenceEquals(actions[i], prefix[i]))
+				return false;
+		}
+
+		return true;
 	}
 
 	private static void TryAddFinalist(
