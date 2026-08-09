@@ -29,6 +29,8 @@ public sealed class Encounter
 		var (playerSpawn, enemySpawn) = DeploymentPlacement.DevDuel(
 			player, enemy, seed, gridSize);
 		var spawns = new[] { playerSpawn, enemySpawn };
+		var fieldMargin = 2;
+		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 
 		return new Encounter
 		{
@@ -40,17 +42,10 @@ public sealed class Encounter
 				Seed = seed,
 				GridSize = gridSize,
 				UnitPositions = spawns.Select(spawn => spawn.Position).ToArray(),
-				RegionCenter = RegionCenterBetween(spawns),
+				RegionCenter = fieldCenter,
+				RegionHalfExtent = gridSize / 2 - fieldMargin,
+				RegionMargin = fieldMargin,
 			}),
 		};
-	}
-
-	private static Coord RegionCenterBetween(IReadOnlyList<Spawn> spawns)
-	{
-		var sum = Coord.Zero;
-		foreach (var spawn in spawns)
-			sum += spawn.Position;
-
-		return new Coord(sum.X / spawns.Count, sum.Y / spawns.Count, sum.Z / spawns.Count);
 	}
 }

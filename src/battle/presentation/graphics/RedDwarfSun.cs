@@ -5,7 +5,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public static class RedDwarfSun
 {
 	public static readonly Vector3 LightDirection = new Vector3(-0.58f, -0.22f, -0.78f).Normalized();
-	public static readonly Color LightColor = new(1f, 0.4f, 0.2f);
+	// Warm, but not so red that every albedo collapses to the same brown.
+	public static readonly Color LightColor = new(1f, 0.62f, 0.45f);
 	public static readonly Color SunCoreColor = new(1f, 0.34f, 0.1f);
 	public static readonly Color SunHaloColor = new(1f, 0.18f, 0.06f);
 
@@ -55,7 +56,7 @@ public static class RedDwarfSun
 		light.LookAt(gridCenter + LightDirection, Vector3.Up);
 		light.LightColor = LightColor;
 		light.LightCullMask = PresentationLayers.World;
-		light.LightEnergy = 1.35f;
+		light.LightEnergy = 1.15f;
 		light.ShadowEnabled = true;
 		light.DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel4Splits;
 		light.DirectionalShadowMaxDistance = chamberRadius * 2.2f;
