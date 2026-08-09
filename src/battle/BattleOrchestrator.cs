@@ -6,6 +6,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -196,7 +197,8 @@ public sealed class BattleOrchestrator
 			hazardsBeforeResolve,
 			unitsAtTurnStart,
 			unitsAfterPlayer ?? endStates,
-			endStates);
+			endStates,
+			id => ActionLog.DisplayName(units, id));
 
 		return new TurnReplay(unitsAtTurnStart, history, endStates);
 	}

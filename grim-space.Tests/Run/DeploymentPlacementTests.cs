@@ -69,16 +69,27 @@ public sealed class DeploymentPlacementTests
 		Assert.NotEqual(Coord.Forward, player.Fore);
 	}
 
+	[Fact]
+	public void FromEncounter_AssignsGeneratedUnitIds()
+	{
+		var battle = GrimSpace.Battle.BattleOrchestrator.FromEncounter(
+			Encounter.DevDefault(seed: 7, gridSize: 32),
+			gridSize: 32);
+
+		Assert.StartsWith("fighter-", battle.PlayerId);
+		Assert.StartsWith("patrol-", battle.OpponentId);
+		Assert.NotEqual("player", battle.PlayerId);
+		Assert.NotEqual("enemy", battle.OpponentId);
+	}
+
 	private static Instance PlayerInstance() => new()
 	{
-		Id = "player",
 		Type = EType.Fighter,
 		Alliance = Alliance.Player,
 	};
 
 	private static Instance EnemyInstance() => new()
 	{
-		Id = "enemy",
 		Type = EType.Patrol,
 		Alliance = Alliance.Enemy,
 	};

@@ -4,7 +4,8 @@ namespace GrimSpace.Units;
 
 public sealed class Instance
 {
-	public required string Id { get; init; }
+	public string Id { get; init; } = "";
+
 	public EType Type { get; init; }
 	public required Alliance Alliance { get; init; }
 }

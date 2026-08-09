@@ -32,4 +32,5 @@ public sealed class PresentationFrame
 	public bool TorpedoAvailable { get; init; }
 	public bool ShowOutcomeOverlay { get; init; }
 	public EBattleResult Outcome { get; init; }
+	public required IReadOnlyList<string> ActionLogLines { get; init; }
 }

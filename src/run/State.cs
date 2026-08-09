@@ -14,7 +14,6 @@ public sealed class State
 		var run = new State();
 		run.PlayerParty.Add(new Instance
 		{
-			Id = "player",
 			Type = EType.Fighter,
 			Alliance = Alliance.Player,
 		});

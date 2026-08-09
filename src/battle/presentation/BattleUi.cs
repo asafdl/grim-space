@@ -9,6 +9,7 @@ using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation;
@@ -25,11 +26,21 @@ public sealed class BattleUi
 
 	public InteractionState State { get; } = new();
 
+	private readonly List<string> _actionLogLines = [];
 	private MoveUi? _moveUi;
+
+	public IReadOnlyList<string> ActionLogLines => _actionLogLines;
 
 	public MoveUi MoveUi => _moveUi ??= MoveUi.Build(Battle.Sim, Battle.PlayerId);
 
 	public void ResetMoveUi() => _moveUi = null;
+
+	public void AppendTurn(int turnNumber, IReadOnlyList<ITimelineEntry> history)
+	{
+		var units = UnitRegistry.For(Battle.Engine.World);
+		_actionLogLines.Add($"--- Turn {turnNumber} ---");
+		_actionLogLines.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
+	}
 
 	/// <summary>Active unit when it is the human player's planning turn; null otherwise.</summary>
 	public Unit? GetPlanningActor() =>
@@ -181,6 +192,7 @@ public sealed class BattleUi
 				.Any(mount => Battle.Sim.Peek(new TorpedoAction(Battle.PlayerId, mount)) is not null),
 			ShowOutcomeOverlay = Battle.IsBattleOver,
 			Outcome = Battle.Outcome.Result,
+			ActionLogLines = ActionLogLines,
 		};
 	}
 }

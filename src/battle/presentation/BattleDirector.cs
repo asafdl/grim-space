@@ -280,6 +280,7 @@ public sealed class BattleDirector
 			}
 
 			_ui.State.ResetAfterTurn();
+			_ui.AppendTurn(completedTurn, replay.History);
 			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
 
 			SetPhase(PresentationPhase.Replaying, $"turn {completedTurn} resolved");

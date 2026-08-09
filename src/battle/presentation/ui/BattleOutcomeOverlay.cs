@@ -9,6 +9,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 	private Control _root = null!;
 	private Label _title = null!;
+	private ActionLogPanel _actionLog = null!;
 
 	public BattleOutcomeOverlay()
 	{
@@ -17,7 +18,8 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		Visible = false;
 	}
 
-	public void SetOutcome(EBattleResult result) =>
+	public void SetOutcome(EBattleResult result, IReadOnlyList<string> actionLogLines)
+	{
 		_title.Text = result switch
 		{
 			EBattleResult.Win => "You Win!",
@@ -25,6 +27,8 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 			EBattleResult.Tie => "Draw",
 			_ => "Battle Over",
 		};
+		_actionLog.SetLines(actionLogLines);
+	}
 
 	private void Build()
 	{
@@ -62,29 +66,22 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 		var panel = new PanelContainer
 		{
-			CustomMinimumSize = new Vector2(320, 180),
+			CustomMinimumSize = new Vector2(480, 420),
 		};
 		center.AddChild(panel);
 
-		var column = new VBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.Center,
-		};
-		column.AddThemeConstantOverride("separation", 24);
-		panel.AddChild(column);
-
 		var margin = new MarginContainer();
-		margin.AddThemeConstantOverride("margin_left", 32);
-		margin.AddThemeConstantOverride("margin_right", 32);
-		margin.AddThemeConstantOverride("margin_top", 28);
-		margin.AddThemeConstantOverride("margin_bottom", 28);
-		column.AddChild(margin);
+		margin.AddThemeConstantOverride("margin_left", 28);
+		margin.AddThemeConstantOverride("margin_right", 28);
+		margin.AddThemeConstantOverride("margin_top", 24);
+		margin.AddThemeConstantOverride("margin_bottom", 24);
+		panel.AddChild(margin);
 
 		var content = new VBoxContainer
 		{
 			Alignment = BoxContainer.AlignmentMode.Center,
 		};
-		content.AddThemeConstantOverride("separation", 20);
+		content.AddThemeConstantOverride("separation", 16);
 		margin.AddChild(content);
 
 		_title = new Label
@@ -95,10 +92,18 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		_title.AddThemeFontSizeOverride("font_size", 36);
 		content.AddChild(_title);
 
+		_actionLog = new ActionLogPanel
+		{
+			CustomMinimumSize = new Vector2(400, 240),
+			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+		};
+		content.AddChild(_actionLog);
+
 		var resetButton = new Button
 		{
 			Text = "Reset",
 			CustomMinimumSize = new Vector2(140, 44),
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};
 		resetButton.Pressed += () => ResetRequested?.Invoke();
 		content.AddChild(resetButton);

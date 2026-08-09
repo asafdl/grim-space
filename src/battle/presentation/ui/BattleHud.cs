@@ -12,6 +12,8 @@ public partial class BattleHud : Node
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 
 	private Label _hintLabel = null!;
+	private CanvasLayer _actionLogLayer = null!;
+	private ActionLogPanel _actionLogPanel = null!;
 
 	public void Build()
 	{
@@ -22,6 +24,32 @@ public partial class BattleHud : Node
 
 		ActionBar = new ActionBar();
 		AddChild(ActionBar);
+
+		_actionLogLayer = new CanvasLayer { Layer = 15 };
+		var actionLogHost = new MarginContainer
+		{
+			AnchorsPreset = (int)Control.LayoutPreset.RightWide,
+			AnchorLeft = 1f,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			OffsetLeft = -320f,
+			OffsetTop = 56f,
+			OffsetBottom = -88f,
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Both,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		actionLogHost.AddThemeConstantOverride("margin_right", 12);
+		actionLogHost.AddThemeConstantOverride("margin_top", 0);
+		actionLogHost.AddThemeConstantOverride("margin_bottom", 0);
+		_actionLogPanel = new ActionLogPanel
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+		};
+		actionLogHost.AddChild(_actionLogPanel);
+		_actionLogLayer.AddChild(actionLogHost);
+		AddChild(_actionLogLayer);
 
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
@@ -35,9 +63,12 @@ public partial class BattleHud : Node
 		_hintLabel.Visible = !frame.ShowOutcomeOverlay;
 		_hintLabel.Text = frame.HintText;
 
+		_actionLogPanel.SetLines(frame.ActionLogLines);
+		_actionLogLayer.Visible = !frame.ShowOutcomeOverlay;
+
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
-			OutcomeOverlay.SetOutcome(frame.Outcome);
+			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogLines);
 
 		ActionBar.Visible = !frame.ShowOutcomeOverlay;
 		if (!frame.ShowOutcomeOverlay)

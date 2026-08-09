@@ -17,13 +17,11 @@ public sealed class Encounter
 	{
 		var player = new Instance
 		{
-			Id = "player",
 			Type = EType.Fighter,
 			Alliance = Alliance.Player,
 		};
 		var enemy = new Instance
 		{
-			Id = "enemy",
 			Type = EType.Patrol,
 			Alliance = Alliance.Enemy,
 		};

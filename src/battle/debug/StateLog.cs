@@ -1,14 +1,10 @@
 using System.Text;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Effects;
 using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
-using ShipOrientation = GrimSpace.Battle.Movement.Orientation;
 
 namespace GrimSpace.Battle.Debug;
 
@@ -20,20 +16,22 @@ public static class StateLog
 		IReadOnlyList<Hazard> hazards,
 		IReadOnlyDictionary<string, State> unitsAtTurnStart,
 		IReadOnlyDictionary<string, State> unitsAfterPlayer,
-		IReadOnlyDictionary<string, State> unitsAtTurnEnd)
+		IReadOnlyDictionary<string, State> unitsAtTurnEnd,
+		Func<string, string> displayName)
 	{
 		var log = new StringBuilder();
 		log.AppendLine($"=== Turn {turnNumber} ===");
 
 		AppendSection(log, "Units (turn start)", unitsAtTurnStart.Values);
 
-		log.AppendLine($"Turn history ({history.Count}):");
-		if (history.Count == 0)
+		var actionLines = ActionLog.Format(history, displayName);
+		log.AppendLine($"Action log ({actionLines.Count}):");
+		if (actionLines.Count == 0)
 			log.AppendLine("  (none)");
 		else
 		{
-			for (var i = 0; i < history.Count; i++)
-				log.AppendLine($"  [{i}] {DescribeEntry(history[i])}");
+			foreach (var line in actionLines)
+				log.AppendLine($"  {line}");
 		}
 
 		AppendSection(log, "Units (after player phase)", unitsAfterPlayer.Values);
@@ -73,29 +71,4 @@ public static class StateLog
 		+ $"/D{state.ShieldPoints[ESpatialOrientation.Dorsal]}"
 		+ $"/V{state.ShieldPoints[ESpatialOrientation.Ventral]} "
 		+ $"ap={state.ActionPoints}/{state.Stats.MaxAp}";
-
-	private static string DescribeEntry(ITimelineEntry entry) => entry switch
-	{
-		IAction action => DescribeAction(action),
-		Record<ImpactFacts> { Value: var impact } =>
-			$"Impact {impact.SourceId}->{impact.TargetId} {impact.Cause} face={impact.Face} "
-			+ $"shield={impact.ShieldDamage} hull={impact.HullDamage} mom={impact.MomentumLoss}",
-		Record<SpawnFacts> { Value: var spawn } =>
-			$"Spawn {spawn.SourceId}->{spawn.TargetId} {spawn.EntityType}",
-		_ => entry.GetType().Name,
-	};
-
-	private static string DescribeAction(IAction action) =>
-		$"{action.ActorId}: {DescribeActionDetail(action)}";
-
-	private static string DescribeActionDetail(IAction action) => action switch
-	{
-		MoveStepAction step => $"MoveStep {step.Direction}",
-		HeadingTurnAction heading => ShipOrientation.IsYawTurn(heading.Turn)
-			? $"HeadingTurn {heading.Turn} ({(heading.Turn == EHeadingTurn.Yaw180 ? 2 : 1)} AP)"
-			: $"HeadingTurn {heading.Turn} (1 AP)",
-		RollAction roll => $"Roll {roll.Direction}",
-		RailgunAction => "Railgun",
-		_ => action.GetType().Name,
-	};
 }
