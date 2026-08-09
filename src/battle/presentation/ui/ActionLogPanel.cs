@@ -62,7 +62,7 @@ public sealed partial class ActionLogPanel : PanelContainer
 		{
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-			MouseFilter = MouseFilterEnum.Pass,
+			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		column.AddChild(_scroll);
 

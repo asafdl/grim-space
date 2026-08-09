@@ -25,8 +25,10 @@ public sealed class PresentationFrame
 	public required IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }
 	public Coord? MoveTarget { get; init; }
-	public required string HintText { get; init; }
+	public int TurnNumber { get; init; }
 	public bool CanAct { get; init; }
+	public bool CanFocusCamera { get; init; }
+	public bool CanUndo { get; init; }
 	public bool FlakAvailable { get; init; }
 	public bool RailgunAvailable { get; init; }
 	public bool TorpedoAvailable { get; init; }

@@ -1,13 +1,10 @@
 using Godot;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public static class MovementSelection
 {
-	public static string FormatMomentum(State unit) => $"M{unit.MomentumLevel}";
-
 	private const float PickRadius = 1.4f;
 
 	public static int? PickPathIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<MovePathSession> paths)

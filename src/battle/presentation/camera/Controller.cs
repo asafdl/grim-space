@@ -16,7 +16,6 @@ public partial class Controller : Camera3D
 	private const float MaxPitch = 1.25f;
 
 	private Vector3 _pivot;
-	private Vector3 _homePivot;
 	private float _yaw;
 	private float _pitch;
 	private float _defaultYaw;
@@ -29,15 +28,6 @@ public partial class Controller : Camera3D
 	public void SetPivot(Vector3 pivot)
 	{
 		_pivot = pivot;
-		_homePivot = pivot;
-		ApplyTransform();
-	}
-
-	public void ResetView()
-	{
-		_pivot = _homePivot;
-		_yaw = _defaultYaw;
-		_pitch = _defaultPitch;
 		ApplyTransform();
 	}
 
@@ -61,7 +51,6 @@ public partial class Controller : Camera3D
 		_distance = DefaultDistance;
 		_defaultYaw = _yaw;
 		_defaultPitch = _pitch;
-		_homePivot = _pivot;
 		ApplyTransform();
 	}
 

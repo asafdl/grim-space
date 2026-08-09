@@ -193,13 +193,10 @@ public sealed class BattleUi
 			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
 			MovePath = path,
 			MoveTarget = target,
-			HintText = TurnUi.BuildHint(
-				Battle,
-				state,
-				activeUnit,
-				actorState,
-				Battle.Sim.Actions.Count),
+			TurnNumber = Battle.TurnNumber,
 			CanAct = acceptsCommands && canAct,
+			CanFocusCamera = acceptsCommands && activeUnit is not null,
+			CanUndo = acceptsCommands && Battle.Sim.Actions.Count > 0,
 			FlakAvailable = Capabilities.For(actorState.Type)
 				.OfType<FlakDef>()
 				.Any(def => Battle.Sim.Peek(new FlakAction(Battle.PlayerId, def.Mount)) is not null),

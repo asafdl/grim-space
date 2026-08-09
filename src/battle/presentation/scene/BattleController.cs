@@ -38,6 +38,7 @@ public partial class BattleController : Node3D
 
 	private TurnReplay? _pendingReplay;
 	private int _pendingCompletedTurn;
+	private int _focusedTurn = -1;
 
 	private readonly record struct MoveHoverCache(
 		IReadOnlyList<Movement.MovePathSession> Paths,
@@ -183,6 +184,12 @@ public partial class BattleController : Node3D
 		_battleHud.OutcomeOverlay.ResetRequested += ResetBattle;
 		_battleHud.ActionBar.ModeChanged += mode => _director.SetMode(mode);
 		_battleHud.ActionBar.EndTurnRequested += () => _director.EndTurn();
+		_battleHud.UtilityBar.FocusRequested += () => FocusCameraOnActiveUnit(_currentFrame);
+		_battleHud.UtilityBar.UndoRequested += () =>
+		{
+			if (_director.Undo())
+				_lastHoveredMoveIndex = null;
+		};
 	}
 
 	public override void _Input(InputEvent @event)
@@ -191,11 +198,9 @@ public partial class BattleController : Node3D
 			return;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Z } key
-			&& (key.CtrlPressed || key.MetaPressed))
+			&& (key.CtrlPressed || key.MetaPressed)
+			&& _battleHud.UtilityBar.TryUndo())
 		{
-			if (_director.Undo())
-				_lastHoveredMoveIndex = null;
-
 			GetViewport().SetInputAsHandled();
 		}
 	}
@@ -253,17 +258,9 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.R })
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F }
+			&& _battleHud.UtilityBar.TryFocus())
 		{
-			_camera.ResetView();
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F })
-		{
-			var player = _ui.Battle.Sim.StateOf<ActorState>(_ui.Battle.PlayerId);
-			_camera.FocusOn(WorldMapping.ToWorld(player.Position));
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -364,6 +361,24 @@ public partial class BattleController : Node3D
 		ApplyUnitStates(frame);
 		_gridView.ApplyFrame(frame);
 		_battleHud.Apply(frame);
+
+		if (!_director.AcceptsInput || frame.ActiveUnit is null)
+			return;
+
+		var turn = _ui.Battle.TurnNumber;
+		if (turn == _focusedTurn)
+			return;
+
+		_focusedTurn = turn;
+		FocusCameraOnActiveUnit(frame);
+	}
+
+	private void FocusCameraOnActiveUnit(PresentationFrame frame)
+	{
+		if (frame.ActiveUnit is null)
+			return;
+
+		_camera.FocusOn(WorldMapping.ToWorld(frame.ActorState.Position));
 	}
 
 	private void ApplyUnitStates(PresentationFrame frame)
