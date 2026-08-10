@@ -16,6 +16,8 @@ public partial class TurnReplayPlayer : Node3D
 	[Signal]
 	public delegate void PlaybackCompleteEventHandler();
 
+	private const double ImpactPauseSeconds = 0.32;
+
 	private static readonly ReplayClipRegistry Clips = ReplayClipRegistry.Default;
 
 	private IReadOnlyDictionary<string, UnitView> _unitViews = new Dictionary<string, UnitView>();
@@ -122,7 +124,8 @@ public partial class TurnReplayPlayer : Node3D
 					break;
 				case Record<ImpactFacts> { Value: var impact }:
 					BeginPhase(Classify(impact.SourceId));
-					ApplyImpact(impact);
+					if (PlayImpact(impact))
+						return;
 					break;
 			}
 		}
@@ -160,16 +163,31 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.PendingTorpedoMount = null;
 	}
 
-	private void ApplyImpact(ImpactFacts impact)
+	/// <summary>Returns true when playback yields for the hit flash.</summary>
+	private bool PlayImpact(ImpactFacts impact)
 	{
 		_clipContext.ReplayState.ApplyImpact(impact);
 		if (!_clipContext.ReplayState.Contains(impact.TargetId))
-			return;
+			return false;
 
 		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
-			return;
+			return false;
 
-		view.Sync(_clipContext.ReplayState.StateOf(impact.TargetId));
+		var state = _clipContext.ReplayState.StateOf(impact.TargetId);
+		view.ShowImpactState(state);
+		view.PlayHitFlash();
+
+		GetTree().CreateTimer(ImpactPauseSeconds).Timeout += () =>
+		{
+			if (_clipContext.UnitViews.TryGetValue(impact.TargetId, out var lingering)
+				&& _clipContext.ReplayState.Contains(impact.TargetId))
+			{
+				lingering.Sync(_clipContext.ReplayState.StateOf(impact.TargetId));
+			}
+
+			PlayNext();
+		};
+		return true;
 	}
 
 	private void BeginPhase(PlaybackPhase phase)
