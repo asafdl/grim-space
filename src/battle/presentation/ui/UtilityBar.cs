@@ -7,6 +7,7 @@ public sealed partial class UtilityBar : PanelContainer
 {
 	public event Action? FocusRequested;
 	public event Action? UndoRequested;
+	public event Action? BackToPlayerRequested;
 
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
@@ -14,8 +15,11 @@ public sealed partial class UtilityBar : PanelContainer
 
 	private static readonly Color Accent = new(0.55f, 0.78f, 1f);
 
+	private VBoxContainer _normalCol = null!;
+	private VBoxContainer _inspectionCol = null!;
 	private Button _focusButton = null!;
 	private Button _undoButton = null!;
+	private Button _backButton = null!;
 
 	public UtilityBar()
 	{
@@ -28,9 +32,11 @@ public sealed partial class UtilityBar : PanelContainer
 		Build();
 	}
 
-	public void Configure(bool focusAvailable, bool undoAvailable)
+	public void Configure(bool isInspecting, bool cameraFocusAvailable, bool undoAvailable)
 	{
-		_focusButton.Disabled = !focusAvailable;
+		_normalCol.Visible = !isInspecting;
+		_inspectionCol.Visible = isInspecting;
+		_focusButton.Disabled = !cameraFocusAvailable;
 		_undoButton.Disabled = !undoAvailable;
 	}
 
@@ -50,6 +56,14 @@ public sealed partial class UtilityBar : PanelContainer
 		return true;
 	}
 
+	public bool TryBackToPlayer()
+	{
+		if (!_inspectionCol.Visible)
+			return false;
+		BackToPlayerRequested?.Invoke();
+		return true;
+	}
+
 	private void Build()
 	{
 		var pad = new MarginContainer();
@@ -59,26 +73,63 @@ public sealed partial class UtilityBar : PanelContainer
 		pad.AddThemeConstantOverride("margin_bottom", 8);
 		AddChild(pad);
 
-		var col = new VBoxContainer();
-		col.AddThemeConstantOverride("separation", 8);
-		pad.AddChild(col);
+		var root = new VBoxContainer();
+		root.AddThemeConstantOverride("separation", 8);
+		pad.AddChild(root);
 
-		_focusButton = CreateSlot(
+		_normalCol = new VBoxContainer();
+		_normalCol.AddThemeConstantOverride("separation", 8);
+		root.AddChild(_normalCol);
+
+		_focusButton = CreateIconSlot(
 			hotkey: "F",
 			tooltip: BattleHudCopy.FocusTooltip,
 			iconPath: "res://assets/ui/abilities/focus.svg",
 			onPressed: () => FocusRequested?.Invoke());
-		_undoButton = CreateSlot(
+		_undoButton = CreateIconSlot(
 			hotkey: "⌘Z",
 			tooltip: BattleHudCopy.UndoTooltip,
 			iconPath: "res://assets/ui/abilities/undo.svg",
 			onPressed: () => UndoRequested?.Invoke());
 
-		col.AddChild(_focusButton);
-		col.AddChild(_undoButton);
+		_normalCol.AddChild(_focusButton);
+		_normalCol.AddChild(_undoButton);
+
+		_inspectionCol = new VBoxContainer { Visible = false };
+		_inspectionCol.AddThemeConstantOverride("separation", 8);
+		root.AddChild(_inspectionCol);
+
+		_backButton = CreateBackButton();
+		_inspectionCol.AddChild(_backButton);
 	}
 
-	private static Button CreateSlot(string hotkey, string tooltip, string iconPath, Action onPressed)
+	private Button CreateBackButton()
+	{
+		var button = new Button
+		{
+			Text = BattleHudCopy.BackToPlayer,
+			CustomMinimumSize = new Vector2(96, SlotSize),
+			TooltipText = BattleHudCopy.BackToPlayerTooltip,
+			FocusMode = FocusModeEnum.None,
+		};
+
+		var normal = MakeStyle(new Color(0.12f, 0.16f, 0.24f, 1f), Accent * new Color(1f, 1f, 1f, 0.65f), 2, 6);
+		var hover = MakeStyle(new Color(0.18f, 0.24f, 0.34f, 1f), Accent, 2, 6);
+		var pressed = MakeStyle(new Color(0.22f, 0.3f, 0.42f, 1f), Accent, 3, 6);
+
+		button.AddThemeStyleboxOverride("normal", normal);
+		button.AddThemeStyleboxOverride("hover", hover);
+		button.AddThemeStyleboxOverride("pressed", pressed);
+		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
+		button.AddThemeColorOverride("font_color", new Color(0.88f, 0.94f, 1f));
+		button.AddThemeColorOverride("font_hover_color", Colors.White);
+		button.AddThemeColorOverride("font_pressed_color", Colors.White);
+		button.AddThemeFontSizeOverride("font_size", 12);
+		button.Pressed += () => BackToPlayerRequested?.Invoke();
+		return button;
+	}
+
+	private static Button CreateIconSlot(string hotkey, string tooltip, string iconPath, Action onPressed)
 	{
 		var button = new Button
 		{

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -192,7 +193,9 @@ public partial class BattleHud : Node
 	{
 		_topHud.Visible = !frame.ShowOutcomeOverlay;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
-		HealthBar.Set(frame.ActorState);
+
+		var focusState = frame.PreviewWorld.StateOf(frame.FocusId);
+		HealthBar.Set(focusState);
 
 		_actionLogPanel.SetLines(frame.ActionLogLines);
 		_actionLogLayer.Visible = !frame.ShowOutcomeOverlay;
@@ -208,23 +211,16 @@ public partial class BattleHud : Node
 		ManeuverBar.SetMode(frame.Mode);
 		ManeuverBar.Configure(
 			frame.CanAct,
-			frame.ActorState.ActionPoints,
-			frame.ActorState.Stats.MaxAp,
-			frame.ActorState.MomentumLevel);
+			focusState.ActionPoints,
+			focusState.Stats.MaxAp,
+			focusState.MomentumLevel);
 		ActionBar.SetMode(frame.Mode);
-		var actor = frame.ActorState;
 		ActionBar.Configure(
-			frame.FlakAvailable,
-			frame.RailgunAvailable,
-			frame.TorpedoAvailable,
+			focusState,
+			frame.WeaponLegality,
 			frame.CanAct,
-			actor.FlakRemaining,
-			actor.Stats.FlaksPerTurn,
-			actor.RailgunRemaining,
-			actor.Stats.RailgunsPerTurn,
-			actor.TorpedoCooldownRemaining > 0 ? 0 : 1,
-			1);
-		UtilityBar.Configure(frame.CanFocusCamera, frame.CanUndo);
+			frame.IsInspecting);
+		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 
 	private static Button CreateTopMetaButton(

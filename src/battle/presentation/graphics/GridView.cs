@@ -41,7 +41,7 @@ public partial class GridView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		if (frame.ActiveUnit is null || frame.ShowOutcomeOverlay)
+		if (!frame.ShowMovePreview || frame.ShowOutcomeOverlay)
 		{
 			ReleaseActiveHighlights();
 			PresentationDiagnostics.LogMovePreviewHighlights(0, 0);

@@ -7,7 +7,7 @@ using GrimSpace.Core.Engine;
 namespace GrimSpace.Battle.Movement;
 
 /// <summary>
-/// Prefix-keyed move path cache for on-demand discovery from the live simulation.
+/// Prefix-keyed move path cache for the human player's planning turn (queue / undo).
 /// </summary>
 public sealed class MovePreviewCache
 {
@@ -15,15 +15,14 @@ public sealed class MovePreviewCache
 
 	public IReadOnlyList<MovePathSession> GetPaths(
 		Simulation<BattleWorld, ActorRuntime> sim,
-		string actorId,
+		string playerId,
 		IReadOnlyList<IAction> committed)
 	{
-		var actions = sim.Actions;
-		var key = PrefixKey(actions);
+		var key = PrefixKey(committed);
 		if (_pathsByPrefix.TryGetValue(key, out var cached))
 			return cached;
 
-		var paths = MovePathEndpoints.DiscoverExtensions(sim, actorId);
+		var paths = MovePathEndpoints.DiscoverExtensions(sim, playerId);
 		_pathsByPrefix[key] = paths;
 		return paths;
 	}

@@ -3,7 +3,9 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Domains.Torpedo;
+using GrimSpace.Battle.Presentation.Domains.Turn;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -33,6 +35,8 @@ public sealed class BattleDirector
 
 	public bool AcceptsInput => Phase == PresentationPhase.Planning;
 
+	public bool AcceptsCommands => AcceptsInput && !_ui.IsInspecting;
+
 	public event Action<PresentationFrame>? FrameChanged;
 	public event Action<TurnReplay, int>? ReplayRequested;
 
@@ -40,7 +44,7 @@ public sealed class BattleDirector
 
 	public void EndTurn()
 	{
-		if (Phase != PresentationPhase.Planning)
+		if (Phase != PresentationPhase.Planning || !AcceptsCommands)
 		{
 			PresentationDiagnostics.LogEndTurnIgnored(Phase);
 			return;
@@ -95,9 +99,33 @@ public sealed class BattleDirector
 		EnterPlanningCore("replay complete");
 	}
 
-	public bool SetMode(EPlayerMode mode)
+	public bool FocusUnit(string unitId)
 	{
 		if (!AcceptsInput)
+			return false;
+
+		var previewWorld = TurnUi.GetPreviewWorld(_ui.Battle);
+		if (!UnitRegistry.For(previewWorld).TryGet(unitId, out var unit) || !unit.State.IsAlive)
+			return false;
+
+		_ui.State.FocusUnit(unitId);
+		EmitFrame();
+		return true;
+	}
+
+	public bool ClearFocus()
+	{
+		if (!AcceptsInput)
+			return false;
+
+		_ui.State.ClearFocus();
+		EmitFrame();
+		return true;
+	}
+
+	public bool SetMode(EPlayerMode mode)
+	{
+		if (!AcceptsCommands)
 			return false;
 
 		_ui.State.SetMode(mode);
@@ -107,7 +135,7 @@ public sealed class BattleDirector
 
 	public bool QueueMove(Coord endPosition)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 		{
 			PresentationDiagnostics.LogMoveRejected("not_planning", Phase, optionIndex: -1);
 			return false;
@@ -144,7 +172,7 @@ public sealed class BattleDirector
 
 	public bool Enqueue(IAction action)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return false;
 
 		var actor = _ui.GetPlanningActor();
@@ -158,7 +186,7 @@ public sealed class BattleDirector
 
 	public bool Undo()
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return false;
 
 		if (!_ui.Undo())
@@ -170,7 +198,7 @@ public sealed class BattleDirector
 
 	public bool ApplyFlak(Coord cell)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return false;
 
 		if (!FlakUi.TryApply(_ui.Battle, _ui.State, cell))
@@ -182,7 +210,7 @@ public sealed class BattleDirector
 
 	public bool ApplyRailgun(Coord cell)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return false;
 
 		if (!RailgunUi.TryApply(_ui.Battle, _ui.State, cell))
@@ -194,7 +222,7 @@ public sealed class BattleDirector
 
 	public bool ApplyTorpedo(Coord cell)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return false;
 
 		if (!TorpedoUi.TryApply(_ui.Battle, _ui.State, cell))
@@ -206,7 +234,7 @@ public sealed class BattleDirector
 
 	public void SetFlakHover(Coord? cell)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return;
 
 		_ui.State.FlakHover = cell;
@@ -215,7 +243,7 @@ public sealed class BattleDirector
 
 	public void SetRailgunHover(Coord? cell)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return;
 
 		_ui.State.RailgunHover = cell;
@@ -224,7 +252,7 @@ public sealed class BattleDirector
 
 	public void SetTorpedoHover(Coord? cell)
 	{
-		if (!AcceptsInput)
+		if (!AcceptsCommands)
 			return;
 
 		if (_ui.State.TorpedoHover == cell)
@@ -268,7 +296,7 @@ public sealed class BattleDirector
 	}
 
 	private void EmitFrame() =>
-		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsInput));
+		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsCommands));
 
 	private bool TryCommit()
 	{

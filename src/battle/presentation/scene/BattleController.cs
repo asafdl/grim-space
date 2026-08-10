@@ -128,7 +128,8 @@ public partial class BattleController : Node3D
 		if (!_director.AcceptsInput
 			|| _ui.State.Mode != EPlayerMode.Move
 			|| _ui.Battle.IsBattleOver
-			|| _ui.GetPlanningActor() is null)
+			|| _ui.GetPlanningActor() is null
+			|| !_currentFrame.CanAct)
 		{
 			_lastHoveredMoveIndex = null;
 			return;
@@ -216,6 +217,7 @@ public partial class BattleController : Node3D
 			if (_director.Undo())
 				_lastHoveredMoveIndex = null;
 		};
+		_battleHud.UtilityBar.BackToPlayerRequested += ReturnToPlayer;
 	}
 
 	public override void _Input(InputEvent @event)
@@ -338,13 +340,7 @@ public partial class BattleController : Node3D
 		switch (_ui.State.Mode)
 		{
 			case EPlayerMode.Move:
-				if (MovementSelection.PickPathIndex(_camera, screenPos, frame.MovePaths) is int index)
-				{
-					_director.QueueMove(frame.MovePaths[index].EndPosition);
-					_lastHoveredMoveIndex = null;
-				}
-				else
-					PresentationDiagnostics.LogMovePickMiss(frame.MovePaths.Count);
+				HandleMoveClick(screenPos, frame);
 				break;
 
 			case EPlayerMode.Flak:
@@ -362,6 +358,46 @@ public partial class BattleController : Node3D
 					_director.ApplyTorpedo(torpedoCell);
 				break;
 		}
+	}
+
+	private void HandleMoveClick(Vector2 screenPos, PresentationFrame frame)
+	{
+		var playerId = _ui.Battle.PlayerId;
+		if (UnitPick.Pick(_camera, screenPos, _battleView.UnitViews) is { } pickedId)
+		{
+			if (pickedId != playerId)
+			{
+				if (_director.FocusUnit(pickedId))
+					_lastHoveredMoveIndex = null;
+				return;
+			}
+
+			if (frame.IsInspecting)
+			{
+				ReturnToPlayer();
+				return;
+			}
+		}
+
+		if (frame.IsInspecting)
+			return;
+
+		if (MovementSelection.PickPathIndex(_camera, screenPos, frame.MovePaths) is int index)
+		{
+			_director.QueueMove(frame.MovePaths[index].EndPosition);
+			_lastHoveredMoveIndex = null;
+		}
+		else
+			PresentationDiagnostics.LogMovePickMiss(frame.MovePaths.Count);
+	}
+
+	private void ReturnToPlayer()
+	{
+		if (!_director.ClearFocus())
+			return;
+
+		_lastHoveredMoveIndex = null;
+		_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 	}
 
 	private void OnPlaybackComplete()

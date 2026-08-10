@@ -3,6 +3,7 @@ using GrimSpace.Battle.World;
 
 namespace GrimSpace.Battle.Presentation.Domains.Turn;
 
+// TODO: whoever wrote this class should be shot and killed.
 public static class TurnUi
 {
 	public static bool TryUndo(BattleOrchestrator battle, Interaction.InteractionState state)

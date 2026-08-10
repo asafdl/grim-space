@@ -3,6 +3,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Domains.Flak;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -134,6 +135,84 @@ public sealed class PresentationFrameTests
 		Assert.Equal(pathAfterMove, ui.State.CommittedMovePath);
 		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
 		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+	}
+
+	[Fact]
+	public void DefaultFocusIsPlayer()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = new BattleUi(battle);
+
+		var frame = ui.BuildFrame();
+
+		Assert.Equal(battle.PlayerId, frame.FocusId);
+		Assert.False(frame.IsInspecting);
+		Assert.True(frame.CanAct);
+		Assert.True(frame.ShowMovePreview);
+		var focusState = frame.PreviewWorld.StateOf(frame.FocusId);
+		Assert.Equal(battle.Sim.StateOf<ActorState>(battle.PlayerId).Position, focusState.Position);
+		Assert.All(frame.MovePaths, path => Assert.Equal(battle.PlayerId, path.ActorId));
+	}
+
+	[Fact]
+	public void FocusEnemyShowsInspectionFrame()
+	{
+		var origin = new Coord(5, 5, 5);
+		var enemyPos = TurnOrchestrationTests.EnemyInRailgunLine(origin);
+		var battle = CreateOrchestrator(origin, enemyPos);
+		var ui = new BattleUi(battle);
+
+		ui.State.FocusUnit(battle.OpponentId);
+		var frame = ui.BuildFrame();
+
+		Assert.Equal(battle.OpponentId, frame.FocusId);
+		Assert.True(frame.IsInspecting);
+		Assert.False(frame.CanAct);
+		Assert.Equal(EPlayerMode.Move, frame.Mode);
+		Assert.True(frame.ShowMovePreview);
+		Assert.Empty(frame.MovePath);
+		Assert.Null(frame.MoveTarget);
+		Assert.False(frame.ShowWeaponPreviews);
+		Assert.Equal(enemyPos, frame.PreviewWorld.StateOf(frame.FocusId).Position);
+		Assert.NotEmpty(frame.MovePaths);
+		Assert.All(frame.MovePaths, path => Assert.Equal(battle.OpponentId, path.ActorId));
+	}
+
+	[Fact]
+	public void InspectionDoesNotMutatePlanning()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = new BattleUi(battle);
+		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var threeStepIndex = options.FindIndex(
+			option => option.EndPosition == origin + Coord.Forward * 3);
+		Assert.True(ui.TryQueueMove(threeStepIndex, options));
+
+		var actionsBefore = battle.Sim.Actions.ToList();
+		var playerPosBefore = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+
+		ui.State.FocusUnit(battle.OpponentId);
+		_ = ui.BuildFrame();
+
+		Assert.Equal(actionsBefore, battle.Sim.Actions);
+		Assert.Equal(playerPosBefore, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+	}
+
+	[Fact]
+	public void InvalidFocusTargetFallsBackToPlayer()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = new BattleUi(battle);
+
+		ui.State.FocusUnit("missing");
+		var frame = ui.BuildFrame();
+
+		Assert.Equal(battle.PlayerId, frame.FocusId);
+		Assert.False(frame.IsInspecting);
+		Assert.Null(ui.State.FocusId);
 	}
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)

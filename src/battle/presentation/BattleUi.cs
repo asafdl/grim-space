@@ -5,6 +5,7 @@ using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Domains.Torpedo;
 using GrimSpace.Battle.Presentation.Domains.Turn;
+using GrimSpace.Battle.Presentation.Domains.Weapons;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
@@ -25,6 +26,10 @@ public sealed class BattleUi
 	public BattleOrchestrator Battle { get; }
 
 	public InteractionState State { get; } = new();
+
+	public string FocusId => State.FocusId ?? Battle.PlayerId;
+
+	public bool IsInspecting => FocusId != Battle.PlayerId;
 
 	private readonly List<string> _actionLogLines = [];
 	private MoveUi? _moveUi;
@@ -124,33 +129,67 @@ public sealed class BattleUi
 		var canAct = activeUnit is not null && Battle.CanAct(activeUnit);
 		var weaponQueued = Battle.Sim.Actions.Any(static action =>
 			action is FlakAction or RailgunAction or TorpedoAction);
-		var movePaths = acceptsCommands && canAct
-			? MoveUi.GetMovePaths(Battle.Sim, Battle.PlayerId, Battle.Sim.Actions)
-			: [];
-		state.ClampMoveHover(movePaths.Count);
 
 		var previewWorld = TurnUi.GetPreviewWorld(Battle);
-		var validFlakPortCells = state.Mode == EPlayerMode.Flak
+		var focusId = state.FocusId ?? Battle.PlayerId;
+		if (!UnitRegistry.For(previewWorld).TryGet(focusId, out var focusUnit) || !focusUnit.State.IsAlive)
+		{
+			state.ClearFocus();
+			focusId = Battle.PlayerId;
+		}
+
+		var isInspecting = focusId != Battle.PlayerId;
+		var canControl = acceptsCommands && canAct && !isInspecting;
+		var effectiveMode = isInspecting ? EPlayerMode.Move : state.Mode;
+
+		IReadOnlyList<Movement.MovePathSession> movePaths;
+		IReadOnlyList<Coord> movePath;
+		Coord? moveTarget;
+		if (canControl || isInspecting)
+		{
+			movePaths = MoveUi.GetMovePaths(Battle.Sim, focusId, Battle.Sim.Actions);
+			if (isInspecting)
+			{
+				movePath = [];
+				moveTarget = null;
+			}
+			else
+			{
+				state.ClampMoveHover(movePaths.Count);
+				(movePath, moveTarget) = MoveUi.GetPathHighlights(
+					movePaths,
+					state.MoveHoveredIndex,
+					state.CommittedMovePath);
+			}
+		}
+		else
+		{
+			movePaths = [];
+			movePath = [];
+			moveTarget = null;
+		}
+
+		var validFlakPortCells = effectiveMode == EPlayerMode.Flak
 			? FlakUi.GetBurstCells(Battle, EFlakMount.Port)
 			: [];
-		var validFlakStarboardCells = state.Mode == EPlayerMode.Flak
+		var validFlakStarboardCells = effectiveMode == EPlayerMode.Flak
 			? FlakUi.GetBurstCells(Battle, EFlakMount.Starboard)
 			: [];
 		var validFlakPickCells = new HashSet<Coord>(validFlakPortCells);
 		validFlakPickCells.UnionWith(validFlakStarboardCells);
-		var flakPreviewCells = state.Mode == EPlayerMode.Flak
+		var flakPreviewCells = effectiveMode == EPlayerMode.Flak
 			? FlakUi.GetPreviewCells(Battle, state)
 			: [];
-		var railgunCells = state.Mode == EPlayerMode.Railgun
+		var railgunCells = effectiveMode == EPlayerMode.Railgun
 			? RailgunUi.GetBurstCells(Battle)
 			: [];
-		var railgunPreviewCells = state.Mode == EPlayerMode.Railgun
+		var railgunPreviewCells = effectiveMode == EPlayerMode.Railgun
 			? RailgunUi.GetPreviewCells(Battle, state)
 			: [];
-		var torpedoMountCells = state.Mode == EPlayerMode.Torpedo
+		var torpedoMountCells = effectiveMode == EPlayerMode.Torpedo
 			? TorpedoUi.GetMountCells(Battle)
 			: [];
-		var torpedoEnvelopeLayers = state.Mode == EPlayerMode.Torpedo
+		var torpedoEnvelopeLayers = effectiveMode == EPlayerMode.Torpedo
 			? TorpedoUi.GetEnvelopeLayers(Battle, state)
 			: [];
 
@@ -158,7 +197,7 @@ public sealed class BattleUi
 		var committedRailgun = false;
 		Coord? committedTorpedoMountCell = null;
 		IReadOnlyList<IReadOnlySet<Coord>> committedTorpedoEnvelopeLayers = [];
-		var showWeaponPreviews = acceptsCommands && !Battle.IsBattleOver;
+		var showWeaponPreviews = acceptsCommands && !Battle.IsBattleOver && !isInspecting;
 		if (showWeaponPreviews)
 		{
 			for (var i = Battle.Sim.Actions.Count - 1; i >= 0; i--)
@@ -189,7 +228,7 @@ public sealed class BattleUi
 
 		var threatenedUnitIds = !showWeaponPreviews
 			? new HashSet<string>()
-			: state.Mode switch
+			: effectiveMode switch
 			{
 				EPlayerMode.Flak => FlakUi.GetThreatenedUnitIds(Battle),
 				EPlayerMode.Railgun => RailgunUi.GetThreatenedUnitIds(Battle),
@@ -202,19 +241,15 @@ public sealed class BattleUi
 					TorpedoUi.GetThreatenedUnitIdsForLayers(Battle, committedTorpedoEnvelopeLayers),
 				_ => new HashSet<string>(),
 			};
-		var (path, target) = MoveUi.GetPathHighlights(
-			movePaths,
-			state.MoveHoveredIndex,
-			state.CommittedMovePath);
 
 		var actorId = Battle.PlayerId;
 		var actorState = previewWorld.StateOf(actorId);
-		var movePathApBaseline = Battle.Sim.RuntimeFor(actorId).ActivePath?.PathApSpent ?? 0;
+		var movePathApBaseline = Battle.Sim.RuntimeFor(focusId).ActivePath?.PathApSpent ?? 0;
 
 		PresentationDiagnostics.LogMovePreview(
 			Battle.TurnNumber,
 			source: "build_frame",
-			state.Mode,
+			effectiveMode,
 			acceptsCommands,
 			hasPlanningActor: activeUnit is not null,
 			canAct,
@@ -226,8 +261,13 @@ public sealed class BattleUi
 
 		return new PresentationFrame
 		{
-			Mode = state.Mode,
+			Mode = effectiveMode,
 			ActiveUnit = activeUnit,
+			FocusId = focusId,
+			IsInspecting = isInspecting,
+			ShowMovePreview = !Battle.IsBattleOver
+				&& effectiveMode == EPlayerMode.Move
+				&& (canControl || isInspecting),
 			MovePaths = movePaths,
 			MovePathApBaseline = movePathApBaseline,
 			PreviewWorld = previewWorld,
@@ -245,18 +285,13 @@ public sealed class BattleUi
 			CommittedRailgun = committedRailgun,
 			CommittedTorpedoMountCell = committedTorpedoMountCell,
 			CommittedTorpedoEnvelopeLayers = committedTorpedoEnvelopeLayers,
-			MovePath = path,
-			MoveTarget = target,
+			MovePath = movePath,
+			MoveTarget = moveTarget,
 			TurnNumber = Battle.TurnNumber,
-			CanAct = acceptsCommands && canAct,
-			CanFocusCamera = acceptsCommands && activeUnit is not null,
-			CanUndo = acceptsCommands && Battle.Sim.Actions.Count > 0,
-			FlakAvailable = Capabilities.For(actorState.Type)
-				.OfType<FlakDef>()
-				.Any(def => Battle.Sim.Peek(new FlakAction(Battle.PlayerId, def.Mount)) is not null),
-			RailgunAvailable = Battle.Sim.Peek(new RailgunAction(Battle.PlayerId)) is not null,
-			TorpedoAvailable = TorpedoConfig.EnabledMounts
-				.Any(mount => Battle.Sim.Peek(new TorpedoAction(Battle.PlayerId, mount)) is not null),
+			CanAct = canControl,
+			CanFocusCamera = canControl && activeUnit is not null,
+			CanUndo = canControl && Battle.Sim.Actions.Count > 0,
+			WeaponLegality = canControl ? PlayerWeaponLegality.For(Battle) : default,
 			ShowOutcomeOverlay = Battle.IsBattleOver,
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = Battle.Outcome.Result,

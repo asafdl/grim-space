@@ -42,6 +42,8 @@ internal static class BattleHudCopy
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
 	public const string UndoTooltip = "Undo your last action this turn.\n(Ctrl/Cmd+Z)";
+	public const string BackToPlayer = "Back";
+	public const string BackToPlayerTooltip = "Return to your ship and resume planning.";
 
 	public const string ActionLogTitle = "Action Log";
 	public const string ActionLogEmpty = "(no actions yet)";

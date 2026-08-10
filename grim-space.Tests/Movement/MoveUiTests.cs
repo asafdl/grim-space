@@ -221,6 +221,23 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
+	public void InspectionPreviewDoesNotPoisonPlayerCache()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = BattleTestFixture.Ui(battle);
+		var committed = battle.Sim.Actions;
+
+		var playerPaths = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, committed);
+		_ = ui.MoveUi.GetMovePaths(battle.Sim, battle.OpponentId, committed);
+
+		Assert.Same(playerPaths, ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, committed));
+		Assert.All(playerPaths, path => Assert.Equal(battle.PlayerId, path.ActorId));
+	}
+
+	[Fact]
 	public void RootMoveOptionsDoNotBorrowPathsAcrossFutureYaw()
 	{
 		var origin = new Coord(5, 5, 5);

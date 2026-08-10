@@ -135,6 +135,63 @@ public sealed class BattleDirectorTests
 		Assert.False(resolvingFrame!.CanAct);
 	}
 
+	[Fact]
+	public void CommandsRejectedWhileInspecting()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = new BattleUi(battle);
+		var director = new BattleDirector(ui);
+		director.Start();
+
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
+		var queuedCount = battle.Sim.Actions.Count;
+
+		Assert.True(director.FocusUnit(battle.OpponentId));
+		Assert.True(ui.IsInspecting);
+
+		director.EndTurn();
+		Assert.Equal(PresentationPhase.Planning, director.Phase);
+		Assert.Equal(queuedCount, battle.Sim.Actions.Count);
+
+		Assert.False(director.SetMode(EPlayerMode.Flak));
+		Assert.False(director.Enqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		Assert.False(director.QueueMove(origin + Coord.Forward * 2));
+		Assert.False(director.Undo());
+	}
+
+	[Fact]
+	public void ClearFocusRestoresCommands()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var ui = new BattleUi(battle);
+		var director = new BattleDirector(ui);
+		director.Start();
+
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
+		var queuedCount = battle.Sim.Actions.Count;
+
+		Assert.True(director.FocusUnit(battle.OpponentId));
+		Assert.True(director.ClearFocus());
+		Assert.False(ui.IsInspecting);
+		Assert.True(director.SetMode(EPlayerMode.Flak));
+		Assert.Equal(queuedCount, battle.Sim.Actions.Count);
+	}
+
+	[Fact]
+	public void FocusUnitRejectsMissingTarget()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var director = new BattleDirector(new BattleUi(battle));
+		director.Start();
+
+		Assert.False(director.FocusUnit("missing"));
+	}
+
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
 		var encounter = new Encounter

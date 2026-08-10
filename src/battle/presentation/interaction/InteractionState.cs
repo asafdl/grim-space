@@ -6,12 +6,26 @@ namespace GrimSpace.Battle.Presentation.Interaction;
 
 public sealed class InteractionState
 {
+	public string? FocusId { get; private set; }
+
 	public EPlayerMode Mode { get; set; } = EPlayerMode.Move;
 	public Coord? FlakHover { get; set; }
 	public Coord? RailgunHover { get; set; }
 	public Coord? TorpedoHover { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 	public IReadOnlyList<Coord> CommittedMovePath { get; set; } = [];
+
+	public void FocusUnit(string unitId)
+	{
+		FocusId = unitId;
+		SetMode(EPlayerMode.Move);
+	}
+
+	public void ClearFocus()
+	{
+		FocusId = null;
+		SetMode(EPlayerMode.Move);
+	}
 
 	public void SetMode(EPlayerMode mode)
 	{
@@ -21,6 +35,7 @@ public sealed class InteractionState
 
 	public void ResetAfterTurn()
 	{
+		FocusId = null;
 		Mode = EPlayerMode.Move;
 		ClearHovers();
 		CommittedMovePath = [];
