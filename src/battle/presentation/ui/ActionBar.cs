@@ -60,9 +60,9 @@ public sealed partial class ActionBar : HBoxContainer
 		_railgunButton.Disabled = !canAct || !railgunAvailable;
 		_torpedoButton.Disabled = !canAct || !torpedoAvailable;
 		_endTurnButton.Disabled = !canAct;
-		_flakCharges.Text = $"{flakRemaining}/{flakMax}";
-		_railgunCharges.Text = $"{railgunRemaining}/{railgunMax}";
-		_torpedoCharges.Text = $"{torpedoRemaining}/{torpedoMax}";
+		_flakCharges.Text = BattleHudCopy.Charges(flakRemaining, flakMax);
+		_railgunCharges.Text = BattleHudCopy.Charges(railgunRemaining, railgunMax);
+		_torpedoCharges.Text = BattleHudCopy.Charges(torpedoRemaining, torpedoMax);
 	}
 
 	/// <summary>Activates ability slot 2–4 if enabled. Returns false if unbound or disabled.</summary>
@@ -97,21 +97,21 @@ public sealed partial class ActionBar : HBoxContainer
 		var abilityAccent = new Color(0.55f, 0.78f, 1f);
 		_flakButton = CreateAbilitySlot(
 			hotkey: "2",
-			tooltip: "Flak:\nSide burst (port or starboard), short range.\nDeals 1 damage and strips momentum.\nCooldown 1 turn.",
+			tooltip: BattleHudCopy.FlakTooltip,
 			iconPath: "res://assets/ui/abilities/flak.svg",
 			accent: abilityAccent,
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Flak),
 			out _flakCharges);
 		_railgunButton = CreateAbilitySlot(
 			hotkey: "3",
-			tooltip: "Railgun:\nFires in a long straight line ahead.\nDeals 3 damage.\nCooldown 1 turn.",
+			tooltip: BattleHudCopy.RailgunTooltip,
 			iconPath: "res://assets/ui/abilities/railgun.svg",
 			accent: abilityAccent,
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Railgun),
 			out _railgunCharges);
 		_torpedoButton = CreateAbilitySlot(
 			hotkey: "4",
-			tooltip: "Torpedo:\nFires in a set direction.\nFlies forward (with small maneuverability) for 3 turns,\nand tries to detonate on enemies caught in its path for 3 damage.\n3-turn cooldown after launch.",
+			tooltip: BattleHudCopy.TorpedoTooltip,
 			iconPath: "res://assets/ui/abilities/torpedo.svg",
 			accent: abilityAccent,
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Torpedo),
@@ -171,9 +171,9 @@ public sealed partial class ActionBar : HBoxContainer
 	{
 		var button = new Button
 		{
-			Text = "End Turn",
+			Text = BattleHudCopy.EndTurn,
 			CustomMinimumSize = new Vector2(112, SlotSize),
-			TooltipText = "End your turn and resolve the round.\nAP and cooldowns refresh.",
+			TooltipText = BattleHudCopy.EndTurnTooltip,
 			FocusMode = FocusModeEnum.None,
 			ClipContents = false,
 		};

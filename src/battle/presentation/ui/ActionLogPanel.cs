@@ -18,7 +18,7 @@ public sealed partial class ActionLogPanel : PanelContainer
 
 	public void SetLines(IReadOnlyList<string> lines)
 	{
-		var text = lines.Count == 0 ? "(no actions yet)" : string.Join('\n', lines);
+		var text = lines.Count == 0 ? BattleHudCopy.ActionLogEmpty : string.Join('\n', lines);
 		_label.Text = text;
 
 		if (lines.Count != _lastLineCount)
@@ -52,7 +52,7 @@ public sealed partial class ActionLogPanel : PanelContainer
 
 		var header = new Label
 		{
-			Text = "Action Log",
+			Text = BattleHudCopy.ActionLogTitle,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		header.AddThemeFontSizeOverride("font_size", 14);

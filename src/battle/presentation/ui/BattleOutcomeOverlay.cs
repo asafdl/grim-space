@@ -20,13 +20,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 	public void SetOutcome(EBattleResult result, IReadOnlyList<string> actionLogLines)
 	{
-		_title.Text = result switch
-		{
-			EBattleResult.Win => "You Win!",
-			EBattleResult.Lose => "You Lose",
-			EBattleResult.Tie => "Draw",
-			_ => "Battle Over",
-		};
+		_title.Text = BattleHudCopy.OutcomeTitle(result);
 		_actionLog.SetLines(actionLogLines);
 	}
 
@@ -86,7 +80,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 		_title = new Label
 		{
-			Text = "You Win!",
+			Text = BattleHudCopy.OutcomeWin,
 			HorizontalAlignment = HorizontalAlignment.Center,
 		};
 		_title.AddThemeFontSizeOverride("font_size", 36);
@@ -101,7 +95,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 		var resetButton = new Button
 		{
-			Text = "Reset",
+			Text = BattleHudCopy.Reset,
 			CustomMinimumSize = new Vector2(140, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};

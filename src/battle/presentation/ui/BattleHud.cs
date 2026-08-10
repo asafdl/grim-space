@@ -77,7 +77,7 @@ public partial class BattleHud : Node
 		});
 		_turnLabel = new Label
 		{
-			Text = "Turn 1",
+			Text = BattleHudCopy.Turn(1),
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
@@ -88,15 +88,15 @@ public partial class BattleHud : Node
 		turnRow.AddChild(_turnBadge);
 
 		turnRow.AddChild(CreateTopMetaButton(
-			text: "Retire",
-			tooltip: "Forfeit — you lose",
+			text: BattleHudCopy.Retire,
+			tooltip: BattleHudCopy.RetireTooltip,
 			bg: new Color(0.32f, 0.1f, 0.12f, 1f),
 			border: new Color(0.9f, 0.35f, 0.4f),
 			font: new Color(1f, 0.85f, 0.88f),
 			onPressed: () => RetireRequested?.Invoke()));
 		turnRow.AddChild(CreateTopMetaButton(
-			text: "Restart",
-			tooltip: "Restart encounter with a new random layout",
+			text: BattleHudCopy.Restart,
+			tooltip: BattleHudCopy.RestartTooltip,
 			bg: new Color(0.12f, 0.16f, 0.22f, 1f),
 			border: new Color(0.55f, 0.72f, 0.95f),
 			font: new Color(0.85f, 0.92f, 1f),
@@ -191,7 +191,7 @@ public partial class BattleHud : Node
 	public void Apply(PresentationFrame frame)
 	{
 		_topHud.Visible = !frame.ShowOutcomeOverlay;
-		_turnLabel.Text = $"Turn {frame.TurnNumber}";
+		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 		HealthBar.Set(frame.ActorState);
 
 		_actionLogPanel.SetLines(frame.ActionLogLines);
@@ -209,7 +209,8 @@ public partial class BattleHud : Node
 		ManeuverBar.Configure(
 			frame.CanAct,
 			frame.ActorState.ActionPoints,
-			frame.ActorState.Stats.MaxAp);
+			frame.ActorState.Stats.MaxAp,
+			frame.ActorState.MomentumLevel);
 		ActionBar.SetMode(frame.Mode);
 		var actor = frame.ActorState;
 		ActionBar.Configure(

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -21,6 +22,7 @@ public sealed partial class ManeuverBar : PanelContainer
 	private Button _yawButton = null!;
 	private Button _spinButton = null!;
 	private Label _apLabel = null!;
+	private Label _momentumLabel = null!;
 
 	public ManeuverBar(ButtonGroup modeGroup)
 	{
@@ -41,12 +43,13 @@ public sealed partial class ManeuverBar : PanelContainer
 		_moveButton.SetBlockSignals(false);
 	}
 
-	public void Configure(bool canAct, int apCurrent, int apMax)
+	public void Configure(bool canAct, int apCurrent, int apMax, int momentum)
 	{
 		_moveButton.Disabled = !canAct;
 		_yawButton.Disabled = !canAct;
 		_spinButton.Disabled = !canAct;
-		_apLabel.Text = $"{apCurrent}/{apMax}";
+		_apLabel.Text = BattleHudCopy.Charges(apCurrent, apMax);
+		_momentumLabel.Text = BattleHudCopy.MomentumStat(momentum, MomentumConfig.MaxLevel);
 	}
 
 	public bool TryActivateMove()
@@ -86,17 +89,36 @@ public sealed partial class ManeuverBar : PanelContainer
 		col.AddThemeConstantOverride("separation", 6);
 		pad.AddChild(col);
 
+		var statRow = new HBoxContainer
+		{
+			Alignment = BoxContainer.AlignmentMode.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		statRow.AddThemeConstantOverride("separation", 10);
+		col.AddChild(statRow);
+
 		_apLabel = new Label
 		{
 			Text = "0/0",
 			MouseFilter = MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_apLabel.AddThemeFontSizeOverride("font_size", 14);
 		_apLabel.AddThemeColorOverride("font_color", new Color(0.55f, 0.95f, 0.65f));
-		col.AddChild(_apLabel);
+		statRow.AddChild(_apLabel);
+
+		_momentumLabel = new Label
+		{
+			Text = "M0/0",
+			MouseFilter = MouseFilterEnum.Stop,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			TooltipText = BattleHudCopy.MomentumTooltip,
+		};
+		_momentumLabel.AddThemeFontSizeOverride("font_size", 12);
+		_momentumLabel.AddThemeColorOverride("font_color", new Color(0.75f, 0.82f, 1f));
+		statRow.AddChild(_momentumLabel);
 
 		var row = new HBoxContainer();
 		row.AddThemeConstantOverride("separation", 8);
@@ -104,7 +126,7 @@ public sealed partial class ManeuverBar : PanelContainer
 
 		_moveButton = CreateModeSlot(
 			hotkey: "1",
-			tooltip: "Move:\nSpend AP to path across the grid.\nPositioning decides weapon arcs and which shield face takes a hit.",
+			tooltip: BattleHudCopy.MoveTooltip,
 			iconPath: "res://assets/ui/abilities/move.svg",
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Move));
 		row.AddChild(_moveButton);
@@ -115,12 +137,12 @@ public sealed partial class ManeuverBar : PanelContainer
 
 		_yawButton = CreateActionSlot(
 			hotkey: "E",
-			tooltip: "Yaw:\nTurn your heading. Costs 1 AP.",
+			tooltip: BattleHudCopy.YawTooltip,
 			iconPath: "res://assets/ui/abilities/yaw.svg",
 			onPressed: () => HeadingTurnRequested?.Invoke(EHeadingTurn.YawRight));
 		_spinButton = CreateActionSlot(
 			hotkey: "Q",
-			tooltip: "Spin:\nRoll the ship. Costs 1 AP.",
+			tooltip: BattleHudCopy.SpinTooltip,
 			iconPath: "res://assets/ui/abilities/spin.svg",
 			onPressed: () => RollRequested?.Invoke(ERollDirection.Clockwise));
 

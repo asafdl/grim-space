@@ -41,9 +41,8 @@ public sealed partial class HealthBar : HBoxContainer
 
 		var hullSection = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop };
 		hullSection.AddThemeConstantOverride("separation", 4);
-		hullSection.TooltipText =
-			"Hull integrity.\nDamage that gets past the hit face's shields reduces hull.\nAt 0 you're destroyed.";
-		hullSection.AddChild(CreateTitle("HP", new Color(1f, 0.75f, 0.75f)));
+		hullSection.TooltipText = BattleHudCopy.HullTooltip;
+		hullSection.AddChild(CreateTitle(BattleHudCopy.HullTitle, new Color(1f, 0.75f, 0.75f)));
 		_hullHost = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		_hullHost.AddThemeConstantOverride("separation", 3);
 		hullSection.AddChild(_hullHost);
@@ -51,9 +50,8 @@ public sealed partial class HealthBar : HBoxContainer
 
 		_shieldSection = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop };
 		_shieldSection.AddThemeConstantOverride("separation", 4);
-		_shieldSection.TooltipText =
-			"Each face has its own shield pool.\nThe face toward the attacker absorbs the hit first.";
-		_shieldSection.AddChild(CreateTitle("Shields", new Color(0.75f, 0.88f, 1f)));
+		_shieldSection.TooltipText = BattleHudCopy.ShieldsTooltip;
+		_shieldSection.AddChild(CreateTitle(BattleHudCopy.ShieldsTitle, new Color(0.75f, 0.88f, 1f)));
 		_shieldColumn = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		_shieldColumn.AddThemeConstantOverride("separation", 6);
 		_shieldSection.AddChild(_shieldColumn);
@@ -104,10 +102,10 @@ public sealed partial class HealthBar : HBoxContainer
 			var face = Faces[faceIndex];
 			var (host, blocks) = _shieldFaces[faceIndex];
 			var current = System.Math.Clamp(state.ShieldPoints[face], 0, maxPerFace);
-			host.TooltipText =
-				$"{FaceName(face)} {current}/{maxPerFace}\n" +
-				"Absorbs hits from this direction.\n" +
-				"Each face has its own shield pool.";
+			host.TooltipText = BattleHudCopy.FaceShieldTooltip(
+				BattleHudCopy.FaceName(face),
+				current,
+				maxPerFace);
 			SyncBlockCount(host, blocks, maxPerFace);
 
 			for (var i = 0; i < blocks.Count; i++)
@@ -153,18 +151,6 @@ public sealed partial class HealthBar : HBoxContainer
 			last.QueueFree();
 		}
 	}
-
-	private static string FaceName(ESpatialOrientation face) =>
-		face switch
-		{
-			ESpatialOrientation.Forward => "Forward",
-			ESpatialOrientation.Retro => "Aft",
-			ESpatialOrientation.Starboard => "Starboard",
-			ESpatialOrientation.Port => "Port",
-			ESpatialOrientation.Dorsal => "Dorsal",
-			ESpatialOrientation.Ventral => "Ventral",
-			_ => face.ToString(),
-		};
 
 	private static StyleBoxFlat MakeStyle(Color bg, Color border, int borderWidth) =>
 		new()
