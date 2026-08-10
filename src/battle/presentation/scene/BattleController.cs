@@ -33,6 +33,7 @@ public partial class BattleController : Node3D
 	private RailgunPreviewView _railgunPreview = null!;
 	private TorpedoPreviewView _torpedoPreview = null!;
 	private Controller _camera = null!;
+	private BattleCameraDirector _cameraDirector = null!;
 
 	private int? _lastHoveredMoveIndex;
 	private PresentationFrame _currentFrame = null!;
@@ -41,7 +42,7 @@ public partial class BattleController : Node3D
 
 	private TurnReplay? _pendingReplay;
 	private int _pendingCompletedTurn;
-	private int _focusedTurn = -1;
+	private PresentationPhase? _lastPhase;
 
 	private readonly record struct MoveHoverCache(
 		IReadOnlyList<Movement.MovePathSession> Paths,
@@ -65,6 +66,8 @@ public partial class BattleController : Node3D
 		MoveChild(backdrop, 0);
 
 		_camera = GetNode<Controller>("Camera3D");
+		_cameraDirector = new BattleCameraDirector(_camera);
+		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(layout.Grid);
 
@@ -114,8 +117,11 @@ public partial class BattleController : Node3D
 		_director.Start();
 	}
 
-	public override void _Process(double _)
+	public override void _Process(double delta)
 	{
+		if (_cameraDirector.NeedsTick)
+			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
+
 		if (_pendingReplay is TurnReplay replay)
 		{
 			_pendingReplay = null;
@@ -151,6 +157,7 @@ public partial class BattleController : Node3D
 			frame.MovePathApBaseline,
 			_ui.State.CommittedMovePath);
 		ApplyFrame(frame);
+		HandleCameraPhaseTransition();
 	}
 
 	private void OnReplayRequested(TurnReplay replay, int completedTurn)
@@ -163,7 +170,10 @@ public partial class BattleController : Node3D
 	{
 		_playbackEndStates = replay.EndStates;
 		_battleView.ApplyUnitStates(replay.StartStates, ColorForActor);
-		_replayPlayer.ResetToLive(replay.StartStates, replay.EndStates);
+		_replayPlayer.ResetToLive(
+			replay.StartStates,
+			replay.EndStates,
+			interest => _cameraDirector.ReportInterest(interest));
 		_replayPlayer.Play(
 			replay.History,
 			completedTurn,
@@ -202,7 +212,8 @@ public partial class BattleController : Node3D
 		_battleHud.ManeuverBar.ModeChanged += mode => _director.SetMode(mode);
 		_battleHud.ActionBar.ModeChanged += mode => _director.SetMode(mode);
 		_battleHud.ActionBar.EndTurnRequested += () => _director.EndTurn();
-		_battleHud.UtilityBar.FocusRequested += () => FocusCameraOnActiveUnit(_currentFrame);
+		_battleHud.UtilityBar.FocusRequested += () =>
+			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 		_battleHud.UtilityBar.UndoRequested += () =>
 		{
 			if (_director.Undo())
@@ -384,24 +395,40 @@ public partial class BattleController : Node3D
 		_railgunPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame);
-
-		if (!_director.AcceptsInput || frame.ActiveUnit is null)
-			return;
-
-		var turn = _ui.Battle.TurnNumber;
-		if (turn == _focusedTurn)
-			return;
-
-		_focusedTurn = turn;
-		FocusCameraOnActiveUnit(frame);
 	}
 
-	private void FocusCameraOnActiveUnit(PresentationFrame frame)
+	private void HandleCameraPhaseTransition()
 	{
-		if (frame.ActiveUnit is null)
+		var phase = _director.Phase;
+		if (phase == _lastPhase)
 			return;
 
-		_camera.FocusOn(WorldMapping.ToWorld(frame.ActorState.Position));
+		var previous = _lastPhase;
+		_lastPhase = phase;
+
+		switch (phase)
+		{
+			case PresentationPhase.Planning when previous == PresentationPhase.Replaying:
+				_cameraDirector.ReturnControl(GetPlayerRenderedPosition());
+				break;
+
+			case PresentationPhase.Planning when previous is null:
+				_cameraDirector.EnterManual();
+				break;
+
+			case PresentationPhase.Replaying:
+				_cameraDirector.BeginPlayback();
+				break;
+		}
+	}
+
+	private Vector3 GetPlayerRenderedPosition()
+	{
+		var playerId = _ui.Battle.PlayerId;
+		if (_battleView.UnitViews.TryGetValue(playerId, out var view))
+			return view.GlobalPosition;
+
+		return WorldMapping.ToWorld(_ui.Battle.Sim.StateOf<ActorState>(playerId).Position);
 	}
 
 	private void ApplyUnitStates(PresentationFrame frame)

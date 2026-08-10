@@ -114,7 +114,7 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
-	public void WeaponQueuedBlocksMoveOptions()
+	public void WeaponQueuedStillAllowsMoveOptions()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
@@ -123,7 +123,7 @@ public sealed class MoveUiTests
 		Assert.NotEmpty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
 		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(battle.PlayerId)));
 
-		Assert.Empty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
+		Assert.NotEmpty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
 	}
 
 	[Fact]

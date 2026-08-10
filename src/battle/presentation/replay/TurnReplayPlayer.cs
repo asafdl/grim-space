@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using Godot;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -62,7 +65,8 @@ public partial class TurnReplayPlayer : Node3D
 
 	public void ResetToLive(
 		IReadOnlyDictionary<string, State> turnStart,
-		IReadOnlyDictionary<string, State> endStates)
+		IReadOnlyDictionary<string, State> endStates,
+		Action<CameraInterest>? reportInterest = null)
 	{
 		var replayState = new ReplayState(turnStart);
 		_clipContext = new ReplayClipContext(
@@ -72,7 +76,8 @@ public partial class TurnReplayPlayer : Node3D
 			_hazardBursts,
 			_colorFor,
 			endStates,
-			_ensureView);
+			_ensureView,
+			reportInterest);
 		_turnHistory.BeginTurn(turnStart.ToDictionary(pair => pair.Key, pair => pair.Value.Position));
 		_hazardBursts.Clear();
 
@@ -109,6 +114,7 @@ public partial class TurnReplayPlayer : Node3D
 				case IAction action:
 				{
 					BeginPhase(Classify(action.ActorId));
+					ReportActionInterest(action);
 					Clips.TryPlay(action, _clipContext, out var playback);
 					if (playback.Pauses)
 					{
@@ -165,6 +171,7 @@ public partial class TurnReplayPlayer : Node3D
 
 	private bool PlayImpact(ImpactFacts impact)
 	{
+		ReportImpactInterest(impact);
 		_clipContext.ReplayState.ApplyImpact(impact);
 		if (!_clipContext.ReplayState.Contains(impact.TargetId))
 			return false;
@@ -228,6 +235,39 @@ public partial class TurnReplayPlayer : Node3D
 			: actorId == _opponentId
 				? PlaybackPhase.Enemy
 				: PlaybackPhase.Upkeep;
+
+	private void ReportActionInterest(IAction action)
+	{
+		if (_clipContext.ReportInterest is null)
+			return;
+
+		if (action is TorpedoAction torpedo)
+		{
+			var firer = _clipContext.ReplayState.StateOf(torpedo.ActorId);
+			var (launchCell, _, _) = TorpedoMount.LaunchPose(firer, torpedo.Mount);
+			_clipContext.ReportInterest(new CameraInterest(
+				[
+					WorldMapping.ToWorld(firer.Position),
+					WorldMapping.ToWorld(launchCell),
+				],
+				CameraImportance.Combat));
+		}
+	}
+
+	private void ReportImpactInterest(ImpactFacts impact)
+	{
+		if (_clipContext.ReportInterest is null)
+			return;
+
+		var source = _clipContext.ReplayState.StateOf(impact.SourceId).Position;
+		var target = _clipContext.ReplayState.StateOf(impact.TargetId).Position;
+		_clipContext.ReportInterest(new CameraInterest(
+			[
+				WorldMapping.ToWorld(source),
+				WorldMapping.ToWorld(target),
+			],
+			CameraImportance.Combat));
+	}
 
 	private void Finish()
 	{
