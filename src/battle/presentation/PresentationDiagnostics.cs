@@ -148,5 +148,5 @@ internal static class PresentationDiagnostics
 	}
 
 	public static void LogJobFailed(string key, Exception ex) =>
-		GameLog.Log($"[presentation] job failed: {key} {ex.GetType().Name}: {ex.Message}");
+		GameLog.LogException(ex, $"[presentation] job failed: {key}");
 }

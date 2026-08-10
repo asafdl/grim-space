@@ -11,7 +11,6 @@ using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -51,8 +50,6 @@ public partial class BattleController : Node3D
 
 	public override void _Ready()
 	{
-		GameLog.Configure(GD.Print);
-
 		var battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
 		_ui = new BattleUi(battle);
 		_director = new BattleDirector(_ui);
