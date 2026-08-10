@@ -112,4 +112,19 @@ public static class TorpedoUi
 
 		return null;
 	}
+
+	public static HashSet<string> GetThreatenedUnitIds(
+		BattleOrchestrator battle,
+		Interaction.InteractionState state)
+	{
+		var layers = GetEnvelopeLayers(battle, state);
+		if (layers.Count == 0)
+			return [];
+
+		var cells = new HashSet<Coord>();
+		foreach (var layer in layers)
+			cells.UnionWith(layer);
+
+		return WeaponThreatPreview.UnitIdsInCells(battle, cells);
+	}
 }

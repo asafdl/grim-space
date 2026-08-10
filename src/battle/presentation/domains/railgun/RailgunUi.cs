@@ -45,6 +45,9 @@ public static class RailgunUi
 		return WeaponBursts.RailgunBurstCells(frame, battle.Layout.Grid.IsInBounds);
 	}
 
+	public static HashSet<string> GetThreatenedUnitIds(BattleOrchestrator battle) =>
+		WeaponThreatPreview.UnitIdsInCells(battle, GetBurstCells(battle));
+
 	public static HashSet<Coord> GetPreviewCells(BattleOrchestrator battle, Interaction.InteractionState state)
 	{
 		if (state.RailgunHover is not Coord hover)

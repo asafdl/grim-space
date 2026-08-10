@@ -21,6 +21,7 @@ public sealed class PresentationFrame
 	public required IReadOnlySet<Coord> ValidFlakPickCells { get; init; }
 	public required IReadOnlySet<Coord> RailgunCells { get; init; }
 	public required IReadOnlySet<Coord> RailgunPreviewCells { get; init; }
+	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
 	public required IReadOnlySet<Coord> TorpedoMountCells { get; init; }
 	public required IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }

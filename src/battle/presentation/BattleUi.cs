@@ -153,6 +153,13 @@ public sealed class BattleUi
 		var torpedoEnvelopeLayers = state.Mode == EPlayerMode.Torpedo
 			? TorpedoUi.GetEnvelopeLayers(Battle, state)
 			: [];
+		var threatenedUnitIds = state.Mode switch
+		{
+			EPlayerMode.Flak => FlakUi.GetThreatenedUnitIds(Battle),
+			EPlayerMode.Railgun => RailgunUi.GetThreatenedUnitIds(Battle),
+			EPlayerMode.Torpedo => TorpedoUi.GetThreatenedUnitIds(Battle, state),
+			_ => new HashSet<string>(),
+		};
 		var (path, target) = MoveUi.GetPathHighlights(
 			movePaths,
 			state.MoveHoveredIndex,
@@ -189,6 +196,7 @@ public sealed class BattleUi
 			ValidFlakPickCells = validFlakPickCells,
 			RailgunCells = railgunCells,
 			RailgunPreviewCells = railgunPreviewCells,
+			ThreatenedUnitIds = threatenedUnitIds,
 			TorpedoMountCells = torpedoMountCells,
 			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
 			MovePath = path,

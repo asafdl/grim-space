@@ -47,6 +47,13 @@ public static class FlakUi
 		return WeaponBursts.FlakBurstCells(frame, config, battle.Layout.Grid.IsInBounds);
 	}
 
+	public static HashSet<string> GetThreatenedUnitIds(BattleOrchestrator battle)
+	{
+		var cells = new HashSet<Coord>(GetBurstCells(battle, EFlakMount.Port));
+		cells.UnionWith(GetBurstCells(battle, EFlakMount.Starboard));
+		return WeaponThreatPreview.UnitIdsInCells(battle, cells);
+	}
+
 	public static HashSet<Coord> GetPreviewCells(BattleOrchestrator battle, Interaction.InteractionState state)
 	{
 		if (state.FlakHover is not Coord hover)

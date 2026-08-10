@@ -45,6 +45,7 @@ public partial class BattleView : Node3D
 			}
 
 			view.Sync(state);
+			view.SetHitMarked(false);
 		}
 
 		if (keep.Count == _unitViews.Count)
@@ -55,5 +56,11 @@ public partial class BattleView : Node3D
 			_unitViews[id].QueueFree();
 			_unitViews.Remove(id);
 		}
+	}
+
+	public void ApplyHitMarks(IReadOnlySet<string> threatenedUnitIds)
+	{
+		foreach (var (unitId, view) in _unitViews)
+			view.SetHitMarked(threatenedUnitIds.Contains(unitId));
 	}
 }

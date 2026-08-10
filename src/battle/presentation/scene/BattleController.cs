@@ -29,6 +29,9 @@ public partial class BattleController : Node3D
 	private BattleHud _battleHud = null!;
 
 	private GridView _gridView = null!;
+	private FlakPreviewView _flakPreview = null!;
+	private RailgunPreviewView _railgunPreview = null!;
+	private TorpedoPreviewView _torpedoPreview = null!;
 	private Controller _camera = null!;
 
 	private int? _lastHoveredMoveIndex;
@@ -64,6 +67,18 @@ public partial class BattleController : Node3D
 		_camera = GetNode<Controller>("Camera3D");
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(layout.Grid);
+
+		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
+		_railgunPreview.Build();
+		AddChild(_railgunPreview);
+
+		_flakPreview = new FlakPreviewView { Name = "FlakPreview" };
+		_flakPreview.Build();
+		AddChild(_flakPreview);
+
+		_torpedoPreview = new TorpedoPreviewView { Name = "TorpedoPreview" };
+		_torpedoPreview.Build();
+		AddChild(_torpedoPreview);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		var playerPosition = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
@@ -360,6 +375,9 @@ public partial class BattleController : Node3D
 	{
 		ApplyUnitStates(frame);
 		_gridView.ApplyFrame(frame);
+		_flakPreview.ApplyFrame(frame);
+		_railgunPreview.ApplyFrame(frame);
+		_torpedoPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame);
 
 		if (!_director.AcceptsInput || frame.ActiveUnit is null)
@@ -387,6 +405,7 @@ public partial class BattleController : Node3D
 			unit => unit.State.Id,
 			unit => unit.State);
 		_battleView.ApplyUnitStates(states, id => ColorForPreview(frame, id));
+		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
 
 	private Color ColorForPreview(PresentationFrame frame, string actorId) =>
