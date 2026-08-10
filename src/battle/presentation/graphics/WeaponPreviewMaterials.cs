@@ -2,9 +2,13 @@ using Godot;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-/// <summary>Shared soft dotted volume look for weapon aim previews.</summary>
 internal static class WeaponPreviewMaterials
 {
+	public static readonly Color CementedTint = new(1f, 0.7f, 0.82f, 0.38f);
+
+	private const float AimFill = 0.45f;
+	private const float CementedFill = 0.02f;
+
 	private static Shader? _dottedShader;
 
 	public static ShaderMaterial CreateDotted(Color tint)
@@ -27,6 +31,8 @@ internal static class WeaponPreviewMaterials
 					vec4(0.55, 0.82, 1.0, 0.42);
 
 				uniform float strength = 1.0;
+				// Mesh body between dots. Aim ~0.45; cemented ~0 keeps only dots.
+				uniform float fill = 0.45;
 
 				varying vec3 local_pos;
 
@@ -46,7 +52,7 @@ internal static class WeaponPreviewMaterials
 					vec3 grid = local_pos / 0.32;
 					vec3 cell = fract(grid) - 0.5;
 					float dots = 1.0 - smoothstep(0.10, 0.22, length(cell));
-					float density = mix(0.45, 1.0, dots);
+					float density = mix(fill, 1.0, dots);
 
 					ALBEDO = tint.rgb;
 					EMISSION = tint.rgb * (0.35 + 0.55 * dots);
@@ -61,7 +67,21 @@ internal static class WeaponPreviewMaterials
 		};
 
 		var material = new ShaderMaterial { Shader = _dottedShader };
-		material.SetShaderParameter("tint", tint);
+		ApplyAim(material, tint, strength: 1f);
 		return material;
+	}
+
+	public static void ApplyAim(ShaderMaterial material, Color tint, float strength)
+	{
+		material.SetShaderParameter("tint", tint);
+		material.SetShaderParameter("fill", AimFill);
+		material.SetShaderParameter("strength", strength);
+	}
+
+	public static void ApplyCemented(ShaderMaterial material, float strength = 0.9f)
+	{
+		material.SetShaderParameter("tint", CementedTint);
+		material.SetShaderParameter("fill", CementedFill);
+		material.SetShaderParameter("strength", strength);
 	}
 }

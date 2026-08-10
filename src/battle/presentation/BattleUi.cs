@@ -153,11 +153,47 @@ public sealed class BattleUi
 		var torpedoEnvelopeLayers = state.Mode == EPlayerMode.Torpedo
 			? TorpedoUi.GetEnvelopeLayers(Battle, state)
 			: [];
+
+		EFlakMount? committedFlakMount = null;
+		var committedRailgun = false;
+		Coord? committedTorpedoMountCell = null;
+		IReadOnlyList<IReadOnlySet<Coord>> committedTorpedoEnvelopeLayers = [];
+		for (var i = Battle.Sim.Actions.Count - 1; i >= 0; i--)
+		{
+			switch (Battle.Sim.Actions[i])
+			{
+				case FlakAction flak when flak.ActorId == Battle.PlayerId:
+					committedFlakMount = flak.Mount;
+					break;
+				case RailgunAction railgun when railgun.ActorId == Battle.PlayerId:
+					committedRailgun = true;
+					break;
+				case TorpedoAction torpedo when torpedo.ActorId == Battle.PlayerId:
+				{
+					var ship = Battle.Sim.StateOf<ActorState>(Battle.PlayerId);
+					var (position, _, _) = TorpedoMount.LaunchPose(ship, torpedo.Mount);
+					committedTorpedoMountCell = position;
+					committedTorpedoEnvelopeLayers = TorpedoUi.GetEnvelopeLayersForQueued(Battle, torpedo);
+					break;
+				}
+				default:
+					continue;
+			}
+
+			break;
+		}
+
 		var threatenedUnitIds = state.Mode switch
 		{
 			EPlayerMode.Flak => FlakUi.GetThreatenedUnitIds(Battle),
 			EPlayerMode.Railgun => RailgunUi.GetThreatenedUnitIds(Battle),
 			EPlayerMode.Torpedo => TorpedoUi.GetThreatenedUnitIds(Battle, state),
+			_ when committedFlakMount is { } mount =>
+				WeaponThreatPreview.UnitIdsInCells(Battle, FlakUi.GetBurstCellsGeometry(Battle, mount)),
+			_ when committedRailgun =>
+				WeaponThreatPreview.UnitIdsInCells(Battle, RailgunUi.GetBurstCellsGeometry(Battle)),
+			_ when committedTorpedoMountCell is not null =>
+				TorpedoUi.GetThreatenedUnitIdsForLayers(Battle, committedTorpedoEnvelopeLayers),
 			_ => new HashSet<string>(),
 		};
 		var (path, target) = MoveUi.GetPathHighlights(
@@ -199,6 +235,10 @@ public sealed class BattleUi
 			ThreatenedUnitIds = threatenedUnitIds,
 			TorpedoMountCells = torpedoMountCells,
 			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
+			CommittedFlakMount = committedFlakMount,
+			CommittedRailgun = committedRailgun,
+			CommittedTorpedoMountCell = committedTorpedoMountCell,
+			CommittedTorpedoEnvelopeLayers = committedTorpedoEnvelopeLayers,
 			MovePath = path,
 			MoveTarget = target,
 			TurnNumber = Battle.TurnNumber,

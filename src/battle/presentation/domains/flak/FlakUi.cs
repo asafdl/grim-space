@@ -42,7 +42,12 @@ public static class FlakUi
 		if (!FlakDef.For(mount).IsLegal(action, sim.World, sim.RuntimeFor(actorId)))
 			return [];
 
-		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
+		return GetBurstCellsGeometry(battle, mount);
+	}
+
+	public static HashSet<Coord> GetBurstCellsGeometry(BattleOrchestrator battle, EFlakMount mount)
+	{
+		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
 		var config = FlakMountConfig.For(mount);
 		return WeaponBursts.FlakBurstCells(frame, config, battle.Layout.Grid.IsInBounds);
 	}

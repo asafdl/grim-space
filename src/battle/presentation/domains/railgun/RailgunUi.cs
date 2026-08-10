@@ -41,7 +41,12 @@ public static class RailgunUi
 		if (!RailgunDef.Instance.IsLegal(action, sim.World, sim.RuntimeFor(actorId)))
 			return [];
 
-		var frame = BodyFrame.From(sim.StateOf<ActorState>(actorId));
+		return GetBurstCellsGeometry(battle);
+	}
+
+	public static HashSet<Coord> GetBurstCellsGeometry(BattleOrchestrator battle)
+	{
+		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
 		return WeaponBursts.RailgunBurstCells(frame, battle.Layout.Grid.IsInBounds);
 	}
 

@@ -7,6 +7,9 @@ namespace GrimSpace.Battle.Presentation.Ui;
 /// </summary>
 public partial class BattleHud : Node
 {
+	public event Action? RetireRequested;
+	public event Action? RestartRequested;
+
 	public ActionBar ActionBar { get; private set; } = null!;
 	public ApBar ApBar { get; private set; } = null!;
 	public HealthBar HealthBar { get; private set; } = null!;
@@ -42,10 +45,19 @@ public partial class BattleHud : Node
 		topColumn.AddThemeConstantOverride("separation", 28);
 		topMargin.AddChild(topColumn);
 
+		var turnRow = new HBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+		};
+		turnRow.AddThemeConstantOverride("separation", 8);
+		topColumn.AddChild(turnRow);
+
 		_turnBadge = new PanelContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
 		_turnBadge.AddThemeStyleboxOverride("panel", new StyleBoxFlat
 		{
@@ -74,7 +86,22 @@ public partial class BattleHud : Node
 		_turnLabel.AddThemeFontSizeOverride("font_size", 16);
 		_turnLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.88f));
 		_turnBadge.AddChild(_turnLabel);
-		topColumn.AddChild(_turnBadge);
+		turnRow.AddChild(_turnBadge);
+
+		turnRow.AddChild(CreateTopMetaButton(
+			text: "Retire",
+			tooltip: "Forfeit — you lose",
+			bg: new Color(0.32f, 0.1f, 0.12f, 1f),
+			border: new Color(0.9f, 0.35f, 0.4f),
+			font: new Color(1f, 0.85f, 0.88f),
+			onPressed: () => RetireRequested?.Invoke()));
+		turnRow.AddChild(CreateTopMetaButton(
+			text: "Restart",
+			tooltip: "Restart encounter with a new random layout",
+			bg: new Color(0.12f, 0.16f, 0.22f, 1f),
+			border: new Color(0.55f, 0.72f, 0.95f),
+			font: new Color(0.85f, 0.92f, 1f),
+			onPressed: () => RestartRequested?.Invoke()));
 
 		HealthBar = new HealthBar
 		{
@@ -199,4 +226,56 @@ public partial class BattleHud : Node
 		UtilityBar.Configure(frame.CanFocusCamera, frame.CanUndo);
 		ApBar.Set(frame.ActorState.ActionPoints, frame.ActorState.Stats.MaxAp);
 	}
+
+	private static Button CreateTopMetaButton(
+		string text,
+		string tooltip,
+		Color bg,
+		Color border,
+		Color font,
+		Action onPressed)
+	{
+		var button = new Button
+		{
+			Text = text,
+			CustomMinimumSize = new Vector2(80, 0),
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+			TooltipText = tooltip,
+			FocusMode = Control.FocusModeEnum.None,
+		};
+
+		var normal = MakeTopButtonStyle(bg, border);
+		var hover = MakeTopButtonStyle(bg.Lightened(0.12f), border.Lightened(0.15f));
+		var pressed = MakeTopButtonStyle(bg.Lightened(0.2f), border.Lightened(0.25f));
+
+		button.AddThemeStyleboxOverride("normal", normal);
+		button.AddThemeStyleboxOverride("hover", hover);
+		button.AddThemeStyleboxOverride("pressed", pressed);
+		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
+		button.AddThemeColorOverride("font_color", font);
+		button.AddThemeColorOverride("font_hover_color", font.Lightened(0.1f));
+		button.AddThemeColorOverride("font_pressed_color", font.Lightened(0.2f));
+		button.AddThemeFontSizeOverride("font_size", 13);
+		button.Pressed += onPressed;
+		return button;
+	}
+
+	private static StyleBoxFlat MakeTopButtonStyle(Color bg, Color border) =>
+		new()
+		{
+			BgColor = bg,
+			BorderColor = border,
+			BorderWidthLeft = 2,
+			BorderWidthTop = 2,
+			BorderWidthRight = 2,
+			BorderWidthBottom = 2,
+			CornerRadiusTopLeft = 4,
+			CornerRadiusTopRight = 4,
+			CornerRadiusBottomRight = 4,
+			CornerRadiusBottomLeft = 4,
+			ContentMarginLeft = 10,
+			ContentMarginRight = 10,
+			ContentMarginTop = 6,
+			ContentMarginBottom = 6,
+		};
 }

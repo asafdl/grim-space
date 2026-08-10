@@ -4,6 +4,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -24,6 +25,10 @@ public sealed class PresentationFrame
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
 	public required IReadOnlySet<Coord> TorpedoMountCells { get; init; }
 	public required IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; }
+	public EFlakMount? CommittedFlakMount { get; init; }
+	public bool CommittedRailgun { get; init; }
+	public Coord? CommittedTorpedoMountCell { get; init; }
+	public required IReadOnlyList<IReadOnlySet<Coord>> CommittedTorpedoEnvelopeLayers { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }
 	public Coord? MoveTarget { get; init; }
 	public int TurnNumber { get; init; }

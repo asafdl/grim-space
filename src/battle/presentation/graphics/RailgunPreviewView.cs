@@ -8,6 +8,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class RailgunPreviewView : Node3D
 {
 	private const int RingSides = 18;
+	private const float AimStrength = 0.85f;
+	private const float HoverStrength = 1.35f;
 
 	private static readonly Color Tint = new(0.55f, 0.82f, 1f, 0.42f);
 
@@ -54,10 +56,9 @@ public sealed partial class RailgunPreviewView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var shouldShow =
-			frame.Mode == EPlayerMode.Railgun
-			&& frame.RailgunCells.Count > 0
-			&& !frame.ShowOutcomeOverlay;
+		var aiming = frame.Mode == EPlayerMode.Railgun && frame.RailgunCells.Count > 0;
+		var cemented = frame.CommittedRailgun;
+		var shouldShow = (aiming || cemented) && !frame.ShowOutcomeOverlay;
 
 		Visible = shouldShow;
 		if (!shouldShow || _material is null)
@@ -73,10 +74,17 @@ public sealed partial class RailgunPreviewView : Node3D
 			ToVector3(state.Dorsal),
 			ToVector3(state.Fore));
 
-		var isHovered = frame.RailgunPreviewCells.Count > 0;
-		_material.SetShaderParameter(
-			"strength",
-			isHovered ? 1.35f : 0.85f);
+		if (aiming)
+		{
+			var isHovered = frame.RailgunPreviewCells.Count > 0;
+			WeaponPreviewMaterials.ApplyAim(
+				_material,
+				Tint,
+				isHovered ? HoverStrength : AimStrength);
+			return;
+		}
+
+		WeaponPreviewMaterials.ApplyCemented(_material);
 	}
 
 	private static Vector3 ToVector3(Coord coord) =>

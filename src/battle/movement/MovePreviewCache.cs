@@ -19,9 +19,6 @@ public sealed class MovePreviewCache
 		IReadOnlyList<IAction> committed)
 	{
 		var actions = sim.Actions;
-		if (actions.Any(IsWeaponAction))
-			return [];
-
 		var key = PrefixKey(actions);
 		if (_pathsByPrefix.TryGetValue(key, out var cached))
 			return cached;
@@ -49,7 +46,4 @@ public sealed class MovePreviewCache
 			TorpedoAction torpedo => $"torpedo:{torpedo.ActorId}:{torpedo.Mount}:{torpedo.SpawnedUnitId}",
 			_ => action.GetType().FullName ?? "action",
 		};
-
-	private static bool IsWeaponAction(IAction action) =>
-		action is FlakAction or RailgunAction or TorpedoAction;
 }

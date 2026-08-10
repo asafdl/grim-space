@@ -8,6 +8,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class FlakPreviewView : Node3D
 {
 	private const int RingSides = 16;
+	private const float AimStrength = 0.85f;
+	private const float HoverStrength = 1.35f;
 
 	private static readonly Color PortTint = new(0.95f, 0.55f, 0.18f, 0.40f);
 	private static readonly Color StarboardTint = new(0.98f, 0.78f, 0.22f, 0.40f);
@@ -44,12 +46,17 @@ public sealed partial class FlakPreviewView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var showPort = frame.ValidFlakPortCells.Count > 0;
-		var showStarboard = frame.ValidFlakStarboardCells.Count > 0;
+		var aiming = frame.Mode == EPlayerMode.Flak;
+		var showPort = aiming
+			? frame.ValidFlakPortCells.Count > 0
+			: frame.CommittedFlakMount == EFlakMount.Port;
+		var showStarboard = aiming
+			? frame.ValidFlakStarboardCells.Count > 0
+			: frame.CommittedFlakMount == EFlakMount.Starboard;
 		var shouldShow =
-			frame.Mode == EPlayerMode.Flak
-			&& (showPort || showStarboard)
-			&& !frame.ShowOutcomeOverlay;
+			(showPort || showStarboard)
+			&& !frame.ShowOutcomeOverlay
+			&& (aiming || frame.CommittedFlakMount is not null);
 
 		Visible = shouldShow;
 		if (!shouldShow || _port is null || _starboard is null)
@@ -68,13 +75,25 @@ public sealed partial class FlakPreviewView : Node3D
 		_port.Visible = showPort;
 		_starboard.Visible = showStarboard;
 
-		var hoverIsPort = IsHoveringMount(frame, EFlakMount.Port);
-		var hoverIsStarboard = IsHoveringMount(frame, EFlakMount.Starboard);
+		if (aiming)
+		{
+			var hoverIsPort = IsHoveringMount(frame, EFlakMount.Port);
+			var hoverIsStarboard = IsHoveringMount(frame, EFlakMount.Starboard);
+			WeaponPreviewMaterials.ApplyAim(
+				_portMaterial!,
+				PortTint,
+				Strength(showPort, hoverIsPort));
+			WeaponPreviewMaterials.ApplyAim(
+				_starboardMaterial!,
+				StarboardTint,
+				Strength(showStarboard, hoverIsStarboard));
+			return;
+		}
 
-		_portMaterial!.SetShaderParameter("strength", Strength(showPort, hoverIsPort));
-		_starboardMaterial!.SetShaderParameter(
-			"strength",
-			Strength(showStarboard, hoverIsStarboard));
+		if (showPort)
+			WeaponPreviewMaterials.ApplyCemented(_portMaterial!);
+		if (showStarboard)
+			WeaponPreviewMaterials.ApplyCemented(_starboardMaterial!);
 	}
 
 	private static bool IsHoveringMount(PresentationFrame frame, EFlakMount mount)
@@ -98,7 +117,7 @@ public sealed partial class FlakPreviewView : Node3D
 	}
 
 	private static float Strength(bool available, bool hovered) =>
-		!available ? 0f : hovered ? 1.35f : 0.85f;
+		!available ? 0f : hovered ? HoverStrength : AimStrength;
 
 	private static MeshInstance3D CreatePlume(
 		string name,

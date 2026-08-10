@@ -114,11 +114,9 @@ internal static class PresentationDiagnostics
 			return "no_planning_actor";
 		if (!canAct)
 			return "cannot_act";
-		if (weaponQueued)
-			return "weapon_queued";
 		if (pathCount == 0)
-			return "discovery_empty";
-		return "ok";
+			return weaponQueued ? "discovery_empty_after_weapon" : "discovery_empty";
+		return weaponQueued ? "ok_with_weapon" : "ok";
 	}
 
 	public static void LogPlanningHandoffAborted(string reason, PresentationPhase phase, bool hadPreparedMoveUi) =>

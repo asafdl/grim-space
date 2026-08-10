@@ -120,6 +120,14 @@ public sealed class BattleOrchestrator
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && IsActive(unit.State.Id) && unit.State.IsAlive;
 
+	public void Retire()
+	{
+		if (IsBattleOver)
+			return;
+
+		Outcome = BattleOutcome.Lose;
+	}
+
 	public Unit? GetActiveUnit()
 	{
 		if (ActiveUnitId is not string id

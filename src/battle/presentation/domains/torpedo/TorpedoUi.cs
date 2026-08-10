@@ -75,6 +75,42 @@ public static class TorpedoUi
 		if (MountForCell(battle, hover) is not { } mount)
 			return [];
 
+		return GetEnvelopeLayersForMount(battle, mount);
+	}
+
+	public static IReadOnlyList<IReadOnlySet<Coord>> GetEnvelopeLayersForQueued(
+		BattleOrchestrator battle,
+		TorpedoAction queued)
+	{
+		if (queued.SpawnedUnitId is not { } spawnedId)
+			return [];
+
+		var sim = battle.Sim;
+		var cacheKey =
+			$"queued|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{queued.Mount}|{spawnedId}";
+		if (_envelopeCacheKey == cacheKey)
+			return _envelopeCache;
+
+		var peek = sim.Peek(EndOfPhaseDef.Instance.Bind(battle.PlayerId));
+		if (peek is null
+			|| !UnitRegistry.For(peek.Value.World).TryGet(spawnedId, out var spawned))
+		{
+			_envelopeCacheKey = cacheKey;
+			_envelopeCache = [];
+			return _envelopeCache;
+		}
+
+		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
+		session.Begin(sim.AnchorTick, sim.WorldVersion);
+		_envelopeCacheKey = cacheKey;
+		_envelopeCache = TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers;
+		return _envelopeCache;
+	}
+
+	private static IReadOnlyList<IReadOnlySet<Coord>> GetEnvelopeLayersForMount(
+		BattleOrchestrator battle,
+		ETorpedoMount mount)
+	{
 		var sim = battle.Sim;
 		var cacheKey =
 			$"{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{mount}";
@@ -93,10 +129,8 @@ public static class TorpedoUi
 
 		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
 		session.Begin(sim.AnchorTick, sim.WorldVersion);
-		var envelope = TorpedoReachEnvelope.Build(session, spawned.State.Id);
-
 		_envelopeCacheKey = cacheKey;
-		_envelopeCache = envelope.Layers;
+		_envelopeCache = TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers;
 		return _envelopeCache;
 	}
 
@@ -118,6 +152,18 @@ public static class TorpedoUi
 		Interaction.InteractionState state)
 	{
 		var layers = GetEnvelopeLayers(battle, state);
+		return ThreatenedFromLayers(battle, layers);
+	}
+
+	public static HashSet<string> GetThreatenedUnitIdsForLayers(
+		BattleOrchestrator battle,
+		IReadOnlyList<IReadOnlySet<Coord>> layers) =>
+		ThreatenedFromLayers(battle, layers);
+
+	private static HashSet<string> ThreatenedFromLayers(
+		BattleOrchestrator battle,
+		IReadOnlyList<IReadOnlySet<Coord>> layers)
+	{
 		if (layers.Count == 0)
 			return [];
 

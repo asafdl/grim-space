@@ -6,6 +6,10 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class TorpedoPreviewView : Node3D
 {
+	private const float AimMountStrength = 0.95f;
+	private const float HoverMountStrength = 1.35f;
+	private const float EnvelopeStrength = 1.05f;
+
 	private static readonly Color MountTint = new(0.25f, 0.85f, 0.95f, 0.55f);
 
 	private static readonly Color[] EnvelopeTints =
@@ -22,6 +26,7 @@ public sealed partial class TorpedoPreviewView : Node3D
 	private SphereMesh? _envelopeMesh;
 	private ShaderMaterial? _mountMaterial;
 	private ShaderMaterial[]? _envelopeMaterials;
+	private ShaderMaterial? _cementedMaterial;
 
 	public void Build()
 	{
@@ -39,15 +44,18 @@ public sealed partial class TorpedoPreviewView : Node3D
 		_envelopeMaterials = EnvelopeTints
 			.Select(WeaponPreviewMaterials.CreateDotted)
 			.ToArray();
+		_cementedMaterial = WeaponPreviewMaterials.CreateDotted(WeaponPreviewMaterials.CementedTint);
+		WeaponPreviewMaterials.ApplyCemented(_cementedMaterial);
 		Visible = false;
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var shouldShow =
+		var aiming =
 			frame.Mode == EPlayerMode.Torpedo
-			&& frame.TorpedoMountCells.Count > 0
-			&& !frame.ShowOutcomeOverlay;
+			&& frame.TorpedoMountCells.Count > 0;
+		var cemented = frame.CommittedTorpedoMountCell is Coord;
+		var shouldShow = (aiming || cemented) && !frame.ShowOutcomeOverlay;
 
 		Visible = shouldShow;
 		ReleaseActive();
@@ -55,27 +63,64 @@ public sealed partial class TorpedoPreviewView : Node3D
 			|| _mountMesh is null
 			|| _envelopeMesh is null
 			|| _mountMaterial is null
-			|| _envelopeMaterials is null)
+			|| _envelopeMaterials is null
+			|| _cementedMaterial is null)
 		{
 			return;
 		}
 
-		var hovered = frame.TorpedoEnvelopeLayers.Count > 0;
-		_mountMaterial.SetShaderParameter("strength", hovered ? 1.35f : 0.95f);
+		if (aiming)
+		{
+			var hovered = frame.TorpedoEnvelopeLayers.Count > 0;
+			WeaponPreviewMaterials.ApplyAim(
+				_mountMaterial,
+				MountTint,
+				hovered ? HoverMountStrength : AimMountStrength);
 
-		foreach (var cell in frame.TorpedoMountCells)
-			Place(_mountMesh, _mountMaterial, cell);
+			foreach (var cell in frame.TorpedoMountCells)
+				Place(_mountMesh, _mountMaterial, cell);
 
-		for (var layer = frame.TorpedoEnvelopeLayers.Count - 1; layer >= 0; layer--)
+			PlaceAimEnvelope(frame.TorpedoEnvelopeLayers, frame.TorpedoMountCells);
+			return;
+		}
+
+		Place(_mountMesh, _cementedMaterial, frame.CommittedTorpedoMountCell!.Value);
+		PlaceCementedEnvelope(
+			frame.CommittedTorpedoEnvelopeLayers,
+			new HashSet<Coord> { frame.CommittedTorpedoMountCell.Value });
+	}
+
+	private void PlaceAimEnvelope(
+		IReadOnlyList<IReadOnlySet<Coord>> layers,
+		IReadOnlySet<Coord> skipCells)
+	{
+		for (var layer = layers.Count - 1; layer >= 0; layer--)
 		{
 			var material = EnvelopeMaterial(layer);
-			material.SetShaderParameter("strength", 1.05f);
-			foreach (var cell in frame.TorpedoEnvelopeLayers[layer])
+			var tintIndex = layer < EnvelopeTints.Length ? layer : EnvelopeTints.Length - 1;
+			WeaponPreviewMaterials.ApplyAim(material, EnvelopeTints[tintIndex], EnvelopeStrength);
+			foreach (var cell in layers[layer])
 			{
-				if (frame.TorpedoMountCells.Contains(cell))
+				if (skipCells.Contains(cell))
 					continue;
 
-				Place(_envelopeMesh, material, cell);
+				Place(_envelopeMesh!, material, cell);
+			}
+		}
+	}
+
+	private void PlaceCementedEnvelope(
+		IReadOnlyList<IReadOnlySet<Coord>> layers,
+		IReadOnlySet<Coord> skipCells)
+	{
+		for (var layer = layers.Count - 1; layer >= 0; layer--)
+		{
+			foreach (var cell in layers[layer])
+			{
+				if (skipCells.Contains(cell))
+					continue;
+
+				Place(_envelopeMesh!, _cementedMaterial!, cell);
 			}
 		}
 	}

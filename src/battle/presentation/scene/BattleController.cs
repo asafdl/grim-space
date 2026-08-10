@@ -197,6 +197,8 @@ public partial class BattleController : Node3D
 				_lastHoveredMoveIndex = null;
 		};
 		_battleHud.OutcomeOverlay.ResetRequested += ResetBattle;
+		_battleHud.RetireRequested += () => _director.Retire();
+		_battleHud.RestartRequested += ResetBattle;
 		_battleHud.ActionBar.ModeChanged += mode => _director.SetMode(mode);
 		_battleHud.ActionBar.EndTurnRequested += () => _director.EndTurn();
 		_battleHud.UtilityBar.FocusRequested += () => FocusCameraOnActiveUnit(_currentFrame);

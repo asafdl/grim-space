@@ -65,6 +65,18 @@ public sealed class BattleDirector
 		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(completedTurn, version));
 	}
 
+	public void Retire()
+	{
+		if (Phase is PresentationPhase.BattleOver)
+			return;
+
+		_jobs.Cancel(DirectorJobs.Resolve);
+		_jobs.Cancel(DirectorJobs.MovePrep);
+		_ui.Battle.Retire();
+		SetPhase(PresentationPhase.BattleOver, "retired");
+		EmitFrame();
+	}
+
 	public void NotifyReplayComplete()
 	{
 		if (Phase != PresentationPhase.Replaying)
