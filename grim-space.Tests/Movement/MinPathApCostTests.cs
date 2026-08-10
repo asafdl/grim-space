@@ -44,8 +44,10 @@ public sealed class MinPathApCostTests
 	}
 
 	[Fact]
-	public void ShipDefaultStillRequiresThreeApSpent()
+	public void ShipDefaultHasNoMinPathApFloor()
 	{
+		Assert.Equal(0, ShipMinPath);
+
 		var path = MovePathSession.Begin(
 			ActorId,
 			Coord.Zero,
@@ -57,20 +59,31 @@ public sealed class MinPathApCostTests
 			new Coord(1, 0, 0),
 			stepApCost: 1,
 			directionBit: 1);
-		path.ApplyStep(
-			new MoveStepAction(ActorId, ESpatialOrientation.Forward),
-			new Coord(2, 0, 0),
-			stepApCost: 1,
-			directionBit: 1);
-
-		Assert.False(path.CanEnd(ShipMinPath));
-
-		path.ApplyStep(
-			new MoveStepAction(ActorId, ESpatialOrientation.Forward),
-			new Coord(3, 0, 0),
-			stepApCost: 1,
-			directionBit: 1);
 
 		Assert.True(path.CanEnd(ShipMinPath));
+	}
+
+	[Fact]
+	public void TorpedoStillRequiresMinPathApCost()
+	{
+		var minPath = Stats.ForType(EType.Torpedo).MinPathApCost;
+		Assert.Equal(1, minPath);
+
+		var path = MovePathSession.Begin(
+			ActorId,
+			Coord.Zero,
+			BodyFrame.WorldAligned(Coord.Zero),
+			0,
+			minPath);
+		Assert.Equal(1, path.MinPathApRemaining);
+
+		path.ApplyStep(
+			new MoveStepAction(ActorId, ESpatialOrientation.Forward),
+			new Coord(1, 0, 0),
+			stepApCost: 1,
+			directionBit: 1);
+
+		Assert.Equal(0, path.MinPathApRemaining);
+		Assert.True(path.CanEnd(minPath));
 	}
 }

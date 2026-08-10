@@ -53,7 +53,7 @@ public sealed class BattleDirectorTests
 	}
 
 	[Fact]
-	public void IncompleteCommitLeavesPlanningPhase()
+	public void ShortMoveCommitAdvancesFromPlanning()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var director = new BattleDirector(new BattleUi(battle));
@@ -62,7 +62,7 @@ public sealed class BattleDirectorTests
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId, ESpatialOrientation.Forward)));
 		director.EndTurn();
 
-		Assert.Equal(PresentationPhase.Planning, director.Phase);
+		Assert.Equal(PresentationPhase.Resolving, director.Phase);
 	}
 
 	[Fact]

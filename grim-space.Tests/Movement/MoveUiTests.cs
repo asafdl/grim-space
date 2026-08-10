@@ -127,7 +127,7 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
-	public void IncompleteMidPathShowsDilutedExtensionOptions()
+	public void MidPathShowsDilutedExtensionOptions()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
@@ -143,7 +143,7 @@ public sealed class MoveUiTests
 		Assert.Equal(2, battle.Sim.Actions.Count);
 		Assert.Equal(2, MovementExpectations.FighterApPerTurn - battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 		Assert.True(runtime.ActivePath != null);
-		Assert.False(runtime.ActivePath!.CanEnd(
+		Assert.True(runtime.ActivePath!.CanEnd(
 			battle.Sim.StateOf<ActorState>(battle.PlayerId).Stats.MinPathApCost));
 
 		var diluted = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();

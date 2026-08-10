@@ -33,7 +33,7 @@ public sealed class LegalMoveTests
 	}
 
 	[Fact]
-	public void LegalMoveSearchFromEmptyQueueIncludesIncompleteIntermediateCells()
+	public void LegalMoveSearchFromEmptyQueueMarksAllReachableCellsAsEndable()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -46,9 +46,9 @@ public sealed class LegalMoveTests
 		Assert.Contains(origin + Coord.Forward * 3, byEnd.Keys);
 		Assert.Contains(origin + Coord.Forward * 4, byEnd.Keys);
 		Assert.True(byEnd.ContainsKey(origin + Coord.Forward));
-		Assert.False(byEnd[origin + Coord.Forward].CanEndPath);
+		Assert.True(byEnd[origin + Coord.Forward].CanEndPath);
 		Assert.True(byEnd.ContainsKey(origin + Coord.Forward * 2));
-		Assert.False(byEnd[origin + Coord.Forward * 2].CanEndPath);
+		Assert.True(byEnd[origin + Coord.Forward * 2].CanEndPath);
 		Assert.True(byEnd[origin + Coord.Forward * 3].CanEndPath);
 	}
 

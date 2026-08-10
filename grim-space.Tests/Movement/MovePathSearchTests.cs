@@ -46,7 +46,7 @@ public sealed class MovePathSearchTests
 	}
 
 	[Fact]
-	public void OneAndTwoApForwardMovesAreVisibleIntermediateCells()
+	public void OneAndTwoApForwardMovesAreValidEndpoints()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin, momentum: 0);
@@ -61,9 +61,9 @@ public sealed class MovePathSearchTests
 		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(0, 3);
 
 		Assert.True(endpoints.ContainsKey(oneForward));
-		Assert.False(endpoints[oneForward].CanEndPath);
+		Assert.True(endpoints[oneForward].CanEndPath);
 		Assert.True(endpoints.ContainsKey(twoForward));
-		Assert.False(endpoints[twoForward].CanEndPath);
+		Assert.True(endpoints[twoForward].CanEndPath);
 		Assert.True(MovementExpectations.IsValidMoveEndpoint(threeStepCost));
 		Assert.True(endpoints.ContainsKey(threeForward));
 		Assert.True(endpoints[threeForward].CanEndPath);

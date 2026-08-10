@@ -21,7 +21,7 @@ public sealed class Stats
 				MaxShieldPointsPerFace = 2,
 				FlaksPerTurn = 1,
 				RailgunsPerTurn = 1,
-				MinPathApCost = 3,
+				MinPathApCost = 0,
 			},
 			EType.Patrol => new Stats
 			{
@@ -30,7 +30,7 @@ public sealed class Stats
 				MaxShieldPointsPerFace = 2,
 				FlaksPerTurn = 0,
 				RailgunsPerTurn = 1,
-				MinPathApCost = 3,
+				MinPathApCost = 0,
 			},
 			EType.Torpedo => new Stats
 			{

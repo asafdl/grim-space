@@ -23,14 +23,15 @@ public sealed class InvariantTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void IncompleteMovePathAllowsEnqueueButBlocksCommit()
+	public void ShortMovePathAllowsCommit()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.False(battle.Sim.TryCommit(out _, out var status));
-		Assert.Equal(InvariantStatus.Incomplete, status);
+		Assert.True(battle.Sim.TryCommit(out var actions, out var status));
+		Assert.Equal(InvariantStatus.Ok, status);
+		Assert.Single(actions);
 	}
 
 	[Fact]
@@ -47,7 +48,7 @@ public sealed class InvariantTests
 	}
 
 	[Fact]
-	public void MovePathWithOnlyTwoApSpentBlocksCommit()
+	public void MovePathWithOnlyTwoApSpentAllowsCommit()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
@@ -57,14 +58,14 @@ public sealed class InvariantTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).ActivePath!.PathApSpent);
 		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd(
+		Assert.True(battle.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd(
 			battle.Sim.StateOf<ActorState>(PlayerId).Stats.MinPathApCost));
-		Assert.False(battle.Sim.TryCommit(out _, out var status));
-		Assert.Equal(InvariantStatus.Incomplete, status);
+		Assert.True(battle.Sim.TryCommit(out _, out var status));
+		Assert.Equal(InvariantStatus.Ok, status);
 	}
 
 	[Fact]
-	public void StuckMovePathIsImpossibleAndBlocksCommit()
+	public void DeadEndMovePathStillAllowsCommit()
 	{
 		var origin = new Coord(5, 5, 5);
 		var trapped = origin + Coord.Forward;
@@ -83,18 +84,16 @@ public sealed class InvariantTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, blocked: blocked);
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.False(battle.Sim.TryCommit(out _, out var status));
-		Assert.Equal(InvariantStatus.Impossible, status);
+		Assert.True(battle.Sim.TryCommit(out _, out var status));
+		Assert.Equal(InvariantStatus.Ok, status);
 	}
 
 	[Fact]
-	public void SearchSkipsImpossibleBranchesButKeepsIncompleteFrames()
+	public void SearchNeverYieldsNonTerminalMovePathsForShips()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var session = battle.Sim;
-		var sawIncomplete = false;
-		var sawImpossibleEndpoint = false;
 
 		foreach (var frame in ActionSearch.Run(session, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
@@ -102,21 +101,8 @@ public sealed class InvariantTests
 			if (runtime.ActivePath is null)
 				continue;
 
-			if (runtime.ActivePath.CanEnd(frame.World.StateOf(PlayerId).Stats.MinPathApCost))
-				continue;
-
-			var hasContinuation = MoveDef.Instance
-				.Discover(frame.World, runtime, PlayerId)
-				.Any(candidate => MoveDef.Instance.IsPossible(candidate, frame.World, runtime));
-
-			if (hasContinuation)
-				sawIncomplete = true;
-			else
-				sawImpossibleEndpoint = true;
+			Assert.True(runtime.ActivePath.CanEnd(frame.World.StateOf(PlayerId).Stats.MinPathApCost));
 		}
-
-		Assert.True(sawIncomplete);
-		Assert.False(sawImpossibleEndpoint);
 	}
 
 	[Fact]
@@ -145,7 +131,7 @@ public sealed class InvariantTests
 	}
 
 	[Fact]
-	public void EndTurnFailsWhenInvariantStatusIsNotOk()
+	public void ShortMovePathAllowsEndTurn()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var director = new BattleDirector(new BattleUi(battle));
@@ -153,7 +139,7 @@ public sealed class InvariantTests
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
 		director.EndTurn();
-		Assert.Equal(PresentationPhase.Planning, director.Phase);
+		Assert.Equal(PresentationPhase.Resolving, director.Phase);
 	}
 
 	[Fact]
@@ -162,8 +148,8 @@ public sealed class InvariantTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.False(battle.Sim.TryCommit(out _, out var status));
-		Assert.Equal(InvariantStatus.Incomplete, status);
+		Assert.True(battle.Sim.TryCommit(out _, out var status));
+		Assert.Equal(InvariantStatus.Ok, status);
 
 		Assert.True(battle.Sim.TryUndoLast());
 		Assert.True(battle.Sim.TryCommit(out _, out status));

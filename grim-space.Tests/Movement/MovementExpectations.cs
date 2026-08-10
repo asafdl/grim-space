@@ -10,7 +10,6 @@ namespace GrimSpace.Tests.Movement;
 internal static class MovementExpectations
 {
 	public const int FighterApPerTurn = 4;
-	public const int MinApSpentOnMove = 3;
 	public const int MaxMomentum = 3;
 	public const int ForwardCostAfterFree = 1;
 
@@ -40,10 +39,11 @@ internal static class MovementExpectations
 	public static TheoryData<int, int, int, int> ReachablePreviewByMomentum { get; } = new()
 	{
 		// momentum, visible cells, CanEndPath cells, furthest pure-forward steps
-		{ 0, 128, 110, 4 },
-		{ 1, 81, 70, 5 },
-		{ 2, 38, 34, 7 },
-		{ 3, 25, 21, 7 },
+		// Ships have no min path AP; every reachable cell is a valid endpoint.
+		{ 0, 128, 128, 4 },
+		{ 1, 81, 81, 5 },
+		{ 2, 38, 38, 7 },
+		{ 3, 25, 25, 7 },
 	};
 
 	/// <summary>First N forward steps in a path are free; N equals current momentum.</summary>
@@ -78,9 +78,8 @@ internal static class MovementExpectations
 	public static int MomentumAfterPureForwardPath(int startMomentum, int stepCount) =>
 		MomentumConfig.MomentumAfterPureForwardPath(startMomentum, stepCount);
 
-	/// <summary>Valid move endpoints spend at least 3 AP, unless the whole path is free.</summary>
-	public static bool IsValidMoveEndpoint(int totalApSpent) =>
-		totalApSpent == 0 || totalApSpent >= MinApSpentOnMove;
+	/// <summary>Ship move endpoints may spend any AP amount (including free paths).</summary>
+	public static bool IsValidMoveEndpoint(int totalApSpent) => totalApSpent >= 0;
 
 	public static MovePathSession PureForwardMove(
 		string actorId,

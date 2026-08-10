@@ -50,13 +50,13 @@ public sealed class MovePreviewSearchTests
 	}
 
 	[Fact]
-	public void IntermediateCellsAreVisibleWithCanEndPathMetadata()
+	public void IntermediateCellsAreVisibleAndEndable()
 	{
 		var origin = new Coord(5, 5, 5);
 		var paths = Discover(origin).ToDictionary(path => path.EndPosition);
 
 		Assert.True(paths.ContainsKey(origin + Coord.Forward));
-		Assert.False(paths[origin + Coord.Forward].CanEndPath);
+		Assert.True(paths[origin + Coord.Forward].CanEndPath);
 		Assert.True(paths.ContainsKey(origin + Coord.Forward * 3));
 		Assert.True(paths[origin + Coord.Forward * 3].CanEndPath);
 	}
