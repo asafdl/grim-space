@@ -3,6 +3,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
@@ -72,6 +73,11 @@ internal static class EnemySearchInput
 
 		var opponent = NearestOpponent(world, actorId);
 		if (opponent is null)
+			return 0;
+
+		// Already in rail range — align and shoot, not creep forward for facing/approach credit.
+		if (state.Position.ManhattanDistanceTo(opponent.State.Position)
+			<= CombatConfig.MaxRailgunManhattanRange)
 			return 0;
 
 		var bonus = 0;

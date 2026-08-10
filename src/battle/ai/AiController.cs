@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -92,23 +91,19 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 
 		SearchFrame<BattleWorld, ActorRuntime>? best = null;
 		var bestTotal = int.MinValue;
-		var refinementTimer = Stopwatch.StartNew();
 
 		foreach (var (frame, heuristicScore) in SelectTimelineFinalists(finalists, bestHeuristic))
 		{
-			var total = heuristicScore + ScoreTimelineAdjustment(frame, actorId, heuristicScore);
-			if (total <= bestTotal)
+			if (heuristicScore <= bestTotal)
 				continue;
 
-			bestTotal = total;
+			bestTotal = heuristicScore;
 			best = frame;
 		}
 
-		refinementTimer.Stop();
 		GameLog.Log(
 			$"Enemy DFS ({actorId}): visited={visitedFrames} scored={scoredFrames} finalists={finalists.Count} "
-			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"refinement={refinementTimer.Elapsed.TotalMilliseconds:F1}ms");
+			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
 
 		return best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
 	}
@@ -162,23 +157,5 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 			.Where(candidate => candidate.HeuristicScore >= cutoff)
 			.OrderByDescending(candidate => candidate.HeuristicScore)
 			.Take(TimelineRefinementLimit);
-	}
-
-	private static int ScoreTimelineAdjustment(
-		SearchFrame<BattleWorld, ActorRuntime> frame,
-		string actorId,
-		int heuristicScore)
-	{
-		var world = frame.World.Fork();
-		var runtimes = frame.Runtimes.Fork();
-		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
-
-		var state = world.StateOf(actorId);
-		if (!state.IsAlive)
-			return int.MinValue - heuristicScore;
-
-		var timelineScore = state.MomentumLevel * EnemySearchInput.MomentumWeight
-			- state.ActionPoints * EnemySearchInput.UnusedApPenalty;
-		return timelineScore - heuristicScore;
 	}
 }
