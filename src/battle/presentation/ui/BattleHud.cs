@@ -189,15 +189,13 @@ public partial class BattleHud : Node
 		if (frame.ShowOutcomeOverlay)
 			return;
 
-		var orientationAvailable = frame.CanAct
-			&& frame.Mode is not (EPlayerMode.Flak or EPlayerMode.Torpedo);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(
 			frame.FlakAvailable,
 			frame.RailgunAvailable,
 			frame.TorpedoAvailable,
 			frame.CanAct);
-		OrientationBar.Configure(orientationAvailable);
+		OrientationBar.Configure(frame.CanAct);
 		UtilityBar.Configure(frame.CanFocusCamera, frame.CanUndo);
 		ApBar.Set(frame.ActorState.ActionPoints, frame.ActorState.Stats.MaxAp);
 	}
