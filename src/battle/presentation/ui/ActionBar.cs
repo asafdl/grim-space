@@ -11,15 +11,18 @@ public sealed partial class ActionBar : HBoxContainer
 	private const float IconPx = 40f;
 	private const float SvgSourceSize = 512f;
 
-	private readonly ButtonGroup _modeGroup = new();
-	private Button _moveButton = null!;
+	private readonly ButtonGroup _modeGroup;
 	private Button _flakButton = null!;
 	private Button _railgunButton = null!;
 	private Button _torpedoButton = null!;
 	private Button _endTurnButton = null!;
+	private Label _flakCharges = null!;
+	private Label _railgunCharges = null!;
+	private Label _torpedoCharges = null!;
 
-	public ActionBar()
+	public ActionBar(ButtonGroup modeGroup)
 	{
+		_modeGroup = modeGroup;
 		MouseFilter = MouseFilterEnum.Ignore;
 		Alignment = AlignmentMode.Center;
 		AddThemeConstantOverride("separation", 14);
@@ -28,37 +31,45 @@ public sealed partial class ActionBar : HBoxContainer
 
 	public void SetMode(EPlayerMode mode)
 	{
-		_moveButton.SetBlockSignals(true);
 		_flakButton.SetBlockSignals(true);
 		_railgunButton.SetBlockSignals(true);
 		_torpedoButton.SetBlockSignals(true);
 
-		_moveButton.ButtonPressed = mode == EPlayerMode.Move;
 		_flakButton.ButtonPressed = mode == EPlayerMode.Flak;
 		_railgunButton.ButtonPressed = mode == EPlayerMode.Railgun;
 		_torpedoButton.ButtonPressed = mode == EPlayerMode.Torpedo;
 
-		_moveButton.SetBlockSignals(false);
 		_flakButton.SetBlockSignals(false);
 		_railgunButton.SetBlockSignals(false);
 		_torpedoButton.SetBlockSignals(false);
 	}
 
-	public void Configure(bool flakAvailable, bool railgunAvailable, bool torpedoAvailable, bool canAct)
+	public void Configure(
+		bool flakAvailable,
+		bool railgunAvailable,
+		bool torpedoAvailable,
+		bool canAct,
+		int flakRemaining,
+		int flakMax,
+		int railgunRemaining,
+		int railgunMax,
+		int torpedoRemaining,
+		int torpedoMax)
 	{
 		_flakButton.Disabled = !canAct || !flakAvailable;
 		_railgunButton.Disabled = !canAct || !railgunAvailable;
 		_torpedoButton.Disabled = !canAct || !torpedoAvailable;
-		_moveButton.Disabled = !canAct;
 		_endTurnButton.Disabled = !canAct;
+		_flakCharges.Text = $"{flakRemaining}/{flakMax}";
+		_railgunCharges.Text = $"{railgunRemaining}/{railgunMax}";
+		_torpedoCharges.Text = $"{torpedoRemaining}/{torpedoMax}";
 	}
 
-	/// <summary>Activates ability slot 1–4 if enabled. Returns false if unbound or disabled.</summary>
+	/// <summary>Activates ability slot 2–4 if enabled. Returns false if unbound or disabled.</summary>
 	public bool TryActivateHotkey(int slot)
 	{
 		var button = slot switch
 		{
-			1 => _moveButton,
 			2 => _flakButton,
 			3 => _railgunButton,
 			4 => _torpedoButton,
@@ -84,32 +95,28 @@ public sealed partial class ActionBar : HBoxContainer
 		abilityPad.AddChild(abilityRow);
 
 		var abilityAccent = new Color(0.55f, 0.78f, 1f);
-		_moveButton = CreateAbilitySlot(
-			hotkey: "1",
-			tooltip: "Move",
-			iconPath: "res://assets/ui/abilities/move.svg",
-			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Move));
 		_flakButton = CreateAbilitySlot(
 			hotkey: "2",
 			tooltip: "Flak",
 			iconPath: "res://assets/ui/abilities/flak.svg",
 			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Flak));
+			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Flak),
+			out _flakCharges);
 		_railgunButton = CreateAbilitySlot(
 			hotkey: "3",
 			tooltip: "Railgun",
 			iconPath: "res://assets/ui/abilities/railgun.svg",
 			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Railgun));
+			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Railgun),
+			out _railgunCharges);
 		_torpedoButton = CreateAbilitySlot(
 			hotkey: "4",
 			tooltip: "Torpedo",
 			iconPath: "res://assets/ui/abilities/torpedo.svg",
 			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Torpedo));
+			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Torpedo),
+			out _torpedoCharges);
 
-		abilityRow.AddChild(_moveButton);
 		abilityRow.AddChild(_flakButton);
 		abilityRow.AddChild(_railgunButton);
 		abilityRow.AddChild(_torpedoButton);
@@ -122,11 +129,15 @@ public sealed partial class ActionBar : HBoxContainer
 
 		_endTurnButton = CreateEndTurnButton();
 		endPad.AddChild(_endTurnButton);
-
-		_moveButton.ButtonPressed = true;
 	}
 
-	private Button CreateAbilitySlot(string hotkey, string tooltip, string iconPath, Color accent, Action onPressed)
+	private Button CreateAbilitySlot(
+		string hotkey,
+		string tooltip,
+		string iconPath,
+		Color accent,
+		Action onPressed,
+		out Label charges)
 	{
 		var button = new Button
 		{
@@ -146,6 +157,7 @@ public sealed partial class ActionBar : HBoxContainer
 
 		ApplySlotStyles(button, accent);
 		AddHotkeyBadge(button, hotkey);
+		charges = AddChargeBadge(button);
 
 		button.Toggled += pressed =>
 		{
@@ -237,6 +249,58 @@ public sealed partial class ActionBar : HBoxContainer
 		label.AddThemeColorOverride("font_color", new Color(0.9f, 0.95f, 1f));
 		keycap.AddChild(label);
 		button.AddChild(keycap);
+	}
+
+	private static Label AddChargeBadge(Button button)
+	{
+		const float width = 28f;
+		const float height = 14f;
+		var badge = new PanelContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			CustomMinimumSize = new Vector2(width, height),
+			AnchorLeft = 0.5f,
+			AnchorTop = 1f,
+			AnchorRight = 0.5f,
+			AnchorBottom = 1f,
+			OffsetLeft = -width * 0.5f,
+			OffsetTop = -height * 0.5f,
+			OffsetRight = width * 0.5f,
+			OffsetBottom = height * 0.5f,
+			GrowHorizontal = GrowDirection.Both,
+		};
+		badge.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+		{
+			BgColor = new Color(0.06f, 0.1f, 0.08f, 0.95f),
+			BorderColor = new Color(0.55f, 0.95f, 0.65f, 0.85f),
+			BorderWidthLeft = 1,
+			BorderWidthTop = 1,
+			BorderWidthRight = 1,
+			BorderWidthBottom = 1,
+			CornerRadiusTopLeft = 2,
+			CornerRadiusTopRight = 2,
+			CornerRadiusBottomRight = 2,
+			CornerRadiusBottomLeft = 2,
+			ContentMarginLeft = 3,
+			ContentMarginRight = 3,
+			ContentMarginTop = 0,
+			ContentMarginBottom = 0,
+		});
+
+		var label = new Label
+		{
+			Text = "0/0",
+			MouseFilter = MouseFilterEnum.Ignore,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+		};
+		label.AddThemeFontSizeOverride("font_size", 10);
+		label.AddThemeColorOverride("font_color", new Color(0.7f, 1f, 0.8f));
+		badge.AddChild(label);
+		button.AddChild(badge);
+		return label;
 	}
 
 	private static void ApplySlotStyles(Button button, Color accent)

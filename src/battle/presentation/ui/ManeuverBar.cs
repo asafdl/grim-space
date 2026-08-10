@@ -3,9 +3,10 @@ using GrimSpace.Battle.Movement.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
-/// <summary>Spin/yaw controls placed beside the action bar (not inside it).</summary>
-public sealed partial class OrientationBar : PanelContainer
+/// <summary>Move + orientation controls with AP remaining/max.</summary>
+public sealed partial class ManeuverBar : PanelContainer
 {
+	public event Action<EPlayerMode>? ModeChanged;
 	public event Action<EHeadingTurn>? HeadingTurnRequested;
 	public event Action<ERollDirection>? RollRequested;
 
@@ -15,11 +16,15 @@ public sealed partial class OrientationBar : PanelContainer
 
 	private static readonly Color Accent = new(0.55f, 0.78f, 1f);
 
+	private readonly ButtonGroup _modeGroup;
+	private Button _moveButton = null!;
 	private Button _yawButton = null!;
 	private Button _spinButton = null!;
+	private Label _apLabel = null!;
 
-	public OrientationBar()
+	public ManeuverBar(ButtonGroup modeGroup)
 	{
+		_modeGroup = modeGroup;
 		MouseFilter = MouseFilterEnum.Stop;
 		AddThemeStyleboxOverride("panel", MakeStyle(
 			new Color(0.08f, 0.1f, 0.14f, 0.92f),
@@ -29,16 +34,32 @@ public sealed partial class OrientationBar : PanelContainer
 		Build();
 	}
 
-	public void Configure(bool available)
+	public void SetMode(EPlayerMode mode)
 	{
-		Visible = available;
-		_yawButton.Disabled = !available;
-		_spinButton.Disabled = !available;
+		_moveButton.SetBlockSignals(true);
+		_moveButton.ButtonPressed = mode == EPlayerMode.Move;
+		_moveButton.SetBlockSignals(false);
+	}
+
+	public void Configure(bool canAct, int apCurrent, int apMax)
+	{
+		_moveButton.Disabled = !canAct;
+		_yawButton.Disabled = !canAct;
+		_spinButton.Disabled = !canAct;
+		_apLabel.Text = $"{apCurrent}/{apMax}";
+	}
+
+	public bool TryActivateMove()
+	{
+		if (_moveButton.Disabled)
+			return false;
+		_moveButton.ButtonPressed = true;
+		return true;
 	}
 
 	public bool TryYaw()
 	{
-		if (!Visible || _yawButton.Disabled)
+		if (_yawButton.Disabled)
 			return false;
 		HeadingTurnRequested?.Invoke(EHeadingTurn.YawRight);
 		return true;
@@ -46,7 +67,7 @@ public sealed partial class OrientationBar : PanelContainer
 
 	public bool TrySpin()
 	{
-		if (!Visible || _spinButton.Disabled)
+		if (_spinButton.Disabled)
 			return false;
 		RollRequested?.Invoke(ERollDirection.Clockwise);
 		return true;
@@ -62,25 +83,74 @@ public sealed partial class OrientationBar : PanelContainer
 		AddChild(pad);
 
 		var col = new VBoxContainer();
-		col.AddThemeConstantOverride("separation", 8);
+		col.AddThemeConstantOverride("separation", 6);
 		pad.AddChild(col);
 
-		_yawButton = CreateSlot(
+		_apLabel = new Label
+		{
+			Text = "0/0",
+			MouseFilter = MouseFilterEnum.Ignore,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		_apLabel.AddThemeFontSizeOverride("font_size", 14);
+		_apLabel.AddThemeColorOverride("font_color", new Color(0.55f, 0.95f, 0.65f));
+		col.AddChild(_apLabel);
+
+		var row = new HBoxContainer();
+		row.AddThemeConstantOverride("separation", 8);
+		col.AddChild(row);
+
+		_moveButton = CreateModeSlot(
+			hotkey: "1",
+			tooltip: "Move",
+			iconPath: "res://assets/ui/abilities/move.svg",
+			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Move));
+		row.AddChild(_moveButton);
+
+		var orientCol = new VBoxContainer();
+		orientCol.AddThemeConstantOverride("separation", 8);
+		row.AddChild(orientCol);
+
+		_yawButton = CreateActionSlot(
 			hotkey: "E",
 			tooltip: "Yaw",
 			iconPath: "res://assets/ui/abilities/yaw.svg",
 			onPressed: () => HeadingTurnRequested?.Invoke(EHeadingTurn.YawRight));
-		_spinButton = CreateSlot(
+		_spinButton = CreateActionSlot(
 			hotkey: "Q",
 			tooltip: "Spin",
 			iconPath: "res://assets/ui/abilities/spin.svg",
 			onPressed: () => RollRequested?.Invoke(ERollDirection.Clockwise));
 
-		col.AddChild(_yawButton);
-		col.AddChild(_spinButton);
+		orientCol.AddChild(_yawButton);
+		orientCol.AddChild(_spinButton);
+
+		_moveButton.ButtonPressed = true;
 	}
 
-	private static Button CreateSlot(string hotkey, string tooltip, string iconPath, Action onPressed)
+	private Button CreateModeSlot(string hotkey, string tooltip, string iconPath, Action onPressed)
+	{
+		var button = CreateSlotBase(hotkey, tooltip, iconPath);
+		button.ToggleMode = true;
+		button.ButtonGroup = _modeGroup;
+		button.Toggled += pressed =>
+		{
+			if (pressed)
+				onPressed();
+		};
+		return button;
+	}
+
+	private static Button CreateActionSlot(string hotkey, string tooltip, string iconPath, Action onPressed)
+	{
+		var button = CreateSlotBase(hotkey, tooltip, iconPath);
+		button.Pressed += onPressed;
+		return button;
+	}
+
+	private static Button CreateSlotBase(string hotkey, string tooltip, string iconPath)
 	{
 		var button = new Button
 		{
@@ -95,10 +165,8 @@ public sealed partial class OrientationBar : PanelContainer
 			ClipContents = false,
 		};
 		button.AddThemeConstantOverride("h_separation", 0);
-
 		ApplySlotStyles(button);
 		AddHotkeyBadge(button, hotkey);
-		button.Pressed += onPressed;
 		return button;
 	}
 

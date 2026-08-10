@@ -186,12 +186,12 @@ public partial class BattleController : Node3D
 
 	private void WireHudEvents()
 	{
-		_battleHud.OrientationBar.HeadingTurnRequested += turn =>
+		_battleHud.ManeuverBar.HeadingTurnRequested += turn =>
 		{
 			if (_director.Enqueue(new HeadingTurnAction(_ui.Battle.PlayerId, turn)))
 				_lastHoveredMoveIndex = null;
 		};
-		_battleHud.OrientationBar.RollRequested += direction =>
+		_battleHud.ManeuverBar.RollRequested += direction =>
 		{
 			if (_director.Enqueue(new RollAction(_ui.Battle.PlayerId, direction)))
 				_lastHoveredMoveIndex = null;
@@ -199,6 +199,7 @@ public partial class BattleController : Node3D
 		_battleHud.OutcomeOverlay.ResetRequested += ResetBattle;
 		_battleHud.RetireRequested += () => _director.Retire();
 		_battleHud.RestartRequested += ResetBattle;
+		_battleHud.ManeuverBar.ModeChanged += mode => _director.SetMode(mode);
 		_battleHud.ActionBar.ModeChanged += mode => _director.SetMode(mode);
 		_battleHud.ActionBar.EndTurnRequested += () => _director.EndTurn();
 		_battleHud.UtilityBar.FocusRequested += () => FocusCameraOnActiveUnit(_currentFrame);
@@ -248,21 +249,23 @@ public partial class BattleController : Node3D
 
 		if (@event is InputEventKey { Pressed: true, Echo: false } abilityKey
 			&& AbilityHotkeySlot(abilityKey.Keycode) is int slot
-			&& _battleHud.ActionBar.TryActivateHotkey(slot))
+			&& (slot == 1
+				? _battleHud.ManeuverBar.TryActivateMove()
+				: _battleHud.ActionBar.TryActivateHotkey(slot)))
 		{
 			GetViewport().SetInputAsHandled();
 			return;
 		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q }
-			&& _battleHud.OrientationBar.TrySpin())
+			&& _battleHud.ManeuverBar.TrySpin())
 		{
 			GetViewport().SetInputAsHandled();
 			return;
 		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.E }
-			&& _battleHud.OrientationBar.TryYaw())
+			&& _battleHud.ManeuverBar.TryYaw())
 		{
 			GetViewport().SetInputAsHandled();
 			return;

@@ -11,9 +11,8 @@ public partial class BattleHud : Node
 	public event Action? RestartRequested;
 
 	public ActionBar ActionBar { get; private set; } = null!;
-	public ApBar ApBar { get; private set; } = null!;
 	public HealthBar HealthBar { get; private set; } = null!;
-	public OrientationBar OrientationBar { get; private set; } = null!;
+	public ManeuverBar ManeuverBar { get; private set; } = null!;
 	public UtilityBar UtilityBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 
@@ -117,7 +116,7 @@ public partial class BattleHud : Node
 			AnchorTop = 1f,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			OffsetTop = -180f,
+			OffsetTop = -220f,
 			GrowHorizontal = Control.GrowDirection.Both,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
@@ -137,29 +136,19 @@ public partial class BattleHud : Node
 		row.AddThemeConstantOverride("separation", 14);
 		center.AddChild(row);
 
-		OrientationBar = new OrientationBar
+		var modeGroup = new ButtonGroup();
+
+		ManeuverBar = new ManeuverBar(modeGroup)
 		{
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
-		row.AddChild(OrientationBar);
+		row.AddChild(ManeuverBar);
 
-		var actionColumn = new VBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.End,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-		};
-		actionColumn.AddThemeConstantOverride("separation", 6);
-		row.AddChild(actionColumn);
-
-		ApBar = new ApBar();
-		actionColumn.AddChild(ApBar);
-
-		ActionBar = new ActionBar
+		ActionBar = new ActionBar(modeGroup)
 		{
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
-		actionColumn.AddChild(ActionBar);
+		row.AddChild(ActionBar);
 
 		UtilityBar = new UtilityBar
 		{
@@ -178,7 +167,7 @@ public partial class BattleHud : Node
 			AnchorBottom = 1f,
 			OffsetLeft = -220f,
 			OffsetTop = 56f,
-			OffsetBottom = -180f,
+			OffsetBottom = -220f,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Both,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
@@ -216,15 +205,25 @@ public partial class BattleHud : Node
 		if (frame.ShowOutcomeOverlay)
 			return;
 
+		ManeuverBar.SetMode(frame.Mode);
+		ManeuverBar.Configure(
+			frame.CanAct,
+			frame.ActorState.ActionPoints,
+			frame.ActorState.Stats.MaxAp);
 		ActionBar.SetMode(frame.Mode);
+		var actor = frame.ActorState;
 		ActionBar.Configure(
 			frame.FlakAvailable,
 			frame.RailgunAvailable,
 			frame.TorpedoAvailable,
-			frame.CanAct);
-		OrientationBar.Configure(frame.CanAct);
+			frame.CanAct,
+			actor.FlakRemaining,
+			actor.Stats.FlaksPerTurn,
+			actor.RailgunRemaining,
+			actor.Stats.RailgunsPerTurn,
+			actor.TorpedoCooldownRemaining > 0 ? 0 : 1,
+			1);
 		UtilityBar.Configure(frame.CanFocusCamera, frame.CanUndo);
-		ApBar.Set(frame.ActorState.ActionPoints, frame.ActorState.Stats.MaxAp);
 	}
 
 	private static Button CreateTopMetaButton(
