@@ -163,7 +163,6 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.PendingTorpedoMount = null;
 	}
 
-	/// <summary>Returns true when playback yields for the hit flash.</summary>
 	private bool PlayImpact(ImpactFacts impact)
 	{
 		_clipContext.ReplayState.ApplyImpact(impact);
