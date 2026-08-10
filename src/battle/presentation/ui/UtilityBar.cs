@@ -65,12 +65,12 @@ public sealed partial class UtilityBar : PanelContainer
 
 		_focusButton = CreateSlot(
 			hotkey: "F",
-			tooltip: "Focus camera",
+			tooltip: "Snap the camera to your active ship.",
 			iconPath: "res://assets/ui/abilities/focus.svg",
 			onPressed: () => FocusRequested?.Invoke());
 		_undoButton = CreateSlot(
 			hotkey: "⌘Z",
-			tooltip: "Undo (Ctrl/Cmd+Z)",
+			tooltip: "Undo your last action this turn.\n(Ctrl/Cmd+Z)",
 			iconPath: "res://assets/ui/abilities/undo.svg",
 			onPressed: () => UndoRequested?.Invoke());
 

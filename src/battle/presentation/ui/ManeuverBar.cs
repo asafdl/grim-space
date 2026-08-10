@@ -104,7 +104,7 @@ public sealed partial class ManeuverBar : PanelContainer
 
 		_moveButton = CreateModeSlot(
 			hotkey: "1",
-			tooltip: "Move",
+			tooltip: "Move:\nSpend AP to path across the grid.\nPositioning decides weapon arcs and which shield face takes a hit.",
 			iconPath: "res://assets/ui/abilities/move.svg",
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Move));
 		row.AddChild(_moveButton);
@@ -115,12 +115,12 @@ public sealed partial class ManeuverBar : PanelContainer
 
 		_yawButton = CreateActionSlot(
 			hotkey: "E",
-			tooltip: "Yaw",
+			tooltip: "Yaw:\nTurn your heading. Costs 1 AP.",
 			iconPath: "res://assets/ui/abilities/yaw.svg",
 			onPressed: () => HeadingTurnRequested?.Invoke(EHeadingTurn.YawRight));
 		_spinButton = CreateActionSlot(
 			hotkey: "Q",
-			tooltip: "Spin",
+			tooltip: "Spin:\nRoll the ship. Costs 1 AP.",
 			iconPath: "res://assets/ui/abilities/spin.svg",
 			onPressed: () => RollRequested?.Invoke(ERollDirection.Clockwise));
 

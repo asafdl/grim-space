@@ -97,21 +97,21 @@ public sealed partial class ActionBar : HBoxContainer
 		var abilityAccent = new Color(0.55f, 0.78f, 1f);
 		_flakButton = CreateAbilitySlot(
 			hotkey: "2",
-			tooltip: "Flak",
+			tooltip: "Flak:\nSide burst (port or starboard), short range.\nDeals 1 damage and strips momentum.\nCooldown 1 turn.",
 			iconPath: "res://assets/ui/abilities/flak.svg",
 			accent: abilityAccent,
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Flak),
 			out _flakCharges);
 		_railgunButton = CreateAbilitySlot(
 			hotkey: "3",
-			tooltip: "Railgun",
+			tooltip: "Railgun:\nFires in a long straight line ahead.\nDeals 3 damage.\nCooldown 1 turn.",
 			iconPath: "res://assets/ui/abilities/railgun.svg",
 			accent: abilityAccent,
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Railgun),
 			out _railgunCharges);
 		_torpedoButton = CreateAbilitySlot(
 			hotkey: "4",
-			tooltip: "Torpedo",
+			tooltip: "Torpedo:\nFires in a set direction.\nFlies forward (with small maneuverability) for 3 turns,\nand tries to detonate on enemies caught in its path for 3 damage.\n3-turn cooldown after launch.",
 			iconPath: "res://assets/ui/abilities/torpedo.svg",
 			accent: abilityAccent,
 			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Torpedo),
@@ -173,7 +173,7 @@ public sealed partial class ActionBar : HBoxContainer
 		{
 			Text = "End Turn",
 			CustomMinimumSize = new Vector2(112, SlotSize),
-			TooltipText = "End Turn",
+			TooltipText = "End your turn and resolve the round.\nAP and cooldowns refresh.",
 			FocusMode = FocusModeEnum.None,
 			ClipContents = false,
 		};

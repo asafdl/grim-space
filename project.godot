@@ -28,6 +28,10 @@ window/stretch/aspect="expand"
 
 project/assembly_name="grim-space"
 
+[gui]
+
+timers/tooltip_delay_sec=0.25
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
