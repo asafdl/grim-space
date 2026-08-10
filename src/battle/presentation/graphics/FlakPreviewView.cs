@@ -46,17 +46,14 @@ public sealed partial class FlakPreviewView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var aiming = frame.Mode == EPlayerMode.Flak;
+		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Flak;
 		var showPort = aiming
 			? frame.ValidFlakPortCells.Count > 0
-			: frame.CommittedFlakMount == EFlakMount.Port;
+			: frame.ShowWeaponPreviews && frame.CommittedFlakMount == EFlakMount.Port;
 		var showStarboard = aiming
 			? frame.ValidFlakStarboardCells.Count > 0
-			: frame.CommittedFlakMount == EFlakMount.Starboard;
-		var shouldShow =
-			(showPort || showStarboard)
-			&& !frame.ShowOutcomeOverlay
-			&& (aiming || frame.CommittedFlakMount is not null);
+			: frame.ShowWeaponPreviews && frame.CommittedFlakMount == EFlakMount.Starboard;
+		var shouldShow = showPort || showStarboard;
 
 		Visible = shouldShow;
 		if (!shouldShow || _port is null || _starboard is null)

@@ -39,6 +39,8 @@ public sealed class PresentationFrame
 	public bool RailgunAvailable { get; init; }
 	public bool TorpedoAvailable { get; init; }
 	public bool ShowOutcomeOverlay { get; init; }
+	/// <summary>Aim/cemented weapon volumes — planning only.</summary>
+	public bool ShowWeaponPreviews { get; init; }
 	public EBattleResult Outcome { get; init; }
 	public required IReadOnlyList<string> ActionLogLines { get; init; }
 }

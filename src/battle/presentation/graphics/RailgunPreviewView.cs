@@ -56,9 +56,12 @@ public sealed partial class RailgunPreviewView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var aiming = frame.Mode == EPlayerMode.Railgun && frame.RailgunCells.Count > 0;
-		var cemented = frame.CommittedRailgun;
-		var shouldShow = (aiming || cemented) && !frame.ShowOutcomeOverlay;
+		var aiming =
+			frame.ShowWeaponPreviews
+			&& frame.Mode == EPlayerMode.Railgun
+			&& frame.RailgunCells.Count > 0;
+		var cemented = frame.ShowWeaponPreviews && frame.CommittedRailgun;
+		var shouldShow = aiming || cemented;
 
 		Visible = shouldShow;
 		if (!shouldShow || _material is null)

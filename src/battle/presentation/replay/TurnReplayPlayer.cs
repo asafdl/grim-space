@@ -122,6 +122,7 @@ public partial class TurnReplayPlayer : Node3D
 					break;
 				case Record<ImpactFacts> { Value: var impact }:
 					BeginPhase(Classify(impact.SourceId));
+					ApplyImpact(impact);
 					break;
 			}
 		}
@@ -157,6 +158,18 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
 		_clipContext.UnitViews[spawned.Id].Sync(spawned);
 		_clipContext.PendingTorpedoMount = null;
+	}
+
+	private void ApplyImpact(ImpactFacts impact)
+	{
+		_clipContext.ReplayState.ApplyImpact(impact);
+		if (!_clipContext.ReplayState.Contains(impact.TargetId))
+			return;
+
+		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
+			return;
+
+		view.Sync(_clipContext.ReplayState.StateOf(impact.TargetId));
 	}
 
 	private void BeginPhase(PlaybackPhase phase)

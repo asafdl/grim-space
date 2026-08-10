@@ -37,6 +37,9 @@ public partial class BattleView : Node3D
 		var keep = new HashSet<string>(states.Count);
 		foreach (var (unitId, state) in states)
 		{
+			if (!state.IsAlive)
+				continue;
+
 			keep.Add(unitId);
 			if (!_unitViews.TryGetValue(unitId, out var view))
 			{

@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
@@ -33,5 +34,16 @@ public sealed class ReplayState
 		var state = _states[move.ActorId];
 		var frame = BodyFrame.From(state);
 		state.Position += frame.Step(move.Direction);
+	}
+
+	public void ApplyImpact(ImpactFacts impact)
+	{
+		if (!_states.TryGetValue(impact.TargetId, out var state))
+			return;
+
+		var shield = state.ShieldPoints[impact.Face];
+		state.ShieldPoints[impact.Face] = System.Math.Max(0, shield - impact.ShieldDamage);
+		state.HullPoints = System.Math.Max(0, state.HullPoints - impact.HullDamage);
+		state.MomentumLevel = System.Math.Max(0, state.MomentumLevel - impact.MomentumLoss);
 	}
 }

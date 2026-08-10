@@ -44,6 +44,10 @@ public partial class UnitView : Node3D
 
 	public void Sync(State state)
 	{
+		Visible = state.IsAlive;
+		if (!state.IsAlive)
+			return;
+
 		Position = WorldMapping.ToWorld(state.Position);
 		ApplyOrientation(state);
 		if (_type != EType.Torpedo)

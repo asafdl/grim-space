@@ -52,10 +52,13 @@ public sealed partial class TorpedoPreviewView : Node3D
 	public void ApplyFrame(PresentationFrame frame)
 	{
 		var aiming =
-			frame.Mode == EPlayerMode.Torpedo
+			frame.ShowWeaponPreviews
+			&& frame.Mode == EPlayerMode.Torpedo
 			&& frame.TorpedoMountCells.Count > 0;
-		var cemented = frame.CommittedTorpedoMountCell is Coord;
-		var shouldShow = (aiming || cemented) && !frame.ShowOutcomeOverlay;
+		var cemented =
+			frame.ShowWeaponPreviews
+			&& frame.CommittedTorpedoMountCell is Coord;
+		var shouldShow = aiming || cemented;
 
 		Visible = shouldShow;
 		ReleaseActive();
