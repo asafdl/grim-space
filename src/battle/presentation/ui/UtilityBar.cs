@@ -85,10 +85,14 @@ public sealed partial class UtilityBar : PanelContainer
 			CustomMinimumSize = new Vector2(SlotSize, SlotSize),
 			Icon = LoadSvgIcon(iconPath),
 			ExpandIcon = false,
+			IconAlignment = HorizontalAlignment.Center,
+			VerticalIconAlignment = VerticalAlignment.Center,
+			Alignment = HorizontalAlignment.Center,
 			TooltipText = tooltip,
 			FocusMode = FocusModeEnum.None,
 			ClipContents = false,
 		};
+		button.AddThemeConstantOverride("h_separation", 0);
 
 		ApplySlotStyles(button);
 		AddHotkeyBadge(button, hotkey);

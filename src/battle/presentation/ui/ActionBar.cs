@@ -135,10 +135,14 @@ public sealed partial class ActionBar : HBoxContainer
 			CustomMinimumSize = new Vector2(SlotSize, SlotSize),
 			Icon = LoadSvgIcon(iconPath, accent),
 			ExpandIcon = false,
+			IconAlignment = HorizontalAlignment.Center,
+			VerticalIconAlignment = VerticalAlignment.Center,
+			Alignment = HorizontalAlignment.Center,
 			TooltipText = tooltip,
 			FocusMode = FocusModeEnum.None,
 			ClipContents = false,
 		};
+		button.AddThemeConstantOverride("h_separation", 0);
 
 		ApplySlotStyles(button, accent);
 		AddHotkeyBadge(button, hotkey);
