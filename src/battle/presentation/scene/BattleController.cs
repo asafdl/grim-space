@@ -1,12 +1,12 @@
 using Godot;
 using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -14,14 +14,17 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Battle.Presentation.Scene;
 
 /// <summary>
-/// Scene coordinator: wires HUD/views, applies published frames, owns presentation interaction state.
-/// User intents are mapped by <see cref="UserIntentTranslator"/>.
+/// Scene coordinator: owns presentation frame + interaction state, wires world views, HUD, and replay.
 /// </summary>
+/// 
+/// TODO: _battle and _agents are signs of leaks, shouldn't be here
 public partial class BattleController : Node3D
 {
-	private BattleUi _ui = null!;
-	private BattleDirector _director = null!;
+	private BattleOrchestrator _battle = null!;
+	private UserExecutionAgent _agent = null!;
+	private PresentationFrameBuilder _frames = null!;
 	private UserIntentTranslator _translator = null!;
+	private ReplayDirector _replayDirector = null!;
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BattleHud _battleHud = null!;
@@ -34,27 +37,22 @@ public partial class BattleController : Node3D
 	private BattleCameraDirector _cameraDirector = null!;
 
 	private PresentationFrame _currentFrame = null!;
-	private IReadOnlyDictionary<string, GrimSpace.Battle.Units.State>? _playbackEndStates;
 	private MoveHoverCache _moveHoverCache;
-
-	private TurnReplay? _pendingReplay;
-	private int _pendingCompletedTurn;
-	private PresentationPhase? _lastPhase;
 
 	private readonly record struct MoveHoverCache(
 		IReadOnlyList<MovePathOption> Paths,
 		int PathApBaseline,
 		IReadOnlyList<Coord> CommittedPath);
 
+	private bool AcceptsCommands =>
+		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
+
 	public override void _Ready()
 	{
-		var battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
-		var agent = battle.PlayerAgent;
-		_ui = new BattleUi(battle, agent);
-		_director = new BattleDirector(_ui, agent);
-		_director.FrameChanged += OnFrameChanged;
-		_director.ReplayRequested += OnReplayRequested;
-		var layout = battle.Layout;
+		_battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
+		_agent = _battle.PlayerAgent;
+		_frames = new PresentationFrameBuilder();
+		var layout = _battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
 		backdrop.Build(layout.Grid);
@@ -80,7 +78,7 @@ public partial class BattleController : Node3D
 		AddChild(_torpedoPreview);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
-		var playerPosition = agent.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+		var playerPosition = _agent.Sim.StateOf<ActorState>(_battle.PlayerId).Position;
 		_camera.SetPivot(WorldMapping.ToWorld(playerPosition));
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
@@ -95,15 +93,15 @@ public partial class BattleController : Node3D
 		_battleView = new BattleView { Name = "BattleView" };
 		unitsRoot.AddChild(_battleView);
 		_battleView.BindInitial(layout.Participants.Select(pair =>
-			(pair.Key, agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
+			(pair.Key, _agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
 		AddChild(_battleHud);
 
 		_translator = new UserIntentTranslator(
-			battle.PlayerId,
-			agent,
+			_battle.PlayerId,
+			_agent,
 			_camera,
 			_battleHud,
 			_flakPreview,
@@ -121,22 +119,30 @@ public partial class BattleController : Node3D
 			_battleView.UnitViews,
 			ColorForActor,
 			(state, color) => _battleView.Ensure(state, color));
-		_replayPlayer.PlaybackComplete += OnPlaybackComplete;
 		AddChild(_replayPlayer);
 
-		_director.Start();
+		_replayDirector = new ReplayDirector { Name = "ReplayDirector" };
+		_replayDirector.Configure(
+			_battle,
+			_replayPlayer,
+			_battleView,
+			_cameraDirector,
+			GetPlayerRenderedPosition,
+			ColorForActor);
+		AddChild(_replayDirector);
+
+		_agent.PlanningChanged += RefreshPresentation;
+		_battle.PhaseChanged += _ => RefreshPresentation();
+		_battle.TurnResolved += OnTurnResolved;
+
+		_cameraDirector.EnterManual();
+		RefreshPresentation();
 	}
 
 	public override void _Process(double delta)
 	{
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
-
-		if (_pendingReplay is TurnReplay replay)
-		{
-			_pendingReplay = null;
-			StartReplay(replay, _pendingCompletedTurn);
-		}
 	}
 
 	private void WireHudToTranslator()
@@ -160,78 +166,73 @@ public partial class BattleController : Node3D
 	{
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
-		_translator.FlakHoverChanged += mount => _director.SetFlakHoverMount(mount);
-		_translator.RailgunHoverChanged += hovered => _director.SetRailgunHovered(hovered);
-		_translator.TorpedoHoverChanged += mount => _director.SetTorpedoHoverMount(mount);
-		_translator.HoversCleared += () => _director.ClearHovers();
-		_translator.FocusUnitRequested += unitId => _director.FocusUnit(unitId);
+		_translator.FlakHoverChanged += mount => SetFlakHoverMount(mount);
+		_translator.RailgunHoverChanged += hovered => SetRailgunHovered(hovered);
+		_translator.TorpedoHoverChanged += mount => SetTorpedoHoverMount(mount);
+		_translator.HoversCleared += ClearHovers;
+		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
-		_translator.EndTurnRequested += () => _director.EndTurn();
+		_translator.EndTurnRequested += OnEndTurn;
 		_translator.RestartRequested += ResetBattle;
-		_translator.RetireRequested += () => _director.Retire();
+		_translator.RetireRequested += () => _battle.Retire();
+	}
+
+	private void OnTurnResolved(TurnReplay replay, int completedTurn)
+	{
+		_frames.Interaction.ResetAfterTurn();
+		_frames.AppendTurn(_battle, completedTurn, replay.History);
+		RefreshPresentation();
 	}
 
 	private void OnModeRequested(EPlayerMode mode)
 	{
-		if (!_director.AcceptsCommands)
+		if (!AcceptsCommands)
 			return;
 
-		_ui.State.SetMode(mode);
-		_director.RefreshFrame();
+		_frames.Interaction.SetMode(mode);
+		RefreshPresentation();
 	}
 
 	private void OnMoveHoverChanged(int? index, int optionCount)
 	{
-		_ui.State.SetMoveHover(index, optionCount);
+		_frames.Interaction.SetMoveHover(index, optionCount);
 		ApplyMoveHoverOverlay();
 	}
 
-	private void OnFrameChanged(PresentationFrame frame)
+	private void OnEndTurn()
 	{
+		if (!AcceptsCommands)
+			return;
+
+		_battle.EndTurn();
+		RefreshPresentation();
+	}
+
+	private void RefreshPresentation()
+	{
+		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		_currentFrame = frame;
 		_moveHoverCache = new MoveHoverCache(
 			frame.MovePaths,
 			frame.MovePathApBaseline,
 			frame.CommittedMovePath);
 		_translator.SetPresentation(
-			enabled: _director.AcceptsInput && !_ui.Battle.IsBattleOver,
+			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
 			canIssueActions: frame.CanAct,
 			isInspecting: frame.IsInspecting,
 			mode: frame.Mode,
 			moveOptions: frame.MovePaths,
 			focusState: frame.FocusState);
 		ApplyFrame(frame);
-		HandleCameraPhaseTransition();
-	}
-
-	private void OnReplayRequested(TurnReplay replay, int completedTurn)
-	{
-		_pendingReplay = replay;
-		_pendingCompletedTurn = completedTurn;
-	}
-
-	private void StartReplay(TurnReplay replay, int completedTurn)
-	{
-		_playbackEndStates = replay.EndStates;
-		_battleView.ApplyUnitStates(replay.StartStates, ColorForActor);
-		_replayPlayer.ResetToLive(
-			replay.StartStates,
-			replay.EndStates,
-			interest => _cameraDirector.ReportInterest(interest));
-		_replayPlayer.Play(
-			replay.History,
-			completedTurn,
-			_ui.Battle.PlayerId,
-			_ui.Battle.OpponentId);
 	}
 
 	private void ApplyMoveHoverOverlay()
 	{
 		var (path, target) = MoveUi.GetPathHighlights(
 			_moveHoverCache.Paths,
-			_ui.State.MoveHoveredIndex,
+			_frames.Interaction.MoveHoveredIndex,
 			_moveHoverCache.CommittedPath);
 		_gridView.SetMoveHighlights(
 			_moveHoverCache.Paths,
@@ -240,29 +241,68 @@ public partial class BattleController : Node3D
 			target);
 	}
 
-	private void ReturnToPlayer()
+	private void FocusUnit(string unitId)
 	{
-		if (!_director.ClearFocus())
+		if (!_battle.AcceptsPlayerInput)
 			return;
 
+		var previewUnits = _frames.BuildFrame(_battle, _agent, acceptsCommands: false).PreviewUnits;
+		if (!previewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
+			return;
+
+		_frames.Interaction.FocusUnit(unitId);
+		RefreshPresentation();
+	}
+
+	private void ReturnToPlayer()
+	{
+		if (!_battle.AcceptsPlayerInput)
+			return;
+
+		_frames.Interaction.ClearFocus();
+		RefreshPresentation();
 		_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 	}
 
-	private void OnPlaybackComplete()
+	private void ClearHovers()
 	{
-		if (_playbackEndStates is not null)
-			_battleView.ApplyUnitStates(_playbackEndStates, ColorForActor);
+		_frames.Interaction.ClearHovers();
+		RefreshPresentation();
+	}
 
-		_playbackEndStates = null;
-		_director.NotifyReplayComplete();
+	private void SetFlakHoverMount(EFlakMount? mount)
+	{
+		if (!AcceptsCommands || _frames.Interaction.FlakHoverMount == mount)
+			return;
+
+		_frames.Interaction.FlakHoverMount = mount;
+		RefreshPresentation();
+	}
+
+	private void SetRailgunHovered(bool hovered)
+	{
+		if (!AcceptsCommands || _frames.Interaction.RailgunHovered == hovered)
+			return;
+
+		_frames.Interaction.RailgunHovered = hovered;
+		RefreshPresentation();
+	}
+
+	private void SetTorpedoHoverMount(ETorpedoMount? mount)
+	{
+		if (!AcceptsCommands || _frames.Interaction.TorpedoHoverMount == mount)
+			return;
+
+		_frames.Interaction.TorpedoHoverMount = mount;
+		RefreshPresentation();
 	}
 
 	private Color ColorForActor(string actorId)
 	{
-		if (UnitRegistry.For(_ui.Battle.Engine.World).TryGet(actorId, out var unit))
+		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
 			return ColorFor(unit.Alliance.Team);
 
-		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var team))
+		if (_battle.Layout.Participants.TryGetValue(actorId, out var team))
 			return ColorFor(team);
 
 		return Colors.White;
@@ -278,38 +318,13 @@ public partial class BattleController : Node3D
 		_battleHud.Apply(frame);
 	}
 
-	private void HandleCameraPhaseTransition()
-	{
-		var phase = _director.Phase;
-		if (phase == _lastPhase)
-			return;
-
-		var previous = _lastPhase;
-		_lastPhase = phase;
-
-		switch (phase)
-		{
-			case PresentationPhase.Planning when previous == PresentationPhase.Replaying:
-				_cameraDirector.ReturnControl(GetPlayerRenderedPosition());
-				break;
-
-			case PresentationPhase.Planning when previous is null:
-				_cameraDirector.EnterManual();
-				break;
-
-			case PresentationPhase.Replaying:
-				_cameraDirector.BeginPlayback();
-				break;
-		}
-	}
-
 	private Vector3 GetPlayerRenderedPosition()
 	{
-		var playerId = _ui.Battle.PlayerId;
+		var playerId = _battle.PlayerId;
 		if (_battleView.UnitViews.TryGetValue(playerId, out var view))
 			return view.GlobalPosition;
 
-		return WorldMapping.ToWorld(_ui.Battle.PlayerAgent.Sim.StateOf<ActorState>(playerId).Position);
+		return WorldMapping.ToWorld(_agent.Sim.StateOf<ActorState>(playerId).Position);
 	}
 
 	private void ApplyUnitStates(PresentationFrame frame)
@@ -323,7 +338,7 @@ public partial class BattleController : Node3D
 
 	private Color ColorForPreview(PresentationFrame frame, string actorId)
 	{
-		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var team))
+		if (_battle.Layout.Participants.TryGetValue(actorId, out var team))
 			return ColorFor(team);
 
 		return Colors.White;

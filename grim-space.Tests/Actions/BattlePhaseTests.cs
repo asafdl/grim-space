@@ -13,9 +13,10 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
-public sealed class BattleDirectorTests
+public sealed class BattlePhaseTests
 {
 	private const string PlayerId = "player";
+
 	[Fact]
 	public void EndTurnEntersResolvingWithoutWaitingForResolve()
 	{
@@ -24,12 +25,10 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
-		Assert.Equal(PresentationPhase.Planning, director.Phase);
+		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 
-		director.EndTurn();
-		Assert.Equal(PresentationPhase.Resolving, director.Phase);
+		battle.EndTurn();
+		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
 	}
 
 	[Fact]
@@ -40,77 +39,71 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = BattleTestFixture.Director(battle);
 		var replayTcs = new TaskCompletionSource<(TurnReplay Replay, int CompletedTurn)>();
-		director.ReplayRequested += (replay, completedTurn) =>
+		battle.TurnResolved += (replay, completedTurn) =>
 			replayTcs.TrySetResult((replay, completedTurn));
-		director.Start();
 
-		director.EndTurn();
+		battle.EndTurn();
 
 		var (replay, completedTurn) = await replayTcs.Task;
-		Assert.Equal(PresentationPhase.Replaying, director.Phase);
+		Assert.Equal(EBattlePhase.Replaying, battle.Phase);
 		Assert.Equal(1, completedTurn);
 		Assert.NotEmpty(replay.History);
 	}
 
 	[Fact]
-	public void ShortMoveCommitAdvancesFromPlanning()
+	public void ShortMoveCommitAdvancesFromPlayerTurn()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
 
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
-		director.EndTurn();
+		battle.EndTurn();
 
-		Assert.Equal(PresentationPhase.Resolving, director.Phase);
+		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
 	}
 
 	[Fact]
-	public void CommandsNoOpOutsidePlanning()
+	public void CommandsNoOpOutsidePlayerTurn()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
-		director.EndTurn();
+		battle.EndTurn();
 
-		Assert.False(director.AcceptsCommands);
-		Assert.False(director.AcceptsInput);
+		Assert.False(battle.AcceptsPlayerInput);
 	}
 
 	[Fact]
-	public async Task NotifyReplayCompleteReturnsToPlanning()
+	public async Task NotifyReplayCompleteReturnsToPlayerTurn()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = BattleTestFixture.Director(battle);
 		var replayTcs = new TaskCompletionSource<TurnReplay>();
-		director.ReplayRequested += (replay, _) => replayTcs.TrySetResult(replay);
-		director.Start();
+		battle.TurnResolved += (replay, _) => replayTcs.TrySetResult(replay);
 
-		director.EndTurn();
+		battle.EndTurn();
 		await replayTcs.Task;
 
-		var planningTcs = new TaskCompletionSource();
-		director.FrameChanged += frame =>
+		var playerTurnTcs = new TaskCompletionSource();
+		battle.PhaseChanged += phase =>
 		{
-			if (director.Phase == PresentationPhase.Planning && frame.MovePaths.Count > 0)
-				planningTcs.TrySetResult();
+			if (phase == EBattlePhase.PlayerTurn
+				&& BattleTestCommands.Frame(battle).MovePaths.Count > 0)
+			{
+				playerTurnTcs.TrySetResult();
+			}
 		};
 
-		director.NotifyReplayComplete();
-		await planningTcs.Task;
+		battle.NotifyReplayComplete();
+		await playerTurnTcs.Task;
 
-		Assert.Equal(PresentationPhase.Planning, director.Phase);
+		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 		Assert.Equal(2, battle.TurnNumber);
 	}
 
@@ -122,42 +115,33 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = BattleTestFixture.Director(battle);
 		PresentationFrame? resolvingFrame = null;
-		director.FrameChanged += frame =>
+		battle.PhaseChanged += phase =>
 		{
-			if (director.Phase == PresentationPhase.Resolving)
-				resolvingFrame = frame;
+			if (phase == EBattlePhase.Resolving)
+				resolvingFrame = BattleTestCommands.Frame(battle);
 		};
-		director.EnterPlanning();
-
-		director.EndTurn();
+		battle.EndTurn();
 
 		Assert.NotNull(resolvingFrame);
 		Assert.False(resolvingFrame!.CanAct);
 	}
 
 	[Fact]
-	public void CommandsRejectedWhileInspecting()
+	public void EndTurnProceedsRegardlessOfInteractionFocus()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
+		var frames = BattleTestFixture.FrameBuilder(battle);
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-		var queuedCount = battle.PlayerAgent.Sim.Actions.Count;
 
-		Assert.True(director.FocusUnit(battle.OpponentId));
-		Assert.True(ui.IsInspecting);
+		frames.Interaction.FocusUnit(battle.OpponentId);
+		Assert.True(frames.IsInspecting(battle));
 
-		director.EndTurn();
-		Assert.Equal(PresentationPhase.Planning, director.Phase);
-		Assert.Equal(queuedCount, battle.PlayerAgent.Sim.Actions.Count);
-
-		Assert.False(director.AcceptsCommands);
+		battle.EndTurn();
+		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
 	}
 
 	[Fact]
@@ -165,22 +149,18 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
+		var frames = BattleTestFixture.FrameBuilder(battle);
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 		var queuedCount = battle.PlayerAgent.Sim.Actions.Count;
 
-		Assert.True(director.FocusUnit(battle.OpponentId));
-		Assert.True(director.ClearFocus());
-		Assert.False(ui.IsInspecting);
-		Assert.True(director.AcceptsCommands);
+		frames.Interaction.FocusUnit(battle.OpponentId);
+		frames.Interaction.ClearFocus();
+		Assert.False(frames.IsInspecting(battle));
 
-		ui.State.SetMode(EPlayerMode.Flak);
-		director.RefreshFrame();
-		Assert.Equal(EPlayerMode.Flak, ui.State.Mode);
+		frames.Interaction.SetMode(EPlayerMode.Flak);
+		Assert.Equal(EPlayerMode.Flak, frames.Interaction.Mode);
 		Assert.Equal(queuedCount, battle.PlayerAgent.Sim.Actions.Count);
 	}
 
@@ -189,10 +169,10 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
+		var frames = BattleTestFixture.FrameBuilder(battle);
 
-		Assert.False(director.FocusUnit("missing"));
+		var previewUnits = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false).PreviewUnits;
+		Assert.False(previewUnits.ContainsKey("missing"));
 	}
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)

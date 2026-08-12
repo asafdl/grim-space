@@ -180,7 +180,7 @@ public sealed class HumanExecutionAgentTests
 	}
 
 	[Fact]
-	public void GetActionsAsyncDoesNotForkSim()
+	public async Task GetActionsAsyncDoesNotForkSim()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -194,7 +194,7 @@ public sealed class HumanExecutionAgentTests
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 		Assert.True(agent.Commit());
 
-		var actions = agent.GetActions().GetAwaiter().GetResult();
+		var actions = await agent.GetActions();
 		Assert.Same(simAtOpen, agent.Sim);
 		Assert.Single(actions, action => action is MoveStepAction);
 	}

@@ -14,5 +14,5 @@ public sealed class Spawn
 	public Coord Fore { get; init; } = Coord.Forward;
 	public Coord Dorsal { get; init; } = Coord.Up;
 
-	public ExecutionAgent<BattleWorld, ActorRuntime> ExecutionAgent { get; init; }
+	public ExecutionAgent<BattleWorld, ActorRuntime> ExecutionAgent { get; init; } = null!;
 }

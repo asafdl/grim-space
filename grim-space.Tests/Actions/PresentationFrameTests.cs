@@ -197,7 +197,7 @@ public sealed class PresentationFrameTests
 
 		Assert.Equal(battle.PlayerId, frame.FocusId);
 		Assert.False(frame.IsInspecting);
-		Assert.Null(BattleTestFixture.Ui(battle).State.FocusId);
+		Assert.Null(BattleTestFixture.FrameBuilder(battle).Interaction.FocusId);
 	}
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)

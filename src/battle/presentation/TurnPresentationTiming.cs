@@ -2,7 +2,7 @@ using GrimSpace.Core.Log;
 
 namespace GrimSpace.Battle.Presentation;
 
-internal static class TurnPresentationTiming
+public static class TurnPresentationTiming
 {
 	public static void LogPlanningReady(
 		int turnNumber,

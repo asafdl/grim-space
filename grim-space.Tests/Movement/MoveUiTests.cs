@@ -19,10 +19,8 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var state = new InteractionState();
 
-		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
+		Assert.True(MoveUiTestActions.ClickMove(battle, end));
 		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count);
 		Assert.All(battle.PlayerAgent.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
 
@@ -40,15 +38,13 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var state = new InteractionState();
 
 		Assert.True(MoveUiTestActions.ClickHeading(battle, EHeadingTurn.YawRight));
 		var headingOptions = BattleTestCommands.MoveOptions(battle).ToList();
 		Assert.NotEmpty(headingOptions);
 
 		var end = headingOptions[0].EndPosition;
-		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
+		Assert.True(MoveUiTestActions.ClickMove(battle, end));
 
 		Assert.Equal(4, battle.PlayerAgent.Sim.Actions.Count);
 		Assert.IsType<HeadingTurnAction>(battle.PlayerAgent.Sim.Actions[0]);
@@ -64,10 +60,8 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var state = new InteractionState();
 
-		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
+		Assert.True(MoveUiTestActions.ClickMove(battle, end));
 		var extensions = BattleTestCommands.MoveOptions(battle).ToList();
 		Assert.NotEmpty(extensions);
 		Assert.Contains(extensions, option => option.EndPosition == origin + Coord.Forward * 4);
@@ -81,9 +75,8 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
 
-		Assert.True(MoveUiTestActions.ClickMove(ui, end));
+		Assert.True(MoveUiTestActions.ClickMove(battle, end));
 		var frameAfterMove = BattleTestCommands.Frame(battle);
 		Assert.NotEmpty(frameAfterMove.MovePaths);
 		Assert.Contains(
@@ -204,9 +197,8 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
 
-		Assert.True(MoveUiTestActions.ClickMove(ui, end));
+		Assert.True(MoveUiTestActions.ClickMove(battle, end));
 
 		var frame = BattleTestCommands.Frame(battle);
 

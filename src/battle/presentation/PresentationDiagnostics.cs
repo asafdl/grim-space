@@ -1,3 +1,4 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
@@ -15,13 +16,10 @@ internal static class PresentationDiagnostics
 	private static string? _lastMovePreviewFingerprint;
 	private static string? _lastMoveHighlightFingerprint;
 
-	public static void LogPhaseTransition(PresentationPhase from, PresentationPhase to, string reason) =>
-		GameLog.Log($"[presentation] phase {from} -> {to} ({reason})");
-
-	public static void LogInputIgnored(PresentationPhase phase, string action) =>
+	public static void LogInputIgnored(EBattlePhase phase, string action) =>
 		GameLog.Log($"[presentation] input ignored: {action} while phase={phase}");
 
-	public static void LogMoveRejected(string reason, PresentationPhase phase, int optionIndex, int optionCount = -1)
+	public static void LogMoveRejected(string reason, EBattlePhase phase, int optionIndex, int optionCount = -1)
 	{
 		var options = optionCount >= 0 ? $" options={optionCount}" : string.Empty;
 		GameLog.Log(
@@ -37,17 +35,10 @@ internal static class PresentationDiagnostics
 		GameLog.Log($"[presentation] move queue failed: {reason}{at}");
 	}
 
-	public static void LogEndTurnIgnored(PresentationPhase phase) =>
-		GameLog.Log($"[presentation] end turn ignored: phase={phase}");
-
-	public static void LogCommitFailed(
-		bool battleOver,
-		InvariantStatus invariantStatus,
-		int turnNumber,
-		int queuedActionCount) =>
+	public static void LogPlanningHandoffAborted(string reason, EBattlePhase phase, bool hadPreparedMoveUi) =>
 		GameLog.Log(
-			$"[presentation] end turn commit failed: battleOver={battleOver} "
-			+ $"invariant={invariantStatus} turn={turnNumber} queuedActions={queuedActionCount}");
+			$"[presentation] planning handoff aborted: {reason} phase={phase} "
+			+ $"preparedMoveUi={hadPreparedMoveUi}");
 
 	/// <summary>
 	/// Logs move-preview endpoints when the shown set (or gate reason) changes. Skips hover-only noise.
@@ -118,33 +109,14 @@ internal static class PresentationDiagnostics
 		return weaponQueued ? "ok_with_weapon" : "ok";
 	}
 
-	public static void LogPlanningHandoffAborted(string reason, PresentationPhase phase, bool hadPreparedMoveUi) =>
-		GameLog.Log(
-			$"[presentation] planning handoff aborted: {reason} phase={phase} "
-			+ $"preparedMoveUi={hadPreparedMoveUi}");
-
-	public static void LogResolveAborted(string reason, PresentationPhase phase) =>
+	public static void LogResolveAborted(string reason, EBattlePhase phase) =>
 		GameLog.Log($"[presentation] resolve handoff aborted: {reason} phase={phase}");
 
-	public static void LogReplayNotifyIgnored(PresentationPhase phase) =>
+	public static void LogReplayNotifyIgnored(EBattlePhase phase) =>
 		GameLog.Log($"[presentation] replay complete ignored: phase={phase}");
 
 	public static void LogMovePrepSkipped(int turnNumber, string reason) =>
 		GameLog.Log($"[presentation] move prep skipped turn={turnNumber}: {reason}");
-
-	public static void LogJobStarted(string key, int version) =>
-		GameLog.Log($"[presentation] job started: {key} v{version}");
-
-	public static void LogJobCancelled(string key, int version) =>
-		GameLog.Log($"[presentation] job cancelled: {key} -> v{version}");
-
-	public static void LogJobAwaited(string key, int startedVersion, int currentVersion, bool hasTask, bool succeeded)
-	{
-		var stale = startedVersion == currentVersion ? "current" : "stale";
-		GameLog.Log(
-			$"[presentation] job awaited: {key} started=v{startedVersion} now=v{currentVersion} "
-			+ $"hasTask={hasTask} {stale} succeeded={succeeded}");
-	}
 
 	public static void LogJobFailed(string key, Exception ex) =>
 		GameLog.LogException(ex, $"[presentation] job failed: {key}");

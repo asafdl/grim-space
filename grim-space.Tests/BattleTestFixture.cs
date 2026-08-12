@@ -23,7 +23,7 @@ internal static class BattleTestFixture
 {
 	public const int DefaultGridSize = 12;
 
-	private static readonly ConditionalWeakTable<BattleOrchestrator, BattleUi> UiCache = new();
+	private static readonly ConditionalWeakTable<BattleOrchestrator, PresentationFrameBuilder> FrameBuilderCache = new();
 
 	public static BoundedGrid Grid(int size = DefaultGridSize) => new(size, size, size);
 
@@ -60,11 +60,8 @@ internal static class BattleTestFixture
 		return battle;
 	}
 
-	public static BattleUi Ui(BattleOrchestrator battle) =>
-		UiCache.GetValue(battle, static b => new BattleUi(b, b.PlayerAgent));
-
-	public static BattleDirector Director(BattleOrchestrator battle) =>
-		new(Ui(battle), battle.PlayerAgent);
+	public static PresentationFrameBuilder FrameBuilder(BattleOrchestrator battle) =>
+		FrameBuilderCache.GetValue(battle, static _ => new PresentationFrameBuilder());
 
 	public static BattleSimulation CreateTrialSimulation(BattleOrchestrator battle) =>
 		battle.Engine.CreateSimulation();

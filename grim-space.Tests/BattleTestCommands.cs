@@ -3,6 +3,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
@@ -46,17 +47,20 @@ internal static class BattleTestCommands
 		Enqueue(battle, [new HeadingTurnAction(battle.PlayerId, turn)]);
 
 	public static IReadOnlyList<MovePathOption> MoveOptions(BattleOrchestrator battle) =>
-		BattleTestFixture.Ui(battle).PreviewMoveOptions();
+		BattleTestFixture.FrameBuilder(battle).PreviewMoveOptions(battle, battle.PlayerAgent);
 
 	public static PresentationFrame Frame(BattleOrchestrator battle) =>
-		BattleTestFixture.Ui(battle).BuildFrame();
+		BattleTestFixture.FrameBuilder(battle).BuildFrame(
+			battle,
+			battle.PlayerAgent,
+			acceptsCommands: battle.Phase == EBattlePhase.PlayerTurn);
 
 	public static void Focus(BattleOrchestrator battle, string? unitId)
 	{
 		if (unitId is null)
-			BattleTestFixture.Ui(battle).State.ClearFocus();
+			BattleTestFixture.FrameBuilder(battle).Interaction.ClearFocus();
 		else
-			BattleTestFixture.Ui(battle).State.FocusUnit(unitId);
+			BattleTestFixture.FrameBuilder(battle).Interaction.FocusUnit(unitId);
 	}
 
 	private static bool Enqueue(BattleOrchestrator battle, IEnumerable<IAction> actions) =>

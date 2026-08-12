@@ -27,6 +27,7 @@ public sealed class BattleOrchestrator
 	private readonly Manager _objectives;
 
 	private bool _resolveInProgress;
+	private int _resolveVersion;
 
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
@@ -51,8 +52,13 @@ public sealed class BattleOrchestrator
 	public bool IsBattleOver => Outcome.IsOver;
 	public int TurnNumber => _engine.Tick;
 	public string? ActiveUnitId { get; private set; }
+	public EBattlePhase Phase { get; private set; }
+
+	public bool AcceptsPlayerInput => Phase == EBattlePhase.PlayerTurn;
 
 	public event Action<string?>? ActiveUnitChanged;
+	public event Action<EBattlePhase>? PhaseChanged;
+	public event Action<TurnReplay, int>? TurnResolved;
 
 	internal void RegisterActiveUnitChanged(Action<string?> handler) =>
 		ActiveUnitChanged += handler;
@@ -115,6 +121,7 @@ public sealed class BattleOrchestrator
 			unit.ExecutionAgent.Init(unit.State.Id, orchestrator.Engine.CreateSimulation, orchestrator.RegisterActiveUnitChanged);
 
 		orchestrator.SetActive(player.State.Id);
+		orchestrator.SetPhase(EBattlePhase.PlayerTurn, "encounter ready");
 		return orchestrator;
 	}
 
@@ -129,12 +136,56 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
+	public void EndTurn()
+	{
+		if (Phase != EBattlePhase.PlayerTurn)
+		{
+			BattleDiagnostics.LogEndTurnIgnored(Phase);
+			return;
+		}
+
+		var completedTurn = TurnNumber;
+		if (!PlayerAgent.Commit())
+		{
+			BattleDiagnostics.LogCommitFailed(
+				IsBattleOver,
+				PlayerAgent.Sim.InvariantStatus,
+				TurnNumber,
+				PlayerAgent.Sim.Actions.Count);
+			return;
+		}
+
+		SetPhase(EBattlePhase.Resolving, $"turn {completedTurn} committing");
+		var version = ++_resolveVersion;
+		_ = ResolveAndReplay(completedTurn, version);
+	}
+
+	public void NotifyReplayComplete()
+	{
+		if (Phase != EBattlePhase.Replaying)
+		{
+			BattleDiagnostics.LogReplayNotifyIgnored(Phase);
+			return;
+		}
+
+		if (IsBattleOver)
+		{
+			SetPhase(EBattlePhase.BattleOver, "battle over after replay");
+			return;
+		}
+
+		SetActive(PlayerId);
+		SetPhase(EBattlePhase.PlayerTurn, "replay complete");
+	}
+
 	public void Retire()
 	{
-		if (IsBattleOver)
+		if (Phase is EBattlePhase.BattleOver)
 			return;
 
+		_resolveVersion++;
 		Outcome = BattleOutcome.Lose;
+		SetPhase(EBattlePhase.BattleOver, "retired");
 	}
 
 	public Unit? GetActiveUnit()
@@ -236,4 +287,47 @@ public sealed class BattleOrchestrator
 
 	private Dictionary<string, UnitState> SnapshotAll() =>
 		UnitRegistry.For(_engine.World).All.ToDictionary(unit => unit.State.Id, unit => unit.State.Clone());
+
+	private void SetPhase(EBattlePhase phase, string reason)
+	{
+		if (Phase == phase)
+			return;
+
+		var from = Phase;
+		Phase = phase;
+		BattleDiagnostics.LogPhaseTransition(from, phase, reason);
+		PhaseChanged?.Invoke(phase);
+	}
+
+	private async Task ResolveAndReplay(int completedTurn, int version)
+	{
+		var resolveTimer = Stopwatch.StartNew();
+		try
+		{
+			var replay = await ResolveTurnAsync();
+			resolveTimer.Stop();
+
+			if (version != _resolveVersion)
+			{
+				BattleDiagnostics.LogResolveAborted($"resolve_job_stale v{version}", Phase);
+				return;
+			}
+
+			if (Phase != EBattlePhase.Resolving)
+			{
+				BattleDiagnostics.LogResolveAborted("unexpected_phase", Phase);
+				return;
+			}
+
+			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
+			SetPhase(EBattlePhase.Replaying, $"turn {completedTurn} resolved");
+			SetActive(null);
+			TurnResolved?.Invoke(replay, completedTurn);
+		}
+		catch (Exception ex) when (version == _resolveVersion && Phase == EBattlePhase.Resolving)
+		{
+			BattleDiagnostics.LogJobFailed(ex);
+			throw new InvalidOperationException("Turn resolve failed after commit.", ex);
+		}
+	}
 }

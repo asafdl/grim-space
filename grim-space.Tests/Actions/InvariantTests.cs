@@ -1,3 +1,4 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
@@ -134,12 +135,10 @@ public sealed class InvariantTests
 	public void ShortMovePathAllowsEndTurn()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var director = BattleTestFixture.Director(battle);
-		director.EnterPlanning();
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		director.EndTurn();
-		Assert.Equal(PresentationPhase.Resolving, director.Phase);
+		battle.EndTurn();
+		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
 	}
 
 	[Fact]

@@ -3,58 +3,50 @@ using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation;
 
 /// <summary>
-/// Presentation projection and battle meta.
-/// Lifecycle and frame emission live in <see cref="BattleDirector"/>.
+/// Builds <see cref="PresentationFrame"/> from battle state, planning sim, and interaction state.
 /// </summary>
-public sealed class BattleUi
+public sealed class PresentationFrameBuilder
 {
 	private readonly PlanningPreview _preview = new();
 
-	public BattleUi(BattleOrchestrator battle, UserExecutionAgent agent)
-	{
-		Battle = battle;
-		Agent = agent;
-	}
-
-	public BattleOrchestrator Battle { get; }
-
-	public UserExecutionAgent Agent { get; }
-
-	public InteractionState State { get; } = new();
-
-	public string FocusId => State.FocusId ?? Battle.PlayerId;
-
-	public bool IsInspecting => FocusId != Battle.PlayerId;
+	public InteractionState Interaction { get; } = new();
 
 	private readonly List<string> _actionLogLines = [];
 
 	public IReadOnlyList<string> ActionLogLines => _actionLogLines;
 
-	public IReadOnlyList<MovePathOption> PreviewMoveOptions() =>
-		_preview.MoveOptions(Agent.Sim, Battle.PlayerId, FocusId, Agent.IsPlanning);
+	public string FocusId(BattleOrchestrator battle) =>
+		Interaction.FocusId ?? battle.PlayerId;
 
-	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits() =>
-		_preview.PreviewUnits(Agent.Sim, Battle.PlayerId);
+	public bool IsInspecting(BattleOrchestrator battle) =>
+		FocusId(battle) != battle.PlayerId;
 
-	public void AppendTurn(int turnNumber, IReadOnlyList<ITimelineEntry> history)
+	public IReadOnlyList<MovePathOption> PreviewMoveOptions(BattleOrchestrator battle, UserExecutionAgent agent) =>
+		_preview.MoveOptions(agent.Sim, battle.PlayerId, FocusId(battle), agent.IsPlanning);
+
+	public void AppendTurn(BattleOrchestrator battle, int turnNumber, IReadOnlyList<ITimelineEntry> history)
 	{
-		var units = UnitRegistry.For(Battle.Engine.World);
+		var units = UnitRegistry.For(battle.Engine.World);
 		_actionLogLines.Add($"--- Turn {turnNumber} ---");
 		_actionLogLines.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
 	}
 
-	public PresentationFrame BuildFrame(bool acceptsCommands = true)
+	public PresentationFrame BuildFrame(
+		BattleOrchestrator battle,
+		UserExecutionAgent agent,
+		bool acceptsCommands)
 	{
-		var state = State;
-		var playerId = Battle.PlayerId;
-		var sim = Agent.Sim;
-		var isPlanning = Agent.IsPlanning;
+		var state = Interaction;
+		var playerId = battle.PlayerId;
+		var sim = agent.Sim;
+		var isPlanning = agent.IsPlanning;
 		var previewUnits = _preview.PreviewUnits(sim, playerId);
 		var focusId = state.FocusId ?? playerId;
 		if (!previewUnits.TryGetValue(focusId, out var focusUnit) || !focusUnit.IsAlive)
@@ -100,7 +92,7 @@ public sealed class BattleUi
 			moveTarget = null;
 		}
 
-		var showWeaponPreviews = acceptsCommands && !Battle.IsBattleOver && !isInspecting;
+		var showWeaponPreviews = acceptsCommands && !battle.IsBattleOver && !isInspecting;
 		var threatenedUnitIds = showWeaponPreviews
 			? _preview.ThreatenedUnitIds(sim, playerId, state)
 			: new HashSet<string>();
@@ -118,7 +110,7 @@ public sealed class BattleUi
 			weaponQueued,
 			focusUnit.Position,
 			movePathApBaseline,
-			Agent.CanUndo ? 1 : 0,
+			agent.CanUndo ? 1 : 0,
 			moveOptions);
 
 		return new PresentationFrame
@@ -127,7 +119,7 @@ public sealed class BattleUi
 			FocusId = focusId,
 			FocusState = focusUnit,
 			IsInspecting = isInspecting,
-			ShowMovePreview = !Battle.IsBattleOver
+			ShowMovePreview = !battle.IsBattleOver
 				&& (isInspecting ? EPlayerMode.Move : state.Mode) == EPlayerMode.Move
 				&& (canControl || isInspecting),
 			MovePaths = moveOptions,
@@ -143,13 +135,13 @@ public sealed class BattleUi
 			MovePath = movePath,
 			CommittedMovePath = committedMovePath,
 			MoveTarget = moveTarget,
-			TurnNumber = Battle.TurnNumber,
+			TurnNumber = battle.TurnNumber,
 			CanAct = canControl,
 			CanFocusCamera = canControl && isPlanning,
-			CanUndo = canControl && Agent.CanUndo,
-			ShowOutcomeOverlay = Battle.IsBattleOver,
+			CanUndo = canControl && agent.CanUndo,
+			ShowOutcomeOverlay = battle.IsBattleOver,
 			ShowWeaponPreviews = showWeaponPreviews,
-			Outcome = Battle.Outcome.Result,
+			Outcome = battle.Outcome.Result,
 			ActionLogLines = ActionLogLines,
 		};
 	}
