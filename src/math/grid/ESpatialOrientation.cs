@@ -4,8 +4,8 @@ public enum ESpatialOrientation
 {
 	Forward,
 	Retro,
-	Dorsal,
-	Ventral,
-	Port,
-	Starboard,
+	Dorsal, // top
+	Ventral, // bottom
+	Port, // left
+	Starboard, // right
 }
