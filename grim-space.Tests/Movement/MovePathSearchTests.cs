@@ -148,10 +148,10 @@ public sealed class MovePathSearchTests
 		var path = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount, startMomentum);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, path));
 
-		Assert.Equal(origin + Coord.Forward * stepCount, battle.Sim.StateOf<ActorState>(PlayerId).Position);
+		Assert.Equal(origin + Coord.Forward * stepCount, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
 		Assert.Equal(
 			MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount),
-			battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
@@ -169,7 +169,7 @@ public sealed class MovePathSearchTests
 
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, retro));
 
-		Assert.Equal(1, battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
+		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 	}
 
 	[Fact]
@@ -177,7 +177,7 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var session = battle.Sim;
+		var session = battle.PlayerAgent.Sim;
 		var actionsBefore = session.Actions.ToList();
 		var positionBefore = session.StateOf<ActorState>(PlayerId).Position;
 
@@ -192,7 +192,7 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var paths = MovePathEndpoints.DiscoverExtensions(battle.Sim, battle.PlayerId);
+		var paths = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId);
 
 		foreach (var path in paths)
 		{

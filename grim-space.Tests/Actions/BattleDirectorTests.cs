@@ -1,5 +1,7 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
@@ -23,7 +25,7 @@ public sealed class BattleDirectorTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 		Assert.Equal(PresentationPhase.Planning, director.Phase);
 
 		director.EndTurn();
@@ -58,7 +60,7 @@ public sealed class BattleDirectorTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 		director.EndTurn();
@@ -75,7 +77,7 @@ public sealed class BattleDirectorTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 		director.EndTurn();
 
 		Assert.False(director.AcceptsCommands);
@@ -127,7 +129,7 @@ public sealed class BattleDirectorTests
 			if (director.Phase == PresentationPhase.Resolving)
 				resolvingFrame = frame;
 		};
-		director.Start();
+		director.EnterPlanning();
 
 		director.EndTurn();
 
@@ -142,18 +144,18 @@ public sealed class BattleDirectorTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-		var queuedCount = battle.Sim.Actions.Count;
+		var queuedCount = battle.PlayerAgent.Sim.Actions.Count;
 
 		Assert.True(director.FocusUnit(battle.OpponentId));
 		Assert.True(ui.IsInspecting);
 
 		director.EndTurn();
 		Assert.Equal(PresentationPhase.Planning, director.Phase);
-		Assert.Equal(queuedCount, battle.Sim.Actions.Count);
+		Assert.Equal(queuedCount, battle.PlayerAgent.Sim.Actions.Count);
 
 		Assert.False(director.AcceptsCommands);
 	}
@@ -165,11 +167,11 @@ public sealed class BattleDirectorTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var ui = BattleTestFixture.Ui(battle);
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-		var queuedCount = battle.Sim.Actions.Count;
+		var queuedCount = battle.PlayerAgent.Sim.Actions.Count;
 
 		Assert.True(director.FocusUnit(battle.OpponentId));
 		Assert.True(director.ClearFocus());
@@ -179,7 +181,7 @@ public sealed class BattleDirectorTests
 		ui.State.SetMode(EPlayerMode.Flak);
 		director.RefreshFrame();
 		Assert.Equal(EPlayerMode.Flak, ui.State.Mode);
-		Assert.Equal(queuedCount, battle.Sim.Actions.Count);
+		Assert.Equal(queuedCount, battle.PlayerAgent.Sim.Actions.Count);
 	}
 
 	[Fact]
@@ -188,7 +190,7 @@ public sealed class BattleDirectorTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 
 		Assert.False(director.FocusUnit("missing"));
 	}
@@ -210,6 +212,7 @@ public sealed class BattleDirectorTests
 						Alliance = Alliance.Player,
 					},
 					Position = playerPos,
+					ExecutionAgent = new UserExecutionAgent(),
 				},
 				new Spawn
 				{
@@ -220,6 +223,7 @@ public sealed class BattleDirectorTests
 						Alliance = Alliance.Enemy,
 					},
 					Position = enemyPos,
+					ExecutionAgent = new AiController(),
 				},
 			],
 		};

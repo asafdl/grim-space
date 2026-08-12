@@ -19,8 +19,8 @@ public sealed class TimelineTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var tick = battle.TurnNumber;
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
-		battle.ResolveTurn();
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		BattleTestActions.CommitAndResolve(battle);
 
 		var byActor = battle.Engine.HistoryByActor(tick);
 		Assert.True(byActor.ContainsKey(battle.PlayerId));
@@ -78,10 +78,10 @@ public sealed class TimelineTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var before = battle.Engine.History().Count;
 
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
 
 		Assert.Equal(before, battle.Engine.History().Count);
-		Assert.Empty(battle.Sim.World.Timeline.History());
+		Assert.Empty(battle.PlayerAgent.Sim.World.Timeline.History());
 	}
 
 	[Fact]

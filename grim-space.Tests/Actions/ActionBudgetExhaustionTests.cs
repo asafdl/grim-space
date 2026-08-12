@@ -130,6 +130,6 @@ public sealed class ActionBudgetExhaustionTests
 	private static Simulation<BattleWorld, ActorRuntime> BeginSimulationAt(Coord origin)
 	{
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		return battle.Sim;
+		return battle.PlayerAgent.Sim;
 	}
 }

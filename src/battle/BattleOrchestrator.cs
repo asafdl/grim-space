@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using GrimSpace.Core.Log;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Player;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -24,7 +24,6 @@ public sealed class BattleOrchestrator
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
 	private readonly string _opponentId;
-	private readonly HumanExecutionAgent _playerAgent;
 	private readonly Manager _objectives;
 
 	private bool _resolveInProgress;
@@ -34,29 +33,32 @@ public sealed class BattleOrchestrator
 		BattleLayout layout,
 		string playerId,
 		string opponentId,
-		HumanExecutionAgent playerAgent,
 		EObjective objective)
 	{
 		_engine = engine;
 		Layout = layout;
 		PlayerId = playerId;
 		_opponentId = opponentId;
-		_playerAgent = playerAgent;
 		_objectives = new Manager(objective);
 	}
-
-	internal HumanExecutionAgent PlayerAgent => _playerAgent;
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
-	public BattleSimulation Sim => _playerAgent.Sim;
 	public string PlayerId { get; }
 	public string OpponentId => _opponentId;
 	public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
 	public bool IsBattleOver => Outcome.IsOver;
 	public int TurnNumber => _engine.Tick;
 	public string? ActiveUnitId { get; private set; }
+
+	public event Action<string?>? ActiveUnitChanged;
+
+	internal void RegisterActiveUnitChanged(Action<string?> handler) =>
+		ActiveUnitChanged += handler;
+
+	public UserExecutionAgent PlayerAgent =>
+		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(PlayerId).ExecutionAgent;
 
 	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
@@ -82,6 +84,7 @@ public sealed class BattleOrchestrator
 			.Select(spawn => Factory.Create(
 				spawn.Unit,
 				spawn.Position,
+				spawn.ExecutionAgent,
 				ids,
 				spawn.InitialMomentum,
 				spawn.Fore,
@@ -94,44 +97,37 @@ public sealed class BattleOrchestrator
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		foreach (var unit in units)
+		foreach (var unit in units) 
 			actorRuntimes.For(unit.State.Id);
+			
+		
 		actorRuntimes.For(EntityIds.System);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var playerAgent = (HumanExecutionAgent)player.ExecutionAgent;
 		var orchestrator = new BattleOrchestrator(
 			engine,
 			layout,
 			player.State.Id,
 			opponentId,
-			playerAgent,
 			encounter.Objective);
 
-		orchestrator.SetActiveUnit(player.State.Id);
-		orchestrator.BeginTurn();
+		foreach (var unit in units) 
+			unit.ExecutionAgent.Init(unit.State.Id, orchestrator.Engine.CreateSimulation, orchestrator.RegisterActiveUnitChanged);
+
+		orchestrator.SetActive(player.State.Id);
 		return orchestrator;
 	}
 
-	public void SetActiveUnit(string unitId) => ActiveUnitId = unitId;
-
-	public bool IsActive(string unitId) => ActiveUnitId == unitId;
-
-	public void BeginTurn()
+	public void SetActive(string? unitId)
 	{
-		var player = GetActiveUnit();
-		var canAct = player is not null && CanAct(player) && player.State.Id == PlayerId;
-		_playerAgent.Init(
-			_engine.CreateSimulation,
-			new HumanTurnContext(
-				PlayerId,
-				TurnNumber,
-				canAct,
-				BattleWorld.TerrainBlockedCells(Layout.TerrainHazards)));
+		if (ActiveUnitId == unitId)
+			return;
+
+		ActiveUnitId = unitId;
+		ActiveUnitChanged?.Invoke(unitId);
 	}
 
-	public bool CanAct(Unit unit) =>
-		!IsBattleOver && IsActive(unit.State.Id) && unit.State.IsAlive;
+	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
 	public void Retire()
 	{
@@ -165,10 +161,6 @@ public sealed class BattleOrchestrator
 		{
 			var replay = await ExecuteTurnAsync();
 			Outcome = _objectives.Evaluate(_engine.World, PlayerId);
-
-			if (UnitRegistry.For(_engine.World).TryGet(PlayerId, out var player) && player.State.IsAlive)
-				BeginTurn();
-
 			return replay;
 		}
 		finally
@@ -193,7 +185,9 @@ public sealed class BattleOrchestrator
 			if (!units.TryGet(node.Value, out var live) || !live.State.IsAlive)
 				continue;
 
-			var planned = await live.ExecutionAgent.GetActionsAsync(live, _engine.CreateSimulation);
+			live.ExecutionAgent.Init(live.State.Id, _engine.CreateSimulation, RegisterActiveUnitChanged);
+			SetActive(live.State.Id);
+			var planned = await live.ExecutionAgent.GetActions();
 			CommitActor(live.State.Id, planned);
 
 			if (live.State.Id == PlayerId)
@@ -203,7 +197,7 @@ public sealed class BattleOrchestrator
 		CommitRoundUpkeep();
 		var history = _engine.History();
 		_engine.AdvanceTick();
-		FinalizeRound();
+		SetActive(null);
 
 		GameLog.Log(
 			$"Turn {turnNumber} sim: "
@@ -238,12 +232,6 @@ public sealed class BattleOrchestrator
 			batch.Add(new RoundUpkeepAction(unitId));
 		batch.Add(new ClearTurnHazardsAction());
 		return _engine.Commit([..batch]);
-	}
-
-	private void FinalizeRound()
-	{
-		if (UnitRegistry.For(_engine.World).TryGet(PlayerId, out var player) && player.State.IsAlive)
-			SetActiveUnit(player.State.Id);
 	}
 
 	private Dictionary<string, UnitState> SnapshotAll() =>

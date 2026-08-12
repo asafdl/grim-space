@@ -22,7 +22,7 @@ public sealed class SimulationUndoTests
 	public void DequeueRestoresWorldAndRuntimesMatchingReevaluate()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var sim = battle.Sim;
+		var sim = battle.PlayerAgent.Sim;
 		var sequence = BuildRandomLegalSequence(sim, maxActions: 6, seed: 42);
 
 		foreach (var action in sequence)
@@ -45,7 +45,7 @@ public sealed class SimulationUndoTests
 	public void TryUndoLastRestoresWorldAndRuntimesMatchingReevaluate()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var sim = battle.Sim;
+		var sim = battle.PlayerAgent.Sim;
 		var sequence = BuildRandomLegalSequence(sim, maxActions: 5, seed: 7);
 
 		foreach (var action in sequence)

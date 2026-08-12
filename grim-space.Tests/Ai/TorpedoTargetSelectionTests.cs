@@ -51,7 +51,8 @@ public sealed class TorpedoTargetSelectionTests
 				Type = EType.Patrol,
 				Alliance = Alliance.Enemy,
 			},
-			start + Coord.Forward * 10);
+			start + Coord.Forward * 10,
+			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(future);
 
 		var session = battle.Engine.CreateSimulation();
@@ -85,7 +86,8 @@ public sealed class TorpedoTargetSelectionTests
 				Type = EType.Patrol,
 				Alliance = Alliance.Enemy,
 			},
-			new Coord(5, 5, 0));
+			new Coord(5, 5, 0),
+			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(behind);
 
 		var chosen = TorpedoSearchInput.BestReachableOpponent(battle.Engine.CreateSimulation(), torpedoId);
@@ -113,12 +115,13 @@ public sealed class TorpedoTargetSelectionTests
 				Type = EType.Patrol,
 				Alliance = Alliance.Enemy,
 			},
-			torpedoPos + Coord.Forward * -2);
+			torpedoPos + Coord.Forward * -2,
+			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(behind);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var session = battle.Engine.CreateSimulation();
-		TorpedoExecutionAgent.Instance.Plan(torpedo, session);
+		((TorpedoExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
 
 		var end = session.StateOf<ActorState>(torpedoId).Position;
 		Assert.True(end.ManhattanDistanceTo(ahead.State.Position) < torpedoPos.ManhattanDistanceTo(ahead.State.Position));

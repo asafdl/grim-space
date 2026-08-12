@@ -66,12 +66,12 @@ public sealed class MovePreviewSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var paths = MovePathEndpoints.DiscoverExtensions(battle.Sim, PlayerId);
+		var paths = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, PlayerId);
 
 		Assert.NotEmpty(paths);
 		foreach (var path in paths)
 		{
-			var trial = battle.Sim.Fork();
+			var trial = battle.PlayerAgent.Sim.Fork();
 			Assert.True(BattleTestActions.TryEnqueueMovePath(trial, PlayerId, path));
 		}
 	}

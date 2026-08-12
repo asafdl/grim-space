@@ -28,8 +28,8 @@ public sealed class InvariantTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.True(battle.Sim.TryCommit(out var actions, out var status));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
+		Assert.True(battle.PlayerAgent.Sim.TryCommit(out var actions, out var status));
 		Assert.Equal(InvariantStatus.Ok, status);
 		Assert.Single(actions);
 	}
@@ -42,7 +42,7 @@ public sealed class InvariantTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-		Assert.True(battle.Sim.TryCommit(out var actions, out var status));
+		Assert.True(battle.PlayerAgent.Sim.TryCommit(out var actions, out var status));
 		Assert.Equal(InvariantStatus.Ok, status);
 		Assert.Equal(3, actions.Count);
 	}
@@ -56,11 +56,11 @@ public sealed class InvariantTests
 
 		Assert.Equal(2, option.PathApSpent);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
-		Assert.Equal(2, battle.Sim.RuntimeFor(PlayerId).ActivePath!.PathApSpent);
-		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.True(battle.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd(
-			battle.Sim.StateOf<ActorState>(PlayerId).Stats.MinPathApCost));
-		Assert.True(battle.Sim.TryCommit(out _, out var status));
+		Assert.Equal(2, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).ActivePath!.PathApSpent);
+		Assert.Equal(2, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.True(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).ActivePath!.CanEnd(
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Stats.MinPathApCost));
+		Assert.True(battle.PlayerAgent.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Ok, status);
 	}
 
@@ -83,8 +83,8 @@ public sealed class InvariantTests
 		};
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, blocked: blocked);
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.True(battle.Sim.TryCommit(out _, out var status));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
+		Assert.True(battle.PlayerAgent.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Ok, status);
 	}
 
@@ -93,7 +93,7 @@ public sealed class InvariantTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var session = battle.Sim;
+		var session = battle.PlayerAgent.Sim;
 
 		foreach (var frame in ActionSearch.Run(session, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
 		{
@@ -109,9 +109,9 @@ public sealed class InvariantTests
 	public void StreamlineCollapsesYawPairsOnCommit()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
-		Assert.Equal(2, battle.Sim.Actions.Count);
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.Equal(2, battle.PlayerAgent.Sim.Actions.Count);
 
 		Assert.True(BattleTestActions.TryCommitPreview(battle, out var actions));
 		Assert.Empty(actions);
@@ -121,8 +121,8 @@ public sealed class InvariantTests
 	public void StreamlineCollapsesDoubleYawIntoSingleTurn()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		Assert.True(BattleTestActions.TryCommitPreview(battle, out var actions));
 
@@ -135,9 +135,9 @@ public sealed class InvariantTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var director = BattleTestFixture.Director(battle);
-		director.Start();
+		director.EnterPlanning();
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
 		director.EndTurn();
 		Assert.Equal(PresentationPhase.Resolving, director.Phase);
 	}
@@ -147,12 +147,12 @@ public sealed class InvariantTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-		Assert.True(battle.Sim.TryCommit(out _, out var status));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
+		Assert.True(battle.PlayerAgent.Sim.TryCommit(out _, out var status));
 		Assert.Equal(InvariantStatus.Ok, status);
 
-		Assert.True(battle.Sim.TryUndoLast());
-		Assert.True(battle.Sim.TryCommit(out _, out status));
+		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
+		Assert.True(battle.PlayerAgent.Sim.TryCommit(out _, out status));
 		Assert.Equal(InvariantStatus.Ok, status);
 	}
 
@@ -160,10 +160,10 @@ public sealed class InvariantTests
 	public void CommitStreamlinesHeadingActions()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var streamlined = HeadingDef.Instance.Streamline(battle.Sim.Actions, battle.Sim.UndoGroups).ToList();
+		var streamlined = HeadingDef.Instance.Streamline(battle.PlayerAgent.Sim.Actions, battle.PlayerAgent.Sim.UndoGroups).ToList();
 		var heading = Assert.Single(streamlined.OfType<HeadingTurnAction>());
 		Assert.Equal(EHeadingTurn.Yaw180, heading.Turn);
 	}
@@ -172,9 +172,9 @@ public sealed class InvariantTests
 	public void StreamlineCollapsesTripleRollIntoOpposite()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
 
 		Assert.True(BattleTestActions.TryCommitPreview(battle, out var actions));
 
@@ -186,9 +186,9 @@ public sealed class InvariantTests
 	public void StreamlineCollapsesTripleYawIntoOpposite()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
 		Assert.True(BattleTestActions.TryCommitPreview(battle, out var actions));
 
@@ -200,33 +200,33 @@ public sealed class InvariantTests
 	public void CompactQueueCollapsesYawWhilePlanning()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		OrientationStreamline.CompactQueue(battle.Sim);
+		OrientationStreamline.CompactQueue(battle.PlayerAgent.Sim);
 
-		var heading = Assert.Single(battle.Sim.Actions.OfType<HeadingTurnAction>());
+		var heading = Assert.Single(battle.PlayerAgent.Sim.Actions.OfType<HeadingTurnAction>());
 		Assert.Equal(EHeadingTurn.YawLeft, heading.Turn);
 		Assert.Equal(
 			Stats.ForType(EType.Fighter).MaxAp - CombatConfig.HeadingTurn90ApCost,
-			battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
 	}
 
 	[Fact]
 	public void CompactQueueCollapsesRollWhilePlanning()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-		Assert.True(battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
 
-		OrientationStreamline.CompactQueue(battle.Sim);
+		OrientationStreamline.CompactQueue(battle.PlayerAgent.Sim);
 
-		var roll = Assert.Single(battle.Sim.Actions.OfType<RollAction>());
+		var roll = Assert.Single(battle.PlayerAgent.Sim.Actions.OfType<RollAction>());
 		Assert.Equal(ERollDirection.CounterClockwise, roll.Direction);
 		Assert.Equal(
 			Stats.ForType(EType.Fighter).MaxAp - CombatConfig.RollApCost,
-			battle.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
 	}
 }

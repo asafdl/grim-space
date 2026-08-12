@@ -24,15 +24,15 @@ public sealed class ActionTagSynergyTests
 
 		var retro = RetroMoveOption(origin, player);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, retro));
-		Assert.True(battle.Sim.RuntimeFor(PlayerId).SpinBraked);
-		Assert.True(battle.Sim.RuntimeFor(PlayerId).SpinDiscount);
+		Assert.True(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).SpinBraked);
+		Assert.True(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).SpinDiscount);
 
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var actor = battle.Sim.StateOf<ActorState>(PlayerId);
+		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		var retroApCost = MomentumConfig.ForLevel(2).BrakeCost;
 		Assert.Equal(MovementExpectations.FighterApPerTurn - retroApCost, actor.ActionPoints);
-		Assert.False(battle.Sim.RuntimeFor(PlayerId).SpinDiscount);
+		Assert.False(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).SpinDiscount);
 		Assert.Equal(1, actor.MomentumLevel);
 	}
 
@@ -48,10 +48,10 @@ public sealed class ActionTagSynergyTests
 
 		var retro = RetroMoveOption(origin, player);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, retro));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var actor = battle.Sim.StateOf<ActorState>(PlayerId);
+		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		var retroApCost = MomentumConfig.ForLevel(2).BrakeCost;
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - retroApCost - CombatConfig.HeadingTurn90ApCost,

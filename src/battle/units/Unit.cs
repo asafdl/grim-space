@@ -9,12 +9,12 @@ public sealed class Unit
 {
 	public Alliance Alliance { get; }
 	public State State { get; }
-	public IExecutionAgent<BattleWorld, ActorRuntime, Unit> ExecutionAgent { get; }
+	public ExecutionAgent<BattleWorld, ActorRuntime> ExecutionAgent { get; }
 
 	public Unit(
 		Alliance alliance,
 		State state,
-		IExecutionAgent<BattleWorld, ActorRuntime, Unit> executionAgent)
+		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent)
 	{
 		Alliance = alliance;
 		State = state;

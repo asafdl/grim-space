@@ -1,3 +1,5 @@
+using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 
@@ -34,6 +36,7 @@ public static class DeploymentPlacement
 				InitialMomentum = playerMomentum,
 				Fore = playerFore,
 				Dorsal = dorsal,
+				ExecutionAgent = new UserExecutionAgent(),
 			},
 			new Spawn
 			{
@@ -42,6 +45,7 @@ public static class DeploymentPlacement
 				InitialMomentum = enemyMomentum,
 				Fore = enemyFore,
 				Dorsal = dorsal,
+				ExecutionAgent = new AiController(),
 			});
 	}
 

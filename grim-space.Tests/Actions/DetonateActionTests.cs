@@ -76,8 +76,9 @@ public sealed class DetonateActionTests
 		PlaceFarFromEveryone(battle, torpedoId);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 0;
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-
-		var actions = await torpedo.ExecutionAgent.GetActionsAsync(torpedo, battle.Engine.CreateSimulation);
+		battle.SetActive(null);
+		battle.SetActive(torpedoId);
+		var actions = await torpedo.ExecutionAgent.GetActions();
 
 		Assert.Contains(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
@@ -93,8 +94,9 @@ public sealed class DetonateActionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-
-		var actions = await torpedo.ExecutionAgent.GetActionsAsync(torpedo, battle.Engine.CreateSimulation);
+		battle.SetActive(null);
+		battle.SetActive(torpedoId);
+		var actions = await torpedo.ExecutionAgent.GetActions();
 
 		Assert.Contains(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
@@ -106,9 +108,8 @@ public sealed class DetonateActionTests
 		var battle = BattleWithTorpedo(out var torpedoId);
 		PlaceFarFromEveryone(battle, torpedoId);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 0;
-		battle.BeginTurn();
-
-		var replay = battle.ResolveTurn();
+		battle.SetActive(PlayerId);
+		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Contains(replay.Actions, action => action is DetonateAction);
 		Assert.True(UnitRegistry.For(battle.Engine.World).Contains(torpedoId));
@@ -122,7 +123,9 @@ public sealed class DetonateActionTests
 		battle.Engine.Commit(new TorpedoAction(PlayerId, ETorpedoMount.Aft));
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
-		battle.BeginTurn();
+		torpedo.ExecutionAgent.Init(torpedoId, battle.Engine.CreateSimulation, battle.RegisterActiveUnitChanged);
+		battle.SetActive(null);
+		battle.SetActive(PlayerId);
 		return battle;
 	}
 

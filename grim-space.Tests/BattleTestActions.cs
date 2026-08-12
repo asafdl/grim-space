@@ -18,10 +18,27 @@ internal static class BattleTestActions
 
 	public static bool TryCommitPreview(BattleOrchestrator battle, out IReadOnlyList<IAction> actions)
 	{
-		if (!battle.Sim.TryCommit(out actions, out _))
+		var actor = battle.GetActiveUnit();
+		if (actor is null)
+		{
+			actions = [];
 			return false;
+		}
 
-		actions = OrientationStreamline.Compact(actions, battle.Sim.UndoGroups);
+		if (!battle.PlayerAgent.Commit())
+		{
+			actions = [];
+			return false;
+		}
+
+		actions = battle.PlayerAgent.GetActions().GetAwaiter().GetResult();
 		return true;
+	}
+
+	public static TurnReplay CommitAndResolve(BattleOrchestrator battle)
+	{
+		var actor = battle.GetActiveUnit()!;
+		Assert.True(battle.PlayerAgent.Commit());
+		return battle.ResolveTurn();
 	}
 }

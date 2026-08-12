@@ -17,15 +17,15 @@ public sealed class TorpedoActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var shipFore = battle.Sim.StateOf<ActorState>(PlayerId).Fore;
+		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
 		var action = new TorpedoAction(PlayerId, ETorpedoMount.Aft);
 
-		Assert.True(battle.Sim.TryEnqueue(action));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
-		var ship = battle.Sim.StateOf<ActorState>(PlayerId);
+		var ship = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(TorpedoConfig.CooldownTurns, ship.TorpedoCooldownRemaining);
 
-		var torpedo = Assert.Single(UnitRegistry.For(battle.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
+		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
 		Assert.Equal(TorpedoConfig.SpawnMomentum, torpedo.State.MomentumLevel);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
@@ -39,8 +39,8 @@ public sealed class TorpedoActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		Assert.True(battle.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Dorsal)));
-		Assert.False(battle.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Ventral)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Dorsal)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Ventral)));
 	}
 
 	[Fact]
@@ -58,7 +58,7 @@ public sealed class TorpedoActionTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		battle.Engine.World.StateOf(PlayerId).TorpedoCooldownRemaining = 2;
 
-		battle.ResolveTurn();
+		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Equal(1, battle.Engine.World.StateOf(PlayerId).TorpedoCooldownRemaining);
 	}
@@ -68,9 +68,9 @@ public sealed class TorpedoActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		Assert.True(battle.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Aft)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Aft)));
 
-		var replay = battle.ResolveTurn();
+		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);

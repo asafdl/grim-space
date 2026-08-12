@@ -9,12 +9,14 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Presentation;
 
 /// <summary>
-/// Snapshot projection and battle meta for presentation.
+/// Presentation projection and battle meta.
 /// Lifecycle and frame emission live in <see cref="BattleDirector"/>.
 /// </summary>
 public sealed class BattleUi
 {
-	public BattleUi(BattleOrchestrator battle, HumanExecutionAgent agent)
+	private readonly PlanningPreview _preview = new();
+
+	public BattleUi(BattleOrchestrator battle, UserExecutionAgent agent)
 	{
 		Battle = battle;
 		Agent = agent;
@@ -22,7 +24,7 @@ public sealed class BattleUi
 
 	public BattleOrchestrator Battle { get; }
 
-	public HumanExecutionAgent Agent { get; }
+	public UserExecutionAgent Agent { get; }
 
 	public InteractionState State { get; } = new();
 
@@ -34,6 +36,12 @@ public sealed class BattleUi
 
 	public IReadOnlyList<string> ActionLogLines => _actionLogLines;
 
+	public IReadOnlyList<MovePathOption> PreviewMoveOptions() =>
+		_preview.MoveOptions(Agent.Sim, Battle.PlayerId, FocusId, Agent.IsPlanning);
+
+	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits() =>
+		_preview.PreviewUnits(Agent.Sim, Battle.PlayerId);
+
 	public void AppendTurn(int turnNumber, IReadOnlyList<ITimelineEntry> history)
 	{
 		var units = UnitRegistry.For(Battle.Engine.World);
@@ -41,23 +49,29 @@ public sealed class BattleUi
 		_actionLogLines.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
 	}
 
-	public PresentationFrame BuildFrame(HumanTurnSnapshot snapshot, bool acceptsCommands = true)
+	public PresentationFrame BuildFrame(bool acceptsCommands = true)
 	{
 		var state = State;
-		var focusId = state.FocusId ?? snapshot.HumanActorId;
-		if (!snapshot.PreviewUnits.TryGetValue(focusId, out var focusUnit) || !focusUnit.IsAlive)
+		var playerId = Battle.PlayerId;
+		var sim = Agent.Sim;
+		var isPlanning = Agent.IsPlanning;
+		var previewUnits = _preview.PreviewUnits(sim, playerId);
+		var focusId = state.FocusId ?? playerId;
+		if (!previewUnits.TryGetValue(focusId, out var focusUnit) || !focusUnit.IsAlive)
 		{
 			state.ClearFocus();
-			focusId = snapshot.HumanActorId;
-			snapshot = Agent.BuildSnapshot(ViewInput(state));
-			focusUnit = snapshot.PreviewUnits[snapshot.HumanActorId];
+			focusId = playerId;
+			previewUnits = _preview.PreviewUnits(sim, playerId);
+			focusUnit = previewUnits[playerId];
 		}
 
-		var isInspecting = focusId != snapshot.HumanActorId;
-		var canControl = acceptsCommands && snapshot.CanAct && !isInspecting;
-		var effectiveMode = isInspecting ? EPlayerMode.Move : state.Mode;
-		var queuedWeapon = canControl ? snapshot.QueuedWeapon : QueuedWeaponState.Empty;
-		var weapons = canControl ? snapshot.Weapons : WeaponPeek.Empty;
+		var isInspecting = focusId != playerId;
+		var canControl = acceptsCommands && isPlanning && !isInspecting;
+		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
+		var movePathApBaseline = _preview.MovePathApBaseline(sim, playerId, focusId);
+		var committedMovePath = _preview.CommittedMovePath(sim, playerId);
+		var queuedWeapon = canControl ? _preview.QueuedWeapon(sim, playerId) : QueuedWeaponState.Empty;
+		var weapons = canControl ? _preview.Weapons(sim, playerId) : WeaponPeek.Empty;
 		var weaponQueued = queuedWeapon.FlakMount is not null
 			|| queuedWeapon.Railgun
 			|| queuedWeapon.TorpedoMount is not null;
@@ -73,11 +87,11 @@ public sealed class BattleUi
 			}
 			else
 			{
-				state.ClampMoveHover(snapshot.MoveOptions.Count);
+				state.ClampMoveHover(moveOptions.Count);
 				(movePath, moveTarget) = MoveUi.GetPathHighlights(
-					snapshot.MoveOptions,
+					moveOptions,
 					state.MoveHoveredIndex,
-					snapshot.CommittedMovePath);
+					committedMovePath);
 			}
 		}
 		else
@@ -88,37 +102,37 @@ public sealed class BattleUi
 
 		var showWeaponPreviews = acceptsCommands && !Battle.IsBattleOver && !isInspecting;
 		var threatenedUnitIds = showWeaponPreviews
-			? snapshot.ThreatenedUnitIds
+			? _preview.ThreatenedUnitIds(sim, playerId, state)
 			: new HashSet<string>();
 		var torpedoEnvelopeLayers = showWeaponPreviews
-			? snapshot.TorpedoEnvelopeLayers
+			? _preview.TorpedoEnvelopeLayers(sim, playerId, state)
 			: [];
 
 		PresentationDiagnostics.LogMovePreview(
-			snapshot.TurnNumber,
+			sim.AnchorTick,
 			source: "build_frame",
-			effectiveMode,
+			isInspecting ? EPlayerMode.Move : state.Mode,
 			acceptsCommands,
-			hasPlanningActor: snapshot.CanAct,
-			snapshot.CanAct,
+			hasPlanningActor: isPlanning,
+			isPlanning,
 			weaponQueued,
 			focusUnit.Position,
-			snapshot.MovePathApBaseline,
-			snapshot.CanUndo ? 1 : 0,
-			snapshot.MoveOptions);
+			movePathApBaseline,
+			Agent.CanUndo ? 1 : 0,
+			moveOptions);
 
 		return new PresentationFrame
 		{
-			Mode = effectiveMode,
+			Mode = isInspecting ? EPlayerMode.Move : state.Mode,
 			FocusId = focusId,
 			FocusState = focusUnit,
 			IsInspecting = isInspecting,
 			ShowMovePreview = !Battle.IsBattleOver
-				&& effectiveMode == EPlayerMode.Move
+				&& (isInspecting ? EPlayerMode.Move : state.Mode) == EPlayerMode.Move
 				&& (canControl || isInspecting),
-			MovePaths = snapshot.MoveOptions,
-			MovePathApBaseline = snapshot.MovePathApBaseline,
-			PreviewUnits = snapshot.PreviewUnits,
+			MovePaths = moveOptions,
+			MovePathApBaseline = movePathApBaseline,
+			PreviewUnits = previewUnits,
 			QueuedWeapon = queuedWeapon,
 			Weapons = weapons,
 			ThreatenedUnitIds = threatenedUnitIds,
@@ -127,19 +141,16 @@ public sealed class BattleUi
 			RailgunHovered = canControl && state.RailgunHovered,
 			TorpedoHoverMount = canControl ? state.TorpedoHoverMount : null,
 			MovePath = movePath,
-			CommittedMovePath = snapshot.CommittedMovePath,
+			CommittedMovePath = committedMovePath,
 			MoveTarget = moveTarget,
 			TurnNumber = Battle.TurnNumber,
 			CanAct = canControl,
-			CanFocusCamera = canControl && snapshot.CanAct,
-			CanUndo = canControl && snapshot.CanUndo,
+			CanFocusCamera = canControl && isPlanning,
+			CanUndo = canControl && Agent.CanUndo,
 			ShowOutcomeOverlay = Battle.IsBattleOver,
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = Battle.Outcome.Result,
 			ActionLogLines = ActionLogLines,
 		};
 	}
-
-	private static HumanTurnViewInput ViewInput(InteractionState state) =>
-		new(state.FocusId, state.FlakHoverMount, state.RailgunHovered, state.TorpedoHoverMount);
 }

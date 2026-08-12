@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Weapons;
@@ -26,6 +27,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 				Alliance = firer.Alliance,
 			},
 			position,
+			new TorpedoExecutionAgent(),
 			world.IdRegistry,
 			TorpedoConfig.SpawnMomentum,
 			fore,

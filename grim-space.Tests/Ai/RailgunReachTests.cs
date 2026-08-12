@@ -88,6 +88,7 @@ public sealed class RailgunReachTests
 				Alliance = alliance,
 			},
 			position,
+			new AiController(),
 			null,
 			0,
 			new Coord(1, 0, 0),

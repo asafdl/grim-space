@@ -27,9 +27,9 @@ public sealed class LegalMoveTests
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 
 		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, move));
-		Assert.Equal(3, planning.Sim.Actions.Count);
-		Assert.All(planning.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
-		Assert.Equal(move.EndPosition, planning.Sim.StateOf<ActorState>(planning.PlayerId).Position);
+		Assert.Equal(3, planning.PlayerAgent.Sim.Actions.Count);
+		Assert.All(planning.PlayerAgent.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(move.EndPosition, planning.PlayerAgent.Sim.StateOf<ActorState>(planning.PlayerId).Position);
 	}
 
 	[Fact]
@@ -74,7 +74,7 @@ public sealed class LegalMoveTests
 		Assert.Equal(
 			origin + Coord.Forward * 3,
 			Preview.Simulate(planning).Position);
-		Assert.True(planning.Sim.TryCommit(out _, out _));
+		Assert.True(planning.PlayerAgent.Sim.TryCommit(out _, out _));
 	}
 
 	[Fact]
@@ -105,7 +105,7 @@ public sealed class LegalMoveTests
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		BattleTestActions.TryEnqueueMovePath(planning, move);
 
-		var committed = planning.Sim.Actions.ToList();
+		var committed = planning.PlayerAgent.Sim.Actions.ToList();
 		var nonUnits = new Dictionary<string, NonUnit>();
 
 		Assert.Equal(3, committed.Count);

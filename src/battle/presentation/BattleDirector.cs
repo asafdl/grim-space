@@ -21,15 +21,15 @@ public sealed class BattleDirector
 {
 	private readonly DirectorJobMap _jobs = new();
 
-	public BattleDirector(BattleUi ui, HumanExecutionAgent agent)
+	public BattleDirector(BattleUi ui, UserExecutionAgent agent)
 	{
 		_ui = ui;
 		_agent = agent;
-		_agent.Changed += _ => EmitFrame();
+		_agent.PlanningChanged += EmitFrame;
 	}
 
 	private readonly BattleUi _ui;
-	private readonly HumanExecutionAgent _agent;
+	private readonly UserExecutionAgent _agent;
 
 	public PresentationPhase Phase { get; private set; }
 
@@ -40,9 +40,16 @@ public sealed class BattleDirector
 	public event Action<PresentationFrame>? FrameChanged;
 	public event Action<TurnReplay, int>? ReplayRequested;
 
-	public void Start() => EnterPlanningSync();
+	public void Start()
+	{
+		EnterPlanningSync();
+		StartResolveJob(_ui.Battle.TurnNumber);
+	}
 
-	/// <summary>Rebuild the current presentation frame from interaction state + agent snapshot.</summary>
+	/// <summary>Enter planning without starting background turn resolution (tests).</summary>
+	public void EnterPlanning() => EnterPlanningSync();
+
+	/// <summary>Rebuild the current presentation frame from interaction state + planning sim.</summary>
 	public void RefreshFrame() => EmitFrame();
 
 	public void EndTurn()
@@ -53,8 +60,12 @@ public sealed class BattleDirector
 			return;
 		}
 
+		var completedTurn = _ui.Battle.TurnNumber;
+		SetPhase(PresentationPhase.Resolving, $"turn {completedTurn} committing");
+
 		if (!_agent.Commit())
 		{
+			SetPhase(PresentationPhase.Planning, "commit failed");
 			PresentationDiagnostics.LogCommitFailed(
 				_ui.Battle.IsBattleOver,
 				_agent.Sim.InvariantStatus,
@@ -63,12 +74,7 @@ public sealed class BattleDirector
 			return;
 		}
 
-		var completedTurn = _ui.Battle.TurnNumber;
-
-		SetPhase(PresentationPhase.Resolving, $"turn {completedTurn} committed");
 		EmitFrame();
-
-		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(completedTurn, version));
 	}
 
 	public void Retire()
@@ -77,7 +83,6 @@ public sealed class BattleDirector
 			return;
 
 		_jobs.Cancel(DirectorJobs.Resolve);
-		_jobs.Cancel(DirectorJobs.MovePrep);
 		_ui.Battle.Retire();
 		SetPhase(PresentationPhase.BattleOver, "retired");
 		EmitFrame();
@@ -98,6 +103,8 @@ public sealed class BattleDirector
 			return;
 		}
 
+		_ui.Battle.SetActive(_ui.Battle.PlayerId);
+		StartResolveJob(_ui.Battle.TurnNumber);
 		EnterPlanningCore("replay complete");
 	}
 
@@ -106,7 +113,8 @@ public sealed class BattleDirector
 		if (!AcceptsInput)
 			return false;
 
-		if (!_agent.Current.PreviewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
+		var previewUnits = _ui.PreviewUnits();
+		if (!previewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
 			return false;
 
 		_ui.State.FocusUnit(unitId);
@@ -129,8 +137,6 @@ public sealed class BattleDirector
 		_ui.State.ClearHovers();
 		EmitFrame();
 	}
-
-	private void EnterPlanningSync() => EnterPlanningCore("initial start");
 
 	public void SetFlakHoverMount(EFlakMount? mount)
 	{
@@ -168,6 +174,11 @@ public sealed class BattleDirector
 		EmitFrame();
 	}
 
+	private void StartResolveJob(int completedTurn) =>
+		_jobs.Start(DirectorJobs.Resolve, version => ResolveAndContinue(completedTurn, version));
+
+	private void EnterPlanningSync() => EnterPlanningCore("initial start");
+
 	private void EnterPlanningCore(string reason)
 	{
 		var turnNumber = _ui.Battle.TurnNumber;
@@ -199,14 +210,7 @@ public sealed class BattleDirector
 	}
 
 	private void EmitFrame() =>
-		FrameChanged?.Invoke(_ui.BuildFrame(CurrentSnapshot(), AcceptsCommands));
-
-	private HumanTurnSnapshot CurrentSnapshot() =>
-		_agent.BuildSnapshot(new HumanTurnViewInput(
-			_ui.State.FocusId,
-			_ui.State.FlakHoverMount,
-			_ui.State.RailgunHovered,
-			_ui.State.TorpedoHoverMount));
+		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsCommands));
 
 	private async Task ResolveAndContinue(int completedTurn, int version)
 	{
@@ -233,6 +237,7 @@ public sealed class BattleDirector
 			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
 
 			SetPhase(PresentationPhase.Replaying, $"turn {completedTurn} resolved");
+			_ui.Battle.SetActive(null);
 			EmitFrame();
 			ReplayRequested?.Invoke(replay, completedTurn);
 		}

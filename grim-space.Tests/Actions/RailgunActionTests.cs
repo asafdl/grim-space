@@ -25,10 +25,10 @@ public sealed class RailgunActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			playerPos, TurnOrchestrationTests.EnemyInRailgunLine(playerPos));
-		var shieldsBefore = TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.OpponentId));
 
-		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(PlayerId)));
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RailgunAction(PlayerId)));
+		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.OpponentId)));
 	}
 
 	[Fact]
@@ -38,8 +38,8 @@ public sealed class RailgunActionTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, new Coord(0, 0, 0));
 		var action = new RailgunAction(PlayerId);
 
-		Assert.True(RailgunDef.Instance.IsPossible(action, battle.Sim.World, battle.Sim.RuntimeFor(PlayerId)));
-		Assert.True(battle.Sim.TryEnqueue(action));
+		Assert.True(RailgunDef.Instance.IsPossible(action, battle.PlayerAgent.Sim.World, battle.PlayerAgent.Sim.RuntimeFor(PlayerId)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 	}
 
 	[Fact]
@@ -48,10 +48,10 @@ public sealed class RailgunActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var enemyPos = playerPos + Coord.Forward * 6;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
-		var shieldsBefore = TotalShieldPoints(battle.Sim.StateOf<ActorState>(battle.OpponentId));
-		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(PlayerId)));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.OpponentId));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RailgunAction(PlayerId)));
 
-		var replay = battle.ResolveTurn();
+		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Contains(replay.Actions, action => action is RailgunAction);
 		Assert.True(shieldsBefore > TotalShieldPoints(battle.Engine.World.StateOf(battle.OpponentId)));

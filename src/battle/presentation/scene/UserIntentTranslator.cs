@@ -12,13 +12,13 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Presentation.Scene;
 
 /// <summary>
-/// Maps HUD and world user input to <see cref="IHumanActionSink"/> commands.
+/// Maps HUD and world user input to <see cref="IActionSink"/> commands.
 /// Does not own presentation state or apply frames.
 /// </summary>
 public sealed partial class UserIntentTranslator : Node
 {
 	private readonly string _actorId;
-	private readonly IHumanActionSink _actions;
+	private readonly IActionSink _actions;
 	private readonly Camera3D _camera;
 	private readonly BattleHud _hud;
 	private readonly FlakPreviewView _flakPreview;
@@ -35,7 +35,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public UserIntentTranslator(
 		string actorId,
-		IHumanActionSink actions,
+		IActionSink actions,
 		Camera3D camera,
 		BattleHud hud,
 		FlakPreviewView flakPreview,

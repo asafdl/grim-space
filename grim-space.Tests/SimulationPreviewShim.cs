@@ -7,8 +7,8 @@ namespace GrimSpace.Tests;
 internal static class SimulationPreviewShim
 {
 	public static IReadOnlyList<MovePathSession> GetLegalMoves(BattleOrchestrator battle) =>
-		battle.Sim.Actions.Count == 0
-			|| battle.Sim.Actions[^1] is not FlakAction and not RailgunAction
-			? MovePathEndpoints.DiscoverExtensions(battle.Sim, battle.PlayerId)
+		battle.PlayerAgent.Sim.Actions.Count == 0
+			|| battle.PlayerAgent.Sim.Actions[^1] is not FlakAction and not RailgunAction
+			? MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
 			: [];
 }

@@ -13,7 +13,7 @@ internal static class Preview
 
 	public static ActorPreview Simulate(BattleOrchestrator battle)
 	{
-		var actor = battle.Sim.StateOf<ActorState>(battle.PlayerId);
+		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId);
 		return new ActorPreview(actor.Position, actor.MomentumLevel, actor.ActionPoints);
 	}
 

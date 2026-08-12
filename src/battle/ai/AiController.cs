@@ -9,24 +9,32 @@ using GrimSpace.Core.Log;
 
 namespace GrimSpace.Battle.Ai;
 
-public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Unit>
+public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 {
-	public static AiController Instance { get; } = new();
-
 	private const int TimelineRefinementLimit = 8;
 	private const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
 
-	public Task<IReadOnlyList<IAction>> GetActionsAsync(
-		Unit actor,
-		Func<BattleSimulation> createSim)
+	protected override void ProduceActionsJob(Simulation<BattleWorld, ActorRuntime> simulation)
+	{
+		var session = (BattleSimulation)simulation;
+		var actor = UnitRegistry.For(session.World).UnitOf(_actorId!);
+		_ = Task.Run(() =>
 		{
-			var session = createSim();
-			return Task.Run(() => Runner.CalcActions(
-				session,
-				actor,
-				new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
-				frames => SelectBest(session, actor.State.Id, frames)));
-		}
+			try
+			{
+				var actions = Runner.CalcActions(
+					session,
+					actor,
+					new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+					frames => SelectBest(session, actor.State.Id, frames));
+				_actions!.TrySetResult(actions);
+			}
+			catch (Exception ex)
+			{
+				_actions!.TrySetException(ex);
+			}
+		});
+	}
 
 	private static SearchFrame<BattleWorld, ActorRuntime> SelectBest(
 		BattleSimulation session,
@@ -44,8 +52,6 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 
 		foreach (var frame in frames)
 		{
-			// Good enough for now: once a hitting railgun plan exists, finish that DFS
-			// subtree (children), then stop — no need to search sibling branches.
 			if (hitBranchPrefix is not null && !IsActionPrefixExtension(frame.Actions, hitBranchPrefix))
 				break;
 
@@ -105,7 +111,8 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 			$"Enemy DFS ({actorId}): visited={visitedFrames} scored={scoredFrames} finalists={finalists.Count} "
 			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
 
-		return best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
+		var selected = best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
+		return selected;
 	}
 
 	private static bool IsActionPrefixExtension(

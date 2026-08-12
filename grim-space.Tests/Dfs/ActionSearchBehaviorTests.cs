@@ -17,7 +17,7 @@ public sealed class ActionSearchBehaviorTests
 		var depths = new List<int>();
 
 		foreach (var frame in ActionSearch.Run(
-			battle.Sim,
+			battle.PlayerAgent.Sim,
 			PlayerId,
 			[MoveDef.Instance],
 			BattleSearchVisit.ForCapabilities))
@@ -37,10 +37,10 @@ public sealed class ActionSearchBehaviorTests
 		var prunedBranchChildSeen = false;
 		var siblingDescendantSeen = false;
 		IAction? prunedFirstAction = null;
-		var startDepth = battle.Sim.Actions.Count;
+		var startDepth = battle.PlayerAgent.Sim.Actions.Count;
 
 		foreach (var frame in ActionSearch.Run(
-			battle.Sim,
+			battle.PlayerAgent.Sim,
 			PlayerId,
 			[MoveDef.Instance],
 			BattleSearchVisit.ForCapabilities))
@@ -73,7 +73,7 @@ public sealed class ActionSearchBehaviorTests
 		var count = 0;
 
 		foreach (var _ in ActionSearch.Run(
-			battle.Sim,
+			battle.PlayerAgent.Sim,
 			PlayerId,
 			[MoveDef.Instance],
 			BattleSearchVisit.ForCapabilities))
@@ -91,7 +91,7 @@ public sealed class ActionSearchBehaviorTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var maxDepth = ActionSearch.Run(
-			battle.Sim,
+			battle.PlayerAgent.Sim,
 			PlayerId,
 			[MoveDef.Instance],
 			BattleSearchVisit.ForCapabilities).Max(frame => frame.Depth);

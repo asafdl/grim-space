@@ -30,9 +30,9 @@ public sealed class OrchestratorSimulationTests
 			new HashSet<Coord> { enemy.State.Position });
 		var blockedMove = new MoveStepAction(PlayerId, ESpatialOrientation.Forward);
 
-		Assert.False(battle.Sim.TryEnqueue(blockedMove));
-		Assert.Empty(battle.Sim.Actions);
-		Assert.Equal(origin, battle.Sim.StateOf<ActorState>(PlayerId).Position);
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(blockedMove));
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(origin, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
 
 	[Fact]
@@ -52,9 +52,9 @@ public sealed class OrchestratorSimulationTests
 			new MoveStepAction(PlayerId, ESpatialOrientation.Forward),
 		};
 
-		Assert.False(battle.Sim.TryEnqueue(actions: steps));
-		Assert.Empty(battle.Sim.Actions);
-		Assert.Equal(origin, battle.Sim.StateOf<ActorState>(PlayerId).Position);
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(actions: steps));
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(origin, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
 
 	[Fact]
@@ -67,13 +67,17 @@ public sealed class OrchestratorSimulationTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.Equal(1, battle.Sim.RuntimeFor(PlayerId).NetYaw);
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.Equal(1, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
 
-		battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
+		battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(new Coord(0, 0, 0)),
+			grid,
+			blocked);
 
-		Assert.Empty(battle.Sim.Actions);
-		Assert.Equal(0, battle.Sim.RuntimeFor(PlayerId).NetYaw);
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(0, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
 	}
 
 	[Theory]
@@ -118,11 +122,11 @@ public sealed class OrchestratorSimulationTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
 
-		battle.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
+		battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
 
-		Assert.Equal(2, battle.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
+		Assert.Equal(2, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
 
-		var peek = battle.Sim.Peek(EndOfPhaseDef.Instance.Bind(PlayerId));
+		var peek = battle.PlayerAgent.Sim.Peek(EndOfPhaseDef.Instance.Bind(PlayerId));
 		Assert.NotNull(peek);
 		Assert.Equal(1, peek.Value.World.StateOf(PlayerId).MomentumLevel);
 	}

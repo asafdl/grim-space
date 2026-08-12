@@ -1,5 +1,6 @@
-// Placeholder until roguelike sector map exists.
-
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.World;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 
@@ -12,4 +13,6 @@ public sealed class Spawn
 	public int InitialMomentum { get; init; }
 	public Coord Fore { get; init; } = Coord.Forward;
 	public Coord Dorsal { get; init; } = Coord.Up;
+
+	public ExecutionAgent<BattleWorld, ActorRuntime> ExecutionAgent { get; init; }
 }

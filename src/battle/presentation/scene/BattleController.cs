@@ -80,7 +80,7 @@ public partial class BattleController : Node3D
 		AddChild(_torpedoPreview);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
-		var playerPosition = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+		var playerPosition = agent.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 		_camera.SetPivot(WorldMapping.ToWorld(playerPosition));
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
@@ -95,7 +95,7 @@ public partial class BattleController : Node3D
 		_battleView = new BattleView { Name = "BattleView" };
 		unitsRoot.AddChild(_battleView);
 		_battleView.BindInitial(layout.Participants.Select(pair =>
-			(pair.Key, battle.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
+			(pair.Key, agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
@@ -259,7 +259,7 @@ public partial class BattleController : Node3D
 
 	private Color ColorForActor(string actorId)
 	{
-		if (UnitRegistry.For(_ui.Battle.Sim.World).TryGet(actorId, out var unit))
+		if (UnitRegistry.For(_ui.Battle.Engine.World).TryGet(actorId, out var unit))
 			return ColorFor(unit.Alliance.Team);
 
 		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var team))
@@ -309,7 +309,7 @@ public partial class BattleController : Node3D
 		if (_battleView.UnitViews.TryGetValue(playerId, out var view))
 			return view.GlobalPosition;
 
-		return WorldMapping.ToWorld(_ui.Battle.Sim.StateOf<ActorState>(playerId).Position);
+		return WorldMapping.ToWorld(_ui.Battle.PlayerAgent.Sim.StateOf<ActorState>(playerId).Position);
 	}
 
 	private void ApplyUnitStates(PresentationFrame frame)

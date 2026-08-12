@@ -20,8 +20,9 @@ public sealed class EnemyRailgunScoringTests
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		var session = battle.Engine.CreateSimulation();
-		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
+		battle.SetActive(null);
+		battle.SetActive(enemy.State.Id);
+		var actions = await enemy.ExecutionAgent.GetActions();
 
 		Assert.Contains(actions, action => action is RailgunAction);
 	}
@@ -36,8 +37,9 @@ public sealed class EnemyRailgunScoringTests
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		var session = battle.Engine.CreateSimulation();
-		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
+		battle.SetActive(null);
+		battle.SetActive(enemy.State.Id);
+		var actions = await enemy.ExecutionAgent.GetActions();
 
 		Assert.DoesNotContain(actions, action => action is RailgunAction);
 	}
@@ -51,8 +53,9 @@ public sealed class EnemyRailgunScoringTests
 		var enemy = CreateUnit(Alliance.Enemy, "enemy", enemyPos, EType.Patrol, Coord.Forward, Coord.Up);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		var session = battle.Engine.CreateSimulation();
-		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
+		battle.SetActive(null);
+		battle.SetActive(enemy.State.Id);
+		var actions = await enemy.ExecutionAgent.GetActions();
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 	}
@@ -72,8 +75,9 @@ public sealed class EnemyRailgunScoringTests
 			Coord.Up);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		var session = battle.Engine.CreateSimulation();
-		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
+		battle.SetActive(null);
+		battle.SetActive(enemy.State.Id);
+		var actions = await enemy.ExecutionAgent.GetActions();
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 		Assert.Contains(actions, action => action is RailgunAction);
@@ -94,6 +98,7 @@ public sealed class EnemyRailgunScoringTests
 				Alliance = alliance,
 			},
 			position,
+			new AiController(),
 			null,
 			0,
 			fore,

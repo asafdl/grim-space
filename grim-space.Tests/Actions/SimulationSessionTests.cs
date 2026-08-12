@@ -62,7 +62,7 @@ public sealed class SimulationSessionTests
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.ActionPoints);
 
-		Assert.True(battle.Sim.TryUndoLast());
+		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
 		EnqueueForwardMove(battle, steps: 4);
 
 		var fourStepPreview = Preview.Simulate(battle);
@@ -85,11 +85,11 @@ public sealed class SimulationSessionTests
 		var battle = BeginSimulation(player, enemy, grid, blocked);
 
 		EnqueueForwardMove(battle, steps: 3);
-		Assert.True(battle.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		Assert.True(battle.Sim.TryUndoLast());
-		Assert.Equal(3, battle.Sim.Actions.Count);
-		Assert.All(battle.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
+		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count);
+		Assert.All(battle.PlayerAgent.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
 	}
 
 	private static BattleOrchestrator BeginSimulation(
@@ -101,9 +101,9 @@ public sealed class SimulationSessionTests
 
 	private static void EnqueueForwardMove(BattleOrchestrator battle, int steps)
 	{
-		var origin = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+		var origin = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 		var end = origin + Coord.Forward * steps;
-		var path = MovePathEndpoints.DiscoverExtensions(battle.Sim, battle.PlayerId)
+		var path = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
 			.First(p => p.EndPosition == end);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, path));
 	}

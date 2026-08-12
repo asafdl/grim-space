@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
@@ -47,16 +48,15 @@ internal static class BattleTestFixture
 		actorRuntimes.For(EntityIds.System);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var playerAgent = (HumanExecutionAgent)player.ExecutionAgent;
 		var battle = new BattleOrchestrator(
 			engine,
 			layout,
 			player.State.Id,
 			enemy.State.Id,
-			playerAgent,
 			EObjective.EliminateOpponents);
-		battle.SetActiveUnit(player.State.Id);
-		battle.BeginTurn();
+		foreach (var unit in units)
+			unit.ExecutionAgent.Init(unit.State.Id, battle.Engine.CreateSimulation, battle.RegisterActiveUnitChanged);
+		battle.SetActive(player.State.Id);
 		return battle;
 	}
 
@@ -122,7 +122,11 @@ internal static class BattleTestFixture
 			Alliance = alliance,
 		};
 
-		return Factory.Create(instance, position, initialMomentum: momentum);
+		return Factory.Create(
+			instance,
+			position,
+			alliance.Team == ETeam.Player ? new UserExecutionAgent() : new AiController(),
+			initialMomentum: momentum);
 	}
 
 	private static Unit WithAp(Unit unit, int actionPoints)

@@ -1,5 +1,3 @@
-// Placeholder until roguelike sector map exists.
-
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 

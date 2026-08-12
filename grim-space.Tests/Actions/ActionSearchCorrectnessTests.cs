@@ -27,8 +27,8 @@ public sealed class ActionSearchCorrectnessTests
 	public void PrunedFramesAreSubsetOfExhaustiveSearch_MoveOnly()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var pruned = PrefixKeys(battle.Sim, [MoveDef.Instance]);
-		var exhaustive = PrefixKeysExhaustive(battle.Sim, [MoveDef.Instance]);
+		var pruned = PrefixKeys(battle.PlayerAgent.Sim, [MoveDef.Instance]);
+		var exhaustive = PrefixKeysExhaustive(battle.PlayerAgent.Sim, [MoveDef.Instance]);
 
 		Assert.Subset(exhaustive, pruned);
 	}
@@ -37,8 +37,8 @@ public sealed class ActionSearchCorrectnessTests
 	public void PrunedFramesAreSubsetOfExhaustiveSearch_MovementCapabilities()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var pruned = PrefixKeys(battle.Sim, MovementActionDefs);
-		var exhaustive = PrefixKeysExhaustive(battle.Sim, MovementActionDefs);
+		var pruned = PrefixKeys(battle.PlayerAgent.Sim, MovementActionDefs);
+		var exhaustive = PrefixKeysExhaustive(battle.PlayerAgent.Sim, MovementActionDefs);
 
 		Assert.Subset(exhaustive, pruned);
 	}
@@ -48,7 +48,7 @@ public sealed class ActionSearchCorrectnessTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
-		foreach (var frame in ActionSearch.Run(battle.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities))
+		foreach (var frame in ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities))
 			Assert.True(ReplayPrefix(battle, frame.Actions), $"Failed to replay: {string.Join(", ", frame.Actions)}");
 	}
 
@@ -57,7 +57,7 @@ public sealed class ActionSearchCorrectnessTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
-		foreach (var frame in ActionSearchExhaustive.Run(battle.Sim, PlayerId, MovementActionDefs))
+		foreach (var frame in ActionSearchExhaustive.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs))
 			Assert.True(ReplayPrefix(battle, frame.Actions), $"Failed to replay: {string.Join(", ", frame.Actions)}");
 	}
 
@@ -65,8 +65,8 @@ public sealed class ActionSearchCorrectnessTests
 	public void ExhaustiveSearchFindsAtLeastAsManyPrefixesAsPrunedSearch()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var prunedCount = ActionSearch.Run(battle.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities).Count();
-		var exhaustiveCount = ActionSearchExhaustive.Run(battle.Sim, PlayerId, MovementActionDefs).Count();
+		var prunedCount = ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities).Count();
+		var exhaustiveCount = ActionSearchExhaustive.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs).Count();
 
 		Assert.True(exhaustiveCount >= prunedCount);
 	}
@@ -75,8 +75,8 @@ public sealed class ActionSearchCorrectnessTests
 	public void PrunedAndExhaustiveAgreeOnRootFrame()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var prunedRoot = ActionSearch.Run(battle.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities).First();
-		var exhaustiveRoot = ActionSearchExhaustive.Run(battle.Sim, PlayerId, MovementActionDefs).First();
+		var prunedRoot = ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities).First();
+		var exhaustiveRoot = ActionSearchExhaustive.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs).First();
 
 		Assert.Equal(prunedRoot.Actions, exhaustiveRoot.Actions);
 		Assert.Equal(0, prunedRoot.Depth);

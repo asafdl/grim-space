@@ -28,10 +28,10 @@ public sealed class FlakActionTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var flak = new FlakAction(PlayerId, EFlakMount.Port);
 
-		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
-		Assert.True(battle.Sim.TryEnqueue(flak));
-		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
-		Assert.False(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		Assert.Equal(CombatConfig.FlaksPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(flak));
+		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 	}
 
 	[Fact]
@@ -39,16 +39,16 @@ public sealed class FlakActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
-		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(PlayerId));
+		var frame = BodyFrame.From(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId));
 		var cells = WeaponBursts.FlakBurstCells(
 			frame,
 			FlakMountConfig.For(EFlakMount.Starboard),
-			battle.Sim.World.Grid.IsInBounds);
-		var enemy = UnitRegistry.For(battle.Sim.World).All.First(unit => unit.State.Id != PlayerId);
+			battle.PlayerAgent.Sim.World.Grid.IsInBounds);
+		var enemy = UnitRegistry.For(battle.PlayerAgent.Sim.World).All.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = cells.First();
 		var shieldsBefore = TotalShieldPoints(enemy.State);
 
-		Assert.True(battle.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
 
 		Assert.Equal(shieldsBefore - CombatConfig.FlakDamage, TotalShieldPoints(enemy.State));
 		Assert.Equal(0, enemy.State.MomentumLevel);

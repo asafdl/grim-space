@@ -8,14 +8,24 @@ using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Battle.Ai;
 
-public sealed class TorpedoExecutionAgent : IExecutionAgent<BattleWorld, ActorRuntime, Unit>
+public sealed class TorpedoExecutionAgent : ExecutionAgent<BattleWorld, ActorRuntime>
 {
-	public static TorpedoExecutionAgent Instance { get; } = new();
-
-	public Task<IReadOnlyList<IAction>> GetActionsAsync(
-		Unit actor,
-		Func<BattleSimulation> createSim) =>
-		Task.Run(() => Plan(actor, createSim()));
+	protected override void ProduceActionsJob(Simulation<BattleWorld, ActorRuntime> simulation)
+	{
+		var session = (BattleSimulation)simulation;
+		var actor = UnitRegistry.For(session.World).UnitOf(_actorId!);
+		_ = Task.Run(() =>
+		{
+			try
+			{
+				_actions!.TrySetResult(Plan(actor, session));
+			}
+			catch (Exception ex)
+			{
+				_actions!.TrySetException(ex);
+			}
+		});
+	}
 
 	public IReadOnlyList<IAction> Plan(Unit actor, BattleSimulation session)
 	{

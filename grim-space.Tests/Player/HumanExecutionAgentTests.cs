@@ -1,5 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -12,7 +14,7 @@ public sealed class HumanExecutionAgentTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void AcceptedEnqueuePublishesSnapshot()
+	public void AcceptedEnqueueNotifiesPlanningChanged()
 	{
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
@@ -20,20 +22,21 @@ public sealed class HumanExecutionAgentTests
 			origin,
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
+		var preview = new PlanningPreview();
 
 		var changes = 0;
-		agent.Changed += _ => changes++;
+		agent.PlanningChanged += () => changes++;
 
 		Assert.True(BattleTestCommands.Move(battle, end));
 
 		Assert.Equal(1, changes);
-		Assert.Equal(end, agent.Current.Units[PlayerId].Position);
-		Assert.Equal(3, agent.Current.CommittedMovePath.Count);
-		Assert.True(agent.Current.CanUndo);
+		Assert.Equal(end, preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].Position);
+		Assert.Equal(3, preview.CommittedMovePath(agent.Sim, PlayerId).Count);
+		Assert.True(agent.CanUndo);
 	}
 
 	[Fact]
-	public void RejectedEnqueueReturnsFalseWithoutPublishing()
+	public void RejectedEnqueueReturnsFalseWithoutNotifying()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -42,15 +45,15 @@ public sealed class HumanExecutionAgentTests
 		var agent = battle.PlayerAgent;
 
 		var changes = 0;
-		agent.Changed += _ => changes++;
+		agent.PlanningChanged += () => changes++;
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
-		var before = agent.Current;
+		var actionsBefore = agent.Sim.Actions.Count;
 
 		Assert.False(BattleTestCommands.FireRailgun(battle));
 
 		Assert.Equal(1, changes);
-		Assert.Same(before, agent.Current);
+		Assert.Equal(actionsBefore, agent.Sim.Actions.Count);
 	}
 
 	[Fact]
@@ -61,17 +64,18 @@ public sealed class HumanExecutionAgentTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var preview = new PlanningPreview();
 		var liveBefore = battle.Engine.World.StateOf(PlayerId).Position;
 
 		Assert.True(BattleTestCommands.Move(battle, end));
 
 		Assert.Equal(liveBefore, battle.Engine.World.StateOf(PlayerId).Position);
-		Assert.Equal(end, battle.PlayerAgent.Current.Units[PlayerId].Position);
+		Assert.Equal(end, preview.PreviewUnits(battle.PlayerAgent.Sim, PlayerId)[PlayerId].Position);
 		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count);
 	}
 
 	[Fact]
-	public void UndoAndCommitFlagsTrackQueueState()
+	public void UndoAndPlanningFlagsTrackQueueState()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -79,41 +83,61 @@ public sealed class HumanExecutionAgentTests
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
 
-		Assert.True(agent.Current.CanCommit);
-		Assert.False(agent.Current.CanUndo);
+		Assert.True(agent.IsPlanning);
+		Assert.False(agent.CanUndo);
 
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 
-		Assert.True(agent.Current.CanUndo);
-		Assert.True(agent.Current.CanCommit);
+		Assert.True(agent.CanUndo);
+		Assert.True(agent.IsPlanning);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.False(agent.Current.CanUndo);
-		Assert.True(agent.Current.CanCommit);
+		Assert.False(agent.CanUndo);
+		Assert.True(agent.IsPlanning);
 		Assert.Empty(agent.Sim.Actions);
 	}
 
 	[Fact]
-	public void FireRailgunUpdatesQueuedWeaponSnapshot()
+	public void FireRailgunUpdatesQueuedWeaponPreview()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
+		var preview = new PlanningPreview();
 
-		Assert.False(agent.Current.QueuedWeapon.Railgun);
+		Assert.False(preview.QueuedWeapon(agent.Sim, PlayerId).Railgun);
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
 
-		Assert.True(agent.Current.QueuedWeapon.Railgun);
-		Assert.Equal(0, agent.Current.Units[PlayerId].RailgunRemaining);
-		Assert.NotEmpty(agent.Current.ThreatenedUnitIds);
+		Assert.True(preview.QueuedWeapon(agent.Sim, PlayerId).Railgun);
+		Assert.Equal(0, preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].RailgunRemaining);
+		Assert.NotEmpty(preview.ThreatenedUnitIds(agent.Sim, PlayerId, new InteractionState()));
 	}
 
 	[Fact]
-	public void SnapshotPublishesWeaponAvailabilityWhileCanAct()
+	public void PlanningExposesWeaponAvailabilityWhileActive()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var agent = battle.PlayerAgent;
+		var preview = new PlanningPreview();
+
+		Assert.True(agent.IsPlanning);
+		Assert.True(preview.Weapons(agent.Sim, PlayerId).Railgun);
+		Assert.True(preview.Weapons(agent.Sim, PlayerId).IsKindLegal(EWeaponKind.Railgun));
+
+		Assert.True(BattleTestCommands.FireRailgun(battle));
+
+		Assert.False(preview.Weapons(agent.Sim, PlayerId).Railgun);
+	}
+
+	[Fact]
+	public void OpenTurnNotifiesPlanningChangedBeforeGetActionsAsync()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -121,12 +145,57 @@ public sealed class HumanExecutionAgentTests
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
 
-		Assert.True(agent.Current.CanAct);
-		Assert.True(agent.Current.Weapons.Railgun);
-		Assert.True(agent.Current.Weapons.IsKindLegal(EWeaponKind.Railgun));
+		battle.SetActive(null);
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		var changes = 0;
+		agent.PlanningChanged += () => changes++;
 
-		Assert.False(agent.Current.Weapons.Railgun);
+		battle.SetActive(PlayerId);
+
+		Assert.Equal(1, changes);
+		Assert.True(agent.IsPlanning);
+		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
+	}
+
+	[Fact]
+	public async Task GetActionsAsyncBlocksUntilCommit()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var agent = battle.PlayerAgent;
+
+		battle.SetActive(null);
+		battle.SetActive(PlayerId);
+		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
+
+		var actionsTask = agent.GetActions();
+		Assert.False(actionsTask.IsCompleted);
+
+		Assert.True(agent.Commit());
+
+		var actions = await actionsTask;
+		Assert.Single(actions, action => action is MoveStepAction);
+	}
+
+	[Fact]
+	public void GetActionsAsyncDoesNotForkSim()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var agent = battle.PlayerAgent;
+
+		battle.SetActive(null);
+		battle.SetActive(PlayerId);
+		var simAtOpen = agent.Sim;
+		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
+		Assert.True(agent.Commit());
+
+		var actions = agent.GetActions().GetAwaiter().GetResult();
+		Assert.Same(simAtOpen, agent.Sim);
+		Assert.Single(actions, action => action is MoveStepAction);
 	}
 }

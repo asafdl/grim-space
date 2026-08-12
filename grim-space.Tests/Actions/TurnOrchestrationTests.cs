@@ -1,5 +1,8 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -20,9 +23,9 @@ public sealed class TurnOrchestrationTests
 		var move = BattleTestCommands.DiscoverPaths(battle)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
-		battle.ResolveTurn();
+		BattleTestActions.CommitAndResolve(battle);
 
-		Assert.Equal(origin + Coord.Forward * 3, battle.Sim.StateOf<ActorState>(PlayerId).Position);
+		Assert.Equal(origin + Coord.Forward * 3, battle.Engine.World.StateOf(PlayerId).Position);
 	}
 
 	[Fact]
@@ -34,10 +37,11 @@ public sealed class TurnOrchestrationTests
 		var move = BattleTestCommands.DiscoverPaths(battle)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
-		battle.ResolveTurn();
+		BattleTestActions.CommitAndResolve(battle);
+		battle.SetActive(PlayerId);
 
 		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
-		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath != null);
+		Assert.False(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).ActivePath != null);
 	}
 
 	[Fact]
@@ -50,7 +54,7 @@ public sealed class TurnOrchestrationTests
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 
-		var replay = battle.ResolveTurn();
+		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Equal(origin, replay.StartStates[PlayerId].Position);
 		Assert.Equal(origin + Coord.Forward * 3, replay.EndStates[PlayerId].Position);
@@ -76,6 +80,7 @@ public sealed class TurnOrchestrationTests
 						Alliance = Alliance.Player,
 					},
 					Position = playerPos,
+					ExecutionAgent = new UserExecutionAgent(),
 				},
 				new Spawn
 				{
@@ -86,6 +91,7 @@ public sealed class TurnOrchestrationTests
 						Alliance = Alliance.Enemy,
 					},
 					Position = enemyPos,
+					ExecutionAgent = new AiController(),
 				},
 			],
 		};

@@ -23,16 +23,16 @@ public sealed class MoveUiTests
 		var state = new InteractionState();
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
-		Assert.Equal(3, battle.Sim.Actions.Count);
-		Assert.All(battle.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count);
+		Assert.All(battle.PlayerAgent.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
 
-		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
-		Assert.True(battle.Sim.RuntimeFor(battle.PlayerId).ActivePath != null);
-		Assert.Equal(1, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
+		Assert.Equal(end, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+		Assert.True(battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId).ActivePath != null);
+		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
 		var extensions = BattleTestCommands.MoveOptions(battle).ToList();
 		Assert.Contains(extensions, option => option.EndPosition == origin + Coord.Forward * 4);
-		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+		Assert.Equal(end, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 	}
 
 	[Fact]
@@ -50,11 +50,11 @@ public sealed class MoveUiTests
 		var end = headingOptions[0].EndPosition;
 		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
 
-		Assert.Equal(4, battle.Sim.Actions.Count);
-		Assert.IsType<HeadingTurnAction>(battle.Sim.Actions[0]);
-		Assert.All(battle.Sim.Actions.Skip(1), action => Assert.IsType<MoveStepAction>(action));
-		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
-		Assert.True(battle.Sim.RuntimeFor(battle.PlayerId).ActivePath != null);
+		Assert.Equal(4, battle.PlayerAgent.Sim.Actions.Count);
+		Assert.IsType<HeadingTurnAction>(battle.PlayerAgent.Sim.Actions[0]);
+		Assert.All(battle.PlayerAgent.Sim.Actions.Skip(1), action => Assert.IsType<MoveStepAction>(action));
+		Assert.Equal(end, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+		Assert.True(battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId).ActivePath != null);
 		Assert.Empty(BattleTestCommands.MoveOptions(battle));
 	}
 
@@ -91,9 +91,9 @@ public sealed class MoveUiTests
 			option => option.EndPosition == origin + Coord.Forward * 4);
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Empty(battle.Sim.Actions);
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
-		Assert.Empty(battle.PlayerAgent.Current.CommittedMovePath);
+		Assert.Empty(new PlanningPreview().CommittedMovePath(battle.PlayerAgent.Sim, battle.PlayerId));
 		Assert.Equal(origin, BattleTestCommands.Frame(battle).FocusState.Position);
 	}
 
@@ -140,12 +140,12 @@ public sealed class MoveUiTests
 
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward * 2));
 
-		var runtime = battle.Sim.RuntimeFor(battle.PlayerId);
-		Assert.Equal(2, battle.Sim.Actions.Count);
-		Assert.Equal(2, MovementExpectations.FighterApPerTurn - battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
+		var runtime = battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId);
+		Assert.Equal(2, battle.PlayerAgent.Sim.Actions.Count);
+		Assert.Equal(2, MovementExpectations.FighterApPerTurn - battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 		Assert.True(runtime.ActivePath != null);
 		Assert.True(runtime.ActivePath!.CanEnd(
-			battle.Sim.StateOf<ActorState>(battle.PlayerId).Stats.MinPathApCost));
+			battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Stats.MinPathApCost));
 
 		var diluted = BattleTestCommands.DiscoverPaths(battle).ToList();
 
@@ -157,7 +157,7 @@ public sealed class MoveUiTests
 		Assert.DoesNotContain(origin + Coord.Forward * 2, dilutedEnds);
 		Assert.Contains(origin + Coord.Forward * 3, dilutedEnds);
 		Assert.Contains(origin + Coord.Forward * 4, dilutedEnds);
-		Assert.Equal(origin + Coord.Forward * 2, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+		Assert.Equal(origin + Coord.Forward * 2, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 		Assert.Contains(diluted, option => option.EndPosition == origin + Coord.Forward * 3 && option.CanEndPath);
 	}
 
@@ -170,7 +170,7 @@ public sealed class MoveUiTests
 			.MaxBy(option => option.Cells.Count)!;
 
 		Assert.True(MoveUiTestActions.ClickHeading(battle, EHeadingTurn.YawRight));
-		Assert.Equal(3, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
+		Assert.Equal(3, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
 		var diluted = BattleTestCommands.DiscoverPaths(battle).ToList();
 
@@ -188,8 +188,8 @@ public sealed class MoveUiTests
 			.First(option => option.PathApSpent == 2);
 		Assert.Equal(2, shortMove.Cells.Count);
 		Assert.True(BattleTestCommands.Move(battle, shortMove.EndPosition));
-		Assert.Equal(2, battle.Sim.RuntimeFor(battle.PlayerId).ActivePath!.PathApSpent);
-		Assert.Equal(2, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
+		Assert.Equal(2, battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId).ActivePath!.PathApSpent);
+		Assert.Equal(2, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
 		var followUp = BattleTestCommands.DiscoverPaths(battle).ToList();
 		Assert.NotEmpty(followUp);

@@ -16,11 +16,11 @@ internal static class BattleTestCommands
 	public static IReadOnlyList<MovePathSession> DiscoverPaths(
 		BattleOrchestrator battle,
 		string? actorId = null) =>
-		MovePathEndpoints.DiscoverExtensions(battle.Sim, actorId ?? battle.PlayerId);
+		MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, actorId ?? battle.PlayerId);
 
 	public static bool Move(BattleOrchestrator battle, Coord endPosition)
 	{
-		var option = Snapshot(battle).MoveOptions
+		var option = MoveOptions(battle)
 			.FirstOrDefault(candidate => candidate.EndPosition == endPosition);
 		if (option is null || option.Directions.Count == 0)
 			return false;
@@ -46,10 +46,10 @@ internal static class BattleTestCommands
 		Enqueue(battle, [new HeadingTurnAction(battle.PlayerId, turn)]);
 
 	public static IReadOnlyList<MovePathOption> MoveOptions(BattleOrchestrator battle) =>
-		Snapshot(battle).MoveOptions;
+		BattleTestFixture.Ui(battle).PreviewMoveOptions();
 
 	public static PresentationFrame Frame(BattleOrchestrator battle) =>
-		BattleTestFixture.Ui(battle).BuildFrame(Snapshot(battle));
+		BattleTestFixture.Ui(battle).BuildFrame();
 
 	public static void Focus(BattleOrchestrator battle, string? unitId)
 	{
@@ -61,15 +61,4 @@ internal static class BattleTestCommands
 
 	private static bool Enqueue(BattleOrchestrator battle, IEnumerable<IAction> actions) =>
 		battle.PlayerAgent.TryEnqueue(actions.ToList());
-
-	private static HumanTurnSnapshot Snapshot(BattleOrchestrator battle)
-	{
-		var ui = BattleTestFixture.Ui(battle);
-		var state = ui.State;
-		return battle.PlayerAgent.BuildSnapshot(new HumanTurnViewInput(
-			state.FocusId,
-			state.FlakHoverMount,
-			state.RailgunHovered,
-			state.TorpedoHoverMount));
-	}
 }

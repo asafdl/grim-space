@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
@@ -62,13 +63,13 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
-		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
-		Assert.Single(battle.Sim.Actions);
+		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Single(battle.PlayerAgent.Sim.Actions);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Empty(battle.Sim.Actions);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 	}
 
 	[Fact]
@@ -78,16 +79,16 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var pickCell = origin + new Coord(1, 1, 0);
 
-		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
+		var frame = BodyFrame.From(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId));
 		var mount = WeaponBursts.FlakMountForCell(frame, pickCell);
 		Assert.NotNull(mount);
 		Assert.True(BattleTestCommands.FireFlak(battle, mount.Value));
-		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
+		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Empty(battle.Sim.Actions);
-		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(CombatConfig.FlaksPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
 	}
 
 	[Fact]
@@ -100,13 +101,13 @@ public sealed class PresentationFrameTests
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 		Assert.True(BattleTestCommands.FireRailgun(battle));
 
-		Assert.Equal(4, battle.Sim.Actions.Count);
+		Assert.Equal(4, battle.PlayerAgent.Sim.Actions.Count);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
-		Assert.Equal(3, battle.Sim.Actions.Count(action => action is MoveStepAction));
+		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count(action => action is MoveStepAction));
 	}
 
 	[Fact]
@@ -117,15 +118,16 @@ public sealed class PresentationFrameTests
 		var threeStepEnd = origin + Coord.Forward * 3;
 
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
-		var pathAfterMove = battle.PlayerAgent.Current.CommittedMovePath.ToList();
+		var preview = new PlanningPreview();
+		var pathAfterMove = preview.CommittedMovePath(battle.PlayerAgent.Sim, battle.PlayerId).ToList();
 		Assert.NotEmpty(pathAfterMove);
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Equal(pathAfterMove, battle.PlayerAgent.Current.CommittedMovePath);
-		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(pathAfterMove, preview.CommittedMovePath(battle.PlayerAgent.Sim, battle.PlayerId));
+		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
+		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 	}
 
 	[Fact]
@@ -140,7 +142,7 @@ public sealed class PresentationFrameTests
 		Assert.False(frame.IsInspecting);
 		Assert.True(frame.CanAct);
 		Assert.True(frame.ShowMovePreview);
-		Assert.Equal(battle.Sim.StateOf<ActorState>(battle.PlayerId).Position, frame.FocusState.Position);
+		Assert.Equal(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position, frame.FocusState.Position);
 		Assert.NotEmpty(frame.MovePaths);
 	}
 
@@ -174,14 +176,14 @@ public sealed class PresentationFrameTests
 		var threeStepEnd = origin + Coord.Forward * 3;
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 
-		var actionsBefore = battle.Sim.Actions.ToList();
-		var playerPosBefore = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
+		var actionsBefore = battle.PlayerAgent.Sim.Actions.ToList();
+		var playerPosBefore = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 
 		BattleTestCommands.Focus(battle, battle.OpponentId);
 		_ = BattleTestCommands.Frame(battle);
 
-		Assert.Equal(actionsBefore, battle.Sim.Actions);
-		Assert.Equal(playerPosBefore, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+		Assert.Equal(actionsBefore, battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(playerPosBefore, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 	}
 
 	[Fact]
@@ -215,6 +217,7 @@ public sealed class PresentationFrameTests
 						Alliance = Alliance.Player,
 					},
 					Position = playerPos,
+					ExecutionAgent = new UserExecutionAgent(),
 				},
 				new Spawn
 				{
@@ -225,6 +228,7 @@ public sealed class PresentationFrameTests
 						Alliance = Alliance.Enemy,
 					},
 					Position = enemyPos,
+					ExecutionAgent = new AiController(),
 				},
 			],
 		};

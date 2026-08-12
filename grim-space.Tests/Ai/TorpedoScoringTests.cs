@@ -26,8 +26,9 @@ public sealed class TorpedoScoringTests
 
 		var startDistance = torpedoPos.ManhattanDistanceTo(enemy.State.Position);
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
-		TorpedoExecutionAgent.Instance.Plan(torpedo, session);
+		agent.Plan(torpedo, session);
 
 		var endDistance = session.StateOf<ActorState>(torpedoId).Position
 			.ManhattanDistanceTo(enemy.State.Position);
@@ -47,8 +48,9 @@ public sealed class TorpedoScoringTests
 		enemy.State.Position = torpedoPos + Coord.Forward * (TorpedoConfig.BlastRadius + 1);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
-		var actions = TorpedoExecutionAgent.Instance.Plan(torpedo, session);
+		var actions = agent.Plan(torpedo, session);
 
 		Assert.Contains(actions, action => action is DetonateAction);
 		Assert.True(
@@ -72,8 +74,9 @@ public sealed class TorpedoScoringTests
 		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
-		var actions = TorpedoExecutionAgent.Instance.Plan(torpedo, session);
+		var actions = agent.Plan(torpedo, session);
 
 		Assert.Contains(actions, action => action is DetonateAction);
 		Assert.True(
