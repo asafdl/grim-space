@@ -1,15 +1,13 @@
 using Godot;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 /// <summary>Move + orientation controls with AP remaining/max.</summary>
 public sealed partial class ManeuverBar : PanelContainer
 {
-	public event Action<EPlayerMode>? ModeChanged;
-	public event Action<EHeadingTurn>? HeadingTurnRequested;
-	public event Action<ERollDirection>? RollRequested;
+	public event Action? MoveModeRequested;
+	public event Action? YawRequested;
+	public event Action? SpinRequested;
 
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
@@ -43,13 +41,13 @@ public sealed partial class ManeuverBar : PanelContainer
 		_moveButton.SetBlockSignals(false);
 	}
 
-	public void Configure(bool canAct, int apCurrent, int apMax, int momentum)
+	public void Configure(bool canAct, int apCurrent, int apMax, int momentum, int momentumMax)
 	{
 		_moveButton.Disabled = !canAct;
 		_yawButton.Disabled = !canAct;
 		_spinButton.Disabled = !canAct;
 		_apLabel.Text = BattleHudCopy.Charges(apCurrent, apMax);
-		_momentumLabel.Text = BattleHudCopy.MomentumStat(momentum, MomentumConfig.MaxLevel);
+		_momentumLabel.Text = BattleHudCopy.MomentumStat(momentum, momentumMax);
 	}
 
 	public bool TryActivateMove()
@@ -64,7 +62,7 @@ public sealed partial class ManeuverBar : PanelContainer
 	{
 		if (_yawButton.Disabled)
 			return false;
-		HeadingTurnRequested?.Invoke(EHeadingTurn.YawRight);
+		YawRequested?.Invoke();
 		return true;
 	}
 
@@ -72,7 +70,7 @@ public sealed partial class ManeuverBar : PanelContainer
 	{
 		if (_spinButton.Disabled)
 			return false;
-		RollRequested?.Invoke(ERollDirection.Clockwise);
+		SpinRequested?.Invoke();
 		return true;
 	}
 
@@ -128,7 +126,7 @@ public sealed partial class ManeuverBar : PanelContainer
 			hotkey: "1",
 			tooltip: BattleHudCopy.MoveTooltip,
 			iconPath: "res://assets/ui/abilities/move.svg",
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Move));
+			onPressed: () => MoveModeRequested?.Invoke());
 		row.AddChild(_moveButton);
 
 		var orientCol = new VBoxContainer();
@@ -139,12 +137,12 @@ public sealed partial class ManeuverBar : PanelContainer
 			hotkey: "E",
 			tooltip: BattleHudCopy.YawTooltip,
 			iconPath: "res://assets/ui/abilities/yaw.svg",
-			onPressed: () => HeadingTurnRequested?.Invoke(EHeadingTurn.YawRight));
+			onPressed: () => YawRequested?.Invoke());
 		_spinButton = CreateActionSlot(
 			hotkey: "Q",
 			tooltip: BattleHudCopy.SpinTooltip,
 			iconPath: "res://assets/ui/abilities/spin.svg",
-			onPressed: () => RollRequested?.Invoke(ERollDirection.Clockwise));
+			onPressed: () => SpinRequested?.Invoke());
 
 		orientCol.AddChild(_yawButton);
 		orientCol.AddChild(_spinButton);

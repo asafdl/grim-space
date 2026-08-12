@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
@@ -58,30 +59,16 @@ public sealed partial class HealthBar : HBoxContainer
 		AddChild(_shieldSection);
 	}
 
-	public void Set(State state)
+	public void Set(State state) => Set(UnitDisplayState.Capture(state));
+
+	public void Set(UnitDisplayState state)
 	{
-		SetHull(state.HullPoints, state.Stats.MaxHullPoints);
-		SetShields(state);
+		SetHull(state.HullPoints, state.MaxHullPoints);
+		SetShields(state.ShieldPoints, state.MaxShieldPointsPerFace);
 	}
 
-	private void SetHull(int current, int max)
+	private void SetShields(FaceShieldPoints shieldPoints, int maxPerFace)
 	{
-		max = System.Math.Max(0, max);
-		current = System.Math.Clamp(current, 0, max);
-		SyncBlockCount(_hullHost, _hullBlocks, max);
-
-		for (var i = 0; i < _hullBlocks.Count; i++)
-		{
-			var filled = i < current;
-			_hullBlocks[i].AddThemeStyleboxOverride(
-				"panel",
-				MakeStyle(filled ? HullFilled : HullEmpty, HullBorder, borderWidth: 2));
-		}
-	}
-
-	private void SetShields(State state)
-	{
-		var maxPerFace = state.Stats.MaxShieldPointsPerFace;
 		_shieldSection.Visible = maxPerFace > 0;
 		if (maxPerFace <= 0)
 			return;
@@ -101,7 +88,7 @@ public sealed partial class HealthBar : HBoxContainer
 		{
 			var face = Faces[faceIndex];
 			var (host, blocks) = _shieldFaces[faceIndex];
-			var current = System.Math.Clamp(state.ShieldPoints[face], 0, maxPerFace);
+			var current = System.Math.Clamp(shieldPoints[face], 0, maxPerFace);
 			host.TooltipText = BattleHudCopy.FaceShieldTooltip(
 				BattleHudCopy.FaceName(face),
 				current,
@@ -115,6 +102,21 @@ public sealed partial class HealthBar : HBoxContainer
 					"panel",
 					MakeStyle(filled ? ShieldFilled : ShieldEmpty, ShieldBorder, borderWidth: 2));
 			}
+		}
+	}
+
+	private void SetHull(int current, int max)
+	{
+		max = System.Math.Max(0, max);
+		current = System.Math.Clamp(current, 0, max);
+		SyncBlockCount(_hullHost, _hullBlocks, max);
+
+		for (var i = 0; i < _hullBlocks.Count; i++)
+		{
+			var filled = i < current;
+			_hullBlocks[i].AddThemeStyleboxOverride(
+				"panel",
+				MakeStyle(filled ? HullFilled : HullEmpty, HullBorder, borderWidth: 2));
 		}
 	}
 

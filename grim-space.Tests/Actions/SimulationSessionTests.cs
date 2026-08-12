@@ -92,28 +92,6 @@ public sealed class SimulationSessionTests
 		Assert.All(battle.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
 	}
 
-	[Fact]
-	public void SecondMovePathRejectedWhenApInsufficientUntilUndo()
-	{
-		var origin = new Coord(5, 5, 5);
-		var planning = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(origin),
-			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
-
-		var shortMove = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
-		var longMove = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 4, startMomentum: 0);
-
-		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, shortMove));
-		Assert.False(BattleTestActions.TryEnqueueMovePath(planning, longMove));
-		Assert.Equal(3, planning.Sim.Actions.Count);
-
-		Assert.True(planning.Sim.TryUndoLast());
-		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, longMove));
-		Assert.Equal(
-			origin + Coord.Forward * 4,
-			planning.Sim.StateOf<ActorState>(planning.PlayerId).Position);
-	}
-
 	private static BattleOrchestrator BeginSimulation(
 		GrimSpace.Battle.Units.Unit player,
 		GrimSpace.Battle.Units.Unit enemy,

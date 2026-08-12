@@ -1,4 +1,7 @@
 using Godot;
+using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -194,7 +197,7 @@ public partial class BattleHud : Node
 		_topHud.Visible = !frame.ShowOutcomeOverlay;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
-		var focusState = frame.PreviewWorld.StateOf(frame.FocusId);
+		var focusState = frame.FocusState;
 		HealthBar.Set(focusState);
 
 		_actionLogPanel.SetLines(frame.ActionLogLines);
@@ -212,14 +215,26 @@ public partial class BattleHud : Node
 		ManeuverBar.Configure(
 			frame.CanAct,
 			focusState.ActionPoints,
-			focusState.Stats.MaxAp,
-			focusState.MomentumLevel);
+			focusState.MaxActionPoints,
+			focusState.MomentumLevel,
+			MomentumConfig.MaxLevel);
+
+		var weaponKinds = Capabilities.WeaponsFor(focusState.Type);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(
-			focusState,
-			frame.WeaponLegality,
 			frame.CanAct,
-			frame.IsInspecting);
+			frame.IsInspecting,
+			showFlak: weaponKinds.OfType<FlakDef>().Any(),
+			showRailgun: weaponKinds.OfType<RailgunDef>().Any(),
+			showTorpedo: weaponKinds.OfType<TorpedoDef>().Any(),
+			flakEnabled: frame.Weapons.IsKindLegal(EWeaponKind.Flak),
+			railgunEnabled: frame.Weapons.IsKindLegal(EWeaponKind.Railgun),
+			torpedoEnabled: frame.Weapons.IsKindLegal(EWeaponKind.Torpedo),
+			flakCharges: BattleHudCopy.Charges(focusState.FlakRemaining, focusState.FlaksPerTurn),
+			railgunCharges: BattleHudCopy.Charges(focusState.RailgunRemaining, focusState.RailgunsPerTurn),
+			torpedoCharges: BattleHudCopy.Charges(
+				focusState.TorpedoCooldownRemaining > 0 ? 0 : 1,
+				1));
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 

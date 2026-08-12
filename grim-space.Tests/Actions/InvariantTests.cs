@@ -134,7 +134,7 @@ public sealed class InvariantTests
 	public void ShortMovePathAllowsEndTurn()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 
 		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));

@@ -84,7 +84,7 @@ public sealed class LegalMoveTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var expected = Preview.GetLegalMoves(battle);
-		var highlights = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions);
+		var highlights = BattleTestCommands.DiscoverPaths(battle);
 
 		Assert.Equal(
 			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),

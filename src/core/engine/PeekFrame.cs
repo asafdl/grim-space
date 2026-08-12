@@ -1,7 +1,10 @@
+using GrimSpace.Core.Actions;
+
 namespace GrimSpace.Core.Engine;
 
 public readonly record struct PeekFrame<TWorld, TRuntime>(
 	TWorld World,
-	ActorRuntimes<TRuntime> Runtimes)
+	ActorRuntimes<TRuntime> Runtimes,
+	IReadOnlyList<IRecord> Records)
 	where TWorld : IWorld<TWorld>
 	where TRuntime : IRuntimeContext<TRuntime>, new();

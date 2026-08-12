@@ -1,28 +1,27 @@
 using Godot;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Graphics;
-using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core;
-using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Scene;
 
 /// <summary>
-/// Thin Godot adapter: input in, frames and replay playback out. Lifecycle lives in <see cref="BattleDirector"/>.
+/// Scene coordinator: wires HUD/views, applies published frames, owns presentation interaction state.
+/// User intents are mapped by <see cref="UserIntentTranslator"/>.
 /// </summary>
 public partial class BattleController : Node3D
 {
 	private BattleUi _ui = null!;
 	private BattleDirector _director = null!;
+	private UserIntentTranslator _translator = null!;
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BattleHud _battleHud = null!;
@@ -34,7 +33,6 @@ public partial class BattleController : Node3D
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 
-	private int? _lastHoveredMoveIndex;
 	private PresentationFrame _currentFrame = null!;
 	private IReadOnlyDictionary<string, GrimSpace.Battle.Units.State>? _playbackEndStates;
 	private MoveHoverCache _moveHoverCache;
@@ -44,15 +42,16 @@ public partial class BattleController : Node3D
 	private PresentationPhase? _lastPhase;
 
 	private readonly record struct MoveHoverCache(
-		IReadOnlyList<Movement.MovePathSession> Paths,
+		IReadOnlyList<MovePathOption> Paths,
 		int PathApBaseline,
 		IReadOnlyList<Coord> CommittedPath);
 
 	public override void _Ready()
 	{
 		var battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
-		_ui = new BattleUi(battle);
-		_director = new BattleDirector(_ui);
+		var agent = battle.PlayerAgent;
+		_ui = new BattleUi(battle, agent);
+		_director = new BattleDirector(_ui, agent);
 		_director.FrameChanged += OnFrameChanged;
 		_director.ReplayRequested += OnReplayRequested;
 		var layout = battle.Layout;
@@ -101,7 +100,21 @@ public partial class BattleController : Node3D
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
 		AddChild(_battleHud);
-		WireHudEvents();
+
+		_translator = new UserIntentTranslator(
+			battle.PlayerId,
+			agent,
+			_camera,
+			_battleHud,
+			_flakPreview,
+			_railgunPreview,
+			() => _battleView.UnitViews)
+		{
+			Name = "UserIntentTranslator",
+		};
+		AddChild(_translator);
+		WireTranslator();
+		WireHudToTranslator();
 
 		_replayPlayer = new TurnReplayPlayer { Name = "TurnReplayPlayer" };
 		_replayPlayer.Configure(
@@ -124,26 +137,54 @@ public partial class BattleController : Node3D
 			_pendingReplay = null;
 			StartReplay(replay, _pendingCompletedTurn);
 		}
+	}
 
-		if (!_director.AcceptsInput
-			|| _ui.State.Mode != EPlayerMode.Move
-			|| _ui.Battle.IsBattleOver
-			|| _ui.GetPlanningActor() is null
-			|| !_currentFrame.CanAct)
-		{
-			_lastHoveredMoveIndex = null;
+	private void WireHudToTranslator()
+	{
+		_battleHud.ManeuverBar.YawRequested += _translator.OnYaw;
+		_battleHud.ManeuverBar.SpinRequested += _translator.OnSpin;
+		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
+		_battleHud.ActionBar.FlakModeRequested += _translator.OnFlakMode;
+		_battleHud.ActionBar.RailgunModeRequested += _translator.OnRailgunMode;
+		_battleHud.ActionBar.TorpedoModeRequested += _translator.OnTorpedoMode;
+		_battleHud.ActionBar.EndTurnRequested += _translator.OnEndTurn;
+		_battleHud.UtilityBar.UndoRequested += _translator.OnUndo;
+		_battleHud.UtilityBar.FocusRequested += _translator.OnFocusCamera;
+		_battleHud.UtilityBar.BackToPlayerRequested += _translator.OnReturnToPlayer;
+		_battleHud.OutcomeOverlay.ResetRequested += _translator.OnRestart;
+		_battleHud.RestartRequested += _translator.OnRestart;
+		_battleHud.RetireRequested += _translator.OnRetire;
+	}
+
+	private void WireTranslator()
+	{
+		_translator.ModeRequested += OnModeRequested;
+		_translator.MoveHoverChanged += OnMoveHoverChanged;
+		_translator.FlakHoverChanged += mount => _director.SetFlakHoverMount(mount);
+		_translator.RailgunHoverChanged += hovered => _director.SetRailgunHovered(hovered);
+		_translator.TorpedoHoverChanged += mount => _director.SetTorpedoHoverMount(mount);
+		_translator.HoversCleared += () => _director.ClearHovers();
+		_translator.FocusUnitRequested += unitId => _director.FocusUnit(unitId);
+		_translator.ReturnToPlayerRequested += ReturnToPlayer;
+		_translator.FocusCameraRequested += () =>
+			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
+		_translator.EndTurnRequested += () => _director.EndTurn();
+		_translator.RestartRequested += ResetBattle;
+		_translator.RetireRequested += () => _director.Retire();
+	}
+
+	private void OnModeRequested(EPlayerMode mode)
+	{
+		if (!_director.AcceptsCommands)
 			return;
-		}
 
-		var index = MovementSelection.PickPathIndex(
-			_camera,
-			GetViewport().GetMousePosition(),
-			_moveHoverCache.Paths);
-		if (index == _lastHoveredMoveIndex)
-			return;
+		_ui.State.SetMode(mode);
+		_director.RefreshFrame();
+	}
 
-		_lastHoveredMoveIndex = index;
-		_ui.State.SetMoveHover(index, _moveHoverCache.Paths.Count);
+	private void OnMoveHoverChanged(int? index, int optionCount)
+	{
+		_ui.State.SetMoveHover(index, optionCount);
 		ApplyMoveHoverOverlay();
 	}
 
@@ -153,7 +194,14 @@ public partial class BattleController : Node3D
 		_moveHoverCache = new MoveHoverCache(
 			frame.MovePaths,
 			frame.MovePathApBaseline,
-			_ui.State.CommittedMovePath);
+			frame.CommittedMovePath);
+		_translator.SetPresentation(
+			enabled: _director.AcceptsInput && !_ui.Battle.IsBattleOver,
+			canIssueActions: frame.CanAct,
+			isInspecting: frame.IsInspecting,
+			mode: frame.Mode,
+			moveOptions: frame.MovePaths,
+			focusState: frame.FocusState);
 		ApplyFrame(frame);
 		HandleCameraPhaseTransition();
 	}
@@ -192,211 +240,11 @@ public partial class BattleController : Node3D
 			target);
 	}
 
-	private void WireHudEvents()
-	{
-		_battleHud.ManeuverBar.HeadingTurnRequested += turn =>
-		{
-			if (_director.Enqueue(new HeadingTurnAction(_ui.Battle.PlayerId, turn)))
-				_lastHoveredMoveIndex = null;
-		};
-		_battleHud.ManeuverBar.RollRequested += direction =>
-		{
-			if (_director.Enqueue(new RollAction(_ui.Battle.PlayerId, direction)))
-				_lastHoveredMoveIndex = null;
-		};
-		_battleHud.OutcomeOverlay.ResetRequested += ResetBattle;
-		_battleHud.RetireRequested += () => _director.Retire();
-		_battleHud.RestartRequested += ResetBattle;
-		_battleHud.ManeuverBar.ModeChanged += mode => _director.SetMode(mode);
-		_battleHud.ActionBar.ModeChanged += mode => _director.SetMode(mode);
-		_battleHud.ActionBar.EndTurnRequested += () => _director.EndTurn();
-		_battleHud.UtilityBar.FocusRequested += () =>
-			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
-		_battleHud.UtilityBar.UndoRequested += () =>
-		{
-			if (_director.Undo())
-				_lastHoveredMoveIndex = null;
-		};
-		_battleHud.UtilityBar.BackToPlayerRequested += ReturnToPlayer;
-	}
-
-	public override void _Input(InputEvent @event)
-	{
-		if (_ui.Battle.IsBattleOver || !_director.AcceptsInput)
-			return;
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Z } key
-			&& (key.CtrlPressed || key.MetaPressed)
-			&& _battleHud.UtilityBar.TryUndo())
-		{
-			GetViewport().SetInputAsHandled();
-		}
-	}
-
-	public override void _UnhandledInput(InputEvent @event)
-	{
-		if (_ui.Battle.IsBattleOver)
-			return;
-
-		if (!_director.AcceptsInput)
-		{
-			if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
-				PresentationDiagnostics.LogInputIgnored(_director.Phase, "left_click");
-
-			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
-				PresentationDiagnostics.LogInputIgnored(_director.Phase, "end_turn");
-
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
-			&& _ui.State.Mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo)
-		{
-			_director.SetMode(EPlayerMode.Move);
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false } abilityKey
-			&& AbilityHotkeySlot(abilityKey.Keycode) is int slot
-			&& (slot == 1
-				? _battleHud.ManeuverBar.TryActivateMove()
-				: _battleHud.ActionBar.TryActivateHotkey(slot)))
-		{
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q }
-			&& _battleHud.ManeuverBar.TrySpin())
-		{
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.E }
-			&& _battleHud.ManeuverBar.TryYaw())
-		{
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space })
-		{
-			_director.EndTurn();
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F }
-			&& _battleHud.UtilityBar.TryFocus())
-		{
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		var frame = _currentFrame;
-		if (_ui.Battle.IsBattleOver || frame.ActiveUnit is null)
-			return;
-
-		if (@event is InputEventMouseMotion motion)
-		{
-			HandleMouseMotion(motion.Position, frame);
-			return;
-		}
-
-		if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click)
-			return;
-
-		HandleLeftClick(click.Position, frame);
-	}
-
-	private void HandleMouseMotion(Vector2 screenPos, PresentationFrame frame)
-	{
-		switch (_ui.State.Mode)
-		{
-			case EPlayerMode.Move:
-				return;
-
-			case EPlayerMode.Flak:
-				_director.SetFlakHover(
-					GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells));
-				break;
-
-			case EPlayerMode.Railgun:
-				_director.SetRailgunHover(
-					GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells));
-				break;
-
-			case EPlayerMode.Torpedo:
-				_director.SetTorpedoHover(
-					GridPick.PickFromSet(_camera, screenPos, frame.TorpedoMountCells));
-				break;
-		}
-	}
-
-	private void HandleLeftClick(Vector2 screenPos, PresentationFrame frame)
-	{
-		switch (_ui.State.Mode)
-		{
-			case EPlayerMode.Move:
-				HandleMoveClick(screenPos, frame);
-				break;
-
-			case EPlayerMode.Flak:
-				if (GridPick.PickFromSet(_camera, screenPos, frame.ValidFlakPickCells) is { } flakCell)
-					_director.ApplyFlak(flakCell);
-				break;
-
-			case EPlayerMode.Railgun:
-				if (GridPick.PickFromSet(_camera, screenPos, frame.RailgunCells) is { } railgunCell)
-					_director.ApplyRailgun(railgunCell);
-				break;
-
-			case EPlayerMode.Torpedo:
-				if (GridPick.PickFromSet(_camera, screenPos, frame.TorpedoMountCells) is { } torpedoCell)
-					_director.ApplyTorpedo(torpedoCell);
-				break;
-		}
-	}
-
-	private void HandleMoveClick(Vector2 screenPos, PresentationFrame frame)
-	{
-		var playerId = _ui.Battle.PlayerId;
-		if (UnitPick.Pick(_camera, screenPos, _battleView.UnitViews) is { } pickedId)
-		{
-			if (pickedId != playerId)
-			{
-				if (_director.FocusUnit(pickedId))
-					_lastHoveredMoveIndex = null;
-				return;
-			}
-
-			if (frame.IsInspecting)
-			{
-				ReturnToPlayer();
-				return;
-			}
-		}
-
-		if (frame.IsInspecting)
-			return;
-
-		if (MovementSelection.PickPathIndex(_camera, screenPos, frame.MovePaths) is int index)
-		{
-			_director.QueueMove(frame.MovePaths[index].EndPosition);
-			_lastHoveredMoveIndex = null;
-		}
-		else
-			PresentationDiagnostics.LogMovePickMiss(frame.MovePaths.Count);
-	}
-
 	private void ReturnToPlayer()
 	{
 		if (!_director.ClearFocus())
 			return;
 
-		_lastHoveredMoveIndex = null;
 		_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 	}
 
@@ -466,17 +314,20 @@ public partial class BattleController : Node3D
 
 	private void ApplyUnitStates(PresentationFrame frame)
 	{
-		var states = UnitRegistry.For(frame.PreviewWorld).All.ToDictionary(
-			unit => unit.State.Id,
-			unit => unit.State);
+		var states = frame.PreviewUnits.ToDictionary(
+			entry => entry.Key,
+			entry => entry.Value.ToState());
 		_battleView.ApplyUnitStates(states, id => ColorForPreview(frame, id));
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
 
-	private Color ColorForPreview(PresentationFrame frame, string actorId) =>
-		UnitRegistry.For(frame.PreviewWorld).TryGet(actorId, out var unit)
-			? ColorFor(unit.Alliance.Team)
-			: ColorForActor(actorId);
+	private Color ColorForPreview(PresentationFrame frame, string actorId)
+	{
+		if (_ui.Battle.Layout.Participants.TryGetValue(actorId, out var team))
+			return ColorFor(team);
+
+		return Colors.White;
+	}
 
 	private void ResetBattle()
 	{
@@ -490,15 +341,5 @@ public partial class BattleController : Node3D
 			ETeam.Player => new Color(0.25f, 0.85f, 0.35f),
 			ETeam.Enemy => new Color(0.9f, 0.25f, 0.2f),
 			_ => Colors.White,
-		};
-
-	private static int? AbilityHotkeySlot(Key keycode) =>
-		keycode switch
-		{
-			Key.Key1 => 1,
-			Key.Key2 => 2,
-			Key.Key3 => 3,
-			Key.Key4 => 4,
-			_ => null,
 		};
 }

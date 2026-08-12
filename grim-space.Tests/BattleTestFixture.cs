@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Actions;
@@ -14,12 +14,15 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
+using System.Runtime.CompilerServices;
 
 namespace GrimSpace.Tests;
 
 internal static class BattleTestFixture
 {
 	public const int DefaultGridSize = 12;
+
+	private static readonly ConditionalWeakTable<BattleOrchestrator, BattleUi> UiCache = new();
 
 	public static BoundedGrid Grid(int size = DefaultGridSize) => new(size, size, size);
 
@@ -57,12 +60,11 @@ internal static class BattleTestFixture
 		return battle;
 	}
 
-	public static BattleUi Ui(BattleOrchestrator battle)
-	{
-		var ui = new BattleUi(battle);
-		_ = ui.MoveUi;
-		return ui;
-	}
+	public static BattleUi Ui(BattleOrchestrator battle) =>
+		UiCache.GetValue(battle, static b => new BattleUi(b, b.PlayerAgent));
+
+	public static BattleDirector Director(BattleOrchestrator battle) =>
+		new(Ui(battle), battle.PlayerAgent);
 
 	public static BattleSimulation CreateTrialSimulation(BattleOrchestrator battle) =>
 		battle.Engine.CreateSimulation();

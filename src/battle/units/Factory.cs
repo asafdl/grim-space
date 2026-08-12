@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;

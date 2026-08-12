@@ -17,7 +17,7 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
+		var move = BattleTestCommands.DiscoverPaths(battle)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 		battle.ResolveTurn();
@@ -31,12 +31,12 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
+		var move = BattleTestCommands.DiscoverPaths(battle)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 		battle.ResolveTurn();
 
-		Assert.NotEmpty(BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
+		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
 		Assert.False(battle.Sim.RuntimeFor(PlayerId).ActivePath != null);
 	}
 
@@ -46,7 +46,7 @@ public sealed class TurnOrchestrationTests
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		var move = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
+		var move = BattleTestCommands.DiscoverPaths(battle)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 

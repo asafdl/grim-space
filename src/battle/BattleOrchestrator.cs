@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using GrimSpace.Core.Log;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
@@ -44,6 +44,8 @@ public sealed class BattleOrchestrator
 		_playerAgent = playerAgent;
 		_objectives = new Manager(objective);
 	}
+
+	internal HumanExecutionAgent PlayerAgent => _playerAgent;
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
@@ -115,7 +117,18 @@ public sealed class BattleOrchestrator
 
 	public bool IsActive(string unitId) => ActiveUnitId == unitId;
 
-	public void BeginTurn() => _playerAgent.BeginTurn(_engine.CreateSimulation);
+	public void BeginTurn()
+	{
+		var player = GetActiveUnit();
+		var canAct = player is not null && CanAct(player) && player.State.Id == PlayerId;
+		_playerAgent.Init(
+			_engine.CreateSimulation,
+			new HumanTurnContext(
+				PlayerId,
+				TurnNumber,
+				canAct,
+				BattleWorld.TerrainBlockedCells(Layout.TerrainHazards)));
+	}
 
 	public bool CanAct(Unit unit) =>
 		!IsBattleOver && IsActive(unit.State.Id) && unit.State.IsAlive;

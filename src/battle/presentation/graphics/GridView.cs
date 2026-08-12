@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Godot;
-using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -68,7 +68,7 @@ public partial class GridView : Node3D
 	}
 
 	public void SetMoveHighlights(
-		IReadOnlyList<MovePathSession> paths,
+		IReadOnlyList<MovePathOption> paths,
 		int pathApBaseline,
 		IReadOnlyList<Coord> path,
 		Coord? target)
@@ -79,8 +79,8 @@ public partial class GridView : Node3D
 		ReleaseActiveHighlights();
 
 		var endpointAp = new Dictionary<Coord, int>();
-		foreach (var session in paths)
-			endpointAp[session.EndPosition] = session.ExtensionApCost(pathApBaseline);
+		foreach (var option in paths)
+			endpointAp[option.EndPosition] = option.ExtensionApCost;
 
 		var pathSet = new HashSet<Coord>(path);
 

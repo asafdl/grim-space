@@ -1,14 +1,12 @@
 using Godot;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Presentation.Domains.Weapons;
-using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class ActionBar : HBoxContainer
 {
-	public event Action<EPlayerMode>? ModeChanged;
+	public event Action? FlakModeRequested;
+	public event Action? RailgunModeRequested;
+	public event Action? TorpedoModeRequested;
 	public event Action? EndTurnRequested;
 
 	private const int SlotSize = 64;
@@ -50,26 +48,30 @@ public sealed partial class ActionBar : HBoxContainer
 	}
 
 	public void Configure(
-		ActorState focusState,
-		PlayerWeaponLegality.Legality legality,
 		bool canAct,
-		bool isInspecting)
+		bool isInspecting,
+		bool showFlak,
+		bool showRailgun,
+		bool showTorpedo,
+		bool flakEnabled,
+		bool railgunEnabled,
+		bool torpedoEnabled,
+		string flakCharges,
+		string railgunCharges,
+		string torpedoCharges)
 	{
-		var weapons = Capabilities.WeaponsFor(focusState.Type);
-		_flakButton.Visible = weapons.OfType<FlakDef>().Any();
-		_railgunButton.Visible = weapons.OfType<RailgunDef>().Any();
-		_torpedoButton.Visible = weapons.OfType<TorpedoDef>().Any();
+		_flakButton.Visible = showFlak;
+		_railgunButton.Visible = showRailgun;
+		_torpedoButton.Visible = showTorpedo;
 		_endTurnPanel.Visible = !isInspecting;
 
-		_flakButton.Disabled = !canAct || !legality.Flak;
-		_railgunButton.Disabled = !canAct || !legality.Railgun;
-		_torpedoButton.Disabled = !canAct || !legality.Torpedo;
+		_flakButton.Disabled = !canAct || !flakEnabled;
+		_railgunButton.Disabled = !canAct || !railgunEnabled;
+		_torpedoButton.Disabled = !canAct || !torpedoEnabled;
 		_endTurnButton.Disabled = !canAct;
-		_flakCharges.Text = BattleHudCopy.Charges(focusState.FlakRemaining, focusState.Stats.FlaksPerTurn);
-		_railgunCharges.Text = BattleHudCopy.Charges(focusState.RailgunRemaining, focusState.Stats.RailgunsPerTurn);
-		_torpedoCharges.Text = BattleHudCopy.Charges(
-			focusState.TorpedoCooldownRemaining > 0 ? 0 : 1,
-			1);
+		_flakCharges.Text = flakCharges;
+		_railgunCharges.Text = railgunCharges;
+		_torpedoCharges.Text = torpedoCharges;
 	}
 
 	/// <summary>Activates ability slot 2–4 if enabled. Returns false if unbound or disabled.</summary>
@@ -107,21 +109,21 @@ public sealed partial class ActionBar : HBoxContainer
 			tooltip: BattleHudCopy.FlakTooltip,
 			iconPath: "res://assets/ui/abilities/flak.svg",
 			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Flak),
+			onPressed: () => FlakModeRequested?.Invoke(),
 			out _flakCharges);
 		_railgunButton = CreateAbilitySlot(
 			hotkey: "3",
 			tooltip: BattleHudCopy.RailgunTooltip,
 			iconPath: "res://assets/ui/abilities/railgun.svg",
 			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Railgun),
+			onPressed: () => RailgunModeRequested?.Invoke(),
 			out _railgunCharges);
 		_torpedoButton = CreateAbilitySlot(
 			hotkey: "4",
 			tooltip: BattleHudCopy.TorpedoTooltip,
 			iconPath: "res://assets/ui/abilities/torpedo.svg",
 			accent: abilityAccent,
-			onPressed: () => ModeChanged?.Invoke(EPlayerMode.Torpedo),
+			onPressed: () => TorpedoModeRequested?.Invoke(),
 			out _torpedoCharges);
 
 		abilityRow.AddChild(_flakButton);

@@ -22,7 +22,7 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 		Assert.Equal(PresentationPhase.Planning, director.Phase);
 
@@ -38,7 +38,7 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		var replayTcs = new TaskCompletionSource<(TurnReplay Replay, int CompletedTurn)>();
 		director.ReplayRequested += (replay, completedTurn) =>
 			replayTcs.TrySetResult((replay, completedTurn));
@@ -55,11 +55,12 @@ public sealed class BattleDirectorTests
 	[Fact]
 	public void ShortMoveCommitAdvancesFromPlanning()
 	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var director = new BattleDirector(new BattleUi(battle));
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId, ESpatialOrientation.Forward)));
+		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 		director.EndTurn();
 
 		Assert.Equal(PresentationPhase.Resolving, director.Phase);
@@ -73,13 +74,12 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 		director.EndTurn();
 
-		Assert.False(director.Undo());
-		Assert.False(director.SetMode(EPlayerMode.Flak));
-		Assert.False(director.Enqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		Assert.False(director.AcceptsCommands);
+		Assert.False(director.AcceptsInput);
 	}
 
 	[Fact]
@@ -90,7 +90,7 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		var replayTcs = new TaskCompletionSource<TurnReplay>();
 		director.ReplayRequested += (replay, _) => replayTcs.TrySetResult(replay);
 		director.Start();
@@ -120,7 +120,7 @@ public sealed class BattleDirectorTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		PresentationFrame? resolvingFrame = null;
 		director.FrameChanged += frame =>
 		{
@@ -140,8 +140,8 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var director = new BattleDirector(ui);
+		var ui = BattleTestFixture.Ui(battle);
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
@@ -155,10 +155,7 @@ public sealed class BattleDirectorTests
 		Assert.Equal(PresentationPhase.Planning, director.Phase);
 		Assert.Equal(queuedCount, battle.Sim.Actions.Count);
 
-		Assert.False(director.SetMode(EPlayerMode.Flak));
-		Assert.False(director.Enqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
-		Assert.False(director.QueueMove(origin + Coord.Forward * 2));
-		Assert.False(director.Undo());
+		Assert.False(director.AcceptsCommands);
 	}
 
 	[Fact]
@@ -166,8 +163,8 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var director = new BattleDirector(ui);
+		var ui = BattleTestFixture.Ui(battle);
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
@@ -177,7 +174,11 @@ public sealed class BattleDirectorTests
 		Assert.True(director.FocusUnit(battle.OpponentId));
 		Assert.True(director.ClearFocus());
 		Assert.False(ui.IsInspecting);
-		Assert.True(director.SetMode(EPlayerMode.Flak));
+		Assert.True(director.AcceptsCommands);
+
+		ui.State.SetMode(EPlayerMode.Flak);
+		director.RefreshFrame();
+		Assert.Equal(EPlayerMode.Flak, ui.State.Mode);
 		Assert.Equal(queuedCount, battle.Sim.Actions.Count);
 	}
 
@@ -186,7 +187,7 @@ public sealed class BattleDirectorTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var director = new BattleDirector(new BattleUi(battle));
+		var director = BattleTestFixture.Director(battle);
 		director.Start();
 
 		Assert.False(director.FocusUnit("missing"));

@@ -7,7 +7,8 @@ public static class ExecutionHelper
 	public static IReadOnlyList<IEffect<TWorld, TRuntime>> ApplyAndResolve<TWorld, TRuntime>(
 		IAction action,
 		TWorld world,
-		TRuntime runtime)
+		TRuntime runtime,
+		List<IRecord>? recordSink = null)
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>
 	{
@@ -16,7 +17,11 @@ public static class ExecutionHelper
 
 		var effects = typed.Definition.Resolve(action, world, runtime).ToList();
 		foreach (var effect in effects)
-			_ = effect.Apply(world, runtime, action.ActorId);
+		{
+			var records = effect.Apply(world, runtime, action.ActorId);
+			if (recordSink is not null)
+				recordSink.AddRange(records);
+		}
 
 		return effects;
 	}

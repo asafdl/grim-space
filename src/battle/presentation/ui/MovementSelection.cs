@@ -1,5 +1,5 @@
 using Godot;
-using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Player;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -7,7 +7,7 @@ public static class MovementSelection
 {
 	private const float PickRadius = 1.4f;
 
-	public static int? PickPathIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<MovePathSession> paths)
+	public static int? PickPathIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<MovePathOption> paths)
 	{
 		if (paths.Count == 0)
 			return null;

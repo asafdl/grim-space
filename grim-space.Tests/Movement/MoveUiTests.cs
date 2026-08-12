@@ -30,7 +30,7 @@ public sealed class MoveUiTests
 		Assert.True(battle.Sim.RuntimeFor(battle.PlayerId).ActivePath != null);
 		Assert.Equal(1, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
-		var extensions = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var extensions = BattleTestCommands.MoveOptions(battle).ToList();
 		Assert.Contains(extensions, option => option.EndPosition == origin + Coord.Forward * 4);
 		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 	}
@@ -44,7 +44,7 @@ public sealed class MoveUiTests
 		var state = new InteractionState();
 
 		Assert.True(MoveUiTestActions.ClickHeading(battle, EHeadingTurn.YawRight));
-		var headingOptions = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var headingOptions = BattleTestCommands.MoveOptions(battle).ToList();
 		Assert.NotEmpty(headingOptions);
 
 		var end = headingOptions[0].EndPosition;
@@ -55,7 +55,7 @@ public sealed class MoveUiTests
 		Assert.All(battle.Sim.Actions.Skip(1), action => Assert.IsType<MoveStepAction>(action));
 		Assert.Equal(end, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
 		Assert.True(battle.Sim.RuntimeFor(battle.PlayerId).ActivePath != null);
-		Assert.Empty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
+		Assert.Empty(BattleTestCommands.MoveOptions(battle));
 	}
 
 	[Fact]
@@ -68,7 +68,7 @@ public sealed class MoveUiTests
 		var state = new InteractionState();
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, state, end));
-		var extensions = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var extensions = BattleTestCommands.MoveOptions(battle).ToList();
 		Assert.NotEmpty(extensions);
 		Assert.Contains(extensions, option => option.EndPosition == origin + Coord.Forward * 4);
 
@@ -84,17 +84,17 @@ public sealed class MoveUiTests
 		var ui = BattleTestFixture.Ui(battle);
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, end));
-		var frameAfterMove = ui.BuildFrame();
+		var frameAfterMove = BattleTestCommands.Frame(battle);
 		Assert.NotEmpty(frameAfterMove.MovePaths);
 		Assert.Contains(
 			frameAfterMove.MovePaths,
 			option => option.EndPosition == origin + Coord.Forward * 4);
-		Assert.True(ui.Undo());
+		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.Sim.Actions);
-		Assert.NotEmpty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
-		Assert.Empty(ui.State.CommittedMovePath);
-		Assert.Equal(origin, ui.BuildFrame().ActorState.Position);
+		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
+		Assert.Empty(battle.PlayerAgent.Current.CommittedMovePath);
+		Assert.Equal(origin, BattleTestCommands.Frame(battle).FocusState.Position);
 	}
 
 	[Fact]
@@ -103,14 +103,18 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
 
-		var rootPaths = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions);
-		Assert.True(MoveUiTestActions.ClickMove(ui, end));
-		_ = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions);
-		Assert.True(ui.Undo());
+		var rootEndpoints = BattleTestCommands.DiscoverPaths(battle)
+			.Select(path => path.EndPosition)
+			.ToHashSet();
+		Assert.True(BattleTestCommands.Move(battle, end));
+		_ = BattleTestCommands.MoveOptions(battle);
+		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Same(rootPaths, ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
+		var restoredEndpoints = BattleTestCommands.DiscoverPaths(battle)
+			.Select(path => path.EndPosition)
+			.ToHashSet();
+		Assert.Equal(rootEndpoints, restoredEndpoints);
 	}
 
 	[Fact]
@@ -118,12 +122,11 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
 
-		Assert.NotEmpty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
-		Assert.True(battle.Sim.TryEnqueue(new RailgunAction(battle.PlayerId)));
+		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
+		Assert.True(BattleTestCommands.FireRailgun(battle));
 
-		Assert.NotEmpty(ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions));
+		Assert.NotEmpty(BattleTestCommands.DiscoverPaths(battle));
 	}
 
 	[Fact]
@@ -131,13 +134,11 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var rootEndpoints = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
+		var rootEndpoints = BattleTestCommands.DiscoverPaths(battle)
 			.Select(option => option.EndPosition)
 			.ToHashSet();
 
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId, ESpatialOrientation.Forward)));
-		Assert.True(battle.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId, ESpatialOrientation.Forward)));
+		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward * 2));
 
 		var runtime = battle.Sim.RuntimeFor(battle.PlayerId);
 		Assert.Equal(2, battle.Sim.Actions.Count);
@@ -146,7 +147,7 @@ public sealed class MoveUiTests
 		Assert.True(runtime.ActivePath!.CanEnd(
 			battle.Sim.StateOf<ActorState>(battle.PlayerId).Stats.MinPathApCost));
 
-		var diluted = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var diluted = BattleTestCommands.DiscoverPaths(battle).ToList();
 
 		Assert.NotEmpty(diluted);
 		Assert.True(diluted.Count < rootEndpoints.Count);
@@ -165,14 +166,13 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var longestRoot = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
+		var longestRoot = BattleTestCommands.DiscoverPaths(battle)
 			.MaxBy(option => option.Cells.Count)!;
 
 		Assert.True(MoveUiTestActions.ClickHeading(battle, EHeadingTurn.YawRight));
 		Assert.Equal(3, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
-		var diluted = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var diluted = BattleTestCommands.DiscoverPaths(battle).ToList();
 
 		Assert.NotEmpty(diluted);
 		Assert.DoesNotContain(longestRoot.EndPosition, diluted.Select(option => option.EndPosition));
@@ -183,22 +183,19 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var state = ui.State;
 
-		var shortMove = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
+		var shortMove = BattleTestCommands.DiscoverPaths(battle)
 			.First(option => option.PathApSpent == 2);
 		Assert.Equal(2, shortMove.Cells.Count);
-		Assert.True(battle.Sim.TryEnqueue(actions: [..shortMove.Steps]));
-		state.CommittedMovePath = shortMove.Cells;
-		state.ClearHovers();
+		Assert.True(BattleTestCommands.Move(battle, shortMove.EndPosition));
 		Assert.Equal(2, battle.Sim.RuntimeFor(battle.PlayerId).ActivePath!.PathApSpent);
 		Assert.Equal(2, battle.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 
-		var followUp = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
+		var followUp = BattleTestCommands.DiscoverPaths(battle).ToList();
 		Assert.NotEmpty(followUp);
-		Assert.True(followUp.Count < ui.MoveUi.GetMovePaths(battle.Engine.CreateSimulation(), battle.PlayerId, []).Count);
-		Assert.NotEmpty(ui.BuildFrame().MovePaths);
+		Assert.True(followUp.Count < BattleTestCommands.DiscoverPaths(
+			BattleTestFixture.BeginSimulation(origin)).Count);
+		Assert.NotEmpty(BattleTestCommands.Frame(battle).MovePaths);
 	}
 
 	[Fact]
@@ -211,13 +208,13 @@ public sealed class MoveUiTests
 
 		Assert.True(MoveUiTestActions.ClickMove(ui, end));
 
-		var frame = ui.BuildFrame();
+		var frame = BattleTestCommands.Frame(battle);
 
 		Assert.NotEmpty(frame.MovePaths);
 		Assert.Contains(frame.MovePaths, option => option.EndPosition == origin + Coord.Forward * 4);
 		Assert.Equal(end, frame.MoveTarget);
 		Assert.Equal(3, frame.MovePath.Count);
-		Assert.Equal(end, frame.ActorState.Position);
+		Assert.Equal(end, frame.FocusState.Position);
 	}
 
 	[Fact]
@@ -227,14 +224,16 @@ public sealed class MoveUiTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var committed = battle.Sim.Actions;
 
-		var playerPaths = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, committed);
-		_ = ui.MoveUi.GetMovePaths(battle.Sim, battle.OpponentId, committed);
+		var playerEndpoints = BattleTestCommands.DiscoverPaths(battle)
+			.Select(path => path.EndPosition)
+			.ToHashSet();
+		_ = BattleTestCommands.DiscoverPaths(battle, battle.OpponentId);
 
-		Assert.Same(playerPaths, ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, committed));
-		Assert.All(playerPaths, path => Assert.Equal(battle.PlayerId, path.ActorId));
+		var restoredEndpoints = BattleTestCommands.DiscoverPaths(battle)
+			.Select(path => path.EndPosition)
+			.ToHashSet();
+		Assert.Equal(playerEndpoints, restoredEndpoints);
 	}
 
 	[Fact]
@@ -242,14 +241,13 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
 
 		var rootSim = battle.Engine.CreateSimulation();
 		var yawSim = battle.Engine.CreateSimulation();
 		Assert.True(yawSim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
 
-		var yawedPaths = ui.MoveUi.GetMovePaths(yawSim, battle.PlayerId, yawSim.Actions).ToList();
-		var rootPaths = ui.MoveUi.GetMovePaths(rootSim, battle.PlayerId, rootSim.Actions).ToList();
+		var yawedPaths = MovePathEndpoints.DiscoverExtensions(yawSim, battle.PlayerId).ToList();
+		var rootPaths = MovePathEndpoints.DiscoverExtensions(rootSim, battle.PlayerId).ToList();
 
 		Assert.NotEmpty(yawedPaths);
 		Assert.NotEmpty(rootPaths);

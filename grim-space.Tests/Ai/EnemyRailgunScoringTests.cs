@@ -11,7 +11,7 @@ namespace GrimSpace.Tests.Ai;
 public sealed class EnemyRailgunScoringTests
 {
 	[Fact]
-	public void BuildTurnActions_FiresRailgunWhenAlignedWithPlayer()
+	public async Task BuildTurnActions_FiresRailgunWhenAlignedWithPlayer()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -21,13 +21,13 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = AiController.Instance.Plan(session, enemy);
+		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
 
 		Assert.Contains(actions, action => action is RailgunAction);
 	}
 
 	[Fact]
-	public void BuildTurnActions_DoesNotFireRailgunWhenMisaligned()
+	public async Task BuildTurnActions_DoesNotFireRailgunWhenMisaligned()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -37,13 +37,13 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = AiController.Instance.Plan(session, enemy);
+		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
 
 		Assert.DoesNotContain(actions, action => action is RailgunAction);
 	}
 
 	[Fact]
-	public void BuildTurnActions_TurnsTowardPlayerWhenParallelAndCannotShoot()
+	public async Task BuildTurnActions_TurnsTowardPlayerWhenParallelAndCannotShoot()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -52,13 +52,13 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = AiController.Instance.Plan(session, enemy);
+		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 	}
 
 	[Fact]
-	public void BuildTurnActions_TurnsToFireRailgunWhenShotNeedsAlignment()
+	public async Task BuildTurnActions_TurnsToFireRailgunWhenShotNeedsAlignment()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -73,7 +73,7 @@ public sealed class EnemyRailgunScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var session = battle.Engine.CreateSimulation();
-		var actions = AiController.Instance.Plan(session, enemy);
+		var actions = await AiController.Instance.GetActionsAsync(enemy, () => session);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 		Assert.Contains(actions, action => action is RailgunAction);

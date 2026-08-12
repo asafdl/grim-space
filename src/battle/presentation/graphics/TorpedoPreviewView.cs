@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -51,13 +52,11 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var aiming =
-			frame.ShowWeaponPreviews
-			&& frame.Mode == EPlayerMode.Torpedo
-			&& frame.TorpedoMountCells.Count > 0;
+		var queued = frame.QueuedWeapon;
+		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Torpedo;
 		var cemented =
 			frame.ShowWeaponPreviews
-			&& frame.CommittedTorpedoMountCell is Coord;
+			&& queued.TorpedoMount is ETorpedoMount;
 		var shouldShow = aiming || cemented;
 
 		Visible = shouldShow;
@@ -74,23 +73,31 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 		if (aiming)
 		{
-			var hovered = frame.TorpedoEnvelopeLayers.Count > 0;
+			var hovered = frame.TorpedoHoverMount is not null;
 			WeaponPreviewMaterials.ApplyAim(
 				_mountMaterial,
 				MountTint,
 				hovered ? HoverMountStrength : AimMountStrength);
 
-			foreach (var cell in frame.TorpedoMountCells)
-				Place(_mountMesh, _mountMaterial, cell);
+			var ship = frame.FocusState.ToState();
+			var skipCells = new HashSet<Coord>();
+			foreach (var mount in TorpedoConfig.EnabledMounts)
+			{
+				var (position, _, _) = TorpedoMount.LaunchPose(ship, mount);
+				skipCells.Add(position);
+				Place(_mountMesh, _mountMaterial, position);
+			}
 
-			PlaceAimEnvelope(frame.TorpedoEnvelopeLayers, frame.TorpedoMountCells);
+			PlaceAimEnvelope(frame.TorpedoEnvelopeLayers, skipCells);
 			return;
 		}
 
-		Place(_mountMesh, _cementedMaterial, frame.CommittedTorpedoMountCell!.Value);
+		var queuedMount = queued.TorpedoMount!.Value;
+		var (queuedCell, _, _) = TorpedoMount.LaunchPose(frame.FocusState.ToState(), queuedMount);
+		Place(_mountMesh, _cementedMaterial, queuedCell);
 		PlaceCementedEnvelope(
-			frame.CommittedTorpedoEnvelopeLayers,
-			new HashSet<Coord> { frame.CommittedTorpedoMountCell.Value });
+			frame.TorpedoEnvelopeLayers,
+			new HashSet<Coord> { queuedCell });
 	}
 
 	private void PlaceAimEnvelope(

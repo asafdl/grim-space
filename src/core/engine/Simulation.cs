@@ -12,6 +12,7 @@ public class Simulation<TWorld, TRuntime>
 	private readonly List<IAction> _actions = [];
 	private readonly List<int?> _undoGroups = [];
 	private readonly List<IReadOnlyList<IEffect<TWorld, TRuntime>>> _appliedEffects = [];
+	private readonly List<IReadOnlyList<IRecord>> _appliedRecords = [];
 	private readonly TWorld _anchorWorld;
 	private readonly ActorRuntimes<TRuntime> _anchorActorRuntimes;
 	private int _anchorTick;
@@ -37,6 +38,8 @@ public class Simulation<TWorld, TRuntime>
 
 	public IReadOnlyList<int?> UndoGroups => _undoGroups;
 
+	public IReadOnlyList<IRecord> RecordsFor(int actionIndex) => _appliedRecords[actionIndex];
+
 	public InvariantStatus InvariantStatus => _invariantStatus;
 
 	public int AnchorTick => _anchorTick;
@@ -50,12 +53,15 @@ public class Simulation<TWorld, TRuntime>
 		_actions.Clear();
 		_undoGroups.Clear();
 		_appliedEffects.Clear();
+		_appliedRecords.Clear();
 		_nextUndoGroup = 0;
 		_invariantStatus = InvariantStatus.Ok;
 		Reevaluate();
 	}
 
-	public bool TryEnqueue(params IAction[] actions)
+	public bool TryEnqueue(params IAction[] actions) => TryEnqueue(keepRecords: false, actions);
+
+	public bool TryEnqueue(bool keepRecords, params IAction[] actions)
 	{
 		if (actions.Length == 0)
 			return true;
@@ -80,8 +86,10 @@ public class Simulation<TWorld, TRuntime>
 
 			_actions.Add(action);
 			_undoGroups.Add(undoGroup);
-			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime);
+			List<IRecord>? recordSink = keepRecords ? [] : null;
+			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime, recordSink);
 			_appliedEffects.Add(effects);
+			_appliedRecords.Add(recordSink ?? []);
 
 			if (typed.Definition is IActionInvariants<TWorld, TRuntime> invariants)
 				_invariantStatus = invariants.EvaluateInvariants(World, runtime, action.ActorId);
@@ -121,8 +129,8 @@ public class Simulation<TWorld, TRuntime>
 
 		var world = World.Fork();
 		var runtimes = Runtimes.Fork();
-		ExecutionHelper.Apply(action, world, runtimes.For(action));
-		return new PeekFrame<TWorld, TRuntime>(world, runtimes);
+		var records = ExecutionHelper.Apply(action, world, runtimes.For(action));
+		return new PeekFrame<TWorld, TRuntime>(world, runtimes, records);
 	}
 
 	public bool TryUndoLast()
@@ -166,12 +174,14 @@ public class Simulation<TWorld, TRuntime>
 		World = _anchorWorld.Fork();
 		Runtimes = _anchorActorRuntimes.Fork();
 		_appliedEffects.Clear();
+		_appliedRecords.Clear();
 
 		foreach (var action in _actions)
 		{
 			var runtime = Runtimes.For(action);
 			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime);
 			_appliedEffects.Add(effects);
+			_appliedRecords.Add([]);
 		}
 
 		RefreshInvariantStatus();
@@ -231,6 +241,7 @@ public class Simulation<TWorld, TRuntime>
 		_actions.RemoveAt(_actions.Count - 1);
 		_undoGroups.RemoveAt(_undoGroups.Count - 1);
 		_appliedEffects.RemoveAt(_appliedEffects.Count - 1);
+		_appliedRecords.RemoveAt(_appliedRecords.Count - 1);
 		ExecutionHelper.UndoEffects(effects, action, World, Runtimes.For(action));
 	}
 

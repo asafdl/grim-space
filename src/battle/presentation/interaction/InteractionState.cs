@@ -1,5 +1,7 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Interaction;
@@ -9,11 +11,10 @@ public sealed class InteractionState
 	public string? FocusId { get; private set; }
 
 	public EPlayerMode Mode { get; set; } = EPlayerMode.Move;
-	public Coord? FlakHover { get; set; }
-	public Coord? RailgunHover { get; set; }
-	public Coord? TorpedoHover { get; set; }
+	public EFlakMount? FlakHoverMount { get; set; }
+	public bool RailgunHovered { get; set; }
+	public ETorpedoMount? TorpedoHoverMount { get; set; }
 	public int? MoveHoveredIndex { get; set; }
-	public IReadOnlyList<Coord> CommittedMovePath { get; set; } = [];
 
 	public void FocusUnit(string unitId)
 	{
@@ -38,15 +39,14 @@ public sealed class InteractionState
 		FocusId = null;
 		Mode = EPlayerMode.Move;
 		ClearHovers();
-		CommittedMovePath = [];
 	}
 
 	public void ClearHovers()
 	{
 		MoveHoveredIndex = null;
-		FlakHover = null;
-		RailgunHover = null;
-		TorpedoHover = null;
+		FlakHoverMount = null;
+		RailgunHovered = false;
+		TorpedoHoverMount = null;
 	}
 
 	public void SetMoveHover(int? index, int optionCount) =>

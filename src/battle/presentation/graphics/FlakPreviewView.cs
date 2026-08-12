@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -44,22 +45,42 @@ public sealed partial class FlakPreviewView : Node3D
 		Visible = false;
 	}
 
+	public EFlakMount? PickMount(Camera3D camera, Vector2 screenPos)
+	{
+		var portNear = _port is { Visible: true }
+			&& PreviewPick.NearNode(camera, screenPos, _port);
+		var starboardNear = _starboard is { Visible: true }
+			&& PreviewPick.NearNode(camera, screenPos, _starboard);
+
+		if (portNear && starboardNear)
+		{
+			var portDist = PreviewPick.ScreenDistance(camera, screenPos, _port!);
+			var starboardDist = PreviewPick.ScreenDistance(camera, screenPos, _starboard!);
+			return portDist <= starboardDist ? EFlakMount.Port : EFlakMount.Starboard;
+		}
+
+		if (portNear)
+			return EFlakMount.Port;
+
+		if (starboardNear)
+			return EFlakMount.Starboard;
+
+		return null;
+	}
+
 	public void ApplyFrame(PresentationFrame frame)
 	{
+		var queued = frame.QueuedWeapon;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Flak;
-		var showPort = aiming
-			? frame.ValidFlakPortCells.Count > 0
-			: frame.ShowWeaponPreviews && frame.CommittedFlakMount == EFlakMount.Port;
-		var showStarboard = aiming
-			? frame.ValidFlakStarboardCells.Count > 0
-			: frame.ShowWeaponPreviews && frame.CommittedFlakMount == EFlakMount.Starboard;
+		var showPort = aiming || (frame.ShowWeaponPreviews && queued.FlakMount == EFlakMount.Port);
+		var showStarboard = aiming || (frame.ShowWeaponPreviews && queued.FlakMount == EFlakMount.Starboard);
 		var shouldShow = showPort || showStarboard;
 
 		Visible = shouldShow;
 		if (!shouldShow || _port is null || _starboard is null)
 			return;
 
-		var state = frame.ActorState;
+		var state = frame.FocusState.ToState();
 		Position = WorldMapping.ToWorld(state.Position);
 
 		var starboard = ToVector3(state.Starboard);
@@ -74,16 +95,14 @@ public sealed partial class FlakPreviewView : Node3D
 
 		if (aiming)
 		{
-			var hoverIsPort = IsHoveringMount(frame, EFlakMount.Port);
-			var hoverIsStarboard = IsHoveringMount(frame, EFlakMount.Starboard);
 			WeaponPreviewMaterials.ApplyAim(
 				_portMaterial!,
 				PortTint,
-				Strength(showPort, hoverIsPort));
+				Strength(showPort, frame.FlakHoverMount == EFlakMount.Port));
 			WeaponPreviewMaterials.ApplyAim(
 				_starboardMaterial!,
 				StarboardTint,
-				Strength(showStarboard, hoverIsStarboard));
+				Strength(showStarboard, frame.FlakHoverMount == EFlakMount.Starboard));
 			return;
 		}
 
@@ -91,26 +110,6 @@ public sealed partial class FlakPreviewView : Node3D
 			WeaponPreviewMaterials.ApplyCemented(_portMaterial!);
 		if (showStarboard)
 			WeaponPreviewMaterials.ApplyCemented(_starboardMaterial!);
-	}
-
-	private static bool IsHoveringMount(PresentationFrame frame, EFlakMount mount)
-	{
-		if (frame.FlakPreviewCells.Count == 0)
-			return false;
-
-		var cells = mount == EFlakMount.Port
-			? frame.ValidFlakPortCells
-			: frame.ValidFlakStarboardCells;
-		if (cells.Count == 0)
-			return false;
-
-		foreach (var cell in frame.FlakPreviewCells)
-		{
-			if (cells.Contains(cell))
-				return true;
-		}
-
-		return false;
 	}
 
 	private static float Strength(bool available, bool hovered) =>

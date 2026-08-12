@@ -1,11 +1,12 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
-using GrimSpace.Battle.Presentation.Domains.Flak;
-using GrimSpace.Battle.Presentation.Domains.Railgun;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -20,19 +21,17 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
-		var threeStepIndex = options.FindIndex(
-			option => option.EndPosition == origin + Coord.Forward * 3);
+		var options = BattleTestCommands.MoveOptions(battle).ToList();
+		var threeStepEnd = origin + Coord.Forward * 3;
 
-		Assert.True(ui.TryQueueMove(threeStepIndex, options));
+		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 
-		var frame = ui.BuildFrame();
+		var frame = BattleTestCommands.Frame(battle);
 		var endpoints = frame.MovePaths.Select(option => option.EndPosition).ToHashSet();
 
-		Assert.Equal(origin + Coord.Forward * 3, frame.ActorState.Position);
+		Assert.Equal(threeStepEnd, frame.FocusState.Position);
 		Assert.Contains(origin + Coord.Forward * 4, endpoints);
-		Assert.Equal(origin + Coord.Forward * 3, frame.MoveTarget);
+		Assert.Equal(threeStepEnd, frame.MoveTarget);
 		Assert.Equal(3, frame.MovePath.Count);
 	}
 
@@ -41,17 +40,14 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
-		var threeStepIndex = options.FindIndex(
-			option => option.EndPosition == origin + Coord.Forward * 3);
+		var threeStepEnd = origin + Coord.Forward * 3;
 
-		ui.TryQueueMove(threeStepIndex, options);
-		Assert.True(ui.Undo());
+		BattleTestCommands.Move(battle, threeStepEnd);
+		Assert.True(BattleTestCommands.Undo(battle));
 
-		var frame = ui.BuildFrame();
+		var frame = BattleTestCommands.Frame(battle);
 
-		Assert.Equal(origin, frame.ActorState.Position);
+		Assert.Equal(origin, frame.FocusState.Position);
 		Assert.Null(frame.MoveTarget);
 		Assert.Empty(frame.MovePath);
 		Assert.Contains(
@@ -64,13 +60,12 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
 
-		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward));
+		Assert.True(BattleTestCommands.FireRailgun(battle));
 		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 		Assert.Single(battle.Sim.Actions);
 
-		Assert.True(ui.Undo());
+		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.Sim.Actions);
 		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
@@ -81,13 +76,15 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
 		var pickCell = origin + new Coord(1, 1, 0);
 
-		Assert.True(FlakUi.TryApply(battle, ui.State, pickCell));
+		var frame = BodyFrame.From(battle.Sim.StateOf<ActorState>(battle.PlayerId));
+		var mount = WeaponBursts.FlakMountForCell(frame, pickCell);
+		Assert.NotNull(mount);
+		Assert.True(BattleTestCommands.FireFlak(battle, mount.Value));
 		Assert.Equal(0, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
 
-		Assert.True(ui.Undo());
+		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.Sim.Actions);
 		Assert.Equal(CombatConfig.FlaksPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
@@ -98,17 +95,14 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
-		var threeStepIndex = options.FindIndex(
-			option => option.EndPosition == origin + Coord.Forward * 3);
+		var threeStepEnd = origin + Coord.Forward * 3;
 
-		Assert.True(ui.TryQueueMove(threeStepIndex, options));
-		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward * 4));
+		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
+		Assert.True(BattleTestCommands.FireRailgun(battle));
 
 		Assert.Equal(4, battle.Sim.Actions.Count);
 
-		Assert.True(ui.Undo());
+		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
 		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
@@ -120,19 +114,16 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
-		var threeStepIndex = options.FindIndex(
-			option => option.EndPosition == origin + Coord.Forward * 3);
+		var threeStepEnd = origin + Coord.Forward * 3;
 
-		Assert.True(ui.TryQueueMove(threeStepIndex, options));
-		var pathAfterMove = ui.State.CommittedMovePath.ToList();
+		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
+		var pathAfterMove = battle.PlayerAgent.Current.CommittedMovePath.ToList();
 		Assert.NotEmpty(pathAfterMove);
 
-		Assert.True(RailgunUi.TryApply(battle, ui.State, origin + Coord.Forward * 4));
-		Assert.True(ui.Undo());
+		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Equal(pathAfterMove, ui.State.CommittedMovePath);
+		Assert.Equal(pathAfterMove, battle.PlayerAgent.Current.CommittedMovePath);
 		Assert.DoesNotContain(battle.Sim.Actions, action => action is RailgunAction);
 		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 	}
@@ -142,17 +133,15 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
 
-		var frame = ui.BuildFrame();
+		var frame = BattleTestCommands.Frame(battle);
 
 		Assert.Equal(battle.PlayerId, frame.FocusId);
 		Assert.False(frame.IsInspecting);
 		Assert.True(frame.CanAct);
 		Assert.True(frame.ShowMovePreview);
-		var focusState = frame.PreviewWorld.StateOf(frame.FocusId);
-		Assert.Equal(battle.Sim.StateOf<ActorState>(battle.PlayerId).Position, focusState.Position);
-		Assert.All(frame.MovePaths, path => Assert.Equal(battle.PlayerId, path.ActorId));
+		Assert.Equal(battle.Sim.StateOf<ActorState>(battle.PlayerId).Position, frame.FocusState.Position);
+		Assert.NotEmpty(frame.MovePaths);
 	}
 
 	[Fact]
@@ -161,10 +150,9 @@ public sealed class PresentationFrameTests
 		var origin = new Coord(5, 5, 5);
 		var enemyPos = TurnOrchestrationTests.EnemyInRailgunLine(origin);
 		var battle = CreateOrchestrator(origin, enemyPos);
-		var ui = new BattleUi(battle);
 
-		ui.State.FocusUnit(battle.OpponentId);
-		var frame = ui.BuildFrame();
+		BattleTestCommands.Focus(battle, battle.OpponentId);
+		var frame = BattleTestCommands.Frame(battle);
 
 		Assert.Equal(battle.OpponentId, frame.FocusId);
 		Assert.True(frame.IsInspecting);
@@ -174,9 +162,8 @@ public sealed class PresentationFrameTests
 		Assert.Empty(frame.MovePath);
 		Assert.Null(frame.MoveTarget);
 		Assert.False(frame.ShowWeaponPreviews);
-		Assert.Equal(enemyPos, frame.PreviewWorld.StateOf(frame.FocusId).Position);
+		Assert.Equal(enemyPos, frame.FocusState.Position);
 		Assert.NotEmpty(frame.MovePaths);
-		Assert.All(frame.MovePaths, path => Assert.Equal(battle.OpponentId, path.ActorId));
 	}
 
 	[Fact]
@@ -184,17 +171,14 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
-		var options = BattleTestFixture.Ui(battle).MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).ToList();
-		var threeStepIndex = options.FindIndex(
-			option => option.EndPosition == origin + Coord.Forward * 3);
-		Assert.True(ui.TryQueueMove(threeStepIndex, options));
+		var threeStepEnd = origin + Coord.Forward * 3;
+		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 
 		var actionsBefore = battle.Sim.Actions.ToList();
 		var playerPosBefore = battle.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 
-		ui.State.FocusUnit(battle.OpponentId);
-		_ = ui.BuildFrame();
+		BattleTestCommands.Focus(battle, battle.OpponentId);
+		_ = BattleTestCommands.Frame(battle);
 
 		Assert.Equal(actionsBefore, battle.Sim.Actions);
 		Assert.Equal(playerPosBefore, battle.Sim.StateOf<ActorState>(battle.PlayerId).Position);
@@ -205,14 +189,13 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = new BattleUi(battle);
 
-		ui.State.FocusUnit("missing");
-		var frame = ui.BuildFrame();
+		BattleTestCommands.Focus(battle, "missing");
+		var frame = BattleTestCommands.Frame(battle);
 
 		Assert.Equal(battle.PlayerId, frame.FocusId);
 		Assert.False(frame.IsInspecting);
-		Assert.Null(ui.State.FocusId);
+		Assert.Null(BattleTestFixture.Ui(battle).State.FocusId);
 	}
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)

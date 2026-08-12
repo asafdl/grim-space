@@ -27,7 +27,7 @@ public static class OrientationStreamline
 		sim.Dequeue(prefix);
 		foreach (var action in after.Skip(prefix))
 		{
-			if (!sim.TryEnqueue(action))
+			if (!sim.TryEnqueue(keepRecords: true, action))
 				throw new InvalidOperationException("Orientation streamline produced an illegal queue.");
 		}
 	}

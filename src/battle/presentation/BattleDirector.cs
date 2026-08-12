@@ -1,13 +1,7 @@
 using System.Diagnostics;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Presentation.Domains.Flak;
-using GrimSpace.Battle.Presentation.Domains.Railgun;
-using GrimSpace.Battle.Presentation.Domains.Torpedo;
-using GrimSpace.Battle.Presentation.Domains.Turn;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions;
-using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Weapons;
 
 namespace GrimSpace.Battle.Presentation;
 
@@ -27,9 +21,15 @@ public sealed class BattleDirector
 {
 	private readonly DirectorJobMap _jobs = new();
 
-	public BattleDirector(BattleUi ui) => _ui = ui;
+	public BattleDirector(BattleUi ui, HumanExecutionAgent agent)
+	{
+		_ui = ui;
+		_agent = agent;
+		_agent.Changed += _ => EmitFrame();
+	}
 
 	private readonly BattleUi _ui;
+	private readonly HumanExecutionAgent _agent;
 
 	public PresentationPhase Phase { get; private set; }
 
@@ -42,6 +42,9 @@ public sealed class BattleDirector
 
 	public void Start() => EnterPlanningSync();
 
+	/// <summary>Rebuild the current presentation frame from interaction state + agent snapshot.</summary>
+	public void RefreshFrame() => EmitFrame();
+
 	public void EndTurn()
 	{
 		if (Phase != PresentationPhase.Planning || !AcceptsCommands)
@@ -50,14 +53,13 @@ public sealed class BattleDirector
 			return;
 		}
 
-		if (!TryCommit())
+		if (!_agent.Commit())
 		{
-			var sim = _ui.Battle.Sim;
 			PresentationDiagnostics.LogCommitFailed(
 				_ui.Battle.IsBattleOver,
-				sim.InvariantStatus,
+				_agent.Sim.InvariantStatus,
 				_ui.Battle.TurnNumber,
-				sim.Actions.Count);
+				_agent.Sim.Actions.Count);
 			return;
 		}
 
@@ -104,8 +106,7 @@ public sealed class BattleDirector
 		if (!AcceptsInput)
 			return false;
 
-		var previewWorld = TurnUi.GetPreviewWorld(_ui.Battle);
-		if (!UnitRegistry.For(previewWorld).TryGet(unitId, out var unit) || !unit.State.IsAlive)
+		if (!_agent.Current.PreviewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
 			return false;
 
 		_ui.State.FocusUnit(unitId);
@@ -123,146 +124,49 @@ public sealed class BattleDirector
 		return true;
 	}
 
-	public bool SetMode(EPlayerMode mode)
+	public void ClearHovers()
 	{
-		if (!AcceptsCommands)
-			return false;
-
-		_ui.State.SetMode(mode);
-		EmitFrame();
-		return true;
-	}
-
-	public bool QueueMove(Coord endPosition)
-	{
-		if (!AcceptsCommands)
-		{
-			PresentationDiagnostics.LogMoveRejected("not_planning", Phase, optionIndex: -1);
-			return false;
-		}
-
-		var battle = _ui.Battle;
-		var activeUnit = _ui.GetPlanningActor();
-		if (activeUnit is null)
-		{
-			PresentationDiagnostics.LogMoveRejected("no_planning_actor", Phase, optionIndex: -1);
-			return false;
-		}
-
-		if (!battle.CanAct(activeUnit))
-		{
-			PresentationDiagnostics.LogMoveRejected("cannot_act", Phase, optionIndex: -1);
-			return false;
-		}
-
-		if (!_ui.TryQueueMove(endPosition))
-		{
-			var pathCount = _ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions).Count;
-			PresentationDiagnostics.LogMoveRejected(
-				"queue_failed",
-				Phase,
-				optionIndex: -1,
-				optionCount: pathCount);
-			return false;
-		}
-
-		EmitFrame();
-		return true;
-	}
-
-	public bool Enqueue(IAction action)
-	{
-		if (!AcceptsCommands)
-			return false;
-
-		var actor = _ui.GetPlanningActor();
-		if (actor is null || !_ui.Battle.CanAct(actor) || !_ui.Battle.Sim.TryEnqueue(action))
-			return false;
-
-		OrientationStreamline.CompactQueue(_ui.Battle.Sim);
-		EmitFrame();
-		return true;
-	}
-
-	public bool Undo()
-	{
-		if (!AcceptsCommands)
-			return false;
-
-		if (!_ui.Undo())
-			return false;
-
-		EmitFrame();
-		return true;
-	}
-
-	public bool ApplyFlak(Coord cell)
-	{
-		if (!AcceptsCommands)
-			return false;
-
-		if (!FlakUi.TryApply(_ui.Battle, _ui.State, cell))
-			return false;
-
-		EmitFrame();
-		return true;
-	}
-
-	public bool ApplyRailgun(Coord cell)
-	{
-		if (!AcceptsCommands)
-			return false;
-
-		if (!RailgunUi.TryApply(_ui.Battle, _ui.State, cell))
-			return false;
-
-		EmitFrame();
-		return true;
-	}
-
-	public bool ApplyTorpedo(Coord cell)
-	{
-		if (!AcceptsCommands)
-			return false;
-
-		if (!TorpedoUi.TryApply(_ui.Battle, _ui.State, cell))
-			return false;
-
-		EmitFrame();
-		return true;
-	}
-
-	public void SetFlakHover(Coord? cell)
-	{
-		if (!AcceptsCommands)
-			return;
-
-		_ui.State.FlakHover = cell;
-		EmitFrame();
-	}
-
-	public void SetRailgunHover(Coord? cell)
-	{
-		if (!AcceptsCommands)
-			return;
-
-		_ui.State.RailgunHover = cell;
-		EmitFrame();
-	}
-
-	public void SetTorpedoHover(Coord? cell)
-	{
-		if (!AcceptsCommands)
-			return;
-
-		if (_ui.State.TorpedoHover == cell)
-			return;
-
-		_ui.State.TorpedoHover = cell;
+		_ui.State.ClearHovers();
 		EmitFrame();
 	}
 
 	private void EnterPlanningSync() => EnterPlanningCore("initial start");
+
+	public void SetFlakHoverMount(EFlakMount? mount)
+	{
+		if (!AcceptsCommands)
+			return;
+
+		if (_ui.State.FlakHoverMount == mount)
+			return;
+
+		_ui.State.FlakHoverMount = mount;
+		EmitFrame();
+	}
+
+	public void SetRailgunHovered(bool hovered)
+	{
+		if (!AcceptsCommands)
+			return;
+
+		if (_ui.State.RailgunHovered == hovered)
+			return;
+
+		_ui.State.RailgunHovered = hovered;
+		EmitFrame();
+	}
+
+	public void SetTorpedoHoverMount(ETorpedoMount? mount)
+	{
+		if (!AcceptsCommands)
+			return;
+
+		if (_ui.State.TorpedoHoverMount == mount)
+			return;
+
+		_ui.State.TorpedoHoverMount = mount;
+		EmitFrame();
+	}
 
 	private void EnterPlanningCore(string reason)
 	{
@@ -270,7 +174,6 @@ public sealed class BattleDirector
 		var totalTimer = Stopwatch.StartNew();
 
 		SetPhase(PresentationPhase.Planning, reason);
-		_ui.ResetMoveUi();
 
 		var previewTimer = Stopwatch.StartNew();
 		EmitFrame();
@@ -296,15 +199,14 @@ public sealed class BattleDirector
 	}
 
 	private void EmitFrame() =>
-		FrameChanged?.Invoke(_ui.BuildFrame(AcceptsCommands));
+		FrameChanged?.Invoke(_ui.BuildFrame(CurrentSnapshot(), AcceptsCommands));
 
-	private bool TryCommit()
-	{
-		if (_ui.Battle.IsBattleOver)
-			return false;
-
-		return _ui.Battle.Sim.TryCommit(out _, out _);
-	}
+	private HumanTurnSnapshot CurrentSnapshot() =>
+		_agent.BuildSnapshot(new HumanTurnViewInput(
+			_ui.State.FocusId,
+			_ui.State.FlakHoverMount,
+			_ui.State.RailgunHovered,
+			_ui.State.TorpedoHoverMount));
 
 	private async Task ResolveAndContinue(int completedTurn, int version)
 	{

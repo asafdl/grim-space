@@ -1,5 +1,4 @@
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
@@ -13,10 +12,9 @@ public sealed class MovePreviewVisibilityTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var frame = ui.BuildFrame();
+		var frame = BattleTestCommands.Frame(battle);
 
-		var visible = VisibleEndpoints(frame.MovePaths, frame.MovePathApBaseline, frame.MoveTarget);
+		var visible = VisibleEndpoints(frame.MovePaths, frame.MoveTarget);
 
 		var expected = frame.MovePaths.Select(path => path.EndPosition).ToHashSet();
 		if (frame.MoveTarget is Coord target)
@@ -30,14 +28,12 @@ public sealed class MovePreviewVisibilityTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var threeStep = ui.MoveUi.GetMovePaths(battle.Sim, battle.PlayerId, battle.Sim.Actions)
-			.First(path => path.EndPosition == origin + Coord.Forward * 3);
+		var threeStepEnd = origin + Coord.Forward * 3;
 
-		Assert.True(ui.TryQueueMove(threeStep.EndPosition));
+		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 
-		var frame = ui.BuildFrame();
-		var visible = VisibleEndpoints(frame.MovePaths, frame.MovePathApBaseline, frame.MoveTarget);
+		var frame = BattleTestCommands.Frame(battle);
+		var visible = VisibleEndpoints(frame.MovePaths, frame.MoveTarget);
 
 		var expected = frame.MovePaths.Select(path => path.EndPosition).ToHashSet();
 		if (frame.MoveTarget is Coord target)
@@ -51,13 +47,12 @@ public sealed class MovePreviewVisibilityTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var ui = BattleTestFixture.Ui(battle);
-		var frame = ui.BuildFrame();
+		var frame = BattleTestCommands.Frame(battle);
 
 		for (var i = 0; i < frame.MovePaths.Count; i++)
 		{
-			var (_, target) = MoveUi.GetPathHighlights(frame.MovePaths, i, ui.State.CommittedMovePath);
-			var visible = VisibleEndpoints(frame.MovePaths, frame.MovePathApBaseline, target);
+			var (_, target) = MoveUi.GetPathHighlights(frame.MovePaths, i, frame.CommittedMovePath);
+			var visible = VisibleEndpoints(frame.MovePaths, target);
 			var expected = frame.MovePaths.Select(option => option.EndPosition).ToHashSet();
 			if (target is Coord hoveredEnd)
 				expected.Remove(hoveredEnd);
@@ -67,19 +62,14 @@ public sealed class MovePreviewVisibilityTests
 	}
 
 	private static HashSet<Coord> VisibleEndpoints(
-		IReadOnlyList<MovePathSession> paths,
-		int pathApBaseline,
+		IReadOnlyList<MovePathOption> paths,
 		Coord? target)
 	{
-		var endpointAp = new Dictionary<Coord, int>();
-		foreach (var session in paths)
-			endpointAp[session.EndPosition] = session.ExtensionApCost(pathApBaseline);
-
 		var visible = new HashSet<Coord>();
-		foreach (var (coord, _) in endpointAp)
+		foreach (var option in paths)
 		{
-			if (coord != target)
-				visible.Add(coord);
+			if (option.EndPosition != target)
+				visible.Add(option.EndPosition);
 		}
 
 		return visible;

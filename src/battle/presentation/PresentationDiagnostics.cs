@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core.Actions;
@@ -64,9 +64,8 @@ internal static class PresentationDiagnostics
 		Coord actorPos,
 		int pathApBaseline,
 		int queuedActionCount,
-		IReadOnlyList<MovePathSession> paths)
+		IReadOnlyList<MovePathOption> paths)
 	{
-		var canEndCount = paths.Count(path => path.CanEndPath);
 		var gate = ResolveMovePreviewGate(
 			mode,
 			acceptsCommands,
@@ -75,7 +74,7 @@ internal static class PresentationDiagnostics
 			weaponQueued,
 			paths.Count);
 		var fingerprint =
-			$"{turnNumber}|{source}|{mode}|{gate}|{pathApBaseline}|{queuedActionCount}|{paths.Count}|{canEndCount}";
+			$"{turnNumber}|{source}|{mode}|{gate}|{pathApBaseline}|{queuedActionCount}|{paths.Count}";
 		if (fingerprint == _lastMovePreviewFingerprint)
 			return;
 
@@ -83,7 +82,7 @@ internal static class PresentationDiagnostics
 		GameLog.Log(
 			$"[presentation] move preview: turn={turnNumber} source={source} mode={mode} "
 			+ $"gate={gate} actor={actorPos} baselineAp={pathApBaseline} queued={queuedActionCount} "
-			+ $"paths={paths.Count} canEnd={canEndCount}");
+			+ $"paths={paths.Count}");
 	}
 
 	public static void LogMovePreviewHighlights(int pathCount, int endpointCount)

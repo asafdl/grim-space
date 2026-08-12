@@ -18,15 +18,15 @@ public sealed class AiController : IExecutionAgent<BattleWorld, ActorRuntime, Un
 
 	public Task<IReadOnlyList<IAction>> GetActionsAsync(
 		Unit actor,
-		Func<BattleSimulation> createSim) =>
-		Task.Run(() => Plan(createSim(), actor));
-
-	public IReadOnlyList<IAction> Plan(BattleSimulation session, Unit actor) =>
-		Runner.CalcActions(
-			session,
-			actor,
-			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
-			frames => SelectBest(session, actor.State.Id, frames));
+		Func<BattleSimulation> createSim)
+		{
+			var session = createSim();
+			return Task.Run(() => Runner.CalcActions(
+				session,
+				actor,
+				new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+				frames => SelectBest(session, actor.State.Id, frames)));
+		}
 
 	private static SearchFrame<BattleWorld, ActorRuntime> SelectBest(
 		BattleSimulation session,

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
@@ -54,20 +55,20 @@ public sealed partial class RailgunPreviewView : Node3D
 		Visible = false;
 	}
 
+	public bool PickHovered(Camera3D camera, Vector2 screenPos) =>
+		_plume is { Visible: true } && PreviewPick.NearNode(camera, screenPos, _plume);
+
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var aiming =
-			frame.ShowWeaponPreviews
-			&& frame.Mode == EPlayerMode.Railgun
-			&& frame.RailgunCells.Count > 0;
-		var cemented = frame.ShowWeaponPreviews && frame.CommittedRailgun;
+		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Railgun;
+		var cemented = frame.ShowWeaponPreviews && frame.QueuedWeapon.Railgun;
 		var shouldShow = aiming || cemented;
 
 		Visible = shouldShow;
 		if (!shouldShow || _material is null)
 			return;
 
-		var state = frame.ActorState;
+		var state = frame.FocusState.ToState();
 
 		Position = WorldMapping.ToWorld(state.Position);
 
@@ -79,11 +80,10 @@ public sealed partial class RailgunPreviewView : Node3D
 
 		if (aiming)
 		{
-			var isHovered = frame.RailgunPreviewCells.Count > 0;
 			WeaponPreviewMaterials.ApplyAim(
 				_material,
 				Tint,
-				isHovered ? HoverStrength : AimStrength);
+				frame.RailgunHovered ? HoverStrength : AimStrength);
 			return;
 		}
 
