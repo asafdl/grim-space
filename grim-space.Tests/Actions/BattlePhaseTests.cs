@@ -165,6 +165,29 @@ public sealed class BattlePhaseTests
 	}
 
 	[Fact]
+	public async Task OutcomeOverlayWaitsForReplayBeforeShowing()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		battle.Engine.World.StateOf(PlayerId).HullPoints = 0;
+
+		var replayTcs = new TaskCompletionSource<TurnReplay>();
+		battle.TurnResolved += (replay, _) => replayTcs.TrySetResult(replay);
+
+		battle.EndTurn();
+		await replayTcs.Task;
+
+		Assert.Equal(EBattlePhase.Replaying, battle.Phase);
+		Assert.True(battle.IsBattleOver);
+		Assert.False(BattleTestCommands.Frame(battle).ShowOutcomeOverlay);
+
+		battle.NotifyReplayComplete();
+
+		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
+		Assert.True(BattleTestCommands.Frame(battle).ShowOutcomeOverlay);
+	}
+
+	[Fact]
 	public void FocusUnitRejectsMissingTarget()
 	{
 		var origin = new Coord(5, 5, 5);

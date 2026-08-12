@@ -139,7 +139,7 @@ public sealed class PresentationFrameBuilder
 			CanAct = canControl,
 			CanFocusCamera = canControl && isPlanning,
 			CanUndo = canControl && agent.CanUndo,
-			ShowOutcomeOverlay = battle.IsBattleOver,
+			ShowOutcomeOverlay = battle.Phase == EBattlePhase.BattleOver,
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = battle.Outcome.Result,
 			ActionLogLines = ActionLogLines,
