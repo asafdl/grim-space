@@ -2,6 +2,8 @@ using Godot;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -29,6 +31,7 @@ public sealed partial class FlakPreviewView : Node3D
 	private MeshInstance3D? _starboard;
 	private ShaderMaterial? _portMaterial;
 	private ShaderMaterial? _starboardMaterial;
+	private PresentationFrame? _frame;
 
 	public void Build()
 	{
@@ -47,35 +50,33 @@ public sealed partial class FlakPreviewView : Node3D
 
 	public ESpatialOrientation? PickMountedOn(Camera3D camera, Vector2 screenPos)
 	{
-		var portNear = _port is { Visible: true }
-			&& PreviewPick.NearNode(camera, screenPos, _port);
-		var starboardNear = _starboard is { Visible: true }
-			&& PreviewPick.NearNode(camera, screenPos, _starboard);
+		if (_frame is null || _frame.Mode != EPlayerMode.Flak || !_frame.ShowWeaponPreviews)
+			return null;
 
-		if (portNear && starboardNear)
-		{
-			var portDist = PreviewPick.ScreenDistance(camera, screenPos, _port!);
-			var starboardDist = PreviewPick.ScreenDistance(camera, screenPos, _starboard!);
-			return portDist <= starboardDist
-				? ESpatialOrientation.Port
-				: ESpatialOrientation.Starboard;
-		}
+		var weapons = _frame.Weapons;
+		var bodyFrame = BodyFrame.From(_frame.FocusState.ToState());
+		var cells = new Dictionary<Coord, ESpatialOrientation>();
 
-		if (portNear)
-			return ESpatialOrientation.Port;
+		if (weapons.PortFlak)
+			AddBurstCells(cells, bodyFrame, ESpatialOrientation.Port);
 
-		if (starboardNear)
-			return ESpatialOrientation.Starboard;
+		if (weapons.StarboardFlak)
+			AddBurstCells(cells, bodyFrame, ESpatialOrientation.Starboard);
 
-		return null;
+		return GridPick.PickFromSet(camera, screenPos, cells.Keys.ToHashSet()) is Coord cell
+			? cells[cell]
+			: null;
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
+		_frame = frame;
 		var queued = frame.QueuedWeapon;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Flak;
-		var showPort = aiming || (frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Port);
-		var showStarboard = aiming || (frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Starboard);
+		var showPort = aiming && frame.Weapons.PortFlak
+			|| frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Port;
+		var showStarboard = aiming && frame.Weapons.StarboardFlak
+			|| frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Starboard;
 		var shouldShow = showPort || showStarboard;
 
 		Visible = shouldShow;
@@ -112,6 +113,15 @@ public sealed partial class FlakPreviewView : Node3D
 			WeaponPreviewMaterials.ApplyCemented(_portMaterial!);
 		if (showStarboard)
 			WeaponPreviewMaterials.ApplyCemented(_starboardMaterial!);
+	}
+
+	private static void AddBurstCells(
+		Dictionary<Coord, ESpatialOrientation> cells,
+		BodyFrame frame,
+		ESpatialOrientation mountedOn)
+	{
+		foreach (var cell in WeaponBursts.FlakBurstCells(frame, mountedOn, static _ => true))
+			cells[cell] = mountedOn;
 	}
 
 	private static float Strength(bool available, bool hovered) =>
