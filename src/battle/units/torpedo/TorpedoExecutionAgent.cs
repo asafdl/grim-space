@@ -5,6 +5,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -36,6 +37,7 @@ public sealed class TorpedoExecutionAgent : ExecutionAgent<BattleWorld, ActorRun
 		Runner.CalcActions(
 			session,
 			actor,
+			Capabilities.For(actor.State.Type),
 			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove),
 			frames => SelectBest(session, actorId, target, frames));
 

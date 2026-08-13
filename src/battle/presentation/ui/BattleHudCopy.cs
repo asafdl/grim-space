@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
 
@@ -30,13 +31,29 @@ internal static class BattleHudCopy
 	public const string YawTooltip = "Yaw:\nTurn your heading. Costs 1 AP.";
 	public const string SpinTooltip = "Spin:\nRoll the ship. Costs 1 AP.";
 
-	public const string FlakTooltip =
-		"Flak:\nSide burst (port or starboard), short range.\nDeals 1 damage and strips momentum.\nCooldown 1 turn.";
-	public const string RailgunTooltip =
-		"Railgun:\nFires in a long straight line ahead.\nDeals 3 damage.\nCooldown 1 turn.";
-	public const string TorpedoTooltip =
-		"Torpedo:\nFires in a set direction.\nFlies forward (with small maneuverability) for 3 turns,\n" +
-		"and tries to detonate on enemies caught in its path for 3 damage.\n3-turn cooldown after launch.";
+	public static string FlakTooltip =>
+		$"Flak:\nSide burst (port or starboard).\n" +
+		$"Range: {CombatConfig.MaxFlakManhattanRange} cells.\n" +
+		$"Deals {CombatConfig.FlakDamage} damage and strips momentum.\n" +
+		$"Cooldown: {CombatConfig.FlaksPerTurn} use per turn.";
+
+	public static string RailgunTooltip =>
+		$"Railgun:\nFires in a long straight line ahead.\n" +
+		$"Range: {CombatConfig.MaxRailgunManhattanRange} cells.\n" +
+		$"Deals {CombatConfig.RailgunDamage} damage.\n" +
+		$"Cooldown: {CombatConfig.RailgunsPerTurn} use per turn.";
+
+	public static string TorpedoTooltip =>
+		$"Torpedo:\nFires in a set direction.\n" +
+		$"Flies for {TorpedoConfig.Fuel} turns with limited maneuverability.\n" +
+		$"Blast radius: {TorpedoConfig.BlastRadius} cells, {TorpedoConfig.BlastDamage} damage.\n" +
+		$"Cooldown: {TorpedoConfig.CooldownTurns} turns after launch.";
+
+	public static string SpawnPatrolTooltip =>
+		$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
+		$"Patrols can shoot flak cannons, and have forward facing shields.\n" +
+		$"Max living patrols: {CombatConfig.MaxLivingPatrolChildren}.\n" +
+		$"Cooldown: {CombatConfig.PatrolCooldownTurns} turns after launch.";
 	public const string EndTurn = "End Turn";
 	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
 

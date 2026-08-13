@@ -24,6 +24,7 @@ public sealed record UnitDisplayState(
 	int RailgunRemaining,
 	int RailgunsPerTurn,
 	int TorpedoCooldownRemaining,
+	int PatrolSpawnCooldownRemaining,
 	bool IsAlive)
 {
 	public static UnitDisplayState Capture(State state) =>
@@ -45,6 +46,7 @@ public sealed record UnitDisplayState(
 			state.RailgunRemaining,
 			state.Stats.RailgunsPerTurn,
 			state.TorpedoCooldownRemaining,
+			state.PatrolSpawnCooldownRemaining,
 			state.IsAlive);
 
 	public BodyFrame ToBodyFrame() =>
@@ -69,6 +71,7 @@ public sealed record UnitDisplayState(
 			FlakRemaining = FlakRemaining,
 			RailgunRemaining = RailgunRemaining,
 			TorpedoCooldownRemaining = TorpedoCooldownRemaining,
+			PatrolSpawnCooldownRemaining = PatrolSpawnCooldownRemaining,
 			Stats = stats,
 		};
 	}

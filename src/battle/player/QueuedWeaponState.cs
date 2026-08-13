@@ -10,4 +10,5 @@ public sealed class QueuedWeaponState
 	public ESpatialOrientation? FlakMountedOn { get; init; }
 	public bool Railgun { get; init; }
 	public ESpatialOrientation? TorpedoMountedOn { get; init; }
+	public bool SpawnPatrol { get; init; }
 }

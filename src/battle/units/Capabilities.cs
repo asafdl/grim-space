@@ -34,7 +34,7 @@ public static class Capabilities
 				RailgunDef.Instance,
 				TorpedoDef.Instance,
 			],
-			EType.Carrier => [RailgunDef.Instance],
+			EType.Carrier => [RailgunDef.Instance, SpawnPatrolDef.Instance],
 			EType.Patrol => [FlakDef.Instance],
 			EType.Torpedo => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),

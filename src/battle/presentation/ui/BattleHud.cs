@@ -1,8 +1,5 @@
 using Godot;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -219,22 +216,13 @@ public partial class BattleHud : Node
 			focusState.MomentumLevel,
 			MomentumConfig.MaxLevel);
 
-		var weaponKinds = Capabilities.AbilitiesFor(focusState.Type);
+		var abilitySpecs = AbilityHudCatalog.ForUnit(focusState.Type);
+		var abilitySlots = abilitySpecs
+			.Select(spec => AbilityHudCatalog.BuildState(spec, focusState, frame.Abilities))
+			.ToList();
+		ActionBar.ApplyLayout(focusState.Type, abilitySpecs);
 		ActionBar.SetMode(frame.Mode);
-		ActionBar.Configure(
-			frame.CanAct,
-			frame.IsInspecting,
-			showFlak: weaponKinds.OfType<FlakDef>().Any(),
-			showRailgun: weaponKinds.OfType<RailgunDef>().Any(),
-			showTorpedo: weaponKinds.OfType<TorpedoDef>().Any(),
-			flakEnabled: frame.Weapons.IsKindLegal(EWeaponKind.Flak),
-			railgunEnabled: frame.Weapons.IsKindLegal(EWeaponKind.Railgun),
-			torpedoEnabled: frame.Weapons.IsKindLegal(EWeaponKind.Torpedo),
-			flakCharges: BattleHudCopy.Charges(focusState.FlakRemaining, focusState.FlaksPerTurn),
-			railgunCharges: BattleHudCopy.Charges(focusState.RailgunRemaining, focusState.RailgunsPerTurn),
-			torpedoCharges: BattleHudCopy.Charges(
-				focusState.TorpedoCooldownRemaining > 0 ? 0 : 1,
-				1));
+		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 

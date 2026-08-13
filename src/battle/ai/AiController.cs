@@ -25,9 +25,13 @@ public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 			try
 			{
 				var start = session.Actions.Count;
+				var capabilities = Capabilities.For(actor.State.Type)
+					.Where(def => def is not SpawnPatrolDef)
+					.ToArray();
 				var actions = Runner.CalcActions(
 					session,
 					actor,
+					capabilities,
 					new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
 					frames => SelectBest(session, actor.State.Id, frames));
 				if (actor.State.Type == EType.Carrier && TryAppendPatrolDeploy(session, actor))

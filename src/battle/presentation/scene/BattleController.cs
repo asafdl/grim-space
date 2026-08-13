@@ -150,9 +150,7 @@ public partial class BattleController : Node3D
 		_battleHud.ManeuverBar.YawRequested += _translator.OnYaw;
 		_battleHud.ManeuverBar.SpinRequested += _translator.OnSpin;
 		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
-		_battleHud.ActionBar.FlakModeRequested += _translator.OnFlakMode;
-		_battleHud.ActionBar.RailgunModeRequested += _translator.OnRailgunMode;
-		_battleHud.ActionBar.TorpedoModeRequested += _translator.OnTorpedoMode;
+		_battleHud.ActionBar.AbilityModeRequested += OnModeRequested;
 		_battleHud.ActionBar.EndTurnRequested += _translator.OnEndTurn;
 		_battleHud.UtilityBar.UndoRequested += _translator.OnUndo;
 		_battleHud.UtilityBar.FocusRequested += _translator.OnFocusCamera;

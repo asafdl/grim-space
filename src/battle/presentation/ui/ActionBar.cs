@@ -1,12 +1,11 @@
 using Godot;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class ActionBar : HBoxContainer
 {
-	public event Action? FlakModeRequested;
-	public event Action? RailgunModeRequested;
-	public event Action? TorpedoModeRequested;
+	public event Action<EPlayerMode>? AbilityModeRequested;
 	public event Action? EndTurnRequested;
 
 	private const int SlotSize = 64;
@@ -14,14 +13,11 @@ public sealed partial class ActionBar : HBoxContainer
 	private const float SvgSourceSize = 512f;
 
 	private readonly ButtonGroup _modeGroup;
-	private Button _flakButton = null!;
-	private Button _railgunButton = null!;
-	private Button _torpedoButton = null!;
+	private readonly List<AbilitySlot> _abilitySlots = [];
+	private HBoxContainer _abilityRow = null!;
 	private PanelContainer _endTurnPanel = null!;
 	private Button _endTurnButton = null!;
-	private Label _flakCharges = null!;
-	private Label _railgunCharges = null!;
-	private Label _torpedoCharges = null!;
+	private EType? _layoutType;
 
 	public ActionBar(ButtonGroup modeGroup)
 	{
@@ -32,105 +28,98 @@ public sealed partial class ActionBar : HBoxContainer
 		Build();
 	}
 
+	public void ApplyLayout(EType unitType, IReadOnlyList<AbilityHudCatalog.Spec> specs)
+	{
+		if (_layoutType == unitType && _abilitySlots.Count == specs.Count)
+			return;
+
+		_layoutType = unitType;
+		RebuildAbilityRow(specs);
+	}
+
 	public void SetMode(EPlayerMode mode)
 	{
-		_flakButton.SetBlockSignals(true);
-		_railgunButton.SetBlockSignals(true);
-		_torpedoButton.SetBlockSignals(true);
-
-		_flakButton.ButtonPressed = mode == EPlayerMode.Flak;
-		_railgunButton.ButtonPressed = mode == EPlayerMode.Railgun;
-		_torpedoButton.ButtonPressed = mode == EPlayerMode.Torpedo;
-
-		_flakButton.SetBlockSignals(false);
-		_railgunButton.SetBlockSignals(false);
-		_torpedoButton.SetBlockSignals(false);
+		foreach (var slot in _abilitySlots)
+		{
+			slot.Button.SetBlockSignals(true);
+			slot.Button.ButtonPressed = mode == slot.Mode;
+			slot.Button.SetBlockSignals(false);
+		}
 	}
 
 	public void Configure(
 		bool canAct,
 		bool isInspecting,
-		bool showFlak,
-		bool showRailgun,
-		bool showTorpedo,
-		bool flakEnabled,
-		bool railgunEnabled,
-		bool torpedoEnabled,
-		string flakCharges,
-		string railgunCharges,
-		string torpedoCharges)
+		IReadOnlyList<AbilityBarSlotState> slots)
 	{
-		_flakButton.Visible = showFlak;
-		_railgunButton.Visible = showRailgun;
-		_torpedoButton.Visible = showTorpedo;
 		_endTurnPanel.Visible = !isInspecting;
-
-		_flakButton.Disabled = !canAct || !flakEnabled;
-		_railgunButton.Disabled = !canAct || !railgunEnabled;
-		_torpedoButton.Disabled = !canAct || !torpedoEnabled;
 		_endTurnButton.Disabled = !canAct;
-		_flakCharges.Text = flakCharges;
-		_railgunCharges.Text = railgunCharges;
-		_torpedoCharges.Text = torpedoCharges;
+
+		for (var i = 0; i < _abilitySlots.Count && i < slots.Count; i++)
+		{
+			var slot = _abilitySlots[i];
+			var state = slots[i];
+			slot.Button.Disabled = !canAct || !state.Enabled;
+			slot.Charges.Text = state.Charges;
+			slot.Button.TooltipText = state.Tooltip;
+		}
 	}
 
-	/// <summary>Activates ability slot 2–4 if enabled. Returns false if unbound or disabled.</summary>
+	/// <summary>Activates ability hotkey slot 2–4 if enabled. Returns false if unbound or disabled.</summary>
 	public bool TryActivateHotkey(int slot)
 	{
-		var button = slot switch
-		{
-			2 => _flakButton,
-			3 => _railgunButton,
-			4 => _torpedoButton,
-			_ => null,
-		};
-		if (button is null || button.Disabled)
+		var index = slot - 2;
+		if (index < 0 || index >= _abilitySlots.Count)
+			return false;
+
+		var button = _abilitySlots[index].Button;
+		if (button.Disabled)
 			return false;
 
 		button.ButtonPressed = true;
 		return true;
 	}
 
+	private void RebuildAbilityRow(IReadOnlyList<AbilityHudCatalog.Spec> specs)
+	{
+		foreach (var slot in _abilitySlots)
+			slot.Button.QueueFree();
+		_abilitySlots.Clear();
+
+		var abilityAccent = new Color(0.55f, 0.78f, 1f);
+		for (var i = 0; i < specs.Count; i++)
+		{
+			var spec = specs[i];
+			var hotkey = (i + 2).ToString();
+			var button = CreateAbilitySlot(
+				hotkey,
+				spec.Tooltip,
+				spec.IconPath,
+				abilityAccent,
+				spec.Mode,
+				out var charges);
+			_abilityRow.AddChild(button);
+			_abilitySlots.Add(new AbilitySlot(button, charges, spec.Mode));
+		}
+	}
+
 	private void Build()
 	{
-		var abilityPanel = CreatePanel(new Color(0.08f, 0.1f, 0.14f, 0.92f), new Color(0.35f, 0.55f, 0.85f, 0.75f));
+		var abilityPanel = CreatePanel(
+			new Color(0.08f, 0.1f, 0.14f, 0.92f),
+			new Color(0.35f, 0.55f, 0.85f, 0.75f));
 		AddChild(abilityPanel);
 
 		var abilityPad = CreatePad();
 		abilityPanel.AddChild(abilityPad);
 
-		var abilityRow = new HBoxContainer();
-		abilityRow.AddThemeConstantOverride("separation", 8);
-		abilityPad.AddChild(abilityRow);
+		_abilityRow = new HBoxContainer();
+		_abilityRow.AddThemeConstantOverride("separation", 8);
+		abilityPad.AddChild(_abilityRow);
 
-		var abilityAccent = new Color(0.55f, 0.78f, 1f);
-		_flakButton = CreateAbilitySlot(
-			hotkey: "2",
-			tooltip: BattleHudCopy.FlakTooltip,
-			iconPath: "res://assets/ui/abilities/flak.svg",
-			accent: abilityAccent,
-			onPressed: () => FlakModeRequested?.Invoke(),
-			out _flakCharges);
-		_railgunButton = CreateAbilitySlot(
-			hotkey: "3",
-			tooltip: BattleHudCopy.RailgunTooltip,
-			iconPath: "res://assets/ui/abilities/railgun.svg",
-			accent: abilityAccent,
-			onPressed: () => RailgunModeRequested?.Invoke(),
-			out _railgunCharges);
-		_torpedoButton = CreateAbilitySlot(
-			hotkey: "4",
-			tooltip: BattleHudCopy.TorpedoTooltip,
-			iconPath: "res://assets/ui/abilities/torpedo.svg",
-			accent: abilityAccent,
-			onPressed: () => TorpedoModeRequested?.Invoke(),
-			out _torpedoCharges);
-
-		abilityRow.AddChild(_flakButton);
-		abilityRow.AddChild(_railgunButton);
-		abilityRow.AddChild(_torpedoButton);
-
-		_endTurnPanel = CreatePanel(new Color(0.16f, 0.1f, 0.05f, 0.94f), new Color(0.95f, 0.7f, 0.25f, 0.9f));
+		_endTurnPanel = CreatePanel(
+			new Color(0.16f, 0.1f, 0.05f, 0.94f),
+			new Color(0.95f, 0.7f, 0.25f, 0.9f));
 		AddChild(_endTurnPanel);
 
 		var endPad = CreatePad();
@@ -143,9 +132,9 @@ public sealed partial class ActionBar : HBoxContainer
 	private Button CreateAbilitySlot(
 		string hotkey,
 		string tooltip,
-		string iconPath,
+		string? iconPath,
 		Color accent,
-		Action onPressed,
+		EPlayerMode mode,
 		out Label charges)
 	{
 		var button = new Button
@@ -171,7 +160,7 @@ public sealed partial class ActionBar : HBoxContainer
 		button.Toggled += pressed =>
 		{
 			if (pressed)
-				onPressed();
+				AbilityModeRequested?.Invoke(mode);
 		};
 		return button;
 	}
@@ -343,9 +332,8 @@ public sealed partial class ActionBar : HBoxContainer
 		return pad;
 	}
 
-	private static StyleBoxFlat MakeStyle(Color bg, Color border, int borderWidth, int radius)
-	{
-		return new StyleBoxFlat
+	private static StyleBoxFlat MakeStyle(Color bg, Color border, int borderWidth, int radius) =>
+		new()
 		{
 			BgColor = bg,
 			BorderColor = border,
@@ -362,11 +350,10 @@ public sealed partial class ActionBar : HBoxContainer
 			ContentMarginTop = 4,
 			ContentMarginBottom = 4,
 		};
-	}
 
-	private static Texture2D LoadSvgIcon(string path, Color tint)
+	private static Texture2D LoadSvgIcon(string? path, Color tint)
 	{
-		if (!Godot.FileAccess.FileExists(path))
+		if (path is null || !Godot.FileAccess.FileExists(path))
 			return ImageTexture.CreateFromImage(Image.CreateEmpty((int)IconPx, (int)IconPx, false, Image.Format.Rgba8));
 
 		var svg = Godot.FileAccess.GetFileAsString(path);
@@ -395,4 +382,6 @@ public sealed partial class ActionBar : HBoxContainer
 			image.SetPixel(x, y, new Color(tint.R, tint.G, tint.B, p.A * tint.A));
 		}
 	}
+
+	private sealed record AbilitySlot(Button Button, Label Charges, EPlayerMode Mode);
 }

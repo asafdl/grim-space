@@ -162,12 +162,6 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnMoveMode() => ModeRequested?.Invoke(EPlayerMode.Move);
 
-	public void OnFlakMode() => ModeRequested?.Invoke(EPlayerMode.Flak);
-
-	public void OnRailgunMode() => ModeRequested?.Invoke(EPlayerMode.Railgun);
-
-	public void OnTorpedoMode() => ModeRequested?.Invoke(EPlayerMode.Torpedo);
-
 	public void OnEndTurn() => EndTurnRequested?.Invoke();
 
 	public void OnUndo()

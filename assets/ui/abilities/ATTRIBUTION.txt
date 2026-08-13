@@ -8,3 +8,4 @@ spin.svg      — screw by Lorc
 yaw.svg       — twirl-center by Lorc
 focus.svg     — targeting by Lorc
 undo.svg      — return-arrow by Lorc
+patrol.svg    — spaceship by Delapouite

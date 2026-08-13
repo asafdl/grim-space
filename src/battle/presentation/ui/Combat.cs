@@ -6,4 +6,5 @@ public enum EPlayerMode
 	Flak,
 	Railgun,
 	Torpedo,
+	SpawnPatrol,
 }

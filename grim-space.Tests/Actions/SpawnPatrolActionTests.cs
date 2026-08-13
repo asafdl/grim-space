@@ -128,12 +128,12 @@ public sealed class SpawnPatrolActionTests
 	}
 
 	[Fact]
-	public void CarrierAbilitiesExcludeDeploy()
+	public void CarrierAbilitiesIncludeDeploy()
 	{
 		var abilities = Capabilities.AbilitiesFor(EType.Carrier);
 
-		Assert.Single(abilities, def => def is RailgunDef);
-		Assert.DoesNotContain(abilities, def => def is SpawnPatrolDef);
+		Assert.Contains(abilities, def => def is RailgunDef);
+		Assert.Contains(abilities, def => def is SpawnPatrolDef);
 	}
 
 	[Fact]

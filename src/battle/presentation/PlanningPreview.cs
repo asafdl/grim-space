@@ -75,21 +75,24 @@ public sealed class PlanningPreview
 	public IReadOnlyList<Coord> CommittedMovePath(BattleSimulation sim, string playerId) =>
 		sim.RuntimeFor(playerId).ActivePath?.Cells ?? [];
 
-	public WeaponPeek Weapons(BattleSimulation sim, string playerId)
+	public WeaponPeek Weapons(BattleSimulation sim, string actorId)
 	{
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 		foreach (var mountedOn in TorpedoMountedDirections)
 		{
-			if (sim.Peek(new TorpedoAction(playerId, mountedOn)) is not null)
+			if (sim.Peek(new TorpedoAction(actorId, mountedOn)) is not null)
 				torpedoMounts.Add(mountedOn);
 		}
 
 		return new WeaponPeek(
-			sim.Peek(new FlakAction(playerId, ESpatialOrientation.Port)) is not null,
-			sim.Peek(new FlakAction(playerId, ESpatialOrientation.Starboard)) is not null,
-			sim.Peek(new RailgunAction(playerId)) is not null,
+			sim.Peek(new FlakAction(actorId, ESpatialOrientation.Port)) is not null,
+			sim.Peek(new FlakAction(actorId, ESpatialOrientation.Starboard)) is not null,
+			sim.Peek(new RailgunAction(actorId)) is not null,
 			torpedoMounts);
 	}
+
+	public AbilityLegality Abilities(BattleSimulation sim, string actorId) =>
+		new(Weapons(sim, actorId), sim.Peek(new SpawnPatrolAction(actorId)) is not null);
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
 	{

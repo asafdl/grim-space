@@ -63,7 +63,9 @@ public sealed class PresentationFrameBuilder
 		var movePathApBaseline = _preview.MovePathApBaseline(sim, playerId, focusId);
 		var committedMovePath = _preview.CommittedMovePath(sim, playerId);
 		var queuedWeapon = canControl ? _preview.QueuedWeapon(sim, playerId) : QueuedWeaponState.Empty;
-		var weapons = canControl ? _preview.Weapons(sim, playerId) : WeaponPeek.Empty;
+		var abilityActorId = canControl || isInspecting ? focusId : playerId;
+		var weapons = canControl || isInspecting ? _preview.Weapons(sim, abilityActorId) : WeaponPeek.Empty;
+		var abilities = canControl || isInspecting ? _preview.Abilities(sim, abilityActorId) : AbilityLegality.Empty;
 		var weaponQueued = queuedWeapon.FlakMountedOn is not null
 			|| queuedWeapon.Railgun
 			|| queuedWeapon.TorpedoMountedOn is not null;
@@ -127,6 +129,7 @@ public sealed class PresentationFrameBuilder
 			PreviewUnits = previewUnits,
 			QueuedWeapon = queuedWeapon,
 			Weapons = weapons,
+			Abilities = abilities,
 			ThreatenedUnitIds = threatenedUnitIds,
 			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
 			FlakHoverMountedOn = canControl ? state.FlakHoverMountedOn : null,
