@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Player;
 
@@ -7,10 +8,10 @@ public readonly record struct WeaponPeek(
 	bool PortFlak,
 	bool StarboardFlak,
 	bool Railgun,
-	IReadOnlySet<ETorpedoMount> TorpedoMounts)
+	IReadOnlySet<ESpatialOrientation> TorpedoMounts)
 {
 	public static WeaponPeek Empty { get; } =
-		new(false, false, false, new HashSet<ETorpedoMount>());
+		new(false, false, false, new HashSet<ESpatialOrientation>());
 
 	public bool IsKindLegal(EWeaponKind kind) =>
 		kind switch

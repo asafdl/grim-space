@@ -27,16 +27,15 @@ public sealed class WeaponsTests
 	}
 
 	[Theory]
-	[InlineData(EFlakMount.Port)]
-	[InlineData(EFlakMount.Starboard)]
-	public void FlakBurstIsThreeDimensionalPyramidFromMountTip(EFlakMount mount)
+	[InlineData(ESpatialOrientation.Port)]
+	[InlineData(ESpatialOrientation.Starboard)]
+	public void FlakBurstIsThreeDimensionalPyramidFromMountTip(ESpatialOrientation mountedOn)
 	{
-		var config = FlakMountConfig.For(mount);
-		var cells = WeaponBursts.FlakBurstCells(Frame, config, _ => true);
-		var apexPort = mount == EFlakMount.Port ? 1 : -1;
-		var outwardStep = mount == EFlakMount.Port ? 1 : -1;
+		var cells = WeaponBursts.FlakBurstCells(Frame, mountedOn, _ => true);
+		var apexPort = mountedOn == ESpatialOrientation.Port ? 1 : -1;
+		var outwardStep = mountedOn == ESpatialOrientation.Port ? 1 : -1;
 		var apex = Frame.ToWorld(0, apexPort, 0);
-		var basePort = apexPort + outwardStep * config.Range;
+		var basePort = apexPort + outwardStep * CombatConfig.FlakRange;
 
 		Assert.Equal(19, cells.Count);
 		Assert.Contains(apex, cells);
@@ -50,12 +49,12 @@ public sealed class WeaponsTests
 	}
 
 	[Fact]
-	public void FlakMountForCellUsesLateralSide()
+	public void FlakMountedOnForCellUsesLateralSide()
 	{
 		var starboard = Frame.ToWorld(1, -1, 1);
 		var port = Frame.ToWorld(1, 1, -1);
 
-		Assert.Equal(EFlakMount.Starboard, WeaponBursts.FlakMountForCell(Frame, starboard));
-		Assert.Equal(EFlakMount.Port, WeaponBursts.FlakMountForCell(Frame, port));
+		Assert.Equal(ESpatialOrientation.Starboard, WeaponBursts.FlakMountedOnForCell(Frame, starboard));
+		Assert.Equal(ESpatialOrientation.Port, WeaponBursts.FlakMountedOnForCell(Frame, port));
 	}
 }

@@ -53,9 +53,9 @@ public sealed partial class UserIntentTranslator : Node
 
 	public event Action<EPlayerMode>? ModeRequested;
 	public event Action<int?, int>? MoveHoverChanged;
-	public event Action<EFlakMount?>? FlakHoverChanged;
+	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
-	public event Action<ETorpedoMount?>? TorpedoHoverChanged;
+	public event Action<ESpatialOrientation?>? TorpedoHoverChanged;
 	public event Action? HoversCleared;
 	public event Action<string>? FocusUnitRequested;
 	public event Action? ReturnToPlayerRequested;
@@ -225,14 +225,14 @@ public sealed partial class UserIntentTranslator : Node
 		{
 			case EPlayerMode.Flak:
 				FlakHoverChanged?.Invoke(
-					_flakPreview.PickMount(_camera, screenPosition));
+					_flakPreview.PickMountedOn(_camera, screenPosition));
 				break;
 			case EPlayerMode.Railgun:
 				RailgunHoverChanged?.Invoke(
 					_railgunPreview.PickHovered(_camera, screenPosition));
 				break;
 			case EPlayerMode.Torpedo:
-				TorpedoHoverChanged?.Invoke(PickTorpedoMount(screenPosition));
+				TorpedoHoverChanged?.Invoke(PickTorpedoMountedOn(screenPosition));
 				break;
 		}
 	}
@@ -251,8 +251,8 @@ public sealed partial class UserIntentTranslator : Node
 		switch (_mode)
 		{
 			case EPlayerMode.Flak:
-				if (_flakPreview.PickMount(_camera, screenPosition) is EFlakMount mount
-					&& Enqueue(new FlakAction(_actorId, mount)))
+				if (_flakPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation mountedOn
+					&& Enqueue(new FlakAction(_actorId, mountedOn)))
 				{
 					ClearHovers();
 					ModeRequested?.Invoke(EPlayerMode.Move);
@@ -269,8 +269,8 @@ public sealed partial class UserIntentTranslator : Node
 				break;
 
 			case EPlayerMode.Torpedo:
-				if (PickTorpedoMount(screenPosition) is ETorpedoMount torpedoMount
-					&& Enqueue(new TorpedoAction(_actorId, torpedoMount)))
+				if (PickTorpedoMountedOn(screenPosition) is ESpatialOrientation torpedoMountedOn
+					&& Enqueue(new TorpedoAction(_actorId, torpedoMountedOn)))
 				{
 					ClearHovers();
 					ModeRequested?.Invoke(EPlayerMode.Move);
@@ -322,23 +322,30 @@ public sealed partial class UserIntentTranslator : Node
 		ClearHovers();
 	}
 
-	private ETorpedoMount? PickTorpedoMount(Vector2 screenPosition)
+	private ESpatialOrientation? PickTorpedoMountedOn(Vector2 screenPosition)
 	{
 		if (_focusState is null)
 			return null;
 
 		var ship = _focusState.ToState();
-		var cells = new Dictionary<Coord, ETorpedoMount>();
-		foreach (var mount in TorpedoConfig.EnabledMounts)
+		var cells = new Dictionary<Coord, ESpatialOrientation>();
+		foreach (var mountedOn in TorpedoMountedDirections)
 		{
-			var (position, _, _) = TorpedoMount.LaunchPose(ship, mount);
-			cells[position] = mount;
+			var (position, _, _) = TorpedoMount.LaunchPose(ship, mountedOn);
+			cells[position] = mountedOn;
 		}
 
 		return GridPick.PickFromSet(_camera, screenPosition, cells.Keys.ToHashSet()) is { } cell
 			? cells[cell]
 			: null;
 	}
+
+	private static readonly ESpatialOrientation[] TorpedoMountedDirections =
+	[
+		ESpatialOrientation.Retro,
+		ESpatialOrientation.Ventral,
+		ESpatialOrientation.Dorsal,
+	];
 
 	private bool Enqueue(params IAction[] actions) =>
 		_canIssueActions && _actions.TryEnqueue(actions);

@@ -108,7 +108,7 @@ public sealed class ActionSearchCorrectnessTests
 			MoveStepAction move => $"move:{move.ActorId}:{move.Direction}",
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
-			FlakAction flak => $"flak:{flak.ActorId}:{flak.Mount}",
+			FlakAction flak => $"flak:{flak.ActorId}:{flak.MountedOn}",
 			RailgunAction railgun => $"railgun:{railgun.ActorId}",
 			_ => action.GetType().FullName ?? "action",
 		};

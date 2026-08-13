@@ -11,9 +11,9 @@ public sealed class InteractionState
 	public string? FocusId { get; private set; }
 
 	public EPlayerMode Mode { get; set; } = EPlayerMode.Move;
-	public EFlakMount? FlakHoverMount { get; set; }
+	public ESpatialOrientation? FlakHoverMountedOn { get; set; }
 	public bool RailgunHovered { get; set; }
-	public ETorpedoMount? TorpedoHoverMount { get; set; }
+	public ESpatialOrientation? TorpedoHoverMountedOn { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 
 	public void FocusUnit(string unitId)
@@ -44,9 +44,9 @@ public sealed class InteractionState
 	public void ClearHovers()
 	{
 		MoveHoveredIndex = null;
-		FlakHoverMount = null;
+		FlakHoverMountedOn = null;
 		RailgunHovered = false;
-		TorpedoHoverMount = null;
+		TorpedoHoverMountedOn = null;
 	}
 
 	public void SetMoveHover(int? index, int optionCount) =>

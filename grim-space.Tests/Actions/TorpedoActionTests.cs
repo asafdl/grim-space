@@ -18,7 +18,7 @@ public sealed class TorpedoActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
-		var action = new TorpedoAction(PlayerId, ETorpedoMount.Aft);
+		var action = new TorpedoAction(PlayerId, ESpatialOrientation.Retro);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
@@ -40,16 +40,16 @@ public sealed class TorpedoActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Dorsal)));
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Ventral)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Dorsal)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Ventral)));
 	}
 
 	[Fact]
-	public void FighterCapabilitiesIncludeEnabledTorpedoMounts()
+	public void FighterCapabilitiesIncludeTorpedo()
 	{
 		var weapons = Capabilities.AbilitiesFor(EType.Fighter);
-		foreach (var mount in TorpedoConfig.EnabledMounts)
-			Assert.Contains(weapons, def => def is TorpedoDef torpedo && torpedo.Mount == mount);
+
+		Assert.Contains(weapons, def => def is TorpedoDef);
 	}
 
 	[Fact]
@@ -69,7 +69,7 @@ public sealed class TorpedoActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ETorpedoMount.Aft)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Retro)));
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 

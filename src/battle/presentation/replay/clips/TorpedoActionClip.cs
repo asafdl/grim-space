@@ -9,7 +9,7 @@ public sealed class TorpedoActionClip : IReplayClip
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
-		context.PendingTorpedoMount = ((TorpedoAction)action).Mount;
+		context.PendingTorpedoMountedOn = ((TorpedoAction)action).MountedOn;
 		return ClipPlayback.Instant;
 	}
 }

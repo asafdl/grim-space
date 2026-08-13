@@ -77,22 +77,25 @@ public sealed class PlanningPreview
 
 	public WeaponPeek Weapons(BattleSimulation sim, string playerId)
 	{
-		var torpedoMounts = TorpedoConfig.EnabledMounts
-			.Where(mount => sim.Peek(new TorpedoAction(playerId, mount)) is not null)
-			.ToHashSet();
+		var torpedoMounts = new HashSet<ESpatialOrientation>();
+		foreach (var mountedOn in TorpedoMountedDirections)
+		{
+			if (sim.Peek(new TorpedoAction(playerId, mountedOn)) is not null)
+				torpedoMounts.Add(mountedOn);
+		}
 
 		return new WeaponPeek(
-			sim.Peek(new FlakAction(playerId, EFlakMount.Port)) is not null,
-			sim.Peek(new FlakAction(playerId, EFlakMount.Starboard)) is not null,
+			sim.Peek(new FlakAction(playerId, ESpatialOrientation.Port)) is not null,
+			sim.Peek(new FlakAction(playerId, ESpatialOrientation.Starboard)) is not null,
 			sim.Peek(new RailgunAction(playerId)) is not null,
 			torpedoMounts);
 	}
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
 	{
-		EFlakMount? queuedFlak = null;
+		ESpatialOrientation? queuedFlak = null;
 		var queuedRailgun = false;
-		ETorpedoMount? queuedTorpedo = null;
+		ESpatialOrientation? queuedTorpedo = null;
 		for (var i = sim.Actions.Count - 1; i >= 0; i--)
 		{
 			if (sim.Actions[i].ActorId != playerId)
@@ -101,13 +104,13 @@ public sealed class PlanningPreview
 			switch (sim.Actions[i])
 			{
 				case FlakAction flak:
-					queuedFlak = flak.Mount;
+					queuedFlak = flak.MountedOn;
 					break;
 				case RailgunAction:
 					queuedRailgun = true;
 					break;
 				case TorpedoAction torpedo:
-					queuedTorpedo = torpedo.Mount;
+					queuedTorpedo = torpedo.MountedOn;
 					break;
 				default:
 					continue;
@@ -118,9 +121,9 @@ public sealed class PlanningPreview
 
 		return new QueuedWeaponState
 		{
-			FlakMount = queuedFlak,
+			FlakMountedOn = queuedFlak,
 			Railgun = queuedRailgun,
-			TorpedoMount = queuedTorpedo,
+			TorpedoMountedOn = queuedTorpedo,
 		};
 	}
 
@@ -129,8 +132,8 @@ public sealed class PlanningPreview
 		string playerId,
 		InteractionState state)
 	{
-		if (state.FlakHoverMount is EFlakMount hoverMount)
-			return ImpactTargets(sim.Peek(new FlakAction(playerId, hoverMount)));
+		if (state.FlakHoverMountedOn is ESpatialOrientation hoverMountedOn)
+			return ImpactTargets(sim.Peek(new FlakAction(playerId, hoverMountedOn)));
 
 		if (state.RailgunHovered)
 			return ImpactTargets(sim.Peek(new RailgunAction(playerId)));
@@ -163,17 +166,17 @@ public sealed class PlanningPreview
 		EnsureSim(sim);
 		var queued = QueuedWeapon(sim, playerId);
 
-		if (state.TorpedoHoverMount is ETorpedoMount hover)
+		if (state.TorpedoHoverMountedOn is ESpatialOrientation hover)
 			return EnvelopeLayersForMount(sim, playerId, hover);
 
-		if (queued.TorpedoMount is not ETorpedoMount queuedMount)
+		if (queued.TorpedoMountedOn is not ESpatialOrientation queuedMountedOn)
 			return [];
 
 		for (var i = sim.Actions.Count - 1; i >= 0; i--)
 		{
 			if (sim.Actions[i] is TorpedoAction torpedo
 				&& torpedo.ActorId == playerId
-				&& torpedo.Mount == queuedMount)
+				&& torpedo.MountedOn == queuedMountedOn)
 				return EnvelopeLayersForQueued(sim, playerId, torpedo);
 		}
 
@@ -197,18 +200,25 @@ public sealed class PlanningPreview
 		_lastSim = null;
 	}
 
+	private static readonly ESpatialOrientation[] TorpedoMountedDirections =
+	[
+		ESpatialOrientation.Retro,
+		ESpatialOrientation.Ventral,
+		ESpatialOrientation.Dorsal,
+	];
+
 	private IReadOnlyList<IReadOnlySet<Coord>> EnvelopeLayersForMount(
 		BattleSimulation sim,
 		string playerId,
-		ETorpedoMount mount)
+		ESpatialOrientation mountedOn)
 	{
 		var cacheKey =
-			$"hover|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{mount}";
+			$"hover|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{mountedOn}";
 		if (_envelopeCacheKey == cacheKey)
 			return _envelopeCache;
 
 		var spawnedId = sim.World.IdRegistry.NextUnitId(EType.Torpedo);
-		var peek = sim.Peek(new TorpedoAction(playerId, mount, spawnedId));
+		var peek = sim.Peek(new TorpedoAction(playerId, mountedOn, spawnedId));
 		if (peek is null
 			|| !UnitRegistry.For(peek.Value.World).TryGet(spawnedId, out var spawned))
 		{
@@ -233,7 +243,7 @@ public sealed class PlanningPreview
 			return [];
 
 		var cacheKey =
-			$"queued|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{queued.Mount}|{spawnedId}";
+			$"queued|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{queued.MountedOn}|{spawnedId}";
 		if (_envelopeCacheKey == cacheKey)
 			return _envelopeCache;
 

@@ -28,7 +28,7 @@ public sealed class PatrolFlakScoringTests
 		var frame = BodyFrame.From(patrol.State);
 		var burstCells = WeaponBursts.FlakBurstCells(
 			frame,
-			FlakMountConfig.For(EFlakMount.Port),
+			ESpatialOrientation.Port,
 			grid.IsInBounds);
 		Assert.NotEmpty(burstCells);
 		player.State.Position = burstCells.First();

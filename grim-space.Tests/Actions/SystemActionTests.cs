@@ -33,7 +33,7 @@ public sealed class SystemActionTests
 	public void ResolveTurnClearsScheduledTurnHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Port)));
 
 		BattleTestActions.CommitAndResolve(battle);
 		Assert.Empty(battle.Engine.World.TurnHazards);

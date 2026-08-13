@@ -64,9 +64,9 @@ public sealed class PresentationFrameBuilder
 		var committedMovePath = _preview.CommittedMovePath(sim, playerId);
 		var queuedWeapon = canControl ? _preview.QueuedWeapon(sim, playerId) : QueuedWeaponState.Empty;
 		var weapons = canControl ? _preview.Weapons(sim, playerId) : WeaponPeek.Empty;
-		var weaponQueued = queuedWeapon.FlakMount is not null
+		var weaponQueued = queuedWeapon.FlakMountedOn is not null
 			|| queuedWeapon.Railgun
-			|| queuedWeapon.TorpedoMount is not null;
+			|| queuedWeapon.TorpedoMountedOn is not null;
 
 		IReadOnlyList<Coord> movePath;
 		Coord? moveTarget;
@@ -129,9 +129,9 @@ public sealed class PresentationFrameBuilder
 			Weapons = weapons,
 			ThreatenedUnitIds = threatenedUnitIds,
 			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
-			FlakHoverMount = canControl ? state.FlakHoverMount : null,
+			FlakHoverMountedOn = canControl ? state.FlakHoverMountedOn : null,
 			RailgunHovered = canControl && state.RailgunHovered,
-			TorpedoHoverMount = canControl ? state.TorpedoHoverMount : null,
+			TorpedoHoverMountedOn = canControl ? state.TorpedoHoverMountedOn : null,
 			MovePath = movePath,
 			CommittedMovePath = committedMovePath,
 			MoveTarget = moveTarget,

@@ -110,7 +110,7 @@ public sealed class TorpedoReachEnvelopeTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		battle.Engine.Commit(new TorpedoAction(PlayerId, ETorpedoMount.Aft));
+		battle.Engine.Commit(new TorpedoAction(PlayerId, ESpatialOrientation.Retro));
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
 		return battle;

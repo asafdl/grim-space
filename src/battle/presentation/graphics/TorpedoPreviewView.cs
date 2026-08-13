@@ -50,13 +50,20 @@ public sealed partial class TorpedoPreviewView : Node3D
 		Visible = false;
 	}
 
+	private static readonly ESpatialOrientation[] TorpedoMountedDirections =
+	[
+		ESpatialOrientation.Retro,
+		ESpatialOrientation.Ventral,
+		ESpatialOrientation.Dorsal,
+	];
+
 	public void ApplyFrame(PresentationFrame frame)
 	{
 		var queued = frame.QueuedWeapon;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Torpedo;
 		var cemented =
 			frame.ShowWeaponPreviews
-			&& queued.TorpedoMount is ETorpedoMount;
+			&& queued.TorpedoMountedOn is ESpatialOrientation;
 		var shouldShow = aiming || cemented;
 
 		Visible = shouldShow;
@@ -73,7 +80,7 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 		if (aiming)
 		{
-			var hovered = frame.TorpedoHoverMount is not null;
+			var hovered = frame.TorpedoHoverMountedOn is not null;
 			WeaponPreviewMaterials.ApplyAim(
 				_mountMaterial,
 				MountTint,
@@ -81,9 +88,9 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 			var ship = frame.FocusState.ToState();
 			var skipCells = new HashSet<Coord>();
-			foreach (var mount in TorpedoConfig.EnabledMounts)
+			foreach (var mountedOn in TorpedoMountedDirections)
 			{
-				var (position, _, _) = TorpedoMount.LaunchPose(ship, mount);
+				var (position, _, _) = TorpedoMount.LaunchPose(ship, mountedOn);
 				skipCells.Add(position);
 				Place(_mountMesh, _mountMaterial, position);
 			}
@@ -92,8 +99,8 @@ public sealed partial class TorpedoPreviewView : Node3D
 			return;
 		}
 
-		var queuedMount = queued.TorpedoMount!.Value;
-		var (queuedCell, _, _) = TorpedoMount.LaunchPose(frame.FocusState.ToState(), queuedMount);
+		var queuedMountedOn = queued.TorpedoMountedOn!.Value;
+		var (queuedCell, _, _) = TorpedoMount.LaunchPose(frame.FocusState.ToState(), queuedMountedOn);
 		Place(_mountMesh, _cementedMaterial, queuedCell);
 		PlaceCementedEnvelope(
 			frame.TorpedoEnvelopeLayers,

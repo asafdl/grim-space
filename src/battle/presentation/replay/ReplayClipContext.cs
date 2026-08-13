@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
@@ -24,5 +25,5 @@ public sealed class ReplayClipContext(
 	public IReadOnlyDictionary<string, State> EndStates { get; } = endStates;
 	public Action<State, Color> EnsureView { get; } = ensureView;
 	public Action<CameraInterest>? ReportInterest { get; } = reportInterest;
-	public ETorpedoMount? PendingTorpedoMount { get; set; }
+	public ESpatialOrientation? PendingTorpedoMountedOn { get; set; }
 }

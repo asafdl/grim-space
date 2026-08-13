@@ -111,7 +111,7 @@ public static class ActionLog
 		{
 			case FlakAction a:
 				actorId = a.ActorId;
-				verb = $"fired flak from {FormatEnum(a.Mount)}";
+				verb = $"fired flak from {FormatEnum(a.MountedOn)}";
 				return true;
 			case RailgunAction a:
 				actorId = a.ActorId;
@@ -172,7 +172,7 @@ public static class ActionLog
 	private static string? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>
 		entry switch
 		{
-			TorpedoAction a => $"{displayName(a.ActorId)} launched torpedo from {FormatEnum(a.Mount)}",
+			TorpedoAction a => $"{displayName(a.ActorId)} launched torpedo from {FormatEnum(a.MountedOn)}",
 			HeadingTurnAction a => $"{displayName(a.ActorId)} turned {FormatEnum(a.Turn)}",
 			RollAction a => $"{displayName(a.ActorId)} rolled {FormatEnum(a.Direction)}",
 			Record<ImpactFacts> { Value: var impact } =>

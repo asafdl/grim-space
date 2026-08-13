@@ -156,14 +156,14 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void ApplyTorpedoSpawn(SpawnFacts spawn)
 	{
-		if (_clipContext.PendingTorpedoMount is not { } mount)
+		if (_clipContext.PendingTorpedoMountedOn is not { } mountedOn)
 			throw new InvalidOperationException($"SpawnFacts for {spawn.TargetId} missing preceding TorpedoAction mount.");
 
 		if (!_clipContext.EndStates.TryGetValue(spawn.TargetId, out var template))
 			throw new InvalidOperationException($"SpawnFacts target {spawn.TargetId} missing from EndStates.");
 
 		var firer = _clipContext.ReplayState.StateOf(spawn.SourceId);
-		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer, mount);
+		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer, mountedOn);
 
 		var spawned = template.Clone();
 		spawned.Position = position;
@@ -179,7 +179,7 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.ReplayState.Add(spawned);
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
 		_clipContext.UnitViews[spawned.Id].Sync(spawned);
-		_clipContext.PendingTorpedoMount = null;
+		_clipContext.PendingTorpedoMountedOn = null;
 	}
 
 	private void ApplyPatrolSpawn(SpawnFacts spawn)
@@ -277,7 +277,7 @@ public partial class TurnReplayPlayer : Node3D
 		if (action is TorpedoAction torpedo)
 		{
 			var firer = _clipContext.ReplayState.StateOf(torpedo.ActorId);
-			var (launchCell, _, _) = TorpedoMount.LaunchPose(firer, torpedo.Mount);
+			var (launchCell, _, _) = TorpedoMount.LaunchPose(firer, torpedo.MountedOn);
 			_clipContext.ReportInterest(new CameraInterest(
 				[
 					WorldMapping.ToWorld(firer.Position),

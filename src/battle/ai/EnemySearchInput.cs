@@ -209,8 +209,8 @@ internal static class EnemySearchInput
 		{
 			RailgunAction { ActorId: var railgunActorId } when railgunActorId == actorId =>
 				WouldRailgunDamage(world, actorId),
-			FlakAction { ActorId: var flakActorId, Mount: var mount } when flakActorId == actorId =>
-				WouldFlakDamage(world, actorId, mount),
+			FlakAction { ActorId: var flakActorId, MountedOn: var mountedOn } when flakActorId == actorId =>
+				WouldFlakDamage(world, actorId, mountedOn),
 			_ => false,
 		};
 
@@ -223,8 +223,8 @@ internal static class EnemySearchInput
 		if (state.FlakRemaining <= 0)
 			return false;
 
-		return WouldFlakDamage(world, actorId, EFlakMount.Port)
-			|| WouldFlakDamage(world, actorId, EFlakMount.Starboard);
+		return WouldFlakDamage(world, actorId, ESpatialOrientation.Port)
+			|| WouldFlakDamage(world, actorId, ESpatialOrientation.Starboard);
 	}
 
 	private static bool WouldRailgunDamage(BattleWorld world, string actorId)
@@ -234,11 +234,10 @@ internal static class EnemySearchInput
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 
-	private static bool WouldFlakDamage(BattleWorld world, string actorId, EFlakMount mount)
+	private static bool WouldFlakDamage(BattleWorld world, string actorId, ESpatialOrientation mountedOn)
 	{
 		var frame = BodyFrame.From(world.StateOf(actorId));
-		var config = FlakMountConfig.For(mount);
-		var cells = WeaponBursts.FlakBurstCells(frame, config, world.Grid.IsInBounds);
+		var cells = WeaponBursts.FlakBurstCells(frame, mountedOn, world.Grid.IsInBounds);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 

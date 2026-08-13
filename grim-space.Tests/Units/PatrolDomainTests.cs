@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -26,8 +27,7 @@ public sealed class PatrolDomainTests
 	{
 		var abilities = Capabilities.AbilitiesFor(EType.Patrol);
 
-		Assert.Equal(2, abilities.Count);
-		Assert.All(abilities, def => Assert.IsType<FlakDef>(def));
+		Assert.Single(abilities, def => def is FlakDef);
 		Assert.DoesNotContain(abilities, def => def is RailgunDef);
 	}
 }

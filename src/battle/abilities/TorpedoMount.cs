@@ -6,24 +6,24 @@ namespace GrimSpace.Battle.Abilities;
 
 public static class TorpedoMount
 {
-	public static (Coord Position, Coord Fore, Coord Dorsal) LaunchPose(State ship, ETorpedoMount mount)
+	public static (Coord Position, Coord Fore, Coord Dorsal) LaunchPose(State ship, ESpatialOrientation mountedOn)
 	{
 		var frame = BodyFrame.From(ship);
-		return mount switch
+		return mountedOn switch
 		{
-			ETorpedoMount.Aft => (
+			ESpatialOrientation.Retro => (
 				ship.Position + frame.Step(ESpatialOrientation.Retro),
 				Coord.Zero - ship.Fore,
 				ship.Dorsal),
-			ETorpedoMount.Ventral => (
+			ESpatialOrientation.Ventral => (
 				ship.Position + frame.Step(ESpatialOrientation.Ventral),
 				Coord.Zero - ship.Dorsal,
 				ship.Fore),
-			ETorpedoMount.Dorsal => (
+			ESpatialOrientation.Dorsal => (
 				ship.Position + frame.Step(ESpatialOrientation.Dorsal),
 				ship.Dorsal,
 				Coord.Zero - ship.Fore),
-			_ => throw new ArgumentOutOfRangeException(nameof(mount), mount, null),
+			_ => throw new ArgumentOutOfRangeException(nameof(mountedOn), mountedOn, null),
 		};
 	}
 }

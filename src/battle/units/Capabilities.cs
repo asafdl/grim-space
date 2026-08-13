@@ -30,17 +30,12 @@ public static class Capabilities
 		{
 			EType.Fighter =>
 			[
-				FlakDef.For(EFlakMount.Port),
-				FlakDef.For(EFlakMount.Starboard),
+				FlakDef.Instance,
 				RailgunDef.Instance,
-				..TorpedoConfig.EnabledMounts.Select(TorpedoDef.For),
+				TorpedoDef.Instance,
 			],
 			EType.Carrier => [RailgunDef.Instance],
-			EType.Patrol =>
-			[
-				FlakDef.For(EFlakMount.Port),
-				FlakDef.For(EFlakMount.Starboard),
-			],
+			EType.Patrol => [FlakDef.Instance],
 			EType.Torpedo => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};

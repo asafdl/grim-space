@@ -57,7 +57,7 @@ public sealed class CarrierPatrolIntegrationTests
 			Coord.Cross(dorsal, fore));
 		var burstCells = WeaponBursts.FlakBurstCells(
 			patrolFrame,
-			FlakMountConfig.For(EFlakMount.Port),
+			ESpatialOrientation.Port,
 			grid.IsInBounds);
 		Assert.NotEmpty(burstCells);
 		player.State.Position = burstCells.First();

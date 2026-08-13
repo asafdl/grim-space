@@ -80,9 +80,9 @@ public sealed class PresentationFrameTests
 		var pickCell = origin + new Coord(1, 1, 0);
 
 		var frame = BodyFrame.From(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId));
-		var mount = WeaponBursts.FlakMountForCell(frame, pickCell);
-		Assert.NotNull(mount);
-		Assert.True(BattleTestCommands.FireFlak(battle, mount.Value));
+		var mountedOn = WeaponBursts.FlakMountedOnForCell(frame, pickCell);
+		Assert.NotNull(mountedOn);
+		Assert.True(BattleTestCommands.FireFlak(battle, mountedOn.Value));
 		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
 
 		Assert.True(BattleTestCommands.Undo(battle));

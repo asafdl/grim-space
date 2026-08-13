@@ -88,7 +88,7 @@ public sealed class TimelineTests
 	public void CommitAppendsActionThenSpawnRecord()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		battle.Engine.Commit(new TorpedoAction(battle.PlayerId, ETorpedoMount.Aft));
+		battle.Engine.Commit(new TorpedoAction(battle.PlayerId, ESpatialOrientation.Retro));
 
 		var history = battle.Engine.History();
 		var torpedoIndex = history.ToList().FindIndex(entry => entry is TorpedoAction);
@@ -111,12 +111,12 @@ public sealed class TimelineTests
 		var frame = BodyFrame.From(battle.Engine.World.StateOf(battle.PlayerId));
 		var cells = WeaponBursts.FlakBurstCells(
 			frame,
-			FlakMountConfig.For(EFlakMount.Starboard),
+			ESpatialOrientation.Starboard,
 			battle.Engine.World.Grid.IsInBounds);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.State.Id != battle.PlayerId);
 		enemy.State.Position = cells.First();
 
-		battle.Engine.Commit(new FlakAction(battle.PlayerId, EFlakMount.Starboard));
+		battle.Engine.Commit(new FlakAction(battle.PlayerId, ESpatialOrientation.Starboard));
 
 		var history = battle.Engine.History();
 		var flakIndex = history.ToList().FindIndex(entry => entry is FlakAction);

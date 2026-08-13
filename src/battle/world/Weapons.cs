@@ -54,14 +54,14 @@ public static class WeaponBursts
 
 	public static HashSet<Coord> FlakBurstCells(
 		BodyFrame frame,
-		FlakMountConfig config,
+		ESpatialOrientation mountedOn,
 		Func<Coord, bool> isInBounds)
 	{
 		var result = new HashSet<Coord>();
-		var apexPort = -config.SideSign;
-		var outwardStep = -config.SideSign;
+		var (apexPort, outwardStep) = FlakBurstAxes(mountedOn);
+		var range = CombatConfig.FlakRange;
 
-		for (var outward = 0; outward <= config.Range; outward++)
+		for (var outward = 0; outward <= range; outward++)
 		{
 			for (var fore = -outward; fore <= outward; fore++)
 			{
@@ -83,21 +83,29 @@ public static class WeaponBursts
 
 	public static bool IsValidFlakBurst(
 		BodyFrame frame,
-		FlakMountConfig config,
+		ESpatialOrientation mountedOn,
 		Func<Coord, bool> isInBounds) =>
-		FlakBurstCells(frame, config, isInBounds).Count > 0;
+		FlakBurstCells(frame, mountedOn, isInBounds).Count > 0;
 
-	public static EFlakMount? FlakMountForCell(BodyFrame frame, Coord cell)
+	public static ESpatialOrientation? FlakMountedOnForCell(BodyFrame frame, Coord cell)
 	{
 		if (!frame.TryFromWorld(cell, out _, out var port, out _))
 			return null;
 
 		if (port > 0)
-			return EFlakMount.Port;
+			return ESpatialOrientation.Port;
 
 		if (port < 0)
-			return EFlakMount.Starboard;
+			return ESpatialOrientation.Starboard;
 
 		return null;
 	}
+
+	private static (int apexPort, int outwardStep) FlakBurstAxes(ESpatialOrientation mountedOn) =>
+		mountedOn switch
+		{
+			ESpatialOrientation.Port => (1, 1),
+			ESpatialOrientation.Starboard => (-1, -1),
+			_ => throw new ArgumentOutOfRangeException(nameof(mountedOn), mountedOn, null),
+		};
 }

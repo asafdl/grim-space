@@ -33,8 +33,8 @@ public sealed class SimulationSearchTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
 
-		Assert.True(session.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Port)));
-		Assert.False(session.TryEnqueue(new FlakAction(PlayerId, EFlakMount.Starboard)));
+		Assert.True(session.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Port)));
+		Assert.False(session.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
 	}
 
 	[Fact]

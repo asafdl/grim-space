@@ -166,9 +166,9 @@ public partial class BattleController : Node3D
 	{
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
-		_translator.FlakHoverChanged += mount => SetFlakHoverMount(mount);
+		_translator.FlakHoverChanged += mountedOn => SetFlakHoverMountedOn(mountedOn);
 		_translator.RailgunHoverChanged += hovered => SetRailgunHovered(hovered);
-		_translator.TorpedoHoverChanged += mount => SetTorpedoHoverMount(mount);
+		_translator.TorpedoHoverChanged += mountedOn => SetTorpedoHoverMountedOn(mountedOn);
 		_translator.HoversCleared += ClearHovers;
 		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
@@ -270,12 +270,12 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
-	private void SetFlakHoverMount(EFlakMount? mount)
+	private void SetFlakHoverMountedOn(ESpatialOrientation? mountedOn)
 	{
-		if (!AcceptsCommands || _frames.Interaction.FlakHoverMount == mount)
+		if (!AcceptsCommands || _frames.Interaction.FlakHoverMountedOn == mountedOn)
 			return;
 
-		_frames.Interaction.FlakHoverMount = mount;
+		_frames.Interaction.FlakHoverMountedOn = mountedOn;
 		RefreshPresentation();
 	}
 
@@ -288,12 +288,12 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
-	private void SetTorpedoHoverMount(ETorpedoMount? mount)
+	private void SetTorpedoHoverMountedOn(ESpatialOrientation? mountedOn)
 	{
-		if (!AcceptsCommands || _frames.Interaction.TorpedoHoverMount == mount)
+		if (!AcceptsCommands || _frames.Interaction.TorpedoHoverMountedOn == mountedOn)
 			return;
 
-		_frames.Interaction.TorpedoHoverMount = mount;
+		_frames.Interaction.TorpedoHoverMountedOn = mountedOn;
 		RefreshPresentation();
 	}
 

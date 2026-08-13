@@ -2,7 +2,6 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -14,19 +13,17 @@ public sealed class ActionBudgetExhaustionTests
 {
 	private const string PlayerId = "player";
 
-	private static readonly FlakDef PortFlak = FlakDef.For(EFlakMount.Port);
-	private static readonly FlakDef StarboardFlak = FlakDef.For(EFlakMount.Starboard);
+	private static readonly FlakDef Flak = FlakDef.Instance;
 
 	[Fact]
-	public void AfterMaxFlak_NoLegalFlakActionsFromEitherMount()
+	public void AfterMaxFlak_NoLegalFlakActionsFromEitherSide()
 	{
 		var session = BeginSimulationAt(new Coord(5, 5, 5));
-		LegalActionProbe.EnqueueAll(session, [PortFlak.Bind(PlayerId)]);
+		LegalActionProbe.EnqueueAll(session, [Flak.Bind(PlayerId, ESpatialOrientation.Port)]);
 
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).FlakRemaining);
-		LegalActionProbe.AssertExhausted(session, PlayerId, PortFlak);
-		LegalActionProbe.AssertExhausted(session, PlayerId, StarboardFlak);
-		Assert.False(session.TryEnqueue(StarboardFlak.Bind(PlayerId)));
+		LegalActionProbe.AssertExhausted(session, PlayerId, Flak);
+		Assert.False(session.TryEnqueue(Flak.Bind(PlayerId, ESpatialOrientation.Starboard)));
 	}
 
 	[Fact]
@@ -80,7 +77,7 @@ public sealed class ActionBudgetExhaustionTests
 		LegalActionProbe.EnqueueAll(
 			session,
 			[
-				PortFlak.Bind(PlayerId),
+				Flak.Bind(PlayerId, ESpatialOrientation.Port),
 				RailgunDef.Instance.Bind(PlayerId),
 			]);
 
@@ -88,8 +85,7 @@ public sealed class ActionBudgetExhaustionTests
 		Assert.Equal(0, actor.FlakRemaining);
 		Assert.Equal(0, actor.RailgunRemaining);
 
-		LegalActionProbe.AssertExhausted(session, PlayerId, PortFlak);
-		LegalActionProbe.AssertExhausted(session, PlayerId, StarboardFlak);
+		LegalActionProbe.AssertExhausted(session, PlayerId, Flak);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RailgunDef.Instance);
 	}
 
@@ -107,7 +103,7 @@ public sealed class ActionBudgetExhaustionTests
 
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).ActionPoints);
 		LegalActionProbe.AssertExhausted(session, PlayerId, RollDef.Instance);
-		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, PortFlak));
+		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, Flak));
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, RailgunDef.Instance));
 	}
 
@@ -119,7 +115,7 @@ public sealed class ActionBudgetExhaustionTests
 		LegalActionProbe.EnqueueAll(
 			session,
 			[
-				PortFlak.Bind(PlayerId),
+				Flak.Bind(PlayerId, ESpatialOrientation.Port),
 				RailgunDef.Instance.Bind(PlayerId),
 			]);
 

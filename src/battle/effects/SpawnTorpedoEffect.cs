@@ -4,12 +4,13 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = null)
+public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string? unitId = null)
 	: IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
@@ -18,7 +19,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 	{
 		var units = UnitRegistry.For(world);
 		var firer = units.UnitOf(actorId);
-		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer.State, mount);
+		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer.State, mountedOn);
 		var torpedo = Factory.Create(
 			new Instance
 			{

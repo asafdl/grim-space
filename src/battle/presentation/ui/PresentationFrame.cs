@@ -19,9 +19,9 @@ public sealed class PresentationFrame
 	public required WeaponPeek Weapons { get; init; }
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
 	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; } = [];
-	public EFlakMount? FlakHoverMount { get; init; }
+	public ESpatialOrientation? FlakHoverMountedOn { get; init; }
 	public bool RailgunHovered { get; init; }
-	public ETorpedoMount? TorpedoHoverMount { get; init; }
+	public ESpatialOrientation? TorpedoHoverMountedOn { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }
 	public required IReadOnlyList<Coord> CommittedMovePath { get; init; }
 	public Coord? MoveTarget { get; init; }

@@ -40,9 +40,9 @@ public sealed class MovePreviewCache
 			MoveStepAction move => $"move:{move.ActorId}:{move.Direction}",
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
-			FlakAction flak => $"flak:{flak.ActorId}:{flak.Mount}",
+			FlakAction flak => $"flak:{flak.ActorId}:{flak.MountedOn}",
 			RailgunAction railgun => $"railgun:{railgun.ActorId}",
-			TorpedoAction torpedo => $"torpedo:{torpedo.ActorId}:{torpedo.Mount}:{torpedo.SpawnedUnitId}",
+			TorpedoAction torpedo => $"torpedo:{torpedo.ActorId}:{torpedo.MountedOn}:{torpedo.SpawnedUnitId}",
 			_ => action.GetType().FullName ?? "action",
 		};
 }

@@ -45,7 +45,7 @@ public sealed partial class FlakPreviewView : Node3D
 		Visible = false;
 	}
 
-	public EFlakMount? PickMount(Camera3D camera, Vector2 screenPos)
+	public ESpatialOrientation? PickMountedOn(Camera3D camera, Vector2 screenPos)
 	{
 		var portNear = _port is { Visible: true }
 			&& PreviewPick.NearNode(camera, screenPos, _port);
@@ -56,14 +56,16 @@ public sealed partial class FlakPreviewView : Node3D
 		{
 			var portDist = PreviewPick.ScreenDistance(camera, screenPos, _port!);
 			var starboardDist = PreviewPick.ScreenDistance(camera, screenPos, _starboard!);
-			return portDist <= starboardDist ? EFlakMount.Port : EFlakMount.Starboard;
+			return portDist <= starboardDist
+				? ESpatialOrientation.Port
+				: ESpatialOrientation.Starboard;
 		}
 
 		if (portNear)
-			return EFlakMount.Port;
+			return ESpatialOrientation.Port;
 
 		if (starboardNear)
-			return EFlakMount.Starboard;
+			return ESpatialOrientation.Starboard;
 
 		return null;
 	}
@@ -72,8 +74,8 @@ public sealed partial class FlakPreviewView : Node3D
 	{
 		var queued = frame.QueuedWeapon;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Flak;
-		var showPort = aiming || (frame.ShowWeaponPreviews && queued.FlakMount == EFlakMount.Port);
-		var showStarboard = aiming || (frame.ShowWeaponPreviews && queued.FlakMount == EFlakMount.Starboard);
+		var showPort = aiming || (frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Port);
+		var showStarboard = aiming || (frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Starboard);
 		var shouldShow = showPort || showStarboard;
 
 		Visible = shouldShow;
@@ -98,11 +100,11 @@ public sealed partial class FlakPreviewView : Node3D
 			WeaponPreviewMaterials.ApplyAim(
 				_portMaterial!,
 				PortTint,
-				Strength(showPort, frame.FlakHoverMount == EFlakMount.Port));
+				Strength(showPort, frame.FlakHoverMountedOn == ESpatialOrientation.Port));
 			WeaponPreviewMaterials.ApplyAim(
 				_starboardMaterial!,
 				StarboardTint,
-				Strength(showStarboard, frame.FlakHoverMount == EFlakMount.Starboard));
+				Strength(showStarboard, frame.FlakHoverMountedOn == ESpatialOrientation.Starboard));
 			return;
 		}
 

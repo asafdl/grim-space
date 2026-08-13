@@ -4,32 +4,41 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Actions;
 
 public sealed record FlakAction(
 	string ActorId,
-	EFlakMount Mount) : IAction<BattleWorld, ActorRuntime>
+	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		FlakDef.For(Mount);
+		FlakDef.Instance;
 }
 
-public sealed class FlakDef(EFlakMount mount)
+public sealed class FlakDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public EFlakMount Mount { get; } = mount;
+	public static FlakDef Instance { get; } = new();
 
-	public static FlakDef For(EFlakMount mount) => new(mount);
+	private static readonly ESpatialOrientation[] MountedOn =
+	[
+		ESpatialOrientation.Port,
+		ESpatialOrientation.Starboard,
+	];
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		var action = Bind(actorId);
-		if (IsPossible(action, world, runtime))
-			yield return action;
+		foreach (var mountedOn in MountedOn)
+		{
+			var action = Bind(actorId, mountedOn);
+			if (IsPossible(action, world, runtime))
+				yield return action;
+		}
 	}
 
-	public FlakAction Bind(string actorId) => new(actorId, Mount);
+	public FlakAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+		new(actorId, mountedOn);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -46,8 +55,7 @@ public sealed class FlakDef(EFlakMount mount)
 	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var config = FlakMountConfig.For(action.Mount);
-		return WeaponBursts.IsValidFlakBurst(frame, config, world.Grid.IsInBounds);
+		return WeaponBursts.IsValidFlakBurst(frame, action.MountedOn, world.Grid.IsInBounds);
 	}
 
 	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
@@ -64,8 +72,7 @@ public sealed class FlakDef(EFlakMount mount)
 		ActorRuntime runtime)
 	{
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var config = FlakMountConfig.For(action.Mount);
-		var cells = WeaponBursts.FlakBurstCells(frame, config, world.Grid.IsInBounds);
+		var cells = WeaponBursts.FlakBurstCells(frame, action.MountedOn, world.Grid.IsInBounds);
 
 		return
 		[

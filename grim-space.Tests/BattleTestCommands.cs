@@ -34,14 +34,14 @@ internal static class BattleTestCommands
 	public static bool Undo(BattleOrchestrator battle) =>
 		battle.PlayerAgent.Undo();
 
-	public static bool FireFlak(BattleOrchestrator battle, EFlakMount mount) =>
-		Enqueue(battle, [new FlakAction(battle.PlayerId, mount)]);
+	public static bool FireFlak(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
+		Enqueue(battle, [new FlakAction(battle.PlayerId, mountedOn)]);
 
 	public static bool FireRailgun(BattleOrchestrator battle) =>
 		Enqueue(battle, [new RailgunAction(battle.PlayerId)]);
 
-	public static bool FireTorpedo(BattleOrchestrator battle, ETorpedoMount mount) =>
-		Enqueue(battle, [new TorpedoAction(battle.PlayerId, mount)]);
+	public static bool FireTorpedo(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
+		Enqueue(battle, [new TorpedoAction(battle.PlayerId, mountedOn)]);
 
 	public static bool DeployPatrol(BattleOrchestrator battle)
 	{

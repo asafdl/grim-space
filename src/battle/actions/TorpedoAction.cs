@@ -4,34 +4,44 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Actions;
 
 public sealed record TorpedoAction(
 	string ActorId,
-	ETorpedoMount Mount,
+	ESpatialOrientation MountedOn,
 	string? SpawnedUnitId = null) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		TorpedoDef.For(Mount);
+		TorpedoDef.Instance;
 }
 
-public sealed class TorpedoDef(ETorpedoMount mount)
+public sealed class TorpedoDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public ETorpedoMount Mount { get; } = mount;
+	public static TorpedoDef Instance { get; } = new();
 
-	public static TorpedoDef For(ETorpedoMount mount) => new(mount);
+	private static readonly ESpatialOrientation[] MountedOn =
+	[
+		ESpatialOrientation.Retro,
+		ESpatialOrientation.Ventral,
+		ESpatialOrientation.Dorsal,
+	];
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		var action = Bind(actorId);
-		if (IsPossible(action, world, runtime))
-			yield return action;
+		foreach (var mountedOn in MountedOn)
+		{
+			var action = Bind(actorId, mountedOn);
+			if (IsPossible(action, world, runtime))
+				yield return action;
+		}
 	}
 
-	public TorpedoAction Bind(string actorId) => new(actorId, Mount);
+	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+		new(actorId, mountedOn);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -48,7 +58,7 @@ public sealed class TorpedoDef(ETorpedoMount mount)
 	public bool IsPossible(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var ship = world.StateOf(action.ActorId);
-		var (position, _, _) = TorpedoMount.LaunchPose(ship, action.Mount);
+		var (position, _, _) = TorpedoMount.LaunchPose(ship, action.MountedOn);
 		return world.Grid.IsInBounds(position) && !world.BlockedFor(action.ActorId).Contains(position);
 	}
 
@@ -68,7 +78,7 @@ public sealed class TorpedoDef(ETorpedoMount mount)
 		BattleWorld world,
 		ActorRuntime runtime) =>
 	[
-		new SpawnTorpedoEffect(action.Mount, action.SpawnedUnitId),
+		new SpawnTorpedoEffect(action.MountedOn, action.SpawnedUnitId),
 		new TorpedoCooldownEffect(TorpedoConfig.CooldownTurns),
 	];
 
