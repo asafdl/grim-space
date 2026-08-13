@@ -1,4 +1,4 @@
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 
 namespace GrimSpace.Battle.Player;
 

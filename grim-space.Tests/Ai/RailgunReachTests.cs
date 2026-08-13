@@ -2,7 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -12,50 +12,52 @@ namespace GrimSpace.Tests.Ai;
 public sealed class RailgunReachTests
 {
 	[Fact]
-	public void CouldPossiblyHit_WhenWithinRailRangeAlone_ReturnsTrue()
+	public void CouldPossiblyDamage_WhenWithinWeaponReachAlone_ReturnsTrue()
 	{
 		var self = Coord.Zero;
 		var opponent = new Coord(CombatConfig.MaxRailgunManhattanRange, 0, 0);
 
-		Assert.True(RailgunReach.CouldPossiblyHit(self, actionPoints: 0, opponent));
+		Assert.True(OffensiveReach.CouldPossiblyDamage(self, actionPoints: 0, opponent, CombatConfig.MaxRailgunManhattanRange));
 	}
 
 	[Fact]
-	public void CouldPossiblyHit_WhenJustBeyondRailAndMoveBubble_ReturnsFalse()
+	public void CouldPossiblyDamage_WhenJustBeyondReachAndMoveBubble_ReturnsFalse()
 	{
 		var ap = 2;
-		var bubble = RailgunReach.OptimisticMoveBubble(ap);
+		var reach = CombatConfig.MaxRailgunManhattanRange;
+		var bubble = OffensiveReach.OptimisticMoveBubble(ap);
 		var self = Coord.Zero;
-		var opponent = new Coord(bubble + CombatConfig.MaxRailgunManhattanRange + 1, 0, 0);
+		var opponent = new Coord(bubble + reach + 1, 0, 0);
 
-		Assert.False(RailgunReach.CouldPossiblyHit(self, ap, opponent));
+		Assert.False(OffensiveReach.CouldPossiblyDamage(self, ap, opponent, reach));
 	}
 
 	[Fact]
-	public void CouldPossiblyHit_WhenMoveBubbleClosesTheGap_ReturnsTrue()
+	public void CouldPossiblyDamage_WhenMoveBubbleClosesTheGap_ReturnsTrue()
 	{
 		var ap = 5;
-		var bubble = RailgunReach.OptimisticMoveBubble(ap);
+		var reach = CombatConfig.MaxRailgunManhattanRange;
+		var bubble = OffensiveReach.OptimisticMoveBubble(ap);
 		var self = Coord.Zero;
-		var opponent = new Coord(bubble + CombatConfig.MaxRailgunManhattanRange, 0, 0);
+		var opponent = new Coord(bubble + reach, 0, 0);
 
-		Assert.True(RailgunReach.CouldPossiblyHit(self, ap, opponent));
+		Assert.True(OffensiveReach.CouldPossiblyDamage(self, ap, opponent, reach));
 	}
 
 	[Fact]
 	public void OptimisticMoveBubble_IncludesMaxFreeForwardSteps()
 	{
 		var free = MomentumConfig.ForLevel(MomentumConfig.MaxLevel).FreeForwardSteps;
-		Assert.Equal(4 + free, RailgunReach.OptimisticMoveBubble(4));
+		Assert.Equal(4 + free, OffensiveReach.OptimisticMoveBubble(4));
 	}
 
 	[Fact]
-	public void UpperBound_OmitsRailgunBonus_WhenOpponentOutOfOptimisticReach()
+	public void UpperBound_OmitsDamageBonus_WhenOpponentOutOfOptimisticReach()
 	{
 		var ap = 0;
-		var gap = RailgunReach.OptimisticMoveBubble(ap) + CombatConfig.MaxRailgunManhattanRange + 1;
+		var gap = OffensiveReach.OptimisticMoveBubble(ap) + CombatConfig.MaxRailgunManhattanRange + 1;
 		var player = CreateUnit(Alliance.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
-		var enemy = CreateUnit(Alliance.Enemy, "enemy", new Coord(0, 5, 5), EType.Patrol);
+		var enemy = CreateUnit(Alliance.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
 		enemy.State.ActionPoints = ap;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, BattleTestFixture.Grid(size: 32));
@@ -65,17 +67,32 @@ public sealed class RailgunReachTests
 	}
 
 	[Fact]
-	public void UpperBound_IncludesRailgunBonus_WhenOpponentInOptimisticReach()
+	public void UpperBound_IncludesDamageBonus_WhenOpponentInOptimisticReach()
 	{
 		var player = CreateUnit(Alliance.Player, "player", new Coord(6, 5, 5), EType.Fighter);
-		var enemy = CreateUnit(Alliance.Enemy, "enemy", new Coord(0, 5, 5), EType.Patrol);
+		var enemy = CreateUnit(Alliance.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
 
 		Assert.Equal(
-			MomentumConfig.MaxLevel * EnemySearchInput.MomentumWeight + EnemySearchInput.RailgunHitBonus,
+			MomentumConfig.MaxLevel * EnemySearchInput.MomentumWeight + EnemySearchInput.DamageHitBonus,
+			bound);
+	}
+
+	[Fact]
+	public void UpperBound_IncludesDamageBonus_WhenPatrolCanReachPlayerWithFlak()
+	{
+		var player = CreateUnit(Alliance.Player, "player", new Coord(4, 5, 5), EType.Fighter);
+		var patrol = CreateUnit(Alliance.Enemy, "patrol", new Coord(0, 5, 5), EType.Patrol);
+		patrol.State.ActionPoints = 0;
+
+		var battle = BattleTestFixture.BeginSimulation(player, patrol);
+		var bound = EnemySearchInput.UpperBound(battle.Engine.World, patrol.State.Id);
+
+		Assert.Equal(
+			MomentumConfig.MaxLevel * EnemySearchInput.MomentumWeight + EnemySearchInput.DamageHitBonus,
 			bound);
 	}
 

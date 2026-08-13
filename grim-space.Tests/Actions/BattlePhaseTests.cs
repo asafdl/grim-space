@@ -137,7 +137,7 @@ public sealed class BattlePhaseTests
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
-		frames.Interaction.FocusUnit(battle.OpponentId);
+		frames.Interaction.FocusUnit(BattleTestFixture.FirstEnemyId(battle));
 		Assert.True(frames.IsInspecting(battle));
 
 		battle.EndTurn();
@@ -155,7 +155,7 @@ public sealed class BattlePhaseTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 		var queuedCount = battle.PlayerAgent.Sim.Actions.Count;
 
-		frames.Interaction.FocusUnit(battle.OpponentId);
+		frames.Interaction.FocusUnit(BattleTestFixture.FirstEnemyId(battle));
 		frames.Interaction.ClearFocus();
 		Assert.False(frames.IsInspecting(battle));
 

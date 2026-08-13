@@ -8,7 +8,7 @@ using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;

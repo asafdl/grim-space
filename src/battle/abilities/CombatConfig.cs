@@ -1,4 +1,4 @@
-namespace GrimSpace.Battle.Weapons;
+namespace GrimSpace.Battle.Abilities;
 
 public static class CombatConfig
 {
@@ -8,6 +8,8 @@ public static class CombatConfig
 	public const int RailgunsPerTurn = 1;
 
 	public const int FlakRange = 2;
+	// Max manhattan from firer to a flak cell (side arc at max range).
+	public const int MaxFlakManhattanRange = FlakRange * 3 + 1;
 	public const int FlakDamage = 1;
 	public const int FlakMomentumLoss = 1;
 	public const int FlakApPenaltyThreshold = 2;
@@ -22,4 +24,7 @@ public static class CombatConfig
 	public const int RollApCost = 1;
 	public const int HeadingTurn90ApCost = 1;
 	public const int HeadingTurn180ApCost = 2;
+
+	public const int PatrolCooldownTurns = 2;
+	public const int MaxLivingPatrolChildren = 5;
 }

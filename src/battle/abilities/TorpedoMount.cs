@@ -2,7 +2,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.Battle.Weapons;
+namespace GrimSpace.Battle.Abilities;
 
 public static class TorpedoMount
 {

@@ -2,7 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;

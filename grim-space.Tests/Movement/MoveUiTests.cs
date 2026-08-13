@@ -220,7 +220,7 @@ public sealed class MoveUiTests
 		var playerEndpoints = BattleTestCommands.DiscoverPaths(battle)
 			.Select(path => path.EndPosition)
 			.ToHashSet();
-		_ = BattleTestCommands.DiscoverPaths(battle, battle.OpponentId);
+		_ = BattleTestCommands.DiscoverPaths(battle, BattleTestFixture.FirstEnemyId(battle));
 
 		var restoredEndpoints = BattleTestCommands.DiscoverPaths(battle)
 			.Select(path => path.EndPosition)

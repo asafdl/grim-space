@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units;
@@ -33,6 +33,7 @@ public sealed class SpawnTorpedoEffect(ETorpedoMount mount, string? unitId = nul
 			fore,
 			dorsal);
 		torpedo.State.FuelRemaining = TorpedoConfig.Fuel;
+		torpedo.State.ParentId = actorId;
 		units.Add(torpedo);
 		_spawned = torpedo;
 

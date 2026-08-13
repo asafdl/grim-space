@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -31,6 +31,7 @@ public sealed class TorpedoActionTests
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
 		Assert.Equal(ETeam.Player, torpedo.Alliance.Team);
+		Assert.Equal(PlayerId, torpedo.State.ParentId);
 	}
 
 	[Fact]
@@ -46,7 +47,7 @@ public sealed class TorpedoActionTests
 	[Fact]
 	public void FighterCapabilitiesIncludeEnabledTorpedoMounts()
 	{
-		var weapons = Capabilities.WeaponsFor(EType.Fighter);
+		var weapons = Capabilities.AbilitiesFor(EType.Fighter);
 		foreach (var mount in TorpedoConfig.EnabledMounts)
 			Assert.Contains(weapons, def => def is TorpedoDef torpedo && torpedo.Mount == mount);
 	}

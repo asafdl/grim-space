@@ -26,14 +26,18 @@ public partial class UnitView : Node3D
 
 		if (state.Type == EType.Torpedo)
 			BindTorpedo(color);
+		else if (state.Type == EType.Patrol)
+			BindPatrol(color);
+		else if (state.Type == EType.Carrier)
+			BindCarrier(color);
 		else
 			BindShip(color);
 
 		_momentumLabel = new Label3D
 		{
-			Position = new Vector3(0f, state.Type == EType.Torpedo ? 0.55f : 1.2f, 0f),
+			Position = new Vector3(0f, StatusLabelHeight(state.Type), 0f),
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			FontSize = state.Type == EType.Torpedo ? 36 : 48,
+			FontSize = state.Type == EType.Torpedo ? 36 : state.Type == EType.Patrol ? 40 : 48,
 			OutlineSize = 8,
 			Modulate = Colors.White,
 		};
@@ -117,7 +121,13 @@ public partial class UnitView : Node3D
 		if (_hitMark is not null)
 			return;
 
-		var radius = _type == EType.Torpedo ? 0.45f : 0.95f;
+		var radius = _type switch
+		{
+			EType.Torpedo => 0.45f,
+			EType.Patrol => 0.58f,
+			EType.Carrier => 1.15f,
+			_ => 0.95f,
+		};
 		_hitMark = new MeshInstance3D
 		{
 			Name = "HitMark",
@@ -164,6 +174,56 @@ public partial class UnitView : Node3D
 		AddChild(nose);
 	}
 
+	private void BindCarrier(Color color)
+	{
+		_hull = new MeshInstance3D
+		{
+			Mesh = CarrierMesh.CreateHull(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		};
+		AddChild(_hull);
+
+		var island = new MeshInstance3D
+		{
+			Mesh = CarrierMesh.CreateIslandMarker(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = color.Lightened(0.28f),
+				EmissionEnabled = true,
+				Emission = color.Lightened(0.42f),
+				EmissionEnergyMultiplier = 0.55f,
+				Roughness = 0.35f,
+			},
+		};
+		AddChild(island);
+	}
+
+	private void BindPatrol(Color color)
+	{
+		_hull = new MeshInstance3D
+		{
+			Mesh = PatrolMesh.CreateHull(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		};
+		AddChild(_hull);
+
+		var nose = new MeshInstance3D
+		{
+			Mesh = PatrolMesh.CreateNoseMarker(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = color.Lightened(0.35f),
+				EmissionEnabled = true,
+				Emission = color.Lightened(0.5f),
+				EmissionEnergyMultiplier = 0.6f,
+				Roughness = 0.3f,
+			},
+		};
+		AddChild(nose);
+	}
+
 	private void BindTorpedo(Color color)
 	{
 		_hull = new MeshInstance3D
@@ -188,10 +248,16 @@ public partial class UnitView : Node3D
 		if (_hull is null)
 			return;
 
-		var maxPoints = state.Stats.MaxShieldPointsPerFace;
+		var maxProfile = state.Stats.MaxShieldPoints;
 		foreach (var face in Faces)
 		{
-			var index = ShipMesh.SurfaceIndex(face);
+			var index = _type switch
+			{
+				EType.Patrol => PatrolMesh.SurfaceIndex(face),
+				EType.Carrier => CarrierMesh.SurfaceIndex(face),
+				_ => ShipMesh.SurfaceIndex(face),
+			};
+			var maxOnFace = maxProfile[face];
 			var points = state.ShieldPoints[face];
 			if (_shieldPoints[index] == points)
 				continue;
@@ -199,7 +265,7 @@ public partial class UnitView : Node3D
 			_shieldPoints[index] = points;
 			_hull.SetSurfaceOverrideMaterial(
 				index,
-				ShieldFaceMaterials.For(_hullColor, points, maxPoints));
+				ShieldFaceMaterials.For(_hullColor, points, maxOnFace));
 		}
 	}
 
@@ -224,6 +290,15 @@ public partial class UnitView : Node3D
 		var starboard = ToVector3(state.Starboard);
 		Basis = new Basis(starboard, dorsal, fore);
 	}
+
+	private static float StatusLabelHeight(EType type) =>
+		type switch
+		{
+			EType.Torpedo => 0.55f,
+			EType.Patrol => 0.82f,
+			EType.Carrier => 1.35f,
+			_ => 1.2f,
+		};
 
 	private static Vector3 ToVector3(Coord coord) =>
 		new(coord.X, coord.Y, coord.Z);

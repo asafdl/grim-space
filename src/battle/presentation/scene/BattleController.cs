@@ -6,7 +6,7 @@ using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -338,6 +338,9 @@ public partial class BattleController : Node3D
 
 	private Color ColorForPreview(PresentationFrame frame, string actorId)
 	{
+		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
+			return ColorFor(unit.Alliance.Team);
+
 		if (_battle.Layout.Participants.TryGetValue(actorId, out var team))
 			return ColorFor(team);
 

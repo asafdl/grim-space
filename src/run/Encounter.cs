@@ -22,7 +22,7 @@ public sealed class Encounter
 		};
 		var enemy = new Instance
 		{
-			Type = EType.Patrol,
+			Type = EType.Carrier,
 			Alliance = Alliance.Enemy,
 		};
 

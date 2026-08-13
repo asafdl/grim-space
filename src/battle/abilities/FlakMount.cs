@@ -1,7 +1,6 @@
-using GrimSpace.Battle.Weapons;
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.Battle.Weapons;
+namespace GrimSpace.Battle.Abilities;
 
 public enum EFlakMount
 {

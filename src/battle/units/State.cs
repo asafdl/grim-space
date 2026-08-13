@@ -1,3 +1,4 @@
+using GrimSpace.Core;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -20,6 +21,8 @@ public sealed class State
 	public int RailgunRemaining { get; set; }
 	public int FuelRemaining { get; set; }
 	public int TorpedoCooldownRemaining { get; set; }
+	public int PatrolSpawnCooldownRemaining { get; set; }
+	public string ParentId { get; set; } = EntityIds.System;
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; init; }
 
@@ -42,6 +45,8 @@ public sealed class State
 			RailgunRemaining = RailgunRemaining,
 			FuelRemaining = FuelRemaining,
 			TorpedoCooldownRemaining = TorpedoCooldownRemaining,
+			PatrolSpawnCooldownRemaining = PatrolSpawnCooldownRemaining,
+			ParentId = ParentId,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
 		};
@@ -53,11 +58,10 @@ public sealed class State
 		Instance instance,
 		Coord position,
 		Coord fore,
-		Coord dorsal)
+		Coord dorsal,
+		string parentId = EntityIds.System)
 	{
 		var stats = Stats.ForType(instance.Type);
-		var shieldPoints = new FaceShieldPoints();
-		shieldPoints.Fill(stats.MaxShieldPointsPerFace);
 		return new State
 		{
 			Id = instance.Id,
@@ -68,12 +72,14 @@ public sealed class State
 			Starboard = Coord.Cross(dorsal, fore),
 			ActionPoints = stats.MaxAp,
 			HullPoints = stats.MaxHullPoints,
-			ShieldPoints = shieldPoints,
+			ShieldPoints = stats.MaxShieldPoints.Clone(),
 			MomentumLevel = 0,
 			FlakRemaining = stats.FlaksPerTurn,
 			RailgunRemaining = stats.RailgunsPerTurn,
 			FuelRemaining = 0,
 			TorpedoCooldownRemaining = 0,
+			PatrolSpawnCooldownRemaining = 0,
+			ParentId = parentId,
 			Stats = stats,
 		};
 	}

@@ -63,6 +63,14 @@ public static class ActionLog
 				continue;
 			}
 
+			if (entry is SpawnPatrolAction deploy)
+			{
+				var patrolId = ResolveSpawnedPatrolId(deploy, history, i);
+				Emit(deploy.ActorId, $"{displayName(deploy.ActorId)} deployed {displayName(patrolId)}");
+				i++;
+				continue;
+			}
+
 			var line = FormatOne(entry, displayName);
 			if (line is not null)
 				Emit(ActorIdOf(entry), line);
@@ -143,6 +151,23 @@ public static class ActionLog
 			IAction action => action.ActorId,
 			_ => null,
 		};
+
+	private static string ResolveSpawnedPatrolId(
+		SpawnPatrolAction deploy,
+		IReadOnlyList<ITimelineEntry> history,
+		int index)
+	{
+		if (deploy.SpawnedUnitId is { } id)
+			return id;
+
+		if (index + 1 < history.Count
+			&& history[index + 1] is Record<SpawnFacts> { Value: var spawn }
+			&& spawn.SourceId == deploy.ActorId
+			&& spawn.EntityType == EType.Patrol)
+			return spawn.TargetId;
+
+		return "patrol";
+	}
 
 	private static string? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>
 		entry switch

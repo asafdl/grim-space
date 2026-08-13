@@ -57,7 +57,7 @@ public sealed class ActionLogTests
 	[Fact]
 	public void FormatsFlakMiss()
 	{
-		ITimelineEntry[] history = [new FlakAction("fighter-a", GrimSpace.Battle.Weapons.EFlakMount.Port)];
+		ITimelineEntry[] history = [new FlakAction("fighter-a", GrimSpace.Battle.Abilities.EFlakMount.Port)];
 
 		var lines = ActionLog.Format(history, id => $"player {id}");
 

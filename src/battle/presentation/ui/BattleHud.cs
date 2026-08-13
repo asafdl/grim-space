@@ -219,7 +219,7 @@ public partial class BattleHud : Node
 			focusState.MomentumLevel,
 			MomentumConfig.MaxLevel);
 
-		var weaponKinds = Capabilities.WeaponsFor(focusState.Type);
+		var weaponKinds = Capabilities.AbilitiesFor(focusState.Type);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(
 			frame.CanAct,

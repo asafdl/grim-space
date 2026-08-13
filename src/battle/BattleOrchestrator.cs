@@ -9,7 +9,7 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
@@ -23,7 +23,6 @@ namespace GrimSpace.Battle;
 public sealed class BattleOrchestrator
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
-	private readonly string _opponentId;
 	private readonly Manager _objectives;
 
 	private bool _resolveInProgress;
@@ -33,13 +32,11 @@ public sealed class BattleOrchestrator
 		Engine<BattleWorld, ActorRuntime> engine,
 		BattleLayout layout,
 		string playerId,
-		string opponentId,
 		EObjective objective)
 	{
 		_engine = engine;
 		Layout = layout;
 		PlayerId = playerId;
-		_opponentId = opponentId;
 		_objectives = new Manager(objective);
 	}
 
@@ -47,7 +44,6 @@ public sealed class BattleOrchestrator
 
 	public BattleLayout Layout { get; }
 	public string PlayerId { get; }
-	public string OpponentId => _opponentId;
 	public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
 	public bool IsBattleOver => Outcome.IsOver;
 	public int TurnNumber => _engine.Tick;
@@ -98,7 +94,6 @@ public sealed class BattleOrchestrator
 			.ToArray();
 
 		var player = units.First(unit => unit.Alliance.Team == ETeam.Player);
-		var opponentId = units.First(unit => unit.Alliance.Team == ETeam.Enemy).State.Id;
 		var world = BattleWorld.FromLive(units, nonUnits, grid, blockedCells, timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
@@ -114,7 +109,6 @@ public sealed class BattleOrchestrator
 			engine,
 			layout,
 			player.State.Id,
-			opponentId,
 			encounter.Objective);
 
 		foreach (var unit in units) 

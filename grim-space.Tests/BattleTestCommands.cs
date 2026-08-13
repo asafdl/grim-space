@@ -3,10 +3,10 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
-using GrimSpace.Battle;
-using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -42,6 +42,17 @@ internal static class BattleTestCommands
 
 	public static bool FireTorpedo(BattleOrchestrator battle, ETorpedoMount mount) =>
 		Enqueue(battle, [new TorpedoAction(battle.PlayerId, mount)]);
+
+	public static bool DeployPatrol(BattleOrchestrator battle)
+	{
+		var carrierId = BattleTestFixture.FirstEnemyId(battle);
+		var action = new SpawnPatrolAction(carrierId);
+		if (!SpawnPatrolDef.Instance.IsLegal(action, battle.Engine.World, battle.Engine.ActorRuntimes.For(carrierId)))
+			return false;
+
+		battle.Engine.Commit([action]);
+		return true;
+	}
 
 	public static bool Turn(BattleOrchestrator battle, EHeadingTurn turn) =>
 		Enqueue(battle, [new HeadingTurnAction(battle.PlayerId, turn)]);

@@ -3,7 +3,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
@@ -16,7 +16,7 @@ internal static class EnemySearchInput
 {
 	internal const int MomentumWeight = 1_000;
 	internal const int UnusedApPenalty = 100;
-	internal const int RailgunHitBonus = 2_000;
+	internal const int DamageHitBonus = 2_000;
 	internal const int TimelineRefinementSlack = UnusedApPenalty;
 	internal const int FacingWeight = 800;
 	internal const int ApproachWeight = 150;
@@ -36,7 +36,7 @@ internal static class EnemySearchInput
 			return int.MinValue;
 
 		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
-		score += RailgunAdjustment(anchor, frame.Actions, actorId, searchStartDepth);
+		score += DamageAdjustment(anchor, frame.Actions, actorId, searchStartDepth);
 		score += EngagementAdjustment(world, actorId, anchor, frame.Actions, searchStartDepth);
 		return score;
 	}
@@ -46,16 +46,29 @@ internal static class EnemySearchInput
 		var state = world.StateOf(actorId);
 		// Optimistic bound: remaining AP may still be spent productively; momentum can climb to max.
 		var score = MomentumConfig.MaxLevel * MomentumWeight;
-		if (state.RailgunRemaining <= 0)
+		if (!HasOffensiveCharges(state))
 			return score;
 
 		var opponent = NearestOpponent(world, actorId);
-		if (opponent is not null
-			&& RailgunReach.CouldPossiblyHit(state.Position, state.ActionPoints, opponent.State.Position))
-			score += RailgunHitBonus;
+		var weaponReach = OptimisticWeaponReach(state);
+		if (weaponReach > 0
+			&& opponent is not null
+			&& OffensiveReach.CouldPossiblyDamage(
+				state.Position,
+				state.ActionPoints,
+				opponent.State.Position,
+				weaponReach))
+			score += DamageHitBonus;
 
 		return score;
 	}
+
+	public static bool HasDamageHit(
+		BattleSimulation anchor,
+		IReadOnlyList<IAction> actions,
+		string actorId,
+		int searchStartDepth) =>
+		DamageAdjustment(anchor, actions, actorId, searchStartDepth) == DamageHitBonus;
 
 	private static int EngagementAdjustment(
 		BattleWorld world,
@@ -65,19 +78,14 @@ internal static class EnemySearchInput
 		int searchStartDepth)
 	{
 		var state = world.StateOf(actorId);
-		if (state.RailgunRemaining <= 0 || RailgunFired(actions, actorId, searchStartDepth))
+		if (!HasOffensiveCharges(state) || OffensiveFired(actions, actorId, searchStartDepth))
 			return 0;
 
-		if (RailgunWouldHit(world, actorId))
+		if (CanDamageNow(world, actorId))
 			return 0;
 
 		var opponent = NearestOpponent(world, actorId);
 		if (opponent is null)
-			return 0;
-
-		// Already in rail range — align and shoot, not creep forward for facing/approach credit.
-		if (state.Position.ManhattanDistanceTo(opponent.State.Position)
-			<= CombatConfig.MaxRailgunManhattanRange)
 			return 0;
 
 		var bonus = 0;
@@ -93,11 +101,27 @@ internal static class EnemySearchInput
 		return bonus;
 	}
 
-	private static bool RailgunFired(IReadOnlyList<IAction> actions, string actorId, int searchStartDepth)
+	private static bool HasOffensiveCharges(State state) =>
+		state.RailgunRemaining > 0 || state.FlakRemaining > 0;
+
+	private static int OptimisticWeaponReach(State state)
+	{
+		var reach = 0;
+		if (state.RailgunRemaining > 0)
+			reach = System.Math.Max(reach, CombatConfig.MaxRailgunManhattanRange);
+		if (state.FlakRemaining > 0)
+			reach = System.Math.Max(reach, CombatConfig.MaxFlakManhattanRange);
+		return reach;
+	}
+
+	private static bool OffensiveFired(IReadOnlyList<IAction> actions, string actorId, int searchStartDepth)
 	{
 		for (var i = searchStartDepth; i < actions.Count; i++)
 		{
 			if (actions[i] is RailgunAction { ActorId: var railgunActorId } && railgunActorId == actorId)
+				return true;
+
+			if (actions[i] is FlakAction { ActorId: var flakActorId } && flakActorId == actorId)
 				return true;
 		}
 
@@ -146,14 +170,7 @@ internal static class EnemySearchInput
 		return new Coord(0, 0, System.Math.Sign(delta.Z));
 	}
 
-	public static bool HasRailgunHit(
-		BattleSimulation anchor,
-		IReadOnlyList<IAction> actions,
-		string actorId,
-		int searchStartDepth) =>
-		RailgunAdjustment(anchor, actions, actorId, searchStartDepth) == RailgunHitBonus;
-
-	private static int RailgunAdjustment(
+	private static int DamageAdjustment(
 		BattleSimulation anchor,
 		IReadOnlyList<IAction> actions,
 		string actorId,
@@ -161,24 +178,22 @@ internal static class EnemySearchInput
 	{
 		for (var i = searchStartDepth; i < actions.Count; i++)
 		{
-			if (actions[i] is not RailgunAction { ActorId: var railgunActorId } || railgunActorId != actorId)
+			var action = actions[i];
+			if (action is not RailgunAction and not FlakAction)
 				continue;
 
-			return RailgunWouldHit(anchor, actions, actorId, i, searchStartDepth)
-				? RailgunHitBonus
-				: -RailgunHitBonus;
+			if (action.ActorId != actorId)
+				continue;
+
+			return WouldDamage(anchor, actions, actorId, i, searchStartDepth)
+				? DamageHitBonus
+				: -DamageHitBonus;
 		}
 
 		return 0;
 	}
 
-	private static bool RailgunWouldHit(BattleSimulation sim, string actorId, int actionIndex)
-	{
-		var world = sim.ReplayWorld(actionIndex);
-		return RailgunWouldHit(world, actorId);
-	}
-
-	private static bool RailgunWouldHit(
+	private static bool WouldDamage(
 		BattleSimulation anchor,
 		IReadOnlyList<IAction> actions,
 		string actorId,
@@ -186,13 +201,44 @@ internal static class EnemySearchInput
 		int searchStartDepth)
 	{
 		var world = WorldAtAction(anchor, actions, searchStartDepth, actionIndex);
-		return RailgunWouldHit(world, actorId);
+		return WouldDamage(world, actorId, actions[actionIndex]);
 	}
 
-	private static bool RailgunWouldHit(BattleWorld world, string actorId)
+	private static bool WouldDamage(BattleWorld world, string actorId, IAction action) =>
+		action switch
+		{
+			RailgunAction { ActorId: var railgunActorId } when railgunActorId == actorId =>
+				WouldRailgunDamage(world, actorId),
+			FlakAction { ActorId: var flakActorId, Mount: var mount } when flakActorId == actorId =>
+				WouldFlakDamage(world, actorId, mount),
+			_ => false,
+		};
+
+	private static bool CanDamageNow(BattleWorld world, string actorId)
+	{
+		var state = world.StateOf(actorId);
+		if (state.RailgunRemaining > 0 && WouldRailgunDamage(world, actorId))
+			return true;
+
+		if (state.FlakRemaining <= 0)
+			return false;
+
+		return WouldFlakDamage(world, actorId, EFlakMount.Port)
+			|| WouldFlakDamage(world, actorId, EFlakMount.Starboard);
+	}
+
+	private static bool WouldRailgunDamage(BattleWorld world, string actorId)
 	{
 		var frame = BodyFrame.From(world.StateOf(actorId));
 		var cells = WeaponBursts.RailgunBurstCells(frame, world.Grid.IsInBounds);
+		return world.AnyOpponentInCells(actorId, cells);
+	}
+
+	private static bool WouldFlakDamage(BattleWorld world, string actorId, EFlakMount mount)
+	{
+		var frame = BodyFrame.From(world.StateOf(actorId));
+		var config = FlakMountConfig.For(mount);
+		var cells = WeaponBursts.FlakBurstCells(frame, config, world.Grid.IsInBounds);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 

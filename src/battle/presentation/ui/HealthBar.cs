@@ -64,13 +64,13 @@ public sealed partial class HealthBar : HBoxContainer
 	public void Set(UnitDisplayState state)
 	{
 		SetHull(state.HullPoints, state.MaxHullPoints);
-		SetShields(state.ShieldPoints, state.MaxShieldPointsPerFace);
+		SetShields(state.ShieldPoints, state.MaxShieldPoints);
 	}
 
-	private void SetShields(FaceShieldPoints shieldPoints, int maxPerFace)
+	private void SetShields(FaceShieldPoints shieldPoints, FaceShieldPoints maxPoints)
 	{
-		_shieldSection.Visible = maxPerFace > 0;
-		if (maxPerFace <= 0)
+		_shieldSection.Visible = maxPoints.MaxOnAnyFace > 0;
+		if (maxPoints.MaxOnAnyFace <= 0)
 			return;
 
 		while (_shieldFaces.Count < Faces.Length)
@@ -88,6 +88,11 @@ public sealed partial class HealthBar : HBoxContainer
 		{
 			var face = Faces[faceIndex];
 			var (host, blocks) = _shieldFaces[faceIndex];
+			var maxPerFace = maxPoints[face];
+			host.Visible = maxPerFace > 0;
+			if (maxPerFace <= 0)
+				continue;
+
 			var current = System.Math.Clamp(shieldPoints[face], 0, maxPerFace);
 			host.TooltipText = BattleHudCopy.FaceShieldTooltip(
 				BattleHudCopy.FaceName(face),

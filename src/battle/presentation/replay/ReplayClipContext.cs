@@ -2,7 +2,7 @@ using Godot;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 

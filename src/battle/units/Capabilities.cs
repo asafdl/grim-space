@@ -1,6 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Enums;
 using GrimSpace.Battle.Actions;
@@ -21,10 +21,10 @@ public static class Capabilities
 		type switch
 		{
 			EType.Torpedo => [MoveDef.Instance],
-			_ => [..Movement, ..WeaponsFor(type)],
+			_ => [..Movement, ..AbilitiesFor(type)],
 		};
 
-	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> WeaponsFor(
+	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilitiesFor(
 		EType type) =>
 		type switch
 		{
@@ -35,7 +35,12 @@ public static class Capabilities
 				RailgunDef.Instance,
 				..TorpedoConfig.EnabledMounts.Select(TorpedoDef.For),
 			],
-			EType.Patrol => [RailgunDef.Instance],
+			EType.Carrier => [RailgunDef.Instance],
+			EType.Patrol =>
+			[
+				FlakDef.For(EFlakMount.Port),
+				FlakDef.For(EFlakMount.Starboard),
+			],
 			EType.Torpedo => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};

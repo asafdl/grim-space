@@ -6,7 +6,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -153,10 +153,10 @@ public sealed class PresentationFrameTests
 		var enemyPos = TurnOrchestrationTests.EnemyInRailgunLine(origin);
 		var battle = CreateOrchestrator(origin, enemyPos);
 
-		BattleTestCommands.Focus(battle, battle.OpponentId);
+		BattleTestCommands.Focus(battle, BattleTestFixture.FirstEnemyId(battle));
 		var frame = BattleTestCommands.Frame(battle);
 
-		Assert.Equal(battle.OpponentId, frame.FocusId);
+		Assert.Equal(BattleTestFixture.FirstEnemyId(battle), frame.FocusId);
 		Assert.True(frame.IsInspecting);
 		Assert.False(frame.CanAct);
 		Assert.Equal(EPlayerMode.Move, frame.Mode);
@@ -179,7 +179,7 @@ public sealed class PresentationFrameTests
 		var actionsBefore = battle.PlayerAgent.Sim.Actions.ToList();
 		var playerPosBefore = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position;
 
-		BattleTestCommands.Focus(battle, battle.OpponentId);
+		BattleTestCommands.Focus(battle, BattleTestFixture.FirstEnemyId(battle));
 		_ = BattleTestCommands.Frame(battle);
 
 		Assert.Equal(actionsBefore, battle.PlayerAgent.Sim.Actions);

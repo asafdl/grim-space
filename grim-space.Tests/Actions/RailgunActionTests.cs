@@ -1,7 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
@@ -25,10 +25,10 @@ public sealed class RailgunActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			playerPos, TurnOrchestrationTests.EnemyInRailgunLine(playerPos));
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.OpponentId));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RailgunAction(PlayerId)));
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.OpponentId)));
+		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
 	}
 
 	[Fact]
@@ -48,12 +48,12 @@ public sealed class RailgunActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var enemyPos = playerPos + Coord.Forward * 6;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.OpponentId));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RailgunAction(PlayerId)));
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Contains(replay.Actions, action => action is RailgunAction);
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.Engine.World.StateOf(battle.OpponentId)));
+		Assert.True(shieldsBefore > TotalShieldPoints(battle.Engine.World.StateOf(BattleTestFixture.FirstEnemyId(battle))));
 	}
 }

@@ -27,7 +27,14 @@ internal static class ShieldFaceMaterials
 			Metallic = 0.1f,
 		};
 
-		if (maxPoints <= 0 || points <= 0)
+		if (maxPoints <= 0)
+		{
+			material.AlbedoColor = hullColor;
+			material.EmissionEnabled = false;
+			return material;
+		}
+
+		if (points <= 0)
 		{
 			material.AlbedoColor = hullColor.Lerp(warn, 0.55f);
 			material.EmissionEnabled = true;

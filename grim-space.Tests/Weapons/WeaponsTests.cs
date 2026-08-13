@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 

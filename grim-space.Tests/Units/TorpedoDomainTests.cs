@@ -13,7 +13,7 @@ public sealed class TorpedoDomainTests
 		var stats = Stats.ForType(EType.Torpedo);
 
 		Assert.Equal(1, stats.MaxHullPoints);
-		Assert.Equal(0, stats.MaxShieldPointsPerFace);
+		Assert.Equal(0, stats.MaxShieldPoints.MaxOnAnyFace);
 		Assert.Equal(1, stats.MinPathApCost);
 		Assert.Equal(3, stats.MaxAp);
 	}

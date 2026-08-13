@@ -77,9 +77,9 @@ public sealed class DeploymentPlacementTests
 			gridSize: 32);
 
 		Assert.StartsWith("fighter-", battle.PlayerId);
-		Assert.StartsWith("patrol-", battle.OpponentId);
+		Assert.StartsWith("carrier-", BattleTestFixture.FirstEnemyId(battle));
 		Assert.NotEqual("player", battle.PlayerId);
-		Assert.NotEqual("enemy", battle.OpponentId);
+		Assert.NotEqual("enemy", BattleTestFixture.FirstEnemyId(battle));
 	}
 
 	private static Instance PlayerInstance() => new()
@@ -90,7 +90,7 @@ public sealed class DeploymentPlacementTests
 
 	private static Instance EnemyInstance() => new()
 	{
-		Type = EType.Patrol,
+		Type = EType.Carrier,
 		Alliance = Alliance.Enemy,
 	};
 }

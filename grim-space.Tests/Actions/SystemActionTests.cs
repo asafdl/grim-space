@@ -2,7 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.World;
 using GrimSpace.Core;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 

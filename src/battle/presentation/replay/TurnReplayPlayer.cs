@@ -6,10 +6,11 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
+using GrimSpace.Core;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Replay;
@@ -34,11 +35,10 @@ public partial class TurnReplayPlayer : Node3D
 	private int _entryIndex;
 
 	private int _turnNumber;
-	private string _playerId = string.Empty;
-	private string _opponentId = string.Empty;
+	private IReadOnlyDictionary<string, ETeam> _participants = new Dictionary<string, ETeam>();
 	private readonly Stopwatch _playbackTimer = new();
 	private readonly Stopwatch _phaseTimer = new();
-	private PlaybackPhase _phase;
+	private EReplayPlaybackPhase _phase;
 	private double _playerAnimMs;
 	private double _enemyAnimMs;
 	private double _upkeepAnimMs;
@@ -85,19 +85,21 @@ public partial class TurnReplayPlayer : Node3D
 			_unitViews[unitId].Sync(state);
 	}
 
-	public void Play(IReadOnlyList<ITimelineEntry> history, int turnNumber, string playerId, string opponentId)
+	public void Play(
+		IReadOnlyList<ITimelineEntry> history,
+		int turnNumber,
+		IReadOnlyDictionary<string, ETeam> participants)
 	{
 		_history = history;
 		_entryIndex = 0;
 		_turnNumber = turnNumber;
-		_playerId = playerId;
-		_opponentId = opponentId;
+		_participants = participants;
 		_playerAnimMs = 0;
 		_enemyAnimMs = 0;
 		_upkeepAnimMs = 0;
 		_timeToEnemyAnimMs = 0;
 		_loggedEnemyAnimStart = false;
-		_phase = PlaybackPhase.Player;
+		_phase = EReplayPlaybackPhase.Player;
 		_playbackTimer.Restart();
 		_phaseTimer.Restart();
 		IsPlaying = true;
@@ -113,7 +115,7 @@ public partial class TurnReplayPlayer : Node3D
 			{
 				case IAction action:
 				{
-					BeginPhase(Classify(action.ActorId));
+					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
 					ReportActionInterest(action);
 					Clips.TryPlay(action, _clipContext, out var playback);
 					if (playback.Pauses)
@@ -125,11 +127,11 @@ public partial class TurnReplayPlayer : Node3D
 					break;
 				}
 				case Record<SpawnFacts> { Value: var spawn }:
-					BeginPhase(Classify(spawn.SourceId));
+					BeginPhase(ReplayActorPhase.Classify(spawn.SourceId, _participants));
 					ApplySpawn(spawn);
 					break;
 				case Record<ImpactFacts> { Value: var impact }:
-					BeginPhase(Classify(impact.SourceId));
+					BeginPhase(ReplayActorPhase.Classify(impact.SourceId, _participants));
 					if (PlayImpact(impact))
 						return;
 					break;
@@ -141,9 +143,19 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void ApplySpawn(SpawnFacts spawn)
 	{
-		if (spawn.EntityType != EType.Torpedo)
-			return;
+		switch (spawn.EntityType)
+		{
+			case EType.Torpedo:
+				ApplyTorpedoSpawn(spawn);
+				break;
+			case EType.Patrol:
+				ApplyPatrolSpawn(spawn);
+				break;
+		}
+	}
 
+	private void ApplyTorpedoSpawn(SpawnFacts spawn)
+	{
 		if (_clipContext.PendingTorpedoMount is not { } mount)
 			throw new InvalidOperationException($"SpawnFacts for {spawn.TargetId} missing preceding TorpedoAction mount.");
 
@@ -158,6 +170,7 @@ public partial class TurnReplayPlayer : Node3D
 		spawned.Fore = fore;
 		spawned.Dorsal = dorsal;
 		spawned.Starboard = Coord.Cross(dorsal, fore);
+		spawned.ParentId = spawn.SourceId;
 		spawned.FuelRemaining = TorpedoConfig.Fuel;
 		spawned.MomentumLevel = TorpedoConfig.SpawnMomentum;
 		spawned.HullPoints = spawned.Stats.MaxHullPoints;
@@ -167,6 +180,33 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
 		_clipContext.UnitViews[spawned.Id].Sync(spawned);
 		_clipContext.PendingTorpedoMount = null;
+	}
+
+	private void ApplyPatrolSpawn(SpawnFacts spawn)
+	{
+		if (!_clipContext.EndStates.TryGetValue(spawn.TargetId, out var template))
+			throw new InvalidOperationException($"SpawnFacts target {spawn.TargetId} missing from EndStates.");
+
+		var carrier = _clipContext.ReplayState.StateOf(spawn.SourceId);
+		var (position, fore, dorsal) = PatrolBayMount.LaunchPose(carrier);
+
+		var spawned = template.Clone();
+		spawned.Position = position;
+		spawned.Fore = fore;
+		spawned.Dorsal = dorsal;
+		spawned.Starboard = Coord.Cross(dorsal, fore);
+		spawned.ParentId = spawn.SourceId;
+		spawned.MomentumLevel = PatrolBayMount.SpawnMomentum(carrier);
+		spawned.HullPoints = spawned.Stats.MaxHullPoints;
+		spawned.ActionPoints = spawned.Stats.MaxAp;
+		spawned.ShieldPoints = spawned.Stats.MaxShieldPoints.Clone();
+		spawned.FlakRemaining = spawned.Stats.FlaksPerTurn;
+		spawned.RailgunRemaining = spawned.Stats.RailgunsPerTurn;
+		spawned.PatrolSpawnCooldownRemaining = 0;
+
+		_clipContext.ReplayState.Add(spawned);
+		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
+		_clipContext.UnitViews[spawned.Id].Sync(spawned);
 	}
 
 	private bool PlayImpact(ImpactFacts impact)
@@ -196,7 +236,7 @@ public partial class TurnReplayPlayer : Node3D
 		return true;
 	}
 
-	private void BeginPhase(PlaybackPhase phase)
+	private void BeginPhase(EReplayPlaybackPhase phase)
 	{
 		if (phase == _phase)
 			return;
@@ -205,7 +245,7 @@ public partial class TurnReplayPlayer : Node3D
 		_phase = phase;
 		_phaseTimer.Restart();
 
-		if (phase == PlaybackPhase.Enemy && !_loggedEnemyAnimStart)
+		if (phase == EReplayPlaybackPhase.Enemy && !_loggedEnemyAnimStart)
 		{
 			_timeToEnemyAnimMs = _playbackTimer.Elapsed.TotalMilliseconds;
 			_loggedEnemyAnimStart = true;
@@ -217,24 +257,17 @@ public partial class TurnReplayPlayer : Node3D
 		var elapsed = _phaseTimer.Elapsed.TotalMilliseconds;
 		switch (_phase)
 		{
-			case PlaybackPhase.Player:
+			case EReplayPlaybackPhase.Player:
 				_playerAnimMs += elapsed;
 				break;
-			case PlaybackPhase.Enemy:
+			case EReplayPlaybackPhase.Enemy:
 				_enemyAnimMs += elapsed;
 				break;
-			case PlaybackPhase.Upkeep:
+			case EReplayPlaybackPhase.Upkeep:
 				_upkeepAnimMs += elapsed;
 				break;
 		}
 	}
-
-	private PlaybackPhase Classify(string actorId) =>
-		actorId == _playerId
-			? PlaybackPhase.Player
-			: actorId == _opponentId
-				? PlaybackPhase.Enemy
-				: PlaybackPhase.Upkeep;
 
 	private void ReportActionInterest(IAction action)
 	{
@@ -248,6 +281,19 @@ public partial class TurnReplayPlayer : Node3D
 			_clipContext.ReportInterest(new CameraInterest(
 				[
 					WorldMapping.ToWorld(firer.Position),
+					WorldMapping.ToWorld(launchCell),
+				],
+				CameraImportance.Combat));
+			return;
+		}
+
+		if (action is SpawnPatrolAction deploy)
+		{
+			var carrier = _clipContext.ReplayState.StateOf(deploy.ActorId);
+			var (launchCell, _, _) = PatrolBayMount.LaunchPose(carrier);
+			_clipContext.ReportInterest(new CameraInterest(
+				[
+					WorldMapping.ToWorld(carrier.Position),
 					WorldMapping.ToWorld(launchCell),
 				],
 				CameraImportance.Combat));
@@ -284,12 +330,5 @@ public partial class TurnReplayPlayer : Node3D
 			+ $"history={_history.Count}");
 
 		EmitSignal(SignalName.PlaybackComplete);
-	}
-
-	private enum PlaybackPhase
-	{
-		Player,
-		Enemy,
-		Upkeep,
 	}
 }

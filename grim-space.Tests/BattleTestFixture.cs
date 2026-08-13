@@ -52,13 +52,17 @@ internal static class BattleTestFixture
 			engine,
 			layout,
 			player.State.Id,
-			enemy.State.Id,
 			EObjective.EliminateOpponents);
 		foreach (var unit in units)
 			unit.ExecutionAgent.Init(unit.State.Id, battle.Engine.CreateSimulation, battle.RegisterActiveUnitChanged);
 		battle.SetActive(player.State.Id);
 		return battle;
 	}
+
+	public static string FirstEnemyId(BattleOrchestrator battle) =>
+		UnitRegistry.For(battle.Engine.World)
+			.All.First(unit => unit.Alliance.Team == ETeam.Enemy)
+			.State.Id;
 
 	public static PresentationFrameBuilder FrameBuilder(BattleOrchestrator battle) =>
 		FrameBuilderCache.GetValue(battle, static _ => new PresentationFrameBuilder());
@@ -81,6 +85,23 @@ internal static class BattleTestFixture
 
 	public static Unit Enemy(Coord position, int momentum = 0) =>
 		Create(Alliance.Enemy, "enemy", position, momentum);
+
+	public static Unit Carrier(Coord position, int momentum = 0) =>
+		Create(Alliance.Enemy, "carrier", position, momentum, EType.Carrier);
+
+	public static Unit Patrol(Coord position, int momentum = 0, string id = "patrol") =>
+		Create(Alliance.Enemy, id, position, momentum, EType.Patrol);
+
+	public static BattleOrchestrator BeginCarrierVsPlayer(
+		Coord playerPos,
+		Coord carrierPos,
+		BoundedGrid? grid = null,
+		IReadOnlySet<Coord>? blocked = null)
+	{
+		var player = Player(playerPos);
+		var carrier = Carrier(carrierPos);
+		return BeginSimulation(player, carrier, grid, blocked);
+	}
 
 	public static MovePathSession Path(string actorId, Coord origin, int pathApSpent, params Coord[] deltas)
 	{
@@ -110,12 +131,17 @@ internal static class BattleTestFixture
 		int pathApSpent = 0) =>
 		Path(actorId, origin, pathApSpent, Enumerable.Repeat(Coord.Forward, steps).ToArray());
 
-	private static Unit Create(Alliance alliance, string id, Coord position, int momentum)
+	private static Unit Create(
+		Alliance alliance,
+		string id,
+		Coord position,
+		int momentum,
+		EType type = EType.Fighter)
 	{
 		var instance = new Instance
 		{
 			Id = id,
-			Type = EType.Fighter,
+			Type = type,
 			Alliance = alliance,
 		};
 

@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
 using GrimSpace.Units;
@@ -48,7 +48,7 @@ public sealed class TorpedoTargetSelectionTests
 			new Instance
 			{
 				Id = "future",
-				Type = EType.Patrol,
+				Type = EType.Carrier,
 				Alliance = Alliance.Enemy,
 			},
 			start + Coord.Forward * 10,
@@ -83,7 +83,7 @@ public sealed class TorpedoTargetSelectionTests
 			new Instance
 			{
 				Id = "behind",
-				Type = EType.Patrol,
+				Type = EType.Carrier,
 				Alliance = Alliance.Enemy,
 			},
 			new Coord(5, 5, 0),
@@ -112,7 +112,7 @@ public sealed class TorpedoTargetSelectionTests
 			new Instance
 			{
 				Id = "behind",
-				Type = EType.Patrol,
+				Type = EType.Carrier,
 				Alliance = Alliance.Enemy,
 			},
 			torpedoPos + Coord.Forward * -2,

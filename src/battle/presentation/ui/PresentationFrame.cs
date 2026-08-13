@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Weapons;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;

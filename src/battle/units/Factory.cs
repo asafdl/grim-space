@@ -3,6 +3,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
+using GrimSpace.Core;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 
@@ -25,7 +26,8 @@ public static class Factory
 		UnitIdRegistry? ids,
 		int initialMomentum,
 		Coord fore,
-		Coord dorsal)
+		Coord dorsal,
+		string parentId = EntityIds.System)
 	{
 		var id = ResolveId(instance, ids);
 		var state = State.FromSpawn(new Instance
@@ -33,7 +35,7 @@ public static class Factory
 			Id = id,
 			Type = instance.Type,
 			Alliance = instance.Alliance,
-		}, position, fore, dorsal);
+		}, position, fore, dorsal, parentId);
 		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
 		return new Unit(instance.Alliance, state, executionAgent);
 	}

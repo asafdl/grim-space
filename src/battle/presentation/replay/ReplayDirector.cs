@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
@@ -85,12 +86,12 @@ public sealed partial class ReplayDirector : Node
 			replay.StartStates,
 			replay.EndStates,
 			interest => _cameraDirector.ReportInterest(interest));
-		_replayPlayer.Play(
-			replay.History,
-			completedTurn,
-			_battle.PlayerId,
-			_battle.OpponentId);
+		_replayPlayer.Play(replay.History, completedTurn, ParticipantTeams());
 	}
+
+	private IReadOnlyDictionary<string, ETeam> ParticipantTeams() =>
+		UnitRegistry.For(_battle.Engine.World).All
+			.ToDictionary(unit => unit.State.Id, unit => unit.Alliance.Team);
 
 	private void OnPlaybackComplete()
 	{

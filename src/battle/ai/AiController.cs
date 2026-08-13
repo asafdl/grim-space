@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -6,6 +7,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -22,11 +24,15 @@ public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 		{
 			try
 			{
+				var start = session.Actions.Count;
 				var actions = Runner.CalcActions(
 					session,
 					actor,
 					new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
 					frames => SelectBest(session, actor.State.Id, frames));
+				if (actor.State.Type == EType.Carrier && TryAppendPatrolDeploy(session, actor))
+					actions = session.Actions.Skip(start).ToList();
+
 				_actions!.TrySetResult(actions);
 			}
 			catch (Exception ex)
@@ -77,7 +83,7 @@ public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 				bestHeuristic = heuristicScore;
 
 			if (hitBranchPrefix is null
-				&& EnemySearchInput.HasRailgunHit(session, frame.Actions, actorId, searchStartDepth))
+				&& EnemySearchInput.HasDamageHit(session, frame.Actions, actorId, searchStartDepth))
 				hitBranchPrefix = frame.Actions;
 		}
 
@@ -153,6 +159,15 @@ public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 			return;
 
 		finalists[worstIndex] = (frame, heuristicScore);
+	}
+
+	private static bool TryAppendPatrolDeploy(BattleSimulation session, Unit actor)
+	{
+		var action = SpawnPatrolDef.Instance.Bind(actor.State.Id);
+		if (!SpawnPatrolDef.Instance.IsLegal(action, session.World, session.Runtimes.For(actor.State.Id)))
+			return false;
+
+		return session.TryEnqueue(action);
 	}
 
 	private static IEnumerable<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> SelectTimelineFinalists(

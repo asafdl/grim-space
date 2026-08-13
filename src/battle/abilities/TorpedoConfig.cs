@@ -1,4 +1,4 @@
-namespace GrimSpace.Battle.Weapons;
+namespace GrimSpace.Battle.Abilities;
 
 public enum ETorpedoMount
 {

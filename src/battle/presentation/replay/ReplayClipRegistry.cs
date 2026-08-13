@@ -11,6 +11,7 @@ public sealed class ReplayClipRegistry
 		new HeadingTurnClip(),
 		new RollClip(),
 		new TorpedoActionClip(),
+		new SpawnPatrolActionClip(),
 	]);
 
 	private readonly Dictionary<Type, IReplayClip> _clips;
