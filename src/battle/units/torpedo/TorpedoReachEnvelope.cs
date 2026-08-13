@@ -69,7 +69,8 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 		if (fuel <= 0)
 			return new TorpedoReachEnvelope([]);
 
-		var capabilities = Capabilities.For(EType.Torpedo);
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities =
+			[MoveDef.Instance];
 		var frontiers = new List<(BattleWorld World, ActorRuntimes<ActorRuntime> Runtimes)>
 		{
 			(session.World.Fork(), session.Runtimes.Fork()),

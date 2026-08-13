@@ -50,11 +50,11 @@ public sealed class CarrierDomainTests
 		var ready = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true));
+			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true, Detonate: false));
 		var cooling = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
 			unit with { PatrolSpawnCooldownRemaining = CombatConfig.PatrolCooldownTurns },
-			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true));
+			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true, Detonate: false));
 
 		Assert.Equal("1/1", ready.Charges);
 		Assert.Equal("0/1", cooling.Charges);

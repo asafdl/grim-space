@@ -185,7 +185,7 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		switch (key.Keycode)
 		{
-			case Key.Escape when _mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo:
+			case Key.Escape when _mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo or EPlayerMode.Detonate:
 				ModeRequested?.Invoke(EPlayerMode.Move);
 				return true;
 			case Key.Key1:

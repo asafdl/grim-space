@@ -20,7 +20,7 @@ public static class Capabilities
 		EType type) =>
 		type switch
 		{
-			EType.Torpedo => [MoveDef.Instance],
+			EType.Torpedo => [MoveDef.Instance, ..AbilitiesFor(EType.Torpedo)],
 			_ => [..Movement, ..AbilitiesFor(type)],
 		};
 
@@ -36,7 +36,7 @@ public static class Capabilities
 			],
 			EType.Carrier => [RailgunDef.Instance, SpawnPatrolDef.Instance],
 			EType.Patrol => [FlakDef.Instance],
-			EType.Torpedo => [],
+			EType.Torpedo => [DetonateDef.Instance],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 }

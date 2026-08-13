@@ -49,6 +49,11 @@ internal static class BattleHudCopy
 		$"Blast radius: {TorpedoConfig.BlastRadius} cells, {TorpedoConfig.BlastDamage} damage.\n" +
 		$"Cooldown: {TorpedoConfig.CooldownTurns} turns after launch.";
 
+	public static string DetonateTooltip =>
+		$"Detonate:\nExplodes for {TorpedoConfig.BlastDamage} damage in a {TorpedoConfig.BlastRadius}-cell radius.\n" +
+		$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
+		$"Fuel: {TorpedoConfig.Fuel} turns after launch.";
+
 	public static string SpawnPatrolTooltip =>
 		$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
 		$"Patrols can shoot flak cannons, and have forward facing shields.\n" +

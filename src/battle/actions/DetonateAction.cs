@@ -52,7 +52,7 @@ public sealed class DetonateDef
 		if (actor.FuelRemaining <= 0)
 			return true;
 
-		return HasUnitInBlast(world, action.ActorId, actor.Position);
+		return HasOpponentInBlast(world, action.ActorId, actor.Position);
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
@@ -75,11 +75,13 @@ public sealed class DetonateDef
 		];
 	}
 
-	public static bool HasUnitInBlast(BattleWorld world, string actorId, Coord origin)
+	public static bool HasOpponentInBlast(BattleWorld world, string actorId, Coord origin)
 	{
-		foreach (var unit in UnitRegistry.For(world).All)
+		var units = UnitRegistry.For(world);
+		var actor = units.UnitOf(actorId);
+		foreach (var unit in units.Except(actorId))
 		{
-			if (unit.State.Id == actorId || !unit.State.IsAlive)
+			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Opponent)
 				continue;
 			if (origin.ManhattanDistanceTo(unit.State.Position) <= TorpedoConfig.BlastRadius)
 				return true;

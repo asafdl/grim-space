@@ -34,6 +34,7 @@ public static class AbilityHudCatalog
 			RailgunDef => Railgun,
 			TorpedoDef => Torpedo,
 			SpawnPatrolDef => SpawnPatrol,
+			DetonateDef => Detonate,
 			_ => Unknown(def),
 		};
 
@@ -59,6 +60,13 @@ public static class AbilityHudCatalog
 			CooldownUses(unit.TorpedoCooldownRemaining, legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
 			1),
 		legality => legality.Weapons.IsKindLegal(EWeaponKind.Torpedo));
+
+	private static readonly Spec Detonate = new(
+		EPlayerMode.Detonate,
+		"res://assets/ui/abilities/detonate.svg",
+		BattleHudCopy.DetonateTooltip,
+		(unit, _) => BattleHudCopy.Charges(unit.FuelRemaining, TorpedoConfig.Fuel),
+		legality => legality.Detonate);
 
 	private static readonly Spec SpawnPatrol = new(
 		EPlayerMode.SpawnPatrol,

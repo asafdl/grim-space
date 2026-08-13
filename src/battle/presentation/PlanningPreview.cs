@@ -92,7 +92,10 @@ public sealed class PlanningPreview
 	}
 
 	public AbilityLegality Abilities(BattleSimulation sim, string actorId) =>
-		new(Weapons(sim, actorId), sim.Peek(new SpawnPatrolAction(actorId)) is not null);
+		new(
+			Weapons(sim, actorId),
+			sim.Peek(new SpawnPatrolAction(actorId)) is not null,
+			sim.Peek(new DetonateAction(actorId)) is not null);
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
 	{

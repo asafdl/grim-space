@@ -34,6 +34,20 @@ public sealed class DetonateActionTests
 	}
 
 	[Fact]
+	public void DetonateIllegalWhenFuelRemainsAndOnlyAllyInBlast()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		enemy.State.Position = new Coord(0, 0, 0);
+
+		var sim = battle.Engine.CreateSimulation();
+		Assert.False(sim.TryEnqueue(new DetonateAction(torpedoId)));
+	}
+
+	[Fact]
 	public void DetonateLegalWhenFuelExhausted()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
@@ -85,14 +99,16 @@ public sealed class DetonateActionTests
 	}
 
 	[Fact]
-	public async Task AgentDetonatesWhenUnitInBlastAfterMoves()
+	public async Task AgentDetonatesWhenOpponentInBlastAfterMoves()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).ActionPoints = 0;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
-		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
+		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		battle.SetActive(null);
 		battle.SetActive(torpedoId);

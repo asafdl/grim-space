@@ -7,4 +7,5 @@ public enum EPlayerMode
 	Railgun,
 	Torpedo,
 	SpawnPatrol,
+	Detonate,
 }

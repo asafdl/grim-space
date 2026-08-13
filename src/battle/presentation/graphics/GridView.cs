@@ -61,6 +61,7 @@ public partial class GridView : Node3D
 			case EPlayerMode.Flak:
 			case EPlayerMode.Railgun:
 			case EPlayerMode.Torpedo:
+			case EPlayerMode.Detonate:
 				// Weapon volumes are drawn by *PreviewView; keep cells for picking only.
 				ReleaseActiveHighlights();
 				break;

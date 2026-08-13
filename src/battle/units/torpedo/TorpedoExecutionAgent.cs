@@ -37,17 +37,27 @@ public sealed class TorpedoExecutionAgent : ExecutionAgent<BattleWorld, ActorRun
 		Runner.CalcActions(
 			session,
 			actor,
-			Capabilities.For(actor.State.Type),
+			[MoveDef.Instance],
 			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove),
 			frames => SelectBest(session, actorId, target, frames));
 
 		session.TryEnqueue(new FuelBurnAction(actorId));
-
-		var detonate = DetonateDef.Instance.Bind(actorId);
-		if (DetonateDef.Instance.IsLegal(detonate, session.World, session.RuntimeFor(actorId)))
-			session.TryEnqueue(detonate);
+		TryEnqueueLegalAbilities(session, actorId);
 
 		return session.Actions.Skip(start).ToList();
+	}
+
+	private static void TryEnqueueLegalAbilities(BattleSimulation session, string actorId)
+	{
+		var runtime = session.RuntimeFor(actorId);
+		foreach (var def in Capabilities.AbilitiesFor(EType.Torpedo))
+		{
+			foreach (var action in def.Discover(session.World, runtime, actorId))
+			{
+				if (def.IsLegal(action, session.World, runtime))
+					session.TryEnqueue(action);
+			}
+		}
 	}
 
 	private static SearchFrame<BattleWorld, ActorRuntime> SelectBest(
@@ -58,15 +68,17 @@ public sealed class TorpedoExecutionAgent : ExecutionAgent<BattleWorld, ActorRun
 	{
 		var searchStartDepth = session.Actions.Count;
 		SearchFrame<BattleWorld, ActorRuntime>? best = null;
-		var bestScore = int.MinValue;
+		TorpedoFrameRank bestRank = default;
 
 		foreach (var frame in frames)
 		{
-			var score = TorpedoSearchInput.ScoreHeuristic(frame, session, actorId, target, searchStartDepth);
-			if (score < bestScore)
+			var rank = TorpedoSearchInput.RankFrame(frame, session, actorId, target, searchStartDepth);
+			if (rank.Score == int.MinValue)
+				continue;
+			if (best is not null && rank.CompareTo(bestRank) <= 0)
 				continue;
 
-			bestScore = score;
+			bestRank = rank;
 			best = frame;
 		}
 
