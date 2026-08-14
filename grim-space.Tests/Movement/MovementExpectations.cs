@@ -10,7 +10,7 @@ namespace GrimSpace.Tests.Movement;
 internal static class MovementExpectations
 {
 	public const int FighterApPerTurn = 4;
-	public const int MaxMomentum = 3;
+	public const int MaxMomentum = MomentumConfig.MaxLevel;
 	public const int ForwardCostAfterFree = 1;
 
 	/// <summary>
@@ -26,14 +26,9 @@ internal static class MovementExpectations
 	public const int ReachableCellsAtMomentum1With4Ap = 81;
 
 	/// <summary>
-	/// Momentum 2 / 4 AP (unbounded): L=0 → 10 (F1..7, R1..3); L=1 → 28 (F0..4×4, R1..2×4) → 38.
+	/// Momentum 2 / 4 AP (unbounded): L=0 → 9 (F1..6, R1..3); L=1 → 24 (F0..4×4, R1..2×4) → 33.
 	/// </summary>
-	public const int ReachableCellsAtMomentum2With4Ap = 38;
-
-	/// <summary>
-	/// Momentum 3 / 4 AP (unbounded): L=0 → 9 (F1..7, R1..2); L=1 → 16 (F0..3×4); no retro+lateral → 25.
-	/// </summary>
-	public const int ReachableCellsAtMomentum3With4Ap = 25;
+	public const int ReachableCellsAtMomentum2With4Ap = 33;
 
 	/// <summary>4 AP preview expectations on an unbounded (or spacious) grid.</summary>
 	public static TheoryData<int, int, int, int> ReachablePreviewByMomentum { get; } = new()
@@ -42,8 +37,7 @@ internal static class MovementExpectations
 		// Ships have no min path AP; every reachable cell is a valid endpoint.
 		{ 0, 128, 128, 4 },
 		{ 1, 81, 81, 5 },
-		{ 2, 38, 38, 7 },
-		{ 3, 25, 25, 7 },
+		{ 2, 33, 33, 6 },
 	};
 
 	/// <summary>First N forward steps in a path are free; N equals current momentum.</summary>

@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8detonateicon01"
-path="res://.godot/imported/detonate.svg-8f3a2b1c9d4e5f60718293a4b5c6d7e8.ctex"
+uid="uid://ciwi638vwk8me"
+path="res://.godot/imported/detonate.svg-047828004ab7e18b43a828570612b37f.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/abilities/detonate.svg"
-dest_files=["res://.godot/imported/detonate.svg-8f3a2b1c9d4e5f60718293a4b5c6d7e8.ctex"]
+dest_files=["res://.godot/imported/detonate.svg-047828004ab7e18b43a828570612b37f.ctex"]
 
 [params]
 

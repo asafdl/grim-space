@@ -2,7 +2,7 @@ namespace GrimSpace.Battle.Movement;
 
 public sealed class MomentumConfig
 {
-	public const int MaxLevel = 3;
+	public const int MaxLevel = 2;
 	public const int ForwardStepsPerMomentumGain = 2;
 	public const int MaxGainFromMovementPerTurn = 1;
 
@@ -36,14 +36,6 @@ public sealed class MomentumConfig
 			FreeForwardSteps = 2,
 			ForwardStepCost = 1,
 			LateralCost = 3,
-			BrakeCost = 2,
-		},
-		new()
-		{
-			Level = 3,
-			FreeForwardSteps = 3,
-			ForwardStepCost = 1,
-			LateralCost = 4,
 			BrakeCost = 2,
 		},
 	];

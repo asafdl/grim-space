@@ -10,7 +10,6 @@ public sealed class StepCostsTests
 	[InlineData(1, 0, 0)]
 	[InlineData(1, 1, 1)]
 	[InlineData(2, 1, 0)]
-	[InlineData(3, 2, 0)]
 	public void FirstForwardStepsUpToMomentumLevelAreFree(
 		int momentum,
 		int forwardStepsAlreadyTaken,
@@ -29,7 +28,7 @@ public sealed class StepCostsTests
 	{
 		var previous = 0;
 
-		for (var momentum = 0; momentum <= MovementExpectations.MaxMomentum; momentum++)
+		for (var momentum = 0; momentum <= 2; momentum++)
 		{
 			var cost = StepCosts.GetMoveStepApCost(
 				ESpatialOrientation.Starboard,
@@ -45,7 +44,6 @@ public sealed class StepCostsTests
 	[InlineData(0, 1)]
 	[InlineData(1, 1)]
 	[InlineData(2, 2)]
-	[InlineData(3, 2)]
 	public void RetroApCostFollowsMomentumBands(int momentum, int expectedCost)
 	{
 		var cost = StepCosts.GetMoveStepApCost(

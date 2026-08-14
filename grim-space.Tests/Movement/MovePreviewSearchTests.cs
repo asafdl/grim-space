@@ -77,7 +77,7 @@ public sealed class MovePreviewSearchTests
 	}
 
 	/// <summary>
-	/// Spacious fixture so free-forward reach (up to 7 cells) is not clipped by the grid edge.
+	/// Spacious fixture so free-forward reach (up to 6 cells) is not clipped by the grid edge.
 	/// </summary>
 	private static IReadOnlyList<MovePathSession> DiscoverReachable(Coord origin, int momentum)
 	{

@@ -23,7 +23,7 @@ internal static class BattleHudCopy
 	public const string FaceShieldPoolLine = "Each face has its own shield pool.";
 
 	public const string MomentumTooltip =
-		"Momentum:\nForward speed carried from movement (0–3).\n" +
+		"Momentum:\nForward speed carried from movement (0–2).\n" +
 		"Higher levels grant free forward steps but make lateral drift and braking cost more AP.\n" +
 		"Build it by moving forward; lose it by braking or ending your turn without moving.";
 	public const string MoveTooltip =
@@ -45,7 +45,7 @@ internal static class BattleHudCopy
 
 	public static string TorpedoTooltip =>
 		$"Torpedo:\nFires in a set direction.\n" +
-		$"Flies for {TorpedoConfig.Fuel} turns with limited maneuverability.\n" +
+		$"Chases enemies in path for {TorpedoConfig.Fuel} turns.\n" +
 		$"Blast radius: {TorpedoConfig.BlastRadius} cells, {TorpedoConfig.BlastDamage} damage.\n" +
 		$"Cooldown: {TorpedoConfig.CooldownTurns} turns after launch.";
 
