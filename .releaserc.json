@@ -1,0 +1,45 @@
+{
+  "branches": [
+    {
+      "name": "master",
+      "prerelease": "pre-alpha"
+    }
+  ],
+  "tagFormat": "v${version}",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "release-assets/grim-space-linux-x86_64.zip",
+            "label": "Linux x86_64"
+          },
+          {
+            "path": "release-assets/grim-space-windows-x86_64.zip",
+            "label": "Windows x86_64"
+          },
+          {
+            "path": "release-assets/grim-space-macos.zip",
+            "label": "macOS"
+          }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}
