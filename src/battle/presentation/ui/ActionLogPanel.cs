@@ -9,7 +9,8 @@ public sealed partial class ActionLogPanel : PanelContainer
 {
 	private ScrollContainer _scroll = null!;
 	private Label _label = null!;
-	private int _lastLineCount = -1;
+	private int _lastLineCount;
+	private int _chaseTailGeneration;
 
 	public ActionLogPanel()
 	{
@@ -21,15 +22,20 @@ public sealed partial class ActionLogPanel : PanelContainer
 		var text = lines.Count == 0 ? BattleHudCopy.ActionLogEmpty : string.Join('\n', lines);
 		_label.Text = text;
 
-		if (lines.Count != _lastLineCount)
-		{
-			_lastLineCount = lines.Count;
-			Callable.From(ScrollToBottom).CallDeferred();
-		}
+		if (lines.Count <= _lastLineCount)
+			return;
+
+		_lastLineCount = lines.Count;
+		_chaseTailGeneration++;
+		var generation = _chaseTailGeneration;
+		Callable.From(() => ChaseTail(generation)).CallDeferred();
 	}
 
-	private void ScrollToBottom()
+	private void ChaseTail(int generation)
 	{
+		if (generation != _chaseTailGeneration)
+			return;
+
 		_scroll.ScrollVertical = (int)_scroll.GetVScrollBar().MaxValue;
 	}
 
@@ -73,6 +79,7 @@ public sealed partial class ActionLogPanel : PanelContainer
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		_label.AddThemeFontSizeOverride("font_size", 13);
+		_label.Resized += () => ChaseTail(_chaseTailGeneration);
 		_scroll.AddChild(_label);
 	}
 }
