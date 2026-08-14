@@ -113,8 +113,8 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: '*'
           path: dist
-          merge-multiple: true
 
       - name: Package release archives
         run: |
