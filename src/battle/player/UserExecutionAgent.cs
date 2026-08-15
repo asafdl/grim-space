@@ -26,11 +26,17 @@ public sealed class UserExecutionAgent
 		if (_committed || !_isActive || actions.Count == 0)
 			return false;
 
+		if (actions is [var single] && single is HeadingTurnAction or RollAction)
+		{
+			if (!OrientationStreamline.TryApplyButton(Sim, single))
+				return false;
+
+			NotifyPlanningChanged();
+			return true;
+		}
+
 		if (!Sim.TryEnqueue(keepRecords: true, actions: [..actions]))
 			return false;
-
-		if (actions.Any(action => action is HeadingTurnAction or RollAction))
-			OrientationStreamline.CompactQueue(Sim);
 
 		NotifyPlanningChanged();
 		return true;
@@ -56,7 +62,7 @@ public sealed class UserExecutionAgent
 		if (!Sim.TryCommit(out var actions, out _))
 			return false;
 
-		var streamlined = OrientationStreamline.Compact(actions, Sim.UndoGroups);
+		var streamlined = OrientationStreamline.StreamlineForCommit(actions);
 		_committed = true;
 		_actions!.TrySetResult(streamlined);
 		NotifyPlanningChanged();

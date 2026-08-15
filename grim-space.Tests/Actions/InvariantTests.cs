@@ -162,7 +162,10 @@ public sealed class InvariantTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		var streamlined = HeadingDef.Instance.Streamline(battle.PlayerAgent.Sim.Actions, battle.PlayerAgent.Sim.UndoGroups).ToList();
+		var streamlined = HeadingDef.Instance.Streamline(
+			battle.PlayerAgent.Sim.Actions,
+			input: null,
+			_ => true)!.ToList();
 		var heading = Assert.Single(streamlined.OfType<HeadingTurnAction>());
 		Assert.Equal(EHeadingTurn.Yaw180, heading.Turn);
 	}
@@ -196,14 +199,12 @@ public sealed class InvariantTests
 	}
 
 	[Fact]
-	public void CompactQueueCollapsesYawWhilePlanning()
+	public void PlanningStreamlineCollapsesYawWhilePlanning()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-
-		OrientationStreamline.CompactQueue(battle.PlayerAgent.Sim);
+		Assert.True(battle.PlayerAgent.TryEnqueue([new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)]));
+		Assert.True(battle.PlayerAgent.TryEnqueue([new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)]));
+		Assert.True(battle.PlayerAgent.TryEnqueue([new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)]));
 
 		var heading = Assert.Single(battle.PlayerAgent.Sim.Actions.OfType<HeadingTurnAction>());
 		Assert.Equal(EHeadingTurn.YawLeft, heading.Turn);
@@ -213,19 +214,35 @@ public sealed class InvariantTests
 	}
 
 	[Fact]
-	public void CompactQueueCollapsesRollWhilePlanning()
+	public void PlanningStreamlineCollapsesRollWhilePlanning()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise)));
-
-		OrientationStreamline.CompactQueue(battle.PlayerAgent.Sim);
+		Assert.True(battle.PlayerAgent.TryEnqueue([new RollAction(PlayerId, ERollDirection.Clockwise)]));
+		Assert.True(battle.PlayerAgent.TryEnqueue([new RollAction(PlayerId, ERollDirection.Clockwise)]));
+		Assert.True(battle.PlayerAgent.TryEnqueue([new RollAction(PlayerId, ERollDirection.Clockwise)]));
 
 		var roll = Assert.Single(battle.PlayerAgent.Sim.Actions.OfType<RollAction>());
 		Assert.Equal(ERollDirection.CounterClockwise, roll.Direction);
 		Assert.Equal(
 			Stats.ForType(EType.Fighter).MaxAp - CombatConfig.RollApCost,
 			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+	}
+
+	[Fact]
+	public void PlanningStreamlineCyclesYawLeftWhenRightQueuedWithNoApLeft()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin, actionPoints: 1);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+
+		Assert.True(battle.PlayerAgent.TryEnqueue([new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)]));
+		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+
+		Assert.True(battle.PlayerAgent.TryEnqueue([new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)]));
+
+		var heading = Assert.Single(battle.PlayerAgent.Sim.Actions.OfType<HeadingTurnAction>());
+		Assert.Equal(EHeadingTurn.YawLeft, heading.Turn);
+		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
 	}
 }

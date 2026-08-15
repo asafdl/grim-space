@@ -86,7 +86,69 @@ public sealed class HeadingDef
 		return effects;
 	}
 
-	public IReadOnlyList<IAction> Streamline(IReadOnlyList<IAction> actions, IReadOnlyList<int?> undoGroups)
+	public IReadOnlyList<IAction>? Streamline(
+		IReadOnlyList<IAction> queue,
+		IAction? input,
+		Func<IReadOnlyList<IAction>, bool> isCandidateLegal)
+	{
+		if (input is HeadingTurnAction heading)
+		{
+			if (Orientation.IsYawTurn(heading.Turn))
+				return StreamlineYawButton(queue, heading, isCandidateLegal);
+			if (IsPitchTurn(heading.Turn))
+				return StreamlinePitchButton(queue, heading, isCandidateLegal);
+			return null;
+		}
+
+		if (input is not null)
+			return null;
+
+		return Compact(queue);
+	}
+
+	private static IReadOnlyList<IAction>? StreamlineYawButton(
+		IReadOnlyList<IAction> queue,
+		HeadingTurnAction input,
+		Func<IReadOnlyList<IAction>, bool> isCandidateLegal)
+	{
+		var actorId = input.ActorId;
+		var (prefixLength, net) = TrailingYawNet(queue, actorId);
+		net += YawDelta(input.Turn);
+
+		for (var attempt = 0; attempt < 4; attempt++)
+		{
+			var candidate = WithYawTail(queue, prefixLength, actorId, net);
+			if (isCandidateLegal(candidate))
+				return candidate;
+
+			net++;
+		}
+
+		return null;
+	}
+
+	private static IReadOnlyList<IAction>? StreamlinePitchButton(
+		IReadOnlyList<IAction> queue,
+		HeadingTurnAction input,
+		Func<IReadOnlyList<IAction>, bool> isCandidateLegal)
+	{
+		var actorId = input.ActorId;
+		var (prefixLength, net) = TrailingPitchNet(queue, actorId);
+		net += PitchDelta(input.Turn);
+
+		for (var attempt = 0; attempt < 4; attempt++)
+		{
+			var candidate = WithPitchTail(queue, prefixLength, actorId, net);
+			if (isCandidateLegal(candidate))
+				return candidate;
+
+			net++;
+		}
+
+		return null;
+	}
+
+	private static List<IAction> Compact(IReadOnlyList<IAction> actions)
 	{
 		var result = new List<IAction>(actions.Count);
 		var index = 0;
@@ -108,9 +170,7 @@ public sealed class HeadingDef
 					index++;
 				}
 
-				foreach (var turn in TurnsForNetYaw(net))
-					result.Add(new HeadingTurnAction(actorId, turn));
-
+				result.AddRange(ActionsForNetYaw(actorId, net));
 				continue;
 			}
 
@@ -129,9 +189,7 @@ public sealed class HeadingDef
 					index++;
 				}
 
-				foreach (var turn in TurnsForNetPitch(net))
-					result.Add(new HeadingTurnAction(actorId, turn));
-
+				result.AddRange(ActionsForNetPitch(actorId, net));
 				continue;
 			}
 
@@ -141,6 +199,70 @@ public sealed class HeadingDef
 
 		return result;
 	}
+
+	private static List<IAction> WithYawTail(
+		IReadOnlyList<IAction> queue,
+		int prefixLength,
+		string actorId,
+		int net)
+	{
+		var candidate = new List<IAction>(prefixLength + 1);
+		for (var i = 0; i < prefixLength; i++)
+			candidate.Add(queue[i]);
+		candidate.AddRange(ActionsForNetYaw(actorId, net));
+		return candidate;
+	}
+
+	private static List<IAction> WithPitchTail(
+		IReadOnlyList<IAction> queue,
+		int prefixLength,
+		string actorId,
+		int net)
+	{
+		var candidate = new List<IAction>(prefixLength + 1);
+		for (var i = 0; i < prefixLength; i++)
+			candidate.Add(queue[i]);
+		candidate.AddRange(ActionsForNetPitch(actorId, net));
+		return candidate;
+	}
+
+	private static (int PrefixLength, int Net) TrailingYawNet(IReadOnlyList<IAction> queue, string actorId)
+	{
+		var net = 0;
+		var prefixLength = queue.Count;
+		while (prefixLength > 0
+			&& queue[prefixLength - 1] is HeadingTurnAction heading
+			&& heading.ActorId == actorId
+			&& Orientation.IsYawTurn(heading.Turn))
+		{
+			net += YawDelta(heading.Turn);
+			prefixLength--;
+		}
+
+		return (prefixLength, net);
+	}
+
+	private static (int PrefixLength, int Net) TrailingPitchNet(IReadOnlyList<IAction> queue, string actorId)
+	{
+		var net = 0;
+		var prefixLength = queue.Count;
+		while (prefixLength > 0
+			&& queue[prefixLength - 1] is HeadingTurnAction heading
+			&& heading.ActorId == actorId
+			&& IsPitchTurn(heading.Turn))
+		{
+			net += PitchDelta(heading.Turn);
+			prefixLength--;
+		}
+
+		return (prefixLength, net);
+	}
+
+	private static IEnumerable<HeadingTurnAction> ActionsForNetYaw(string actorId, int netQuarters) =>
+		TurnsForNetYaw(netQuarters).Select(turn => new HeadingTurnAction(actorId, turn));
+
+	private static IEnumerable<HeadingTurnAction> ActionsForNetPitch(string actorId, int netQuarters) =>
+		TurnsForNetPitch(netQuarters).Select(turn => new HeadingTurnAction(actorId, turn));
 
 	private static int QuoteApCost(ActorRuntime runtime, EHeadingTurn turn)
 	{

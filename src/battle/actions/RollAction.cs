@@ -57,7 +57,42 @@ public sealed class RollDef
 		new ApChangeEffect(-CombatConfig.RollApCost),
 	];
 
-	public IReadOnlyList<IAction> Streamline(IReadOnlyList<IAction> actions, IReadOnlyList<int?> undoGroups)
+	public IReadOnlyList<IAction>? Streamline(
+		IReadOnlyList<IAction> queue,
+		IAction? input,
+		Func<IReadOnlyList<IAction>, bool> isCandidateLegal)
+	{
+		if (input is RollAction roll)
+			return StreamlineRollButton(queue, roll, isCandidateLegal);
+
+		if (input is not null)
+			return null;
+
+		return Compact(queue);
+	}
+
+	private static IReadOnlyList<IAction>? StreamlineRollButton(
+		IReadOnlyList<IAction> queue,
+		RollAction input,
+		Func<IReadOnlyList<IAction>, bool> isCandidateLegal)
+	{
+		var actorId = input.ActorId;
+		var (prefixLength, net) = TrailingRollNet(queue, actorId);
+		net += RollDelta(input.Direction);
+
+		for (var attempt = 0; attempt < 4; attempt++)
+		{
+			var candidate = WithRollTail(queue, prefixLength, actorId, net);
+			if (isCandidateLegal(candidate))
+				return candidate;
+
+			net++;
+		}
+
+		return null;
+	}
+
+	private static List<IAction> Compact(IReadOnlyList<IAction> actions)
 	{
 		var result = new List<IAction>(actions.Count);
 		var index = 0;
@@ -78,9 +113,7 @@ public sealed class RollDef
 					index++;
 				}
 
-				foreach (var direction in RollsForNet(net))
-					result.Add(new RollAction(actorId, direction));
-
+				result.AddRange(ActionsForNetRoll(actorId, net));
 				continue;
 			}
 
@@ -90,6 +123,37 @@ public sealed class RollDef
 
 		return result;
 	}
+
+	private static List<IAction> WithRollTail(
+		IReadOnlyList<IAction> queue,
+		int prefixLength,
+		string actorId,
+		int net)
+	{
+		var candidate = new List<IAction>(prefixLength + 1);
+		for (var i = 0; i < prefixLength; i++)
+			candidate.Add(queue[i]);
+		candidate.AddRange(ActionsForNetRoll(actorId, net));
+		return candidate;
+	}
+
+	private static (int PrefixLength, int Net) TrailingRollNet(IReadOnlyList<IAction> queue, string actorId)
+	{
+		var net = 0;
+		var prefixLength = queue.Count;
+		while (prefixLength > 0
+			&& queue[prefixLength - 1] is RollAction roll
+			&& roll.ActorId == actorId)
+		{
+			net += RollDelta(roll.Direction);
+			prefixLength--;
+		}
+
+		return (prefixLength, net);
+	}
+
+	private static IEnumerable<RollAction> ActionsForNetRoll(string actorId, int netQuarters) =>
+		RollsForNet(netQuarters).Select(direction => new RollAction(actorId, direction));
 
 	private static IEnumerable<ERollDirection> RollsForNet(int netQuarters) =>
 		Orientation.NormalizeQuarters(netQuarters) switch
