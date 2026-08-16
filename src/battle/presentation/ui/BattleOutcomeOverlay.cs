@@ -9,6 +9,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 	private Control _root = null!;
 	private Label _title = null!;
+	private PanelContainer _panel = null!;
 	private ActionLogPanel _actionLog = null!;
 
 	public BattleOutcomeOverlay()
@@ -58,10 +59,8 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		};
 		_root.AddChild(center);
 
-		var panel = new PanelContainer
-		{
-			CustomMinimumSize = new Vector2(480, 420),
-		};
+		var panel = new PanelContainer();
+		_panel = panel;
 		center.AddChild(panel);
 
 		var margin = new MarginContainer();
@@ -88,7 +87,6 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 		_actionLog = new ActionLogPanel
 		{
-			CustomMinimumSize = new Vector2(400, 240),
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
 		};
 		content.AddChild(_actionLog);
@@ -101,5 +99,27 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		};
 		resetButton.Pressed += () => ResetRequested?.Invoke();
 		content.AddChild(resetButton);
+
+		Callable.From(ConnectViewportLayout).CallDeferred();
+	}
+
+	private void ConnectViewportLayout()
+	{
+		GetViewport().SizeChanged += OnViewportSizeChanged;
+		LayoutPanel();
+	}
+
+	private void OnViewportSizeChanged() => LayoutPanel();
+
+	private void LayoutPanel()
+	{
+		var viewport = GetViewport();
+		_panel.CustomMinimumSize = new Vector2(
+			UiScale.Px(520f, viewport),
+			UiScale.Px(460f, viewport));
+		_actionLog.CustomMinimumSize = new Vector2(
+			UiScale.Px(440f, viewport),
+			UiScale.Px(280f, viewport));
+		_title.AddThemeFontSizeOverride("font_size", UiScale.Font(36, viewport));
 	}
 }

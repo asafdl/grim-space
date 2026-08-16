@@ -7,6 +7,14 @@ namespace GrimSpace.Battle.Presentation.Ui;
 /// </summary>
 public sealed partial class ActionLogPanel : PanelContainer
 {
+	private const int HeaderFontDesign = 18;
+	private const int BodyFontDesign = 16;
+	private const int MarginDesign = 10;
+	private const int SeparationDesign = 6;
+
+	private MarginContainer _margin = null!;
+	private VBoxContainer _column = null!;
+	private Label _header = null!;
 	private ScrollContainer _scroll = null!;
 	private Label _label = null!;
 	private int _lastLineCount;
@@ -15,6 +23,12 @@ public sealed partial class ActionLogPanel : PanelContainer
 	public ActionLogPanel()
 	{
 		Build();
+	}
+
+	public override void _Notification(int what)
+	{
+		if (what == NotificationResized)
+			ApplyScale();
 	}
 
 	public void SetLines(IReadOnlyList<string> lines)
@@ -43,26 +57,19 @@ public sealed partial class ActionLogPanel : PanelContainer
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		var margin = new MarginContainer();
-		margin.AddThemeConstantOverride("margin_left", 10);
-		margin.AddThemeConstantOverride("margin_right", 10);
-		margin.AddThemeConstantOverride("margin_top", 8);
-		margin.AddThemeConstantOverride("margin_bottom", 8);
-		margin.MouseFilter = MouseFilterEnum.Ignore;
-		AddChild(margin);
+		_margin = new MarginContainer();
+		_margin.MouseFilter = MouseFilterEnum.Ignore;
+		AddChild(_margin);
 
-		var column = new VBoxContainer();
-		column.AddThemeConstantOverride("separation", 6);
-		column.MouseFilter = MouseFilterEnum.Ignore;
-		margin.AddChild(column);
+		_column = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		_margin.AddChild(_column);
 
-		var header = new Label
+		_header = new Label
 		{
 			Text = BattleHudCopy.ActionLogTitle,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		header.AddThemeFontSizeOverride("font_size", 14);
-		column.AddChild(header);
+		_column.AddChild(_header);
 
 		_scroll = new ScrollContainer
 		{
@@ -70,7 +77,7 @@ public sealed partial class ActionLogPanel : PanelContainer
 			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		column.AddChild(_scroll);
+		_column.AddChild(_scroll);
 
 		_label = new Label
 		{
@@ -78,8 +85,21 @@ public sealed partial class ActionLogPanel : PanelContainer
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		_label.AddThemeFontSizeOverride("font_size", 13);
 		_label.Resized += () => ChaseTail(_chaseTailGeneration);
 		_scroll.AddChild(_label);
+
+		Callable.From(ApplyScale).CallDeferred();
+	}
+
+	private void ApplyScale()
+	{
+		var viewport = GetViewport();
+		_margin.AddThemeConstantOverride("margin_left", UiScale.Margin(MarginDesign, viewport));
+		_margin.AddThemeConstantOverride("margin_right", UiScale.Margin(MarginDesign, viewport));
+		_margin.AddThemeConstantOverride("margin_top", UiScale.Margin(8, viewport));
+		_margin.AddThemeConstantOverride("margin_bottom", UiScale.Margin(8, viewport));
+		_column.AddThemeConstantOverride("separation", UiScale.Margin(SeparationDesign, viewport));
+		_header.AddThemeFontSizeOverride("font_size", UiScale.Font(HeaderFontDesign, viewport));
+		_label.AddThemeFontSizeOverride("font_size", UiScale.Font(BodyFontDesign, viewport));
 	}
 }

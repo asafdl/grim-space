@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
@@ -11,7 +12,8 @@ public sealed class RollClip : IReplayClip
 	{
 		var roll = (RollAction)action;
 		context.ReplayState.ApplyRoll(roll);
-		context.UnitViews[roll.ActorId].Sync(context.ReplayState.StateOf(roll.ActorId));
-		return ClipPlayback.Instant;
+		var state = context.ReplayState.StateOf(roll.ActorId);
+		context.UnitViews[roll.ActorId].AnimateOrientationTo(state, ReplayTiming.OrientationSeconds);
+		return ClipPlayback.Pause(ReplayTiming.OrientationSeconds);
 	}
 }

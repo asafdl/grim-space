@@ -12,6 +12,9 @@ public sealed class ReplayClipRegistry
 		new RollClip(),
 		new TorpedoActionClip(),
 		new SpawnPatrolActionClip(),
+		new RailgunActionClip(),
+		new FlakActionClip(),
+		new DetonateActionClip(),
 	]);
 
 	private readonly Dictionary<Type, IReplayClip> _clips;

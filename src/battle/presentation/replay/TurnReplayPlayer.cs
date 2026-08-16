@@ -20,8 +20,6 @@ public partial class TurnReplayPlayer : Node3D
 	[Signal]
 	public delegate void PlaybackCompleteEventHandler();
 
-	private const double ImpactPauseSeconds = 0.32;
-
 	private static readonly ReplayClipRegistry Clips = ReplayClipRegistry.Default;
 
 	private IReadOnlyDictionary<string, UnitView> _unitViews = new Dictionary<string, UnitView>();
@@ -226,7 +224,18 @@ public partial class TurnReplayPlayer : Node3D
 		view.ShowImpactState(state);
 		view.PlayHitFlash();
 
-		GetTree().CreateTimer(ImpactPauseSeconds).Timeout += () =>
+		var damage = impact.HullDamage > 0 ? impact.HullDamage : impact.ShieldDamage;
+		view.PlayDamagePopup(damage);
+
+		var died = !state.IsAlive;
+		if (died)
+			view.PlayDeathExplosion();
+
+		var pause = died
+			? ReplayTiming.ImpactPauseSeconds + ReplayTiming.DeathExplosionSeconds
+			: ReplayTiming.ImpactPauseSeconds;
+
+		GetTree().CreateTimer(pause).Timeout += () =>
 		{
 			if (_clipContext.UnitViews.TryGetValue(impact.TargetId, out var lingering)
 				&& _clipContext.ReplayState.Contains(impact.TargetId))

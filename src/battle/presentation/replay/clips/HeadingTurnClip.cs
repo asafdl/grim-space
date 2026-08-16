@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
@@ -11,7 +12,8 @@ public sealed class HeadingTurnClip : IReplayClip
 	{
 		var heading = (HeadingTurnAction)action;
 		context.ReplayState.ApplyHeadingTurn(heading);
-		context.UnitViews[heading.ActorId].Sync(context.ReplayState.StateOf(heading.ActorId));
-		return ClipPlayback.Instant;
+		var state = context.ReplayState.StateOf(heading.ActorId);
+		context.UnitViews[heading.ActorId].AnimateOrientationTo(state, ReplayTiming.OrientationSeconds);
+		return ClipPlayback.Pause(ReplayTiming.OrientationSeconds);
 	}
 }

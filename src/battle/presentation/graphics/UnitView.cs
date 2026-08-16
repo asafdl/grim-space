@@ -18,6 +18,7 @@ public partial class UnitView : Node3D
 	private bool _hitMarked;
 	private bool _introMarked;
 	private Tween? _introTween;
+	private Tween? _poseTween;
 
 	public void Bind(State state, Color color)
 	{
@@ -50,11 +51,60 @@ public partial class UnitView : Node3D
 
 	public void Sync(State state)
 	{
+		_poseTween?.Kill();
+		_poseTween = null;
 		Visible = state.IsAlive;
 		if (!state.IsAlive)
 			return;
 
 		ApplyPose(state);
+	}
+
+	public void AnimateMoveTo(State state, double duration)
+	{
+		_poseTween?.Kill();
+		Visible = state.IsAlive;
+		if (!state.IsAlive)
+			return;
+
+		var target = WorldMapping.ToWorld(state.Position);
+		_poseTween = CreateTween();
+		_poseTween.TweenProperty(this, "position", target, duration)
+			.SetTrans(Tween.TransitionType.Linear);
+		_poseTween.Chain().TweenCallback(Callable.From(() =>
+		{
+			ApplyShieldColors(state);
+			ApplyStatus(state);
+			_poseTween = null;
+		}));
+	}
+
+	public void AnimateOrientationTo(State state, double duration)
+	{
+		_poseTween?.Kill();
+		Visible = state.IsAlive;
+		if (!state.IsAlive)
+			return;
+
+		var startQuat = Basis.GetRotationQuaternion();
+		var endQuat = BasisFrom(state).GetRotationQuaternion();
+		_poseTween = CreateTween();
+		_poseTween.TweenMethod(
+			Callable.From<float>(weight =>
+			{
+				Basis = new Basis(startQuat.Slerp(endQuat, weight));
+			}),
+			0f,
+			1f,
+			duration)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.InOut);
+		_poseTween.Chain().TweenCallback(Callable.From(() =>
+		{
+			ApplyShieldColors(state);
+			ApplyStatus(state);
+			_poseTween = null;
+		}));
 	}
 
 	/// <summary>Brief red pulse so replay impacts read as hits, not silent state changes.</summary>
@@ -77,6 +127,46 @@ public partial class UnitView : Node3D
 		tween.TweenProperty(mat, "emission_energy_multiplier", 0.55f, 0.28);
 		tween.TweenProperty(mat, "albedo_color", new Color(1f, 0.28f, 0.22f, 0.12f), 0.28);
 		tween.Chain().TweenCallback(Callable.From(EndHitFlash));
+	}
+
+	public void PlayDamagePopup(int damage)
+	{
+		if (damage <= 0)
+			return;
+
+		var label = new Label3D
+		{
+			Text = $"-{damage}",
+			Position = new Vector3(0f, StatusLabelHeight(_type) + 0.45f, 0f),
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			FontSize = _type == EType.Torpedo ? 44 : 56,
+			OutlineSize = 10,
+			Modulate = new Color(1f, 0.22f, 0.18f),
+		};
+		AddChild(label);
+		PresentationTween.FloatAndFree(
+			this,
+			label,
+			new Vector3(0f, 0.75f, 0f),
+			0.55,
+			fadeDelay: 0.2);
+	}
+
+	public void PlayDeathExplosion()
+	{
+		var scale = _type switch
+		{
+			EType.Torpedo => 0.55f,
+			EType.Patrol => 0.72f,
+			EType.Carrier => 1.35f,
+			_ => 1.1f,
+		};
+
+		OneShotParticles.Play(
+			this,
+			Vector3.Zero,
+			new Color(1f, 0.42f, 0.12f, 0.9f),
+			scale);
 	}
 
 	/// <summary>Apply post-hit state while keeping the mesh visible for the flash window.</summary>
@@ -342,13 +432,14 @@ public partial class UnitView : Node3D
 		_momentumLabel.Text = text;
 	}
 
-	private void ApplyOrientation(State state)
-	{
-		var fore = ToVector3(state.Fore);
-		var dorsal = ToVector3(state.Dorsal);
-		var starboard = ToVector3(state.Starboard);
-		Basis = new Basis(starboard, dorsal, fore);
-	}
+	private void ApplyOrientation(State state) =>
+		Basis = BasisFrom(state);
+
+	private static Basis BasisFrom(State state) =>
+		new(
+			ToVector3(state.Starboard),
+			ToVector3(state.Dorsal),
+			ToVector3(state.Fore));
 
 	private static float StatusLabelHeight(EType type) =>
 		type switch

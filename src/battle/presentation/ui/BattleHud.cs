@@ -27,6 +27,7 @@ public partial class BattleHud : Node
 	private CanvasLayer _topHud = null!;
 	private CanvasLayer _bottomHud = null!;
 	private CanvasLayer _actionLogLayer = null!;
+	private MarginContainer _actionLogHost = null!;
 	private ActionLogPanel _actionLogPanel = null!;
 
 	public void Build()
@@ -150,30 +151,26 @@ public partial class BattleHud : Node
 		AddChild(_bottomHud);
 
 		_actionLogLayer = new CanvasLayer { Layer = 5 };
-		var actionLogHost = new MarginContainer
+		_actionLogHost = new MarginContainer
 		{
 			AnchorsPreset = (int)Control.LayoutPreset.RightWide,
 			AnchorLeft = 1f,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			OffsetLeft = -220f,
-			OffsetTop = 56f,
-			OffsetBottom = -220f,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Both,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
-		actionLogHost.AddThemeConstantOverride("margin_right", 12);
-		actionLogHost.AddThemeConstantOverride("margin_top", 0);
-		actionLogHost.AddThemeConstantOverride("margin_bottom", 0);
 		_actionLogPanel = new ActionLogPanel
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
 		};
-		actionLogHost.AddChild(_actionLogPanel);
-		_actionLogLayer.AddChild(actionLogHost);
+		_actionLogHost.AddChild(_actionLogPanel);
+		_actionLogLayer.AddChild(_actionLogHost);
 		AddChild(_actionLogLayer);
+
+		Callable.From(ConnectViewportLayout).CallDeferred();
 
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
@@ -236,4 +233,20 @@ public partial class BattleHud : Node
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 
+	private void ConnectViewportLayout()
+	{
+		GetViewport().SizeChanged += OnViewportSizeChanged;
+		LayoutActionLog();
+	}
+
+	private void OnViewportSizeChanged() => LayoutActionLog();
+
+	private void LayoutActionLog()
+	{
+		var viewport = GetViewport();
+		_actionLogHost.OffsetLeft = -UiScale.Px(300f, viewport);
+		_actionLogHost.OffsetTop = UiScale.Px(56f, viewport);
+		_actionLogHost.OffsetBottom = -UiScale.Px(220f, viewport);
+		_actionLogHost.AddThemeConstantOverride("margin_right", UiScale.Margin(12, viewport));
+	}
 }
