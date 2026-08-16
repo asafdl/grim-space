@@ -31,6 +31,7 @@ public sealed class PresentationFrame
 	public bool CanFocusCamera { get; init; }
 	public bool CanUndo { get; init; }
 	public bool ShowOutcomeOverlay { get; init; }
+	public bool ShowIntroOverlay { get; init; }
 	public bool ShowWeaponPreviews { get; init; }
 	public EBattleResult Outcome { get; init; }
 	public required IReadOnlyList<string> ActionLogLines { get; init; }

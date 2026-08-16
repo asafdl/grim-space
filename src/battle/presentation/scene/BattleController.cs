@@ -9,6 +9,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Math.Grid;
+using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Scene;
@@ -28,8 +29,10 @@ public partial class BattleController : Node3D
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BattleHud _battleHud = null!;
+	private CombatIntroDirector _combatIntro = null!;
 
 	private GridView _gridView = null!;
+	private OpponentIntroMarkersView _opponentMarkers = null!;
 	private FlakPreviewView _flakPreview = null!;
 	private RailgunPreviewView _railgunPreview = null!;
 	private TorpedoPreviewView _torpedoPreview = null!;
@@ -44,8 +47,10 @@ public partial class BattleController : Node3D
 		int PathApBaseline,
 		IReadOnlyList<Coord> CommittedPath);
 
+	private bool _introActive;
+
 	private bool AcceptsCommands =>
-		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
+		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle) && !_introActive;
 
 	public override void _Ready()
 	{
@@ -64,6 +69,9 @@ public partial class BattleController : Node3D
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(layout.Grid);
+
+		_opponentMarkers = new OpponentIntroMarkersView { Name = "OpponentIntroMarkers" };
+		AddChild(_opponentMarkers);
 
 		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
 		_railgunPreview.Build();
@@ -131,11 +139,38 @@ public partial class BattleController : Node3D
 			ColorForActor);
 		AddChild(_replayDirector);
 
+		_combatIntro = new CombatIntroDirector { Name = "CombatIntroDirector" };
+		_combatIntro.Configure(_battle, _battleView, _opponentMarkers, _camera, GetPlayerRenderedPosition);
+		AddChild(_combatIntro);
+
 		_agent.PlanningChanged += RefreshPresentation;
 		_battle.PhaseChanged += _ => RefreshPresentation();
 		_battle.TurnResolved += OnTurnResolved;
 
 		_cameraDirector.EnterManual();
+		BeginCombatIntro();
+	}
+
+	private void BeginCombatIntro()
+	{
+		_introActive = true;
+		_frames.IntroActive = true;
+		var objective = RunSession.Instance.CurrentEncounter.Objective;
+		_battleHud.IntroOverlay.SetObjective(objective);
+		RefreshPresentation();
+		_combatIntro.Play(DismissCombatIntroBanner, EndCombatIntro);
+	}
+
+	private void DismissCombatIntroBanner()
+	{
+		_frames.IntroActive = false;
+		RefreshPresentation();
+	}
+
+	private void EndCombatIntro()
+	{
+		_introActive = false;
+		_frames.IntroActive = false;
 		RefreshPresentation();
 	}
 
@@ -217,7 +252,7 @@ public partial class BattleController : Node3D
 			frame.MovePathApBaseline,
 			frame.CommittedMovePath);
 		_translator.SetPresentation(
-			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
+			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver && !_introActive,
 			canIssueActions: frame.CanAct,
 			isInspecting: frame.IsInspecting,
 			mode: frame.Mode,
@@ -331,6 +366,9 @@ public partial class BattleController : Node3D
 			entry => entry.Key,
 			entry => entry.Value.ToState());
 		_battleView.ApplyUnitStates(states, id => ColorForPreview(frame, id));
+		if (_introActive)
+			return;
+
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
 

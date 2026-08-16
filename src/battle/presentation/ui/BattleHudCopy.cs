@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
+using GrimSpace.Run;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -76,6 +77,9 @@ internal static class BattleHudCopy
 	public const string OutcomeDefault = "Battle Over";
 	public const string Reset = "Reset";
 
+	public const string IntroTitle = "Engage";
+	public const string ObjectiveEliminateOpponents = "Objective: Eliminate all opponents";
+
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 
 	public static string Charges(int current, int max) => $"{current}/{max}";
@@ -104,5 +108,12 @@ internal static class BattleHudCopy
 			EBattleResult.Lose => OutcomeLose,
 			EBattleResult.Tie => OutcomeDraw,
 			_ => OutcomeDefault,
+		};
+
+	public static string ObjectiveLabel(EObjective objective) =>
+		objective switch
+		{
+			EObjective.EliminateOpponents => ObjectiveEliminateOpponents,
+			_ => objective.ToString(),
 		};
 }

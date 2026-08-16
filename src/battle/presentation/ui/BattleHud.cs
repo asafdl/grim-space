@@ -16,6 +16,7 @@ public partial class BattleHud : Node
 	public ManeuverBar ManeuverBar { get; private set; } = null!;
 	public UtilityBar UtilityBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
+	public BattleIntroOverlay IntroOverlay { get; private set; } = null!;
 
 	private PanelContainer _turnBadge = null!;
 	private Label _turnLabel = null!;
@@ -187,25 +188,31 @@ public partial class BattleHud : Node
 
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
+
+		IntroOverlay = new BattleIntroOverlay();
+		AddChild(IntroOverlay);
 	}
 
 	public void Apply(PresentationFrame frame)
 	{
-		_topHud.Visible = !frame.ShowOutcomeOverlay;
+		var hideHud = frame.ShowOutcomeOverlay || frame.ShowIntroOverlay;
+		_topHud.Visible = !hideHud;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
 		var focusState = frame.FocusState;
 		HealthBar.Set(focusState);
 
 		_actionLogPanel.SetLines(frame.ActionLogLines);
-		_actionLogLayer.Visible = !frame.ShowOutcomeOverlay;
+		_actionLogLayer.Visible = !hideHud;
 
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogLines);
 
-		_bottomHud.Visible = !frame.ShowOutcomeOverlay;
-		if (frame.ShowOutcomeOverlay)
+		IntroOverlay.Visible = frame.ShowIntroOverlay;
+
+		_bottomHud.Visible = !hideHud;
+		if (hideHud)
 			return;
 
 		ManeuverBar.SetMode(frame.Mode);

@@ -18,6 +18,8 @@ public sealed class PresentationFrameBuilder
 
 	public InteractionState Interaction { get; } = new();
 
+	public bool IntroActive { get; set; }
+
 	private readonly List<string> _actionLogLines = [];
 
 	public IReadOnlyList<string> ActionLogLines => _actionLogLines;
@@ -143,6 +145,7 @@ public sealed class PresentationFrameBuilder
 			CanFocusCamera = canControl && isPlanning,
 			CanUndo = canControl && agent.CanUndo,
 			ShowOutcomeOverlay = battle.Phase == EBattlePhase.BattleOver,
+			ShowIntroOverlay = IntroActive,
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = battle.Outcome.Result,
 			ActionLogLines = ActionLogLines,

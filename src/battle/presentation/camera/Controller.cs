@@ -32,6 +32,9 @@ public partial class Controller : Camera3D, ICameraRig
 	private Vector3? _automationTarget;
 
 	public Vector3 Pivot => _pivot;
+	public float Distance => _distance;
+	public float Yaw => _yaw;
+	public float Pitch => _pitch;
 	public bool IsAutomationActive => _pivotTween is not null;
 	public Vector3? AutomationTarget => _automationTarget;
 
@@ -39,6 +42,17 @@ public partial class Controller : Camera3D, ICameraRig
 	{
 		CancelAutomation();
 		_pivot = pivot;
+		ApplyTransform();
+	}
+
+	public void SetFocus(Vector3 pivot, float distance, float yaw, float pitch)
+	{
+		CancelAutomation();
+		_pivot = pivot;
+		_distance = Mathf.Clamp(distance, MinDistance, MaxDistance);
+		_yaw = yaw;
+		_pitch = Mathf.Clamp(pitch, MinPitch, MaxPitch);
+		_automationTarget = null;
 		ApplyTransform();
 	}
 
@@ -88,6 +102,55 @@ public partial class Controller : Camera3D, ICameraRig
 			.SetTrans(Tween.TransitionType.Quad)
 			.SetEase(Tween.EaseType.Out);
 		_pivotTween.Finished += OnPivotTweenFinished;
+	}
+
+	public void TweenFocusOn(Vector3 targetPivot, float targetDistance, float duration) =>
+		TweenFocusOn(targetPivot, targetDistance, _yaw, _pitch, duration);
+
+	public void TweenFocusOn(
+		Vector3 targetPivot,
+		float targetDistance,
+		float targetYaw,
+		float targetPitch,
+		float duration)
+	{
+		CancelAutomation();
+
+		var startPivot = _pivot;
+		var startDistance = _distance;
+		var startYaw = _yaw;
+		var startPitch = _pitch;
+		targetDistance = Mathf.Clamp(targetDistance, MinDistance, MaxDistance);
+		targetPitch = Mathf.Clamp(targetPitch, MinPitch, MaxPitch);
+		_automationTarget = targetPivot;
+
+		_pivotTween = CreateTween();
+		_pivotTween.TweenMethod(
+			Callable.From<float>(BlendFocus),
+			0f,
+			1f,
+			duration)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
+		_pivotTween.Finished += OnPivotTweenFinished;
+
+		void BlendFocus(float t)
+		{
+			_pivot = startPivot.Lerp(targetPivot, t);
+			_distance = Mathf.Lerp(startDistance, targetDistance, t);
+			_yaw = Mathf.LerpAngle(startYaw, targetYaw, t);
+			_pitch = Mathf.Lerp(startPitch, targetPitch, t);
+			ApplyTransform();
+		}
+	}
+
+	public static (float Yaw, float Pitch) OrbitAnglesForDirection(Vector3 direction)
+	{
+		var dir = direction.Normalized();
+		if (dir.LengthSquared() < 0.001f)
+			return (0f, -0.35f);
+
+		return (Mathf.Atan2(dir.X, dir.Z), Mathf.Clamp(Mathf.Asin(dir.Y), MinPitch, MaxPitch));
 	}
 
 	public void MovePivotToward(Vector3 target, float delta, float responseTime)
@@ -228,6 +291,12 @@ public partial class Controller : Camera3D, ICameraRig
 	private void SetPivotInternal(Vector3 pivot)
 	{
 		_pivot = pivot;
+		ApplyTransform();
+	}
+
+	private void SetDistanceInternal(float distance)
+	{
+		_distance = distance;
 		ApplyTransform();
 	}
 
