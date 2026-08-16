@@ -193,6 +193,7 @@ public partial class BattleController : Node3D
 		_battleHud.OutcomeOverlay.ResetRequested += _translator.OnRestart;
 		_battleHud.RestartRequested += _translator.OnRestart;
 		_battleHud.RetireRequested += _translator.OnRetire;
+		_battleHud.MainMenuRequested += GoToMainMenu;
 	}
 
 	private void WireTranslator()
@@ -388,6 +389,9 @@ public partial class BattleController : Node3D
 		RunSession.Instance.StartNewRun();
 		GetTree().ReloadCurrentScene();
 	}
+
+	private void GoToMainMenu() =>
+		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 
 	private static Color ColorFor(ETeam team) =>
 		team switch

@@ -85,7 +85,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public override void _Process(double delta)
 	{
-		if (!_enabled || !_canIssueActions || _mode != EPlayerMode.Move)
+		if (!_enabled || !_canIssueActions || _mode != EPlayerMode.Move || _hud.IsPauseMenuOpen)
 			return;
 
 		var index = MovementSelection.PickPathIndex(
@@ -128,6 +128,9 @@ public sealed partial class UserIntentTranslator : Node
 				GetViewport().SetInputAsHandled();
 			return;
 		}
+
+		if (_hud.IsPauseMenuOpen)
+			return;
 
 		if (!_canIssueActions && !_isInspecting)
 			return;
@@ -185,8 +188,14 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		switch (key.Keycode)
 		{
+			case Key.Escape when _hud.IsPauseMenuOpen:
+				_hud.ClosePauseMenu();
+				return true;
 			case Key.Escape when _mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo or EPlayerMode.Detonate:
 				ModeRequested?.Invoke(EPlayerMode.Move);
+				return true;
+			case Key.Escape:
+				_hud.TogglePauseMenu();
 				return true;
 			case Key.Key1:
 				return _hud.ManeuverBar.TryActivateMove();

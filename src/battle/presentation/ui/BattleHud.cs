@@ -10,6 +10,7 @@ public partial class BattleHud : Node
 {
 	public event Action? RetireRequested;
 	public event Action? RestartRequested;
+	public event Action? MainMenuRequested;
 
 	public ActionBar ActionBar { get; private set; } = null!;
 	public HealthBar HealthBar { get; private set; } = null!;
@@ -17,6 +18,9 @@ public partial class BattleHud : Node
 	public UtilityBar UtilityBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattleIntroOverlay IntroOverlay { get; private set; } = null!;
+	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
+
+	public bool IsPauseMenuOpen => PauseMenu.Visible;
 
 	private PanelContainer _turnBadge = null!;
 	private Label _turnLabel = null!;
@@ -88,21 +92,6 @@ public partial class BattleHud : Node
 		_turnLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.88f));
 		_turnBadge.AddChild(_turnLabel);
 		turnRow.AddChild(_turnBadge);
-
-		turnRow.AddChild(CreateTopMetaButton(
-			text: BattleHudCopy.Retire,
-			tooltip: BattleHudCopy.RetireTooltip,
-			bg: new Color(0.32f, 0.1f, 0.12f, 1f),
-			border: new Color(0.9f, 0.35f, 0.4f),
-			font: new Color(1f, 0.85f, 0.88f),
-			onPressed: () => RetireRequested?.Invoke()));
-		turnRow.AddChild(CreateTopMetaButton(
-			text: BattleHudCopy.Restart,
-			tooltip: BattleHudCopy.RestartTooltip,
-			bg: new Color(0.12f, 0.16f, 0.22f, 1f),
-			border: new Color(0.55f, 0.72f, 0.95f),
-			font: new Color(0.85f, 0.92f, 1f),
-			onPressed: () => RestartRequested?.Invoke()));
 
 		HealthBar = new HealthBar
 		{
@@ -191,11 +180,25 @@ public partial class BattleHud : Node
 
 		IntroOverlay = new BattleIntroOverlay();
 		AddChild(IntroOverlay);
+
+		PauseMenu = new BattlePauseMenuOverlay();
+		PauseMenu.ContinueRequested += ClosePauseMenu;
+		PauseMenu.RetireRequested += () => RetireRequested?.Invoke();
+		PauseMenu.RestartRequested += () => RestartRequested?.Invoke();
+		PauseMenu.MainMenuRequested += () => MainMenuRequested?.Invoke();
+		AddChild(PauseMenu);
 	}
+
+	public void TogglePauseMenu() => PauseMenu.Visible = !PauseMenu.Visible;
+
+	public void ClosePauseMenu() => PauseMenu.Visible = false;
 
 	public void Apply(PresentationFrame frame)
 	{
 		var hideHud = frame.ShowOutcomeOverlay || frame.ShowIntroOverlay;
+		if (hideHud)
+			ClosePauseMenu();
+
 		_topHud.Visible = !hideHud;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
@@ -233,55 +236,4 @@ public partial class BattleHud : Node
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 
-	private static Button CreateTopMetaButton(
-		string text,
-		string tooltip,
-		Color bg,
-		Color border,
-		Color font,
-		Action onPressed)
-	{
-		var button = new Button
-		{
-			Text = text,
-			CustomMinimumSize = new Vector2(80, 0),
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-			TooltipText = tooltip,
-			FocusMode = Control.FocusModeEnum.None,
-		};
-
-		var normal = MakeTopButtonStyle(bg, border);
-		var hover = MakeTopButtonStyle(bg.Lightened(0.12f), border.Lightened(0.15f));
-		var pressed = MakeTopButtonStyle(bg.Lightened(0.2f), border.Lightened(0.25f));
-
-		button.AddThemeStyleboxOverride("normal", normal);
-		button.AddThemeStyleboxOverride("hover", hover);
-		button.AddThemeStyleboxOverride("pressed", pressed);
-		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
-		button.AddThemeColorOverride("font_color", font);
-		button.AddThemeColorOverride("font_hover_color", font.Lightened(0.1f));
-		button.AddThemeColorOverride("font_pressed_color", font.Lightened(0.2f));
-		button.AddThemeFontSizeOverride("font_size", 13);
-		button.Pressed += onPressed;
-		return button;
-	}
-
-	private static StyleBoxFlat MakeTopButtonStyle(Color bg, Color border) =>
-		new()
-		{
-			BgColor = bg,
-			BorderColor = border,
-			BorderWidthLeft = 2,
-			BorderWidthTop = 2,
-			BorderWidthRight = 2,
-			BorderWidthBottom = 2,
-			CornerRadiusTopLeft = 4,
-			CornerRadiusTopRight = 4,
-			CornerRadiusBottomRight = 4,
-			CornerRadiusBottomLeft = 4,
-			ContentMarginLeft = 10,
-			ContentMarginRight = 10,
-			ContentMarginTop = 6,
-			ContentMarginBottom = 6,
-		};
 }

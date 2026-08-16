@@ -9,10 +9,15 @@ namespace GrimSpace.Battle.Presentation.Ui;
 internal static class BattleHudCopy
 {
 	public const string TurnLabel = "Turn {0}";
+	public const string PauseMenuTitle = "Paused";
+	public const string Continue = "Continue";
+	public const string ContinueTooltip = "Resume battle";
 	public const string Retire = "Retire";
 	public const string RetireTooltip = "Forfeit — you lose";
 	public const string Restart = "Restart";
 	public const string RestartTooltip = "Restart encounter with a new random layout";
+	public const string MainMenu = "Main Menu";
+	public const string MainMenuTooltip = "Leave battle and return to the title screen";
 
 	public const string HullTitle = "HP";
 	public const string HullTooltip =
