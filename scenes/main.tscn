@@ -101,6 +101,11 @@ text = "Display mode"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+item_count = 2
+popup/item_0/text = "Fullscreen"
+popup/item_0/id = 0
+popup/item_1/text = "Windowed"
+popup/item_1/id = 1
 
 [node name="ResolutionRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
 layout_mode = 2
@@ -115,6 +120,15 @@ text = "Resolution"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+item_count = 4
+popup/item_0/text = "2560x1440"
+popup/item_0/id = 0
+popup/item_1/text = "1920x1080"
+popup/item_1/id = 1
+popup/item_2/text = "1600x900"
+popup/item_2/id = 2
+popup/item_3/text = "1280x720"
+popup/item_3/id = 3
 
 [node name="Apply" type="Button" parent="Center/Panel/Margin/SettingsPanel"]
 unique_name_in_owner = true

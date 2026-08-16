@@ -7,8 +7,9 @@ public partial class StartMenu : Control
 {
 	private const string SettingsPath = "user://settings.cfg";
 
-	private static readonly Vector2I[] StandardResolutions =
+	private static readonly Vector2I[] Resolutions =
 	[
+		new(2560, 1440),
 		new(1920, 1080),
 		new(1600, 900),
 		new(1280, 720),
@@ -18,7 +19,6 @@ public partial class StartMenu : Control
 	private Control _settingsPanel = null!;
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
-	private readonly List<Vector2I> _resolutionValues = [];
 
 	public override void _Ready()
 	{
@@ -27,8 +27,6 @@ public partial class StartMenu : Control
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
 
-		_displayMode.AddItem("Fullscreen");
-		_displayMode.AddItem("Windowed");
 		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
 
 		GetNode<Button>("%StartBattle").Pressed += OnStartBattle;
@@ -43,34 +41,13 @@ public partial class StartMenu : Control
 	private void InitializeVideoSettings()
 	{
 		var (mode, width, height) = ReadVideoConfig();
-		ApplyVideoSettings(mode, width, height);
-	}
-
-	private void PopulateResolutions()
-	{
-		while (_resolution.ItemCount > 0)
-			_resolution.RemoveItem(0);
-		_resolutionValues.Clear();
-
-		var native = GetNativeResolution();
-		_resolution.AddItem($"Native — {native.X}x{native.Y}");
-		_resolutionValues.Add(native);
-
-		foreach (var resolution in StandardResolutions)
-		{
-			if (resolution == native)
-				continue;
-
-			_resolution.AddItem($"{resolution.X}x{resolution.Y}");
-			_resolutionValues.Add(resolution);
-		}
+		ApplyVideoSettings(mode, new Vector2I(width, height));
 	}
 
 	private void LoadSettingsToUi()
 	{
 		var (mode, width, height) = ReadVideoConfig();
 		_displayMode.Selected = mode == "windowed" ? 1 : 0;
-		PopulateResolutions();
 		SelectResolution(width, height);
 		UpdateResolutionEnabled();
 	}
@@ -86,11 +63,10 @@ public partial class StartMenu : Control
 		var width = hasSettings ? config.GetValue("video", "width", 0).AsInt32() : 0;
 		var height = hasSettings ? config.GetValue("video", "height", 0).AsInt32() : 0;
 
-		var native = GetNativeResolution();
-		if (width <= 0 || height <= 0 || width > native.X || height > native.Y)
+		if (width <= 0 || height <= 0 || !TryFindResolution(width, height, out _))
 		{
-			width = native.X;
-			height = native.Y;
+			width = Resolutions[0].X;
+			height = Resolutions[0].Y;
 		}
 
 		return (mode, width, height);
@@ -98,45 +74,48 @@ public partial class StartMenu : Control
 
 	private void SelectResolution(int width, int height)
 	{
-		for (var i = 0; i < _resolutionValues.Count; i++)
+		if (TryFindResolution(width, height, out var index))
+			_resolution.Selected = index;
+		else
+			_resolution.Selected = 0;
+	}
+
+	private static bool TryFindResolution(int width, int height, out int index)
+	{
+		for (var i = 0; i < Resolutions.Length; i++)
 		{
-			if (_resolutionValues[i].X == width && _resolutionValues[i].Y == height)
+			if (Resolutions[i].X == width && Resolutions[i].Y == height)
 			{
-				_resolution.Selected = i;
-				return;
+				index = i;
+				return true;
 			}
 		}
 
-		_resolution.Selected = 0;
+		index = 0;
+		return false;
 	}
+
+	private Vector2I SelectedResolution() => Resolutions[_resolution.Selected];
 
 	private void ApplyVideoSettings()
 	{
 		var windowed = _displayMode.Selected == 1;
-		var size = _resolutionValues[_resolution.Selected];
-		ApplyVideoSettings(windowed ? "windowed" : "fullscreen", size.X, size.Y);
+		ApplyVideoSettings(windowed ? "windowed" : "fullscreen", SelectedResolution());
 	}
 
-	private void ApplyVideoSettings(string mode, int width, int height)
+	private void ApplyVideoSettings(string mode, Vector2I size)
 	{
-		var window = GetWindow();
-		var windowed = mode == "windowed";
-		var native = GetNativeResolution();
+		var window = GetTree().Root;
 
-		if (width <= 0 || height <= 0 || width > native.X || height > native.Y)
-		{
-			width = native.X;
-			height = native.Y;
-		}
-
-		if (!windowed)
+		if (mode != "windowed")
 		{
 			window.Mode = Window.ModeEnum.Fullscreen;
 			return;
 		}
 
 		window.Mode = Window.ModeEnum.Windowed;
-		window.Size = ToWindowSize(new Vector2I(width, height));
+		window.ContentScaleSize = size;
+		window.Size = size;
 		window.MoveToCenter();
 	}
 
@@ -144,8 +123,7 @@ public partial class StartMenu : Control
 	{
 		var config = new ConfigFile();
 		var windowed = _displayMode.Selected == 1;
-		var native = GetNativeResolution();
-		var size = windowed ? _resolutionValues[_resolution.Selected] : native;
+		var size = windowed ? SelectedResolution() : Resolutions[0];
 
 		config.SetValue("video", "mode", windowed ? "windowed" : "fullscreen");
 		config.SetValue("video", "width", size.X);
@@ -179,47 +157,5 @@ public partial class StartMenu : Control
 	{
 		RunSession.Instance.StartNewRun();
 		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");
-	}
-
-	private Vector2I GetNativeResolution()
-	{
-		var best = Vector2I.Zero;
-		for (var screen = 0; screen < DisplayServer.GetScreenCount(); screen++)
-		{
-			var size = GetPhysicalScreenSize(screen);
-			if (size.X > best.X || (size.X == best.X && size.Y > best.Y))
-				best = size;
-		}
-
-		return best.X > 0 && best.Y > 0 ? best : new Vector2I(1920, 1080);
-	}
-
-	private static Vector2I GetPhysicalScreenSize(int screen)
-	{
-		var size = DisplayServer.ScreenGetSize(screen);
-		var scale = DisplayServer.ScreenGetScale(screen);
-		if (scale > 1.01f)
-			size = new Vector2I(
-				(int)System.Math.Round(size.X * scale),
-				(int)System.Math.Round(size.Y * scale));
-
-		return size;
-	}
-
-	private Vector2I ToWindowSize(Vector2I physicalSize)
-	{
-		var screen = GetWindow().CurrentScreen;
-		if (screen < 0)
-			screen = DisplayServer.GetPrimaryScreen();
-		if (screen < 0)
-			screen = 0;
-
-		var scale = DisplayServer.ScreenGetScale(screen);
-		if (scale <= 1.01f)
-			return physicalSize;
-
-		return new Vector2I(
-			(int)System.Math.Round(physicalSize.X / scale),
-			(int)System.Math.Round(physicalSize.Y / scale));
 	}
 }
