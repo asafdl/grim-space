@@ -81,7 +81,6 @@ public sealed partial class ReplayDirector : Node
 	private void StartPlayback(TurnReplay replay, int completedTurn)
 	{
 		_playbackEndStates = replay.EndStates;
-		_battleView.ApplyUnitStates(replay.StartStates, _colorForActor);
 		_replayPlayer.ResetToLive(
 			replay.StartStates,
 			replay.EndStates,

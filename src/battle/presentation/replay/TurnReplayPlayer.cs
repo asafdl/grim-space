@@ -82,7 +82,10 @@ public partial class TurnReplayPlayer : Node3D
 		_hazardBursts.Clear();
 
 		foreach (var (unitId, state) in turnStart)
+		{
+			_ensureView(state, _colorFor(state.Id));
 			_unitViews[unitId].Sync(state);
+		}
 	}
 
 	public void Play(
