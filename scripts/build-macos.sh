@@ -19,7 +19,7 @@ if [[ ! -f "$GODOT_MACOS_TEMPLATE" ]]; then
 fi
 
 echo "Importing project..."
-"$GODOT" --headless --path "$ROOT" --import || true
+"$GODOT" --headless --path "$ROOT" --import
 
 echo "Generating .NET bindings..."
 "$GODOT" --headless --path "$ROOT" --build-solutions --quit || true

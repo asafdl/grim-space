@@ -11,7 +11,6 @@ public sealed partial class ManeuverBar : PanelContainer
 
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
-	private const float SvgSourceSize = 512f;
 
 	private static readonly Color Accent = new(0.55f, 0.78f, 1f);
 
@@ -175,7 +174,7 @@ public sealed partial class ManeuverBar : PanelContainer
 		var button = new Button
 		{
 			CustomMinimumSize = new Vector2(SlotSize, SlotSize),
-			Icon = LoadSvgIcon(iconPath),
+			Icon = SvgIconLoader.Load(iconPath, Accent, (int)IconPx),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
@@ -270,29 +269,4 @@ public sealed partial class ManeuverBar : PanelContainer
 			ContentMarginTop = 4,
 			ContentMarginBottom = 4,
 		};
-
-	private static Texture2D LoadSvgIcon(string path)
-	{
-		if (!Godot.FileAccess.FileExists(path))
-			return ImageTexture.CreateFromImage(Image.CreateEmpty((int)IconPx, (int)IconPx, false, Image.Format.Rgba8));
-
-		var svg = Godot.FileAccess.GetFileAsString(path);
-		var image = new Image();
-		var err = image.LoadSvgFromString(svg, IconPx / SvgSourceSize);
-		if (err != Error.Ok)
-			return ImageTexture.CreateFromImage(Image.CreateEmpty((int)IconPx, (int)IconPx, false, Image.Format.Rgba8));
-
-		var w = image.GetWidth();
-		var h = image.GetHeight();
-		for (var y = 0; y < h; y++)
-		for (var x = 0; x < w; x++)
-		{
-			var p = image.GetPixel(x, y);
-			if (p.A <= 0.001f)
-				continue;
-			image.SetPixel(x, y, new Color(Accent.R, Accent.G, Accent.B, p.A * Accent.A));
-		}
-
-		return ImageTexture.CreateFromImage(image);
-	}
 }

@@ -76,7 +76,7 @@ jobs:
           include-templates: true
 
       - name: Import project
-        run: godot --headless --import || true
+        run: godot --headless --import
 
       - name: Generate .NET bindings
         run: godot --headless --build-solutions --quit || exit 0

@@ -10,7 +10,6 @@ public sealed partial class ActionBar : HBoxContainer
 
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
-	private const float SvgSourceSize = 512f;
 
 	private readonly ButtonGroup _modeGroup;
 	private readonly List<AbilitySlot> _abilitySlots = [];
@@ -142,7 +141,7 @@ public sealed partial class ActionBar : HBoxContainer
 			ToggleMode = true,
 			ButtonGroup = _modeGroup,
 			CustomMinimumSize = new Vector2(SlotSize, SlotSize),
-			Icon = LoadSvgIcon(iconPath, accent),
+			Icon = SvgIconLoader.Load(iconPath, accent, (int)IconPx),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
@@ -350,38 +349,6 @@ public sealed partial class ActionBar : HBoxContainer
 			ContentMarginTop = 4,
 			ContentMarginBottom = 4,
 		};
-
-	private static Texture2D LoadSvgIcon(string? path, Color tint)
-	{
-		if (path is null || !Godot.FileAccess.FileExists(path))
-			return ImageTexture.CreateFromImage(Image.CreateEmpty((int)IconPx, (int)IconPx, false, Image.Format.Rgba8));
-
-		var svg = Godot.FileAccess.GetFileAsString(path);
-		var image = new Image();
-		var err = image.LoadSvgFromString(svg, IconPx / SvgSourceSize);
-		if (err != Error.Ok)
-		{
-			GD.PushWarning($"ActionBar: failed to load icon '{path}' ({err})");
-			return ImageTexture.CreateFromImage(Image.CreateEmpty((int)IconPx, (int)IconPx, false, Image.Format.Rgba8));
-		}
-
-		TintWhitePixels(image, tint);
-		return ImageTexture.CreateFromImage(image);
-	}
-
-	private static void TintWhitePixels(Image image, Color tint)
-	{
-		var w = image.GetWidth();
-		var h = image.GetHeight();
-		for (var y = 0; y < h; y++)
-		for (var x = 0; x < w; x++)
-		{
-			var p = image.GetPixel(x, y);
-			if (p.A <= 0.001f)
-				continue;
-			image.SetPixel(x, y, new Color(tint.R, tint.G, tint.B, p.A * tint.A));
-		}
-	}
 
 	private sealed record AbilitySlot(Button Button, Label Charges, EPlayerMode Mode);
 }
