@@ -26,8 +26,6 @@ public partial class RunSession : Node
 			_instance = null;
 	}
 
-	public override void _Ready() => StartNewRun();
-
 	private static void ConfigureLogging()
 	{
 		var godotLog = Path.Combine(OS.GetUserDataDir(), "logs", "godot.log");

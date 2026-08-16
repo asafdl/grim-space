@@ -1,7 +1,129 @@
 [gd_scene load_steps=2 format=3 uid="uid://bqx8main001"]
 
-[ext_resource type="PackedScene" uid="uid://bqx8battle001" path="res://scenes/battle.tscn" id="1_battle"]
+[ext_resource type="Script" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
 
-[node name="Main" type="Node3D"]
+[node name="StartMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_startmenu")
 
-[node name="Battle" parent="." instance=ExtResource("1_battle")]
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.08, 0.12, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 0)
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 28
+
+[node name="MainPanel" type="VBoxContainer" parent="Center/Panel/Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/MainPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "grim-space"
+horizontal_alignment = 1
+
+[node name="StartBattle" type="Button" parent="Center/Panel/Margin/MainPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Start Battle"
+
+[node name="Settings" type="Button" parent="Center/Panel/Margin/MainPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Settings"
+
+[node name="Quit" type="Button" parent="Center/Panel/Margin/MainPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Quit"
+
+[node name="SettingsPanel" type="VBoxContainer" parent="Center/Panel/Margin"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Breadcrumb" type="Label" parent="Center/Panel/Margin/SettingsPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Settings > Video"
+horizontal_alignment = 1
+
+[node name="VideoSection" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="VideoLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Video"
+
+[node name="DisplayModeRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DisplayModeLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Display mode"
+
+[node name="DisplayMode" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResolutionRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ResolutionLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Resolution"
+
+[node name="Resolution" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Apply" type="Button" parent="Center/Panel/Margin/SettingsPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+text = "Apply"
+
+[node name="Back" type="Button" parent="Center/Panel/Margin/SettingsPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Back"

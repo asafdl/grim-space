@@ -1,6 +1,8 @@
+.DS_Store
 # Godot 4+ specific ignores
 .godot/
 /android/
 **.uid
 grim-space.Tests/bin
 grim-space.Tests/obj
+dist/
