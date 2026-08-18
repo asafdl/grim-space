@@ -68,6 +68,9 @@ internal static class BattleHudCopy
 	public const string EndTurn = "End Turn";
 	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
 
+	public const string ConfirmAction = "Confirm";
+	public const string SelectFiringDirection = "Select a firing direction";
+
 	public const string FocusTooltip = "Snap the camera to your active ship.";
 	public const string UndoTooltip = "Undo your last action this turn.\n(Ctrl/Cmd+Z)";
 	public const string BackToPlayer = "Back";

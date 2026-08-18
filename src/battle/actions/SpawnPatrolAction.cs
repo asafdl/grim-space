@@ -16,7 +16,8 @@ public sealed record SpawnPatrolAction(string ActorId, string? SpawnedUnitId = n
 }
 
 public sealed class SpawnPatrolDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActorActionDef
 {
 	public static SpawnPatrolDef Instance { get; } = new();
 
@@ -28,6 +29,8 @@ public sealed class SpawnPatrolDef
 	}
 
 	public SpawnPatrolAction Bind(string actorId) => new(actorId);
+
+	IAction IActorActionDef.Bind(string actorId) => Bind(actorId);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

@@ -19,7 +19,8 @@ public sealed record TorpedoAction(
 }
 
 public sealed class TorpedoDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IMountedActionDef
 {
 	public static TorpedoDef Instance { get; } = new();
 
@@ -42,6 +43,9 @@ public sealed class TorpedoDef
 
 	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
+
+	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
+		Bind(actorId, mountedOn);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

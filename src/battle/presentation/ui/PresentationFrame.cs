@@ -23,6 +23,8 @@ public sealed class PresentationFrame
 	public ESpatialOrientation? FlakHoverMountedOn { get; init; }
 	public bool RailgunHovered { get; init; }
 	public ESpatialOrientation? TorpedoHoverMountedOn { get; init; }
+	public ESpatialOrientation? StagedMountedOn { get; init; }
+	public ActionInstruction Instruction { get; init; }
 	public required IReadOnlyList<Coord> MovePath { get; init; }
 	public required IReadOnlyList<Coord> CommittedMovePath { get; init; }
 	public Coord? MoveTarget { get; init; }

@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
@@ -13,6 +14,7 @@ public static class AbilityHudCatalog
 {
 	public sealed record Spec(
 		EPlayerMode Mode,
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Def,
 		string? IconPath,
 		string Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
@@ -30,61 +32,53 @@ public static class AbilityHudCatalog
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
 		def switch
 		{
-			FlakDef => Flak,
-			RailgunDef => Railgun,
-			TorpedoDef => Torpedo,
-			SpawnPatrolDef => SpawnPatrol,
-			DetonateDef => Detonate,
-			_ => Unknown(def),
+			FlakDef => new(
+				EPlayerMode.Flak,
+				def,
+				"res://assets/ui/abilities/flak.svg",
+				BattleHudCopy.FlakTooltip,
+				(unit, _) => BattleHudCopy.Charges(unit.FlakRemaining, unit.FlaksPerTurn),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.Flak)),
+			RailgunDef => new(
+				EPlayerMode.Railgun,
+				def,
+				"res://assets/ui/abilities/railgun.svg",
+				BattleHudCopy.RailgunTooltip,
+				(unit, _) => BattleHudCopy.Charges(unit.RailgunRemaining, unit.RailgunsPerTurn),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.Railgun)),
+			TorpedoDef => new(
+				EPlayerMode.Torpedo,
+				def,
+				"res://assets/ui/abilities/torpedo.svg",
+				BattleHudCopy.TorpedoTooltip,
+				(unit, legality) => BattleHudCopy.Charges(
+					CooldownUses(unit.TorpedoCooldownRemaining, legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
+					1),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
+			DetonateDef => new(
+				EPlayerMode.Detonate,
+				def,
+				"res://assets/ui/abilities/detonate.svg",
+				BattleHudCopy.DetonateTooltip,
+				(unit, _) => BattleHudCopy.Charges(unit.FuelRemaining, TorpedoConfig.Fuel),
+				legality => legality.Detonate),
+			SpawnPatrolDef => new(
+				EPlayerMode.SpawnPatrol,
+				def,
+				"res://assets/ui/abilities/patrol.svg",
+				BattleHudCopy.SpawnPatrolTooltip,
+				(unit, legality) => BattleHudCopy.Charges(
+					CooldownUses(unit.PatrolSpawnCooldownRemaining, legality.SpawnPatrol),
+					1),
+				legality => legality.SpawnPatrol),
+			_ => new(
+				EPlayerMode.Move,
+				def,
+				null,
+				$"{def.GetType().Name}\n(No HUD metadata yet.)",
+				(_, _) => "—",
+				_ => false),
 		};
-
-	private static readonly Spec Flak = new(
-		EPlayerMode.Flak,
-		"res://assets/ui/abilities/flak.svg",
-		BattleHudCopy.FlakTooltip,
-		(unit, _) => BattleHudCopy.Charges(unit.FlakRemaining, unit.FlaksPerTurn),
-		legality => legality.Weapons.IsKindLegal(EWeaponKind.Flak));
-
-	private static readonly Spec Railgun = new(
-		EPlayerMode.Railgun,
-		"res://assets/ui/abilities/railgun.svg",
-		BattleHudCopy.RailgunTooltip,
-		(unit, _) => BattleHudCopy.Charges(unit.RailgunRemaining, unit.RailgunsPerTurn),
-		legality => legality.Weapons.IsKindLegal(EWeaponKind.Railgun));
-
-	private static readonly Spec Torpedo = new(
-		EPlayerMode.Torpedo,
-		"res://assets/ui/abilities/torpedo.svg",
-		BattleHudCopy.TorpedoTooltip,
-		(unit, legality) => BattleHudCopy.Charges(
-			CooldownUses(unit.TorpedoCooldownRemaining, legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
-			1),
-		legality => legality.Weapons.IsKindLegal(EWeaponKind.Torpedo));
-
-	private static readonly Spec Detonate = new(
-		EPlayerMode.Detonate,
-		"res://assets/ui/abilities/detonate.svg",
-		BattleHudCopy.DetonateTooltip,
-		(unit, _) => BattleHudCopy.Charges(unit.FuelRemaining, TorpedoConfig.Fuel),
-		legality => legality.Detonate);
-
-	private static readonly Spec SpawnPatrol = new(
-		EPlayerMode.SpawnPatrol,
-		"res://assets/ui/abilities/patrol.svg",
-		BattleHudCopy.SpawnPatrolTooltip,
-		(unit, legality) => BattleHudCopy.Charges(
-			CooldownUses(unit.PatrolSpawnCooldownRemaining, legality.SpawnPatrol),
-			1),
-		legality => legality.SpawnPatrol);
-
-	private static Spec Unknown(
-		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
-		new(
-			EPlayerMode.Move,
-			null,
-			$"{def.GetType().Name}\n(No HUD metadata yet.)",
-			(_, _) => "—",
-			_ => false);
 
 	private static int CooldownUses(int cooldownRemaining, bool legal) =>
 		legal && cooldownRemaining == 0 ? 1 : 0;

@@ -13,6 +13,7 @@ public partial class BattleHud : Node
 	public event Action? MainMenuRequested;
 
 	public ActionBar ActionBar { get; private set; } = null!;
+	public ActionInstructionBar InstructionBar => ActionBar.InstructionBar;
 	public HealthBar HealthBar { get; private set; } = null!;
 	public ManeuverBar ManeuverBar { get; private set; } = null!;
 	public UtilityBar UtilityBar { get; private set; } = null!;
@@ -102,13 +103,14 @@ public partial class BattleHud : Node
 		AddChild(_topHud);
 
 		_bottomHud = new CanvasLayer { Layer = 10 };
+
 		var margin = new MarginContainer
 		{
 			AnchorsPreset = (int)Control.LayoutPreset.BottomWide,
 			AnchorTop = 1f,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			OffsetTop = -220f,
+			OffsetTop = -250f,
 			GrowHorizontal = Control.GrowDirection.Both,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
@@ -122,7 +124,7 @@ public partial class BattleHud : Node
 
 		var row = new HBoxContainer
 		{
-			Alignment = BoxContainer.AlignmentMode.Center,
+			Alignment = BoxContainer.AlignmentMode.Begin,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
 		row.AddThemeConstantOverride("separation", 14);
@@ -230,6 +232,7 @@ public partial class BattleHud : Node
 		ActionBar.ApplyLayout(focusState.Type, abilitySpecs);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots);
+		InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 
@@ -246,7 +249,7 @@ public partial class BattleHud : Node
 		var viewport = GetViewport();
 		_actionLogHost.OffsetLeft = -UiScale.Px(300f, viewport);
 		_actionLogHost.OffsetTop = UiScale.Px(56f, viewport);
-		_actionLogHost.OffsetBottom = -UiScale.Px(220f, viewport);
+		_actionLogHost.OffsetBottom = -UiScale.Px(250f, viewport);
 		_actionLogHost.AddThemeConstantOverride("margin_right", UiScale.Margin(12, viewport));
 	}
 }

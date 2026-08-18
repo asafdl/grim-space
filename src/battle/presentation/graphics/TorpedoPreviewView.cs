@@ -80,11 +80,11 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 		if (aiming)
 		{
-			var hovered = frame.TorpedoHoverMountedOn is not null;
+			var effectiveMount = frame.StagedMountedOn ?? frame.TorpedoHoverMountedOn;
 			WeaponPreviewMaterials.ApplyAim(
 				_mountMaterial,
 				MountTint,
-				hovered ? HoverMountStrength : AimMountStrength);
+				effectiveMount is not null ? HoverMountStrength : AimMountStrength);
 
 			var ship = frame.FocusState.ToState();
 			var skipCells = new HashSet<Coord>();

@@ -185,7 +185,8 @@ public partial class BattleController : Node3D
 		_battleHud.ManeuverBar.YawRequested += _translator.OnYaw;
 		_battleHud.ManeuverBar.SpinRequested += _translator.OnSpin;
 		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
-		_battleHud.ActionBar.AbilityModeRequested += OnModeRequested;
+		_battleHud.ActionBar.AbilityModeRequested += OnAbilityModeRequested;
+		_battleHud.InstructionBar.ConfirmRequested += _translator.OnConfirmAction;
 		_battleHud.ActionBar.EndTurnRequested += _translator.OnEndTurn;
 		_battleHud.UtilityBar.UndoRequested += _translator.OnUndo;
 		_battleHud.UtilityBar.FocusRequested += _translator.OnFocusCamera;
@@ -198,6 +199,7 @@ public partial class BattleController : Node3D
 
 	private void WireTranslator()
 	{
+		_translator.StagedMountedOnRequested += OnStagedMountedOnRequested;
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
 		_translator.FlakHoverChanged += mountedOn => SetFlakHoverMountedOn(mountedOn);
@@ -220,12 +222,30 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
+	private void OnAbilityModeRequested(AbilityHudCatalog.Spec spec)
+	{
+		if (!AcceptsCommands)
+			return;
+
+		_frames.Interaction.SetMode(spec.Mode, spec);
+		RefreshPresentation();
+	}
+
 	private void OnModeRequested(EPlayerMode mode)
 	{
 		if (!AcceptsCommands)
 			return;
 
 		_frames.Interaction.SetMode(mode);
+		RefreshPresentation();
+	}
+
+	private void OnStagedMountedOnRequested(ESpatialOrientation mountedOn)
+	{
+		if (!AcceptsCommands)
+			return;
+
+		_frames.Interaction.StageMountedOn(mountedOn);
 		RefreshPresentation();
 	}
 
@@ -257,6 +277,8 @@ public partial class BattleController : Node3D
 			canIssueActions: frame.CanAct,
 			isInspecting: frame.IsInspecting,
 			mode: frame.Mode,
+			activeAbilitySpec: _frames.Interaction.ActiveAbilitySpec,
+			stagedMountedOn: frame.StagedMountedOn,
 			moveOptions: frame.MovePaths,
 			focusState: frame.FocusState);
 		ApplyFrame(frame);

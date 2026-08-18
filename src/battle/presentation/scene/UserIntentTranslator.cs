@@ -3,6 +3,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
@@ -29,6 +30,8 @@ public sealed partial class UserIntentTranslator : Node
 	private bool _canIssueActions;
 	private bool _isInspecting;
 	private EPlayerMode _mode = EPlayerMode.Move;
+	private AbilityHudCatalog.Spec? _activeAbilitySpec;
+	private ESpatialOrientation? _stagedMountedOn;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private UnitDisplayState? _focusState;
 	private int? _moveHoveredIndex;
@@ -56,6 +59,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
 	public event Action<ESpatialOrientation?>? TorpedoHoverChanged;
+	public event Action<ESpatialOrientation>? StagedMountedOnRequested;
 	public event Action? HoversCleared;
 	public event Action<string>? FocusUnitRequested;
 	public event Action? ReturnToPlayerRequested;
@@ -69,6 +73,8 @@ public sealed partial class UserIntentTranslator : Node
 		bool canIssueActions,
 		bool isInspecting,
 		EPlayerMode mode,
+		AbilityHudCatalog.Spec? activeAbilitySpec,
+		ESpatialOrientation? stagedMountedOn,
 		IReadOnlyList<MovePathOption> moveOptions,
 		UnitDisplayState focusState)
 	{
@@ -76,6 +82,8 @@ public sealed partial class UserIntentTranslator : Node
 		_canIssueActions = canIssueActions;
 		_isInspecting = isInspecting;
 		_mode = mode;
+		_activeAbilitySpec = activeAbilitySpec;
+		_stagedMountedOn = stagedMountedOn;
 		_moveOptions = moveOptions;
 		_focusState = focusState;
 
@@ -132,6 +140,17 @@ public sealed partial class UserIntentTranslator : Node
 		if (_hud.IsPauseMenuOpen)
 			return;
 
+		if (@event is InputEventMouseButton
+			{
+				Pressed: true,
+				ButtonIndex: MouseButton.Right
+			})
+		{
+			if (TryCancelAbilityMode())
+				GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (!_canIssueActions && !_isInspecting)
 			return;
 
@@ -167,6 +186,23 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnEndTurn() => EndTurnRequested?.Invoke();
 
+	public void OnConfirmAction()
+	{
+		if (!_enabled || !_canIssueActions || _activeAbilitySpec is null)
+			return;
+
+		var activation = AbilityActivation.For(_activeAbilitySpec.Def);
+		if (!activation.CanConfirm(_stagedMountedOn))
+			return;
+
+		var action = activation.Build(_actorId, _stagedMountedOn);
+		if (action is null || !Enqueue(action))
+			return;
+
+		ClearHovers();
+		ModeRequested?.Invoke(EPlayerMode.Move);
+	}
+
 	public void OnUndo()
 	{
 		if (!_actions.Undo())
@@ -191,11 +227,13 @@ public sealed partial class UserIntentTranslator : Node
 			case Key.Escape when _hud.IsPauseMenuOpen:
 				_hud.ClosePauseMenu();
 				return true;
-			case Key.Escape when _mode is EPlayerMode.Flak or EPlayerMode.Railgun or EPlayerMode.Torpedo or EPlayerMode.Detonate:
-				ModeRequested?.Invoke(EPlayerMode.Move);
-				return true;
+			case Key.Escape when _mode != EPlayerMode.Move:
+				return TryCancelAbilityMode();
 			case Key.Escape:
 				_hud.TogglePauseMenu();
+				return true;
+			case Key.Enter or Key.KpEnter when _canIssueActions && CanConfirmAction():
+				OnConfirmAction();
 				return true;
 			case Key.Key1:
 				return _hud.ManeuverBar.TryActivateMove();
@@ -217,6 +255,19 @@ public sealed partial class UserIntentTranslator : Node
 			default:
 				return false;
 		}
+	}
+
+	private bool CanConfirmAction() =>
+		_activeAbilitySpec is not null
+		&& AbilityActivation.For(_activeAbilitySpec.Def).CanConfirm(_stagedMountedOn);
+
+	private bool TryCancelAbilityMode()
+	{
+		if (_mode == EPlayerMode.Move)
+			return false;
+
+		ModeRequested?.Invoke(EPlayerMode.Move);
+		return true;
 	}
 
 	private void HandleHover(Vector2 screenPosition)
@@ -254,30 +305,13 @@ public sealed partial class UserIntentTranslator : Node
 		switch (_mode)
 		{
 			case EPlayerMode.Flak:
-				if (_flakPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation mountedOn
-					&& Enqueue(new FlakAction(_actorId, mountedOn)))
-				{
-					ClearHovers();
-					ModeRequested?.Invoke(EPlayerMode.Move);
-				}
-				break;
-
-			case EPlayerMode.Railgun:
-				if (_railgunPreview.PickHovered(_camera, screenPosition)
-					&& Enqueue(new RailgunAction(_actorId)))
-				{
-					ClearHovers();
-					ModeRequested?.Invoke(EPlayerMode.Move);
-				}
+				if (_flakPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation mountedOn)
+					StagedMountedOnRequested?.Invoke(mountedOn);
 				break;
 
 			case EPlayerMode.Torpedo:
-				if (PickTorpedoMountedOn(screenPosition) is ESpatialOrientation torpedoMountedOn
-					&& Enqueue(new TorpedoAction(_actorId, torpedoMountedOn)))
-				{
-					ClearHovers();
-					ModeRequested?.Invoke(EPlayerMode.Move);
-				}
+				if (PickTorpedoMountedOn(screenPosition) is ESpatialOrientation torpedoMountedOn)
+					StagedMountedOnRequested?.Invoke(torpedoMountedOn);
 				break;
 		}
 	}

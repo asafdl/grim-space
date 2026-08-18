@@ -5,8 +5,10 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class ActionBar : HBoxContainer
 {
-	public event Action<EPlayerMode>? AbilityModeRequested;
+	public event Action<AbilityHudCatalog.Spec>? AbilityModeRequested;
 	public event Action? EndTurnRequested;
+
+	public ActionInstructionBar InstructionBar { get; private set; } = null!;
 
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
@@ -14,6 +16,8 @@ public sealed partial class ActionBar : HBoxContainer
 	private readonly ButtonGroup _modeGroup;
 	private readonly List<AbilitySlot> _abilitySlots = [];
 	private HBoxContainer _abilityRow = null!;
+	private PanelContainer _abilityPanel = null!;
+	private VBoxContainer _actionStack = null!;
 	private PanelContainer _endTurnPanel = null!;
 	private Button _endTurnButton = null!;
 	private EType? _layoutType;
@@ -22,7 +26,7 @@ public sealed partial class ActionBar : HBoxContainer
 	{
 		_modeGroup = modeGroup;
 		MouseFilter = MouseFilterEnum.Ignore;
-		Alignment = AlignmentMode.Center;
+		Alignment = AlignmentMode.Begin;
 		AddThemeConstantOverride("separation", 14);
 		Build();
 	}
@@ -41,7 +45,7 @@ public sealed partial class ActionBar : HBoxContainer
 		foreach (var slot in _abilitySlots)
 		{
 			slot.Button.SetBlockSignals(true);
-			slot.Button.ButtonPressed = mode == slot.Mode;
+			slot.Button.ButtonPressed = mode == slot.Spec.Mode;
 			slot.Button.SetBlockSignals(false);
 		}
 	}
@@ -95,30 +99,48 @@ public sealed partial class ActionBar : HBoxContainer
 				spec.Tooltip,
 				spec.IconPath,
 				abilityAccent,
-				spec.Mode,
+				spec,
 				out var charges);
 			_abilityRow.AddChild(button);
-			_abilitySlots.Add(new AbilitySlot(button, charges, spec.Mode));
+			_abilitySlots.Add(new AbilitySlot(button, charges, spec));
 		}
 	}
 
 	private void Build()
 	{
-		var abilityPanel = CreatePanel(
+		_actionStack = new VBoxContainer
+		{
+			Alignment = AlignmentMode.Center,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+		};
+		_actionStack.AddThemeConstantOverride("separation", 6);
+		AddChild(_actionStack);
+
+		_abilityPanel = CreatePanel(
 			new Color(0.08f, 0.1f, 0.14f, 0.92f),
 			new Color(0.35f, 0.55f, 0.85f, 0.75f));
-		AddChild(abilityPanel);
+		_actionStack.AddChild(_abilityPanel);
 
 		var abilityPad = CreatePad();
-		abilityPanel.AddChild(abilityPad);
+		_abilityPanel.AddChild(abilityPad);
 
-		_abilityRow = new HBoxContainer();
+		_abilityRow = new HBoxContainer
+		{
+			Alignment = AlignmentMode.Center,
+		};
 		_abilityRow.AddThemeConstantOverride("separation", 8);
 		abilityPad.AddChild(_abilityRow);
+
+		InstructionBar = new ActionInstructionBar
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		_actionStack.AddChild(InstructionBar);
 
 		_endTurnPanel = CreatePanel(
 			new Color(0.16f, 0.1f, 0.05f, 0.94f),
 			new Color(0.95f, 0.7f, 0.25f, 0.9f));
+		_endTurnPanel.SizeFlagsVertical = SizeFlags.ShrinkBegin;
 		AddChild(_endTurnPanel);
 
 		var endPad = CreatePad();
@@ -133,7 +155,7 @@ public sealed partial class ActionBar : HBoxContainer
 		string tooltip,
 		string? iconPath,
 		Color accent,
-		EPlayerMode mode,
+		AbilityHudCatalog.Spec spec,
 		out Label charges)
 	{
 		var button = new Button
@@ -159,7 +181,7 @@ public sealed partial class ActionBar : HBoxContainer
 		button.Toggled += pressed =>
 		{
 			if (pressed)
-				AbilityModeRequested?.Invoke(mode);
+				AbilityModeRequested?.Invoke(spec);
 		};
 		return button;
 	}
@@ -350,5 +372,5 @@ public sealed partial class ActionBar : HBoxContainer
 			ContentMarginBottom = 4,
 		};
 
-	private sealed record AbilitySlot(Button Button, Label Charges, EPlayerMode Mode);
+	private sealed record AbilitySlot(Button Button, Label Charges, AbilityHudCatalog.Spec Spec);
 }

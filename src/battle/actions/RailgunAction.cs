@@ -14,7 +14,8 @@ public sealed record RailgunAction(string ActorId) : IAction<BattleWorld, ActorR
 }
 
 public sealed class RailgunDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActorActionDef
 {
 	public static RailgunDef Instance { get; } = new();
 
@@ -26,6 +27,8 @@ public sealed class RailgunDef
 	}
 
 	public RailgunAction Bind(string actorId) => new(actorId);
+
+	IAction IActorActionDef.Bind(string actorId) => Bind(actorId);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

@@ -10,11 +10,13 @@ public sealed class InteractionState
 {
 	public string? FocusId { get; private set; }
 
-	public EPlayerMode Mode { get; set; } = EPlayerMode.Move;
+	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
+	public AbilityHudCatalog.Spec? ActiveAbilitySpec { get; private set; }
 	public ESpatialOrientation? FlakHoverMountedOn { get; set; }
 	public bool RailgunHovered { get; set; }
 	public ESpatialOrientation? TorpedoHoverMountedOn { get; set; }
 	public int? MoveHoveredIndex { get; set; }
+	public ESpatialOrientation? StagedMountedOn { get; private set; }
 
 	public void FocusUnit(string unitId)
 	{
@@ -28,17 +30,18 @@ public sealed class InteractionState
 		SetMode(EPlayerMode.Move);
 	}
 
-	public void SetMode(EPlayerMode mode)
+	public void SetMode(EPlayerMode mode, AbilityHudCatalog.Spec? abilitySpec = null)
 	{
 		Mode = mode;
+		ActiveAbilitySpec = mode == EPlayerMode.Move ? null : abilitySpec;
 		ClearHovers();
+		ClearAbilitySelection();
 	}
 
 	public void ResetAfterTurn()
 	{
 		FocusId = null;
-		Mode = EPlayerMode.Move;
-		ClearHovers();
+		SetMode(EPlayerMode.Move);
 	}
 
 	public void ClearHovers()
@@ -48,6 +51,16 @@ public sealed class InteractionState
 		RailgunHovered = false;
 		TorpedoHoverMountedOn = null;
 	}
+
+	public void StageMountedOn(ESpatialOrientation mountedOn)
+	{
+		if (StagedMountedOn == mountedOn)
+			return;
+
+		StagedMountedOn = mountedOn;
+	}
+
+	public void ClearAbilitySelection() => StagedMountedOn = null;
 
 	public void SetMoveHover(int? index, int optionCount) =>
 		MoveHoveredIndex = ClampIndex(index, optionCount);

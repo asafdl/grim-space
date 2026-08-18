@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Interaction;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -138,7 +139,10 @@ public sealed class PlanningPreview
 		string playerId,
 		InteractionState state)
 	{
-		if (state.FlakHoverMountedOn is ESpatialOrientation hoverMountedOn)
+		if (state.Mode == EPlayerMode.Flak && state.StagedMountedOn is ESpatialOrientation stagedMountedOn)
+			return ImpactTargets(sim.Peek(new FlakAction(playerId, stagedMountedOn)));
+
+		if (state.Mode == EPlayerMode.Flak && state.FlakHoverMountedOn is ESpatialOrientation hoverMountedOn)
 			return ImpactTargets(sim.Peek(new FlakAction(playerId, hoverMountedOn)));
 
 		if (state.RailgunHovered)
@@ -172,7 +176,10 @@ public sealed class PlanningPreview
 		EnsureSim(sim);
 		var queued = QueuedWeapon(sim, playerId);
 
-		if (state.TorpedoHoverMountedOn is ESpatialOrientation hover)
+		if (state.Mode == EPlayerMode.Torpedo && state.StagedMountedOn is ESpatialOrientation staged)
+			return EnvelopeLayersForMount(sim, playerId, staged);
+
+		if (state.Mode == EPlayerMode.Torpedo && state.TorpedoHoverMountedOn is ESpatialOrientation hover)
 			return EnvelopeLayersForMount(sim, playerId, hover);
 
 		if (queued.TorpedoMountedOn is not ESpatialOrientation queuedMountedOn)

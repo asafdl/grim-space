@@ -104,6 +104,15 @@ public sealed class PresentationFrameBuilder
 			? _preview.TorpedoEnvelopeLayers(sim, playerId, state)
 			: [];
 
+		var instruction = default(ActionInstruction);
+		if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
+		{
+			var activation = AbilityActivation.For(activeSpec.Def);
+			instruction = activation.ResolveInstruction(
+				visible: true,
+				stagedMountedOn: state.StagedMountedOn);
+		}
+
 		PresentationDiagnostics.LogMovePreview(
 			sim.AnchorTick,
 			source: "build_frame",
@@ -137,6 +146,8 @@ public sealed class PresentationFrameBuilder
 			FlakHoverMountedOn = canControl ? state.FlakHoverMountedOn : null,
 			RailgunHovered = canControl && state.RailgunHovered,
 			TorpedoHoverMountedOn = canControl ? state.TorpedoHoverMountedOn : null,
+			StagedMountedOn = canControl ? state.StagedMountedOn : null,
+			Instruction = instruction,
 			MovePath = movePath,
 			CommittedMovePath = committedMovePath,
 			MoveTarget = moveTarget,

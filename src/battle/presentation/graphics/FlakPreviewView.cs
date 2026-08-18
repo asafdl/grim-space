@@ -98,14 +98,15 @@ public sealed partial class FlakPreviewView : Node3D
 
 		if (aiming)
 		{
+			var effectiveMount = frame.StagedMountedOn ?? frame.FlakHoverMountedOn;
 			WeaponPreviewMaterials.ApplyAim(
 				_portMaterial!,
 				PortTint,
-				Strength(showPort, frame.FlakHoverMountedOn == ESpatialOrientation.Port));
+				Strength(showPort, effectiveMount == ESpatialOrientation.Port));
 			WeaponPreviewMaterials.ApplyAim(
 				_starboardMaterial!,
 				StarboardTint,
-				Strength(showStarboard, frame.FlakHoverMountedOn == ESpatialOrientation.Starboard));
+				Strength(showStarboard, effectiveMount == ESpatialOrientation.Starboard));
 			return;
 		}
 

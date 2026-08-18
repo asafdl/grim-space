@@ -17,7 +17,8 @@ public sealed record FlakAction(
 }
 
 public sealed class FlakDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IMountedActionDef
 {
 	public static FlakDef Instance { get; } = new();
 
@@ -39,6 +40,9 @@ public sealed class FlakDef
 
 	public FlakAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
+
+	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
+		Bind(actorId, mountedOn);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

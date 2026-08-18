@@ -15,7 +15,8 @@ public sealed record DetonateAction(string ActorId) : IAction<BattleWorld, Actor
 }
 
 public sealed class DetonateDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActorActionDef
 {
 	public static DetonateDef Instance { get; } = new();
 
@@ -27,6 +28,8 @@ public sealed class DetonateDef
 	}
 
 	public DetonateAction Bind(string actorId) => new(actorId);
+
+	IAction IActorActionDef.Bind(string actorId) => Bind(actorId);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
