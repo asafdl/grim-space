@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Ids;
+using GrimSpace.Core.Ids;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Ids;
@@ -19,5 +20,16 @@ public sealed class UnitIdGeneratorTests
 			Assert.NotEqual(BattleActorIds.Rules, id);
 			Assert.True(ids.Add(id), $"Duplicate id generated: {id}");
 		}
+	}
+
+	[Fact]
+	public void TypedIdGenerator_FormatMatchesTypeAdjAnimal()
+	{
+		var id = TypedIdGenerator.Format("poi", "swift-fox");
+		Assert.Equal("poi-swift-fox", id);
+
+		var generated = new TypedIdGenerator().NextId("station");
+		Assert.StartsWith("station-", generated);
+		Assert.Equal(2, generated.Count(c => c == '-'));
 	}
 }

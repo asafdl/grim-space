@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://csystemmap001"]
+
+[ext_resource type="Script" path="res://src/world/star-system/presentation/MapController.cs" id="1_controller"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/MapView.cs" id="2_view"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/MapCamera.cs" id="3_camera"]
+
+[node name="Map" type="Node3D"]
+script = ExtResource("1_controller")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.642788, 0.766044, 0, -0.766044, 0.642788, 16, 18, 28)
+current = true
+projection = 1
+size = 22.0
+script = ExtResource("3_camera")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 12, 0)
+light_color = Color(0.85, 0.9, 1, 1)
+light_energy = 1.0
+
+[node name="MapView" type="Node3D" parent="."]
+script = ExtResource("2_view")

@@ -7,6 +7,8 @@ namespace GrimSpace.Core;
 
 public partial class RunSession : Node
 {
+	private const string MapScenePath = "res://scenes/map.tscn";
+
 	private static RunSession? _instance;
 
 	public static RunSession Instance =>
@@ -26,6 +28,26 @@ public partial class RunSession : Node
 		if (_instance == this)
 			_instance = null;
 	}
+
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F10 })
+			return;
+
+		EnterMapDevMode();
+		GetViewport().SetInputAsHandled();
+	}
+
+	private void EnterMapDevMode()
+	{
+		if (!IsRunReady())
+			StartNewRun();
+
+		GetTree().ChangeSceneToFile(MapScenePath);
+	}
+
+	private bool IsRunReady() =>
+		Run is not null && Run.Map is not null;
 
 	private static void ConfigureLogging()
 	{
@@ -57,7 +79,7 @@ public partial class RunSession : Node
 
 	public void StartNewRun()
 	{
-		Run = State.CreateDevDefault();
+		Run = State.CreateDevDefault(Random.Shared.Next());
 		CurrentEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
 	}
 }

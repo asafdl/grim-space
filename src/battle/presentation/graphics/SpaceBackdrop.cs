@@ -12,13 +12,23 @@ public sealed partial class SpaceBackdrop : Node3D
 	public void Build(BoundedGrid grid)
 	{
 		var center = WorldMapping.GridCenter(grid);
-		var extent = GridExtent(grid);
-		var half = extent * 0.5f;
+		var half = GridExtent(grid) * 0.5f;
+		Build(center, half, includeSun: true);
+	}
 
+	public void Build(
+		Vector3 center,
+		Vector3 halfExtent,
+		bool includeSun = true,
+		float starKeepOutRadius = 0f,
+		bool includeMembrane = true)
+	{
+		var half = halfExtent;
 		AddChild(CreateWorldEnvironment(half.Length()));
-		AddChild(CreateNebulaShell(center, half));
-		AddChild(CreateStarfield(center, half));
-		AddChild(RedDwarfSun.CreateVisual(center, half.Length()));
+		AddChild(CreateNebulaShell(center, half, includeMembrane));
+		AddChild(CreateStarfield(center, half, starKeepOutRadius));
+		if (includeSun)
+			AddChild(RedDwarfSun.CreateVisual(center, half.Length()));
 	}
 
 	private static Vector3 GridExtent(BoundedGrid grid) =>
@@ -50,7 +60,7 @@ public sealed partial class SpaceBackdrop : Node3D
 		return new WorldEnvironment { Environment = environment };
 	}
 
-	private static Node3D CreateNebulaShell(Vector3 center, Vector3 half)
+	private static Node3D CreateNebulaShell(Vector3 center, Vector3 half, bool includeMembrane)
 	{
 		var root = new Node3D { Position = center };
 		var rng = new RandomNumberGenerator();
@@ -58,8 +68,12 @@ public sealed partial class SpaceBackdrop : Node3D
 
 		AddFaceWisps(root, half, rng);
 		AddCornerWisps(root, half, rng);
-		AddInteriorWisps(root, half, rng);
-		AddVoidMembrane(root, half);
+		// Interior wisps sit in the playable volume; fine for battle chambers, wrong for a flat map.
+		if (includeMembrane)
+		{
+			AddInteriorWisps(root, half, rng);
+			AddVoidMembrane(root, half);
+		}
 
 		return root;
 	}
@@ -183,7 +197,7 @@ public sealed partial class SpaceBackdrop : Node3D
 		return palette with { A = rng.RandfRange(minAlpha, maxAlpha) };
 	}
 
-	private static Node3D CreateStarfield(Vector3 center, Vector3 half)
+	private static Node3D CreateStarfield(Vector3 center, Vector3 half, float keepOutRadius)
 	{
 		var root = new Node3D { Position = center };
 
@@ -199,13 +213,21 @@ public sealed partial class SpaceBackdrop : Node3D
 		rng.Randomize();
 
 		var inner = half * 0.72f;
+		var keepOutSq = keepOutRadius * keepOutRadius;
 
 		for (var i = 0; i < StarCount; i++)
 		{
-			var position = new Vector3(
-				rng.RandfRange(-inner.X, inner.X),
-				rng.RandfRange(-inner.Y, inner.Y),
-				rng.RandfRange(-inner.Z, inner.Z));
+			Vector3 position;
+			var attempts = 0;
+			do
+			{
+				position = new Vector3(
+					rng.RandfRange(-inner.X, inner.X),
+					rng.RandfRange(-inner.Y, inner.Y),
+					rng.RandfRange(-inner.Z, inner.Z));
+				attempts++;
+			} while (keepOutSq > 0f && position.LengthSquared() < keepOutSq && attempts < 24);
+
 			var scale = rng.RandfRange(0.5f, 1.8f);
 			var brightness = rng.RandfRange(0.25f, 0.85f);
 			var tint = rng.Randf();

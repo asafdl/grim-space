@@ -1,20 +1,13 @@
-using UniqueNameGenerator;
+using GrimSpace.Core.Ids;
 
 namespace GrimSpace.Battle.Ids;
 
 public sealed class UnitIdGenerator
 {
-	private readonly UniqueName _instanceNames;
+	private readonly TypedIdGenerator _ids = new();
 
-	public UnitIdGenerator()
-	{
-		_instanceNames = new UniqueName(Adjectives.WordList, Animals.WordList)
-			.Separator("-")
-			.Format(Style.LowerCase);
-	}
-
-	public string NextInstanceSlug() => _instanceNames.Generate();
+	public string NextInstanceSlug() => _ids.NextInstanceSlug();
 
 	public static string Format(string typeSlug, string instanceSlug) =>
-		$"{typeSlug}-{instanceSlug}";
+		TypedIdGenerator.Format(typeSlug, instanceSlug);
 }
