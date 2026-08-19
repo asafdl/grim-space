@@ -13,7 +13,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Run;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using UnitState = GrimSpace.Battle.Units.State;
@@ -62,7 +62,7 @@ public sealed class BattleOrchestrator
 	public UserExecutionAgent PlayerAgent =>
 		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(PlayerId).ExecutionAgent;
 
-	public static BattleOrchestrator FromEncounter(Encounter encounter, int gridSize = CombatConfig.DefaultGridSize)
+	public static BattleOrchestrator FromEncounter(BattleEncounter encounter, int gridSize = CombatConfig.DefaultGridSize)
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var timeline = new Timeline();
@@ -102,7 +102,7 @@ public sealed class BattleOrchestrator
 			actorRuntimes.For(unit.State.Id);
 			
 		
-		actorRuntimes.For(EntityIds.System);
+		actorRuntimes.For(BattleActorIds.Rules);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var orchestrator = new BattleOrchestrator(

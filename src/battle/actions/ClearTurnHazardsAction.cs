@@ -1,5 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
@@ -8,7 +9,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record ClearTurnHazardsAction : IAction<BattleWorld, ActorRuntime>
 {
-	public string ActorId { get; } = EntityIds.System;
+	public string ActorId { get; } = BattleActorIds.Rules;
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		ClearTurnHazardsDef.Instance;
 }

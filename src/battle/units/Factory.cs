@@ -3,7 +3,6 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
-using GrimSpace.Core;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 
@@ -27,7 +26,7 @@ public static class Factory
 		int initialMomentum,
 		Coord fore,
 		Coord dorsal,
-		string parentId = EntityIds.System)
+		string parentId = BattleActorIds.Rules)
 	{
 		var id = ResolveId(instance, ids);
 		var state = State.FromSpawn(new Instance

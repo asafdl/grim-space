@@ -1,4 +1,4 @@
-using GrimSpace.Core;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
@@ -73,7 +73,7 @@ public sealed class Hazard : NonUnit
 		return new Hazard
 		{
 			Id = id,
-			ActorId = EntityIds.World,
+			ActorId = BattleActorIds.Terrain,
 			Center = origin,
 			Frame = BodyFrame.WorldAligned(origin),
 			Cells = occupied,

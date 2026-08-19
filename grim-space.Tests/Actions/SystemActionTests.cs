@@ -1,6 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.World;
-using GrimSpace.Core;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
@@ -53,6 +53,6 @@ public sealed class SystemActionTests
 		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Contains(asteroid.Id, battle.Engine.World.NonUnits.Keys);
-		Assert.Equal(EntityIds.World, battle.Engine.World.NonUnits[asteroid.Id].ActorId);
+		Assert.Equal(BattleActorIds.Terrain, battle.Engine.World.NonUnits[asteroid.Id].ActorId);
 	}
 }

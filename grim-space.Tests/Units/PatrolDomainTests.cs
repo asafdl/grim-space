@@ -2,7 +2,6 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Units;

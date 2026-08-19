@@ -6,7 +6,8 @@ using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Tests.Movement;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -200,13 +201,13 @@ public sealed class BattlePhaseTests
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
-		var encounter = new Encounter
+		var encounter = new BattleEncounter
 		{
 			Seed = 1,
 			Objective = EObjective.EliminateOpponents,
 			Spawns =
 			[
-				new Spawn
+				new BattleSpawn
 				{
 					Unit = new Instance
 					{
@@ -217,7 +218,7 @@ public sealed class BattlePhaseTests
 					Position = playerPos,
 					ExecutionAgent = new UserExecutionAgent(),
 				},
-				new Spawn
+				new BattleSpawn
 				{
 					Unit = new Instance
 					{

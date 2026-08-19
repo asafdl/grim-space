@@ -10,7 +10,8 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
@@ -140,11 +141,11 @@ public sealed class SpawnPatrolActionTests
 	public void EncounterUnitsUseSystemParentId()
 	{
 		var battle = BattleOrchestrator.FromEncounter(
-			Encounter.DevDefault(seed: 3, gridSize: 16),
+			BattleEncounter.DevDefault(seed: 3, gridSize: 16),
 			gridSize: 16);
 
 		foreach (var unit in UnitRegistry.For(battle.Engine.World).All)
-			Assert.Equal(EntityIds.System, unit.State.ParentId);
+			Assert.Equal(BattleActorIds.Rules, unit.State.ParentId);
 	}
 
 	private static BattleOrchestrator CarrierBattle(Coord carrierPos) =>

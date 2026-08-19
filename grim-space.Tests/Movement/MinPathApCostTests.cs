@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Movement;

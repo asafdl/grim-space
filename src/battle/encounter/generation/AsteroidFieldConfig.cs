@@ -1,6 +1,6 @@
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.Run;
+namespace GrimSpace.Battle.Encounter.Generation;
 
 public sealed class AsteroidFieldConfig
 {

@@ -1,19 +1,21 @@
 // Placeholder until roguelike sector map exists.
 
+using GrimSpace.Battle.Encounter.Generation;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
-namespace GrimSpace.Run;
+namespace GrimSpace.Battle.Encounter;
 
-public sealed class Encounter
+public sealed class BattleEncounter
 {
 	public required int Seed { get; init; }
-	public required IReadOnlyList<Spawn> Spawns { get; init; }
+	public required IReadOnlyList<BattleSpawn> Spawns { get; init; }
 	public required EObjective Objective { get; init; }
-	public IReadOnlyList<WorldHazardSpawn> WorldHazards { get; init; } = [];
+	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
 
-	public static Encounter DevDefault(int seed = 42, int gridSize = 64)
+	public static BattleEncounter DevDefault(int seed = 42, int gridSize = 64)
 	{
 		var player = new Instance
 		{
@@ -32,7 +34,7 @@ public sealed class Encounter
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 
-		return new Encounter
+		return new BattleEncounter
 		{
 			Seed = seed,
 			Spawns = spawns,

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Core.Log;
 using GrimSpace.Run;
 
@@ -12,7 +13,7 @@ public partial class RunSession : Node
 		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
 
 	public State Run { get; private set; } = null!;
-	public Encounter CurrentEncounter { get; private set; } = null!;
+	public BattleEncounter CurrentEncounter { get; private set; } = null!;
 
 	public override void _EnterTree()
 	{
@@ -57,6 +58,6 @@ public partial class RunSession : Node
 	public void StartNewRun()
 	{
 		Run = State.CreateDevDefault();
-		CurrentEncounter = Encounter.DevDefault(Random.Shared.Next());
+		CurrentEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
 	}
 }

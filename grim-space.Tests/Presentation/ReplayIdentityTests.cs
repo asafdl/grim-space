@@ -1,5 +1,5 @@
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Presentation.Replay;
-using GrimSpace.Core;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Presentation;
@@ -28,11 +28,11 @@ public sealed class ReplayIdentityTests
 	}
 
 	[Fact]
-	public void Classify_SystemActor_ReturnsUpkeepPhase()
+	public void Classify_RulesActor_ReturnsUpkeepPhase()
 	{
 		Assert.Equal(
 			EReplayPlaybackPhase.Upkeep,
-			ReplayActorPhase.Classify(EntityIds.System, new Dictionary<string, ETeam>()));
+			ReplayActorPhase.Classify(BattleActorIds.Rules, new Dictionary<string, ETeam>()));
 	}
 
 	[Fact]

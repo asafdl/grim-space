@@ -4,7 +4,6 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Units;

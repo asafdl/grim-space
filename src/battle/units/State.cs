@@ -1,4 +1,4 @@
-using GrimSpace.Core;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -22,7 +22,7 @@ public sealed class State
 	public int FuelRemaining { get; set; }
 	public int TorpedoCooldownRemaining { get; set; }
 	public int PatrolSpawnCooldownRemaining { get; set; }
-	public string ParentId { get; set; } = EntityIds.System;
+	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; init; }
 
@@ -59,7 +59,7 @@ public sealed class State
 		Coord position,
 		Coord fore,
 		Coord dorsal,
-		string parentId = EntityIds.System)
+		string parentId = BattleActorIds.Rules)
 	{
 		var stats = Stats.ForType(instance.Type);
 		return new State

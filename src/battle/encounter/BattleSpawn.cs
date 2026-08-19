@@ -4,9 +4,9 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 
-namespace GrimSpace.Run;
+namespace GrimSpace.Battle.Encounter;
 
-public sealed class Spawn
+public sealed class BattleSpawn
 {
 	public required Instance Unit { get; init; }
 	public Coord Position { get; init; }

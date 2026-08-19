@@ -10,7 +10,7 @@ namespace GrimSpace.Battle.World;
 /// <summary>
 /// Live battlefield world during a fight: units (via <see cref="UnitRegistry"/>), hazards, grid, and timeline.
 /// <see cref="BattleWorld.Fork"/> snapshots for preview sims; commit writes back to this instance.
-/// Terrain vs turn hazards are partitioned by <see cref="EntityIds.World"/> ownership.
+/// Terrain vs turn hazards are partitioned by <see cref="BattleActorIds.Terrain"/> ownership.
 /// </summary>
 public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, BattleWorld>
 {
@@ -50,10 +50,10 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
 	public IEnumerable<Hazard> TerrainHazards =>
-		Hazards.Where(hazard => hazard.ActorId == EntityIds.World);
+		Hazards.Where(hazard => hazard.ActorId == BattleActorIds.Terrain);
 
 	public IEnumerable<Hazard> TurnHazards =>
-		Hazards.Where(hazard => hazard.ActorId != EntityIds.World);
+		Hazards.Where(hazard => hazard.ActorId != BattleActorIds.Terrain);
 
 	public static HashSet<Coord> TerrainBlockedCells(IEnumerable<Hazard> terrain)
 	{

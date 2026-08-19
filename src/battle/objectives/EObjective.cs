@@ -1,4 +1,4 @@
-namespace GrimSpace.Run;
+namespace GrimSpace.Battle.Objectives;
 
 public enum EObjective
 {

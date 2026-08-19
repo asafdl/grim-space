@@ -1,6 +1,7 @@
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.Run;
+namespace GrimSpace.Battle.Encounter.Generation;
 
 public static class AsteroidFieldGenerator
 {
@@ -11,10 +12,10 @@ public static class AsteroidFieldGenerator
 		new(0, 0, 1), new(0, 0, -1),
 	];
 
-	public static IReadOnlyList<WorldHazardSpawn> Generate(AsteroidFieldConfig config)
+	public static IReadOnlyList<BattleHazardSpawn> Generate(AsteroidFieldConfig config)
 	{
 		var rng = new Random(config.Seed);
-		var placed = new List<WorldHazardSpawn>();
+		var placed = new List<BattleHazardSpawn>();
 		var maxAttempts = config.TargetCount * 100;
 
 		for (var attempt = 0; attempt < maxAttempts && placed.Count < config.TargetCount; attempt++)
@@ -32,7 +33,7 @@ public static class AsteroidFieldGenerator
 			if (!IsClearOfAsteroids(cells, placed, config.AsteroidGap))
 				continue;
 
-			placed.Add(new WorldHazardSpawn { Origin = origin, Cells = cells });
+			placed.Add(new BattleHazardSpawn { Origin = origin, Cells = cells });
 		}
 
 		return placed;
@@ -130,7 +131,7 @@ public static class AsteroidFieldGenerator
 
 	private static bool IsClearOfAsteroids(
 		IReadOnlySet<Coord> cells,
-		IReadOnlyList<WorldHazardSpawn> placed,
+		IReadOnlyList<BattleHazardSpawn> placed,
 		int gap)
 	{
 		foreach (var asteroid in placed)

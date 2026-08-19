@@ -1,5 +1,6 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 
@@ -12,7 +13,7 @@ public sealed class ClearTurnHazardsEffect : IEffect<BattleWorld, ActorRuntime>
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_removed = world.NonUnits.Values
-			.Where(nonUnit => nonUnit.ActorId != EntityIds.World)
+			.Where(nonUnit => nonUnit.ActorId != BattleActorIds.Terrain)
 			.OfType<Hazard>()
 			.Select(hazard => hazard.Clone())
 			.ToList();

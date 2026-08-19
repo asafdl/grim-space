@@ -1,7 +1,6 @@
-using GrimSpace.Battle.Units;
 using GrimSpace.Units.Enums;
 
-namespace GrimSpace.Units;
+namespace GrimSpace.Battle.Units;
 
 public sealed class Stats
 {

@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Ids;
-using GrimSpace.Core;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Ids;
@@ -16,8 +15,8 @@ public sealed class UnitIdGeneratorTests
 		{
 			var id = registry.NextUnitId(EType.Fighter);
 			Assert.StartsWith("fighter-", id);
-			Assert.NotEqual(EntityIds.World, id);
-			Assert.NotEqual(EntityIds.System, id);
+			Assert.NotEqual(BattleActorIds.Terrain, id);
+			Assert.NotEqual(BattleActorIds.Rules, id);
 			Assert.True(ids.Add(id), $"Duplicate id generated: {id}");
 		}
 	}

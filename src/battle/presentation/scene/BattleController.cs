@@ -9,7 +9,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Scene;

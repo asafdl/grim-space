@@ -1,9 +1,10 @@
 using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 
-namespace GrimSpace.Run;
+namespace GrimSpace.Battle.Encounter.Generation;
 
 public static class DeploymentPlacement
 {
@@ -12,7 +13,7 @@ public static class DeploymentPlacement
 	private const int EnemySpreadBand = 4;
 	private const int LaneHalfBand = 8;
 
-	public static (Spawn Player, Spawn Enemy) DevDuel(
+	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
 		Instance playerInstance,
 		Instance enemyInstance,
 		int seed,
@@ -29,7 +30,7 @@ public static class DeploymentPlacement
 		var enemyFore = AxisToward(enemyPosition, playerPosition);
 
 		return (
-			new Spawn
+			new BattleSpawn
 			{
 				Unit = playerInstance,
 				Position = playerPosition,
@@ -38,7 +39,7 @@ public static class DeploymentPlacement
 				Dorsal = dorsal,
 				ExecutionAgent = new UserExecutionAgent(),
 			},
-			new Spawn
+			new BattleSpawn
 			{
 				Unit = enemyInstance,
 				Position = enemyPosition,

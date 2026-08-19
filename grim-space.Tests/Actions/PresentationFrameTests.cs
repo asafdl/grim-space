@@ -9,7 +9,8 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
@@ -202,13 +203,13 @@ public sealed class PresentationFrameTests
 
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
-		var encounter = new Encounter
+		var encounter = new BattleEncounter
 		{
 			Seed = 1,
 			Objective = EObjective.EliminateOpponents,
 			Spawns =
 			[
-				new Spawn
+				new BattleSpawn
 				{
 					Unit = new Instance
 					{
@@ -219,7 +220,7 @@ public sealed class PresentationFrameTests
 					Position = playerPos,
 					ExecutionAgent = new UserExecutionAgent(),
 				},
-				new Spawn
+				new BattleSpawn
 				{
 					Unit = new Instance
 					{

@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
@@ -61,7 +62,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void DevDefault_UsesDeploymentPlacement()
 	{
-		var encounter = Encounter.DevDefault(seed: 99, gridSize: 64);
+		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
 		var player = encounter.Spawns.First(spawn => spawn.Unit.Alliance.Team == ETeam.Player);
 		var enemy = encounter.Spawns.First(spawn => spawn.Unit.Alliance.Team == ETeam.Enemy);
 
@@ -73,7 +74,7 @@ public sealed class DeploymentPlacementTests
 	public void FromEncounter_AssignsGeneratedUnitIds()
 	{
 		var battle = GrimSpace.Battle.BattleOrchestrator.FromEncounter(
-			Encounter.DevDefault(seed: 7, gridSize: 32),
+			BattleEncounter.DevDefault(seed: 7, gridSize: 32),
 			gridSize: 32);
 
 		Assert.StartsWith("fighter-", battle.PlayerId);
