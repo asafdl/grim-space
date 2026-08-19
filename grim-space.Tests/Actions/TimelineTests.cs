@@ -43,6 +43,34 @@ public sealed class TimelineTests
 	}
 
 	[Fact]
+	public void DrainUntilRemovesAndReturnsHistoryBatchesInTickOrder()
+	{
+		var timeline = new Timeline();
+		timeline.Clock.Set(1);
+		var first = new HeadingTurnAction("a", EHeadingTurn.YawRight);
+		timeline.Append(first);
+
+		timeline.Clock.Next();
+		var second = new HeadingTurnAction("b", EHeadingTurn.YawLeft);
+		timeline.Append(second);
+
+		timeline.Clock.Next();
+		var third = new HeadingTurnAction("c", EHeadingTurn.YawRight);
+		timeline.Append(third);
+
+		var drained = timeline.DrainUntil(2);
+		Assert.Equal(2, drained.Count);
+		Assert.Equal(1, drained[0].Tick);
+		Assert.Same(first, Assert.Single(drained[0].Entries));
+		Assert.Equal(2, drained[1].Tick);
+		Assert.Same(second, Assert.Single(drained[1].Entries));
+
+		Assert.Empty(timeline.History(1));
+		Assert.Empty(timeline.History(2));
+		Assert.Same(third, Assert.Single(timeline.History(3)));
+	}
+
+	[Fact]
 	public void ClonePreservesHistoryRecordsAndPending()
 	{
 		var timeline = new Timeline();

@@ -57,6 +57,9 @@ internal sealed class Engine<TWorld, TRuntime>
 	public IReadOnlyList<ITimelineEntry> History(int? tick = null) =>
 		World.Timeline.History(tick);
 
+	public IReadOnlyList<TimelineBatch> DrainUntil(int tick) =>
+		World.Timeline.DrainUntil(tick);
+
 	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> HistoryByActor(int? tick = null) =>
 		World.Timeline.HistoryByActor(tick);
 

@@ -56,6 +56,20 @@ public sealed class Timeline
 	public IReadOnlyList<ITimelineEntry> History(int? tick = null) =>
 		_history.TryGetValue(tick ?? Clock.Current, out var entries) ? entries : [];
 
+	public IReadOnlyList<TimelineBatch> DrainUntil(int tick)
+	{
+		var batches = new List<TimelineBatch>();
+		foreach (var key in _history.Keys.Where(key => key <= tick).OrderBy(key => key).ToArray())
+		{
+			if (!_history.Remove(key, out var entries) || entries.Count == 0)
+				continue;
+
+			batches.Add(new TimelineBatch(key, entries));
+		}
+
+		return batches;
+	}
+
 	public IReadOnlyDictionary<string, IReadOnlyList<IAction>> HistoryByActor(int? tick = null)
 	{
 		var result = new Dictionary<string, List<IAction>>(StringComparer.Ordinal);
