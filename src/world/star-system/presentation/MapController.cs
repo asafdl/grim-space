@@ -27,9 +27,10 @@ public partial class MapController : Node3D
 		var world = RunSession.Instance.Run.Map;
 		var halfX = world.Width * MapMapping.CellSize * 0.5f;
 		var halfZ = world.Height * MapMapping.CellSize * 0.5f;
+		var mapRadius = Mathf.Max(halfX, halfZ);
 
 		var backdrop = new MapBackdrop();
-		backdrop.Build();
+		backdrop.Build(mapRadius);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
