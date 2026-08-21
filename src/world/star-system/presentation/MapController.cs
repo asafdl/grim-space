@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Core;
+using GrimSpace.World.StarSystem;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -25,8 +26,8 @@ public partial class MapController : Node3D
 		BuildTooltip();
 
 		var world = RunSession.Instance.Run.Map;
-		var halfX = world.Width * MapMapping.CellSize * 0.5f;
-		var halfZ = world.Height * MapMapping.CellSize * 0.5f;
+		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
+		var halfZ = world.Height * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var mapRadius = Mathf.Max(halfX, halfZ);
 
 		var backdrop = new MapBackdrop();
@@ -42,11 +43,13 @@ public partial class MapController : Node3D
 	{
 		_view.SetCameraDistance(_camera.Distance);
 
+		var world = RunSession.Instance.Run.Map;
 		var screen = GetViewport().GetMousePosition();
-		var cell = MapPick.PickCell(_camera, screen, RunSession.Instance.Run.Map.Width, RunSession.Instance.Run.Map.Height);
-		var poiId = cell is { } c ? _view.OwnerOf(c) : null;
+		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
+		var dockHover = point is { } p ? _view.DockFeatureAt(p) : null;
+		var poiId = dockHover is null && point is { } pick ? _view.PoiAt(pick) : null;
 		_view.SetHovered(poiId);
-		UpdateTooltip(poiId, screen);
+		UpdateTooltip(world, poiId, dockHover, screen);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -114,20 +117,30 @@ public partial class MapController : Node3D
 		AddChild(layer);
 	}
 
-	private void UpdateTooltip(string? poiId, Vector2 screen)
+	private void UpdateTooltip(
+		StarMap world,
+		string? poiId,
+		MapView.DockHoverInfo? dockHover,
+		Vector2 screen)
 	{
+		if (dockHover is not null)
+		{
+			_typeLabel.Text = "DOCK";
+			_nameLabel.Text = $"{dockHover.DisplayName} — {dockHover.BerthRole}";
+			_tooltip.Visible = true;
+			_tooltip.Position = screen + new Vector2(14, 18);
+			return;
+		}
+
 		if (poiId is null)
 		{
 			_tooltip.Visible = false;
 			return;
 		}
 
-		var dash = poiId.IndexOf('-');
-		var type = dash > 0 ? poiId[..dash] : poiId;
-		var name = dash > 0 && dash < poiId.Length - 1 ? poiId[(dash + 1)..] : poiId;
-
-		_typeLabel.Text = type.ToUpperInvariant();
-		_nameLabel.Text = name;
+		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
+		_typeLabel.Text = poi.Kind.ToString().ToUpperInvariant();
+		_nameLabel.Text = poi.DisplayName;
 		_tooltip.Visible = true;
 		_tooltip.Position = screen + new Vector2(14, 18);
 	}

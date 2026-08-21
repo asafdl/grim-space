@@ -5,7 +5,7 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public static class MapPick
 {
-	public static Coord? PickCell(Camera3D camera, Vector2 screenPos, int width, int height)
+	public static Coord? PickPoint(Camera3D camera, Vector2 screenPos, int width, int height)
 	{
 		var origin = camera.ProjectRayOrigin(screenPos);
 		var direction = camera.ProjectRayNormal(screenPos);

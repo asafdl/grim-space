@@ -1,15 +1,18 @@
 using Godot;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public partial class MapView : Node3D
 {
-	private const int MajorEvery = 8;
+	private const int FineEvery = 32;
+	private const int MajorEvery = 256;
 	private const float MinorAlpha = 0.015f;
 	private const float MajorAlpha = 0.055f;
 	private const float BoundaryAlpha = 0.12f;
+	private const int FootprintSegments = 48;
 
 	private static readonly Color GridMinor = new(0.15f, 0.22f, 0.30f, MinorAlpha);
 	private static readonly Color GridMajor = new(0.22f, 0.32f, 0.42f, MajorAlpha);
@@ -17,6 +20,22 @@ public partial class MapView : Node3D
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
 	private static readonly Color StarColor = new(0.89f, 0.66f, 0.33f);
 	private static readonly Color StationBeacon = new(0.45f, 0.72f, 0.78f);
+	private static readonly Color ArrivalBerthColor = new(0.35f, 0.78f, 0.42f);
+	private static readonly Color DepartureBerthColor = new(0.89f, 0.66f, 0.28f);
+	private static readonly Color QueueHoldColor = new(0.28f, 0.58f, 0.68f, 0.55f);
+	private static readonly Color DockSpurColor = new(0.40f, 0.48f, 0.56f, 0.22f);
+
+	private static readonly Color[] RouteDestinationPalette =
+	[
+		new(0.35f, 0.78f, 0.42f, 0.45f),
+		new(0.89f, 0.66f, 0.28f, 0.45f),
+		new(0.35f, 0.62f, 0.92f, 0.45f),
+		new(0.82f, 0.42f, 0.72f, 0.45f),
+		new(0.55f, 0.85f, 0.82f, 0.45f),
+		new(0.92f, 0.55f, 0.38f, 0.45f),
+	];
+
+	private const int DockPickRadius = 12;
 
 	private static readonly Color[] PlanetPalette =
 	[
@@ -25,13 +44,17 @@ public partial class MapView : Node3D
 		new(0.32f, 0.20f, 0.16f),
 	];
 
-	private readonly Dictionary<Coord, string> _cellOwners = new();
 	private readonly Dictionary<string, MeshInstance3D> _footprints = new();
 	private readonly Dictionary<string, Node3D> _markers = new();
 	private readonly Dictionary<string, MeshInstance3D> _hoverRings = new();
 
 	private string? _hoveredId;
 	private MeshInstance3D? _minorGrid;
+	private IReadOnlyList<PointOfInterest> _pois = [];
+	private IReadOnlyList<Dock> _docks = [];
+	private IReadOnlyDictionary<string, string> _dockDisplayNames = new Dictionary<string, string>();
+
+	public sealed record DockHoverInfo(string DockId, string PoiId, string DisplayName, string BerthRole);
 
 	public void Build(StarMap world)
 	{
@@ -41,21 +64,23 @@ public partial class MapView : Node3D
 			child.Free();
 		}
 
-		_cellOwners.Clear();
 		_footprints.Clear();
 		_markers.Clear();
 		_hoverRings.Clear();
 		_hoveredId = null;
 		_minorGrid = null;
+		_pois = world.PointsOfInterest;
+		_docks = world.DocksById.Values.ToList();
+		_dockDisplayNames = world.PointsOfInterest.ToDictionary(
+			poi => poi.Id,
+			poi => poi.DisplayName,
+			StringComparer.Ordinal);
 
-		AddChild(BuildGrid(world.Width, world.Height));
+		AddChild(BuildReferenceGrid(world.Width, world.Height));
 
 		var planetIndex = 0;
 		foreach (var poi in world.PointsOfInterest)
 		{
-			foreach (var cell in poi.Cells)
-				_cellOwners[cell] = poi.Id;
-
 			var footprint = BuildPoiFootprint(poi, world.Width, world.Height);
 			footprint.Visible = false;
 			_footprints[poi.Id] = footprint;
@@ -65,6 +90,11 @@ public partial class MapView : Node3D
 			_markers[poi.Id] = marker;
 			AddChild(marker);
 		}
+
+		foreach (var dock in _docks)
+			AddChild(BuildDockScaffold(dock, world.Width, world.Height));
+
+		AddChild(BuildRoutePolylines(world));
 	}
 
 	public void SetHovered(string? poiId)
@@ -101,19 +131,198 @@ public partial class MapView : Node3D
 			_minorGrid.Visible = distance < 48f;
 	}
 
-	public string? OwnerOf(Coord cell) =>
-		_cellOwners.GetValueOrDefault(cell);
+	public string? PoiAt(Coord point)
+	{
+		string? bestId = null;
+		var bestDistance = long.MaxValue;
 
-	private Node3D BuildGrid(int width, int height)
+		foreach (var poi in _pois)
+		{
+			if (!ContainsPoint(poi, point))
+				continue;
+
+			var dx = point.X - poi.Center.X;
+			var dz = point.Z - poi.Center.Z;
+			var distance = (long)dx * dx + (long)dz * dz;
+			if (distance >= bestDistance)
+				continue;
+
+			bestDistance = distance;
+			bestId = poi.Id;
+		}
+
+		return bestId;
+	}
+
+	public DockHoverInfo? DockFeatureAt(Coord point)
+	{
+		DockHoverInfo? best = null;
+		var bestDistance = long.MaxValue;
+
+		foreach (var dock in _docks)
+		{
+			ConsiderDockFeature(dock, dock.QueueHold, "Queue hold", ref best, ref bestDistance, point);
+			ConsiderDockFeature(dock, dock.ArrivalBerth, "Arrival berth", ref best, ref bestDistance, point);
+			ConsiderDockFeature(dock, dock.DepartureBerth, "Departure berth", ref best, ref bestDistance, point);
+		}
+
+		return best;
+	}
+
+	private void ConsiderDockFeature(
+		Dock dock,
+		Coord featurePoint,
+		string berthRole,
+		ref DockHoverInfo? best,
+		ref long bestDistance,
+		Coord point)
+	{
+		var dx = point.X - featurePoint.X;
+		var dz = point.Z - featurePoint.Z;
+		var distance = (long)dx * dx + (long)dz * dz;
+		var radius = DockPickRadius;
+		if (distance > (long)radius * radius || distance >= bestDistance)
+			return;
+
+		bestDistance = distance;
+		best = new DockHoverInfo(
+			dock.Id,
+			dock.PoiId,
+			_dockDisplayNames.GetValueOrDefault(dock.PoiId, dock.PoiId),
+			berthRole);
+	}
+
+	private Node3D BuildDockScaffold(Dock dock, int width, int height)
+	{
+		var root = new Node3D { Name = $"Dock_{dock.Id}" };
+
+		root.AddChild(BuildBerthMarker(
+			"Arrival",
+			dock.ArrivalBerth,
+			width,
+			height,
+			ArrivalBerthColor,
+			0.10f));
+		root.AddChild(BuildBerthMarker(
+			"Departure",
+			dock.DepartureBerth,
+			width,
+			height,
+			DepartureBerthColor,
+			0.10f));
+		root.AddChild(BuildBerthMarker(
+			"Queue",
+			dock.QueueHold,
+			width,
+			height,
+			QueueHoldColor,
+			0.08f));
+
+		var queue = MapMapping.ToWorld(dock.QueueHold, width, height);
+		var arrival = MapMapping.ToWorld(dock.ArrivalBerth, width, height);
+		var departure = MapMapping.ToWorld(dock.DepartureBerth, width, height);
+		root.AddChild(BuildSpurLine("Spur", queue, arrival, departure));
+
+		return root;
+	}
+
+	private static MeshInstance3D BuildBerthMarker(
+		string name,
+		Coord point,
+		int width,
+		int height,
+		Color color,
+		float radius)
+	{
+		return new MeshInstance3D
+		{
+			Name = name,
+			Position = MapMapping.ToWorld(point, width, height),
+			Mesh = new SphereMesh { Radius = radius, Height = radius * 2f },
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = new StandardMaterial3D
+			{
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+				AlbedoColor = color,
+				EmissionEnabled = true,
+				Emission = color,
+				EmissionEnergyMultiplier = 0.45f,
+			},
+		};
+	}
+
+	private static MeshInstance3D BuildSpurLine(string name, Vector3 queue, Vector3 arrival, Vector3 departure)
+	{
+		var mesh = new ImmediateMesh();
+		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		mesh.SurfaceSetColor(DockSpurColor);
+		mesh.SurfaceAddVertex(queue);
+		mesh.SurfaceAddVertex(arrival);
+		mesh.SurfaceAddVertex(arrival);
+		mesh.SurfaceAddVertex(departure);
+		mesh.SurfaceEnd();
+		return LineMesh(name, mesh);
+	}
+
+	private static MeshInstance3D BuildRoutePolylines(StarMap world)
+	{
+		var mesh = new ImmediateMesh();
+		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+
+		var destinationIds = world.RoutesById.Values
+			.Select(route => route.DestinationPoiId)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(id => id, StringComparer.Ordinal)
+			.ToList();
+
+		var colorsByDestination = new Dictionary<string, Color>(StringComparer.Ordinal);
+		for (var i = 0; i < destinationIds.Count; i++)
+			colorsByDestination[destinationIds[i]] = RouteDestinationPalette[i % RouteDestinationPalette.Length];
+
+		foreach (var route in world.RoutesById.Values.OrderBy(route => route.Id, StringComparer.Ordinal))
+		{
+			mesh.SurfaceSetColor(colorsByDestination[route.DestinationPoiId]);
+
+			var points = new List<Coord>();
+			foreach (var segmentId in route.SegmentIds)
+			{
+				var segment = world.SegmentsById[segmentId];
+				if (points.Count == 0)
+					points.AddRange(segment.Points);
+				else
+					points.AddRange(segment.Points.Skip(1));
+			}
+
+			for (var i = 0; i < points.Count - 1; i++)
+			{
+				var a = MapMapping.ToWorld(points[i], world.Width, world.Height);
+				var b = MapMapping.ToWorld(points[i + 1], world.Width, world.Height);
+				mesh.SurfaceAddVertex(a);
+				mesh.SurfaceAddVertex(b);
+			}
+		}
+
+		mesh.SurfaceEnd();
+		return LineMesh("Routes", mesh);
+	}
+
+	private static bool ContainsPoint(PointOfInterest poi, Coord point)
+	{
+		var dx = point.X - poi.Center.X;
+		var dz = point.Z - poi.Center.Z;
+		return (long)dx * dx + (long)dz * dz <= (long)poi.Radius * poi.Radius;
+	}
+
+	private Node3D BuildReferenceGrid(int width, int height)
 	{
 		var root = new Node3D { Name = "Grid" };
 		var origin = MapMapping.GridOrigin(width, height);
-		var size = MapMapping.CellSize;
+		var extent = width * MapMapping.WorldUnitsPerPoint;
 
-		_minorGrid = BuildAxisLines("Minor", width, height, origin, size, GridMinor, major: false);
+		_minorGrid = BuildAxisLines("Minor", width, height, origin, extent, GridMinor, major: false);
 		root.AddChild(_minorGrid);
-		root.AddChild(BuildAxisLines("Major", width, height, origin, size, GridMajor, major: true));
-		root.AddChild(BuildBoundary(width, height, origin, size));
+		root.AddChild(BuildAxisLines("Major", width, height, origin, extent, GridMajor, major: true));
+		root.AddChild(BuildBoundary(origin, extent));
 		return root;
 	}
 
@@ -122,7 +331,7 @@ public partial class MapView : Node3D
 		int width,
 		int height,
 		Vector3 origin,
-		float size,
+		float extent,
 		Color color,
 		bool major)
 	{
@@ -130,36 +339,38 @@ public partial class MapView : Node3D
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(color);
 
-		for (var x = 1; x < width; x++)
+		for (var x = FineEvery; x < width; x += FineEvery)
 		{
 			if ((x % MajorEvery == 0) != major)
 				continue;
-			var wx = origin.X + x * size;
+
+			var wx = MapMapping.ToWorld(new Coord(x, 0, 0), width, height).X;
 			mesh.SurfaceAddVertex(new Vector3(wx, 0f, origin.Z));
-			mesh.SurfaceAddVertex(new Vector3(wx, 0f, origin.Z + height * size));
+			mesh.SurfaceAddVertex(new Vector3(wx, 0f, origin.Z + extent));
 		}
 
-		for (var z = 1; z < height; z++)
+		for (var z = FineEvery; z < height; z += FineEvery)
 		{
 			if ((z % MajorEvery == 0) != major)
 				continue;
-			var wz = origin.Z + z * size;
+
+			var wz = MapMapping.ToWorld(new Coord(0, 0, z), width, height).Z;
 			mesh.SurfaceAddVertex(new Vector3(origin.X, 0f, wz));
-			mesh.SurfaceAddVertex(new Vector3(origin.X + width * size, 0f, wz));
+			mesh.SurfaceAddVertex(new Vector3(origin.X + extent, 0f, wz));
 		}
 
 		mesh.SurfaceEnd();
 		return LineMesh(name, mesh);
 	}
 
-	private static MeshInstance3D BuildBoundary(int width, int height, Vector3 origin, float size)
+	private static MeshInstance3D BuildBoundary(Vector3 origin, float extent)
 	{
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(GridBoundary);
 
 		var min = new Vector3(origin.X, 0f, origin.Z);
-		var max = new Vector3(origin.X + width * size, 0f, origin.Z + height * size);
+		var max = new Vector3(origin.X + extent, 0f, origin.Z + extent);
 		AddQuadOutline(mesh, min, max);
 		mesh.SurfaceEnd();
 		return LineMesh("Boundary", mesh);
@@ -185,10 +396,14 @@ public partial class MapView : Node3D
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(HoverAccent);
 
-		foreach (var edge in ExteriorEdges(poi.Cells))
+		var center = MapMapping.ToWorld(poi.Center, width, height);
+		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
+		for (var i = 0; i < FootprintSegments; i++)
 		{
-			mesh.SurfaceAddVertex(CornerToWorld(edge.A, width, height));
-			mesh.SurfaceAddVertex(CornerToWorld(edge.B, width, height));
+			var a = i * Mathf.Tau / FootprintSegments;
+			var b = (i + 1) * Mathf.Tau / FootprintSegments;
+			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(a) * worldRadius, 0f, Mathf.Sin(a) * worldRadius));
+			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(b) * worldRadius, 0f, Mathf.Sin(b) * worldRadius));
 		}
 
 		mesh.SurfaceEnd();
@@ -209,21 +424,18 @@ public partial class MapView : Node3D
 
 	private Node3D BuildPoiMarker(PointOfInterest poi, int width, int height, ref int planetIndex)
 	{
-		var type = TypeSlug(poi.Id);
-		var centroid = Centroid(poi.Cells);
-		// Marker centre sits on the navigational plane (Y = 0); meshes extend ±radius.
 		var root = new Node3D
 		{
 			Name = $"Marker_{poi.Id}",
-			Position = MapMapping.ToWorld(centroid, width, height),
+			Position = MapMapping.ToWorld(poi.Center, width, height),
 		};
 
-		switch (type)
+		switch (poi.Kind)
 		{
-			case "star":
+			case EPointOfInterestKind.Star:
 				AddStar(root);
 				break;
-			case "planet":
+			case EPointOfInterestKind.Planet:
 				AddPlanet(root, PlanetPalette[planetIndex++ % PlanetPalette.Length]);
 				break;
 			default:
@@ -231,10 +443,10 @@ public partial class MapView : Node3D
 				break;
 		}
 
-		var ringRadius = type switch
+		var ringRadius = poi.Kind switch
 		{
-			"star" => 1.25f,
-			"planet" => 0.95f,
+			EPointOfInterestKind.Star => 1.25f,
+			EPointOfInterestKind.Planet => 0.95f,
 			_ => 0.75f,
 		};
 		var ring = new MeshInstance3D
@@ -307,7 +519,6 @@ public partial class MapView : Node3D
 			},
 		});
 
-		// Slightly tipped so the ring reads in perspective while still coplanar-ish with the ecliptic.
 		root.AddChild(new MeshInstance3D
 		{
 			Name = "Orbit",
@@ -383,42 +594,6 @@ public partial class MapView : Node3D
 		});
 	}
 
-	private static List<(Vector2I A, Vector2I B)> ExteriorEdges(IReadOnlySet<Coord> cells)
-	{
-		var occupied = cells.Select(c => (c.X, c.Z)).ToHashSet();
-		var edges = new HashSet<(Vector2I A, Vector2I B)>();
-
-		foreach (var (x, z) in occupied)
-		{
-			if (!occupied.Contains((x, z - 1)))
-				AddUndirected(edges, new Vector2I(x, z), new Vector2I(x + 1, z));
-			if (!occupied.Contains((x, z + 1)))
-				AddUndirected(edges, new Vector2I(x, z + 1), new Vector2I(x + 1, z + 1));
-			if (!occupied.Contains((x - 1, z)))
-				AddUndirected(edges, new Vector2I(x, z), new Vector2I(x, z + 1));
-			if (!occupied.Contains((x + 1, z)))
-				AddUndirected(edges, new Vector2I(x + 1, z), new Vector2I(x + 1, z + 1));
-		}
-
-		return edges.ToList();
-	}
-
-	private static void AddUndirected(HashSet<(Vector2I A, Vector2I B)> edges, Vector2I a, Vector2I b)
-	{
-		if (a.X > b.X || (a.X == b.X && a.Y > b.Y))
-			(a, b) = (b, a);
-		edges.Add((a, b));
-	}
-
-	private static Vector3 CornerToWorld(Vector2I corner, int width, int height)
-	{
-		var origin = MapMapping.GridOrigin(width, height);
-		return new Vector3(
-			origin.X + corner.X * MapMapping.CellSize,
-			0f,
-			origin.Z + corner.Y * MapMapping.CellSize);
-	}
-
 	private static void AddQuadOutline(ImmediateMesh mesh, Vector3 min, Vector3 max)
 	{
 		var a = new Vector3(min.X, min.Y, min.Z);
@@ -433,24 +608,5 @@ public partial class MapView : Node3D
 		mesh.SurfaceAddVertex(d);
 		mesh.SurfaceAddVertex(d);
 		mesh.SurfaceAddVertex(a);
-	}
-
-	private static Coord Centroid(IReadOnlySet<Coord> cells)
-	{
-		var x = 0;
-		var z = 0;
-		foreach (var cell in cells)
-		{
-			x += cell.X;
-			z += cell.Z;
-		}
-
-		return new Coord(x / cells.Count, 0, z / cells.Count);
-	}
-
-	private static string TypeSlug(string id)
-	{
-		var dash = id.IndexOf('-');
-		return dash <= 0 ? id : id[..dash];
 	}
 }
