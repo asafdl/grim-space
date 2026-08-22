@@ -10,20 +10,16 @@ public sealed class StarMap : IWorld<StarMap>
 	public const int DevMapWidth = 1024;
 	public const int DevMapHeight = 1024;
 	private const int DevLayoutScale = 32;
-	private const int DevRoutesPerDirectedPair = 3;
+	public const int DevRouteHalfWidth = 24;
 
 	public int Seed { get; }
 	public int Width { get; }
 	public int Height { get; }
 	public IReadOnlyList<PointOfInterest> PointsOfInterest { get; }
 	public Timeline Timeline { get; }
-	public RouteCatalog RouteCatalog { get; }
 	public IReadOnlyDictionary<string, Dock> DocksById { get; }
 	public IReadOnlyDictionary<string, Dock> DocksByPoiId { get; }
-	public IReadOnlyDictionary<string, LaneSegment> SegmentsById { get; }
-	public IReadOnlyDictionary<string, RouteTemplate> RoutesById { get; }
-	public IReadOnlyDictionary<string, PoiTrafficRegistry> RegistriesByPoiId { get; }
-	public IReadOnlyDictionary<string, DockTrafficState> DockStateByDockId { get; }
+	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 
 	private StarMap(
 		int seed,
@@ -31,26 +27,18 @@ public sealed class StarMap : IWorld<StarMap>
 		int height,
 		IReadOnlyList<PointOfInterest> pointsOfInterest,
 		Timeline timeline,
-		RouteCatalog routeCatalog,
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
-		IReadOnlyDictionary<string, LaneSegment> segmentsById,
-		IReadOnlyDictionary<string, RouteTemplate> routesById,
-		IReadOnlyDictionary<string, PoiTrafficRegistry> registriesByPoiId,
-		IReadOnlyDictionary<string, DockTrafficState> dockStateByDockId)
+		IReadOnlyDictionary<string, SpaceRoute> routesById)
 	{
 		Seed = seed;
 		Width = width;
 		Height = height;
 		PointsOfInterest = pointsOfInterest;
 		Timeline = timeline;
-		RouteCatalog = routeCatalog;
 		DocksById = docksById;
 		DocksByPoiId = docksByPoiId;
-		SegmentsById = segmentsById;
 		RoutesById = routesById;
-		RegistriesByPoiId = registriesByPoiId;
-		DockStateByDockId = dockStateByDockId;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -67,31 +55,16 @@ public sealed class StarMap : IWorld<StarMap>
 		return distanceSquared < (long)combined * combined;
 	}
 
-	public StarMap Fork()
-	{
-		var registries = RegistriesByPoiId.ToDictionary(
-			kvp => kvp.Key,
-			kvp => kvp.Value.Fork(),
-			StringComparer.Ordinal);
-		var dockStates = DockStateByDockId.ToDictionary(
-			kvp => kvp.Key,
-			kvp => kvp.Value.Fork(),
-			StringComparer.Ordinal);
-
-		return new StarMap(
+	public StarMap Fork() =>
+		new(
 			Seed,
 			Width,
 			Height,
 			PointsOfInterest,
 			Timeline.Clone(),
-			RouteCatalog,
 			DocksById,
 			DocksByPoiId,
-			SegmentsById,
-			RoutesById,
-			registries,
-			dockStates);
-	}
+			RoutesById);
 
 	public static StarMap CreateDevDefault(int seed = 0)
 	{
@@ -116,39 +89,26 @@ public sealed class StarMap : IWorld<StarMap>
 			docksByPoiId[poi.Id] = dock;
 		}
 
-		var spokePoiIds = docksByPoiId.Keys
-			.Where(poiId => poiId != station.Id)
+		var stationDock = docksByPoiId[station.Id];
+		var spokeDockIds = docksByPoiId.Values
+			.Where(dock => dock.PoiId != station.Id)
+			.Select(dock => dock.Id)
 			.ToArray();
-		var routePairs = RoutePathBuilder.HubPairs(station.Id, spokePoiIds);
+		var routePairs = RouteBuilder.HubPairs(stationDock.Id, spokeDockIds);
 
 		var exclusions = pois
 			.Where(poi => poi.Kind == EPointOfInterestKind.Star)
 			.Select(poi => new CircularExclusion(poi.Center, poi.Radius + 30))
 			.ToArray();
 
-		var topology = RoutePathBuilder.Build(
+		var routesById = RouteBuilder.Build(
 			seed,
 			DevMapWidth,
 			DevMapHeight,
-			docksByPoiId.Values,
+			docksById.Values,
 			routePairs,
 			exclusions,
-			DevRoutesPerDirectedPair);
-
-		var registries = docksByPoiId.Keys.ToDictionary(
-			destPoiId => destPoiId,
-			destPoiId => new PoiTrafficRegistry(
-				topology.SegmentsById.Keys
-					.Where(id => id.StartsWith($"lane:{destPoiId}:", StringComparison.Ordinal))
-					.OrderBy(id => id, StringComparer.Ordinal)),
-			StringComparer.Ordinal);
-
-		var dockStates = docksById.Keys.ToDictionary(
-			id => id,
-			_ => new DockTrafficState(),
-			StringComparer.Ordinal);
-
-		var routeCatalog = new RouteCatalog(topology.RoutesById);
+			DevRouteHalfWidth);
 
 		return new StarMap(
 			seed,
@@ -156,13 +116,9 @@ public sealed class StarMap : IWorld<StarMap>
 			DevMapHeight,
 			pois,
 			new Timeline(),
-			routeCatalog,
 			docksById,
 			docksByPoiId,
-			topology.SegmentsById,
-			topology.RoutesById,
-			registries,
-			dockStates);
+			routesById);
 	}
 
 	private static PointOfInterest DevPoi(

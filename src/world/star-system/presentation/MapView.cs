@@ -13,6 +13,7 @@ public partial class MapView : Node3D
 	private const float MajorAlpha = 0.055f;
 	private const float BoundaryAlpha = 0.12f;
 	private const int FootprintSegments = 48;
+	private const float RouteYOffset = 0.02f;
 
 	private static readonly Color GridMinor = new(0.15f, 0.22f, 0.30f, MinorAlpha);
 	private static readonly Color GridMajor = new(0.22f, 0.32f, 0.42f, MajorAlpha);
@@ -20,22 +21,9 @@ public partial class MapView : Node3D
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
 	private static readonly Color StarColor = new(0.89f, 0.66f, 0.33f);
 	private static readonly Color StationBeacon = new(0.45f, 0.72f, 0.78f);
-	private static readonly Color ArrivalBerthColor = new(0.35f, 0.78f, 0.42f);
-	private static readonly Color DepartureBerthColor = new(0.89f, 0.66f, 0.28f);
-	private static readonly Color QueueHoldColor = new(0.28f, 0.58f, 0.68f, 0.55f);
-	private static readonly Color DockSpurColor = new(0.40f, 0.48f, 0.56f, 0.22f);
-
-	private static readonly Color[] RouteDestinationPalette =
-	[
-		new(0.35f, 0.78f, 0.42f, 0.45f),
-		new(0.89f, 0.66f, 0.28f, 0.45f),
-		new(0.35f, 0.62f, 0.92f, 0.45f),
-		new(0.82f, 0.42f, 0.72f, 0.45f),
-		new(0.55f, 0.85f, 0.82f, 0.45f),
-		new(0.92f, 0.55f, 0.38f, 0.45f),
-	];
-
-	private const int DockPickRadius = 12;
+	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
+	private static readonly Color RouteSurfaceColor = new(0.28f, 0.42f, 0.58f, 0.22f);
+	private static readonly Color RouteEdgeColor = new(0.40f, 0.58f, 0.72f, 0.35f);
 
 	private static readonly Color[] PlanetPalette =
 	[
@@ -54,7 +42,9 @@ public partial class MapView : Node3D
 	private IReadOnlyList<Dock> _docks = [];
 	private IReadOnlyDictionary<string, string> _dockDisplayNames = new Dictionary<string, string>();
 
-	public sealed record DockHoverInfo(string DockId, string PoiId, string DisplayName, string BerthRole);
+	private const int DockPickRadius = 12;
+
+	public sealed record DockHoverInfo(string DockId, string PoiId, string DisplayName);
 
 	public void Build(StarMap world)
 	{
@@ -92,9 +82,9 @@ public partial class MapView : Node3D
 		}
 
 		foreach (var dock in _docks)
-			AddChild(BuildDockScaffold(dock, world.Width, world.Height));
+			AddChild(BuildDockMarker(dock, world.Width, world.Height));
 
-		AddChild(BuildRoutePolylines(world));
+		AddChild(BuildRouteRibbons(world));
 	}
 
 	public void SetHovered(string? poiId)
@@ -154,156 +144,155 @@ public partial class MapView : Node3D
 		return bestId;
 	}
 
-	public DockHoverInfo? DockFeatureAt(Coord point)
+	public DockHoverInfo? DockAt(Coord point)
 	{
 		DockHoverInfo? best = null;
 		var bestDistance = long.MaxValue;
 
 		foreach (var dock in _docks)
 		{
-			ConsiderDockFeature(dock, dock.QueueHold, "Queue hold", ref best, ref bestDistance, point);
-			ConsiderDockFeature(dock, dock.ArrivalBerth, "Arrival berth", ref best, ref bestDistance, point);
-			ConsiderDockFeature(dock, dock.DepartureBerth, "Departure berth", ref best, ref bestDistance, point);
+			var dx = point.X - dock.Position.X;
+			var dz = point.Z - dock.Position.Z;
+			var distance = (long)dx * dx + (long)dz * dz;
+			if (distance > (long)DockPickRadius * DockPickRadius || distance >= bestDistance)
+				continue;
+
+			bestDistance = distance;
+			best = new DockHoverInfo(
+				dock.Id,
+				dock.PoiId,
+				_dockDisplayNames.GetValueOrDefault(dock.PoiId, dock.PoiId));
 		}
 
 		return best;
 	}
 
-	private void ConsiderDockFeature(
-		Dock dock,
-		Coord featurePoint,
-		string berthRole,
-		ref DockHoverInfo? best,
-		ref long bestDistance,
-		Coord point)
-	{
-		var dx = point.X - featurePoint.X;
-		var dz = point.Z - featurePoint.Z;
-		var distance = (long)dx * dx + (long)dz * dz;
-		var radius = DockPickRadius;
-		if (distance > (long)radius * radius || distance >= bestDistance)
-			return;
-
-		bestDistance = distance;
-		best = new DockHoverInfo(
-			dock.Id,
-			dock.PoiId,
-			_dockDisplayNames.GetValueOrDefault(dock.PoiId, dock.PoiId),
-			berthRole);
-	}
-
-	private Node3D BuildDockScaffold(Dock dock, int width, int height)
+	private static Node3D BuildDockMarker(Dock dock, int width, int height)
 	{
 		var root = new Node3D { Name = $"Dock_{dock.Id}" };
-
-		root.AddChild(BuildBerthMarker(
-			"Arrival",
-			dock.ArrivalBerth,
-			width,
-			height,
-			ArrivalBerthColor,
-			0.10f));
-		root.AddChild(BuildBerthMarker(
-			"Departure",
-			dock.DepartureBerth,
-			width,
-			height,
-			DepartureBerthColor,
-			0.10f));
-		root.AddChild(BuildBerthMarker(
-			"Queue",
-			dock.QueueHold,
-			width,
-			height,
-			QueueHoldColor,
-			0.08f));
-
-		var queue = MapMapping.ToWorld(dock.QueueHold, width, height);
-		var arrival = MapMapping.ToWorld(dock.ArrivalBerth, width, height);
-		var departure = MapMapping.ToWorld(dock.DepartureBerth, width, height);
-		root.AddChild(BuildSpurLine("Spur", queue, arrival, departure));
-
-		return root;
-	}
-
-	private static MeshInstance3D BuildBerthMarker(
-		string name,
-		Coord point,
-		int width,
-		int height,
-		Color color,
-		float radius)
-	{
-		return new MeshInstance3D
+		root.AddChild(new MeshInstance3D
 		{
-			Name = name,
-			Position = MapMapping.ToWorld(point, width, height),
-			Mesh = new SphereMesh { Radius = radius, Height = radius * 2f },
+			Name = "Marker",
+			Position = MapMapping.ToWorld(dock.Position, width, height),
+			Mesh = new SphereMesh { Radius = 0.10f, Height = 0.20f },
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = new StandardMaterial3D
 			{
 				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				AlbedoColor = color,
+				AlbedoColor = DockMarkerColor,
 				EmissionEnabled = true,
-				Emission = color,
+				Emission = DockMarkerColor,
 				EmissionEnergyMultiplier = 0.45f,
+			},
+		});
+		return root;
+	}
+
+	private static Node3D BuildRouteRibbons(StarMap world)
+	{
+		var root = new Node3D { Name = "Routes" };
+
+		foreach (var route in world.RoutesById.Values.OrderBy(route => route.Id, StringComparer.Ordinal))
+		{
+			var routeRoot = new Node3D { Name = $"Route_{route.Id}" };
+			routeRoot.AddChild(BuildRouteRibbon(route, world.Width, world.Height));
+			routeRoot.AddChild(BuildRouteEdges(route, world.Width, world.Height));
+			root.AddChild(routeRoot);
+		}
+
+		return root;
+	}
+
+	private static MeshInstance3D BuildRouteRibbon(SpaceRoute route, int width, int height)
+	{
+		var vertices = new List<Vector3>();
+		var indices = new List<int>();
+		var halfWidth = route.HalfWidth * MapMapping.WorldUnitsPerPoint;
+
+		for (var i = 0; i < route.Centerline.Count; i++)
+		{
+			var center = MapMapping.ToWorld(route.Centerline[i], width, height);
+			center.Y += RouteYOffset;
+			var tangent = RouteTangent(route.Centerline, i);
+			var perpendicular = new Vector3(-tangent.Z, 0f, tangent.X);
+
+			vertices.Add(center + perpendicular * halfWidth);
+			vertices.Add(center - perpendicular * halfWidth);
+		}
+
+		for (var i = 0; i < route.Centerline.Count - 1; i++)
+		{
+			var baseIndex = i * 2;
+			indices.Add(baseIndex);
+			indices.Add(baseIndex + 1);
+			indices.Add(baseIndex + 2);
+			indices.Add(baseIndex + 1);
+			indices.Add(baseIndex + 3);
+			indices.Add(baseIndex + 2);
+		}
+
+		var arrays = new Godot.Collections.Array();
+		arrays.Resize((int)Mesh.ArrayType.Max);
+		arrays[(int)Mesh.ArrayType.Vertex] = vertices.ToArray();
+		arrays[(int)Mesh.ArrayType.Index] = indices.ToArray();
+
+		var mesh = new ArrayMesh();
+		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+
+		return new MeshInstance3D
+		{
+			Name = "Surface",
+			Mesh = mesh,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = new StandardMaterial3D
+			{
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+				AlbedoColor = RouteSurfaceColor,
+				EmissionEnabled = true,
+				Emission = RouteSurfaceColor,
+				EmissionEnergyMultiplier = 0.12f,
+				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
 			},
 		};
 	}
 
-	private static MeshInstance3D BuildSpurLine(string name, Vector3 queue, Vector3 arrival, Vector3 departure)
+	private static MeshInstance3D BuildRouteEdges(SpaceRoute route, int width, int height)
 	{
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		mesh.SurfaceSetColor(DockSpurColor);
-		mesh.SurfaceAddVertex(queue);
-		mesh.SurfaceAddVertex(arrival);
-		mesh.SurfaceAddVertex(arrival);
-		mesh.SurfaceAddVertex(departure);
-		mesh.SurfaceEnd();
-		return LineMesh(name, mesh);
-	}
+		mesh.SurfaceSetColor(RouteEdgeColor);
 
-	private static MeshInstance3D BuildRoutePolylines(StarMap world)
-	{
-		var mesh = new ImmediateMesh();
-		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-
-		var destinationIds = world.RoutesById.Values
-			.Select(route => route.DestinationPoiId)
-			.Distinct(StringComparer.Ordinal)
-			.OrderBy(id => id, StringComparer.Ordinal)
-			.ToList();
-
-		var colorsByDestination = new Dictionary<string, Color>(StringComparer.Ordinal);
-		for (var i = 0; i < destinationIds.Count; i++)
-			colorsByDestination[destinationIds[i]] = RouteDestinationPalette[i % RouteDestinationPalette.Length];
-
-		foreach (var route in world.RoutesById.Values.OrderBy(route => route.Id, StringComparer.Ordinal))
+		var halfWidth = route.HalfWidth * MapMapping.WorldUnitsPerPoint;
+		for (var i = 0; i < route.Centerline.Count; i++)
 		{
-			mesh.SurfaceSetColor(colorsByDestination[route.DestinationPoiId]);
+			var center = MapMapping.ToWorld(route.Centerline[i], width, height);
+			center.Y += RouteYOffset;
+			var tangent = RouteTangent(route.Centerline, i);
+			var perpendicular = new Vector3(-tangent.Z, 0f, tangent.X);
+			var left = center + perpendicular * halfWidth;
+			var right = center - perpendicular * halfWidth;
 
-			var points = new List<Coord>();
-			foreach (var segmentId in route.SegmentIds)
+			if (i > 0)
 			{
-				var segment = world.SegmentsById[segmentId];
-				if (points.Count == 0)
-					points.AddRange(segment.Points);
-				else
-					points.AddRange(segment.Points.Skip(1));
-			}
-
-			for (var i = 0; i < points.Count - 1; i++)
-			{
-				var a = MapMapping.ToWorld(points[i], world.Width, world.Height);
-				var b = MapMapping.ToWorld(points[i + 1], world.Width, world.Height);
-				mesh.SurfaceAddVertex(a);
-				mesh.SurfaceAddVertex(b);
+				mesh.SurfaceAddVertex(left);
+				mesh.SurfaceAddVertex(right);
 			}
 		}
 
 		mesh.SurfaceEnd();
-		return LineMesh("Routes", mesh);
+		return LineMesh("Edges", mesh);
+	}
+
+	private static Vector3 RouteTangent(IReadOnlyList<Coord> centerline, int index)
+	{
+		if (centerline.Count < 2)
+			return Vector3.Right;
+
+		var previous = centerline[System.Math.Max(0, index - 1)];
+		var next = centerline[System.Math.Min(centerline.Count - 1, index + 1)];
+		var tangent = new Vector3(next.X - previous.X, 0f, next.Z - previous.Z);
+		return tangent.LengthSquared() < 0.0001f ? Vector3.Right : tangent.Normalized();
 	}
 
 	private static bool ContainsPoint(PointOfInterest poi, Coord point)
@@ -398,13 +387,7 @@ public partial class MapView : Node3D
 
 		var center = MapMapping.ToWorld(poi.Center, width, height);
 		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
-		for (var i = 0; i < FootprintSegments; i++)
-		{
-			var a = i * Mathf.Tau / FootprintSegments;
-			var b = (i + 1) * Mathf.Tau / FootprintSegments;
-			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(a) * worldRadius, 0f, Mathf.Sin(a) * worldRadius));
-			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(b) * worldRadius, 0f, Mathf.Sin(b) * worldRadius));
-		}
+		AddCircleOutline(mesh, center, worldRadius);
 
 		mesh.SurfaceEnd();
 
@@ -592,6 +575,17 @@ public partial class MapView : Node3D
 				EmissionEnergyMultiplier = 0.9f,
 			},
 		});
+	}
+
+	private static void AddCircleOutline(ImmediateMesh mesh, Vector3 center, float radius)
+	{
+		for (var i = 0; i < FootprintSegments; i++)
+		{
+			var a = i * Mathf.Tau / FootprintSegments;
+			var b = (i + 1) * Mathf.Tau / FootprintSegments;
+			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius));
+			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(b) * radius, 0f, Mathf.Sin(b) * radius));
+		}
 	}
 
 	private static void AddQuadOutline(ImmediateMesh mesh, Vector3 min, Vector3 max)

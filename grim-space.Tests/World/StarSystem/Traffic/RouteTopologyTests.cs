@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Traffic;
 
@@ -7,34 +8,72 @@ namespace GrimSpace.Tests.World.StarSystem.Traffic;
 public sealed class RouteTopologyTests
 {
 	[Fact]
-	public void CreateDevDefault_BuildsTwelveRoutes()
+	public void CreateDevDefault_HasThreeDocks_NoStarDock()
 	{
-		var world = StarMap.CreateDevDefault(99);
-		Assert.Equal(12, world.RoutesById.Count);
+		var world = StarMap.CreateDevDefault(0);
+
+		Assert.Equal(3, world.DocksById.Count);
+		Assert.DoesNotContain(
+			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
+			world.DocksByPoiId.Keys);
 	}
 
 	[Fact]
-	public void Routes_HaveContiguousSharedBoundaryPoints()
+	public void CreateDevDefault_BuildsTwoStationPlanetRoutes()
 	{
-		var world = StarMap.CreateDevDefault(11);
+		var world = StarMap.CreateDevDefault(99);
+		var station = world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Station);
+		var stationDock = world.DocksByPoiId[station.Id];
+
+		Assert.Equal(2, world.RoutesById.Count);
 		foreach (var route in world.RoutesById.Values)
 		{
-			for (var i = 0; i < route.SegmentIds.Count - 1; i++)
-			{
-				var left = world.SegmentsById[route.SegmentIds[i]];
-				var right = world.SegmentsById[route.SegmentIds[i + 1]];
-				Assert.Equal(left.End, right.Start);
-			}
+			Assert.True(
+				route.DockAId == stationDock.Id || route.DockBId == stationDock.Id,
+				$"Route {route.Id} is not a station-planet route.");
 		}
 	}
 
 	[Fact]
-	public void Segments_UseEuclideanLengths()
+	public void Routes_StartAndEndAtDockPositions()
+	{
+		var world = StarMap.CreateDevDefault(11);
+		foreach (var route in world.RoutesById.Values)
+		{
+			var dockA = world.DocksById[route.DockAId];
+			var dockB = world.DocksById[route.DockBId];
+
+			Assert.Equal(dockA.Position, route.Centerline[0]);
+			Assert.Equal(dockB.Position, route.Centerline[^1]);
+		}
+	}
+
+	[Fact]
+	public void Routes_HavePositiveHalfWidth()
 	{
 		var world = StarMap.CreateDevDefault(5);
-		foreach (var segment in world.SegmentsById.Values)
+		foreach (var route in world.RoutesById.Values)
+			Assert.True(route.HalfWidth > 0);
+	}
+
+	[Fact]
+	public void Routes_HaveAtLeastTwoDistinctCenterlinePoints()
+	{
+		var world = StarMap.CreateDevDefault(5);
+		foreach (var route in world.RoutesById.Values)
 		{
-			var expected = segment.Points.Zip(segment.Points.Skip(1))
+			Assert.True(route.Centerline.Count >= 2);
+			Assert.NotEqual(route.Centerline[0], route.Centerline[^1]);
+		}
+	}
+
+	[Fact]
+	public void Routes_UseEuclideanPolylineLength()
+	{
+		var world = StarMap.CreateDevDefault(5);
+		foreach (var route in world.RoutesById.Values)
+		{
+			var expected = route.Centerline.Zip(route.Centerline.Skip(1))
 				.Sum(pair =>
 				{
 					var dx = pair.Second.X - pair.First.X;
@@ -42,128 +81,202 @@ public sealed class RouteTopologyTests
 					return System.Math.Sqrt(dx * dx + dz * dz);
 				});
 
-			Assert.Equal(expected, segment.Length, precision: 5);
+			Assert.Equal(expected, route.Length, precision: 5);
 		}
 	}
 
 	[Fact]
 	public void Topology_IsDeterministicForSeed()
 	{
-		var first = StarMap.CreateDevDefault(123);
-		var second = StarMap.CreateDevDefault(123);
-
-		Assert.Equal(first.RoutesById.Keys.OrderBy(id => id), second.RoutesById.Keys.OrderBy(id => id));
-		foreach (var routeId in first.RoutesById.Keys)
+		var docks = new[]
 		{
-			var a = first.RoutesById[routeId];
-			var b = second.RoutesById[routeId];
-			Assert.Equal(a.SegmentIds, b.SegmentIds);
+			new Dock("dock-a", "poi-a", new Coord(200, 0, 200)),
+			new Dock("dock-b", "poi-b", new Coord(800, 0, 800)),
+		};
+
+		var first = RouteBuilder.Build(
+			123,
+			1024,
+			1024,
+			docks,
+			[new RoutePair("dock-a", "dock-b")],
+			[],
+			StarMap.DevRouteHalfWidth);
+		var second = RouteBuilder.Build(
+			123,
+			1024,
+			1024,
+			docks,
+			[new RoutePair("dock-a", "dock-b")],
+			[],
+			StarMap.DevRouteHalfWidth);
+
+		Assert.Equal(first.Keys.OrderBy(id => id), second.Keys.OrderBy(id => id));
+		foreach (var routeId in first.Keys)
+		{
+			var a = first[routeId];
+			var b = second[routeId];
+			Assert.Equal(a.Centerline, b.Centerline);
+			Assert.Equal(a.HalfWidth, b.HalfWidth);
 		}
 	}
 
 	[Fact]
-	public void SharedArrivalThroat_IsDedupedAcrossVariants()
+	public void ReversedRoutePair_DoesNotChangeGeometryOrCreateSecondRoute()
 	{
-		var world = StarMap.CreateDevDefault(17);
-		var destPoiId = world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Planet).Id;
-		var routesToDest = world.RoutesById.Values
-			.Where(route => route.DestinationPoiId == destPoiId)
-			.ToList();
+		var docks = new[]
+		{
+			new Dock("dock-a", "poi-a", new Coord(100, 0, 100)),
+			new Dock("dock-b", "poi-b", new Coord(900, 0, 900)),
+		};
 
-		var tailSegmentIds = routesToDest
-			.Select(route => route.SegmentIds[^1])
-			.Distinct()
-			.ToList();
+		var forward = RouteBuilder.Build(
+			42,
+			1024,
+			1024,
+			docks,
+			[new RoutePair("dock-a", "dock-b")],
+			[],
+			StarMap.DevRouteHalfWidth);
 
-		Assert.Single(tailSegmentIds);
+		var reversed = RouteBuilder.Build(
+			42,
+			1024,
+			1024,
+			docks,
+			[new RoutePair("dock-b", "dock-a")],
+			[],
+			StarMap.DevRouteHalfWidth);
+
+		Assert.Single(forward);
+		Assert.Single(reversed);
+		Assert.Equal(forward.Keys.Single(), reversed.Keys.Single());
+		Assert.Equal(forward.Values.Single().Centerline, reversed.Values.Single().Centerline);
 	}
 
 	[Fact]
-	public void CruiseSegments_StayInBoundsAndClearInteriorPois()
+	public void DuplicateReversePairs_AreRejected()
+	{
+		var docks = new[]
+		{
+			new Dock("dock-a", "poi-a", new Coord(100, 0, 100)),
+			new Dock("dock-b", "poi-b", new Coord(900, 0, 900)),
+		};
+
+		Assert.Throws<ArgumentException>(() => RouteBuilder.Build(
+			42,
+			1024,
+			1024,
+			docks,
+			[
+				new RoutePair("dock-a", "dock-b"),
+				new RoutePair("dock-b", "dock-a"),
+			],
+			[],
+			StarMap.DevRouteHalfWidth));
+	}
+
+	[Fact]
+	public void Corridors_StayInsideMapBounds()
 	{
 		var world = StarMap.CreateDevDefault(21);
-		foreach (var segment in world.SegmentsById.Values)
-		{
-			if (!IsCruiseBlockSegment(segment.Id))
-				continue;
-
-			for (var index = 0; index < segment.Points.Count; index++)
-				Assert.True(world.IsInBounds(segment.Points[index]));
-		}
-	}
-
-	[Fact]
-	public void Routes_StartAtOriginDeparture_EndAtDestinationArrival()
-	{
-		var world = StarMap.CreateDevDefault(99);
 		foreach (var route in world.RoutesById.Values)
 		{
-			var originDock = world.DocksByPoiId[route.OriginPoiId];
-			var destDock = world.DocksByPoiId[route.DestinationPoiId];
-			var first = world.SegmentsById[route.SegmentIds[0]];
-			var last = world.SegmentsById[route.SegmentIds[^1]];
-
-			Assert.Equal(originDock.DepartureBerth, first.Start);
-			Assert.Equal(destDock.ArrivalBerth, last.End);
+			foreach (var point in CorridorSamplePoints(route))
+				Assert.True(world.IsInBounds(point));
 		}
 	}
 
 	[Fact]
-	public void CrossRegistryCruises_AreNotIdenticalAcrossDestinations()
+	public void Corridors_ClearCircularExclusions()
 	{
-		var world = StarMap.CreateDevDefault(33);
-		var routes = world.RoutesById.Values.ToList();
-		var cruises = routes.ToDictionary(
-			route => route.Id,
-			route => ExtractCruisePolyline(world, route));
+		var world = StarMap.CreateDevDefault(21);
+		var star = world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star);
+		var exclusion = new CircularExclusion(star.Center, star.Radius + 30);
 
-		for (var i = 0; i < routes.Count; i++)
+		foreach (var route in world.RoutesById.Values)
 		{
-			for (var j = i + 1; j < routes.Count; j++)
+			var forbiddenDistance = exclusion.Radius + route.HalfWidth + 6;
+			for (var i = 1; i < route.Centerline.Count; i++)
 			{
-				if (routes[i].DestinationPoiId == routes[j].DestinationPoiId)
-					continue;
-
-				Assert.False(
-					PointsEqual(cruises[routes[i].Id], cruises[routes[j].Id]),
-					$"Identical cruise geometry across destinations: {routes[i].Id} and {routes[j].Id}");
+				var distance = RouteGeometry.PointToSegmentDistance(
+					exclusion.Center,
+					route.Centerline[i - 1],
+					route.Centerline[i]);
+				Assert.True(distance >= forbiddenDistance);
 			}
 		}
 	}
 
-	private static bool IsCruiseBlockSegment(string segmentId) =>
-		segmentId.Contains("-v", StringComparison.Ordinal)
-		&& segmentId.Contains("-b", StringComparison.Ordinal);
-
-	private static List<Coord> ExtractCruisePolyline(StarMap world, RouteTemplate route)
+	[Fact]
+	public void CrossingRoutes_AreGeneratedWithoutRejectionOrSplitting()
 	{
-		var points = new List<Coord>();
-		foreach (var segmentId in route.SegmentIds)
+		var docks = new[]
 		{
-			if (!IsCruiseBlockSegment(segmentId))
-				continue;
+			new Dock("dock-a", "poi-a", new Coord(200, 0, 500)),
+			new Dock("dock-b", "poi-b", new Coord(800, 0, 500)),
+			new Dock("dock-c", "poi-c", new Coord(500, 0, 200)),
+			new Dock("dock-d", "poi-d", new Coord(500, 0, 800)),
+		};
 
-			var segment = world.SegmentsById[segmentId];
-			if (points.Count == 0)
-				points.AddRange(segment.Points);
-			else
-				points.AddRange(segment.Points.Skip(1));
-		}
+		var routes = RouteBuilder.Build(
+			77,
+			1024,
+			1024,
+			docks,
+			[
+				new RoutePair("dock-a", "dock-b"),
+				new RoutePair("dock-c", "dock-d"),
+			],
+			[],
+			StarMap.DevRouteHalfWidth);
 
-		return points;
+		Assert.Equal(2, routes.Count);
+		Assert.True(RoutesCross(routes.Values.ToArray()));
 	}
 
-	private static bool PointsEqual(IReadOnlyList<Coord> left, IReadOnlyList<Coord> right)
+	private static bool RoutesCross(IReadOnlyList<SpaceRoute> routes)
 	{
-		if (left.Count != right.Count)
-			return false;
+		var left = routes[0].Centerline;
+		var right = routes[1].Centerline;
 
-		for (var i = 0; i < left.Count; i++)
+		for (var i = 1; i < left.Count; i++)
 		{
-			if (left[i] != right[i])
-				return false;
+			for (var j = 1; j < right.Count; j++)
+			{
+				if (RouteGeometry.SegmentsIntersect(left[i - 1], left[i], right[j - 1], right[j]))
+					return true;
+			}
 		}
 
-		return true;
+		return false;
 	}
+
+	private static IEnumerable<Coord> CorridorSamplePoints(SpaceRoute route)
+	{
+		for (var i = 0; i < route.Centerline.Count; i++)
+		{
+			var tangent = CorridorTangent(route.Centerline, i);
+			var perpendicular = (-tangent.Z, tangent.X);
+			yield return Offset(route.Centerline[i], perpendicular, route.HalfWidth);
+			yield return Offset(route.Centerline[i], perpendicular, -route.HalfWidth);
+			yield return route.Centerline[i];
+		}
+	}
+
+	private static (double X, double Z) CorridorTangent(IReadOnlyList<Coord> centerline, int index)
+	{
+		if (centerline.Count < 2)
+			return (1.0, 0.0);
+
+		var previous = centerline[System.Math.Max(0, index - 1)];
+		var next = centerline[System.Math.Min(centerline.Count - 1, index + 1)];
+		return RouteGeometry.UnitVector(next.X - previous.X, next.Z - previous.Z);
+	}
+
+	private static Coord Offset(Coord origin, (double X, double Z) direction, double distance) =>
+		new(
+			(int)System.Math.Round(origin.X + direction.X * distance),
+			0,
+			(int)System.Math.Round(origin.Z + direction.Z * distance));
 }

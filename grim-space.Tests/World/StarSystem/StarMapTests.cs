@@ -68,12 +68,10 @@ public sealed class StarMapTests
 		Assert.Equal(world.Width, fork.Width);
 		Assert.Equal(world.Height, fork.Height);
 		Assert.Same(world.PointsOfInterest, fork.PointsOfInterest);
-		Assert.Same(world.RouteCatalog, fork.RouteCatalog);
 		Assert.Same(world.DocksById, fork.DocksById);
-		Assert.Same(world.SegmentsById, fork.SegmentsById);
+		Assert.Same(world.DocksByPoiId, fork.DocksByPoiId);
 		Assert.Same(world.RoutesById, fork.RoutesById);
-		Assert.NotSame(world.RegistriesByPoiId, fork.RegistriesByPoiId);
-		Assert.NotSame(world.DockStateByDockId, fork.DockStateByDockId);
+		Assert.NotSame(world.Timeline, fork.Timeline);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
 
 		fork.Timeline.Clock.Set(9);
@@ -87,7 +85,6 @@ public sealed class StarMapTests
 		var world = StarMap.CreateDevDefault(0);
 
 		Assert.Equal(3, world.DocksById.Count);
-		Assert.Equal(3, world.RegistriesByPoiId.Count);
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
 			world.DocksByPoiId.Keys);

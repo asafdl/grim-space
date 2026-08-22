@@ -46,7 +46,7 @@ public partial class MapController : Node3D
 		var world = RunSession.Instance.Run.Map;
 		var screen = GetViewport().GetMousePosition();
 		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
-		var dockHover = point is { } p ? _view.DockFeatureAt(p) : null;
+		var dockHover = point is { } p ? _view.DockAt(p) : null;
 		var poiId = dockHover is null && point is { } pick ? _view.PoiAt(pick) : null;
 		_view.SetHovered(poiId);
 		UpdateTooltip(world, poiId, dockHover, screen);
@@ -126,7 +126,7 @@ public partial class MapController : Node3D
 		if (dockHover is not null)
 		{
 			_typeLabel.Text = "DOCK";
-			_nameLabel.Text = $"{dockHover.DisplayName} — {dockHover.BerthRole}";
+			_nameLabel.Text = dockHover.DisplayName;
 			_tooltip.Visible = true;
 			_tooltip.Position = screen + new Vector2(14, 18);
 			return;

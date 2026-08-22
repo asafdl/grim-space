@@ -5,9 +5,7 @@ namespace GrimSpace.World.StarSystem.Traffic;
 
 internal static class DockLayout
 {
-	private const int BerthOffset = 8;
-	private const int BerthSeparation = 14;
-	private const int QueueOffset = 28;
+	private const int DockOffset = 8;
 
 	public static Dock CreateDock(
 		TypedIdGenerator ids,
@@ -16,22 +14,12 @@ internal static class DockLayout
 		PointOfInterest? star)
 	{
 		var (approachX, approachZ) = ApproachDirection(poi, station, star);
-		var (tangentX, tangentZ) = (-approachZ, approachX);
-
-		var arrival = Offset(poi.Center, approachX, approachZ, poi.Radius + BerthOffset);
-		var departure = Offset(
-			arrival,
-			approachX * 0 + tangentX,
-			approachZ * 0 + tangentZ,
-			BerthSeparation);
-		var queueHold = Offset(poi.Center, approachX, approachZ, poi.Radius + QueueOffset);
+		var position = Offset(poi.Center, approachX, approachZ, poi.Radius + DockOffset);
 
 		return new Dock(
 			ids.NextId("dock"),
 			poi.Id,
-			arrival,
-			departure,
-			queueHold);
+			position);
 	}
 
 	public static (double X, double Z) ApproachDirection(
