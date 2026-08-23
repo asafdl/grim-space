@@ -14,7 +14,6 @@ public partial class MapView : Node3D
 	private const float MajorAlpha = 0.055f;
 	private const float BoundaryAlpha = 0.12f;
 	private const int FootprintSegments = 48;
-	private const float RouteYOffset = 0.02f;
 
 	private static readonly Color GridMinor = new(0.15f, 0.22f, 0.30f, MinorAlpha);
 	private static readonly Color GridMajor = new(0.22f, 0.32f, 0.42f, MajorAlpha);
@@ -23,8 +22,6 @@ public partial class MapView : Node3D
 	private static readonly Color StarColor = new(0.89f, 0.66f, 0.33f);
 	private static readonly Color StationBeacon = new(0.45f, 0.72f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
-	private static readonly Color RouteSurfaceColor = new(0.28f, 0.42f, 0.58f, 0.22f);
-	private static readonly Color RouteEdgeColor = new(0.40f, 0.58f, 0.72f, 0.35f);
 
 	private static readonly Color[] PlanetPalette =
 	[
@@ -84,8 +81,6 @@ public partial class MapView : Node3D
 
 		foreach (var dock in _docks)
 			AddChild(BuildDockMarker(dock, world.Width, world.Height));
-
-		AddChild(BuildRouteRibbons(world));
 	}
 
 	public void SetHovered(string? poiId)
@@ -187,113 +182,6 @@ public partial class MapView : Node3D
 			},
 		});
 		return root;
-	}
-
-	private static Node3D BuildRouteRibbons(StarMap world)
-	{
-		var root = new Node3D { Name = "Routes" };
-
-		foreach (var route in world.RoutesById.Values.OrderBy(route => route.Id, StringComparer.Ordinal))
-		{
-			var routeRoot = new Node3D { Name = $"Route_{route.Id}" };
-			routeRoot.AddChild(BuildRouteRibbon(route, world.Width, world.Height));
-			routeRoot.AddChild(BuildRouteEdges(route, world.Width, world.Height));
-			root.AddChild(routeRoot);
-		}
-
-		return root;
-	}
-
-	private static MeshInstance3D BuildRouteRibbon(SpaceRoute route, int width, int height)
-	{
-		var vertices = new List<Vector3>();
-		var indices = new List<int>();
-		var halfWidth = route.HalfWidth * MapMapping.WorldUnitsPerPoint;
-
-		for (var i = 0; i < route.Centerline.Count; i++)
-		{
-			var center = MapMapping.ToWorld(route.Centerline[i], width, height);
-			center.Y += RouteYOffset;
-			var tangent = RouteTangent(route.Centerline, i);
-			var perpendicular = new Vector3(-tangent.Z, 0f, tangent.X);
-
-			vertices.Add(center + perpendicular * halfWidth);
-			vertices.Add(center - perpendicular * halfWidth);
-		}
-
-		for (var i = 0; i < route.Centerline.Count - 1; i++)
-		{
-			var baseIndex = i * 2;
-			indices.Add(baseIndex);
-			indices.Add(baseIndex + 1);
-			indices.Add(baseIndex + 2);
-			indices.Add(baseIndex + 1);
-			indices.Add(baseIndex + 3);
-			indices.Add(baseIndex + 2);
-		}
-
-		var arrays = new Godot.Collections.Array();
-		arrays.Resize((int)Mesh.ArrayType.Max);
-		arrays[(int)Mesh.ArrayType.Vertex] = vertices.ToArray();
-		arrays[(int)Mesh.ArrayType.Index] = indices.ToArray();
-
-		var mesh = new ArrayMesh();
-		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-
-		return new MeshInstance3D
-		{
-			Name = "Surface",
-			Mesh = mesh,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = RouteSurfaceColor,
-				EmissionEnabled = true,
-				Emission = RouteSurfaceColor,
-				EmissionEnergyMultiplier = 0.12f,
-				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			},
-		};
-	}
-
-	private static MeshInstance3D BuildRouteEdges(SpaceRoute route, int width, int height)
-	{
-		var mesh = new ImmediateMesh();
-		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		mesh.SurfaceSetColor(RouteEdgeColor);
-
-		var halfWidth = route.HalfWidth * MapMapping.WorldUnitsPerPoint;
-		for (var i = 0; i < route.Centerline.Count; i++)
-		{
-			var center = MapMapping.ToWorld(route.Centerline[i], width, height);
-			center.Y += RouteYOffset;
-			var tangent = RouteTangent(route.Centerline, i);
-			var perpendicular = new Vector3(-tangent.Z, 0f, tangent.X);
-			var left = center + perpendicular * halfWidth;
-			var right = center - perpendicular * halfWidth;
-
-			if (i > 0)
-			{
-				mesh.SurfaceAddVertex(left);
-				mesh.SurfaceAddVertex(right);
-			}
-		}
-
-		mesh.SurfaceEnd();
-		return LineMesh("Edges", mesh);
-	}
-
-	private static Vector3 RouteTangent(IReadOnlyList<Coord> centerline, int index)
-	{
-		if (centerline.Count < 2)
-			return Vector3.Right;
-
-		var previous = centerline[System.Math.Max(0, index - 1)];
-		var next = centerline[System.Math.Min(centerline.Count - 1, index + 1)];
-		var tangent = new Vector3(next.X - previous.X, 0f, next.Z - previous.Z);
-		return tangent.LengthSquared() < 0.0001f ? Vector3.Right : tangent.Normalized();
 	}
 
 	private static bool ContainsPoint(PointOfInterest poi, Coord point)

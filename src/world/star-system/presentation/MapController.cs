@@ -6,15 +6,30 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public partial class MapController : Node3D
 {
+	private const float SecondsPerTick = 0.2f;
+	private static readonly float[] SpeedOptions = [0.5f, 1f, 2f, 4f, 8f];
+
 	private MapView _view = null!;
+	private UnitsView _units = null!;
 	private MapCamera _camera = null!;
 	private PanelContainer _tooltip = null!;
 	private Label _typeLabel = null!;
 	private Label _nameLabel = null!;
+	private Label _tickLabel = null!;
+	private Button _pauseButton = null!;
+	private Button _stepButton = null!;
+	private Button _speedButton = null!;
+	private CanvasLayer _uiLayer = null!;
+
+	private StarSystemOrchestrator _orchestrator = null!;
+	private float _tickAccumulator;
+	private bool _paused;
+	private int _speedIndex = 1;
 
 	public override void _Ready()
 	{
 		_view = GetNode<MapView>("MapView");
+		_units = GetNode<UnitsView>("UnitsView");
 		_camera = GetNode<MapCamera>("Camera3D");
 
 		if (GetNodeOrNull<DirectionalLight3D>("DirectionalLight3D") is { } light)
@@ -23,7 +38,9 @@ public partial class MapController : Node3D
 			light.LightEnergy = 0.22f;
 		}
 
+		_orchestrator = RunSession.Instance.Run.Traffic;
 		BuildTooltip();
+		BuildDebugUi();
 
 		var world = RunSession.Instance.Run.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -36,29 +53,71 @@ public partial class MapController : Node3D
 		MoveChild(backdrop, 0);
 
 		_view.Build(world);
+		_units.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
+		UpdateDebugUi();
 	}
 
 	public override void _Process(double delta)
 	{
 		_view.SetCameraDistance(_camera.Distance);
 
-		var world = RunSession.Instance.Run.Map;
+		if (!_paused)
+			AdvanceSimulation(delta);
+
+		var world = _orchestrator.Map;
+		var tickFraction = _tickAccumulator / SecondsPerTick;
+		_units.Sync(world, tickFraction);
+		UpdateDebugUi();
+
 		var screen = GetViewport().GetMousePosition();
 		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
-		var dockHover = point is { } p ? _view.DockAt(p) : null;
-		var poiId = dockHover is null && point is { } pick ? _view.PoiAt(pick) : null;
+		var unitHover = point is { } unitPoint ? _units.UnitAt(world, unitPoint, tickFraction) : null;
+		var dockHover = unitHover is null && point is { } dockPoint ? _view.DockAt(dockPoint) : null;
+		var poiId = dockHover is null && unitHover is null && point is { } pick ? _view.PoiAt(pick) : null;
 		_view.SetHovered(poiId);
-		UpdateTooltip(world, poiId, dockHover, screen);
+		UpdateTooltip(world, poiId, dockHover, unitHover, screen);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
 			return;
 
-		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
-		GetViewport().SetInputAsHandled();
+		switch (key.Keycode)
+		{
+			case Key.Escape:
+				GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+				GetViewport().SetInputAsHandled();
+				break;
+			case Key.Space:
+				_paused = !_paused;
+				GetViewport().SetInputAsHandled();
+				break;
+			case Key.Period when _paused:
+				_orchestrator.AdvanceTick();
+				_tickAccumulator = 0f;
+				GetViewport().SetInputAsHandled();
+				break;
+			case Key.Bracketright:
+				CycleSpeed(1);
+				GetViewport().SetInputAsHandled();
+				break;
+			case Key.Bracketleft:
+				CycleSpeed(-1);
+				GetViewport().SetInputAsHandled();
+				break;
+		}
+	}
+
+	private void AdvanceSimulation(double delta)
+	{
+		_tickAccumulator += (float)delta * SpeedOptions[_speedIndex];
+		while (_tickAccumulator >= SecondsPerTick)
+		{
+			_tickAccumulator -= SecondsPerTick;
+			_orchestrator.AdvanceTick();
+		}
 	}
 
 	private void BuildTooltip()
@@ -105,7 +164,7 @@ public partial class MapController : Node3D
 		var hint = new Label
 		{
 			Position = new Vector2(16, 16),
-			Text = "F10 star map (dev) — WASD/middle pan, right orbit, wheel zoom, Esc menu",
+			Text = "F10 star map (dev) — drag/WASD pan, right orbit, wheel zoom, Space pause, Esc menu",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
 		hint.AddThemeFontSizeOverride("font_size", 13);
@@ -115,14 +174,85 @@ public partial class MapController : Node3D
 		layer.AddChild(hint);
 		layer.AddChild(_tooltip);
 		AddChild(layer);
+		_uiLayer = layer;
+	}
+
+	private void BuildDebugUi()
+	{
+		_tickLabel = new Label();
+		_tickLabel.AddThemeFontSizeOverride("font_size", 13);
+		_tickLabel.AddThemeColorOverride("font_color", new Color(0.79f, 0.83f, 0.87f));
+
+		_pauseButton = new Button { Text = "Pause" };
+		_pauseButton.Pressed += () => _paused = !_paused;
+
+		_stepButton = new Button { Text = "Step" };
+		_stepButton.Pressed += () =>
+		{
+			_orchestrator.AdvanceTick();
+			_tickAccumulator = 0f;
+		};
+
+		_speedButton = new Button();
+		_speedButton.Pressed += () => CycleSpeed(1);
+
+		var row = new HBoxContainer();
+		row.AddThemeConstantOverride("separation", 8);
+		row.AddChild(_tickLabel);
+		row.AddChild(_pauseButton);
+		row.AddChild(_stepButton);
+		row.AddChild(_speedButton);
+
+		var panel = new PanelContainer
+		{
+			Position = new Vector2(16, 44),
+			MouseFilter = Control.MouseFilterEnum.Stop,
+		};
+		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+		{
+			BgColor = new Color(0.02f, 0.04f, 0.07f, 0.82f),
+			ContentMarginLeft = 10,
+			ContentMarginRight = 10,
+			ContentMarginTop = 8,
+			ContentMarginBottom = 8,
+			CornerRadiusTopLeft = 2,
+			CornerRadiusTopRight = 2,
+			CornerRadiusBottomLeft = 2,
+			CornerRadiusBottomRight = 2,
+		});
+		panel.AddChild(row);
+		_uiLayer.AddChild(panel);
+	}
+
+	private void UpdateDebugUi()
+	{
+		_tickLabel.Text = $"Tick {_orchestrator.Tick}";
+		_pauseButton.Text = _paused ? "Resume" : "Pause";
+		_stepButton.Disabled = !_paused;
+		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
+	}
+
+	private void CycleSpeed(int delta)
+	{
+		_speedIndex = Mathf.PosMod(_speedIndex + delta, SpeedOptions.Length);
 	}
 
 	private void UpdateTooltip(
 		StarMap world,
 		string? poiId,
 		MapView.DockHoverInfo? dockHover,
+		UnitsView.UnitHoverInfo? unitHover,
 		Vector2 screen)
 	{
+		if (unitHover is not null)
+		{
+			_typeLabel.Text = unitHover.Phase.ToString().ToUpperInvariant();
+			_nameLabel.Text = $"{unitHover.Type} ({unitHover.UnitId})";
+			_tooltip.Visible = true;
+			_tooltip.Position = screen + new Vector2(14, 18);
+			return;
+		}
+
 		if (dockHover is not null)
 		{
 			_typeLabel.Text = "DOCK";

@@ -7,13 +7,16 @@ public static class MapMapping
 {
 	public const float WorldUnitsPerPoint = 1f / 32f;
 
-	public static Vector3 ToWorld(Coord point, int width, int height)
+	public static Vector3 ToWorld(Coord point, int width, int height) =>
+		ToWorld(point.X, point.Z, width, height);
+
+	public static Vector3 ToWorld(double x, double z, int width, int height)
 	{
 		var origin = GridOrigin(width, height);
 		return origin + new Vector3(
-			point.X * WorldUnitsPerPoint,
+			(float)(x * WorldUnitsPerPoint),
 			0f,
-			point.Z * WorldUnitsPerPoint);
+			(float)(z * WorldUnitsPerPoint));
 	}
 
 	public static Vector3 GridOrigin(int width, int height) =>

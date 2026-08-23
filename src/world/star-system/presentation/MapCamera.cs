@@ -9,7 +9,7 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public partial class MapCamera : Camera3D
 {
 	private static readonly OrbitLimits Limits = new(
-		MinDistance: 18f,
+		MinDistance: 4f,
 		MaxDistance: 72f,
 		MinPitch: 0.12f,
 		MaxPitch: 1.15f);
@@ -86,6 +86,16 @@ public partial class MapCamera : Camera3D
 
 			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Right }:
 				_orbiting = false;
+				break;
+
+			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
+				_panning = true;
+				_lastMousePosition = mouseButton.Position;
+				GetViewport().SetInputAsHandled();
+				break;
+
+			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
+				_panning = false;
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } mouseButton:

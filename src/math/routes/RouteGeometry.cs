@@ -53,6 +53,48 @@ public static class RouteGeometry
 			|| System.Math.Abs(o4) <= epsilon && OnSegment(b1, b2, a2);
 	}
 
+	public static (double X, double Z, double TangentX, double TangentZ) SampleAtArcLength(
+		IReadOnlyList<Coord> centerline,
+		double arcLength)
+	{
+		if (centerline.Count == 0)
+			throw new ArgumentException("Centerline must not be empty.", nameof(centerline));
+
+		if (centerline.Count == 1 || arcLength <= 0)
+		{
+			var (tangentX, tangentZ) = centerline.Count > 1
+				? UnitVector(centerline[1].X - centerline[0].X, centerline[1].Z - centerline[0].Z)
+				: (1.0, 0.0);
+			return (centerline[0].X, centerline[0].Z, tangentX, tangentZ);
+		}
+
+		var remaining = arcLength;
+		for (var i = 1; i < centerline.Count; i++)
+		{
+			var start = centerline[i - 1];
+			var end = centerline[i];
+			var segmentLength = Distance(start, end);
+			if (remaining > segmentLength)
+			{
+				remaining -= segmentLength;
+				continue;
+			}
+
+			var t = segmentLength <= 0.0 ? 0.0 : remaining / segmentLength;
+			var tangent = UnitVector(end.X - start.X, end.Z - start.Z);
+			return (
+				start.X + (end.X - start.X) * t,
+				start.Z + (end.Z - start.Z) * t,
+				tangent.X,
+				tangent.Z);
+		}
+
+		var last = centerline[^1];
+		var previous = centerline[^2];
+		var endTangent = UnitVector(last.X - previous.X, last.Z - previous.Z);
+		return (last.X, last.Z, endTangent.X, endTangent.Z);
+	}
+
 	public static IReadOnlyList<Coord> NormalizePolyline(IReadOnlyList<Coord> points)
 	{
 		if (points.Count == 0)
