@@ -1,11 +1,13 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
 
-public sealed class StarMap : IWorld<StarMap>
+public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 {
 	public const int DevMapWidth = 1024;
 	public const int DevMapHeight = 1024;
@@ -20,6 +22,10 @@ public sealed class StarMap : IWorld<StarMap>
 	public IReadOnlyDictionary<string, Dock> DocksById { get; }
 	public IReadOnlyDictionary<string, Dock> DocksByPoiId { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
+	public UnitRegistry UnitRegistry { get; }
+	public SystemTrafficController TrafficController { get; }
+
+	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
 
 	private StarMap(
 		int seed,
@@ -29,7 +35,9 @@ public sealed class StarMap : IWorld<StarMap>
 		Timeline timeline,
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
-		IReadOnlyDictionary<string, SpaceRoute> routesById)
+		IReadOnlyDictionary<string, SpaceRoute> routesById,
+		UnitRegistry unitRegistry,
+		SystemTrafficController trafficController)
 	{
 		Seed = seed;
 		Width = width;
@@ -39,12 +47,21 @@ public sealed class StarMap : IWorld<StarMap>
 		DocksById = docksById;
 		DocksByPoiId = docksByPoiId;
 		RoutesById = routesById;
+		UnitRegistry = unitRegistry;
+		TrafficController = trafficController;
 	}
 
 	public bool IsInBounds(Coord point) =>
 		point.Y == 0
 		&& point.X >= 0 && point.X < Width
 		&& point.Z >= 0 && point.Z < Height;
+
+	public bool TryResolveRoute(
+		string fromDockId,
+		string toDockId,
+		out SpaceRoute route,
+		out bool towardDockB) =>
+		SystemTrafficController.TryGetRoute(RoutesById, fromDockId, toDockId, out route, out towardDockB);
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{
@@ -64,7 +81,9 @@ public sealed class StarMap : IWorld<StarMap>
 			Timeline.Clone(),
 			DocksById,
 			DocksByPoiId,
-			RoutesById);
+			RoutesById,
+			UnitRegistry.CloneForFork(),
+			TrafficController.Fork());
 
 	public static StarMap CreateDevDefault(int seed = 0)
 	{
@@ -90,6 +109,8 @@ public sealed class StarMap : IWorld<StarMap>
 		}
 
 		var stationDock = docksByPoiId[station.Id];
+		var planetADock = docksByPoiId["planet-dev-a"];
+		var planetBDock = docksByPoiId["planet-dev-b"];
 		var spokeDockIds = docksByPoiId.Values
 			.Where(dock => dock.PoiId != station.Id)
 			.Select(dock => dock.Id)
@@ -110,6 +131,10 @@ public sealed class StarMap : IWorld<StarMap>
 			exclusions,
 			DevRouteHalfWidth);
 
+		var unitRegistry = new UnitRegistry();
+		foreach (var unit in Factory.CreateDevUnits(stationDock.Id, planetADock.Id, planetBDock.Id))
+			unitRegistry.Add(unit);
+
 		return new StarMap(
 			seed,
 			DevMapWidth,
@@ -118,7 +143,9 @@ public sealed class StarMap : IWorld<StarMap>
 			new Timeline(),
 			docksById,
 			docksByPoiId,
-			routesById);
+			routesById,
+			unitRegistry,
+			new SystemTrafficController());
 	}
 
 	private static PointOfInterest DevPoi(

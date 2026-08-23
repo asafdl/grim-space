@@ -1,6 +1,6 @@
 using GrimSpace.Math.Grid;
 
-namespace GrimSpace.World.StarSystem;
+namespace GrimSpace.World.StarSystem.Poi;
 
 public sealed record PointOfInterest(
 	string Id,

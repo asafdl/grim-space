@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.World.StarSystem.Presentation;

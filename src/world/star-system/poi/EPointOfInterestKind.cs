@@ -1,4 +1,4 @@
-namespace GrimSpace.World.StarSystem;
+namespace GrimSpace.World.StarSystem.Poi;
 
 public enum EPointOfInterestKind
 {

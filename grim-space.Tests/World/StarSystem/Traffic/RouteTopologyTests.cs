@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;

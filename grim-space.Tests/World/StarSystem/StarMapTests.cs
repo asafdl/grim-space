@@ -1,5 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
@@ -72,11 +74,19 @@ public sealed class StarMapTests
 		Assert.Same(world.DocksByPoiId, fork.DocksByPoiId);
 		Assert.Same(world.RoutesById, fork.RoutesById);
 		Assert.NotSame(world.Timeline, fork.Timeline);
+		Assert.NotSame(world.TrafficController, fork.TrafficController);
+		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
+		Assert.Equal(3, world.UnitRegistry.Ids.Count());
+		Assert.Equal(3, fork.UnitRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
+		fork.UnitRegistry.UnitOf(Factory.CargoShuttleId).State.AdvanceTransit(99);
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
+		Assert.NotEqual(
+			world.UnitRegistry.UnitOf(Factory.CargoShuttleId).State.Journey.LongitudinalProgress,
+			fork.UnitRegistry.UnitOf(Factory.CargoShuttleId).State.Journey.LongitudinalProgress);
 	}
 
 	[Fact]
@@ -85,6 +95,7 @@ public sealed class StarMapTests
 		var world = StarMap.CreateDevDefault(0);
 
 		Assert.Equal(3, world.DocksById.Count);
+		Assert.Equal(3, world.UnitRegistry.Ids.Count());
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
 			world.DocksByPoiId.Keys);

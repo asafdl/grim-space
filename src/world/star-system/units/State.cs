@@ -1,0 +1,97 @@
+namespace GrimSpace.World.StarSystem.Units;
+
+public sealed class State
+{
+	public required string Id { get; init; }
+	public required EType Type { get; init; }
+	public string DockedAtDockId { get; set; } = "";
+	public EPhase Phase { get; set; } = EPhase.Docked;
+	public JourneyState Journey { get; } = new();
+	public IReadOnlyList<string> ChoreDockIds { get; init; } = [];
+	public int ChoreIndex { get; set; }
+	public double SpeedPerTick { get; init; }
+	public int WorkTicksRemaining { get; set; }
+	public int WorkDuration { get; init; }
+
+	public bool IsReadyToDepart =>
+		Phase == EPhase.Docked && WorkTicksRemaining <= 0;
+
+	public string NextChoreDockId() => ChoreDockIds[ChoreIndex];
+
+	public void AdvanceChoreIndex() =>
+		ChoreIndex = (ChoreIndex + 1) % ChoreDockIds.Count;
+
+	internal void BeginTransit(string routeId, bool towardDockB)
+	{
+		Phase = EPhase.InTransit;
+		Journey.RouteId = routeId;
+		Journey.TowardDockB = towardDockB;
+		Journey.LongitudinalProgress = 0;
+		Journey.LateralOffset = 0;
+	}
+
+	internal void AdvanceTransit(double delta) =>
+		Journey.LongitudinalProgress += delta;
+
+	internal void ArriveAt(string dockId)
+	{
+		ClearTransit();
+		DockedAtDockId = dockId;
+		Phase = EPhase.Working;
+		WorkTicksRemaining = WorkDuration;
+	}
+
+	internal void CompleteWork()
+	{
+		Phase = EPhase.Docked;
+		WorkTicksRemaining = 0;
+	}
+
+	internal void TickWork()
+	{
+		if (Phase != EPhase.Working || WorkTicksRemaining <= 0)
+			return;
+
+		WorkTicksRemaining--;
+		if (WorkTicksRemaining <= 0)
+			CompleteWork();
+	}
+
+	internal void ClearTransit()
+	{
+		Phase = EPhase.Docked;
+		Journey.Clear();
+	}
+
+	public State Clone()
+	{
+		var clone = new State
+		{
+			Id = Id,
+			Type = Type,
+			DockedAtDockId = DockedAtDockId,
+			Phase = Phase,
+			ChoreDockIds = ChoreDockIds,
+			ChoreIndex = ChoreIndex,
+			SpeedPerTick = SpeedPerTick,
+			WorkTicksRemaining = WorkTicksRemaining,
+			WorkDuration = WorkDuration,
+		};
+		clone.Journey.RouteId = Journey.RouteId;
+		clone.Journey.TowardDockB = Journey.TowardDockB;
+		clone.Journey.LongitudinalProgress = Journey.LongitudinalProgress;
+		clone.Journey.LateralOffset = Journey.LateralOffset;
+		return clone;
+	}
+
+	public static State FromSpawn(Spawn spawn) =>
+		new()
+		{
+			Id = spawn.Id,
+			Type = spawn.Type,
+			DockedAtDockId = spawn.DockedAtDockId,
+			SpeedPerTick = spawn.SpeedPerTick,
+			WorkDuration = spawn.WorkDuration,
+			ChoreDockIds = spawn.ChoreDockIds,
+		};
+}

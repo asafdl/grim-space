@@ -1,5 +1,6 @@
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.World.StarSystem.Traffic;
 
