@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Core.Log;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem;
 
 namespace GrimSpace.Core;
 
@@ -81,5 +82,18 @@ public partial class RunSession : Node
 	{
 		Run = State.CreateDevDefault(Random.Shared.Next());
 		CurrentEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
+	}
+
+	public void RegenerateMap(int? seed = null)
+	{
+		if (!IsRunReady())
+		{
+			StartNewRun();
+			return;
+		}
+
+		var nextSeed = seed ?? Random.Shared.Next();
+		Run.Map = StarMap.CreateDevDefault(nextSeed);
+		Run.Traffic = StarSystemOrchestrator.FromMap(Run.Map);
 	}
 }

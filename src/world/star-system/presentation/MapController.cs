@@ -166,7 +166,7 @@ public partial class MapController : Node3D
 		var hint = new Label
 		{
 			Position = new Vector2(16, 16),
-			Text = "F10 star map (dev) — drag/WASD pan, right orbit, wheel zoom, Space pause, Esc menu",
+			Text = "F10 star map (dev) — drag/WASD pan, right orbit, wheel zoom, Space pause, Rebuild rerolls seed, Esc menu",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
 		hint.AddThemeFontSizeOverride("font_size", 13);
@@ -198,12 +198,16 @@ public partial class MapController : Node3D
 		_speedButton = new Button();
 		_speedButton.Pressed += () => CycleSpeed(1);
 
+		var rebuildButton = new Button { Text = "Rebuild" };
+		rebuildButton.Pressed += RebuildScene;
+
 		var row = new HBoxContainer();
 		row.AddThemeConstantOverride("separation", 8);
 		row.AddChild(_tickLabel);
 		row.AddChild(_pauseButton);
 		row.AddChild(_stepButton);
 		row.AddChild(_speedButton);
+		row.AddChild(rebuildButton);
 
 		var panel = new PanelContainer
 		{
@@ -251,6 +255,12 @@ public partial class MapController : Node3D
 	private void CycleSpeed(int delta)
 	{
 		_speedIndex = Mathf.PosMod(_speedIndex + delta, SpeedOptions.Length);
+	}
+
+	private void RebuildScene()
+	{
+		RunSession.Instance.RegenerateMap();
+		GetTree().ReloadCurrentScene();
 	}
 
 	private void UpdateSystemLabel(StarMap world)

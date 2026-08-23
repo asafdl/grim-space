@@ -79,6 +79,8 @@ public partial class MapCamera : Camera3D
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mouseButton:
+				if (IsMouseOverUi())
+					break;
 				_orbiting = true;
 				_lastMousePosition = mouseButton.Position;
 				GetViewport().SetInputAsHandled();
@@ -89,6 +91,8 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
+				if (IsMouseOverUi())
+					break;
 				_panning = true;
 				_lastMousePosition = mouseButton.Position;
 				GetViewport().SetInputAsHandled();
@@ -99,6 +103,8 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } mouseButton:
+				if (IsMouseOverUi())
+					break;
 				_panning = true;
 				_lastMousePosition = mouseButton.Position;
 				GetViewport().SetInputAsHandled();
@@ -109,12 +115,16 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
+				if (IsMouseOverUi())
+					break;
 				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
+				if (IsMouseOverUi())
+					break;
 				_pose.Zoom(OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
@@ -143,6 +153,8 @@ public partial class MapCamera : Camera3D
 			}
 		}
 	}
+
+	private bool IsMouseOverUi() => GetViewport().GuiGetHoveredControl() is not null;
 
 	private void ClampPivotToMap()
 	{
