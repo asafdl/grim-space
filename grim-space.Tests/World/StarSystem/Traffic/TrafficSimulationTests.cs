@@ -1,4 +1,7 @@
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
@@ -10,75 +13,77 @@ public sealed class TrafficSimulationTests
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
 		var map = orchestrator.Map;
-		var cargo = map.UnitRegistry.UnitOf(Factory.CargoShuttleId).State;
+		var miner = map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, cargo.Phase);
-		Assert.NotNull(cargo.Journey.RouteId);
-		Assert.Contains(Factory.CargoShuttleId, map.TrafficController.OccupantsByRouteId[cargo.Journey.RouteId!]);
+		Assert.Equal(EPhase.InTransit, miner.Phase);
+		Assert.NotNull(miner.Journey.RouteId);
+		Assert.Contains(
+			SupplySystemGenerator.MinerOneId,
+			map.TrafficController.OccupantsByRouteId[miner.Journey.RouteId!]);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, cargo.Phase);
-		Assert.True(cargo.Journey.LongitudinalProgress > 0);
+		Assert.Equal(EPhase.InTransit, miner.Phase);
+		Assert.True(miner.Journey.LongitudinalProgress > 0);
 	}
 
 	[Fact]
 	public void AdvanceTick_AdvancesJourneyProgressWhileInTransit()
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
-		var cargo = orchestrator.Map.UnitRegistry.UnitOf(Factory.CargoShuttleId).State;
+		var miner = orchestrator.Map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
 
 		orchestrator.AdvanceTicks(2);
-		var progressAfterDepart = cargo.Journey.LongitudinalProgress;
+		var progressAfterDepart = miner.Journey.LongitudinalProgress;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, cargo.Phase);
-		Assert.True(cargo.Journey.LongitudinalProgress > progressAfterDepart);
+		Assert.Equal(EPhase.InTransit, miner.Phase);
+		Assert.True(miner.Journey.LongitudinalProgress > progressAfterDepart);
 	}
 
 	[Fact]
-	public void AdvanceTicks_CompletesCargoChoreLoop()
+	public void AdvanceTicks_MinerVisitsExtractionAndRefinery()
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
 		var map = orchestrator.Map;
-		var stationDock = map.DocksByPoiId["station-dev"].Id;
-		var planetADock = map.DocksByPoiId["planet-dev-a"].Id;
-		var cargo = map.UnitRegistry.UnitOf(Factory.CargoShuttleId).State;
+		var extractionDock = DockForRole(map, EPoiLogicalRole.Extraction).Id;
+		var refineryDock = DockForRole(map, EPoiLogicalRole.Refinery).Id;
+		var miner = map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
 		var visited = new HashSet<string>(StringComparer.Ordinal);
 
 		for (var tick = 0; tick < 1000; tick++)
 		{
 			orchestrator.AdvanceTick();
-			if (cargo.Phase == EPhase.Working)
-				visited.Add(cargo.DockedAtDockId);
+			if (miner.Phase == EPhase.Working)
+				visited.Add(miner.DockedAtDockId);
 		}
 
-		Assert.Contains(planetADock, visited);
-		Assert.Contains(stationDock, visited);
+		Assert.Contains(extractionDock, visited);
+		Assert.Contains(refineryDock, visited);
 	}
 
 	[Fact]
-	public void AdvanceTicks_PatrolVisitsBothPlanets()
+	public void AdvanceTicks_FreighterVisitsStorageAndExit()
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
 		var map = orchestrator.Map;
-		var patrol = map.UnitRegistry.UnitOf(Factory.PatrolId).State;
-		var planetADock = map.DocksByPoiId["planet-dev-a"].Id;
-		var planetBDock = map.DocksByPoiId["planet-dev-b"].Id;
+		var freighter = map.UnitRegistry.UnitOf(SupplySystemGenerator.FreighterId).State;
+		var storageDock = DockForRole(map, EPoiLogicalRole.Storage).Id;
+		var exitDock = DockForRole(map, EPoiLogicalRole.Exit).Id;
 		var visited = new HashSet<string>(StringComparer.Ordinal);
 
 		for (var tick = 0; tick < 1200; tick++)
 		{
 			orchestrator.AdvanceTick();
-			if (patrol.Phase == EPhase.Working)
-				visited.Add(patrol.DockedAtDockId);
+			if (freighter.Phase == EPhase.Working)
+				visited.Add(freighter.DockedAtDockId);
 		}
 
-		Assert.Contains(planetADock, visited);
-		Assert.Contains(planetBDock, visited);
+		Assert.Contains(storageDock, visited);
+		Assert.Contains(exitDock, visited);
 	}
 
 	[Fact]
@@ -107,10 +112,13 @@ public sealed class TrafficSimulationTests
 		Assert.NotSame(orchestrator.Map.UnitRegistry, forkedOrchestrator.Map.UnitRegistry);
 		Assert.Same(orchestrator.Map.RoutesById, forkedOrchestrator.Map.RoutesById);
 
-		var originalCargo = orchestrator.Map.UnitRegistry.UnitOf(Factory.CargoShuttleId).State;
-		var forkedCargo = forkedOrchestrator.Map.UnitRegistry.UnitOf(Factory.CargoShuttleId).State;
+		var originalMiner = orchestrator.Map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
+		var forkedMiner = forkedOrchestrator.Map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
 		Assert.NotEqual(
-			originalCargo.Journey.LongitudinalProgress,
-			forkedCargo.Journey.LongitudinalProgress);
+			originalMiner.Journey.LongitudinalProgress,
+			forkedMiner.Journey.LongitudinalProgress);
 	}
+
+	private static Dock DockForRole(StarMap map, EPoiLogicalRole role) =>
+		map.DocksByPoiId[map.PointsOfInterest.Single(poi => poi.LogicalRole == role).Id];
 }

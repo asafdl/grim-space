@@ -1,4 +1,3 @@
-using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Poi;
 
@@ -9,27 +8,31 @@ internal static class DockLayout
 	private const int DockOffset = 8;
 
 	public static Dock CreateDock(
-		TypedIdGenerator ids,
 		PointOfInterest poi,
-		PointOfInterest station,
+		PointOfInterest neighbour,
 		PointOfInterest? star)
 	{
-		var (approachX, approachZ) = ApproachDirection(poi, station, star);
+		var (approachX, approachZ) = ApproachDirection(poi, neighbour, star);
 		var position = Offset(poi.Center, approachX, approachZ, poi.Radius + DockOffset);
 
 		return new Dock(
-			ids.NextId("dock"),
+			DockIdForPoi(poi.Id),
 			poi.Id,
 			position);
 	}
 
+	internal static string DockIdForPoi(string poiId) =>
+		poiId.StartsWith("poi-", StringComparison.Ordinal)
+			? $"dock-{poiId[4..]}"
+			: throw new InvalidOperationException($"Cannot create dock id for POI '{poiId}'.");
+
 	public static (double X, double Z) ApproachDirection(
 		PointOfInterest poi,
-		PointOfInterest station,
+		PointOfInterest neighbour,
 		PointOfInterest? star)
 	{
-		var dx = station.Center.X - poi.Center.X;
-		var dz = station.Center.Z - poi.Center.Z;
+		var dx = neighbour.Center.X - poi.Center.X;
+		var dz = neighbour.Center.Z - poi.Center.Z;
 		if (dx == 0 && dz == 0 && star is not null)
 		{
 			dx = poi.Center.X - star.Center.X;

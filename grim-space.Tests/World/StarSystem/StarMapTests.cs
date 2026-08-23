@@ -1,26 +1,28 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
-using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
 public sealed class StarMapTests
 {
 	[Fact]
-	public void CreateDevDefault_HasFourNonOverlappingInBoundsPois()
+	public void CreateDevDefault_HasFiveNonOverlappingInBoundsPois()
 	{
 		var world = StarMap.CreateDevDefault(42);
 
 		Assert.Equal(42, world.Seed);
 		Assert.Equal(StarMap.DevMapWidth, world.Width);
 		Assert.Equal(StarMap.DevMapHeight, world.Height);
-		Assert.Equal(4, world.PointsOfInterest.Count);
+		Assert.Equal(5, world.PointsOfInterest.Count);
+		Assert.Equal(EStarSystemClass.Supply, world.Blueprint.SystemClass);
 
-		Assert.Equal(EPointOfInterestKind.Star, world.PointsOfInterest[0].Kind);
-		Assert.Equal(EPointOfInterestKind.Planet, world.PointsOfInterest[1].Kind);
-		Assert.Equal(EPointOfInterestKind.Planet, world.PointsOfInterest[2].Kind);
-		Assert.Equal(EPointOfInterestKind.Station, world.PointsOfInterest[3].Kind);
+		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Star);
+		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.AsteroidField);
+		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Planet);
+		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Station);
+		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Wormhole);
 
 		for (var i = 0; i < world.PointsOfInterest.Count; i++)
 		{
@@ -35,16 +37,8 @@ public sealed class StarMapTests
 			Assert.True(world.IsInBounds(poi.Center), $"Center out of bounds: {poi.Center}");
 			Assert.True(poi.Radius > 0);
 
-			var edgePoints = new[]
-			{
-				poi.Center + new Coord(poi.Radius, 0, 0),
-				poi.Center + new Coord(-poi.Radius, 0, 0),
-				poi.Center + new Coord(0, 0, poi.Radius),
-				poi.Center + new Coord(0, 0, -poi.Radius),
-			};
-
-			foreach (var edge in edgePoints)
-				Assert.True(world.IsInBounds(edge), $"Radius extends out of bounds: {edge} for {poi.Id}");
+			Assert.True(GridBounds.IsCircleWhollyInRectangle(poi.Center, poi.Radius, world.Width, world.Height),
+				$"Radius extends out of bounds for {poi.Id}");
 		}
 	}
 
@@ -69,6 +63,7 @@ public sealed class StarMapTests
 		Assert.Equal(world.Seed, fork.Seed);
 		Assert.Equal(world.Width, fork.Width);
 		Assert.Equal(world.Height, fork.Height);
+		Assert.Same(world.Blueprint, fork.Blueprint);
 		Assert.Same(world.PointsOfInterest, fork.PointsOfInterest);
 		Assert.Same(world.DocksById, fork.DocksById);
 		Assert.Same(world.DocksByPoiId, fork.DocksByPoiId);
@@ -77,25 +72,25 @@ public sealed class StarMapTests
 		Assert.NotSame(world.TrafficController, fork.TrafficController);
 		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
-		Assert.Equal(3, world.UnitRegistry.Ids.Count());
-		Assert.Equal(3, fork.UnitRegistry.Ids.Count());
+		Assert.Equal(4, world.UnitRegistry.Ids.Count());
+		Assert.Equal(4, fork.UnitRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
-		fork.UnitRegistry.UnitOf(Factory.CargoShuttleId).State.AdvanceTransit(99);
+		fork.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State.AdvanceTransit(99);
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
 		Assert.NotEqual(
-			world.UnitRegistry.UnitOf(Factory.CargoShuttleId).State.Journey.LongitudinalProgress,
-			fork.UnitRegistry.UnitOf(Factory.CargoShuttleId).State.Journey.LongitudinalProgress);
+			world.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State.Journey.LongitudinalProgress,
+			fork.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State.Journey.LongitudinalProgress);
 	}
 
 	[Fact]
-	public void CreateDevDefault_HasThreeDocks_NoStarDock()
+	public void CreateDevDefault_HasFourDocks_NoStarDock()
 	{
 		var world = StarMap.CreateDevDefault(0);
 
-		Assert.Equal(3, world.DocksById.Count);
-		Assert.Equal(3, world.UnitRegistry.Ids.Count());
+		Assert.Equal(4, world.DocksById.Count);
+		Assert.Equal(4, world.UnitRegistry.Ids.Count());
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
 			world.DocksByPoiId.Keys);

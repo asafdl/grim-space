@@ -1,4 +1,6 @@
 using Godot;
+using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Poi;
@@ -22,6 +24,8 @@ public partial class MapView : Node3D
 	private static readonly Color StarColor = new(0.89f, 0.66f, 0.33f);
 	private static readonly Color StationBeacon = new(0.45f, 0.72f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
+	private static readonly Color CopperTint = new(0.76f, 0.48f, 0.26f);
+	private static readonly Color WormholeTint = new(0.55f, 0.35f, 0.95f);
 
 	private static readonly Color[] PlanetPalette =
 	[
@@ -74,7 +78,7 @@ public partial class MapView : Node3D
 			_footprints[poi.Id] = footprint;
 			AddChild(footprint);
 
-			var marker = BuildPoiMarker(poi, world.Width, world.Height, ref planetIndex);
+			var marker = BuildPoiMarker(poi, world.Seed, world.Width, world.Height, ref planetIndex);
 			_markers[poi.Id] = marker;
 			AddChild(marker);
 		}
@@ -294,7 +298,12 @@ public partial class MapView : Node3D
 		};
 	}
 
-	private Node3D BuildPoiMarker(PointOfInterest poi, int width, int height, ref int planetIndex)
+	private Node3D BuildPoiMarker(
+		PointOfInterest poi,
+		int seed,
+		int width,
+		int height,
+		ref int planetIndex)
 	{
 		var root = new Node3D
 		{
@@ -310,15 +319,25 @@ public partial class MapView : Node3D
 			case EPointOfInterestKind.Planet:
 				AddPlanet(root, PlanetPalette[planetIndex++ % PlanetPalette.Length]);
 				break;
-			default:
+			case EPointOfInterestKind.AsteroidField:
+				AddAsteroidField(root, seed, poi);
+				break;
+			case EPointOfInterestKind.Wormhole:
+				AddWormhole(root, seed, poi);
+				break;
+			case EPointOfInterestKind.Station:
 				AddStation(root);
 				break;
+			default:
+				throw new InvalidOperationException($"Unsupported POI kind '{poi.Kind}'.");
 		}
 
 		var ringRadius = poi.Kind switch
 		{
 			EPointOfInterestKind.Star => 1.25f,
 			EPointOfInterestKind.Planet => 0.95f,
+			EPointOfInterestKind.AsteroidField => 1.05f,
+			EPointOfInterestKind.Wormhole => 0.88f,
 			_ => 0.75f,
 		};
 		var ring = new MeshInstance3D
@@ -406,6 +425,85 @@ public partial class MapView : Node3D
 				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
 			},
 		});
+	}
+
+	private static void AddAsteroidField(Node3D root, int seed, PointOfInterest poi)
+	{
+		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Value);
+		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
+		var count = 8 + (int)(random.NextDouble() * 8);
+
+		for (var i = 0; i < count; i++)
+		{
+			var rng = CreateGodotRng(seed, poi.Id, i);
+			var angle = random.NextDouble() * System.Math.Tau;
+			var distance = random.NextDouble() * worldRadius * 0.82;
+			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.25;
+			var scale = 0.06f + (float)random.NextDouble() * 0.12f;
+			var tint = CopperTint.Lightened((float)(random.NextDouble() * 0.12 - 0.06));
+
+			root.AddChild(new MeshInstance3D
+			{
+				Name = $"Rock_{i}",
+				Position = new Vector3(
+					(float)(System.Math.Cos(angle) * distance),
+					(float)lift,
+					(float)(System.Math.Sin(angle) * distance)),
+				Rotation = new Vector3(
+					(float)(random.NextDouble() * System.Math.Tau),
+					(float)(random.NextDouble() * System.Math.Tau),
+					(float)(random.NextDouble() * System.Math.Tau)),
+				Mesh = AsteroidMesh.Create(Vector3.One * scale, rng),
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = tint,
+					Roughness = 0.92f,
+				},
+			});
+		}
+	}
+
+	private static void AddWormhole(Node3D root, int seed, PointOfInterest poi)
+	{
+		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Add("wormhole").Value);
+		var ringCount = 2 + (int)(random.NextDouble() * 2);
+
+		for (var i = 0; i < ringCount; i++)
+		{
+			var inner = 0.28f + i * 0.10f + (float)random.NextDouble() * 0.04f;
+			var outer = inner + 0.05f + (float)random.NextDouble() * 0.03f;
+			var tiltX = 55f + i * 18f + (float)(random.NextDouble() * 16 - 8);
+			var tiltY = (float)(random.NextDouble() * 360);
+			var pulse = 0.75f + (float)random.NextDouble() * 0.35f;
+
+			root.AddChild(new MeshInstance3D
+			{
+				Name = $"Ring_{i}",
+				RotationDegrees = new Vector3(tiltX, tiltY, 0f),
+				Mesh = new TorusMesh { InnerRadius = inner, OuterRadius = outer },
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				MaterialOverride = new StandardMaterial3D
+				{
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+					Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+					AlbedoColor = WormholeTint with { A = 0.55f },
+					EmissionEnabled = true,
+					Emission = WormholeTint,
+					EmissionEnergyMultiplier = pulse,
+					CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+				},
+			});
+		}
+	}
+
+	private static RandomNumberGenerator CreateGodotRng(int seed, string poiId, int index)
+	{
+		var godotRng = new RandomNumberGenerator
+		{
+			Seed = StableSeedMixer.From(seed).Add(poiId).Add(index).Value,
+		};
+		return godotRng;
 	}
 
 	private static void AddStation(Node3D root)

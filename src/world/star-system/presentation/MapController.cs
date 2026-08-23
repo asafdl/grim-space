@@ -16,6 +16,7 @@ public partial class MapController : Node3D
 	private Label _typeLabel = null!;
 	private Label _nameLabel = null!;
 	private Label _tickLabel = null!;
+	private Label _systemLabel = null!;
 	private Button _pauseButton = null!;
 	private Button _stepButton = null!;
 	private Button _speedButton = null!;
@@ -55,6 +56,7 @@ public partial class MapController : Node3D
 		_view.Build(world);
 		_units.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
+		UpdateSystemLabel(world);
 		UpdateDebugUi();
 	}
 
@@ -222,6 +224,20 @@ public partial class MapController : Node3D
 		});
 		panel.AddChild(row);
 		_uiLayer.AddChild(panel);
+
+		_systemLabel = new Label
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		_systemLabel.AddThemeFontSizeOverride("font_size", 13);
+		_systemLabel.AddThemeColorOverride("font_color", new Color(0.44f, 0.51f, 0.58f));
+		_systemLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
+		_systemLabel.OffsetLeft = -220;
+		_systemLabel.OffsetTop = 16;
+		_systemLabel.OffsetRight = -16;
+		_systemLabel.OffsetBottom = 36;
+		_systemLabel.HorizontalAlignment = HorizontalAlignment.Right;
+		_uiLayer.AddChild(_systemLabel);
 	}
 
 	private void UpdateDebugUi()
@@ -235,6 +251,12 @@ public partial class MapController : Node3D
 	private void CycleSpeed(int delta)
 	{
 		_speedIndex = Mathf.PosMod(_speedIndex + delta, SpeedOptions.Length);
+	}
+
+	private void UpdateSystemLabel(StarMap world)
+	{
+		var blueprint = world.Blueprint;
+		_systemLabel.Text = $"{blueprint.SystemClass} · seed {blueprint.Seed} · {blueprint.SupplyPlan.ResourceId}";
 	}
 
 	private void UpdateTooltip(
@@ -269,7 +291,10 @@ public partial class MapController : Node3D
 		}
 
 		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
-		_typeLabel.Text = poi.Kind.ToString().ToUpperInvariant();
+		var blueprint = world.Blueprint;
+		var spec = blueprint.Pois.First(p => p.Id == poiId);
+		_typeLabel.Text =
+			$"{blueprint.SystemClass} · seed {blueprint.Seed} · {spec.LogicalRole} · {poi.Kind} · {blueprint.SupplyPlan.ResourceId}";
 		_nameLabel.Text = poi.DisplayName;
 		_tooltip.Visible = true;
 		_tooltip.Position = screen + new Vector2(14, 18);

@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 
@@ -9,29 +10,31 @@ namespace GrimSpace.Tests.World.StarSystem.Traffic;
 public sealed class RouteTopologyTests
 {
 	[Fact]
-	public void CreateDevDefault_HasThreeDocks_NoStarDock()
+	public void CreateDevDefault_HasFourDocks_NoStarDock()
 	{
 		var world = StarMap.CreateDevDefault(0);
 
-		Assert.Equal(3, world.DocksById.Count);
+		Assert.Equal(4, world.DocksById.Count);
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
 			world.DocksByPoiId.Keys);
 	}
 
 	[Fact]
-	public void CreateDevDefault_BuildsTwoStationPlanetRoutes()
+	public void CreateDevDefault_BuildsThreeSupplyChainRoutes()
 	{
 		var world = StarMap.CreateDevDefault(99);
-		var station = world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Station);
-		var stationDock = world.DocksByPoiId[station.Id];
+		var plan = world.Blueprint.SupplyPlan;
 
-		Assert.Equal(2, world.RoutesById.Count);
-		foreach (var route in world.RoutesById.Values)
+		Assert.Equal(3, world.RoutesById.Count);
+		foreach (var (fromPoiId, toPoiId) in plan.RouteConnections)
 		{
-			Assert.True(
-				route.DockAId == stationDock.Id || route.DockBId == stationDock.Id,
-				$"Route {route.Id} is not a station-planet route.");
+			var fromDock = world.DocksByPoiId[fromPoiId].Id;
+			var toDock = world.DocksByPoiId[toPoiId].Id;
+			var routeId = string.Compare(fromDock, toDock, StringComparison.Ordinal) <= 0
+				? $"route:{fromDock}:{toDock}"
+				: $"route:{toDock}:{fromDock}";
+			Assert.Contains(routeId, world.RoutesById.Keys);
 		}
 	}
 

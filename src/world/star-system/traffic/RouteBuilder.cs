@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 
@@ -6,7 +7,7 @@ namespace GrimSpace.World.StarSystem.Traffic;
 
 public readonly record struct RoutePair(string DockAId, string DockBId);
 
-public sealed record CircularExclusion(Coord Center, int Radius);
+public sealed record CircularExclusion(Coord Center, int Radius, string? PoiId = null);
 
 public static class RouteBuilder
 {
@@ -47,8 +48,8 @@ public static class RouteBuilder
 				seed,
 				width,
 				height,
-				dockA.Position,
-				dockB.Position,
+				dockA,
+				dockB,
 				pair,
 				exclusions,
 				halfWidth);
@@ -117,21 +118,26 @@ public static class RouteBuilder
 		int seed,
 		int width,
 		int height,
-		Coord start,
-		Coord end,
+		Dock dockA,
+		Dock dockB,
 		RoutePair pair,
 		IReadOnlyCollection<CircularExclusion> exclusions,
 		int halfWidth)
 	{
 		for (var attempt = 0; attempt < MaxGenerationAttempts; attempt++)
 		{
-			var random = new StableRandom(StableSeed(seed, pair, attempt));
+			var random = new StableRandom(
+				StableSeedMixer.From(seed)
+					.Add(pair.DockAId)
+					.Add(pair.DockBId)
+					.Add(attempt)
+					.Value);
 			var amplitude = BaseWaveAmplitude * (0.75 + random.NextDouble() * 0.50);
-			var path = BuildSmoothPath(start, end, amplitude, ref random);
+			var path = BuildSmoothPath(dockA.Position, dockB.Position, amplitude, ref random);
 
 			if (!CorridorInsideBounds(path, width, height, halfWidth))
 				continue;
-			if (CorridorTouchesExclusion(path, exclusions, halfWidth))
+			if (CorridorTouchesExclusion(path, exclusions, halfWidth, dockA.PoiId, dockB.PoiId))
 				continue;
 
 			return path;
@@ -206,10 +212,18 @@ public static class RouteBuilder
 	private static bool CorridorTouchesExclusion(
 		IReadOnlyList<Coord> centerline,
 		IReadOnlyCollection<CircularExclusion> exclusions,
-		int halfWidth)
+		int halfWidth,
+		string endpointPoiAId,
+		string endpointPoiBId)
 	{
 		foreach (var exclusion in exclusions)
 		{
+			if (exclusion.PoiId is not null
+				&& (exclusion.PoiId == endpointPoiAId || exclusion.PoiId == endpointPoiBId))
+			{
+				continue;
+			}
+
 			var forbiddenDistance = exclusion.Radius + halfWidth + ExclusionClearance;
 			for (var i = 1; i < centerline.Count; i++)
 			{
@@ -272,54 +286,4 @@ public static class RouteBuilder
 		point.Y == 0
 		&& point.X >= 0 && point.X < width
 		&& point.Z >= 0 && point.Z < height;
-
-	private static ulong StableSeed(int seed, RoutePair pair, int attempt)
-	{
-		const ulong offset = 14695981039346656037UL;
-		const ulong prime = 1099511628211UL;
-		var hash = offset;
-
-		MixInt(seed);
-		MixString(pair.DockAId);
-		MixString(pair.DockBId);
-		MixInt(attempt);
-		return hash;
-
-		void MixInt(int value)
-		{
-			for (var shift = 0; shift < 32; shift += 8)
-			{
-				hash ^= (byte)(value >> shift);
-				hash *= prime;
-			}
-		}
-
-		void MixString(string value)
-		{
-			foreach (var character in value)
-			{
-				hash ^= (byte)character;
-				hash *= prime;
-				hash ^= (byte)(character >> 8);
-				hash *= prime;
-			}
-		}
-	}
-
-	private struct StableRandom(ulong state)
-	{
-		private ulong _state = state;
-
-		public double NextDouble() =>
-			(NextUInt64() >> 11) * (1.0 / (1UL << 53));
-
-		private ulong NextUInt64()
-		{
-			_state += 0x9E3779B97F4A7C15UL;
-			var value = _state;
-			value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9UL;
-			value = (value ^ (value >> 27)) * 0x94D049BB133111EBUL;
-			return value ^ (value >> 31);
-		}
-	}
 }

@@ -5,4 +5,6 @@ public enum EPointOfInterestKind
 	Star,
 	Planet,
 	Station,
+	AsteroidField,
+	Wormhole,
 }

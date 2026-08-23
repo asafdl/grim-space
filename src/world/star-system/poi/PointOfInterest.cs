@@ -7,4 +7,5 @@ public sealed record PointOfInterest(
 	EPointOfInterestKind Kind,
 	string DisplayName,
 	Coord Center,
-	int Radius);
+	int Radius,
+	EPoiLogicalRole? LogicalRole = null);
