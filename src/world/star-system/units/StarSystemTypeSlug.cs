@@ -6,6 +6,7 @@ public static class StarSystemTypeSlug
 		type switch
 		{
 			EType.CargoShuttle => "cargo-shuttle",
+			EType.ComplianceVessel => "compliance-vessel",
 			EType.ServiceVessel => "service-vessel",
 			EType.Patrol => "patrol",
 			EType.MiningBarge => "mining-barge",

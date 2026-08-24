@@ -11,23 +11,23 @@ namespace GrimSpace.Tests.World.StarSystem.Traffic;
 public sealed class RouteTopologyTests
 {
 	[Fact]
-	public void CreateDevDefault_HasFourDocks_NoStarDock()
+	public void CreateDevDefault_HasFiveDocks_NoStarDock()
 	{
 		var world = StarMap.CreateDevDefault(0);
 
-		Assert.Equal(4, world.DocksById.Count);
+		Assert.Equal(5, world.DocksById.Count);
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p is Star).Id,
 			world.DocksByPoiId.Keys);
 	}
 
 	[Fact]
-	public void CreateDevDefault_BuildsThreeSupplyChainRoutes()
+	public void CreateDevDefault_BuildsAllPlannedRoutes()
 	{
 		var world = StarMap.CreateDevDefault(99);
 		var plan = world.Blueprint.SupplyPlan;
 
-		Assert.Equal(3, world.RoutesById.Count);
+		Assert.Equal(5, world.RoutesById.Count);
 		foreach (var (fromPoiId, toPoiId) in plan.RouteConnections)
 		{
 			var fromDock = world.DocksByPoiId[fromPoiId].Id;

@@ -30,6 +30,7 @@ public sealed class Wormhole : PointOfInterest
 		unitType switch
 		{
 			EType.ExportFreighter => 10,
+			EType.ComplianceVessel => 4,
 			_ => throw new InvalidOperationException(
 				$"Exit POI has no task for unit type {unitType}."),
 		};

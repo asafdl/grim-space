@@ -54,6 +54,18 @@ public abstract class PointOfInterest
 		_waiting!.Enqueue(unitId);
 	}
 
+	public void AdoptSpawnedWorker(string unitId)
+	{
+		if (!HasTasks)
+			throw new InvalidOperationException($"POI '{Id}' does not accept tasks.");
+
+		ArgumentException.ThrowIfNullOrEmpty(unitId);
+		if (_activeUnitId is not null)
+			throw new InvalidOperationException($"POI '{Id}' already has an active worker.");
+
+		_activeUnitId = unitId;
+	}
+
 	public void AdvanceTick(UnitRegistry units)
 	{
 		if (!HasTasks)

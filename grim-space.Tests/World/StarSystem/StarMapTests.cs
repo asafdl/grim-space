@@ -17,7 +17,7 @@ public sealed class StarMapTests
 		Assert.Equal(42, world.Seed);
 		Assert.Equal(StarMap.DevMapWidth, world.Width);
 		Assert.Equal(StarMap.DevMapHeight, world.Height);
-		Assert.Equal(5, world.PointsOfInterest.Count);
+		Assert.Equal(6, world.PointsOfInterest.Count);
 		Assert.Equal(EStarSystemClass.Supply, world.Blueprint.SystemClass);
 
 		Assert.Contains(world.PointsOfInterest, poi => poi is Star);
@@ -25,6 +25,7 @@ public sealed class StarMapTests
 		Assert.Contains(world.PointsOfInterest, poi => poi is Refinery);
 		Assert.Contains(world.PointsOfInterest, poi => poi is StorageFacility);
 		Assert.Contains(world.PointsOfInterest, poi => poi is Wormhole);
+		Assert.Contains(world.PointsOfInterest, poi => poi is AdministrativeCore);
 
 		for (var i = 0; i < world.PointsOfInterest.Count; i++)
 		{
@@ -74,8 +75,8 @@ public sealed class StarMapTests
 		Assert.NotSame(world.TrafficController, fork.TrafficController);
 		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
-		Assert.Equal(8, world.UnitRegistry.Ids.Count());
-		Assert.Equal(8, fork.UnitRegistry.Ids.Count());
+		Assert.Equal(16, world.UnitRegistry.Ids.Count());
+		Assert.Equal(16, fork.UnitRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
 		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.AdvanceTransit(99);
@@ -88,12 +89,12 @@ public sealed class StarMapTests
 	}
 
 	[Fact]
-	public void CreateDevDefault_HasFourDocks_NoStarDock()
+	public void CreateDevDefault_HasFiveDocks_NoStarDock()
 	{
 		var world = StarMap.CreateDevDefault(0);
 
-		Assert.Equal(4, world.DocksById.Count);
-		Assert.Equal(8, world.UnitRegistry.Ids.Count());
+		Assert.Equal(5, world.DocksById.Count);
+		Assert.Equal(16, world.UnitRegistry.Ids.Count());
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p is Star).Id,
 			world.DocksByPoiId.Keys);

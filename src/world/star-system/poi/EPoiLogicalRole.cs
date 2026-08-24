@@ -7,4 +7,5 @@ public enum EPoiLogicalRole
 	Refinery,
 	Storage,
 	Exit,
+	Administrative,
 }

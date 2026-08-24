@@ -8,6 +8,7 @@ public static class UnitDefaults
 			EType.MiningBarge => 5,
 			EType.RefineryHauler => 6,
 			EType.ExportFreighter => 5,
+			EType.ComplianceVessel => 7,
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, "No default speed for unit type."),
 		};
 }

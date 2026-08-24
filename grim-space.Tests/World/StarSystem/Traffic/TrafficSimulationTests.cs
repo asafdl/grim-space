@@ -87,6 +87,33 @@ public sealed class TrafficSimulationTests
 	}
 
 	[Fact]
+	public void AdvanceTicks_ComplianceVesselVisitsOperationalPoisAndReturnsHome()
+	{
+		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
+		var map = orchestrator.Map;
+		var compliance = FirstUnitOfType(map, EType.ComplianceVessel);
+		var adminDock = DockForRole(map, EPoiLogicalRole.Administrative).Id;
+		var extractionDock = DockForRole(map, EPoiLogicalRole.Extraction).Id;
+		var refineryDock = DockForRole(map, EPoiLogicalRole.Refinery).Id;
+		var storageDock = DockForRole(map, EPoiLogicalRole.Storage).Id;
+		var exitDock = DockForRole(map, EPoiLogicalRole.Exit).Id;
+		var visited = new HashSet<string>(StringComparer.Ordinal);
+
+		for (var tick = 0; tick < 3000; tick++)
+		{
+			orchestrator.AdvanceTick();
+			if (compliance.Phase == EPhase.Working)
+				visited.Add(compliance.DockedAtDockId);
+		}
+
+		Assert.Contains(extractionDock, visited);
+		Assert.Contains(refineryDock, visited);
+		Assert.Contains(storageDock, visited);
+		Assert.Contains(exitDock, visited);
+		Assert.Contains(adminDock, visited);
+	}
+
+	[Fact]
 	public void AdvanceTicks_200TickLoop_DoesNotThrowAndKeepsControllerValid()
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(7));

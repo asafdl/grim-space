@@ -276,6 +276,7 @@ public partial class UnitsView : Node3D
 		type switch
 		{
 			EType.CargoShuttle => new Color(0.92f, 0.62f, 0.28f),
+			EType.ComplianceVessel => new Color(0.58f, 0.62f, 0.92f),
 			EType.ServiceVessel => new Color(0.42f, 0.72f, 0.88f),
 			EType.Patrol => new Color(0.88f, 0.38f, 0.34f),
 			_ => new Color(0.75f, 0.75f, 0.75f),

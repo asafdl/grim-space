@@ -31,6 +31,7 @@ public sealed class StorageFacility : PointOfInterest
 		{
 			EType.RefineryHauler => 5,
 			EType.ExportFreighter => 7,
+			EType.ComplianceVessel => 4,
 			_ => throw new InvalidOperationException(
 				$"Storage POI has no task for unit type {unitType}."),
 		};

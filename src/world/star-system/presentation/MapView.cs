@@ -23,17 +23,10 @@ public partial class MapView : Node3D
 	private static readonly Color GridBoundary = new(0.32f, 0.44f, 0.54f, BoundaryAlpha);
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
 	private static readonly Color StarColor = new(0.89f, 0.66f, 0.33f);
-	private static readonly Color StationBeacon = new(0.45f, 0.72f, 0.78f);
+	private static readonly Color StationSilver = new(0.72f, 0.74f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
 	private static readonly Color CopperTint = new(0.76f, 0.48f, 0.26f);
 	private static readonly Color WormholeTint = new(0.55f, 0.35f, 0.95f);
-
-	private static readonly Color[] PlanetPalette =
-	[
-		new(0.20f, 0.26f, 0.34f),
-		new(0.16f, 0.26f, 0.28f),
-		new(0.32f, 0.20f, 0.16f),
-	];
 
 	private readonly Dictionary<string, MeshInstance3D> _footprints = new();
 	private readonly Dictionary<string, Node3D> _markers = new();
@@ -71,7 +64,6 @@ public partial class MapView : Node3D
 
 		AddChild(BuildReferenceGrid(world.Width, world.Height));
 
-		var planetIndex = 0;
 		foreach (var poi in world.PointsOfInterest)
 		{
 			var footprint = BuildPoiFootprint(poi, world.Width, world.Height);
@@ -79,7 +71,7 @@ public partial class MapView : Node3D
 			_footprints[poi.Id] = footprint;
 			AddChild(footprint);
 
-			var marker = BuildPoiMarker(poi, world.Seed, world.Width, world.Height, ref planetIndex);
+			var marker = BuildPoiMarker(poi, world.Seed, world.Width, world.Height);
 			_markers[poi.Id] = marker;
 			AddChild(marker);
 		}
@@ -303,8 +295,7 @@ public partial class MapView : Node3D
 		PointOfInterest poi,
 		int seed,
 		int width,
-		int height,
-		ref int planetIndex)
+		int height)
 	{
 		var root = new Node3D
 		{
@@ -320,7 +311,7 @@ public partial class MapView : Node3D
 				ringRadius = 1.25f;
 				break;
 			case Refinery:
-				AddPlanet(root, PlanetPalette[planetIndex++ % PlanetPalette.Length]);
+				AddPlanet(root, RandomPlanetColor(seed, poi.Id));
 				ringRadius = 0.95f;
 				break;
 			case OreMine:
@@ -334,6 +325,18 @@ public partial class MapView : Node3D
 			case StorageFacility:
 				AddStation(root);
 				ringRadius = 0.75f;
+				break;
+			case AdministrativeCore admin:
+				if (admin.PhysicalForm == EPoiPhysicalForm.Planet)
+				{
+					AddPlanet(root, RandomPlanetColor(seed, poi.Id));
+					ringRadius = 1.0f;
+				}
+				else
+				{
+					AddLargeStation(root);
+					ringRadius = 0.95f;
+				}
 				break;
 			default:
 				throw new InvalidOperationException($"Unsupported POI type '{poi.GetType().Name}'.");
@@ -362,6 +365,23 @@ public partial class MapView : Node3D
 
 		return root;
 	}
+
+	private static Color RandomPlanetColor(int seed, string poiId)
+	{
+		var random = new StableRandom(StableSeedMixer.From(seed).Add(poiId).Add("planet-color").Value);
+		var hue = (float)random.NextDouble();
+		var saturation = 0.22f + (float)random.NextDouble() * 0.48f;
+		var value = 0.26f + (float)random.NextDouble() * 0.38f;
+		return Color.FromHsv(hue, saturation, value);
+	}
+
+	private static StandardMaterial3D StationHullMaterial() =>
+		new()
+		{
+			AlbedoColor = StationSilver,
+			Metallic = 0.82f,
+			Roughness = 0.28f,
+		};
 
 	private static void AddStar(Node3D root)
 	{
@@ -505,21 +525,69 @@ public partial class MapView : Node3D
 		return godotRng;
 	}
 
+	private static void AddLargeStation(Node3D root)
+	{
+		var hull = StationHullMaterial();
+
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "Hub",
+			Position = Vector3.Zero,
+			Mesh = new SphereMesh { Radius = 0.32f, Height = 0.64f },
+			MaterialOverride = hull,
+		});
+
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "Ring",
+			Position = Vector3.Zero,
+			RotationDegrees = new Vector3(90f, 0f, 0f),
+			Mesh = new TorusMesh { InnerRadius = 0.58f, OuterRadius = 0.70f },
+			MaterialOverride = hull,
+		});
+
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "ArmA",
+			Position = Vector3.Zero,
+			Mesh = new BoxMesh { Size = new Vector3(1.45f, 0.08f, 0.18f) },
+			MaterialOverride = hull,
+		});
+
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "ArmB",
+			Position = Vector3.Zero,
+			Mesh = new BoxMesh { Size = new Vector3(0.18f, 0.08f, 1.45f) },
+			MaterialOverride = hull,
+		});
+
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "Beacon",
+			Position = new Vector3(0f, 0.42f, 0f),
+			Mesh = new SphereMesh { Radius = 0.08f, Height = 0.16f },
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = StationSilver.Lightened(0.18f),
+				EmissionEnabled = true,
+				Emission = StationSilver,
+				EmissionEnergyMultiplier = 0.55f,
+			},
+		});
+	}
+
 	private static void AddStation(Node3D root)
 	{
-		var steel = new StandardMaterial3D
-		{
-			AlbedoColor = new Color(0.20f, 0.22f, 0.26f),
-			Metallic = 0.55f,
-			Roughness = 0.45f,
-		};
+		var hull = StationHullMaterial();
 
 		root.AddChild(new MeshInstance3D
 		{
 			Name = "Hub",
 			Position = Vector3.Zero,
 			Mesh = new SphereMesh { Radius = 0.20f, Height = 0.40f },
-			MaterialOverride = steel,
+			MaterialOverride = hull,
 		});
 
 		root.AddChild(new MeshInstance3D
@@ -528,7 +596,7 @@ public partial class MapView : Node3D
 			Position = Vector3.Zero,
 			RotationDegrees = new Vector3(90f, 0f, 0f),
 			Mesh = new TorusMesh { InnerRadius = 0.36f, OuterRadius = 0.44f },
-			MaterialOverride = steel,
+			MaterialOverride = hull,
 		});
 
 		root.AddChild(new MeshInstance3D
@@ -536,7 +604,7 @@ public partial class MapView : Node3D
 			Name = "ArmA",
 			Position = Vector3.Zero,
 			Mesh = new BoxMesh { Size = new Vector3(0.95f, 0.06f, 0.12f) },
-			MaterialOverride = steel,
+			MaterialOverride = hull,
 		});
 
 		root.AddChild(new MeshInstance3D
@@ -544,7 +612,7 @@ public partial class MapView : Node3D
 			Name = "ArmB",
 			Position = Vector3.Zero,
 			Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.06f, 0.95f) },
-			MaterialOverride = steel,
+			MaterialOverride = hull,
 		});
 
 		root.AddChild(new MeshInstance3D
@@ -555,10 +623,10 @@ public partial class MapView : Node3D
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = new StandardMaterial3D
 			{
-				AlbedoColor = StationBeacon,
+				AlbedoColor = StationSilver.Lightened(0.18f),
 				EmissionEnabled = true,
-				Emission = StationBeacon,
-				EmissionEnergyMultiplier = 0.9f,
+				Emission = StationSilver,
+				EmissionEnergyMultiplier = 0.55f,
 			},
 		});
 	}

@@ -1,6 +1,7 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem.Generation;
 
@@ -18,6 +19,53 @@ public sealed class SupplySystemGenerationTests
 		Assert.Equal(first.DocksById.Keys, second.DocksById.Keys);
 		foreach (var dockId in first.DocksById.Keys)
 			Assert.Equal(first.DocksById[dockId].Position, second.DocksById[dockId].Position);
+	}
+
+	[Fact]
+	public void Generate_SameSeed_ProducesIdenticalUnitChores()
+	{
+		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
+		var second = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
+
+		Assert.Equal(
+			first.Blueprint.UnitSpawns.Select(spawn => (spawn.Type, spawn.StartPoiId, spawn.ChorePoiIds)),
+			second.Blueprint.UnitSpawns.Select(spawn => (spawn.Type, spawn.StartPoiId, spawn.ChorePoiIds)));
+	}
+
+	[Fact]
+	public void Generate_UnitChores_AreNotAllIdenticalWithinType()
+	{
+		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
+		var spawns = world.Blueprint.UnitSpawns;
+
+		Assert.True(HasChoreVariation(spawns, EType.ComplianceVessel));
+		Assert.True(HasChoreVariation(spawns, EType.MiningBarge));
+	}
+
+	private static bool HasChoreVariation(IEnumerable<UnitSpawnIntent> spawns, EType type)
+	{
+		var signatures = spawns
+			.Where(spawn => spawn.Type == type)
+			.Select(spawn => (spawn.StartPoiId, Chore: string.Join(',', spawn.ChorePoiIds)))
+			.Distinct()
+			.ToArray();
+		return signatures.Length > 1;
+	}
+
+	[Fact]
+	public void Generate_UnitSpawns_AreDistributedAlongChoreRoutes()
+	{
+		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
+		var signatures = world.UnitRegistry.All
+			.Select(unit => (
+				unit.State.Phase,
+				unit.State.DockedAtDockId,
+				InTransit: unit.State.Phase == EPhase.InTransit))
+			.Distinct()
+			.ToArray();
+
+		Assert.True(signatures.Length > 1);
+		Assert.Contains(signatures, signature => signature.InTransit);
 	}
 
 	[Fact]
@@ -45,15 +93,16 @@ public sealed class SupplySystemGenerationTests
 		var plan = world.Blueprint.SupplyPlan;
 
 		Assert.Equal("copper", plan.ResourceId);
-		Assert.Equal(5, world.PointsOfInterest.Count);
-		Assert.Equal(4, world.DocksById.Count);
-		Assert.Equal(3, world.RoutesById.Count);
-		Assert.Equal(8, world.UnitRegistry.Ids.Count());
+		Assert.Equal(6, world.PointsOfInterest.Count);
+		Assert.Equal(5, world.DocksById.Count);
+		Assert.Equal(5, world.RoutesById.Count);
+		Assert.Equal(16, world.UnitRegistry.Ids.Count());
 
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Refinery);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Storage);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Exit);
+		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Administrative);
 
 		foreach (var template in world.Blueprint.PoiTemplates)
 			Assert.Contains(world.PointsOfInterest, poi => poi.Id == template.Id);

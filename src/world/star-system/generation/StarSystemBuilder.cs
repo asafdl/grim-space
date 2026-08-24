@@ -76,16 +76,52 @@ public static class StarSystemBuilder
 			exclusions,
 			StarMap.DevRouteHalfWidth);
 
+		var poiById = pois.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
+		var trafficController = new SystemTrafficController();
 		var unitRegistry = new UnitRegistry();
+		var poisWithSpawnedWorkers = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var intent in blueprint.UnitSpawns)
 		{
+			var choreDockIds = intent.ChorePoiIds
+				.Select(poiId => docksByPoiId[poiId].Id)
+				.ToArray();
+			var placement = UnitSpawnPlacement.Resolve(
+				blueprint.Seed,
+				intent.Id,
+				intent.Type,
+				choreDockIds,
+				routesById,
+				docksById,
+				poiById,
+				poisWithSpawnedWorkers);
+
 			var spawn = new Spawn(
 				intent.Id,
 				intent.Type,
-				docksByPoiId[intent.StartPoiId].Id,
+				placement.DockedAtDockId,
 				UnitDefaults.SpeedPerTick(intent.Type),
-				intent.ChorePoiIds.Select(poiId => docksByPoiId[poiId].Id).ToArray());
-			unitRegistry.Add(Factory.Create(spawn));
+				choreDockIds);
+			var unit = Factory.Create(spawn);
+			ApplySpawnPlacement(unit.State, placement);
+
+			if (placement.Phase == EPhase.InTransit)
+			{
+				if (!trafficController.TryRegisterLane(
+					unit.State.Id,
+					placement.TransitRouteId!,
+					placement.TransitTowardDockB))
+				{
+					throw new InvalidOperationException(
+						$"Could not register transit lane for spawned unit '{unit.State.Id}'.");
+				}
+			}
+			else if (placement.Phase == EPhase.Working)
+			{
+				poiById[placement.WorkingPoiId!].AdoptSpawnedWorker(unit.State.Id);
+				poisWithSpawnedWorkers.Add(placement.WorkingPoiId!);
+			}
+
+			unitRegistry.Add(unit);
 		}
 
 		Validate(blueprint, pois, docksByPoiId, routesById, unitRegistry);
@@ -98,7 +134,7 @@ public static class StarSystemBuilder
 			docksByPoiId,
 			routesById,
 			unitRegistry,
-			new SystemTrafficController());
+			trafficController);
 	}
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)
@@ -109,6 +145,7 @@ public static class StarSystemBuilder
 		var extractionTemplate = templatesByRole[EPoiLogicalRole.Extraction];
 		var storageTemplate = templatesByRole[EPoiLogicalRole.Storage];
 		var exitTemplate = templatesByRole[EPoiLogicalRole.Exit];
+		var adminTemplate = templatesByRole[EPoiLogicalRole.Administrative];
 
 		for (var attempt = 0; attempt < MaxPlacementAttempts; attempt++)
 		{
@@ -149,12 +186,26 @@ public static class StarSystemBuilder
 			if (exitCenter is null)
 				continue;
 
+			var adminAngle = exitAngle
+				+ MinHubSeparationRadians
+				+ random.NextDouble() * (System.Math.Tau - MinHubSeparationRadians);
+			var adminCenter = SampleAnnulus(
+				blueprint,
+				exitCenter.Value,
+				adminAngle,
+				random,
+				adminTemplate.Radius,
+				MinChainDistance);
+			if (adminCenter is null)
+				continue;
+
 			var candidates = new PointOfInterest[]
 			{
 				extractionTemplate.Place(extractionCenter.Value),
 				refineryTemplate.Place(refineryCenter),
 				storageTemplate.Place(storageCenter.Value),
 				exitTemplate.Place(exitCenter.Value),
+				adminTemplate.Place(adminCenter.Value),
 			};
 
 			var starCenter = SampleStarCenter(blueprint, starTemplate.Radius, random);
@@ -218,6 +269,21 @@ public static class StarSystemBuilder
 				.Add(layoutAttempt)
 				.Add(attempt)
 				.Value);
+
+	private static void ApplySpawnPlacement(State state, UnitSpawnPlacement.Result placement)
+	{
+		state.ChoreIndex = placement.ChoreIndex;
+		state.Phase = placement.Phase;
+		state.WorkTicksRemaining = placement.WorkTicksRemaining;
+		state.DockedAtDockId = placement.DockedAtDockId;
+
+		if (placement.Phase != EPhase.InTransit)
+			return;
+
+		state.Journey.RouteId = placement.TransitRouteId;
+		state.Journey.TowardDockB = placement.TransitTowardDockB;
+		state.Journey.LongitudinalProgress = placement.TransitProgress;
+	}
 
 	private static Coord SampleFreeCenter(StarSystemBlueprint blueprint, int radius, StableRandom random)
 	{
@@ -288,8 +354,10 @@ public static class StarSystemBuilder
 			.GroupBy(poi => poi.LogicalRole)
 			.ToDictionary(group => group.Key, group => group.Single());
 
-		if (roles.Count != 4)
-			throw new InvalidOperationException("Supply map must contain exactly four operational POI roles.");
+		var expectedOperationalRoles = blueprint.PoiTemplates.Count(poi => poi.HasDock);
+		if (roles.Count != expectedOperationalRoles)
+			throw new InvalidOperationException(
+				$"Supply map must contain exactly {expectedOperationalRoles} operational POI roles.");
 
 		foreach (var template in blueprint.PoiTemplates)
 		{
@@ -309,8 +377,9 @@ public static class StarSystemBuilder
 				throw new InvalidOperationException($"Missing route for POI link {fromPoiId} <-> {toPoiId}.");
 		}
 
-		if (docksByPoiId.Count != 4)
-			throw new InvalidOperationException("Supply map must contain exactly four docks.");
+		if (docksByPoiId.Count != expectedOperationalRoles)
+			throw new InvalidOperationException(
+				$"Supply map must contain exactly {expectedOperationalRoles} docks.");
 
 		if (unitRegistry.Ids.Count() != blueprint.UnitSpawns.Count)
 			throw new InvalidOperationException("Unit spawn count does not match blueprint.");

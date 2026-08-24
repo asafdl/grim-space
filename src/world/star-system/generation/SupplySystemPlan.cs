@@ -8,7 +8,8 @@ public sealed record SupplySystemPlan(
 	string ExtractionPoiId,
 	string RefineryPoiId,
 	string StoragePoiId,
-	string ExitPoiId)
+	string ExitPoiId,
+	string AdministrativePoiId)
 {
 	public const string StarPoiId = "star";
 	public const string CopperResourceId = "copper";
@@ -18,21 +19,25 @@ public sealed record SupplySystemPlan(
 		ExtractionPoiId: "poi-extraction",
 		RefineryPoiId: "poi-refinery",
 		StoragePoiId: "poi-storage",
-		ExitPoiId: "poi-exit");
+		ExitPoiId: "poi-exit",
+		AdministrativePoiId: "poi-admin");
 
 	public (string FromPoiId, string ToPoiId)[] RouteConnections { get; } =
 	[
 		(ExtractionPoiId, RefineryPoiId),
 		(RefineryPoiId, StoragePoiId),
 		(StoragePoiId, ExitPoiId),
+		(AdministrativePoiId, ExtractionPoiId),
+		(AdministrativePoiId, ExitPoiId),
 	];
 
-	public PointOfInterest[] CreatePoiTemplates() =>
+	public PointOfInterest[] CreatePoiTemplates(int seed) =>
 	[
 		Star.Template(),
 		OreMine.Template(this),
 		Refinery.Template(this),
 		StorageFacility.Template(this),
 		Wormhole.Template(this),
+		AdministrativeCore.Template(this, seed),
 	];
 }

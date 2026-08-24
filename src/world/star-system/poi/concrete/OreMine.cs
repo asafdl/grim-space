@@ -30,6 +30,7 @@ public sealed class OreMine : PointOfInterest
 		unitType switch
 		{
 			EType.MiningBarge => 8,
+			EType.ComplianceVessel => 4,
 			_ => throw new InvalidOperationException(
 				$"Extraction POI has no task for unit type {unitType}."),
 		};
