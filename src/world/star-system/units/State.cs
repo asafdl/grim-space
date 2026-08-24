@@ -11,7 +11,6 @@ public sealed class State
 	public int ChoreIndex { get; set; }
 	public double SpeedPerTick { get; init; }
 	public int WorkTicksRemaining { get; set; }
-	public int WorkDuration { get; init; }
 
 	public bool IsReadyToDepart =>
 		Phase == EPhase.Docked && WorkTicksRemaining <= 0;
@@ -37,8 +36,15 @@ public sealed class State
 	{
 		ClearTransit();
 		DockedAtDockId = dockId;
+		WorkTicksRemaining = 0;
+	}
+
+	internal void EnterWaiting() => Phase = EPhase.Waiting;
+
+	internal void BeginWork(int duration)
+	{
 		Phase = EPhase.Working;
-		WorkTicksRemaining = WorkDuration;
+		WorkTicksRemaining = duration;
 	}
 
 	internal void CompleteWork()
@@ -75,7 +81,6 @@ public sealed class State
 			ChoreIndex = ChoreIndex,
 			SpeedPerTick = SpeedPerTick,
 			WorkTicksRemaining = WorkTicksRemaining,
-			WorkDuration = WorkDuration,
 		};
 		clone.Journey.RouteId = Journey.RouteId;
 		clone.Journey.TowardDockB = Journey.TowardDockB;
@@ -91,7 +96,6 @@ public sealed class State
 			Type = spawn.Type,
 			DockedAtDockId = spawn.DockedAtDockId,
 			SpeedPerTick = spawn.SpeedPerTick,
-			WorkDuration = spawn.WorkDuration,
 			ChoreDockIds = spawn.ChoreDockIds,
 		};
 }

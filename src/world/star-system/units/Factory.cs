@@ -8,7 +8,6 @@ public static class Factory
 		ArgumentException.ThrowIfNullOrEmpty(spawn.Id);
 		ArgumentException.ThrowIfNullOrEmpty(spawn.DockedAtDockId);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.SpeedPerTick, 0);
-		ArgumentOutOfRangeException.ThrowIfNegative(spawn.WorkDuration);
 		ArgumentNullException.ThrowIfNull(spawn.ChoreDockIds);
 		if (spawn.ChoreDockIds.Count == 0)
 			throw new ArgumentException("At least one chore destination is required.", nameof(spawn));

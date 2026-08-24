@@ -99,7 +99,6 @@ public sealed class EnemyRailgunScoringTests
 			},
 			position,
 			new AiController(),
-			null,
 			0,
 			fore,
 			dorsal);

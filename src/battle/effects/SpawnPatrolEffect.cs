@@ -27,7 +27,6 @@ public sealed class SpawnPatrolEffect(string? unitId = null) : IEffect<BattleWor
 			},
 			position,
 			new AiController(),
-			world.IdRegistry,
 			PatrolBayMount.SpawnMomentum(parent.State),
 			fore,
 			dorsal,

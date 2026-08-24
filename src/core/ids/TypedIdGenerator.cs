@@ -2,20 +2,15 @@ using UniqueNameGenerator;
 
 namespace GrimSpace.Core.Ids;
 
-public sealed class TypedIdGenerator
+public static class TypedIdGenerator
 {
-	private readonly UniqueName _instanceNames;
+	private static readonly UniqueName InstanceNames = new UniqueName(Adjectives.WordList, Animals.WordList)
+		.Separator("-")
+		.Format(Style.LowerCase);
 
-	public TypedIdGenerator()
-	{
-		_instanceNames = new UniqueName(Adjectives.WordList, Animals.WordList)
-			.Separator("-")
-			.Format(Style.LowerCase);
-	}
+	public static string NextInstanceSlug() => InstanceNames.Generate();
 
-	public string NextInstanceSlug() => _instanceNames.Generate();
-
-	public string NextId(string typeSlug) => Format(typeSlug, NextInstanceSlug());
+	public static string NextId(string typeSlug) => Format(typeSlug, NextInstanceSlug());
 
 	public static string Format(string typeSlug, string instanceSlug) =>
 		$"{typeSlug}-{instanceSlug}";

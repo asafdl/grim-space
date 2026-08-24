@@ -13,8 +13,8 @@ public sealed class SupplySystemGenerationTests
 		var second = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
 
 		Assert.Equal(
-			first.PointsOfInterest.Select(poi => (poi.Id, poi.Center, poi.Radius)),
-			second.PointsOfInterest.Select(poi => (poi.Id, poi.Center, poi.Radius)));
+			first.PointsOfInterest.Select(poi => (poi.Id, poi.PlacedCenter, poi.Radius)),
+			second.PointsOfInterest.Select(poi => (poi.Id, poi.PlacedCenter, poi.Radius)));
 		Assert.Equal(first.DocksById.Keys, second.DocksById.Keys);
 		foreach (var dockId in first.DocksById.Keys)
 			Assert.Equal(first.DocksById[dockId].Position, second.DocksById[dockId].Position);
@@ -27,8 +27,8 @@ public sealed class SupplySystemGenerationTests
 		var second = StarSystemGenerator.Generate(20, EStarSystemClass.Supply);
 
 		Assert.NotEqual(
-			first.PointsOfInterest.Select(poi => poi.Center),
-			second.PointsOfInterest.Select(poi => poi.Center));
+			first.PointsOfInterest.Select(poi => poi.PlacedCenter),
+			second.PointsOfInterest.Select(poi => poi.PlacedCenter));
 	}
 
 	[Theory]
@@ -48,14 +48,14 @@ public sealed class SupplySystemGenerationTests
 		Assert.Equal(5, world.PointsOfInterest.Count);
 		Assert.Equal(4, world.DocksById.Count);
 		Assert.Equal(3, world.RoutesById.Count);
-		Assert.Equal(4, world.UnitRegistry.Ids.Count());
+		Assert.Equal(8, world.UnitRegistry.Ids.Count());
 
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Refinery);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Storage);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Exit);
 
-		foreach (var spec in world.Blueprint.Pois)
-			Assert.Contains(world.PointsOfInterest, poi => poi.Id == spec.Id);
+		foreach (var template in world.Blueprint.PoiTemplates)
+			Assert.Contains(world.PointsOfInterest, poi => poi.Id == template.Id);
 	}
 }

@@ -42,13 +42,13 @@ public static class StarSystemBuilder
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
-		var star = pois.FirstOrDefault(poi => poi.Kind == EPointOfInterestKind.Star);
+		var star = pois.FirstOrDefault(poi => poi.LogicalRole == EPoiLogicalRole.Environment);
 
 		var docksById = new Dictionary<string, Dock>(StringComparer.Ordinal);
 		var docksByPoiId = new Dictionary<string, Dock>(StringComparer.Ordinal);
-		foreach (var poi in pois.Where(poi => poi.Kind != EPointOfInterestKind.Star))
+		foreach (var poi in pois.Where(poi => poi.HasDock))
 		{
-			var neighbour = NeighbourForDock(poi, blueprint.SupplyPlan, placed);
+			var neighbour = placed[poi.DockNeighbourPoiId(blueprint.SupplyPlan)];
 			var dock = DockLayout.CreateDock(poi, neighbour, star);
 			docksById[dock.Id] = dock;
 			docksByPoiId[poi.Id] = dock;
@@ -62,8 +62,8 @@ public static class StarSystemBuilder
 
 		var exclusions = pois
 			.Select(poi => new CircularExclusion(
-				poi.Center,
-				poi.Kind == EPointOfInterestKind.Star ? poi.Radius + 30 : poi.Radius + 6,
+				poi.PlacedCenter,
+				poi.RouteExclusionRadius,
 				poi.Id))
 			.ToArray();
 
@@ -84,7 +84,6 @@ public static class StarSystemBuilder
 				intent.Type,
 				docksByPoiId[intent.StartPoiId].Id,
 				UnitDefaults.SpeedPerTick(intent.Type),
-				UnitDefaults.WorkDuration(intent.Type),
 				intent.ChorePoiIds.Select(poiId => docksByPoiId[poiId].Id).ToArray());
 			unitRegistry.Add(Factory.Create(spawn));
 		}
@@ -104,24 +103,24 @@ public static class StarSystemBuilder
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)
 	{
-		var specsByRole = blueprint.Pois.ToDictionary(poi => poi.LogicalRole);
-		var starSpec = blueprint.Pois.First(poi => poi.Id == SupplySystemPlan.StarPoiId);
-		var refinerySpec = specsByRole[EPoiLogicalRole.Refinery];
-		var extractionSpec = specsByRole[EPoiLogicalRole.Extraction];
-		var storageSpec = specsByRole[EPoiLogicalRole.Storage];
-		var exitSpec = specsByRole[EPoiLogicalRole.Exit];
+		var templatesByRole = blueprint.PoiTemplates.ToDictionary(poi => poi.LogicalRole);
+		var starTemplate = blueprint.PoiTemplates.First(poi => poi.Id == SupplySystemPlan.StarPoiId);
+		var refineryTemplate = templatesByRole[EPoiLogicalRole.Refinery];
+		var extractionTemplate = templatesByRole[EPoiLogicalRole.Extraction];
+		var storageTemplate = templatesByRole[EPoiLogicalRole.Storage];
+		var exitTemplate = templatesByRole[EPoiLogicalRole.Exit];
 
 		for (var attempt = 0; attempt < MaxPlacementAttempts; attempt++)
 		{
 			var random = CreatePlacementRandom(blueprint.Seed, layoutAttempt, attempt);
-			var refineryCenter = SampleFreeCenter(blueprint, refinerySpec.Radius, random);
+			var refineryCenter = SampleFreeCenter(blueprint, refineryTemplate.Radius, random);
 			var extractionAngle = random.NextDouble() * System.Math.Tau;
 			var extractionCenter = SampleAnnulus(
 				blueprint,
 				refineryCenter,
 				extractionAngle,
 				random,
-				extractionSpec.Radius,
+				extractionTemplate.Radius,
 				MinChainDistance);
 			if (extractionCenter is null)
 				continue;
@@ -134,7 +133,7 @@ public static class StarSystemBuilder
 				refineryCenter,
 				storageAngle,
 				random,
-				storageSpec.Radius,
+				storageTemplate.Radius,
 				MinChainDistance);
 			if (storageCenter is null)
 				continue;
@@ -145,21 +144,21 @@ public static class StarSystemBuilder
 				storageCenter.Value,
 				exitAngle,
 				random,
-				exitSpec.Radius,
+				exitTemplate.Radius,
 				MinChainDistance);
 			if (exitCenter is null)
 				continue;
 
 			var candidates = new PointOfInterest[]
 			{
-				extractionSpec.Place(extractionCenter.Value),
-				refinerySpec.Place(refineryCenter),
-				storageSpec.Place(storageCenter.Value),
-				exitSpec.Place(exitCenter.Value),
+				extractionTemplate.Place(extractionCenter.Value),
+				refineryTemplate.Place(refineryCenter),
+				storageTemplate.Place(storageCenter.Value),
+				exitTemplate.Place(exitCenter.Value),
 			};
 
-			var starCenter = SampleStarCenter(blueprint, starSpec.Radius, random);
-			var allPois = candidates.Append(starSpec.Place(starCenter)).ToArray();
+			var starCenter = SampleStarCenter(blueprint, starTemplate.Radius, random);
+			var allPois = candidates.Append(starTemplate.Place(starCenter)).ToArray();
 			if (!IsValidLayout(allPois, blueprint))
 				continue;
 
@@ -244,7 +243,7 @@ public static class StarSystemBuilder
 	{
 		foreach (var poi in pois)
 		{
-			if (!GridBounds.IsCircleWhollyInRectangle(poi.Center, poi.Radius, blueprint.Width, blueprint.Height))
+			if (!GridBounds.IsCircleWhollyInRectangle(poi.PlacedCenter, poi.Radius, blueprint.Width, blueprint.Height))
 				return false;
 		}
 
@@ -261,7 +260,7 @@ public static class StarSystemBuilder
 		{
 			var from = pois.First(poi => poi.Id == fromPoiId);
 			var to = pois.First(poi => poi.Id == toPoiId);
-			var distance = GridDistance(from.Center, to.Center);
+			var distance = GridDistance(from.PlacedCenter, to.PlacedCenter);
 			if (distance < MinChainDistance)
 				return false;
 		}
@@ -276,19 +275,6 @@ public static class StarSystemBuilder
 		return System.Math.Sqrt(dx * dx + dz * dz);
 	}
 
-	private static PointOfInterest NeighbourForDock(
-		PointOfInterest poi,
-		SupplySystemPlan plan,
-		IReadOnlyDictionary<string, PointOfInterest> placed) =>
-		poi.LogicalRole switch
-		{
-			EPoiLogicalRole.Extraction => placed[plan.RefineryPoiId],
-			EPoiLogicalRole.Refinery => placed[plan.StoragePoiId],
-			EPoiLogicalRole.Storage => placed[plan.ExitPoiId],
-			EPoiLogicalRole.Exit => placed[plan.StoragePoiId],
-			_ => throw new InvalidOperationException($"POI '{poi.Id}' does not receive a dock."),
-		};
-
 	private static void Validate(
 		StarSystemBlueprint blueprint,
 		IReadOnlyList<PointOfInterest> pois,
@@ -298,17 +284,17 @@ public static class StarSystemBuilder
 	{
 		var plan = blueprint.SupplyPlan;
 		var roles = pois
-			.Where(poi => poi.LogicalRole is not null and not EPoiLogicalRole.Environment)
-			.GroupBy(poi => poi.LogicalRole!.Value)
+			.Where(poi => poi.LogicalRole != EPoiLogicalRole.Environment)
+			.GroupBy(poi => poi.LogicalRole)
 			.ToDictionary(group => group.Key, group => group.Single());
 
 		if (roles.Count != 4)
 			throw new InvalidOperationException("Supply map must contain exactly four operational POI roles.");
 
-		foreach (var spec in blueprint.Pois)
+		foreach (var template in blueprint.PoiTemplates)
 		{
-			if (!pois.Any(poi => poi.Id == spec.Id))
-				throw new InvalidOperationException($"Blueprint POI '{spec.Id}' was not placed.");
+			if (!pois.Any(poi => poi.Id == template.Id))
+				throw new InvalidOperationException($"Blueprint POI '{template.Id}' was not placed.");
 		}
 
 		foreach (var (fromPoiId, toPoiId) in plan.RouteConnections)

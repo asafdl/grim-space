@@ -13,14 +13,14 @@ public sealed class TrafficSimulationTests
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
 		var map = orchestrator.Map;
-		var miner = map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
+		var miner = FirstUnitOfType(map, EType.MiningBarge);
 
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EPhase.InTransit, miner.Phase);
 		Assert.NotNull(miner.Journey.RouteId);
 		Assert.Contains(
-			SupplySystemGenerator.MinerOneId,
+			miner.Id,
 			map.TrafficController.OccupantsByRouteId[miner.Journey.RouteId!]);
 
 		orchestrator.AdvanceTick();
@@ -33,7 +33,7 @@ public sealed class TrafficSimulationTests
 	public void AdvanceTick_AdvancesJourneyProgressWhileInTransit()
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
-		var miner = orchestrator.Map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
+		var miner = FirstUnitOfType(orchestrator.Map, EType.MiningBarge);
 
 		orchestrator.AdvanceTicks(2);
 		var progressAfterDepart = miner.Journey.LongitudinalProgress;
@@ -51,7 +51,7 @@ public sealed class TrafficSimulationTests
 		var map = orchestrator.Map;
 		var extractionDock = DockForRole(map, EPoiLogicalRole.Extraction).Id;
 		var refineryDock = DockForRole(map, EPoiLogicalRole.Refinery).Id;
-		var miner = map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
+		var miner = FirstUnitOfType(map, EType.MiningBarge);
 		var visited = new HashSet<string>(StringComparer.Ordinal);
 
 		for (var tick = 0; tick < 1000; tick++)
@@ -70,7 +70,7 @@ public sealed class TrafficSimulationTests
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
 		var map = orchestrator.Map;
-		var freighter = map.UnitRegistry.UnitOf(SupplySystemGenerator.FreighterId).State;
+		var freighter = FirstUnitOfType(map, EType.ExportFreighter);
 		var storageDock = DockForRole(map, EPoiLogicalRole.Storage).Id;
 		var exitDock = DockForRole(map, EPoiLogicalRole.Exit).Id;
 		var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -112,12 +112,15 @@ public sealed class TrafficSimulationTests
 		Assert.NotSame(orchestrator.Map.UnitRegistry, forkedOrchestrator.Map.UnitRegistry);
 		Assert.Same(orchestrator.Map.RoutesById, forkedOrchestrator.Map.RoutesById);
 
-		var originalMiner = orchestrator.Map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
-		var forkedMiner = forkedOrchestrator.Map.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State;
+		var originalMiner = FirstUnitOfType(orchestrator.Map, EType.MiningBarge);
+		var forkedMiner = FirstUnitOfType(forkedOrchestrator.Map, EType.MiningBarge);
 		Assert.NotEqual(
 			originalMiner.Journey.LongitudinalProgress,
 			forkedMiner.Journey.LongitudinalProgress);
 	}
+
+	private static State FirstUnitOfType(StarMap map, EType type) =>
+		map.UnitRegistry.All.First(unit => unit.State.Type == type).State;
 
 	private static Dock DockForRole(StarMap map, EPoiLogicalRole role) =>
 		map.DocksByPoiId[map.PointsOfInterest.Single(poi => poi.LogicalRole == role).Id];

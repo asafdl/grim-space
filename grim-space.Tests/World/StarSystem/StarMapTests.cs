@@ -2,6 +2,8 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
@@ -18,11 +20,11 @@ public sealed class StarMapTests
 		Assert.Equal(5, world.PointsOfInterest.Count);
 		Assert.Equal(EStarSystemClass.Supply, world.Blueprint.SystemClass);
 
-		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Star);
-		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.AsteroidField);
-		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Planet);
-		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Station);
-		Assert.Contains(world.PointsOfInterest, poi => poi.Kind == EPointOfInterestKind.Wormhole);
+		Assert.Contains(world.PointsOfInterest, poi => poi is Star);
+		Assert.Contains(world.PointsOfInterest, poi => poi is OreMine);
+		Assert.Contains(world.PointsOfInterest, poi => poi is Refinery);
+		Assert.Contains(world.PointsOfInterest, poi => poi is StorageFacility);
+		Assert.Contains(world.PointsOfInterest, poi => poi is Wormhole);
 
 		for (var i = 0; i < world.PointsOfInterest.Count; i++)
 		{
@@ -34,10 +36,10 @@ public sealed class StarMapTests
 
 		foreach (var poi in world.PointsOfInterest)
 		{
-			Assert.True(world.IsInBounds(poi.Center), $"Center out of bounds: {poi.Center}");
+			Assert.True(world.IsInBounds(poi.PlacedCenter), $"Center out of bounds: {poi.PlacedCenter}");
 			Assert.True(poi.Radius > 0);
 
-			Assert.True(GridBounds.IsCircleWhollyInRectangle(poi.Center, poi.Radius, world.Width, world.Height),
+			Assert.True(GridBounds.IsCircleWhollyInRectangle(poi.PlacedCenter, poi.Radius, world.Width, world.Height),
 				$"Radius extends out of bounds for {poi.Id}");
 		}
 	}
@@ -64,7 +66,7 @@ public sealed class StarMapTests
 		Assert.Equal(world.Width, fork.Width);
 		Assert.Equal(world.Height, fork.Height);
 		Assert.Same(world.Blueprint, fork.Blueprint);
-		Assert.Same(world.PointsOfInterest, fork.PointsOfInterest);
+		Assert.NotSame(world.PointsOfInterest, fork.PointsOfInterest);
 		Assert.Same(world.DocksById, fork.DocksById);
 		Assert.Same(world.DocksByPoiId, fork.DocksByPoiId);
 		Assert.Same(world.RoutesById, fork.RoutesById);
@@ -72,16 +74,17 @@ public sealed class StarMapTests
 		Assert.NotSame(world.TrafficController, fork.TrafficController);
 		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
-		Assert.Equal(4, world.UnitRegistry.Ids.Count());
-		Assert.Equal(4, fork.UnitRegistry.Ids.Count());
+		Assert.Equal(8, world.UnitRegistry.Ids.Count());
+		Assert.Equal(8, fork.UnitRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
-		fork.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State.AdvanceTransit(99);
+		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.AdvanceTransit(99);
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
+		var minerId = FirstUnitOfType(world, EType.MiningBarge).Id;
 		Assert.NotEqual(
-			world.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State.Journey.LongitudinalProgress,
-			fork.UnitRegistry.UnitOf(SupplySystemGenerator.MinerOneId).State.Journey.LongitudinalProgress);
+			world.UnitRegistry.UnitOf(minerId).State.Journey.LongitudinalProgress,
+			fork.UnitRegistry.UnitOf(minerId).State.Journey.LongitudinalProgress);
 	}
 
 	[Fact]
@@ -90,9 +93,12 @@ public sealed class StarMapTests
 		var world = StarMap.CreateDevDefault(0);
 
 		Assert.Equal(4, world.DocksById.Count);
-		Assert.Equal(4, world.UnitRegistry.Ids.Count());
+		Assert.Equal(8, world.UnitRegistry.Ids.Count());
 		Assert.DoesNotContain(
-			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
+			world.PointsOfInterest.First(p => p is Star).Id,
 			world.DocksByPoiId.Keys);
 	}
+
+	private static State FirstUnitOfType(StarMap map, EType type) =>
+		map.UnitRegistry.All.First(unit => unit.State.Type == type).State;
 }

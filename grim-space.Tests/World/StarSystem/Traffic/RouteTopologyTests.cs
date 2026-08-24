@@ -3,6 +3,7 @@ using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
@@ -16,7 +17,7 @@ public sealed class RouteTopologyTests
 
 		Assert.Equal(4, world.DocksById.Count);
 		Assert.DoesNotContain(
-			world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star).Id,
+			world.PointsOfInterest.First(p => p is Star).Id,
 			world.DocksByPoiId.Keys);
 	}
 
@@ -195,8 +196,8 @@ public sealed class RouteTopologyTests
 	public void Corridors_ClearCircularExclusions()
 	{
 		var world = StarMap.CreateDevDefault(21);
-		var star = world.PointsOfInterest.First(p => p.Kind == EPointOfInterestKind.Star);
-		var exclusion = new CircularExclusion(star.Center, star.Radius + 30);
+		var star = world.PointsOfInterest.First(p => p is Star);
+		var exclusion = new CircularExclusion(star.PlacedCenter, star.RouteExclusionRadius);
 
 		foreach (var route in world.RoutesById.Values)
 		{

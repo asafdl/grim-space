@@ -106,7 +106,6 @@ public sealed class RailgunReachTests
 			},
 			position,
 			new AiController(),
-			null,
 			0,
 			new Coord(1, 0, 0),
 			Coord.Up);

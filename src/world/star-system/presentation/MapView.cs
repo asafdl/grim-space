@@ -4,6 +4,7 @@ using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -131,8 +132,8 @@ public partial class MapView : Node3D
 			if (!ContainsPoint(poi, point))
 				continue;
 
-			var dx = point.X - poi.Center.X;
-			var dz = point.Z - poi.Center.Z;
+			var dx = point.X - poi.PlacedCenter.X;
+			var dz = point.Z - poi.PlacedCenter.Z;
 			var distance = (long)dx * dx + (long)dz * dz;
 			if (distance >= bestDistance)
 				continue;
@@ -190,8 +191,8 @@ public partial class MapView : Node3D
 
 	private static bool ContainsPoint(PointOfInterest poi, Coord point)
 	{
-		var dx = point.X - poi.Center.X;
-		var dz = point.Z - poi.Center.Z;
+		var dx = point.X - poi.PlacedCenter.X;
+		var dz = point.Z - poi.PlacedCenter.Z;
 		return (long)dx * dx + (long)dz * dz <= (long)poi.Radius * poi.Radius;
 	}
 
@@ -278,7 +279,7 @@ public partial class MapView : Node3D
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(HoverAccent);
 
-		var center = MapMapping.ToWorld(poi.Center, width, height);
+		var center = MapMapping.ToWorld(poi.PlacedCenter, width, height);
 		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
 		AddCircleOutline(mesh, center, worldRadius);
 
@@ -308,38 +309,36 @@ public partial class MapView : Node3D
 		var root = new Node3D
 		{
 			Name = $"Marker_{poi.Id}",
-			Position = MapMapping.ToWorld(poi.Center, width, height),
+			Position = MapMapping.ToWorld(poi.PlacedCenter, width, height),
 		};
 
-		switch (poi.Kind)
+		float ringRadius;
+		switch (poi)
 		{
-			case EPointOfInterestKind.Star:
+			case Star:
 				AddStar(root);
+				ringRadius = 1.25f;
 				break;
-			case EPointOfInterestKind.Planet:
+			case Refinery:
 				AddPlanet(root, PlanetPalette[planetIndex++ % PlanetPalette.Length]);
+				ringRadius = 0.95f;
 				break;
-			case EPointOfInterestKind.AsteroidField:
+			case OreMine:
 				AddAsteroidField(root, seed, poi);
+				ringRadius = 1.05f;
 				break;
-			case EPointOfInterestKind.Wormhole:
+			case Wormhole:
 				AddWormhole(root, seed, poi);
+				ringRadius = 0.88f;
 				break;
-			case EPointOfInterestKind.Station:
+			case StorageFacility:
 				AddStation(root);
+				ringRadius = 0.75f;
 				break;
 			default:
-				throw new InvalidOperationException($"Unsupported POI kind '{poi.Kind}'.");
+				throw new InvalidOperationException($"Unsupported POI type '{poi.GetType().Name}'.");
 		}
 
-		var ringRadius = poi.Kind switch
-		{
-			EPointOfInterestKind.Star => 1.25f,
-			EPointOfInterestKind.Planet => 0.95f,
-			EPointOfInterestKind.AsteroidField => 1.05f,
-			EPointOfInterestKind.Wormhole => 0.88f,
-			_ => 0.75f,
-		};
 		var ring = new MeshInstance3D
 		{
 			Name = "HoverRing",

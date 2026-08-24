@@ -29,7 +29,6 @@ public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string? un
 			},
 			position,
 			new TorpedoExecutionAgent(),
-			world.IdRegistry,
 			TorpedoConfig.SpawnMomentum,
 			fore,
 			dorsal);

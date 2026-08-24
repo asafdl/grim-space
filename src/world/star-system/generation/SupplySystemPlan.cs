@@ -1,5 +1,8 @@
 namespace GrimSpace.World.StarSystem.Generation;
 
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
+
 public sealed record SupplySystemPlan(
 	string ResourceId,
 	string ExtractionPoiId,
@@ -22,5 +25,14 @@ public sealed record SupplySystemPlan(
 		(ExtractionPoiId, RefineryPoiId),
 		(RefineryPoiId, StoragePoiId),
 		(StoragePoiId, ExitPoiId),
+	];
+
+	public PointOfInterest[] CreatePoiTemplates() =>
+	[
+		Star.Template(),
+		OreMine.Template(this),
+		Refinery.Template(this),
+		StorageFacility.Template(this),
+		Wormhole.Template(this),
 	];
 }

@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
@@ -11,6 +12,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -230,7 +232,7 @@ public sealed class PlanningPreview
 		if (_envelopeCacheKey == cacheKey)
 			return _envelopeCache;
 
-		var spawnedId = sim.World.IdRegistry.NextUnitId(EType.Torpedo);
+		var spawnedId = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo));
 		var peek = sim.Peek(new TorpedoAction(playerId, mountedOn, spawnedId));
 		if (peek is null
 			|| !UnitRegistry.For(peek.Value.World).TryGet(spawnedId, out var spawned))

@@ -7,18 +7,15 @@ namespace GrimSpace.Tests.Ids;
 public sealed class UnitIdGeneratorTests
 {
 	[Fact]
-	public void GeneratedIdsMatchFormatAreUniqueAndNeverBoardId()
+	public void GeneratedIdsMatchFormatAreUnique()
 	{
-		var registry = new UnitIdRegistry();
-		var ids = new HashSet<string>();
+		var generated = new HashSet<string>();
 
 		for (var i = 0; i < 32; i++)
 		{
-			var id = registry.NextUnitId(EType.Fighter);
+			var id = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Fighter));
 			Assert.StartsWith("fighter-", id);
-			Assert.NotEqual(BattleActorIds.Terrain, id);
-			Assert.NotEqual(BattleActorIds.Rules, id);
-			Assert.True(ids.Add(id), $"Duplicate id generated: {id}");
+			Assert.True(generated.Add(id), $"Duplicate id generated: {id}");
 		}
 	}
 
@@ -28,7 +25,7 @@ public sealed class UnitIdGeneratorTests
 		var id = TypedIdGenerator.Format("poi", "swift-fox");
 		Assert.Equal("poi-swift-fox", id);
 
-		var generated = new TypedIdGenerator().NextId("station");
+		var generated = TypedIdGenerator.NextId("station");
 		Assert.StartsWith("station-", generated);
 		Assert.Equal(2, generated.Count(c => c == '-'));
 	}

@@ -11,19 +11,20 @@ public sealed class AdvanceTrafficEffect : IEffect<StarMap, EmptyRuntime>
 	{
 		foreach (var unit in world.UnitRegistry.All)
 		{
-			var state = unit.State;
-			switch (state.Phase)
-			{
-				case EPhase.InTransit:
-					AdvanceTransit(world, state);
-					break;
-				case EPhase.Working:
-					state.TickWork();
-					break;
-			}
+			if (unit.State.Phase == EPhase.InTransit)
+				AdvanceTransit(world, unit.State);
+		}
 
-			if (state.IsReadyToDepart)
-				TryDepart(world, state);
+		foreach (var poi in world.PointsOfInterest)
+		{
+			if (poi.HasTasks)
+				poi.AdvanceTick(world.UnitRegistry);
+		}
+
+		foreach (var unit in world.UnitRegistry.All)
+		{
+			if (unit.State.IsReadyToDepart)
+				TryDepart(world, unit.State);
 		}
 
 		world.TrafficController.Validate();
@@ -46,6 +47,12 @@ public sealed class AdvanceTrafficEffect : IEffect<StarMap, EmptyRuntime>
 		world.TrafficController.UnregisterLane(state.Id);
 		var destinationDockId = SystemTrafficController.DestinationDock(route, state.Journey.TowardDockB);
 		state.ArriveAt(destinationDockId);
+		state.EnterWaiting();
+		var poiId = world.DocksById[destinationDockId].PoiId;
+		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
+		if (!poi.HasTasks)
+			throw new InvalidOperationException($"POI '{poiId}' has no task supplier.");
+		poi.Enqueue(state.Id);
 		state.AdvanceChoreIndex();
 	}
 

@@ -61,8 +61,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{
-		var dx = a.Center.X - b.Center.X;
-		var dz = a.Center.Z - b.Center.Z;
+		var dx = a.PlacedCenter.X - b.PlacedCenter.X;
+		var dz = a.PlacedCenter.Z - b.PlacedCenter.Z;
 		var distanceSquared = (long)dx * dx + (long)dz * dz;
 		var combined = a.Radius + b.Radius;
 		return distanceSquared < (long)combined * combined;
@@ -71,7 +71,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public StarMap Fork() =>
 		new(
 			Blueprint,
-			PointsOfInterest,
+			PointsOfInterest.Select(poi => poi.Fork()).ToList(),
 			Timeline.Clone(),
 			DocksById,
 			DocksByPoiId,

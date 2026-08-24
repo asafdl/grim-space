@@ -13,7 +13,7 @@ internal static class DockLayout
 		PointOfInterest? star)
 	{
 		var (approachX, approachZ) = ApproachDirection(poi, neighbour, star);
-		var position = Offset(poi.Center, approachX, approachZ, poi.Radius + DockOffset);
+		var position = Offset(poi.PlacedCenter, approachX, approachZ, poi.Radius + DockOffset);
 
 		return new Dock(
 			DockIdForPoi(poi.Id),
@@ -31,12 +31,12 @@ internal static class DockLayout
 		PointOfInterest neighbour,
 		PointOfInterest? star)
 	{
-		var dx = neighbour.Center.X - poi.Center.X;
-		var dz = neighbour.Center.Z - poi.Center.Z;
+		var dx = neighbour.PlacedCenter.X - poi.PlacedCenter.X;
+		var dz = neighbour.PlacedCenter.Z - poi.PlacedCenter.Z;
 		if (dx == 0 && dz == 0 && star is not null)
 		{
-			dx = poi.Center.X - star.Center.X;
-			dz = poi.Center.Z - star.Center.Z;
+			dx = poi.PlacedCenter.X - star.PlacedCenter.X;
+			dz = poi.PlacedCenter.Z - star.PlacedCenter.Z;
 		}
 
 		return Normalize(dx, dz);

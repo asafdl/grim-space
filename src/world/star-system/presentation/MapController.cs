@@ -302,9 +302,8 @@ public partial class MapController : Node3D
 
 		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
 		var blueprint = world.Blueprint;
-		var spec = blueprint.Pois.First(p => p.Id == poiId);
 		_typeLabel.Text =
-			$"{blueprint.SystemClass} · seed {blueprint.Seed} · {spec.LogicalRole} · {poi.Kind} · {blueprint.SupplyPlan.ResourceId}";
+			$"{blueprint.SystemClass} · seed {blueprint.Seed} · {poi.LogicalRole} · {blueprint.SupplyPlan.ResourceId}";
 		_nameLabel.Text = poi.DisplayName;
 		_tooltip.Visible = true;
 		_tooltip.Position = screen + new Vector2(14, 18);

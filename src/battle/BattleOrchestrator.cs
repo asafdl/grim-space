@@ -13,6 +13,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Core.Ids;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -67,12 +68,10 @@ public sealed class BattleOrchestrator
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var timeline = new Timeline();
 		var nonUnits = new Dictionary<string, NonUnit>();
-		var ids = new UnitIdRegistry();
-
 		foreach (var spawn in encounter.WorldHazards)
 		{
 			var hazard = Hazard.Asteroid(
-				ids.NextNonUnitId("asteroid"),
+				TypedIdGenerator.NextId("asteroid"),
 				spawn.Origin,
 				grid,
 				spawn.Cells);
@@ -87,7 +86,6 @@ public sealed class BattleOrchestrator
 				spawn.Unit,
 				spawn.Position,
 				spawn.ExecutionAgent,
-				ids,
 				spawn.InitialMomentum,
 				spawn.Fore,
 				spawn.Dorsal))

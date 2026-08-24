@@ -8,5 +8,5 @@ public sealed record StarSystemBlueprint(
 	int Height,
 	EStarSystemClass SystemClass,
 	SupplySystemPlan SupplyPlan,
-	IReadOnlyList<PoiSpec> Pois,
+	IReadOnlyList<PointOfInterest> PoiTemplates,
 	IReadOnlyList<UnitSpawnIntent> UnitSpawns);

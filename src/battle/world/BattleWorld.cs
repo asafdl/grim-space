@@ -15,12 +15,10 @@ namespace GrimSpace.Battle.World;
 public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, BattleWorld>
 {
 	private readonly Dictionary<string, NonUnit> _nonUnits;
-	private readonly UnitIdRegistry _idRegistry = new();
 
 	public UnitRegistry UnitRegistry { get; }
 	public IReadOnlyDictionary<string, NonUnit> NonUnits => _nonUnits;
 	public IDictionary<string, NonUnit> MutableNonUnits => _nonUnits;
-	public UnitIdRegistry IdRegistry => _idRegistry;
 	public BoundedGrid Grid { get; }
 	public IReadOnlySet<Coord> BlockedCells { get; }
 	public Timeline Timeline { get; }
@@ -142,36 +140,25 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		foreach (var unit in roster)
 			units.Add(unit);
 
-		var board = new BattleWorld(
+		return new BattleWorld(
 			units,
 			nonUnits,
 			grid,
 			blockedCells,
 			timeline ?? new Timeline());
-
-		foreach (var id in units.Ids.Concat(nonUnits.Keys))
-			board._idRegistry.Register(id);
-
-		return board;
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>
 		new(unit.Alliance, unit.State.Clone(), unit.ExecutionAgent);
 
-	public BattleWorld Fork()
-	{
-		var fork = new BattleWorld(
+	public BattleWorld Fork() =>
+		new(
 			UnitRegistry.CloneForFork(),
 			_nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
 			Grid,
 			BlockedCells,
 			Timeline.Clone());
 
-		foreach (var id in UnitRegistry.Ids.Concat(_nonUnits.Keys))
-			fork._idRegistry.Register(id);
-
-		return fork;
-	}
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch
 		{

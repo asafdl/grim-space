@@ -5,5 +5,4 @@ public sealed record Spawn(
 	EType Type,
 	string DockedAtDockId,
 	double SpeedPerTick,
-	int WorkDuration,
 	IReadOnlyList<string> ChoreDockIds);

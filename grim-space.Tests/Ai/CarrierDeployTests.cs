@@ -97,7 +97,6 @@ public sealed class CarrierDeployTests
 				},
 				new Coord(1 + i, 1, 5),
 				new AiController(),
-				world.IdRegistry,
 				initialMomentum: 0,
 				Coord.Forward,
 				Coord.Up,
