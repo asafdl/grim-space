@@ -32,6 +32,8 @@ public sealed class Refinery : PointOfInterest
 			EType.MiningBarge => 5,
 			EType.RefineryHauler => 6,
 			EType.ComplianceVessel => 4,
+			EType.CargoShuttle => 3,
+			EType.ServiceVessel => 4,
 			_ => throw new InvalidOperationException(
 				$"Refinery POI has no task for unit type {unitType}."),
 		};

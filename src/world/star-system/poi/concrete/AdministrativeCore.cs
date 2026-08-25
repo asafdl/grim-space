@@ -41,6 +41,8 @@ public sealed class AdministrativeCore : PointOfInterest
 		unitType switch
 		{
 			EType.ComplianceVessel => 8,
+			EType.CargoShuttle => 3,
+			EType.ServiceVessel => 4,
 			_ => throw new InvalidOperationException(
 				$"Administrative Core POI has no task for unit type {unitType}."),
 		};

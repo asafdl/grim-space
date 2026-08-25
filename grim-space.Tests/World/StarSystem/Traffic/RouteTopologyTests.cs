@@ -15,7 +15,7 @@ public sealed class RouteTopologyTests
 	{
 		var world = StarMap.CreateDevDefault(0);
 
-		Assert.Equal(5, world.DocksById.Count);
+		Assert.Equal(6, world.DocksById.Count);
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p is Star).Id,
 			world.DocksByPoiId.Keys);
@@ -27,7 +27,7 @@ public sealed class RouteTopologyTests
 		var world = StarMap.CreateDevDefault(99);
 		var plan = world.Blueprint.SupplyPlan;
 
-		Assert.Equal(5, world.RoutesById.Count);
+		Assert.Equal(8, world.RoutesById.Count);
 		foreach (var (fromPoiId, toPoiId) in plan.RouteConnections)
 		{
 			var fromDock = world.DocksByPoiId[fromPoiId].Id;

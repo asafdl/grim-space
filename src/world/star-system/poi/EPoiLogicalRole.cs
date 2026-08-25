@@ -8,4 +8,5 @@ public enum EPoiLogicalRole
 	Storage,
 	Exit,
 	Administrative,
+	Trade,
 }

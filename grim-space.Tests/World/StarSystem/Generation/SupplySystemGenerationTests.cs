@@ -93,16 +93,17 @@ public sealed class SupplySystemGenerationTests
 		var plan = world.Blueprint.SupplyPlan;
 
 		Assert.Equal("copper", plan.ResourceId);
-		Assert.Equal(6, world.PointsOfInterest.Count);
-		Assert.Equal(5, world.DocksById.Count);
-		Assert.Equal(5, world.RoutesById.Count);
-		Assert.Equal(16, world.UnitRegistry.Ids.Count());
+		Assert.Equal(7, world.PointsOfInterest.Count);
+		Assert.Equal(6, world.DocksById.Count);
+		Assert.Equal(8, world.RoutesById.Count);
+		Assert.Equal(26, world.UnitRegistry.Ids.Count());
 
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Refinery);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Storage);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Exit);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Administrative);
+		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Trade);
 
 		foreach (var template in world.Blueprint.PoiTemplates)
 			Assert.Contains(world.PointsOfInterest, poi => poi.Id == template.Id);

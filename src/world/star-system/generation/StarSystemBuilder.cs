@@ -12,7 +12,7 @@ public static class StarSystemBuilder
 	private const int MinChainDistance = 120;
 	private const double MinHubSeparationRadians = System.Math.PI / 3;
 	private const int MaxPlacementAttempts = 256;
-	private const int MaxLayoutAttempts = 64;
+	private const int MaxLayoutAttempts = 128;
 	private const int EdgePadding = 32;
 	private const string PlacementTag = "poi-placement";
 
@@ -146,6 +146,7 @@ public static class StarSystemBuilder
 		var storageTemplate = templatesByRole[EPoiLogicalRole.Storage];
 		var exitTemplate = templatesByRole[EPoiLogicalRole.Exit];
 		var adminTemplate = templatesByRole[EPoiLogicalRole.Administrative];
+		var tradeTemplate = templatesByRole[EPoiLogicalRole.Trade];
 
 		for (var attempt = 0; attempt < MaxPlacementAttempts; attempt++)
 		{
@@ -199,6 +200,19 @@ public static class StarSystemBuilder
 			if (adminCenter is null)
 				continue;
 
+			var tradeAngle = storageAngle
+				+ MinHubSeparationRadians
+				+ random.NextDouble() * (System.Math.Tau - MinHubSeparationRadians);
+			var tradeCenter = SampleAnnulus(
+				blueprint,
+				refineryCenter,
+				tradeAngle,
+				random,
+				tradeTemplate.Radius,
+				MinChainDistance);
+			if (tradeCenter is null)
+				continue;
+
 			var candidates = new PointOfInterest[]
 			{
 				extractionTemplate.Place(extractionCenter.Value),
@@ -206,6 +220,7 @@ public static class StarSystemBuilder
 				storageTemplate.Place(storageCenter.Value),
 				exitTemplate.Place(exitCenter.Value),
 				adminTemplate.Place(adminCenter.Value),
+				tradeTemplate.Place(tradeCenter.Value),
 			};
 
 			var starCenter = SampleStarCenter(blueprint, starTemplate.Radius, random);

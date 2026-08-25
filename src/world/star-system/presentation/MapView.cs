@@ -326,6 +326,10 @@ public partial class MapView : Node3D
 				AddStation(root);
 				ringRadius = 0.75f;
 				break;
+			case TradeHub:
+				AddStation(root);
+				ringRadius = 0.82f;
+				break;
 			case AdministrativeCore admin:
 				if (admin.PhysicalForm == EPoiPhysicalForm.Planet)
 				{

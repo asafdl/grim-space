@@ -13,35 +13,40 @@ public sealed class TrafficSimulationTests
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
 		var map = orchestrator.Map;
-		var miner = FirstUnitOfType(map, EType.MiningBarge);
+		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart).State;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, miner.Phase);
-		Assert.NotNull(miner.Journey.RouteId);
+		Assert.Equal(EPhase.InTransit, readyUnit.Phase);
+		Assert.NotNull(readyUnit.Journey.RouteId);
 		Assert.Contains(
-			miner.Id,
-			map.TrafficController.OccupantsByRouteId[miner.Journey.RouteId!]);
+			readyUnit.Id,
+			map.TrafficController.OccupantsByRouteId[readyUnit.Journey.RouteId!]);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, miner.Phase);
-		Assert.True(miner.Journey.LongitudinalProgress > 0);
+		Assert.Equal(EPhase.InTransit, readyUnit.Phase);
+		Assert.True(readyUnit.Journey.LongitudinalProgress > 0);
 	}
 
 	[Fact]
 	public void AdvanceTick_AdvancesJourneyProgressWhileInTransit()
 	{
 		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
-		var miner = FirstUnitOfType(orchestrator.Map, EType.MiningBarge);
+		var unit = orchestrator.Map.UnitRegistry.All
+			.First(candidate => candidate.State.Phase == EPhase.InTransit
+				|| candidate.State.IsReadyToDepart)
+			.State;
 
-		orchestrator.AdvanceTicks(2);
-		var progressAfterDepart = miner.Journey.LongitudinalProgress;
+		while (unit.Phase != EPhase.InTransit)
+			orchestrator.AdvanceTick();
+
+		var progressAfterDepart = unit.Journey.LongitudinalProgress;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, miner.Phase);
-		Assert.True(miner.Journey.LongitudinalProgress > progressAfterDepart);
+		Assert.Equal(EPhase.InTransit, unit.Phase);
+		Assert.True(unit.Journey.LongitudinalProgress > progressAfterDepart);
 	}
 
 	[Fact]

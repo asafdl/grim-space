@@ -16,6 +16,8 @@ public static class SupplySystemGenerator
 			SpawnUnits(seed, EType.RefineryHauler, 2, HaulerSpawn),
 			SpawnUnits(seed, EType.ExportFreighter, 2, FreighterSpawn),
 			SpawnUnits(seed, EType.ComplianceVessel, 8, ComplianceSpawn),
+			SpawnUnits(seed, EType.CargoShuttle, 4, MerchantSpawn),
+			SpawnUnits(seed, EType.ServiceVessel, 6, CivilianSpawn),
 		}.SelectMany(spawns => spawns).ToArray();
 
 		return new StarSystemBlueprint(
@@ -79,6 +81,16 @@ public static class SupplySystemGenerator
 
 			return (plan.AdministrativePoiId, [..visits, plan.AdministrativePoiId]);
 		}
+
+		static (string StartPoiId, string[] ChorePoiIds) MerchantSpawn(
+			SupplySystemPlan plan,
+			StableRandom random) =>
+			(plan.TradeHubPoiId, TradeChoreBuilder.BuildVisitChore(plan, random, plan.TradeHubPoiId));
+
+		static (string StartPoiId, string[] ChorePoiIds) CivilianSpawn(
+			SupplySystemPlan plan,
+			StableRandom random) =>
+			(plan.TradeHubPoiId, TradeChoreBuilder.BuildVisitChore(plan, random, plan.TradeHubPoiId));
 	}
 
 	private static IEnumerable<UnitSpawnIntent> SpawnUnits(
