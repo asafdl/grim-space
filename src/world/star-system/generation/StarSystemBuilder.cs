@@ -1,6 +1,7 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
@@ -16,7 +17,7 @@ public static class StarSystemBuilder
 	private const int EdgePadding = 32;
 	private const string PlacementTag = "poi-placement";
 
-	public static StarMap Build(StarSystemBlueprint blueprint)
+	public static StarSystemBuildResult Build(StarSystemBlueprint blueprint)
 	{
 		ArgumentNullException.ThrowIfNull(blueprint);
 
@@ -38,7 +39,7 @@ public static class StarSystemBuilder
 			lastFailure);
 	}
 
-	private static StarMap BuildOnce(StarSystemBlueprint blueprint, int layoutAttempt)
+	private static StarSystemBuildResult BuildOnce(StarSystemBlueprint blueprint, int layoutAttempt)
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
@@ -77,7 +78,6 @@ public static class StarSystemBuilder
 			StarMap.DevRouteHalfWidth);
 
 		var poiById = pois.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
-		var trafficController = new SystemTrafficController();
 		var unitRegistry = new UnitRegistry();
 		var poisWithSpawnedWorkers = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var intent in blueprint.UnitSpawns)
@@ -90,7 +90,6 @@ public static class StarSystemBuilder
 				intent.Id,
 				intent.Type,
 				choreDockIds,
-				routesById,
 				docksById,
 				poiById,
 				poisWithSpawnedWorkers);
@@ -104,18 +103,7 @@ public static class StarSystemBuilder
 			var unit = Factory.Create(spawn);
 			ApplySpawnPlacement(unit.State, placement);
 
-			if (placement.Phase == EPhase.InTransit)
-			{
-				if (!trafficController.TryRegisterLane(
-					unit.State.Id,
-					placement.TransitRouteId!,
-					placement.TransitTowardDockB))
-				{
-					throw new InvalidOperationException(
-						$"Could not register transit lane for spawned unit '{unit.State.Id}'.");
-				}
-			}
-			else if (placement.Phase == EPhase.Working)
+			if (placement.Phase == EPhase.Working)
 			{
 				poiById[placement.WorkingPoiId!].AdoptSpawnedWorker(unit.State.Id);
 				poisWithSpawnedWorkers.Add(placement.WorkingPoiId!);
@@ -126,15 +114,23 @@ public static class StarSystemBuilder
 
 		Validate(blueprint, pois, docksByPoiId, routesById, unitRegistry);
 
-		return new StarMap(
+		var map = new StarMap(
 			blueprint,
 			pois,
 			new Timeline(),
 			docksById,
 			docksByPoiId,
 			routesById,
-			unitRegistry,
-			trafficController);
+			unitRegistry);
+
+		var terrain = PathfindingTerrain.Create(
+			blueprint.Width,
+			blueprint.Height,
+			routesById.Values,
+			pois,
+			docksById.Values);
+
+		return new StarSystemBuildResult(map, terrain);
 	}
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)
@@ -291,13 +287,6 @@ public static class StarSystemBuilder
 		state.Phase = placement.Phase;
 		state.WorkTicksRemaining = placement.WorkTicksRemaining;
 		state.DockedAtDockId = placement.DockedAtDockId;
-
-		if (placement.Phase != EPhase.InTransit)
-			return;
-
-		state.Journey.RouteId = placement.TransitRouteId;
-		state.Journey.TowardDockB = placement.TransitTowardDockB;
-		state.Journey.LongitudinalProgress = placement.TransitProgress;
 	}
 
 	private static Coord SampleFreeCenter(StarSystemBlueprint blueprint, int radius, StableRandom random)

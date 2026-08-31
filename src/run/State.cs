@@ -18,8 +18,9 @@ public sealed class State
 			Type = EType.Fighter,
 			Alliance = Alliance.Player,
 		});
-		run.Map = StarMap.CreateDevDefault(seed);
-		run.Traffic = StarSystemOrchestrator.FromMap(run.Map);
+		var buildResult = StarMap.CreateDevBuildResult(seed);
+		run.Map = buildResult.Map;
+		run.Traffic = StarSystemOrchestrator.FromBuildResult(buildResult);
 		return run;
 	}
 }

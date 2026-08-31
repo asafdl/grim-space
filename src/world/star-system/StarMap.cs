@@ -23,7 +23,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public IReadOnlyDictionary<string, Dock> DocksByPoiId { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public UnitRegistry UnitRegistry { get; }
-	public SystemTrafficController TrafficController { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
 
@@ -34,8 +33,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
 		IReadOnlyDictionary<string, SpaceRoute> routesById,
-		UnitRegistry unitRegistry,
-		SystemTrafficController trafficController)
+		UnitRegistry unitRegistry)
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
@@ -44,7 +42,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		DocksByPoiId = docksByPoiId;
 		RoutesById = routesById;
 		UnitRegistry = unitRegistry;
-		TrafficController = trafficController;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -52,12 +49,15 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		&& point.X >= 0 && point.X < Width
 		&& point.Z >= 0 && point.Z < Height;
 
-	public bool TryResolveRoute(
-		string fromDockId,
-		string toDockId,
-		out SpaceRoute route,
-		out bool towardDockB) =>
-		SystemTrafficController.TryGetRoute(RoutesById, fromDockId, toDockId, out route, out towardDockB);
+	public StarMap Fork() =>
+		new(
+			Blueprint,
+			PointsOfInterest.Select(poi => poi.Fork()).ToList(),
+			Timeline.Clone(),
+			DocksById,
+			DocksByPoiId,
+			RoutesById,
+			UnitRegistry.CloneForFork());
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{
@@ -68,17 +68,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		return distanceSquared < (long)combined * combined;
 	}
 
-	public StarMap Fork() =>
-		new(
-			Blueprint,
-			PointsOfInterest.Select(poi => poi.Fork()).ToList(),
-			Timeline.Clone(),
-			DocksById,
-			DocksByPoiId,
-			RoutesById,
-			UnitRegistry.CloneForFork(),
-			TrafficController.Fork());
-
 	public static StarMap CreateDevDefault(int seed = 0) =>
+		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply).Map;
+
+	public static StarSystemBuildResult CreateDevBuildResult(int seed = 0) =>
 		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
 }

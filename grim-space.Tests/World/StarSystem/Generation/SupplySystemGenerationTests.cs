@@ -10,8 +10,8 @@ public sealed class SupplySystemGenerationTests
 	[Fact]
 	public void Generate_SameSeed_ProducesIdenticalLayout()
 	{
-		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
-		var second = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
+		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply).Map;
+		var second = StarSystemGenerator.Generate(10, EStarSystemClass.Supply).Map;
 
 		Assert.Equal(
 			first.PointsOfInterest.Select(poi => (poi.Id, poi.PlacedCenter, poi.Radius)),
@@ -24,8 +24,8 @@ public sealed class SupplySystemGenerationTests
 	[Fact]
 	public void Generate_SameSeed_ProducesIdenticalUnitChores()
 	{
-		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
-		var second = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
+		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply).Map;
+		var second = StarSystemGenerator.Generate(10, EStarSystemClass.Supply).Map;
 
 		Assert.Equal(
 			first.Blueprint.UnitSpawns.Select(spawn => (spawn.Type, spawn.StartPoiId, spawn.ChorePoiIds)),
@@ -35,7 +35,7 @@ public sealed class SupplySystemGenerationTests
 	[Fact]
 	public void Generate_UnitChores_AreNotAllIdenticalWithinType()
 	{
-		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
+		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply).Map;
 		var spawns = world.Blueprint.UnitSpawns;
 
 		Assert.True(HasChoreVariation(spawns, EType.ComplianceVessel));
@@ -53,26 +53,24 @@ public sealed class SupplySystemGenerationTests
 	}
 
 	[Fact]
-	public void Generate_UnitSpawns_AreDistributedAlongChoreRoutes()
+	public void Generate_UnitSpawns_AreDistributedAcrossDockedAndWorkingPhases()
 	{
-		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
+		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply).Map;
 		var signatures = world.UnitRegistry.All
-			.Select(unit => (
-				unit.State.Phase,
-				unit.State.DockedAtDockId,
-				InTransit: unit.State.Phase == EPhase.InTransit))
+			.Select(unit => unit.State.Phase)
 			.Distinct()
 			.ToArray();
 
 		Assert.True(signatures.Length > 1);
-		Assert.Contains(signatures, signature => signature.InTransit);
+		Assert.Contains(EPhase.Docked, signatures);
+		Assert.Contains(EPhase.Working, signatures);
 	}
 
 	[Fact]
 	public void Generate_DifferentSeeds_ProduceDifferentLayouts()
 	{
-		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply);
-		var second = StarSystemGenerator.Generate(20, EStarSystemClass.Supply);
+		var first = StarSystemGenerator.Generate(10, EStarSystemClass.Supply).Map;
+		var second = StarSystemGenerator.Generate(20, EStarSystemClass.Supply).Map;
 
 		Assert.NotEqual(
 			first.PointsOfInterest.Select(poi => poi.PlacedCenter),
@@ -89,7 +87,8 @@ public sealed class SupplySystemGenerationTests
 	[InlineData(500)]
 	public void Generate_ManySeeds_SatisfyInvariants(int seed)
 	{
-		var world = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
+		var buildResult = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
+		var world = buildResult.Map;
 		var plan = world.Blueprint.SupplyPlan;
 
 		Assert.Equal("copper", plan.ResourceId);
@@ -97,6 +96,7 @@ public sealed class SupplySystemGenerationTests
 		Assert.Equal(6, world.DocksById.Count);
 		Assert.Equal(8, world.RoutesById.Count);
 		Assert.Equal(26, world.UnitRegistry.Ids.Count());
+		Assert.Equal(world.Width * world.Height, buildResult.Terrain.Width * buildResult.Terrain.Height);
 
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Refinery);

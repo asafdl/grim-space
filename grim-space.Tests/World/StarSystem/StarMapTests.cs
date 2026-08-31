@@ -73,20 +73,19 @@ public sealed class StarMapTests
 		Assert.Same(world.DocksByPoiId, fork.DocksByPoiId);
 		Assert.Same(world.RoutesById, fork.RoutesById);
 		Assert.NotSame(world.Timeline, fork.Timeline);
-		Assert.NotSame(world.TrafficController, fork.TrafficController);
 		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
 		Assert.Equal(26, world.UnitRegistry.Ids.Count());
 		Assert.Equal(26, fork.UnitRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
-		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.AdvanceTransit(99);
+		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.Journey.LegProgress = 99;
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
 		var minerId = FirstUnitOfType(world, EType.MiningBarge).Id;
 		Assert.NotEqual(
-			world.UnitRegistry.UnitOf(minerId).State.Journey.LongitudinalProgress,
-			fork.UnitRegistry.UnitOf(minerId).State.Journey.LongitudinalProgress);
+			world.UnitRegistry.UnitOf(minerId).State.Journey.LegProgress,
+			fork.UnitRegistry.UnitOf(minerId).State.Journey.LegProgress);
 	}
 
 	[Fact]

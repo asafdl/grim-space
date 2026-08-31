@@ -93,7 +93,8 @@ public partial class RunSession : Node
 		}
 
 		var nextSeed = seed ?? Random.Shared.Next();
-		Run.Map = StarMap.CreateDevDefault(nextSeed);
-		Run.Traffic = StarSystemOrchestrator.FromMap(Run.Map);
+		var buildResult = StarMap.CreateDevBuildResult(nextSeed);
+		Run.Map = buildResult.Map;
+		Run.Traffic = StarSystemOrchestrator.FromBuildResult(buildResult);
 	}
 }

@@ -7,14 +7,10 @@ namespace GrimSpace.World.StarSystem.Generation;
 
 public static class UnitSpawnPlacement
 {
-	private const double MinTransitProgressRatio = 0.08;
-	private const double MaxTransitProgressRatio = 0.92;
-
 	private enum CandidateKind
 	{
 		DockedReady,
 		Working,
-		InTransit,
 	}
 
 	private sealed record Candidate(CandidateKind Kind, int LegIndex, string? WorkingPoiId);
@@ -24,9 +20,6 @@ public static class UnitSpawnPlacement
 		string DockedAtDockId,
 		int ChoreIndex,
 		int WorkTicksRemaining,
-		string? TransitRouteId,
-		bool TransitTowardDockB,
-		double TransitProgress,
 		string? WorkingPoiId);
 
 	public static Result Resolve(
@@ -34,7 +27,6 @@ public static class UnitSpawnPlacement
 		string unitId,
 		EType type,
 		IReadOnlyList<string> choreDockIds,
-		IReadOnlyDictionary<string, SpaceRoute> routesById,
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, PointOfInterest> poiById,
 		IReadOnlySet<string> poisWithSpawnedWorkers)
@@ -47,7 +39,6 @@ public static class UnitSpawnPlacement
 		var candidates = BuildCandidates(
 			type,
 			choreDockIds,
-			routesById,
 			docksById,
 			poiById,
 			poisWithSpawnedWorkers);
@@ -60,20 +51,12 @@ public static class UnitSpawnPlacement
 				.Add(unitId)
 				.Value);
 		var chosen = candidates[(int)(random.NextDouble() * candidates.Count)];
-		return Materialize(
-			chosen,
-			type,
-			choreDockIds,
-			routesById,
-			docksById,
-			poiById,
-			random);
+		return Materialize(chosen, type, choreDockIds, poiById, random);
 	}
 
 	private static List<Candidate> BuildCandidates(
 		EType type,
 		IReadOnlyList<string> choreDockIds,
-		IReadOnlyDictionary<string, SpaceRoute> routesById,
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, PointOfInterest> poiById,
 		IReadOnlySet<string> poisWithSpawnedWorkers)
@@ -94,17 +77,6 @@ public static class UnitSpawnPlacement
 			{
 				candidates.Add(new Candidate(CandidateKind.Working, legIndex, poi.Id));
 			}
-
-			var fromDockId = choreDockIds[(legIndex - 1 + legCount) % legCount];
-			if (SystemTrafficController.TryGetRoute(
-				routesById,
-				fromDockId,
-				dockId,
-				out _,
-				out _))
-			{
-				candidates.Add(new Candidate(CandidateKind.InTransit, legIndex, null));
-			}
 		}
 
 		return candidates;
@@ -114,8 +86,6 @@ public static class UnitSpawnPlacement
 		Candidate candidate,
 		EType type,
 		IReadOnlyList<string> choreDockIds,
-		IReadOnlyDictionary<string, SpaceRoute> routesById,
-		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, PointOfInterest> poiById,
 		StableRandom random)
 	{
@@ -130,9 +100,6 @@ public static class UnitSpawnPlacement
 				dockId,
 				choreIndex,
 				0,
-				null,
-				false,
-				0,
 				null),
 			CandidateKind.Working => new Result(
 				EPhase.Working,
@@ -141,52 +108,9 @@ public static class UnitSpawnPlacement
 				RandomWorkTicks(
 					random,
 					poiById[candidate.WorkingPoiId!].DurationTicks(type)),
-				null,
-				false,
-				0,
 				candidate.WorkingPoiId),
-			CandidateKind.InTransit => MaterializeTransit(
-				candidate.LegIndex,
-				choreDockIds,
-				routesById,
-				random),
 			_ => throw new InvalidOperationException($"Unknown spawn candidate kind '{candidate.Kind}'."),
 		};
-	}
-
-	private static Result MaterializeTransit(
-		int legIndex,
-		IReadOnlyList<string> choreDockIds,
-		IReadOnlyDictionary<string, SpaceRoute> routesById,
-		StableRandom random)
-	{
-		var legCount = choreDockIds.Count;
-		var toDockId = choreDockIds[legIndex];
-		var fromDockId = choreDockIds[(legIndex - 1 + legCount) % legCount];
-		if (!SystemTrafficController.TryGetRoute(
-			routesById,
-			fromDockId,
-			toDockId,
-			out var route,
-			out var towardDockB))
-		{
-			throw new InvalidOperationException(
-				$"Missing route for spawned transit leg {fromDockId} -> {toDockId}.");
-		}
-
-		var minProgress = route.Length * MinTransitProgressRatio;
-		var maxProgress = route.Length * MaxTransitProgressRatio;
-		var progress = minProgress + random.NextDouble() * (maxProgress - minProgress);
-
-		return new Result(
-			EPhase.InTransit,
-			fromDockId,
-			legIndex,
-			0,
-			route.Id,
-			towardDockB,
-			progress,
-			null);
 	}
 
 	private static int RandomWorkTicks(StableRandom random, int duration) =>

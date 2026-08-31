@@ -1,6 +1,5 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
@@ -21,13 +20,6 @@ public sealed class AdvanceTrafficEffect : IEffect<StarMap, EmptyRuntime>
 				poi.AdvanceTick(world.UnitRegistry);
 		}
 
-		foreach (var unit in world.UnitRegistry.All)
-		{
-			if (unit.State.IsReadyToDepart)
-				TryDepart(world, unit.State);
-		}
-
-		world.TrafficController.Validate();
 		return [];
 	}
 
@@ -35,39 +27,22 @@ public sealed class AdvanceTrafficEffect : IEffect<StarMap, EmptyRuntime>
 
 	private static void AdvanceTransit(StarMap world, State state)
 	{
-		var routeId = state.Journey.RouteId
-			?? throw new InvalidOperationException($"Unit '{state.Id}' is in transit without a route.");
-
-		var route = world.RoutesById[routeId];
-		state.AdvanceTransit(state.SpeedPerTick);
-
-		if (state.Journey.LongitudinalProgress < route.Length)
+		if (!state.AdvanceTransit(state.SpeedPerTick))
 			return;
 
-		world.TrafficController.UnregisterLane(state.Id);
-		var destinationDockId = SystemTrafficController.DestinationDock(route, state.Journey.TowardDockB);
+		var destinationDockId = state.Journey.DestinationDockId
+			?? throw new InvalidOperationException($"Unit '{state.Id}' completed transit without a destination.");
+
 		state.ArriveAt(destinationDockId);
 		state.EnterWaiting();
 		var poiId = world.DocksById[destinationDockId].PoiId;
 		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
 		if (!poi.HasTasks)
+		{
 			throw new InvalidOperationException($"POI '{poiId}' has no task supplier.");
+		}
+
 		poi.Enqueue(state.Id);
 		state.AdvanceChoreIndex();
-	}
-
-	private static void TryDepart(StarMap world, State state)
-	{
-		var destinationDockId = state.NextChoreDockId();
-		if (!world.TryResolveRoute(state.DockedAtDockId, destinationDockId, out var route, out var towardDockB))
-			return;
-
-		if (!world.TrafficController.VerifyLane(state.Id, route.Id, towardDockB))
-			return;
-
-		if (!world.TrafficController.TryRegisterLane(state.Id, route.Id, towardDockB))
-			return;
-
-		state.BeginTransit(route.Id, towardDockB);
 	}
 }

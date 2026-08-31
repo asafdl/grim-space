@@ -1,3 +1,5 @@
+using GrimSpace.World.StarSystem.Pathfinding;
+
 namespace GrimSpace.World.StarSystem.Units;
 
 public sealed class State
@@ -20,17 +22,33 @@ public sealed class State
 	public void AdvanceChoreIndex() =>
 		ChoreIndex = (ChoreIndex + 1) % ChoreDockIds.Count;
 
-	internal void BeginTransit(string routeId, bool towardDockB)
+	internal void BeginTransit(string destinationDockId, TransitPath path)
 	{
 		Phase = EPhase.InTransit;
-		Journey.RouteId = routeId;
-		Journey.TowardDockB = towardDockB;
-		Journey.LongitudinalProgress = 0;
-		Journey.LateralOffset = 0;
+		Journey.DestinationDockId = destinationDockId;
+		Journey.Path = path;
+		Journey.LegIndex = 0;
+		Journey.LegProgress = 0;
 	}
 
-	internal void AdvanceTransit(double delta) =>
-		Journey.LongitudinalProgress += delta;
+	internal bool AdvanceTransit(double speedPerTick)
+	{
+		var path = Journey.Path
+			?? throw new InvalidOperationException($"Unit '{Id}' is in transit without a path.");
+
+		while (Journey.LegIndex < path.Legs.Length)
+		{
+			var leg = path.Legs[Journey.LegIndex];
+			Journey.LegProgress += speedPerTick * leg.SpeedMultiplier;
+			if (Journey.LegProgress < leg.Length)
+				return false;
+
+			Journey.LegProgress -= leg.Length;
+			Journey.LegIndex++;
+		}
+
+		return true;
+	}
 
 	internal void ArriveAt(string dockId)
 	{
@@ -82,10 +100,10 @@ public sealed class State
 			SpeedPerTick = SpeedPerTick,
 			WorkTicksRemaining = WorkTicksRemaining,
 		};
-		clone.Journey.RouteId = Journey.RouteId;
-		clone.Journey.TowardDockB = Journey.TowardDockB;
-		clone.Journey.LongitudinalProgress = Journey.LongitudinalProgress;
-		clone.Journey.LateralOffset = Journey.LateralOffset;
+		clone.Journey.DestinationDockId = Journey.DestinationDockId;
+		clone.Journey.Path = Journey.Path;
+		clone.Journey.LegIndex = Journey.LegIndex;
+		clone.Journey.LegProgress = Journey.LegProgress;
 		return clone;
 	}
 

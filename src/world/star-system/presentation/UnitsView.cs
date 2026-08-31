@@ -1,8 +1,6 @@
 using Godot;
 using GrimSpace.Math.Grid;
-using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -351,61 +349,15 @@ public partial class UnitsView : Node3D
 
 	private static TrafficSample ResolveSample(StarMap world, State state, float tickFraction)
 	{
-		if (state.Phase != EPhase.InTransit || state.Journey.RouteId is not { } routeId)
+		if (state.Phase == EPhase.InTransit && state.Journey.Path is not null)
 		{
-			var dock = world.DocksById[state.DockedAtDockId];
-			return new TrafficSample(dock.Position.X, dock.Position.Z, 0f);
+			var (position, tangent) = state.Journey.SamplePosition(tickFraction, state.SpeedPerTick);
+			var heading = Mathf.Atan2(tangent.X * 0.001f, tangent.Z * 0.001f);
+			return new TrafficSample(position.X, position.Z, heading);
 		}
 
-		var route = world.RoutesById[routeId];
-		var progress = state.Journey.LongitudinalProgress + tickFraction * state.SpeedPerTick;
-		progress = System.Math.Min(progress, route.Length);
-
-		var (x, z, heading) = SampleTransitPosition(state.Id, route, progress, state.Journey.TowardDockB);
-		return new TrafficSample(x, z, heading);
-	}
-
-	private static (double X, double Z, float HeadingY) SampleTransitPosition(
-		string unitId,
-		SpaceRoute route,
-		double progress,
-		bool towardDockB)
-	{
-		const double headingLookahead = 6;
-
-		var current = PositionOnRoute(unitId, route, progress, towardDockB);
-		var aheadProgress = System.Math.Min(progress + headingLookahead, route.Length);
-		var behindProgress = System.Math.Max(progress - headingLookahead, 0);
-		var lookahead = aheadProgress > progress
-			? PositionOnRoute(unitId, route, aheadProgress, towardDockB)
-			: PositionOnRoute(unitId, route, behindProgress, towardDockB);
-		var reference = aheadProgress > progress ? current : lookahead;
-		var target = aheadProgress > progress ? lookahead : current;
-
-		var heading = Mathf.Atan2(
-			(float)(target.X - reference.X),
-			(float)(target.Z - reference.Z));
-		return (current.X, current.Z, heading);
-	}
-
-	private static (double X, double Z) PositionOnRoute(
-		string unitId,
-		SpaceRoute route,
-		double progress,
-		bool towardDockB)
-	{
-		var arcLength = towardDockB ? progress : route.Length - progress;
-		var (x, z, tangentX, tangentZ) = RouteGeometry.SampleAtArcLength(route.Centerline, arcLength);
-		if (!towardDockB)
-		{
-			tangentX = -tangentX;
-			tangentZ = -tangentZ;
-		}
-
-		var lateral = RouteLaneOffset.Compute(unitId, route, progress, towardDockB);
-		x += -tangentZ * lateral;
-		z += tangentX * lateral;
-		return (x, z);
+		var dock = world.DocksById[state.DockedAtDockId];
+		return new TrafficSample(dock.Position.X, dock.Position.Z, 0f);
 	}
 
 	private sealed record UnitVisual(

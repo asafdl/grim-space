@@ -9,30 +9,28 @@ namespace GrimSpace.Tests.World.StarSystem.Traffic;
 public sealed class TrafficSimulationTests
 {
 	[Fact]
-	public void AdvanceTick_DepartsDockedUnitAndRegistersLane()
+	public void AdvanceTick_DepartsDockedUnitWithResolvedPath()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var map = orchestrator.Map;
 		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart).State;
 
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EPhase.InTransit, readyUnit.Phase);
-		Assert.NotNull(readyUnit.Journey.RouteId);
-		Assert.Contains(
-			readyUnit.Id,
-			map.TrafficController.OccupantsByRouteId[readyUnit.Journey.RouteId!]);
+		Assert.NotNull(readyUnit.Journey.Path);
+		Assert.NotNull(readyUnit.Journey.DestinationDockId);
 
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EPhase.InTransit, readyUnit.Phase);
-		Assert.True(readyUnit.Journey.LongitudinalProgress > 0);
+		Assert.True(readyUnit.Journey.LegProgress > 0);
 	}
 
 	[Fact]
 	public void AdvanceTick_AdvancesJourneyProgressWhileInTransit()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var unit = orchestrator.Map.UnitRegistry.All
 			.First(candidate => candidate.State.Phase == EPhase.InTransit
 				|| candidate.State.IsReadyToDepart)
@@ -41,18 +39,18 @@ public sealed class TrafficSimulationTests
 		while (unit.Phase != EPhase.InTransit)
 			orchestrator.AdvanceTick();
 
-		var progressAfterDepart = unit.Journey.LongitudinalProgress;
+		var progressAfterDepart = unit.Journey.LegProgress;
 
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EPhase.InTransit, unit.Phase);
-		Assert.True(unit.Journey.LongitudinalProgress > progressAfterDepart);
+		Assert.True(unit.Journey.LegProgress > progressAfterDepart);
 	}
 
 	[Fact]
 	public void AdvanceTicks_MinerVisitsExtractionAndRefinery()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var map = orchestrator.Map;
 		var extractionDock = DockForRole(map, EPoiLogicalRole.Extraction).Id;
 		var refineryDock = DockForRole(map, EPoiLogicalRole.Refinery).Id;
@@ -73,7 +71,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTicks_FreighterVisitsStorageAndExit()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var map = orchestrator.Map;
 		var freighter = FirstUnitOfType(map, EType.ExportFreighter);
 		var storageDock = DockForRole(map, EPoiLogicalRole.Storage).Id;
@@ -94,7 +92,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTicks_ComplianceVesselVisitsOperationalPoisAndReturnsHome()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(42));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var map = orchestrator.Map;
 		var compliance = FirstUnitOfType(map, EType.ComplianceVessel);
 		var adminDock = DockForRole(map, EPoiLogicalRole.Administrative).Id;
@@ -119,36 +117,34 @@ public sealed class TrafficSimulationTests
 	}
 
 	[Fact]
-	public void AdvanceTicks_200TickLoop_DoesNotThrowAndKeepsControllerValid()
+	public void AdvanceTicks_200TickLoop_DoesNotThrow()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(7));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(7);
 
 		orchestrator.AdvanceTicks(200);
 
-		orchestrator.Map.TrafficController.Validate();
 		Assert.Equal(201, orchestrator.Tick);
 	}
 
 	[Fact]
 	public void Fork_KeepsTrafficStateIndependent()
 	{
-		var orchestrator = StarSystemOrchestrator.FromMap(StarMap.CreateDevDefault(11));
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(11);
 		orchestrator.AdvanceTicks(25);
 
 		var forkedMap = orchestrator.Map.Fork();
-		var forkedOrchestrator = StarSystemOrchestrator.FromMap(forkedMap);
+		var forkedOrchestrator = StarSystemTestHarness.CreateOrchestrator(forkedMap);
 		forkedOrchestrator.AdvanceTicks(10);
 
 		Assert.NotSame(orchestrator.Map.Timeline, forkedOrchestrator.Map.Timeline);
-		Assert.NotSame(orchestrator.Map.TrafficController, forkedOrchestrator.Map.TrafficController);
 		Assert.NotSame(orchestrator.Map.UnitRegistry, forkedOrchestrator.Map.UnitRegistry);
 		Assert.Same(orchestrator.Map.RoutesById, forkedOrchestrator.Map.RoutesById);
 
 		var originalMiner = FirstUnitOfType(orchestrator.Map, EType.MiningBarge);
 		var forkedMiner = FirstUnitOfType(forkedOrchestrator.Map, EType.MiningBarge);
 		Assert.NotEqual(
-			originalMiner.Journey.LongitudinalProgress,
-			forkedMiner.Journey.LongitudinalProgress);
+			originalMiner.Journey.LegProgress,
+			forkedMiner.Journey.LegProgress);
 	}
 
 	private static State FirstUnitOfType(StarMap map, EType type) =>
