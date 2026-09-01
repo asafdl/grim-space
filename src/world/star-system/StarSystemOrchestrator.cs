@@ -1,6 +1,5 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -34,17 +33,6 @@ public sealed class StarSystemOrchestrator
 		return new StarSystemOrchestrator(
 			new Engine<StarMap, EmptyRuntime>(result.Map, actorRuntimes),
 			pathfinder);
-	}
-
-	public static StarSystemOrchestrator FromMap(StarMap map)
-	{
-		var terrain = PathfindingTerrain.Create(
-			map.Width,
-			map.Height,
-			map.RoutesById.Values,
-			map.PointsOfInterest,
-			map.DocksById.Values);
-		return FromBuildResult(new StarSystemBuildResult(map, terrain));
 	}
 
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()
