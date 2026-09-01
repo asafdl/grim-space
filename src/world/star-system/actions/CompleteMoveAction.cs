@@ -52,8 +52,12 @@ public sealed class CompleteMoveDef
 		if (world.DocksByPosition.TryGetValue(destination, out var dock))
 		{
 			effects.Add(UpdateLocationEffect.ArriveAtDock(complete.UnitId, dock.Id));
-			var reservation = WorkScheduler.ReserveOnArrival(world, complete.UnitId, dock.Id);
-			effects.AddRange(reservation.Effects);
+			if (unit.State.ChoreDockIds.Count > 0)
+			{
+				var reservation = WorkScheduler.ReserveOnArrival(world, complete.UnitId, dock.Id);
+				effects.AddRange(reservation.Effects);
+			}
+
 			return effects;
 		}
 

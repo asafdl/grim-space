@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
@@ -12,6 +13,31 @@ internal static class StarSystemTestHarness
 
 	public static StarSystemOrchestrator CreateOrchestrator(StarMap map) =>
 		StarSystemOrchestrator.FromBuildResult(BuildResult(map), new StraightLinePathfinder());
+
+	public static StarSystemOrchestrator CreatePlayerOrchestrator(
+		string playerFleetUnitId,
+		int seed = 0,
+		IPathfinder? pathfinder = null)
+	{
+		var buildResult = StarMap.CreateDevBuildResult(seed);
+		AddPlayerFleet(buildResult, playerFleetUnitId);
+		return StarSystemOrchestrator.FromBuildResult(
+			buildResult,
+			pathfinder ?? new StraightLinePathfinder(),
+			playerFleetUnitId);
+	}
+
+	internal static void AddPlayerFleet(StarSystemBuildResult buildResult, string playerFleetUnitId)
+	{
+		var map = buildResult.Map;
+		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
+		map.UnitRegistry.Add(Factory.Create(new Spawn(
+			playerFleetUnitId,
+			EType.PlayerFleet,
+			tradeHubDock.Id,
+			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+			[])));
+	}
 
 	private static StarSystemBuildResult BuildResult(StarMap map) =>
 		new(

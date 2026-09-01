@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://src/world/star-system/presentation/MapCamera.cs" id="3_camera"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/RoutesView.cs" id="4_routes"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/UnitsView.cs" id="5_units"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/CourseView.cs" id="6_course"]
 
 [node name="Map" type="Node3D"]
 script = ExtResource("1_controller")
@@ -25,6 +26,9 @@ script = ExtResource("2_view")
 
 [node name="RoutesView" type="Node3D" parent="."]
 script = ExtResource("4_routes")
+
+[node name="CourseView" type="Node3D" parent="."]
+script = ExtResource("6_course")
 
 [node name="UnitsView" type="Node3D" parent="."]
 script = ExtResource("5_units")

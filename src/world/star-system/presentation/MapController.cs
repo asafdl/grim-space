@@ -12,6 +12,7 @@ public partial class MapController : Node3D
 	private MapView _view = null!;
 	private RoutesView _routes = null!;
 	private UnitsView _units = null!;
+	private CourseView _course = null!;
 	private MapCamera _camera = null!;
 	private PanelContainer _tooltip = null!;
 	private Label _typeLabel = null!;
@@ -27,12 +28,15 @@ public partial class MapController : Node3D
 	private float _tickAccumulator;
 	private bool _paused;
 	private int _speedIndex = 1;
+	private Vector2? _rmbPressPosition;
+	private float _unreachableFlashTimer;
 
 	public override void _Ready()
 	{
 		_view = GetNode<MapView>("MapView");
 		_routes = GetNode<RoutesView>("RoutesView");
 		_units = GetNode<UnitsView>("UnitsView");
+		_course = GetNode<CourseView>("CourseView");
 		_camera = GetNode<MapCamera>("Camera3D");
 
 		if (GetNodeOrNull<DirectionalLight3D>("DirectionalLight3D") is { } light)
@@ -58,6 +62,7 @@ public partial class MapController : Node3D
 		_view.Build(world);
 		_routes.Build(world);
 		_units.Build(world);
+		_course.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
@@ -73,6 +78,9 @@ public partial class MapController : Node3D
 		var world = _orchestrator.Map;
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		_units.Sync(world, tickFraction);
+		if (_unreachableFlashTimer > 0f)
+			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
+		_course.Sync(world, _orchestrator.PlayerId, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 
 		var screen = GetViewport().GetMousePosition();
@@ -86,6 +94,30 @@ public partial class MapController : Node3D
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (@event is InputEventMouseButton mouseButton)
+		{
+			if (GetViewport().GuiGetHoveredControl() is not null)
+				return;
+
+			if (mouseButton.ButtonIndex == MouseButton.Right && mouseButton.Pressed)
+			{
+				_rmbPressPosition = mouseButton.Position;
+				return;
+			}
+
+			if (mouseButton.ButtonIndex == MouseButton.Right
+				&& !mouseButton.Pressed
+				&& _rmbPressPosition is { } pressPosition
+				&& pressPosition.DistanceTo(mouseButton.Position) < 4f)
+			{
+				TryOrderMove();
+				GetViewport().SetInputAsHandled();
+			}
+
+			_rmbPressPosition = null;
+			return;
+		}
+
 		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
 			return;
 
@@ -113,6 +145,18 @@ public partial class MapController : Node3D
 				GetViewport().SetInputAsHandled();
 				break;
 		}
+	}
+
+	private void TryOrderMove()
+	{
+		var world = _orchestrator.Map;
+		var screen = GetViewport().GetMousePosition();
+		var destination = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
+		if (destination is null)
+			return;
+
+		if (_orchestrator.OrderMove(destination.Value) is MoveCommandResult.Unreachable)
+			_unreachableFlashTimer = 0.6f;
 	}
 
 	private void AdvanceSimulation(double delta)
@@ -169,7 +213,7 @@ public partial class MapController : Node3D
 		var hint = new Label
 		{
 			Position = new Vector2(16, 16),
-			Text = "F10 star map (dev) — drag/WASD pan, right orbit, wheel zoom, Space pause, Rebuild rerolls seed, Esc menu",
+			Text = "F10 star map (dev) — WASD pan, LMB orbit, wheel zoom, RMB move fleet, Space pause, Rebuild rerolls seed, Esc menu",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
 		hint.AddThemeFontSizeOverride("font_size", 13);

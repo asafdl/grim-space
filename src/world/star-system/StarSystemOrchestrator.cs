@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -13,22 +14,37 @@ public sealed class StarSystemOrchestrator
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly IPathfinder _pathfinder;
 
-	private StarSystemOrchestrator(Engine<StarMap, ActorRuntime> engine, IPathfinder pathfinder)
+	private StarSystemOrchestrator(
+		Engine<StarMap, ActorRuntime> engine,
+		IPathfinder pathfinder,
+		string? playerId)
 	{
 		_engine = engine;
 		_pathfinder = pathfinder;
+		PlayerId = playerId;
 	}
 
 	public StarMap Map => _engine.World;
 
 	public int Tick => _engine.Tick;
 
+	public string? PlayerId { get; }
+
 	public static StarSystemOrchestrator FromBuildResult(StarSystemBuildResult result) =>
-		FromBuildResult(result, new CachedPathfinder(new AStarPathfinder(result.Terrain)));
+		FromBuildResult(result, new CachedPathfinder(new AStarPathfinder(result.Terrain)), playerId: null);
 
 	public static StarSystemOrchestrator FromBuildResult(
 		StarSystemBuildResult result,
-		IPathfinder pathfinder)
+		string playerId) =>
+		FromBuildResult(
+			result,
+			new CachedPathfinder(new AStarPathfinder(result.Terrain)),
+			playerId);
+
+	public static StarSystemOrchestrator FromBuildResult(
+		StarSystemBuildResult result,
+		IPathfinder pathfinder,
+		string? playerId = null)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		if (result.Map.Timeline.Clock.Current == 0)
@@ -43,7 +59,26 @@ public sealed class StarSystemOrchestrator
 
 		return new StarSystemOrchestrator(
 			new Engine<StarMap, ActorRuntime>(result.Map, actorRuntimes),
-			pathfinder);
+			pathfinder,
+			playerId);
+	}
+
+	public MoveCommandResult OrderMove(Coord destination)
+	{
+		if (PlayerId is not { } playerId)
+			throw new InvalidOperationException("Cannot order move without a player unit.");
+
+		var unit = _engine.World.UnitRegistry.UnitOf(playerId);
+		var (origin, _) = unit.State.CommittedPosition(
+			_engine.World,
+			unit.Runtime.CachedPath,
+			0f);
+		var result = _pathfinder.FindPath(origin, destination);
+		if (result is not PathfindingResult.Found found)
+			return new MoveCommandResult.Unreachable();
+
+		_engine.Commit(new MoveAction(playerId, playerId, destination, found.Path));
+		return new MoveCommandResult.Committed(found.Path);
 	}
 
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()

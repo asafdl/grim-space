@@ -29,7 +29,6 @@ public partial class MapCamera : Camera3D
 	private float _boundsHalfZ;
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
-	private bool _panning;
 
 	public float Distance => _pose.Distance;
 
@@ -78,7 +77,7 @@ public partial class MapCamera : Camera3D
 	{
 		switch (@event)
 		{
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mouseButton:
+			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
 				if (IsMouseOverUi())
 					break;
 				_orbiting = true;
@@ -86,32 +85,8 @@ public partial class MapCamera : Camera3D
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Right }:
-				_orbiting = false;
-				break;
-
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
-				if (IsMouseOverUi())
-					break;
-				_panning = true;
-				_lastMousePosition = mouseButton.Position;
-				GetViewport().SetInputAsHandled();
-				break;
-
 			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
-				_panning = false;
-				break;
-
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } mouseButton:
-				if (IsMouseOverUi())
-					break;
-				_panning = true;
-				_lastMousePosition = mouseButton.Position;
-				GetViewport().SetInputAsHandled();
-				break;
-
-			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Middle }:
-				_panning = false;
+				_orbiting = false;
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
@@ -130,23 +105,11 @@ public partial class MapCamera : Camera3D
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseMotion motion when _orbiting || _panning:
+			case InputEventMouseMotion motion when _orbiting:
 			{
 				var delta = motion.Position - _lastMousePosition;
 				_lastMousePosition = motion.Position;
-
-				if (_orbiting)
-					_pose.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);
-				else
-				{
-					_pose.ScreenPan(
-						delta,
-						GlobalTransform.Basis.X,
-						GlobalTransform.Basis.Y,
-						OrbitControls.PanSensitivity);
-					ClampPivotToMap();
-				}
-
+				_pose.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;

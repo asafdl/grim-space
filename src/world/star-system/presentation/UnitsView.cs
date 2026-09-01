@@ -103,14 +103,18 @@ public partial class UnitsView : Node3D
 	private static UnitVisual BuildUnit(State state)
 	{
 		var color = ColorForType(state.Type);
-
+		var scale = state.Type == EType.PlayerFleet ? 1.35f : 1f;
+		var ringRadius = RingRadius * scale;
+		var ringStroke = RingStroke * scale;
+		var shipLength = ShipLength * scale;
+		var shipWidth = ShipWidth * scale;
 		var root = new Node3D { Name = $"Unit_{state.Id}" };
 		var marker = new Node3D { Name = "Marker" };
 		marker.AddChild(new MeshInstance3D
 		{
 			Name = "Ring",
 			Position = new Vector3(0f, RingYOffset, 0f),
-			Mesh = BuildRingMesh(RingRadius, RingStroke, RingSegments),
+			Mesh = BuildRingMesh(ringRadius, ringStroke, RingSegments),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = new StandardMaterial3D
 			{
@@ -127,7 +131,7 @@ public partial class UnitsView : Node3D
 		{
 			Name = "Hull",
 			Position = new Vector3(0f, HullYOffset, 0f),
-			Mesh = BuildShipTriangleMesh(ShipLength, ShipWidth),
+			Mesh = BuildShipTriangleMesh(shipLength, shipWidth),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = new StandardMaterial3D
 			{
@@ -276,6 +280,7 @@ public partial class UnitsView : Node3D
 			EType.CargoShuttle => new Color(0.92f, 0.62f, 0.28f),
 			EType.ComplianceVessel => new Color(0.58f, 0.62f, 0.92f),
 			EType.ServiceVessel => new Color(0.42f, 0.72f, 0.88f),
+			EType.PlayerFleet => new Color(0.95f, 0.82f, 0.28f),
 			EType.Patrol => new Color(0.88f, 0.38f, 0.34f),
 			_ => new Color(0.75f, 0.75f, 0.75f),
 		};

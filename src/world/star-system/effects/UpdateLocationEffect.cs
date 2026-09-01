@@ -59,7 +59,11 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 
 		if (_path is not null)
 		{
-			if (state.Phase == EPhase.Docked && !state.IsReadyToDepart)
+			var canBeginJourney = state.Phase == EPhase.InTransit
+				|| state.IsReadyToDepart
+				|| state is { ChoreDockIds.Count: 0, Phase: EPhase.Docked };
+
+			if (!canBeginJourney)
 			{
 				throw new InvalidOperationException(
 					$"Unit '{_unitId}' is not ready to move.");
