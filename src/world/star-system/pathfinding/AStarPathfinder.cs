@@ -16,10 +16,10 @@ public sealed class AStarPathfinder : IPathfinder
 			Region = new Rect2I(0, 0, terrain.Width, terrain.Height),
 			CellSize = Vector2.One,
 			Offset = Vector2.Zero,
-			DefaultComputeHeuristic = AStarGrid2D.Heuristic.Manhattan,
-			DefaultEstimateHeuristic = AStarGrid2D.Heuristic.Manhattan,
+			DefaultComputeHeuristic = AStarGrid2D.Heuristic.Octile,
+			DefaultEstimateHeuristic = AStarGrid2D.Heuristic.Octile,
 		};
-		_grid.DiagonalMode = AStarGrid2D.DiagonalModeEnum.Never;
+		_grid.DiagonalMode = AStarGrid2D.DiagonalModeEnum.OnlyIfNoObstacles;
 		_grid.Update();
 
 		for (var z = 0; z < terrain.Height; z++)
