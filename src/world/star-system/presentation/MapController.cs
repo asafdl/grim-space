@@ -10,6 +10,7 @@ public partial class MapController : Node3D
 	private static readonly float[] SpeedOptions = [0.5f, 1f, 2f, 4f, 8f];
 
 	private MapView _view = null!;
+	private RoutesView _routes = null!;
 	private UnitsView _units = null!;
 	private MapCamera _camera = null!;
 	private PanelContainer _tooltip = null!;
@@ -30,6 +31,7 @@ public partial class MapController : Node3D
 	public override void _Ready()
 	{
 		_view = GetNode<MapView>("MapView");
+		_routes = GetNode<RoutesView>("RoutesView");
 		_units = GetNode<UnitsView>("UnitsView");
 		_camera = GetNode<MapCamera>("Camera3D");
 
@@ -54,6 +56,7 @@ public partial class MapController : Node3D
 		MoveChild(backdrop, 0);
 
 		_view.Build(world);
+		_routes.Build(world);
 		_units.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
 		UpdateSystemLabel(world);
