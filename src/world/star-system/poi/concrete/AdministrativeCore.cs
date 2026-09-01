@@ -50,7 +50,7 @@ public sealed class AdministrativeCore : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new AdministrativeCore(_plan, Center, PhysicalForm);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

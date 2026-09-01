@@ -79,13 +79,13 @@ public sealed class StarMapTests
 		Assert.Equal(26, fork.UnitRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
-		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.Journey.LegProgress = 99;
+		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.Journey.StartTick = 99;
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
 		var minerId = FirstUnitOfType(world, EType.MiningBarge).Id;
 		Assert.NotEqual(
-			world.UnitRegistry.UnitOf(minerId).State.Journey.LegProgress,
-			fork.UnitRegistry.UnitOf(minerId).State.Journey.LegProgress);
+			world.UnitRegistry.UnitOf(minerId).State.Journey.StartTick,
+			fork.UnitRegistry.UnitOf(minerId).State.Journey.StartTick);
 	}
 
 	[Fact]

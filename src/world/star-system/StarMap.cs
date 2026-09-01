@@ -21,6 +21,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public Timeline Timeline { get; }
 	public IReadOnlyDictionary<string, Dock> DocksById { get; }
 	public IReadOnlyDictionary<string, Dock> DocksByPoiId { get; }
+	public IReadOnlyDictionary<Coord, Dock> DocksByPosition { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public UnitRegistry UnitRegistry { get; }
 
@@ -40,6 +41,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		Timeline = timeline;
 		DocksById = docksById;
 		DocksByPoiId = docksByPoiId;
+		DocksByPosition = docksById.Values
+			.GroupBy(dock => dock.Position)
+			.ToDictionary(group => group.Key, group => group.Single());
 		RoutesById = routesById;
 		UnitRegistry = unitRegistry;
 	}

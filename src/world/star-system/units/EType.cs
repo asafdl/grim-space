@@ -9,4 +9,5 @@ public enum EType
 	MiningBarge,
 	RefineryHauler,
 	ExportFreighter,
+	PlayerFleet,
 }

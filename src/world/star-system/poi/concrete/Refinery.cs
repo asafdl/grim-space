@@ -41,7 +41,7 @@ public sealed class Refinery : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new Refinery(_plan, Center);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

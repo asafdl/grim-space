@@ -20,6 +20,9 @@ public sealed class ActorRuntimes<TRuntime>
 
 	public TRuntime For(IAction action) => For(action.ActorId);
 
+	public void Register(string actorId, TRuntime runtime) =>
+		_contexts[actorId] = runtime;
+
 	public ActorRuntimes<TRuntime> Fork()
 	{
 		var fork = new ActorRuntimes<TRuntime>();

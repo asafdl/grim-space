@@ -40,7 +40,7 @@ public sealed class Wormhole : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new Wormhole(_plan, Center);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

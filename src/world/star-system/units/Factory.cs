@@ -9,7 +9,7 @@ public static class Factory
 		ArgumentException.ThrowIfNullOrEmpty(spawn.DockedAtDockId);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.SpeedPerTick, 0);
 		ArgumentNullException.ThrowIfNull(spawn.ChoreDockIds);
-		if (spawn.ChoreDockIds.Count == 0)
+		if (spawn.ChoreDockIds.Count == 0 && spawn.Type != EType.PlayerFleet)
 			throw new ArgumentException("At least one chore destination is required.", nameof(spawn));
 
 		return new Unit(State.FromSpawn(spawn));

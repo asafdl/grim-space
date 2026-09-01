@@ -104,10 +104,7 @@ public static class StarSystemBuilder
 			ApplySpawnPlacement(unit.State, placement);
 
 			if (placement.Phase == EPhase.Working)
-			{
-				poiById[placement.WorkingPoiId!].AdoptSpawnedWorker(unit.State.Id);
 				poisWithSpawnedWorkers.Add(placement.WorkingPoiId!);
-			}
 
 			unitRegistry.Add(unit);
 		}
@@ -285,8 +282,12 @@ public static class StarSystemBuilder
 	{
 		state.ChoreIndex = placement.ChoreIndex;
 		state.Phase = placement.Phase;
-		state.WorkTicksRemaining = placement.WorkTicksRemaining;
 		state.DockedAtDockId = placement.DockedAtDockId;
+		if (placement.Phase == EPhase.Working)
+		{
+			state.SpawnWorkPoiId = placement.WorkingPoiId;
+			state.SpawnWorkRemainingTicks = placement.WorkTicksRemaining;
+		}
 	}
 
 	private static Coord SampleFreeCenter(StarSystemBlueprint blueprint, int radius, StableRandom random)
@@ -387,5 +388,16 @@ public static class StarSystemBuilder
 
 		if (unitRegistry.Ids.Count() != blueprint.UnitSpawns.Count)
 			throw new InvalidOperationException("Unit spawn count does not match blueprint.");
+
+		var duplicateDockPositions = docksByPoiId.Values
+			.GroupBy(dock => dock.Position)
+			.Where(group => group.Count() > 1)
+			.Select(group => group.Key)
+			.ToList();
+		if (duplicateDockPositions.Count > 0)
+		{
+			throw new InvalidOperationException(
+				$"Dock coordinates must be unique. Duplicates: {string.Join(", ", duplicateDockPositions)}");
+		}
 	}
 }

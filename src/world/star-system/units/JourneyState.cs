@@ -1,42 +1,37 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem.Pathfinding;
 
 namespace GrimSpace.World.StarSystem.Units;
 
 public sealed class JourneyState
 {
-	public string? DestinationDockId { get; set; }
-	public TransitPath? Path { get; set; }
-	public int LegIndex { get; set; }
-	public double LegProgress { get; set; }
+	public long JourneyId { get; set; }
+	public Coord Origin { get; set; }
+	public Coord Destination { get; set; }
+	public int StartTick { get; set; }
 
-	public (Coord Position, Coord Tangent) SamplePosition(float tickFraction, double speedPerTick)
-	{
-		var path = Path ?? throw new InvalidOperationException("Journey has no transit path.");
-		if (LegIndex >= path.Legs.Length)
-			throw new InvalidOperationException("Journey leg index is out of range.");
+	public bool IsActive => JourneyId != 0;
 
-		var leg = path.Legs[LegIndex];
-		var progress = LegProgress + tickFraction * speedPerTick * leg.SpeedMultiplier;
-		progress = System.Math.Min(progress, leg.Length);
-		return PolylineSampler.Sample(leg.Points, progress);
-	}
+	public (Coord Position, Coord Tangent) SamplePosition(
+		TransitPath path,
+		double elapsedTicks,
+		double speedPerTick) =>
+		path.SampleAtElapsed(elapsedTicks, speedPerTick);
 
 	public JourneyState Clone() =>
 		new()
 		{
-			DestinationDockId = DestinationDockId,
-			Path = Path,
-			LegIndex = LegIndex,
-			LegProgress = LegProgress,
+			JourneyId = JourneyId,
+			Origin = Origin,
+			Destination = Destination,
+			StartTick = StartTick,
 		};
 
 	public void Clear()
 	{
-		DestinationDockId = null;
-		Path = null;
-		LegIndex = 0;
-		LegProgress = 0;
+		JourneyId = 0;
+		Origin = default;
+		Destination = default;
+		StartTick = 0;
 	}
 }

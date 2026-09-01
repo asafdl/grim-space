@@ -3,15 +3,17 @@ using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
 
 public sealed class StarSystemOrchestrator
 {
-	private readonly Engine<StarMap, EmptyRuntime> _engine;
+	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly IPathfinder _pathfinder;
 
-	private StarSystemOrchestrator(Engine<StarMap, EmptyRuntime> engine, IPathfinder pathfinder)
+	private StarSystemOrchestrator(Engine<StarMap, ActorRuntime> engine, IPathfinder pathfinder)
 	{
 		_engine = engine;
 		_pathfinder = pathfinder;
@@ -28,16 +30,24 @@ public sealed class StarSystemOrchestrator
 		StarSystemBuildResult result,
 		IPathfinder pathfinder)
 	{
-		var actorRuntimes = new ActorRuntimes<EmptyRuntime>();
-		actorRuntimes.For(StarSystemActorIds.Traffic);
+		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
+		if (result.Map.Timeline.Clock.Current == 0)
+			result.Map.Timeline.Clock.Set(1);
+
+		foreach (var unit in result.Map.UnitRegistry.All)
+		{
+			actorRuntimes.Register(unit.State.Id, unit.Runtime);
+			TransitCache.RebuildIfMissing(unit, pathfinder);
+			ScheduleSpawnedWorkerIfNeeded(result.Map, unit);
+		}
+
 		return new StarSystemOrchestrator(
-			new Engine<StarMap, EmptyRuntime>(result.Map, actorRuntimes),
+			new Engine<StarMap, ActorRuntime>(result.Map, actorRuntimes),
 			pathfinder);
 	}
 
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()
 	{
-		_engine.Commit(new AdvanceTrafficAction(StarSystemActorIds.Traffic));
 		CoordinateDepartures();
 		return _engine.AdvanceTick();
 	}
@@ -54,6 +64,9 @@ public sealed class StarSystemOrchestrator
 		foreach (var unit in _engine.World.UnitRegistry.All)
 		{
 			var state = unit.State;
+			if (state.ChoreDockIds.Count == 0)
+				continue;
+
 			if (!state.IsReadyToDepart)
 				continue;
 
@@ -64,11 +77,22 @@ public sealed class StarSystemOrchestrator
 			if (result is not PathfindingResult.Found found)
 				continue;
 
-			_engine.Commit(new BeginTransitAction(
-				StarSystemActorIds.Traffic,
+			_engine.Commit(new MoveAction(
 				state.Id,
-				destinationDockId,
+				state.Id,
+				destination,
 				found.Path));
 		}
+	}
+
+	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Unit unit)
+	{
+		var state = unit.State;
+		if (state.Phase != EPhase.Working || state.SpawnWorkPoiId is not { } poiId)
+			return;
+
+		WorkScheduler.ScheduleSpawnedWorker(map, unit, poiId, state.SpawnWorkRemainingTicks);
+		state.SpawnWorkPoiId = null;
+		state.SpawnWorkRemainingTicks = 0;
 	}
 }

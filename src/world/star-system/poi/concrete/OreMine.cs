@@ -40,7 +40,7 @@ public sealed class OreMine : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new OreMine(_plan, Center);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

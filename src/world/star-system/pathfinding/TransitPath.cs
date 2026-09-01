@@ -13,6 +13,29 @@ public sealed record TransitPath(ImmutableArray<TransitLeg> Legs)
 {
 	public double TotalLength { get; } = Legs.Sum(leg => leg.Length);
 
+	private RouteSegment[] Segments { get; } = CreateSegments(Legs);
+
+	public double TicksRequired(double speedPerTick) =>
+		PiecewiseRouteSampler.TimeRequired(Segments, speedPerTick);
+
+	public int DurationTicks(double speedPerTick) =>
+		(int)System.Math.Ceiling(TicksRequired(speedPerTick));
+
+	public (Coord Position, Coord Tangent) SampleAtElapsed(double elapsedTicks, double speedPerTick) =>
+		PiecewiseRouteSampler.SampleAtElapsed(Segments, elapsedTicks, speedPerTick);
+
+	private static RouteSegment[] CreateSegments(ImmutableArray<TransitLeg> legs)
+	{
+		var segments = new RouteSegment[legs.Length];
+		for (var i = 0; i < legs.Length; i++)
+		{
+			var leg = legs[i];
+			segments[i] = new RouteSegment(leg.Points, leg.Length, leg.SpeedMultiplier);
+		}
+
+		return segments;
+	}
+
 	public static TransitPath FromPoints(
 		IReadOnlyList<Coord> points,
 		IReadOnlyList<double> speedMultipliers)

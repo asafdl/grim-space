@@ -28,7 +28,7 @@ public sealed class Star : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new Star(Center);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

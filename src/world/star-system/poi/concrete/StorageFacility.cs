@@ -41,7 +41,7 @@ public sealed class StorageFacility : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new StorageFacility(_plan, Center);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

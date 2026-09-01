@@ -59,7 +59,7 @@ public partial class UnitsView : Node3D
 			if (!_units.TryGetValue(unit.State.Id, out var unitVisual))
 				continue;
 
-			var sample = ResolveSample(world, unit.State, tickFraction);
+			var sample = ResolveSample(world, unit, tickFraction);
 			var worldPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height)
 				+ Vector3.Up * MarkerYOffset;
 			unitVisual.Marker.Position = worldPosition;
@@ -82,7 +82,7 @@ public partial class UnitsView : Node3D
 
 		foreach (var unit in world.UnitRegistry.All)
 		{
-			var sample = ResolveSample(world, unit.State, tickFraction);
+			var sample = ResolveSample(world, unit, tickFraction);
 			var dx = point.X - sample.X;
 			var dz = point.Z - sample.Z;
 			var distance = dx * dx + dz * dz;
@@ -347,17 +347,16 @@ public partial class UnitsView : Node3D
 		return mesh;
 	}
 
-	private static TrafficSample ResolveSample(StarMap world, State state, float tickFraction)
+	private static TrafficSample ResolveSample(StarMap world, Units.Unit unit, float tickFraction)
 	{
-		if (state.Phase == EPhase.InTransit && state.Journey.Path is not null)
-		{
-			var (position, tangent) = state.Journey.SamplePosition(tickFraction, state.SpeedPerTick);
-			var heading = Mathf.Atan2(tangent.X * 0.001f, tangent.Z * 0.001f);
-			return new TrafficSample(position.X, position.Z, heading);
-		}
-
-		var dock = world.DocksById[state.DockedAtDockId];
-		return new TrafficSample(dock.Position.X, dock.Position.Z, 0f);
+		var (position, tangent) = unit.State.CommittedPosition(
+			world,
+			unit.Runtime.CachedPath,
+			tickFraction);
+		var heading = tangent is { } t
+			? Mathf.Atan2(t.X * 0.001f, t.Z * 0.001f)
+			: 0f;
+		return new TrafficSample(position.X, position.Z, heading);
 	}
 
 	private sealed record UnitVisual(

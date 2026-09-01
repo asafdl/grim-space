@@ -6,14 +6,12 @@ namespace GrimSpace.World.StarSystem.Poi;
 
 public abstract class PointOfInterest
 {
-	private readonly Queue<string>? _waiting;
-	private string? _activeUnitId;
-
 	public string Id { get; }
 	public string DisplayName { get; }
 	public Coord? Center { get; }
 	public int Radius { get; }
 	public EPoiLogicalRole LogicalRole { get; }
+	public int NextAvailableTaskTick { get; set; } = 1;
 
 	protected PointOfInterest(
 		string id,
@@ -27,8 +25,6 @@ public abstract class PointOfInterest
 		Radius = radius;
 		LogicalRole = logicalRole;
 		Center = center;
-		if (HasTasks)
-			_waiting = new Queue<string>();
 	}
 
 	public bool HasTasks => LogicalRole != EPoiLogicalRole.Environment;
@@ -45,54 +41,19 @@ public abstract class PointOfInterest
 	public virtual int DurationTicks(EType unitType) =>
 		throw new InvalidOperationException($"POI '{Id}' has no task for unit type {unitType}.");
 
-	public void Enqueue(string unitId)
+	public (int StartTick, int EndTick) ReserveTaskWindow(int currentTick, int durationTicks)
 	{
-		if (!HasTasks)
-			throw new InvalidOperationException($"POI '{Id}' does not accept tasks.");
-
-		ArgumentException.ThrowIfNullOrEmpty(unitId);
-		_waiting!.Enqueue(unitId);
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(durationTicks);
+		var startTick = System.Math.Max(currentTick, NextAvailableTaskTick);
+		var endTick = startTick + durationTicks;
+		NextAvailableTaskTick = endTick;
+		return (startTick, endTick);
 	}
 
-	public void AdoptSpawnedWorker(string unitId)
+	public void ExtendReservation(int endTick)
 	{
-		if (!HasTasks)
-			throw new InvalidOperationException($"POI '{Id}' does not accept tasks.");
-
-		ArgumentException.ThrowIfNullOrEmpty(unitId);
-		if (_activeUnitId is not null)
-			throw new InvalidOperationException($"POI '{Id}' already has an active worker.");
-
-		_activeUnitId = unitId;
-	}
-
-	public void AdvanceTick(UnitRegistry units)
-	{
-		if (!HasTasks)
-			return;
-
-		if (_activeUnitId is not null)
-		{
-			var active = units.UnitOf(_activeUnitId).State;
-			if (active.Phase == EPhase.Working)
-			{
-				active.TickWork();
-				if (active.Phase == EPhase.Docked)
-					_activeUnitId = null;
-			}
-			else
-			{
-				_activeUnitId = null;
-			}
-		}
-
-		if (_activeUnitId is not null || _waiting!.Count == 0)
-			return;
-
-		var nextId = _waiting.Dequeue();
-		var next = units.UnitOf(nextId).State;
-		next.BeginWork(DurationTicks(next.Type));
-		_activeUnitId = nextId;
+		if (endTick > NextAvailableTaskTick)
+			NextAvailableTaskTick = endTick;
 	}
 
 	public PointOfInterest Place(Coord center)
@@ -107,13 +68,6 @@ public abstract class PointOfInterest
 
 	protected abstract PointOfInterest WithCenter(Coord center);
 
-	protected void ForkTaskState(PointOfInterest clone)
-	{
-		if (_waiting is null || clone._waiting is null)
-			return;
-
-		foreach (var unitId in _waiting)
-			clone._waiting.Enqueue(unitId);
-		clone._activeUnitId = _activeUnitId;
-	}
+	protected void ForkReservationState(PointOfInterest clone) =>
+		clone.NextAvailableTaskTick = NextAvailableTaskTick;
 }

@@ -38,7 +38,7 @@ public sealed class TradeHub : PointOfInterest
 	public override PointOfInterest Fork()
 	{
 		var clone = new TradeHub(_plan, Center);
-		ForkTaskState(clone);
+		ForkReservationState(clone);
 		return clone;
 	}
 

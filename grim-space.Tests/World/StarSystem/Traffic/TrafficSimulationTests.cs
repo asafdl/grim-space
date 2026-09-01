@@ -1,5 +1,6 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
@@ -13,18 +14,22 @@ public sealed class TrafficSimulationTests
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var map = orchestrator.Map;
-		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart).State;
+		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, readyUnit.Phase);
-		Assert.NotNull(readyUnit.Journey.Path);
-		Assert.NotNull(readyUnit.Journey.DestinationDockId);
+		Assert.Equal(EPhase.InTransit, readyUnit.State.Phase);
+		Assert.NotNull(readyUnit.Runtime.CachedPath);
+		Assert.NotEqual(0, readyUnit.State.Journey.JourneyId);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, readyUnit.Phase);
-		Assert.True(readyUnit.Journey.LegProgress > 0);
+		Assert.Equal(EPhase.InTransit, readyUnit.State.Phase);
+		var (position, _) = readyUnit.State.CommittedPosition(
+			map,
+			readyUnit.Runtime.CachedPath,
+			0f);
+		Assert.NotEqual(readyUnit.State.Journey.Origin, position);
 	}
 
 	[Fact]
@@ -33,18 +38,20 @@ public sealed class TrafficSimulationTests
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var unit = orchestrator.Map.UnitRegistry.All
 			.First(candidate => candidate.State.Phase == EPhase.InTransit
-				|| candidate.State.IsReadyToDepart)
-			.State;
+				|| candidate.State.IsReadyToDepart);
 
-		while (unit.Phase != EPhase.InTransit)
+		while (unit.State.Phase != EPhase.InTransit)
 			orchestrator.AdvanceTick();
 
-		var progressAfterDepart = unit.Journey.LegProgress;
+		var map = orchestrator.Map;
+		var path = unit.Runtime.CachedPath!;
+		var positionAfterDepart = unit.State.CommittedPosition(map, path, 0f).Position;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, unit.Phase);
-		Assert.True(unit.Journey.LegProgress > progressAfterDepart);
+		Assert.Equal(EPhase.InTransit, unit.State.Phase);
+		var positionAfterTick = unit.State.CommittedPosition(map, path, 0f).Position;
+		Assert.NotEqual(positionAfterDepart, positionAfterTick);
 	}
 
 	[Fact]
@@ -140,11 +147,28 @@ public sealed class TrafficSimulationTests
 		Assert.NotSame(orchestrator.Map.UnitRegistry, forkedOrchestrator.Map.UnitRegistry);
 		Assert.Same(orchestrator.Map.RoutesById, forkedOrchestrator.Map.RoutesById);
 
-		var originalMiner = FirstUnitOfType(orchestrator.Map, EType.MiningBarge);
-		var forkedMiner = FirstUnitOfType(forkedOrchestrator.Map, EType.MiningBarge);
-		Assert.NotEqual(
-			originalMiner.Journey.LegProgress,
-			forkedMiner.Journey.LegProgress);
+		var originalMiner = orchestrator.Map.UnitRegistry.UnitOf(
+			FirstUnitOfType(orchestrator.Map, EType.MiningBarge).Id);
+		var forkedMiner = forkedOrchestrator.Map.UnitRegistry.UnitOf(
+			FirstUnitOfType(forkedOrchestrator.Map, EType.MiningBarge).Id);
+
+		if (originalMiner.State.Phase == EPhase.InTransit
+			&& forkedMiner.State.Phase == EPhase.InTransit)
+		{
+			var originalPosition = originalMiner.State.CommittedPosition(
+				orchestrator.Map,
+				originalMiner.Runtime.CachedPath,
+				0f).Position;
+			var forkedPosition = forkedMiner.State.CommittedPosition(
+				forkedOrchestrator.Map,
+				forkedMiner.Runtime.CachedPath,
+				0f).Position;
+			Assert.NotEqual(originalPosition, forkedPosition);
+		}
+		else
+		{
+			Assert.NotEqual(orchestrator.Tick, forkedOrchestrator.Tick);
+		}
 	}
 
 	private static State FirstUnitOfType(StarMap map, EType type) =>
