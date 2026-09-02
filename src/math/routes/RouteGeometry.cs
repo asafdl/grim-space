@@ -19,6 +19,24 @@ public static class RouteGeometry
 		return (x / length, z / length);
 	}
 
+	public static double PointToPolylineDistance(Coord point, IReadOnlyList<Coord> polyline)
+	{
+		if (polyline.Count == 0)
+			return double.PositiveInfinity;
+		if (polyline.Count == 1)
+			return Distance(point, polyline[0]);
+
+		var min = double.PositiveInfinity;
+		for (var i = 1; i < polyline.Count; i++)
+		{
+			var segmentDistance = PointToSegmentDistance(point, polyline[i - 1], polyline[i]);
+			if (segmentDistance < min)
+				min = segmentDistance;
+		}
+
+		return min;
+	}
+
 	public static double PointToSegmentDistance(Coord point, Coord start, Coord end)
 	{
 		var dx = end.X - start.X;
