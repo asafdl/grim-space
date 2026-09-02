@@ -1,5 +1,6 @@
 using GrimSpace.Core.Ids;
 using GrimSpace.Math;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -25,6 +26,7 @@ public static class SupplySystemGenerator
 			StarMap.DevMapWidth,
 			StarMap.DevMapHeight,
 			EStarSystemClass.Supply,
+			FactionCatalog.DevDefault,
 			plan,
 			plan.CreatePoiTemplates(seed),
 			unitSpawns);

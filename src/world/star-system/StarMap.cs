@@ -1,5 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
@@ -14,6 +15,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public const int DevRouteHalfWidth = 24;
 
 	public StarSystemBlueprint Blueprint { get; }
+	public EFaction ControllingFaction => Blueprint.ControllingFaction;
 	public int Seed => Blueprint.Seed;
 	public int Width => Blueprint.Width;
 	public int Height => Blueprint.Height;
