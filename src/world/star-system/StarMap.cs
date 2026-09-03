@@ -15,7 +15,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public const int DevMapWidth = 1024;
 	public const int DevMapHeight = 1024;
 	public const int DevRouteHalfWidth = 24;
-	public const int DevOfferedContractCount = 3;
+	public const int DevOfferedContractCount = 1;
 	public const int DevContractRewardCredits = 100;
 
 	public StarSystemBlueprint Blueprint { get; }
@@ -103,21 +103,16 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			new[] { plan.RefineryPoiId, plan.ExitPoiId },
 		};
 		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
-
-		for (var i = 0; i < DevOfferedContractCount; i++)
-		{
-			var location = AreaPicker.Pick(map, landmarkGroups, distances, 2);
-			var title = $"Route Survey #{i + 1}";
-			var narrative = ContractNarrative.ForSearch(title, location);
-			var contract = new Contract(
-				$"contract-{i + 1}",
-				EContractTask.Hunt,
-				map.ControllingFaction,
-				issuerPoiId,
-				location,
-				new ContractTerms(DevContractRewardCredits),
-				narrative);
-			map.ContractRegistry.RegisterOffered(contract);
-		}
+		var location = AreaPicker.Pick(map, landmarkGroups, distances, 2);
+		var narrative = ContractNarrative.ForSearch("Route Survey", location);
+		var contract = new Contract(
+			"contract-1",
+			EContractTask.Hunt,
+			map.ControllingFaction,
+			issuerPoiId,
+			location,
+			new ContractTerms(DevContractRewardCredits),
+			narrative);
+		map.ContractRegistry.RegisterOffered(contract);
 	}
 }

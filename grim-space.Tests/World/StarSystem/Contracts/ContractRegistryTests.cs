@@ -40,6 +40,9 @@ public sealed class ContractRegistryTests
 		Assert.Equal(EContractStatus.Active, forkActive.State.Status);
 		Assert.Equal(holderUnitId, forkActive.State.HolderUnitId);
 
+		var divergentContract = map.ContractRegistry.All.First(contract => contract.Id == contractId)
+			with { Id = "contract-2" };
+		map.ContractRegistry.RegisterOffered(divergentContract);
 		map.ContractRegistry.Accept("contract-2", holderUnitId, 1);
 		Assert.True(map.ContractRegistry.TryGetState("contract-2", out _));
 		Assert.False(fork.ContractRegistry.TryGetState("contract-2", out _));

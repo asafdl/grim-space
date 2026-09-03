@@ -13,7 +13,7 @@ public sealed class DevDefaultContractTests
 		var plan = map.Blueprint.SupplyPlan;
 		var offered = map.ContractRegistry.Offered.ToList();
 
-		Assert.Equal(StarMap.DevOfferedContractCount, offered.Count);
+		Assert.Single(offered);
 
 		foreach (var contract in offered)
 		{
