@@ -50,23 +50,27 @@ public sealed class ContractRegistry
 		_contracts[contract.Id] = contract;
 	}
 
-	public void Accept(string contractId, string holderUnitId, int acceptedAtTick)
+	public void Activate(ContractState state)
+	{
+		ArgumentNullException.ThrowIfNull(state);
+		ArgumentException.ThrowIfNullOrEmpty(state.ContractId);
+		ArgumentException.ThrowIfNullOrEmpty(state.HolderUnitId);
+
+		if (!_contracts.ContainsKey(state.ContractId))
+			throw new InvalidOperationException($"Contract '{state.ContractId}' does not exist.");
+
+		if (_states.ContainsKey(state.ContractId))
+			throw new InvalidOperationException($"Contract '{state.ContractId}' is not offered.");
+
+		_states[state.ContractId] = state;
+	}
+
+	public void Deactivate(string contractId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
-		ArgumentException.ThrowIfNullOrEmpty(holderUnitId);
 
-		if (!_contracts.ContainsKey(contractId))
-			throw new InvalidOperationException($"Contract '{contractId}' does not exist.");
-
-		if (_states.ContainsKey(contractId))
-			throw new InvalidOperationException($"Contract '{contractId}' is not offered.");
-
-		var state = new ContractState(
-			contractId,
-			EContractStatus.Active,
-			acceptedAtTick,
-			holderUnitId);
-		_states[contractId] = state;
+		if (!_states.Remove(contractId))
+			throw new InvalidOperationException($"Contract '{contractId}' is not active.");
 	}
 
 	public ContractRegistry CloneForFork()

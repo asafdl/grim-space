@@ -35,6 +35,7 @@ internal static class StarSystemTestHarness
 			playerFleetUnitId,
 			EType.PlayerFleet,
 			tradeHubDock.Id,
+			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			[])));
 	}

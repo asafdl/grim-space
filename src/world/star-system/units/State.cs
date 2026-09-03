@@ -1,4 +1,6 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Pathfinding;
 
 namespace GrimSpace.World.StarSystem.Units;
@@ -7,6 +9,8 @@ public sealed class State
 {
 	public required string Id { get; init; }
 	public required EType Type { get; init; }
+	public EFaction Faction { get; init; } = EFaction.TheOptimality;
+	public CombatProfile? CombatProfile { get; init; }
 	public string DockedAtDockId { get; set; } = "";
 	public Coord IdleCoord { get; set; }
 	public EPhase Phase { get; set; } = EPhase.Docked;
@@ -99,6 +103,8 @@ public sealed class State
 		{
 			Id = Id,
 			Type = Type,
+			Faction = Faction,
+			CombatProfile = CombatProfile,
 			DockedAtDockId = DockedAtDockId,
 			IdleCoord = IdleCoord,
 			Phase = Phase,
@@ -121,7 +127,10 @@ public sealed class State
 		{
 			Id = spawn.Id,
 			Type = spawn.Type,
+			Faction = spawn.Faction,
+			CombatProfile = spawn.CombatProfile,
 			DockedAtDockId = spawn.DockedAtDockId,
+			IdleCoord = spawn.IdleCoord,
 			SpeedPerTick = spawn.SpeedPerTick,
 			ChoreDockIds = spawn.ChoreDockIds,
 		};

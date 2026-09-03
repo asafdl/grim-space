@@ -1,6 +1,8 @@
 using Godot;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -29,7 +31,13 @@ public partial class UnitsView : Node3D
 	private int _width;
 	private int _height;
 
-	public sealed record UnitHoverInfo(string UnitId, EType Type, EPhase Phase, string DockId);
+	public sealed record UnitHoverInfo(
+		string UnitId,
+		EType Type,
+		EPhase Phase,
+		string DockId,
+		EFaction Faction,
+		EDangerLevel? Danger);
 
 	public void Build(StarMap world)
 	{
@@ -54,6 +62,25 @@ public partial class UnitsView : Node3D
 
 	public void Sync(StarMap world, float tickFraction)
 	{
+		var registryIds = world.UnitRegistry.Ids.ToHashSet(StringComparer.Ordinal);
+
+		foreach (var unitId in _units.Keys.Where(id => !registryIds.Contains(id)).ToList())
+		{
+			_units[unitId].Root.QueueFree();
+			_units.Remove(unitId);
+			_trailHistory.Remove(unitId);
+		}
+
+		foreach (var unit in world.UnitRegistry.All)
+		{
+			if (_units.ContainsKey(unit.State.Id))
+				continue;
+
+			var unitVisual = BuildUnit(unit.State);
+			_units[unit.State.Id] = unitVisual;
+			AddChild(unitVisual.Root);
+		}
+
 		foreach (var unit in world.UnitRegistry.All)
 		{
 			if (!_units.TryGetValue(unit.State.Id, out var unitVisual))
@@ -94,7 +121,9 @@ public partial class UnitsView : Node3D
 				unit.State.Id,
 				unit.State.Type,
 				unit.State.Phase,
-				unit.State.DockedAtDockId);
+				unit.State.DockedAtDockId,
+				unit.State.Faction,
+				unit.State.CombatProfile?.Danger);
 		}
 
 		return best;
@@ -102,7 +131,7 @@ public partial class UnitsView : Node3D
 
 	private static UnitVisual BuildUnit(State state)
 	{
-		var color = ColorForType(state.Type);
+		var color = ColorForUnit(state);
 		var scale = state.Type == EType.PlayerFleet ? 1.35f : 1f;
 		var ringRadius = RingRadius * scale;
 		var ringStroke = RingStroke * scale;
@@ -274,6 +303,14 @@ public partial class UnitsView : Node3D
 		return new Basis(tangent, axis, bitangent);
 	}
 
+	private static Color ColorForUnit(State state)
+	{
+		if (state.Type == EType.PirateFleet && state.Faction == EFaction.Pirates)
+			return new Color(0.72f, 0.22f, 0.58f);
+
+		return ColorForType(state.Type);
+	}
+
 	private static Color ColorForType(EType type) =>
 		type switch
 		{
@@ -282,6 +319,7 @@ public partial class UnitsView : Node3D
 			EType.ServiceVessel => new Color(0.42f, 0.72f, 0.88f),
 			EType.PlayerFleet => new Color(0.95f, 0.82f, 0.28f),
 			EType.Patrol => new Color(0.88f, 0.38f, 0.34f),
+			EType.PirateFleet => new Color(0.72f, 0.22f, 0.58f),
 			_ => new Color(0.75f, 0.75f, 0.75f),
 		};
 

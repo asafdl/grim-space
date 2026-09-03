@@ -21,6 +21,8 @@ public sealed class UnitRegistry
 	public void Add(Unit unit) =>
 		_units[unit.State.Id] = unit;
 
+	public bool Remove(string unitId) => _units.Remove(unitId);
+
 	public UnitRegistry CloneForFork()
 	{
 		var clone = new UnitRegistry();

@@ -8,6 +8,7 @@ public static class FactionCatalog
 		faction switch
 		{
 			EFaction.TheOptimality => "The Optimality",
+			EFaction.Pirates => "Pirates",
 			_ => throw new ArgumentOutOfRangeException(nameof(faction), faction, null),
 		};
 }

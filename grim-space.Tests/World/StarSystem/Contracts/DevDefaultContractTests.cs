@@ -1,5 +1,7 @@
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
@@ -18,23 +20,27 @@ public sealed class DevDefaultContractTests
 		foreach (var contract in offered)
 		{
 			Assert.True(map.ContractRegistry.IsOffered(contract.Id));
-			Assert.Equal(EContractTask.Hunt, contract.Task);
+			Assert.IsType<HuntObjective>(contract.Objective);
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
 			Assert.Equal(StarMap.DevContractRewardCredits, contract.Terms.RewardCredits);
-			Assert.Contains(contract.Location.Description, contract.Narrative.Briefing);
+
+			var hunt = (HuntObjective)contract.Objective;
+			Assert.Single(hunt.SpawnGroups);
+			Assert.Contains(hunt.SpawnGroups[0].SearchArea.Description, contract.Narrative.Briefing);
 			Assert.False(string.IsNullOrWhiteSpace(contract.Narrative.Title));
-			Assert.False(string.IsNullOrWhiteSpace(contract.Location.Description));
+			Assert.False(string.IsNullOrWhiteSpace(hunt.SpawnGroups[0].SearchArea.Description));
 		}
 	}
 
 	[Fact]
-	public void CreateDevDefault_BriefingContainsLocationDescription()
+	public void CreateDevDefault_BriefingContainsSearchAreaDescription()
 	{
 		var map = StarMap.CreateDevDefault(7);
 		var contract = map.ContractRegistry.Offered.First();
+		var hunt = (HuntObjective)contract.Objective;
 
-		Assert.Contains(contract.Location.Description, contract.Narrative.Briefing);
-		Assert.StartsWith("Survey the indicated sector.", contract.Narrative.Briefing);
+		Assert.Contains(hunt.SpawnGroups[0].SearchArea.Description, contract.Narrative.Briefing);
+		Assert.StartsWith("Hunt targets in the indicated sector.", contract.Narrative.Briefing);
 	}
 }

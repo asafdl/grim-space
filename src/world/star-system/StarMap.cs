@@ -1,8 +1,12 @@
 using GrimSpace.Core.Engine;
+using GrimSpace.Core.Ids;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
@@ -103,14 +107,24 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			new[] { plan.RefineryPoiId, plan.ExitPoiId },
 		};
 		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
-		var location = AreaPicker.Pick(map, landmarkGroups, distances, 2);
-		var narrative = ContractNarrative.ForSearch("Route Survey", location);
+		var searchArea = AreaPicker.Pick(map, landmarkGroups, distances, 2);
+		var contractId = TypedIdGenerator.NextId("contract");
+		var groupId = TypedIdGenerator.NextId("spawn-group");
+		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
+		var objective = new HuntObjective(
+		[
+			new SpawnEncounterGroup(
+				groupId,
+				searchArea,
+				1,
+				new FleetSpawnSpec(EFaction.Pirates, EDangerLevel.VeryLow, spawnSeed)),
+		]);
+		var narrative = ContractNarrative.ForHunt("Pirate Hunt", searchArea);
 		var contract = new Contract(
-			"contract-1",
-			EContractTask.Hunt,
+			contractId,
+			objective,
 			map.ControllingFaction,
 			issuerPoiId,
-			location,
 			new ContractTerms(DevContractRewardCredits),
 			narrative);
 		map.ContractRegistry.RegisterOffered(contract);

@@ -99,6 +99,7 @@ public static class StarSystemBuilder
 				intent.Id,
 				intent.Type,
 				placement.DockedAtDockId,
+				default,
 				UnitDefaults.SpeedPerTick(intent.Type),
 				choreDockIds);
 			var unit = Factory.Create(spawn);

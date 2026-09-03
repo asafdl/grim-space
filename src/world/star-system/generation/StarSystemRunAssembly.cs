@@ -21,6 +21,7 @@ public static class StarSystemRunAssembly
 			playerFleetUnitId,
 			EType.PlayerFleet,
 			tradeHubDock.Id,
+			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			[]));
 		map.UnitRegistry.Add(playerFleet);

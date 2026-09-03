@@ -12,6 +12,8 @@ public static class UnitDefaults
 			EType.CargoShuttle => 4,
 			EType.ServiceVessel => 5,
 			EType.PlayerFleet => 6,
+			EType.PirateFleet => 5,
+			EType.Patrol => 6,
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, "No default speed for unit type."),
 		};
 }

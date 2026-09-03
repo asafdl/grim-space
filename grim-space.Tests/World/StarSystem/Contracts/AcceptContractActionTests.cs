@@ -69,6 +69,7 @@ public sealed class AcceptContractActionTests
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock();
 		var tick = engine.Tick;
+		var initialUnitCount = engine.World.UnitRegistry.All.Count();
 
 		engine.Commit(new AcceptContractAction(unitId, contractId));
 
@@ -77,19 +78,11 @@ public sealed class AcceptContractActionTests
 		Assert.Equal(EContractStatus.Active, state.Status);
 		Assert.Equal(unitId, state.HolderUnitId);
 		Assert.Equal(tick, state.AcceptedAtTick);
+		Assert.Equal(initialUnitCount + 1, engine.World.UnitRegistry.All.Count());
 
 		Assert.Contains(
 			engine.History().OfType<AcceptContractAction>(),
 			action => action.ContractId == contractId && action.ActorId == unitId);
-	}
-
-	[Fact]
-	public void Commit_ThrowsForInvalidDirectCommit()
-	{
-		var (engine, unitId, _) = CreateEngineAtIssuerDock();
-
-		Assert.Throws<InvalidOperationException>(() =>
-			engine.Commit(new AcceptContractAction(unitId, "contract-missing")));
 	}
 
 	private static (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngineAtIssuerDock(

@@ -1,13 +1,12 @@
 using GrimSpace.World.Factions;
-using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
 public sealed record Contract(
 	string Id,
-	EContractTask Task,
+	IContractObjective Objective,
 	EFaction IssuerFaction,
 	string? IssuerPoiId,
-	AreaPick Location,
 	ContractTerms Terms,
 	ContractNarrative Narrative);

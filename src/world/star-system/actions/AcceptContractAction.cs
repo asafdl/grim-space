@@ -1,6 +1,9 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
@@ -32,11 +35,51 @@ public sealed class AcceptContractDef
 		ActorRuntime runtime)
 	{
 		var accept = (AcceptContractAction)action;
-		if (!IsAcceptLegal(accept, world))
-			throw new InvalidOperationException(
-				$"Cannot accept contract '{accept.ContractId}' for actor '{accept.ActorId}'.");
+		var contract = world.ContractRegistry.All.First(c => c.Id == accept.ContractId);
 
-		return [new AcceptContractEffect(accept.ContractId)];
+		var effects = new List<IEffect<StarMap, ActorRuntime>>();
+		var spawnBindings = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+		if (contract.Objective is IHasSpawnGroups hasSpawnGroups)
+		{
+			var planned = ContractFleetPlacement.Plan(
+				hasSpawnGroups.SpawnGroups,
+				accept.ContractId,
+				world.Seed,
+				world,
+				world.UnitRegistry);
+
+			foreach (var spawn in planned)
+			{
+				if (!spawnBindings.TryGetValue(spawn.GroupId, out var unitIds))
+				{
+					unitIds = [];
+					spawnBindings[spawn.GroupId] = unitIds;
+				}
+
+				unitIds.Add(spawn.UnitId);
+
+				var combatProfile = new CombatProfile(spawn.Spawn.Danger, spawn.Spawn.Seed);
+				var unit = Factory.CreatePirateFleet(
+					spawn.UnitId,
+					spawn.Coord,
+					spawn.Spawn.Faction,
+					combatProfile);
+				effects.Add(new SpawnMapUnitEffect(unit));
+			}
+		}
+
+		var state = new ContractState(
+			accept.ContractId,
+			EContractStatus.Active,
+			world.Timeline.Clock.Current,
+			accept.ActorId,
+			spawnBindings.ToDictionary(
+				entry => entry.Key,
+				entry => (IReadOnlyList<string>)entry.Value,
+				StringComparer.Ordinal));
+		effects.Add(new ActivateContractEffect(state));
+		return effects;
 	}
 
 	private static bool IsAcceptLegal(AcceptContractAction accept, StarMap world)
