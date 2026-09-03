@@ -31,6 +31,9 @@ internal sealed class Engine<TWorld, TRuntime>
 
 	public IReadOnlyList<ITimelineEntry> Commit(params IAction[] actions)
 	{
+		if (actions.Length == 0)
+			return World.Timeline.History();
+
 		foreach (var action in actions)
 		{
 			var records = ExecutionHelper.Apply(action, World, ActorRuntimes.For(action));

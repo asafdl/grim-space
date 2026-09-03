@@ -64,7 +64,7 @@ public sealed class UserExecutionAgent
 
 		var streamlined = OrientationStreamline.StreamlineForCommit(actions);
 		_committed = true;
-		_actions!.TrySetResult(streamlined);
+		Complete(streamlined);
 		NotifyPlanningChanged();
 		return true;
 	}

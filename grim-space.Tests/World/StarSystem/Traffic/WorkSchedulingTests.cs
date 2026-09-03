@@ -50,10 +50,9 @@ public sealed class WorkSchedulingTests
 
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
-		var unit = map.UnitRegistry.All.First(candidate =>
-			candidate.State.Type == EType.MiningBarge
-			&& candidate.State.DockedAtDockId == dockId
-			&& candidate.State.Phase == EPhase.Docked);
+		var unit = map.UnitRegistry.All.First(candidate => candidate.State.Type == EType.MiningBarge);
+		unit.State.DockedAtDockId = dockId;
+		unit.State.Phase = EPhase.Docked;
 		var duration = poi.DurationTicks(unit.State.Type);
 		var currentTick = map.Timeline.Clock.Current;
 		poi.NextAvailableTaskTick = currentTick + duration;

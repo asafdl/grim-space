@@ -1,7 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Math.Grid;
-using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
@@ -12,16 +11,20 @@ namespace GrimSpace.World.StarSystem;
 public sealed class StarSystemOrchestrator
 {
 	private readonly Engine<StarMap, ActorRuntime> _engine;
-	private readonly IPathfinder _pathfinder;
+	private readonly StarMapPlayerExecutionAgent? _playerAgent;
+	private readonly IReadOnlyList<TrafficExecutionAgent> _trafficAgents;
+	private event Action<string?>? ActiveUnitChanged;
 
 	private StarSystemOrchestrator(
 		Engine<StarMap, ActorRuntime> engine,
-		IPathfinder pathfinder,
-		string? playerId)
+		string? playerId,
+		StarMapPlayerExecutionAgent? playerAgent,
+		IReadOnlyList<TrafficExecutionAgent> trafficAgents)
 	{
 		_engine = engine;
-		_pathfinder = pathfinder;
 		PlayerId = playerId;
+		_playerAgent = playerAgent;
+		_trafficAgents = trafficAgents;
 	}
 
 	public StarMap Map => _engine.World;
@@ -29,6 +32,8 @@ public sealed class StarSystemOrchestrator
 	public int Tick => _engine.Tick;
 
 	public string? PlayerId { get; }
+
+	public StarMapPlayerExecutionAgent? PlayerAgent => _playerAgent;
 
 	public static StarSystemOrchestrator FromBuildResult(StarSystemBuildResult result) =>
 		FromBuildResult(result, new CachedPathfinder(new AStarPathfinder(result.Terrain)), playerId: null);
@@ -57,34 +62,71 @@ public sealed class StarSystemOrchestrator
 			ScheduleSpawnedWorkerIfNeeded(result.Map, unit);
 		}
 
-		return new StarSystemOrchestrator(
-			new Engine<StarMap, ActorRuntime>(result.Map, actorRuntimes),
-			pathfinder,
-			playerId);
-	}
+		var engine = new Engine<StarMap, ActorRuntime>(result.Map, actorRuntimes);
+		StarMapPlayerExecutionAgent? playerAgent = null;
+		if (playerId is not null)
+		{
+			playerAgent = new StarMapPlayerExecutionAgent(
+				engine.CreateSimulation,
+				() => engine.World,
+				pathfinder);
+		}
 
-	public MoveCommandResult OrderMove(Coord destination)
-	{
-		if (PlayerId is not { } playerId)
-			throw new InvalidOperationException("Cannot order move without a player unit.");
+		var trafficUnits = result.Map.UnitRegistry.All
+			.Where(unit => unit.State.ChoreDockIds.Count > 0)
+			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
+			.ToArray();
+		var trafficAgents = trafficUnits
+			.Select(_ => new TrafficExecutionAgent(pathfinder))
+			.ToArray();
 
-		var unit = _engine.World.UnitRegistry.UnitOf(playerId);
-		var (origin, _) = unit.State.CommittedPosition(
-			_engine.World,
-			unit.Runtime.CachedPath,
-			0f);
-		var result = _pathfinder.FindPath(origin, destination);
-		if (result is not PathfindingResult.Found found)
-			return new MoveCommandResult.Unreachable();
+		var orchestrator = new StarSystemOrchestrator(
+			engine,
+			playerId,
+			playerAgent,
+			trafficAgents);
 
-		_engine.Commit(new MoveAction(playerId, playerId, destination, found.Path));
-		return new MoveCommandResult.Committed(found.Path);
+		if (playerAgent is not null)
+		{
+			playerAgent.Init(playerId!, engine.CreateSimulation, orchestrator.RegisterActiveUnitChanged);
+			orchestrator.SetActive(playerId);
+		}
+
+		for (var i = 0; i < trafficAgents.Length; i++)
+		{
+			trafficAgents[i].Init(
+				trafficUnits[i].State.Id,
+				engine.CreateSimulation,
+				orchestrator.RegisterActiveUnitChanged);
+		}
+
+		return orchestrator;
 	}
 
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()
 	{
-		CoordinateDepartures();
-		return _engine.AdvanceTick();
+		if (_playerAgent is not null)
+		{
+			_playerAgent.Commit();
+			var playerActions = _playerAgent.TakeCompletedActions();
+			if (playerActions.Count > 0)
+				_engine.Commit([..playerActions]);
+		}
+
+		foreach (var agent in _trafficAgents)
+		{
+			SetActive(agent.ActorId);
+			var actions = agent.TakeCompletedActions();
+			if (actions.Count > 0)
+				_engine.Commit([..actions]);
+		}
+
+		var history = _engine.AdvanceTick();
+
+		if (_playerAgent is not null && PlayerId is not null)
+			SetActive(PlayerId);
+
+		return history;
 	}
 
 	public void AdvanceTicks(int count)
@@ -94,31 +136,10 @@ public sealed class StarSystemOrchestrator
 			AdvanceTick();
 	}
 
-	private void CoordinateDepartures()
-	{
-		foreach (var unit in _engine.World.UnitRegistry.All)
-		{
-			var state = unit.State;
-			if (state.ChoreDockIds.Count == 0)
-				continue;
+	private void RegisterActiveUnitChanged(Action<string?> handler) =>
+		ActiveUnitChanged += handler;
 
-			if (!state.IsReadyToDepart)
-				continue;
-
-			var destinationDockId = state.NextChoreDockId();
-			var origin = _engine.World.DocksById[state.DockedAtDockId].Position;
-			var destination = _engine.World.DocksById[destinationDockId].Position;
-			var result = _pathfinder.FindPath(origin, destination);
-			if (result is not PathfindingResult.Found found)
-				continue;
-
-			_engine.Commit(new MoveAction(
-				state.Id,
-				state.Id,
-				destination,
-				found.Path));
-		}
-	}
+	private void SetActive(string? unitId) => ActiveUnitChanged?.Invoke(unitId);
 
 	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Unit unit)
 	{

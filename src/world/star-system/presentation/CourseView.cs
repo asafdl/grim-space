@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
 
@@ -23,12 +24,14 @@ public partial class CourseView : Node3D
 	private int _width;
 	private int _height;
 	private long _shownJourneyId;
+	private TransitPath? _shownPath;
 
 	public void Build(StarMap world)
 	{
 		_width = world.Width;
 		_height = world.Height;
 		_shownJourneyId = 0;
+		_shownPath = null;
 
 		foreach (var child in GetChildren().ToArray())
 		{
@@ -70,8 +73,16 @@ public partial class CourseView : Node3D
 		AddChild(_destinationRing);
 	}
 
-	public void Sync(StarMap world, string? playerUnitId, bool unreachableFlash)
+	public void Sync(StarSystemOrchestrator orchestrator, bool unreachableFlash)
 	{
+		if (orchestrator.PlayerAgent?.PendingMove is { } pendingMove)
+		{
+			ShowCourse(pendingMove.Path, pendingMove.Destination, journeyId: 0, unreachableFlash);
+			return;
+		}
+
+		var world = orchestrator.Map;
+		var playerUnitId = orchestrator.PlayerId;
 		if (playerUnitId is null
 			|| !world.UnitRegistry.TryGet(playerUnitId, out var unit)
 			|| unit.State.Phase != EPhase.InTransit
@@ -82,15 +93,27 @@ public partial class CourseView : Node3D
 			return;
 		}
 
-		if (unit.State.Journey.JourneyId != _shownJourneyId)
+		ShowCourse(path, unit.State.Journey.Destination, unit.State.Journey.JourneyId, unreachableFlash);
+	}
+
+	private void ShowCourse(TransitPath path, Coord destination, long journeyId, bool unreachableFlash)
+	{
+		if (journeyId != 0 && journeyId != _shownJourneyId)
 		{
-			_shownJourneyId = unit.State.Journey.JourneyId;
+			_shownJourneyId = journeyId;
+			_shownPath = path;
+			_pathMesh.Mesh = BuildPathMesh(path);
+		}
+		else if (journeyId == 0 && !ReferenceEquals(path, _shownPath))
+		{
+			_shownJourneyId = 0;
+			_shownPath = path;
 			_pathMesh.Mesh = BuildPathMesh(path);
 		}
 
 		_pathMesh.Visible = true;
 		_destinationRing.Visible = true;
-		_destinationRing.Position = ToWorld(unit.State.Journey.Destination) + Vector3.Up * RingYOffset;
+		_destinationRing.Position = ToWorld(destination) + Vector3.Up * RingYOffset;
 
 		var ringColor = unreachableFlash ? UnreachableRingColor : DestinationRingColor;
 		var material = (StandardMaterial3D)_destinationRing.MaterialOverride!;
@@ -101,6 +124,7 @@ public partial class CourseView : Node3D
 	private void HideCourse()
 	{
 		_shownJourneyId = 0;
+		_shownPath = null;
 		_pathMesh.Visible = false;
 		_destinationRing.Visible = false;
 	}

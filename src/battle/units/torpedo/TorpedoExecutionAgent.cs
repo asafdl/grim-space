@@ -19,11 +19,11 @@ public sealed class TorpedoExecutionAgent : ExecutionAgent<BattleWorld, ActorRun
 		{
 			try
 			{
-				_actions!.TrySetResult(Plan(actor, session));
+				Complete(Plan(actor, session));
 			}
 			catch (Exception ex)
 			{
-				_actions!.TrySetException(ex);
+				Fail(ex);
 			}
 		});
 	}

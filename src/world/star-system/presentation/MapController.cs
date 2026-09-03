@@ -25,10 +25,10 @@ public partial class MapController : Node3D
 	private CanvasLayer _uiLayer = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
+	private UserIntentTranslator _intentTranslator = null!;
 	private float _tickAccumulator;
 	private bool _paused;
 	private int _speedIndex = 1;
-	private Vector2? _rmbPressPosition;
 	private float _unreachableFlashTimer;
 
 	public override void _Ready()
@@ -46,6 +46,12 @@ public partial class MapController : Node3D
 		}
 
 		_orchestrator = RunSession.Instance.Run.Traffic;
+		_intentTranslator = new UserIntentTranslator(
+			_orchestrator.PlayerAgent!,
+			_camera,
+			() => GetViewport().GetMousePosition(),
+			() => _orchestrator.Map.Width,
+			() => _orchestrator.Map.Height);
 		BuildTooltip();
 		BuildDebugUi();
 
@@ -80,7 +86,7 @@ public partial class MapController : Node3D
 		_units.Sync(world, tickFraction);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
-		_course.Sync(world, _orchestrator.PlayerId, _unreachableFlashTimer > 0f);
+		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 
 		var screen = GetViewport().GetMousePosition();
@@ -99,23 +105,18 @@ public partial class MapController : Node3D
 			if (GetViewport().GuiGetHoveredControl() is not null)
 				return;
 
-			if (mouseButton.ButtonIndex == MouseButton.Right && mouseButton.Pressed)
+			if (mouseButton.ButtonIndex == MouseButton.Right)
 			{
-				_rmbPressPosition = mouseButton.Position;
+				if (_intentTranslator.TryHandleMouseButton(mouseButton, out var unreachable))
+				{
+					if (unreachable)
+						_unreachableFlashTimer = 0.6f;
+
+					GetViewport().SetInputAsHandled();
+				}
+
 				return;
 			}
-
-			if (mouseButton.ButtonIndex == MouseButton.Right
-				&& !mouseButton.Pressed
-				&& _rmbPressPosition is { } pressPosition
-				&& pressPosition.DistanceTo(mouseButton.Position) < 4f)
-			{
-				TryOrderMove();
-				GetViewport().SetInputAsHandled();
-			}
-
-			_rmbPressPosition = null;
-			return;
 		}
 
 		if (@event is not InputEventKey { Pressed: true, Echo: false } key)
@@ -145,18 +146,6 @@ public partial class MapController : Node3D
 				GetViewport().SetInputAsHandled();
 				break;
 		}
-	}
-
-	private void TryOrderMove()
-	{
-		var world = _orchestrator.Map;
-		var screen = GetViewport().GetMousePosition();
-		var destination = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
-		if (destination is null)
-			return;
-
-		if (_orchestrator.OrderMove(destination.Value) is MoveCommandResult.Unreachable)
-			_unreachableFlashTimer = 0.6f;
 	}
 
 	private void AdvanceSimulation(double delta)

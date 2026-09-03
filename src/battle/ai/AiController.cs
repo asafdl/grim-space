@@ -37,11 +37,11 @@ public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 				if (actor.State.Type == EType.Carrier && TryAppendPatrolDeploy(session, actor))
 					actions = session.Actions.Skip(start).ToList();
 
-				_actions!.TrySetResult(actions);
+				Complete(actions);
 			}
 			catch (Exception ex)
 			{
-				_actions!.TrySetException(ex);
+				Fail(ex);
 			}
 		});
 	}
