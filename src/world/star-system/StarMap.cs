@@ -1,6 +1,8 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
@@ -13,6 +15,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public const int DevMapWidth = 1024;
 	public const int DevMapHeight = 1024;
 	public const int DevRouteHalfWidth = 24;
+	public const int DevOfferedContractCount = 3;
+	public const int DevContractRewardCredits = 100;
 
 	public StarSystemBlueprint Blueprint { get; }
 	public EFaction ControllingFaction => Blueprint.ControllingFaction;
@@ -26,6 +30,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public IReadOnlyDictionary<Coord, Dock> DocksByPosition { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public UnitRegistry UnitRegistry { get; }
+	public ContractRegistry ContractRegistry { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
 
@@ -36,7 +41,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
 		IReadOnlyDictionary<string, SpaceRoute> routesById,
-		UnitRegistry unitRegistry)
+		UnitRegistry unitRegistry,
+		ContractRegistry contractRegistry)
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
@@ -48,6 +54,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			.ToDictionary(group => group.Key, group => group.Single());
 		RoutesById = routesById;
 		UnitRegistry = unitRegistry;
+		ContractRegistry = contractRegistry;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -63,7 +70,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			DocksById,
 			DocksByPoiId,
 			RoutesById,
-			UnitRegistry.CloneForFork());
+			UnitRegistry.CloneForFork(),
+			ContractRegistry.CloneForFork());
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{
@@ -75,8 +83,41 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	}
 
 	public static StarMap CreateDevDefault(int seed = 0) =>
-		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply).Map;
+		CreateDevBuildResult(seed).Map;
 
-	public static StarSystemBuildResult CreateDevBuildResult(int seed = 0) =>
-		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
+	public static StarSystemBuildResult CreateDevBuildResult(int seed = 0)
+	{
+		var result = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
+		SeedDevOfferedContracts(result.Map);
+		return result;
+	}
+
+	private static void SeedDevOfferedContracts(StarMap map)
+	{
+		var plan = map.Blueprint.SupplyPlan;
+		var issuerPoiId = plan.AdministrativePoiId;
+		var landmarkGroups = new[]
+		{
+			new[] { plan.RefineryPoiId, plan.StoragePoiId },
+			new[] { plan.ExtractionPoiId, plan.StoragePoiId },
+			new[] { plan.RefineryPoiId, plan.ExitPoiId },
+		};
+		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
+
+		for (var i = 0; i < DevOfferedContractCount; i++)
+		{
+			var location = AreaPicker.Pick(map, landmarkGroups, distances, 2);
+			var title = $"Route Survey #{i + 1}";
+			var narrative = ContractNarrative.ForSearch(title, location);
+			var contract = new Contract(
+				$"contract-{i + 1}",
+				EContractTask.Hunt,
+				map.ControllingFaction,
+				issuerPoiId,
+				location,
+				new ContractTerms(DevContractRewardCredits),
+				narrative);
+			map.ContractRegistry.RegisterOffered(contract);
+		}
+	}
 }

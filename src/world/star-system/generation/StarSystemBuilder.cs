@@ -1,6 +1,7 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
@@ -118,7 +119,8 @@ public static class StarSystemBuilder
 			docksById,
 			docksByPoiId,
 			routesById,
-			unitRegistry);
+			unitRegistry,
+			new ContractRegistry());
 
 		var terrain = PathfindingTerrain.Create(
 			blueprint.Width,
