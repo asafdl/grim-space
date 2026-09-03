@@ -41,7 +41,8 @@ The near-term goal is **gameplay systems in code**, not polish. Use primitive/pl
 Defer until later: final art, animation, VFX, music, SFX, narrative writing, balancing pass.
 
 ## Agent Instructions
-- we had instance where dump was 6gb, make sure to run on mini `dotnet test --blame-crash --blame-crash-dump-type mini`
+- we had instance where dump was 6gb, **don't run tests with dump -- only if needed**: make sure to run on mini `dotnet test --blame-crash --blame-crash-dump-type mini`
+
 ## Coding conventions
 
 ### Godot + C#
