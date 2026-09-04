@@ -29,7 +29,8 @@ public sealed class AdministrativeCore : PointOfInterest
 			"Administrative Core",
 			DefaultRadius,
 			EPoiLogicalRole.Administrative,
-			center)
+			center,
+			physicalForm == EPoiPhysicalForm.Planet ? PoiFacade.Planet : PoiFacade.LargeStation)
 	{
 		_plan = plan;
 		PhysicalForm = physicalForm;
@@ -51,6 +52,7 @@ public sealed class AdministrativeCore : PointOfInterest
 	{
 		var clone = new AdministrativeCore(_plan, Center, PhysicalForm);
 		ForkReservationState(clone);
+		ForkFacadeState(clone);
 		return clone;
 	}
 

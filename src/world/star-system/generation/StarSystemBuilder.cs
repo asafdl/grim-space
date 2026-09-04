@@ -54,6 +54,9 @@ public static class StarSystemBuilder
 			var dock = DockLayout.CreateDock(poi, neighbour, star);
 			docksById[dock.Id] = dock;
 			docksByPoiId[poi.Id] = dock;
+
+			var (approachX, approachZ) = DockLayout.ApproachDirection(poi, neighbour, star);
+			poi.Facade = poi.Facade.WithYawFromApproach(approachX, approachZ);
 		}
 
 		var routePairs = blueprint.SupplyPlan.RouteConnections

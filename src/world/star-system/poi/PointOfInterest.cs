@@ -11,6 +11,7 @@ public abstract class PointOfInterest
 	public Coord? Center { get; }
 	public int Radius { get; }
 	public EPoiLogicalRole LogicalRole { get; }
+	public PoiFacade Facade { get; internal set; } = PoiFacade.Default;
 	public int NextAvailableTaskTick { get; set; } = 1;
 
 	protected PointOfInterest(
@@ -18,13 +19,15 @@ public abstract class PointOfInterest
 		string displayName,
 		int radius,
 		EPoiLogicalRole logicalRole,
-		Coord? center)
+		Coord? center,
+		PoiFacade? facade = null)
 	{
 		Id = id;
 		DisplayName = displayName;
 		Radius = radius;
 		LogicalRole = logicalRole;
 		Center = center;
+		Facade = facade ?? PoiFacade.Default;
 	}
 
 	public bool HasTasks => LogicalRole != EPoiLogicalRole.Environment;
@@ -67,6 +70,8 @@ public abstract class PointOfInterest
 	public abstract PointOfInterest Fork();
 
 	protected abstract PointOfInterest WithCenter(Coord center);
+
+	protected void ForkFacadeState(PointOfInterest clone) => clone.Facade = Facade;
 
 	protected void ForkReservationState(PointOfInterest clone) =>
 		clone.NextAvailableTaskTick = NextAvailableTaskTick;

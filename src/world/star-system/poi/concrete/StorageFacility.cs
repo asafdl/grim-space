@@ -42,6 +42,7 @@ public sealed class StorageFacility : PointOfInterest
 	{
 		var clone = new StorageFacility(_plan, Center);
 		ForkReservationState(clone);
+		ForkFacadeState(clone);
 		return clone;
 	}
 

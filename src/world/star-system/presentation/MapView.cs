@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Math;
+using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Poi;
@@ -36,11 +37,42 @@ public partial class MapView : Node3D
 	private MeshInstance3D? _minorGrid;
 	private IReadOnlyList<PointOfInterest> _pois = [];
 	private IReadOnlyList<Dock> _docks = [];
+	private IReadOnlyDictionary<string, Dock> _docksByPoiId = new Dictionary<string, Dock>();
 	private IReadOnlyDictionary<string, string> _dockDisplayNames = new Dictionary<string, string>();
 
 	private const int DockPickRadius = 12;
 
 	public sealed record DockHoverInfo(string DockId, string PoiId, string DisplayName);
+
+	public Vector3 GetPoiWorldPosition(string poiId, int width, int height)
+	{
+		if (_markers.TryGetValue(poiId, out var marker))
+			return marker.GlobalPosition;
+
+		var poi = _pois.First(p => p.Id == poiId);
+		return MapMapping.ToWorld(poi.PlacedCenter, width, height);
+	}
+
+	public Vector3 GetDockWorldPosition(string poiId, int width, int height)
+	{
+		if (_docksByPoiId.TryGetValue(poiId, out var dock))
+			return MapMapping.ToWorld(dock.Position, width, height);
+
+		return GetPoiWorldPosition(poiId, width, height);
+	}
+
+	public OrbitPose ResolveFacadePose(PointOfInterest poi, int width, int height)
+	{
+		var def = poi.Facade;
+		return new OrbitPose
+		{
+			Pivot = MapMapping.ToWorld(poi.PlacedCenter, width, height)
+				+ new Vector3(def.PivotOffsetX, def.PivotOffsetY, def.PivotOffsetZ),
+			Yaw = Mathf.DegToRad(def.YawDegrees),
+			Pitch = Mathf.DegToRad(def.PitchDegrees),
+			Distance = def.Distance,
+		};
+	}
 
 	public void Build(StarMap world)
 	{
@@ -57,6 +89,7 @@ public partial class MapView : Node3D
 		_minorGrid = null;
 		_pois = world.PointsOfInterest;
 		_docks = world.DocksById.Values.ToList();
+		_docksByPoiId = world.DocksByPoiId;
 		_dockDisplayNames = world.PointsOfInterest.ToDictionary(
 			poi => poi.Id,
 			poi => poi.DisplayName,
@@ -158,6 +191,27 @@ public partial class MapView : Node3D
 		}
 
 		return best;
+	}
+
+	/// <summary>
+	/// Snaps a picked grid cell to the nearest dock when clicking a dock marker or POI footprint.
+	/// Docking requires an exact dock coordinate at journey end.
+	/// </summary>
+	public Coord ResolveMoveDestination(Coord picked)
+	{
+		if (DockAt(picked) is { } dockHover
+			&& _docksByPoiId.TryGetValue(dockHover.PoiId, out var dock))
+		{
+			return dock.Position;
+		}
+
+		if (PoiAt(picked) is { } poiId
+			&& _docksByPoiId.TryGetValue(poiId, out var poiDock))
+		{
+			return poiDock.Position;
+		}
+
+		return picked;
 	}
 
 	private static Node3D BuildDockMarker(Dock dock, int width, int height)

@@ -42,6 +42,7 @@ public sealed class Refinery : PointOfInterest
 	{
 		var clone = new Refinery(_plan, Center);
 		ForkReservationState(clone);
+		ForkFacadeState(clone);
 		return clone;
 	}
 

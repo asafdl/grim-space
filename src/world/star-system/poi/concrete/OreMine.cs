@@ -41,6 +41,7 @@ public sealed class OreMine : PointOfInterest
 	{
 		var clone = new OreMine(_plan, Center);
 		ForkReservationState(clone);
+		ForkFacadeState(clone);
 		return clone;
 	}
 

@@ -24,13 +24,20 @@ public partial class MapCamera : Camera3D
 		Distance = DefaultDistance,
 	};
 
+	private OrbitPose _capturedPose;
 	private Vector3 _center;
 	private float _boundsHalfX;
 	private float _boundsHalfZ;
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
+	private bool _facadeActive;
+	private Tween? _automationTween;
+	private Action? _automationComplete;
 
 	public float Distance => _pose.Distance;
+	public OrbitPose CurrentPose => _pose;
+	public bool IsAnimating => _automationTween is not null;
+	public bool IsFacadeActive => _facadeActive;
 
 	public override void _Ready()
 	{
@@ -51,8 +58,38 @@ public partial class MapCamera : Camera3D
 		ApplyTransform();
 	}
 
+	public void CapturePose() => _capturedPose = _pose;
+
+	public void SetFacadeActive(bool active) => _facadeActive = active;
+
+	public void TweenToPose(OrbitPose target, float duration, Action? onComplete = null)
+	{
+		CancelAutomation();
+		target.Clamp(Limits);
+		BeginPoseTween(_pose, target, duration, onComplete);
+	}
+
+	public void RestoreCapturedPose(float duration, Action? onComplete = null)
+	{
+		CancelAutomation();
+		BeginPoseTween(_pose, _capturedPose, duration, onComplete);
+	}
+
+	public void CancelAutomation()
+	{
+		if (_automationTween is null)
+			return;
+
+		_automationTween.Kill();
+		_automationTween = null;
+		_automationComplete = null;
+	}
+
 	public override void _Process(double delta)
 	{
+		if (IsAnimating || _facadeActive)
+			return;
+
 		var pan = Vector2.Zero;
 		if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up))
 			pan.Y += 1f;
@@ -75,10 +112,13 @@ public partial class MapCamera : Camera3D
 
 	public override void _Input(InputEvent @event)
 	{
+		if (IsAnimating)
+			return;
+
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
-				if (IsMouseOverUi())
+				if (IsMouseOverUi() || _facadeActive)
 					break;
 				_orbiting = true;
 				_lastMousePosition = mouseButton.Position;
@@ -90,7 +130,7 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-				if (IsMouseOverUi())
+				if (IsMouseOverUi() || _facadeActive)
 					break;
 				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
@@ -105,7 +145,7 @@ public partial class MapCamera : Camera3D
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseMotion motion when _orbiting:
+			case InputEventMouseMotion motion when _orbiting && !_facadeActive:
 			{
 				var delta = motion.Position - _lastMousePosition;
 				_lastMousePosition = motion.Position;
@@ -115,6 +155,42 @@ public partial class MapCamera : Camera3D
 				break;
 			}
 		}
+	}
+
+	private void BeginPoseTween(OrbitPose start, OrbitPose target, float duration, Action? onComplete)
+	{
+		var startPivot = start.Pivot;
+		var startDistance = start.Distance;
+		var startYaw = start.Yaw;
+		var startPitch = start.Pitch;
+		_automationComplete = onComplete;
+
+		_automationTween = CreateTween();
+		_automationTween.TweenMethod(
+				Callable.From<float>(BlendPose),
+				0f,
+				1f,
+				duration)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
+		_automationTween.Finished += OnAutomationFinished;
+
+		void BlendPose(float t)
+		{
+			_pose.Pivot = startPivot.Lerp(target.Pivot, t);
+			_pose.Distance = Mathf.Lerp(startDistance, target.Distance, t);
+			_pose.Yaw = Mathf.LerpAngle(startYaw, target.Yaw, t);
+			_pose.Pitch = Mathf.Lerp(startPitch, target.Pitch, t);
+			ApplyTransform();
+		}
+	}
+
+	private void OnAutomationFinished()
+	{
+		_automationTween = null;
+		var complete = _automationComplete;
+		_automationComplete = null;
+		complete?.Invoke();
 	}
 
 	private bool IsMouseOverUi() => GetViewport().GuiGetHoveredControl() is not null;

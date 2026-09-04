@@ -1,10 +1,16 @@
 using Godot;
 
-namespace GrimSpace.Battle.Presentation.Ui;
+namespace GrimSpace.Presentation.Ui;
 
-internal static class SvgIconLoader
+public static class SvgIconLoader
 {
-	public static Texture2D Load(string? path, Color tint, int sizePx)
+	public static Texture2D Load(string? path, Color tint, int sizePx) =>
+		Load(path, sizePx, tintPixels: true, tint);
+
+	public static Texture2D LoadRaw(string? path, int sizePx) =>
+		Load(path, sizePx, tintPixels: false, Colors.White);
+
+	private static Texture2D Load(string? path, int sizePx, bool tintPixels, Color tint)
 	{
 		var empty = ImageTexture.CreateFromImage(Image.CreateEmpty(sizePx, sizePx, false, Image.Format.Rgba8));
 		if (path is null || !ResourceLoader.Exists(path))
@@ -28,7 +34,8 @@ internal static class SvgIconLoader
 		if (image.GetWidth() != sizePx || image.GetHeight() != sizePx)
 			image.Resize(sizePx, sizePx);
 
-		Tint(image, tint);
+		if (tintPixels)
+			Tint(image, tint);
 		return ImageTexture.CreateFromImage(image);
 	}
 

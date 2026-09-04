@@ -26,6 +26,7 @@ public partial class MapController : Node3D
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
+	private MapPoiFacade _poiFacade = null!;
 	private float _tickAccumulator;
 	private bool _paused;
 	private int _speedIndex = 1;
@@ -51,9 +52,17 @@ public partial class MapController : Node3D
 			_camera,
 			() => GetViewport().GetMousePosition(),
 			() => _orchestrator.Map.Width,
-			() => _orchestrator.Map.Height);
+			() => _orchestrator.Map.Height,
+			picked => _view.ResolveMoveDestination(picked));
 		BuildTooltip();
 		BuildDebugUi();
+
+		_poiFacade = new MapPoiFacade(
+			_view,
+			_camera,
+			() => _orchestrator.Map,
+			() => GetViewport().GetVisibleRect().Size);
+		_poiFacade.BuildUi(_uiLayer);
 
 		var world = RunSession.Instance.Run.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -88,6 +97,13 @@ public partial class MapController : Node3D
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
+		_poiFacade.Update();
+
+		if (!_poiFacade.IsStrategic)
+		{
+			_tooltip.Visible = false;
+			return;
+		}
 
 		var screen = GetViewport().GetMousePosition();
 		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
@@ -100,6 +116,13 @@ public partial class MapController : Node3D
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_poiFacade.FilterInput(@event))
+		{
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+				GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (@event is InputEventMouseButton mouseButton)
 		{
 			if (GetViewport().GuiGetHoveredControl() is not null)

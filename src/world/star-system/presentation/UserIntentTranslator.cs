@@ -11,6 +11,7 @@ public sealed class UserIntentTranslator
 	private readonly Func<Vector2> _screenPosition;
 	private readonly Func<int> _mapWidth;
 	private readonly Func<int> _mapHeight;
+	private readonly Func<Coord, Coord>? _resolveDestination;
 	private Vector2? _rmbPressPosition;
 
 	public UserIntentTranslator(
@@ -18,13 +19,15 @@ public sealed class UserIntentTranslator
 		MapCamera camera,
 		Func<Vector2> screenPosition,
 		Func<int> mapWidth,
-		Func<int> mapHeight)
+		Func<int> mapHeight,
+		Func<Coord, Coord>? resolveDestination = null)
 	{
 		_playerAgent = playerAgent;
 		_camera = camera;
 		_screenPosition = screenPosition;
 		_mapWidth = mapWidth;
 		_mapHeight = mapHeight;
+		_resolveDestination = resolveDestination;
 	}
 
 	public bool TryHandleMouseButton(InputEventMouseButton mouseButton, out bool unreachable)
@@ -57,7 +60,8 @@ public sealed class UserIntentTranslator
 		if (destination is null)
 			return MoveQueueResult.Ignored;
 
-		return _playerAgent.TryQueueMove(destination.Value) switch
+		var resolved = _resolveDestination?.Invoke(destination.Value) ?? destination.Value;
+		return _playerAgent.TryQueueMove(resolved) switch
 		{
 			MoveCommandResult.Queued => MoveQueueResult.Queued,
 			MoveCommandResult.Unreachable => MoveQueueResult.Unreachable,

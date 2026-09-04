@@ -41,6 +41,7 @@ public sealed class Wormhole : PointOfInterest
 	{
 		var clone = new Wormhole(_plan, Center);
 		ForkReservationState(clone);
+		ForkFacadeState(clone);
 		return clone;
 	}
 

@@ -39,6 +39,7 @@ public sealed class TradeHub : PointOfInterest
 	{
 		var clone = new TradeHub(_plan, Center);
 		ForkReservationState(clone);
+		ForkFacadeState(clone);
 		return clone;
 	}
 
