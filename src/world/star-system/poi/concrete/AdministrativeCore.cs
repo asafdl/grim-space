@@ -23,6 +23,15 @@ public sealed class AdministrativeCore : PointOfInterest
 		return new AdministrativeCore(plan, null, form);
 	}
 
+	private static IReadOnlyList<Facility> DefaultFacilities(SupplySystemPlan plan) =>
+	[
+		new Facility(
+			Facility.ScopedId(plan.AdministrativePoiId, "management"),
+			"Command Authority",
+			EPresentationAnchor.Management,
+			[EServiceKind.Contracts]),
+	];
+
 	private AdministrativeCore(SupplySystemPlan plan, Coord? center, EPoiPhysicalForm physicalForm) :
 		base(
 			plan.AdministrativePoiId,
@@ -30,7 +39,8 @@ public sealed class AdministrativeCore : PointOfInterest
 			DefaultRadius,
 			EPoiLogicalRole.Administrative,
 			center,
-			physicalForm == EPoiPhysicalForm.Planet ? PoiFacade.Planet : PoiFacade.LargeStation)
+			physicalForm == EPoiPhysicalForm.Planet ? PoiFacade.Planet : PoiFacade.LargeStation,
+			DefaultFacilities(plan))
 	{
 		_plan = plan;
 		PhysicalForm = physicalForm;
@@ -53,6 +63,7 @@ public sealed class AdministrativeCore : PointOfInterest
 		var clone = new AdministrativeCore(_plan, Center, PhysicalForm);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
+		ForkFacilityState(clone);
 		return clone;
 	}
 

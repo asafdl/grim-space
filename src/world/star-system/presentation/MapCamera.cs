@@ -69,10 +69,13 @@ public partial class MapCamera : Camera3D
 		BeginPoseTween(_pose, target, duration, onComplete);
 	}
 
-	public void RestoreCapturedPose(float duration, Action? onComplete = null)
+	public void RestoreCapturedPose(float duration, Action? onComplete = null, float minDistance = 0f)
 	{
 		CancelAutomation();
-		BeginPoseTween(_pose, _capturedPose, duration, onComplete);
+		var target = _capturedPose;
+		if (minDistance > 0f && target.Distance < minDistance)
+			target.Distance = minDistance;
+		BeginPoseTween(_pose, target, duration, onComplete);
 	}
 
 	public void CancelAutomation()

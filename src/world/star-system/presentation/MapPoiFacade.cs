@@ -23,7 +23,8 @@ public sealed class MapPoiFacade
 	private const float ExitDistance = 17f;
 	private const float PivotProximity = 2.5f;
 	private const float TweenDuration = 0.45f;
-	private const string IconPath = "res://assets/ui/map/dock-facilities.svg";
+	private const string AccessIconPath = "res://assets/ui/map/dock-facilities.svg";
+	private const string ManagementIconPath = "res://assets/ui/map/management-facility.svg";
 	private const int IconPx = 40;
 
 	private readonly MapView _view;
@@ -31,7 +32,10 @@ public sealed class MapPoiFacade
 	private readonly Func<StarMap> _map;
 	private readonly Func<Vector2> _viewportSize;
 
+	private CanvasLayer? _uiLayer;
 	private Button _accessButton = null!;
+	private PointOfInterest? _activePoi;
+	private readonly List<Button> _facilityButtons = [];
 	private FacadeState _state = FacadeState.Strategic;
 
 	public MapPoiFacade(
@@ -50,13 +54,14 @@ public sealed class MapPoiFacade
 
 	public void BuildUi(CanvasLayer layer)
 	{
+		_uiLayer = layer;
 		_accessButton = new Button
 		{
 			TooltipText = "View local facilities",
 			Visible = false,
 			MouseFilter = Control.MouseFilterEnum.Stop,
 			Flat = true,
-			Icon = SvgIconLoader.LoadRaw(IconPath, IconPx),
+			Icon = SvgIconLoader.LoadRaw(AccessIconPath, IconPx),
 			ExpandIcon = true,
 			CustomMinimumSize = new Vector2(48, 48),
 		};
@@ -101,6 +106,9 @@ public sealed class MapPoiFacade
 		{
 			BeginExit();
 		}
+
+		if (_state == FacadeState.Facade && _activePoi is not null)
+			PositionFacilityButtons(_activePoi, world);
 	}
 
 	/// <summary>
@@ -155,11 +163,15 @@ public sealed class MapPoiFacade
 		_accessButton.Visible = false;
 		_camera.CapturePose();
 		var target = _view.ResolveFacadePose(poi, world.Width, world.Height);
-		_camera.TweenToPose(target, TweenDuration, () =>
-		{
-			_state = FacadeState.Facade;
-			_camera.SetFacadeActive(true);
-		});
+		_camera.TweenToPose(target, TweenDuration, () => OnEnterComplete(poi));
+	}
+
+	private void OnEnterComplete(PointOfInterest poi)
+	{
+		_state = FacadeState.Facade;
+		_camera.SetFacadeActive(true);
+		_activePoi = poi;
+		CreateFacilityButtons(poi);
 	}
 
 	private void BeginExit()
@@ -169,8 +181,72 @@ public sealed class MapPoiFacade
 
 		_state = FacadeState.Exiting;
 		_camera.SetFacadeActive(false);
-		_camera.RestoreCapturedPose(TweenDuration, () => _state = FacadeState.Strategic);
+		ClearFacilityButtons();
+		_activePoi = null;
+		_camera.RestoreCapturedPose(TweenDuration, () => _state = FacadeState.Strategic, ExitDistance);
 	}
+
+	private void CreateFacilityButtons(PointOfInterest poi)
+	{
+		ClearFacilityButtons();
+		if (_uiLayer is null)
+			return;
+
+		foreach (var facility in poi.Facilities)
+		{
+			var button = new Button
+			{
+				TooltipText = facility.DisplayName,
+				Visible = true,
+				MouseFilter = Control.MouseFilterEnum.Stop,
+				Flat = true,
+				Icon = SvgIconLoader.LoadRaw(ResolveFacilityIconPath(facility.PresentationAnchor), IconPx),
+				ExpandIcon = true,
+				CustomMinimumSize = new Vector2(48, 48),
+			};
+			button.AddThemeStyleboxOverride("normal", IconButtonStyle(0f));
+			button.AddThemeStyleboxOverride("hover", IconButtonStyle(0.15f));
+			button.AddThemeStyleboxOverride("pressed", IconButtonStyle(0.25f));
+			_uiLayer.AddChild(button);
+			_facilityButtons.Add(button);
+		}
+	}
+
+	private void PositionFacilityButtons(PointOfInterest poi, StarMap world)
+	{
+		var viewport = _viewportSize();
+		for (var i = 0; i < _facilityButtons.Count; i++)
+		{
+			var facility = poi.Facilities[i];
+			var worldPos = _view.ResolveFacilityAnchorWorldPosition(
+				poi,
+				facility.PresentationAnchor,
+				world.Width,
+				world.Height);
+			var screen = _camera.UnprojectPosition(worldPos);
+			var button = _facilityButtons[i];
+			button.ResetSize();
+			var buttonSize = button.Size;
+			var position = screen - buttonSize * 0.5f;
+			position.X = Mathf.Clamp(position.X, 8f, viewport.X - buttonSize.X - 8f);
+			position.Y = Mathf.Clamp(position.Y, 8f, viewport.Y - buttonSize.Y - 8f);
+			button.Position = position;
+		}
+	}
+
+	private void ClearFacilityButtons()
+	{
+		foreach (var button in _facilityButtons)
+			button.QueueFree();
+		_facilityButtons.Clear();
+	}
+
+	private static string ResolveFacilityIconPath(EPresentationAnchor anchor) =>
+		anchor switch
+		{
+			EPresentationAnchor.Management => ManagementIconPath,
+			_ => ManagementIconPath,
+		};
 
 	private static string? ResolveDockedPoiId(StarMap world)
 	{

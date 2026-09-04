@@ -74,6 +74,16 @@ public partial class MapView : Node3D
 		};
 	}
 
+	public Vector3 ResolveFacilityAnchorWorldPosition(
+		PointOfInterest poi,
+		EPresentationAnchor anchor,
+		int width,
+		int height)
+	{
+		var basePosition = GetPoiWorldPosition(poi.Id, width, height);
+		return basePosition + FacilityAnchorOffsets.Resolve(anchor, poi.Facade.Layout);
+	}
+
 	public void Build(StarMap world)
 	{
 		foreach (var child in GetChildren().ToArray())
@@ -714,5 +724,30 @@ public partial class MapView : Node3D
 		mesh.SurfaceAddVertex(d);
 		mesh.SurfaceAddVertex(d);
 		mesh.SurfaceAddVertex(a);
+	}
+
+	private static class FacilityAnchorOffsets
+	{
+		private static readonly Vector3 NeutralOffset = new(0f, 0.35f, 0f);
+
+		private static readonly (EPresentationAnchor Anchor, EFacadeLayout Layout, Vector3 Offset)[] Entries =
+		[
+			(EPresentationAnchor.Management, EFacadeLayout.Planet, new Vector3(0.35f, 0.55f, 0.12f)),
+			(EPresentationAnchor.Management, EFacadeLayout.Station, new Vector3(0.22f, 0.42f, 0.18f)),
+			(EPresentationAnchor.Management, EFacadeLayout.Default, new Vector3(0.28f, 0.38f, 0f)),
+		];
+
+		public static Vector3 Resolve(EPresentationAnchor anchor, EFacadeLayout layout)
+		{
+			foreach (var (entryAnchor, entryLayout, offset) in Entries)
+			{
+				if (entryAnchor == anchor && entryLayout == layout)
+					return offset;
+			}
+
+			GD.PushWarning(
+				$"MapView: no facility anchor offset for {anchor} on layout {layout}; using neutral offset.");
+			return NeutralOffset;
+		}
 	}
 }
