@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
 
@@ -35,6 +36,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public UnitRegistry UnitRegistry { get; }
 	public ContractRegistry ContractRegistry { get; }
+	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
 
@@ -46,7 +48,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
 		IReadOnlyDictionary<string, SpaceRoute> routesById,
 		UnitRegistry unitRegistry,
-		ContractRegistry contractRegistry)
+		ContractRegistry contractRegistry,
+		PathfindingTerrain pathfindingTerrain)
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
@@ -59,6 +62,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		RoutesById = routesById;
 		UnitRegistry = unitRegistry;
 		ContractRegistry = contractRegistry;
+		PathfindingTerrain = pathfindingTerrain;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -75,7 +79,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			DocksByPoiId,
 			RoutesById,
 			UnitRegistry.CloneForFork(),
-			ContractRegistry.CloneForFork());
+			ContractRegistry.CloneForFork(),
+			PathfindingTerrain);
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{
@@ -86,14 +91,11 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		return distanceSquared < (long)combined * combined;
 	}
 
-	public static StarMap CreateDevDefault(int seed = 0) =>
-		CreateDevBuildResult(seed).Map;
-
-	public static StarSystemBuildResult CreateDevBuildResult(int seed = 0)
+	public static StarMap CreateDevDefault(int seed = 0)
 	{
-		var result = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
-		SeedDevOfferedContracts(result.Map);
-		return result;
+		var map = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
+		SeedDevOfferedContracts(map);
+		return map;
 	}
 
 	private static void SeedDevOfferedContracts(StarMap map)

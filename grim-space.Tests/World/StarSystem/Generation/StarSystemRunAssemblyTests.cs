@@ -10,42 +10,50 @@ namespace GrimSpace.Tests.World.StarSystem.Generation;
 public sealed class StarSystemRunAssemblyTests
 {
 	[Fact]
-	public void Assemble_AddsPlayerFleetAtTradeHub()
+	public void CreateDevSession_AddsPlayerFleetAtTradeHub()
 	{
-		var buildResult = StarMap.CreateDevBuildResult(42);
-		StarSystemTestHarness.AddPlayerFleet(buildResult, RunState.PlayerFleetUnitId);
+		var starSystem = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 42);
 
-		Assert.Equal(27, buildResult.Map.UnitRegistry.Ids.Count());
-		var playerFleet = buildResult.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		Assert.Equal(27, starSystem.Map.UnitRegistry.Ids.Count());
+		var playerFleet = starSystem.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(EType.PlayerFleet, playerFleet.State.Type);
 		Assert.Empty(playerFleet.State.ChoreDockIds);
 		Assert.Equal(
-			buildResult.Map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Id,
+			starSystem.Map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Id,
 			playerFleet.State.DockedAtDockId);
 	}
 
 	[Fact]
-	public void CreateDevBuildResult_HasTwentySixNpcUnitsOnly()
+	public void CreateDevDefault_HasTwentySixNpcUnitsOnly()
 	{
-		var buildResult = StarMap.CreateDevBuildResult(42);
+		var map = StarMap.CreateDevDefault(42);
 
-		Assert.Equal(26, buildResult.Map.UnitRegistry.Ids.Count());
-		Assert.DoesNotContain(
-			buildResult.Map.UnitRegistry.Ids,
-			id => id == RunState.PlayerFleetUnitId);
+		Assert.Equal(26, map.UnitRegistry.Ids.Count());
+		Assert.DoesNotContain(map.UnitRegistry.Ids, id => id == RunState.PlayerFleetUnitId);
 	}
 
 	[Fact]
-	public void Assemble_RespawnsPlayerFleetAtTradeHub()
+	public void CreateDevSession_RespawnsPlayerFleetAtTradeHub()
 	{
-		var firstBuild = StarMap.CreateDevBuildResult(7);
-		StarSystemTestHarness.AddPlayerFleet(firstBuild, RunState.PlayerFleetUnitId);
-		var secondBuild = StarMap.CreateDevBuildResult(7);
-		StarSystemTestHarness.AddPlayerFleet(secondBuild, RunState.PlayerFleetUnitId);
+		var first = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 7);
+		var second = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 7);
 
-		var firstFleet = firstBuild.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
-		var secondFleet = secondBuild.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var firstFleet = first.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var secondFleet = second.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(firstFleet.State.DockedAtDockId, secondFleet.State.DockedAtDockId);
 		Assert.Equal(EPhase.Docked, secondFleet.State.Phase);
+	}
+
+	[Fact]
+	public void AddPlayerFleet_AddsPlayerFleetAtTradeHub()
+	{
+		var map = StarMap.CreateDevDefault(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+
+		Assert.Equal(27, map.UnitRegistry.Ids.Count());
+		var playerFleet = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		Assert.Equal(
+			map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Id,
+			playerFleet.State.DockedAtDockId);
 	}
 }

@@ -72,6 +72,7 @@ public sealed class StarMapTests
 		Assert.Same(world.DocksById, fork.DocksById);
 		Assert.Same(world.DocksByPoiId, fork.DocksByPoiId);
 		Assert.Same(world.RoutesById, fork.RoutesById);
+		Assert.Same(world.PathfindingTerrain, fork.PathfindingTerrain);
 		Assert.NotSame(world.Timeline, fork.Timeline);
 		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);

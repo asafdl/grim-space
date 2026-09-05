@@ -49,10 +49,10 @@ public sealed class PlayerFleetMovementTests
 	[Fact]
 	public void OrderMove_Unreachable_DoesNotQueue()
 	{
-		var buildResult = StarMap.CreateDevBuildResult(42);
-		StarSystemTestHarness.AddPlayerFleet(buildResult, RunState.PlayerFleetUnitId);
-		var orchestrator = StarSystemOrchestrator.FromBuildResult(
-			buildResult,
+		var map = StarMap.CreateDevDefault(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var orchestrator = StarSystemOrchestrator.FromMap(
+			map,
 			new UnreachablePathfinder(),
 			RunState.PlayerFleetUnitId);
 		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
@@ -231,10 +231,10 @@ public sealed class PlayerFleetMovementTests
 	[Fact]
 	public void OrderMove_Unreachable_PreservesActiveJourney()
 	{
-		var buildResult = StarMap.CreateDevBuildResult(42);
-		StarSystemTestHarness.AddPlayerFleet(buildResult, RunState.PlayerFleetUnitId);
-		var orchestrator = StarSystemOrchestrator.FromBuildResult(
-			buildResult,
+		var map = StarMap.CreateDevDefault(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var orchestrator = StarSystemOrchestrator.FromMap(
+			map,
 			new FirstFoundThenUnreachablePathfinder(),
 			RunState.PlayerFleetUnitId);
 		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);

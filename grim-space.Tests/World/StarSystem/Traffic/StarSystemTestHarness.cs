@@ -12,24 +12,23 @@ internal static class StarSystemTestHarness
 		CreateOrchestrator(StarMap.CreateDevDefault(seed));
 
 	public static StarSystemOrchestrator CreateOrchestrator(StarMap map) =>
-		StarSystemOrchestrator.FromBuildResult(BuildResult(map), new StraightLinePathfinder());
+		StarSystemOrchestrator.FromMap(map, new StraightLinePathfinder());
 
 	public static StarSystemOrchestrator CreatePlayerOrchestrator(
 		string playerFleetUnitId,
 		int seed = 0,
 		IPathfinder? pathfinder = null)
 	{
-		var buildResult = StarMap.CreateDevBuildResult(seed);
-		AddPlayerFleet(buildResult, playerFleetUnitId);
-		return StarSystemOrchestrator.FromBuildResult(
-			buildResult,
+		var map = StarMap.CreateDevDefault(seed);
+		AddPlayerFleet(map, playerFleetUnitId);
+		return StarSystemOrchestrator.FromMap(
+			map,
 			pathfinder ?? new StraightLinePathfinder(),
 			playerFleetUnitId);
 	}
 
-	internal static void AddPlayerFleet(StarSystemBuildResult buildResult, string playerFleetUnitId)
+	internal static void AddPlayerFleet(StarMap map, string playerFleetUnitId)
 	{
-		var map = buildResult.Map;
 		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
 		map.UnitRegistry.Add(Factory.Create(new Spawn(
 			playerFleetUnitId,
@@ -39,16 +38,6 @@ internal static class StarSystemTestHarness
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			[])));
 	}
-
-	private static StarSystemBuildResult BuildResult(StarMap map) =>
-		new(
-			map,
-			PathfindingTerrain.Create(
-				map.Width,
-				map.Height,
-				map.RoutesById.Values,
-				map.PointsOfInterest,
-				map.DocksById.Values));
 
 	private sealed class StraightLinePathfinder : IPathfinder
 	{

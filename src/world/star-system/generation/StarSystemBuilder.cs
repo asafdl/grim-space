@@ -18,7 +18,7 @@ public static class StarSystemBuilder
 	private const int EdgePadding = 32;
 	private const string PlacementTag = "poi-placement";
 
-	public static StarSystemBuildResult Build(StarSystemBlueprint blueprint)
+	public static StarMap Build(StarSystemBlueprint blueprint)
 	{
 		ArgumentNullException.ThrowIfNull(blueprint);
 
@@ -40,7 +40,7 @@ public static class StarSystemBuilder
 			lastFailure);
 	}
 
-	private static StarSystemBuildResult BuildOnce(StarSystemBlueprint blueprint, int layoutAttempt)
+	private static StarMap BuildOnce(StarSystemBlueprint blueprint, int layoutAttempt)
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
@@ -116,16 +116,6 @@ public static class StarSystemBuilder
 
 		Validate(blueprint, pois, docksByPoiId, routesById, unitRegistry);
 
-		var map = new StarMap(
-			blueprint,
-			pois,
-			new Timeline(),
-			docksById,
-			docksByPoiId,
-			routesById,
-			unitRegistry,
-			new ContractRegistry());
-
 		var terrain = PathfindingTerrain.Create(
 			blueprint.Width,
 			blueprint.Height,
@@ -133,7 +123,16 @@ public static class StarSystemBuilder
 			pois,
 			docksById.Values);
 
-		return new StarSystemBuildResult(map, terrain);
+		return new StarMap(
+			blueprint,
+			pois,
+			new Timeline(),
+			docksById,
+			docksByPoiId,
+			routesById,
+			unitRegistry,
+			new ContractRegistry(),
+			terrain);
 	}
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)

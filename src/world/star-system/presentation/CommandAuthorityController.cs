@@ -17,7 +17,7 @@ public partial class CommandAuthorityController : Control
 
 	public override void _Ready()
 	{
-		_orchestrator = RunSession.Instance.Run.Traffic;
+		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_playerAgent = _orchestrator.PlayerAgent
 			?? throw new InvalidOperationException("Command Authority requires a player execution agent.");
 		_orchestrator.EnterInteractive();

@@ -45,7 +45,7 @@ public partial class MapController : Node3D
 			light.LightEnergy = 0.22f;
 		}
 
-		_orchestrator = RunSession.Instance.Run.Traffic;
+		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
@@ -64,7 +64,7 @@ public partial class MapController : Node3D
 		_poiFacade.FacilityEntered += OnFacilityEntered;
 		_poiFacade.BuildUi(_uiLayer);
 
-		var world = RunSession.Instance.Run.Map;
+		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var halfZ = world.Height * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var mapRadius = Mathf.Max(halfX, halfZ);

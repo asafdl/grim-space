@@ -44,34 +44,37 @@ public sealed class StarSystemOrchestrator
 
 	public bool IsStepped => _simMode == ESimMode.Stepped;
 
-	public static StarSystemOrchestrator FromBuildResult(StarSystemBuildResult result) =>
-		FromBuildResult(result, new CachedPathfinder(new AStarPathfinder(result.Terrain)), playerId: null);
+	public static StarSystemOrchestrator CreateDevSession(string playerFleetUnitId, int seed = 0)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
+		var map = StarMap.CreateDevDefault(seed);
+		AddPlayerFleet(map, playerFleetUnitId);
+		return FromMap(map, playerFleetUnitId);
+	}
 
-	public static StarSystemOrchestrator FromBuildResult(
-		StarSystemBuildResult result,
-		string playerId) =>
-		FromBuildResult(
-			result,
-			new CachedPathfinder(new AStarPathfinder(result.Terrain)),
-			playerId);
+	public static StarSystemOrchestrator FromMap(StarMap map) =>
+		FromMap(map, new CachedPathfinder(new AStarPathfinder(map.PathfindingTerrain)), playerId: null);
 
-	public static StarSystemOrchestrator FromBuildResult(
-		StarSystemBuildResult result,
+	public static StarSystemOrchestrator FromMap(StarMap map, string playerId) =>
+		FromMap(map, new CachedPathfinder(new AStarPathfinder(map.PathfindingTerrain)), playerId);
+
+	public static StarSystemOrchestrator FromMap(
+		StarMap map,
 		IPathfinder pathfinder,
 		string? playerId = null)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		if (result.Map.Timeline.Clock.Current == 0)
-			result.Map.Timeline.Clock.Set(1);
+		if (map.Timeline.Clock.Current == 0)
+			map.Timeline.Clock.Set(1);
 
-		foreach (var unit in result.Map.UnitRegistry.All)
+		foreach (var unit in map.UnitRegistry.All)
 		{
 			actorRuntimes.Register(unit.State.Id, unit.Runtime);
 			TransitCache.RebuildIfMissing(unit, pathfinder);
-			ScheduleSpawnedWorkerIfNeeded(result.Map, unit);
+			ScheduleSpawnedWorkerIfNeeded(map, unit);
 		}
 
-		var engine = new Engine<StarMap, ActorRuntime>(result.Map, actorRuntimes);
+		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		StarMapPlayerExecutionAgent? playerAgent = null;
 		if (playerId is not null)
 		{
@@ -81,7 +84,7 @@ public sealed class StarSystemOrchestrator
 				pathfinder);
 		}
 
-		var trafficUnits = result.Map.UnitRegistry.All
+		var trafficUnits = map.UnitRegistry.All
 			.Where(unit => unit.State.ChoreDockIds.Count > 0)
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 			.ToArray();
@@ -111,6 +114,18 @@ public sealed class StarSystemOrchestrator
 
 		orchestrator.ApplySimMode(ESimMode.Running);
 		return orchestrator;
+	}
+
+	private static void AddPlayerFleet(StarMap map, string playerFleetUnitId)
+	{
+		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
+		map.UnitRegistry.Add(Factory.Create(new Spawn(
+			playerFleetUnitId,
+			EType.PlayerFleet,
+			tradeHubDock.Id,
+			default,
+			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+			[])));
 	}
 
 	public void SetRunning() => ApplySimMode(ESimMode.Running);
