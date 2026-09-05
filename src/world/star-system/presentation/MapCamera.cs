@@ -36,6 +36,7 @@ public partial class MapCamera : Camera3D
 
 	public float Distance => _pose.Distance;
 	public OrbitPose CurrentPose => _pose;
+	public OrbitPose CapturedPose => _capturedPose;
 	public bool IsAnimating => _automationTween is not null;
 	public bool IsFacadeActive => _facadeActive;
 
@@ -60,6 +61,8 @@ public partial class MapCamera : Camera3D
 
 	public void CapturePose() => _capturedPose = _pose;
 
+	public void SetCapturedPose(OrbitPose pose) => _capturedPose = pose;
+
 	public void SetFacadeActive(bool active) => _facadeActive = active;
 
 	public void SnapToPose(OrbitPose target)
@@ -81,6 +84,12 @@ public partial class MapCamera : Camera3D
 	{
 		CancelAutomation();
 		var target = _capturedPose;
+		if (target.Distance <= 0.001f)
+		{
+			onComplete?.Invoke();
+			return;
+		}
+
 		if (minDistance > 0f && target.Distance < minDistance)
 			target.Distance = minDistance;
 		BeginPoseTween(_pose, target, duration, onComplete);

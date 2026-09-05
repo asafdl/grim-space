@@ -66,6 +66,7 @@ public sealed class MapPoiFacade
 		_accessButton.Visible = false;
 		_camera.SetFacadeActive(true);
 		_activePoi = poi;
+		RestoreStrategicCameraPose();
 		_camera.SnapToPose(_view.ResolveFacadePose(poi, world.Width, world.Height));
 		CreateFacilityButtons(poi);
 	}
@@ -187,6 +188,7 @@ public sealed class MapPoiFacade
 		_state = FacadeState.Entering;
 		_accessButton.Visible = false;
 		_camera.CapturePose();
+		MapNavigationContext.SaveStrategicCameraPose(_camera.CapturedPose);
 		var target = _view.ResolveFacadePose(poi, world.Width, world.Height);
 		_camera.TweenToPose(target, TweenDuration, () => OnEnterComplete(poi));
 	}
@@ -208,7 +210,14 @@ public sealed class MapPoiFacade
 		_camera.SetFacadeActive(false);
 		ClearFacilityButtons();
 		_activePoi = null;
-		_camera.RestoreCapturedPose(TweenDuration, () => _state = FacadeState.Strategic, ExitDistance);
+		_camera.RestoreCapturedPose(
+			TweenDuration,
+			() =>
+			{
+				_state = FacadeState.Strategic;
+				MapNavigationContext.ClearStrategicCameraPose();
+			},
+			ExitDistance);
 	}
 
 	private void BeginEnterFacility(PointOfInterest poi, Facility facility)
@@ -355,6 +364,14 @@ public sealed class MapPoiFacade
 		var dx = pivot.X - poiCenter.X;
 		var dz = pivot.Z - poiCenter.Z;
 		return Mathf.Sqrt(dx * dx + dz * dz) <= PivotProximity;
+	}
+
+	private void RestoreStrategicCameraPose()
+	{
+		if (MapNavigationContext.StrategicCameraPose is not { } saved)
+			return;
+
+		_camera.SetCapturedPose(saved);
 	}
 
 	private static StyleBoxFlat IconButtonStyle(float bgAlpha) => new()

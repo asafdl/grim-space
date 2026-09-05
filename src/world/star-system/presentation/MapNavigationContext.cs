@@ -1,3 +1,5 @@
+using GrimSpace.Math.Camera;
+
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public static class MapNavigationContext
@@ -10,6 +12,8 @@ public static class MapNavigationContext
 
 	public static bool ReturnToFacade { get; private set; }
 
+	public static OrbitPose? StrategicCameraPose { get; private set; }
+
 	public static void EnterFacility(string poiId, string facilityId)
 	{
 		ActivePoiId = poiId;
@@ -17,5 +21,9 @@ public static class MapNavigationContext
 		ReturnToFacade = true;
 	}
 
+	public static void SaveStrategicCameraPose(OrbitPose pose) => StrategicCameraPose = pose;
+
 	public static void ClearReturnToFacade() => ReturnToFacade = false;
+
+	public static void ClearStrategicCameraPose() => StrategicCameraPose = null;
 }
