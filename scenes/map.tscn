@@ -6,6 +6,8 @@
 [ext_resource type="Script" path="res://src/world/star-system/presentation/RoutesView.cs" id="4_routes"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/UnitsView.cs" id="5_units"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/CourseView.cs" id="6_course"]
+[ext_resource type="Theme" path="res://assets/ui/themes/map_theme.tres" id="7_theme"]
+[ext_resource type="Texture2D" uid="uid://vqro6ros3fnm" path="res://assets/ui/map/dock-facilities.svg" id="8_access_icon"]
 
 [node name="Map" type="Node3D"]
 script = ExtResource("1_controller")
@@ -32,3 +34,105 @@ script = ExtResource("6_course")
 
 [node name="UnitsView" type="Node3D" parent="."]
 script = ExtResource("5_units")
+
+[node name="UI" type="CanvasLayer" parent="."]
+theme = ExtResource("7_theme")
+
+[node name="Hint" type="Label" parent="UI"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 900.0
+offset_bottom = 36.0
+theme_type_variation = &"Hint"
+mouse_filter = 2
+text = "F10 star map (dev) — WASD pan, LMB orbit, wheel zoom, RMB move fleet, Space pause, Rebuild rerolls seed, Esc menu"
+
+[node name="Tooltip" type="PanelContainer" parent="UI"]
+visible = false
+theme_type_variation = &"Tooltip"
+mouse_filter = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Tooltip"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TypeLabel" type="Label" parent="UI/Tooltip/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"TooltipType"
+
+[node name="NameLabel" type="Label" parent="UI/Tooltip/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"TooltipName"
+
+[node name="DebugPanel" type="PanelContainer" parent="UI"]
+offset_left = 16.0
+offset_top = 44.0
+offset_right = 420.0
+offset_bottom = 84.0
+theme_type_variation = &"Overlay"
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/DebugPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/DebugPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TickLabel" type="Label" parent="UI/DebugPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"DebugValue"
+text = "Tick 0"
+
+[node name="PauseButton" type="Button" parent="UI/DebugPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Pause"
+
+[node name="StepButton" type="Button" parent="UI/DebugPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Step"
+
+[node name="SpeedButton" type="Button" parent="UI/DebugPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Speed 1x"
+
+[node name="RebuildButton" type="Button" parent="UI/DebugPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Rebuild"
+
+[node name="SystemLabel" type="Label" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 36.0
+grow_horizontal = 0
+theme_type_variation = &"SystemMeta"
+horizontal_alignment = 2
+mouse_filter = 2
+
+[node name="AccessButton" type="Button" parent="UI"]
+visible = false
+offset_right = 48.0
+offset_bottom = 48.0
+theme_type_variation = &"MapIcon"
+tooltip_text = "View local facilities"
+flat = true
+custom_minimum_size = Vector2(48, 48)
+icon = ExtResource("8_access_icon")
+expand_icon = true
+
+[node name="FadeOverlay" type="ColorRect" parent="UI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)

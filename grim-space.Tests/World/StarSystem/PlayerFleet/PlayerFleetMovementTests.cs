@@ -26,7 +26,7 @@ public sealed class PlayerFleetMovementTests
 		Assert.IsType<MoveCommandResult.Queued>(result);
 		Assert.Equal(EPhase.Docked, player.State.Phase);
 		Assert.False(player.State.Journey.IsActive);
-		Assert.Null(player.Runtime.CachedPath);
+		Assert.Null(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).CachedPath);
 		Assert.Equal(destination, orchestrator.PlayerAgent!.PendingMove!.Destination);
 	}
 
@@ -43,7 +43,7 @@ public sealed class PlayerFleetMovementTests
 
 		Assert.Equal(EPhase.InTransit, player.State.Phase);
 		Assert.Equal(destination, player.State.Journey.Destination);
-		Assert.NotNull(player.Runtime.CachedPath);
+		Assert.NotNull(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).CachedPath);
 	}
 
 	[Fact]
@@ -113,10 +113,11 @@ public sealed class PlayerFleetMovementTests
 		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		var origin = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Position;
 		var destination = new Coord(origin.X + 40, 0, origin.Z + 40);
+		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
-		var path = player.Runtime.CachedPath!;
+		var path = runtime.CachedPath!;
 		var duration = path.DurationTicks(player.State.SpeedPerTick);
 		orchestrator.AdvanceTicks(duration);
 
@@ -160,10 +161,11 @@ public sealed class PlayerFleetMovementTests
 		var map = orchestrator.Map;
 		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
+		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
-		var duration = player.Runtime.CachedPath!.DurationTicks(player.State.SpeedPerTick);
+		var duration = runtime.CachedPath!.DurationTicks(player.State.SpeedPerTick);
 		orchestrator.AdvanceTicks(duration);
 
 		Assert.Equal(EPhase.Docked, player.State.Phase);
@@ -182,7 +184,7 @@ public sealed class PlayerFleetMovementTests
 		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(EType.PlayerFleet, player.State.Type);
 		Assert.Empty(player.State.ChoreDockIds);
-		Assert.NotNull(player.Runtime);
+		Assert.NotNull(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId));
 	}
 
 	[Fact]
@@ -201,31 +203,32 @@ public sealed class PlayerFleetMovementTests
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
-		player.Runtime.JourneyIdSequence = 17;
+		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).JourneyIdSequence = 17;
 
 		var clonedState = player.State.Clone();
 
 		Assert.NotSame(player.State, clonedState);
 		Assert.Equal(player.State.Id, clonedState.Id);
-		Assert.Equal(17, player.Runtime.JourneyIdSequence);
+		Assert.Equal(17, orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).JourneyIdSequence);
 	}
 
 	[Fact]
-	public void Fork_ClonesUnitRuntimeIndependently()
+	public void SimulationFork_ClonesRuntimeIndependently()
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
-		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var playerId = RunState.PlayerFleetUnitId;
 		QueueMove(
 			orchestrator,
 			orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position);
 		orchestrator.AdvanceTick();
-		player.Runtime.JourneyIdSequence = 42;
+		orchestrator.RuntimeFor(playerId).JourneyIdSequence = 42;
 
-		var forkedPlayer = orchestrator.Map.Fork().UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var sim = orchestrator.CreateSimulation();
+		var forkedRuntime = sim.RuntimeFor(playerId);
 
-		Assert.NotSame(player.Runtime, forkedPlayer.Runtime);
-		player.Runtime.JourneyIdSequence = 99;
-		Assert.Equal(42, forkedPlayer.Runtime.JourneyIdSequence);
+		Assert.NotSame(orchestrator.RuntimeFor(playerId), forkedRuntime);
+		orchestrator.RuntimeFor(playerId).JourneyIdSequence = 99;
+		Assert.Equal(42, forkedRuntime.JourneyIdSequence);
 	}
 
 	[Fact]
@@ -239,17 +242,18 @@ public sealed class PlayerFleetMovementTests
 			RunState.PlayerFleetUnitId);
 		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		var destination = orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
+		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
 		var journeyId = player.State.Journey.JourneyId;
-		var cachedPath = player.Runtime.CachedPath;
+		var cachedPath = runtime.CachedPath;
 
 		var result = QueueMove(orchestrator, new Coord(999, 0, 999));
 
 		Assert.IsType<MoveCommandResult.Unreachable>(result);
 		Assert.Equal(journeyId, player.State.Journey.JourneyId);
-		Assert.Same(cachedPath, player.Runtime.CachedPath);
+		Assert.Same(cachedPath, runtime.CachedPath);
 		Assert.Equal(EPhase.InTransit, player.State.Phase);
 	}
 
@@ -259,10 +263,11 @@ public sealed class PlayerFleetMovementTests
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		var destination = orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
+		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
-		var duration = player.Runtime.CachedPath!.DurationTicks(player.State.SpeedPerTick);
+		var duration = runtime.CachedPath!.DurationTicks(player.State.SpeedPerTick);
 		var completionTick = player.State.Journey.StartTick + duration;
 
 		while (orchestrator.Tick < completionTick)

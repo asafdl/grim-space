@@ -86,7 +86,7 @@ public partial class CourseView : Node3D
 		if (playerUnitId is null
 			|| !world.UnitRegistry.TryGet(playerUnitId, out var unit)
 			|| unit.State.Phase != EPhase.InTransit
-			|| unit.Runtime.CachedPath is not { } path
+			|| orchestrator.RuntimeFor(playerUnitId).CachedPath is not { } path
 			|| !unit.State.Journey.IsActive)
 		{
 			HideCourse();

@@ -13,6 +13,7 @@ public sealed class StarMapPlayerExecutionAgent
 {
 	private readonly Func<Simulation<StarMap, ActorRuntime>> _createSimulation;
 	private readonly Func<StarMap> _anchorWorld;
+	private readonly Func<string, ActorRuntime> _runtimeFor;
 	private readonly IPathfinder _pathfinder;
 	private bool _committed;
 	private IAction? _pendingAction;
@@ -20,10 +21,12 @@ public sealed class StarMapPlayerExecutionAgent
 	public StarMapPlayerExecutionAgent(
 		Func<Simulation<StarMap, ActorRuntime>> createSimulation,
 		Func<StarMap> anchorWorld,
+		Func<string, ActorRuntime> runtimeFor,
 		IPathfinder pathfinder)
 	{
 		_createSimulation = createSimulation;
 		_anchorWorld = anchorWorld;
+		_runtimeFor = runtimeFor;
 		_pathfinder = pathfinder;
 	}
 
@@ -48,7 +51,7 @@ public sealed class StarMapPlayerExecutionAgent
 		var unit = anchorWorld.UnitRegistry.UnitOf(_actorId);
 		var (origin, _) = unit.State.CommittedPosition(
 			anchorWorld,
-			unit.Runtime.CachedPath,
+			_runtimeFor(_actorId).CachedPath,
 			0f);
 		var result = _pathfinder.FindPath(origin, destination);
 		if (result is not PathfindingResult.Found found)

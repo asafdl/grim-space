@@ -94,7 +94,7 @@ public sealed class AcceptContractActionTests
 		var unitId = unit.State.Id;
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		runtimes.Register(unitId, unit.Runtime);
+		runtimes.For(unitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		return (engine, unitId, contractId);

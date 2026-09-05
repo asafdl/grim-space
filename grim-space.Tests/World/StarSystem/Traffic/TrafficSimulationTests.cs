@@ -15,11 +15,12 @@ public sealed class TrafficSimulationTests
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
 		var map = orchestrator.Map;
 		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart);
+		var runtime = orchestrator.RuntimeFor(readyUnit.State.Id);
 
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EPhase.InTransit, readyUnit.State.Phase);
-		Assert.NotNull(readyUnit.Runtime.CachedPath);
+		Assert.NotNull(runtime.CachedPath);
 		Assert.NotEqual(0, readyUnit.State.Journey.JourneyId);
 
 		orchestrator.AdvanceTick();
@@ -27,7 +28,7 @@ public sealed class TrafficSimulationTests
 		Assert.Equal(EPhase.InTransit, readyUnit.State.Phase);
 		var (position, _) = readyUnit.State.CommittedPosition(
 			map,
-			readyUnit.Runtime.CachedPath,
+			runtime.CachedPath,
 			0f);
 		Assert.NotEqual(readyUnit.State.Journey.Origin, position);
 	}
@@ -44,7 +45,7 @@ public sealed class TrafficSimulationTests
 			orchestrator.AdvanceTick();
 
 		var map = orchestrator.Map;
-		var path = unit.Runtime.CachedPath!;
+		var path = orchestrator.RuntimeFor(unit.State.Id).CachedPath!;
 		var positionAfterDepart = unit.State.CommittedPosition(map, path, 0f).Position;
 
 		orchestrator.AdvanceTick();
@@ -157,11 +158,11 @@ public sealed class TrafficSimulationTests
 		{
 			var originalPosition = originalMiner.State.CommittedPosition(
 				orchestrator.Map,
-				originalMiner.Runtime.CachedPath,
+				orchestrator.RuntimeFor(originalMiner.State.Id).CachedPath,
 				0f).Position;
 			var forkedPosition = forkedMiner.State.CommittedPosition(
 				forkedOrchestrator.Map,
-				forkedMiner.Runtime.CachedPath,
+				forkedOrchestrator.RuntimeFor(forkedMiner.State.Id).CachedPath,
 				0f).Position;
 			Assert.NotEqual(originalPosition, forkedPosition);
 		}

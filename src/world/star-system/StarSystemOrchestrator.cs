@@ -44,6 +44,10 @@ public sealed class StarSystemOrchestrator
 
 	public bool IsStepped => _simMode == ESimMode.Stepped;
 
+	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
+
+	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
+
 	public static StarSystemOrchestrator CreateDevSession(string playerFleetUnitId, int seed = 0)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
@@ -69,8 +73,8 @@ public sealed class StarSystemOrchestrator
 
 		foreach (var unit in map.UnitRegistry.All)
 		{
-			actorRuntimes.Register(unit.State.Id, unit.Runtime);
-			TransitCache.RebuildIfMissing(unit, pathfinder);
+			var runtime = actorRuntimes.For(unit.State.Id);
+			TransitCache.RebuildIfMissing(unit, runtime, pathfinder);
 			ScheduleSpawnedWorkerIfNeeded(map, unit);
 		}
 
@@ -81,6 +85,7 @@ public sealed class StarSystemOrchestrator
 			playerAgent = new StarMapPlayerExecutionAgent(
 				engine.CreateSimulation,
 				() => engine.World,
+				unitId => engine.ActorRuntimes.For(unitId),
 				pathfinder);
 		}
 

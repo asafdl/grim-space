@@ -28,7 +28,6 @@ public sealed class MapPoiFacade
 	private const float FacilityZoomDistance = 2.8f;
 	private const float FacilityZoomDuration = 0.4f;
 	private const float FacilityFadeDuration = 0.35f;
-	private const string AccessIconPath = "res://assets/ui/map/dock-facilities.svg";
 	private const string ManagementIconPath = "res://assets/ui/map/management-facility.svg";
 	private const int IconPx = 40;
 
@@ -37,9 +36,9 @@ public sealed class MapPoiFacade
 	private readonly Func<StarMap> _map;
 	private readonly Func<Vector2> _viewportSize;
 
-	private CanvasLayer? _uiLayer;
-	private ColorRect? _fadeOverlay;
-	private Button _accessButton = null!;
+	private readonly CanvasLayer _uiLayer;
+	private readonly ColorRect _fadeOverlay;
+	private readonly Button _accessButton;
 	private PointOfInterest? _activePoi;
 	private readonly List<Button> _facilityButtons = [];
 	private FacadeState _state = FacadeState.Strategic;
@@ -50,12 +49,19 @@ public sealed class MapPoiFacade
 		MapView view,
 		MapCamera camera,
 		Func<StarMap> map,
-		Func<Vector2> viewportSize)
+		Func<Vector2> viewportSize,
+		CanvasLayer uiLayer,
+		Button accessButton,
+		ColorRect fadeOverlay)
 	{
 		_view = view;
 		_camera = camera;
 		_map = map;
 		_viewportSize = viewportSize;
+		_uiLayer = uiLayer;
+		_accessButton = accessButton;
+		_fadeOverlay = fadeOverlay;
+		_accessButton.Pressed += OnAccessButtonPressed;
 	}
 
 	public bool IsStrategic => _state == FacadeState.Strategic;
@@ -69,26 +75,6 @@ public sealed class MapPoiFacade
 		RestoreStrategicCameraPose();
 		_camera.SnapToPose(_view.ResolveFacadePose(poi, world.Width, world.Height));
 		CreateFacilityButtons(poi);
-	}
-
-	public void BuildUi(CanvasLayer layer)
-	{
-		_uiLayer = layer;
-		_accessButton = new Button
-		{
-			TooltipText = "View local facilities",
-			Visible = false,
-			MouseFilter = Control.MouseFilterEnum.Stop,
-			Flat = true,
-			Icon = SvgIconLoader.LoadRaw(AccessIconPath, IconPx),
-			ExpandIcon = true,
-			CustomMinimumSize = new Vector2(48, 48),
-		};
-		_accessButton.AddThemeStyleboxOverride("normal", IconButtonStyle(0f));
-		_accessButton.AddThemeStyleboxOverride("hover", IconButtonStyle(0.15f));
-		_accessButton.AddThemeStyleboxOverride("pressed", IconButtonStyle(0.25f));
-		_accessButton.Pressed += OnAccessButtonPressed;
-		layer.AddChild(_accessButton);
 	}
 
 	public void Update()
@@ -248,15 +234,8 @@ public sealed class MapPoiFacade
 
 	private void FadeToBlack(Action onComplete)
 	{
-		if (_uiLayer is null)
-		{
-			onComplete();
-			return;
-		}
-
-		EnsureFadeOverlay();
-		_uiLayer!.MoveChild(_fadeOverlay!, -1);
-		_fadeOverlay!.Visible = true;
+		_uiLayer.MoveChild(_fadeOverlay, -1);
+		_fadeOverlay.Visible = true;
 		_fadeOverlay.Color = new Color(0f, 0f, 0f, 0f);
 		_fadeOverlay.MouseFilter = Control.MouseFilterEnum.Stop;
 
@@ -265,26 +244,9 @@ public sealed class MapPoiFacade
 		tween.TweenCallback(Callable.From(onComplete));
 	}
 
-	private void EnsureFadeOverlay()
-	{
-		if (_fadeOverlay is not null || _uiLayer is null)
-			return;
-
-		_fadeOverlay = new ColorRect
-		{
-			Visible = false,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			Color = Colors.Transparent,
-		};
-		_fadeOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-		_uiLayer.AddChild(_fadeOverlay);
-	}
-
 	private void CreateFacilityButtons(PointOfInterest poi)
 	{
 		ClearFacilityButtons();
-		if (_uiLayer is null)
-			return;
 
 		foreach (var facility in poi.Facilities)
 		{
@@ -294,13 +256,11 @@ public sealed class MapPoiFacade
 				Visible = true,
 				MouseFilter = Control.MouseFilterEnum.Stop,
 				Flat = true,
+				ThemeTypeVariation = "MapIcon",
 				Icon = SvgIconLoader.LoadRaw(ResolveFacilityIconPath(facility.PresentationAnchor), IconPx),
 				ExpandIcon = true,
 				CustomMinimumSize = new Vector2(48, 48),
 			};
-			button.AddThemeStyleboxOverride("normal", IconButtonStyle(0f));
-			button.AddThemeStyleboxOverride("hover", IconButtonStyle(0.15f));
-			button.AddThemeStyleboxOverride("pressed", IconButtonStyle(0.25f));
 			button.Pressed += () => BeginEnterFacility(poi, facility);
 			_uiLayer.AddChild(button);
 			_facilityButtons.Add(button);
@@ -373,17 +333,4 @@ public sealed class MapPoiFacade
 
 		_camera.SetCapturedPose(saved);
 	}
-
-	private static StyleBoxFlat IconButtonStyle(float bgAlpha) => new()
-	{
-		BgColor = new Color(0.02f, 0.04f, 0.07f, bgAlpha),
-		CornerRadiusTopLeft = 2,
-		CornerRadiusTopRight = 2,
-		CornerRadiusBottomLeft = 2,
-		CornerRadiusBottomRight = 2,
-		ContentMarginLeft = 0,
-		ContentMarginRight = 0,
-		ContentMarginTop = 0,
-		ContentMarginBottom = 0,
-	};
 }

@@ -205,7 +205,7 @@ public sealed class HuntProvisioningTests
 	private static Engine<StarMap, ActorRuntime> CreateEngine(StarMap map, string unitId)
 	{
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		runtimes.Register(unitId, map.UnitRegistry.UnitOf(unitId).Runtime);
+		runtimes.For(unitId);
 		return new Engine<StarMap, ActorRuntime>(map, runtimes);
 	}
 

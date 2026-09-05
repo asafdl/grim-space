@@ -12,7 +12,7 @@ public sealed class EngineCommitTests
 		var map = StarMap.CreateDevDefault(42);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		foreach (var unit in map.UnitRegistry.All)
-			actorRuntimes.Register(unit.State.Id, unit.Runtime);
+			actorRuntimes.For(unit.State.Id);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		Assert.Equal(0, engine.WorldVersion);

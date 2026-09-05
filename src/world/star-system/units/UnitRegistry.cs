@@ -32,6 +32,5 @@ public sealed class UnitRegistry
 		return clone;
 	}
 
-	private static Unit CloneUnit(Unit unit) =>
-		new(unit.State.Clone(), unit.Runtime.Fork());
+	private static Unit CloneUnit(Unit unit) => new(unit.State.Clone());
 }
