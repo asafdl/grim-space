@@ -62,6 +62,14 @@ public partial class MapCamera : Camera3D
 
 	public void SetFacadeActive(bool active) => _facadeActive = active;
 
+	public void SnapToPose(OrbitPose target)
+	{
+		CancelAutomation();
+		target.Clamp(Limits);
+		_pose = target;
+		ApplyTransform();
+	}
+
 	public void TweenToPose(OrbitPose target, float duration, Action? onComplete = null)
 	{
 		CancelAutomation();

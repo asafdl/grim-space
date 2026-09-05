@@ -15,7 +15,7 @@ public sealed class StarMapPlayerExecutionAgent
 	private readonly Func<StarMap> _anchorWorld;
 	private readonly IPathfinder _pathfinder;
 	private bool _committed;
-	private MoveAction? _pendingMove;
+	private IAction? _pendingAction;
 
 	public StarMapPlayerExecutionAgent(
 		Func<Simulation<StarMap, ActorRuntime>> createSimulation,
@@ -29,7 +29,9 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public Simulation<StarMap, ActorRuntime> Sim { get; private set; } = null!;
 
-	public MoveAction? PendingMove => _pendingMove;
+	public bool HasPendingAction => _pendingAction is not null;
+
+	public MoveAction? PendingMove => _pendingAction as MoveAction;
 
 	public bool IsPlanning => _isActive && !_committed;
 
@@ -52,18 +54,22 @@ public sealed class StarMapPlayerExecutionAgent
 		if (result is not PathfindingResult.Found found)
 			return new MoveCommandResult.Unreachable();
 
-		_pendingMove = new MoveAction(_actorId, _actorId, destination, found.Path);
-		RebuildPreview();
-		return new MoveCommandResult.Queued(found.Path);
+		return TryEnqueue([new MoveAction(_actorId, _actorId, destination, found.Path)])
+			? new MoveCommandResult.Queued(found.Path)
+			: new MoveCommandResult.Unreachable();
 	}
 
 	public bool TryEnqueue(IReadOnlyList<IAction> actions)
 	{
-		if (_committed || !_isActive || actions.Count != 1 || actions[0] is not MoveAction move)
+		if (_committed || !_isActive || actions.Count != 1)
 			return false;
 
-		_pendingMove = move;
-		RebuildPreview();
+		Sim = _createSimulation();
+		if (!Sim.TryEnqueue(actions[0]))
+			return false;
+
+		_pendingAction = actions[0];
+		NotifyPlanningChanged();
 		return true;
 	}
 
@@ -71,11 +77,13 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public bool Commit()
 	{
-		if (_committed || !_isActive)
+		if (_committed || !_isActive || _pendingAction is null)
 			return false;
 
+		var action = _pendingAction;
+		_pendingAction = null;
 		_committed = true;
-		Complete(_pendingMove is null ? [] : [_pendingMove]);
+		Complete([action]);
 		NotifyPlanningChanged();
 		return true;
 	}
@@ -83,17 +91,8 @@ public sealed class StarMapPlayerExecutionAgent
 	protected override void ProduceActionsJob(Simulation<StarMap, ActorRuntime> simulation)
 	{
 		_committed = false;
-		_pendingMove = null;
+		_pendingAction = null;
 		Sim = simulation;
-		NotifyPlanningChanged();
-	}
-
-	private void RebuildPreview()
-	{
-		Sim = _createSimulation();
-		if (_pendingMove is not null)
-			Sim.TryEnqueue(_pendingMove);
-
 		NotifyPlanningChanged();
 	}
 

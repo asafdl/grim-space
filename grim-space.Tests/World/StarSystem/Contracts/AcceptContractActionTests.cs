@@ -3,16 +3,15 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
 public sealed class AcceptContractActionTests
 {
 	[Fact]
-	public void TryEnqueue_SucceedsWhenActorDockedAtIssuer()
+	public void TryEnqueue_SucceedsForOfferedContract()
 	{
-		var (engine, unitId, contractId) = CreateEngineAtIssuerDock();
+		var (engine, unitId, contractId) = CreateEngine();
 		var sim = engine.CreateSimulation();
 
 		Assert.True(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
@@ -22,7 +21,7 @@ public sealed class AcceptContractActionTests
 	[Fact]
 	public void TryEnqueue_FailsForUnknownContract()
 	{
-		var (engine, unitId, _) = CreateEngineAtIssuerDock();
+		var (engine, unitId, _) = CreateEngine();
 		var sim = engine.CreateSimulation();
 
 		Assert.False(sim.TryEnqueue(new AcceptContractAction(unitId, "contract-missing")));
@@ -32,7 +31,7 @@ public sealed class AcceptContractActionTests
 	[Fact]
 	public void TryEnqueue_FailsForAlreadyAcceptedContract()
 	{
-		var (engine, unitId, contractId) = CreateEngineAtIssuerDock();
+		var (engine, unitId, contractId) = CreateEngine();
 		engine.Commit(new AcceptContractAction(unitId, contractId));
 		var sim = engine.CreateSimulation();
 
@@ -43,7 +42,7 @@ public sealed class AcceptContractActionTests
 	[Fact]
 	public void TryEnqueue_FailsForMissingActor()
 	{
-		var (engine, _, contractId) = CreateEngineAtIssuerDock();
+		var (engine, _, contractId) = CreateEngine();
 		var sim = engine.CreateSimulation();
 
 		Assert.False(sim.TryEnqueue(new AcceptContractAction("missing-actor", contractId)));
@@ -51,15 +50,17 @@ public sealed class AcceptContractActionTests
 	}
 
 	[Fact]
-	public void TryEnqueue_FailsWhenNotDockedAtIssuer()
+	public void TryEnqueue_FailsForRejectedContract()
 	{
-		var (engine, unitId, contractId) = CreateEngineAtIssuerDock();
-		var map = engine.World;
-		var plan = map.Blueprint.SupplyPlan;
-		map.UnitRegistry.UnitOf(unitId).State.DockedAtDockId =
-			map.DocksByPoiId[plan.StoragePoiId].Id;
-
+		var (engine, unitId, contractId) = CreateEngine();
+		engine.World.ContractRegistry.Activate(new ContractState(
+			contractId,
+			EContractStatus.Rejected,
+			null,
+			null,
+			ContractState.EmptyBindings));
 		var sim = engine.CreateSimulation();
+
 		Assert.False(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
 		Assert.Empty(sim.Actions);
 	}
@@ -67,7 +68,7 @@ public sealed class AcceptContractActionTests
 	[Fact]
 	public void Commit_CreatesActiveContractStateAndRecordsTimeline()
 	{
-		var (engine, unitId, contractId) = CreateEngineAtIssuerDock();
+		var (engine, unitId, contractId) = CreateEngine();
 		var tick = engine.Tick;
 		var initialUnitCount = engine.World.UnitRegistry.All.Count();
 
@@ -85,15 +86,12 @@ public sealed class AcceptContractActionTests
 			action => action.ContractId == contractId && action.ActorId == unitId);
 	}
 
-	private static (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngineAtIssuerDock(
+	private static (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngine(
 		int seed = 42)
 	{
 		var map = StarMap.CreateDevDefault(seed);
 		var unit = map.UnitRegistry.All.First();
 		var unitId = unit.State.Id;
-		var issuerDockId = map.DocksByPoiId[map.Blueprint.SupplyPlan.AdministrativePoiId].Id;
-		unit.State.Phase = EPhase.Docked;
-		unit.State.DockedAtDockId = issuerDockId;
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.Register(unitId, unit.Runtime);

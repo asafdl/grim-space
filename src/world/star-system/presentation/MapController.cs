@@ -28,7 +28,6 @@ public partial class MapController : Node3D
 	private UserIntentTranslator _intentTranslator = null!;
 	private MapPoiFacade _poiFacade = null!;
 	private float _tickAccumulator;
-	private bool _paused;
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
 
@@ -62,6 +61,7 @@ public partial class MapController : Node3D
 			_camera,
 			() => _orchestrator.Map,
 			() => GetViewport().GetVisibleRect().Size);
+		_poiFacade.FacilityEntered += OnFacilityEntered;
 		_poiFacade.BuildUi(_uiLayer);
 
 		var world = RunSession.Instance.Run.Map;
@@ -81,13 +81,20 @@ public partial class MapController : Node3D
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
+
+		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
+		{
+			var poi = world.PointsOfInterest.First(p => p.Id == returnPoiId);
+			_poiFacade.ReEnterFacade(poi, world);
+			MapNavigationContext.ClearReturnToFacade();
+		}
 	}
 
 	public override void _Process(double delta)
 	{
 		_view.SetCameraDistance(_camera.Distance);
 
-		if (!_paused)
+		if (_orchestrator.IsRunning)
 			AdvanceSimulation(delta);
 
 		var world = _orchestrator.Map;
@@ -152,11 +159,11 @@ public partial class MapController : Node3D
 				GetViewport().SetInputAsHandled();
 				break;
 			case Key.Space:
-				_paused = !_paused;
+				_orchestrator.TogglePause();
 				GetViewport().SetInputAsHandled();
 				break;
-			case Key.Period when _paused:
-				_orchestrator.AdvanceTick();
+			case Key.Period when _orchestrator.IsStepped:
+				_orchestrator.Step();
 				_tickAccumulator = 0f;
 				GetViewport().SetInputAsHandled();
 				break;
@@ -179,6 +186,16 @@ public partial class MapController : Node3D
 			_tickAccumulator -= SecondsPerTick;
 			_orchestrator.AdvanceTick();
 		}
+	}
+
+	private void OnFacilityEntered(FacilityEntry entry)
+	{
+		var scenePath = FacilityScenes.ResolveScene(entry.Facility);
+		if (scenePath is null)
+			return;
+
+		MapNavigationContext.EnterFacility(entry.PoiId, entry.Facility.Id);
+		GetTree().ChangeSceneToFile(scenePath);
 	}
 
 	private void BuildTooltip()
@@ -245,12 +262,12 @@ public partial class MapController : Node3D
 		_tickLabel.AddThemeColorOverride("font_color", new Color(0.79f, 0.83f, 0.87f));
 
 		_pauseButton = new Button { Text = "Pause" };
-		_pauseButton.Pressed += () => _paused = !_paused;
+		_pauseButton.Pressed += () => _orchestrator.TogglePause();
 
 		_stepButton = new Button { Text = "Step" };
 		_stepButton.Pressed += () =>
 		{
-			_orchestrator.AdvanceTick();
+			_orchestrator.Step();
 			_tickAccumulator = 0f;
 		};
 
@@ -306,8 +323,8 @@ public partial class MapController : Node3D
 	private void UpdateDebugUi()
 	{
 		_tickLabel.Text = $"Tick {_orchestrator.Tick}";
-		_pauseButton.Text = _paused ? "Resume" : "Pause";
-		_stepButton.Disabled = !_paused;
+		_pauseButton.Text = _orchestrator.IsStepped ? "Resume" : "Pause";
+		_stepButton.Disabled = !_orchestrator.IsStepped;
 		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
 	}
 

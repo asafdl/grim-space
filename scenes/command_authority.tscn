@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://b73kifbw8b8xo"]
+
+[ext_resource type="Script" uid="uid://diuxn31sfdpo8" path="res://src/world/star-system/presentation/CommandAuthorityController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://xtp1ghj8g7ie" path="res://src/world/star-system/presentation/CommandAuthoritySceneView.cs" id="2_scene"]
+[ext_resource type="Script" uid="uid://dlf0obuukxpt6" path="res://src/world/star-system/presentation/ContractGiverView.cs" id="3_giver"]
+[ext_resource type="Texture2D" uid="uid://2tjfieuwi0sd" path="res://assets/ui/map/facilities/command-authority-scene.jpeg" id="4_backdrop"]
+[ext_resource type="Texture2D" uid="uid://dcost1v7yak4k" path="res://assets/ui/map/services/management-robot.png" id="5_manager"]
+
+[node name="CommandAuthority" type="Control" unique_id=1433652594]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="Scene" type="Control" parent="." unique_id=216618043]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_scene")
+
+[node name="Background" type="TextureRect" parent="Scene" unique_id=534518373]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_backdrop")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Manager" type="TextureButton" parent="Scene" unique_id=1587884116]
+layout_mode = 0
+offset_left = 1054.0
+offset_top = 222.0
+offset_right = 1678.0
+offset_bottom = 931.0
+tooltip_text = "Browse contracts"
+texture_normal = ExtResource("5_manager")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("3_giver")
+
+[node name="Back" type="Button" parent="." unique_id=1559382956]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 80.0
+offset_bottom = 47.0
+text = "Back"

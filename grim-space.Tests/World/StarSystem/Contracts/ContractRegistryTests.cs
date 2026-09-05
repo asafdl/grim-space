@@ -7,6 +7,30 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class ContractRegistryTests
 {
 	[Fact]
+	public void AvailableForPoi_ReturnsOnlyOfferedContractsForIssuer()
+	{
+		var map = StarMap.CreateDevDefault(42);
+		var issuerPoiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
+		var contract = map.ContractRegistry.AvailableForPoi(issuerPoiId).Single();
+
+		Assert.Equal(issuerPoiId, contract.IssuerPoiId);
+		Assert.Empty(map.ContractRegistry.AvailableForPoi(map.Blueprint.SupplyPlan.RefineryPoiId));
+	}
+
+	[Fact]
+	public void Reject_ExcludesContractFromOffered()
+	{
+		var map = StarMap.CreateDevDefault(42);
+		var contractId = map.ContractRegistry.Offered.First().Id;
+
+		map.ContractRegistry.Activate(CreateRejectedState(contractId));
+
+		Assert.False(map.ContractRegistry.IsOffered(contractId));
+		Assert.True(map.ContractRegistry.IsRejected(contractId));
+		Assert.DoesNotContain(contractId, map.ContractRegistry.Offered.Select(contract => contract.Id));
+	}
+
+	[Fact]
 	public void IsOffered_DistinguishesOfferedFromActive()
 	{
 		var map = StarMap.CreateDevDefault(42);
@@ -48,6 +72,9 @@ public sealed class ContractRegistryTests
 		Assert.True(map.ContractRegistry.TryGetState("contract-2", out _));
 		Assert.False(fork.ContractRegistry.TryGetState("contract-2", out _));
 	}
+
+	private static ContractState CreateRejectedState(string contractId) =>
+		new(contractId, EContractStatus.Rejected, null, null, ContractState.EmptyBindings);
 
 	private static ContractState CreateActiveState(
 		StarMap map,

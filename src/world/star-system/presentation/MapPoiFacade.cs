@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Math.Camera;
 using GrimSpace.Presentation.Ui;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Poi;
@@ -7,7 +8,7 @@ using GrimSpace.World.StarSystem.Units;
 namespace GrimSpace.World.StarSystem.Presentation;
 
 /// <summary>
-/// POI facade camera transitions and dock access icon. Presentation-only.
+/// POI facade camera transitions and facility access. Presentation-only.
 /// </summary>
 public sealed class MapPoiFacade
 {
@@ -16,6 +17,7 @@ public sealed class MapPoiFacade
 		Strategic,
 		Entering,
 		Facade,
+		EnteringFacility,
 		Exiting,
 	}
 
@@ -23,6 +25,9 @@ public sealed class MapPoiFacade
 	private const float ExitDistance = 17f;
 	private const float PivotProximity = 2.5f;
 	private const float TweenDuration = 0.45f;
+	private const float FacilityZoomDistance = 2.8f;
+	private const float FacilityZoomDuration = 0.4f;
+	private const float FacilityFadeDuration = 0.35f;
 	private const string AccessIconPath = "res://assets/ui/map/dock-facilities.svg";
 	private const string ManagementIconPath = "res://assets/ui/map/management-facility.svg";
 	private const int IconPx = 40;
@@ -33,10 +38,13 @@ public sealed class MapPoiFacade
 	private readonly Func<Vector2> _viewportSize;
 
 	private CanvasLayer? _uiLayer;
+	private ColorRect? _fadeOverlay;
 	private Button _accessButton = null!;
 	private PointOfInterest? _activePoi;
 	private readonly List<Button> _facilityButtons = [];
 	private FacadeState _state = FacadeState.Strategic;
+
+	public event Action<FacilityEntry>? FacilityEntered;
 
 	public MapPoiFacade(
 		MapView view,
@@ -51,6 +59,16 @@ public sealed class MapPoiFacade
 	}
 
 	public bool IsStrategic => _state == FacadeState.Strategic;
+
+	public void ReEnterFacade(PointOfInterest poi, StarMap world)
+	{
+		_state = FacadeState.Facade;
+		_accessButton.Visible = false;
+		_camera.SetFacadeActive(true);
+		_activePoi = poi;
+		_camera.SnapToPose(_view.ResolveFacadePose(poi, world.Width, world.Height));
+		CreateFacilityButtons(poi);
+	}
 
 	public void BuildUi(CanvasLayer layer)
 	{
@@ -74,6 +92,9 @@ public sealed class MapPoiFacade
 
 	public void Update()
 	{
+		if (_state == FacadeState.EnteringFacility)
+			return;
+
 		var world = _map();
 		var dockedPoiId = ResolveDockedPoiId(world);
 		var dockedPoi = dockedPoiId is not null
@@ -116,7 +137,11 @@ public sealed class MapPoiFacade
 	/// </summary>
 	public bool FilterInput(InputEvent @event)
 	{
-		if (_state is not (FacadeState.Facade or FacadeState.Entering or FacadeState.Exiting))
+		if (_state is not (
+			FacadeState.Facade
+			or FacadeState.Entering
+			or FacadeState.EnteringFacility
+			or FacadeState.Exiting))
 			return false;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -176,7 +201,7 @@ public sealed class MapPoiFacade
 
 	private void BeginExit()
 	{
-		if (_state is FacadeState.Strategic or FacadeState.Exiting)
+		if (_state is FacadeState.Strategic or FacadeState.Exiting or FacadeState.EnteringFacility)
 			return;
 
 		_state = FacadeState.Exiting;
@@ -184,6 +209,66 @@ public sealed class MapPoiFacade
 		ClearFacilityButtons();
 		_activePoi = null;
 		_camera.RestoreCapturedPose(TweenDuration, () => _state = FacadeState.Strategic, ExitDistance);
+	}
+
+	private void BeginEnterFacility(PointOfInterest poi, Facility facility)
+	{
+		if (_state != FacadeState.Facade)
+			return;
+
+		_state = FacadeState.EnteringFacility;
+		SetFacilityButtonsVisible(false);
+
+		var world = _map();
+		var anchor = _view.ResolveFacilityAnchorWorldPosition(
+			poi,
+			facility.PresentationAnchor,
+			world.Width,
+			world.Height);
+		var current = _camera.CurrentPose;
+		var target = new OrbitPose
+		{
+			Pivot = anchor,
+			Yaw = current.Yaw,
+			Pitch = current.Pitch,
+			Distance = FacilityZoomDistance,
+		};
+		_camera.TweenToPose(target, FacilityZoomDuration, () => FadeToBlack(() =>
+			FacilityEntered?.Invoke(new FacilityEntry(poi.Id, facility))));
+	}
+
+	private void FadeToBlack(Action onComplete)
+	{
+		if (_uiLayer is null)
+		{
+			onComplete();
+			return;
+		}
+
+		EnsureFadeOverlay();
+		_uiLayer!.MoveChild(_fadeOverlay!, -1);
+		_fadeOverlay!.Visible = true;
+		_fadeOverlay.Color = new Color(0f, 0f, 0f, 0f);
+		_fadeOverlay.MouseFilter = Control.MouseFilterEnum.Stop;
+
+		var tween = _uiLayer.CreateTween();
+		tween.TweenProperty(_fadeOverlay, "color", Colors.Black, FacilityFadeDuration);
+		tween.TweenCallback(Callable.From(onComplete));
+	}
+
+	private void EnsureFadeOverlay()
+	{
+		if (_fadeOverlay is not null || _uiLayer is null)
+			return;
+
+		_fadeOverlay = new ColorRect
+		{
+			Visible = false,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Color = Colors.Transparent,
+		};
+		_fadeOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		_uiLayer.AddChild(_fadeOverlay);
 	}
 
 	private void CreateFacilityButtons(PointOfInterest poi)
@@ -207,6 +292,7 @@ public sealed class MapPoiFacade
 			button.AddThemeStyleboxOverride("normal", IconButtonStyle(0f));
 			button.AddThemeStyleboxOverride("hover", IconButtonStyle(0.15f));
 			button.AddThemeStyleboxOverride("pressed", IconButtonStyle(0.25f));
+			button.Pressed += () => BeginEnterFacility(poi, facility);
 			_uiLayer.AddChild(button);
 			_facilityButtons.Add(button);
 		}
@@ -232,6 +318,12 @@ public sealed class MapPoiFacade
 			position.Y = Mathf.Clamp(position.Y, 8f, viewport.Y - buttonSize.Y - 8f);
 			button.Position = position;
 		}
+	}
+
+	private void SetFacilityButtonsVisible(bool visible)
+	{
+		foreach (var button in _facilityButtons)
+			button.Visible = visible;
 	}
 
 	private void ClearFacilityButtons()
