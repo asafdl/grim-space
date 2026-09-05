@@ -18,7 +18,6 @@ public sealed partial class ModalHudShell : CanvasLayer
 	private HudHeaderMode _headerMode = HudHeaderMode.Close;
 	private Action? _headerAction;
 	private Action? _backHandler;
-	private float _contentWidth;
 	private IReadOnlyList<HudAction> _footerActions = [];
 
 	public event Action? Closed;
@@ -72,8 +71,6 @@ public sealed partial class ModalHudShell : CanvasLayer
 
 		content.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 		_bodyHost.AddChild(content);
-		ApplyBodyWidth(content);
-		Callable.From(SyncBodyWidth).CallDeferred();
 	}
 
 	public void SetFooter(IReadOnlyList<HudAction> actions)
@@ -282,49 +279,6 @@ public sealed partial class ModalHudShell : CanvasLayer
 
 	private void OnViewportSizeChanged() => LayoutPanel();
 
-	private void SyncBodyWidth()
-	{
-		if (_contentWidth < 100f)
-		{
-			Callable.From(SyncBodyWidth).CallDeferred();
-			return;
-		}
-
-		_bodyHost.CustomMinimumSize = new Vector2(_contentWidth, 0f);
-		_bodyHost.Size = new Vector2(_contentWidth, _bodyHost.Size.Y);
-
-		foreach (var child in _bodyHost.GetChildren())
-		{
-			if (child is Control control)
-				ApplyBodyWidth(control);
-		}
-	}
-
-	private void ApplyBodyWidth(Control control)
-	{
-		control.CustomMinimumSize = new Vector2(_contentWidth, control.CustomMinimumSize.Y);
-		control.Size = new Vector2(_contentWidth, control.Size.Y);
-		PropagateBodyWidth(control);
-	}
-
-	private void PropagateBodyWidth(Node node)
-	{
-		foreach (var child in node.GetChildren())
-		{
-			if (child is not Control control)
-				continue;
-
-			if (control is Label or VBoxContainer or PanelContainer or MarginContainer or HBoxContainer)
-			{
-				control.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-				if (control is Label label)
-					label.CustomMinimumSize = new Vector2(_contentWidth, 0f);
-			}
-
-			PropagateBodyWidth(control);
-		}
-	}
-
 	private void LayoutPanel()
 	{
 		var viewport = GetViewport();
@@ -339,9 +293,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 			viewport.GetVisibleRect().Size.Y * 0.55f,
 			viewport.GetVisibleRect().Size.Y * 0.85f);
 
-		_contentWidth = width - margin * 2;
 		_panel.CustomMinimumSize = new Vector2(width, height);
-		_panel.Size = new Vector2(width, height);
 
 		_outer.AddThemeConstantOverride("margin_left", margin);
 		_outer.AddThemeConstantOverride("margin_right", margin);
@@ -354,6 +306,5 @@ public sealed partial class ModalHudShell : CanvasLayer
 		HudStyles.ApplyFont(_headerButton, HudFontRole.HeaderControl, viewport);
 		HudStyles.RefreshFonts(_bodyHost, viewport);
 		RebuildFooter();
-		SyncBodyWidth();
 	}
 }
