@@ -65,20 +65,12 @@ public static class StarSystemBuilder
 				docksByPoiId[link.ToPoiId].Id))
 			.ToArray();
 
-		var exclusions = pois
-			.Select(poi => new CircularExclusion(
-				poi.PlacedCenter,
-				poi.RouteExclusionRadius,
-				poi.Id))
-			.ToArray();
-
-		var routesById = RouteBuilder.Build(
-			blueprint.Seed,
+		var routesById = RouteCorridors.Build(
 			blueprint.Width,
 			blueprint.Height,
 			docksById.Values,
 			routePairs,
-			exclusions,
+			pois,
 			StarMap.DevRouteHalfWidth);
 
 		var poiById = pois.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
