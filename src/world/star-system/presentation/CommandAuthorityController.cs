@@ -4,6 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
+using GrimSpace.Presentation.Ui.Hud;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -30,6 +31,7 @@ public partial class CommandAuthorityController : Control
 		_contractHud = new ContractHudOverlay();
 		_contractHud.AcceptRequested += OnAcceptRequested;
 		_contractHud.DeclineRequested += OnDeclineRequested;
+		_contractHud.Closed += UpdateBackButton;
 		AddChild(_contractHud);
 	}
 
@@ -45,12 +47,7 @@ public partial class CommandAuthorityController : Control
 			return;
 
 		if (_contractHud.IsOpen)
-		{
-			_contractHud.Close();
-			UpdateBackButton();
-			GetViewport().SetInputAsHandled();
 			return;
-		}
 
 		ReturnToMap();
 		GetViewport().SetInputAsHandled();
@@ -66,7 +63,12 @@ public partial class CommandAuthorityController : Control
 	{
 		var poiId = MapNavigationContext.ActivePoiId
 			?? throw new InvalidOperationException("Command Authority requires an active POI.");
-		_contractHud.Open(_orchestrator.Map, poiId);
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Command Authority requires an active facility.");
+		var poi = _orchestrator.Map.PointsOfInterest.First(p => p.Id == poiId);
+		var facility = poi.Facilities.First(f => f.Id == facilityId);
+
+		_contractHud.Open(_orchestrator.Map, poiId, facility.DisplayName);
 		UpdateBackButton();
 	}
 
@@ -75,7 +77,8 @@ public partial class CommandAuthorityController : Control
 		if (!TryAcceptContract(contractId))
 			return;
 
-		_contractHud.ShowConfirmation("Contract accepted.");
+		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
+		UpdateBackButton();
 	}
 
 	private void OnDeclineRequested(string contractId)
@@ -83,7 +86,8 @@ public partial class CommandAuthorityController : Control
 		if (!TryDeclineContract(contractId))
 			return;
 
-		_contractHud.ShowConfirmation("Contract declined.");
+		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
+		UpdateBackButton();
 	}
 
 	private void ReturnToMap() =>

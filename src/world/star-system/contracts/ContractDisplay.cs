@@ -1,9 +1,9 @@
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Encounter;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
-// TODO: fix this shit
 public static class ContractDisplay
 {
 	public static string Title(Contract contract) => contract.Narrative.Title;
@@ -30,6 +30,14 @@ public static class ContractDisplay
 			_ => "—",
 		};
 
+	public static string ObjectivePreview(Contract contract) =>
+		contract.Objective switch
+		{
+			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
+				$"Hunt {hunt.SpawnGroups[0].RequiredCount}× {FactionCatalog.DisplayName(hunt.SpawnGroups[0].Spawn.Faction)}",
+			_ => "—",
+		};
+
 	public static string SearchArea(Contract contract) =>
 		contract.Objective switch
 		{
@@ -47,4 +55,16 @@ public static class ContractDisplay
 				hunt.SpawnGroups[0].Spawn.Danger.ToString(),
 			_ => "—",
 		};
+
+	public static bool TryGetDangerLevel(Contract contract, out EDangerLevel danger)
+	{
+		if (contract.Objective is HuntObjective hunt && hunt.SpawnGroups.Count > 0)
+		{
+			danger = hunt.SpawnGroups[0].Spawn.Danger;
+			return true;
+		}
+
+		danger = default;
+		return false;
+	}
 }
