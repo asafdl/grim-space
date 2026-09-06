@@ -22,13 +22,13 @@ public partial class MapController : Node3D
 	private Button _pauseButton = null!;
 	private Button _stepButton = null!;
 	private Button _speedButton = null!;
+	private Button _rebuildButton = null!;
 	private CanvasLayer _uiLayer = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
 	private MapPoiFacade _poiFacade = null!;
 	private float _tickAccumulator;
-	private bool _paused;
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
 
@@ -40,13 +40,18 @@ public partial class MapController : Node3D
 		_course = GetNode<CourseView>("CourseView");
 		_camera = GetNode<MapCamera>("Camera3D");
 
-		if (GetNodeOrNull<DirectionalLight3D>("DirectionalLight3D") is { } light)
-		{
-			light.LightColor = new Color(0.70f, 0.78f, 0.92f);
-			light.LightEnergy = 0.22f;
-		}
+		_uiLayer = GetNode<CanvasLayer>("UI");
+		_tooltip = GetNode<PanelContainer>("UI/Tooltip");
+		_typeLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/TypeLabel");
+		_nameLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/NameLabel");
+		_tickLabel = GetNode<Label>("UI/DebugPanel/MarginContainer/HBoxContainer/TickLabel");
+		_pauseButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/PauseButton");
+		_stepButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/StepButton");
+		_speedButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/SpeedButton");
+		_rebuildButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/RebuildButton");
+		_systemLabel = GetNode<Label>("UI/SystemLabel");
 
-		_orchestrator = RunSession.Instance.Run.Traffic;
+		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
@@ -54,17 +59,26 @@ public partial class MapController : Node3D
 			() => _orchestrator.Map.Width,
 			() => _orchestrator.Map.Height,
 			picked => _view.ResolveMoveDestination(picked));
-		BuildTooltip();
-		BuildDebugUi();
+		_pauseButton.Pressed += () => _orchestrator.TogglePause();
+		_stepButton.Pressed += () =>
+		{
+			_orchestrator.Step();
+			_tickAccumulator = 0f;
+		};
+		_speedButton.Pressed += () => CycleSpeed(1);
+		_rebuildButton.Pressed += RebuildScene;
 
 		_poiFacade = new MapPoiFacade(
 			_view,
 			_camera,
 			() => _orchestrator.Map,
-			() => GetViewport().GetVisibleRect().Size);
-		_poiFacade.BuildUi(_uiLayer);
+			() => GetViewport().GetVisibleRect().Size,
+			_uiLayer,
+			GetNode<Button>("UI/AccessButton"),
+			GetNode<ColorRect>("UI/FadeOverlay"));
+		_poiFacade.FacilityEntered += OnFacilityEntered;
 
-		var world = RunSession.Instance.Run.Map;
+		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var halfZ = world.Height * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var mapRadius = Mathf.Max(halfX, halfZ);
@@ -81,18 +95,25 @@ public partial class MapController : Node3D
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
+
+		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
+		{
+			var poi = world.PointsOfInterest.First(p => p.Id == returnPoiId);
+			_poiFacade.ReEnterFacade(poi, world);
+			MapNavigationContext.ClearReturnToFacade();
+		}
 	}
 
 	public override void _Process(double delta)
 	{
 		_view.SetCameraDistance(_camera.Distance);
 
-		if (!_paused)
+		if (_orchestrator.IsRunning)
 			AdvanceSimulation(delta);
 
 		var world = _orchestrator.Map;
 		var tickFraction = _tickAccumulator / SecondsPerTick;
-		_units.Sync(world, tickFraction);
+		_units.Sync(_orchestrator, tickFraction);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
@@ -107,7 +128,7 @@ public partial class MapController : Node3D
 
 		var screen = GetViewport().GetMousePosition();
 		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
-		var unitHover = point is { } unitPoint ? _units.UnitAt(world, unitPoint, tickFraction) : null;
+		var unitHover = point is { } unitPoint ? _units.UnitAt(_orchestrator, unitPoint, tickFraction) : null;
 		var dockHover = unitHover is null && point is { } dockPoint ? _view.DockAt(dockPoint) : null;
 		var poiId = dockHover is null && unitHover is null && point is { } pick ? _view.PoiAt(pick) : null;
 		_view.SetHovered(poiId);
@@ -152,11 +173,11 @@ public partial class MapController : Node3D
 				GetViewport().SetInputAsHandled();
 				break;
 			case Key.Space:
-				_paused = !_paused;
+				_orchestrator.TogglePause();
 				GetViewport().SetInputAsHandled();
 				break;
-			case Key.Period when _paused:
-				_orchestrator.AdvanceTick();
+			case Key.Period when _orchestrator.IsStepped:
+				_orchestrator.Step();
 				_tickAccumulator = 0f;
 				GetViewport().SetInputAsHandled();
 				break;
@@ -181,133 +202,21 @@ public partial class MapController : Node3D
 		}
 	}
 
-	private void BuildTooltip()
+	private void OnFacilityEntered(FacilityEntry entry)
 	{
-		_typeLabel = new Label();
-		_typeLabel.AddThemeFontSizeOverride("font_size", 11);
-		_typeLabel.AddThemeColorOverride("font_color", new Color(0.44f, 0.51f, 0.58f)); // #718295
+		var scenePath = FacilityScenes.ResolveScene(entry.Facility);
+		if (scenePath is null)
+			return;
 
-		_nameLabel = new Label();
-		_nameLabel.AddThemeFontSizeOverride("font_size", 15);
-		_nameLabel.AddThemeColorOverride("font_color", new Color(0.79f, 0.83f, 0.87f)); // #C9D4DF
-
-		var column = new VBoxContainer();
-		column.AddThemeConstantOverride("separation", 2);
-		column.AddChild(_typeLabel);
-		column.AddChild(_nameLabel);
-
-		var margin = new MarginContainer();
-		margin.AddThemeConstantOverride("margin_left", 10);
-		margin.AddThemeConstantOverride("margin_right", 10);
-		margin.AddThemeConstantOverride("margin_top", 6);
-		margin.AddThemeConstantOverride("margin_bottom", 6);
-		margin.AddChild(column);
-
-		_tooltip = new PanelContainer
-		{
-			Visible = false,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		_tooltip.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-		{
-			BgColor = new Color(0.02f, 0.04f, 0.07f, 0.82f),
-			ContentMarginLeft = 0,
-			ContentMarginRight = 0,
-			ContentMarginTop = 0,
-			ContentMarginBottom = 0,
-			CornerRadiusTopLeft = 2,
-			CornerRadiusTopRight = 2,
-			CornerRadiusBottomLeft = 2,
-			CornerRadiusBottomRight = 2,
-		});
-		_tooltip.AddChild(margin);
-
-		var hint = new Label
-		{
-			Position = new Vector2(16, 16),
-			Text = "F10 star map (dev) — WASD pan, LMB orbit, wheel zoom, RMB move fleet, Space pause, Rebuild rerolls seed, Esc menu",
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		hint.AddThemeFontSizeOverride("font_size", 13);
-		hint.AddThemeColorOverride("font_color", new Color(0.44f, 0.51f, 0.58f));
-
-		var layer = new CanvasLayer();
-		layer.AddChild(hint);
-		layer.AddChild(_tooltip);
-		AddChild(layer);
-		_uiLayer = layer;
-	}
-
-	private void BuildDebugUi()
-	{
-		_tickLabel = new Label();
-		_tickLabel.AddThemeFontSizeOverride("font_size", 13);
-		_tickLabel.AddThemeColorOverride("font_color", new Color(0.79f, 0.83f, 0.87f));
-
-		_pauseButton = new Button { Text = "Pause" };
-		_pauseButton.Pressed += () => _paused = !_paused;
-
-		_stepButton = new Button { Text = "Step" };
-		_stepButton.Pressed += () =>
-		{
-			_orchestrator.AdvanceTick();
-			_tickAccumulator = 0f;
-		};
-
-		_speedButton = new Button();
-		_speedButton.Pressed += () => CycleSpeed(1);
-
-		var rebuildButton = new Button { Text = "Rebuild" };
-		rebuildButton.Pressed += RebuildScene;
-
-		var row = new HBoxContainer();
-		row.AddThemeConstantOverride("separation", 8);
-		row.AddChild(_tickLabel);
-		row.AddChild(_pauseButton);
-		row.AddChild(_stepButton);
-		row.AddChild(_speedButton);
-		row.AddChild(rebuildButton);
-
-		var panel = new PanelContainer
-		{
-			Position = new Vector2(16, 44),
-			MouseFilter = Control.MouseFilterEnum.Stop,
-		};
-		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-		{
-			BgColor = new Color(0.02f, 0.04f, 0.07f, 0.82f),
-			ContentMarginLeft = 10,
-			ContentMarginRight = 10,
-			ContentMarginTop = 8,
-			ContentMarginBottom = 8,
-			CornerRadiusTopLeft = 2,
-			CornerRadiusTopRight = 2,
-			CornerRadiusBottomLeft = 2,
-			CornerRadiusBottomRight = 2,
-		});
-		panel.AddChild(row);
-		_uiLayer.AddChild(panel);
-
-		_systemLabel = new Label
-		{
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		_systemLabel.AddThemeFontSizeOverride("font_size", 13);
-		_systemLabel.AddThemeColorOverride("font_color", new Color(0.44f, 0.51f, 0.58f));
-		_systemLabel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
-		_systemLabel.OffsetLeft = -220;
-		_systemLabel.OffsetTop = 16;
-		_systemLabel.OffsetRight = -16;
-		_systemLabel.OffsetBottom = 36;
-		_systemLabel.HorizontalAlignment = HorizontalAlignment.Right;
-		_uiLayer.AddChild(_systemLabel);
+		MapNavigationContext.EnterFacility(entry.PoiId, entry.Facility.Id);
+		GetTree().ChangeSceneToFile(scenePath);
 	}
 
 	private void UpdateDebugUi()
 	{
 		_tickLabel.Text = $"Tick {_orchestrator.Tick}";
-		_pauseButton.Text = _paused ? "Resume" : "Pause";
-		_stepButton.Disabled = !_paused;
+		_pauseButton.Text = _orchestrator.IsStepped ? "Resume" : "Pause";
+		_stepButton.Disabled = !_orchestrator.IsStepped;
 		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
 	}
 

@@ -17,7 +17,7 @@ public sealed class ExecutionAgentTests
 		var map = StarMap.CreateDevDefault(42);
 		var unit = map.UnitRegistry.All.First();
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		Action<string?>? activate = null;
@@ -43,7 +43,7 @@ public sealed class ExecutionAgentTests
 		var map = StarMap.CreateDevDefault(42);
 		var unit = map.UnitRegistry.All.First();
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		Action<string?>? activate = null;
@@ -60,7 +60,7 @@ public sealed class ExecutionAgentTests
 		var map = StarMap.CreateDevDefault(42);
 		var unit = map.UnitRegistry.All.First();
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		Action<string?>? activate = null;

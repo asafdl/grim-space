@@ -79,12 +79,12 @@ public sealed class WorkSchedulingTests
 	[Fact]
 	public void SpawnedWorkingUnit_SchedulesCompletionOnOrchestratorInit()
 	{
-		var buildResult = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
-		var workingUnit = buildResult.Map.UnitRegistry.All
+		var map = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
+		var workingUnit = map.UnitRegistry.All
 			.First(unit => unit.State.Phase == EPhase.Working);
 		var remaining = workingUnit.State.SpawnWorkRemainingTicks;
 
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(buildResult.Map);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(map);
 
 		Assert.Equal(EPhase.Working, workingUnit.State.Phase);
 		orchestrator.AdvanceTicks(remaining);

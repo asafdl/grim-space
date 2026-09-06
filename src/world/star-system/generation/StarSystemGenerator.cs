@@ -4,7 +4,7 @@ namespace GrimSpace.World.StarSystem;
 
 public static class StarSystemGenerator
 {
-	public static StarSystemBuildResult Generate(int seed, EStarSystemClass systemClass) =>
+	public static StarMap Generate(int seed, EStarSystemClass systemClass) =>
 		systemClass switch
 		{
 			EStarSystemClass.Supply => StarSystemBuilder.Build(

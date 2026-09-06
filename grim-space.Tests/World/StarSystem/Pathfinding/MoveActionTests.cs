@@ -22,7 +22,7 @@ public sealed class MoveActionTests
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		var runtime = actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 
@@ -31,7 +31,7 @@ public sealed class MoveActionTests
 		Assert.Equal(origin, unit.State.Journey.Origin);
 		Assert.Equal(destination, unit.State.Journey.Destination);
 		Assert.Equal(map.Timeline.Clock.Current, unit.State.Journey.StartTick);
-		Assert.Same(path, unit.Runtime.CachedPath);
+		Assert.Same(path, runtime.CachedPath);
 		Assert.Contains(
 			engine.History().OfType<MoveAction>(),
 			action => action.UnitId == unit.State.Id && action.Path == path);
@@ -48,7 +48,7 @@ public sealed class MoveActionTests
 		var speed = unit.State.SpeedPerTick;
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 
@@ -74,7 +74,7 @@ public sealed class MoveActionTests
 		var duration = path.DurationTicks(unit.State.SpeedPerTick);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 
@@ -101,7 +101,7 @@ public sealed class MoveActionTests
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 
@@ -125,19 +125,19 @@ public sealed class MoveActionTests
 		var secondPath = TransitPath.FromPoints([origin, secondDestination], [1.0, 1.0]);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		var runtime = actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, firstDestination, firstPath));
 		var firstJourneyId = unit.State.Journey.JourneyId;
-		var firstCompletionTick = unit.Runtime.PendingCompletionTick;
+		var firstCompletionTick = runtime.PendingCompletionTick;
 
 		engine.AdvanceTick();
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, secondDestination, secondPath));
 
 		Assert.NotEqual(firstJourneyId, unit.State.Journey.JourneyId);
 		Assert.Equal(secondDestination, unit.State.Journey.Destination);
-		Assert.NotEqual(firstCompletionTick, unit.Runtime.PendingCompletionTick);
-		Assert.NotEqual(firstJourneyId, ((CompleteMoveAction)unit.Runtime.PendingCompletion!).JourneyId);
+		Assert.NotEqual(firstCompletionTick, runtime.PendingCompletionTick);
+		Assert.NotEqual(firstJourneyId, ((CompleteMoveAction)runtime.PendingCompletion!).JourneyId);
 	}
 
 	[Fact]
@@ -150,7 +150,7 @@ public sealed class MoveActionTests
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.Register(unit.State.Id, unit.Runtime);
+		actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 		var staleJourneyId = unit.State.Journey.JourneyId;

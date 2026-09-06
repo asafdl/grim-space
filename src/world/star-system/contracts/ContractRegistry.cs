@@ -10,10 +10,16 @@ public sealed class ContractRegistry
 	public IEnumerable<Contract> Offered =>
 		_contracts.Values.Where(contract => !_states.ContainsKey(contract.Id));
 
+	public IEnumerable<Contract> AvailableForPoi(string poiId) =>
+		Offered.Where(contract => contract.IssuerPoiId == poiId);
+
 	public bool Contains(string contractId) => _contracts.ContainsKey(contractId);
 
 	public bool IsOffered(string contractId) =>
 		_contracts.ContainsKey(contractId) && !_states.ContainsKey(contractId);
+
+	public bool IsRejected(string contractId) =>
+		_states.TryGetValue(contractId, out var state) && state.Status == EContractStatus.Rejected;
 
 	public bool TryGet(string contractId, out Contract contract) =>
 		_contracts.TryGetValue(contractId, out contract!);
@@ -54,7 +60,9 @@ public sealed class ContractRegistry
 	{
 		ArgumentNullException.ThrowIfNull(state);
 		ArgumentException.ThrowIfNullOrEmpty(state.ContractId);
-		ArgumentException.ThrowIfNullOrEmpty(state.HolderUnitId);
+
+		if (state.Status == EContractStatus.Active)
+			ArgumentException.ThrowIfNullOrEmpty(state.HolderUnitId);
 
 		if (!_contracts.ContainsKey(state.ContractId))
 			throw new InvalidOperationException($"Contract '{state.ContractId}' does not exist.");

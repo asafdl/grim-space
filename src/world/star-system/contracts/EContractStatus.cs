@@ -5,4 +5,5 @@ public enum EContractStatus
 	Active,
 	Completed,
 	Failed,
+	Rejected,
 }

@@ -21,6 +21,20 @@ public sealed class PathfindingTerrain
 
 	public PathfindingCell CellAt(Coord coord) => this[coord.X, coord.Z];
 
+	public static PathfindingTerrain FromCells(int width, int height, PathfindingCell[] cells)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);
+		ArgumentOutOfRangeException.ThrowIfLessThan(height, 1);
+		if (cells.Length != width * height)
+		{
+			throw new ArgumentException(
+				$"Cell buffer length {cells.Length} does not match map size {width}x{height}.",
+				nameof(cells));
+		}
+
+		return new PathfindingTerrain(width, height, cells);
+	}
+
 	public static PathfindingTerrain Create(
 		int width,
 		int height,

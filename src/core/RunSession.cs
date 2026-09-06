@@ -2,7 +2,8 @@ using Godot;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Core.Log;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Generation;
+
+using GrimSpace.World.StarSystem;
 
 namespace GrimSpace.Core;
 
@@ -48,7 +49,7 @@ public partial class RunSession : Node
 	}
 
 	private bool IsRunReady() =>
-		Run is not null && Run.Map is not null;
+		Run is not null && Run.StarSystem is not null;
 
 	private static void ConfigureLogging()
 	{
@@ -93,6 +94,6 @@ public partial class RunSession : Node
 		}
 
 		var nextSeed = seed ?? Random.Shared.Next();
-		(Run.Map, Run.Traffic) = StarSystemRunAssembly.Assemble(State.PlayerFleetUnitId, nextSeed);
+		Run.StarSystem = StarSystemOrchestrator.CreateDevSession(State.PlayerFleetUnitId, nextSeed);
 	}
 }

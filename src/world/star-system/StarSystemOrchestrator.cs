@@ -13,6 +13,9 @@ public sealed class StarSystemOrchestrator
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly IReadOnlyList<TrafficExecutionAgent> _trafficAgents;
+	private ESimMode _simMode = ESimMode.Running;
+	private ESimMode _modeBeforeInteractive;
+	private bool _resolvingInteractiveAction;
 	private event Action<string?>? ActiveUnitChanged;
 
 	private StarSystemOrchestrator(
@@ -35,44 +38,58 @@ public sealed class StarSystemOrchestrator
 
 	public StarMapPlayerExecutionAgent? PlayerAgent => _playerAgent;
 
-	public static StarSystemOrchestrator FromBuildResult(StarSystemBuildResult result) =>
-		FromBuildResult(result, new CachedPathfinder(new AStarPathfinder(result.Terrain)), playerId: null);
+	public ESimMode SimMode => _simMode;
 
-	public static StarSystemOrchestrator FromBuildResult(
-		StarSystemBuildResult result,
-		string playerId) =>
-		FromBuildResult(
-			result,
-			new CachedPathfinder(new AStarPathfinder(result.Terrain)),
-			playerId);
+	public bool IsRunning => _simMode == ESimMode.Running;
 
-	public static StarSystemOrchestrator FromBuildResult(
-		StarSystemBuildResult result,
+	public bool IsStepped => _simMode == ESimMode.Stepped;
+
+	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
+
+	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
+
+	public static StarSystemOrchestrator CreateDevSession(string playerFleetUnitId, int seed = 0)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
+		var map = StarMap.CreateDevDefault(seed);
+		AddPlayerFleet(map, playerFleetUnitId);
+		return FromMap(map, playerFleetUnitId);
+	}
+
+	public static StarSystemOrchestrator FromMap(StarMap map) =>
+		FromMap(map, new CachedPathfinder(new AStarPathfinder(map.PathfindingTerrain)), playerId: null);
+
+	public static StarSystemOrchestrator FromMap(StarMap map, string playerId) =>
+		FromMap(map, new CachedPathfinder(new AStarPathfinder(map.PathfindingTerrain)), playerId);
+
+	public static StarSystemOrchestrator FromMap(
+		StarMap map,
 		IPathfinder pathfinder,
 		string? playerId = null)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		if (result.Map.Timeline.Clock.Current == 0)
-			result.Map.Timeline.Clock.Set(1);
+		if (map.Timeline.Clock.Current == 0)
+			map.Timeline.Clock.Set(1);
 
-		foreach (var unit in result.Map.UnitRegistry.All)
+		foreach (var unit in map.UnitRegistry.All)
 		{
-			actorRuntimes.Register(unit.State.Id, unit.Runtime);
-			TransitCache.RebuildIfMissing(unit, pathfinder);
-			ScheduleSpawnedWorkerIfNeeded(result.Map, unit);
+			var runtime = actorRuntimes.For(unit.State.Id);
+			TransitCache.RebuildIfMissing(unit, runtime, pathfinder);
+			ScheduleSpawnedWorkerIfNeeded(map, unit);
 		}
 
-		var engine = new Engine<StarMap, ActorRuntime>(result.Map, actorRuntimes);
+		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		StarMapPlayerExecutionAgent? playerAgent = null;
 		if (playerId is not null)
 		{
 			playerAgent = new StarMapPlayerExecutionAgent(
 				engine.CreateSimulation,
 				() => engine.World,
+				unitId => engine.ActorRuntimes.For(unitId),
 				pathfinder);
 		}
 
-		var trafficUnits = result.Map.UnitRegistry.All
+		var trafficUnits = map.UnitRegistry.All
 			.Where(unit => unit.State.ChoreDockIds.Count > 0)
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 			.ToArray();
@@ -100,18 +117,70 @@ public sealed class StarSystemOrchestrator
 				orchestrator.RegisterActiveUnitChanged);
 		}
 
+		orchestrator.ApplySimMode(ESimMode.Running);
 		return orchestrator;
+	}
+
+	private static void AddPlayerFleet(StarMap map, string playerFleetUnitId)
+	{
+		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
+		map.UnitRegistry.Add(Factory.Create(new Spawn(
+			playerFleetUnitId,
+			EType.PlayerFleet,
+			tradeHubDock.Id,
+			default,
+			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+			[])));
+	}
+
+	public void SetRunning() => ApplySimMode(ESimMode.Running);
+
+	public void SetStepped() => ApplySimMode(ESimMode.Stepped);
+
+	public void EnterInteractive()
+	{
+		if (_simMode == ESimMode.Interactive)
+			return;
+
+		_modeBeforeInteractive = _simMode;
+		ApplySimMode(ESimMode.Interactive);
+	}
+
+	public void ExitInteractive()
+	{
+		if (_simMode != ESimMode.Interactive)
+			return;
+
+		ApplySimMode(_modeBeforeInteractive);
+	}
+
+	public void TogglePause()
+	{
+		if (_simMode == ESimMode.Running)
+			SetStepped();
+		else if (_simMode == ESimMode.Stepped)
+			SetRunning();
+	}
+
+	public void Step()
+	{
+		if (_simMode != ESimMode.Stepped)
+			return;
+
+		AdvanceTick();
+	}
+
+	public IReadOnlyList<ITimelineEntry> AdvanceClock()
+	{
+		CommitPlayerActions();
+		var history = _engine.AdvanceTick();
+		ResetPlayerAgentPlanning();
+		return history;
 	}
 
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()
 	{
-		if (_playerAgent is not null)
-		{
-			_playerAgent.Commit();
-			var playerActions = _playerAgent.TakeCompletedActions();
-			if (playerActions.Count > 0)
-				_engine.Commit([..playerActions]);
-		}
+		CommitPlayerActions();
 
 		foreach (var agent in _trafficAgents)
 		{
@@ -134,6 +203,72 @@ public sealed class StarSystemOrchestrator
 		ArgumentOutOfRangeException.ThrowIfNegative(count);
 		for (var i = 0; i < count; i++)
 			AdvanceTick();
+	}
+
+	private void ApplySimMode(ESimMode mode)
+	{
+		if (_simMode == mode)
+			return;
+
+		UnwireInteractivePlanning();
+		_simMode = mode;
+		WireInteractivePlanning();
+	}
+
+	private void WireInteractivePlanning()
+	{
+		if (_playerAgent is null || _simMode != ESimMode.Interactive)
+			return;
+
+		_playerAgent.PlanningChanged += OnInteractivePlanningChanged;
+	}
+
+	private void UnwireInteractivePlanning()
+	{
+		if (_playerAgent is null)
+			return;
+
+		_playerAgent.PlanningChanged -= OnInteractivePlanningChanged;
+	}
+
+	private void OnInteractivePlanningChanged()
+	{
+		if (_simMode != ESimMode.Interactive
+			|| _playerAgent?.HasPendingAction != true
+			|| _resolvingInteractiveAction)
+			return;
+
+		_resolvingInteractiveAction = true;
+		try
+		{
+			AdvanceClock();
+		}
+		finally
+		{
+			_resolvingInteractiveAction = false;
+		}
+	}
+
+	private void CommitPlayerActions()
+	{
+		if (_playerAgent is null)
+			return;
+
+		if (!_playerAgent.Commit())
+			return;
+
+		var playerActions = _playerAgent.TakeCompletedActions();
+		if (playerActions.Count > 0)
+			_engine.Commit([..playerActions]);
+	}
+
+	private void ResetPlayerAgentPlanning()
+	{
+		if (_playerAgent is null || PlayerId is null)
+			return;
+
+		SetActive(null);
+		SetActive(PlayerId);
 	}
 
 	private void RegisterActiveUnitChanged(Action<string?> handler) =>

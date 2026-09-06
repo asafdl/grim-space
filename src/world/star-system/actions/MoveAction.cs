@@ -44,7 +44,7 @@ public sealed class MoveDef
 		var move = (MoveAction)action;
 		var unit = world.UnitRegistry.UnitOf(move.UnitId);
 		var state = unit.State;
-		var origin = ResolveOrigin(world, unit);
+		var origin = ResolveOrigin(world, unit, runtime);
 		var journeyId = runtime.NextJourneyId();
 		var startTick = world.Timeline.Clock.Current;
 		var durationTicks = move.Path.DurationTicks(state.SpeedPerTick);
@@ -64,12 +64,12 @@ public sealed class MoveDef
 		];
 	}
 
-	private static Coord ResolveOrigin(StarMap world, Unit unit)
+	private static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime)
 	{
 		var state = unit.State;
 		if (state.Phase == EPhase.InTransit)
 		{
-			var path = unit.Runtime.CachedPath
+			var path = runtime.CachedPath
 				?? throw new InvalidOperationException(
 					$"Unit '{state.Id}' is in transit without a cached path.");
 			var elapsed = world.Timeline.Clock.Current - state.Journey.StartTick;

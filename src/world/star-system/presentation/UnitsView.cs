@@ -60,8 +60,9 @@ public partial class UnitsView : Node3D
 		}
 	}
 
-	public void Sync(StarMap world, float tickFraction)
+	public void Sync(StarSystemOrchestrator orchestrator, float tickFraction)
 	{
+		var world = orchestrator.Map;
 		var registryIds = world.UnitRegistry.Ids.ToHashSet(StringComparer.Ordinal);
 
 		foreach (var unitId in _units.Keys.Where(id => !registryIds.Contains(id)).ToList())
@@ -86,7 +87,7 @@ public partial class UnitsView : Node3D
 			if (!_units.TryGetValue(unit.State.Id, out var unitVisual))
 				continue;
 
-			var sample = ResolveSample(world, unit, tickFraction);
+			var sample = ResolveSample(world, unit, orchestrator.RuntimeFor(unit.State.Id), tickFraction);
 			var worldPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height)
 				+ Vector3.Up * MarkerYOffset;
 			unitVisual.Marker.Position = worldPosition;
@@ -102,14 +103,15 @@ public partial class UnitsView : Node3D
 		}
 	}
 
-	public UnitHoverInfo? UnitAt(StarMap world, Coord point, float tickFraction)
+	public UnitHoverInfo? UnitAt(StarSystemOrchestrator orchestrator, Coord point, float tickFraction)
 	{
+		var world = orchestrator.Map;
 		UnitHoverInfo? best = null;
 		var bestDistance = double.MaxValue;
 
 		foreach (var unit in world.UnitRegistry.All)
 		{
-			var sample = ResolveSample(world, unit, tickFraction);
+			var sample = ResolveSample(world, unit, orchestrator.RuntimeFor(unit.State.Id), tickFraction);
 			var dx = point.X - sample.X;
 			var dz = point.Z - sample.Z;
 			var distance = dx * dx + dz * dz;
@@ -390,11 +392,15 @@ public partial class UnitsView : Node3D
 		return mesh;
 	}
 
-	private static TrafficSample ResolveSample(StarMap world, Units.Unit unit, float tickFraction)
+	private static TrafficSample ResolveSample(
+		StarMap world,
+		Units.Unit unit,
+		Runtime.ActorRuntime runtime,
+		float tickFraction)
 	{
 		var (position, tangent) = unit.State.CommittedPosition(
 			world,
-			unit.Runtime.CachedPath,
+			runtime.CachedPath,
 			tickFraction);
 		var heading = tangent is { } t
 			? Mathf.Atan2(t.X * 0.001f, t.Z * 0.001f)
