@@ -52,7 +52,7 @@ public static class RouteCorridors
 			var dockA = docksById[pair.DockAId];
 			var dockB = docksById[pair.DockBId];
 			var terrain = PathfindingTerrain.FromCells(width, height, cells);
-			var pathfinder = new AStarPathfinder(terrain);
+			var pathfinder = new GridPathfinder(terrain);
 			var result = pathfinder.FindPath(dockA.Position, dockB.Position);
 			if (result is not PathfindingResult.Found found)
 			{

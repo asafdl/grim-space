@@ -134,34 +134,27 @@ public static class AreaPicker
 			var perpendicularX = -tangentZ;
 			var perpendicularZ = tangentX;
 
-			var lateralDistance = SampleLateralDistance(span, radius, distance, distanceConfig);
-			if (lateralDistance is null)
+			var lateralRange = LateralSampleRange(span, radius, distance, distanceConfig);
+			if (lateralRange.Min > lateralRange.Max)
 				continue;
 
-			var side = Random.Shared.Next(2) == 0 ? 1.0 : -1.0;
-			var center = new Coord(
-				(int)System.Math.Round(sampleX + perpendicularX * lateralDistance.Value * side),
-				0,
-				(int)System.Math.Round(sampleZ + perpendicularZ * lateralDistance.Value * side));
+			foreach (var side in new[] { -1.0, 1.0 })
+			{
+				foreach (var lateralT in new[] { 0.0, 0.5, 1.0 })
+				{
+					var lateralDistance = lateralRange.Min + lateralT * (lateralRange.Max - lateralRange.Min);
+					var center = new Coord(
+						(int)System.Math.Round(sampleX + perpendicularX * lateralDistance * side),
+						0,
+						(int)System.Math.Round(sampleZ + perpendicularZ * lateralDistance * side));
 
-			if (!IsValidCandidate(map, center, radius, axis, span, distance, distanceConfig))
-				continue;
+					if (!IsValidCandidate(map, center, radius, axis, span, distance, distanceConfig))
+						continue;
 
-			candidates.Add(new Candidate(center, radius, landmarkAId, landmarkBId, distance));
+					candidates.Add(new Candidate(center, radius, landmarkAId, landmarkBId, distance));
+				}
+			}
 		}
-	}
-
-	private static double? SampleLateralDistance(
-		double span,
-		int radius,
-		EAreaDistance distance,
-		AreaDistanceConfig config)
-	{
-		var (min, max) = LateralSampleRange(span, radius, distance, config);
-		if (min > max)
-			return null;
-
-		return min + Random.Shared.NextDouble() * (max - min);
 	}
 
 	private static (double Min, double Max) LateralSampleRange(

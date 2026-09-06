@@ -57,10 +57,10 @@ public sealed class StarSystemOrchestrator
 	}
 
 	public static StarSystemOrchestrator FromMap(StarMap map) =>
-		FromMap(map, new CachedPathfinder(new AStarPathfinder(map.PathfindingTerrain)), playerId: null);
+		FromMap(map, new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)), playerId: null);
 
 	public static StarSystemOrchestrator FromMap(StarMap map, string playerId) =>
-		FromMap(map, new CachedPathfinder(new AStarPathfinder(map.PathfindingTerrain)), playerId);
+		FromMap(map, new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)), playerId);
 
 	public static StarSystemOrchestrator FromMap(
 		StarMap map,

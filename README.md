@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/icon.png" alt="react-conditional-ui logo" width="380" />
+</div>
+
 # grim-space
 
 Early-stage 3D roguelike space game with tactical turn-based combat. The current focus is a combat prototype on a discrete 3D grid; run and progression layers are thin placeholders.

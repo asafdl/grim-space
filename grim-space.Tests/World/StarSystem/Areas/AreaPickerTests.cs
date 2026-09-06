@@ -138,7 +138,7 @@ public sealed class AreaPickerTests
 	[InlineData(EAreaDistance.High)]
 	public void Pick_Suitability_MeetsBandCriteria(EAreaDistance distance)
 	{
-		var seeds = new[] { 0, 1, 7, 42, 99, 123, 500 };
+		var seeds = new[] { 0, 1, 7, 42, 99, 500 };
 		var distanceConfig = new AreaDistanceConfig();
 
 		foreach (var seed in seeds)

@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using Godot;
 
 namespace GrimSpace.Math.Grid;
 
@@ -47,10 +45,6 @@ public readonly record struct Coord(int X, int Y, int Z)
 
 	public static Coord FromIndex(int index, int width) =>
 		new(index % width, 0, index / width);
-
-	public Vector2I ToVector2I() => new(X, Z);
-
-	public static Coord FromVector2I(Vector2I cell) => new(cell.X, 0, cell.Y);
 
 	public int ManhattanDistanceTo(Coord other) =>
 		System.Math.Abs(X - other.X) + System.Math.Abs(Y - other.Y) + System.Math.Abs(Z - other.Z);

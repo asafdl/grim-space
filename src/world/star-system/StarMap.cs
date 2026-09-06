@@ -109,7 +109,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			new[] { plan.RefineryPoiId, plan.ExitPoiId },
 		};
 		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
-		var searchArea = AreaPicker.Pick(map, landmarkGroups, distances, 2);
+		var searchArea = TryPickDevSearchArea(map, landmarkGroups, distances)
+			?? throw new InvalidOperationException(
+				$"Could not seed a dev contract search area for map seed {map.Seed}.");
 		var contractId = TypedIdGenerator.NextId("contract");
 		var groupId = TypedIdGenerator.NextId("spawn-group");
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
@@ -130,5 +132,27 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			new ContractTerms(DevContractRewardCredits),
 			narrative);
 		map.ContractRegistry.RegisterOffered(contract);
+	}
+
+	private static AreaPick? TryPickDevSearchArea(
+		StarMap map,
+		IReadOnlyList<IReadOnlyList<string>> landmarkGroups,
+		IReadOnlyList<EAreaDistance> distances)
+	{
+		foreach (var group in landmarkGroups)
+		{
+			foreach (var distance in distances)
+			{
+				try
+				{
+					return AreaPicker.Pick(map, [group], [distance], 2);
+				}
+				catch (InvalidOperationException)
+				{
+				}
+			}
+		}
+
+		return null;
 	}
 }
