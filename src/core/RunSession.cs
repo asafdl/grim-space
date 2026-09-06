@@ -82,6 +82,7 @@ public partial class RunSession : Node
 
 	public void StartNewRun()
 	{
+		Run?.StarSystem?.Dispose();
 		Run = State.CreateDevDefault(Random.Shared.Next());
 		CurrentEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
 	}
@@ -95,6 +96,7 @@ public partial class RunSession : Node
 		}
 
 		var nextSeed = seed ?? Random.Shared.Next();
+		Run.StarSystem.Dispose();
 		Run.StarSystem = StarSystemOrchestrator.CreateDevSession(State.PlayerFleetUnitId, nextSeed);
 	}
 }

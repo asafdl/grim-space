@@ -21,7 +21,7 @@ using UnitState = GrimSpace.Battle.Units.State;
 
 namespace GrimSpace.Battle;
 
-public sealed class BattleOrchestrator
+public sealed class BattleOrchestrator : IDisposable
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
 	private readonly Manager _objectives;
@@ -322,4 +322,6 @@ public sealed class BattleOrchestrator
 			throw new InvalidOperationException("Turn resolve failed after commit.", ex);
 		}
 	}
+
+	public void Dispose() => _engine.Dispose();
 }

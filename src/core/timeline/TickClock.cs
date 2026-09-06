@@ -2,11 +2,29 @@ namespace GrimSpace.Core.Engine;
 
 public sealed class TickClock
 {
-	public int Current { get; private set; }
+	private readonly object _sync;
+	private int _current;
 
-	public void Set(int tick) => Current = tick;
+	internal TickClock(object sync) => _sync = sync;
 
-	public void Next() => Current++;
+	public int Current
+	{
+		get
+		{
+			lock (_sync)
+				return _current;
+		}
+	}
 
-	public TickClock Clone() => new() { Current = Current };
+	public void Set(int tick)
+	{
+		lock (_sync)
+			_current = tick;
+	}
+
+	public void Next()
+	{
+		lock (_sync)
+			_current++;
+	}
 }

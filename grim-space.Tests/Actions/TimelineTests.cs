@@ -43,6 +43,28 @@ public sealed class TimelineTests
 	}
 
 	[Fact]
+	public void TrimHistory_RemovesTicksOlderThanRetentionWindow()
+	{
+		var timeline = new Timeline();
+		timeline.Clock.Set(1);
+		timeline.Append(new HeadingTurnAction("a", EHeadingTurn.YawRight));
+
+		timeline.Clock.Next();
+		timeline.Append(new HeadingTurnAction("b", EHeadingTurn.YawLeft));
+
+		timeline.Clock.Next();
+		var third = new HeadingTurnAction("c", EHeadingTurn.YawRight);
+		timeline.Append(third);
+
+		timeline.Clock.Set(1002);
+		timeline.TrimHistory(retainTicks: 1000);
+
+		Assert.Empty(timeline.History(1));
+		Assert.Empty(timeline.History(2));
+		Assert.Same(third, Assert.Single(timeline.History(3)));
+	}
+
+	[Fact]
 	public void DrainUntilRemovesAndReturnsHistoryBatchesInTickOrder()
 	{
 		var timeline = new Timeline();

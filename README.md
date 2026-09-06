@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/icon.png" alt="react-conditional-ui logo" width="380" />
+  <img src="assets/icon.png" alt="react-conditional-ui logo" width="120" />
 </div>
 
 # grim-space

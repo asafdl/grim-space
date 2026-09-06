@@ -8,7 +8,7 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
 
-public sealed class StarSystemOrchestrator
+public sealed class StarSystemOrchestrator : IDisposable
 {
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
@@ -275,6 +275,8 @@ public sealed class StarSystemOrchestrator
 		ActiveUnitChanged += handler;
 
 	private void SetActive(string? unitId) => ActiveUnitChanged?.Invoke(unitId);
+
+	public void Dispose() => _engine.Dispose();
 
 	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Unit unit)
 	{

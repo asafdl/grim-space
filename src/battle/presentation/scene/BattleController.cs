@@ -422,4 +422,10 @@ public partial class BattleController : Node3D
 			ETeam.Enemy => new Color(0.9f, 0.25f, 0.2f),
 			_ => Colors.White,
 		};
+
+	public override void _ExitTree()
+	{
+		_battle?.Dispose();
+		base._ExitTree();
+	}
 }
