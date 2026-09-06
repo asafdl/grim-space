@@ -1,0 +1,103 @@
+[gd_scene load_steps=7 format=3 uid="uid://c728hpulwkemi"]
+
+[ext_resource type="Script" path="res://src/presentation/intro/IntroController.cs" id="1_intro"]
+[ext_resource type="Script" path="res://src/presentation/intro/IntroSceneView.cs" id="2_scene"]
+[ext_resource type="Resource" path="res://assets/story/intro.tres" id="3_story"]
+[ext_resource type="Theme" path="res://assets/ui/themes/hud_theme.tres" id="4_theme"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/humanity-controls-galaxy.png" id="5_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_text_bar"]
+bg_color = Color(0.1, 0.1, 0.12, 0.92)
+content_margin_left = 56
+content_margin_top = 24
+content_margin_right = 24
+content_margin_bottom = 24
+
+[node name="Intro" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("4_theme")
+script = ExtResource("1_intro")
+Story = ExtResource("3_story")
+
+[node name="Scene" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_scene")
+
+[node name="FallbackBackground" type="ColorRect" parent="Scene"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.08, 0.12, 1)
+
+[node name="Background" type="TextureRect" parent="Scene"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("5_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ArtCredit" type="Label" parent="Scene"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 16.0
+offset_bottom = 40.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"MetadataLabel"
+text = "* Temporary AI Art *"
+horizontal_alignment = 1
+
+[node name="Next" type="Button" parent="Scene"]
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -172.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = 68.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"PrimaryButton"
+custom_minimum_size = Vector2(140, 44)
+text = "Next"
+
+[node name="TextPanel" type="PanelContainer" parent="Scene"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_text_bar")
+
+[node name="Body" type="Label" parent="Scene/TextPanel"]
+layout_mode = 2
+theme_type_variation = &"BodyLabel"
+autowrap_mode = 3
+
+[connection signal="pressed" from="Scene/Next" to="." method="OnNextPressed"]

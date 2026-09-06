@@ -1,0 +1,89 @@
+using Godot;
+using GrimSpace.Presentation.Ui.Hud;
+
+namespace GrimSpace.Presentation.Intro;
+
+public partial class IntroSceneView : Control
+{
+	private TextureRect _background = null!;
+	private PanelContainer _textPanel = null!;
+	private Label _body = null!;
+	private Label _artCredit = null!;
+	private Button _next = null!;
+	private StyleBoxFlat? _textPanelStyle;
+
+	public override void _Ready()
+	{
+		_background = GetNode<TextureRect>("Background");
+		_textPanel = GetNode<PanelContainer>("TextPanel");
+		_body = GetNode<Label>("TextPanel/Body");
+		_artCredit = GetNode<Label>("ArtCredit");
+		_next = GetNode<Button>("Next");
+
+		GetViewport().SizeChanged += ApplyLayout;
+		Callable.From(ApplyLayout).CallDeferred();
+	}
+
+	public override void _ExitTree() =>
+		GetViewport().SizeChanged -= ApplyLayout;
+
+	public void SetBackground(Texture2D? texture) =>
+		_background.Texture = texture;
+
+	public void SetBodyText(string text) =>
+		_body.Text = text;
+
+	public void SetNextVisible(bool visible) =>
+		_next.Visible = visible;
+
+	public void SetNextText(string text) =>
+		_next.Text = text;
+
+	public void FocusNextButton() =>
+		_next.GrabFocus();
+
+	private void ApplyLayout()
+	{
+		var viewport = GetViewport();
+		var margin = HudStyles.Margin(viewport);
+		var scale = HudStyles.ScaleFactor(viewport);
+
+		HudStyles.ApplyTextRole(_body, HudTextRole.Body, viewport);
+		HudStyles.ApplyTextRole(_artCredit, HudTextRole.Metadata, viewport);
+		HudStyles.StyleButton(_next, HudActionKind.Primary, viewport);
+
+		_artCredit.OffsetTop = margin / 2;
+
+		_textPanel.OffsetLeft = margin;
+		_textPanel.OffsetRight = -margin;
+		_textPanel.OffsetBottom = -margin;
+
+		_textPanelStyle ??= DuplicateTextPanelStyle();
+		if (_textPanelStyle is not null)
+		{
+			_textPanelStyle.ContentMarginLeft = Mathf.RoundToInt(margin * 3.5f);
+			_textPanelStyle.ContentMarginTop = margin;
+			_textPanelStyle.ContentMarginRight = margin;
+			_textPanelStyle.ContentMarginBottom = margin;
+		}
+
+		var buttonWidth = Mathf.RoundToInt(140f * scale);
+		var buttonHeight = Mathf.RoundToInt(44f * scale);
+		_next.CustomMinimumSize = new Vector2(buttonWidth, buttonHeight);
+		_next.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+		_next.OffsetLeft = -(buttonWidth + margin);
+		_next.OffsetTop = margin;
+		_next.OffsetRight = -margin;
+		_next.OffsetBottom = margin + buttonHeight;
+	}
+
+	private StyleBoxFlat? DuplicateTextPanelStyle()
+	{
+		if (_textPanel.GetThemeStylebox("panel") is not StyleBoxFlat style)
+			return null;
+
+		var duplicate = (StyleBoxFlat)style.Duplicate();
+		_textPanel.AddThemeStyleboxOverride("panel", duplicate);
+		return duplicate;
+	}
+}

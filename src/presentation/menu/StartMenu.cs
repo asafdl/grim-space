@@ -1,12 +1,11 @@
 using Godot;
 using GrimSpace.Core;
+using GrimSpace.Presentation.Ui.Hud;
 
 namespace GrimSpace.Presentation.Menu;
 
 public partial class StartMenu : Control
 {
-	private const string SettingsPath = "user://settings.cfg";
-
 	private static readonly Vector2I[] Resolutions =
 	[
 		new(2560, 1440),
@@ -19,6 +18,8 @@ public partial class StartMenu : Control
 	private Control _settingsPanel = null!;
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
+	private CheckBox _showIntro = null!;
+	private Label _showIntroLabel = null!;
 
 	public override void _Ready()
 	{
@@ -26,8 +27,11 @@ public partial class StartMenu : Control
 		_settingsPanel = GetNode<Control>("%SettingsPanel");
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
+		_showIntro = GetNode<CheckBox>("%ShowIntro");
+		_showIntroLabel = GetNode<Label>("%ShowIntroLabel");
 
 		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
+		_showIntro.Toggled += OnShowIntroToggled;
 
 		GetNode<Button>("%StartBattle").Pressed += OnStartBattle;
 		GetNode<Button>("%Settings").Pressed += ShowSettingsPanel;
@@ -35,7 +39,20 @@ public partial class StartMenu : Control
 		GetNode<Button>("%Apply").Pressed += OnApply;
 		GetNode<Button>("%Quit").Pressed += () => GetTree().Quit();
 
+		_showIntro.ButtonPressed = GameSettings.ShowIntro;
+
+		GetViewport().SizeChanged += ApplyLayout;
+		Callable.From(ApplyLayout).CallDeferred();
 		CallDeferred(MethodName.InitializeVideoSettings);
+	}
+
+	public override void _ExitTree() =>
+		GetViewport().SizeChanged -= ApplyLayout;
+
+	private void ApplyLayout()
+	{
+		var viewport = GetViewport();
+		HudStyles.ApplyTextRole(_showIntroLabel, HudTextRole.Body, viewport);
 	}
 
 	private void InitializeVideoSettings()
@@ -52,16 +69,9 @@ public partial class StartMenu : Control
 		UpdateResolutionEnabled();
 	}
 
-	private (string Mode, int Width, int Height) ReadVideoConfig()
+	private static (string Mode, int Width, int Height) ReadVideoConfig()
 	{
-		var config = new ConfigFile();
-		var hasSettings = config.Load(SettingsPath) == Error.Ok;
-
-		var mode = hasSettings
-			? config.GetValue("video", "mode", "fullscreen").AsString()
-			: "fullscreen";
-		var width = hasSettings ? config.GetValue("video", "width", 0).AsInt32() : 0;
-		var height = hasSettings ? config.GetValue("video", "height", 0).AsInt32() : 0;
+		var (mode, width, height) = GameSettings.ReadVideoConfig();
 
 		if (width <= 0 || height <= 0 || !TryFindResolution(width, height, out _))
 		{
@@ -119,16 +129,15 @@ public partial class StartMenu : Control
 		window.MoveToCenter();
 	}
 
-	private void SaveSettings()
+	private void SaveVideoSettings()
 	{
-		var config = new ConfigFile();
 		var windowed = _displayMode.Selected == 1;
 		var size = windowed ? SelectedResolution() : Resolutions[0];
 
-		config.SetValue("video", "mode", windowed ? "windowed" : "fullscreen");
-		config.SetValue("video", "width", size.X);
-		config.SetValue("video", "height", size.Y);
-		config.Save(SettingsPath);
+		GameSettings.SaveVideoConfig(
+			windowed ? "windowed" : "fullscreen",
+			size.X,
+			size.Y);
 	}
 
 	private void UpdateResolutionEnabled() =>
@@ -137,8 +146,11 @@ public partial class StartMenu : Control
 	private void OnApply()
 	{
 		ApplyVideoSettings();
-		SaveSettings();
+		SaveVideoSettings();
 	}
+
+	private void OnShowIntroToggled(bool enabled) =>
+		GameSettings.ShowIntro = enabled;
 
 	private void ShowSettingsPanel()
 	{
