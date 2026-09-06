@@ -5,6 +5,8 @@ namespace GrimSpace.Presentation.Intro;
 
 public partial class IntroSceneView : Control
 {
+	private const float TextPanelBottomPadding = 0.14f;
+
 	private TextureRect _background = null!;
 	private PanelContainer _textPanel = null!;
 	private Label _body = null!;
@@ -46,11 +48,13 @@ public partial class IntroSceneView : Control
 	{
 		var margin = HudStyles.Margin;
 
+		var bottomPadding = Mathf.RoundToInt(GetViewportRect().Size.Y * TextPanelBottomPadding);
+
 		_artCredit.OffsetTop = margin / 2;
 
 		_textPanel.OffsetLeft = margin;
 		_textPanel.OffsetRight = -margin;
-		_textPanel.OffsetBottom = -margin;
+		_textPanel.OffsetBottom = -bottomPadding;
 
 		_textPanelStyle ??= DuplicateTextPanelStyle();
 		if (_textPanelStyle is not null)

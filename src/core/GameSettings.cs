@@ -14,12 +14,6 @@ public static class GameSettings
 		new(1280, 720),
 	];
 
-	public static bool ShowIntro
-	{
-		get => GetValue("game", "show_intro", true).AsBool();
-		set => SetValue("game", "show_intro", value);
-	}
-
 	public static (string Mode, int Width, int Height) ReadVideoConfig()
 	{
 		var hasSettings = TryLoad(out var config);
@@ -101,21 +95,6 @@ public static class GameSettings
 
 		index = 0;
 		return false;
-	}
-
-	private static Variant GetValue(string section, string key, Variant defaultValue)
-	{
-		if (!TryLoad(out var config))
-			return defaultValue;
-
-		return config!.GetValue(section, key, defaultValue);
-	}
-
-	private static void SetValue(string section, string key, Variant value)
-	{
-		var config = LoadOrCreate();
-		config.SetValue(section, key, value);
-		config.Save(SettingsPath);
 	}
 
 	private static bool TryLoad(out ConfigFile? config)

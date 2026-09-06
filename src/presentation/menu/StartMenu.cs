@@ -5,30 +5,28 @@ namespace GrimSpace.Presentation.Menu;
 
 public partial class StartMenu : Control
 {
-	private Control _mainPanel = null!;
-	private Control _settingsPanel = null!;
+	private const string IntroScenePath = "res://scenes/intro.tscn";
+
+	private Control _menuColumn = null!;
+	private Control _settingsOverlay = null!;
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
-	private CheckBox _showIntro = null!;
 
 	public override void _Ready()
 	{
-		_mainPanel = GetNode<Control>("%MainPanel");
-		_settingsPanel = GetNode<Control>("%SettingsPanel");
+		_menuColumn = GetNode<Control>("%MenuColumn");
+		_settingsOverlay = GetNode<Control>("%SettingsOverlay");
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
-		_showIntro = GetNode<CheckBox>("%ShowIntro");
 
 		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
-		_showIntro.Toggled += OnShowIntroToggled;
 
-		GetNode<Button>("%StartBattle").Pressed += OnStartBattle;
+		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
+		GetNode<Button>("%Start").Pressed += OnStart;
 		GetNode<Button>("%Settings").Pressed += ShowSettingsPanel;
 		GetNode<Button>("%Back").Pressed += ShowMainPanel;
 		GetNode<Button>("%Apply").Pressed += OnApply;
 		GetNode<Button>("%Quit").Pressed += () => GetTree().Quit();
-
-		_showIntro.ButtonPressed = GameSettings.ShowIntro;
 	}
 
 	private void LoadSettingsToUi()
@@ -79,23 +77,23 @@ public partial class StartMenu : Control
 		SaveVideoSettings();
 	}
 
-	private void OnShowIntroToggled(bool enabled) =>
-		GameSettings.ShowIntro = enabled;
-
 	private void ShowSettingsPanel()
 	{
-		_mainPanel.Visible = false;
-		_settingsPanel.Visible = true;
+		_menuColumn.Visible = false;
+		_settingsOverlay.Visible = true;
 		LoadSettingsToUi();
 	}
 
 	private void ShowMainPanel()
 	{
-		_settingsPanel.Visible = false;
-		_mainPanel.Visible = true;
+		_settingsOverlay.Visible = false;
+		_menuColumn.Visible = true;
 	}
 
-	private void OnStartBattle()
+	private void OnPlayIntro() =>
+		GetTree().ChangeSceneToFile(IntroScenePath);
+
+	private void OnStart()
 	{
 		RunSession.Instance.StartNewRun();
 		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");

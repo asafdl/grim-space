@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Core;
 
 namespace GrimSpace.Presentation.Intro;
 
@@ -25,12 +24,6 @@ public partial class IntroController : Control
 	{
 		_scene = GetNode<IntroSceneView>("Scene");
 
-		if (!GameSettings.ShowIntro)
-		{
-			GetTree().ChangeSceneToFile(MainScenePath);
-			return;
-		}
-
 		if (Story is null || Story.Pages.Length == 0)
 		{
 			GetTree().ChangeSceneToFile(MainScenePath);
@@ -38,6 +31,15 @@ public partial class IntroController : Control
 		}
 
 		BeginPage();
+	}
+
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+			return;
+
+		GetViewport().SetInputAsHandled();
+		GetTree().ChangeSceneToFile(MainScenePath);
 	}
 
 	public override void _Process(double delta)

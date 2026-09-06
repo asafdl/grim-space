@@ -1,8 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://bqx8main001"]
+[gd_scene format=3 uid="uid://bqx8main001"]
 
-[ext_resource type="Script" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
+[ext_resource type="Script" uid="uid://dx01ks6ga2lbp" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
+[ext_resource type="Texture2D" uid="uid://db6wrgc2sxapk" path="res://assets/story/pages/intro-screen.png" id="2_bg"]
 
-[node name="StartMenu" type="Control"]
+[node name="StartMenu" type="Control" unique_id=664489648]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,16 +12,77 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_startmenu")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="ArtFrame" type="AspectRatioContainer" parent="." unique_id=1825310002]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.06, 0.08, 0.12, 1)
+ratio = 1.7778969
+stretch_mode = 3
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Art" type="Control" parent="ArtFrame" unique_id=879073018]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="ArtFrame/Art" unique_id=566397822]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+
+[node name="MenuColumn" type="VBoxContainer" parent="ArtFrame/Art" unique_id=634610305]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.072
+anchor_top = 0.54
+anchor_right = 0.242
+anchor_bottom = 0.77
+offset_left = 27.815079
+offset_top = 35.799988
+offset_right = 27.815063
+offset_bottom = 35.799988
+grow_vertical = 0
+theme_override_constants/separation = 12
+
+[node name="PlayIntro" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=507427680]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "Play Intro"
+
+[node name="Start" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=506187423]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "Start"
+
+[node name="Settings" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=926748488]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "Settings"
+
+[node name="Quit" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=1912949775]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "Quit"
+
+[node name="SettingsOverlay" type="CenterContainer" parent="." unique_id=571289175]
+unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -28,109 +90,49 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-theme_type_variation = &"ShellPanelContainer"
+[node name="Panel" type="PanelContainer" parent="SettingsOverlay" unique_id=711205938]
 custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_type_variation = &"ShellPanelContainer"
 
-[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+[node name="Margin" type="MarginContainer" parent="SettingsOverlay/Panel" unique_id=704878523]
 layout_mode = 2
 theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 28
 theme_override_constants/margin_right = 32
 theme_override_constants/margin_bottom = 28
 
-[node name="MainPanel" type="VBoxContainer" parent="Center/Panel/Margin"]
+[node name="SettingsPanel" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin" unique_id=678690386]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Title" type="Label" parent="Center/Panel/Margin/MainPanel"]
-layout_mode = 2
-theme_type_variation = &"TitleLabel"
-text = "grim-space"
-horizontal_alignment = 1
-
-[node name="StartBattle" type="Button" parent="Center/Panel/Margin/MainPanel"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"PrimaryButton"
-custom_minimum_size = Vector2(0, 44)
-text = "Start Battle"
-
-[node name="Settings" type="Button" parent="Center/Panel/Margin/MainPanel"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"SecondaryButton"
-custom_minimum_size = Vector2(0, 44)
-text = "Settings"
-
-[node name="Quit" type="Button" parent="Center/Panel/Margin/MainPanel"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"SecondaryButton"
-custom_minimum_size = Vector2(0, 44)
-text = "Quit"
-
-[node name="ShowIntroRow" type="PanelContainer" parent="Center/Panel/Margin/MainPanel"]
-layout_mode = 2
-theme_type_variation = &"SectionPanelContainer"
-custom_minimum_size = Vector2(0, 44)
-
-[node name="Margin" type="MarginContainer" parent="Center/Panel/Margin/MainPanel/ShowIntroRow"]
-layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 8
-
-[node name="Row" type="HBoxContainer" parent="Center/Panel/Margin/MainPanel/ShowIntroRow/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 12
-alignment = 1
-
-[node name="ShowIntro" type="CheckBox" parent="Center/Panel/Margin/MainPanel/ShowIntroRow/Margin/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="ShowIntroLabel" type="Label" parent="Center/Panel/Margin/MainPanel/ShowIntroRow/Margin/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"BodyLabel"
-text = "Show intro on launch"
-
-[node name="SettingsPanel" type="VBoxContainer" parent="Center/Panel/Margin"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="Breadcrumb" type="Label" parent="Center/Panel/Margin/SettingsPanel"]
+[node name="Breadcrumb" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=632842195]
 layout_mode = 2
 theme_type_variation = &"SubtitleLabel"
 text = "Settings > Video"
 horizontal_alignment = 1
 
-[node name="VideoSection" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel"]
+[node name="VideoSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=1727980572]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="VideoLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
+[node name="VideoLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection" unique_id=1697330380]
 layout_mode = 2
 theme_type_variation = &"SectionHeadingLabel"
 text = "Video"
 
-[node name="DisplayModeRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
+[node name="DisplayModeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection" unique_id=493878421]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="DisplayModeLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow"]
+[node name="DisplayModeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow" unique_id=1324513783]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "Display mode"
 
-[node name="DisplayMode" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow"]
+[node name="DisplayMode" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow" unique_id=14600198]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -140,17 +142,17 @@ popup/item_0/id = 0
 popup/item_1/text = "Windowed"
 popup/item_1/id = 1
 
-[node name="ResolutionRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/VideoSection"]
+[node name="ResolutionRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection" unique_id=174775208]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ResolutionLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow"]
+[node name="ResolutionLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow" unique_id=271919803]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "Resolution"
 
-[node name="Resolution" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow"]
+[node name="Resolution" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow" unique_id=21458426]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -164,16 +166,16 @@ popup/item_2/id = 2
 popup/item_3/text = "1280x720"
 popup/item_3/id = 3
 
-[node name="Apply" type="Button" parent="Center/Panel/Margin/SettingsPanel"]
+[node name="Apply" type="Button" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=432609691]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
-custom_minimum_size = Vector2(0, 40)
 text = "Apply"
 
-[node name="Back" type="Button" parent="Center/Panel/Margin/SettingsPanel"]
+[node name="Back" type="Button" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=664489649]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
-custom_minimum_size = Vector2(0, 44)
 text = "Back"
