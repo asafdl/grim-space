@@ -3,6 +3,40 @@
 [ext_resource type="Script" uid="uid://dx01ks6ga2lbp" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
 [ext_resource type="Texture2D" uid="uid://db6wrgc2sxapk" path="res://assets/story/pages/intro-screen.png" id="2_bg"]
 
+[sub_resource type="Gradient" id="Gradient_dust_tex"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_dust"]
+gradient = SubResource("Gradient_dust_tex")
+width = 16
+height = 16
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Gradient" id="Gradient_dust_ramp"]
+offsets = PackedFloat32Array(0, 0.12, 0.88, 1)
+colors = PackedColorArray(0.4, 0.38, 0.46, 0, 0.46, 0.43, 0.52, 0.62, 0.44, 0.41, 0.5, 0.62, 0.38, 0.36, 0.44, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_dust_ramp"]
+gradient = SubResource("Gradient_dust_ramp")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dust"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(400, 300, 1)
+direction = Vector3(0, -1, 0)
+spread = 16.0
+flatness = 1.0
+initial_velocity_min = 15.0
+initial_velocity_max = 35.0
+gravity = Vector3(4, 0, 0)
+scale_min = 0.45
+scale_max = 0.65
+color = Color(1, 1, 1, 1)
+color_ramp = SubResource("GradientTexture1D_dust_ramp")
+
 [node name="StartMenu" type="Control" unique_id=664489648]
 layout_mode = 3
 anchors_preset = 15
@@ -37,8 +71,34 @@ mouse_filter = 2
 texture = ExtResource("2_bg")
 expand_mode = 1
 
+[node name="DustRegion" type="Control" parent="ArtFrame/Art" unique_id=1847293101]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.48
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+clip_contents = false
+mouse_filter = 2
+
+[node name="DustParticles" type="GPUParticles2D" parent="ArtFrame/Art/DustRegion" unique_id=1847293102]
+unique_name_in_owner = true
+local_coords = true
+amount = 130
+lifetime = 12.0
+lifetime_randomness = 0.33
+preprocess = 12.0
+visibility_rect = Rect2(-400, -300, 800, 600)
+process_material = SubResource("ParticleProcessMaterial_dust")
+texture = SubResource("GradientTexture2D_dust")
+
 [node name="MenuColumn" type="VBoxContainer" parent="ArtFrame/Art" unique_id=634610305]
 unique_name_in_owner = true
+z_index = 2
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.072
