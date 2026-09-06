@@ -89,9 +89,8 @@ public partial class BattleHud : Node
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "Turn",
 		};
-		_turnLabel.AddThemeFontSizeOverride("font_size", 16);
-		_turnLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.88f));
 		_turnBadge.AddChild(_turnLabel);
 		turnRow.AddChild(_turnBadge);
 
@@ -159,10 +158,14 @@ public partial class BattleHud : Node
 			AnchorLeft = 1f,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
+			OffsetLeft = -300f,
+			OffsetTop = 56f,
+			OffsetBottom = -250f,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Both,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
+		_actionLogHost.AddThemeConstantOverride("margin_right", 12);
 		_actionLogPanel = new ActionLogPanel
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
@@ -171,8 +174,6 @@ public partial class BattleHud : Node
 		_actionLogHost.AddChild(_actionLogPanel);
 		_actionLogLayer.AddChild(_actionLogHost);
 		AddChild(_actionLogLayer);
-
-		Callable.From(ConnectViewportLayout).CallDeferred();
 
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
@@ -234,22 +235,5 @@ public partial class BattleHud : Node
 		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots);
 		InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
-	}
-
-	private void ConnectViewportLayout()
-	{
-		GetViewport().SizeChanged += OnViewportSizeChanged;
-		LayoutActionLog();
-	}
-
-	private void OnViewportSizeChanged() => LayoutActionLog();
-
-	private void LayoutActionLog()
-	{
-		var viewport = GetViewport();
-		_actionLogHost.OffsetLeft = -UiScale.Px(300f, viewport);
-		_actionLogHost.OffsetTop = UiScale.Px(56f, viewport);
-		_actionLogHost.OffsetBottom = -UiScale.Px(250f, viewport);
-		_actionLogHost.AddThemeConstantOverride("margin_right", UiScale.Margin(12, viewport));
 	}
 }

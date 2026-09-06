@@ -121,10 +121,7 @@ public sealed partial class UtilityBar : PanelContainer
 		button.AddThemeStyleboxOverride("hover", hover);
 		button.AddThemeStyleboxOverride("pressed", pressed);
 		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
-		button.AddThemeColorOverride("font_color", new Color(0.88f, 0.94f, 1f));
-		button.AddThemeColorOverride("font_hover_color", Colors.White);
-		button.AddThemeColorOverride("font_pressed_color", Colors.White);
-		button.AddThemeFontSizeOverride("font_size", 12);
+		button.ThemeTypeVariation = "BattleUtility";
 		button.Pressed += () => BackToPlayerRequested?.Invoke();
 		return button;
 	}
@@ -209,9 +206,8 @@ public sealed partial class UtilityBar : PanelContainer
 			VerticalAlignment = VerticalAlignment.Center,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Micro",
 		};
-		label.AddThemeFontSizeOverride("font_size", 10);
-		label.AddThemeColorOverride("font_color", new Color(0.9f, 0.95f, 1f));
 		keycap.AddChild(label);
 		button.AddChild(keycap);
 	}

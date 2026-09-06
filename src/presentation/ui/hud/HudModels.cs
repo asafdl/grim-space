@@ -33,20 +33,6 @@ public enum HudTextRole
 	Danger,
 }
 
-public enum HudFontRole
-{
-	Title,
-	Subtitle,
-	CardTitle,
-	SectionHeading,
-	Body,
-	Metadata,
-	Emphasis,
-	Button,
-	Status,
-	HeaderControl,
-}
-
 public sealed record HudTextLine(string Text, HudTextRole Role = HudTextRole.Body, Color? ColorOverride = null);
 
 public sealed record HudAction(

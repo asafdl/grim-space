@@ -7,9 +7,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 {
 	public event Action? ResetRequested;
 
-	private Control _root = null!;
 	private Label _title = null!;
-	private PanelContainer _panel = null!;
 	private ActionLogPanel _actionLog = null!;
 
 	public BattleOutcomeOverlay()
@@ -27,7 +25,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 	private void Build()
 	{
-		_root = new Control
+		var root = new Control
 		{
 			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
 			AnchorRight = 1f,
@@ -36,7 +34,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 			GrowVertical = Control.GrowDirection.Both,
 			MouseFilter = Control.MouseFilterEnum.Stop,
 		};
-		AddChild(_root);
+		AddChild(root);
 
 		var backdrop = new ColorRect
 		{
@@ -47,7 +45,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 			GrowVertical = Control.GrowDirection.Both,
 			Color = new Color(0f, 0f, 0f, 0.55f),
 		};
-		_root.AddChild(backdrop);
+		root.AddChild(backdrop);
 
 		var center = new CenterContainer
 		{
@@ -57,10 +55,12 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 			GrowHorizontal = Control.GrowDirection.Both,
 			GrowVertical = Control.GrowDirection.Both,
 		};
-		_root.AddChild(center);
+		root.AddChild(center);
 
-		var panel = new PanelContainer();
-		_panel = panel;
+		var panel = new PanelContainer
+		{
+			CustomMinimumSize = new Vector2(520, 460),
+		};
 		center.AddChild(panel);
 
 		var margin = new MarginContainer();
@@ -81,13 +81,14 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		{
 			Text = BattleHudCopy.OutcomeWin,
 			HorizontalAlignment = HorizontalAlignment.Center,
+			ThemeTypeVariation = "OutcomeTitle",
 		};
-		_title.AddThemeFontSizeOverride("font_size", 36);
 		content.AddChild(_title);
 
 		_actionLog = new ActionLogPanel
 		{
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(440, 280),
 		};
 		content.AddChild(_actionLog);
 
@@ -99,27 +100,5 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		};
 		resetButton.Pressed += () => ResetRequested?.Invoke();
 		content.AddChild(resetButton);
-
-		Callable.From(ConnectViewportLayout).CallDeferred();
-	}
-
-	private void ConnectViewportLayout()
-	{
-		GetViewport().SizeChanged += OnViewportSizeChanged;
-		LayoutPanel();
-	}
-
-	private void OnViewportSizeChanged() => LayoutPanel();
-
-	private void LayoutPanel()
-	{
-		var viewport = GetViewport();
-		_panel.CustomMinimumSize = new Vector2(
-			UiScale.Px(520f, viewport),
-			UiScale.Px(460f, viewport));
-		_actionLog.CustomMinimumSize = new Vector2(
-			UiScale.Px(440f, viewport),
-			UiScale.Px(280f, viewport));
-		_title.AddThemeFontSizeOverride("font_size", UiScale.Font(36, viewport));
 	}
 }

@@ -54,11 +54,7 @@ public sealed partial class ActionInstructionBar : CenterContainer
 		button.AddThemeStyleboxOverride("pressed", pressed);
 		button.AddThemeStyleboxOverride("disabled", disabled);
 		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
-		button.AddThemeColorOverride("font_color", new Color(0.92f, 0.96f, 1f));
-		button.AddThemeColorOverride("font_hover_color", Colors.White);
-		button.AddThemeColorOverride("font_pressed_color", Colors.White);
-		button.AddThemeColorOverride("font_disabled_color", new Color(0.65f, 0.7f, 0.75f));
-		button.AddThemeFontSizeOverride("font_size", 13);
+		button.ThemeTypeVariation = "BattleInstruction";
 	}
 
 	private static StyleBoxFlat MakeStyle(Color bg, Color border, int borderWidth, int radius) =>

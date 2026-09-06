@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Battle.Presentation.Ui;
 
 namespace GrimSpace.Presentation.Ui.Hud;
 
@@ -88,18 +87,17 @@ public sealed partial class ModalHudShell : CanvasLayer
 		if (_footerActions.Count == 0)
 			return;
 
-		var viewport = GetViewport();
 		var secondary = _footerActions.Where(action => action.Kind == HudActionKind.Secondary).ToArray();
 		var primary = _footerActions.Where(action => action.Kind != HudActionKind.Secondary).ToArray();
 
 		foreach (var action in secondary)
-			_footer.AddChild(CreateFooterButton(action, viewport));
+			_footer.AddChild(CreateFooterButton(action));
 
 		var spacer = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		_footer.AddChild(spacer);
 
 		foreach (var action in primary)
-			_footer.AddChild(CreateFooterButton(action, viewport));
+			_footer.AddChild(CreateFooterButton(action));
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -127,7 +125,6 @@ public sealed partial class ModalHudShell : CanvasLayer
 			MouseFilter = Control.MouseFilterEnum.Stop,
 		};
 		AddChild(_root);
-		HudStyles.ApplyTheme(_root);
 
 		var backdrop = new ColorRect
 		{
@@ -163,10 +160,10 @@ public sealed partial class ModalHudShell : CanvasLayer
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
 		};
-		_outer.AddThemeConstantOverride("margin_left", HudStyles.Margin());
-		_outer.AddThemeConstantOverride("margin_right", HudStyles.Margin());
-		_outer.AddThemeConstantOverride("margin_top", HudStyles.Margin());
-		_outer.AddThemeConstantOverride("margin_bottom", HudStyles.Margin());
+		_outer.AddThemeConstantOverride("margin_left", HudStyles.Margin);
+		_outer.AddThemeConstantOverride("margin_right", HudStyles.Margin);
+		_outer.AddThemeConstantOverride("margin_top", HudStyles.Margin);
+		_outer.AddThemeConstantOverride("margin_bottom", HudStyles.Margin);
 		_panel.AddChild(_outer);
 
 		var layout = new VBoxContainer
@@ -174,7 +171,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
 		};
-		layout.AddThemeConstantOverride("separation", HudStyles.Margin() / 2);
+		layout.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		_outer.AddChild(layout);
 
 		layout.AddChild(BuildHeader());
@@ -191,7 +188,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		_bodyHost.AddThemeConstantOverride("separation", HudStyles.Margin() / 2);
+		_bodyHost.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		_bodyScroll.AddChild(_bodyHost);
 
 		_footer = new HBoxContainer();
@@ -217,7 +214,6 @@ public sealed partial class ModalHudShell : CanvasLayer
 			FocusMode = Control.FocusModeEnum.All,
 		};
 		HudStyles.StyleButton(_headerButton, HudActionKind.Secondary);
-		HudStyles.ApplyFont(_headerButton, HudFontRole.HeaderControl);
 		_headerButton.Pressed += OnHeaderPressed;
 		row.AddChild(_headerButton);
 
@@ -228,16 +224,16 @@ public sealed partial class ModalHudShell : CanvasLayer
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Title",
 		};
-		HudStyles.ApplyFont(_title, HudFontRole.Title);
 		titles.AddChild(_title);
 
 		_subtitle = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Subtitle",
 		};
-		HudStyles.ApplyFont(_subtitle, HudFontRole.Subtitle);
 		titles.AddChild(_subtitle);
 
 		row.AddChild(titles);
@@ -258,7 +254,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 			_backHandler?.Invoke();
 	}
 
-	private Button CreateFooterButton(HudAction action, Viewport viewport)
+	private Button CreateFooterButton(HudAction action)
 	{
 		var button = new Button
 		{
@@ -266,7 +262,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 			Disabled = !action.Enabled,
 			FocusMode = Control.FocusModeEnum.All,
 		};
-		HudStyles.StyleButton(button, action.Kind, viewport);
+		HudStyles.StyleButton(button, action.Kind);
 		button.Pressed += action.OnPressed;
 		return button;
 	}
@@ -281,30 +277,17 @@ public sealed partial class ModalHudShell : CanvasLayer
 
 	private void LayoutPanel()
 	{
-		var viewport = GetViewport();
-		var scale = HudStyles.ScaleFactor(viewport);
-		var margin = HudStyles.Margin(viewport);
+		var viewportSize = GetViewport().GetVisibleRect().Size;
 		var width = Mathf.Clamp(
-			720f * scale,
-			viewport.GetVisibleRect().Size.X * 0.38f,
-			Mathf.Min(viewport.GetVisibleRect().Size.X * 0.58f, 800f * scale));
+			720f,
+			viewportSize.X * 0.38f,
+			Mathf.Min(viewportSize.X * 0.58f, 800f));
 		var height = Mathf.Clamp(
-			540f * scale,
-			viewport.GetVisibleRect().Size.Y * 0.55f,
-			viewport.GetVisibleRect().Size.Y * 0.85f);
+			540f,
+			viewportSize.Y * 0.55f,
+			viewportSize.Y * 0.85f);
 
 		_panel.CustomMinimumSize = new Vector2(width, height);
-
-		_outer.AddThemeConstantOverride("margin_left", margin);
-		_outer.AddThemeConstantOverride("margin_right", margin);
-		_outer.AddThemeConstantOverride("margin_top", margin);
-		_outer.AddThemeConstantOverride("margin_bottom", margin);
-
-		HudStyles.StyleButton(_headerButton, HudActionKind.Secondary, viewport);
-		HudStyles.ApplyFont(_title, HudFontRole.Title, viewport);
-		HudStyles.ApplyFont(_subtitle, HudFontRole.Subtitle, viewport);
-		HudStyles.ApplyFont(_headerButton, HudFontRole.HeaderControl, viewport);
-		HudStyles.RefreshFonts(_bodyHost, viewport);
 		RebuildFooter();
 	}
 }

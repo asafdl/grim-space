@@ -7,11 +7,6 @@ namespace GrimSpace.Battle.Presentation.Ui;
 /// </summary>
 public sealed partial class ActionLogPanel : PanelContainer
 {
-	private const int HeaderFontDesign = 18;
-	private const int BodyFontDesign = 16;
-	private const int MarginDesign = 10;
-	private const int SeparationDesign = 6;
-
 	private MarginContainer _margin = null!;
 	private VBoxContainer _column = null!;
 	private Label _header = null!;
@@ -23,12 +18,6 @@ public sealed partial class ActionLogPanel : PanelContainer
 	public ActionLogPanel()
 	{
 		Build();
-	}
-
-	public override void _Notification(int what)
-	{
-		if (what == NotificationResized)
-			ApplyScale();
 	}
 
 	public void SetLines(IReadOnlyList<string> lines)
@@ -59,15 +48,21 @@ public sealed partial class ActionLogPanel : PanelContainer
 
 		_margin = new MarginContainer();
 		_margin.MouseFilter = MouseFilterEnum.Ignore;
+		_margin.AddThemeConstantOverride("margin_left", 10);
+		_margin.AddThemeConstantOverride("margin_right", 10);
+		_margin.AddThemeConstantOverride("margin_top", 8);
+		_margin.AddThemeConstantOverride("margin_bottom", 8);
 		AddChild(_margin);
 
 		_column = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		_column.AddThemeConstantOverride("separation", 6);
 		_margin.AddChild(_column);
 
 		_header = new Label
 		{
 			Text = BattleHudCopy.ActionLogTitle,
 			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "ActionLogHeader",
 		};
 		_column.AddChild(_header);
 
@@ -84,22 +79,9 @@ public sealed partial class ActionLogPanel : PanelContainer
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "ActionLogBody",
 		};
 		_label.Resized += () => ChaseTail(_chaseTailGeneration);
 		_scroll.AddChild(_label);
-
-		Callable.From(ApplyScale).CallDeferred();
-	}
-
-	private void ApplyScale()
-	{
-		var viewport = GetViewport();
-		_margin.AddThemeConstantOverride("margin_left", UiScale.Margin(MarginDesign, viewport));
-		_margin.AddThemeConstantOverride("margin_right", UiScale.Margin(MarginDesign, viewport));
-		_margin.AddThemeConstantOverride("margin_top", UiScale.Margin(8, viewport));
-		_margin.AddThemeConstantOverride("margin_bottom", UiScale.Margin(8, viewport));
-		_column.AddThemeConstantOverride("separation", UiScale.Margin(SeparationDesign, viewport));
-		_header.AddThemeFontSizeOverride("font_size", UiScale.Font(HeaderFontDesign, viewport));
-		_label.AddThemeFontSizeOverride("font_size", UiScale.Font(BodyFontDesign, viewport));
 	}
 }

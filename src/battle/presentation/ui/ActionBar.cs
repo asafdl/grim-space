@@ -208,11 +208,7 @@ public sealed partial class ActionBar : HBoxContainer
 		button.AddThemeStyleboxOverride("pressed", pressed);
 		button.AddThemeStyleboxOverride("disabled", disabled);
 		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
-		button.AddThemeColorOverride("font_color", new Color(1f, 0.9f, 0.65f));
-		button.AddThemeColorOverride("font_hover_color", new Color(1f, 0.95f, 0.75f));
-		button.AddThemeColorOverride("font_pressed_color", new Color(1f, 1f, 0.85f));
-		button.AddThemeColorOverride("font_disabled_color", new Color(0.55f, 0.5f, 0.4f));
-		button.AddThemeFontSizeOverride("font_size", 14);
+		button.ThemeTypeVariation = "BattleEndTurn";
 
 		AddHotkeyBadge(button, "Space");
 
@@ -264,9 +260,8 @@ public sealed partial class ActionBar : HBoxContainer
 			VerticalAlignment = VerticalAlignment.Center,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Micro",
 		};
-		label.AddThemeFontSizeOverride("font_size", 10);
-		label.AddThemeColorOverride("font_color", new Color(0.9f, 0.95f, 1f));
 		keycap.AddChild(label);
 		button.AddChild(keycap);
 	}
@@ -315,9 +310,8 @@ public sealed partial class ActionBar : HBoxContainer
 			VerticalAlignment = VerticalAlignment.Center,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
+			ThemeTypeVariation = "BattleCharge",
 		};
-		label.AddThemeFontSizeOverride("font_size", 10);
-		label.AddThemeColorOverride("font_color", new Color(0.7f, 1f, 0.8f));
 		badge.AddChild(label);
 		button.AddChild(badge);
 		return label;

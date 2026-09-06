@@ -4,21 +4,20 @@ namespace GrimSpace.Presentation.Ui.Hud;
 
 public static class HudWidgets
 {
-	public static VBoxContainer CreateCardList(Viewport? viewport = null)
+	public static VBoxContainer CreateCardList()
 	{
 		var list = new VBoxContainer
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		list.AddThemeConstantOverride("separation", HudStyles.Margin(viewport) / 2);
+		list.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		return list;
 	}
 
 	public static Control CreateCard(
 		string title,
 		IReadOnlyList<HudTextLine> rows,
-		Action onPressed,
-		Viewport? viewport = null)
+		Action onPressed)
 	{
 		var panel = new PanelContainer
 		{
@@ -33,10 +32,10 @@ public static class HudWidgets
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_top", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.Margin(viewport) / 2);
+		margin.AddThemeConstantOverride("margin_left", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_right", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
 		panel.AddChild(margin);
 
 		var column = new VBoxContainer
@@ -53,12 +52,12 @@ public static class HudWidgets
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = "CardTitle",
 		};
-		HudStyles.ApplyFont(titleLabel, HudFontRole.CardTitle, viewport);
 		column.AddChild(titleLabel);
 
 		foreach (var row in rows)
-			column.AddChild(CreateTextLine(row, viewport));
+			column.AddChild(CreateTextLine(row));
 
 		panel.MouseEntered += () => HudStyles.SetPanelVariation(panel, "CardHover");
 		panel.MouseExited += () => HudStyles.SetPanelVariation(panel, "Card");
@@ -79,17 +78,16 @@ public static class HudWidgets
 		string heading,
 		string body,
 		bool scrollBody = false,
-		Viewport? viewport = null,
 		HudTextRole bodyRole = HudTextRole.Body)
 	{
 		var panel = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		HudStyles.SetPanelVariation(panel, "Section");
 
 		var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_top", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.Margin(viewport) / 2);
+		margin.AddThemeConstantOverride("margin_left", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_right", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
 		panel.AddChild(margin);
 
 		var column = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -100,27 +98,27 @@ public static class HudWidgets
 		{
 			Text = heading.ToUpperInvariant(),
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = "SectionHeading",
 		};
-		HudStyles.ApplyFont(headingLabel, HudFontRole.SectionHeading, viewport);
 		column.AddChild(headingLabel);
 
 		if (scrollBody)
 		{
 			var scroll = new ScrollContainer
 			{
-				CustomMinimumSize = new Vector2(0, HudStyles.FontSize(HudFontRole.Body, viewport) * 6),
+				CustomMinimumSize = new Vector2(0, HudStyles.BodyScrollMinHeight),
 				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			};
 			column.AddChild(scroll);
-			scroll.AddChild(CreateBodyLabel(body, viewport, bodyRole));
+			scroll.AddChild(CreateBodyLabel(body, bodyRole));
 		}
 		else
-			column.AddChild(CreateBodyLabel(body, viewport, bodyRole));
+			column.AddChild(CreateBodyLabel(body, bodyRole));
 
 		return panel;
 	}
 
-	public static Control CreateStatusPanel(HudStatusKind kind, string message, Viewport? viewport = null)
+	public static Control CreateStatusPanel(HudStatusKind kind, string message)
 	{
 		var panel = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		HudStyles.SetPanelVariation(panel, HudStyles.StatusPanelVariation(kind));
@@ -131,20 +129,21 @@ public static class HudWidgets
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Status",
 		};
-		ApplyStatusLabelStyle(label, kind, viewport);
+		ApplyStatusLabelStyle(label, kind);
 
 		var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin(viewport));
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin(viewport));
-		margin.AddThemeConstantOverride("margin_top", HudStyles.Margin(viewport) / 2);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.Margin(viewport) / 2);
+		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
 		margin.AddChild(label);
 		panel.AddChild(margin);
 		return panel;
 	}
 
-	public static Control CreateWarningPanel(string message, Viewport? viewport = null)
+	public static Control CreateWarningPanel(string message)
 	{
 		var panel = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		HudStyles.SetPanelVariation(panel, "Warning");
@@ -155,20 +154,20 @@ public static class HudWidgets
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Body",
 		};
-		HudStyles.ApplyFont(label, HudFontRole.Body, viewport);
 
 		var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin(viewport));
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin(viewport));
-		margin.AddThemeConstantOverride("margin_top", HudStyles.Margin(viewport));
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.Margin(viewport));
+		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_top", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_bottom", HudStyles.Margin);
 		margin.AddChild(label);
 		panel.AddChild(margin);
 		return panel;
 	}
 
-	private static Label CreateTextLine(HudTextLine row, Viewport? viewport)
+	private static Label CreateTextLine(HudTextLine row)
 	{
 		var label = new Label
 		{
@@ -177,10 +176,7 @@ public static class HudWidgets
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		if (row.Role == HudTextRole.Emphasis)
-			HudStyles.ApplyFont(label, HudFontRole.Emphasis, viewport);
-		else
-			HudStyles.ApplyTextRole(label, row.Role, viewport);
+		HudStyles.ApplyTextRole(label, row.Role);
 
 		if (row.ColorOverride is { } color)
 			label.AddThemeColorOverride("font_color", color);
@@ -188,10 +184,7 @@ public static class HudWidgets
 		return label;
 	}
 
-	private static Label CreateBodyLabel(
-		string body,
-		Viewport? viewport,
-		HudTextRole bodyRole = HudTextRole.Body)
+	private static Label CreateBodyLabel(string body, HudTextRole bodyRole = HudTextRole.Body)
 	{
 		var label = new Label
 		{
@@ -199,11 +192,11 @@ public static class HudWidgets
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		HudStyles.ApplyTextRole(label, bodyRole, viewport);
+		HudStyles.ApplyTextRole(label, bodyRole);
 		return label;
 	}
 
-	private static void ApplyStatusLabelStyle(Label label, HudStatusKind kind, Viewport? viewport)
+	private static void ApplyStatusLabelStyle(Label label, HudStatusKind kind)
 	{
 		var textRole = kind switch
 		{
@@ -212,7 +205,6 @@ public static class HudWidgets
 			HudStatusKind.Error => HudTextRole.Danger,
 			_ => HudTextRole.Metadata,
 		};
-		HudStyles.ApplyTextRole(label, textRole, viewport);
-		label.AddThemeFontSizeOverride("font_size", HudStyles.FontSize(HudFontRole.Status, viewport));
+		HudStyles.ApplyTextRole(label, textRole);
 	}
 }

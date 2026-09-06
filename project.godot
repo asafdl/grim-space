@@ -32,6 +32,7 @@ project/assembly_name="grim-space"
 
 [gui]
 
+theme/custom="res://assets/ui/themes/hud_theme.tres"
 timers/tooltip_delay_sec=0.25
 
 [physics]

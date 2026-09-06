@@ -74,8 +74,8 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		{
 			Text = BattleHudCopy.PauseMenuTitle,
 			HorizontalAlignment = HorizontalAlignment.Center,
+			ThemeTypeVariation = "OverlayTitle",
 		};
-		title.AddThemeFontSizeOverride("font_size", 28);
 		content.AddChild(title);
 
 		content.AddChild(CreateMenuButton(

@@ -44,13 +44,7 @@ public partial class IntroSceneView : Control
 
 	private void ApplyLayout()
 	{
-		var viewport = GetViewport();
-		var margin = HudStyles.Margin(viewport);
-		var scale = HudStyles.ScaleFactor(viewport);
-
-		HudStyles.ApplyTextRole(_body, HudTextRole.Body, viewport);
-		HudStyles.ApplyTextRole(_artCredit, HudTextRole.Metadata, viewport);
-		HudStyles.StyleButton(_next, HudActionKind.Primary, viewport);
+		var margin = HudStyles.Margin;
 
 		_artCredit.OffsetTop = margin / 2;
 
@@ -67,8 +61,8 @@ public partial class IntroSceneView : Control
 			_textPanelStyle.ContentMarginBottom = margin;
 		}
 
-		var buttonWidth = Mathf.RoundToInt(140f * scale);
-		var buttonHeight = Mathf.RoundToInt(44f * scale);
+		const int buttonWidth = 140;
+		const int buttonHeight = 44;
 		_next.CustomMinimumSize = new Vector2(buttonWidth, buttonHeight);
 		_next.SetAnchorsPreset(Control.LayoutPreset.TopRight);
 		_next.OffsetLeft = -(buttonWidth + margin);

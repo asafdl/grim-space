@@ -6,6 +6,14 @@ public static class GameSettings
 {
 	private const string SettingsPath = "user://settings.cfg";
 
+	public static readonly Vector2I[] SupportedResolutions =
+	[
+		new(2560, 1440),
+		new(1920, 1080),
+		new(1600, 900),
+		new(1280, 720),
+	];
+
 	public static bool ShowIntro
 	{
 		get => GetValue("game", "show_intro", true).AsBool();
@@ -32,6 +40,67 @@ public static class GameSettings
 		config.SetValue("video", "width", width);
 		config.SetValue("video", "height", height);
 		config.Save(SettingsPath);
+	}
+
+	public static void ApplySavedVideoConfig()
+	{
+		var (mode, width, height) = ReadVideoConfig();
+		ApplyVideoConfig(mode, NormalizeWindowedResolution(width, height));
+	}
+
+	public static void ApplyVideoConfig(string mode, Vector2I windowedSize)
+	{
+		var window = (Window)((SceneTree)Godot.Engine.GetMainLoop()).Root;
+
+		if (mode == "windowed")
+		{
+			window.Mode = Window.ModeEnum.Windowed;
+			window.ContentScaleSize = Vector2I.Zero;
+			window.Size = windowedSize;
+			window.MoveToCenter();
+			return;
+		}
+
+		window.Mode = Window.ModeEnum.Fullscreen;
+		window.ContentScaleSize = Vector2I.Zero;
+	}
+
+	public static Vector2I NormalizeWindowedResolution(int width, int height)
+	{
+		if (TryFindResolution(width, height, out var resolution))
+			return resolution;
+
+		return SupportedResolutions[0];
+	}
+
+	public static bool TryFindResolution(int width, int height, out Vector2I resolution)
+	{
+		foreach (var candidate in SupportedResolutions)
+		{
+			if (candidate.X == width && candidate.Y == height)
+			{
+				resolution = candidate;
+				return true;
+			}
+		}
+
+		resolution = default;
+		return false;
+	}
+
+	public static bool TryFindResolutionIndex(int width, int height, out int index)
+	{
+		for (var i = 0; i < SupportedResolutions.Length; i++)
+		{
+			if (SupportedResolutions[i].X == width && SupportedResolutions[i].Y == height)
+			{
+				index = i;
+				return true;
+			}
+		}
+
+		index = 0;
+		return false;
 	}
 
 	private static Variant GetValue(string section, string key, Variant defaultValue)

@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://bqx8main001"]
+[gd_scene load_steps=2 format=3 uid="uid://bqx8main001"]
 
 [ext_resource type="Script" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
-[ext_resource type="Theme" path="res://assets/ui/themes/hud_theme.tres" id="2_theme"]
 
 [node name="StartMenu" type="Control"]
 layout_mode = 3
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_startmenu")
 
 [node name="Background" type="ColorRect" parent="."]

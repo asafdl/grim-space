@@ -78,26 +78,24 @@ public sealed partial class ContractHudOverlay : Node
 			&& !_map.ContractRegistry.AvailableForPoi(_activePoiId).Any(contract => contract.Id == _selected.Id))
 			_selected = null;
 
-		var viewport = _shell.GetViewport();
-		var body = HudWidgets.CreateCardList(viewport);
+		var body = HudWidgets.CreateCardList();
 
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
-			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage, viewport));
+			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 
 		var contracts = _map.ContractRegistry.AvailableForPoi(_activePoiId).ToArray();
 		if (contracts.Length == 0 && _statusKind is null)
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				"No contracts available from this authority.",
-				viewport));
+				"No contracts available from this authority."));
 		}
 		else
 		{
 			foreach (var contract in contracts)
 			{
 				var captured = contract;
-				body.AddChild(CreateContractCard(captured, viewport));
+				body.AddChild(CreateContractCard(captured));
 			}
 		}
 
@@ -120,22 +118,19 @@ public sealed partial class ContractHudOverlay : Node
 		_shell.SetHeader(HudHeaderMode.Back, ShowList);
 		_shell.SetBackHandler(ShowList);
 
-		var viewport = _shell.GetViewport();
 		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		body.AddThemeConstantOverride("separation", HudStyles.Margin(viewport) / 2);
+		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 
-		body.AddChild(HudWidgets.CreateSection("Briefing", ContractDisplay.Narrative(_selected), scrollBody: true, viewport));
-		body.AddChild(HudWidgets.CreateSection("Objective", ContractDisplay.ObjectiveSummary(_selected), viewport: viewport));
-		body.AddChild(HudWidgets.CreateSection("Location", ContractDisplay.SearchArea(_selected), viewport: viewport));
+		body.AddChild(HudWidgets.CreateSection("Briefing", ContractDisplay.Narrative(_selected), scrollBody: true));
+		body.AddChild(HudWidgets.CreateSection("Objective", ContractDisplay.ObjectiveSummary(_selected)));
+		body.AddChild(HudWidgets.CreateSection("Location", ContractDisplay.SearchArea(_selected)));
 		body.AddChild(HudWidgets.CreateSection(
 			"Compensation",
 			ContractDisplay.Reward(_selected),
-			viewport: viewport,
 			bodyRole: HudTextRole.Success));
 		body.AddChild(HudWidgets.CreateSection(
 			"Threat",
 			ContractDisplay.Danger(_selected),
-			viewport: viewport,
 			bodyRole: DangerTextRole(_selected)));
 
 		_shell.SetBody(body);
@@ -161,11 +156,9 @@ public sealed partial class ContractHudOverlay : Node
 		_shell.SetHeader(HudHeaderMode.Back, ShowDetails);
 		_shell.SetBackHandler(ShowDetails);
 
-		var viewport = _shell.GetViewport();
 		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		body.AddChild(HudWidgets.CreateWarningPanel(
-			$"Permanently decline \"{ContractDisplay.Title(_selected)}\" for this run?",
-			viewport));
+			$"Permanently decline \"{ContractDisplay.Title(_selected)}\" for this run?"));
 
 		_shell.SetBody(body);
 		_shell.SetFooter(
@@ -175,7 +168,7 @@ public sealed partial class ContractHudOverlay : Node
 		]);
 	}
 
-	private Control CreateContractCard(Contract contract, Viewport viewport)
+	private Control CreateContractCard(Contract contract)
 	{
 		var dangerRole = DangerTextRole(contract);
 
@@ -194,8 +187,7 @@ public sealed partial class ContractHudOverlay : Node
 			{
 				_selected = contract;
 				ShowDetails();
-			},
-			viewport);
+			});
 	}
 
 	private static HudTextRole DangerTextRole(Contract contract) =>

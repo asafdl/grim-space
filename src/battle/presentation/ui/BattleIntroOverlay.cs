@@ -77,17 +77,15 @@ public sealed partial class BattleIntroOverlay : CanvasLayer
 		_title = new Label
 		{
 			HorizontalAlignment = HorizontalAlignment.Center,
+			ThemeTypeVariation = "BattleBannerTitle",
 		};
-		_title.AddThemeFontSizeOverride("font_size", 28);
-		_title.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.88f));
 		content.AddChild(_title);
 
 		_objective = new Label
 		{
 			HorizontalAlignment = HorizontalAlignment.Center,
+			ThemeTypeVariation = "OverlayBody",
 		};
-		_objective.AddThemeFontSizeOverride("font_size", 18);
-		_objective.AddThemeColorOverride("font_color", new Color(0.82f, 0.88f, 0.95f));
 		content.AddChild(_objective);
 	}
 }

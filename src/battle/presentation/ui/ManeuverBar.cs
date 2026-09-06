@@ -101,9 +101,8 @@ public sealed partial class ManeuverBar : PanelContainer
 			MouseFilter = MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "BattleAp",
 		};
-		_apLabel.AddThemeFontSizeOverride("font_size", 14);
-		_apLabel.AddThemeColorOverride("font_color", new Color(0.55f, 0.95f, 0.65f));
 		statRow.AddChild(_apLabel);
 
 		_momentumLabel = new Label
@@ -113,9 +112,8 @@ public sealed partial class ManeuverBar : PanelContainer
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 			TooltipText = BattleHudCopy.MomentumTooltip,
+			ThemeTypeVariation = "BattleMomentum",
 		};
-		_momentumLabel.AddThemeFontSizeOverride("font_size", 12);
-		_momentumLabel.AddThemeColorOverride("font_color", new Color(0.75f, 0.82f, 1f));
 		statRow.AddChild(_momentumLabel);
 
 		var row = new HBoxContainer();
@@ -245,9 +243,8 @@ public sealed partial class ManeuverBar : PanelContainer
 			VerticalAlignment = VerticalAlignment.Center,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
+			ThemeTypeVariation = "Micro",
 		};
-		label.AddThemeFontSizeOverride("font_size", 10);
-		label.AddThemeColorOverride("font_color", new Color(0.9f, 0.95f, 1f));
 		keycap.AddChild(label);
 		button.AddChild(keycap);
 	}

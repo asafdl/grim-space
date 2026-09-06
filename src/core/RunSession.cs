@@ -23,6 +23,7 @@ public partial class RunSession : Node
 	{
 		_instance = this;
 		ConfigureLogging();
+		GameSettings.ApplySavedVideoConfig();
 	}
 
 	public override void _ExitTree()

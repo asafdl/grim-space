@@ -132,8 +132,8 @@ public sealed partial class HealthBar : HBoxContainer
 			Text = text,
 			MouseFilter = MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Center,
+			ThemeTypeVariation = "HealthBarTitle",
 		};
-		label.AddThemeFontSizeOverride("font_size", 12);
 		label.AddThemeColorOverride("font_color", color);
 		return label;
 	}
