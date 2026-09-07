@@ -17,6 +17,34 @@ public static class HudThemes
 			_ => throw new ArgumentOutOfRangeException(nameof(family)),
 		});
 
-	public static void Apply(Control root, HudThemeFamily family) =>
-		root.Theme = Load(family);
+	public static Theme Apply(Control root, HudThemeFamily family)
+	{
+		var theme = Load(family);
+		root.Theme = theme;
+		return theme;
+	}
+
+	public static void StylePanel(PanelContainer panel, Theme theme, string themeType)
+	{
+		panel.Theme = theme;
+		panel.ThemeTypeVariation = themeType;
+		var style = theme.GetStylebox("panel", themeType);
+		if (style is not null)
+			panel.AddThemeStyleboxOverride("panel", style);
+	}
+
+	public static void StyleLabel(Label label, Theme theme, string themeType)
+	{
+		label.Theme = theme;
+		label.ThemeTypeVariation = themeType;
+		label.AddThemeColorOverride("font_color", theme.GetColor("font_color", themeType));
+
+		var fontSize = theme.GetFontSize("font_size", themeType);
+		if (fontSize > 0)
+			label.AddThemeFontSizeOverride("font_size", fontSize);
+
+		var font = theme.GetFont("font", themeType);
+		if (font is not null)
+			label.AddThemeFontOverride("font", font);
+	}
 }

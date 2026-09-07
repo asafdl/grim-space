@@ -5,6 +5,7 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public partial class DebugHud : MarginContainer
 {
+	public Label SystemLabel { get; private set; } = null!;
 	public Label TickLabel { get; private set; } = null!;
 	public Button PauseButton { get; private set; } = null!;
 	public Button StepButton { get; private set; } = null!;
@@ -32,6 +33,14 @@ public partial class DebugHud : MarginContainer
 		var shell = HudWidgets.CreateHudPanel("Debug", HudThemeFamily.Debug);
 		AddChild(shell.Root);
 
+		SystemLabel = new Label
+		{
+			Text = "Supply · seed 0 · copper",
+			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = HudStyles.EntryBodyVariation(HudThemeFamily.Debug),
+		};
+		shell.Body.AddChild(SystemLabel);
+
 		TickLabel = new Label
 		{
 			Text = "Tick 0",
@@ -45,7 +54,7 @@ public partial class DebugHud : MarginContainer
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		buttons.AddThemeConstantOverride("separation", 6);
+		buttons.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		shell.Body.AddChild(buttons);
 
 		PauseButton = CreateButton("Pause");

@@ -6,6 +6,8 @@ public static class GameSettings
 {
 	private const string SettingsPath = "user://settings.cfg";
 
+	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
+
 	public static readonly Vector2I[] SupportedResolutions =
 	[
 		new(2560, 1440),
@@ -45,18 +47,17 @@ public static class GameSettings
 	public static void ApplyVideoConfig(string mode, Vector2I windowedSize)
 	{
 		var window = (Window)((SceneTree)Godot.Engine.GetMainLoop()).Root;
+		window.ContentScaleSize = DesignCanvasSize;
 
 		if (mode == "windowed")
 		{
 			window.Mode = Window.ModeEnum.Windowed;
-			window.ContentScaleSize = Vector2I.Zero;
 			window.Size = windowedSize;
 			window.MoveToCenter();
 			return;
 		}
 
 		window.Mode = Window.ModeEnum.Fullscreen;
-		window.ContentScaleSize = Vector2I.Zero;
 	}
 
 	public static Vector2I NormalizeWindowedResolution(int width, int height)

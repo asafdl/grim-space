@@ -43,4 +43,4 @@ public sealed record HudAction(
 
 public readonly record struct HudBannerView(Control Root, Label Title, Label Subtitle);
 
-public readonly record struct MapHudPanelView(PanelContainer Root, VBoxContainer Body);
+public readonly record struct MapHudPanelView(PanelContainer Root, VBoxContainer Body, Label? HeaderBadge = null);

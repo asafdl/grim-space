@@ -208,6 +208,208 @@ public static class HudWidgets
 		HudStyles.ApplyTextRole(label, textRole);
 	}
 
+	public static MapHudPanelView CreateInformativePanel(
+		string sectionTitle,
+		string? panelVariation = null,
+		string? headingVariation = null,
+		int outerPadding = 14,
+		Theme? theme = null)
+	{
+		var panel = new PanelContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+		};
+		var panelType = panelVariation ?? HudStyles.InformativeHudPanelType;
+		if (theme is not null)
+			HudThemes.StylePanel(panel, theme, panelType);
+		else
+			HudStyles.SetPanelVariation(panel, panelType);
+
+		var column = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		column.AddThemeConstantOverride("separation", 0);
+		panel.AddChild(column);
+
+		var headerPadding = new MarginContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		headerPadding.AddThemeConstantOverride("margin_left", outerPadding);
+		headerPadding.AddThemeConstantOverride("margin_right", outerPadding);
+		headerPadding.AddThemeConstantOverride("margin_top", outerPadding);
+		headerPadding.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
+		headerPadding.AddChild(CreateInformativeSectionHeader(
+			sectionTitle,
+			headingVariation ?? HudStyles.HudHeadingLabelType,
+			theme));
+		column.AddChild(headerPadding);
+
+		var bodyPadding = new MarginContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		bodyPadding.AddThemeConstantOverride("margin_left", outerPadding);
+		bodyPadding.AddThemeConstantOverride("margin_right", outerPadding);
+		bodyPadding.AddThemeConstantOverride("margin_top", 0);
+		bodyPadding.AddThemeConstantOverride("margin_bottom", outerPadding);
+		column.AddChild(bodyPadding);
+
+		var body = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		body.AddThemeConstantOverride("separation", 0);
+		bodyPadding.AddChild(body);
+
+		return new MapHudPanelView(panel, body);
+	}
+
+	public static MapHudPanelView CreateObjectivesPanel(Theme theme)
+	{
+		var panel = new PanelContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+		};
+		HudThemes.StylePanel(panel, theme, HudStyles.ObjectivesHudPanelType);
+
+		var column = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		column.AddThemeConstantOverride("separation", 0);
+		panel.AddChild(column);
+
+		var headerPadding = new MarginContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		headerPadding.AddThemeConstantOverride("margin_left", HudStyles.ObjectivesOuterPadding);
+		headerPadding.AddThemeConstantOverride("margin_right", HudStyles.ObjectivesOuterPadding);
+		headerPadding.AddThemeConstantOverride("margin_top", HudStyles.ObjectivesOuterPadding);
+		headerPadding.AddThemeConstantOverride("margin_bottom", HudStyles.ObjectivesHeaderBottomPadding);
+
+		var headerRow = new HBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		headerRow.AddThemeConstantOverride("separation", 8);
+		headerPadding.AddChild(headerRow);
+
+		var heading = new Label
+		{
+			Text = "ACTIVE OBJECTIVES",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudThemes.StyleLabel(heading, theme, HudStyles.ObjectivesHeadingLabelType);
+		headerRow.AddChild(heading);
+
+		var separator = new Label
+		{
+			Text = "//",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudThemes.StyleLabel(separator, theme, HudStyles.ObjectiveSeparatorLabelType);
+		headerRow.AddChild(separator);
+
+		var countLabel = new Label
+		{
+			Text = "00",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudThemes.StyleLabel(countLabel, theme, HudStyles.ObjectiveIndexLabelType);
+		headerRow.AddChild(countLabel);
+
+		column.AddChild(headerPadding);
+
+		var dividerPadding = new MarginContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		dividerPadding.AddThemeConstantOverride("margin_left", HudStyles.ObjectivesOuterPadding);
+		dividerPadding.AddThemeConstantOverride("margin_right", HudStyles.ObjectivesOuterPadding);
+		dividerPadding.AddChild(CreateInformativeHairline());
+		column.AddChild(dividerPadding);
+
+		var bodyPadding = new MarginContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		bodyPadding.AddThemeConstantOverride("margin_left", HudStyles.ObjectivesOuterPadding);
+		bodyPadding.AddThemeConstantOverride("margin_right", HudStyles.ObjectivesOuterPadding);
+		bodyPadding.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
+		bodyPadding.AddThemeConstantOverride("margin_bottom", HudStyles.ObjectivesOuterPadding);
+		column.AddChild(bodyPadding);
+
+		var body = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		body.AddThemeConstantOverride("separation", 0);
+		bodyPadding.AddChild(body);
+
+		return new MapHudPanelView(panel, body, countLabel);
+	}
+
+	private static Control CreateInformativeSectionHeader(
+		string sectionTitle,
+		string headingThemeType,
+		Theme? theme)
+	{
+		var row = new HBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		row.AddThemeConstantOverride("separation", 8);
+
+		row.AddChild(new ColorRect
+		{
+			CustomMinimumSize = new Vector2(HudStyles.SectionAccentWidth, 20),
+			Color = HudStyles.AccentCyan,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		});
+
+		var heading = new Label
+		{
+			Text = sectionTitle.ToUpperInvariant(),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		if (theme is not null)
+			HudThemes.StyleLabel(heading, theme, headingThemeType);
+		else
+			heading.ThemeTypeVariation = headingThemeType;
+		row.AddChild(heading);
+
+		return row;
+	}
+
+	public static Control CreateInformativeHairline() =>
+		new ColorRect
+		{
+			CustomMinimumSize = new Vector2(0, 1),
+			Color = HudStyles.InformativeHairline,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+
 	public static MapHudPanelView CreateHudPanel(string heading, HudThemeFamily family)
 	{
 		var panel = new PanelContainer

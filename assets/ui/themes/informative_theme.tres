@@ -1,33 +1,87 @@
-[gd_resource type="Theme" load_steps=4 format=3]
+[gd_resource type="Theme" load_steps=6 format=3]
 
-[sub_resource type="SystemFont" id="Font_sans"]
-font_names = PackedStringArray("SF Pro Text", "Segoe UI", "Roboto", "Helvetica Neue", "Arial")
-allow_system_fallback = true
+[ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-Medium.ttf" id="1_medium"]
+[ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-SemiBold.ttf" id="2_semibold"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_informative_panel"]
-bg_color = Color(0.06, 0.09, 0.14, 0.94)
+bg_color = Color(0.03, 0.05, 0.08, 0.96)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.22, 0.32, 0.42, 0.75)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10
+border_color = Color(0.22, 0.32, 0.42, 0.55)
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_objectives_hud"]
+bg_color = Color(0.02, 0.07, 0.11, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.65, 0.85, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+shadow_color = Color(0.2, 0.55, 0.75, 0.28)
+shadow_size = 6
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_objective_entry"]
+bg_color = Color(0.04, 0.1, 0.13, 1)
+border_width_left = 3
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+border_color = Color(0.35, 0.65, 0.85, 0.32)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 14
 content_margin_top = 10
-content_margin_right = 10
+content_margin_right = 12
 content_margin_bottom = 10
 
 [resource]
-default_font = SubResource("Font_sans")
-default_font_size = 16
+default_font = ExtResource("1_medium")
+default_font_size = 18
 Label/colors/font_color = Color(0.82, 0.88, 0.92, 1)
-HudHeadingLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
-HudHeadingLabel/font_sizes/font_size = 12
-EntryTitleLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
-EntryTitleLabel/font_sizes/font_size = 16
-EntryBodyLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
-EntryBodyLabel/font_sizes/font_size = 14
+HudHeadingLabel/colors/font_color = Color(0.55, 0.78, 1, 1)
+HudHeadingLabel/fonts/font = ExtResource("2_semibold")
+HudHeadingLabel/font_sizes/font_size = 19
+EntryTitleLabel/colors/font_color = Color(0.85, 0.9, 0.94, 1)
+EntryTitleLabel/fonts/font = ExtResource("2_semibold")
+EntryTitleLabel/font_sizes/font_size = 22
+EntryBodyLabel/colors/font_color = Color(0.72, 0.78, 0.84, 1)
+EntryBodyLabel/font_sizes/font_size = 18
+ObjectivesHeadingLabel/colors/font_color = Color(0.62, 0.52, 0.28, 1)
+ObjectivesHeadingLabel/fonts/font = ExtResource("2_semibold")
+ObjectivesHeadingLabel/font_sizes/font_size = 19
+ObjectiveIndexLabel/colors/font_color = Color(0.42, 0.58, 0.68, 0.82)
+ObjectiveIndexLabel/font_sizes/font_size = 17
+ObjectiveSeparatorLabel/colors/font_color = Color(0.32, 0.48, 0.58, 0.62)
+ObjectiveSeparatorLabel/font_sizes/font_size = 17
+ObjectiveTitleLabel/colors/font_color = Color(1, 0.78, 0.35, 1)
+ObjectiveTitleLabel/fonts/font = ExtResource("2_semibold")
+ObjectiveTitleLabel/font_sizes/font_size = 22
+ObjectiveBodyLabel/colors/font_color = Color(0.88, 0.78, 0.48, 1)
+ObjectiveBodyLabel/font_sizes/font_size = 18
+ObjectivesHud/base_type = &"PanelContainer"
+ObjectiveEntry/base_type = &"PanelContainer"
+ObjectivesHeading/base_type = &"Label"
+ObjectiveIndex/base_type = &"Label"
+ObjectiveSeparator/base_type = &"Label"
+ObjectiveTitle/base_type = &"Label"
+ObjectiveBody/base_type = &"Label"
+InformativeHud/base_type = &"PanelContainer"
 InformativeHudPanelContainer/styles/panel = SubResource("StyleBox_informative_panel")
+ObjectivesHudPanelContainer/styles/panel = SubResource("StyleBox_objectives_hud")
+ObjectiveEntryPanelContainer/styles/panel = SubResource("StyleBox_objective_entry")

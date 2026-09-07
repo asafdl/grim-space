@@ -48,12 +48,12 @@ public partial class MapController : Node3D
 		_typeLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/TypeLabel");
 		_nameLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/NameLabel");
 		var debugHud = GetNode<DebugHud>("UI/DebugHud");
+		_systemLabel = debugHud.SystemLabel;
 		_tickLabel = debugHud.TickLabel;
 		_pauseButton = debugHud.PauseButton;
 		_stepButton = debugHud.StepButton;
 		_speedButton = debugHud.SpeedButton;
 		_rebuildButton = debugHud.RebuildButton;
-		_systemLabel = GetNode<Label>("UI/SystemLabel");
 		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
@@ -100,6 +100,7 @@ public partial class MapController : Node3D
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
+		UpdateObjectivesHud();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{

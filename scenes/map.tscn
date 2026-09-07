@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://src/world/star-system/presentation/CourseView.cs" id="6_course"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/ObjectivesHud.cs" id="7_objectives"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/DebugHud.cs" id="8_debug"]
+[ext_resource type="Theme" path="res://assets/ui/themes/informative_theme.tres" id="10_informative"]
 [ext_resource type="Texture2D" uid="uid://vqro6ros3fnm" path="res://assets/ui/map/dock-facilities.svg" id="9_access_icon"]
 
 [node name="Map" type="Node3D"]
@@ -61,25 +62,13 @@ anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("8_debug")
 
-[node name="SystemLabel" type="Label" parent="UI"]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -220.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = 36.0
-grow_horizontal = 0
-theme_type_variation = &"SystemMeta"
-horizontal_alignment = 2
-mouse_filter = 2
-
 [node name="ObjectivesHud" type="MarginContainer" parent="UI"]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 grow_horizontal = 0
+theme = ExtResource("10_informative")
 mouse_filter = 2
 script = ExtResource("7_objectives")
 

@@ -292,14 +292,14 @@ public sealed partial class ModalHudShell : CanvasLayer
 	private void LayoutPanel()
 	{
 		var viewportSize = GetViewport().GetVisibleRect().Size;
-		var width = Mathf.Clamp(
+		var width = Mathf.RoundToInt(Mathf.Clamp(
 			720f,
 			viewportSize.X * 0.38f,
-			Mathf.Min(viewportSize.X * 0.58f, 800f));
-		var height = Mathf.Clamp(
+			Mathf.Min(viewportSize.X * 0.58f, 800f)));
+		var height = Mathf.RoundToInt(Mathf.Clamp(
 			540f,
 			viewportSize.Y * 0.55f,
-			viewportSize.Y * 0.85f);
+			viewportSize.Y * 0.85f));
 
 		_panel.CustomMinimumSize = new Vector2(width, height);
 		RebuildFooter();

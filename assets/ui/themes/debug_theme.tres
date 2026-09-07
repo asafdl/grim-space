@@ -15,10 +15,10 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-content_margin_left = 8
-content_margin_top = 6
-content_margin_right = 8
-content_margin_bottom = 6
+content_margin_left = 16
+content_margin_top = 12
+content_margin_right = 16
+content_margin_bottom = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug_btn_normal"]
 bg_color = Color(0.06, 0.09, 0.14, 0.9)
@@ -31,10 +31,10 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-content_margin_left = 8
-content_margin_top = 2
-content_margin_right = 8
-content_margin_bottom = 2
+content_margin_left = 16
+content_margin_top = 6
+content_margin_right = 16
+content_margin_bottom = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug_btn_hover"]
 bg_color = Color(0.09, 0.13, 0.2, 0.95)
@@ -47,10 +47,10 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-content_margin_left = 8
-content_margin_top = 2
-content_margin_right = 8
-content_margin_bottom = 2
+content_margin_left = 16
+content_margin_top = 6
+content_margin_right = 16
+content_margin_bottom = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug_btn_pressed"]
 bg_color = Color(0.11, 0.16, 0.24, 1)
@@ -63,10 +63,10 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-content_margin_left = 8
-content_margin_top = 2
-content_margin_right = 8
-content_margin_bottom = 2
+content_margin_left = 16
+content_margin_top = 6
+content_margin_right = 16
+content_margin_bottom = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_debug_btn_disabled"]
 bg_color = Color(0.04, 0.06, 0.09, 0.8)
@@ -79,19 +79,19 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
-content_margin_left = 8
-content_margin_top = 2
-content_margin_right = 8
-content_margin_bottom = 2
+content_margin_left = 16
+content_margin_top = 6
+content_margin_right = 16
+content_margin_bottom = 6
 
 [resource]
 default_font = SubResource("Font_mono")
-default_font_size = 12
+default_font_size = 20
 Label/colors/font_color = Color(0.65, 0.72, 0.78, 1)
 HudHeadingLabel/colors/font_color = Color(0.44, 0.51, 0.58, 1)
-HudHeadingLabel/font_sizes/font_size = 11
-DebugValueLabel/colors/font_color = Color(0.65, 0.72, 0.78, 1)
-DebugValueLabel/font_sizes/font_size = 12
+HudHeadingLabel/font_sizes/font_size = 18
+DebugValueLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
+DebugValueLabel/font_sizes/font_size = 20
 DebugHudPanelContainer/styles/panel = SubResource("StyleBox_debug_panel")
 DebugButton/styles/normal = SubResource("StyleBox_debug_btn_normal")
 DebugButton/styles/hover = SubResource("StyleBox_debug_btn_hover")
@@ -102,4 +102,4 @@ DebugButton/colors/font_color = Color(0.65, 0.72, 0.78, 1)
 DebugButton/colors/font_hover_color = Color(0.82, 0.88, 0.92, 1)
 DebugButton/colors/font_pressed_color = Color(0.82, 0.88, 0.92, 1)
 DebugButton/colors/font_disabled_color = Color(0.4, 0.45, 0.5, 1)
-DebugButton/font_sizes/font_size = 11
+DebugButton/font_sizes/font_size = 18
