@@ -7,9 +7,15 @@ public partial class StartMenu : Control
 {
 	private const string IntroScenePath = "res://scenes/intro.tscn";
 
+	[Export(PropertyHint.Range, "0.005,0.05,0.005")]
+	private float _dustBandEndHalfThicknessRatio = 0.015f;
+
 	private Control _menuColumn = null!;
 	private Control _settingsOverlay = null!;
-	private Control _dustRegion = null!;
+	private Control _art = null!;
+	private Control _dustBandStart = null!;
+	private Control _dustBandEnd = null!;
+	private Control _dustBandWide = null!;
 	private GpuParticles2D _dustParticles = null!;
 	private ParticleProcessMaterial _dustMaterial = null!;
 	private OptionButton _displayMode = null!;
@@ -19,11 +25,14 @@ public partial class StartMenu : Control
 	{
 		_menuColumn = GetNode<Control>("%MenuColumn");
 		_settingsOverlay = GetNode<Control>("%SettingsOverlay");
-		_dustRegion = GetNode<Control>("%DustRegion");
-		_dustParticles = _dustRegion.GetNode<GpuParticles2D>("%DustParticles");
+		_art = GetNode<Control>("ArtFrame/Art");
+		_dustBandStart = GetNode<Control>("%DustBandStart");
+		_dustBandEnd = GetNode<Control>("%DustBandEnd");
+		_dustBandWide = GetNode<Control>("%DustBandWide");
+		_dustParticles = GetNode<GpuParticles2D>("%DustParticles");
 		_dustMaterial = (ParticleProcessMaterial)_dustParticles.ProcessMaterial.Duplicate();
 		_dustParticles.ProcessMaterial = _dustMaterial;
-		_dustRegion.Resized += OnDustRegionResized;
+		_art.Resized += OnDustLayoutChanged;
 		CallDeferred(MethodName.UpdateDustLayout);
 
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
@@ -109,17 +118,38 @@ public partial class StartMenu : Control
 		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");
 	}
 
-	private void OnDustRegionResized() => UpdateDustLayout();
+	private void OnDustLayoutChanged() => UpdateDustLayout();
 
 	private void UpdateDustLayout()
 	{
-		var size = _dustRegion.Size;
-		if (size.X < 1f || size.Y < 1f)
+		var artSize = _art.Size;
+		if (artSize.X < 1f || artSize.Y < 1f)
 			return;
 
-		var half = size * 0.5f;
-		_dustParticles.Position = half;
-		_dustMaterial.EmissionBoxExtents = new Vector3(half.X, half.Y, 1f);
-		_dustParticles.VisibilityRect = new Rect2(-half.X, -half.Y, size.X, size.Y);
+		var start = _dustBandStart.Position;
+		var end = _dustBandEnd.Position;
+		var wide = _dustBandWide.Position;
+		var delta = end - start;
+		var length = delta.Length();
+		if (length < 1f)
+			return;
+
+		var tangent = delta / length;
+		var normal = new Vector2(-tangent.Y, tangent.X);
+		var startHalf = Mathf.Abs((wide - start).Dot(normal));
+		var endHalf = artSize.Y * _dustBandEndHalfThicknessRatio;
+		var bandHalfThickness = (startHalf + endHalf) * 0.5f;
+
+		var center = (start + end) * 0.5f;
+		var visibilityPad = length * 0.5f + bandHalfThickness + 64f;
+
+		_dustParticles.Position = center;
+		_dustParticles.Rotation = delta.Angle();
+		_dustMaterial.EmissionBoxExtents = new Vector3(length * 0.5f, bandHalfThickness, 1f);
+		_dustParticles.VisibilityRect = new Rect2(
+			-visibilityPad,
+			-visibilityPad,
+			visibilityPad * 2f,
+			visibilityPad * 2f);
 	}
 }

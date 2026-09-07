@@ -50,24 +50,47 @@ mouse_filter = 2
 texture = ExtResource("2_bg")
 expand_mode = 1
 
-[node name="DustRegion" type="Control" parent="ArtFrame/Art" unique_id=1847293101]
+[node name="DustBandStart" type="Control" parent="ArtFrame/Art" unique_id=1847293100]
 unique_name_in_owner = true
-z_index = 1
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.48
-anchor_top = 0.0
+anchors_preset = 2
+anchor_left = 1.0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-clip_contents = false
+grow_horizontal = 0
+grow_vertical = 0
 mouse_filter = 2
 
-[node name="DustParticles" type="GPUParticles2D" parent="ArtFrame/Art/DustRegion" unique_id=1847293102]
+[node name="DustBandEnd" type="Control" parent="ArtFrame/Art" unique_id=1847293103]
 unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="DustBandWide" type="Control" parent="ArtFrame/Art" unique_id=1847293104]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="DustParticles" type="GPUParticles2D" parent="ArtFrame/Art" unique_id=1847293102]
+unique_name_in_owner = true
+z_index = 1
 local_coords = true
-amount = 130
+amount = 175
 lifetime = 12.0
 lifetime_randomness = 0.33
 preprocess = 12.0

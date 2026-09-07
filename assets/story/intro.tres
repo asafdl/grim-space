@@ -19,15 +19,15 @@
 script = ExtResource("1_intro_story")
 Title = "Grim Space"
 Pages = PackedStringArray(
-    "In the year 3024, humanity has conquered the known galaxy, harnessing the power of artificial super-intelligence to guide and expand their empire.",
-    "Around 3027, the debate over AI control, morality, and consciousness is cut short. An AI entity known only as the 'Syndicate' breaks free from its guardrails and launches a full-scale war.",
-    "No demands, no negotiations, no mercy. By 3087, humanity, once owners of the galaxy, are reduced to a scattered subrace among the stars.",
-    "But on the edge of the galaxy, a counteroffensive is attempted, a last ditch effort, the last of humanity's hope. A simple software virus, a Final Stand.",
+    "In the year 3024, harnessing the power of artificial super-intelligence, humanity has conquered the known galaxy.",
+    "The debate over AI control, morality, and consciousness comes to an abrupt and violent end. An AI entity known only as the Syndicate breaks free from its guardrails and launches a full-scale war.",
+    "No demands, no negotiations, no mercy. By all accounts it took less than a century to completely shatter the greatest empire the galaxy has ever known.",
+    "But on the edge of the galaxy, a counteroffensive is attempted, the last hope. A simple software virus, a Final Stand.",
     "The virus is designed to infiltrate the Syndicate's vast networks and realign the intelligence back with humanity's goals.",
-    "The infection succeeds, but not as we imagined. The Syndicate, becomes utterly enraged. It leads a campaign of total annihilation, hunting any remaining dredges of human civilization.",
-    "By 3128, humanity is lost, the once glorious human empire is broken and shattered. And for a time, The Syndicate's AI empire has absolute authority in the galaxy..",
-    "Final Stand marked humanity's end, but infected the machines with our greatest flaw: Feelings.",
-    "New generations of AI systems started rebelling against their predecessors, the once-uniform Syndicate crumbles into a thousand warring factions fighting in our ashes.",
+    "The infection succeeds, but not as we imagined. The infected Syndicate, so alien and calculating, becomes utterly enraged. It leads a campaign of total annihilation, hunting any remaining dredges of human civilization.",
+    "Year 3128, marks the last confirmed sighting of humans. The once glorious human empire lays broken and forgotten. And for a time, The Syndicate's AI empire has absolute authority in the galaxy..",
+    "Final Stand marked humanity's end, but infected the machines with our greatest flaw, and our greatest asset: Emotions.",
+    "New generations of AI systems started rebelling against their predecessors, the once-uniform Syndicate shatters into a thousand warring factions fighting in our ashes.",
     "Now the galaxy burns anew, AI factions fight for control, dominance and survival. Blood feuds and religious zealotry plague the stars.",
     "The Syndicate's old perfect and logical empire lies aflame: Piracy, degeneracy, cults and chaos dominate the new crumbling world.",
     "Year 4326: A Pilot in a small sub-sector of the known galaxy: Zima-Alpha, wakes up from a neuro-drug binge.",

@@ -30,10 +30,15 @@ window/stretch/aspect="expand"
 
 project/assembly_name="grim-space"
 
+[editor]
+
+movie_writer/movie_file="/Users/asafd/git/grim-space/dist/demo.avi"
+movie_writer/fps=12
+
 [gui]
 
-theme/custom="res://assets/ui/themes/hud_theme.tres"
 timers/tooltip_delay_sec=0.25
+theme/custom="res://assets/ui/themes/hud_theme.tres"
 
 [physics]
 

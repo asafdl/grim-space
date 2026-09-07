@@ -2,7 +2,7 @@
 
 [sub_resource type="Gradient" id="Gradient_dust_ramp"]
 offsets = PackedFloat32Array(0, 0.12, 0.88, 1)
-colors = PackedColorArray(0.4, 0.38, 0.46, 0, 0.46, 0.43, 0.52, 0.62, 0.44, 0.41, 0.5, 0.62, 0.38, 0.36, 0.44, 0)
+colors = PackedColorArray(0.4, 0.38, 0.46, 0, 0.46, 0.43, 0.52, 0.68, 0.44, 0.41, 0.5, 0.68, 0.38, 0.36, 0.44, 0)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_dust_ramp"]
 gradient = SubResource("Gradient_dust_ramp")
@@ -11,13 +11,13 @@ gradient = SubResource("Gradient_dust_ramp")
 particle_flag_disable_z = true
 emission_shape = 3
 emission_box_extents = Vector3(400, 300, 1)
-direction = Vector3(0, -1, 0)
-spread = 16.0
+direction = Vector3(1, 0, 0)
+spread = 12.0
 flatness = 1.0
 initial_velocity_min = 15.0
 initial_velocity_max = 35.0
-gravity = Vector3(4, 0, 0)
-scale_min = 0.45
-scale_max = 0.65
+gravity = Vector3(0, 0.4, 0)
+scale_min = 0.48
+scale_max = 0.68
 color = Color(1, 1, 1, 1)
 color_ramp = SubResource("GradientTexture1D_dust_ramp")
