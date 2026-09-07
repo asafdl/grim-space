@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
+using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Generation;
@@ -124,6 +125,7 @@ public static class StarSystemBuilder
 			routesById,
 			unitRegistry,
 			new ContractRegistry(),
+			new StoryObjectiveRegistry(),
 			terrain);
 	}
 

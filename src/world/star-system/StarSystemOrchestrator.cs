@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
@@ -174,6 +175,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		CommitPlayerActions();
 		var history = _engine.AdvanceTick();
+		if (PlayerId is not null)
+			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 		ResetPlayerAgentPlanning();
 		return history;
 	}
@@ -191,6 +194,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 
 		var history = _engine.AdvanceTick();
+
+		if (PlayerId is not null)
+			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 
 		if (_playerAgent is not null && PlayerId is not null)
 			SetActive(PlayerId);

@@ -47,6 +47,22 @@ public sealed class ContractRegistry
 			.Where(state => state.Status == EContractStatus.Active && state.HolderUnitId == unitId)
 			.Select(state => new ActiveContract(_contracts[state.ContractId], state));
 
+	public bool IsCompleted(string contractId) =>
+		_states.TryGetValue(contractId, out var state) && state.Status == EContractStatus.Completed;
+
+	public void Complete(string contractId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(contractId);
+
+		if (!_states.TryGetValue(contractId, out var state))
+			throw new InvalidOperationException($"Contract '{contractId}' has no runtime state.");
+
+		if (state.Status != EContractStatus.Active)
+			throw new InvalidOperationException($"Contract '{contractId}' is not active.");
+
+		_states[contractId] = state with { Status = EContractStatus.Completed };
+	}
+
 	public void RegisterOffered(Contract contract)
 	{
 		ArgumentNullException.ThrowIfNull(contract);

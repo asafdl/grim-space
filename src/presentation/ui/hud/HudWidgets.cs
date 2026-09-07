@@ -207,4 +207,106 @@ public static class HudWidgets
 		};
 		HudStyles.ApplyTextRole(label, textRole);
 	}
+
+	public static MapHudPanelView CreateHudPanel(string heading, HudThemeFamily family)
+	{
+		var panel = new PanelContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+		};
+		HudStyles.SetPanelVariation(panel, HudStyles.PanelVariation(family));
+
+		var column = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		column.AddThemeConstantOverride("separation", family == HudThemeFamily.Debug ? 6 : HudStyles.HalfMargin);
+		panel.AddChild(column);
+
+		var headingLabel = new Label
+		{
+			Text = heading.ToUpperInvariant(),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = HudStyles.HudHeadingVariation(family),
+		};
+		column.AddChild(headingLabel);
+
+		var body = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		body.AddThemeConstantOverride("separation", family == HudThemeFamily.Debug ? 6 : HudStyles.HalfMargin);
+		column.AddChild(body);
+
+		return new MapHudPanelView(panel, body);
+	}
+
+	public static Button CreateCompactButton(string text, Action onPressed)
+	{
+		var button = new Button
+		{
+			Text = text,
+			CustomMinimumSize = new Vector2(0, 44),
+		};
+		HudStyles.StyleButton(button, HudActionKind.Secondary);
+		button.Pressed += onPressed;
+		return button;
+	}
+
+	public static HudBannerView CreateTopBanner(string title, string subtitle)
+	{
+		var panel = new PanelContainer
+		{
+			CustomMinimumSize = new Vector2(520, 0),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudStyles.SetPanelVariation(panel, "Banner");
+
+		var content = new VBoxContainer
+		{
+			Alignment = BoxContainer.AlignmentMode.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		content.AddThemeConstantOverride("separation", 4);
+		panel.AddChild(content);
+
+		var titleLabel = new Label
+		{
+			Text = title,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "BannerTitle",
+		};
+		content.AddChild(titleLabel);
+
+		var subtitleLabel = new Label
+		{
+			Text = subtitle,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudStyles.ApplyTextRole(subtitleLabel, HudTextRole.Body);
+		content.AddChild(subtitleLabel);
+
+		return new HudBannerView(panel, titleLabel, subtitleLabel);
+	}
+
+	public static Button CreateMenuButton(string text, string tooltip, Action onPressed)
+	{
+		var button = new Button
+		{
+			Text = text,
+			TooltipText = tooltip,
+			CustomMinimumSize = new Vector2(220, 44),
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+		};
+		HudStyles.StyleButton(button, HudActionKind.Secondary);
+		button.Pressed += onPressed;
+		return button;
+	}
 }

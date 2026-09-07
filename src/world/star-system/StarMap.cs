@@ -11,6 +11,7 @@ using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Traffic;
+using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
@@ -36,6 +37,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public UnitRegistry UnitRegistry { get; }
 	public ContractRegistry ContractRegistry { get; }
+	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
@@ -49,6 +51,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		IReadOnlyDictionary<string, SpaceRoute> routesById,
 		UnitRegistry unitRegistry,
 		ContractRegistry contractRegistry,
+		StoryObjectiveRegistry storyObjectives,
 		PathfindingTerrain pathfindingTerrain)
 	{
 		Blueprint = blueprint;
@@ -62,6 +65,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		RoutesById = routesById;
 		UnitRegistry = unitRegistry;
 		ContractRegistry = contractRegistry;
+		StoryObjectives = storyObjectives;
 		PathfindingTerrain = pathfindingTerrain;
 	}
 
@@ -80,6 +84,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			RoutesById,
 			UnitRegistry.CloneForFork(),
 			ContractRegistry.CloneForFork(),
+			StoryObjectives.CloneForFork(),
 			PathfindingTerrain);
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)

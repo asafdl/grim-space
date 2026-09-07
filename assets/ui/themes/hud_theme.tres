@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=26 format=3]
+[gd_resource type="Theme" load_steps=31 format=3]
 
 [ext_resource type="FontFile" path="res://assets/ui/fonts/VT323-Regular.ttf" id="1_font"]
 
@@ -318,6 +318,61 @@ content_margin_top = 4
 content_margin_right = 10
 content_margin_bottom = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_banner"]
+bg_color = Color(0.06, 0.08, 0.12, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9, 0.25, 0.35, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 28
+content_margin_top = 14
+content_margin_right = 28
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_story_bar"]
+bg_color = Color(0.1, 0.1, 0.12, 0.92)
+content_margin_left = 56
+content_margin_top = 24
+content_margin_right = 24
+content_margin_bottom = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_tooltip"]
+bg_color = Color(0.02, 0.04, 0.07, 0.82)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 10
+content_margin_top = 6
+content_margin_right = 10
+content_margin_bottom = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_icon_normal"]
+bg_color = Color(0.02, 0.04, 0.07, 0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_icon_hover"]
+bg_color = Color(0.02, 0.04, 0.07, 0.15)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_icon_pressed"]
+bg_color = Color(0.02, 0.04, 0.07, 0.25)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
 [resource]
 default_font = ExtResource("1_font")
 default_font_size = 48
@@ -349,6 +404,9 @@ StatusSuccessPanelContainer/styles/panel = SubResource("StyleBox_status_success"
 StatusWarningPanelContainer/styles/panel = SubResource("StyleBox_status_warning")
 StatusErrorPanelContainer/styles/panel = SubResource("StyleBox_status_error")
 WarningPanelContainer/styles/panel = SubResource("StyleBox_warning")
+BannerPanelContainer/styles/panel = SubResource("StyleBox_banner")
+StoryBarPanelContainer/styles/panel = SubResource("StyleBox_story_bar")
+TooltipPanelContainer/styles/panel = SubResource("StyleBox_tooltip")
 SecondaryButton/styles/normal = SubResource("StyleBox_btn_secondary_normal")
 SecondaryButton/styles/hover = SubResource("StyleBox_btn_secondary_hover")
 SecondaryButton/styles/pressed = SubResource("StyleBox_btn_secondary_pressed")
@@ -412,3 +470,15 @@ BattleInstructionButton/colors/font_hover_color = Color(1, 1, 1, 1)
 BattleInstructionButton/colors/font_pressed_color = Color(1, 1, 1, 1)
 BattleInstructionButton/colors/font_disabled_color = Color(0.65, 0.7, 0.75, 1)
 BattleInstructionButton/font_sizes/font_size = 29
+BannerTitleLabel/colors/font_color = Color(1, 0.85, 0.88, 1)
+BannerTitleLabel/font_sizes/font_size = 62
+SystemMetaLabel/colors/font_color = Color(0.44, 0.51, 0.58, 1)
+SystemMetaLabel/font_sizes/font_size = 29
+TooltipTypeLabel/colors/font_color = Color(0.44, 0.51, 0.58, 1)
+TooltipTypeLabel/font_sizes/font_size = 24
+TooltipNameLabel/colors/font_color = Color(0.79, 0.83, 0.87, 1)
+TooltipNameLabel/font_sizes/font_size = 33
+MapIconButton/styles/normal = SubResource("StyleBox_icon_normal")
+MapIconButton/styles/hover = SubResource("StyleBox_icon_hover")
+MapIconButton/styles/pressed = SubResource("StyleBox_icon_pressed")
+MapIconButton/styles/focus = SubResource("StyleBox_icon_hover")

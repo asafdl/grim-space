@@ -1,6 +1,8 @@
 using Godot;
 using GrimSpace.Core;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -24,6 +26,7 @@ public partial class MapController : Node3D
 	private Button _speedButton = null!;
 	private Button _rebuildButton = null!;
 	private CanvasLayer _uiLayer = null!;
+	private ObjectivesHud _objectivesHud = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -44,12 +47,14 @@ public partial class MapController : Node3D
 		_tooltip = GetNode<PanelContainer>("UI/Tooltip");
 		_typeLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/TypeLabel");
 		_nameLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/NameLabel");
-		_tickLabel = GetNode<Label>("UI/DebugPanel/MarginContainer/HBoxContainer/TickLabel");
-		_pauseButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/PauseButton");
-		_stepButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/StepButton");
-		_speedButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/SpeedButton");
-		_rebuildButton = GetNode<Button>("UI/DebugPanel/MarginContainer/HBoxContainer/RebuildButton");
+		var debugHud = GetNode<DebugHud>("UI/DebugHud");
+		_tickLabel = debugHud.TickLabel;
+		_pauseButton = debugHud.PauseButton;
+		_stepButton = debugHud.StepButton;
+		_speedButton = debugHud.SpeedButton;
+		_rebuildButton = debugHud.RebuildButton;
 		_systemLabel = GetNode<Label>("UI/SystemLabel");
+		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_intentTranslator = new UserIntentTranslator(
@@ -118,6 +123,7 @@ public partial class MapController : Node3D
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
+		UpdateObjectivesHud();
 		_poiFacade.Update();
 
 		if (!_poiFacade.IsStrategic)
@@ -229,6 +235,12 @@ public partial class MapController : Node3D
 	{
 		RunSession.Instance.RegenerateMap();
 		GetTree().ReloadCurrentScene();
+	}
+
+	private void UpdateObjectivesHud()
+	{
+		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
+		_objectivesHud.Sync(objectives);
 	}
 
 	private void UpdateSystemLabel(StarMap world)

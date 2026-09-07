@@ -17,7 +17,9 @@ public sealed partial class ModalHudShell : CanvasLayer
 	private HudHeaderMode _headerMode = HudHeaderMode.Close;
 	private Action? _headerAction;
 	private Action? _backHandler;
+	private Action? _closeHandler;
 	private IReadOnlyList<HudAction> _footerActions = [];
+	private Control _headerRow = null!;
 
 	public event Action? Closed;
 
@@ -43,7 +45,14 @@ public sealed partial class ModalHudShell : CanvasLayer
 	{
 		Visible = false;
 		_backHandler = null;
+		_closeHandler = null;
 		Closed?.Invoke();
+	}
+
+	private void CloseWithHandler()
+	{
+		_closeHandler?.Invoke();
+		Close();
 	}
 
 	public void SetTitle(string title) => _title.Text = title;
@@ -62,6 +71,10 @@ public sealed partial class ModalHudShell : CanvasLayer
 	}
 
 	public void SetBackHandler(Action? handler) => _backHandler = handler;
+
+	public void SetCloseHandler(Action? handler) => _closeHandler = handler;
+
+	public void SetHeaderVisible(bool visible) => _headerRow.Visible = visible;
 
 	public void SetBody(Control content)
 	{
@@ -108,7 +121,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 		if (_backHandler is not null)
 			_backHandler();
 		else
-			Close();
+			CloseWithHandler();
 
 		GetViewport().SetInputAsHandled();
 	}
@@ -133,7 +146,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 			AnchorBottom = 1f,
 			GrowHorizontal = Control.GrowDirection.Both,
 			GrowVertical = Control.GrowDirection.Both,
-			Color = new Color(0f, 0f, 0f, 0.55f),
+			Color = HudStyles.ModalBackdrop,
 		};
 		_root.AddChild(backdrop);
 
@@ -174,7 +187,8 @@ public sealed partial class ModalHudShell : CanvasLayer
 		layout.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		_outer.AddChild(layout);
 
-		layout.AddChild(BuildHeader());
+		_headerRow = BuildHeader();
+		layout.AddChild(_headerRow);
 
 		_bodyScroll = new ScrollContainer
 		{
@@ -244,7 +258,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 	{
 		if (_headerMode == HudHeaderMode.Close)
 		{
-			Close();
+			CloseWithHandler();
 			return;
 		}
 

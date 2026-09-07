@@ -40,3 +40,7 @@ public sealed record HudAction(
 	HudActionKind Kind,
 	Action OnPressed,
 	bool Enabled = true);
+
+public readonly record struct HudBannerView(Control Root, Label Title, Label Subtitle);
+
+public readonly record struct MapHudPanelView(PanelContainer Root, VBoxContainer Body);

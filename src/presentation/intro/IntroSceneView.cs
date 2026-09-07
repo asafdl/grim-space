@@ -56,7 +56,7 @@ public partial class IntroSceneView : Control
 		_textPanel.OffsetRight = -margin;
 		_textPanel.OffsetBottom = -bottomPadding;
 
-		_textPanelStyle ??= DuplicateTextPanelStyle();
+		_textPanelStyle ??= DuplicateStoryBarStyle();
 		if (_textPanelStyle is not null)
 		{
 			_textPanelStyle.ContentMarginLeft = Mathf.RoundToInt(margin * 3.5f);
@@ -75,7 +75,7 @@ public partial class IntroSceneView : Control
 		_next.OffsetBottom = margin + buttonHeight;
 	}
 
-	private StyleBoxFlat? DuplicateTextPanelStyle()
+	private StyleBoxFlat? DuplicateStoryBarStyle()
 	{
 		if (_textPanel.GetThemeStylebox("panel") is not StyleBoxFlat style)
 			return null;

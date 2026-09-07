@@ -7,6 +7,33 @@ public static class HudStyles
 	public const int Margin = 20;
 	public const int HalfMargin = 10;
 	public const int BodyScrollMinHeight = 192;
+	public const string InformativePanelVariation = "InformativeHud";
+	public const string DebugPanelVariation = "DebugHud";
+	public static readonly Color ModalBackdrop = new(0f, 0f, 0f, 0.55f);
+
+	public static string PanelVariation(HudThemeFamily family) =>
+		family switch
+		{
+			HudThemeFamily.Debug => DebugPanelVariation,
+			HudThemeFamily.Informative => InformativePanelVariation,
+			_ => "Shell",
+		};
+
+	public static string HudHeadingVariation(HudThemeFamily family) => "HudHeading";
+
+	public static string EntryTitleVariation(HudThemeFamily family) =>
+		family switch
+		{
+			HudThemeFamily.Debug => "DebugValue",
+			_ => "EntryTitle",
+		};
+
+	public static string EntryBodyVariation(HudThemeFamily family) =>
+		family switch
+		{
+			HudThemeFamily.Debug => "DebugValue",
+			_ => "EntryBody",
+		};
 
 	public static void ApplyTextRole(Label label, HudTextRole role) =>
 		label.ThemeTypeVariation = TextVariation(role);

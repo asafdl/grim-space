@@ -4,13 +4,7 @@
 [ext_resource type="Script" path="res://src/presentation/intro/IntroSceneView.cs" id="2_scene"]
 [ext_resource type="Resource" path="res://assets/story/intro.tres" id="3_story"]
 [ext_resource type="Texture2D" path="res://assets/story/pages/humanity-controls-galaxy.png" id="5_bg"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_text_bar"]
-bg_color = Color(0.1, 0.1, 0.12, 0.92)
-content_margin_left = 56
-content_margin_top = 24
-content_margin_right = 24
-content_margin_bottom = 24
+[ext_resource type="Theme" path="res://assets/ui/themes/theatrical_theme.tres" id="6_theme"]
 
 [node name="Intro" type="Control"]
 layout_mode = 3
@@ -19,6 +13,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("6_theme")
 script = ExtResource("1_intro")
 Story = ExtResource("3_story")
 
@@ -91,7 +86,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBox_text_bar")
+theme_type_variation = &"StoryBar"
 
 [node name="Body" type="Label" parent="Scene/TextPanel"]
 layout_mode = 2
