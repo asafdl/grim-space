@@ -33,7 +33,7 @@ project/assembly_name="grim-space"
 [editor]
 
 movie_writer/movie_file="/Users/asafd/git/grim-space/dist/demo.avi"
-movie_writer/fps=12
+movie_writer/fps=24
 
 [gui]
 
