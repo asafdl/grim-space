@@ -8,7 +8,6 @@ public partial class ObjectivesHud : MarginContainer
 {
 	private const int PanelWidth = 500;
 
-	private Theme _theme = null!;
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
 	private Label _headerCountLabel = null!;
@@ -16,7 +15,6 @@ public partial class ObjectivesHud : MarginContainer
 
 	public override void _Ready()
 	{
-		_theme = HudThemes.Apply(this, HudThemeFamily.Informative);
 		ConfigureChrome();
 		Build();
 	}
@@ -45,7 +43,10 @@ public partial class ObjectivesHud : MarginContainer
 
 	private void Build()
 	{
-		var shell = HudWidgets.CreateObjectivesPanel(_theme);
+		var shell = HudWidgets.CreateInformativeListPanel(
+			"ACTIVE OBJECTIVES",
+			HudStyles.ObjectivesHudPanelType,
+			includeCounter: true);
 		shell.Root.CustomMinimumSize = new Vector2(PanelWidth, 0);
 		AddChild(shell.Root);
 		_headerCountLabel = shell.HeaderBadge!;
@@ -55,16 +56,16 @@ public partial class ObjectivesHud : MarginContainer
 			Text = "No active objectives",
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			ThemeTypeVariation = HudStyles.InformativeItemDescriptionLabelType,
 		};
-		HudThemes.StyleLabel(_emptyLabel, _theme, HudStyles.ObjectiveBodyLabelType);
 		shell.Body.AddChild(_emptyLabel);
 
 		_entriesHost = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			ThemeTypeVariation = HudStyles.InformativeListVBoxType,
 		};
-		_entriesHost.AddThemeConstantOverride("separation", HudStyles.ObjectivesEntryGap);
 		shell.Body.AddChild(_entriesHost);
 	}
 
@@ -87,8 +88,8 @@ public partial class ObjectivesHud : MarginContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = HudStyles.InformativeListItemPanelType,
 		};
-		HudThemes.StylePanel(panel, _theme, HudStyles.ObjectiveEntryPanelType);
 		panel.AddChild(row);
 		return panel;
 	}
@@ -99,42 +100,38 @@ public partial class ObjectivesHud : MarginContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = HudStyles.InformativeListItemHBoxType,
 		};
-		row.AddThemeConstantOverride("separation", 8);
 
-		var indexLabel = new Label
+		row.AddChild(new Label
 		{
 			Text = $"{index:D2}",
 			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		HudThemes.StyleLabel(indexLabel, _theme, HudStyles.ObjectiveIndexLabelType);
-		row.AddChild(indexLabel);
+			ThemeTypeVariation = HudStyles.InformativeItemIndexLabelType,
+		});
 
-		var title = new Label
+		row.AddChild(new Label
 		{
 			Text = objective.Title.ToUpperInvariant(),
 			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		HudThemes.StyleLabel(title, _theme, HudStyles.ObjectiveTitleLabelType);
-		row.AddChild(title);
+			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
+		});
 
-		var separator = new Label
+		row.AddChild(new Label
 		{
 			Text = "//",
 			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		HudThemes.StyleLabel(separator, _theme, HudStyles.ObjectiveSeparatorLabelType);
-		row.AddChild(separator);
+			ThemeTypeVariation = HudStyles.InformativeItemSeparatorLabelType,
+		});
 
-		var description = new Label
+		row.AddChild(new Label
 		{
 			Text = objective.Summary,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-		};
-		HudThemes.StyleLabel(description, _theme, HudStyles.ObjectiveBodyLabelType);
-		row.AddChild(description);
+			ThemeTypeVariation = HudStyles.InformativeItemDescriptionLabelType,
+		});
 
 		return row;
 	}

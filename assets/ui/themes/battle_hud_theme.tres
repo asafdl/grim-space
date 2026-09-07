@@ -1,6 +1,8 @@
-[gd_resource type="Theme" load_steps=31 format=3]
+[gd_resource type="Theme" load_steps=33 format=3]
 
 [ext_resource type="FontFile" path="res://assets/ui/fonts/VT323-Regular.ttf" id="1_font"]
+[ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-Medium.ttf" id="2_inter_medium"]
+[ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-SemiBold.ttf" id="3_inter_semibold"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_shell"]
 bg_color = Color(0.02, 0.04, 0.07, 0.95)
@@ -374,8 +376,8 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [resource]
-default_font = ExtResource("1_font")
-default_font_size = 48
+default_font = ExtResource("2_inter_medium")
+default_font_size = 18
 Label/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 TitleLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 TitleLabel/font_sizes/font_size = 87
@@ -438,15 +440,21 @@ DestructiveButton/colors/font_pressed_color = Color(1, 1, 1, 1)
 DestructiveButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
 DestructiveButton/font_sizes/font_size = 44
 TurnLabel/colors/font_color = Color(1, 0.85, 0.88, 1)
+TurnLabel/fonts/font = ExtResource("1_font")
 TurnLabel/font_sizes/font_size = 35
 BattleBannerTitleLabel/colors/font_color = Color(1, 0.85, 0.88, 1)
+BattleBannerTitleLabel/fonts/font = ExtResource("1_font")
 BattleBannerTitleLabel/font_sizes/font_size = 62
+OverlayTitleLabel/fonts/font = ExtResource("1_font")
 OverlayTitleLabel/font_sizes/font_size = 62
+OutcomeTitleLabel/fonts/font = ExtResource("1_font")
 OutcomeTitleLabel/font_sizes/font_size = 78
 OverlayBodyLabel/colors/font_color = Color(0.82, 0.88, 0.95, 1)
+OverlayBodyLabel/fonts/font = ExtResource("1_font")
 OverlayBodyLabel/font_sizes/font_size = 39
-ActionLogHeaderLabel/font_sizes/font_size = 39
-ActionLogBodyLabel/font_sizes/font_size = 35
+ActionLogHeaderLabel/fonts/font = ExtResource("3_inter_semibold")
+ActionLogHeaderLabel/font_sizes/font_size = 16
+ActionLogBodyLabel/font_sizes/font_size = 14
 MicroLabel/colors/font_color = Color(0.9, 0.95, 1, 1)
 MicroLabel/font_sizes/font_size = 23
 BattleChargeLabel/colors/font_color = Color(0.7, 1, 0.8, 1)
@@ -471,6 +479,7 @@ BattleInstructionButton/colors/font_pressed_color = Color(1, 1, 1, 1)
 BattleInstructionButton/colors/font_disabled_color = Color(0.65, 0.7, 0.75, 1)
 BattleInstructionButton/font_sizes/font_size = 29
 BannerTitleLabel/colors/font_color = Color(1, 0.85, 0.88, 1)
+BannerTitleLabel/fonts/font = ExtResource("1_font")
 BannerTitleLabel/font_sizes/font_size = 62
 SystemMetaLabel/colors/font_color = Color(0.44, 0.51, 0.58, 1)
 SystemMetaLabel/font_sizes/font_size = 29
@@ -478,7 +487,18 @@ TooltipTypeLabel/colors/font_color = Color(0.44, 0.51, 0.58, 1)
 TooltipTypeLabel/font_sizes/font_size = 24
 TooltipNameLabel/colors/font_color = Color(0.79, 0.83, 0.87, 1)
 TooltipNameLabel/font_sizes/font_size = 33
-MapIconButton/styles/normal = SubResource("StyleBox_icon_normal")
-MapIconButton/styles/hover = SubResource("StyleBox_icon_hover")
-MapIconButton/styles/pressed = SubResource("StyleBox_icon_pressed")
-MapIconButton/styles/focus = SubResource("StyleBox_icon_hover")
+Turn/base_type = &"Label"
+BattleBannerTitle/base_type = &"Label"
+OverlayTitle/base_type = &"Label"
+OutcomeTitle/base_type = &"Label"
+OverlayBody/base_type = &"Label"
+ActionLogHeader/base_type = &"Label"
+ActionLogBody/base_type = &"Label"
+Micro/base_type = &"Label"
+BattleCharge/base_type = &"Label"
+BattleAp/base_type = &"Label"
+BattleMomentum/base_type = &"Label"
+HealthBarTitle/base_type = &"Label"
+BattleEndTurn/base_type = &"Button"
+BattleUtility/base_type = &"Button"
+BattleInstruction/base_type = &"Button"

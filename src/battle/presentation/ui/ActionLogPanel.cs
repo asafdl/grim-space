@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Presentation.Ui.Hud;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -46,14 +45,13 @@ public sealed partial class ActionLogPanel : PanelContainer
 	private void Build()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
-		HudStyles.SetPanelVariation(this, "Section");
 
 		_margin = new MarginContainer();
 		_margin.MouseFilter = MouseFilterEnum.Ignore;
-		_margin.AddThemeConstantOverride("margin_left", HudStyles.HalfMargin);
-		_margin.AddThemeConstantOverride("margin_right", HudStyles.HalfMargin);
-		_margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
-		_margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
+		_margin.AddThemeConstantOverride("margin_left", 10);
+		_margin.AddThemeConstantOverride("margin_right", 10);
+		_margin.AddThemeConstantOverride("margin_top", 8);
+		_margin.AddThemeConstantOverride("margin_bottom", 8);
 		AddChild(_margin);
 
 		_column = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
@@ -64,8 +62,8 @@ public sealed partial class ActionLogPanel : PanelContainer
 		{
 			Text = BattleHudCopy.ActionLogTitle,
 			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "ActionLogHeader",
 		};
-		HudStyles.ApplyTextRole(_header, HudTextRole.Emphasis);
 		_column.AddChild(_header);
 
 		_scroll = new ScrollContainer
@@ -81,8 +79,8 @@ public sealed partial class ActionLogPanel : PanelContainer
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "ActionLogBody",
 		};
-		HudStyles.ApplyTextRole(_label, HudTextRole.Body);
 		_label.Resized += () => ChaseTail(_chaseTailGeneration);
 		_scroll.AddChild(_label);
 	}

@@ -212,20 +212,15 @@ public static class HudWidgets
 		string sectionTitle,
 		string? panelVariation = null,
 		string? headingVariation = null,
-		int outerPadding = 14,
-		Theme? theme = null)
+		int outerPadding = 14)
 	{
 		var panel = new PanelContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+			ThemeTypeVariation = panelVariation ?? HudStyles.InformativePanelType,
 		};
-		var panelType = panelVariation ?? HudStyles.InformativeHudPanelType;
-		if (theme is not null)
-			HudThemes.StylePanel(panel, theme, panelType);
-		else
-			HudStyles.SetPanelVariation(panel, panelType);
 
 		var column = new VBoxContainer
 		{
@@ -246,8 +241,7 @@ public static class HudWidgets
 		headerPadding.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
 		headerPadding.AddChild(CreateInformativeSectionHeader(
 			sectionTitle,
-			headingVariation ?? HudStyles.HudHeadingLabelType,
-			theme));
+			headingVariation ?? HudStyles.HudHeadingLabelType));
 		column.AddChild(headerPadding);
 
 		var bodyPadding = new MarginContainer
@@ -272,15 +266,18 @@ public static class HudWidgets
 		return new MapHudPanelView(panel, body);
 	}
 
-	public static MapHudPanelView CreateObjectivesPanel(Theme theme)
+	public static MapHudPanelView CreateInformativeListPanel(
+		string sectionTitle,
+		string outerPanelVariation,
+		bool includeCounter = false)
 	{
 		var panel = new PanelContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+			ThemeTypeVariation = outerPanelVariation,
 		};
-		HudThemes.StylePanel(panel, theme, HudStyles.ObjectivesHudPanelType);
 
 		var column = new VBoxContainer
 		{
@@ -295,10 +292,10 @@ public static class HudWidgets
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		headerPadding.AddThemeConstantOverride("margin_left", HudStyles.ObjectivesOuterPadding);
-		headerPadding.AddThemeConstantOverride("margin_right", HudStyles.ObjectivesOuterPadding);
-		headerPadding.AddThemeConstantOverride("margin_top", HudStyles.ObjectivesOuterPadding);
-		headerPadding.AddThemeConstantOverride("margin_bottom", HudStyles.ObjectivesHeaderBottomPadding);
+		headerPadding.AddThemeConstantOverride("margin_left", HudStyles.InformativeListPadding);
+		headerPadding.AddThemeConstantOverride("margin_right", HudStyles.InformativeListPadding);
+		headerPadding.AddThemeConstantOverride("margin_top", HudStyles.InformativeListPadding);
+		headerPadding.AddThemeConstantOverride("margin_bottom", HudStyles.InformativeListHeaderBottomPadding);
 
 		var headerRow = new HBoxContainer
 		{
@@ -308,29 +305,31 @@ public static class HudWidgets
 		headerRow.AddThemeConstantOverride("separation", 8);
 		headerPadding.AddChild(headerRow);
 
-		var heading = new Label
+		headerRow.AddChild(new Label
 		{
-			Text = "ACTIVE OBJECTIVES",
+			Text = sectionTitle.ToUpperInvariant(),
 			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		HudThemes.StyleLabel(heading, theme, HudStyles.ObjectivesHeadingLabelType);
-		headerRow.AddChild(heading);
+			ThemeTypeVariation = HudStyles.InformativeSectionTitleLabelType,
+		});
 
-		var separator = new Label
+		Label? counterLabel = null;
+		if (includeCounter)
 		{
-			Text = "//",
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		HudThemes.StyleLabel(separator, theme, HudStyles.ObjectiveSeparatorLabelType);
-		headerRow.AddChild(separator);
+			headerRow.AddChild(new Label
+			{
+				Text = "//",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				ThemeTypeVariation = HudStyles.InformativeItemSeparatorLabelType,
+			});
 
-		var countLabel = new Label
-		{
-			Text = "00",
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		HudThemes.StyleLabel(countLabel, theme, HudStyles.ObjectiveIndexLabelType);
-		headerRow.AddChild(countLabel);
+			counterLabel = new Label
+			{
+				Text = "00",
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				ThemeTypeVariation = HudStyles.InformativeCounterLabelType,
+			};
+			headerRow.AddChild(counterLabel);
+		}
 
 		column.AddChild(headerPadding);
 
@@ -339,8 +338,8 @@ public static class HudWidgets
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		dividerPadding.AddThemeConstantOverride("margin_left", HudStyles.ObjectivesOuterPadding);
-		dividerPadding.AddThemeConstantOverride("margin_right", HudStyles.ObjectivesOuterPadding);
+		dividerPadding.AddThemeConstantOverride("margin_left", HudStyles.InformativeListPadding);
+		dividerPadding.AddThemeConstantOverride("margin_right", HudStyles.InformativeListPadding);
 		dividerPadding.AddChild(CreateInformativeHairline());
 		column.AddChild(dividerPadding);
 
@@ -349,27 +348,27 @@ public static class HudWidgets
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		bodyPadding.AddThemeConstantOverride("margin_left", HudStyles.ObjectivesOuterPadding);
-		bodyPadding.AddThemeConstantOverride("margin_right", HudStyles.ObjectivesOuterPadding);
+		bodyPadding.AddThemeConstantOverride("margin_left", HudStyles.InformativeListPadding);
+		bodyPadding.AddThemeConstantOverride("margin_right", HudStyles.InformativeListPadding);
 		bodyPadding.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
-		bodyPadding.AddThemeConstantOverride("margin_bottom", HudStyles.ObjectivesOuterPadding);
+		bodyPadding.AddThemeConstantOverride("margin_bottom", HudStyles.InformativeListPadding);
 		column.AddChild(bodyPadding);
 
 		var body = new VBoxContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = HudStyles.InformativeListVBoxType,
 		};
 		body.AddThemeConstantOverride("separation", 0);
 		bodyPadding.AddChild(body);
 
-		return new MapHudPanelView(panel, body, countLabel);
+		return new MapHudPanelView(panel, body, counterLabel);
 	}
 
 	private static Control CreateInformativeSectionHeader(
 		string sectionTitle,
-		string headingThemeType,
-		Theme? theme)
+		string headingThemeType)
 	{
 		var row = new HBoxContainer
 		{
@@ -391,11 +390,8 @@ public static class HudWidgets
 			Text = sectionTitle.ToUpperInvariant(),
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			ThemeTypeVariation = headingThemeType,
 		};
-		if (theme is not null)
-			HudThemes.StyleLabel(heading, theme, headingThemeType);
-		else
-			heading.ThemeTypeVariation = headingThemeType;
 		row.AddChild(heading);
 
 		return row;

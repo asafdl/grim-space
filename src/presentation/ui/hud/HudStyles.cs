@@ -7,22 +7,25 @@ public static class HudStyles
 	public const int Margin = 20;
 	public const int HalfMargin = 10;
 	public const int BodyScrollMinHeight = 192;
-	public const string InformativeHudPanelType = "InformativeHudPanelContainer";
+	public const int InformativeListPadding = 22;
+	public const int InformativeListHeaderBottomPadding = 14;
+
+	public const string InformativePanelType = "InformativePanelContainer";
 	public const string ObjectivesHudPanelType = "ObjectivesHudPanelContainer";
-	public const string ObjectiveEntryPanelType = "ObjectiveEntryPanelContainer";
-	public const string ObjectivesHeadingLabelType = "ObjectivesHeadingLabel";
-	public const string ObjectiveIndexLabelType = "ObjectiveIndexLabel";
-	public const string ObjectiveSeparatorLabelType = "ObjectiveSeparatorLabel";
-	public const string ObjectiveTitleLabelType = "ObjectiveTitleLabel";
-	public const string ObjectiveBodyLabelType = "ObjectiveBodyLabel";
+	public const string InformativeListVBoxType = "InformativeListVBoxContainer";
+	public const string InformativeListItemPanelType = "InformativeListItemPanelContainer";
+	public const string InformativeListItemHBoxType = "InformativeListItemHBoxContainer";
+	public const string InformativeSectionTitleLabelType = "InformativeSectionTitleLabel";
+	public const string InformativeCounterLabelType = "InformativeCounterLabel";
+	public const string InformativeItemIndexLabelType = "InformativeItemIndexLabel";
+	public const string InformativeItemTitleLabelType = "InformativeItemTitleLabel";
+	public const string InformativeItemSeparatorLabelType = "InformativeItemSeparatorLabel";
+	public const string InformativeItemDescriptionLabelType = "InformativeItemDescriptionLabel";
+
 	public const string HudHeadingLabelType = "HudHeadingLabel";
 	public const string DebugHudPanelType = "DebugHudPanelContainer";
 	public const int SectionAccentWidth = 3;
-	public const int InformativeEntryGap = 14;
-	public const int ObjectivesOuterPadding = 22;
-	public const int ObjectivesHeaderBottomPadding = 14;
-	public const int ObjectivesEntryGap = 12;
-	public const int ObjectivesEntryInnerPadding = 12;
+
 	public static readonly Color ModalBackdrop = new(0f, 0f, 0f, 0.55f);
 	public static readonly Color AccentCyan = new(0.55f, 0.78f, 1f);
 	public static readonly Color InformativeHairline = new(0.22f, 0.32f, 0.42f, 0.45f);
@@ -31,7 +34,7 @@ public static class HudStyles
 		family switch
 		{
 			HudThemeFamily.Debug => DebugHudPanelType,
-			HudThemeFamily.Informative => InformativeHudPanelType,
+			HudThemeFamily.Informative => InformativePanelType,
 			_ => "ShellPanelContainer",
 		};
 

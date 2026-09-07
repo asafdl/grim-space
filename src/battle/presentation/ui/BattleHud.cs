@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Presentation.Ui.Hud;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -187,6 +188,14 @@ public partial class BattleHud : Node
 		PauseMenu.RestartRequested += () => RestartRequested?.Invoke();
 		PauseMenu.MainMenuRequested += () => MainMenuRequested?.Invoke();
 		AddChild(PauseMenu);
+
+		var battleTheme = HudThemes.Load(HudThemeFamily.Battle);
+		topMargin.Theme = battleTheme;
+		margin.Theme = battleTheme;
+		_actionLogHost.Theme = battleTheme;
+		IntroOverlay.ApplyTheme(battleTheme);
+		OutcomeOverlay.ApplyTheme(battleTheme);
+		PauseMenu.ApplyTheme(battleTheme);
 	}
 
 	public void TogglePauseMenu() => PauseMenu.Visible = !PauseMenu.Visible;

@@ -39,7 +39,7 @@ movie_writer/fps=24
 [gui]
 
 timers/tooltip_delay_sec=0.25
-theme/custom="res://assets/ui/themes/hud_theme.tres"
+theme/custom="res://assets/ui/themes/informative_theme.tres"
 
 [physics]
 
