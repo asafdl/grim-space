@@ -23,7 +23,7 @@ public sealed class PlayerFleetMovementTests
 
 		var result = QueueMove(orchestrator, destination);
 
-		Assert.IsType<MoveCommandResult.Queued>(result);
+		Assert.IsType<CourseCommandResult.Queued>(result);
 		Assert.Equal(EPhase.Docked, player.State.Phase);
 		Assert.False(player.State.Journey.IsActive);
 		Assert.Null(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).CachedPath);
@@ -59,7 +59,7 @@ public sealed class PlayerFleetMovementTests
 
 		var result = QueueMove(orchestrator, new Coord(999, 0, 999));
 
-		Assert.IsType<MoveCommandResult.Unreachable>(result);
+		Assert.IsType<CourseCommandResult.Unreachable>(result);
 		Assert.Equal(EPhase.Docked, player.State.Phase);
 		Assert.False(player.State.Journey.IsActive);
 		Assert.Null(orchestrator.PlayerAgent!.PendingMove);
@@ -251,7 +251,7 @@ public sealed class PlayerFleetMovementTests
 
 		var result = QueueMove(orchestrator, new Coord(999, 0, 999));
 
-		Assert.IsType<MoveCommandResult.Unreachable>(result);
+		Assert.IsType<CourseCommandResult.Unreachable>(result);
 		Assert.Equal(journeyId, player.State.Journey.JourneyId);
 		Assert.Same(cachedPath, runtime.CachedPath);
 		Assert.Equal(EPhase.InTransit, player.State.Phase);
@@ -293,7 +293,7 @@ public sealed class PlayerFleetMovementTests
 			propertyNames);
 	}
 
-	private static MoveCommandResult QueueMove(StarSystemOrchestrator orchestrator, Coord destination) =>
+	private static CourseCommandResult QueueMove(StarSystemOrchestrator orchestrator, Coord destination) =>
 		orchestrator.PlayerAgent!.TryQueueMove(destination);
 
 	private static StarSystemOrchestrator CreatePlayerOrchestrator(int seed) =>

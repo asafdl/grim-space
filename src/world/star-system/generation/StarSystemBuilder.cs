@@ -97,6 +97,7 @@ public static class StarSystemBuilder
 				placement.DockedAtDockId,
 				default,
 				UnitDefaults.SpeedPerTick(intent.Type),
+				UnitDefaults.ContactRadius(intent.Type),
 				choreDockIds);
 			var unit = Factory.Create(spawn);
 			ApplySpawnPlacement(unit.State, placement);

@@ -1,9 +1,12 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Units;
 
@@ -12,6 +15,7 @@ namespace GrimSpace.World.StarSystem;
 public sealed class StarSystemOrchestrator : IDisposable
 {
 	private readonly Engine<StarMap, ActorRuntime> _engine;
+	private readonly ContactMonitor _contactMonitor;
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly IReadOnlyList<TrafficExecutionAgent> _trafficAgents;
 	private ESimMode _simMode = ESimMode.Running;
@@ -21,14 +25,17 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private StarSystemOrchestrator(
 		Engine<StarMap, ActorRuntime> engine,
+		ContactMonitor contactMonitor,
 		string? playerId,
 		StarMapPlayerExecutionAgent? playerAgent,
 		IReadOnlyList<TrafficExecutionAgent> trafficAgents)
 	{
 		_engine = engine;
+		_contactMonitor = contactMonitor;
 		PlayerId = playerId;
 		_playerAgent = playerAgent;
 		_trafficAgents = trafficAgents;
+		_contactMonitor.ContactDetected += OnContactDetected;
 	}
 
 	public StarMap Map => _engine.World;
@@ -46,6 +53,12 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public bool IsStepped => _simMode == ESimMode.Stepped;
 
 	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
+
+	public Coord CommittedPositionOf(string unitId, float tickFraction = 0f) =>
+		_contactMonitor.CommittedPositionOf(unitId, tickFraction);
+
+	public bool AreInContact(string firstUnitId, string secondUnitId) =>
+		_contactMonitor.AreInContact(firstUnitId, secondUnitId);
 
 	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
 
@@ -80,6 +93,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
+		var contactMonitor = new ContactMonitor(engine, pathfinder);
 		StarMapPlayerExecutionAgent? playerAgent = null;
 		if (playerId is not null)
 		{
@@ -87,6 +101,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 				engine.CreateSimulation,
 				() => engine.World,
 				unitId => engine.ActorRuntimes.For(unitId),
+				unitId => contactMonitor.CommittedPositionOf(unitId),
 				pathfinder);
 		}
 
@@ -100,6 +115,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		var orchestrator = new StarSystemOrchestrator(
 			engine,
+			contactMonitor,
 			playerId,
 			playerAgent,
 			trafficAgents);
@@ -118,6 +134,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 				orchestrator.RegisterActiveUnitChanged);
 		}
 
+		contactMonitor.ReconstructFrom(map);
 		orchestrator.ApplySimMode(ESimMode.Running);
 		return orchestrator;
 	}
@@ -131,6 +148,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			tradeHubDock.Id,
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+			UnitDefaults.ContactRadius(EType.PlayerFleet),
 			[])));
 	}
 
@@ -152,7 +170,20 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (_simMode != ESimMode.Interactive)
 			return;
 
+		_contactMonitor.OnExitInteractive();
 		ApplySimMode(_modeBeforeInteractive);
+	}
+
+	public void DismissEngagement()
+	{
+		if (PlayerId is { } playerId
+			&& Map.StateOf(playerId).EngagementTargetUnitId is not null)
+		{
+			_engine.Commit(new ClearEngagementIntentAction(playerId, playerId));
+			_contactMonitor.OnHuntCleared(playerId);
+		}
+
+		ExitInteractive();
 	}
 
 	public void TogglePause()
@@ -201,6 +232,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (_playerAgent is not null && PlayerId is not null)
 			SetActive(PlayerId);
 
+		_contactMonitor.AdvanceTick(Tick, _simMode == ESimMode.Interactive);
 		return history;
 	}
 
@@ -264,8 +296,21 @@ public sealed class StarSystemOrchestrator : IDisposable
 			return;
 
 		var playerActions = _playerAgent.TakeCompletedActions();
-		if (playerActions.Count > 0)
-			_engine.Commit([..playerActions]);
+		if (playerActions.Count == 0)
+			return;
+
+		_engine.Commit([..playerActions]);
+		foreach (var action in playerActions)
+		{
+			if (action is HuntUnitAction hunt)
+				_contactMonitor.OnHuntCommitted(hunt.ActorId, hunt.TargetUnitId);
+		}
+	}
+
+	private void OnContactDetected()
+	{
+		EnterInteractive();
+		ResetPlayerAgentPlanning();
 	}
 
 	private void ResetPlayerAgentPlanning()

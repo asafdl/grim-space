@@ -75,9 +75,9 @@ public partial class CourseView : Node3D
 
 	public void Sync(StarSystemOrchestrator orchestrator, bool unreachableFlash)
 	{
-		if (orchestrator.PlayerAgent?.PendingMove is { } pendingMove)
+		if (orchestrator.PlayerAgent?.PendingCourse is { } pendingCourse)
 		{
-			ShowCourse(pendingMove.Path, pendingMove.Destination, journeyId: 0, unreachableFlash);
+			ShowCourse(pendingCourse.Path, pendingCourse.Destination, journeyId: 0, unreachableFlash);
 			return;
 		}
 

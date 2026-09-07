@@ -16,4 +16,12 @@ public static class UnitDefaults
 			EType.Patrol => 6,
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, "No default speed for unit type."),
 		};
+
+	public static double ContactRadius(EType type) =>
+		type switch
+		{
+			EType.PlayerFleet => 6,
+			EType.PirateFleet => 6,
+			_ => 4,
+		};
 }

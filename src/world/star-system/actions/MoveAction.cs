@@ -31,6 +31,7 @@ public sealed class MoveDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is MoveAction move
 		&& world.UnitRegistry.TryGet(move.UnitId, out var unit)
+		&& unit.State.EngagedWithUnitIds.Count == 0
 		&& (unit.State.IsReadyToDepart
 			|| unit.State.Phase == EPhase.InTransit
 			|| unit.State is { ChoreDockIds.Count: 0, Phase: EPhase.Docked }
@@ -43,28 +44,23 @@ public sealed class MoveDef
 	{
 		var move = (MoveAction)action;
 		var unit = world.UnitRegistry.UnitOf(move.UnitId);
-		var state = unit.State;
 		var origin = ResolveOrigin(world, unit, runtime);
-		var journeyId = runtime.NextJourneyId();
-		var startTick = world.Timeline.Clock.Current;
-		var durationTicks = move.Path.DurationTicks(state.SpeedPerTick);
-		var completion = new CompleteMoveAction(move.UnitId, move.UnitId, journeyId);
 
 		return
 		[
 			CancelPendingMoveEffect.Instance,
-			UpdateLocationEffect.BeginJourney(
+			new ClearEngagementIntentEffect(move.UnitId),
+			..MovementEffects.BeginJourney(
 				move.UnitId,
-				journeyId,
+				runtime,
+				world,
 				origin,
 				move.Destination,
-				startTick,
 				move.Path),
-			new ScheduleMoveCompletionEffect(durationTicks, completion),
 		];
 	}
 
-	private static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime)
+	internal static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime)
 	{
 		var state = unit.State;
 		if (state.Phase == EPhase.InTransit)

@@ -17,10 +17,12 @@ internal static class StarSystemTestHarness
 	public static StarSystemOrchestrator CreatePlayerOrchestrator(
 		string playerFleetUnitId,
 		int seed = 0,
-		IPathfinder? pathfinder = null)
+		IPathfinder? pathfinder = null,
+		StarMap? map = null)
 	{
-		var map = StarMap.CreateDevDefault(seed);
-		AddPlayerFleet(map, playerFleetUnitId);
+		map ??= StarMap.CreateDevDefault(seed);
+		if (map.UnitRegistry.All.All(unit => unit.State.Id != playerFleetUnitId))
+			AddPlayerFleet(map, playerFleetUnitId);
 		return StarSystemOrchestrator.FromMap(
 			map,
 			pathfinder ?? new StraightLinePathfinder(),
@@ -36,6 +38,7 @@ internal static class StarSystemTestHarness
 			tradeHubDock.Id,
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+			UnitDefaults.ContactRadius(EType.PlayerFleet),
 			[])));
 	}
 

@@ -27,6 +27,7 @@ public partial class MapController : Node3D
 	private Button _rebuildButton = null!;
 	private CanvasLayer _uiLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
+	private EngagementHudOverlay _engagementHud = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -57,13 +58,21 @@ public partial class MapController : Node3D
 		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
+		_engagementHud = new EngagementHudOverlay();
+		_engagementHud.Dismissed += () => _orchestrator.DismissEngagement();
+		_uiLayer.AddChild(_engagementHud);
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
 			() => GetViewport().GetMousePosition(),
 			() => _orchestrator.Map.Width,
 			() => _orchestrator.Map.Height,
-			picked => _view.ResolveMoveDestination(picked));
+			picked => _view.ResolveMoveDestination(picked),
+			point =>
+			{
+				var tickFraction = _tickAccumulator / SecondsPerTick;
+				return _units.UnitAt(_orchestrator, point, tickFraction)?.UnitId;
+			});
 		_pauseButton.Pressed += () => _orchestrator.TogglePause();
 		_stepButton.Pressed += () =>
 		{
@@ -125,6 +134,7 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
+		UpdateEngagementHud();
 		_poiFacade.Update();
 
 		if (!_poiFacade.IsStrategic)
@@ -144,6 +154,12 @@ public partial class MapController : Node3D
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_engagementHud.TryHandleInput(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (_poiFacade.FilterInput(@event))
 		{
 			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -202,11 +218,33 @@ public partial class MapController : Node3D
 	private void AdvanceSimulation(double delta)
 	{
 		_tickAccumulator += (float)delta * SpeedOptions[_speedIndex];
-		while (_tickAccumulator >= SecondsPerTick)
+		while (_tickAccumulator >= SecondsPerTick && _orchestrator.IsRunning)
 		{
 			_tickAccumulator -= SecondsPerTick;
 			_orchestrator.AdvanceTick();
+			if (!_orchestrator.IsRunning)
+			{
+				_tickAccumulator = 0f;
+				break;
+			}
 		}
+	}
+
+	private void UpdateEngagementHud()
+	{
+		if (_orchestrator.SimMode != ESimMode.Interactive
+			|| _orchestrator.PlayerId is not { } playerId
+			|| !_orchestrator.Map.UnitRegistry.TryGet(playerId, out var player)
+			|| player.State.EngagementTargetUnitId is not { } targetId)
+		{
+			if (_engagementHud.IsOpen)
+				_engagementHud.Close();
+
+			return;
+		}
+
+		if (!_engagementHud.IsOpen)
+			_engagementHud.Open(_orchestrator.Map, targetId);
 	}
 
 	private void OnFacilityEntered(FacilityEntry entry)

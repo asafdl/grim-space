@@ -18,9 +18,14 @@ public sealed class State
 	public IReadOnlyList<string> ChoreDockIds { get; init; } = [];
 	public int ChoreIndex { get; set; }
 	public double SpeedPerTick { get; init; }
+	public double ContactRadius { get; init; }
 	public int WorkStartTick { get; set; }
 	internal string? SpawnWorkPoiId { get; set; }
 	internal int SpawnWorkRemainingTicks { get; set; }
+	public string? EngagementTargetUnitId { get; internal set; }
+	public string? HuntedByUnitId { get; internal set; }
+	private readonly HashSet<string> _engagedWithUnitIds = [];
+	public IReadOnlyCollection<string> EngagedWithUnitIds => _engagedWithUnitIds;
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -111,10 +116,15 @@ public sealed class State
 			ChoreDockIds = ChoreDockIds,
 			ChoreIndex = ChoreIndex,
 			SpeedPerTick = SpeedPerTick,
+			ContactRadius = ContactRadius,
 			WorkStartTick = WorkStartTick,
 			SpawnWorkPoiId = SpawnWorkPoiId,
 			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
 		};
+		clone.EngagementTargetUnitId = EngagementTargetUnitId;
+		clone.HuntedByUnitId = HuntedByUnitId;
+		foreach (var engagedUnitId in _engagedWithUnitIds)
+			clone._engagedWithUnitIds.Add(engagedUnitId);
 		clone.Journey.JourneyId = Journey.JourneyId;
 		clone.Journey.Origin = Journey.Origin;
 		clone.Journey.Destination = Journey.Destination;
@@ -132,6 +142,7 @@ public sealed class State
 			DockedAtDockId = spawn.DockedAtDockId,
 			IdleCoord = spawn.IdleCoord,
 			SpeedPerTick = spawn.SpeedPerTick,
+			ContactRadius = spawn.ContactRadius,
 			ChoreDockIds = spawn.ChoreDockIds,
 		};
 }
