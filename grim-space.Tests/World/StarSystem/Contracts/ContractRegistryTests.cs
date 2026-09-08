@@ -1,15 +1,16 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class ContractRegistryTests
+public sealed class ContractRegistryTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void AvailableForPoi_ReturnsOnlyOfferedContractsForIssuer()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var issuerPoiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
 		var contract = map.ContractRegistry.AvailableForPoi(issuerPoiId).Single();
 
@@ -20,7 +21,7 @@ public sealed class ContractRegistryTests
 	[Fact]
 	public void Reject_ExcludesContractFromOffered()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 
 		map.ContractRegistry.Activate(CreateRejectedState(contractId));
@@ -33,7 +34,7 @@ public sealed class ContractRegistryTests
 	[Fact]
 	public void IsOffered_DistinguishesOfferedFromActive()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.UnitRegistry.Ids.First();
 
@@ -52,7 +53,7 @@ public sealed class ContractRegistryTests
 	[Fact]
 	public void Fork_PreservesAcceptedContractState()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.UnitRegistry.Ids.First();
 		map.ContractRegistry.Activate(CreateActiveState(map, contractId, holderUnitId, 1));

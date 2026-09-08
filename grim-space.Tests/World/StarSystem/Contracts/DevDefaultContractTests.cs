@@ -3,15 +3,16 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class DevDefaultContractTests
+public sealed class DevDefaultContractTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void CreateDevDefault_SeedsOfferedContractsWithValidShape()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var plan = map.Blueprint.SupplyPlan;
 		var offered = map.ContractRegistry.Offered.ToList();
 
@@ -36,7 +37,7 @@ public sealed class DevDefaultContractTests
 	[Fact]
 	public void CreateDevDefault_BriefingContainsSearchAreaDescription()
 	{
-		var map = StarMap.CreateDevDefault(7);
+		var map = maps.Fresh(7);
 		var contract = map.ContractRegistry.Offered.First();
 		var hunt = (HuntObjective)contract.Objective;
 

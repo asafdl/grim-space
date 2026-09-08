@@ -5,16 +5,17 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Engine;
 
-public sealed class ExecutionAgentTests
+public sealed class ExecutionAgentTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public async Task WorldUpdatedAfterPublishRepublishesWhenCanWork()
 	{
 		var agent = new TestExecutionAgent();
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(u => u.State.IsReadyToDepart);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
@@ -47,7 +48,7 @@ public sealed class ExecutionAgentTests
 	public async Task FailSurfacesThroughSink()
 	{
 		var agent = new TestExecutionAgent();
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(u => u.State.IsReadyToDepart);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);

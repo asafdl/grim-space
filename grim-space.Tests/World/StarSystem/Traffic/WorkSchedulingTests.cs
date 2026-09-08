@@ -4,15 +4,16 @@ using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
-public sealed class WorkSchedulingTests
+public sealed class WorkSchedulingTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void ArrivalAtIdlePoi_StartsWorkImmediately()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var unit = orchestrator.Map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 
 		while (unit.State.Phase != EPhase.Working && orchestrator.Tick < 500)
@@ -25,7 +26,7 @@ public sealed class WorkSchedulingTests
 	[Fact]
 	public void MultipleArrivals_ReserveNonOverlappingFifoWindows()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
 		var units = map.UnitRegistry.All
@@ -44,7 +45,7 @@ public sealed class WorkSchedulingTests
 	[Fact]
 	public void BeginAndCompleteWork_OccurAtScheduledTicks()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		if (map.Timeline.Clock.Current == 0)
 			map.Timeline.Clock.Set(1);
 
@@ -94,7 +95,7 @@ public sealed class WorkSchedulingTests
 	[Fact]
 	public void Fork_PreservesReservationsAndPendingWorkActions()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		orchestrator.AdvanceTick();
 
 		var originalPoi = orchestrator.Map.PointsOfInterest

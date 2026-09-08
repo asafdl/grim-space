@@ -2,10 +2,11 @@ using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Areas;
 
-public sealed class AreaPickerTests
+public sealed class AreaPickerTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void Pick_NullMap_Throws()
@@ -17,7 +18,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_NullGroups_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentNullException>(() =>
 			AreaPicker.Pick(map, null!, [EAreaDistance.Low], 2));
 	}
@@ -25,7 +26,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_NullDistances_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentNullException>(() =>
 			AreaPicker.Pick(map, [["poi-refinery", "poi-storage"]], null!, 2));
 	}
@@ -33,7 +34,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_InvalidLandmarksToPick_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [["poi-refinery", "poi-storage"]], [EAreaDistance.Low], 0));
 	}
@@ -41,7 +42,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_UnsupportedLandmarksToPick_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [["poi-refinery", "poi-storage"]], [EAreaDistance.Low], 1));
 	}
@@ -49,7 +50,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_EmptyGroups_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [], [EAreaDistance.Low], 2));
 	}
@@ -57,7 +58,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_EmptyDistances_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [["poi-refinery", "poi-storage"]], [], 2));
 	}
@@ -65,7 +66,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_EmptyInnerGroup_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [[]], [EAreaDistance.Low], 2));
 	}
@@ -73,7 +74,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_UndersizedGroup_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		var plan = map.Blueprint.SupplyPlan;
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [[plan.RefineryPoiId]], [EAreaDistance.Low], 2));
@@ -82,7 +83,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_UnknownLandmark_Throws()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(map, [["poi-missing", "poi-storage"]], [EAreaDistance.Low], 2));
 	}
@@ -90,7 +91,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_UnroutedLandmarkPair_StillPlacesRelativeToLandmarkAxis()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Template(42);
 		var plan = map.Blueprint.SupplyPlan;
 		var result = AreaPicker.Pick(
 			map,
@@ -106,7 +107,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_ExplicitPairGroup_ReturnsValidLandmarks()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Template(42);
 		var plan = map.Blueprint.SupplyPlan;
 		var group = new[] { plan.RefineryPoiId, plan.StoragePoiId };
 
@@ -122,7 +123,7 @@ public sealed class AreaPickerTests
 	[Fact]
 	public void Pick_MalformedGroupInCollection_ThrowsBeforeSampling()
 	{
-		var map = StarMap.CreateDevDefault(0);
+		var map = maps.Template(0);
 		var plan = map.Blueprint.SupplyPlan;
 		Assert.Throws<ArgumentException>(() =>
 			AreaPicker.Pick(
@@ -143,7 +144,7 @@ public sealed class AreaPickerTests
 
 		foreach (var seed in seeds)
 		{
-			var map = StarMap.CreateDevDefault(seed);
+			var map = maps.Template(seed);
 			var plan = map.Blueprint.SupplyPlan;
 			var group = new[] { plan.RefineryPoiId, plan.StoragePoiId };
 			var result = AreaPicker.Pick(map, [group], [distance], 2, distanceConfig);

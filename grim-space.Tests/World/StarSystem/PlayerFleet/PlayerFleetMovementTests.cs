@@ -8,10 +8,11 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.PlayerFleet;
 
-public sealed class PlayerFleetMovementTests
+public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void OrderMove_QueuesMoveWithoutMutatingLiveMap()
@@ -49,7 +50,7 @@ public sealed class PlayerFleetMovementTests
 	[Fact]
 	public void OrderMove_Unreachable_DoesNotQueue()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var orchestrator = StarSystemOrchestrator.FromMap(
 			map,
@@ -234,7 +235,7 @@ public sealed class PlayerFleetMovementTests
 	[Fact]
 	public void OrderMove_Unreachable_PreservesActiveJourney()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var orchestrator = StarSystemOrchestrator.FromMap(
 			map,
@@ -296,8 +297,8 @@ public sealed class PlayerFleetMovementTests
 	private static CourseCommandResult QueueMove(StarSystemOrchestrator orchestrator, Coord destination) =>
 		orchestrator.PlayerAgent!.TryQueueMove(destination);
 
-	private static StarSystemOrchestrator CreatePlayerOrchestrator(int seed) =>
-		StarSystemTestHarness.CreatePlayerOrchestrator(RunState.PlayerFleetUnitId, seed);
+	private StarSystemOrchestrator CreatePlayerOrchestrator(int seed) =>
+		StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, seed);
 
 	private sealed class UnreachablePathfinder : IPathfinder
 	{

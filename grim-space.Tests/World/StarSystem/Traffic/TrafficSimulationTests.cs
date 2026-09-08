@@ -4,15 +4,16 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
-public sealed class TrafficSimulationTests
+public sealed class TrafficSimulationTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void AdvanceTick_DepartsDockedUnitWithResolvedPath()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var map = orchestrator.Map;
 		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart);
 		var runtime = orchestrator.RuntimeFor(readyUnit.State.Id);
@@ -36,7 +37,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTick_AdvancesJourneyProgressWhileInTransit()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var unit = orchestrator.Map.UnitRegistry.All
 			.First(candidate => candidate.State.Phase == EPhase.InTransit
 				|| candidate.State.IsReadyToDepart);
@@ -58,7 +59,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTicks_MinerVisitsExtractionAndRefinery()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var map = orchestrator.Map;
 		var extractionDock = DockForRole(map, EPoiLogicalRole.Extraction).Id;
 		var refineryDock = DockForRole(map, EPoiLogicalRole.Refinery).Id;
@@ -79,7 +80,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTicks_FreighterVisitsStorageAndExit()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var map = orchestrator.Map;
 		var freighter = FirstUnitOfType(map, EType.ExportFreighter);
 		var storageDock = DockForRole(map, EPoiLogicalRole.Storage).Id;
@@ -100,7 +101,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTicks_ComplianceVesselVisitsOperationalPoisAndReturnsHome()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var map = orchestrator.Map;
 		var compliance = FirstUnitOfType(map, EType.ComplianceVessel);
 		var adminDock = DockForRole(map, EPoiLogicalRole.Administrative).Id;
@@ -127,7 +128,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void AdvanceTicks_200TickLoop_DoesNotThrow()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(7);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 7);
 
 		orchestrator.AdvanceTicks(200);
 
@@ -137,7 +138,7 @@ public sealed class TrafficSimulationTests
 	[Fact]
 	public void Fork_KeepsTrafficStateIndependent()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(11);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 11);
 		orchestrator.AdvanceTicks(25);
 
 		var forkedMap = orchestrator.Map.Fork();

@@ -2,10 +2,11 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class UnitEngagementStateTests
+public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void FromSpawn_SetsContactRadiusFromSpawn()
@@ -34,7 +35,7 @@ public sealed class UnitEngagementStateTests
 	[Fact]
 	public void SetEngagementIntentEffect_SetsBidirectionalHuntLink()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
 		var hunter = map.UnitRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
@@ -48,7 +49,7 @@ public sealed class UnitEngagementStateTests
 	[Fact]
 	public void ClearEngagementIntentEffect_ClearsBidirectionalHuntLink()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
 		var hunter = map.UnitRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
@@ -63,7 +64,7 @@ public sealed class UnitEngagementStateTests
 	[Fact]
 	public void SetEngagementIntentEffect_ReplaceTarget_ClearsPreviousTargetBackReference()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
 		var hunter = map.UnitRegistry.Ids.First();
 		var firstTarget = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
@@ -80,7 +81,7 @@ public sealed class UnitEngagementStateTests
 	[Fact]
 	public void Clone_CopiesEngagementFieldsIndependently()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
 		var hunter = map.UnitRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));

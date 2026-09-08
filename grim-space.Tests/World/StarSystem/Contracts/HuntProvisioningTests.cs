@@ -9,15 +9,16 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class HuntProvisioningTests
+public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void OfferedContractsSpawnNothing()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var initialCount = map.UnitRegistry.All.Count();
 
 		Assert.Single(map.ContractRegistry.Offered);
@@ -43,7 +44,7 @@ public sealed class HuntProvisioningTests
 	[Fact]
 	public void AcceptMultiGroupMultiCount_ProvisionsExpectedFleetTotal()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var searchArea = CreateSyntheticSearchArea(map);
 		var objective = new HuntObjective(
 		[
@@ -68,7 +69,7 @@ public sealed class HuntProvisioningTests
 	[Fact]
 	public void ProvisioningDeterministic_PlanIsStableForSameInputs()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contract = map.ContractRegistry.Offered.First();
 		var hunt = (HuntObjective)contract.Objective;
 
@@ -123,7 +124,7 @@ public sealed class HuntProvisioningTests
 	[Fact]
 	public void DuplicateUnitIdFailsBeforeMutation()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unitId = map.UnitRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 
@@ -209,10 +210,10 @@ public sealed class HuntProvisioningTests
 		return new Engine<StarMap, ActorRuntime>(map, runtimes);
 	}
 
-	private static (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngineAtIssuerDock(
+	private (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngineAtIssuerDock(
 		int seed = 42)
 	{
-		var map = StarMap.CreateDevDefault(seed);
+		var map = maps.Fresh(seed);
 		var unitId = map.UnitRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);

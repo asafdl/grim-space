@@ -4,10 +4,11 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.Tests.World.StarSystem.Traffic;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class DeclineContractActionTests
+public sealed class DeclineContractActionTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void TryEnqueue_SucceedsForOfferedContract()
@@ -80,6 +81,6 @@ public sealed class DeclineContractActionTests
 		Assert.True(orchestrator.Map.ContractRegistry.IsRejected(contractId));
 	}
 
-	private static StarSystemOrchestrator CreateOrchestrator() =>
-		StarSystemTestHarness.CreatePlayerOrchestrator(State.PlayerFleetUnitId, 42);
+	private StarSystemOrchestrator CreateOrchestrator() =>
+		StarSystemTestHarness.CreatePlayerOrchestrator(maps, State.PlayerFleetUnitId, 42);
 }

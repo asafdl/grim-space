@@ -2,15 +2,16 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class ContractFulfillmentTests
+public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void Evaluate_CompletesHuntContractWhenSpawnTargetsAreGone()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.UnitRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
@@ -38,7 +39,7 @@ public sealed class ContractFulfillmentTests
 	[Fact]
 	public void Evaluate_LeavesActiveContractWhileTargetsRemain()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.UnitRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
@@ -62,12 +63,12 @@ public sealed class ContractFulfillmentTests
 	}
 }
 
-public sealed class ObjectivesCollectorTests
+public sealed class ObjectivesCollectorTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void Collect_IncludesActiveContractsAndStoryObjectives()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.UnitRegistry.Ids.First();
 
@@ -90,7 +91,7 @@ public sealed class ObjectivesCollectorTests
 	[Fact]
 	public void Collect_ExcludesCompletedContracts()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.UnitRegistry.Ids.First();
 

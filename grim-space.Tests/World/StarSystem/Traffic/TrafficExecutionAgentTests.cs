@@ -6,15 +6,16 @@ using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
-public sealed class TrafficExecutionAgentTests
+public sealed class TrafficExecutionAgentTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void PlanAndPublish_ReadyUnitPublishesMove()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
@@ -28,7 +29,7 @@ public sealed class TrafficExecutionAgentTests
 	[Fact]
 	public void PlanAndPublish_UsesCurrentLiveState()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
@@ -45,7 +46,7 @@ public sealed class TrafficExecutionAgentTests
 	[Fact]
 	public void PlanAndPublish_WaitsForScheduledBeginWork()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var dockId = unit.State.DockedAtDockId;
 		var poiId = map.DocksById[dockId].PoiId;
@@ -62,7 +63,7 @@ public sealed class TrafficExecutionAgentTests
 	[Fact]
 	public void PlanAndPublish_WorkingUnitPublishesNothing()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 

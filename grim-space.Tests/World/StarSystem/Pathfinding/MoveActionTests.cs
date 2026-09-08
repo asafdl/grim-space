@@ -9,15 +9,16 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
 
-public sealed class MoveActionTests
+public sealed class MoveActionTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void Commit_RecordsMoveInTimelineAndStartsJourney()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var destinationDockId = unit.State.NextChoreDockId();
 		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
@@ -43,7 +44,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void CommittedPosition_InterpolatesAcrossElapsedTicks()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var origin = new Coord(0, 0, 0);
 		var destination = new Coord(100, 0, 0);
@@ -68,7 +69,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void CompleteMoveAction_ArrivesAtScheduledTick()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var destinationDockId = unit.State.NextChoreDockId();
 		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
@@ -96,7 +97,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void CompleteMoveAction_InfersDockArrivalFromDestinationCoordinate()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var destinationDockId = unit.State.NextChoreDockId();
 		var destination = map.DocksById[destinationDockId].Position;
@@ -119,7 +120,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void Repath_CancelsPendingCompletionAndSchedulesNewJourney()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var firstDestination = map.DocksById[unit.State.NextChoreDockId()].Position;
 		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
@@ -146,7 +147,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void StaleCompleteMoveAction_IsNoOp()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var destination = map.DocksById[unit.State.NextChoreDockId()].Position;
 		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
@@ -169,7 +170,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void IsLegal_ChoreUnitWaitingForScheduledWork_IsIllegal()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var dockId = unit.State.DockedAtDockId;
 		var poiId = map.DocksById[dockId].PoiId;
@@ -189,7 +190,7 @@ public sealed class MoveActionTests
 	[Fact]
 	public void IsLegal_PlayerFleet_IsNotBlockedByScheduledWorkRule()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;

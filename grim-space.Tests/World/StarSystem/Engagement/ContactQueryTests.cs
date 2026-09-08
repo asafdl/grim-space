@@ -7,15 +7,16 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class ContactQueryTests
+public sealed class ContactQueryTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void CommittedPositionOf_DockedUnit_ReturnsDockPosition()
 	{
-		var orchestrator = StarSystemTestHarness.CreateOrchestrator(42);
+		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var unit = orchestrator.Map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var dockPosition = orchestrator.Map.DocksById[unit.State.DockedAtDockId].Position;
 
@@ -25,7 +26,7 @@ public sealed class ContactQueryTests
 	[Fact]
 	public void CommittedPositionOf_IdleUnit_ReturnsIdleCoord()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		var pirateId = AddPirate(map, new Coord(30, 0, 40));
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(map);
 
@@ -53,10 +54,10 @@ public sealed class ContactQueryTests
 	[Fact]
 	public void AreInContact_OutsideCombinedRadius_ReturnsFalse()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = AddPirate(map, new Coord(100, 0, 100));
-		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,
 			42,
 			new StraightLinePathfinder(),
@@ -68,14 +69,14 @@ public sealed class ContactQueryTests
 	[Fact]
 	public void AreInContact_OverlappingRadii_ReturnsTrue()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		player.State.Phase = EPhase.Docked;
 		player.State.DockedAtDockId = "";
 		player.State.IdleCoord = new Coord(0, 0, 0);
 		var pirateId = AddPirate(map, new Coord(8, 0, 0));
-		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,
 			42,
 			new StraightLinePathfinder(),
@@ -84,11 +85,11 @@ public sealed class ContactQueryTests
 		Assert.True(orchestrator.AreInContact(RunState.PlayerFleetUnitId, pirateId));
 	}
 
-	private static StarSystemOrchestrator CreatePlayerOrchestrator(int seed)
+	private StarSystemOrchestrator CreatePlayerOrchestrator(int seed)
 	{
-		var map = StarMap.CreateDevDefault(seed);
+		var map = maps.Fresh(seed);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		return StarSystemTestHarness.CreatePlayerOrchestrator(
+		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,
 			seed,
 			map: map);

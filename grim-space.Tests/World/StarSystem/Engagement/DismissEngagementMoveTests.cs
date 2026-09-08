@@ -8,10 +8,11 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class DismissEngagementMoveTests
+public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void MoveDuringInteractive_ClosesHudButStaysInteractiveUntilDismissed()
@@ -107,9 +108,9 @@ public sealed class DismissEngagementMoveTests
 		Assert.True(agent.IsPlanning);
 	}
 
-	private static StarSystemOrchestrator CreateHuntContactScenario()
+	private StarSystemOrchestrator CreateHuntContactScenario()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var playerDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
 		var pirateId = "pirate-contact";
@@ -123,15 +124,15 @@ public sealed class DismissEngagementMoveTests
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
-		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(RunState.PlayerFleetUnitId, 42, map: map);
+		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 		orchestrator.PlayerAgent!.TryQueueHuntUnit(pirateId);
 		orchestrator.AdvanceTick();
 		return orchestrator;
 	}
 
-	private static StarSystemOrchestrator CreateOverlappingScenario()
+	private StarSystemOrchestrator CreateOverlappingScenario()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var playerDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
 		var pirateId = "pirate-contact";
@@ -145,12 +146,12 @@ public sealed class DismissEngagementMoveTests
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
-		return StarSystemTestHarness.CreatePlayerOrchestrator(RunState.PlayerFleetUnitId, 42, map: map);
+		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 	}
 
-	private static StarSystemOrchestrator CreateUndockedOverlappingScenario()
+	private StarSystemOrchestrator CreateUndockedOverlappingScenario()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
 		player.State.Phase = EPhase.Docked;
@@ -167,6 +168,6 @@ public sealed class DismissEngagementMoveTests
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
-		return StarSystemTestHarness.CreatePlayerOrchestrator(RunState.PlayerFleetUnitId, 42, map: map);
+		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 	}
 }

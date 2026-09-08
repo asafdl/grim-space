@@ -2,15 +2,16 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
 
-public sealed class FacilityModelTests
+public sealed class FacilityModelTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void AdministrativeCore_HasManagementFacility()
 	{
-		var world = StarMap.CreateDevDefault(42);
+		var world = maps.Fresh(42);
 		var admin = world.PointsOfInterest.OfType<AdministrativeCore>().Single();
 		var facility = Assert.Single(admin.Facilities);
 
@@ -23,7 +24,7 @@ public sealed class FacilityModelTests
 	[Fact]
 	public void OtherDevMapPois_HaveEmptyFacilities()
 	{
-		var world = StarMap.CreateDevDefault(42);
+		var world = maps.Fresh(42);
 
 		foreach (var poi in world.PointsOfInterest.Where(poi => poi is not AdministrativeCore))
 			Assert.Empty(poi.Facilities);
@@ -32,7 +33,7 @@ public sealed class FacilityModelTests
 	[Fact]
 	public void Fork_PreservesFacilityList()
 	{
-		var world = StarMap.CreateDevDefault(42);
+		var world = maps.Fresh(42);
 		var admin = world.PointsOfInterest.OfType<AdministrativeCore>().Single();
 		var fork = admin.Fork();
 

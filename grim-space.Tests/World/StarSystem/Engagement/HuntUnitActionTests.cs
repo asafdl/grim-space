@@ -10,10 +10,11 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class HuntUnitActionTests
+public sealed class HuntUnitActionTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void Preview_DoesNotMutateLiveMap()
@@ -71,10 +72,10 @@ public sealed class HuntUnitActionTests
 	[Fact]
 	public void IsLegal_RejectsNonCombatTarget()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var trafficUnit = map.UnitRegistry.All.First(unit => unit.State.ChoreDockIds.Count > 0);
-		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(RunState.PlayerFleetUnitId, 42, map: map);
+		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 		var sim = orchestrator.CreateSimulation();
 		var destination = orchestrator.CommittedPositionOf(trafficUnit.State.Id);
 
@@ -100,12 +101,12 @@ public sealed class HuntUnitActionTests
 		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
 	}
 
-	private static (StarSystemOrchestrator orchestrator, string playerId, string pirateId) CreateScenario()
+	private (StarSystemOrchestrator orchestrator, string playerId, string pirateId) CreateScenario()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = AddPirate(map, "pirate-a", new Coord(20, 0, 20));
-		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,
 			42,
 			map: map);

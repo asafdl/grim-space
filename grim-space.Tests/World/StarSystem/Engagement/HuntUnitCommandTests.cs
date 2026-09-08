@@ -4,10 +4,11 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class HuntUnitCommandTests
+public sealed class HuntUnitCommandTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void TryQueueHuntUnit_QueuesCourseWithoutMutatingLiveMap()
@@ -35,9 +36,9 @@ public sealed class HuntUnitCommandTests
 		Assert.IsType<CourseCommandResult.Unreachable>(result);
 	}
 
-	private static StarSystemOrchestrator CreateScenario()
+	private StarSystemOrchestrator CreateScenario()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		map.UnitRegistry.Add(Factory.CreatePirateFleet(
 			"pirate-a",
@@ -46,6 +47,6 @@ public sealed class HuntUnitCommandTests
 			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
 				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 				1)));
-		return StarSystemTestHarness.CreatePlayerOrchestrator(RunState.PlayerFleetUnitId, 42, map: map);
+		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 	}
 }

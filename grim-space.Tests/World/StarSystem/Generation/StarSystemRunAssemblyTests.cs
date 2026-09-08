@@ -4,10 +4,11 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Units;
 using RunState = GrimSpace.Run.State;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Generation;
 
-public sealed class StarSystemRunAssemblyTests
+public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void CreateDevSession_AddsPlayerFleetAtTradeHub()
@@ -26,7 +27,7 @@ public sealed class StarSystemRunAssemblyTests
 	[Fact]
 	public void CreateDevDefault_HasTwentySixNpcUnitsOnly()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 
 		Assert.Equal(26, map.UnitRegistry.Ids.Count());
 		Assert.DoesNotContain(map.UnitRegistry.Ids, id => id == RunState.PlayerFleetUnitId);
@@ -47,7 +48,7 @@ public sealed class StarSystemRunAssemblyTests
 	[Fact]
 	public void AddPlayerFleet_AddsPlayerFleetAtTradeHub()
 	{
-		var map = StarMap.CreateDevDefault(42);
+		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 
 		Assert.Equal(27, map.UnitRegistry.Ids.Count());

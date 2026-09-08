@@ -3,10 +3,11 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class AcceptContractActionTests
+public sealed class AcceptContractActionTests(DevStarMapFixture maps)
 {
 	[Fact]
 	public void TryEnqueue_SucceedsForOfferedContract()
@@ -86,10 +87,10 @@ public sealed class AcceptContractActionTests
 			action => action.ContractId == contractId && action.ActorId == unitId);
 	}
 
-	private static (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngine(
+	private (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngine(
 		int seed = 42)
 	{
-		var map = StarMap.CreateDevDefault(seed);
+		var map = maps.Fresh(seed);
 		var unit = map.UnitRegistry.All.First();
 		var unitId = unit.State.Id;
 
