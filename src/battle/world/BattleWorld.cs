@@ -151,13 +151,17 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	private static Unit CloneForSnapshot(Unit unit) =>
 		new(unit.Alliance, unit.State.Clone(), unit.ExecutionAgent);
 
-	public BattleWorld Fork() =>
+	public BattleWorld Fork() => Fork(Timeline.Clone());
+
+	public BattleWorld ForkForSimulation() => Fork(Timeline.CloneSnapshot());
+
+	private BattleWorld Fork(Timeline timeline) =>
 		new(
 			UnitRegistry.CloneForFork(),
 			_nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
 			Grid,
 			BlockedCells,
-			Timeline.Clone());
+			timeline);
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch

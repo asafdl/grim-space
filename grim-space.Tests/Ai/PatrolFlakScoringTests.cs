@@ -34,9 +34,7 @@ public sealed class PatrolFlakScoringTests
 		player.State.Position = burstCells.First();
 
 		var battle = BattleTestFixture.BeginSimulation(player, patrol, grid);
-		battle.SetActive(null);
-		battle.SetActive(patrol.State.Id);
-		var actions = await patrol.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, patrol);
 
 		Assert.Contains(actions, action => action is FlakAction);
 	}
@@ -53,9 +51,7 @@ public sealed class PatrolFlakScoringTests
 		patrol.State.Starboard = Coord.Cross(patrol.State.Dorsal, patrol.State.Fore);
 
 		var battle = BattleTestFixture.BeginSimulation(player, patrol);
-		battle.SetActive(null);
-		battle.SetActive(patrol.State.Id);
-		var actions = await patrol.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, patrol);
 
 		Assert.DoesNotContain(actions, action => action is FlakAction);
 	}

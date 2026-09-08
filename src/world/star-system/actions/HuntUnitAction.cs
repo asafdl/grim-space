@@ -32,8 +32,8 @@ public sealed class HuntUnitDef
 		&& hunt.ActorId != hunt.TargetUnitId
 		&& world.UnitRegistry.TryGet(hunt.ActorId, out var initiator)
 		&& world.UnitRegistry.TryGet(hunt.TargetUnitId, out var target)
-		&& target.State.CombatProfile is not null
-		&& IsReadyToDepart(initiator.State);
+		&& initiator.State.CanMove
+		&& target.State.CombatProfile is not null;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -57,12 +57,6 @@ public sealed class HuntUnitDef
 				hunt.Path),
 		];
 	}
-
-	private static bool IsReadyToDepart(State state) =>
-		state.IsReadyToDepart
-		|| state.Phase == EPhase.InTransit
-		|| state is { ChoreDockIds.Count: 0, Phase: EPhase.Docked }
-			&& !string.IsNullOrEmpty(state.DockedAtDockId);
 
 	private static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime) =>
 		MoveDef.ResolveOrigin(world, unit, runtime);

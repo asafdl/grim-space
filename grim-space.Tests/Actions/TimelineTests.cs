@@ -65,6 +65,22 @@ public sealed class TimelineTests
 	}
 
 	[Fact]
+	public void CloneSnapshot_CopiesClockAndPendingWithoutHistory()
+	{
+		var timeline = new Timeline();
+		timeline.Clock.Set(5);
+		timeline.Append(new HeadingTurnAction("a", EHeadingTurn.YawRight));
+		var pending = new HeadingTurnAction("b", EHeadingTurn.YawLeft);
+		timeline.Schedule(1, pending);
+
+		var snapshot = timeline.CloneSnapshot();
+
+		Assert.Equal(5, snapshot.Clock.Current);
+		Assert.Empty(snapshot.History());
+		Assert.Equal(pending, Assert.Single(snapshot.TakePending(6)));
+	}
+
+	[Fact]
 	public void DrainUntilRemovesAndReturnsHistoryBatchesInTickOrder()
 	{
 		var timeline = new Timeline();

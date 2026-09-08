@@ -10,6 +10,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
@@ -55,9 +56,47 @@ internal static class BattleTestFixture
 			player.State.Id,
 			EObjective.EliminateOpponents);
 		foreach (var unit in units)
-			unit.ExecutionAgent.Init(unit.State.Id, battle.Engine.CreateSimulation, battle.RegisterActiveUnitChanged);
-		battle.SetActive(player.State.Id);
+		{
+			ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
+				unit.ExecutionAgent,
+				unit.State.Id,
+				battle.Engine.CreateSimulation,
+				battle.WriterFor(unit.State.Id));
+		}
+
+		battle.EnterPlayerTurn();
 		return battle;
+	}
+
+	internal static void GrantPlayerPlanning(BattleOrchestrator battle) =>
+		battle.GrantPlayerCanWork();
+
+	internal static void RevokePlayerPlanning(BattleOrchestrator battle) =>
+		battle.RevokePlayerCanWork();
+
+	internal static void ResetPlayerPlanning(BattleOrchestrator battle)
+	{
+		RevokePlayerPlanning(battle);
+		GrantPlayerPlanning(battle);
+	}
+
+	public static async Task<IReadOnlyList<IAction>> AwaitUnitActions(
+		BattleOrchestrator battle,
+		Unit unit)
+	{
+		var actorId = unit.State.Id;
+		unit.ExecutionAgent.SetCanWork(true);
+		try
+		{
+			var result = await battle.WaitForBatchAsync(actorId);
+			if (!result.IsSuccess)
+				throw result.Failure!;
+			return result.Batch!.Actions;
+		}
+		finally
+		{
+			unit.ExecutionAgent.SetCanWork(false);
+		}
 	}
 
 	public static string FirstEnemyId(BattleOrchestrator battle) =>

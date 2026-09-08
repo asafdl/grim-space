@@ -25,6 +25,7 @@ public sealed class BattleOrchestrator : IDisposable
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
 	private readonly Manager _objectives;
+	private readonly ActionBatchSink _actionSink = new();
 
 	private bool _resolveInProgress;
 	private int _resolveVersion;
@@ -48,17 +49,12 @@ public sealed class BattleOrchestrator : IDisposable
 	public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
 	public bool IsBattleOver => Outcome.IsOver;
 	public int TurnNumber => _engine.Tick;
-	public string? ActiveUnitId { get; private set; }
-	public EBattlePhase Phase { get; private set; }
+	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
 
 	public bool AcceptsPlayerInput => Phase == EBattlePhase.PlayerTurn;
 
-	public event Action<string?>? ActiveUnitChanged;
 	public event Action<EBattlePhase>? PhaseChanged;
 	public event Action<TurnReplay, int>? TurnResolved;
-
-	internal void RegisterActiveUnitChanged(Action<string?> handler) =>
-		ActiveUnitChanged += handler;
 
 	public UserExecutionAgent PlayerAgent =>
 		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(PlayerId).ExecutionAgent;
@@ -109,24 +105,32 @@ public sealed class BattleOrchestrator : IDisposable
 			player.State.Id,
 			encounter.Objective);
 
-		foreach (var unit in units) 
-			unit.ExecutionAgent.Init(unit.State.Id, orchestrator.Engine.CreateSimulation, orchestrator.RegisterActiveUnitChanged);
+		foreach (var unit in units)
+		{
+			ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
+				unit.ExecutionAgent,
+				unit.State.Id,
+				orchestrator.Engine.CreateSimulation,
+				orchestrator._actionSink.WriterFor(unit.State.Id));
+		}
 
-		orchestrator.SetActive(player.State.Id);
-		orchestrator.SetPhase(EBattlePhase.PlayerTurn, "encounter ready");
+		orchestrator.EnterPlayerTurn("encounter ready");
 		return orchestrator;
 	}
 
-	public void SetActive(string? unitId)
-	{
-		if (ActiveUnitId == unitId)
-			return;
+	internal void EnterPlayerTurn(string reason = "player turn") =>
+		SetPhase(EBattlePhase.PlayerTurn, reason);
 
-		ActiveUnitId = unitId;
-		ActiveUnitChanged?.Invoke(unitId);
-	}
+	internal void GrantPlayerCanWork() => SetAgentCanWork(PlayerId, true);
 
-	public bool IsActive(string unitId) => ActiveUnitId == unitId;
+	internal void RevokePlayerCanWork() => SetAgentCanWork(PlayerId, false);
+
+	public Task<ActionProductionResult> WaitForBatchAsync(
+		string actorId,
+		CancellationToken cancellationToken = default) =>
+		_actionSink.WaitForBatchAsync(actorId, cancellationToken);
+
+	public IActionBatchWriter WriterFor(string actorId) => _actionSink.WriterFor(actorId);
 
 	public void EndTurn()
 	{
@@ -166,7 +170,6 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 		}
 
-		SetActive(PlayerId);
 		SetPhase(EBattlePhase.PlayerTurn, "replay complete");
 	}
 
@@ -178,17 +181,6 @@ public sealed class BattleOrchestrator : IDisposable
 		_resolveVersion++;
 		Outcome = BattleOutcome.Lose;
 		SetPhase(EBattlePhase.BattleOver, "retired");
-	}
-
-	public Unit? GetActiveUnit()
-	{
-		if (ActiveUnitId is not string id
-			|| !UnitRegistry.For(_engine.World).TryGet(id, out var unit))
-		{
-			return null;
-		}
-
-		return unit;
 	}
 
 	public TurnReplay ResolveTurn() =>
@@ -221,6 +213,7 @@ public sealed class BattleOrchestrator : IDisposable
 		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
 
 		_engine.ActorRuntimes.Reset();
+		RevokeAllCanWork();
 
 		var units = UnitRegistry.For(_engine.World);
 		for (var node = units.First; node is not null; node = node.Next)
@@ -228,19 +221,19 @@ public sealed class BattleOrchestrator : IDisposable
 			if (!units.TryGet(node.Value, out var live) || !live.State.IsAlive)
 				continue;
 
-			live.ExecutionAgent.Init(live.State.Id, _engine.CreateSimulation, RegisterActiveUnitChanged);
-			SetActive(live.State.Id);
-			var planned = await live.ExecutionAgent.GetActions();
-			CommitActor(live.State.Id, planned);
+			var actorId = live.State.Id;
+			EnsureAgentInitialized(actorId);
+			var batch = await TakeActorBatchAsync(actorId);
+			CommitActor(actorId, batch.Actions);
+			NotifyWorldUpdated();
 
-			if (live.State.Id == PlayerId)
+			if (actorId == PlayerId)
 				unitsAfterPlayer = SnapshotAll();
 		}
 
 		CommitRoundUpkeep();
 		var history = _engine.History();
 		_engine.AdvanceTick();
-		SetActive(null);
 
 		GameLog.Log(
 			$"Turn {turnNumber} sim: "
@@ -258,6 +251,29 @@ public sealed class BattleOrchestrator : IDisposable
 			id => ActionLog.DisplayName(units, id));
 
 		return new TurnReplay(unitsAtTurnStart, history, endStates);
+	}
+
+	private async Task<ActionBatch> TakeActorBatchAsync(string actorId)
+	{
+		if (_actionSink.TryTakeBatch(actorId, out var batch))
+			return batch;
+
+		SetAgentCanWork(actorId, true);
+		try
+		{
+			if (_actionSink.TryTakeBatch(actorId, out batch))
+				return batch;
+
+			var result = await _actionSink.WaitForBatchAsync(actorId);
+			if (!result.IsSuccess)
+				throw result.Failure!;
+
+			return result.Batch!;
+		}
+		finally
+		{
+			SetAgentCanWork(actorId, false);
+		}
 	}
 
 	private IReadOnlyList<ITimelineEntry> CommitActor(string actorId, IReadOnlyList<IAction> actions)
@@ -286,9 +302,46 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 
 		var from = Phase;
+		if (from == EBattlePhase.PlayerTurn)
+			RevokePlayerCanWork();
+
 		Phase = phase;
 		BattleDiagnostics.LogPhaseTransition(from, phase, reason);
 		PhaseChanged?.Invoke(phase);
+
+		if (phase == EBattlePhase.PlayerTurn)
+		{
+			NotifyWorldUpdated();
+			GrantPlayerCanWork();
+		}
+	}
+
+	private void EnsureAgentInitialized(string actorId)
+	{
+		var agent = UnitRegistry.For(_engine.World).UnitOf(actorId).ExecutionAgent;
+		if (agent.IsInitialized)
+			return;
+
+		ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
+			agent,
+			actorId,
+			_engine.CreateSimulation,
+			_actionSink.WriterFor(actorId));
+	}
+
+	private void RevokeAllCanWork()
+	{
+		foreach (var unit in UnitRegistry.For(_engine.World).All)
+			unit.ExecutionAgent.SetCanWork(false);
+	}
+
+	private void SetAgentCanWork(string actorId, bool canWork) =>
+		UnitRegistry.For(_engine.World).UnitOf(actorId).ExecutionAgent.SetCanWork(canWork);
+
+	private void NotifyWorldUpdated()
+	{
+		foreach (var unit in UnitRegistry.For(_engine.World).All)
+			unit.ExecutionAgent.OnWorldUpdated();
 	}
 
 	private async Task ResolveAndReplay(int completedTurn, int version)
@@ -313,7 +366,6 @@ public sealed class BattleOrchestrator : IDisposable
 
 			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
 			SetPhase(EBattlePhase.Replaying, $"turn {completedTurn} resolved");
-			SetActive(null);
 			TurnResolved?.Invoke(replay, completedTurn);
 		}
 		catch (Exception ex) when (version == _resolveVersion && Phase == EBattlePhase.Resolving)

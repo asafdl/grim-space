@@ -9,21 +9,24 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-public sealed class TorpedoExecutionAgent : ExecutionAgent<BattleWorld, ActorRuntime>
+public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld, ActorRuntime>
 {
+	protected override bool PublishOnActivate => false;
+
 	protected override void ProduceActionsJob(Simulation<BattleWorld, ActorRuntime> simulation)
 	{
 		var session = (BattleSimulation)simulation;
 		var actor = UnitRegistry.For(session.World).UnitOf(_actorId!);
+		var jobCanWorkGeneration = CanWorkGeneration;
 		_ = Task.Run(() =>
 		{
 			try
 			{
-				Complete(Plan(actor, session));
+				Publish(Plan(actor, session), jobCanWorkGeneration);
 			}
 			catch (Exception ex)
 			{
-				Fail(ex);
+				Fail(ex, jobCanWorkGeneration);
 			}
 		});
 	}

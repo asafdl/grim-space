@@ -6,81 +6,118 @@ public abstract class ExecutionAgent<TWorld, TRuntime>
 	where TWorld : IWorld<TWorld>
 	where TRuntime : IRuntimeContext<TRuntime>, new()
 {
-	private bool _isInitialized = false;
+	private bool _isInitialized;
+	private IActionBatchWriter? _writer;
+	private bool _batchInFlight;
+
 	protected string? _actorId;
+	protected bool _canWork;
+	protected int _canWorkGeneration;
 
 	public string? ActorId => _actorId;
-	private Func<Simulation<TWorld, TRuntime>>? _createSimulation;
-	protected bool _isActive;
 
-	protected TaskCompletionSource<IReadOnlyList<IAction>>? _actions;
+	internal bool IsInitialized => _isInitialized;
 
-	public Task<IReadOnlyList<IAction>> GetActions() =>
-		_actions?.Task ?? Task.FromResult((IReadOnlyList<IAction>)Array.Empty<IAction>());
+	protected IActionBatchWriter? Writer => _writer;
 
-	public IReadOnlyList<IAction> TakeCompletedActions()
+	protected bool CanPublish => _canWork && !_batchInFlight;
+
+	protected virtual bool PublishOnActivate => true;
+
+	protected int CanWorkGeneration => _canWorkGeneration;
+
+	public void Init(string actorId, IActionBatchWriter writer)
 	{
-		if (!_isActive || _actions is null)
-			throw new InvalidOperationException("Agent is not active.");
+		ArgumentNullException.ThrowIfNull(writer);
 
-		if (!_actions.Task.IsCompleted)
-			throw new InvalidOperationException("Agent has not completed action production.");
-
-		if (_actions.Task.IsFaulted)
-			throw _actions.Task.Exception!.GetBaseException();
-
-		return _actions.Task.GetAwaiter().GetResult();
-	}
-
-	protected void Complete(IReadOnlyList<IAction> actions)
-	{
-		if (!_isActive || _actions is null)
-			throw new InvalidOperationException("Cannot complete actions while inactive.");
-
-		if (_actions.Task.IsCompleted)
+		if (_isInitialized)
 			return;
 
-		if (!_actions.TrySetResult(actions))
-			throw new InvalidOperationException("Failed to complete actions.");
+		_isInitialized = true;
+		_actorId = actorId;
+		_writer = writer;
+	}
+
+	public virtual void SetCanWork(bool canWork)
+	{
+		if (!_isInitialized)
+			return;
+
+		if (_canWork == canWork)
+			return;
+
+		_canWork = canWork;
+		if (!canWork)
+			return;
+
+		_canWorkGeneration++;
+		_batchInFlight = false;
+		OnActivated();
+
+		if (PublishOnActivate)
+			OnPublishIfReady();
+	}
+
+	public virtual void OnWorldUpdated()
+	{
+	}
+
+	protected virtual void OnActivated()
+	{
+	}
+
+	protected virtual void OnPublishIfReady()
+	{
+	}
+
+	protected void MarkBatchInFlight() => _batchInFlight = true;
+
+	protected void ClearBatchInFlight() => _batchInFlight = false;
+
+	protected void Publish(IReadOnlyList<IAction> actions)
+	{
+		if (!_canWork || _writer is null || _actorId is null)
+			return;
+
+		_batchInFlight = true;
+		_writer.Publish(new ActionBatch(_actorId, actions));
+	}
+
+	protected void Publish(IReadOnlyList<IAction> actions, int jobCanWorkGeneration)
+	{
+		if (jobCanWorkGeneration != _canWorkGeneration)
+			return;
+
+		Publish(actions);
 	}
 
 	protected void Fail(Exception exception)
 	{
-		if (!_isActive || _actions is null)
-			throw new InvalidOperationException("Cannot fail while inactive.");
-
-		if (_actions.Task.IsCompleted)
+		if (!_canWork || _writer is null)
 			return;
 
-		if (!_actions.TrySetException(exception))
-			throw new InvalidOperationException("Failed to fail actions.");
+		_writer.Fail(exception);
 	}
 
-	protected abstract void ProduceActionsJob(Simulation<TWorld, TRuntime> simulation);
-
-	public void Init(string actorId, Func<Simulation<TWorld, TRuntime>> createSimulation, Action<Action<string?>> registerOnActivate) {
-		if (_isInitialized)
+	protected void Fail(Exception exception, int jobCanWorkGeneration)
+	{
+		if (jobCanWorkGeneration != _canWorkGeneration)
 			return;
-		
-		_isInitialized = true;
-		_actorId = actorId;
-		_createSimulation = createSimulation;
-		registerOnActivate(OnActivate);
+
+		Fail(exception);
 	}
 
-	private void OnActivate(string? activeUnitId) {
-		if (! _isInitialized)
-			return;
-			
-		var isActive = activeUnitId == _actorId;
-		if (isActive == _isActive)
-			return;
+	public static void Initialize(
+		ExecutionAgent<TWorld, TRuntime> agent,
+		string actorId,
+		Func<Simulation<TWorld, TRuntime>> createSimulation,
+		IActionBatchWriter writer)
+	{
+		ArgumentNullException.ThrowIfNull(createSimulation);
 
-		_isActive = isActive;
-		if (isActive) {
-			_actions = new TaskCompletionSource<IReadOnlyList<IAction>>();
-			ProduceActionsJob(_createSimulation!());
-		} else 
-			_actions = null;
+		if (agent is SimulationExecutionAgent<TWorld, TRuntime> simulationAgent)
+			simulationAgent.Init(actorId, createSimulation, writer);
+		else
+			agent.Init(actorId, writer);
 	}
 }

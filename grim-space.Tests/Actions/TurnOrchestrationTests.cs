@@ -39,7 +39,6 @@ public sealed class TurnOrchestrationTests
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 		BattleTestActions.CommitAndResolve(battle);
-		battle.SetActive(PlayerId);
 
 		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
 		Assert.False(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).ActivePath != null);

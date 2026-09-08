@@ -9,7 +9,7 @@ using GrimSpace.World.StarSystem.Units;
 namespace GrimSpace.World.StarSystem.Agents;
 
 public sealed class StarMapPlayerExecutionAgent
-	: ExecutionAgent<StarMap, ActorRuntime>,
+	: SimulationExecutionAgent<StarMap, ActorRuntime>,
 		IActionSink
 {
 	private readonly Func<Simulation<StarMap, ActorRuntime>> _createSimulation;
@@ -34,7 +34,7 @@ public sealed class StarMapPlayerExecutionAgent
 		_pathfinder = pathfinder;
 	}
 
-	public Simulation<StarMap, ActorRuntime> Sim { get; private set; } = null!;
+	public new Simulation<StarMap, ActorRuntime> Sim { get; private set; } = null!;
 
 	public bool HasPendingAction => _pendingAction is not null;
 
@@ -47,7 +47,7 @@ public sealed class StarMapPlayerExecutionAgent
 		_ => null,
 	};
 
-	public bool IsPlanning => _isActive && !_committed;
+	public bool IsPlanning => _canWork && !_committed;
 
 	public bool CanUndo => false;
 
@@ -55,7 +55,7 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public CourseCommandResult TryQueueMove(Coord destination)
 	{
-		if (_committed || !_isActive || _actorId is null)
+		if (_committed || !_canWork || _actorId is null)
 			return new CourseCommandResult.Unreachable();
 
 		var anchorWorld = _anchorWorld();
@@ -75,7 +75,7 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public CourseCommandResult TryQueueHuntUnit(string targetUnitId)
 	{
-		if (_committed || !_isActive || _actorId is null)
+		if (_committed || !_canWork || _actorId is null)
 			return new CourseCommandResult.Unreachable();
 
 		var anchorWorld = _anchorWorld();
@@ -98,7 +98,7 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public bool TryEnqueue(IReadOnlyList<IAction> actions)
 	{
-		if (_committed || !_isActive || actions.Count != 1)
+		if (_committed || !_canWork || actions.Count != 1)
 			return false;
 
 		Sim = _createSimulation();
@@ -114,16 +114,18 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public bool Commit()
 	{
-		if (_committed || !_isActive || _pendingAction is null)
+		if (_committed || !_canWork || _pendingAction is null)
 			return false;
 
 		var action = _pendingAction;
 		_pendingAction = null;
 		_committed = true;
-		Complete([action]);
+		Publish([action]);
 		NotifyPlanningChanged();
 		return true;
 	}
+
+	protected override bool PublishOnActivate => false;
 
 	protected override void ProduceActionsJob(Simulation<StarMap, ActorRuntime> simulation)
 	{

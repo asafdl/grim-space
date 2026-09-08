@@ -3,9 +3,12 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem.Traffic;
+using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
 
@@ -161,5 +164,44 @@ public sealed class MoveActionTests
 		engine.Commit(new CompleteMoveAction(unit.State.Id, unit.State.Id, staleJourneyId));
 
 		Assert.Equal(EPhase.InTransit, unit.State.Phase);
+	}
+
+	[Fact]
+	public void IsLegal_ChoreUnitWaitingForScheduledWork_IsIllegal()
+	{
+		var map = StarMap.CreateDevDefault(42);
+		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var dockId = unit.State.DockedAtDockId;
+		var poiId = map.DocksById[dockId].PoiId;
+		var destination = map.DocksById[unit.State.NextChoreDockId()].Position;
+		var origin = map.DocksById[dockId].Position;
+		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
+		var move = new MoveAction(unit.State.Id, unit.State.Id, destination, path);
+
+		map.Timeline.Schedule(
+			2,
+			new BeginWorkAction(unit.State.Id, unit.State.Id, poiId, map.Timeline.Clock.Current + 2));
+
+		var runtime = new ActorRuntimes<ActorRuntime>().For(unit.State.Id);
+		Assert.False(MoveDef.Instance.IsLegal(move, map, runtime));
+	}
+
+	[Fact]
+	public void IsLegal_PlayerFleet_IsNotBlockedByScheduledWorkRule()
+	{
+		var map = StarMap.CreateDevDefault(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
+		var origin = map.DocksById[player.State.DockedAtDockId].Position;
+		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
+		var move = new MoveAction(player.State.Id, player.State.Id, destination, path);
+
+		map.Timeline.Schedule(
+			2,
+			new BeginWorkAction(player.State.Id, player.State.Id, "any-poi", map.Timeline.Clock.Current + 2));
+
+		var runtime = new ActorRuntimes<ActorRuntime>().For(player.State.Id);
+		Assert.True(MoveDef.Instance.IsLegal(move, map, runtime));
 	}
 }

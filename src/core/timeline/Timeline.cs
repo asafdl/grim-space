@@ -66,6 +66,25 @@ public sealed class Timeline
 		}
 	}
 
+	public bool ContainsPending(Func<IAction, bool> predicate)
+	{
+		ArgumentNullException.ThrowIfNull(predicate);
+
+		lock (_sync)
+		{
+			foreach (var list in _pending.Values)
+			{
+				foreach (var action in list)
+				{
+					if (predicate(action))
+						return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	public IReadOnlyList<ITimelineEntry> History(int? tick = null)
 	{
 		lock (_sync)
@@ -120,14 +139,22 @@ public sealed class Timeline
 		}
 	}
 
-	public Timeline Clone()
+	public Timeline Clone() => Clone(includeHistory: true);
+
+	public Timeline CloneSnapshot() => Clone(includeHistory: false);
+
+	private Timeline Clone(bool includeHistory)
 	{
 		lock (_sync)
 		{
 			var clone = new Timeline();
 			clone.Clock.Set(Clock.Current);
-			foreach (var (tick, entries) in _history)
-				clone._history[tick] = [..entries];
+
+			if (includeHistory)
+			{
+				foreach (var (tick, entries) in _history)
+					clone._history[tick] = [..entries];
+			}
 
 			foreach (var (tick, actions) in _pending)
 				clone._pending[tick] = [..actions];

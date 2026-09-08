@@ -27,15 +27,17 @@ public sealed class MoveDef
 
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
-	// TODO: this needs a bit of rework, chores and docks should not effect legality status of actions
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is MoveAction move
 		&& world.UnitRegistry.TryGet(move.UnitId, out var unit)
+		&& unit.State.CanMove
 		&& unit.State.EngagedWithUnitIds.Count == 0
-		&& (unit.State.IsReadyToDepart
-			|| unit.State.Phase == EPhase.InTransit
-			|| unit.State is { ChoreDockIds.Count: 0, Phase: EPhase.Docked }
-				&& !string.IsNullOrEmpty(unit.State.DockedAtDockId));
+		&& !IsWaitingForScheduledWork(world, unit.State);
+
+	private static bool IsWaitingForScheduledWork(StarMap world, State state) =>
+		state.ChoreDockIds.Count > 0
+		&& world.Timeline.ContainsPending(action =>
+			action is BeginWorkAction begin && begin.UnitId == state.Id);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

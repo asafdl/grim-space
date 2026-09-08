@@ -42,6 +42,7 @@ Defer until later: final art, animation, VFX, music, SFX, narrative writing, bal
 
 ## Agent Instructions
 - we had instance where dump was 6gb, **don't run tests with dump -- only if needed**: make sure to run on mini `dotnet test --blame-crash --blame-crash-dump-type mini`
+- pay special attention to **TODO comments**, I leave them specifically because they represent a rework that needs to be done, **if touching a file or flow that has a TODO, alert the user** or work with the comment
 
 ## Coding conventions
 

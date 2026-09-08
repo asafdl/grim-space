@@ -91,21 +91,11 @@ public sealed class BattlePhaseTests
 		battle.EndTurn();
 		await replayTcs.Task;
 
-		var playerTurnTcs = new TaskCompletionSource();
-		battle.PhaseChanged += phase =>
-		{
-			if (phase == EBattlePhase.PlayerTurn
-				&& BattleTestCommands.Frame(battle).MovePaths.Count > 0)
-			{
-				playerTurnTcs.TrySetResult();
-			}
-		};
-
 		battle.NotifyReplayComplete();
-		await playerTurnTcs.Task;
 
 		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 		Assert.Equal(2, battle.TurnNumber);
+		Assert.True(battle.AcceptsPlayerInput);
 	}
 
 	[Fact]

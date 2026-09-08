@@ -137,7 +137,7 @@ public sealed class HumanExecutionAgentTests
 	}
 
 	[Fact]
-	public void OpenTurnNotifiesPlanningChangedBeforeGetActionsAsync()
+	public void OpenTurnNotifiesPlanningChangedBeforeBatchPublish()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -145,12 +145,12 @@ public sealed class HumanExecutionAgentTests
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
 
-		battle.SetActive(null);
+		BattleTestFixture.RevokePlayerPlanning(battle);
 
 		var changes = 0;
 		agent.PlanningChanged += () => changes++;
 
-		battle.SetActive(PlayerId);
+		BattleTestFixture.GrantPlayerPlanning(battle);
 
 		Assert.Equal(1, changes);
 		Assert.True(agent.IsPlanning);
@@ -158,7 +158,7 @@ public sealed class HumanExecutionAgentTests
 	}
 
 	[Fact]
-	public async Task GetActionsAsyncBlocksUntilCommit()
+	public async Task WaitForBatchAsyncBlocksUntilCommit()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -166,21 +166,20 @@ public sealed class HumanExecutionAgentTests
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
 
-		battle.SetActive(null);
-		battle.SetActive(PlayerId);
+		BattleTestFixture.ResetPlayerPlanning(battle);
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 
-		var actionsTask = agent.GetActions();
-		Assert.False(actionsTask.IsCompleted);
+		var batchTask = battle.WaitForBatchAsync(PlayerId);
+		Assert.False(batchTask.IsCompleted);
 
 		Assert.True(agent.Commit());
 
-		var actions = await actionsTask;
-		Assert.Single(actions, action => action is MoveStepAction);
+		var result = await batchTask;
+		Assert.Single(result.Batch!.Actions, action => action is MoveStepAction);
 	}
 
 	[Fact]
-	public async Task GetActionsAsyncDoesNotForkSim()
+	public async Task WaitForBatchAsyncDoesNotForkSim()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -188,14 +187,13 @@ public sealed class HumanExecutionAgentTests
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var agent = battle.PlayerAgent;
 
-		battle.SetActive(null);
-		battle.SetActive(PlayerId);
+		BattleTestFixture.ResetPlayerPlanning(battle);
 		var simAtOpen = agent.Sim;
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 		Assert.True(agent.Commit());
 
-		var actions = await agent.GetActions();
+		var result = await battle.WaitForBatchAsync(PlayerId);
 		Assert.Same(simAtOpen, agent.Sim);
-		Assert.Single(actions, action => action is MoveStepAction);
+		Assert.Single(result.Batch!.Actions, action => action is MoveStepAction);
 	}
 }

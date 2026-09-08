@@ -4,5 +4,7 @@ public interface IWorld<TSelf> where TSelf : IWorld<TSelf>
 {
 	TSelf Fork();
 
+	TSelf ForkForSimulation() => Fork();
+
 	Timeline Timeline { get; }
 }

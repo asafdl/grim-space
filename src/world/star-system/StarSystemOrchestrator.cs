@@ -16,19 +16,19 @@ public sealed class StarSystemOrchestrator : IDisposable
 {
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly ContactMonitor _contactMonitor;
+	private readonly ActionBatchSink _actionSink = new();
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
-	private readonly IReadOnlyList<TrafficExecutionAgent> _trafficAgents;
-	private ESimMode _simMode = ESimMode.Running;
+	private readonly IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
+	private ESimMode _simMode = (ESimMode)(-1);
 	private ESimMode _modeBeforeInteractive;
 	private bool _resolvingInteractiveAction;
-	private event Action<string?>? ActiveUnitChanged;
 
 	private StarSystemOrchestrator(
 		Engine<StarMap, ActorRuntime> engine,
 		ContactMonitor contactMonitor,
 		string? playerId,
 		StarMapPlayerExecutionAgent? playerAgent,
-		IReadOnlyList<TrafficExecutionAgent> trafficAgents)
+		IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> trafficAgents)
 	{
 		_engine = engine;
 		_contactMonitor = contactMonitor;
@@ -110,7 +110,12 @@ public sealed class StarSystemOrchestrator : IDisposable
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 			.ToArray();
 		var trafficAgents = trafficUnits
-			.Select(_ => new TrafficExecutionAgent(pathfinder))
+			.Select(unit => (
+				new TrafficExecutionAgent(
+					() => engine.World,
+					unitId => engine.ActorRuntimes.For(unitId),
+					pathfinder),
+				unit.State.Id))
 			.ToArray();
 
 		var orchestrator = new StarSystemOrchestrator(
@@ -122,17 +127,14 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		if (playerAgent is not null)
 		{
-			playerAgent.Init(playerId!, engine.CreateSimulation, orchestrator.RegisterActiveUnitChanged);
-			orchestrator.SetActive(playerId);
+			playerAgent.Init(
+				playerId!,
+				engine.CreateSimulation,
+				orchestrator._actionSink.WriterFor(playerId!));
 		}
 
-		for (var i = 0; i < trafficAgents.Length; i++)
-		{
-			trafficAgents[i].Init(
-				trafficUnits[i].State.Id,
-				engine.CreateSimulation,
-				orchestrator.RegisterActiveUnitChanged);
-		}
+		foreach (var (agent, actorId) in trafficAgents)
+			agent.Init(actorId, orchestrator._actionSink.WriterFor(actorId));
 
 		contactMonitor.ReconstructFrom(map);
 		orchestrator.ApplySimMode(ESimMode.Running);
@@ -208,30 +210,21 @@ public sealed class StarSystemOrchestrator : IDisposable
 		var history = _engine.AdvanceTick();
 		if (PlayerId is not null)
 			ContractFulfillment.Evaluate(_engine.World, PlayerId);
-		ResetPlayerAgentPlanning();
+		NotifyWorldUpdated();
 		return history;
 	}
 
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()
 	{
 		CommitPlayerActions();
-
-		foreach (var agent in _trafficAgents)
-		{
-			SetActive(agent.ActorId);
-			var actions = agent.TakeCompletedActions();
-			if (actions.Count > 0)
-				_engine.Commit([..actions]);
-		}
+		CommitTrafficActions();
 
 		var history = _engine.AdvanceTick();
 
 		if (PlayerId is not null)
 			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 
-		if (_playerAgent is not null && PlayerId is not null)
-			SetActive(PlayerId);
-
+		NotifyWorldUpdated();
 		_contactMonitor.AdvanceTick(Tick, _simMode == ESimMode.Interactive);
 		return history;
 	}
@@ -250,7 +243,19 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		UnwireInteractivePlanning();
 		_simMode = mode;
+		ApplyCanWorkPolicy();
+		NotifyWorldUpdated();
 		WireInteractivePlanning();
+	}
+
+	private void ApplyCanWorkPolicy()
+	{
+		var trafficCanWork = _simMode is ESimMode.Running or ESimMode.Stepped;
+		foreach (var (agent, _) in _trafficAgents)
+			agent.SetCanWork(trafficCanWork);
+
+		// Player is an always-on planning sim; orchestrator drain timing differs by mode.
+		_playerAgent?.SetCanWork(PlayerId is not null);
 	}
 
 	private void WireInteractivePlanning()
@@ -289,43 +294,42 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void CommitPlayerActions()
 	{
-		if (_playerAgent is null)
+		if (_playerAgent is null || PlayerId is null)
 			return;
 
 		if (!_playerAgent.Commit())
 			return;
 
-		var playerActions = _playerAgent.TakeCompletedActions();
-		if (playerActions.Count == 0)
+		if (!_actionSink.TryTakeBatch(PlayerId, out var batch) || batch.Actions.Count == 0)
 			return;
 
-		_engine.Commit([..playerActions]);
-		foreach (var action in playerActions)
+		_engine.Commit([..batch.Actions]);
+		foreach (var action in batch.Actions)
 		{
 			if (action is HuntUnitAction hunt)
 				_contactMonitor.OnHuntCommitted(hunt.ActorId, hunt.TargetUnitId);
 		}
 	}
 
+	private void CommitTrafficActions()
+	{
+		foreach (var (agent, actorId) in _trafficAgents)
+		{
+			agent.PlanAndPublish();
+			if (!_actionSink.TryTakeBatch(actorId, out var batch) || batch.Actions.Count == 0)
+				continue;
+
+			_engine.Commit([..batch.Actions]);
+		}
+	}
+
 	private void OnContactDetected()
 	{
 		EnterInteractive();
-		ResetPlayerAgentPlanning();
+		_playerAgent?.OnWorldUpdated();
 	}
 
-	private void ResetPlayerAgentPlanning()
-	{
-		if (_playerAgent is null || PlayerId is null)
-			return;
-
-		SetActive(null);
-		SetActive(PlayerId);
-	}
-
-	private void RegisterActiveUnitChanged(Action<string?> handler) =>
-		ActiveUnitChanged += handler;
-
-	private void SetActive(string? unitId) => ActiveUnitChanged?.Invoke(unitId);
+	private void NotifyWorldUpdated() => _playerAgent?.OnWorldUpdated();
 
 	public void Dispose() => _engine.Dispose();
 

@@ -307,17 +307,15 @@ public sealed class PlayerFleetMovementTests
 
 	private sealed class FirstFoundThenUnreachablePathfinder : IPathfinder
 	{
-		private int _calls;
+		private static readonly Coord UnreachableDestination = new(999, 0, 999);
 
 		public PathfindingResult FindPath(Coord origin, Coord destination)
 		{
-			if (_calls++ == 0)
-			{
-				return new PathfindingResult.Found(
-					TransitPath.FromPoints([origin, destination], [1.0, 1.0]));
-			}
+			if (destination == UnreachableDestination)
+				return new PathfindingResult.Unreachable();
 
-			return new PathfindingResult.Unreachable();
+			return new PathfindingResult.Found(
+				TransitPath.FromPoints([origin, destination], [1.0, 1.0]));
 		}
 	}
 }

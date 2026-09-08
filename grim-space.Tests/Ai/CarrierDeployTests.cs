@@ -21,9 +21,7 @@ public sealed class CarrierDeployTests
 		carrier.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
-		battle.SetActive(null);
-		battle.SetActive(carrier.State.Id);
-		var actions = await carrier.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
 		Assert.Contains(actions, action => action is SpawnPatrolAction);
 	}
@@ -37,9 +35,7 @@ public sealed class CarrierDeployTests
 		carrier.State.PatrolSpawnCooldownRemaining = 1;
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
-		battle.SetActive(null);
-		battle.SetActive(carrier.State.Id);
-		var actions = await carrier.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
 		Assert.DoesNotContain(actions, action => action is SpawnPatrolAction);
 	}
@@ -59,9 +55,7 @@ public sealed class CarrierDeployTests
 			carrier,
 			blocked: new HashSet<Coord> { carrierPos, blockedBay });
 
-		battle.SetActive(null);
-		battle.SetActive(carrier.State.Id);
-		var actions = await carrier.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
 		Assert.DoesNotContain(actions, action => action is SpawnPatrolAction);
 	}
@@ -76,9 +70,7 @@ public sealed class CarrierDeployTests
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
 		FillLivingPatrols(battle.Engine.World, carrier.State.Id, CombatConfig.MaxLivingPatrolChildren);
 
-		battle.SetActive(null);
-		battle.SetActive(carrier.State.Id);
-		var actions = await carrier.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
 		Assert.DoesNotContain(actions, action => action is SpawnPatrolAction);
 	}

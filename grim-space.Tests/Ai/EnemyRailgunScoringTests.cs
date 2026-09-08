@@ -20,9 +20,7 @@ public sealed class EnemyRailgunScoringTests
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		battle.SetActive(null);
-		battle.SetActive(enemy.State.Id);
-		var actions = await enemy.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.Contains(actions, action => action is RailgunAction);
 	}
@@ -37,9 +35,7 @@ public sealed class EnemyRailgunScoringTests
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		battle.SetActive(null);
-		battle.SetActive(enemy.State.Id);
-		var actions = await enemy.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.DoesNotContain(actions, action => action is RailgunAction);
 	}
@@ -53,9 +49,7 @@ public sealed class EnemyRailgunScoringTests
 		var enemy = CreateUnit(Alliance.Enemy, "enemy", enemyPos, EType.Carrier, Coord.Forward, Coord.Up);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		battle.SetActive(null);
-		battle.SetActive(enemy.State.Id);
-		var actions = await enemy.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 	}
@@ -75,9 +69,7 @@ public sealed class EnemyRailgunScoringTests
 			Coord.Up);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		battle.SetActive(null);
-		battle.SetActive(enemy.State.Id);
-		var actions = await enemy.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
 		Assert.Contains(actions, action => action is RailgunAction);

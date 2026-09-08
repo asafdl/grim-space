@@ -8,22 +8,24 @@ using GrimSpace.Core.Engine;
 namespace GrimSpace.Battle.Player;
 
 public sealed class UserExecutionAgent
-	: ExecutionAgent<BattleWorld, ActorRuntime>,
+	: SimulationExecutionAgent<BattleWorld, ActorRuntime>,
 		IActionSink
 {
 	private bool _committed;
 
-	public BattleSimulation Sim { get; private set; } = null!;
+	public new BattleSimulation Sim { get; private set; } = null!;
 
-	public bool IsPlanning => _isActive && !_committed;
+	public bool IsPlanning => _canWork && !_committed;
 
 	public bool CanUndo => IsPlanning && Sim.Actions.Count > 0;
 
 	public event Action? PlanningChanged;
 
+	protected override bool PublishOnActivate => false;
+
 	public bool TryEnqueue(IReadOnlyList<IAction> actions)
 	{
-		if (_committed || !_isActive || actions.Count == 0)
+		if (_committed || !_canWork || actions.Count == 0)
 			return false;
 
 		if (actions is [var single] && single is HeadingTurnAction or RollAction)
@@ -44,7 +46,7 @@ public sealed class UserExecutionAgent
 
 	public bool Undo()
 	{
-		if (_committed || !_isActive || Sim.Actions.Count == 0)
+		if (_committed || !_canWork || Sim.Actions.Count == 0)
 			return false;
 
 		if (!Sim.TryUndoLast())
@@ -56,7 +58,7 @@ public sealed class UserExecutionAgent
 
 	public bool Commit()
 	{
-		if (_committed || !_isActive)
+		if (_committed || !_canWork)
 			return false;
 
 		if (!Sim.TryCommit(out var actions, out _))
@@ -64,7 +66,7 @@ public sealed class UserExecutionAgent
 
 		var streamlined = OrientationStreamline.StreamlineForCommit(actions);
 		_committed = true;
-		Complete(streamlined);
+		Publish(streamlined);
 		NotifyPlanningChanged();
 		return true;
 	}

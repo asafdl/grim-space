@@ -60,13 +60,7 @@ Combat state is split into two buckets, passed together through actions and effe
 
 **BattleOrchestrator** builds the encounter, owns turn flow (sequential commit: player → step → AI → step → upkeep), win rules, and presentation hooks. Presentation (`BattleUi`, `BattleController`, `BattleFrameBuilder`) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
 
-### Movement & momentum
 
-Movement is discrete and ship-relative, with action points as the primary turn budget. Momentum gives ships inertia — forward flight gets cheaper at speed, braking and lateral moves cost more. The feel target is thrust and drift, not free grid teleportation.
-
-### Combat
-
-Weapons are being shaped around complementary roles: area denial and delayed threats (missiles, flak) versus direct finishers (railgun). Hazards telegraph danger during the turn so both sides can react before damage lands. Tuning, weapon count, and exact constraints are still in flux.
 
 ---
 

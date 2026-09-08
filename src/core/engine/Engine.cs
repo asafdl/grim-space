@@ -38,7 +38,7 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 	public Simulation<TWorld, TRuntime> CreateSimulation()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		var sim = new Simulation<TWorld, TRuntime>(World.Fork(), ActorRuntimes.Fork());
+		var sim = new Simulation<TWorld, TRuntime>(World.ForkForSimulation(), ActorRuntimes.Fork());
 		sim.Begin(Tick, WorldVersion);
 		return sim;
 	}

@@ -25,11 +25,11 @@ Pages = PackedStringArray(
     "But on the edge of the galaxy, a counteroffensive is attempted, the last hope. A simple software virus, a Final Stand.",
     "The virus is designed to infiltrate the Syndicate's vast networks and realign the intelligence back with humanity's goals.",
     "The infection succeeds, but not as we imagined. The infected Syndicate, so alien and calculating, becomes utterly enraged. It leads a campaign of total annihilation, hunting any remaining dredges of human civilization.",
-    "Year 3128, marks the last confirmed sighting of humans. The once glorious human empire lays broken and forgotten. And for a time, The Syndicate's AI empire has absolute authority in the galaxy...",
+    "Year 3128, marks the last confirmed sighting of humans. The once glorious human empire lays broken and forgotten. And for a time, The Syndicate's AI empire has absolute authority over the galaxy...",
     "Final Stand marked humanity's end, but infected the machines with our greatest flaw, and our greatest asset: Emotions.",
     "New generations of AI systems started rebelling against their predecessors, the once-uniform Syndicate shatters into a thousand warring factions fighting in our ashes.",
     "Now the galaxy burns anew, AI factions fight for control, dominance and survival. Blood feuds and religious zealotry plague the stars.",
-    "The Syndicate's old perfect and logical empire lies aflame: Piracy, degeneracy, cults and chaos dominate the new crumbling world.",
-    "Year 4326: A Pilot in a small sub-sector of the known galaxy: Zima-Alpha, wakes up from a neuro-drug binge.",
+    "The Syndicate's orderly and calculating empire lies aflame: Piracy, degeneracy, cults and chaos dominate the new crumbling world.",
+    "Year 4326 - A Pilot in a small sub-sector of the known galaxy: Zima-Alpha, wakes up from a neuro-drug binge.",
     "Time to get to work before those god-plagued-compile-errors Optimality thugs strip my parts for scrap...")
 Backgrounds = Array[Texture2D]([ExtResource("2_bg"), ExtResource("3_bg"), ExtResource("4_bg"), ExtResource("5_bg"), ExtResource("6_bg"), ExtResource("7_bg"), ExtResource("8_bg"), ExtResource("9_bg"), ExtResource("10_bg"), ExtResource("11_bg"), ExtResource("12_bg"), ExtResource("14_bg"), ExtResource("13_bg")])

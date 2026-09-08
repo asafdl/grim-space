@@ -74,11 +74,15 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		&& point.X >= 0 && point.X < Width
 		&& point.Z >= 0 && point.Z < Height;
 
-	public StarMap Fork() =>
+	public StarMap Fork() => Fork(Timeline.Clone());
+
+	public StarMap ForkForSimulation() => Fork(Timeline.CloneSnapshot());
+
+	private StarMap Fork(Timeline timeline) =>
 		new(
 			Blueprint,
 			PointsOfInterest.Select(poi => poi.Fork()).ToList(),
-			Timeline.Clone(),
+			timeline,
 			DocksById,
 			DocksByPoiId,
 			RoutesById,

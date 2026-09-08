@@ -11,15 +11,18 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
+public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRuntime>
 {
 	private const int TimelineRefinementLimit = 8;
 	private const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
+
+	protected override bool PublishOnActivate => false;
 
 	protected override void ProduceActionsJob(Simulation<BattleWorld, ActorRuntime> simulation)
 	{
 		var session = (BattleSimulation)simulation;
 		var actor = UnitRegistry.For(session.World).UnitOf(_actorId!);
+		var jobCanWorkGeneration = CanWorkGeneration;
 		_ = Task.Run(() =>
 		{
 			try
@@ -37,11 +40,11 @@ public sealed class AiController : ExecutionAgent<BattleWorld, ActorRuntime>
 				if (actor.State.Type == EType.Carrier && TryAppendPatrolDeploy(session, actor))
 					actions = session.Actions.Skip(start).ToList();
 
-				Complete(actions);
+				Publish(actions, jobCanWorkGeneration);
 			}
 			catch (Exception ex)
 			{
-				Fail(ex);
+				Fail(ex, jobCanWorkGeneration);
 			}
 		});
 	}

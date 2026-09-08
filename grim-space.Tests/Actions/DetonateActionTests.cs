@@ -1,6 +1,9 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.World;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Battle.Units;
@@ -90,9 +93,7 @@ public sealed class DetonateActionTests
 		PlaceFarFromEveryone(battle, torpedoId);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 0;
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		battle.SetActive(null);
-		battle.SetActive(torpedoId);
-		var actions = await torpedo.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, torpedo);
 
 		Assert.Contains(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
@@ -110,9 +111,7 @@ public sealed class DetonateActionTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		battle.SetActive(null);
-		battle.SetActive(torpedoId);
-		var actions = await torpedo.ExecutionAgent.GetActions();
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, torpedo);
 
 		Assert.Contains(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
@@ -124,7 +123,7 @@ public sealed class DetonateActionTests
 		var battle = BattleWithTorpedo(out var torpedoId);
 		PlaceFarFromEveryone(battle, torpedoId);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 0;
-		battle.SetActive(PlayerId);
+		BattleTestFixture.ResetPlayerPlanning(battle);
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Contains(replay.Actions, action => action is DetonateAction);
@@ -139,9 +138,12 @@ public sealed class DetonateActionTests
 		battle.Engine.Commit(new TorpedoAction(PlayerId, ESpatialOrientation.Retro));
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
-		torpedo.ExecutionAgent.Init(torpedoId, battle.Engine.CreateSimulation, battle.RegisterActiveUnitChanged);
-		battle.SetActive(null);
-		battle.SetActive(PlayerId);
+		ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
+			torpedo.ExecutionAgent,
+			torpedoId,
+			battle.Engine.CreateSimulation,
+			battle.WriterFor(torpedoId));
+		BattleTestFixture.ResetPlayerPlanning(battle);
 		return battle;
 	}
 

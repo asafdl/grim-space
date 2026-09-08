@@ -32,6 +32,8 @@ public sealed class State
 		&& Phase == EPhase.Docked
 		&& ChoreDockIds.Count > 0;
 
+	public bool CanMove => Phase != EPhase.Working;
+
 	public string NextChoreDockId() => ChoreDockIds[ChoreIndex];
 
 	public void AdvanceChoreIndex() =>

@@ -1,8 +1,11 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.World;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
 using GrimSpace.Units.Enums;
@@ -18,7 +21,7 @@ public sealed class ObjectiveTests
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		battle.Engine.World.StateOf(torpedoId).HullPoints = 0;
-		battle.SetActive(PlayerId);
+		BattleTestFixture.ResetPlayerPlanning(battle);
 
 		_ = BattleTestActions.CommitAndResolve(battle);
 
@@ -32,9 +35,12 @@ public sealed class ObjectiveTests
 		battle.Engine.Commit(new TorpedoAction(PlayerId, ESpatialOrientation.Retro));
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
 		torpedoId = torpedo.State.Id;
-		torpedo.ExecutionAgent.Init(torpedoId, battle.Engine.CreateSimulation, battle.RegisterActiveUnitChanged);
-		battle.SetActive(null);
-		battle.SetActive(PlayerId);
+		ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
+			torpedo.ExecutionAgent,
+			torpedoId,
+			battle.Engine.CreateSimulation,
+			battle.WriterFor(torpedoId));
+		BattleTestFixture.ResetPlayerPlanning(battle);
 		return battle;
 	}
 }
