@@ -26,6 +26,7 @@ public partial class TurnReplayPlayer : Node3D
 	private Func<string, Color> _colorFor = _ => Colors.White;
 	private Action<State, Color> _ensureView = (_, _) => { };
 	private Action<IReadOnlyDictionary<string, State>> _synchronizeViews = _ => { };
+	private Action<State> _stateChanged = _ => { };
 
 	private TurnHistoryView _turnHistory = null!;
 	private HazardBurstView _hazardBursts = null!;
@@ -50,12 +51,14 @@ public partial class TurnReplayPlayer : Node3D
 		IReadOnlyDictionary<string, UnitView> unitViews,
 		Func<string, Color> colorFor,
 		Action<State, Color> ensureView,
-		Action<IReadOnlyDictionary<string, State>> synchronizeViews)
+		Action<IReadOnlyDictionary<string, State>> synchronizeViews,
+		Action<State> stateChanged)
 	{
 		_unitViews = unitViews;
 		_colorFor = colorFor;
 		_ensureView = ensureView;
 		_synchronizeViews = synchronizeViews;
+		_stateChanged = stateChanged;
 
 		_turnHistory = new TurnHistoryView { Name = "TurnHistory" };
 		AddChild(_turnHistory);
@@ -133,6 +136,10 @@ public partial class TurnReplayPlayer : Node3D
 					BeginPhase(ReplayActorPhase.Classify(impact.SourceId, _participants));
 					if (PlayImpact(impact))
 						return;
+					break;
+				case Record<MomentumChangedFacts> { Value: var momentum }:
+					BeginPhase(ReplayActorPhase.Classify(momentum.ActorId, _participants));
+					ApplyMomentum(momentum);
 					break;
 			}
 		}
@@ -215,15 +222,14 @@ public partial class TurnReplayPlayer : Node3D
 		if (!_clipContext.ReplayState.Contains(impact.TargetId))
 			return false;
 
+		var state = _clipContext.ReplayState.StateOf(impact.TargetId);
+		_stateChanged(state);
 		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
 			return false;
 
-		var state = _clipContext.ReplayState.StateOf(impact.TargetId);
 		view.ShowImpactState(state);
 		view.PlayHitFlash();
-
-		var damage = impact.HullDamage > 0 ? impact.HullDamage : impact.ShieldDamage;
-		view.PlayDamagePopup(damage);
+		view.PlayDamagePopup(impact.TotalDamage);
 
 		var died = !state.IsAlive;
 		if (died)
@@ -244,6 +250,14 @@ public partial class TurnReplayPlayer : Node3D
 			PlayNext();
 		};
 		return true;
+	}
+
+	private void ApplyMomentum(MomentumChangedFacts momentum)
+	{
+		_clipContext.ReplayState.ApplyMomentum(momentum);
+		var state = _clipContext.ReplayState.StateOf(momentum.ActorId);
+		_clipContext.UnitViews[momentum.ActorId].Sync(state);
+		_stateChanged(state);
 	}
 
 	private void BeginPhase(EReplayPlaybackPhase phase)

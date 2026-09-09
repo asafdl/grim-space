@@ -14,7 +14,8 @@ public static class ReplayActorPhase
 {
 	public static EReplayPlaybackPhase Classify(string actorId, IReadOnlyDictionary<string, ETeam> participants)
 	{
-		if (string.Equals(actorId, BattleActorIds.Rules, StringComparison.Ordinal))
+		if (string.Equals(actorId, BattleActorIds.Rules, StringComparison.Ordinal)
+			|| string.Equals(actorId, BattleActorIds.Terrain, StringComparison.Ordinal))
 			return EReplayPlaybackPhase.Upkeep;
 
 		if (!participants.TryGetValue(actorId, out var team))

@@ -10,4 +10,7 @@ public readonly record struct ImpactFacts(
 	ESpatialOrientation Face,
 	int ShieldDamage,
 	int HullDamage,
-	int MomentumLoss);
+	int MomentumLoss)
+{
+	public int TotalDamage => ShieldDamage + HullDamage;
+}

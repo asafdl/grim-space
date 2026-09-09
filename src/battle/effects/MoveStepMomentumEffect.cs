@@ -31,7 +31,9 @@ public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEff
 		path.MovementBuildupLevel = buildup.Level;
 		path.MovementBuildupForwardSteps = buildup.ForwardStepsTowardGain;
 		actor.MomentumLevel = buildup.Level;
-		return [];
+		return actor.MomentumLevel == _previousMomentum
+			? []
+			: [new Record<MomentumChangedFacts>(new MomentumChangedFacts(actorId, actor.MomentumLevel))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

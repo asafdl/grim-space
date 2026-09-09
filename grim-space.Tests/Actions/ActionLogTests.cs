@@ -25,6 +25,21 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
+	public void AggregatesMoveStepsAcrossMomentumFacts()
+	{
+		ITimelineEntry[] history =
+		[
+			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
+			new Record<MomentumChangedFacts>(new MomentumChangedFacts("patrol-a", 1)),
+			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
+		];
+
+		var lines = ActionLog.Format(history, id => $"enemy {id}");
+
+		Assert.Equal(["enemy patrol-a moved 2 steps"], lines);
+	}
+
+	[Fact]
 	public void FormatsRailgunHit()
 	{
 		ITimelineEntry[] history =

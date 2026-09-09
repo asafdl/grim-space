@@ -43,6 +43,15 @@ public static class ActionLog
 				{
 					steps++;
 					i++;
+					if (i < history.Count
+						&& history[i] is Record<MomentumChangedFacts>
+						{
+							Value.ActorId: var momentumActorId
+						}
+						&& momentumActorId == actorId)
+					{
+						i++;
+					}
 				}
 
 				Emit(actorId, $"{displayName(actorId)} moved {steps} {(steps == 1 ? "step" : "steps")}");

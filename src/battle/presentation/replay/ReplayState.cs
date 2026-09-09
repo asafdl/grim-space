@@ -36,6 +36,9 @@ public sealed class ReplayState
 		state.Position += frame.Step(move.Direction);
 	}
 
+	public void ApplyMomentum(MomentumChangedFacts momentum) =>
+		_states[momentum.ActorId].MomentumLevel = momentum.MomentumLevel;
+
 	public void ApplyImpact(ImpactFacts impact)
 	{
 		if (!_states.TryGetValue(impact.TargetId, out var state))

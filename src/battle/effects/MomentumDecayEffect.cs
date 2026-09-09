@@ -13,7 +13,9 @@ public sealed class MomentumDecayEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		_previous = actor.MomentumLevel;
 		actor.MomentumLevel = System.Math.Max(actor.MomentumLevel - 1, 0);
-		return [];
+		return actor.MomentumLevel == _previous
+			? []
+			: [new Record<MomentumChangedFacts>(new MomentumChangedFacts(actorId, actor.MomentumLevel))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

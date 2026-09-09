@@ -42,6 +42,14 @@ public sealed class ReplayIdentityTests
 	}
 
 	[Fact]
+	public void Classify_TerrainActor_ReturnsUpkeepPhase()
+	{
+		Assert.Equal(
+			EReplayPlaybackPhase.Upkeep,
+			ReplayActorPhase.Classify(BattleActorIds.Terrain, new Dictionary<string, ETeam>()));
+	}
+
+	[Fact]
 	public void Classify_UnknownActor_Throws()
 	{
 		Assert.Throws<KeyNotFoundException>(
@@ -75,5 +83,41 @@ public sealed class ReplayIdentityTests
 		var points = TurnReplayPlayer.ImpactInterestPoints(replayState, impact);
 
 		Assert.Equal([WorldMapping.ToWorld(target.Position)], points);
+	}
+
+	[Fact]
+	public void ApplyMomentumUsesAuthoritativeResult()
+	{
+		var state = State.FromSpawn(
+			new Instance
+			{
+				Id = "fighter-a",
+				Type = EType.Fighter,
+				Alliance = Alliance.Player,
+			},
+			Coord.Zero);
+		var replayState = new ReplayState(new Dictionary<string, State>
+		{
+			[state.Id] = state,
+		});
+
+		replayState.ApplyMomentum(new MomentumChangedFacts(state.Id, 2));
+
+		Assert.Equal(2, replayState.StateOf(state.Id).MomentumLevel);
+	}
+
+	[Fact]
+	public void ImpactTotalDamageIncludesShieldAndHull()
+	{
+		var impact = new ImpactFacts(
+			SourceId: "enemy",
+			TargetId: "fighter-a",
+			Cause: EHazardKind.RailgunBurst,
+			Face: ESpatialOrientation.Forward,
+			ShieldDamage: 2,
+			HullDamage: 1,
+			MomentumLoss: 0);
+
+		Assert.Equal(3, impact.TotalDamage);
 	}
 }

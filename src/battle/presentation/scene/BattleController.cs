@@ -131,7 +131,8 @@ public partial class BattleController : Node3D
 			_battleView.UnitViews,
 			ColorForActor,
 			(state, color) => _battleView.Ensure(state, color),
-			states => _battleView.ApplyUnitStates(states, ColorForActor));
+			states => _battleView.ApplyUnitStates(states, ColorForActor),
+			ApplyReplayState);
 		AddChild(_replayPlayer);
 
 		_replayDirector = new ReplayDirector { Name = "ReplayDirector" };
@@ -404,6 +405,12 @@ public partial class BattleController : Node3D
 			return;
 
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
+	}
+
+	private void ApplyReplayState(ActorState state)
+	{
+		if (_currentFrame.FocusState.Id == state.Id)
+			_battleHud.HealthBar.Set(state);
 	}
 
 	internal static bool ShouldApplyFrameUnitStates(EBattlePhase phase) =>
