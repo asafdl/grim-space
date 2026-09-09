@@ -32,6 +32,7 @@ public partial class RunSession : Node
 		_instance = this;
 		ConfigureLogging();
 		GameSettings.ApplySavedVideoConfig();
+		GameSettings.ApplySavedAudioConfig();
 	}
 
 	public override void _Ready()

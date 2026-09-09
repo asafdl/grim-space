@@ -174,7 +174,7 @@ theme_override_constants/separation = 16
 [node name="Breadcrumb" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=632842195]
 layout_mode = 2
 theme_type_variation = &"SubtitleLabel"
-text = "Settings > Video"
+text = "Settings"
 horizontal_alignment = 1
 
 [node name="VideoSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=1727980572]
@@ -229,6 +229,34 @@ popup/item_2/text = "1600x900"
 popup/item_2/id = 2
 popup/item_3/text = "1280x720"
 popup/item_3/id = 3
+
+[node name="AudioSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AudioLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+layout_mode = 2
+theme_type_variation = &"SectionHeadingLabel"
+text = "Audio"
+
+[node name="MasterVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MasterVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MasterVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Master volume"
+
+[node name="MasterVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MasterVolumeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+value = 100.0
 
 [node name="Apply" type="Button" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=432609691]
 unique_name_in_owner = true

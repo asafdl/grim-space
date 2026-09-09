@@ -44,6 +44,30 @@ public static class GameSettings
 		ApplyVideoConfig(mode, NormalizeWindowedResolution(width, height));
 	}
 
+	public static float ReadMasterVolume()
+	{
+		if (!TryLoad(out var config))
+			return 1f;
+
+		return Mathf.Clamp(config!.GetValue("audio", "master_volume", 1f).AsSingle(), 0f, 1f);
+	}
+
+	public static void SaveMasterVolume(float linear)
+	{
+		var config = LoadOrCreate();
+		config.SetValue("audio", "master_volume", Mathf.Clamp(linear, 0f, 1f));
+		config.Save(SettingsPath);
+	}
+
+	public static void ApplySavedAudioConfig() =>
+		ApplyMasterVolume(ReadMasterVolume());
+
+	public static void ApplyMasterVolume(float linear)
+	{
+		var bus = AudioServer.GetBusIndex("Master");
+		AudioServer.SetBusVolumeDb(bus, linear <= 0f ? -80f : Mathf.LinearToDb(linear));
+	}
+
 	public static void ApplyVideoConfig(string mode, Vector2I windowedSize)
 	{
 		var window = (Window)((SceneTree)Godot.Engine.GetMainLoop()).Root;

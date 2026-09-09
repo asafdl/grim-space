@@ -20,6 +20,7 @@ public partial class StartMenu : Control
 	private ParticleProcessMaterial _dustMaterial = null!;
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
+	private HSlider _masterVolume = null!;
 	private Button _startButton = null!;
 
 	public override void _Ready()
@@ -38,6 +39,7 @@ public partial class StartMenu : Control
 
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
+		_masterVolume = GetNode<HSlider>("%MasterVolume");
 
 		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
 
@@ -58,6 +60,7 @@ public partial class StartMenu : Control
 		_displayMode.Selected = mode == "windowed" ? 1 : 0;
 		SelectResolution(width, height);
 		UpdateResolutionEnabled();
+		_masterVolume.Value = GameSettings.ReadMasterVolume() * 100f;
 	}
 
 	private void SelectResolution(int width, int height)
@@ -94,10 +97,18 @@ public partial class StartMenu : Control
 	private void UpdateResolutionEnabled() =>
 		_resolution.Disabled = _displayMode.Selected != 1;
 
+	private void ApplyAudioSettings()
+	{
+		var linear = (float)(_masterVolume.Value / 100.0);
+		GameSettings.ApplyMasterVolume(linear);
+		GameSettings.SaveMasterVolume(linear);
+	}
+
 	private void OnApply()
 	{
 		ApplyVideoSettings();
 		SaveVideoSettings();
+		ApplyAudioSettings();
 	}
 
 	private void ShowSettingsPanel()

@@ -18,6 +18,7 @@ config/icon="res://assets/icon.png"
 [autoload]
 
 RunSession="*res://src/core/RunSession.cs"
+Music="*res://src/core/Music.cs"
 
 [display]
 
