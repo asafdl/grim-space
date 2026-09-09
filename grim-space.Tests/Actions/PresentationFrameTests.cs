@@ -188,6 +188,48 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
+	public void QueuedWeaponUsesActorStateAtQueueIndex()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var afterMove = origin + Coord.Forward * 2;
+		var afterFurtherMove = origin + Coord.Forward * 3;
+
+		Assert.True(BattleTestCommands.Move(battle, afterMove));
+		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.Move(battle, afterFurtherMove));
+
+		var preview = new PlanningPreview();
+		var queued = preview.QueuedWeapon(battle.PlayerAgent.Sim, battle.PlayerId);
+
+		Assert.True(queued.Railgun);
+		Assert.NotNull(queued.ActorStateAtQueue);
+		Assert.Equal(afterMove, queued.ActorStateAtQueue.Position);
+		Assert.Equal(
+			afterFurtherMove,
+			preview.PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId)[battle.PlayerId].Position);
+	}
+
+	[Fact]
+	public void PreviewRetainsPredictedDeadUnits()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var enemy = battle.PlayerAgent.Sim.StateOf<ActorState>(enemyId);
+		enemy.HullPoints = 1;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			enemy.ShieldPoints[face] = 0;
+
+		Assert.True(BattleTestCommands.FireRailgun(battle));
+
+		var preview = new PlanningPreview().PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId);
+
+		Assert.True(preview.ContainsKey(enemyId));
+		Assert.False(preview[enemyId].IsAlive);
+	}
+
+	[Fact]
 	public void InvalidFocusTargetFallsBackToPlayer()
 	{
 		var origin = new Coord(5, 5, 5);

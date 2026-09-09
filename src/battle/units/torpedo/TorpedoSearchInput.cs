@@ -14,6 +14,7 @@ internal readonly record struct TorpedoFrameRank(
 	bool OpponentInBlast,
 	int ApproachGain,
 	int MoveCount,
+	int BlastScore,
 	int Score) : IComparable<TorpedoFrameRank>
 {
 	public int CompareTo(TorpedoFrameRank other)
@@ -24,6 +25,10 @@ internal readonly record struct TorpedoFrameRank(
 
 		if (OpponentInBlast)
 		{
+			var blast = BlastScore.CompareTo(other.BlastScore);
+			if (blast != 0)
+				return blast;
+
 			var moves = other.MoveCount.CompareTo(MoveCount);
 			if (moves != 0)
 				return moves;
@@ -106,7 +111,7 @@ internal static class TorpedoSearchInput
 	{
 		var score = ScoreHeuristic(frame, anchor, actorId, target, searchStartDepth);
 		if (score == int.MinValue)
-			return new(false, 0, 0, score);
+			return new(false, 0, 0, 0, score);
 
 		var state = frame.World.StateOf(actorId);
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
@@ -115,7 +120,12 @@ internal static class TorpedoSearchInput
 			? state.Position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius
 			: DetonateDef.HasOpponentInBlast(frame.World, actorId, state.Position);
 
-		return new(opponentInBlast, approachGain, frame.Depth, score);
+		return new(
+			opponentInBlast,
+			approachGain,
+			frame.Depth,
+			BlastScore(frame.World, actorId, state.Position, target),
+			score);
 	}
 
 	public static int ScoreHeuristic(
@@ -152,6 +162,21 @@ internal static class TorpedoSearchInput
 			&& state.Position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius;
 		if (fuelAfterBurn == 0 && !targetInBlast)
 			score -= WetBoomPenalty;
+
+		return score;
+	}
+
+	private static int BlastScore(BattleWorld world, string actorId, Coord position, Unit? target)
+	{
+		var score = 0;
+		if (target is not null
+			&& position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius)
+		{
+			score += BlastTargetBonus;
+		}
+
+		if (HasAllyInBlast(world, actorId, position))
+			score -= BlastAllyPenalty;
 
 		return score;
 	}

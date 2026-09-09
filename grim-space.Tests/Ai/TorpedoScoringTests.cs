@@ -137,6 +137,30 @@ public sealed class TorpedoScoringTests
 	}
 
 	[Fact]
+	public void Plan_PrefersCleanDetonationOverImmediateCollateral()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
+		battle.Engine.World.StateOf(PlayerId).Position = new Coord(4, 4, 5);
+
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 4;
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var session = battle.Engine.CreateSimulation();
+		agent.Plan(torpedo, session);
+
+		var end = session.StateOf<ActorState>(torpedoId).Position;
+		var playerPos = session.StateOf<ActorState>(PlayerId).Position;
+		Assert.True(end.Z > torpedoPos.Z);
+		Assert.True(end.ManhattanDistanceTo(playerPos) > TorpedoConfig.BlastRadius);
+	}
+
+	[Fact]
 	public void Plan_PrefersDetonateOverChargingPastOpponent()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);

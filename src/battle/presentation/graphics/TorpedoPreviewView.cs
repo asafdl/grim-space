@@ -1,6 +1,8 @@
 using Godot;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -100,7 +102,8 @@ public sealed partial class TorpedoPreviewView : Node3D
 		}
 
 		var queuedMountedOn = queued.TorpedoMountedOn!.Value;
-		var (queuedCell, _, _) = TorpedoMount.LaunchPose(frame.FocusState.ToState(), queuedMountedOn);
+		var queuedShip = WeaponPoseState(frame, cemented: true);
+		var (queuedCell, _, _) = TorpedoMount.LaunchPose(queuedShip, queuedMountedOn);
 		Place(_mountMesh, _cementedMaterial, queuedCell);
 		PlaceCementedEnvelope(
 			frame.TorpedoEnvelopeLayers,
@@ -176,6 +179,11 @@ public sealed partial class TorpedoPreviewView : Node3D
 		AddChild(marker);
 		return marker;
 	}
+
+	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
+		cemented && frame.QueuedWeapon.ActorStateAtQueue is UnitDisplayState queued
+			? queued.ToState()
+			: frame.FocusState.ToState();
 
 	private void ReleaseActive()
 	{
