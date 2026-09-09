@@ -8,7 +8,9 @@ public sealed class QueuedWeaponState
 	public static QueuedWeaponState Empty { get; } = new();
 
 	public ESpatialOrientation? FlakMountedOn { get; init; }
+	public UnitDisplayState? FlakActorStateAtQueue { get; init; }
 	public bool Railgun { get; init; }
+	public UnitDisplayState? RailgunActorStateAtQueue { get; init; }
 	public ESpatialOrientation? TorpedoMountedOn { get; init; }
-	public UnitDisplayState? ActorStateAtQueue { get; init; }
+	public UnitDisplayState? TorpedoActorStateAtQueue { get; init; }
 }

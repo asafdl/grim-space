@@ -102,6 +102,13 @@ public sealed class PlanningPreview
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
 	{
+		ESpatialOrientation? flakMountedOn = null;
+		UnitDisplayState? flakActorState = null;
+		var railgun = false;
+		UnitDisplayState? railgunActorState = null;
+		ESpatialOrientation? torpedoMountedOn = null;
+		UnitDisplayState? torpedoActorState = null;
+
 		for (var i = sim.Actions.Count - 1; i >= 0; i--)
 		{
 			if (sim.Actions[i].ActorId != playerId)
@@ -109,18 +116,30 @@ public sealed class PlanningPreview
 
 			switch (sim.Actions[i])
 			{
-				case FlakAction flak:
-					return BuildQueuedWeapon(sim, playerId, i, flakMountedOn: flak.MountedOn);
-				case RailgunAction:
-					return BuildQueuedWeapon(sim, playerId, i, railgun: true);
-				case TorpedoAction torpedo:
-					return BuildQueuedWeapon(sim, playerId, i, torpedoMountedOn: torpedo.MountedOn);
-				default:
-					continue;
+				case FlakAction flak when flakMountedOn is null:
+					flakMountedOn = flak.MountedOn;
+					flakActorState = ActorStateAt(sim, playerId, i);
+					break;
+				case RailgunAction when !railgun:
+					railgun = true;
+					railgunActorState = ActorStateAt(sim, playerId, i);
+					break;
+				case TorpedoAction torpedo when torpedoMountedOn is null:
+					torpedoMountedOn = torpedo.MountedOn;
+					torpedoActorState = ActorStateAt(sim, playerId, i);
+					break;
 			}
 		}
 
-		return QueuedWeaponState.Empty;
+		return new QueuedWeaponState
+		{
+			FlakMountedOn = flakMountedOn,
+			FlakActorStateAtQueue = flakActorState,
+			Railgun = railgun,
+			RailgunActorStateAtQueue = railgunActorState,
+			TorpedoMountedOn = torpedoMountedOn,
+			TorpedoActorStateAtQueue = torpedoActorState,
+		};
 	}
 
 	public HashSet<string> ThreatenedUnitIds(
@@ -128,16 +147,20 @@ public sealed class PlanningPreview
 		string playerId,
 		InteractionState state)
 	{
-		if (state.Mode == EPlayerMode.Flak && state.StagedMountedOn is ESpatialOrientation stagedMountedOn)
-			return ImpactTargets(sim.Peek(new FlakAction(playerId, stagedMountedOn)));
+		var targets = new HashSet<string>();
 
-		if (state.Mode == EPlayerMode.Flak && state.FlakHoverMountedOn is ESpatialOrientation hoverMountedOn)
-			return ImpactTargets(sim.Peek(new FlakAction(playerId, hoverMountedOn)));
+		if (state.Mode == EPlayerMode.Flak)
+		{
+			if (state.StagedMountedOn is ESpatialOrientation stagedMountedOn)
+				targets.UnionWith(ImpactTargets(sim.Peek(new FlakAction(playerId, stagedMountedOn))));
+			else if (state.FlakHoverMountedOn is ESpatialOrientation hoverMountedOn)
+				targets.UnionWith(ImpactTargets(sim.Peek(new FlakAction(playerId, hoverMountedOn))));
+		}
 
 		if (state.RailgunHovered)
-			return ImpactTargets(sim.Peek(new RailgunAction(playerId)));
+			targets.UnionWith(ImpactTargets(sim.Peek(new RailgunAction(playerId))));
 
-		for (var i = sim.Actions.Count - 1; i >= 0; i--)
+		for (var i = 0; i < sim.Actions.Count; i++)
 		{
 			if (sim.Actions[i].ActorId != playerId)
 				continue;
@@ -146,15 +169,12 @@ public sealed class PlanningPreview
 			{
 				case FlakAction:
 				case RailgunAction:
-					return ImpactTargets(sim.RecordsFor(i));
-				case TorpedoAction:
-					return [];
-				default:
-					continue;
+					targets.UnionWith(ImpactTargets(sim.RecordsFor(i)));
+					break;
 			}
 		}
 
-		return [];
+		return targets;
 	}
 
 	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers(
@@ -274,21 +294,6 @@ public sealed class PlanningPreview
 	private static Dictionary<string, UnitDisplayState> CaptureUnits(BattleWorld world) =>
 		UnitRegistry.For(world).All
 			.ToDictionary(unit => unit.State.Id, unit => UnitDisplayState.Capture(unit.State));
-
-	private static QueuedWeaponState BuildQueuedWeapon(
-		BattleSimulation sim,
-		string playerId,
-		int actionIndex,
-		ESpatialOrientation? flakMountedOn = null,
-		bool railgun = false,
-		ESpatialOrientation? torpedoMountedOn = null) =>
-		new()
-		{
-			FlakMountedOn = flakMountedOn,
-			Railgun = railgun,
-			TorpedoMountedOn = torpedoMountedOn,
-			ActorStateAtQueue = ActorStateAt(sim, playerId, actionIndex),
-		};
 
 	private static UnitDisplayState ActorStateAt(BattleSimulation sim, string playerId, int actionIndex)
 	{

@@ -181,7 +181,7 @@ public sealed partial class TorpedoPreviewView : Node3D
 	}
 
 	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
-		cemented && frame.QueuedWeapon.ActorStateAtQueue is UnitDisplayState queued
+		cemented && frame.QueuedWeapon.TorpedoActorStateAtQueue is UnitDisplayState queued
 			? queued.ToState()
 			: frame.FocusState.ToState();
 

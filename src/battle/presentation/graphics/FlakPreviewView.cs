@@ -148,7 +148,7 @@ public sealed partial class FlakPreviewView : Node3D
 	}
 
 	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
-		cemented && frame.QueuedWeapon.ActorStateAtQueue is UnitDisplayState queued
+		cemented && frame.QueuedWeapon.FlakActorStateAtQueue is UnitDisplayState queued
 			? queued.ToState()
 			: frame.FocusState.ToState();
 

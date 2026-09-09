@@ -1,9 +1,11 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -42,7 +44,10 @@ public sealed class TorpedoDef
 	}
 
 	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
-		new(actorId, mountedOn);
+		new(
+			actorId,
+			mountedOn,
+			TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo)));
 
 	public bool SupportsMount(ESpatialOrientation mountedOn) =>
 		MountedOn.Contains(mountedOn);

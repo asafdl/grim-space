@@ -41,7 +41,7 @@ internal static class BattleTestCommands
 		Enqueue(battle, [new RailgunAction(battle.PlayerId)]);
 
 	public static bool FireTorpedo(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
-		Enqueue(battle, [new TorpedoAction(battle.PlayerId, mountedOn)]);
+		Enqueue(battle, [TorpedoDef.Instance.Bind(battle.PlayerId, mountedOn)]);
 
 	public static bool DeployPatrol(BattleOrchestrator battle)
 	{

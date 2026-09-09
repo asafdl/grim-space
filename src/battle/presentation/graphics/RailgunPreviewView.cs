@@ -93,7 +93,7 @@ public sealed partial class RailgunPreviewView : Node3D
 	}
 
 	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
-		cemented && frame.QueuedWeapon.ActorStateAtQueue is UnitDisplayState queued
+		cemented && frame.QueuedWeapon.RailgunActorStateAtQueue is UnitDisplayState queued
 			? queued.ToState()
 			: frame.FocusState.ToState();
 

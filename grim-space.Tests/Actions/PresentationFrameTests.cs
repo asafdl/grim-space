@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
@@ -188,26 +189,61 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void QueuedWeaponUsesActorStateAtQueueIndex()
+	public void QueuedWeaponsRetainTheirOwnActorStateAtQueueIndex()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var afterMove = origin + Coord.Forward * 2;
-		var afterFurtherMove = origin + Coord.Forward * 3;
 
-		Assert.True(BattleTestCommands.Move(battle, afterMove));
 		Assert.True(BattleTestCommands.FireRailgun(battle));
-		Assert.True(BattleTestCommands.Move(battle, afterFurtherMove));
+		Assert.True(BattleTestCommands.Move(battle, afterMove));
+		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
 
 		var preview = new PlanningPreview();
 		var queued = preview.QueuedWeapon(battle.PlayerAgent.Sim, battle.PlayerId);
 
 		Assert.True(queued.Railgun);
-		Assert.NotNull(queued.ActorStateAtQueue);
-		Assert.Equal(afterMove, queued.ActorStateAtQueue.Position);
+		Assert.Equal(ESpatialOrientation.Port, queued.FlakMountedOn);
+		Assert.NotNull(queued.RailgunActorStateAtQueue);
+		Assert.NotNull(queued.FlakActorStateAtQueue);
+		Assert.Equal(origin, queued.RailgunActorStateAtQueue.Position);
+		Assert.Equal(afterMove, queued.FlakActorStateAtQueue.Position);
 		Assert.Equal(
-			afterFurtherMove,
+			afterMove,
 			preview.PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId)[battle.PlayerId].Position);
+	}
+
+	[Fact]
+	public void ThreatenedUnitIdsIncludesTargetsFromEveryQueuedWeapon()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var preview = new PlanningPreview();
+
+		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.Contains(
+			enemyId,
+			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId, new InteractionState()));
+
+		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
+
+		Assert.Contains(
+			enemyId,
+			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId, new InteractionState()));
+	}
+
+	[Fact]
+	public void QueuedTorpedoRetainsReachEnvelope()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+
+		Assert.True(BattleTestCommands.FireTorpedo(battle, ESpatialOrientation.Retro));
+
+		var action = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions));
+		Assert.NotNull(action.SpawnedUnitId);
+		Assert.NotEmpty(BattleTestCommands.Frame(battle).TorpedoEnvelopeLayers);
 	}
 
 	[Fact]
