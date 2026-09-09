@@ -83,6 +83,7 @@ internal static class BattleHudCopy
 	public const string OutcomeDraw = "Draw";
 	public const string OutcomeDefault = "Battle Over";
 	public const string Reset = "Reset";
+	public const string ReturnToStarMap = "Return to Star Map";
 
 	public const string IntroTitle = "Engage";
 	public const string ObjectiveEliminateOpponents = "Objective: Eliminate all opponents";

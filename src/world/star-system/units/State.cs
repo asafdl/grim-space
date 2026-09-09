@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Encounter;
@@ -18,14 +19,21 @@ public sealed class State
 	public IReadOnlyList<string> ChoreDockIds { get; init; } = [];
 	public int ChoreIndex { get; set; }
 	public double SpeedPerTick { get; init; }
-	public double ContactRadius { get; init; }
+	public double EngageRadius { get; init; }
 	public int WorkStartTick { get; set; }
 	internal string? SpawnWorkPoiId { get; set; }
 	internal int SpawnWorkRemainingTicks { get; set; }
 	public string? EngagementTargetUnitId { get; internal set; }
 	public string? HuntedByUnitId { get; internal set; }
+	public EEngagementPhase EngagementPhase { get; internal set; }
+	public string? EngagementInitiatorUnitId { get; internal set; }
+	public BattleOutcome? ResolvedEngagementOutcome { get; internal set; }
 	private readonly HashSet<string> _engagedWithUnitIds = [];
 	public IReadOnlyCollection<string> EngagedWithUnitIds => _engagedWithUnitIds;
+
+	internal void AddEngagedWith(string unitId) => _engagedWithUnitIds.Add(unitId);
+
+	internal void ClearEngagedWith() => _engagedWithUnitIds.Clear();
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -118,13 +126,16 @@ public sealed class State
 			ChoreDockIds = ChoreDockIds,
 			ChoreIndex = ChoreIndex,
 			SpeedPerTick = SpeedPerTick,
-			ContactRadius = ContactRadius,
+			EngageRadius = EngageRadius,
 			WorkStartTick = WorkStartTick,
 			SpawnWorkPoiId = SpawnWorkPoiId,
 			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
 		};
 		clone.EngagementTargetUnitId = EngagementTargetUnitId;
 		clone.HuntedByUnitId = HuntedByUnitId;
+		clone.EngagementPhase = EngagementPhase;
+		clone.EngagementInitiatorUnitId = EngagementInitiatorUnitId;
+		clone.ResolvedEngagementOutcome = ResolvedEngagementOutcome;
 		foreach (var engagedUnitId in _engagedWithUnitIds)
 			clone._engagedWithUnitIds.Add(engagedUnitId);
 		clone.Journey.JourneyId = Journey.JourneyId;
@@ -144,7 +155,7 @@ public sealed class State
 			DockedAtDockId = spawn.DockedAtDockId,
 			IdleCoord = spawn.IdleCoord,
 			SpeedPerTick = spawn.SpeedPerTick,
-			ContactRadius = spawn.ContactRadius,
+			EngageRadius = spawn.EngageRadius,
 			ChoreDockIds = spawn.ChoreDockIds,
 		};
 }

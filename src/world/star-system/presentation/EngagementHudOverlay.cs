@@ -1,72 +1,91 @@
 using Godot;
 using GrimSpace.Presentation.Ui.Hud;
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Encounter;
-using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed partial class EngagementHudOverlay : Node
 {
 	private readonly ModalHudShell _shell;
-	private string _targetUnitId = "";
+	private bool _busy;
 
-	public event Action? Dismissed;
+	public event Action? EngageRequested;
+	public event Action? FleeRequested;
 
 	public EngagementHudOverlay()
 	{
 		_shell = new ModalHudShell();
 		AddChild(_shell);
-		_shell.Closed += () => Dismissed?.Invoke();
 	}
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Open(StarMap map, string targetUnitId)
+	public void Sync(PendingEngagement pending)
 	{
-		if (!map.UnitRegistry.TryGet(targetUnitId, out var target))
-			return;
-
-		_targetUnitId = targetUnitId;
-		var profile = target.State.CombatProfile
-			?? throw new InvalidOperationException($"Engagement target '{targetUnitId}' has no combat profile.");
-
+		_busy = false;
 		_shell.Open("Contact", "Hostile fleet detected");
-		_shell.SetHeader(HudHeaderMode.Close, Close);
+		_shell.SetHeader(HudHeaderMode.Close, null);
+		_shell.SetHeaderVisible(false);
 		_shell.SetBackHandler(null);
-		_shell.SetFooter([]);
+		_shell.SetCloseHandler(null);
 
 		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		body.AddChild(HudWidgets.CreateSection("Fleet type", target.State.Type.ToString()));
-		body.AddChild(HudWidgets.CreateSection("Faction", FormatFaction(target.State.Faction)));
+		body.AddChild(HudWidgets.CreateSection("Fleet type", pending.CounterpartyType.ToString()));
+		body.AddChild(HudWidgets.CreateSection("Faction", FormatFaction(pending.CounterpartyFaction)));
 		body.AddChild(HudWidgets.CreateSection(
 			"Threat",
-			profile.Danger.ToString(),
+			pending.Danger.ToString(),
 			bodyRole: HudTextRole.Danger));
 
 		_shell.SetBody(body);
+		_shell.SetFooter(
+		[
+			new HudAction("Flee", HudActionKind.Secondary, RequestFlee),
+			new HudAction("Engage", HudActionKind.Primary, RequestEngage),
+		]);
 	}
 
-	public void Close()
+	public void Close() => _shell.Close();
+
+	public void SetBusy(bool busy) => _busy = busy;
+
+	public void ShowError(string message)
 	{
-		_targetUnitId = "";
-		_shell.Close();
+		_busy = false;
+		_shell.SetSubtitle(message);
 	}
 
 	public bool TryHandleInput(InputEvent @event)
 	{
-		if (!IsOpen)
-			return false;
+		if (!IsOpen || _busy)
+			return IsOpen;
 
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
-			|| @event is InputEventMouseButton { Pressed: true })
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
-			Close();
+			RequestFlee();
 			return true;
 		}
 
 		return false;
+	}
+
+	private void RequestEngage()
+	{
+		if (_busy)
+			return;
+
+		EngageRequested?.Invoke();
+	}
+
+	private void RequestFlee()
+	{
+		if (_busy)
+			return;
+
+		FleeRequested?.Invoke();
 	}
 
 	private static string FormatFaction(EFaction faction) =>

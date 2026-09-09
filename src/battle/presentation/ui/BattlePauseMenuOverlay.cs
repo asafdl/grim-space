@@ -11,6 +11,7 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 	public event Action? MainMenuRequested;
 
 	private Control _root = null!;
+	private Button _restartButton = null!;
 
 	public BattlePauseMenuOverlay()
 	{
@@ -20,6 +21,8 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 	}
 
 	public void ApplyTheme(Theme theme) => _root.Theme = theme;
+
+	public void SetRestartEnabled(bool enabled) => _restartButton.Disabled = !enabled;
 
 	private void Build()
 	{
@@ -94,7 +97,8 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		content.AddChild(CreateMenuButton(
 			BattleHudCopy.Restart,
 			BattleHudCopy.RestartTooltip,
-			() => RestartRequested?.Invoke()));
+			() => RestartRequested?.Invoke(),
+			out _restartButton));
 		content.AddChild(CreateMenuButton(
 			BattleHudCopy.MainMenu,
 			BattleHudCopy.MainMenuTooltip,
@@ -115,7 +119,16 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 
 	private static Button CreateMenuButton(string text, string tooltip, Action onPressed)
 	{
-		var button = new Button
+		return CreateMenuButton(text, tooltip, onPressed, out _);
+	}
+
+	private static Button CreateMenuButton(
+		string text,
+		string tooltip,
+		Action onPressed,
+		out Button button)
+	{
+		button = new Button
 		{
 			Text = text,
 			TooltipText = tooltip,

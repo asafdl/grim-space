@@ -62,7 +62,10 @@ public sealed class UserIntentTranslator
 	{
 		var destination = MapPick.PickPoint(_camera, _screenPosition(), _mapWidth(), _mapHeight());
 		if (destination is null)
+		{
+			StarMapPresentationDiagnostics.LogMovePickMiss();
 			return new CourseCommandResult.Ignored();
+		}
 
 		if (_unitAt?.Invoke(destination.Value) is { } targetUnitId)
 			return _playerAgent.TryQueueHuntUnit(targetUnitId);

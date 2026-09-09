@@ -10,7 +10,7 @@ public sealed record Spawn(
 	string DockedAtDockId,
 	Coord IdleCoord,
 	double SpeedPerTick,
-	double ContactRadius,
+	double EngageRadius,
 	IReadOnlyList<string> ChoreDockIds,
 	EFaction Faction = EFaction.TheOptimality,
 	CombatProfile? CombatProfile = null);

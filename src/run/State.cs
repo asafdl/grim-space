@@ -10,6 +10,7 @@ public sealed class State
 
 	public Party PlayerParty { get; } = new();
 	public StarSystemOrchestrator StarSystem { get; set; } = null!;
+	public ActiveBattle? ActiveBattle { get; internal set; }
 
 	public static State CreateDevDefault(int seed = 0)
 	{

@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -52,7 +53,7 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void AreInContact_OutsideCombinedRadius_ReturnsFalse()
+	public void IsHunterInContactWithTarget_OutsideHunterEngageRadius_ReturnsFalse()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
@@ -63,11 +64,15 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 			new StraightLinePathfinder(),
 			map);
 
-		Assert.False(orchestrator.AreInContact(RunState.PlayerFleetUnitId, pirateId));
+		Assert.False(EngagementQueries.IsHunterInEngageRange(
+			orchestrator.Map,
+			RunState.PlayerFleetUnitId,
+			pirateId,
+			id => orchestrator.CommittedPositionOf(id)));
 	}
 
 	[Fact]
-	public void AreInContact_OverlappingRadii_ReturnsTrue()
+	public void IsHunterInContactWithTarget_WithinHunterEngageRadius_ReturnsTrue()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
@@ -75,14 +80,41 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 		player.State.Phase = EPhase.Docked;
 		player.State.DockedAtDockId = "";
 		player.State.IdleCoord = new Coord(0, 0, 0);
-		var pirateId = AddPirate(map, new Coord(8, 0, 0));
+		var pirateId = AddPirate(map, new Coord(6, 0, 0));
 		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,
 			42,
 			new StraightLinePathfinder(),
 			map);
 
-		Assert.True(orchestrator.AreInContact(RunState.PlayerFleetUnitId, pirateId));
+		Assert.True(EngagementQueries.IsHunterInEngageRange(
+			orchestrator.Map,
+			RunState.PlayerFleetUnitId,
+			pirateId,
+			id => orchestrator.CommittedPositionOf(id)));
+	}
+
+	[Fact]
+	public void IsHunterInContactWithTarget_BeyondHunterEngageRadius_ReturnsFalse()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		player.State.Phase = EPhase.Docked;
+		player.State.DockedAtDockId = "";
+		player.State.IdleCoord = new Coord(0, 0, 0);
+		var pirateId = AddPirate(map, new Coord(7, 0, 0));
+		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
+			RunState.PlayerFleetUnitId,
+			42,
+			new StraightLinePathfinder(),
+			map);
+
+		Assert.False(EngagementQueries.IsHunterInEngageRange(
+			orchestrator.Map,
+			RunState.PlayerFleetUnitId,
+			pirateId,
+			id => orchestrator.CommittedPositionOf(id)));
 	}
 
 	private StarSystemOrchestrator CreatePlayerOrchestrator(int seed)

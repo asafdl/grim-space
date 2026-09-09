@@ -1,8 +1,10 @@
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contact;
 
@@ -12,16 +14,13 @@ internal sealed class ContactMonitor
 
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly IPathfinder _pathfinder;
-	private readonly Dictionary<string, ContactCheck> _checks = [];
-	private bool _promptActive;
+	private readonly Dictionary<(string InitiatorId, string TargetId), ContactWatch> _watches = [];
 
 	public ContactMonitor(Engine<StarMap, ActorRuntime> engine, IPathfinder pathfinder)
 	{
 		_engine = engine;
 		_pathfinder = pathfinder;
 	}
-
-	public event Action? ContactDetected;
 
 	private StarMap Map => _engine.World;
 
@@ -33,124 +32,131 @@ internal sealed class ContactMonitor
 		return unit.State.CommittedPosition(Map, runtime.CachedPath, tickFraction).Position;
 	}
 
-	public bool AreInContact(string firstUnitId, string secondUnitId)
+	public IReadOnlyList<IAction<StarMap, ActorRuntime>> Update(int currentTick)
 	{
-		var first = Map.UnitRegistry.UnitOf(firstUnitId).State;
-		var second = Map.UnitRegistry.UnitOf(secondUnitId).State;
-		var firstPosition = CommittedPositionOf(firstUnitId);
-		var secondPosition = CommittedPositionOf(secondUnitId);
-		var dx = firstPosition.X - secondPosition.X;
-		var dz = firstPosition.Z - secondPosition.Z;
-		var distanceSquared = (long)dx * dx + (long)dz * dz;
-		var combinedRadius = first.ContactRadius + second.ContactRadius;
-		return distanceSquared <= (long)combinedRadius * combinedRadius;
-	}
+		ReconcileWatches(currentTick);
 
-	public void ReconstructFrom(StarMap map)
-	{
-		foreach (var unit in map.UnitRegistry.All)
+		var produced = new List<IAction<StarMap, ActorRuntime>>();
+		foreach (var watch in _watches.Values.ToList())
 		{
-			if (unit.State.EngagementTargetUnitId is { } targetId)
-				RegisterCheck(unit.State.Id, targetId);
+			if (watch.NextCheckTick > currentTick)
+				continue;
+
+			if (TryProduceReachContact(watch, currentTick, out var action))
+				produced.Add(action);
 		}
+
+		return produced;
 	}
 
-	public void OnHuntCommitted(string initiatorId, string targetId) =>
-		RegisterCheck(initiatorId, targetId, immediate: true);
-
-	public void OnHuntCleared(string initiatorId) => _checks.Remove(initiatorId);
-
-	public void OnExitInteractive() => _promptActive = false;
-
-	public void AdvanceTick(int currentTick, bool simModeIsInteractive)
-	{
-		RunChecks(currentTick, simModeIsInteractive);
-	}
-
-	private sealed class ContactCheck
+	private sealed class ContactWatch
 	{
 		public required string InitiatorId { get; init; }
 		public required string TargetId { get; init; }
 		public int NextCheckTick { get; set; }
 	}
 
-	private void RegisterCheck(string initiatorId, string targetId, bool immediate = false)
+	private void ReconcileWatches(int currentTick)
 	{
-		_checks[initiatorId] = new ContactCheck
-		{
-			InitiatorId = initiatorId,
-			TargetId = targetId,
-			NextCheckTick = immediate ? _engine.Tick : _engine.Tick + 1,
-		};
+		var activePursuits = CollectActivePursuits();
 
-		if (immediate)
-			RunChecks(_engine.Tick, simModeIsInteractive: false, immediateOnly: true);
-	}
-
-	private void RunChecks(int currentTick, bool simModeIsInteractive, bool immediateOnly = false)
-	{
-		foreach (var check in _checks.Values.ToList())
+		foreach (var key in _watches.Keys.ToList())
 		{
-			if (!immediateOnly && check.NextCheckTick > currentTick)
+			if (!activePursuits.Contains(key))
+				_watches.Remove(key);
+		}
+
+		foreach (var (initiatorId, targetId) in activePursuits)
+		{
+			if (_watches.ContainsKey((initiatorId, targetId)))
 				continue;
 
-			ProcessCheck(check, currentTick, simModeIsInteractive);
+			_watches[(initiatorId, targetId)] = new ContactWatch
+			{
+				InitiatorId = initiatorId,
+				TargetId = targetId,
+				NextCheckTick = currentTick,
+			};
 		}
 	}
 
-	private void ProcessCheck(ContactCheck check, int currentTick, bool simModeIsInteractive)
+	private HashSet<(string InitiatorId, string TargetId)> CollectActivePursuits()
 	{
-		if (!Map.UnitRegistry.TryGet(check.InitiatorId, out var initiator))
+		var pursuits = new HashSet<(string, string)>();
+		foreach (var unit in Map.UnitRegistry.All)
 		{
-			_checks.Remove(check.InitiatorId);
-			return;
+			var state = unit.State;
+			if (state.EngagementPhase != EEngagementPhase.Pursuing
+				|| state.EngagementTargetUnitId is not { } targetId
+				|| state.EngagedWithUnitIds.Count > 0)
+				continue;
+
+			if (!Map.UnitRegistry.TryGet(targetId, out _))
+				continue;
+
+			pursuits.Add((unit.State.Id, targetId));
+		}
+
+		return pursuits;
+	}
+
+	private bool TryProduceReachContact(
+		ContactWatch watch,
+		int currentTick,
+		out IAction<StarMap, ActorRuntime> action)
+	{
+		action = null!;
+		var key = (watch.InitiatorId, watch.TargetId);
+		if (!Map.UnitRegistry.TryGet(watch.InitiatorId, out var initiator))
+		{
+			_watches.Remove(key);
+			return false;
 		}
 
 		var state = initiator.State;
-		if (state.EngagementTargetUnitId is not { } targetId
-			|| targetId != check.TargetId
-			|| state.EngagedWithUnitIds.Count > 0)
+		if (state.EngagementPhase != EEngagementPhase.Pursuing
+			|| state.EngagementTargetUnitId != watch.TargetId)
 		{
-			_checks.Remove(check.InitiatorId);
-			return;
+			_watches.Remove(key);
+			return false;
 		}
 
-		if (!Map.UnitRegistry.TryGet(targetId, out _))
+		if (!Map.UnitRegistry.TryGet(watch.TargetId, out _))
 		{
-			_engine.Commit(new ClearEngagementIntentAction(check.InitiatorId, check.InitiatorId));
-			_checks.Remove(check.InitiatorId);
-			return;
+			_watches.Remove(key);
+			return false;
 		}
 
-		if (!AreInContact(check.InitiatorId, targetId))
+		if (!EngagementQueries.IsHunterInEngageRange(
+				Map,
+				watch.InitiatorId,
+				watch.TargetId,
+				id => CommittedPositionOf(id)))
 		{
-			RescheduleCheck(check, currentTick);
-			return;
+			RescheduleWatch(watch, currentTick);
+			return false;
 		}
 
-		if (_promptActive || simModeIsInteractive)
-			return;
-
-		_promptActive = true;
-		ContactDetected?.Invoke();
+		_watches.Remove(key);
+		action = new ReachContactAction(watch.InitiatorId, watch.TargetId);
+		return true;
 	}
 
-	private void RescheduleCheck(ContactCheck check, int currentTick)
+	private void RescheduleWatch(ContactWatch watch, int currentTick)
 	{
-		var initiator = Map.UnitRegistry.UnitOf(check.InitiatorId);
-		var target = Map.UnitRegistry.UnitOf(check.TargetId);
-		var initiatorPosition = CommittedPositionOf(check.InitiatorId);
-		var targetPosition = CommittedPositionOf(check.TargetId);
+		var initiator = Map.UnitRegistry.UnitOf(watch.InitiatorId);
+		var target = Map.UnitRegistry.UnitOf(watch.TargetId);
+		var initiatorPosition = CommittedPositionOf(watch.InitiatorId);
+		var targetPosition = CommittedPositionOf(watch.TargetId);
 		var dx = initiatorPosition.X - targetPosition.X;
 		var dz = initiatorPosition.Z - targetPosition.Z;
 		var distance = System.Math.Sqrt(dx * dx + dz * dz);
-		var combinedRadius = initiator.State.ContactRadius + target.State.ContactRadius;
-		var gap = System.Math.Max(0, distance - combinedRadius);
+		var gap = System.Math.Max(0, distance - initiator.State.EngageRadius);
 		var maxClosingSpeed = (initiator.State.SpeedPerTick + target.State.SpeedPerTick)
 			* PathfindingCell.RouteSpeedCeiling;
 		var delay = maxClosingSpeed <= 0
 			? MaxCheckBackoffTicks
 			: (int)System.Math.Clamp(System.Math.Floor(gap / maxClosingSpeed), 1, MaxCheckBackoffTicks);
-		check.NextCheckTick = currentTick + delay;
+		watch.NextCheckTick = currentTick + delay;
 	}
 }

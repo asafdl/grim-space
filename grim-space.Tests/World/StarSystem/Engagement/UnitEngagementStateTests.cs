@@ -9,7 +9,7 @@ namespace GrimSpace.Tests.World.StarSystem.Engagement;
 public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 {
 	[Fact]
-	public void FromSpawn_SetsContactRadiusFromSpawn()
+	public void FromSpawn_SetsEngageRadiusFromSpawn()
 	{
 		var player = State.FromSpawn(new Spawn(
 			"player",
@@ -17,7 +17,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 			"dock",
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
-			UnitDefaults.ContactRadius(EType.PlayerFleet),
+			UnitDefaults.EngageRadius(EType.PlayerFleet),
 			[]));
 		var pirate = State.FromSpawn(new Spawn(
 			"pirate",
@@ -25,11 +25,11 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 			"",
 			new GrimSpace.Math.Grid.Coord(1, 0, 1),
 			UnitDefaults.SpeedPerTick(EType.PirateFleet),
-			UnitDefaults.ContactRadius(EType.PirateFleet),
+			UnitDefaults.EngageRadius(EType.PirateFleet),
 			[]));
 
-		Assert.Equal(6, player.ContactRadius);
-		Assert.Equal(6, pirate.ContactRadius);
+		Assert.Equal(6, player.EngageRadius);
+		Assert.Equal(6, pirate.EngageRadius);
 	}
 
 	[Fact]
@@ -43,6 +43,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
 		Assert.Equal(target, map.StateOf(hunter).EngagementTargetUnitId);
+		Assert.Equal(EEngagementPhase.Pursuing, map.StateOf(hunter).EngagementPhase);
 		Assert.Equal(hunter, map.StateOf(target).HuntedByUnitId);
 	}
 

@@ -115,7 +115,7 @@ public partial class StartMenu : Control
 	private void OnStart()
 	{
 		RunSession.Instance.StartNewRun();
-		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");
+		GetTree().ChangeSceneToFile("res://scenes/map.tscn");
 	}
 
 	private void OnDustLayoutChanged() => UpdateDustLayout();

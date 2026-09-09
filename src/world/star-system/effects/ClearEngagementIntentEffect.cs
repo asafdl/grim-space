@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
 
@@ -16,6 +17,9 @@ public sealed class ClearEngagementIntentEffect : IEffect<StarMap, Runtime.Actor
 			return [];
 
 		initiator.EngagementTargetUnitId = null;
+		if (initiator.EngagementPhase is EEngagementPhase.Pursuing or EEngagementPhase.AwaitingDecision)
+			initiator.EngagementPhase = EEngagementPhase.None;
+
 		if (world.UnitRegistry.TryGet(targetId, out var target))
 			target.State.HuntedByUnitId = null;
 

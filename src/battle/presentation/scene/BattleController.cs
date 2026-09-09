@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
@@ -8,6 +9,7 @@ using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
+using GrimSpace.Run;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Units.Enums;
@@ -48,13 +50,15 @@ public partial class BattleController : Node3D
 		IReadOnlyList<Coord> CommittedPath);
 
 	private bool _introActive;
+	private bool _strategicBattle;
 
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle) && !_introActive;
 
 	public override void _Ready()
 	{
-		_battle = BattleOrchestrator.FromEncounter(RunSession.Instance.CurrentEncounter);
+		_strategicBattle = RunSession.Instance.Run.ActiveBattle is not null;
+		_battle = BattleOrchestrator.FromEncounter(ResolveEncounter());
 		_agent = _battle.PlayerAgent;
 		_frames = new PresentationFrameBuilder();
 		var layout = _battle.Layout;
@@ -105,6 +109,7 @@ public partial class BattleController : Node3D
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
+		_battleHud.SetStrategicBattle(_strategicBattle);
 		AddChild(_battleHud);
 
 		_translator = new UserIntentTranslator(
@@ -155,7 +160,7 @@ public partial class BattleController : Node3D
 	{
 		_introActive = true;
 		_frames.IntroActive = true;
-		var objective = RunSession.Instance.CurrentEncounter.Objective;
+		var objective = ResolveEncounter().Objective;
 		_battleHud.IntroOverlay.SetObjective(objective);
 		RefreshPresentation();
 		_combatIntro.Play(DismissCombatIntroBanner, EndCombatIntro);
@@ -191,7 +196,7 @@ public partial class BattleController : Node3D
 		_battleHud.UtilityBar.UndoRequested += _translator.OnUndo;
 		_battleHud.UtilityBar.FocusRequested += _translator.OnFocusCamera;
 		_battleHud.UtilityBar.BackToPlayerRequested += _translator.OnReturnToPlayer;
-		_battleHud.OutcomeOverlay.ResetRequested += _translator.OnRestart;
+		_battleHud.OutcomeOverlay.ResetRequested += OnOutcomeOverlayAction;
 		_battleHud.RestartRequested += _translator.OnRestart;
 		_battleHud.RetireRequested += _translator.OnRetire;
 		_battleHud.MainMenuRequested += GoToMainMenu;
@@ -406,14 +411,42 @@ public partial class BattleController : Node3D
 		return Colors.White;
 	}
 
+	private static BattleEncounter ResolveEncounter()
+	{
+		var activeBattle = RunSession.Instance.Run.ActiveBattle;
+		if (activeBattle is not null)
+			return activeBattle.Encounter;
+
+		return BattleEncounter.DevDefault(Random.Shared.Next());
+	}
+
+	private void OnOutcomeOverlayAction()
+	{
+		if (_strategicBattle)
+			ReturnToStarMap();
+		else
+			ResetBattle();
+	}
+
+	private void ReturnToStarMap()
+	{
+		RunSession.Instance.ResolveEngagement(_battle.Outcome);
+		GetTree().ChangeSceneToFile("res://scenes/map.tscn");
+	}
+
 	private void ResetBattle()
 	{
 		RunSession.Instance.StartNewRun();
 		GetTree().ReloadCurrentScene();
 	}
 
-	private void GoToMainMenu() =>
+	private void GoToMainMenu()
+	{
+		if (_strategicBattle)
+			RunSession.Instance.ResolveEngagement(_battle.Outcome);
+
 		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+	}
 
 	private static Color ColorFor(ETeam team) =>
 		team switch

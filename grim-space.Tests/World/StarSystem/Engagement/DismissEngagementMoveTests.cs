@@ -1,7 +1,7 @@
-using System.Reflection;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Runtime;
@@ -15,32 +15,31 @@ namespace GrimSpace.Tests.World.StarSystem.Engagement;
 public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 {
 	[Fact]
-	public void MoveDuringInteractive_ClosesHudButStaysInteractiveUntilDismissed()
+	public void MoveDuringAwaitingDecision_ClearsHuntAndResumesTicks()
 	{
 		var orchestrator = CreateOverlappingScenario();
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.False(orchestrator.CanAdvance);
 
 		var destination = new Coord(50, 0, 50);
 		Assert.IsType<CourseCommandResult.Queued>(orchestrator.PlayerAgent!.TryQueueMove(destination));
 		Assert.Null(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementTargetUnitId);
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		orchestrator.AdvanceTick();
 
-		orchestrator.DismissEngagement();
-		Assert.Equal(ESimMode.Running, orchestrator.SimMode);
-
+		Assert.True(orchestrator.CanAdvance);
 		var secondDestination = new Coord(60, 0, 60);
 		Assert.IsType<CourseCommandResult.Queued>(orchestrator.PlayerAgent!.TryQueueMove(secondDestination));
 	}
 
 	[Fact]
-	public void DismissEngagement_AfterHuntContact_PlayerCanQueueMove()
+	public void FleeAction_AfterHuntContact_PlayerCanQueueMove()
 	{
 		var orchestrator = CreateHuntContactScenario();
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.False(orchestrator.CanAdvance);
 
-		orchestrator.DismissEngagement();
+		orchestrator.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
+		orchestrator.AdvanceClock();
 
 		var destination = new Coord(50, 0, 50);
 		var result = orchestrator.PlayerAgent!.TryQueueMove(destination);
@@ -50,15 +49,16 @@ public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void DismissEngagement_PlayerCanQueueMoveAfterward()
+	public void FleeAction_PlayerCanQueueMoveAfterward()
 	{
 		var orchestrator = CreateOverlappingScenario();
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.False(orchestrator.CanAdvance);
 
-		orchestrator.DismissEngagement();
-		Assert.Equal(ESimMode.Running, orchestrator.SimMode);
+		orchestrator.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
+		orchestrator.AdvanceClock();
+		Assert.True(orchestrator.CanAdvance);
 
 		var destination = new Coord(50, 0, 50);
 		var result = orchestrator.PlayerAgent!.TryQueueMove(destination);
@@ -68,12 +68,13 @@ public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void DismissEngagement_UndockedIdlePlayerCanMove()
+	public void FleeAction_UndockedIdlePlayerCanMove()
 	{
 		var orchestrator = CreateUndockedOverlappingScenario();
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
-		orchestrator.DismissEngagement();
+		orchestrator.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
+		orchestrator.AdvanceClock();
 
 		var destination = new Coord(50, 0, 50);
 		var result = orchestrator.PlayerAgent!.TryQueueMove(destination);
@@ -82,19 +83,18 @@ public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void DismissEngagement_AfterInteractiveMove_PlayerCanQueueAnotherMove()
+	public void FleeAction_AfterMoveDuringAwaitingDecision_PlayerCanQueueAnotherMove()
 	{
 		var orchestrator = CreateOverlappingScenario();
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.False(orchestrator.CanAdvance);
 
 		var firstDestination = new Coord(10, 0, 10);
 		Assert.IsType<CourseCommandResult.Queued>(orchestrator.PlayerAgent!.TryQueueMove(firstDestination));
+		orchestrator.AdvanceTick();
 
-		orchestrator.DismissEngagement();
-		Assert.Equal(ESimMode.Running, orchestrator.SimMode);
-
+		Assert.True(orchestrator.CanAdvance);
 		var secondDestination = new Coord(50, 0, 50);
 		var result = orchestrator.PlayerAgent!.TryQueueMove(secondDestination);
 

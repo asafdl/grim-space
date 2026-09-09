@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Core;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -27,7 +28,7 @@ public partial class MapController : Node3D
 	private Button _rebuildButton = null!;
 	private CanvasLayer _uiLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
-	private EngagementHudOverlay _engagementHud = null!;
+	private EngagementController _engagement = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -58,9 +59,11 @@ public partial class MapController : Node3D
 		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
-		_engagementHud = new EngagementHudOverlay();
-		_engagementHud.Dismissed += () => _orchestrator.DismissEngagement();
-		_uiLayer.AddChild(_engagementHud);
+		_orchestrator.RefreshPlayerAgent();
+		var engagementHud = new EngagementHudOverlay();
+		_uiLayer.AddChild(engagementHud);
+		_engagement = new EngagementController(_orchestrator, engagementHud);
+		_engagement.BattleRequested += OnBattleRequested;
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
@@ -89,7 +92,9 @@ public partial class MapController : Node3D
 			() => GetViewport().GetVisibleRect().Size,
 			_uiLayer,
 			GetNode<Button>("UI/AccessButton"),
-			GetNode<ColorRect>("UI/FadeOverlay"));
+			GetNode<ColorRect>("UI/FadeOverlay"),
+			() => _orchestrator.PlayerId is null
+				|| !EngagementQueries.RequiresPlayerInput(_orchestrator.Map, _orchestrator.PlayerId));
 		_poiFacade.FacilityEntered += OnFacilityEntered;
 
 		var world = _orchestrator.Map;
@@ -110,6 +115,7 @@ public partial class MapController : Node3D
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
+		_engagement.Sync();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
@@ -123,7 +129,7 @@ public partial class MapController : Node3D
 	{
 		_view.SetCameraDistance(_camera.Distance);
 
-		if (_orchestrator.IsRunning)
+		if (_orchestrator.CanAdvance)
 			AdvanceSimulation(delta);
 
 		var world = _orchestrator.Map;
@@ -134,7 +140,7 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
-		UpdateEngagementHud();
+		_engagement.Sync();
 		_poiFacade.Update();
 
 		if (!_poiFacade.IsStrategic)
@@ -152,9 +158,16 @@ public partial class MapController : Node3D
 		UpdateTooltip(world, poiId, dockHover, unitHover, screen);
 	}
 
+	public override void _ExitTree()
+	{
+		_engagement.BattleRequested -= OnBattleRequested;
+		_engagement.Dispose();
+		base._ExitTree();
+	}
+
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_engagementHud.TryHandleInput(@event))
+		if (_engagement.TryHandleInput(@event))
 		{
 			GetViewport().SetInputAsHandled();
 			return;
@@ -218,11 +231,11 @@ public partial class MapController : Node3D
 	private void AdvanceSimulation(double delta)
 	{
 		_tickAccumulator += (float)delta * SpeedOptions[_speedIndex];
-		while (_tickAccumulator >= SecondsPerTick && _orchestrator.IsRunning)
+		while (_tickAccumulator >= SecondsPerTick && _orchestrator.CanAdvance)
 		{
 			_tickAccumulator -= SecondsPerTick;
 			_orchestrator.AdvanceTick();
-			if (!_orchestrator.IsRunning)
+			if (!_orchestrator.CanAdvance)
 			{
 				_tickAccumulator = 0f;
 				break;
@@ -230,21 +243,12 @@ public partial class MapController : Node3D
 		}
 	}
 
-	private void UpdateEngagementHud()
+	private void OnBattleRequested()
 	{
-		if (_orchestrator.SimMode != ESimMode.Interactive
-			|| _orchestrator.PlayerId is not { } playerId
-			|| !_orchestrator.Map.UnitRegistry.TryGet(playerId, out var player)
-			|| player.State.EngagementTargetUnitId is not { } targetId)
-		{
-			if (_engagementHud.IsOpen)
-				_engagementHud.Close();
-
+		if (!RunSession.Instance.BeginEngagement(State.PlayerFleetUnitId))
 			return;
-		}
 
-		if (!_engagementHud.IsOpen)
-			_engagementHud.Open(_orchestrator.Map, targetId);
+		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");
 	}
 
 	private void OnFacilityEntered(FacilityEntry entry)

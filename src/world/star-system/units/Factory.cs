@@ -11,7 +11,7 @@ public static class Factory
 		ArgumentNullException.ThrowIfNull(spawn);
 		ArgumentException.ThrowIfNullOrEmpty(spawn.Id);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.SpeedPerTick, 0);
-		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.ContactRadius, 0);
+		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.EngageRadius, 0);
 		ArgumentNullException.ThrowIfNull(spawn.ChoreDockIds);
 
 		if (spawn.Type == EType.PirateFleet)
@@ -57,7 +57,7 @@ public static class Factory
 			"",
 			idleCoord,
 			UnitDefaults.SpeedPerTick(EType.PirateFleet),
-			UnitDefaults.ContactRadius(EType.PirateFleet),
+			UnitDefaults.EngageRadius(EType.PirateFleet),
 			[],
 			faction,
 			combatProfile));

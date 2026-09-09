@@ -39,6 +39,7 @@ public sealed class HuntUnitActionTests(DevStarMapFixture maps)
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(pirateId, orchestrator.Map.StateOf(playerId).EngagementTargetUnitId);
+		Assert.Equal(EEngagementPhase.Pursuing, orchestrator.Map.StateOf(playerId).EngagementPhase);
 		Assert.Equal(playerId, orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
 		Assert.Equal(EPhase.InTransit, orchestrator.Map.StateOf(playerId).Phase);
 		Assert.Equal(destination, orchestrator.Map.StateOf(playerId).Journey.Destination);

@@ -1,9 +1,10 @@
 using Godot;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Log;
 using GrimSpace.Run;
-
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contact;
 
 namespace GrimSpace.Core;
 
@@ -17,7 +18,6 @@ public partial class RunSession : Node
 		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
 
 	public State Run { get; private set; } = null!;
-	public BattleEncounter CurrentEncounter { get; private set; } = null!;
 
 	public override void _EnterTree()
 	{
@@ -84,7 +84,35 @@ public partial class RunSession : Node
 	{
 		Run?.StarSystem?.Dispose();
 		Run = State.CreateDevDefault(Random.Shared.Next());
-		CurrentEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
+		Run.ActiveBattle = null;
+	}
+
+	public bool BeginEngagement(string playerId)
+	{
+		var starSystem = Run.StarSystem;
+		if (!EngagementQueries.TryGetCommittedPlayerEngagement(starSystem.Map, playerId, out var committed))
+			return false;
+
+		var targetId = committed.ParticipantUnitIds.First(id => id != playerId);
+		var targetProfile = starSystem.Map.StateOf(targetId).CombatProfile;
+		var seed = targetProfile?.GenerationSeed ?? Random.Shared.Next();
+		var encounter = EngagementBattleFactory.Create(Run.PlayerParty, seed);
+		Run.ActiveBattle = new ActiveBattle
+		{
+			Encounter = encounter,
+			InitiatorUnitId = committed.InitiatorUnitId,
+			ParticipantUnitIds = committed.ParticipantUnitIds,
+		};
+		return true;
+	}
+
+	public void ResolveEngagement(BattleOutcome outcome)
+	{
+		if (Run.ActiveBattle is null)
+			return;
+
+		Run.StarSystem.ResolveEngagement(State.PlayerFleetUnitId, outcome);
+		Run.ActiveBattle = null;
 	}
 
 	public void RegenerateMap(int? seed = null)

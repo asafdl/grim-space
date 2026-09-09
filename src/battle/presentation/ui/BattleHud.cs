@@ -24,6 +24,8 @@ public partial class BattleHud : Node
 
 	public bool IsPauseMenuOpen => PauseMenu.Visible;
 
+	private bool _strategicBattle;
+
 	private PanelContainer _turnBadge = null!;
 	private Label _turnLabel = null!;
 	private CanvasLayer _topHud = null!;
@@ -202,6 +204,12 @@ public partial class BattleHud : Node
 
 	public void ClosePauseMenu() => PauseMenu.Visible = false;
 
+	public void SetStrategicBattle(bool strategic)
+	{
+		_strategicBattle = strategic;
+		PauseMenu.SetRestartEnabled(!strategic);
+	}
+
 	public void Apply(PresentationFrame frame)
 	{
 		var hideHud = frame.ShowOutcomeOverlay || frame.ShowIntroOverlay;
@@ -219,7 +227,7 @@ public partial class BattleHud : Node
 
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
-			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogLines);
+			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogLines, _strategicBattle);
 
 		IntroOverlay.Visible = frame.ShowIntroOverlay;
 

@@ -35,14 +35,14 @@ public sealed class DeclineContractActionTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void InteractiveMode_CommitsOnEnqueue()
+	public void AdvanceClock_CommitsOnEnqueue()
 	{
 		var orchestrator = CreateOrchestrator();
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 
-		orchestrator.EnterInteractive();
 		Assert.True(orchestrator.PlayerAgent!.TryEnqueue(
 			[new DeclineContractAction(State.PlayerFleetUnitId, contractId)]));
+		orchestrator.AdvanceClock();
 
 		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
 		Assert.True(orchestrator.Map.ContractRegistry.IsRejected(contractId));

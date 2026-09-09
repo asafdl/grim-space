@@ -11,6 +11,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 	private Control _root = null!;
 	private Label _title = null!;
 	private ActionLogPanel _actionLog = null!;
+	private Button _actionButton = null!;
 
 	public BattleOutcomeOverlay()
 	{
@@ -21,10 +22,13 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 	public void ApplyTheme(Theme theme) => _root.Theme = theme;
 
-	public void SetOutcome(EBattleResult result, IReadOnlyList<string> actionLogLines)
+	public void SetOutcome(EBattleResult result, IReadOnlyList<string> actionLogLines, bool strategicBattle)
 	{
 		_title.Text = BattleHudCopy.OutcomeTitle(result);
 		_actionLog.SetLines(actionLogLines);
+		_actionButton.Text = strategicBattle
+			? BattleHudCopy.ReturnToStarMap
+			: BattleHudCopy.Reset;
 	}
 
 	private void Build()
@@ -104,6 +108,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		};
 		HudStyles.StyleButton(resetButton, HudActionKind.Primary);
 		resetButton.Pressed += () => ResetRequested?.Invoke();
+		_actionButton = resetButton;
 		content.AddChild(resetButton);
 	}
 }

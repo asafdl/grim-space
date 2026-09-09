@@ -1,13 +1,15 @@
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
-using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.Presentation;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
@@ -20,8 +22,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
 	private ESimMode _simMode = (ESimMode)(-1);
-	private ESimMode _modeBeforeInteractive;
-	private bool _resolvingInteractiveAction;
+	private bool _resolvingInputAction;
 
 	private StarSystemOrchestrator(
 		Engine<StarMap, ActorRuntime> engine,
@@ -35,8 +36,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		PlayerId = playerId;
 		_playerAgent = playerAgent;
 		_trafficAgents = trafficAgents;
-		_contactMonitor.ContactDetected += OnContactDetected;
 	}
+
+	public event Action? WorldUpdated;
 
 	public StarMap Map => _engine.World;
 
@@ -52,13 +54,14 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public bool IsStepped => _simMode == ESimMode.Stepped;
 
+	public bool CanAdvance =>
+		_simMode == ESimMode.Running
+		&& (PlayerId is null || !EngagementQueries.RequiresPlayerInput(Map, PlayerId));
+
 	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
 
 	public Coord CommittedPositionOf(string unitId, float tickFraction = 0f) =>
 		_contactMonitor.CommittedPositionOf(unitId, tickFraction);
-
-	public bool AreInContact(string firstUnitId, string secondUnitId) =>
-		_contactMonitor.AreInContact(firstUnitId, secondUnitId);
 
 	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
 
@@ -131,12 +134,12 @@ public sealed class StarSystemOrchestrator : IDisposable
 				playerId!,
 				engine.CreateSimulation,
 				orchestrator._actionSink.WriterFor(playerId!));
+			playerAgent.PlanningChanged += orchestrator.OnPlayerPlanningChanged;
 		}
 
 		foreach (var (agent, actorId) in trafficAgents)
 			agent.Init(actorId, orchestrator._actionSink.WriterFor(actorId));
 
-		contactMonitor.ReconstructFrom(map);
 		orchestrator.ApplySimMode(ESimMode.Running);
 		return orchestrator;
 	}
@@ -150,43 +153,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 			tradeHubDock.Id,
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
-			UnitDefaults.ContactRadius(EType.PlayerFleet),
+			UnitDefaults.EngageRadius(EType.PlayerFleet),
 			[])));
 	}
 
 	public void SetRunning() => ApplySimMode(ESimMode.Running);
 
 	public void SetStepped() => ApplySimMode(ESimMode.Stepped);
-
-	public void EnterInteractive()
-	{
-		if (_simMode == ESimMode.Interactive)
-			return;
-
-		_modeBeforeInteractive = _simMode;
-		ApplySimMode(ESimMode.Interactive);
-	}
-
-	public void ExitInteractive()
-	{
-		if (_simMode != ESimMode.Interactive)
-			return;
-
-		_contactMonitor.OnExitInteractive();
-		ApplySimMode(_modeBeforeInteractive);
-	}
-
-	public void DismissEngagement()
-	{
-		if (PlayerId is { } playerId
-			&& Map.StateOf(playerId).EngagementTargetUnitId is not null)
-		{
-			_engine.Commit(new ClearEngagementIntentAction(playerId, playerId));
-			_contactMonitor.OnHuntCleared(playerId);
-		}
-
-		ExitInteractive();
-	}
 
 	public void TogglePause()
 	{
@@ -214,6 +187,35 @@ public sealed class StarSystemOrchestrator : IDisposable
 		return history;
 	}
 
+	public void ResolveEngagement(string playerId, BattleOutcome outcome)
+	{
+		_engine.Commit([new ResolveEngagementAction(playerId, outcome)]);
+		NotifyWorldUpdated();
+	}
+
+	public void RefreshPlayerAgent() => _playerAgent?.OnWorldUpdated();
+
+	public bool TryCommitPlayerInput(IAction action)
+	{
+		if (_playerAgent is null || PlayerId is null)
+		{
+			StarMapPresentationDiagnostics.LogInputRejected(action, "no_player_agent");
+			return false;
+		}
+
+		RefreshPlayerAgent();
+
+		if (!_playerAgent.TryEnqueue([action]))
+			return false;
+
+		var advancedClock = !EngagementQueries.RequiresPlayerInput(Map, PlayerId);
+		if (advancedClock)
+			AdvanceClock();
+
+		StarMapPresentationDiagnostics.LogInputCommitted(action, advancedClock);
+		return true;
+	}
+
 	public IReadOnlyList<ITimelineEntry> AdvanceTick()
 	{
 		CommitPlayerActions();
@@ -224,8 +226,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (PlayerId is not null)
 			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 
+		CommitContactActions();
 		NotifyWorldUpdated();
-		_contactMonitor.AdvanceTick(Tick, _simMode == ESimMode.Interactive);
 		return history;
 	}
 
@@ -241,11 +243,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (_simMode == mode)
 			return;
 
-		UnwireInteractivePlanning();
 		_simMode = mode;
 		ApplyCanWorkPolicy();
 		NotifyWorldUpdated();
-		WireInteractivePlanning();
 	}
 
 	private void ApplyCanWorkPolicy()
@@ -254,41 +254,25 @@ public sealed class StarSystemOrchestrator : IDisposable
 		foreach (var (agent, _) in _trafficAgents)
 			agent.SetCanWork(trafficCanWork);
 
-		// Player is an always-on planning sim; orchestrator drain timing differs by mode.
 		_playerAgent?.SetCanWork(PlayerId is not null);
 	}
 
-	private void WireInteractivePlanning()
+	private void OnPlayerPlanningChanged()
 	{
-		if (_playerAgent is null || _simMode != ESimMode.Interactive)
+		if (_playerAgent?.HasPendingAction != true || _resolvingInputAction)
 			return;
 
-		_playerAgent.PlanningChanged += OnInteractivePlanningChanged;
-	}
-
-	private void UnwireInteractivePlanning()
-	{
-		if (_playerAgent is null)
+		if (PlayerId is null || !EngagementQueries.RequiresPlayerInput(Map, PlayerId))
 			return;
 
-		_playerAgent.PlanningChanged -= OnInteractivePlanningChanged;
-	}
-
-	private void OnInteractivePlanningChanged()
-	{
-		if (_simMode != ESimMode.Interactive
-			|| _playerAgent?.HasPendingAction != true
-			|| _resolvingInteractiveAction)
-			return;
-
-		_resolvingInteractiveAction = true;
+		_resolvingInputAction = true;
 		try
 		{
 			AdvanceClock();
 		}
 		finally
 		{
-			_resolvingInteractiveAction = false;
+			_resolvingInputAction = false;
 		}
 	}
 
@@ -301,14 +285,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 			return;
 
 		if (!_actionSink.TryTakeBatch(PlayerId, out var batch) || batch.Actions.Count == 0)
+		{
+			StarMapPresentationDiagnostics.LogCommitSkipped("empty_batch_after_commit", _playerAgent);
+			RefreshPlayerAgent();
 			return;
+		}
 
 		_engine.Commit([..batch.Actions]);
-		foreach (var action in batch.Actions)
-		{
-			if (action is HuntUnitAction hunt)
-				_contactMonitor.OnHuntCommitted(hunt.ActorId, hunt.TargetUnitId);
-		}
 	}
 
 	private void CommitTrafficActions()
@@ -323,13 +306,18 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 	}
 
-	private void OnContactDetected()
+	private void CommitContactActions()
 	{
-		EnterInteractive();
-		_playerAgent?.OnWorldUpdated();
+		var produced = _contactMonitor.Update(Tick);
+		if (produced.Count > 0)
+			_engine.Commit([..produced]);
 	}
 
-	private void NotifyWorldUpdated() => _playerAgent?.OnWorldUpdated();
+	private void NotifyWorldUpdated()
+	{
+		WorldUpdated?.Invoke();
+		_playerAgent?.OnWorldUpdated();
+	}
 
 	public void Dispose() => _engine.Dispose();
 

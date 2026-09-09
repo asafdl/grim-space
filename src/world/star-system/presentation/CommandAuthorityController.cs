@@ -18,9 +18,9 @@ public partial class CommandAuthorityController : Control
 	public override void _Ready()
 	{
 		_orchestrator = RunSession.Instance.Run.StarSystem;
+		_orchestrator.RefreshPlayerAgent();
 		_playerAgent = _orchestrator.PlayerAgent
 			?? throw new InvalidOperationException("Command Authority requires a player execution agent.");
-		_orchestrator.EnterInteractive();
 
 		var scene = GetNode<CommandAuthoritySceneView>("Scene");
 		scene.GiverClicked += OpenContractHud;
@@ -37,7 +37,7 @@ public partial class CommandAuthorityController : Control
 
 	public override void _ExitTree()
 	{
-		_orchestrator.ExitInteractive();
+		_orchestrator.RefreshPlayerAgent();
 		base._ExitTree();
 	}
 
@@ -54,10 +54,10 @@ public partial class CommandAuthorityController : Control
 	}
 
 	public bool TryAcceptContract(string contractId) =>
-		_playerAgent.TryEnqueue([new AcceptContractAction(State.PlayerFleetUnitId, contractId)]);
+		_orchestrator.TryCommitPlayerInput(new AcceptContractAction(State.PlayerFleetUnitId, contractId));
 
 	public bool TryDeclineContract(string contractId) =>
-		_playerAgent.TryEnqueue([new DeclineContractAction(State.PlayerFleetUnitId, contractId)]);
+		_orchestrator.TryCommitPlayerInput(new DeclineContractAction(State.PlayerFleetUnitId, contractId));
 
 	private void OpenContractHud()
 	{
@@ -75,8 +75,13 @@ public partial class CommandAuthorityController : Control
 	private void OnAcceptRequested(string contractId)
 	{
 		if (!TryAcceptContract(contractId))
+		{
+			_contractHud.ShowError("Unable to accept contract.");
+			UpdateBackButton();
 			return;
+		}
 
+		_contractHud.SyncMap(_orchestrator.Map);
 		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
 		UpdateBackButton();
 	}
@@ -84,14 +89,22 @@ public partial class CommandAuthorityController : Control
 	private void OnDeclineRequested(string contractId)
 	{
 		if (!TryDeclineContract(contractId))
+		{
+			_contractHud.ShowError("Unable to decline contract.");
+			UpdateBackButton();
 			return;
+		}
 
+		_contractHud.SyncMap(_orchestrator.Map);
 		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
 		UpdateBackButton();
 	}
 
-	private void ReturnToMap() =>
+	private void ReturnToMap()
+	{
+		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
+	}
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _contractHud.IsOpen;

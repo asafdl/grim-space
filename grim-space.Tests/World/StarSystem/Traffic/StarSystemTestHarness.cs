@@ -39,7 +39,7 @@ internal static class StarSystemTestHarness
 			tradeHubDock.Id,
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
-			UnitDefaults.ContactRadius(EType.PlayerFleet),
+			UnitDefaults.EngageRadius(EType.PlayerFleet),
 			[])));
 	}
 

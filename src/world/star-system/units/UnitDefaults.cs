@@ -17,7 +17,7 @@ public static class UnitDefaults
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, "No default speed for unit type."),
 		};
 
-	public static double ContactRadius(EType type) =>
+	public static double EngageRadius(EType type) =>
 		type switch
 		{
 			EType.PlayerFleet => 6,

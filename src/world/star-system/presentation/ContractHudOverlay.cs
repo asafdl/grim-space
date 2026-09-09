@@ -57,6 +57,16 @@ public sealed partial class ContractHudOverlay : Node
 		_shell.Close();
 	}
 
+	public void SyncMap(StarMap map) => _map = map;
+
+	public void ShowError(string message)
+	{
+		_statusKind = HudStatusKind.Error;
+		_statusMessage = message;
+		_selected = null;
+		ShowList();
+	}
+
 	public void ShowConfirmation(string message, HudStatusKind kind)
 	{
 		_statusKind = kind;

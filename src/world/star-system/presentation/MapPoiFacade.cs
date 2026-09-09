@@ -39,6 +39,7 @@ public sealed class MapPoiFacade
 	private readonly CanvasLayer _uiLayer;
 	private readonly ColorRect _fadeOverlay;
 	private readonly Button _accessButton;
+	private readonly Func<bool> _canAccessFacilities;
 	private PointOfInterest? _activePoi;
 	private readonly List<Button> _facilityButtons = [];
 	private FacadeState _state = FacadeState.Strategic;
@@ -52,7 +53,8 @@ public sealed class MapPoiFacade
 		Func<Vector2> viewportSize,
 		CanvasLayer uiLayer,
 		Button accessButton,
-		ColorRect fadeOverlay)
+		ColorRect fadeOverlay,
+		Func<bool> canAccessFacilities)
 	{
 		_view = view;
 		_camera = camera;
@@ -61,6 +63,7 @@ public sealed class MapPoiFacade
 		_uiLayer = uiLayer;
 		_accessButton = accessButton;
 		_fadeOverlay = fadeOverlay;
+		_canAccessFacilities = canAccessFacilities;
 		_accessButton.Pressed += OnAccessButtonPressed;
 	}
 
@@ -94,12 +97,15 @@ public sealed class MapPoiFacade
 			return;
 		}
 
-		var showAccess = _state == FacadeState.Strategic && dockedPoiId is not null;
+		var showAccess = _state == FacadeState.Strategic
+			&& dockedPoiId is not null
+			&& _canAccessFacilities();
 		_accessButton.Visible = showAccess;
 		if (showAccess && dockedPoiId is not null)
 			PositionAccessButton(dockedPoiId, world);
 
 		if (_state == FacadeState.Strategic
+			&& _canAccessFacilities()
 			&& dockedPoi is not null
 			&& _camera.Distance <= EnterDistance
 			&& IsPivotNearPoi(_camera.CurrentPose.Pivot, dockedPoi, world))
@@ -143,6 +149,9 @@ public sealed class MapPoiFacade
 
 	private void OnAccessButtonPressed()
 	{
+		if (!_canAccessFacilities())
+			return;
+
 		var world = _map();
 		var dockedPoiId = ResolveDockedPoiId(world);
 		if (dockedPoiId is null)
@@ -208,7 +217,7 @@ public sealed class MapPoiFacade
 
 	private void BeginEnterFacility(PointOfInterest poi, Facility facility)
 	{
-		if (_state != FacadeState.Facade)
+		if (_state != FacadeState.Facade || !_canAccessFacilities())
 			return;
 
 		_state = FacadeState.EnteringFacility;

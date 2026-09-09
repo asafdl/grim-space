@@ -1,6 +1,8 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -13,41 +15,48 @@ namespace GrimSpace.Tests.World.StarSystem.Engagement;
 public sealed class ContactMonitorTests(DevStarMapFixture maps)
 {
 	[Fact]
-	public void Contact_EntersInteractive()
+	public void Contact_ProducesAwaitingDecision()
 	{
 		var orchestrator = CreateOverlappingScenario();
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.Equal(EEngagementPhase.AwaitingDecision,
+			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
+		Assert.True(EngagementQueries.RequiresPlayerInput(orchestrator.Map, RunState.PlayerFleetUnitId));
+		Assert.False(orchestrator.CanAdvance);
 	}
 
 	[Fact]
-	public void Contact_DoesNotRePromptWhileInteractive()
+	public void Contact_DoesNotDuplicateWhileAwaitingDecision()
 	{
 		var orchestrator = CreateOverlappingScenario();
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.Equal(EEngagementPhase.AwaitingDecision,
+			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.Equal(EEngagementPhase.AwaitingDecision,
+			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
 	}
 
 	[Fact]
-	public void DismissEngagement_ClearsHuntIntentAndRestoresPriorMode()
+	public void FleeAction_ClearsHuntIntentAndResumesPlayback()
 	{
 		var orchestrator = CreateOverlappingScenario();
 		orchestrator.SetStepped();
 		orchestrator.Step();
-		Assert.Equal(ESimMode.Interactive, orchestrator.SimMode);
+		Assert.False(orchestrator.CanAdvance);
 
 		var pirateId = orchestrator.Map.UnitRegistry.All
 			.Single(unit => unit.State.Type == EType.PirateFleet)
 			.State.Id;
-		orchestrator.DismissEngagement();
+		orchestrator.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
+		orchestrator.AdvanceClock();
 
+		Assert.False(EngagementQueries.RequiresPlayerInput(orchestrator.Map, RunState.PlayerFleetUnitId));
 		Assert.Equal(ESimMode.Stepped, orchestrator.SimMode);
 		Assert.Null(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementTargetUnitId);
 		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
