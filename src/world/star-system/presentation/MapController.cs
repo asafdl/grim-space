@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Core;
+using GrimSpace.Presentation.Ui.Hud;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
@@ -17,9 +18,7 @@ public partial class MapController : Node3D
 	private UnitsView _units = null!;
 	private CourseView _course = null!;
 	private MapCamera _camera = null!;
-	private PanelContainer _tooltip = null!;
-	private Label _typeLabel = null!;
-	private Label _nameLabel = null!;
+	private Label _tooltip = null!;
 	private Label _tickLabel = null!;
 	private Label _systemLabel = null!;
 	private Button _pauseButton = null!;
@@ -46,9 +45,8 @@ public partial class MapController : Node3D
 		_camera = GetNode<MapCamera>("Camera3D");
 
 		_uiLayer = GetNode<CanvasLayer>("UI");
-		_tooltip = GetNode<PanelContainer>("UI/Tooltip");
-		_typeLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/TypeLabel");
-		_nameLabel = GetNode<Label>("UI/Tooltip/VBoxContainer/NameLabel");
+		_tooltip = GetNode<Label>("UI/Tooltip");
+		HudThemes.Apply(_tooltip, HudThemeFamily.Debug);
 		var debugHud = GetNode<DebugHud>("UI/DebugHud");
 		_systemLabel = debugHud.SystemLabel;
 		_tickLabel = debugHud.TickLabel;
@@ -301,8 +299,7 @@ public partial class MapController : Node3D
 	{
 		if (unitHover is not null)
 		{
-			_typeLabel.Text = unitHover.Phase.ToString().ToUpperInvariant();
-			_nameLabel.Text = $"{unitHover.Type} ({unitHover.UnitId})";
+			_tooltip.Text = $"{unitHover.Phase.ToString().ToUpperInvariant()}\n{unitHover.Type} ({unitHover.UnitId})";
 			_tooltip.Visible = true;
 			_tooltip.Position = screen + new Vector2(14, 18);
 			return;
@@ -310,8 +307,7 @@ public partial class MapController : Node3D
 
 		if (dockHover is not null)
 		{
-			_typeLabel.Text = "DOCK";
-			_nameLabel.Text = dockHover.DisplayName;
+			_tooltip.Text = dockHover.DisplayName;
 			_tooltip.Visible = true;
 			_tooltip.Position = screen + new Vector2(14, 18);
 			return;
@@ -324,10 +320,7 @@ public partial class MapController : Node3D
 		}
 
 		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
-		var blueprint = world.Blueprint;
-		_typeLabel.Text =
-			$"{blueprint.SystemClass} · seed {blueprint.Seed} · {poi.LogicalRole} · {blueprint.SupplyPlan.ResourceId}";
-		_nameLabel.Text = poi.DisplayName;
+		_tooltip.Text = poi.DisplayName;
 		_tooltip.Visible = true;
 		_tooltip.Position = screen + new Vector2(14, 18);
 	}
