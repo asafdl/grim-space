@@ -13,7 +13,7 @@ public partial class Music : Node
 
 	private readonly record struct MusicCue(string Path, double StartSeconds = 0);
 
-	private readonly record struct SceneMusic(MusicCue[] Cues, bool Loop = false);
+	private readonly record struct SceneMusic(MusicCue[] Cues, bool Loop = false, bool ShuffleOnLoad = false);
 
 	private const int TrackCount = 39;
 
@@ -24,8 +24,8 @@ public partial class Music : Node
 			new($"{TrackPathPrefix}19.mp3"),
 		]),
 		["res://scenes/main.tscn"] = LoopingTracks(1, 6),
-		["res://scenes/battle.tscn"] = LoopingTracks(7, 14),
-		["res://scenes/map.tscn"] = UnassignedTracksLoop(),
+		["res://scenes/battle.tscn"] = LoopingTracks(7, 14, shuffleOnLoad: true),
+		["res://scenes/map.tscn"] = UnassignedTracksLoop(shuffleOnLoad: true),
 	};
 
 	private static Music? _instance;
@@ -79,7 +79,20 @@ public partial class Music : Node
 		_activeMusic = null;
 		_cueIndex = 0;
 		var scenePath = GetTree().CurrentScene?.SceneFilePath ?? "";
-		TransitionTo(SceneTracks.TryGetValue(scenePath, out var nextMusic) ? nextMusic : null);
+		TransitionTo(ResolveSceneMusic(scenePath));
+	}
+
+	private SceneMusic? ResolveSceneMusic(string scenePath)
+	{
+		if (!SceneTracks.TryGetValue(scenePath, out var music))
+			return null;
+
+		if (!music.ShuffleOnLoad || music.Cues.Length <= 1)
+			return music;
+
+		var cues = (MusicCue[])music.Cues.Clone();
+		Shuffle(cues);
+		return new SceneMusic(cues, music.Loop);
 	}
 
 	private void TransitionTo(SceneMusic? nextMusic)
@@ -189,15 +202,15 @@ public partial class Music : Node
 			_player.Seek((float)cue.StartSeconds);
 	}
 
-	private static SceneMusic LoopingTracks(int from, int to)
+	private static SceneMusic LoopingTracks(int from, int to, bool shuffleOnLoad = false)
 	{
 		var cues = new MusicCue[to - from + 1];
 		for (var i = from; i <= to; i++)
 			cues[i - from] = new($"{TrackPathPrefix}{i:D2}.mp3");
-		return new SceneMusic(cues, Loop: true);
+		return new SceneMusic(cues, Loop: true, ShuffleOnLoad: shuffleOnLoad);
 	}
 
-	private static SceneMusic UnassignedTracksLoop()
+	private static SceneMusic UnassignedTracksLoop(bool shuffleOnLoad = false)
 	{
 		var assigned = new HashSet<int>();
 		for (var i = 1; i <= 6; i++)
@@ -214,6 +227,17 @@ public partial class Music : Node
 				cues.Add(new($"{TrackPathPrefix}{i:D2}.mp3"));
 		}
 
-		return new SceneMusic(cues.ToArray(), Loop: true);
+		return new SceneMusic(cues.ToArray(), Loop: true, ShuffleOnLoad: shuffleOnLoad);
+	}
+
+	private static void Shuffle(MusicCue[] cues)
+	{
+		var rng = new RandomNumberGenerator();
+		rng.Randomize();
+		for (var i = cues.Length - 1; i > 0; i--)
+		{
+			var j = rng.RandiRange(0, i);
+			(cues[i], cues[j]) = (cues[j], cues[i]);
+		}
 	}
 }
