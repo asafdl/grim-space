@@ -49,13 +49,17 @@ public sealed class PresentationFrameBuilder
 		var playerId = battle.PlayerId;
 		var sim = agent.Sim;
 		var isPlanning = agent.IsPlanning;
-		var previewUnits = _preview.PreviewUnits(sim, playerId);
+		var previewUnits = battle.Phase == EBattlePhase.BattleOver
+			? CaptureLiveUnits(battle)
+			: _preview.PreviewUnits(sim, playerId);
 		var focusId = state.FocusId ?? playerId;
 		if (!previewUnits.TryGetValue(focusId, out var focusUnit) || !focusUnit.IsAlive)
 		{
 			state.ClearFocus();
 			focusId = playerId;
-			previewUnits = _preview.PreviewUnits(sim, playerId);
+			previewUnits = battle.Phase == EBattlePhase.BattleOver
+				? CaptureLiveUnits(battle)
+				: _preview.PreviewUnits(sim, playerId);
 			focusUnit = previewUnits[playerId];
 		}
 
@@ -168,4 +172,9 @@ public sealed class PresentationFrameBuilder
 			ActionLogLines = ActionLogLines,
 		};
 	}
+
+	private static Dictionary<string, UnitDisplayState> CaptureLiveUnits(BattleOrchestrator battle) =>
+		UnitRegistry.For(battle.Engine.World).All.ToDictionary(
+			unit => unit.State.Id,
+			unit => UnitDisplayState.Capture(unit.State));
 }

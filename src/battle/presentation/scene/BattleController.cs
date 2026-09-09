@@ -130,7 +130,8 @@ public partial class BattleController : Node3D
 		_replayPlayer.Configure(
 			_battleView.UnitViews,
 			ColorForActor,
-			(state, color) => _battleView.Ensure(state, color));
+			(state, color) => _battleView.Ensure(state, color),
+			states => _battleView.ApplyUnitStates(states, ColorForActor));
 		AddChild(_replayPlayer);
 
 		_replayDirector = new ReplayDirector { Name = "ReplayDirector" };
@@ -372,7 +373,8 @@ public partial class BattleController : Node3D
 
 	private void ApplyFrame(PresentationFrame frame)
 	{
-		ApplyUnitStates(frame);
+		if (ShouldApplyFrameUnitStates(_battle.Phase))
+			ApplyUnitStates(frame);
 		_gridView.ApplyFrame(frame);
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
@@ -394,12 +396,21 @@ public partial class BattleController : Node3D
 		var states = frame.PreviewUnits.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.ToState());
-		_battleView.ApplyUnitStates(states, ColorForActor, showPredictedDeath: true);
+		_battleView.ApplyUnitStates(
+			states,
+			ColorForActor,
+			showPredictedDeath: ShouldShowPredictedDeath(_battle.Phase));
 		if (_introActive)
 			return;
 
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
+
+	internal static bool ShouldApplyFrameUnitStates(EBattlePhase phase) =>
+		phase != EBattlePhase.Replaying;
+
+	internal static bool ShouldShowPredictedDeath(EBattlePhase phase) =>
+		phase != EBattlePhase.BattleOver;
 
 	private static BattleEncounter ResolveEncounter()
 	{

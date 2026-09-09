@@ -4,6 +4,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Scene;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
@@ -176,7 +177,20 @@ public sealed class BattlePhaseTests
 
 		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
 		Assert.True(BattleTestCommands.Frame(battle).ShowOutcomeOverlay);
+		Assert.False(BattleTestCommands.Frame(battle).PreviewUnits[PlayerId].IsAlive);
 	}
+
+	[Theory]
+	[InlineData(EBattlePhase.PlayerTurn, true)]
+	[InlineData(EBattlePhase.Resolving, true)]
+	[InlineData(EBattlePhase.Replaying, false)]
+	[InlineData(EBattlePhase.BattleOver, true)]
+	public void FrameUnitStatesAreNotAppliedDuringReplay(EBattlePhase phase, bool expected) =>
+		Assert.Equal(expected, BattleController.ShouldApplyFrameUnitStates(phase));
+
+	[Fact]
+	public void BattleOverFrameDoesNotShowPredictedDeaths() =>
+		Assert.False(BattleController.ShouldShowPredictedDeath(EBattlePhase.BattleOver));
 
 	[Fact]
 	public void FocusUnitRejectsMissingTarget()

@@ -25,6 +25,7 @@ public partial class TurnReplayPlayer : Node3D
 	private IReadOnlyDictionary<string, UnitView> _unitViews = new Dictionary<string, UnitView>();
 	private Func<string, Color> _colorFor = _ => Colors.White;
 	private Action<State, Color> _ensureView = (_, _) => { };
+	private Action<IReadOnlyDictionary<string, State>> _synchronizeViews = _ => { };
 
 	private TurnHistoryView _turnHistory = null!;
 	private HazardBurstView _hazardBursts = null!;
@@ -48,11 +49,13 @@ public partial class TurnReplayPlayer : Node3D
 	public void Configure(
 		IReadOnlyDictionary<string, UnitView> unitViews,
 		Func<string, Color> colorFor,
-		Action<State, Color> ensureView)
+		Action<State, Color> ensureView,
+		Action<IReadOnlyDictionary<string, State>> synchronizeViews)
 	{
 		_unitViews = unitViews;
 		_colorFor = colorFor;
 		_ensureView = ensureView;
+		_synchronizeViews = synchronizeViews;
 
 		_turnHistory = new TurnHistoryView { Name = "TurnHistory" };
 		AddChild(_turnHistory);
@@ -78,12 +81,7 @@ public partial class TurnReplayPlayer : Node3D
 			reportInterest);
 		_turnHistory.BeginTurn();
 		_hazardBursts.Clear();
-
-		foreach (var (unitId, state) in turnStart)
-		{
-			_ensureView(state, _colorFor(state.Id));
-			_unitViews[unitId].Sync(state);
-		}
+		_synchronizeViews(turnStart);
 	}
 
 	public void Play(
