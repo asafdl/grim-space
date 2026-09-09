@@ -16,6 +16,7 @@ public partial class Music : Node
 	private readonly record struct SceneMusic(MusicCue[] Cues, bool Loop = false, bool ShuffleOnLoad = false);
 
 	private const int TrackCount = 39;
+	private const string MapScenePath = "res://scenes/map.tscn";
 
 	private static readonly Dictionary<string, SceneMusic> SceneTracks = new()
 	{
@@ -25,7 +26,7 @@ public partial class Music : Node
 		]),
 		["res://scenes/main.tscn"] = LoopingTracks(1, 6),
 		["res://scenes/battle.tscn"] = LoopingTracks(7, 14, shuffleOnLoad: true),
-		["res://scenes/map.tscn"] = UnassignedTracksLoop(shuffleOnLoad: true),
+		[MapScenePath] = UnassignedTracksLoop(shuffleOnLoad: true),
 	};
 
 	private static Music? _instance;
@@ -36,6 +37,7 @@ public partial class Music : Node
 	private int _cueIndex;
 	private SceneMusic? _pendingMusic;
 	private bool _fadingOut;
+	private bool _starmapSessionActive;
 
 	public static Music Instance =>
 		_instance ?? throw new InvalidOperationException("Music autoload is not ready.");
@@ -67,6 +69,7 @@ public partial class Music : Node
 		_pendingMusic = null;
 		_activeMusic = null;
 		_cueIndex = 0;
+		_starmapSessionActive = false;
 		_fadingOut = false;
 		_volumeTween?.Kill();
 		_volumeTween = null;
@@ -76,11 +79,19 @@ public partial class Music : Node
 
 	private void OnSceneChanged()
 	{
+		var scenePath = GetTree().CurrentScene?.SceneFilePath ?? "";
+		if (ShouldPreserveCurrentMusic(scenePath))
+			return;
+
+		_starmapSessionActive = scenePath == MapScenePath;
 		_activeMusic = null;
 		_cueIndex = 0;
-		var scenePath = GetTree().CurrentScene?.SceneFilePath ?? "";
 		TransitionTo(ResolveSceneMusic(scenePath));
 	}
+
+	private bool ShouldPreserveCurrentMusic(string scenePath) =>
+		_starmapSessionActive
+		&& (!SceneTracks.ContainsKey(scenePath) || scenePath == MapScenePath);
 
 	private SceneMusic? ResolveSceneMusic(string scenePath)
 	{
