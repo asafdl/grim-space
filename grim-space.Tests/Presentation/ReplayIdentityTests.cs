@@ -1,5 +1,11 @@
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Replay;
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
+using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Presentation;
@@ -40,5 +46,34 @@ public sealed class ReplayIdentityTests
 	{
 		Assert.Throws<KeyNotFoundException>(
 			() => ReplayActorPhase.Classify("missing", new Dictionary<string, ETeam>()));
+	}
+
+	[Fact]
+	public void ImpactInterestUsesTargetWhenSourceIsNotAUnit()
+	{
+		var target = State.FromSpawn(
+			new Instance
+			{
+				Id = "fighter-a",
+				Type = EType.Fighter,
+				Alliance = Alliance.Player,
+			},
+			new Coord(2, 3, 4));
+		var replayState = new ReplayState(new Dictionary<string, State>
+		{
+			[target.Id] = target,
+		});
+		var impact = new ImpactFacts(
+			SourceId: "terrain",
+			TargetId: target.Id,
+			Cause: EHazardKind.MissileZone,
+			Face: ESpatialOrientation.Forward,
+			ShieldDamage: 1,
+			HullDamage: 0,
+			MomentumLoss: 0);
+
+		var points = TurnReplayPlayer.ImpactInterestPoints(replayState, impact);
+
+		Assert.Equal([WorldMapping.ToWorld(target.Position)], points);
 	}
 }

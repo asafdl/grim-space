@@ -14,27 +14,32 @@ public static class GridPick
 		var direction = camera.ProjectRayNormal(screenPos);
 
 		Coord? best = null;
-		var bestDistance = float.MaxValue;
+		var bestDepth = float.MaxValue;
+		var bestOffset = float.MaxValue;
 
 		foreach (var cell in validCells)
 		{
 			var center = WorldMapping.ToWorld(cell);
-			var distance = DistanceRayToPoint(origin, direction, center);
-			if (distance >= WorldMapping.CellSize || distance >= bestDistance)
+			var toCenter = center - origin;
+			var depth = toCenter.Dot(direction);
+			if (depth < 0f)
 				continue;
 
-			bestDistance = distance;
+			var offset = (origin + direction * depth).DistanceTo(center);
+			if (offset >= WorldMapping.CellSize
+				|| !IsBetter(depth, offset, bestDepth, bestOffset))
+			{
+				continue;
+			}
+
+			bestDepth = depth;
+			bestOffset = offset;
 			best = cell;
 		}
 
 		return best;
 	}
 
-	private static float DistanceRayToPoint(Vector3 origin, Vector3 direction, Vector3 point)
-	{
-		var toPoint = point - origin;
-		var t = Mathf.Clamp(toPoint.Dot(direction), 0f, 400f);
-		var closest = origin + direction * t;
-		return closest.DistanceTo(point);
-	}
+	internal static bool IsBetter(float depth, float offset, float bestDepth, float bestOffset) =>
+		depth < bestDepth || Mathf.IsEqualApprox(depth, bestDepth) && offset < bestOffset;
 }

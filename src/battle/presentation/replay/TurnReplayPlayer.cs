@@ -315,14 +315,24 @@ public partial class TurnReplayPlayer : Node3D
 		if (_clipContext.ReportInterest is null)
 			return;
 
-		var source = _clipContext.ReplayState.StateOf(impact.SourceId).Position;
-		var target = _clipContext.ReplayState.StateOf(impact.TargetId).Position;
-		_clipContext.ReportInterest(new CameraInterest(
-			[
-				WorldMapping.ToWorld(source),
-				WorldMapping.ToWorld(target),
-			],
-			CameraImportance.Combat));
+		var points = ImpactInterestPoints(_clipContext.ReplayState, impact);
+		_clipContext.ReportInterest(new CameraInterest(points, CameraImportance.Combat));
+	}
+
+	internal static IReadOnlyList<Vector3> ImpactInterestPoints(
+		ReplayState replayState,
+		ImpactFacts impact)
+	{
+		var target = replayState.StateOf(impact.TargetId).Position;
+		var points = new List<Vector3>(2);
+		if (replayState.Contains(impact.SourceId))
+		{
+			var source = replayState.StateOf(impact.SourceId).Position;
+			points.Add(WorldMapping.ToWorld(source));
+		}
+
+		points.Add(WorldMapping.ToWorld(target));
+		return points;
 	}
 
 	private void Finish()

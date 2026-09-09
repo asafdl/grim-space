@@ -41,18 +41,18 @@ public static class UnitPick
 		return bestId;
 	}
 
-	private static bool IsBetter(
+	internal static bool IsBetter(
 		float screenDist,
 		float cameraDist,
 		float bestScreenDist,
 		float bestCameraDist)
 	{
-		if (screenDist < bestScreenDist)
+		if (cameraDist < bestCameraDist)
 			return true;
 
-		if (screenDist > bestScreenDist)
+		if (cameraDist > bestCameraDist)
 			return false;
 
-		return cameraDist < bestCameraDist;
+		return screenDist < bestScreenDist;
 	}
 }
