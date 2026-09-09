@@ -10,5 +10,6 @@ public interface IActorActionDef
 
 public interface IMountedActionDef
 {
+	bool SupportsMount(ESpatialOrientation mountedOn);
 	IAction Bind(string actorId, ESpatialOrientation mountedOn);
 }

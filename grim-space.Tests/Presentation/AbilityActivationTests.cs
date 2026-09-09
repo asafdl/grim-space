@@ -44,21 +44,41 @@ public sealed class AbilityActivationTests
 		Assert.NotNull(activation.Build(ActorId, null));
 	}
 
-	[Theory]
-	[InlineData(typeof(FlakDef))]
-	[InlineData(typeof(TorpedoDef))]
-	public void MountedAbilitiesRequireStagedOrientation(Type defType)
+	[Fact]
+	public void FlakRequiresStagedOrientation()
 	{
-		var def = (IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>)defType
-			.GetProperty("Instance")!
-			.GetValue(null)!;
-		var activation = AbilityActivation.For(def);
+		var activation = AbilityActivation.For(FlakDef.Instance);
 
 		Assert.False(activation.CanConfirm(null));
 		Assert.Null(activation.Build(ActorId, null));
 
 		Assert.True(activation.CanConfirm(ESpatialOrientation.Port));
 		Assert.IsAssignableFrom<IAction>(activation.Build(ActorId, ESpatialOrientation.Port));
+	}
+
+	[Theory]
+	[InlineData(ESpatialOrientation.Retro)]
+	[InlineData(ESpatialOrientation.Dorsal)]
+	[InlineData(ESpatialOrientation.Ventral)]
+	public void TorpedoAcceptsSupportedMounts(ESpatialOrientation mountedOn)
+	{
+		var activation = AbilityActivation.For(TorpedoDef.Instance);
+
+		Assert.True(activation.CanConfirm(mountedOn));
+		var action = Assert.IsType<TorpedoAction>(activation.Build(ActorId, mountedOn));
+		Assert.Equal(mountedOn, action.MountedOn);
+	}
+
+	[Theory]
+	[InlineData(ESpatialOrientation.Forward)]
+	[InlineData(ESpatialOrientation.Port)]
+	[InlineData(ESpatialOrientation.Starboard)]
+	public void TorpedoRejectsUnsupportedMounts(ESpatialOrientation mountedOn)
+	{
+		var activation = AbilityActivation.For(TorpedoDef.Instance);
+
+		Assert.False(activation.CanConfirm(mountedOn));
+		Assert.Null(activation.Build(ActorId, mountedOn));
 	}
 
 	[Fact]

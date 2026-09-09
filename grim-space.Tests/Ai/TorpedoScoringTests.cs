@@ -78,6 +78,7 @@ public sealed class TorpedoScoringTests
 		var actions = agent.Plan(torpedo, session);
 
 		Assert.DoesNotContain(actions, action => action is MoveStepAction);
+		Assert.DoesNotContain(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
 	}
 
@@ -99,11 +100,12 @@ public sealed class TorpedoScoringTests
 		var actions = agent.Plan(torpedo, session);
 
 		Assert.DoesNotContain(actions, action => action is MoveStepAction);
+		Assert.DoesNotContain(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
 	}
 
 	[Fact]
-	public void Plan_ChasesAheadWhileBehindOpponentRemainsInBlast()
+	public void Plan_DetonatesOnBehindOpponentInsteadOfChasingAhead()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
@@ -129,11 +131,37 @@ public sealed class TorpedoScoringTests
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
-		agent.Plan(torpedo, session);
+		var actions = agent.Plan(torpedo, session);
 
-		var end = session.StateOf<ActorState>(torpedoId).Position;
-		Assert.True(end.Z > torpedoPos.Z);
-		Assert.True(end.ManhattanDistanceTo(ahead.State.Position) < torpedoPos.ManhattanDistanceTo(ahead.State.Position));
+		Assert.DoesNotContain(actions, action => action is MoveStepAction);
+		Assert.Contains(actions, action => action is DetonateAction);
+		Assert.False(session.StateOf<ActorState>(torpedoId).IsAlive);
+	}
+
+	[Fact]
+	public void Plan_PrefersCleanDetonationOverEarlierCollateralShot()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
+		battle.Engine.World.StateOf(torpedoId).Dorsal = Coord.Up;
+		battle.Engine.World.StateOf(torpedoId).Starboard = Coord.Cross(Coord.Up, Coord.Forward);
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
+
+		var ally = battle.Engine.World.StateOf(PlayerId);
+		ally.Position = new Coord(1, 5, 6);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		enemy.State.Position = new Coord(5, 5, 10);
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var session = battle.Engine.CreateSimulation();
+		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
+		var detonationPosition = session.StateOf<ActorState>(torpedoId).Position;
+
+		Assert.Contains(actions, action => action is DetonateAction);
+		Assert.True(detonationPosition.ManhattanDistanceTo(enemy.State.Position) <= TorpedoConfig.BlastRadius);
+		Assert.True(detonationPosition.ManhattanDistanceTo(ally.Position) > TorpedoConfig.BlastRadius);
 	}
 
 	[Fact]

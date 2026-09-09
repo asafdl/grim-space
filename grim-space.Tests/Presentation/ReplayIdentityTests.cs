@@ -36,10 +36,9 @@ public sealed class ReplayIdentityTests
 	}
 
 	[Fact]
-	public void Classify_UnknownActor_ReturnsUpkeepPhase()
+	public void Classify_UnknownActor_Throws()
 	{
-		Assert.Equal(
-			EReplayPlaybackPhase.Upkeep,
-			ReplayActorPhase.Classify("missing", new Dictionary<string, ETeam>()));
+		Assert.Throws<KeyNotFoundException>(
+			() => ReplayActorPhase.Classify("missing", new Dictionary<string, ETeam>()));
 	}
 }

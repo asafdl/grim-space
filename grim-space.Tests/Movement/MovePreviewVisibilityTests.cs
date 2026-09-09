@@ -14,7 +14,7 @@ public sealed class MovePreviewVisibilityTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var frame = BattleTestCommands.Frame(battle);
 
-		var visible = VisibleEndpoints(frame.MovePaths, frame.MoveTarget);
+		var visible = VisibleEndpoints(frame.MovePaths, frame.MovePath, frame.MoveTarget);
 
 		var expected = frame.MovePaths.Select(path => path.EndPosition).ToHashSet();
 		if (frame.MoveTarget is Coord target)
@@ -24,7 +24,7 @@ public sealed class MovePreviewVisibilityTests
 	}
 
 	[Fact]
-	public void VisibleEndpointsMatchMovePathsAfterCommittedMove()
+	public void VisibleEndpointsExcludeCommittedPathCells()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
@@ -33,17 +33,16 @@ public sealed class MovePreviewVisibilityTests
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 
 		var frame = BattleTestCommands.Frame(battle);
-		var visible = VisibleEndpoints(frame.MovePaths, frame.MoveTarget);
+		var visible = VisibleEndpoints(frame.MovePaths, frame.MovePath, frame.MoveTarget);
 
 		var expected = frame.MovePaths.Select(path => path.EndPosition).ToHashSet();
-		if (frame.MoveTarget is Coord target)
-			expected.Remove(target);
+		expected.ExceptWith(frame.MovePath);
 
 		Assert.Equal(expected, visible);
 	}
 
 	[Fact]
-	public void VisibleEndpointsMatchMovePathsWhileHoveringEachOption()
+	public void VisibleEndpointsExcludeHoveredPathCells()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
@@ -51,11 +50,10 @@ public sealed class MovePreviewVisibilityTests
 
 		for (var i = 0; i < frame.MovePaths.Count; i++)
 		{
-			var (_, target) = MoveUi.GetPathHighlights(frame.MovePaths, i, frame.CommittedMovePath);
-			var visible = VisibleEndpoints(frame.MovePaths, target);
+			var (path, target) = MoveUi.GetPathHighlights(frame.MovePaths, i, frame.CommittedMovePath);
+			var visible = VisibleEndpoints(frame.MovePaths, path, target);
 			var expected = frame.MovePaths.Select(option => option.EndPosition).ToHashSet();
-			if (target is Coord hoveredEnd)
-				expected.Remove(hoveredEnd);
+			expected.ExceptWith(path);
 
 			Assert.Equal(expected, visible);
 		}
@@ -63,12 +61,14 @@ public sealed class MovePreviewVisibilityTests
 
 	private static HashSet<Coord> VisibleEndpoints(
 		IReadOnlyList<MovePathOption> paths,
+		IReadOnlyList<Coord> path,
 		Coord? target)
 	{
+		var pathCells = path.ToHashSet();
 		var visible = new HashSet<Coord>();
 		foreach (var option in paths)
 		{
-			if (option.EndPosition != target)
+			if (option.EndPosition != target && !pathCells.Contains(option.EndPosition))
 				visible.Add(option.EndPosition);
 		}
 

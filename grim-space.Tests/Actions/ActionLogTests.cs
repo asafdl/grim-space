@@ -101,21 +101,29 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
-	public void SummarizesMoveTurnInterleaveAsMovedSteps()
+	public void PreservesTurnsAndRollsBetweenMoveSummaries()
 	{
 		ITimelineEntry[] history =
 		[
 			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
 			new HeadingTurnAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
 			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
-			new HeadingTurnAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawLeft),
+			new RollAction("fighter-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
 			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
 			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
 		];
 
 		var lines = ActionLog.Format(history, id => id);
 
-		Assert.Equal(["fighter-a moved 4 steps"], lines);
+		Assert.Equal(
+			[
+				"fighter-a moved 1 step",
+				"fighter-a turned yawright",
+				"fighter-a moved 1 step",
+				"fighter-a rolled clockwise",
+				"fighter-a moved 2 steps",
+			],
+			lines);
 	}
 
 	[Fact]

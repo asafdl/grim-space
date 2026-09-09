@@ -44,6 +44,9 @@ public sealed class TorpedoDef
 	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
+	public bool SupportsMount(ESpatialOrientation mountedOn) =>
+		MountedOn.Contains(mountedOn);
+
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
 
@@ -61,6 +64,9 @@ public sealed class TorpedoDef
 
 	public bool IsPossible(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
+		if (!SupportsMount(action.MountedOn))
+			return false;
+
 		var ship = world.StateOf(action.ActorId);
 		var (position, _, _) = TorpedoMount.LaunchPose(ship, action.MountedOn);
 		return world.Grid.IsInBounds(position) && !world.BlockedFor(action.ActorId).Contains(position);

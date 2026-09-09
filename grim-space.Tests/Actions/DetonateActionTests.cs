@@ -63,7 +63,7 @@ public sealed class DetonateActionTests
 	}
 
 	[Fact]
-	public void DetonateDamagesUnitsInBlastIncludingFriendlyAndKillsTorpedo()
+	public void DetonateResolutionDamagesEveryUnitInBlastAndKillsTorpedo()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
@@ -87,7 +87,7 @@ public sealed class DetonateActionTests
 	}
 
 	[Fact]
-	public async Task AgentBurnsFuelAndDetonatesWhenFuelAlreadyZero()
+	public async Task AgentDetonatesWithoutMovingOrBurningFuelWhenFuelAlreadyZero()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		PlaceFarFromEveryone(battle, torpedoId);
@@ -95,12 +95,13 @@ public sealed class DetonateActionTests
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, torpedo);
 
-		Assert.Contains(actions, action => action is FuelBurnAction);
+		Assert.DoesNotContain(actions, action => action is MoveStepAction);
+		Assert.DoesNotContain(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
 	}
 
 	[Fact]
-	public async Task AgentDetonatesWhenOpponentInBlastAfterMoves()
+	public async Task AgentDetonatesImmediatelyWhenOpponentInBlast()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
@@ -113,7 +114,8 @@ public sealed class DetonateActionTests
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, torpedo);
 
-		Assert.Contains(actions, action => action is FuelBurnAction);
+		Assert.DoesNotContain(actions, action => action is MoveStepAction);
+		Assert.DoesNotContain(actions, action => action is FuelBurnAction);
 		Assert.Contains(actions, action => action is DetonateAction);
 	}
 

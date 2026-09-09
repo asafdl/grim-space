@@ -52,10 +52,12 @@ public abstract class AbilityActivation
 		public override string WaitingLabel => BattleHudCopy.SelectFiringDirection;
 
 		public override bool CanConfirm(ESpatialOrientation? stagedMountedOn) =>
-			stagedMountedOn is not null;
+			stagedMountedOn is ESpatialOrientation mountedOn
+			&& def.SupportsMount(mountedOn);
 
 		public override IAction? Build(string actorId, ESpatialOrientation? stagedMountedOn) =>
 			stagedMountedOn is ESpatialOrientation mountedOn
+			&& def.SupportsMount(mountedOn)
 				? def.Bind(actorId, mountedOn)
 				: null;
 	}

@@ -44,6 +44,17 @@ public sealed class TorpedoActionTests
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Ventral)));
 	}
 
+	[Theory]
+	[InlineData(ESpatialOrientation.Forward)]
+	[InlineData(ESpatialOrientation.Port)]
+	[InlineData(ESpatialOrientation.Starboard)]
+	public void FireIllegalFromUnsupportedMount(ESpatialOrientation mountedOn)
+	{
+		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, mountedOn)));
+	}
+
 	[Fact]
 	public void FighterCapabilitiesIncludeTorpedo()
 	{
@@ -65,22 +76,36 @@ public sealed class TorpedoActionTests
 	}
 
 	[Fact]
-	public void ResolveTurnActivatesSpawnedTorpedoSameCycle()
+	public void ResolveTurnDoesNotActivateSpawnedTorpedoSameCycle()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Retro)));
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
+		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
+		Assert.Equal(origin - shipFore, torpedo.State.Position);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);
 		Assert.Contains(
 			replay.History,
 			entry => entry is Record<SpawnFacts> { Value: var spawn }
 				&& spawn.TargetId == torpedo.State.Id);
-		Assert.Contains(
+		Assert.DoesNotContain(
 			replay.Actions,
+			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
+		Assert.DoesNotContain(
+			replay.Actions,
+			action => action is MoveStepAction && action.ActorId == torpedo.State.Id);
+		Assert.DoesNotContain(
+			replay.Actions,
+			action => action is FuelBurnAction && action.ActorId == torpedo.State.Id);
+
+		var nextReplay = BattleTestActions.CommitAndResolve(battle);
+		Assert.Contains(
+			nextReplay.Actions,
 			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
 	}
 }

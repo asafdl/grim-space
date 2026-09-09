@@ -37,10 +37,11 @@ public static class ActionLog
 			{
 				var actorId = move.ActorId;
 				var steps = 0;
-				while (i < history.Count && IsPathManeuver(history[i], actorId))
+				while (i < history.Count
+					&& history[i] is MoveStepAction next
+					&& next.ActorId == actorId)
 				{
-					if (history[i] is MoveStepAction)
-						steps++;
+					steps++;
 					i++;
 				}
 
@@ -87,15 +88,6 @@ public static class ActionLog
 
 		return $"{TeamWord(unit.Alliance.Team)} {id}";
 	}
-
-	private static bool IsPathManeuver(ITimelineEntry entry, string actorId) =>
-		entry switch
-		{
-			MoveStepAction a => a.ActorId == actorId,
-			HeadingTurnAction a => a.ActorId == actorId,
-			RollAction a => a.ActorId == actorId,
-			_ => false,
-		};
 
 	private static string TeamWord(ETeam team) =>
 		team switch

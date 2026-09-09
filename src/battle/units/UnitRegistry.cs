@@ -20,11 +20,18 @@ public sealed class UnitRegistry
 
 	public static UnitRegistry For(BattleWorld world) => world.UnitRegistry;
 
-	public LinkedListNode<string>? First => _turnOrder.First;
-
 	public IEnumerable<Unit> All => _units.Values;
 
 	public IEnumerable<string> Ids => _units.Keys;
+
+	public IEnumerable<string> ActivationOrder
+	{
+		get
+		{
+			for (var node = _turnOrder.First; node is not null; node = node.Next)
+				yield return node.Value;
+		}
+	}
 
 	public Unit UnitOf(string unitId) => _units[unitId];
 
@@ -73,7 +80,7 @@ public sealed class UnitRegistry
 	public UnitRegistry CloneForFork()
 	{
 		var clone = new UnitRegistry();
-		for (var node = First; node is not null; node = node.Next)
+		for (var node = _turnOrder.First; node is not null; node = node.Next)
 		{
 			if (_units.TryGetValue(node.Value, out var unit))
 				clone.Add(CloneUnit(unit));

@@ -215,12 +215,12 @@ public sealed class BattleOrchestrator : IDisposable
 		RevokeAllCanWork();
 
 		var units = UnitRegistry.For(_engine.World);
-		for (var node = units.First; node is not null; node = node.Next)
+		var activationOrder = units.ActivationOrder.ToArray();
+		foreach (var actorId in activationOrder)
 		{
-			if (!units.TryGet(node.Value, out var live) || !live.State.IsAlive)
+			if (!units.TryGet(actorId, out var live) || !live.State.IsAlive)
 				continue;
 
-			var actorId = live.State.Id;
 			EnsureAgentInitialized(actorId);
 			var batch = await TakeActorBatchAsync(actorId);
 			CommitActor(actorId, batch.Actions);

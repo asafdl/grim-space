@@ -96,7 +96,7 @@ public sealed class TorpedoTargetSelectionTests
 	}
 
 	[Fact]
-	public void Plan_LocksOntoAheadTargetNotCloserBehind()
+	public void Plan_DetonatesOnOpponentAlreadyInBlastEvenWhenAheadTargetExists()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
 		FaceForward(battle, torpedoId);
@@ -121,11 +121,11 @@ public sealed class TorpedoTargetSelectionTests
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var session = battle.Engine.CreateSimulation();
-		((TorpedoExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
+		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
 
-		var end = session.StateOf<ActorState>(torpedoId).Position;
-		Assert.True(end.ManhattanDistanceTo(ahead.State.Position) < torpedoPos.ManhattanDistanceTo(ahead.State.Position));
-		Assert.True(end.Z >= torpedoPos.Z);
+		Assert.DoesNotContain(actions, action => action is MoveStepAction);
+		Assert.DoesNotContain(actions, action => action is FuelBurnAction);
+		Assert.Contains(actions, action => action is DetonateAction);
 	}
 
 	private static void FaceForward(Battle.BattleOrchestrator battle, string torpedoId)

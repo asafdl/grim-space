@@ -90,7 +90,7 @@ public partial class GridView : Node3D
 
 		foreach (var (coord, ap) in endpointAp)
 		{
-			if (coord == target)
+			if (coord == target || pathSet.Contains(coord))
 				continue;
 
 			SetCellHighlight(coord, EndpointMaterialForAp(ap), EndpointScaleForAp(ap));

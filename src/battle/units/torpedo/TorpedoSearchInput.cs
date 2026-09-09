@@ -12,6 +12,7 @@ namespace GrimSpace.Battle.Ai;
 
 internal readonly record struct TorpedoFrameRank(
 	bool OpponentInBlast,
+	bool AllyInBlast,
 	int ApproachGain,
 	int MoveCount,
 	int Score) : IComparable<TorpedoFrameRank>
@@ -24,6 +25,10 @@ internal readonly record struct TorpedoFrameRank(
 
 		if (OpponentInBlast)
 		{
+			var collateral = other.AllyInBlast.CompareTo(AllyInBlast);
+			if (collateral != 0)
+				return collateral;
+
 			var moves = other.MoveCount.CompareTo(MoveCount);
 			if (moves != 0)
 				return moves;
@@ -106,7 +111,7 @@ internal static class TorpedoSearchInput
 	{
 		var score = ScoreHeuristic(frame, anchor, actorId, target, searchStartDepth);
 		if (score == int.MinValue)
-			return new(false, 0, 0, score);
+			return new(false, false, 0, 0, score);
 
 		var state = frame.World.StateOf(actorId);
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
@@ -114,8 +119,9 @@ internal static class TorpedoSearchInput
 		var opponentInBlast = target is not null
 			? state.Position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius
 			: DetonateDef.HasOpponentInBlast(frame.World, actorId, state.Position);
+		var allyInBlast = HasAllyInBlast(frame.World, actorId, state.Position);
 
-		return new(opponentInBlast, approachGain, frame.Depth, score);
+		return new(opponentInBlast, allyInBlast, approachGain, frame.Depth, score);
 	}
 
 	public static int ScoreHeuristic(

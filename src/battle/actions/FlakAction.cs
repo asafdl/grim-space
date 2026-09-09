@@ -41,6 +41,9 @@ public sealed class FlakDef
 	public FlakAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
+	public bool SupportsMount(ESpatialOrientation mountedOn) =>
+		MountedOn.Contains(mountedOn);
+
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
 
@@ -58,6 +61,9 @@ public sealed class FlakDef
 
 	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
+		if (!SupportsMount(action.MountedOn))
+			return false;
+
 		var frame = BodyFrame.From(world.StateOf(action.ActorId));
 		return WeaponBursts.IsValidFlakBurst(frame, action.MountedOn, world.Grid.IsInBounds);
 	}

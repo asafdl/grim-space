@@ -17,16 +17,15 @@ public static class ReplayActorPhase
 		if (string.Equals(actorId, BattleActorIds.Rules, StringComparison.Ordinal))
 			return EReplayPlaybackPhase.Upkeep;
 
-		if (participants.TryGetValue(actorId, out var team))
-		{
-			return team switch
-			{
-				ETeam.Player => EReplayPlaybackPhase.Player,
-				ETeam.Enemy => EReplayPlaybackPhase.Enemy,
-				_ => EReplayPlaybackPhase.Upkeep,
-			};
-		}
+		if (!participants.TryGetValue(actorId, out var team))
+			throw new KeyNotFoundException($"Replay actor '{actorId}' is not registered.");
 
-		return EReplayPlaybackPhase.Upkeep;
+		return team switch
+		{
+			ETeam.Player => EReplayPlaybackPhase.Player,
+			ETeam.Enemy => EReplayPlaybackPhase.Enemy,
+			_ => throw new InvalidOperationException(
+				$"Replay actor '{actorId}' has unsupported team '{team}'."),
+		};
 	}
 }
