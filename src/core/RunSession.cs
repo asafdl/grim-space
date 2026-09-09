@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Log;
+using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
@@ -10,9 +11,10 @@ namespace GrimSpace.Core;
 
 public partial class RunSession : Node
 {
-	private const string MapScenePath = "res://scenes/map.tscn";
+	private const string BattleScenePath = "res://scenes/battle.tscn";
 
 	private static RunSession? _instance;
+	private DevMenuOverlay _devMenu = null!;
 
 	public static RunSession Instance =>
 		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
@@ -26,6 +28,13 @@ public partial class RunSession : Node
 		GameSettings.ApplySavedVideoConfig();
 	}
 
+	public override void _Ready()
+	{
+		_devMenu = new DevMenuOverlay();
+		AddChild(_devMenu);
+		_devMenu.StartBattleRequested += StartDevBattle;
+	}
+
 	public override void _ExitTree()
 	{
 		if (_instance == this)
@@ -37,16 +46,26 @@ public partial class RunSession : Node
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F10 })
 			return;
 
-		EnterMapDevMode();
+		ToggleDevMenu();
 		GetViewport().SetInputAsHandled();
 	}
 
-	private void EnterMapDevMode()
+	private void ToggleDevMenu()
+	{
+		if (_devMenu.IsOpen)
+			_devMenu.Close();
+		else
+			_devMenu.Open();
+	}
+
+	public void StartDevBattle()
 	{
 		if (!IsRunReady())
 			StartNewRun();
 
-		GetTree().ChangeSceneToFile(MapScenePath);
+		Run.ActiveBattle = null;
+		_devMenu.Close();
+		GetTree().ChangeSceneToFile(BattleScenePath);
 	}
 
 	private bool IsRunReady() =>
