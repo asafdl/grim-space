@@ -15,7 +15,6 @@ internal readonly record struct TorpedoFrameRank(
 	bool AllyInBlast,
 	int ApproachGain,
 	int MoveCount,
-	int BlastScore,
 	int Score) : IComparable<TorpedoFrameRank>
 {
 	public int CompareTo(TorpedoFrameRank other)
@@ -26,15 +25,9 @@ internal readonly record struct TorpedoFrameRank(
 
 		if (OpponentInBlast)
 		{
-<<<<<<< HEAD
 			var collateral = other.AllyInBlast.CompareTo(AllyInBlast);
 			if (collateral != 0)
 				return collateral;
-=======
-			var blast = BlastScore.CompareTo(other.BlastScore);
-			if (blast != 0)
-				return blast;
->>>>>>> e202572762fc3bac337b75948d8d830443449372
 
 			var moves = other.MoveCount.CompareTo(MoveCount);
 			if (moves != 0)
@@ -118,11 +111,7 @@ internal static class TorpedoSearchInput
 	{
 		var score = ScoreHeuristic(frame, anchor, actorId, target, searchStartDepth);
 		if (score == int.MinValue)
-<<<<<<< HEAD
 			return new(false, false, 0, 0, score);
-=======
-			return new(false, 0, 0, 0, score);
->>>>>>> e202572762fc3bac337b75948d8d830443449372
 
 		var state = frame.World.StateOf(actorId);
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
@@ -132,16 +121,7 @@ internal static class TorpedoSearchInput
 			: DetonateDef.HasOpponentInBlast(frame.World, actorId, state.Position);
 		var allyInBlast = HasAllyInBlast(frame.World, actorId, state.Position);
 
-<<<<<<< HEAD
 		return new(opponentInBlast, allyInBlast, approachGain, frame.Depth, score);
-=======
-		return new(
-			opponentInBlast,
-			approachGain,
-			frame.Depth,
-			BlastScore(frame.World, actorId, state.Position, target),
-			score);
->>>>>>> e202572762fc3bac337b75948d8d830443449372
 	}
 
 	public static int ScoreHeuristic(
@@ -207,7 +187,7 @@ internal static class TorpedoSearchInput
 		return after < before ? before - after : 0;
 	}
 
-	private static bool HasAllyInBlast(BattleWorld world, string actorId, Coord origin)
+	internal static bool HasAllyInBlast(BattleWorld world, string actorId, Coord origin)
 	{
 		var units = UnitRegistry.For(world);
 		var actor = units.UnitOf(actorId);

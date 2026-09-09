@@ -35,8 +35,11 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 	{
 		var start = session.Actions.Count;
 		var actorId = actor.State.Id;
-		if (session.TryEnqueue(new DetonateAction(actorId)))
+		if (!TorpedoSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position)
+			&& session.TryEnqueue(new DetonateAction(actorId)))
+		{
 			return session.Actions.Skip(start).ToList();
+		}
 
 		var target = TorpedoSearchInput.BestReachableOpponent(session, actorId);
 
