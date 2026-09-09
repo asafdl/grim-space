@@ -88,10 +88,6 @@ public sealed class MovePathSession
 		return PathApSpent == 0 || PathApSpent >= minPathApCost;
 	}
 
-	public static bool PreferPath(MovePathSession candidate, MovePathSession existing) =>
-		candidate.Steps.Count < existing.Steps.Count
-		|| candidate.Steps.Count == existing.Steps.Count && candidate.PathApSpent < existing.PathApSpent;
-
 	public MovePathSession Clone()
 	{
 		var clone = new MovePathSession

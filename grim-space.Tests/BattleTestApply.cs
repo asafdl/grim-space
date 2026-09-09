@@ -16,7 +16,7 @@ internal static class BattleTestApply
 		IReadOnlyList<IAction> actions,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
-		IDictionary<string, NonUnit> nonUnits,
+		Dictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blocked,
 		Timeline timeline,
 		string actorId)
@@ -70,7 +70,7 @@ internal static class BattleTestApply
 		IAction action,
 		IReadOnlyList<Unit> roster,
 		BoundedGrid grid,
-		IDictionary<string, NonUnit> nonUnits,
+		Dictionary<string, NonUnit> nonUnits,
 		IReadOnlySet<Coord> blocked,
 		ActorRuntime runtime,
 		Timeline timeline,

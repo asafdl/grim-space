@@ -13,7 +13,6 @@ public static class StateLog
 	public static void LogTurnResolution(
 		int turnNumber,
 		IReadOnlyList<ITimelineEntry> history,
-		IReadOnlyList<Hazard> hazards,
 		IReadOnlyDictionary<string, State> unitsAtTurnStart,
 		IReadOnlyDictionary<string, State> unitsAfterPlayer,
 		IReadOnlyDictionary<string, State> unitsAtTurnEnd,
@@ -35,19 +34,6 @@ public static class StateLog
 		}
 
 		AppendSection(log, "Units (after player phase)", unitsAfterPlayer.Values);
-
-		if (hazards.Count == 0)
-			log.AppendLine("Active hazards: (none)");
-		else
-		{
-			log.AppendLine($"Active hazards ({hazards.Count}):");
-			for (var i = 0; i < hazards.Count; i++)
-			{
-				var hazard = hazards[i];
-				log.AppendLine(
-					$"  [{i}] center={hazard.Center} dmg={hazard.Damage} momLoss={hazard.MomentumLoss} cells={hazard.Cells.Count}");
-			}
-		}
 
 		AppendSection(log, "Units (turn end)", unitsAtTurnEnd.Values);
 		GameLog.Log(log.ToString());

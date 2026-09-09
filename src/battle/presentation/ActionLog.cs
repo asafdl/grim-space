@@ -179,7 +179,6 @@ public static class ActionLog
 				$"hit {FormatDamageClause(impact, displayName)}",
 			EndOfPhaseAction => null,
 			RoundUpkeepAction => null,
-			ClearTurnHazardsAction => null,
 			FuelBurnAction => null,
 			Record<SpawnFacts> => null,
 			_ => null,

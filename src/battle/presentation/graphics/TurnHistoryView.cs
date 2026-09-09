@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Godot;
 using GrimSpace.Math.Grid;
 
@@ -12,15 +11,9 @@ public partial class TurnHistoryView : Node3D
 	private const float TrailYOffset = 0.18f;
 	private const float TrailThickness = 0.07f;
 
-	private readonly Dictionary<string, Coord> _lastPositions = new();
 	private readonly List<Node3D> _ownedNodes = new();
 
-	public void BeginTurn(IReadOnlyDictionary<string, Coord> startPositions)
-	{
-		Clear();
-		foreach (var (actorId, position) in startPositions)
-			_lastPositions[actorId] = position;
-	}
+	public void BeginTurn() => Clear();
 
 	public void Clear()
 	{
@@ -28,7 +21,6 @@ public partial class TurnHistoryView : Node3D
 			node.Free();
 
 		_ownedNodes.Clear();
-		_lastPositions.Clear();
 	}
 
 	public void RecordMove(string actorId, Coord from, Coord to, Color color)
@@ -37,7 +29,6 @@ public partial class TurnHistoryView : Node3D
 			return;
 
 		AddTrailSegment(from, to, color);
-		_lastPositions[actorId] = to;
 	}
 
 	private void AddTrailSegment(Coord from, Coord to, Color color)

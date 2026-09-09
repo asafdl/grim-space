@@ -209,7 +209,6 @@ public sealed class BattleOrchestrator : IDisposable
 		var resolveTimer = Stopwatch.StartNew();
 		var turnNumber = TurnNumber;
 		var unitsAtTurnStart = SnapshotAll();
-		var hazardsBeforeResolve = _engine.World.TurnHazards.ToList();
 		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
 
 		_engine.ActorRuntimes.Reset();
@@ -244,7 +243,6 @@ public sealed class BattleOrchestrator : IDisposable
 		StateLog.LogTurnResolution(
 			turnNumber,
 			history,
-			hazardsBeforeResolve,
 			unitsAtTurnStart,
 			unitsAfterPlayer ?? endStates,
 			endStates,
@@ -289,7 +287,6 @@ public sealed class BattleOrchestrator : IDisposable
 		var batch = new List<IAction>();
 		foreach (var unitId in UnitRegistry.For(_engine.World).Ids)
 			batch.Add(new RoundUpkeepAction(unitId));
-		batch.Add(new ClearTurnHazardsAction());
 		return _engine.Commit([..batch]);
 	}
 

@@ -46,7 +46,6 @@ public partial class BattleController : Node3D
 
 	private readonly record struct MoveHoverCache(
 		IReadOnlyList<MovePathOption> Paths,
-		int PathApBaseline,
 		IReadOnlyList<Coord> CommittedPath);
 
 	private bool _introActive;
@@ -273,10 +272,7 @@ public partial class BattleController : Node3D
 	{
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		_currentFrame = frame;
-		_moveHoverCache = new MoveHoverCache(
-			frame.MovePaths,
-			frame.MovePathApBaseline,
-			frame.CommittedMovePath);
+		_moveHoverCache = new MoveHoverCache(frame.MovePaths, frame.CommittedMovePath);
 		_translator.SetPresentation(
 			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver && !_introActive,
 			canIssueActions: frame.CanAct,
@@ -295,11 +291,7 @@ public partial class BattleController : Node3D
 			_moveHoverCache.Paths,
 			_frames.Interaction.MoveHoveredIndex,
 			_moveHoverCache.CommittedPath);
-		_gridView.SetMoveHighlights(
-			_moveHoverCache.Paths,
-			_moveHoverCache.PathApBaseline,
-			path,
-			target);
+		_gridView.SetMoveHighlights(_moveHoverCache.Paths, path, target);
 	}
 
 	private void FocusUnit(string unitId)
@@ -393,22 +385,11 @@ public partial class BattleController : Node3D
 		var states = frame.PreviewUnits.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.ToState());
-		_battleView.ApplyUnitStates(states, id => ColorForPreview(frame, id));
+		_battleView.ApplyUnitStates(states, ColorForActor);
 		if (_introActive)
 			return;
 
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
-	}
-
-	private Color ColorForPreview(PresentationFrame frame, string actorId)
-	{
-		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
-			return ColorFor(unit.Alliance.Team);
-
-		if (_battle.Layout.Participants.TryGetValue(actorId, out var team))
-			return ColorFor(team);
-
-		return Colors.White;
 	}
 
 	private static BattleEncounter ResolveEncounter()

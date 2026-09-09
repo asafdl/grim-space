@@ -71,7 +71,6 @@ public sealed class ActionLogTests
 		[
 			new EndOfPhaseAction("patrol-a"),
 			new RoundUpkeepAction("patrol-a"),
-			new ClearTurnHazardsAction(),
 			new FuelBurnAction("patrol-a"),
 			new Record<SpawnFacts>(new SpawnFacts("patrol-a", "torpedo-x", GrimSpace.Units.Enums.EType.Torpedo)),
 		];

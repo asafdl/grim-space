@@ -23,7 +23,6 @@ public partial class GridView : Node3D
 	private StandardMaterial3D? _endpointApHigh;
 	private StandardMaterial3D? _pathMaterial;
 	private StandardMaterial3D? _hoverMaterial;
-	private StandardMaterial3D? _targetMaterial;
 
 	public void Build(BoundedGrid grid)
 	{
@@ -36,7 +35,6 @@ public partial class GridView : Node3D
 		_endpointApHigh = CreateMaterial(new Color(0.28f, 0.34f, 0.52f, 0.56f));
 		_pathMaterial = CreateMaterial(new Color(0.45f, 0.5f, 0.6f, 0.22f));
 		_hoverMaterial = CreateMaterial(new Color(0.95f, 0.95f, 1f, 0.65f));
-		_targetMaterial = CreateMaterial(new Color(0.95f, 0.85f, 0.2f, 0.55f));
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
@@ -51,11 +49,7 @@ public partial class GridView : Node3D
 		switch (frame.Mode)
 		{
 			case EPlayerMode.Move:
-				SetMoveHighlights(
-					frame.MovePaths,
-					frame.MovePathApBaseline,
-					frame.MovePath,
-					frame.MoveTarget);
+				SetMoveHighlights(frame.MovePaths, frame.MovePath, frame.MoveTarget);
 				break;
 
 			case EPlayerMode.Flak:
@@ -70,7 +64,6 @@ public partial class GridView : Node3D
 
 	public void SetMoveHighlights(
 		IReadOnlyList<MovePathOption> paths,
-		int pathApBaseline,
 		IReadOnlyList<Coord> path,
 		Coord? target)
 	{
@@ -113,8 +106,7 @@ public partial class GridView : Node3D
 		&& _endpointApMid is not null
 		&& _endpointApHigh is not null
 		&& _pathMaterial is not null
-		&& _hoverMaterial is not null
-		&& _targetMaterial is not null;
+		&& _hoverMaterial is not null;
 
 	private StandardMaterial3D EndpointMaterialForAp(int ap) =>
 		ap switch

@@ -18,34 +18,6 @@ public sealed class MovePathSearchTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void DuplicateEndpointPrefersShortestPathOverLowerApCost()
-	{
-		var origin = new Coord(0, 0, 0);
-		var frame = BodyFrame.WorldAligned(origin);
-		var end = new Coord(2, 0, 0);
-		var shorter = MovePathSession.Begin(PlayerId, origin, frame, 0, Stats.ForType(EType.Fighter).MinPathApCost);
-		shorter.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
-		shorter.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
-		shorter.Cells.Add(new Coord(1, 0, 0));
-		shorter.Cells.Add(end);
-		shorter.PathApSpent = 4;
-
-		var longer = MovePathSession.Begin(PlayerId, origin, frame, 0, Stats.ForType(EType.Fighter).MinPathApCost);
-		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
-		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Port));
-		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Forward));
-		longer.Steps.Add(new MoveStepAction(PlayerId, ESpatialOrientation.Starboard));
-		longer.Cells.Add(new Coord(1, 0, 0));
-		longer.Cells.Add(new Coord(1, 1, 0));
-		longer.Cells.Add(new Coord(2, 1, 0));
-		longer.Cells.Add(end);
-		longer.PathApSpent = 2;
-
-		Assert.True(MovePathSession.PreferPath(shorter, longer));
-		Assert.False(MovePathSession.PreferPath(longer, shorter));
-	}
-
-	[Fact]
 	public void OneAndTwoApForwardMovesAreValidEndpoints()
 	{
 		var origin = new Coord(5, 5, 5);

@@ -76,7 +76,7 @@ public partial class TurnReplayPlayer : Node3D
 			endStates,
 			_ensureView,
 			reportInterest);
-		_turnHistory.BeginTurn(turnStart.ToDictionary(pair => pair.Key, pair => pair.Value.Position));
+		_turnHistory.BeginTurn();
 		_hazardBursts.Clear();
 
 		foreach (var (unitId, state) in turnStart)

@@ -1,44 +1,12 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
 
 public sealed class SystemActionTests
 {
-	private const string PlayerId = "player";
-
-	[Fact]
-	public void ResolveTurnClearsLeftoverTurnHazards()
-	{
-		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		var hazard = Hazard.FlakBurst(
-			"flak-leftover",
-			PlayerId,
-			BodyFrame.WorldAligned(new Coord(1, 1, 1)),
-			[new Coord(1, 1, 1)]);
-		BattleTestWorld.InjectHazard(battle.Engine.World, hazard);
-		Assert.Single(battle.Engine.World.TurnHazards);
-
-		BattleTestActions.CommitAndResolve(battle);
-
-		Assert.Empty(battle.Engine.World.TurnHazards);
-	}
-
-	[Fact]
-	public void ResolveTurnClearsScheduledTurnHazards()
-	{
-		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Port)));
-
-		BattleTestActions.CommitAndResolve(battle);
-		Assert.Empty(battle.Engine.World.TurnHazards);
-	}
-
 	[Fact]
 	public void ResolveTurnPreservesWorldHazards()
 	{
