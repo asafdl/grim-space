@@ -84,6 +84,8 @@ internal static class BattleSearchVisit
 	public static SearchVisitState ForMovePreview(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
+		// TODO: Initial review suggests this identity may drop path-sensitive continuations.
+		// Deferred pending reproduction because widening the DFS state may slow previews.
 		return new SearchVisitState(
 			actor.Position,
 			[actor.ActionPoints, actor.MomentumLevel]);

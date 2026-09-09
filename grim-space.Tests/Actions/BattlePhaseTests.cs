@@ -51,6 +51,7 @@ public sealed class BattlePhaseTests
 		Assert.Equal(EBattlePhase.Replaying, battle.Phase);
 		Assert.Equal(1, completedTurn);
 		Assert.NotEmpty(replay.History);
+		Assert.Equal(completedTurn, BattleTestCommands.Frame(battle).TurnNumber);
 	}
 
 	[Fact]

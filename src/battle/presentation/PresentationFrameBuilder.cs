@@ -161,7 +161,9 @@ public sealed class PresentationFrameBuilder
 			MovePath = movePath,
 			CommittedMovePath = committedMovePath,
 			MoveTarget = moveTarget,
-			TurnNumber = battle.TurnNumber,
+			TurnNumber = battle.Phase == EBattlePhase.Replaying
+				? battle.TurnNumber - 1
+				: battle.TurnNumber,
 			CanAct = canControl,
 			CanFocusCamera = canControl && isPlanning,
 			CanUndo = canControl && agent.CanUndo,
