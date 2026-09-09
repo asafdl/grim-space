@@ -46,7 +46,7 @@ public static class ContractDisplay
 			_ => "—",
 		};
 
-	public static string Reward(Contract contract) => $"{contract.Terms.RewardCredits} cr";
+	public static string Reward(Contract contract) => $"{contract.Terms.RewardCredits} Credits";
 
 	public static string Danger(Contract contract) =>
 		contract.Objective switch
