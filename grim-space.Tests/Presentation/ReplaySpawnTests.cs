@@ -13,7 +13,7 @@ public sealed class ReplaySpawnTests
 	{
 		ITimelineEntry[] history =
 		[
-			new SpawnPatrolAction("carrier-a"),
+			new SpawnPatrolAction("carrier-a", "patrol-b"),
 			new Record<SpawnFacts>(new SpawnFacts("carrier-a", "patrol-b", EType.Patrol)),
 		];
 

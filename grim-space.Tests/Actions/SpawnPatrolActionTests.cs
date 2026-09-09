@@ -26,7 +26,7 @@ public sealed class SpawnPatrolActionTests
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(new SpawnPatrolAction(carrierId)));
+		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
 
 		var carrier = sim.StateOf<ActorState>(carrierId);
 		Assert.Equal(CombatConfig.PatrolCooldownTurns, carrier.PatrolSpawnCooldownRemaining);
@@ -50,7 +50,7 @@ public sealed class SpawnPatrolActionTests
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(new SpawnPatrolAction(carrierId)));
+		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
 		Assert.Single(UnitRegistry.For(sim.World).All, unit => unit.State.Type == EType.Patrol);
 		Assert.Equal(CombatConfig.PatrolCooldownTurns, sim.StateOf<ActorState>(carrierId).PatrolSpawnCooldownRemaining);
 
@@ -61,14 +61,31 @@ public sealed class SpawnPatrolActionTests
 	}
 
 	[Fact]
+	public void QueuedPatrolKeepsSpawnedIdAcrossReevaluationForkAndReplay()
+	{
+		var battle = CarrierBattle(new Coord(5, 5, 5));
+		var carrierId = BattleTestFixture.FirstEnemyId(battle);
+		var sim = battle.Engine.CreateSimulation();
+		var action = SpawnPatrolDef.Instance.Bind(carrierId);
+
+		Assert.True(sim.TryEnqueue(action));
+		AssertSpawned(sim.World, action.SpawnedUnitId);
+
+		sim.Reevaluate();
+		AssertSpawned(sim.World, action.SpawnedUnitId);
+		AssertSpawned(sim.Fork().World, action.SpawnedUnitId);
+		AssertSpawned(sim.ReplayWorld(sim.Actions.Count), action.SpawnedUnitId);
+	}
+
+	[Fact]
 	public void DeployIllegalWhileCooldownActive()
 	{
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(new SpawnPatrolAction(carrierId)));
-		Assert.False(sim.TryEnqueue(new SpawnPatrolAction(carrierId)));
+		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
+		Assert.False(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
 	}
 
 	[Fact]
@@ -115,7 +132,7 @@ public sealed class SpawnPatrolActionTests
 	{
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
-		battle.Engine.Commit([new SpawnPatrolAction(carrierId)]);
+		battle.Engine.Commit([SpawnPatrolDef.Instance.Bind(carrierId)]);
 
 		var patrol = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
@@ -172,4 +189,7 @@ public sealed class SpawnPatrolActionTests
 			UnitRegistry.For(world).Add(patrol);
 		}
 	}
+
+	private static void AssertSpawned(BattleWorld world, string unitId) =>
+		Assert.True(UnitRegistry.For(world).TryGet(unitId, out _));
 }

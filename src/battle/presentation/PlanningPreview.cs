@@ -1,7 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
@@ -12,7 +11,6 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -23,6 +21,9 @@ namespace GrimSpace.Battle.Presentation;
 /// </summary>
 public sealed class PlanningPreview
 {
+	private const string PreviewPatrolId = "__preview_patrol__";
+	private const string PreviewTorpedoId = "__preview_torpedo__";
+
 	private readonly MovePreviewCache _moveCache = new();
 
 	private BattleSimulation? _lastSim;
@@ -80,25 +81,41 @@ public sealed class PlanningPreview
 
 	public WeaponPeek Weapons(BattleSimulation sim, string actorId)
 	{
+		var world = sim.World;
+		var runtime = sim.RuntimeFor(actorId);
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 		foreach (var mountedOn in TorpedoMountedDirections)
 		{
-			if (sim.Peek(new TorpedoAction(actorId, mountedOn)) is not null)
+			var action = new TorpedoAction(actorId, mountedOn, PreviewTorpedoId);
+			if (TorpedoDef.Instance.IsLegal(action, world, runtime))
 				torpedoMounts.Add(mountedOn);
 		}
 
 		return new WeaponPeek(
-			sim.Peek(new FlakAction(actorId, ESpatialOrientation.Port)) is not null,
-			sim.Peek(new FlakAction(actorId, ESpatialOrientation.Starboard)) is not null,
-			sim.Peek(new RailgunAction(actorId)) is not null,
+			FlakDef.Instance.IsLegal(
+				new FlakAction(actorId, ESpatialOrientation.Port),
+				world,
+				runtime),
+			FlakDef.Instance.IsLegal(
+				new FlakAction(actorId, ESpatialOrientation.Starboard),
+				world,
+				runtime),
+			RailgunDef.Instance.IsLegal(new RailgunAction(actorId), world, runtime),
 			torpedoMounts);
 	}
 
-	public AbilityLegality Abilities(BattleSimulation sim, string actorId) =>
-		new(
+	public AbilityLegality Abilities(BattleSimulation sim, string actorId)
+	{
+		var world = sim.World;
+		var runtime = sim.RuntimeFor(actorId);
+		return new AbilityLegality(
 			Weapons(sim, actorId),
-			sim.Peek(new SpawnPatrolAction(actorId)) is not null,
-			sim.Peek(new DetonateAction(actorId)) is not null);
+			SpawnPatrolDef.Instance.IsLegal(
+				new SpawnPatrolAction(actorId, PreviewPatrolId),
+				world,
+				runtime),
+			DetonateDef.Instance.IsLegal(new DetonateAction(actorId), world, runtime));
+	}
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
 	{
@@ -239,10 +256,9 @@ public sealed class PlanningPreview
 		if (_envelopeCacheKey == cacheKey)
 			return _envelopeCache;
 
-		var spawnedId = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo));
-		var peek = sim.Peek(new TorpedoAction(playerId, mountedOn, spawnedId));
+		var peek = sim.Peek(new TorpedoAction(playerId, mountedOn, PreviewTorpedoId));
 		if (peek is null
-			|| !UnitRegistry.For(peek.Value.World).TryGet(spawnedId, out var spawned))
+			|| !UnitRegistry.For(peek.Value.World).TryGet(PreviewTorpedoId, out var spawned))
 		{
 			_envelopeCacheKey = cacheKey;
 			_envelopeCache = [];
@@ -261,17 +277,14 @@ public sealed class PlanningPreview
 		string playerId,
 		TorpedoAction queued)
 	{
-		if (queued.SpawnedUnitId is not { } spawnedId)
-			return [];
-
 		var cacheKey =
-			$"queued|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{queued.MountedOn}|{spawnedId}";
+			$"queued|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{queued.MountedOn}|{queued.SpawnedUnitId}";
 		if (_envelopeCacheKey == cacheKey)
 			return _envelopeCache;
 
 		var peek = sim.Peek(EndOfPhaseDef.Instance.Bind(playerId));
 		if (peek is null
-			|| !UnitRegistry.For(peek.Value.World).TryGet(spawnedId, out var spawned))
+			|| !UnitRegistry.For(peek.Value.World).TryGet(queued.SpawnedUnitId, out var spawned))
 		{
 			_envelopeCacheKey = cacheKey;
 			_envelopeCache = [];

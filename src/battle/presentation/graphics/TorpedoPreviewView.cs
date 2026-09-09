@@ -52,13 +52,6 @@ public sealed partial class TorpedoPreviewView : Node3D
 		Visible = false;
 	}
 
-	private static readonly ESpatialOrientation[] TorpedoMountedDirections =
-	[
-		ESpatialOrientation.Retro,
-		ESpatialOrientation.Ventral,
-		ESpatialOrientation.Dorsal,
-	];
-
 	public void ApplyFrame(PresentationFrame frame)
 	{
 		var queued = frame.QueuedWeapon;
@@ -90,7 +83,7 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 			var ship = frame.FocusState.ToState();
 			var skipCells = new HashSet<Coord>();
-			foreach (var mountedOn in TorpedoMountedDirections)
+			foreach (var mountedOn in frame.Weapons.TorpedoMounts)
 			{
 				var (position, _, _) = TorpedoMount.LaunchPose(ship, mountedOn);
 				skipCells.Add(position);

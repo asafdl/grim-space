@@ -14,7 +14,7 @@ namespace GrimSpace.Battle.Actions;
 public sealed record TorpedoAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
-	string? SpawnedUnitId = null) : IAction<BattleWorld, ActorRuntime>
+	string SpawnedUnitId) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		TorpedoDef.Instance;
@@ -69,7 +69,8 @@ public sealed class TorpedoDef
 
 	public bool IsPossible(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		if (!SupportsMount(action.MountedOn))
+		if (string.IsNullOrWhiteSpace(action.SpawnedUnitId)
+			|| !SupportsMount(action.MountedOn))
 			return false;
 
 		var ship = world.StateOf(action.ActorId);

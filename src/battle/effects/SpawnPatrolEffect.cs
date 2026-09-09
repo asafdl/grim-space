@@ -9,7 +9,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnPatrolEffect(string? unitId = null) : IEffect<BattleWorld, ActorRuntime>
+public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
 
@@ -21,7 +21,7 @@ public sealed class SpawnPatrolEffect(string? unitId = null) : IEffect<BattleWor
 		var patrol = Factory.Create(
 			new Instance
 			{
-				Id = unitId ?? string.Empty,
+				Id = unitId,
 				Type = EType.Patrol,
 				Alliance = parent.Alliance,
 			},

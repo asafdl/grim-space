@@ -281,7 +281,8 @@ public partial class BattleController : Node3D
 			activeAbilitySpec: _frames.Interaction.ActiveAbilitySpec,
 			stagedMountedOn: frame.StagedMountedOn,
 			moveOptions: frame.MovePaths,
-			focusState: frame.FocusState);
+			focusState: frame.FocusState,
+			weapons: frame.Weapons);
 		ApplyFrame(frame);
 	}
 

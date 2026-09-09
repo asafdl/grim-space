@@ -18,7 +18,7 @@ public sealed class TorpedoActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
-		var action = new TorpedoAction(PlayerId, ESpatialOrientation.Retro);
+		var action = TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
@@ -40,8 +40,10 @@ public sealed class TorpedoActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Dorsal)));
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Ventral)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Dorsal)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(
+			TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral)));
 	}
 
 	[Theory]
@@ -52,7 +54,7 @@ public sealed class TorpedoActionTests
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, mountedOn)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(TorpedoDef.Instance.Bind(PlayerId, mountedOn)));
 	}
 
 	[Fact]
@@ -81,7 +83,8 @@ public sealed class TorpedoActionTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new TorpedoAction(PlayerId, ESpatialOrientation.Retro)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro)));
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
@@ -108,4 +111,25 @@ public sealed class TorpedoActionTests
 			nextReplay.Actions,
 			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
 	}
+
+	[Fact]
+	public void QueuedTorpedoKeepsSpawnedIdAcrossReevaluationForkAndReplay()
+	{
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			new Coord(5, 5, 5),
+			new Coord(0, 0, 0));
+		var sim = battle.PlayerAgent.Sim;
+		var action = TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
+
+		Assert.True(sim.TryEnqueue(action));
+		AssertSpawned(sim.World, action.SpawnedUnitId);
+
+		sim.Reevaluate();
+		AssertSpawned(sim.World, action.SpawnedUnitId);
+		AssertSpawned(sim.Fork().World, action.SpawnedUnitId);
+		AssertSpawned(sim.ReplayWorld(sim.Actions.Count), action.SpawnedUnitId);
+	}
+
+	private static void AssertSpawned(GrimSpace.Battle.World.BattleWorld world, string unitId) =>
+		Assert.True(UnitRegistry.For(world).TryGet(unitId, out _));
 }

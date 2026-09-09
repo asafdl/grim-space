@@ -154,7 +154,7 @@ public sealed class TimelineTests
 	public void CommitAppendsActionThenSpawnRecord()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		battle.Engine.Commit(new TorpedoAction(battle.PlayerId, ESpatialOrientation.Retro));
+		battle.Engine.Commit(TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro));
 
 		var history = battle.Engine.History();
 		var torpedoIndex = history.ToList().FindIndex(entry => entry is TorpedoAction);

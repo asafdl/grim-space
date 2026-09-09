@@ -10,7 +10,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string? unitId = null)
+public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string unitId)
 	: IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
@@ -23,7 +23,7 @@ public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string? un
 		var torpedo = Factory.Create(
 			new Instance
 			{
-				Id = unitId ?? string.Empty,
+				Id = unitId,
 				Type = EType.Torpedo,
 				Alliance = firer.Alliance,
 			},

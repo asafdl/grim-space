@@ -4,11 +4,13 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
+using GrimSpace.Battle.Ids;
+using GrimSpace.Core.Ids;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record SpawnPatrolAction(string ActorId, string? SpawnedUnitId = null)
+public sealed record SpawnPatrolAction(string ActorId, string SpawnedUnitId)
 	: IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
@@ -28,7 +30,8 @@ public sealed class SpawnPatrolDef
 			yield return action;
 	}
 
-	public SpawnPatrolAction Bind(string actorId) => new(actorId);
+	public SpawnPatrolAction Bind(string actorId) =>
+		new(actorId, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Patrol)));
 
 	IAction IActorActionDef.Bind(string actorId) => Bind(actorId);
 
@@ -46,6 +49,9 @@ public sealed class SpawnPatrolDef
 
 	public bool IsPossible(SpawnPatrolAction action, BattleWorld world, ActorRuntime runtime)
 	{
+		if (string.IsNullOrWhiteSpace(action.SpawnedUnitId))
+			return false;
+
 		var actor = world.StateOf(action.ActorId);
 		var (position, _, _) = PatrolBayMount.LaunchPose(actor);
 		return world.Grid.IsInBounds(position) && !world.BlockedFor(action.ActorId).Contains(position);

@@ -46,7 +46,7 @@ internal static class BattleTestCommands
 	public static bool DeployPatrol(BattleOrchestrator battle)
 	{
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
-		var action = new SpawnPatrolAction(carrierId);
+		var action = SpawnPatrolDef.Instance.Bind(carrierId);
 		if (!SpawnPatrolDef.Instance.IsLegal(action, battle.Engine.World, battle.Engine.ActorRuntimes.For(carrierId)))
 			return false;
 

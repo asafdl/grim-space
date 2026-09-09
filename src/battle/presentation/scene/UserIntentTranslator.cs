@@ -34,6 +34,7 @@ public sealed partial class UserIntentTranslator : Node
 	private ESpatialOrientation? _stagedMountedOn;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private UnitDisplayState? _focusState;
+	private IReadOnlySet<ESpatialOrientation> _torpedoMounts = new HashSet<ESpatialOrientation>();
 	private int? _moveHoveredIndex;
 
 	public UserIntentTranslator(
@@ -76,7 +77,8 @@ public sealed partial class UserIntentTranslator : Node
 		AbilityHudCatalog.Spec? activeAbilitySpec,
 		ESpatialOrientation? stagedMountedOn,
 		IReadOnlyList<MovePathOption> moveOptions,
-		UnitDisplayState focusState)
+		UnitDisplayState focusState,
+		WeaponPeek weapons)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
@@ -86,6 +88,7 @@ public sealed partial class UserIntentTranslator : Node
 		_stagedMountedOn = stagedMountedOn;
 		_moveOptions = moveOptions;
 		_focusState = focusState;
+		_torpedoMounts = weapons.TorpedoMounts;
 
 		if (!enabled || mode != EPlayerMode.Move)
 			_moveHoveredIndex = null;
@@ -366,7 +369,7 @@ public sealed partial class UserIntentTranslator : Node
 
 		var ship = _focusState.ToState();
 		var cells = new Dictionary<Coord, ESpatialOrientation>();
-		foreach (var mountedOn in TorpedoMountedDirections)
+		foreach (var mountedOn in _torpedoMounts)
 		{
 			var (position, _, _) = TorpedoMount.LaunchPose(ship, mountedOn);
 			cells[position] = mountedOn;
@@ -376,13 +379,6 @@ public sealed partial class UserIntentTranslator : Node
 			? cells[cell]
 			: null;
 	}
-
-	private static readonly ESpatialOrientation[] TorpedoMountedDirections =
-	[
-		ESpatialOrientation.Retro,
-		ESpatialOrientation.Ventral,
-		ESpatialOrientation.Dorsal,
-	];
 
 	private bool Enqueue(params IAction[] actions) =>
 		_canIssueActions && _actions.TryEnqueue(actions);
