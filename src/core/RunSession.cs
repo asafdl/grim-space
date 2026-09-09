@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
 using Godot;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Log;
+using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
@@ -10,9 +12,15 @@ namespace GrimSpace.Core;
 
 public partial class RunSession : Node
 {
+	private const string BattleScenePath = "res://scenes/battle.tscn";
 	private const string MapScenePath = "res://scenes/map.tscn";
 
 	private static RunSession? _instance;
+	private DevMenuOverlay _devMenu = null!;
+	private bool _beginningMapFromMenu;
+	private bool _mapScenePreloadRequested;
+	private PackedScene? _preloadedMapScene;
+	private Task<State>? _preparedRunTask;
 
 	public static RunSession Instance =>
 		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
@@ -26,6 +34,13 @@ public partial class RunSession : Node
 		GameSettings.ApplySavedVideoConfig();
 	}
 
+	public override void _Ready()
+	{
+		_devMenu = new DevMenuOverlay();
+		AddChild(_devMenu);
+		_devMenu.StartBattleRequested += StartDevBattle;
+	}
+
 	public override void _ExitTree()
 	{
 		if (_instance == this)
@@ -37,16 +52,26 @@ public partial class RunSession : Node
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.F10 })
 			return;
 
-		EnterMapDevMode();
+		ToggleDevMenu();
 		GetViewport().SetInputAsHandled();
 	}
 
-	private void EnterMapDevMode()
+	private void ToggleDevMenu()
+	{
+		if (_devMenu.IsOpen)
+			_devMenu.Close();
+		else
+			_devMenu.Open();
+	}
+
+	public void StartDevBattle()
 	{
 		if (!IsRunReady())
 			StartNewRun();
 
-		GetTree().ChangeSceneToFile(MapScenePath);
+		Run.ActiveBattle = null;
+		_devMenu.Close();
+		GetTree().ChangeSceneToFile(BattleScenePath);
 	}
 
 	private bool IsRunReady() =>
@@ -80,11 +105,157 @@ public partial class RunSession : Node
 		args.SetObserved();
 	}
 
+	public void PrepareFirstScene()
+	{
+		BeginMapScenePreload();
+		BeginPreparedRun();
+	}
+
+	public async Task BeginMapFromMenuAsync()
+	{
+		if (_beginningMapFromMenu)
+			return;
+
+		_beginningMapFromMenu = true;
+		try
+		{
+			PrepareFirstScene();
+			await WaitForPreparedRunAsync();
+			await WaitForMapScenePreloadAsync();
+
+			if (!TryAdoptPreparedRun())
+				StartNewRun();
+
+			ChangeToMapScene();
+		}
+		finally
+		{
+			_beginningMapFromMenu = false;
+		}
+	}
+
 	public void StartNewRun()
 	{
 		Run?.StarSystem?.Dispose();
 		Run = State.CreateDevDefault(Random.Shared.Next());
 		Run.ActiveBattle = null;
+	}
+
+	private void BeginMapScenePreload()
+	{
+		if (_preloadedMapScene is not null)
+			return;
+
+		var status = ResourceLoader.LoadThreadedGetStatus(MapScenePath);
+		if (status == ResourceLoader.ThreadLoadStatus.Loaded)
+		{
+			_preloadedMapScene = ResourceLoader.LoadThreadedGet(MapScenePath) as PackedScene;
+			return;
+		}
+
+		if (status == ResourceLoader.ThreadLoadStatus.InvalidResource && !_mapScenePreloadRequested)
+		{
+			ResourceLoader.LoadThreadedRequest(MapScenePath);
+			_mapScenePreloadRequested = true;
+		}
+	}
+
+	private void BeginPreparedRun()
+	{
+		if (_preparedRunTask is { IsCompleted: false })
+			return;
+
+		if (_preparedRunTask is { IsCompleted: true, IsFaulted: false })
+			return;
+
+		_preparedRunTask = Task.Run(() => State.CreateDevDefault(Random.Shared.Next()));
+	}
+
+	private bool TryAdoptPreparedRun()
+	{
+		var task = _preparedRunTask;
+		if (task is null || !task.IsCompleted)
+			return false;
+
+		_preparedRunTask = null;
+		if (task.IsFaulted)
+		{
+			GameLog.LogException(
+				task.Exception!.GetBaseException(),
+				"Prepared run generation failed; falling back to synchronous generation.");
+			return false;
+		}
+
+		Run?.StarSystem?.Dispose();
+		Run = task.Result;
+		Run.ActiveBattle = null;
+		return true;
+	}
+
+	private async Task WaitForPreparedRunAsync()
+	{
+		BeginPreparedRun();
+		var task = _preparedRunTask;
+		if (task is null)
+			return;
+
+		while (!task.IsCompleted)
+			await ToSignal(GetTree().CreateTimer(0), SceneTreeTimer.SignalName.Timeout);
+	}
+
+	private async Task WaitForMapScenePreloadAsync()
+	{
+		BeginMapScenePreload();
+		while (_preloadedMapScene is null)
+		{
+			var status = ResourceLoader.LoadThreadedGetStatus(MapScenePath);
+			switch (status)
+			{
+				case ResourceLoader.ThreadLoadStatus.Loaded:
+					_preloadedMapScene = ResourceLoader.LoadThreadedGet(MapScenePath) as PackedScene;
+					_mapScenePreloadRequested = false;
+					return;
+				case ResourceLoader.ThreadLoadStatus.Failed:
+					_mapScenePreloadRequested = false;
+					return;
+				case ResourceLoader.ThreadLoadStatus.InvalidResource when !_mapScenePreloadRequested:
+					ResourceLoader.LoadThreadedRequest(MapScenePath);
+					_mapScenePreloadRequested = true;
+					break;
+			}
+
+			await ToSignal(GetTree().CreateTimer(0), SceneTreeTimer.SignalName.Timeout);
+		}
+	}
+
+	private void ChangeToMapScene()
+	{
+		var scene = TakePreloadedMapScene();
+		if (scene is not null)
+			GetTree().ChangeSceneToPacked(scene);
+		else
+			GetTree().ChangeSceneToFile(MapScenePath);
+	}
+
+	private PackedScene? TakePreloadedMapScene()
+	{
+		if (_preloadedMapScene is not null)
+		{
+			var scene = _preloadedMapScene;
+			_preloadedMapScene = null;
+			_mapScenePreloadRequested = false;
+			return scene;
+		}
+
+		if (!_mapScenePreloadRequested)
+			return null;
+
+		var status = ResourceLoader.LoadThreadedGetStatus(MapScenePath);
+		if (status != ResourceLoader.ThreadLoadStatus.Loaded)
+			return null;
+
+		_mapScenePreloadRequested = false;
+		return ResourceLoader.LoadThreadedGet(MapScenePath) as PackedScene;
 	}
 
 	public bool BeginEngagement(string playerId)

@@ -1,7 +1,9 @@
 using Godot;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -68,7 +70,7 @@ public sealed partial class RailgunPreviewView : Node3D
 		if (!shouldShow || _material is null)
 			return;
 
-		var state = frame.FocusState.ToState();
+		var state = WeaponPoseState(frame, cemented);
 
 		Position = WorldMapping.ToWorld(state.Position);
 
@@ -89,6 +91,11 @@ public sealed partial class RailgunPreviewView : Node3D
 
 		WeaponPreviewMaterials.ApplyCemented(_material);
 	}
+
+	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
+		cemented && frame.QueuedWeapon.ActorStateAtQueue is UnitDisplayState queued
+			? queued.ToState()
+			: frame.FocusState.ToState();
 
 	private static Vector3 ToVector3(Coord coord) =>
 		new(coord.X, coord.Y, coord.Z);

@@ -20,6 +20,7 @@ public partial class StartMenu : Control
 	private ParticleProcessMaterial _dustMaterial = null!;
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
+	private Button _startButton = null!;
 
 	public override void _Ready()
 	{
@@ -40,12 +41,15 @@ public partial class StartMenu : Control
 
 		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
 
+		_startButton = GetNode<Button>("%Start");
 		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
-		GetNode<Button>("%Start").Pressed += OnStart;
+		_startButton.Pressed += OnStart;
 		GetNode<Button>("%Settings").Pressed += ShowSettingsPanel;
 		GetNode<Button>("%Back").Pressed += ShowMainPanel;
 		GetNode<Button>("%Apply").Pressed += OnApply;
 		GetNode<Button>("%Quit").Pressed += () => GetTree().Quit();
+
+		CallDeferred(MethodName.PrepareFirstScene);
 	}
 
 	private void LoadSettingsToUi()
@@ -112,10 +116,21 @@ public partial class StartMenu : Control
 	private void OnPlayIntro() =>
 		GetTree().ChangeSceneToFile(IntroScenePath);
 
-	private void OnStart()
+	private void PrepareFirstScene() =>
+		RunSession.Instance.PrepareFirstScene();
+
+	private async void OnStart()
 	{
-		RunSession.Instance.StartNewRun();
-		GetTree().ChangeSceneToFile("res://scenes/map.tscn");
+		_startButton.Disabled = true;
+		try
+		{
+			await RunSession.Instance.BeginMapFromMenuAsync();
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"Failed to start map: {ex}");
+			_startButton.Disabled = false;
+		}
 	}
 
 	private void OnDustLayoutChanged() => UpdateDustLayout();

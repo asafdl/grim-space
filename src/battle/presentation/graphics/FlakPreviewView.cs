@@ -1,8 +1,10 @@
 using Godot;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
@@ -83,7 +85,8 @@ public sealed partial class FlakPreviewView : Node3D
 		if (!shouldShow || _port is null || _starboard is null)
 			return;
 
-		var state = frame.FocusState.ToState();
+		var cemented = frame.ShowWeaponPreviews && queued.FlakMountedOn is not null;
+		var state = WeaponPoseState(frame, cemented && !aiming);
 		Position = WorldMapping.ToWorld(state.Position);
 
 		var starboard = ToVector3(state.Starboard);
@@ -143,6 +146,11 @@ public sealed partial class FlakPreviewView : Node3D
 		PresentationLayers.MarkUx(instance);
 		return instance;
 	}
+
+	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
+		cemented && frame.QueuedWeapon.ActorStateAtQueue is UnitDisplayState queued
+			? queued.ToState()
+			: frame.FocusState.ToState();
 
 	private static Vector3 ToVector3(Coord coord) =>
 		new(coord.X, coord.Y, coord.Z);

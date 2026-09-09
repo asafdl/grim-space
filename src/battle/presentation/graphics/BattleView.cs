@@ -32,14 +32,12 @@ public partial class BattleView : Node3D
 
 	public void ApplyUnitStates(
 		IReadOnlyDictionary<string, State> states,
-		Func<string, Color>? colorFor = null)
+		Func<string, Color>? colorFor = null,
+		bool showPredictedDeath = false)
 	{
 		var keep = new HashSet<string>(states.Count);
 		foreach (var (unitId, state) in states)
 		{
-			if (!state.IsAlive)
-				continue;
-
 			keep.Add(unitId);
 			if (!_unitViews.TryGetValue(unitId, out var view))
 			{
@@ -47,9 +45,16 @@ public partial class BattleView : Node3D
 				view = _unitViews[unitId];
 			}
 
-			view.Sync(state);
-			view.SetHitMarked(false);
-			view.SetIntroMarked(false);
+			if (state.IsAlive)
+			{
+				view.Sync(state);
+				view.SetHitMarked(false);
+				view.SetIntroMarked(false);
+			}
+			else if (showPredictedDeath)
+				view.ShowImpactState(state);
+			else
+				view.Sync(state);
 		}
 
 		if (keep.Count == _unitViews.Count)

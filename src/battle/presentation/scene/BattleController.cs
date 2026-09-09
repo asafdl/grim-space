@@ -385,7 +385,7 @@ public partial class BattleController : Node3D
 		var states = frame.PreviewUnits.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.ToState());
-		_battleView.ApplyUnitStates(states, ColorForActor);
+		_battleView.ApplyUnitStates(states, ColorForActor, showPredictedDeath: true);
 		if (_introActive)
 			return;
 

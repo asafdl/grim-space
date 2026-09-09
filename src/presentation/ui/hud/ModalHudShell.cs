@@ -20,11 +20,13 @@ public sealed partial class ModalHudShell : CanvasLayer
 	private Action? _closeHandler;
 	private IReadOnlyList<HudAction> _footerActions = [];
 	private Control _headerRow = null!;
+	private readonly HudThemeFamily? _themeFamily;
 
 	public event Action? Closed;
 
-	public ModalHudShell()
+	public ModalHudShell(HudThemeFamily? themeFamily = null)
 	{
+		_themeFamily = themeFamily;
 		Layer = 20;
 		Build();
 		Visible = false;
@@ -165,8 +167,13 @@ public sealed partial class ModalHudShell : CanvasLayer
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
-		HudStyles.SetPanelVariation(_panel, "Shell");
+		HudStyles.SetPanelVariation(
+			_panel,
+			_themeFamily is { } family ? HudStyles.PanelVariation(family) : "Shell");
 		center.AddChild(_panel);
+
+		if (_themeFamily is { } themeFamily)
+			HudThemes.Apply(_root, themeFamily);
 
 		_outer = new MarginContainer
 		{

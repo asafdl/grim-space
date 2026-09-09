@@ -102,9 +102,6 @@ public sealed class PlanningPreview
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
 	{
-		ESpatialOrientation? queuedFlak = null;
-		var queuedRailgun = false;
-		ESpatialOrientation? queuedTorpedo = null;
 		for (var i = sim.Actions.Count - 1; i >= 0; i--)
 		{
 			if (sim.Actions[i].ActorId != playerId)
@@ -113,27 +110,17 @@ public sealed class PlanningPreview
 			switch (sim.Actions[i])
 			{
 				case FlakAction flak:
-					queuedFlak = flak.MountedOn;
-					break;
+					return BuildQueuedWeapon(sim, playerId, i, flakMountedOn: flak.MountedOn);
 				case RailgunAction:
-					queuedRailgun = true;
-					break;
+					return BuildQueuedWeapon(sim, playerId, i, railgun: true);
 				case TorpedoAction torpedo:
-					queuedTorpedo = torpedo.MountedOn;
-					break;
+					return BuildQueuedWeapon(sim, playerId, i, torpedoMountedOn: torpedo.MountedOn);
 				default:
 					continue;
 			}
-
-			break;
 		}
 
-		return new QueuedWeaponState
-		{
-			FlakMountedOn = queuedFlak,
-			Railgun = queuedRailgun,
-			TorpedoMountedOn = queuedTorpedo,
-		};
+		return QueuedWeaponState.Empty;
 	}
 
 	public HashSet<string> ThreatenedUnitIds(
@@ -286,8 +273,28 @@ public sealed class PlanningPreview
 
 	private static Dictionary<string, UnitDisplayState> CaptureUnits(BattleWorld world) =>
 		UnitRegistry.For(world).All
-			.Where(unit => unit.State.IsAlive)
 			.ToDictionary(unit => unit.State.Id, unit => UnitDisplayState.Capture(unit.State));
+
+	private static QueuedWeaponState BuildQueuedWeapon(
+		BattleSimulation sim,
+		string playerId,
+		int actionIndex,
+		ESpatialOrientation? flakMountedOn = null,
+		bool railgun = false,
+		ESpatialOrientation? torpedoMountedOn = null) =>
+		new()
+		{
+			FlakMountedOn = flakMountedOn,
+			Railgun = railgun,
+			TorpedoMountedOn = torpedoMountedOn,
+			ActorStateAtQueue = ActorStateAt(sim, playerId, actionIndex),
+		};
+
+	private static UnitDisplayState ActorStateAt(BattleSimulation sim, string playerId, int actionIndex)
+	{
+		var world = sim.ReplayWorld(actionIndex);
+		return UnitDisplayState.Capture(UnitRegistry.For(world).UnitOf(playerId).State);
+	}
 
 	private static HashSet<string> ImpactTargets(PeekFrame<BattleWorld, ActorRuntime>? peek) =>
 		peek is { } frame ? ImpactTargets(frame.Records) : [];
