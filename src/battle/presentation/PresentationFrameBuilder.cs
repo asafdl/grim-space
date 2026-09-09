@@ -107,10 +107,16 @@ public sealed class PresentationFrameBuilder
 		var instruction = default(ActionInstruction);
 		if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
 		{
+			var legalCapabilities = Capabilities.LegalCapabilities(sim, playerId);
 			var activation = AbilityActivation.For(activeSpec.Def);
 			instruction = activation.ResolveInstruction(
 				visible: true,
-				stagedMountedOn: state.StagedMountedOn);
+				stagedMountedOn: state.StagedMountedOn,
+				capabilityIsLegal: Capabilities.IsLegalCapability(
+					legalCapabilities,
+					activeSpec.Def,
+					state.StagedMountedOn),
+				confirmationError: state.ConfirmationError);
 		}
 
 		PresentationDiagnostics.LogMovePreview(

@@ -7,6 +7,7 @@ using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -35,6 +36,7 @@ public sealed partial class UserIntentTranslator : Node
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private UnitDisplayState? _focusState;
 	private IReadOnlySet<ESpatialOrientation> _torpedoMounts = new HashSet<ESpatialOrientation>();
+	private ActionInstruction _instruction;
 	private int? _moveHoveredIndex;
 
 	public UserIntentTranslator(
@@ -66,6 +68,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
 	public event Action? EndTurnRequested;
+	public event Action? ConfirmationFailed;
 	public event Action? RestartRequested;
 	public event Action? RetireRequested;
 
@@ -78,7 +81,8 @@ public sealed partial class UserIntentTranslator : Node
 		ESpatialOrientation? stagedMountedOn,
 		IReadOnlyList<MovePathOption> moveOptions,
 		UnitDisplayState focusState,
-		WeaponPeek weapons)
+		WeaponPeek weapons,
+		ActionInstruction instruction)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
@@ -89,6 +93,7 @@ public sealed partial class UserIntentTranslator : Node
 		_moveOptions = moveOptions;
 		_focusState = focusState;
 		_torpedoMounts = weapons.TorpedoMounts;
+		_instruction = instruction;
 
 		if (!enabled || mode != EPlayerMode.Move)
 			_moveHoveredIndex = null;
@@ -194,13 +199,16 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_enabled || !_canIssueActions || _activeAbilitySpec is null)
 			return;
 
-		var activation = AbilityActivation.For(_activeAbilitySpec.Def);
-		if (!activation.CanConfirm(_stagedMountedOn))
+		if (!_instruction.CanConfirm)
 			return;
 
-		var action = activation.Build(_actorId, _stagedMountedOn);
+		var action = AbilityActivation.For(_activeAbilitySpec.Def)
+			.Build(_actorId, _stagedMountedOn);
 		if (action is null || !Enqueue(action))
+		{
+			ConfirmationFailed?.Invoke();
 			return;
+		}
 
 		ClearHovers();
 		ModeRequested?.Invoke(EPlayerMode.Move);
@@ -261,8 +269,7 @@ public sealed partial class UserIntentTranslator : Node
 	}
 
 	private bool CanConfirmAction() =>
-		_activeAbilitySpec is not null
-		&& AbilityActivation.For(_activeAbilitySpec.Def).CanConfirm(_stagedMountedOn);
+		_activeAbilitySpec is not null && _instruction.CanConfirm;
 
 	private bool TryCancelAbilityMode()
 	{

@@ -69,6 +69,7 @@ internal static class BattleHudCopy
 
 	public const string ConfirmAction = "Confirm";
 	public const string SelectFiringDirection = "Select a firing direction";
+	public const string ActionUnavailable = "Action is no longer available";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
 	public const string UndoTooltip = "Undo your last action this turn.\n(Ctrl/Cmd+Z)";

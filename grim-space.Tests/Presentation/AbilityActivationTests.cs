@@ -33,59 +33,42 @@ public sealed class AbilityActivationTests
 	[InlineData(typeof(RailgunDef))]
 	[InlineData(typeof(SpawnPatrolDef))]
 	[InlineData(typeof(DetonateDef))]
-	public void ActorOnlyAbilitiesConfirmImmediately(Type defType)
+	public void ActorOnlyAbilitiesRequireNoSelection(Type defType)
 	{
 		var def = (IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>)defType
 			.GetProperty("Instance")!
 			.GetValue(null)!;
 		var activation = AbilityActivation.For(def);
 
-		Assert.True(activation.CanConfirm(null));
-		Assert.NotNull(activation.Build(ActorId, null));
+		Assert.True(activation.HasRequiredSelection(null));
 	}
 
 	[Fact]
-	public void FlakRequiresStagedOrientation()
+	public void MountedAbilitiesRequireStagedOrientation()
 	{
 		var activation = AbilityActivation.For(FlakDef.Instance);
 
-		Assert.False(activation.CanConfirm(null));
-		Assert.Null(activation.Build(ActorId, null));
-
-		Assert.True(activation.CanConfirm(ESpatialOrientation.Port));
-		Assert.IsAssignableFrom<IAction>(activation.Build(ActorId, ESpatialOrientation.Port));
+		Assert.False(activation.HasRequiredSelection(null));
+		Assert.True(activation.HasRequiredSelection(ESpatialOrientation.Port));
 	}
 
 	[Theory]
 	[InlineData(ESpatialOrientation.Retro)]
 	[InlineData(ESpatialOrientation.Dorsal)]
 	[InlineData(ESpatialOrientation.Ventral)]
-	public void TorpedoAcceptsSupportedMounts(ESpatialOrientation mountedOn)
+	public void TorpedoSelectionAcceptsAnyOrientationShape(ESpatialOrientation mountedOn)
 	{
 		var activation = AbilityActivation.For(TorpedoDef.Instance);
 
-		Assert.True(activation.CanConfirm(mountedOn));
-		var action = Assert.IsType<TorpedoAction>(activation.Build(ActorId, mountedOn));
-		Assert.Equal(mountedOn, action.MountedOn);
-	}
-
-	[Theory]
-	[InlineData(ESpatialOrientation.Forward)]
-	[InlineData(ESpatialOrientation.Port)]
-	[InlineData(ESpatialOrientation.Starboard)]
-	public void TorpedoRejectsUnsupportedMounts(ESpatialOrientation mountedOn)
-	{
-		var activation = AbilityActivation.For(TorpedoDef.Instance);
-
-		Assert.False(activation.CanConfirm(mountedOn));
-		Assert.Null(activation.Build(ActorId, mountedOn));
+		Assert.True(activation.HasRequiredSelection(mountedOn));
 	}
 
 	[Fact]
 	public void MountedConfirmationBuildsCorrectOrientation()
 	{
-		var activation = AbilityActivation.For(FlakDef.Instance);
-		var action = Assert.IsType<FlakAction>(activation.Build(ActorId, ESpatialOrientation.Starboard));
+		var action = Assert.IsType<FlakAction>(
+			AbilityActivation.For(FlakDef.Instance)
+				.Build(ActorId, ESpatialOrientation.Starboard));
 
 		Assert.Equal(ActorId, action.ActorId);
 		Assert.Equal(ESpatialOrientation.Starboard, action.MountedOn);
@@ -94,8 +77,8 @@ public sealed class AbilityActivationTests
 	[Fact]
 	public void ActorOnlyConfirmationBuildsCorrectAction()
 	{
-		var activation = AbilityActivation.For(RailgunDef.Instance);
-		var action = Assert.IsType<RailgunAction>(activation.Build(ActorId, null));
+		var action = Assert.IsType<RailgunAction>(
+			AbilityActivation.For(RailgunDef.Instance).Build(ActorId, null));
 
 		Assert.Equal(ActorId, action.ActorId);
 	}
@@ -104,7 +87,11 @@ public sealed class AbilityActivationTests
 	public void InstructionHiddenWhenNotVisible()
 	{
 		var activation = AbilityActivation.For(RailgunDef.Instance);
-		var instruction = activation.ResolveInstruction(visible: false, stagedMountedOn: null);
+		var instruction = activation.ResolveInstruction(
+			visible: false,
+			stagedMountedOn: null,
+			capabilityIsLegal: true,
+			confirmationError: null);
 
 		Assert.False(instruction.Visible);
 	}
@@ -113,7 +100,11 @@ public sealed class AbilityActivationTests
 	public void MountedWaitingInstructionUsesSelectCopy()
 	{
 		var activation = AbilityActivation.For(FlakDef.Instance);
-		var instruction = activation.ResolveInstruction(visible: true, stagedMountedOn: null);
+		var instruction = activation.ResolveInstruction(
+			visible: true,
+			stagedMountedOn: null,
+			capabilityIsLegal: true,
+			confirmationError: null);
 
 		Assert.True(instruction.Visible);
 		Assert.False(instruction.CanConfirm);
@@ -124,7 +115,11 @@ public sealed class AbilityActivationTests
 	public void ReadyInstructionUsesConfirmCopy()
 	{
 		var activation = AbilityActivation.For(RailgunDef.Instance);
-		var instruction = activation.ResolveInstruction(visible: true, stagedMountedOn: null);
+		var instruction = activation.ResolveInstruction(
+			visible: true,
+			stagedMountedOn: null,
+			capabilityIsLegal: true,
+			confirmationError: null);
 
 		Assert.True(instruction.Visible);
 		Assert.True(instruction.CanConfirm);

@@ -36,6 +36,25 @@ public sealed class OrchestratorSimulationTests
 	}
 
 	[Fact]
+	public void DeadUnitsDoNotOccupyOrBlockTheirCells()
+	{
+		var origin = new Coord(5, 5, 5);
+		var enemyPosition = origin + Coord.Forward;
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(enemyPosition),
+			BattleTestFixture.Grid(),
+			new HashSet<Coord>());
+		var world = battle.PlayerAgent.Sim.World;
+		world.StateOf(BattleTestFixture.FirstEnemyId(battle)).HullPoints = 0;
+
+		Assert.DoesNotContain(enemyPosition, world.OccupiedCellsFor(PlayerId));
+		Assert.DoesNotContain(enemyPosition, world.BlockedFor(PlayerId));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
+	}
+
+	[Fact]
 	public void BatchTryEnqueueRollsBackWhenLaterStepFails()
 	{
 		var origin = new Coord(5, 5, 5);

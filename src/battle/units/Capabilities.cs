@@ -4,6 +4,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Enums;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Units;
 
@@ -67,4 +68,14 @@ public static class Capabilities
 
 		return legal;
 	}
+
+	public static bool IsLegalCapability(
+		IReadOnlyList<IAction> legalCapabilities,
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def,
+		ESpatialOrientation? mountedOn) =>
+		legalCapabilities.Any(action =>
+			action is IAction<BattleWorld, ActorRuntime> typed
+			&& ReferenceEquals(typed.Definition, def)
+			&& (action is not IMountedAction mounted
+				|| mountedOn == mounted.MountedOn));
 }

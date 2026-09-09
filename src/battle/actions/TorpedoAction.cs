@@ -14,7 +14,7 @@ namespace GrimSpace.Battle.Actions;
 public sealed record TorpedoAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
-	string SpawnedUnitId) : IAction<BattleWorld, ActorRuntime>
+	string SpawnedUnitId) : IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		TorpedoDef.Instance;

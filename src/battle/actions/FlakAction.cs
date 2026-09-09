@@ -10,7 +10,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record FlakAction(
 	string ActorId,
-	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>
+	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		FlakDef.Instance;

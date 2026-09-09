@@ -69,7 +69,10 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	{
 		var cells = new HashSet<Coord>();
 		foreach (var unit in UnitRegistry.Except(actorId))
-			cells.Add(unit.State.Position);
+		{
+			if (unit.State.IsAlive)
+				cells.Add(unit.State.Position);
+		}
 
 		foreach (var nonUnit in _nonUnits.Values)
 			cells.UnionWith(nonUnit.Cells);
@@ -81,7 +84,10 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	{
 		var blocked = new HashSet<Coord>(BlockedCells);
 		foreach (var unit in UnitRegistry.Except(actorId))
-			blocked.Add(unit.State.Position);
+		{
+			if (unit.State.IsAlive)
+				blocked.Add(unit.State.Position);
+		}
 
 		return blocked;
 	}

@@ -13,17 +13,29 @@ public abstract class AbilityActivation
 	public abstract string WaitingLabel { get; }
 	public string ConfirmLabel => BattleHudCopy.ConfirmAction;
 
-	public abstract bool CanConfirm(ESpatialOrientation? stagedMountedOn);
+	public abstract bool HasRequiredSelection(ESpatialOrientation? stagedMountedOn);
 
 	public abstract IAction? Build(string actorId, ESpatialOrientation? stagedMountedOn);
 
-	public ActionInstruction ResolveInstruction(bool visible, ESpatialOrientation? stagedMountedOn)
+	public ActionInstruction ResolveInstruction(
+		bool visible,
+		ESpatialOrientation? stagedMountedOn,
+		bool capabilityIsLegal,
+		string? confirmationError)
 	{
 		if (!visible)
 			return default;
 
-		var canConfirm = CanConfirm(stagedMountedOn);
-		var label = canConfirm ? ConfirmLabel : WaitingLabel;
+		if (confirmationError is not null)
+			return new ActionInstruction(Visible: true, Label: confirmationError, CanConfirm: false);
+
+		var hasRequiredSelection = HasRequiredSelection(stagedMountedOn);
+		var canConfirm = hasRequiredSelection && capabilityIsLegal;
+		var label = canConfirm
+			? ConfirmLabel
+			: hasRequiredSelection
+				? BattleHudCopy.ActionUnavailable
+				: WaitingLabel;
 		return new ActionInstruction(Visible: true, Label: label, CanConfirm: canConfirm);
 	}
 
@@ -41,9 +53,9 @@ public abstract class AbilityActivation
 	{
 		public override string WaitingLabel => ConfirmLabel;
 
-		public override bool CanConfirm(ESpatialOrientation? stagedMountedOn) => true;
+		public override bool HasRequiredSelection(ESpatialOrientation? stagedMountedOn) => true;
 
-		public override IAction? Build(string actorId, ESpatialOrientation? stagedMountedOn) =>
+		public override IAction Build(string actorId, ESpatialOrientation? stagedMountedOn) =>
 			def.Bind(actorId);
 	}
 
@@ -51,13 +63,11 @@ public abstract class AbilityActivation
 	{
 		public override string WaitingLabel => BattleHudCopy.SelectFiringDirection;
 
-		public override bool CanConfirm(ESpatialOrientation? stagedMountedOn) =>
-			stagedMountedOn is ESpatialOrientation mountedOn
-			&& def.SupportsMount(mountedOn);
+		public override bool HasRequiredSelection(ESpatialOrientation? stagedMountedOn) =>
+			stagedMountedOn is ESpatialOrientation;
 
 		public override IAction? Build(string actorId, ESpatialOrientation? stagedMountedOn) =>
 			stagedMountedOn is ESpatialOrientation mountedOn
-			&& def.SupportsMount(mountedOn)
 				? def.Bind(actorId, mountedOn)
 				: null;
 	}

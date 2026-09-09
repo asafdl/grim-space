@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Interaction;
@@ -71,6 +72,51 @@ public sealed class AbilityInstructionFrameTests
 		Assert.True(frame.Instruction.CanConfirm);
 		Assert.Equal(BattleHudCopy.ConfirmAction, frame.Instruction.Label);
 		Assert.Equal(ESpatialOrientation.Port, frame.StagedMountedOn);
+	}
+
+	[Fact]
+	public void BlockedTorpedoMountShowsUnavailableInstruction()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var (blockedMount, _, _) = TorpedoMount.LaunchPose(
+			player.State,
+			ESpatialOrientation.Dorsal);
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			BattleTestFixture.Grid(),
+			new HashSet<Coord> { enemy.State.Position, blockedMount });
+		var frames = new PresentationFrameBuilder();
+		var spec = AbilityHudCatalog.ForUnit(player.State.Type)
+			.First(entry => entry.Mode == EPlayerMode.Torpedo);
+		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+		frames.Interaction.StageMountedOn(ESpatialOrientation.Dorsal);
+
+		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.False(frame.Instruction.CanConfirm);
+		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
+	}
+
+	[Fact]
+	public void ConfirmationFailureShowsUnavailableInstruction()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var frames = new PresentationFrameBuilder();
+		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
+			.First(entry => entry.Mode == EPlayerMode.Railgun);
+		frames.Interaction.SetMode(EPlayerMode.Railgun, spec);
+		frames.Interaction.ReportConfirmationFailure();
+
+		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.False(frame.Instruction.CanConfirm);
+		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
 	}
 
 	[Fact]

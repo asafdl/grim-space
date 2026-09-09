@@ -215,6 +215,7 @@ public partial class BattleController : Node3D
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 		_translator.EndTurnRequested += OnEndTurn;
+		_translator.ConfirmationFailed += OnConfirmationFailed;
 		_translator.RestartRequested += ResetBattle;
 		_translator.RetireRequested += () => _battle.Retire();
 	}
@@ -282,8 +283,15 @@ public partial class BattleController : Node3D
 			stagedMountedOn: frame.StagedMountedOn,
 			moveOptions: frame.MovePaths,
 			focusState: frame.FocusState,
-			weapons: frame.Weapons);
+			weapons: frame.Weapons,
+			instruction: frame.Instruction);
 		ApplyFrame(frame);
+	}
+
+	private void OnConfirmationFailed()
+	{
+		_frames.Interaction.ReportConfirmationFailure();
+		RefreshPresentation();
 	}
 
 	private void ApplyMoveHoverOverlay()

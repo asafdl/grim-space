@@ -17,6 +17,7 @@ public sealed class InteractionState
 	public ESpatialOrientation? TorpedoHoverMountedOn { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 	public ESpatialOrientation? StagedMountedOn { get; private set; }
+	public string? ConfirmationError { get; private set; }
 
 	public void FocusUnit(string unitId)
 	{
@@ -34,6 +35,7 @@ public sealed class InteractionState
 	{
 		Mode = mode;
 		ActiveAbilitySpec = mode == EPlayerMode.Move ? null : abilitySpec;
+		ConfirmationError = null;
 		ClearHovers();
 		ClearAbilitySelection();
 	}
@@ -58,9 +60,13 @@ public sealed class InteractionState
 			return;
 
 		StagedMountedOn = mountedOn;
+		ConfirmationError = null;
 	}
 
 	public void ClearAbilitySelection() => StagedMountedOn = null;
+
+	public void ReportConfirmationFailure() =>
+		ConfirmationError = BattleHudCopy.ActionUnavailable;
 
 	public void SetMoveHover(int? index, int optionCount) =>
 		MoveHoveredIndex = ClampIndex(index, optionCount);
