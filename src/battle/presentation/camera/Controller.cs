@@ -208,7 +208,6 @@ public partial class Controller : Camera3D, ICameraRig
 				_orbiting = true;
 				_lastMousePosition = mouseButton.Position;
 				NotifyManualInput();
-				GetViewport().SetInputAsHandled();
 				break;
 
 			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Right }:

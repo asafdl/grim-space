@@ -57,8 +57,23 @@ public sealed partial class RailgunPreviewView : Node3D
 		Visible = false;
 	}
 
-	public bool PickHovered(Camera3D camera, Vector2 screenPos) =>
-		_plume is { Visible: true } && PreviewPick.NearNode(camera, screenPos, _plume);
+	public bool PickHovered(Camera3D camera, Vector2 screenPos)
+	{
+		if (_plume is not { Visible: true })
+			return false;
+
+		var from = _plume.GlobalPosition;
+		foreach (var section in Sections)
+		{
+			var to = _plume.ToGlobal(
+				Vector3.Back * section.DistanceInCells * WorldMapping.CellSize);
+			if (PreviewPick.NearSegment(camera, screenPos, from, to))
+				return true;
+			from = to;
+		}
+
+		return false;
+	}
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
