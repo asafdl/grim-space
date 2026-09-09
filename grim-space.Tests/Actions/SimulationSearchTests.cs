@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
@@ -58,6 +59,19 @@ public sealed class SimulationSearchTests
 		Assert.NotNull(peek);
 		Assert.Empty(session.Actions);
 		Assert.Equal(CombatConfig.RailgunsPerTurn, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
+	}
+
+	[Fact]
+	public void LegalCapabilitiesUsesSimulationWithoutApplyingSpawnEffects()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var session = battle.PlayerAgent.Sim;
+
+		var actions = Capabilities.LegalCapabilities(session, PlayerId);
+
+		Assert.Contains(actions, action => action is TorpedoAction);
+		Assert.Empty(session.Actions);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).TorpedoCooldownRemaining);
 	}
 
 	[Fact]

@@ -21,7 +21,6 @@ namespace GrimSpace.Battle.Presentation;
 /// </summary>
 public sealed class PlanningPreview
 {
-	private const string PreviewPatrolId = "__preview_patrol__";
 	private const string PreviewTorpedoId = "__preview_torpedo__";
 
 	private readonly MovePreviewCache _moveCache = new();
@@ -80,41 +79,44 @@ public sealed class PlanningPreview
 		sim.RuntimeFor(playerId).ActivePath?.Cells ?? [];
 
 	public WeaponPeek Weapons(BattleSimulation sim, string actorId)
-	{
-		var world = sim.World;
-		var runtime = sim.RuntimeFor(actorId);
-		var torpedoMounts = new HashSet<ESpatialOrientation>();
-		foreach (var mountedOn in TorpedoMountedDirections)
-		{
-			var action = new TorpedoAction(actorId, mountedOn, PreviewTorpedoId);
-			if (TorpedoDef.Instance.IsLegal(action, world, runtime))
-				torpedoMounts.Add(mountedOn);
-		}
-
-		return new WeaponPeek(
-			FlakDef.Instance.IsLegal(
-				new FlakAction(actorId, ESpatialOrientation.Port),
-				world,
-				runtime),
-			FlakDef.Instance.IsLegal(
-				new FlakAction(actorId, ESpatialOrientation.Starboard),
-				world,
-				runtime),
-			RailgunDef.Instance.IsLegal(new RailgunAction(actorId), world, runtime),
-			torpedoMounts);
-	}
+		=> Weapons(Capabilities.LegalCapabilities(sim, actorId));
 
 	public AbilityLegality Abilities(BattleSimulation sim, string actorId)
 	{
-		var world = sim.World;
-		var runtime = sim.RuntimeFor(actorId);
+		var actions = Capabilities.LegalCapabilities(sim, actorId);
 		return new AbilityLegality(
-			Weapons(sim, actorId),
-			SpawnPatrolDef.Instance.IsLegal(
-				new SpawnPatrolAction(actorId, PreviewPatrolId),
-				world,
-				runtime),
-			DetonateDef.Instance.IsLegal(new DetonateAction(actorId), world, runtime));
+			Weapons(actions),
+			actions.Any(action => action is SpawnPatrolAction),
+			actions.Any(action => action is DetonateAction));
+	}
+
+	private static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
+	{
+		var portFlak = false;
+		var starboardFlak = false;
+		var railgun = false;
+		var torpedoMounts = new HashSet<ESpatialOrientation>();
+
+		foreach (var action in actions)
+		{
+			switch (action)
+			{
+				case FlakAction { MountedOn: ESpatialOrientation.Port }:
+					portFlak = true;
+					break;
+				case FlakAction { MountedOn: ESpatialOrientation.Starboard }:
+					starboardFlak = true;
+					break;
+				case RailgunAction:
+					railgun = true;
+					break;
+				case TorpedoAction torpedo:
+					torpedoMounts.Add(torpedo.MountedOn);
+					break;
+			}
+		}
+
+		return new WeaponPeek(portFlak, starboardFlak, railgun, torpedoMounts);
 	}
 
 	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)

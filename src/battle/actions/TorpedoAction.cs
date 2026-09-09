@@ -35,13 +35,16 @@ public sealed class TorpedoDef
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		foreach (var mountedOn in MountedOn)
+		var spawnedUnitId = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo));
+		foreach (var action in Discover(actorId, spawnedUnitId))
 		{
-			var action = Bind(actorId, mountedOn);
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
+
+	internal IEnumerable<TorpedoAction> Discover(string actorId, string spawnedUnitId) =>
+		MountedOn.Select(mountedOn => new TorpedoAction(actorId, mountedOn, spawnedUnitId));
 
 	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(
