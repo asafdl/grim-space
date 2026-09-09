@@ -40,4 +40,18 @@ public sealed class BeginEngagementTests
 		Assert.Equal(4, encounter.Spawns.Count);
 		Assert.All(encounter.Spawns.Skip(1), spawn => Assert.Equal(BattleUnitType.Patrol, spawn.Unit.Type));
 	}
+
+	[Fact]
+	public void Create_UsesUniquePatrolPositions()
+	{
+		var run = RunState.CreateDevDefault(42);
+
+		var encounter = EngagementBattleFactory.Create(run.PlayerParty, 231);
+		var patrolPositions = encounter.Spawns
+			.Where(spawn => spawn.Unit.Type == BattleUnitType.Patrol)
+			.Select(spawn => spawn.Position)
+			.ToArray();
+
+		Assert.Equal(patrolPositions.Length, patrolPositions.Distinct().Count());
+	}
 }

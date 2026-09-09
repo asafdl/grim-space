@@ -23,6 +23,7 @@ public static class EngagementBattleFactory
 			throw new InvalidOperationException("Player party must contain at least one ship.");
 
 		var rng = new Random(seed);
+		// TODO: Deploy all party members once battle turns support multiple player-controlled actors.
 		var playerInstance = playerParty.Members[0];
 		var center = GridSize / 2;
 		var deploySpread = GridSize / 5;
@@ -41,12 +42,19 @@ public static class EngagementBattleFactory
 		};
 
 		var enemyCenter = center + deploySpread;
+		var occupiedPositions = new HashSet<Coord> { playerPosition };
 		for (var i = 0; i < PatrolCount; i++)
 		{
-			var patrolPosition = new Coord(
-				enemyCenter + rng.Next(-4, 5),
-				rng.Next(center - 8, center + 9),
-				rng.Next(center - 8, center + 9));
+			Coord patrolPosition;
+			do
+			{
+				patrolPosition = new Coord(
+					enemyCenter + rng.Next(-4, 5),
+					rng.Next(center - 8, center + 9),
+					rng.Next(center - 8, center + 9));
+			}
+			while (!occupiedPositions.Add(patrolPosition));
+
 			spawns.Add(new BattleSpawn
 			{
 				Unit = new Instance

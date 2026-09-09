@@ -60,6 +60,17 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
+	public void DevDuel_KeepsEnemyInsideSmallGrid()
+	{
+		var (_, enemy) = DeploymentPlacement.DevDuel(
+			PlayerInstance(), EnemyInstance(), seed: 8, gridSize: 16);
+
+		Assert.InRange(enemy.Position.X, 0, 15);
+		Assert.InRange(enemy.Position.Y, 0, 15);
+		Assert.InRange(enemy.Position.Z, 0, 15);
+	}
+
+	[Fact]
 	public void DevDefault_UsesDeploymentPlacement()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);

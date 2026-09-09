@@ -21,6 +21,7 @@ public static class DeploymentPlacement
 		int playerMomentum = 0,
 		int enemyMomentum = 2)
 	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(gridSize, 1);
 		var center = gridSize / 2;
 		var deploySpread = gridSize / DeploySpreadDivisor;
 		var playerPosition = new Coord(center - deploySpread, center, center);
@@ -66,9 +67,17 @@ public static class DeploymentPlacement
 			: half - Margin - 1;
 
 		return new Coord(
-			rng.Next(minX, maxX + 1),
-			rng.Next(center - LaneHalfBand, center + LaneHalfBand + 1),
-			rng.Next(center - LaneHalfBand, center + LaneHalfBand + 1));
+			NextInBounds(rng, minX, maxX, gridSize),
+			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize),
+			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize));
+	}
+
+	private static int NextInBounds(Random rng, int min, int max, int gridSize)
+	{
+		var last = gridSize - 1;
+		var boundedMin = System.Math.Clamp(min, 0, last);
+		var boundedMax = System.Math.Clamp(max, boundedMin, last);
+		return rng.Next(boundedMin, boundedMax + 1);
 	}
 
 	private static Coord AxisToward(Coord from, Coord to)
