@@ -31,6 +31,8 @@ public partial class MapCamera : Camera3D
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
 	private bool _facadeActive;
+	private bool _manualInputEnabled = true;
+	private bool _focusTween;
 	private Tween? _automationTween;
 	private Action? _automationComplete;
 
@@ -39,6 +41,7 @@ public partial class MapCamera : Camera3D
 	public OrbitPose CapturedPose => _capturedPose;
 	public bool IsAnimating => _automationTween is not null;
 	public bool IsFacadeActive => _facadeActive;
+	public bool ManualInputEnabled => _manualInputEnabled;
 
 	public override void _Ready()
 	{
@@ -65,6 +68,13 @@ public partial class MapCamera : Camera3D
 
 	public void SetFacadeActive(bool active) => _facadeActive = active;
 
+	public void SetManualInputEnabled(bool enabled)
+	{
+		_manualInputEnabled = enabled;
+		if (!enabled)
+			_orbiting = false;
+	}
+
 	public void SnapToPose(OrbitPose target)
 	{
 		CancelAutomation();
@@ -78,6 +88,15 @@ public partial class MapCamera : Camera3D
 		CancelAutomation();
 		target.Clamp(Limits);
 		BeginPoseTween(_pose, target, duration, onComplete);
+	}
+
+	public void FocusPivot(Vector3 pivot, float duration)
+	{
+		CancelAutomation();
+		var target = _pose;
+		target.Pivot = pivot;
+		_focusTween = true;
+		BeginPoseTween(_pose, target, duration, null);
 	}
 
 	public void RestoreCapturedPose(float duration, Action? onComplete = null, float minDistance = 0f)
@@ -103,11 +122,12 @@ public partial class MapCamera : Camera3D
 		_automationTween.Kill();
 		_automationTween = null;
 		_automationComplete = null;
+		_focusTween = false;
 	}
 
 	public override void _Process(double delta)
 	{
-		if (IsAnimating || _facadeActive)
+		if (!_manualInputEnabled || _facadeActive)
 			return;
 
 		var pan = Vector2.Zero;
@@ -123,6 +143,9 @@ public partial class MapCamera : Camera3D
 		if (pan == Vector2.Zero)
 			return;
 
+		if (!PrepareManualInput())
+			return;
+
 		pan = pan.Normalized();
 		var (right, forward) = OrbitPose.FlatPanAxes(GlobalTransform.Basis);
 		_pose.FlatPan(pan, right, forward, OrbitControls.KeyboardPanSpeed, (float)delta);
@@ -132,13 +155,16 @@ public partial class MapCamera : Camera3D
 
 	public override void _Input(InputEvent @event)
 	{
-		if (IsAnimating)
+		if (!_manualInputEnabled)
+		{
+			_orbiting = false;
 			return;
+		}
 
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
-				if (IsMouseOverUi() || _facadeActive)
+				if (IsMouseOverUi() || _facadeActive || !PrepareManualInput())
 					break;
 				_orbiting = true;
 				_lastMousePosition = mouseButton.Position;
@@ -150,7 +176,7 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-				if (IsMouseOverUi() || _facadeActive)
+				if (IsMouseOverUi() || _facadeActive || !PrepareManualInput())
 					break;
 				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
@@ -158,7 +184,7 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-				if (IsMouseOverUi())
+				if (IsMouseOverUi() || _facadeActive || !PrepareManualInput())
 					break;
 				_pose.Zoom(OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
@@ -208,12 +234,25 @@ public partial class MapCamera : Camera3D
 	private void OnAutomationFinished()
 	{
 		_automationTween = null;
+		_focusTween = false;
 		var complete = _automationComplete;
 		_automationComplete = null;
 		complete?.Invoke();
 	}
 
 	private bool IsMouseOverUi() => GetViewport().GuiGetHoveredControl() is not null;
+
+	private bool PrepareManualInput()
+	{
+		if (!IsAnimating)
+			return true;
+
+		if (!_focusTween)
+			return false;
+
+		CancelAutomation();
+		return true;
+	}
 
 	private void ClampPivotToMap()
 	{

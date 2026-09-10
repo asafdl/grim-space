@@ -34,7 +34,6 @@ public partial class BattleController : Node3D
 	private CombatIntroDirector _combatIntro = null!;
 
 	private GridView _gridView = null!;
-	private OpponentIntroMarkersView _opponentMarkers = null!;
 	private FlakPreviewView _flakPreview = null!;
 	private RailgunPreviewView _railgunPreview = null!;
 	private TorpedoPreviewView _torpedoPreview = null!;
@@ -72,9 +71,6 @@ public partial class BattleController : Node3D
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(layout.Grid);
-
-		_opponentMarkers = new OpponentIntroMarkersView { Name = "OpponentIntroMarkers" };
-		AddChild(_opponentMarkers);
 
 		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
 		_railgunPreview.Build();
@@ -146,7 +142,7 @@ public partial class BattleController : Node3D
 		AddChild(_replayDirector);
 
 		_combatIntro = new CombatIntroDirector { Name = "CombatIntroDirector" };
-		_combatIntro.Configure(_battle, _battleView, _opponentMarkers, _camera, GetPlayerRenderedPosition);
+		_combatIntro.Configure(_battle, _battleView, _camera, GetPlayerRenderedPosition);
 		AddChild(_combatIntro);
 
 		_agent.PlanningChanged += RefreshPresentation;

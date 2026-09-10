@@ -7,8 +7,8 @@ public static class MapNarratives
 	private static readonly NarrativeDefinition Opening = new(
 		OpeningId,
 		[
-			"Oh god, what a shithole this system is, how did I even end up here?",
-			"Oh right, the drugs...\nWell I need credits unless I want trouble, lets head to the Administrive Core and see if they have any bounties on offer.",
+			"Oh, by Syndi's cores, WHAT. A. SHITHOLE this system is, how did I even end up here?",
+			"Oh right, the drugs...\nWell I need credits unless I want trouble, lets head to the Administrative Core and see if they have any bounties on offer.",
 		]);
 
 	public static bool TryGet(string id, out NarrativeDefinition definition)

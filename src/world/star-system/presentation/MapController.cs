@@ -1,6 +1,8 @@
 using Godot;
 using GrimSpace.Core;
 using GrimSpace.Components;
+using GrimSpace.Education;
+using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Objectives;
@@ -28,6 +30,8 @@ public partial class MapController : Node3D
 	private ObjectivesHud _objectivesHud = null!;
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
+	private IWorldFocus _worldFocus = null!;
+	private IWorldIndicator _worldIndicator = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -97,6 +101,19 @@ public partial class MapController : Node3D
 			GetNode<ColorRect>("UI/FadeOverlay"),
 			() => !_orchestrator.Map.WaitingForPlayerInput);
 		_poiFacade.FacilityEntered += OnFacilityEntered;
+		_worldFocus = new MapWorldFocus(
+			_camera,
+			() => _orchestrator.Map,
+			CommittedPositionOf,
+			() => _poiFacade.IsStrategic);
+		var worldIndicators = new MapWorldIndicators();
+		worldIndicators.Configure(
+			() => _orchestrator.Map,
+			CommittedPositionOf,
+			() => _poiFacade.IsStrategic,
+			() => new MapArrowIndicator());
+		AddChild(worldIndicators);
+		_worldIndicator = worldIndicators;
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -113,6 +130,7 @@ public partial class MapController : Node3D
 		_units.Build(world);
 		_course.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
+		_camera.SetManualInputEnabled(!world.WaitingForPlayerInput);
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
@@ -135,6 +153,7 @@ public partial class MapController : Node3D
 			AdvanceSimulation(delta);
 
 		var world = _orchestrator.Map;
+		_camera.SetManualInputEnabled(!world.WaitingForPlayerInput);
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		_units.Sync(_orchestrator, tickFraction);
 		if (_unreachableFlashTimer > 0f)
@@ -253,6 +272,9 @@ public partial class MapController : Node3D
 			}
 		}
 	}
+
+	private Coord CommittedPositionOf(string unitId) =>
+		_orchestrator.CommittedPositionOf(unitId, _tickAccumulator / SecondsPerTick);
 
 	private void OnBattleRequested()
 	{

@@ -25,20 +25,17 @@ public sealed partial class CombatIntroDirector : Node
 
 	private BattleOrchestrator _battle = null!;
 	private BattleView _battleView = null!;
-	private OpponentIntroMarkersView _markers = null!;
 	private Controller _camera = null!;
 	private Func<Vector3> _playerPosition = () => Vector3.Zero;
 
 	public void Configure(
 		BattleOrchestrator battle,
 		BattleView battleView,
-		OpponentIntroMarkersView markers,
 		Controller camera,
 		Func<Vector3> playerPosition)
 	{
 		_battle = battle;
 		_battleView = battleView;
-		_markers = markers;
 		_camera = camera;
 		_playerPosition = playerPosition;
 	}
@@ -48,15 +45,13 @@ public sealed partial class CombatIntroDirector : Node
 		var opponents = CollectOpponents();
 		var enemyPoints = OpponentWorldPositions(opponents.Keys);
 		var enemyCentroid = enemyPoints.Count == 0 ? _playerPosition() : ComputeCentroid(enemyPoints);
-
 		SetOverviewPose(enemyCentroid, enemyPoints);
-		_markers.Show(opponents.Values.Select(pair => pair.Position).ToList());
+		SetOverviewPose(enemyCentroid, enemyPoints);
 
 		GetTree().CreateTimer(PanToOpponentsDelay).Timeout += () => FocusOnOpponents(opponents);
 		GetTree().CreateTimer(PanBehindPlayerDelay).Timeout += () =>
 		{
 			onBannerDismiss();
-			ClearHighlights();
 			FocusBehindPlayerTowardEnemies(enemyCentroid);
 			GetTree().CreateTimer(PanBehindPlayerDuration).Timeout += onComplete;
 		};
@@ -71,8 +66,6 @@ public sealed partial class CombatIntroDirector : Node
 
 		_camera.SetFocus(pivot, distance, battleAxisYaw, OverviewPitch);
 	}
-
-	private void ClearHighlights() => _markers.Clear();
 
 	private void FocusOnOpponents(IReadOnlyDictionary<string, OpponentSnapshot> opponents)
 	{
