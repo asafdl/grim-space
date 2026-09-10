@@ -1,5 +1,5 @@
 using Godot;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Encounter;
@@ -8,7 +8,7 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed partial class EngagementHudOverlay : Node
 {
-	private readonly ModalHudShell _shell;
+	private readonly ModalShell _shell;
 	private bool _busy;
 
 	public event Action? EngageRequested;
@@ -16,7 +16,7 @@ public sealed partial class EngagementHudOverlay : Node
 
 	public EngagementHudOverlay()
 	{
-		_shell = new ModalHudShell();
+		_shell = new ModalShell();
 		AddChild(_shell);
 	}
 

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace GrimSpace.Presentation.Ui.Hud;
+namespace GrimSpace.Components;
 
 public static class HudWidgets
 {
@@ -208,7 +208,7 @@ public static class HudWidgets
 		HudStyles.ApplyTextRole(label, textRole);
 	}
 
-	public static MapHudPanelView CreateInformativePanel(
+	public static HudPanelView CreateInformativePanel(
 		string sectionTitle,
 		string? panelVariation = null,
 		string? headingVariation = null,
@@ -263,10 +263,10 @@ public static class HudWidgets
 		body.AddThemeConstantOverride("separation", 0);
 		bodyPadding.AddChild(body);
 
-		return new MapHudPanelView(panel, body);
+		return new HudPanelView(panel, body);
 	}
 
-	public static MapHudPanelView CreateInformativeListPanel(
+	public static HudPanelView CreateInformativeListPanel(
 		string sectionTitle,
 		string outerPanelVariation,
 		bool includeCounter = false)
@@ -363,7 +363,7 @@ public static class HudWidgets
 		body.AddThemeConstantOverride("separation", 0);
 		bodyPadding.AddChild(body);
 
-		return new MapHudPanelView(panel, body, counterLabel);
+		return new HudPanelView(panel, body, counterLabel);
 	}
 
 	private static Control CreateInformativeSectionHeader(
@@ -406,7 +406,7 @@ public static class HudWidgets
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
 
-	public static MapHudPanelView CreateHudPanel(string heading, HudThemeFamily family)
+	public static HudPanelView CreateHudPanel(string heading, HudThemeFamily family)
 	{
 		var panel = new PanelContainer
 		{
@@ -441,7 +441,7 @@ public static class HudWidgets
 		body.AddThemeConstantOverride("separation", family == HudThemeFamily.Debug ? 6 : HudStyles.HalfMargin);
 		column.AddChild(body);
 
-		return new MapHudPanelView(panel, body);
+		return new HudPanelView(panel, body);
 	}
 
 	public static Button CreateCompactButton(string text, Action onPressed)

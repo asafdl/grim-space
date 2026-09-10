@@ -1,6 +1,6 @@
 using Godot;
 
-namespace GrimSpace.Presentation.Ui.Hud;
+namespace GrimSpace.Components;
 
 public enum HudActionKind
 {
@@ -43,4 +43,4 @@ public sealed record HudAction(
 
 public readonly record struct HudBannerView(Control Root, Label Title, Label Subtitle);
 
-public readonly record struct MapHudPanelView(PanelContainer Root, VBoxContainer Body, Label? HeaderBadge = null);
+public readonly record struct HudPanelView(PanelContainer Root, VBoxContainer Body, Label? HeaderBadge = null);

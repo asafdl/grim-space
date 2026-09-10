@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dx01ks6ga2lbp" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
 [ext_resource type="Texture2D" uid="uid://db6wrgc2sxapk" path="res://assets/story/pages/intro-screen.png" id="2_bg"]
 [ext_resource type="Material" uid="uid://c8menu_dust_mat" path="res://assets/ui/menu_dust_material.tres" id="3_dust_mat"]
-[ext_resource type="Theme" path="res://assets/ui/themes/theatrical_theme.tres" id="4_theme"]
+[ext_resource type="Theme" path="res://assets/ui/themes/main_menu_theme.tres" id="4_theme"]
 
 [sub_resource type="Gradient" id="Gradient_dust_tex"]
 offsets = PackedFloat32Array(0, 1)

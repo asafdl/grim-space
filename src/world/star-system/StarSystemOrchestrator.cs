@@ -10,6 +10,7 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
@@ -56,7 +57,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public bool CanAdvance =>
 		_simMode == ESimMode.Running
-		&& (PlayerId is null || !EngagementQueries.RequiresPlayerInput(Map, PlayerId));
+		&& !Map.WaitingForPlayerInput;
 
 	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
 
@@ -70,7 +71,10 @@ public sealed class StarSystemOrchestrator : IDisposable
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
 		var map = StarMap.CreateDevDefault(seed);
 		AddPlayerFleet(map, playerFleetUnitId);
-		return FromMap(map, playerFleetUnitId);
+		var orchestrator = FromMap(map, playerFleetUnitId);
+		orchestrator.CommitSetup(
+			new BeginNarrativeAction(playerFleetUnitId, MapNarratives.OpeningId));
+		return orchestrator;
 	}
 
 	public static StarSystemOrchestrator FromMap(StarMap map) =>
@@ -187,6 +191,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 		return history;
 	}
 
+	public void CommitSetup(params IAction<StarMap, ActorRuntime>[] actions)
+	{
+		if (actions.Length == 0)
+			return;
+
+		_engine.Commit(actions);
+		NotifyWorldUpdated();
+	}
+
 	public void ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
 		_engine.Commit([new ResolveEngagementAction(playerId, outcome)]);
@@ -208,7 +221,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (!_playerAgent.TryEnqueue([action]))
 			return false;
 
-		var advancedClock = !EngagementQueries.RequiresPlayerInput(Map, PlayerId);
+		var advancedClock = !Map.WaitingForPlayerInput;
 		if (advancedClock)
 			AdvanceClock();
 
@@ -262,7 +275,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (_playerAgent?.HasPendingAction != true || _resolvingInputAction)
 			return;
 
-		if (PlayerId is null || !EngagementQueries.RequiresPlayerInput(Map, PlayerId))
+		if (PlayerId is null || !Map.WaitingForPlayerInput)
 			return;
 
 		_resolvingInputAction = true;

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace GrimSpace.Presentation.Ui;
+namespace GrimSpace.Components;
 
 public static class SvgIconLoader
 {

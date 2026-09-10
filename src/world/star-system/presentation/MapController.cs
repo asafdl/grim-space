@@ -1,9 +1,8 @@
 using Godot;
 using GrimSpace.Core;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -28,6 +27,7 @@ public partial class MapController : Node3D
 	private CanvasLayer _uiLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
 	private EngagementController _engagement = null!;
+	private NarrativeController _narrative = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -58,6 +58,10 @@ public partial class MapController : Node3D
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
+		var narrativeHud = new NarrativeHudOverlay();
+		_uiLayer.AddChild(narrativeHud);
+		_narrative = new NarrativeController(_orchestrator, narrativeHud);
+
 		var engagementHud = new EngagementHudOverlay();
 		_uiLayer.AddChild(engagementHud);
 		_engagement = new EngagementController(_orchestrator, engagementHud);
@@ -91,8 +95,7 @@ public partial class MapController : Node3D
 			_uiLayer,
 			GetNode<Button>("UI/AccessButton"),
 			GetNode<ColorRect>("UI/FadeOverlay"),
-			() => _orchestrator.PlayerId is null
-				|| !EngagementQueries.RequiresPlayerInput(_orchestrator.Map, _orchestrator.PlayerId));
+			() => !_orchestrator.Map.WaitingForPlayerInput);
 		_poiFacade.FacilityEntered += OnFacilityEntered;
 
 		var world = _orchestrator.Map;
@@ -113,6 +116,7 @@ public partial class MapController : Node3D
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
+		_narrative.Sync();
 		_engagement.Sync();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
@@ -138,6 +142,7 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
+		_narrative.Sync();
 		_engagement.Sync();
 		_poiFacade.Update();
 
@@ -160,12 +165,20 @@ public partial class MapController : Node3D
 	{
 		_engagement.BattleRequested -= OnBattleRequested;
 		_engagement.Dispose();
+		_narrative.Dispose();
 		base._ExitTree();
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_engagement.TryHandleInput(@event))
+		if (_narrative.TryHandleInput(@event)
+			|| _engagement.TryHandleInput(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (_orchestrator.Map.WaitingForPlayerInput)
 		{
 			GetViewport().SetInputAsHandled();
 			return;

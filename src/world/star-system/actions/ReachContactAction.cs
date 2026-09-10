@@ -38,6 +38,15 @@ public sealed class ReachContactDef
 		ActorRuntime runtime)
 	{
 		var reach = (ReachContactAction)action;
-		return [new ReachContactEffect(reach.InitiatorId, reach.TargetId)];
+		var effects = new List<IEffect<StarMap, ActorRuntime>>
+		{
+			new ReachContactEffect(reach.InitiatorId, reach.TargetId),
+		};
+
+		if (world.UnitRegistry.TryGet(reach.InitiatorId, out var initiator)
+			&& initiator.State.Type == EType.PlayerFleet)
+			effects.Add(new PlayerInputEffect(true));
+
+		return effects;
 	}
 }

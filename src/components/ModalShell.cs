@@ -1,8 +1,8 @@
 using Godot;
 
-namespace GrimSpace.Presentation.Ui.Hud;
+namespace GrimSpace.Components;
 
-public sealed partial class ModalHudShell : CanvasLayer
+public sealed partial class ModalShell : CanvasLayer
 {
 	private Control _root = null!;
 	private PanelContainer _panel = null!;
@@ -24,7 +24,7 @@ public sealed partial class ModalHudShell : CanvasLayer
 
 	public event Action? Closed;
 
-	public ModalHudShell(HudThemeFamily? themeFamily = null)
+	public ModalShell(HudThemeFamily? themeFamily = null)
 	{
 		_themeFamily = themeFamily;
 		Layer = 20;

@@ -1,7 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
@@ -23,7 +22,7 @@ public sealed class ContactMonitorTests(DevStarMapFixture maps)
 
 		Assert.Equal(EEngagementPhase.AwaitingDecision,
 			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
-		Assert.True(EngagementQueries.RequiresPlayerInput(orchestrator.Map, RunState.PlayerFleetUnitId));
+		Assert.True(orchestrator.Map.WaitingForPlayerInput);
 		Assert.False(orchestrator.CanAdvance);
 	}
 
@@ -56,7 +55,7 @@ public sealed class ContactMonitorTests(DevStarMapFixture maps)
 		orchestrator.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
 		orchestrator.AdvanceClock();
 
-		Assert.False(EngagementQueries.RequiresPlayerInput(orchestrator.Map, RunState.PlayerFleetUnitId));
+		Assert.False(orchestrator.Map.WaitingForPlayerInput);
 		Assert.Equal(ESimMode.Stepped, orchestrator.SimMode);
 		Assert.Null(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementTargetUnitId);
 		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);

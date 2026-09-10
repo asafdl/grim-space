@@ -17,14 +17,6 @@ public readonly record struct CommittedEngagement(
 
 public static class EngagementQueries
 {
-	public static bool RequiresPlayerInput(StarMap world, string playerId)
-	{
-		if (!world.UnitRegistry.TryGet(playerId, out var player))
-			return false;
-
-		return player.State.EngagementPhase == EEngagementPhase.AwaitingDecision;
-	}
-
 	public static bool TryGetPendingPlayerEngagement(
 		StarMap world,
 		string playerId,

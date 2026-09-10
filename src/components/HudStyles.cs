@@ -1,6 +1,6 @@
 using Godot;
 
-namespace GrimSpace.Presentation.Ui.Hud;
+namespace GrimSpace.Components;
 
 public static class HudStyles
 {
@@ -24,6 +24,9 @@ public static class HudStyles
 
 	public const string HudHeadingLabelType = "HudHeadingLabel";
 	public const string DebugHudPanelType = "DebugHudPanelContainer";
+	public const string NarrativePanelType = "NarrativePanelContainer";
+	public const string FramedActionBarPanelType = "FramedActionBarPanelContainer";
+	public const string FramedActionBarFramePanelType = "FramedActionBarFramePanelContainer";
 	public const int SectionAccentWidth = 3;
 
 	public static readonly Color ModalBackdrop = new(0f, 0f, 0f, 0.55f);

@@ -1,4 +1,4 @@
-namespace GrimSpace.Presentation.Ui.Hud;
+namespace GrimSpace.Components;
 
 /// <summary>
 /// Presentation context for HUD surfaces — not interchangeable skins.

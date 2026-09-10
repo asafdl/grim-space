@@ -1,6 +1,6 @@
 using Godot;
 
-namespace GrimSpace.Presentation.Ui.Hud;
+namespace GrimSpace.Components;
 
 public static class HudThemes
 {

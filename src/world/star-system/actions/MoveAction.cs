@@ -48,18 +48,25 @@ public sealed class MoveDef
 		var unit = world.UnitRegistry.UnitOf(move.UnitId);
 		var origin = ResolveOrigin(world, unit, runtime);
 
-		return
-		[
+		var effects = new List<IEffect<StarMap, ActorRuntime>>
+		{
 			CancelPendingMoveEffect.Instance,
 			new ClearEngagementIntentEffect(move.UnitId),
-			..MovementEffects.BeginJourney(
-				move.UnitId,
-				runtime,
-				world,
-				origin,
-				move.Destination,
-				move.Path),
-		];
+		};
+
+		if (unit.State.Type == EType.PlayerFleet
+			&& unit.State.EngagementPhase == EEngagementPhase.AwaitingDecision)
+			effects.Add(new PlayerInputEffect(false));
+
+		effects.AddRange(MovementEffects.BeginJourney(
+			move.UnitId,
+			runtime,
+			world,
+			origin,
+			move.Destination,
+			move.Path));
+
+		return effects;
 	}
 
 	internal static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime)

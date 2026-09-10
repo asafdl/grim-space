@@ -1,5 +1,5 @@
 using Godot;
-using GrimSpace.Presentation.Ui;
+using GrimSpace.Components;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;

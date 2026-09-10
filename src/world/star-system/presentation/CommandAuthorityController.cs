@@ -4,7 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 

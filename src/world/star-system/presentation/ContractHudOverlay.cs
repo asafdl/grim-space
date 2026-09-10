@@ -1,5 +1,5 @@
 using Godot;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Encounter;
 
@@ -14,7 +14,7 @@ public sealed partial class ContractHudOverlay : Node
 		DeclineConfirm,
 	}
 
-	private readonly ModalHudShell _shell;
+	private readonly ModalShell _shell;
 	private StarMap _map = null!;
 	private string _activePoiId = "";
 	private string _facilityTitle = "";
@@ -29,7 +29,7 @@ public sealed partial class ContractHudOverlay : Node
 
 	public ContractHudOverlay()
 	{
-		_shell = new ModalHudShell();
+		_shell = new ModalShell();
 		AddChild(_shell);
 		_shell.Closed += () => Closed?.Invoke();
 	}

@@ -39,6 +39,7 @@ public sealed class EngageDef
 		[
 			new StopAtCurrentLocationEffect(engage.ActorId),
 			new CommitEngagementEffect(engage.ActorId, counterpartyId),
+			new PlayerInputEffect(false),
 		];
 	}
 

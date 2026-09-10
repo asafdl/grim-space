@@ -1,6 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 

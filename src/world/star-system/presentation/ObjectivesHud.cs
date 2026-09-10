@@ -1,5 +1,5 @@
 using Godot;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation;

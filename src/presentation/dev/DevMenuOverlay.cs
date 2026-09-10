@@ -1,17 +1,17 @@
 using Godot;
-using GrimSpace.Presentation.Ui.Hud;
+using GrimSpace.Components;
 
 namespace GrimSpace.Presentation.Dev;
 
 public sealed partial class DevMenuOverlay : Node
 {
-	private readonly ModalHudShell _shell;
+	private readonly ModalShell _shell;
 
 	public event Action? StartBattleRequested;
 
 	public DevMenuOverlay()
 	{
-		_shell = new ModalHudShell(HudThemeFamily.Informative);
+		_shell = new ModalShell(HudThemeFamily.Informative);
 		AddChild(_shell);
 	}
 

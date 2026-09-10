@@ -40,6 +40,10 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
+	public bool WaitingForPlayerInput { get; internal set; }
+
+	public string? ActiveNarrativeId { get; internal set; }
+
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
 
 	internal StarMap(
@@ -52,7 +56,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		UnitRegistry unitRegistry,
 		ContractRegistry contractRegistry,
 		StoryObjectiveRegistry storyObjectives,
-		PathfindingTerrain pathfindingTerrain)
+		PathfindingTerrain pathfindingTerrain,
+		bool waitingForPlayerInput = false,
+		string? activeNarrativeId = null)
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
@@ -67,6 +73,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		ContractRegistry = contractRegistry;
 		StoryObjectives = storyObjectives;
 		PathfindingTerrain = pathfindingTerrain;
+		WaitingForPlayerInput = waitingForPlayerInput;
+		ActiveNarrativeId = activeNarrativeId;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -89,7 +97,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			UnitRegistry.CloneForFork(),
 			ContractRegistry.CloneForFork(),
 			StoryObjectives.CloneForFork(),
-			PathfindingTerrain);
+			PathfindingTerrain,
+			WaitingForPlayerInput,
+			ActiveNarrativeId);
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{

@@ -1,6 +1,8 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Units;
@@ -87,6 +89,12 @@ public sealed class StarMapTests
 		Assert.NotEqual(
 			world.UnitRegistry.UnitOf(minerId).State.Journey.StartTick,
 			fork.UnitRegistry.UnitOf(minerId).State.Journey.StartTick);
+
+		new PlayerInputEffect(true).Apply(world, new ActorRuntime(), "actor");
+		var waitingFork = world.Fork();
+		Assert.True(waitingFork.WaitingForPlayerInput);
+		new PlayerInputEffect(false).Apply(waitingFork, new ActorRuntime(), "actor");
+		Assert.True(world.WaitingForPlayerInput);
 	}
 
 	[Fact]

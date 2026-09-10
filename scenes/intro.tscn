@@ -60,37 +60,3 @@ mouse_filter = 2
 theme_type_variation = &"MetadataLabel"
 text = "* Temporary AI Art *"
 horizontal_alignment = 1
-
-[node name="Next" type="Button" parent="Scene"]
-visible = false
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -172.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = 68.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_type_variation = &"PrimaryButton"
-custom_minimum_size = Vector2(140, 44)
-text = "Next"
-
-[node name="TextPanel" type="PanelContainer" parent="Scene"]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-theme_type_variation = &"StoryBar"
-
-[node name="Body" type="Label" parent="Scene/TextPanel"]
-layout_mode = 2
-theme_type_variation = &"BodyLabel"
-autowrap_mode = 3
-
-[connection signal="pressed" from="Scene/Next" to="." method="OnNextPressed"]

@@ -28,6 +28,7 @@ public sealed class ReachContactActionTests(DevStarMapFixture maps)
 
 		Assert.Equal(EEngagementPhase.AwaitingDecision, map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
 		Assert.Equal(EEngagementPhase.None, map.StateOf(pirateId).EngagementPhase);
+		Assert.True(map.WaitingForPlayerInput);
 	}
 
 	[Fact]
