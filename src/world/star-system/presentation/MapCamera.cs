@@ -176,7 +176,7 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-				if (IsMouseOverUi() || _facadeActive || !PrepareManualInput())
+				if (IsMouseOverUi() || !PrepareManualInput())
 					break;
 				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
@@ -184,7 +184,7 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-				if (IsMouseOverUi() || _facadeActive || !PrepareManualInput())
+				if (IsMouseOverUi() || !PrepareManualInput())
 					break;
 				_pose.Zoom(OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
