@@ -75,6 +75,11 @@ public sealed class PresentationFrameBuilder
 		var weaponQueued = queuedWeapon.FlakMountedOn is not null
 			|| queuedWeapon.Railgun
 			|| queuedWeapon.TorpedoMountedOn is not null;
+		var selectedMove = state.MoveDestination is { } destination
+			&& state.RequestedMoveBasis is { } requestedBasis
+			? moveOptions.FirstOrDefault(option =>
+				option.EndPosition == destination && option.EndBasis == requestedBasis)
+			: null;
 
 		IReadOnlyList<Coord> movePath;
 		Coord? moveTarget;
@@ -91,7 +96,8 @@ public sealed class PresentationFrameBuilder
 				(movePath, moveTarget) = MoveUi.GetPathHighlights(
 					moveOptions,
 					state.MoveHoveredIndex,
-					committedMovePath);
+					committedMovePath,
+					selectedMove);
 			}
 		}
 		else
@@ -109,7 +115,16 @@ public sealed class PresentationFrameBuilder
 			: [];
 
 		var instruction = default(ActionInstruction);
-		if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
+		if (canControl && state.Mode == EPlayerMode.Move && state.MoveDestination is not null)
+		{
+			instruction = new ActionInstruction(
+				Visible: true,
+				Label: selectedMove is null
+					? BattleHudCopy.MovePoseUnavailable
+					: BattleHudCopy.ConfirmMove(selectedMove.ExtensionApCost, selectedMove.RemainingAp),
+				CanConfirm: selectedMove is not null);
+		}
+		else if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
 		{
 			var legalCapabilities = Capabilities.LegalCapabilities(sim, playerId);
 			var activation = AbilityActivation.For(activeSpec.Def);
@@ -161,6 +176,11 @@ public sealed class PresentationFrameBuilder
 			MovePath = movePath,
 			CommittedMovePath = committedMovePath,
 			MoveTarget = moveTarget,
+			SelectedMove = selectedMove,
+			MoveDestination = state.MoveDestination,
+			MoveGhostState = BuildMoveGhost(focusUnit, state, selectedMove),
+			MovePoseAvailable = selectedMove is not null,
+			IsMoveDragging = state.IsMoveDragging,
 			TurnNumber = battle.Phase == EBattlePhase.Replaying
 				? battle.TurnNumber - 1
 				: battle.TurnNumber,
@@ -172,6 +192,22 @@ public sealed class PresentationFrameBuilder
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = battle.Outcome.Result,
 			ActionLogLines = ActionLogLines,
+		};
+	}
+
+	private static UnitDisplayState? BuildMoveGhost(
+		UnitDisplayState focus,
+		InteractionState state,
+		MovePathOption? selected)
+	{
+		if (state.MoveDestination is not { } destination || state.RequestedMoveBasis is not { } basis)
+			return null;
+
+		return selected?.ResultState ?? focus with
+		{
+			Position = destination,
+			Fore = basis.Forward,
+			Dorsal = basis.Up,
 		};
 	}
 

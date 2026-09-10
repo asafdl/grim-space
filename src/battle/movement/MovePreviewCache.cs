@@ -18,7 +18,7 @@ public sealed class MovePreviewCache
 		string playerId,
 		IReadOnlyList<IAction> committed)
 	{
-		var key = PrefixKey(committed);
+		var key = $"{sim.WorldVersion}|{playerId}|{PrefixKey(committed)}";
 		if (_pathsByPrefix.TryGetValue(key, out var cached))
 			return cached;
 
@@ -37,7 +37,8 @@ public sealed class MovePreviewCache
 	private static string ActionKey(IAction action) =>
 		action switch
 		{
-			MoveStepAction move => $"move:{move.ActorId}:{move.Direction}",
+			MoveStepAction move => $"move:{move.ActorId}:{move.Heading}:{move.Roll}",
+			TorpedoMoveStepAction move => $"torpedo-move:{move.ActorId}:{move.Direction}",
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
 			FlakAction flak => $"flak:{flak.ActorId}:{flak.MountedOn}",

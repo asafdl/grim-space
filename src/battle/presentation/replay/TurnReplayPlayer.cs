@@ -202,7 +202,7 @@ public partial class TurnReplayPlayer : Node3D
 		spawned.Dorsal = dorsal;
 		spawned.Starboard = Coord.Cross(dorsal, fore);
 		spawned.ParentId = spawn.SourceId;
-		spawned.MomentumLevel = PatrolBayMount.SpawnMomentum(carrier);
+		spawned.MomentumLevel = 0;
 		spawned.HullPoints = spawned.Stats.MaxHullPoints;
 		spawned.ActionPoints = spawned.Stats.MaxAp;
 		spawned.ShieldPoints = spawned.Stats.MaxShieldPoints.Clone();

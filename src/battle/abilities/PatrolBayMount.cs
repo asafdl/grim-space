@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
@@ -16,6 +15,4 @@ public static class PatrolBayMount
 			ship.Dorsal);
 	}
 
-	public static int SpawnMomentum(State ship) =>
-		System.Math.Clamp(ship.MomentumLevel, 0, MomentumConfig.MaxLevel);
 }

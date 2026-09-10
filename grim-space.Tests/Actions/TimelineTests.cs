@@ -19,12 +19,12 @@ public sealed class TimelineTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var tick = battle.TurnNumber;
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId)));
 		BattleTestActions.CommitAndResolve(battle);
 
 		var byActor = battle.Engine.HistoryByActor(tick);
 		Assert.True(byActor.ContainsKey(battle.PlayerId));
-		Assert.Contains(byActor[battle.PlayerId], action => action is HeadingTurnAction or EndOfPhaseAction);
+		Assert.Contains(byActor[battle.PlayerId], action => action is MoveStepAction or EndOfPhaseAction);
 	}
 
 	[Fact]
@@ -144,7 +144,7 @@ public sealed class TimelineTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var before = battle.Engine.History().Count;
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId)));
 
 		Assert.Equal(before, battle.Engine.History().Count);
 		Assert.Empty(battle.PlayerAgent.Sim.World.Timeline.History());
@@ -194,42 +194,4 @@ public sealed class TimelineTests
 		Assert.True(impact.Value.ShieldDamage + impact.Value.HullDamage + impact.Value.MomentumLoss > 0);
 	}
 
-	[Fact]
-	public void CommitAppendsResultingMomentumAfterMovementGain()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-
-		battle.Engine.Commit(
-			new MoveStepAction(battle.PlayerId, ESpatialOrientation.Forward),
-			new MoveStepAction(battle.PlayerId, ESpatialOrientation.Forward));
-
-		var momentum = Assert.Single(
-			battle.Engine.History().OfType<Record<MomentumChangedFacts>>());
-		Assert.Equal(battle.PlayerId, momentum.Value.ActorId);
-		Assert.Equal(1, momentum.Value.MomentumLevel);
-	}
-
-	[Fact]
-	public void CommitAppendsResultingMomentumAfterStationaryDecay()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5), momentum: 2);
-
-		battle.Engine.Commit(new EndOfPhaseAction(battle.PlayerId));
-
-		var momentum = Assert.Single(
-			battle.Engine.History().OfType<Record<MomentumChangedFacts>>());
-		Assert.Equal(1, momentum.Value.MomentumLevel);
-	}
-
-	[Fact]
-	public void CommitAppendsResultingMomentumAfterTurnCost()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5), momentum: 2);
-
-		battle.Engine.Commit(new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight));
-
-		var momentum = Assert.Single(
-			battle.Engine.History().OfType<Record<MomentumChangedFacts>>());
-		Assert.Equal(1, momentum.Value.MomentumLevel);
-	}
 }

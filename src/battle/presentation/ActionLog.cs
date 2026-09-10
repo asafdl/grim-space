@@ -33,25 +33,17 @@ public static class ActionLog
 		while (i < history.Count)
 		{
 			var entry = history[i];
-			if (entry is MoveStepAction move)
+			if (entry is MoveStepAction or TorpedoMoveStepAction)
 			{
-				var actorId = move.ActorId;
+				var actorId = ((IAction)entry).ActorId;
 				var steps = 0;
 				while (i < history.Count
-					&& history[i] is MoveStepAction next
-					&& next.ActorId == actorId)
+					&& history[i] is IAction next
+					&& next.ActorId == actorId
+					&& next is MoveStepAction or TorpedoMoveStepAction)
 				{
 					steps++;
 					i++;
-					if (i < history.Count
-						&& history[i] is Record<MomentumChangedFacts>
-						{
-							Value.ActorId: var momentumActorId
-						}
-						&& momentumActorId == actorId)
-					{
-						i++;
-					}
 				}
 
 				Emit(actorId, $"{displayName(actorId)} moved {steps} {(steps == 1 ? "step" : "steps")}");

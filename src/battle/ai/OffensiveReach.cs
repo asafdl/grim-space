@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Movement;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Ai;
@@ -7,7 +6,7 @@ namespace GrimSpace.Battle.Ai;
 internal static class OffensiveReach
 {
 	public static int OptimisticMoveBubble(int actionPoints) =>
-		actionPoints + MomentumConfig.ForLevel(MomentumConfig.MaxLevel).FreeForwardSteps;
+		actionPoints;
 
 	public static bool CouldPossiblyDamage(Coord self, int actionPoints, Coord opponent, int weaponReach) =>
 		self.ManhattanDistanceTo(opponent) <= OptimisticMoveBubble(actionPoints) + weaponReach;

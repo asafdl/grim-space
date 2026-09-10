@@ -39,6 +39,7 @@ public partial class BattleController : Node3D
 	private TorpedoPreviewView _torpedoPreview = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
+	private MoveGhostView _moveGhost = null!;
 
 	private PresentationFrame _currentFrame = null!;
 	private MoveHoverCache _moveHoverCache;
@@ -101,6 +102,8 @@ public partial class BattleController : Node3D
 		unitsRoot.AddChild(_battleView);
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, _agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
+		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
+		unitsRoot.AddChild(_moveGhost);
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
@@ -184,8 +187,6 @@ public partial class BattleController : Node3D
 
 	private void WireHudToTranslator()
 	{
-		_battleHud.ManeuverBar.YawRequested += _translator.OnYaw;
-		_battleHud.ManeuverBar.SpinRequested += _translator.OnSpin;
 		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
 		_battleHud.ActionBar.AbilityModeRequested += OnAbilityModeRequested;
 		_battleHud.InstructionBar.ConfirmRequested += _translator.OnConfirmAction;
@@ -204,6 +205,31 @@ public partial class BattleController : Node3D
 		_translator.StagedMountedOnRequested += OnStagedMountedOnRequested;
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
+		_translator.MoveSelectionStarted += (destination, basis) =>
+		{
+			_frames.Interaction.BeginMoveSelection(destination, basis);
+			RefreshPresentation();
+		};
+		_translator.MoveHeadingRequested += heading =>
+		{
+			_frames.Interaction.SetMoveHeading(heading);
+			RefreshPresentation();
+		};
+		_translator.MoveRollRequested += delta =>
+		{
+			_frames.Interaction.RollMove(delta);
+			RefreshPresentation();
+		};
+		_translator.MoveDragEnded += () =>
+		{
+			_frames.Interaction.EndMoveDrag();
+			RefreshPresentation();
+		};
+		_translator.MoveSelectionCanceled += () =>
+		{
+			_frames.Interaction.ClearMoveSelection();
+			RefreshPresentation();
+		};
 		_translator.FlakHoverChanged += mountedOn => SetFlakHoverMountedOn(mountedOn);
 		_translator.RailgunHoverChanged += hovered => SetRailgunHovered(hovered);
 		_translator.TorpedoHoverChanged += mountedOn => SetTorpedoHoverMountedOn(mountedOn);
@@ -280,6 +306,9 @@ public partial class BattleController : Node3D
 			activeAbilitySpec: _frames.Interaction.ActiveAbilitySpec,
 			stagedMountedOn: frame.StagedMountedOn,
 			moveOptions: frame.MovePaths,
+			selectedMove: frame.SelectedMove,
+			moveDestination: frame.MoveDestination,
+			moveDragging: frame.IsMoveDragging,
 			focusState: frame.FocusState,
 			weapons: frame.Weapons,
 			instruction: frame.Instruction);
@@ -373,6 +402,7 @@ public partial class BattleController : Node3D
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
 		_gridView.ApplyFrame(frame);
+		_moveGhost.Apply(frame.MoveGhostState, frame.MovePoseAvailable, ColorForActor(frame.FocusId));
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);

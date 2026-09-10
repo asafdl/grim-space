@@ -22,15 +22,7 @@ public sealed class HeadingDef
 {
 	public static HeadingDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
-	{
-		foreach (var turn in Enum.GetValues<EHeadingTurn>())
-		{
-			var action = Bind(actorId, turn);
-			if (IsPossible(action, world, runtime))
-				yield return action;
-		}
-	}
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) => [];
 
 	public HeadingTurnAction Bind(string actorId, EHeadingTurn turn) => new(actorId, turn);
 
@@ -46,10 +38,10 @@ public sealed class HeadingDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) => true;
+	public bool IsPossible(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) => false;
 
 	public bool IsLegal(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) =>
-		world.StateOf(action.ActorId).ActionPoints >= QuoteApCost(runtime, action.Turn);
+		false;
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		HeadingTurnAction action,

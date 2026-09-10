@@ -6,6 +6,7 @@ using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
@@ -21,7 +22,7 @@ public sealed partial class UserIntentTranslator : Node
 {
 	private readonly string _actorId;
 	private readonly IActionSink _actions;
-	private readonly Camera3D _camera;
+	private readonly Controller _camera;
 	private readonly BattleHud _hud;
 	private readonly FlakPreviewView _flakPreview;
 	private readonly RailgunPreviewView _railgunPreview;
@@ -38,11 +39,14 @@ public sealed partial class UserIntentTranslator : Node
 	private IReadOnlySet<ESpatialOrientation> _torpedoMounts = new HashSet<ESpatialOrientation>();
 	private ActionInstruction _instruction;
 	private int? _moveHoveredIndex;
+	private MovePathOption? _selectedMove;
+	private Coord? _moveDestination;
+	private bool _moveDragging;
 
 	public UserIntentTranslator(
 		string actorId,
 		IActionSink actions,
-		Camera3D camera,
+		Controller camera,
 		BattleHud hud,
 		FlakPreviewView flakPreview,
 		RailgunPreviewView railgunPreview,
@@ -59,6 +63,11 @@ public sealed partial class UserIntentTranslator : Node
 
 	public event Action<EPlayerMode>? ModeRequested;
 	public event Action<int?, int>? MoveHoverChanged;
+	public event Action<Coord, GridBasis>? MoveSelectionStarted;
+	public event Action<Coord>? MoveHeadingRequested;
+	public event Action<int>? MoveRollRequested;
+	public event Action? MoveDragEnded;
+	public event Action? MoveSelectionCanceled;
 	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
 	public event Action<ESpatialOrientation?>? TorpedoHoverChanged;
@@ -80,6 +89,9 @@ public sealed partial class UserIntentTranslator : Node
 		AbilityHudCatalog.Spec? activeAbilitySpec,
 		ESpatialOrientation? stagedMountedOn,
 		IReadOnlyList<MovePathOption> moveOptions,
+		MovePathOption? selectedMove,
+		Coord? moveDestination,
+		bool moveDragging,
 		UnitDisplayState focusState,
 		WeaponPeek weapons,
 		ActionInstruction instruction)
@@ -91,12 +103,16 @@ public sealed partial class UserIntentTranslator : Node
 		_activeAbilitySpec = activeAbilitySpec;
 		_stagedMountedOn = stagedMountedOn;
 		_moveOptions = moveOptions;
+		_selectedMove = selectedMove;
+		_moveDestination = moveDestination;
+		_moveDragging = moveDragging;
 		_focusState = focusState;
 		_torpedoMounts = weapons.TorpedoMounts;
 		_instruction = instruction;
 
 		if (!enabled || mode != EPlayerMode.Move)
 			_moveHoveredIndex = null;
+		_camera.SetGestureInputBlocked(enabled && mode == EPlayerMode.Move && moveDragging);
 	}
 
 	public override void _Process(double delta)
@@ -119,6 +135,37 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		if (!_enabled)
 			return;
+
+		if (_moveDragging)
+		{
+			switch (@event)
+			{
+				case InputEventMouseMotion motion:
+					if (_moveDestination is { } destination
+						&& MovementSelection.PickHeading(_camera, motion.Position, destination) is { } heading)
+						MoveHeadingRequested?.Invoke(heading);
+					GetViewport().SetInputAsHandled();
+					return;
+				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
+					MoveRollRequested?.Invoke(1);
+					GetViewport().SetInputAsHandled();
+					return;
+				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
+					MoveRollRequested?.Invoke(-1);
+					GetViewport().SetInputAsHandled();
+					return;
+				case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
+					_moveDragging = false;
+					_camera.SetGestureInputBlocked(false);
+					MoveDragEnded?.Invoke();
+					GetViewport().SetInputAsHandled();
+					return;
+				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+					CancelMoveSelection();
+					GetViewport().SetInputAsHandled();
+					return;
+			}
+		}
 
 		if (@event is InputEventKey
 			{
@@ -154,7 +201,12 @@ public sealed partial class UserIntentTranslator : Node
 				ButtonIndex: MouseButton.Right
 			})
 		{
-			if (TryCancelAbilityMode())
+			if (_moveDestination is not null)
+			{
+				CancelMoveSelection();
+				GetViewport().SetInputAsHandled();
+			}
+			else if (TryCancelAbilityMode())
 				GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -178,28 +230,36 @@ public sealed partial class UserIntentTranslator : Node
 		}
 	}
 
-	public void OnYaw()
-	{
-		if (Enqueue(new HeadingTurnAction(_actorId, EHeadingTurn.YawRight)))
-			ClearHovers();
-	}
-
-	public void OnSpin()
-	{
-		if (Enqueue(new RollAction(_actorId, ERollDirection.Clockwise)))
-			ClearHovers();
-	}
-
 	public void OnMoveMode() => ModeRequested?.Invoke(EPlayerMode.Move);
 
-	public void OnEndTurn() => EndTurnRequested?.Invoke();
+	public void OnEndTurn()
+	{
+		if (_moveDestination is null)
+			EndTurnRequested?.Invoke();
+	}
 
 	public void OnConfirmAction()
 	{
-		if (!_enabled || !_canIssueActions || _activeAbilitySpec is null)
+		if (!_enabled || !_canIssueActions)
 			return;
 
 		if (!_instruction.CanConfirm)
+			return;
+
+		if (_mode == EPlayerMode.Move)
+		{
+			if (_selectedMove is null || !_actions.TryEnqueue(_selectedMove.Steps.Cast<IAction>().ToArray()))
+			{
+				ConfirmationFailed?.Invoke();
+				return;
+			}
+
+			MoveSelectionCanceled?.Invoke();
+			ClearHovers();
+			return;
+		}
+
+		if (_activeAbilitySpec is null)
 			return;
 
 		var action = AbilityActivation.For(_activeAbilitySpec.Def)
@@ -240,6 +300,9 @@ public sealed partial class UserIntentTranslator : Node
 				return true;
 			case Key.Escape when _mode != EPlayerMode.Move:
 				return TryCancelAbilityMode();
+			case Key.Escape when _moveDestination is not null:
+				CancelMoveSelection();
+				return true;
 			case Key.Escape:
 				_hud.TogglePauseMenu();
 				return true;
@@ -254,12 +317,8 @@ public sealed partial class UserIntentTranslator : Node
 				return _hud.ActionBar.TryActivateHotkey(3);
 			case Key.Key4:
 				return _hud.ActionBar.TryActivateHotkey(4);
-			case Key.Q:
-				return _hud.ManeuverBar.TrySpin();
-			case Key.E:
-				return _hud.ManeuverBar.TryYaw();
 			case Key.Space:
-				EndTurnRequested?.Invoke();
+				OnEndTurn();
 				return true;
 			case Key.F:
 				return _hud.UtilityBar.TryFocus();
@@ -268,8 +327,8 @@ public sealed partial class UserIntentTranslator : Node
 		}
 	}
 
-	private bool CanConfirmAction() =>
-		_activeAbilitySpec is not null && _instruction.CanConfirm;
+	private bool CanConfirmAction() => _instruction.CanConfirm
+		&& (_mode == EPlayerMode.Move ? _selectedMove is not null : _activeAbilitySpec is not null);
 
 	private bool TryCancelAbilityMode()
 	{
@@ -353,20 +412,25 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
-		var directions = _moveOptions[index].Directions;
-		if (directions.Count == 0
-			|| !Enqueue(directions
-				.Select(direction => (IAction)new MoveStepAction(_actorId, direction))
-				.ToArray()))
-		{
-			PresentationDiagnostics.LogMoveQueueDetail(
-				"queue_failed",
-				_moveOptions[index].EndPosition);
+		var steps = _moveOptions[index].Steps;
+		if (steps.Count == 0)
 			return;
-		}
-
+		_moveDragging = true;
+		_selectedMove = _moveOptions[index];
+		_moveDestination = _selectedMove.EndPosition;
+		_camera.SetGestureInputBlocked(true);
+		MoveSelectionStarted?.Invoke(_selectedMove.EndPosition, _selectedMove.EndBasis);
 		_moveHoveredIndex = null;
 		ClearHovers();
+	}
+
+	private void CancelMoveSelection()
+	{
+		_moveDragging = false;
+		_selectedMove = null;
+		_moveDestination = null;
+		_camera.SetGestureInputBlocked(false);
+		MoveSelectionCanceled?.Invoke();
 	}
 
 	private ESpatialOrientation? PickTorpedoMountedOn(Vector2 screenPosition)

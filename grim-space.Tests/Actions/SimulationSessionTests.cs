@@ -30,15 +30,14 @@ public sealed class SimulationSessionTests
 
 		var preview = Preview.Simulate(battle);
 		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
-		var expectedMomentum = MovementExpectations.MomentumAfterPureForwardPath(startMomentum, stepCount);
 
 		Assert.Equal(origin, player.State.Position);
 		Assert.Equal(startMomentum, player.State.MomentumLevel);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, preview.Position);
-		Assert.Equal(expectedMomentum, preview.MomentumLevel);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - expectedApCost, preview.ActionPoints);
+		Assert.Equal(startMomentum, preview.MomentumLevel);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - stepCount, preview.ActionPoints);
 	}
 
 	[Fact]
@@ -58,24 +57,22 @@ public sealed class SimulationSessionTests
 
 		EnqueueForwardMove(battle, steps: 3);
 		var threeStepPreview = Preview.Simulate(battle);
-		var threeStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - threeStepCost, threeStepPreview.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - 3, threeStepPreview.ActionPoints);
 
 		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
 		EnqueueForwardMove(battle, steps: 4);
 
 		var fourStepPreview = Preview.Simulate(battle);
-		var fourStepCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 4);
 		Assert.Equal(origin + Coord.Forward * 4, fourStepPreview.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - fourStepCost, fourStepPreview.ActionPoints);
+		Assert.Equal(0, fourStepPreview.ActionPoints);
 
 		Assert.Equal(origin, player.State.Position);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 	}
 
 	[Fact]
-	public void UndoLastRemovesHeadingUndoGroupAfterMovePath()
+	public void UndoLastRemovesCombinedMoveSegmentAsOneGroup()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -84,12 +81,12 @@ public sealed class SimulationSessionTests
 		var blocked = new HashSet<Coord> { enemy.State.Position };
 		var battle = BeginSimulation(player, enemy, grid, blocked);
 
-		EnqueueForwardMove(battle, steps: 3);
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		var path = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
+			.First(option => option.EndPosition == origin + Coord.Forward * 3);
+		Assert.True(battle.PlayerAgent.TryEnqueue(path.Steps.Cast<Core.Actions.IAction>().ToList()));
 
 		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
-		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count);
-		Assert.All(battle.PlayerAgent.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 	}
 
 	private static BattleOrchestrator BeginSimulation(

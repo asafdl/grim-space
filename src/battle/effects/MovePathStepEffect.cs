@@ -8,13 +8,13 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MovePathStepEffect(
-	MoveStepAction step,
+public sealed class TorpedoPathStepEffect(
+	TorpedoMoveStepAction step,
 	Coord destination,
 	int stepApCost,
 	int directionBit) : IEffect<BattleWorld, ActorRuntime>
 {
-	private MovePathSession? _previousPath;
+	private TorpedoPathSession? _previousPath;
 	private bool _previousSpinBraked;
 	private bool _previousSpinDiscount;
 
@@ -27,7 +27,7 @@ public sealed class MovePathStepEffect(
 		var actor = world.StateOf(actorId);
 		if (runtime.ActivePath is null)
 		{
-			runtime.ActivePath = MovePathSession.Begin(
+			runtime.ActivePath = TorpedoPathSession.Begin(
 				actorId,
 				actor.Position,
 				BodyFrame.From(actor),

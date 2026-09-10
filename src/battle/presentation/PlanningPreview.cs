@@ -46,17 +46,19 @@ public sealed class PlanningPreview
 		EnsureSim(sim);
 		var moveActorId = focusId;
 		var inspecting = moveActorId != playerId;
-		var movePathApBaseline = sim.RuntimeFor(moveActorId).ActivePath?.PathApSpent ?? 0;
 		var previewWorld = PreviewWorld(sim, playerId);
 
 		if (moveActorId == playerId)
 		{
 			return _moveCache.GetPaths(sim, playerId, sim.Actions)
 				.Select(path => new MovePathOption(
-					path.Cells,
+					path.Steps,
+					path.Checkpoints,
 					path.EndPosition,
-					path.ExtensionApCost(movePathApBaseline),
-					path.Steps.Select(step => step.Direction).ToList()))
+					path.EndBasis,
+					path.ExtensionApCost,
+					path.RemainingAp,
+					UnitDisplayState.Capture(path.ResultState)))
 				.ToList();
 		}
 
@@ -65,18 +67,25 @@ public sealed class PlanningPreview
 
 		return MovePathEndpoints.DiscoverExtensions(sim, moveActorId)
 			.Select(path => new MovePathOption(
-				path.Cells,
+				path.Steps,
+				path.Checkpoints,
 				path.EndPosition,
-				path.ExtensionApCost(movePathApBaseline),
-				path.Steps.Select(step => step.Direction).ToList()))
+				path.EndBasis,
+				path.ExtensionApCost,
+				path.RemainingAp,
+				UnitDisplayState.Capture(path.ResultState)))
 			.ToList();
 	}
 
 	public int MovePathApBaseline(BattleSimulation sim, string playerId, string focusId) =>
-		sim.RuntimeFor(focusId).ActivePath?.PathApSpent ?? 0;
+		0;
 
 	public IReadOnlyList<Coord> CommittedMovePath(BattleSimulation sim, string playerId) =>
-		sim.RuntimeFor(playerId).ActivePath?.Cells ?? [];
+		sim.Actions
+			.Select((action, index) => (action, index))
+			.Where(entry => entry.action is MoveStepAction { ActorId: var actorId } && actorId == playerId)
+			.Select(entry => sim.ReplayWorld(entry.index + 1).StateOf(playerId).Position)
+			.ToList();
 
 	public WeaponPeek Weapons(BattleSimulation sim, string actorId)
 		=> Weapons(Capabilities.LegalCapabilities(sim, actorId));

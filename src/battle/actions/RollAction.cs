@@ -22,19 +22,11 @@ public sealed class RollDef
 {
 	public static RollDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
-	{
-		foreach (var direction in Enum.GetValues<ERollDirection>())
-		{
-			var action = Bind(actorId, direction);
-			if (IsPossible(action, world, runtime))
-				yield return action;
-		}
-	}
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) => [];
 
 	public RollAction Bind(string actorId, ERollDirection direction) => new(actorId, direction);
 
-	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => true;
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => false;
 
 	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
@@ -45,8 +37,7 @@ public sealed class RollDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsLegal(RollAction action, BattleWorld world, ActorRuntime runtime) =>
-		world.StateOf(action.ActorId).ActionPoints >= CombatConfig.RollApCost;
+	public bool IsLegal(RollAction action, BattleWorld world, ActorRuntime runtime) => false;
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		RollAction action,

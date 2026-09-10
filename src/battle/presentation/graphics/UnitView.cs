@@ -60,6 +60,14 @@ public partial class UnitView : Node3D
 		ApplyPose(state);
 	}
 
+	public void SetGhost(bool available)
+	{
+		if (_momentumLabel is not null)
+			_momentumLabel.Visible = false;
+		if (_hull is not null)
+			_hull.Transparency = available ? 0.45f : 0.7f;
+	}
+
 	public void AnimateMoveTo(State state, double duration)
 	{
 		_poseTween?.Kill();
@@ -75,6 +83,36 @@ public partial class UnitView : Node3D
 		{
 			ApplyShieldColors(state);
 			ApplyStatus(state);
+			_poseTween = null;
+		}));
+	}
+
+	public void AnimatePoseTo(State state, double duration)
+	{
+		_poseTween?.Kill();
+		Visible = state.IsAlive;
+		if (!state.IsAlive)
+			return;
+
+		var startPosition = Position;
+		var targetPosition = WorldMapping.ToWorld(state.Position);
+		var startRotation = Basis.GetRotationQuaternion();
+		var targetRotation = BasisFrom(state).GetRotationQuaternion();
+		_poseTween = CreateTween();
+		_poseTween.TweenMethod(
+			Callable.From<float>(weight =>
+			{
+				Position = startPosition.Lerp(targetPosition, weight);
+				Basis = new Basis(startRotation.Slerp(targetRotation, weight));
+			}),
+			0f,
+			1f,
+			duration)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.InOut);
+		_poseTween.Chain().TweenCallback(Callable.From(() =>
+		{
+			ApplyPose(state);
 			_poseTween = null;
 		}));
 	}
@@ -424,8 +462,8 @@ public partial class UnitView : Node3D
 			return;
 
 		var text = state.Type == EType.Torpedo
-			? $"H{state.HullPoints} F{state.FuelRemaining} M{state.MomentumLevel}"
-			: $"H{state.HullPoints} M{state.MomentumLevel}";
+			? $"H{state.HullPoints} F{state.FuelRemaining}"
+			: $"H{state.HullPoints}";
 		if (_momentumLabel.Text == text)
 			return;
 

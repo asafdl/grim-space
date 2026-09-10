@@ -8,8 +8,12 @@ public static class MoveUi
 	public static (IReadOnlyList<Coord> Path, Coord? Target) GetPathHighlights(
 		IReadOnlyList<MovePathOption> paths,
 		int? hoveredIndex,
-		IReadOnlyList<Coord> committedPath)
+		IReadOnlyList<Coord> committedPath,
+		MovePathOption? selected = null)
 	{
+		if (selected is not null)
+			return (selected.Cells, selected.EndPosition);
+
 		if (hoveredIndex is int i)
 			return (paths[i].Cells, paths[i].EndPosition);
 

@@ -14,9 +14,9 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
-			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
-			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
+			new MoveStepAction("patrol-a"),
+			new MoveStepAction("patrol-a"),
+			new MoveStepAction("patrol-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
@@ -25,13 +25,12 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
-	public void AggregatesMoveStepsAcrossMomentumFacts()
+	public void AggregatesCombinedManeuverSteps()
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
-			new Record<MomentumChangedFacts>(new MomentumChangedFacts("patrol-a", 1)),
-			new MoveStepAction("patrol-a", ESpatialOrientation.Forward),
+			new MoveStepAction("patrol-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new MoveStepAction("patrol-a", Roll: GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
 		];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
@@ -98,10 +97,10 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
+			new MoveStepAction("fighter-a"),
 			new EndOfPhaseAction("fighter-a"),
-			new MoveStepAction("patrol-b", ESpatialOrientation.Forward),
-			new MoveStepAction("patrol-b", ESpatialOrientation.Forward),
+			new MoveStepAction("patrol-b"),
+			new MoveStepAction("patrol-b"),
 		];
 
 		var lines = ActionLog.Format(history, id => id);
@@ -116,27 +115,21 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
-	public void PreservesTurnsAndRollsBetweenMoveSummaries()
+	public void CombinedOrientationChangesRemainInMoveSummary()
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
-			new HeadingTurnAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
-			new RollAction("fighter-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
+			new MoveStepAction("fighter-a"),
+			new MoveStepAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new MoveStepAction("fighter-a", Roll: GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new MoveStepAction("fighter-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => id);
 
 		Assert.Equal(
 			[
-				"fighter-a moved 1 step",
-				"fighter-a turned yawright",
-				"fighter-a moved 1 step",
-				"fighter-a rolled clockwise",
-				"fighter-a moved 2 steps",
+				"fighter-a moved 4 steps",
 			],
 			lines);
 	}
@@ -146,8 +139,8 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
+			new MoveStepAction("fighter-a"),
+			new MoveStepAction("fighter-a"),
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "hazard",
 				TargetId: "fighter-a",
@@ -156,7 +149,7 @@ public sealed class ActionLogTests
 				ShieldDamage: 1,
 				HullDamage: 0,
 				MomentumLoss: 0)),
-			new MoveStepAction("fighter-a", ESpatialOrientation.Forward),
+			new MoveStepAction("fighter-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => id);

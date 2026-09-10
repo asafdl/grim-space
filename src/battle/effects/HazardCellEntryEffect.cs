@@ -118,9 +118,6 @@ public static class HazardResolution
 				break;
 			case EHazardKind.FlakBurst:
 				ApplyDirectedDamage(hazard, unit, face);
-				unit.MomentumLevel = System.Math.Max(unit.MomentumLevel - hazard.MomentumLoss, 0);
-				if (unit.MomentumLevel < CombatConfig.FlakApPenaltyThreshold)
-					unit.ApPenaltyNextTurn = true;
 				break;
 			case EHazardKind.RailgunBurst:
 				ApplyDirectedDamage(hazard, unit, face);

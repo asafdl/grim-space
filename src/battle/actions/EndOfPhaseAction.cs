@@ -41,7 +41,7 @@ public sealed class EndOfPhaseDef
 			return [];
 		}
 
-		return [new MomentumDecayEffect()];
+		return [];
 	}
 
 	private static EndOfPhaseAction Cast(IAction action) =>

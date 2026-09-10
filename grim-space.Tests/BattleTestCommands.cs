@@ -23,12 +23,12 @@ internal static class BattleTestCommands
 	{
 		var option = MoveOptions(battle)
 			.FirstOrDefault(candidate => candidate.EndPosition == endPosition);
-		if (option is null || option.Directions.Count == 0)
+		if (option is null || option.Steps.Count == 0)
 			return false;
 
 		return Enqueue(
 			battle,
-			option.Directions.Select(direction => (IAction)new MoveStepAction(battle.PlayerId, direction)));
+			option.Steps.Cast<IAction>());
 	}
 
 	public static bool Undo(BattleOrchestrator battle) =>

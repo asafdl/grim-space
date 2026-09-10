@@ -11,8 +11,7 @@ public static class CombatConfig
 	// Max manhattan from firer to a flak cell (side arc at max range).
 	public const int MaxFlakManhattanRange = FlakRange * 3 + 1;
 	public const int FlakDamage = 1;
-	public const int FlakMomentumLoss = 1;
-	public const int FlakApPenaltyThreshold = 2;
+	public const int FlakMomentumLoss = 0;
 
 	public const int RailgunDamage = 3;
 	public const int RailgunLineLength = 8;

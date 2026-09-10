@@ -35,7 +35,7 @@ public sealed class FlakActionTests
 	}
 
 	[Fact]
-	public void FlakAppliesMomentumLossOnEnqueue()
+	public void FlakAppliesDamageWithoutMomentumOrApPenalty()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
@@ -46,12 +46,13 @@ public sealed class FlakActionTests
 			battle.PlayerAgent.Sim.World.Grid.IsInBounds);
 		var enemy = UnitRegistry.For(battle.PlayerAgent.Sim.World).All.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = cells.First();
+		enemy.State.MomentumLevel = 1;
 		var shieldsBefore = TotalShieldPoints(enemy.State);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
 
 		Assert.Equal(shieldsBefore - CombatConfig.FlakDamage, TotalShieldPoints(enemy.State));
-		Assert.Equal(0, enemy.State.MomentumLevel);
-		Assert.True(enemy.State.ApPenaltyNextTurn);
+		Assert.Equal(1, enemy.State.MomentumLevel);
+		Assert.False(enemy.State.ApPenaltyNextTurn);
 	}
 }

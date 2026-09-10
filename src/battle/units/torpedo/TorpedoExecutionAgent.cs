@@ -46,7 +46,7 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 		Runner.CalcActions(
 			session,
 			actor,
-			[MoveDef.Instance],
+			[TorpedoMoveDef.Instance],
 			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove),
 			frames => SelectBest(session, actorId, target, frames));
 

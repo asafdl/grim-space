@@ -5,6 +5,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -145,23 +146,37 @@ internal static class BattleTestFixture
 
 	public static MovePathSession Path(string actorId, Coord origin, int pathApSpent, params Coord[] deltas)
 	{
-		var frame = BodyFrame.WorldAligned(origin);
-		var session = MovePathSession.Begin(actorId, origin, frame, 0, Stats.ForType(EType.Fighter).MinPathApCost);
-		var pos = origin;
+		var basis = BodyFrame.WorldAligned(origin);
+		var gridBasis = GridBasis.From(basis.Fore, basis.Dorsal, basis.Starboard);
+		var position = origin;
+		var steps = new List<MoveStepAction>();
+		var checkpoints = new List<MoveCheckpoint> { new(origin, gridBasis) };
 
 		foreach (var delta in deltas)
 		{
-			var to = pos + delta;
-			var direction = frame.DirectionOfStep(pos, to)
-				?? throw new InvalidOperationException("Move step direction is undefined.");
-			session.Steps.Add(new MoveStepAction(actorId, direction));
-			session.Cells.Add(to);
-			pos = to;
+			EHeadingTurn? heading = null;
+			if (delta != gridBasis.Forward)
+			{
+				heading = Enum.GetValues<EHeadingTurn>()
+					.FirstOrDefault(turn => Orientation.HeadingTurn(gridBasis, turn).Forward == delta);
+			}
+
+			var step = new MoveStepAction(actorId, heading);
+			steps.Add(step);
+			gridBasis = heading is { } turn
+				? Orientation.HeadingTurn(gridBasis, turn)
+				: gridBasis;
+			position += gridBasis.Forward;
+			checkpoints.Add(new MoveCheckpoint(position, gridBasis));
 		}
 
-		session.PathApSpent = pathApSpent;
-		session.MinPathApRemaining = 0;
-		return session;
+		var result = Player(origin).State.Clone();
+		result.Position = position;
+		result.Fore = gridBasis.Forward;
+		result.Dorsal = gridBasis.Up;
+		result.Starboard = gridBasis.Right;
+		result.ActionPoints = System.Math.Max(0, result.ActionPoints - pathApSpent);
+		return new MovePathSession(actorId, steps, checkpoints, result.ActionPoints, result);
 	}
 
 	public static MovePathSession ForwardPath(

@@ -239,9 +239,7 @@ public partial class BattleHud : Node
 		ManeuverBar.Configure(
 			frame.CanAct,
 			focusState.ActionPoints,
-			focusState.MaxActionPoints,
-			focusState.MomentumLevel,
-			MomentumConfig.MaxLevel);
+			focusState.MaxActionPoints);
 
 		var abilitySpecs = AbilityHudCatalog.ForUnit(focusState.Type);
 		var abilitySlots = abilitySpecs

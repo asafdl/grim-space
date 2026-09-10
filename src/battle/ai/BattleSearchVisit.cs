@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Math.Grid;
@@ -33,6 +34,19 @@ internal readonly record struct MoveSearchState(
 	int PathApSpent,
 	bool SpinBraked,
 	int ActionPoints);
+
+internal readonly record struct MovePreviewSearchState(
+	Coord Position,
+	Coord Fore,
+	Coord Dorsal,
+	Coord Starboard,
+	int HullPoints,
+	int ForwardShield,
+	int RetroShield,
+	int PortShield,
+	int StarboardShield,
+	int DorsalShield,
+	int VentralShield);
 
 internal static class BattleSearchVisit
 {
@@ -84,10 +98,24 @@ internal static class BattleSearchVisit
 	public static SearchVisitState ForMovePreview(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
-		// TODO: Initial review suggests this identity may drop path-sensitive continuations.
-		// Deferred pending reproduction because widening the DFS state may slow previews.
+		var moves = sim.Actions.OfType<MoveStepAction>().Where(action => action.ActorId == actorId).ToList();
 		return new SearchVisitState(
-			actor.Position,
-			[actor.ActionPoints, actor.MomentumLevel]);
+			new MovePreviewSearchState(
+				actor.Position,
+				actor.Fore,
+				actor.Dorsal,
+				actor.Starboard,
+				actor.HullPoints,
+				actor.ShieldPoints[ESpatialOrientation.Forward],
+				actor.ShieldPoints[ESpatialOrientation.Retro],
+				actor.ShieldPoints[ESpatialOrientation.Port],
+				actor.ShieldPoints[ESpatialOrientation.Starboard],
+				actor.ShieldPoints[ESpatialOrientation.Dorsal],
+				actor.ShieldPoints[ESpatialOrientation.Ventral]),
+			[
+				actor.ActionPoints,
+				-moves.Count(action => action.Heading is not null),
+				-moves.Count(action => action.Roll is not null),
+			]);
 	}
 }

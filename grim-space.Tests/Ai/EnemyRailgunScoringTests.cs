@@ -51,7 +51,7 @@ public sealed class EnemyRailgunScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
-		Assert.Contains(actions, action => action is HeadingTurnAction);
+		Assert.Contains(actions, action => action is MoveStepAction { Heading: not null });
 	}
 
 	[Fact]
@@ -71,7 +71,7 @@ public sealed class EnemyRailgunScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
-		Assert.Contains(actions, action => action is HeadingTurnAction);
+		Assert.Contains(actions, action => action is MoveStepAction { Heading: not null });
 		Assert.Contains(actions, action => action is RailgunAction);
 	}
 

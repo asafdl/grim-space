@@ -26,7 +26,7 @@ public sealed class TorpedoDomainTests
 	{
 		var caps = Capabilities.For(EType.Torpedo);
 
-		Assert.Equal([MoveDef.Instance, DetonateDef.Instance], caps);
+		Assert.Equal([TorpedoMoveDef.Instance, DetonateDef.Instance], caps);
 	}
 
 	[Fact]

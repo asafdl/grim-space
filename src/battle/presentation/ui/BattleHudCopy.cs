@@ -27,19 +27,13 @@ internal static class BattleHudCopy
 	public const string FaceShieldAbsorbLine = "Absorbs hits from this direction.";
 	public const string FaceShieldPoolLine = "Each face has its own shield pool.";
 
-	public const string MomentumTooltip =
-		"Momentum:\nForward speed carried from movement (0–2).\n" +
-		"Higher levels grant free forward steps but make lateral drift and braking cost more AP.\n" +
-		"Build it by moving forward; lose it by braking or ending your turn without moving.";
 	public const string MoveTooltip =
-		"Move:\nSpend AP to path across the grid.\nPositioning decides weapon arcs and which shield face takes a hit.";
-	public const string YawTooltip = "Yaw:\nTurn your heading. Costs 1 AP.";
-	public const string SpinTooltip = "Spin:\nRoll the ship. Costs 1 AP.";
+		"Move:\nEach AP advances one cell and may include one quarter-turn and one quarter-roll.";
 
 	public static string FlakTooltip =>
 		$"Flak:\nSide burst (port or starboard).\n" +
 		$"Range: {CombatConfig.MaxFlakManhattanRange} cells.\n" +
-		$"Deals {CombatConfig.FlakDamage} damage and strips momentum.\n" +
+		$"Deals {CombatConfig.FlakDamage} damage.\n" +
 		$"Cooldown: {CombatConfig.FlaksPerTurn} use per turn.";
 
 	public static string RailgunTooltip =>
@@ -70,6 +64,7 @@ internal static class BattleHudCopy
 	public const string ConfirmAction = "Confirm";
 	public const string SelectFiringDirection = "Select a firing direction";
 	public const string ActionUnavailable = "Action is no longer available";
+	public const string MovePoseUnavailable = "That orientation is unreachable";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
 	public const string UndoTooltip = "Undo your last action this turn.\n(Ctrl/Cmd+Z)";
@@ -93,7 +88,8 @@ internal static class BattleHudCopy
 
 	public static string Charges(int current, int max) => $"{current}/{max}";
 
-	public static string MomentumStat(int current, int max) => $"M{current}/{max}";
+	public static string ConfirmMove(int apCost, int remainingAp) =>
+		$"Confirm move ({apCost} AP, {remainingAp} remaining)";
 
 	public static string FaceShieldTooltip(string faceName, int current, int max) =>
 		$"{faceName} {current}/{max}\n{FaceShieldAbsorbLine}\n{FaceShieldPoolLine}";

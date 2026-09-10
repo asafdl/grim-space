@@ -93,7 +93,9 @@ public sealed class SimulationSearchTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var session = battle.PlayerAgent.Sim;
-		var heading = HeadingDef.Instance.Bind(PlayerId, GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight);
+		var heading = new MoveStepAction(
+			PlayerId,
+			GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight);
 
 		Assert.True(session.TryEnqueue(heading));
 		var actionsBefore = session.Actions.ToList();

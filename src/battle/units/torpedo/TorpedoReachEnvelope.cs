@@ -70,7 +70,7 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 			return new TorpedoReachEnvelope([]);
 
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities =
-			[MoveDef.Instance];
+			[TorpedoMoveDef.Instance];
 		var frontiers = new List<(BattleWorld World, ActorRuntimes<ActorRuntime> Runtimes)>
 		{
 			(session.World.Fork(), session.Runtimes.Fork()),

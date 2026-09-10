@@ -9,81 +9,30 @@ namespace GrimSpace.Tests.Movement;
 
 public sealed class MinPathApCostTests
 {
-	private const string ActorId = "actor";
-	private static readonly int ShipMinPath = Stats.ForType(EType.Fighter).MinPathApCost;
+	private const string ActorId = "torpedo";
 
 	[Fact]
-	public void BeginSeedsRemainingFromStats()
+	public void TorpedoPathRetainsMinimumApRule()
 	{
-		var path = MovePathSession.Begin(
+		var minPath = Stats.ForType(EType.Torpedo).MinPathApCost;
+		var path = TorpedoPathSession.Begin(
 			ActorId,
 			Coord.Zero,
 			BodyFrame.WorldAligned(Coord.Zero),
 			momentumLevel: 0,
-			minPathApCost: 1);
-
-		Assert.Equal(1, path.MinPathApRemaining);
-	}
-
-	[Fact]
-	public void CanEndUsesStatsFloor()
-	{
-		var path = MovePathSession.Begin(
-			ActorId,
-			Coord.Zero,
-			BodyFrame.WorldAligned(Coord.Zero),
-			0,
-			minPathApCost: 1);
-		path.ApplyStep(
-			new MoveStepAction(ActorId, ESpatialOrientation.Forward),
-			new Coord(1, 0, 0),
-			stepApCost: 1,
-			directionBit: 1);
-
-		Assert.True(path.CanEnd(1));
-	}
-
-	[Fact]
-	public void ShipDefaultHasNoMinPathApFloor()
-	{
-		Assert.Equal(0, ShipMinPath);
-
-		var path = MovePathSession.Begin(
-			ActorId,
-			Coord.Zero,
-			BodyFrame.WorldAligned(Coord.Zero),
-			0,
-			ShipMinPath);
-		path.ApplyStep(
-			new MoveStepAction(ActorId, ESpatialOrientation.Forward),
-			new Coord(1, 0, 0),
-			stepApCost: 1,
-			directionBit: 1);
-
-		Assert.True(path.CanEnd(ShipMinPath));
-	}
-
-	[Fact]
-	public void TorpedoStillRequiresMinPathApCost()
-	{
-		var minPath = Stats.ForType(EType.Torpedo).MinPathApCost;
-		Assert.Equal(1, minPath);
-
-		var path = MovePathSession.Begin(
-			ActorId,
-			Coord.Zero,
-			BodyFrame.WorldAligned(Coord.Zero),
-			0,
 			minPath);
-		Assert.Equal(1, path.MinPathApRemaining);
 
 		path.ApplyStep(
-			new MoveStepAction(ActorId, ESpatialOrientation.Forward),
-			new Coord(1, 0, 0),
+			new TorpedoMoveStepAction(ActorId, ESpatialOrientation.Forward),
+			Coord.Forward,
 			stepApCost: 1,
 			directionBit: 1);
 
 		Assert.Equal(0, path.MinPathApRemaining);
 		Assert.True(path.CanEnd(minPath));
 	}
+
+	[Fact]
+	public void NormalShipsHaveNoMinimumPathApRule() =>
+		Assert.Equal(0, Stats.ForType(EType.Fighter).MinPathApCost);
 }

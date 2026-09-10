@@ -27,7 +27,7 @@ public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, Acto
 			},
 			position,
 			new AiController(),
-			PatrolBayMount.SpawnMomentum(parent.State),
+			0,
 			fore,
 			dorsal,
 			parentId: actorId);

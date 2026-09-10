@@ -1,9 +1,6 @@
-using GrimSpace.Battle.World;
-using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Math.Grid;
-using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -11,67 +8,35 @@ public sealed class HeadingTurnTests
 {
 	private const string PlayerId = "player";
 
-	[Fact]
-	public void YawRightThenLeftCostsApPerAction()
+	[Theory]
+	[InlineData(EHeadingTurn.YawLeft, -1, 0, 0)]
+	[InlineData(EHeadingTurn.YawRight, 1, 0, 0)]
+	[InlineData(EHeadingTurn.PitchUp, 0, 1, 0)]
+	[InlineData(EHeadingTurn.PitchDown, 0, -1, 0)]
+	public void QuarterTurnAdvancesAlongNewHeading(EHeadingTurn heading, int x, int y, int z)
 	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, heading)));
 
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
-		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
-			actor.ActionPoints);
-		Assert.Equal(0, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
+		Assert.Equal(origin + new Coord(x, y, z), actor.Position);
+		Assert.Equal(new Coord(x, y, z), actor.Fore);
+		Assert.Equal(3, actor.ActionPoints);
 	}
 
 	[Fact]
-	public void YawRightTwiceCostsStickerApPerTurn()
+	public void TurnAndRollCanOccurInSameOneApStep()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			new MoveStepAction(PlayerId, EHeadingTurn.YawRight, ERollDirection.Clockwise)));
 
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
-		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
-			actor.ActionPoints);
-		Assert.Equal(2, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
-	}
-
-	[Fact]
-	public void UndoRebuildsYawQuartersFromReplay()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
-		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost * 2,
-			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
-
-		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
-
-		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
-		Assert.Single(battle.PlayerAgent.Sim.Actions);
-		Assert.Equal(1, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost, actor.ActionPoints);
-	}
-
-	[Fact]
-	public void YawRightThenLeftAtZeroMomentumDoesNotIncreaseMomentum()
-	{
-		var player = BattleTestFixture.Player(new Coord(5, 5, 5), momentum: 0);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
-
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawLeft)));
-
-		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
+		Assert.Equal(new Coord(1, 0, 0), actor.Fore);
+		Assert.Equal(Coord.Forward, actor.Dorsal);
+		Assert.Equal(3, actor.ActionPoints);
 	}
 }

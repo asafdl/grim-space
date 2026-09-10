@@ -14,7 +14,6 @@ namespace GrimSpace.Battle.Ai;
 
 internal static class EnemySearchInput
 {
-	internal const int MomentumWeight = 1_000;
 	internal const int UnusedApPenalty = 100;
 	internal const int DamageHitBonus = 2_000;
 	internal const int TimelineRefinementSlack = UnusedApPenalty;
@@ -35,7 +34,7 @@ internal static class EnemySearchInput
 		if (!state.IsAlive)
 			return int.MinValue;
 
-		var score = state.MomentumLevel * MomentumWeight - state.ActionPoints * UnusedApPenalty;
+		var score = -state.ActionPoints * UnusedApPenalty;
 		score += DamageAdjustment(anchor, frame.Actions, actorId, searchStartDepth);
 		score += EngagementAdjustment(world, actorId, anchor, frame.Actions, searchStartDepth);
 		return score;
@@ -44,8 +43,7 @@ internal static class EnemySearchInput
 	public static int UpperBound(BattleWorld world, string actorId)
 	{
 		var state = world.StateOf(actorId);
-		// Optimistic bound: remaining AP may still be spent productively; momentum can climb to max.
-		var score = MomentumConfig.MaxLevel * MomentumWeight;
+		var score = 0;
 		if (!HasOffensiveCharges(state))
 			return score;
 

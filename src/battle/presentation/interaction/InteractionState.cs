@@ -2,6 +2,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Interaction;
@@ -16,6 +17,10 @@ public sealed class InteractionState
 	public bool RailgunHovered { get; set; }
 	public ESpatialOrientation? TorpedoHoverMountedOn { get; set; }
 	public int? MoveHoveredIndex { get; set; }
+	public Coord? MoveDestination { get; private set; }
+	public GridBasis? RequestedMoveBasis { get; private set; }
+	public int MoveRollQuarters { get; private set; }
+	public bool IsMoveDragging { get; private set; }
 	public ESpatialOrientation? StagedMountedOn { get; private set; }
 	public string? ConfirmationError { get; private set; }
 
@@ -38,6 +43,7 @@ public sealed class InteractionState
 		ConfirmationError = null;
 		ClearHovers();
 		ClearAbilitySelection();
+		ClearMoveSelection();
 	}
 
 	public void ResetAfterTurn()
@@ -64,6 +70,45 @@ public sealed class InteractionState
 	}
 
 	public void ClearAbilitySelection() => StagedMountedOn = null;
+
+	public void BeginMoveSelection(Coord destination, GridBasis basis)
+	{
+		MoveDestination = destination;
+		RequestedMoveBasis = basis;
+		MoveRollQuarters = MovePose.RollQuarters(basis);
+		IsMoveDragging = true;
+		ConfirmationError = null;
+	}
+
+	public void SetMoveHeading(Coord heading)
+	{
+		if (MoveDestination is null)
+			return;
+
+		RequestedMoveBasis = MovePose.For(heading, MoveRollQuarters);
+		ConfirmationError = null;
+	}
+
+	public void RollMove(int delta)
+	{
+		if (MoveDestination is null || RequestedMoveBasis is not { } basis)
+			return;
+
+		MoveRollQuarters = Orientation.NormalizeQuarters(MoveRollQuarters + delta);
+		RequestedMoveBasis = MovePose.For(basis.Forward, MoveRollQuarters);
+		ConfirmationError = null;
+	}
+
+	public void EndMoveDrag() => IsMoveDragging = false;
+
+	public void ClearMoveSelection()
+	{
+		MoveDestination = null;
+		RequestedMoveBasis = null;
+		MoveRollQuarters = 0;
+		IsMoveDragging = false;
+		ConfirmationError = null;
+	}
 
 	public void ReportConfirmationFailure() =>
 		ConfirmationError = BattleHudCopy.ActionUnavailable;

@@ -47,7 +47,7 @@ public sealed class ActorRuntimeTests
 			MomentumPaid = 1,
 			SpinBraked = true,
 			SpinDiscount = true,
-			ActivePath = MovePathSession.Begin(
+			ActivePath = TorpedoPathSession.Begin(
 				"player",
 				Coord.Zero,
 				BodyFrame.WorldAligned(Coord.Zero),

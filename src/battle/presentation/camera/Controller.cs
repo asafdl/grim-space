@@ -180,6 +180,9 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public override void _Process(double delta)
 	{
+		if (GestureInputBlocked)
+			return;
+
 		var pan = Vector2.Zero;
 		if (Input.IsKeyPressed(Key.W))
 			pan.Y += 1f;
@@ -202,6 +205,9 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public override void _Input(InputEvent @event)
 	{
+		if (GestureInputBlocked)
+			return;
+
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mouseButton:
@@ -272,7 +278,21 @@ public partial class Controller : Camera3D, ICameraRig
 				GetViewport().SetInputAsHandled();
 				break;
 			}
+
 		}
+	}
+
+	public bool GestureInputBlocked { get; private set; }
+
+	public void SetGestureInputBlocked(bool blocked)
+	{
+		GestureInputBlocked = blocked;
+		if (!blocked)
+			return;
+
+		_orbiting = false;
+		_panning = false;
+		CancelAutomation();
 	}
 
 	private void SetPivotInternal(Vector3 pivot)

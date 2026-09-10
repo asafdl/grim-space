@@ -48,7 +48,7 @@ public sealed class RailgunReachTests
 	public void OptimisticMoveBubble_IncludesMaxFreeForwardSteps()
 	{
 		var free = MomentumConfig.ForLevel(MomentumConfig.MaxLevel).FreeForwardSteps;
-		Assert.Equal(4 + free, OffensiveReach.OptimisticMoveBubble(4));
+		Assert.Equal(4, OffensiveReach.OptimisticMoveBubble(4));
 	}
 
 	[Fact]
@@ -63,7 +63,7 @@ public sealed class RailgunReachTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, BattleTestFixture.Grid(size: 32));
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
 
-		Assert.Equal(MomentumConfig.MaxLevel * EnemySearchInput.MomentumWeight, bound);
+		Assert.Equal(0, bound);
 	}
 
 	[Fact]
@@ -77,7 +77,7 @@ public sealed class RailgunReachTests
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
 
 		Assert.Equal(
-			MomentumConfig.MaxLevel * EnemySearchInput.MomentumWeight + EnemySearchInput.DamageHitBonus,
+			EnemySearchInput.DamageHitBonus,
 			bound);
 	}
 
@@ -92,7 +92,7 @@ public sealed class RailgunReachTests
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, patrol.State.Id);
 
 		Assert.Equal(
-			MomentumConfig.MaxLevel * EnemySearchInput.MomentumWeight + EnemySearchInput.DamageHitBonus,
+			EnemySearchInput.DamageHitBonus,
 			bound);
 	}
 

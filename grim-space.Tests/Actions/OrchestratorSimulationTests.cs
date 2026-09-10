@@ -1,15 +1,8 @@
-using GrimSpace.Battle;
-using GrimSpace.Battle.World;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Abilities;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Spatial;
-using GrimSpace.Core.Engine;
+using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
-using GrimSpace.Tests.Movement;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -21,192 +14,58 @@ public sealed class OrchestratorSimulationTests
 	public void TryEnqueueRejectsBlockedMoveWithoutMutatingQueue()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward);
 		var battle = BattleTestFixture.BeginSimulation(
-			player,
+			BattleTestFixture.Player(origin),
 			enemy,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position });
-		var blockedMove = new MoveStepAction(PlayerId, ESpatialOrientation.Forward);
 
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(blockedMove));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId)));
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 		Assert.Equal(origin, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
 	}
 
 	[Fact]
-	public void DeadUnitsDoNotOccupyOrBlockTheirCells()
+	public void BatchTryEnqueueRollsBackWhenLaterStepExhaustsAp()
 	{
 		var origin = new Coord(5, 5, 5);
-		var enemyPosition = origin + Coord.Forward;
-		var battle = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(origin),
-			BattleTestFixture.Enemy(enemyPosition),
-			BattleTestFixture.Grid(),
-			new HashSet<Coord>());
-		var world = battle.PlayerAgent.Sim.World;
-		world.StateOf(BattleTestFixture.FirstEnemyId(battle)).HullPoints = 0;
-
-		Assert.DoesNotContain(enemyPosition, world.OccupiedCellsFor(PlayerId));
-		Assert.DoesNotContain(enemyPosition, world.BlockedFor(PlayerId));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			new MoveStepAction(PlayerId, ESpatialOrientation.Forward)));
-	}
-
-	[Fact]
-	public void BatchTryEnqueueRollsBackWhenLaterStepFails()
-	{
-		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin, momentum: 0, actionPoints: 1);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 5, 5));
+		var player = BattleTestFixture.Player(origin, actionPoints: 1);
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
-			enemy,
-			BattleTestFixture.Grid(),
-			new HashSet<Coord>());
-		var steps = new IAction[]
-		{
-			new MoveStepAction(PlayerId, ESpatialOrientation.Forward),
-			new MoveStepAction(PlayerId, ESpatialOrientation.Forward),
-		};
+			BattleTestFixture.Enemy(new Coord(0, 5, 5)));
+		IAction[] steps = [new MoveStepAction(PlayerId), new MoveStepAction(PlayerId)];
 
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(actions: steps));
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 		Assert.Equal(origin, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
+		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
 	}
 
 	[Fact]
-	public void NewSimulationStartsEmpty()
+	public void CombinedTurnMoveRollCostsOneAp()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
-		Assert.Equal(1, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			new MoveStepAction(PlayerId, EHeadingTurn.YawRight, ERollDirection.Clockwise)));
 
-		battle = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(origin),
-			BattleTestFixture.Enemy(new Coord(0, 0, 0)),
-			grid,
-			blocked);
-
-		Assert.Empty(battle.PlayerAgent.Sim.Actions);
-		Assert.Equal(0, battle.PlayerAgent.Sim.RuntimeFor(PlayerId).NetYaw);
-	}
-
-	[Theory]
-	[InlineData(2, false, 1)]
-	[InlineData(2, true, 2)]
-	public void EndOfPhaseActionAdjustsMomentumWhenStationary(int startMomentum, bool moved, int expectedMomentum)
-	{
-		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var runtime = new ActorRuntime();
-
-		if (moved)
-		{
-			runtime.ActivePath = MovePathSession.Begin(
-				PlayerId,
-				origin,
-				BodyFrame.From(player.State),
-				startMomentum,
-				player.State.Stats.MinPathApCost);
-			runtime.ActivePath.UsedDirectionsMask = 1;
-			runtime.ActivePath.PathForwardSteps = 1;
-		}
-
-		var board = BattleWorld.FromSnapshot(
-			[player, BattleTestFixture.Enemy(new Coord(0, 0, 0))],
-			new Dictionary<string, NonUnit>(),
-			BattleTestFixture.Grid(),
-			new HashSet<Coord>());
-		BattleTestApply.TryApplyOne(new EndOfPhaseAction(PlayerId), board, runtime, PlayerId);
-
-		Assert.Equal(expectedMomentum, board.StateOf(PlayerId).MomentumLevel);
-		Assert.False(runtime.ActivePath != null);
+		var state = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
+		Assert.Equal(origin + new Coord(1, 0, 0), state.Position);
+		Assert.Equal(new Coord(1, 0, 0), state.Fore);
+		Assert.Equal(Coord.Forward, state.Dorsal);
+		Assert.Equal(3, state.ActionPoints);
 	}
 
 	[Fact]
-	public void PeekEndOfPhaseAppliesMomentumDecayWhenStationary()
+	public void EndOfPhaseDoesNotChangeMomentum()
 	{
-		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin, momentum: 2);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var battle = BattleTestFixture.BeginSimulation(player, enemy, grid, blocked);
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5), momentum: 2);
 
-		battle.PlayerAgent.Sim.TryEnqueue(new RollAction(PlayerId, ERollDirection.Clockwise));
+		var peek = battle.PlayerAgent.Sim.Peek(new EndOfPhaseAction(PlayerId));
 
-		Assert.Equal(2, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).MomentumLevel);
-
-		var peek = battle.PlayerAgent.Sim.Peek(EndOfPhaseDef.Instance.Bind(PlayerId));
 		Assert.NotNull(peek);
-		Assert.Equal(1, peek.Value.World.StateOf(PlayerId).MomentumLevel);
+		Assert.Equal(2, peek.Value.World.StateOf(PlayerId).MomentumLevel);
 	}
-
-	[Fact]
-	public void ApplyCommittedActionsMutatesLiveStateIncrementally()
-	{
-		var origin = new Coord(5, 5, 5);
-		var startMomentum = 0;
-		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var nonUnits = new Dictionary<string, NonUnit>();
-		var runtime = new ActorRuntime();
-		var timeline = new Timeline();
-
-		foreach (var step in BuildForwardSteps(origin, steps: 3, startMomentum))
-		{
-			BattleTestApply.ApplyCommittedAction(
-				step,
-				[player, enemy],
-				grid,
-				nonUnits,
-				blocked,
-				runtime,
-				timeline,
-				PlayerId);
-		}
-
-		Assert.Equal(origin + Coord.Forward * 3, player.State.Position);
-		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, 3);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - expectedApCost, player.State.ActionPoints);
-	}
-
-	[Fact]
-	public void TryApplyAllStopsOnFirstIllegalAction()
-	{
-		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var postYawForward = origin + Coord.Cross(Coord.Up, Coord.Forward);
-		var enemy = BattleTestFixture.Enemy(postYawForward);
-		var grid = BattleTestFixture.Grid();
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var board = BattleWorld.FromSnapshot(
-			[player, enemy],
-			new Dictionary<string, NonUnit>(),
-			grid,
-			blocked);
-		var runtime = new ActorRuntime();
-		var yaw = new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight);
-		var blockedMove = new MoveStepAction(PlayerId, ESpatialOrientation.Forward);
-		var actions = new List<IAction> { yaw, blockedMove };
-
-		Assert.False(BattleTestApply.TryApplyAll(actions, board, runtime, PlayerId));
-		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - CombatConfig.HeadingTurn90ApCost,
-			board.StateOf(PlayerId).ActionPoints);
-		Assert.Equal(origin, board.StateOf(PlayerId).Position);
-	}
-
-	private static IReadOnlyList<MoveStepAction> BuildForwardSteps(Coord origin, int steps, int startMomentum) =>
-		MovementExpectations.PureForwardMove(PlayerId, origin, steps, startMomentum).Steps;
 }

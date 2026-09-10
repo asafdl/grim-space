@@ -10,7 +10,7 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public int MomentumGainedFromMovement { get; set; }
 	public bool SpinBraked { get; set; }
 	public bool SpinDiscount { get; set; }
-	public MovePathSession? ActivePath { get; set; }
+	public TorpedoPathSession? ActivePath { get; set; }
 
 	public int NetYaw => Orientation.NormalizeQuarters(RawYawQuarters);
 
@@ -33,7 +33,7 @@ public readonly record struct ActorRuntimeSnapshot(
 	int MomentumGainedFromMovement,
 	bool SpinBraked,
 	bool SpinDiscount,
-	MovePathSession? ActivePath);
+	TorpedoPathSession? ActivePath);
 
 public static class ActorRuntimeCopy
 {

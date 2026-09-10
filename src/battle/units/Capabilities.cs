@@ -16,15 +16,13 @@ public static class Capabilities
 	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] Movement =
 	[
 		MoveDef.Instance,
-		HeadingDef.Instance,
-		RollDef.Instance,
 	];
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(
 		EType type) =>
 		type switch
 		{
-			EType.Torpedo => [MoveDef.Instance, ..AbilitiesFor(EType.Torpedo)],
+			EType.Torpedo => [TorpedoMoveDef.Instance, ..AbilitiesFor(EType.Torpedo)],
 			_ => [..Movement, ..AbilitiesFor(type)],
 		};
 

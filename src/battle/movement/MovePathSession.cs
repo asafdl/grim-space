@@ -1,112 +1,22 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Movement;
 
-/// <summary>
-/// Live or cached move-path state: geometry, steps, and path-scoped budget/buildup.
-/// </summary>
-public sealed class MovePathSession
+public readonly record struct MoveCheckpoint(Coord Position, GridBasis Basis);
+
+public sealed record MovePathSession(
+	string ActorId,
+	IReadOnlyList<MoveStepAction> Steps,
+	IReadOnlyList<MoveCheckpoint> Checkpoints,
+	int RemainingAp,
+	State ResultState)
 {
-	public required string ActorId { get; init; }
-	public required Coord Origin { get; init; }
-	public required BodyFrame Frame { get; init; }
-	public List<Coord> Cells { get; } = [];
-	public List<MoveStepAction> Steps { get; } = [];
-	public int PathApSpent { get; set; }
-	public int MinPathApRemaining { get; set; }
-	public int PathForwardSteps { get; set; }
-	public int UsedDirectionsMask { get; set; }
-	public bool SpinBraked { get; set; }
-	public int MoveStartMomentumLevel { get; set; }
-	public int MovementBuildupLevel { get; set; }
-	public int MovementBuildupForwardSteps { get; set; }
-
-	public bool CanEndPath { get; set; } = true;
-
-	public Coord EndPosition => Cells[^1];
-
-	public MomentumConfig.Buildup MovementBuildup =>
-		new(MovementBuildupLevel, MovementBuildupForwardSteps);
-
-	public int ExtensionApCost(int baselinePathApSpent) => PathApSpent - baselinePathApSpent;
-
-	public static MovePathSession Begin(
-		string actorId,
-		Coord origin,
-		BodyFrame frame,
-		int momentumLevel,
-		int minPathApCost) =>
-		new()
-		{
-			ActorId = actorId,
-			Origin = origin,
-			Frame = frame,
-			MoveStartMomentumLevel = momentumLevel,
-			MovementBuildupLevel = momentumLevel,
-			MinPathApRemaining = minPathApCost,
-		};
-
-	public void ApplyStep(
-		MoveStepAction step,
-		Coord destination,
-		int stepApCost,
-		int directionBit)
-	{
-		Steps.Add(step);
-		Cells.Add(destination);
-
-		UsedDirectionsMask |= directionBit;
-		if (step.Direction == ESpatialOrientation.Forward)
-			PathForwardSteps++;
-
-		var minPathConsumption = System.Math.Max(1, stepApCost);
-		MinPathApRemaining = System.Math.Max(0, MinPathApRemaining - minPathConsumption);
-		if (stepApCost > 0)
-			PathApSpent += stepApCost;
-	}
-
-	public void MarkSpinBraked()
-	{
-		SpinBraked = true;
-		MinPathApRemaining = 0;
-	}
-
-	public bool CanEnd(int minPathApCost)
-	{
-		if (Steps.Count == 0)
-			return true;
-
-		if (MinPathApRemaining != 0)
-			return false;
-
-		if (SpinBraked)
-			return true;
-
-		return PathApSpent == 0 || PathApSpent >= minPathApCost;
-	}
-
-	public MovePathSession Clone()
-	{
-		var clone = new MovePathSession
-		{
-			ActorId = ActorId,
-			Origin = Origin,
-			Frame = Frame,
-			PathApSpent = PathApSpent,
-			MinPathApRemaining = MinPathApRemaining,
-			PathForwardSteps = PathForwardSteps,
-			UsedDirectionsMask = UsedDirectionsMask,
-			SpinBraked = SpinBraked,
-			MoveStartMomentumLevel = MoveStartMomentumLevel,
-			MovementBuildupLevel = MovementBuildupLevel,
-			MovementBuildupForwardSteps = MovementBuildupForwardSteps,
-			CanEndPath = CanEndPath,
-		};
-		clone.Cells.AddRange(Cells);
-		clone.Steps.AddRange(Steps);
-		return clone;
-	}
+	public IReadOnlyList<Coord> Cells => Checkpoints.Skip(1).Select(checkpoint => checkpoint.Position).ToList();
+	public Coord EndPosition => Checkpoints[^1].Position;
+	public GridBasis EndBasis => Checkpoints[^1].Basis;
+	public int ExtensionApCost => Steps.Count;
+	public int PathApSpent => ExtensionApCost;
+	public bool CanEndPath => true;
 }

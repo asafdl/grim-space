@@ -1,131 +1,66 @@
-using GrimSpace.Battle;
-using GrimSpace.Battle.World;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
-using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Core.Engine;
+using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
-using GrimSpace.Tests.Movement;
-using GrimSpace.Tests.Simulation;
 
 namespace GrimSpace.Tests.Actions;
 
 public sealed class LegalMoveTests
 {
 	[Fact]
-	public void EnqueueMovePathExpandsToMoveStepActions()
+	public void EnqueueMovePathAddsExactCombinedSteps()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = BattleTestFixture.BeginSimulation(player, enemy);
-
-		var move = Preview
-			.GetLegalMoves(planning)
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var move = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
 			.First(option => option.EndPosition == origin + Coord.Forward * 3);
 
-		Assert.True(BattleTestActions.TryEnqueueMovePath(planning, move));
-		Assert.Equal(3, planning.PlayerAgent.Sim.Actions.Count);
-		Assert.All(planning.PlayerAgent.Sim.Actions, action => Assert.IsType<MoveStepAction>(action));
-		Assert.Equal(move.EndPosition, planning.PlayerAgent.Sim.StateOf<ActorState>(planning.PlayerId).Position);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
+		Assert.Equal(move.Steps, battle.PlayerAgent.Sim.Actions);
+		Assert.Equal(move.EndPosition, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
+		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
 	}
 
 	[Fact]
-	public void LegalMoveSearchFromEmptyQueueMarksAllReachableCellsAsEndable()
+	public void ConfirmedSegmentCanBeFollowedByWeaponAndAnotherSegment()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = BattleTestFixture.BeginSimulation(player, enemy);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var first = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
+			.First(option => option.EndPosition == origin + Coord.Forward);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, first));
+		Assert.True(battle.PlayerAgent.TryEnqueue([new RailgunAction(battle.PlayerId)]));
 
-		var legalMoves = Preview.GetLegalMoves(planning);
-		var byEnd = legalMoves.ToDictionary(option => option.EndPosition);
+		var second = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
+			.First(option => option.Steps.Count == 1);
+		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, second));
 
-		Assert.Contains(origin + Coord.Forward * 3, byEnd.Keys);
-		Assert.Contains(origin + Coord.Forward * 4, byEnd.Keys);
-		Assert.True(byEnd.ContainsKey(origin + Coord.Forward));
-		Assert.True(byEnd[origin + Coord.Forward].CanEndPath);
-		Assert.True(byEnd.ContainsKey(origin + Coord.Forward * 2));
-		Assert.True(byEnd[origin + Coord.Forward * 2].CanEndPath);
-		Assert.True(byEnd[origin + Coord.Forward * 3].CanEndPath);
+		Assert.Collection(
+			battle.PlayerAgent.Sim.Actions,
+			action => Assert.IsType<MoveStepAction>(action),
+			action => Assert.IsType<RailgunAction>(action),
+			action => Assert.IsType<MoveStepAction>(action));
 	}
 
 	[Fact]
-	public void LegalMovesShowExtensionsAfterThreeStepMove()
+	public void UndoRestoresPositionBasisAndApForCombinedSegment()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var planning = BattleTestFixture.BeginSimulation(player, enemy);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		IAction[] segment =
+		[
+			new MoveStepAction(battle.PlayerId, EHeadingTurn.YawRight),
+			new MoveStepAction(battle.PlayerId, Roll: ERollDirection.Clockwise),
+		];
+		Assert.True(battle.PlayerAgent.TryEnqueue(segment));
 
-		var beforePlan = Preview.GetLegalMoves(planning);
-		Assert.Contains(
-			beforePlan,
-			option => option.EndPosition == origin + Coord.Forward * 4);
+		Assert.True(battle.PlayerAgent.Undo());
 
-		var threeStep = beforePlan.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		BattleTestActions.TryEnqueueMovePath(planning, threeStep);
-
-		var afterPlan = Preview.GetLegalMoves(planning);
-
-		Assert.Contains(afterPlan, option => option.EndPosition == origin + Coord.Forward * 4);
-		Assert.Equal(
-			origin + Coord.Forward * 3,
-			Preview.Simulate(planning).Position);
-		Assert.True(planning.PlayerAgent.Sim.TryCommit(out _, out _));
-	}
-
-	[Fact]
-	public void ViewMoveHighlightsMatchLegalMoveSearch()
-	{
-		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-
-		var expected = Preview.GetLegalMoves(battle);
-		var highlights = BattleTestCommands.DiscoverPaths(battle);
-
-		Assert.Equal(
-			expected.Select(option => option.EndPosition).OrderBy(coord => coord.Z),
-			highlights.Select(option => option.EndPosition).OrderBy(coord => coord.Z));
-	}
-
-	[Fact]
-	public void ApplyToLiveAppliesQueuedMoveActions()
-	{
-		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var blocked = new HashSet<Coord> { enemy.State.Position };
-		var planning = BattleTestFixture.BeginSimulation(player, enemy);
-
-		var move = Preview
-			.GetLegalMoves(planning)
-			.First(option => option.EndPosition == origin + Coord.Forward * 3);
-		BattleTestActions.TryEnqueueMovePath(planning, move);
-
-		var committed = planning.PlayerAgent.Sim.Actions.ToList();
-		var nonUnits = new Dictionary<string, NonUnit>();
-
-		Assert.Equal(3, committed.Count);
-		Assert.All(committed, action => Assert.IsType<MoveStepAction>(action));
-
-		BattleTestApply.ApplyToLive(
-			committed,
-			[player, enemy],
-			planning.Layout.Grid,
-			nonUnits,
-			blocked,
-			new Timeline(),
-			planning.PlayerId);
-
-		Assert.Equal(origin + Coord.Forward * 3, player.State.Position);
-		Assert.Equal(
-			MovementExpectations.MomentumAfterPureForwardPath(0, 3),
-			player.State.MomentumLevel);
-		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - move.PathApSpent,
-			player.State.ActionPoints);
+		var state = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId);
+		Assert.Equal(origin, state.Position);
+		Assert.Equal(Coord.Forward, state.Fore);
+		Assert.Equal(Coord.Up, state.Dorsal);
+		Assert.Equal(4, state.ActionPoints);
 	}
 }

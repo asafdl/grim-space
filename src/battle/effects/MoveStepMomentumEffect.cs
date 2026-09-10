@@ -6,7 +6,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class MoveStepMomentumEffect(ESpatialOrientation direction) : IEffect<BattleWorld, ActorRuntime>
+public sealed class TorpedoStepMomentumEffect(ESpatialOrientation direction) : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previousMomentum;
 	private int _previousBuildupLevel;
