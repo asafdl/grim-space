@@ -23,6 +23,25 @@ public sealed class TypewriterPagerTests
 	}
 
 	[Fact]
+	public void Tick_RevealsProviderCharacterCountWithoutRebuildingText()
+	{
+		var pager = new TypewriterPager();
+		var visibleCharacters = -1;
+		pager.VisibleCharacterCountChanged += count => visibleCharacters = count;
+		pager.ConfigureCharacterCounts(
+			1,
+			_ => 2,
+			charIntervalSeconds: 1.0,
+			showNextDelaySeconds: 10.0);
+
+		Assert.Equal(0, visibleCharacters);
+		pager.Tick(1.0);
+		Assert.Equal(1, visibleCharacters);
+		pager.Tick(1.0);
+		Assert.Equal(2, visibleCharacters);
+	}
+
+	[Fact]
 	public void Tick_ShowsNextPromptAfterTypingCompletes()
 	{
 		var pager = new TypewriterPager();

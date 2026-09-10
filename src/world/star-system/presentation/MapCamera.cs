@@ -193,6 +193,9 @@ public partial class MapCamera : Camera3D
 
 			case InputEventMouseMotion motion when _orbiting && !_facadeActive:
 			{
+				if (!PrepareManualInput())
+					break;
+
 				var delta = motion.Position - _lastMousePosition;
 				_lastMousePosition = motion.Position;
 				_pose.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);

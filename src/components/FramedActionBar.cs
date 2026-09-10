@@ -12,7 +12,7 @@ public sealed partial class FramedActionBar : Control
 
 	private readonly MarginContainer _bottom;
 	private readonly PanelContainer _frame;
-	private readonly Label _body;
+	private readonly Label? _textBody;
 	private readonly Button _action;
 
 	private int _minWidth = DefaultMinWidth;
@@ -20,7 +20,14 @@ public sealed partial class FramedActionBar : Control
 	private float _widthRatio = DefaultWidthRatio;
 
 	public FramedActionBar()
+		: this(CreateDefaultBody())
 	{
+	}
+
+	public FramedActionBar(Control body)
+	{
+		ArgumentNullException.ThrowIfNull(body);
+		_textBody = body as Label;
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
 		AnchorBottom = 1f;
@@ -85,15 +92,7 @@ public sealed partial class FramedActionBar : Control
 		content.AddThemeConstantOverride("separation", HudStyles.Margin);
 		panel.AddChild(content);
 
-		_body = new Label
-		{
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-			VerticalAlignment = VerticalAlignment.Center,
-			ThemeTypeVariation = "BodyLabel",
-		};
-		content.AddChild(_body);
+		content.AddChild(body);
 
 		var actionSlot = new CenterContainer
 		{
@@ -118,8 +117,8 @@ public sealed partial class FramedActionBar : Control
 
 	public string Text
 	{
-		get => _body.Text;
-		set => _body.Text = value;
+		get => TextBody.Text;
+		set => TextBody.Text = value;
 	}
 
 	public string ActionText
@@ -166,6 +165,20 @@ public sealed partial class FramedActionBar : Control
 
 	public override void _ExitTree() =>
 		GetViewport().SizeChanged -= UpdateLayout;
+
+	private Label TextBody =>
+		_textBody
+		?? throw new InvalidOperationException("This action bar uses a custom body control.");
+
+	private static Label CreateDefaultBody() =>
+		new()
+		{
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "BodyLabel",
+		};
 
 	private void UpdateLayout()
 	{

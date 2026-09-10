@@ -62,9 +62,6 @@ public partial class MapController : Node3D
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
-		var narrativeHud = new NarrativeHudOverlay();
-		_uiLayer.AddChild(narrativeHud);
-		_narrative = new NarrativeController(_orchestrator, narrativeHud);
 
 		var engagementHud = new EngagementHudOverlay();
 		_uiLayer.AddChild(engagementHud);
@@ -114,6 +111,13 @@ public partial class MapController : Node3D
 			() => new MapArrowIndicator());
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
+		var narrativeHud = new NarrativeHudOverlay();
+		_uiLayer.AddChild(narrativeHud);
+		_narrative = new NarrativeController(
+			_orchestrator,
+			narrativeHud,
+			_worldFocus,
+			_worldIndicator);
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;

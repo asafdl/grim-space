@@ -8,17 +8,21 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 {
 	private Control _root = null!;
 	private FramedActionBar _bar = null!;
+	private RichTextLabel _body = null!;
+	private Label _feedback = null!;
 	private readonly TypewriterPager _pager = new();
+	private NarrativeDefinition? _narrative;
 
 	private bool _busy;
 
 	public event Action? Completed;
+	public event Action<int>? PageBegan;
 
 	public NarrativeHudOverlay()
 	{
 		Layer = 25;
-		_pager.VisibleTextChanged += OnVisibleTextChanged;
-		_pager.PageBegan += _ => _bar.ActionVisible = false;
+		_pager.VisibleCharacterCountChanged += count => _body.VisibleCharacters = count;
+		_pager.PageBegan += OnPageBegan;
 		_pager.NextPromptReady += prompt =>
 		{
 			_bar.ActionVisible = true;
@@ -32,17 +36,23 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 	}
 
 	public bool IsOpen => Visible;
+	public RichTextLabel Body => _body;
 
 	public void Open(NarrativeDefinition narrative)
 	{
 		_busy = false;
+		_narrative = narrative;
 		Visible = true;
-		_pager.Configure(narrative.Pages);
+		_pager.ConfigureCharacterCounts(
+			narrative.Pages.Count,
+			_ => _body.GetTotalCharacterCount());
 		_bar.ActionVisible = false;
 	}
 
 	public void Close()
 	{
+		_narrative = null;
+		_feedback.Visible = false;
 		Visible = false;
 	}
 
@@ -51,7 +61,7 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 	public void ShowError(string message)
 	{
 		_busy = false;
-		_bar.Text = message;
+		ShowWorldLinkError(message);
 		_bar.ActionVisible = true;
 		_bar.ActionDisabled = false;
 		_bar.ActionText = "Next";
@@ -105,14 +115,56 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 		AddChild(_root);
 		HudThemes.Apply(_root, HudThemeFamily.Theatrical);
 
-		_bar = new FramedActionBar();
+		var bodyLayout = new VBoxContainer
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		_body = new RichTextLabel
+		{
+			BbcodeEnabled = true,
+			FitContent = true,
+			ScrollActive = false,
+			SelectionEnabled = false,
+			ContextMenuEnabled = false,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+			ThemeTypeVariation = "NarrativeRichTextLabel",
+			MetaUnderlined = true,
+			VisibleCharactersBehavior = TextServer.VisibleCharactersBehavior.CharsAfterShaping,
+		};
+		bodyLayout.AddChild(_body);
+		_feedback = new Label
+		{
+			Visible = false,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			ThemeTypeVariation = "MetadataLabel",
+		};
+		bodyLayout.AddChild(_feedback);
+
+		_bar = new FramedActionBar(bodyLayout);
 		_bar.ActionPressed += OnNextPressed;
 		_root.AddChild(_bar);
 	}
 
-	private void OnVisibleTextChanged(string text)
+	public void ClearWorldLinkError() => _feedback.Visible = false;
+
+	public void ShowWorldLinkError(string message)
 	{
-		_bar.Text = text;
+		_feedback.Text = message;
+		_feedback.Visible = true;
+	}
+
+	private void OnPageBegan(int pageIndex)
+	{
+		var narrative = _narrative
+			?? throw new InvalidOperationException("Cannot begin a narrative page before opening a narrative.");
+		_body.Text = narrative.Pages[pageIndex];
+		_body.VisibleCharacters = 0;
+		_feedback.Visible = false;
+		_bar.ActionVisible = false;
+		PageBegan?.Invoke(pageIndex);
 	}
 
 	private void OnNextPressed()

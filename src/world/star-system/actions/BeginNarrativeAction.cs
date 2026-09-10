@@ -25,7 +25,7 @@ public sealed class BeginNarrativeDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is BeginNarrativeAction begin
 		&& world.ActiveNarrativeId is null
-		&& MapNarratives.TryGet(begin.NarrativeId, out _)
+		&& MapNarratives.TryGet(begin.NarrativeId, world, out _)
 		&& world.UnitRegistry.TryGet(begin.ActorId, out _);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(

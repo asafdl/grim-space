@@ -7,7 +7,9 @@ public sealed class TypewriterPager
 	public const double DefaultCharIntervalSeconds = 0.048;
 	public const double DefaultShowNextDelaySeconds = 0.0;
 
-	private IReadOnlyList<string> _pages = [];
+	private IReadOnlyList<string>? _pages = [];
+	private Func<int, int> _pageCharacterCount = _ => 0;
+	private int _pageCount;
 	private Func<int, int, string> _nextButtonText = DefaultNextButtonText;
 	private double _charIntervalSeconds = DefaultCharIntervalSeconds;
 	private double _showNextDelaySeconds = DefaultShowNextDelaySeconds;
@@ -21,12 +23,13 @@ public sealed class TypewriterPager
 	private bool _completed;
 
 	public event Action<string>? VisibleTextChanged;
+	public event Action<int>? VisibleCharacterCountChanged;
 	public event Action<int>? PageBegan;
 	public event Action<TypewriterNextPrompt>? NextPromptReady;
 	public event Action? AutoAdvanceDue;
 	public event Action? Completed;
 
-	public bool IsActive => !_completed && _pageIndex < _pages.Count;
+	public bool IsActive => !_completed && _pageIndex < _pageCount;
 
 	public bool IsNextVisible => _nextVisible;
 
@@ -39,7 +42,47 @@ public sealed class TypewriterPager
 		double showNextDelaySeconds = DefaultShowNextDelaySeconds,
 		double? autoAdvanceSeconds = null)
 	{
+		ArgumentNullException.ThrowIfNull(pages);
 		_pages = pages;
+		Configure(
+			pages.Count,
+			pageIndex => pages[pageIndex].Length,
+			nextButtonText,
+			charIntervalSeconds,
+			showNextDelaySeconds,
+			autoAdvanceSeconds);
+	}
+
+	public void ConfigureCharacterCounts(
+		int pageCount,
+		Func<int, int> pageCharacterCount,
+		Func<int, int, string>? nextButtonText = null,
+		double charIntervalSeconds = DefaultCharIntervalSeconds,
+		double showNextDelaySeconds = DefaultShowNextDelaySeconds,
+		double? autoAdvanceSeconds = null)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
+		ArgumentNullException.ThrowIfNull(pageCharacterCount);
+		_pages = null;
+		Configure(
+			pageCount,
+			pageCharacterCount,
+			nextButtonText,
+			charIntervalSeconds,
+			showNextDelaySeconds,
+			autoAdvanceSeconds);
+	}
+
+	private void Configure(
+		int pageCount,
+		Func<int, int> pageCharacterCount,
+		Func<int, int, string>? nextButtonText,
+		double charIntervalSeconds,
+		double showNextDelaySeconds,
+		double? autoAdvanceSeconds)
+	{
+		_pageCount = pageCount;
+		_pageCharacterCount = pageCharacterCount;
 		_nextButtonText = nextButtonText ?? DefaultNextButtonText;
 		_charIntervalSeconds = charIntervalSeconds;
 		_showNextDelaySeconds = showNextDelaySeconds;
@@ -54,18 +97,23 @@ public sealed class TypewriterPager
 		if (!IsActive)
 			return;
 
-		var pageText = _pages[_pageIndex];
+		var characterCount = _pageCharacterCount(_pageIndex);
+		if (characterCount < 0)
+			throw new InvalidOperationException("Page character count cannot be negative.");
+
 		if (!_typingComplete)
 		{
 			_elapsed += delta;
-			while (_elapsed >= _charIntervalSeconds && _visibleChars < pageText.Length)
+			while (_elapsed >= _charIntervalSeconds && _visibleChars < characterCount)
 			{
 				_elapsed -= _charIntervalSeconds;
 				_visibleChars++;
-				VisibleTextChanged?.Invoke(pageText[.._visibleChars]);
+				VisibleCharacterCountChanged?.Invoke(_visibleChars);
+				if (_pages is not null)
+					VisibleTextChanged?.Invoke(_pages[_pageIndex][.._visibleChars]);
 			}
 
-			if (_visibleChars >= pageText.Length)
+			if (_visibleChars >= characterCount)
 			{
 				_typingComplete = true;
 				_elapsed = 0;
@@ -106,17 +154,19 @@ public sealed class TypewriterPager
 		_elapsed = 0;
 		_typingComplete = false;
 		_nextVisible = false;
-		VisibleTextChanged?.Invoke("");
+		VisibleCharacterCountChanged?.Invoke(0);
+		if (_pages is not null)
+			VisibleTextChanged?.Invoke("");
 		PageBegan?.Invoke(_pageIndex);
 	}
 
 	private void ShowNext()
 	{
 		_nextVisible = true;
-		NextPromptReady?.Invoke(new TypewriterNextPrompt(_nextButtonText(_pageIndex, _pages.Count), IsFinalPage()));
+		NextPromptReady?.Invoke(new TypewriterNextPrompt(_nextButtonText(_pageIndex, _pageCount), IsFinalPage()));
 	}
 
-	private bool IsFinalPage() => _pageIndex >= _pages.Count - 1;
+	private bool IsFinalPage() => _pageIndex >= _pageCount - 1;
 
 	private static string DefaultNextButtonText(int pageIndex, int pageCount) =>
 		pageIndex >= pageCount - 1 ? "Continue" : "Next";

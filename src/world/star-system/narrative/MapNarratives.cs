@@ -4,18 +4,17 @@ public static class MapNarratives
 {
 	public const string OpeningId = "map-opening";
 
-	private static readonly NarrativeDefinition Opening = new(
-		OpeningId,
-		[
-			"Oh, by Syndi's cores, WHAT. A. SHITHOLE this system is, how did I even end up here?",
-			"Oh right, the drugs...\nWell I need credits unless I want trouble, lets head to the Administrative Core and see if they have any bounties on offer.",
-		]);
-
-	public static bool TryGet(string id, out NarrativeDefinition definition)
+	public static bool TryGet(string id, StarMap world, out NarrativeDefinition definition)
 	{
 		if (id == OpeningId)
 		{
-			definition = Opening;
+			var administrativeCoreId = world.Blueprint.SupplyPlan.AdministrativePoiId;
+			definition = new NarrativeDefinition(
+				OpeningId,
+				[
+					"Oh, by Syndi's cores, WHAT. A. SHITHOLE this system is, how did I even end up here?",
+					$"Oh right, the drugs...\nWell I need credits unless I want trouble, lets head to the [url={administrativeCoreId}]Administrative Core[/url] and see if they have any bounties on offer.",
+				]);
 			return true;
 		}
 
