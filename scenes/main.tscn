@@ -258,6 +258,21 @@ max_value = 100.0
 step = 1.0
 value = 100.0
 
+[node name="GameplaySection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GameplayLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/GameplaySection"]
+layout_mode = 2
+theme_type_variation = &"SectionHeadingLabel"
+text = "Gameplay"
+
+[node name="ShowTutorials" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/GameplaySection"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Show tutorials"
+
 [node name="Apply" type="Button" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=432609691]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)

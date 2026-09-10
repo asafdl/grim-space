@@ -1,0 +1,103 @@
+[gd_resource type="Theme" load_steps=8 format=3]
+
+[ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-Medium.ttf" id="1_inter_medium"]
+[ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-SemiBold.ttf" id="2_inter_semibold"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_tutorial_dialog"]
+bg_color = Color(0.025, 0.045, 0.065, 0.88)
+border_width_left = 2
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.68, 0.78, 0.46)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 14
+content_margin_top = 12
+content_margin_right = 14
+content_margin_bottom = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_normal"]
+bg_color = Color(0.06, 0.1, 0.13, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.68, 0.78, 0.45)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 4
+content_margin_right = 10
+content_margin_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_hover"]
+bg_color = Color(0.08, 0.15, 0.19, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.78, 0.86, 0.8)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 4
+content_margin_right = 10
+content_margin_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_pressed"]
+bg_color = Color(0.1, 0.19, 0.23, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.62, 0.84, 0.9, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 4
+content_margin_right = 10
+content_margin_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_button_disabled"]
+bg_color = Color(0.04, 0.06, 0.08, 0.7)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.35, 0.4, 0.35)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 4
+content_margin_right = 10
+content_margin_bottom = 4
+
+[resource]
+default_font = ExtResource("1_inter_medium")
+default_font_size = 15
+Label/colors/font_color = Color(0.78, 0.84, 0.86, 1)
+BodyLabel/colors/font_color = Color(0.78, 0.84, 0.86, 1)
+SecondaryButton/styles/normal = SubResource("StyleBox_button_normal")
+SecondaryButton/styles/hover = SubResource("StyleBox_button_hover")
+SecondaryButton/styles/pressed = SubResource("StyleBox_button_pressed")
+SecondaryButton/styles/disabled = SubResource("StyleBox_button_disabled")
+SecondaryButton/styles/focus = SubResource("StyleBox_button_hover")
+SecondaryButton/colors/font_color = Color(0.76, 0.86, 0.89, 1)
+SecondaryButton/colors/font_hover_color = Color(0.9, 0.97, 1, 1)
+SecondaryButton/colors/font_pressed_color = Color(0.94, 0.99, 1, 1)
+SecondaryButton/colors/font_disabled_color = Color(0.45, 0.52, 0.54, 1)
+BodyLabel/base_type = &"Label"
+SecondaryButton/base_type = &"Button"
+TutorialDialogPanelContainer/base_type = &"PanelContainer"
+TutorialDialogPanelContainer/styles/panel = SubResource("StyleBox_tutorial_dialog")

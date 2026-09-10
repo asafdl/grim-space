@@ -4,6 +4,7 @@ using GrimSpace.Components;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
+using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Objectives;
 
@@ -12,6 +13,8 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public partial class MapController : Node3D
 {
 	private const float SecondsPerTick = 0.2f;
+	private const int TutorialDialogWidth = 380;
+	private const int TutorialDialogTop = 270;
 	private static readonly float[] SpeedOptions = [0.5f, 1f, 2f, 4f, 8f];
 
 	private MapView _view = null!;
@@ -30,6 +33,8 @@ public partial class MapController : Node3D
 	private ObjectivesHud _objectivesHud = null!;
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
+	private TutorialDialog? _tutorialDialog;
+	private StarSystemTutorialController? _tutorial;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 
@@ -118,6 +123,18 @@ public partial class MapController : Node3D
 			narrativeHud,
 			_worldFocus,
 			_worldIndicator);
+		if (GameSettings.ReadShowTutorials())
+		{
+			_tutorialDialog = new TutorialDialog();
+			_uiLayer.AddChild(_tutorialDialog);
+			ConfigureTutorialDialog(_tutorialDialog);
+			_tutorial = new StarSystemTutorialController(
+				_orchestrator,
+				RunSession.Instance.Run.TutorialProgress,
+				_tutorialDialog,
+				_worldFocus,
+				_worldIndicator);
+		}
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -140,6 +157,7 @@ public partial class MapController : Node3D
 		UpdateObjectivesHud();
 		_narrative.Sync();
 		_engagement.Sync();
+		_tutorial?.Sync();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
@@ -189,6 +207,7 @@ public partial class MapController : Node3D
 		_engagement.BattleRequested -= OnBattleRequested;
 		_engagement.Dispose();
 		_narrative.Dispose();
+		_tutorial?.Dispose();
 		base._ExitTree();
 	}
 
@@ -196,6 +215,12 @@ public partial class MapController : Node3D
 	{
 		if (_narrative.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (_tutorial?.IsActive == true)
 		{
 			GetViewport().SetInputAsHandled();
 			return;
@@ -300,9 +325,11 @@ public partial class MapController : Node3D
 
 	private void UpdateDebugUi()
 	{
+		var tutorialActive = _tutorial?.IsActive == true;
 		_tickLabel.Text = $"Tick {_orchestrator.Tick}";
 		_pauseButton.Text = _orchestrator.IsStepped ? "Resume" : "Pause";
-		_stepButton.Disabled = !_orchestrator.IsStepped;
+		_pauseButton.Disabled = tutorialActive;
+		_stepButton.Disabled = tutorialActive || !_orchestrator.IsStepped;
 		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
 	}
 
@@ -321,6 +348,15 @@ public partial class MapController : Node3D
 	{
 		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
 		_objectivesHud.Sync(objectives);
+	}
+
+	private static void ConfigureTutorialDialog(TutorialDialog dialog)
+	{
+		dialog.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+		dialog.OffsetLeft = -TutorialDialogWidth - HudStyles.Margin;
+		dialog.OffsetTop = TutorialDialogTop;
+		dialog.OffsetRight = -HudStyles.Margin;
+		dialog.OffsetBottom = TutorialDialogTop;
 	}
 
 	private void UpdateSystemLabel(StarMap world)

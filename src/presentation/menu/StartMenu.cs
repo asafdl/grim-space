@@ -21,6 +21,7 @@ public partial class StartMenu : Control
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
 	private HSlider _masterVolume = null!;
+	private CheckBox _showTutorials = null!;
 	private Button _startButton = null!;
 
 	public override void _Ready()
@@ -40,6 +41,7 @@ public partial class StartMenu : Control
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
 		_masterVolume = GetNode<HSlider>("%MasterVolume");
+		_showTutorials = GetNode<CheckBox>("%ShowTutorials");
 
 		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
 
@@ -61,6 +63,7 @@ public partial class StartMenu : Control
 		SelectResolution(width, height);
 		UpdateResolutionEnabled();
 		_masterVolume.Value = GameSettings.ReadMasterVolume() * 100f;
+		_showTutorials.ButtonPressed = GameSettings.ReadShowTutorials();
 	}
 
 	private void SelectResolution(int width, int height)
@@ -109,6 +112,7 @@ public partial class StartMenu : Control
 		ApplyVideoSettings();
 		SaveVideoSettings();
 		ApplyAudioSettings();
+		GameSettings.SaveShowTutorials(_showTutorials.ButtonPressed);
 	}
 
 	private void ShowSettingsPanel()

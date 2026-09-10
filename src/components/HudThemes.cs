@@ -6,6 +6,7 @@ public static class HudThemes
 {
 	public const string TheatricalPath = "res://assets/ui/themes/theatrical_theme.tres";
 	public const string InformativePath = "res://assets/ui/themes/informative_theme.tres";
+	public const string TutorialPath = "res://assets/ui/themes/tutorial_theme.tres";
 	public const string BattlePath = "res://assets/ui/themes/battle_hud_theme.tres";
 	public const string DebugPath = "res://assets/ui/themes/debug_theme.tres";
 
@@ -14,6 +15,7 @@ public static class HudThemes
 		{
 			HudThemeFamily.Theatrical => TheatricalPath,
 			HudThemeFamily.Informative => InformativePath,
+			HudThemeFamily.Tutorial => TutorialPath,
 			HudThemeFamily.Battle => BattlePath,
 			HudThemeFamily.Debug => DebugPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(family)),

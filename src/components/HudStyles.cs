@@ -12,6 +12,7 @@ public static class HudStyles
 
 	public const string InformativePanelType = "InformativePanelContainer";
 	public const string ObjectivesHudPanelType = "ObjectivesHudPanelContainer";
+	public const string TutorialDialogPanelType = "TutorialDialogPanelContainer";
 	public const string InformativeListVBoxType = "InformativeListVBoxContainer";
 	public const string InformativeListItemPanelType = "InformativeListItemPanelContainer";
 	public const string InformativeListItemHBoxType = "InformativeListItemHBoxContainer";

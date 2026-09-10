@@ -8,6 +8,7 @@ public enum HudThemeFamily
 {
 	Theatrical,
 	Informative,
+	Tutorial,
 	Battle,
 	Debug,
 }

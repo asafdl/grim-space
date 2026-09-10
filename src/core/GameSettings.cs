@@ -62,6 +62,21 @@ public static class GameSettings
 	public static void ApplySavedAudioConfig() =>
 		ApplyMasterVolume(ReadMasterVolume());
 
+	public static bool ReadShowTutorials()
+	{
+		if (!TryLoad(out var config))
+			return true;
+
+		return config!.GetValue("gameplay", "show_tutorials", true).AsBool();
+	}
+
+	public static void SaveShowTutorials(bool enabled)
+	{
+		var config = LoadOrCreate();
+		config.SetValue("gameplay", "show_tutorials", enabled);
+		config.Save(SettingsPath);
+	}
+
 	public static void ApplyMasterVolume(float linear)
 	{
 		var bus = AudioServer.GetBusIndex("Master");
