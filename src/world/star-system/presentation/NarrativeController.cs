@@ -12,9 +12,7 @@ public sealed class NarrativeController : IDisposable
 	private readonly StarSystemOrchestrator _orchestrator;
 	private readonly StarMapPlayerExecutionAgent _playerAgent;
 	private readonly NarrativeHudOverlay _hud;
-	private readonly IWorldFocus _worldFocus;
-	private readonly IWorldIndicator _worldIndicator;
-	private IWorldIndicatorHandle? _indicatorHandle;
+	private readonly WorldLinkNavigator _worldLinks;
 
 	public NarrativeController(
 		StarSystemOrchestrator orchestrator,
@@ -26,8 +24,7 @@ public sealed class NarrativeController : IDisposable
 		_playerAgent = orchestrator.PlayerAgent
 			?? throw new InvalidOperationException("Narrative requires a player execution agent.");
 		_hud = hud;
-		_worldFocus = worldFocus;
-		_worldIndicator = worldIndicator;
+		_worldLinks = new WorldLinkNavigator(worldFocus, worldIndicator);
 		_hud.Completed += OnCompleted;
 		_hud.PageBegan += OnPageBegan;
 		_hud.Body.MetaClicked += OnMetaClicked;
@@ -77,28 +74,20 @@ public sealed class NarrativeController : IDisposable
 		}
 
 		var objectId = metadata.AsString();
-		var focus = _worldFocus.Focus(objectId);
-		if (focus is not WorldFocusResult.Accepted)
+		var result = _worldLinks.Follow(objectId);
+		if (result is not WorldLinkNavigationResult.Followed)
 		{
-			ShowWorldLinkFailure(objectId, "focus", focus);
+			ShowWorldLinkFailure(objectId, result);
 			return;
 		}
 
-		var indicator = _worldIndicator.Show(objectId);
-		if (indicator is not WorldIndicatorResult.Shown shown)
-		{
-			ShowWorldLinkFailure(objectId, "indicator", indicator);
-			return;
-		}
-
-		_indicatorHandle = shown.Handle;
 		_hud.ClearWorldLinkError();
 	}
 
-	private void ShowWorldLinkFailure(string objectId, string tool, object result)
+	private void ShowWorldLinkFailure(string objectId, WorldLinkNavigationResult result)
 	{
 		GD.PushWarning(
-			$"Narrative world link '{objectId}' failed during {tool}: {result.GetType().Name}.");
+			$"Narrative world link '{objectId}' failed: {result.GetType().Name}.");
 		_hud.ShowWorldLinkError("Target is no longer available.");
 	}
 
@@ -106,8 +95,7 @@ public sealed class NarrativeController : IDisposable
 
 	private void ClearIndicator()
 	{
-		_indicatorHandle?.Dispose();
-		_indicatorHandle = null;
+		_worldLinks.Clear();
 	}
 
 	public void Dispose()
@@ -117,5 +105,6 @@ public sealed class NarrativeController : IDisposable
 		_hud.Completed -= OnCompleted;
 		_hud.PageBegan -= OnPageBegan;
 		_hud.Body.MetaClicked -= OnMetaClicked;
+		_worldLinks.Dispose();
 	}
 }

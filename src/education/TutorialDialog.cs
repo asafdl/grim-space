@@ -5,7 +5,7 @@ namespace GrimSpace.Education;
 
 public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 {
-	private readonly Label _message;
+	private readonly RichTextLabel _message;
 	private readonly Button _accept;
 
 	public TutorialDialog()
@@ -29,14 +29,20 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		content.AddThemeConstantOverride("separation", 10);
 		panel.AddChild(content);
 
-		_message = new Label
+		_message = new RichTextLabel
 		{
+			BbcodeEnabled = true,
+			FitContent = true,
+			ScrollActive = false,
+			SelectionEnabled = false,
+			ContextMenuEnabled = false,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			ThemeTypeVariation = "BodyLabel",
+			ThemeTypeVariation = "TutorialRichTextLabel",
+			MetaUnderlined = true,
 		};
-		_message.AddThemeFontSizeOverride("font_size", 15);
+		_message.AddThemeFontSizeOverride("normal_font_size", 15);
+		_message.MetaClicked += OnMetaClicked;
 		content.AddChild(_message);
 
 		_accept = new Button
@@ -52,6 +58,8 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 	}
 
 	public event Action? Accepted;
+
+	public event Action<string>? WorldLinkClicked;
 
 	public bool IsOpen => Visible;
 
@@ -71,4 +79,15 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 	}
 
 	public void Close() => Visible = false;
+
+	private void OnMetaClicked(Variant metadata)
+	{
+		if (metadata.VariantType != Variant.Type.String)
+		{
+			GD.PushError($"Tutorial received unsupported link metadata type '{metadata.VariantType}'.");
+			return;
+		}
+
+		WorldLinkClicked?.Invoke(metadata.AsString());
+	}
 }

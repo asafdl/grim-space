@@ -1,4 +1,5 @@
 using GrimSpace.Education;
+using Godot;
 
 namespace GrimSpace.Tutorials;
 
@@ -19,9 +20,7 @@ public sealed class TutorialRunner : IDisposable
 {
 	private readonly TutorialProgress _progress;
 	private readonly ITutorialDialog _dialog;
-	private readonly IWorldFocus _worldFocus;
-	private readonly IWorldIndicator _worldIndicator;
-	private IWorldIndicatorHandle? _indicatorHandle;
+	private readonly WorldLinkNavigator _worldLinks;
 
 	public TutorialRunner(
 		TutorialProgress progress,
@@ -31,9 +30,11 @@ public sealed class TutorialRunner : IDisposable
 	{
 		_progress = progress ?? throw new ArgumentNullException(nameof(progress));
 		_dialog = dialog ?? throw new ArgumentNullException(nameof(dialog));
-		_worldFocus = worldFocus ?? throw new ArgumentNullException(nameof(worldFocus));
-		_worldIndicator = worldIndicator ?? throw new ArgumentNullException(nameof(worldIndicator));
+		_worldLinks = new WorldLinkNavigator(
+			worldFocus ?? throw new ArgumentNullException(nameof(worldFocus)),
+			worldIndicator ?? throw new ArgumentNullException(nameof(worldIndicator)));
 		_dialog.Accepted += OnAccepted;
+		_dialog.WorldLinkClicked += OnWorldLinkClicked;
 	}
 
 	public event Action<TutorialFlow>? Started;
@@ -54,18 +55,14 @@ public sealed class TutorialRunner : IDisposable
 		if (ActiveFlow is { } active)
 			return new TutorialStartResult.Busy(active.Id);
 
-		var indicator = _worldIndicator.Show(flow.WorldObjectId);
-		if (indicator is not WorldIndicatorResult.Shown shown)
-			return new TutorialStartResult.IndicatorFailed(indicator);
-
-		var focus = _worldFocus.Focus(flow.WorldObjectId);
-		if (focus is not WorldFocusResult.Accepted)
+		var navigation = _worldLinks.Follow(flow.WorldObjectId);
+		if (navigation is WorldLinkNavigationResult.FocusFailed focusFailed)
+			return new TutorialStartResult.FocusFailed(focusFailed.Result);
+		if (navigation is WorldLinkNavigationResult.IndicatorFailed indicatorFailed)
 		{
-			shown.Handle.Dispose();
-			return new TutorialStartResult.FocusFailed(focus);
+			return new TutorialStartResult.IndicatorFailed(indicatorFailed.Result);
 		}
 
-		_indicatorHandle = shown.Handle;
 		ActiveFlow = flow;
 		_dialog.Open(flow.Dialog);
 		Started?.Invoke(flow);
@@ -78,24 +75,35 @@ public sealed class TutorialRunner : IDisposable
 			?? throw new InvalidOperationException("Tutorial dialog accepted without an active flow.");
 
 		_dialog.Close();
-		ClearIndicator();
+		_worldLinks.Clear();
 		_progress.Complete(flow.Id);
 		ActiveFlow = null;
 		Completed?.Invoke(flow);
 	}
 
-	private void ClearIndicator()
+	private void OnWorldLinkClicked(string objectId)
 	{
-		_indicatorHandle?.Dispose();
-		_indicatorHandle = null;
+		if (ActiveFlow is null)
+		{
+			GD.PushWarning("Tutorial link clicked without an active flow.");
+			return;
+		}
+
+		var result = _worldLinks.Follow(objectId);
+		if (result is not WorldLinkNavigationResult.Followed)
+		{
+			GD.PushWarning(
+				$"Tutorial world link '{objectId}' failed: {result.GetType().Name}.");
+		}
 	}
 
 	public void Dispose()
 	{
 		_dialog.Accepted -= OnAccepted;
+		_dialog.WorldLinkClicked -= OnWorldLinkClicked;
 		if (ActiveFlow is not null)
 			_dialog.Close();
 		ActiveFlow = null;
-		ClearIndicator();
+		_worldLinks.Dispose();
 	}
 }

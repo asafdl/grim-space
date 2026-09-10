@@ -12,7 +12,7 @@ public static class MapNarratives
 			definition = new NarrativeDefinition(
 				OpeningId,
 				[
-					"Oh, by Syndi's cores, WHAT. A. SHITHOLE. this system is, how did I even end up here?",
+					"Oh, Syndi's beard, WHAT. A. SHITHOLE. this system is, how did I even end up here?",
 					$"Oh right, the drugs...\nWell I need credits unless I want trouble, lets head to the [url={administrativeCoreId}]Administrative Core[/url] and see if they have any bounties on offer.",
 				]);
 			return true;

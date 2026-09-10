@@ -15,6 +15,6 @@ public static class FirstContractTutorial
 			map.Blueprint.SupplyPlan.AdministrativePoiId,
 			new TutorialDialogContent(
 				"Your first contract",
-				"Right-click the Administrative Core on the map to move your fleet there."));
+				$"Right-click the [url={map.Blueprint.SupplyPlan.AdministrativePoiId}]Administrative Core[/url] on the map to move your fleet there."));
 	}
 }

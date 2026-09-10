@@ -133,7 +133,8 @@ public partial class MapController : Node3D
 				RunSession.Instance.Run.TutorialProgress,
 				_tutorialDialog,
 				_worldFocus,
-				_worldIndicator);
+				_worldIndicator,
+				() => _poiFacade.IsStrategic);
 		}
 
 		var world = _orchestrator.Map;
@@ -157,7 +158,6 @@ public partial class MapController : Node3D
 		UpdateObjectivesHud();
 		_narrative.Sync();
 		_engagement.Sync();
-		_tutorial?.Sync();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
@@ -165,6 +165,8 @@ public partial class MapController : Node3D
 			_poiFacade.ReEnterFacade(poi, world);
 			MapNavigationContext.ClearReturnToFacade();
 		}
+
+		_tutorial?.Sync();
 	}
 
 	public override void _Process(double delta)
@@ -186,6 +188,7 @@ public partial class MapController : Node3D
 		_narrative.Sync();
 		_engagement.Sync();
 		_poiFacade.Update();
+		_tutorial?.Sync();
 
 		if (!_poiFacade.IsStrategic)
 		{
