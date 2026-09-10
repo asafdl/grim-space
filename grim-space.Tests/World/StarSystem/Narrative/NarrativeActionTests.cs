@@ -3,6 +3,7 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Narrative;
+using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
@@ -60,6 +61,7 @@ public sealed class NarrativeActionTests(DevStarMapFixture maps)
 		Assert.Null(orchestrator.Map.ActiveNarrativeId);
 		Assert.False(orchestrator.Map.WaitingForPlayerInput);
 		Assert.True(orchestrator.CanAdvance);
+		Assert.Contains(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
 	}
 
 	[Fact]

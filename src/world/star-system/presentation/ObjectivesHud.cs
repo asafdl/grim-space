@@ -7,6 +7,8 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public partial class ObjectivesHud : MarginContainer
 {
 	private const int PanelWidth = 500;
+	private const int ObjectiveTitleFontSize = 18;
+	private const int ObjectiveSummaryFontSize = 16;
 
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
@@ -82,7 +84,7 @@ public partial class ObjectivesHud : MarginContainer
 			_entriesHost.AddChild(WrapEntry(CreateEntry(objectives[index], index + 1)));
 	}
 
-	private Control WrapEntry(HBoxContainer row)
+	private Control WrapEntry(Control content)
 	{
 		var panel = new PanelContainer
 		{
@@ -90,7 +92,7 @@ public partial class ObjectivesHud : MarginContainer
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			ThemeTypeVariation = HudStyles.InformativeListItemPanelType,
 		};
-		panel.AddChild(row);
+		panel.AddChild(content);
 		return panel;
 	}
 
@@ -110,28 +112,33 @@ public partial class ObjectivesHud : MarginContainer
 			ThemeTypeVariation = HudStyles.InformativeItemIndexLabelType,
 		});
 
-		row.AddChild(new Label
+		var details = new VBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		var title = new Label
 		{
 			Text = objective.Title.ToUpperInvariant(),
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
-		});
+		};
+		title.AddThemeFontSizeOverride("font_size", ObjectiveTitleFontSize);
+		details.AddChild(title);
 
-		row.AddChild(new Label
-		{
-			Text = "//",
-			MouseFilter = MouseFilterEnum.Ignore,
-			ThemeTypeVariation = HudStyles.InformativeItemSeparatorLabelType,
-		});
-
-		row.AddChild(new Label
+		var summary = new Label
 		{
 			Text = objective.Summary,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			ThemeTypeVariation = HudStyles.InformativeItemDescriptionLabelType,
-		});
+		};
+		summary.AddThemeFontSizeOverride("font_size", ObjectiveSummaryFontSize);
+		details.AddChild(summary);
+		row.AddChild(details);
 
 		return row;
 	}

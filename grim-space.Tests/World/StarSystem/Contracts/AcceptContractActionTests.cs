@@ -4,6 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.Tests.World.StarSystem;
@@ -88,6 +89,17 @@ public sealed class AcceptContractActionTests(DevStarMapFixture maps)
 		Assert.Contains(
 			engine.History().OfType<AcceptContractAction>(),
 			action => action.ContractId == contractId && action.ActorId == unitId);
+	}
+
+	[Fact]
+	public void Commit_CompletesFirstContractStoryObjective()
+	{
+		var (engine, unitId, contractId) = CreateEngine();
+		engine.World.StoryObjectives.Add(StoryObjective.FirstContract);
+
+		engine.Commit(new AcceptContractAction(unitId, contractId));
+
+		Assert.DoesNotContain(StoryObjective.FirstContract, engine.World.StoryObjectives.Active);
 	}
 
 	[Fact]

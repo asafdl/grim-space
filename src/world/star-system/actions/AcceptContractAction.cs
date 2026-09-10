@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
@@ -81,6 +82,7 @@ public sealed class AcceptContractDef
 				entry => (IReadOnlyList<string>)entry.Value,
 				StringComparer.Ordinal));
 		effects.Add(new ActivateContractEffect(state));
+		effects.Add(new CompleteStoryObjectiveEffect(StoryObjective.FirstContract));
 		return effects;
 	}
 }
