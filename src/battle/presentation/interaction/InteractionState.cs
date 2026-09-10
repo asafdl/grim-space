@@ -99,8 +99,6 @@ public sealed class InteractionState
 		ConfirmationError = null;
 	}
 
-	public void EndMoveDrag() => IsMoveDragging = false;
-
 	public void ClearMoveSelection()
 	{
 		MoveDestination = null;

@@ -115,16 +115,7 @@ public sealed class PresentationFrameBuilder
 			: [];
 
 		var instruction = default(ActionInstruction);
-		if (canControl && state.Mode == EPlayerMode.Move && state.MoveDestination is not null)
-		{
-			instruction = new ActionInstruction(
-				Visible: true,
-				Label: selectedMove is null
-					? BattleHudCopy.MovePoseUnavailable
-					: BattleHudCopy.ConfirmMove(selectedMove.ExtensionApCost, selectedMove.RemainingAp),
-				CanConfirm: selectedMove is not null);
-		}
-		else if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
+		if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
 		{
 			var legalCapabilities = Capabilities.LegalCapabilities(sim, playerId);
 			var activation = AbilityActivation.For(activeSpec.Def);

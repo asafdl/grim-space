@@ -66,7 +66,6 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
 	public event Action<Coord>? MoveHeadingRequested;
 	public event Action<int>? MoveRollRequested;
-	public event Action? MoveDragEnded;
 	public event Action? MoveSelectionCanceled;
 	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
@@ -155,9 +154,7 @@ public sealed partial class UserIntentTranslator : Node
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
-					_moveDragging = false;
-					_camera.SetGestureInputBlocked(false);
-					MoveDragEnded?.Invoke();
+					QueueMoveSelection();
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
@@ -240,24 +237,11 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnConfirmAction()
 	{
-		if (!_enabled || !_canIssueActions)
+		if (!_enabled || !_canIssueActions || _mode == EPlayerMode.Move)
 			return;
 
 		if (!_instruction.CanConfirm)
 			return;
-
-		if (_mode == EPlayerMode.Move)
-		{
-			if (_selectedMove is null || !_actions.TryEnqueue(_selectedMove.Steps.Cast<IAction>().ToArray()))
-			{
-				ConfirmationFailed?.Invoke();
-				return;
-			}
-
-			MoveSelectionCanceled?.Invoke();
-			ClearHovers();
-			return;
-		}
 
 		if (_activeAbilitySpec is null)
 			return;
@@ -327,8 +311,9 @@ public sealed partial class UserIntentTranslator : Node
 		}
 	}
 
-	private bool CanConfirmAction() => _instruction.CanConfirm
-		&& (_mode == EPlayerMode.Move ? _selectedMove is not null : _activeAbilitySpec is not null);
+	private bool CanConfirmAction() => _mode != EPlayerMode.Move
+		&& _instruction.CanConfirm
+		&& _activeAbilitySpec is not null;
 
 	private bool TryCancelAbilityMode()
 	{
@@ -431,6 +416,18 @@ public sealed partial class UserIntentTranslator : Node
 		_moveDestination = null;
 		_camera.SetGestureInputBlocked(false);
 		MoveSelectionCanceled?.Invoke();
+	}
+
+	private void QueueMoveSelection()
+	{
+		var selected = _selectedMove;
+		CancelMoveSelection();
+
+		if (selected is null)
+			return;
+
+		if (!_actions.TryEnqueue(selected.Steps.Cast<IAction>().ToArray()))
+			ConfirmationFailed?.Invoke();
 	}
 
 	private ESpatialOrientation? PickTorpedoMountedOn(Vector2 screenPosition)

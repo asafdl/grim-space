@@ -9,18 +9,16 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class GridView : Node3D
 {
-	private const float HighlightCellScale = 0.8f;
-	private const float EndpointScaleLowAp = 0.85f;
-	private const float EndpointScaleMidAp = 0.7f;
-	private const float EndpointScaleHighAp = 0.55f;
+	private const float DotRadius = 0.18f;
+	private const float PathDotScale = 0.7f;
+	private const float EndpointDotScale = 1f;
+	private const float HoverDotScale = 1.4f;
 
 	private BoundedGrid? _grid;
 	private readonly Dictionary<Coord, MeshInstance3D> _activeHighlights = new();
 	private readonly Queue<MeshInstance3D> _freeHighlights = new();
 
-	private StandardMaterial3D? _endpointApLow;
-	private StandardMaterial3D? _endpointApMid;
-	private StandardMaterial3D? _endpointApHigh;
+	private StandardMaterial3D? _endpointMaterial;
 	private StandardMaterial3D? _pathMaterial;
 	private StandardMaterial3D? _hoverMaterial;
 
@@ -29,11 +27,8 @@ public partial class GridView : Node3D
 		_grid = grid;
 		ReleaseActiveHighlights();
 
-		// Categorical AP: ≤2 sage-green, 3 clear blue, ≥4 deep indigo — hues spaced apart.
-		_endpointApLow = CreateMaterial(new Color(0.38f, 0.62f, 0.45f, 0.52f));
-		_endpointApMid = CreateMaterial(new Color(0.32f, 0.48f, 0.78f, 0.54f));
-		_endpointApHigh = CreateMaterial(new Color(0.28f, 0.34f, 0.52f, 0.56f));
-		_pathMaterial = CreateMaterial(new Color(0.45f, 0.5f, 0.6f, 0.22f));
+		_endpointMaterial = CreateMaterial(new Color(0.32f, 0.48f, 0.78f, 0.7f));
+		_pathMaterial = CreateMaterial(new Color(0.45f, 0.5f, 0.6f, 0.45f));
 		_hoverMaterial = CreateMaterial(new Color(0.95f, 0.95f, 1f, 0.65f));
 	}
 
@@ -72,101 +67,92 @@ public partial class GridView : Node3D
 
 		ReleaseActiveHighlights();
 
-		var endpointAp = new Dictionary<Coord, int>();
+		var endpoints = new HashSet<Coord>();
 		foreach (var option in paths)
-			endpointAp[option.EndPosition] = option.ExtensionApCost;
+			endpoints.Add(option.EndPosition);
 
 		var pathSet = new HashSet<Coord>(path);
 
-		PresentationDiagnostics.LogMovePreviewHighlights(paths.Count, endpointAp.Count);
+		PresentationDiagnostics.LogMovePreviewHighlights(paths.Count, endpoints.Count);
 
 		foreach (var coord in pathSet)
 		{
 			if (coord == target)
 				continue;
 
-			SetCellHighlight(coord, _pathMaterial!);
+			SetDot(coord, _pathMaterial!, PathDotScale);
 		}
 
-		foreach (var (coord, ap) in endpointAp)
+		foreach (var coord in endpoints)
 		{
 			if (coord == target || pathSet.Contains(coord))
 				continue;
 
-			SetCellHighlight(coord, EndpointMaterialForAp(ap), EndpointScaleForAp(ap));
+			SetDot(coord, _endpointMaterial!, EndpointDotScale);
 		}
 
 		if (target is Coord hovered)
-			SetCellHighlight(hovered, _hoverMaterial!);
+			SetDot(hovered, _hoverMaterial!, HoverDotScale);
 	}
 
 	private bool EnsureMaterials() =>
 		_grid is not null
-		&& _endpointApLow is not null
-		&& _endpointApMid is not null
-		&& _endpointApHigh is not null
+		&& _endpointMaterial is not null
 		&& _pathMaterial is not null
 		&& _hoverMaterial is not null;
 
-	private StandardMaterial3D EndpointMaterialForAp(int ap) =>
-		ap switch
-		{
-			<= 2 => _endpointApLow!,
-			3 => _endpointApMid!,
-			_ => _endpointApHigh!,
-		};
-
-	private static float EndpointScaleForAp(int ap) =>
-		ap switch
-		{
-			<= 2 => EndpointScaleLowAp,
-			3 => EndpointScaleMidAp,
-			_ => EndpointScaleHighAp,
-		};
-
-	private void SetCellHighlight(Coord coord, StandardMaterial3D material, float scale = HighlightCellScale)
+	private void SetDot(Coord coord, StandardMaterial3D material, float scale)
 	{
 		if (_activeHighlights.TryGetValue(coord, out var existing))
 		{
 			existing.MaterialOverride = material;
-			ApplyHighlightScale(existing, scale);
+			ApplyDotScale(existing, scale);
 			return;
 		}
 
-		var cell = AcquireHighlightMesh(scale);
-		cell.Position = WorldMapping.ToWorld(coord);
-		cell.MaterialOverride = material;
-		_activeHighlights[coord] = cell;
+		var dot = AcquireDot(scale);
+		dot.Position = WorldMapping.ToWorld(coord);
+		dot.MaterialOverride = material;
+		_activeHighlights[coord] = dot;
 	}
 
-	private MeshInstance3D AcquireHighlightMesh(float scale)
+	private MeshInstance3D AcquireDot(float scale)
 	{
 		if (_freeHighlights.Count > 0)
 		{
 			var mesh = _freeHighlights.Dequeue();
-			ApplyHighlightScale(mesh, scale);
+			ApplyDotScale(mesh, scale);
 			mesh.Visible = true;
 			return mesh;
 		}
 
-		var cell = new MeshInstance3D
+		var dot = new MeshInstance3D
 		{
-			Mesh = new BoxMesh { Size = HighlightSize(scale) },
+			Mesh = CreateDotMesh(scale),
 			Visible = true,
 		};
-		PresentationLayers.MarkUx(cell);
-		AddChild(cell);
-		return cell;
+		PresentationLayers.MarkUx(dot);
+		AddChild(dot);
+		return dot;
 	}
 
-	private static void ApplyHighlightScale(MeshInstance3D mesh, float scale)
+	private static void ApplyDotScale(MeshInstance3D mesh, float scale)
 	{
-		if (mesh.Mesh is BoxMesh box)
-			box.Size = HighlightSize(scale);
+		if (mesh.Mesh is not SphereMesh sphere)
+			return;
+
+		sphere.Radius = DotRadius * scale;
+		sphere.Height = DotRadius * scale * 2f;
 	}
 
-	private static Vector3 HighlightSize(float scale) =>
-		Vector3.One * WorldMapping.CellSize * scale;
+	private static SphereMesh CreateDotMesh(float scale) =>
+		new()
+		{
+			Radius = DotRadius * scale,
+			Height = DotRadius * scale * 2f,
+			RadialSegments = 12,
+			Rings = 6,
+		};
 
 	private static StandardMaterial3D CreateMaterial(Color color) =>
 		new()

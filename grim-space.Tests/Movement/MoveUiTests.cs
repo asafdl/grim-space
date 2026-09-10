@@ -17,7 +17,6 @@ public sealed class MoveUiTests
 			.First(path => path.EndPosition == origin + Coord.Forward);
 
 		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
-		builder.Interaction.EndMoveDrag();
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.NotNull(frame.SelectedMove);
@@ -30,11 +29,12 @@ public sealed class MoveUiTests
 		Assert.Equal(option.ResultState.Fore, frame.MoveGhostState.Fore);
 		Assert.Equal(option.ResultState.Dorsal, frame.MoveGhostState.Dorsal);
 		Assert.Equal(option.ResultState.ActionPoints, frame.MoveGhostState.ActionPoints);
-		Assert.True(frame.Instruction.CanConfirm);
+		Assert.False(frame.Instruction.Visible);
+		Assert.False(frame.Instruction.CanConfirm);
 	}
 
 	[Fact]
-	public void UnreachableRequestedPoseKeepsGhostAndDisablesConfirmation()
+	public void UnreachableRequestedPoseKeepsUnavailableGhost()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
@@ -44,12 +44,12 @@ public sealed class MoveUiTests
 		var unreachable = MovePose.For(-Coord.Forward, 0);
 
 		builder.Interaction.BeginMoveSelection(option.EndPosition, unreachable);
-		builder.Interaction.EndMoveDrag();
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.Null(frame.SelectedMove);
 		Assert.False(frame.MovePoseAvailable);
 		Assert.NotNull(frame.MoveGhostState);
+		Assert.False(frame.Instruction.Visible);
 		Assert.False(frame.Instruction.CanConfirm);
 	}
 

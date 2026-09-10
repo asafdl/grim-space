@@ -64,7 +64,6 @@ internal static class BattleHudCopy
 	public const string ConfirmAction = "Confirm";
 	public const string SelectFiringDirection = "Select a firing direction";
 	public const string ActionUnavailable = "Action is no longer available";
-	public const string MovePoseUnavailable = "That orientation is unreachable";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
 	public const string UndoTooltip = "Undo your last action this turn.\n(Ctrl/Cmd+Z)";
@@ -87,9 +86,6 @@ internal static class BattleHudCopy
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 
 	public static string Charges(int current, int max) => $"{current}/{max}";
-
-	public static string ConfirmMove(int apCost, int remainingAp) =>
-		$"Confirm move ({apCost} AP, {remainingAp} remaining)";
 
 	public static string FaceShieldTooltip(string faceName, int current, int max) =>
 		$"{faceName} {current}/{max}\n{FaceShieldAbsorbLine}\n{FaceShieldPoolLine}";

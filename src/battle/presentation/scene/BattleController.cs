@@ -220,11 +220,6 @@ public partial class BattleController : Node3D
 			_frames.Interaction.RollMove(delta);
 			RefreshPresentation();
 		};
-		_translator.MoveDragEnded += () =>
-		{
-			_frames.Interaction.EndMoveDrag();
-			RefreshPresentation();
-		};
 		_translator.MoveSelectionCanceled += () =>
 		{
 			_frames.Interaction.ClearMoveSelection();
