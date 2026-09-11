@@ -30,6 +30,7 @@ public partial class Controller : Camera3D, ICameraRig
 	public float Yaw => _pose.Yaw;
 	public float Pitch => _pose.Pitch;
 	public bool IsAutomationActive => _pivotTween is not null;
+	public bool IsManualGestureActive => _orbiting || _panning;
 	public Vector3? AutomationTarget => _automationTarget;
 
 	public void SetPivot(Vector3 pivot)

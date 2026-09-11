@@ -10,6 +10,8 @@
     <Compile Remove="grim-space.Tests/**" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The official dotnet8 branch is unpublished; avoid unofficial repackages. -->
+    <PackageReference Include="geometry3Sharp" Version="1.0.324" />
     <PackageReference Include="UniqueNameGenerator" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>

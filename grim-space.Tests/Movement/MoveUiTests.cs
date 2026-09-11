@@ -54,6 +54,94 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
+	public void PassiveHoverShowsHoveredResultAsGhostWithoutOrientationSelection()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var hoveredIndex = options
+			.Select((option, index) => (option, index))
+			.First(pair => pair.option.EndPosition == origin + Coord.Forward)
+			.index;
+		var hovered = options[hoveredIndex];
+
+		builder.Interaction.SetMoveHover(hoveredIndex, options.Count);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Null(frame.SelectedMove);
+		Assert.Equal(hovered.ResultState.Position, frame.MoveGhostState?.Position);
+		Assert.Equal(hovered.ResultState.Fore, frame.MoveGhostState?.Fore);
+		Assert.Empty(frame.ReachableMoveHeadings);
+	}
+
+	[Fact]
+	public void SelectedMoveGhostTakesPriorityOverPassiveHover()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var selected = options.First(option => option.EndPosition == origin + Coord.Forward);
+		var hoveredIndex = options
+			.Select((option, index) => (option, index))
+			.First(pair => pair.option.EndPosition != selected.EndPosition)
+			.index;
+
+		builder.Interaction.SetMoveHover(hoveredIndex, options.Count);
+		builder.Interaction.BeginMoveSelection(selected.EndPosition, selected.EndBasis);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Equal(selected.EndPosition, frame.MoveGhostState?.Position);
+		Assert.Equal(selected.EndBasis.Forward, frame.MoveGhostState?.Fore);
+		Assert.Contains(selected.EndBasis.Forward, frame.ReachableMoveHeadings);
+	}
+
+	[Fact]
+	public void PassiveHoverGhostIsHiddenWhenCommandsAreDisabled()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+
+		builder.Interaction.SetMoveHover(0, options.Count);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false);
+
+		Assert.Null(frame.MoveGhostState);
+	}
+
+	[Fact]
+	public void SelectedMoveGhostIsHiddenWhenCommandsAreDisabled()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = builder.PreviewMoveOptions(battle, battle.PlayerAgent)
+			.First(path => path.EndPosition == origin + Coord.Forward);
+
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false);
+
+		Assert.Null(frame.MoveGhostState);
+	}
+
+	[Fact]
+	public void PassiveHoverGhostIsHiddenDuringIntro()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		builder.IntroActive = true;
+		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+
+		builder.Interaction.SetMoveHover(0, options.Count);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Null(frame.MoveGhostState);
+	}
+
+	[Fact]
 	public void FailedMoveQueueKeepsStagedPoseAndEndsDrag()
 	{
 		var origin = new Coord(5, 5, 5);

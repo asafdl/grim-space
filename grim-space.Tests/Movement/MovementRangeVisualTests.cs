@@ -1,0 +1,78 @@
+using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Math.Grid;
+
+namespace GrimSpace.Tests.Movement;
+
+public sealed class MovementRangeVisualTests
+{
+	[Fact]
+	public void RangeSurfaceFollowsAsymmetricReach()
+	{
+		var source = new Coord(5, 5, 5);
+		var cells = new HashSet<Coord>
+		{
+			source - Coord.Forward,
+			source + Coord.Forward,
+			source + Coord.Forward * 2,
+			source + Coord.Forward * 3,
+		};
+
+		var surface = MovementRangeGeometry.Build(source, cells);
+
+		Assert.NotEmpty(surface.Vertices);
+		var forwardExtent = surface.Vertices.Max(vertex => vertex.Z);
+		var rearExtent = -surface.Vertices.Min(vertex => vertex.Z);
+		Assert.True(forwardExtent > rearExtent + WorldMapping.CellSize);
+		Assert.Equal(surface.Vertices.Length, surface.Normals.Length);
+	}
+
+	[Fact]
+	public void DisconnectedReachDoesNotFillMajorGap()
+	{
+		var source = Coord.Zero;
+		var cells = new HashSet<Coord>
+		{
+			new(0, 0, 4),
+		};
+
+		var surface = MovementRangeGeometry.Build(source, cells);
+
+		Assert.DoesNotContain(
+			surface.Vertices,
+			vertex => vertex.Z > WorldMapping.CellSize
+				&& vertex.Z < WorldMapping.CellSize * 3);
+	}
+
+	[Fact]
+	public void AdjacentCellsDoNotRetainTheirSharedFace()
+	{
+		var source = Coord.Zero;
+		var surface = MovementRangeGeometry.Build(
+			source,
+			new HashSet<Coord> { source, source + Coord.Forward });
+		var sharedPlane = WorldMapping.CellSize * 0.5f;
+
+		for (var i = 0; i < surface.Vertices.Length; i += 3)
+		{
+			Assert.False(
+				MathF.Abs(surface.Vertices[i].Z - sharedPlane) < 0.00001f
+				&& MathF.Abs(surface.Vertices[i + 1].Z - sharedPlane) < 0.00001f
+				&& MathF.Abs(surface.Vertices[i + 2].Z - sharedPlane) < 0.00001f);
+		}
+	}
+
+	[Fact]
+	public void LocalGridUsesOnlyLinesForSixNeighboringCells()
+	{
+		var segments = GridView.CreateNeighborOutlineSegments();
+
+		Assert.Equal(60, segments.Count);
+		Assert.All(
+			segments,
+			segment => Assert.Equal(
+				WorldMapping.CellSize,
+				segment.From.DistanceTo(segment.To),
+				precision: 5));
+	}
+}

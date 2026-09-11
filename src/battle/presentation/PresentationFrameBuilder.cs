@@ -80,6 +80,7 @@ public sealed class PresentationFrameBuilder
 			? moveOptions.FirstOrDefault(option =>
 				option.EndPosition == destination && option.EndBasis == requestedBasis)
 			: null;
+		MovePathOption? hoveredMove = null;
 		var reachableMoveHeadings = state.MoveDestination is { } moveDestination
 			? moveOptions
 				.Where(option => option.EndPosition == moveDestination)
@@ -99,6 +100,9 @@ public sealed class PresentationFrameBuilder
 			else
 			{
 				state.ClampMoveHover(moveOptions.Count);
+				hoveredMove = state.MoveHoveredIndex is int hoveredIndex
+					? moveOptions[hoveredIndex]
+					: null;
 				(movePath, moveTarget) = MoveUi.GetPathHighlights(
 					moveOptions,
 					state.MoveHoveredIndex,
@@ -152,6 +156,13 @@ public sealed class PresentationFrameBuilder
 			agent.CanUndo ? 1 : 0,
 			moveOptions);
 
+		var activeMovePreview = canControl
+			&& state.Mode == EPlayerMode.Move
+			&& !IntroActive
+			&& !battle.IsBattleOver
+				? selectedMove ?? hoveredMove
+				: null;
+
 		return new PresentationFrame
 		{
 			Mode = isInspecting ? EPlayerMode.Move : state.Mode,
@@ -177,7 +188,7 @@ public sealed class PresentationFrameBuilder
 			MoveTarget = moveTarget,
 			SelectedMove = selectedMove,
 			MoveDestination = state.MoveDestination,
-			MoveGhostState = selectedMove?.ResultState,
+			MoveGhostState = activeMovePreview?.ResultState,
 			ReachableMoveHeadings = reachableMoveHeadings,
 			IsMoveDragging = state.IsMoveDragging,
 			TurnNumber = battle.Phase == EBattlePhase.Replaying

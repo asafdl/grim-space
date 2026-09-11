@@ -60,12 +60,18 @@ public partial class UnitView : Node3D
 		ApplyPose(state);
 	}
 
-	public void SetGhost(bool available)
+	public void SetGhost(bool selected)
 	{
 		if (_momentumLabel is not null)
 			_momentumLabel.Visible = false;
-		if (_hull is not null)
-			_hull.Transparency = available ? 0.45f : 0.7f;
+
+		foreach (var child in GetChildren())
+		{
+			if (child is GeometryInstance3D visual)
+				visual.Transparency = selected
+					? visual == _hull ? 0.45f : 0f
+					: 0.9f;
+		}
 	}
 
 	public void AnimateMoveTo(State state, double duration)

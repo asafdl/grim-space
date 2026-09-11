@@ -76,16 +76,15 @@ internal static class PresentationDiagnostics
 			+ $"paths={paths.Count}");
 	}
 
-	public static void LogMovePreviewHighlights(int pathCount, int endpointCount)
+	public static void LogMoveRange(int pathCount, int endpointCount)
 	{
-		// Hover redraws call SetMoveHighlights with a new target; only log endpoint-set changes.
 		var fingerprint = $"{pathCount}|{endpointCount}";
 		if (fingerprint == _lastMoveHighlightFingerprint)
 			return;
 
 		_lastMoveHighlightFingerprint = fingerprint;
 		GameLog.Log(
-			$"[presentation] move highlights: paths={pathCount} endpoints={endpointCount}");
+			$"[presentation] move range: paths={pathCount} endpoints={endpointCount}");
 	}
 
 	private static string ResolveMovePreviewGate(

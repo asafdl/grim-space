@@ -65,7 +65,7 @@ public partial class BattleController : Node3D
 		_cameraDirector = new BattleCameraDirector(_camera);
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
 		_gridView = GetNode<GridView>("GridView");
-		_gridView.Build(layout.Grid);
+		_gridView.Build();
 
 		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
 		_railgunPreview.Build();
@@ -361,7 +361,11 @@ public partial class BattleController : Node3D
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
 		_gridView.ApplyFrame(frame);
-		_moveGhost.Apply(frame.MoveGhostState, frame.ReachableMoveHeadings, ColorForActor(frame.FocusId));
+		_moveGhost.Apply(
+			frame.MoveGhostState,
+			frame.ReachableMoveHeadings,
+			ColorForActor(frame.FocusId),
+			selected: frame.SelectedMove is not null);
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame);

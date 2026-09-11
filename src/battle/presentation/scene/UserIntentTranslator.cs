@@ -129,8 +129,16 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_enabled
 			|| !_canIssueActions
 			|| _mode != EPlayerMode.Move
-			|| _moveInput.IsDragging
-			|| _hud.IsPauseMenuOpen)
+			|| _moveInput.IsDragging)
+			return;
+
+		if (_hud.IsPauseMenuOpen || IsPointerOverHud())
+		{
+			ClearMoveHover();
+			return;
+		}
+
+		if (_camera.IsManualGestureActive)
 			return;
 
 		var index = MovementSelection.PickPathIndex(
@@ -309,6 +317,7 @@ public sealed partial class UserIntentTranslator : Node
 				CancelMoveSelection();
 				return true;
 			case Key.Escape:
+				ClearMoveHover();
 				_hud.TogglePauseMenu();
 				return true;
 			case Key.Enter or Key.KpEnter when _canIssueActions && CanConfirmAction():
@@ -448,6 +457,18 @@ public sealed partial class UserIntentTranslator : Node
 
 	private bool Enqueue(params IAction[] actions) =>
 		_canIssueActions && _actions.TryEnqueue(actions);
+
+	private bool IsPointerOverHud() =>
+		GetViewport().GuiGetHoveredControl() is { } hovered && _hud.IsAncestorOf(hovered);
+
+	private void ClearMoveHover()
+	{
+		if (_moveHoveredIndex is null)
+			return;
+
+		_moveHoveredIndex = null;
+		MoveHoverChanged?.Invoke(null, _moveOptions.Count);
+	}
 
 	private void ClearHovers() => HoversCleared?.Invoke();
 }
