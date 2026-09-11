@@ -8,8 +8,10 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public partial class GridView : Node3D
 {
 private const float PathDotRadius = 0.126f;
+private const float LocalGridViewDotThreshold = 0.9995f;
+private const float VisibleFaceDotThreshold = 0.08f;
 
-	private static readonly Vector3[] NeighborOffsets =
+private static readonly Vector3[] NeighborOffsets =
 	[
 		Vector3.Right,
 		Vector3.Left,
@@ -20,7 +22,10 @@ private const float PathDotRadius = 0.126f;
 	];
 
 	internal readonly record struct LineSegment(Vector3 From, Vector3 To);
+	internal enum LocalGridLineStyle { RearEdge, VisibleEdge, Hatch }
+	internal readonly record struct StyledLine(LineSegment Segment, LocalGridLineStyle Style);
 
+	private Camera3D _camera = null!;
 	private MeshInstance3D _rangeShell = null!;
 	private MeshInstance3D _localGrid = null!;
 	private StandardMaterial3D _rangeShellMaterial = null!;
@@ -33,9 +38,11 @@ private const float PathDotRadius = 0.126f;
 	private HashSet<Coord> _rangeCells = [];
 	private Coord? _rangeSource;
 	private Vector3? _ghostWorld;
+	private Vector3? _localGridViewDirection;
 
-	public void Build()
+	public void Build(Camera3D camera)
 	{
+		_camera = camera;
 		_rangeShellMaterial = CreateRangeShellMaterial();
 		_pathMaterial = CreatePathMaterial();
 		_pathMesh = new SphereMesh
@@ -54,11 +61,18 @@ private const float PathDotRadius = 0.126f;
 
 		_localGrid = CreateVisual(
 			"MovementLocalGrid",
-			CreateLocalGridMesh(),
+			CreateLocalGridMesh(CurrentViewDirection()),
 			CreateLocalGridMaterial());
+		_localGridViewDirection = CurrentViewDirection();
 		AddChild(_localGrid);
 
 		HideMoveVisuals();
+	}
+
+	public override void _Process(double delta)
+	{
+		if (_localGrid.Visible)
+			RefreshLocalGridMesh();
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
@@ -90,7 +104,10 @@ private const float PathDotRadius = 0.126f;
 			: null;
 		_localGrid.Visible = _ghostWorld is not null;
 		if (_ghostWorld is Vector3 ghostWorld)
+		{
 			_localGrid.GlobalPosition = ghostWorld;
+			RefreshLocalGridMesh();
+		}
 		SetPathMarkers(frame.MovePath, frame.MoveGhostState?.Position);
 	}
 
@@ -205,10 +222,53 @@ private const float PathDotRadius = 0.126f;
 	}
 
 	internal static IReadOnlySet<LineSegment> CreateNeighborOutlineSegments()
+		=> CreateNeighborOutlineEdges().Keys.ToHashSet();
+
+	internal static IReadOnlyList<StyledLine> CreateCameraAwareLocalGridLines(
+		Vector3 viewDirection)
 	{
-		var segments = new HashSet<LineSegment>();
+		viewDirection = viewDirection.Normalized();
+		var lines = CreateNeighborOutlineEdges()
+			.Select(edge => new StyledLine(
+				edge.Key,
+				edge.Value.Any(normal =>
+					normal.Dot(viewDirection) > VisibleFaceDotThreshold)
+					? LocalGridLineStyle.VisibleEdge
+					: LocalGridLineStyle.RearEdge))
+			.ToList();
 		var half = WorldMapping.CellSize * 0.5f;
 
+		foreach (var neighborOffset in NeighborOffsets)
+		{
+			var center = neighborOffset * WorldMapping.CellSize;
+			foreach (var faceNormal in NeighborOffsets)
+			{
+				if (faceNormal.Dot(viewDirection) <= VisibleFaceDotThreshold)
+					continue;
+
+				var faceCenter = center + faceNormal * half;
+				var (faceX, faceY) = FaceAxes(faceNormal);
+				var diagonal = (faceX + faceY).Normalized();
+				var offset = (faceX - faceY).Normalized()
+					* WorldMapping.CellSize
+					* 0.13f;
+				var stroke = diagonal * WorldMapping.CellSize * 0.2f;
+				lines.Add(new StyledLine(
+					new LineSegment(faceCenter + offset - stroke, faceCenter + offset + stroke),
+					LocalGridLineStyle.Hatch));
+				lines.Add(new StyledLine(
+					new LineSegment(faceCenter - offset - stroke, faceCenter - offset + stroke),
+					LocalGridLineStyle.Hatch));
+			}
+		}
+
+		return lines;
+	}
+
+	private static Dictionary<LineSegment, HashSet<Vector3>> CreateNeighborOutlineEdges()
+	{
+		var edges = new Dictionary<LineSegment, HashSet<Vector3>>();
+		var half = WorldMapping.CellSize * 0.5f;
 		foreach (var direction in NeighborOffsets)
 		{
 			var center = direction * WorldMapping.CellSize;
@@ -220,38 +280,107 @@ private const float PathDotRadius = 0.126f;
 					{
 						var corner = center + new Vector3(x, y, z) * half;
 						if (x < 0)
-							segments.Add(new LineSegment(
-								corner,
-								corner + Vector3.Right * WorldMapping.CellSize));
+							AddOutlineEdge(
+								edges,
+								new LineSegment(
+									corner,
+									corner + Vector3.Right * WorldMapping.CellSize),
+								y * Vector3.Up,
+								z * Vector3.Back);
 						if (y < 0)
-							segments.Add(new LineSegment(
-								corner,
-								corner + Vector3.Up * WorldMapping.CellSize));
+							AddOutlineEdge(
+								edges,
+								new LineSegment(
+									corner,
+									corner + Vector3.Up * WorldMapping.CellSize),
+								x * Vector3.Right,
+								z * Vector3.Back);
 						if (z < 0)
-							segments.Add(new LineSegment(
-								corner,
-								corner + Vector3.Back * WorldMapping.CellSize));
+							AddOutlineEdge(
+								edges,
+								new LineSegment(
+									corner,
+									corner + Vector3.Back * WorldMapping.CellSize),
+								x * Vector3.Right,
+								y * Vector3.Up);
 					}
 				}
 			}
 		}
 
-		return segments;
+		return edges;
 	}
 
-	internal static ArrayMesh CreateLocalGridMesh()
+	private static void AddOutlineEdge(
+		Dictionary<LineSegment, HashSet<Vector3>> edges,
+		LineSegment segment,
+		Vector3 faceNormalA,
+		Vector3 faceNormalB)
 	{
-		var vertices = CreateNeighborOutlineSegments()
-			.SelectMany(segment => new[] { segment.From, segment.To })
+		if (!edges.TryGetValue(segment, out var faceNormals))
+		{
+			faceNormals = [];
+			edges.Add(segment, faceNormals);
+		}
+
+		faceNormals.Add(faceNormalA);
+		faceNormals.Add(faceNormalB);
+	}
+
+	private static (Vector3 X, Vector3 Y) FaceAxes(Vector3 normal)
+	{
+		if (Mathf.Abs(normal.X) > 0.5f)
+			return (Vector3.Up, Vector3.Back);
+		if (Mathf.Abs(normal.Y) > 0.5f)
+			return (Vector3.Right, Vector3.Back);
+		return (Vector3.Right, Vector3.Up);
+	}
+
+	private static ArrayMesh CreateLocalGridMesh(Vector3 viewDirection)
+	{
+		var lines = CreateCameraAwareLocalGridLines(viewDirection);
+		var vertices = lines
+			.SelectMany(line => new[] { line.Segment.From, line.Segment.To })
+			.ToArray();
+		var colors = lines
+			.SelectMany(line =>
+			{
+				var color = LocalGridLineColor(line.Style);
+				return new[] { color, color };
+			})
 			.ToArray();
 		var arrays = new Godot.Collections.Array();
 		arrays.Resize((int)Mesh.ArrayType.Max);
 		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
+		arrays[(int)Mesh.ArrayType.Color] = colors;
 
 		var mesh = new ArrayMesh();
 		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, arrays);
 		return mesh;
 	}
+
+	private void RefreshLocalGridMesh()
+	{
+		var viewDirection = CurrentViewDirection();
+		if (_localGridViewDirection is Vector3 previous
+			&& previous.Dot(viewDirection) >= LocalGridViewDotThreshold)
+			return;
+
+		_localGrid.Mesh = CreateLocalGridMesh(viewDirection);
+		_localGridViewDirection = viewDirection;
+	}
+
+	private Vector3 CurrentViewDirection() =>
+		_camera.GlobalTransform.Basis.Z.Normalized();
+
+	private static Color LocalGridLineColor(LocalGridLineStyle style) =>
+		style switch
+		{
+			LocalGridLineStyle.RearEdge => new Color(0.62f, 0.65f, 0.68f, 0.035f),
+			LocalGridLineStyle.VisibleEdge => new Color(0.62f, 0.65f, 0.68f, 0.14f),
+			LocalGridLineStyle.Hatch => new Color(0.62f, 0.65f, 0.68f, 0.12f),
+			_ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
+		};
 
 	private static MeshInstance3D CreateVisual(
 		string name,
@@ -282,7 +411,8 @@ private const float PathDotRadius = 0.126f;
 		new()
 		{
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			AlbedoColor = new Color(0.62f, 0.65f, 0.68f, 0.14f),
+			AlbedoColor = Colors.White,
+			VertexColorUseAsAlbedo = true,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
 		};

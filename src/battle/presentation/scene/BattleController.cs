@@ -65,7 +65,7 @@ public partial class BattleController : Node3D
 		_cameraDirector = new BattleCameraDirector(_camera);
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
 		_gridView = GetNode<GridView>("GridView");
-		_gridView.Build();
+		_gridView.Build(_camera);
 
 		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
 		_railgunPreview.Build();

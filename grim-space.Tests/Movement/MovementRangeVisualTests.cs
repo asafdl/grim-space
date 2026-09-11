@@ -1,3 +1,4 @@
+using Godot;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Math.Grid;
@@ -74,5 +75,16 @@ public sealed class MovementRangeVisualTests
 				WorldMapping.CellSize,
 				segment.From.DistanceTo(segment.To),
 				precision: 5));
+	}
+
+	[Fact]
+	public void LocalGridAddsHatchesToCameraVisibleFacesAndDimsRearEdges()
+	{
+		var lines = GridView.CreateCameraAwareLocalGridLines(Vector3.One);
+
+		Assert.Equal(60, lines.Count(line => line.Style != GridView.LocalGridLineStyle.Hatch));
+		Assert.Equal(36, lines.Count(line => line.Style == GridView.LocalGridLineStyle.Hatch));
+		Assert.Contains(lines, line => line.Style == GridView.LocalGridLineStyle.VisibleEdge);
+		Assert.Contains(lines, line => line.Style == GridView.LocalGridLineStyle.RearEdge);
 	}
 }
