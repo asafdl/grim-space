@@ -80,22 +80,13 @@ public sealed class InteractionState
 		ConfirmationError = null;
 	}
 
-	public void SetMoveHeading(Coord heading)
+	public void SetMovePose(GridBasis basis)
 	{
 		if (MoveDestination is null)
 			return;
 
-		RequestedMoveBasis = MovePose.For(heading, MoveRollQuarters);
-		ConfirmationError = null;
-	}
-
-	public void RollMove(int delta)
-	{
-		if (MoveDestination is null || RequestedMoveBasis is not { } basis)
-			return;
-
-		MoveRollQuarters = Orientation.NormalizeQuarters(MoveRollQuarters + delta);
-		RequestedMoveBasis = MovePose.For(basis.Forward, MoveRollQuarters);
+		RequestedMoveBasis = basis;
+		MoveRollQuarters = MovePose.RollQuarters(basis);
 		ConfirmationError = null;
 	}
 

@@ -31,7 +31,7 @@ public sealed class PresentationFrame
 	public MovePathOption? SelectedMove { get; init; }
 	public Coord? MoveDestination { get; init; }
 	public UnitDisplayState? MoveGhostState { get; init; }
-	public bool MovePoseAvailable { get; init; }
+	public required IReadOnlySet<Coord> ReachableMoveHeadings { get; init; }
 	public bool IsMoveDragging { get; init; }
 	public int TurnNumber { get; init; }
 	public bool CanAct { get; init; }

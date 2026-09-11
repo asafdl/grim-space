@@ -80,6 +80,12 @@ public sealed class PresentationFrameBuilder
 			? moveOptions.FirstOrDefault(option =>
 				option.EndPosition == destination && option.EndBasis == requestedBasis)
 			: null;
+		var reachableMoveHeadings = state.MoveDestination is { } moveDestination
+			? moveOptions
+				.Where(option => option.EndPosition == moveDestination)
+				.Select(option => option.EndBasis.Forward)
+				.ToHashSet()
+			: [];
 
 		IReadOnlyList<Coord> movePath;
 		Coord? moveTarget;
@@ -169,8 +175,8 @@ public sealed class PresentationFrameBuilder
 			MoveTarget = moveTarget,
 			SelectedMove = selectedMove,
 			MoveDestination = state.MoveDestination,
-			MoveGhostState = BuildMoveGhost(focusUnit, state, selectedMove),
-			MovePoseAvailable = selectedMove is not null,
+			MoveGhostState = selectedMove?.ResultState,
+			ReachableMoveHeadings = reachableMoveHeadings,
 			IsMoveDragging = state.IsMoveDragging,
 			TurnNumber = battle.Phase == EBattlePhase.Replaying
 				? battle.TurnNumber - 1
@@ -183,22 +189,6 @@ public sealed class PresentationFrameBuilder
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = battle.Outcome.Result,
 			ActionLogLines = ActionLogLines,
-		};
-	}
-
-	private static UnitDisplayState? BuildMoveGhost(
-		UnitDisplayState focus,
-		InteractionState state,
-		MovePathOption? selected)
-	{
-		if (state.MoveDestination is not { } destination || state.RequestedMoveBasis is not { } basis)
-			return null;
-
-		return selected?.ResultState ?? focus with
-		{
-			Position = destination,
-			Fore = basis.Forward,
-			Dorsal = basis.Up,
 		};
 	}
 

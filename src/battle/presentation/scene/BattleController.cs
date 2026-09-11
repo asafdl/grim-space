@@ -103,6 +103,7 @@ public partial class BattleController : Node3D
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, _agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
 		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
+		_moveGhost.Configure(_camera);
 		unitsRoot.AddChild(_moveGhost);
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
@@ -210,14 +211,9 @@ public partial class BattleController : Node3D
 			_frames.Interaction.BeginMoveSelection(destination, basis);
 			RefreshPresentation();
 		};
-		_translator.MoveHeadingRequested += heading =>
+		_translator.MovePoseRequested += basis =>
 		{
-			_frames.Interaction.SetMoveHeading(heading);
-			RefreshPresentation();
-		};
-		_translator.MoveRollRequested += delta =>
-		{
-			_frames.Interaction.RollMove(delta);
+			_frames.Interaction.SetMovePose(basis);
 			RefreshPresentation();
 		};
 		_translator.MoveSelectionCanceled += () =>
@@ -397,7 +393,7 @@ public partial class BattleController : Node3D
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
 		_gridView.ApplyFrame(frame);
-		_moveGhost.Apply(frame.MoveGhostState, frame.MovePoseAvailable, ColorForActor(frame.FocusId));
+		_moveGhost.Apply(frame.MoveGhostState, frame.ReachableMoveHeadings, ColorForActor(frame.FocusId));
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);

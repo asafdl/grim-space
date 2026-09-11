@@ -23,7 +23,7 @@ public sealed class MoveUiTests
 		Assert.Equal(option.EndPosition, frame.SelectedMove.EndPosition);
 		Assert.Equal(option.EndBasis, frame.SelectedMove.EndBasis);
 		Assert.Equal(option.Steps, frame.SelectedMove.Steps);
-		Assert.True(frame.MovePoseAvailable);
+		Assert.Contains(option.EndBasis.Forward, frame.ReachableMoveHeadings);
 		Assert.NotNull(frame.MoveGhostState);
 		Assert.Equal(option.ResultState.Position, frame.MoveGhostState.Position);
 		Assert.Equal(option.ResultState.Fore, frame.MoveGhostState.Fore);
@@ -34,7 +34,7 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
-	public void UnreachableRequestedPoseKeepsUnavailableGhost()
+	public void UnreachableRequestedPoseDoesNotCreateGhost()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
@@ -47,23 +47,38 @@ public sealed class MoveUiTests
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.Null(frame.SelectedMove);
-		Assert.False(frame.MovePoseAvailable);
-		Assert.NotNull(frame.MoveGhostState);
+		Assert.Null(frame.MoveGhostState);
 		Assert.False(frame.Instruction.Visible);
 		Assert.False(frame.Instruction.CanConfirm);
 	}
 
 	[Fact]
-	public void WheelRollCyclesBackAfterFourQuarters()
+	public void HeadingSelectionRejectsUnreachableDirection()
 	{
-		var state = new InteractionState();
-		var start = MovePose.For(Coord.Forward, 0);
-		state.BeginMoveSelection(new Coord(1, 2, 3), start);
+		var current = MovePose.For(Coord.Forward, 0);
+		var right = new Coord(1, 0, 0);
+		var reachable = new[]
+		{
+			current,
+			MovePose.For(right, 1),
+			MovePose.For(right, 3),
+		};
 
-		for (var i = 0; i < 4; i++)
-			state.RollMove(1);
+		var selected = MovePose.SelectHeading(reachable, current, -Coord.Forward);
 
-		Assert.Equal(start, state.RequestedMoveBasis);
+		Assert.Null(selected);
+	}
+
+	[Fact]
+	public void WheelRollSkipsUnreachablePoses()
+	{
+		var roll0 = MovePose.For(Coord.Forward, 0);
+		var roll1 = MovePose.For(Coord.Forward, 1);
+		var roll3 = MovePose.For(Coord.Forward, 3);
+		var reachable = new[] { roll0, roll1, roll3 };
+
+		Assert.Equal(roll3, MovePose.CycleRoll(reachable, roll1, 1));
+		Assert.Equal(roll0, MovePose.CycleRoll(reachable, roll1, -1));
 	}
 
 	[Fact]

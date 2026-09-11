@@ -5,6 +5,7 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Picking;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Abilities;
@@ -41,6 +42,8 @@ public sealed partial class UserIntentTranslator : Node
 	private int? _moveHoveredIndex;
 	private MovePathOption? _selectedMove;
 	private Coord? _moveDestination;
+	private IReadOnlyList<GridBasis> _reachableMoveBases = [];
+	private IReadOnlyList<Coord> _reachableMoveHeadings = [];
 	private bool _moveDragging;
 
 	public UserIntentTranslator(
@@ -64,8 +67,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<EPlayerMode>? ModeRequested;
 	public event Action<int?, int>? MoveHoverChanged;
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
-	public event Action<Coord>? MoveHeadingRequested;
-	public event Action<int>? MoveRollRequested;
+	public event Action<GridBasis>? MovePoseRequested;
 	public event Action? MoveSelectionCanceled;
 	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
@@ -104,6 +106,17 @@ public sealed partial class UserIntentTranslator : Node
 		_moveOptions = moveOptions;
 		_selectedMove = selectedMove;
 		_moveDestination = moveDestination;
+		_reachableMoveBases = moveDestination is { } destination
+			? moveOptions
+				.Where(option => option.EndPosition == destination)
+				.Select(option => option.EndBasis)
+				.Distinct()
+				.ToList()
+			: [];
+		_reachableMoveHeadings = _reachableMoveBases
+			.Select(basis => basis.Forward)
+			.Distinct()
+			.ToList();
 		_moveDragging = moveDragging;
 		_focusState = focusState;
 		_torpedoMounts = weapons.TorpedoMounts;
@@ -141,16 +154,23 @@ public sealed partial class UserIntentTranslator : Node
 			{
 				case InputEventMouseMotion motion:
 					if (_moveDestination is { } destination
-						&& MovementSelection.PickHeading(_camera, motion.Position, destination) is { } heading)
-						MoveHeadingRequested?.Invoke(heading);
+						&& _selectedMove is { } selected
+						&& MovementSelection.PickHeading(
+							_camera,
+							motion.Position,
+							destination,
+							_reachableMoveHeadings) is { } heading
+						&& MovePose.SelectHeading(_reachableMoveBases, selected.EndBasis, heading) is { } basis
+						&& basis != selected.EndBasis)
+						MovePoseRequested?.Invoke(basis);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-					MoveRollRequested?.Invoke(1);
+					RequestRoll(1);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-					MoveRollRequested?.Invoke(-1);
+					RequestRoll(-1);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
@@ -428,6 +448,16 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (!_actions.TryEnqueue(selected.Steps.Cast<IAction>().ToArray()))
 			ConfirmationFailed?.Invoke();
+	}
+
+	private void RequestRoll(int delta)
+	{
+		if (_selectedMove is not { } selected
+			|| MovePose.CycleRoll(_reachableMoveBases, selected.EndBasis, delta) is not { } basis
+			|| basis == selected.EndBasis)
+			return;
+
+		MovePoseRequested?.Invoke(basis);
 	}
 
 	private ESpatialOrientation? PickTorpedoMountedOn(Vector2 screenPosition)
