@@ -75,13 +75,13 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	{
 		private static readonly Vector2[] Shape =
 		[
-			new(-20f, -5f),
-			new(6f, -5f),
-			new(6f, -12f),
-			new(22f, 0f),
-			new(6f, 12f),
-			new(6f, 5f),
-			new(-20f, 5f),
+			new(-30f, -8f),
+			new(8f, -8f),
+			new(8f, -18f),
+			new(34f, 0f),
+			new(8f, 18f),
+			new(8f, 8f),
+			new(-30f, 8f),
 		];
 
 		private readonly Polygon2D _shadow;
@@ -102,13 +102,13 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			_body = new Polygon2D
 			{
 				Polygon = Shape,
-				Color = new Color(0.08f, 0.11f, 0.16f, 0.94f),
+				Color = new Color(0.55f, 0.58f, 0.62f, 0.38f),
 			};
 			AddChild(_body);
 
 			_fill = new Polygon2D
 			{
-				Color = new Color(0.35f, 0.78f, 1f, 0.95f),
+				Color = new Color(0.82f, 0.86f, 0.9f, 0.9f),
 			};
 			AddChild(_fill);
 
@@ -124,9 +124,9 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		public void Apply(bool selected, float progress)
 		{
 			_outline.DefaultColor = selected
-				? new Color(0.8f, 0.95f, 1f)
-				: new Color(0.55f, 0.65f, 0.75f);
-			_fill.Polygon = ClipAt(Shape, -20f + 42f * progress);
+				? new Color(0.92f, 0.95f, 1f, 0.9f)
+				: new Color(0.72f, 0.75f, 0.8f, 0.65f);
+			_fill.Polygon = ClipAt(Shape, -30f + 64f * progress);
 		}
 
 		private static Vector2[] ClipAt(IReadOnlyList<Vector2> polygon, float maxX)
