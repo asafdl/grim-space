@@ -15,7 +15,6 @@ public sealed class InteractionState
 	public AbilityHudCatalog.Spec? ActiveAbilitySpec { get; private set; }
 	public ESpatialOrientation? FlakHoverMountedOn { get; set; }
 	public bool RailgunHovered { get; set; }
-	public ESpatialOrientation? TorpedoHoverMountedOn { get; set; }
 	public int? MoveHoveredIndex { get; set; }
 	public Coord? MoveDestination { get; private set; }
 	public GridBasis? RequestedMoveBasis { get; private set; }
@@ -57,7 +56,6 @@ public sealed class InteractionState
 		MoveHoveredIndex = null;
 		FlakHoverMountedOn = null;
 		RailgunHovered = false;
-		TorpedoHoverMountedOn = null;
 	}
 
 	public void StageMountedOn(ESpatialOrientation mountedOn)
@@ -99,8 +97,11 @@ public sealed class InteractionState
 		ConfirmationError = null;
 	}
 
-	public void ReportConfirmationFailure() =>
+	public void ReportConfirmationFailure()
+	{
+		IsMoveDragging = false;
 		ConfirmationError = BattleHudCopy.ActionUnavailable;
+	}
 
 	public void SetMoveHover(int? index, int optionCount) =>
 		MoveHoveredIndex = ClampIndex(index, optionCount);

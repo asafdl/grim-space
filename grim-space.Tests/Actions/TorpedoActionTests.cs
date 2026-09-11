@@ -58,11 +58,11 @@ public sealed class TorpedoActionTests
 	}
 
 	[Fact]
-	public void FighterCapabilitiesIncludeTorpedo()
+	public void FighterCapabilitiesExcludeTorpedo()
 	{
 		var weapons = Capabilities.AbilitiesFor(EType.Fighter);
 
-		Assert.Contains(weapons, def => def is TorpedoDef);
+		Assert.DoesNotContain(weapons, def => def is TorpedoDef);
 	}
 
 	[Fact]

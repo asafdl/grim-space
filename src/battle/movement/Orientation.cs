@@ -4,8 +4,31 @@ using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Battle.Movement;
 
+public readonly record struct MoveTransition(
+	GridBasis HeadingBasis,
+	Coord Destination,
+	GridBasis ArrivalBasis);
+
 public static class Orientation
 {
+	public static MoveTransition MoveStep(
+		Coord position,
+		GridBasis basis,
+		EHeadingTurn? heading,
+		ERollDirection? roll)
+	{
+		var headingBasis = heading is { } headingTurn
+			? HeadingTurn(basis, headingTurn)
+			: basis;
+		var arrivalBasis = roll is { } rollDirection
+			? Roll(headingBasis, rollDirection)
+			: headingBasis;
+		return new MoveTransition(
+			headingBasis,
+			position + headingBasis.Forward,
+			arrivalBasis);
+	}
+
 	public static GridBasis Roll(GridBasis basis, ERollDirection direction) =>
 		direction switch
 		{

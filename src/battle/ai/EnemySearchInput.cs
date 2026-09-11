@@ -43,9 +43,10 @@ internal static class EnemySearchInput
 	public static int UpperBound(BattleWorld world, string actorId)
 	{
 		var state = world.StateOf(actorId);
-		var score = 0;
+		var score = FacingWeight
+			+ System.Math.Max(state.ActionPoints, state.Stats.MaxAp) * ApproachWeight;
 		if (!HasOffensiveCharges(state))
-			return score;
+			return 0;
 
 		var opponent = NearestOpponent(world, actorId);
 		var weaponReach = OptimisticWeaponReach(state);

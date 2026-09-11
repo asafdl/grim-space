@@ -52,7 +52,7 @@ public sealed class RailgunReachTests
 	}
 
 	[Fact]
-	public void UpperBound_OmitsDamageBonus_WhenOpponentOutOfOptimisticReach()
+	public void UpperBound_IncludesMaximumEngagementScore_WhenOpponentOutOfOptimisticReach()
 	{
 		var ap = 0;
 		var gap = OffensiveReach.OptimisticMoveBubble(ap) + CombatConfig.MaxRailgunManhattanRange + 1;
@@ -63,7 +63,9 @@ public sealed class RailgunReachTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, BattleTestFixture.Grid(size: 32));
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
 
-		Assert.Equal(0, bound);
+		Assert.Equal(
+			EnemySearchInput.FacingWeight + enemy.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
+			bound);
 	}
 
 	[Fact]
@@ -77,7 +79,9 @@ public sealed class RailgunReachTests
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
 
 		Assert.Equal(
-			EnemySearchInput.DamageHitBonus,
+			EnemySearchInput.DamageHitBonus
+				+ EnemySearchInput.FacingWeight
+				+ enemy.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 
@@ -92,7 +96,9 @@ public sealed class RailgunReachTests
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, patrol.State.Id);
 
 		Assert.Equal(
-			EnemySearchInput.DamageHitBonus,
+			EnemySearchInput.DamageHitBonus
+				+ EnemySearchInput.FacingWeight
+				+ patrol.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 

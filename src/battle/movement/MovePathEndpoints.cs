@@ -76,13 +76,9 @@ public static class MovePathEndpoints
 
 		foreach (var step in steps)
 		{
-			var headingBasis = step.Heading is { } heading
-				? Orientation.HeadingTurn(basis, heading)
-				: basis;
-			position += headingBasis.Forward;
-			basis = step.Roll is { } roll
-				? Orientation.Roll(headingBasis, roll)
-				: headingBasis;
+			var transition = Orientation.MoveStep(position, basis, step.Heading, step.Roll);
+			position = transition.Destination;
+			basis = transition.ArrivalBasis;
 			checkpoints.Add(new MoveCheckpoint(position, basis));
 		}
 

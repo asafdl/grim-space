@@ -40,9 +40,6 @@ internal static class BattleTestCommands
 	public static bool FireRailgun(BattleOrchestrator battle) =>
 		Enqueue(battle, [new RailgunAction(battle.PlayerId)]);
 
-	public static bool FireTorpedo(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
-		Enqueue(battle, [TorpedoDef.Instance.Bind(battle.PlayerId, mountedOn)]);
-
 	public static bool DeployPatrol(BattleOrchestrator battle)
 	{
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);

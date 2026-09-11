@@ -63,8 +63,8 @@ public sealed class InteractionStateTests
 		var state = new InteractionState();
 		var spec = AbilityHudCatalog.ForUnit(GrimSpace.Units.Enums.EType.Fighter)[0];
 
-		state.SetMode(EPlayerMode.Torpedo, spec);
-		state.StageMountedOn(ESpatialOrientation.Dorsal);
+		state.SetMode(EPlayerMode.Flak, spec);
+		state.StageMountedOn(ESpatialOrientation.Port);
 		state.ResetAfterTurn();
 
 		Assert.Null(state.ActiveAbilitySpec);

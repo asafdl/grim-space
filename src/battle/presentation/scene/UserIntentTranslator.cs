@@ -9,7 +9,6 @@ using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -36,15 +35,16 @@ public sealed partial class UserIntentTranslator : Node
 	private AbilityHudCatalog.Spec? _activeAbilitySpec;
 	private ESpatialOrientation? _stagedMountedOn;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
-	private UnitDisplayState? _focusState;
-	private IReadOnlySet<ESpatialOrientation> _torpedoMounts = new HashSet<ESpatialOrientation>();
 	private ActionInstruction _instruction;
 	private int? _moveHoveredIndex;
-	private MovePathOption? _selectedMove;
-	private Coord? _moveDestination;
-	private IReadOnlyList<GridBasis> _reachableMoveBases = [];
-	private IReadOnlyList<Coord> _reachableMoveHeadings = [];
-	private bool _moveDragging;
+	private MoveInputSnapshot _moveInput;
+
+	private readonly record struct MoveInputSnapshot(
+		MovePathOption? Selected,
+		Coord? Destination,
+		IReadOnlyList<GridBasis> ReachableBases,
+		IReadOnlyList<Coord> ReachableHeadings,
+		bool IsDragging);
 
 	public UserIntentTranslator(
 		string actorId,
@@ -71,7 +71,6 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? MoveSelectionCanceled;
 	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
-	public event Action<ESpatialOrientation?>? TorpedoHoverChanged;
 	public event Action<ESpatialOrientation>? StagedMountedOnRequested;
 	public event Action? HoversCleared;
 	public event Action<string>? FocusUnitRequested;
@@ -93,8 +92,6 @@ public sealed partial class UserIntentTranslator : Node
 		MovePathOption? selectedMove,
 		Coord? moveDestination,
 		bool moveDragging,
-		UnitDisplayState focusState,
-		WeaponPeek weapons,
 		ActionInstruction instruction)
 	{
 		_enabled = enabled;
@@ -104,22 +101,22 @@ public sealed partial class UserIntentTranslator : Node
 		_activeAbilitySpec = activeAbilitySpec;
 		_stagedMountedOn = stagedMountedOn;
 		_moveOptions = moveOptions;
-		_selectedMove = selectedMove;
-		_moveDestination = moveDestination;
-		_reachableMoveBases = moveDestination is { } destination
+		var reachableBases = moveDestination is { } destination
 			? moveOptions
 				.Where(option => option.EndPosition == destination)
 				.Select(option => option.EndBasis)
 				.Distinct()
 				.ToList()
 			: [];
-		_reachableMoveHeadings = _reachableMoveBases
+		_moveInput = new MoveInputSnapshot(
+			selectedMove,
+			moveDestination,
+			reachableBases,
+			reachableBases
 			.Select(basis => basis.Forward)
 			.Distinct()
-			.ToList();
-		_moveDragging = moveDragging;
-		_focusState = focusState;
-		_torpedoMounts = weapons.TorpedoMounts;
+			.ToList(),
+			moveDragging);
 		_instruction = instruction;
 
 		if (!enabled || mode != EPlayerMode.Move)
@@ -129,7 +126,11 @@ public sealed partial class UserIntentTranslator : Node
 
 	public override void _Process(double delta)
 	{
-		if (!_enabled || !_canIssueActions || _mode != EPlayerMode.Move || _hud.IsPauseMenuOpen)
+		if (!_enabled
+			|| !_canIssueActions
+			|| _mode != EPlayerMode.Move
+			|| _moveInput.IsDragging
+			|| _hud.IsPauseMenuOpen)
 			return;
 
 		var index = MovementSelection.PickPathIndex(
@@ -148,19 +149,19 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_enabled)
 			return;
 
-		if (_moveDragging)
+		if (_moveInput.IsDragging)
 		{
 			switch (@event)
 			{
 				case InputEventMouseMotion motion:
-					if (_moveDestination is { } destination
-						&& _selectedMove is { } selected
+					if (_moveInput.Destination is { } destination
+						&& _moveInput.Selected is { } selected
 						&& MovementSelection.PickHeading(
 							_camera,
 							motion.Position,
 							destination,
-							_reachableMoveHeadings) is { } heading
-						&& MovePose.SelectHeading(_reachableMoveBases, selected.EndBasis, heading) is { } basis
+							_moveInput.ReachableHeadings) is { } heading
+						&& MovePose.SelectHeading(_moveInput.ReachableBases, selected.EndBasis, heading) is { } basis
 						&& basis != selected.EndBasis)
 						MovePoseRequested?.Invoke(basis);
 					GetViewport().SetInputAsHandled();
@@ -218,7 +219,7 @@ public sealed partial class UserIntentTranslator : Node
 				ButtonIndex: MouseButton.Right
 			})
 		{
-			if (_moveDestination is not null)
+			if (_moveInput.Destination is not null)
 			{
 				CancelMoveSelection();
 				GetViewport().SetInputAsHandled();
@@ -251,7 +252,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnEndTurn()
 	{
-		if (_moveDestination is null)
+		if (_moveInput.Destination is null)
 			EndTurnRequested?.Invoke();
 	}
 
@@ -304,7 +305,7 @@ public sealed partial class UserIntentTranslator : Node
 				return true;
 			case Key.Escape when _mode != EPlayerMode.Move:
 				return TryCancelAbilityMode();
-			case Key.Escape when _moveDestination is not null:
+			case Key.Escape when _moveInput.Destination is not null:
 				CancelMoveSelection();
 				return true;
 			case Key.Escape:
@@ -359,9 +360,6 @@ public sealed partial class UserIntentTranslator : Node
 				RailgunHoverChanged?.Invoke(
 					_railgunPreview.PickHovered(_camera, screenPosition));
 				break;
-			case EPlayerMode.Torpedo:
-				TorpedoHoverChanged?.Invoke(PickTorpedoMountedOn(screenPosition));
-				break;
 		}
 	}
 
@@ -383,10 +381,6 @@ public sealed partial class UserIntentTranslator : Node
 					StagedMountedOnRequested?.Invoke(mountedOn);
 				break;
 
-			case EPlayerMode.Torpedo:
-				if (PickTorpedoMountedOn(screenPosition) is ESpatialOrientation torpedoMountedOn)
-					StagedMountedOnRequested?.Invoke(torpedoMountedOn);
-				break;
 		}
 	}
 
@@ -420,62 +414,36 @@ public sealed partial class UserIntentTranslator : Node
 		var steps = _moveOptions[index].Steps;
 		if (steps.Count == 0)
 			return;
-		_moveDragging = true;
-		_selectedMove = _moveOptions[index];
-		_moveDestination = _selectedMove.EndPosition;
-		_camera.SetGestureInputBlocked(true);
-		MoveSelectionStarted?.Invoke(_selectedMove.EndPosition, _selectedMove.EndBasis);
+		var selected = _moveOptions[index];
+		MoveSelectionStarted?.Invoke(selected.EndPosition, selected.EndBasis);
 		_moveHoveredIndex = null;
 		ClearHovers();
 	}
 
-	private void CancelMoveSelection()
-	{
-		_moveDragging = false;
-		_selectedMove = null;
-		_moveDestination = null;
-		_camera.SetGestureInputBlocked(false);
-		MoveSelectionCanceled?.Invoke();
-	}
+	private void CancelMoveSelection() => MoveSelectionCanceled?.Invoke();
 
 	private void QueueMoveSelection()
 	{
-		var selected = _selectedMove;
-		CancelMoveSelection();
-
-		if (selected is null)
+		if (_moveInput.Selected is not { } selected)
 			return;
 
 		if (!_actions.TryEnqueue(selected.Steps.Cast<IAction>().ToArray()))
+		{
 			ConfirmationFailed?.Invoke();
+			return;
+		}
+
+		CancelMoveSelection();
 	}
 
 	private void RequestRoll(int delta)
 	{
-		if (_selectedMove is not { } selected
-			|| MovePose.CycleRoll(_reachableMoveBases, selected.EndBasis, delta) is not { } basis
+		if (_moveInput.Selected is not { } selected
+			|| MovePose.CycleRoll(_moveInput.ReachableBases, selected.EndBasis, delta) is not { } basis
 			|| basis == selected.EndBasis)
 			return;
 
 		MovePoseRequested?.Invoke(basis);
-	}
-
-	private ESpatialOrientation? PickTorpedoMountedOn(Vector2 screenPosition)
-	{
-		if (_focusState is null)
-			return null;
-
-		var ship = _focusState.ToState();
-		var cells = new Dictionary<Coord, ESpatialOrientation>();
-		foreach (var mountedOn in _torpedoMounts)
-		{
-			var (position, _, _) = TorpedoMount.LaunchPose(ship, mountedOn);
-			cells[position] = mountedOn;
-		}
-
-		return GridPick.PickFromSet(_camera, screenPosition, cells.Keys.ToHashSet()) is { } cell
-			? cells[cell]
-			: null;
 	}
 
 	private bool Enqueue(params IAction[] actions) =>

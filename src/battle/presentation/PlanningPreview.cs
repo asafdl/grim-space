@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Interaction;
@@ -21,13 +20,9 @@ namespace GrimSpace.Battle.Presentation;
 /// </summary>
 public sealed class PlanningPreview
 {
-	private const string PreviewTorpedoId = "__preview_torpedo__";
-
 	private readonly MovePreviewCache _moveCache = new();
 
 	private BattleSimulation? _lastSim;
-	private string? _envelopeCacheKey;
-	private IReadOnlyList<IReadOnlySet<Coord>> _envelopeCache = [];
 
 	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits(
 		BattleSimulation sim,
@@ -81,11 +76,29 @@ public sealed class PlanningPreview
 		0;
 
 	public IReadOnlyList<Coord> CommittedMovePath(BattleSimulation sim, string playerId) =>
-		sim.Actions
-			.Select((action, index) => (action, index))
-			.Where(entry => entry.action is MoveStepAction { ActorId: var actorId } && actorId == playerId)
-			.Select(entry => sim.ReplayWorld(entry.index + 1).StateOf(playerId).Position)
-			.ToList();
+		CommittedMovePath(sim.ReplayWorld(0).StateOf(playerId), sim.Actions, playerId);
+
+	private static IReadOnlyList<Coord> CommittedMovePath(
+		State start,
+		IReadOnlyList<IAction> actions,
+		string playerId)
+	{
+		var position = start.Position;
+		var basis = GridBasis.From(start.Fore, start.Dorsal, start.Starboard);
+		var path = new List<Coord>();
+		foreach (var action in actions)
+		{
+			if (action is not MoveStepAction { ActorId: var actorId } move || actorId != playerId)
+				continue;
+
+			var transition = Orientation.MoveStep(position, basis, move.Heading, move.Roll);
+			position = transition.Destination;
+			basis = transition.ArrivalBasis;
+			path.Add(position);
+		}
+
+		return path;
+	}
 
 	public WeaponPeek Weapons(BattleSimulation sim, string actorId)
 		=> Weapons(Capabilities.LegalCapabilities(sim, actorId));
@@ -205,34 +218,6 @@ public sealed class PlanningPreview
 		return targets;
 	}
 
-	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers(
-		BattleSimulation sim,
-		string playerId,
-		InteractionState state)
-	{
-		EnsureSim(sim);
-		var queued = QueuedWeapon(sim, playerId);
-
-		if (state.Mode == EPlayerMode.Torpedo && state.StagedMountedOn is ESpatialOrientation staged)
-			return EnvelopeLayersForMount(sim, playerId, staged);
-
-		if (state.Mode == EPlayerMode.Torpedo && state.TorpedoHoverMountedOn is ESpatialOrientation hover)
-			return EnvelopeLayersForMount(sim, playerId, hover);
-
-		if (queued.TorpedoMountedOn is not ESpatialOrientation queuedMountedOn)
-			return [];
-
-		for (var i = sim.Actions.Count - 1; i >= 0; i--)
-		{
-			if (sim.Actions[i] is TorpedoAction torpedo
-				&& torpedo.ActorId == playerId
-				&& torpedo.MountedOn == queuedMountedOn)
-				return EnvelopeLayersForQueued(sim, playerId, torpedo);
-		}
-
-		return [];
-	}
-
 	private void EnsureSim(BattleSimulation sim)
 	{
 		if (ReferenceEquals(sim, _lastSim))
@@ -245,68 +230,7 @@ public sealed class PlanningPreview
 	public void ClearCaches()
 	{
 		_moveCache.Clear();
-		_envelopeCacheKey = null;
-		_envelopeCache = [];
 		_lastSim = null;
-	}
-
-	private static readonly ESpatialOrientation[] TorpedoMountedDirections =
-	[
-		ESpatialOrientation.Retro,
-		ESpatialOrientation.Ventral,
-		ESpatialOrientation.Dorsal,
-	];
-
-	private IReadOnlyList<IReadOnlySet<Coord>> EnvelopeLayersForMount(
-		BattleSimulation sim,
-		string playerId,
-		ESpatialOrientation mountedOn)
-	{
-		var cacheKey =
-			$"hover|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{mountedOn}";
-		if (_envelopeCacheKey == cacheKey)
-			return _envelopeCache;
-
-		var peek = sim.Peek(new TorpedoAction(playerId, mountedOn, PreviewTorpedoId));
-		if (peek is null
-			|| !UnitRegistry.For(peek.Value.World).TryGet(PreviewTorpedoId, out var spawned))
-		{
-			_envelopeCacheKey = cacheKey;
-			_envelopeCache = [];
-			return _envelopeCache;
-		}
-
-		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
-		session.Begin(sim.AnchorTick, sim.WorldVersion);
-		_envelopeCacheKey = cacheKey;
-		_envelopeCache = TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers;
-		return _envelopeCache;
-	}
-
-	private IReadOnlyList<IReadOnlySet<Coord>> EnvelopeLayersForQueued(
-		BattleSimulation sim,
-		string playerId,
-		TorpedoAction queued)
-	{
-		var cacheKey =
-			$"queued|{sim.WorldVersion}|{MovePreviewCache.PrefixKey(sim.Actions)}|{queued.MountedOn}|{queued.SpawnedUnitId}";
-		if (_envelopeCacheKey == cacheKey)
-			return _envelopeCache;
-
-		var peek = sim.Peek(EndOfPhaseDef.Instance.Bind(playerId));
-		if (peek is null
-			|| !UnitRegistry.For(peek.Value.World).TryGet(queued.SpawnedUnitId, out var spawned))
-		{
-			_envelopeCacheKey = cacheKey;
-			_envelopeCache = [];
-			return _envelopeCache;
-		}
-
-		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
-		session.Begin(sim.AnchorTick, sim.WorldVersion);
-		_envelopeCacheKey = cacheKey;
-		_envelopeCache = TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers;
-		return _envelopeCache;
 	}
 
 	private static BattleWorld PreviewWorld(BattleSimulation sim, string playerId)

@@ -36,17 +36,11 @@ public partial class BattleController : Node3D
 	private GridView _gridView = null!;
 	private FlakPreviewView _flakPreview = null!;
 	private RailgunPreviewView _railgunPreview = null!;
-	private TorpedoPreviewView _torpedoPreview = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
 
 	private PresentationFrame _currentFrame = null!;
-	private MoveHoverCache _moveHoverCache;
-
-	private readonly record struct MoveHoverCache(
-		IReadOnlyList<MovePathOption> Paths,
-		IReadOnlyList<Coord> CommittedPath);
 
 	private bool _introActive;
 	private bool _strategicBattle;
@@ -80,10 +74,6 @@ public partial class BattleController : Node3D
 		_flakPreview = new FlakPreviewView { Name = "FlakPreview" };
 		_flakPreview.Build();
 		AddChild(_flakPreview);
-
-		_torpedoPreview = new TorpedoPreviewView { Name = "TorpedoPreview" };
-		_torpedoPreview.Build();
-		AddChild(_torpedoPreview);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		var playerPosition = _agent.Sim.StateOf<ActorState>(_battle.PlayerId).Position;
@@ -223,7 +213,6 @@ public partial class BattleController : Node3D
 		};
 		_translator.FlakHoverChanged += mountedOn => SetFlakHoverMountedOn(mountedOn);
 		_translator.RailgunHoverChanged += hovered => SetRailgunHovered(hovered);
-		_translator.TorpedoHoverChanged += mountedOn => SetTorpedoHoverMountedOn(mountedOn);
 		_translator.HoversCleared += ClearHovers;
 		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
@@ -272,7 +261,7 @@ public partial class BattleController : Node3D
 	private void OnMoveHoverChanged(int? index, int optionCount)
 	{
 		_frames.Interaction.SetMoveHover(index, optionCount);
-		ApplyMoveHoverOverlay();
+		RefreshPresentation();
 	}
 
 	private void OnEndTurn()
@@ -288,7 +277,6 @@ public partial class BattleController : Node3D
 	{
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		_currentFrame = frame;
-		_moveHoverCache = new MoveHoverCache(frame.MovePaths, frame.CommittedMovePath);
 		_translator.SetPresentation(
 			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver && !_introActive,
 			canIssueActions: frame.CanAct,
@@ -300,8 +288,6 @@ public partial class BattleController : Node3D
 			selectedMove: frame.SelectedMove,
 			moveDestination: frame.MoveDestination,
 			moveDragging: frame.IsMoveDragging,
-			focusState: frame.FocusState,
-			weapons: frame.Weapons,
 			instruction: frame.Instruction);
 		ApplyFrame(frame);
 	}
@@ -310,15 +296,6 @@ public partial class BattleController : Node3D
 	{
 		_frames.Interaction.ReportConfirmationFailure();
 		RefreshPresentation();
-	}
-
-	private void ApplyMoveHoverOverlay()
-	{
-		var (path, target) = MoveUi.GetPathHighlights(
-			_moveHoverCache.Paths,
-			_frames.Interaction.MoveHoveredIndex,
-			_moveHoverCache.CommittedPath);
-		_gridView.SetMoveHighlights(_moveHoverCache.Paths, path, target);
 	}
 
 	private void FocusUnit(string unitId)
@@ -368,15 +345,6 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
-	private void SetTorpedoHoverMountedOn(ESpatialOrientation? mountedOn)
-	{
-		if (!AcceptsCommands || _frames.Interaction.TorpedoHoverMountedOn == mountedOn)
-			return;
-
-		_frames.Interaction.TorpedoHoverMountedOn = mountedOn;
-		RefreshPresentation();
-	}
-
 	private Color ColorForActor(string actorId)
 	{
 		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
@@ -396,7 +364,6 @@ public partial class BattleController : Node3D
 		_moveGhost.Apply(frame.MoveGhostState, frame.ReachableMoveHeadings, ColorForActor(frame.FocusId));
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
-		_torpedoPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame);
 	}
 

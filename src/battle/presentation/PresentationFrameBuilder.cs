@@ -116,12 +116,16 @@ public sealed class PresentationFrameBuilder
 		var threatenedUnitIds = showWeaponPreviews
 			? _preview.ThreatenedUnitIds(sim, playerId, state)
 			: new HashSet<string>();
-		var torpedoEnvelopeLayers = showWeaponPreviews
-			? _preview.TorpedoEnvelopeLayers(sim, playerId, state)
-			: [];
 
 		var instruction = default(ActionInstruction);
-		if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
+		if (canControl && state.Mode == EPlayerMode.Move && state.ConfirmationError is { } moveError)
+		{
+			instruction = new ActionInstruction(
+				Visible: true,
+				Label: moveError,
+				CanConfirm: false);
+		}
+		else if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
 		{
 			var legalCapabilities = Capabilities.LegalCapabilities(sim, playerId);
 			var activation = AbilityActivation.For(activeSpec.Def);
@@ -164,10 +168,8 @@ public sealed class PresentationFrameBuilder
 			Weapons = weapons,
 			Abilities = abilities,
 			ThreatenedUnitIds = threatenedUnitIds,
-			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
 			FlakHoverMountedOn = canControl ? state.FlakHoverMountedOn : null,
 			RailgunHovered = canControl && state.RailgunHovered,
-			TorpedoHoverMountedOn = canControl ? state.TorpedoHoverMountedOn : null,
 			StagedMountedOn = canControl ? state.StagedMountedOn : null,
 			Instruction = instruction,
 			MovePath = movePath,

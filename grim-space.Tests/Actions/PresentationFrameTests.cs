@@ -234,41 +234,6 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void QueuedTorpedoRetainsReachEnvelope()
-	{
-		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-
-		Assert.True(BattleTestCommands.FireTorpedo(battle, ESpatialOrientation.Retro));
-
-		var action = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions));
-		Assert.NotNull(action.SpawnedUnitId);
-		Assert.NotEmpty(BattleTestCommands.Frame(battle).TorpedoEnvelopeLayers);
-	}
-
-	[Fact]
-	public void TorpedoMountsExcludeBlockedLaunchCells()
-	{
-		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var (blockedMount, _, _) = TorpedoMount.LaunchPose(
-			player.State,
-			ESpatialOrientation.Dorsal);
-		var battle = BattleTestFixture.BeginSimulation(
-			player,
-			enemy,
-			BattleTestFixture.Grid(),
-			new HashSet<Coord> { enemy.State.Position, blockedMount });
-
-		var mounts = BattleTestCommands.Frame(battle).Weapons.TorpedoMounts;
-
-		Assert.DoesNotContain(ESpatialOrientation.Dorsal, mounts);
-		Assert.Contains(ESpatialOrientation.Retro, mounts);
-		Assert.Contains(ESpatialOrientation.Ventral, mounts);
-	}
-
-	[Fact]
 	public void PreviewRetainsPredictedDeadUnits()
 	{
 		var origin = new Coord(5, 5, 5);

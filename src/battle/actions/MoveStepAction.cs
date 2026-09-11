@@ -18,11 +18,6 @@ public sealed record MoveStepAction(
 		MoveDef.Instance;
 }
 
-public readonly record struct MoveTransition(
-	GridBasis HeadingBasis,
-	Coord Destination,
-	GridBasis ArrivalBasis);
-
 public sealed class MoveDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
@@ -126,14 +121,7 @@ public sealed class MoveDef
 
 		var actor = world.StateOf(action.ActorId);
 		var basis = GridBasis.From(actor.Fore, actor.Dorsal, actor.Starboard);
-		var headingBasis = action.Heading is { } heading
-			? Orientation.HeadingTurn(basis, heading)
-			: basis;
-		var destination = actor.Position + headingBasis.Forward;
-		var arrivalBasis = action.Roll is { } roll
-			? Orientation.Roll(headingBasis, roll)
-			: headingBasis;
-		transition = new MoveTransition(headingBasis, destination, arrivalBasis);
+		transition = Orientation.MoveStep(actor.Position, basis, action.Heading, action.Roll);
 		return true;
 	}
 

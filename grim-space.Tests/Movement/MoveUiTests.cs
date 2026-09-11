@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Interaction;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
@@ -50,6 +51,27 @@ public sealed class MoveUiTests
 		Assert.Null(frame.MoveGhostState);
 		Assert.False(frame.Instruction.Visible);
 		Assert.False(frame.Instruction.CanConfirm);
+	}
+
+	[Fact]
+	public void FailedMoveQueueKeepsStagedPoseAndEndsDrag()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = builder.PreviewMoveOptions(battle, battle.PlayerAgent)
+			.First(path => path.EndPosition == origin + Coord.Forward);
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+
+		builder.Interaction.ReportConfirmationFailure();
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Equal(option.EndPosition, frame.MoveDestination);
+		Assert.Equal(option.EndBasis, frame.SelectedMove?.EndBasis);
+		Assert.False(frame.IsMoveDragging);
+		Assert.True(frame.Instruction.Visible);
+		Assert.False(frame.Instruction.CanConfirm);
+		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
 	}
 
 	[Fact]

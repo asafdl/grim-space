@@ -11,7 +11,6 @@ namespace GrimSpace.Battle.Units;
 public static class Capabilities
 {
 	private const string PreviewPatrolId = "__preview_patrol__";
-	private const string PreviewTorpedoId = "__preview_torpedo__";
 
 	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] Movement =
 	[
@@ -22,7 +21,7 @@ public static class Capabilities
 		EType type) =>
 		type switch
 		{
-			EType.Torpedo => [TorpedoMoveDef.Instance, ..AbilitiesFor(EType.Torpedo)],
+			EType.Torpedo => [],
 			_ => [..Movement, ..AbilitiesFor(type)],
 		};
 
@@ -34,11 +33,10 @@ public static class Capabilities
 			[
 				FlakDef.Instance,
 				RailgunDef.Instance,
-				TorpedoDef.Instance,
 			],
 			EType.Carrier => [RailgunDef.Instance, SpawnPatrolDef.Instance],
 			EType.Patrol => [FlakDef.Instance],
-			EType.Torpedo => [DetonateDef.Instance],
+			EType.Torpedo => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 
@@ -52,7 +50,6 @@ public static class Capabilities
 		{
 			var candidates = def switch
 			{
-				TorpedoDef torpedo => torpedo.Discover(actorId, PreviewTorpedoId),
 				SpawnPatrolDef => [new SpawnPatrolAction(actorId, PreviewPatrolId)],
 				_ => def.Discover(world, runtime, actorId),
 			};

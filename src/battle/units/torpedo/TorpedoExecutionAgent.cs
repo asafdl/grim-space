@@ -59,13 +59,11 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 	private static void TryEnqueueLegalAbilities(BattleSimulation session, string actorId)
 	{
 		var runtime = session.RuntimeFor(actorId);
-		foreach (var def in Capabilities.AbilitiesFor(EType.Torpedo))
+		var def = DetonateDef.Instance;
+		foreach (var action in def.Discover(session.World, runtime, actorId))
 		{
-			foreach (var action in def.Discover(session.World, runtime, actorId))
-			{
-				if (def.IsLegal(action, session.World, runtime))
-					session.TryEnqueue(action);
-			}
+			if (def.IsLegal(action, session.World, runtime))
+				session.TryEnqueue(action);
 		}
 	}
 

@@ -33,16 +33,11 @@ public sealed class ReplayState
 	{
 		var state = _states[move.ActorId];
 		var basis = GridBasis.From(state.Fore, state.Dorsal, state.Starboard);
-		var headingBasis = move.Heading is { } heading
-			? Orientation.HeadingTurn(basis, heading)
-			: basis;
-		state.Position += headingBasis.Forward;
-		var arrivalBasis = move.Roll is { } roll
-			? Orientation.Roll(headingBasis, roll)
-			: headingBasis;
-		state.Fore = arrivalBasis.Forward;
-		state.Dorsal = arrivalBasis.Up;
-		state.Starboard = arrivalBasis.Right;
+		var transition = Orientation.MoveStep(state.Position, basis, move.Heading, move.Roll);
+		state.Position = transition.Destination;
+		state.Fore = transition.ArrivalBasis.Forward;
+		state.Dorsal = transition.ArrivalBasis.Up;
+		state.Starboard = transition.ArrivalBasis.Right;
 	}
 
 	public void ApplyTorpedoMove(TorpedoMoveStepAction move)

@@ -62,14 +62,14 @@ public sealed class SimulationSearchTests
 	}
 
 	[Fact]
-	public void LegalCapabilitiesUsesSimulationWithoutApplyingSpawnEffects()
+	public void LegalCapabilitiesExcludeTorpedoesWithoutApplyingSpawnEffects()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
 
 		var actions = Capabilities.LegalCapabilities(session, PlayerId);
 
-		Assert.Contains(actions, action => action is TorpedoAction);
+		Assert.DoesNotContain(actions, action => action is TorpedoAction);
 		Assert.Empty(session.Actions);
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).TorpedoCooldownRemaining);
 	}
