@@ -36,6 +36,7 @@ public partial class BattleController : Node3D
 	private GridView _gridView = null!;
 	private FlakPreviewView _flakPreview = null!;
 	private RailgunPreviewView _railgunPreview = null!;
+	private TorpedoPreviewView _torpedoPreview = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
@@ -75,6 +76,10 @@ public partial class BattleController : Node3D
 		_flakPreview.Build();
 		AddChild(_flakPreview);
 
+		_torpedoPreview = new TorpedoPreviewView { Name = "TorpedoPreview" };
+		_torpedoPreview.Build();
+		AddChild(_torpedoPreview);
+
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		var playerPosition = _agent.Sim.StateOf<ActorState>(_battle.PlayerId).Position;
 		_camera.SetPivot(WorldMapping.ToWorld(playerPosition));
@@ -108,6 +113,7 @@ public partial class BattleController : Node3D
 			_battleHud,
 			_flakPreview,
 			_railgunPreview,
+			_torpedoPreview,
 			() => _battleView.UnitViews)
 		{
 			Name = "UserIntentTranslator",
@@ -213,6 +219,7 @@ public partial class BattleController : Node3D
 		};
 		_translator.FlakHoverChanged += mountedOn => SetFlakHoverMountedOn(mountedOn);
 		_translator.RailgunHoverChanged += hovered => SetRailgunHovered(hovered);
+		_translator.TorpedoHoverChanged += mountedOn => SetTorpedoHoverMountedOn(mountedOn);
 		_translator.HoversCleared += ClearHovers;
 		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
@@ -353,6 +360,15 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
+	private void SetTorpedoHoverMountedOn(ESpatialOrientation? mountedOn)
+	{
+		if (!AcceptsCommands || _frames.Interaction.TorpedoHoverMountedOn == mountedOn)
+			return;
+
+		_frames.Interaction.TorpedoHoverMountedOn = mountedOn;
+		RefreshPresentation();
+	}
+
 	private Color ColorForActor(string actorId)
 	{
 		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
@@ -378,6 +394,7 @@ public partial class BattleController : Node3D
 			selected: frame.SelectedMove is not null);
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
+		_torpedoPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame);
 	}
 

@@ -44,7 +44,8 @@ internal static class BattleHudCopy
 
 	public static string TorpedoTooltip =>
 		$"Torpedo:\nFires in a set direction.\n" +
-		$"Chases enemies in path for {TorpedoConfig.Fuel} turns.\n" +
+		$"Travels for {TorpedoConfig.Fuel} turns with {TorpedoConfig.MovementActionPoints} AP per turn.\n" +
+		$"Forward movement costs {TorpedoConfig.ForwardMoveApCost} AP; lateral movement costs {TorpedoConfig.LateralMoveApCost} AP.\n" +
 		$"Blast radius: {TorpedoConfig.BlastRadius} cells, {TorpedoConfig.BlastDamage} damage.\n" +
 		$"Cooldown: {TorpedoConfig.CooldownTurns} turns after launch.";
 

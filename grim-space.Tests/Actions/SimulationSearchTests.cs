@@ -62,16 +62,19 @@ public sealed class SimulationSearchTests
 	}
 
 	[Fact]
-	public void LegalCapabilitiesExcludeTorpedoesWithoutApplyingSpawnEffects()
+	public void LegalCapabilitiesIncludeTorpedoesWithoutApplyingSpawnEffects()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
 
 		var actions = Capabilities.LegalCapabilities(session, PlayerId);
 
-		Assert.DoesNotContain(actions, action => action is TorpedoAction);
+		Assert.Equal(3, actions.Count(action => action is TorpedoAction));
 		Assert.Empty(session.Actions);
 		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).TorpedoCooldownRemaining);
+		Assert.DoesNotContain(
+			UnitRegistry.For(session.World).All,
+			unit => unit.State.Type == GrimSpace.Units.Enums.EType.Torpedo);
 	}
 
 	[Fact]

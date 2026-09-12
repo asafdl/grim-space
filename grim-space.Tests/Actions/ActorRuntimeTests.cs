@@ -1,9 +1,4 @@
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Units;
-using GrimSpace.Math.Grid;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -31,15 +26,7 @@ public sealed class ActorRuntimeTests
 	}
 
 	[Fact]
-	public void ActivePathStartsNull()
-	{
-		var session = new ActorRuntime();
-
-		Assert.Null(session.ActivePath);
-	}
-
-	[Fact]
-	public void ResetClearsActivePath()
+	public void ResetClearsTurnState()
 	{
 		var session = new ActorRuntime
 		{
@@ -47,12 +34,6 @@ public sealed class ActorRuntimeTests
 			MomentumPaid = 1,
 			SpinBraked = true,
 			SpinDiscount = true,
-			ActivePath = TorpedoPathSession.Begin(
-				"player",
-				Coord.Zero,
-				BodyFrame.WorldAligned(Coord.Zero),
-				0,
-				Stats.ForType(EType.Fighter).MinPathApCost),
 		};
 
 		session.Reset();
@@ -61,6 +42,5 @@ public sealed class ActorRuntimeTests
 		Assert.Equal(0, session.MomentumPaid);
 		Assert.False(session.SpinBraked);
 		Assert.False(session.SpinDiscount);
-		Assert.Null(session.ActivePath);
 	}
 }

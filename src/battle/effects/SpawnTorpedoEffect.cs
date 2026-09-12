@@ -29,7 +29,7 @@ public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string uni
 			},
 			position,
 			new TorpedoExecutionAgent(),
-			TorpedoConfig.SpawnMomentum,
+			initialMomentum: 0,
 			fore,
 			dorsal);
 		torpedo.State.FuelRemaining = TorpedoConfig.Fuel;

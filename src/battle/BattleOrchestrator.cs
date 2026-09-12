@@ -215,9 +215,11 @@ public sealed class BattleOrchestrator : IDisposable
 		RevokeAllCanWork();
 
 		var units = UnitRegistry.For(_engine.World);
-		var activationOrder = units.ActivationOrder.ToArray();
-		foreach (var actorId in activationOrder)
+		var activationOrder = units.ActivationOrder.ToList();
+		var scheduled = activationOrder.ToHashSet(StringComparer.Ordinal);
+		for (var index = 0; index < activationOrder.Count; index++)
 		{
+			var actorId = activationOrder[index];
 			if (!units.TryGet(actorId, out var live) || !live.State.IsAlive)
 				continue;
 
@@ -228,6 +230,11 @@ public sealed class BattleOrchestrator : IDisposable
 
 			if (actorId == PlayerId)
 				unitsAfterPlayer = SnapshotAll();
+
+			var spawnedActors = units.ActivationOrder
+				.Where(scheduled.Add)
+				.ToList();
+			activationOrder.InsertRange(index + 1, spawnedActors);
 		}
 
 		CommitRoundUpkeep();

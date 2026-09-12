@@ -26,6 +26,7 @@ public sealed partial class UserIntentTranslator : Node
 	private readonly BattleHud _hud;
 	private readonly FlakPreviewView _flakPreview;
 	private readonly RailgunPreviewView _railgunPreview;
+	private readonly TorpedoPreviewView _torpedoPreview;
 	private readonly Func<IReadOnlyDictionary<string, UnitView>> _unitViews;
 
 	private bool _enabled;
@@ -53,6 +54,7 @@ public sealed partial class UserIntentTranslator : Node
 		BattleHud hud,
 		FlakPreviewView flakPreview,
 		RailgunPreviewView railgunPreview,
+		TorpedoPreviewView torpedoPreview,
 		Func<IReadOnlyDictionary<string, UnitView>> unitViews)
 	{
 		_actorId = actorId;
@@ -61,6 +63,7 @@ public sealed partial class UserIntentTranslator : Node
 		_hud = hud;
 		_flakPreview = flakPreview;
 		_railgunPreview = railgunPreview;
+		_torpedoPreview = torpedoPreview;
 		_unitViews = unitViews;
 	}
 
@@ -71,6 +74,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? MoveSelectionCanceled;
 	public event Action<ESpatialOrientation?>? FlakHoverChanged;
 	public event Action<bool>? RailgunHoverChanged;
+	public event Action<ESpatialOrientation?>? TorpedoHoverChanged;
 	public event Action<ESpatialOrientation>? StagedMountedOnRequested;
 	public event Action? HoversCleared;
 	public event Action<string>? FocusUnitRequested;
@@ -367,6 +371,10 @@ public sealed partial class UserIntentTranslator : Node
 				RailgunHoverChanged?.Invoke(
 					_railgunPreview.PickHovered(_camera, screenPosition));
 				break;
+			case EPlayerMode.Torpedo:
+				TorpedoHoverChanged?.Invoke(
+					_torpedoPreview.PickMountedOn(_camera, screenPosition));
+				break;
 		}
 	}
 
@@ -386,6 +394,10 @@ public sealed partial class UserIntentTranslator : Node
 			case EPlayerMode.Flak:
 				if (_flakPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation mountedOn)
 					StagedMountedOnRequested?.Invoke(mountedOn);
+				break;
+			case EPlayerMode.Torpedo:
+				if (_torpedoPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation torpedoMountedOn)
+					StagedMountedOnRequested?.Invoke(torpedoMountedOn);
 				break;
 
 		}

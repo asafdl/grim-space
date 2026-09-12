@@ -20,8 +20,10 @@ public sealed class PresentationFrame
 	public required WeaponPeek Weapons { get; init; }
 	public required AbilityLegality Abilities { get; init; }
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
+	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; } = [];
 	public ESpatialOrientation? FlakHoverMountedOn { get; init; }
 	public bool RailgunHovered { get; init; }
+	public ESpatialOrientation? TorpedoHoverMountedOn { get; init; }
 	public ESpatialOrientation? StagedMountedOn { get; init; }
 	public ActionInstruction Instruction { get; init; }
 	public required IReadOnlyList<MoveCheckpoint> MoveCheckpoints { get; init; }

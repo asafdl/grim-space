@@ -7,6 +7,7 @@ using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
@@ -211,6 +212,63 @@ public sealed class PresentationFrameTests
 		Assert.Equal(
 			afterMove,
 			preview.PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId)[battle.PlayerId].Position);
+	}
+
+	[Fact]
+	public void QueuedTorpedoRetainsReachEnvelope()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
+
+		var action = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions));
+		Assert.NotNull(action.SpawnedUnitId);
+		Assert.NotEmpty(BattleTestCommands.Frame(battle).TorpedoEnvelopeLayers);
+	}
+
+	[Fact]
+	public void QueuedTorpedoFirstEnvelopeLayerContainsSameCycleEndpoint()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
+		var firstLayer = BattleTestCommands.Frame(battle).TorpedoEnvelopeLayers[0];
+
+		var replay = BattleTestActions.CommitAndResolve(battle);
+		var torpedo = Assert.Single(
+			UnitRegistry.For(battle.Engine.World).All,
+			unit => unit.State.Type == EType.Torpedo);
+
+		Assert.Contains(
+			replay.Actions,
+			action => action is TorpedoMoveStepAction { ActorId: var id } && id == torpedo.State.Id);
+		Assert.Contains(torpedo.State.Position, firstLayer);
+	}
+
+	[Fact]
+	public void TorpedoMountsExcludeBlockedLaunchCells()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var (blockedMount, _, _) = TorpedoMount.LaunchPose(
+			player.State,
+			ESpatialOrientation.Dorsal);
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			BattleTestFixture.Grid(),
+			new HashSet<Coord> { enemy.State.Position, blockedMount });
+
+		var mounts = BattleTestCommands.Frame(battle).Weapons.TorpedoMounts;
+
+		Assert.DoesNotContain(ESpatialOrientation.Dorsal, mounts);
+		Assert.Contains(ESpatialOrientation.Retro, mounts);
+		Assert.Contains(ESpatialOrientation.Ventral, mounts);
 	}
 
 	[Fact]

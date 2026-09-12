@@ -214,6 +214,56 @@ public sealed class TorpedoScoringTests
 		Assert.True(session.StateOf<ActorState>(torpedoId).Position.Z <= torpedoPos.Z + 1);
 	}
 
+	[Fact]
+	public void Plan_PrefersFourForwardStepsWithoutReachableTarget()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		var state = battle.Engine.World.StateOf(torpedoId);
+		state.Position = torpedoPos;
+		state.Fore = Coord.Forward;
+		state.Dorsal = Coord.Up;
+		state.Starboard = Coord.Cross(Coord.Up, Coord.Forward);
+		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos - Coord.Forward * 5;
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent)
+			.Plan(torpedo, battle.Engine.CreateSimulation());
+		var moves = actions.OfType<TorpedoMoveStepAction>().ToList();
+
+		Assert.Equal(TorpedoConfig.MovementActionPoints, moves.Count);
+		Assert.All(moves, move => Assert.Equal(ESpatialOrientation.Forward, move.Direction));
+	}
+
+	[Fact]
+	public void Plan_UsesLateralMovementToReachBlastRange()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		var state = battle.Engine.World.StateOf(torpedoId);
+		state.Position = torpedoPos;
+		state.Fore = Coord.Forward;
+		state.Dorsal = Coord.Up;
+		state.Starboard = Coord.Cross(Coord.Up, Coord.Forward);
+		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + state.Starboard * (TorpedoConfig.BlastRadius + 1);
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent)
+			.Plan(torpedo, battle.Engine.CreateSimulation());
+
+		Assert.Contains(
+			actions,
+			action => action is TorpedoMoveStepAction
+			{
+				Direction: ESpatialOrientation.Starboard
+			});
+		Assert.Contains(actions, action => action is DetonateAction);
+	}
+
 	private static BattleOrchestrator BattleWithTorpedo(out string torpedoId)
 	{
 		var origin = new Coord(5, 5, 5);

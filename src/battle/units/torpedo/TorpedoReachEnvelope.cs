@@ -94,10 +94,6 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 					BattleSearchVisit.ForMove))
 				{
 					var state = frame.World.StateOf(actorId);
-					var path = frame.Runtimes.For(actorId).ActivePath;
-					if (path is not null && !path.CanEnd(state.Stats.MinPathApCost))
-						continue;
-
 					positions.Add(state.Position);
 
 					if (turn + 1 >= fuel)

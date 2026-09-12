@@ -33,16 +33,7 @@ public sealed class EndOfPhaseDef
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		EndOfPhaseAction action,
 		BattleWorld world,
-		ActorRuntime runtime)
-	{
-		if (runtime.ActivePath is not null)
-		{
-			runtime.ActivePath = null;
-			return [];
-		}
-
-		return [];
-	}
+		ActorRuntime runtime) => [];
 
 	private static EndOfPhaseAction Cast(IAction action) =>
 		action as EndOfPhaseAction ?? throw new ArgumentException($"Expected {nameof(EndOfPhaseAction)}.", nameof(action));

@@ -27,7 +27,7 @@ public sealed class TorpedoActionTests
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
-		Assert.Equal(TorpedoConfig.SpawnMomentum, torpedo.State.MomentumLevel);
+		Assert.Equal(0, torpedo.State.MomentumLevel);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
 		Assert.Equal(ETeam.Player, torpedo.Alliance.Team);
@@ -58,11 +58,11 @@ public sealed class TorpedoActionTests
 	}
 
 	[Fact]
-	public void FighterCapabilitiesExcludeTorpedo()
+	public void FighterCapabilitiesIncludeTorpedo()
 	{
 		var weapons = Capabilities.AbilitiesFor(EType.Fighter);
 
-		Assert.DoesNotContain(weapons, def => def is TorpedoDef);
+		Assert.Contains(weapons, def => def is TorpedoDef);
 	}
 
 	[Fact]
@@ -78,7 +78,7 @@ public sealed class TorpedoActionTests
 	}
 
 	[Fact]
-	public void ResolveTurnDoesNotActivateSpawnedTorpedoSameCycle()
+	public void ResolveTurnActivatesSpawnedTorpedoSameCycle()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -89,27 +89,22 @@ public sealed class TorpedoActionTests
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
-		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
-		Assert.Equal(origin - shipFore, torpedo.State.Position);
+		Assert.Equal(TorpedoConfig.Fuel - 1, torpedo.State.FuelRemaining);
+		Assert.NotEqual(origin - shipFore, torpedo.State.Position);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);
 		Assert.Contains(
 			replay.History,
 			entry => entry is Record<SpawnFacts> { Value: var spawn }
 				&& spawn.TargetId == torpedo.State.Id);
-		Assert.DoesNotContain(
+		Assert.Contains(
 			replay.Actions,
 			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
-		Assert.DoesNotContain(
+		Assert.Contains(
 			replay.Actions,
-			action => action is MoveStepAction && action.ActorId == torpedo.State.Id);
-		Assert.DoesNotContain(
+			action => action is TorpedoMoveStepAction && action.ActorId == torpedo.State.Id);
+		Assert.Contains(
 			replay.Actions,
 			action => action is FuelBurnAction && action.ActorId == torpedo.State.Id);
-
-		var nextReplay = BattleTestActions.CommitAndResolve(battle);
-		Assert.Contains(
-			nextReplay.Actions,
-			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
 	}
 
 	[Fact]

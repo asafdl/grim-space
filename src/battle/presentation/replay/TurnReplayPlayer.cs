@@ -178,7 +178,7 @@ public partial class TurnReplayPlayer : Node3D
 		spawned.Starboard = Coord.Cross(dorsal, fore);
 		spawned.ParentId = spawn.SourceId;
 		spawned.FuelRemaining = TorpedoConfig.Fuel;
-		spawned.MomentumLevel = TorpedoConfig.SpawnMomentum;
+		spawned.MomentumLevel = 0;
 		spawned.HullPoints = spawned.Stats.MaxHullPoints;
 		spawned.ActionPoints = spawned.Stats.MaxAp;
 

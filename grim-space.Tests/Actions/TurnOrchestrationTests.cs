@@ -41,7 +41,6 @@ public sealed class TurnOrchestrationTests
 		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.NotEmpty(BattleTestCommands.MoveOptions(battle));
-		Assert.False(battle.PlayerAgent.Sim.RuntimeFor(PlayerId).ActivePath != null);
 	}
 
 	[Fact]

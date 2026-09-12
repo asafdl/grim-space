@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Dfs;
@@ -11,12 +10,7 @@ internal readonly record struct CapabilitySearchState(
 	Coord Fore,
 	Coord Dorsal,
 	Coord Starboard,
-	int UsedDirectionsMask,
 	int MomentumLevel,
-	int MinPathApCost,
-	int PathForwardSteps,
-	int PathApSpent,
-	bool SpinBraked,
 	bool SpinDiscount,
 	int ActionPoints,
 	int FlakRemaining,
@@ -27,12 +21,7 @@ internal readonly record struct MoveSearchState(
 	Coord Fore,
 	Coord Dorsal,
 	Coord Starboard,
-	int UsedDirectionsMask,
 	int MomentumLevel,
-	int MinPathApRemaining,
-	int PathForwardSteps,
-	int PathApSpent,
-	bool SpinBraked,
 	int ActionPoints);
 
 internal readonly record struct MovePreviewSearchState(
@@ -54,19 +43,13 @@ internal static class BattleSearchVisit
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
 		var runtime = sim.RuntimeFor(actorId);
-		var path = runtime.ActivePath;
 		return new SearchVisitState(
 			new CapabilitySearchState(
 				actor.Position,
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				path?.UsedDirectionsMask ?? 0,
 				actor.MomentumLevel,
-				path?.MinPathApRemaining ?? actor.Stats.MinPathApCost,
-				path?.PathForwardSteps ?? 0,
-				path?.PathApSpent ?? 0,
-				path?.SpinBraked ?? false,
 				runtime.SpinDiscount,
 				actor.ActionPoints,
 				actor.FlakRemaining,
@@ -77,20 +60,13 @@ internal static class BattleSearchVisit
 	public static SearchVisitState ForMove(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
-		var runtime = sim.RuntimeFor(actorId);
-		var path = runtime.ActivePath;
 		return new SearchVisitState(
 			new MoveSearchState(
 				actor.Position,
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				path?.UsedDirectionsMask ?? 0,
 				actor.MomentumLevel,
-				path?.MinPathApRemaining ?? actor.Stats.MinPathApCost,
-				path?.PathForwardSteps ?? 0,
-				path?.PathApSpent ?? 0,
-				path?.SpinBraked ?? false,
 				actor.ActionPoints),
 			[]);
 	}

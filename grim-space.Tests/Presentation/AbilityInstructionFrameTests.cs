@@ -75,6 +75,32 @@ public sealed class AbilityInstructionFrameTests
 	}
 
 	[Fact]
+	public void BlockedTorpedoMountShowsUnavailableInstruction()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var (blockedMount, _, _) = TorpedoMount.LaunchPose(
+			player.State,
+			ESpatialOrientation.Dorsal);
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			BattleTestFixture.Grid(),
+			new HashSet<Coord> { enemy.State.Position, blockedMount });
+		var frames = new PresentationFrameBuilder();
+		var spec = AbilityHudCatalog.ForUnit(player.State.Type)
+			.First(entry => entry.Mode == EPlayerMode.Torpedo);
+		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+		frames.Interaction.StageMountedOn(ESpatialOrientation.Dorsal);
+
+		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.False(frame.Instruction.CanConfirm);
+		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
+	}
+
+	[Fact]
 	public void ConfirmationFailureShowsUnavailableInstruction()
 	{
 		var origin = new Coord(5, 5, 5);

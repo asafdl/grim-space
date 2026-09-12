@@ -14,7 +14,7 @@ namespace GrimSpace.Tests.Actions;
 public sealed class CarrierPatrolIntegrationTests
 {
 	[Fact]
-	public void ResolveTurn_CarrierDeploysPatrolWithoutActivatingItSameCycle()
+	public void ResolveTurn_CarrierDeploysAndActivatesPatrolSameCycle()
 	{
 		var battle = BattleTestFixture.BeginCarrierVsPlayer(new Coord(0, 5, 5), new Coord(8, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
@@ -33,19 +33,13 @@ public sealed class CarrierPatrolIntegrationTests
 				&& spawn.SourceId == carrierId
 				&& spawn.TargetId == patrol.State.Id
 				&& spawn.EntityType == EType.Patrol);
-		Assert.DoesNotContain(
-			replay.Actions,
-			action => action.ActorId == patrol.State.Id
-				&& action is not RoundUpkeepAction);
-
-		var nextReplay = BattleTestActions.CommitAndResolve(battle);
 		Assert.Contains(
-			nextReplay.Actions,
+			replay.Actions,
 			action => action is EndOfPhaseAction { ActorId: var actorId } && actorId == patrol.State.Id);
 	}
 
 	[Fact]
-	public void ResolveTurn_SpawnedPatrolDoesNotFireFlakSameCycle()
+	public void ResolveTurn_SpawnedPatrolCanFireFlakSameCycle()
 	{
 		var grid = BattleTestFixture.Grid();
 		var carrierPos = new Coord(5, 5, 5);
@@ -75,7 +69,7 @@ public sealed class CarrierPatrolIntegrationTests
 		var patrol = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
 			unit => unit.State.Type == EType.Patrol);
-		Assert.DoesNotContain(
+		Assert.Contains(
 			replay.Actions,
 			action => action is FlakAction { ActorId: var actorId } && actorId == patrol.State.Id);
 	}

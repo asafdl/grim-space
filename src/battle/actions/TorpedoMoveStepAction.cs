@@ -1,5 +1,5 @@
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
@@ -18,8 +18,7 @@ public sealed record TorpedoMoveStepAction(
 }
 
 public sealed class TorpedoMoveDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IActionInvariants<BattleWorld, ActorRuntime>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public static TorpedoMoveDef Instance { get; } = new();
 
@@ -53,7 +52,7 @@ public sealed class TorpedoMoveDef
 	public bool IsPossible(TorpedoMoveStepAction action, BattleWorld world)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Type != EType.Torpedo)
+		if (actor.Type != EType.Torpedo || TorpedoConfig.MoveApCost(action.Direction) is null)
 			return false;
 
 		var to = actor.Position + BodyFrame.From(actor).Step(action.Direction);
@@ -65,27 +64,9 @@ public sealed class TorpedoMoveDef
 		if (!IsPossible(action, world))
 			return false;
 
-		var path = runtime.ActivePath;
-		if (path is not null && DirectionRules.UsesOpposite(path.UsedDirectionsMask, action.Direction))
-			return false;
-
-		var actor = world.StateOf(action.ActorId);
-		var stepCost = StepCosts.GetMoveStepApCost(
-			action.Direction,
-			new MoveStepContext(path?.PathForwardSteps ?? 0, actor.MomentumLevel));
-		return stepCost <= actor.ActionPoints
-			&& (stepCost != 0 || actor.ActionPoints != 0 || (path?.PathApSpent ?? 0) != 0);
-	}
-
-	public InvariantStatus EvaluateInvariants(BattleWorld world, ActorRuntime runtime, string actorId)
-	{
-		if (runtime.ActivePath is null
-			|| runtime.ActivePath.CanEnd(world.StateOf(actorId).Stats.MinPathApCost))
-			return InvariantStatus.Ok;
-
-		return Discover(world, runtime, actorId).Any()
-			? InvariantStatus.Incomplete
-			: InvariantStatus.Impossible;
+		var stepCost = TorpedoConfig.MoveApCost(action.Direction)
+			?? throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
+		return stepCost <= world.StateOf(action.ActorId).ActionPoints;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
@@ -95,15 +76,11 @@ public sealed class TorpedoMoveDef
 	{
 		var actor = world.StateOf(action.ActorId);
 		var to = actor.Position + BodyFrame.From(actor).Step(action.Direction);
-		var path = runtime.ActivePath;
-		var stepCost = StepCosts.GetMoveStepApCost(
-			action.Direction,
-			new MoveStepContext(path?.PathForwardSteps ?? 0, actor.MomentumLevel));
+		var stepCost = TorpedoConfig.MoveApCost(action.Direction)
+			?? throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
 
 		return
 		[
-			new TorpedoPathStepEffect(action, to, stepCost, DirectionRules.DirectionBit(action.Direction)),
-			new TorpedoStepMomentumEffect(action.Direction),
 			new MoveEffect(to),
 			new ApChangeEffect(-stepCost),
 			new HazardCellEntryEffect(to),
