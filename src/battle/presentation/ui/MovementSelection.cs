@@ -7,9 +7,17 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public static class MovementSelection
 {
 	private const float PickRadiusPixels = 22f;
-	private const float HeadingHandleWorldOffset = 1.25f;
+	private const float DepthDirectionThreshold = 0.88f;
+	private const float DepthHandleOffsetPixels = 52f;
+	private const float MinimumProjectedDepthOffsetPixels = 34f;
 
-	public readonly record struct HeadingHandle(Coord Heading, Vector2 Position, float Rotation);
+	public enum HeadingHandleKind { Arrow, TowardCamera, AwayFromCamera }
+
+	public readonly record struct HeadingHandle(
+		Coord Heading,
+		Vector2 Position,
+		float Rotation,
+		HeadingHandleKind Kind);
 
 	public static int? PickPathIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<MovePathOption> paths)
 	{
@@ -83,27 +91,35 @@ public static class MovementSelection
 		{
 			var worldDirection = new Vector3(heading.X, heading.Y, heading.Z);
 			var projected = camera.UnprojectPosition(
-				centerWorld + worldDirection * HeadingHandleWorldOffset) - center;
-			if (projected.LengthSquared() < 16f)
+				centerWorld + worldDirection * WorldMapping.CellSize) - center;
+			var kind = HeadingHandleKindFor(worldDirection, camera.GlobalBasis.Z);
+			if (kind != HeadingHandleKind.Arrow
+				&& projected.LengthSquared() < MinimumProjectedDepthOffsetPixels * MinimumProjectedDepthOffsetPixels)
 			{
-				var depth = worldDirection.Dot(camera.GlobalBasis.Z);
-				projected = Vector2.Up * (depth >= 0f ? 1f : -1f);
+				projected = Vector2.Up
+					* DepthHandleOffsetPixels
+					* (kind == HeadingHandleKind.TowardCamera ? -1f : 1f);
 			}
 
 			var direction = projected.Normalized();
 			handles.Add(new HeadingHandle(
 				heading,
-				center + direction * HeadingHandleDistance(camera, centerWorld),
-				direction.Angle()));
+				center + projected,
+				direction.Angle(),
+				kind));
 		}
 
 		return handles;
 	}
 
-	private static float HeadingHandleDistance(Camera3D camera, Vector3 centerWorld)
+	internal static HeadingHandleKind HeadingHandleKindFor(Vector3 direction, Vector3 cameraBack)
 	{
-		var edge = camera.UnprojectPosition(centerWorld + Vector3.Right * WorldMapping.CellSize * 0.65f);
-		var center = camera.UnprojectPosition(centerWorld);
-		return System.Math.Clamp(edge.DistanceTo(center), 42f, 72f);
+		var depth = direction.Normalized().Dot(cameraBack.Normalized());
+		if (Mathf.Abs(depth) < DepthDirectionThreshold)
+			return HeadingHandleKind.Arrow;
+
+		return depth > 0f
+			? HeadingHandleKind.TowardCamera
+			: HeadingHandleKind.AwayFromCamera;
 	}
 }

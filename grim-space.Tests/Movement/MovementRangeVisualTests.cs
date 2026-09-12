@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
@@ -86,5 +87,19 @@ public sealed class MovementRangeVisualTests
 		Assert.Equal(36, lines.Count(line => line.Style == GridView.LocalGridLineStyle.Hatch));
 		Assert.Contains(lines, line => line.Style == GridView.LocalGridLineStyle.VisibleEdge);
 		Assert.Contains(lines, line => line.Style == GridView.LocalGridLineStyle.RearEdge);
+	}
+
+	[Fact]
+	public void CameraDepthHeadingsUseDotAndCrossHandles()
+	{
+		Assert.Equal(
+			MovementSelection.HeadingHandleKind.TowardCamera,
+			MovementSelection.HeadingHandleKindFor(Vector3.Back, Vector3.Back));
+		Assert.Equal(
+			MovementSelection.HeadingHandleKind.AwayFromCamera,
+			MovementSelection.HeadingHandleKindFor(Vector3.Forward, Vector3.Back));
+		Assert.Equal(
+			MovementSelection.HeadingHandleKind.Arrow,
+			MovementSelection.HeadingHandleKindFor(Vector3.Right, Vector3.Back));
 	}
 }

@@ -63,9 +63,12 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		{
 			var arrow = _arrows[handle.Heading];
 			arrow.Position = handle.Position;
-			arrow.Rotation = handle.Rotation;
+			arrow.Rotation = handle.Kind == MovementSelection.HeadingHandleKind.Arrow
+				? handle.Rotation
+				: 0f;
 			arrow.Visible = true;
 			arrow.Apply(
+				handle.Kind,
 				selected: handle.Heading == _selectedHeading,
 				progress: handle.Heading == _heldHeading ? _holdProgress : 0f);
 		}
@@ -83,50 +86,49 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			new(8f, 8f),
 			new(-30f, 8f),
 		];
+		private static readonly Vector2[] Outline = [.. Shape, Shape[0]];
+		private static readonly Color BodyColor = new(0.55f, 0.58f, 0.62f, 0.5f);
+		private static readonly Color FillColor = new(0.82f, 0.86f, 0.9f, 0.9f);
 
-		private readonly Polygon2D _shadow;
-		private readonly Polygon2D _body;
-		private readonly Polygon2D _fill;
-		private readonly Line2D _outline;
+		private MovementSelection.HeadingHandleKind _kind;
+		private bool _selected;
+		private float _progress;
 
-		public ArrowView()
+		public void Apply(MovementSelection.HeadingHandleKind kind, bool selected, float progress)
 		{
-			_shadow = new Polygon2D
-			{
-				Polygon = Shape,
-				Position = new Vector2(3f, 3f),
-				Color = new Color(0f, 0f, 0f, 0.55f),
-			};
-			AddChild(_shadow);
-
-			_body = new Polygon2D
-			{
-				Polygon = Shape,
-				Color = new Color(0.55f, 0.58f, 0.62f, 0.38f),
-			};
-			AddChild(_body);
-
-			_fill = new Polygon2D
-			{
-				Color = new Color(0.82f, 0.86f, 0.9f, 0.9f),
-			};
-			AddChild(_fill);
-
-			_outline = new Line2D
-			{
-				Points = [.. Shape, Shape[0]],
-				Width = 2f,
-				Antialiased = true,
-			};
-			AddChild(_outline);
+			_kind = kind;
+			_selected = selected;
+			_progress = progress;
+			QueueRedraw();
 		}
 
-		public void Apply(bool selected, float progress)
+		public override void _Draw()
 		{
-			_outline.DefaultColor = selected
-				? new Color(0.92f, 0.95f, 1f, 0.9f)
-				: new Color(0.72f, 0.75f, 0.8f, 0.65f);
-			_fill.Polygon = ClipAt(Shape, -30f + 64f * progress);
+			var outlineColor = _selected
+				? new Color(0.92f, 0.95f, 1f, 0.95f)
+				: new Color(0.72f, 0.75f, 0.8f, 0.72f);
+
+			if (_kind == MovementSelection.HeadingHandleKind.Arrow)
+			{
+				DrawColoredPolygon(Shape.Select(point => point + new Vector2(3f, 3f)).ToArray(), new Color(0f, 0f, 0f, 0.55f));
+				DrawColoredPolygon(Shape, BodyColor);
+				if (_progress > 0f)
+					DrawColoredPolygon(ClipAt(Shape, -30f + 64f * _progress), FillColor);
+				DrawPolyline(Outline, outlineColor, 2f, antialiased: true);
+				return;
+			}
+
+			DrawCircle(new Vector2(3f, 3f), 18f, new Color(0f, 0f, 0f, 0.55f));
+			DrawCircle(Vector2.Zero, 18f, BodyColor);
+			DrawArc(Vector2.Zero, 18f, 0f, Mathf.Tau, 32, outlineColor, 2f, antialiased: true);
+
+			if (_kind == MovementSelection.HeadingHandleKind.TowardCamera)
+				DrawCircle(Vector2.Zero, 5f, outlineColor);
+			else
+			{
+				DrawLine(new Vector2(-7f, -7f), new Vector2(7f, 7f), outlineColor, 3f, antialiased: true);
+				DrawLine(new Vector2(-7f, 7f), new Vector2(7f, -7f), outlineColor, 3f, antialiased: true);
+			}
 		}
 
 		private static Vector2[] ClipAt(IReadOnlyList<Vector2> polygon, float maxX)
