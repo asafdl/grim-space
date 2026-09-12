@@ -35,7 +35,7 @@ public sealed class PresentationFrameTests
 		Assert.Equal(threeStepEnd, frame.FocusState.Position);
 		Assert.Contains(origin + Coord.Forward * 4, endpoints);
 		Assert.Equal(threeStepEnd, frame.MoveTarget);
-		Assert.Equal(3, frame.MovePath.Count);
+		Assert.Equal(3, frame.MoveCheckpoints.Count);
 	}
 
 	[Fact]
@@ -52,7 +52,7 @@ public sealed class PresentationFrameTests
 
 		Assert.Equal(origin, frame.FocusState.Position);
 		Assert.Null(frame.MoveTarget);
-		Assert.Empty(frame.MovePath);
+		Assert.Empty(frame.MoveCheckpoints);
 		Assert.Contains(
 			frame.MovePaths,
 			option => option.EndPosition == origin + Coord.Forward * 4);
@@ -113,7 +113,7 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void UndoRailgunPreservesCommittedMovePath()
+	public void UndoRailgunPreservesCommittedMoveCheckpoints()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
@@ -121,13 +121,13 @@ public sealed class PresentationFrameTests
 
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 		var preview = new PlanningPreview();
-		var pathAfterMove = preview.CommittedMovePath(battle.PlayerAgent.Sim, battle.PlayerId).ToList();
+		var pathAfterMove = preview.CommittedMoveCheckpoints(battle.PlayerAgent.Sim, battle.PlayerId).ToList();
 		Assert.NotEmpty(pathAfterMove);
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.Equal(pathAfterMove, preview.CommittedMovePath(battle.PlayerAgent.Sim, battle.PlayerId));
+		Assert.Equal(pathAfterMove, preview.CommittedMoveCheckpoints(battle.PlayerAgent.Sim, battle.PlayerId));
 		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
 		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
 	}
@@ -163,7 +163,7 @@ public sealed class PresentationFrameTests
 		Assert.False(frame.CanAct);
 		Assert.Equal(EPlayerMode.Move, frame.Mode);
 		Assert.True(frame.ShowMovePreview);
-		Assert.Empty(frame.MovePath);
+		Assert.Empty(frame.MoveCheckpoints);
 		Assert.Null(frame.MoveTarget);
 		Assert.False(frame.ShowWeaponPreviews);
 		Assert.Equal(enemyPos, frame.FocusState.Position);

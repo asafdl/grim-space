@@ -7,7 +7,6 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class GridView : Node3D
 {
-private const float PathDotRadius = 0.126f;
 private const float LocalGridViewDotThreshold = 0.9995f;
 private const float VisibleFaceDotThreshold = 0.08f;
 
@@ -29,14 +28,12 @@ private static readonly Vector3[] NeighborOffsets =
 	private MeshInstance3D _rangeShell = null!;
 	private MeshInstance3D _localGrid = null!;
 	private StandardMaterial3D _rangeShellMaterial = null!;
-	private StandardMaterial3D _pathMaterial = null!;
-	private SphereMesh _pathMesh = null!;
 
-	private readonly List<MeshInstance3D> _activePathMarkers = [];
-	private readonly Queue<MeshInstance3D> _freePathMarkers = [];
 	private HashSet<Coord> _rangeEndpoints = [];
 	private HashSet<Coord> _rangeCells = [];
+	private readonly Dictionary<string, ArrayMesh> _rangeMeshes = [];
 	private Coord? _rangeSource;
+	private int? _rangeCacheTurn;
 	private Vector3? _ghostWorld;
 	private Vector3? _localGridViewDirection;
 
@@ -44,14 +41,6 @@ private static readonly Vector3[] NeighborOffsets =
 	{
 		_camera = camera;
 		_rangeShellMaterial = CreateRangeShellMaterial();
-		_pathMaterial = CreatePathMaterial();
-		_pathMesh = new SphereMesh
-		{
-			Radius = PathDotRadius,
-			Height = PathDotRadius * 2f,
-			RadialSegments = 12,
-			Rings = 6,
-		};
 
 		_rangeShell = CreateVisual(
 			"MovementRangeShell",
@@ -77,6 +66,12 @@ private static readonly Vector3[] NeighborOffsets =
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
+		if (_rangeCacheTurn != frame.TurnNumber)
+		{
+			_rangeMeshes.Clear();
+			_rangeCacheTurn = frame.TurnNumber;
+		}
+
 		if (!frame.ShowMovePreview
 			|| frame.ShowOutcomeOverlay
 			|| frame.Mode != EPlayerMode.Move)
@@ -108,7 +103,6 @@ private static readonly Vector3[] NeighborOffsets =
 			_localGrid.GlobalPosition = ghostWorld;
 			RefreshLocalGridMesh();
 		}
-		SetPathMarkers(frame.MovePath, frame.MoveGhostState?.Position);
 	}
 
 	private void RefreshRange(Coord source, IReadOnlyList<MovePathOption> paths)
@@ -128,11 +122,29 @@ private static readonly Vector3[] NeighborOffsets =
 		_rangeCells = cells;
 
 		if (endpoints.Count > 0)
-			_rangeShell.Mesh = CreateRangeMesh(
-				MovementRangeGeometry.Build(source, cells));
+		{
+			var key = RangeMeshKey(source, cells);
+			if (!_rangeMeshes.TryGetValue(key, out var mesh))
+			{
+				mesh = CreateRangeMesh(MovementRangeGeometry.Build(source, cells));
+				_rangeMeshes[key] = mesh;
+			}
+			_rangeShell.Mesh = mesh;
+		}
 
 		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
 	}
+
+	internal static string RangeMeshKey(Coord source, IEnumerable<Coord> cells) =>
+		string.Join(
+			'|',
+			cells
+				.Select(cell => cell - source)
+				.Distinct()
+				.OrderBy(cell => cell.X)
+				.ThenBy(cell => cell.Y)
+				.ThenBy(cell => cell.Z)
+				.Select(cell => $"{cell.X},{cell.Y},{cell.Z}"));
 
 	private static ArrayMesh CreateRangeMesh(MovementRangeGeometry.Surface surface)
 	{
@@ -172,45 +184,6 @@ private static readonly Vector3[] NeighborOffsets =
 		}
 	}
 
-	private void SetPathMarkers(IReadOnlyList<Coord> path, Coord? ghostPosition)
-	{
-		ReleasePathMarkers();
-
-		foreach (var coord in path)
-		{
-			if (coord == ghostPosition)
-				continue;
-
-			var marker = AcquirePathMarker();
-			marker.GlobalPosition = WorldMapping.ToWorld(coord);
-			_activePathMarkers.Add(marker);
-		}
-	}
-
-	private MeshInstance3D AcquirePathMarker()
-	{
-		if (_freePathMarkers.TryDequeue(out var marker))
-		{
-			marker.Visible = true;
-			return marker;
-		}
-
-		marker = CreateVisual("MovementPathMarker", _pathMesh, _pathMaterial);
-		AddChild(marker);
-		return marker;
-	}
-
-	private void ReleasePathMarkers()
-	{
-		foreach (var marker in _activePathMarkers)
-		{
-			marker.Visible = false;
-			_freePathMarkers.Enqueue(marker);
-		}
-
-		_activePathMarkers.Clear();
-	}
-
 	private void HideMoveVisuals()
 	{
 		if (_rangeShell is not null)
@@ -218,7 +191,6 @@ private static readonly Vector3[] NeighborOffsets =
 		if (_localGrid is not null)
 			_localGrid.Visible = false;
 		_ghostWorld = null;
-		ReleasePathMarkers();
 	}
 
 	internal static IReadOnlySet<LineSegment> CreateNeighborOutlineSegments()
@@ -397,15 +369,6 @@ private static readonly Vector3[] NeighborOffsets =
 		PresentationLayers.MarkUx(visual);
 		return visual;
 	}
-
-	private static StandardMaterial3D CreatePathMaterial() =>
-		new()
-		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			AlbedoColor = new Color(0.45f, 0.5f, 0.6f, 0.45f),
-			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-		};
 
 	private static StandardMaterial3D CreateLocalGridMaterial() =>
 		new()

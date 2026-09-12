@@ -218,6 +218,7 @@ public partial class BattleController : Node3D
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
+		_translator.UndoRequested += OnUndoRequested;
 		_translator.EndTurnRequested += OnEndTurn;
 		_translator.ConfirmationFailed += OnConfirmationFailed;
 		_translator.RestartRequested += ResetBattle;
@@ -271,6 +272,13 @@ public partial class BattleController : Node3D
 
 		_battle.EndTurn();
 		RefreshPresentation();
+	}
+
+	private void OnUndoRequested()
+	{
+		_frames.Interaction.ClearHovers();
+		if (!_agent.Undo())
+			RefreshPresentation();
 	}
 
 	private void RefreshPresentation()
@@ -363,6 +371,8 @@ public partial class BattleController : Node3D
 		_gridView.ApplyFrame(frame);
 		_moveGhost.Apply(
 			frame.MoveGhostState,
+			frame.MoveCheckpoints,
+			frame.FocusState,
 			frame.ReachableMoveHeadings,
 			ColorForActor(frame.FocusId),
 			selected: frame.SelectedMove is not null);

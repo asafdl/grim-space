@@ -213,9 +213,9 @@ public sealed class MoveUiTests
 			.PreviewMoveOptions(battle, battle.PlayerAgent);
 		var selected = paths.First(path => path.EndPosition == origin + Coord.Forward * 2);
 
-		var (cells, target) = MoveUi.GetPathHighlights(paths, hoveredIndex: 0, [], selected);
+		var (checkpoints, target) = MoveUi.GetPathHighlights(paths, hoveredIndex: 0, [], selected);
 
-		Assert.Equal(selected.Cells, cells);
+		Assert.Equal(selected.Checkpoints.Skip(1), checkpoints);
 		Assert.Equal(selected.EndPosition, target);
 	}
 }

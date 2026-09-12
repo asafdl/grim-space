@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
@@ -23,8 +24,7 @@ public sealed class PresentationFrame
 	public bool RailgunHovered { get; init; }
 	public ESpatialOrientation? StagedMountedOn { get; init; }
 	public ActionInstruction Instruction { get; init; }
-	public required IReadOnlyList<Coord> MovePath { get; init; }
-	public required IReadOnlyList<Coord> CommittedMovePath { get; init; }
+	public required IReadOnlyList<MoveCheckpoint> MoveCheckpoints { get; init; }
 	public Coord? MoveTarget { get; init; }
 	public MovePathOption? SelectedMove { get; init; }
 	public Coord? MoveDestination { get; init; }

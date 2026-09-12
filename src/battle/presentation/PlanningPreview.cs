@@ -75,17 +75,17 @@ public sealed class PlanningPreview
 	public int MovePathApBaseline(BattleSimulation sim, string playerId, string focusId) =>
 		0;
 
-	public IReadOnlyList<Coord> CommittedMovePath(BattleSimulation sim, string playerId) =>
-		CommittedMovePath(sim.ReplayWorld(0).StateOf(playerId), sim.Actions, playerId);
+	public IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(BattleSimulation sim, string playerId) =>
+		CommittedMoveCheckpoints(sim.ReplayWorld(0).StateOf(playerId), sim.Actions, playerId);
 
-	private static IReadOnlyList<Coord> CommittedMovePath(
+	private static IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(
 		State start,
 		IReadOnlyList<IAction> actions,
 		string playerId)
 	{
 		var position = start.Position;
 		var basis = GridBasis.From(start.Fore, start.Dorsal, start.Starboard);
-		var path = new List<Coord>();
+		var checkpoints = new List<MoveCheckpoint>();
 		foreach (var action in actions)
 		{
 			if (action is not MoveStepAction { ActorId: var actorId } move || actorId != playerId)
@@ -94,10 +94,10 @@ public sealed class PlanningPreview
 			var transition = Orientation.MoveStep(position, basis, move.Heading, move.Roll);
 			position = transition.Destination;
 			basis = transition.ArrivalBasis;
-			path.Add(position);
+			checkpoints.Add(new MoveCheckpoint(position, basis));
 		}
 
-		return path;
+		return checkpoints;
 	}
 
 	public WeaponPeek Weapons(BattleSimulation sim, string actorId)

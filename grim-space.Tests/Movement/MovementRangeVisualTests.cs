@@ -102,4 +102,22 @@ public sealed class MovementRangeVisualTests
 			MovementSelection.HeadingHandleKind.Arrow,
 			MovementSelection.HeadingHandleKindFor(Vector3.Right, Vector3.Back));
 	}
+
+	[Fact]
+	public void RangeMeshCacheKeyIsOrderAndTranslationIndependent()
+	{
+		var source = new Coord(2, 3, 4);
+		var cells = new[]
+		{
+			source + Coord.Forward,
+			source + Coord.Up,
+			source + Coord.Forward,
+		};
+		var translatedSource = source + new Coord(5, -2, 1);
+		var translatedCells = cells.Select(cell => cell + new Coord(5, -2, 1)).Reverse();
+
+		Assert.Equal(
+			GridView.RangeMeshKey(source, cells),
+			GridView.RangeMeshKey(translatedSource, translatedCells));
+	}
 }

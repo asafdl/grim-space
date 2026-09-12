@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
@@ -67,7 +68,7 @@ public sealed class PresentationFrameBuilder
 		var canControl = acceptsCommands && isPlanning && !isInspecting;
 		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
 		var movePathApBaseline = _preview.MovePathApBaseline(sim, playerId, focusId);
-		var committedMovePath = _preview.CommittedMovePath(sim, playerId);
+		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
 		var queuedWeapon = canControl ? _preview.QueuedWeapon(sim, playerId) : QueuedWeaponState.Empty;
 		var abilityActorId = canControl || isInspecting ? focusId : playerId;
 		var weapons = canControl || isInspecting ? _preview.Weapons(sim, abilityActorId) : WeaponPeek.Empty;
@@ -88,13 +89,13 @@ public sealed class PresentationFrameBuilder
 				.ToHashSet()
 			: [];
 
-		IReadOnlyList<Coord> movePath;
+		IReadOnlyList<MoveCheckpoint> moveCheckpoints;
 		Coord? moveTarget;
 		if (canControl || isInspecting)
 		{
 			if (isInspecting)
 			{
-				movePath = [];
+				moveCheckpoints = [];
 				moveTarget = null;
 			}
 			else
@@ -103,16 +104,16 @@ public sealed class PresentationFrameBuilder
 				hoveredMove = state.MoveHoveredIndex is int hoveredIndex
 					? moveOptions[hoveredIndex]
 					: null;
-				(movePath, moveTarget) = MoveUi.GetPathHighlights(
+				(moveCheckpoints, moveTarget) = MoveUi.GetPathHighlights(
 					moveOptions,
 					state.MoveHoveredIndex,
-					committedMovePath,
+					committedMoveCheckpoints,
 					selectedMove);
 			}
 		}
 		else
 		{
-			movePath = [];
+			moveCheckpoints = [];
 			moveTarget = null;
 		}
 
@@ -183,8 +184,7 @@ public sealed class PresentationFrameBuilder
 			RailgunHovered = canControl && state.RailgunHovered,
 			StagedMountedOn = canControl ? state.StagedMountedOn : null,
 			Instruction = instruction,
-			MovePath = movePath,
-			CommittedMovePath = committedMovePath,
+			MoveCheckpoints = moveCheckpoints,
 			MoveTarget = moveTarget,
 			SelectedMove = selectedMove,
 			MoveDestination = state.MoveDestination,

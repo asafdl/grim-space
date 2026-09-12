@@ -31,8 +31,25 @@ public sealed class HumanExecutionAgentTests
 
 		Assert.Equal(1, changes);
 		Assert.Equal(end, preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].Position);
-		Assert.Equal(3, preview.CommittedMovePath(agent.Sim, PlayerId).Count);
+		Assert.Equal(3, preview.CommittedMoveCheckpoints(agent.Sim, PlayerId).Count);
 		Assert.True(agent.CanUndo);
+	}
+
+	[Fact]
+	public void CommittedCheckpointsPreserveEveryArrivalPose()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var option = BattleTestCommands.MoveOptions(battle)
+			.First(path => path.Steps.Any(step => step.Heading is not null || step.Roll is not null));
+
+		Assert.True(battle.PlayerAgent.TryEnqueue(option.Steps.Cast<IAction>().ToList()));
+
+		var checkpoints = new PlanningPreview()
+			.CommittedMoveCheckpoints(battle.PlayerAgent.Sim, PlayerId);
+		Assert.Equal(option.Checkpoints.Skip(1), checkpoints);
 	}
 
 	[Fact]

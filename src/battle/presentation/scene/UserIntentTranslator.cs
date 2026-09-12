@@ -76,6 +76,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<string>? FocusUnitRequested;
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
+	public event Action? UndoRequested;
 	public event Action? EndTurnRequested;
 	public event Action? ConfirmationFailed;
 	public event Action? RestartRequested;
@@ -289,11 +290,8 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnUndo()
 	{
-		if (!_actions.Undo())
-			return;
-
 		_moveHoveredIndex = null;
-		ClearHovers();
+		UndoRequested?.Invoke();
 	}
 
 	public void OnFocusCamera() => FocusCameraRequested?.Invoke();
