@@ -46,7 +46,7 @@ internal static class StarSystemTestHarness
 				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 				UnitDefaults.EngageRadius(EType.PlayerFleet),
 				[]),
-			[FleetMember.Create(BattleUnitType.Fighter)]));
+			[BattleUnitType.Fighter]));
 	}
 
 	internal static Fleet CreatePirateFleet(
@@ -65,9 +65,11 @@ internal static class StarSystemTestHarness
 				[],
 				faction,
 				combatProfile),
-			Enumerable.Range(0, 3)
-				.Select(_ => FleetMember.Create(BattleUnitType.Patrol))
-				.ToArray());
+			[
+				BattleUnitType.Patrol,
+				BattleUnitType.Patrol,
+				BattleUnitType.Patrol,
+			]);
 
 	private sealed class StraightLinePathfinder : IPathfinder
 	{

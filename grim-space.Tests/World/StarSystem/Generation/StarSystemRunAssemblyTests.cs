@@ -1,6 +1,7 @@
 using GrimSpace.Run;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Units;
 using RunState = GrimSpace.Run.State;
@@ -57,6 +58,22 @@ public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
 		var secondFleet = second.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(firstFleet.State.DockedAtDockId, secondFleet.State.DockedAtDockId);
 		Assert.Equal(EPhase.Docked, secondFleet.State.Phase);
+	}
+
+	[Fact]
+	public void Subscribe_ExposesCommittedEntries()
+	{
+		using var starSystem = StarSystemOrchestrator.CreateDevSession(
+			RunState.PlayerFleetUnitId,
+			42);
+		BeginNarrativeAction? received = null;
+		using var subscription = starSystem.Subscribe<BeginNarrativeAction>(
+			action => received = action);
+		var action = new BeginNarrativeAction(RunState.PlayerFleetUnitId, "test-narrative");
+
+		starSystem.CommitSetup(action);
+
+		Assert.Equal(action, received);
 	}
 
 	[Fact]

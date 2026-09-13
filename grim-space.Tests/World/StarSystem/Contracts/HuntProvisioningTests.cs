@@ -11,6 +11,7 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Traffic;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -66,6 +67,33 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 
 		engine.Commit(action);
 		Assert.Equal(previewIds, PirateMemberIds(engine.World));
+	}
+
+	[Fact]
+	public void AcceptHunt_UsesCompositionDeclaredBySpawnSpec()
+	{
+		var map = maps.Fresh(42);
+		var searchArea = CreateSyntheticSearchArea(map);
+		var spawnSpec = new FleetSpawnSpec(
+			EType.PirateFleet,
+			EFaction.Pirates,
+			EDangerLevel.VeryLow,
+			7,
+			[BattleUnitType.Carrier, BattleUnitType.Fighter]);
+		var objective = new HuntObjective(
+			[new SpawnEncounterGroup("mixed-fleet", searchArea, 1, spawnSpec)]);
+		RegisterSyntheticContract(map, "mixed-hunt", objective);
+
+		var unitId = map.FleetRegistry.Ids.First();
+		DockAtIssuer(map, unitId);
+		var engine = CreateEngine(map, unitId);
+		engine.Commit(new AcceptContractAction(unitId, "mixed-hunt"));
+
+		var fleet = engine.World.FleetRegistry.All
+			.Single(unit => unit.State.Id.Contains("mixed-fleet", StringComparison.Ordinal));
+		Assert.Equal(
+			[BattleUnitType.Carrier, BattleUnitType.Fighter],
+			fleet.Members.Select(member => member.Type));
 	}
 
 	[Fact]
@@ -226,9 +254,11 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 
 	private static FleetSpawnSpec CreateSpawnSpec(int mapSeed, string groupId) =>
 		new(
+			EType.PirateFleet,
 			EFaction.Pirates,
 			EDangerLevel.VeryLow,
-			unchecked((int)GrimSpace.Math.StableSeedMixer.From(mapSeed).Add(groupId).Value));
+			unchecked((int)GrimSpace.Math.StableSeedMixer.From(mapSeed).Add(groupId).Value),
+			[BattleUnitType.Patrol]);
 
 	private static void DockAtIssuer(StarMap map, string unitId)
 	{

@@ -13,6 +13,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Units;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem;
 
@@ -140,7 +141,16 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 				groupId,
 				searchArea,
 				1,
-				new FleetSpawnSpec(EFaction.Pirates, EDangerLevel.VeryLow, spawnSeed)),
+				new FleetSpawnSpec(
+					Units.EType.PirateFleet,
+					EFaction.Pirates,
+					EDangerLevel.VeryLow,
+					spawnSeed,
+					[
+						BattleUnitType.Patrol,
+						BattleUnitType.Patrol,
+						BattleUnitType.Patrol,
+					])),
 		]);
 		var narrative = ContractNarrative.ForHunt("Pirate Hunt", searchArea);
 		var contract = new Contract(

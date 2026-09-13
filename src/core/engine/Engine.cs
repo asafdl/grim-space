@@ -9,6 +9,8 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 	private readonly TimelineGcOptions _gcOptions;
 	private readonly CancellationTokenSource _gcCts = new();
 	private readonly Task _gcTask;
+	private readonly object _subscriptionsSync = new();
+	private readonly Dictionary<Type, List<Action<ITimelineEntry>>> _subscriptions = [];
 	private bool _disposed;
 
 	public Engine(
@@ -35,6 +37,28 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 
 	public int Tick => World.Timeline.Clock.Current;
 
+	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
+		where TEntry : ITimelineEntry
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		ArgumentNullException.ThrowIfNull(listener);
+
+		Action<ITimelineEntry> wrapper = entry => listener((TEntry)entry);
+		var entryType = typeof(TEntry);
+		lock (_subscriptionsSync)
+		{
+			if (!_subscriptions.TryGetValue(entryType, out var listeners))
+			{
+				listeners = [];
+				_subscriptions.Add(entryType, listeners);
+			}
+
+			listeners.Add(wrapper);
+		}
+
+		return new Subscription(() => Unsubscribe(entryType, wrapper));
+	}
+
 	public Simulation<TWorld, TRuntime> CreateSimulation()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -49,13 +73,17 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 		if (actions.Length == 0)
 			return World.Timeline.History();
 
+		var committed = new List<ITimelineEntry>();
 		foreach (var action in actions)
 		{
 			var records = ExecutionHelper.Apply(action, World, ActorRuntimes.For(action));
-			World.Timeline.Append([action, ..records]);
+			ITimelineEntry[] entries = [action, ..records];
+			World.Timeline.Append(entries);
+			committed.AddRange(entries);
 		}
 
 		BumpWorldVersion();
+		PublishCommitted(committed);
 		return World.Timeline.History();
 	}
 
@@ -89,6 +117,8 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 			return;
 
 		_disposed = true;
+		lock (_subscriptionsSync)
+			_subscriptions.Clear();
 		if (_gcOptions == TimelineGcOptions.Disabled)
 			return;
 
@@ -124,5 +154,43 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 		}
 	}
 
+	private void PublishCommitted(IReadOnlyList<ITimelineEntry> entries)
+	{
+		foreach (var entry in entries)
+		{
+			Action<ITimelineEntry>[] listeners;
+			lock (_subscriptionsSync)
+			{
+				if (!_subscriptions.TryGetValue(entry.GetType(), out var registered))
+					continue;
+
+				listeners = [..registered];
+			}
+
+			foreach (var listener in listeners)
+				listener(entry);
+		}
+	}
+
+	private void Unsubscribe(Type entryType, Action<ITimelineEntry> listener)
+	{
+		lock (_subscriptionsSync)
+		{
+			if (!_subscriptions.TryGetValue(entryType, out var listeners))
+				return;
+
+			listeners.Remove(listener);
+			if (listeners.Count == 0)
+				_subscriptions.Remove(entryType);
+		}
+	}
+
 	private void BumpWorldVersion() => WorldVersion++;
+
+	private sealed class Subscription(Action unsubscribe) : IDisposable
+	{
+		private Action? _unsubscribe = unsubscribe;
+
+		public void Dispose() => Interlocked.Exchange(ref _unsubscribe, null)?.Invoke();
+	}
 }

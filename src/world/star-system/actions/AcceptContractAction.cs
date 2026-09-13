@@ -1,15 +1,10 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
-using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
-using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
-using GrimSpace.World.StarSystem.Encounter;
-using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
-using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -47,63 +42,18 @@ public sealed class AcceptContractDef
 	{
 		var accept = (AcceptContractAction)action;
 		var contract = world.ContractRegistry.All.First(c => c.Id == accept.ContractId);
-
-		var effects = new List<IEffect<StarMap, ActorRuntime>>();
-		var spawnBindings = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-
-		if (contract.Objective is IHasSpawnGroups hasSpawnGroups)
-		{
-			var planned = ContractFleetPlacement.Plan(
-				hasSpawnGroups.SpawnGroups,
-				accept.ContractId,
-				world.Seed,
-				world,
-				world.FleetRegistry);
-
-			for (var fleetIndex = 0; fleetIndex < planned.Count; fleetIndex++)
-			{
-				var spawn = planned[fleetIndex];
-				if (!spawnBindings.TryGetValue(spawn.GroupId, out var unitIds))
-				{
-					unitIds = [];
-					spawnBindings[spawn.GroupId] = unitIds;
-				}
-
-				unitIds.Add(spawn.UnitId);
-
-				var combatProfile = new CombatProfile(spawn.Spawn.Danger, spawn.Spawn.Seed);
-				var members = Enumerable.Range(0, 3)
-					.Select(memberIndex => FleetMember.Create(
-						BattleUnitType.Patrol,
-						$"{accept.SpawnIdentity}-{fleetIndex}-{memberIndex}"))
-					.ToArray();
-				var fleet = Factory.Create(
-					new Spawn(
-						spawn.UnitId,
-						EType.PirateFleet,
-						"",
-						spawn.Coord,
-						UnitDefaults.SpeedPerTick(EType.PirateFleet),
-						UnitDefaults.EngageRadius(EType.PirateFleet),
-						[],
-						spawn.Spawn.Faction,
-						combatProfile),
-					members);
-				effects.Add(new SpawnMapUnitEffect(fleet));
-			}
-		}
+		var spawns = Factory.Create(contract, world, accept.SpawnIdentity);
+		var effects = spawns.Fleets
+			.Select(fleet => (IEffect<StarMap, ActorRuntime>)new SpawnMapUnitEffect(fleet))
+			.ToList();
 
 		var state = new ContractState(
 			accept.ContractId,
 			EContractStatus.Active,
 			world.Timeline.Clock.Current,
 			accept.ActorId,
-			spawnBindings.ToDictionary(
-				entry => entry.Key,
-				entry => (IReadOnlyList<string>)entry.Value,
-				StringComparer.Ordinal));
+			spawns.Bindings);
 		effects.Add(new ActivateContractEffect(state));
-		effects.Add(new CompleteStoryObjectiveEffect(StoryObjective.FirstContract));
 		return effects;
 	}
 }

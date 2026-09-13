@@ -12,6 +12,7 @@ using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Narrative;
+using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
@@ -24,6 +25,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly ActionBatchSink _actionSink = new();
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
+	private readonly Queue<IAction> _reactionQueue = [];
+	private readonly IDisposable _storyObjectiveSubscription;
 	private ESimMode _simMode = (ESimMode)(-1);
 	private bool _resolvingInputAction;
 
@@ -39,6 +42,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		PlayerId = playerId;
 		_playerAgent = playerAgent;
 		_trafficAgents = trafficAgents;
+		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 	}
 
 	public event Action? WorldUpdated;
@@ -66,13 +70,19 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public Coord CommittedPositionOf(string unitId, float tickFraction = 0f) =>
 		_contactMonitor.CommittedPositionOf(unitId, tickFraction);
 
+	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
+		where TEntry : ITimelineEntry =>
+		_engine.Subscribe(listener);
+
 	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
 
 	public static StarSystemOrchestrator CreateDevSession(string playerFleetUnitId, int seed = 0)
-		=> CreateDevSession(
-			playerFleetUnitId,
-			[FleetMember.Create(BattleUnitType.Fighter)],
-			seed);
+	{
+		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
+		var map = StarMap.CreateDevDefault(seed);
+		AddPlayerFleet(map, playerFleetUnitId, [BattleUnitType.Fighter]);
+		return InitializeDevSession(map, playerFleetUnitId);
+	}
 
 	public static StarSystemOrchestrator CreateDevSession(
 		string playerFleetUnitId,
@@ -85,6 +95,11 @@ public sealed class StarSystemOrchestrator : IDisposable
 			throw new ArgumentException("Player fleet must contain at least one member.", nameof(playerFleetMembers));
 		var map = StarMap.CreateDevDefault(seed);
 		AddPlayerFleet(map, playerFleetUnitId, playerFleetMembers);
+		return InitializeDevSession(map, playerFleetUnitId);
+	}
+
+	private static StarSystemOrchestrator InitializeDevSession(StarMap map, string playerFleetUnitId)
+	{
 		var orchestrator = FromMap(map, playerFleetUnitId);
 		orchestrator.CommitSetup(
 			new BeginNarrativeAction(playerFleetUnitId, MapNarratives.OpeningId));
@@ -167,17 +182,32 @@ public sealed class StarSystemOrchestrator : IDisposable
 		string playerFleetUnitId,
 		IReadOnlyList<FleetMember> members)
 	{
-		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
 		map.FleetRegistry.Add(Factory.Create(
-			new Spawn(
-				playerFleetUnitId,
-				EType.PlayerFleet,
-				tradeHubDock.Id,
-				default,
-				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
-				UnitDefaults.EngageRadius(EType.PlayerFleet),
-				[]),
+			CreatePlayerFleetSpawn(map, playerFleetUnitId),
 			members));
+	}
+
+	private static void AddPlayerFleet(
+		StarMap map,
+		string playerFleetUnitId,
+		IReadOnlyList<BattleUnitType> memberTypes)
+	{
+		map.FleetRegistry.Add(Factory.Create(
+			CreatePlayerFleetSpawn(map, playerFleetUnitId),
+			memberTypes));
+	}
+
+	private static Spawn CreatePlayerFleetSpawn(StarMap map, string playerFleetUnitId)
+	{
+		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
+		return new Spawn(
+			playerFleetUnitId,
+			EType.PlayerFleet,
+			tradeHubDock.Id,
+			default,
+			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+			UnitDefaults.EngageRadius(EType.PlayerFleet),
+			[]);
 	}
 
 	public void SetRunning() => ApplySimMode(ESimMode.Running);
@@ -204,6 +234,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		CommitPlayerActions();
 		var history = _engine.AdvanceTick();
+		CommitReactions();
 		if (PlayerId is not null)
 			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 		NotifyWorldUpdated();
@@ -215,13 +246,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (actions.Length == 0)
 			return;
 
-		_engine.Commit(actions);
+		Commit(actions);
 		NotifyWorldUpdated();
 	}
 
 	public void ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
-		_engine.Commit([new ResolveEngagementAction(playerId, outcome)]);
+		Commit(new ResolveEngagementAction(playerId, outcome));
 		NotifyWorldUpdated();
 	}
 
@@ -254,6 +285,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitTrafficActions();
 
 		var history = _engine.AdvanceTick();
+		CommitReactions();
 
 		if (PlayerId is not null)
 			ContractFulfillment.Evaluate(_engine.World, PlayerId);
@@ -323,7 +355,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			return;
 		}
 
-		_engine.Commit([..batch.Actions]);
+		Commit([..batch.Actions]);
 	}
 
 	private void CommitTrafficActions()
@@ -334,7 +366,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			if (!_actionSink.TryTakeBatch(actorId, out var batch) || batch.Actions.Count == 0)
 				continue;
 
-			_engine.Commit([..batch.Actions]);
+			Commit([..batch.Actions]);
 		}
 	}
 
@@ -342,7 +374,29 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		var produced = _contactMonitor.Update(Tick);
 		if (produced.Count > 0)
-			_engine.Commit([..produced]);
+			Commit([..produced]);
+	}
+
+	private void OnContractAccepted(AcceptContractAction accepted)
+	{
+		foreach (var reaction in StoryObjectiveFulfillment.ReactionsFor(Map, PlayerId, accepted))
+		{
+			if (!_reactionQueue.Contains(reaction))
+				_reactionQueue.Enqueue(reaction);
+		}
+	}
+
+	private IReadOnlyList<ITimelineEntry> Commit(params IAction[] actions)
+	{
+		var history = _engine.Commit(actions);
+		CommitReactions();
+		return history;
+	}
+
+	private void CommitReactions()
+	{
+		while (_reactionQueue.Count > 0)
+			_engine.Commit(_reactionQueue.Dequeue());
 	}
 
 	private void NotifyWorldUpdated()
@@ -351,7 +405,11 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_playerAgent?.OnWorldUpdated();
 	}
 
-	public void Dispose() => _engine.Dispose();
+	public void Dispose()
+	{
+		_storyObjectiveSubscription.Dispose();
+		_engine.Dispose();
+	}
 
 	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Fleet unit)
 	{

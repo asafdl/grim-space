@@ -1,5 +1,3 @@
-using GrimSpace.Units;
-using GrimSpace.Units.Enums;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 
@@ -17,11 +15,10 @@ public sealed class State
 	public static State CreateDevDefault(int seed = 0)
 	{
 		var run = new State();
-		run.PlayerParty.Add(FleetMember.Create(EType.Fighter));
-		run.StarSystem = StarSystemOrchestrator.CreateDevSession(
-			PlayerFleetUnitId,
-			run.PlayerParty.Members,
-			seed);
+		run.StarSystem = StarSystemOrchestrator.CreateDevSession(PlayerFleetUnitId, seed);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerFleetUnitId);
+		foreach (var member in playerFleet.Members)
+			run.PlayerParty.Add(member);
 		return run;
 	}
 }

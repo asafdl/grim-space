@@ -92,14 +92,50 @@ public sealed class AcceptContractActionTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void Commit_CompletesFirstContractStoryObjective()
+	public void CommittedPlayerAcceptance_CompletesFirstContractStoryObjectiveBeforeNotification()
 	{
-		var (engine, unitId, contractId) = CreateEngine();
-		engine.World.StoryObjectives.Add(StoryObjective.FirstContract);
+		using var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+			maps,
+			GrimSpace.Run.State.PlayerFleetUnitId,
+			42);
+		var unitId = GrimSpace.Run.State.PlayerFleetUnitId;
+		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
+		var objectiveActiveWhenNotified = true;
+		orchestrator.WorldUpdated += () =>
+		{
+			objectiveActiveWhenNotified = orchestrator.Map.StoryObjectives.Active.Contains(
+				StoryObjective.FirstContract);
+		};
 
-		engine.Commit(new AcceptContractAction(unitId, contractId));
+		orchestrator.CommitSetup(new AcceptContractAction(unitId, contractId));
 
-		Assert.DoesNotContain(StoryObjective.FirstContract, engine.World.StoryObjectives.Active);
+		Assert.False(objectiveActiveWhenNotified);
+		Assert.DoesNotContain(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
+		var history = orchestrator.Map.Timeline.History();
+		Assert.True(
+			history.ToList().FindIndex(entry => entry is CompleteStoryObjectiveAction)
+			> history.ToList().FindIndex(entry => entry is AcceptContractAction));
+	}
+
+	[Fact]
+	public void CommittedNonPlayerAcceptance_DoesNotCompleteFirstContractStoryObjective()
+	{
+		using var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+			maps,
+			GrimSpace.Run.State.PlayerFleetUnitId,
+			42);
+		var npcId = orchestrator.Map.FleetRegistry.Ids.First(
+			id => id != GrimSpace.Run.State.PlayerFleetUnitId);
+		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
+
+		orchestrator.CommitSetup(new AcceptContractAction(npcId, contractId));
+
+		Assert.Contains(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
+		Assert.DoesNotContain(
+			orchestrator.Map.Timeline.History(),
+			entry => entry is CompleteStoryObjectiveAction);
 	}
 
 	[Fact]
