@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -12,7 +13,7 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class ContractFulfillmentTests(StarMapFixture maps)
 {
 	[Fact]
-	public void ReactionsFor_ReturnsCompletionWhenSpawnTargetsAreGone()
+	public void ReactionsFor_ReturnsCompletionWhenDefeatedFleetWasLastBoundTarget()
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
@@ -31,8 +32,9 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 				[group.GroupId] = [targetUnitId],
 			}));
 
+		var resolved = ResolvedVictory(holderUnitId, targetUnitId);
 		var completion = Assert.IsType<CompleteContractAction>(
-			Assert.Single(ContractFulfillment.ReactionsFor(map, holderUnitId)));
+			Assert.Single(ContractFulfillment.ReactionsFor(map, resolved)));
 		Assert.Equal(holderUnitId, completion.ActorId);
 		Assert.Equal(contractId, completion.ContractId);
 
@@ -44,7 +46,7 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void ReactionsFor_ReturnsNothingWhileTargetsRemain()
+	public void ReactionsFor_ReturnsNothingWhenDefeatedFleetIsUnrelated()
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
@@ -59,16 +61,29 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 			holderUnitId,
 			new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
 			{
-				[group.GroupId] = [holderUnitId],
+				[group.GroupId] = ["missing-bound-target"],
 			}));
 
-		var reactions = ContractFulfillment.ReactionsFor(map, holderUnitId);
+		var reactions = ContractFulfillment.ReactionsFor(
+			map,
+			ResolvedVictory(holderUnitId, "unrelated-pirate"));
 
 		Assert.Empty(reactions);
 		Assert.True(map.ContractRegistry.TryGetActive(holderUnitId, out var active));
 		Assert.Equal(contractId, active.Definition.Id);
 		Assert.False(map.ContractRegistry.IsCompleted(contractId));
 	}
+
+	private static ResolveEngagementAction ResolvedVictory(
+		string victorFleetId,
+		string defeatedFleetId) =>
+		new(
+			victorFleetId,
+			defeatedFleetId,
+			BattleOutcome.Create(
+				EBattleResult.Win,
+				(victorFleetId, EBattleParticipantState.Alive),
+				(defeatedFleetId, EBattleParticipantState.Destroyed)));
 }
 
 public sealed class ObjectivesCollectorTests(StarMapFixture maps)

@@ -394,7 +394,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void OnEngagementResolved(ResolveEngagementAction resolved)
 	{
-		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved.VictorFleetId))
+		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved))
 		{
 			if (!_reactionQueue.Contains(reaction))
 				_reactionQueue.Enqueue(reaction);

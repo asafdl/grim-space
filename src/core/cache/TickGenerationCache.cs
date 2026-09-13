@@ -36,7 +36,8 @@ internal sealed class TickGenerationCache<TKey, TInput, TPrepared, TResource> : 
 
 	internal int ResourceCount => _resources.Count;
 	internal int PendingCount => _pending.Count;
-	internal int CompletedPendingCount => _pending.Values.Count(entry => entry.Task.IsCompleted);
+	internal Task PendingCompletion => Task.WhenAll(
+		_pending.Values.Select(entry => entry.Task));
 
 	public bool Request(
 		TKey key,

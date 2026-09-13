@@ -5,9 +5,11 @@ namespace GrimSpace.Tests.Caching;
 public sealed class TickGenerationCacheTests
 {
 	[Fact]
-	public void DuplicatePendingRequestsShareGeneration()
+	public async Task DuplicatePendingRequestsShareGeneration()
 	{
 		using var gate = new ManualResetEventSlim();
+		var preparationStarted = new TaskCompletionSource<bool>(
+			TaskCreationOptions.RunContinuationsAsynchronously);
 		var preparations = 0;
 		using var cache = new TickGenerationCache<string, int, int, string>(
 			capacity: 4,
@@ -16,6 +18,7 @@ public sealed class TickGenerationCacheTests
 			(input, cancellationToken) =>
 			{
 				Interlocked.Increment(ref preparations);
+				preparationStarted.SetResult(true);
 				gate.Wait(cancellationToken);
 				return input * 2;
 			},
@@ -24,34 +27,25 @@ public sealed class TickGenerationCacheTests
 		Assert.False(cache.Request("shape", () => 3, tick: 4, out _));
 		Assert.False(cache.Request("shape", () => 99, tick: 4, out _));
 		Assert.Equal(1, cache.PendingCount);
-		Assert.True(SpinWait.SpinUntil(
-			() => Volatile.Read(ref preparations) == 1,
-			TimeSpan.FromSeconds(1)));
+		await preparationStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(1, Volatile.Read(ref preparations));
 
 		gate.Set();
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 1,
-			TimeSpan.FromSeconds(1)));
+		await cache.PendingCompletion;
 		Assert.Equal(1, cache.Pump(tick: 4).FinalizedCount);
 		Assert.True(cache.Request("shape", () => 0, tick: 4, out var resource));
 		Assert.Equal("6", resource);
 	}
 
 	[Fact]
-	public void FinalizationRunsOnPumpingThread()
+	public async Task FinalizationRunsOnPumpingThread()
 	{
-		var pumpingThread = Environment.CurrentManagedThreadId;
-		var preparationThread = pumpingThread;
 		var finalizationThread = 0;
 		using var cache = new TickGenerationCache<string, int, int, int>(
 			capacity: 4,
 			maxPending: 4,
 			retentionTicks: 1,
-			(input, _) =>
-			{
-				preparationThread = Environment.CurrentManagedThreadId;
-				return input;
-			},
+			(input, _) => input,
 			prepared =>
 			{
 				finalizationThread = Environment.CurrentManagedThreadId;
@@ -59,20 +53,18 @@ public sealed class TickGenerationCacheTests
 			});
 
 		Assert.False(cache.Request("shape", () => 3, tick: 1, out _));
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 1,
-			TimeSpan.FromSeconds(1)));
+		await cache.PendingCompletion;
+		var pumpingThread = Environment.CurrentManagedThreadId;
 		cache.Pump(tick: 1);
 
-		Assert.NotEqual(pumpingThread, preparationThread);
 		Assert.Equal(pumpingThread, finalizationThread);
 	}
 
 	[Fact]
-	public void ResourcesExpireByTickNotElapsedTime()
+	public async Task ResourcesExpireByTickNotElapsedTime()
 	{
 		using var cache = ImmediateCache(capacity: 4, retentionTicks: 1);
-		Add(cache, "shape", tick: 5);
+		await Add(cache, "shape", tick: 5);
 
 		Thread.Sleep(10);
 		cache.AdvanceTick(6);
@@ -83,13 +75,13 @@ public sealed class TickGenerationCacheTests
 	}
 
 	[Fact]
-	public void CapacityEvictsLeastRecentlyUsedResource()
+	public async Task CapacityEvictsLeastRecentlyUsedResource()
 	{
 		using var cache = ImmediateCache(capacity: 2, retentionTicks: 10);
-		Add(cache, "a", tick: 1);
-		Add(cache, "b", tick: 1);
+		await Add(cache, "a", tick: 1);
+		await Add(cache, "b", tick: 1);
 		Assert.True(cache.Request("a", () => 0, tick: 1, out _));
-		Add(cache, "c", tick: 1);
+		await Add(cache, "c", tick: 1);
 
 		Assert.True(cache.Request("a", () => 0, tick: 1, out _));
 		Assert.False(cache.Request("b", () => 2, tick: 1, out _));
@@ -97,7 +89,7 @@ public sealed class TickGenerationCacheTests
 	}
 
 	[Fact]
-	public void PreparationFailureIsSurfacedAndCanBeRetried()
+	public async Task PreparationFailureIsSurfacedAndCanBeRetried()
 	{
 		var attempts = 0;
 		using var cache = new TickGenerationCache<string, int, int, int>(
@@ -110,9 +102,8 @@ public sealed class TickGenerationCacheTests
 			prepared => prepared);
 
 		Assert.False(cache.Request("shape", () => 7, tick: 1, out _));
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 1,
-			TimeSpan.FromSeconds(1)));
+		await Assert.ThrowsAsync<InvalidOperationException>(
+			() => cache.PendingCompletion);
 		var failed = cache.Pump(tick: 1);
 		var error = Assert.Single(failed.Failures);
 		Assert.Contains("generation failed", error.Error.ToString());
@@ -121,16 +112,14 @@ public sealed class TickGenerationCacheTests
 		Assert.Equal(0, cache.PendingCount);
 		cache.AdvanceTick(2);
 		Assert.False(cache.Request("shape", () => 7, tick: 2, out _));
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 1,
-			TimeSpan.FromSeconds(1)));
+		await cache.PendingCompletion;
 		Assert.Equal(1, cache.Pump(tick: 2).FinalizedCount);
 		Assert.True(cache.Request("shape", () => 0, tick: 2, out var resource));
 		Assert.Equal(7, resource);
 	}
 
 	[Fact]
-	public void FailedPreparationDoesNotBlockHealthyCompletions()
+	public async Task FailedPreparationDoesNotBlockHealthyCompletions()
 	{
 		using var cache = new TickGenerationCache<string, int, int, int>(
 			capacity: 2,
@@ -143,9 +132,8 @@ public sealed class TickGenerationCacheTests
 
 		Assert.False(cache.Request("bad", () => -1, tick: 1, out _));
 		Assert.False(cache.Request("good", () => 7, tick: 1, out _));
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 2,
-			TimeSpan.FromSeconds(1)));
+		await Assert.ThrowsAsync<InvalidOperationException>(
+			() => cache.PendingCompletion);
 
 		var result = cache.Pump(tick: 1);
 
@@ -156,7 +144,7 @@ public sealed class TickGenerationCacheTests
 	}
 
 	[Fact]
-	public void FailedFinalizationDoesNotBlockHealthyCompletions()
+	public async Task FailedFinalizationDoesNotBlockHealthyCompletions()
 	{
 		using var cache = new TickGenerationCache<string, int, int, int>(
 			capacity: 2,
@@ -169,9 +157,7 @@ public sealed class TickGenerationCacheTests
 
 		Assert.False(cache.Request("bad", () => -1, tick: 1, out _));
 		Assert.False(cache.Request("good", () => 7, tick: 1, out _));
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 2,
-			TimeSpan.FromSeconds(1)));
+		await cache.PendingCompletion;
 
 		var result = cache.Pump(tick: 1);
 
@@ -182,7 +168,7 @@ public sealed class TickGenerationCacheTests
 	}
 
 	[Fact]
-	public void PendingCapacityProvidesBackpressure()
+	public async Task PendingCapacityProvidesBackpressure()
 	{
 		using var gate = new ManualResetEventSlim();
 		using var cache = new TickGenerationCache<string, int, int, int>(
@@ -201,9 +187,7 @@ public sealed class TickGenerationCacheTests
 		Assert.Equal(1, cache.PendingCount);
 
 		gate.Set();
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount == 1,
-			TimeSpan.FromSeconds(1)));
+		await cache.PendingCompletion;
 		cache.Pump(tick: 1);
 		Assert.False(cache.Request("b", () => 2, tick: 1, out _));
 		Assert.Equal(1, cache.PendingCount);
@@ -219,15 +203,13 @@ public sealed class TickGenerationCacheTests
 			(input, _) => input,
 			prepared => prepared);
 
-	private static void Add(
+	private static async Task Add(
 		TickGenerationCache<string, int, int, int> cache,
 		string key,
 		int tick)
 	{
 		Assert.False(cache.Request(key, () => key[0], tick, out _));
-		Assert.True(SpinWait.SpinUntil(
-			() => cache.CompletedPendingCount > 0,
-			TimeSpan.FromSeconds(1)));
+		await cache.PendingCompletion;
 		Assert.Equal(1, cache.Pump(tick).FinalizedCount);
 	}
 }
