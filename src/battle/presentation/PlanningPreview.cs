@@ -28,9 +28,8 @@ public sealed class PlanningPreview
 	private BattleSimulation? _lastSim;
 	private BattleSimulation? _envelopeCacheSim;
 	private int _envelopeCacheWorldVersion;
-	private TorpedoAction? _envelopeCacheRequest;
 	private IReadOnlyList<IAction> _envelopeCacheActions = [];
-	private IReadOnlyList<IReadOnlySet<Coord>> _envelopeCache = [];
+	private readonly Dictionary<TorpedoAction, IReadOnlyList<IReadOnlySet<Coord>>> _envelopeCache = [];
 
 	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits(
 		BattleSimulation sim,
@@ -251,34 +250,25 @@ public sealed class PlanningPreview
 		return targets;
 	}
 
-	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers(
+	public TurnVolumePreviews TorpedoPreviews(
 		BattleSimulation sim,
 		string playerId,
 		InteractionState state)
 	{
 		EnsureSim(sim);
-		var queued = QueuedWeapon(sim, playerId);
-
-		if (state.Mode == EPlayerMode.Torpedo && state.StagedMountedOn is ESpatialOrientation staged)
-			return EnvelopeLayersForMount(sim, playerId, staged);
-
-		if (state.Mode == EPlayerMode.Torpedo && state.TorpedoHoverMountedOn is ESpatialOrientation hover)
-			return EnvelopeLayersForMount(sim, playerId, hover);
-
-		if (queued.TorpedoMountedOn is not ESpatialOrientation queuedMountedOn)
-			return [];
-
-		for (var i = sim.Actions.Count - 1; i >= 0; i--)
+		TurnVolumePreview? aim = null;
+		var effectiveMount = state.StagedMountedOn ?? state.TorpedoHoverMountedOn;
+		if (state.Mode == EPlayerMode.Torpedo
+			&& effectiveMount is ESpatialOrientation aimMount)
 		{
-			if (sim.Actions[i] is TorpedoAction torpedo
-				&& torpedo.ActorId == playerId
-				&& torpedo.MountedOn == queuedMountedOn)
-			{
-				return EnvelopeLayersForQueued(sim, playerId, torpedo);
-			}
+			var ship = sim.World.StateOf(playerId);
+			var (launchCell, _, _) = TorpedoMount.LaunchPose(ship, aimMount);
+			aim = TurnVolumePreview.FromCumulativeReach(
+				launchCell,
+				EnvelopeLayersForMount(sim, playerId, aimMount));
 		}
 
-		return [];
+		return new TurnVolumePreviews(aim, null);
 	}
 
 	private void EnsureSim(BattleSimulation sim)
@@ -294,9 +284,8 @@ public sealed class PlanningPreview
 	{
 		_moveCache.Clear();
 		_envelopeCacheSim = null;
-		_envelopeCacheRequest = null;
 		_envelopeCacheActions = [];
-		_envelopeCache = [];
+		_envelopeCache.Clear();
 		_lastSim = null;
 	}
 
@@ -319,40 +308,13 @@ public sealed class PlanningPreview
 		return CacheEnvelope(sim, request, TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers);
 	}
 
-	private IReadOnlyList<IReadOnlySet<Coord>> EnvelopeLayersForQueued(
-		BattleSimulation sim,
-		string playerId,
-		TorpedoAction queued)
-	{
-		if (TryGetEnvelopeCache(sim, queued, out var cached))
-			return cached;
-
-		var peek = sim.Peek(EndOfPhaseDef.Instance.Bind(playerId));
-		if (peek is null
-			|| !UnitRegistry.For(peek.Value.World).TryGet(queued.SpawnedUnitId, out var spawned))
-			return CacheEnvelope(sim, queued, []);
-
-		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
-		session.Begin(sim.AnchorTick, sim.WorldVersion);
-		return CacheEnvelope(sim, queued, TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers);
-	}
-
 	private bool TryGetEnvelopeCache(
 		BattleSimulation sim,
 		TorpedoAction request,
 		out IReadOnlyList<IReadOnlySet<Coord>> layers)
 	{
-		if (ReferenceEquals(sim, _envelopeCacheSim)
-			&& sim.WorldVersion == _envelopeCacheWorldVersion
-			&& request == _envelopeCacheRequest
-			&& sim.Actions.SequenceEqual(_envelopeCacheActions))
-		{
-			layers = _envelopeCache;
-			return true;
-		}
-
-		layers = [];
-		return false;
+		RefreshEnvelopeCache(sim);
+		return _envelopeCache.TryGetValue(request, out layers!);
 	}
 
 	private IReadOnlyList<IReadOnlySet<Coord>> CacheEnvelope(
@@ -360,12 +322,24 @@ public sealed class PlanningPreview
 		TorpedoAction request,
 		IReadOnlyList<IReadOnlySet<Coord>> layers)
 	{
+		RefreshEnvelopeCache(sim);
+		_envelopeCache[request] = layers;
+		return layers;
+	}
+
+	private void RefreshEnvelopeCache(BattleSimulation sim)
+	{
+		if (ReferenceEquals(sim, _envelopeCacheSim)
+			&& sim.WorldVersion == _envelopeCacheWorldVersion
+			&& sim.Actions.SequenceEqual(_envelopeCacheActions))
+		{
+			return;
+		}
+
 		_envelopeCacheSim = sim;
 		_envelopeCacheWorldVersion = sim.WorldVersion;
-		_envelopeCacheRequest = request;
 		_envelopeCacheActions = sim.Actions.ToArray();
-		_envelopeCache = layers;
-		return layers;
+		_envelopeCache.Clear();
 	}
 
 	private static BattleWorld PreviewWorld(BattleSimulation sim, string playerId)

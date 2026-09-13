@@ -131,9 +131,9 @@ public sealed class PresentationFrameBuilder
 		var threatenedUnitIds = showWeaponPreviews
 			? _preview.ThreatenedUnitIds(sim, playerId, state)
 			: new HashSet<string>();
-		var torpedoEnvelopeLayers = showWeaponPreviews
-			? _preview.TorpedoEnvelopeLayers(sim, playerId, state)
-			: [];
+		var torpedoPreviews = showWeaponPreviews
+			? _preview.TorpedoPreviews(sim, playerId, state)
+			: TurnVolumePreviews.Empty;
 
 		var instruction = default(ActionInstruction);
 		if (canControl && state.Mode == EPlayerMode.Move && state.ConfirmationError is { } moveError)
@@ -193,7 +193,7 @@ public sealed class PresentationFrameBuilder
 			AreaActions = areaActions,
 			Abilities = abilities,
 			ThreatenedUnitIds = threatenedUnitIds,
-			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,
+			TorpedoPreviews = torpedoPreviews,
 			FlakHoverMountedOn = canControl ? state.FlakHoverMountedOn : null,
 			RailgunHovered = canControl && state.RailgunHovered,
 			TorpedoHoverMountedOn = canControl ? state.TorpedoHoverMountedOn : null,

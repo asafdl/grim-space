@@ -15,18 +15,18 @@ public sealed partial class RailgunPreviewView : Node3D
 	private static readonly Color Tint = new(0.55f, 0.82f, 1f, 0.42f);
 	private static readonly IReadOnlySet<Coord> NoCells = new HashSet<Coord>();
 
-	private WeaponVolumeMeshSlot _aim = null!;
-	private WeaponVolumeMeshSlot _queued = null!;
-	private ShaderMaterial _aimMaterial = null!;
+	private CellVolumeWireframeSlot _aim = null!;
+	private CellVolumeWireframeSlot _queued = null!;
+	private StandardMaterial3D _aimMaterial = null!;
 	private IReadOnlySet<Coord> _aimCells = NoCells;
 
 	public void Build()
 	{
-		_aimMaterial = WeaponPreviewMaterials.CreateDotted(Tint);
-		var queuedMaterial = WeaponPreviewMaterials.CreateDotted(WeaponPreviewMaterials.CementedTint);
-		WeaponPreviewMaterials.ApplyCemented(queuedMaterial);
-		_aim = new WeaponVolumeMeshSlot("RailgunAim", _aimMaterial);
-		_queued = new WeaponVolumeMeshSlot("RailgunQueued", queuedMaterial);
+		_aimMaterial = WeaponPreviewMaterials.CreateWireframe(Tint);
+		var queuedMaterial = WeaponPreviewMaterials.CreateWireframe(
+			WeaponPreviewMaterials.CementedTint);
+		_aim = new CellVolumeWireframeSlot("RailgunAim", _aimMaterial);
+		_queued = new CellVolumeWireframeSlot("RailgunQueued", queuedMaterial);
 		AddChild(_aim.Instance);
 		AddChild(_queued.Instance);
 		Visible = false;
@@ -57,7 +57,7 @@ public sealed partial class RailgunPreviewView : Node3D
 
 		if (aim is not null)
 		{
-			WeaponPreviewMaterials.ApplyAim(
+			WeaponPreviewMaterials.ApplyWireframe(
 				_aimMaterial,
 				Tint,
 				frame.RailgunHovered ? HoverStrength : AimStrength);

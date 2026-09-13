@@ -71,6 +71,28 @@ internal static class WeaponPreviewMaterials
 		return material;
 	}
 
+	public static StandardMaterial3D CreateWireframe(Color tint) =>
+		new()
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			AlbedoColor = tint,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
+			NoDepthTest = false,
+		};
+
+	public static void ApplyWireframe(
+		StandardMaterial3D material,
+		Color tint,
+		float strength = 1f)
+	{
+		material.AlbedoColor = new Color(
+			tint.R,
+			tint.G,
+			tint.B,
+			Mathf.Clamp(tint.A * strength, 0f, 1f));
+	}
+
 	public static void ApplyAim(ShaderMaterial material, Color tint, float strength)
 	{
 		material.SetShaderParameter("tint", tint);

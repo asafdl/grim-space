@@ -3,7 +3,6 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -12,25 +11,21 @@ public sealed partial class TorpedoPreviewView : Node3D
 {
 	private const float AimMountStrength = 0.95f;
 	private const float HoverMountStrength = 1.35f;
-	private const float EnvelopeStrength = 1.05f;
 
 	private static readonly Color MountTint = new(0.25f, 0.85f, 0.95f, 0.55f);
 
-	private static readonly Color[] EnvelopeTints =
+	private static readonly Color[] TurnTints =
 	[
-		new(0.18f, 0.75f, 0.92f, 0.36f),
-		new(0.14f, 0.55f, 0.78f, 0.24f),
-		new(0.10f, 0.38f, 0.58f, 0.16f),
+		new(0.15f, 0.90f, 1.00f, 0.16f),
+		new(0.25f, 0.55f, 1.00f, 0.10f),
+		new(0.65f, 0.30f, 1.00f, 0.05f),
 	];
 
-	private readonly List<MeshInstance3D> _active = [];
-	private readonly Queue<MeshInstance3D> _free = [];
-
+	private readonly List<MeshInstance3D> _activeMarkers = [];
+	private readonly Queue<MeshInstance3D> _freeMarkers = [];
 	private SphereMesh? _mountMesh;
-	private SphereMesh? _envelopeMesh;
 	private ShaderMaterial? _mountMaterial;
-	private ShaderMaterial[]? _envelopeMaterials;
-	private ShaderMaterial? _cementedMaterial;
+	private TurnVolumeWireframe? _aimTravel;
 	private PresentationFrame? _frame;
 
 	public void Build()
@@ -40,17 +35,12 @@ public sealed partial class TorpedoPreviewView : Node3D
 			Radius = WorldMapping.CellSize * 0.42f,
 			Height = WorldMapping.CellSize * 0.84f,
 		};
-		_envelopeMesh = new SphereMesh
-		{
-			Radius = WorldMapping.CellSize * 0.34f,
-			Height = WorldMapping.CellSize * 0.68f,
-		};
 		_mountMaterial = WeaponPreviewMaterials.CreateDotted(MountTint);
-		_envelopeMaterials = EnvelopeTints
-			.Select(WeaponPreviewMaterials.CreateDotted)
-			.ToArray();
-		_cementedMaterial = WeaponPreviewMaterials.CreateDotted(WeaponPreviewMaterials.CementedTint);
-		WeaponPreviewMaterials.ApplyCemented(_cementedMaterial);
+
+		_aimTravel = new TurnVolumeWireframe("TorpedoAimTurn", TurnTints);
+		foreach (var instance in _aimTravel.Instances)
+			AddChild(instance);
+
 		Visible = false;
 	}
 
@@ -71,21 +61,14 @@ public sealed partial class TorpedoPreviewView : Node3D
 	public void ApplyFrame(PresentationFrame frame)
 	{
 		_frame = frame;
-		var queued = frame.QueuedWeapon;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Torpedo;
-		var cemented =
-			frame.ShowWeaponPreviews
-			&& queued.TorpedoMountedOn is ESpatialOrientation;
-		var shouldShow = aiming || cemented;
+		Visible = aiming;
 
-		Visible = shouldShow;
-		ReleaseActive();
-		if (!shouldShow
+		ReleaseMarkers();
+		_aimTravel?.Apply(aiming ? frame.TorpedoPreviews.Aim : null);
+		if (!Visible
 			|| _mountMesh is null
-			|| _envelopeMesh is null
-			|| _mountMaterial is null
-			|| _envelopeMaterials is null
-			|| _cementedMaterial is null)
+			|| _mountMaterial is null)
 		{
 			return;
 		}
@@ -99,85 +82,34 @@ public sealed partial class TorpedoPreviewView : Node3D
 				effectiveMount is not null ? HoverMountStrength : AimMountStrength);
 
 			var ship = frame.FocusState.ToState();
-			var skipCells = new HashSet<Coord>();
 			foreach (var mountedOn in frame.Weapons.TorpedoMounts)
 			{
 				var (position, _, _) = TorpedoMount.LaunchPose(ship, mountedOn);
-				skipCells.Add(position);
-				Place(_mountMesh, _mountMaterial, position);
-			}
-
-			PlaceAimEnvelope(frame.TorpedoEnvelopeLayers, skipCells);
-			return;
-		}
-
-		var queuedMountedOn = queued.TorpedoMountedOn!.Value;
-		var queuedShip = WeaponPoseState(frame, cemented: true);
-		var (queuedCell, _, _) = TorpedoMount.LaunchPose(queuedShip, queuedMountedOn);
-		Place(_mountMesh, _cementedMaterial, queuedCell);
-		PlaceCementedEnvelope(
-			frame.TorpedoEnvelopeLayers,
-			new HashSet<Coord> { queuedCell });
-	}
-
-	private void PlaceAimEnvelope(
-		IReadOnlyList<IReadOnlySet<Coord>> layers,
-		IReadOnlySet<Coord> skipCells)
-	{
-		for (var layer = layers.Count - 1; layer >= 0; layer--)
-		{
-			var material = EnvelopeMaterial(layer);
-			var tintIndex = layer < EnvelopeTints.Length ? layer : EnvelopeTints.Length - 1;
-			WeaponPreviewMaterials.ApplyAim(material, EnvelopeTints[tintIndex], EnvelopeStrength);
-			foreach (var cell in layers[layer])
-			{
-				if (!skipCells.Contains(cell))
-					Place(_envelopeMesh!, material, cell);
+				Place(_mountMaterial, position);
 			}
 		}
 	}
 
-	private void PlaceCementedEnvelope(
-		IReadOnlyList<IReadOnlySet<Coord>> layers,
-		IReadOnlySet<Coord> skipCells)
+	private void Place(ShaderMaterial material, Coord cell)
 	{
-		for (var layer = layers.Count - 1; layer >= 0; layer--)
-		{
-			foreach (var cell in layers[layer])
-			{
-				if (!skipCells.Contains(cell))
-					Place(_envelopeMesh!, _cementedMaterial!, cell);
-			}
-		}
-	}
-
-	private ShaderMaterial EnvelopeMaterial(int layer)
-	{
-		var materials = _envelopeMaterials!;
-		return layer < materials.Length ? materials[layer] : materials[^1];
-	}
-
-	private void Place(SphereMesh mesh, ShaderMaterial material, Coord cell)
-	{
-		var marker = Acquire(mesh, material);
+		var marker = Acquire(material);
 		marker.Position = WorldMapping.ToWorld(cell);
 		marker.Visible = true;
-		_active.Add(marker);
+		_activeMarkers.Add(marker);
 	}
 
-	private MeshInstance3D Acquire(SphereMesh mesh, ShaderMaterial material)
+	private MeshInstance3D Acquire(ShaderMaterial material)
 	{
-		if (_free.Count > 0)
+		if (_freeMarkers.Count > 0)
 		{
-			var reused = _free.Dequeue();
-			reused.Mesh = mesh;
+			var reused = _freeMarkers.Dequeue();
 			reused.MaterialOverride = material;
 			return reused;
 		}
 
 		var marker = new MeshInstance3D
 		{
-			Mesh = mesh,
+			Mesh = _mountMesh,
 			MaterialOverride = material,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 		};
@@ -186,19 +118,14 @@ public sealed partial class TorpedoPreviewView : Node3D
 		return marker;
 	}
 
-	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
-		cemented && frame.QueuedWeapon.TorpedoActorStateAtQueue is UnitDisplayState queued
-			? queued.ToState()
-			: frame.FocusState.ToState();
-
-	private void ReleaseActive()
+	private void ReleaseMarkers()
 	{
-		foreach (var marker in _active)
+		foreach (var marker in _activeMarkers)
 		{
 			marker.Visible = false;
-			_free.Enqueue(marker);
+			_freeMarkers.Enqueue(marker);
 		}
 
-		_active.Clear();
+		_activeMarkers.Clear();
 	}
 }

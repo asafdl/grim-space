@@ -297,7 +297,7 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void QueuedTorpedoRetainsReachEnvelope()
+	public void QueuedTorpedoShowsSpawnedUnitWithoutTravelPreview()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -307,18 +307,61 @@ public sealed class PresentationFrameTests
 
 		var action = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions));
 		Assert.NotNull(action.SpawnedUnitId);
-		Assert.NotEmpty(BattleTestCommands.Frame(battle).TorpedoEnvelopeLayers);
+		var frame = BattleTestCommands.Frame(battle);
+
+		Assert.Null(frame.TorpedoPreviews.Queued);
+		Assert.Contains(
+			frame.PreviewUnits.Values,
+			unit => unit.Type == EType.Torpedo);
 	}
 
 	[Fact]
-	public void QueuedTorpedoFirstEnvelopeLayerContainsSameCycleEndpoint()
+	public void HoveredTorpedoPublishesDisjointTurnVolumes()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var frames = BattleTestFixture.FrameBuilder(battle);
+		var spec = AbilityHudCatalog.ForUnit(
+				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId).Type)
+			.First(entry => entry.Mode == EPlayerMode.Torpedo);
+		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+		frames.Interaction.TorpedoHoverMountedOn = ESpatialOrientation.Dorsal;
+
+		var frame = BattleTestCommands.Frame(battle);
+		var aim = frame.TorpedoPreviews.Aim;
+
+		Assert.NotNull(aim);
+		Assert.Null(frame.TorpedoPreviews.Queued);
+		Assert.Equal(TorpedoConfig.Fuel, aim.TurnBands.Count);
+		Assert.Equal(
+			TorpedoMount.LaunchPose(
+				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId),
+				ESpatialOrientation.Dorsal).Position,
+			aim.Origin);
+		for (var i = 0; i < aim.TurnBands.Count; i++)
+		{
+			for (var j = i + 1; j < aim.TurnBands.Count; j++)
+				Assert.Empty(aim.TurnBands[i].Intersect(aim.TurnBands[j]));
+		}
+	}
+
+	[Fact]
+	public void TorpedoFirstTurnBandContainsSameCycleEndpoint()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var frames = BattleTestFixture.FrameBuilder(battle);
+		var spec = AbilityHudCatalog.ForUnit(
+				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId).Type)
+			.First(entry => entry.Mode == EPlayerMode.Torpedo);
+		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+		frames.Interaction.TorpedoHoverMountedOn = ESpatialOrientation.Retro;
+		var aim = BattleTestCommands.Frame(battle).TorpedoPreviews.Aim;
+		Assert.NotNull(aim);
+		var firstLayer = aim.TurnBands[0];
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
 			TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
-		var firstLayer = BattleTestCommands.Frame(battle).TorpedoEnvelopeLayers[0];
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 		var torpedo = Assert.Single(
@@ -329,6 +372,32 @@ public sealed class PresentationFrameTests
 			replay.Actions,
 			action => action is TorpedoMoveStepAction { ActorId: var id } && id == torpedo.State.Id);
 		Assert.Contains(torpedo.State.Position, firstLayer);
+	}
+
+	[Fact]
+	public void TurnVolumeBandsContainOnlyEarliestReachTurn()
+	{
+		var a = new Coord(1, 0, 0);
+		var b = new Coord(2, 0, 0);
+		var c = new Coord(3, 0, 0);
+		var d = new Coord(4, 0, 0);
+		IReadOnlyList<IReadOnlySet<Coord>> layers =
+		[
+			new HashSet<Coord> { a, b },
+			new HashSet<Coord> { b, c },
+			new HashSet<Coord> { a, c, d },
+		];
+
+		var preview = TurnVolumePreview.FromCumulativeReach(Coord.Zero, layers);
+
+		Assert.True(preview.TurnBands[0].SetEquals([a, b]));
+		Assert.True(preview.TurnBands[1].SetEquals([c]));
+		Assert.True(preview.TurnBands[2].SetEquals([d]));
+		Assert.True(
+			layers
+				.SelectMany(layer => layer)
+				.ToHashSet()
+				.SetEquals(preview.TurnBands.SelectMany(band => band)));
 	}
 
 	[Fact]

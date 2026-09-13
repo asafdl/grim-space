@@ -16,22 +16,22 @@ public sealed partial class FlakPreviewView : Node3D
 	private static readonly Color PortTint = new(0.95f, 0.55f, 0.18f, 0.40f);
 	private static readonly Color StarboardTint = new(0.98f, 0.78f, 0.22f, 0.40f);
 
-	private WeaponVolumeMeshSlot _aimPort = null!;
-	private WeaponVolumeMeshSlot _aimStarboard = null!;
-	private WeaponVolumeMeshSlot _queued = null!;
-	private ShaderMaterial _portMaterial = null!;
-	private ShaderMaterial _starboardMaterial = null!;
+	private CellVolumeWireframeSlot _aimPort = null!;
+	private CellVolumeWireframeSlot _aimStarboard = null!;
+	private CellVolumeWireframeSlot _queued = null!;
+	private StandardMaterial3D _portMaterial = null!;
+	private StandardMaterial3D _starboardMaterial = null!;
 	private PresentationFrame? _frame;
 
 	public void Build()
 	{
-		_portMaterial = WeaponPreviewMaterials.CreateDotted(PortTint);
-		_starboardMaterial = WeaponPreviewMaterials.CreateDotted(StarboardTint);
-		var queuedMaterial = WeaponPreviewMaterials.CreateDotted(WeaponPreviewMaterials.CementedTint);
-		WeaponPreviewMaterials.ApplyCemented(queuedMaterial);
-		_aimPort = new WeaponVolumeMeshSlot("FlakPortAim", _portMaterial);
-		_aimStarboard = new WeaponVolumeMeshSlot("FlakStarboardAim", _starboardMaterial);
-		_queued = new WeaponVolumeMeshSlot("FlakQueued", queuedMaterial);
+		_portMaterial = WeaponPreviewMaterials.CreateWireframe(PortTint);
+		_starboardMaterial = WeaponPreviewMaterials.CreateWireframe(StarboardTint);
+		var queuedMaterial = WeaponPreviewMaterials.CreateWireframe(
+			WeaponPreviewMaterials.CementedTint);
+		_aimPort = new CellVolumeWireframeSlot("FlakPortAim", _portMaterial);
+		_aimStarboard = new CellVolumeWireframeSlot("FlakStarboardAim", _starboardMaterial);
+		_queued = new CellVolumeWireframeSlot("FlakQueued", queuedMaterial);
 		AddChild(_aimPort.Instance);
 		AddChild(_aimStarboard.Instance);
 		AddChild(_queued.Instance);
@@ -88,14 +88,14 @@ public sealed partial class FlakPreviewView : Node3D
 		var effectiveMount = frame.StagedMountedOn ?? frame.FlakHoverMountedOn;
 		if (aimPort is not null)
 		{
-			WeaponPreviewMaterials.ApplyAim(
+			WeaponPreviewMaterials.ApplyWireframe(
 				_portMaterial,
 				PortTint,
 				Strength(effectiveMount == ESpatialOrientation.Port));
 		}
 		if (aimStarboard is not null)
 		{
-			WeaponPreviewMaterials.ApplyAim(
+			WeaponPreviewMaterials.ApplyWireframe(
 				_starboardMaterial,
 				StarboardTint,
 				Strength(effectiveMount == ESpatialOrientation.Starboard));

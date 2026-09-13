@@ -97,7 +97,7 @@ public sealed class MovementRangeVisualTests
 		var weapon = CellVolumeGeometry.Build(
 			origin,
 			cells,
-			WeaponVolumeMeshSlot.GeometrySettings);
+			CellVolumeWireframeSlot.GeometrySettings);
 
 		Assert.NotEmpty(weapon.Vertices);
 		Assert.True(
@@ -114,7 +114,7 @@ public sealed class MovementRangeVisualTests
 			CellVolumeGeometry.RelativeCellKey(
 				origin,
 				cells,
-				WeaponVolumeMeshSlot.GeometrySettings));
+				CellVolumeWireframeSlot.GeometrySettings));
 	}
 
 	[Fact]
@@ -127,7 +127,7 @@ public sealed class MovementRangeVisualTests
 		var surface = CellVolumeGeometry.Build(
 			origin,
 			cells,
-			WeaponVolumeMeshSlot.GeometrySettings);
+			CellVolumeWireframeSlot.GeometrySettings);
 		var centerRadius = Enumerable.Range(1, 6)
 			.Average(cell => RadiusNear(surface.Vertices, cell * WorldMapping.CellSize));
 		var midpointRadius = Enumerable.Range(1, 6)
@@ -137,6 +137,26 @@ public sealed class MovementRangeVisualTests
 
 		Assert.True(centerRadius > 0f);
 		Assert.True(midpointRadius >= centerRadius * 0.9f);
+	}
+
+	[Fact]
+	public void TurnVolumeSurfaceUsesLowerDensityThanWeaponSurface()
+	{
+		var origin = new Coord(5, 5, 5);
+		var cells = Enumerable.Range(1, 5)
+			.Select(distance => origin + Coord.Forward * distance)
+			.ToHashSet();
+
+		var weapon = CellVolumeGeometry.Build(
+			origin,
+			cells,
+			CellVolumeWireframeSlot.GeometrySettings);
+		var turnVolume = CellVolumeGeometry.Build(
+			origin,
+			cells,
+			TurnVolumeWireframe.GeometrySettings);
+
+		Assert.True(turnVolume.Vertices.Length < weapon.Vertices.Length / 2);
 	}
 
 	private static float RadiusNear(IEnumerable<Vector3> vertices, float z) =>

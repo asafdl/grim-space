@@ -61,15 +61,20 @@ internal static class CellVolumeMesh
 	}
 }
 
-internal sealed class WeaponVolumeMeshSlot
+internal sealed class CellVolumeWireframeSlot
 {
 	internal static readonly CellVolumeGeometry.Settings GeometrySettings =
 		new(5, 0.42, 0.85, 24, 0.4);
 
+	private readonly CellVolumeGeometry.Settings _geometrySettings;
 	private string? _shapeKey;
 
-	public WeaponVolumeMeshSlot(string name, Material material)
+	public CellVolumeWireframeSlot(
+		string name,
+		Material material,
+		CellVolumeGeometry.Settings? geometrySettings = null)
 	{
+		_geometrySettings = geometrySettings ?? GeometrySettings;
 		Instance = new MeshInstance3D
 		{
 			Name = name,
@@ -94,12 +99,12 @@ internal sealed class WeaponVolumeMeshSlot
 		var shapeKey = CellVolumeGeometry.RelativeCellKey(
 			volume.Origin,
 			volume.Cells,
-			GeometrySettings);
+			_geometrySettings);
 		if (shapeKey == _shapeKey)
 			return;
 
-		Instance.Mesh = CellVolumeMesh.CreateTriangles(
-			CellVolumeGeometry.Build(volume.Origin, volume.Cells, GeometrySettings));
+		Instance.Mesh = CellVolumeMesh.CreateWireframe(
+			CellVolumeGeometry.Build(volume.Origin, volume.Cells, _geometrySettings));
 		_shapeKey = shapeKey;
 	}
 }

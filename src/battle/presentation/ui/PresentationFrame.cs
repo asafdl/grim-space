@@ -22,7 +22,7 @@ public sealed class PresentationFrame
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
-	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; } = [];
+	public required TurnVolumePreviews TorpedoPreviews { get; init; }
 	public ESpatialOrientation? FlakHoverMountedOn { get; init; }
 	public bool RailgunHovered { get; init; }
 	public ESpatialOrientation? TorpedoHoverMountedOn { get; init; }
