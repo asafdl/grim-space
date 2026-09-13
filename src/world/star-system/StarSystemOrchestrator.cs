@@ -27,6 +27,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
 	private readonly Queue<IAction> _reactionQueue = [];
 	private readonly IDisposable _storyObjectiveSubscription;
+	private readonly IDisposable _contractFulfillmentSubscription;
 	private ESimMode _simMode = (ESimMode)(-1);
 	private bool _resolvingInputAction;
 
@@ -43,6 +44,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_playerAgent = playerAgent;
 		_trafficAgents = trafficAgents;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
+		_contractFulfillmentSubscription =
+			_engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
 	}
 
 	public event Action? WorldUpdated;
@@ -235,8 +238,6 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitPlayerActions();
 		var history = _engine.AdvanceTick();
 		CommitReactions();
-		if (PlayerId is not null)
-			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 		NotifyWorldUpdated();
 		return history;
 	}
@@ -286,9 +287,6 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		var history = _engine.AdvanceTick();
 		CommitReactions();
-
-		if (PlayerId is not null)
-			ContractFulfillment.Evaluate(_engine.World, PlayerId);
 
 		CommitContactActions();
 		NotifyWorldUpdated();
@@ -386,6 +384,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 	}
 
+	private void OnEngagementResolved(ResolveEngagementAction resolved)
+	{
+		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved.ActorId))
+		{
+			if (!_reactionQueue.Contains(reaction))
+				_reactionQueue.Enqueue(reaction);
+		}
+	}
+
 	private IReadOnlyList<ITimelineEntry> Commit(params IAction[] actions)
 	{
 		var history = _engine.Commit(actions);
@@ -408,6 +415,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public void Dispose()
 	{
 		_storyObjectiveSubscription.Dispose();
+		_contractFulfillmentSubscription.Dispose();
 		_engine.Dispose();
 	}
 

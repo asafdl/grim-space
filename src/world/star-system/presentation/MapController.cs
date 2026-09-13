@@ -37,7 +37,7 @@ public partial class MapController : Node3D
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
 	private TutorialDialog? _tutorialDialog;
-	private StarSystemTutorialController? _tutorial;
+	private TutorialController? _tutorial;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private IDisposable _engageSubscription = null!;
@@ -131,7 +131,7 @@ public partial class MapController : Node3D
 			_camera,
 			() => _orchestrator.Map,
 			CommittedPositionOf,
-			() => _poiFacade.IsStrategic);
+			_poiFacade.ReturnToStrategic);
 		var worldIndicators = new MapWorldIndicators();
 		worldIndicators.Configure(
 			() => _orchestrator.Map,
@@ -157,13 +157,12 @@ public partial class MapController : Node3D
 			_tutorialDialog = new TutorialDialog();
 			_uiLayer.AddChild(_tutorialDialog);
 			ConfigureTutorialDialog(_tutorialDialog);
-			_tutorial = new StarSystemTutorialController(
+			_tutorial = new TutorialController(
 				_orchestrator,
 				RunSession.Instance.Run.TutorialProgress,
 				_tutorialDialog,
 				_worldFocus,
-				_worldIndicator,
-				() => _poiFacade.IsStrategic);
+				_worldIndicator);
 		}
 
 		var world = _orchestrator.Map;
@@ -213,7 +212,6 @@ public partial class MapController : Node3D
 		UpdateDebugUi();
 		UpdateObjectivesHud();
 		_poiFacade.Update();
-		_tutorial?.Sync();
 
 		if (!_poiFacade.IsStrategic)
 		{
@@ -243,12 +241,6 @@ public partial class MapController : Node3D
 	{
 		if (_narrative.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event))
-		{
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (_tutorial?.IsActive == true)
 		{
 			GetViewport().SetInputAsHandled();
 			return;
@@ -375,11 +367,10 @@ public partial class MapController : Node3D
 
 	private void UpdateDebugUi()
 	{
-		var tutorialActive = _tutorial?.IsActive == true;
 		_tickLabel.Text = $"Tick {_orchestrator.Tick}";
 		_pauseButton.Text = _orchestrator.IsStepped ? "Resume" : "Pause";
-		_pauseButton.Disabled = tutorialActive;
-		_stepButton.Disabled = tutorialActive || !_orchestrator.IsStepped;
+		_pauseButton.Disabled = false;
+		_stepButton.Disabled = !_orchestrator.IsStepped;
 		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
 	}
 

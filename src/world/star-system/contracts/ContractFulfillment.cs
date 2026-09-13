@@ -1,3 +1,5 @@
+using GrimSpace.Core.Actions;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 
 namespace GrimSpace.World.StarSystem.Contracts;
@@ -11,16 +13,13 @@ public static class ContractFulfillment
 			_ => false,
 		};
 
-	public static void Evaluate(StarMap map, string holderUnitId)
-	{
-		foreach (var active in map.ContractRegistry.ActiveFor(holderUnitId).ToArray())
-		{
-			if (!IsFulfilled(map, active))
-				continue;
-
-			map.ContractRegistry.Complete(active.Definition.Id);
-		}
-	}
+	public static IReadOnlyList<IAction> ReactionsFor(StarMap map, string holderUnitId) =>
+		map.ContractRegistry.ActiveFor(holderUnitId)
+			.Where(active => IsFulfilled(map, active))
+			.Select(active => (IAction)new CompleteContractAction(
+				holderUnitId,
+				active.Definition.Id))
+			.ToArray();
 
 	private static bool AreHuntTargetsEliminated(StarMap map, ContractState state)
 	{

@@ -69,17 +69,20 @@ public sealed class TutorialRunner : IDisposable
 		return new TutorialStartResult.Started();
 	}
 
-	private void OnAccepted()
+	public bool CompleteActive()
 	{
-		var flow = ActiveFlow
-			?? throw new InvalidOperationException("Tutorial dialog accepted without an active flow.");
+		if (ActiveFlow is not { } flow)
+			return false;
 
 		_dialog.Close();
 		_worldLinks.Clear();
 		_progress.Complete(flow.Id);
 		ActiveFlow = null;
 		Completed?.Invoke(flow);
+		return true;
 	}
+
+	private void OnAccepted() => CompleteActive();
 
 	private void OnWorldLinkClicked(string objectId)
 	{

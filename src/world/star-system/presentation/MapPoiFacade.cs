@@ -42,6 +42,7 @@ public sealed class MapPoiFacade
 	private readonly Func<bool> _canAccessFacilities;
 	private PointOfInterest? _activePoi;
 	private readonly List<Button> _facilityButtons = [];
+	private readonly List<Action> _strategicCallbacks = [];
 	private FacadeState _state = FacadeState.Strategic;
 
 	public event Action<FacilityEntry>? FacilityEntered;
@@ -68,6 +69,23 @@ public sealed class MapPoiFacade
 	}
 
 	public bool IsStrategic => _state == FacadeState.Strategic;
+
+	public bool ReturnToStrategic(Action onComplete)
+	{
+		ArgumentNullException.ThrowIfNull(onComplete);
+		if (_state == FacadeState.Strategic)
+		{
+			onComplete();
+			return true;
+		}
+
+		if (_state == FacadeState.EnteringFacility)
+			return false;
+
+		_strategicCallbacks.Add(onComplete);
+		BeginExit();
+		return true;
+	}
 
 	public void ReEnterFacade(PointOfInterest poi, StarMap world)
 	{
@@ -211,6 +229,9 @@ public sealed class MapPoiFacade
 			{
 				_state = FacadeState.Strategic;
 				MapNavigationContext.ClearStrategicCameraPose();
+				foreach (var callback in _strategicCallbacks.ToArray())
+					callback();
+				_strategicCallbacks.Clear();
 			},
 			ExitDistance);
 	}

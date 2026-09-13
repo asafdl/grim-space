@@ -97,6 +97,15 @@ public sealed class ContractRegistry
 			throw new InvalidOperationException($"Contract '{contractId}' is not active.");
 	}
 
+	internal void Restore(ContractState state)
+	{
+		ArgumentNullException.ThrowIfNull(state);
+		if (!_contracts.ContainsKey(state.ContractId))
+			throw new InvalidOperationException($"Contract '{state.ContractId}' does not exist.");
+
+		_states[state.ContractId] = state;
+	}
+
 	public ContractRegistry CloneForFork()
 	{
 		var clone = new ContractRegistry();

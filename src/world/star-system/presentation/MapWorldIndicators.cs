@@ -30,9 +30,6 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 	public WorldIndicatorResult Show(string objectId)
 	{
 		EnsureConfigured();
-		if (!_isAvailable())
-			return new WorldIndicatorResult.Unavailable();
-
 		var world = _world();
 		return WorldObjectQueries.ResolveFocusable(world, objectId, _committedPositionOf) switch
 		{
@@ -88,6 +85,7 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 		{
 			Name = $"WorldIndicator_{_nextId}",
 			Position = MapMapping.ToWorld(found.Position, world.Width, world.Height),
+			Visible = _isAvailable(),
 		};
 		root.AddChild(_createVisual());
 		AddChild(root);

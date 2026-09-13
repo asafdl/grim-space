@@ -1,7 +1,10 @@
+using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
@@ -9,7 +12,7 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 {
 	[Fact]
-	public void Evaluate_CompletesHuntContractWhenSpawnTargetsAreGone()
+	public void ReactionsFor_ReturnsCompletionWhenSpawnTargetsAreGone()
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
@@ -28,16 +31,20 @@ public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 				[group.GroupId] = [targetUnitId],
 			}));
 
-		Assert.True(map.ContractRegistry.TryGetActive(holderUnitId, out _));
+		var completion = Assert.IsType<CompleteContractAction>(
+			Assert.Single(ContractFulfillment.ReactionsFor(map, holderUnitId)));
+		Assert.Equal(holderUnitId, completion.ActorId);
+		Assert.Equal(contractId, completion.ContractId);
 
-		ContractFulfillment.Evaluate(map, holderUnitId);
-
-		Assert.False(map.ContractRegistry.TryGetActive(holderUnitId, out _));
+		var runtimes = new ActorRuntimes<ActorRuntime>();
+		runtimes.For(holderUnitId);
+		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+		engine.Commit(completion);
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
 	}
 
 	[Fact]
-	public void Evaluate_LeavesActiveContractWhileTargetsRemain()
+	public void ReactionsFor_ReturnsNothingWhileTargetsRemain()
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
@@ -55,8 +62,9 @@ public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 				[group.GroupId] = [holderUnitId],
 			}));
 
-		ContractFulfillment.Evaluate(map, holderUnitId);
+		var reactions = ContractFulfillment.ReactionsFor(map, holderUnitId);
 
+		Assert.Empty(reactions);
 		Assert.True(map.ContractRegistry.TryGetActive(holderUnitId, out var active));
 		Assert.Equal(contractId, active.Definition.Id);
 		Assert.False(map.ContractRegistry.IsCompleted(contractId));
