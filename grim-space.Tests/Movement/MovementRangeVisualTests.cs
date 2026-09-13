@@ -20,7 +20,7 @@ public sealed class MovementRangeVisualTests
 			source + Coord.Forward * 3,
 		};
 
-		var surface = MovementRangeGeometry.Build(source, cells);
+		var surface = CellVolumeGeometry.Build(source, cells.Append(source).ToHashSet());
 
 		Assert.NotEmpty(surface.Vertices);
 		var forwardExtent = surface.Vertices.Max(vertex => vertex.Z);
@@ -38,7 +38,7 @@ public sealed class MovementRangeVisualTests
 			new(0, 0, 4),
 		};
 
-		var surface = MovementRangeGeometry.Build(source, cells);
+		var surface = CellVolumeGeometry.Build(source, cells);
 
 		Assert.DoesNotContain(
 			surface.Vertices,
@@ -50,7 +50,7 @@ public sealed class MovementRangeVisualTests
 	public void AdjacentCellsDoNotRetainTheirSharedFace()
 	{
 		var source = Coord.Zero;
-		var surface = MovementRangeGeometry.Build(
+		var surface = CellVolumeGeometry.Build(
 			source,
 			new HashSet<Coord> { source, source + Coord.Forward });
 		var sharedPlane = WorldMapping.CellSize * 0.5f;
@@ -62,6 +62,112 @@ public sealed class MovementRangeVisualTests
 				&& MathF.Abs(surface.Vertices[i + 1].Z - sharedPlane) < 0.00001f
 				&& MathF.Abs(surface.Vertices[i + 2].Z - sharedPlane) < 0.00001f);
 		}
+	}
+
+	[Fact]
+	public void CellVolumeDoesNotImplicitlyIncludeOrigin()
+	{
+		var origin = Coord.Zero;
+		var cell = origin + Coord.Forward * 4;
+
+		var surface = CellVolumeGeometry.Build(origin, new HashSet<Coord> { cell });
+
+		Assert.NotEmpty(surface.Vertices);
+		Assert.All(
+			surface.Vertices,
+			vertex => Assert.True(vertex.Z > WorldMapping.CellSize * 3));
+	}
+
+	[Fact]
+	public void EmptyCellVolumeProducesEmptySurface()
+	{
+		var surface = CellVolumeGeometry.Build(Coord.Zero, new HashSet<Coord>());
+
+		Assert.Empty(surface.Vertices);
+		Assert.Empty(surface.Normals);
+	}
+
+	[Fact]
+	public void WeaponCellVolumeFitsInsideAnIsolatedGridCell()
+	{
+		var origin = Coord.Zero;
+		var cells = new HashSet<Coord> { origin };
+
+		var movement = CellVolumeGeometry.Build(origin, cells);
+		var weapon = CellVolumeGeometry.Build(
+			origin,
+			cells,
+			WeaponVolumeMeshSlot.GeometrySettings);
+
+		Assert.NotEmpty(weapon.Vertices);
+		Assert.True(
+			weapon.Vertices.Max(vertex => vertex.Length())
+			< movement.Vertices.Max(vertex => vertex.Length()));
+		Assert.All(
+			weapon.Vertices,
+			vertex => Assert.True(
+				Mathf.Abs(vertex.X) < WorldMapping.CellSize * 0.5f
+				&& Mathf.Abs(vertex.Y) < WorldMapping.CellSize * 0.5f
+				&& Mathf.Abs(vertex.Z) < WorldMapping.CellSize * 0.5f));
+		Assert.NotEqual(
+			CellVolumeGeometry.RelativeCellKey(origin, cells),
+			CellVolumeGeometry.RelativeCellKey(
+				origin,
+				cells,
+				WeaponVolumeMeshSlot.GeometrySettings));
+	}
+
+	[Fact]
+	public void WeaponCellVolumeDoesNotPinchBetweenAdjacentCells()
+	{
+		var origin = Coord.Zero;
+		var cells = Enumerable.Range(0, 8)
+			.Select(z => origin + Coord.Forward * z)
+			.ToHashSet();
+		var surface = CellVolumeGeometry.Build(
+			origin,
+			cells,
+			WeaponVolumeMeshSlot.GeometrySettings);
+		var centerRadius = Enumerable.Range(1, 6)
+			.Average(cell => RadiusNear(surface.Vertices, cell * WorldMapping.CellSize));
+		var midpointRadius = Enumerable.Range(1, 6)
+			.Average(cell => RadiusNear(
+				surface.Vertices,
+				(cell + 0.5f) * WorldMapping.CellSize));
+
+		Assert.True(centerRadius > 0f);
+		Assert.True(midpointRadius >= centerRadius * 0.9f);
+	}
+
+	private static float RadiusNear(IEnumerable<Vector3> vertices, float z) =>
+		vertices
+			.Where(vertex => MathF.Abs(vertex.Z - z) < WorldMapping.CellSize * 0.11f)
+			.Select(vertex => MathF.Sqrt(vertex.X * vertex.X + vertex.Y * vertex.Y))
+			.DefaultIfEmpty()
+			.Max();
+
+	[Fact]
+	public void CellVolumeIsOrderDuplicateAndTranslationIndependent()
+	{
+		var origin = new Coord(2, 3, 4);
+		var cells = new[]
+		{
+			origin + Coord.Forward,
+			origin + Coord.Up,
+			origin + Coord.Forward,
+		};
+		var translation = new Coord(5, -2, 1);
+		var translatedOrigin = origin + translation;
+		var translatedCells = cells.Select(cell => cell + translation).Reverse().ToArray();
+
+		var surface = CellVolumeGeometry.Build(origin, cells);
+		var translatedSurface = CellVolumeGeometry.Build(translatedOrigin, translatedCells);
+
+		Assert.Equal(surface.Vertices, translatedSurface.Vertices);
+		Assert.Equal(surface.Normals, translatedSurface.Normals);
+		Assert.Equal(
+			CellVolumeGeometry.RelativeCellKey(origin, cells),
+			CellVolumeGeometry.RelativeCellKey(translatedOrigin, translatedCells));
 	}
 
 	[Fact]
@@ -117,7 +223,7 @@ public sealed class MovementRangeVisualTests
 		var translatedCells = cells.Select(cell => cell + new Coord(5, -2, 1)).Reverse();
 
 		Assert.Equal(
-			GridView.RangeMeshKey(source, cells),
-			GridView.RangeMeshKey(translatedSource, translatedCells));
+			CellVolumeGeometry.RelativeCellKey(source, cells),
+			CellVolumeGeometry.RelativeCellKey(translatedSource, translatedCells));
 	}
 }

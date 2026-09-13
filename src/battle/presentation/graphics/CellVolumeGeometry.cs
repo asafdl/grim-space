@@ -4,30 +4,43 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-internal static class MovementRangeGeometry
+internal static class CellVolumeGeometry
 {
-	private const double SamplesPerCell = 5;
-	private const double PrimitiveRadiusInCells = 0.78;
-	private const double FieldFalloffInCells = 1.1;
-
 	internal readonly record struct Surface(Vector3[] Vertices, Vector3[] Normals);
+	internal readonly record struct Settings(
+		double SamplesPerCell,
+		double PrimitiveRadiusInCells,
+		double FieldFalloffInCells,
+		int SmoothingRounds,
+		double SmoothingAlpha)
+	{
+		public static Settings Default { get; } = new(5, 0.78, 1.1, 24, 0.4);
+	}
 
-	public static Surface Build(Coord source, IReadOnlyCollection<Coord> cells)
+	public static Surface Build(Coord origin, IReadOnlyCollection<Coord> cells) =>
+		Build(origin, cells, Settings.Default);
+
+	public static Surface Build(
+		Coord origin,
+		IReadOnlyCollection<Coord> cells,
+		Settings settings)
 	{
 		if (cells.Count == 0)
 			return new Surface([], []);
 
 		var primitives = cells
-			.Append(source)
 			.Distinct()
+			.OrderBy(coord => coord.X)
+			.ThenBy(coord => coord.Y)
+			.ThenBy(coord => coord.Z)
 			.Select(coord => new ImplicitSphere3d
 			{
-				Origin = ToLocal(source, coord),
-				Radius = WorldMapping.CellSize * PrimitiveRadiusInCells,
+				Origin = ToLocal(origin, coord),
+				Radius = WorldMapping.CellSize * settings.PrimitiveRadiusInCells,
 			})
 			.Cast<BoundedImplicitFunction3d>()
 			.ToList();
-		var fieldFalloff = WorldMapping.CellSize * FieldFalloffInCells;
+		var fieldFalloff = WorldMapping.CellSize * settings.FieldFalloffInCells;
 		var fields = primitives
 			.Select(primitive => new DistanceFieldToSkeletalField
 			{
@@ -37,7 +50,7 @@ internal static class MovementRangeGeometry
 			.Cast<BoundedImplicitFunction3d>()
 			.ToList();
 		var fluidField = BuildSkeletalBlend(fields, 0, fields.Count);
-		var cubeSize = WorldMapping.CellSize / SamplesPerCell;
+		var cubeSize = WorldMapping.CellSize / settings.SamplesPerCell;
 		var bounds = primitives[0].Bounds();
 		foreach (var primitive in primitives.Skip(1))
 			bounds.Contain(primitive.Bounds());
@@ -60,13 +73,35 @@ internal static class MovementRangeGeometry
 			marchingCubes.Mesh.VertexIndices().ToArray(),
 			bOwnVertices: true)
 		{
-			Alpha = 0.4,
-			Rounds = 24,
+			Alpha = settings.SmoothingAlpha,
+			Rounds = settings.SmoothingRounds,
 			SmoothType = MeshIterativeSmooth.SmoothTypes.MeanValue,
 		};
 		smoother.Smooth();
 		MeshNormals.QuickCompute(marchingCubes.Mesh);
 		return ToSurface(marchingCubes.Mesh);
+	}
+
+	public static string RelativeCellKey(Coord origin, IEnumerable<Coord> cells) =>
+		RelativeCellKey(origin, cells, Settings.Default);
+
+	public static string RelativeCellKey(
+		Coord origin,
+		IEnumerable<Coord> cells,
+		Settings settings)
+	{
+		var settingsKey = FormattableString.Invariant(
+			$"{settings.SamplesPerCell:R},{settings.PrimitiveRadiusInCells:R},{settings.FieldFalloffInCells:R},{settings.SmoothingRounds},{settings.SmoothingAlpha:R}");
+		var cellsKey = string.Join(
+			'|',
+			cells
+				.Select(cell => cell - origin)
+				.Distinct()
+				.OrderBy(cell => cell.X)
+				.ThenBy(cell => cell.Y)
+				.ThenBy(cell => cell.Z)
+				.Select(cell => $"{cell.X},{cell.Y},{cell.Z}"));
+		return $"{settingsKey}:{cellsKey}";
 	}
 
 	private static BoundedImplicitFunction3d BuildSkeletalBlend(
@@ -112,9 +147,9 @@ internal static class MovementRangeGeometry
 		normals.Add(new Vector3(normal.x, normal.y, normal.z));
 	}
 
-	private static Vector3d ToLocal(Coord source, Coord coord) =>
+	private static Vector3d ToLocal(Coord origin, Coord coord) =>
 		new(
-			(coord.X - source.X) * WorldMapping.CellSize,
-			(coord.Y - source.Y) * WorldMapping.CellSize,
-			(coord.Z - source.Z) * WorldMapping.CellSize);
+			(coord.X - origin.X) * WorldMapping.CellSize,
+			(coord.Y - origin.Y) * WorldMapping.CellSize,
+			(coord.Z - origin.Z) * WorldMapping.CellSize);
 }

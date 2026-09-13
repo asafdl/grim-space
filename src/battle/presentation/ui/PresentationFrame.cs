@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 
@@ -18,6 +19,7 @@ public sealed class PresentationFrame
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
 	public required QueuedWeaponState QueuedWeapon { get; init; }
 	public required WeaponPeek Weapons { get; init; }
+	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
 	public IReadOnlyList<IReadOnlySet<Coord>> TorpedoEnvelopeLayers { get; init; } = [];

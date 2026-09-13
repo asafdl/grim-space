@@ -4,6 +4,7 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -15,7 +16,8 @@ public sealed record RailgunAction(string ActorId) : IAction<BattleWorld, ActorR
 
 public sealed class RailgunDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IActorActionDef
+		IActorActionDef,
+		IAreaActionDef
 {
 	public static RailgunDef Instance { get; } = new();
 
@@ -43,10 +45,7 @@ public sealed class RailgunDef
 		Resolve(Cast(action), world, runtime);
 
 	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime)
-	{
-		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		return WeaponBursts.IsValidRailgunBurst(frame, world.Grid.IsInBounds);
-	}
+		=> AffectedCells(action, world).Count > 0;
 
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
@@ -61,8 +60,7 @@ public sealed class RailgunDef
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
-		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var cells = WeaponBursts.RailgunBurstCells(frame, world.Grid.IsInBounds);
+		var cells = AffectedCells(action, world);
 
 		return
 		[
@@ -74,6 +72,41 @@ public sealed class RailgunDef
 			new RailgunChangeEffect(-1),
 		];
 	}
+
+	public HashSet<Coord> AffectedCells(RailgunAction action, BattleWorld world)
+	{
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
+		var result = new HashSet<Coord>();
+
+		for (var fore = 1; fore <= CombatConfig.RailgunLineLength; fore++)
+		{
+			var cell = frame.ToWorld(fore, 0, 0);
+			if (world.Grid.IsInBounds(cell))
+				result.Add(cell);
+		}
+
+		for (var depth = 0; depth <= CombatConfig.RailgunPyramidRange; depth++)
+		{
+			var fore = CombatConfig.RailgunLineLength + depth;
+			for (var port = -depth; port <= depth; port++)
+			{
+				for (var dorsal = -depth; dorsal <= depth; dorsal++)
+				{
+					if (System.Math.Abs(port) + System.Math.Abs(dorsal) > depth)
+						continue;
+
+					var cell = frame.ToWorld(fore, port, dorsal);
+					if (world.Grid.IsInBounds(cell))
+						result.Add(cell);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
+		AffectedCells(Cast(action), world);
 
 	private static RailgunAction Cast(IAction action) =>
 		action as RailgunAction ?? throw new ArgumentException($"Expected {nameof(RailgunAction)}.", nameof(action));

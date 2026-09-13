@@ -1,7 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement.Enums;
-using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
@@ -174,15 +173,12 @@ public sealed class TimelineTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
-		var frame = BodyFrame.From(battle.Engine.World.StateOf(battle.PlayerId));
-		var cells = WeaponBursts.FlakBurstCells(
-			frame,
-			ESpatialOrientation.Starboard,
-			battle.Engine.World.Grid.IsInBounds);
+		var action = new FlakAction(battle.PlayerId, ESpatialOrientation.Starboard);
+		var cells = FlakDef.Instance.AffectedCells(action, battle.Engine.World);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.State.Id != battle.PlayerId);
 		enemy.State.Position = cells.First();
 
-		battle.Engine.Commit(new FlakAction(battle.PlayerId, ESpatialOrientation.Starboard));
+		battle.Engine.Commit(action);
 
 		var history = battle.Engine.History();
 		var flakIndex = history.ToList().FindIndex(entry => entry is FlakAction);

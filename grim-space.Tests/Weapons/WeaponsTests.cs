@@ -1,5 +1,6 @@
-using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
@@ -7,23 +8,24 @@ namespace GrimSpace.Tests.Weapons;
 
 public sealed class WeaponsTests
 {
-	private static readonly BodyFrame Frame = BodyFrame.WorldAligned(new Coord(5, 5, 5));
+	private const string PlayerId = "player";
 
 	[Fact]
 	public void RailgunBurstIsStraightLineThenForePyramid()
 	{
-		var cells = WeaponBursts.RailgunBurstCells(Frame, _ => true);
+		var (world, frame) = CreateWorld();
+		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(PlayerId), world);
 
 		Assert.Equal(26, cells.Count);
 		for (var fore = 1; fore <= CombatConfig.RailgunLineLength; fore++)
-			Assert.Contains(Frame.ToWorld(fore, 0, 0), cells);
+			Assert.Contains(frame.ToWorld(fore, 0, 0), cells);
 
-		var pyramidApex = Frame.ToWorld(CombatConfig.RailgunLineLength, 0, 0);
+		var pyramidApex = frame.ToWorld(CombatConfig.RailgunLineLength, 0, 0);
 		Assert.Contains(pyramidApex, cells);
-		Assert.Contains(Frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange, 1, 1), cells);
-		Assert.Contains(Frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange, -1, 1), cells);
-		Assert.DoesNotContain(Frame.Origin, cells);
-		Assert.DoesNotContain(Frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange + 1, 0, 0), cells);
+		Assert.Contains(frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange, 1, 1), cells);
+		Assert.Contains(frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange, -1, 1), cells);
+		Assert.DoesNotContain(frame.Origin, cells);
+		Assert.DoesNotContain(frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange + 1, 0, 0), cells);
 	}
 
 	[Theory]
@@ -31,30 +33,32 @@ public sealed class WeaponsTests
 	[InlineData(ESpatialOrientation.Starboard)]
 	public void FlakBurstIsThreeDimensionalPyramidFromMountTip(ESpatialOrientation mountedOn)
 	{
-		var cells = WeaponBursts.FlakBurstCells(Frame, mountedOn, _ => true);
+		var (world, frame) = CreateWorld();
+		var cells = FlakDef.Instance.AffectedCells(new FlakAction(PlayerId, mountedOn), world);
 		var apexPort = mountedOn == ESpatialOrientation.Port ? 1 : -1;
 		var outwardStep = mountedOn == ESpatialOrientation.Port ? 1 : -1;
-		var apex = Frame.ToWorld(0, apexPort, 0);
+		var apex = frame.ToWorld(0, apexPort, 0);
 		var basePort = apexPort + outwardStep * CombatConfig.FlakRange;
 
 		Assert.Equal(19, cells.Count);
 		Assert.Contains(apex, cells);
 		Assert.Single(cells, cell => cell == apex);
-		Assert.Contains(Frame.ToWorld(0, basePort, 0), cells);
-		Assert.Contains(Frame.ToWorld(1, basePort, 1), cells);
-		Assert.Contains(Frame.ToWorld(-1, basePort, 1), cells);
-		Assert.DoesNotContain(Frame.Origin, cells);
-		Assert.DoesNotContain(Frame.ToWorld(3, apexPort, 0), cells);
-		Assert.DoesNotContain(Frame.ToWorld(0, basePort + outwardStep, 0), cells);
+		Assert.Contains(frame.ToWorld(0, basePort, 0), cells);
+		Assert.Contains(frame.ToWorld(1, basePort, 1), cells);
+		Assert.Contains(frame.ToWorld(-1, basePort, 1), cells);
+		Assert.DoesNotContain(frame.Origin, cells);
+		Assert.DoesNotContain(frame.ToWorld(3, apexPort, 0), cells);
+		Assert.DoesNotContain(frame.ToWorld(0, basePort + outwardStep, 0), cells);
 	}
 
-	[Fact]
-	public void FlakMountedOnForCellUsesLateralSide()
+	private static (BattleWorld World, BodyFrame Frame) CreateWorld()
 	{
-		var starboard = Frame.ToWorld(1, -1, 1);
-		var port = Frame.ToWorld(1, 1, -1);
-
-		Assert.Equal(ESpatialOrientation.Starboard, WeaponBursts.FlakMountedOnForCell(Frame, starboard));
-		Assert.Equal(ESpatialOrientation.Port, WeaponBursts.FlakMountedOnForCell(Frame, port));
+		var origin = new Coord(10, 10, 10);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(Coord.Zero),
+			BattleTestFixture.Grid(size: 30));
+		var world = battle.PlayerAgent.Sim.World;
+		return (world, BodyFrame.From(world.StateOf(PlayerId)));
 	}
 }

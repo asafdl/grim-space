@@ -2,7 +2,6 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -228,15 +227,13 @@ internal static class EnemySearchInput
 
 	private static bool WouldRailgunDamage(BattleWorld world, string actorId)
 	{
-		var frame = BodyFrame.From(world.StateOf(actorId));
-		var cells = WeaponBursts.RailgunBurstCells(frame, world.Grid.IsInBounds);
+		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(actorId), world);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 
 	private static bool WouldFlakDamage(BattleWorld world, string actorId, ESpatialOrientation mountedOn)
 	{
-		var frame = BodyFrame.From(world.StateOf(actorId));
-		var cells = WeaponBursts.FlakBurstCells(frame, mountedOn, world.Grid.IsInBounds);
+		var cells = FlakDef.Instance.AffectedCells(new FlakAction(actorId, mountedOn), world);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 

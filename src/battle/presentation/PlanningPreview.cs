@@ -112,15 +112,15 @@ public sealed class PlanningPreview
 		=> Weapons(Capabilities.LegalCapabilities(sim, actorId));
 
 	public AbilityLegality Abilities(BattleSimulation sim, string actorId)
-	{
-		var actions = Capabilities.LegalCapabilities(sim, actorId);
-		return new AbilityLegality(
+		=> Abilities(Capabilities.LegalCapabilities(sim, actorId));
+
+	public static AbilityLegality Abilities(IReadOnlyList<IAction> actions) =>
+		new(
 			Weapons(actions),
 			actions.Any(action => action is SpawnPatrolAction),
 			actions.Any(action => action is DetonateAction));
-	}
 
-	private static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
+	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{
 		var portFlak = false;
 		var starboardFlak = false;
@@ -189,6 +189,31 @@ public sealed class PlanningPreview
 			TorpedoMountedOn = torpedoMountedOn,
 			TorpedoActorStateAtQueue = torpedoActorState,
 		};
+	}
+
+	public AreaActionPreviews AreaPreviews(
+		BattleSimulation sim,
+		string actorId,
+		IReadOnlyList<IAction> legalCapabilities)
+	{
+		var aim = new List<AreaActionPreview>();
+		foreach (var action in legalCapabilities)
+		{
+			if (AreaDefinition(action) is { } definition)
+				aim.Add(AreaPreview(action, sim.World, definition));
+		}
+
+		var queued = new List<AreaActionPreview>();
+		for (var i = 0; i < sim.Actions.Count; i++)
+		{
+			var action = sim.Actions[i];
+			if (action.ActorId != actorId || AreaDefinition(action) is not { } definition)
+				continue;
+
+			queued.Add(AreaPreview(action, sim.ReplayWorld(i), definition));
+		}
+
+		return new AreaActionPreviews(aim, queued);
 	}
 
 	public HashSet<string> ThreatenedUnitIds(
@@ -358,6 +383,21 @@ public sealed class PlanningPreview
 		var world = sim.ReplayWorld(actionIndex);
 		return UnitDisplayState.Capture(UnitRegistry.For(world).UnitOf(playerId).State);
 	}
+
+	private static AreaActionPreview AreaPreview(
+		IAction action,
+		BattleWorld world,
+		IAreaActionDef definition) =>
+		new(
+			action,
+			new CellVolumePreview(
+				world.StateOf(action.ActorId).Position,
+				definition.AffectedCells(action, world)));
+
+	private static IAreaActionDef? AreaDefinition(IAction action) =>
+		action is IAction<BattleWorld, ActorRuntime> typed
+			? typed.Definition as IAreaActionDef
+			: null;
 
 	private static HashSet<string> ImpactTargets(PeekFrame<BattleWorld, ActorRuntime>? peek) =>
 		peek is { } frame ? ImpactTargets(frame.Records) : [];

@@ -56,12 +56,7 @@ public sealed class CarrierPatrolIntegrationTests
 			fore,
 			dorsal,
 			Coord.Cross(dorsal, fore));
-		var burstCells = WeaponBursts.FlakBurstCells(
-			patrolFrame,
-			ESpatialOrientation.Port,
-			grid.IsInBounds);
-		Assert.NotEmpty(burstCells);
-		player.State.Position = burstCells.First();
+		player.State.Position = patrolFrame.ToWorld(0, 1, 0);
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier, grid);
 		var replay = BattleTestActions.CommitAndResolve(battle);

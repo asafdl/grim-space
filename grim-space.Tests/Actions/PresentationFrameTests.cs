@@ -80,12 +80,8 @@ public sealed class PresentationFrameTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
-		var pickCell = origin + new Coord(1, 1, 0);
 
-		var frame = BodyFrame.From(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId));
-		var mountedOn = WeaponBursts.FlakMountedOnForCell(frame, pickCell);
-		Assert.NotNull(mountedOn);
-		Assert.True(BattleTestCommands.FireFlak(battle, mountedOn.Value));
+		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
 		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
 
 		Assert.True(BattleTestCommands.Undo(battle));
@@ -212,6 +208,92 @@ public sealed class PresentationFrameTests
 		Assert.Equal(
 			afterMove,
 			preview.PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId)[battle.PlayerId].Position);
+
+		var frame = BattleTestCommands.Frame(battle);
+		var railgunPreview = Assert.Single(
+			frame.AreaActions.Queued,
+			preview => preview.Action is RailgunAction);
+		var flakPreview = Assert.Single(
+			frame.AreaActions.Queued,
+			preview => preview.Action is FlakAction);
+		var railgunIndex = battle.PlayerAgent.Sim.Actions
+			.ToList()
+			.FindIndex(action => action is RailgunAction);
+		var flakIndex = battle.PlayerAgent.Sim.Actions
+			.ToList()
+			.FindIndex(action => action is FlakAction);
+		var expectedRailgun = RailgunDef.Instance.AffectedCells(
+			(RailgunAction)railgunPreview.Action,
+			battle.PlayerAgent.Sim.ReplayWorld(railgunIndex));
+		var expectedFlak = FlakDef.Instance.AffectedCells(
+			(FlakAction)flakPreview.Action,
+			battle.PlayerAgent.Sim.ReplayWorld(flakIndex));
+		Assert.True(expectedRailgun.SetEquals(railgunPreview.Volume.Cells));
+		Assert.True(expectedFlak.SetEquals(flakPreview.Volume.Cells));
+		Assert.Equal(origin, railgunPreview.Volume.Origin);
+		Assert.Equal(afterMove, flakPreview.Volume.Origin);
+	}
+
+	[Fact]
+	public void FramePublishesAuthoritativeBoardClippedAreaActions()
+	{
+		var origin = new Coord(10, 10, 10);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+
+		var frame = BattleTestCommands.Frame(battle);
+		var railgunPreview = Assert.Single(
+			frame.AreaActions.Aim,
+			preview => preview.Action is RailgunAction);
+		var expectedRailgun = RailgunDef.Instance.AffectedCells(
+			(RailgunAction)railgunPreview.Action,
+			battle.PlayerAgent.Sim.World);
+		Assert.True(expectedRailgun.SetEquals(railgunPreview.Volume.Cells));
+		Assert.Equal(origin, railgunPreview.Volume.Origin);
+		var flakPreviews = frame.AreaActions.Aim
+			.Where(preview => preview.Action is FlakAction)
+			.ToDictionary(
+				preview => ((FlakAction)preview.Action).MountedOn,
+				preview => preview.Volume);
+		Assert.Equal(
+			frame.Weapons.PortFlak,
+			flakPreviews.ContainsKey(ESpatialOrientation.Port));
+		Assert.Equal(
+			frame.Weapons.StarboardFlak,
+			flakPreviews.ContainsKey(ESpatialOrientation.Starboard));
+		foreach (var (mountedOn, volume) in flakPreviews)
+		{
+			var expectedFlak = FlakDef.Instance.AffectedCells(
+				new FlakAction(battle.PlayerId, mountedOn),
+				battle.PlayerAgent.Sim.World);
+			Assert.True(expectedFlak.SetEquals(volume.Cells));
+			Assert.Equal(origin, volume.Origin);
+			Assert.All(
+				volume.Cells,
+				cell => Assert.True(battle.PlayerAgent.Sim.World.Grid.IsInBounds(cell)));
+		}
+	}
+
+	[Fact]
+	public void AreaActionDefinitionsUseActorPoseAndBoundMount()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var world = battle.PlayerAgent.Sim.World;
+		var actor = world.StateOf(battle.PlayerId);
+		actor.Fore = new Coord(1, 0, 0);
+		actor.Dorsal = Coord.Up;
+		actor.Starboard = Coord.Cross(actor.Dorsal, actor.Fore);
+		var frame = BodyFrame.From(actor);
+		var railgun = new RailgunAction(battle.PlayerId);
+		var flak = new FlakAction(battle.PlayerId, ESpatialOrientation.Port);
+
+		var railgunCells = ((IAreaActionDef)railgun.Definition).AffectedCells(railgun, world);
+		var flakCells = ((IAreaActionDef)flak.Definition).AffectedCells(flak, world);
+
+		Assert.Contains(frame.ToWorld(1, 0, 0), railgunCells);
+		Assert.DoesNotContain(frame.Origin, railgunCells);
+		Assert.Contains(frame.ToWorld(0, 1, 0), flakCells);
+		Assert.DoesNotContain(frame.ToWorld(0, -1, 0), flakCells);
 	}
 
 	[Fact]

@@ -18,7 +18,8 @@ public sealed record FlakAction(
 
 public sealed class FlakDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef
+		IMountedActionDef,
+		IAreaActionDef
 {
 	public static FlakDef Instance { get; } = new();
 
@@ -64,8 +65,7 @@ public sealed class FlakDef
 		if (!SupportsMount(action.MountedOn))
 			return false;
 
-		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		return WeaponBursts.IsValidFlakBurst(frame, action.MountedOn, world.Grid.IsInBounds);
+		return AffectedCells(action, world).Count > 0;
 	}
 
 	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
@@ -81,8 +81,7 @@ public sealed class FlakDef
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
-		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var cells = WeaponBursts.FlakBurstCells(frame, action.MountedOn, world.Grid.IsInBounds);
+		var cells = AffectedCells(action, world);
 
 		return
 		[
@@ -94,6 +93,43 @@ public sealed class FlakDef
 			new FlakChangeEffect(-1),
 		];
 	}
+
+	public HashSet<Coord> AffectedCells(FlakAction action, BattleWorld world)
+	{
+		var frame = BodyFrame.From(world.StateOf(action.ActorId));
+		var result = new HashSet<Coord>();
+		var (apexPort, outwardStep) = BurstAxes(action.MountedOn);
+
+		for (var outward = 0; outward <= CombatConfig.FlakRange; outward++)
+		{
+			for (var fore = -outward; fore <= outward; fore++)
+			{
+				for (var dorsal = -outward; dorsal <= outward; dorsal++)
+				{
+					if (System.Math.Abs(fore) + System.Math.Abs(dorsal) > outward)
+						continue;
+
+					var port = apexPort + outwardStep * outward;
+					var cell = frame.ToWorld(fore, port, dorsal);
+					if (world.Grid.IsInBounds(cell))
+						result.Add(cell);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
+		AffectedCells(Cast(action), world);
+
+	private static (int ApexPort, int OutwardStep) BurstAxes(ESpatialOrientation mountedOn) =>
+		mountedOn switch
+		{
+			ESpatialOrientation.Port => (1, 1),
+			ESpatialOrientation.Starboard => (-1, -1),
+			_ => throw new ArgumentOutOfRangeException(nameof(mountedOn), mountedOn, null),
+		};
 
 	private static FlakAction Cast(IAction action) =>
 		action as FlakAction ?? throw new ArgumentException($"Expected {nameof(FlakAction)}.", nameof(action));

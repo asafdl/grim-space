@@ -1,117 +1,66 @@
 using Godot;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class RailgunPreviewView : Node3D
 {
-	private const int RingSides = 18;
 	private const float AimStrength = 0.85f;
 	private const float HoverStrength = 1.35f;
 
 	private static readonly Color Tint = new(0.55f, 0.82f, 1f, 0.42f);
+	private static readonly IReadOnlySet<Coord> NoCells = new HashSet<Coord>();
 
-	private static readonly WeaponPreviewMesh.Section[] Sections =
-	[
-		// Fade in just beyond the ship's nose.
-		new(0.5f, 0.12f, 0.00f),
-		new(0.9f, 0.24f, 0.70f),
-
-		// Long, narrow railgun corridor.
-		new(3.0f, 0.28f, 0.95f),
-		new(6.0f, 0.32f, 0.95f),
-		new(CombatConfig.RailgunLineLength, 0.38f, 0.90f),
-
-		// Final spreading part of the burst.
-		new(CombatConfig.RailgunLineLength + 1, 1.15f, 0.70f),
-		new(
-			CombatConfig.RailgunLineLength
-			+ CombatConfig.RailgunPyramidRange
-			+ 0.7f,
-			CombatConfig.RailgunPyramidRange + 0.5f,
-			0.00f),
-	];
-
-	private MeshInstance3D? _plume;
-	private ShaderMaterial? _material;
+	private WeaponVolumeMeshSlot _aim = null!;
+	private WeaponVolumeMeshSlot _queued = null!;
+	private ShaderMaterial _aimMaterial = null!;
+	private IReadOnlySet<Coord> _aimCells = NoCells;
 
 	public void Build()
 	{
-		_material = WeaponPreviewMaterials.CreateDotted(Tint);
-
-		_plume = new MeshInstance3D
-		{
-			Name = "RailgunPlume",
-			Mesh = WeaponPreviewMesh.CreatePlume(Sections, RingSides),
-			MaterialOverride = _material,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
-		PresentationLayers.MarkUx(_plume);
-
-		AddChild(_plume);
+		_aimMaterial = WeaponPreviewMaterials.CreateDotted(Tint);
+		var queuedMaterial = WeaponPreviewMaterials.CreateDotted(WeaponPreviewMaterials.CementedTint);
+		WeaponPreviewMaterials.ApplyCemented(queuedMaterial);
+		_aim = new WeaponVolumeMeshSlot("RailgunAim", _aimMaterial);
+		_queued = new WeaponVolumeMeshSlot("RailgunQueued", queuedMaterial);
+		AddChild(_aim.Instance);
+		AddChild(_queued.Instance);
 		Visible = false;
 	}
 
 	public bool PickHovered(Camera3D camera, Vector2 screenPos)
 	{
-		if (_plume is not { Visible: true })
+		if (!_aim.Instance.Visible)
 			return false;
 
-		var from = _plume.GlobalPosition;
-		foreach (var section in Sections)
-		{
-			var to = _plume.ToGlobal(
-				Vector3.Back * section.DistanceInCells * WorldMapping.CellSize);
-			if (PreviewPick.NearSegment(camera, screenPos, from, to))
-				return true;
-			from = to;
-		}
-
-		return false;
+		return GridPick.PickFromSet(camera, screenPos, _aimCells) is not null;
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Railgun;
-		var cemented = frame.ShowWeaponPreviews && frame.QueuedWeapon.Railgun;
-		var shouldShow = aiming || cemented;
+		var aim = aiming
+			? frame.AreaActions.Aim.FirstOrDefault(preview => preview.Action is RailgunAction)
+			: null;
+		var queued = frame.ShowWeaponPreviews
+			? frame.AreaActions.Queued.LastOrDefault(preview => preview.Action is RailgunAction)
+			: null;
 
-		Visible = shouldShow;
-		if (!shouldShow || _material is null)
-			return;
+		_aim.Apply(aim?.Volume);
+		_queued.Apply(queued?.Volume);
+		_aimCells = aim?.Volume.Cells ?? NoCells;
+		Visible = aim is not null || queued is not null;
 
-		var state = WeaponPoseState(frame, cemented);
-
-		Position = WorldMapping.ToWorld(state.Position);
-
-		// The plume mesh points along local +Z, matching UnitView/ShipMesh.
-		Basis = new Basis(
-			ToVector3(state.Starboard),
-			ToVector3(state.Dorsal),
-			ToVector3(state.Fore));
-
-		if (aiming)
+		if (aim is not null)
 		{
 			WeaponPreviewMaterials.ApplyAim(
-				_material,
+				_aimMaterial,
 				Tint,
 				frame.RailgunHovered ? HoverStrength : AimStrength);
-			return;
 		}
-
-		WeaponPreviewMaterials.ApplyCemented(_material);
 	}
-
-	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
-		cemented && frame.QueuedWeapon.RailgunActorStateAtQueue is UnitDisplayState queued
-			? queued.ToState()
-			: frame.FocusState.ToState();
-
-	private static Vector3 ToVector3(Coord coord) =>
-		new(coord.X, coord.Y, coord.Z);
 }

@@ -123,65 +123,16 @@ private static readonly Vector3[] NeighborOffsets =
 
 		if (endpoints.Count > 0)
 		{
-			var key = RangeMeshKey(source, cells);
+			var key = CellVolumeGeometry.RelativeCellKey(source, cells);
 			if (!_rangeMeshes.TryGetValue(key, out var mesh))
 			{
-				mesh = CreateRangeMesh(MovementRangeGeometry.Build(source, cells));
+				mesh = CellVolumeMesh.CreateWireframe(CellVolumeGeometry.Build(source, cells));
 				_rangeMeshes[key] = mesh;
 			}
 			_rangeShell.Mesh = mesh;
 		}
 
 		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
-	}
-
-	internal static string RangeMeshKey(Coord source, IEnumerable<Coord> cells) =>
-		string.Join(
-			'|',
-			cells
-				.Select(cell => cell - source)
-				.Distinct()
-				.OrderBy(cell => cell.X)
-				.ThenBy(cell => cell.Y)
-				.ThenBy(cell => cell.Z)
-				.Select(cell => $"{cell.X},{cell.Y},{cell.Z}"));
-
-	private static ArrayMesh CreateRangeMesh(MovementRangeGeometry.Surface surface)
-	{
-		var mesh = new ArrayMesh();
-		if (surface.Vertices.Length == 0)
-			return mesh;
-
-		var edges = new HashSet<MeshEdge>();
-		for (var i = 0; i < surface.Vertices.Length; i += 3)
-		{
-			edges.Add(MeshEdge.Create(surface.Vertices[i], surface.Vertices[i + 1]));
-			edges.Add(MeshEdge.Create(surface.Vertices[i + 1], surface.Vertices[i + 2]));
-			edges.Add(MeshEdge.Create(surface.Vertices[i + 2], surface.Vertices[i]));
-		}
-
-		var arrays = new Godot.Collections.Array();
-		arrays.Resize((int)Mesh.ArrayType.Max);
-		arrays[(int)Mesh.ArrayType.Vertex] = edges
-			.SelectMany(edge => new[] { edge.A, edge.B })
-			.ToArray();
-		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, arrays);
-		return mesh;
-	}
-
-	private readonly record struct MeshEdge(Vector3 A, Vector3 B)
-	{
-		public static MeshEdge Create(Vector3 a, Vector3 b) =>
-			Compare(a, b) <= 0 ? new MeshEdge(a, b) : new MeshEdge(b, a);
-
-		private static int Compare(Vector3 a, Vector3 b)
-		{
-			var x = a.X.CompareTo(b.X);
-			if (x != 0)
-				return x;
-			var y = a.Y.CompareTo(b.Y);
-			return y != 0 ? y : a.Z.CompareTo(b.Z);
-		}
 	}
 
 	private void HideMoveVisuals()

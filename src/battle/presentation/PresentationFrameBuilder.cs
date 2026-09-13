@@ -71,8 +71,15 @@ public sealed class PresentationFrameBuilder
 		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
 		var queuedWeapon = canControl ? _preview.QueuedWeapon(sim, playerId) : QueuedWeaponState.Empty;
 		var abilityActorId = canControl || isInspecting ? focusId : playerId;
-		var weapons = canControl || isInspecting ? _preview.Weapons(sim, abilityActorId) : WeaponPeek.Empty;
-		var abilities = canControl || isInspecting ? _preview.Abilities(sim, abilityActorId) : AbilityLegality.Empty;
+		var legalCapabilities = canControl || isInspecting
+			? Capabilities.LegalCapabilities(sim, abilityActorId)
+			: [];
+		var weapons = canControl || isInspecting
+			? PlanningPreview.Weapons(legalCapabilities)
+			: WeaponPeek.Empty;
+		var abilities = canControl || isInspecting
+			? PlanningPreview.Abilities(legalCapabilities)
+			: AbilityLegality.Empty;
 		var weaponQueued = queuedWeapon.FlakMountedOn is not null
 			|| queuedWeapon.Railgun
 			|| queuedWeapon.TorpedoMountedOn is not null;
@@ -118,6 +125,9 @@ public sealed class PresentationFrameBuilder
 		}
 
 		var showWeaponPreviews = acceptsCommands && !battle.IsBattleOver && !isInspecting;
+		var areaActions = showWeaponPreviews
+			? _preview.AreaPreviews(sim, playerId, legalCapabilities)
+			: AreaActionPreviews.Empty;
 		var threatenedUnitIds = showWeaponPreviews
 			? _preview.ThreatenedUnitIds(sim, playerId, state)
 			: new HashSet<string>();
@@ -135,7 +145,6 @@ public sealed class PresentationFrameBuilder
 		}
 		else if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
 		{
-			var legalCapabilities = Capabilities.LegalCapabilities(sim, playerId);
 			var activation = AbilityActivation.For(activeSpec.Def);
 			instruction = activation.ResolveInstruction(
 				visible: true,
@@ -181,6 +190,7 @@ public sealed class PresentationFrameBuilder
 			PreviewUnits = previewUnits,
 			QueuedWeapon = queuedWeapon,
 			Weapons = weapons,
+			AreaActions = areaActions,
 			Abilities = abilities,
 			ThreatenedUnitIds = threatenedUnitIds,
 			TorpedoEnvelopeLayers = torpedoEnvelopeLayers,

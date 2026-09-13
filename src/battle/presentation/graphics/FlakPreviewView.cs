@@ -1,52 +1,40 @@
 using Godot;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Units;
-using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class FlakPreviewView : Node3D
 {
-	private const int RingSides = 16;
 	private const float AimStrength = 0.85f;
 	private const float HoverStrength = 1.35f;
 
 	private static readonly Color PortTint = new(0.95f, 0.55f, 0.18f, 0.40f);
 	private static readonly Color StarboardTint = new(0.98f, 0.78f, 0.22f, 0.40f);
 
-	// Flak steps outward along ±port: cells at distance 1..Range+1 with expanding radius.
-	private static readonly WeaponPreviewMesh.Section[] Sections =
-	[
-		new(0.35f, 0.12f, 0.00f),
-		new(1.0f, 0.70f, 0.85f),
-		new(2.0f, 1.25f, 0.90f),
-		new(CombatConfig.FlakRange + 1f, 1.85f, 0.75f),
-		new(CombatConfig.FlakRange + 1.6f, 2.25f, 0.00f),
-	];
-
-	private MeshInstance3D? _port;
-	private MeshInstance3D? _starboard;
-	private ShaderMaterial? _portMaterial;
-	private ShaderMaterial? _starboardMaterial;
+	private WeaponVolumeMeshSlot _aimPort = null!;
+	private WeaponVolumeMeshSlot _aimStarboard = null!;
+	private WeaponVolumeMeshSlot _queued = null!;
+	private ShaderMaterial _portMaterial = null!;
+	private ShaderMaterial _starboardMaterial = null!;
 	private PresentationFrame? _frame;
 
 	public void Build()
 	{
-		var mesh = WeaponPreviewMesh.CreatePlume(Sections, RingSides);
-
 		_portMaterial = WeaponPreviewMaterials.CreateDotted(PortTint);
 		_starboardMaterial = WeaponPreviewMaterials.CreateDotted(StarboardTint);
-
-		_port = CreatePlume("FlakPort", mesh, _portMaterial);
-		_starboard = CreatePlume("FlakStarboard", mesh, _starboardMaterial);
-
-		AddChild(_port);
-		AddChild(_starboard);
+		var queuedMaterial = WeaponPreviewMaterials.CreateDotted(WeaponPreviewMaterials.CementedTint);
+		WeaponPreviewMaterials.ApplyCemented(queuedMaterial);
+		_aimPort = new WeaponVolumeMeshSlot("FlakPortAim", _portMaterial);
+		_aimStarboard = new WeaponVolumeMeshSlot("FlakStarboardAim", _starboardMaterial);
+		_queued = new WeaponVolumeMeshSlot("FlakQueued", queuedMaterial);
+		AddChild(_aimPort.Instance);
+		AddChild(_aimStarboard.Instance);
+		AddChild(_queued.Instance);
 		Visible = false;
 	}
 
@@ -55,15 +43,15 @@ public sealed partial class FlakPreviewView : Node3D
 		if (_frame is null || _frame.Mode != EPlayerMode.Flak || !_frame.ShowWeaponPreviews)
 			return null;
 
-		var weapons = _frame.Weapons;
-		var bodyFrame = BodyFrame.From(_frame.FocusState.ToState());
 		var cells = new Dictionary<Coord, ESpatialOrientation>();
 
-		if (weapons.PortFlak)
-			AddBurstCells(cells, bodyFrame, ESpatialOrientation.Port);
-
-		if (weapons.StarboardFlak)
-			AddBurstCells(cells, bodyFrame, ESpatialOrientation.Starboard);
+		foreach (var preview in _frame.AreaActions.Aim)
+		{
+			if (preview.Action is not FlakAction flak)
+				continue;
+			foreach (var burstCell in preview.Volume.Cells)
+				cells[burstCell] = flak.MountedOn;
+		}
 
 		return GridPick.PickFromSet(camera, screenPos, cells.Keys.ToHashSet()) is Coord cell
 			? cells[cell]
@@ -73,85 +61,47 @@ public sealed partial class FlakPreviewView : Node3D
 	public void ApplyFrame(PresentationFrame frame)
 	{
 		_frame = frame;
-		var queued = frame.QueuedWeapon;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Flak;
-		var showPort = aiming && frame.Weapons.PortFlak
-			|| frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Port;
-		var showStarboard = aiming && frame.Weapons.StarboardFlak
-			|| frame.ShowWeaponPreviews && queued.FlakMountedOn == ESpatialOrientation.Starboard;
-		var shouldShow = showPort || showStarboard;
-
-		Visible = shouldShow;
-		if (!shouldShow || _port is null || _starboard is null)
-			return;
-
-		var cemented = frame.ShowWeaponPreviews && queued.FlakMountedOn is not null;
-		var state = WeaponPoseState(frame, cemented && !aiming);
-		Position = WorldMapping.ToWorld(state.Position);
-
-		var starboard = ToVector3(state.Starboard);
-		var dorsal = ToVector3(state.Dorsal);
-		var fore = ToVector3(state.Fore);
-
-		// Mesh +Z is fire direction: port = -starboard, starboard = +starboard.
-		_port.Basis = new Basis(fore, dorsal, -starboard);
-		_starboard.Basis = new Basis(-fore, dorsal, starboard);
-		_port.Visible = showPort;
-		_starboard.Visible = showStarboard;
-
+		AreaActionPreview? aimPort = null;
+		AreaActionPreview? aimStarboard = null;
 		if (aiming)
 		{
-			var effectiveMount = frame.StagedMountedOn ?? frame.FlakHoverMountedOn;
-			WeaponPreviewMaterials.ApplyAim(
-				_portMaterial!,
-				PortTint,
-				Strength(showPort, effectiveMount == ESpatialOrientation.Port));
-			WeaponPreviewMaterials.ApplyAim(
-				_starboardMaterial!,
-				StarboardTint,
-				Strength(showStarboard, effectiveMount == ESpatialOrientation.Starboard));
-			return;
+			foreach (var preview in frame.AreaActions.Aim)
+			{
+				if (preview.Action is not FlakAction flak)
+					continue;
+				if (flak.MountedOn == ESpatialOrientation.Port)
+					aimPort = preview;
+				else if (flak.MountedOn == ESpatialOrientation.Starboard)
+					aimStarboard = preview;
+			}
 		}
 
-		if (showPort)
-			WeaponPreviewMaterials.ApplyCemented(_portMaterial!);
-		if (showStarboard)
-			WeaponPreviewMaterials.ApplyCemented(_starboardMaterial!);
-	}
+		var queued = frame.ShowWeaponPreviews
+			? frame.AreaActions.Queued.LastOrDefault(preview => preview.Action is FlakAction)
+			: null;
+		_aimPort.Apply(aimPort?.Volume);
+		_aimStarboard.Apply(aimStarboard?.Volume);
+		_queued.Apply(queued?.Volume);
+		Visible = aimPort is not null || aimStarboard is not null || queued is not null;
 
-	private static void AddBurstCells(
-		Dictionary<Coord, ESpatialOrientation> cells,
-		BodyFrame frame,
-		ESpatialOrientation mountedOn)
-	{
-		foreach (var cell in WeaponBursts.FlakBurstCells(frame, mountedOn, static _ => true))
-			cells[cell] = mountedOn;
-	}
-
-	private static float Strength(bool available, bool hovered) =>
-		!available ? 0f : hovered ? HoverStrength : AimStrength;
-
-	private static MeshInstance3D CreatePlume(
-		string name,
-		ArrayMesh mesh,
-		ShaderMaterial material)
-	{
-		var instance = new MeshInstance3D
+		var effectiveMount = frame.StagedMountedOn ?? frame.FlakHoverMountedOn;
+		if (aimPort is not null)
 		{
-			Name = name,
-			Mesh = mesh,
-			MaterialOverride = material,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
-		PresentationLayers.MarkUx(instance);
-		return instance;
+			WeaponPreviewMaterials.ApplyAim(
+				_portMaterial,
+				PortTint,
+				Strength(effectiveMount == ESpatialOrientation.Port));
+		}
+		if (aimStarboard is not null)
+		{
+			WeaponPreviewMaterials.ApplyAim(
+				_starboardMaterial,
+				StarboardTint,
+				Strength(effectiveMount == ESpatialOrientation.Starboard));
+		}
 	}
 
-	private static State WeaponPoseState(PresentationFrame frame, bool cemented) =>
-		cemented && frame.QueuedWeapon.FlakActorStateAtQueue is UnitDisplayState queued
-			? queued.ToState()
-			: frame.FocusState.ToState();
-
-	private static Vector3 ToVector3(Coord coord) =>
-		new(coord.X, coord.Y, coord.Z);
+	private static float Strength(bool hovered) =>
+		hovered ? HoverStrength : AimStrength;
 }

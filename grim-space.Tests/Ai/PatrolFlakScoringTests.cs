@@ -26,12 +26,7 @@ public sealed class PatrolFlakScoringTests
 		patrol.State.Starboard = Coord.Cross(patrol.State.Dorsal, patrol.State.Fore);
 
 		var frame = BodyFrame.From(patrol.State);
-		var burstCells = WeaponBursts.FlakBurstCells(
-			frame,
-			ESpatialOrientation.Port,
-			grid.IsInBounds);
-		Assert.NotEmpty(burstCells);
-		player.State.Position = burstCells.First();
+		player.State.Position = frame.ToWorld(0, 1, 0);
 
 		var battle = BattleTestFixture.BeginSimulation(player, patrol, grid);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, patrol);
