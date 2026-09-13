@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
@@ -24,19 +23,16 @@ public sealed partial class UserIntentTranslator : Node
 	private readonly IActionSink _actions;
 	private readonly Controller _camera;
 	private readonly BattleHud _hud;
-	private readonly FlakPreviewView _flakPreview;
-	private readonly RailgunPreviewView _railgunPreview;
-	private readonly TorpedoPreviewView _torpedoPreview;
+	private readonly AbilitySourcePickerView _abilitySourcePicker;
 	private readonly Func<IReadOnlyDictionary<string, UnitView>> _unitViews;
 
 	private bool _enabled;
 	private bool _canIssueActions;
 	private bool _isInspecting;
 	private EPlayerMode _mode = EPlayerMode.Move;
-	private AbilityHudCatalog.Spec? _activeAbilitySpec;
-	private ESpatialOrientation? _stagedMountedOn;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
-	private ActionInstruction _instruction;
+	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
+	private int? _abilityHoveredIndex;
 	private int? _moveHoveredIndex;
 	private MoveInputSnapshot _moveInput;
 
@@ -52,18 +48,14 @@ public sealed partial class UserIntentTranslator : Node
 		IActionSink actions,
 		Controller camera,
 		BattleHud hud,
-		FlakPreviewView flakPreview,
-		RailgunPreviewView railgunPreview,
-		TorpedoPreviewView torpedoPreview,
+		AbilitySourcePickerView abilitySourcePicker,
 		Func<IReadOnlyDictionary<string, UnitView>> unitViews)
 	{
 		_actorId = actorId;
 		_actions = actions;
 		_camera = camera;
 		_hud = hud;
-		_flakPreview = flakPreview;
-		_railgunPreview = railgunPreview;
-		_torpedoPreview = torpedoPreview;
+		_abilitySourcePicker = abilitySourcePicker;
 		_unitViews = unitViews;
 	}
 
@@ -72,17 +64,14 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
 	public event Action<GridBasis>? MovePoseRequested;
 	public event Action? MoveSelectionCanceled;
-	public event Action<ESpatialOrientation?>? FlakHoverChanged;
-	public event Action<bool>? RailgunHoverChanged;
-	public event Action<ESpatialOrientation?>? TorpedoHoverChanged;
-	public event Action<ESpatialOrientation>? StagedMountedOnRequested;
+	public event Action<int?, int>? AbilityHoverChanged;
 	public event Action? HoversCleared;
 	public event Action<string>? FocusUnitRequested;
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
 	public event Action? UndoRequested;
 	public event Action? EndTurnRequested;
-	public event Action? ConfirmationFailed;
+	public event Action? ActionFailed;
 	public event Action? RestartRequested;
 	public event Action? RetireRequested;
 
@@ -91,21 +80,20 @@ public sealed partial class UserIntentTranslator : Node
 		bool canIssueActions,
 		bool isInspecting,
 		EPlayerMode mode,
-		AbilityHudCatalog.Spec? activeAbilitySpec,
-		ESpatialOrientation? stagedMountedOn,
 		IReadOnlyList<MovePathOption> moveOptions,
 		MovePathOption? selectedMove,
 		Coord? moveDestination,
 		bool moveDragging,
-		ActionInstruction instruction)
+		IReadOnlyList<AbilityActivationChoice> abilityChoices,
+		int? abilityHoveredIndex)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
 		_isInspecting = isInspecting;
 		_mode = mode;
-		_activeAbilitySpec = activeAbilitySpec;
-		_stagedMountedOn = stagedMountedOn;
 		_moveOptions = moveOptions;
+		_abilityChoices = abilityChoices;
+		_abilityHoveredIndex = abilityHoveredIndex;
 		var reachableBases = moveDestination is { } destination
 			? moveOptions
 				.Where(option => option.EndPosition == destination)
@@ -122,20 +110,23 @@ public sealed partial class UserIntentTranslator : Node
 			.Distinct()
 			.ToList(),
 			moveDragging);
-		_instruction = instruction;
 
 		if (!enabled || mode != EPlayerMode.Move)
 			_moveHoveredIndex = null;
 		_camera.SetGestureInputBlocked(enabled && mode == EPlayerMode.Move && moveDragging);
 	}
-
 	public override void _Process(double delta)
 	{
 		if (!_enabled
 			|| !_canIssueActions
-			|| _mode != EPlayerMode.Move
 			|| _moveInput.IsDragging)
 			return;
+
+		if (_mode != EPlayerMode.Move)
+		{
+			UpdateAbilityHover();
+			return;
+		}
 
 		if (_hud.IsPauseMenuOpen || IsPointerOverHud())
 		{
@@ -245,12 +236,6 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_canIssueActions && !_isInspecting)
 			return;
 
-		if (@event is InputEventMouseMotion motion)
-		{
-			HandleHover(motion.Position);
-			return;
-		}
-
 		if (@event is InputEventMouseButton
 			{
 				Pressed: true,
@@ -267,29 +252,6 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		if (_moveInput.Destination is null)
 			EndTurnRequested?.Invoke();
-	}
-
-	public void OnConfirmAction()
-	{
-		if (!_enabled || !_canIssueActions || _mode == EPlayerMode.Move)
-			return;
-
-		if (!_instruction.CanConfirm)
-			return;
-
-		if (_activeAbilitySpec is null)
-			return;
-
-		var action = AbilityActivation.For(_activeAbilitySpec.Def)
-			.Build(_actorId, _stagedMountedOn);
-		if (action is null || !Enqueue(action))
-		{
-			ConfirmationFailed?.Invoke();
-			return;
-		}
-
-		ClearHovers();
-		ModeRequested?.Invoke(EPlayerMode.Move);
 	}
 
 	public void OnUndo()
@@ -322,9 +284,6 @@ public sealed partial class UserIntentTranslator : Node
 				ClearMoveHover();
 				_hud.TogglePauseMenu();
 				return true;
-			case Key.Enter or Key.KpEnter when _canIssueActions && CanConfirmAction():
-				OnConfirmAction();
-				return true;
 			case Key.Key1:
 				return _hud.ManeuverBar.TryActivateMove();
 			case Key.Key2:
@@ -343,10 +302,6 @@ public sealed partial class UserIntentTranslator : Node
 		}
 	}
 
-	private bool CanConfirmAction() => _mode != EPlayerMode.Move
-		&& _instruction.CanConfirm
-		&& _activeAbilitySpec is not null;
-
 	private bool TryCancelAbilityMode()
 	{
 		if (_mode == EPlayerMode.Move)
@@ -356,25 +311,17 @@ public sealed partial class UserIntentTranslator : Node
 		return true;
 	}
 
-	private void HandleHover(Vector2 screenPosition)
+	private void UpdateAbilityHover()
 	{
-		if (!_canIssueActions)
-			return;
-
-		switch (_mode)
+		var abilityHoveredIndex = _hud.IsPauseMenuOpen
+			|| _camera.IsManualGestureActive
+			|| IsPointerOverHud()
+			? null
+			: _abilitySourcePicker.PickIndex(GetViewport().GetMousePosition());
+		if (abilityHoveredIndex != _abilityHoveredIndex)
 		{
-			case EPlayerMode.Flak:
-				FlakHoverChanged?.Invoke(
-					_flakPreview.PickMountedOn(_camera, screenPosition));
-				break;
-			case EPlayerMode.Railgun:
-				RailgunHoverChanged?.Invoke(
-					_railgunPreview.PickHovered(_camera, screenPosition));
-				break;
-			case EPlayerMode.Torpedo:
-				TorpedoHoverChanged?.Invoke(
-					_torpedoPreview.PickMountedOn(_camera, screenPosition));
-				break;
+			_abilityHoveredIndex = abilityHoveredIndex;
+			AbilityHoverChanged?.Invoke(abilityHoveredIndex, _abilityChoices.Count);
 		}
 	}
 
@@ -389,18 +336,22 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_canIssueActions)
 			return;
 
-		switch (_mode)
+		var index = _abilitySourcePicker.PickIndex(screenPosition);
+		if (index is not int choiceIndex
+			|| choiceIndex < 0
+			|| choiceIndex >= _abilityChoices.Count)
 		{
-			case EPlayerMode.Flak:
-				if (_flakPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation mountedOn)
-					StagedMountedOnRequested?.Invoke(mountedOn);
-				break;
-			case EPlayerMode.Torpedo:
-				if (_torpedoPreview.PickMountedOn(_camera, screenPosition) is ESpatialOrientation torpedoMountedOn)
-					StagedMountedOnRequested?.Invoke(torpedoMountedOn);
-				break;
-
+			return;
 		}
+
+		var action = AbilityActivation.CreateExecutionAction(_abilityChoices[choiceIndex]);
+		if (!Enqueue(action))
+		{
+			ActionFailed?.Invoke();
+			return;
+		}
+
+		ModeRequested?.Invoke(EPlayerMode.Move);
 	}
 
 	private void HandleMoveClick(Vector2 screenPosition)
@@ -448,7 +399,7 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (!_actions.TryEnqueue(selected.Steps.Cast<IAction>().ToArray()))
 		{
-			ConfirmationFailed?.Invoke();
+			ActionFailed?.Invoke();
 			return;
 		}
 

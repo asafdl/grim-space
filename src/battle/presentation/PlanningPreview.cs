@@ -2,7 +2,6 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Runtime;
@@ -218,21 +217,14 @@ public sealed class PlanningPreview
 	public HashSet<string> ThreatenedUnitIds(
 		BattleSimulation sim,
 		string playerId,
-		InteractionState state)
+		IAction? hoveredAbilityAction = null)
 	{
 		var targets = new HashSet<string>();
 
-		if (state.Mode == EPlayerMode.Flak)
-		{
-			if (state.StagedMountedOn is ESpatialOrientation stagedMountedOn)
-				targets.UnionWith(ImpactTargets(sim.Peek(new FlakAction(playerId, stagedMountedOn))));
-			else if (state.FlakHoverMountedOn is ESpatialOrientation hoverMountedOn)
-				targets.UnionWith(ImpactTargets(sim.Peek(new FlakAction(playerId, hoverMountedOn))));
-		}
-
-		if (state.RailgunHovered)
-			targets.UnionWith(ImpactTargets(sim.Peek(new RailgunAction(playerId))));
-
+		if (hoveredAbilityAction is FlakAction hoveredFlak)
+			targets.UnionWith(ImpactTargets(sim.Peek(hoveredFlak)));
+		else if (hoveredAbilityAction is RailgunAction hoveredRailgun)
+			targets.UnionWith(ImpactTargets(sim.Peek(hoveredRailgun)));
 		for (var i = 0; i < sim.Actions.Count; i++)
 		{
 			if (sim.Actions[i].ActorId != playerId)
@@ -253,13 +245,12 @@ public sealed class PlanningPreview
 	public TurnVolumePreviews TorpedoPreviews(
 		BattleSimulation sim,
 		string playerId,
-		InteractionState state)
+		IAction? hoveredAbilityAction = null)
 	{
 		EnsureSim(sim);
 		TurnVolumePreview? aim = null;
-		var effectiveMount = state.StagedMountedOn ?? state.TorpedoHoverMountedOn;
-		if (state.Mode == EPlayerMode.Torpedo
-			&& effectiveMount is ESpatialOrientation aimMount)
+		var effectiveMount = (hoveredAbilityAction as TorpedoAction)?.MountedOn;
+		if (effectiveMount is ESpatialOrientation aimMount)
 		{
 			var ship = sim.World.StateOf(playerId);
 			var (launchCell, _, _) = TorpedoMount.LaunchPose(ship, aimMount);

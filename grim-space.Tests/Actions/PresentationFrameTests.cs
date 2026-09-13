@@ -325,7 +325,12 @@ public sealed class PresentationFrameTests
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId).Type)
 			.First(entry => entry.Mode == EPlayerMode.Torpedo);
 		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
-		frames.Interaction.TorpedoHoverMountedOn = ESpatialOrientation.Dorsal;
+		var choices = BattleTestCommands.Frame(battle).AbilityChoices;
+		var dorsalIndex = choices
+			.Select((choice, index) => (choice, index))
+			.Single(entry => entry.choice.MountedOn == ESpatialOrientation.Dorsal)
+			.index;
+		frames.Interaction.SetAbilityHover(dorsalIndex, choices.Count);
 
 		var frame = BattleTestCommands.Frame(battle);
 		var aim = frame.TorpedoPreviews.Aim;
@@ -355,7 +360,12 @@ public sealed class PresentationFrameTests
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId).Type)
 			.First(entry => entry.Mode == EPlayerMode.Torpedo);
 		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
-		frames.Interaction.TorpedoHoverMountedOn = ESpatialOrientation.Retro;
+		var choices = BattleTestCommands.Frame(battle).AbilityChoices;
+		var retroIndex = choices
+			.Select((choice, index) => (choice, index))
+			.Single(entry => entry.choice.MountedOn == ESpatialOrientation.Retro)
+			.index;
+		frames.Interaction.SetAbilityHover(retroIndex, choices.Count);
 		var aim = BattleTestCommands.Frame(battle).TorpedoPreviews.Aim;
 		Assert.NotNull(aim);
 		var firstLayer = aim.TurnBands[0];
@@ -433,13 +443,13 @@ public sealed class PresentationFrameTests
 		Assert.True(BattleTestCommands.FireRailgun(battle));
 		Assert.Contains(
 			enemyId,
-			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId, new InteractionState()));
+			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId));
 
 		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
 
 		Assert.Contains(
 			enemyId,
-			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId, new InteractionState()));
+			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId));
 	}
 
 	[Fact]

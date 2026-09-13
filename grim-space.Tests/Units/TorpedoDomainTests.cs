@@ -16,7 +16,13 @@ public sealed class TorpedoDomainTests
 		var stats = Stats.ForType(EType.Torpedo);
 
 		Assert.Equal(1, stats.MaxHullPoints);
-		Assert.Equal(0, stats.MaxShieldPoints.MaxOnAnyFace);
+		Assert.Equal(1, stats.MaxShieldPoints.MaxOnAnyFace);
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+		{
+			Assert.Equal(
+				face == ESpatialOrientation.Retro ? 0 : 1,
+				stats.MaxShieldPoints[face]);
+		}
 		Assert.Equal(TorpedoConfig.MovementActionPoints, stats.MaxAp);
 	}
 

@@ -13,7 +13,7 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class AbilityInstructionFrameTests
 {
 	[Fact]
-	public void RailgunModeShowsEnabledConfirmInstruction()
+	public void RailgunModeShowsPassiveMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -28,12 +28,11 @@ public sealed class AbilityInstructionFrameTests
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.True(frame.Instruction.Visible);
-		Assert.True(frame.Instruction.CanConfirm);
-		Assert.Equal(BattleHudCopy.ConfirmAction, frame.Instruction.Label);
+		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
 	}
 
 	[Fact]
-	public void FlakWithoutStagingShowsDisabledSelectInstruction()
+	public void FlakShowsPassiveMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -48,34 +47,35 @@ public sealed class AbilityInstructionFrameTests
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.True(frame.Instruction.Visible);
-		Assert.False(frame.Instruction.CanConfirm);
-		Assert.Equal(BattleHudCopy.SelectFiringDirection, frame.Instruction.Label);
+		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
+		Assert.Equal(2, frame.AbilityChoices.Count);
+		Assert.Null(frame.HoveredAbilityChoice);
 	}
 
 	[Fact]
-	public void FlakWithStagingShowsEnabledConfirmInstruction()
+	public void AbilityHoverPublishesResolvedChoice()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var frames = new PresentationFrameBuilder();
-		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
+		var spec = AbilityHudCatalog.ForUnit(
+				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
 			.First(entry => entry.Mode == EPlayerMode.Flak);
-
 		frames.Interaction.SetMode(EPlayerMode.Flak, spec);
-		frames.Interaction.StageMountedOn(ESpatialOrientation.Port);
+		frames.Interaction.SetAbilityHover(1, optionCount: 2);
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.True(frame.Instruction.Visible);
-		Assert.True(frame.Instruction.CanConfirm);
-		Assert.Equal(BattleHudCopy.ConfirmAction, frame.Instruction.Label);
-		Assert.Equal(ESpatialOrientation.Port, frame.StagedMountedOn);
+		Assert.Equal(1, frame.AbilityHoveredIndex);
+		var choice = Assert.IsType<AbilityActivationChoice>(frame.HoveredAbilityChoice);
+		Assert.Same(frame.AbilityChoices[1], choice);
+		Assert.IsType<FlakAction>(choice.Action);
 	}
 
 	[Fact]
-	public void BlockedTorpedoMountShowsUnavailableInstruction()
+	public void BlockedTorpedoMountIsNotPublishedAsChoice()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
@@ -92,16 +92,17 @@ public sealed class AbilityInstructionFrameTests
 		var spec = AbilityHudCatalog.ForUnit(player.State.Type)
 			.First(entry => entry.Mode == EPlayerMode.Torpedo);
 		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
-		frames.Interaction.StageMountedOn(ESpatialOrientation.Dorsal);
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.False(frame.Instruction.CanConfirm);
-		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
+		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
+		Assert.DoesNotContain(
+			frame.AbilityChoices,
+			choice => choice.Position == blockedMount);
 	}
 
 	[Fact]
-	public void ConfirmationFailureShowsUnavailableInstruction()
+	public void ActionFailureShowsUnavailableInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -111,11 +112,10 @@ public sealed class AbilityInstructionFrameTests
 		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
 			.First(entry => entry.Mode == EPlayerMode.Railgun);
 		frames.Interaction.SetMode(EPlayerMode.Railgun, spec);
-		frames.Interaction.ReportConfirmationFailure();
+		frames.Interaction.ReportActionFailure();
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.False(frame.Instruction.CanConfirm);
 		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
 	}
 

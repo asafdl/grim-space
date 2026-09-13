@@ -80,6 +80,16 @@ public sealed class PresentationFrameBuilder
 		var abilities = canControl || isInspecting
 			? PlanningPreview.Abilities(legalCapabilities)
 			: AbilityLegality.Empty;
+		var abilityChoices = canControl
+			&& state.Mode != EPlayerMode.Move
+			&& state.ActiveAbilitySpec is { } choiceSpec
+				? AbilityActivation.For(choiceSpec.Def)
+					.ResolveChoices(focusUnit.ToState(), legalCapabilities)
+				: [];
+		state.ClampAbilityHover(abilityChoices.Count);
+		var hoveredAbilityChoice = state.AbilityHoveredIndex is int abilityHoverIndex
+			? abilityChoices[abilityHoverIndex]
+			: null;
 		var weaponQueued = queuedWeapon.FlakMountedOn is not null
 			|| queuedWeapon.Railgun
 			|| queuedWeapon.TorpedoMountedOn is not null;
@@ -129,31 +139,30 @@ public sealed class PresentationFrameBuilder
 			? _preview.AreaPreviews(sim, playerId, legalCapabilities)
 			: AreaActionPreviews.Empty;
 		var threatenedUnitIds = showWeaponPreviews
-			? _preview.ThreatenedUnitIds(sim, playerId, state)
+			? _preview.ThreatenedUnitIds(
+				sim,
+				playerId,
+				hoveredAbilityChoice?.Action)
 			: new HashSet<string>();
 		var torpedoPreviews = showWeaponPreviews
-			? _preview.TorpedoPreviews(sim, playerId, state)
+			? _preview.TorpedoPreviews(
+				sim,
+				playerId,
+				hoveredAbilityChoice?.Action)
 			: TurnVolumePreviews.Empty;
 
 		var instruction = default(ActionInstruction);
-		if (canControl && state.Mode == EPlayerMode.Move && state.ConfirmationError is { } moveError)
+		if (canControl && state.ActionError is { } actionError)
 		{
 			instruction = new ActionInstruction(
 				Visible: true,
-				Label: moveError,
-				CanConfirm: false);
+				Label: actionError);
 		}
-		else if (canControl && state.Mode != EPlayerMode.Move && state.ActiveAbilitySpec is { } activeSpec)
+		else if (canControl && state.Mode != EPlayerMode.Move)
 		{
-			var activation = AbilityActivation.For(activeSpec.Def);
-			instruction = activation.ResolveInstruction(
-				visible: true,
-				stagedMountedOn: state.StagedMountedOn,
-				capabilityIsLegal: Capabilities.IsLegalCapability(
-					legalCapabilities,
-					activeSpec.Def,
-					state.StagedMountedOn),
-				confirmationError: state.ConfirmationError);
+			instruction = new ActionInstruction(
+				Visible: true,
+				Label: BattleHudCopy.PickAbilitySource(state.Mode));
 		}
 
 		PresentationDiagnostics.LogMovePreview(
@@ -192,12 +201,11 @@ public sealed class PresentationFrameBuilder
 			Weapons = weapons,
 			AreaActions = areaActions,
 			Abilities = abilities,
+			AbilityChoices = abilityChoices,
+			AbilityHoveredIndex = canControl ? state.AbilityHoveredIndex : null,
+			HoveredAbilityChoice = canControl ? hoveredAbilityChoice : null,
 			ThreatenedUnitIds = threatenedUnitIds,
 			TorpedoPreviews = torpedoPreviews,
-			FlakHoverMountedOn = canControl ? state.FlakHoverMountedOn : null,
-			RailgunHovered = canControl && state.RailgunHovered,
-			TorpedoHoverMountedOn = canControl ? state.TorpedoHoverMountedOn : null,
-			StagedMountedOn = canControl ? state.StagedMountedOn : null,
 			Instruction = instruction,
 			MoveCheckpoints = moveCheckpoints,
 			MoveTarget = moveTarget,

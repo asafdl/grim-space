@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -62,8 +63,9 @@ internal static class BattleHudCopy
 	public const string EndTurn = "End Turn";
 	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
 
-	public const string ConfirmAction = "Confirm";
-	public const string SelectFiringDirection = "Select a firing direction";
+	public const string PickFiringMount = "Pick firing mount";
+	public const string PickLaunchBay = "Pick launch bay";
+	public const string PickTorpedo = "Pick torpedo";
 	public const string ActionUnavailable = "Action is no longer available";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
@@ -101,6 +103,14 @@ internal static class BattleHudCopy
 			ESpatialOrientation.Dorsal => "Dorsal",
 			ESpatialOrientation.Ventral => "Ventral",
 			_ => face.ToString(),
+		};
+
+	public static string PickAbilitySource(EPlayerMode mode) =>
+		mode switch
+		{
+			EPlayerMode.SpawnPatrol => PickLaunchBay,
+			EPlayerMode.Detonate => PickTorpedo,
+			_ => PickFiringMount,
 		};
 
 	public static string OutcomeTitle(EBattleResult result) =>

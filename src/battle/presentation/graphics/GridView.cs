@@ -8,21 +8,6 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public partial class GridView : Node3D
 {
 private const float LocalGridViewDotThreshold = 0.9995f;
-private const float VisibleFaceDotThreshold = 0.08f;
-
-private static readonly Vector3[] NeighborOffsets =
-	[
-		Vector3.Right,
-		Vector3.Left,
-		Vector3.Up,
-		Vector3.Down,
-		Vector3.Forward,
-		Vector3.Back,
-	];
-
-	internal readonly record struct LineSegment(Vector3 From, Vector3 To);
-	internal enum LocalGridLineStyle { RearEdge, VisibleEdge, Hatch }
-	internal readonly record struct StyledLine(LineSegment Segment, LocalGridLineStyle Style);
 
 	private Camera3D _camera = null!;
 	private MeshInstance3D _rangeShell = null!;
@@ -49,7 +34,7 @@ private static readonly Vector3[] NeighborOffsets =
 		_localGrid = CreateVisual(
 			"MovementLocalGrid",
 			CreateLocalGridMesh(CurrentViewDirection()),
-			CreateLocalGridMaterial());
+			CellGridGeometry.CreateMaterial(Colors.White));
 		_localGridViewDirection = CurrentViewDirection();
 		AddChild(_localGrid);
 
@@ -120,143 +105,11 @@ private static readonly Vector3[] NeighborOffsets =
 		_ghostWorld = null;
 	}
 
-	internal static IReadOnlySet<LineSegment> CreateNeighborOutlineSegments()
-		=> CreateNeighborOutlineEdges().Keys.ToHashSet();
-
-	internal static IReadOnlyList<StyledLine> CreateCameraAwareLocalGridLines(
-		Vector3 viewDirection)
-	{
-		viewDirection = viewDirection.Normalized();
-		var lines = CreateNeighborOutlineEdges()
-			.Select(edge => new StyledLine(
-				edge.Key,
-				edge.Value.Any(normal =>
-					normal.Dot(viewDirection) > VisibleFaceDotThreshold)
-					? LocalGridLineStyle.VisibleEdge
-					: LocalGridLineStyle.RearEdge))
-			.ToList();
-		var half = WorldMapping.CellSize * 0.5f;
-
-		foreach (var neighborOffset in NeighborOffsets)
-		{
-			var center = neighborOffset * WorldMapping.CellSize;
-			foreach (var faceNormal in NeighborOffsets)
-			{
-				if (faceNormal.Dot(viewDirection) <= VisibleFaceDotThreshold)
-					continue;
-
-				var faceCenter = center + faceNormal * half;
-				var (faceX, faceY) = FaceAxes(faceNormal);
-				var diagonal = (faceX + faceY).Normalized();
-				var offset = (faceX - faceY).Normalized()
-					* WorldMapping.CellSize
-					* 0.13f;
-				var stroke = diagonal * WorldMapping.CellSize * 0.2f;
-				lines.Add(new StyledLine(
-					new LineSegment(faceCenter + offset - stroke, faceCenter + offset + stroke),
-					LocalGridLineStyle.Hatch));
-				lines.Add(new StyledLine(
-					new LineSegment(faceCenter - offset - stroke, faceCenter - offset + stroke),
-					LocalGridLineStyle.Hatch));
-			}
-		}
-
-		return lines;
-	}
-
-	private static Dictionary<LineSegment, HashSet<Vector3>> CreateNeighborOutlineEdges()
-	{
-		var edges = new Dictionary<LineSegment, HashSet<Vector3>>();
-		var half = WorldMapping.CellSize * 0.5f;
-		foreach (var direction in NeighborOffsets)
-		{
-			var center = direction * WorldMapping.CellSize;
-			for (var x = -1; x <= 1; x += 2)
-			{
-				for (var y = -1; y <= 1; y += 2)
-				{
-					for (var z = -1; z <= 1; z += 2)
-					{
-						var corner = center + new Vector3(x, y, z) * half;
-						if (x < 0)
-							AddOutlineEdge(
-								edges,
-								new LineSegment(
-									corner,
-									corner + Vector3.Right * WorldMapping.CellSize),
-								y * Vector3.Up,
-								z * Vector3.Back);
-						if (y < 0)
-							AddOutlineEdge(
-								edges,
-								new LineSegment(
-									corner,
-									corner + Vector3.Up * WorldMapping.CellSize),
-								x * Vector3.Right,
-								z * Vector3.Back);
-						if (z < 0)
-							AddOutlineEdge(
-								edges,
-								new LineSegment(
-									corner,
-									corner + Vector3.Back * WorldMapping.CellSize),
-								x * Vector3.Right,
-								y * Vector3.Up);
-					}
-				}
-			}
-		}
-
-		return edges;
-	}
-
-	private static void AddOutlineEdge(
-		Dictionary<LineSegment, HashSet<Vector3>> edges,
-		LineSegment segment,
-		Vector3 faceNormalA,
-		Vector3 faceNormalB)
-	{
-		if (!edges.TryGetValue(segment, out var faceNormals))
-		{
-			faceNormals = [];
-			edges.Add(segment, faceNormals);
-		}
-
-		faceNormals.Add(faceNormalA);
-		faceNormals.Add(faceNormalB);
-	}
-
-	private static (Vector3 X, Vector3 Y) FaceAxes(Vector3 normal)
-	{
-		if (Mathf.Abs(normal.X) > 0.5f)
-			return (Vector3.Up, Vector3.Back);
-		if (Mathf.Abs(normal.Y) > 0.5f)
-			return (Vector3.Right, Vector3.Back);
-		return (Vector3.Right, Vector3.Up);
-	}
-
 	private static ArrayMesh CreateLocalGridMesh(Vector3 viewDirection)
-	{
-		var lines = CreateCameraAwareLocalGridLines(viewDirection);
-		var vertices = lines
-			.SelectMany(line => new[] { line.Segment.From, line.Segment.To })
-			.ToArray();
-		var colors = lines
-			.SelectMany(line =>
-			{
-				var color = LocalGridLineColor(line.Style);
-				return new[] { color, color };
-			})
-			.ToArray();
-		var arrays = new Godot.Collections.Array();
-		arrays.Resize((int)Mesh.ArrayType.Max);
-		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
-		arrays[(int)Mesh.ArrayType.Color] = colors;
-
-		var mesh = new ArrayMesh();
-		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, arrays);
-		return mesh;
-	}
+		=> CellGridGeometry.CreateMesh(
+			viewDirection,
+			CellGridGeometry.NeighborCenters,
+			includeHatches: true);
 
 	private void RefreshLocalGridMesh()
 	{
@@ -271,15 +124,6 @@ private static readonly Vector3[] NeighborOffsets =
 
 	private Vector3 CurrentViewDirection() =>
 		_camera.GlobalTransform.Basis.Z.Normalized();
-
-	private static Color LocalGridLineColor(LocalGridLineStyle style) =>
-		style switch
-		{
-			LocalGridLineStyle.RearEdge => new Color(0.62f, 0.65f, 0.68f, 0.035f),
-			LocalGridLineStyle.VisibleEdge => new Color(0.62f, 0.65f, 0.68f, 0.14f),
-			LocalGridLineStyle.Hatch => new Color(0.62f, 0.65f, 0.68f, 0.12f),
-			_ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
-		};
 
 	private static MeshInstance3D CreateVisual(
 		string name,
@@ -296,16 +140,6 @@ private static readonly Vector3[] NeighborOffsets =
 		PresentationLayers.MarkUx(visual);
 		return visual;
 	}
-
-	private static StandardMaterial3D CreateLocalGridMaterial() =>
-		new()
-		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			AlbedoColor = Colors.White,
-			VertexColorUseAsAlbedo = true,
-			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-		};
 
 	private static StandardMaterial3D CreateRangeShellMaterial() =>
 		new()

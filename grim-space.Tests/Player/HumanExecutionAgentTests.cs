@@ -131,7 +131,7 @@ public sealed class HumanExecutionAgentTests
 
 		Assert.True(preview.QueuedWeapon(agent.Sim, PlayerId).Railgun);
 		Assert.Equal(0, preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].RailgunRemaining);
-		Assert.NotEmpty(preview.ThreatenedUnitIds(agent.Sim, PlayerId, new InteractionState()));
+		Assert.NotEmpty(preview.ThreatenedUnitIds(agent.Sim, PlayerId));
 	}
 
 	[Fact]

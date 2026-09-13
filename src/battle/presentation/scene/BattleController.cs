@@ -37,6 +37,7 @@ public partial class BattleController : Node3D
 	private FlakPreviewView _flakPreview = null!;
 	private RailgunPreviewView _railgunPreview = null!;
 	private TorpedoPreviewView _torpedoPreview = null!;
+	private AbilitySourcePickerView _abilitySourcePicker = null!;
 	private CellVolumeMeshStore _cellVolumeMeshes = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
@@ -82,6 +83,10 @@ public partial class BattleController : Node3D
 		_torpedoPreview.Build(_cellVolumeMeshes);
 		AddChild(_torpedoPreview);
 
+		_abilitySourcePicker = new AbilitySourcePickerView { Name = "AbilitySourcePicker" };
+		_abilitySourcePicker.Configure(_camera);
+		AddChild(_abilitySourcePicker);
+
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		var playerPosition = _agent.Sim.StateOf<ActorState>(_battle.PlayerId).Position;
 		_camera.SetPivot(WorldMapping.ToWorld(playerPosition));
@@ -113,9 +118,7 @@ public partial class BattleController : Node3D
 			_agent,
 			_camera,
 			_battleHud,
-			_flakPreview,
-			_railgunPreview,
-			_torpedoPreview,
+			_abilitySourcePicker,
 			() => _battleView.UnitViews)
 		{
 			Name = "UserIntentTranslator",
@@ -194,7 +197,6 @@ public partial class BattleController : Node3D
 	{
 		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
 		_battleHud.ActionBar.AbilityModeRequested += OnAbilityModeRequested;
-		_battleHud.InstructionBar.ConfirmRequested += _translator.OnConfirmAction;
 		_battleHud.ActionBar.EndTurnRequested += _translator.OnEndTurn;
 		_battleHud.UtilityBar.UndoRequested += _translator.OnUndo;
 		_battleHud.UtilityBar.FocusRequested += _translator.OnFocusCamera;
@@ -207,7 +209,6 @@ public partial class BattleController : Node3D
 
 	private void WireTranslator()
 	{
-		_translator.StagedMountedOnRequested += OnStagedMountedOnRequested;
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
 		_translator.MoveSelectionStarted += (destination, basis) =>
@@ -225,9 +226,7 @@ public partial class BattleController : Node3D
 			_frames.Interaction.ClearMoveSelection();
 			RefreshPresentation();
 		};
-		_translator.FlakHoverChanged += mountedOn => SetFlakHoverMountedOn(mountedOn);
-		_translator.RailgunHoverChanged += hovered => SetRailgunHovered(hovered);
-		_translator.TorpedoHoverChanged += mountedOn => SetTorpedoHoverMountedOn(mountedOn);
+		_translator.AbilityHoverChanged += OnAbilityHoverChanged;
 		_translator.HoversCleared += ClearHovers;
 		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
@@ -235,7 +234,7 @@ public partial class BattleController : Node3D
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 		_translator.UndoRequested += OnUndoRequested;
 		_translator.EndTurnRequested += OnEndTurn;
-		_translator.ConfirmationFailed += OnConfirmationFailed;
+		_translator.ActionFailed += OnActionFailed;
 		_translator.RestartRequested += ResetBattle;
 		_translator.RetireRequested += () => _battle.Retire();
 	}
@@ -262,15 +261,6 @@ public partial class BattleController : Node3D
 			return;
 
 		_frames.Interaction.SetMode(mode);
-		RefreshPresentation();
-	}
-
-	private void OnStagedMountedOnRequested(ESpatialOrientation mountedOn)
-	{
-		if (!AcceptsCommands)
-			return;
-
-		_frames.Interaction.StageMountedOn(mountedOn);
 		RefreshPresentation();
 	}
 
@@ -305,19 +295,27 @@ public partial class BattleController : Node3D
 			canIssueActions: frame.CanAct,
 			isInspecting: frame.IsInspecting,
 			mode: frame.Mode,
-			activeAbilitySpec: _frames.Interaction.ActiveAbilitySpec,
-			stagedMountedOn: frame.StagedMountedOn,
 			moveOptions: frame.MovePaths,
 			selectedMove: frame.SelectedMove,
 			moveDestination: frame.MoveDestination,
 			moveDragging: frame.IsMoveDragging,
-			instruction: frame.Instruction);
+			abilityChoices: frame.AbilityChoices,
+			abilityHoveredIndex: frame.AbilityHoveredIndex);
 		ApplyFrame(frame);
 	}
 
-	private void OnConfirmationFailed()
+	private void OnActionFailed()
 	{
-		_frames.Interaction.ReportConfirmationFailure();
+		_frames.Interaction.ReportActionFailure();
+		RefreshPresentation();
+	}
+
+	private void OnAbilityHoverChanged(int? index, int optionCount)
+	{
+		if (!AcceptsCommands || _frames.Interaction.AbilityHoveredIndex == index)
+			return;
+
+		_frames.Interaction.SetAbilityHover(index, optionCount);
 		RefreshPresentation();
 	}
 
@@ -350,33 +348,6 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
-	private void SetFlakHoverMountedOn(ESpatialOrientation? mountedOn)
-	{
-		if (!AcceptsCommands || _frames.Interaction.FlakHoverMountedOn == mountedOn)
-			return;
-
-		_frames.Interaction.FlakHoverMountedOn = mountedOn;
-		RefreshPresentation();
-	}
-
-	private void SetRailgunHovered(bool hovered)
-	{
-		if (!AcceptsCommands || _frames.Interaction.RailgunHovered == hovered)
-			return;
-
-		_frames.Interaction.RailgunHovered = hovered;
-		RefreshPresentation();
-	}
-
-	private void SetTorpedoHoverMountedOn(ESpatialOrientation? mountedOn)
-	{
-		if (!AcceptsCommands || _frames.Interaction.TorpedoHoverMountedOn == mountedOn)
-			return;
-
-		_frames.Interaction.TorpedoHoverMountedOn = mountedOn;
-		RefreshPresentation();
-	}
-
 	private Color ColorForActor(string actorId)
 	{
 		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
@@ -400,6 +371,7 @@ public partial class BattleController : Node3D
 			frame.ReachableMoveHeadings,
 			ColorForActor(frame.FocusId),
 			selected: frame.SelectedMove is not null);
+		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
 		_flakPreview.ApplyFrame(frame);
 		_railgunPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);

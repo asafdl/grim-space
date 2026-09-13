@@ -31,7 +31,6 @@ public sealed class MoveUiTests
 		Assert.Equal(option.ResultState.Dorsal, frame.MoveGhostState.Dorsal);
 		Assert.Equal(option.ResultState.ActionPoints, frame.MoveGhostState.ActionPoints);
 		Assert.False(frame.Instruction.Visible);
-		Assert.False(frame.Instruction.CanConfirm);
 	}
 
 	[Fact]
@@ -50,7 +49,6 @@ public sealed class MoveUiTests
 		Assert.Null(frame.SelectedMove);
 		Assert.Null(frame.MoveGhostState);
 		Assert.False(frame.Instruction.Visible);
-		Assert.False(frame.Instruction.CanConfirm);
 	}
 
 	[Fact]
@@ -151,14 +149,13 @@ public sealed class MoveUiTests
 			.First(path => path.EndPosition == origin + Coord.Forward);
 		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
 
-		builder.Interaction.ReportConfirmationFailure();
+		builder.Interaction.ReportActionFailure();
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.Equal(option.EndPosition, frame.MoveDestination);
 		Assert.Equal(option.EndBasis, frame.SelectedMove?.EndBasis);
 		Assert.False(frame.IsMoveDragging);
 		Assert.True(frame.Instruction.Visible);
-		Assert.False(frame.Instruction.CanConfirm);
 		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
 	}
 

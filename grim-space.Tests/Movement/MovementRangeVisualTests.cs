@@ -244,7 +244,8 @@ public sealed class MovementRangeVisualTests
 	[Fact]
 	public void LocalGridUsesOnlyLinesForSixNeighboringCells()
 	{
-		var segments = GridView.CreateNeighborOutlineSegments();
+		var segments = CellGridGeometry.CreateOutlineSegments(
+			CellGridGeometry.NeighborCenters);
 
 		Assert.Equal(60, segments.Count);
 		Assert.All(
@@ -258,12 +259,27 @@ public sealed class MovementRangeVisualTests
 	[Fact]
 	public void LocalGridAddsHatchesToCameraVisibleFacesAndDimsRearEdges()
 	{
-		var lines = GridView.CreateCameraAwareLocalGridLines(Vector3.One);
+		var lines = CellGridGeometry.CreateCameraAwareLines(
+			Vector3.One,
+			CellGridGeometry.NeighborCenters,
+			includeHatches: true);
 
-		Assert.Equal(60, lines.Count(line => line.Style != GridView.LocalGridLineStyle.Hatch));
-		Assert.Equal(36, lines.Count(line => line.Style == GridView.LocalGridLineStyle.Hatch));
-		Assert.Contains(lines, line => line.Style == GridView.LocalGridLineStyle.VisibleEdge);
-		Assert.Contains(lines, line => line.Style == GridView.LocalGridLineStyle.RearEdge);
+		Assert.Equal(60, lines.Count(line => line.Style != CellGridGeometry.LineStyle.Hatch));
+		Assert.Equal(36, lines.Count(line => line.Style == CellGridGeometry.LineStyle.Hatch));
+		Assert.Contains(lines, line => line.Style == CellGridGeometry.LineStyle.VisibleEdge);
+		Assert.Contains(lines, line => line.Style == CellGridGeometry.LineStyle.RearEdge);
+	}
+
+	[Fact]
+	public void AbilitySourceCellUsesOneCameraAwareBox()
+	{
+		var lines = CellGridGeometry.CreateCameraAwareLines(
+			Vector3.One,
+			[Vector3.Zero],
+			includeHatches: true);
+
+		Assert.Equal(12, lines.Count(line => line.Style != CellGridGeometry.LineStyle.Hatch));
+		Assert.Equal(6, lines.Count(line => line.Style == CellGridGeometry.LineStyle.Hatch));
 	}
 
 	[Fact]

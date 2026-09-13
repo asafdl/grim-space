@@ -13,16 +13,13 @@ public sealed class InteractionState
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public AbilityHudCatalog.Spec? ActiveAbilitySpec { get; private set; }
-	public ESpatialOrientation? FlakHoverMountedOn { get; set; }
-	public bool RailgunHovered { get; set; }
-	public ESpatialOrientation? TorpedoHoverMountedOn { get; set; }
+	public int? AbilityHoveredIndex { get; private set; }
 	public int? MoveHoveredIndex { get; set; }
 	public Coord? MoveDestination { get; private set; }
 	public GridBasis? RequestedMoveBasis { get; private set; }
 	public int MoveRollQuarters { get; private set; }
 	public bool IsMoveDragging { get; private set; }
-	public ESpatialOrientation? StagedMountedOn { get; private set; }
-	public string? ConfirmationError { get; private set; }
+	public string? ActionError { get; private set; }
 
 	public void FocusUnit(string unitId)
 	{
@@ -40,9 +37,8 @@ public sealed class InteractionState
 	{
 		Mode = mode;
 		ActiveAbilitySpec = mode == EPlayerMode.Move ? null : abilitySpec;
-		ConfirmationError = null;
+		ActionError = null;
 		ClearHovers();
-		ClearAbilitySelection();
 		ClearMoveSelection();
 	}
 
@@ -55,21 +51,8 @@ public sealed class InteractionState
 	public void ClearHovers()
 	{
 		MoveHoveredIndex = null;
-		FlakHoverMountedOn = null;
-		RailgunHovered = false;
-		TorpedoHoverMountedOn = null;
+		AbilityHoveredIndex = null;
 	}
-
-	public void StageMountedOn(ESpatialOrientation mountedOn)
-	{
-		if (StagedMountedOn == mountedOn)
-			return;
-
-		StagedMountedOn = mountedOn;
-		ConfirmationError = null;
-	}
-
-	public void ClearAbilitySelection() => StagedMountedOn = null;
 
 	public void BeginMoveSelection(Coord destination, GridBasis basis)
 	{
@@ -77,7 +60,7 @@ public sealed class InteractionState
 		RequestedMoveBasis = basis;
 		MoveRollQuarters = MovePose.RollQuarters(basis);
 		IsMoveDragging = true;
-		ConfirmationError = null;
+		ActionError = null;
 	}
 
 	public void SetMovePose(GridBasis basis)
@@ -87,7 +70,7 @@ public sealed class InteractionState
 
 		RequestedMoveBasis = basis;
 		MoveRollQuarters = MovePose.RollQuarters(basis);
-		ConfirmationError = null;
+		ActionError = null;
 	}
 
 	public void ClearMoveSelection()
@@ -96,13 +79,13 @@ public sealed class InteractionState
 		RequestedMoveBasis = null;
 		MoveRollQuarters = 0;
 		IsMoveDragging = false;
-		ConfirmationError = null;
+		ActionError = null;
 	}
 
-	public void ReportConfirmationFailure()
+	public void ReportActionFailure()
 	{
 		IsMoveDragging = false;
-		ConfirmationError = BattleHudCopy.ActionUnavailable;
+		ActionError = BattleHudCopy.ActionUnavailable;
 	}
 
 	public void SetMoveHover(int? index, int optionCount) =>
@@ -110,6 +93,19 @@ public sealed class InteractionState
 
 	public void ClampMoveHover(int optionCount) =>
 		MoveHoveredIndex = ClampIndex(MoveHoveredIndex, optionCount);
+
+	public void SetAbilityHover(int? index, int optionCount)
+	{
+		var clamped = ClampIndex(index, optionCount);
+		if (AbilityHoveredIndex == clamped)
+			return;
+
+		AbilityHoveredIndex = clamped;
+		ActionError = null;
+	}
+
+	public void ClampAbilityHover(int optionCount) =>
+		AbilityHoveredIndex = ClampIndex(AbilityHoveredIndex, optionCount);
 
 	private static int? ClampIndex(int? index, int optionCount)
 	{

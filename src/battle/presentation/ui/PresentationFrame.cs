@@ -2,6 +2,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 
@@ -21,12 +22,11 @@ public sealed class PresentationFrame
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }
+	public required IReadOnlyList<AbilityActivationChoice> AbilityChoices { get; init; }
+	public int? AbilityHoveredIndex { get; init; }
+	public AbilityActivationChoice? HoveredAbilityChoice { get; init; }
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
 	public required TurnVolumePreviews TorpedoPreviews { get; init; }
-	public ESpatialOrientation? FlakHoverMountedOn { get; init; }
-	public bool RailgunHovered { get; init; }
-	public ESpatialOrientation? TorpedoHoverMountedOn { get; init; }
-	public ESpatialOrientation? StagedMountedOn { get; init; }
 	public ActionInstruction Instruction { get; init; }
 	public required IReadOnlyList<MoveCheckpoint> MoveCheckpoints { get; init; }
 	public Coord? MoveTarget { get; init; }

@@ -32,6 +32,15 @@ public sealed class FaceShieldPointsTests
 	}
 
 	[Fact]
+	public void MaxFor_Torpedo_HasOneShieldOnEveryFaceExceptRetro()
+	{
+		var max = FaceShieldPoints.MaxFor(EType.Torpedo);
+
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 1, max[face]);
+	}
+
+	[Fact]
 	public void MaxFor_FighterAndCarrier_FillAllFaces()
 	{
 		foreach (var type in new[] { EType.Fighter, EType.Carrier })

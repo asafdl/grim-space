@@ -37,6 +37,8 @@ public sealed class FaceShieldPoints
 				profile[ESpatialOrientation.Forward] = 3;
 				break;
 			case EType.Torpedo:
+				profile.Fill(1);
+				profile[ESpatialOrientation.Retro] = 0;
 				break;
 			default:
 				throw new ArgumentOutOfRangeException(nameof(type), type, null);

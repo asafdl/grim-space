@@ -1,74 +1,128 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Interaction;
 
-public abstract class AbilityActivation
+public enum EAbilitySourceVisual
 {
-	public abstract string WaitingLabel { get; }
-	public string ConfirmLabel => BattleHudCopy.ConfirmAction;
+	FlakBurst,
+	Railgun,
+	Torpedo,
+	Patrol,
+	Detonate,
+}
 
-	public abstract bool HasRequiredSelection(ESpatialOrientation? stagedMountedOn);
+public sealed record AbilityActivationChoice(
+	IAction Action,
+	Coord Position,
+	Coord Fore,
+	Coord Dorsal,
+	EAbilitySourceVisual Visual,
+	ESpatialOrientation? MountedOn = null);
 
-	public abstract IAction? Build(string actorId, ESpatialOrientation? stagedMountedOn);
+public sealed class AbilityActivation
+{
+	private readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> _def;
 
-	public ActionInstruction ResolveInstruction(
-		bool visible,
-		ESpatialOrientation? stagedMountedOn,
-		bool capabilityIsLegal,
-		string? confirmationError)
-	{
-		if (!visible)
-			return default;
+	private AbilityActivation(
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
+		_def = def;
 
-		if (confirmationError is not null)
-			return new ActionInstruction(Visible: true, Label: confirmationError, CanConfirm: false);
-
-		var hasRequiredSelection = HasRequiredSelection(stagedMountedOn);
-		var canConfirm = hasRequiredSelection && capabilityIsLegal;
-		var label = canConfirm
-			? ConfirmLabel
-			: hasRequiredSelection
-				? BattleHudCopy.ActionUnavailable
-				: WaitingLabel;
-		return new ActionInstruction(Visible: true, Label: label, CanConfirm: canConfirm);
-	}
+	public IReadOnlyList<AbilityActivationChoice> ResolveChoices(
+		State actor,
+		IEnumerable<IAction> legalCapabilities) =>
+		legalCapabilities
+			.Where(IsForDefinition)
+			.Select(action => ResolveChoice(actor, action))
+			.ToList();
 
 	public static AbilityActivation For(
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
 		def switch
 		{
-			IMountedActionDef mounted => new MountedActivation(mounted),
-			IActorActionDef actorOnly => new ActorOnlyActivation(actorOnly),
+			IMountedActionDef or IActorActionDef => new AbilityActivation(def),
 			_ => throw new NotSupportedException(
 				$"Ability activation is not supported for {def.GetType().Name}."),
 		};
 
-	private sealed class ActorOnlyActivation(IActorActionDef def) : AbilityActivation
+	public static IAction CreateExecutionAction(AbilityActivationChoice choice) =>
+		choice.Action switch
+		{
+			IMountedAction mounted
+				when choice.Action is IAction<BattleWorld, ActorRuntime>
+				{
+					Definition: IMountedActionDef def,
+				} => def.Bind(choice.Action.ActorId, mounted.MountedOn),
+			IAction<BattleWorld, ActorRuntime>
+				{
+					Definition: IActorActionDef def,
+				} => def.Bind(choice.Action.ActorId),
+			_ => throw new NotSupportedException(
+				$"Ability execution is not supported for {choice.Action.GetType().Name}."),
+		};
+
+	private bool IsForDefinition(IAction action) =>
+		action is IAction<BattleWorld, ActorRuntime> typed
+		&& ReferenceEquals(typed.Definition, _def);
+
+	private static AbilityActivationChoice ResolveChoice(State actor, IAction action)
 	{
-		public override string WaitingLabel => ConfirmLabel;
-
-		public override bool HasRequiredSelection(ESpatialOrientation? stagedMountedOn) => true;
-
-		public override IAction Build(string actorId, ESpatialOrientation? stagedMountedOn) =>
-			def.Bind(actorId);
+		var frame = BodyFrame.From(actor);
+		return action switch
+		{
+			FlakAction flak => MountedChoice(
+				action,
+				actor.Position + frame.Step(flak.MountedOn),
+				frame.Step(flak.MountedOn),
+				actor.Dorsal,
+				EAbilitySourceVisual.FlakBurst,
+				flak.MountedOn),
+			TorpedoAction torpedo => MountedChoice(
+				action,
+				TorpedoMount.LaunchPose(actor, torpedo.MountedOn),
+				EAbilitySourceVisual.Torpedo,
+				torpedo.MountedOn),
+			RailgunAction => MountedChoice(
+				action,
+				actor.Position + actor.Fore,
+				actor.Fore,
+				actor.Dorsal,
+				EAbilitySourceVisual.Railgun),
+			SpawnPatrolAction => MountedChoice(
+				action,
+				PatrolBayMount.LaunchPose(actor),
+				EAbilitySourceVisual.Patrol),
+			DetonateAction => MountedChoice(
+				action,
+				actor.Position,
+				actor.Fore,
+				actor.Dorsal,
+				EAbilitySourceVisual.Detonate),
+			_ => throw new NotSupportedException(
+				$"Ability source is not supported for {action.GetType().Name}."),
+		};
 	}
 
-	private sealed class MountedActivation(IMountedActionDef def) : AbilityActivation
-	{
-		public override string WaitingLabel => BattleHudCopy.SelectFiringDirection;
+	private static AbilityActivationChoice MountedChoice(
+		IAction action,
+		(Coord Position, Coord Fore, Coord Dorsal) pose,
+		EAbilitySourceVisual visual,
+		ESpatialOrientation? mountedOn = null) =>
+		MountedChoice(action, pose.Position, pose.Fore, pose.Dorsal, visual, mountedOn);
 
-		public override bool HasRequiredSelection(ESpatialOrientation? stagedMountedOn) =>
-			stagedMountedOn is ESpatialOrientation;
-
-		public override IAction? Build(string actorId, ESpatialOrientation? stagedMountedOn) =>
-			stagedMountedOn is ESpatialOrientation mountedOn
-				? def.Bind(actorId, mountedOn)
-				: null;
-	}
+	private static AbilityActivationChoice MountedChoice(
+		IAction action,
+		Coord position,
+		Coord fore,
+		Coord dorsal,
+		EAbilitySourceVisual visual,
+		ESpatialOrientation? mountedOn = null) =>
+		new(action, position, fore, dorsal, visual, mountedOn);
 }

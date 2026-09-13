@@ -21,7 +21,6 @@ public sealed partial class FlakPreviewView : Node3D
 	private CellVolumeWireframeSlot _queued = null!;
 	private StandardMaterial3D _portMaterial = null!;
 	private StandardMaterial3D _starboardMaterial = null!;
-	private PresentationFrame? _frame;
 
 	internal void Build(CellVolumeMeshStore meshes)
 	{
@@ -41,37 +40,19 @@ public sealed partial class FlakPreviewView : Node3D
 		Visible = false;
 	}
 
-	public ESpatialOrientation? PickMountedOn(Camera3D camera, Vector2 screenPos)
-	{
-		if (_frame is null || _frame.Mode != EPlayerMode.Flak || !_frame.ShowWeaponPreviews)
-			return null;
-
-		var cells = new Dictionary<Coord, ESpatialOrientation>();
-
-		foreach (var preview in _frame.AreaActions.Aim)
-		{
-			if (preview.Action is not FlakAction flak)
-				continue;
-			foreach (var burstCell in preview.Volume.Cells)
-				cells[burstCell] = flak.MountedOn;
-		}
-
-		return GridPick.PickFromSet(camera, screenPos, cells.Keys.ToHashSet()) is Coord cell
-			? cells[cell]
-			: null;
-	}
-
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		_frame = frame;
 		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Flak;
 		AreaActionPreview? aimPort = null;
 		AreaActionPreview? aimStarboard = null;
 		if (aiming)
 		{
+			var hoveredFlak = frame.HoveredAbilityChoice?.Action as FlakAction;
 			foreach (var preview in frame.AreaActions.Aim)
 			{
 				if (preview.Action is not FlakAction flak)
+					continue;
+				if (hoveredFlak is null || !ReferenceEquals(preview.Action, hoveredFlak))
 					continue;
 				if (flak.MountedOn == ESpatialOrientation.Port)
 					aimPort = preview;
@@ -88,7 +69,8 @@ public sealed partial class FlakPreviewView : Node3D
 		_queued.Apply(queued?.Volume, frame.SimulationTick);
 		Visible = aimPort is not null || aimStarboard is not null || queued is not null;
 
-		var effectiveMount = frame.StagedMountedOn ?? frame.FlakHoverMountedOn;
+		var effectiveMount =
+			(frame.HoveredAbilityChoice?.Action as FlakAction)?.MountedOn;
 		if (aimPort is not null)
 		{
 			WeaponPreviewMaterials.ApplyWireframe(

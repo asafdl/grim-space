@@ -1,8 +1,10 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -13,8 +15,6 @@ namespace GrimSpace.Tests.Presentation;
 
 public sealed class AbilityActivationTests
 {
-	private const string ActorId = "player";
-
 	[Theory]
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
@@ -29,100 +29,105 @@ public sealed class AbilityActivationTests
 		}
 	}
 
-	[Theory]
-	[InlineData(typeof(RailgunDef))]
-	[InlineData(typeof(SpawnPatrolDef))]
-	[InlineData(typeof(DetonateDef))]
-	public void ActorOnlyAbilitiesRequireNoSelection(Type defType)
+	[Fact]
+	public void ResolveChoicesFiltersCapabilitiesAndPlacesFlakMounts()
 	{
-		var def = (IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>)defType
-			.GetProperty("Instance")!
-			.GetValue(null)!;
-		var activation = AbilityActivation.For(def);
+		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
+		var port = new FlakAction(actor.Id, ESpatialOrientation.Port);
+		var starboard = new FlakAction(actor.Id, ESpatialOrientation.Starboard);
+		IAction[] capabilities = [port, new RailgunAction(actor.Id), starboard];
 
-		Assert.True(activation.HasRequiredSelection(null));
+		var choices = AbilityActivation.For(FlakDef.Instance)
+			.ResolveChoices(actor, capabilities);
+
+		var frame = BodyFrame.From(actor);
+		Assert.Collection(
+			choices,
+			choice =>
+			{
+				Assert.Same(port, choice.Action);
+				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Port), choice.Position);
+				Assert.Equal(ESpatialOrientation.Port, choice.MountedOn);
+				Assert.Equal(EAbilitySourceVisual.FlakBurst, choice.Visual);
+			},
+			choice =>
+			{
+				Assert.Same(starboard, choice.Action);
+				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Starboard), choice.Position);
+				Assert.Equal(ESpatialOrientation.Starboard, choice.MountedOn);
+				Assert.Equal(EAbilitySourceVisual.FlakBurst, choice.Visual);
+			});
 	}
 
 	[Fact]
-	public void MountedAbilitiesRequireStagedOrientation()
+	public void ResolveChoicesUsesTorpedoLaunchPose()
 	{
-		var activation = AbilityActivation.For(FlakDef.Instance);
+		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
+		var action = new TorpedoAction(actor.Id, ESpatialOrientation.Dorsal, "torpedo");
 
-		Assert.False(activation.HasRequiredSelection(null));
-		Assert.True(activation.HasRequiredSelection(ESpatialOrientation.Port));
-	}
+		var choice = Assert.Single(
+			AbilityActivation.For(TorpedoDef.Instance)
+				.ResolveChoices(actor, [action]));
+		var pose = TorpedoMount.LaunchPose(actor, ESpatialOrientation.Dorsal);
 
-	[Theory]
-	[InlineData(ESpatialOrientation.Retro)]
-	[InlineData(ESpatialOrientation.Dorsal)]
-	[InlineData(ESpatialOrientation.Ventral)]
-	public void TorpedoSelectionAcceptsAnyOrientationShape(ESpatialOrientation mountedOn)
-	{
-		var activation = AbilityActivation.For(TorpedoDef.Instance);
-
-		Assert.True(activation.HasRequiredSelection(mountedOn));
-	}
-
-	[Fact]
-	public void MountedConfirmationBuildsCorrectOrientation()
-	{
-		var action = Assert.IsType<FlakAction>(
-			AbilityActivation.For(FlakDef.Instance)
-				.Build(ActorId, ESpatialOrientation.Starboard));
-
-		Assert.Equal(ActorId, action.ActorId);
-		Assert.Equal(ESpatialOrientation.Starboard, action.MountedOn);
+		Assert.Same(action, choice.Action);
+		Assert.Equal(pose.Position, choice.Position);
+		Assert.Equal(pose.Fore, choice.Fore);
+		Assert.Equal(pose.Dorsal, choice.Dorsal);
+		Assert.Equal(EAbilitySourceVisual.Torpedo, choice.Visual);
 	}
 
 	[Fact]
-	public void ActorOnlyConfirmationBuildsCorrectAction()
+	public void ResolveChoicesPlacesActorOnlyAbilitySources()
 	{
-		var action = Assert.IsType<RailgunAction>(
-			AbilityActivation.For(RailgunDef.Instance).Build(ActorId, null));
+		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
+		var railgun = new RailgunAction(actor.Id);
+		var patrol = new SpawnPatrolAction(actor.Id, "patrol");
+		var detonate = new DetonateAction(actor.Id);
+		var patrolPose = PatrolBayMount.LaunchPose(actor);
 
-		Assert.Equal(ActorId, action.ActorId);
+		var railgunChoice = Assert.Single(
+			AbilityActivation.For(RailgunDef.Instance)
+				.ResolveChoices(actor, [railgun, patrol, detonate]));
+		var patrolChoice = Assert.Single(
+			AbilityActivation.For(SpawnPatrolDef.Instance)
+				.ResolveChoices(actor, [railgun, patrol, detonate]));
+		var detonateChoice = Assert.Single(
+			AbilityActivation.For(DetonateDef.Instance)
+				.ResolveChoices(actor, [railgun, patrol, detonate]));
+
+		Assert.Equal(actor.Position + actor.Fore, railgunChoice.Position);
+		Assert.Equal(EAbilitySourceVisual.Railgun, railgunChoice.Visual);
+		Assert.Equal(patrolPose.Position, patrolChoice.Position);
+		Assert.Equal(EAbilitySourceVisual.Patrol, patrolChoice.Visual);
+		Assert.Equal(actor.Position, detonateChoice.Position);
+		Assert.Equal(EAbilitySourceVisual.Detonate, detonateChoice.Visual);
 	}
 
 	[Fact]
-	public void InstructionHiddenWhenNotVisible()
+	public void ExecutionRebindsSpawnActionsWithFreshIds()
 	{
-		var activation = AbilityActivation.For(RailgunDef.Instance);
-		var instruction = activation.ResolveInstruction(
-			visible: false,
-			stagedMountedOn: null,
-			capabilityIsLegal: true,
-			confirmationError: null);
+		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
+		var previewTorpedo = new TorpedoAction(
+			actor.Id,
+			ESpatialOrientation.Retro,
+			"__preview_torpedo__");
+		var previewPatrol = new SpawnPatrolAction(actor.Id, "__preview_patrol__");
+		var torpedoChoice = Assert.Single(
+			AbilityActivation.For(TorpedoDef.Instance)
+				.ResolveChoices(actor, [previewTorpedo]));
+		var patrolChoice = Assert.Single(
+			AbilityActivation.For(SpawnPatrolDef.Instance)
+				.ResolveChoices(actor, [previewPatrol]));
 
-		Assert.False(instruction.Visible);
+		var torpedo = Assert.IsType<TorpedoAction>(
+			AbilityActivation.CreateExecutionAction(torpedoChoice));
+		var patrol = Assert.IsType<SpawnPatrolAction>(
+			AbilityActivation.CreateExecutionAction(patrolChoice));
+
+		Assert.NotEqual(previewTorpedo.SpawnedUnitId, torpedo.SpawnedUnitId);
+		Assert.NotEqual(previewPatrol.SpawnedUnitId, patrol.SpawnedUnitId);
+		Assert.Equal(previewTorpedo.MountedOn, torpedo.MountedOn);
 	}
 
-	[Fact]
-	public void MountedWaitingInstructionUsesSelectCopy()
-	{
-		var activation = AbilityActivation.For(FlakDef.Instance);
-		var instruction = activation.ResolveInstruction(
-			visible: true,
-			stagedMountedOn: null,
-			capabilityIsLegal: true,
-			confirmationError: null);
-
-		Assert.True(instruction.Visible);
-		Assert.False(instruction.CanConfirm);
-		Assert.Equal(BattleHudCopy.SelectFiringDirection, instruction.Label);
-	}
-
-	[Fact]
-	public void ReadyInstructionUsesConfirmCopy()
-	{
-		var activation = AbilityActivation.For(RailgunDef.Instance);
-		var instruction = activation.ResolveInstruction(
-			visible: true,
-			stagedMountedOn: null,
-			capabilityIsLegal: true,
-			confirmationError: null);
-
-		Assert.True(instruction.Visible);
-		Assert.True(instruction.CanConfirm);
-		Assert.Equal(BattleHudCopy.ConfirmAction, instruction.Label);
-	}
 }

@@ -14,7 +14,6 @@ public partial class BattleHud : Node
 	public event Action? MainMenuRequested;
 
 	public ActionBar ActionBar { get; private set; } = null!;
-	public ActionInstructionBar InstructionBar => ActionBar.InstructionBar;
 	public HealthBar HealthBar { get; private set; } = null!;
 	public ManeuverBar ManeuverBar { get; private set; } = null!;
 	public UtilityBar UtilityBar { get; private set; } = null!;
@@ -248,7 +247,7 @@ public partial class BattleHud : Node
 		ActionBar.ApplyLayout(focusState.Type, abilitySpecs);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots);
-		InstructionBar.Apply(frame.Instruction);
+		ActionBar.InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
 }

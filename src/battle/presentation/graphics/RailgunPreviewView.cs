@@ -13,12 +13,9 @@ public sealed partial class RailgunPreviewView : Node3D
 	private const float HoverStrength = 1.35f;
 
 	private static readonly Color Tint = new(0.55f, 0.82f, 1f, 0.42f);
-	private static readonly IReadOnlySet<Coord> NoCells = new HashSet<Coord>();
-
 	private CellVolumeWireframeSlot _aim = null!;
 	private CellVolumeWireframeSlot _queued = null!;
 	private StandardMaterial3D _aimMaterial = null!;
-	private IReadOnlySet<Coord> _aimCells = NoCells;
 
 	internal void Build(CellVolumeMeshStore meshes)
 	{
@@ -32,17 +29,11 @@ public sealed partial class RailgunPreviewView : Node3D
 		Visible = false;
 	}
 
-	public bool PickHovered(Camera3D camera, Vector2 screenPos)
-	{
-		if (!_aim.Instance.Visible)
-			return false;
-
-		return GridPick.PickFromSet(camera, screenPos, _aimCells) is not null;
-	}
-
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Railgun;
+		var aiming = frame.ShowWeaponPreviews
+			&& frame.Mode == EPlayerMode.Railgun
+			&& frame.HoveredAbilityChoice?.Action is RailgunAction;
 		var aim = aiming
 			? frame.AreaActions.Aim.FirstOrDefault(preview => preview.Action is RailgunAction)
 			: null;
@@ -52,7 +43,6 @@ public sealed partial class RailgunPreviewView : Node3D
 
 		_aim.Apply(aim?.Volume, frame.SimulationTick);
 		_queued.Apply(queued?.Volume, frame.SimulationTick);
-		_aimCells = aim?.Volume.Cells ?? NoCells;
 		Visible = aim is not null || queued is not null;
 
 		if (aim is not null)
@@ -60,7 +50,7 @@ public sealed partial class RailgunPreviewView : Node3D
 			WeaponPreviewMaterials.ApplyWireframe(
 				_aimMaterial,
 				Tint,
-				frame.RailgunHovered ? HoverStrength : AimStrength);
+				HoverStrength);
 		}
 	}
 }
