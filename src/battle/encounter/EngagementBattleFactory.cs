@@ -4,83 +4,66 @@ using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
 using GrimSpace.Units;
-using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Battle.Encounter;
 
 public static class EngagementBattleFactory
 {
 	private const int GridSize = 64;
-	private const int PatrolCount = 3;
 	private const int FieldMargin = 2;
 
-	public static BattleEncounter Create(Party playerParty, int seed)
+	public static BattleEncounter Create(Fleet playerFleet, Fleet enemyFleet, int seed)
 	{
+		ArgumentNullException.ThrowIfNull(playerFleet);
+		ArgumentNullException.ThrowIfNull(enemyFleet);
 		ArgumentOutOfRangeException.ThrowIfNegative(seed);
-		if (playerParty.Members.Count == 0)
-			throw new InvalidOperationException("Player party must contain at least one ship.");
+		if (playerFleet.State.Id == enemyFleet.State.Id)
+			throw new ArgumentException("An engagement requires two distinct fleets.", nameof(enemyFleet));
+		if (playerFleet.Members.Count == 0)
+			throw new InvalidOperationException($"Player fleet '{playerFleet.State.Id}' has no members.");
+		if (enemyFleet.Members.Count == 0)
+			throw new InvalidOperationException($"Enemy fleet '{enemyFleet.State.Id}' has no members.");
 
 		var rng = new Random(seed);
-		// TODO: Deploy all party members once battle turns support multiple player-controlled actors.
-		var playerMember = playerParty.Members[0];
-		var playerInstance = new Instance
-		{
-			Id = playerMember.Id,
-			Type = playerMember.Type,
-			Alliance = Alliance.Player,
-		};
 		var center = GridSize / 2;
 		var deploySpread = GridSize / 5;
-		var playerPosition = new Coord(center - deploySpread, center, center);
-		var spawns = new List<BattleSpawn>
-		{
-			new()
-			{
-				Unit = playerInstance,
-				Position = playerPosition,
-				InitialMomentum = 0,
-				Fore = Coord.Forward,
-				Dorsal = Coord.Up,
-				ExecutionAgent = new UserExecutionAgent(),
-			},
-		};
-
+		var playerCenter = center - deploySpread;
 		var enemyCenter = center + deploySpread;
-		var occupiedPositions = new HashSet<Coord> { playerPosition };
-		for (var i = 0; i < PatrolCount; i++)
-		{
-			Coord patrolPosition;
-			do
-			{
-				patrolPosition = new Coord(
-					enemyCenter + rng.Next(-4, 5),
-					rng.Next(center - 8, center + 9),
-					rng.Next(center - 8, center + 9));
-			}
-			while (!occupiedPositions.Add(patrolPosition));
-
-			spawns.Add(new BattleSpawn
-			{
-				Unit = new Instance
-				{
-					Type = EType.Patrol,
-					Alliance = Alliance.Enemy,
-				},
-				Position = patrolPosition,
-				InitialMomentum = rng.Next(0, 3),
-				Fore = AxisToward(patrolPosition, playerPosition),
-				Dorsal = Coord.Up,
-				ExecutionAgent = new AiController(),
-			});
-		}
+		var occupiedPositions = new HashSet<Coord>();
+		var spawns = new List<BattleSpawn>();
+		AddFleet(
+			playerFleet,
+			Alliance.Player,
+			playerCenter,
+			enemyCenter,
+			rng,
+			occupiedPositions,
+			spawns);
+		AddFleet(
+			enemyFleet,
+			Alliance.Enemy,
+			enemyCenter,
+			playerCenter,
+			rng,
+			occupiedPositions,
+			spawns);
 
 		var fieldCenter = new Coord(center, center, center);
 		return new BattleEncounter
 		{
 			Seed = seed,
 			Spawns = spawns,
+			Participants =
+			[
+				new BattleParticipant(
+					playerFleet.State.Id,
+					playerFleet.Members.Select(member => member.Id).ToArray()),
+				new BattleParticipant(
+					enemyFleet.State.Id,
+					enemyFleet.Members.Select(member => member.Id).ToArray()),
+			],
 			Objective = EObjective.EliminateOpponents,
 			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
 			{
@@ -92,6 +75,47 @@ public static class EngagementBattleFactory
 				RegionMargin = FieldMargin,
 			}),
 		};
+	}
+
+	private static void AddFleet(
+		Fleet fleet,
+		Alliance alliance,
+		int deploymentCenter,
+		int opposingCenter,
+		Random rng,
+		HashSet<Coord> occupiedPositions,
+		List<BattleSpawn> spawns)
+	{
+		foreach (var member in fleet.Members)
+		{
+			Coord position;
+			do
+			{
+				position = new Coord(
+					deploymentCenter + rng.Next(-4, 5),
+					GridSize / 2 + rng.Next(-8, 9),
+					GridSize / 2 + rng.Next(-8, 9));
+			}
+			while (!occupiedPositions.Add(position));
+
+			var target = new Coord(opposingCenter, GridSize / 2, GridSize / 2);
+			spawns.Add(new BattleSpawn
+			{
+				Unit = new Instance
+				{
+					Id = member.Id,
+					Type = member.Type,
+					Alliance = alliance,
+				},
+				Position = position,
+				InitialMomentum = alliance == Alliance.Player ? 0 : rng.Next(0, 3),
+				Fore = AxisToward(position, target),
+				Dorsal = Coord.Up,
+				ExecutionAgent = alliance == Alliance.Player
+					? new UserExecutionAgent()
+					: new AiController(),
+			});
+		}
 	}
 
 	private static Coord AxisToward(Coord from, Coord to)

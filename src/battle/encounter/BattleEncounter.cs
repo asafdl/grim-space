@@ -12,6 +12,7 @@ public sealed class BattleEncounter
 {
 	public required int Seed { get; init; }
 	public required IReadOnlyList<BattleSpawn> Spawns { get; init; }
+	public IReadOnlyList<BattleParticipant> Participants { get; init; } = [];
 	public required EObjective Objective { get; init; }
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
 

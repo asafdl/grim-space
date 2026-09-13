@@ -27,7 +27,7 @@ public sealed class State
 	public string? HuntedByUnitId { get; internal set; }
 	public EEngagementPhase EngagementPhase { get; internal set; }
 	public string? EngagementInitiatorUnitId { get; internal set; }
-	public BattleOutcome? ResolvedEngagementOutcome { get; internal set; }
+	public EBattleParticipantState? ResolvedEngagementState { get; internal set; }
 	private readonly HashSet<string> _engagedWithUnitIds = [];
 	public IReadOnlyCollection<string> EngagedWithUnitIds => _engagedWithUnitIds;
 
@@ -135,7 +135,7 @@ public sealed class State
 		clone.HuntedByUnitId = HuntedByUnitId;
 		clone.EngagementPhase = EngagementPhase;
 		clone.EngagementInitiatorUnitId = EngagementInitiatorUnitId;
-		clone.ResolvedEngagementOutcome = ResolvedEngagementOutcome;
+		clone.ResolvedEngagementState = ResolvedEngagementState;
 		foreach (var engagedUnitId in _engagedWithUnitIds)
 			clone._engagedWithUnitIds.Add(engagedUnitId);
 		clone.Journey.JourneyId = Journey.JourneyId;

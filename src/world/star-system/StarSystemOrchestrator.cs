@@ -251,10 +251,18 @@ public sealed class StarSystemOrchestrator : IDisposable
 		NotifyWorldUpdated();
 	}
 
-	public void ResolveEngagement(string playerId, BattleOutcome outcome)
+	public bool ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
-		Commit(new ResolveEngagementAction(playerId, outcome));
+		if (!ResolveEngagementDef.TryResolveEngagedCounterparty(Map, playerId, out var counterpartyId))
+			return false;
+
+		var action = new ResolveEngagementAction(playerId, counterpartyId, outcome);
+		if (!ResolveEngagementDef.Instance.IsLegal(action, Map, _engine.ActorRuntimes.For(action)))
+			return false;
+
+		Commit(action);
 		NotifyWorldUpdated();
+		return true;
 	}
 
 	public void RefreshPlayerAgent() => _playerAgent?.OnWorldUpdated();
@@ -386,7 +394,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void OnEngagementResolved(ResolveEngagementAction resolved)
 	{
-		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved.ActorId))
+		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved.VictorFleetId))
 		{
 			if (!_reactionQueue.Contains(reaction))
 				_reactionQueue.Enqueue(reaction);

@@ -133,7 +133,11 @@ public sealed class PlayerInputEffectTests(DevStarMapFixture maps)
 		Assert.False(map.WaitingForPlayerInput);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
-		engine.Commit([new ResolveEngagementAction(RunState.PlayerFleetUnitId, GrimSpace.Battle.Objectives.BattleOutcome.Win)]);
+		var outcome = GrimSpace.Battle.Objectives.BattleOutcome.Create(
+			GrimSpace.Battle.Objectives.EBattleResult.Win,
+			(RunState.PlayerFleetUnitId, GrimSpace.Battle.Objectives.EBattleParticipantState.Alive),
+			(pirateId, GrimSpace.Battle.Objectives.EBattleParticipantState.Destroyed));
+		engine.Commit([new ResolveEngagementAction(RunState.PlayerFleetUnitId, pirateId, outcome)]);
 
 		Assert.False(map.WaitingForPlayerInput);
 	}

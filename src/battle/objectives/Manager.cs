@@ -1,48 +1,116 @@
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Objectives;
 
-public sealed class Manager(EObjective objective)
+public sealed class Manager
 {
+	private readonly EObjective _objective;
+	private readonly IReadOnlyList<BattleParticipant> _participants;
+
+	public Manager(
+		EObjective objective,
+		IReadOnlyList<BattleParticipant> declaredParticipants,
+		UnitRegistry units)
+	{
+		_objective = objective;
+		_participants = ResolveParticipants(declaredParticipants, units);
+	}
+
 	public BattleOutcome Evaluate(BattleWorld world, string perspectiveUnitId) =>
-		objective switch
+		_objective switch
 		{
 			EObjective.EliminateOpponents => EliminateOpponents(world, perspectiveUnitId),
-			_ => throw new ArgumentOutOfRangeException(nameof(objective), objective, null),
+			_ => throw new ArgumentOutOfRangeException(nameof(_objective), _objective, null),
 		};
 
-	private static BattleOutcome EliminateOpponents(BattleWorld world, string perspectiveUnitId)
+	public BattleOutcome Retire(BattleWorld world, string perspectiveUnitId) =>
+		CreateOutcome(world, perspectiveUnitId, EBattleResult.Lose);
+
+	private BattleOutcome EliminateOpponents(BattleWorld world, string perspectiveUnitId)
 	{
 		var units = UnitRegistry.For(world);
-		if (!units.TryGet(perspectiveUnitId, out var perspective))
-			return BattleOutcome.Ongoing;
+		var perspective = _participants.Single(
+			participant => participant.TacticalUnitIds.Contains(perspectiveUnitId, StringComparer.Ordinal));
+		var perspectiveAlliance = units.UnitOf(perspective.TacticalUnitIds[0]).Alliance;
+		var states = ParticipantStates(units);
+		var livingParticipants = _participants
+			.Where(participant => states[participant.ParticipantId] == EBattleParticipantState.Alive)
+			.ToArray();
 
-		var livingTeams = new HashSet<ETeam>();
-		foreach (var unit in units.All)
-		{
-			if (unit.State.IsAlive)
-				livingTeams.Add(unit.Alliance.Team);
-		}
+		if (livingParticipants.Length == 0)
+			return CreateOutcome(EBattleResult.Tie, states);
 
-		if (livingTeams.Count == 0)
-			return BattleOutcome.Tie;
+		var anyFriendly = livingParticipants.Any(participant =>
+			perspectiveAlliance.IsAlliedWith(units.UnitOf(participant.TacticalUnitIds[0]).Alliance));
+		var anyOpponent = livingParticipants.Any(participant =>
+			!perspectiveAlliance.IsAlliedWith(units.UnitOf(participant.TacticalUnitIds[0]).Alliance));
 
-		var alliance = perspective.Alliance;
-		var anyFriendly = false;
-		var anyOpponent = false;
-		foreach (var team in livingTeams)
-		{
-			if (alliance.IsAlliedWith(team))
-				anyFriendly = true;
-			else
-				anyOpponent = true;
+		if (anyFriendly && anyOpponent)
+			return CreateOutcome(EBattleResult.Ongoing, states);
 
-			if (anyFriendly && anyOpponent)
-				return BattleOutcome.Ongoing;
-		}
-
-		return anyFriendly ? BattleOutcome.Win : BattleOutcome.Lose;
+		return CreateOutcome(anyFriendly ? EBattleResult.Win : EBattleResult.Lose, states);
 	}
+
+	private BattleOutcome CreateOutcome(
+		BattleWorld world,
+		string perspectiveUnitId,
+		EBattleResult result)
+	{
+		_ = _participants.Single(
+			participant => participant.TacticalUnitIds.Contains(perspectiveUnitId, StringComparer.Ordinal));
+		return CreateOutcome(result, ParticipantStates(UnitRegistry.For(world)));
+	}
+
+	private Dictionary<string, EBattleParticipantState> ParticipantStates(UnitRegistry units) =>
+		_participants.ToDictionary(
+			participant => participant.ParticipantId,
+			participant => participant.TacticalUnitIds.Any(unitId => units.UnitOf(unitId).State.IsAlive)
+				? EBattleParticipantState.Alive
+				: EBattleParticipantState.Destroyed,
+			StringComparer.Ordinal);
+
+	private static IReadOnlyList<BattleParticipant> ResolveParticipants(
+		IReadOnlyList<BattleParticipant> declared,
+		UnitRegistry units)
+	{
+		var tacticalUnits = units.All.ToArray();
+		if (declared.Count == 0)
+			return tacticalUnits
+				.Select(unit => new BattleParticipant(unit.State.Id, [unit.State.Id]))
+				.ToArray();
+
+		var unitIds = tacticalUnits
+			.Select(unit => unit.State.Id)
+			.ToHashSet(StringComparer.Ordinal);
+		var unitsById = tacticalUnits.ToDictionary(unit => unit.State.Id, StringComparer.Ordinal);
+		var participantIds = declared.Select(participant => participant.ParticipantId).ToArray();
+		var memberIds = declared
+			.SelectMany(participant => participant.TacticalUnitIds)
+			.ToArray();
+		if (participantIds.Any(string.IsNullOrWhiteSpace)
+			|| participantIds.Distinct(StringComparer.Ordinal).Count() != participantIds.Length
+			|| declared.Any(participant => participant.TacticalUnitIds.Count == 0)
+			|| memberIds.Distinct(StringComparer.Ordinal).Count() != memberIds.Length
+			|| !unitIds.SetEquals(memberIds)
+			|| declared.Any(participant => participant.TacticalUnitIds
+				.Select(unitId => unitsById[unitId].Alliance.Team)
+				.Distinct()
+				.Skip(1)
+				.Any()))
+		{
+			throw new InvalidOperationException(
+				"Battle participants must uniquely contain every initial tactical unit.");
+		}
+
+		return declared;
+	}
+
+	private static BattleOutcome CreateOutcome(
+		EBattleResult result,
+		IReadOnlyDictionary<string, EBattleParticipantState> states) =>
+		BattleOutcome.Create(
+			result,
+			[.. states.Select(pair => (pair.Key, pair.Value))]);
 }

@@ -66,6 +66,25 @@ public sealed class Timeline
 		}
 	}
 
+	public int CancelPendingForActor(string actorId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(actorId);
+
+		lock (_sync)
+		{
+			var removedCount = 0;
+			foreach (var tick in _pending.Keys.ToArray())
+			{
+				var actions = _pending[tick];
+				removedCount += actions.RemoveAll(action => action.ActorId == actorId);
+				if (actions.Count == 0)
+					_pending.Remove(tick);
+			}
+
+			return removedCount;
+		}
+	}
+
 	public bool ContainsPending(Func<IAction, bool> predicate)
 	{
 		ArgumentNullException.ThrowIfNull(predicate);

@@ -265,10 +265,13 @@ public partial class RunSession : Node
 		if (!EngagementQueries.TryGetCommittedPlayerEngagement(starSystem.Map, playerId, out var committed))
 			return false;
 
-		var targetId = committed.ParticipantUnitIds.First(id => id != playerId);
-		var targetProfile = starSystem.Map.StateOf(targetId).CombatProfile;
+		// TODO: Project all committed participants once tactical battles support more than two fleets.
+		var targetId = committed.ParticipantUnitIds.Single(id => id != playerId);
+		var playerFleet = starSystem.Map.FleetRegistry.FleetOf(playerId);
+		var targetFleet = starSystem.Map.FleetRegistry.FleetOf(targetId);
+		var targetProfile = targetFleet.State.CombatProfile;
 		var seed = targetProfile?.GenerationSeed ?? Random.Shared.Next();
-		var encounter = EngagementBattleFactory.Create(Run.PlayerParty, seed);
+		var encounter = EngagementBattleFactory.Create(playerFleet, targetFleet, seed);
 		Run.ActiveBattle = new ActiveBattle
 		{
 			Encounter = encounter,
@@ -278,14 +281,8 @@ public partial class RunSession : Node
 		return true;
 	}
 
-	public void ResolveEngagement(BattleOutcome outcome)
-	{
-		if (Run.ActiveBattle is null)
-			return;
-
-		Run.StarSystem.ResolveEngagement(State.PlayerFleetUnitId, outcome);
-		Run.ActiveBattle = null;
-	}
+	public bool ResolveEngagement(BattleOutcome outcome) =>
+		Run.TryResolveActiveBattle(outcome);
 
 	public void RegenerateMap(int? seed = null)
 	{

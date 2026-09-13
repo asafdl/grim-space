@@ -29,8 +29,8 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 		second.EngagementPhase = EEngagementPhase.Engaged;
 		first.EngagementInitiatorUnitId = initiatorId;
 		second.EngagementInitiatorUnitId = initiatorId;
-		first.ResolvedEngagementOutcome = null;
-		second.ResolvedEngagementOutcome = null;
+		first.ResolvedEngagementState = null;
+		second.ResolvedEngagementState = null;
 		first.ClearEngagedWith();
 		second.ClearEngagedWith();
 		first.AddEngagedWith(_secondUnitId);

@@ -24,7 +24,7 @@ public sealed class SetEngagementIntentEffect : IEffect<StarMap, Runtime.ActorRu
 
 		initiator.EngagementTargetUnitId = _targetId;
 		initiator.EngagementPhase = EEngagementPhase.Pursuing;
-		initiator.ResolvedEngagementOutcome = null;
+		initiator.ResolvedEngagementState = null;
 		world.StateOf(_targetId).HuntedByUnitId = _initiatorId;
 		return [];
 	}

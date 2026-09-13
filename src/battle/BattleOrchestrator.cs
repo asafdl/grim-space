@@ -34,19 +34,21 @@ public sealed class BattleOrchestrator : IDisposable
 		Engine<BattleWorld, ActorRuntime> engine,
 		BattleLayout layout,
 		string playerId,
-		EObjective objective)
+		EObjective objective,
+		IReadOnlyList<BattleParticipant> participants)
 	{
 		_engine = engine;
 		Layout = layout;
 		PlayerId = playerId;
-		_objectives = new Manager(objective);
+		_objectives = new Manager(objective, participants, UnitRegistry.For(engine.World));
+		Outcome = _objectives.Evaluate(_engine.World, PlayerId);
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
 	public string PlayerId { get; }
-	public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
+	public BattleOutcome Outcome { get; private set; }
 	public bool IsBattleOver => Outcome.IsOver;
 	public int TurnNumber => _engine.Tick;
 	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
@@ -103,7 +105,8 @@ public sealed class BattleOrchestrator : IDisposable
 			engine,
 			layout,
 			player.State.Id,
-			encounter.Objective);
+			encounter.Objective,
+			encounter.Participants);
 
 		foreach (var unit in units)
 		{
@@ -179,7 +182,7 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 
 		_resolveVersion++;
-		Outcome = BattleOutcome.Lose;
+		Outcome = _objectives.Retire(_engine.World, PlayerId);
 		SetPhase(EBattlePhase.BattleOver, "retired");
 	}
 

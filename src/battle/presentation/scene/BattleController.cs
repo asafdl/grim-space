@@ -46,6 +46,7 @@ public partial class BattleController : Node3D
 
 	private bool _introActive;
 	private bool _strategicBattle;
+	private bool _resolutionRequested;
 
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle) && !_introActive;
@@ -427,7 +428,16 @@ public partial class BattleController : Node3D
 
 	private void ReturnToStarMap()
 	{
-		RunSession.Instance.ResolveEngagement(_battle.Outcome);
+		if (_resolutionRequested || !_battle.IsBattleOver)
+			return;
+
+		_resolutionRequested = true;
+		if (!RunSession.Instance.ResolveEngagement(_battle.Outcome))
+		{
+			_resolutionRequested = false;
+			return;
+		}
+
 		GetTree().ChangeSceneToFile("res://scenes/map.tscn");
 	}
 
@@ -439,9 +449,6 @@ public partial class BattleController : Node3D
 
 	private void GoToMainMenu()
 	{
-		if (_strategicBattle)
-			RunSession.Instance.ResolveEngagement(_battle.Outcome);
-
 		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 	}
 

@@ -7,9 +7,13 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record ResolveEngagementAction(string ActorId, BattleOutcome Outcome)
-	: IAction<StarMap, ActorRuntime>
+public sealed record ResolveEngagementAction(
+	string VictorFleetId,
+	string DefeatedFleetId,
+	BattleOutcome Outcome) : IAction<StarMap, ActorRuntime>
 {
+	public string ActorId => DefeatedFleetId;
+
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		ResolveEngagementDef.Instance;
 }
@@ -25,8 +29,18 @@ public sealed class ResolveEngagementDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is ResolveEngagementAction resolve
+		&& resolve.Outcome.Result == EBattleResult.Win
 		&& resolve.Outcome.IsOver
-		&& TryResolveEngagedCounterparty(world, resolve.ActorId, out _);
+		&& resolve.Outcome.TryGetState(resolve.VictorFleetId, out var victorState)
+		&& victorState == EBattleParticipantState.Alive
+		&& resolve.Outcome.TryGetState(resolve.DefeatedFleetId, out var defeatedState)
+		&& defeatedState == EBattleParticipantState.Destroyed
+		&& HasExactParticipantStates(
+			resolve.Outcome,
+			resolve.VictorFleetId,
+			resolve.DefeatedFleetId)
+		&& TryResolveEngagedCounterparty(world, resolve.VictorFleetId, out var counterpartyId)
+		&& counterpartyId == resolve.DefeatedFleetId;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -34,11 +48,24 @@ public sealed class ResolveEngagementDef
 		ActorRuntime runtime)
 	{
 		var resolve = (ResolveEngagementAction)action;
-		if (!TryResolveEngagedCounterparty(world, resolve.ActorId, out var counterpartyId))
+		if (!IsLegal(resolve, world, runtime))
 			return [];
 
-		return [new ResolveEngagementEffect(resolve.ActorId, counterpartyId, resolve.Outcome)];
+		return
+		[
+			new ResolveEngagementEffect(
+				resolve.VictorFleetId,
+				resolve.DefeatedFleetId),
+		];
 	}
+
+	private static bool HasExactParticipantStates(
+		BattleOutcome outcome,
+		string actorId,
+		string counterpartyId) =>
+		outcome.ParticipantStates.Count == 2
+		&& outcome.ParticipantStates.ContainsKey(actorId)
+		&& outcome.ParticipantStates.ContainsKey(counterpartyId);
 
 	internal static bool TryResolveEngagedCounterparty(StarMap world, string actorId, out string counterpartyId)
 	{
@@ -47,7 +74,7 @@ public sealed class ResolveEngagementDef
 			return false;
 
 		if (actor.State.EngagementPhase != EEngagementPhase.Engaged
-			|| actor.State.EngagedWithUnitIds.Count == 0)
+			|| actor.State.EngagedWithUnitIds.Count != 1)
 			return false;
 
 		counterpartyId = actor.State.EngagedWithUnitIds.First();

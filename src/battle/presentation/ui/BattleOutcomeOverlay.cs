@@ -29,6 +29,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		_actionButton.Text = strategicBattle
 			? BattleHudCopy.ReturnToStarMap
 			: BattleHudCopy.Reset;
+		_actionButton.Disabled = strategicBattle && result != EBattleResult.Win;
 	}
 
 	private void Build()

@@ -29,7 +29,7 @@ public sealed class FleeEngagementEffect : IEffect<StarMap, Runtime.ActorRuntime
 		state.EngagementInitiatorUnitId = null;
 		state.ClearEngagedWith();
 		state.EngagementPhase = EEngagementPhase.Resolved;
-		state.ResolvedEngagementOutcome = null;
+		state.ResolvedEngagementState = null;
 	}
 
 	private static void ClearCounterpartyHuntLink(State fleeing, State counterparty)

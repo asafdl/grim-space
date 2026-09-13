@@ -15,6 +15,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -55,7 +56,11 @@ internal static class BattleTestFixture
 			engine,
 			layout,
 			player.State.Id,
-			EObjective.EliminateOpponents);
+			EObjective.EliminateOpponents,
+			[
+				new BattleParticipant(player.State.Id, [player.State.Id]),
+				new BattleParticipant(enemy.State.Id, [enemy.State.Id]),
+			]);
 		foreach (var unit in units)
 		{
 			ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(

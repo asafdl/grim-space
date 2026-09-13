@@ -109,7 +109,7 @@ public sealed class FleeActionTests(DevStarMapFixture maps)
 
 		var player = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(EEngagementPhase.Resolved, player.EngagementPhase);
-		Assert.Null(player.ResolvedEngagementOutcome);
+		Assert.Null(player.ResolvedEngagementState);
 		Assert.Null(player.EngagementTargetUnitId);
 		Assert.Empty(player.EngagedWithUnitIds);
 		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
@@ -152,7 +152,7 @@ public sealed class FleeActionTests(DevStarMapFixture maps)
 public sealed class ResolveEngagementActionTests(DevStarMapFixture maps)
 {
 	[Fact]
-	public void Commit_StoresMatchingOutcomeOnBothSides()
+	public void Commit_StoresEachParticipantState()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
@@ -166,15 +166,19 @@ public sealed class ResolveEngagementActionTests(DevStarMapFixture maps)
 				1)));
 		new CommitEngagementEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		var outcome = BattleOutcome.Create(
+			EBattleResult.Win,
+			(RunState.PlayerFleetUnitId, EBattleParticipantState.Alive),
+			(pirateId, EBattleParticipantState.Destroyed));
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
-		engine.Commit([new ResolveEngagementAction(RunState.PlayerFleetUnitId, BattleOutcome.Win)]);
+		engine.Commit([new ResolveEngagementAction(RunState.PlayerFleetUnitId, pirateId, outcome)]);
 
 		Assert.Equal(EEngagementPhase.Resolved, map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
-		Assert.Equal(EEngagementPhase.Resolved, map.StateOf(pirateId).EngagementPhase);
-		Assert.Equal(BattleOutcome.Win, map.StateOf(RunState.PlayerFleetUnitId).ResolvedEngagementOutcome);
-		Assert.Equal(BattleOutcome.Win, map.StateOf(pirateId).ResolvedEngagementOutcome);
-		Assert.Contains(pirateId, map.FleetRegistry.Ids);
+		Assert.Equal(
+			EBattleParticipantState.Alive,
+			map.StateOf(RunState.PlayerFleetUnitId).ResolvedEngagementState);
+		Assert.DoesNotContain(pirateId, map.FleetRegistry.Ids);
 		Assert.Contains(RunState.PlayerFleetUnitId, map.FleetRegistry.Ids);
 	}
 }
