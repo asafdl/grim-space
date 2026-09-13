@@ -26,26 +26,24 @@ private static readonly Vector3[] NeighborOffsets =
 
 	private Camera3D _camera = null!;
 	private MeshInstance3D _rangeShell = null!;
+	private CellVolumeWireframeSlot _rangeSlot = null!;
 	private MeshInstance3D _localGrid = null!;
 	private StandardMaterial3D _rangeShellMaterial = null!;
 
-	private HashSet<Coord> _rangeEndpoints = [];
-	private HashSet<Coord> _rangeCells = [];
-	private readonly Dictionary<string, ArrayMesh> _rangeMeshes = [];
-	private Coord? _rangeSource;
-	private int? _rangeCacheTurn;
 	private Vector3? _ghostWorld;
 	private Vector3? _localGridViewDirection;
 
-	public void Build(Camera3D camera)
+	internal void Build(Camera3D camera, CellVolumeMeshStore meshes)
 	{
 		_camera = camera;
 		_rangeShellMaterial = CreateRangeShellMaterial();
 
-		_rangeShell = CreateVisual(
+		_rangeSlot = new CellVolumeWireframeSlot(
 			"MovementRangeShell",
-			new ArrayMesh(),
-			_rangeShellMaterial);
+			_rangeShellMaterial,
+			meshes,
+			CellVolumeGeometry.Settings.Default);
+		_rangeShell = _rangeSlot.Instance;
 		AddChild(_rangeShell);
 
 		_localGrid = CreateVisual(
@@ -66,12 +64,6 @@ private static readonly Vector3[] NeighborOffsets =
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		if (_rangeCacheTurn != frame.TurnNumber)
-		{
-			_rangeMeshes.Clear();
-			_rangeCacheTurn = frame.TurnNumber;
-		}
-
 		if (!frame.ShowMovePreview
 			|| frame.ShowOutcomeOverlay
 			|| frame.Mode != EPlayerMode.Move)
@@ -87,12 +79,7 @@ private static readonly Vector3[] NeighborOffsets =
 	private void ApplyMoveVisuals(PresentationFrame frame)
 	{
 		var source = frame.FocusState.Position;
-		RefreshRange(source, frame.MovePaths);
-
-		_rangeShell.GlobalPosition = WorldMapping.ToWorld(source);
-
-		var showRange = _rangeEndpoints.Count > 0;
-		_rangeShell.Visible = showRange;
+		RefreshRange(source, frame.MovePaths, frame.SimulationTick);
 
 		_ghostWorld = frame.MoveGhostState is { } ghost
 			? WorldMapping.ToWorld(ghost.Position)
@@ -105,33 +92,22 @@ private static readonly Vector3[] NeighborOffsets =
 		}
 	}
 
-	private void RefreshRange(Coord source, IReadOnlyList<MovePathOption> paths)
+	private void RefreshRange(
+		Coord source,
+		IReadOnlyList<MovePathOption> paths,
+		int tick)
 	{
 		var endpoints = paths.Select(option => option.EndPosition).ToHashSet();
 		var cells = paths
 			.SelectMany(option => option.Cells)
 			.Append(source)
 			.ToHashSet();
-		if (_rangeSource == source
-			&& _rangeEndpoints.SetEquals(endpoints)
-			&& _rangeCells.SetEquals(cells))
-			return;
-
-		_rangeSource = source;
-		_rangeEndpoints = endpoints;
-		_rangeCells = cells;
-
-		if (endpoints.Count > 0)
-		{
-			var key = CellVolumeGeometry.RelativeCellKey(source, cells);
-			if (!_rangeMeshes.TryGetValue(key, out var mesh))
-			{
-				mesh = CellVolumeMesh.CreateWireframe(CellVolumeGeometry.Build(source, cells));
-				_rangeMeshes[key] = mesh;
-			}
-			_rangeShell.Mesh = mesh;
-		}
-
+		_rangeSlot.Apply(
+			endpoints.Count > 0
+				? new CellVolumePreview(source, cells)
+				: null,
+			tick);
+		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
 		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
 	}
 

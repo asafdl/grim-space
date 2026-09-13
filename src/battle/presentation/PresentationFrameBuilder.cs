@@ -206,6 +206,7 @@ public sealed class PresentationFrameBuilder
 			MoveGhostState = activeMovePreview?.ResultState,
 			ReachableMoveHeadings = reachableMoveHeadings,
 			IsMoveDragging = state.IsMoveDragging,
+			SimulationTick = battle.TurnNumber,
 			TurnNumber = battle.Phase == EBattlePhase.Replaying
 				? battle.TurnNumber - 1
 				: battle.TurnNumber,

@@ -10,25 +10,29 @@ internal sealed class TurnVolumeWireframe
 
 	private readonly CellVolumeWireframeSlot[] _turns;
 
-	public TurnVolumeWireframe(string namePrefix, IReadOnlyList<Color> turnTints)
+	public TurnVolumeWireframe(
+		string namePrefix,
+		IReadOnlyList<Color> turnTints,
+		CellVolumeMeshStore meshes)
 	{
 		_turns = turnTints
 			.Select((tint, index) => new CellVolumeWireframeSlot(
 				$"{namePrefix}{index + 1}",
 				WeaponPreviewMaterials.CreateWireframe(tint),
+				meshes,
 				GeometrySettings))
 			.ToArray();
 	}
 
 	public IEnumerable<MeshInstance3D> Instances => _turns.Select(turn => turn.Instance);
 
-	public void Apply(TurnVolumePreview? preview)
+	public void Apply(TurnVolumePreview? preview, int tick)
 	{
 		for (var i = 0; i < _turns.Length; i++)
 		{
 			if (preview is null || i >= preview.TurnBands.Count)
 			{
-				_turns[i].Apply(null);
+				_turns[i].Apply(null, tick);
 				continue;
 			}
 
@@ -39,7 +43,8 @@ internal sealed class TurnVolumeWireframe
 
 			_turns[i].Apply(cells.Count == 0
 				? null
-				: new CellVolumePreview(preview.Origin, cells));
+				: new CellVolumePreview(preview.Origin, cells),
+				tick);
 		}
 	}
 }

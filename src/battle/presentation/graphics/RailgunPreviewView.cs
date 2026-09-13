@@ -20,13 +20,13 @@ public sealed partial class RailgunPreviewView : Node3D
 	private StandardMaterial3D _aimMaterial = null!;
 	private IReadOnlySet<Coord> _aimCells = NoCells;
 
-	public void Build()
+	internal void Build(CellVolumeMeshStore meshes)
 	{
 		_aimMaterial = WeaponPreviewMaterials.CreateWireframe(Tint);
 		var queuedMaterial = WeaponPreviewMaterials.CreateWireframe(
 			WeaponPreviewMaterials.CementedTint);
-		_aim = new CellVolumeWireframeSlot("RailgunAim", _aimMaterial);
-		_queued = new CellVolumeWireframeSlot("RailgunQueued", queuedMaterial);
+		_aim = new CellVolumeWireframeSlot("RailgunAim", _aimMaterial, meshes);
+		_queued = new CellVolumeWireframeSlot("RailgunQueued", queuedMaterial, meshes);
 		AddChild(_aim.Instance);
 		AddChild(_queued.Instance);
 		Visible = false;
@@ -50,8 +50,8 @@ public sealed partial class RailgunPreviewView : Node3D
 			? frame.AreaActions.Queued.LastOrDefault(preview => preview.Action is RailgunAction)
 			: null;
 
-		_aim.Apply(aim?.Volume);
-		_queued.Apply(queued?.Volume);
+		_aim.Apply(aim?.Volume, frame.SimulationTick);
+		_queued.Apply(queued?.Volume, frame.SimulationTick);
 		_aimCells = aim?.Volume.Cells ?? NoCells;
 		Visible = aim is not null || queued is not null;
 

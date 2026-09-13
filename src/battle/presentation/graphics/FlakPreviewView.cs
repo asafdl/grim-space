@@ -23,15 +23,18 @@ public sealed partial class FlakPreviewView : Node3D
 	private StandardMaterial3D _starboardMaterial = null!;
 	private PresentationFrame? _frame;
 
-	public void Build()
+	internal void Build(CellVolumeMeshStore meshes)
 	{
 		_portMaterial = WeaponPreviewMaterials.CreateWireframe(PortTint);
 		_starboardMaterial = WeaponPreviewMaterials.CreateWireframe(StarboardTint);
 		var queuedMaterial = WeaponPreviewMaterials.CreateWireframe(
 			WeaponPreviewMaterials.CementedTint);
-		_aimPort = new CellVolumeWireframeSlot("FlakPortAim", _portMaterial);
-		_aimStarboard = new CellVolumeWireframeSlot("FlakStarboardAim", _starboardMaterial);
-		_queued = new CellVolumeWireframeSlot("FlakQueued", queuedMaterial);
+		_aimPort = new CellVolumeWireframeSlot("FlakPortAim", _portMaterial, meshes);
+		_aimStarboard = new CellVolumeWireframeSlot(
+			"FlakStarboardAim",
+			_starboardMaterial,
+			meshes);
+		_queued = new CellVolumeWireframeSlot("FlakQueued", queuedMaterial, meshes);
 		AddChild(_aimPort.Instance);
 		AddChild(_aimStarboard.Instance);
 		AddChild(_queued.Instance);
@@ -80,9 +83,9 @@ public sealed partial class FlakPreviewView : Node3D
 		var queued = frame.ShowWeaponPreviews
 			? frame.AreaActions.Queued.LastOrDefault(preview => preview.Action is FlakAction)
 			: null;
-		_aimPort.Apply(aimPort?.Volume);
-		_aimStarboard.Apply(aimStarboard?.Volume);
-		_queued.Apply(queued?.Volume);
+		_aimPort.Apply(aimPort?.Volume, frame.SimulationTick);
+		_aimStarboard.Apply(aimStarboard?.Volume, frame.SimulationTick);
+		_queued.Apply(queued?.Volume, frame.SimulationTick);
 		Visible = aimPort is not null || aimStarboard is not null || queued is not null;
 
 		var effectiveMount = frame.StagedMountedOn ?? frame.FlakHoverMountedOn;

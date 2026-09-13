@@ -28,7 +28,7 @@ public sealed partial class TorpedoPreviewView : Node3D
 	private TurnVolumeWireframe? _aimTravel;
 	private PresentationFrame? _frame;
 
-	public void Build()
+	internal void Build(CellVolumeMeshStore meshes)
 	{
 		_mountMesh = new SphereMesh
 		{
@@ -37,7 +37,7 @@ public sealed partial class TorpedoPreviewView : Node3D
 		};
 		_mountMaterial = WeaponPreviewMaterials.CreateDotted(MountTint);
 
-		_aimTravel = new TurnVolumeWireframe("TorpedoAimTurn", TurnTints);
+		_aimTravel = new TurnVolumeWireframe("TorpedoAimTurn", TurnTints, meshes);
 		foreach (var instance in _aimTravel.Instances)
 			AddChild(instance);
 
@@ -65,7 +65,9 @@ public sealed partial class TorpedoPreviewView : Node3D
 		Visible = aiming;
 
 		ReleaseMarkers();
-		_aimTravel?.Apply(aiming ? frame.TorpedoPreviews.Aim : null);
+		_aimTravel?.Apply(
+			aiming ? frame.TorpedoPreviews.Aim : null,
+			frame.SimulationTick);
 		if (!Visible
 			|| _mountMesh is null
 			|| _mountMaterial is null)

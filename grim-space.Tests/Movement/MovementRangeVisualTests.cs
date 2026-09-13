@@ -88,6 +88,57 @@ public sealed class MovementRangeVisualTests
 	}
 
 	[Fact]
+	public void WireframePreparationDeduplicatesTriangleEdges()
+	{
+		var surface = new CellVolumeGeometry.Surface(
+			[
+				Vector3.Zero,
+				Vector3.Right,
+				Vector3.Up,
+				Vector3.Right,
+				Vector3.One,
+				Vector3.Up,
+			],
+			[]);
+
+		var prepared = CellVolumeMesh.PrepareWireframe(surface);
+
+		Assert.Equal(ECellVolumeMeshPrimitive.Wireframe, prepared.Primitive);
+		Assert.Equal(10, prepared.Vertices.Length);
+		Assert.Empty(prepared.Normals);
+		Assert.Empty(prepared.Colors);
+	}
+
+	[Fact]
+	public void MeshStoreKeyIncludesPrimitiveButNotTranslation()
+	{
+		var origin = new Coord(2, 3, 4);
+		var volume = new CellVolumePreview(
+			origin,
+			new HashSet<Coord> { origin, origin + Coord.Forward });
+		var translation = new Coord(5, -2, 1);
+		var translated = new CellVolumePreview(
+			origin + translation,
+			volume.Cells.Select(cell => cell + translation).ToHashSet());
+
+		var wireframe = CellVolumeMeshStore.Key(
+			volume,
+			CellVolumeGeometry.Settings.Default,
+			ECellVolumeMeshPrimitive.Wireframe);
+		var translatedWireframe = CellVolumeMeshStore.Key(
+			translated,
+			CellVolumeGeometry.Settings.Default,
+			ECellVolumeMeshPrimitive.Wireframe);
+		var triangles = CellVolumeMeshStore.Key(
+			volume,
+			CellVolumeGeometry.Settings.Default,
+			ECellVolumeMeshPrimitive.Triangles);
+
+		Assert.Equal(wireframe, translatedWireframe);
+		Assert.NotEqual(wireframe, triangles);
+	}
+
+	[Fact]
 	public void WeaponCellVolumeFitsInsideAnIsolatedGridCell()
 	{
 		var origin = Coord.Zero;

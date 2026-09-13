@@ -37,6 +37,7 @@ public partial class BattleController : Node3D
 	private FlakPreviewView _flakPreview = null!;
 	private RailgunPreviewView _railgunPreview = null!;
 	private TorpedoPreviewView _torpedoPreview = null!;
+	private CellVolumeMeshStore _cellVolumeMeshes = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
@@ -65,19 +66,20 @@ public partial class BattleController : Node3D
 		_camera = GetNode<Controller>("Camera3D");
 		_cameraDirector = new BattleCameraDirector(_camera);
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
+		_cellVolumeMeshes = new CellVolumeMeshStore();
 		_gridView = GetNode<GridView>("GridView");
-		_gridView.Build(_camera);
+		_gridView.Build(_camera, _cellVolumeMeshes);
 
 		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
-		_railgunPreview.Build();
+		_railgunPreview.Build(_cellVolumeMeshes);
 		AddChild(_railgunPreview);
 
 		_flakPreview = new FlakPreviewView { Name = "FlakPreview" };
-		_flakPreview.Build();
+		_flakPreview.Build(_cellVolumeMeshes);
 		AddChild(_flakPreview);
 
 		_torpedoPreview = new TorpedoPreviewView { Name = "TorpedoPreview" };
-		_torpedoPreview.Build();
+		_torpedoPreview.Build(_cellVolumeMeshes);
 		AddChild(_torpedoPreview);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
@@ -180,6 +182,12 @@ public partial class BattleController : Node3D
 	{
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
+
+		var meshUpdates = _cellVolumeMeshes.Pump(_currentFrame.SimulationTick);
+		foreach (var failure in meshUpdates.Failures)
+			GD.PushError($"Cell-volume mesh generation failed for {failure.Key}: {failure.Error}");
+		if (meshUpdates.ProcessedCount > 0)
+			ApplyFrame(_currentFrame);
 	}
 
 	private void WireHudToTranslator()
@@ -481,6 +489,7 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
+		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
 		base._ExitTree();
 	}
