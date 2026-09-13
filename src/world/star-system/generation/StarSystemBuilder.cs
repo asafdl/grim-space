@@ -73,7 +73,7 @@ public static class StarSystemBuilder
 			docksById.Values,
 			routePairs,
 			pois,
-			StarMap.DevRouteHalfWidth);
+			StarMap.RouteHalfWidth);
 
 		var poiById = pois.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
 		var fleetRegistry = new FleetRegistry();

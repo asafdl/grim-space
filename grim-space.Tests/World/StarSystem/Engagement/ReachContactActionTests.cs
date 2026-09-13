@@ -12,7 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class ReachContactActionTests(DevStarMapFixture maps)
+public sealed class ReachContactActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Commit_TransitionsPursuingToAwaitingDecision()

@@ -9,7 +9,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Engine;
 
-public sealed class PendingQueueDuringFlightTests(DevStarMapFixture maps)
+public sealed class PendingQueueDuringFlightTests(StarMapFixture maps)
 {
 	[Fact]
 	public async Task PushWhileBatchInFlightStaysPendingUntilAck()

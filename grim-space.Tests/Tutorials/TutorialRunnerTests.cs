@@ -4,7 +4,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Tutorials;
 
-public sealed class TutorialRunnerTests(DevStarMapFixture maps)
+public sealed class TutorialRunnerTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Start_UsesEducationToolsAndCompletesWhenAccepted()

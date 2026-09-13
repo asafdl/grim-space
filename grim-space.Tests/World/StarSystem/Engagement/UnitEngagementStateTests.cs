@@ -7,7 +7,7 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
+public sealed class UnitEngagementStateTests(StarMapFixture maps)
 {
 	[Fact]
 	public void FromSpawn_SetsEngageRadiusFromSpawn()

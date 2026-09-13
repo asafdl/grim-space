@@ -9,12 +9,12 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Generation;
 
-public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
+public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 {
 	[Fact]
-	public void CreateDevSession_AddsPlayerFleetAtTradeHub()
+	public void CreateSession_AddsPlayerFleetAtTradeHub()
 	{
-		var starSystem = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 42);
+		var starSystem = StarSystemOrchestrator.CreateSession(RunState.PlayerFleetUnitId, 42);
 
 		Assert.Equal(27, starSystem.Map.FleetRegistry.Ids.Count());
 		var playerFleet = starSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -29,9 +29,9 @@ public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void CreateDevDefault_PlayerPartyAndWorldFleetShareMembers()
+	public void CreateNewRun_PlayerPartyAndWorldFleetShareMembers()
 	{
-		var run = RunState.CreateDevDefault(42);
+		var run = RunState.CreateNewRun(42);
 		var worldFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 
 		Assert.Equal(run.PlayerParty.Members, worldFleet.Members);
@@ -39,7 +39,7 @@ public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void CreateDevDefault_HasTwentySixNpcUnitsOnly()
+	public void CreateNewRun_HasTwentySixNpcUnitsOnly()
 	{
 		var map = maps.Fresh(42);
 
@@ -49,10 +49,10 @@ public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void CreateDevSession_RespawnsPlayerFleetAtTradeHub()
+	public void CreateSession_RespawnsPlayerFleetAtTradeHub()
 	{
-		var first = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 7);
-		var second = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 7);
+		var first = StarSystemOrchestrator.CreateSession(RunState.PlayerFleetUnitId, 7);
+		var second = StarSystemOrchestrator.CreateSession(RunState.PlayerFleetUnitId, 7);
 
 		var firstFleet = first.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var secondFleet = second.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -63,7 +63,7 @@ public sealed class StarSystemRunAssemblyTests(DevStarMapFixture maps)
 	[Fact]
 	public void Subscribe_ExposesCommittedEntries()
 	{
-		using var starSystem = StarSystemOrchestrator.CreateDevSession(
+		using var starSystem = StarSystemOrchestrator.CreateSession(
 			RunState.PlayerFleetUnitId,
 			42);
 		BeginNarrativeAction? received = null;

@@ -7,7 +7,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Engine;
 
-public sealed class EngineCommitTests(DevStarMapFixture maps)
+public sealed class EngineCommitTests(StarMapFixture maps)
 {
 	[Fact]
 	public void EmptyCommit_DoesNotBumpWorldVersion()

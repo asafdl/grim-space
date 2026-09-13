@@ -11,7 +11,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class AcceptContractActionTests(DevStarMapFixture maps)
+public sealed class AcceptContractActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void TryEnqueue_SucceedsForOfferedContract()

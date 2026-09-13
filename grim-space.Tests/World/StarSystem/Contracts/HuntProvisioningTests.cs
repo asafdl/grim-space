@@ -15,7 +15,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class HuntProvisioningTests(DevStarMapFixture maps)
+public sealed class HuntProvisioningTests(StarMapFixture maps)
 {
 	[Fact]
 	public void OfferedContractsSpawnNothing()
@@ -241,7 +241,7 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 			objective,
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
-			new ContractTerms(StarMap.DevContractRewardCredits),
+			new ContractTerms(StarMap.StarterContractRewardCredits),
 			ContractNarrative.ForHunt("Synthetic Hunt", searchArea));
 		map.ContractRegistry.RegisterOffered(contract);
 	}

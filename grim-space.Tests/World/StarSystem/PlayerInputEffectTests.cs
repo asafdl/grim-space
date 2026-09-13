@@ -12,7 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
-public sealed class PlayerInputEffectTests(DevStarMapFixture maps)
+public sealed class PlayerInputEffectTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Wait_BlocksCanAdvanceWhileRunning()

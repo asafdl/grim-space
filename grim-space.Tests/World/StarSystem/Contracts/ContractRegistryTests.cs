@@ -5,7 +5,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class ContractRegistryTests(DevStarMapFixture maps)
+public sealed class ContractRegistryTests(StarMapFixture maps)
 {
 	[Fact]
 	public void AvailableForPoi_ReturnsOnlyOfferedContractsForIssuer()

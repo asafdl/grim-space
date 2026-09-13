@@ -12,13 +12,13 @@ namespace GrimSpace.Tests.World.StarSystem;
 public sealed class StarMapTests
 {
 	[Fact]
-	public void CreateDevDefault_HasFiveNonOverlappingInBoundsPois()
+	public void Create_HasFiveNonOverlappingInBoundsPois()
 	{
-		var world = StarMap.CreateDevDefault(42);
+		var world = StarMap.Create(42);
 
 		Assert.Equal(42, world.Seed);
-		Assert.Equal(StarMap.DevMapWidth, world.Width);
-		Assert.Equal(StarMap.DevMapHeight, world.Height);
+		Assert.Equal(StarMap.MapWidth, world.Width);
+		Assert.Equal(StarMap.MapHeight, world.Height);
 		Assert.Equal(7, world.PointsOfInterest.Count);
 		Assert.Equal(EStarSystemClass.Supply, world.Blueprint.SystemClass);
 
@@ -51,7 +51,7 @@ public sealed class StarMapTests
 	[Fact]
 	public void IsInBounds_AcceptsMaxPoint_RejectsOverflow()
 	{
-		var world = StarMap.CreateDevDefault();
+		var world = StarMap.Create();
 
 		Assert.True(world.IsInBounds(new Coord(1023, 0, 1023)));
 		Assert.False(world.IsInBounds(new Coord(1024, 0, 0)));
@@ -61,7 +61,7 @@ public sealed class StarMapTests
 	[Fact]
 	public void Fork_PreservesStateAndIndependentsTimeline()
 	{
-		var world = StarMap.CreateDevDefault(7);
+		var world = StarMap.Create(7);
 		world.Timeline.Clock.Set(3);
 
 		var fork = world.Fork();
@@ -99,9 +99,9 @@ public sealed class StarMapTests
 	}
 
 	[Fact]
-	public void CreateDevDefault_HasFiveDocks_NoStarDock()
+	public void Create_HasFiveDocks_NoStarDock()
 	{
-		var world = StarMap.CreateDevDefault(0);
+		var world = StarMap.Create(0);
 
 		Assert.Equal(6, world.DocksById.Count);
 		Assert.Equal(26, world.FleetRegistry.Ids.Count());

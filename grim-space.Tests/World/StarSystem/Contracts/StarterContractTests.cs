@@ -1,4 +1,3 @@
-using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -7,10 +6,10 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class DevDefaultContractTests(DevStarMapFixture maps)
+public sealed class StarterContractTests(StarMapFixture maps)
 {
 	[Fact]
-	public void CreateDevDefault_SeedsOfferedContractsWithValidShape()
+	public void Create_SeedsOfferedContractsWithValidShape()
 	{
 		var map = maps.Fresh(42);
 		var plan = map.Blueprint.SupplyPlan;
@@ -24,7 +23,7 @@ public sealed class DevDefaultContractTests(DevStarMapFixture maps)
 			Assert.IsType<HuntObjective>(contract.Objective);
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
-			Assert.Equal(StarMap.DevContractRewardCredits, contract.Terms.RewardCredits);
+			Assert.Equal(StarMap.StarterContractRewardCredits, contract.Terms.RewardCredits);
 
 			var hunt = (HuntObjective)contract.Objective;
 			Assert.Single(hunt.SpawnGroups);
@@ -35,7 +34,7 @@ public sealed class DevDefaultContractTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void CreateDevDefault_BriefingContainsSearchAreaDescription()
+	public void Create_BriefingContainsSearchAreaDescription()
 	{
 		var map = maps.Fresh(7);
 		var contract = map.ContractRegistry.Offered.First();

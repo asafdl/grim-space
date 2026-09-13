@@ -8,7 +8,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
-public sealed class WorkSchedulingTests(DevStarMapFixture maps)
+public sealed class WorkSchedulingTests(StarMapFixture maps)
 {
 	[Fact]
 	public void ArrivalAtIdlePoi_StartsWorkImmediately()

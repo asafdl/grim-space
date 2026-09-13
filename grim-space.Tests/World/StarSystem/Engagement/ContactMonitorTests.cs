@@ -11,7 +11,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class ContactMonitorTests(DevStarMapFixture maps)
+public sealed class ContactMonitorTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Contact_ProducesAwaitingDecision()

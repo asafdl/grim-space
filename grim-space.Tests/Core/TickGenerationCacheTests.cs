@@ -155,7 +155,7 @@ public sealed class TickGenerationCacheTests
 		Assert.Equal(7, resource);
 	}
 
-	[Fact(Skip = "Flaky: background completion can exceed the one-second timeout under load.")]
+	[Fact]
 	public void FailedFinalizationDoesNotBlockHealthyCompletions()
 	{
 		using var cache = new TickGenerationCache<string, int, int, int>(

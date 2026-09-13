@@ -6,7 +6,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Areas;
 
-public sealed class AreaPickerTests(DevStarMapFixture maps)
+public sealed class AreaPickerTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Pick_NullMap_Throws()

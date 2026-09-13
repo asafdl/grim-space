@@ -79,15 +79,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
 
-	public static StarSystemOrchestrator CreateDevSession(string playerFleetUnitId, int seed = 0)
+	public static StarSystemOrchestrator CreateSession(string playerFleetUnitId, int seed = 0)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
-		var map = StarMap.CreateDevDefault(seed);
+		var map = StarMap.Create(seed);
 		AddPlayerFleet(map, playerFleetUnitId, [BattleUnitType.Fighter]);
-		return InitializeDevSession(map, playerFleetUnitId);
+		return InitializeSession(map, playerFleetUnitId);
 	}
 
-	public static StarSystemOrchestrator CreateDevSession(
+	public static StarSystemOrchestrator CreateSession(
 		string playerFleetUnitId,
 		IReadOnlyList<FleetMember> playerFleetMembers,
 		int seed = 0)
@@ -96,12 +96,12 @@ public sealed class StarSystemOrchestrator : IDisposable
 		ArgumentNullException.ThrowIfNull(playerFleetMembers);
 		if (playerFleetMembers.Count == 0)
 			throw new ArgumentException("Player fleet must contain at least one member.", nameof(playerFleetMembers));
-		var map = StarMap.CreateDevDefault(seed);
+		var map = StarMap.Create(seed);
 		AddPlayerFleet(map, playerFleetUnitId, playerFleetMembers);
-		return InitializeDevSession(map, playerFleetUnitId);
+		return InitializeSession(map, playerFleetUnitId);
 	}
 
-	private static StarSystemOrchestrator InitializeDevSession(StarMap map, string playerFleetUnitId)
+	private static StarSystemOrchestrator InitializeSession(StarMap map, string playerFleetUnitId)
 	{
 		var orchestrator = FromMap(map, playerFleetUnitId);
 		orchestrator.CommitSetup(

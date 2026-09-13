@@ -20,7 +20,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void BeginEngagement_SetsActiveBattleFromCommittedEngagement()
 	{
-		var run = RunState.CreateDevDefault(42);
+		var run = RunState.CreateNewRun(42);
 		var playerId = RunState.PlayerFleetUnitId;
 		var pirateId = "pirate-a";
 		run.StarSystem.Map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
@@ -80,7 +80,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void Create_UsesUniquePatrolPositions()
 	{
-		var run = RunState.CreateDevDefault(42);
+		var run = RunState.CreateNewRun(42);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",

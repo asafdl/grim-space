@@ -31,10 +31,10 @@ public sealed class State
 		return true;
 	}
 
-	public static State CreateDevDefault(int seed = 0)
+	public static State CreateNewRun(int seed = 0)
 	{
 		var run = new State();
-		run.StarSystem = StarSystemOrchestrator.CreateDevSession(PlayerFleetUnitId, seed);
+		run.StarSystem = StarSystemOrchestrator.CreateSession(PlayerFleetUnitId, seed);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerFleetUnitId);
 		foreach (var member in playerFleet.Members)
 			run.PlayerParty.Add(member);

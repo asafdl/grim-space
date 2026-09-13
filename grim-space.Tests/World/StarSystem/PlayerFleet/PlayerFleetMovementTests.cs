@@ -12,7 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.PlayerFleet;
 
-public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
+public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 {
 	[Fact]
 	public void OrderMove_QueuesMoveWithoutMutatingLiveMap()

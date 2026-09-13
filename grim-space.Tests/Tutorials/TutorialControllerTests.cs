@@ -12,7 +12,7 @@ using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.Tutorials;
 
-public sealed class TutorialControllerTests(DevStarMapFixture maps)
+public sealed class TutorialControllerTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Sync_FirstContractObjectiveStartsWithoutPausingSimulation()

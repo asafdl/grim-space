@@ -1,3 +1,3 @@
 using GrimSpace.Tests.World.StarSystem;
 
-[assembly: AssemblyFixture(typeof(DevStarMapFixture))]
+[assembly: AssemblyFixture(typeof(StarMapFixture))]

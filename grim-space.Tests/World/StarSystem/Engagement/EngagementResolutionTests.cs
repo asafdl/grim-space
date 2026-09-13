@@ -16,7 +16,7 @@ using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class EngagementResolutionTests(DevStarMapFixture maps)
+public sealed class EngagementResolutionTests(StarMapFixture maps)
 {
 	private const string PlayerId = RunState.PlayerFleetUnitId;
 	private const string PirateId = "pirate-a";
@@ -108,7 +108,7 @@ public sealed class EngagementResolutionTests(DevStarMapFixture maps)
 	[Fact]
 	public void RunResolution_ClearsActiveBattleOnlyAfterSuccessfulVictory()
 	{
-		var run = RunState.CreateDevDefault(42);
+		var run = RunState.CreateNewRun(42);
 		AddPirate(run.StarSystem.Map, PirateId);
 		new CommitEngagementEffect(PlayerId, PirateId)
 			.Apply(

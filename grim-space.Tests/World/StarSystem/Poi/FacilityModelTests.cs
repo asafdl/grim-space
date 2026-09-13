@@ -6,7 +6,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
 
-public sealed class FacilityModelTests(DevStarMapFixture maps)
+public sealed class FacilityModelTests(StarMapFixture maps)
 {
 	[Fact]
 	public void AdministrativeCore_HasManagementFacility()
@@ -22,7 +22,7 @@ public sealed class FacilityModelTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void OtherDevMapPois_HaveEmptyFacilities()
+	public void OtherMapPois_HaveEmptyFacilities()
 	{
 		var world = maps.Fresh(42);
 

@@ -4,15 +4,15 @@ using GrimSpace.World.StarSystem;
 namespace GrimSpace.Tests.World.StarSystem;
 
 /// <summary>
-/// Assembly-scoped cache of <see cref="StarMap.CreateDevDefault"/> templates.
+/// Assembly-scoped cache of <see cref="StarMap.Create"/> templates.
 /// Call <see cref="Fresh"/> for a mutable fork; <see cref="Template"/> when the test only reads layout.
 /// </summary>
-public sealed class DevStarMapFixture
+public sealed class StarMapFixture
 {
 	private readonly ConcurrentDictionary<int, StarMap> _templates = new();
 
 	public StarMap Template(int seed) =>
-		_templates.GetOrAdd(seed, StarMap.CreateDevDefault);
+		_templates.GetOrAdd(seed, StarMap.Create);
 
 	public StarMap Fresh(int seed = 42) => Template(seed).Fork();
 }

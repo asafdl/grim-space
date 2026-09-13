@@ -10,7 +10,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
-public sealed class TrafficExecutionAgentTests(DevStarMapFixture maps)
+public sealed class TrafficExecutionAgentTests(StarMapFixture maps)
 {
 	[Fact]
 	public void PlanAndPublish_ReadyUnitPublishesMove()

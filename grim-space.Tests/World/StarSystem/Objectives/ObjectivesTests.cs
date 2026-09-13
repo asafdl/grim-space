@@ -9,7 +9,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
+public sealed class ContractFulfillmentTests(StarMapFixture maps)
 {
 	[Fact]
 	public void ReactionsFor_ReturnsCompletionWhenSpawnTargetsAreGone()
@@ -71,7 +71,7 @@ public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 	}
 }
 
-public sealed class ObjectivesCollectorTests(DevStarMapFixture maps)
+public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Collect_IncludesActiveContractsAndStoryObjectives()

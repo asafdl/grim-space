@@ -20,11 +20,10 @@ namespace GrimSpace.World.StarSystem;
 
 public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 {
-	public const int DevMapWidth = 1024;
-	public const int DevMapHeight = 1024;
-	public const int DevRouteHalfWidth = 24;
-	public const int DevOfferedContractCount = 1;
-	public const int DevContractRewardCredits = 100;
+	public const int MapWidth = 1024;
+	public const int MapHeight = 1024;
+	public const int RouteHalfWidth = 24;
+	public const int StarterContractRewardCredits = 100;
 
 	public StarSystemBlueprint Blueprint { get; }
 	public EFaction ControllingFaction => Blueprint.ControllingFaction;
@@ -116,14 +115,14 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		return distanceSquared < (long)combined * combined;
 	}
 
-	public static StarMap CreateDevDefault(int seed = 0)
+	public static StarMap Create(int seed = 0)
 	{
 		var map = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
-		SeedDevOfferedContracts(map);
+		SeedStarterContracts(map);
 		return map;
 	}
 
-	private static void SeedDevOfferedContracts(StarMap map)
+	private static void SeedStarterContracts(StarMap map)
 	{
 		var plan = map.Blueprint.SupplyPlan;
 		var issuerPoiId = plan.AdministrativePoiId;
@@ -134,9 +133,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			new[] { plan.RefineryPoiId, plan.ExitPoiId },
 		};
 		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
-		var searchArea = TryPickDevSearchArea(map, landmarkGroups, distances)
+		var searchArea = TryPickStarterSearchArea(map, landmarkGroups, distances)
 			?? throw new InvalidOperationException(
-				$"Could not seed a dev contract search area for map seed {map.Seed}.");
+				$"Could not seed a starter contract search area for map seed {map.Seed}.");
 		var contractId = TypedIdGenerator.NextId("contract");
 		var groupId = TypedIdGenerator.NextId("spawn-group");
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
@@ -163,12 +162,12 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			objective,
 			map.ControllingFaction,
 			issuerPoiId,
-			new ContractTerms(DevContractRewardCredits),
+			new ContractTerms(StarterContractRewardCredits),
 			narrative);
 		map.ContractRegistry.RegisterOffered(contract);
 	}
 
-	private static AreaPick? TryPickDevSearchArea(
+	private static AreaPick? TryPickStarterSearchArea(
 		StarMap map,
 		IReadOnlyList<IReadOnlyList<string>> landmarkGroups,
 		IReadOnlyList<EAreaDistance> distances)

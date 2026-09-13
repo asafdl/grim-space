@@ -9,7 +9,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Engine;
 
-public sealed class ExecutionAgentTests(DevStarMapFixture maps)
+public sealed class ExecutionAgentTests(StarMapFixture maps)
 {
 	[Fact]
 	public async Task WorldUpdatedAfterPublishRepublishesWhenCanWork()

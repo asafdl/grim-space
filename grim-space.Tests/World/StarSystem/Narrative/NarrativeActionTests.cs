@@ -11,7 +11,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Narrative;
 
-public sealed class NarrativeActionTests(DevStarMapFixture maps)
+public sealed class NarrativeActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void BeginNarrativeAction_SetsActiveNarrativeAndWaitingFlag()
@@ -27,9 +27,9 @@ public sealed class NarrativeActionTests(DevStarMapFixture maps)
 	}
 
 	[Fact]
-	public void CreateDevSession_BeginsWithOpeningNarrativeActive()
+	public void CreateSession_BeginsWithOpeningNarrativeActive()
 	{
-		var orchestrator = StarSystemOrchestrator.CreateDevSession(RunState.PlayerFleetUnitId, 42);
+		var orchestrator = StarSystemOrchestrator.CreateSession(RunState.PlayerFleetUnitId, 42);
 
 		Assert.Equal(MapNarratives.OpeningId, orchestrator.Map.ActiveNarrativeId);
 		Assert.True(orchestrator.Map.WaitingForPlayerInput);

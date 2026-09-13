@@ -4,7 +4,7 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.Tests.World.StarSystem.Resources;
 
-public sealed class ResourceEffectTests(DevStarMapFixture maps)
+public sealed class ResourceEffectTests(StarMapFixture maps)
 {
 	[Fact]
 	public void ChangeResourceEffect_AppliesSignedDelta()

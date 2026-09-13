@@ -13,7 +13,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
 
-public sealed class MoveActionTests(DevStarMapFixture maps)
+public sealed class MoveActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Commit_RecordsMoveInTimelineAndStartsJourney()

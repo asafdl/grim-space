@@ -12,7 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
+public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 {
 	[Fact]
 	public void MoveDuringAwaitingDecision_ClearsHuntAndResumesTicks()

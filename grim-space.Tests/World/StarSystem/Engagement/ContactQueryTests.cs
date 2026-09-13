@@ -12,7 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class ContactQueryTests(DevStarMapFixture maps)
+public sealed class ContactQueryTests(StarMapFixture maps)
 {
 	[Fact]
 	public void CommittedPositionOf_DockedUnit_ReturnsDockPosition()

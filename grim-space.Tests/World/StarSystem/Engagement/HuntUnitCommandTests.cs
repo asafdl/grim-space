@@ -8,7 +8,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class HuntUnitCommandTests(DevStarMapFixture maps)
+public sealed class HuntUnitCommandTests(StarMapFixture maps)
 {
 	[Fact]
 	public void TryQueueHuntUnit_QueuesCourseWithoutMutatingLiveMap()

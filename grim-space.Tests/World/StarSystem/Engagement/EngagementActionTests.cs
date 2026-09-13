@@ -13,7 +13,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
-public sealed class EngageActionTests(DevStarMapFixture maps)
+public sealed class EngageActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Commit_CreatesSymmetricEngaged()
@@ -97,7 +97,7 @@ public sealed class EngageActionTests(DevStarMapFixture maps)
 	}
 }
 
-public sealed class FleeActionTests(DevStarMapFixture maps)
+public sealed class FleeActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Commit_ResolvesWithoutOutcome()
@@ -149,7 +149,7 @@ public sealed class FleeActionTests(DevStarMapFixture maps)
 	}
 }
 
-public sealed class ResolveEngagementActionTests(DevStarMapFixture maps)
+public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Commit_StoresEachParticipantState()

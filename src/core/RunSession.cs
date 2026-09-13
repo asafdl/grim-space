@@ -138,7 +138,7 @@ public partial class RunSession : Node
 	public void StartNewRun()
 	{
 		Run?.StarSystem?.Dispose();
-		Run = State.CreateDevDefault(Random.Shared.Next());
+		Run = State.CreateNewRun(Random.Shared.Next());
 		Run.ActiveBattle = null;
 	}
 
@@ -169,7 +169,7 @@ public partial class RunSession : Node
 		if (_preparedRunTask is { IsCompleted: true, IsFaulted: false })
 			return;
 
-		_preparedRunTask = Task.Run(() => State.CreateDevDefault(Random.Shared.Next()));
+		_preparedRunTask = Task.Run(() => State.CreateNewRun(Random.Shared.Next()));
 	}
 
 	private bool TryAdoptPreparedRun()
@@ -294,7 +294,7 @@ public partial class RunSession : Node
 
 		var nextSeed = seed ?? Random.Shared.Next();
 		Run.StarSystem.Dispose();
-		Run.StarSystem = StarSystemOrchestrator.CreateDevSession(
+		Run.StarSystem = StarSystemOrchestrator.CreateSession(
 			State.PlayerFleetUnitId,
 			Run.PlayerParty.Members,
 			nextSeed);

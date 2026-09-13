@@ -2,7 +2,7 @@ namespace GrimSpace.World.Factions;
 
 public static class FactionCatalog
 {
-	public const EFaction DevDefault = EFaction.TheOptimality;
+	public const EFaction SupplySystemController = EFaction.TheOptimality;
 
 	public static string DisplayName(EFaction faction) =>
 		faction switch

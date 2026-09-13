@@ -8,7 +8,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
-public sealed class TrafficSimulationTests(DevStarMapFixture maps)
+public sealed class TrafficSimulationTests(StarMapFixture maps)
 {
 	[Fact]
 	public void AdvanceTick_DepartsDockedUnitWithResolvedPath()

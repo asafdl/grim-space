@@ -23,10 +23,10 @@ public static class SupplySystemGenerator
 
 		return new StarSystemBlueprint(
 			seed,
-			StarMap.DevMapWidth,
-			StarMap.DevMapHeight,
+			StarMap.MapWidth,
+			StarMap.MapHeight,
 			EStarSystemClass.Supply,
-			FactionCatalog.DevDefault,
+			FactionCatalog.SupplySystemController,
 			plan,
 			plan.CreatePoiTemplates(seed),
 			unitSpawns);

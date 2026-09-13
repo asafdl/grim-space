@@ -7,7 +7,7 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
-public sealed class WorldObjectQueriesTests(DevStarMapFixture maps)
+public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 {
 	[Fact]
 	public void ResolveFocusable_PointOfInterest_ReturnsPlacedCenter()

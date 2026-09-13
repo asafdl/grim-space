@@ -8,7 +8,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class DeclineContractActionTests(DevStarMapFixture maps)
+public sealed class DeclineContractActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void TryEnqueue_SucceedsForOfferedContract()

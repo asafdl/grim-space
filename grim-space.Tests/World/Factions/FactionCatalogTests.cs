@@ -5,10 +5,10 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.Factions;
 
-public sealed class FactionCatalogTests(DevStarMapFixture maps)
+public sealed class FactionCatalogTests(StarMapFixture maps)
 {
 	[Fact]
-	public void DevDefaultStarSystem_IsControlledByTheOptimality()
+	public void SupplySystem_IsControlledByTheOptimality()
 	{
 		var map = maps.Fresh();
 
