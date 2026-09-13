@@ -12,9 +12,9 @@ public partial class UnitView : Node3D
 	private Label3D? _momentumLabel;
 	private MeshInstance3D? _hull;
 	private MeshInstance3D? _hitMark;
-	private Color _hullColor;
 	private EType _type;
 	private readonly int[] _shieldPoints = new int[Faces.Length];
+	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
 	private bool _hitMarked;
 	private bool _introMarked;
 	private Tween? _introTween;
@@ -23,7 +23,6 @@ public partial class UnitView : Node3D
 	public void Bind(State state, Color color)
 	{
 		Name = state.Id;
-		_hullColor = color;
 		_type = state.Type;
 		Array.Fill(_shieldPoints, -1);
 
@@ -35,6 +34,8 @@ public partial class UnitView : Node3D
 			BindCarrier(color);
 		else
 			BindShip(color);
+
+		BindShieldBubble(state);
 
 		_momentumLabel = new Label3D
 		{
@@ -87,7 +88,7 @@ public partial class UnitView : Node3D
 			.SetTrans(Tween.TransitionType.Linear);
 		_poseTween.Chain().TweenCallback(Callable.From(() =>
 		{
-			ApplyShieldColors(state);
+			ApplyShields(state);
 			ApplyStatus(state);
 			_poseTween = null;
 		}));
@@ -145,7 +146,7 @@ public partial class UnitView : Node3D
 			.SetEase(Tween.EaseType.InOut);
 		_poseTween.Chain().TweenCallback(Callable.From(() =>
 		{
-			ApplyShieldColors(state);
+			ApplyShields(state);
 			ApplyStatus(state);
 			_poseTween = null;
 		}));
@@ -285,8 +286,7 @@ public partial class UnitView : Node3D
 	{
 		Position = WorldMapping.ToWorld(state.Position);
 		ApplyOrientation(state);
-		if (_type != EType.Torpedo)
-			ApplyShieldColors(state);
+		ApplyShields(state);
 		ApplyStatus(state);
 	}
 
@@ -347,6 +347,7 @@ public partial class UnitView : Node3D
 		_hull = new MeshInstance3D
 		{
 			Mesh = ShipMesh.CreateHull(),
+			MaterialOverride = CreateHullMaterial(color),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 		};
 		AddChild(_hull);
@@ -372,6 +373,7 @@ public partial class UnitView : Node3D
 		_hull = new MeshInstance3D
 		{
 			Mesh = CarrierMesh.CreateHull(),
+			MaterialOverride = CreateHullMaterial(color),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 		};
 		AddChild(_hull);
@@ -397,6 +399,7 @@ public partial class UnitView : Node3D
 		_hull = new MeshInstance3D
 		{
 			Mesh = PatrolMesh.CreateHull(),
+			MaterialOverride = CreateHullMaterial(color),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 		};
 		AddChild(_hull);
@@ -436,31 +439,78 @@ public partial class UnitView : Node3D
 		AddChild(_hull);
 	}
 
-	private void ApplyShieldColors(State state)
+	private void BindShieldBubble(State state)
 	{
-		if (_hull is null)
-			return;
-
+		var bounds = LocalVisualBounds();
 		var maxProfile = state.Stats.MaxShieldPoints;
 		foreach (var face in Faces)
 		{
-			var index = _type switch
+			if (maxProfile[face] <= 0)
+				continue;
+
+			var instance = new MeshInstance3D
 			{
-				EType.Patrol => PatrolMesh.SurfaceIndex(face),
-				EType.Carrier => CarrierMesh.SurfaceIndex(face),
-				_ => ShipMesh.SurfaceIndex(face),
+				Name = $"Shield{face}",
+				Mesh = ShieldBubbleMesh.CreateFace(bounds, face),
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			};
+			PresentationLayers.MarkUx(instance);
+			_shieldFaces[(int)face] = instance;
+			AddChild(instance);
+		}
+	}
+
+	private void ApplyShields(State state)
+	{
+		var maxProfile = state.Stats.MaxShieldPoints;
+		foreach (var face in Faces)
+		{
+			var index = (int)face;
+			var instance = _shieldFaces[index];
+			if (instance is null)
+				continue;
+
 			var maxOnFace = maxProfile[face];
-			var points = state.ShieldPoints[face];
+			var points = System.Math.Clamp(state.ShieldPoints[face], 0, maxOnFace);
 			if (_shieldPoints[index] == points)
 				continue;
 
 			_shieldPoints[index] = points;
-			_hull.SetSurfaceOverrideMaterial(
-				index,
-				ShieldFaceMaterials.For(_hullColor, points, maxOnFace));
+			instance.Visible = points > 0;
+			if (instance.Visible)
+				instance.MaterialOverride = ShieldFaceMaterials.For(points, maxOnFace);
 		}
 	}
+
+	private Aabb LocalVisualBounds()
+	{
+		var found = false;
+		var bounds = default(Aabb);
+		foreach (var child in GetChildren())
+		{
+			if (child is not MeshInstance3D { Mesh: { } mesh })
+				continue;
+
+			var meshBounds = mesh.GetAabb();
+			bounds = found ? bounds.Merge(meshBounds) : meshBounds;
+			found = true;
+		}
+
+		return found
+			? bounds
+			: throw new InvalidOperationException("Cannot build a shield bubble without a unit mesh.");
+	}
+
+	private static StandardMaterial3D CreateHullMaterial(Color color) =>
+		new()
+		{
+			AlbedoColor = color.Lightened(0.12f),
+			EmissionEnabled = true,
+			Emission = color.Lightened(0.35f),
+			EmissionEnergyMultiplier = 0.25f,
+			Roughness = 0.45f,
+			Metallic = 0.1f,
+		};
 
 	private void ApplyStatus(State state)
 	{
