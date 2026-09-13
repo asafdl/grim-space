@@ -6,6 +6,9 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -37,6 +40,7 @@ public partial class MapController : Node3D
 	private StarSystemTutorialController? _tutorial;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
+	private IDisposable _engageSubscription = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -44,6 +48,7 @@ public partial class MapController : Node3D
 	private float _tickAccumulator;
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
+	private bool _battleTransitionPending;
 
 	public override void _Ready()
 	{
@@ -70,8 +75,27 @@ public partial class MapController : Node3D
 
 		var engagementHud = new EngagementHudOverlay();
 		_uiLayer.AddChild(engagementHud);
-		_engagement = new EngagementController(_orchestrator, engagementHud);
-		_engagement.BattleRequested += OnBattleRequested;
+		_engagement = new EngagementController(
+			engagementHud,
+			() => EngagementQueries.TryGetPendingPlayerEngagement(
+				_orchestrator.Map,
+				State.PlayerFleetUnitId,
+				out var pending)
+					? pending
+					: null,
+			() => _orchestrator.PlayerAgent!.TryEnqueue(
+				[new EngageAction(State.PlayerFleetUnitId)]),
+			() => _orchestrator.PlayerAgent!.TryEnqueue(
+				[new FleeAction(State.PlayerFleetUnitId)]),
+			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()));
+		_engageSubscription = _orchestrator.Subscribe<EngageAction>(OnEngagementCommitted);
+		if (EngagementQueries.TryGetCommittedPlayerEngagement(
+			_orchestrator.Map,
+			State.PlayerFleetUnitId,
+			out _))
+		{
+			DeferBattleTransition();
+		}
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
@@ -119,10 +143,15 @@ public partial class MapController : Node3D
 		var narrativeHud = new NarrativeHudOverlay();
 		_uiLayer.AddChild(narrativeHud);
 		_narrative = new NarrativeController(
-			_orchestrator,
 			narrativeHud,
 			_worldFocus,
-			_worldIndicator);
+			_worldIndicator,
+			ResolveNarrative(_orchestrator.Map.ActiveNarrativeId),
+			narrativeId => ResolveNarrative(narrativeId),
+			narrativeId => _orchestrator.PlayerAgent!.TryEnqueue(
+				[new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]),
+			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
+				action => onBegin(action.NarrativeId)));
 		if (GameSettings.ReadShowTutorials())
 		{
 			_tutorialDialog = new TutorialDialog();
@@ -156,8 +185,6 @@ public partial class MapController : Node3D
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
-		_narrative.Sync();
-		_engagement.Sync();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
@@ -185,8 +212,6 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
-		_narrative.Sync();
-		_engagement.Sync();
 		_poiFacade.Update();
 		_tutorial?.Sync();
 
@@ -207,7 +232,7 @@ public partial class MapController : Node3D
 
 	public override void _ExitTree()
 	{
-		_engagement.BattleRequested -= OnBattleRequested;
+		_engageSubscription.Dispose();
 		_engagement.Dispose();
 		_narrative.Dispose();
 		_tutorial?.Dispose();
@@ -308,8 +333,30 @@ public partial class MapController : Node3D
 	private Coord CommittedPositionOf(string unitId) =>
 		_orchestrator.CommittedPositionOf(unitId, _tickAccumulator / SecondsPerTick);
 
-	private void OnBattleRequested()
+	private NarrativeDefinition? ResolveNarrative(string? narrativeId) =>
+		narrativeId is not null
+		&& MapNarratives.TryGet(narrativeId, _orchestrator.Map, out var narrative)
+			? narrative
+			: null;
+
+	private void OnEngagementCommitted(EngageAction engage)
 	{
+		if (engage.ActorId == State.PlayerFleetUnitId)
+			DeferBattleTransition();
+	}
+
+	private void DeferBattleTransition()
+	{
+		if (_battleTransitionPending)
+			return;
+
+		_battleTransitionPending = true;
+		Callable.From(BeginBattleTransition).CallDeferred();
+	}
+
+	private void BeginBattleTransition()
+	{
+		_battleTransitionPending = false;
 		if (!RunSession.Instance.BeginEngagement(State.PlayerFleetUnitId))
 			return;
 

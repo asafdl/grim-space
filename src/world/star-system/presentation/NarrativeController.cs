@@ -1,66 +1,83 @@
 using Godot;
 using GrimSpace.Education;
-using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Narrative;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed class NarrativeController : IDisposable
 {
-	private readonly StarSystemOrchestrator _orchestrator;
-	private readonly StarMapPlayerExecutionAgent _playerAgent;
 	private readonly NarrativeHudOverlay _hud;
 	private readonly WorldLinkNavigator _worldLinks;
+	private readonly Func<string, NarrativeDefinition?> _resolveNarrative;
+	private readonly Func<string, bool> _tryComplete;
+	private readonly IDisposable _beginSubscription;
+	private NarrativeDefinition? _currentNarrative;
 
 	public NarrativeController(
-		StarSystemOrchestrator orchestrator,
 		NarrativeHudOverlay hud,
 		IWorldFocus worldFocus,
-		IWorldIndicator worldIndicator)
+		IWorldIndicator worldIndicator,
+		NarrativeDefinition? initialNarrative,
+		Func<string, NarrativeDefinition?> resolveNarrative,
+		Func<string, bool> tryComplete,
+		Func<Action<string>, IDisposable> subscribeBegin)
 	{
-		_orchestrator = orchestrator;
-		_playerAgent = orchestrator.PlayerAgent
-			?? throw new InvalidOperationException("Narrative requires a player execution agent.");
 		_hud = hud;
 		_worldLinks = new WorldLinkNavigator(worldFocus, worldIndicator);
+		_resolveNarrative = resolveNarrative;
+		_tryComplete = tryComplete;
 		_hud.Completed += OnCompleted;
 		_hud.PageBegan += OnPageBegan;
 		_hud.Body.MetaClicked += OnMetaClicked;
-		_orchestrator.WorldUpdated += Sync;
+		_beginSubscription = subscribeBegin(OnNarrativeBegan);
+		if (initialNarrative is not null)
+			Show(initialNarrative);
 	}
 
 	public bool TryHandleInput(Godot.InputEvent @event) => _hud.TryHandleInput(@event);
 
-	public void Sync()
+	private void OnNarrativeBegan(string narrativeId)
 	{
-		var narrativeId = _orchestrator.Map.ActiveNarrativeId;
-		if (narrativeId is not null
-			&& MapNarratives.TryGet(narrativeId, _orchestrator.Map, out var narrative))
+		var narrative = _resolveNarrative(narrativeId);
+		if (narrative is null)
 		{
-			if (!_hud.IsOpen)
-				_hud.Open(narrative);
+			GD.PushError($"Narrative '{narrativeId}' is not defined.");
+			Close();
+			return;
 		}
-		else if (_hud.IsOpen)
-		{
-			ClearIndicator();
-			_hud.Close();
-		}
+
+		Show(narrative);
 	}
 
 	private void OnCompleted()
 	{
 		ClearIndicator();
-		var narrativeId = _orchestrator.Map.ActiveNarrativeId;
-		if (narrativeId is null)
+		var narrative = _currentNarrative;
+		if (narrative is null)
 			return;
 
 		_hud.SetBusy(true);
-		if (_playerAgent.TryEnqueue([new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]))
+		if (_tryComplete(narrative.Id))
+		{
+			Close();
 			return;
+		}
 
 		_hud.ShowError("Unable to continue.");
+	}
+
+	private void Show(NarrativeDefinition narrative)
+	{
+		_currentNarrative = narrative;
+		_hud.Open(narrative);
+	}
+
+	private void Close()
+	{
+		_currentNarrative = null;
+		ClearIndicator();
+		if (_hud.IsOpen)
+			_hud.Close();
 	}
 
 	private void OnMetaClicked(Variant metadata)
@@ -101,7 +118,7 @@ public sealed class NarrativeController : IDisposable
 	public void Dispose()
 	{
 		ClearIndicator();
-		_orchestrator.WorldUpdated -= Sync;
+		_beginSubscription.Dispose();
 		_hud.Completed -= OnCompleted;
 		_hud.PageBegan -= OnPageBegan;
 		_hud.Body.MetaClicked -= OnMetaClicked;

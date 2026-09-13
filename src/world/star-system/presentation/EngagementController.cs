@@ -1,87 +1,69 @@
-using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contact;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed class EngagementController : IDisposable
 {
-	private readonly StarSystemOrchestrator _orchestrator;
-	private readonly StarMapPlayerExecutionAgent _playerAgent;
 	private readonly EngagementHudOverlay _hud;
-	private bool _committedEngagementSeen;
+	private readonly Func<PendingEngagement?> _pendingEngagement;
+	private readonly Func<bool> _tryEngage;
+	private readonly Func<bool> _tryFlee;
+	private readonly IDisposable _contactSubscription;
 
 	public EngagementController(
-		StarSystemOrchestrator orchestrator,
-		EngagementHudOverlay hud)
+		EngagementHudOverlay hud,
+		Func<PendingEngagement?> pendingEngagement,
+		Func<bool> tryEngage,
+		Func<bool> tryFlee,
+		Func<Action, IDisposable> subscribeContact)
 	{
-		_orchestrator = orchestrator;
-		_playerAgent = orchestrator.PlayerAgent
-			?? throw new InvalidOperationException("Engagement requires a player execution agent.");
 		_hud = hud;
+		_pendingEngagement = pendingEngagement;
+		_tryEngage = tryEngage;
+		_tryFlee = tryFlee;
 		_hud.EngageRequested += OnEngageRequested;
 		_hud.FleeRequested += OnFleeRequested;
-		_orchestrator.WorldUpdated += Sync;
+		_contactSubscription = subscribeContact(Sync);
+		Sync();
 	}
-
-	public event Action? BattleRequested;
 
 	public bool TryHandleInput(Godot.InputEvent @event) => _hud.TryHandleInput(@event);
 
-	public void Sync()
+	private void Sync()
 	{
-		var playerId = _orchestrator.PlayerId
-			?? throw new InvalidOperationException("Engagement requires a player id.");
-		var world = _orchestrator.Map;
-
-		if (EngagementQueries.TryGetPendingPlayerEngagement(world, playerId, out var pending))
-		{
-			if (!_hud.IsOpen)
-				_hud.Sync(pending);
-		}
+		if (_pendingEngagement() is { } pending)
+			_hud.Sync(pending);
 		else if (_hud.IsOpen)
-		{
 			_hud.Close();
-		}
-
-		if (EngagementQueries.TryGetCommittedPlayerEngagement(world, playerId, out _))
-		{
-			if (!_committedEngagementSeen)
-			{
-				_committedEngagementSeen = true;
-				BattleRequested?.Invoke();
-			}
-		}
-		else
-		{
-			_committedEngagementSeen = false;
-		}
 	}
 
 	private void OnEngageRequested()
 	{
-		var playerId = State.PlayerFleetUnitId;
 		_hud.SetBusy(true);
-		if (_playerAgent.TryEnqueue([new EngageAction(playerId)]))
+		if (_tryEngage())
+		{
+			_hud.Close();
 			return;
+		}
 
 		_hud.ShowError("Unable to engage.");
 	}
 
 	private void OnFleeRequested()
 	{
-		var playerId = State.PlayerFleetUnitId;
 		_hud.SetBusy(true);
-		if (_playerAgent.TryEnqueue([new FleeAction(playerId)]))
+		if (_tryFlee())
+		{
+			_hud.Close();
 			return;
+		}
 
 		_hud.ShowError("Unable to flee.");
 	}
 
 	public void Dispose()
 	{
-		_orchestrator.WorldUpdated -= Sync;
+		_contactSubscription.Dispose();
 		_hud.EngageRequested -= OnEngageRequested;
 		_hud.FleeRequested -= OnFleeRequested;
 	}
