@@ -5,6 +5,8 @@ namespace GrimSpace.Components;
 public static class HudStyles
 {
 	public const int Margin = 20;
+	public const int ObjectivesHudPanelWidth = 500;
+	public const int HudSiblingGap = 12;
 	public const int HalfMargin = 10;
 	public const int BodyScrollMinHeight = 192;
 	public const int InformativeListPadding = 22;

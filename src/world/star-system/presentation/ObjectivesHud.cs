@@ -6,7 +6,6 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public partial class ObjectivesHud : MarginContainer
 {
-	private const int PanelWidth = 500;
 	private const int ObjectiveTitleFontSize = 18;
 	private const int ObjectiveSummaryFontSize = 16;
 
@@ -49,7 +48,7 @@ public partial class ObjectivesHud : MarginContainer
 			"ACTIVE OBJECTIVES",
 			HudStyles.ObjectivesHudPanelType,
 			includeCounter: true);
-		shell.Root.CustomMinimumSize = new Vector2(PanelWidth, 0);
+		shell.Root.CustomMinimumSize = new Vector2(HudStyles.ObjectivesHudPanelWidth, 0);
 		AddChild(shell.Root);
 		_headerCountLabel = shell.HeaderBadge!;
 

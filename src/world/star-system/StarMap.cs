@@ -12,6 +12,7 @@ using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
@@ -39,6 +40,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public FleetRegistry FleetRegistry { get; }
 	public ContractRegistry ContractRegistry { get; }
 	public StoryObjectiveRegistry StoryObjectives { get; }
+	public PlayerResources PlayerResources { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
@@ -57,6 +59,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		FleetRegistry fleetRegistry,
 		ContractRegistry contractRegistry,
 		StoryObjectiveRegistry storyObjectives,
+		PlayerResources playerResources,
 		PathfindingTerrain pathfindingTerrain,
 		bool waitingForPlayerInput = false,
 		string? activeNarrativeId = null)
@@ -73,6 +76,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		FleetRegistry = fleetRegistry;
 		ContractRegistry = contractRegistry;
 		StoryObjectives = storyObjectives;
+		PlayerResources = playerResources;
 		PathfindingTerrain = pathfindingTerrain;
 		WaitingForPlayerInput = waitingForPlayerInput;
 		ActiveNarrativeId = activeNarrativeId;
@@ -98,6 +102,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			FleetRegistry.CloneForFork(),
 			ContractRegistry.CloneForFork(),
 			StoryObjectives.CloneForFork(),
+			PlayerResources.CloneForFork(),
 			PathfindingTerrain,
 			WaitingForPlayerInput,
 			ActiveNarrativeId);

@@ -34,6 +34,7 @@ public partial class MapController : Node3D
 	private Button _rebuildButton = null!;
 	private CanvasLayer _uiLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
+	private ResourceHud _resourceHud = null!;
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
 	private TutorialDialog? _tutorialDialog;
@@ -69,6 +70,7 @@ public partial class MapController : Node3D
 		_speedButton = debugHud.SpeedButton;
 		_rebuildButton = debugHud.RebuildButton;
 		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
+		_resourceHud = GetNode<ResourceHud>("UI/ResourceHud");
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
@@ -184,6 +186,7 @@ public partial class MapController : Node3D
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
+		UpdateResourceHud();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
@@ -211,6 +214,7 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
+		UpdateResourceHud();
 		_poiFacade.Update();
 
 		if (!_poiFacade.IsStrategic)
@@ -390,6 +394,9 @@ public partial class MapController : Node3D
 		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
 		_objectivesHud.Sync(objectives);
 	}
+
+	private void UpdateResourceHud() =>
+		_resourceHud.Sync(_orchestrator.Map.PlayerResources);
 
 	private static void ConfigureTutorialDialog(TutorialDialog dialog)
 	{

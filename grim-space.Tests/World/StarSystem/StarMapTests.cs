@@ -77,6 +77,7 @@ public sealed class StarMapTests
 		Assert.Same(world.PathfindingTerrain, fork.PathfindingTerrain);
 		Assert.NotSame(world.Timeline, fork.Timeline);
 		Assert.NotSame(world.FleetRegistry, fork.FleetRegistry);
+		Assert.NotSame(world.PlayerResources, fork.PlayerResources);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
 		Assert.Equal(26, world.FleetRegistry.Ids.Count());
 		Assert.Equal(26, fork.FleetRegistry.Ids.Count());
