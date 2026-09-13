@@ -8,22 +8,22 @@ namespace GrimSpace.World.StarSystem.Effects;
 
 public sealed class SpawnMapUnitEffect : IEffect<StarMap, ActorRuntime>
 {
-	private readonly Unit _unit;
+	private readonly Fleet _fleet;
 
-	public SpawnMapUnitEffect(Unit unit) => _unit = unit;
+	public SpawnMapUnitEffect(Fleet fleet) => _fleet = fleet;
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
-		if (world.UnitRegistry.Contains(_unit.State.Id))
+		if (world.FleetRegistry.Contains(_fleet.State.Id))
 		{
-			GameLog.Log($"[star-map] spawn skipped: unit '{_unit.State.Id}' already exists.");
+			GameLog.Log($"[star-map] spawn skipped: fleet '{_fleet.State.Id}' already exists.");
 			return [];
 		}
 
-		world.UnitRegistry.Add(_unit);
+		world.FleetRegistry.Add(_fleet);
 		return [];
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId) =>
-		world.UnitRegistry.Remove(_unit.State.Id);
+		world.FleetRegistry.Remove(_fleet.State.Id);
 }

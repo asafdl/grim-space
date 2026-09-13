@@ -10,6 +10,7 @@ using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -19,10 +20,10 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 	public void OfferedContractsSpawnNothing()
 	{
 		var map = maps.Fresh(42);
-		var initialCount = map.UnitRegistry.All.Count();
+		var initialCount = map.FleetRegistry.All.Count();
 
 		Assert.Single(map.ContractRegistry.Offered);
-		Assert.Equal(initialCount, map.UnitRegistry.All.Count());
+		Assert.Equal(initialCount, map.FleetRegistry.All.Count());
 	}
 
 	[Fact]
@@ -31,7 +32,7 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
 		engine.Commit(new AcceptContractAction(unitId, contractId));
 
-		var spawned = engine.World.UnitRegistry.All
+		var spawned = engine.World.FleetRegistry.All
 			.Single(unit => unit.State.Type == EType.PirateFleet);
 
 		Assert.Equal(EFaction.Pirates, spawned.State.Faction);
@@ -39,6 +40,32 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 		Assert.Equal(EPhase.Docked, spawned.State.Phase);
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
+		Assert.Equal(3, spawned.Members.Count);
+		Assert.All(spawned.Members, member =>
+		{
+			Assert.Equal(GrimSpace.Units.Enums.EType.Patrol, member.Type);
+			Assert.StartsWith("patrol-", member.Id);
+		});
+		Assert.Equal(
+			spawned.Members.Count,
+			spawned.Members.Select(member => member.Id).Distinct(StringComparer.Ordinal).Count());
+	}
+
+	[Fact]
+	public void PreviewReevaluationAndCommitPreserveFleetMemberIds()
+	{
+		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
+		var action = new AcceptContractAction(unitId, contractId);
+		var sim = engine.CreateSimulation();
+
+		Assert.True(sim.TryEnqueue(action));
+		var previewIds = PirateMemberIds(sim.World);
+
+		sim.Reevaluate();
+		Assert.Equal(previewIds, PirateMemberIds(sim.World));
+
+		engine.Commit(action);
+		Assert.Equal(previewIds, PirateMemberIds(engine.World));
 	}
 
 	[Fact]
@@ -53,12 +80,12 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 		]);
 		RegisterSyntheticContract(map, "multi-hunt", objective);
 
-		var unitId = map.UnitRegistry.Ids.First();
+		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);
 		engine.Commit(new AcceptContractAction(unitId, "multi-hunt"));
 
-		var pirateFleets = engine.World.UnitRegistry.All
+		var pirateFleets = engine.World.FleetRegistry.All
 			.Where(unit => unit.State.Type == EType.PirateFleet)
 			.ToList();
 		Assert.Equal(3, pirateFleets.Count);
@@ -78,13 +105,13 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 			contract.Id,
 			map.Seed,
 			map,
-			map.UnitRegistry);
+			map.FleetRegistry);
 		var second = ContractFleetPlacement.Plan(
 			hunt.SpawnGroups,
 			contract.Id,
 			map.Seed,
 			map,
-			map.UnitRegistry);
+			map.FleetRegistry);
 
 		Assert.Equal(
 			first.Select(spawn => (spawn.UnitId, spawn.Coord.X, spawn.Coord.Z)).ToList(),
@@ -125,13 +152,13 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 	public void DuplicateUnitIdFailsBeforeMutation()
 	{
 		var map = maps.Fresh(42);
-		var unitId = map.UnitRegistry.Ids.First();
+		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 
 		var contract = map.ContractRegistry.Offered.First();
 		var groupId = ((HuntObjective)contract.Objective).SpawnGroups[0].GroupId;
 		var existingId = $"{contract.Id}.{groupId}.0";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			existingId,
 			new Coord(10, 0, 10),
 			EFaction.Pirates,
@@ -141,33 +168,41 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 		Assert.Throws<InvalidOperationException>(() =>
 			engine.Commit(new AcceptContractAction(unitId, contract.Id)));
 		Assert.True(map.ContractRegistry.IsOffered(contract.Id));
-		Assert.Equal(1, map.UnitRegistry.All.Count(unit => unit.State.Type == EType.PirateFleet));
+		Assert.Equal(1, map.FleetRegistry.All.Count(unit => unit.State.Type == EType.PirateFleet));
 	}
 
 	[Fact]
 	public void PreviewDequeueUndoesSpawnsAndActivation()
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
-		var initialCount = engine.World.UnitRegistry.All.Count();
+		var initialCount = engine.World.FleetRegistry.All.Count();
 		var sim = engine.CreateSimulation();
 
 		Assert.True(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
-		Assert.Equal(initialCount + 1, sim.World.UnitRegistry.All.Count());
+		Assert.Equal(initialCount + 1, sim.World.FleetRegistry.All.Count());
 		Assert.False(sim.World.ContractRegistry.IsOffered(contractId));
 
 		sim.Dequeue();
 
-		Assert.Equal(initialCount, sim.World.UnitRegistry.All.Count());
+		Assert.Equal(initialCount, sim.World.FleetRegistry.All.Count());
 		Assert.True(sim.World.ContractRegistry.IsOffered(contractId));
 		Assert.False(sim.World.ContractRegistry.TryGetState(contractId, out _));
 	}
 
 	private static IReadOnlyList<(string UnitId, int X, int Z)> CaptureProvisioning(StarMap map) =>
-		map.UnitRegistry.All
+		map.FleetRegistry.All
 			.Where(unit => unit.State.Type == EType.PirateFleet)
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 			.Select(unit => (unit.State.Id, unit.State.IdleCoord.X, unit.State.IdleCoord.Z))
 			.ToList();
+
+	private static string[] PirateMemberIds(StarMap map) =>
+		map.FleetRegistry.All
+			.Where(fleet => fleet.State.Type == EType.PirateFleet)
+			.SelectMany(fleet => fleet.Members)
+			.Select(member => member.Id)
+			.OrderBy(id => id, StringComparer.Ordinal)
+			.ToArray();
 
 	private static void RegisterSyntheticContract(StarMap map, string contractId, HuntObjective objective)
 	{
@@ -198,7 +233,7 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 	private static void DockAtIssuer(StarMap map, string unitId)
 	{
 		var issuerDockId = map.DocksByPoiId[map.Blueprint.SupplyPlan.AdministrativePoiId].Id;
-		var state = map.UnitRegistry.UnitOf(unitId).State;
+		var state = map.FleetRegistry.FleetOf(unitId).State;
 		state.Phase = EPhase.Docked;
 		state.DockedAtDockId = issuerDockId;
 	}
@@ -214,7 +249,7 @@ public sealed class HuntProvisioningTests(DevStarMapFixture maps)
 		int seed = 42)
 	{
 		var map = maps.Fresh(seed);
-		var unitId = map.UnitRegistry.Ids.First();
+		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);
 		var contractId = map.ContractRegistry.Offered.First().Id;

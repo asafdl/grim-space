@@ -1,8 +1,12 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
@@ -22,7 +26,7 @@ internal static class StarSystemTestHarness
 		StarMap? map = null)
 	{
 		map ??= maps.Fresh(seed);
-		if (map.UnitRegistry.All.All(unit => unit.State.Id != playerFleetUnitId))
+		if (map.FleetRegistry.All.All(unit => unit.State.Id != playerFleetUnitId))
 			AddPlayerFleet(map, playerFleetUnitId);
 		return StarSystemOrchestrator.FromMap(
 			map,
@@ -33,15 +37,37 @@ internal static class StarSystemTestHarness
 	internal static void AddPlayerFleet(StarMap map, string playerFleetUnitId)
 	{
 		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
-		map.UnitRegistry.Add(Factory.Create(new Spawn(
-			playerFleetUnitId,
-			EType.PlayerFleet,
-			tradeHubDock.Id,
-			default,
-			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
-			UnitDefaults.EngageRadius(EType.PlayerFleet),
-			[])));
+		map.FleetRegistry.Add(Factory.Create(
+			new Spawn(
+				playerFleetUnitId,
+				EType.PlayerFleet,
+				tradeHubDock.Id,
+				default,
+				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+				UnitDefaults.EngageRadius(EType.PlayerFleet),
+				[]),
+			[FleetMember.Create(BattleUnitType.Fighter)]));
 	}
+
+	internal static Fleet CreatePirateFleet(
+		string id,
+		Coord coord,
+		EFaction faction,
+		CombatProfile combatProfile) =>
+		Factory.Create(
+			new Spawn(
+				id,
+				EType.PirateFleet,
+				"",
+				coord,
+				UnitDefaults.SpeedPerTick(EType.PirateFleet),
+				UnitDefaults.EngageRadius(EType.PirateFleet),
+				[],
+				faction,
+				combatProfile),
+			Enumerable.Range(0, 3)
+				.Select(_ => FleetMember.Create(BattleUnitType.Patrol))
+				.ToArray());
 
 	private sealed class StraightLinePathfinder : IPathfinder
 	{

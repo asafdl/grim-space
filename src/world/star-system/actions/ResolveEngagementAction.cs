@@ -43,7 +43,7 @@ public sealed class ResolveEngagementDef
 	internal static bool TryResolveEngagedCounterparty(StarMap world, string actorId, out string counterpartyId)
 	{
 		counterpartyId = "";
-		if (!world.UnitRegistry.TryGet(actorId, out var actor))
+		if (!world.FleetRegistry.TryGet(actorId, out var actor))
 			return false;
 
 		if (actor.State.EngagementPhase != EEngagementPhase.Engaged
@@ -51,6 +51,6 @@ public sealed class ResolveEngagementDef
 			return false;
 
 		counterpartyId = actor.State.EngagedWithUnitIds.First();
-		return world.UnitRegistry.Contains(counterpartyId);
+		return world.FleetRegistry.Contains(counterpartyId);
 	}
 }

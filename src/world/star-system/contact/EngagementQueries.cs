@@ -23,7 +23,7 @@ public static class EngagementQueries
 		out PendingEngagement info)
 	{
 		info = default;
-		if (!world.UnitRegistry.TryGet(playerId, out var player))
+		if (!world.FleetRegistry.TryGet(playerId, out var player))
 			return false;
 
 		if (player.State.EngagementPhase != EEngagementPhase.AwaitingDecision)
@@ -31,7 +31,7 @@ public static class EngagementQueries
 
 		var counterpartyId = ResolveCounterpartyId(player.State);
 		if (counterpartyId is null
-			|| !world.UnitRegistry.TryGet(counterpartyId, out var counterparty))
+			|| !world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
 			return false;
 
 		var profile = counterparty.State.CombatProfile
@@ -52,7 +52,7 @@ public static class EngagementQueries
 		out CommittedEngagement info)
 	{
 		info = default;
-		if (!world.UnitRegistry.TryGet(playerId, out var player))
+		if (!world.FleetRegistry.TryGet(playerId, out var player))
 			return false;
 
 		if (player.State.EngagementPhase != EEngagementPhase.Engaged
@@ -60,7 +60,7 @@ public static class EngagementQueries
 			return false;
 
 		var counterpartyId = player.State.EngagedWithUnitIds.First();
-		if (!world.UnitRegistry.TryGet(counterpartyId, out var counterparty))
+		if (!world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
 			return false;
 
 		var initiatorId = player.State.EngagementInitiatorUnitId
@@ -96,8 +96,8 @@ public static class EngagementQueries
 		string targetId,
 		Func<string, Coord> committedPositionOf)
 	{
-		if (!world.UnitRegistry.TryGet(hunterId, out var hunter)
-			|| !world.UnitRegistry.TryGet(targetId, out _))
+		if (!world.FleetRegistry.TryGet(hunterId, out var hunter)
+			|| !world.FleetRegistry.TryGet(targetId, out _))
 			return false;
 
 		return IsHunterInEngageRange(

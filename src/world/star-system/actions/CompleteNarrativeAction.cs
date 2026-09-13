@@ -26,7 +26,7 @@ public sealed class CompleteNarrativeDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is CompleteNarrativeAction complete
 		&& world.ActiveNarrativeId == complete.NarrativeId
-		&& world.UnitRegistry.TryGet(complete.ActorId, out _);
+		&& world.FleetRegistry.TryGet(complete.ActorId, out _);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

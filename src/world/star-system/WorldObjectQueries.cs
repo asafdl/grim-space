@@ -15,7 +15,7 @@ public static class WorldObjectQueries
 
 		var pois = world.PointsOfInterest.Where(poi => poi.Id == objectId).Take(2).ToArray();
 		var docks = world.DocksById.Values.Where(dock => dock.Id == objectId).Take(2).ToArray();
-		var hasUnit = world.UnitRegistry.TryGet(objectId, out _);
+		var hasUnit = world.FleetRegistry.TryGet(objectId, out _);
 		var matches = pois.Length + docks.Length + (hasUnit ? 1 : 0);
 
 		if (matches == 0)

@@ -35,7 +35,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public IReadOnlyDictionary<string, Dock> DocksByPoiId { get; }
 	public IReadOnlyDictionary<Coord, Dock> DocksByPosition { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
-	public UnitRegistry UnitRegistry { get; }
+	public FleetRegistry FleetRegistry { get; }
 	public ContractRegistry ContractRegistry { get; }
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
@@ -44,7 +44,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 
 	public string? ActiveNarrativeId { get; internal set; }
 
-	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
+	public State StateOf(string unitId) => FleetRegistry.FleetOf(unitId).State;
 
 	internal StarMap(
 		StarSystemBlueprint blueprint,
@@ -53,7 +53,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
 		IReadOnlyDictionary<string, SpaceRoute> routesById,
-		UnitRegistry unitRegistry,
+		FleetRegistry fleetRegistry,
 		ContractRegistry contractRegistry,
 		StoryObjectiveRegistry storyObjectives,
 		PathfindingTerrain pathfindingTerrain,
@@ -69,7 +69,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			.GroupBy(dock => dock.Position)
 			.ToDictionary(group => group.Key, group => group.Single());
 		RoutesById = routesById;
-		UnitRegistry = unitRegistry;
+		FleetRegistry = fleetRegistry;
 		ContractRegistry = contractRegistry;
 		StoryObjectives = storyObjectives;
 		PathfindingTerrain = pathfindingTerrain;
@@ -94,7 +94,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			DocksById,
 			DocksByPoiId,
 			RoutesById,
-			UnitRegistry.CloneForFork(),
+			FleetRegistry.CloneForFork(),
 			ContractRegistry.CloneForFork(),
 			StoryObjectives.CloneForFork(),
 			PathfindingTerrain,

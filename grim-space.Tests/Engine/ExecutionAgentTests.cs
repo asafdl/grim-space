@@ -16,7 +16,7 @@ public sealed class ExecutionAgentTests(DevStarMapFixture maps)
 	{
 		var agent = new TestExecutionAgent();
 		var map = maps.Fresh(42);
-		var unit = map.UnitRegistry.All.First(u => u.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(u => u.State.IsReadyToDepart);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 
@@ -49,7 +49,7 @@ public sealed class ExecutionAgentTests(DevStarMapFixture maps)
 	{
 		var agent = new TestExecutionAgent();
 		var map = maps.Fresh(42);
-		var unit = map.UnitRegistry.All.First(u => u.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(u => u.State.IsReadyToDepart);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 

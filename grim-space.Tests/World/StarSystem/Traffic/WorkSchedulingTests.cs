@@ -14,7 +14,7 @@ public sealed class WorkSchedulingTests(DevStarMapFixture maps)
 	public void ArrivalAtIdlePoi_StartsWorkImmediately()
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
-		var unit = orchestrator.Map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = orchestrator.Map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 
 		while (unit.State.Phase != EPhase.Working && orchestrator.Tick < 500)
 			orchestrator.AdvanceTick();
@@ -29,7 +29,7 @@ public sealed class WorkSchedulingTests(DevStarMapFixture maps)
 		var map = maps.Fresh(42);
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
-		var units = map.UnitRegistry.All
+		var units = map.FleetRegistry.All
 			.Where(unit => unit.State.Type == EType.MiningBarge && unit.State.IsReadyToDepart)
 			.Take(2)
 			.ToArray();
@@ -51,7 +51,7 @@ public sealed class WorkSchedulingTests(DevStarMapFixture maps)
 
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
-		var unit = map.UnitRegistry.All.First(candidate => candidate.State.Type == EType.MiningBarge);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.Type == EType.MiningBarge);
 		unit.State.DockedAtDockId = dockId;
 		unit.State.Phase = EPhase.Docked;
 		var duration = poi.DurationTicks(unit.State.Type);
@@ -81,7 +81,7 @@ public sealed class WorkSchedulingTests(DevStarMapFixture maps)
 	public void SpawnedWorkingUnit_SchedulesCompletionOnOrchestratorInit()
 	{
 		var map = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
-		var workingUnit = map.UnitRegistry.All
+		var workingUnit = map.FleetRegistry.All
 			.First(unit => unit.State.Phase == EPhase.Working);
 		var remaining = workingUnit.State.SpawnWorkRemainingTicks;
 
@@ -101,14 +101,14 @@ public sealed class WorkSchedulingTests(DevStarMapFixture maps)
 		var originalPoi = orchestrator.Map.PointsOfInterest
 			.First(poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
 		var originalReservation = originalPoi.NextAvailableTaskTick;
-		var originalMiner = orchestrator.Map.UnitRegistry.All
+		var originalMiner = orchestrator.Map.FleetRegistry.All
 			.First(unit => unit.State.Type == EType.MiningBarge);
 
 		var fork = orchestrator.Map.Fork();
 		var forkedOrchestrator = StarSystemTestHarness.CreateOrchestrator(fork);
 		var forkedPoi = fork.PointsOfInterest
 			.First(poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
-		var forkedMiner = fork.UnitRegistry.All
+		var forkedMiner = fork.FleetRegistry.All
 			.First(unit => unit.State.Type == EType.MiningBarge);
 
 		Assert.Equal(originalReservation, forkedPoi.NextAvailableTaskTick);

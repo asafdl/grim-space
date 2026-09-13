@@ -75,7 +75,7 @@ public static class StarSystemBuilder
 			StarMap.DevRouteHalfWidth);
 
 		var poiById = pois.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
-		var unitRegistry = new UnitRegistry();
+		var fleetRegistry = new FleetRegistry();
 		var poisWithSpawnedWorkers = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var intent in blueprint.UnitSpawns)
 		{
@@ -99,16 +99,16 @@ public static class StarSystemBuilder
 				UnitDefaults.SpeedPerTick(intent.Type),
 				UnitDefaults.EngageRadius(intent.Type),
 				choreDockIds);
-			var unit = Factory.Create(spawn);
-			ApplySpawnPlacement(unit.State, placement);
+			var fleet = Factory.Create(spawn);
+			ApplySpawnPlacement(fleet.State, placement);
 
 			if (placement.Phase == EPhase.Working)
 				poisWithSpawnedWorkers.Add(placement.WorkingPoiId!);
 
-			unitRegistry.Add(unit);
+			fleetRegistry.Add(fleet);
 		}
 
-		Validate(blueprint, pois, docksByPoiId, routesById, unitRegistry);
+		Validate(blueprint, pois, docksByPoiId, routesById, fleetRegistry);
 
 		var terrain = PathfindingTerrain.Create(
 			blueprint.Width,
@@ -124,7 +124,7 @@ public static class StarSystemBuilder
 			docksById,
 			docksByPoiId,
 			routesById,
-			unitRegistry,
+			fleetRegistry,
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			terrain);
@@ -351,7 +351,7 @@ public static class StarSystemBuilder
 		IReadOnlyList<PointOfInterest> pois,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
 		IReadOnlyDictionary<string, SpaceRoute> routesById,
-		UnitRegistry unitRegistry)
+		FleetRegistry fleetRegistry)
 	{
 		var plan = blueprint.SupplyPlan;
 		var roles = pois
@@ -386,8 +386,8 @@ public static class StarSystemBuilder
 			throw new InvalidOperationException(
 				$"Supply map must contain exactly {expectedOperationalRoles} docks.");
 
-		if (unitRegistry.Ids.Count() != blueprint.UnitSpawns.Count)
-			throw new InvalidOperationException("Unit spawn count does not match blueprint.");
+		if (fleetRegistry.Ids.Count() != blueprint.UnitSpawns.Count)
+			throw new InvalidOperationException("Fleet spawn count does not match blueprint.");
 
 		var duplicateDockPositions = docksByPoiId.Values
 			.GroupBy(dock => dock.Position)

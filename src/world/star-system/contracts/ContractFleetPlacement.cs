@@ -22,7 +22,7 @@ public static class ContractFleetPlacement
 		string contractId,
 		int mapSeed,
 		StarMap map,
-		UnitRegistry existingUnits)
+		FleetRegistry existingUnits)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
 		ArgumentNullException.ThrowIfNull(spawnGroups);
@@ -48,7 +48,7 @@ public static class ContractFleetPlacement
 				if (existingUnits.Contains(unitId))
 				{
 					throw new InvalidOperationException(
-						$"Unit id '{unitId}' already exists in the registry.");
+						$"Fleet id '{unitId}' already exists in the registry.");
 				}
 
 				var coord = SampleCoord(

@@ -30,8 +30,8 @@ public sealed class HuntUnitDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is HuntUnitAction hunt
 		&& hunt.ActorId != hunt.TargetUnitId
-		&& world.UnitRegistry.TryGet(hunt.ActorId, out var initiator)
-		&& world.UnitRegistry.TryGet(hunt.TargetUnitId, out var target)
+		&& world.FleetRegistry.TryGet(hunt.ActorId, out var initiator)
+		&& world.FleetRegistry.TryGet(hunt.TargetUnitId, out var target)
 		&& initiator.State.CanMove
 		&& target.State.CombatProfile is not null;
 
@@ -41,7 +41,7 @@ public sealed class HuntUnitDef
 		ActorRuntime runtime)
 	{
 		var hunt = (HuntUnitAction)action;
-		var unit = world.UnitRegistry.UnitOf(hunt.ActorId);
+		var unit = world.FleetRegistry.FleetOf(hunt.ActorId);
 		var origin = ResolveOrigin(world, unit, runtime);
 
 		return
@@ -58,6 +58,6 @@ public sealed class HuntUnitDef
 		];
 	}
 
-	private static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime) =>
+	private static Coord ResolveOrigin(StarMap world, Fleet unit, ActorRuntime runtime) =>
 		MoveDef.ResolveOrigin(world, unit, runtime);
 }

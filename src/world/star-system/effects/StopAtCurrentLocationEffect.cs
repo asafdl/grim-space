@@ -13,7 +13,7 @@ public sealed class StopAtCurrentLocationEffect : IEffect<StarMap, ActorRuntime>
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
-		var unit = world.UnitRegistry.UnitOf(_unitId);
+		var unit = world.FleetRegistry.FleetOf(_unitId);
 		var position = MoveDef.ResolveOrigin(world, unit, runtime);
 
 		CancelPendingMoveEffect.Instance.Apply(world, runtime, actorId);

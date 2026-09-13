@@ -1,5 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Core.Ids;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
@@ -7,12 +9,18 @@ using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record AcceptContractAction(string ActorId, string ContractId)
+public sealed record AcceptContractAction(string ActorId, string ContractId, string SpawnIdentity)
 	: IAction<StarMap, ActorRuntime>
 {
+	public AcceptContractAction(string actorId, string contractId)
+		: this(actorId, contractId, TypedIdGenerator.NextInstanceSlug())
+	{
+	}
+
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		AcceptContractDef.Instance;
 }
@@ -30,7 +38,7 @@ public sealed class AcceptContractDef
 		action is AcceptContractAction accept
 		&& world.ContractRegistry.TryGet(accept.ContractId, out _)
 		&& world.ContractRegistry.IsOffered(accept.ContractId)
-		&& world.UnitRegistry.TryGet(accept.ActorId, out _);
+		&& world.FleetRegistry.TryGet(accept.ActorId, out _);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -50,10 +58,11 @@ public sealed class AcceptContractDef
 				accept.ContractId,
 				world.Seed,
 				world,
-				world.UnitRegistry);
+				world.FleetRegistry);
 
-			foreach (var spawn in planned)
+			for (var fleetIndex = 0; fleetIndex < planned.Count; fleetIndex++)
 			{
+				var spawn = planned[fleetIndex];
 				if (!spawnBindings.TryGetValue(spawn.GroupId, out var unitIds))
 				{
 					unitIds = [];
@@ -63,12 +72,24 @@ public sealed class AcceptContractDef
 				unitIds.Add(spawn.UnitId);
 
 				var combatProfile = new CombatProfile(spawn.Spawn.Danger, spawn.Spawn.Seed);
-				var unit = Factory.CreatePirateFleet(
-					spawn.UnitId,
-					spawn.Coord,
-					spawn.Spawn.Faction,
-					combatProfile);
-				effects.Add(new SpawnMapUnitEffect(unit));
+				var members = Enumerable.Range(0, 3)
+					.Select(memberIndex => FleetMember.Create(
+						BattleUnitType.Patrol,
+						$"{accept.SpawnIdentity}-{fleetIndex}-{memberIndex}"))
+					.ToArray();
+				var fleet = Factory.Create(
+					new Spawn(
+						spawn.UnitId,
+						EType.PirateFleet,
+						"",
+						spawn.Coord,
+						UnitDefaults.SpeedPerTick(EType.PirateFleet),
+						UnitDefaults.EngageRadius(EType.PirateFleet),
+						[],
+						spawn.Spawn.Faction,
+						combatProfile),
+					members);
+				effects.Add(new SpawnMapUnitEffect(fleet));
 			}
 		}
 

@@ -20,7 +20,7 @@ public sealed class ClearEngagementIntentEffect : IEffect<StarMap, Runtime.Actor
 		if (initiator.EngagementPhase is EEngagementPhase.Pursuing or EEngagementPhase.AwaitingDecision)
 			initiator.EngagementPhase = EEngagementPhase.None;
 
-		if (world.UnitRegistry.TryGet(targetId, out var target))
+		if (world.FleetRegistry.TryGet(targetId, out var target))
 			target.State.HuntedByUnitId = null;
 
 		return [];

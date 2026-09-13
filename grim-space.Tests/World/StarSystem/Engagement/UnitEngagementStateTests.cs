@@ -3,6 +3,7 @@ using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
@@ -37,7 +38,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
-		var hunter = map.UnitRegistry.Ids.First();
+		var hunter = map.FleetRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
@@ -52,7 +53,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
-		var hunter = map.UnitRegistry.Ids.First();
+		var hunter = map.FleetRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
@@ -67,7 +68,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
-		var hunter = map.UnitRegistry.Ids.First();
+		var hunter = map.FleetRegistry.Ids.First();
 		var firstTarget = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 		var secondTarget = AddPirate(map, "pirate-b", new GrimSpace.Math.Grid.Coord(20, 0, 20));
 
@@ -84,7 +85,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
-		var hunter = map.UnitRegistry.Ids.First();
+		var hunter = map.FleetRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
@@ -97,7 +98,7 @@ public sealed class UnitEngagementStateTests(DevStarMapFixture maps)
 
 	private static string AddPirate(StarMap map, string id, GrimSpace.Math.Grid.Coord coord)
 	{
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
 			GrimSpace.World.Factions.EFaction.Pirates,

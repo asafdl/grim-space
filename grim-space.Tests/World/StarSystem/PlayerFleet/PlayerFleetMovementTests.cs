@@ -19,7 +19,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var map = orchestrator.Map;
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 
 		var result = QueueMove(orchestrator, destination);
@@ -36,7 +36,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var map = orchestrator.Map;
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 
 		QueueMove(orchestrator, destination);
@@ -56,7 +56,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 			map,
 			new UnreachablePathfinder(),
 			RunState.PlayerFleetUnitId);
-		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = orchestrator.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 
 		var result = QueueMove(orchestrator, new Coord(999, 0, 999));
 
@@ -71,7 +71,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var map = orchestrator.Map;
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var firstDestination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 		var secondDestination = map.DocksByPoiId[SupplySystemPlan.Copper.ExitPoiId].Position;
 
@@ -98,7 +98,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 		QueueMove(orchestrator, secondDestination);
 		orchestrator.AdvanceTick();
 
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(secondDestination, player.State.Journey.Destination);
 		Assert.DoesNotContain(
 			map.Timeline.History(orchestrator.Tick - 1).OfType<MoveAction>(),
@@ -111,7 +111,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var map = orchestrator.Map;
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var origin = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Position;
 		var destination = new Coord(origin.X + 40, 0, origin.Z + 40);
 		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
@@ -131,7 +131,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	public void AdvanceTick_IgnoresPlayerFleetInTrafficAgents()
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
-		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = orchestrator.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 
 		orchestrator.AdvanceTick();
 
@@ -160,7 +160,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
 		var map = orchestrator.Map;
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 
@@ -182,7 +182,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 		var map = orchestrator.Map;
 
 		Assert.Equal(RunState.PlayerFleetUnitId, orchestrator.PlayerId);
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(EType.PlayerFleet, player.State.Type);
 		Assert.Empty(player.State.ChoreDockIds);
 		Assert.NotNull(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId));
@@ -195,15 +195,15 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 		var second = CreatePlayerOrchestrator(7);
 
 		Assert.Equal(first.PlayerId, second.PlayerId);
-		Assert.True(second.Map.UnitRegistry.Contains(RunState.PlayerFleetUnitId));
-		Assert.Equal(EPhase.Docked, second.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId).State.Phase);
+		Assert.True(second.Map.FleetRegistry.Contains(RunState.PlayerFleetUnitId));
+		Assert.Equal(EPhase.Docked, second.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId).State.Phase);
 	}
 
 	[Fact]
 	public void State_Clone_DoesNotCopyRuntime()
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
-		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = orchestrator.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).JourneyIdSequence = 17;
 
 		var clonedState = player.State.Clone();
@@ -241,7 +241,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 			map,
 			new FirstFoundThenUnreachablePathfinder(),
 			RunState.PlayerFleetUnitId);
-		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = orchestrator.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var destination = orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 
@@ -262,7 +262,7 @@ public sealed class PlayerFleetMovementTests(DevStarMapFixture maps)
 	public void OrderMove_CompletesOnScheduledTick()
 	{
 		var orchestrator = CreatePlayerOrchestrator(42);
-		var player = orchestrator.Map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = orchestrator.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var destination = orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 

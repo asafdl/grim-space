@@ -26,7 +26,7 @@ public sealed class DeclineContractDef
 		action is DeclineContractAction decline
 		&& world.ContractRegistry.TryGet(decline.ContractId, out _)
 		&& world.ContractRegistry.IsOffered(decline.ContractId)
-		&& world.UnitRegistry.TryGet(decline.ActorId, out _);
+		&& world.FleetRegistry.TryGet(decline.ActorId, out _);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

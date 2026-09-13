@@ -24,7 +24,7 @@ public sealed class ClearEngagementIntentDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is ClearEngagementIntentAction clear
-		&& world.UnitRegistry.Contains(clear.InitiatorId);
+		&& world.FleetRegistry.Contains(clear.InitiatorId);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

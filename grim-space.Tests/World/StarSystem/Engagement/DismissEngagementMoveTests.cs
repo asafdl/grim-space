@@ -114,7 +114,7 @@ public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var playerDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
 		var pirateId = "pirate-contact";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(playerDock.Position.X + 4, 0, playerDock.Position.Z),
 			GrimSpace.World.Factions.EFaction.Pirates,
@@ -136,7 +136,7 @@ public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var playerDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
 		var pirateId = "pirate-contact";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(playerDock.Position.X + 4, 0, playerDock.Position.Z),
 			GrimSpace.World.Factions.EFaction.Pirates,
@@ -153,12 +153,12 @@ public sealed class DismissEngagementMoveTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		player.State.Phase = EPhase.Docked;
 		player.State.DockedAtDockId = "";
 		player.State.IdleCoord = new Coord(0, 0, 0);
 		var pirateId = "pirate-contact";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,

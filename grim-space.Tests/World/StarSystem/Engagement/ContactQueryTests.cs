@@ -18,7 +18,7 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 	public void CommittedPositionOf_DockedUnit_ReturnsDockPosition()
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
-		var unit = orchestrator.Map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = orchestrator.Map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var dockPosition = orchestrator.Map.DocksById[unit.State.DockedAtDockId].Position;
 
 		Assert.Equal(dockPosition, orchestrator.CommittedPositionOf(unit.State.Id));
@@ -76,7 +76,7 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		player.State.Phase = EPhase.Docked;
 		player.State.DockedAtDockId = "";
 		player.State.IdleCoord = new Coord(0, 0, 0);
@@ -99,7 +99,7 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		player.State.Phase = EPhase.Docked;
 		player.State.DockedAtDockId = "";
 		player.State.IdleCoord = new Coord(0, 0, 0);
@@ -130,7 +130,7 @@ public sealed class ContactQueryTests(DevStarMapFixture maps)
 	private static string AddPirate(StarMap map, Coord coord)
 	{
 		var id = "pirate-contact";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
 			GrimSpace.World.Factions.EFaction.Pirates,

@@ -27,7 +27,7 @@ public sealed class CompleteWorkDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is CompleteWorkAction complete
-		&& world.UnitRegistry.TryGet(complete.UnitId, out var unit)
+		&& world.FleetRegistry.TryGet(complete.UnitId, out var unit)
 		&& unit.State.Phase == EPhase.Working
 		&& unit.State.WorkStartTick == complete.StartTick
 		&& world.DocksById[unit.State.DockedAtDockId].PoiId == complete.PoiId;
@@ -38,7 +38,7 @@ public sealed class CompleteWorkDef
 		ActorRuntime runtime)
 	{
 		var complete = (CompleteWorkAction)action;
-		if (!world.UnitRegistry.TryGet(complete.UnitId, out var unit)
+		if (!world.FleetRegistry.TryGet(complete.UnitId, out var unit)
 			|| unit.State.Phase != EPhase.Working
 			|| unit.State.WorkStartTick != complete.StartTick
 			|| world.DocksById[unit.State.DockedAtDockId].PoiId != complete.PoiId)

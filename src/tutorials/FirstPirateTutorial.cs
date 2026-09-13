@@ -21,7 +21,7 @@ public static class FirstPirateTutorial
 				.OrderBy(binding => binding.Key, StringComparer.Ordinal)
 				.SelectMany(binding => binding.Value))
 			.FirstOrDefault(unitId =>
-				map.UnitRegistry.TryGet(unitId, out var unit)
+				map.FleetRegistry.TryGet(unitId, out var unit)
 				&& unit.State.Faction == EFaction.Pirates);
 		if (pirateId is null)
 			return null;

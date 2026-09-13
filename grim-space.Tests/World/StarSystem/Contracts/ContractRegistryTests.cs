@@ -36,7 +36,7 @@ public sealed class ContractRegistryTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.UnitRegistry.Ids.First();
+		var holderUnitId = map.FleetRegistry.Ids.First();
 
 		Assert.True(map.ContractRegistry.IsOffered(contractId));
 		Assert.False(map.ContractRegistry.TryGetActive(holderUnitId, out _));
@@ -55,7 +55,7 @@ public sealed class ContractRegistryTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.UnitRegistry.Ids.First();
+		var holderUnitId = map.FleetRegistry.Ids.First();
 		map.ContractRegistry.Activate(CreateActiveState(map, contractId, holderUnitId, 1));
 
 		var fork = map.Fork();

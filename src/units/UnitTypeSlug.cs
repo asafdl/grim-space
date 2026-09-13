@@ -1,6 +1,6 @@
 using GrimSpace.Units.Enums;
 
-namespace GrimSpace.Battle.Ids;
+namespace GrimSpace.Units;
 
 public static class UnitTypeSlug
 {

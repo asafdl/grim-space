@@ -26,7 +26,7 @@ public sealed class CompleteMoveDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is CompleteMoveAction complete
-		&& world.UnitRegistry.TryGet(complete.UnitId, out var unit)
+		&& world.FleetRegistry.TryGet(complete.UnitId, out var unit)
 		&& unit.State.Phase == EPhase.InTransit
 		&& unit.State.Journey.JourneyId == complete.JourneyId;
 
@@ -36,7 +36,7 @@ public sealed class CompleteMoveDef
 		ActorRuntime runtime)
 	{
 		var complete = (CompleteMoveAction)action;
-		if (!world.UnitRegistry.TryGet(complete.UnitId, out var unit)
+		if (!world.FleetRegistry.TryGet(complete.UnitId, out var unit)
 			|| unit.State.Phase != EPhase.InTransit
 			|| unit.State.Journey.JourneyId != complete.JourneyId)
 		{

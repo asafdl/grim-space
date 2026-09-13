@@ -49,7 +49,7 @@ public sealed class ReachContactActionTests(DevStarMapFixture maps)
 	private static string AddPirate(StarMap map, Coord coord)
 	{
 		var id = "pirate-a";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
 			GrimSpace.World.Factions.EFaction.Pirates,

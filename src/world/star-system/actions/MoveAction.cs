@@ -29,7 +29,7 @@ public sealed class MoveDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is MoveAction move
-		&& world.UnitRegistry.TryGet(move.UnitId, out var unit)
+		&& world.FleetRegistry.TryGet(move.UnitId, out var unit)
 		&& unit.State.CanMove
 		&& unit.State.EngagedWithUnitIds.Count == 0
 		&& !IsWaitingForScheduledWork(world, unit.State);
@@ -45,7 +45,7 @@ public sealed class MoveDef
 		ActorRuntime runtime)
 	{
 		var move = (MoveAction)action;
-		var unit = world.UnitRegistry.UnitOf(move.UnitId);
+		var unit = world.FleetRegistry.FleetOf(move.UnitId);
 		var origin = ResolveOrigin(world, unit, runtime);
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
@@ -69,14 +69,14 @@ public sealed class MoveDef
 		return effects;
 	}
 
-	internal static Coord ResolveOrigin(StarMap world, Unit unit, ActorRuntime runtime)
+	internal static Coord ResolveOrigin(StarMap world, Fleet unit, ActorRuntime runtime)
 	{
 		var state = unit.State;
 		if (state.Phase == EPhase.InTransit)
 		{
 			var path = runtime.CachedPath
 				?? throw new InvalidOperationException(
-					$"Unit '{state.Id}' is in transit without a cached path.");
+					$"Fleet '{state.Id}' is in transit without a cached path.");
 			var elapsed = world.Timeline.Clock.Current - state.Journey.StartTick;
 			return path.SampleAtElapsed(elapsed, state.SpeedPerTick).Position;
 		}

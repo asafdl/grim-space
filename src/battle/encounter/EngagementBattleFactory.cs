@@ -24,7 +24,13 @@ public static class EngagementBattleFactory
 
 		var rng = new Random(seed);
 		// TODO: Deploy all party members once battle turns support multiple player-controlled actors.
-		var playerInstance = playerParty.Members[0];
+		var playerMember = playerParty.Members[0];
+		var playerInstance = new Instance
+		{
+			Id = playerMember.Id,
+			Type = playerMember.Type,
+			Alliance = Alliance.Player,
+		};
 		var center = GridSize / 2;
 		var deploySpread = GridSize / 5;
 		var playerPosition = new Coord(center - deploySpread, center, center);

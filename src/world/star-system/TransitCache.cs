@@ -6,9 +6,9 @@ namespace GrimSpace.World.StarSystem;
 
 public static class TransitCache
 {
-	public static void RebuildIfMissing(Unit unit, ActorRuntime runtime, IPathfinder pathfinder)
+	public static void RebuildIfMissing(Fleet fleet, ActorRuntime runtime, IPathfinder pathfinder)
 	{
-		if (unit.State.Phase != EPhase.InTransit)
+		if (fleet.State.Phase != EPhase.InTransit)
 		{
 			runtime.CachedPath = null;
 			return;
@@ -17,12 +17,12 @@ public static class TransitCache
 		if (runtime.CachedPath is not null)
 			return;
 
-		var journey = unit.State.Journey;
+		var journey = fleet.State.Journey;
 		var result = pathfinder.FindPath(journey.Origin, journey.Destination);
 		if (result is not PathfindingResult.Found found)
 		{
 			throw new InvalidOperationException(
-				$"Unable to rebuild transit path for unit '{unit.State.Id}'.");
+				$"Unable to rebuild transit path for fleet '{fleet.State.Id}'.");
 		}
 
 		runtime.CachedPath = found.Path;

@@ -12,7 +12,7 @@ public sealed class EngineCommitTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		foreach (var unit in map.UnitRegistry.All)
+		foreach (var unit in map.FleetRegistry.All)
 			actorRuntimes.For(unit.State.Id);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);

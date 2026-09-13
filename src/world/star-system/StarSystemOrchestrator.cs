@@ -2,6 +2,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -12,6 +13,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Units;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem;
 
@@ -67,10 +69,22 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public Simulation<StarMap, ActorRuntime> CreateSimulation() => _engine.CreateSimulation();
 
 	public static StarSystemOrchestrator CreateDevSession(string playerFleetUnitId, int seed = 0)
+		=> CreateDevSession(
+			playerFleetUnitId,
+			[FleetMember.Create(BattleUnitType.Fighter)],
+			seed);
+
+	public static StarSystemOrchestrator CreateDevSession(
+		string playerFleetUnitId,
+		IReadOnlyList<FleetMember> playerFleetMembers,
+		int seed = 0)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
+		ArgumentNullException.ThrowIfNull(playerFleetMembers);
+		if (playerFleetMembers.Count == 0)
+			throw new ArgumentException("Player fleet must contain at least one member.", nameof(playerFleetMembers));
 		var map = StarMap.CreateDevDefault(seed);
-		AddPlayerFleet(map, playerFleetUnitId);
+		AddPlayerFleet(map, playerFleetUnitId, playerFleetMembers);
 		var orchestrator = FromMap(map, playerFleetUnitId);
 		orchestrator.CommitSetup(
 			new BeginNarrativeAction(playerFleetUnitId, MapNarratives.OpeningId));
@@ -92,7 +106,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (map.Timeline.Clock.Current == 0)
 			map.Timeline.Clock.Set(1);
 
-		foreach (var unit in map.UnitRegistry.All)
+		foreach (var unit in map.FleetRegistry.All)
 		{
 			var runtime = actorRuntimes.For(unit.State.Id);
 			TransitCache.RebuildIfMissing(unit, runtime, pathfinder);
@@ -112,7 +126,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 				pathfinder);
 		}
 
-		var trafficUnits = map.UnitRegistry.All
+		var trafficUnits = map.FleetRegistry.All
 			.Where(unit => unit.State.ChoreDockIds.Count > 0)
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 			.ToArray();
@@ -148,17 +162,22 @@ public sealed class StarSystemOrchestrator : IDisposable
 		return orchestrator;
 	}
 
-	private static void AddPlayerFleet(StarMap map, string playerFleetUnitId)
+	private static void AddPlayerFleet(
+		StarMap map,
+		string playerFleetUnitId,
+		IReadOnlyList<FleetMember> members)
 	{
 		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
-		map.UnitRegistry.Add(Factory.Create(new Spawn(
-			playerFleetUnitId,
-			EType.PlayerFleet,
-			tradeHubDock.Id,
-			default,
-			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
-			UnitDefaults.EngageRadius(EType.PlayerFleet),
-			[])));
+		map.FleetRegistry.Add(Factory.Create(
+			new Spawn(
+				playerFleetUnitId,
+				EType.PlayerFleet,
+				tradeHubDock.Id,
+				default,
+				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
+				UnitDefaults.EngageRadius(EType.PlayerFleet),
+				[]),
+			members));
 	}
 
 	public void SetRunning() => ApplySimMode(ESimMode.Running);
@@ -334,7 +353,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public void Dispose() => _engine.Dispose();
 
-	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Unit unit)
+	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Fleet unit)
 	{
 		var state = unit.State;
 		if (state.Phase != EPhase.Working || state.SpawnWorkPoiId is not { } poiId)

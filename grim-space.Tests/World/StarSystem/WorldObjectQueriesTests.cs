@@ -3,6 +3,7 @@ using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
@@ -40,7 +41,7 @@ public sealed class WorldObjectQueriesTests(DevStarMapFixture maps)
 	public void ResolveFocusable_Unit_UsesSuppliedLivePosition()
 	{
 		var map = maps.Template(42);
-		var unitId = map.UnitRegistry.Ids.First();
+		var unitId = map.FleetRegistry.Ids.First();
 		var livePosition = new Coord(123, 0, 456);
 		string? requestedId = null;
 
@@ -73,7 +74,7 @@ public sealed class WorldObjectQueriesTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var poiId = map.PointsOfInterest[0].Id;
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			poiId,
 			new Coord(1, 0, 1),
 			EFaction.Pirates,
@@ -100,7 +101,7 @@ public sealed class WorldObjectQueriesTests(DevStarMapFixture maps)
 		var map = maps.Template(seed);
 		var ids = map.PointsOfInterest.Select(poi => poi.Id)
 			.Concat(map.DocksById.Values.Select(dock => dock.Id))
-			.Concat(map.UnitRegistry.Ids)
+			.Concat(map.FleetRegistry.Ids)
 			.ToArray();
 
 		Assert.Equal(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());

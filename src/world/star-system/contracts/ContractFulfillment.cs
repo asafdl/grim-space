@@ -31,7 +31,7 @@ public static class ContractFulfillment
 		{
 			foreach (var unitId in unitIds)
 			{
-				if (map.UnitRegistry.Contains(unitId))
+				if (map.FleetRegistry.Contains(unitId))
 					return false;
 			}
 		}

@@ -26,8 +26,8 @@ public sealed class ReachContactDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is ReachContactAction reach
-		&& world.UnitRegistry.TryGet(reach.InitiatorId, out var initiator)
-		&& world.UnitRegistry.TryGet(reach.TargetId, out _)
+		&& world.FleetRegistry.TryGet(reach.InitiatorId, out var initiator)
+		&& world.FleetRegistry.TryGet(reach.TargetId, out _)
 		&& initiator.State.EngagementPhase == EEngagementPhase.Pursuing
 		&& initiator.State.EngagementTargetUnitId == reach.TargetId
 		&& initiator.State.EngagedWithUnitIds.Count == 0;
@@ -43,7 +43,7 @@ public sealed class ReachContactDef
 			new ReachContactEffect(reach.InitiatorId, reach.TargetId),
 		};
 
-		if (world.UnitRegistry.TryGet(reach.InitiatorId, out var initiator)
+		if (world.FleetRegistry.TryGet(reach.InitiatorId, out var initiator)
 			&& initiator.State.Type == EType.PlayerFleet)
 			effects.Add(new PlayerInputEffect(true));
 

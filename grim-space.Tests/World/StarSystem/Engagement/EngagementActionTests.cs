@@ -64,7 +64,7 @@ public sealed class EngageActionTests(DevStarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = "pirate-a";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
@@ -78,7 +78,7 @@ public sealed class EngageActionTests(DevStarMapFixture maps)
 
 		if (inTransit)
 		{
-			var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+			var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 			var runtime = new ActorRuntime();
 			var path = GrimSpace.World.StarSystem.Pathfinding.TransitPath.FromPoints(
 				[new Coord(0, 0, 0), new Coord(20, 0, 20)],
@@ -133,7 +133,7 @@ public sealed class FleeActionTests(DevStarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = "pirate-a";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
@@ -157,7 +157,7 @@ public sealed class ResolveEngagementActionTests(DevStarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = "pirate-a";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
@@ -174,7 +174,7 @@ public sealed class ResolveEngagementActionTests(DevStarMapFixture maps)
 		Assert.Equal(EEngagementPhase.Resolved, map.StateOf(pirateId).EngagementPhase);
 		Assert.Equal(BattleOutcome.Win, map.StateOf(RunState.PlayerFleetUnitId).ResolvedEngagementOutcome);
 		Assert.Equal(BattleOutcome.Win, map.StateOf(pirateId).ResolvedEngagementOutcome);
-		Assert.Contains(pirateId, map.UnitRegistry.Ids);
-		Assert.Contains(RunState.PlayerFleetUnitId, map.UnitRegistry.Ids);
+		Assert.Contains(pirateId, map.FleetRegistry.Ids);
+		Assert.Contains(RunState.PlayerFleetUnitId, map.FleetRegistry.Ids);
 	}
 }

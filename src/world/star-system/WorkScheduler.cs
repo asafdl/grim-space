@@ -50,7 +50,7 @@ public static class WorkScheduler
 
 	public static void ScheduleSpawnedWorker(
 		StarMap world,
-		Unit unit,
+		Fleet unit,
 		string poiId,
 		int remainingTicks)
 	{

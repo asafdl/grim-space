@@ -75,7 +75,7 @@ public sealed class HuntUnitActionTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var trafficUnit = map.UnitRegistry.All.First(unit => unit.State.ChoreDockIds.Count > 0);
+		var trafficUnit = map.FleetRegistry.All.First(unit => unit.State.ChoreDockIds.Count > 0);
 		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 		var sim = orchestrator.CreateSimulation();
 		var destination = orchestrator.CommittedPositionOf(trafficUnit.State.Id);
@@ -133,7 +133,7 @@ public sealed class HuntUnitActionTests(DevStarMapFixture maps)
 
 	private static string AddPirate(StarMap map, string id, Coord coord)
 	{
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
 			EFaction.Pirates,

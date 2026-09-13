@@ -13,7 +13,7 @@ public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.UnitRegistry.Ids.First();
+		var holderUnitId = map.FleetRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
 		var group = hunt.SpawnGroups[0];
 		var targetUnitId = $"{contractId}.{group.GroupId}.0";
@@ -41,7 +41,7 @@ public sealed class ContractFulfillmentTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.UnitRegistry.Ids.First();
+		var holderUnitId = map.FleetRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
 		var group = hunt.SpawnGroups[0];
 
@@ -70,7 +70,7 @@ public sealed class ObjectivesCollectorTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.UnitRegistry.Ids.First();
+		var holderUnitId = map.FleetRegistry.Ids.First();
 
 		map.ContractRegistry.Activate(new ContractState(
 			contractId,
@@ -93,7 +93,7 @@ public sealed class ObjectivesCollectorTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.UnitRegistry.Ids.First();
+		var holderUnitId = map.FleetRegistry.Ids.First();
 
 		map.ContractRegistry.Activate(new ContractState(
 			contractId,

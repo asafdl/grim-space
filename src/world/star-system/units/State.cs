@@ -56,7 +56,7 @@ public sealed class State
 		{
 			var transitPath = path
 				?? throw new InvalidOperationException(
-					$"Unit '{Id}' is in transit without a cached path.");
+					$"Fleet '{Id}' is in transit without a cached path.");
 			var elapsed = world.Timeline.Clock.Current - Journey.StartTick + tickFraction;
 			var (position, tangent) = Journey.SamplePosition(path, elapsed, SpeedPerTick);
 			return (position, tangent);

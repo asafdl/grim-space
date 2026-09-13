@@ -26,7 +26,7 @@ public sealed class BeginNarrativeDef
 		action is BeginNarrativeAction begin
 		&& world.ActiveNarrativeId is null
 		&& MapNarratives.TryGet(begin.NarrativeId, world, out _)
-		&& world.UnitRegistry.TryGet(begin.ActorId, out _);
+		&& world.FleetRegistry.TryGet(begin.ActorId, out _);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

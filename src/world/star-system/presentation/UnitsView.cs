@@ -52,7 +52,7 @@ public partial class UnitsView : Node3D
 		_width = world.Width;
 		_height = world.Height;
 
-		foreach (var unit in world.UnitRegistry.All.OrderBy(unit => unit.State.Id, StringComparer.Ordinal))
+		foreach (var unit in world.FleetRegistry.All.OrderBy(unit => unit.State.Id, StringComparer.Ordinal))
 		{
 			var unitVisual = BuildUnit(unit.State);
 			_units[unit.State.Id] = unitVisual;
@@ -63,7 +63,7 @@ public partial class UnitsView : Node3D
 	public void Sync(StarSystemOrchestrator orchestrator, float tickFraction)
 	{
 		var world = orchestrator.Map;
-		var registryIds = world.UnitRegistry.Ids.ToHashSet(StringComparer.Ordinal);
+		var registryIds = world.FleetRegistry.Ids.ToHashSet(StringComparer.Ordinal);
 
 		foreach (var unitId in _units.Keys.Where(id => !registryIds.Contains(id)).ToList())
 		{
@@ -72,7 +72,7 @@ public partial class UnitsView : Node3D
 			_trailHistory.Remove(unitId);
 		}
 
-		foreach (var unit in world.UnitRegistry.All)
+		foreach (var unit in world.FleetRegistry.All)
 		{
 			if (_units.ContainsKey(unit.State.Id))
 				continue;
@@ -82,7 +82,7 @@ public partial class UnitsView : Node3D
 			AddChild(unitVisual.Root);
 		}
 
-		foreach (var unit in world.UnitRegistry.All)
+		foreach (var unit in world.FleetRegistry.All)
 		{
 			if (!_units.TryGetValue(unit.State.Id, out var unitVisual))
 				continue;
@@ -109,7 +109,7 @@ public partial class UnitsView : Node3D
 		UnitHoverInfo? best = null;
 		var bestDistance = double.MaxValue;
 
-		foreach (var unit in world.UnitRegistry.All)
+		foreach (var unit in world.FleetRegistry.All)
 		{
 			var sample = ResolveSample(world, unit, orchestrator.RuntimeFor(unit.State.Id), tickFraction);
 			var dx = point.X - sample.X;
@@ -394,7 +394,7 @@ public partial class UnitsView : Node3D
 
 	private static TrafficSample ResolveSample(
 		StarMap world,
-		Units.Unit unit,
+		Units.Fleet unit,
 		Runtime.ActorRuntime runtime,
 		float tickFraction)
 	{

@@ -62,7 +62,7 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 			if (!state.CanMove)
 			{
 				throw new InvalidOperationException(
-					$"Unit '{_unitId}' is not ready to move.");
+					$"Fleet '{_unitId}' is not ready to move.");
 			}
 
 			runtime.CachedPath = _path;

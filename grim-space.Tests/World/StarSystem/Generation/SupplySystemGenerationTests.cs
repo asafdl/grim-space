@@ -56,7 +56,7 @@ public sealed class SupplySystemGenerationTests
 	public void Generate_UnitSpawns_AreDistributedAcrossDockedAndWorkingPhases()
 	{
 		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
-		var signatures = world.UnitRegistry.All
+		var signatures = world.FleetRegistry.All
 			.Select(unit => unit.State.Phase)
 			.Distinct()
 			.ToArray();
@@ -94,7 +94,7 @@ public sealed class SupplySystemGenerationTests
 		Assert.Equal(7, world.PointsOfInterest.Count);
 		Assert.Equal(6, world.DocksById.Count);
 		Assert.Equal(8, world.RoutesById.Count);
-		Assert.Equal(26, world.UnitRegistry.Ids.Count());
+		Assert.Equal(26, world.FleetRegistry.Ids.Count());
 		Assert.Equal(world.Width * world.Height, world.PathfindingTerrain.Width * world.PathfindingTerrain.Height);
 
 		Assert.Single(world.PointsOfInterest, poi => poi.LogicalRole == EPoiLogicalRole.Extraction);

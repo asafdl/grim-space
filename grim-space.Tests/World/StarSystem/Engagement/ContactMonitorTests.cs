@@ -49,7 +49,7 @@ public sealed class ContactMonitorTests(DevStarMapFixture maps)
 		orchestrator.Step();
 		Assert.False(orchestrator.CanAdvance);
 
-		var pirateId = orchestrator.Map.UnitRegistry.All
+		var pirateId = orchestrator.Map.FleetRegistry.All
 			.Single(unit => unit.State.Type == EType.PirateFleet)
 			.State.Id;
 		orchestrator.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
@@ -65,12 +65,12 @@ public sealed class ContactMonitorTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var player = map.UnitRegistry.UnitOf(RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		player.State.Phase = EPhase.Docked;
 		player.State.DockedAtDockId = "";
 		player.State.IdleCoord = new Coord(0, 0, 0);
 		var pirateId = "pirate-contact";
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,

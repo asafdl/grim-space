@@ -27,7 +27,7 @@ public sealed class BeginWorkDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is BeginWorkAction begin
-		&& world.UnitRegistry.TryGet(begin.UnitId, out var unit)
+		&& world.FleetRegistry.TryGet(begin.UnitId, out var unit)
 		&& unit.State.Phase == EPhase.Docked
 		&& world.DocksById[unit.State.DockedAtDockId].PoiId == begin.PoiId;
 
@@ -37,7 +37,7 @@ public sealed class BeginWorkDef
 		ActorRuntime runtime)
 	{
 		var begin = (BeginWorkAction)action;
-		if (!world.UnitRegistry.TryGet(begin.UnitId, out var unit)
+		if (!world.FleetRegistry.TryGet(begin.UnitId, out var unit)
 			|| unit.State.Phase != EPhase.Docked
 			|| world.DocksById[unit.State.DockedAtDockId].PoiId != begin.PoiId)
 		{

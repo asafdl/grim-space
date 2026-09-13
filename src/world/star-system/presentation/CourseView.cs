@@ -84,7 +84,7 @@ public partial class CourseView : Node3D
 		var world = orchestrator.Map;
 		var playerUnitId = orchestrator.PlayerId;
 		if (playerUnitId is null
-			|| !world.UnitRegistry.TryGet(playerUnitId, out var unit)
+			|| !world.FleetRegistry.TryGet(playerUnitId, out var unit)
 			|| unit.State.Phase != EPhase.InTransit
 			|| orchestrator.RuntimeFor(playerUnitId).CachedPath is not { } path
 			|| !unit.State.Journey.IsActive)

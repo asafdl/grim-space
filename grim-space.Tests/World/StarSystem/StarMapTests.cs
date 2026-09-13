@@ -76,19 +76,19 @@ public sealed class StarMapTests
 		Assert.Same(world.RoutesById, fork.RoutesById);
 		Assert.Same(world.PathfindingTerrain, fork.PathfindingTerrain);
 		Assert.NotSame(world.Timeline, fork.Timeline);
-		Assert.NotSame(world.UnitRegistry, fork.UnitRegistry);
+		Assert.NotSame(world.FleetRegistry, fork.FleetRegistry);
 		Assert.Equal(3, fork.Timeline.Clock.Current);
-		Assert.Equal(26, world.UnitRegistry.Ids.Count());
-		Assert.Equal(26, fork.UnitRegistry.Ids.Count());
+		Assert.Equal(26, world.FleetRegistry.Ids.Count());
+		Assert.Equal(26, fork.FleetRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
-		fork.UnitRegistry.UnitOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.Journey.StartTick = 99;
+		fork.FleetRegistry.FleetOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.Journey.StartTick = 99;
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
 		var minerId = FirstUnitOfType(world, EType.MiningBarge).Id;
 		Assert.NotEqual(
-			world.UnitRegistry.UnitOf(minerId).State.Journey.StartTick,
-			fork.UnitRegistry.UnitOf(minerId).State.Journey.StartTick);
+			world.FleetRegistry.FleetOf(minerId).State.Journey.StartTick,
+			fork.FleetRegistry.FleetOf(minerId).State.Journey.StartTick);
 
 		new PlayerInputEffect(true).Apply(world, new ActorRuntime(), "actor");
 		var waitingFork = world.Fork();
@@ -103,12 +103,12 @@ public sealed class StarMapTests
 		var world = StarMap.CreateDevDefault(0);
 
 		Assert.Equal(6, world.DocksById.Count);
-		Assert.Equal(26, world.UnitRegistry.Ids.Count());
+		Assert.Equal(26, world.FleetRegistry.Ids.Count());
 		Assert.DoesNotContain(
 			world.PointsOfInterest.First(p => p is Star).Id,
 			world.DocksByPoiId.Keys);
 	}
 
 	private static State FirstUnitOfType(StarMap map, EType type) =>
-		map.UnitRegistry.All.First(unit => unit.State.Type == type).State;
+		map.FleetRegistry.All.First(unit => unit.State.Type == type).State;
 }

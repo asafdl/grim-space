@@ -70,7 +70,7 @@ public sealed class StarMapPlayerExecutionAgent
 		}
 
 		var anchorWorld = _anchorWorld();
-		var unit = anchorWorld.UnitRegistry.UnitOf(_actorId);
+		var unit = anchorWorld.FleetRegistry.FleetOf(_actorId);
 		var (origin, _) = unit.State.CommittedPosition(
 			anchorWorld,
 			_runtimeFor(_actorId).CachedPath,
@@ -103,8 +103,8 @@ public sealed class StarMapPlayerExecutionAgent
 		}
 
 		var anchorWorld = _anchorWorld();
-		if (!anchorWorld.UnitRegistry.TryGet(_actorId, out var initiator)
-			|| !anchorWorld.UnitRegistry.TryGet(targetUnitId, out var target)
+		if (!anchorWorld.FleetRegistry.TryGet(_actorId, out var initiator)
+			|| !anchorWorld.FleetRegistry.TryGet(targetUnitId, out var target)
 			|| target.State.CombatProfile is null
 			|| target.State.Type == EType.PlayerFleet)
 		{

@@ -75,7 +75,7 @@ public sealed class AcceptContractActionTests(DevStarMapFixture maps)
 	{
 		var (engine, unitId, contractId) = CreateEngine();
 		var tick = engine.Tick;
-		var initialUnitCount = engine.World.UnitRegistry.All.Count();
+		var initialUnitCount = engine.World.FleetRegistry.All.Count();
 
 		engine.Commit(new AcceptContractAction(unitId, contractId));
 
@@ -84,7 +84,7 @@ public sealed class AcceptContractActionTests(DevStarMapFixture maps)
 		Assert.Equal(EContractStatus.Active, state.Status);
 		Assert.Equal(unitId, state.HolderUnitId);
 		Assert.Equal(tick, state.AcceptedAtTick);
-		Assert.Equal(initialUnitCount + 1, engine.World.UnitRegistry.All.Count());
+		Assert.Equal(initialUnitCount + 1, engine.World.FleetRegistry.All.Count());
 
 		Assert.Contains(
 			engine.History().OfType<AcceptContractAction>(),
@@ -144,7 +144,7 @@ public sealed class AcceptContractActionTests(DevStarMapFixture maps)
 		int seed = 42)
 	{
 		var map = maps.Fresh(seed);
-		var unit = map.UnitRegistry.All.First();
+		var unit = map.FleetRegistry.All.First();
 		var unitId = unit.State.Id;
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();

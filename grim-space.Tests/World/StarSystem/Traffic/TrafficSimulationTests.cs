@@ -15,7 +15,7 @@ public sealed class TrafficSimulationTests(DevStarMapFixture maps)
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var map = orchestrator.Map;
-		var readyUnit = map.UnitRegistry.All.First(unit => unit.State.IsReadyToDepart);
+		var readyUnit = map.FleetRegistry.All.First(unit => unit.State.IsReadyToDepart);
 		var runtime = orchestrator.RuntimeFor(readyUnit.State.Id);
 
 		orchestrator.AdvanceTick();
@@ -38,7 +38,7 @@ public sealed class TrafficSimulationTests(DevStarMapFixture maps)
 	public void AdvanceTick_AdvancesJourneyProgressWhileInTransit()
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
-		var unit = orchestrator.Map.UnitRegistry.All
+		var unit = orchestrator.Map.FleetRegistry.All
 			.First(candidate => candidate.State.Phase == EPhase.InTransit
 				|| candidate.State.IsReadyToDepart);
 
@@ -146,12 +146,12 @@ public sealed class TrafficSimulationTests(DevStarMapFixture maps)
 		forkedOrchestrator.AdvanceTicks(10);
 
 		Assert.NotSame(orchestrator.Map.Timeline, forkedOrchestrator.Map.Timeline);
-		Assert.NotSame(orchestrator.Map.UnitRegistry, forkedOrchestrator.Map.UnitRegistry);
+		Assert.NotSame(orchestrator.Map.FleetRegistry, forkedOrchestrator.Map.FleetRegistry);
 		Assert.Same(orchestrator.Map.RoutesById, forkedOrchestrator.Map.RoutesById);
 
-		var originalMiner = orchestrator.Map.UnitRegistry.UnitOf(
+		var originalMiner = orchestrator.Map.FleetRegistry.FleetOf(
 			FirstUnitOfType(orchestrator.Map, EType.MiningBarge).Id);
-		var forkedMiner = forkedOrchestrator.Map.UnitRegistry.UnitOf(
+		var forkedMiner = forkedOrchestrator.Map.FleetRegistry.FleetOf(
 			FirstUnitOfType(forkedOrchestrator.Map, EType.MiningBarge).Id);
 
 		if (originalMiner.State.Phase == EPhase.InTransit
@@ -174,7 +174,7 @@ public sealed class TrafficSimulationTests(DevStarMapFixture maps)
 	}
 
 	private static State FirstUnitOfType(StarMap map, EType type) =>
-		map.UnitRegistry.All.First(unit => unit.State.Type == type).State;
+		map.FleetRegistry.All.First(unit => unit.State.Type == type).State;
 
 	private static Dock DockForRole(StarMap map, EPoiLogicalRole role) =>
 		map.DocksByPoiId[map.PointsOfInterest.Single(poi => poi.LogicalRole == role).Id];

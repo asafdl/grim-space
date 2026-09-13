@@ -17,13 +17,11 @@ public sealed class State
 	public static State CreateDevDefault(int seed = 0)
 	{
 		var run = new State();
-		// Battle party and star-map fleet are separate until sector/run progression links them.
-		run.PlayerParty.Add(new Instance
-		{
-			Type = EType.Fighter,
-			Alliance = Alliance.Player,
-		});
-		run.StarSystem = StarSystemOrchestrator.CreateDevSession(PlayerFleetUnitId, seed);
+		run.PlayerParty.Add(FleetMember.Create(EType.Fighter));
+		run.StarSystem = StarSystemOrchestrator.CreateDevSession(
+			PlayerFleetUnitId,
+			run.PlayerParty.Members,
+			seed);
 		return run;
 	}
 }

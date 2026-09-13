@@ -26,7 +26,7 @@ internal sealed class ContactMonitor
 
 	public Coord CommittedPositionOf(string unitId, float tickFraction = 0f)
 	{
-		var unit = Map.UnitRegistry.UnitOf(unitId);
+		var unit = Map.FleetRegistry.FleetOf(unitId);
 		var runtime = _engine.ActorRuntimes.For(unitId);
 		TransitCache.RebuildIfMissing(unit, runtime, _pathfinder);
 		return unit.State.CommittedPosition(Map, runtime.CachedPath, tickFraction).Position;
@@ -83,7 +83,7 @@ internal sealed class ContactMonitor
 	private HashSet<(string InitiatorId, string TargetId)> CollectActivePursuits()
 	{
 		var pursuits = new HashSet<(string, string)>();
-		foreach (var unit in Map.UnitRegistry.All)
+		foreach (var unit in Map.FleetRegistry.All)
 		{
 			var state = unit.State;
 			if (state.EngagementPhase != EEngagementPhase.Pursuing
@@ -91,7 +91,7 @@ internal sealed class ContactMonitor
 				|| state.EngagedWithUnitIds.Count > 0)
 				continue;
 
-			if (!Map.UnitRegistry.TryGet(targetId, out _))
+			if (!Map.FleetRegistry.TryGet(targetId, out _))
 				continue;
 
 			pursuits.Add((unit.State.Id, targetId));
@@ -107,7 +107,7 @@ internal sealed class ContactMonitor
 	{
 		action = null!;
 		var key = (watch.InitiatorId, watch.TargetId);
-		if (!Map.UnitRegistry.TryGet(watch.InitiatorId, out var initiator))
+		if (!Map.FleetRegistry.TryGet(watch.InitiatorId, out var initiator))
 		{
 			_watches.Remove(key);
 			return false;
@@ -121,7 +121,7 @@ internal sealed class ContactMonitor
 			return false;
 		}
 
-		if (!Map.UnitRegistry.TryGet(watch.TargetId, out _))
+		if (!Map.FleetRegistry.TryGet(watch.TargetId, out _))
 		{
 			_watches.Remove(key);
 			return false;
@@ -144,8 +144,8 @@ internal sealed class ContactMonitor
 
 	private void RescheduleWatch(ContactWatch watch, int currentTick)
 	{
-		var initiator = Map.UnitRegistry.UnitOf(watch.InitiatorId);
-		var target = Map.UnitRegistry.UnitOf(watch.TargetId);
+		var initiator = Map.FleetRegistry.FleetOf(watch.InitiatorId);
+		var target = Map.FleetRegistry.FleetOf(watch.TargetId);
 		var initiatorPosition = CommittedPositionOf(watch.InitiatorId);
 		var targetPosition = CommittedPositionOf(watch.TargetId);
 		var dx = initiatorPosition.X - targetPosition.X;

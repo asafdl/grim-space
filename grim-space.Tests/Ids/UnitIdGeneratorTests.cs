@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core.Ids;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Ids;

@@ -320,7 +320,7 @@ public sealed class MapPoiFacade
 
 	private static string? ResolveDockedPoiId(StarMap world)
 	{
-		var player = world.UnitRegistry.UnitOf(Run.State.PlayerFleetUnitId);
+		var player = world.FleetRegistry.FleetOf(Run.State.PlayerFleetUnitId);
 		if (player.State.Phase != EPhase.Docked || string.IsNullOrEmpty(player.State.DockedAtDockId))
 			return null;
 

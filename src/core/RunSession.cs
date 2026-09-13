@@ -297,6 +297,9 @@ public partial class RunSession : Node
 
 		var nextSeed = seed ?? Random.Shared.Next();
 		Run.StarSystem.Dispose();
-		Run.StarSystem = StarSystemOrchestrator.CreateDevSession(State.PlayerFleetUnitId, nextSeed);
+		Run.StarSystem = StarSystemOrchestrator.CreateDevSession(
+			State.PlayerFleetUnitId,
+			Run.PlayerParty.Members,
+			nextSeed);
 	}
 }

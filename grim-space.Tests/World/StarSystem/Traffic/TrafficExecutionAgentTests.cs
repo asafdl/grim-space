@@ -16,7 +16,7 @@ public sealed class TrafficExecutionAgentTests(DevStarMapFixture maps)
 	public void PlanAndPublish_ReadyUnitPublishesMove()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
 		agent.SetCanWork(true);
@@ -30,7 +30,7 @@ public sealed class TrafficExecutionAgentTests(DevStarMapFixture maps)
 	public void PlanAndPublish_UsesCurrentLiveState()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
 		agent.SetCanWork(true);
@@ -47,7 +47,7 @@ public sealed class TrafficExecutionAgentTests(DevStarMapFixture maps)
 	public void PlanAndPublish_WaitsForScheduledBeginWork()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var dockId = unit.State.DockedAtDockId;
 		var poiId = map.DocksById[dockId].PoiId;
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
@@ -64,7 +64,7 @@ public sealed class TrafficExecutionAgentTests(DevStarMapFixture maps)
 	public void PlanAndPublish_WorkingUnitPublishesNothing()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.UnitRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
 		unit.State.Phase = EPhase.Working;

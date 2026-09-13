@@ -19,7 +19,7 @@ public sealed class SetEngagementIntentEffect : IEffect<StarMap, Runtime.ActorRu
 	{
 		var initiator = world.StateOf(_initiatorId);
 		if (initiator.EngagementTargetUnitId is { } priorTargetId
-			&& world.UnitRegistry.TryGet(priorTargetId, out var priorTarget))
+			&& world.FleetRegistry.TryGet(priorTargetId, out var priorTarget))
 			priorTarget.State.HuntedByUnitId = null;
 
 		initiator.EngagementTargetUnitId = _targetId;

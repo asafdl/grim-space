@@ -14,7 +14,7 @@ public sealed class HuntUnitCommandTests(DevStarMapFixture maps)
 	public void TryQueueHuntUnit_QueuesCourseWithoutMutatingLiveMap()
 	{
 		var orchestrator = CreateScenario();
-		var pirateId = orchestrator.Map.UnitRegistry.All
+		var pirateId = orchestrator.Map.FleetRegistry.All
 			.Single(unit => unit.State.Type == EType.PirateFleet)
 			.State.Id;
 
@@ -40,7 +40,7 @@ public sealed class HuntUnitCommandTests(DevStarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
 			new Coord(20, 0, 20),
 			GrimSpace.World.Factions.EFaction.Pirates,

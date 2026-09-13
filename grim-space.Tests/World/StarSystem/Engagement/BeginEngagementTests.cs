@@ -6,6 +6,7 @@ using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
@@ -19,7 +20,7 @@ public sealed class BeginEngagementTests
 		var run = RunState.CreateDevDefault(42);
 		var playerId = RunState.PlayerFleetUnitId;
 		var pirateId = "pirate-a";
-		run.StarSystem.Map.UnitRegistry.Add(Factory.CreatePirateFleet(
+		run.StarSystem.Map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new GrimSpace.Math.Grid.Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,

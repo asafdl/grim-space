@@ -42,7 +42,7 @@ public sealed class TrafficExecutionAgent : ExecutionAgent<StarMap, ActorRuntime
 		var unitId = _actorId!;
 		var world = _world();
 		var runtime = _runtimeFor(unitId);
-		var state = world.UnitRegistry.UnitOf(unitId).State;
+		var state = world.FleetRegistry.FleetOf(unitId).State;
 
 		if (state.ChoreDockIds.Count == 0
 			|| state.Phase != EPhase.Docked

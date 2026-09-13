@@ -46,7 +46,7 @@ internal static class ActionLegalityDiagnostics
 
 	private static string DescribeMoveIllegality(MoveAction move, StarMap world)
 	{
-		if (!world.UnitRegistry.TryGet(move.UnitId, out var unit))
+		if (!world.FleetRegistry.TryGet(move.UnitId, out var unit))
 			return "unit_missing";
 
 		if (!unit.State.CanMove)
@@ -66,10 +66,10 @@ internal static class ActionLegalityDiagnostics
 		if (hunt.ActorId == hunt.TargetUnitId)
 			return "self_target";
 
-		if (!world.UnitRegistry.TryGet(hunt.ActorId, out var initiator))
+		if (!world.FleetRegistry.TryGet(hunt.ActorId, out var initiator))
 			return "actor_missing";
 
-		if (!world.UnitRegistry.TryGet(hunt.TargetUnitId, out var target))
+		if (!world.FleetRegistry.TryGet(hunt.TargetUnitId, out var target))
 			return "target_missing";
 
 		if (!initiator.State.CanMove)
@@ -83,7 +83,7 @@ internal static class ActionLegalityDiagnostics
 
 	private static string DescribeEngageIllegality(IAction action, StarMap world)
 	{
-		if (!world.UnitRegistry.TryGet(action.ActorId, out var actor))
+		if (!world.FleetRegistry.TryGet(action.ActorId, out var actor))
 			return "actor_missing";
 
 		var state = actor.State;
@@ -94,7 +94,7 @@ internal static class ActionLegalityDiagnostics
 		if (counterpartyId is null)
 			return "no_counterparty";
 
-		if (!world.UnitRegistry.TryGet(counterpartyId, out var counterparty))
+		if (!world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
 			return "counterparty_missing";
 
 		if (counterparty.State.HuntedByUnitId != action.ActorId
@@ -112,7 +112,7 @@ internal static class ActionLegalityDiagnostics
 		if (!world.ContractRegistry.IsOffered(accept.ContractId))
 			return "contract_not_offered";
 
-		if (!world.UnitRegistry.TryGet(accept.ActorId, out _))
+		if (!world.FleetRegistry.TryGet(accept.ActorId, out _))
 			return "actor_missing";
 
 		return "illegal";
@@ -126,7 +126,7 @@ internal static class ActionLegalityDiagnostics
 		if (!world.ContractRegistry.IsOffered(decline.ContractId))
 			return "contract_not_offered";
 
-		if (!world.UnitRegistry.TryGet(decline.ActorId, out _))
+		if (!world.FleetRegistry.TryGet(decline.ActorId, out _))
 			return "actor_missing";
 
 		return "illegal";
