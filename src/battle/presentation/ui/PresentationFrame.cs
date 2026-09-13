@@ -18,7 +18,6 @@ public sealed class PresentationFrame
 	public required IReadOnlyList<MovePathOption> MovePaths { get; init; }
 	public int MovePathApBaseline { get; init; }
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
-	public required QueuedWeaponState QueuedWeapon { get; init; }
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }

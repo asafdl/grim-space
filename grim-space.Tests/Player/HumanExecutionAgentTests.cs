@@ -125,11 +125,15 @@ public sealed class HumanExecutionAgentTests
 		var agent = battle.PlayerAgent;
 		var preview = new PlanningPreview();
 
-		Assert.False(preview.QueuedWeapon(agent.Sim, PlayerId).Railgun);
+		Assert.DoesNotContain(
+			preview.AreaPreviews(agent.Sim, PlayerId, []).Queued,
+			item => item.Action is RailgunAction);
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
 
-		Assert.True(preview.QueuedWeapon(agent.Sim, PlayerId).Railgun);
+		Assert.Contains(
+			preview.AreaPreviews(agent.Sim, PlayerId, []).Queued,
+			item => item.Action is RailgunAction);
 		Assert.Equal(0, preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].RailgunRemaining);
 		Assert.NotEmpty(preview.ThreatenedUnitIds(agent.Sim, PlayerId));
 	}

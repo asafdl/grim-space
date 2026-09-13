@@ -23,10 +23,7 @@ public sealed class AbilityActivationTests
 	public void EveryRegisteredAbilityResolvesActivation(EType type)
 	{
 		foreach (var spec in AbilityHudCatalog.ForUnit(type))
-		{
-			var activation = AbilityActivation.For(spec.Def);
-			Assert.NotNull(activation);
-		}
+			Assert.NotNull(spec.Targeting);
 	}
 
 	[Fact]
@@ -37,8 +34,8 @@ public sealed class AbilityActivationTests
 		var starboard = new FlakAction(actor.Id, ESpatialOrientation.Starboard);
 		IAction[] capabilities = [port, new RailgunAction(actor.Id), starboard];
 
-		var choices = AbilityActivation.For(FlakDef.Instance)
-			.ResolveChoices(actor, capabilities);
+		var spec = Spec(EPlayerMode.Flak);
+		var choices = AbilityActivation.ResolveChoices(spec, actor, capabilities);
 
 		var frame = BodyFrame.From(actor);
 		Assert.Collection(
@@ -48,14 +45,14 @@ public sealed class AbilityActivationTests
 				Assert.Same(port, choice.Action);
 				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Port), choice.Position);
 				Assert.Equal(ESpatialOrientation.Port, choice.MountedOn);
-				Assert.Equal(EAbilitySourceVisual.FlakBurst, choice.Visual);
+				Assert.Same(spec.Targeting, choice.Targeting);
 			},
 			choice =>
 			{
 				Assert.Same(starboard, choice.Action);
 				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Starboard), choice.Position);
 				Assert.Equal(ESpatialOrientation.Starboard, choice.MountedOn);
-				Assert.Equal(EAbilitySourceVisual.FlakBurst, choice.Visual);
+				Assert.Same(spec.Targeting, choice.Targeting);
 			});
 	}
 
@@ -65,16 +62,16 @@ public sealed class AbilityActivationTests
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
 		var action = new TorpedoAction(actor.Id, ESpatialOrientation.Dorsal, "torpedo");
 
+		var spec = Spec(EPlayerMode.Torpedo);
 		var choice = Assert.Single(
-			AbilityActivation.For(TorpedoDef.Instance)
-				.ResolveChoices(actor, [action]));
+			AbilityActivation.ResolveChoices(spec, actor, [action]));
 		var pose = TorpedoMount.LaunchPose(actor, ESpatialOrientation.Dorsal);
 
 		Assert.Same(action, choice.Action);
 		Assert.Equal(pose.Position, choice.Position);
 		Assert.Equal(pose.Fore, choice.Fore);
 		Assert.Equal(pose.Dorsal, choice.Dorsal);
-		Assert.Equal(EAbilitySourceVisual.Torpedo, choice.Visual);
+		Assert.Same(spec.Targeting, choice.Targeting);
 	}
 
 	[Fact]
@@ -86,22 +83,31 @@ public sealed class AbilityActivationTests
 		var detonate = new DetonateAction(actor.Id);
 		var patrolPose = PatrolBayMount.LaunchPose(actor);
 
+		var railgunSpec = Spec(EPlayerMode.Railgun);
+		var patrolSpec = Spec(EPlayerMode.SpawnPatrol);
+		var detonateSpec = AbilityHudCatalog.ForUnit(EType.Torpedo).Single();
 		var railgunChoice = Assert.Single(
-			AbilityActivation.For(RailgunDef.Instance)
-				.ResolveChoices(actor, [railgun, patrol, detonate]));
+			AbilityActivation.ResolveChoices(
+				railgunSpec,
+				actor,
+				[railgun, patrol, detonate]));
 		var patrolChoice = Assert.Single(
-			AbilityActivation.For(SpawnPatrolDef.Instance)
-				.ResolveChoices(actor, [railgun, patrol, detonate]));
+			AbilityActivation.ResolveChoices(
+				patrolSpec,
+				actor,
+				[railgun, patrol, detonate]));
 		var detonateChoice = Assert.Single(
-			AbilityActivation.For(DetonateDef.Instance)
-				.ResolveChoices(actor, [railgun, patrol, detonate]));
+			AbilityActivation.ResolveChoices(
+				detonateSpec,
+				actor,
+				[railgun, patrol, detonate]));
 
 		Assert.Equal(actor.Position + actor.Fore, railgunChoice.Position);
-		Assert.Equal(EAbilitySourceVisual.Railgun, railgunChoice.Visual);
+		Assert.Same(railgunSpec.Targeting, railgunChoice.Targeting);
 		Assert.Equal(patrolPose.Position, patrolChoice.Position);
-		Assert.Equal(EAbilitySourceVisual.Patrol, patrolChoice.Visual);
+		Assert.Same(patrolSpec.Targeting, patrolChoice.Targeting);
 		Assert.Equal(actor.Position, detonateChoice.Position);
-		Assert.Equal(EAbilitySourceVisual.Detonate, detonateChoice.Visual);
+		Assert.Same(detonateSpec.Targeting, detonateChoice.Targeting);
 	}
 
 	[Fact]
@@ -114,11 +120,15 @@ public sealed class AbilityActivationTests
 			"__preview_torpedo__");
 		var previewPatrol = new SpawnPatrolAction(actor.Id, "__preview_patrol__");
 		var torpedoChoice = Assert.Single(
-			AbilityActivation.For(TorpedoDef.Instance)
-				.ResolveChoices(actor, [previewTorpedo]));
+			AbilityActivation.ResolveChoices(
+				Spec(EPlayerMode.Torpedo),
+				actor,
+				[previewTorpedo]));
 		var patrolChoice = Assert.Single(
-			AbilityActivation.For(SpawnPatrolDef.Instance)
-				.ResolveChoices(actor, [previewPatrol]));
+			AbilityActivation.ResolveChoices(
+				Spec(EPlayerMode.SpawnPatrol),
+				actor,
+				[previewPatrol]));
 
 		var torpedo = Assert.IsType<TorpedoAction>(
 			AbilityActivation.CreateExecutionAction(torpedoChoice));
@@ -130,4 +140,8 @@ public sealed class AbilityActivationTests
 		Assert.Equal(previewTorpedo.MountedOn, torpedo.MountedOn);
 	}
 
+	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>
+		AbilityHudCatalog.ForUnit(EType.Fighter)
+			.Concat(AbilityHudCatalog.ForUnit(EType.Carrier))
+			.First(spec => spec.Mode == mode);
 }

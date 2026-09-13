@@ -186,7 +186,7 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void QueuedWeaponsRetainTheirOwnActorStateAtQueueIndex()
+	public void QueuedAreaActionsUseTheirOwnActorStateAtQueueIndex()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
@@ -197,14 +197,6 @@ public sealed class PresentationFrameTests
 		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
 
 		var preview = new PlanningPreview();
-		var queued = preview.QueuedWeapon(battle.PlayerAgent.Sim, battle.PlayerId);
-
-		Assert.True(queued.Railgun);
-		Assert.Equal(ESpatialOrientation.Port, queued.FlakMountedOn);
-		Assert.NotNull(queued.RailgunActorStateAtQueue);
-		Assert.NotNull(queued.FlakActorStateAtQueue);
-		Assert.Equal(origin, queued.RailgunActorStateAtQueue.Position);
-		Assert.Equal(afterMove, queued.FlakActorStateAtQueue.Position);
 		Assert.Equal(
 			afterMove,
 			preview.PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId)[battle.PlayerId].Position);

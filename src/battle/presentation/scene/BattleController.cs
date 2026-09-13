@@ -34,8 +34,7 @@ public partial class BattleController : Node3D
 	private CombatIntroDirector _combatIntro = null!;
 
 	private GridView _gridView = null!;
-	private FlakPreviewView _flakPreview = null!;
-	private RailgunPreviewView _railgunPreview = null!;
+	private AreaActionPreviewView _areaActionPreview = null!;
 	private TorpedoPreviewView _torpedoPreview = null!;
 	private AbilitySourcePickerView _abilitySourcePicker = null!;
 	private CellVolumeMeshStore _cellVolumeMeshes = null!;
@@ -71,13 +70,9 @@ public partial class BattleController : Node3D
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(_camera, _cellVolumeMeshes);
 
-		_railgunPreview = new RailgunPreviewView { Name = "RailgunPreview" };
-		_railgunPreview.Build(_cellVolumeMeshes);
-		AddChild(_railgunPreview);
-
-		_flakPreview = new FlakPreviewView { Name = "FlakPreview" };
-		_flakPreview.Build(_cellVolumeMeshes);
-		AddChild(_flakPreview);
+		_areaActionPreview = new AreaActionPreviewView { Name = "AreaActionPreview" };
+		_areaActionPreview.Build(_cellVolumeMeshes);
+		AddChild(_areaActionPreview);
 
 		_torpedoPreview = new TorpedoPreviewView { Name = "TorpedoPreview" };
 		_torpedoPreview.Build(_cellVolumeMeshes);
@@ -372,8 +367,7 @@ public partial class BattleController : Node3D
 			ColorForActor(frame.FocusId),
 			selected: frame.SelectedMove is not null);
 		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
-		_flakPreview.ApplyFrame(frame);
-		_railgunPreview.ApplyFrame(frame);
+		_areaActionPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame);
 	}

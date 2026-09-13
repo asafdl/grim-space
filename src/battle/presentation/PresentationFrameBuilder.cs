@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
@@ -69,7 +70,6 @@ public sealed class PresentationFrameBuilder
 		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
 		var movePathApBaseline = _preview.MovePathApBaseline(sim, playerId, focusId);
 		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
-		var queuedWeapon = canControl ? _preview.QueuedWeapon(sim, playerId) : QueuedWeaponState.Empty;
 		var abilityActorId = canControl || isInspecting ? focusId : playerId;
 		var legalCapabilities = canControl || isInspecting
 			? Capabilities.LegalCapabilities(sim, abilityActorId)
@@ -83,16 +83,17 @@ public sealed class PresentationFrameBuilder
 		var abilityChoices = canControl
 			&& state.Mode != EPlayerMode.Move
 			&& state.ActiveAbilitySpec is { } choiceSpec
-				? AbilityActivation.For(choiceSpec.Def)
-					.ResolveChoices(focusUnit.ToState(), legalCapabilities)
+				? AbilityActivation.ResolveChoices(
+					choiceSpec,
+					focusUnit.ToState(),
+					legalCapabilities)
 				: [];
 		state.ClampAbilityHover(abilityChoices.Count);
 		var hoveredAbilityChoice = state.AbilityHoveredIndex is int abilityHoverIndex
 			? abilityChoices[abilityHoverIndex]
 			: null;
-		var weaponQueued = queuedWeapon.FlakMountedOn is not null
-			|| queuedWeapon.Railgun
-			|| queuedWeapon.TorpedoMountedOn is not null;
+		var weaponQueued = sim.Actions.Any(action =>
+			action.ActorId == playerId && action is not MoveStepAction);
 		var selectedMove = state.MoveDestination is { } destination
 			&& state.RequestedMoveBasis is { } requestedBasis
 			? moveOptions.FirstOrDefault(option =>
@@ -197,7 +198,6 @@ public sealed class PresentationFrameBuilder
 			MovePaths = moveOptions,
 			MovePathApBaseline = movePathApBaseline,
 			PreviewUnits = previewUnits,
-			QueuedWeapon = queuedWeapon,
 			Weapons = weapons,
 			AreaActions = areaActions,
 			Abilities = abilities,

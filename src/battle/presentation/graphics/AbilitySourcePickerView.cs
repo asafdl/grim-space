@@ -9,7 +9,6 @@ public sealed partial class AbilitySourcePickerView : Node3D
 {
 	private const float ViewDotThreshold = 0.9995f;
 	private static readonly Color CellHoverTint = new(0.55f, 0.82f, 1f);
-	private static readonly Color GhostTint = new(0.55f, 0.82f, 1f, 0.48f);
 
 	private readonly List<SourceView> _sources = [];
 	private IReadOnlyList<AbilityActivationChoice> _choices = [];
@@ -108,7 +107,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 
 	private sealed class SourceView
 	{
-		private EAbilitySourceVisual? _visual;
+		private AbilityTargetingSpec? _targeting;
 		private MeshInstance3D? _ghost;
 		private ShaderMaterial? _ghostMaterial;
 
@@ -141,58 +140,32 @@ public sealed partial class AbilitySourcePickerView : Node3D
 			Root.Position = WorldMapping.ToWorld(choice.Position);
 			Cell.Mesh = cellMesh;
 			Cell.MaterialOverride = hovered ? hoverCellMaterial : cellMaterial;
-			EnsureGhost(choice.Visual);
+			EnsureGhost(choice.Targeting);
 			_ghost!.Basis = BasisFrom(choice);
 			WeaponPreviewMaterials.ApplyAim(
 				_ghostMaterial!,
-				GhostTint,
+				choice.Targeting.Tint,
 				hovered ? 1.45f : 0.85f);
 		}
 
-		private void EnsureGhost(EAbilitySourceVisual visual)
+		private void EnsureGhost(AbilityTargetingSpec targeting)
 		{
-			if (_ghost is not null && _visual == visual)
+			if (_ghost is not null && _targeting == targeting)
 				return;
 
 			_ghost?.QueueFree();
-			_ghostMaterial = WeaponPreviewMaterials.CreateDotted(GhostTint);
+			_ghostMaterial = WeaponPreviewMaterials.CreateDotted(targeting.Tint);
 			_ghost = new MeshInstance3D
 			{
-				Name = $"{visual}Ghost",
-				Mesh = MeshFor(visual),
+				Name = "AbilityGhost",
+				Mesh = targeting.CreateGhostMesh(),
 				MaterialOverride = _ghostMaterial,
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			};
 			PresentationLayers.MarkUx(_ghost);
 			Root.AddChild(_ghost);
-			_visual = visual;
+			_targeting = targeting;
 		}
-
-		private static Mesh MeshFor(EAbilitySourceVisual visual) =>
-			visual switch
-			{
-				EAbilitySourceVisual.FlakBurst => new SphereMesh
-				{
-					Radius = 0.42f,
-					Height = 0.84f,
-					RadialSegments = 12,
-					Rings = 6,
-				},
-				EAbilitySourceVisual.Railgun => new BoxMesh
-				{
-					Size = new Vector3(0.18f, 0.18f, 1.35f),
-				},
-				EAbilitySourceVisual.Torpedo => TorpedoMesh.CreateHull(),
-				EAbilitySourceVisual.Patrol => PatrolMesh.CreateHull(),
-				EAbilitySourceVisual.Detonate => new SphereMesh
-				{
-					Radius = 0.68f,
-					Height = 1.36f,
-					RadialSegments = 16,
-					Rings = 8,
-				},
-				_ => throw new ArgumentOutOfRangeException(nameof(visual), visual, null),
-			};
 
 		private static Basis BasisFrom(AbilityActivationChoice choice)
 		{

@@ -147,48 +147,6 @@ public sealed class PlanningPreview
 		return new WeaponPeek(portFlak, starboardFlak, railgun, torpedoMounts);
 	}
 
-	public QueuedWeaponState QueuedWeapon(BattleSimulation sim, string playerId)
-	{
-		ESpatialOrientation? flakMountedOn = null;
-		UnitDisplayState? flakActorState = null;
-		var railgun = false;
-		UnitDisplayState? railgunActorState = null;
-		ESpatialOrientation? torpedoMountedOn = null;
-		UnitDisplayState? torpedoActorState = null;
-
-		for (var i = sim.Actions.Count - 1; i >= 0; i--)
-		{
-			if (sim.Actions[i].ActorId != playerId)
-				continue;
-
-			switch (sim.Actions[i])
-			{
-				case FlakAction flak when flakMountedOn is null:
-					flakMountedOn = flak.MountedOn;
-					flakActorState = ActorStateAt(sim, playerId, i);
-					break;
-				case RailgunAction when !railgun:
-					railgun = true;
-					railgunActorState = ActorStateAt(sim, playerId, i);
-					break;
-				case TorpedoAction torpedo when torpedoMountedOn is null:
-					torpedoMountedOn = torpedo.MountedOn;
-					torpedoActorState = ActorStateAt(sim, playerId, i);
-					break;
-			}
-		}
-
-		return new QueuedWeaponState
-		{
-			FlakMountedOn = flakMountedOn,
-			FlakActorStateAtQueue = flakActorState,
-			Railgun = railgun,
-			RailgunActorStateAtQueue = railgunActorState,
-			TorpedoMountedOn = torpedoMountedOn,
-			TorpedoActorStateAtQueue = torpedoActorState,
-		};
-	}
-
 	public AreaActionPreviews AreaPreviews(
 		BattleSimulation sim,
 		string actorId,
@@ -221,22 +179,18 @@ public sealed class PlanningPreview
 	{
 		var targets = new HashSet<string>();
 
-		if (hoveredAbilityAction is FlakAction hoveredFlak)
-			targets.UnionWith(ImpactTargets(sim.Peek(hoveredFlak)));
-		else if (hoveredAbilityAction is RailgunAction hoveredRailgun)
-			targets.UnionWith(ImpactTargets(sim.Peek(hoveredRailgun)));
+		if (hoveredAbilityAction is not null
+			&& AreaDefinition(hoveredAbilityAction) is not null)
+		{
+			targets.UnionWith(ImpactTargets(sim.Peek(hoveredAbilityAction)));
+		}
 		for (var i = 0; i < sim.Actions.Count; i++)
 		{
-			if (sim.Actions[i].ActorId != playerId)
+			if (sim.Actions[i].ActorId != playerId
+				|| AreaDefinition(sim.Actions[i]) is null)
 				continue;
 
-			switch (sim.Actions[i])
-			{
-				case FlakAction:
-				case RailgunAction:
-					targets.UnionWith(ImpactTargets(sim.RecordsFor(i)));
-					break;
-			}
+			targets.UnionWith(ImpactTargets(sim.RecordsFor(i)));
 		}
 
 		return targets;
@@ -342,12 +296,6 @@ public sealed class PlanningPreview
 	private static Dictionary<string, UnitDisplayState> CaptureUnits(BattleWorld world) =>
 		UnitRegistry.For(world).All
 			.ToDictionary(unit => unit.State.Id, unit => UnitDisplayState.Capture(unit.State));
-
-	private static UnitDisplayState ActorStateAt(BattleSimulation sim, string playerId, int actionIndex)
-	{
-		var world = sim.ReplayWorld(actionIndex);
-		return UnitDisplayState.Capture(UnitRegistry.For(world).UnitOf(playerId).State);
-	}
 
 	private static AreaActionPreview AreaPreview(
 		IAction action,
