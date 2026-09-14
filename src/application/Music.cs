@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using Godot;
 
-namespace GrimSpace.Core;
+namespace GrimSpace.Application;
 
-// TODO: Move this Godot audio and scene integration to an application layer.
-// Reusable Core must remain Godot-free.
 public partial class Music : Node
 {
 	private const float FadeOutSeconds = 4f;

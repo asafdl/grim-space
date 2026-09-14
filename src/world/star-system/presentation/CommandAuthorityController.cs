@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -16,7 +17,7 @@ public partial class CommandAuthorityController : Control
 
 	public override void _Ready()
 	{
-		_orchestrator = RunSession.Instance.Run.StarSystem;
+		_orchestrator = Session.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
 		_playerAgent = _orchestrator.PlayerAgent
 			?? throw new InvalidOperationException("Command Authority requires a player execution agent.");

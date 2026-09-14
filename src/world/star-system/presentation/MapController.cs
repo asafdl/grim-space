@@ -1,5 +1,5 @@
 using Godot;
-using GrimSpace.Core;
+using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
@@ -73,11 +73,11 @@ public partial class MapController : Node3D
 		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("UI/ResourceHud");
 
-		_orchestrator = RunSession.Instance.Run.StarSystem;
+		_orchestrator = Session.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
 		_resourceTransactions = new ResourceTransactionFeed();
 		_resourceTransactions.Bind(
-			RunSession.Instance.TransitionInbox,
+			Session.Instance.TransitionInbox,
 			_orchestrator,
 			_resourceHud);
 
@@ -167,7 +167,7 @@ public partial class MapController : Node3D
 			ConfigureTutorialDialog(_tutorialDialog);
 			_tutorial = new TutorialController(
 				_orchestrator,
-				RunSession.Instance.Run.TutorialProgress,
+				Session.Instance.Run.TutorialProgress,
 				_tutorialDialog,
 				_worldFocus,
 				_worldIndicator);
@@ -358,7 +358,7 @@ public partial class MapController : Node3D
 	private void BeginBattleTransition()
 	{
 		_battleTransitionPending = false;
-		if (!RunSession.Instance.BeginEngagement(State.PlayerFleetUnitId))
+		if (!Session.Instance.BeginEngagement(State.PlayerFleetUnitId))
 			return;
 
 		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");
@@ -390,7 +390,7 @@ public partial class MapController : Node3D
 
 	private void RebuildScene()
 	{
-		RunSession.Instance.RegenerateMap();
+		Session.Instance.RegenerateMap();
 		GetTree().ReloadCurrentScene();
 	}
 

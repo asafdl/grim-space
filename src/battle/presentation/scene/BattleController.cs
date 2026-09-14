@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Camera;
@@ -52,9 +53,9 @@ public partial class BattleController : Node3D
 
 	public override void _Ready()
 	{
-		_strategicBattle = RunSession.Instance.Run.ActiveBattle is not null;
+		_strategicBattle = Session.Instance.Run.ActiveBattle is not null;
 		_battle = BattleOrchestrator.FromEncounter(ResolveEncounter());
-		RunSession.Instance.DevMenu.SetBattleActions(
+		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
 			() => ForceOutcome(EBattleResult.Lose));
@@ -414,7 +415,7 @@ public partial class BattleController : Node3D
 
 	private static BattleEncounter ResolveEncounter()
 	{
-		var activeBattle = RunSession.Instance.Run.ActiveBattle;
+		var activeBattle = Session.Instance.Run.ActiveBattle;
 		if (activeBattle is not null)
 			return activeBattle.Encounter;
 
@@ -442,7 +443,7 @@ public partial class BattleController : Node3D
 			return;
 
 		_resolutionRequested = true;
-		if (!RunSession.Instance.ResolveEngagement(_battle.Outcome))
+		if (!Session.Instance.ResolveEngagement(_battle.Outcome))
 		{
 			_resolutionRequested = false;
 			return;
@@ -453,7 +454,7 @@ public partial class BattleController : Node3D
 
 	private void ResetBattle()
 	{
-		RunSession.Instance.StartNewRun();
+		Session.Instance.StartNewRun();
 		GetTree().ReloadCurrentScene();
 	}
 
@@ -472,7 +473,7 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
-		RunSession.Instance.DevMenu.ClearBattleActions();
+		Session.Instance.DevMenu.ClearBattleActions();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
 		base._ExitTree();

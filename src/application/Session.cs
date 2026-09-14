@@ -2,28 +2,28 @@ using System.Threading.Tasks;
 using Godot;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
-using GrimSpace.Core;
 using GrimSpace.Core.Log;
 using GrimSpace.Presentation.Dev;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
 
-namespace GrimSpace.Run;
+namespace GrimSpace.Application;
 
-public partial class RunSession : Node
+public partial class Session : Node
 {
 	private const string BattleScenePath = "res://scenes/battle.tscn";
 	private const string MapScenePath = "res://scenes/map.tscn";
 
-	private static RunSession? _instance;
+	private static Session? _instance;
 	private DevMenuOverlay _devMenu = null!;
 	private bool _beginningMapFromMenu;
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
 
-	public static RunSession Instance =>
-		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
+	public static Session Instance =>
+		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
 
 	public State Run { get; private set; } = null!;
 

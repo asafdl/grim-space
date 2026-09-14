@@ -1,6 +1,5 @@
 using Godot;
-using GrimSpace.Core;
-using GrimSpace.Run;
+using GrimSpace.Application;
 
 namespace GrimSpace.Presentation.Menu;
 
@@ -133,14 +132,14 @@ public partial class StartMenu : Control
 		GetTree().ChangeSceneToFile(IntroScenePath);
 
 	private void PrepareFirstScene() =>
-		RunSession.Instance.PrepareFirstScene();
+		Session.Instance.PrepareFirstScene();
 
 	private async void OnStart()
 	{
 		_startButton.Disabled = true;
 		try
 		{
-			await RunSession.Instance.BeginMapFromMenuAsync();
+			await Session.Instance.BeginMapFromMenuAsync();
 		}
 		catch (Exception ex)
 		{
