@@ -1,27 +1,76 @@
 <div align="center">
-  <img src="assets/icon.png" alt="react-conditional-ui logo" width="120" />
+  <img src="assets/icon.png" alt="grim-space logo" width="120" />
 </div>
 
 # grim-space
 
-Early-stage 3D roguelike space game with tactical turn-based combat. The current focus is a combat prototype on a discrete 3D grid; run and progression layers are thin placeholders.
+Early-stage 3D roguelike space game with strategic star-system navigation and tactical turn-based combat on a discrete 3D grid.
 
 Gameplay systems in code come first — placeholder visuals, APIs that change, and design details still being proven out.
 
-## Code layout
+## Game architecture and boundaries
 
-Dependencies flow **presentation → battle → data**. Battle rules are plain C# (testable without Godot); Godot handles rendering, input, and scene wiring.
+The game uses one-way command flow into the simulation and derived presentation flow back out:
 
-| Area | Intent |
-|------|--------|
-| `src/battle/` | Combat rules — grid, movement, weapons, AI, turn orchestration |
-| `src/core/actions/` | Shared action / effect / timeline primitives; battle simulation and commit |
-| `src/units/`, `src/run/` | Unit definitions; encounter and run scaffolding |
-| `src/battle/presentation/` | Godot layer — scene, UI, camera, graphics, picking |
+```text
+Godot input
+    → view / HUD
+    → user-intent translator
+    → IActionSink / player execution agent
+    → simulation proposal
+    → ActionBatch
+    → subsystem orchestrator
+    → Engine.Commit
+    → live world + runtime + timeline
+    → presentation frame / replay / synchronized views
+    → view / HUD
+```
+
+| Layer | Owns | Boundary |
+|-------|------|----------|
+| **View / HUD** | Godot nodes, rendering, widgets, animation, and raw input events | Displays supplied state and emits interaction events; never changes game state |
+| **User-intent translation** | Converting clicks, keys, picks, and UI choices into domain-level action requests | Targets `IActionSink` or another narrow execution-agent API; never decides final legality |
+| **Execution agent** | One actor's planning lifecycle and proposed actions | Produces and publishes an action batch; simulation-backed agents validate on a fork; agents never commit |
+| **Subsystem orchestrator** | Mode/phase, actor activation, batch ordering, tick advancement, and world-update notifications | The only layer allowed to move accepted proposals into the engine |
+| **Domain rules** | World/runtime types, actions, effects, legality, objectives, and other game-specific policy | Must not depend on Godot or presentation |
+| **Generic kernel** | Forking, preview, commit, timeline, listeners, and generic search | Must not depend on game-specific domains |
+
+[`UserIntentTranslator`](src/battle/presentation/scene/UserIntentTranslator.cs) and its [star-map counterpart](src/world/star-system/presentation/UserIntentTranslator.cs) are input boundaries, not rule owners. They may translate screen-space picks into domain coordinates or targets and request an action, but action definitions and the execution agent remain responsible for legality. A disabled button or missing highlight is never proof that an action is illegal.
+
+Application controls such as pause, step, speed, scene navigation, and camera movement may call narrow presentation or orchestrator APIs directly because they do not represent an actor's domain action. They still must not mutate world objects.
+
+### State authority
+
+| State | Authority |
+|-------|-----------|
+| **Live world** | Authoritative current game state: units, positions, resources, contracts, objectives, hazards, and similar domain facts |
+| **Live actor runtime** | Authoritative transient rule state owned beside the world by the engine |
+| **Live timeline** | Authoritative committed order, delayed actions, and emitted facts; it is history, not a duplicate current-state model |
+| **Simulation** | Non-authoritative proposal derived from a live-state fork |
+| **Presentation frame / view model** | Disposable projection derived from live state, the active simulation, or replay data |
+| **Godot node state** | Rendering and interaction state only |
+
+UI state should be derived from the current world, active simulation, and committed timeline whenever practical. Acceptable local UI state includes focus, hover, selected tab, open overlays, camera pose, drag state, animation progress, and short-lived visual caches. Gameplay facts such as health, position, resources, action points, cooldowns, turn phase, contracts, objectives, and pending domain actions belong to the world/runtime or execution agent and must not be duplicated as independent UI truth.
+
+Presentation may temporarily differ from the live world while showing a planning preview, interpolation, or replay. That state must remain explicitly derived and disposable: completing or canceling the presentation returns to a fresh projection of authoritative state. Rendered node transforms, visibility, labels, and animation state must never feed back into rule evaluation.
+
+### Rules for contributors and agents
+
+- **MUST** send user-originated gameplay actions through intent translation and an execution agent; never mutate world objects from UI code.
+- **MUST** implement legality in action definitions. UI may explain or pre-filter choices but must not own a parallel legality rule.
+- **MUST** rebuild or synchronize presentation after authoritative state changes instead of incrementally maintaining a second game model.
+- **MUST** key derived caches by the relevant tick, `WorldVersion`, or source identity and invalidate them when that source changes.
+- **MUST** keep UI-only state semantically irrelevant to simulation outcomes.
+- **MUST** use committed actions/records or explicit world-update notifications to trigger presentation refreshes; listeners must not perform domain mutation.
+- **MUST NOT** read gameplay truth from Godot nodes, rendered transforms, labels, button state, or animation progress.
+- **MUST NOT** let domain, engine, action, or effect code depend on presentation types.
+- Temporary exceptions must be marked as boundary leaks and must not become dependencies for new code.
 
 ## Generic simulation kernel
 
-`src/core/` is a Godot-free kernel shared by tactical battle and the strategic star-system. It defines execution mechanics, not game rules.
+`src/core/actions/`, `src/core/engine/`, `src/core/timeline/`, and `src/core/dfs/` form a domain-agnostic, Godot-free kernel. Tactical battle and the strategic star-system are two consumers, not concepts built into the kernel.
+
+Domain independence is an architectural requirement. The kernel must remain usable by plain .NET code for non-game workflows that fit its action/effect/timeline model. It must not reference Godot, scenes, presentation, or grim-space domains such as battles, fleets, contracts, and units. Consumers provide their world, runtime, actions, effects, and policies through the generic contracts; integration with Godot belongs outside the kernel.
 
 ### Canonical ownership
 
@@ -55,7 +104,7 @@ live Engine
 
 The simulation action queue is a proposal, **not** timeline history. `Simulation.TryCommit` only returns that proposal; despite its name, it does not cross into live state. Only the orchestrator's call to `Engine.Commit` does that.
 
-### Actions, effects, records, and listeners
+### Actions, effects, and records
 
 | Type | Meaning | Authority |
 |------|---------|-----------|
@@ -131,6 +180,9 @@ These APIs are generic capabilities. Their current consumers do not limit where 
 
 ### Rules for contributors and agents
 
+- **MUST** keep kernel packages free of Godot and grim-space domain dependencies.
+- **MUST** express consumer-specific behavior through generic types, kernel interfaces, or code in the consuming system.
+- **MUST NOT** place scene lifecycle, autoload, input, rendering, audio, or persisted Godot settings in the kernel.
 - **MUST** mutate live domain objects, after engine construction, only through effects applied during `Engine.Commit`.
 - **MUST** route post-construction timeline changes through `Engine.Commit`, `Engine.Schedule`, `Engine.AdvanceTick`, or an effect currently being applied by the engine. Direct timeline setup is reserved for world construction.
 - **MUST NOT** let an execution agent or simulation call `Engine.Commit`.
@@ -147,7 +199,7 @@ The base `ExecutionAgent` may support deterministic producers that read live sta
 
 `ActionSearch` forks the supplied simulation, explores by enqueueing and undoing on that fork, and returns copied search frames. It must never mutate the caller's simulation or the live engine.
 
-## Battle (current intent)
+## Tactical battle (current intent)
 
 ### Grid & positioning
 
@@ -155,40 +207,18 @@ Combat happens on a 3D cell lattice. Each ship has a facing; movement and weapon
 
 ### Turn loop
 
-The player queues a full turn up front, previews the outcome, then commits. The enemy acts when the turn resolves. During simulation, actions can be queued and undone; permanent state changes happen on commit and resolution.
+The player plans an action batch and publishes it at end of turn. [`BattleOrchestrator`](src/battle/BattleOrchestrator.cs) then walks [`UnitRegistry.ActivationOrder`](src/battle/units/UnitRegistry.cs), activates each unit's execution agent, consumes its batch, and commits batches sequentially. Newly spawned actors join the remaining activation order. Round upkeep is committed last, the tick advances, and the committed history is packaged as a [`TurnReplay`](src/battle/TurnReplay.cs) for presentation. The next player turn starts only after replay completes.
 
-### Actions, effects, and timeline
-
-Battle logic is split into three cooperating ideas:
-
-| Concept | Role |
-|---------|------|
-| **Actions** | Declarative intent — move, fire, resolve a delayed hit, etc. |
-| **Effects** | Atomic state changes — damage, movement, AP, hazards, scheduling future work |
-| **Timeline** | When things happen — discrete ticks ordering player, enemy, and delayed events |
-
-Typical flow: **queue → commit to timeline → step → repeat**. Player input uses a throwaway `Simulation` fork (undoable preview). On commit, actions are scheduled on the live timeline and stepped — that becomes world truth. Enemy AI then `CreateSimulation()` from that live state, previews with `StepPreview` to peek ahead, commits its queue, and the orchestrator steps through the rest of the turn. Presentation observes `TickResult`; it does not own rules.
-
-### Architecture (rules layer)
-
-Combat state is split into two buckets, passed together through actions and effects:
+### Battle state
 
 | Bucket | Holds |
 |--------|--------|
 | **World** (`BattleWorld`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
 | **Runtime** (`ActorRuntimes<ActorRuntime>`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
 
-**Actions** answer “is this legal?” and “what effects does it produce?” against `(world, runtime)`. **Effects** apply the actual mutations. There is no separate context object or slice layer — callers pass world and runtime directly.
+[`Capabilities`](src/battle/units/Capabilities.cs) maps each unit type to its available action definitions. AI and UI start from that set and ask each definition what is legal or discoverable; they do not maintain separate rule tables.
 
-**Action defs** (`MoveDef`, `HeadingDef`, …) own discovery and legality for a family of actions. **Capabilities** maps unit type → which defs that ship has; AI and UI start there, then ask each def what is possible. Movement paths are discovered through the move def; other actions come from each def’s `Discover`.
-
-**Engine** owns the live `World`, `ActorRuntimes`, and a monotonic `WorldVersion` (incremented on every schedule/step). `CreateSimulation()` stamps the current version on the fork. `TryScheduleFromSimulation` rebases stale sims (save actions → refork → replay) before committing; failed replay is rejected.
-
-**Simulation** uses `Simulation<BattleWorld, ActorRuntime>`: anchor world + anchor runtimes, preview forks replayed on each enqueue, action list with undo groups. **Commit** returns the queued `IReadOnlyList<IAction>` for scheduling; only the orchestrator writes to the live timeline.
-
-**BattleOrchestrator** builds the encounter, owns turn flow (sequential commit: player → step → AI → step → upkeep), win rules, and presentation hooks. Presentation (`BattleUi`, `BattleController`, `BattleFrameBuilder`) reads preview state and highlights legal options; it does not implement rules. Tests hit the same orchestrator and defs as the game, without Godot.
-
-
+`BattleOrchestrator` owns phase transitions, activation order, outcome evaluation, and the engine commit boundary. Godot-facing [`BattleController`](src/battle/presentation/scene/BattleController.cs), [`BattleHud`](src/battle/presentation/ui/BattleHud.cs), and [`PresentationFrameBuilder`](src/battle/presentation/PresentationFrameBuilder.cs) consume previews and committed history but do not implement battle rules.
 
 ---
 
@@ -199,7 +229,7 @@ Combat state is split into two buckets, passed together through actions and effe
 - [.NET SDK 10+](https://dotnet.microsoft.com/download)
 - [Godot 4.7 .NET build](https://godotengine.org/download) — pick the **.NET** download for your OS (not the standard build; C# requires the .NET edition)
 
-`dotnet build` and `dotnet test` work on all platforms without launching Godot.
+`dotnet build` and the test suite work on all platforms without launching Godot.
 
 ### Linux
 
@@ -211,7 +241,7 @@ Combat state is split into two buckets, passed together through actions and effe
 
 - Install the .NET SDK, then the Godot **.NET** Windows build.
 - Open the repo root in Godot (`Godot_v4.x-stable_mono_win64.exe` → import/open `project.godot`).
-- `dotnet build` and `dotnet test` work from PowerShell or cmd in the repo root.
+- `dotnet build` and the test command below work from PowerShell or cmd in the repo root.
 
 ### Setup & run
 
@@ -223,10 +253,10 @@ Rebuild after changing exported properties, signals, or tool scripts.
 
 ### Tests
 
-Battle logic tests live in `grim-space.Tests/` and run without Godot:
+Rules and orchestration tests live in `grim-space.Tests/` and run without Godot:
 
 ```bash
-dotnet test
+dotnet test --blame-crash --blame-crash-dump-type mini
 ```
 
 Use tests for rules and orchestration; use Godot for presentation and full battle flow.

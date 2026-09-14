@@ -40,9 +40,27 @@ The near-term goal is **gameplay systems in code**, not polish. Use primitive/pl
 
 Defer until later: final art, animation, VFX, music, SFX, narrative writing, balancing pass.
 
-## Agent Instructions
-- we had instance where dump was 6gb, **don't run tests with dump -- only if needed**: make sure to run on mini `dotnet test --blame-crash --blame-crash-dump-type mini`
-- pay special attention to **TODO comments**, I leave them specifically because they represent a rework that needs to be done, **if touching a file or flow that has a TODO, alert the user** or work with the comment
+## Architecture and agent instructions
+
+[`README.md`](README.md#game-architecture-and-boundaries) is the source of truth for system ownership, state authority, dependency direction, and cross-layer flow. Its [generic simulation kernel](README.md#generic-simulation-kernel) section defines the action, effect, simulation, execution-agent, timeline, and listener contracts.
+
+Before changing code:
+
+1. Identify the system that owns the state and invariant being changed.
+2. Trace the existing read and write paths through that owner's public boundary.
+3. Extend that owner instead of creating parallel state, services, registries, or rule implementations.
+4. Keep generic code domain-agnostic and Godot-free; specialize in the consuming system.
+5. Keep presentation derived from authoritative world, runtime, simulation, and timeline state. UI-local state must not become gameplay truth.
+
+If the requested change conflicts with an established boundary, stop and explain the conflict before implementing it. Do not preserve a leak merely because nearby code already does it, and do not use an architectural issue as permission to refactor unrelated code.
+
+TODO comments identify known rework or boundary debt. When touching a file or flow with a TODO, either address it within scope or call it out to the user; do not silently build new dependencies on top of it.
+
+Tests must use mini crash dumps because full dumps have previously reached several gigabytes:
+
+```bash
+dotnet test --blame-crash --blame-crash-dump-type mini
+```
 
 ## Coding conventions
 
@@ -65,12 +83,3 @@ assets are mostly for debugging purposes waiting for real artist if game turns o
 
 ## Developer Communication
 The main developer for this project is a corporate software engineer unfamiliar with gaming development, so any gaming specific changes should be challenged, slowed down, and explained.
-
-## Architecture
-
-**Do not invent parallel systems.** Prefer extending the existing system that already owns the concern. Creating a sibling module/path “for the new feature” because the current one was not understood is laziness — that duplication has plagued this project. Find the right home and change it; only add a new system when the concern is genuinely new and has no owner.
-
-- **Logical place** — every type/file belongs in a clear home (system, domain, or shared generic). If you cannot name where it lives, do not invent a dump folder or a parallel system; rethink the design.
-- **Generic stays generic** — anything that can be generic *should* be. Do not bake domain/game knowledge into shared utilities, grids, search, math, or engine wrappers. Specialize at the call site or in a thin domain layer above the generic core.
-- **Systems own; APIs stay minimal** — a system owns its state and invariants. Other systems talk through a small, intentional surface. Reaching into another system’s internals, duplicating its state, or “just this once” coupling is a **leak** — treat leaks as bad code and fix the boundary instead.
-- **Less code is better** — every line needs a purpose. Prefer deleting or inlining over indirection. **Bad code smells**: wrappers that only forward, redirect/alias layers with no behavior, and random helper functions that exist because “it felt tidy” rather than because a real abstraction earned its keep.
