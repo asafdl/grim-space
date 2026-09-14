@@ -2,16 +2,14 @@ using System.Threading.Tasks;
 using Godot;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core;
 using GrimSpace.Core.Log;
 using GrimSpace.Presentation.Dev;
-using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
 
-namespace GrimSpace.Core;
+namespace GrimSpace.Run;
 
-// TODO: Move this Godot autoload and cross-system composition root to an application
-// integration layer. Reusable Core must not depend on Godot or feature systems.
 public partial class RunSession : Node
 {
 	private const string BattleScenePath = "res://scenes/battle.tscn";

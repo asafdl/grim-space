@@ -8,7 +8,6 @@ using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
-using GrimSpace.Core;
 using GrimSpace.Run;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
