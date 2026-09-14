@@ -42,6 +42,7 @@ public partial class MapController : Node3D
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private IDisposable _engageSubscription = null!;
+	private ResourceTransactionFeed _resourceTransactions = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -74,6 +75,11 @@ public partial class MapController : Node3D
 
 		_orchestrator = RunSession.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
+		_resourceTransactions = new ResourceTransactionFeed();
+		_resourceTransactions.Bind(
+			RunSession.Instance.TransitionInbox,
+			_orchestrator,
+			_resourceHud);
 
 		var engagementHud = new EngagementHudOverlay();
 		_uiLayer.AddChild(engagementHud);
@@ -186,7 +192,6 @@ public partial class MapController : Node3D
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
-		UpdateResourceHud();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
@@ -214,7 +219,6 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
-		UpdateResourceHud();
 		_poiFacade.Update();
 
 		if (!_poiFacade.IsStrategic)
@@ -234,6 +238,7 @@ public partial class MapController : Node3D
 
 	public override void _ExitTree()
 	{
+		_resourceTransactions?.Dispose();
 		_engageSubscription.Dispose();
 		_engagement.Dispose();
 		_narrative.Dispose();
@@ -394,9 +399,6 @@ public partial class MapController : Node3D
 		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
 		_objectivesHud.Sync(objectives);
 	}
-
-	private void UpdateResourceHud() =>
-		_resourceHud.Sync(_orchestrator.Map.PlayerResources);
 
 	private static void ConfigureTutorialDialog(TutorialDialog dialog)
 	{

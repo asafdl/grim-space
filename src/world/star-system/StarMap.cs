@@ -162,7 +162,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 			objective,
 			map.ControllingFaction,
 			issuerPoiId,
-			new ContractTerms(StarterContractRewardCredits),
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, StarterContractRewardCredits)),
 			narrative);
 		map.ContractRegistry.RegisterOffered(contract);
 	}

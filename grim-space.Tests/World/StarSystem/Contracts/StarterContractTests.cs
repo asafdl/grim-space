@@ -1,5 +1,6 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.Tests.World.StarSystem;
@@ -23,7 +24,8 @@ public sealed class StarterContractTests(StarMapFixture maps)
 			Assert.IsType<HuntObjective>(contract.Objective);
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
-			Assert.Equal(StarMap.StarterContractRewardCredits, contract.Terms.RewardCredits);
+			Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
+			Assert.Equal(StarMap.StarterContractRewardCredits, credits);
 
 			var hunt = (HuntObjective)contract.Objective;
 			Assert.Single(hunt.SpawnGroups);

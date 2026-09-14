@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 
@@ -40,7 +41,7 @@ public sealed class Manager
 			.ToArray();
 
 		if (livingParticipants.Length == 0)
-			return CreateOutcome(EBattleResult.Tie, states);
+			return CreateOutcome(EBattleResult.Tie, units, states);
 
 		var anyFriendly = livingParticipants.Any(participant =>
 			perspectiveAlliance.IsAlliedWith(units.UnitOf(participant.TacticalUnitIds[0]).Alliance));
@@ -48,9 +49,9 @@ public sealed class Manager
 			!perspectiveAlliance.IsAlliedWith(units.UnitOf(participant.TacticalUnitIds[0]).Alliance));
 
 		if (anyFriendly && anyOpponent)
-			return CreateOutcome(EBattleResult.Ongoing, states);
+			return CreateOutcome(EBattleResult.Ongoing, units, states);
 
-		return CreateOutcome(anyFriendly ? EBattleResult.Win : EBattleResult.Lose, states);
+		return CreateOutcome(anyFriendly ? EBattleResult.Win : EBattleResult.Lose, units, states);
 	}
 
 	private BattleOutcome CreateOutcome(
@@ -58,9 +59,10 @@ public sealed class Manager
 		string perspectiveUnitId,
 		EBattleResult result)
 	{
+		var units = UnitRegistry.For(world);
 		_ = _participants.Single(
 			participant => participant.TacticalUnitIds.Contains(perspectiveUnitId, StringComparer.Ordinal));
-		return CreateOutcome(result, ParticipantStates(UnitRegistry.For(world)));
+		return CreateOutcome(result, units, ParticipantStates(units));
 	}
 
 	private Dictionary<string, EBattleParticipantState> ParticipantStates(UnitRegistry units) =>
@@ -107,10 +109,53 @@ public sealed class Manager
 		return declared;
 	}
 
-	private static BattleOutcome CreateOutcome(
+	private BattleOutcome CreateOutcome(
 		EBattleResult result,
+		UnitRegistry units,
 		IReadOnlyDictionary<string, EBattleParticipantState> states) =>
 		BattleOutcome.Create(
 			result,
-			[.. states.Select(pair => (pair.Key, pair.Value))]);
+			[.. states.Select(pair => (pair.Key, pair.Value))],
+			[.. TacticalUnitOutcomes(units)]);
+
+	private IReadOnlyList<TacticalUnitOutcome> TacticalUnitOutcomes(UnitRegistry units)
+	{
+		var memberToParticipant = new Dictionary<string, string>(StringComparer.Ordinal);
+		foreach (var participant in _participants)
+		{
+			foreach (var unitId in participant.TacticalUnitIds)
+				memberToParticipant[unitId] = participant.ParticipantId;
+		}
+
+		var unitsById = units.All.ToDictionary(unit => unit.State.Id, StringComparer.Ordinal);
+		return units.All
+			.Select(unit => new TacticalUnitOutcome(
+				unit.State.Id,
+				ResolveOwner(unit.State.Id, memberToParticipant, unitsById),
+				unit.State.Type,
+				unit.State.IsAlive ? EBattleParticipantState.Alive : EBattleParticipantState.Destroyed))
+			.ToArray();
+	}
+
+	private static string ResolveOwner(
+		string unitId,
+		IReadOnlyDictionary<string, string> memberToParticipant,
+		IReadOnlyDictionary<string, Unit> unitsById)
+	{
+		var current = unitId;
+		while (true)
+		{
+			if (memberToParticipant.TryGetValue(current, out var participantId))
+				return participantId;
+
+			if (!unitsById.TryGetValue(current, out var unit))
+				throw new InvalidOperationException($"Tactical unit '{unitId}' has no owning battle participant.");
+
+			var parentId = unit.State.ParentId;
+			if (parentId == BattleActorIds.Rules)
+				throw new InvalidOperationException($"Tactical unit '{unitId}' has no owning battle participant.");
+
+			current = parentId;
+		}
+	}
 }

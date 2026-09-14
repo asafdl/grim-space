@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Run;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -13,6 +14,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
@@ -28,6 +30,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly Queue<IAction> _reactionQueue = [];
 	private readonly IDisposable _storyObjectiveSubscription;
 	private readonly IDisposable _contractFulfillmentSubscription;
+	private readonly IDisposable _resourceTransactionSubscription;
 	private ESimMode _simMode = (ESimMode)(-1);
 	private bool _resolvingInputAction;
 
@@ -46,9 +49,12 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_contractFulfillmentSubscription =
 			_engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
+		_resourceTransactionSubscription =
+			_engine.Subscribe<Record<Transaction>>(record => ResourceTransactionCommitted?.Invoke(record.Value));
 	}
 
 	public event Action? WorldUpdated;
+	public event Action<Transaction>? ResourceTransactionCommitted;
 
 	public StarMap Map => _engine.World;
 
@@ -256,7 +262,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (!ResolveEngagementDef.TryResolveEngagedCounterparty(Map, playerId, out var counterpartyId))
 			return false;
 
-		var action = new ResolveEngagementAction(playerId, counterpartyId, outcome);
+		var loot = LootCatalog.For(outcome);
+		var action = new ResolveEngagementAction(
+			playerId,
+			counterpartyId,
+			outcome,
+			loot.Rolls,
+			loot.Total);
 		if (!ResolveEngagementDef.Instance.IsLegal(action, Map, _engine.ActorRuntimes.For(action)))
 			return false;
 
@@ -424,6 +436,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		_storyObjectiveSubscription.Dispose();
 		_contractFulfillmentSubscription.Dispose();
+		_resourceTransactionSubscription.Dispose();
 		_engine.Dispose();
 	}
 

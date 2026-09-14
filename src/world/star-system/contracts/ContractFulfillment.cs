@@ -31,7 +31,8 @@ public static class ContractFulfillment
 			.Where(active => IsFulfilled(map, active))
 			.Select(active => (IAction)new CompleteContractAction(
 				resolved.VictorFleetId,
-				active.Definition.Id))
+				active.Definition.Id,
+				active.Definition.Terms.Payment))
 			.ToArray();
 	}
 

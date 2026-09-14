@@ -55,6 +55,10 @@ public partial class BattleController : Node3D
 	{
 		_strategicBattle = RunSession.Instance.Run.ActiveBattle is not null;
 		_battle = BattleOrchestrator.FromEncounter(ResolveEncounter());
+		RunSession.Instance.DevMenu.SetBattleActions(
+			() => _battle.CanForceOutcome,
+			() => ForceOutcome(EBattleResult.Win),
+			() => ForceOutcome(EBattleResult.Lose));
 		_agent = _battle.PlayerAgent;
 		_frames = new PresentationFrameBuilder();
 		var layout = _battle.Layout;
@@ -426,6 +430,13 @@ public partial class BattleController : Node3D
 			ResetBattle();
 	}
 
+	private void ForceOutcome(EBattleResult result)
+	{
+		_introActive = false;
+		_frames.IntroActive = false;
+		_battle.ForceOutcome(result);
+	}
+
 	private void ReturnToStarMap()
 	{
 		if (_resolutionRequested || !_battle.IsBattleOver)
@@ -462,6 +473,7 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
+		RunSession.Instance.DevMenu.ClearBattleActions();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
 		base._ExitTree();

@@ -1,10 +1,12 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Engine;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 
@@ -37,12 +39,50 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 			Assert.Single(ContractFulfillment.ReactionsFor(map, resolved)));
 		Assert.Equal(holderUnitId, completion.ActorId);
 		Assert.Equal(contractId, completion.ContractId);
+		Assert.True(completion.Payment.TryGet(ResourceId.Credits, out var payment));
+		Assert.Equal(StarMap.StarterContractRewardCredits, payment);
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(holderUnitId);
 		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		engine.Commit(completion);
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
+		Assert.Equal(StarMap.StarterContractRewardCredits, map.PlayerResources.GetBalance(ResourceId.Credits));
+	}
+
+	[Fact]
+	public void Completion_GrantsContractPaymentOnce()
+	{
+		var map = maps.Fresh(42);
+		var contractId = map.ContractRegistry.Offered.First().Id;
+		var holderUnitId = map.FleetRegistry.Ids.First();
+		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
+		var group = hunt.SpawnGroups[0];
+		var targetUnitId = $"{contractId}.{group.GroupId}.0";
+
+		map.ContractRegistry.Activate(new ContractState(
+			contractId,
+			EContractStatus.Active,
+			1,
+			holderUnitId,
+			new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+			{
+				[group.GroupId] = [targetUnitId],
+			}));
+
+		var completion = Assert.IsType<CompleteContractAction>(
+			Assert.Single(ContractFulfillment.ReactionsFor(map, ResolvedVictory(holderUnitId, targetUnitId))));
+		var runtimes = new ActorRuntimes<ActorRuntime>();
+		runtimes.For(holderUnitId);
+		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+		engine.Commit(completion);
+		var creditsAfterFirst = map.PlayerResources.GetBalance(ResourceId.Credits);
+		var historyCount = map.Timeline.History().Count;
+
+		engine.Commit(completion);
+
+		Assert.Equal(creditsAfterFirst, map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(historyCount, map.Timeline.History().Count);
 	}
 
 	[Fact]
@@ -76,14 +116,15 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 
 	private static ResolveEngagementAction ResolvedVictory(
 		string victorFleetId,
-		string defeatedFleetId) =>
-		new(
-			victorFleetId,
-			defeatedFleetId,
-			BattleOutcome.Create(
-				EBattleResult.Win,
-				(victorFleetId, EBattleParticipantState.Alive),
-				(defeatedFleetId, EBattleParticipantState.Destroyed)));
+		string defeatedFleetId)
+	{
+		var outcome = BattleOutcome.Create(
+			EBattleResult.Win,
+			[(victorFleetId, EBattleParticipantState.Alive), (defeatedFleetId, EBattleParticipantState.Destroyed)],
+			[]);
+		var loot = LootCatalog.For(outcome);
+		return new(victorFleetId, defeatedFleetId, outcome, loot.Rolls, loot.Total);
+	}
 }
 
 public sealed class ObjectivesCollectorTests(StarMapFixture maps)

@@ -134,6 +134,11 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 			MetaUnderlined = true,
 			VisibleCharactersBehavior = TextServer.VisibleCharactersBehavior.CharsAfterShaping,
 		};
+		_body.GuiInput += @event =>
+		{
+			if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+				_pager.RevealCurrentPage();
+		};
 		bodyLayout.AddChild(_body);
 		_feedback = new Label
 		{

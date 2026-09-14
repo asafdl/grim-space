@@ -5,7 +5,7 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Effects;
 
-public sealed class ChangeResourceEffect(ResourceBundle change) : IEffect<StarMap, ActorRuntime>
+public sealed class ChangeResourceEffect(string source, ResourceBundle change) : IEffect<StarMap, ActorRuntime>
 {
 	private ResourceInventory? _snapshot;
 
@@ -21,7 +21,7 @@ public sealed class ChangeResourceEffect(ResourceBundle change) : IEffect<StarMa
 			return [];
 		}
 
-		return [];
+		return [new Record<Transaction>(new Transaction(source, change))];
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId)

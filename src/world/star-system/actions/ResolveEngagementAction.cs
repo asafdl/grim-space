@@ -1,7 +1,9 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
@@ -10,7 +12,9 @@ namespace GrimSpace.World.StarSystem.Actions;
 public sealed record ResolveEngagementAction(
 	string VictorFleetId,
 	string DefeatedFleetId,
-	BattleOutcome Outcome) : IAction<StarMap, ActorRuntime>
+	BattleOutcome Outcome,
+	IReadOnlyList<LootRoll> LootRolls,
+	ResourceBundle LootTotal) : IAction<StarMap, ActorRuntime>
 {
 	public string ActorId => DefeatedFleetId;
 
@@ -51,12 +55,16 @@ public sealed class ResolveEngagementDef
 		if (!IsLegal(resolve, world, runtime))
 			return [];
 
-		return
-		[
+		var effects = new List<IEffect<StarMap, ActorRuntime>>
+		{
 			new ResolveEngagementEffect(
 				resolve.VictorFleetId,
 				resolve.DefeatedFleetId),
-		];
+		};
+		if (!resolve.LootTotal.IsEmpty)
+			effects.Add(new ChangeResourceEffect(TransactionSource.BattleLoot, resolve.LootTotal));
+
+		return effects;
 	}
 
 	private static bool HasExactParticipantStates(

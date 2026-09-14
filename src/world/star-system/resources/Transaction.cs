@@ -1,0 +1,9 @@
+namespace GrimSpace.World.StarSystem.Resources;
+
+public sealed record Transaction(string Source, ResourceBundle Change);
+
+public static class TransactionSource
+{
+	public const string BattleLoot = "battle-loot";
+	public const string ContractPayment = "contract-payment";
+}

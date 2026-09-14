@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.Factions;
@@ -9,6 +10,8 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Resources;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -126,8 +129,8 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var activeBattle = run.ActiveBattle;
 		var ongoing = BattleOutcome.Create(
 			EBattleResult.Ongoing,
-			(PlayerId, EBattleParticipantState.Alive),
-			(PirateId, EBattleParticipantState.Alive));
+			[(PlayerId, EBattleParticipantState.Alive), (PirateId, EBattleParticipantState.Alive)],
+			[]);
 
 		Assert.False(run.TryResolveActiveBattle(ongoing));
 		Assert.Same(activeBattle, run.ActiveBattle);
@@ -143,13 +146,104 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Victory_AppliesLootFromDestroyedPatrols()
+	{
+		using var orchestrator = CreateEngagement();
+		var map = orchestrator.Map;
+		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+
+		var history = map.Timeline.History();
+		Assert.Contains(
+			history,
+			entry => entry is ResolveEngagementAction { LootRolls.Count: 3 });
+		Assert.Contains(
+			history,
+			entry => entry is Record<Transaction> { Value.Source: TransactionSource.BattleLoot });
+		Assert.InRange(
+			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
+			150,
+			360);
+	}
+
+	[Fact]
+	public void Victory_BuffersResourceTransactionUntilConsumed()
+	{
+		using var orchestrator = CreateEngagement();
+		using var inbox = new RunTransitionInbox();
+		inbox.Bind(orchestrator);
+
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+
+		var transaction = Assert.Single(inbox.DrainResourceTransactions());
+		Assert.Equal(TransactionSource.BattleLoot, transaction.Source);
+		Assert.Empty(inbox.DrainResourceTransactions());
+	}
+
+	[Fact]
+	public void Victory_GrantsLootOncePerResolution()
+	{
+		using var orchestrator = CreateEngagement();
+		var map = orchestrator.Map;
+		var victory = VictoryWithDestroyedPatrols(PirateId);
+
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, victory));
+		var scrapAfterFirst = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+		var historyCount = map.Timeline.History().Count;
+
+		Assert.False(orchestrator.ResolveEngagement(PlayerId, victory));
+		Assert.Equal(scrapAfterFirst, map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(historyCount, map.Timeline.History().Count);
+	}
+
+	[Fact]
+	public void Victory_PartialHuntGrantsLootBeforeContractCompletes()
+	{
+		using var orchestrator = CreateEngagement(additionalPirateId: "pirate-b");
+		var map = orchestrator.Map;
+		var contractId = ActivateHuntContract(map, [PirateId, "pirate-b"]);
+		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+
+		Assert.InRange(
+			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
+			150,
+			360);
+		Assert.False(map.ContractRegistry.IsCompleted(contractId));
+		Assert.True(map.ContractRegistry.TryGetActive(PlayerId, out _));
+	}
+
+	[Fact]
+	public void Victory_LastHuntTargetGrantsLootAndContractCredits()
+	{
+		using var orchestrator = CreateEngagement();
+		var map = orchestrator.Map;
+		var contractId = ActivateHuntContract(map, [PirateId]);
+		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+		var initialCredits = map.PlayerResources.GetBalance(ResourceId.Credits);
+
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+
+		Assert.InRange(
+			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
+			150,
+			360);
+		Assert.Equal(
+			initialCredits + StarMap.StarterContractRewardCredits,
+			map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.True(map.ContractRegistry.IsCompleted(contractId));
+	}
+
+	[Fact]
 	public void Defeat_DoesNotResolveStrategicEngagement()
 	{
 		using var orchestrator = CreateEngagement();
 		var defeat = BattleOutcome.Create(
 			EBattleResult.Lose,
-			(PlayerId, EBattleParticipantState.Destroyed),
-			(PirateId, EBattleParticipantState.Alive));
+			[(PlayerId, EBattleParticipantState.Destroyed), (PirateId, EBattleParticipantState.Alive)],
+			[]);
 
 		Assert.False(orchestrator.ResolveEngagement(PlayerId, defeat));
 		Assert.True(orchestrator.Map.FleetRegistry.Contains(PlayerId));
@@ -195,6 +289,16 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 	private static BattleOutcome Victory(string pirateId) =>
 		BattleOutcome.Create(
 			EBattleResult.Win,
-			(PlayerId, EBattleParticipantState.Alive),
-			(pirateId, EBattleParticipantState.Destroyed));
+			[(PlayerId, EBattleParticipantState.Alive), (pirateId, EBattleParticipantState.Destroyed)],
+			[]);
+
+	private static BattleOutcome VictoryWithDestroyedPatrols(string pirateId) =>
+		BattleOutcome.Create(
+			EBattleResult.Win,
+			[(PlayerId, EBattleParticipantState.Alive), (pirateId, EBattleParticipantState.Destroyed)],
+			[
+				new TacticalUnitOutcome("patrol-0", pirateId, BattleUnitType.Patrol, EBattleParticipantState.Destroyed),
+				new TacticalUnitOutcome("patrol-1", pirateId, BattleUnitType.Patrol, EBattleParticipantState.Destroyed),
+				new TacticalUnitOutcome("patrol-2", pirateId, BattleUnitType.Patrol, EBattleParticipantState.Destroyed),
+			]);
 }

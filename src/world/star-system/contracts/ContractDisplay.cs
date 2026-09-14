@@ -1,6 +1,7 @@
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
@@ -46,7 +47,19 @@ public static class ContractDisplay
 			_ => "—",
 		};
 
-	public static string Reward(Contract contract) => $"{contract.Terms.RewardCredits} Credits";
+	public static string Reward(Contract contract) =>
+		contract.Terms.Payment.IsEmpty
+			? "—"
+			: string.Join(", ", contract.Terms.Payment.Select(FormatResource));
+
+	private static string FormatResource(KeyValuePair<ResourceId, int> entry) =>
+		entry.Key switch
+		{
+			ResourceId.Credits => $"{entry.Value} Credits",
+			ResourceId.ScrapAlloy => $"{entry.Value} Scrap Alloy",
+			ResourceId.IndustrialCore => $"{entry.Value} Industrial Core",
+			_ => $"{entry.Value} {entry.Key}",
+		};
 
 	public static string Danger(Contract contract) =>
 		contract.Objective switch

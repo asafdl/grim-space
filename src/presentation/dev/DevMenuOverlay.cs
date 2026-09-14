@@ -6,6 +6,9 @@ namespace GrimSpace.Presentation.Dev;
 public sealed partial class DevMenuOverlay : Node
 {
 	private readonly ModalShell _shell;
+	private Func<bool>? _canForceBattleOutcome;
+	private Action? _winBattle;
+	private Action? _loseBattle;
 
 	public event Action? StartBattleRequested;
 
@@ -35,13 +38,47 @@ public sealed partial class DevMenuOverlay : Node
 		});
 
 		_shell.SetBody(battleSection.Root);
-		_shell.SetFooter(
-		[
-			new HudAction("Start Battle", HudActionKind.Primary, OnStartBattle),
-		]);
+		var actions = new List<HudAction>
+		{
+			new("Start Battle", HudActionKind.Secondary, OnStartBattle),
+		};
+		if (_canForceBattleOutcome is not null)
+		{
+			var enabled = _canForceBattleOutcome();
+			actions.Add(new HudAction("Win Battle", HudActionKind.Primary, OnWinBattle, enabled));
+			actions.Add(new HudAction("Lose Battle", HudActionKind.Destructive, OnLoseBattle, enabled));
+		}
+
+		_shell.SetFooter(actions);
 	}
 
 	public void Close() => _shell.Close();
 
+	public void SetBattleActions(Func<bool> canForceOutcome, Action winBattle, Action loseBattle)
+	{
+		_canForceBattleOutcome = canForceOutcome;
+		_winBattle = winBattle;
+		_loseBattle = loseBattle;
+	}
+
+	public void ClearBattleActions()
+	{
+		_canForceBattleOutcome = null;
+		_winBattle = null;
+		_loseBattle = null;
+	}
+
 	private void OnStartBattle() => StartBattleRequested?.Invoke();
+
+	private void OnWinBattle()
+	{
+		Close();
+		_winBattle?.Invoke();
+	}
+
+	private void OnLoseBattle()
+	{
+		Close();
+		_loseBattle?.Invoke();
+	}
 }

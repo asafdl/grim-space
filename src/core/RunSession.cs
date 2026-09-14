@@ -10,6 +10,8 @@ using GrimSpace.World.StarSystem.Contact;
 
 namespace GrimSpace.Core;
 
+// TODO: Move this Godot autoload and cross-system composition root to an application
+// integration layer. Reusable Core must not depend on Godot or feature systems.
 public partial class RunSession : Node
 {
 	private const string BattleScenePath = "res://scenes/battle.tscn";
@@ -26,6 +28,9 @@ public partial class RunSession : Node
 		_instance ?? throw new InvalidOperationException("RunSession autoload is not ready.");
 
 	public State Run { get; private set; } = null!;
+
+	public DevMenuOverlay DevMenu => _devMenu;
+	public RunTransitionInbox TransitionInbox { get; } = new();
 
 	public override void _EnterTree()
 	{
@@ -44,6 +49,7 @@ public partial class RunSession : Node
 
 	public override void _ExitTree()
 	{
+		TransitionInbox.Dispose();
 		if (_instance == this)
 			_instance = null;
 	}
@@ -140,6 +146,7 @@ public partial class RunSession : Node
 		Run?.StarSystem?.Dispose();
 		Run = State.CreateNewRun(Random.Shared.Next());
 		Run.ActiveBattle = null;
+		TransitionInbox.Bind(Run.StarSystem);
 	}
 
 	private void BeginMapScenePreload()
@@ -190,6 +197,7 @@ public partial class RunSession : Node
 		Run?.StarSystem?.Dispose();
 		Run = task.Result;
 		Run.ActiveBattle = null;
+		TransitionInbox.Bind(Run.StarSystem);
 		return true;
 	}
 
@@ -298,5 +306,6 @@ public partial class RunSession : Node
 			State.PlayerFleetUnitId,
 			Run.PlayerParty.Members,
 			nextSeed);
+		TransitionInbox.Bind(Run.StarSystem);
 	}
 }

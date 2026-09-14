@@ -1,3 +1,5 @@
+using GrimSpace.World.StarSystem.Resources;
+
 namespace GrimSpace.World.StarSystem.Contracts;
 
-public sealed record ContractTerms(int RewardCredits);
+public sealed record ContractTerms(ResourceBundle Payment);

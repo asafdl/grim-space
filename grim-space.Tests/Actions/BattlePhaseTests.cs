@@ -194,6 +194,34 @@ public sealed class BattlePhaseTests
 		Assert.False(BattleController.ShouldShowPredictedDeath(EBattlePhase.BattleOver));
 
 	[Fact]
+	public void ForceOutcome_WinKillsOpponentAndEndsBattle()
+	{
+		using var battle = CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+
+		battle.ForceOutcome(EBattleResult.Win);
+
+		Assert.False(battle.Engine.World.StateOf(enemyId).IsAlive);
+		Assert.True(battle.Engine.World.StateOf(PlayerId).IsAlive);
+		Assert.Equal(EBattleResult.Win, battle.Outcome.Result);
+		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
+	}
+
+	[Fact]
+	public void ForceOutcome_LoseKillsPlayerAndEndsBattle()
+	{
+		using var battle = CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+
+		battle.ForceOutcome(EBattleResult.Lose);
+
+		Assert.False(battle.Engine.World.StateOf(PlayerId).IsAlive);
+		Assert.True(battle.Engine.World.StateOf(enemyId).IsAlive);
+		Assert.Equal(EBattleResult.Lose, battle.Outcome.Result);
+		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
+	}
+
+	[Fact]
 	public void FocusUnitRejectsMissingTarget()
 	{
 		var origin = new Coord(5, 5, 5);

@@ -11,6 +11,8 @@ public partial class IntroSceneView : Control
 
 	public event Action? NextPressed;
 
+	public event Action? BodyPressed;
+
 	public override void _Ready()
 	{
 		_background = GetNode<TextureRect>("Background");
@@ -20,6 +22,7 @@ public partial class IntroSceneView : Control
 		_bar = new FramedActionBar();
 		_bar.ConfigureWidth(900, 1400, 0.72f);
 		_bar.ActionPressed += () => NextPressed?.Invoke();
+		_bar.BodyPressed += () => BodyPressed?.Invoke();
 		AddChild(_bar);
 	}
 

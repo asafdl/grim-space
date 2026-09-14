@@ -18,7 +18,6 @@ public static class EngagementBattleFactory
 	{
 		ArgumentNullException.ThrowIfNull(playerFleet);
 		ArgumentNullException.ThrowIfNull(enemyFleet);
-		ArgumentOutOfRangeException.ThrowIfNegative(seed);
 		if (playerFleet.State.Id == enemyFleet.State.Id)
 			throw new ArgumentException("An engagement requires two distinct fleets.", nameof(enemyFleet));
 		if (playerFleet.Members.Count == 0)

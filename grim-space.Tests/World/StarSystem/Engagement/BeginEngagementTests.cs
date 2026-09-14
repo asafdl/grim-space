@@ -100,4 +100,23 @@ public sealed class BeginEngagementTests
 		Assert.Equal(playerFleet.Members.Count + pirateFleet.Members.Count, positions.Length);
 		Assert.Equal(positions.Length, positions.Distinct().Count());
 	}
+
+	[Fact]
+	public void Create_AcceptsSignedGenerationSeed()
+	{
+		var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-a",
+			new GrimSpace.Math.Grid.Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.Pirates,
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
+				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
+				-227155311));
+
+		var encounter = EngagementBattleFactory.Create(playerFleet, pirateFleet, -227155311);
+
+		Assert.Equal(-227155311, encounter.Seed);
+		Assert.NotEmpty(encounter.Spawns);
+	}
 }

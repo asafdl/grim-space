@@ -168,11 +168,17 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var outcome = BattleOutcome.Create(
 			EBattleResult.Win,
-			(RunState.PlayerFleetUnitId, EBattleParticipantState.Alive),
-			(pirateId, EBattleParticipantState.Destroyed));
+			[(RunState.PlayerFleetUnitId, EBattleParticipantState.Alive), (pirateId, EBattleParticipantState.Destroyed)],
+			[]);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
-		engine.Commit([new ResolveEngagementAction(RunState.PlayerFleetUnitId, pirateId, outcome)]);
+		var loot = LootCatalog.For(outcome);
+		engine.Commit([new ResolveEngagementAction(
+			RunState.PlayerFleetUnitId,
+			pirateId,
+			outcome,
+			loot.Rolls,
+			loot.Total)]);
 
 		Assert.Equal(EEngagementPhase.Resolved, map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
 		Assert.Equal(

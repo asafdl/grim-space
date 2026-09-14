@@ -1,3 +1,4 @@
+using GrimSpace.Core.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
@@ -12,7 +13,8 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 		var map = maps.Fresh(7);
 		var runtime = new ActorRuntime();
 
-		new ChangeResourceEffect(ResourceBundle.Of(ResourceId.Credits, 100)).Apply(map, runtime, "actor");
+		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.Credits, 100))
+			.Apply(map, runtime, "actor");
 
 		Assert.Equal(100, map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
@@ -23,7 +25,8 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 		var map = maps.Fresh(7);
 		var runtime = new ActorRuntime();
 
-		new ChangeResourceEffect(ResourceBundle.Of(ResourceId.Credits, -10)).Apply(map, runtime, "actor");
+		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.Credits, -10))
+			.Apply(map, runtime, "actor");
 
 		Assert.Equal(0, map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
@@ -33,7 +36,7 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(ResourceBundle.Create(
+		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Create(
 			(ResourceId.Credits, 75),
 			(ResourceId.ScrapAlloy, 10))).Apply(map, runtime, "actor");
 
@@ -43,7 +46,7 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 		Assert.Equal(75, fork.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.Equal(10, fork.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 
-		new ChangeResourceEffect(ResourceBundle.Of(ResourceId.Credits, 25))
+		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.Credits, 25))
 			.Apply(fork, runtime, "actor");
 
 		Assert.Equal(75, map.PlayerResources.GetBalance(ResourceId.Credits));
@@ -55,12 +58,40 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(7);
 		var runtime = new ActorRuntime();
-		var effect = new ChangeResourceEffect(ResourceBundle.Of(ResourceId.IndustrialCore, 5));
+		var effect = new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.IndustrialCore, 5));
 
 		effect.Apply(map, runtime, "actor");
 		Assert.Equal(5, map.PlayerResources.GetBalance(ResourceId.IndustrialCore));
 
 		effect.Undo(map, runtime, "actor");
 		Assert.Equal(0, map.PlayerResources.GetBalance(ResourceId.IndustrialCore));
+	}
+
+	[Fact]
+	public void ChangeResourceEffect_AppendsTransactionRecord()
+	{
+		var map = maps.Fresh(7);
+		var runtime = new ActorRuntime();
+		var change = ResourceBundle.Of(ResourceId.ScrapAlloy, 80);
+
+		var records = new ChangeResourceEffect(TransactionSource.BattleLoot, change)
+			.Apply(map, runtime, "actor");
+
+		var record = Assert.IsType<Record<Transaction>>(Assert.Single(records));
+		Assert.Equal(TransactionSource.BattleLoot, record.Value.Source);
+		Assert.True(record.Value.Change.TryGet(ResourceId.ScrapAlloy, out var amount));
+		Assert.Equal(80, amount);
+	}
+
+	[Fact]
+	public void ChangeResourceEffect_EmptyChange_ReturnsNoRecords()
+	{
+		var map = maps.Fresh(7);
+		var runtime = new ActorRuntime();
+
+		var records = new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Empty)
+			.Apply(map, runtime, "actor");
+
+		Assert.Empty(records);
 	}
 }

@@ -28,6 +28,8 @@ public sealed partial class FramedActionBar : Control
 	{
 		ArgumentNullException.ThrowIfNull(body);
 		_textBody = body as Label;
+		if (_textBody is not null)
+			_textBody.GuiInput += OnBodyGuiInput;
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
 		AnchorBottom = 1f;
@@ -115,6 +117,8 @@ public sealed partial class FramedActionBar : Control
 
 	public event Action? ActionPressed;
 
+	public event Action? BodyPressed;
+
 	public string Text
 	{
 		get => TextBody.Text;
@@ -169,6 +173,12 @@ public sealed partial class FramedActionBar : Control
 	private Label TextBody =>
 		_textBody
 		?? throw new InvalidOperationException("This action bar uses a custom body control.");
+
+	private void OnBodyGuiInput(InputEvent @event)
+	{
+		if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+			BodyPressed?.Invoke();
+	}
 
 	private static Label CreateDefaultBody() =>
 		new()

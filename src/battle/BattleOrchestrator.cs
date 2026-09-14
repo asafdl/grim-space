@@ -54,6 +54,7 @@ public sealed class BattleOrchestrator : IDisposable
 	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
 
 	public bool AcceptsPlayerInput => Phase == EBattlePhase.PlayerTurn;
+	public bool CanForceOutcome => Phase == EBattlePhase.PlayerTurn && !IsBattleOver;
 
 	public event Action<EBattlePhase>? PhaseChanged;
 	public event Action<TurnReplay, int>? TurnResolved;
@@ -184,6 +185,28 @@ public sealed class BattleOrchestrator : IDisposable
 		_resolveVersion++;
 		Outcome = _objectives.Retire(_engine.World, PlayerId);
 		SetPhase(EBattlePhase.BattleOver, "retired");
+	}
+
+	public void ForceOutcome(EBattleResult result)
+	{
+		if (result is not (EBattleResult.Win or EBattleResult.Lose))
+			throw new ArgumentOutOfRangeException(nameof(result), result, "Only win or lose can be forced.");
+		if (!CanForceOutcome)
+			throw new InvalidOperationException($"Cannot force an outcome during phase {Phase}.");
+
+		var units = UnitRegistry.For(_engine.World);
+		var player = units.UnitOf(PlayerId);
+		var targets = result == EBattleResult.Win
+			? units.All.Where(unit => player.RelationTo(unit) == EUnitRelation.Opponent)
+			: [player];
+		foreach (var target in targets)
+			target.State.HullPoints = 0;
+
+		Outcome = _objectives.Evaluate(_engine.World, PlayerId);
+		if (Outcome.Result != result)
+			throw new InvalidOperationException($"Forced {result} produced outcome {Outcome.Result}.");
+
+		SetPhase(EBattlePhase.BattleOver, $"debug forced {result.ToString().ToLowerInvariant()}");
 	}
 
 	public TurnReplay ResolveTurn() =>

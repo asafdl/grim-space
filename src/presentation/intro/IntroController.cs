@@ -18,6 +18,7 @@ public partial class IntroController : Control
 	{
 		_scene = GetNode<IntroSceneView>("Scene");
 		_scene.NextPressed += AdvancePage;
+		_scene.BodyPressed += _pager.RevealCurrentPage;
 		_pager.VisibleTextChanged += text => _scene.SetBodyText(text);
 		_pager.PageBegan += pageIndex =>
 		{

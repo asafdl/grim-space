@@ -148,6 +148,26 @@ public sealed class TypewriterPager
 		BeginPage();
 	}
 
+	public void RevealCurrentPage()
+	{
+		if (!IsActive || _typingComplete)
+			return;
+
+		var characterCount = _pageCharacterCount(_pageIndex);
+		if (characterCount < 0)
+			throw new InvalidOperationException("Page character count cannot be negative.");
+
+		_visibleChars = characterCount;
+		_typingComplete = true;
+		_elapsed = 0;
+		VisibleCharacterCountChanged?.Invoke(_visibleChars);
+		if (_pages is not null)
+			VisibleTextChanged?.Invoke(_pages[_pageIndex]);
+
+		if (_showNextDelaySeconds <= 0)
+			ShowNext();
+	}
+
 	private void BeginPage()
 	{
 		_visibleChars = 0;

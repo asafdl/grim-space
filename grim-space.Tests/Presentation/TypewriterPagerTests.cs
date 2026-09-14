@@ -72,6 +72,26 @@ public sealed class TypewriterPagerTests
 	}
 
 	[Fact]
+	public void RevealCurrentPage_ShowsAllTextAndNextPrompt()
+	{
+		var pager = new TypewriterPager();
+		var visible = "";
+		var visibleCharacters = 0;
+		TypewriterNextPrompt? prompt = null;
+		pager.VisibleTextChanged += text => visible = text;
+		pager.VisibleCharacterCountChanged += count => visibleCharacters = count;
+		pager.NextPromptReady += value => prompt = value;
+		pager.Configure(["full text"], charIntervalSeconds: 1.0);
+		pager.Tick(1.0);
+
+		pager.RevealCurrentPage();
+
+		Assert.Equal("full text", visible);
+		Assert.Equal("full text".Length, visibleCharacters);
+		Assert.NotNull(prompt);
+	}
+
+	[Fact]
 	public void Advance_MovesThroughPagesBeforeCompleting()
 	{
 		var pager = new TypewriterPager();

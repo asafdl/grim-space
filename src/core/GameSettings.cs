@@ -2,6 +2,8 @@ using Godot;
 
 namespace GrimSpace.Core;
 
+// TODO: Move this Godot-backed settings adapter to an application layer.
+// Reusable Core must remain Godot-free.
 public static class GameSettings
 {
 	private const string SettingsPath = "user://settings.cfg";

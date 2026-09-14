@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
@@ -241,7 +242,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			objective,
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
-			new ContractTerms(StarMap.StarterContractRewardCredits),
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, StarMap.StarterContractRewardCredits)),
 			ContractNarrative.ForHunt("Synthetic Hunt", searchArea));
 		map.ContractRegistry.RegisterOffered(contract);
 	}
