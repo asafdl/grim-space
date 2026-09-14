@@ -25,6 +25,7 @@ public partial class TurnReplayPlayer : Node3D
 	private IReadOnlyDictionary<string, UnitView> _unitViews = new Dictionary<string, UnitView>();
 	private Func<string, Color> _colorFor = _ => Colors.White;
 	private Action<State, Color> _ensureView = (_, _) => { };
+	private Action<string> _removeView = _ => { };
 	private Action<IReadOnlyDictionary<string, State>> _synchronizeViews = _ => { };
 	private Action<State> _stateChanged = _ => { };
 
@@ -51,12 +52,14 @@ public partial class TurnReplayPlayer : Node3D
 		IReadOnlyDictionary<string, UnitView> unitViews,
 		Func<string, Color> colorFor,
 		Action<State, Color> ensureView,
+		Action<string> removeView,
 		Action<IReadOnlyDictionary<string, State>> synchronizeViews,
 		Action<State> stateChanged)
 	{
 		_unitViews = unitViews;
 		_colorFor = colorFor;
 		_ensureView = ensureView;
+		_removeView = removeView;
 		_synchronizeViews = synchronizeViews;
 		_stateChanged = stateChanged;
 
@@ -241,7 +244,11 @@ public partial class TurnReplayPlayer : Node3D
 
 		GetTree().CreateTimer(pause).Timeout += () =>
 		{
-			if (_clipContext.UnitViews.TryGetValue(impact.TargetId, out var lingering)
+			if (died)
+			{
+				_removeView(impact.TargetId);
+			}
+			else if (_clipContext.UnitViews.TryGetValue(impact.TargetId, out var lingering)
 				&& _clipContext.ReplayState.Contains(impact.TargetId))
 			{
 				lingering.Sync(_clipContext.ReplayState.StateOf(impact.TargetId));

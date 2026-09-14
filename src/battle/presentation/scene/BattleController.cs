@@ -132,6 +132,7 @@ public partial class BattleController : Node3D
 			_battleView.UnitViews,
 			ColorForActor,
 			(state, color) => _battleView.Ensure(state, color),
+			_battleView.Remove,
 			states => _battleView.ApplyUnitStates(states, ColorForActor),
 			ApplyReplayState);
 		AddChild(_replayPlayer);

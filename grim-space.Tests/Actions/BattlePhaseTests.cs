@@ -4,6 +4,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Scene;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
@@ -192,6 +193,16 @@ public sealed class BattlePhaseTests
 	[Fact]
 	public void BattleOverFrameDoesNotShowPredictedDeaths() =>
 		Assert.False(BattleController.ShouldShowPredictedDeath(EBattlePhase.BattleOver));
+
+	[Fact]
+	public void BattleViewRetainsPredictedDeathButNotAuthoritativeDeath()
+	{
+		var state = BattleTestFixture.Enemy(Coord.Zero).State;
+		state.HullPoints = 0;
+
+		Assert.True(BattleView.ShouldRetain(state, showPredictedDeath: true));
+		Assert.False(BattleView.ShouldRetain(state, showPredictedDeath: false));
+	}
 
 	[Fact]
 	public void ForceOutcome_WinKillsOpponentAndEndsBattle()

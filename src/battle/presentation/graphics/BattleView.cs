@@ -30,6 +30,14 @@ public partial class BattleView : Node3D
 		_unitViews[state.Id] = view;
 	}
 
+	public void Remove(string unitId)
+	{
+		if (!_unitViews.Remove(unitId, out var view))
+			return;
+
+		view.QueueFree();
+	}
+
 	public void ApplyUnitStates(
 		IReadOnlyDictionary<string, State> states,
 		Func<string, Color>? colorFor = null,
@@ -38,6 +46,12 @@ public partial class BattleView : Node3D
 		var keep = new HashSet<string>(states.Count);
 		foreach (var (unitId, state) in states)
 		{
+			if (!ShouldRetain(state, showPredictedDeath))
+			{
+				Remove(unitId);
+				continue;
+			}
+
 			keep.Add(unitId);
 			if (!_unitViews.TryGetValue(unitId, out var view))
 			{
@@ -51,21 +65,19 @@ public partial class BattleView : Node3D
 				view.SetHitMarked(false);
 				view.SetIntroMarked(false);
 			}
-			else if (showPredictedDeath)
-				view.ShowImpactState(state);
 			else
-				view.Sync(state);
+				view.ShowImpactState(state);
 		}
 
 		if (keep.Count == _unitViews.Count)
 			return;
 
 		foreach (var id in _unitViews.Keys.Where(id => !keep.Contains(id)).ToList())
-		{
-			_unitViews[id].QueueFree();
-			_unitViews.Remove(id);
-		}
+			Remove(id);
 	}
+
+	internal static bool ShouldRetain(State state, bool showPredictedDeath) =>
+		state.IsAlive || showPredictedDeath;
 
 	public void ApplyHitMarks(IReadOnlySet<string> threatenedUnitIds)
 	{
