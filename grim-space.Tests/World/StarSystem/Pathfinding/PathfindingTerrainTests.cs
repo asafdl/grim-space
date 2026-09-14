@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
@@ -32,6 +33,35 @@ public sealed class PathfindingTerrainTests
 		Assert.True(terrain[20, 12].Blocked);
 		Assert.False(terrain[20, 5].Blocked);
 		Assert.Equal(1.5, terrain[1, 1].WeightScale);
+	}
+
+	[Fact]
+	public void TraversabilityQueries_RespectBoundsAndWholeFootprint()
+	{
+		var cells = Enumerable.Repeat(PathfindingCell.OpenSpace, 25).ToArray();
+		cells[new Coord(2, 0, 2).ToIndex(5)] = PathfindingCell.Obstacle;
+		var terrain = PathfindingTerrain.FromCells(5, 5, cells);
+
+		Assert.True(terrain.IsTraversable(new Coord(1, 0, 1)));
+		Assert.False(terrain.IsTraversable(new Coord(2, 0, 2)));
+		Assert.False(terrain.IsTraversable(new Coord(-1, 0, 0)));
+		Assert.False(terrain.IsCircleTraversable(new Coord(1, 0, 2), 1));
+		Assert.False(terrain.IsCircleTraversable(Coord.Zero, 1));
+	}
+
+	[Fact]
+	public void CircleTraversability_HonorsStarRouteExclusionRadius()
+	{
+		var star = Star.Template().Place(new Coord(128, 0, 128));
+		var terrain = PathfindingTerrain.Create(
+			256,
+			256,
+			Array.Empty<SpaceRoute>(),
+			[star],
+			Array.Empty<Dock>());
+
+		Assert.False(terrain.IsCircleTraversable(new Coord(232, 0, 128), 10));
+		Assert.True(terrain.IsCircleTraversable(new Coord(233, 0, 128), 10));
 	}
 
 	private sealed class TestPoi : GrimSpace.World.StarSystem.Poi.PointOfInterest

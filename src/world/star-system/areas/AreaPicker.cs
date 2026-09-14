@@ -6,7 +6,6 @@ namespace GrimSpace.World.StarSystem.Areas;
 
 public static class AreaPicker
 {
-	private const int GeometryClearance = 8;
 	private const int SamplesPerAxis = 16;
 	private const double MinAxisFraction = 0.20;
 	private const double MaxAxisFraction = 0.80;
@@ -179,15 +178,8 @@ public static class AreaPicker
 		EAreaDistance distance,
 		AreaDistanceConfig config)
 	{
-		if (!GridBounds.IsCircleWhollyInRectangle(center, radius, map.Width, map.Height))
+		if (!map.PathfindingTerrain.IsCircleTraversable(center, radius))
 			return false;
-
-		foreach (var poi in map.PointsOfInterest)
-		{
-			var clearance = RouteGeometry.Distance(center, poi.PlacedCenter);
-			if (clearance < poi.Radius + GeometryClearance + radius)
-				return false;
-		}
 
 		var axisDistance = RouteGeometry.PointToPolylineDistance(center, axis);
 		return distance switch

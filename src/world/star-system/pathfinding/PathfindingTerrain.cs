@@ -21,6 +21,34 @@ public sealed class PathfindingTerrain
 
 	public PathfindingCell CellAt(Coord coord) => this[coord.X, coord.Z];
 
+	public bool IsTraversable(Coord coord) =>
+		GridBounds.IsPointInRectangle(coord, Width, Height)
+		&& !CellAt(coord).Blocked;
+
+	public bool IsCircleTraversable(Coord center, int radius)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(radius);
+		if (!GridBounds.IsCircleWhollyInRectangle(center, radius, Width, Height))
+			return false;
+
+		var radiusSquared = (long)radius * radius;
+		for (var z = center.Z - radius; z <= center.Z + radius; z++)
+		{
+			for (var x = center.X - radius; x <= center.X + radius; x++)
+			{
+				var dx = x - center.X;
+				var dz = z - center.Z;
+				if (dx * (long)dx + dz * (long)dz <= radiusSquared
+					&& this[x, z].Blocked)
+				{
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
 	public static PathfindingTerrain FromCells(int width, int height, PathfindingCell[] cells)
 	{
 		ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);

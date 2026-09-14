@@ -150,6 +150,7 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 			var result = AreaPicker.Pick(map, [group], [distance], 2, distanceConfig);
 
 			AssertBandCriteria(map, result, distance, distanceConfig);
+			Assert.True(map.PathfindingTerrain.IsCircleTraversable(result.Center, result.Radius));
 			AssertIntel(map, result);
 			AssertRadiusScalesWithSpan(map, result);
 		}

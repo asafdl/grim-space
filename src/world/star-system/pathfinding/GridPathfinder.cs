@@ -111,9 +111,5 @@ public sealed class GridPathfinder : IPathfinder
 	}
 
 	private bool IsTraversable(Coord coord) =>
-		coord.X >= 0
-		&& coord.Z >= 0
-		&& coord.X < _terrain.Width
-		&& coord.Z < _terrain.Height
-		&& !_terrain.CellAt(coord).Blocked;
+		_terrain.IsTraversable(coord);
 }
