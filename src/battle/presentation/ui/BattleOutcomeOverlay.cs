@@ -22,10 +22,13 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 
 	public void ApplyTheme(Theme theme) => _root.Theme = theme;
 
-	public void SetOutcome(EBattleResult result, IReadOnlyList<string> actionLogLines, bool strategicBattle)
+	public void SetOutcome(
+		EBattleResult result,
+		IReadOnlyList<ActionLog.Entry> actionLogEntries,
+		bool strategicBattle)
 	{
 		_title.Text = BattleHudCopy.OutcomeTitle(result);
-		_actionLog.SetLines(actionLogLines);
+		_actionLog.SetEntries(actionLogEntries);
 		_actionButton.Text = strategicBattle
 			? BattleHudCopy.ReturnToStarMap
 			: BattleHudCopy.Reset;

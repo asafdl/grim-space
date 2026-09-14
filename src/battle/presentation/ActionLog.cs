@@ -9,26 +9,23 @@ namespace GrimSpace.Battle.Presentation;
 
 public static class ActionLog
 {
-	public static IReadOnlyList<string> Format(
+	public sealed record Entry(
+		string Title,
+		IReadOnlyList<string> Metadata,
+		bool IsTurnHeader = false);
+
+	public static Entry TurnHeader(int turnNumber) =>
+		new($"TURN {turnNumber}", [], IsTurnHeader: true);
+
+	public static IReadOnlyList<Entry> Format(
 		IReadOnlyList<ITimelineEntry> history,
 		Func<string, string> displayName)
 	{
-		var lines = new List<string>();
-		string? lastActorId = null;
+		var entries = new List<Entry>();
 		var i = 0;
 
-		void Emit(string? actorId, string line)
-		{
-			if (actorId is not null
-				&& lastActorId is not null
-				&& !string.Equals(lastActorId, actorId, StringComparison.Ordinal)
-				&& lines.Count > 0)
-				lines.Add("");
-
-			lines.Add(line);
-			if (actorId is not null)
-				lastActorId = actorId;
-		}
+		void Emit(string title, params string[] metadata) =>
+			entries.Add(new Entry(title, metadata));
 
 		while (i < history.Count)
 		{
@@ -46,40 +43,51 @@ public static class ActionLog
 					i++;
 				}
 
-				Emit(actorId, $"{displayName(actorId)} moved {steps} {(steps == 1 ? "step" : "steps")}");
+				Emit($"Move · {steps} {(steps == 1 ? "step" : "steps")}", displayName(actorId));
 				continue;
 			}
 
-			if (TryWeaponVerb(entry, out var actorIdWeapon, out var verb))
+			if (TryWeapon(entry, out var actorIdWeapon, out var weapon, out var mount))
 			{
 				i++;
 				var impacts = TakeFollowingImpacts(history, ref i, actorIdWeapon);
 				if (impacts.Count == 0)
 				{
-					Emit(actorIdWeapon, $"{displayName(actorIdWeapon)} {verb} → Miss!");
+					Emit(
+						$"{weapon} · Miss",
+						[.. ActorMetadata(displayName(actorIdWeapon), mount)]);
 					continue;
 				}
 
 				foreach (var impact in impacts)
-					Emit(actorIdWeapon, $"{displayName(actorIdWeapon)} {verb} → {FormatHitClause(impact, displayName)}");
+				{
+					Emit(
+						$"{weapon} · Hit",
+						[.. ActorMetadata(
+							$"{displayName(actorIdWeapon)} → {displayName(impact.TargetId)}",
+							mount),
+							FormatImpactDetail(impact)]);
+				}
 				continue;
 			}
 
 			if (entry is SpawnPatrolAction deploy)
 			{
 				var patrolId = ResolveSpawnedPatrolId(deploy, history, i);
-				Emit(deploy.ActorId, $"{displayName(deploy.ActorId)} deployed {displayName(patrolId)}");
+				Emit(
+					"Deploy patrol",
+					$"{displayName(deploy.ActorId)} → {displayName(patrolId)}");
 				i++;
 				continue;
 			}
 
-			var line = FormatOne(entry, displayName);
-			if (line is not null)
-				Emit(ActorIdOf(entry), line);
+			var formatted = FormatOne(entry, displayName);
+			if (formatted is not null)
+				entries.Add(formatted);
 			i++;
 		}
 
-		return lines;
+		return entries;
 	}
 
 	public static string DisplayName(UnitRegistry units, string id)
@@ -98,27 +106,42 @@ public static class ActionLog
 			_ => team.ToString().ToLowerInvariant(),
 		};
 
-	private static bool TryWeaponVerb(ITimelineEntry entry, out string actorId, out string verb)
+	private static bool TryWeapon(
+		ITimelineEntry entry,
+		out string actorId,
+		out string weapon,
+		out string? mount)
 	{
 		switch (entry)
 		{
 			case FlakAction a:
 				actorId = a.ActorId;
-				verb = $"fired flak from {FormatEnum(a.MountedOn)}";
+				weapon = "Flak";
+				mount = $"{FormatEnum(a.MountedOn)} mount";
 				return true;
 			case RailgunAction a:
 				actorId = a.ActorId;
-				verb = "shot railgun";
+				weapon = "Railgun";
+				mount = null;
 				return true;
 			case DetonateAction a:
 				actorId = a.ActorId;
-				verb = "detonated";
+				weapon = "Detonate";
+				mount = null;
 				return true;
 			default:
 				actorId = "";
-				verb = "";
+				weapon = "";
+				mount = null;
 				return false;
 		}
+	}
+
+	private static IEnumerable<string> ActorMetadata(string actor, string? mount)
+	{
+		yield return actor;
+		if (mount is not null)
+			yield return mount;
 	}
 
 	private static List<ImpactFacts> TakeFollowingImpacts(
@@ -138,13 +161,6 @@ public static class ActionLog
 		return impacts;
 	}
 
-	private static string? ActorIdOf(ITimelineEntry entry) =>
-		entry switch
-		{
-			IAction action => action.ActorId,
-			_ => null,
-		};
-
 	private static string ResolveSpawnedPatrolId(
 		SpawnPatrolAction deploy,
 		IReadOnlyList<ITimelineEntry> history,
@@ -162,14 +178,25 @@ public static class ActionLog
 		return "patrol";
 	}
 
-	private static string? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>
+	private static Entry? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>
 		entry switch
 		{
-			TorpedoAction a => $"{displayName(a.ActorId)} launched torpedo from {FormatEnum(a.MountedOn)}",
-			HeadingTurnAction a => $"{displayName(a.ActorId)} turned {FormatEnum(a.Turn)}",
-			RollAction a => $"{displayName(a.ActorId)} rolled {FormatEnum(a.Direction)}",
+			TorpedoAction a => new Entry(
+				"Launch torpedo",
+				[displayName(a.ActorId), $"{FormatEnum(a.MountedOn)} mount"]),
+			HeadingTurnAction a => new Entry(
+				$"Turn · {FormatEnum(a.Turn)}",
+				[displayName(a.ActorId)]),
+			RollAction a => new Entry(
+				$"Roll · {FormatEnum(a.Direction)}",
+				[displayName(a.ActorId)]),
 			Record<ImpactFacts> { Value: var impact } =>
-				$"hit {FormatDamageClause(impact, displayName)}",
+				new Entry(
+					$"Impact · {FormatEnum(impact.Cause)}",
+					[
+						$"{displayName(impact.SourceId)} → {displayName(impact.TargetId)}",
+						FormatImpactDetail(impact),
+					]),
 			EndOfPhaseAction => null,
 			RoundUpkeepAction => null,
 			FuelBurnAction => null,
@@ -177,41 +204,30 @@ public static class ActionLog
 			_ => null,
 		};
 
-	private static string FormatHitClause(ImpactFacts impact, Func<string, string> displayName) =>
-		$"Hit {FormatDamageClause(impact, displayName)}";
-
-	private static string FormatDamageClause(ImpactFacts impact, Func<string, string> displayName)
+	private static string FormatImpactDetail(ImpactFacts impact)
 	{
-		var sb = new StringBuilder();
-		sb.Append(displayName(impact.TargetId));
-		sb.Append(" at ");
-		sb.Append(FormatEnum(impact.Face));
-
-		var parts = new List<string>(3);
+		var parts = new List<string>(4) { FormatEnum(impact.Face) };
 		if (impact.ShieldDamage > 0)
-			parts.Add($"{impact.ShieldDamage} shield damage");
+			parts.Add($"{impact.ShieldDamage} shield");
 		if (impact.HullDamage > 0)
-			parts.Add($"{impact.HullDamage} hull damage");
+			parts.Add($"{impact.HullDamage} hull");
 		if (impact.MomentumLoss > 0)
-			parts.Add($"{impact.MomentumLoss} momentum loss");
-
-		if (parts.Count > 0)
-		{
-			sb.Append(" for ");
-			sb.Append(JoinAnd(parts));
-		}
-
-		return sb.ToString();
+			parts.Add($"-{impact.MomentumLoss} momentum");
+		return string.Join(" · ", parts);
 	}
 
-	private static string JoinAnd(IReadOnlyList<string> parts) =>
-		parts.Count switch
+	private static string FormatEnum<T>(T value) where T : struct, Enum
+	{
+		var text = value.ToString();
+		var result = new StringBuilder(text.Length + 4);
+		for (var i = 0; i < text.Length; i++)
 		{
-			1 => parts[0],
-			2 => $"{parts[0]} and {parts[1]}",
-			_ => string.Join(", ", parts.Take(parts.Count - 1)) + $", and {parts[^1]}",
-		};
+			var current = text[i];
+			if (i > 0 && char.IsUpper(current) && char.IsLower(text[i - 1]))
+				result.Append(' ');
+			result.Append(char.ToLowerInvariant(current));
+		}
 
-	private static string FormatEnum<T>(T value) where T : struct, Enum =>
-		value.ToString().ToLowerInvariant();
+		return result.ToString();
+	}
 }

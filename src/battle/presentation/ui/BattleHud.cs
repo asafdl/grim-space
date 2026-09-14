@@ -221,12 +221,12 @@ public partial class BattleHud : Node
 		var focusState = frame.FocusState;
 		HealthBar.Set(focusState);
 
-		_actionLogPanel.SetLines(frame.ActionLogLines);
+		_actionLogPanel.SetEntries(frame.ActionLogEntries);
 		_actionLogLayer.Visible = !hideHud;
 
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
-			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogLines, _strategicBattle);
+			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogEntries, _strategicBattle);
 
 		IntroOverlay.Visible = frame.ShowIntroOverlay;
 

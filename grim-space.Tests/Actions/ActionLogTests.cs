@@ -21,7 +21,7 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
-		Assert.Equal(["enemy patrol-a moved 3 steps"], lines);
+		AssertEntries(lines, "Move · 3 steps|enemy patrol-a");
 	}
 
 	[Fact]
@@ -35,7 +35,7 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
-		Assert.Equal(["enemy patrol-a moved 2 steps"], lines);
+		AssertEntries(lines, "Move · 2 steps|enemy patrol-a");
 	}
 
 	[Fact]
@@ -61,11 +61,9 @@ public sealed class ActionLogTests
 			_ => id,
 		});
 
-		Assert.Equal(
-			[
-				"enemy patrol-a shot railgun → Hit player fighter-b at dorsal for 2 shield damage and 1 hull damage",
-			],
-			lines);
+		AssertEntries(
+			lines,
+			"Railgun · Hit|enemy patrol-a → player fighter-b|dorsal · 2 shield · 1 hull");
 	}
 
 	[Fact]
@@ -75,7 +73,7 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => $"player {id}");
 
-		Assert.Equal(["player fighter-a fired flak from port → Miss!"], lines);
+		AssertEntries(lines, "Flak · Miss|player fighter-a|port mount");
 	}
 
 	[Fact]
@@ -93,7 +91,7 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
-	public void InsertsBlankLineBetweenActors()
+	public void PreservesActionOrderWithoutSpacerEntries()
 	{
 		ITimelineEntry[] history =
 		[
@@ -105,13 +103,10 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => id);
 
-		Assert.Equal(
-			[
-				"fighter-a moved 1 step",
-				"",
-				"patrol-b moved 2 steps",
-			],
-			lines);
+		AssertEntries(
+			lines,
+			"Move · 1 step|fighter-a",
+			"Move · 2 steps|patrol-b");
 	}
 
 	[Fact]
@@ -127,11 +122,7 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => id);
 
-		Assert.Equal(
-			[
-				"fighter-a moved 4 steps",
-			],
-			lines);
+		AssertEntries(lines, "Move · 4 steps|fighter-a");
 	}
 
 	[Fact]
@@ -154,12 +145,17 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => id);
 
-		Assert.Equal(
-			[
-				"fighter-a moved 2 steps",
-				"hit fighter-a at forward for 1 shield damage",
-				"fighter-a moved 1 step",
-			],
-			lines);
+		AssertEntries(
+			lines,
+			"Move · 2 steps|fighter-a",
+			"Impact · missile zone|hazard → fighter-a|forward · 1 shield",
+			"Move · 1 step|fighter-a");
 	}
+
+	private static void AssertEntries(
+		IReadOnlyList<ActionLog.Entry> entries,
+		params string[] expected) =>
+		Assert.Equal(
+			expected,
+			entries.Select(entry => string.Join('|', entry.Metadata.Prepend(entry.Title))));
 }

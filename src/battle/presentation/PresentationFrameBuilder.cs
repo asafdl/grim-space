@@ -22,9 +22,9 @@ public sealed class PresentationFrameBuilder
 
 	public bool IntroActive { get; set; }
 
-	private readonly List<string> _actionLogLines = [];
+	private readonly List<ActionLog.Entry> _actionLogEntries = [];
 
-	public IReadOnlyList<string> ActionLogLines => _actionLogLines;
+	public IReadOnlyList<ActionLog.Entry> ActionLogEntries => _actionLogEntries;
 
 	public string FocusId(BattleOrchestrator battle) =>
 		Interaction.FocusId ?? battle.PlayerId;
@@ -38,8 +38,8 @@ public sealed class PresentationFrameBuilder
 	public void AppendTurn(BattleOrchestrator battle, int turnNumber, IReadOnlyList<ITimelineEntry> history)
 	{
 		var units = UnitRegistry.For(battle.Engine.World);
-		_actionLogLines.Add($"--- Turn {turnNumber} ---");
-		_actionLogLines.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
+		_actionLogEntries.Add(ActionLog.TurnHeader(turnNumber));
+		_actionLogEntries.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
 	}
 
 	public PresentationFrame BuildFrame(
@@ -225,7 +225,7 @@ public sealed class PresentationFrameBuilder
 			ShowIntroOverlay = IntroActive,
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = battle.Outcome.Result,
-			ActionLogLines = ActionLogLines,
+			ActionLogEntries = ActionLogEntries,
 		};
 	}
 

@@ -27,6 +27,7 @@ public static class HudStyles
 
 	public const string HudHeadingLabelType = "HudHeadingLabel";
 	public const string DebugHudPanelType = "DebugHudPanelContainer";
+	public const string DebugValueRichTextLabelType = "DebugValueRichTextLabel";
 	public const string NarrativePanelType = "NarrativePanelContainer";
 	public const string FramedActionBarPanelType = "FramedActionBarPanelContainer";
 	public const string FramedActionBarFramePanelType = "FramedActionBarFramePanelContainer";

@@ -24,7 +24,7 @@ public sealed class ReplaySpawnTests
 			_ => id,
 		});
 
-		Assert.Equal(["enemy carrier-a deployed enemy patrol-b"], lines);
+		AssertEntry(lines, "Deploy patrol", "enemy carrier-a → enemy patrol-b");
 	}
 
 	[Fact]
@@ -34,6 +34,16 @@ public sealed class ReplaySpawnTests
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
-		Assert.Equal(["enemy carrier-a deployed enemy patrol-b"], lines);
+		AssertEntry(lines, "Deploy patrol", "enemy carrier-a → enemy patrol-b");
+	}
+
+	private static void AssertEntry(
+		IReadOnlyList<ActionLog.Entry> entries,
+		string title,
+		params string[] metadata)
+	{
+		var entry = Assert.Single(entries);
+		Assert.Equal(title, entry.Title);
+		Assert.Equal(metadata, entry.Metadata);
 	}
 }

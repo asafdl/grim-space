@@ -43,5 +43,5 @@ public sealed class PresentationFrame
 	public bool ShowIntroOverlay { get; init; }
 	public bool ShowWeaponPreviews { get; init; }
 	public EBattleResult Outcome { get; init; }
-	public required IReadOnlyList<string> ActionLogLines { get; init; }
+	public required IReadOnlyList<ActionLog.Entry> ActionLogEntries { get; init; }
 }

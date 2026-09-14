@@ -23,14 +23,18 @@ public static class StateLog
 
 		AppendSection(log, "Units (turn start)", unitsAtTurnStart.Values);
 
-		var actionLines = ActionLog.Format(history, displayName);
-		log.AppendLine($"Action log ({actionLines.Count}):");
-		if (actionLines.Count == 0)
+		var actionEntries = ActionLog.Format(history, displayName);
+		log.AppendLine($"Action log ({actionEntries.Count}):");
+		if (actionEntries.Count == 0)
 			log.AppendLine("  (none)");
 		else
 		{
-			foreach (var line in actionLines)
-				log.AppendLine($"  {line}");
+			foreach (var entry in actionEntries)
+			{
+				log.AppendLine($"  {entry.Title}");
+				foreach (var metadata in entry.Metadata)
+					log.AppendLine($"    {metadata}");
+			}
 		}
 
 		AppendSection(log, "Units (after player phase)", unitsAfterPlayer.Values);
