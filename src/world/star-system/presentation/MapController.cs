@@ -435,7 +435,7 @@ public partial class MapController : Node3D
 	{
 		if (unitHover is not null)
 		{
-			_tooltip.Text = $"{unitHover.Phase.ToString().ToUpperInvariant()}\n{unitHover.Type} ({unitHover.UnitId})";
+			_tooltip.Text = $"{unitHover.Type} ({unitHover.UnitId})";
 			_tooltip.Visible = true;
 			_tooltip.Position = screen + new Vector2(14, 18);
 			return;

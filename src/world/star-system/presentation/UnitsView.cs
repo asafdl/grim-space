@@ -34,8 +34,6 @@ public partial class UnitsView : Node3D
 	public sealed record UnitHoverInfo(
 		string UnitId,
 		EType Type,
-		EPhase Phase,
-		string DockId,
 		EFaction Faction,
 		EDangerLevel? Danger);
 
@@ -122,8 +120,6 @@ public partial class UnitsView : Node3D
 			best = new UnitHoverInfo(
 				unit.State.Id,
 				unit.State.Type,
-				unit.State.Phase,
-				unit.State.DockedAtDockId,
 				unit.State.Faction,
 				unit.State.CombatProfile?.Danger);
 		}
