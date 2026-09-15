@@ -28,9 +28,12 @@ public static class FirstPirateTutorial
 
 		return new TutorialFlow(
 			Id,
-			pirateId,
-			new TutorialDialogContent(
-				"Your contract target",
-				$"Right-click the [url={pirateId}]pirate ship[/url] spawned by your contract to pursue it."));
+			[
+				new TutorialStep(
+					pirateId,
+					new TutorialDialogContent(
+						"Your contract target",
+						$"Right-click the [url={pirateId}]pirate ship[/url] spawned by your contract to pursue it."))
+			]);
 	}
 }

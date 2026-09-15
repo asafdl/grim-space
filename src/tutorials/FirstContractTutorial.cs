@@ -12,9 +12,12 @@ public static class FirstContractTutorial
 		ArgumentNullException.ThrowIfNull(map);
 		return new TutorialFlow(
 			Id,
-			map.Blueprint.SupplyPlan.AdministrativePoiId,
-			new TutorialDialogContent(
-				"Your first contract",
-				$"Right-click the [url={map.Blueprint.SupplyPlan.AdministrativePoiId}]Administrative Core[/url] on the map to move your fleet there."));
+			[
+				new TutorialStep(
+					map.Blueprint.SupplyPlan.AdministrativePoiId,
+					new TutorialDialogContent(
+						"Your first contract",
+						$"Right-click the [url={map.Blueprint.SupplyPlan.AdministrativePoiId}]Administrative Core[/url] on the map to move your fleet there."))
+			]);
 	}
 }

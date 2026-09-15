@@ -10,7 +10,6 @@ public sealed class BattleCameraDirector
 	public const float CombatInterestTween = 0.35f;
 	public const float ReturnControlMin = 0.4f;
 	public const float ReturnControlMax = 0.7f;
-	public const float ManualFocusTween = 0.3f;
 	public const float ManualInputGrace = 0.75f;
 	public const float ReturnControlDistanceScale = 40f;
 
@@ -106,7 +105,7 @@ public sealed class BattleCameraDirector
 	public void FocusPlayer(Vector3 playerWorldPos)
 	{
 		_rig.CancelAutomation();
-		_rig.TweenPivotTo(playerWorldPos, ManualFocusTween);
+		_rig.TweenPivotTo(playerWorldPos);
 	}
 
 	private static float ReturnTweenDuration(Vector3 from, Vector3 to) =>

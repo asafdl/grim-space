@@ -63,7 +63,6 @@ public partial class BattleView : Node3D
 			{
 				view.Sync(state);
 				view.SetHitMarked(false);
-				view.SetIntroMarked(false);
 			}
 			else
 				view.ShowImpactState(state);
@@ -83,11 +82,5 @@ public partial class BattleView : Node3D
 	{
 		foreach (var (unitId, view) in _unitViews)
 			view.SetHitMarked(threatenedUnitIds.Contains(unitId));
-	}
-
-	public void ApplyIntroMarks(IReadOnlySet<string> opponentIds)
-	{
-		foreach (var (unitId, view) in _unitViews)
-			view.SetIntroMarked(opponentIds.Contains(unitId));
 	}
 }

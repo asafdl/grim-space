@@ -12,6 +12,9 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Run;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Components;
+using GrimSpace.Education;
+using GrimSpace.Tutorials;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Scene;
@@ -23,6 +26,10 @@ namespace GrimSpace.Battle.Presentation.Scene;
 /// TODO: _battle and _agents are signs of leaks, shouldn't be here
 public partial class BattleController : Node3D
 {
+	private const int TutorialDialogWidth = 380;
+	private const int TutorialDialogTop = 120;
+	private const double OpeningCameraHoldSeconds = 1.0;
+
 	private BattleOrchestrator _battle = null!;
 	private UserExecutionAgent _agent = null!;
 	private PresentationFrameBuilder _frames = null!;
@@ -31,7 +38,7 @@ public partial class BattleController : Node3D
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BattleHud _battleHud = null!;
-	private CombatIntroDirector _combatIntro = null!;
+	private TutorialController? _tutorial;
 
 	private GridView _gridView = null!;
 	private AreaActionPreviewView _areaActionPreview = null!;
@@ -44,12 +51,13 @@ public partial class BattleController : Node3D
 
 	private PresentationFrame _currentFrame = null!;
 
-	private bool _introActive;
 	private bool _strategicBattle;
 	private bool _resolutionRequested;
 
 	private bool AcceptsCommands =>
-		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle) && !_introActive;
+		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
+	private bool CanEndTurn =>
+		ShouldAllowEndTurn(AcceptsCommands, _tutorial?.IsActive == true);
 
 	public override void _Ready()
 	{
@@ -89,8 +97,13 @@ public partial class BattleController : Node3D
 		AddChild(_abilitySourcePicker);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
-		var playerPosition = _agent.Sim.StateOf<ActorState>(_battle.PlayerId).Position;
-		_camera.SetPivot(WorldMapping.ToWorld(playerPosition));
+		var openingPose = BattleCameraPoses.PlayerAft(
+			_agent.Sim.StateOf<ActorState>(_battle.PlayerId));
+		_camera.SetFocus(
+			openingPose.Pivot,
+			openingPose.Distance,
+			openingPose.Yaw,
+			openingPose.Pitch);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
@@ -148,38 +161,52 @@ public partial class BattleController : Node3D
 			ColorForActor);
 		AddChild(_replayDirector);
 
-		_combatIntro = new CombatIntroDirector { Name = "CombatIntroDirector" };
-		_combatIntro.Configure(_battle, _battleView, _camera, GetPlayerRenderedPosition);
-		AddChild(_combatIntro);
-
 		_agent.PlanningChanged += RefreshPresentation;
 		_battle.PhaseChanged += _ => RefreshPresentation();
 		_battle.TurnResolved += OnTurnResolved;
 
 		_cameraDirector.EnterManual();
-		BeginCombatIntro();
-	}
-
-	private void BeginCombatIntro()
-	{
-		_introActive = true;
-		_frames.IntroActive = true;
-		var objective = ResolveEncounter().Objective;
-		_battleHud.IntroOverlay.SetObjective(objective);
 		RefreshPresentation();
-		_combatIntro.Play(DismissCombatIntroBanner, EndCombatIntro);
+		GetTree().CreateTimer(OpeningCameraHoldSeconds).Timeout += ConfigureTutorial;
 	}
 
-	private void DismissCombatIntroBanner()
+	private void ConfigureTutorial()
 	{
-		_frames.IntroActive = false;
-		RefreshPresentation();
-	}
+		if (!IsInsideTree())
+			return;
+		if (!GameSettings.ReadShowTutorials())
+			return;
 
-	private void EndCombatIntro()
-	{
-		_introActive = false;
-		_frames.IntroActive = false;
+		var worldIndicators = new BattleWorldIndicators { Name = "BattleWorldIndicators" };
+		worldIndicators.Configure(_battle.Layout, _battleView);
+		AddChild(worldIndicators);
+
+		var tutorialLayer = new CanvasLayer
+		{
+			Name = "TutorialLayer",
+			Layer = 20,
+		};
+		var dialog = new TutorialDialog();
+		dialog.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+		dialog.OffsetLeft = -TutorialDialogWidth - HudStyles.Margin;
+		dialog.OffsetTop = TutorialDialogTop;
+		dialog.OffsetRight = -HudStyles.Margin;
+		dialog.OffsetBottom = TutorialDialogTop;
+		tutorialLayer.AddChild(dialog);
+		AddChild(tutorialLayer);
+
+		_tutorial = TutorialController.CreateForBattle(
+			_agent,
+			Session.Instance.Run.TutorialProgress,
+			dialog,
+			new BattleWorldFocus(
+				_camera,
+				_battle.Layout,
+				_battleView,
+				() => _agent.Sim.StateOf<ActorState>(_battle.PlayerId)),
+			worldIndicators);
+		_tutorial.StepStarted += OnTutorialStepStarted;
+		_tutorial.Completed += OnTutorialCompleted;
 		RefreshPresentation();
 	}
 
@@ -235,6 +262,7 @@ public partial class BattleController : Node3D
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 		_translator.UndoRequested += OnUndoRequested;
+		_translator.UndoShortcutRequested += OnUndoShortcutRequested;
 		_translator.EndTurnRequested += OnEndTurn;
 		_translator.ActionFailed += OnActionFailed;
 		_translator.RestartRequested += ResetBattle;
@@ -274,7 +302,7 @@ public partial class BattleController : Node3D
 
 	private void OnEndTurn()
 	{
-		if (!AcceptsCommands)
+		if (!CanEndTurn)
 			return;
 
 		_battle.EndTurn();
@@ -283,9 +311,22 @@ public partial class BattleController : Node3D
 
 	private void OnUndoRequested()
 	{
+		TryUndo();
+	}
+
+	private void OnUndoShortcutRequested()
+	{
+		if (TryUndo())
+			_tutorial?.NotifyBattleUndoShortcut();
+	}
+
+	private bool TryUndo()
+	{
 		_frames.Interaction.ClearHovers();
-		if (!_agent.Undo())
+		var undone = _agent.Undo();
+		if (!undone)
 			RefreshPresentation();
+		return undone;
 	}
 
 	private void RefreshPresentation()
@@ -293,7 +334,7 @@ public partial class BattleController : Node3D
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		_currentFrame = frame;
 		_translator.SetPresentation(
-			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver && !_introActive,
+			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
 			canIssueActions: frame.CanAct,
 			isInspecting: frame.IsInspecting,
 			mode: frame.Mode,
@@ -376,8 +417,23 @@ public partial class BattleController : Node3D
 		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
 		_areaActionPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);
-		_battleHud.Apply(frame);
+		_battleHud.Apply(frame, allowEndTurn: CanEndTurn);
 	}
+
+	private void OnTutorialCompleted(TutorialFlow _) => RefreshPresentation();
+
+	private void OnTutorialStepStarted(TutorialFlow flow, TutorialStep step)
+	{
+		if (ShouldReturnToPlayerAfterTutorialStep(flow, step))
+			ReturnToPlayer();
+	}
+
+	internal static bool ShouldReturnToPlayerAfterTutorialStep(
+		TutorialFlow flow,
+		TutorialStep step) =>
+		flow.Id == FirstBattleTutorial.Id
+		&& step.TargetId == FirstBattleTutorial.PlayerTargetId
+		&& !step.FocusTarget;
 
 	private Vector3 GetPlayerRenderedPosition()
 	{
@@ -397,9 +453,6 @@ public partial class BattleController : Node3D
 			states,
 			ColorForActor,
 			showPredictedDeath: ShouldShowPredictedDeath(_battle.Phase));
-		if (_introActive)
-			return;
-
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
 
@@ -414,6 +467,9 @@ public partial class BattleController : Node3D
 
 	internal static bool ShouldShowPredictedDeath(EBattlePhase phase) =>
 		phase != EBattlePhase.BattleOver;
+
+	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialActive) =>
+		acceptsCommands && !tutorialActive;
 
 	private static BattleEncounter ResolveEncounter()
 	{
@@ -434,8 +490,6 @@ public partial class BattleController : Node3D
 
 	private void ForceOutcome(EBattleResult result)
 	{
-		_introActive = false;
-		_frames.IntroActive = false;
 		_battle.ForceOutcome(result);
 	}
 
@@ -475,6 +529,12 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
+		if (_tutorial is not null)
+		{
+			_tutorial.StepStarted -= OnTutorialStepStarted;
+			_tutorial.Completed -= OnTutorialCompleted;
+			_tutorial.Dispose();
+		}
 		Session.Instance.DevMenu.ClearBattleActions();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();

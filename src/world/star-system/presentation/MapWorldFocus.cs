@@ -1,12 +1,12 @@
+using Godot;
 using GrimSpace.Education;
+using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed class MapWorldFocus : IWorldFocus
 {
-	private const float TweenDuration = 0.45f;
-
 	private readonly MapCamera _camera;
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, Coord> _committedPositionOf;
@@ -29,9 +29,7 @@ public sealed class MapWorldFocus : IWorldFocus
 		var world = _world();
 		return WorldObjectQueries.ResolveFocusable(world, objectId, _committedPositionOf) switch
 		{
-			WorldObjectResolution.Found found => _prepareFocus(() => Focus(world, found))
-				? new WorldFocusResult.Accepted()
-				: new WorldFocusResult.Unavailable(),
+			WorldObjectResolution.Found found => PrepareFocus(world, found),
 			WorldObjectResolution.Missing => new WorldFocusResult.MissingTarget(),
 			WorldObjectResolution.Ambiguous => new WorldFocusResult.AmbiguousTargetId(),
 			WorldObjectResolution.NotFocusable => new WorldFocusResult.TargetNotFocusable(),
@@ -39,10 +37,46 @@ public sealed class MapWorldFocus : IWorldFocus
 		};
 	}
 
+	private WorldFocusResult PrepareFocus(StarMap world, WorldObjectResolution.Found found)
+	{
+		var handle = new RestoreCameraFocus(_camera);
+		if (_prepareFocus(() => handle.Focus(() => Focus(world, found))))
+			return new WorldFocusResult.Accepted(handle);
+
+		handle.Dispose();
+		return new WorldFocusResult.Unavailable();
+	}
+
 	private void Focus(StarMap world, WorldObjectResolution.Found found)
 	{
 		_camera.FocusPivot(
-			MapMapping.ToWorld(found.Position, world.Width, world.Height),
-			TweenDuration);
+			MapMapping.ToWorld(found.Position, world.Width, world.Height));
+	}
+
+	private sealed class RestoreCameraFocus(MapCamera camera) : IWorldFocusHandle
+	{
+		private MapCamera? _camera = camera;
+		private OrbitPose _pose;
+		private bool _captured;
+
+		public void Focus(Action focus)
+		{
+			if (_camera is null)
+				return;
+
+			_pose = _camera.CurrentPose;
+			_captured = true;
+			focus();
+		}
+
+		public void Dispose()
+		{
+			if (_camera is null)
+				return;
+
+			if (_captured && GodotObject.IsInstanceValid(_camera))
+				_camera.TweenToPose(_pose);
+			_camera = null;
+		}
 	}
 }

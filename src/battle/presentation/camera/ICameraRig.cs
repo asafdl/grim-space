@@ -16,6 +16,7 @@ public interface ICameraRig
 		float margin,
 		out Vector3 targetPivot);
 
+	void TweenPivotTo(Vector3 target);
 	void TweenPivotTo(Vector3 target, float duration);
 	void MovePivotToward(Vector3 target, float delta, float responseTime);
 	void CancelAutomation();

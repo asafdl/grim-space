@@ -125,21 +125,6 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
-	public void PassiveHoverGhostIsHiddenDuringIntro()
-	{
-		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
-		var builder = BattleTestFixture.FrameBuilder(battle);
-		builder.IntroActive = true;
-		var options = BattleTestCommands.Frame(battle).MovePaths;
-
-		builder.Interaction.SetMoveHover(0, options.Count);
-		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
-
-		Assert.Null(frame.MoveGhostState);
-	}
-
-	[Fact]
 	public void FailedMoveQueueKeepsStagedPoseAndEndsDrag()
 	{
 		var origin = new Coord(5, 5, 5);

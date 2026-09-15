@@ -70,6 +70,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
 	public event Action? UndoRequested;
+	public event Action? UndoShortcutRequested;
 	public event Action? EndTurnRequested;
 	public event Action? ActionFailed;
 	public event Action? RestartRequested;
@@ -196,8 +197,9 @@ public sealed partial class UserIntentTranslator : Node
 				Keycode: Key.Z
 			} key
 			&& (key.CtrlPressed || key.MetaPressed)
-			&& _hud.UtilityBar.TryUndo())
+			&& _hud.UtilityBar.CanUndo)
 		{
+			UndoShortcutRequested?.Invoke();
 			GetViewport().SetInputAsHandled();
 		}
 	}
@@ -250,7 +252,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnEndTurn()
 	{
-		if (_moveInput.Destination is null)
+		if (_moveInput.Destination is null && _hud.ActionBar.CanEndTurn)
 			EndTurnRequested?.Invoke();
 	}
 

@@ -21,6 +21,8 @@ public sealed partial class UtilityBar : PanelContainer
 	private Button _undoButton = null!;
 	private Button _backButton = null!;
 
+	public bool CanUndo => !_undoButton.Disabled;
+
 	public UtilityBar()
 	{
 		MouseFilter = MouseFilterEnum.Stop;

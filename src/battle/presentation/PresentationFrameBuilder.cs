@@ -20,8 +20,6 @@ public sealed class PresentationFrameBuilder
 
 	public InteractionState Interaction { get; } = new();
 
-	public bool IntroActive { get; set; }
-
 	private readonly List<ActionLog.Entry> _actionLogEntries = [];
 
 	public IReadOnlyList<ActionLog.Entry> ActionLogEntries => _actionLogEntries;
@@ -179,7 +177,6 @@ public sealed class PresentationFrameBuilder
 
 		var activeMovePreview = canControl
 			&& state.Mode == EPlayerMode.Move
-			&& !IntroActive
 			&& !battle.IsBattleOver
 				? selectedMove ?? hoveredMove
 				: null;
@@ -219,7 +216,6 @@ public sealed class PresentationFrameBuilder
 			CanFocusCamera = canControl && isPlanning,
 			CanUndo = canControl && agent.CanUndo,
 			ShowOutcomeOverlay = battle.Phase == EBattlePhase.BattleOver,
-			ShowIntroOverlay = IntroActive,
 			ShowWeaponPreviews = showWeaponPreviews,
 			Outcome = battle.Outcome.Result,
 			ActionLogEntries = ActionLogEntries,

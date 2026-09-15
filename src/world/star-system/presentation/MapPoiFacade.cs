@@ -24,7 +24,6 @@ public sealed class MapPoiFacade
 	private const float EnterDistance = 12f;
 	private const float ExitDistance = 17f;
 	private const float PivotProximity = 2.5f;
-	private const float TweenDuration = 0.45f;
 	private const float FacilityZoomDistance = 2.8f;
 	private const float FacilityZoomDuration = 0.4f;
 	private const float FacilityFadeDuration = 0.35f;
@@ -203,7 +202,7 @@ public sealed class MapPoiFacade
 		_camera.CapturePose();
 		MapNavigationContext.SaveStrategicCameraPose(_camera.CapturedPose);
 		var target = _view.ResolveFacadePose(poi, world.Width, world.Height);
-		_camera.TweenToPose(target, TweenDuration, () => OnEnterComplete(poi));
+		_camera.TweenToPose(target, () => OnEnterComplete(poi));
 	}
 
 	private void OnEnterComplete(PointOfInterest poi)
@@ -224,7 +223,6 @@ public sealed class MapPoiFacade
 		ClearFacilityButtons();
 		_activePoi = null;
 		_camera.RestoreCapturedPose(
-			TweenDuration,
 			() =>
 			{
 				_state = FacadeState.Strategic;

@@ -145,7 +145,7 @@ public partial class MapController : Node3D
 			() => _orchestrator.Map,
 			CommittedPositionOf,
 			() => _poiFacade.IsStrategic,
-			() => new MapArrowIndicator());
+			() => new WorldArrowIndicator());
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
 		var narrativeHud = new NarrativeHudOverlay();

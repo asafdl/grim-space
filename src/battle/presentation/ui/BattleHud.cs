@@ -18,7 +18,6 @@ public partial class BattleHud : Node
 	public ManeuverBar ManeuverBar { get; private set; } = null!;
 	public UtilityBar UtilityBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
-	public BattleIntroOverlay IntroOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
 	public bool IsPauseMenuOpen => PauseMenu.Visible;
@@ -180,9 +179,6 @@ public partial class BattleHud : Node
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
 
-		IntroOverlay = new BattleIntroOverlay();
-		AddChild(IntroOverlay);
-
 		PauseMenu = new BattlePauseMenuOverlay();
 		PauseMenu.ContinueRequested += ClosePauseMenu;
 		PauseMenu.RetireRequested += () => RetireRequested?.Invoke();
@@ -194,7 +190,6 @@ public partial class BattleHud : Node
 		topMargin.Theme = battleTheme;
 		margin.Theme = battleTheme;
 		_actionLogHost.Theme = battleTheme;
-		IntroOverlay.ApplyTheme(battleTheme);
 		OutcomeOverlay.ApplyTheme(battleTheme);
 		PauseMenu.ApplyTheme(battleTheme);
 	}
@@ -209,9 +204,9 @@ public partial class BattleHud : Node
 		PauseMenu.SetRestartEnabled(!strategic);
 	}
 
-	public void Apply(PresentationFrame frame)
+	public void Apply(PresentationFrame frame, bool allowEndTurn)
 	{
-		var hideHud = frame.ShowOutcomeOverlay || frame.ShowIntroOverlay;
+		var hideHud = frame.ShowOutcomeOverlay;
 		if (hideHud)
 			ClosePauseMenu();
 
@@ -227,8 +222,6 @@ public partial class BattleHud : Node
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogEntries, _strategicBattle);
-
-		IntroOverlay.Visible = frame.ShowIntroOverlay;
 
 		_bottomHud.Visible = !hideHud;
 		if (hideHud)
@@ -246,7 +239,7 @@ public partial class BattleHud : Node
 			.ToList();
 		ActionBar.ApplyLayout(focusState.Type, abilitySpecs);
 		ActionBar.SetMode(frame.Mode);
-		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots);
+		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots, allowEndTurn);
 		ActionBar.InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}

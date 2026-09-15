@@ -6,6 +6,9 @@ namespace GrimSpace.Education;
 public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 {
 	private readonly RichTextLabel _message;
+	private readonly VBoxContainer _assistance;
+	private readonly Label _assistanceMessage;
+	private readonly Button _assistanceAction;
 	private readonly Button _accept;
 
 	public TutorialDialog()
@@ -45,6 +48,34 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		_message.MetaClicked += OnMetaClicked;
 		content.AddChild(_message);
 
+		_assistance = new VBoxContainer
+		{
+			Visible = false,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		_assistance.AddThemeConstantOverride("separation", 8);
+		content.AddChild(_assistance);
+
+		_assistanceMessage = new Label
+		{
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "TutorialRichTextLabel",
+		};
+		_assistanceMessage.AddThemeColorOverride("font_color", new Color(1f, 0.72f, 0.28f));
+		_assistance.AddChild(_assistanceMessage);
+
+		_assistanceAction = new Button
+		{
+			CustomMinimumSize = new Vector2(144, 34),
+			FocusMode = FocusModeEnum.All,
+			SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
+		};
+		HudStyles.StyleButton(_assistanceAction, HudActionKind.Secondary);
+		_assistanceAction.AddThemeFontSizeOverride("font_size", 14);
+		_assistanceAction.Pressed += () => AssistanceRequested?.Invoke();
+		_assistance.AddChild(_assistanceAction);
+
 		_accept = new Button
 		{
 			CustomMinimumSize = new Vector2(104, 34),
@@ -59,6 +90,8 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 
 	public event Action? Accepted;
 
+	public event Action? AssistanceRequested;
+
 	public event Action<string>? WorldLinkClicked;
 
 	public bool IsOpen => Visible;
@@ -70,15 +103,42 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		ArgumentNullException.ThrowIfNull(content);
 		ArgumentException.ThrowIfNullOrEmpty(content.Title);
 		ArgumentException.ThrowIfNullOrEmpty(content.Message);
-		ArgumentException.ThrowIfNullOrEmpty(content.AcceptText);
 
+		ClearAssistance();
 		_message.Text = content.Message;
-		_accept.Text = content.AcceptText;
+		_accept.Visible = content.AcceptText is not null;
+		if (content.AcceptText is { } acceptText)
+			_accept.Text = acceptText;
+		else
+			_accept.ReleaseFocus();
 		Visible = true;
-		_accept.GrabFocus();
+		if (_accept.Visible)
+			_accept.GrabFocus();
 	}
 
-	public void Close() => Visible = false;
+	public void ShowAssistance(TutorialAssistanceContent content)
+	{
+		ArgumentNullException.ThrowIfNull(content);
+		ArgumentException.ThrowIfNullOrEmpty(content.Message);
+		ArgumentException.ThrowIfNullOrEmpty(content.ActionText);
+
+		_assistanceMessage.Text = content.Message;
+		_assistanceAction.Text = content.ActionText;
+		_assistance.Visible = true;
+		_assistanceAction.GrabFocus();
+	}
+
+	public void ClearAssistance()
+	{
+		_assistance.Visible = false;
+		_assistanceAction.ReleaseFocus();
+	}
+
+	public void Close()
+	{
+		ClearAssistance();
+		Visible = false;
+	}
 
 	private void OnMetaClicked(Variant metadata)
 	{

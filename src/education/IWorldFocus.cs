@@ -5,9 +5,13 @@ public interface IWorldFocus
 	WorldFocusResult Focus(string objectId);
 }
 
+public interface IWorldFocusHandle : IDisposable
+{
+}
+
 public abstract record WorldFocusResult
 {
-	public sealed record Accepted : WorldFocusResult;
+	public sealed record Accepted(IWorldFocusHandle Handle) : WorldFocusResult;
 
 	public sealed record MissingTarget : WorldFocusResult;
 

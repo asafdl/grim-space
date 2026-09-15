@@ -26,6 +26,7 @@ public partial class Controller : Camera3D, ICameraRig
 	private Vector3? _automationTarget;
 
 	public Vector3 Pivot => _pose.Pivot;
+	public OrbitPose CurrentPose => _pose;
 	public float Distance => _pose.Distance;
 	public float Yaw => _pose.Yaw;
 	public float Pitch => _pose.Pitch;
@@ -79,6 +80,13 @@ public partial class Controller : Camera3D, ICameraRig
 		return (_pose.Pivot - targetPivot).LengthSquared() > PivotEpsilon * PivotEpsilon;
 	}
 
+	public void TweenPivotTo(Vector3 target)
+	{
+		var targetPose = _pose;
+		targetPose.Pivot = target;
+		TweenPivotTo(target, CameraTransition.Duration(_pose, targetPose));
+	}
+
 	public void TweenPivotTo(Vector3 target, float duration)
 	{
 		CancelAutomation();
@@ -96,6 +104,31 @@ public partial class Controller : Camera3D, ICameraRig
 			.SetTrans(Tween.TransitionType.Quad)
 			.SetEase(Tween.EaseType.Out);
 		_pivotTween.Finished += OnPivotTweenFinished;
+	}
+
+	public void TweenFocusOn(Vector3 targetPivot, float targetDistance) =>
+		TweenFocusOn(targetPivot, targetDistance, _pose.Yaw, _pose.Pitch);
+
+	public void TweenFocusOn(
+		Vector3 targetPivot,
+		float targetDistance,
+		float targetYaw,
+		float targetPitch)
+	{
+		var targetPose = new OrbitPose
+		{
+			Pivot = targetPivot,
+			Distance = targetDistance,
+			Yaw = targetYaw,
+			Pitch = targetPitch,
+		};
+		targetPose.Clamp(Limits);
+		TweenFocusOn(
+			targetPose.Pivot,
+			targetPose.Distance,
+			targetPose.Yaw,
+			targetPose.Pitch,
+			CameraTransition.Duration(_pose, targetPose));
 	}
 
 	public void TweenFocusOn(Vector3 targetPivot, float targetDistance, float duration) =>

@@ -90,6 +90,30 @@ public partial class MapCamera : Camera3D
 		BeginPoseTween(_pose, target, duration, onComplete);
 	}
 
+	public void TweenToPose(OrbitPose target, Action? onComplete = null)
+	{
+		CancelAutomation();
+		target.Clamp(Limits);
+		BeginPoseTween(
+			_pose,
+			target,
+			CameraTransition.Duration(_pose, target),
+			onComplete);
+	}
+
+	public void FocusPivot(Vector3 pivot)
+	{
+		CancelAutomation();
+		var target = _pose;
+		target.Pivot = pivot;
+		_focusTween = true;
+		BeginPoseTween(
+			_pose,
+			target,
+			CameraTransition.Duration(_pose, target),
+			null);
+	}
+
 	public void FocusPivot(Vector3 pivot, float duration)
 	{
 		CancelAutomation();
@@ -112,6 +136,25 @@ public partial class MapCamera : Camera3D
 		if (minDistance > 0f && target.Distance < minDistance)
 			target.Distance = minDistance;
 		BeginPoseTween(_pose, target, duration, onComplete);
+	}
+
+	public void RestoreCapturedPose(Action? onComplete = null, float minDistance = 0f)
+	{
+		CancelAutomation();
+		var target = _capturedPose;
+		if (target.Distance <= 0.001f)
+		{
+			onComplete?.Invoke();
+			return;
+		}
+
+		if (minDistance > 0f && target.Distance < minDistance)
+			target.Distance = minDistance;
+		BeginPoseTween(
+			_pose,
+			target,
+			CameraTransition.Duration(_pose, target),
+			onComplete);
 	}
 
 	public void CancelAutomation()

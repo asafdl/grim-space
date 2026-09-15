@@ -194,6 +194,19 @@ public sealed class BattlePhaseTests
 	public void BattleOverFrameDoesNotShowPredictedDeaths() =>
 		Assert.False(BattleController.ShouldShowPredictedDeath(EBattlePhase.BattleOver));
 
+	[Theory]
+	[InlineData(true, false, true)]
+	[InlineData(true, true, false)]
+	[InlineData(false, false, false)]
+	[InlineData(false, true, false)]
+	public void EndTurnRequiresCommandsAndNoActiveTutorial(
+		bool acceptsCommands,
+		bool tutorialActive,
+		bool expected) =>
+		Assert.Equal(
+			expected,
+			BattleController.ShouldAllowEndTurn(acceptsCommands, tutorialActive));
+
 	[Fact]
 	public void BattleViewRetainsPredictedDeathButNotAuthoritativeDeath()
 	{

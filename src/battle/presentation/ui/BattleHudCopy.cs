@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
+using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -69,7 +70,8 @@ internal static class BattleHudCopy
 	public const string ActionUnavailable = "Action is no longer available";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
-	public const string UndoTooltip = "Undo your last action this turn.\n(Ctrl/Cmd+Z)";
+	public static readonly string UndoTooltip =
+		$"Undo your last action this turn.\n({InputShortcutText.WithPrimaryModifier("Z")})";
 	public const string BackToPlayer = "Back";
 	public const string BackToPlayerTooltip = "Return to your ship and resume planning.";
 
@@ -82,9 +84,6 @@ internal static class BattleHudCopy
 	public const string OutcomeDefault = "Battle Over";
 	public const string Reset = "Reset";
 	public const string ReturnToStarMap = "Return to Star Map";
-
-	public const string IntroTitle = "Engage";
-	public const string ObjectiveEliminateOpponents = "Objective: Eliminate all opponents";
 
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 
@@ -120,12 +119,5 @@ internal static class BattleHudCopy
 			EBattleResult.Lose => OutcomeLose,
 			EBattleResult.Tie => OutcomeDraw,
 			_ => OutcomeDefault,
-		};
-
-	public static string ObjectiveLabel(EObjective objective) =>
-		objective switch
-		{
-			EObjective.EliminateOpponents => ObjectiveEliminateOpponents,
-			_ => objective.ToString(),
 		};
 }

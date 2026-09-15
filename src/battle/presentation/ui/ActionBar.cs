@@ -23,6 +23,8 @@ public sealed partial class ActionBar : HBoxContainer
 	private Button _endTurnButton = null!;
 	private EType? _layoutType;
 
+	public bool CanEndTurn => !_endTurnButton.Disabled;
+
 	public ActionBar(ButtonGroup modeGroup)
 	{
 		_modeGroup = modeGroup;
@@ -54,10 +56,11 @@ public sealed partial class ActionBar : HBoxContainer
 	public void Configure(
 		bool canAct,
 		bool isInspecting,
-		IReadOnlyList<AbilityBarSlotState> slots)
+		IReadOnlyList<AbilityBarSlotState> slots,
+		bool allowEndTurn)
 	{
 		_endTurnPanel.Visible = !isInspecting;
-		_endTurnButton.Disabled = !canAct;
+		_endTurnButton.Disabled = !canAct || !allowEndTurn;
 
 		for (var i = 0; i < _abilitySlots.Count && i < slots.Count; i++)
 		{

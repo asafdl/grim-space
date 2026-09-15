@@ -16,8 +16,6 @@ public partial class UnitView : Node3D
 	private readonly int[] _shieldPoints = new int[Faces.Length];
 	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
 	private bool _hitMarked;
-	private bool _introMarked;
-	private Tween? _introTween;
 	private Tween? _poseTween;
 
 	public void Bind(State state, Color color)
@@ -223,42 +221,11 @@ public partial class UnitView : Node3D
 
 	public void SetHitMarked(bool marked)
 	{
-		if (_hitMarked == marked && _hitMark is not null && !_introMarked)
+		if (_hitMarked == marked && _hitMark is not null)
 			return;
 
 		_hitMarked = marked;
-		if (_introMarked)
-			return;
-
 		ApplyHitMarkVisual();
-	}
-
-	public void SetIntroMarked(bool marked)
-	{
-		if (_introMarked == marked)
-			return;
-
-		_introMarked = marked;
-		_introTween?.Kill();
-		_introTween = null;
-
-		if (!marked)
-		{
-			ApplyHitMarkVisual();
-			return;
-		}
-
-		EnsureHitMark();
-		_hitMark!.Visible = true;
-		ApplyIntroVisual();
-
-		_introTween = CreateTween().SetLoops();
-		_introTween.TweenProperty(_hitMark, "scale", Vector3.One * 1.42f, 0.55)
-			.SetTrans(Tween.TransitionType.Sine)
-			.SetEase(Tween.EaseType.Out);
-		_introTween.TweenProperty(_hitMark, "scale", Vector3.One * 1.08f, 0.55)
-			.SetTrans(Tween.TransitionType.Sine)
-			.SetEase(Tween.EaseType.In);
 	}
 
 	private void ApplyHitMarkVisual()
@@ -274,14 +241,6 @@ public partial class UnitView : Node3D
 		mat.AlbedoColor = new Color(1f, 0.28f, 0.22f, 0.28f);
 	}
 
-	private void ApplyIntroVisual()
-	{
-		_hitMark!.Scale = Vector3.One * 1.15f;
-		var mat = (StandardMaterial3D)_hitMark.MaterialOverride!;
-		mat.EmissionEnergyMultiplier = 2.4f;
-		mat.AlbedoColor = new Color(1f, 0.15f, 0.1f, 0.68f);
-	}
-
 	private void ApplyPose(State state)
 	{
 		Position = WorldMapping.ToWorld(state.Position);
@@ -294,12 +253,6 @@ public partial class UnitView : Node3D
 	{
 		if (_hitMark is null)
 			return;
-
-		if (_introMarked)
-		{
-			ApplyIntroVisual();
-			return;
-		}
 
 		_hitMark.Scale = Vector3.One;
 		var mat = (StandardMaterial3D)_hitMark.MaterialOverride!;
