@@ -13,16 +13,16 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public partial class MapView : Node3D
 {
-	private const int FineEvery = 32;
+	private const int FineEvery = 64;
 	private const int MajorEvery = 256;
-	private const float MinorAlpha = 0.015f;
-	private const float MajorAlpha = 0.055f;
-	private const float BoundaryAlpha = 0.12f;
+	private const float MinorMarkSize = 0.048f;
+	private const float MajorMarkSize = 0.078f;
+	private const float MinorAlpha = 0.34f;
+	private const float MajorAlpha = 0.56f;
 	private const int FootprintSegments = 48;
 
-	private static readonly Color GridMinor = new(0.15f, 0.22f, 0.30f, MinorAlpha);
-	private static readonly Color GridMajor = new(0.22f, 0.32f, 0.42f, MajorAlpha);
-	private static readonly Color GridBoundary = new(0.32f, 0.44f, 0.54f, BoundaryAlpha);
+	private static readonly Color GridMinor = new(0.28f, 0.78f, 0.88f, MinorAlpha);
+	private static readonly Color GridMajor = new(0.36f, 0.88f, 0.96f, MajorAlpha);
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
 	private static readonly Color StationSilver = new(0.72f, 0.74f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
@@ -34,7 +34,7 @@ public partial class MapView : Node3D
 	private readonly Dictionary<string, MeshInstance3D> _hoverRings = new();
 
 	private string? _hoveredId;
-	private MeshInstance3D? _minorGrid;
+	private MultiMeshInstance3D? _minorGrid;
 	private MapAtmosphereSettings _atmosphere = MapAtmosphereSettings.Default;
 	private IReadOnlyList<PointOfInterest> _pois = [];
 	private IReadOnlyList<Dock> _docks = [];
@@ -259,79 +259,75 @@ public partial class MapView : Node3D
 	private Node3D BuildReferenceGrid(int width, int height)
 	{
 		var root = new Node3D { Name = "Grid" };
-		var origin = MapMapping.GridOrigin(width, height);
-		var extent = width * MapMapping.WorldUnitsPerPoint;
-
-		_minorGrid = BuildAxisLines("Minor", width, height, origin, extent, GridMinor, major: false);
+		_minorGrid = BuildDotMesh("Minor", width, height, GridMinor, FineEvery, MinorMarkSize, major: false);
 		root.AddChild(_minorGrid);
-		root.AddChild(BuildAxisLines("Major", width, height, origin, extent, GridMajor, major: true));
-		root.AddChild(BuildBoundary(origin, extent));
+		root.AddChild(BuildDotMesh("Major", width, height, GridMajor, FineEvery, MajorMarkSize, major: true));
 		return root;
 	}
 
-	private static MeshInstance3D BuildAxisLines(
+	private static MultiMeshInstance3D BuildDotMesh(
 		string name,
 		int width,
 		int height,
-		Vector3 origin,
-		float extent,
 		Color color,
+		int step,
+		float markSize,
 		bool major)
 	{
-		var mesh = new ImmediateMesh();
-		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		mesh.SurfaceSetColor(color);
+		var instances = new List<(Vector3 Position, Color InstanceColor)>();
 
-		for (var x = FineEvery; x < width; x += FineEvery)
+		for (var x = 0; x < width; x += step)
 		{
-			if ((x % MajorEvery == 0) != major)
-				continue;
-
-			var wx = MapMapping.ToWorld(new Coord(x, 0, 0), width, height).X;
-			mesh.SurfaceAddVertex(new Vector3(wx, 0f, origin.Z));
-			mesh.SurfaceAddVertex(new Vector3(wx, 0f, origin.Z + extent));
-		}
-
-		for (var z = FineEvery; z < height; z += FineEvery)
-		{
-			if ((z % MajorEvery == 0) != major)
-				continue;
-
-			var wz = MapMapping.ToWorld(new Coord(0, 0, z), width, height).Z;
-			mesh.SurfaceAddVertex(new Vector3(origin.X, 0f, wz));
-			mesh.SurfaceAddVertex(new Vector3(origin.X + extent, 0f, wz));
-		}
-
-		mesh.SurfaceEnd();
-		return LineMesh(name, mesh);
-	}
-
-	private static MeshInstance3D BuildBoundary(Vector3 origin, float extent)
-	{
-		var mesh = new ImmediateMesh();
-		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		mesh.SurfaceSetColor(GridBoundary);
-
-		var min = new Vector3(origin.X, 0f, origin.Z);
-		var max = new Vector3(origin.X + extent, 0f, origin.Z + extent);
-		AddQuadOutline(mesh, min, max);
-		mesh.SurfaceEnd();
-		return LineMesh("Boundary", mesh);
-	}
-
-	private static MeshInstance3D LineMesh(string name, ImmediateMesh mesh) =>
-		new()
-		{
-			Name = name,
-			Mesh = mesh,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
+			for (var z = 0; z < height; z += step)
 			{
-				VertexColorUseAsAlbedo = true,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+				var onMajor = x % MajorEvery == 0 && z % MajorEvery == 0;
+				if (major != onMajor)
+					continue;
+
+				var position = MapMapping.ToWorld(new Coord(x, 0, z), width, height);
+				position.Y = 0.004f;
+				instances.Add((position, color));
+			}
+		}
+
+		var dotMaterial = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			BlendMode = BaseMaterial3D.BlendModeEnum.Mix,
+			AlbedoColor = Colors.White,
+			VertexColorUseAsAlbedo = true,
+			BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+			BillboardKeepScale = true,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly,
+		};
+		var multiMesh = new MultiMesh
+		{
+			TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+			UseColors = true,
+			InstanceCount = instances.Count,
+			Mesh = new QuadMesh
+			{
+				Size = Vector2.One * markSize,
+				Material = dotMaterial,
 			},
 		};
+
+		for (var i = 0; i < instances.Count; i++)
+		{
+			var (position, instanceColor) = instances[i];
+			multiMesh.SetInstanceTransform(i, new Transform3D(Basis.Identity, position));
+			multiMesh.SetInstanceColor(i, instanceColor);
+		}
+
+		return new MultiMeshInstance3D
+		{
+			Name = name,
+			Multimesh = multiMesh,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		};
+	}
 
 	private static MeshInstance3D BuildPoiFootprint(PointOfInterest poi, int width, int height)
 	{
@@ -641,22 +637,6 @@ public partial class MapView : Node3D
 			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius));
 			mesh.SurfaceAddVertex(center + new Vector3(Mathf.Cos(b) * radius, 0f, Mathf.Sin(b) * radius));
 		}
-	}
-
-	private static void AddQuadOutline(ImmediateMesh mesh, Vector3 min, Vector3 max)
-	{
-		var a = new Vector3(min.X, min.Y, min.Z);
-		var b = new Vector3(max.X, min.Y, min.Z);
-		var c = new Vector3(max.X, min.Y, max.Z);
-		var d = new Vector3(min.X, min.Y, max.Z);
-		mesh.SurfaceAddVertex(a);
-		mesh.SurfaceAddVertex(b);
-		mesh.SurfaceAddVertex(b);
-		mesh.SurfaceAddVertex(c);
-		mesh.SurfaceAddVertex(c);
-		mesh.SurfaceAddVertex(d);
-		mesh.SurfaceAddVertex(d);
-		mesh.SurfaceAddVertex(a);
 	}
 
 	private static class FacilityAnchorOffsets
