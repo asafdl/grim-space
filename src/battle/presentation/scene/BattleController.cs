@@ -54,7 +54,8 @@ public partial class BattleController : Node3D
 	public override void _Ready()
 	{
 		_strategicBattle = Session.Instance.Run.ActiveBattle is not null;
-		_battle = BattleOrchestrator.FromEncounter(ResolveEncounter());
+		var encounter = ResolveEncounter();
+		_battle = BattleOrchestrator.FromEncounter(encounter);
 		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
@@ -64,7 +65,7 @@ public partial class BattleController : Node3D
 		var layout = _battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
-		backdrop.Build(layout.Grid);
+		backdrop.Build(layout.Grid, encounter.Seed);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
