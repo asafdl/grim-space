@@ -40,7 +40,41 @@ public sealed class MovePreviewSearchTests
 	}
 
 	[Fact]
-	public void CacheRebuildsWhenMovementQueueChanges()
+	public void PriorityPhaseContainsOnlyDirectMovementRoutes()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
+
+		index.CompletePriority();
+		var priorityPaths = index.GetExtensions([]);
+
+		Assert.True(index.IsPriorityComplete);
+		Assert.False(index.IsComplete);
+		Assert.NotEmpty(priorityPaths);
+		Assert.All(priorityPaths, path =>
+			Assert.All(path.Steps, action => Assert.IsType<GrimSpace.Battle.Actions.MoveStepAction>(action)));
+	}
+
+	[Fact]
+	public void RemainingPhaseResumesAndRetainsPriorityRoutes()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
+		index.CompletePriority();
+		var priorityKeys = index.GetExtensions([]).Select(PathKey).ToHashSet();
+
+		index.Complete();
+		var allPaths = index.GetExtensions([]);
+
+		Assert.True(index.IsComplete);
+		Assert.Subset(allPaths.Select(PathKey).ToHashSet(), priorityKeys);
+		Assert.Contains(allPaths, path =>
+			path.Steps.Any(action => action is GrimSpace.Battle.Actions.HeadingTurnAction
+				or GrimSpace.Battle.Actions.RollAction));
+	}
+
+	[Fact]
+	public void CacheRestoresPreviousPathsAfterUndo()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
@@ -59,7 +93,8 @@ public sealed class MovePreviewSearchTests
 		sim.Dequeue(0);
 		var afterUndo = cache.GetPaths(sim, PlayerId);
 
-		Assert.Equal(3, cache.BuildCount);
+		Assert.Equal(2, cache.BuildCount);
+		Assert.Same(initial, afterUndo);
 		Assert.Equal(initial.Select(PathKey), afterUndo.Select(PathKey));
 	}
 

@@ -11,49 +11,99 @@ namespace GrimSpace.Battle.Movement;
 
 public sealed class MovePathIndex
 {
-	private readonly IReadOnlyList<MovePathSession> _paths;
+	private readonly BattleSimulation _sim;
+	private readonly string _actorId;
+	private readonly int _startDepth;
+	private readonly IEnumerator<SearchFrame<BattleWorld, ActorRuntime>> _frames;
+	private readonly List<MovePathSession> _paths = [];
 	private readonly List<(IAction[] Prefix, IReadOnlyList<MovePathSession> Paths)> _extensions = [];
+	private SearchFrame<BattleWorld, ActorRuntime>? _pendingRemaining;
 
-	private MovePathIndex(IReadOnlyList<MovePathSession> paths)
+	private MovePathIndex(
+		BattleSimulation sim,
+		string actorId,
+		int startDepth,
+		IEnumerator<SearchFrame<BattleWorld, ActorRuntime>> frames)
 	{
-		_paths = paths;
+		_sim = sim;
+		_actorId = actorId;
+		_startDepth = startDepth;
+		_frames = frames;
 	}
 
 	public static MovePathIndex Build(BattleSimulation sim, string actorId)
+	{
+		var index = Start(sim, actorId);
+		index.Complete();
+		return index;
+	}
+
+	public static MovePathIndex Start(BattleSimulation sim, string actorId)
 	{
 		var startDepth = sim.Actions.Count;
 		var frames = ActionSearch.Run(
 			sim,
 			actorId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForMovePreview);
-		return FromFrames(sim, actorId, startDepth, frames);
+			new SearchInput<BattleWorld, ActorRuntime>(
+				BattleSearchVisit.ForMovePreview,
+				actions => actions.Skip(startDepth).All(action => action is MoveStepAction)));
+		return new MovePathIndex(sim, actorId, startDepth, frames.GetEnumerator());
 	}
 
-	internal static MovePathIndex FromFrames(
-		BattleSimulation sim,
-		string actorId,
-		int startDepth,
-		IEnumerable<SearchFrame<BattleWorld, ActorRuntime>> frames)
+	public bool IsPriorityComplete { get; private set; }
+	public bool IsComplete { get; private set; }
+
+	public void CompletePriority()
 	{
-		var paths = new List<MovePathSession>();
+		if (IsPriorityComplete)
+			return;
 
-		foreach (var frame in frames)
+		while (_frames.MoveNext())
 		{
-			var steps = frame.Actions.Skip(startDepth).ToArray();
-			if (steps.Length == 0 || steps.Any(action => !IsMovementAction(action)))
-				continue;
+			if (_frames.Current.Phase == SearchFramePhase.Remaining)
+			{
+				_pendingRemaining = _frames.Current;
+				IsPriorityComplete = true;
+				return;
+			}
 
-			var result = frame.World.StateOf(actorId).Clone();
-			paths.Add(new MovePathSession(
-				actorId,
-				steps,
-				ProjectCheckpoints(sim, actorId, steps, includeStart: true),
-				result.ActionPoints,
-				result));
+			Add(_frames.Current);
 		}
 
-		return new MovePathIndex(paths);
+		IsPriorityComplete = true;
+		IsComplete = true;
+		_frames.Dispose();
+	}
+
+	public bool AdvanceRemaining()
+	{
+		CompletePriority();
+		if (IsComplete)
+			return false;
+
+		if (_pendingRemaining is { } pending)
+		{
+			_pendingRemaining = null;
+			Add(pending);
+			return true;
+		}
+
+		if (_frames.MoveNext())
+		{
+			Add(_frames.Current);
+			return true;
+		}
+
+		IsComplete = true;
+		_frames.Dispose();
+		return false;
+	}
+
+	public void Complete()
+	{
+		CompletePriority();
+		while (AdvanceRemaining()) { }
 	}
 
 	public IReadOnlyList<MovePathSession> GetExtensions(IReadOnlyList<IAction> prefix)
@@ -95,6 +145,22 @@ public sealed class MovePathIndex
 			.ToList();
 		_extensions.Add((prefix.ToArray(), paths));
 		return paths;
+	}
+
+	private void Add(SearchFrame<BattleWorld, ActorRuntime> frame)
+	{
+		var steps = frame.Actions.Skip(_startDepth).ToArray();
+		if (steps.Length == 0 || steps.Any(action => !IsMovementAction(action)))
+			return;
+
+		var result = frame.World.StateOf(_actorId).Clone();
+		_paths.Add(new MovePathSession(
+			_actorId,
+			steps,
+			ProjectCheckpoints(_sim, _actorId, steps, includeStart: true),
+			result.ActionPoints,
+			result));
+		_extensions.Clear();
 	}
 
 	internal static IReadOnlyList<MoveCheckpoint> ProjectCheckpoints(

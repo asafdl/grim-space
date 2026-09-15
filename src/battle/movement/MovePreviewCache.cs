@@ -4,38 +4,41 @@ namespace GrimSpace.Battle.Movement;
 
 public sealed class MovePreviewCache
 {
-	private BattleSimulation? _sim;
-	private string? _actorId;
-	private int _worldVersion;
-	private IReadOnlyList<IAction> _actions = [];
-	private IReadOnlyList<MovePathSession> _paths = [];
+	private readonly List<Entry> _entries = [];
 
 	internal int BuildCount { get; private set; }
 
 	public IReadOnlyList<MovePathSession> GetPaths(BattleSimulation sim, string actorId)
 	{
-		if (ReferenceEquals(_sim, sim)
-			&& _actorId == actorId
-			&& _worldVersion == sim.WorldVersion
-			&& _actions.SequenceEqual(sim.Actions))
-			return _paths;
+		var cached = _entries.FirstOrDefault(entry =>
+			ReferenceEquals(entry.Sim, sim)
+			&& entry.ActorId == actorId
+			&& entry.WorldVersion == sim.WorldVersion
+			&& entry.Actions.SequenceEqual(sim.Actions));
+		if (cached is not null)
+			return cached.Paths;
 
-		_sim = sim;
-		_actorId = actorId;
-		_worldVersion = sim.WorldVersion;
-		_actions = sim.Actions.ToArray();
-		_paths = MovePathEndpoints.DiscoverExtensions(sim, actorId);
+		var paths = MovePathEndpoints.DiscoverExtensions(sim, actorId);
+		_entries.Add(new Entry(
+			sim,
+			actorId,
+			sim.WorldVersion,
+			sim.Actions.ToArray(),
+			paths));
 		BuildCount++;
-		return _paths;
+		return paths;
 	}
 
 	public void Clear()
 	{
-		_sim = null;
-		_actorId = null;
-		_worldVersion = 0;
-		_actions = [];
-		_paths = [];
+		_entries.Clear();
 		BuildCount = 0;
 	}
+
+	private sealed record Entry(
+		BattleSimulation Sim,
+		string ActorId,
+		int WorldVersion,
+		IReadOnlyList<IAction> Actions,
+		IReadOnlyList<MovePathSession> Paths);
 }
