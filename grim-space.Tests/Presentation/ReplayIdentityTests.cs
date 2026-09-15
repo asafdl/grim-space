@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation;
@@ -74,36 +75,14 @@ public sealed class ReplayIdentityTests
 		var impact = new ImpactFacts(
 			SourceId: "terrain",
 			TargetId: target.Id,
-			Cause: EHazardKind.MissileZone,
+			Cause: EHazardKind.FlakBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 1,
-			HullDamage: 0,
-			MomentumLoss: 0);
+			HullDamage: 0);
 
 		var points = TurnReplayPlayer.ImpactInterestPoints(replayState, impact);
 
 		Assert.Equal([WorldMapping.ToWorld(target.Position)], points);
-	}
-
-	[Fact]
-	public void ApplyMomentumUsesAuthoritativeResult()
-	{
-		var state = State.FromSpawn(
-			new Instance
-			{
-				Id = "fighter-a",
-				Type = EType.Fighter,
-				Alliance = Alliance.Player,
-			},
-			Coord.Zero);
-		var replayState = new ReplayState(new Dictionary<string, State>
-		{
-			[state.Id] = state,
-		});
-
-		replayState.ApplyMomentum(new MomentumChangedFacts(state.Id, 2));
-
-		Assert.Equal(2, replayState.StateOf(state.Id).MomentumLevel);
 	}
 
 	[Fact]
@@ -115,9 +94,29 @@ public sealed class ReplayIdentityTests
 			Cause: EHazardKind.RailgunBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 2,
-			HullDamage: 1,
-			MomentumLoss: 0);
+			HullDamage: 1);
 
 		Assert.Equal(3, impact.TotalDamage);
+	}
+
+	[Fact]
+	public void ApplyMoveUsesQueuedBodyRelativeDirection()
+	{
+		var state = State.FromSpawn(
+			new Instance
+			{
+				Id = "fighter-a",
+				Type = EType.Fighter,
+				Alliance = Alliance.Player,
+			},
+			new Coord(2, 3, 4));
+		var replayState = new ReplayState(new Dictionary<string, State>
+		{
+			[state.Id] = state,
+		});
+
+		replayState.ApplyMove(new MoveStepAction(state.Id, ESpatialOrientation.Port));
+
+		Assert.Equal(new Coord(1, 3, 4), replayState.StateOf(state.Id).Position);
 	}
 }

@@ -9,18 +9,6 @@ public sealed class MovePreviewSearchTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void PreviewIsIndependentOfLegacyMomentum()
-	{
-		var origin = new Coord(8, 8, 8);
-		var withoutMomentum = Discover(origin, momentum: 0);
-		var withMomentum = Discover(origin, momentum: 2);
-
-		Assert.Equal(
-			withoutMomentum.Select(Key).OrderBy(key => key),
-			withMomentum.Select(Key).OrderBy(key => key));
-	}
-
-	[Fact]
 	public void DiscoverExtensionsRetainsOneRoutePerEndPose()
 	{
 		var paths = Discover(new Coord(5, 5, 5));
@@ -52,27 +40,27 @@ public sealed class MovePreviewSearchTests
 	}
 
 	[Fact]
-	public void CachedTreeServesMovementBranchesAndUndoWithoutAnotherSearch()
+	public void CacheRebuildsWhenMovementQueueChanges()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
-		var initial = cache.GetPaths(sim, PlayerId, sim.Actions);
-		var move = initial.First(path => path.Steps.Count == 2);
+		var initial = cache.GetPaths(sim, PlayerId);
+		var move = initial.First(path => path.ExtensionApCost == 2);
 
 		Assert.Equal(1, cache.BuildCount);
 		Assert.True(sim.TryEnqueue(move.Steps.Cast<IAction>().ToArray()));
 
-		var extensions = cache.GetPaths(sim, PlayerId, sim.Actions);
-		Assert.Equal(1, cache.BuildCount);
+		var extensions = cache.GetPaths(sim, PlayerId);
+		Assert.Equal(2, cache.BuildCount);
 		Assert.NotEmpty(extensions);
 
 		sim.Dequeue(0);
-		var afterUndo = cache.GetPaths(sim, PlayerId, sim.Actions);
+		var afterUndo = cache.GetPaths(sim, PlayerId);
 
-		Assert.Equal(1, cache.BuildCount);
-		Assert.Same(initial, afterUndo);
+		Assert.Equal(3, cache.BuildCount);
+		Assert.Equal(initial.Select(PathKey), afterUndo.Select(PathKey));
 	}
 
 	[Fact]
@@ -82,33 +70,33 @@ public sealed class MovePreviewSearchTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
-		var move = cache.GetPaths(sim, PlayerId, sim.Actions)
-			.First(path => path.Steps.Count == 1);
+		var move = cache.GetPaths(sim, PlayerId)
+			.First(path => path.ExtensionApCost == 1);
 		Assert.True(sim.TryEnqueue(move.Steps.Cast<IAction>().ToArray()));
 
-		var cached = cache.GetPaths(sim, PlayerId, sim.Actions);
+		var cached = cache.GetPaths(sim, PlayerId);
 		var fresh = MovePathEndpoints.DiscoverExtensions(sim, PlayerId);
 
 		Assert.Equal(fresh.Select(PathKey), cached.Select(PathKey));
 	}
 
 	[Fact]
-	public void QueuedMovementActionsLocateTheSameTreeBranchAcrossWeapons()
+	public void CacheRebuildsWhenNonMovementQueueChanges()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
-		var firstMove = cache.GetPaths(sim, PlayerId, sim.Actions)
-			.First(path => path.Steps.Count == 1);
+		var firstMove = cache.GetPaths(sim, PlayerId)
+			.First(path => path.ExtensionApCost == 1);
 		Assert.True(sim.TryEnqueue(firstMove.Steps.Cast<IAction>().ToArray()));
-		var afterMove = cache.GetPaths(sim, PlayerId, sim.Actions);
+		var afterMove = cache.GetPaths(sim, PlayerId);
 
 		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.RailgunAction(PlayerId)));
-		var afterWeapon = cache.GetPaths(sim, PlayerId, sim.Actions);
+		var afterWeapon = cache.GetPaths(sim, PlayerId);
 
-		Assert.Same(afterMove, afterWeapon);
-		Assert.Equal(1, cache.BuildCount);
+		Assert.Equal(afterMove.Select(PathKey), afterWeapon.Select(PathKey));
+		Assert.Equal(3, cache.BuildCount);
 	}
 
 	[Fact]
@@ -118,11 +106,11 @@ public sealed class MovePreviewSearchTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
-		var branch = cache.GetPaths(sim, PlayerId, sim.Actions)
-			.First(path => path.Steps.Count == 2);
+		var branch = cache.GetPaths(sim, PlayerId)
+			.First(path => path.ExtensionApCost == 2);
 		Assert.True(sim.TryEnqueue(branch.Steps.Cast<IAction>().ToArray()));
 
-		foreach (var extension in cache.GetPaths(sim, PlayerId, sim.Actions))
+		foreach (var extension in cache.GetPaths(sim, PlayerId))
 		{
 			var trial = sim.Fork();
 			Assert.True(
@@ -132,16 +120,17 @@ public sealed class MovePreviewSearchTests
 	}
 
 	[Fact]
-	public void NonMovementActionsDoNotRebuildMovementTree()
+	public void RepeatedRequestForSameStateUsesCachedPaths()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
-		_ = cache.GetPaths(sim, PlayerId, sim.Actions);
+		var first = cache.GetPaths(sim, PlayerId);
 
-		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.RailgunAction(PlayerId)));
-		Assert.NotEmpty(cache.GetPaths(sim, PlayerId, sim.Actions));
+		var second = cache.GetPaths(sim, PlayerId);
+
+		Assert.Same(first, second);
 		Assert.Equal(1, cache.BuildCount);
 	}
 
@@ -151,10 +140,10 @@ public sealed class MovePreviewSearchTests
 	private static string PathKey(MovePathSession path) =>
 		$"{Key(path)}|{string.Join(',', path.Steps)}";
 
-	private static IReadOnlyList<MovePathSession> Discover(Coord origin, int momentum = 0)
+	private static IReadOnlyList<MovePathSession> Discover(Coord origin)
 	{
 		var battle = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(origin, momentum: momentum),
+			BattleTestFixture.Player(origin),
 			BattleTestFixture.Enemy(new Coord(0, 0, 0)),
 			BattleTestFixture.Grid(20));
 		return MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, PlayerId);

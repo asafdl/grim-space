@@ -107,7 +107,6 @@ public static class EngagementBattleFactory
 					Alliance = alliance,
 				},
 				Position = position,
-				InitialMomentum = alliance == Alliance.Player ? 0 : rng.Next(0, 3),
 				Fore = AxisToward(position, target),
 				Dorsal = Coord.Up,
 				ExecutionAgent = alliance == Alliance.Player

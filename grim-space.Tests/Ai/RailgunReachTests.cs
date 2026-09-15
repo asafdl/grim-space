@@ -45,9 +45,8 @@ public sealed class RailgunReachTests
 	}
 
 	[Fact]
-	public void OptimisticMoveBubble_IncludesMaxFreeForwardSteps()
+	public void OptimisticMoveBubble_EqualsAvailableActionPoints()
 	{
-		var free = MomentumConfig.ForLevel(MomentumConfig.MaxLevel).FreeForwardSteps;
 		Assert.Equal(4, OffensiveReach.OptimisticMoveBubble(4));
 	}
 
@@ -112,7 +111,6 @@ public sealed class RailgunReachTests
 			},
 			position,
 			new AiController(),
-			0,
 			new Coord(1, 0, 0),
 			Coord.Up);
 }

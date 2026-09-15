@@ -1,5 +1,10 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Math.Grid;
@@ -19,7 +24,7 @@ public sealed class ActionSearchBehaviorTests
 		foreach (var frame in ActionSearch.Run(
 			battle.PlayerAgent.Sim,
 			PlayerId,
-			[MoveDef.Instance],
+			Capabilities.Movement,
 			BattleSearchVisit.ForCapabilities))
 		{
 			depths.Add(frame.Depth);
@@ -42,7 +47,7 @@ public sealed class ActionSearchBehaviorTests
 		foreach (var frame in ActionSearch.Run(
 			battle.PlayerAgent.Sim,
 			PlayerId,
-			[MoveDef.Instance],
+			Capabilities.Movement,
 			BattleSearchVisit.ForCapabilities))
 		{
 			if (frame.Depth == 1 && prunedFirstAction is null)
@@ -75,7 +80,7 @@ public sealed class ActionSearchBehaviorTests
 		foreach (var _ in ActionSearch.Run(
 			battle.PlayerAgent.Sim,
 			PlayerId,
-			[MoveDef.Instance],
+			Capabilities.Movement,
 			BattleSearchVisit.ForCapabilities))
 		{
 			count++;
@@ -93,10 +98,208 @@ public sealed class ActionSearchBehaviorTests
 		var maxDepth = ActionSearch.Run(
 			battle.PlayerAgent.Sim,
 			PlayerId,
-			[MoveDef.Instance],
+			Capabilities.Movement,
 			BattleSearchVisit.ForCapabilities).Max(frame => frame.Depth);
 
 		Assert.True(maxDepth > 1);
+	}
+
+	[Fact]
+	public void PrioritizedSearchYieldsEveryMovementBranchBeforeRemainingBranches()
+	{
+		var battle = OneApBattle();
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
+		[
+			..Capabilities.Movement,
+			RailgunDef.Instance,
+		];
+
+		var frames = ActionSearch.Run(
+			battle.PlayerAgent.Sim,
+			PlayerId,
+			allDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(
+				BattleSearchVisit.ForCapabilities,
+				IsMovementBranch)).ToList();
+		var firstRemaining = frames.FindIndex(frame => frame.Phase == SearchFramePhase.Remaining);
+
+		Assert.True(firstRemaining > 0);
+		Assert.All(frames.Take(firstRemaining), frame =>
+		{
+			Assert.Equal(SearchFramePhase.Priority, frame.Phase);
+			Assert.All(frame.Actions, action =>
+				Assert.True(action is MoveStepAction or HeadingTurnAction or RollAction));
+		});
+		Assert.All(frames.Skip(firstRemaining), frame =>
+		{
+			Assert.Equal(SearchFramePhase.Remaining, frame.Phase);
+			Assert.Contains(frame.Actions, action => action is RailgunAction);
+		});
+	}
+
+	[Fact]
+	public void PrioritizedSearchPreservesTheFullSearchFrameSet()
+	{
+		var battle = OneApBattle();
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
+		[
+			..Capabilities.Movement,
+			RailgunDef.Instance,
+		];
+		var expected = ActionSearch.Run(
+				battle.PlayerAgent.Sim,
+				PlayerId,
+				allDefs,
+				BattleSearchVisit.ForCapabilities)
+			.Select(FrameKey)
+			.ToHashSet();
+
+		var actual = ActionSearch.Run(
+				battle.PlayerAgent.Sim,
+				PlayerId,
+				allDefs,
+				new SearchInput<BattleWorld, ActorRuntime>(
+					BattleSearchVisit.ForCapabilities,
+					IsMovementBranch))
+			.Select(FrameKey)
+			.ToHashSet();
+
+		Assert.Equal(expected, actual);
+	}
+
+	[Fact]
+	public void PriorityPhaseDefersRemainingBranchesUntilMovementIsExhausted()
+	{
+		var battle = OneApBattle();
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
+		[
+			..Capabilities.Movement,
+			RailgunDef.Instance,
+		];
+		var priorityCount = ActionSearch.Run(
+			battle.PlayerAgent.Sim,
+			PlayerId,
+			Capabilities.Movement,
+			BattleSearchVisit.ForCapabilities).Count();
+		using var frames = ActionSearch.Run(
+				battle.PlayerAgent.Sim,
+				PlayerId,
+				allDefs,
+				new SearchInput<BattleWorld, ActorRuntime>(
+					BattleSearchVisit.ForCapabilities,
+					IsMovementBranch)).GetEnumerator();
+
+		for (var i = 0; i < priorityCount; i++)
+		{
+			Assert.True(frames.MoveNext());
+			Assert.Equal(SearchFramePhase.Priority, frames.Current.Phase);
+		}
+
+		Assert.True(frames.MoveNext());
+		Assert.Equal(SearchFramePhase.Remaining, frames.Current.Phase);
+	}
+
+	[Fact]
+	public void PruningPriorityRootStopsRemainingPhase()
+	{
+		var battle = OneApBattle();
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
+		[
+			..Capabilities.Movement,
+			RailgunDef.Instance,
+		];
+		var frames = new List<SearchFrame<BattleWorld, ActorRuntime>>();
+
+		foreach (var frame in ActionSearch.Run(
+			battle.PlayerAgent.Sim,
+			PlayerId,
+			allDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(
+				BattleSearchVisit.ForCapabilities,
+				IsMovementBranch)))
+		{
+			frames.Add(frame);
+			frame.PruneChildren = true;
+		}
+
+		var root = Assert.Single(frames);
+		Assert.Equal(SearchFramePhase.Priority, root.Phase);
+		Assert.Equal(0, root.Depth);
+	}
+
+	[Fact]
+	public void PrioritizedSearchDoesNotRetraverseMovementBranches()
+	{
+		var normalMove = new CountingActionDef(MoveDef.Instance);
+		var prioritizedMove = new CountingActionDef(MoveDef.Instance);
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> normalDefs =
+		[
+			normalMove,
+			HeadingDef.Instance,
+			RollDef.Instance,
+			RailgunDef.Instance,
+		];
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> prioritizedDefs =
+		[
+			prioritizedMove,
+			HeadingDef.Instance,
+			RollDef.Instance,
+			RailgunDef.Instance,
+		];
+
+		_ = ActionSearch.Run(
+			OneApBattle().PlayerAgent.Sim,
+			PlayerId,
+			normalDefs,
+			BattleSearchVisit.ForCapabilities).Count();
+		_ = ActionSearch.Run(
+			OneApBattle().PlayerAgent.Sim,
+			PlayerId,
+			prioritizedDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(
+				BattleSearchVisit.ForCapabilities,
+				IsMovementBranch)).Count();
+
+		Assert.Equal(normalMove.DiscoverCalls, prioritizedMove.DiscoverCalls);
+	}
+
+	private static BattleOrchestrator OneApBattle()
+	{
+		var origin = new Coord(5, 5, 5);
+		return BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin, actionPoints: 1),
+			BattleTestFixture.Enemy(origin + Coord.Forward * 6));
+	}
+
+	private static string FrameKey(SearchFrame<BattleWorld, ActorRuntime> frame) =>
+		string.Join('|', frame.Actions);
+
+	private static bool IsMovementBranch(IReadOnlyList<IAction> actions) =>
+		actions.All(action => action is MoveStepAction or HeadingTurnAction or RollAction);
+
+	private sealed class CountingActionDef(
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> inner)
+		: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	{
+		public int DiscoverCalls { get; private set; }
+
+		public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
+		{
+			DiscoverCalls++;
+			return inner.Discover(world, runtime, actorId);
+		}
+
+		public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
+			inner.IsPossible(action, world, runtime);
+
+		public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
+			inner.IsLegal(action, world, runtime);
+
+		public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
+			IAction action,
+			BattleWorld world,
+			ActorRuntime runtime) =>
+			inner.Resolve(action, world, runtime);
 	}
 }
 

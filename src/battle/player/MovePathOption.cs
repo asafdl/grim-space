@@ -1,11 +1,11 @@
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Player;
 
 public sealed record MovePathOption(
-	IReadOnlyList<MoveStepAction> Steps,
+	IReadOnlyList<IAction> Steps,
 	IReadOnlyList<MoveCheckpoint> Checkpoints,
 	Coord EndPosition,
 	GridBasis EndBasis,

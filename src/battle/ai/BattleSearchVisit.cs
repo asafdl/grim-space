@@ -10,8 +10,7 @@ internal readonly record struct CapabilitySearchState(
 	Coord Fore,
 	Coord Dorsal,
 	Coord Starboard,
-	int MomentumLevel,
-	bool SpinDiscount,
+	ManeuverProgress ManeuverProgress,
 	int ActionPoints,
 	int FlakRemaining,
 	int RailgunRemaining);
@@ -21,8 +20,8 @@ internal readonly record struct MoveSearchState(
 	Coord Fore,
 	Coord Dorsal,
 	Coord Starboard,
-	int MomentumLevel,
-	int ActionPoints);
+	int ActionPoints,
+	ManeuverProgress ManeuverProgress);
 
 internal readonly record struct MovePreviewSearchState(
 	Coord Position,
@@ -35,22 +34,21 @@ internal readonly record struct MovePreviewSearchState(
 	int PortShield,
 	int StarboardShield,
 	int DorsalShield,
-	int VentralShield);
+	int VentralShield,
+	ManeuverProgress ManeuverProgress);
 
 internal static class BattleSearchVisit
 {
 	public static SearchVisitState ForCapabilities(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
-		var runtime = sim.RuntimeFor(actorId);
 		return new SearchVisitState(
 			new CapabilitySearchState(
 				actor.Position,
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				actor.MomentumLevel,
-				runtime.SpinDiscount,
+				ManeuverInvariant.ProgressOf(sim.Actions, actorId),
 				actor.ActionPoints,
 				actor.FlakRemaining,
 				actor.RailgunRemaining),
@@ -66,15 +64,16 @@ internal static class BattleSearchVisit
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				actor.MomentumLevel,
-				actor.ActionPoints),
+				actor.ActionPoints,
+				ManeuverInvariant.ProgressOf(sim.Actions, actorId)),
 			[]);
 	}
 
 	public static SearchVisitState ForMovePreview(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
-		var moves = sim.Actions.OfType<MoveStepAction>().Where(action => action.ActorId == actorId).ToList();
+		var headings = sim.Actions.Count(action => action is HeadingTurnAction && action.ActorId == actorId);
+		var rolls = sim.Actions.Count(action => action is RollAction && action.ActorId == actorId);
 		return new SearchVisitState(
 			new MovePreviewSearchState(
 				actor.Position,
@@ -87,11 +86,13 @@ internal static class BattleSearchVisit
 				actor.ShieldPoints[ESpatialOrientation.Port],
 				actor.ShieldPoints[ESpatialOrientation.Starboard],
 				actor.ShieldPoints[ESpatialOrientation.Dorsal],
-				actor.ShieldPoints[ESpatialOrientation.Ventral]),
+				actor.ShieldPoints[ESpatialOrientation.Ventral],
+				ManeuverInvariant.ProgressOf(sim.Actions, actorId)),
 			[
 				actor.ActionPoints,
-				-moves.Count(action => action.Heading is not null),
-				-moves.Count(action => action.Roll is not null),
+				-headings,
+				-rolls,
 			]);
 	}
+
 }

@@ -18,9 +18,8 @@ public sealed class SimulationSessionTests
 	public void PlanningMoveUpdatesPreviewButNotLiveState()
 	{
 		var origin = new Coord(5, 5, 5);
-		var startMomentum = 0;
 		var stepCount = 3;
-		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
+		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };
@@ -29,14 +28,10 @@ public sealed class SimulationSessionTests
 		EnqueueForwardMove(battle, steps: stepCount);
 
 		var preview = Preview.Simulate(battle);
-		var expectedApCost = MovementExpectations.TotalApForPureForwardPath(startMomentum, stepCount);
-
 		Assert.Equal(origin, player.State.Position);
-		Assert.Equal(startMomentum, player.State.MomentumLevel);
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, preview.Position);
-		Assert.Equal(startMomentum, preview.MomentumLevel);
 		Assert.Equal(MovementExpectations.FighterApPerTurn - stepCount, preview.ActionPoints);
 	}
 
@@ -44,8 +39,7 @@ public sealed class SimulationSessionTests
 	public void PreviewReflectsQueuedMoveAndUpdatesAfterUndoAndReplace()
 	{
 		var origin = new Coord(5, 5, 5);
-		var startMomentum = 0;
-		var player = BattleTestFixture.Player(origin, momentum: startMomentum);
+		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var grid = BattleTestFixture.Grid();
 		var blocked = new HashSet<Coord> { enemy.State.Position };

@@ -16,7 +16,6 @@ public sealed class PresentationFrame
 	public bool IsInspecting { get; init; }
 	public bool ShowMovePreview { get; init; }
 	public required IReadOnlyList<MovePathOption> MovePaths { get; init; }
-	public int MovePathApBaseline { get; init; }
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }

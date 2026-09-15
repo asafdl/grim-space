@@ -73,8 +73,7 @@ public sealed class DetonateDef
 			new ResolveHazardEffect(
 				EHazardKind.TorpedoBlast,
 				cells,
-				TorpedoConfig.BlastDamage,
-				momentumLoss: 0),
+				TorpedoConfig.BlastDamage),
 		];
 	}
 

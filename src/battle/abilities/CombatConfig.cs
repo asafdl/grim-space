@@ -11,18 +11,12 @@ public static class CombatConfig
 	// Max manhattan from firer to a flak cell (side arc at max range).
 	public const int MaxFlakManhattanRange = FlakRange * 3 + 1;
 	public const int FlakDamage = 1;
-	public const int FlakMomentumLoss = 0;
 
 	public const int RailgunDamage = 3;
 	public const int RailgunLineLength = 8;
 	public const int RailgunPyramidRange = 2;
 	// Max manhattan from firer to a railgun cell (fore + lateral at pyramid tip).
 	public const int MaxRailgunManhattanRange = RailgunLineLength + 2 * RailgunPyramidRange;
-	public const int RailgunMomentumLoss = 0;
-
-	public const int RollApCost = 1;
-	public const int HeadingTurn90ApCost = 1;
-	public const int HeadingTurn180ApCost = 2;
 
 	public const int PatrolCooldownTurns = 2;
 	public const int MaxLivingPatrolChildren = 5;

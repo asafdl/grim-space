@@ -16,7 +16,6 @@ public sealed class State
 	public int ActionPoints { get; set; }
 	public int HullPoints { get; set; }
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
-	public int MomentumLevel { get; set; }
 	public int FlakRemaining { get; set; }
 	public int RailgunRemaining { get; set; }
 	public int FuelRemaining { get; set; }
@@ -40,7 +39,6 @@ public sealed class State
 			ActionPoints = ActionPoints,
 			HullPoints = HullPoints,
 			ShieldPoints = ShieldPoints.Clone(),
-			MomentumLevel = MomentumLevel,
 			FlakRemaining = FlakRemaining,
 			RailgunRemaining = RailgunRemaining,
 			FuelRemaining = FuelRemaining,
@@ -73,7 +71,6 @@ public sealed class State
 			ActionPoints = stats.MaxAp,
 			HullPoints = stats.MaxHullPoints,
 			ShieldPoints = stats.MaxShieldPoints.Clone(),
-			MomentumLevel = 0,
 			FlakRemaining = stats.FlaksPerTurn,
 			RailgunRemaining = stats.RailgunsPerTurn,
 			FuelRemaining = 0,

@@ -140,10 +140,6 @@ public partial class TurnReplayPlayer : Node3D
 					if (PlayImpact(impact))
 						return;
 					break;
-				case Record<MomentumChangedFacts> { Value: var momentum }:
-					BeginPhase(ReplayActorPhase.Classify(momentum.ActorId, _participants));
-					ApplyMomentum(momentum);
-					break;
 			}
 		}
 
@@ -181,7 +177,6 @@ public partial class TurnReplayPlayer : Node3D
 		spawned.Starboard = Coord.Cross(dorsal, fore);
 		spawned.ParentId = spawn.SourceId;
 		spawned.FuelRemaining = TorpedoConfig.Fuel;
-		spawned.MomentumLevel = 0;
 		spawned.HullPoints = spawned.Stats.MaxHullPoints;
 		spawned.ActionPoints = spawned.Stats.MaxAp;
 
@@ -205,7 +200,6 @@ public partial class TurnReplayPlayer : Node3D
 		spawned.Dorsal = dorsal;
 		spawned.Starboard = Coord.Cross(dorsal, fore);
 		spawned.ParentId = spawn.SourceId;
-		spawned.MomentumLevel = 0;
 		spawned.HullPoints = spawned.Stats.MaxHullPoints;
 		spawned.ActionPoints = spawned.Stats.MaxAp;
 		spawned.ShieldPoints = spawned.Stats.MaxShieldPoints.Clone();
@@ -257,14 +251,6 @@ public partial class TurnReplayPlayer : Node3D
 			PlayNext();
 		};
 		return true;
-	}
-
-	private void ApplyMomentum(MomentumChangedFacts momentum)
-	{
-		_clipContext.ReplayState.ApplyMomentum(momentum);
-		var state = _clipContext.ReplayState.StateOf(momentum.ActorId);
-		_clipContext.UnitViews[momentum.ActorId].Sync(state);
-		_stateChanged(state);
 	}
 
 	private void BeginPhase(EReplayPlaybackPhase phase)

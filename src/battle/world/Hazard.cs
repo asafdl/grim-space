@@ -11,48 +11,7 @@ public sealed class Hazard : NonUnit
 	public required Coord Center { get; init; }
 	public required bool Passable { get; init; }
 	public required int Damage { get; init; }
-	public required int MomentumLoss { get; init; }
 	public required EHazardKind Kind { get; init; }
-
-	public static Hazard MissileZone(
-		string id,
-		string actorId,
-		Coord center,
-		BodyFrame ownerFrame,
-		BoundedGrid grid,
-		int radius,
-		int damage,
-		int momentumLoss) =>
-		new()
-		{
-			Id = id,
-			ActorId = actorId,
-			Center = center,
-			Frame = ownerFrame with { Origin = center },
-			Cells = new HashSet<Coord>(grid.EnumerateCube(center, radius)),
-			Passable = true,
-			Damage = damage,
-			MomentumLoss = momentumLoss,
-			Kind = EHazardKind.MissileZone,
-		};
-
-	public static Hazard FlakBurst(
-		string id,
-		string actorId,
-		BodyFrame ownerFrame,
-		IEnumerable<Coord> cells) =>
-		new()
-		{
-			Id = id,
-			ActorId = actorId,
-			Center = ownerFrame.Origin,
-			Frame = ownerFrame,
-			Cells = new HashSet<Coord>(cells),
-			Passable = true,
-			Damage = CombatConfig.FlakDamage,
-			MomentumLoss = CombatConfig.FlakMomentumLoss,
-			Kind = EHazardKind.FlakBurst,
-		};
 
 	public static Hazard Asteroid(
 		string id,
@@ -79,7 +38,6 @@ public sealed class Hazard : NonUnit
 			Cells = occupied,
 			Passable = false,
 			Damage = 0,
-			MomentumLoss = 0,
 			Kind = EHazardKind.Asteroid,
 		};
 	}
@@ -124,7 +82,6 @@ public sealed class Hazard : NonUnit
 			Cells = new HashSet<Coord>(Cells),
 			Passable = Passable,
 			Damage = Damage,
-			MomentumLoss = MomentumLoss,
 			Kind = Kind,
 		};
 }

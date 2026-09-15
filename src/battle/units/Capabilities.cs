@@ -13,9 +13,11 @@ public static class Capabilities
 	private const string PreviewPatrolId = "__preview_patrol__";
 	private const string PreviewTorpedoId = "__preview_torpedo__";
 
-	private static readonly IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] Movement =
+	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> Movement { get; } =
 	[
 		MoveDef.Instance,
+		HeadingDef.Instance,
+		RollDef.Instance,
 	];
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(

@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
@@ -14,15 +13,13 @@ public static class Factory
 	public static Unit Create(
 		Instance instance,
 		Coord position,
-		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
-		int initialMomentum = 0) =>
-		Create(instance, position, executionAgent, initialMomentum, Coord.Forward, Coord.Up);
+		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent) =>
+		Create(instance, position, executionAgent, Coord.Forward, Coord.Up);
 
 	public static Unit Create(
 		Instance instance,
 		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
-		int initialMomentum,
 		Coord fore,
 		Coord dorsal,
 		string parentId = BattleActorIds.Rules)
@@ -34,7 +31,6 @@ public static class Factory
 			Type = instance.Type,
 			Alliance = instance.Alliance,
 		}, position, fore, dorsal, parentId);
-		state.MomentumLevel = System.Math.Clamp(initialMomentum, 0, MomentumConfig.MaxLevel);
 		return new Unit(instance.Alliance, state, executionAgent);
 	}
 

@@ -25,7 +25,7 @@ public sealed class BattlePhaseTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
@@ -39,7 +39,7 @@ public sealed class BattlePhaseTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var replayTcs = new TaskCompletionSource<(TurnReplay Replay, int CompletedTurn)>();
@@ -72,7 +72,7 @@ public sealed class BattlePhaseTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		battle.EndTurn();
@@ -85,7 +85,7 @@ public sealed class BattlePhaseTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		var replayTcs = new TaskCompletionSource<TurnReplay>();
@@ -106,7 +106,7 @@ public sealed class BattlePhaseTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 3);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		PresentationFrame? resolvingFrame = null;
@@ -128,7 +128,7 @@ public sealed class BattlePhaseTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var frames = BattleTestFixture.FrameBuilder(battle);
 
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 
 		frames.Interaction.FocusUnit(BattleTestFixture.FirstEnemyId(battle));
@@ -145,7 +145,7 @@ public sealed class BattlePhaseTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var frames = BattleTestFixture.FrameBuilder(battle);
 
-		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1, startMomentum: 0);
+		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, option));
 		var queuedCount = battle.PlayerAgent.Sim.Actions.Count;
 

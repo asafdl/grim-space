@@ -40,7 +40,12 @@ public static class OrientationStreamline
 	{
 		var prefix = CommonPrefixLength(before, after);
 		sim.Dequeue(prefix);
-		return sim.TryEnqueue(keepRecords: true, actions: [..after.Skip(prefix)]);
+		if (sim.TryEnqueue(keepRecords: true, actions: [..after.Skip(prefix)])
+			&& sim.InvariantStatus != InvariantStatus.Impossible)
+			return true;
+
+		sim.Dequeue(prefix);
+		return false;
 	}
 
 	private static int CommonPrefixLength(IReadOnlyList<IAction> left, IReadOnlyList<IAction> right)

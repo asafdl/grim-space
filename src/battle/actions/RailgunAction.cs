@@ -67,8 +67,7 @@ public sealed class RailgunDef
 			new ResolveHazardEffect(
 				EHazardKind.RailgunBurst,
 				cells,
-				CombatConfig.RailgunDamage,
-				CombatConfig.RailgunMomentumLoss),
+				CombatConfig.RailgunDamage),
 			new RailgunChangeEffect(-1),
 		];
 	}

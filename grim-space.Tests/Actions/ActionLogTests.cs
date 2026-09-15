@@ -29,8 +29,10 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("patrol-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
-			new MoveStepAction("patrol-a", Roll: GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new HeadingTurnAction("patrol-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new MoveStepAction("patrol-a"),
+			new RollAction("patrol-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new MoveStepAction("patrol-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
@@ -50,8 +52,7 @@ public sealed class ActionLogTests
 				Cause: EHazardKind.RailgunBurst,
 				Face: ESpatialOrientation.Dorsal,
 				ShieldDamage: 2,
-				HullDamage: 1,
-				MomentumLoss: 0)),
+				HullDamage: 1)),
 		];
 
 		var lines = ActionLog.Format(history, id => id switch
@@ -115,8 +116,10 @@ public sealed class ActionLogTests
 		ITimelineEntry[] history =
 		[
 			new MoveStepAction("fighter-a"),
-			new MoveStepAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
-			new MoveStepAction("fighter-a", Roll: GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new HeadingTurnAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new MoveStepAction("fighter-a"),
+			new RollAction("fighter-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new MoveStepAction("fighter-a"),
 			new MoveStepAction("fighter-a"),
 		];
 
@@ -135,11 +138,10 @@ public sealed class ActionLogTests
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "hazard",
 				TargetId: "fighter-a",
-				Cause: EHazardKind.MissileZone,
+				Cause: EHazardKind.FlakBurst,
 				Face: ESpatialOrientation.Forward,
 				ShieldDamage: 1,
-				HullDamage: 0,
-				MomentumLoss: 0)),
+				HullDamage: 0)),
 			new MoveStepAction("fighter-a"),
 		];
 
@@ -148,7 +150,7 @@ public sealed class ActionLogTests
 		AssertEntries(
 			lines,
 			"Move · 2 steps|fighter-a",
-			"Impact · missile zone|hazard → fighter-a|forward · 1 shield",
+			"Impact · flak burst|hazard → fighter-a|forward · 1 shield",
 			"Move · 1 step|fighter-a");
 	}
 

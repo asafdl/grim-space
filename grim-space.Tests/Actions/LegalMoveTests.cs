@@ -33,14 +33,15 @@ public sealed class LegalMoveTests
 		Assert.True(battle.PlayerAgent.TryEnqueue([new RailgunAction(battle.PlayerId)]));
 
 		var second = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
-			.First(option => option.Steps.Count == 1);
+			.First(option => option.ExtensionApCost == 1);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, second));
 
-		Assert.Collection(
-			battle.PlayerAgent.Sim.Actions,
-			action => Assert.IsType<MoveStepAction>(action),
-			action => Assert.IsType<RailgunAction>(action),
-			action => Assert.IsType<MoveStepAction>(action));
+		Assert.IsType<MoveStepAction>(battle.PlayerAgent.Sim.Actions[0]);
+		Assert.IsType<RailgunAction>(battle.PlayerAgent.Sim.Actions[1]);
+		Assert.All(
+			battle.PlayerAgent.Sim.Actions.Skip(2),
+			action => Assert.True(action is HeadingTurnAction or RollAction or MoveStepAction));
+		Assert.IsType<MoveStepAction>(battle.PlayerAgent.Sim.Actions[^1]);
 	}
 
 	[Fact]
@@ -50,8 +51,10 @@ public sealed class LegalMoveTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		IAction[] segment =
 		[
-			new MoveStepAction(battle.PlayerId, EHeadingTurn.YawRight),
-			new MoveStepAction(battle.PlayerId, Roll: ERollDirection.Clockwise),
+			new HeadingTurnAction(battle.PlayerId, EHeadingTurn.YawRight),
+			new MoveStepAction(battle.PlayerId),
+			new RollAction(battle.PlayerId, ERollDirection.Clockwise),
+			new MoveStepAction(battle.PlayerId),
 		];
 		Assert.True(battle.PlayerAgent.TryEnqueue(segment));
 
@@ -62,5 +65,43 @@ public sealed class LegalMoveTests
 		Assert.Equal(Coord.Forward, state.Fore);
 		Assert.Equal(Coord.Up, state.Dorsal);
 		Assert.Equal(4, state.ActionPoints);
+	}
+
+	[Theory]
+	[InlineData(ESpatialOrientation.Port, -1, 0, 0)]
+	[InlineData(ESpatialOrientation.Starboard, 1, 0, 0)]
+	[InlineData(ESpatialOrientation.Retro, 0, 0, -1)]
+	[InlineData(ESpatialOrientation.Dorsal, 0, 1, 0)]
+	[InlineData(ESpatialOrientation.Ventral, 0, -1, 0)]
+	public void DirectionalStepTranslatesWithoutChangingOrientation(
+		ESpatialOrientation direction,
+		int x,
+		int y,
+		int z)
+	{
+		var origin = new Coord(5, 5, 5);
+		var session = BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim;
+
+		Assert.True(session.TryEnqueue(new MoveStepAction("player", direction)));
+
+		var state = session.StateOf<ActorState>("player");
+		Assert.Equal(origin + new Coord(x, y, z), state.Position);
+		Assert.Equal(Coord.Forward, state.Fore);
+		Assert.Equal(Coord.Up, state.Dorsal);
+	}
+
+	[Fact]
+	public void DirectionalStepsUseFlatMovementCost()
+	{
+		var origin = new Coord(5, 5, 5);
+		var session = BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim;
+
+		Assert.True(session.TryEnqueue(
+			new MoveStepAction("player", ESpatialOrientation.Starboard)));
+		Assert.Equal(3, session.StateOf<ActorState>("player").ActionPoints);
+
+		Assert.True(session.TryEnqueue(
+			new MoveStepAction("player", ESpatialOrientation.Retro)));
+		Assert.Equal(2, session.StateOf<ActorState>("player").ActionPoints);
 	}
 }

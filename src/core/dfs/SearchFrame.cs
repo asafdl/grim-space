@@ -11,22 +11,31 @@ public sealed class SearchFrame<TWorld, TRuntime>
 		TWorld world,
 		ActorRuntimes<TRuntime> runtimes,
 		IReadOnlyList<IAction> actions,
-		int depth)
+		int depth,
+		SearchFramePhase phase = SearchFramePhase.Remaining)
 	{
 		World = world;
 		Runtimes = runtimes;
 		Actions = actions;
 		Depth = depth;
+		Phase = phase;
 	}
 
 	public TWorld World { get; }
 	public ActorRuntimes<TRuntime> Runtimes { get; }
 	public IReadOnlyList<IAction> Actions { get; }
 	public int Depth { get; }
+	public SearchFramePhase Phase { get; }
 
 	/// <summary>
 	/// When set by the consumer after a yield, stops DFS expansion of this frame's children.
 	/// Does not un-yield this frame.
 	/// </summary>
 	public bool PruneChildren { get; set; }
+}
+
+public enum SearchFramePhase
+{
+	Priority,
+	Remaining,
 }

@@ -100,9 +100,6 @@ public sealed class SimulationUndoTests
 		Assert.Equal(
 			expected.StateOf<ActorState>(PlayerId).ActionPoints,
 			actual.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.Equal(
-			expected.StateOf<ActorState>(PlayerId).MomentumLevel,
-			actual.StateOf<ActorState>(PlayerId).MomentumLevel);
 		Assert.Equal(expected.InvariantStatus, actual.InvariantStatus);
 	}
 }

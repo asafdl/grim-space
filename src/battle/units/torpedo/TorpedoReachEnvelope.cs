@@ -80,7 +80,7 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 		for (var turn = 0; turn < fuel; turn++)
 		{
 			var positions = new HashSet<Coord>();
-			var nextFrontiers = new Dictionary<(Coord Position, int Momentum), (BattleWorld, ActorRuntimes<ActorRuntime>)>();
+			var nextFrontiers = new Dictionary<Coord, (BattleWorld, ActorRuntimes<ActorRuntime>)>();
 
 			foreach (var (world, runtimes) in frontiers)
 			{
@@ -104,8 +104,7 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 					ExecutionHelper.Apply(new EndOfPhaseAction(actorId), nextWorld, nextRuntimes.For(actorId));
 					ExecutionHelper.Apply(new RoundUpkeepAction(actorId), nextWorld, nextRuntimes.For(actorId));
 
-					var nextState = nextWorld.StateOf(actorId);
-					nextFrontiers[(nextState.Position, nextState.MomentumLevel)] = (nextWorld, nextRuntimes);
+					nextFrontiers[nextWorld.StateOf(actorId).Position] = (nextWorld, nextRuntimes);
 				}
 			}
 

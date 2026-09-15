@@ -96,7 +96,7 @@ public sealed class SimulationSearchTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var session = battle.PlayerAgent.Sim;
-		var heading = new MoveStepAction(
+		var heading = new HeadingTurnAction(
 			PlayerId,
 			GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight);
 
@@ -105,7 +105,11 @@ public sealed class SimulationSearchTests
 		var apBefore = session.StateOf<ActorState>(PlayerId).ActionPoints;
 
 		var foundExtension = false;
-		foreach (var frame in ActionSearch.Run(session, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
+		foreach (var frame in ActionSearch.Run(
+			session,
+			PlayerId,
+			Capabilities.Movement,
+			BattleSearchVisit.ForCapabilities))
 		{
 			if (frame.Actions.Count > actionsBefore.Count)
 			{

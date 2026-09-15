@@ -9,7 +9,7 @@ public partial class UnitView : Node3D
 {
 	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
 
-	private Label3D? _momentumLabel;
+	private Label3D? _statusLabel;
 	private MeshInstance3D? _hull;
 	private MeshInstance3D? _hitMark;
 	private EType _type;
@@ -37,7 +37,7 @@ public partial class UnitView : Node3D
 
 		BindShieldBubble(state);
 
-		_momentumLabel = new Label3D
+		_statusLabel = new Label3D
 		{
 			Position = new Vector3(0f, StatusLabelHeight(state.Type), 0f),
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -45,7 +45,7 @@ public partial class UnitView : Node3D
 			OutlineSize = 8,
 			Modulate = Colors.White,
 		};
-		AddChild(_momentumLabel);
+		AddChild(_statusLabel);
 
 		Sync(state);
 	}
@@ -63,8 +63,8 @@ public partial class UnitView : Node3D
 
 	public void SetGhost(bool selected)
 	{
-		if (_momentumLabel is not null)
-			_momentumLabel.Visible = false;
+		if (_statusLabel is not null)
+			_statusLabel.Visible = false;
 
 		foreach (var child in GetChildren())
 		{
@@ -514,16 +514,16 @@ public partial class UnitView : Node3D
 
 	private void ApplyStatus(State state)
 	{
-		if (_momentumLabel is null)
+		if (_statusLabel is null)
 			return;
 
 		var text = state.Type == EType.Torpedo
 			? $"H{state.HullPoints} F{state.FuelRemaining}"
 			: $"H{state.HullPoints}";
-		if (_momentumLabel.Text == text)
+		if (_statusLabel.Text == text)
 			return;
 
-		_momentumLabel.Text = text;
+		_statusLabel.Text = text;
 	}
 
 	private void ApplyOrientation(State state) =>

@@ -14,7 +14,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var option = builder.PreviewMoveOptions(battle, battle.PlayerAgent)
+		var option = BattleTestCommands.Frame(battle).MovePaths
 			.First(path => path.EndPosition == origin + Coord.Forward);
 
 		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
@@ -39,7 +39,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var option = builder.PreviewMoveOptions(battle, battle.PlayerAgent)
+		var option = BattleTestCommands.Frame(battle).MovePaths
 			.First(path => path.EndPosition == origin + Coord.Forward);
 		var unreachable = MovePose.For(-Coord.Forward, 0);
 
@@ -57,7 +57,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var options = BattleTestCommands.Frame(battle).MovePaths;
 		var hoveredIndex = options
 			.Select((option, index) => (option, index))
 			.First(pair => pair.option.EndPosition == origin + Coord.Forward)
@@ -79,7 +79,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var options = BattleTestCommands.Frame(battle).MovePaths;
 		var selected = options.First(option => option.EndPosition == origin + Coord.Forward);
 		var hoveredIndex = options
 			.Select((option, index) => (option, index))
@@ -101,7 +101,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var options = BattleTestCommands.Frame(battle).MovePaths;
 
 		builder.Interaction.SetMoveHover(0, options.Count);
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false);
@@ -115,7 +115,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var option = builder.PreviewMoveOptions(battle, battle.PlayerAgent)
+		var option = BattleTestCommands.Frame(battle).MovePaths
 			.First(path => path.EndPosition == origin + Coord.Forward);
 
 		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
@@ -131,7 +131,7 @@ public sealed class MoveUiTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		builder.IntroActive = true;
-		var options = builder.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var options = BattleTestCommands.Frame(battle).MovePaths;
 
 		builder.Interaction.SetMoveHover(0, options.Count);
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
@@ -145,7 +145,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var option = builder.PreviewMoveOptions(battle, battle.PlayerAgent)
+		var option = BattleTestCommands.Frame(battle).MovePaths
 			.First(path => path.EndPosition == origin + Coord.Forward);
 		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
 
@@ -206,8 +206,7 @@ public sealed class MoveUiTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var paths = BattleTestFixture.FrameBuilder(battle)
-			.PreviewMoveOptions(battle, battle.PlayerAgent);
+		var paths = BattleTestCommands.Frame(battle).MovePaths;
 		var selected = paths.First(path => path.EndPosition == origin + Coord.Forward * 2);
 
 		var (checkpoints, target) = MoveUi.GetPathHighlights(paths, hoveredIndex: 0, [], selected);

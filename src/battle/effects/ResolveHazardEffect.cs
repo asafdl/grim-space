@@ -9,8 +9,7 @@ namespace GrimSpace.Battle.Effects;
 public sealed class ResolveHazardEffect(
 	EHazardKind kind,
 	HashSet<Coord> cells,
-	int damage,
-	int momentumLoss) : IEffect<BattleWorld, ActorRuntime>
+	int damage) : IEffect<BattleWorld, ActorRuntime>
 {
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -30,7 +29,6 @@ public sealed class ResolveHazardEffect(
 			kind,
 			cells,
 			damage,
-			momentumLoss,
 			world.StateOf(actorId).Position,
 			actorId,
 			units.All.Select(unit => unit.State));

@@ -9,7 +9,7 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Battle.Presentation;
 
 /// <summary>
-/// Diagnostic logging for presentation input, phase transitions, and async jobs.
+/// Diagnostic logging for presentation input and phase transitions.
 /// </summary>
 internal static class PresentationDiagnostics
 {
@@ -53,7 +53,6 @@ internal static class PresentationDiagnostics
 		bool canAct,
 		bool weaponQueued,
 		Coord actorPos,
-		int pathApBaseline,
 		int queuedActionCount,
 		IReadOnlyList<MovePathOption> paths)
 	{
@@ -65,14 +64,14 @@ internal static class PresentationDiagnostics
 			weaponQueued,
 			paths.Count);
 		var fingerprint =
-			$"{turnNumber}|{source}|{mode}|{gate}|{pathApBaseline}|{queuedActionCount}|{paths.Count}";
+			$"{turnNumber}|{source}|{mode}|{gate}|{queuedActionCount}|{paths.Count}";
 		if (fingerprint == _lastMovePreviewFingerprint)
 			return;
 
 		_lastMovePreviewFingerprint = fingerprint;
 		GameLog.Log(
 			$"[presentation] move preview: turn={turnNumber} source={source} mode={mode} "
-			+ $"gate={gate} actor={actorPos} baselineAp={pathApBaseline} queued={queuedActionCount} "
+			+ $"gate={gate} actor={actorPos} queued={queuedActionCount} "
 			+ $"paths={paths.Count}");
 	}
 

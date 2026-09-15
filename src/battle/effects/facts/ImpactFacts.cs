@@ -9,8 +9,7 @@ public readonly record struct ImpactFacts(
 	EHazardKind Cause,
 	ESpatialOrientation Face,
 	int ShieldDamage,
-	int HullDamage,
-	int MomentumLoss)
+	int HullDamage)
 {
 	public int TotalDamage => ShieldDamage + HullDamage;
 }

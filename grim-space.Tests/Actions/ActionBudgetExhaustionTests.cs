@@ -26,7 +26,9 @@ public sealed class ActionBudgetExhaustionTests
 		var session = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5)).PlayerAgent.Sim;
 
 		Assert.True(session.TryEnqueue(
-			new MoveStepAction(PlayerId, EHeadingTurn.YawRight, ERollDirection.CounterClockwise)));
+			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight),
+			new RollAction(PlayerId, ERollDirection.CounterClockwise),
+			new MoveStepAction(PlayerId)));
 
 		Assert.Equal(3, session.StateOf<ActorState>(PlayerId).ActionPoints);
 	}

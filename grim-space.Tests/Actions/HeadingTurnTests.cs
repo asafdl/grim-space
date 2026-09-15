@@ -18,7 +18,9 @@ public sealed class HeadingTurnTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(PlayerId, heading)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			new HeadingTurnAction(PlayerId, heading),
+			new MoveStepAction(PlayerId)));
 
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(origin + new Coord(x, y, z), actor.Position);
@@ -32,7 +34,9 @@ public sealed class HeadingTurnTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			new MoveStepAction(PlayerId, EHeadingTurn.YawRight, ERollDirection.Clockwise)));
+			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight),
+			new RollAction(PlayerId, ERollDirection.Clockwise),
+			new MoveStepAction(PlayerId)));
 
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(new Coord(1, 0, 0), actor.Fore);

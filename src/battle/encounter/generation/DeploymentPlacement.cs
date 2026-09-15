@@ -17,9 +17,7 @@ public static class DeploymentPlacement
 		Instance playerInstance,
 		Instance enemyInstance,
 		int seed,
-		int gridSize,
-		int playerMomentum = 0,
-		int enemyMomentum = 2)
+		int gridSize)
 	{
 		ArgumentOutOfRangeException.ThrowIfLessThan(gridSize, 1);
 		var center = gridSize / 2;
@@ -35,7 +33,6 @@ public static class DeploymentPlacement
 			{
 				Unit = playerInstance,
 				Position = playerPosition,
-				InitialMomentum = playerMomentum,
 				Fore = playerFore,
 				Dorsal = dorsal,
 				ExecutionAgent = new UserExecutionAgent(),
@@ -44,7 +41,6 @@ public static class DeploymentPlacement
 			{
 				Unit = enemyInstance,
 				Position = enemyPosition,
-				InitialMomentum = enemyMomentum,
 				Fore = enemyFore,
 				Dorsal = dorsal,
 				ExecutionAgent = new AiController(),

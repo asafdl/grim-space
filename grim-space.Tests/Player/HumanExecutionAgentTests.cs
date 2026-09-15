@@ -43,7 +43,7 @@ public sealed class HumanExecutionAgentTests
 			origin,
 			TurnOrchestrationTests.EnemyInRailgunLine(origin));
 		var option = BattleTestCommands.MoveOptions(battle)
-			.First(path => path.Steps.Any(step => step.Heading is not null || step.Roll is not null));
+			.First(path => path.Steps.Any(step => step is HeadingTurnAction or RollAction));
 
 		Assert.True(battle.PlayerAgent.TryEnqueue(option.Steps.Cast<IAction>().ToList()));
 

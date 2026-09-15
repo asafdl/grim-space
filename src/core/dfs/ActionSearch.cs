@@ -5,7 +5,7 @@ namespace GrimSpace.Core.Dfs;
 
 public static class ActionSearch
 {
-	private const int MaxSearchDepth = 12;
+	private const int MaxSearchDepth = 20;
 	private const int HardAbortSearchDepth = 64;
 
 	public static IEnumerable<SearchFrame<TWorld, TRuntime>> Run<TEffect, TWorld, TRuntime>(
@@ -30,6 +30,9 @@ public static class ActionSearch
 		var fork = sim.Fork();
 		var startDepth = fork.Actions.Count;
 		var visited = new Dictionary<object, List<int[]>>();
+		var isPrioritySearch = input.IsPriorityBranch?.Invoke(fork.Actions) ?? false;
+		Queue<(Simulation<TWorld, TRuntime> Sim, int Depth)>? deferred =
+			isPrioritySearch ? new() : null;
 
 		foreach (var frame in SearchDfs(
 			fork,
@@ -38,8 +41,27 @@ public static class ActionSearch
 			startDepth,
 			0,
 			visited,
-			input))
+			input,
+			isPrioritySearch ? SearchFramePhase.Priority : SearchFramePhase.Remaining,
+			deferred))
 			yield return frame;
+
+		if (deferred is null)
+			yield break;
+
+		while (deferred.TryDequeue(out var branch))
+		{
+			foreach (var frame in SearchDfs(
+				branch.Sim,
+				actorId,
+				actionDefs,
+				startDepth,
+				branch.Depth,
+				visited,
+				input,
+				SearchFramePhase.Remaining))
+				yield return frame;
+		}
 	}
 
 	private static IEnumerable<SearchFrame<TWorld, TRuntime>> SearchDfs<TEffect, TWorld, TRuntime>(
@@ -49,7 +71,9 @@ public static class ActionSearch
 		int startDepth,
 		int depth,
 		Dictionary<object, List<int[]>> visited,
-		SearchInput<TWorld, TRuntime> input)
+		SearchInput<TWorld, TRuntime> input,
+		SearchFramePhase phase,
+		Queue<(Simulation<TWorld, TRuntime> Sim, int Depth)>? deferred = null)
 		where TEffect : IEffect<TWorld, TRuntime>
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>, new()
@@ -60,16 +84,19 @@ public static class ActionSearch
 		if (ShouldPruneVisit(visited, input.VisitState, fork, actorId))
 			yield break;
 
-		var frame = new SearchFrame<TWorld, TRuntime>(
-			fork.World.Fork(),
-			fork.Runtimes.Fork(),
-			fork.Actions.ToList(),
-			fork.Actions.Count - startDepth);
+		var pruneChildren = false;
+		if (fork.InvariantStatus == InvariantStatus.Ok)
+		{
+			var frame = new SearchFrame<TWorld, TRuntime>(
+				fork.World.Fork(),
+				fork.Runtimes.Fork(),
+				fork.Actions.ToList(),
+				fork.Actions.Count - startDepth,
+				phase);
 
-		yield return frame;
-
-		var pruneChildren = frame.PruneChildren;
-		frame = null!;
+			yield return frame;
+			pruneChildren = frame.PruneChildren;
+		}
 
 		if (pruneChildren)
 			yield break;
@@ -91,6 +118,13 @@ public static class ActionSearch
 					continue;
 				}
 
+				if (deferred is not null && !input.IsPriorityBranch!(fork.Actions))
+				{
+					deferred.Enqueue((fork.Fork(), depth + 1));
+					fork.Dequeue(checkpoint);
+					continue;
+				}
+
 				foreach (var child in SearchDfs(
 					fork,
 					actorId,
@@ -98,7 +132,9 @@ public static class ActionSearch
 					startDepth,
 					depth + 1,
 					visited,
-					input))
+					input,
+					phase,
+					deferred))
 					yield return child;
 
 				fork.Dequeue(checkpoint);

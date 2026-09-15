@@ -21,7 +21,6 @@ public sealed class TorpedoTargetSelectionTests
 		var start = new Coord(5, 5, 10);
 		battle.Engine.World.StateOf(torpedoId).Position = start;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
-		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
@@ -38,7 +37,6 @@ public sealed class TorpedoTargetSelectionTests
 		var start = new Coord(5, 5, 1);
 		battle.Engine.World.StateOf(torpedoId).Position = start;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 3;
-		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var inTrajectory = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
@@ -73,7 +71,6 @@ public sealed class TorpedoTargetSelectionTests
 		var start = new Coord(5, 5, 10);
 		battle.Engine.World.StateOf(torpedoId).Position = start;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
-		battle.Engine.World.StateOf(torpedoId).MomentumLevel = 0;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);

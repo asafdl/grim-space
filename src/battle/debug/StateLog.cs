@@ -2,8 +2,8 @@ using System.Text;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Presentation;
-using GrimSpace.Core.Log;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Debug;
@@ -52,7 +52,7 @@ public static class StateLog
 
 	private static string FormatUnit(State state) =>
 		$"{state.Id}: pos={state.Position} fore={state.Fore} dorsal={state.Dorsal} "
-		+ $"starboard={state.Starboard} mom={state.MomentumLevel} "
+		+ $"starboard={state.Starboard} "
 		+ $"hull={state.HullPoints}/{state.Stats.MaxHullPoints} "
 		+ $"shields=F{state.ShieldPoints[ESpatialOrientation.Forward]}"
 		+ $"/A{state.ShieldPoints[ESpatialOrientation.Retro]}"

@@ -45,28 +45,15 @@ public sealed class PlanningPreview
 			return [];
 
 		EnsureSim(sim);
-		var moveActorId = focusId;
-		var inspecting = moveActorId != playerId;
+		var inspecting = focusId != playerId;
 		var previewWorld = PreviewWorld(sim, playerId);
-
-		if (moveActorId == playerId)
-		{
-			return _moveCache.GetPaths(sim, playerId, sim.Actions)
-				.Select(path => new MovePathOption(
-					path.Steps,
-					path.Checkpoints,
-					path.EndPosition,
-					path.EndBasis,
-					path.ExtensionApCost,
-					path.RemainingAp,
-					UnitDisplayState.Capture(path.ResultState)))
-				.ToList();
-		}
-
-		if (!inspecting || !CaptureUnits(previewWorld).ContainsKey(moveActorId))
+		if (inspecting && !CaptureUnits(previewWorld).ContainsKey(focusId))
 			return [];
 
-		return MovePathEndpoints.DiscoverExtensions(sim, moveActorId)
+		var paths = inspecting
+			? MovePathEndpoints.DiscoverExtensions(sim, focusId)
+			: _moveCache.GetPaths(sim, playerId);
+		return paths
 			.Select(path => new MovePathOption(
 				path.Steps,
 				path.Checkpoints,
@@ -78,33 +65,12 @@ public sealed class PlanningPreview
 			.ToList();
 	}
 
-	public int MovePathApBaseline(BattleSimulation sim, string playerId, string focusId) =>
-		0;
-
 	public IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(BattleSimulation sim, string playerId) =>
-		CommittedMoveCheckpoints(sim.ReplayWorld(0).StateOf(playerId), sim.Actions, playerId);
-
-	private static IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(
-		State start,
-		IReadOnlyList<IAction> actions,
-		string playerId)
-	{
-		var position = start.Position;
-		var basis = GridBasis.From(start.Fore, start.Dorsal, start.Starboard);
-		var checkpoints = new List<MoveCheckpoint>();
-		foreach (var action in actions)
-		{
-			if (action is not MoveStepAction { ActorId: var actorId } move || actorId != playerId)
-				continue;
-
-			var transition = Orientation.MoveStep(position, basis, move.Heading, move.Roll);
-			position = transition.Destination;
-			basis = transition.ArrivalBasis;
-			checkpoints.Add(new MoveCheckpoint(position, basis));
-		}
-
-		return checkpoints;
-	}
+		MovePathIndex.ProjectCheckpoints(
+			sim.ForkFromAnchor(),
+			playerId,
+			sim.Actions,
+			includeStart: false);
 
 	public WeaponPeek Weapons(BattleSimulation sim, string actorId)
 		=> Weapons(Capabilities.LegalCapabilities(sim, actorId));

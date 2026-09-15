@@ -55,7 +55,7 @@ internal static class BattleTestCommands
 		Enqueue(battle, [new HeadingTurnAction(battle.PlayerId, turn)]);
 
 	public static IReadOnlyList<MovePathOption> MoveOptions(BattleOrchestrator battle) =>
-		BattleTestFixture.FrameBuilder(battle).PreviewMoveOptions(battle, battle.PlayerAgent);
+		Frame(battle).MovePaths;
 
 	public static PresentationFrame Frame(BattleOrchestrator battle) =>
 		BattleTestFixture.FrameBuilder(battle).BuildFrame(
@@ -73,4 +73,5 @@ internal static class BattleTestCommands
 
 	private static bool Enqueue(BattleOrchestrator battle, IEnumerable<IAction> actions) =>
 		battle.PlayerAgent.TryEnqueue(actions.ToList());
+
 }

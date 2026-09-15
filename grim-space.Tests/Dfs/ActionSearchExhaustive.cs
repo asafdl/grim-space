@@ -39,11 +39,14 @@ internal static class ActionSearchExhaustive
 		if (depth > maxDepth)
 			yield break;
 
-		yield return new SearchFrame<TWorld, TRuntime>(
-			fork.World.Fork(),
-			fork.Runtimes.Fork(),
-			fork.Actions.ToList(),
-			fork.Actions.Count - startDepth);
+		if (fork.InvariantStatus == InvariantStatus.Ok)
+		{
+			yield return new SearchFrame<TWorld, TRuntime>(
+				fork.World.Fork(),
+				fork.Runtimes.Fork(),
+				fork.Actions.ToList(),
+				fork.Actions.Count - startDepth);
+		}
 
 		foreach (var def in actionDefs)
 		{

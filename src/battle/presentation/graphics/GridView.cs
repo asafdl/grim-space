@@ -7,7 +7,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class GridView : Node3D
 {
-private const float LocalGridViewDotThreshold = 0.9995f;
+	private const float LocalGridViewDotThreshold = 0.9995f;
 
 	private Camera3D _camera = null!;
 	private MeshInstance3D _rangeShell = null!;
@@ -92,7 +92,6 @@ private const float LocalGridViewDotThreshold = 0.9995f;
 				? new CellVolumePreview(source, cells)
 				: null,
 			tick);
-		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
 		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
 	}
 

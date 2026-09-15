@@ -3,7 +3,6 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
@@ -18,11 +17,23 @@ public sealed record HeadingTurnAction(
 
 public sealed class HeadingDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActionInvariants<BattleWorld, ActorRuntime>,
 		IActionStreamline
 {
 	public static HeadingDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) => [];
+	private static readonly EHeadingTurn[] SupportedTurns =
+	[
+		EHeadingTurn.YawLeft,
+		EHeadingTurn.YawRight,
+		EHeadingTurn.PitchUp,
+		EHeadingTurn.PitchDown,
+	];
+
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) =>
+		SupportedTurns
+			.Select(turn => Bind(actorId, turn))
+			.Where(action => IsPossible(action, world, runtime));
 
 	public HeadingTurnAction Bind(string actorId, EHeadingTurn turn) => new(actorId, turn);
 
@@ -38,45 +49,24 @@ public sealed class HeadingDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) => false;
+	public bool IsPossible(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) =>
+		SupportedTurns.Contains(action.Turn);
 
 	public bool IsLegal(HeadingTurnAction action, BattleWorld world, ActorRuntime runtime) =>
-		false;
+		IsPossible(action, world, runtime);
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		HeadingTurnAction action,
 		BattleWorld world,
-		ActorRuntime runtime)
-	{
-		var apCost = ApCostForTurn(action.Turn);
-		var momDelta = MomentumDeltaForTurn(action.Turn);
-		var consumedDiscount = false;
+		ActorRuntime runtime) =>
+		[new HeadingTurnEffect(action.Turn)];
 
-		if (Orientation.IsYawTurn(action.Turn)
-			&& apCost > 0
-			&& runtime.SpinBraked
-			&& runtime.SpinDiscount)
-		{
-			apCost = System.Math.Max(0, apCost - 1);
-			momDelta = 0;
-			consumedDiscount = true;
-		}
-
-		var effects = new List<IEffect<BattleWorld, ActorRuntime>>
-		{
-			new ApChangeEffect(-apCost),
-			new YawMomentumEffect(momDelta),
-			new HeadingTurnEffect(action.Turn),
-		};
-
-		if (Orientation.IsYawTurn(action.Turn))
-			effects.Insert(0, new AddYawQuartersEffect(YawDelta(action.Turn)));
-
-		if (consumedDiscount)
-			effects.Insert(2, new ConsumeSpinDiscountEffect());
-
-		return effects;
-	}
+	public InvariantStatus EvaluateInvariants(
+		BattleWorld world,
+		ActorRuntime runtime,
+		IReadOnlyList<IAction> actions,
+		string actorId) =>
+		ManeuverInvariant.Evaluate(world, runtime, actions, actorId);
 
 	public IReadOnlyList<IAction>? Streamline(
 		IReadOnlyList<IAction> queue,
@@ -255,33 +245,6 @@ public sealed class HeadingDef
 
 	private static IEnumerable<HeadingTurnAction> ActionsForNetPitch(string actorId, int netQuarters) =>
 		TurnsForNetPitch(netQuarters).Select(turn => new HeadingTurnAction(actorId, turn));
-
-	private static int QuoteApCost(ActorRuntime runtime, EHeadingTurn turn)
-	{
-		var apCost = ApCostForTurn(turn);
-
-		if (!Orientation.IsYawTurn(turn) || apCost <= 0 || !runtime.SpinBraked || !runtime.SpinDiscount)
-			return apCost;
-
-		return System.Math.Max(0, apCost - 1);
-	}
-
-	private static int ApCostForTurn(EHeadingTurn turn) =>
-		turn switch
-		{
-			EHeadingTurn.YawRight or EHeadingTurn.YawLeft or EHeadingTurn.PitchUp or EHeadingTurn.PitchDown =>
-				CombatConfig.HeadingTurn90ApCost,
-			EHeadingTurn.Yaw180 => CombatConfig.HeadingTurn180ApCost,
-			_ => throw new ArgumentOutOfRangeException(nameof(turn), turn, null),
-		};
-
-	private static int MomentumDeltaForTurn(EHeadingTurn turn) =>
-		turn switch
-		{
-			EHeadingTurn.YawRight or EHeadingTurn.YawLeft or EHeadingTurn.PitchUp or EHeadingTurn.PitchDown => 1,
-			EHeadingTurn.Yaw180 => 2,
-			_ => throw new ArgumentOutOfRangeException(nameof(turn), turn, null),
-		};
 
 	private static IEnumerable<EHeadingTurn> TurnsForNetYaw(int netQuarters)
 	{

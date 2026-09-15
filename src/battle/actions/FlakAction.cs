@@ -88,8 +88,7 @@ public sealed class FlakDef
 			new ResolveHazardEffect(
 				EHazardKind.FlakBurst,
 				cells,
-				CombatConfig.FlakDamage,
-				CombatConfig.FlakMomentumLoss),
+				CombatConfig.FlakDamage),
 			new FlakChangeEffect(-1),
 		];
 	}

@@ -27,7 +27,6 @@ public sealed class TorpedoActionTests
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
-		Assert.Equal(0, torpedo.State.MomentumLevel);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
 		Assert.Equal(ETeam.Player, torpedo.Alliance.Team);

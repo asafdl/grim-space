@@ -105,7 +105,7 @@ public sealed class ActionSearchCorrectnessTests
 	private static string ActionKey(IAction action) =>
 		action switch
 		{
-			MoveStepAction move => $"move:{move.ActorId}:{move.Heading}:{move.Roll}",
+			MoveStepAction move => $"move:{move.ActorId}",
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
 			FlakAction flak => $"flak:{flak.ActorId}:{flak.MountedOn}",

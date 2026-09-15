@@ -172,7 +172,7 @@ public sealed class TimelineTests
 	public void CommitAppendsImpactRecordAfterFlak()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin, momentum: 1);
+		var battle = BattleTestFixture.BeginSimulation(origin);
 		var action = new FlakAction(battle.PlayerId, ESpatialOrientation.Starboard);
 		var cells = FlakDef.Instance.AffectedCells(action, battle.Engine.World);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.State.Id != battle.PlayerId);
@@ -187,7 +187,7 @@ public sealed class TimelineTests
 		Assert.Equal(battle.PlayerId, impact.Value.SourceId);
 		Assert.Equal(enemy.State.Id, impact.Value.TargetId);
 		Assert.Equal(EHazardKind.FlakBurst, impact.Value.Cause);
-		Assert.True(impact.Value.ShieldDamage + impact.Value.HullDamage + impact.Value.MomentumLoss > 0);
+		Assert.True(impact.Value.TotalDamage > 0);
 	}
 
 }

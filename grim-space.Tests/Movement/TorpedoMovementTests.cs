@@ -31,17 +31,15 @@ public sealed class TorpedoMovementTests
 	}
 
 	[Fact]
-	public void LateralMovementDoesNotRotateOrChangeMomentum()
+	public void LateralMovementDoesNotRotate()
 	{
 		var (sim, torpedoId) = CreateSimulation();
 		var state = sim.StateOf<ActorState>(torpedoId);
-		state.MomentumLevel = 2;
 		var basis = (state.Fore, state.Dorsal, state.Starboard);
 
 		Assert.True(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Dorsal)));
 
 		Assert.Equal(basis, (state.Fore, state.Dorsal, state.Starboard));
-		Assert.Equal(2, state.MomentumLevel);
 	}
 
 	[Fact]

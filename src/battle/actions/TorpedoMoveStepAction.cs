@@ -83,7 +83,6 @@ public sealed class TorpedoMoveDef
 		[
 			new MoveEffect(to),
 			new ApChangeEffect(-stepCost),
-			new HazardCellEntryEffect(to),
 		];
 	}
 

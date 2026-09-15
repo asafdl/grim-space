@@ -44,8 +44,9 @@ public sealed class MovePathSearchTests
 				&& option.EndBasis.Forward == new Coord(1, 0, 0)
 				&& option.EndBasis.Up == Coord.Up);
 
-		Assert.Equal(4, path.Steps.Count);
-		Assert.Equal(EHeadingTurn.YawRight, path.Steps[^1].Heading);
+		Assert.Equal(4, path.ExtensionApCost);
+		Assert.Contains(path.Steps, action =>
+			action is HeadingTurnAction { Turn: EHeadingTurn.YawRight });
 	}
 
 	[Fact]
@@ -53,17 +54,41 @@ public sealed class MovePathSearchTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var action = new MoveStepAction(
-			PlayerId,
-			EHeadingTurn.YawRight,
-			ERollDirection.CounterClockwise);
-
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
+			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight),
+			new RollAction(PlayerId, ERollDirection.CounterClockwise),
+			new MoveStepAction(PlayerId)));
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(origin + new Coord(1, 0, 0), actor.Position);
 		Assert.Equal(new Coord(1, 0, 0), actor.Fore);
 		Assert.Equal(-Coord.Forward, actor.Dorsal);
 		Assert.Equal(3, actor.ActionPoints);
+	}
+
+	[Theory]
+	[InlineData(ESpatialOrientation.Port, -1, 0, 0)]
+	[InlineData(ESpatialOrientation.Retro, 0, 0, -1)]
+	public void DirectionalRouteCheckpointsMatchSimulatedState(
+		ESpatialOrientation direction,
+		int x,
+		int y,
+		int z)
+	{
+		var origin = new Coord(5, 5, 5);
+		var paths = MovePathEndpoints.DiscoverExtensions(
+			BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim,
+			PlayerId);
+		var expected = origin + new Coord(x, y, z);
+
+		var path = paths.First(option =>
+			option.Steps.Count == 1
+			&& option.Steps[0] is MoveStepAction { Direction: var actual }
+			&& actual == direction);
+
+		Assert.Equal(expected, path.EndPosition);
+		Assert.Equal(path.ResultState.Position, path.EndPosition);
+		Assert.Equal(path.ResultState.Fore, path.EndBasis.Forward);
+		Assert.Equal(path.ResultState.Dorsal, path.EndBasis.Up);
 	}
 
 	[Fact]
@@ -74,7 +99,7 @@ public sealed class MovePathSearchTests
 			BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim,
 			PlayerId);
 
-		Assert.Contains(paths, path => path.EndPosition == origin && path.Steps.Count == 4);
+		Assert.Contains(paths, path => path.EndPosition == origin && path.ExtensionApCost == 4);
 	}
 
 	[Fact]
@@ -107,7 +132,7 @@ public sealed class MovePathSearchTests
 		foreach (var _ in ActionSearch.Run(
 			session,
 			PlayerId,
-			[MoveDef.Instance],
+			Capabilities.Movement,
 			BattleSearchVisit.ForMovePreview)) { }
 
 		Assert.Empty(session.Actions);

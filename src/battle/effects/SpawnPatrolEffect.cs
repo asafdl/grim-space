@@ -27,7 +27,6 @@ public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, Acto
 			},
 			position,
 			new AiController(),
-			0,
 			fore,
 			dorsal,
 			parentId: actorId);

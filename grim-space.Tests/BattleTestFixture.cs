@@ -116,27 +116,26 @@ internal static class BattleTestFixture
 	public static BattleSimulation CreateTrialSimulation(BattleOrchestrator battle) =>
 		battle.Engine.CreateSimulation();
 
-	public static BattleOrchestrator BeginSimulation(Coord origin, int momentum = 0)
+	public static BattleOrchestrator BeginSimulation(Coord origin)
 	{
-		var player = Player(origin, momentum: momentum);
+		var player = Player(origin);
 		var enemy = Enemy(origin + Coord.Forward * 6);
 		return BeginSimulation(player, enemy);
 	}
 
 	public static Unit Player(
 		Coord position,
-		int momentum = 0,
 		int actionPoints = 4) =>
-		WithAp(Create(Alliance.Player, "player", position, momentum), actionPoints);
+		WithAp(Create(Alliance.Player, "player", position), actionPoints);
 
-	public static Unit Enemy(Coord position, int momentum = 0) =>
-		Create(Alliance.Enemy, "enemy", position, momentum);
+	public static Unit Enemy(Coord position) =>
+		Create(Alliance.Enemy, "enemy", position);
 
-	public static Unit Carrier(Coord position, int momentum = 0) =>
-		Create(Alliance.Enemy, "carrier", position, momentum, EType.Carrier);
+	public static Unit Carrier(Coord position) =>
+		Create(Alliance.Enemy, "carrier", position, EType.Carrier);
 
-	public static Unit Patrol(Coord position, int momentum = 0, string id = "patrol") =>
-		Create(Alliance.Enemy, id, position, momentum, EType.Patrol);
+	public static Unit Patrol(Coord position, string id = "patrol") =>
+		Create(Alliance.Enemy, id, position, EType.Patrol);
 
 	public static BattleOrchestrator BeginCarrierVsPlayer(
 		Coord playerPos,
@@ -154,7 +153,7 @@ internal static class BattleTestFixture
 		var basis = BodyFrame.WorldAligned(origin);
 		var gridBasis = GridBasis.From(basis.Fore, basis.Dorsal, basis.Starboard);
 		var position = origin;
-		var steps = new List<MoveStepAction>();
+		var steps = new List<IAction>();
 		var checkpoints = new List<MoveCheckpoint> { new(origin, gridBasis) };
 
 		foreach (var delta in deltas)
@@ -166,11 +165,12 @@ internal static class BattleTestFixture
 					.FirstOrDefault(turn => Orientation.HeadingTurn(gridBasis, turn).Forward == delta);
 			}
 
-			var step = new MoveStepAction(actorId, heading);
-			steps.Add(step);
 			gridBasis = heading is { } turn
 				? Orientation.HeadingTurn(gridBasis, turn)
 				: gridBasis;
+			if (heading is { } stagedHeading)
+				steps.Add(new HeadingTurnAction(actorId, stagedHeading));
+			steps.Add(new MoveStepAction(actorId));
 			position += gridBasis.Forward;
 			checkpoints.Add(new MoveCheckpoint(position, gridBasis));
 		}
@@ -195,7 +195,6 @@ internal static class BattleTestFixture
 		Alliance alliance,
 		string id,
 		Coord position,
-		int momentum,
 		EType type = EType.Fighter)
 	{
 		var instance = new Instance
@@ -208,8 +207,7 @@ internal static class BattleTestFixture
 		return Factory.Create(
 			instance,
 			position,
-			alliance.Team == ETeam.Player ? new UserExecutionAgent() : new AiController(),
-			initialMomentum: momentum);
+			alliance.Team == ETeam.Player ? new UserExecutionAgent() : new AiController());
 	}
 
 	private static Unit WithAp(Unit unit, int actionPoints)

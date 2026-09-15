@@ -32,12 +32,7 @@ public sealed class ReplayState
 	public void ApplyMove(MoveStepAction move)
 	{
 		var state = _states[move.ActorId];
-		var basis = GridBasis.From(state.Fore, state.Dorsal, state.Starboard);
-		var transition = Orientation.MoveStep(state.Position, basis, move.Heading, move.Roll);
-		state.Position = transition.Destination;
-		state.Fore = transition.ArrivalBasis.Forward;
-		state.Dorsal = transition.ArrivalBasis.Up;
-		state.Starboard = transition.ArrivalBasis.Right;
+		state.Position += BodyFrame.From(state).Step(move.Direction);
 	}
 
 	public void ApplyTorpedoMove(TorpedoMoveStepAction move)
@@ -45,9 +40,6 @@ public sealed class ReplayState
 		var state = _states[move.ActorId];
 		state.Position += BodyFrame.From(state).Step(move.Direction);
 	}
-
-	public void ApplyMomentum(MomentumChangedFacts momentum) =>
-		_states[momentum.ActorId].MomentumLevel = momentum.MomentumLevel;
 
 	public void ApplyImpact(ImpactFacts impact)
 	{
@@ -57,6 +49,5 @@ public sealed class ReplayState
 		var shield = state.ShieldPoints[impact.Face];
 		state.ShieldPoints[impact.Face] = System.Math.Max(0, shield - impact.ShieldDamage);
 		state.HullPoints = System.Math.Max(0, state.HullPoints - impact.HullDamage);
-		state.MomentumLevel = System.Math.Max(0, state.MomentumLevel - impact.MomentumLoss);
 	}
 }

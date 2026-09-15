@@ -77,6 +77,12 @@ public class Simulation<TWorld, TRuntime>
 				return false;
 			}
 
+			if (_invariantStatus == InvariantStatus.Impossible)
+			{
+				Dequeue(checkpoint);
+				return false;
+			}
+
 			var runtime = Runtimes.For(action);
 			if (!typed.Definition.IsLegal(action, World, runtime))
 			{
@@ -91,8 +97,12 @@ public class Simulation<TWorld, TRuntime>
 			_appliedEffects.Add(effects);
 			_appliedRecords.Add(recordSink ?? []);
 
-			if (typed.Definition is IActionInvariants<TWorld, TRuntime> invariants)
-				_invariantStatus = invariants.EvaluateInvariants(World, runtime, action.ActorId);
+			RefreshInvariantStatus();
+			if (_invariantStatus == InvariantStatus.Impossible)
+			{
+				Dequeue(checkpoint);
+				return false;
+			}
 		}
 
 		return true;
@@ -202,6 +212,7 @@ public class Simulation<TWorld, TRuntime>
 			_invariantStatus = invariants.EvaluateInvariants(
 				World,
 				Runtimes.For(_actions[i]),
+				_actions,
 				_actions[i].ActorId);
 			return;
 		}

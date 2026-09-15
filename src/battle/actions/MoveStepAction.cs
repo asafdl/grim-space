@@ -1,8 +1,7 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -11,8 +10,7 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record MoveStepAction(
 	string ActorId,
-	EHeadingTurn? Heading = null,
-	ERollDirection? Roll = null) : IAction<BattleWorld, ActorRuntime>
+	ESpatialOrientation Direction = ESpatialOrientation.Forward) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		MoveDef.Instance;
@@ -25,115 +23,68 @@ public sealed class MoveDef
 
 	public static MoveDef Instance { get; } = new();
 
-	private static readonly EHeadingTurn?[] HeadingChoices =
-	[
-		null,
-		EHeadingTurn.YawLeft,
-		EHeadingTurn.YawRight,
-		EHeadingTurn.PitchUp,
-		EHeadingTurn.PitchDown,
-	];
-
-	private static readonly ERollDirection?[] RollChoices =
-	[
-		null,
-		ERollDirection.Clockwise,
-		ERollDirection.CounterClockwise,
-	];
+	private static readonly ESpatialOrientation[] AllDirections = Enum.GetValues<ESpatialOrientation>();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		foreach (var heading in HeadingChoices)
+		foreach (var direction in AllDirections)
 		{
-			foreach (var roll in RollChoices)
-			{
-				var action = Bind(actorId, heading, roll);
-				if (IsPossible(action, world, runtime))
-					yield return action;
-			}
+			var action = Bind(actorId, direction);
+			if (IsPossible(action, world, runtime))
+				yield return action;
 		}
 	}
 
 	public MoveStepAction Bind(
 		string actorId,
-		EHeadingTurn? heading = null,
-		ERollDirection? roll = null) =>
-		new(actorId, heading, roll);
+		ESpatialOrientation direction = ESpatialOrientation.Forward) =>
+		new(actorId, direction);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
-		IsPossible(Cast(action), world);
+		IsPossible(Cast(action), world, runtime);
 
 	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
-		IsLegal(Cast(action), world);
+		IsLegal(Cast(action), world, runtime);
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,
 		BattleWorld world,
 		ActorRuntime runtime) =>
-		Resolve(Cast(action), world);
+		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(MoveStepAction action, BattleWorld world)
+	public bool IsPossible(MoveStepAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		if (!TryCalculate(action, world, out var transition))
-			return false;
-
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Type == EType.Torpedo)
+		if (actor.Type == EType.Torpedo || !AllDirections.Contains(action.Direction))
 			return false;
 
+		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);
 		var blocked = world.BlockedFor(action.ActorId);
-		return world.Grid.IsInBounds(transition.Destination)
-			&& !blocked.Contains(transition.Destination);
+		return world.Grid.IsInBounds(destination)
+			&& !blocked.Contains(destination);
 	}
 
-	public bool IsLegal(MoveStepAction action, BattleWorld world) =>
-		IsPossible(action, world)
-		&& world.StateOf(action.ActorId).ActionPoints >= ApCost;
+	public bool IsLegal(MoveStepAction action, BattleWorld world, ActorRuntime runtime)
+	{
+		if (!IsPossible(action, world, runtime))
+			return false;
+
+		return world.StateOf(action.ActorId).ActionPoints >= ApCost;
+	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		MoveStepAction action,
-		BattleWorld world)
-	{
-		if (!TryCalculate(action, world, out var transition))
-			throw new InvalidOperationException("Cannot resolve an unsupported maneuver.");
-
-		var effects = new List<IEffect<BattleWorld, ActorRuntime>>(5);
-		if (action.Heading is { } heading)
-			effects.Add(new HeadingTurnEffect(heading));
-		effects.Add(new MoveEffect(transition.Destination));
-		if (action.Roll is { } roll)
-			effects.Add(new RollEffect(roll));
-		effects.Add(new ApChangeEffect(-ApCost));
-		effects.Add(new HazardCellEntryEffect(transition.Destination));
-		return effects;
-	}
-
-	public bool TryCalculate(
-		MoveStepAction action,
 		BattleWorld world,
-		out MoveTransition transition)
+		ActorRuntime runtime)
 	{
-		if (!IsSupportedHeading(action.Heading) || !IsSupportedRoll(action.Roll))
-		{
-			transition = default;
-			return false;
-		}
-
 		var actor = world.StateOf(action.ActorId);
-		var basis = GridBasis.From(actor.Fore, actor.Dorsal, actor.Starboard);
-		transition = Orientation.MoveStep(actor.Position, basis, action.Heading, action.Roll);
-		return true;
+		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);
+		return
+		[
+			new MoveEffect(destination),
+			new ApChangeEffect(-ApCost),
+		];
 	}
-
-	private static bool IsSupportedHeading(EHeadingTurn? heading) =>
-		heading is null
-			or EHeadingTurn.YawLeft
-			or EHeadingTurn.YawRight
-			or EHeadingTurn.PitchUp
-			or EHeadingTurn.PitchDown;
-
-	private static bool IsSupportedRoll(ERollDirection? roll) =>
-		roll is null or ERollDirection.Clockwise or ERollDirection.CounterClockwise;
 
 	private static MoveStepAction Cast(IAction action) =>
 		action as MoveStepAction ?? throw new ArgumentException($"Expected {nameof(MoveStepAction)}.", nameof(action));

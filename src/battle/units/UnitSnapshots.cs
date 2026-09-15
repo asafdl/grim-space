@@ -5,17 +5,15 @@ namespace GrimSpace.Battle.Units;
 public readonly record struct UnitCombatSnapshot(
 	int HullPoints,
 	FaceShieldPoints ShieldPoints,
-	int MomentumLevel,
 	bool ApPenaltyNextTurn)
 {
 	public static UnitCombatSnapshot Capture(State unit) =>
-		new(unit.HullPoints, unit.ShieldPoints.Clone(), unit.MomentumLevel, unit.ApPenaltyNextTurn);
+		new(unit.HullPoints, unit.ShieldPoints.Clone(), unit.ApPenaltyNextTurn);
 
 	public void Restore(State unit)
 	{
 		unit.HullPoints = HullPoints;
 		unit.ShieldPoints = ShieldPoints.Clone();
-		unit.MomentumLevel = MomentumLevel;
 		unit.ApPenaltyNextTurn = ApPenaltyNextTurn;
 	}
 }

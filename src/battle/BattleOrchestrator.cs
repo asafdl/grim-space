@@ -85,7 +85,6 @@ public sealed class BattleOrchestrator : IDisposable
 				spawn.Unit,
 				spawn.Position,
 				spawn.ExecutionAgent,
-				spawn.InitialMomentum,
 				spawn.Fore,
 				spawn.Dorsal))
 			.ToArray();

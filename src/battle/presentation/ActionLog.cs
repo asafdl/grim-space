@@ -30,14 +30,32 @@ public static class ActionLog
 		while (i < history.Count)
 		{
 			var entry = history[i];
-			if (entry is MoveStepAction or TorpedoMoveStepAction)
+			if (entry is MoveStepAction or HeadingTurnAction or RollAction)
 			{
 				var actorId = ((IAction)entry).ActorId;
 				var steps = 0;
 				while (i < history.Count
 					&& history[i] is IAction next
 					&& next.ActorId == actorId
-					&& next is MoveStepAction or TorpedoMoveStepAction)
+					&& next is MoveStepAction or HeadingTurnAction or RollAction)
+				{
+					if (next is MoveStepAction)
+						steps++;
+					i++;
+				}
+
+				if (steps > 0)
+					Emit($"Move · {steps} {(steps == 1 ? "step" : "steps")}", displayName(actorId));
+				continue;
+			}
+
+			if (entry is TorpedoMoveStepAction)
+			{
+				var actorId = ((IAction)entry).ActorId;
+				var steps = 0;
+				while (i < history.Count
+					&& history[i] is TorpedoMoveStepAction next
+					&& next.ActorId == actorId)
 				{
 					steps++;
 					i++;
@@ -211,8 +229,6 @@ public static class ActionLog
 			parts.Add($"{impact.ShieldDamage} shield");
 		if (impact.HullDamage > 0)
 			parts.Add($"{impact.HullDamage} hull");
-		if (impact.MomentumLoss > 0)
-			parts.Add($"-{impact.MomentumLoss} momentum");
 		return string.Join(" · ", parts);
 	}
 

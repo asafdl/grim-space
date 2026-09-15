@@ -3,7 +3,6 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
@@ -18,15 +17,26 @@ public sealed record RollAction(
 
 public sealed class RollDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
+		IActionInvariants<BattleWorld, ActorRuntime>,
 		IActionStreamline
 {
 	public static RollDef Instance { get; } = new();
 
-	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) => [];
+	private static readonly ERollDirection[] SupportedDirections =
+	[
+		ERollDirection.Clockwise,
+		ERollDirection.CounterClockwise,
+	];
+
+	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) =>
+		SupportedDirections
+			.Select(direction => Bind(actorId, direction))
+			.Where(action => IsPossible(action, world, runtime));
 
 	public RollAction Bind(string actorId, ERollDirection direction) => new(actorId, direction);
 
-	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => false;
+	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
+		IsPossible(Cast(action), world, runtime);
 
 	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsLegal(Cast(action), world, runtime);
@@ -37,16 +47,24 @@ public sealed class RollDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsLegal(RollAction action, BattleWorld world, ActorRuntime runtime) => false;
+	public bool IsPossible(RollAction action, BattleWorld world, ActorRuntime runtime) =>
+		SupportedDirections.Contains(action.Direction);
+
+	public bool IsLegal(RollAction action, BattleWorld world, ActorRuntime runtime) =>
+		IsPossible(action, world, runtime);
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		RollAction action,
 		BattleWorld world,
 		ActorRuntime runtime) =>
-	[
-		new RollEffect(action.Direction),
-		new ApChangeEffect(-CombatConfig.RollApCost),
-	];
+		[new RollEffect(action.Direction)];
+
+	public InvariantStatus EvaluateInvariants(
+		BattleWorld world,
+		ActorRuntime runtime,
+		IReadOnlyList<IAction> actions,
+		string actorId) =>
+		ManeuverInvariant.Evaluate(world, runtime, actions, actorId);
 
 	public IReadOnlyList<IAction>? Streamline(
 		IReadOnlyList<IAction> queue,

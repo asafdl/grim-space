@@ -68,7 +68,6 @@ public sealed class PresentationFrameBuilder
 		var isInspecting = focusId != playerId;
 		var canControl = acceptsCommands && isPlanning && !isInspecting;
 		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
-		var movePathApBaseline = _preview.MovePathApBaseline(sim, playerId, focusId);
 		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
 		var abilityActorId = canControl || isInspecting ? focusId : playerId;
 		var legalCapabilities = canControl || isInspecting
@@ -175,7 +174,6 @@ public sealed class PresentationFrameBuilder
 			isPlanning,
 			weaponQueued,
 			focusUnit.Position,
-			movePathApBaseline,
 			agent.CanUndo ? 1 : 0,
 			moveOptions);
 
@@ -196,7 +194,6 @@ public sealed class PresentationFrameBuilder
 				&& (isInspecting ? EPlayerMode.Move : state.Mode) == EPlayerMode.Move
 				&& (canControl || isInspecting),
 			MovePaths = moveOptions,
-			MovePathApBaseline = movePathApBaseline,
 			PreviewUnits = previewUnits,
 			Weapons = weapons,
 			AreaActions = areaActions,

@@ -49,7 +49,9 @@ public sealed class OrchestratorSimulationTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			new MoveStepAction(PlayerId, EHeadingTurn.YawRight, ERollDirection.Clockwise)));
+			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight),
+			new RollAction(PlayerId, ERollDirection.Clockwise),
+			new MoveStepAction(PlayerId)));
 
 		var state = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(origin + new Coord(1, 0, 0), state.Position);
@@ -58,14 +60,4 @@ public sealed class OrchestratorSimulationTests
 		Assert.Equal(3, state.ActionPoints);
 	}
 
-	[Fact]
-	public void EndOfPhaseDoesNotChangeMomentum()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5), momentum: 2);
-
-		var peek = battle.PlayerAgent.Sim.Peek(new EndOfPhaseAction(PlayerId));
-
-		Assert.NotNull(peek);
-		Assert.Equal(2, peek.Value.World.StateOf(PlayerId).MomentumLevel);
-	}
 }
