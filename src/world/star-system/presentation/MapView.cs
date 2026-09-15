@@ -375,7 +375,7 @@ public partial class MapView : Node3D
 		switch (poi)
 		{
 			case Star star:
-				MapCelestialVisuals.AddStar(root, star.Radius, _atmosphere);
+				MapCelestialVisuals.AddStar(root, seed, star.Radius, _atmosphere);
 				ringRadius = star.Radius * MapMapping.WorldUnitsPerPoint * 1.25f;
 				break;
 			case Refinery:

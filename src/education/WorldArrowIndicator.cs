@@ -6,12 +6,9 @@ public sealed partial class WorldArrowIndicator : Node3D
 {
 	private const float ReferenceDistance = 22f;
 	private const float OffsetAtReferenceDistance = 1.8f;
-	private const float BobAmplitudeAtReferenceDistance = 0.15f;
-	private const float BobPeriod = 1.1f;
 	private const float VisualScale = 0.45f;
 	private static readonly Color Color = new(0.35f, 0.85f, 0.95f, 0.95f);
 	private Node3D _arrow = null!;
-	private double _elapsed;
 
 	public override void _Ready()
 	{
@@ -20,11 +17,7 @@ public sealed partial class WorldArrowIndicator : Node3D
 		UpdatePose();
 	}
 
-	public override void _Process(double delta)
-	{
-		_elapsed += delta;
-		UpdatePose();
-	}
+	public override void _Process(double _) => UpdatePose();
 
 	private static Node3D CreateArrow()
 	{
@@ -77,13 +70,7 @@ public sealed partial class WorldArrowIndicator : Node3D
 		var cameraDistance = Mathf.Max(camera.GlobalPosition.DistanceTo(target), 1f);
 		var distanceScale = cameraDistance / ReferenceDistance;
 		var screenOffset = (-camera.GlobalBasis.X + camera.GlobalBasis.Y * 0.8f).Normalized();
-		var bob = camera.GlobalBasis.Y
-			* (Mathf.Sin((float)(_elapsed * Mathf.Tau / BobPeriod))
-				* BobAmplitudeAtReferenceDistance
-				* distanceScale);
-		var position = target
-			+ screenOffset * OffsetAtReferenceDistance * distanceScale
-			+ bob;
+		var position = target + screenOffset * OffsetAtReferenceDistance * distanceScale;
 
 		_arrow.GlobalPosition = position;
 		_arrow.LookAt(target, camera.GlobalBasis.Y);

@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Math;
+using GrimSpace.Presentation.Graphics;
 using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
@@ -34,7 +35,11 @@ public static class MapCelestialVisuals
 		new(0.60f, 0.58f, 0.56f),
 	];
 
-	public static void AddStar(Node3D root, int gridRadius, MapAtmosphereSettings settings)
+	public static void AddStar(
+		Node3D root,
+		int seed,
+		int gridRadius,
+		MapAtmosphereSettings settings)
 	{
 		var visualRadius = gridRadius * MapMapping.WorldUnitsPerPoint;
 		var surfaceTexture = GD.Load<Texture2D>(SunTexturePath);
@@ -47,6 +52,14 @@ public static class MapCelestialVisuals
 				surfaceTexture,
 				settings.SunGlowEnergy),
 		});
+		root.AddChild(StarCorona.Create(
+			sunRadius: visualRadius,
+			color: new Color(1f, 0.50f, 0.26f, 0.72f),
+			brightness: 0.10f + settings.SunGlowEnergy * 0.12f,
+			width: 0.13f,
+			speed: 0f,
+			seed: StableSeedMixer.From(seed).Add("map-star-corona").Value % 997f,
+			irregularity: 0.22f));
 	}
 
 	public static void AddPlanet(
@@ -199,8 +212,8 @@ public static class MapCelestialVisuals
 			},
 		};
 		material.SetShaderParameter("surface_texture", texture);
-		material.SetShaderParameter("emission_strength", 0.95f + glowEnergy * 0.85f);
-		material.SetShaderParameter("limb_boost", 0.18f + glowEnergy * 0.22f);
+		material.SetShaderParameter("emission_strength", 0.82f + glowEnergy * 0.62f);
+		material.SetShaderParameter("limb_boost", 0.08f + glowEnergy * 0.10f);
 		return material;
 	}
 
