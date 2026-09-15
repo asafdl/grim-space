@@ -6,7 +6,7 @@ namespace GrimSpace.World.StarSystem.Poi.Concrete;
 
 public sealed class Star : PointOfInterest
 {
-	public const int DefaultRadius = 64;
+	public const int DefaultRadius = 128;
 
 	public static Star Template() => new(null);
 

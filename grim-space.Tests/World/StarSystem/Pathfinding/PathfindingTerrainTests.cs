@@ -52,7 +52,8 @@ public sealed class PathfindingTerrainTests
 	[Fact]
 	public void CircleTraversability_HonorsStarRouteExclusionRadius()
 	{
-		var star = Star.Template().Place(new Coord(128, 0, 128));
+		const int fleetRadius = 10;
+		var star = Star.Template().Place(new Coord(48, 0, 128));
 		var terrain = PathfindingTerrain.Create(
 			256,
 			256,
@@ -60,8 +61,13 @@ public sealed class PathfindingTerrainTests
 			[star],
 			Array.Empty<Dock>());
 
-		Assert.False(terrain.IsCircleTraversable(new Coord(232, 0, 128), 10));
-		Assert.True(terrain.IsCircleTraversable(new Coord(233, 0, 128), 10));
+		var exclusionEdge = star.PlacedCenter.X + star.RouteExclusionRadius;
+		Assert.False(terrain.IsCircleTraversable(
+			new Coord(exclusionEdge + fleetRadius - 1, 0, star.PlacedCenter.Z),
+			fleetRadius));
+		Assert.True(terrain.IsCircleTraversable(
+			new Coord(exclusionEdge + fleetRadius + 1, 0, star.PlacedCenter.Z),
+			fleetRadius));
 	}
 
 	private sealed class TestPoi : GrimSpace.World.StarSystem.Poi.PointOfInterest

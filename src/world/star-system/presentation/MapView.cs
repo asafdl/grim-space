@@ -6,6 +6,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -23,7 +24,6 @@ public partial class MapView : Node3D
 	private static readonly Color GridMajor = new(0.22f, 0.32f, 0.42f, MajorAlpha);
 	private static readonly Color GridBoundary = new(0.32f, 0.44f, 0.54f, BoundaryAlpha);
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
-	private static readonly Color StarColor = new(0.89f, 0.66f, 0.33f);
 	private static readonly Color StationSilver = new(0.72f, 0.74f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
 	private static readonly Color CopperTint = new(0.76f, 0.48f, 0.26f);
@@ -35,6 +35,7 @@ public partial class MapView : Node3D
 
 	private string? _hoveredId;
 	private MeshInstance3D? _minorGrid;
+	private MapAtmosphereSettings _atmosphere = MapAtmosphereSettings.Default;
 	private IReadOnlyList<PointOfInterest> _pois = [];
 	private IReadOnlyList<Dock> _docks = [];
 	private IReadOnlyDictionary<string, Dock> _docksByPoiId = new Dictionary<string, Dock>();
@@ -83,6 +84,9 @@ public partial class MapView : Node3D
 		var basePosition = GetPoiWorldPosition(poi.Id, width, height);
 		return basePosition + FacilityAnchorOffsets.Resolve(anchor, poi.Facade.Layout);
 	}
+
+	public void ConfigureAtmosphere(MapAtmosphereSettings settings) =>
+		_atmosphere = settings;
 
 	public void Build(StarMap world)
 	{
@@ -370,16 +374,17 @@ public partial class MapView : Node3D
 		float ringRadius;
 		switch (poi)
 		{
-			case Star:
-				AddStar(root);
-				ringRadius = 1.25f;
+			case Star star:
+				MapCelestialVisuals.AddStar(root, star.Radius, _atmosphere);
+				ringRadius = star.Radius * MapMapping.WorldUnitsPerPoint * 1.25f;
 				break;
 			case Refinery:
-				AddPlanet(root, RandomPlanetColor(seed, poi.Id));
+				MapCelestialVisuals.AddPlanet(root, seed, poi.Id, _atmosphere);
 				ringRadius = 0.95f;
 				break;
 			case OreMine:
 				AddAsteroidField(root, seed, poi);
+				MapCelestialVisuals.AddMiningDust(root, seed, poi, _atmosphere);
 				ringRadius = 1.05f;
 				break;
 			case Wormhole:
@@ -397,7 +402,7 @@ public partial class MapView : Node3D
 			case AdministrativeCore admin:
 				if (admin.PhysicalForm == EPoiPhysicalForm.Planet)
 				{
-					AddPlanet(root, RandomPlanetColor(seed, poi.Id));
+					MapCelestialVisuals.AddPlanet(root, seed, poi.Id, _atmosphere);
 					ringRadius = 1.0f;
 				}
 				else
@@ -434,15 +439,6 @@ public partial class MapView : Node3D
 		return root;
 	}
 
-	private static Color RandomPlanetColor(int seed, string poiId)
-	{
-		var random = new StableRandom(StableSeedMixer.From(seed).Add(poiId).Add("planet-color").Value);
-		var hue = (float)random.NextDouble();
-		var saturation = 0.22f + (float)random.NextDouble() * 0.48f;
-		var value = 0.26f + (float)random.NextDouble() * 0.38f;
-		return Color.FromHsv(hue, saturation, value);
-	}
-
 	private static StandardMaterial3D StationHullMaterial() =>
 		new()
 		{
@@ -450,69 +446,6 @@ public partial class MapView : Node3D
 			Metallic = 0.82f,
 			Roughness = 0.28f,
 		};
-
-	private static void AddStar(Node3D root)
-	{
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Core",
-			Position = Vector3.Zero,
-			Mesh = new SphereMesh { Radius = 1.0f, Height = 2.0f },
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = StarColor,
-				EmissionEnabled = true,
-				Emission = StarColor,
-				EmissionEnergyMultiplier = 1.35f,
-			},
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Halo",
-			Position = Vector3.Zero,
-			Mesh = new SphereMesh { Radius = 1.45f, Height = 2.9f },
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = new Color(0.89f, 0.66f, 0.33f, 0.07f),
-				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			},
-		});
-	}
-
-	private static void AddPlanet(Node3D root, Color surface)
-	{
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Body",
-			Position = Vector3.Zero,
-			Mesh = new SphereMesh { Radius = 0.55f, Height = 1.1f },
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = surface,
-				Roughness = 0.88f,
-			},
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Orbit",
-			Position = Vector3.Zero,
-			RotationDegrees = new Vector3(12f, 18f, 0f),
-			Mesh = new TorusMesh { InnerRadius = 0.78f, OuterRadius = 0.81f },
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = new Color(0.50f, 0.58f, 0.68f, 0.18f),
-				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			},
-		});
-	}
 
 	private static void AddAsteroidField(Node3D root, int seed, PointOfInterest poi)
 	{

@@ -10,6 +10,8 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -176,14 +178,23 @@ public partial class MapController : Node3D
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var halfZ = world.Height * MapMapping.WorldUnitsPerPoint * 0.5f;
-		var mapRadius = Mathf.Max(halfX, halfZ);
+		var atmosphere = MapAtmosphereSettings.Default;
 
 		var backdrop = new MapBackdrop();
-		backdrop.Build(mapRadius);
+		backdrop.Build(atmosphere);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
+		_view.ConfigureAtmosphere(atmosphere);
 		_view.Build(world);
+
+		var star = world.PointsOfInterest.OfType<Star>().First();
+		MapStarLighting.Configure(
+			GetNode<DirectionalLight3D>("DirectionalLight3D"),
+			star,
+			world.Width,
+			world.Height,
+			atmosphere);
 		_routes.Build(world);
 		_units.Build(world);
 		_course.Build(world);

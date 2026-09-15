@@ -9,7 +9,7 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public partial class UnitsView : Node3D
 {
-	// Star marker core radius is 1.0 world units; ships are symbolic map icons.
+	// Ships are symbolic map icons; star scale comes from Star.DefaultRadius via MapView.
 	private const float ShipLength = 0.05f;
 	private const float ShipWidth = 0.028f;
 	private const float RingRadius = 0.095f;
