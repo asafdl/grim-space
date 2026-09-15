@@ -91,7 +91,7 @@ public sealed class LegalMoveTests
 	}
 
 	[Fact]
-	public void DirectionalStepsUseFlatMovementCost()
+	public void RetroStepCostsTwoAp()
 	{
 		var origin = new Coord(5, 5, 5);
 		var session = BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim;
@@ -102,6 +102,19 @@ public sealed class LegalMoveTests
 
 		Assert.True(session.TryEnqueue(
 			new MoveStepAction("player", ESpatialOrientation.Retro)));
-		Assert.Equal(2, session.StateOf<ActorState>("player").ActionPoints);
+		Assert.Equal(1, session.StateOf<ActorState>("player").ActionPoints);
+	}
+
+	[Fact]
+	public void RetroStepRequiresTwoAp()
+	{
+		var session = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(new Coord(5, 5, 5), actionPoints: 1),
+			BattleTestFixture.Enemy(Coord.Zero)).PlayerAgent.Sim;
+
+		Assert.False(session.TryEnqueue(
+			new MoveStepAction("player", ESpatialOrientation.Retro)));
+		Assert.True(session.TryEnqueue(
+			new MoveStepAction("player", ESpatialOrientation.Port)));
 	}
 }

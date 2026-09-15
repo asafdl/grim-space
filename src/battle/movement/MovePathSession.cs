@@ -16,7 +16,9 @@ public sealed record MovePathSession(
 	public IReadOnlyList<Coord> Cells => Checkpoints.Skip(1).Select(checkpoint => checkpoint.Position).ToList();
 	public Coord EndPosition => Checkpoints[^1].Position;
 	public GridBasis EndBasis => Checkpoints[^1].Basis;
-	public int ExtensionApCost => Steps.Count(action => action is Actions.MoveStepAction);
+	public int ExtensionApCost => Steps
+		.OfType<Actions.MoveStepAction>()
+		.Sum(move => Actions.MoveDef.CostOf(move.Direction));
 	public int PathApSpent => ExtensionApCost;
 	public bool CanEndPath => true;
 }

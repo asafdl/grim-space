@@ -66,13 +66,14 @@ public sealed class MovePathSearchTests
 	}
 
 	[Theory]
-	[InlineData(ESpatialOrientation.Port, -1, 0, 0)]
-	[InlineData(ESpatialOrientation.Retro, 0, 0, -1)]
+	[InlineData(ESpatialOrientation.Port, -1, 0, 0, 1)]
+	[InlineData(ESpatialOrientation.Retro, 0, 0, -1, 2)]
 	public void DirectionalRouteCheckpointsMatchSimulatedState(
 		ESpatialOrientation direction,
 		int x,
 		int y,
-		int z)
+		int z,
+		int apCost)
 	{
 		var origin = new Coord(5, 5, 5);
 		var paths = MovePathEndpoints.DiscoverExtensions(
@@ -89,6 +90,7 @@ public sealed class MovePathSearchTests
 		Assert.Equal(path.ResultState.Position, path.EndPosition);
 		Assert.Equal(path.ResultState.Fore, path.EndBasis.Forward);
 		Assert.Equal(path.ResultState.Dorsal, path.EndBasis.Up);
+		Assert.Equal(apCost, path.ExtensionApCost);
 	}
 
 	[Fact]

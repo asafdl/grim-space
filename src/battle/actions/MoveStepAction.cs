@@ -19,7 +19,8 @@ public sealed record MoveStepAction(
 public sealed class MoveDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public const int ApCost = 1;
+	public const int StandardApCost = 1;
+	public const int RetroApCost = 2;
 
 	public static MoveDef Instance { get; } = new();
 
@@ -69,7 +70,7 @@ public sealed class MoveDef
 		if (!IsPossible(action, world, runtime))
 			return false;
 
-		return world.StateOf(action.ActorId).ActionPoints >= ApCost;
+		return world.StateOf(action.ActorId).ActionPoints >= CostOf(action.Direction);
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
@@ -82,9 +83,12 @@ public sealed class MoveDef
 		return
 		[
 			new MoveEffect(destination),
-			new ApChangeEffect(-ApCost),
+			new ApChangeEffect(-CostOf(action.Direction)),
 		];
 	}
+
+	public static int CostOf(ESpatialOrientation direction) =>
+		direction == ESpatialOrientation.Retro ? RetroApCost : StandardApCost;
 
 	private static MoveStepAction Cast(IAction action) =>
 		action as MoveStepAction ?? throw new ArgumentException($"Expected {nameof(MoveStepAction)}.", nameof(action));
