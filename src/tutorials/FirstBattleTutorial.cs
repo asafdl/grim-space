@@ -113,7 +113,7 @@ public static class FirstBattleTutorial
 					null,
 					new TutorialDialogContent(
 						"End Tutorial",
-						"Good luck, Pilot! \nClear out those filth!",
+						"Tutorial messages are turned off, you can turn them back on in Settings.\nGood luck, Pilot!\nClear out those filth!",
 						"Begin Battle"),
 					ShowIndicator: false,
 					FocusTarget: false),

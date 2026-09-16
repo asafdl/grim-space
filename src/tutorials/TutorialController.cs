@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Education;
@@ -137,7 +138,10 @@ public sealed class TutorialController : IDisposable
 		_activeActionSubscription?.Dispose();
 		_activeActionSubscription = null;
 		if (flow.Id == FirstBattleTutorial.Id)
+		{
 			ClearBattlePlan();
+			GameSettings.SaveShowTutorials(false);
+		}
 		Completed?.Invoke(flow);
 	}
 

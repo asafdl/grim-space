@@ -1,3 +1,4 @@
+using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Education;
@@ -348,6 +349,7 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		Assert.False(dialog.IsOpen);
 		Assert.True(progress.IsCompleted(FirstBattleTutorial.Id));
 		Assert.Equal(FirstBattleTutorial.Id, completedFlow?.Id);
+		Assert.False(GameSettings.ReadShowTutorials());
 		Assert.Equal(0, completedQueueCount);
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 		Assert.All(focus.Handles, handle => Assert.True(handle.IsDisposed));
