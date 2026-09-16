@@ -13,7 +13,7 @@ public sealed class ActionBatchSinkTests
 		var batch = new ActionBatch("actor-a", []);
 
 		writer.Publish(batch);
-		var result = await sink.WaitForBatchAsync("actor-a");
+		var result = await sink.WaitForBatchAsync("actor-a", TestContext.Current.CancellationToken);
 
 		Assert.True(result.IsSuccess);
 		Assert.Same(batch, result.Batch);
@@ -24,7 +24,7 @@ public sealed class ActionBatchSinkTests
 	{
 		var sink = new ActionBatchSink();
 		var writer = sink.WriterFor("actor-a");
-		var waitTask = sink.WaitForBatchAsync("actor-a");
+		var waitTask = sink.WaitForBatchAsync("actor-a", TestContext.Current.CancellationToken);
 		Assert.False(waitTask.IsCompleted);
 
 		var batch = new ActionBatch("actor-a", []);
@@ -56,7 +56,7 @@ public sealed class ActionBatchSinkTests
 		var failure = new InvalidOperationException("boom");
 		writer.Fail(failure);
 
-		var result = await sink.WaitForBatchAsync("actor-a");
+		var result = await sink.WaitForBatchAsync("actor-a", TestContext.Current.CancellationToken);
 		Assert.False(result.IsSuccess);
 		Assert.Same(failure, result.Failure);
 	}
@@ -66,10 +66,10 @@ public sealed class ActionBatchSinkTests
 	{
 		var sink = new ActionBatchSink();
 		var writer = sink.WriterFor("actor-a");
-		var waitTask = sink.WaitForBatchAsync("actor-a");
+		var waitTask = sink.WaitForBatchAsync("actor-a", TestContext.Current.CancellationToken);
 		var batch = new ActionBatch("actor-a", []);
 
-		await Task.Run(() => writer.Publish(batch));
+		await Task.Run(() => writer.Publish(batch), TestContext.Current.CancellationToken);
 
 		var result = await waitTask;
 		Assert.True(result.IsSuccess);
