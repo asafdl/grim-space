@@ -1,6 +1,7 @@
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.Tests.World.StarSystem;
 
@@ -109,12 +110,12 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 	{
 		var map = maps.Template(42);
 		var plan = map.Blueprint.SupplyPlan;
-		var group = new[] { plan.RefineryPoiId, plan.StoragePoiId };
+		var group = new[] { plan.ExtractionPoiId, plan.StoragePoiId };
 
-		var result = AreaPicker.Pick(map, [group], [EAreaDistance.Low], 2);
+		var result = AreaPicker.Pick(map, [group], [EAreaDistance.High], 2);
 
 		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(result.Relation);
-		Assert.Equal(plan.RefineryPoiId, relation.LandmarkAId);
+		Assert.Equal(plan.ExtractionPoiId, relation.LandmarkAId);
 		Assert.Equal(plan.StoragePoiId, relation.LandmarkBId);
 		Assert.Contains(relation.LandmarkAId, group);
 		Assert.Contains(relation.LandmarkBId, group);
@@ -137,23 +138,52 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 	[InlineData(EAreaDistance.Low)]
 	[InlineData(EAreaDistance.Med)]
 	[InlineData(EAreaDistance.High)]
-	public void Pick_Suitability_MeetsBandCriteria(EAreaDistance distance)
+	public void Pick_OnOpenTerrain_MeetsBandCriteria(EAreaDistance distance)
 	{
-		var seeds = new[] { 0, 1, 7, 42, 99, 500 };
+		const int span = 200;
+		var map = AreaPickerTestMaps.OpenLandmarkPair(span);
+		var group = new[] { AreaPickerTestMaps.LandmarkAId, AreaPickerTestMaps.LandmarkBId };
+		var distanceConfig = new AreaDistanceConfig();
+		var result = AreaPicker.Pick(map, [group], [distance], 2, distanceConfig);
+
+		AssertBandCriteria(map, result, distance, distanceConfig);
+		Assert.True(map.PathfindingTerrain.IsCircleTraversable(result.Center, result.Radius));
+		AssertIntel(map, result);
+		AssertRadiusScalesWithSpan(map, result);
+	}
+
+	[Theory]
+	[InlineData(EAreaDistance.Low)]
+	[InlineData(EAreaDistance.Med)]
+	public void Pick_ThrowsWhenBandGeometryIsImpossible(EAreaDistance distance)
+	{
+		const int span = 100;
+		var map = AreaPickerTestMaps.OpenLandmarkPair(span);
+		var group = new[] { AreaPickerTestMaps.LandmarkAId, AreaPickerTestMaps.LandmarkBId };
+
+		Assert.Throws<InvalidOperationException>(() =>
+			AreaPicker.Pick(map, [group], [distance], 2));
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(7)]
+	[InlineData(42)]
+	[InlineData(99)]
+	[InlineData(500)]
+	public void Create_SeedsStarterSearchAreaThatMeetsBandCriteria(int seed)
+	{
+		var map = maps.Template(seed);
+		var hunt = Assert.IsType<HuntObjective>(map.ContractRegistry.Offered.Single().Objective);
+		var searchArea = hunt.SpawnGroups[0].SearchArea;
+		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(searchArea.Relation);
 		var distanceConfig = new AreaDistanceConfig();
 
-		foreach (var seed in seeds)
-		{
-			var map = maps.Template(seed);
-			var plan = map.Blueprint.SupplyPlan;
-			var group = new[] { plan.RefineryPoiId, plan.StoragePoiId };
-			var result = AreaPicker.Pick(map, [group], [distance], 2, distanceConfig);
-
-			AssertBandCriteria(map, result, distance, distanceConfig);
-			Assert.True(map.PathfindingTerrain.IsCircleTraversable(result.Center, result.Radius));
-			AssertIntel(map, result);
-			AssertRadiusScalesWithSpan(map, result);
-		}
+		AssertBandCriteria(map, searchArea, relation.Distance, distanceConfig);
+		Assert.True(map.PathfindingTerrain.IsCircleTraversable(searchArea.Center, searchArea.Radius));
+		AssertIntel(map, searchArea);
+		AssertRadiusScalesWithSpan(map, searchArea);
 	}
 
 	private static void AssertBandCriteria(

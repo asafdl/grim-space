@@ -1,9 +1,13 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Traffic;
+using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.Engine;
 
@@ -29,11 +33,11 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 	public void Subscribe_NotifiesOnlyMatchingEntriesCommittedByEngine()
 	{
 		using var engine = CreateEngine();
-		var actorId = engine.World.FleetRegistry.Ids.First();
+		var actorId = RunState.PlayerFleetUnitId;
 		var received = new List<BeginNarrativeAction>();
 		using var subscription = engine.Subscribe<BeginNarrativeAction>(received.Add);
 		var direct = new BeginNarrativeAction(actorId, "direct-append");
-		var committed = new BeginNarrativeAction(actorId, "committed");
+		var committed = new BeginNarrativeAction(actorId, MapNarratives.OpeningId);
 
 		engine.World.Timeline.Append(direct);
 		engine.Commit(committed);
@@ -45,13 +49,13 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 	public void DisposeSubscription_StopsCommitNotifications()
 	{
 		using var engine = CreateEngine();
-		var actorId = engine.World.FleetRegistry.Ids.First();
+		var actorId = RunState.PlayerFleetUnitId;
 		var notifications = 0;
 		var subscription = engine.Subscribe<BeginNarrativeAction>(_ => notifications++);
 
 		subscription.Dispose();
 		subscription.Dispose();
-		engine.Commit(new BeginNarrativeAction(actorId, "committed"));
+		engine.Commit(new BeginNarrativeAction(actorId, MapNarratives.OpeningId));
 
 		Assert.Equal(0, notifications);
 	}
@@ -60,11 +64,11 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 	public void Subscribe_UsesExactEntryType()
 	{
 		using var engine = CreateEngine();
-		var actorId = engine.World.FleetRegistry.Ids.First();
+		var actorId = RunState.PlayerFleetUnitId;
 		var notifications = 0;
 		using var subscription = engine.Subscribe<IAction>(_ => notifications++);
 
-		engine.Commit(new BeginNarrativeAction(actorId, "committed"));
+		engine.Commit(new BeginNarrativeAction(actorId, MapNarratives.OpeningId));
 
 		Assert.Equal(0, notifications);
 	}
@@ -72,6 +76,7 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 	private Engine<StarMap, ActorRuntime> CreateEngine()
 	{
 		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		foreach (var unit in map.FleetRegistry.All)
 			actorRuntimes.For(unit.State.Id);

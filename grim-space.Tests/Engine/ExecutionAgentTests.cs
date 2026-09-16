@@ -34,12 +34,12 @@ public sealed class ExecutionAgentTests(StarMapFixture maps)
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 		agent.PublishForTest([new MoveAction(unit.State.Id, unit.State.Id, destination, path)]);
 
-		var first = await sink.WaitForBatchAsync(unit.State.Id);
+		var first = await sink.WaitForBatchAsync(unit.State.Id, TestContext.Current.CancellationToken);
 		Assert.True(first.IsSuccess);
 		Assert.Single(first.Batch!.Actions);
 
 		agent.OnWorldUpdated();
-		var second = await sink.WaitForBatchAsync(unit.State.Id);
+		var second = await sink.WaitForBatchAsync(unit.State.Id, TestContext.Current.CancellationToken);
 		Assert.True(second.IsSuccess);
 		Assert.Empty(second.Batch!.Actions);
 	}
@@ -65,7 +65,7 @@ public sealed class ExecutionAgentTests(StarMapFixture maps)
 		var failure = new InvalidOperationException("agent failed");
 		agent.FailForTest(failure);
 
-		var result = await sink.WaitForBatchAsync(unit.State.Id);
+		var result = await sink.WaitForBatchAsync(unit.State.Id, TestContext.Current.CancellationToken);
 		Assert.False(result.IsSuccess);
 		Assert.Same(failure, result.Failure);
 	}

@@ -43,7 +43,7 @@ public sealed class PendingQueueDuringFlightTests(StarMapFixture maps)
 		Assert.False(sink.TryTakeBatch(unit.State.Id, out _));
 
 		agent.OnWorldUpdated();
-		var secondResult = await sink.WaitForBatchAsync(unit.State.Id);
+		var secondResult = await sink.WaitForBatchAsync(unit.State.Id, TestContext.Current.CancellationToken);
 		Assert.True(secondResult.IsSuccess);
 		Assert.Single(secondResult.Batch!.Actions);
 	}

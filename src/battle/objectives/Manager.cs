@@ -95,7 +95,7 @@ public sealed class Manager
 			|| participantIds.Distinct(StringComparer.Ordinal).Count() != participantIds.Length
 			|| declared.Any(participant => participant.TacticalUnitIds.Count == 0)
 			|| memberIds.Distinct(StringComparer.Ordinal).Count() != memberIds.Length
-			|| !unitIds.SetEquals(memberIds)
+			|| memberIds.Any(unitId => !unitIds.Contains(unitId))
 			|| declared.Any(participant => participant.TacticalUnitIds
 				.Select(unitId => unitsById[unitId].Alliance.Team)
 				.Distinct()

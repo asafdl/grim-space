@@ -190,7 +190,7 @@ public sealed class HumanExecutionAgentTests
 		BattleTestFixture.ResetPlayerPlanning(battle);
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 
-		var batchTask = battle.WaitForBatchAsync(PlayerId);
+		var batchTask = battle.WaitForBatchAsync(PlayerId, TestContext.Current.CancellationToken);
 		Assert.False(batchTask.IsCompleted);
 
 		Assert.True(agent.Commit());
@@ -213,7 +213,7 @@ public sealed class HumanExecutionAgentTests
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 		Assert.True(agent.Commit());
 
-		var result = await battle.WaitForBatchAsync(PlayerId);
+		var result = await battle.WaitForBatchAsync(PlayerId, TestContext.Current.CancellationToken);
 		Assert.Same(simAtOpen, agent.Sim);
 		Assert.Single(result.Batch!.Actions, action => action is MoveStepAction);
 	}

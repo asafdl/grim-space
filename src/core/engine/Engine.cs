@@ -76,11 +76,21 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 		var committed = new List<ITimelineEntry>();
 		foreach (var action in actions)
 		{
-			var records = ExecutionHelper.Apply(action, World, ActorRuntimes.For(action));
+			if (action is not IAction<TWorld, TRuntime> typed)
+				continue;
+
+			var runtime = ActorRuntimes.For(action);
+			if (!typed.Definition.IsLegal(action, World, runtime))
+				continue;
+
+			var records = ExecutionHelper.Apply(action, World, runtime);
 			ITimelineEntry[] entries = [action, ..records];
 			World.Timeline.Append(entries);
 			committed.AddRange(entries);
 		}
+
+		if (committed.Count == 0)
+			return World.Timeline.History();
 
 		BumpWorldVersion();
 		PublishCommitted(committed);
