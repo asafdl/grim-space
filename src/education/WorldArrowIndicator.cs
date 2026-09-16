@@ -5,7 +5,7 @@ namespace GrimSpace.Education;
 public sealed partial class WorldArrowIndicator : Node3D
 {
 	private const float ReferenceDistance = 22f;
-	private const float OffsetAtReferenceDistance = 0.85f;
+	private const float OffsetAtReferenceDistance = 1.2f;
 	private const float VisualScale = 0.45f;
 	private static readonly Color Color = new(0.35f, 0.85f, 0.95f, 0.95f);
 	private Node3D _arrow = null!;

@@ -5,43 +5,63 @@ namespace GrimSpace.Application;
 public static class GameSettings
 {
 	private const string SettingsPath = "user://settings.cfg";
+	private const string BorderlessFullscreenMode = "borderless_fullscreen";
+	private const string WindowedMode = "windowed";
 
 	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
 
 	public static readonly Vector2I[] SupportedResolutions =
 	[
+		new(3840, 2160),
 		new(2560, 1440),
 		new(1920, 1080),
 		new(1600, 900),
 		new(1280, 720),
 	];
 
-	public static (string Mode, int Width, int Height) ReadVideoConfig()
+	public enum DisplayMode
 	{
-		var hasSettings = TryLoad(out var config);
-
-		var mode = hasSettings
-			? config!.GetValue("video", "mode", "fullscreen").AsString()
-			: "fullscreen";
-		var width = hasSettings ? config!.GetValue("video", "width", 0).AsInt32() : 0;
-		var height = hasSettings ? config!.GetValue("video", "height", 0).AsInt32() : 0;
-
-		return (mode, width, height);
+		BorderlessFullscreen,
+		Windowed,
 	}
 
-	public static void SaveVideoConfig(string mode, int width, int height)
+	public readonly record struct VideoConfig(
+		DisplayMode Mode,
+		Vector2I Resolution);
+
+	public static VideoConfig ReadVideoConfig()
+	{
+		if (!TryLoad(out var config))
+			return new VideoConfig(DisplayMode.BorderlessFullscreen, DefaultResolution());
+
+		var mode = config!.GetValue("video", "mode", BorderlessFullscreenMode).AsString();
+		var width = config.GetValue("video", "width", 0).AsInt32();
+		var height = config.GetValue("video", "height", 0).AsInt32();
+		var resolution = TryFindResolution(width, height, out var saved)
+			? saved
+			: DefaultResolution();
+
+		return new VideoConfig(
+			mode == WindowedMode ? DisplayMode.Windowed : DisplayMode.BorderlessFullscreen,
+			resolution);
+	}
+
+	public static void SaveVideoConfig(VideoConfig video)
 	{
 		var config = LoadOrCreate();
-		config.SetValue("video", "mode", mode);
-		config.SetValue("video", "width", width);
-		config.SetValue("video", "height", height);
+		config.SetValue(
+			"video",
+			"mode",
+			video.Mode == DisplayMode.Windowed ? WindowedMode : BorderlessFullscreenMode);
+		config.SetValue("video", "width", video.Resolution.X);
+		config.SetValue("video", "height", video.Resolution.Y);
+		config.EraseSectionKey("video", "render_scale");
 		config.Save(SettingsPath);
 	}
 
 	public static void ApplySavedVideoConfig()
 	{
-		var (mode, width, height) = ReadVideoConfig();
-		ApplyVideoConfig(mode, NormalizeWindowedResolution(width, height));
+		ApplyVideoConfig(ReadVideoConfig());
 	}
 
 	public static float ReadMasterVolume()
@@ -83,15 +103,20 @@ public static class GameSettings
 		AudioServer.SetBusVolumeDb(bus, linear <= 0f ? -80f : Mathf.LinearToDb(linear));
 	}
 
-	public static void ApplyVideoConfig(string mode, Vector2I windowedSize)
+	public static void ApplyVideoConfig(VideoConfig video)
 	{
 		var window = (Window)((SceneTree)Godot.Engine.GetMainLoop()).Root;
-		window.ContentScaleSize = DesignCanvasSize;
+		var resolution = NormalizeResolution(video.Resolution.X, video.Resolution.Y);
+		window.ContentScaleMode = Window.ContentScaleModeEnum.Viewport;
+		window.ContentScaleAspect = Window.ContentScaleAspectEnum.Expand;
+		window.ContentScaleSize = resolution;
+		window.ContentScaleFactor = 1f;
+		window.Scaling3DScale = 1f;
 
-		if (mode == "windowed")
+		if (video.Mode == DisplayMode.Windowed)
 		{
 			window.Mode = Window.ModeEnum.Windowed;
-			window.Size = windowedSize;
+			window.Size = resolution;
 			window.MoveToCenter();
 			return;
 		}
@@ -99,27 +124,28 @@ public static class GameSettings
 		window.Mode = Window.ModeEnum.Fullscreen;
 	}
 
-	public static Vector2I NormalizeWindowedResolution(int width, int height)
+	public static Vector2I NormalizeResolution(int width, int height)
 	{
 		if (TryFindResolution(width, height, out var resolution))
 			return resolution;
 
-		return SupportedResolutions[0];
+		return DesignCanvasSize;
 	}
 
-	public static bool TryFindResolution(int width, int height, out Vector2I resolution)
+	public static Vector2I FitResolutionToScreen(Vector2I screenSize, float screenScale)
 	{
-		foreach (var candidate in SupportedResolutions)
+		var scale = screenScale > 0f ? screenScale : 1f;
+		var effectiveSize = new Vector2I(
+			Mathf.RoundToInt(screenSize.X / scale),
+			Mathf.RoundToInt(screenSize.Y / scale));
+
+		foreach (var resolution in SupportedResolutions)
 		{
-			if (candidate.X == width && candidate.Y == height)
-			{
-				resolution = candidate;
-				return true;
-			}
+			if (resolution.X <= effectiveSize.X && resolution.Y <= effectiveSize.Y)
+				return resolution;
 		}
 
-		resolution = default;
-		return false;
+		return SupportedResolutions[^1];
 	}
 
 	public static bool TryFindResolutionIndex(int width, int height, out int index)
@@ -134,6 +160,24 @@ public static class GameSettings
 		}
 
 		index = 0;
+		return false;
+	}
+
+	private static Vector2I DefaultResolution() =>
+		FitResolutionToScreen(DisplayServer.ScreenGetSize(), DisplayServer.ScreenGetScale());
+
+	private static bool TryFindResolution(int width, int height, out Vector2I resolution)
+	{
+		foreach (var candidate in SupportedResolutions)
+		{
+			if (candidate.X == width && candidate.Y == height)
+			{
+				resolution = candidate;
+				return true;
+			}
+		}
+
+		resolution = default;
 		return false;
 	}
 

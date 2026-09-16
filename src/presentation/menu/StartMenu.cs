@@ -43,7 +43,7 @@ public partial class StartMenu : Control
 		_masterVolume = GetNode<HSlider>("%MasterVolume");
 		_showTutorials = GetNode<CheckBox>("%ShowTutorials");
 
-		_displayMode.ItemSelected += _ => UpdateResolutionEnabled();
+		PopulateResolutions();
 
 		_startButton = GetNode<Button>("%Start");
 		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
@@ -58,47 +58,40 @@ public partial class StartMenu : Control
 
 	private void LoadSettingsToUi()
 	{
-		var (mode, width, height) = GameSettings.ReadVideoConfig();
-		_displayMode.Selected = mode == "windowed" ? 1 : 0;
-		SelectResolution(width, height);
-		UpdateResolutionEnabled();
+		var video = GameSettings.ReadVideoConfig();
+		_displayMode.Selected = video.Mode == GameSettings.DisplayMode.Windowed ? 1 : 0;
+		SelectResolution(video.Resolution);
 		_masterVolume.Value = GameSettings.ReadMasterVolume() * 100f;
 		_showTutorials.ButtonPressed = GameSettings.ReadShowTutorials();
 	}
 
-	private void SelectResolution(int width, int height)
+	private void PopulateResolutions()
 	{
-		if (GameSettings.TryFindResolutionIndex(width, height, out var index))
-			_resolution.Selected = index;
-		else
-			_resolution.Selected = 0;
+		_resolution.Clear();
+		foreach (var resolution in GameSettings.SupportedResolutions)
+			_resolution.AddItem($"{resolution.X}x{resolution.Y}");
 	}
 
-	private Vector2I SelectedResolution() => GameSettings.SupportedResolutions[_resolution.Selected];
-
-	private void ApplyVideoSettings()
+	private void SelectResolution(Vector2I resolution)
 	{
-		var windowed = _displayMode.Selected == 1;
-		GameSettings.ApplyVideoConfig(
-			windowed ? "windowed" : "fullscreen",
-			SelectedResolution());
+		_resolution.Selected = GameSettings.TryFindResolutionIndex(
+			resolution.X,
+			resolution.Y,
+			out var index)
+			? index
+			: 0;
 	}
 
-	private void SaveVideoSettings()
-	{
-		var windowed = _displayMode.Selected == 1;
-		var size = windowed
-			? SelectedResolution()
-			: GameSettings.SupportedResolutions[0];
+	private GameSettings.VideoConfig SelectedVideoConfig() =>
+		new(SelectedDisplayMode(), SelectedResolution());
 
-		GameSettings.SaveVideoConfig(
-			windowed ? "windowed" : "fullscreen",
-			size.X,
-			size.Y);
-	}
+	private GameSettings.DisplayMode SelectedDisplayMode() =>
+		_displayMode.Selected == 1
+			? GameSettings.DisplayMode.Windowed
+			: GameSettings.DisplayMode.BorderlessFullscreen;
 
-	private void UpdateResolutionEnabled() =>
-		_resolution.Disabled = _displayMode.Selected != 1;
+	private Vector2I SelectedResolution() =>
+		GameSettings.SupportedResolutions[_resolution.Selected];
 
 	private void ApplyAudioSettings()
 	{
@@ -109,8 +102,9 @@ public partial class StartMenu : Control
 
 	private void OnApply()
 	{
-		ApplyVideoSettings();
-		SaveVideoSettings();
+		var video = SelectedVideoConfig();
+		GameSettings.ApplyVideoConfig(video);
+		GameSettings.SaveVideoConfig(video);
 		ApplyAudioSettings();
 		GameSettings.SaveShowTutorials(_showTutorials.ButtonPressed);
 	}
