@@ -14,8 +14,18 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		var dialog = new TestDialog();
 		var focus = new TestWorldFocus();
 		var indicator = new TestWorldIndicator();
-		using var runner = new TutorialRunner(progress, dialog, focus, indicator);
-		var flow = FirstContractTutorial.Create(maps.Template(42));
+		using var worldLinks = new WorldLinkNavigator(focus, indicator);
+		using var runner = new TutorialRunner(progress, dialog, worldLinks);
+		var map = maps.Template(42);
+		var flow = new TutorialFlow(
+			"contract-intro",
+			[
+				new TutorialStep(
+					map.Blueprint.SupplyPlan.AdministrativePoiId,
+					new TutorialDialogContent(
+						"Your first contract",
+						"Move to the Administrative Core.")),
+			]);
 
 		var result = runner.Start(flow);
 		var step = Assert.Single(flow.Steps);
@@ -42,11 +52,8 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		var flow = FirstContractTutorial.Create(maps.Template(42));
 		progress.Complete(flow.Id);
 		var dialog = new TestDialog();
-		using var runner = new TutorialRunner(
-			progress,
-			dialog,
-			new TestWorldFocus(),
-			new TestWorldIndicator());
+		using var worldLinks = new WorldLinkNavigator(new TestWorldFocus(), new TestWorldIndicator());
+		using var runner = new TutorialRunner(progress, dialog, worldLinks);
 
 		var result = runner.Start(flow);
 
@@ -60,12 +67,17 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		var dialog = new TestDialog();
 		var focus = new TestWorldFocus();
 		var indicator = new TestWorldIndicator();
-		using var runner = new TutorialRunner(
-			new TutorialProgress(),
-			dialog,
-			focus,
-			indicator);
-		var flow = FirstContractTutorial.Create(maps.Template(42));
+		using var worldLinks = new WorldLinkNavigator(focus, indicator);
+		using var runner = new TutorialRunner(new TutorialProgress(), dialog, worldLinks);
+		var flow = new TutorialFlow(
+			"world-link",
+			[
+				new TutorialStep(
+					"poi-admin",
+					new TutorialDialogContent(
+						"Contracts",
+						"Track the [url=pirate-1]pirate ship[/url] on the map.")),
+			]);
 		runner.Start(flow);
 		var initialHandle = indicator.Handle;
 		var initialFocusHandle = focus.Handle;
@@ -91,7 +103,8 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		var dialog = new TestDialog();
 		var focus = new TestWorldFocus();
 		var indicator = new TestWorldIndicator();
-		using var runner = new TutorialRunner(progress, dialog, focus, indicator);
+		using var worldLinks = new WorldLinkNavigator(focus, indicator);
+		using var runner = new TutorialRunner(progress, dialog, worldLinks);
 		var introduction = new TutorialStep(
 			null,
 			new TutorialDialogContent("Battle basics", "Review the battlefield."));
@@ -128,11 +141,8 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		var dialog = new TestDialog();
 		var focus = new TestWorldFocus();
 		var indicator = new TestWorldIndicator();
-		using var runner = new TutorialRunner(
-			new TutorialProgress(),
-			dialog,
-			focus,
-			indicator);
+		using var worldLinks = new WorldLinkNavigator(focus, indicator);
+		using var runner = new TutorialRunner(new TutorialProgress(), dialog, worldLinks);
 		var step = new TutorialStep(
 			"battle-overview",
 			new TutorialDialogContent("Battle overview", "Review the battlefield."),
@@ -151,11 +161,8 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 	{
 		var dialog = new TestDialog();
 		var focus = new TestWorldFocus();
-		using var runner = new TutorialRunner(
-			new TutorialProgress(),
-			dialog,
-			focus,
-			new TestWorldIndicator());
+		using var worldLinks = new WorldLinkNavigator(focus, new TestWorldIndicator());
+		using var runner = new TutorialRunner(new TutorialProgress(), dialog, worldLinks);
 		var focused = new TutorialStep(
 			"enemy-1",
 			new TutorialDialogContent("Enemy", "Review the enemy."));
@@ -185,7 +192,9 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		Assert.Contains(
 			$"[url={map.Blueprint.SupplyPlan.AdministrativePoiId}]Administrative Core[/url]",
 			step.Dialog.Message);
-		Assert.Equal("Accept", step.Dialog.AcceptText);
+		Assert.Null(step.Dialog.AcceptText);
+		Assert.False(step.FocusTarget);
+		Assert.False(step.AdvanceOnAccept);
 	}
 
 	[Fact]

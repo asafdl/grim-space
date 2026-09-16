@@ -6,7 +6,7 @@ using GrimSpace.World.StarSystem.Encounter;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
-public sealed partial class EngagementHudOverlay : Node
+public sealed partial class EngagementHudOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private bool _busy;
@@ -16,6 +16,13 @@ public sealed partial class EngagementHudOverlay : Node
 
 	public EngagementHudOverlay()
 	{
+		AnchorsPreset = (int)LayoutPreset.FullRect;
+		AnchorRight = 1f;
+		AnchorBottom = 1f;
+		GrowHorizontal = GrowDirection.Both;
+		GrowVertical = GrowDirection.Both;
+		MouseFilter = MouseFilterEnum.Ignore;
+
 		_shell = new ModalShell();
 		AddChild(_shell);
 	}

@@ -27,6 +27,8 @@ public sealed class EngagementController : IDisposable
 		Sync();
 	}
 
+	public bool IsOpen => _hud.IsOpen;
+
 	public bool TryHandleInput(Godot.InputEvent @event) => _hud.TryHandleInput(@event);
 
 	private void Sync()

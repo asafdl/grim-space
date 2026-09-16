@@ -3,7 +3,7 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Presentation.Dev;
 
-public sealed partial class DevMenuOverlay : Node
+public sealed partial class DevMenuOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private Func<bool>? _canForceBattleOutcome;
@@ -14,6 +14,13 @@ public sealed partial class DevMenuOverlay : Node
 
 	public DevMenuOverlay()
 	{
+		AnchorsPreset = (int)LayoutPreset.FullRect;
+		AnchorRight = 1f;
+		AnchorBottom = 1f;
+		GrowHorizontal = GrowDirection.Both;
+		GrowVertical = GrowDirection.Both;
+		MouseFilter = MouseFilterEnum.Ignore;
+
 		_shell = new ModalShell(HudThemeFamily.Informative);
 		AddChild(_shell);
 	}

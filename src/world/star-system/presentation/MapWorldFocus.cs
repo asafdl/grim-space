@@ -1,6 +1,4 @@
-using Godot;
 using GrimSpace.Education;
-using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -39,44 +37,16 @@ public sealed class MapWorldFocus : IWorldFocus
 
 	private WorldFocusResult PrepareFocus(StarMap world, WorldObjectResolution.Found found)
 	{
-		var handle = new RestoreCameraFocus(_camera);
-		if (_prepareFocus(() => handle.Focus(() => Focus(world, found))))
-			return new WorldFocusResult.Accepted(handle);
+		IWorldFocusHandle? handle = null;
+		if (_prepareFocus(() =>
+			{
+				handle = _camera.BeginFocusLease(() =>
+					_camera.FocusPivot(
+						MapMapping.ToWorld(found.Position, world.Width, world.Height)));
+			}))
+			return new WorldFocusResult.Accepted(handle!);
 
-		handle.Dispose();
+		handle?.Dispose();
 		return new WorldFocusResult.Unavailable();
-	}
-
-	private void Focus(StarMap world, WorldObjectResolution.Found found)
-	{
-		_camera.FocusPivot(
-			MapMapping.ToWorld(found.Position, world.Width, world.Height));
-	}
-
-	private sealed class RestoreCameraFocus(MapCamera camera) : IWorldFocusHandle
-	{
-		private MapCamera? _camera = camera;
-		private OrbitPose _pose;
-		private bool _captured;
-
-		public void Focus(Action focus)
-		{
-			if (_camera is null)
-				return;
-
-			_pose = _camera.CurrentPose;
-			_captured = true;
-			focus();
-		}
-
-		public void Dispose()
-		{
-			if (_camera is null)
-				return;
-
-			if (_captured && GodotObject.IsInstanceValid(_camera))
-				_camera.TweenToPose(_pose);
-			_camera = null;
-		}
 	}
 }

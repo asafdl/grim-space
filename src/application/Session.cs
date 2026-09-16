@@ -40,8 +40,10 @@ public partial class Session : Node
 
 	public override void _Ready()
 	{
+		var devMenuLayer = new CanvasLayer { Layer = 20 };
+		AddChild(devMenuLayer);
 		_devMenu = new DevMenuOverlay();
-		AddChild(_devMenu);
+		devMenuLayer.AddChild(_devMenu);
 		_devMenu.StartBattleRequested += StartDevBattle;
 	}
 

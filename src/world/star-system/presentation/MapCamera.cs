@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Education;
 using GrimSpace.Math.Camera;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -45,14 +46,19 @@ public partial class MapCamera : Camera3D
 	private bool _facadeActive;
 	private bool _domainBlocked;
 	private bool _focusTween;
+	private float _manualInputGraceRemaining;
 	private Tween? _automationTween;
 	private Action? _automationComplete;
+	private readonly MapCameraFocusLeases _focusLeases = new();
+
+	private const float ManualInputGrace = 0.75f;
 
 	public float Distance => _pose.Distance;
 	public OrbitPose CurrentPose => _pose;
 	public OrbitPose CapturedPose => _capturedPose;
 	public OrbitLimits ActiveLimits => _activeLimits;
 	public bool IsAnimating => _automationTween is not null;
+	public bool IsManualGestureActive => _orbiting || _manualInputGraceRemaining > 0f;
 	public bool IsFacadeActive => _facadeActive;
 	public bool ManualInputEnabled => !_domainBlocked;
 
@@ -105,8 +111,17 @@ public partial class MapCamera : Camera3D
 	public void SetOcclusionEnabled(bool enabled) =>
 		_springArm.CollisionMask = enabled ? MapCameraOcclusion.CollisionMask : 0u;
 
+	public IWorldFocusHandle BeginFocusLease(Action applyFocus)
+	{
+		var capturedPose = _pose;
+		var generation = _focusLeases.Begin();
+		applyFocus();
+		return new FocusLease(this, generation, capturedPose);
+	}
+
 	public void SnapToPose(OrbitPose target, OrbitLimits limits)
 	{
+		SupersedeFocusLeases();
 		CancelAutomation();
 		_activeLimits = limits;
 		target.Clamp(limits);
@@ -152,7 +167,8 @@ public partial class MapCamera : Camera3D
 			target,
 			_activeLimits,
 			CameraTransition.Duration(_pose, target),
-			null);
+			null,
+			supersedeFocusLeases: false);
 	}
 
 	public void FocusPivot(Vector3 pivot, float duration)
@@ -161,7 +177,13 @@ public partial class MapCamera : Camera3D
 		var target = _pose;
 		target.Pivot = pivot;
 		_focusTween = true;
-		BeginPoseTween(_pose, target, _activeLimits, duration, null);
+		BeginPoseTween(
+			_pose,
+			target,
+			_activeLimits,
+			duration,
+			null,
+			supersedeFocusLeases: false);
 	}
 
 	public void RestoreCapturedPose(float duration, Action? onComplete = null, float minDistance = 0f)
@@ -210,8 +232,46 @@ public partial class MapCamera : Camera3D
 		_focusTween = false;
 	}
 
+	public void MovePivotToward(Vector3 target, float delta, float responseTime)
+	{
+		if (IsAnimating)
+			return;
+
+		SupersedeFocusLeases();
+
+		if (responseTime <= 0f)
+			_pose.Pivot = target;
+		else
+		{
+			var t = Mathf.Clamp(delta / responseTime, 0f, 1f);
+			_pose.Pivot += (target - _pose.Pivot) * t;
+		}
+
+		ClampPivotToMap();
+		ApplyTransform();
+	}
+
+	public void MoveTowardPose(OrbitPose target, float delta, float responseTime)
+	{
+		if (IsAnimating)
+			return;
+
+		SupersedeFocusLeases();
+
+		var t = responseTime <= 0f ? 1f : Mathf.Clamp(delta / responseTime, 0f, 1f);
+		_pose.Pivot = _pose.Pivot.Lerp(target.Pivot, t);
+		_pose.Distance = Mathf.Lerp(_pose.Distance, target.Distance, t);
+		_pose.Yaw = Mathf.LerpAngle(_pose.Yaw, target.Yaw, t);
+		_pose.Pitch = Mathf.Lerp(_pose.Pitch, target.Pitch, t);
+		ClampPivotToMap();
+		ApplyTransform();
+	}
+
 	public override void _Process(double delta)
 	{
+		if (_manualInputGraceRemaining > 0f)
+			_manualInputGraceRemaining = Mathf.Max(0f, _manualInputGraceRemaining - (float)delta);
+
 		if (!AllowsPanInput())
 			return;
 
@@ -231,6 +291,7 @@ public partial class MapCamera : Camera3D
 		if (!PrepareManualInput())
 			return;
 
+		NotifyManualInput();
 		pan = pan.Normalized();
 		var (right, forward) = OrbitPose.FlatPanAxes(GlobalTransform.Basis);
 		_pose.FlatPan(pan, right, forward, OrbitControls.KeyboardPanSpeed, (float)delta);
@@ -251,6 +312,7 @@ public partial class MapCamera : Camera3D
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
 				if (IsMouseOverUi() || !AllowsOrbitInput() || !PrepareManualInput())
 					break;
+				NotifyManualInput();
 				_orbiting = true;
 				_lastMousePosition = mouseButton.Position;
 				GetViewport().SetInputAsHandled();
@@ -263,6 +325,7 @@ public partial class MapCamera : Camera3D
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
 				if (IsMouseOverUi() || !AllowsWheelInput() || !PrepareManualInput())
 					break;
+				NotifyManualInput();
 				_pose.Zoom(-OrbitControls.ZoomStep, _activeLimits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
@@ -271,6 +334,7 @@ public partial class MapCamera : Camera3D
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
 				if (IsMouseOverUi() || !AllowsWheelInput() || !PrepareManualInput())
 					break;
+				NotifyManualInput();
 				_pose.Zoom(OrbitControls.ZoomStep, _activeLimits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
@@ -281,6 +345,7 @@ public partial class MapCamera : Camera3D
 				if (!PrepareManualInput())
 					break;
 
+				NotifyManualInput();
 				var delta = motion.Position - _lastMousePosition;
 				_lastMousePosition = motion.Position;
 				_pose.Orbit(delta, OrbitControls.OrbitSensitivity, _activeLimits);
@@ -296,8 +361,12 @@ public partial class MapCamera : Camera3D
 		OrbitPose target,
 		OrbitLimits limits,
 		float duration,
-		Action? onComplete)
+		Action? onComplete,
+		bool supersedeFocusLeases = true)
 	{
+		if (supersedeFocusLeases)
+			SupersedeFocusLeases();
+
 		_tweenLimits = limits;
 		var startPivot = start.Pivot;
 		var startDistance = start.Distance;
@@ -361,6 +430,33 @@ public partial class MapCamera : Camera3D
 
 		CancelAutomation();
 		return true;
+	}
+
+	private void NotifyManualInput()
+	{
+		SupersedeFocusLeases();
+		_manualInputGraceRemaining = ManualInputGrace;
+	}
+
+	private void SupersedeFocusLeases() => _focusLeases.Supersede();
+
+	private sealed class FocusLease(MapCamera camera, int generation, OrbitPose capturedPose)
+		: IWorldFocusHandle
+	{
+		private MapCamera? _camera = camera;
+
+		public void Dispose()
+		{
+			if (_camera is null || !_camera._focusLeases.IsCurrent(generation))
+			{
+				_camera = null;
+				return;
+			}
+
+			if (GodotObject.IsInstanceValid(_camera))
+				_camera.TweenToPose(capturedPose);
+			_camera = null;
+		}
 	}
 
 	private void ClampPivotToMap()

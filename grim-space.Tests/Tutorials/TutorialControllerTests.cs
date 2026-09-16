@@ -25,25 +25,24 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
 		var progress = new TutorialProgress();
 		var dialog = new TestDialog();
-		using var controller = new TutorialController(
-			orchestrator,
-			progress,
-			dialog,
+		using var worldLinks = new WorldLinkNavigator(
 			new AcceptingWorldFocus(),
 			new AcceptingWorldIndicator());
+		using var controller = new TutorialController(orchestrator, progress, dialog, worldLinks);
 
 		controller.Sync();
 
 		Assert.True(controller.IsActive);
 		Assert.True(dialog.IsOpen);
+		Assert.Null(dialog.Content?.AcceptText);
 		Assert.Equal(ESimMode.Running, orchestrator.SimMode);
 		Assert.True(orchestrator.CanAdvance);
 
 		dialog.Accept();
 
-		Assert.False(controller.IsActive);
-		Assert.False(dialog.IsOpen);
-		Assert.True(progress.IsCompleted(FirstContractTutorial.Id));
+		Assert.True(controller.IsActive);
+		Assert.True(dialog.IsOpen);
+		Assert.False(progress.IsCompleted(FirstContractTutorial.Id));
 		Assert.Equal(ESimMode.Running, orchestrator.SimMode);
 		Assert.True(orchestrator.CanAdvance);
 	}
@@ -55,12 +54,14 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		orchestrator.CommitSetup(
 			new BeginNarrativeAction(RunState.PlayerFleetUnitId, MapNarratives.OpeningId));
 		var dialog = new TestDialog();
+		using var worldLinks = new WorldLinkNavigator(
+			new AcceptingWorldFocus(),
+			new AcceptingWorldIndicator());
 		using var controller = new TutorialController(
 			orchestrator,
 			new TutorialProgress(),
 			dialog,
-			new AcceptingWorldFocus(),
-			new AcceptingWorldIndicator());
+			worldLinks);
 
 		orchestrator.CommitSetup(
 			new CompleteNarrativeAction(RunState.PlayerFleetUnitId, MapNarratives.OpeningId));
@@ -77,12 +78,10 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
 		var progress = new TutorialProgress();
 		var dialog = new TestDialog();
-		using var controller = new TutorialController(
-			orchestrator,
-			progress,
-			dialog,
+		using var worldLinks = new WorldLinkNavigator(
 			new AcceptingWorldFocus(),
 			new AcceptingWorldIndicator());
+		using var controller = new TutorialController(orchestrator, progress, dialog, worldLinks);
 		controller.Sync();
 
 		var playerId = RunState.PlayerFleetUnitId;
@@ -107,16 +106,20 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		orchestrator.SetStepped();
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
 		var dialog = new TestDialog();
+		using var worldLinks = new WorldLinkNavigator(
+			new AcceptingWorldFocus(),
+			new AcceptingWorldIndicator());
 		using var controller = new TutorialController(
 			orchestrator,
 			new TutorialProgress(),
 			dialog,
-			new AcceptingWorldFocus(),
-			new AcceptingWorldIndicator());
+			worldLinks);
 
 		controller.Sync();
+
 		dialog.Accept();
 
+		Assert.True(controller.IsActive);
 		Assert.Equal(ESimMode.Stepped, orchestrator.SimMode);
 	}
 
@@ -136,12 +139,10 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		var progress = new TutorialProgress();
 		progress.Complete(FirstContractTutorial.Id);
 		var dialog = new TestDialog();
-		using var controller = new TutorialController(
-			orchestrator,
-			progress,
-			dialog,
+		using var worldLinks = new WorldLinkNavigator(
 			new AcceptingWorldFocus(),
 			new AcceptingWorldIndicator());
+		using var controller = new TutorialController(orchestrator, progress, dialog, worldLinks);
 		controller.Sync();
 
 		var origin = orchestrator.CommittedPositionOf(RunState.PlayerFleetUnitId);
@@ -173,12 +174,8 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		var dialog = new TestDialog();
 		var focus = new AcceptingWorldFocus();
 		var indicator = new AcceptingWorldIndicator();
-		using var controller = new TutorialController(
-			orchestrator,
-			progress,
-			dialog,
-			focus,
-			indicator);
+		using var worldLinks = new WorldLinkNavigator(focus, indicator);
+		using var controller = new TutorialController(orchestrator, progress, dialog, worldLinks);
 
 		controller.Sync();
 
@@ -202,12 +199,12 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 		var indicator = new AcceptingWorldIndicator();
 		var flow = FirstBattleTutorial.Create();
 		using var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		using var worldLinks = new WorldLinkNavigator(focus, indicator);
 		using var controller = TutorialController.CreateForBattle(
 			battle.PlayerAgent,
 			progress,
 			dialog,
-			focus,
-			indicator);
+			worldLinks);
 		TutorialFlow? completedFlow = null;
 		var completedQueueCount = -1;
 		controller.Completed += flow =>

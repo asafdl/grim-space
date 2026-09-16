@@ -26,9 +26,8 @@ public sealed class TutorialController : IDisposable
 		StarSystemOrchestrator orchestrator,
 		TutorialProgress progress,
 		ITutorialDialog dialog,
-		IWorldFocus worldFocus,
-		IWorldIndicator worldIndicator)
-		: this(progress, dialog, worldFocus, worldIndicator, battleAgent: null)
+		WorldLinkNavigator worldLinks)
+		: this(progress, dialog, worldLinks, battleAgent: null)
 	{
 		_orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 		_narrativeSubscription = _orchestrator.Subscribe<CompleteNarrativeAction>(_ => Sync());
@@ -37,13 +36,12 @@ public sealed class TutorialController : IDisposable
 	private TutorialController(
 		TutorialProgress progress,
 		ITutorialDialog dialog,
-		IWorldFocus worldFocus,
-		IWorldIndicator worldIndicator,
+		WorldLinkNavigator worldLinks,
 		UserExecutionAgent? battleAgent)
 	{
 		_progress = progress ?? throw new ArgumentNullException(nameof(progress));
 		_battleAgent = battleAgent;
-		_runner = new TutorialRunner(progress, dialog, worldFocus, worldIndicator);
+		_runner = new TutorialRunner(progress, dialog, worldLinks);
 		_runner.Started += OnStarted;
 		_runner.StepStarted += OnStepStarted;
 		_runner.AssistanceRequested += OnAssistanceRequested;
@@ -56,15 +54,13 @@ public sealed class TutorialController : IDisposable
 		UserExecutionAgent battleAgent,
 		TutorialProgress progress,
 		ITutorialDialog dialog,
-		IWorldFocus worldFocus,
-		IWorldIndicator worldIndicator)
+		WorldLinkNavigator worldLinks)
 	{
 		ArgumentNullException.ThrowIfNull(battleAgent);
 		var controller = new TutorialController(
 			progress,
 			dialog,
-			worldFocus,
-			worldIndicator,
+			worldLinks,
 			battleAgent);
 		controller.Start(FirstBattleTutorial.Create());
 		return controller;

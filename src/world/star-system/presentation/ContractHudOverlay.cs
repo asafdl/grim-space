@@ -5,7 +5,7 @@ using GrimSpace.World.StarSystem.Encounter;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
-public sealed partial class ContractHudOverlay : Node
+public sealed partial class ContractHudOverlay : Control
 {
 	private enum ViewMode
 	{
@@ -29,6 +29,13 @@ public sealed partial class ContractHudOverlay : Node
 
 	public ContractHudOverlay()
 	{
+		AnchorsPreset = (int)LayoutPreset.FullRect;
+		AnchorRight = 1f;
+		AnchorBottom = 1f;
+		GrowHorizontal = GrowDirection.Both;
+		GrowVertical = GrowDirection.Both;
+		MouseFilter = MouseFilterEnum.Ignore;
+
 		_shell = new ModalShell();
 		AddChild(_shell);
 		_shell.Closed += () => Closed?.Invoke();

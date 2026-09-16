@@ -2,9 +2,8 @@ using Godot;
 
 namespace GrimSpace.Components;
 
-public sealed partial class ModalShell : CanvasLayer
+public sealed partial class ModalShell : Control
 {
-	private Control _root = null!;
 	private PanelContainer _panel = null!;
 	private MarginContainer _outer = null!;
 	private Label _title = null!;
@@ -27,7 +26,11 @@ public sealed partial class ModalShell : CanvasLayer
 	public ModalShell(HudThemeFamily? themeFamily = null)
 	{
 		_themeFamily = themeFamily;
-		Layer = 20;
+		AnchorsPreset = (int)LayoutPreset.FullRect;
+		AnchorRight = 1f;
+		AnchorBottom = 1f;
+		GrowHorizontal = GrowDirection.Both;
+		GrowVertical = GrowDirection.Both;
 		Build();
 		Visible = false;
 	}
@@ -40,7 +43,6 @@ public sealed partial class ModalShell : CanvasLayer
 		SetSubtitle(subtitle);
 		Visible = true;
 		LayoutPanel();
-		Callable.From(LayoutPanel).CallDeferred();
 	}
 
 	public void Close()
@@ -83,7 +85,7 @@ public sealed partial class ModalShell : CanvasLayer
 		foreach (var child in _bodyHost.GetChildren())
 			child.QueueFree();
 
-		content.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		_bodyHost.AddChild(content);
 	}
 
@@ -108,7 +110,7 @@ public sealed partial class ModalShell : CanvasLayer
 		foreach (var action in secondary)
 			_footer.AddChild(CreateFooterButton(action));
 
-		var spacer = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+		var spacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		_footer.AddChild(spacer);
 
 		foreach (var action in primary)
@@ -130,42 +132,33 @@ public sealed partial class ModalShell : CanvasLayer
 
 	private void Build()
 	{
-		_root = new Control
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-			MouseFilter = Control.MouseFilterEnum.Stop,
-		};
-		AddChild(_root);
+		MouseFilter = MouseFilterEnum.Stop;
 
 		var backdrop = new ColorRect
 		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorsPreset = (int)LayoutPreset.FullRect,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
+			GrowHorizontal = GrowDirection.Both,
+			GrowVertical = GrowDirection.Both,
 			Color = HudStyles.ModalBackdrop,
 		};
-		_root.AddChild(backdrop);
+		AddChild(backdrop);
 
 		var center = new CenterContainer
 		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorsPreset = (int)LayoutPreset.FullRect,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
+			GrowHorizontal = GrowDirection.Both,
+			GrowVertical = GrowDirection.Both,
 		};
-		_root.AddChild(center);
+		AddChild(center);
 
 		_panel = new PanelContainer
 		{
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 		};
 		HudStyles.SetPanelVariation(
 			_panel,
@@ -173,12 +166,12 @@ public sealed partial class ModalShell : CanvasLayer
 		center.AddChild(_panel);
 
 		if (_themeFamily is { } themeFamily)
-			HudThemes.Apply(_root, themeFamily);
+			HudThemes.Apply(this, themeFamily);
 
 		_outer = new MarginContainer
 		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
 		_outer.AddThemeConstantOverride("margin_left", HudStyles.Margin);
 		_outer.AddThemeConstantOverride("margin_right", HudStyles.Margin);
@@ -188,8 +181,8 @@ public sealed partial class ModalShell : CanvasLayer
 
 		var layout = new VBoxContainer
 		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
 		layout.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		_outer.AddChild(layout);
@@ -199,15 +192,15 @@ public sealed partial class ModalShell : CanvasLayer
 
 		_bodyScroll = new ScrollContainer
 		{
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
 		};
 		layout.AddChild(_bodyScroll);
 
 		_bodyHost = new VBoxContainer
 		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_bodyHost.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		_bodyScroll.AddChild(_bodyHost);
@@ -217,14 +210,14 @@ public sealed partial class ModalShell : CanvasLayer
 		_footer.Visible = false;
 		layout.AddChild(_footer);
 
-		Callable.From(ConnectViewportLayout).CallDeferred();
+		Resized += OnResized;
 	}
 
 	private Control BuildHeader()
 	{
 		var row = new HBoxContainer
 		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		row.AddThemeConstantOverride("separation", 12);
 
@@ -232,19 +225,19 @@ public sealed partial class ModalShell : CanvasLayer
 		{
 			Text = "×",
 			Flat = true,
-			FocusMode = Control.FocusModeEnum.All,
+			FocusMode = FocusModeEnum.All,
 		};
 		HudStyles.StyleButton(_headerButton, HudActionKind.Secondary);
 		_headerButton.Pressed += OnHeaderPressed;
 		row.AddChild(_headerButton);
 
-		var titles = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+		var titles = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		titles.AddThemeConstantOverride("separation", 2);
 
 		_title = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			ThemeTypeVariation = "Title",
 		};
 		titles.AddChild(_title);
@@ -252,7 +245,7 @@ public sealed partial class ModalShell : CanvasLayer
 		_subtitle = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			ThemeTypeVariation = "Subtitle",
 		};
 		titles.AddChild(_subtitle);
@@ -281,32 +274,29 @@ public sealed partial class ModalShell : CanvasLayer
 		{
 			Text = action.Label,
 			Disabled = !action.Enabled,
-			FocusMode = Control.FocusModeEnum.All,
+			FocusMode = FocusModeEnum.All,
 		};
 		HudStyles.StyleButton(button, action.Kind);
 		button.Pressed += action.OnPressed;
 		return button;
 	}
 
-	private void ConnectViewportLayout()
-	{
-		GetViewport().SizeChanged += OnViewportSizeChanged;
-		LayoutPanel();
-	}
-
-	private void OnViewportSizeChanged() => LayoutPanel();
+	private void OnResized() => LayoutPanel();
 
 	private void LayoutPanel()
 	{
-		var viewportSize = GetViewport().GetVisibleRect().Size;
+		var containerSize = Size;
+		if (containerSize.X < 64f || containerSize.Y < 64f)
+			return;
+
 		var width = Mathf.RoundToInt(Mathf.Clamp(
 			720f,
-			viewportSize.X * 0.38f,
-			Mathf.Min(viewportSize.X * 0.58f, 800f)));
+			containerSize.X * 0.38f,
+			Mathf.Min(containerSize.X * 0.58f, 800f)));
 		var height = Mathf.RoundToInt(Mathf.Clamp(
 			540f,
-			viewportSize.Y * 0.55f,
-			viewportSize.Y * 0.85f));
+			containerSize.Y * 0.55f,
+			containerSize.Y * 0.85f));
 
 		_panel.CustomMinimumSize = new Vector2(width, height);
 		RebuildFooter();

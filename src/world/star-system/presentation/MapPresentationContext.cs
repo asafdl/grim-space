@@ -1,3 +1,4 @@
+using Godot;
 using GrimSpace.Math.Camera;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -9,10 +10,12 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public sealed class MapPresentationContext
 {
 	public required Func<StarMap> Map { get; init; }
+	public required Func<PlayerTravelSample> ResolvePlayerTravelSample { get; init; }
 	public required Func<string?> ResolveDockedPoiId { get; init; }
 	public required Func<bool> CanAccessFacilities { get; init; }
 	public required Func<(float Width, float Height)> ViewportSize { get; init; }
 	public required MapCamera Camera { get; init; }
+	public required Func<OrbitPose> ResolveCameraPose { get; init; }
 	public required MapView View { get; init; }
 	public required float BoundsHalfX { get; init; }
 	public required float BoundsHalfZ { get; init; }

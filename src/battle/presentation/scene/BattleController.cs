@@ -199,12 +199,13 @@ public partial class BattleController : Node3D
 			_agent,
 			Session.Instance.Run.TutorialProgress,
 			dialog,
-			new BattleWorldFocus(
-				_camera,
-				_battle.Layout,
-				_battleView,
-				() => _agent.Sim.StateOf<ActorState>(_battle.PlayerId)),
-			worldIndicators);
+			new WorldLinkNavigator(
+				new BattleWorldFocus(
+					_camera,
+					_battle.Layout,
+					_battleView,
+					() => _agent.Sim.StateOf<ActorState>(_battle.PlayerId)),
+				worldIndicators));
 		_tutorial.StepStarted += OnTutorialStepStarted;
 		_tutorial.Completed += OnTutorialCompleted;
 		RefreshPresentation();

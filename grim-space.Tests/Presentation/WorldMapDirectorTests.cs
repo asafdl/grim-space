@@ -1,3 +1,4 @@
+using Godot;
 using GrimSpace.Math.Camera;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Presentation;
@@ -180,7 +181,7 @@ public sealed class WorldMapDirectorTests
 	}
 
 	[Fact]
-	public void PrepareForFocusFromCinematicRunsImmediately()
+	public void PrepareForFocusFromCinematicEntersOverviewBeforeCallback()
 	{
 		var harness = new TestPresentationHarness();
 		var director = harness.CreateDirector();
@@ -190,11 +191,15 @@ public sealed class WorldMapDirectorTests
 		var result = director.PrepareForFocus(() => ran = true);
 
 		Assert.True(result.Succeeded);
+		Assert.False(ran);
+		Assert.True(director.IsTransitioning);
+		harness.CompleteTween();
 		Assert.True(ran);
+		Assert.Equal("overview", director.CurrentModeId);
 	}
 
 	[Fact]
-	public void PrepareForFocusFromOverviewExitsBeforeCallback()
+	public void PrepareForFocusFromOverviewRunsImmediately()
 	{
 		var harness = new TestPresentationHarness();
 		var director = harness.CreateDirector();
@@ -206,14 +211,12 @@ public sealed class WorldMapDirectorTests
 		var result = director.PrepareForFocus(() => ran = true);
 
 		Assert.True(result.Succeeded);
-		Assert.False(ran);
-		harness.CompleteTween();
 		Assert.True(ran);
-		Assert.Equal("cinematic", director.CurrentModeId);
+		Assert.Equal("overview", director.CurrentModeId);
 	}
 
 	[Fact]
-	public void PrepareForFocusFromFacadeExitsBeforeCallback()
+	public void PrepareForFocusFromFacadeReturnsToOverviewBeforeCallback()
 	{
 		var harness = new TestPresentationHarness { DockedPoiId = "poi-a" };
 		var director = harness.CreateDirector();
@@ -227,8 +230,11 @@ public sealed class WorldMapDirectorTests
 		Assert.True(result.Succeeded);
 		Assert.False(ran);
 		harness.CompleteTween();
-		Assert.True(ran);
+		Assert.False(ran);
 		Assert.Equal("cinematic", director.CurrentModeId);
+		harness.CompleteTween();
+		Assert.True(ran);
+		Assert.Equal("overview", director.CurrentModeId);
 	}
 
 	[Fact]
@@ -254,6 +260,122 @@ public sealed class WorldMapDirectorTests
 		director.TryEnter("overview");
 
 		Assert.Equal(PresentationInputPolicy.Locked, director.EffectiveInputPolicy);
+	}
+
+	[Fact]
+	public void OnPlayerMovementFromOverviewEntersCinematic()
+	{
+		var harness = new TestPresentationHarness { TravelActive = true };
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		director.TryEnter("overview");
+		harness.CompleteTween();
+
+		var result = director.OnPlayerMovement();
+
+		Assert.True(result.Succeeded);
+		Assert.True(director.IsTransitioning);
+		harness.CompleteTween();
+		Assert.Equal("cinematic", director.CurrentModeId);
+	}
+
+	[Fact]
+	public void OnPlayerMovementFromOverviewIgnoresWhenNotTraveling()
+	{
+		var harness = new TestPresentationHarness { TravelActive = false };
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		director.TryEnter("overview");
+		harness.CompleteTween();
+
+		var result = director.OnPlayerMovement();
+
+		Assert.True(result.Succeeded);
+		Assert.False(director.IsTransitioning);
+		Assert.Equal("overview", director.CurrentModeId);
+	}
+
+	[Fact]
+	public void OnPlayerMovementFromCinematicDoesNotSnap()
+	{
+		var harness = new TestPresentationHarness { TravelActive = true };
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		harness.Calls.Clear();
+
+		var result = director.OnPlayerMovement();
+
+		Assert.True(result.Succeeded);
+		Assert.Equal("cinematic", director.CurrentModeId);
+		Assert.DoesNotContain("Snap", harness.Calls.Select(call => call.Kind));
+	}
+
+	[Fact]
+	public void DeferredMovementReQueriesTravelState()
+	{
+		var harness = new TestPresentationHarness { TravelActive = true };
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		director.TryEnter("overview");
+
+		var result = director.OnPlayerMovement();
+
+		Assert.True(result.Succeeded);
+		Assert.True(director.IsTransitioning);
+		harness.CompleteTween();
+		director.Update(0);
+		Assert.True(director.IsTransitioning);
+	}
+
+	[Fact]
+	public void StaleDeferredMovementDoesNotChangeModes()
+	{
+		var harness = new TestPresentationHarness { TravelActive = true };
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		director.TryEnter("overview");
+		director.OnPlayerMovement();
+		harness.CompleteTween();
+		harness.TravelActive = false;
+
+		director.Update(0);
+
+		Assert.Equal("overview", director.CurrentModeId);
+		Assert.False(director.IsTransitioning);
+	}
+
+	[Fact]
+	public void BeginTransitionDoesNotApplyLimitsBeforeTween()
+	{
+		var harness = new TestPresentationHarness();
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		harness.Calls.Clear();
+
+		director.TryEnter("overview");
+
+		Assert.DoesNotContain("ApplyLimits", harness.Calls.Select(call => call.Kind));
+		Assert.Contains("Tween", harness.Calls.Select(call => call.Kind));
+	}
+
+	[Fact]
+	public void UpdateSkipsOutgoingModeWhileTransitioning()
+	{
+		var harness = new TestPresentationHarness();
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+		harness.Cinematic.UpdateCallCount = 0;
+
+		director.TryEnter("overview");
+		director.Update(0.1);
+
+		Assert.Equal(0, harness.Cinematic.UpdateCallCount);
+
+		harness.CompleteTween();
+		harness.Overview.UpdateCallCount = 0;
+		director.Update(0.1);
+
+		Assert.Equal(1, harness.Overview.UpdateCallCount);
 	}
 
 	[Fact]
@@ -304,6 +426,7 @@ public sealed class WorldMapDirectorTests
 
 		public string? DockedPoiId { get; init; } = "poi-a";
 		public bool CanAccessFacilities { get; init; } = true;
+		public bool TravelActive { get; set; } = true;
 		public List<(string Kind, object? Data)> Calls { get; } = [];
 		public Action? LastTweenCallback { get; private set; }
 		public bool CameraOcclusionEnabled { get; private set; }
@@ -328,10 +451,15 @@ public sealed class WorldMapDirectorTests
 			new()
 			{
 				Map = () => StarMap.Create(1),
+				ResolvePlayerTravelSample = () => new PlayerTravelSample(
+					default,
+					TravelActive ? Vector3.Forward : null,
+					TravelActive),
 				ResolveDockedPoiId = () => DockedPoiId,
 				CanAccessFacilities = () => CanAccessFacilities,
 				ViewportSize = () => (1920f, 1080f),
 				Camera = null!,
+				ResolveCameraPose = () => new OrbitPose { Distance = 12f },
 				View = null!,
 				BoundsHalfX = 16f,
 				BoundsHalfZ = 16f,
@@ -356,12 +484,18 @@ public sealed class WorldMapDirectorTests
 		public string? ExitTargetId { get; init; }
 		public bool RequiresFacadePayload { get; init; }
 		public bool IsBusy { get; set; }
+		public int UpdateCallCount { get; set; }
 		public List<string> Lifecycle { get; } = [];
 
 		public PresentationTransitionResult ValidateEnterPayload(object? payload) =>
-			RequiresFacadePayload && payload is not FacadeEnterPayload
-				? PresentationTransitionResult.Fail(PresentationTransitionFailure.InvalidPayload)
-				: PresentationTransitionResult.Ok();
+			Id switch
+			{
+				"facade" when payload is FacadeEnterPayload => PresentationTransitionResult.Ok(),
+				"facade" => PresentationTransitionResult.Fail(PresentationTransitionFailure.InvalidPayload),
+				"cinematic" when payload is null => PresentationTransitionResult.Ok(),
+				"cinematic" => PresentationTransitionResult.Fail(PresentationTransitionFailure.InvalidPayload),
+				_ => PresentationTransitionResult.Ok(),
+			};
 
 		public bool CanEnter(MapPresentationContext ctx, string sourceModeId, object? payload)
 		{
@@ -393,6 +527,6 @@ public sealed class WorldMapDirectorTests
 		public void OnExiting(MapPresentationContext ctx, string targetModeId) =>
 			Lifecycle.Add($"Exiting:{Id}->{targetModeId}");
 
-		public void Update(MapPresentationContext ctx, double delta) { }
+		public void Update(MapPresentationContext ctx, double delta) => UpdateCallCount++;
 	}
 }

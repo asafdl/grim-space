@@ -39,14 +39,11 @@ public sealed class TutorialRunner : IDisposable
 	public TutorialRunner(
 		TutorialProgress progress,
 		ITutorialDialog dialog,
-		IWorldFocus worldFocus,
-		IWorldIndicator worldIndicator)
+		WorldLinkNavigator worldLinks)
 	{
 		_progress = progress ?? throw new ArgumentNullException(nameof(progress));
 		_dialog = dialog ?? throw new ArgumentNullException(nameof(dialog));
-		_worldLinks = new WorldLinkNavigator(
-			worldFocus ?? throw new ArgumentNullException(nameof(worldFocus)),
-			worldIndicator ?? throw new ArgumentNullException(nameof(worldIndicator)));
+		_worldLinks = worldLinks ?? throw new ArgumentNullException(nameof(worldLinks));
 		_dialog.Accepted += OnAccepted;
 		_dialog.AssistanceRequested += OnAssistanceRequested;
 		_dialog.WorldLinkClicked += OnWorldLinkClicked;

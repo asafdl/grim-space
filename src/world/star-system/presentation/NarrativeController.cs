@@ -34,6 +34,8 @@ public sealed class NarrativeController : IDisposable
 			Show(initialNarrative);
 	}
 
+	public bool IsOpen => _hud.IsOpen;
+
 	public bool TryHandleInput(Godot.InputEvent @event) => _hud.TryHandleInput(@event);
 
 	private void OnNarrativeBegan(string narrativeId)
@@ -110,10 +112,7 @@ public sealed class NarrativeController : IDisposable
 
 	private void OnPageBegan(int _) => ClearIndicator();
 
-	private void ClearIndicator()
-	{
-		_worldLinks.Clear();
-	}
+	private void ClearIndicator() => _worldLinks.Clear();
 
 	public void Dispose()
 	{

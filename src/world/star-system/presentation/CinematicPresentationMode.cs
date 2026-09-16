@@ -6,6 +6,9 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public sealed class CinematicPresentationMode : IPresentationMode
 {
 	public const string ModeId = "cinematic";
+	private const float FollowResponse = 0.35f;
+	private const float RecenterResponse = 1.5f;
+	private const float MaxPanOffset = 2.5f;
 
 	private static readonly HashSet<string> AllowedSources = new(StringComparer.Ordinal)
 	{
@@ -40,15 +43,37 @@ public sealed class CinematicPresentationMode : IPresentationMode
 	public bool IsBusy => false;
 
 	public PresentationTransitionResult ValidateEnterPayload(object? payload) =>
-		PresentationTransitionResult.Ok();
+		payload is null
+			? PresentationTransitionResult.Ok()
+			: PresentationTransitionResult.Fail(PresentationTransitionFailure.InvalidPayload);
 
 	public bool CanEnter(MapPresentationContext ctx, string sourceModeId, object? payload) => true;
 
 	public OrbitPose ResolveEnterPose(
 		string sourceModeId,
 		MapPresentationContext ctx,
-		object? payload) =>
-		_hasSavedPose ? _savedPose : ctx.Camera.CurrentPose;
+		object? payload)
+	{
+		if (sourceModeId == OverviewPresentationMode.ModeId)
+		{
+			var sample = ctx.ResolvePlayerTravelSample();
+			if (sample.TravelDirection is { } direction)
+			{
+				return MapCinematicFraming.BehindShip(
+					sample.WorldPosition,
+					direction,
+					ModeLimits);
+			}
+		}
+
+		if (_hasSavedPose)
+			return _savedPose;
+
+		if (sourceModeId == string.Empty)
+			return MapCinematicFraming.BootstrapAtPlayer(ctx.ResolvePlayerTravelSample(), ModeLimits);
+
+		return ctx.Camera.CurrentPose;
+	}
 
 	public void OnEntering(MapPresentationContext ctx, string sourceModeId, object? payload)
 	{
@@ -71,6 +96,8 @@ public sealed class CinematicPresentationMode : IPresentationMode
 
 	public void Update(MapPresentationContext ctx, double delta)
 	{
+		FollowPlayer(ctx, delta);
+
 		var world = ctx.Map();
 		var dockedPoiId = ctx.ResolveDockedPoiId();
 		var showAccess = dockedPoiId is not null && ctx.CanAccessFacilities();
@@ -78,15 +105,42 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		if (!showAccess || dockedPoiId is null)
 			return;
 
-		var worldPos = ctx.View.GetDockWorldPosition(dockedPoiId, world.Width, world.Height)
-			+ new Vector3(0.22f, 0.28f, 0f);
-		var screen = ctx.Camera.UnprojectPosition(worldPos);
+		var worldPos = ctx.View.GetDockWorldPosition(dockedPoiId, world.Width, world.Height);
+		if (!MapScreenAnchor.TryProject(ctx.Camera, worldPos, out var screen))
+		{
+			_accessButton.Visible = false;
+			return;
+		}
+
 		_accessButton.ResetSize();
-		var viewport = ctx.ViewportSize();
 		var buttonSize = _accessButton.Size;
-		var position = screen + new Vector2(8f, -buttonSize.Y * 0.5f);
-		position.X = Mathf.Clamp(position.X, 8f, viewport.Width - buttonSize.X - 8f);
-		position.Y = Mathf.Clamp(position.Y, 8f, viewport.Height - buttonSize.Y - 8f);
-		_accessButton.Position = position;
+		_accessButton.Position = MapScreenAnchor.TopLeftForControl(
+			screen,
+			buttonSize,
+			new Vector2(8f, 0f));
+	}
+
+	private static void FollowPlayer(MapPresentationContext ctx, double delta)
+	{
+		var camera = ctx.Camera;
+		if (camera.IsAnimating)
+			return;
+
+		var playerPos = ctx.ResolvePlayerTravelSample().WorldPosition;
+
+		if (!camera.IsManualGestureActive)
+		{
+			camera.MovePivotToward(playerPos, (float)delta, FollowResponse);
+			return;
+		}
+
+		var pose = camera.CurrentPose;
+		var offset = new Vector3(pose.Pivot.X - playerPos.X, 0f, pose.Pivot.Z - playerPos.Z);
+		if (offset.Length() > MaxPanOffset)
+			offset = offset.Normalized() * MaxPanOffset;
+
+		var recenterT = Mathf.Clamp((float)delta / RecenterResponse, 0f, 1f);
+		offset *= 1f - recenterT;
+		camera.MovePivotToward(playerPos + offset, (float)delta, FollowResponse);
 	}
 }

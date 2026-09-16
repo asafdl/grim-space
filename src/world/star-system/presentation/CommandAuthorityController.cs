@@ -12,6 +12,7 @@ public partial class CommandAuthorityController : Control
 {
 	private StarSystemOrchestrator _orchestrator = null!;
 	private StarMapPlayerExecutionAgent _playerAgent = null!;
+	private CanvasLayer _contractHudLayer = null!;
 	private ContractHudOverlay _contractHud = null!;
 	private Button _backButton = null!;
 
@@ -28,11 +29,13 @@ public partial class CommandAuthorityController : Control
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 
+		_contractHudLayer = new CanvasLayer { Layer = 20 };
+		AddChild(_contractHudLayer);
 		_contractHud = new ContractHudOverlay();
 		_contractHud.AcceptRequested += OnAcceptRequested;
 		_contractHud.DeclineRequested += OnDeclineRequested;
 		_contractHud.Closed += UpdateBackButton;
-		AddChild(_contractHud);
+		_contractHudLayer.AddChild(_contractHud);
 	}
 
 	public override void _ExitTree()

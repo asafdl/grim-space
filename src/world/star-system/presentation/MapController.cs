@@ -8,6 +8,7 @@ using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Poi.Concrete;
@@ -56,6 +57,7 @@ public partial class MapController : Node3D
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
 	private bool _battleTransitionPending;
+	private bool _staleWaitingForPlayerInputReported;
 
 	public override void _Ready()
 	{
@@ -163,14 +165,16 @@ public partial class MapController : Node3D
 		var presentationContext = new MapPresentationContext
 		{
 			Map = () => _orchestrator.Map,
+			ResolvePlayerTravelSample = ResolvePlayerTravelSample,
 			ResolveDockedPoiId = () => ResolveDockedPoiId(_orchestrator.Map),
-			CanAccessFacilities = () => !_orchestrator.Map.WaitingForPlayerInput,
+			CanAccessFacilities = () => !IsBlockingModalOpen(),
 			ViewportSize = () =>
 			{
 				var size = GetViewport().GetVisibleRect().Size;
 				return (size.X, size.Y);
 			},
 			Camera = _camera,
+			ResolveCameraPose = () => _camera.CurrentPose,
 			View = _view,
 			BoundsHalfX = halfX,
 			BoundsHalfZ = halfZ,
@@ -198,7 +202,8 @@ public partial class MapController : Node3D
 		worldIndicators.Configure(
 			() => _orchestrator.Map,
 			CommittedPositionOf,
-			() => _director.CurrentModeId == CinematicPresentationMode.ModeId,
+			() => _director.CurrentModeId is CinematicPresentationMode.ModeId
+				or OverviewPresentationMode.ModeId,
 			() => new WorldArrowIndicator(),
 			objectId => _view.GetIndicatorClearance(objectId, _orchestrator.Map));
 		AddChild(worldIndicators);
@@ -225,9 +230,10 @@ public partial class MapController : Node3D
 				_orchestrator,
 				Session.Instance.Run.TutorialProgress,
 				_tutorialDialog,
-				_worldFocus,
-				_worldIndicator);
+				new WorldLinkNavigator(_worldFocus, _worldIndicator));
 		}
+
+		_orchestrator.PlayerAgent!.PlanningChanged += OnPlayerPlanningChanged;
 
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
@@ -252,11 +258,12 @@ public partial class MapController : Node3D
 	{
 		_view.SetCameraDistance(_camera.Distance);
 
-		if (_orchestrator.CanAdvance)
+		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);
 
 		var world = _orchestrator.Map;
-		_camera.ApplyInputPolicy(_director.EffectiveInputPolicy, world.WaitingForPlayerInput);
+		ReportStaleWaitingForPlayerInputInvariant(world);
+		_camera.ApplyInputPolicy(_director.EffectiveInputPolicy, IsBlockingModalOpen());
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		_units.Sync(_orchestrator, tickFraction);
 		if (_unreachableFlashTimer > 0f)
@@ -284,6 +291,8 @@ public partial class MapController : Node3D
 	public override void _ExitTree()
 	{
 		_resourceTransactions?.Dispose();
+		if (_orchestrator.PlayerAgent is not null)
+			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engageSubscription.Dispose();
 		_engagement.Dispose();
 		_narrative.Dispose();
@@ -300,7 +309,7 @@ public partial class MapController : Node3D
 			return;
 		}
 
-		if (_orchestrator.Map.WaitingForPlayerInput)
+		if (IsBlockingModalOpen())
 		{
 			GetViewport().SetInputAsHandled();
 			return;
@@ -361,6 +370,21 @@ public partial class MapController : Node3D
 		}
 	}
 
+	private bool IsBlockingModalOpen() => _narrative.IsOpen || _engagement.IsOpen;
+
+	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
+	{
+		var stale = world.WaitingForPlayerInput && !IsBlockingModalOpen();
+		if (stale && !_staleWaitingForPlayerInputReported)
+		{
+			GD.PushWarning(
+				"StarMap.WaitingForPlayerInput is true but no narrative or engagement modal is open.");
+			_staleWaitingForPlayerInputReported = true;
+		}
+		else if (!stale)
+			_staleWaitingForPlayerInputReported = false;
+	}
+
 	private void AdvanceSimulation(double delta)
 	{
 		_tickAccumulator += (float)delta * SpeedOptions[_speedIndex];
@@ -389,6 +413,32 @@ public partial class MapController : Node3D
 	{
 		if (engage.ActorId == State.PlayerFleetUnitId)
 			DeferBattleTransition();
+	}
+
+	private void OnPlayerPlanningChanged()
+	{
+		if (_orchestrator.PlayerAgent?.PendingCourse is null)
+			return;
+
+		_director.OnPlayerMovement();
+	}
+
+	private PlayerTravelSample ResolvePlayerTravelSample()
+	{
+		var world = _orchestrator.Map;
+		var unit = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
+		var tickFraction = _tickAccumulator / SecondsPerTick;
+		var (position, tangent) = unit.State.CommittedPosition(
+			world,
+			_orchestrator.RuntimeFor(State.PlayerFleetUnitId).CachedPath,
+			tickFraction);
+		return MapPlayerTravelSample.Resolve(
+			world.Width,
+			world.Height,
+			position,
+			tangent,
+			_orchestrator.PlayerAgent?.PendingCourse,
+			unit.State.SpeedPerTick);
 	}
 
 	private void DeferBattleTransition()

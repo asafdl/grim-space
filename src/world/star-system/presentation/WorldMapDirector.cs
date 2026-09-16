@@ -10,6 +10,7 @@ public sealed class WorldMapDirector
 	private IPresentationMode? _currentMode;
 	private bool _isTransitioning;
 	private int _transitionToken;
+	private bool _pendingMovementNotification;
 
 	public WorldMapDirector(MapPresentationContext context) => _ctx = context;
 
@@ -91,7 +92,25 @@ public sealed class WorldMapDirector
 		return TryEnter(exitTargetId);
 	}
 
-	public void Update(double delta) => _currentMode?.Update(_ctx, delta);
+	public void Update(double delta)
+	{
+		TryApplyPendingMovement();
+		if (_isTransitioning)
+			return;
+
+		_currentMode?.Update(_ctx, delta);
+	}
+
+	public PresentationTransitionResult OnPlayerMovement()
+	{
+		if (_isTransitioning || (_currentMode?.IsBusy ?? false))
+		{
+			_pendingMovementNotification = true;
+			return PresentationTransitionResult.Ok();
+		}
+
+		return ApplyPlayerMovement();
+	}
 
 	public PresentationTransitionResult PrepareForFocus(Action onReady)
 	{
@@ -100,19 +119,22 @@ public sealed class WorldMapDirector
 			return PresentationTransitionResult.Fail(PresentationTransitionFailure.ModeBusy);
 
 		var modeId = _currentMode?.Id;
-		if (modeId is null or CinematicPresentationMode.ModeId)
+		if (modeId == OverviewPresentationMode.ModeId)
 		{
 			onReady();
 			return PresentationTransitionResult.Ok();
 		}
 
-		if (modeId is OverviewPresentationMode.ModeId or FacadePresentationMode.ModeId)
+		if (modeId == FacadePresentationMode.ModeId)
 		{
-			var result = TryExit(modeId);
+			var result = TryExit(FacadePresentationMode.ModeId);
 			if (result.Succeeded)
-				_pendingFocusCallbacks.Add(onReady);
+				_pendingFocusCallbacks.Add(() => ScheduleFocusAfterOverview(onReady));
 			return result;
 		}
+
+		if (modeId == CinematicPresentationMode.ModeId)
+			return EnterOverviewForFocus(onReady);
 
 		onReady();
 		return PresentationTransitionResult.Ok();
@@ -142,7 +164,6 @@ public sealed class WorldMapDirector
 
 		source.OnExiting(_ctx, target.Id);
 		_ctx.SetOcclusionEnabled(UsesCameraOcclusion(target));
-		_ctx.ApplyLimits(target.Limits);
 		var targetPose = target.ResolveEnterPose(source.Id, _ctx, payload);
 		target.OnEntering(_ctx, source.Id, payload);
 
@@ -160,9 +181,56 @@ public sealed class WorldMapDirector
 
 	private void InvokePendingFocusCallbacks()
 	{
-		foreach (var callback in _pendingFocusCallbacks.ToArray())
-			callback();
+		var callbacks = _pendingFocusCallbacks.ToArray();
 		_pendingFocusCallbacks.Clear();
+		foreach (var callback in callbacks)
+			callback();
+	}
+
+	private void TryApplyPendingMovement()
+	{
+		if (!_pendingMovementNotification)
+			return;
+
+		if (_isTransitioning || (_currentMode?.IsBusy ?? false))
+			return;
+
+		_pendingMovementNotification = false;
+		ApplyPlayerMovement();
+	}
+
+	private PresentationTransitionResult ApplyPlayerMovement()
+	{
+		if (!_ctx.ResolvePlayerTravelSample().IsTravelActiveOrPending)
+			return PresentationTransitionResult.Ok();
+
+		return _currentMode?.Id switch
+		{
+			CinematicPresentationMode.ModeId => PresentationTransitionResult.Ok(),
+			OverviewPresentationMode.ModeId => TryEnter(CinematicPresentationMode.ModeId),
+			FacadePresentationMode.ModeId =>
+				PresentationTransitionResult.Fail(PresentationTransitionFailure.NotAllowed),
+			_ => PresentationTransitionResult.Fail(PresentationTransitionFailure.WrongCurrentMode),
+		};
+	}
+
+	private PresentationTransitionResult EnterOverviewForFocus(Action onReady)
+	{
+		var result = TryEnter(OverviewPresentationMode.ModeId);
+		if (result.Succeeded)
+			_pendingFocusCallbacks.Add(onReady);
+		return result;
+	}
+
+	private void ScheduleFocusAfterOverview(Action onReady)
+	{
+		if (_currentMode?.Id == OverviewPresentationMode.ModeId)
+		{
+			onReady();
+			return;
+		}
+
+		EnterOverviewForFocus(onReady);
 	}
 
 	private static bool UsesCameraOcclusion(IPresentationMode mode) =>
