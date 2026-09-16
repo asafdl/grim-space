@@ -282,7 +282,7 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 			sendOff =>
 			{
 				Assert.Null(sendOff.TargetId);
-				Assert.Equal("Good luck, Pilot", sendOff.Dialog.Title);
+				Assert.Equal("End Tutorial", sendOff.Dialog.Title);
 				Assert.Equal("Begin Battle", sendOff.Dialog.AcceptText);
 			});
 	}

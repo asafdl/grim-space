@@ -109,12 +109,12 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 	{
 		var map = maps.Template(42);
 		var plan = map.Blueprint.SupplyPlan;
-		var group = new[] { plan.RefineryPoiId, plan.StoragePoiId };
+		var group = new[] { plan.ExtractionPoiId, plan.StoragePoiId };
 
 		var result = AreaPicker.Pick(map, [group], [EAreaDistance.Low], 2);
 
 		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(result.Relation);
-		Assert.Equal(plan.RefineryPoiId, relation.LandmarkAId);
+		Assert.Equal(plan.ExtractionPoiId, relation.LandmarkAId);
 		Assert.Equal(plan.StoragePoiId, relation.LandmarkBId);
 		Assert.Contains(relation.LandmarkAId, group);
 		Assert.Contains(relation.LandmarkBId, group);
@@ -146,7 +146,7 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 		{
 			var map = maps.Template(seed);
 			var plan = map.Blueprint.SupplyPlan;
-			var group = new[] { plan.RefineryPoiId, plan.StoragePoiId };
+			var group = new[] { plan.ExtractionPoiId, plan.StoragePoiId };
 			var result = AreaPicker.Pick(map, [group], [distance], 2, distanceConfig);
 
 			AssertBandCriteria(map, result, distance, distanceConfig);
