@@ -64,6 +64,17 @@ public sealed class ModalShellLayoutTests
 	}
 
 	[Fact]
+	public void UltraWideViewport_caps_panel_width_without_throwing()
+	{
+		var viewportSize = new LayoutSize(2560f, 1440f);
+		var resolved = ModalShellLayout.ResolveContainerSize(LayoutSize.Zero, viewportSize);
+		var panelSize = ModalShellLayout.ComputePanelMinimumSize(resolved);
+
+		Assert.Equal(ModalShellLayout.MaxPanelWidth, panelSize.Width);
+		Assert.True(panelSize.Height >= 540f);
+	}
+
+	[Fact]
 	public void ResolveContainerSize_uses_fallback_when_control_and_viewport_are_unusable()
 	{
 		var resolved = ModalShellLayout.ResolveContainerSize(
