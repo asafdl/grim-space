@@ -7,6 +7,8 @@ public static class MapMapping
 {
 	public const float WorldUnitsPerPoint = 1f / 32f;
 
+	public static float ToWorldRadius(int gridRadius) => gridRadius * WorldUnitsPerPoint;
+
 	public static Vector3 ToWorld(Coord point, int width, int height) =>
 		ToWorld(point.X, point.Z, width, height);
 
