@@ -199,7 +199,8 @@ public partial class MapController : Node3D
 			() => _orchestrator.Map,
 			CommittedPositionOf,
 			() => _director.CurrentModeId == CinematicPresentationMode.ModeId,
-			() => new WorldArrowIndicator());
+			() => new WorldArrowIndicator(),
+			objectId => _view.GetIndicatorClearance(objectId, _orchestrator.Map));
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
 

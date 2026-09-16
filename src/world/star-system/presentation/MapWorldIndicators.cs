@@ -11,6 +11,7 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 	private Func<string, Coord> _committedPositionOf = null!;
 	private Func<bool> _isAvailable = null!;
 	private Func<Node3D> _createVisual = null!;
+	private Func<string, float> _clearanceOf = null!;
 	private long _nextId;
 	private bool _configured;
 
@@ -18,12 +19,14 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 		Func<StarMap> world,
 		Func<string, Coord> committedPositionOf,
 		Func<bool> isAvailable,
-		Func<Node3D> createVisual)
+		Func<Node3D> createVisual,
+		Func<string, float> clearanceOf)
 	{
 		_world = world;
 		_committedPositionOf = committedPositionOf;
 		_isAvailable = isAvailable;
 		_createVisual = createVisual;
+		_clearanceOf = clearanceOf;
 		_configured = true;
 	}
 
@@ -87,7 +90,10 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 			Position = MapMapping.ToWorld(found.Position, world.Width, world.Height),
 			Visible = _isAvailable(),
 		};
-		root.AddChild(_createVisual());
+		var visual = _createVisual();
+		if (visual is WorldArrowIndicator arrow)
+			arrow.TargetClearanceRadius = _clearanceOf(objectId);
+		root.AddChild(visual);
 		AddChild(root);
 
 		var id = _nextId++;

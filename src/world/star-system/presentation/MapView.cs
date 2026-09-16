@@ -20,6 +20,7 @@ public partial class MapView : Node3D
 	private const float MinorAlpha = 0.34f;
 	private const float MajorAlpha = 0.56f;
 	private const int FootprintSegments = 48;
+	private const float IndicatorClearancePadding = 0.15f;
 
 	private static readonly Color GridMinor = new(0.28f, 0.78f, 0.88f, MinorAlpha);
 	private static readonly Color GridMajor = new(0.36f, 0.88f, 0.96f, MajorAlpha);
@@ -52,6 +53,18 @@ public partial class MapView : Node3D
 
 		var poi = _pois.First(p => p.Id == poiId);
 		return MapMapping.ToWorld(poi.PlacedCenter, width, height);
+	}
+
+	public float GetIndicatorClearance(string objectId, StarMap world)
+	{
+		var poi = world.PointsOfInterest.FirstOrDefault(candidate => candidate.Id == objectId);
+		if (poi is not null)
+			return MapMapping.ToWorldRadius(poi.Radius) + IndicatorClearancePadding;
+
+		if (world.FleetRegistry.TryGet(objectId, out _))
+			return 0.12f;
+
+		return 0f;
 	}
 
 	public Vector3 GetDockWorldPosition(string poiId, int width, int height)
@@ -336,7 +349,7 @@ public partial class MapView : Node3D
 		mesh.SurfaceSetColor(HoverAccent);
 
 		var center = MapMapping.ToWorld(poi.PlacedCenter, width, height);
-		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
+		var worldRadius = MapMapping.ToWorldRadius(poi.Radius);
 		AddCircleOutline(mesh, center, worldRadius);
 
 		mesh.SurfaceEnd();
@@ -372,7 +385,7 @@ public partial class MapView : Node3D
 		{
 			case Star star:
 				MapCelestialVisuals.AddStar(root, seed, star.Radius, _atmosphere);
-				ringRadius = star.Radius * MapMapping.WorldUnitsPerPoint * 1.25f;
+				ringRadius = MapMapping.ToWorldRadius(star.Radius) * 1.25f;
 				break;
 			case Refinery:
 				MapCelestialVisuals.AddPlanet(root, seed, poi.Id, _atmosphere);

@@ -7,8 +7,15 @@ public sealed partial class WorldArrowIndicator : Node3D
 	private const float ReferenceDistance = 22f;
 	private const float OffsetAtReferenceDistance = 1.2f;
 	private const float VisualScale = 0.45f;
+	private const float ArrowExtent = 1.51f;
+	private const float ClearancePadding = 0.12f;
 	private static readonly Color Color = new(0.35f, 0.85f, 0.95f, 0.95f);
 	private Node3D _arrow = null!;
+
+	/// <summary>
+	/// World-space radius of the target visual. Keeps the arrow outside textured meshes and billboards.
+	/// </summary>
+	public float TargetClearanceRadius { get; set; }
 
 	public override void _Ready()
 	{
@@ -69,12 +76,15 @@ public sealed partial class WorldArrowIndicator : Node3D
 		var target = GlobalPosition;
 		var cameraDistance = Mathf.Max(camera.GlobalPosition.DistanceTo(target), 1f);
 		var distanceScale = cameraDistance / ReferenceDistance;
+		var arrowScale = VisualScale * distanceScale;
 		var screenOffset = (-camera.GlobalBasis.X + camera.GlobalBasis.Y * 0.8f).Normalized();
-		var position = target + screenOffset * OffsetAtReferenceDistance * distanceScale;
+		var screenOffsetDistance = OffsetAtReferenceDistance * distanceScale;
+		var minOffset = TargetClearanceRadius + ArrowExtent * arrowScale + ClearancePadding;
+		var position = target + screenOffset * Mathf.Max(screenOffsetDistance, minOffset);
 
 		_arrow.GlobalPosition = position;
 		_arrow.LookAt(target, camera.GlobalBasis.Y);
 		_arrow.RotateObjectLocal(Vector3.Right, -Mathf.Pi / 2f);
-		_arrow.Scale = Vector3.One * VisualScale * distanceScale;
+		_arrow.Scale = Vector3.One * arrowScale;
 	}
 }
