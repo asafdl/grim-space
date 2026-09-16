@@ -129,7 +129,11 @@ public static class AreaPicker
 				? (MinAxisFraction + MaxAxisFraction) * 0.5
 				: MinAxisFraction + (MaxAxisFraction - MinAxisFraction) * sample / (SamplesPerAxis - 1);
 			var arcLength = axisLength * fraction;
-			var (sampleX, sampleZ, tangentX, tangentZ) = RouteGeometry.SampleAtArcLength(axis, arcLength);
+			var routeSample = RouteGeometry.SampleAtArcLength(axis, arcLength);
+			var sampleX = routeSample.X;
+			var sampleZ = routeSample.Z;
+			var tangentX = routeSample.TangentX;
+			var tangentZ = routeSample.TangentZ;
 			var perpendicularX = -tangentZ;
 			var perpendicularZ = tangentX;
 

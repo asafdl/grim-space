@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem.Pathfinding;
 
 namespace GrimSpace.World.StarSystem.Units;
@@ -11,6 +12,12 @@ public sealed class JourneyState
 	public int StartTick { get; set; }
 
 	public bool IsActive => JourneyId != 0;
+
+	public PiecewiseRouteSample SamplePositionContinuous(
+		TransitPath path,
+		double elapsedTicks,
+		double speedPerTick) =>
+		path.SampleContinuousAtElapsed(elapsedTicks, speedPerTick);
 
 	public (Coord Position, Coord Tangent) SamplePosition(
 		TransitPath path,

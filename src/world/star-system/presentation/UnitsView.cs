@@ -502,14 +502,20 @@ public partial class UnitsView : Node3D
 		Runtime.ActorRuntime runtime,
 		float tickFraction)
 	{
+		if (unit.State.CommittedPositionContinuous(world, runtime.CachedPath, tickFraction) is { } continuous)
+		{
+			var heading = Mathf.Atan2((float)continuous.Route.TangentX, (float)continuous.Route.TangentZ);
+			return new TrafficSample(continuous.Route.X, continuous.Route.Z, heading);
+		}
+
 		var (position, tangent) = unit.State.CommittedPosition(
 			world,
 			runtime.CachedPath,
 			tickFraction);
-		var heading = tangent is { } t
+		var stationaryHeading = tangent is { } t
 			? Mathf.Atan2(t.X * 0.001f, t.Z * 0.001f)
 			: 0f;
-		return new TrafficSample(position.X, position.Z, heading);
+		return new TrafficSample(position.X, position.Z, stationaryHeading);
 	}
 
 	private sealed record UnitVisual(

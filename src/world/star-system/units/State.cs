@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
+using GrimSpace.Math.Routes;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -58,7 +59,7 @@ public sealed class State
 				?? throw new InvalidOperationException(
 					$"Fleet '{Id}' is in transit without a cached path.");
 			var elapsed = world.Timeline.Clock.Current - Journey.StartTick + tickFraction;
-			var (position, tangent) = Journey.SamplePosition(path, elapsed, SpeedPerTick);
+			var (position, tangent) = Journey.SamplePosition(transitPath, elapsed, SpeedPerTick);
 			return (position, tangent);
 		}
 
@@ -66,6 +67,21 @@ public sealed class State
 			return (world.DocksById[DockedAtDockId].Position, null);
 
 		return (IdleCoord, null);
+	}
+
+	public PiecewiseRouteSample? CommittedPositionContinuous(
+		StarMap world,
+		TransitPath? path,
+		float tickFraction)
+	{
+		if (Phase != EPhase.InTransit || !Journey.IsActive)
+			return null;
+
+		var transitPath = path
+			?? throw new InvalidOperationException(
+				$"Fleet '{Id}' is in transit without a cached path.");
+		var elapsed = world.Timeline.Clock.Current - Journey.StartTick + tickFraction;
+		return Journey.SamplePositionContinuous(transitPath, elapsed, SpeedPerTick);
 	}
 
 	internal void StartJourney(

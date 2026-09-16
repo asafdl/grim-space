@@ -1,7 +1,6 @@
 using Godot;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
 
@@ -73,7 +72,7 @@ public partial class CourseView : Node3D
 		AddChild(_destinationRing);
 	}
 
-	public void Sync(StarSystemOrchestrator orchestrator, bool unreachableFlash)
+	public void Sync(StarSystemOrchestrator orchestrator, bool unreachableFlash, float tickFraction)
 	{
 		if (orchestrator.PlayerAgent?.PendingCourse is { } pendingCourse)
 		{
@@ -93,7 +92,14 @@ public partial class CourseView : Node3D
 			return;
 		}
 
-		ShowCourse(path, unit.State.Journey.Destination, unit.State.Journey.JourneyId, unreachableFlash);
+		var sample = unit.State.CommittedPositionContinuous(world, path, tickFraction);
+		if (sample is null)
+		{
+			HideCourse();
+			return;
+		}
+
+		ShowActiveCourse(path, sample.Value, unit.State.Journey.Destination, unreachableFlash);
 	}
 
 	private void ShowCourse(TransitPath path, Coord destination, long journeyId, bool unreachableFlash)
@@ -112,6 +118,24 @@ public partial class CourseView : Node3D
 		}
 
 		_pathMesh.Visible = true;
+		ShowDestinationRing(destination, unreachableFlash);
+	}
+
+	private void ShowActiveCourse(
+		TransitPath path,
+		Math.Routes.PiecewiseRouteSample sample,
+		Coord destination,
+		bool unreachableFlash)
+	{
+		_shownJourneyId = 0;
+		_shownPath = path;
+		_pathMesh.Mesh = BuildRemainingPathMesh(path, sample);
+		_pathMesh.Visible = true;
+		ShowDestinationRing(destination, unreachableFlash);
+	}
+
+	private void ShowDestinationRing(Coord destination, bool unreachableFlash)
+	{
 		_destinationRing.Visible = true;
 		_destinationRing.Position = ToWorld(destination) + Vector3.Up * RingYOffset;
 
@@ -148,8 +172,28 @@ public partial class CourseView : Node3D
 		return mesh;
 	}
 
+	private ImmediateMesh BuildRemainingPathMesh(TransitPath path, Math.Routes.PiecewiseRouteSample sample)
+	{
+		var points = path.RemainingPoints(sample);
+		var mesh = new ImmediateMesh();
+		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		mesh.SurfaceSetColor(PathColor);
+
+		for (var i = 1; i < points.Count; i++)
+		{
+			mesh.SurfaceAddVertex(ToWorld(points[i - 1].X, points[i - 1].Z));
+			mesh.SurfaceAddVertex(ToWorld(points[i].X, points[i].Z));
+		}
+
+		mesh.SurfaceEnd();
+		return mesh;
+	}
+
 	private Vector3 ToWorld(Coord point) =>
 		MapMapping.ToWorld(point, _width, _height) + Vector3.Up * PathYOffset;
+
+	private Vector3 ToWorld(double x, double z) =>
+		MapMapping.ToWorld(x, z, _width, _height) + Vector3.Up * PathYOffset;
 
 	private static ArrayMesh BuildRingMesh(float radius, float stroke, int segments)
 	{

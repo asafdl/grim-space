@@ -270,7 +270,7 @@ public partial class MapController : Node3D
 		_units.Sync(_orchestrator, tickFraction);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
-		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
+		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
 		_director.Update(delta);
@@ -445,15 +445,27 @@ public partial class MapController : Node3D
 		var world = _orchestrator.Map;
 		var unit = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
 		var tickFraction = _tickAccumulator / SecondsPerTick;
-		var (position, tangent) = unit.State.CommittedPosition(
+		var cachedPath = _orchestrator.RuntimeFor(State.PlayerFleetUnitId).CachedPath;
+		var continuousPosition = unit.State.CommittedPositionContinuous(
 			world,
-			_orchestrator.RuntimeFor(State.PlayerFleetUnitId).CachedPath,
+			cachedPath,
 			tickFraction);
+		if (continuousPosition is null)
+		{
+			var (position, tangent) = unit.State.CommittedPosition(world, cachedPath, tickFraction);
+			return MapPlayerTravelSample.Resolve(
+				world.Width,
+				world.Height,
+				position,
+				tangent,
+				_orchestrator.PlayerAgent?.PendingCourse,
+				unit.State.SpeedPerTick);
+		}
+
 		return MapPlayerTravelSample.Resolve(
 			world.Width,
 			world.Height,
-			position,
-			tangent,
+			continuousPosition,
 			_orchestrator.PlayerAgent?.PendingCourse,
 			unit.State.SpeedPerTick);
 	}

@@ -21,8 +21,40 @@ public sealed record TransitPath(ImmutableArray<TransitLeg> Legs)
 	public int DurationTicks(double speedPerTick) =>
 		(int)System.Math.Ceiling(TicksRequired(speedPerTick));
 
+	public PiecewiseRouteSample SampleContinuousAtElapsed(double elapsedTicks, double speedPerTick) =>
+		PiecewiseRouteSampler.SampleContinuousAtElapsed(Segments, elapsedTicks, speedPerTick);
+
 	public (Coord Position, Coord Tangent) SampleAtElapsed(double elapsedTicks, double speedPerTick) =>
 		PiecewiseRouteSampler.SampleAtElapsed(Segments, elapsedTicks, speedPerTick);
+
+	public IReadOnlyList<(double X, double Z)> RemainingPoints(PiecewiseRouteSample sample)
+	{
+		var result = new List<(double, double)> { (sample.Route.X, sample.Route.Z) };
+
+		var legIndex = sample.SegmentIndex;
+		var leg = Legs[legIndex];
+		var nextPointIndex = sample.Route.NextPointIndex;
+
+		if (nextPointIndex < leg.Points.Length)
+		{
+			var endPoint = leg.Points[nextPointIndex];
+			result.Add((endPoint.X, endPoint.Z));
+		}
+
+		for (var i = nextPointIndex + 1; i < leg.Points.Length; i++)
+		{
+			var point = leg.Points[i];
+			result.Add((point.X, point.Z));
+		}
+
+		for (var subsequentLegIndex = legIndex + 1; subsequentLegIndex < Legs.Length; subsequentLegIndex++)
+		{
+			foreach (var point in Legs[subsequentLegIndex].Points)
+				result.Add((point.X, point.Z));
+		}
+
+		return result;
+	}
 
 	private static RouteSegment[] CreateSegments(ImmutableArray<TransitLeg> legs)
 	{

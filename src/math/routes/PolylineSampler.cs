@@ -4,15 +4,13 @@ namespace GrimSpace.Math.Routes;
 
 public static class PolylineSampler
 {
+	public static RouteSample SampleContinuous(IReadOnlyList<Coord> points, double arcLength) =>
+		RouteGeometry.SampleAtArcLength(points, arcLength);
+
 	public static (Coord Position, Coord Tangent) Sample(IReadOnlyList<Coord> points, double arcLength)
 	{
-		var (x, z, tangentX, tangentZ) = RouteGeometry.SampleAtArcLength(points, arcLength);
-		return (
-			new Coord((int)System.Math.Round(x), 0, (int)System.Math.Round(z)),
-			new Coord(
-				(int)System.Math.Round(tangentX * 1000),
-				0,
-				(int)System.Math.Round(tangentZ * 1000)));
+		var sample = SampleContinuous(points, arcLength);
+		return sample.ToRoundedCoord();
 	}
 
 	public static double Length(IReadOnlyList<Coord> points)

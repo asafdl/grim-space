@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Math.Grid;
+using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Presentation;
@@ -60,5 +61,26 @@ public sealed class MapPlayerTravelSampleTests
 		Assert.True(sample.IsTravelActiveOrPending);
 		Assert.NotNull(sample.TravelDirection);
 		Assert.True(sample.TravelDirection!.Value.X > 0f);
+	}
+
+	[Fact]
+	public void Resolve_ContinuousPosition_UsesFractionalWorldCoordinates()
+	{
+		var continuous = new PiecewiseRouteSample(
+			new RouteSample(2.5, 3.5, 1, 0, 1),
+			SegmentIndex: 0);
+
+		var sample = MapPlayerTravelSample.Resolve(
+			mapWidth: 32,
+			mapHeight: 32,
+			continuous,
+			pendingCourse: null,
+			speedPerTick: 1.0);
+
+		var expected = MapMapping.ToWorld(2.5, 3.5, 32, 32);
+		Assert.Equal(expected.X, sample.WorldPosition.X, 4);
+		Assert.Equal(expected.Y, sample.WorldPosition.Y, 4);
+		Assert.Equal(expected.Z, sample.WorldPosition.Z, 4);
+		Assert.True(sample.IsTravelActiveOrPending);
 	}
 }
