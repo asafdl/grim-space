@@ -18,6 +18,7 @@ public sealed class MapPresentationContext
 	public required float BoundsHalfZ { get; init; }
 
 	public required Action<OrbitLimits> ApplyLimits { get; init; }
+	public required Action<bool> SetOcclusionEnabled { get; init; }
 	public required Action<OrbitPose, OrbitLimits> SnapToPose { get; init; }
 	public required Action<OrbitPose, OrbitLimits, Action?> TweenToPose { get; init; }
 }

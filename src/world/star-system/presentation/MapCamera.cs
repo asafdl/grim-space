@@ -35,6 +35,8 @@ public partial class MapCamera : Camera3D
 	private OrbitLimits _activeLimits = DefaultLimits;
 	private OrbitLimits _tweenLimits = DefaultLimits;
 	private PresentationInputPolicy _inputPolicy = DefaultInputPolicy;
+	private Node3D _pivot = null!;
+	private SpringArm3D _springArm = null!;
 	private Vector3 _center;
 	private float _boundsHalfX;
 	private float _boundsHalfZ;
@@ -56,6 +58,10 @@ public partial class MapCamera : Camera3D
 
 	public override void _Ready()
 	{
+		_springArm = GetParent() as SpringArm3D
+			?? throw new InvalidOperationException("MapCamera must be a direct child of SpringArm3D.");
+		_pivot = _springArm.GetParent() as Node3D
+			?? throw new InvalidOperationException("MapCamera SpringArm3D must be a child of a Node3D pivot.");
 		Projection = ProjectionType.Perspective;
 		Fov = FovDegrees;
 		Near = 0.2f;
@@ -95,6 +101,9 @@ public partial class MapCamera : Camera3D
 	}
 
 	public void SetManualInputEnabled(bool enabled) => ApplyInputPolicy(_inputPolicy, !enabled);
+
+	public void SetOcclusionEnabled(bool enabled) =>
+		_springArm.CollisionMask = enabled ? MapCameraOcclusion.CollisionMask : 0u;
 
 	public void SnapToPose(OrbitPose target, OrbitLimits limits)
 	{
@@ -364,7 +373,8 @@ public partial class MapCamera : Camera3D
 
 	private void ApplyTransform()
 	{
-		GlobalPosition = _pose.CameraPosition();
-		LookAt(_pose.Pivot, Vector3.Up);
+		_pivot.GlobalPosition = _pose.Pivot;
+		_springArm.Rotation = new Vector3(-_pose.Pitch, _pose.Yaw, 0f);
+		_springArm.SpringLength = _pose.Distance;
 	}
 }

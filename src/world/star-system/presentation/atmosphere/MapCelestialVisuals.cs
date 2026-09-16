@@ -60,6 +60,7 @@ public static class MapCelestialVisuals
 			speed: 0f,
 			seed: StableSeedMixer.From(seed).Add("map-star-corona").Value % 997f,
 			irregularity: 0.22f));
+		MapCameraOcclusion.AddSphere(root, visualRadius);
 	}
 
 	public static void AddPlanet(

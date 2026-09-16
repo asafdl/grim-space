@@ -14,8 +14,12 @@
 [node name="Map" type="Node3D"]
 script = ExtResource("1_controller")
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.906308, 0.422618, 0, -0.422618, 0.906308, 0, 18, 38)
+[node name="CameraPivot" type="Node3D" parent="."]
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
+collision_mask = 0
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
 current = true
 fov = 34.0
 script = ExtResource("3_camera")

@@ -63,7 +63,7 @@ public partial class MapController : Node3D
 		_routes = GetNode<RoutesView>("RoutesView");
 		_units = GetNode<UnitsView>("UnitsView");
 		_course = GetNode<CourseView>("CourseView");
-		_camera = GetNode<MapCamera>("Camera3D");
+		_camera = GetNode<MapCamera>("CameraPivot/SpringArm3D/Camera3D");
 
 		_uiLayer = GetNode<CanvasLayer>("UI");
 		_tooltip = GetNode<Label>("UI/Tooltip");
@@ -175,6 +175,7 @@ public partial class MapController : Node3D
 			BoundsHalfX = halfX,
 			BoundsHalfZ = halfZ,
 			ApplyLimits = limits => _camera.ApplyLimits(limits),
+			SetOcclusionEnabled = enabled => _camera.SetOcclusionEnabled(enabled),
 			SnapToPose = (pose, limits) => _camera.SnapToPose(pose, limits),
 			TweenToPose = (pose, limits, onComplete) => _camera.TweenToPose(pose, limits, onComplete),
 		};

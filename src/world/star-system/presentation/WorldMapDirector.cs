@@ -34,6 +34,7 @@ public sealed class WorldMapDirector
 			throw new InvalidOperationException(
 				$"Invalid bootstrap payload for mode '{id}': {validation.Failure}.");
 
+		_ctx.SetOcclusionEnabled(UsesCameraOcclusion(target));
 		_ctx.ApplyLimits(target.Limits);
 		var pose = target.ResolveEnterPose(string.Empty, _ctx, payload);
 		target.OnEntering(_ctx, string.Empty, payload);
@@ -140,6 +141,7 @@ public sealed class WorldMapDirector
 		_isTransitioning = true;
 
 		source.OnExiting(_ctx, target.Id);
+		_ctx.SetOcclusionEnabled(UsesCameraOcclusion(target));
 		_ctx.ApplyLimits(target.Limits);
 		var targetPose = target.ResolveEnterPose(source.Id, _ctx, payload);
 		target.OnEntering(_ctx, source.Id, payload);
@@ -162,4 +164,7 @@ public sealed class WorldMapDirector
 			callback();
 		_pendingFocusCallbacks.Clear();
 	}
+
+	private static bool UsesCameraOcclusion(IPresentationMode mode) =>
+		mode.Id == CinematicPresentationMode.ModeId;
 }

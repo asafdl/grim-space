@@ -41,6 +41,10 @@ movie_writer/fps=24
 timers/tooltip_delay_sec=0.25
 theme/custom="res://assets/ui/themes/informative_theme.tres"
 
+[layer_names]
+
+3d_physics/layer_20="camera_occluder"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

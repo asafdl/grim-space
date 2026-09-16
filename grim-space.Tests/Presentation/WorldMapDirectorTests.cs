@@ -256,6 +256,25 @@ public sealed class WorldMapDirectorTests
 		Assert.Equal(PresentationInputPolicy.Locked, director.EffectiveInputPolicy);
 	}
 
+	[Fact]
+	public void CameraOcclusionTracksTransitionTarget()
+	{
+		var harness = new TestPresentationHarness();
+		var director = harness.CreateDirector();
+		director.SetInitialMode("cinematic");
+
+		Assert.True(harness.CameraOcclusionEnabled);
+
+		director.TryEnter("overview");
+
+		Assert.False(harness.CameraOcclusionEnabled);
+
+		harness.CompleteTween();
+		director.TryExit("overview");
+
+		Assert.True(harness.CameraOcclusionEnabled);
+	}
+
 	private sealed class TestPresentationHarness
 	{
 		public StubPresentationMode Cinematic { get; } = new()
@@ -287,6 +306,7 @@ public sealed class WorldMapDirectorTests
 		public bool CanAccessFacilities { get; init; } = true;
 		public List<(string Kind, object? Data)> Calls { get; } = [];
 		public Action? LastTweenCallback { get; private set; }
+		public bool CameraOcclusionEnabled { get; private set; }
 
 		public WorldMapDirector CreateDirector()
 		{
@@ -316,6 +336,7 @@ public sealed class WorldMapDirectorTests
 				BoundsHalfX = 16f,
 				BoundsHalfZ = 16f,
 				ApplyLimits = limits => Calls.Add(("ApplyLimits", limits)),
+				SetOcclusionEnabled = enabled => CameraOcclusionEnabled = enabled,
 				SnapToPose = (pose, limits) => Calls.Add(("Snap", pose)),
 				TweenToPose = (pose, limits, onComplete) =>
 				{
