@@ -56,11 +56,7 @@ If the requested change conflicts with an established boundary, stop and explain
 
 TODO comments identify known rework or boundary debt. When touching a file or flow with a TODO, either address it within scope or call it out to the user; do not silently build new dependencies on top of it.
 
-Tests must use mini crash dumps because full dumps have previously reached several gigabytes:
-
-```bash
-dotnet test --blame-crash --blame-crash-dump-type mini
-```
+Tests must not test GODOT framework, this has caused previous segmentation faults in project. We assume GODOT works properly. We should test our c# code or use fixtures.
 
 ## Coding conventions
 

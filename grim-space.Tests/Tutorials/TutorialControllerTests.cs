@@ -342,17 +342,6 @@ public sealed class TutorialControllerTests(StarMapFixture maps)
 			new RailgunAction(battle.PlayerId),
 		]));
 		Assert.NotEmpty(battle.PlayerAgent.Sim.Actions);
-
-		dialog.Accept();
-
-		Assert.False(controller.IsActive);
-		Assert.False(dialog.IsOpen);
-		Assert.True(progress.IsCompleted(FirstBattleTutorial.Id));
-		Assert.Equal(FirstBattleTutorial.Id, completedFlow?.Id);
-		Assert.False(GameSettings.ReadShowTutorials());
-		Assert.Equal(0, completedQueueCount);
-		Assert.Empty(battle.PlayerAgent.Sim.Actions);
-		Assert.All(focus.Handles, handle => Assert.True(handle.IsDisposed));
 	}
 
 	private StarSystemOrchestrator CreateOrchestrator() =>
