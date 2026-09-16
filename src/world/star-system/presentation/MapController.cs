@@ -34,6 +34,8 @@ public partial class MapController : Node3D
 	private Button _stepButton = null!;
 	private Button _speedButton = null!;
 	private Button _rebuildButton = null!;
+	private Button _overviewButton = null!;
+	private Button _accessButton = null!;
 	private CanvasLayer _uiLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
 	private ResourceHud _resourceHud = null!;
@@ -48,7 +50,8 @@ public partial class MapController : Node3D
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
-	private MapPoiFacade _poiFacade = null!;
+	private WorldMapDirector _director = null!;
+	private FacadePresentationMode _facadeMode = null!;
 	private float _tickAccumulator;
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
@@ -72,6 +75,8 @@ public partial class MapController : Node3D
 		_stepButton = debugHud.StepButton;
 		_speedButton = debugHud.SpeedButton;
 		_rebuildButton = debugHud.RebuildButton;
+		_overviewButton = debugHud.OverviewButton;
+		_accessButton = GetNode<Button>("UI/AccessButton");
 		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("UI/ResourceHud");
 
@@ -126,54 +131,8 @@ public partial class MapController : Node3D
 		};
 		_speedButton.Pressed += () => CycleSpeed(1);
 		_rebuildButton.Pressed += RebuildScene;
-
-		_poiFacade = new MapPoiFacade(
-			_view,
-			_camera,
-			() => _orchestrator.Map,
-			() => GetViewport().GetVisibleRect().Size,
-			_uiLayer,
-			GetNode<Button>("UI/AccessButton"),
-			GetNode<ColorRect>("UI/FadeOverlay"),
-			() => !_orchestrator.Map.WaitingForPlayerInput);
-		_poiFacade.FacilityEntered += OnFacilityEntered;
-		_worldFocus = new MapWorldFocus(
-			_camera,
-			() => _orchestrator.Map,
-			CommittedPositionOf,
-			_poiFacade.ReturnToStrategic);
-		var worldIndicators = new MapWorldIndicators();
-		worldIndicators.Configure(
-			() => _orchestrator.Map,
-			CommittedPositionOf,
-			() => _poiFacade.IsStrategic,
-			() => new WorldArrowIndicator());
-		AddChild(worldIndicators);
-		_worldIndicator = worldIndicators;
-		var narrativeHud = new NarrativeHudOverlay();
-		_uiLayer.AddChild(narrativeHud);
-		_narrative = new NarrativeController(
-			narrativeHud,
-			_worldFocus,
-			_worldIndicator,
-			ResolveNarrative(_orchestrator.Map.ActiveNarrativeId),
-			narrativeId => ResolveNarrative(narrativeId),
-			narrativeId => _orchestrator.PlayerAgent!.TryEnqueue(
-				[new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]),
-			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
-				action => onBegin(action.NarrativeId)));
-		if (GameSettings.ReadShowTutorials())
-		{
-			_tutorialDialog = new TutorialDialog();
-			_uiLayer.AddChild(_tutorialDialog);
-			ConfigureTutorialDialog(_tutorialDialog);
-			_tutorial = new TutorialController(
-				_orchestrator,
-				Session.Instance.Run.TutorialProgress,
-				_tutorialDialog,
-				_worldFocus,
-				_worldIndicator);
-		}
+		_overviewButton.Pressed += OnOverviewButtonPressed;
+		_accessButton.Pressed += OnAccessButtonPressed;
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -199,16 +158,89 @@ public partial class MapController : Node3D
 		_units.Build(world);
 		_course.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
-		_camera.SetManualInputEnabled(!world.WaitingForPlayerInput);
+
+		var fadeOverlay = GetNode<ColorRect>("UI/FadeOverlay");
+		var presentationContext = new MapPresentationContext
+		{
+			Map = () => _orchestrator.Map,
+			ResolveDockedPoiId = () => ResolveDockedPoiId(_orchestrator.Map),
+			CanAccessFacilities = () => !_orchestrator.Map.WaitingForPlayerInput,
+			ViewportSize = () =>
+			{
+				var size = GetViewport().GetVisibleRect().Size;
+				return (size.X, size.Y);
+			},
+			Camera = _camera,
+			View = _view,
+			BoundsHalfX = halfX,
+			BoundsHalfZ = halfZ,
+			ApplyLimits = limits => _camera.ApplyLimits(limits),
+			SnapToPose = (pose, limits) => _camera.SnapToPose(pose, limits),
+			TweenToPose = (pose, limits, onComplete) => _camera.TweenToPose(pose, limits, onComplete),
+		};
+		_director = new WorldMapDirector(presentationContext);
+		_facadeMode = new FacadePresentationMode(
+			_uiLayer,
+			fadeOverlay,
+			() => _director.TryExit(FacadePresentationMode.ModeId));
+		_facadeMode.FacilityEntered += OnFacilityEntered;
+		_director.RegisterMode(new CinematicPresentationMode(_accessButton));
+		_director.RegisterMode(new OverviewPresentationMode());
+		_director.RegisterMode(_facadeMode);
+
+		_worldFocus = new MapWorldFocus(
+			_camera,
+			() => _orchestrator.Map,
+			CommittedPositionOf,
+			onReady => _director.PrepareForFocus(onReady).Succeeded);
+		var worldIndicators = new MapWorldIndicators();
+		worldIndicators.Configure(
+			() => _orchestrator.Map,
+			CommittedPositionOf,
+			() => _director.CurrentModeId == CinematicPresentationMode.ModeId,
+			() => new WorldArrowIndicator());
+		AddChild(worldIndicators);
+		_worldIndicator = worldIndicators;
+
+		var narrativeHud = new NarrativeHudOverlay();
+		_uiLayer.AddChild(narrativeHud);
+		_narrative = new NarrativeController(
+			narrativeHud,
+			_worldFocus,
+			_worldIndicator,
+			ResolveNarrative(_orchestrator.Map.ActiveNarrativeId),
+			narrativeId => ResolveNarrative(narrativeId),
+			narrativeId => _orchestrator.PlayerAgent!.TryEnqueue(
+				[new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]),
+			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
+				action => onBegin(action.NarrativeId)));
+		if (GameSettings.ReadShowTutorials())
+		{
+			_tutorialDialog = new TutorialDialog();
+			_uiLayer.AddChild(_tutorialDialog);
+			ConfigureTutorialDialog(_tutorialDialog);
+			_tutorial = new TutorialController(
+				_orchestrator,
+				Session.Instance.Run.TutorialProgress,
+				_tutorialDialog,
+				_worldFocus,
+				_worldIndicator);
+		}
+
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
 
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
-			var poi = world.PointsOfInterest.First(p => p.Id == returnPoiId);
-			_poiFacade.ReEnterFacade(poi, world);
+			_director.SetInitialMode(
+				FacadePresentationMode.ModeId,
+				new FacadeEnterPayload(returnPoiId));
 			MapNavigationContext.ClearReturnToFacade();
+		}
+		else
+		{
+			_director.SetInitialMode(CinematicPresentationMode.ModeId);
 		}
 
 		_tutorial?.Sync();
@@ -222,7 +254,7 @@ public partial class MapController : Node3D
 			AdvanceSimulation(delta);
 
 		var world = _orchestrator.Map;
-		_camera.SetManualInputEnabled(!world.WaitingForPlayerInput);
+		_camera.ApplyInputPolicy(_director.EffectiveInputPolicy, world.WaitingForPlayerInput);
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		_units.Sync(_orchestrator, tickFraction);
 		if (_unreachableFlashTimer > 0f)
@@ -230,9 +262,9 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f);
 		UpdateDebugUi();
 		UpdateObjectivesHud();
-		_poiFacade.Update();
+		_director.Update(delta);
 
-		if (!_poiFacade.IsStrategic)
+		if (!_director.EffectiveInputPolicy.AllowsStrategicHover)
 		{
 			_tooltip.Visible = false;
 			return;
@@ -272,7 +304,7 @@ public partial class MapController : Node3D
 			return;
 		}
 
-		if (_poiFacade.FilterInput(@event))
+		if (_director.FilterInput(@event))
 		{
 			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 				GetViewport().SetInputAsHandled();
@@ -392,6 +424,36 @@ public partial class MapController : Node3D
 		_pauseButton.Disabled = false;
 		_stepButton.Disabled = !_orchestrator.IsStepped;
 		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
+		_overviewButton.Text = _director.CurrentModeId == OverviewPresentationMode.ModeId
+			? "Exit Overview"
+			: "Overview";
+	}
+
+	private void OnOverviewButtonPressed()
+	{
+		if (_director.CurrentModeId == OverviewPresentationMode.ModeId)
+			_director.TryExit(OverviewPresentationMode.ModeId);
+		else
+			_director.TryEnter(OverviewPresentationMode.ModeId);
+	}
+
+	private void OnAccessButtonPressed()
+	{
+		var dockedPoiId = ResolveDockedPoiId(_orchestrator.Map);
+		if (dockedPoiId is null)
+			return;
+
+		_director.TryEnter(FacadePresentationMode.ModeId, new FacadeEnterPayload(dockedPoiId));
+	}
+
+	private static string? ResolveDockedPoiId(StarMap world)
+	{
+		var player = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
+		if (player.State.Phase != Units.EPhase.Docked
+		    || string.IsNullOrEmpty(player.State.DockedAtDockId))
+			return null;
+
+		return world.DocksById[player.State.DockedAtDockId].PoiId;
 	}
 
 	private void CycleSpeed(int delta)

@@ -11,6 +11,7 @@ public partial class DebugHud : MarginContainer
 	public Button StepButton { get; private set; } = null!;
 	public Button SpeedButton { get; private set; } = null!;
 	public Button RebuildButton { get; private set; } = null!;
+	public Button OverviewButton { get; private set; } = null!;
 
 	public override void _Ready()
 	{
@@ -61,10 +62,12 @@ public partial class DebugHud : MarginContainer
 		StepButton = CreateButton("Step");
 		SpeedButton = CreateButton("Speed 1x");
 		RebuildButton = CreateButton("Rebuild");
+		OverviewButton = CreateButton("Overview");
 		buttons.AddChild(PauseButton);
 		buttons.AddChild(StepButton);
 		buttons.AddChild(SpeedButton);
 		buttons.AddChild(RebuildButton);
+		buttons.AddChild(OverviewButton);
 	}
 
 	private static Button CreateButton(string text) =>

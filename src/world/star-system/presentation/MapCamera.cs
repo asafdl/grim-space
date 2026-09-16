@@ -8,11 +8,18 @@ namespace GrimSpace.World.StarSystem.Presentation;
 /// </summary>
 public partial class MapCamera : Camera3D
 {
-	private static readonly OrbitLimits Limits = new(
+	private static readonly OrbitLimits DefaultLimits = new(
 		MinDistance: 4f,
 		MaxDistance: 72f,
 		MinPitch: 0.12f,
 		MaxPitch: 1.15f);
+
+	private static readonly PresentationInputPolicy DefaultInputPolicy = new(
+		AllowsOrbit: true,
+		AllowsPan: true,
+		AllowsWheelZoom: true,
+		AllowsRmbMovement: true,
+		AllowsStrategicHover: true);
 
 	private const float DefaultDistance = 42f;
 	private const float FovDegrees = 34f;
@@ -25,13 +32,16 @@ public partial class MapCamera : Camera3D
 	};
 
 	private OrbitPose _capturedPose;
+	private OrbitLimits _activeLimits = DefaultLimits;
+	private OrbitLimits _tweenLimits = DefaultLimits;
+	private PresentationInputPolicy _inputPolicy = DefaultInputPolicy;
 	private Vector3 _center;
 	private float _boundsHalfX;
 	private float _boundsHalfZ;
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
 	private bool _facadeActive;
-	private bool _manualInputEnabled = true;
+	private bool _domainBlocked;
 	private bool _focusTween;
 	private Tween? _automationTween;
 	private Action? _automationComplete;
@@ -39,9 +49,10 @@ public partial class MapCamera : Camera3D
 	public float Distance => _pose.Distance;
 	public OrbitPose CurrentPose => _pose;
 	public OrbitPose CapturedPose => _capturedPose;
+	public OrbitLimits ActiveLimits => _activeLimits;
 	public bool IsAnimating => _automationTween is not null;
 	public bool IsFacadeActive => _facadeActive;
-	public bool ManualInputEnabled => _manualInputEnabled;
+	public bool ManualInputEnabled => !_domainBlocked;
 
 	public override void _Ready()
 	{
@@ -68,38 +79,58 @@ public partial class MapCamera : Camera3D
 
 	public void SetFacadeActive(bool active) => _facadeActive = active;
 
-	public void SetManualInputEnabled(bool enabled)
+	public void ApplyLimits(OrbitLimits limits)
 	{
-		_manualInputEnabled = enabled;
-		if (!enabled)
+		_activeLimits = limits;
+		_pose.Clamp(_activeLimits);
+		ApplyTransform();
+	}
+
+	public void ApplyInputPolicy(PresentationInputPolicy policy, bool domainBlocked)
+	{
+		_inputPolicy = policy;
+		_domainBlocked = domainBlocked;
+		if (!AllowsOrbitInput() && !AllowsPanInput())
 			_orbiting = false;
 	}
 
-	public void SnapToPose(OrbitPose target)
+	public void SetManualInputEnabled(bool enabled) => ApplyInputPolicy(_inputPolicy, !enabled);
+
+	public void SnapToPose(OrbitPose target, OrbitLimits limits)
 	{
 		CancelAutomation();
-		target.Clamp(Limits);
+		_activeLimits = limits;
+		target.Clamp(limits);
 		_pose = target;
 		ApplyTransform();
 	}
 
-	public void TweenToPose(OrbitPose target, float duration, Action? onComplete = null)
-	{
-		CancelAutomation();
-		target.Clamp(Limits);
-		BeginPoseTween(_pose, target, duration, onComplete);
-	}
+	public void SnapToPose(OrbitPose target) => SnapToPose(target, _activeLimits);
 
-	public void TweenToPose(OrbitPose target, Action? onComplete = null)
+	public void TweenToPose(OrbitPose target, OrbitLimits limits, Action? onComplete = null)
 	{
 		CancelAutomation();
-		target.Clamp(Limits);
+		target.Clamp(limits);
 		BeginPoseTween(
 			_pose,
 			target,
+			limits,
 			CameraTransition.Duration(_pose, target),
 			onComplete);
 	}
+
+	public void TweenToPose(OrbitPose target, OrbitLimits limits, float duration, Action? onComplete = null)
+	{
+		CancelAutomation();
+		target.Clamp(limits);
+		BeginPoseTween(_pose, target, limits, duration, onComplete);
+	}
+
+	public void TweenToPose(OrbitPose target, Action? onComplete = null) =>
+		TweenToPose(target, _activeLimits, onComplete);
+
+	public void TweenToPose(OrbitPose target, float duration, Action? onComplete = null) =>
+		TweenToPose(target, _activeLimits, duration, onComplete);
 
 	public void FocusPivot(Vector3 pivot)
 	{
@@ -110,6 +141,7 @@ public partial class MapCamera : Camera3D
 		BeginPoseTween(
 			_pose,
 			target,
+			_activeLimits,
 			CameraTransition.Duration(_pose, target),
 			null);
 	}
@@ -120,7 +152,7 @@ public partial class MapCamera : Camera3D
 		var target = _pose;
 		target.Pivot = pivot;
 		_focusTween = true;
-		BeginPoseTween(_pose, target, duration, null);
+		BeginPoseTween(_pose, target, _activeLimits, duration, null);
 	}
 
 	public void RestoreCapturedPose(float duration, Action? onComplete = null, float minDistance = 0f)
@@ -135,7 +167,7 @@ public partial class MapCamera : Camera3D
 
 		if (minDistance > 0f && target.Distance < minDistance)
 			target.Distance = minDistance;
-		BeginPoseTween(_pose, target, duration, onComplete);
+		BeginPoseTween(_pose, target, _activeLimits, duration, onComplete);
 	}
 
 	public void RestoreCapturedPose(Action? onComplete = null, float minDistance = 0f)
@@ -153,6 +185,7 @@ public partial class MapCamera : Camera3D
 		BeginPoseTween(
 			_pose,
 			target,
+			_activeLimits,
 			CameraTransition.Duration(_pose, target),
 			onComplete);
 	}
@@ -170,7 +203,7 @@ public partial class MapCamera : Camera3D
 
 	public override void _Process(double delta)
 	{
-		if (!_manualInputEnabled || _facadeActive)
+		if (!AllowsPanInput())
 			return;
 
 		var pan = Vector2.Zero;
@@ -198,7 +231,7 @@ public partial class MapCamera : Camera3D
 
 	public override void _Input(InputEvent @event)
 	{
-		if (!_manualInputEnabled)
+		if (_domainBlocked)
 		{
 			_orbiting = false;
 			return;
@@ -207,7 +240,7 @@ public partial class MapCamera : Camera3D
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
-				if (IsMouseOverUi() || _facadeActive || !PrepareManualInput())
+				if (IsMouseOverUi() || !AllowsOrbitInput() || !PrepareManualInput())
 					break;
 				_orbiting = true;
 				_lastMousePosition = mouseButton.Position;
@@ -219,29 +252,29 @@ public partial class MapCamera : Camera3D
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-				if (IsMouseOverUi() || !PrepareManualInput())
+				if (IsMouseOverUi() || !AllowsWheelInput() || !PrepareManualInput())
 					break;
-				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
+				_pose.Zoom(-OrbitControls.ZoomStep, _activeLimits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;
 
 			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-				if (IsMouseOverUi() || !PrepareManualInput())
+				if (IsMouseOverUi() || !AllowsWheelInput() || !PrepareManualInput())
 					break;
-				_pose.Zoom(OrbitControls.ZoomStep, Limits);
+				_pose.Zoom(OrbitControls.ZoomStep, _activeLimits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseMotion motion when _orbiting && !_facadeActive:
+			case InputEventMouseMotion motion when _orbiting && AllowsOrbitInput():
 			{
 				if (!PrepareManualInput())
 					break;
 
 				var delta = motion.Position - _lastMousePosition;
 				_lastMousePosition = motion.Position;
-				_pose.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);
+				_pose.Orbit(delta, OrbitControls.OrbitSensitivity, _activeLimits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;
@@ -249,8 +282,14 @@ public partial class MapCamera : Camera3D
 		}
 	}
 
-	private void BeginPoseTween(OrbitPose start, OrbitPose target, float duration, Action? onComplete)
+	private void BeginPoseTween(
+		OrbitPose start,
+		OrbitPose target,
+		OrbitLimits limits,
+		float duration,
+		Action? onComplete)
 	{
+		_tweenLimits = limits;
 		var startPivot = start.Pivot;
 		var startDistance = start.Distance;
 		var startYaw = start.Yaw;
@@ -281,10 +320,25 @@ public partial class MapCamera : Camera3D
 	{
 		_automationTween = null;
 		_focusTween = false;
+		_pose.Clamp(_tweenLimits);
+		_activeLimits = _tweenLimits;
+		ApplyTransform();
 		var complete = _automationComplete;
 		_automationComplete = null;
 		complete?.Invoke();
 	}
+
+	private bool UsesLegacyFacadeInputBlock() =>
+		_facadeActive && _inputPolicy == DefaultInputPolicy;
+
+	private bool AllowsOrbitInput() =>
+		!_domainBlocked && _inputPolicy.AllowsOrbit && !UsesLegacyFacadeInputBlock();
+
+	private bool AllowsPanInput() =>
+		!_domainBlocked && _inputPolicy.AllowsPan && !UsesLegacyFacadeInputBlock();
+
+	private bool AllowsWheelInput() =>
+		!_domainBlocked && _inputPolicy.AllowsWheelZoom;
 
 	private bool IsMouseOverUi() => GetViewport().GuiGetHoveredControl() is not null;
 
