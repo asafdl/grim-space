@@ -42,7 +42,7 @@ public sealed partial class ModalShell : Control
 		SetTitle(title);
 		SetSubtitle(subtitle);
 		Visible = true;
-		LayoutPanel();
+		CallDeferred(MethodName.DeferredLayoutPanel);
 	}
 
 	public void Close()
@@ -159,6 +159,7 @@ public sealed partial class ModalShell : Control
 		{
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			CustomMinimumSize = ToGodotSize(ModalShellLayout.BaselinePanelMinimumSize),
 		};
 		HudStyles.SetPanelVariation(
 			_panel,
@@ -281,24 +282,28 @@ public sealed partial class ModalShell : Control
 		return button;
 	}
 
+	public override void _Notification(int what)
+	{
+		base._Notification(what);
+		if (what == NotificationEnterTree && Visible)
+			CallDeferred(MethodName.DeferredLayoutPanel);
+	}
+
 	private void OnResized() => LayoutPanel();
+
+	private void DeferredLayoutPanel() => LayoutPanel();
 
 	private void LayoutPanel()
 	{
-		var containerSize = Size;
-		if (containerSize.X < 64f || containerSize.Y < 64f)
-			return;
-
-		var width = Mathf.RoundToInt(Mathf.Clamp(
-			720f,
-			containerSize.X * 0.38f,
-			Mathf.Min(containerSize.X * 0.58f, 800f)));
-		var height = Mathf.RoundToInt(Mathf.Clamp(
-			540f,
-			containerSize.Y * 0.55f,
-			containerSize.Y * 0.85f));
-
-		_panel.CustomMinimumSize = new Vector2(width, height);
+		var viewportSize = IsInsideTree() ? GetViewportRect().Size : Vector2.Zero;
+		var containerSize = ModalShellLayout.ResolveContainerSize(
+			ToLayoutSize(Size),
+			ToLayoutSize(viewportSize));
+		_panel.CustomMinimumSize = ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
 		RebuildFooter();
 	}
+
+	private static LayoutSize ToLayoutSize(Vector2 size) => new(size.X, size.Y);
+
+	private static Vector2 ToGodotSize(LayoutSize size) => new(size.Width, size.Height);
 }

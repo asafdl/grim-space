@@ -15,6 +15,10 @@ public partial class UnitsView : Node3D
 	private const float RingRadius = 0.095f;
 	private const float RingStroke = 0.012f;
 	private const float RingAlpha = 0.42f;
+	private const float PlayerRingScale = 1.45f;
+	private static readonly Color PlayerRingColor = new(0.55f, 0.95f, 1.0f);
+	private const float PlayerRingAlpha = 0.68f;
+	private const float PlayerRingEmissionMultiplier = 0.55f;
 	private const int RingSegments = 24;
 	private const float RingYOffset = 0.004f;
 	private const float HullYOffset = 0.006f;
@@ -130,11 +134,16 @@ public partial class UnitsView : Node3D
 	private static UnitVisual BuildUnit(State state)
 	{
 		var color = ColorForUnit(state);
-		var scale = state.Type == EType.PlayerFleet ? 1.35f : 1f;
-		var ringRadius = RingRadius * scale;
-		var ringStroke = RingStroke * scale;
-		var shipLength = ShipLength * scale;
-		var shipWidth = ShipWidth * scale;
+		var isPlayer = state.Type == EType.PlayerFleet;
+		var hullScale = isPlayer ? 1.35f : 1f;
+		var ringScale = isPlayer ? PlayerRingScale : 1f;
+		var ringRadius = RingRadius * ringScale;
+		var ringStroke = RingStroke * ringScale;
+		var shipLength = ShipLength * hullScale;
+		var shipWidth = ShipWidth * hullScale;
+		var ringColor = isPlayer ? PlayerRingColor : color;
+		var ringAlpha = isPlayer ? PlayerRingAlpha : RingAlpha;
+		var ringEmission = isPlayer ? PlayerRingEmissionMultiplier : 0.35f;
 		var root = new Node3D { Name = $"Unit_{state.Id}" };
 		var marker = new Node3D { Name = "Marker" };
 		marker.AddChild(new MeshInstance3D
@@ -147,10 +156,10 @@ public partial class UnitsView : Node3D
 			{
 				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = color with { A = RingAlpha },
+				AlbedoColor = ringColor with { A = ringAlpha },
 				EmissionEnabled = true,
-				Emission = color with { A = RingAlpha },
-				EmissionEnergyMultiplier = 0.35f,
+				Emission = ringColor with { A = ringAlpha },
+				EmissionEnergyMultiplier = ringEmission,
 				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
 			},
 		});

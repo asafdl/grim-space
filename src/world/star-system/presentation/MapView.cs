@@ -19,6 +19,8 @@ public partial class MapView : Node3D
 	private const float MajorMarkSize = 0.078f;
 	private const float MinorAlpha = 0.34f;
 	private const float MajorAlpha = 0.56f;
+	private const float GridHaloScale = 1.35f;
+	private const float GridHaloAlpha = 0.12f;
 	private const int FootprintSegments = 48;
 	private const float IndicatorClearancePadding = 0.15f;
 
@@ -35,7 +37,7 @@ public partial class MapView : Node3D
 	private readonly Dictionary<string, MeshInstance3D> _hoverRings = new();
 
 	private string? _hoveredId;
-	private MultiMeshInstance3D? _minorGrid;
+	private Node3D? _minorGridRoot;
 	private MapAtmosphereSettings _atmosphere = MapAtmosphereSettings.Default;
 	private IReadOnlyList<PointOfInterest> _pois = [];
 	private IReadOnlyList<Dock> _docks = [];
@@ -113,7 +115,7 @@ public partial class MapView : Node3D
 		_markers.Clear();
 		_hoverRings.Clear();
 		_hoveredId = null;
-		_minorGrid = null;
+		_minorGridRoot = null;
 		_pois = world.PointsOfInterest;
 		_docks = world.DocksById.Values.ToList();
 		_docksByPoiId = world.DocksByPoiId;
@@ -170,8 +172,8 @@ public partial class MapView : Node3D
 
 	public void SetCameraDistance(float distance)
 	{
-		if (_minorGrid is not null)
-			_minorGrid.Visible = distance < 48f;
+		if (_minorGridRoot is not null)
+			_minorGridRoot.Visible = distance < 48f;
 	}
 
 	public string? PoiAt(Coord point)
@@ -272,20 +274,37 @@ public partial class MapView : Node3D
 	private Node3D BuildReferenceGrid(int width, int height)
 	{
 		var root = new Node3D { Name = "Grid" };
-		_minorGrid = BuildDotMesh("Minor", width, height, GridMinor, FineEvery, MinorMarkSize, major: false);
-		root.AddChild(_minorGrid);
-		root.AddChild(BuildDotMesh("Major", width, height, GridMajor, FineEvery, MajorMarkSize, major: true));
+		_minorGridRoot = BuildDotMesh(
+			"Minor",
+			width,
+			height,
+			GridMinor,
+			FineEvery,
+			MinorMarkSize,
+			major: false,
+			withHalo: true);
+		root.AddChild(_minorGridRoot);
+		root.AddChild(BuildDotMesh(
+			"Major",
+			width,
+			height,
+			GridMajor,
+			FineEvery,
+			MajorMarkSize,
+			major: true,
+			withHalo: false));
 		return root;
 	}
 
-	private static MultiMeshInstance3D BuildDotMesh(
+	private static Node3D BuildDotMesh(
 		string name,
 		int width,
 		int height,
 		Color color,
 		int step,
 		float markSize,
-		bool major)
+		bool major,
+		bool withHalo)
 	{
 		var instances = new List<(Vector3 Position, Color InstanceColor)>();
 
@@ -298,38 +317,58 @@ public partial class MapView : Node3D
 					continue;
 
 				var position = MapMapping.ToWorld(new Coord(x, 0, z), width, height);
-				position.Y = 0.004f;
 				instances.Add((position, color));
 			}
 		}
 
-		var dotMaterial = new StandardMaterial3D
+		var root = new Node3D { Name = name };
+		var radius = markSize * 0.5f;
+		root.AddChild(BuildSphereMultiMesh($"{name}Core", instances, radius, color));
+		if (withHalo)
+		{
+			var haloRadius = radius * GridHaloScale;
+			var haloColor = color with { A = GridHaloAlpha };
+			root.AddChild(BuildSphereMultiMesh($"{name}Halo", instances, haloRadius, haloColor));
+		}
+
+		return root;
+	}
+
+	private static MultiMeshInstance3D BuildSphereMultiMesh(
+		string name,
+		IReadOnlyList<(Vector3 Position, Color InstanceColor)> instances,
+		float radius,
+		Color materialTint)
+	{
+		var sphereMaterial = new StandardMaterial3D
 		{
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 			BlendMode = BaseMaterial3D.BlendModeEnum.Mix,
-			AlbedoColor = Colors.White,
+			AlbedoColor = materialTint,
 			VertexColorUseAsAlbedo = true,
-			BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-			BillboardKeepScale = true,
+			EmissionEnabled = true,
+			Emission = materialTint,
+			EmissionEnergyMultiplier = 0.35f,
 			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly,
 		};
 		var multiMesh = new MultiMesh
 		{
 			TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
 			UseColors = true,
 			InstanceCount = instances.Count,
-			Mesh = new QuadMesh
+			Mesh = new SphereMesh
 			{
-				Size = Vector2.One * markSize,
-				Material = dotMaterial,
+				Radius = radius,
+				Height = radius * 2f,
+				Material = sphereMaterial,
 			},
 		};
 
 		for (var i = 0; i < instances.Count; i++)
 		{
 			var (position, instanceColor) = instances[i];
+			position.Y = radius;
 			multiMesh.SetInstanceTransform(i, new Transform3D(Basis.Identity, position));
 			multiMesh.SetInstanceColor(i, instanceColor);
 		}
