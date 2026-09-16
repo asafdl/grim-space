@@ -16,9 +16,14 @@ public partial class UnitsView : Node3D
 	private const float RingStroke = 0.012f;
 	private const float RingAlpha = 0.42f;
 	private const float PlayerRingScale = 1.45f;
-	private static readonly Color PlayerRingColor = new(0.55f, 0.95f, 1.0f);
-	private const float PlayerRingAlpha = 0.68f;
-	private const float PlayerRingEmissionMultiplier = 0.55f;
+	private static readonly Color PlayerColor = new(124f / 255f, 1f, 98f / 255f);
+	private static readonly Color BeaconOutlineColor = new(0.08f, 0.10f, 0.12f, 0.95f);
+	private const float BeaconMarkerWidth = 0.054f;
+	private const float BeaconMarkerHeight = 0.062f;
+	private const float BeaconOutlineScale = 1.18f;
+	private const float BeaconStemWidth = 0.006f;
+	private const float BeaconStemHeight = 0.50f;
+	private const float BeaconHeight = 0.80f;
 	private const int RingSegments = 24;
 	private const float RingYOffset = 0.004f;
 	private const float HullYOffset = 0.006f;
@@ -95,6 +100,9 @@ public partial class UnitsView : Node3D
 			unitVisual.Marker.Position = worldPosition;
 			unitVisual.Marker.Rotation = new Vector3(0f, sample.HeadingY, 0f);
 
+			if (unitVisual.Beacon is { } beacon)
+				beacon.Root.Position = worldPosition;
+
 			var inTransit = unit.State.Phase == EPhase.InTransit;
 			UpdateTrail(unit.State.Id, worldPosition, inTransit);
 			UpdateTrailSegments(
@@ -102,6 +110,7 @@ public partial class UnitsView : Node3D
 				_trailHistory.GetValueOrDefault(unit.State.Id),
 				worldPosition,
 				inTransit);
+
 		}
 	}
 
@@ -141,9 +150,6 @@ public partial class UnitsView : Node3D
 		var ringStroke = RingStroke * ringScale;
 		var shipLength = ShipLength * hullScale;
 		var shipWidth = ShipWidth * hullScale;
-		var ringColor = isPlayer ? PlayerRingColor : color;
-		var ringAlpha = isPlayer ? PlayerRingAlpha : RingAlpha;
-		var ringEmission = isPlayer ? PlayerRingEmissionMultiplier : 0.35f;
 		var root = new Node3D { Name = $"Unit_{state.Id}" };
 		var marker = new Node3D { Name = "Marker" };
 		marker.AddChild(new MeshInstance3D
@@ -156,10 +162,10 @@ public partial class UnitsView : Node3D
 			{
 				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = ringColor with { A = ringAlpha },
+				AlbedoColor = color with { A = RingAlpha },
 				EmissionEnabled = true,
-				Emission = ringColor with { A = ringAlpha },
-				EmissionEnergyMultiplier = ringEmission,
+				Emission = color with { A = RingAlpha },
+				EmissionEnergyMultiplier = 0.35f,
 				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
 			},
 		});
@@ -180,6 +186,8 @@ public partial class UnitsView : Node3D
 			},
 		});
 		root.AddChild(marker);
+
+		var beacon = isPlayer ? BuildPlayerBeacon(root, color) : null;
 
 		var trailRoot = new Node3D { Name = "Trail" };
 		var trailSegments = new MeshInstance3D[TrailMaxPoints];
@@ -216,8 +224,75 @@ public partial class UnitsView : Node3D
 
 		root.AddChild(trailRoot);
 
-		return new UnitVisual(root, marker, trailSegments);
+		return new UnitVisual(root, marker, trailSegments, beacon);
 	}
+
+	private static PlayerBeaconVisual BuildPlayerBeacon(Node3D unitRoot, Color color)
+	{
+		var beaconRoot = new Node3D { Name = "Beacon" };
+		var stemCenterY = BeaconHeight - BeaconMarkerHeight * 0.5f - BeaconStemHeight * 0.5f;
+
+		beaconRoot.AddChild(CreateBeaconMesh(
+			"Stem",
+			new QuadMesh { Size = new Vector2(BeaconStemWidth, BeaconStemHeight) },
+			CreateBeaconMaterial(BeaconOutlineColor, renderPriority: 7),
+			new Vector3(0f, stemCenterY, 0f)));
+
+		var diamondAnchor = new Node3D
+		{
+			Name = "DiamondAnchor",
+			Position = new Vector3(0f, BeaconHeight, 0f),
+		};
+		diamondAnchor.AddChild(CreateBeaconMesh(
+			"Outline",
+			BuildDownwardTriangleMesh(
+				BeaconMarkerWidth * BeaconOutlineScale,
+				BeaconMarkerHeight * BeaconOutlineScale),
+			CreateBeaconMaterial(BeaconOutlineColor, renderPriority: 8)));
+
+		diamondAnchor.AddChild(CreateBeaconMesh(
+			"Marker",
+			BuildDownwardTriangleMesh(BeaconMarkerWidth, BeaconMarkerHeight),
+			CreateBeaconMaterial(color, renderPriority: 9)));
+		beaconRoot.AddChild(diamondAnchor);
+
+		unitRoot.AddChild(beaconRoot);
+		return new PlayerBeaconVisual(beaconRoot);
+	}
+
+	private static MeshInstance3D CreateBeaconMesh(
+		string name,
+		Mesh mesh,
+		StandardMaterial3D material,
+		Vector3? position = null)
+	{
+		var instance = new MeshInstance3D
+		{
+			Name = name,
+			Mesh = mesh,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = material,
+		};
+		if (position is { } localPosition)
+			instance.Position = localPosition;
+		return instance;
+	}
+
+	private static StandardMaterial3D CreateBeaconMaterial(Color color, int renderPriority) =>
+		new()
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			AlbedoColor = color,
+			EmissionEnabled = true,
+			Emission = color,
+			EmissionEnergyMultiplier = 1.0f,
+			BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+			BillboardKeepScale = true,
+			DisableFog = true,
+			NoDepthTest = true,
+			RenderPriority = renderPriority,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+		};
 
 	private void UpdateTrail(string unitId, Vector3 worldPosition, bool inTransit)
 	{
@@ -324,11 +399,35 @@ public partial class UnitsView : Node3D
 			EType.CargoShuttle => new Color(0.92f, 0.62f, 0.28f),
 			EType.ComplianceVessel => new Color(0.58f, 0.62f, 0.92f),
 			EType.ServiceVessel => new Color(0.42f, 0.72f, 0.88f),
-			EType.PlayerFleet => new Color(0.95f, 0.82f, 0.28f),
+			EType.PlayerFleet => PlayerColor,
 			EType.Patrol => new Color(0.88f, 0.38f, 0.34f),
 			EType.PirateFleet => new Color(0.72f, 0.22f, 0.58f),
 			_ => new Color(0.75f, 0.75f, 0.75f),
 		};
+
+	private static ArrayMesh BuildDownwardTriangleMesh(float width, float height)
+	{
+		var halfWidth = width * 0.5f;
+		var halfHeight = height * 0.5f;
+		var vertices = new Vector3[]
+		{
+			new(-halfWidth, halfHeight, 0f),
+			new(halfWidth, halfHeight, 0f),
+			new(0f, -halfHeight, 0f),
+		};
+		var normals = new Vector3[] { Vector3.Back, Vector3.Back, Vector3.Back };
+		var indices = new int[] { 0, 1, 2 };
+
+		var arrays = new Godot.Collections.Array();
+		arrays.Resize((int)Mesh.ArrayType.Max);
+		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
+		arrays[(int)Mesh.ArrayType.Normal] = normals;
+		arrays[(int)Mesh.ArrayType.Index] = indices;
+
+		var mesh = new ArrayMesh();
+		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+		return mesh;
+	}
 
 	private static ArrayMesh BuildRingMesh(float radius, float stroke, int segments)
 	{
@@ -416,7 +515,10 @@ public partial class UnitsView : Node3D
 	private sealed record UnitVisual(
 		Node3D Root,
 		Node3D Marker,
-		MeshInstance3D[] TrailSegments);
+		MeshInstance3D[] TrailSegments,
+		PlayerBeaconVisual? Beacon);
+
+	private sealed record PlayerBeaconVisual(Node3D Root);
 
 	private readonly record struct TrafficSample(double X, double Z, float HeadingY);
 }
