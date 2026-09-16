@@ -460,6 +460,8 @@ public sealed class WorldMapDirectorTests
 				ViewportSize = () => (1920f, 1080f),
 				Camera = null!,
 				ResolveCameraPose = () => new OrbitPose { Distance = 12f },
+				IsCameraAnimating = () => false,
+				ApplyCameraDistanceDelta = _ => { },
 				View = null!,
 				BoundsHalfX = 16f,
 				BoundsHalfZ = 16f,

@@ -18,8 +18,10 @@ public sealed class OverviewPresentationMode : IPresentationMode
 		AllowsRmbMovement: true,
 		AllowsStrategicHover: true);
 
+	private OrbitLimits _limits = new(22f, 22f, 0.87f, 1.13f);
+
 	public string Id => ModeId;
-	public OrbitLimits Limits => MapOverviewFraming.Limits;
+	public OrbitLimits Limits => _limits;
 	public PresentationInputPolicy InputPolicy => Policy;
 	public IReadOnlySet<string> AllowedFrom => AllowedSources;
 	public string? ExitTargetId => CinematicPresentationMode.ModeId;
@@ -35,6 +37,7 @@ public sealed class OverviewPresentationMode : IPresentationMode
 		MapPresentationContext ctx,
 		object? payload)
 	{
+		RefreshLimits(ctx);
 		var viewport = ctx.ViewportSize();
 		return MapOverviewFraming.Resolve(
 			ctx.Camera.CurrentPose,
@@ -44,11 +47,22 @@ public sealed class OverviewPresentationMode : IPresentationMode
 			viewport.Height);
 	}
 
-	public void OnEntering(MapPresentationContext ctx, string sourceModeId, object? payload) { }
+	public void OnEntering(MapPresentationContext ctx, string sourceModeId, object? payload) =>
+		RefreshLimits(ctx);
 
 	public void OnSettled(MapPresentationContext ctx) { }
 
 	public void OnExiting(MapPresentationContext ctx, string targetModeId) { }
 
 	public void Update(MapPresentationContext ctx, double delta) { }
+
+	private void RefreshLimits(MapPresentationContext ctx)
+	{
+		var viewport = ctx.ViewportSize();
+		_limits = MapOverviewFraming.ResolveLimits(
+			ctx.BoundsHalfX,
+			ctx.BoundsHalfZ,
+			viewport.Width,
+			viewport.Height);
+	}
 }

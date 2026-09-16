@@ -175,6 +175,8 @@ public partial class MapController : Node3D
 			},
 			Camera = _camera,
 			ResolveCameraPose = () => _camera.CurrentPose,
+			IsCameraAnimating = () => _camera.IsAnimating,
+			ApplyCameraDistanceDelta = delta => _camera.ApplyDistanceDelta(delta),
 			View = _view,
 			BoundsHalfX = halfX,
 			BoundsHalfZ = halfZ,
@@ -319,6 +321,21 @@ public partial class MapController : Node3D
 		{
 			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 				GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event is InputEventMouseButton { Pressed: true } wheel
+		    && wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
+		{
+			if (GetViewport().GuiGetHoveredControl() is not null)
+				return;
+
+			if (!_director.EffectiveInputPolicy.AllowsWheelZoom)
+				return;
+
+			var direction = wheel.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+			_director.OnWheelZoom(direction);
+			GetViewport().SetInputAsHandled();
 			return;
 		}
 

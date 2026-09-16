@@ -9,15 +9,33 @@ public static class MapOverviewFraming
 {
 	private const float VerticalFovDegrees = 34f;
 	private const float FramingMargin = 1.12f;
+	private const float MaxDistanceScale = 0.8f;
+	private const float MinDistance = 22f;
 
 	private const float MinPitchRadians = 50f * MathF.PI / 180f;
 	private const float MaxPitchRadians = 65f * MathF.PI / 180f;
 
-	public static readonly OrbitLimits Limits = new(
-		MinDistance: 24f,
-		MaxDistance: 240f,
-		MinPitch: MinPitchRadians,
-		MaxPitch: MaxPitchRadians);
+	public static OrbitLimits ResolveLimits(
+		float boundsHalfX,
+		float boundsHalfZ,
+		float viewportWidth,
+		float viewportHeight)
+	{
+		var pitch = (MinPitchRadians + MaxPitchRadians) * 0.5f;
+		var fitDistance = ComputeDistance(
+			boundsHalfX,
+			boundsHalfZ,
+			viewportWidth,
+			viewportHeight,
+			pitch);
+		var maxDistance = System.Math.Max(MinDistance, fitDistance * MaxDistanceScale);
+
+		return new OrbitLimits(
+			MinDistance: MinDistance,
+			MaxDistance: maxDistance,
+			MinPitch: MinPitchRadians,
+			MaxPitch: MaxPitchRadians);
+	}
 
 	public static OrbitPose Resolve(
 		OrbitPose sourcePose,
@@ -26,12 +44,15 @@ public static class MapOverviewFraming
 		float viewportWidth,
 		float viewportHeight)
 	{
+		var limits = ResolveLimits(boundsHalfX, boundsHalfZ, viewportWidth, viewportHeight);
 		var pitch = sourcePose.Pitch;
-		if (pitch < Limits.MinPitch || pitch > Limits.MaxPitch)
-			pitch = (Limits.MinPitch + Limits.MaxPitch) * 0.5f;
+		if (pitch < limits.MinPitch || pitch > limits.MaxPitch)
+			pitch = (limits.MinPitch + limits.MaxPitch) * 0.5f;
 
 		var distance = ComputeDistance(boundsHalfX, boundsHalfZ, viewportWidth, viewportHeight, pitch);
-		distance = System.Math.Clamp(distance, Limits.MinDistance, Limits.MaxDistance);
+		distance = MapZoomNavigation.ClampSavedDistanceToInterior(
+			System.Math.Clamp(distance, limits.MinDistance, limits.MaxDistance),
+			limits);
 
 		return new OrbitPose
 		{
@@ -51,7 +72,7 @@ public static class MapOverviewFraming
 	{
 		var mapSpan = System.Math.Max(boundsHalfX, boundsHalfZ) * 2f;
 		if (mapSpan <= 0.001f)
-			return Limits.MinDistance;
+			return MinDistance;
 
 		var aspect = viewportWidth > 0f && viewportHeight > 0f
 			? viewportWidth / viewportHeight

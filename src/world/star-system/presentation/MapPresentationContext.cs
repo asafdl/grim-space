@@ -16,6 +16,8 @@ public sealed class MapPresentationContext
 	public required Func<(float Width, float Height)> ViewportSize { get; init; }
 	public required MapCamera Camera { get; init; }
 	public required Func<OrbitPose> ResolveCameraPose { get; init; }
+	public required Func<bool> IsCameraAnimating { get; init; }
+	public required Action<float> ApplyCameraDistanceDelta { get; init; }
 	public required MapView View { get; init; }
 	public required float BoundsHalfX { get; init; }
 	public required float BoundsHalfZ { get; init; }

@@ -36,9 +36,9 @@ public sealed class WorldMapDirector
 				$"Invalid bootstrap payload for mode '{id}': {validation.Failure}.");
 
 		_ctx.SetOcclusionEnabled(UsesCameraOcclusion(target));
-		_ctx.ApplyLimits(target.Limits);
 		var pose = target.ResolveEnterPose(string.Empty, _ctx, payload);
 		target.OnEntering(_ctx, string.Empty, payload);
+		_ctx.ApplyLimits(target.Limits);
 		_ctx.SnapToPose(pose, target.Limits);
 		target.OnSettled(_ctx);
 		_currentMode = target;
@@ -138,6 +138,76 @@ public sealed class WorldMapDirector
 
 		onReady();
 		return PresentationTransitionResult.Ok();
+	}
+
+	public void OnWheelZoom(int direction)
+	{
+		if (direction == 0)
+			return;
+
+		if (_isTransitioning
+		    || (_currentMode?.IsBusy ?? false)
+		    || _ctx.IsCameraAnimating())
+			return;
+
+		if (_currentMode is null)
+			return;
+
+		var limits = _currentMode.Limits;
+		var distance = _ctx.ResolveCameraPose().Distance;
+		var zoomPolicy = ResolveZoomPolicy(_currentMode.Id);
+		if (MapZoomNavigation.WouldCrossOutward(distance, limits, direction, zoomPolicy))
+		{
+			TryEnterZoomOutTarget(_currentMode.Id);
+			return;
+		}
+
+		if (MapZoomNavigation.WouldCrossInward(distance, limits, direction, zoomPolicy))
+		{
+			if (!TryEnterZoomInTarget(_currentMode.Id))
+				_ctx.ApplyCameraDistanceDelta(limits.MinDistance - distance);
+			return;
+		}
+
+		_ctx.ApplyCameraDistanceDelta(
+			MapZoomNavigation.ProportionalStep(distance, limits, direction, zoomPolicy));
+	}
+
+	private static ZoomStepPolicy ResolveZoomPolicy(string modeId) =>
+		modeId == OverviewPresentationMode.ModeId
+			? MapZoomNavigation.OverviewStepPolicy
+			: MapZoomNavigation.LinearBandStepPolicy;
+
+	private void TryEnterZoomOutTarget(string modeId)
+	{
+		switch (modeId)
+		{
+			case FacadePresentationMode.ModeId:
+				TryEnter(CinematicPresentationMode.ModeId);
+				break;
+			case CinematicPresentationMode.ModeId:
+				TryEnter(OverviewPresentationMode.ModeId);
+				break;
+		}
+	}
+
+	private bool TryEnterZoomInTarget(string modeId)
+	{
+		switch (modeId)
+		{
+			case CinematicPresentationMode.ModeId:
+				var dockedPoiId = _ctx.ResolveDockedPoiId();
+				if (dockedPoiId is null || !_ctx.CanAccessFacilities())
+					return false;
+
+				TryEnter(FacadePresentationMode.ModeId, new FacadeEnterPayload(dockedPoiId));
+				return true;
+			case OverviewPresentationMode.ModeId:
+				TryEnter(CinematicPresentationMode.ModeId);
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	public bool FilterInput(InputEvent @event)

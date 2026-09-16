@@ -22,13 +22,13 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private static readonly PresentationInputPolicy Policy = new(
 		AllowsOrbit: true,
 		AllowsPan: false,
-		AllowsWheelZoom: false,
+		AllowsWheelZoom: true,
 		AllowsRmbMovement: false,
 		AllowsStrategicHover: false);
 
 	private static readonly OrbitLimits ModeLimits = new(
 		MinDistance: 2f,
-		MaxDistance: 10f,
+		MaxDistance: 7f,
 		MinPitch: Mathf.DegToRad(15f),
 		MaxPitch: Mathf.DegToRad(45f));
 
@@ -85,7 +85,9 @@ public sealed class FacadePresentationMode : IPresentationMode
 	{
 		var poi = ResolvePoi(ctx, payload);
 		var world = ctx.Map();
-		return ctx.View.ResolveFacadePose(poi, world.Width, world.Height);
+		var pose = ctx.View.ResolveFacadePose(poi, world.Width, world.Height);
+		pose.Distance = MapZoomNavigation.ClampSavedDistanceToInterior(pose.Distance, ModeLimits);
+		return pose;
 	}
 
 	public void OnEntering(MapPresentationContext ctx, string sourceModeId, object? payload)

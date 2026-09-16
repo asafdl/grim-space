@@ -85,6 +85,16 @@ public partial class MapCamera : Camera3D
 		ApplyTransform();
 	}
 
+	public void ApplyDistanceDelta(float signedAmount)
+	{
+		if (!PrepareManualInput())
+			return;
+
+		NotifyManualInput();
+		_pose.Zoom(signedAmount, _activeLimits);
+		ApplyTransform();
+	}
+
 	public void CapturePose() => _capturedPose = _pose;
 
 	public void SetCapturedPose(OrbitPose pose) => _capturedPose = pose;
@@ -322,24 +332,6 @@ public partial class MapCamera : Camera3D
 				_orbiting = false;
 				break;
 
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-				if (IsMouseOverUi() || !AllowsWheelInput() || !PrepareManualInput())
-					break;
-				NotifyManualInput();
-				_pose.Zoom(-OrbitControls.ZoomStep, _activeLimits);
-				ApplyTransform();
-				GetViewport().SetInputAsHandled();
-				break;
-
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-				if (IsMouseOverUi() || !AllowsWheelInput() || !PrepareManualInput())
-					break;
-				NotifyManualInput();
-				_pose.Zoom(OrbitControls.ZoomStep, _activeLimits);
-				ApplyTransform();
-				GetViewport().SetInputAsHandled();
-				break;
-
 			case InputEventMouseMotion motion when _orbiting && AllowsOrbitInput():
 			{
 				if (!PrepareManualInput())
@@ -414,9 +406,6 @@ public partial class MapCamera : Camera3D
 
 	private bool AllowsPanInput() =>
 		!_domainBlocked && _inputPolicy.AllowsPan && !UsesLegacyFacadeInputBlock();
-
-	private bool AllowsWheelInput() =>
-		!_domainBlocked && _inputPolicy.AllowsWheelZoom;
 
 	private bool IsMouseOverUi() => GetViewport().GuiGetHoveredControl() is not null;
 

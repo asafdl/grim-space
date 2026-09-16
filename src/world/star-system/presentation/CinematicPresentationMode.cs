@@ -24,8 +24,8 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		AllowsStrategicHover: true);
 
 	private static readonly OrbitLimits ModeLimits = new(
-		MinDistance: 10f,
-		MaxDistance: 14f,
+		MinDistance: 9f,
+		MaxDistance: 18f,
 		MinPitch: Mathf.DegToRad(20f),
 		MaxPitch: Mathf.DegToRad(40f));
 
@@ -57,20 +57,34 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		if (sourceModeId == OverviewPresentationMode.ModeId)
 		{
 			var sample = ctx.ResolvePlayerTravelSample();
+			var interiorDistance = MapZoomNavigation.InteriorDistance(ModeLimits, fromMinSide: true);
 			if (sample.TravelDirection is { } direction)
 			{
 				return MapCinematicFraming.BehindShip(
 					sample.WorldPosition,
 					direction,
-					ModeLimits);
+					ModeLimits,
+					interiorDistance);
 			}
 		}
 
 		if (_hasSavedPose)
+		{
+			_savedPose.Distance = MapZoomNavigation.ClampSavedDistanceToInterior(
+				_savedPose.Distance,
+				ModeLimits);
 			return _savedPose;
+		}
 
 		if (sourceModeId == string.Empty)
 			return MapCinematicFraming.BootstrapAtPlayer(ctx.ResolvePlayerTravelSample(), ModeLimits);
+
+		if (sourceModeId == FacadePresentationMode.ModeId)
+		{
+			var pose = ctx.Camera.CurrentPose;
+			pose.Distance = MapZoomNavigation.InteriorDistance(ModeLimits, fromMinSide: false);
+			return pose;
+		}
 
 		return ctx.Camera.CurrentPose;
 	}
@@ -87,6 +101,13 @@ public sealed class CinematicPresentationMode : IPresentationMode
 	public void OnExiting(MapPresentationContext ctx, string targetModeId)
 	{
 		_savedPose = ctx.Camera.CurrentPose;
+		if (targetModeId is FacadePresentationMode.ModeId or OverviewPresentationMode.ModeId)
+		{
+			_savedPose.Distance = MapZoomNavigation.ClampSavedDistanceToInterior(
+				_savedPose.Distance,
+				ModeLimits);
+		}
+
 		_hasSavedPose = true;
 		_accessButton.Visible = false;
 
