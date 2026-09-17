@@ -39,10 +39,7 @@ public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRunt
 	}
 
 	private static void RemoveFleet(StarMap world, string fleetId)
-	{
-		world.Timeline.CancelPendingForActor(fleetId);
-		world.FleetRegistry.Remove(fleetId);
-	}
+		=> world.FleetRegistry.Remove(fleetId);
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }
 }

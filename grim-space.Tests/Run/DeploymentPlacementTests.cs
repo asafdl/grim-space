@@ -74,8 +74,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDefault_UsesDeploymentPlacement()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
-		var player = encounter.Spawns.First(spawn => spawn.Unit.Alliance.Team == ETeam.Player);
-		var enemy = encounter.Spawns.First(spawn => spawn.Unit.Alliance.Team == ETeam.Enemy);
+		var player = encounter.Spawns.First(spawn => spawn.Unit.Team == ETeam.Player);
+		var enemy = encounter.Spawns.First(spawn => spawn.Unit.Team == ETeam.Enemy);
 
 		Assert.True(player.Position.X < enemy.Position.X);
 		Assert.NotEqual(Coord.Forward, player.Fore);
@@ -97,12 +97,12 @@ public sealed class DeploymentPlacementTests
 	private static Instance PlayerInstance() => new()
 	{
 		Type = EType.Fighter,
-		Alliance = Alliance.Player,
+		Team = ETeam.Player,
 	};
 
 	private static Instance EnemyInstance() => new()
 	{
 		Type = EType.Carrier,
-		Alliance = Alliance.Enemy,
+		Team = ETeam.Enemy,
 	};
 }

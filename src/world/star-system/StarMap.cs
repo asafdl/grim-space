@@ -18,7 +18,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem;
 
-public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
+public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<State, StarMap>
 {
 	public const int MapWidth = 1024;
 	public const int MapHeight = 1024;
@@ -37,6 +37,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorStateWorld<State, StarMap>
 	public IReadOnlyDictionary<Coord, Dock> DocksByPosition { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public FleetRegistry FleetRegistry { get; }
+	public IEnumerable<string> ActorIds => FleetRegistry.Ids;
 	public ContractRegistry ContractRegistry { get; }
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PlayerResources PlayerResources { get; }

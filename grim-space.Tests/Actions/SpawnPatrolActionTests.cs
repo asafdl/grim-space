@@ -35,7 +35,7 @@ public sealed class SpawnPatrolActionTests
 			UnitRegistry.For(sim.World).All,
 			unit => unit.State.Type == EType.Patrol);
 		Assert.Equal(carrierId, patrol.State.ParentId);
-		Assert.Equal(ETeam.Enemy, patrol.Alliance.Team);
+		Assert.Equal(ETeam.Enemy, patrol.Team);
 
 		var frame = BodyFrame.From(carrier);
 		Assert.Equal(carrier.Position + frame.Step(ESpatialOrientation.Ventral), patrol.State.Position);
@@ -178,7 +178,7 @@ public sealed class SpawnPatrolActionTests
 				{
 					Id = $"patrol-{i}",
 					Type = EType.Patrol,
-					Alliance = carrier.Alliance,
+					Team = carrier.Team,
 				},
 				new Coord(1 + i, 1, 5),
 				new AiController(),

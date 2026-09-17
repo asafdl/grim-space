@@ -227,7 +227,7 @@ public sealed class BattlePhaseTests
 
 		Assert.False(battle.Engine.World.StateOf(enemyId).IsAlive);
 		Assert.True(battle.Engine.World.StateOf(PlayerId).IsAlive);
-		Assert.Equal(EBattleResult.Win, battle.Outcome.Result);
+		Assert.Equal(EBattleResult.Win, battle.ResolveBattleOutcome().Result);
 		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
 	}
 
@@ -241,7 +241,7 @@ public sealed class BattlePhaseTests
 
 		Assert.False(battle.Engine.World.StateOf(PlayerId).IsAlive);
 		Assert.True(battle.Engine.World.StateOf(enemyId).IsAlive);
-		Assert.Equal(EBattleResult.Lose, battle.Outcome.Result);
+		Assert.Equal(EBattleResult.Lose, battle.ResolveBattleOutcome().Result);
 		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
 	}
 
@@ -260,6 +260,7 @@ public sealed class BattlePhaseTests
 	{
 		var encounter = new BattleEncounter
 		{
+			Id = "test-encounter",
 			Seed = 1,
 			Objective = EObjective.EliminateOpponents,
 			Spawns =
@@ -270,7 +271,7 @@ public sealed class BattlePhaseTests
 					{
 						Id = "player",
 						Type = EType.Fighter,
-						Alliance = Alliance.Player,
+						Team = ETeam.Player,
 					},
 					Position = playerPos,
 					ExecutionAgent = new UserExecutionAgent(),
@@ -281,7 +282,7 @@ public sealed class BattlePhaseTests
 					{
 						Id = "enemy",
 						Type = EType.Fighter,
-						Alliance = Alliance.Enemy,
+						Team = ETeam.Enemy,
 					},
 					Position = enemyPos,
 					ExecutionAgent = new AiController(),

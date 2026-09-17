@@ -43,7 +43,7 @@ public sealed class DetonateActionTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(0, 0, 0);
 
 		var sim = battle.Engine.CreateSimulation();
@@ -69,7 +69,7 @@ public sealed class DetonateActionTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + new Coord(1, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(0, 1, 0);
 
 		var playerShieldsBefore = TotalShields(battle.Engine.World.StateOf(PlayerId));
@@ -109,7 +109,7 @@ public sealed class DetonateActionTests
 		battle.Engine.World.StateOf(torpedoId).ActionPoints = 0;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, torpedo);
@@ -153,7 +153,7 @@ public sealed class DetonateActionTests
 	{
 		battle.Engine.World.StateOf(torpedoId).Position = new Coord(10, 10, 10);
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(1, 1, 1);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(0, 0, 0);
 	}
 

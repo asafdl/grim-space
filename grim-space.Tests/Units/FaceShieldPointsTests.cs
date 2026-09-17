@@ -24,7 +24,7 @@ public sealed class FaceShieldPointsTests
 	public void FromSpawn_Patrol_ClonesForwardShieldProfile()
 	{
 		var state = State.FromSpawn(
-			new Instance { Id = "patrol-1", Type = EType.Patrol, Alliance = Alliance.Enemy },
+			new Instance { Id = "patrol-1", Type = EType.Patrol, Team = ETeam.Enemy },
 			Coord.Zero);
 
 		Assert.Equal(3, state.ShieldPoints[ESpatialOrientation.Forward]);

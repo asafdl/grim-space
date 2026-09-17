@@ -17,7 +17,7 @@ public sealed class HitFaceTests
 		{
 			Id = "test",
 			Type = EType.Fighter,
-			Alliance = Alliance.Player,
+			Team = ETeam.Player,
 		}, position);
 
 	[Theory]
@@ -83,7 +83,7 @@ public sealed class ApplyDamageTests
 		{
 			Id = "test",
 			Type = EType.Fighter,
-			Alliance = Alliance.Player,
+			Team = ETeam.Player,
 		}, Coord.Zero);
 
 	[Fact]

@@ -85,7 +85,7 @@ public sealed class CarrierDeployTests
 				{
 					Id = $"patrol-{i}",
 					Type = EType.Patrol,
-					Alliance = carrier.Alliance,
+					Team = carrier.Team,
 				},
 				new Coord(1 + i, 1, 5),
 				new AiController(),

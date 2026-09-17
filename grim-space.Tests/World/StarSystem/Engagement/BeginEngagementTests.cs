@@ -39,41 +39,30 @@ public sealed class BeginEngagementTests
 
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(playerId);
 		var pirateFleet = run.StarSystem.Map.FleetRegistry.FleetOf(pirateId);
-		var encounter = EngagementBattleFactory.Create(playerFleet, pirateFleet, 7);
-
 		Assert.True(EngagementQueries.TryGetCommittedPlayerEngagement(run.StarSystem.Map, playerId, out var committed));
+		var encounter = EngagementBattleFactory.Create([playerFleet, pirateFleet], 7, committed.EngagementId);
 		Assert.Equal(playerId, committed.InitiatorUnitId);
 		Assert.Equal(4, encounter.Spawns.Count);
 		Assert.Equal(
 			playerFleet.Members.Concat(pirateFleet.Members).Select(member => member.Id).Order(),
 			encounter.Spawns.Select(spawn => spawn.Unit.Id).Order());
-		Assert.Equal(
-			playerFleet.Members.Select(member => member.Id),
-			encounter.Participants
-				.Single(participant => participant.ParticipantId == playerId)
-				.TacticalUnitIds);
-		Assert.Equal(
-			pirateFleet.Members.Select(member => member.Id),
-			encounter.Participants
-				.Single(participant => participant.ParticipantId == pirateId)
-				.TacticalUnitIds);
 		Assert.All(
 			encounter.Spawns,
 			spawn => Assert.Equal(
 				playerFleet.Members.Any(member => member.Id == spawn.Unit.Id)
-					? Alliance.Player
-					: Alliance.Enemy,
-				spawn.Unit.Alliance));
+					? ETeam.Player
+					: ETeam.Enemy,
+				spawn.Unit.Team));
 		Assert.All(
 			encounter.Spawns,
 			spawn => Assert.Equal(
 				playerFleet.Members.Concat(pirateFleet.Members).Single(member => member.Id == spawn.Unit.Id).Type,
 				spawn.Unit.Type));
 		Assert.All(
-			encounter.Spawns.Where(spawn => spawn.Unit.Alliance == Alliance.Player),
+			encounter.Spawns.Where(spawn => spawn.Unit.Team == ETeam.Player),
 			spawn => Assert.IsType<UserExecutionAgent>(spawn.ExecutionAgent));
 		Assert.All(
-			encounter.Spawns.Where(spawn => spawn.Unit.Alliance == Alliance.Enemy),
+			encounter.Spawns.Where(spawn => spawn.Unit.Team == ETeam.Enemy),
 			spawn => Assert.IsType<AiController>(spawn.ExecutionAgent));
 	}
 
@@ -94,7 +83,7 @@ public sealed class BeginEngagementTests
 			Enumerable.Range(0, 5)
 				.Select(index => new FleetMember($"patrol-{index}", BattleUnitType.Patrol)));
 
-		var encounter = EngagementBattleFactory.Create(playerFleet, pirateFleet, 231);
+		var encounter = EngagementBattleFactory.Create([playerFleet, pirateFleet], 231, "test-engagement");
 		var positions = encounter.Spawns.Select(spawn => spawn.Position).ToArray();
 
 		Assert.Equal(playerFleet.Members.Count + pirateFleet.Members.Count, positions.Length);
@@ -114,7 +103,7 @@ public sealed class BeginEngagementTests
 				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 				-227155311));
 
-		var encounter = EngagementBattleFactory.Create(playerFleet, pirateFleet, -227155311);
+		var encounter = EngagementBattleFactory.Create([playerFleet, pirateFleet], -227155311, "test-engagement");
 
 		Assert.Equal(-227155311, encounter.Seed);
 		Assert.NotEmpty(encounter.Spawns);

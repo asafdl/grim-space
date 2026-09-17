@@ -9,6 +9,7 @@ public sealed record UnitStateHandoff(
 );
 
 public sealed record BattleOutcome(
+	string BattleId,
 	EBattleResult Result,
 	IReadOnlyList<UnitStateHandoff> StateHandoffs
 );

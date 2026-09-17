@@ -23,6 +23,15 @@ public sealed class ActorRuntimes<TRuntime>
 	public void Register(string actorId, TRuntime runtime) =>
 		_contexts[actorId] = runtime;
 
+	public bool Remove(string actorId)
+	{
+		if (!_contexts.Remove(actorId, out var runtime))
+			return false;
+
+		runtime.Reset();
+		return true;
+	}
+
 	public ActorRuntimes<TRuntime> Fork()
 	{
 		var fork = new ActorRuntimes<TRuntime>();

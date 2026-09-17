@@ -55,8 +55,8 @@ public sealed class RailgunReachTests
 	{
 		var ap = 0;
 		var gap = OffensiveReach.OptimisticMoveBubble(ap) + CombatConfig.MaxRailgunManhattanRange + 1;
-		var player = CreateUnit(Alliance.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
-		var enemy = CreateUnit(Alliance.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
+		var player = CreateUnit(ETeam.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
+		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
 		enemy.State.ActionPoints = ap;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, BattleTestFixture.Grid(size: 32));
@@ -70,8 +70,8 @@ public sealed class RailgunReachTests
 	[Fact]
 	public void UpperBound_IncludesDamageBonus_WhenOpponentInOptimisticReach()
 	{
-		var player = CreateUnit(Alliance.Player, "player", new Coord(6, 5, 5), EType.Fighter);
-		var enemy = CreateUnit(Alliance.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
+		var player = CreateUnit(ETeam.Player, "player", new Coord(6, 5, 5), EType.Fighter);
+		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
 		enemy.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
@@ -87,8 +87,8 @@ public sealed class RailgunReachTests
 	[Fact]
 	public void UpperBound_IncludesDamageBonus_WhenPatrolCanReachPlayerWithFlak()
 	{
-		var player = CreateUnit(Alliance.Player, "player", new Coord(4, 5, 5), EType.Fighter);
-		var patrol = CreateUnit(Alliance.Enemy, "patrol", new Coord(0, 5, 5), EType.Patrol);
+		var player = CreateUnit(ETeam.Player, "player", new Coord(4, 5, 5), EType.Fighter);
+		var patrol = CreateUnit(ETeam.Enemy, "patrol", new Coord(0, 5, 5), EType.Patrol);
 		patrol.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, patrol);
@@ -101,13 +101,13 @@ public sealed class RailgunReachTests
 			bound);
 	}
 
-	private static Unit CreateUnit(Alliance alliance, string id, Coord position, EType type) =>
+	private static Unit CreateUnit(ETeam team, string id, Coord position, EType type) =>
 		Factory.Create(
 			new Instance
 			{
 				Id = id,
 				Type = type,
-				Alliance = alliance,
+				Team = team,
 			},
 			position,
 			new AiController(),

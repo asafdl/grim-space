@@ -55,12 +55,9 @@ internal static class BattleTestFixture
 		var battle = new BattleOrchestrator(
 			engine,
 			layout,
+			"test-battle",
 			player.State.Id,
-			EObjective.EliminateOpponents,
-			[
-				new BattleParticipant(player.State.Id, [player.State.Id]),
-				new BattleParticipant(enemy.State.Id, [enemy.State.Id]),
-			]);
+			EObjective.EliminateOpponents);
 		foreach (var unit in units)
 		{
 			ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
@@ -107,7 +104,7 @@ internal static class BattleTestFixture
 
 	public static string FirstEnemyId(BattleOrchestrator battle) =>
 		UnitRegistry.For(battle.Engine.World)
-			.All.First(unit => unit.Alliance.Team == ETeam.Enemy)
+			.All.First(unit => unit.Team == ETeam.Enemy)
 			.State.Id;
 
 	public static PresentationFrameBuilder FrameBuilder(BattleOrchestrator battle) =>
@@ -126,16 +123,16 @@ internal static class BattleTestFixture
 	public static Unit Player(
 		Coord position,
 		int actionPoints = 4) =>
-		WithAp(Create(Alliance.Player, "player", position), actionPoints);
+		WithAp(Create(ETeam.Player, "player", position), actionPoints);
 
 	public static Unit Enemy(Coord position) =>
-		Create(Alliance.Enemy, "enemy", position);
+		Create(ETeam.Enemy, "enemy", position);
 
 	public static Unit Carrier(Coord position) =>
-		Create(Alliance.Enemy, "carrier", position, EType.Carrier);
+		Create(ETeam.Enemy, "carrier", position, EType.Carrier);
 
 	public static Unit Patrol(Coord position, string id = "patrol") =>
-		Create(Alliance.Enemy, id, position, EType.Patrol);
+		Create(ETeam.Enemy, id, position, EType.Patrol);
 
 	public static BattleOrchestrator BeginCarrierVsPlayer(
 		Coord playerPos,
@@ -192,7 +189,7 @@ internal static class BattleTestFixture
 		Path(actorId, origin, pathApSpent, Enumerable.Repeat(Coord.Forward, steps).ToArray());
 
 	private static Unit Create(
-		Alliance alliance,
+		ETeam team,
 		string id,
 		Coord position,
 		EType type = EType.Fighter)
@@ -201,13 +198,13 @@ internal static class BattleTestFixture
 		{
 			Id = id,
 			Type = type,
-			Alliance = alliance,
+			Team = team,
 		};
 
 		return Factory.Create(
 			instance,
 			position,
-			alliance.Team == ETeam.Player ? new UserExecutionAgent() : new AiController());
+			team == ETeam.Player ? new UserExecutionAgent() : new AiController());
 	}
 
 	private static Unit WithAp(Unit unit, int actionPoints)

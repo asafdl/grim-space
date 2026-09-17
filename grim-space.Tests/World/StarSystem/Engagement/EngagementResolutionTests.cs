@@ -31,7 +31,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var map = orchestrator.Map;
 		var playerPosition = map.StateOf(PlayerId).CommittedPosition(map, null, 0).Position;
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(map, PirateId)));
 
 		Assert.True(map.FleetRegistry.Contains(PlayerId));
 		Assert.False(map.FleetRegistry.Contains(PirateId));
@@ -61,7 +61,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		map.Timeline.Schedule(2, completion);
 		runtime.TrackPendingCompletion(completion, completionTick);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(map, PirateId)));
 
 		Assert.Null(runtime.PendingCompletion);
 		Assert.Null(runtime.CachedPath);
@@ -78,7 +78,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		using var orchestrator = CreateEngagement();
 		var contractId = ActivateHuntContract(orchestrator.Map, [PirateId]);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(orchestrator.Map, PirateId)));
 
 		Assert.True(orchestrator.Map.ContractRegistry.IsCompleted(contractId));
 		Assert.Contains(orchestrator.Map.ContractRegistry.All, contract => contract.Id == contractId);
@@ -90,7 +90,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		using var orchestrator = CreateEngagement(additionalPirateId: "pirate-b");
 		var contractId = ActivateHuntContract(orchestrator.Map, [PirateId, "pirate-b"]);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(orchestrator.Map, PirateId)));
 
 		Assert.False(orchestrator.Map.ContractRegistry.IsCompleted(contractId));
 		Assert.True(orchestrator.Map.ContractRegistry.TryGetActive(PlayerId, out _));
@@ -102,7 +102,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		using var orchestrator = CreateEngagement(additionalPirateId: "pirate-b");
 		var contractId = ActivateHuntContract(orchestrator.Map, ["pirate-b"]);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(orchestrator.Map, PirateId)));
 
 		Assert.False(orchestrator.Map.ContractRegistry.IsCompleted(contractId));
 		Assert.True(orchestrator.Map.ContractRegistry.TryGetActive(PlayerId, out _));
@@ -120,23 +120,15 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 				PlayerId);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerId);
 		var pirateFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PirateId);
-		run.ActiveBattle = new ActiveBattle
-		{
-			Encounter = EngagementBattleFactory.Create(playerFleet, pirateFleet, 1),
-			InitiatorUnitId = PlayerId,
-			ParticipantUnitIds = [PlayerId, PirateId],
-		};
+		run.ActiveBattle = EngagementBattleFactory.Create([playerFleet, pirateFleet], 1, "test-engagement");
 		var activeBattle = run.ActiveBattle;
-		var ongoing = BattleOutcome.Create(
-			EBattleResult.Ongoing,
-			[(PlayerId, EBattleParticipantState.Alive), (PirateId, EBattleParticipantState.Alive)],
-			[]);
+		var ongoing = new BattleOutcome("test-engagement", EBattleResult.Ongoing, []);
 
 		Assert.False(run.TryResolveActiveBattle(ongoing));
 		Assert.Same(activeBattle, run.ActiveBattle);
 		Assert.True(run.StarSystem.Map.FleetRegistry.Contains(PirateId));
 
-		var victory = Victory(PirateId);
+		var victory = Victory(run.StarSystem.Map, PirateId);
 		Assert.True(run.TryResolveActiveBattle(victory));
 		Assert.Null(run.ActiveBattle);
 		var historyCount = run.StarSystem.Map.Timeline.History().Count;
@@ -152,7 +144,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var map = orchestrator.Map;
 		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(orchestrator.Map, PirateId)));
 
 		var history = map.Timeline.History();
 		Assert.Contains(
@@ -174,7 +166,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		using var inbox = new RunTransitionInbox();
 		inbox.Bind(orchestrator);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(orchestrator.Map, PirateId)));
 
 		var transaction = Assert.Single(inbox.DrainResourceTransactions());
 		Assert.Equal(TransactionSource.BattleLoot, transaction.Source);
@@ -186,7 +178,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 	{
 		using var orchestrator = CreateEngagement();
 		var map = orchestrator.Map;
-		var victory = VictoryWithDestroyedPatrols(PirateId);
+		var victory = VictoryWithDestroyedPatrols(orchestrator.Map, PirateId);
 
 		Assert.True(orchestrator.ResolveEngagement(PlayerId, victory));
 		var scrapAfterFirst = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
@@ -205,7 +197,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var contractId = ActivateHuntContract(map, [PirateId, "pirate-b"]);
 		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(orchestrator.Map, PirateId)));
 
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
@@ -224,7 +216,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 		var initialCredits = map.PlayerResources.GetBalance(ResourceId.Credits);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(PirateId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(orchestrator.Map, PirateId)));
 
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
@@ -237,18 +229,23 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Defeat_DoesNotResolveStrategicEngagement()
+	public void Defeat_ResolvesStrategicEngagementAndRemovesPlayer()
 	{
 		using var orchestrator = CreateEngagement();
-		var defeat = BattleOutcome.Create(
+		var map = orchestrator.Map;
+		var defeat = new BattleOutcome(
+			map.StateOf(PlayerId).CurrentEngagement!.Id,
 			EBattleResult.Lose,
-			[(PlayerId, EBattleParticipantState.Destroyed), (PirateId, EBattleParticipantState.Alive)],
-			[]);
+			[..map.FleetRegistry.All.SelectMany(fleet =>
+				fleet.Members.Select(member => new UnitStateHandoff(
+					fleet.State.Id == PlayerId ? 0 : 1,
+					member.Type,
+					member.Id)))]);
 
-		Assert.False(orchestrator.ResolveEngagement(PlayerId, defeat));
-		Assert.True(orchestrator.Map.FleetRegistry.Contains(PlayerId));
-		Assert.True(orchestrator.Map.FleetRegistry.Contains(PirateId));
-		Assert.Equal(EEngagementPhase.Engaged, EngagementAssertions.Phase(orchestrator.Map.StateOf(PlayerId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, defeat));
+		Assert.False(map.FleetRegistry.Contains(PlayerId));
+		Assert.True(map.FleetRegistry.Contains(PirateId));
+		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(map.StateOf(PirateId)));
 	}
 
 	private StarSystemOrchestrator CreateEngagement(string? additionalPirateId = null)
@@ -286,19 +283,16 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		return contract.Id;
 	}
 
-	private static BattleOutcome Victory(string pirateId) =>
-		BattleOutcome.Create(
+	private static BattleOutcome Victory(StarMap map, string pirateId) =>
+		new(
+			map.StateOf(PlayerId).CurrentEngagement!.Id,
 			EBattleResult.Win,
-			[(PlayerId, EBattleParticipantState.Alive), (pirateId, EBattleParticipantState.Destroyed)],
-			[]);
+			[..map.FleetRegistry.All.SelectMany(fleet =>
+				fleet.Members.Select(member => new UnitStateHandoff(
+					fleet.State.Id == pirateId ? 0 : 1,
+					member.Type,
+					member.Id)))]);
 
-	private static BattleOutcome VictoryWithDestroyedPatrols(string pirateId) =>
-		BattleOutcome.Create(
-			EBattleResult.Win,
-			[(PlayerId, EBattleParticipantState.Alive), (pirateId, EBattleParticipantState.Destroyed)],
-			[
-				new TacticalUnitOutcome("patrol-0", pirateId, BattleUnitType.Patrol, EBattleParticipantState.Destroyed),
-				new TacticalUnitOutcome("patrol-1", pirateId, BattleUnitType.Patrol, EBattleParticipantState.Destroyed),
-				new TacticalUnitOutcome("patrol-2", pirateId, BattleUnitType.Patrol, EBattleParticipantState.Destroyed),
-			]);
+	private static BattleOutcome VictoryWithDestroyedPatrols(StarMap map, string pirateId) =>
+		Victory(map, pirateId);
 }

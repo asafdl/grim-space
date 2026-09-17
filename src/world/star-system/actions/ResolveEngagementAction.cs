@@ -31,7 +31,14 @@ public sealed class ResolveEngagementDef
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
-		action is ResolveEngagementAction;
+		action is ResolveEngagementAction resolve
+		&& resolve.Outcome.Result != EBattleResult.Ongoing
+		&& world.FleetRegistry.TryGet(resolve.InitiatorId, out var initiator)
+		&& initiator.State.CurrentEngagement is
+		{
+			Phase: EEngagementPhase.Engaged,
+		} engagement
+		&& engagement.Id == resolve.Outcome.BattleId;
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
 		StarMap world,

@@ -34,9 +34,8 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 				[group.GroupId] = [targetUnitId],
 			}));
 
-		var resolved = ResolvedVictory(holderUnitId, targetUnitId);
 		var completion = Assert.IsType<CompleteContractAction>(
-			Assert.Single(ContractFulfillment.ReactionsFor(map, resolved)));
+			Assert.Single(ContractFulfillment.ReactionsFor(map, holderUnitId)));
 		Assert.Equal(holderUnitId, completion.ActorId);
 		Assert.Equal(contractId, completion.ContractId);
 		Assert.True(completion.Payment.TryGet(ResourceId.Credits, out var payment));
@@ -71,7 +70,7 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 			}));
 
 		var completion = Assert.IsType<CompleteContractAction>(
-			Assert.Single(ContractFulfillment.ReactionsFor(map, ResolvedVictory(holderUnitId, targetUnitId))));
+			Assert.Single(ContractFulfillment.ReactionsFor(map, holderUnitId)));
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(holderUnitId);
 		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
@@ -85,46 +84,6 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 		Assert.Equal(historyCount, map.Timeline.History().Count);
 	}
 
-	[Fact]
-	public void ReactionsFor_ReturnsNothingWhenDefeatedFleetIsUnrelated()
-	{
-		var map = maps.Fresh(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
-		var holderUnitId = map.FleetRegistry.Ids.First();
-		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
-		var group = hunt.SpawnGroups[0];
-
-		map.ContractRegistry.Activate(new ContractState(
-			contractId,
-			EContractStatus.Active,
-			1,
-			holderUnitId,
-			new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
-			{
-				[group.GroupId] = ["missing-bound-target"],
-			}));
-
-		var reactions = ContractFulfillment.ReactionsFor(
-			map,
-			ResolvedVictory(holderUnitId, "unrelated-pirate"));
-
-		Assert.Empty(reactions);
-		Assert.True(map.ContractRegistry.TryGetActive(holderUnitId, out var active));
-		Assert.Equal(contractId, active.Definition.Id);
-		Assert.False(map.ContractRegistry.IsCompleted(contractId));
-	}
-
-	private static ResolveEngagementAction ResolvedVictory(
-		string victorFleetId,
-		string defeatedFleetId)
-	{
-		var outcome = BattleOutcome.Create(
-			EBattleResult.Win,
-			[(victorFleetId, EBattleParticipantState.Alive), (defeatedFleetId, EBattleParticipantState.Destroyed)],
-			[]);
-		var loot = LootCatalog.For(outcome);
-		return new(victorFleetId, defeatedFleetId, outcome, loot.Rolls, loot.Total);
-	}
 }
 
 public sealed class ObjectivesCollectorTests(StarMapFixture maps)

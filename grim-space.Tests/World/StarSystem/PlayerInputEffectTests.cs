@@ -133,15 +133,13 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		Assert.False(map.WaitingForPlayerInput);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
-		var outcome = GrimSpace.Battle.Objectives.BattleOutcome.Create(
+		var outcome = new GrimSpace.Battle.Objectives.BattleOutcome(
+			map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id,
 			GrimSpace.Battle.Objectives.EBattleResult.Win,
-			[(RunState.PlayerFleetUnitId, GrimSpace.Battle.Objectives.EBattleParticipantState.Alive),
-				(pirateId, GrimSpace.Battle.Objectives.EBattleParticipantState.Destroyed)],
 			[]);
 		var loot = LootCatalog.For(outcome);
 		engine.Commit([new ResolveEngagementAction(
 			RunState.PlayerFleetUnitId,
-			pirateId,
 			outcome,
 			loot.Rolls,
 			loot.Total)]);

@@ -166,16 +166,21 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 				1)));
 		new CommitEngagementEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
-		var outcome = BattleOutcome.Create(
+		var handoffs = map.FleetRegistry.All
+			.SelectMany(fleet => fleet.Members.Select(member => new UnitStateHandoff(
+				fleet.State.Id == pirateId ? 0 : 1,
+				member.Type,
+				member.Id)))
+			.ToArray();
+		var outcome = new BattleOutcome(
+			map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id,
 			EBattleResult.Win,
-			[(RunState.PlayerFleetUnitId, EBattleParticipantState.Alive), (pirateId, EBattleParticipantState.Destroyed)],
-			[]);
+			handoffs);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 		var loot = LootCatalog.For(outcome);
 		engine.Commit([new ResolveEngagementAction(
 			RunState.PlayerFleetUnitId,
-			pirateId,
 			outcome,
 			loot.Rolls,
 			loot.Total)]);

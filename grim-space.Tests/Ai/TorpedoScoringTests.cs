@@ -22,7 +22,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(5, 5, 9);
 
 		var startDistance = torpedoPos.ManhattanDistanceTo(enemy.State.Position);
@@ -45,7 +45,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * (TorpedoConfig.BlastRadius + 1);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -69,7 +69,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -91,7 +91,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * -2;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -114,7 +114,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		ahead.State.Position = torpedoPos + Coord.Forward * 6;
 
 		var behind = Factory.Create(
@@ -122,7 +122,7 @@ public sealed class TorpedoScoringTests
 			{
 				Id = "behind",
 				Type = EType.Carrier,
-				Alliance = Alliance.Enemy,
+				Team = ETeam.Enemy,
 			},
 			torpedoPos + Coord.Forward * -2,
 			new AiController());
@@ -151,7 +151,7 @@ public sealed class TorpedoScoringTests
 
 		var ally = battle.Engine.World.StateOf(PlayerId);
 		ally.Position = new Coord(1, 5, 6);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(5, 5, 10);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -174,7 +174,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(4, 4, 5);
 
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 4;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -199,7 +199,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Starboard = Coord.Cross(Coord.Up, Coord.Forward);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -225,7 +225,7 @@ public sealed class TorpedoScoringTests
 		state.Dorsal = Coord.Up;
 		state.Starboard = Coord.Cross(Coord.Up, Coord.Forward);
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos - Coord.Forward * 5;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
@@ -248,7 +248,7 @@ public sealed class TorpedoScoringTests
 		state.Dorsal = Coord.Up;
 		state.Starboard = Coord.Cross(Coord.Up, Coord.Forward);
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
-		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + state.Starboard * (TorpedoConfig.BlastRadius + 1);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);

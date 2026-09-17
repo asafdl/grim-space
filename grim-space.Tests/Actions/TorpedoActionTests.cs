@@ -29,7 +29,7 @@ public sealed class TorpedoActionTests
 		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
-		Assert.Equal(ETeam.Player, torpedo.Alliance.Team);
+		Assert.Equal(ETeam.Player, torpedo.Team);
 		Assert.Equal(PlayerId, torpedo.State.ParentId);
 	}
 

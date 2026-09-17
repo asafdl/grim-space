@@ -83,7 +83,12 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 			if (!typed.Definition.IsLegal(action, World, runtime))
 				continue;
 
+			var actorIdsBefore = World is IActorWorld actorWorld
+				? actorWorld.ActorIds.ToHashSet(StringComparer.Ordinal)
+				: null;
 			var records = ExecutionHelper.Apply(action, World, runtime);
+			if (actorIdsBefore is not null)
+				RemoveMissingActors(actorIdsBefore, (IActorWorld)World);
 			ITimelineEntry[] entries = [action, ..records];
 			World.Timeline.Append(entries);
 			committed.AddRange(entries);
@@ -196,6 +201,19 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 	}
 
 	private void BumpWorldVersion() => WorldVersion++;
+
+	private void RemoveMissingActors(IReadOnlySet<string> actorIdsBefore, IActorWorld actorWorld)
+	{
+		var actorIdsAfter = actorWorld.ActorIds.ToHashSet(StringComparer.Ordinal);
+		foreach (var actorId in actorIdsBefore)
+		{
+			if (actorIdsAfter.Contains(actorId))
+				continue;
+
+			World.Timeline.CancelPendingForActor(actorId);
+			ActorRuntimes.Remove(actorId);
+		}
+	}
 
 	private sealed class Subscription(Action unsubscribe) : IDisposable
 	{

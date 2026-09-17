@@ -65,7 +65,7 @@ public sealed class ReplayIdentityTests
 			{
 				Id = "fighter-a",
 				Type = EType.Fighter,
-				Alliance = Alliance.Player,
+				Team = ETeam.Player,
 			},
 			new Coord(2, 3, 4));
 		var replayState = new ReplayState(new Dictionary<string, State>
@@ -107,7 +107,7 @@ public sealed class ReplayIdentityTests
 			{
 				Id = "fighter-a",
 				Type = EType.Fighter,
-				Alliance = Alliance.Player,
+				Team = ETeam.Player,
 			},
 			new Coord(2, 3, 4));
 		var replayState = new ReplayState(new Dictionary<string, State>

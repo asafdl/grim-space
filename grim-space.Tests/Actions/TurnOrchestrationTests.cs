@@ -66,6 +66,7 @@ public sealed class TurnOrchestrationTests
 	{
 		var encounter = new BattleEncounter
 		{
+			Id = "test-encounter",
 			Seed = 1,
 			Objective = EObjective.EliminateOpponents,
 			Spawns =
@@ -76,7 +77,7 @@ public sealed class TurnOrchestrationTests
 					{
 						Id = "player",
 						Type = EType.Fighter,
-						Alliance = Alliance.Player,
+						Team = ETeam.Player,
 					},
 					Position = playerPos,
 					ExecutionAgent = new UserExecutionAgent(),
@@ -87,7 +88,7 @@ public sealed class TurnOrchestrationTests
 					{
 						Id = "enemy",
 						Type = EType.Fighter,
-						Alliance = Alliance.Enemy,
+						Team = ETeam.Enemy,
 					},
 					Position = enemyPos,
 					ExecutionAgent = new AiController(),

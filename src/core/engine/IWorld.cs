@@ -8,3 +8,8 @@ public interface IWorld<TSelf> where TSelf : IWorld<TSelf>
 
 	Timeline Timeline { get; }
 }
+
+public interface IActorWorld
+{
+	IEnumerable<string> ActorIds { get; }
+}

@@ -39,7 +39,7 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 3;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var inTrajectory = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var inTrajectory = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		inTrajectory.State.Position = start + Coord.Forward * 2;
 
 		var future = Factory.Create(
@@ -47,7 +47,7 @@ public sealed class TorpedoTargetSelectionTests
 			{
 				Id = "future",
 				Type = EType.Carrier,
-				Alliance = Alliance.Enemy,
+				Team = ETeam.Enemy,
 			},
 			start + Coord.Forward * 10,
 			new AiController());
@@ -73,7 +73,7 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		ahead.State.Position = start + Coord.Forward * 2;
 
 		var behind = Factory.Create(
@@ -81,7 +81,7 @@ public sealed class TorpedoTargetSelectionTests
 			{
 				Id = "behind",
 				Type = EType.Carrier,
-				Alliance = Alliance.Enemy,
+				Team = ETeam.Enemy,
 			},
 			new Coord(5, 5, 0),
 			new AiController());
@@ -102,7 +102,7 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Alliance.Team == ETeam.Enemy);
+		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		ahead.State.Position = torpedoPos + Coord.Forward * 6;
 
 		var behind = Factory.Create(
@@ -110,7 +110,7 @@ public sealed class TorpedoTargetSelectionTests
 			{
 				Id = "behind",
 				Type = EType.Carrier,
-				Alliance = Alliance.Enemy,
+				Team = ETeam.Enemy,
 			},
 			torpedoPos + Coord.Forward * -2,
 			new AiController());

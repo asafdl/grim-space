@@ -33,11 +33,13 @@ public sealed class BattleOrchestrator : IDisposable
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
 		BattleLayout layout,
+		string battleId,
 		string playerId,
 		EObjective objective)
 	{
 		_engine = engine;
 		Layout = layout;
+		BattleId = battleId;
 		PlayerId = playerId;
 		_objectives = new Manager(objective, UnitRegistry.For(engine.World));
 	}
@@ -45,6 +47,7 @@ public sealed class BattleOrchestrator : IDisposable
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
+	public string BattleId { get; }
 	public string PlayerId { get; }
 	public bool IsBattleOver => _engine.World.battleResult != EBattleResult.Ongoing;
 	public int TurnNumber => _engine.Tick;
@@ -101,6 +104,7 @@ public sealed class BattleOrchestrator : IDisposable
 		var orchestrator = new BattleOrchestrator(
 			engine,
 			layout,
+			encounter.Id,
 			player.State.Id,
 			encounter.Objective);
 
@@ -206,6 +210,7 @@ public sealed class BattleOrchestrator : IDisposable
 {
 	var units = UnitRegistry.For(_engine.World);
 	return new BattleOutcome(
+		BattleId,
 		_engine.World.battleResult,
 		units.All
 			.Select(unit => new UnitStateHandoff(
