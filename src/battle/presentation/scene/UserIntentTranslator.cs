@@ -29,12 +29,15 @@ public sealed partial class UserIntentTranslator : Node
 	private bool _enabled;
 	private bool _canIssueActions;
 	private bool _isInspecting;
+	private double _rollScrollButtonCooldownMs;
 	private EPlayerMode _mode = EPlayerMode.Move;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
 	private int? _abilityHoveredIndex;
 	private int? _moveHoveredIndex;
 	private MoveInputSnapshot _moveInput;
+
+	const int DEFAULT_ROLL_COOLDOWN_MS = 140;
 
 	private readonly record struct MoveInputSnapshot(
 		MovePathOption? Selected,
@@ -118,6 +121,10 @@ public sealed partial class UserIntentTranslator : Node
 	}
 	public override void _Process(double delta)
 	{
+		if(_rollScrollButtonCooldownMs > 0) {
+			_rollScrollButtonCooldownMs -= delta * 1000;
+		}
+		
 		if (!_enabled
 			|| !_canIssueActions
 			|| _moveInput.IsDragging)
@@ -172,11 +179,11 @@ public sealed partial class UserIntentTranslator : Node
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-					RequestRoll(1);
+					WithCooldown(() => RequestRoll(1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-					RequestRoll(-1);
+					WithCooldown(() => RequestRoll(-1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
@@ -415,7 +422,9 @@ public sealed partial class UserIntentTranslator : Node
 			|| basis == selected.EndBasis)
 			return;
 
+
 		MovePoseRequested?.Invoke(basis);
+
 	}
 
 	private bool Enqueue(params IAction[] actions) =>
@@ -434,4 +443,11 @@ public sealed partial class UserIntentTranslator : Node
 	}
 
 	private void ClearHovers() => HoversCleared?.Invoke();
+
+	private void WithCooldown(Action cb, ref double current, double defaultTime) {
+		if(current <= 0){
+			cb.Invoke();
+			current = defaultTime;
+		}
+	}
 }
