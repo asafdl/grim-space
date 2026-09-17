@@ -86,9 +86,9 @@ internal sealed class ContactMonitor
 		foreach (var unit in Map.FleetRegistry.All)
 		{
 			var state = unit.State;
-			if (state.EngagementPhase != EEngagementPhase.Pursuing
-				|| state.EngagementTargetUnitId is not { } targetId
-				|| state.EngagedWithUnitIds.Count > 0)
+			if (state.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
+				|| state.CurrentEngagement?.Hunting is not { } targetId
+				|| EngagementState.IsEngaged(state))
 				continue;
 
 			if (!Map.FleetRegistry.TryGet(targetId, out _))
@@ -114,8 +114,8 @@ internal sealed class ContactMonitor
 		}
 
 		var state = initiator.State;
-		if (state.EngagementPhase != EEngagementPhase.Pursuing
-			|| state.EngagementTargetUnitId != watch.TargetId)
+		if (state.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
+			|| state.CurrentEngagement?.Hunting != watch.TargetId)
 		{
 			_watches.Remove(key);
 			return false;

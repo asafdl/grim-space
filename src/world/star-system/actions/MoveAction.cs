@@ -31,7 +31,7 @@ public sealed class MoveDef
 		action is MoveAction move
 		&& world.FleetRegistry.TryGet(move.UnitId, out var unit)
 		&& unit.State.CanMove
-		&& unit.State.EngagedWithUnitIds.Count == 0
+		&& !EngagementState.IsEngaged(unit.State)
 		&& !IsWaitingForScheduledWork(world, unit.State);
 
 	private static bool IsWaitingForScheduledWork(StarMap world, State state) =>
@@ -55,7 +55,7 @@ public sealed class MoveDef
 		};
 
 		if (unit.State.Type == EType.PlayerFleet
-			&& unit.State.EngagementPhase == EEngagementPhase.AwaitingDecision)
+			&& unit.State.CurrentEngagement?.Phase == EEngagementPhase.AwaitingDecision)
 			effects.Add(new PlayerInputEffect(false));
 
 		effects.AddRange(MovementEffects.BeginJourney(

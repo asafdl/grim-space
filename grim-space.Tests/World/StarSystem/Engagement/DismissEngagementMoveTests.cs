@@ -24,7 +24,7 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 
 		var destination = new Coord(50, 0, 50);
 		Assert.IsType<CourseCommandResult.Queued>(orchestrator.PlayerAgent!.TryQueueMove(destination));
-		Assert.Null(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementTargetUnitId);
+		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
 		orchestrator.AdvanceTick();
 
 		Assert.True(orchestrator.CanAdvance);

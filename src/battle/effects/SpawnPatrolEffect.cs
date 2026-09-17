@@ -23,7 +23,7 @@ public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, Acto
 			{
 				Id = unitId,
 				Type = EType.Patrol,
-				Alliance = parent.Alliance,
+				Team = parent.Team,
 			},
 			position,
 			new AiController(),

@@ -34,22 +34,19 @@ public sealed class BattleOrchestrator : IDisposable
 		Engine<BattleWorld, ActorRuntime> engine,
 		BattleLayout layout,
 		string playerId,
-		EObjective objective,
-		IReadOnlyList<BattleParticipant> participants)
+		EObjective objective)
 	{
 		_engine = engine;
 		Layout = layout;
 		PlayerId = playerId;
-		_objectives = new Manager(objective, participants, UnitRegistry.For(engine.World));
-		Outcome = _objectives.Evaluate(_engine.World, PlayerId);
+		_objectives = new Manager(objective, UnitRegistry.For(engine.World));
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
 	public string PlayerId { get; }
-	public BattleOutcome Outcome { get; private set; }
-	public bool IsBattleOver => Outcome.IsOver;
+	public bool IsBattleOver => _engine.World.battleResult != EBattleResult.Ongoing;
 	public int TurnNumber => _engine.Tick;
 	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
 
@@ -89,7 +86,7 @@ public sealed class BattleOrchestrator : IDisposable
 				spawn.Dorsal))
 			.ToArray();
 
-		var player = units.First(unit => unit.Alliance.Team == ETeam.Player);
+		var player = units.First(unit => unit.Team == ETeam.Player);
 		var world = BattleWorld.FromLive(units, nonUnits, grid, blockedCells, timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
@@ -105,8 +102,7 @@ public sealed class BattleOrchestrator : IDisposable
 			engine,
 			layout,
 			player.State.Id,
-			encounter.Objective,
-			encounter.Participants);
+			encounter.Objective);
 
 		foreach (var unit in units)
 		{
@@ -182,7 +178,7 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 
 		_resolveVersion++;
-		Outcome = _objectives.Retire(_engine.World, PlayerId);
+		_engine.World.battleResult = EBattleResult.Lose;
 		SetPhase(EBattlePhase.BattleOver, "retired");
 	}
 
@@ -201,12 +197,23 @@ public sealed class BattleOrchestrator : IDisposable
 		foreach (var target in targets)
 			target.State.HullPoints = 0;
 
-		Outcome = _objectives.Evaluate(_engine.World, PlayerId);
-		if (Outcome.Result != result)
-			throw new InvalidOperationException($"Forced {result} produced outcome {Outcome.Result}.");
+		_engine.World.battleResult = _objectives.EvaluateFor(ETeam.Player);
 
 		SetPhase(EBattlePhase.BattleOver, $"debug forced {result.ToString().ToLowerInvariant()}");
 	}
+
+	public BattleOutcome ResolveBattleOutcome()
+{
+	var units = UnitRegistry.For(_engine.World);
+	return new BattleOutcome(
+		_engine.World.battleResult,
+		units.All
+			.Select(unit => new UnitStateHandoff(
+				unit.State.HullPoints,
+				unit.State.Type,
+				unit.State.Id))
+			.ToArray());
+}
 
 	public TurnReplay ResolveTurn() =>
 		ResolveTurnAsync().GetAwaiter().GetResult();
@@ -220,7 +227,8 @@ public sealed class BattleOrchestrator : IDisposable
 		try
 		{
 			var replay = await ExecuteTurnAsync();
-			Outcome = _objectives.Evaluate(_engine.World, PlayerId);
+			//TODO: we are hardcoding player here, this will need a rework
+			_engine.World.battleResult = _objectives.EvaluateFor(ETeam.Player);
 			return replay;
 		}
 		finally

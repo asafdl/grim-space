@@ -10,13 +10,12 @@ using GrimSpace.World.StarSystem.Units;
 namespace GrimSpace.World.StarSystem.Actions;
 
 public sealed record ResolveEngagementAction(
-	string VictorFleetId,
-	string DefeatedFleetId,
+	string InitiatorId,
 	BattleOutcome Outcome,
 	IReadOnlyList<LootRoll> LootRolls,
 	ResourceBundle LootTotal) : IAction<StarMap, ActorRuntime>
 {
-	public string ActorId => DefeatedFleetId;
+	public string ActorId => InitiatorId;
 
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		ResolveEngagementDef.Instance;
@@ -32,20 +31,7 @@ public sealed class ResolveEngagementDef
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
-		action is ResolveEngagementAction resolve
-		&& resolve.Outcome.Result == EBattleResult.Win
-		&& resolve.Outcome.IsOver
-		&& resolve.Outcome.TryGetState(resolve.VictorFleetId, out var victorState)
-		&& victorState == EBattleParticipantState.Alive
-		&& resolve.Outcome.TryGetState(resolve.DefeatedFleetId, out var defeatedState)
-		&& defeatedState == EBattleParticipantState.Destroyed
-		&& HasExactParticipantStates(
-			resolve.Outcome,
-			resolve.VictorFleetId,
-			resolve.DefeatedFleetId)
-		&& TryResolveEngagedCounterparty(world, resolve.VictorFleetId, out var counterpartyId)
-		&& counterpartyId == resolve.DefeatedFleetId;
-
+		action is ResolveEngagementAction;
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
 		StarMap world,
@@ -57,35 +43,11 @@ public sealed class ResolveEngagementDef
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
-			new ResolveEngagementEffect(
-				resolve.VictorFleetId,
-				resolve.DefeatedFleetId),
+			new ResolveEngagementEffect(resolve.Outcome),
 		};
-		if (!resolve.LootTotal.IsEmpty)
+		if (!resolve.LootTotal.IsEmpty && resolve.ActorId == Run.State.PlayerFleetUnitId)
 			effects.Add(new ChangeResourceEffect(TransactionSource.BattleLoot, resolve.LootTotal));
 
 		return effects;
-	}
-
-	private static bool HasExactParticipantStates(
-		BattleOutcome outcome,
-		string actorId,
-		string counterpartyId) =>
-		outcome.ParticipantStates.Count == 2
-		&& outcome.ParticipantStates.ContainsKey(actorId)
-		&& outcome.ParticipantStates.ContainsKey(counterpartyId);
-
-	internal static bool TryResolveEngagedCounterparty(StarMap world, string actorId, out string counterpartyId)
-	{
-		counterpartyId = "";
-		if (!world.FleetRegistry.TryGet(actorId, out var actor))
-			return false;
-
-		if (actor.State.EngagementPhase != EEngagementPhase.Engaged
-			|| actor.State.EngagedWithUnitIds.Count != 1)
-			return false;
-
-		counterpartyId = actor.State.EngagedWithUnitIds.First();
-		return world.FleetRegistry.Contains(counterpartyId);
 	}
 }

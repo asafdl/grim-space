@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -14,31 +13,14 @@ public static class ContractFulfillment
 			_ => false,
 		};
 
-	public static IReadOnlyList<IAction> ReactionsFor(
-		StarMap map,
-		ResolveEngagementAction resolved)
-	{
-		if (!resolved.Outcome.TryGetState(
-				resolved.DefeatedFleetId,
-				out var defeatedState)
-			|| defeatedState != EBattleParticipantState.Destroyed)
-		{
-			return [];
-		}
-
-		return map.ContractRegistry.ActiveFor(resolved.VictorFleetId)
-			.Where(active => IsBoundTarget(active.State, resolved.DefeatedFleetId))
+	public static IReadOnlyList<IAction> ReactionsFor(StarMap map, string actorId) =>
+		map.ContractRegistry.ActiveFor(actorId)
 			.Where(active => IsFulfilled(map, active))
 			.Select(active => (IAction)new CompleteContractAction(
-				resolved.VictorFleetId,
+				actorId,
 				active.Definition.Id,
 				active.Definition.Terms.Payment))
 			.ToArray();
-	}
-
-	private static bool IsBoundTarget(ContractState state, string defeatedFleetId) =>
-		state.SpawnBindings.Values.Any(fleetIds =>
-			fleetIds.Contains(defeatedFleetId, StringComparer.Ordinal));
 
 	private static bool AreHuntTargetsEliminated(StarMap map, ContractState state)
 	{

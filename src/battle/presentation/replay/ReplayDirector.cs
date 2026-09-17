@@ -90,7 +90,7 @@ public sealed partial class ReplayDirector : Node
 
 	private IReadOnlyDictionary<string, ETeam> ParticipantTeams() =>
 		UnitRegistry.For(_battle.Engine.World).All
-			.ToDictionary(unit => unit.State.Id, unit => unit.Alliance.Team);
+			.ToDictionary(unit => unit.State.Id, unit => unit.Team);
 
 	private void OnPlaybackComplete()
 	{

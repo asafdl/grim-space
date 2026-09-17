@@ -85,7 +85,7 @@ public sealed class TorpedoDef
 	public bool IsLegal(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var firer = UnitRegistry.For(world).UnitOf(action.ActorId);
-		if (firer.Alliance.Team != ETeam.Player)
+		if (firer.Team != ETeam.Player)
 			return false;
 		if (firer.State.TorpedoCooldownRemaining > 0)
 			return false;

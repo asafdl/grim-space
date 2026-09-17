@@ -2,17 +2,20 @@
 
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Battle.Encounter;
 
 public sealed class BattleEncounter
 {
 	public required int Seed { get; init; }
+
+	public required string Id { get; init; }
 	public required IReadOnlyList<BattleSpawn> Spawns { get; init; }
-	public IReadOnlyList<BattleParticipant> Participants { get; init; } = [];
 	public required EObjective Objective { get; init; }
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
 
@@ -21,12 +24,12 @@ public sealed class BattleEncounter
 		var player = new Instance
 		{
 			Type = EType.Fighter,
-			Alliance = Alliance.Player,
+			Team = ETeam.Player,
 		};
 		var enemy = new Instance
 		{
 			Type = EType.Carrier,
-			Alliance = Alliance.Enemy,
+			Team = ETeam.Enemy,
 		};
 
 		var (playerSpawn, enemySpawn) = DeploymentPlacement.DevDuel(
@@ -37,6 +40,7 @@ public sealed class BattleEncounter
 
 		return new BattleEncounter
 		{
+			Id = TypedIdGenerator.NextId("engagement-dev"),
 			Seed = seed,
 			Spawns = spawns,
 			Objective = EObjective.EliminateOpponents,

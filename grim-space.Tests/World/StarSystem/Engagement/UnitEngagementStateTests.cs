@@ -43,9 +43,9 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
-		Assert.Equal(target, map.StateOf(hunter).EngagementTargetUnitId);
-		Assert.Equal(EEngagementPhase.Pursuing, map.StateOf(hunter).EngagementPhase);
-		Assert.Equal(hunter, map.StateOf(target).HuntedByUnitId);
+		Assert.Equal(target, EngagementAssertions.Hunting(map.StateOf(hunter)));
+		Assert.Equal(EEngagementPhase.Pursuing, EngagementAssertions.Phase(map.StateOf(hunter)));
+		Assert.Equal(hunter, EngagementAssertions.HuntedBy(map.StateOf(target)));
 	}
 
 	[Fact]
@@ -59,8 +59,8 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 
 		new ClearEngagementIntentEffect(hunter).Apply(map, runtime, hunter);
 
-		Assert.Null(map.StateOf(hunter).EngagementTargetUnitId);
-		Assert.Null(map.StateOf(target).HuntedByUnitId);
+		Assert.Null(EngagementAssertions.Hunting(map.StateOf(hunter)));
+		Assert.Null(EngagementAssertions.HuntedBy(map.StateOf(target)));
 	}
 
 	[Fact]
@@ -75,9 +75,9 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		new SetEngagementIntentEffect(hunter, firstTarget).Apply(map, runtime, hunter);
 		new SetEngagementIntentEffect(hunter, secondTarget).Apply(map, runtime, hunter);
 
-		Assert.Equal(secondTarget, map.StateOf(hunter).EngagementTargetUnitId);
-		Assert.Null(map.StateOf(firstTarget).HuntedByUnitId);
-		Assert.Equal(hunter, map.StateOf(secondTarget).HuntedByUnitId);
+		Assert.Equal(secondTarget, EngagementAssertions.Hunting(map.StateOf(hunter)));
+		Assert.Null(EngagementAssertions.HuntedBy(map.StateOf(firstTarget)));
+		Assert.Equal(hunter, EngagementAssertions.HuntedBy(map.StateOf(secondTarget)));
 	}
 
 	[Fact]
@@ -92,8 +92,8 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		var snapshot = map.StateOf(hunter).Clone();
 		new ClearEngagementIntentEffect(hunter).Apply(map, runtime, hunter);
 
-		Assert.Null(map.StateOf(hunter).EngagementTargetUnitId);
-		Assert.Equal(target, snapshot.EngagementTargetUnitId);
+		Assert.Null(EngagementAssertions.Hunting(map.StateOf(hunter)));
+		Assert.Equal(target, EngagementAssertions.Hunting(snapshot));
 	}
 
 	private static string AddPirate(StarMap map, string id, GrimSpace.Math.Grid.Coord coord)

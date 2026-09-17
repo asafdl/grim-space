@@ -206,6 +206,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			memberTypes));
 	}
 
+	//TODO: we should not be initializing this via orchestrator, this is bad design
 	private static Spawn CreatePlayerFleetSpawn(StarMap map, string playerFleetUnitId)
 	{
 		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
@@ -216,7 +217,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			UnitDefaults.EngageRadius(EType.PlayerFleet),
-			[]);
+			[],
+			Factions.EFaction.Player);
 	}
 
 	public void SetRunning() => ApplySimMode(ESimMode.Running);
@@ -259,13 +261,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public bool ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
-		if (!ResolveEngagementDef.TryResolveEngagedCounterparty(Map, playerId, out var counterpartyId))
-			return false;
-
 		var loot = LootCatalog.For(outcome);
 		var action = new ResolveEngagementAction(
 			playerId,
-			counterpartyId,
 			outcome,
 			loot.Rolls,
 			loot.Total);
@@ -406,7 +404,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void OnEngagementResolved(ResolveEngagementAction resolved)
 	{
-		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved))
+		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved.InitiatorId))
 		{
 			if (!_reactionQueue.Contains(reaction))
 				_reactionQueue.Enqueue(reaction);

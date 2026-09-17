@@ -21,7 +21,7 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EEngagementPhase.AwaitingDecision,
-			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
+			EngagementAssertions.Phase(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
 		Assert.True(orchestrator.Map.WaitingForPlayerInput);
 		Assert.False(orchestrator.CanAdvance);
 	}
@@ -33,12 +33,12 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
 		Assert.Equal(EEngagementPhase.AwaitingDecision,
-			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
+			EngagementAssertions.Phase(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
 
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(EEngagementPhase.AwaitingDecision,
-			orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
+			EngagementAssertions.Phase(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
 	}
 
 	[Fact]
@@ -57,8 +57,8 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 
 		Assert.False(orchestrator.Map.WaitingForPlayerInput);
 		Assert.Equal(ESimMode.Stepped, orchestrator.SimMode);
-		Assert.Null(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementTargetUnitId);
-		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
+		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
+		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
 	}
 
 	private StarSystemOrchestrator CreateOverlappingScenario()

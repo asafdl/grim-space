@@ -17,7 +17,10 @@ public sealed class ReachContactEffect : IEffect<StarMap, Runtime.ActorRuntime>
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
 	{
-		world.StateOf(_initiatorId).EngagementPhase = EEngagementPhase.AwaitingDecision;
+		var initiator = world.StateOf(_initiatorId);
+		if (initiator.CurrentEngagement is { } engagement)
+			initiator.CurrentEngagement = engagement with { Phase = EEngagementPhase.AwaitingDecision };
+
 		return [];
 	}
 

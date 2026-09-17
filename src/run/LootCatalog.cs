@@ -1,34 +1,32 @@
 using GrimSpace.Battle.Objectives;
-using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Resources;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Run;
 
 public static class LootCatalog
 {
+	//TODO: need to find a better system, battle outcome is just the outcome of battle, has no concept of friend foe
 	public static LootResult For(BattleOutcome outcome)
 	{
 		var rolls = new List<LootRoll>();
-		foreach (var unit in outcome.TacticalUnitOutcomes)
+		foreach (var handoff in outcome.StateHandoffs)
 		{
-			if (unit.State != EBattleParticipantState.Destroyed)
-				continue;
-			if (!outcome.TryGetState(unit.OwnerParticipantId, out var ownerState)
-				|| ownerState != EBattleParticipantState.Destroyed)
+			if (handoff.HP > 0)
 				continue;
 
-			var awarded = Roll(unit.Kind);
+			var awarded = Roll(handoff.Kind);
 			if (!awarded.IsEmpty)
-				rolls.Add(new LootRoll(unit.TacticalUnitId, unit.Kind, awarded));
+				rolls.Add(new LootRoll(handoff.Id, handoff.Kind, awarded));
 		}
 
 		return new LootResult(rolls, SumRolls(rolls));
 	}
 
-	private static ResourceBundle Roll(EType kind) =>
+	private static ResourceBundle Roll(BattleUnitType kind) =>
 		kind switch
 		{
-			EType.Patrol => ResourceBundle.Of(
+			BattleUnitType.Patrol => ResourceBundle.Of(
 				ResourceId.ScrapAlloy,
 				Random.Shared.Next(50, 121)),
 			_ => ResourceBundle.Empty,
@@ -49,4 +47,4 @@ public static class LootCatalog
 
 public sealed record LootResult(IReadOnlyList<LootRoll> Rolls, ResourceBundle Total);
 
-public sealed record LootRoll(string TacticalUnitId, EType Kind, ResourceBundle Awarded);
+public sealed record LootRoll(string TacticalUnitId, BattleUnitType Kind, ResourceBundle Awarded);

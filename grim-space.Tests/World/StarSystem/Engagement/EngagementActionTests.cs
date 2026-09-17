@@ -23,15 +23,16 @@ public sealed class EngageActionTests(StarMapFixture maps)
 		orchestrator.AdvanceClock();
 
 		var player = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId);
-		var pirateId = player.EngagedWithUnitIds.Single();
+		var pirateId = EngagementAssertions.EngagedCounterparty(player)!;
 		var pirate = orchestrator.Map.StateOf(pirateId);
 
-		Assert.Equal(EEngagementPhase.Engaged, player.EngagementPhase);
-		Assert.Equal(EEngagementPhase.Engaged, pirate.EngagementPhase);
-		Assert.Contains(pirateId, player.EngagedWithUnitIds);
-		Assert.Contains(RunState.PlayerFleetUnitId, pirate.EngagedWithUnitIds);
-		Assert.Null(player.EngagementTargetUnitId);
-		Assert.Null(pirate.HuntedByUnitId);
+		Assert.Equal(EEngagementPhase.Engaged, EngagementAssertions.Phase(player));
+		Assert.Equal(EEngagementPhase.Engaged, EngagementAssertions.Phase(pirate));
+		Assert.Same(player.CurrentEngagement, pirate.CurrentEngagement);
+		Assert.Contains(pirateId, EngagementAssertions.Participants(player));
+		Assert.Contains(RunState.PlayerFleetUnitId, EngagementAssertions.Participants(pirate));
+		Assert.Null(EngagementAssertions.Hunting(player));
+		Assert.Null(EngagementAssertions.HuntedBy(pirate));
 	}
 
 	[Fact]
@@ -108,12 +109,11 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		orchestrator.AdvanceClock();
 
 		var player = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId);
-		Assert.Equal(EEngagementPhase.Resolved, player.EngagementPhase);
-		Assert.Null(player.ResolvedEngagementState);
-		Assert.Null(player.EngagementTargetUnitId);
-		Assert.Empty(player.EngagedWithUnitIds);
-		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
-		Assert.Equal(EEngagementPhase.None, orchestrator.Map.StateOf(pirateId).EngagementPhase);
+		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(player));
+		Assert.Null(EngagementAssertions.Hunting(player));
+		Assert.Empty(EngagementAssertions.Participants(player));
+		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
+		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(orchestrator.Map.StateOf(pirateId)));
 		Assert.True(orchestrator.CanAdvance);
 	}
 
@@ -180,10 +180,7 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 			loot.Rolls,
 			loot.Total)]);
 
-		Assert.Equal(EEngagementPhase.Resolved, map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
-		Assert.Equal(
-			EBattleParticipantState.Alive,
-			map.StateOf(RunState.PlayerFleetUnitId).ResolvedEngagementState);
+		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(map.StateOf(RunState.PlayerFleetUnitId)));
 		Assert.DoesNotContain(pirateId, map.FleetRegistry.Ids);
 		Assert.Contains(RunState.PlayerFleetUnitId, map.FleetRegistry.Ids);
 	}

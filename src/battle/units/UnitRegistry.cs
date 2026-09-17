@@ -93,10 +93,10 @@ public sealed class UnitRegistry
 	{
 		var unit = _units[unitId];
 		return unit.State.Type == EType.Torpedo ? 2
-			: unit.Alliance.Team == ETeam.Player ? 0
+			: unit.Team == ETeam.Player ? 0
 			: 1;
 	}
 
 	private static Unit CloneUnit(Unit unit) =>
-		new(unit.Alliance, unit.State.Clone(), unit.ExecutionAgent);
+		new(unit.State.Clone(), unit.ExecutionAgent, unit.Team);
 }

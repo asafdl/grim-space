@@ -52,7 +52,7 @@ internal static class ActionLegalityDiagnostics
 		if (!unit.State.CanMove)
 			return $"cannot_move phase={unit.State.Phase}";
 
-		if (unit.State.EngagedWithUnitIds.Count > 0)
+		if (EngagementState.IsEngaged(unit.State))
 			return "engaged";
 
 		if (IsWaitingForScheduledWork(world, unit.State))
@@ -87,8 +87,8 @@ internal static class ActionLegalityDiagnostics
 			return "actor_missing";
 
 		var state = actor.State;
-		if (state.EngagementPhase != EEngagementPhase.AwaitingDecision)
-			return $"wrong_engagement_phase phase={state.EngagementPhase}";
+		if (state.CurrentEngagement?.Phase != EEngagementPhase.AwaitingDecision)
+			return $"wrong_engagement_phase phase={EngagementState.Phase(state)}";
 
 		var counterpartyId = EngagementQueries.ResolveCounterpartyId(state);
 		if (counterpartyId is null)
@@ -97,8 +97,7 @@ internal static class ActionLegalityDiagnostics
 		if (!world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
 			return "counterparty_missing";
 
-		if (counterparty.State.HuntedByUnitId != action.ActorId
-			&& state.HuntedByUnitId != counterpartyId)
+		if (!EngagementState.HasMutualHuntLink(state, counterparty.State))
 			return "not_in_hunt_range";
 
 		return "illegal";

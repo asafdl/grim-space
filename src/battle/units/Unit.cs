@@ -2,32 +2,31 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Units;
 
 public sealed class Unit
 {
-	public Alliance Alliance { get; }
 	public State State { get; }
 	public ExecutionAgent<BattleWorld, ActorRuntime> ExecutionAgent { get; }
+	public ETeam Team { get; }
 
 	public Unit(
-		Alliance alliance,
 		State state,
-		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent)
+		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
+		ETeam team)
 	{
-		Alliance = alliance;
 		State = state;
 		ExecutionAgent = executionAgent;
+		Team = team;
 	}
 
-	public EUnitRelation RelationTo(Unit other)
-	{
+	public EUnitRelation RelationTo(Unit other) {
 		if (other.State.Id == State.Id)
 			return EUnitRelation.Self;
-
-		return Alliance.IsAlliedWith(other.Alliance)
-			? EUnitRelation.Ally
-			: EUnitRelation.Opponent;
+		if (other.Team == Team)
+			return EUnitRelation.Ally;
+		return EUnitRelation.Opponent;
 	}
 }

@@ -13,15 +13,13 @@ public sealed class ClearEngagementIntentEffect : IEffect<StarMap, Runtime.Actor
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
 	{
 		var initiator = world.StateOf(_initiatorId);
-		if (initiator.EngagementTargetUnitId is not { } targetId)
+		if (initiator.CurrentEngagement?.Hunting is not { } targetId)
 			return [];
 
-		initiator.EngagementTargetUnitId = null;
-		if (initiator.EngagementPhase is EEngagementPhase.Pursuing or EEngagementPhase.AwaitingDecision)
-			initiator.EngagementPhase = EEngagementPhase.None;
+		initiator.CurrentEngagement = null;
 
 		if (world.FleetRegistry.TryGet(targetId, out var target))
-			target.State.HuntedByUnitId = null;
+			EngagementState.ClearHuntedBy(target.State, _initiatorId);
 
 		return [];
 	}

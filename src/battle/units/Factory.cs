@@ -29,9 +29,9 @@ public static class Factory
 		{
 			Id = id,
 			Type = instance.Type,
-			Alliance = instance.Alliance,
+			Team = instance.Team,
 		}, position, fore, dorsal, parentId);
-		return new Unit(instance.Alliance, state, executionAgent);
+		return new Unit(state, executionAgent, instance.Team);
 	}
 
 	private static string ResolveId(Instance instance) =>

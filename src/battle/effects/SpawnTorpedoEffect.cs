@@ -25,7 +25,7 @@ public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string uni
 			{
 				Id = unitId,
 				Type = EType.Torpedo,
-				Alliance = firer.Alliance,
+				Team = firer.Team,
 			},
 			position,
 			new TorpedoExecutionAgent(),

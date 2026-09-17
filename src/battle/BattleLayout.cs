@@ -31,5 +31,5 @@ public sealed class BattleLayout
 		new(
 			grid,
 			terrainHazards.ToList(),
-			units.ToDictionary(unit => unit.State.Id, unit => unit.Alliance.Team));
+			units.ToDictionary(unit => unit.State.Id, unit => unit.Team));
 }

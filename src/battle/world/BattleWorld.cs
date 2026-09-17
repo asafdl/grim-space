@@ -4,6 +4,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
+using GrimSpace.Battle.Objectives;
 
 namespace GrimSpace.Battle.World;
 
@@ -24,6 +25,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public Timeline Timeline { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
+
+	public EBattleResult battleResult { get; set; } = EBattleResult.Ongoing;
 
 	public T NonUnitOf<T>(string id) where T : NonUnit => (T)_nonUnits[id];
 
@@ -152,7 +155,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>
-		new(unit.Alliance, unit.State.Clone(), unit.ExecutionAgent);
+		new(unit.State.Clone(), unit.ExecutionAgent, unit.Team);
 
 	public BattleWorld Fork() => Fork(Timeline.Clone());
 

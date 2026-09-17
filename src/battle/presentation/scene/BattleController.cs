@@ -395,7 +395,7 @@ public partial class BattleController : Node3D
 	private Color ColorForActor(string actorId)
 	{
 		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
-			return ColorFor(unit.Alliance.Team);
+			return ColorFor(unit.Team);
 
 		if (_battle.Layout.Participants.TryGetValue(actorId, out var team))
 			return ColorFor(team);
@@ -476,7 +476,7 @@ public partial class BattleController : Node3D
 	{
 		var activeBattle = Session.Instance.Run.ActiveBattle;
 		if (activeBattle is not null)
-			return activeBattle.Encounter;
+			return activeBattle;
 
 		return BattleEncounter.DevDefault(Random.Shared.Next());
 	}
@@ -500,7 +500,7 @@ public partial class BattleController : Node3D
 			return;
 
 		_resolutionRequested = true;
-		if (!Session.Instance.ResolveEngagement(_battle.Outcome))
+		if (!Session.Instance.ResolveEngagement(_battle.ResolveBattleOutcome()))
 		{
 			_resolutionRequested = false;
 			return;

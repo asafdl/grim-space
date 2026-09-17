@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
@@ -6,20 +7,17 @@ namespace GrimSpace.Run;
 
 public sealed class State
 {
+	//TODO: player fleet should not be hardcoded here
 	public const string PlayerFleetUnitId = "player-fleet";
 
 	public Party PlayerParty { get; } = new();
 	public TutorialProgress TutorialProgress { get; } = new();
 	public StarSystemOrchestrator StarSystem { get; set; } = null!;
-	public ActiveBattle? ActiveBattle { get; internal set; }
+	public BattleEncounter? ActiveBattle { get; internal set; }
 
 	public bool TryResolveActiveBattle(BattleOutcome outcome)
 	{
-		if (ActiveBattle is null
-			|| !outcome.IsOver
-			|| !ActiveBattle.ParticipantUnitIds
-				.ToHashSet(StringComparer.Ordinal)
-				.SetEquals(outcome.ParticipantStates.Keys))
+		if (ActiveBattle is null)
 		{
 			return false;
 		}

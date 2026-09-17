@@ -23,6 +23,23 @@ public sealed class FleetRegistry
 
 	public bool Remove(string fleetId) => _fleets.Remove(fleetId);
 
+	public void Replace(Fleet fleet) => _fleets[fleet.State.Id] = fleet;
+
+	public bool TryFleetContainingMember(string memberId, out Fleet fleet)
+	{
+		foreach (var candidate in _fleets.Values)
+		{
+			if (!candidate.Members.Any(member => member.Id == memberId))
+				continue;
+
+			fleet = candidate;
+			return true;
+		}
+
+		fleet = null!;
+		return false;
+	}
+
 	public FleetRegistry CloneForFork()
 	{
 		var clone = new FleetRegistry();

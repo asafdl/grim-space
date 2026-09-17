@@ -25,7 +25,7 @@ public sealed class HuntUnitCommandTests(StarMapFixture maps)
 		Assert.Equal(
 			orchestrator.CommittedPositionOf(pirateId),
 			orchestrator.PlayerAgent.PendingCourse!.Destination);
-		Assert.Null(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).EngagementTargetUnitId);
+		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
 	}
 
 	[Fact]

@@ -35,8 +35,8 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 		Assert.True(map.FleetRegistry.Contains(PlayerId));
 		Assert.False(map.FleetRegistry.Contains(PirateId));
-		Assert.Equal(EEngagementPhase.Resolved, map.StateOf(PlayerId).EngagementPhase);
-		Assert.Empty(map.StateOf(PlayerId).EngagedWithUnitIds);
+		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(map.StateOf(PlayerId)));
+		Assert.Empty(EngagementAssertions.Participants(map.StateOf(PlayerId)));
 		Assert.Equal(playerPosition, map.StateOf(PlayerId).CommittedPosition(map, null, 0).Position);
 
 		var destination = playerPosition + new Coord(1, 0, 1);
@@ -248,7 +248,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		Assert.False(orchestrator.ResolveEngagement(PlayerId, defeat));
 		Assert.True(orchestrator.Map.FleetRegistry.Contains(PlayerId));
 		Assert.True(orchestrator.Map.FleetRegistry.Contains(PirateId));
-		Assert.Equal(EEngagementPhase.Engaged, orchestrator.Map.StateOf(PlayerId).EngagementPhase);
+		Assert.Equal(EEngagementPhase.Engaged, EngagementAssertions.Phase(orchestrator.Map.StateOf(PlayerId)));
 	}
 
 	private StarSystemOrchestrator CreateEngagement(string? additionalPirateId = null)

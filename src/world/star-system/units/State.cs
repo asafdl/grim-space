@@ -24,17 +24,8 @@ public sealed class State
 	public int WorkStartTick { get; set; }
 	internal string? SpawnWorkPoiId { get; set; }
 	internal int SpawnWorkRemainingTicks { get; set; }
-	public string? EngagementTargetUnitId { get; internal set; }
-	public string? HuntedByUnitId { get; internal set; }
-	public EEngagementPhase EngagementPhase { get; internal set; }
-	public string? EngagementInitiatorUnitId { get; internal set; }
-	public EBattleParticipantState? ResolvedEngagementState { get; internal set; }
-	private readonly HashSet<string> _engagedWithUnitIds = [];
-	public IReadOnlyCollection<string> EngagedWithUnitIds => _engagedWithUnitIds;
+	public Engagement? CurrentEngagement { get; internal set; }
 
-	internal void AddEngagedWith(string unitId) => _engagedWithUnitIds.Add(unitId);
-
-	internal void ClearEngagedWith() => _engagedWithUnitIds.Clear();
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -147,13 +138,13 @@ public sealed class State
 			SpawnWorkPoiId = SpawnWorkPoiId,
 			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
 		};
-		clone.EngagementTargetUnitId = EngagementTargetUnitId;
-		clone.HuntedByUnitId = HuntedByUnitId;
-		clone.EngagementPhase = EngagementPhase;
-		clone.EngagementInitiatorUnitId = EngagementInitiatorUnitId;
-		clone.ResolvedEngagementState = ResolvedEngagementState;
-		foreach (var engagedUnitId in _engagedWithUnitIds)
-			clone._engagedWithUnitIds.Add(engagedUnitId);
+		clone.CurrentEngagement = CurrentEngagement is null
+			? null
+			: CurrentEngagement with
+			{
+				EngagementParticipantIds =
+					new HashSet<string>(CurrentEngagement.EngagementParticipantIds, StringComparer.Ordinal),
+			};
 		clone.Journey.JourneyId = Journey.JourneyId;
 		clone.Journey.Origin = Journey.Origin;
 		clone.Journey.Destination = Journey.Destination;

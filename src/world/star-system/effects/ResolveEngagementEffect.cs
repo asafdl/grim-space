@@ -7,36 +7,41 @@ namespace GrimSpace.World.StarSystem.Effects;
 
 public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRuntime>
 {
-	private readonly string _victorFleetId;
-	private readonly string _defeatedFleetId;
+	private readonly BattleOutcome _outcome;
 
-	public ResolveEngagementEffect(
-		string victorFleetId,
-		string defeatedFleetId)
-	{
-		_victorFleetId = victorFleetId;
-		_defeatedFleetId = defeatedFleetId;
-	}
+	public ResolveEngagementEffect(BattleOutcome outcome) => _outcome = outcome;
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
 	{
-		ResolveWithOutcome(world.StateOf(_victorFleetId), EBattleParticipantState.Alive);
-		ResolveWithOutcome(world.StateOf(_defeatedFleetId), EBattleParticipantState.Destroyed);
-		CancelPendingMoveEffect.Instance.Apply(world, runtime, _defeatedFleetId);
-		world.Timeline.CancelPendingForActor(_defeatedFleetId);
-		runtime.Reset();
-		world.FleetRegistry.Remove(_defeatedFleetId);
+		foreach (var handoff in _outcome.StateHandoffs)
+		{
+			if (handoff.HP > 0)
+				continue;
+			if (!world.FleetRegistry.TryFleetContainingMember(handoff.Id, out var fleet))
+				continue;
+
+			var surviving = fleet.Members.Where(member => member.Id != handoff.Id).ToArray();
+			if (surviving.Length == 0)
+				RemoveFleet(world, fleet.State.Id);
+			else
+				world.FleetRegistry.Replace(new Fleet(fleet.State, surviving));
+		}
+
+		foreach (var handoff in _outcome.StateHandoffs)
+		{
+			if (!world.FleetRegistry.TryFleetContainingMember(handoff.Id, out var fleet))
+				continue;
+
+			fleet.State.CurrentEngagement = null;
+		}
+
 		return [];
 	}
 
-	private static void ResolveWithOutcome(State state, EBattleParticipantState participantState)
+	private static void RemoveFleet(StarMap world, string fleetId)
 	{
-		state.EngagementTargetUnitId = null;
-		state.HuntedByUnitId = null;
-		state.EngagementInitiatorUnitId = null;
-		state.ClearEngagedWith();
-		state.EngagementPhase = EEngagementPhase.Resolved;
-		state.ResolvedEngagementState = participantState;
+		world.Timeline.CancelPendingForActor(fleetId);
+		world.FleetRegistry.Remove(fleetId);
 	}
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }

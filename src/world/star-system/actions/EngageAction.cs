@@ -50,7 +50,7 @@ public sealed class EngageDef
 			return false;
 
 		var state = actor.State;
-		if (state.EngagementPhase != EEngagementPhase.AwaitingDecision)
+		if (state.CurrentEngagement?.Phase != EEngagementPhase.AwaitingDecision)
 			return false;
 
 		var resolvedCounterpartyId = EngagementQueries.ResolveCounterpartyId(state);
@@ -58,8 +58,7 @@ public sealed class EngageDef
 			|| !world.FleetRegistry.TryGet(resolvedCounterpartyId, out var counterparty))
 			return false;
 
-		return (counterparty.State.HuntedByUnitId == actorId
-				|| state.HuntedByUnitId == counterpartyId)
+		return EngagementState.HasMutualHuntLink(state, counterparty.State)
 			&& (counterpartyId = resolvedCounterpartyId).Length > 0;
 	}
 }

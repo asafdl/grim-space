@@ -6,5 +6,4 @@ public enum EEngagementPhase
 	Pursuing,
 	AwaitingDecision,
 	Engaged,
-	Resolved,
 }

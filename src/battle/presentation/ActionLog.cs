@@ -113,7 +113,7 @@ public static class ActionLog
 		if (!units.TryGet(id, out var unit))
 			return id;
 
-		return $"{TeamWord(unit.Alliance.Team)} {id}";
+		return $"{TeamWord(unit.Team)} {id}";
 	}
 
 	private static string TeamWord(ETeam team) =>

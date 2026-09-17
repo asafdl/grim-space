@@ -28,9 +28,9 @@ public sealed class ReachContactDef
 		action is ReachContactAction reach
 		&& world.FleetRegistry.TryGet(reach.InitiatorId, out var initiator)
 		&& world.FleetRegistry.TryGet(reach.TargetId, out _)
-		&& initiator.State.EngagementPhase == EEngagementPhase.Pursuing
-		&& initiator.State.EngagementTargetUnitId == reach.TargetId
-		&& initiator.State.EngagedWithUnitIds.Count == 0;
+		&& initiator.State.CurrentEngagement?.Phase == EEngagementPhase.Pursuing
+		&& initiator.State.CurrentEngagement?.Hunting == reach.TargetId
+		&& !EngagementState.IsEngaged(initiator.State);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

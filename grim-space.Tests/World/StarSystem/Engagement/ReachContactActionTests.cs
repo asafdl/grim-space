@@ -26,8 +26,8 @@ public sealed class ReachContactActionTests(StarMapFixture maps)
 
 		engine.Commit([new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)]);
 
-		Assert.Equal(EEngagementPhase.AwaitingDecision, map.StateOf(RunState.PlayerFleetUnitId).EngagementPhase);
-		Assert.Equal(EEngagementPhase.None, map.StateOf(pirateId).EngagementPhase);
+		Assert.Equal(EEngagementPhase.AwaitingDecision, EngagementAssertions.Phase(map.StateOf(RunState.PlayerFleetUnitId)));
+		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(map.StateOf(pirateId)));
 		Assert.True(map.WaitingForPlayerInput);
 	}
 

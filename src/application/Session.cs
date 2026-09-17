@@ -273,19 +273,13 @@ public partial class Session : Node
 		if (!EngagementQueries.TryGetCommittedPlayerEngagement(starSystem.Map, playerId, out var committed))
 			return false;
 
-		// TODO: Project all committed participants once tactical battles support more than two fleets.
-		var targetId = committed.ParticipantUnitIds.Single(id => id != playerId);
-		var playerFleet = starSystem.Map.FleetRegistry.FleetOf(playerId);
-		var targetFleet = starSystem.Map.FleetRegistry.FleetOf(targetId);
-		var targetProfile = targetFleet.State.CombatProfile;
-		var seed = targetProfile?.GenerationSeed ?? Random.Shared.Next();
-		var encounter = EngagementBattleFactory.Create(playerFleet, targetFleet, seed);
-		Run.ActiveBattle = new ActiveBattle
-		{
-			Encounter = encounter,
-			InitiatorUnitId = committed.InitiatorUnitId,
-			ParticipantUnitIds = committed.ParticipantUnitIds,
-		};
+		var fleets = committed.ParticipantUnitIds
+			.Select(id => starSystem.Map.FleetRegistry.FleetOf(id))
+			.ToArray();
+		var seed = Random.Shared.Next();
+		var encounter = EngagementBattleFactory.Create(fleets, seed, committed.EngagementId);
+		Run.ActiveBattle = encounter;
+
 		return true;
 	}
 

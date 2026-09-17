@@ -5,64 +5,59 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Battle.Encounter;
 
 public static class EngagementBattleFactory
 {
+
+	record Team {
+		public ETeam on { get; init; }
+
+		public required List<Fleet> Fleets { get; init; }
+
+		public int center { get; set; }
+		public int maxX { get; set; }
+		public int minX { get; set; }
+	}
+
+	//TODO: duplicated grid size, horrible.
 	private const int GridSize = 64;
 	private const int FieldMargin = 2;
 
-	public static BattleEncounter Create(Fleet playerFleet, Fleet enemyFleet, int seed)
+	public static BattleEncounter Create(Fleet[] participantFleets, int seed, string id)
 	{
-		ArgumentNullException.ThrowIfNull(playerFleet);
-		ArgumentNullException.ThrowIfNull(enemyFleet);
-		if (playerFleet.State.Id == enemyFleet.State.Id)
-			throw new ArgumentException("An engagement requires two distinct fleets.", nameof(enemyFleet));
-		if (playerFleet.Members.Count == 0)
-			throw new InvalidOperationException($"Player fleet '{playerFleet.State.Id}' has no members.");
-		if (enemyFleet.Members.Count == 0)
-			throw new InvalidOperationException($"Enemy fleet '{enemyFleet.State.Id}' has no members.");
 
 		var rng = new Random(seed);
 		var center = GridSize / 2;
-		var deploySpread = GridSize / 5;
-		var playerCenter = center - deploySpread;
-		var enemyCenter = center + deploySpread;
-		var occupiedPositions = new HashSet<Coord>();
-		var spawns = new List<BattleSpawn>();
-		AddFleet(
-			playerFleet,
-			Alliance.Player,
-			playerCenter,
-			enemyCenter,
-			rng,
-			occupiedPositions,
-			spawns);
-		AddFleet(
-			enemyFleet,
-			Alliance.Enemy,
-			enemyCenter,
-			playerCenter,
-			rng,
-			occupiedPositions,
-			spawns);
-
 		var fieldCenter = new Coord(center, center, center);
+
+		var teams = Teams(participantFleets);
+		
+		var spawns = new List<BattleSpawn>();
+		var occupiedPositions = new HashSet<Coord>();
+		foreach (var team in teams) {
+			foreach (var fleet in team.Fleets) {
+				AddFleet(
+					fleet,
+					team,
+					fieldCenter,
+					rng,
+					occupiedPositions,
+					spawns
+				);
+			}
+		}
+
+		
 		return new BattleEncounter
 		{
+			Id = id,
 			Seed = seed,
 			Spawns = spawns,
-			Participants =
-			[
-				new BattleParticipant(
-					playerFleet.State.Id,
-					playerFleet.Members.Select(member => member.Id).ToArray()),
-				new BattleParticipant(
-					enemyFleet.State.Id,
-					enemyFleet.Members.Select(member => member.Id).ToArray()),
-			],
 			Objective = EObjective.EliminateOpponents,
 			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
 			{
@@ -77,39 +72,39 @@ public static class EngagementBattleFactory
 	}
 
 	private static void AddFleet(
-		Fleet fleet,
-		Alliance alliance,
-		int deploymentCenter,
-		int opposingCenter,
-		Random rng,
-		HashSet<Coord> occupiedPositions,
-		List<BattleSpawn> spawns)
+    Fleet fleet,
+    Team team,
+    Coord fieldCenter,
+    Random rng,
+    HashSet<Coord> occupiedPositions,
+    List<BattleSpawn> spawns)
 	{
+
 		foreach (var member in fleet.Members)
 		{
 			Coord position;
 			do
 			{
+				var x = rng.Next(team.minX, team.maxX + 1);
 				position = new Coord(
-					deploymentCenter + rng.Next(-4, 5),
+					x,
 					GridSize / 2 + rng.Next(-8, 9),
 					GridSize / 2 + rng.Next(-8, 9));
 			}
 			while (!occupiedPositions.Add(position));
 
-			var target = new Coord(opposingCenter, GridSize / 2, GridSize / 2);
 			spawns.Add(new BattleSpawn
 			{
 				Unit = new Instance
 				{
 					Id = member.Id,
 					Type = member.Type,
-					Alliance = alliance,
+					Team = team.on
 				},
 				Position = position,
-				Fore = AxisToward(position, target),
+				Fore = AxisToward(position, fieldCenter),
 				Dorsal = Coord.Up,
-				ExecutionAgent = alliance == Alliance.Player
+				ExecutionAgent = fleet.State.Faction == EFaction.Player
 					? new UserExecutionAgent()
 					: new AiController(),
 			});
@@ -130,5 +125,30 @@ public static class EngagementBattleFactory
 			return new Coord(0, System.Math.Sign(delta.Y), 0);
 
 		return new Coord(0, 0, System.Math.Sign(delta.Z));
+	}
+
+	private static List<Team> Teams(IReadOnlyList<Fleet> fleets)
+	{
+		// TODO: this should be replaced by actual team calculation, based on faction status and aggroed state in current encounter
+		var playerFleets = fleets.Where(f => f.State.Faction == EFaction.Player).ToList();
+		var enemyFleets = fleets.Where(f => f.State.Faction != EFaction.Player).ToList();
+		List<Team> ToReturn =
+			[
+				new Team { on = ETeam.Player, Fleets = playerFleets },
+				new Team { on = ETeam.Enemy,  Fleets = enemyFleets },
+			];
+
+		for(var i=0; i<ToReturn.Count; i++) {
+			var usableWidth = GridSize - 2 * FieldMargin;
+			var segmentWidth = usableWidth / ToReturn.Count;
+			var minX = FieldMargin + segmentWidth * i;
+			var maxX = minX + segmentWidth - 1;
+
+			ToReturn[i].minX = minX;
+			ToReturn[i].maxX = maxX;
+			ToReturn[i].center = minX + segmentWidth / 2;
+		}
+
+		return ToReturn;
 	}
 }

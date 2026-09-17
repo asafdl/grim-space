@@ -25,8 +25,8 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		Assert.True(orchestrator.PlayerAgent!.TryEnqueue([
 			CreateHuntAction(orchestrator, playerId, pirateId, destination)]));
 
-		Assert.Null(orchestrator.Map.StateOf(playerId).EngagementTargetUnitId);
-		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
+		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
+		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
 		Assert.Equal(EPhase.Docked, orchestrator.Map.StateOf(playerId).Phase);
 	}
 
@@ -38,9 +38,9 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		orchestrator.PlayerAgent!.TryEnqueue([CreateHuntAction(orchestrator, playerId, pirateId, destination)]);
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(pirateId, orchestrator.Map.StateOf(playerId).EngagementTargetUnitId);
-		Assert.Equal(EEngagementPhase.Pursuing, orchestrator.Map.StateOf(playerId).EngagementPhase);
-		Assert.Equal(playerId, orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
+		Assert.Equal(pirateId, EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
+		Assert.Equal(EEngagementPhase.Pursuing, EngagementAssertions.Phase(orchestrator.Map.StateOf(playerId)));
+		Assert.Equal(playerId, EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
 		Assert.Equal(EPhase.InTransit, orchestrator.Map.StateOf(playerId).Phase);
 		Assert.Equal(destination, orchestrator.Map.StateOf(playerId).Journey.Destination);
 	}
@@ -55,9 +55,9 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		QueueHunt(orchestrator, playerId, secondPirateId);
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(secondPirateId, orchestrator.Map.StateOf(playerId).EngagementTargetUnitId);
-		Assert.Null(orchestrator.Map.StateOf(firstPirateId).HuntedByUnitId);
-		Assert.Equal(playerId, orchestrator.Map.StateOf(secondPirateId).HuntedByUnitId);
+		Assert.Equal(secondPirateId, EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
+		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(firstPirateId)));
+		Assert.Equal(playerId, EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(secondPirateId)));
 	}
 
 	[Fact]
@@ -98,8 +98,8 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		orchestrator.PlayerAgent!.TryQueueMove(destination);
 		orchestrator.AdvanceTick();
 
-		Assert.Null(orchestrator.Map.StateOf(playerId).EngagementTargetUnitId);
-		Assert.Null(orchestrator.Map.StateOf(pirateId).HuntedByUnitId);
+		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
+		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
 	}
 
 	private (StarSystemOrchestrator orchestrator, string playerId, string pirateId) CreateScenario()

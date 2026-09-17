@@ -17,25 +17,11 @@ public sealed class FleeEngagementEffect : IEffect<StarMap, Runtime.ActorRuntime
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
 	{
-		ResolveFlee(world.StateOf(_fleeingUnitId));
-		ClearCounterpartyHuntLink(world.StateOf(_fleeingUnitId), world.StateOf(_counterpartyId));
+		var fleeing = world.StateOf(_fleeingUnitId);
+		var counterparty = world.StateOf(_counterpartyId);
+		fleeing.CurrentEngagement = null;
+		EngagementState.ClearHuntedBy(counterparty, fleeing.Id);
 		return [];
-	}
-
-	private static void ResolveFlee(State state)
-	{
-		state.EngagementTargetUnitId = null;
-		state.HuntedByUnitId = null;
-		state.EngagementInitiatorUnitId = null;
-		state.ClearEngagedWith();
-		state.EngagementPhase = EEngagementPhase.Resolved;
-		state.ResolvedEngagementState = null;
-	}
-
-	private static void ClearCounterpartyHuntLink(State fleeing, State counterparty)
-	{
-		if (counterparty.HuntedByUnitId == fleeing.Id)
-			counterparty.HuntedByUnitId = null;
 	}
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }

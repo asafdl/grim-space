@@ -217,8 +217,8 @@ public sealed class PresentationFrameBuilder
 			CanUndo = canControl && agent.CanUndo,
 			ShowOutcomeOverlay = battle.Phase == EBattlePhase.BattleOver,
 			ShowWeaponPreviews = showWeaponPreviews,
-			Outcome = battle.Outcome.Result,
 			ActionLogEntries = ActionLogEntries,
+			Outcome = battle.Engine.World.battleResult,
 		};
 	}
 

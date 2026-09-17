@@ -12,6 +12,7 @@ public readonly record struct PendingEngagement(
 	EDangerLevel Danger);
 
 public readonly record struct CommittedEngagement(
+	string EngagementId,
 	string InitiatorUnitId,
 	IReadOnlyList<string> ParticipantUnitIds);
 
@@ -26,7 +27,7 @@ public static class EngagementQueries
 		if (!world.FleetRegistry.TryGet(playerId, out var player))
 			return false;
 
-		if (player.State.EngagementPhase != EEngagementPhase.AwaitingDecision)
+		if (player.State.CurrentEngagement?.Phase != EEngagementPhase.AwaitingDecision)
 			return false;
 
 		var counterpartyId = ResolveCounterpartyId(player.State);
@@ -55,29 +56,40 @@ public static class EngagementQueries
 		if (!world.FleetRegistry.TryGet(playerId, out var player))
 			return false;
 
-		if (player.State.EngagementPhase != EEngagementPhase.Engaged
-			|| player.State.EngagedWithUnitIds.Count == 0)
+		if (player.State.CurrentEngagement is not { Phase: EEngagementPhase.Engaged } engagement)
 			return false;
 
-		var counterpartyId = player.State.EngagedWithUnitIds.First();
-		if (!world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
+		if (engagement.EngagementParticipantIds.Count == 0)
 			return false;
 
-		var initiatorId = player.State.EngagementInitiatorUnitId
-			?? counterparty.State.EngagementInitiatorUnitId
-			?? playerId;
-		var participants = new List<string> { initiatorId };
-		participants.AddRange(
-			new[] { playerId, counterpartyId }
-				.Where(id => id != initiatorId)
-				.OrderBy(id => id, StringComparer.Ordinal));
+		if (!engagement.EngagementParticipantIds.Any(
+			id => id != playerId && world.FleetRegistry.Contains(id)))
+			return false;
 
-		info = new CommittedEngagement(initiatorId, participants);
+		var participants = engagement.EngagementParticipantIds
+			.OrderBy(id => id, StringComparer.Ordinal)
+			.ToArray();
+
+		info = new CommittedEngagement(
+			engagement.Id,
+			engagement.InitiatorFleetId,
+			participants);
 		return true;
 	}
 
-	internal static string? ResolveCounterpartyId(State state) =>
-		state.EngagementTargetUnitId ?? state.HuntedByUnitId;
+	internal static string? ResolveCounterpartyId(State state)
+	{
+		if (state.CurrentEngagement is not { } engagement)
+			return null;
+
+		if (engagement.Hunting is { } hunting)
+			return hunting;
+
+		if (engagement.HuntedBy is { } huntedBy)
+			return huntedBy;
+
+		return engagement.EngagementParticipantIds.FirstOrDefault(id => id != state.Id);
+	}
 
 	public static bool IsHunterInEngageRange(
 		Coord hunterPosition,
