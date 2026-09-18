@@ -34,7 +34,10 @@ public sealed partial class UserIntentTranslator : Node
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
 	private int? _abilityHoveredIndex;
-	private int? _moveHoveredIndex;
+	private Coord? _moveHoveredCell;
+	private MovePathOption? _displayedHoveredMove;
+	private MovementHoverSnapshot? _displayedHoverSnapshot;
+	private Vector2I _lastViewportSize;
 	private MoveInputSnapshot _moveInput;
 
 	const int DEFAULT_ROLL_COOLDOWN_MS = 140;
@@ -63,12 +66,11 @@ public sealed partial class UserIntentTranslator : Node
 	}
 
 	public event Action<EPlayerMode>? ModeRequested;
-	public event Action<int?, int>? MoveHoverChanged;
+	public event Action<Coord?>? MoveHoverChanged;
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
 	public event Action<GridBasis>? MovePoseRequested;
 	public event Action? MoveSelectionCanceled;
 	public event Action<int?, int>? AbilityHoverChanged;
-	public event Action? HoversCleared;
 	public event Action<string>? FocusUnitRequested;
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
@@ -85,6 +87,8 @@ public sealed partial class UserIntentTranslator : Node
 		bool isInspecting,
 		EPlayerMode mode,
 		IReadOnlyList<MovePathOption> moveOptions,
+		MovePathOption? hoveredMove,
+		Coord? moveHoveredCell,
 		MovePathOption? selectedMove,
 		Coord? moveDestination,
 		bool moveDragging,
@@ -98,6 +102,8 @@ public sealed partial class UserIntentTranslator : Node
 		_moveOptions = moveOptions;
 		_abilityChoices = abilityChoices;
 		_abilityHoveredIndex = abilityHoveredIndex;
+		_moveHoveredCell = moveHoveredCell;
+		_displayedHoveredMove = hoveredMove;
 		var reachableBases = moveDestination is { } destination
 			? moveOptions
 				.Where(option => option.EndPosition == destination)
@@ -116,15 +122,31 @@ public sealed partial class UserIntentTranslator : Node
 			moveDragging);
 
 		if (!enabled || mode != EPlayerMode.Move)
-			_moveHoveredIndex = null;
+			_moveHoveredCell = null;
+
+		UpdateDisplayedHoverSnapshot();
 		_camera.SetGestureInputBlocked(enabled && mode == EPlayerMode.Move && moveDragging);
 	}
+
+	public void OnCameraManualInputStarted()
+	{
+		if (_camera.IsManualGestureActive)
+		{
+			ClearMoveHover();
+			return;
+		}
+
+		_displayedHoverSnapshot = null;
+	}
+
 	public override void _Process(double delta)
 	{
 		if(_rollScrollButtonCooldownMs > 0) {
 			_rollScrollButtonCooldownMs -= delta * 1000;
 		}
-		
+
+		InvalidateHoverSnapshotIfViewportChanged();
+
 		if (!_enabled
 			|| !_canIssueActions
 			|| _moveInput.IsDragging)
@@ -143,17 +165,18 @@ public sealed partial class UserIntentTranslator : Node
 		}
 
 		if (_camera.IsManualGestureActive)
+		{
+			ClearMoveHover();
+			return;
+		}
+
+		var pointer = GetViewport().GetMousePosition();
+		var resolved = ResolveMoveCoordinate(pointer, _moveHoveredCell);
+		if (resolved == _moveHoveredCell)
 			return;
 
-		var index = MovementSelection.PickPathIndex(
-			_camera,
-			GetViewport().GetMousePosition(),
-			_moveOptions);
-		if (index == _moveHoveredIndex)
-			return;
-
-		_moveHoveredIndex = index;
-		MoveHoverChanged?.Invoke(index, _moveOptions.Count);
+		_moveHoveredCell = resolved;
+		MoveHoverChanged?.Invoke(resolved);
 	}
 
 	public override void _Input(InputEvent @event)
@@ -265,7 +288,8 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnUndo()
 	{
-		_moveHoveredIndex = null;
+		_moveHoveredCell = null;
+		_displayedHoverSnapshot = null;
 		UndoRequested?.Invoke();
 	}
 
@@ -370,7 +394,7 @@ public sealed partial class UserIntentTranslator : Node
 			if (unitId != _actorId)
 			{
 				FocusUnitRequested?.Invoke(unitId);
-				_moveHoveredIndex = null;
+				_moveHoveredCell = null;
 				return;
 			}
 
@@ -384,20 +408,53 @@ public sealed partial class UserIntentTranslator : Node
 		if (_isInspecting || !_canIssueActions)
 			return;
 
-		if (MovementSelection.PickPathIndex(_camera, screenPosition, _moveOptions) is not int index)
+		if (_camera.IsManualGestureActive)
+			return;
+
+		var selected = ResolveMoveOptionForClick(screenPosition);
+		if (selected is null)
 		{
 			PresentationDiagnostics.LogMovePickMiss(_moveOptions.Count);
 			return;
 		}
 
-		var steps = _moveOptions[index].Steps;
-		if (steps.Count == 0)
-			return;
-		var selected = _moveOptions[index];
 		MoveSelectionStarted?.Invoke(selected.EndPosition, selected.EndBasis);
-		_moveHoveredIndex = null;
-		ClearHovers();
+		_moveHoveredCell = null;
+		_displayedHoverSnapshot = null;
 	}
+
+	private MovePathOption? ResolveMoveOptionForClick(Vector2 screenPosition)
+	{
+		var viewport = GetViewport();
+		var viewportSize = viewport.GetVisibleRect().Size;
+		var cameraTransform = _camera.GlobalTransform;
+		if (MovementHoverReuse.CanReuseDisplayedHover(
+			_displayedHoverSnapshot,
+			screenPosition,
+			cameraTransform,
+			ToViewportSize(viewportSize),
+			_displayedHoveredMove))
+		{
+			return _displayedHoveredMove;
+		}
+
+		var coordinate = ResolveMoveCoordinate(screenPosition, _moveHoveredCell);
+		if (coordinate != _moveHoveredCell)
+		{
+			_moveHoveredCell = coordinate;
+			MoveHoverChanged?.Invoke(coordinate);
+		}
+
+		return MovementSelection.ResolveOption(_moveOptions, coordinate);
+	}
+
+	private Coord? ResolveMoveCoordinate(Vector2 screenPosition, Coord? currentHovered) =>
+		MovementSelection.PickCoordinate(
+			_camera,
+			GetViewport(),
+			screenPosition,
+			_moveOptions,
+			currentHovered);
 
 	private void CancelMoveSelection() => MoveSelectionCanceled?.Invoke();
 
@@ -435,14 +492,45 @@ public sealed partial class UserIntentTranslator : Node
 
 	private void ClearMoveHover()
 	{
-		if (_moveHoveredIndex is null)
+		if (_moveHoveredCell is null)
 			return;
 
-		_moveHoveredIndex = null;
-		MoveHoverChanged?.Invoke(null, _moveOptions.Count);
+		_moveHoveredCell = null;
+		_displayedHoverSnapshot = null;
+		MoveHoverChanged?.Invoke(null);
 	}
 
-	private void ClearHovers() => HoversCleared?.Invoke();
+	private void InvalidateHoverSnapshotIfViewportChanged()
+	{
+		var viewportSize = ToViewportSize(GetViewport().GetVisibleRect().Size);
+		if (viewportSize == _lastViewportSize)
+			return;
+
+		_lastViewportSize = viewportSize;
+		_displayedHoverSnapshot = null;
+	}
+
+	private void UpdateDisplayedHoverSnapshot()
+	{
+		if (_displayedHoveredMove is not MovePathOption hovered)
+		{
+			_displayedHoverSnapshot = null;
+			return;
+		}
+
+		var viewport = GetViewport();
+		_lastViewportSize = ToViewportSize(viewport.GetVisibleRect().Size);
+		_displayedHoverSnapshot = new MovementHoverSnapshot(
+			viewport.GetMousePosition(),
+			hovered.EndPosition,
+			hovered.EndBasis,
+			hovered.Steps.Count,
+			_camera.GlobalTransform,
+			_lastViewportSize);
+	}
+
+	private static Vector2I ToViewportSize(Vector2 size) =>
+		new((int)size.X, (int)size.Y);
 
 	private void WithCooldown(Action cb, ref double current, double defaultTime) {
 		if(current <= 0){

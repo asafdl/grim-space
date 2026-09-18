@@ -58,13 +58,10 @@ public sealed class MoveUiTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var options = BattleTestCommands.Frame(battle).MovePaths;
-		var hoveredIndex = options
-			.Select((option, index) => (option, index))
-			.First(pair => pair.option.EndPosition == origin + Coord.Forward)
-			.index;
-		var hovered = options[hoveredIndex];
+		var hovered = options
+			.First(option => option.EndPosition == origin + Coord.Forward);
 
-		builder.Interaction.SetMoveHover(hoveredIndex, options.Count);
+		builder.Interaction.SetMoveHover(hovered.EndPosition, options);
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.Null(frame.SelectedMove);
@@ -81,12 +78,10 @@ public sealed class MoveUiTests
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var options = BattleTestCommands.Frame(battle).MovePaths;
 		var selected = options.First(option => option.EndPosition == origin + Coord.Forward);
-		var hoveredIndex = options
-			.Select((option, index) => (option, index))
-			.First(pair => pair.option.EndPosition != selected.EndPosition)
-			.index;
+		var hovered = options
+			.First(option => option.EndPosition != selected.EndPosition);
 
-		builder.Interaction.SetMoveHover(hoveredIndex, options.Count);
+		builder.Interaction.SetMoveHover(hovered.EndPosition, options);
 		builder.Interaction.BeginMoveSelection(selected.EndPosition, selected.EndBasis);
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
@@ -103,7 +98,7 @@ public sealed class MoveUiTests
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var options = BattleTestCommands.Frame(battle).MovePaths;
 
-		builder.Interaction.SetMoveHover(0, options.Count);
+		builder.Interaction.SetMoveHover(options[0].EndPosition, options);
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false);
 
 		Assert.Null(frame.MoveGhostState);
@@ -187,6 +182,45 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
+	public void MultipleBasesAtEndpointUseFirstRoutePreference()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var options = BattleTestCommands.Frame(battle).MovePaths;
+		var destination = options
+			.GroupBy(option => option.EndPosition)
+			.First(group => group.Count() > 1)
+			.Key;
+		var preferred = options.First(option => option.EndPosition == destination);
+
+		builder.Interaction.SetMoveHover(destination, options);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Equal(preferred.EndBasis, frame.HoveredMove?.EndBasis);
+		Assert.Equal(preferred.EndPosition, frame.MoveTarget);
+		Assert.Equal(preferred.ResultState.Position, frame.MoveGhostState?.Position);
+	}
+
+	[Fact]
+	public void HoveredRouteGhostPathAndTargetAgree()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var hovered = BattleTestCommands.Frame(battle).MovePaths
+			.First(option => option.EndPosition == origin + Coord.Forward);
+
+		builder.Interaction.SetMoveHover(hovered.EndPosition, BattleTestCommands.Frame(battle).MovePaths);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Equal(hovered.EndPosition, frame.MoveTarget);
+		Assert.Equal(hovered.Checkpoints.Skip(1), frame.MoveCheckpoints);
+		Assert.Equal(hovered.ResultState.Position, frame.MoveGhostState?.Position);
+		Assert.Equal(hovered.EndBasis, frame.HoveredMove?.EndBasis);
+	}
+
+	[Fact]
 	public void SelectedRouteTakesPriorityOverHoverHighlight()
 	{
 		var origin = new Coord(5, 5, 5);
@@ -194,7 +228,7 @@ public sealed class MoveUiTests
 		var paths = BattleTestCommands.Frame(battle).MovePaths;
 		var selected = paths.First(path => path.EndPosition == origin + Coord.Forward * 2);
 
-		var (checkpoints, target) = MoveUi.GetPathHighlights(paths, hoveredIndex: 0, [], selected);
+		var (checkpoints, target) = MoveUi.GetPathHighlights(paths, paths[0], [], selected);
 
 		Assert.Equal(selected.Checkpoints.Skip(1), checkpoints);
 		Assert.Equal(selected.EndPosition, target);

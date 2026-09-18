@@ -115,13 +115,14 @@ public sealed class PresentationFrameBuilder
 			}
 			else
 			{
-				state.ClampMoveHover(moveOptions.Count);
-				hoveredMove = state.MoveHoveredIndex is int hoveredIndex
-					? moveOptions[hoveredIndex]
+				state.ValidateMoveHover(moveOptions);
+				hoveredMove = state.MoveHoveredCell is Coord hoveredCell
+					? moveOptions.FirstOrDefault(option =>
+						option.EndPosition == hoveredCell && option.Steps.Count > 0)
 					: null;
 				(moveCheckpoints, moveTarget) = MoveUi.GetPathHighlights(
 					moveOptions,
-					state.MoveHoveredIndex,
+					hoveredMove,
 					committedMoveCheckpoints,
 					selectedMove);
 			}
@@ -203,6 +204,7 @@ public sealed class PresentationFrameBuilder
 			Instruction = instruction,
 			MoveCheckpoints = moveCheckpoints,
 			MoveTarget = moveTarget,
+			HoveredMove = hoveredMove,
 			SelectedMove = selectedMove,
 			MoveDestination = state.MoveDestination,
 			MoveGhostState = activeMovePreview?.ResultState,

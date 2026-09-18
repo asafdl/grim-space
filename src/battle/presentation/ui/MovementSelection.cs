@@ -1,12 +1,15 @@
 using Godot;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public static class MovementSelection
 {
-	private const float PickRadiusPixels = 22f;
+	private const float MinRadiusPx = 24f;
+	private const float MaxRadiusPx = 64f;
+	private const float RadiusMultiplier = 0.65f;
 	private const float DepthDirectionThreshold = 0.88f;
 	private const float DepthHandleOffsetPixels = 52f;
 	private const float MinimumProjectedDepthOffsetPixels = 34f;
@@ -19,31 +22,31 @@ public static class MovementSelection
 		float Rotation,
 		HeadingHandleKind Kind);
 
-	public static int? PickPathIndex(Camera3D camera, Vector2 screenPos, IReadOnlyList<MovePathOption> paths)
+	public static Coord? PickCoordinate(
+		Camera3D camera,
+		Viewport viewport,
+		Vector2 screenPos,
+		IReadOnlyList<MovePathOption> paths,
+		Coord? currentHovered = null)
 	{
-		if (paths.Count == 0)
+		var candidates = BuildCandidates(camera, viewport, screenPos, paths);
+		return MovementPick.Resolve(candidates, currentHovered);
+	}
+
+	public static MovePathOption? ResolveOption(
+		IReadOnlyList<MovePathOption> paths,
+		Coord? coordinate)
+	{
+		if (coordinate is not Coord cell)
 			return null;
 
-		int? bestIndex = null;
-		var bestDistance = PickRadiusPixels;
-		var seen = new HashSet<Coord>();
-
-		for (var i = 0; i < paths.Count; i++)
+		foreach (var option in paths)
 		{
-			if (!seen.Add(paths[i].EndPosition))
-				continue;
-			var world = WorldMapping.ToWorld(paths[i].EndPosition);
-			if (camera.IsPositionBehind(world))
-				continue;
-			var distance = camera.UnprojectPosition(world).DistanceTo(screenPos);
-			if (distance >= bestDistance)
-				continue;
-
-			bestDistance = distance;
-			bestIndex = i;
+			if (option.EndPosition == cell && option.Steps.Count > 0)
+				return option;
 		}
 
-		return bestIndex;
+		return null;
 	}
 
 	public static Coord? PickHeading(
@@ -122,4 +125,119 @@ public static class MovementSelection
 			? HeadingHandleKind.TowardCamera
 			: HeadingHandleKind.AwayFromCamera;
 	}
+
+	private static List<MovementPickCandidate> BuildCandidates(
+		Camera3D camera,
+		Viewport viewport,
+		Vector2 screenPos,
+		IReadOnlyList<MovePathOption> paths)
+	{
+		var viewportRect = viewport.GetVisibleRect();
+		if (!viewportRect.HasPoint(screenPos))
+			return [];
+
+		var candidates = new List<MovementPickCandidate>();
+		var seen = new HashSet<Coord>();
+		var near = camera.Near;
+
+		foreach (var option in paths)
+		{
+			if (option.Steps.Count == 0 || !seen.Add(option.EndPosition))
+				continue;
+
+			var centerWorld = WorldMapping.ToWorld(option.EndPosition);
+			if (camera.IsPositionBehind(centerWorld))
+				continue;
+
+			var depth = CameraForwardDepth(camera, centerWorld);
+			if (depth <= near)
+				continue;
+
+			var projectedCenter = camera.UnprojectPosition(centerWorld);
+			if (!IsFinite(projectedCenter) || !viewportRect.HasPoint(projectedCenter))
+				continue;
+
+			var radiusPx = ComputeRadiusPx(camera, centerWorld, depth, near);
+			if (!float.IsFinite(radiusPx))
+				continue;
+
+			var distancePx = projectedCenter.DistanceTo(screenPos);
+			candidates.Add(new MovementPickCandidate(
+				option.EndPosition,
+				distancePx,
+				radiusPx,
+				depth));
+		}
+
+		return candidates;
+	}
+
+	private static float ComputeRadiusPx(
+		Camera3D camera,
+		Vector3 centerWorld,
+		float centerDepth,
+		float near)
+	{
+		var half = WorldMapping.CellSize * 0.5f;
+		var projected = new List<Vector2> { camera.UnprojectPosition(centerWorld) };
+		var anyCornerInvalid = false;
+
+		for (var x = -1; x <= 1; x += 2)
+		{
+			for (var y = -1; y <= 1; y += 2)
+			{
+				for (var z = -1; z <= 1; z += 2)
+				{
+					var corner = centerWorld + new Vector3(x, y, z) * half;
+					if (camera.IsPositionBehind(corner))
+					{
+						anyCornerInvalid = true;
+						continue;
+					}
+
+					var cornerDepth = CameraForwardDepth(camera, corner);
+					if (cornerDepth <= near)
+					{
+						anyCornerInvalid = true;
+						continue;
+					}
+
+					var projectedCorner = camera.UnprojectPosition(corner);
+					if (!IsFinite(projectedCorner))
+					{
+						anyCornerInvalid = true;
+						continue;
+					}
+
+					projected.Add(projectedCorner);
+				}
+			}
+		}
+
+		if (anyCornerInvalid)
+			return MaxRadiusPx;
+
+		var minX = projected[0].X;
+		var maxX = projected[0].X;
+		var minY = projected[0].Y;
+		var maxY = projected[0].Y;
+		for (var i = 1; i < projected.Count; i++)
+		{
+			minX = System.Math.Min(minX, projected[i].X);
+			maxX = System.Math.Max(maxX, projected[i].X);
+			minY = System.Math.Min(minY, projected[i].Y);
+			maxY = System.Math.Max(maxY, projected[i].Y);
+		}
+
+		var widthPx = maxX - minX;
+		var heightPx = maxY - minY;
+		var extentPx = 0.5f * Mathf.Sqrt(widthPx * widthPx + heightPx * heightPx);
+		return Mathf.Clamp(RadiusMultiplier * extentPx, MinRadiusPx, MaxRadiusPx);
+	}
+
+	private static float CameraForwardDepth(Camera3D camera, Vector3 world) =>
+		-(camera.GlobalTransform.AffineInverse() * world).Z;
+
+	private static bool IsFinite(Vector2 value) =>
+		float.IsFinite(value.X) && float.IsFinite(value.Y);
 }

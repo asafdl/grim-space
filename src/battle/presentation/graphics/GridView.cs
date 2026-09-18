@@ -13,10 +13,12 @@ public partial class GridView : Node3D
 	private MeshInstance3D _rangeShell = null!;
 	private CellVolumeWireframeSlot _rangeSlot = null!;
 	private MeshInstance3D _localGrid = null!;
+	private MeshInstance3D _centralOutline = null!;
 	private StandardMaterial3D _rangeShellMaterial = null!;
 
 	private Vector3? _ghostWorld;
 	private Vector3? _localGridViewDirection;
+	private Vector3? _centralOutlineViewDirection;
 
 	internal void Build(Camera3D camera, CellVolumeMeshStore meshes)
 	{
@@ -38,6 +40,13 @@ public partial class GridView : Node3D
 		_localGridViewDirection = CurrentViewDirection();
 		AddChild(_localGrid);
 
+		_centralOutline = CreateVisual(
+			"MovementCentralOutline",
+			CreateCentralOutlineMesh(CurrentViewDirection()),
+			CellGridGeometry.CreateMaterial(Colors.White));
+		_centralOutlineViewDirection = CurrentViewDirection();
+		AddChild(_centralOutline);
+
 		HideMoveVisuals();
 	}
 
@@ -45,6 +54,8 @@ public partial class GridView : Node3D
 	{
 		if (_localGrid.Visible)
 			RefreshLocalGridMesh();
+		if (_centralOutline.Visible)
+			RefreshCentralOutlineMesh();
 	}
 
 	public void ApplyFrame(PresentationFrame frame)
@@ -69,11 +80,15 @@ public partial class GridView : Node3D
 		_ghostWorld = frame.MoveGhostState is { } ghost
 			? WorldMapping.ToWorld(ghost.Position)
 			: null;
-		_localGrid.Visible = _ghostWorld is not null;
+		var hasGhost = _ghostWorld is not null;
+		_localGrid.Visible = hasGhost;
+		_centralOutline.Visible = hasGhost;
 		if (_ghostWorld is Vector3 ghostWorld)
 		{
 			_localGrid.GlobalPosition = ghostWorld;
+			_centralOutline.GlobalPosition = ghostWorld;
 			RefreshLocalGridMesh();
+			RefreshCentralOutlineMesh();
 		}
 	}
 
@@ -101,6 +116,8 @@ public partial class GridView : Node3D
 			_rangeShell.Visible = false;
 		if (_localGrid is not null)
 			_localGrid.Visible = false;
+		if (_centralOutline is not null)
+			_centralOutline.Visible = false;
 		_ghostWorld = null;
 	}
 
@@ -109,6 +126,13 @@ public partial class GridView : Node3D
 			viewDirection,
 			CellGridGeometry.NeighborCenters,
 			includeHatches: true);
+
+	private static ArrayMesh CreateCentralOutlineMesh(Vector3 viewDirection)
+		=> CellGridGeometry.CreateMesh(
+			viewDirection,
+			[Vector3.Zero],
+			includeHatches: false,
+			CellGridGeometry.LineAppearance.Emphasized);
 
 	private void RefreshLocalGridMesh()
 	{
@@ -119,6 +143,17 @@ public partial class GridView : Node3D
 
 		_localGrid.Mesh = CreateLocalGridMesh(viewDirection);
 		_localGridViewDirection = viewDirection;
+	}
+
+	private void RefreshCentralOutlineMesh()
+	{
+		var viewDirection = CurrentViewDirection();
+		if (_centralOutlineViewDirection is Vector3 previous
+			&& previous.Dot(viewDirection) >= LocalGridViewDotThreshold)
+			return;
+
+		_centralOutline.Mesh = CreateCentralOutlineMesh(viewDirection);
+		_centralOutlineViewDirection = viewDirection;
 	}
 
 	private Vector3 CurrentViewDirection() =>

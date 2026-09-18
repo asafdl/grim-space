@@ -1,3 +1,5 @@
+using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
@@ -73,6 +75,74 @@ public sealed class InteractionStateTests
 	}
 
 	[Fact]
+	public void ReorderingOptionsPreservesHoveredDestination()
+	{
+		var state = new InteractionState();
+		var destination = new Coord(2, 3, 4);
+		var first = CreateOptions(destination, basisA: true);
+		var second = CreateOptions(destination, basisA: false);
+
+		state.SetMoveHover(destination, first);
+		state.ValidateMoveHover(second);
+
+		Assert.Equal(destination, state.MoveHoveredCell);
+	}
+
+	[Fact]
+	public void SameCountReplacementCannotSilentlyRetargetHover()
+	{
+		var state = new InteractionState();
+		var first = new[]
+		{
+			CreateOption(new Coord(1, 0, 0)),
+			CreateOption(new Coord(2, 0, 0)),
+		};
+		var second = new[]
+		{
+			CreateOption(new Coord(3, 0, 0)),
+			CreateOption(new Coord(2, 0, 0)),
+		};
+
+		state.SetMoveHover(new Coord(1, 0, 0), first);
+		state.ValidateMoveHover(second);
+
+		Assert.Null(state.MoveHoveredCell);
+	}
+
+	[Fact]
+	public void MissingCoordinateClearsHover()
+	{
+		var state = new InteractionState();
+		state.SetMoveHover(new Coord(5, 5, 5), [CreateOption(new Coord(5, 5, 5))]);
+		state.ValidateMoveHover([]);
+
+		Assert.Null(state.MoveHoveredCell);
+	}
+
+	[Fact]
+	public void ClearHoversClearsMoveHover()
+	{
+		var state = new InteractionState();
+		state.SetMoveHover(new Coord(1, 2, 3), [CreateOption(new Coord(1, 2, 3))]);
+
+		state.ClearHovers();
+
+		Assert.Null(state.MoveHoveredCell);
+	}
+
+	[Fact]
+	public void BeginMoveSelectionClearsPassiveHover()
+	{
+		var state = new InteractionState();
+		var destination = new Coord(1, 2, 3);
+		state.SetMoveHover(destination, [CreateOption(destination)]);
+
+		state.BeginMoveSelection(destination, MovePose.For(Coord.Forward, 0));
+
+		Assert.Null(state.MoveHoveredCell);
+	}
+
+	[Fact]
 	public void ResetAfterTurnClearsAbilityTargeting()
 	{
 		var state = new InteractionState();
@@ -85,5 +155,26 @@ public sealed class InteractionStateTests
 		Assert.Null(state.ActiveAbilitySpec);
 		Assert.Null(state.AbilityHoveredIndex);
 		Assert.Equal(EPlayerMode.Move, state.Mode);
+	}
+
+	private static IReadOnlyList<MovePathOption> CreateOptions(Coord destination, bool basisA)
+	{
+		var basis = basisA
+			? MovePose.For(Coord.Forward, 0)
+			: MovePose.For(new Coord(1, 0, 0), 1);
+		return [CreateOption(destination, basis)];
+	}
+
+	private static MovePathOption CreateOption(Coord destination, GridBasis? basis = null)
+	{
+		basis ??= MovePose.For(Coord.Forward, 0);
+		return new MovePathOption(
+			[new GrimSpace.Battle.Actions.MoveStepAction("player")],
+			[],
+			destination,
+			basis.Value,
+			ExtensionApCost: 0,
+			RemainingAp: 0,
+			ResultState: default);
 	}
 }

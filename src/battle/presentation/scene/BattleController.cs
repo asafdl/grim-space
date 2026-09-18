@@ -138,6 +138,7 @@ public partial class BattleController : Node3D
 			Name = "UserIntentTranslator",
 		};
 		AddChild(_translator);
+		_camera.ManualInputStarted += _translator.OnCameraManualInputStarted;
 		WireTranslator();
 		WireHudToTranslator();
 
@@ -257,7 +258,6 @@ public partial class BattleController : Node3D
 			RefreshPresentation();
 		};
 		_translator.AbilityHoverChanged += OnAbilityHoverChanged;
-		_translator.HoversCleared += ClearHovers;
 		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
@@ -295,9 +295,9 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
-	private void OnMoveHoverChanged(int? index, int optionCount)
+	private void OnMoveHoverChanged(Coord? cell)
 	{
-		_frames.Interaction.SetMoveHover(index, optionCount);
+		_frames.Interaction.SetMoveHover(cell, _currentFrame.MovePaths);
 		RefreshPresentation();
 	}
 
@@ -340,6 +340,8 @@ public partial class BattleController : Node3D
 			isInspecting: frame.IsInspecting,
 			mode: frame.Mode,
 			moveOptions: frame.MovePaths,
+			hoveredMove: frame.HoveredMove,
+			moveHoveredCell: _frames.Interaction.MoveHoveredCell,
 			selectedMove: frame.SelectedMove,
 			moveDestination: frame.MoveDestination,
 			moveDragging: frame.IsMoveDragging,
@@ -384,12 +386,6 @@ public partial class BattleController : Node3D
 		_frames.Interaction.ClearFocus();
 		RefreshPresentation();
 		_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
-	}
-
-	private void ClearHovers()
-	{
-		_frames.Interaction.ClearHovers();
-		RefreshPresentation();
 	}
 
 	private Color ColorForActor(string actorId)
@@ -530,6 +526,8 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
+		_camera.ManualInputStarted -= _cameraDirector.OnManualInputStarted;
+		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;
 		if (_tutorial is not null)
 		{
 			_tutorial.StepStarted -= OnTutorialStepStarted;

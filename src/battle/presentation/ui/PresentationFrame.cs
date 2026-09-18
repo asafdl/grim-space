@@ -28,6 +28,7 @@ public sealed class PresentationFrame
 	public ActionInstruction Instruction { get; init; }
 	public required IReadOnlyList<MoveCheckpoint> MoveCheckpoints { get; init; }
 	public Coord? MoveTarget { get; init; }
+	public MovePathOption? HoveredMove { get; init; }
 	public MovePathOption? SelectedMove { get; init; }
 	public Coord? MoveDestination { get; init; }
 	public UnitDisplayState? MoveGhostState { get; init; }

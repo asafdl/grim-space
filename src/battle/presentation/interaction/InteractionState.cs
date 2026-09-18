@@ -14,7 +14,7 @@ public sealed class InteractionState
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public AbilityHudCatalog.Spec? ActiveAbilitySpec { get; private set; }
 	public int? AbilityHoveredIndex { get; private set; }
-	public int? MoveHoveredIndex { get; set; }
+	public Coord? MoveHoveredCell { get; private set; }
 	public Coord? MoveDestination { get; private set; }
 	public GridBasis? RequestedMoveBasis { get; private set; }
 	public int MoveRollQuarters { get; private set; }
@@ -50,12 +50,13 @@ public sealed class InteractionState
 
 	public void ClearHovers()
 	{
-		MoveHoveredIndex = null;
+		MoveHoveredCell = null;
 		AbilityHoveredIndex = null;
 	}
 
 	public void BeginMoveSelection(Coord destination, GridBasis basis)
 	{
+		MoveHoveredCell = null;
 		MoveDestination = destination;
 		RequestedMoveBasis = basis;
 		MoveRollQuarters = MovePose.RollQuarters(basis);
@@ -88,11 +89,25 @@ public sealed class InteractionState
 		ActionError = BattleHudCopy.ActionUnavailable;
 	}
 
-	public void SetMoveHover(int? index, int optionCount) =>
-		MoveHoveredIndex = ClampIndex(index, optionCount);
+	public void SetMoveHover(Coord? cell, IReadOnlyList<MovePathOption> options) =>
+		MoveHoveredCell = ValidateMoveHover(cell, options);
 
-	public void ClampMoveHover(int optionCount) =>
-		MoveHoveredIndex = ClampIndex(MoveHoveredIndex, optionCount);
+	public void ValidateMoveHover(IReadOnlyList<MovePathOption> options) =>
+		MoveHoveredCell = ValidateMoveHover(MoveHoveredCell, options);
+
+	private static Coord? ValidateMoveHover(Coord? cell, IReadOnlyList<MovePathOption> options)
+	{
+		if (cell is not Coord coordinate)
+			return null;
+
+		foreach (var option in options)
+		{
+			if (option.EndPosition == coordinate && option.Steps.Count > 0)
+				return coordinate;
+		}
+
+		return null;
+	}
 
 	public void SetAbilityHover(int? index, int optionCount)
 	{

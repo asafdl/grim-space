@@ -8,15 +8,15 @@ public static class MoveUi
 {
 	public static (IReadOnlyList<MoveCheckpoint> Checkpoints, Coord? Target) GetPathHighlights(
 		IReadOnlyList<MovePathOption> paths,
-		int? hoveredIndex,
+		MovePathOption? hovered,
 		IReadOnlyList<MoveCheckpoint> committedPath,
 		MovePathOption? selected = null)
 	{
 		if (selected is not null)
 			return (selected.Checkpoints.Skip(1).ToList(), selected.EndPosition);
 
-		if (hoveredIndex is int i)
-			return (paths[i].Checkpoints.Skip(1).ToList(), paths[i].EndPosition);
+		if (hovered is not null)
+			return (hovered.Checkpoints.Skip(1).ToList(), hovered.EndPosition);
 
 		if (committedPath.Count > 0)
 			return (committedPath, committedPath[^1].Position);

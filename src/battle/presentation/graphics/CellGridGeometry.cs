@@ -6,6 +6,15 @@ internal static class CellGridGeometry
 {
 	private const float VisibleFaceDotThreshold = 0.08f;
 
+	internal readonly record struct LineAppearance(
+		float VisibleEdgeAlpha = 0.14f,
+		float RearEdgeAlpha = 0.035f,
+		float HatchAlpha = 0.12f)
+	{
+		public static LineAppearance Default { get; } = new();
+		public static LineAppearance Emphasized { get; } = new(0.42f, 0.10f, 0.12f);
+	}
+
 	internal readonly record struct LineSegment(Vector3 From, Vector3 To);
 	internal enum LineStyle { RearEdge, VisibleEdge, Hatch }
 	internal readonly record struct StyledLine(LineSegment Segment, LineStyle Style);
@@ -72,8 +81,12 @@ internal static class CellGridGeometry
 	public static ArrayMesh CreateMesh(
 		Vector3 viewDirection,
 		IEnumerable<Vector3> cellCenters,
-		bool includeHatches)
+		bool includeHatches,
+		LineAppearance appearance = default)
 	{
+		if (appearance == default)
+			appearance = LineAppearance.Default;
+
 		var lines = CreateCameraAwareLines(viewDirection, cellCenters, includeHatches);
 		var vertices = lines
 			.SelectMany(line => new[] { line.Segment.From, line.Segment.To })
@@ -81,7 +94,7 @@ internal static class CellGridGeometry
 		var colors = lines
 			.SelectMany(line =>
 			{
-				var color = LineColor(line.Style);
+				var color = LineColor(line.Style, appearance);
 				return new[] { color, color };
 			})
 			.ToArray();
@@ -192,12 +205,12 @@ internal static class CellGridGeometry
 		return (Vector3.Right, Vector3.Up);
 	}
 
-	private static Color LineColor(LineStyle style) =>
+	private static Color LineColor(LineStyle style, LineAppearance appearance) =>
 		style switch
 		{
-			LineStyle.RearEdge => new Color(0.62f, 0.65f, 0.68f, 0.035f),
-			LineStyle.VisibleEdge => new Color(0.62f, 0.65f, 0.68f, 0.14f),
-			LineStyle.Hatch => new Color(0.62f, 0.65f, 0.68f, 0.12f),
+			LineStyle.RearEdge => new Color(0.62f, 0.65f, 0.68f, appearance.RearEdgeAlpha),
+			LineStyle.VisibleEdge => new Color(0.62f, 0.65f, 0.68f, appearance.VisibleEdgeAlpha),
+			LineStyle.Hatch => new Color(0.62f, 0.65f, 0.68f, appearance.HatchAlpha),
 			_ => throw new ArgumentOutOfRangeException(nameof(style), style, null),
 		};
 }
