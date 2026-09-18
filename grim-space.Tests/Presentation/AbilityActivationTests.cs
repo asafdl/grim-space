@@ -20,6 +20,22 @@ public sealed class AbilityActivationTests
 	[InlineData(EType.Carrier)]
 	[InlineData(EType.Patrol)]
 	[InlineData(EType.Torpedo)]
+	public void IconTintIsOpaqueAndMatchesTargetingTint(EType type)
+	{
+		foreach (var spec in AbilityHudCatalog.ForUnit(type))
+		{
+			Assert.Equal(1f, spec.IconTint.A);
+			Assert.Equal(spec.Targeting.Tint.R, spec.IconTint.R);
+			Assert.Equal(spec.Targeting.Tint.G, spec.IconTint.G);
+			Assert.Equal(spec.Targeting.Tint.B, spec.IconTint.B);
+		}
+	}
+
+	[Theory]
+	[InlineData(EType.Fighter)]
+	[InlineData(EType.Carrier)]
+	[InlineData(EType.Patrol)]
+	[InlineData(EType.Torpedo)]
 	public void EveryRegisteredAbilityResolvesActivation(EType type)
 	{
 		foreach (var spec in AbilityHudCatalog.ForUnit(type))

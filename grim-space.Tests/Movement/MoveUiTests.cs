@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
+using GrimSpace.Tests.Actions;
 
 namespace GrimSpace.Tests.Movement;
 
@@ -218,6 +219,131 @@ public sealed class MoveUiTests
 		Assert.Equal(hovered.Checkpoints.Skip(1), frame.MoveCheckpoints);
 		Assert.Equal(hovered.ResultState.Position, frame.MoveGhostState?.Position);
 		Assert.Equal(hovered.EndBasis, frame.HoveredMove?.EndBasis);
+	}
+
+	[Fact]
+	public void StagedMoveSelectionShowsPoseHitOpportunities()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = BattleTestCommands.MoveOptions(battle)
+			.First(path =>
+				path.EndPosition == origin
+				&& path.EndBasis.Forward == Coord.Forward);
+
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.NotEmpty(frame.PoseHitOpportunities);
+		Assert.Contains(
+			frame.PoseHitOpportunities,
+			opportunity => opportunity.IconPath == "res://assets/ui/abilities/railgun.svg");
+	}
+
+	[Fact]
+	public void PassiveHoverDoesNotShowPoseHitOpportunities()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var options = BattleTestCommands.MoveOptions(battle);
+		var hovered = options.First(option => option.EndPosition == origin + Coord.Forward);
+
+		builder.Interaction.SetMoveHover(hovered.EndPosition, options);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Empty(frame.PoseHitOpportunities);
+	}
+
+	[Fact]
+	public void PoseHitOpportunitiesHiddenWhenCommandsDisabled()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = BattleTestCommands.MoveOptions(battle)
+			.First(path =>
+				path.EndPosition == origin
+				&& path.EndBasis.Forward == Coord.Forward);
+
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false);
+
+		Assert.Empty(frame.PoseHitOpportunities);
+	}
+
+	[Fact]
+	public void ConfirmedMoveKeepsPoseHitOpportunities()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = BattleTestCommands.MoveOptions(battle)
+			.First(path =>
+				path.EndPosition == origin
+				&& path.EndBasis.Forward == Coord.Forward);
+
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+		builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+		Assert.NotEmpty(builder.Interaction.PoseHitOpportunities);
+
+		builder.Interaction.CompleteMoveSelection();
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.NotEmpty(frame.PoseHitOpportunities);
+		Assert.False(frame.IsMoveDragging);
+	}
+
+	[Fact]
+	public void CancelMoveSelectionClearsPoseHitOpportunities()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = BattleTestCommands.MoveOptions(battle)
+			.First(path =>
+				path.EndPosition == origin
+				&& path.EndBasis.Forward == Coord.Forward);
+
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+		builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+		Assert.NotEmpty(builder.Interaction.PoseHitOpportunities);
+
+		builder.Interaction.ClearMoveSelection();
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Empty(frame.PoseHitOpportunities);
+	}
+
+	[Fact]
+	public void InspectingHidesPoseHitOpportunities()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin,
+			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var option = BattleTestCommands.MoveOptions(battle)
+			.First(path =>
+				path.EndPosition == origin
+				&& path.EndBasis.Forward == Coord.Forward);
+
+		builder.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
+		builder.Interaction.FocusUnit(BattleTestFixture.FirstEnemyId(battle));
+		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Empty(frame.PoseHitOpportunities);
 	}
 
 	[Fact]

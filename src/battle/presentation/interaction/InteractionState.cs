@@ -9,9 +9,12 @@ namespace GrimSpace.Battle.Presentation.Interaction;
 
 public sealed class InteractionState
 {
+	private readonly List<PoseHitOpportunity> _poseHitOpportunities = [];
+
 	public string? FocusId { get; private set; }
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
+	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities => _poseHitOpportunities;
 	public AbilityHudCatalog.Spec? ActiveAbilitySpec { get; private set; }
 	public int? AbilityHoveredIndex { get; private set; }
 	public Coord? MoveHoveredCell { get; private set; }
@@ -74,7 +77,7 @@ public sealed class InteractionState
 		ActionError = null;
 	}
 
-	public void ClearMoveSelection()
+	public void CompleteMoveSelection()
 	{
 		MoveDestination = null;
 		RequestedMoveBasis = null;
@@ -82,6 +85,20 @@ public sealed class InteractionState
 		IsMoveDragging = false;
 		ActionError = null;
 	}
+
+	public void ClearMoveSelection()
+	{
+		CompleteMoveSelection();
+		ClearPoseHitOpportunities();
+	}
+
+	public void RefreshPoseHitOpportunities(IReadOnlyList<PoseHitOpportunity> computed)
+	{
+		_poseHitOpportunities.Clear();
+		_poseHitOpportunities.AddRange(computed);
+	}
+
+	public void ClearPoseHitOpportunities() => _poseHitOpportunities.Clear();
 
 	public void ReportActionFailure()
 	{

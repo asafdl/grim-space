@@ -70,6 +70,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
 	public event Action<GridBasis>? MovePoseRequested;
 	public event Action? MoveSelectionCanceled;
+	public event Action? MoveSelectionCompleted;
 	public event Action<int?, int>? AbilityHoverChanged;
 	public event Action<string>? FocusUnitRequested;
 	public event Action? ReturnToPlayerRequested;
@@ -469,7 +470,7 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
-		CancelMoveSelection();
+		MoveSelectionCompleted?.Invoke();
 	}
 
 	private void RequestRoll(int delta)

@@ -8,7 +8,7 @@ public sealed class MovePreviewCache
 
 	internal int BuildCount { get; private set; }
 
-	public IReadOnlyList<MovePathSession> GetPaths(BattleSimulation sim, string actorId)
+	public IReadOnlyList<RouteHitPreview> GetPaths(BattleSimulation sim, string actorId)
 	{
 		var cached = _entries.FirstOrDefault(entry =>
 			ReferenceEquals(entry.Sim, sim)
@@ -18,7 +18,9 @@ public sealed class MovePreviewCache
 		if (cached is not null)
 			return cached.Paths;
 
-		var paths = MovePathEndpoints.DiscoverExtensions(sim, actorId);
+		var paths = MovePathEndpoints.DiscoverExtensions(sim, actorId)
+			.Select(session => new RouteHitPreview(session))
+			.ToList();
 		_entries.Add(new Entry(
 			sim,
 			actorId,
@@ -40,5 +42,5 @@ public sealed class MovePreviewCache
 		string ActorId,
 		int WorldVersion,
 		IReadOnlyList<IAction> Actions,
-		IReadOnlyList<MovePathSession> Paths);
+		IReadOnlyList<RouteHitPreview> Paths);
 }

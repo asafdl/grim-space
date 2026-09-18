@@ -181,6 +181,13 @@ public sealed class PresentationFrameBuilder
 			&& !battle.IsBattleOver
 				? selectedMove ?? hoveredMove
 				: null;
+		if (canControl && state.Mode == EPlayerMode.Move && selectedMove is { } poseMove)
+			state.RefreshPoseHitOpportunities(_preview.PoseHitOpportunities(sim, playerId, poseMove));
+
+		var poseHitOpportunities =
+			canControl && state.Mode == EPlayerMode.Move && !isInspecting
+				? state.PoseHitOpportunities
+				: [];
 
 		return new PresentationFrame
 		{
@@ -221,6 +228,7 @@ public sealed class PresentationFrameBuilder
 			ShowWeaponPreviews = showWeaponPreviews,
 			ActionLogEntries = ActionLogEntries,
 			Outcome = battle.Engine.World.battleResult,
+			PoseHitOpportunities = poseHitOpportunities,
 		};
 	}
 

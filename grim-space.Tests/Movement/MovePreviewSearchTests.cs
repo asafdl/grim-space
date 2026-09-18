@@ -81,10 +81,10 @@ public sealed class MovePreviewSearchTests
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
 		var initial = cache.GetPaths(sim, PlayerId);
-		var move = initial.First(path => path.ExtensionApCost == 2);
+		var move = initial.First(path => path.Session.ExtensionApCost == 2);
 
 		Assert.Equal(1, cache.BuildCount);
-		Assert.True(sim.TryEnqueue(move.Steps.Cast<IAction>().ToArray()));
+		Assert.True(sim.TryEnqueue(move.Session.Steps.Cast<IAction>().ToArray()));
 
 		var extensions = cache.GetPaths(sim, PlayerId);
 		Assert.Equal(2, cache.BuildCount);
@@ -95,7 +95,7 @@ public sealed class MovePreviewSearchTests
 
 		Assert.Equal(2, cache.BuildCount);
 		Assert.Same(initial, afterUndo);
-		Assert.Equal(initial.Select(PathKey), afterUndo.Select(PathKey));
+		Assert.Equal(initial.Select(route => PathKey(route.Session)), afterUndo.Select(route => PathKey(route.Session)));
 	}
 
 	[Fact]
@@ -106,13 +106,13 @@ public sealed class MovePreviewSearchTests
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
 		var move = cache.GetPaths(sim, PlayerId)
-			.First(path => path.ExtensionApCost == 1);
-		Assert.True(sim.TryEnqueue(move.Steps.Cast<IAction>().ToArray()));
+			.First(path => path.Session.ExtensionApCost == 1);
+		Assert.True(sim.TryEnqueue(move.Session.Steps.Cast<IAction>().ToArray()));
 
 		var cached = cache.GetPaths(sim, PlayerId);
 		var fresh = MovePathEndpoints.DiscoverExtensions(sim, PlayerId);
 
-		Assert.Equal(fresh.Select(PathKey), cached.Select(PathKey));
+		Assert.Equal(fresh.Select(PathKey), cached.Select(route => PathKey(route.Session)));
 	}
 
 	[Fact]
@@ -123,14 +123,16 @@ public sealed class MovePreviewSearchTests
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
 		var firstMove = cache.GetPaths(sim, PlayerId)
-			.First(path => path.ExtensionApCost == 1);
-		Assert.True(sim.TryEnqueue(firstMove.Steps.Cast<IAction>().ToArray()));
+			.First(path => path.Session.ExtensionApCost == 1);
+		Assert.True(sim.TryEnqueue(firstMove.Session.Steps.Cast<IAction>().ToArray()));
 		var afterMove = cache.GetPaths(sim, PlayerId);
 
 		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.RailgunAction(PlayerId)));
 		var afterWeapon = cache.GetPaths(sim, PlayerId);
 
-		Assert.Equal(afterMove.Select(PathKey), afterWeapon.Select(PathKey));
+		Assert.Equal(
+			afterMove.Select(route => PathKey(route.Session)),
+			afterWeapon.Select(route => PathKey(route.Session)));
 		Assert.Equal(3, cache.BuildCount);
 	}
 
@@ -142,16 +144,83 @@ public sealed class MovePreviewSearchTests
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
 		var branch = cache.GetPaths(sim, PlayerId)
-			.First(path => path.ExtensionApCost == 2);
-		Assert.True(sim.TryEnqueue(branch.Steps.Cast<IAction>().ToArray()));
+			.First(path => path.Session.ExtensionApCost == 2);
+		Assert.True(sim.TryEnqueue(branch.Session.Steps.Cast<IAction>().ToArray()));
 
 		foreach (var extension in cache.GetPaths(sim, PlayerId))
 		{
 			var trial = sim.Fork();
 			Assert.True(
-				trial.TryEnqueue(extension.Steps.Cast<IAction>().ToArray()),
-				$"Cached extension to {extension.EndPosition} was not replayable.");
+				trial.TryEnqueue(extension.Session.Steps.Cast<IAction>().ToArray()),
+				$"Cached extension to {extension.Session.EndPosition} was not replayable.");
 		}
+	}
+
+	[Fact]
+	public void HitOpportunitiesLazyComputeOncePerRoute()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(origin + Coord.Forward * 6),
+			BattleTestFixture.Grid(20));
+		var sim = battle.PlayerAgent.Sim;
+		var cache = new MovePreviewCache();
+		var route = cache.GetPaths(sim, PlayerId)
+			.First(path => path.Session.EndPosition == origin);
+
+		Assert.Equal(0, route.ComputeCount);
+		var first = route.GetHitOpportunities(sim, PlayerId);
+		Assert.Equal(1, route.ComputeCount);
+		var second = route.GetHitOpportunities(sim, PlayerId);
+
+		Assert.Equal(1, route.ComputeCount);
+		Assert.Same(first, second);
+	}
+
+	[Fact]
+	public void HitOpportunitiesReusePriorRouteWithoutRecompute()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(origin + Coord.Forward * 6),
+			BattleTestFixture.Grid(20));
+		var sim = battle.PlayerAgent.Sim;
+		var cache = new MovePreviewCache();
+		var routes = cache.GetPaths(sim, PlayerId);
+		var routeA = routes[0];
+		var routeB = routes[1];
+
+		routeA.GetHitOpportunities(sim, PlayerId);
+		routeB.GetHitOpportunities(sim, PlayerId);
+		Assert.Equal(1, routeA.ComputeCount);
+		Assert.Equal(1, routeB.ComputeCount);
+
+		routeA.GetHitOpportunities(sim, PlayerId);
+
+		Assert.Equal(1, routeA.ComputeCount);
+	}
+
+	[Fact]
+	public void EmptyHitOpportunitiesAreMemoized()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(new Coord(0, 0, 0)),
+			BattleTestFixture.Grid(20));
+		var sim = battle.PlayerAgent.Sim;
+		var cache = new MovePreviewCache();
+		var route = cache.GetPaths(sim, PlayerId)
+			.First(path => path.Session.EndPosition == origin);
+
+		var first = route.GetHitOpportunities(sim, PlayerId);
+		var second = route.GetHitOpportunities(sim, PlayerId);
+
+		Assert.Empty(first);
+		Assert.Same(first, second);
+		Assert.Equal(1, route.ComputeCount);
 	}
 
 	[Fact]

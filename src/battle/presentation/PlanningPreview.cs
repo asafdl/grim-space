@@ -50,19 +50,41 @@ public sealed class PlanningPreview
 		if (inspecting && !CaptureUnits(previewWorld).ContainsKey(focusId))
 			return [];
 
-		var paths = inspecting
-			? MovePathEndpoints.DiscoverExtensions(sim, focusId)
-			: _moveCache.GetPaths(sim, playerId);
-		return paths
-			.Select(path => new MovePathOption(
-				path.Steps,
-				path.Checkpoints,
-				path.EndPosition,
-				path.EndBasis,
-				path.ExtensionApCost,
-				path.RemainingAp,
-				UnitDisplayState.Capture(path.ResultState)))
+		if (inspecting)
+		{
+			return MovePathEndpoints.DiscoverExtensions(sim, focusId)
+				.Select(ToMovePathOption)
+				.ToList();
+		}
+
+		return _moveCache.GetPaths(sim, playerId)
+			.Select(route => ToMovePathOption(route.Session))
 			.ToList();
+	}
+
+	private static MovePathOption ToMovePathOption(MovePathSession path) =>
+		new(
+			path.Steps,
+			path.Checkpoints,
+			path.EndPosition,
+			path.EndBasis,
+			path.ExtensionApCost,
+			path.RemainingAp,
+			UnitDisplayState.Capture(path.ResultState));
+
+	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities(
+		BattleSimulation sim,
+		string playerId,
+		MovePathOption selectedMove)
+	{
+		EnsureSim(sim);
+		var routePreview = _moveCache.GetPaths(sim, playerId).FirstOrDefault(candidate =>
+			candidate.Session.EndPosition == selectedMove.EndPosition
+			&& candidate.Session.EndBasis == selectedMove.EndBasis)
+			?? throw new InvalidOperationException(
+				$"Selected move to {selectedMove.EndPosition} has no cached route.");
+
+		return routePreview.GetHitOpportunities(sim, playerId);
 	}
 
 	public IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(BattleSimulation sim, string playerId) =>
@@ -278,18 +300,18 @@ public sealed class PlanningPreview
 			? typed.Definition as IAreaActionDef
 			: null;
 
-	private static HashSet<string> ImpactTargets(PeekFrame<BattleWorld, ActorRuntime>? peek) =>
-		peek is { } frame ? ImpactTargets(frame.Records) : [];
+	private static HashSet<string> ImpactTargets(PeekFrame<BattleWorld, ActorRuntime>? peek)
+	{
+		var targets = new HashSet<string>(StringComparer.Ordinal);
+		if (peek is { } frame)
+			RouteHitPreview.GetImpactIds(frame.Records, targets);
+		return targets;
+	}
 
 	private static HashSet<string> ImpactTargets(IReadOnlyList<IRecord> records)
 	{
-		var targets = new HashSet<string>();
-		foreach (var record in records)
-		{
-			if (record is Record<ImpactFacts> { Value.TargetId: var targetId })
-				targets.Add(targetId);
-		}
-
+		var targets = new HashSet<string>(StringComparer.Ordinal);
+		RouteHitPreview.GetImpactIds(records, targets);
 		return targets;
 	}
 }

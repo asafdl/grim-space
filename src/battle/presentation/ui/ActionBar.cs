@@ -102,6 +102,7 @@ public sealed partial class ActionBar : HBoxContainer
 				hotkey,
 				spec.Tooltip,
 				spec.IconPath,
+				spec.IconTint,
 				abilityAccent,
 				spec,
 				out var charges);
@@ -158,7 +159,8 @@ public sealed partial class ActionBar : HBoxContainer
 		string hotkey,
 		string tooltip,
 		string? iconPath,
-		Color accent,
+		Color iconTint,
+		Color slotAccent,
 		AbilityHudCatalog.Spec spec,
 		out Label charges)
 	{
@@ -167,7 +169,7 @@ public sealed partial class ActionBar : HBoxContainer
 			ToggleMode = true,
 			ButtonGroup = _modeGroup,
 			CustomMinimumSize = new Vector2(SlotSize, SlotSize),
-			Icon = SvgIconLoader.Load(iconPath, accent, (int)IconPx),
+			Icon = SvgIconLoader.Load(iconPath, iconTint, (int)IconPx),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
@@ -178,7 +180,7 @@ public sealed partial class ActionBar : HBoxContainer
 		};
 		button.AddThemeConstantOverride("h_separation", 0);
 
-		ApplySlotStyles(button, accent);
+		ApplySlotStyles(button, slotAccent);
 		AddHotkeyBadge(button, hotkey);
 		charges = AddChargeBadge(button);
 

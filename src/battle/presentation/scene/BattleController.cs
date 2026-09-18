@@ -48,6 +48,7 @@ public partial class BattleController : Node3D
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
+	private TargetOpportunityOverlay _targetOpportunityOverlay = null!;
 
 	private PresentationFrame _currentFrame = null!;
 
@@ -121,6 +122,16 @@ public partial class BattleController : Node3D
 		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
 		_moveGhost.Configure(_camera);
 		unitsRoot.AddChild(_moveGhost);
+
+		var opportunityLayer = new CanvasLayer
+		{
+			Name = "TargetOpportunityLayer",
+			Layer = 20,
+		};
+		_targetOpportunityOverlay = new TargetOpportunityOverlay { Name = "TargetOpportunityOverlay" };
+		_targetOpportunityOverlay.Configure(_camera);
+		opportunityLayer.AddChild(_targetOpportunityOverlay);
+		AddChild(opportunityLayer);
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
@@ -257,6 +268,11 @@ public partial class BattleController : Node3D
 			_frames.Interaction.ClearMoveSelection();
 			RefreshPresentation();
 		};
+		_translator.MoveSelectionCompleted += () =>
+		{
+			_frames.Interaction.CompleteMoveSelection();
+			RefreshPresentation();
+		};
 		_translator.AbilityHoverChanged += OnAbilityHoverChanged;
 		_translator.FocusUnitRequested += FocusUnit;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
@@ -324,6 +340,7 @@ public partial class BattleController : Node3D
 	private bool TryUndo()
 	{
 		_frames.Interaction.ClearHovers();
+		_frames.Interaction.ClearPoseHitOpportunities();
 		var undone = _agent.Undo();
 		if (!undone)
 			RefreshPresentation();
@@ -411,6 +428,7 @@ public partial class BattleController : Node3D
 			frame.ReachableMoveHeadings,
 			ColorForActor(frame.FocusId),
 			selected: frame.SelectedMove is not null);
+		_targetOpportunityOverlay.Apply(frame.PreviewUnits, frame.PoseHitOpportunities);
 		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
 		_areaActionPreview.ApplyFrame(frame);
 		_torpedoPreview.ApplyFrame(frame);

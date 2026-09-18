@@ -24,7 +24,13 @@ public static class AbilityHudCatalog
 		string? IconPath,
 		string Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
-		Func<AbilityLegality, bool> IsLegal);
+		Func<AbilityLegality, bool> IsLegal)
+	{
+		public Color IconTint { get; } = OpaqueTint(Targeting.Tint);
+	}
+
+	private static Color OpaqueTint(Color previewTint) =>
+		new(previewTint.R, previewTint.G, previewTint.B, 1f);
 
 	public static IReadOnlyList<Spec> ForUnit(EType type) =>
 		Capabilities.AbilitiesFor(type)

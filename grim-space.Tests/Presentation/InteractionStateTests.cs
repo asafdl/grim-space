@@ -143,6 +143,34 @@ public sealed class InteractionStateTests
 	}
 
 	[Fact]
+	public void CompleteMoveSelectionEndsDragWithoutClearingPoseHits()
+	{
+		var state = new InteractionState();
+		state.RefreshPoseHitOpportunities(
+			[new PoseHitOpportunity("enemy", "res://icon.svg", default)]);
+		state.BeginMoveSelection(new Coord(1, 2, 3), MovePose.For(Coord.Forward, 0));
+
+		state.CompleteMoveSelection();
+
+		Assert.False(state.IsMoveDragging);
+		Assert.Null(state.MoveDestination);
+		Assert.Single(state.PoseHitOpportunities);
+	}
+
+	[Fact]
+	public void ClearMoveSelectionClearsPoseHits()
+	{
+		var state = new InteractionState();
+		state.RefreshPoseHitOpportunities(
+			[new PoseHitOpportunity("enemy", "res://icon.svg", default)]);
+		state.BeginMoveSelection(new Coord(1, 2, 3), MovePose.For(Coord.Forward, 0));
+
+		state.ClearMoveSelection();
+
+		Assert.Empty(state.PoseHitOpportunities);
+	}
+
+	[Fact]
 	public void ResetAfterTurnClearsAbilityTargeting()
 	{
 		var state = new InteractionState();
