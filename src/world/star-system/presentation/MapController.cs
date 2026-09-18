@@ -325,7 +325,7 @@ public partial class MapController : Node3D
 		}
 
 		if (@event is InputEventMouseButton { Pressed: true } wheel
-		    && wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
+			&& wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
 		{
 			if (GetViewport().GuiGetHoveredControl() is not null)
 				return;
@@ -364,8 +364,8 @@ public partial class MapController : Node3D
 		switch (key.Keycode)
 		{
 			case Key.Escape:
-				GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 				GetViewport().SetInputAsHandled();
+				GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 				break;
 			case Key.Space:
 				_orchestrator.TogglePause();
@@ -531,7 +531,7 @@ public partial class MapController : Node3D
 	{
 		var player = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
 		if (player.State.Phase != Units.EPhase.Docked
-		    || string.IsNullOrEmpty(player.State.DockedAtDockId))
+			|| string.IsNullOrEmpty(player.State.DockedAtDockId))
 			return null;
 
 		return world.DocksById[player.State.DockedAtDockId].PoiId;

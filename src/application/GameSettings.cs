@@ -49,14 +49,21 @@ public static class GameSettings
 	public static void SaveVideoConfig(VideoConfig video)
 	{
 		var config = LoadOrCreate();
+		WriteVideoConfig(config, video);
+		config.Save(SettingsPath);
+	}
+
+	internal static void WriteVideoConfig(ConfigFile config, VideoConfig video)
+	{
+		ArgumentNullException.ThrowIfNull(config);
 		config.SetValue(
 			"video",
 			"mode",
 			video.Mode == DisplayMode.Windowed ? WindowedMode : BorderlessFullscreenMode);
 		config.SetValue("video", "width", video.Resolution.X);
 		config.SetValue("video", "height", video.Resolution.Y);
-		config.EraseSectionKey("video", "render_scale");
-		config.Save(SettingsPath);
+		if (config.HasSectionKey("video", "render_scale"))
+			config.EraseSectionKey("video", "render_scale");
 	}
 
 	public static void ApplySavedVideoConfig()
