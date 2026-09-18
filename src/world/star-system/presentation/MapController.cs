@@ -344,7 +344,7 @@ public partial class MapController : Node3D
 			if (GetViewport().GuiGetHoveredControl() is not null)
 				return;
 
-			if (mouseButton.ButtonIndex == MouseButton.Right)
+			if (mouseButton.ButtonIndex == MouseButton.Left)
 			{
 				if (_intentTranslator.TryHandleMouseButton(mouseButton, out var unreachable))
 				{

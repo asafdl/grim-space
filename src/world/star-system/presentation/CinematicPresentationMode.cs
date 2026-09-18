@@ -20,7 +20,7 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		AllowsOrbit: true,
 		AllowsPan: true,
 		AllowsWheelZoom: true,
-		AllowsRmbMovement: true,
+		AllowsMapMovement: true,
 		AllowsStrategicHover: true);
 
 	private static readonly OrbitLimits ModeLimits = new(

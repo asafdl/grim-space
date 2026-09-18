@@ -15,7 +15,7 @@ public sealed class OverviewPresentationMode : IPresentationMode
 		AllowsOrbit: true,
 		AllowsPan: true,
 		AllowsWheelZoom: true,
-		AllowsRmbMovement: true,
+		AllowsMapMovement: true,
 		AllowsStrategicHover: true);
 
 	private OrbitLimits _limits = new(22f, 22f, 0.87f, 1.13f);

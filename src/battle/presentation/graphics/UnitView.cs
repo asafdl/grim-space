@@ -9,7 +9,6 @@ public partial class UnitView : Node3D
 {
 	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
 
-	private Label3D? _statusLabel;
 	private MeshInstance3D? _hull;
 	private MeshInstance3D? _hitMark;
 	private EType _type;
@@ -35,16 +34,6 @@ public partial class UnitView : Node3D
 
 		BindShieldBubble(state);
 
-		_statusLabel = new Label3D
-		{
-			Position = new Vector3(0f, StatusLabelHeight(state.Type), 0f),
-			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			FontSize = state.Type == EType.Torpedo ? 36 : state.Type == EType.Patrol ? 40 : 48,
-			OutlineSize = 8,
-			Modulate = Colors.White,
-		};
-		AddChild(_statusLabel);
-
 		Sync(state);
 	}
 
@@ -61,9 +50,6 @@ public partial class UnitView : Node3D
 
 	public void SetGhost(bool selected)
 	{
-		if (_statusLabel is not null)
-			_statusLabel.Visible = false;
-
 		foreach (var child in GetChildren())
 		{
 			if (child is GeometryInstance3D visual)
@@ -87,7 +73,6 @@ public partial class UnitView : Node3D
 		_poseTween.Chain().TweenCallback(Callable.From(() =>
 		{
 			ApplyShields(state);
-			ApplyStatus(state);
 			_poseTween = null;
 		}));
 	}
@@ -145,7 +130,6 @@ public partial class UnitView : Node3D
 		_poseTween.Chain().TweenCallback(Callable.From(() =>
 		{
 			ApplyShields(state);
-			ApplyStatus(state);
 			_poseTween = null;
 		}));
 	}
@@ -180,7 +164,7 @@ public partial class UnitView : Node3D
 		var label = new Label3D
 		{
 			Text = $"-{damage}",
-			Position = new Vector3(0f, StatusLabelHeight(_type) + 0.45f, 0f),
+			Position = new Vector3(0f, PopupLabelHeight(_type) + 0.45f, 0f),
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
 			FontSize = _type == EType.Torpedo ? 44 : 56,
 			OutlineSize = 10,
@@ -246,7 +230,6 @@ public partial class UnitView : Node3D
 		Position = WorldMapping.ToWorld(state.Position);
 		ApplyOrientation(state);
 		ApplyShields(state);
-		ApplyStatus(state);
 	}
 
 	private void EndHitFlash()
@@ -309,16 +292,17 @@ public partial class UnitView : Node3D
 		{
 			Mesh = ShipMesh.CreateNoseMarker(),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = color.Lightened(0.35f),
-				EmissionEnabled = true,
-				Emission = color.Lightened(0.5f),
-				EmissionEnergyMultiplier = 0.6f,
-				Roughness = 0.3f,
-			},
+			MaterialOverride = CreateForeMarkerMaterial(color),
 		};
 		AddChild(nose);
+
+		var bridge = new MeshInstance3D
+		{
+			Mesh = ShipMesh.CreateBridgeMarker(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = CreateDorsalMarkerMaterial(),
+		};
+		AddChild(bridge);
 	}
 
 	private void BindCarrier(Color color)
@@ -335,14 +319,7 @@ public partial class UnitView : Node3D
 		{
 			Mesh = CarrierMesh.CreateIslandMarker(),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = color.Lightened(0.28f),
-				EmissionEnabled = true,
-				Emission = color.Lightened(0.42f),
-				EmissionEnergyMultiplier = 0.55f,
-				Roughness = 0.35f,
-			},
+			MaterialOverride = CreateDorsalMarkerMaterial(),
 		};
 		AddChild(island);
 	}
@@ -361,16 +338,17 @@ public partial class UnitView : Node3D
 		{
 			Mesh = PatrolMesh.CreateNoseMarker(),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = color.Lightened(0.35f),
-				EmissionEnabled = true,
-				Emission = color.Lightened(0.5f),
-				EmissionEnergyMultiplier = 0.6f,
-				Roughness = 0.3f,
-			},
+			MaterialOverride = CreateForeMarkerMaterial(color),
 		};
 		AddChild(nose);
+
+		var bridge = new MeshInstance3D
+		{
+			Mesh = PatrolMesh.CreateBridgeMarker(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = CreateDorsalMarkerMaterial(),
+		};
+		AddChild(bridge);
 	}
 
 	private void BindTorpedo(Color color)
@@ -390,6 +368,14 @@ public partial class UnitView : Node3D
 			},
 		};
 		AddChild(_hull);
+
+		var fin = new MeshInstance3D
+		{
+			Mesh = TorpedoMesh.CreateDorsalFin(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = CreateDorsalMarkerMaterial(),
+		};
+		AddChild(fin);
 	}
 
 	private void BindShieldBubble(State state)
@@ -465,19 +451,25 @@ public partial class UnitView : Node3D
 			Metallic = 0.1f,
 		};
 
-	private void ApplyStatus(State state)
-	{
-		if (_statusLabel is null)
-			return;
+	private static StandardMaterial3D CreateForeMarkerMaterial(Color color) =>
+		new()
+		{
+			AlbedoColor = color.Lightened(0.35f),
+			EmissionEnabled = true,
+			Emission = color.Lightened(0.5f),
+			EmissionEnergyMultiplier = 0.6f,
+			Roughness = 0.3f,
+		};
 
-		var text = state.Type == EType.Torpedo
-			? $"H{state.HullPoints} F{state.FuelRemaining}"
-			: $"H{state.HullPoints}";
-		if (_statusLabel.Text == text)
-			return;
-
-		_statusLabel.Text = text;
-	}
+	private static StandardMaterial3D CreateDorsalMarkerMaterial() =>
+		new()
+		{
+			AlbedoColor = new Color(0.82f, 0.90f, 1f),
+			EmissionEnabled = true,
+			Emission = new Color(0.65f, 0.82f, 1f),
+			EmissionEnergyMultiplier = 0.9f,
+			Roughness = 0.2f,
+		};
 
 	private void ApplyOrientation(State state) =>
 		Basis = BasisFrom(state);
@@ -488,7 +480,7 @@ public partial class UnitView : Node3D
 			ToVector3(state.Dorsal),
 			ToVector3(state.Fore));
 
-	private static float StatusLabelHeight(EType type) =>
+	private static float PopupLabelHeight(EType type) =>
 		type switch
 		{
 			EType.Torpedo => 0.55f,

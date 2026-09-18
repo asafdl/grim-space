@@ -4,6 +4,20 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public static class TorpedoMesh
 {
+	public static ArrayMesh CreateDorsalFin()
+	{
+		var tip = new Vector3(0f, 0.30f, 0.02f);
+		var fore = new Vector3(0f, 0.15f, 0.28f);
+		var aft = new Vector3(0f, 0.15f, -0.18f);
+
+		var vertices = new List<Vector3>();
+		AddTriangle(vertices, tip, fore, aft);
+
+		var mesh = new ArrayMesh();
+		AddSurface(mesh, vertices);
+		return mesh;
+	}
+
 	public static ArrayMesh CreateHull()
 	{
 		var aft = Ring(z: -0.55f, radius: 0.10f);

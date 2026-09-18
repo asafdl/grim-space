@@ -4,7 +4,7 @@ public readonly record struct PresentationInputPolicy(
 	bool AllowsOrbit,
 	bool AllowsPan,
 	bool AllowsWheelZoom,
-	bool AllowsRmbMovement,
+	bool AllowsMapMovement,
 	bool AllowsStrategicHover)
 {
 	public static PresentationInputPolicy Locked =>

@@ -187,7 +187,7 @@ public sealed class TutorialRunnerTests(StarMapFixture maps)
 		var step = Assert.Single(flow.Steps);
 
 		Assert.Equal(map.Blueprint.SupplyPlan.AdministrativePoiId, step.TargetId);
-		Assert.Contains("Right-click", step.Dialog.Message);
+		Assert.Contains("Left-click", step.Dialog.Message);
 		Assert.Contains("Administrative Core", step.Dialog.Message);
 		Assert.Contains(
 			$"[url={map.Blueprint.SupplyPlan.AdministrativePoiId}]Administrative Core[/url]",

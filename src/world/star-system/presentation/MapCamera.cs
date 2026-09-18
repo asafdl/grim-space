@@ -19,7 +19,7 @@ public partial class MapCamera : Camera3D
 		AllowsOrbit: true,
 		AllowsPan: true,
 		AllowsWheelZoom: true,
-		AllowsRmbMovement: true,
+		AllowsMapMovement: true,
 		AllowsStrategicHover: true);
 
 	private const float DefaultDistance = 42f;
@@ -319,7 +319,7 @@ public partial class MapCamera : Camera3D
 
 		switch (@event)
 		{
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouseButton:
+			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mouseButton:
 				if (IsMouseOverUi() || !AllowsOrbitInput() || !PrepareManualInput())
 					break;
 				NotifyManualInput();
@@ -328,7 +328,7 @@ public partial class MapCamera : Camera3D
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
+			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Right }:
 				_orbiting = false;
 				break;
 

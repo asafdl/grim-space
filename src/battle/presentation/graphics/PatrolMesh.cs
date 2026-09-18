@@ -117,6 +117,27 @@ public static class PatrolMesh
 		return mesh;
 	}
 
+	public static ArrayMesh CreateBridgeMarker()
+	{
+		const float scale = 0.62f;
+
+		var peak = new Vector3(0f, 0.58f * scale, -0.04f * scale);
+		var forePort = new Vector3(-0.11f * scale, 0.40f * scale, 0.10f * scale);
+		var foreStarboard = new Vector3(0.11f * scale, 0.40f * scale, 0.10f * scale);
+		var aftPort = new Vector3(-0.11f * scale, 0.40f * scale, -0.18f * scale);
+		var aftStarboard = new Vector3(0.11f * scale, 0.40f * scale, -0.18f * scale);
+
+		var vertices = new List<Vector3>();
+		AddTriangle(vertices, peak, foreStarboard, forePort);
+		AddTriangle(vertices, peak, aftPort, forePort);
+		AddTriangle(vertices, peak, aftStarboard, aftPort);
+		AddTriangle(vertices, peak, foreStarboard, aftStarboard);
+
+		var mesh = new ArrayMesh();
+		AddSurface(mesh, vertices, new Vector3(0f, 0.36f * scale, -0.04f * scale));
+		return mesh;
+	}
+
 	private static HullRing CreateRing(
 		float z,
 		float halfWidth,

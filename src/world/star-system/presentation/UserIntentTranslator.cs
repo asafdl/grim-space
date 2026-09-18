@@ -14,7 +14,7 @@ public sealed class UserIntentTranslator
 	private readonly Func<int> _mapHeight;
 	private readonly Func<Coord, Coord>? _resolveDestination;
 	private readonly Func<Coord, string?>? _unitAt;
-	private Vector2? _rmbPressPosition;
+	private Vector2? _lmbPressPosition;
 
 	public UserIntentTranslator(
 		StarMapPlayerExecutionAgent playerAgent,
@@ -37,22 +37,22 @@ public sealed class UserIntentTranslator
 	public bool TryHandleMouseButton(InputEventMouseButton mouseButton, out bool unreachable)
 	{
 		unreachable = false;
-		if (mouseButton.ButtonIndex == MouseButton.Right && mouseButton.Pressed)
+		if (mouseButton.ButtonIndex == MouseButton.Left && mouseButton.Pressed)
 		{
-			_rmbPressPosition = mouseButton.Position;
+			_lmbPressPosition = mouseButton.Position;
 			return true;
 		}
 
-		if (mouseButton.ButtonIndex != MouseButton.Right
+		if (mouseButton.ButtonIndex != MouseButton.Left
 			|| mouseButton.Pressed
-			|| _rmbPressPosition is not { } pressPosition
+			|| _lmbPressPosition is not { } pressPosition
 			|| pressPosition.DistanceTo(mouseButton.Position) >= 4f)
 		{
-			_rmbPressPosition = null;
+			_lmbPressPosition = null;
 			return false;
 		}
 
-		_rmbPressPosition = null;
+		_lmbPressPosition = null;
 		var result = TryQueueIntent();
 		unreachable = result is CourseCommandResult.Unreachable;
 		return result is not CourseCommandResult.Ignored;

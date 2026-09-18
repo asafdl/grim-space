@@ -221,8 +221,8 @@ public sealed class WorldMapDirector
 			return true;
 		}
 
-		if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right })
-			return !EffectiveInputPolicy.AllowsRmbMovement;
+		if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left })
+			return !EffectiveInputPolicy.AllowsMapMovement;
 
 		return false;
 	}

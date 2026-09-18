@@ -33,7 +33,7 @@ public static class FirstPirateTutorial
 					pirateId,
 					new TutorialDialogContent(
 						"Your contract target",
-						$"Right-click the [url={pirateId}]pirate ship[/url] spawned by your contract to pursue it."))
+						$"Left-click the [url={pirateId}]pirate ship[/url] spawned by your contract to pursue it."))
 			]);
 	}
 }

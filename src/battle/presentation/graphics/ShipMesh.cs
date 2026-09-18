@@ -177,6 +177,26 @@ public static class ShipMesh
 		return mesh;
 	}
 
+	/// <summary>Raised dorsal bridge so roll orientation reads at a glance.</summary>
+	public static ArrayMesh CreateBridgeMarker()
+	{
+		var peak = new Vector3(0f, 0.58f, -0.04f);
+		var forePort = new Vector3(-0.11f, 0.40f, 0.10f);
+		var foreStarboard = new Vector3(0.11f, 0.40f, 0.10f);
+		var aftPort = new Vector3(-0.11f, 0.40f, -0.18f);
+		var aftStarboard = new Vector3(0.11f, 0.40f, -0.18f);
+
+		var vertices = new List<Vector3>();
+		AddTriangle(vertices, peak, foreStarboard, forePort);
+		AddTriangle(vertices, peak, aftPort, forePort);
+		AddTriangle(vertices, peak, aftStarboard, aftPort);
+		AddTriangle(vertices, peak, foreStarboard, aftStarboard);
+
+		var mesh = new ArrayMesh();
+		AddSurface(mesh, vertices, new Vector3(0f, 0.36f, -0.04f));
+		return mesh;
+	}
+
 	private static HullRing CreateRing(
 		float z,
 		float halfWidth,

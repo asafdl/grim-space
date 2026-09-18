@@ -23,7 +23,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 		AllowsOrbit: true,
 		AllowsPan: false,
 		AllowsWheelZoom: true,
-		AllowsRmbMovement: false,
+		AllowsMapMovement: false,
 		AllowsStrategicHover: false);
 
 	private static readonly OrbitLimits ModeLimits = new(
@@ -144,7 +144,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return true;
 
-		return @event is InputEventMouseButton { ButtonIndex: MouseButton.Right };
+		return @event is InputEventMouseButton { ButtonIndex: MouseButton.Left };
 	}
 
 	private PointOfInterest ResolveActivePoi(MapPresentationContext ctx)
