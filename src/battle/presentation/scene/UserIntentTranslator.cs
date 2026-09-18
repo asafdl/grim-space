@@ -39,6 +39,8 @@ public sealed partial class UserIntentTranslator : Node
 	private MovementHoverSnapshot? _displayedHoverSnapshot;
 	private Vector2I _lastViewportSize;
 	private MoveInputSnapshot _moveInput;
+	private Coord? _reopenMoveCell;
+	private readonly MoveReopenHoldTracker _reopenHold = new();
 
 	const int DEFAULT_ROLL_COOLDOWN_MS = 140;
 
@@ -81,6 +83,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? ActionFailed;
 	public event Action? RestartRequested;
 	public event Action? RetireRequested;
+	public event Action<Coord>? MoveReopenRequested;
 
 	public void SetPresentation(
 		bool enabled,
@@ -94,12 +97,14 @@ public sealed partial class UserIntentTranslator : Node
 		Coord? moveDestination,
 		bool moveDragging,
 		IReadOnlyList<AbilityActivationChoice> abilityChoices,
-		int? abilityHoveredIndex)
+		int? abilityHoveredIndex,
+		Coord? reopenMoveCell)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
 		_isInspecting = isInspecting;
 		_mode = mode;
+		_reopenMoveCell = reopenMoveCell;
 		_moveOptions = moveOptions;
 		_abilityChoices = abilityChoices;
 		_abilityHoveredIndex = abilityHoveredIndex;
@@ -125,6 +130,12 @@ public sealed partial class UserIntentTranslator : Node
 		if (!enabled || mode != EPlayerMode.Move)
 			_moveHoveredCell = null;
 
+		if (!enabled
+			|| !canIssueActions
+			|| mode != EPlayerMode.Move
+			|| reopenMoveCell is null)
+			_reopenHold.Cancel();
+
 		UpdateDisplayedHoverSnapshot();
 		_camera.SetGestureInputBlocked(enabled && mode == EPlayerMode.Move && moveDragging);
 	}
@@ -147,6 +158,7 @@ public sealed partial class UserIntentTranslator : Node
 		}
 
 		InvalidateHoverSnapshotIfViewportChanged();
+		TickMoveReopenHold(delta);
 
 		if (!_enabled
 			|| !_canIssueActions
@@ -256,6 +268,13 @@ public sealed partial class UserIntentTranslator : Node
 				ButtonIndex: MouseButton.Right
 			})
 		{
+			if (_reopenHold.IsPending)
+			{
+				_reopenHold.Cancel();
+				GetViewport().SetInputAsHandled();
+				return;
+			}
+
 			if (_moveInput.Destination is not null)
 			{
 				CancelMoveSelection();
@@ -313,6 +332,9 @@ public sealed partial class UserIntentTranslator : Node
 				return TryCancelAbilityMode();
 			case Key.Escape when _moveInput.Destination is not null:
 				CancelMoveSelection();
+				return true;
+			case Key.Escape when _reopenHold.IsPending:
+				_reopenHold.Cancel();
 				return true;
 			case Key.Escape:
 				ClearMoveHover();
@@ -409,8 +431,24 @@ public sealed partial class UserIntentTranslator : Node
 		if (_isInspecting || !_canIssueActions)
 			return;
 
+		if (_hud.IsPauseMenuOpen || IsPointerOverHud())
+			return;
+
 		if (_camera.IsManualGestureActive)
 			return;
+
+		if (_reopenMoveCell is { } reopenCell
+			&& MoveReopenPick.MatchesCell(
+				_camera,
+				GetViewport(),
+				screenPosition,
+				reopenCell))
+		{
+			_reopenHold.Arm(reopenCell);
+			_moveHoveredCell = null;
+			_displayedHoverSnapshot = null;
+			return;
+		}
 
 		var selected = ResolveMoveOptionForClick(screenPosition);
 		if (selected is null)
@@ -538,5 +576,31 @@ public sealed partial class UserIntentTranslator : Node
 			cb.Invoke();
 			current = defaultTime;
 		}
+	}
+
+	private void TickMoveReopenHold(double delta)
+	{
+		if (!_reopenHold.IsPending)
+			return;
+
+		if (!_enabled
+			|| !_canIssueActions
+			|| _mode != EPlayerMode.Move
+			|| _reopenMoveCell is null
+			|| _hud.IsPauseMenuOpen
+			|| IsPointerOverHud()
+			|| _camera.IsManualGestureActive)
+		{
+			_reopenHold.Cancel();
+			return;
+		}
+
+		if (!_reopenHold.TryAdvance(
+			delta,
+			Input.IsMouseButtonPressed(MouseButton.Left),
+			out var activatedCell))
+			return;
+
+		MoveReopenRequested?.Invoke(activatedCell);
 	}
 }

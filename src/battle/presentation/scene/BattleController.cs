@@ -253,11 +253,8 @@ public partial class BattleController : Node3D
 	{
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
-		_translator.MoveSelectionStarted += (destination, basis) =>
-		{
-			_frames.Interaction.BeginMoveSelection(destination, basis);
-			RefreshPresentation();
-		};
+		_translator.MoveSelectionStarted += OnMoveSelectionStarted;
+		_translator.MoveReopenRequested += OnMoveReopenRequested;
 		_translator.MovePoseRequested += basis =>
 		{
 			_frames.Interaction.SetMovePose(basis);
@@ -309,6 +306,32 @@ public partial class BattleController : Node3D
 
 		_frames.Interaction.SetMode(mode);
 		RefreshPresentation();
+	}
+
+	private void OnMoveSelectionStarted(Coord destination, GridBasis basis)
+	{
+		_frames.Interaction.BeginMoveSelection(destination, basis);
+		RefreshPresentation();
+	}
+
+	private void OnMoveReopenRequested(Coord clickedCell)
+	{
+		var freshFrame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
+		if (freshFrame.ReopenMoveCell != clickedCell)
+			return;
+
+		if (!TryUndo())
+			return;
+
+		var option = MovementSelection.ResolveOption(_currentFrame.MovePaths, clickedCell);
+		if (option is null)
+		{
+			_frames.Interaction.ReportActionFailure();
+			RefreshPresentation();
+			return;
+		}
+
+		OnMoveSelectionStarted(option.EndPosition, option.EndBasis);
 	}
 
 	private void OnMoveHoverChanged(Coord? cell)
@@ -363,7 +386,8 @@ public partial class BattleController : Node3D
 			moveDestination: frame.MoveDestination,
 			moveDragging: frame.IsMoveDragging,
 			abilityChoices: frame.AbilityChoices,
-			abilityHoveredIndex: frame.AbilityHoveredIndex);
+			abilityHoveredIndex: frame.AbilityHoveredIndex,
+			reopenMoveCell: frame.ReopenMoveCell);
 		ApplyFrame(frame);
 	}
 

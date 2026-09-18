@@ -44,4 +44,5 @@ public sealed class PresentationFrame
 	public EBattleResult Outcome { get; init; }
 	public required IReadOnlyList<ActionLog.Entry> ActionLogEntries { get; init; }
 	public required IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities { get; init; }
+	public Coord? ReopenMoveCell { get; init; }
 }

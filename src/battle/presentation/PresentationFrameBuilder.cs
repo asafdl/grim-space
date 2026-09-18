@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Move;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Movement;
@@ -189,6 +190,16 @@ public sealed class PresentationFrameBuilder
 				? state.PoseHitOpportunities
 				: [];
 
+		Coord? reopenMoveCell = null;
+		if (canControl
+			&& state.Mode == EPlayerMode.Move
+			&& !isInspecting
+			&& state.MoveDestination is null
+			&& MoveUi.CanReopenLastMove(sim.Actions, sim.UndoGroups, playerId))
+		{
+			reopenMoveCell = sim.StateOf<ActorState>(playerId).Position;
+		}
+
 		return new PresentationFrame
 		{
 			Mode = isInspecting ? EPlayerMode.Move : state.Mode,
@@ -229,6 +240,7 @@ public sealed class PresentationFrameBuilder
 			ActionLogEntries = ActionLogEntries,
 			Outcome = battle.Engine.World.battleResult,
 			PoseHitOpportunities = poseHitOpportunities,
+			ReopenMoveCell = reopenMoveCell,
 		};
 	}
 
