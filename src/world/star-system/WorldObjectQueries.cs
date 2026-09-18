@@ -7,7 +7,8 @@ public static class WorldObjectQueries
 	public static WorldObjectResolution ResolveFocusable(
 		StarMap world,
 		string objectId,
-		Func<string, Coord> committedPositionOf)
+		Func<string, Coord> committedPositionOf,
+		Func<string, bool>? isFleetVisible = null)
 	{
 		ArgumentNullException.ThrowIfNull(world);
 		ArgumentException.ThrowIfNullOrWhiteSpace(objectId);
@@ -34,6 +35,9 @@ public static class WorldObjectQueries
 
 		if (docks.Length == 1)
 			return new WorldObjectResolution.Found(docks[0].Position);
+
+		if (isFleetVisible?.Invoke(objectId) == false)
+			return new WorldObjectResolution.NotFocusable();
 
 		return new WorldObjectResolution.Found(committedPositionOf(objectId));
 	}

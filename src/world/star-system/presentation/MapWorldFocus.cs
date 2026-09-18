@@ -5,29 +5,55 @@ namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed class MapWorldFocus : IWorldFocus
 {
-	private readonly MapCamera _camera;
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, Coord> _committedPositionOf;
 	private readonly Func<Action, bool> _prepareFocus;
+	private readonly Func<Action, IWorldFocusHandle> _beginFocusLease;
+	private readonly Action<Coord, int, int> _focusAtCoord;
+	private readonly Func<string, bool>? _isFleetVisible;
+
+	public MapWorldFocus(
+		Func<StarMap> world,
+		Func<string, Coord> committedPositionOf,
+		Func<Action, bool> prepareFocus,
+		Func<Action, IWorldFocusHandle> beginFocusLease,
+		Action<Coord, int, int> focusAtCoord,
+		Func<string, bool>? isFleetVisible = null)
+	{
+		_world = world;
+		_committedPositionOf = committedPositionOf;
+		_prepareFocus = prepareFocus;
+		_beginFocusLease = beginFocusLease;
+		_focusAtCoord = focusAtCoord;
+		_isFleetVisible = isFleetVisible;
+	}
 
 	public MapWorldFocus(
 		MapCamera camera,
 		Func<StarMap> world,
 		Func<string, Coord> committedPositionOf,
-		Func<Action, bool> prepareFocus)
+		Func<Action, bool> prepareFocus,
+		Func<string, bool>? isFleetVisible = null)
+		: this(
+			world,
+			committedPositionOf,
+			prepareFocus,
+			applyFocus => camera.BeginFocusLease(applyFocus),
+			(coord, width, height) => camera.FocusPivot(MapMapping.ToWorld(coord, width, height)),
+			isFleetVisible)
 	{
-		_camera = camera;
-		_world = world;
-		_committedPositionOf = committedPositionOf;
-		_prepareFocus = prepareFocus;
 	}
 
 	public WorldFocusResult Focus(string objectId)
 	{
 		var world = _world();
-		return WorldObjectQueries.ResolveFocusable(world, objectId, _committedPositionOf) switch
+		return WorldObjectQueries.ResolveFocusable(
+			world,
+			objectId,
+			_committedPositionOf,
+			_isFleetVisible) switch
 		{
-			WorldObjectResolution.Found found => PrepareFocus(world, found),
+			WorldObjectResolution.Found => PrepareFocus(objectId),
 			WorldObjectResolution.Missing => new WorldFocusResult.MissingTarget(),
 			WorldObjectResolution.Ambiguous => new WorldFocusResult.AmbiguousTargetId(),
 			WorldObjectResolution.NotFocusable => new WorldFocusResult.TargetNotFocusable(),
@@ -35,18 +61,32 @@ public sealed class MapWorldFocus : IWorldFocus
 		};
 	}
 
-	private WorldFocusResult PrepareFocus(StarMap world, WorldObjectResolution.Found found)
+	private WorldFocusResult PrepareFocus(string objectId)
 	{
-		IWorldFocusHandle? handle = null;
-		if (_prepareFocus(() =>
+		var pending = new PendingWorldFocusHandle();
+		if (!_prepareFocus(() =>
 			{
-				handle = _camera.BeginFocusLease(() =>
-					_camera.FocusPivot(
-						MapMapping.ToWorld(found.Position, world.Width, world.Height)));
-			}))
-			return new WorldFocusResult.Accepted(handle!);
+				var liveWorld = _world();
+				var resolution = WorldObjectQueries.ResolveFocusable(
+					liveWorld,
+					objectId,
+					_committedPositionOf,
+					_isFleetVisible);
+				if (resolution is not WorldObjectResolution.Found found)
+				{
+					pending.Cancel();
+					return;
+				}
 
-		handle?.Dispose();
-		return new WorldFocusResult.Unavailable();
+				var lease = _beginFocusLease(() =>
+					_focusAtCoord(found.Position, liveWorld.Width, liveWorld.Height));
+				pending.AttachLease(lease);
+			}))
+		{
+			pending.Dispose();
+			return new WorldFocusResult.Unavailable();
+		}
+
+		return new WorldFocusResult.Accepted(pending);
 	}
 }

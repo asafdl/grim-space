@@ -24,4 +24,6 @@ public static class UnitDefaults
 			EType.PirateFleet => 6,
 			_ => 4,
 		};
+
+	public static double VisionRadius(EType type) => 120;
 }

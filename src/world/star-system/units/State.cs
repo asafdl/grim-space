@@ -21,6 +21,7 @@ public sealed class State
 	public int ChoreIndex { get; set; }
 	public double SpeedPerTick { get; init; }
 	public double EngageRadius { get; init; }
+	public double VisionRadius { get; init; }
 	public int WorkStartTick { get; set; }
 	internal string? SpawnWorkPoiId { get; set; }
 	internal int SpawnWorkRemainingTicks { get; set; }
@@ -134,6 +135,7 @@ public sealed class State
 			ChoreIndex = ChoreIndex,
 			SpeedPerTick = SpeedPerTick,
 			EngageRadius = EngageRadius,
+			VisionRadius = VisionRadius,
 			WorkStartTick = WorkStartTick,
 			SpawnWorkPoiId = SpawnWorkPoiId,
 			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
@@ -163,6 +165,7 @@ public sealed class State
 			IdleCoord = spawn.IdleCoord,
 			SpeedPerTick = spawn.SpeedPerTick,
 			EngageRadius = spawn.EngageRadius,
+			VisionRadius = spawn.VisionRadius,
 			ChoreDockIds = spawn.ChoreDockIds,
 		};
 }

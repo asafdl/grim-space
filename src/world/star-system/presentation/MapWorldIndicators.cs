@@ -12,6 +12,7 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 	private Func<bool> _isAvailable = null!;
 	private Func<Node3D> _createVisual = null!;
 	private Func<string, float> _clearanceOf = null!;
+	private Func<string, bool>? _isFleetVisible;
 	private long _nextId;
 	private bool _configured;
 
@@ -20,13 +21,15 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 		Func<string, Coord> committedPositionOf,
 		Func<bool> isAvailable,
 		Func<Node3D> createVisual,
-		Func<string, float> clearanceOf)
+		Func<string, float> clearanceOf,
+		Func<string, bool>? isFleetVisible = null)
 	{
 		_world = world;
 		_committedPositionOf = committedPositionOf;
 		_isAvailable = isAvailable;
 		_createVisual = createVisual;
 		_clearanceOf = clearanceOf;
+		_isFleetVisible = isFleetVisible;
 		_configured = true;
 	}
 
@@ -34,7 +37,7 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 	{
 		EnsureConfigured();
 		var world = _world();
-		return WorldObjectQueries.ResolveFocusable(world, objectId, _committedPositionOf) switch
+		return WorldObjectQueries.ResolveFocusable(world, objectId, _committedPositionOf, _isFleetVisible) switch
 		{
 			WorldObjectResolution.Found found => Show(world, objectId, found),
 			WorldObjectResolution.Missing => new WorldIndicatorResult.MissingTarget(),
@@ -62,9 +65,17 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 			var resolution = WorldObjectQueries.ResolveFocusable(
 				world,
 				indicator.ObjectId,
-				_committedPositionOf);
+				_committedPositionOf,
+				_isFleetVisible);
 			if (resolution is WorldObjectResolution.Found found)
 			{
+				if (world.FleetRegistry.TryGet(indicator.ObjectId, out _)
+					&& _isFleetVisible?.Invoke(indicator.ObjectId) == false)
+				{
+					indicator.Root.Visible = false;
+					continue;
+				}
+
 				indicator.Root.Visible = true;
 				indicator.Root.Position = MapMapping.ToWorld(
 					found.Position,

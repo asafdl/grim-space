@@ -99,6 +99,7 @@ public static class StarSystemBuilder
 				default,
 				UnitDefaults.SpeedPerTick(intent.Type),
 				UnitDefaults.EngageRadius(intent.Type),
+				UnitDefaults.VisionRadius(intent.Type),
 				choreDockIds);
 			var fleet = Factory.Create(spawn);
 			ApplySpawnPlacement(fleet.State, placement);

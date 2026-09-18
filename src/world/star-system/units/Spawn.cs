@@ -11,6 +11,7 @@ public sealed record Spawn(
 	Coord IdleCoord,
 	double SpeedPerTick,
 	double EngageRadius,
+	double VisionRadius,
 	IReadOnlyList<string> ChoreDockIds,
 	EFaction Faction = EFaction.TheOptimality,
 	CombatProfile? CombatProfile = null);

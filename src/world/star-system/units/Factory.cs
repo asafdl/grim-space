@@ -35,6 +35,7 @@ public static class Factory
 					spawn.Coord,
 					UnitDefaults.SpeedPerTick(spawn.Spawn.Type),
 					UnitDefaults.EngageRadius(spawn.Spawn.Type),
+					UnitDefaults.VisionRadius(spawn.Spawn.Type),
 					[],
 					spawn.Spawn.Faction,
 					new CombatProfile(spawn.Spawn.Danger, spawn.Spawn.Seed)),
@@ -76,6 +77,8 @@ public static class Factory
 		ArgumentException.ThrowIfNullOrEmpty(spawn.Id);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.SpeedPerTick, 0);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.EngageRadius, 0);
+		if (!double.IsFinite(spawn.VisionRadius) || spawn.VisionRadius <= 0)
+			throw new ArgumentOutOfRangeException(nameof(spawn), "VisionRadius must be finite and greater than zero.");
 		ArgumentNullException.ThrowIfNull(spawn.ChoreDockIds);
 
 		return new Fleet(State.FromSpawn(spawn), members);

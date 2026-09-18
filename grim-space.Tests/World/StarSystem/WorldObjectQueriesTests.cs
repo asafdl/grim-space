@@ -88,6 +88,63 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 		Assert.IsType<WorldObjectResolution.Ambiguous>(result);
 	}
 
+	[Fact]
+	public void ResolveFocusable_HiddenFleet_ReturnsNotFocusableWithoutPositionResolver()
+	{
+		var map = maps.Template(42);
+		var unitId = map.FleetRegistry.Ids.First();
+
+		var result = WorldObjectQueries.ResolveFocusable(
+			map,
+			unitId,
+			_ => throw new InvalidOperationException("Hidden fleet position should not be requested."),
+			_ => false);
+
+		Assert.IsType<WorldObjectResolution.NotFocusable>(result);
+	}
+
+	[Fact]
+	public void ResolveFocusable_VisibleFleet_UsesSuppliedLivePosition()
+	{
+		var map = maps.Template(42);
+		var unitId = map.FleetRegistry.Ids.First();
+		var livePosition = new Coord(123, 0, 456);
+		string? requestedId = null;
+
+		var result = WorldObjectQueries.ResolveFocusable(
+			map,
+			unitId,
+			id =>
+			{
+				requestedId = id;
+				return livePosition;
+			},
+			_ => true);
+
+		Assert.Equal(unitId, requestedId);
+		Assert.Equal(new WorldObjectResolution.Found(livePosition), result);
+	}
+
+	[Fact]
+	public void ResolveFocusable_CrossCategoryCollisionWithHiddenFleet_StillReturnsAmbiguous()
+	{
+		var map = maps.Fresh(42);
+		var poiId = map.PointsOfInterest[0].Id;
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
+			poiId,
+			new Coord(1, 0, 1),
+			EFaction.Pirates,
+			new CombatProfile(EDangerLevel.VeryLow, 1)));
+
+		var result = WorldObjectQueries.ResolveFocusable(
+			map,
+			poiId,
+			_ => throw new InvalidOperationException("Ambiguous unit position should not be requested."),
+			_ => false);
+
+		Assert.IsType<WorldObjectResolution.Ambiguous>(result);
+	}
+
 	[Theory]
 	[InlineData(0)]
 	[InlineData(1)]

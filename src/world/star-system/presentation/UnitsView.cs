@@ -4,6 +4,7 @@ using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.World.StarSystem.Vision;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -39,7 +40,6 @@ public partial class UnitsView : Node3D
 
 	private int _width;
 	private int _height;
-
 	public sealed record UnitHoverInfo(
 		string UnitId,
 		EType Type,
@@ -65,9 +65,13 @@ public partial class UnitsView : Node3D
 			_units[unit.State.Id] = unitVisual;
 			AddChild(unitVisual.Root);
 		}
+
 	}
 
-	public void Sync(StarSystemOrchestrator orchestrator, float tickFraction)
+	public void Sync(
+		StarSystemOrchestrator orchestrator,
+		float tickFraction,
+		Func<string, bool> isFleetVisible)
 	{
 		var world = orchestrator.Map;
 		var registryIds = world.FleetRegistry.Ids.ToHashSet(StringComparer.Ordinal);
@@ -94,9 +98,18 @@ public partial class UnitsView : Node3D
 			if (!_units.TryGetValue(unit.State.Id, out var unitVisual))
 				continue;
 
+			var visible = isFleetVisible(unit.State.Id);
+			unitVisual.Root.Visible = visible;
+			if (!visible)
+			{
+				_trailHistory.Remove(unit.State.Id);
+				UpdateTrailSegments(unitVisual, null, Vector3.Zero, false);
+				continue;
+			}
+
 			var sample = ResolveSample(world, unit, orchestrator.RuntimeFor(unit.State.Id), tickFraction);
-			var worldPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height)
-				+ Vector3.Up * MarkerYOffset;
+			var mapPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height);
+			var worldPosition = mapPosition + Vector3.Up * MarkerYOffset;
 			unitVisual.Marker.Position = worldPosition;
 			unitVisual.Marker.Rotation = new Vector3(0f, sample.HeadingY, 0f);
 
@@ -114,7 +127,11 @@ public partial class UnitsView : Node3D
 		}
 	}
 
-	public UnitHoverInfo? UnitAt(StarSystemOrchestrator orchestrator, Coord point, float tickFraction)
+	public UnitHoverInfo? UnitAt(
+		StarSystemOrchestrator orchestrator,
+		Coord point,
+		float tickFraction,
+		Func<string, bool> isFleetVisible)
 	{
 		var world = orchestrator.Map;
 		UnitHoverInfo? best = null;
@@ -122,6 +139,9 @@ public partial class UnitsView : Node3D
 
 		foreach (var unit in world.FleetRegistry.All)
 		{
+			if (!isFleetVisible(unit.State.Id))
+				continue;
+
 			var sample = ResolveSample(world, unit, orchestrator.RuntimeFor(unit.State.Id), tickFraction);
 			var dx = point.X - sample.X;
 			var dz = point.Z - sample.Z;
@@ -140,7 +160,7 @@ public partial class UnitsView : Node3D
 		return best;
 	}
 
-	private static UnitVisual BuildUnit(State state)
+	private static UnitVisual BuildUnit(Units.State state)
 	{
 		var color = ColorForUnit(state);
 		var isPlayer = state.Type == EType.PlayerFleet;
@@ -150,7 +170,7 @@ public partial class UnitsView : Node3D
 		var ringStroke = RingStroke * ringScale;
 		var shipLength = ShipLength * hullScale;
 		var shipWidth = ShipWidth * hullScale;
-		var root = new Node3D { Name = $"Unit_{state.Id}" };
+		var root = new Node3D { Name = $"Unit_{state.Id}", Visible = false };
 		var marker = new Node3D { Name = "Marker" };
 		marker.AddChild(new MeshInstance3D
 		{
@@ -385,7 +405,7 @@ public partial class UnitsView : Node3D
 		return new Basis(tangent, axis, bitangent);
 	}
 
-	private static Color ColorForUnit(State state)
+	private static Color ColorForUnit(Units.State state)
 	{
 		if (state.Type == EType.PirateFleet && state.Faction == EFaction.Pirates)
 			return new Color(0.72f, 0.22f, 0.58f);
@@ -502,20 +522,11 @@ public partial class UnitsView : Node3D
 		Runtime.ActorRuntime runtime,
 		float tickFraction)
 	{
-		if (unit.State.CommittedPositionContinuous(world, runtime.CachedPath, tickFraction) is { } continuous)
-		{
-			var heading = Mathf.Atan2((float)continuous.Route.TangentX, (float)continuous.Route.TangentZ);
-			return new TrafficSample(continuous.Route.X, continuous.Route.Z, heading);
-		}
-
-		var (position, tangent) = unit.State.CommittedPosition(
-			world,
-			runtime.CachedPath,
-			tickFraction);
-		var stationaryHeading = tangent is { } t
-			? Mathf.Atan2(t.X * 0.001f, t.Z * 0.001f)
+		var sample = FleetPositionSampler.Sample(world, unit.State, runtime, tickFraction);
+		var heading = sample.Tangent is { } tangent
+			? Mathf.Atan2(tangent.X * 0.001f, tangent.Z * 0.001f)
 			: 0f;
-		return new TrafficSample(position.X, position.Z, stationaryHeading);
+		return new TrafficSample(sample.X, sample.Z, heading);
 	}
 
 	private sealed record UnitVisual(

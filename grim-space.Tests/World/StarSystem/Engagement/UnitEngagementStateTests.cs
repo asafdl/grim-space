@@ -19,6 +19,7 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			UnitDefaults.EngageRadius(EType.PlayerFleet),
+			UnitDefaults.VisionRadius(EType.PlayerFleet),
 			[]));
 		var pirate = State.FromSpawn(new Spawn(
 			"pirate",
@@ -27,6 +28,7 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 			new GrimSpace.Math.Grid.Coord(1, 0, 1),
 			UnitDefaults.SpeedPerTick(EType.PirateFleet),
 			UnitDefaults.EngageRadius(EType.PirateFleet),
+			UnitDefaults.VisionRadius(EType.PirateFleet),
 			[]));
 
 		Assert.Equal(6, player.EngageRadius);

@@ -45,6 +45,7 @@ internal static class StarSystemTestHarness
 				default,
 				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 				UnitDefaults.EngageRadius(EType.PlayerFleet),
+				UnitDefaults.VisionRadius(EType.PlayerFleet),
 				[]),
 			[BattleUnitType.Fighter]));
 	}
@@ -62,6 +63,7 @@ internal static class StarSystemTestHarness
 				coord,
 				UnitDefaults.SpeedPerTick(EType.PirateFleet),
 				UnitDefaults.EngageRadius(EType.PirateFleet),
+				UnitDefaults.VisionRadius(EType.PirateFleet),
 				[],
 				faction,
 				combatProfile),

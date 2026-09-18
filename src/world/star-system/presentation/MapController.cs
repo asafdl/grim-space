@@ -13,6 +13,7 @@ using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Presentation.Atmosphere;
+using GrimSpace.World.StarSystem.Vision;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -58,6 +59,7 @@ public partial class MapController : Node3D
 	private float _unreachableFlashTimer;
 	private bool _battleTransitionPending;
 	private bool _staleWaitingForPlayerInputReported;
+	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
 
 	public override void _Ready()
 	{
@@ -123,7 +125,7 @@ public partial class MapController : Node3D
 			point =>
 			{
 				var tickFraction = _tickAccumulator / SecondsPerTick;
-				return _units.UnitAt(_orchestrator, point, tickFraction)?.UnitId;
+				return _units.UnitAt(_orchestrator, point, tickFraction, IsPlayerFleetVisible)?.UnitId;
 			});
 		_pauseButton.Pressed += () => _orchestrator.TogglePause();
 		_stepButton.Pressed += () =>
@@ -199,7 +201,8 @@ public partial class MapController : Node3D
 			_camera,
 			() => _orchestrator.Map,
 			CommittedPositionOf,
-			onReady => _director.PrepareForFocus(onReady).Succeeded);
+			onReady => _director.PrepareForFocus(onReady).Succeeded,
+			IsPlayerFleetVisible);
 		var worldIndicators = new MapWorldIndicators();
 		worldIndicators.Configure(
 			() => _orchestrator.Map,
@@ -207,7 +210,8 @@ public partial class MapController : Node3D
 			() => _director.CurrentModeId is CinematicPresentationMode.ModeId
 				or OverviewPresentationMode.ModeId,
 			() => new WorldArrowIndicator(),
-			objectId => _view.GetIndicatorClearance(objectId, _orchestrator.Map));
+			objectId => _view.GetIndicatorClearance(objectId, _orchestrator.Map),
+			IsPlayerFleetVisible);
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
 
@@ -254,6 +258,9 @@ public partial class MapController : Node3D
 		}
 
 		_tutorial?.Sync();
+
+		RefreshPlayerVisibleFleets(0f);
+		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible);
 	}
 
 	public override void _Process(double delta)
@@ -267,7 +274,8 @@ public partial class MapController : Node3D
 		ReportStaleWaitingForPlayerInputInvariant(world);
 		_camera.ApplyInputPolicy(_director.EffectiveInputPolicy, IsBlockingModalOpen());
 		var tickFraction = _tickAccumulator / SecondsPerTick;
-		_units.Sync(_orchestrator, tickFraction);
+		RefreshPlayerVisibleFleets(tickFraction);
+		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
@@ -283,7 +291,9 @@ public partial class MapController : Node3D
 
 		var screen = GetViewport().GetMousePosition();
 		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
-		var unitHover = point is { } unitPoint ? _units.UnitAt(_orchestrator, unitPoint, tickFraction) : null;
+		var unitHover = point is { } unitPoint
+			? _units.UnitAt(_orchestrator, unitPoint, tickFraction, IsPlayerFleetVisible)
+			: null;
 		var dockHover = unitHover is null && point is { } dockPoint ? _view.DockAt(dockPoint) : null;
 		var poiId = dockHover is null && unitHover is null && point is { } pick ? _view.PoiAt(pick) : null;
 		_view.SetHovered(poiId);
@@ -419,6 +429,18 @@ public partial class MapController : Node3D
 
 	private Coord CommittedPositionOf(string unitId) =>
 		_orchestrator.CommittedPositionOf(unitId, _tickAccumulator / SecondsPerTick);
+
+	private bool IsPlayerFleetVisible(string fleetId) =>
+		_playerVisibleFleetIds.Contains(fleetId);
+
+	private void RefreshPlayerVisibleFleets(float tickFraction)
+	{
+		_playerVisibleFleetIds = FleetVisionQueries.VisibleTo(
+			_orchestrator.Map,
+			_orchestrator.PlayerId ?? "",
+			_orchestrator.RuntimeFor,
+			tickFraction);
+	}
 
 	private NarrativeDefinition? ResolveNarrative(string? narrativeId) =>
 		narrativeId is not null

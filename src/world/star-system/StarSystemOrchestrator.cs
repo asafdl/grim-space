@@ -217,6 +217,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			default,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			UnitDefaults.EngageRadius(EType.PlayerFleet),
+			UnitDefaults.VisionRadius(EType.PlayerFleet),
 			[],
 			Factions.EFaction.Player);
 	}
