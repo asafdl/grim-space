@@ -19,10 +19,12 @@ public partial class IntroController : Control
 		_scene = GetNode<IntroSceneView>("Scene");
 		_scene.NextPressed += AdvancePage;
 		_scene.BodyPressed += _pager.RevealCurrentPage;
-		_pager.VisibleTextChanged += text => _scene.SetBodyText(text);
+		_pager.VisibleCharacterCountChanged += count => _scene.SetBodyVisibleCharacters(count);
 		_pager.PageBegan += pageIndex =>
 		{
 			_scene.SetBackground(PageBackground(pageIndex));
+			_scene.SetBodyText(Story!.Pages[pageIndex]);
+			_scene.SetBodyVisibleCharacters(0);
 			_scene.SetNextVisible(false);
 		};
 		_pager.NextPromptReady += prompt =>
@@ -40,8 +42,9 @@ public partial class IntroController : Control
 			return;
 		}
 
-		_pager.Configure(
-			Story.Pages,
+		_pager.ConfigureCharacterCounts(
+			Story.Pages.Length,
+			pageIndex => Story.Pages[pageIndex].Length,
 			(pageIndex, pageCount) => pageIndex >= pageCount - 1 ? "Begin" : "Next",
 			autoAdvanceSeconds: AutoAdvanceSeconds);
 		_scene.SetNextVisible(false);
