@@ -39,6 +39,7 @@ public partial class BattleController : Node3D
 	private BattleView _battleView = null!;
 	private BattleHud _battleHud = null!;
 	private TutorialController? _tutorial;
+	private Node3D _unitsRoot = null!;
 
 	private GridView _gridView = null!;
 	private AreaActionPreviewView _areaActionPreview = null!;
@@ -58,7 +59,9 @@ public partial class BattleController : Node3D
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
 	private bool CanEndTurn =>
-		ShouldAllowEndTurn(AcceptsCommands, _tutorial?.IsActive == true);
+		ShouldAllowEndTurn(
+			AcceptsCommands,
+			_tutorial?.IsActive == true && !_tutorial.AllowsEndTurn);
 
 	public override void _Ready()
 	{
@@ -114,14 +117,14 @@ public partial class BattleController : Node3D
 		hazardView.Build(layout.TerrainHazards);
 		hazardsRoot.AddChild(hazardView);
 
-		var unitsRoot = GetNode<Node3D>("Units");
+		_unitsRoot = GetNode<Node3D>("Units");
 		_battleView = new BattleView { Name = "BattleView" };
-		unitsRoot.AddChild(_battleView);
+		_unitsRoot.AddChild(_battleView);
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, _agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
 		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
 		_moveGhost.Configure(_camera);
-		unitsRoot.AddChild(_moveGhost);
+		_unitsRoot.AddChild(_moveGhost);
 
 		var opportunityLayer = new CanvasLayer
 		{
@@ -174,7 +177,7 @@ public partial class BattleController : Node3D
 		AddChild(_replayDirector);
 
 		_agent.PlanningChanged += RefreshPresentation;
-		_battle.PhaseChanged += _ => RefreshPresentation();
+		_battle.PhaseChanged += OnPhaseChanged;
 		_battle.TurnResolved += OnTurnResolved;
 
 		_cameraDirector.EnterManual();
@@ -199,16 +202,16 @@ public partial class BattleController : Node3D
 			Layer = 20,
 		};
 		var dialog = new TutorialDialog();
-		dialog.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-		dialog.OffsetLeft = -TutorialDialogWidth - HudStyles.Margin;
+		dialog.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+		dialog.OffsetLeft = HudStyles.Margin;
 		dialog.OffsetTop = TutorialDialogTop;
-		dialog.OffsetRight = -HudStyles.Margin;
+		dialog.OffsetRight = TutorialDialogWidth + HudStyles.Margin;
 		dialog.OffsetBottom = TutorialDialogTop;
 		tutorialLayer.AddChild(dialog);
 		AddChild(tutorialLayer);
 
 		_tutorial = TutorialController.CreateForBattle(
-			_agent,
+			_battle,
 			Session.Instance.Run.TutorialProgress,
 			dialog,
 			new WorldLinkNavigator(
@@ -217,10 +220,18 @@ public partial class BattleController : Node3D
 					_battle.Layout,
 					_battleView,
 					() => _agent.Sim.StateOf<ActorState>(_battle.PlayerId)),
-				worldIndicators));
-		_tutorial.StepStarted += OnTutorialStepStarted;
+				worldIndicators),
+			CreatePosedUnitGhost("TutorialGhost"));
 		_tutorial.Completed += OnTutorialCompleted;
 		RefreshPresentation();
+	}
+
+	public PosedUnitGhostView CreatePosedUnitGhost(string name)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(name);
+		var ghost = new PosedUnitGhostView { Name = name };
+		_unitsRoot.AddChild(ghost);
+		return ghost;
 	}
 
 	public override void _Process(double delta)
@@ -263,6 +274,7 @@ public partial class BattleController : Node3D
 		_translator.MoveSelectionCanceled += () =>
 		{
 			_frames.Interaction.ClearMoveSelection();
+			_tutorial?.NotifyMoveSelectionCanceled();
 			RefreshPresentation();
 		};
 		_translator.MoveSelectionCompleted += () =>
@@ -283,10 +295,17 @@ public partial class BattleController : Node3D
 		_translator.RetireRequested += () => _battle.Retire();
 	}
 
+	private void OnPhaseChanged(EBattlePhase phase)
+	{
+		RefreshPresentation();
+		_tutorial?.NotifyBattlePhaseChanged(phase);
+	}
+
 	private void OnTurnResolved(TurnReplay replay, int completedTurn)
 	{
 		_frames.Interaction.ResetAfterTurn();
 		_frames.AppendTurn(_battle, completedTurn, replay.History);
+		_tutorial?.NotifyBattleTurnResolved(completedTurn);
 		RefreshPresentation();
 	}
 
@@ -311,6 +330,7 @@ public partial class BattleController : Node3D
 	private void OnMoveSelectionStarted(Coord destination, GridBasis basis)
 	{
 		_frames.Interaction.BeginMoveSelection(destination, basis);
+		_tutorial?.NotifyMoveSelectionStarted();
 		RefreshPresentation();
 	}
 
@@ -354,11 +374,7 @@ public partial class BattleController : Node3D
 		TryUndo();
 	}
 
-	private void OnUndoShortcutRequested()
-	{
-		if (TryUndo())
-			_tutorial?.NotifyBattleUndoShortcut();
-	}
+	private void OnUndoShortcutRequested() => TryUndo();
 
 	private bool TryUndo()
 	{
@@ -461,19 +477,6 @@ public partial class BattleController : Node3D
 
 	private void OnTutorialCompleted(TutorialFlow _) => RefreshPresentation();
 
-	private void OnTutorialStepStarted(TutorialFlow flow, TutorialStep step)
-	{
-		if (ShouldReturnToPlayerAfterTutorialStep(flow, step))
-			ReturnToPlayer();
-	}
-
-	internal static bool ShouldReturnToPlayerAfterTutorialStep(
-		TutorialFlow flow,
-		TutorialStep step) =>
-		flow.Id == FirstBattleTutorial.Id
-		&& step.TargetId == FirstBattleTutorial.PlayerTargetId
-		&& !step.FocusTarget;
-
 	private Vector3 GetPlayerRenderedPosition()
 	{
 		var playerId = _battle.PlayerId;
@@ -507,8 +510,8 @@ public partial class BattleController : Node3D
 	internal static bool ShouldShowPredictedDeath(EBattlePhase phase) =>
 		phase != EBattlePhase.BattleOver;
 
-	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialActive) =>
-		acceptsCommands && !tutorialActive;
+	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialBlocksEndTurn) =>
+		acceptsCommands && !tutorialBlocksEndTurn;
 
 	private static BattleEncounter ResolveEncounter()
 	{
@@ -572,7 +575,6 @@ public partial class BattleController : Node3D
 		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;
 		if (_tutorial is not null)
 		{
-			_tutorial.StepStarted -= OnTutorialStepStarted;
 			_tutorial.Completed -= OnTutorialCompleted;
 			_tutorial.Dispose();
 		}

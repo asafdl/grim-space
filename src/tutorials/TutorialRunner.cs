@@ -108,7 +108,11 @@ public sealed class TutorialRunner : IDisposable
 		return new TutorialStartResult.Started();
 	}
 
-	public TutorialAdvanceResult AdvanceActive()
+	public TutorialAdvanceResult AdvanceActive() => AdvanceActive(openDialog: true);
+
+	public TutorialAdvanceResult AdvanceActiveSilently() => AdvanceActive(openDialog: false);
+
+	private TutorialAdvanceResult AdvanceActive(bool openDialog)
 	{
 		if (ActiveFlow is not { } flow)
 			return new TutorialAdvanceResult.NoActiveFlow();
@@ -141,9 +145,20 @@ public sealed class TutorialRunner : IDisposable
 		}
 
 		_activeStepIndex = nextStepIndex;
-		_dialog.Open(step.Dialog);
+		if (openDialog)
+			_dialog.Open(step.Dialog);
+		else
+			_dialog.Close();
 		StepStarted?.Invoke(flow, step);
 		return new TutorialAdvanceResult.Advanced();
+	}
+
+	public void PresentActiveStep()
+	{
+		if (ActiveFlow is null || ActiveStep is not { } step)
+			return;
+
+		_dialog.Open(step.Dialog);
 	}
 
 	public void ShowAssistance(TutorialAssistanceContent content)
@@ -154,6 +169,17 @@ public sealed class TutorialRunner : IDisposable
 	}
 
 	public void ClearAssistance() => _dialog.ClearAssistance();
+
+	public void CancelActive()
+	{
+		if (ActiveFlow is null)
+			return;
+
+		_dialog.Close();
+		_worldLinks.Clear();
+		ActiveFlow = null;
+		_activeStepIndex = -1;
+	}
 
 	private void CompleteFlow()
 	{

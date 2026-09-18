@@ -215,7 +215,7 @@ public sealed partial class ActionBar : HBoxContainer
 		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
 		button.ThemeTypeVariation = "BattleEndTurn";
 
-		AddHotkeyBadge(button, "Space");
+		AddHotkeyBadge(button, InputShortcutText.Space);
 
 		button.Pressed += () => EndTurnRequested?.Invoke();
 		return button;

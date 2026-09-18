@@ -349,13 +349,14 @@ public sealed class BattleOrchestrator : IDisposable
 
 		Phase = phase;
 		BattleDiagnostics.LogPhaseTransition(from, phase, reason);
-		PhaseChanged?.Invoke(phase);
 
 		if (phase == EBattlePhase.PlayerTurn)
 		{
 			NotifyWorldUpdated();
 			GrantPlayerCanWork();
 		}
+
+		PhaseChanged?.Invoke(phase);
 	}
 
 	private void EnsureAgentInitialized(string actorId)

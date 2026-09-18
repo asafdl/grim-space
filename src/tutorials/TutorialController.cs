@@ -1,8 +1,16 @@
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Education;
+using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Objectives;
@@ -11,23 +19,30 @@ namespace GrimSpace.Tutorials;
 
 public sealed class TutorialController : IDisposable
 {
+	private const int TutorialTurn1 = 1;
+	private const int TutorialTurn2 = 2;
+
 	private readonly StarSystemOrchestrator? _orchestrator;
+	private readonly BattleOrchestrator? _battle;
 	private readonly UserExecutionAgent? _battleAgent;
 	private readonly TutorialProgress _progress;
 	private readonly TutorialRunner _runner;
+	private readonly TutorialGhostPresenter? _ghostPresenter;
 	private readonly HashSet<string> _reportedStartFailures = new(StringComparer.Ordinal);
 	private IDisposable? _narrativeSubscription;
 	private IDisposable? _activeActionSubscription;
+	private BattleTutorialObjective? _turn1Objective;
+	private BattleTutorialObjective? _turn2Objective;
+	private bool _turn2AwaitingPlayerTurn;
 
 	public event Action<TutorialFlow>? Completed;
 	public event Action<TutorialFlow, TutorialStep>? StepStarted;
-
 	public TutorialController(
 		StarSystemOrchestrator orchestrator,
 		TutorialProgress progress,
 		ITutorialDialog dialog,
 		WorldLinkNavigator worldLinks)
-		: this(progress, dialog, worldLinks, battleAgent: null)
+		: this(progress, dialog, worldLinks, battle: null, battleAgent: null)
 	{
 		_orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 		_narrativeSubscription = _orchestrator.Subscribe<CompleteNarrativeAction>(_ => Sync());
@@ -37,10 +52,14 @@ public sealed class TutorialController : IDisposable
 		TutorialProgress progress,
 		ITutorialDialog dialog,
 		WorldLinkNavigator worldLinks,
-		UserExecutionAgent? battleAgent)
+		BattleOrchestrator? battle,
+		UserExecutionAgent? battleAgent,
+		PosedUnitGhostView? battleGhost = null)
 	{
 		_progress = progress ?? throw new ArgumentNullException(nameof(progress));
+		_battle = battle;
 		_battleAgent = battleAgent;
+		_ghostPresenter = battleGhost is null ? null : new TutorialGhostPresenter(battleGhost);
 		_runner = new TutorialRunner(progress, dialog, worldLinks);
 		_runner.Started += OnStarted;
 		_runner.StepStarted += OnStepStarted;
@@ -51,22 +70,30 @@ public sealed class TutorialController : IDisposable
 	}
 
 	public static TutorialController CreateForBattle(
-		UserExecutionAgent battleAgent,
+		BattleOrchestrator battle,
 		TutorialProgress progress,
 		ITutorialDialog dialog,
-		WorldLinkNavigator worldLinks)
+		WorldLinkNavigator worldLinks,
+		PosedUnitGhostView ghost)
 	{
-		ArgumentNullException.ThrowIfNull(battleAgent);
+		ArgumentNullException.ThrowIfNull(battle);
+		ArgumentNullException.ThrowIfNull(ghost);
 		var controller = new TutorialController(
 			progress,
 			dialog,
 			worldLinks,
-			battleAgent);
-		controller.Start(FirstBattleTutorial.Create());
+			battle,
+			battle.PlayerAgent,
+			ghost);
+		controller.TryStartBattleTutorial();
 		return controller;
 	}
 
 	public bool IsActive => _runner.ActiveFlow is not null;
+
+	public bool AllowsEndTurn =>
+		_runner.ActiveStep?.TargetId is FirstBattleTutorial.Turn1EndTargetId
+			or FirstBattleTutorial.Turn2EndTargetId;
 
 	public void Sync()
 	{
@@ -80,6 +107,24 @@ public sealed class TutorialController : IDisposable
 			return;
 
 		Start(flow);
+	}
+
+	private void TryStartBattleTutorial()
+	{
+		var battle = _battle
+			?? throw new InvalidOperationException("Battle tutorial requires a battle orchestrator.");
+		var player = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId);
+		var initialBasis = GridBasis.From(player.Fore, player.Dorsal, player.Starboard);
+
+		var turn1Result = BattleTutorialObjectives.ResolveTurn1(battle, initialBasis);
+		if (turn1Result is BattleTutorialObjectiveResult.Unreachable unreachable)
+		{
+			GD.PushWarning($"First battle tutorial setup failed: {unreachable.Reason}");
+			return;
+		}
+
+		_turn1Objective = ((BattleTutorialObjectiveResult.Resolved)turn1Result).Objective;
+		Start(FirstBattleTutorial.Create());
 	}
 
 	private void Start(TutorialFlow flow)
@@ -133,11 +178,10 @@ public sealed class TutorialController : IDisposable
 	{
 		_activeActionSubscription?.Dispose();
 		_activeActionSubscription = null;
+		_turn2AwaitingPlayerTurn = false;
+		_ghostPresenter?.SetSpec(null);
 		if (flow.Id == FirstBattleTutorial.Id)
-		{
-			ClearBattlePlan();
 			GameSettings.SaveShowTutorials(false);
-		}
 		Completed?.Invoke(flow);
 	}
 
@@ -145,26 +189,126 @@ public sealed class TutorialController : IDisposable
 	{
 		StepStarted?.Invoke(flow, step);
 		if (flow.Id == FirstBattleTutorial.Id)
-			AdvanceBattleStepIfReady();
-	}
-
-	private void ClearBattlePlan()
-	{
-		var battleAgent = _battleAgent
-			?? throw new InvalidOperationException("Battle tutorial completion requires a battle agent.");
-		while (battleAgent.Sim.Actions.Count > 0)
 		{
-			if (battleAgent.Undo())
-				continue;
-
-			GD.PushWarning("Tutorial could not clear the remaining battle plan.");
-			break;
+			UpdateGhostForActiveStep();
+			AdvanceBattleStepIfReady();
 		}
 	}
 
-	private void OnBattlePlanningChanged() => AdvanceBattleStepIfReady();
+	private void OnBattlePlanningChanged()
+	{
+		if (_battleAgent?.Sim.Actions.Count == 0
+			&& _runner.ActiveStep?.TargetId is FirstBattleTutorial.Turn1MoveTargetId
+				or FirstBattleTutorial.Turn2MoveTargetId)
+		{
+			_ghostPresenter?.Restore();
+		}
+
+		AdvanceBattleStepIfReady();
+	}
 
 	private void AdvanceBattleStepIfReady()
+	{
+		if (_battleAgent is null
+			|| _battle is null
+			|| _runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
+			return;
+
+		switch (_runner.ActiveStep?.TargetId)
+		{
+			case FirstBattleTutorial.Turn1MoveTargetId:
+				AdvanceBattleMoveIfReady(_turn1Objective, TutorialCopy.MoveToMarkedGhostAssistance);
+				break;
+			case FirstBattleTutorial.Turn2MoveTargetId:
+				AdvanceBattleMoveIfReady(_turn2Objective, TutorialCopy.MatchGhostPoseAssistance);
+				break;
+			case FirstBattleTutorial.Turn2TorpedoTargetId:
+				AdvanceBattleTorpedoIfReady();
+				break;
+		}
+	}
+
+	private void AdvanceBattleMoveIfReady(BattleTutorialObjective? objective, string mismatchMessage)
+	{
+		if (objective is null)
+			return;
+
+		var battleAgent = _battleAgent
+			?? throw new InvalidOperationException("Battle movement requires a battle agent.");
+		if (battleAgent.Sim.Actions.Count == 0)
+		{
+			_runner.ClearAssistance();
+			return;
+		}
+
+		if (QueuedMovementMatchesObjective(battleAgent, objective))
+		{
+			_runner.ClearAssistance();
+			_runner.AdvanceActive();
+			return;
+		}
+
+		_runner.ShowAssistance(new TutorialAssistanceContent(
+			mismatchMessage,
+			TutorialCopy.UndoAndRetryAssistance));
+	}
+
+	private void AdvanceBattleTorpedoIfReady()
+	{
+		var battleAgent = _battleAgent
+			?? throw new InvalidOperationException("Battle torpedo step requires a battle agent.");
+		if (_turn2Objective is null || !QueuedMovementMatchesObjective(battleAgent, _turn2Objective))
+		{
+			_runner.ShowAssistance(new TutorialAssistanceContent(
+				TutorialCopy.MatchGhostPoseAssistance,
+				TutorialCopy.UndoAndRetryAssistance));
+			return;
+		}
+
+		if (!battleAgent.Sim.Actions.Any(action =>
+				action is TorpedoAction { MountedOn: ESpatialOrientation.Ventral }))
+		{
+			if (battleAgent.Sim.Actions.Any(action => action is TorpedoAction))
+			{
+				_runner.ShowAssistance(new TutorialAssistanceContent(
+					TutorialCopy.QueueVentralTorpedoAssistance,
+					TutorialCopy.UndoAndRetryAssistance));
+			}
+			else
+			{
+				_runner.ClearAssistance();
+			}
+
+			return;
+		}
+
+		_runner.ClearAssistance();
+		_runner.AdvanceActive();
+	}
+
+	private bool QueuedMovementMatchesObjective(
+		UserExecutionAgent battleAgent,
+		BattleTutorialObjective objective)
+	{
+		var battle = _battle
+			?? throw new InvalidOperationException("Battle objective validation requires a battle orchestrator.");
+		var movementActions = MovementPrefix(battleAgent.Sim.Actions);
+		if (movementActions.Count == 0)
+			return false;
+
+		var checkpoints = MovePathIndex.ProjectCheckpoints(
+			battleAgent.Sim.ForkFromAnchor(),
+			battle.PlayerId,
+			movementActions,
+			includeStart: false);
+		if (checkpoints.Count == 0)
+			return false;
+
+		var end = checkpoints[^1];
+		return end.Position == objective.Destination && end.Basis == objective.RequiredBasis;
+	}
+
+	private void OnAssistanceRequested()
 	{
 		if (_battleAgent is null
 			|| _runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
@@ -172,67 +316,141 @@ public sealed class TutorialController : IDisposable
 
 		switch (_runner.ActiveStep?.TargetId)
 		{
-			case FirstBattleTutorial.PlanMovementTargetId:
-				AdvanceBattleMovementIfReady();
-				break;
-			case FirstBattleTutorial.QueueFlakTargetId:
-				if (_battleAgent.Sim.Actions.Any(action => action is FlakAction))
-					_runner.AdvanceActive();
-				break;
-			case FirstBattleTutorial.UndoFlakTargetId:
-				if (_battleAgent.Sim.Actions.All(action => action is not FlakAction))
-					_runner.AdvanceActive();
+			case FirstBattleTutorial.Turn1MoveTargetId:
+			case FirstBattleTutorial.Turn2MoveTargetId:
+			case FirstBattleTutorial.Turn2TorpedoTargetId:
+				if (!_battleAgent.Undo())
+					GD.PushWarning("Tutorial could not undo the invalid battle plan.");
 				break;
 		}
 	}
 
-	private void AdvanceBattleMovementIfReady()
+	private static List<IAction> MovementPrefix(IReadOnlyList<IAction> actions)
 	{
-		var battleAgent = _battleAgent
-			?? throw new InvalidOperationException("Battle movement requires a battle agent.");
-		var actions = battleAgent.Sim.Actions;
-		var hasMove = actions.Any(action => action is MoveStepAction);
-		var hasRoll = actions.Any(action => action is RollAction);
-		if (hasMove && hasRoll)
+		var movement = new List<IAction>();
+		foreach (var action in actions)
 		{
-			_runner.AdvanceActive();
-			return;
+			if (action is MoveStepAction or HeadingTurnAction or RollAction)
+			{
+				movement.Add(action);
+				continue;
+			}
+
+			break;
 		}
 
-		if (actions.Count == 0)
-		{
-			_runner.ClearAssistance();
-			return;
-		}
-
-		var message = hasMove
-			? "This maneuver has no roll. Undo it, then pick a destination and scroll before releasing the mouse."
-			: "This plan has no movement. Undo it, then pick a destination inside the movement bubble.";
-		_runner.ShowAssistance(new TutorialAssistanceContent(message, "Undo and try again"));
+		return movement;
 	}
 
-	private void OnAssistanceRequested()
+	public void NotifyMoveSelectionStarted() => _ghostPresenter?.Suppress();
+
+	public void NotifyMoveSelectionCanceled() => _ghostPresenter?.Restore();
+
+	public void NotifyBattlePhaseChanged(EBattlePhase phase)
 	{
-		if (_battleAgent is null
-			|| _runner.ActiveFlow is not { Id: FirstBattleTutorial.Id }
-			|| _runner.ActiveStep?.TargetId != FirstBattleTutorial.PlanMovementTargetId)
+		if (_runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
+			return;
+
+		switch (phase)
 		{
+			case EBattlePhase.Resolving
+				when _runner.ActiveStep?.TargetId == FirstBattleTutorial.Turn1EndTargetId:
+				_runner.AdvanceActiveSilently();
+				break;
+			case EBattlePhase.PlayerTurn:
+				TryPresentTurn2();
+				break;
+		}
+	}
+
+	public void NotifyBattleTurnResolved(int completedTurn)
+	{
+		if (_runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
+			return;
+
+		switch (completedTurn)
+		{
+			case TutorialTurn1
+				when _runner.ActiveStep?.TargetId == FirstBattleTutorial.Turn2MoveTargetId:
+				_turn2AwaitingPlayerTurn = PrepareTurn2Objective();
+				break;
+			case TutorialTurn2
+				when _runner.ActiveStep?.TargetId == FirstBattleTutorial.Turn2EndTargetId:
+				_runner.AdvanceActive();
+				break;
+		}
+	}
+
+	private void TryPresentTurn2()
+	{
+		if (!_turn2AwaitingPlayerTurn
+			|| _runner.ActiveStep?.TargetId != FirstBattleTutorial.Turn2MoveTargetId
+			|| _turn2Objective is not { } objective)
+			return;
+
+		var battle = _battle
+			?? throw new InvalidOperationException("Battle tutorial requires a battle orchestrator.");
+		if (!BattleTutorialObjectives.IsReachable(battle, objective))
+		{
+			AbortBattleTutorial("First battle tutorial turn 2 setup failed: Turn 2 objective is unreachable.");
 			return;
 		}
 
-		if (!_battleAgent.Undo())
-			GD.PushWarning("Tutorial could not undo the invalid battle plan.");
+		_turn2AwaitingPlayerTurn = false;
+		_runner.PresentActiveStep();
 	}
 
-	public void NotifyBattleUndoShortcut()
+	private bool PrepareTurn2Objective()
 	{
-		if (_battleAgent is null)
-			throw new InvalidOperationException("Only battle tutorial controllers accept undo shortcuts.");
-		if (_runner.ActiveFlow is { Id: FirstBattleTutorial.Id }
-			&& _runner.ActiveStep?.TargetId == FirstBattleTutorial.UndoTargetId)
+		var battle = _battle
+			?? throw new InvalidOperationException("Battle tutorial requires a battle orchestrator.");
+		var turn2Result = BattleTutorialObjectives.ResolveTurn2(battle);
+		if (turn2Result is BattleTutorialObjectiveResult.Unreachable unreachable)
 		{
-			_runner.AdvanceActive();
+			AbortBattleTutorial($"First battle tutorial turn 2 setup failed: {unreachable.Reason}");
+			return false;
 		}
+
+		_turn2Objective = ((BattleTutorialObjectiveResult.Resolved)turn2Result).Objective;
+		UpdateGhostForActiveStep();
+		return true;
+	}
+
+	private void AbortBattleTutorial(string reason)
+	{
+		GD.PushWarning(reason);
+		_turn2AwaitingPlayerTurn = false;
+		_ghostPresenter?.SetSpec(null);
+		_runner.CancelActive();
+	}
+
+	private void UpdateGhostForActiveStep()
+	{
+		if (_battle is null)
+		{
+			_ghostPresenter?.SetSpec(null);
+			return;
+		}
+
+		var objective = _runner.ActiveStep?.TargetId switch
+		{
+			FirstBattleTutorial.Turn1MoveTargetId => _turn1Objective,
+			FirstBattleTutorial.Turn2MoveTargetId => _turn2Objective,
+			_ => null,
+		};
+		if (objective is null)
+		{
+			_ghostPresenter?.SetSpec(null);
+			return;
+		}
+
+		var player = _battle.Engine.World.StateOf(_battle.PlayerId);
+		_ghostPresenter?.SetSpec(new PosedUnitGhostSpec(
+			player.Type,
+			objective.Destination,
+			objective.RequiredBasis.Forward,
+			objective.RequiredBasis.Up,
+			Colors.Cyan));
 	}
 
 	private void OnMove(MoveAction move)
@@ -274,6 +492,7 @@ public sealed class TutorialController : IDisposable
 		_runner.Completed -= OnCompleted;
 		_activeActionSubscription?.Dispose();
 		_activeActionSubscription = null;
+		_ghostPresenter?.Dispose();
 		_runner.Dispose();
 	}
 }

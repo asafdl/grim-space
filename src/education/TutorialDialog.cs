@@ -5,6 +5,7 @@ namespace GrimSpace.Education;
 
 public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 {
+	private readonly Label _title;
 	private readonly RichTextLabel _message;
 	private readonly VBoxContainer _assistance;
 	private readonly Label _assistanceMessage;
@@ -31,6 +32,14 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		};
 		content.AddThemeConstantOverride("separation", 10);
 		panel.AddChild(content);
+
+		_title = new Label
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "CardTitle",
+		};
+		_title.AddThemeFontSizeOverride("font_size", 18);
+		content.AddChild(_title);
 
 		_message = new RichTextLabel
 		{
@@ -105,6 +114,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		ArgumentException.ThrowIfNullOrEmpty(content.Message);
 
 		ClearAssistance();
+		_title.Text = content.Title;
 		_message.Text = content.Message;
 		_accept.Visible = content.AcceptText is not null;
 		if (content.AcceptText is { } acceptText)

@@ -102,6 +102,27 @@ public sealed class BattlePhaseTests
 	}
 
 	[Fact]
+	public async Task PlayerTurnPhaseIsPublishedAfterPlanningResumes()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
+		var replayTcs = new TaskCompletionSource<TurnReplay>();
+		battle.TurnResolved += (replay, _) => replayTcs.TrySetResult(replay);
+		bool? isPlanningWhenPublished = null;
+		battle.PhaseChanged += phase =>
+		{
+			if (phase == EBattlePhase.PlayerTurn)
+				isPlanningWhenPublished = battle.PlayerAgent.IsPlanning;
+		};
+
+		battle.EndTurn();
+		await replayTcs.Task;
+		battle.NotifyReplayComplete();
+
+		Assert.True(isPlanningWhenPublished);
+	}
+
+	[Fact]
 	public void ResolvingFrameDisablesCommands()
 	{
 		var origin = new Coord(5, 5, 5);
@@ -199,13 +220,13 @@ public sealed class BattlePhaseTests
 	[InlineData(true, true, false)]
 	[InlineData(false, false, false)]
 	[InlineData(false, true, false)]
-	public void EndTurnRequiresCommandsAndNoActiveTutorial(
+	public void EndTurnRequiresCommandsAndTutorialMustAllowIt(
 		bool acceptsCommands,
-		bool tutorialActive,
+		bool tutorialBlocksEndTurn,
 		bool expected) =>
 		Assert.Equal(
 			expected,
-			BattleController.ShouldAllowEndTurn(acceptsCommands, tutorialActive));
+			BattleController.ShouldAllowEndTurn(acceptsCommands, tutorialBlocksEndTurn));
 
 	[Fact]
 	public void BattleViewRetainsPredictedDeathButNotAuthoritativeDeath()

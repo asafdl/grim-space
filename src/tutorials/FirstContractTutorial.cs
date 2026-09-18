@@ -17,7 +17,9 @@ public static class FirstContractTutorial
 					map.Blueprint.SupplyPlan.AdministrativePoiId,
 					new TutorialDialogContent(
 						"Your first contract",
-						$"Left-click the [url={map.Blueprint.SupplyPlan.AdministrativePoiId}]Administrative Core[/url] on the map to move your fleet there.",
+						TutorialCopy.MapMoveToPoi(
+							map.Blueprint.SupplyPlan.AdministrativePoiId,
+							"Administrative Core"),
 						AcceptText: null),
 					FocusTarget: false,
 					AdvanceOnAccept: false)

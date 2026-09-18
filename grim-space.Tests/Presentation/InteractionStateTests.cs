@@ -203,6 +203,6 @@ public sealed class InteractionStateTests
 			basis.Value,
 			ExtensionApCost: 0,
 			RemainingAp: 0,
-			ResultState: default);
+			ResultState: UnitDisplayState.Capture(BattleTestFixture.Player(destination).State));
 	}
 }

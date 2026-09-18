@@ -53,9 +53,12 @@ public partial class UnitView : Node3D
 		foreach (var child in GetChildren())
 		{
 			if (child is GeometryInstance3D visual)
+			{
+				visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
 				visual.Transparency = selected
 					? visual == _hull ? 0.45f : 0f
-					: 0.9f;
+					: 0.75f;
+			}
 		}
 	}
 

@@ -1,4 +1,3 @@
-using Godot;
 using GrimSpace.Math.Camera;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Presentation;
@@ -453,7 +452,7 @@ public sealed class WorldMapDirectorTests
 				Map = () => StarMap.Create(1),
 				ResolvePlayerTravelSample = () => new PlayerTravelSample(
 					default,
-					TravelActive ? Vector3.Forward : null,
+					null,
 					TravelActive),
 				ResolveDockedPoiId = () => DockedPoiId,
 				CanAccessFacilities = () => CanAccessFacilities,
