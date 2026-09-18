@@ -29,20 +29,10 @@ public sealed class StarterContractTests(StarMapFixture maps)
 
 			var hunt = (HuntObjective)contract.Objective;
 			Assert.Single(hunt.SpawnGroups);
-			Assert.Contains(hunt.SpawnGroups[0].SearchArea.Description, contract.Narrative.Briefing);
 			Assert.False(string.IsNullOrWhiteSpace(contract.Narrative.Title));
+			Assert.False(string.IsNullOrWhiteSpace(contract.Narrative.Briefing));
 			Assert.False(string.IsNullOrWhiteSpace(hunt.SpawnGroups[0].SearchArea.Description));
 		}
 	}
 
-	[Fact]
-	public void Create_BriefingContainsSearchAreaDescription()
-	{
-		var map = maps.Fresh(7);
-		var contract = map.ContractRegistry.Offered.First();
-		var hunt = (HuntObjective)contract.Objective;
-
-		Assert.Contains(hunt.SpawnGroups[0].SearchArea.Description, contract.Narrative.Briefing);
-		Assert.StartsWith("Hunt targets in the indicated sector.", contract.Narrative.Briefing);
-	}
 }

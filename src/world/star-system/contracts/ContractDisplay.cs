@@ -24,18 +24,22 @@ public static class ContractDisplay
 	public static string ObjectiveSummary(Contract contract) =>
 		contract.Objective switch
 		{
-			HuntObjective hunt => string.Join(
-				"; ",
-				hunt.SpawnGroups.Select(group =>
-					$"{group.RequiredCount}x {FactionCatalog.DisplayName(group.Spawn.Faction)} ({group.Spawn.Danger})")),
+			HuntObjective hunt =>
+				$"{FormatHuntObjective(hunt)} Expected force: {FormatForceEstimate(hunt)}.",
 			_ => "—",
 		};
 
 	public static string ObjectivePreview(Contract contract) =>
 		contract.Objective switch
 		{
-			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
-				$"Hunt {hunt.SpawnGroups[0].RequiredCount}× {FactionCatalog.DisplayName(hunt.SpawnGroups[0].Spawn.Faction)}",
+			HuntObjective hunt => FormatHuntObjective(hunt),
+			_ => "—",
+		};
+
+	public static string ForceEstimate(Contract contract) =>
+		contract.Objective switch
+		{
+			HuntObjective hunt => FormatForceEstimate(hunt),
 			_ => "—",
 		};
 
@@ -55,19 +59,35 @@ public static class ContractDisplay
 	private static string FormatResource(KeyValuePair<ResourceId, int> entry) =>
 		entry.Key switch
 		{
-			ResourceId.Credits => $"{entry.Value} Credits",
-			ResourceId.ScrapAlloy => $"{entry.Value} Scrap Alloy",
-			ResourceId.IndustrialCore => $"{entry.Value} Industrial Core",
-			_ => $"{entry.Value} {entry.Key}",
+			ResourceId.Credits => $"{entry.Value} {Pluralize(entry.Value, "credit", "credits")}",
+			ResourceId.ScrapAlloy => $"{entry.Value} scrap alloy",
+			ResourceId.IndustrialCore =>
+				$"{entry.Value} {Pluralize(entry.Value, "industrial core", "industrial cores")}",
+			_ => throw new ArgumentOutOfRangeException(nameof(entry), entry.Key, null),
 		};
 
 	public static string Danger(Contract contract) =>
 		contract.Objective switch
 		{
 			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
-				hunt.SpawnGroups[0].Spawn.Danger.ToString(),
+				DangerDisplayName(hunt.SpawnGroups.Max(group => group.Spawn.Danger)),
 			_ => "—",
 		};
+
+	public static int Difficulty(Contract contract) =>
+		contract.Objective switch
+		{
+			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
+				Difficulty(hunt.SpawnGroups.Max(group => group.Spawn.Danger)),
+			_ => 0,
+		};
+
+	public static string DifficultyStars(Contract contract)
+	{
+		const int maxDifficulty = 5;
+		var difficulty = Difficulty(contract);
+		return new string('★', difficulty) + new string('☆', maxDifficulty - difficulty);
+	}
 
 	public static bool TryGetDangerLevel(Contract contract, out EDangerLevel danger)
 	{
@@ -80,4 +100,71 @@ public static class ContractDisplay
 		danger = default;
 		return false;
 	}
+
+	private static string FormatHuntObjective(HuntObjective hunt)
+	{
+		if (hunt.SpawnGroups.Count == 0)
+			return "No target information available.";
+
+		var targets = hunt.SpawnGroups
+			.GroupBy(group => group.Spawn.Faction)
+			.Select(group =>
+			{
+				var count = group.Sum(spawn => spawn.RequiredCount);
+				return $"{FormatCount(count)} {TargetName(group.Key, count)}";
+			});
+		return $"Locate and eliminate {string.Join(" and ", targets)}.";
+	}
+
+	private static string FormatForceEstimate(HuntObjective hunt)
+	{
+		var craft = hunt.SpawnGroups
+			.SelectMany(group => group.Spawn.MemberTypes.Select(type => (type, group.RequiredCount)))
+			.GroupBy(entry => entry.type)
+			.Select(group => (Type: group.Key, Count: group.Sum(entry => entry.RequiredCount)))
+			.ToArray();
+		if (craft.Length == 0)
+			return "unavailable";
+
+		return string.Join(
+			", ",
+			craft.Select(entry => $"{entry.Count} {CraftName(entry.Type, entry.Count)}"));
+	}
+
+	private static string DangerDisplayName(EDangerLevel danger) =>
+		danger switch
+		{
+			EDangerLevel.VeryLow => "Minimal",
+			_ => throw new ArgumentOutOfRangeException(nameof(danger), danger, null),
+		};
+
+	private static int Difficulty(EDangerLevel danger) =>
+		danger switch
+		{
+			EDangerLevel.VeryLow => 1,
+			_ => throw new ArgumentOutOfRangeException(nameof(danger), danger, null),
+		};
+
+	private static string TargetName(EFaction faction, int count) =>
+		faction switch
+		{
+			EFaction.Pirates => Pluralize(count, "pirate fleet", "pirate fleets"),
+			EFaction.TheOptimality => Pluralize(count, "Optimality fleet", "Optimality fleets"),
+			_ => throw new ArgumentOutOfRangeException(nameof(faction), faction, null),
+		};
+
+	private static string CraftName(GrimSpace.Units.Enums.EType type, int count) =>
+		type switch
+		{
+			GrimSpace.Units.Enums.EType.Fighter => Pluralize(count, "fighter", "fighters"),
+			GrimSpace.Units.Enums.EType.Carrier => Pluralize(count, "carrier", "carriers"),
+			GrimSpace.Units.Enums.EType.Patrol => "patrol craft",
+			GrimSpace.Units.Enums.EType.Torpedo => "torpedo craft",
+			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+		};
+
+	private static string FormatCount(int count) => count == 1 ? "one" : count.ToString();
+
+	private static string Pluralize(int count, string singular, string plural) =>
+		count == 1 ? singular : plural;
 }

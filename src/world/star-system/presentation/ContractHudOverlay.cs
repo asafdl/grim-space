@@ -36,7 +36,7 @@ public sealed partial class ContractHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell();
+		_shell = new ModalShell(HudThemeFamily.Informative);
 		AddChild(_shell);
 		_shell.Closed += () => Closed?.Invoke();
 	}
@@ -85,8 +85,11 @@ public sealed partial class ContractHudOverlay : Control
 	private void ShowList()
 	{
 		_mode = ViewMode.List;
+		var contracts = _map.ContractRegistry.AvailableForPoi(_activePoiId).ToArray();
 		_shell.SetTitle(_facilityTitle);
-		_shell.SetSubtitle("Select an offer");
+		_shell.SetSubtitle(contracts.Length == 0
+			? "No contract offers available"
+			: $"{contracts.Length} contract {Pluralize(contracts.Length, "offer", "offers")} available");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -100,7 +103,6 @@ public sealed partial class ContractHudOverlay : Control
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
 			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 
-		var contracts = _map.ContractRegistry.AvailableForPoi(_activePoiId).ToArray();
 		if (contracts.Length == 0 && _statusKind is null)
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
@@ -130,25 +132,26 @@ public sealed partial class ContractHudOverlay : Control
 		_statusKind = null;
 		_statusMessage = "";
 		_mode = ViewMode.Details;
-		_shell.SetTitle(_facilityTitle);
-		_shell.SetSubtitle(ContractDisplay.Title(_selected));
+		_shell.SetTitle(ContractDisplay.Title(_selected));
+		_shell.SetSubtitle($"Issued by {ContractDisplay.Issuer(_selected, _map)}");
 		_shell.SetHeader(HudHeaderMode.Back, ShowList);
 		_shell.SetBackHandler(ShowList);
 
 		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 
-		body.AddChild(HudWidgets.CreateSection("Briefing", ContractDisplay.Narrative(_selected), scrollBody: true));
-		body.AddChild(HudWidgets.CreateSection("Objective", ContractDisplay.ObjectiveSummary(_selected)));
-		body.AddChild(HudWidgets.CreateSection("Location", ContractDisplay.SearchArea(_selected)));
+		body.AddChild(HudWidgets.CreateSection("Mission Briefing", ContractDisplay.Narrative(_selected)));
+		body.AddChild(HudWidgets.CreateSection("Objective", ContractDisplay.ObjectivePreview(_selected)));
+		body.AddChild(HudWidgets.CreateSection("Expected Opposition", ContractDisplay.ForceEstimate(_selected)));
+		body.AddChild(HudWidgets.CreateSection("Search Area", ContractDisplay.SearchArea(_selected)));
 		body.AddChild(HudWidgets.CreateSection(
 			"Compensation",
 			ContractDisplay.Reward(_selected),
 			bodyRole: HudTextRole.Success));
 		body.AddChild(HudWidgets.CreateSection(
-			"Threat",
+			"Threat Assessment",
 			ContractDisplay.Danger(_selected),
-			bodyRole: DangerTextRole(_selected)));
+			bodyRole: ThreatTextRole(_selected)));
 
 		_shell.SetBody(body);
 		_shell.SetFooter(
@@ -168,7 +171,7 @@ public sealed partial class ContractHudOverlay : Control
 		}
 
 		_mode = ViewMode.DeclineConfirm;
-		_shell.SetTitle(_facilityTitle);
+		_shell.SetTitle(ContractDisplay.Title(_selected));
 		_shell.SetSubtitle("Confirm decline");
 		_shell.SetHeader(HudHeaderMode.Back, ShowDetails);
 		_shell.SetBackHandler(ShowDetails);
@@ -187,14 +190,9 @@ public sealed partial class ContractHudOverlay : Control
 
 	private Control CreateContractCard(Contract contract)
 	{
-		var dangerRole = DangerTextRole(contract);
-
 		var rows = new List<HudTextLine>
 		{
-			new($"Issuer: {ContractDisplay.Issuer(contract, _map)}", HudTextRole.Metadata),
-			new(ContractDisplay.Reward(contract), HudTextRole.Emphasis, HudStyles.TextColor(HudTextRole.Success)),
-			new($"Danger: {ContractDisplay.Danger(contract)}", dangerRole),
-			new(ContractDisplay.ObjectivePreview(contract), HudTextRole.Metadata),
+			new($"DIFFICULTY  {ContractDisplay.DifficultyStars(contract)}", HudTextRole.Metadata),
 		};
 
 		return HudWidgets.CreateCard(
@@ -207,10 +205,20 @@ public sealed partial class ContractHudOverlay : Control
 			});
 	}
 
-	private static HudTextRole DangerTextRole(Contract contract) =>
-		ContractDisplay.TryGetDangerLevel(contract, out var danger) && danger != EDangerLevel.VeryLow
-			? HudTextRole.Danger
-			: HudTextRole.Warning;
+	private static HudTextRole ThreatTextRole(Contract contract)
+	{
+		if (!ContractDisplay.TryGetDangerLevel(contract, out var danger))
+			return HudTextRole.Metadata;
+
+		return danger switch
+		{
+			EDangerLevel.VeryLow => HudTextRole.Metadata,
+			_ => HudTextRole.Danger,
+		};
+	}
+
+	private static string Pluralize(int count, string singular, string plural) =>
+		count == 1 ? singular : plural;
 
 	private bool TryRefreshSelected()
 	{

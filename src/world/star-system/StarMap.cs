@@ -157,7 +157,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 						BattleUnitType.Patrol,
 					])),
 		]);
-		var narrative = ContractNarrative.ForHunt("Pirate Hunt", searchArea);
+		var narrative = ContractNarrative.ForHunt("Pirate Hunt");
 		var contract = new Contract(
 			contractId,
 			objective,
