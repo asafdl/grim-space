@@ -88,22 +88,21 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public static StarSystemOrchestrator CreateSession(string playerFleetUnitId, int seed = 0)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
-		var map = StarMap.Create(seed);
-		AddPlayerFleet(map, playerFleetUnitId, [BattleUnitType.Fighter]);
-		return InitializeSession(map, playerFleetUnitId);
+		var defaultShipId = Core.Ids.TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
+		return CreateSession(playerFleetUnitId, [defaultShipId], seed);
 	}
 
 	public static StarSystemOrchestrator CreateSession(
 		string playerFleetUnitId,
-		IReadOnlyList<FleetMember> playerFleetMembers,
+		IReadOnlyList<string> playerShipIds,
 		int seed = 0)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
-		ArgumentNullException.ThrowIfNull(playerFleetMembers);
-		if (playerFleetMembers.Count == 0)
-			throw new ArgumentException("Player fleet must contain at least one member.", nameof(playerFleetMembers));
+		ArgumentNullException.ThrowIfNull(playerShipIds);
+		if (playerShipIds.Count == 0)
+			throw new ArgumentException("Player fleet must contain at least one ship.", nameof(playerShipIds));
 		var map = StarMap.Create(seed);
-		AddPlayerFleet(map, playerFleetUnitId, playerFleetMembers);
+		AddPlayerFleet(map, playerFleetUnitId, playerShipIds);
 		return InitializeSession(map, playerFleetUnitId);
 	}
 
@@ -189,21 +188,12 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private static void AddPlayerFleet(
 		StarMap map,
 		string playerFleetUnitId,
-		IReadOnlyList<FleetMember> members)
+		IReadOnlyList<string> shipIds)
 	{
-		map.FleetRegistry.Add(Factory.Create(
-			CreatePlayerFleetSpawn(map, playerFleetUnitId),
+		var members = shipIds.Select(id => new FleetMember(id)).ToArray();
+		map.FleetRegistry.Add(new Fleet(
+			Units.State.FromSpawn(CreatePlayerFleetSpawn(map, playerFleetUnitId)),
 			members));
-	}
-
-	private static void AddPlayerFleet(
-		StarMap map,
-		string playerFleetUnitId,
-		IReadOnlyList<BattleUnitType> memberTypes)
-	{
-		map.FleetRegistry.Add(Factory.Create(
-			CreatePlayerFleetSpawn(map, playerFleetUnitId),
-			memberTypes));
 	}
 
 	//TODO: we should not be initializing this via orchestrator, this is bad design

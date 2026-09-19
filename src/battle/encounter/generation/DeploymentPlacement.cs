@@ -3,6 +3,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Encounter.Generation;
 
@@ -14,8 +15,25 @@ public static class DeploymentPlacement
 	private const int LaneHalfBand = 8;
 
 	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
-		Instance playerInstance,
-		Instance enemyInstance,
+		EType playerChassis,
+		EType enemyChassis,
+		int seed,
+		int gridSize,
+		string? playerId = null,
+		string? enemyId = null)
+	{
+		var playerSnapshot = ShipCatalog.DefaultSnapshot(
+			playerId ?? "dev-player",
+			playerChassis);
+		var enemySnapshot = ShipCatalog.DefaultSnapshot(
+			enemyId ?? "dev-enemy",
+			enemyChassis);
+		return DevDuel(playerSnapshot, enemySnapshot, seed, gridSize);
+	}
+
+	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
+		ShipSnapshot playerSnapshot,
+		ShipSnapshot enemySnapshot,
 		int seed,
 		int gridSize)
 	{
@@ -31,7 +49,8 @@ public static class DeploymentPlacement
 		return (
 			new BattleSpawn
 			{
-				Unit = playerInstance,
+				Ship = playerSnapshot,
+				Team = ETeam.Player,
 				Position = playerPosition,
 				Fore = playerFore,
 				Dorsal = dorsal,
@@ -39,7 +58,8 @@ public static class DeploymentPlacement
 			},
 			new BattleSpawn
 			{
-				Unit = enemyInstance,
+				Ship = enemySnapshot,
+				Team = ETeam.Enemy,
 				Position = enemyPosition,
 				Fore = enemyFore,
 				Dorsal = dorsal,

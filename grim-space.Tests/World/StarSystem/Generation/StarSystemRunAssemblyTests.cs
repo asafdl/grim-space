@@ -21,7 +21,6 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 		var playerFleet = starSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(EType.PlayerFleet, playerFleet.State.Type);
 		var member = Assert.Single(playerFleet.Members);
-		Assert.Equal(GrimSpace.Units.Enums.EType.Fighter, member.Type);
 		Assert.StartsWith("fighter-", member.Id);
 		Assert.Empty(playerFleet.State.ChoreDockIds);
 		Assert.Equal(
@@ -35,8 +34,7 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 		var run = RunState.CreateNewRun(42);
 		var worldFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 
-		Assert.Equal(run.PlayerParty.Members, worldFleet.Members);
-		Assert.Same(run.PlayerParty.Members[0], worldFleet.Members[0]);
+		Assert.Equal(run.PlayerParty.ShipIds, worldFleet.Members.Select(member => member.Id).ToArray());
 	}
 
 	[Fact]

@@ -28,6 +28,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 
 	public string BattleId { get; }
 	public EObjective Objective { get; }
+	public IReadOnlySet<string> EngagedShipIds { get; }
 	public EBattleResult battleResult { get; set; } = EBattleResult.Ongoing;
 
 	public T NonUnitOf<T>(string id) where T : NonUnit => (T)_nonUnits[id];
@@ -104,7 +105,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		IReadOnlySet<Coord> blockedCells,
 		Timeline timeline,
 		string battleId,
-		EObjective objective)
+		EObjective objective,
+		IReadOnlySet<string> engagedShipIds)
 	{
 		UnitRegistry = unitRegistry;
 		_nonUnits = nonUnits;
@@ -113,6 +115,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		Timeline = timeline;
 		BattleId = battleId;
 		Objective = objective;
+		EngagedShipIds = engagedShipIds;
 	}
 
 	public static BattleWorld FromSnapshot(
@@ -122,6 +125,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		IReadOnlySet<Coord> blockedCells,
 		string battleId,
 		EObjective objective,
+		IReadOnlySet<string> engagedShipIds,
 		Timeline? timeline = null) =>
 		FromRoster(
 			roster.Select(CloneForSnapshot).ToList(),
@@ -130,6 +134,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			blockedCells,
 			battleId,
 			objective,
+			engagedShipIds,
 			timeline);
 
 	public static BattleWorld FromLive(
@@ -139,6 +144,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		IReadOnlySet<Coord> blockedCells,
 		string battleId,
 		EObjective objective,
+		IReadOnlySet<string> engagedShipIds,
 		Timeline? timeline = null) =>
 		FromRoster(
 			roster,
@@ -147,6 +153,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			blockedCells,
 			battleId,
 			objective,
+			engagedShipIds,
 			timeline);
 
 	private static BattleWorld FromRoster(
@@ -156,6 +163,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		IReadOnlySet<Coord> blockedCells,
 		string battleId,
 		EObjective objective,
+		IReadOnlySet<string> engagedShipIds,
 		Timeline? timeline)
 	{
 		var units = new UnitRegistry();
@@ -169,7 +177,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			blockedCells,
 			timeline ?? new Timeline(),
 			battleId,
-			objective);
+			objective,
+			engagedShipIds);
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>
@@ -187,7 +196,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			BlockedCells,
 			timeline,
 			BattleId,
-			Objective);
+			Objective,
+			EngagedShipIds);
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch

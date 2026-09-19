@@ -1,13 +1,6 @@
-using GrimSpace.Core.Ids;
-using GrimSpace.Units.Enums;
-
 namespace GrimSpace.Units;
 
-public sealed record FleetMember(string Id, EType Type)
+public sealed record FleetMember(string Id)
 {
-	public static FleetMember Create(EType type) =>
-		Create(type, TypedIdGenerator.NextInstanceSlug());
-
-	public static FleetMember Create(EType type, string instanceSlug) =>
-		new(TypedIdGenerator.Format(UnitTypeSlug.For(type), instanceSlug), type);
+	public static FleetMember ForShip(string shipId) => new(shipId);
 }

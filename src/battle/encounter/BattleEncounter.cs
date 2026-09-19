@@ -21,19 +21,13 @@ public sealed class BattleEncounter
 
 	public static BattleEncounter DevDefault(int seed = 42, int gridSize = 64)
 	{
-		var player = new Instance
-		{
-			Type = EType.Fighter,
-			Team = ETeam.Player,
-		};
-		var enemy = new Instance
-		{
-			Type = EType.Carrier,
-			Team = ETeam.Enemy,
-		};
-
 		var (playerSpawn, enemySpawn) = DeploymentPlacement.DevDuel(
-			player, enemy, seed, gridSize);
+			EType.Fighter,
+			EType.Carrier,
+			seed,
+			gridSize,
+			$"fighter-dev-{seed}",
+			$"carrier-dev-{seed}");
 		var spawns = new[] { playerSpawn, enemySpawn };
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);

@@ -9,7 +9,7 @@ public sealed class FleetTests
 	[Fact]
 	public void ConstructorRejectsDuplicateMemberIds()
 	{
-		var member = new FleetMember("patrol-one", BattleUnitType.Patrol);
+		var member = new FleetMember("patrol-one");
 
 		Assert.Throws<ArgumentException>(() =>
 			new Fleet(

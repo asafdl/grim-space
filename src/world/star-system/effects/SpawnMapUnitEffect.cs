@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
@@ -21,7 +22,13 @@ public sealed class SpawnMapUnitEffect : IEffect<StarMap, ActorRuntime>
 		}
 
 		world.FleetRegistry.Add(_fleet);
-		return [];
+		if (_fleet.Registrations.Count == 0)
+			return [];
+
+		return
+		[
+			new Record<FleetSpawned>(new FleetSpawned(_fleet.State.Id, _fleet.Registrations)),
+		];
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId) =>

@@ -1,7 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Run;
@@ -12,8 +11,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_PlacesPlayerOnLowXAndEnemyOnHighX()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
-			PlayerInstance(),
-			EnemyInstance(),
+			EType.Fighter,
+			EType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -26,8 +25,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_PlayerNotAtGridCenter()
 	{
 		var (player, _) = DeploymentPlacement.DevDuel(
-			PlayerInstance(),
-			EnemyInstance(),
+			EType.Fighter,
+			EType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -38,8 +37,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_UnitsFaceEachOther()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
-			PlayerInstance(),
-			EnemyInstance(),
+			EType.Fighter,
+			EType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -52,9 +51,9 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_EnemyPositionVariesBySeed()
 	{
 		var (_, enemyA) = DeploymentPlacement.DevDuel(
-			PlayerInstance(), EnemyInstance(), seed: 1, gridSize: 64);
+			EType.Fighter, EType.Carrier, seed: 1, gridSize: 64);
 		var (_, enemyB) = DeploymentPlacement.DevDuel(
-			PlayerInstance(), EnemyInstance(), seed: 2, gridSize: 64);
+			EType.Fighter, EType.Carrier, seed: 2, gridSize: 64);
 
 		Assert.NotEqual(enemyA.Position, enemyB.Position);
 	}
@@ -63,7 +62,7 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_KeepsEnemyInsideSmallGrid()
 	{
 		var (_, enemy) = DeploymentPlacement.DevDuel(
-			PlayerInstance(), EnemyInstance(), seed: 8, gridSize: 16);
+			EType.Fighter, EType.Carrier, seed: 8, gridSize: 16);
 
 		Assert.InRange(enemy.Position.X, 0, 15);
 		Assert.InRange(enemy.Position.Y, 0, 15);
@@ -74,8 +73,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDefault_UsesDeploymentPlacement()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
-		var player = encounter.Spawns.First(spawn => spawn.Unit.Team == ETeam.Player);
-		var enemy = encounter.Spawns.First(spawn => spawn.Unit.Team == ETeam.Enemy);
+		var player = encounter.Spawns.First(spawn => spawn.Team == ETeam.Player);
+		var enemy = encounter.Spawns.First(spawn => spawn.Team == ETeam.Enemy);
 
 		Assert.True(player.Position.X < enemy.Position.X);
 		Assert.NotEqual(Coord.Forward, player.Fore);
@@ -88,21 +87,8 @@ public sealed class DeploymentPlacementTests
 			BattleEncounter.DevDefault(seed: 7, gridSize: 32),
 			gridSize: 32);
 
-		Assert.StartsWith("fighter-", battle.PlayerId);
-		Assert.StartsWith("carrier-", BattleTestFixture.FirstEnemyId(battle));
-		Assert.NotEqual("player", battle.PlayerId);
-		Assert.NotEqual("enemy", BattleTestFixture.FirstEnemyId(battle));
+		Assert.Equal("fighter-dev-7", battle.PlayerId);
+		Assert.Equal("carrier-dev-7", BattleTestFixture.FirstEnemyId(battle));
 	}
 
-	private static Instance PlayerInstance() => new()
-	{
-		Type = EType.Fighter,
-		Team = ETeam.Player,
-	};
-
-	private static Instance EnemyInstance() => new()
-	{
-		Type = EType.Carrier,
-		Team = ETeam.Enemy,
-	};
 }

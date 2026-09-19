@@ -120,8 +120,14 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 				PlayerId);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerId);
 		var pirateFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PirateId);
+		foreach (var declaration in pirateFleet.Registrations)
+			run.ShipRegistry.Register(declaration);
 		var engagementId = run.StarSystem.Map.StateOf(PlayerId).CurrentEngagement!.Id;
-		run.ActiveBattle = EngagementBattleFactory.Create([playerFleet, pirateFleet], 1, engagementId);
+		run.ActiveBattle = EngagementBattleFactory.Create(
+			[playerFleet, pirateFleet],
+			run.ShipRegistry,
+			1,
+			engagementId);
 		var activeBattle = run.ActiveBattle;
 		var ongoing = new BattleOutcome(engagementId, EBattleResult.Ongoing, []);
 
@@ -238,10 +244,10 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			map.StateOf(PlayerId).CurrentEngagement!.Id,
 			EBattleResult.Lose,
 			[..map.FleetRegistry.All.SelectMany(fleet =>
-				fleet.Members.Select(member => new UnitStateHandoff(
-					fleet.State.Id == PlayerId ? 0 : 1,
-					member.Type,
-					member.Id)))]);
+				fleet.Members.Select(member => OutcomeTestKit.Handoff(
+					member.Id,
+					OutcomeTestKit.ChassisFromShipId(member.Id),
+					fleet.State.Id == PlayerId ? 0 : 1)))]);
 
 		Assert.True(orchestrator.ResolveEngagement(PlayerId, defeat));
 		Assert.False(map.FleetRegistry.Contains(PlayerId));
@@ -289,10 +295,10 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			map.StateOf(PlayerId).CurrentEngagement!.Id,
 			EBattleResult.Win,
 			[..map.FleetRegistry.All.SelectMany(fleet =>
-				fleet.Members.Select(member => new UnitStateHandoff(
-					fleet.State.Id == pirateId ? 0 : 1,
-					member.Type,
-					member.Id)))]);
+				fleet.Members.Select(member => OutcomeTestKit.Handoff(
+					member.Id,
+					OutcomeTestKit.ChassisFromShipId(member.Id),
+					fleet.State.Id == pirateId ? 0 : 1)))]);
 
 	private static BattleOutcome VictoryWithDestroyedPatrols(StarMap map, string pirateId) =>
 		Victory(map, pirateId);

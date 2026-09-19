@@ -2,8 +2,9 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Defenses;
 
-namespace GrimSpace.Tests.Units;
+namespace GrimSpace.Tests.Units.Loadouts.Defenses;
 
 public sealed class FaceShieldPointsTests
 {

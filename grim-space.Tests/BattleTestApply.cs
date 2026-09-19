@@ -28,6 +28,7 @@ internal static class BattleTestApply
 			if (action is not IAction<BattleWorld, ActorRuntime> typed)
 				continue;
 
+			var engagedShipIds = roster.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
 			var board = BattleWorld.FromLive(
 				roster,
 				nonUnits,
@@ -35,6 +36,7 @@ internal static class BattleTestApply
 				blocked,
 				"test-battle",
 				EObjective.EliminateOpponents,
+				engagedShipIds,
 				timeline);
 			foreach (var effect in typed.Definition.Resolve(action, board, runtime))
 				_ = effect.Apply(board, runtime, action.ActorId);
@@ -87,6 +89,7 @@ internal static class BattleTestApply
 		if (action is not IAction<BattleWorld, ActorRuntime> typed)
 			return;
 
+		var engagedShipIds = roster.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
 		var board = BattleWorld.FromLive(
 			roster,
 			nonUnits,
@@ -94,6 +97,7 @@ internal static class BattleTestApply
 			blocked,
 			"test-battle",
 			EObjective.EliminateOpponents,
+			engagedShipIds,
 			timeline);
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
 			_ = effect.Apply(board, runtime, action.ActorId);

@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Units;
 

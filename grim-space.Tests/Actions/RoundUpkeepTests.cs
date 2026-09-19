@@ -62,13 +62,15 @@ public sealed class RoundUpkeepTests
 	{
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var nonUnits = new Dictionary<string, NonUnit>();
+		var engagedShipIds = new HashSet<string>(StringComparer.Ordinal) { unit.State.Id, enemy.State.Id };
 		var board = BattleWorld.FromLive(
 			[unit, enemy],
 			nonUnits,
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>(),
 			"test-battle",
-			GrimSpace.Battle.Objectives.EObjective.EliminateOpponents);
+			GrimSpace.Battle.Objectives.EObjective.EliminateOpponents,
+			engagedShipIds);
 		var runtime = new ActorRuntime();
 		BattleTestApply.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),

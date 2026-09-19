@@ -1,7 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
-namespace GrimSpace.Battle.Units;
+namespace GrimSpace.Units.Loadouts.Defenses;
 
 public sealed class FaceShieldPoints
 {
@@ -55,4 +55,15 @@ public sealed class FaceShieldPoints
 	}
 
 	public void Fill(int value) => Array.Fill(_points, value);
+
+	public bool Matches(FaceShieldPoints other)
+	{
+		for (var i = 0; i < _points.Length; i++)
+		{
+			if (_points[i] != other._points[i])
+				return false;
+		}
+
+		return true;
+	}
 }

@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 

@@ -286,28 +286,18 @@ public sealed class BattlePhaseTests
 			Objective = EObjective.EliminateOpponents,
 			Spawns =
 			[
-				new BattleSpawn
-				{
-					Unit = new Instance
-					{
-						Id = "player",
-						Type = EType.Fighter,
-						Team = ETeam.Player,
-					},
-					Position = playerPos,
-					ExecutionAgent = new UserExecutionAgent(),
-				},
-				new BattleSpawn
-				{
-					Unit = new Instance
-					{
-						Id = "enemy",
-						Type = EType.Fighter,
-						Team = ETeam.Enemy,
-					},
-					Position = enemyPos,
-					ExecutionAgent = new AiController(),
-				},
+				BattleSpawnTestKit.Create(
+					"player",
+					EType.Fighter,
+					ETeam.Player,
+					playerPos,
+					new UserExecutionAgent()),
+				BattleSpawnTestKit.Create(
+					"enemy",
+					EType.Fighter,
+					ETeam.Enemy,
+					enemyPos,
+					new AiController()),
 			],
 		};
 

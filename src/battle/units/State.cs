@@ -1,3 +1,5 @@
+using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -18,6 +20,7 @@ public sealed class State
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
 	public int FlakRemaining { get; set; }
 	public int RailgunRemaining { get; set; }
+	public Dictionary<AbilityMount, int> MountUsesRemaining { get; } = [];
 	public int FuelRemaining { get; set; }
 	public int TorpedoCooldownRemaining { get; set; }
 	public int PatrolSpawnCooldownRemaining { get; set; }
@@ -27,8 +30,9 @@ public sealed class State
 
 	public bool IsAlive => HullPoints > 0;
 
-	public State Clone() =>
-		new()
+	public State Clone()
+	{
+		var copy = new State
 		{
 			Id = Id,
 			Type = Type,
@@ -48,6 +52,10 @@ public sealed class State
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
 		};
+		foreach (var (mount, uses) in MountUsesRemaining)
+			copy.MountUsesRemaining[mount] = uses;
+		return copy;
+	}
 
 	public static State FromSpawn(Instance instance, Coord position) =>
 		FromSpawn(instance, position, Coord.Forward, Coord.Up);
@@ -79,5 +87,37 @@ public sealed class State
 			ParentId = parentId,
 			Stats = stats,
 		};
+	}
+
+	public static State FromSnapshot(
+		ShipSnapshot snapshot,
+		Coord position,
+		Coord fore,
+		Coord dorsal,
+		string parentId = BattleActorIds.Rules)
+	{
+		var stats = Stats.ForType(snapshot.Configuration.Chassis);
+		var state = new State
+		{
+			Id = snapshot.Id,
+			Type = snapshot.Configuration.Chassis,
+			Position = position,
+			Fore = fore,
+			Dorsal = dorsal,
+			Starboard = Coord.Cross(dorsal, fore),
+			ActionPoints = stats.MaxAp,
+			HullPoints = snapshot.HullPoints,
+			ShieldPoints = snapshot.ShieldPoints.Clone(),
+			FlakRemaining = AbilityLoadout.UsesPerTurnForAbility(snapshot, EAbilityKind.Flak),
+			RailgunRemaining = AbilityLoadout.UsesPerTurnForAbility(snapshot, EAbilityKind.Railgun),
+			FuelRemaining = 0,
+			TorpedoCooldownRemaining = 0,
+			PatrolSpawnCooldownRemaining = 0,
+			ParentId = parentId,
+			Stats = stats,
+		};
+		foreach (var (mount, uses) in AbilityLoadout.UsesPerMount(snapshot))
+			state.MountUsesRemaining[mount] = uses;
+		return state;
 	}
 }

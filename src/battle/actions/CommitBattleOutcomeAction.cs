@@ -90,10 +90,12 @@ public static class CommitBattleOutcomeRules
 			world.BattleId,
 			result,
 			UnitRegistry.For(world).All
+				.Where(unit => world.EngagedShipIds.Contains(unit.State.Id))
 				.Select(unit => new UnitStateHandoff(
-					unit.State.HullPoints,
+					unit.State.Id,
 					unit.State.Type,
-					unit.State.Id))
+					unit.State.HullPoints,
+					unit.State.ShieldPoints.Clone()))
 				.ToArray());
 
 	private static EBattleResult EvaluateEliminateOpponents(UnitRegistry units, ETeam team)

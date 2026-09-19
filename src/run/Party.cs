@@ -1,14 +1,14 @@
 // Placeholder until roguelike sector map exists.
 
-using GrimSpace.Units;
-
 namespace GrimSpace.Run;
 
 public sealed class Party
 {
-	private readonly List<FleetMember> _members = [];
+	private readonly List<string> _shipIds = [];
 
-	public IReadOnlyList<FleetMember> Members => _members;
+	public IReadOnlyList<string> ShipIds => _shipIds;
 
-	public void Add(FleetMember member) => _members.Add(member);
+	public void Add(string shipId) => _shipIds.Add(shipId);
+
+	public void Remove(string shipId) => _shipIds.Remove(shipId);
 }

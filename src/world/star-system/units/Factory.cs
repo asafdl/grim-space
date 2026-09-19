@@ -1,3 +1,4 @@
+using GrimSpace.Core.Ids;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -52,10 +53,10 @@ public static class Factory
 		return new ContractFleetSpawns(fleets, bindings);
 	}
 
-	public static Fleet Create(Spawn spawn) => Create(spawn, Array.Empty<FleetMember>());
+	public static Fleet Create(Spawn spawn) => Create(spawn, Array.Empty<ShipSpawnDeclaration>());
 
 	public static Fleet Create(Spawn spawn, IReadOnlyList<BattleUnitType> memberTypes) =>
-		Create(spawn, memberTypes.Select(FleetMember.Create).ToArray());
+		Create(spawn, DeclarationsFor(memberTypes, TypedIdGenerator.NextInstanceSlug()));
 
 	public static Fleet Create(
 		Spawn spawn,
@@ -63,17 +64,13 @@ public static class Factory
 		string memberIdentity)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(memberIdentity);
-		return Create(
-			spawn,
-			memberTypes
-				.Select((type, index) => FleetMember.Create(type, $"{memberIdentity}-{index}"))
-				.ToArray());
+		return Create(spawn, DeclarationsFor(memberTypes, memberIdentity));
 	}
 
-	public static Fleet Create(Spawn spawn, IReadOnlyList<FleetMember> members)
+	public static Fleet Create(Spawn spawn, IReadOnlyList<ShipSpawnDeclaration> declarations)
 	{
 		ArgumentNullException.ThrowIfNull(spawn);
-		ArgumentNullException.ThrowIfNull(members);
+		ArgumentNullException.ThrowIfNull(declarations);
 		ArgumentException.ThrowIfNullOrEmpty(spawn.Id);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.SpeedPerTick, 0);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.EngageRadius, 0);
@@ -81,8 +78,18 @@ public static class Factory
 			throw new ArgumentOutOfRangeException(nameof(spawn), "VisionRadius must be finite and greater than zero.");
 		ArgumentNullException.ThrowIfNull(spawn.ChoreDockIds);
 
-		return new Fleet(State.FromSpawn(spawn), members);
+		var members = declarations.Select(declaration => new FleetMember(declaration.ShipId)).ToArray();
+		return new Fleet(State.FromSpawn(spawn), members, declarations);
 	}
+
+	private static IReadOnlyList<ShipSpawnDeclaration> DeclarationsFor(
+		IReadOnlyList<BattleUnitType> memberTypes,
+		string memberIdentity) =>
+		memberTypes
+			.Select((type, index) => new ShipSpawnDeclaration(
+				TypedIdGenerator.Format(UnitTypeSlug.For(type), $"{memberIdentity}-{index}"),
+				type))
+			.ToArray();
 }
 
 public sealed record ContractFleetSpawns(

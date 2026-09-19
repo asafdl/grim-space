@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
@@ -10,6 +11,15 @@ namespace GrimSpace.Battle.Units;
 
 public static class Factory
 {
+	public static Unit Create(BattleSpawn spawn) =>
+		Create(
+			spawn.Ship,
+			spawn.Team,
+			spawn.Position,
+			spawn.ExecutionAgent,
+			spawn.Fore,
+			spawn.Dorsal);
+
 	public static Unit Create(
 		Instance instance,
 		Coord position,
@@ -32,6 +42,19 @@ public static class Factory
 			Team = instance.Team,
 		}, position, fore, dorsal, parentId);
 		return new Unit(state, executionAgent, instance.Team);
+	}
+
+	public static Unit Create(
+		ShipSnapshot snapshot,
+		GrimSpace.Units.Enums.ETeam team,
+		Coord position,
+		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
+		Coord fore,
+		Coord dorsal,
+		string parentId = BattleActorIds.Rules)
+	{
+		var state = State.FromSnapshot(snapshot, position, fore, dorsal, parentId);
+		return new Unit(state, executionAgent, team);
 	}
 
 	private static string ResolveId(Instance instance) =>

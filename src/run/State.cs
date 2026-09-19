@@ -2,10 +2,14 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Ids;
 using GrimSpace.Core.Log;
 using GrimSpace.Tutorials;
+using GrimSpace.Units;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Run;
 
@@ -14,6 +18,7 @@ public sealed class State : IDisposable
 	//TODO: player fleet should not be hardcoded here
 	public const string PlayerFleetUnitId = "player-fleet";
 
+	public RunShipRegistry ShipRegistry { get; } = new();
 	public Party PlayerParty { get; } = new();
 	public TutorialProgress TutorialProgress { get; } = new();
 	public RunTransitionInbox Transitions { get; } = new();
@@ -26,6 +31,7 @@ public sealed class State : IDisposable
 	private readonly HashSet<string> _resolvedBattleIds = new(StringComparer.Ordinal);
 	private readonly HashSet<string> _launchedEngagementIds = new(StringComparer.Ordinal);
 	private IDisposable? _engagementSubscription;
+	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -47,12 +53,16 @@ public sealed class State : IDisposable
 		if (_resolvedBattleIds.Contains(outcome.BattleId))
 			return;
 
+		ValidateOutcomeHandoffs(outcome);
+
 		if (!StarSystem.ResolveEngagement(PlayerFleetUnitId, outcome))
 		{
 			PendingBattleOutcome = outcome;
 			GameLog.Log("Engagement resolution failed; outcome retained.");
 			return;
 		}
+
+		ApplyOutcomeToRegistry(outcome);
 
 		_resolvedBattleIds.Add(outcome.BattleId);
 		PendingBattleOutcome = null;
@@ -79,17 +89,20 @@ public sealed class State : IDisposable
 		_launchedEngagementIds.Clear();
 		ReplaceStarSystem(StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
-			PlayerParty.Members,
+			PlayerParty.ShipIds,
 			nextSeed));
 	}
 
 	public static State CreateNewRun(int seed = 0)
 	{
 		var run = new State();
-		var orchestrator = StarSystemOrchestrator.CreateSession(PlayerFleetUnitId, seed);
-		var playerFleet = orchestrator.Map.FleetRegistry.FleetOf(PlayerFleetUnitId);
-		foreach (var member in playerFleet.Members)
-			run.PlayerParty.Add(member);
+		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
+		run.ShipRegistry.Register(RunShip.CreateDefault(playerShipId, BattleUnitType.Fighter));
+		run.PlayerParty.Add(playerShipId);
+		var orchestrator = StarSystemOrchestrator.CreateSession(
+			PlayerFleetUnitId,
+			run.PlayerParty.ShipIds,
+			seed);
 		run.BindStarSystem(orchestrator);
 		return run;
 	}
@@ -98,6 +111,8 @@ public sealed class State : IDisposable
 	{
 		_engagementSubscription?.Dispose();
 		_engagementSubscription = null;
+		_fleetSpawnSubscription?.Dispose();
+		_fleetSpawnSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -108,18 +123,48 @@ public sealed class State : IDisposable
 		StarSystem = orchestrator;
 		Transitions.Bind(StarSystem);
 		_engagementSubscription = StarSystem.Subscribe<Record<EngagementCommitted>>(OnCommittedEngagement);
+		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
 	{
 		_engagementSubscription?.Dispose();
 		_engagementSubscription = null;
+		_fleetSpawnSubscription?.Dispose();
+		_fleetSpawnSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
 
 	internal void ReceiveEngagementFact(Record<EngagementCommitted> record) =>
 		OnCommittedEngagement(record);
+
+	private void EnsureRegistryForFleets(IEnumerable<Fleet> fleets)
+	{
+		foreach (var fleet in fleets)
+		{
+			foreach (var declaration in fleet.Registrations)
+				ShipRegistry.Register(declaration);
+		}
+
+		foreach (var fleet in fleets)
+		{
+			foreach (var member in fleet.Members)
+			{
+				if (ShipRegistry.TryGet(member.Id, out _))
+					continue;
+
+				throw new InvalidOperationException(
+					$"Ship '{member.Id}' on fleet '{fleet.State.Id}' is missing from RunShipRegistry.");
+			}
+		}
+	}
+
+	private void OnCommittedFleetSpawned(Record<FleetSpawned> record)
+	{
+		foreach (var declaration in record.Value.Members)
+			ShipRegistry.Register(declaration);
+	}
 
 	private void OnCommittedEngagement(Record<EngagementCommitted> record)
 	{
@@ -138,14 +183,51 @@ public sealed class State : IDisposable
 			var fleets = fact.ParticipantFleetIds
 				.Select(id => StarSystem.Map.FleetRegistry.FleetOf(id))
 				.ToArray();
+			EnsureRegistryForFleets(fleets);
 			var seed = Random.Shared.Next();
-			ActiveBattle = EngagementBattleFactory.Create(fleets, seed, fact.EngagementId);
+			ActiveBattle = EngagementBattleFactory.Create(fleets, ShipRegistry, seed, fact.EngagementId);
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();
 		}
 		catch (Exception ex)
 		{
 			GameLog.LogException(ex, "Failed to construct battle from committed engagement.");
+		}
+	}
+
+	private void ValidateOutcomeHandoffs(BattleOutcome outcome)
+	{
+		if (ActiveBattle is null)
+			return;
+
+		var engaged = ActiveBattle.Spawns.Select(spawn => spawn.Ship.Id).ToHashSet(StringComparer.Ordinal);
+		foreach (var handoff in outcome.StateHandoffs)
+		{
+			if (!engaged.Contains(handoff.Id))
+				throw new InvalidOperationException(
+					$"Battle outcome includes unknown engaged ship '{handoff.Id}'.");
+
+			if (!ShipRegistry.TryGet(handoff.Id, out var ship))
+				throw new InvalidOperationException(
+					$"Battle outcome handoff '{handoff.Id}' has no registry row.");
+
+			if (ship.Configuration.Chassis != handoff.Chassis)
+				throw new InvalidOperationException(
+					$"Battle outcome chassis mismatch for ship '{handoff.Id}'.");
+		}
+	}
+
+	private void ApplyOutcomeToRegistry(BattleOutcome outcome)
+	{
+		foreach (var handoff in outcome.StateHandoffs)
+			ShipRegistry.ApplyHandoff(handoff);
+
+		foreach (var handoff in outcome.StateHandoffs)
+		{
+			if (handoff.HullPoints > 0)
+				continue;
+
+			PlayerParty.Remove(handoff.Id);
 		}
 	}
 

@@ -43,11 +43,10 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
 		Assert.Equal(3, spawned.Members.Count);
-		Assert.All(spawned.Members, member =>
-		{
-			Assert.Equal(GrimSpace.Units.Enums.EType.Patrol, member.Type);
-			Assert.StartsWith("patrol-", member.Id);
-		});
+		Assert.All(spawned.Members, member => Assert.StartsWith("patrol-", member.Id));
+		Assert.All(
+			spawned.Registrations,
+			declaration => Assert.Equal(GrimSpace.Units.Enums.EType.Patrol, declaration.Chassis));
 		Assert.Equal(
 			spawned.Members.Count,
 			spawned.Members.Select(member => member.Id).Distinct(StringComparer.Ordinal).Count());
@@ -94,7 +93,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			.Single(unit => unit.State.Id.Contains("mixed-fleet", StringComparison.Ordinal));
 		Assert.Equal(
 			[BattleUnitType.Carrier, BattleUnitType.Fighter],
-			fleet.Members.Select(member => member.Type));
+			fleet.Registrations.Select(declaration => declaration.Chassis));
 	}
 
 	[Fact]

@@ -1,10 +1,9 @@
 using GrimSpace.Battle.Ai;
-using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
+using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Units;
@@ -28,8 +27,13 @@ public static class EngagementBattleFactory
 	private const int GridSize = 64;
 	private const int FieldMargin = 2;
 
-	public static BattleEncounter Create(Fleet[] participantFleets, int seed, string id)
+	public static BattleEncounter Create(
+		Fleet[] participantFleets,
+		RunShipRegistry registry,
+		int seed,
+		string id)
 	{
+		ArgumentNullException.ThrowIfNull(registry);
 
 		var rng = new Random(seed);
 		var center = GridSize / 2;
@@ -47,6 +51,7 @@ public static class EngagementBattleFactory
 					fieldCenter,
 					rng,
 					occupiedPositions,
+					registry,
 					spawns
 				);
 			}
@@ -77,6 +82,7 @@ public static class EngagementBattleFactory
     Coord fieldCenter,
     Random rng,
     HashSet<Coord> occupiedPositions,
+    RunShipRegistry registry,
     List<BattleSpawn> spawns)
 	{
 
@@ -95,12 +101,8 @@ public static class EngagementBattleFactory
 
 			spawns.Add(new BattleSpawn
 			{
-				Unit = new Instance
-				{
-					Id = member.Id,
-					Type = member.Type,
-					Team = team.on
-				},
+				Ship = registry.Snapshot(member.Id),
+				Team = team.on,
 				Position = position,
 				Fore = AxisToward(position, fieldCenter),
 				Dorsal = Coord.Up,

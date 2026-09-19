@@ -43,6 +43,7 @@ internal static class BattleTestFixture
 		var timeline = new Timeline();
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var units = new Unit[] { player, enemy };
+		var engagedShipIds = units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
 		var world = BattleWorld.FromLive(
 			units,
 			nonUnits,
@@ -50,6 +51,7 @@ internal static class BattleTestFixture
 			blocked,
 			"test-battle",
 			EObjective.EliminateOpponents,
+			engagedShipIds,
 			timeline);
 		var layout = BattleLayout.FromEncounter(grid, [], units);
 

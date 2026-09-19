@@ -3,12 +3,14 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Encounter;
 
 public sealed class BattleSpawn
 {
-	public required Instance Unit { get; init; }
+	public required ShipSnapshot Ship { get; init; }
+	public required ETeam Team { get; init; }
 	public Coord Position { get; init; }
 	public Coord Fore { get; init; } = Coord.Forward;
 	public Coord Dorsal { get; init; } = Coord.Up;

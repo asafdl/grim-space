@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.World.StarSystem.Resources;
-using BattleUnitType = GrimSpace.Units.Enums.EType;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Run;
 
@@ -12,21 +12,21 @@ public static class LootCatalog
 		var rolls = new List<LootRoll>();
 		foreach (var handoff in outcome.StateHandoffs)
 		{
-			if (handoff.HP > 0)
+			if (handoff.HullPoints > 0)
 				continue;
 
-			var awarded = Roll(handoff.Kind);
+			var awarded = Roll(handoff.Chassis);
 			if (!awarded.IsEmpty)
-				rolls.Add(new LootRoll(handoff.Id, handoff.Kind, awarded));
+				rolls.Add(new LootRoll(handoff.Id, handoff.Chassis, awarded));
 		}
 
 		return new LootResult(rolls, SumRolls(rolls));
 	}
 
-	private static ResourceBundle Roll(BattleUnitType kind) =>
+	private static ResourceBundle Roll(EType kind) =>
 		kind switch
 		{
-			BattleUnitType.Patrol => ResourceBundle.Of(
+			EType.Patrol => ResourceBundle.Of(
 				ResourceId.ScrapAlloy,
 				Random.Shared.Next(50, 121)),
 			_ => ResourceBundle.Empty,
@@ -47,4 +47,4 @@ public static class LootCatalog
 
 public sealed record LootResult(IReadOnlyList<LootRoll> Rolls, ResourceBundle Total);
 
-public sealed record LootRoll(string TacticalUnitId, BattleUnitType Kind, ResourceBundle Awarded);
+public sealed record LootRoll(string TacticalUnitId, EType Kind, ResourceBundle Awarded);

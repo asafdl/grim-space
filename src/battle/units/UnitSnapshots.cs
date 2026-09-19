@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Units;
 

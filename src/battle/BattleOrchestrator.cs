@@ -75,14 +75,12 @@ public sealed class BattleOrchestrator : IDisposable
 		var blockedCells = BattleWorld.TerrainBlockedCells(terrainHazards);
 
 		var units = encounter.Spawns
-			.Select(spawn => Factory.Create(
-				spawn.Unit,
-				spawn.Position,
-				spawn.ExecutionAgent,
-				spawn.Fore,
-				spawn.Dorsal))
+			.Select(Factory.Create)
 			.ToArray();
 
+		var engagedShipIds = encounter.Spawns
+			.Select(spawn => spawn.Ship.Id)
+			.ToHashSet(StringComparer.Ordinal);
 		var player = units.First(unit => unit.Team == ETeam.Player);
 		var world = BattleWorld.FromLive(
 			units,
@@ -91,6 +89,7 @@ public sealed class BattleOrchestrator : IDisposable
 			blockedCells,
 			encounter.Id,
 			encounter.Objective,
+			engagedShipIds,
 			timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 

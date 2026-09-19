@@ -2,6 +2,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Player;
 

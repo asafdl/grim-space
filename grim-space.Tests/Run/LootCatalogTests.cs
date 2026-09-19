@@ -45,7 +45,7 @@ public sealed class LootCatalogTests
 		var outcome = new BattleOutcome(
 			"test-battle",
 			EBattleResult.Ongoing,
-			[new UnitStateHandoff(1, EType.Patrol, "patrol-0")]);
+			[OutcomeTestKit.Handoff("patrol-0", EType.Patrol, 1)]);
 
 		var result = LootCatalog.For(outcome);
 
@@ -59,7 +59,7 @@ public sealed class LootCatalogTests
 		var outcome = new BattleOutcome(
 			"test-battle",
 			EBattleResult.Ongoing,
-			[new UnitStateHandoff(0, EType.Fighter, "player-ship")]);
+			[OutcomeTestKit.Handoff("player-ship", EType.Fighter, 0)]);
 
 		var result = LootCatalog.For(outcome);
 
@@ -73,7 +73,7 @@ public sealed class LootCatalogTests
 		var outcome = new BattleOutcome(
 			"test-battle",
 			EBattleResult.Win,
-			[new UnitStateHandoff(0, EType.Torpedo, "torpedo-1")]);
+			[OutcomeTestKit.Handoff("torpedo-1", EType.Torpedo, 0)]);
 
 		var result = LootCatalog.For(outcome);
 
@@ -85,8 +85,5 @@ public sealed class LootCatalogTests
 		new(
 			"test-battle",
 			EBattleResult.Win,
-			[.. patrolIds.Select(id => new UnitStateHandoff(
-				0,
-				EType.Patrol,
-				id))]);
+			[.. patrolIds.Select(id => OutcomeTestKit.Handoff(id, EType.Patrol, 0))]);
 }

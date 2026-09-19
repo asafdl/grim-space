@@ -167,10 +167,10 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 		new CommitEngagementEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var handoffs = map.FleetRegistry.All
-			.SelectMany(fleet => fleet.Members.Select(member => new UnitStateHandoff(
-				fleet.State.Id == pirateId ? 0 : 1,
-				member.Type,
-				member.Id)))
+			.SelectMany(fleet => fleet.Members.Select(member => OutcomeTestKit.Handoff(
+				member.Id,
+				OutcomeTestKit.ChassisFromShipId(member.Id),
+				fleet.State.Id == pirateId ? 0 : 1)))
 			.ToArray();
 		var outcome = new BattleOutcome(
 			map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id,

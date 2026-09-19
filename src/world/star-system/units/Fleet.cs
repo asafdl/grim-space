@@ -6,8 +6,12 @@ public sealed class Fleet
 {
 	public State State { get; }
 	public IReadOnlyList<FleetMember> Members { get; }
+	public IReadOnlyList<ShipSpawnDeclaration> Registrations { get; }
 
-	public Fleet(State state, IEnumerable<FleetMember>? members = null)
+	public Fleet(
+		State state,
+		IEnumerable<FleetMember>? members = null,
+		IEnumerable<ShipSpawnDeclaration>? registrations = null)
 	{
 		ArgumentNullException.ThrowIfNull(state);
 		State = state;
@@ -18,5 +22,6 @@ public sealed class Fleet
 			throw new ArgumentException("Fleet member IDs must be unique.", nameof(members));
 
 		Members = Array.AsReadOnly(materialized);
+		Registrations = Array.AsReadOnly(registrations?.ToArray() ?? []);
 	}
 }

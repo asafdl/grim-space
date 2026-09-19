@@ -15,7 +15,7 @@ public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRunt
 	{
 		foreach (var handoff in _outcome.StateHandoffs)
 		{
-			if (handoff.HP > 0)
+			if (handoff.HullPoints > 0)
 				continue;
 			if (!world.FleetRegistry.TryFleetContainingMember(handoff.Id, out var fleet))
 				continue;
