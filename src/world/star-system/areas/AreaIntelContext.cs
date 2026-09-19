@@ -1,6 +1,6 @@
 namespace GrimSpace.World.StarSystem.Areas;
 
 public sealed record AreaIntelContext(
-	string LandmarkADisplayName,
-	string LandmarkBDisplayName,
+	string LandmarkAId,
+	string LandmarkBId,
 	EAreaDistance Distance);

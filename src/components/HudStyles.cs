@@ -24,6 +24,7 @@ public static class HudStyles
 	public const string InformativeItemTitleLabelType = "InformativeItemTitleLabel";
 	public const string InformativeItemSeparatorLabelType = "InformativeItemSeparatorLabel";
 	public const string InformativeItemDescriptionLabelType = "InformativeItemDescriptionLabel";
+	public const string InformativeItemDescriptionRichTextLabelType = "InformativeItemDescriptionRichTextLabel";
 
 	public const string HudHeadingLabelType = "HudHeadingLabel";
 	public const string DebugHudPanelType = "DebugHudPanelContainer";

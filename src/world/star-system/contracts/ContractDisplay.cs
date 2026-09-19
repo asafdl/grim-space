@@ -1,4 +1,5 @@
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Resources;
@@ -21,35 +22,46 @@ public static class ContractDisplay
 		return $"{faction} · {poiName}";
 	}
 
-	public static string ObjectiveSummary(Contract contract) =>
-		contract.Objective switch
-		{
-			HuntObjective hunt =>
-				$"{FormatHuntObjective(hunt)} Expected force: {FormatForceEstimate(hunt)}.",
-			_ => "—",
-		};
+	public static string DetailsBody(Contract contract, StarMap map)
+	{
+		var parts = new List<string>();
+		var briefing = Narrative(contract);
+		if (!string.IsNullOrWhiteSpace(briefing))
+			parts.Add(briefing.Trim());
 
-	public static string ObjectivePreview(Contract contract) =>
+		var searchArea = SearchArea(contract, map);
+		if (searchArea != "—")
+			parts.Add(searchArea.Trim());
+
+		var reward = Reward(contract);
+		if (reward != "—")
+			parts.Add($"Compensation is {reward}.");
+
+		var danger = Danger(contract);
+		if (danger != "—")
+			parts.Add($"Threat assessment: {danger}.");
+
+		return parts.Count == 0 ? "—" : string.Join("\n\n", parts);
+	}
+
+	internal static string ObjectivePreview(Contract contract) =>
 		contract.Objective switch
 		{
 			HuntObjective hunt => FormatHuntObjective(hunt),
 			_ => "—",
 		};
 
-	public static string ForceEstimate(Contract contract) =>
-		contract.Objective switch
-		{
-			HuntObjective hunt => FormatForceEstimate(hunt),
-			_ => "—",
-		};
-
-	public static string SearchArea(Contract contract) =>
+	public static string SearchArea(Contract contract, StarMap map) =>
 		contract.Objective switch
 		{
 			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
-				hunt.SpawnGroups[0].SearchArea.Description,
+				FormatSearchAreaIntel(hunt.SpawnGroups[0].SearchArea.Intel, map),
 			_ => "—",
 		};
+
+	internal static string FormatSearchAreaIntel(AreaIntel intel, StarMap map) =>
+		AreaIntelDisplay.FormatPlain(intel, poiId =>
+			map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName);
 
 	public static string Reward(Contract contract) =>
 		contract.Terms.Payment.IsEmpty
@@ -116,25 +128,10 @@ public static class ContractDisplay
 		return $"Locate and eliminate {string.Join(" and ", targets)}.";
 	}
 
-	private static string FormatForceEstimate(HuntObjective hunt)
-	{
-		var craft = hunt.SpawnGroups
-			.SelectMany(group => group.Spawn.MemberTypes.Select(type => (type, group.RequiredCount)))
-			.GroupBy(entry => entry.type)
-			.Select(group => (Type: group.Key, Count: group.Sum(entry => entry.RequiredCount)))
-			.ToArray();
-		if (craft.Length == 0)
-			return "unavailable";
-
-		return string.Join(
-			", ",
-			craft.Select(entry => $"{entry.Count} {CraftName(entry.Type, entry.Count)}"));
-	}
-
 	private static string DangerDisplayName(EDangerLevel danger) =>
 		danger switch
 		{
-			EDangerLevel.VeryLow => "Minimal",
+			EDangerLevel.VeryLow => "minimal",
 			_ => throw new ArgumentOutOfRangeException(nameof(danger), danger, null),
 		};
 
@@ -151,16 +148,6 @@ public static class ContractDisplay
 			EFaction.Pirates => Pluralize(count, "pirate fleet", "pirate fleets"),
 			EFaction.TheOptimality => Pluralize(count, "Optimality fleet", "Optimality fleets"),
 			_ => throw new ArgumentOutOfRangeException(nameof(faction), faction, null),
-		};
-
-	private static string CraftName(GrimSpace.Units.Enums.EType type, int count) =>
-		type switch
-		{
-			GrimSpace.Units.Enums.EType.Fighter => Pluralize(count, "fighter", "fighters"),
-			GrimSpace.Units.Enums.EType.Carrier => Pluralize(count, "carrier", "carriers"),
-			GrimSpace.Units.Enums.EType.Patrol => "patrol craft",
-			GrimSpace.Units.Enums.EType.Torpedo => "torpedo craft",
-			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 
 	private static string FormatCount(int count) => count == 1 ? "one" : count.ToString();

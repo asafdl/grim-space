@@ -147,15 +147,7 @@ public sealed class TutorialController : IDisposable
 		if (!_progress.IsCompleted(FirstContractTutorial.Id)
 			&& orchestrator.Map.StoryObjectives.Active.Any(
 				objective => objective.Id == StoryObjective.FirstContract.Id))
-		{
 			return FirstContractTutorial.Create(orchestrator.Map);
-		}
-
-		if (_progress.IsCompleted(FirstContractTutorial.Id)
-			&& !_progress.IsCompleted(FirstPirateTutorial.Id))
-		{
-			return FirstPirateTutorial.CreateForActiveContract(orchestrator.Map);
-		}
 
 		return null;
 	}
@@ -169,7 +161,6 @@ public sealed class TutorialController : IDisposable
 		_activeActionSubscription = flow.Id switch
 		{
 			FirstContractTutorial.Id => _orchestrator.Subscribe<MoveAction>(OnMove),
-			FirstPirateTutorial.Id => _orchestrator.Subscribe<HuntUnitAction>(OnHunt),
 			_ => null,
 		};
 	}
@@ -463,19 +454,6 @@ public sealed class TutorialController : IDisposable
 			|| move.UnitId != orchestrator.PlayerId
 			|| !orchestrator.Map.DocksByPoiId.TryGetValue(targetId, out var dock)
 			|| move.Destination != dock.Position)
-			return;
-
-		_runner.AdvanceActive();
-	}
-
-	private void OnHunt(HuntUnitAction hunt)
-	{
-		var orchestrator = _orchestrator
-			?? throw new InvalidOperationException("Battle tutorials do not observe star-system hunts.");
-		if (_runner.ActiveFlow is not { Id: FirstPirateTutorial.Id }
-			|| _runner.ActiveStep?.TargetId is not { } targetId
-			|| hunt.ActorId != orchestrator.PlayerId
-			|| hunt.TargetUnitId != targetId)
 			return;
 
 		_runner.AdvanceActive();

@@ -73,9 +73,8 @@ public static class AreaPicker
 		}
 
 		var chosen = candidates[Random.Shared.Next(candidates.Count)];
-		var displayA = poiById[chosen.LandmarkAId].DisplayName;
-		var displayB = poiById[chosen.LandmarkBId].DisplayName;
-		var intel = AreaIntelProducer.Produce(new AreaIntelContext(displayA, displayB, chosen.Distance));
+		var intel = AreaIntelProducer.Produce(
+			new AreaIntelContext(chosen.LandmarkAId, chosen.LandmarkBId, chosen.Distance));
 
 		return new AreaPick(
 			chosen.Center,

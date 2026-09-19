@@ -29,7 +29,4 @@ internal static class TutorialCopy
 
 	public static string MapMoveToPoi(string poiId, string poiLabel) =>
 		$"{InputShortcutText.LeftClick} the [url={poiId}]{poiLabel}[/url] on the map to move your fleet there.";
-
-	public static string MapHuntPirate(string pirateId) =>
-		$"{InputShortcutText.LeftClick} the [url={pirateId}]pirate ship[/url] spawned by your contract to pursue it.";
 }

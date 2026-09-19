@@ -14,6 +14,8 @@ public partial class ObjectivesHud : MarginContainer
 	private Label _headerCountLabel = null!;
 	private string _lastSignature = "";
 
+	public event Action<string>? LandmarkLinkClicked;
+
 	public override void _Ready()
 	{
 		ConfigureChrome();
@@ -127,19 +129,40 @@ public partial class ObjectivesHud : MarginContainer
 		title.AddThemeFontSizeOverride("font_size", ObjectiveTitleFontSize);
 		details.AddChild(title);
 
-		var summary = new Label
+		var summary = new RichTextLabel
 		{
-			Text = objective.Summary,
+			BbcodeEnabled = true,
+			Text = ObjectiveSummaryFormatter.ToBbcode(objective.Summary),
+			FitContent = true,
+			ScrollActive = false,
+			SelectionEnabled = false,
+			ContextMenuEnabled = false,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			MouseFilter = MouseFilterEnum.Ignore,
+			MouseFilter = MouseFilterEnum.Stop,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			ThemeTypeVariation = HudStyles.InformativeItemDescriptionLabelType,
+			ThemeTypeVariation = HudStyles.InformativeItemDescriptionRichTextLabelType,
+			MetaUnderlined = true,
 		};
-		summary.AddThemeFontSizeOverride("font_size", ObjectiveSummaryFontSize);
+		summary.AddThemeFontSizeOverride("normal_font_size", ObjectiveSummaryFontSize);
+		summary.MetaClicked += metadata => OnSummaryMetaClicked(metadata);
 		details.AddChild(summary);
 		row.AddChild(details);
 
+		if (objective.Source == EObjectiveSource.Contract && !objective.Reward.IsEmpty)
+			row.AddChild(ResourceRewardDisplay.CreateCompact(objective.Reward));
+
 		return row;
+	}
+
+	private void OnSummaryMetaClicked(Variant metadata)
+	{
+		if (metadata.VariantType != Variant.Type.String)
+		{
+			GD.PushError($"ObjectivesHud received unsupported link metadata type '{metadata.VariantType}'.");
+			return;
+		}
+
+		LandmarkLinkClicked?.Invoke(metadata.AsString());
 	}
 
 	private static string BuildSignature(IReadOnlyList<ActiveObjective> objectives)
@@ -149,6 +172,27 @@ public partial class ObjectivesHud : MarginContainer
 
 		return string.Join(
 			'\n',
-			objectives.Select(objective => $"{objective.Source}:{objective.Id}:{objective.Title}:{objective.Summary}"));
+			objectives.Select(FormatObjectiveSignature));
+	}
+
+	private static string FormatObjectiveSignature(ActiveObjective objective)
+	{
+		var summarySignature = objective.Summary switch
+		{
+			ObjectiveSummaryContent.Plain plain => $"plain:{plain.Text}",
+			ObjectiveSummaryContent.RouteBetweenLandmarks route =>
+				$"route:{route.Prefix}" +
+				$"{route.LandmarkAPoiId}:{route.LandmarkADisplayName}" +
+				$"{route.Connector}" +
+				$"{route.LandmarkBPoiId}:{route.LandmarkBDisplayName}" +
+				$"{route.Suffix}",
+			_ => "unknown",
+		};
+		var rewardSignature = string.Join(
+			',',
+			objective.Reward
+				.OrderBy(entry => entry.Key)
+				.Select(entry => $"{entry.Key}:{entry.Value}"));
+		return $"{objective.Source}:{objective.Id}:{objective.Title}:{summarySignature}:{rewardSignature}";
 	}
 }

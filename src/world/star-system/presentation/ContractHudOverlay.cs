@@ -1,8 +1,6 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Contracts;
-using GrimSpace.World.StarSystem.Encounter;
-
 namespace GrimSpace.World.StarSystem.Presentation;
 
 public sealed partial class ContractHudOverlay : Control
@@ -138,20 +136,14 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.SetBackHandler(ShowList);
 
 		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-
-		body.AddChild(HudWidgets.CreateSection("Mission Briefing", ContractDisplay.Narrative(_selected)));
-		body.AddChild(HudWidgets.CreateSection("Objective", ContractDisplay.ObjectivePreview(_selected)));
-		body.AddChild(HudWidgets.CreateSection("Expected Opposition", ContractDisplay.ForceEstimate(_selected)));
-		body.AddChild(HudWidgets.CreateSection("Search Area", ContractDisplay.SearchArea(_selected)));
-		body.AddChild(HudWidgets.CreateSection(
-			"Compensation",
-			ContractDisplay.Reward(_selected),
-			bodyRole: HudTextRole.Success));
-		body.AddChild(HudWidgets.CreateSection(
-			"Threat Assessment",
-			ContractDisplay.Danger(_selected),
-			bodyRole: ThreatTextRole(_selected)));
+		var details = new Label
+		{
+			Text = ContractDisplay.DetailsBody(_selected, _map),
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		HudStyles.ApplyTextRole(details, HudTextRole.Body);
+		body.AddChild(details);
 
 		_shell.SetBody(body);
 		_shell.SetFooter(
@@ -203,18 +195,6 @@ public sealed partial class ContractHudOverlay : Control
 				_selected = contract;
 				ShowDetails();
 			});
-	}
-
-	private static HudTextRole ThreatTextRole(Contract contract)
-	{
-		if (!ContractDisplay.TryGetDangerLevel(contract, out var danger))
-			return HudTextRole.Metadata;
-
-		return danger switch
-		{
-			EDangerLevel.VeryLow => HudTextRole.Metadata,
-			_ => HudTextRole.Danger,
-		};
 	}
 
 	private static string Pluralize(int count, string singular, string plural) =>

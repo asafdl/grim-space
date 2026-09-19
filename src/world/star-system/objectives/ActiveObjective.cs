@@ -1,3 +1,5 @@
+using GrimSpace.World.StarSystem.Resources;
+
 namespace GrimSpace.World.StarSystem.Objectives;
 
 public enum EObjectiveSource
@@ -9,5 +11,6 @@ public enum EObjectiveSource
 public readonly record struct ActiveObjective(
 	string Id,
 	string Title,
-	string Summary,
+	ObjectiveSummaryContent Summary,
+	ResourceBundle Reward,
 	EObjectiveSource Source);

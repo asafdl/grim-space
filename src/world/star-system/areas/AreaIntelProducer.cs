@@ -43,14 +43,14 @@ public static class AreaIntelProducer
 		new(EAreaIntelTone.Fragmentary, "Far from {A} and {B}. Take the lead with salt."),
 	];
 
-	public static string Produce(AreaIntelContext context) =>
+	public static AreaIntel Produce(AreaIntelContext context) =>
 		Produce(context, allowedTones: null);
 
-	public static string Produce(AreaIntelContext context, IReadOnlyCollection<EAreaIntelTone>? allowedTones)
+	public static AreaIntel Produce(AreaIntelContext context, IReadOnlyCollection<EAreaIntelTone>? allowedTones)
 	{
 		ArgumentNullException.ThrowIfNull(context);
-		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkADisplayName);
-		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkBDisplayName);
+		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkAId);
+		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkBId);
 
 		var lines = LinesFor(context.Distance);
 		if (allowedTones is not null)
@@ -73,9 +73,7 @@ public static class AreaIntelProducer
 		}
 
 		var line = lines[Random.Shared.Next(lines.Length)];
-		return line.Template
-			.Replace("{A}", context.LandmarkADisplayName, StringComparison.Ordinal)
-			.Replace("{B}", context.LandmarkBDisplayName, StringComparison.Ordinal);
+		return new AreaIntel(line.Template, context.LandmarkAId, context.LandmarkBId);
 	}
 
 	private static IntelLine[] LinesFor(EAreaDistance distance) =>

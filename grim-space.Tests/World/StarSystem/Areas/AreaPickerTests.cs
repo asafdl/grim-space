@@ -221,10 +221,15 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(pick.Relation);
 		var displayA = map.PointsOfInterest.First(poi => poi.Id == relation.LandmarkAId).DisplayName;
 		var displayB = map.PointsOfInterest.First(poi => poi.Id == relation.LandmarkBId).DisplayName;
+		var description = AreaIntelDisplay.FormatPlain(
+			pick.Intel,
+			poiId => map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName);
 
-		Assert.Contains(displayA, pick.Description);
-		Assert.Contains(displayB, pick.Description);
-		Assert.False(string.IsNullOrWhiteSpace(pick.Description));
+		Assert.Equal(relation.LandmarkAId, pick.Intel.LandmarkAId);
+		Assert.Equal(relation.LandmarkBId, pick.Intel.LandmarkBId);
+		Assert.Contains(displayA, description);
+		Assert.Contains(displayB, description);
+		Assert.False(string.IsNullOrWhiteSpace(description));
 	}
 
 	private static void AssertRadiusScalesWithSpan(StarMap map, AreaPick pick)

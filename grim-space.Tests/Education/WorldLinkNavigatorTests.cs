@@ -5,6 +5,18 @@ namespace GrimSpace.Tests.Education;
 public sealed class WorldLinkNavigatorTests
 {
 	[Fact]
+	public void Follow_HiddenFleetTarget_ReturnsFocusFailed()
+	{
+		var focus = new VisibilityAwareWorldFocus(_ => false);
+		var indicator = new TrackingWorldIndicator();
+		using var navigator = new WorldLinkNavigator(focus, indicator);
+
+		var result = navigator.Follow("hidden-pirate");
+
+		Assert.IsType<WorldLinkNavigationResult.FocusFailed>(result);
+	}
+
+	[Fact]
 	public void Clear_OnOneNavigator_LeavesOtherNavigatorIndicatorActive()
 	{
 		var indicator = new TrackingWorldIndicator();
@@ -25,6 +37,14 @@ public sealed class WorldLinkNavigatorTests
 	{
 		public WorldFocusResult Focus(string objectId) =>
 			new WorldFocusResult.Accepted(new TrackingHandle());
+	}
+
+	private sealed class VisibilityAwareWorldFocus(Func<string, bool> isVisible) : IWorldFocus
+	{
+		public WorldFocusResult Focus(string objectId) =>
+			isVisible(objectId)
+				? new WorldFocusResult.Accepted(new TrackingHandle())
+				: new WorldFocusResult.TargetNotFocusable();
 	}
 
 	private sealed class TrackingWorldIndicator : IWorldIndicator

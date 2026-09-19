@@ -47,6 +47,7 @@ public partial class MapController : Node3D
 	private TutorialController? _tutorial;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
+	private WorldLinkNavigator? _objectivesLinks;
 	private IDisposable _engageSubscription = null!;
 	private ResourceTransactionFeed _resourceTransactions = null!;
 
@@ -214,6 +215,8 @@ public partial class MapController : Node3D
 			IsPlayerFleetVisible);
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
+		_objectivesLinks = new WorldLinkNavigator(_worldFocus, _worldIndicator);
+		_objectivesHud.LandmarkLinkClicked += OnObjectiveLandmarkLinkClicked;
 
 		var narrativeHud = new NarrativeHudOverlay();
 		_uiLayer.AddChild(narrativeHud);
@@ -309,6 +312,12 @@ public partial class MapController : Node3D
 		_engagement.Dispose();
 		_narrative.Dispose();
 		_tutorial?.Dispose();
+		if (_objectivesLinks is not null)
+		{
+			_objectivesHud.LandmarkLinkClicked -= OnObjectiveLandmarkLinkClicked;
+			_objectivesLinks.Dispose();
+			_objectivesLinks = null;
+		}
 		base._ExitTree();
 	}
 
@@ -574,6 +583,16 @@ public partial class MapController : Node3D
 	{
 		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
 		_objectivesHud.Sync(objectives);
+	}
+
+	private void OnObjectiveLandmarkLinkClicked(string objectId)
+	{
+		if (_objectivesLinks is null)
+			return;
+
+		var result = _objectivesLinks.Follow(objectId);
+		if (result is not WorldLinkNavigationResult.Followed)
+			GD.PushWarning($"Objective landmark link '{objectId}' failed: {result.GetType().Name}.");
 	}
 
 	private static void ConfigureTutorialDialog(TutorialDialog dialog)

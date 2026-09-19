@@ -250,7 +250,12 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	private static AreaPick CreateSyntheticSearchArea(StarMap map)
 	{
 		var center = new Coord(map.Width / 2, 0, map.Height / 2);
-		return new AreaPick(center, 48, "synthetic search sector", default!);
+		var plan = map.Blueprint.SupplyPlan;
+		return new AreaPick(
+			center,
+			48,
+			new AreaIntel("Between {A} and {B}.", plan.RefineryPoiId, plan.StoragePoiId),
+			default!);
 	}
 
 	private static FleetSpawnSpec CreateSpawnSpec(int mapSeed, string groupId) =>

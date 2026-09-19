@@ -2,6 +2,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Engine;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -129,5 +130,49 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 		var objectives = ObjectivesCollector.Collect(map, holderUnitId);
 
 		Assert.Empty(objectives);
+	}
+
+	[Fact]
+	public void Collect_ActiveStarterContract_IncludesRouteIntelAndReward()
+	{
+		var map = maps.Fresh(42);
+		var contractId = map.ContractRegistry.Offered.First().Id;
+		var holderUnitId = map.FleetRegistry.Ids.First();
+		var contract = map.ContractRegistry.All.First(candidate => candidate.Id == contractId);
+		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(
+			((HuntObjective)contract.Objective).SpawnGroups[0].SearchArea.Relation);
+
+		map.ContractRegistry.Activate(new ContractState(
+			contractId,
+			EContractStatus.Active,
+			1,
+			holderUnitId,
+			ContractState.EmptyBindings));
+
+		var objectives = ObjectivesCollector.Collect(map, holderUnitId);
+		var objective = Assert.Single(objectives);
+
+		Assert.Equal(EObjectiveSource.Contract, objective.Source);
+		Assert.Equal("Pirate Hunt ★", objective.Title);
+		var route = Assert.IsType<ObjectiveSummaryContent.RouteBetweenLandmarks>(objective.Summary);
+		Assert.Equal(relation.LandmarkAId, route.LandmarkAPoiId);
+		Assert.Equal(relation.LandmarkBId, route.LandmarkBPoiId);
+		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
+		Assert.Equal(StarMap.StarterContractRewardCredits, credits);
+	}
+
+	[Fact]
+	public void Collect_StoryObjective_HasPlainSummaryAndNoReward()
+	{
+		var map = maps.Fresh(42);
+		var holderUnitId = map.FleetRegistry.Ids.First();
+		map.StoryObjectives.Add(new StoryObjective("story-1", "Reach the refinery", "Survey the supply chain."));
+
+		var objective = Assert.Single(ObjectivesCollector.Collect(map, holderUnitId));
+
+		Assert.Equal(EObjectiveSource.Story, objective.Source);
+		var plain = Assert.IsType<ObjectiveSummaryContent.Plain>(objective.Summary);
+		Assert.Equal("Survey the supply chain.", plain.Text);
+		Assert.True(objective.Reward.IsEmpty);
 	}
 }

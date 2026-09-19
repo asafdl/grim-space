@@ -253,10 +253,4 @@ Rebuild after changing exported properties, signals, or tool scripts.
 
 ### Tests
 
-Rules and orchestration tests live in `grim-space.Tests/` and run without Godot:
-
-```bash
-dotnet test --blame-crash --blame-crash-dump-type mini
-```
-
-Use tests for rules and orchestration; use Godot for presentation and full battle flow.
+Rules and orchestration tests live in `grim-space.Tests/` and run without Godot
