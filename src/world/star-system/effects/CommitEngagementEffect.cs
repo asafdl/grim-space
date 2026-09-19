@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
@@ -40,7 +41,12 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 
 		first.CurrentEngagement = engagement;
 		second.CurrentEngagement = engagement;
-		return [];
+
+		var participantIds = new[] { _firstUnitId, _secondUnitId }
+			.OrderBy(id => id, StringComparer.Ordinal)
+			.ToArray();
+		var committed = new EngagementCommitted(engagementId, initiatorId, participantIds);
+		return [new Record<EngagementCommitted>(committed)];
 	}
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }

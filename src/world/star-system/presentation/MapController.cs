@@ -48,7 +48,6 @@ public partial class MapController : Node3D
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private WorldLinkNavigator? _objectivesLinks;
-	private IDisposable _engageSubscription = null!;
 	private ResourceTransactionFeed _resourceTransactions = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
@@ -58,7 +57,6 @@ public partial class MapController : Node3D
 	private float _tickAccumulator;
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
-	private bool _battleTransitionPending;
 	private bool _staleWaitingForPlayerInputReported;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
 
@@ -89,7 +87,7 @@ public partial class MapController : Node3D
 		_orchestrator.RefreshPlayerAgent();
 		_resourceTransactions = new ResourceTransactionFeed();
 		_resourceTransactions.Bind(
-			Session.Instance.TransitionInbox,
+			Session.Instance.Run.Transitions,
 			_orchestrator,
 			_resourceHud);
 
@@ -108,14 +106,6 @@ public partial class MapController : Node3D
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new FleeAction(State.PlayerFleetUnitId)]),
 			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()));
-		_engageSubscription = _orchestrator.Subscribe<EngageAction>(OnEngagementCommitted);
-		if (EngagementQueries.TryGetCommittedPlayerEngagement(
-			_orchestrator.Map,
-			State.PlayerFleetUnitId,
-			out _))
-		{
-			DeferBattleTransition();
-		}
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
@@ -308,7 +298,6 @@ public partial class MapController : Node3D
 		_resourceTransactions?.Dispose();
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
-		_engageSubscription.Dispose();
 		_engagement.Dispose();
 		_narrative.Dispose();
 		_tutorial?.Dispose();
@@ -457,12 +446,6 @@ public partial class MapController : Node3D
 			? narrative
 			: null;
 
-	private void OnEngagementCommitted(EngageAction engage)
-	{
-		if (engage.ActorId == State.PlayerFleetUnitId)
-			DeferBattleTransition();
-	}
-
 	private void OnPlayerPlanningChanged()
 	{
 		if (_orchestrator.PlayerAgent?.PendingCourse is null)
@@ -499,24 +482,6 @@ public partial class MapController : Node3D
 			continuousPosition,
 			_orchestrator.PlayerAgent?.PendingCourse,
 			unit.State.SpeedPerTick);
-	}
-
-	private void DeferBattleTransition()
-	{
-		if (_battleTransitionPending)
-			return;
-
-		_battleTransitionPending = true;
-		Callable.From(BeginBattleTransition).CallDeferred();
-	}
-
-	private void BeginBattleTransition()
-	{
-		_battleTransitionPending = false;
-		if (!Session.Instance.BeginEngagement(State.PlayerFleetUnitId))
-			return;
-
-		GetTree().ChangeSceneToFile("res://scenes/battle.tscn");
 	}
 
 	private void OnFacilityEntered(FacilityEntry entry)
@@ -575,7 +540,7 @@ public partial class MapController : Node3D
 
 	private void RebuildScene()
 	{
-		Session.Instance.RegenerateMap();
+		Session.Instance.Run.RegenerateMap();
 		GetTree().ReloadCurrentScene();
 	}
 

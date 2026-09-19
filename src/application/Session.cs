@@ -1,14 +1,9 @@
 using System.Threading.Tasks;
 using Godot;
-using GrimSpace.Battle;
-using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.Objectives;
-using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Contact;
 
 namespace GrimSpace.Application;
 
@@ -23,7 +18,6 @@ public partial class Session : Node
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
-	private IDisposable? _battleOutcomeSubscription;
 
 	public static Session Instance =>
 		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
@@ -31,7 +25,6 @@ public partial class Session : Node
 	public State Run { get; private set; } = null!;
 
 	public DevMenuOverlay DevMenu => _devMenu;
-	public RunTransitionInbox TransitionInbox { get; } = new();
 
 	public override void _EnterTree()
 	{
@@ -52,7 +45,12 @@ public partial class Session : Node
 
 	public override void _ExitTree()
 	{
-		TransitionInbox.Dispose();
+		if (Run is not null)
+		{
+			Run.BattleReady -= OnBattleReady;
+			Run.Dispose();
+		}
+
 		if (_instance == this)
 			_instance = null;
 	}
@@ -136,7 +134,7 @@ public partial class Session : Node
 			if (!TryAdoptPreparedRun())
 				StartNewRun();
 
-			ChangeToMapScene();
+			NavigateToRunScene();
 		}
 		finally
 		{
@@ -146,10 +144,24 @@ public partial class Session : Node
 
 	public void StartNewRun()
 	{
-		Run?.StarSystem?.Dispose();
-		Run = State.CreateNewRun(Random.Shared.Next());
-		Run.ActiveBattle = null;
-		TransitionInbox.Bind(Run.StarSystem);
+		AdoptRun(State.CreateNewRun(Random.Shared.Next()));
+	}
+
+	private void AdoptRun(State next)
+	{
+		if (Run is not null)
+		{
+			Run.BattleReady -= OnBattleReady;
+			Run.Dispose();
+		}
+
+		Run = next;
+		Run.BattleReady += OnBattleReady;
+	}
+
+	private void OnBattleReady()
+	{
+		Callable.From(() => GetTree().ChangeSceneToFile(BattleScenePath)).CallDeferred();
 	}
 
 	private void BeginMapScenePreload()
@@ -197,10 +209,7 @@ public partial class Session : Node
 			return false;
 		}
 
-		Run?.StarSystem?.Dispose();
-		Run = task.Result;
-		Run.ActiveBattle = null;
-		TransitionInbox.Bind(Run.StarSystem);
+		AdoptRun(task.Result);
 		return true;
 	}
 
@@ -240,6 +249,17 @@ public partial class Session : Node
 		}
 	}
 
+	private void NavigateToRunScene()
+	{
+		if (Run.ActiveBattle is not null)
+		{
+			GetTree().ChangeSceneToFile(BattleScenePath);
+			return;
+		}
+
+		ChangeToMapScene();
+	}
+
 	private void ChangeToMapScene()
 	{
 		var scene = TakePreloadedMapScene();
@@ -268,54 +288,5 @@ public partial class Session : Node
 
 		_mapScenePreloadRequested = false;
 		return ResourceLoader.LoadThreadedGet(MapScenePath) as PackedScene;
-	}
-
-	public BattleOrchestrator CreateBattleOrchestrator(BattleEncounter encounter)
-	{
-		var orchestrator = BattleOrchestrator.FromEncounter(encounter);
-		ReleaseBattleOutcomeSubscription();
-		if (Run.ActiveBattle is not null)
-			_battleOutcomeSubscription = orchestrator.Subscribe<Record<BattleOutcome>>(
-				Run.OnCommittedBattleOutcome);
-		return orchestrator;
-	}
-
-	public void ReleaseBattleOutcomeSubscription()
-	{
-		_battleOutcomeSubscription?.Dispose();
-		_battleOutcomeSubscription = null;
-	}
-
-	public bool BeginEngagement(string playerId)
-	{
-		var starSystem = Run.StarSystem;
-		if (!EngagementQueries.TryGetCommittedPlayerEngagement(starSystem.Map, playerId, out var committed))
-			return false;
-
-		var fleets = committed.ParticipantUnitIds
-			.Select(id => starSystem.Map.FleetRegistry.FleetOf(id))
-			.ToArray();
-		var seed = Random.Shared.Next();
-		var encounter = EngagementBattleFactory.Create(fleets, seed, committed.EngagementId);
-		Run.ActiveBattle = encounter;
-
-		return true;
-	}
-
-	public void RegenerateMap(int? seed = null)
-	{
-		if (!IsRunReady())
-		{
-			StartNewRun();
-			return;
-		}
-
-		var nextSeed = seed ?? Random.Shared.Next();
-		Run.StarSystem.Dispose();
-		Run.StarSystem = StarSystemOrchestrator.CreateSession(
-			State.PlayerFleetUnitId,
-			Run.PlayerParty.Members,
-			nextSeed);
-		TransitionInbox.Bind(Run.StarSystem);
 	}
 }

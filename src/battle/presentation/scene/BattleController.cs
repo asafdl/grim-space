@@ -65,8 +65,18 @@ public partial class BattleController : Node3D
 	public override void _Ready()
 	{
 		_strategicBattle = Session.Instance.Run.ActiveBattle is not null;
-		var encounter = ResolveEncounter();
-		_battle = Session.Instance.CreateBattleOrchestrator(encounter);
+		int backdropSeed;
+		if (_strategicBattle)
+		{
+			_battle = Session.Instance.Run.CreateActiveBattleOrchestrator();
+			backdropSeed = Session.Instance.Run.ActiveBattle!.Seed;
+		}
+		else
+		{
+			var devEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
+			_battle = BattleOrchestrator.FromEncounter(devEncounter);
+			backdropSeed = devEncounter.Seed;
+		}
 		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
@@ -76,7 +86,7 @@ public partial class BattleController : Node3D
 		var layout = _battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
-		backdrop.Build(layout.Grid, encounter.Seed);
+		backdrop.Build(layout.Grid, backdropSeed);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
@@ -512,15 +522,6 @@ public partial class BattleController : Node3D
 	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialBlocksEndTurn) =>
 		acceptsCommands && !tutorialBlocksEndTurn;
 
-	private static BattleEncounter ResolveEncounter()
-	{
-		var activeBattle = Session.Instance.Run.ActiveBattle;
-		if (activeBattle is not null)
-			return activeBattle;
-
-		return BattleEncounter.DevDefault(Random.Shared.Next());
-	}
-
 	private void OnOutcomeOverlayAction()
 	{
 		if (_strategicBattle)
@@ -574,7 +575,6 @@ public partial class BattleController : Node3D
 			_tutorial.Dispose();
 		}
 		Session.Instance.DevMenu.ClearBattleActions();
-		Session.Instance.ReleaseBattleOutcomeSubscription();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
 		base._ExitTree();
