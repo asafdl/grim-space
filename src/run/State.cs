@@ -1,5 +1,7 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Log;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 
@@ -14,19 +16,39 @@ public sealed class State
 	public TutorialProgress TutorialProgress { get; } = new();
 	public StarSystemOrchestrator StarSystem { get; set; } = null!;
 	public BattleEncounter? ActiveBattle { get; internal set; }
+	public BattleOutcome? PendingBattleOutcome { get; private set; }
 
-	public bool TryResolveActiveBattle(BattleOutcome outcome)
+	private readonly HashSet<string> _resolvedBattleIds = new(StringComparer.Ordinal);
+
+	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
 	{
+		var outcome = record.Value;
+		if (outcome.Result == EBattleResult.Ongoing)
+			return;
+
 		if (ActiveBattle is null)
+			return;
+
+		if (!string.Equals(outcome.BattleId, ActiveBattle.Id, StringComparison.Ordinal))
 		{
-			return false;
+			GameLog.Log(
+				$"Ignoring battle outcome '{outcome.BattleId}'; active engagement is '{ActiveBattle.Id}'.");
+			return;
 		}
 
-		if (!StarSystem.ResolveEngagement(PlayerFleetUnitId, outcome))
-			return false;
+		if (_resolvedBattleIds.Contains(outcome.BattleId))
+			return;
 
+		if (!StarSystem.ResolveEngagement(PlayerFleetUnitId, outcome))
+		{
+			PendingBattleOutcome = outcome;
+			GameLog.Log("Engagement resolution failed; outcome retained.");
+			return;
+		}
+
+		_resolvedBattleIds.Add(outcome.BattleId);
+		PendingBattleOutcome = null;
 		ActiveBattle = null;
-		return true;
 	}
 
 	public static State CreateNewRun(int seed = 0)

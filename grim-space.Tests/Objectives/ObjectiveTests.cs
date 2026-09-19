@@ -29,7 +29,7 @@ public sealed class ObjectiveTests
 
 		_ = BattleTestActions.CommitAndResolve(battle);
 
-		Assert.Equal(EBattleResult.Ongoing, battle.ResolveBattleOutcome().Result);
+		Assert.Equal(EBattleResult.Ongoing, battle.Engine.World.battleResult);
 	}
 
 	private static BattleOrchestrator BattleWithTorpedo(out string torpedoId)

@@ -43,7 +43,14 @@ internal static class BattleTestFixture
 		var timeline = new Timeline();
 		var nonUnits = new Dictionary<string, NonUnit>();
 		var units = new Unit[] { player, enemy };
-		var world = BattleWorld.FromLive(units, nonUnits, grid, blocked, timeline);
+		var world = BattleWorld.FromLive(
+			units,
+			nonUnits,
+			grid,
+			blocked,
+			"test-battle",
+			EObjective.EliminateOpponents,
+			timeline);
 		var layout = BattleLayout.FromEncounter(grid, [], units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
@@ -52,12 +59,7 @@ internal static class BattleTestFixture
 		actorRuntimes.For(BattleActorIds.Rules);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var battle = new BattleOrchestrator(
-			engine,
-			layout,
-			"test-battle",
-			player.State.Id,
-			EObjective.EliminateOpponents);
+		var battle = new BattleOrchestrator(engine, layout, player.State.Id);
 		foreach (var unit in units)
 		{
 			ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(

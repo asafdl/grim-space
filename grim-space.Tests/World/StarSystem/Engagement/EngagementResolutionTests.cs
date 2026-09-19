@@ -120,20 +120,21 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 				PlayerId);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerId);
 		var pirateFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PirateId);
-		run.ActiveBattle = EngagementBattleFactory.Create([playerFleet, pirateFleet], 1, "test-engagement");
+		var engagementId = run.StarSystem.Map.StateOf(PlayerId).CurrentEngagement!.Id;
+		run.ActiveBattle = EngagementBattleFactory.Create([playerFleet, pirateFleet], 1, engagementId);
 		var activeBattle = run.ActiveBattle;
-		var ongoing = new BattleOutcome("test-engagement", EBattleResult.Ongoing, []);
+		var ongoing = new BattleOutcome(engagementId, EBattleResult.Ongoing, []);
 
-		Assert.False(run.TryResolveActiveBattle(ongoing));
+		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(ongoing));
 		Assert.Same(activeBattle, run.ActiveBattle);
 		Assert.True(run.StarSystem.Map.FleetRegistry.Contains(PirateId));
 
 		var victory = Victory(run.StarSystem.Map, PirateId);
-		Assert.True(run.TryResolveActiveBattle(victory));
+		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(victory));
 		Assert.Null(run.ActiveBattle);
 		var historyCount = run.StarSystem.Map.Timeline.History().Count;
 
-		Assert.False(run.TryResolveActiveBattle(victory));
+		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(victory));
 		Assert.Equal(historyCount, run.StarSystem.Map.Timeline.History().Count);
 	}
 

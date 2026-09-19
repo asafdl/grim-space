@@ -54,7 +54,6 @@ public partial class BattleController : Node3D
 	private PresentationFrame _currentFrame = null!;
 
 	private bool _strategicBattle;
-	private bool _resolutionRequested;
 
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
@@ -67,7 +66,7 @@ public partial class BattleController : Node3D
 	{
 		_strategicBattle = Session.Instance.Run.ActiveBattle is not null;
 		var encounter = ResolveEncounter();
-		_battle = BattleOrchestrator.FromEncounter(encounter);
+		_battle = Session.Instance.CreateBattleOrchestrator(encounter);
 		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
@@ -537,15 +536,11 @@ public partial class BattleController : Node3D
 
 	private void ReturnToStarMap()
 	{
-		if (_resolutionRequested || !_battle.IsBattleOver)
+		if (!_battle.IsBattleOver)
 			return;
 
-		_resolutionRequested = true;
-		if (!Session.Instance.ResolveEngagement(_battle.ResolveBattleOutcome()))
-		{
-			_resolutionRequested = false;
+		if (Session.Instance.Run.ActiveBattle is not null)
 			return;
-		}
 
 		GetTree().ChangeSceneToFile("res://scenes/map.tscn");
 	}
@@ -579,6 +574,7 @@ public partial class BattleController : Node3D
 			_tutorial.Dispose();
 		}
 		Session.Instance.DevMenu.ClearBattleActions();
+		Session.Instance.ReleaseBattleOutcomeSubscription();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
 		base._ExitTree();

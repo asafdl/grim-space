@@ -1,5 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -27,7 +28,14 @@ internal static class BattleTestApply
 			if (action is not IAction<BattleWorld, ActorRuntime> typed)
 				continue;
 
-			var board = BattleWorld.FromLive(roster, nonUnits, grid, blocked, timeline);
+			var board = BattleWorld.FromLive(
+				roster,
+				nonUnits,
+				grid,
+				blocked,
+				"test-battle",
+				EObjective.EliminateOpponents,
+				timeline);
 			foreach (var effect in typed.Definition.Resolve(action, board, runtime))
 				_ = effect.Apply(board, runtime, action.ActorId);
 		}
@@ -79,7 +87,14 @@ internal static class BattleTestApply
 		if (action is not IAction<BattleWorld, ActorRuntime> typed)
 			return;
 
-		var board = BattleWorld.FromLive(roster, nonUnits, grid, blocked, timeline);
+		var board = BattleWorld.FromLive(
+			roster,
+			nonUnits,
+			grid,
+			blocked,
+			"test-battle",
+			EObjective.EliminateOpponents,
+			timeline);
 		foreach (var effect in typed.Definition.Resolve(action, board, runtime))
 			_ = effect.Apply(board, runtime, action.ActorId);
 	}

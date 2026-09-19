@@ -24,7 +24,6 @@ namespace GrimSpace.Battle;
 public sealed class BattleOrchestrator : IDisposable
 {
 	private readonly Engine<BattleWorld, ActorRuntime> _engine;
-	private readonly Manager _objectives;
 	private readonly ActionBatchSink _actionSink = new();
 
 	private bool _resolveInProgress;
@@ -33,21 +32,16 @@ public sealed class BattleOrchestrator : IDisposable
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
 		BattleLayout layout,
-		string battleId,
-		string playerId,
-		EObjective objective)
+		string playerId)
 	{
 		_engine = engine;
 		Layout = layout;
-		BattleId = battleId;
 		PlayerId = playerId;
-		_objectives = new Manager(objective, UnitRegistry.For(engine.World));
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
-	public string BattleId { get; }
 	public string PlayerId { get; }
 	public bool IsBattleOver => _engine.World.battleResult != EBattleResult.Ongoing;
 	public int TurnNumber => _engine.Tick;
@@ -90,7 +84,14 @@ public sealed class BattleOrchestrator : IDisposable
 			.ToArray();
 
 		var player = units.First(unit => unit.Team == ETeam.Player);
-		var world = BattleWorld.FromLive(units, nonUnits, grid, blockedCells, timeline);
+		var world = BattleWorld.FromLive(
+			units,
+			nonUnits,
+			grid,
+			blockedCells,
+			encounter.Id,
+			encounter.Objective,
+			timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
@@ -101,12 +102,7 @@ public sealed class BattleOrchestrator : IDisposable
 		actorRuntimes.For(BattleActorIds.Rules);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var orchestrator = new BattleOrchestrator(
-			engine,
-			layout,
-			encounter.Id,
-			player.State.Id,
-			encounter.Objective);
+		var orchestrator = new BattleOrchestrator(engine, layout, player.State.Id);
 
 		foreach (var unit in units)
 		{
@@ -182,7 +178,7 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 
 		_resolveVersion++;
-		_engine.World.battleResult = EBattleResult.Lose;
+		_engine.Commit(CommitBattleOutcomeDef.Instance.BindRetire());
 		SetPhase(EBattlePhase.BattleOver, "retired");
 	}
 
@@ -193,32 +189,13 @@ public sealed class BattleOrchestrator : IDisposable
 		if (!CanForceOutcome)
 			throw new InvalidOperationException($"Cannot force an outcome during phase {Phase}.");
 
-		var units = UnitRegistry.For(_engine.World);
-		var player = units.UnitOf(PlayerId);
-		var targets = result == EBattleResult.Win
-			? units.All.Where(unit => player.RelationTo(unit) == EUnitRelation.Opponent)
-			: [player];
-		foreach (var target in targets)
-			target.State.HullPoints = 0;
-
-		_engine.World.battleResult = _objectives.EvaluateFor(ETeam.Player);
-
+		_engine.Commit(CommitBattleOutcomeDef.Instance.BindForce(result, PlayerId));
 		SetPhase(EBattlePhase.BattleOver, $"debug forced {result.ToString().ToLowerInvariant()}");
 	}
 
-	public BattleOutcome ResolveBattleOutcome()
-{
-	var units = UnitRegistry.For(_engine.World);
-	return new BattleOutcome(
-		BattleId,
-		_engine.World.battleResult,
-		units.All
-			.Select(unit => new UnitStateHandoff(
-				unit.State.HullPoints,
-				unit.State.Type,
-				unit.State.Id))
-			.ToArray());
-}
+	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
+		where TEntry : ITimelineEntry =>
+		_engine.Subscribe(listener);
 
 	public TurnReplay ResolveTurn() =>
 		ResolveTurnAsync().GetAwaiter().GetResult();
@@ -231,10 +208,7 @@ public sealed class BattleOrchestrator : IDisposable
 		_resolveInProgress = true;
 		try
 		{
-			var replay = await ExecuteTurnAsync();
-			//TODO: we are hardcoding player here, this will need a rework
-			_engine.World.battleResult = _objectives.EvaluateFor(ETeam.Player);
-			return replay;
+			return await ExecuteTurnAsync();
 		}
 		finally
 		{
@@ -276,6 +250,7 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 
 		CommitRoundUpkeep();
+		_engine.Commit(CommitBattleOutcomeDef.Instance.BindEvaluate());
 		var history = _engine.History();
 		_engine.AdvanceTick();
 

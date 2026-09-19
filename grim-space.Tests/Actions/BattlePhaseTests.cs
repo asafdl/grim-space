@@ -248,7 +248,7 @@ public sealed class BattlePhaseTests
 
 		Assert.False(battle.Engine.World.StateOf(enemyId).IsAlive);
 		Assert.True(battle.Engine.World.StateOf(PlayerId).IsAlive);
-		Assert.Equal(EBattleResult.Win, battle.ResolveBattleOutcome().Result);
+		Assert.Equal(EBattleResult.Win, battle.Engine.World.battleResult);
 		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
 	}
 
@@ -262,7 +262,7 @@ public sealed class BattlePhaseTests
 
 		Assert.False(battle.Engine.World.StateOf(PlayerId).IsAlive);
 		Assert.True(battle.Engine.World.StateOf(enemyId).IsAlive);
-		Assert.Equal(EBattleResult.Lose, battle.ResolveBattleOutcome().Result);
+		Assert.Equal(EBattleResult.Lose, battle.Engine.World.battleResult);
 		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
 	}
 

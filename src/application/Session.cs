@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
 using Godot;
+using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
@@ -21,6 +23,7 @@ public partial class Session : Node
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
+	private IDisposable? _battleOutcomeSubscription;
 
 	public static Session Instance =>
 		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
@@ -267,6 +270,22 @@ public partial class Session : Node
 		return ResourceLoader.LoadThreadedGet(MapScenePath) as PackedScene;
 	}
 
+	public BattleOrchestrator CreateBattleOrchestrator(BattleEncounter encounter)
+	{
+		var orchestrator = BattleOrchestrator.FromEncounter(encounter);
+		ReleaseBattleOutcomeSubscription();
+		if (Run.ActiveBattle is not null)
+			_battleOutcomeSubscription = orchestrator.Subscribe<Record<BattleOutcome>>(
+				Run.OnCommittedBattleOutcome);
+		return orchestrator;
+	}
+
+	public void ReleaseBattleOutcomeSubscription()
+	{
+		_battleOutcomeSubscription?.Dispose();
+		_battleOutcomeSubscription = null;
+	}
+
 	public bool BeginEngagement(string playerId)
 	{
 		var starSystem = Run.StarSystem;
@@ -282,9 +301,6 @@ public partial class Session : Node
 
 		return true;
 	}
-
-	public bool ResolveEngagement(BattleOutcome outcome) =>
-		Run.TryResolveActiveBattle(outcome);
 
 	public void RegenerateMap(int? seed = null)
 	{

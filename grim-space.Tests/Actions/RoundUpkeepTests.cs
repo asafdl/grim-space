@@ -66,7 +66,9 @@ public sealed class RoundUpkeepTests
 			[unit, enemy],
 			nonUnits,
 			BattleTestFixture.Grid(),
-			new HashSet<Coord>());
+			new HashSet<Coord>(),
+			"test-battle",
+			GrimSpace.Battle.Objectives.EObjective.EliminateOpponents);
 		var runtime = new ActorRuntime();
 		BattleTestApply.TryApplyOne(
 			new RoundUpkeepAction(unit.State.Id),

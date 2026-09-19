@@ -26,6 +26,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
 
+	public string BattleId { get; }
+	public EObjective Objective { get; }
 	public EBattleResult battleResult { get; set; } = EBattleResult.Ongoing;
 
 	public T NonUnitOf<T>(string id) where T : NonUnit => (T)_nonUnits[id];
@@ -100,13 +102,17 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		Dictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
-		Timeline timeline)
+		Timeline timeline,
+		string battleId,
+		EObjective objective)
 	{
 		UnitRegistry = unitRegistry;
 		_nonUnits = nonUnits;
 		Grid = grid;
 		BlockedCells = blockedCells;
 		Timeline = timeline;
+		BattleId = battleId;
+		Objective = objective;
 	}
 
 	public static BattleWorld FromSnapshot(
@@ -114,12 +120,16 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		IReadOnlyDictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
+		string battleId,
+		EObjective objective,
 		Timeline? timeline = null) =>
 		FromRoster(
 			roster.Select(CloneForSnapshot).ToList(),
 			nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
 			grid,
 			blockedCells,
+			battleId,
+			objective,
 			timeline);
 
 	public static BattleWorld FromLive(
@@ -127,12 +137,16 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		Dictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
+		string battleId,
+		EObjective objective,
 		Timeline? timeline = null) =>
 		FromRoster(
 			roster,
 			nonUnits,
 			grid,
 			blockedCells,
+			battleId,
+			objective,
 			timeline);
 
 	private static BattleWorld FromRoster(
@@ -140,6 +154,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		Dictionary<string, NonUnit> nonUnits,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
+		string battleId,
+		EObjective objective,
 		Timeline? timeline)
 	{
 		var units = new UnitRegistry();
@@ -151,7 +167,9 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			nonUnits,
 			grid,
 			blockedCells,
-			timeline ?? new Timeline());
+			timeline ?? new Timeline(),
+			battleId,
+			objective);
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>
@@ -167,7 +185,9 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			_nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
 			Grid,
 			BlockedCells,
-			timeline);
+			timeline,
+			BattleId,
+			Objective);
 
 	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
 		nonUnit switch
