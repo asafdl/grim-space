@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/ServiceButtonView.cs" id="3_giver"]
 [ext_resource type="Texture2D" uid="uid://b3k2qm3nqj8tm" path="res://assets/ui/map/facilities/command-authority-scene.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://jhrb0o1clbaa" path="res://assets/ui/map/services/optimality-robot.png" id="5_manager"]
+[ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 
 [node name="CommandAuthority" type="Control" unique_id=1433652594]
 layout_mode = 3
@@ -14,6 +15,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
+
+[node name="StrategicHud" parent="." instance=ExtResource("6_strategic_hud")]
 
 [node name="Scene" type="Control" parent="." unique_id=216618043]
 layout_mode = 1

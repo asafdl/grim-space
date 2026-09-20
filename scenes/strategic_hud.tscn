@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://cstrategic_hud01"]
+
+[ext_resource type="Script" path="res://src/world/star-system/presentation/StrategicHud.cs" id="1_binder"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/ObjectivesHud.cs" id="2_objectives"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/ResourceHud.cs" id="3_resources"]
+
+[node name="StrategicHud" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_binder")
+
+[node name="ObjectivesHud" type="MarginContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("2_objectives")
+
+[node name="ResourceHud" type="MarginContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("3_resources")

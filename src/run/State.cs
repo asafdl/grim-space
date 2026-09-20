@@ -34,6 +34,7 @@ public sealed class State : IDisposable
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _dockyardUpgradeSubscription;
+	private IDisposable? _shieldRechargeSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -117,6 +118,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_dockyardUpgradeSubscription?.Dispose();
 		_dockyardUpgradeSubscription = null;
+		_shieldRechargeSubscription?.Dispose();
+		_shieldRechargeSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -130,6 +133,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
 		_dockyardUpgradeSubscription =
 			StarSystem.Subscribe<Record<DockyardUpgradePurchased>>(OnDockyardUpgradePurchased);
+		_shieldRechargeSubscription =
+			StarSystem.Subscribe<Record<ShieldRechargePurchased>>(OnShieldRechargePurchased);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -140,6 +145,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_dockyardUpgradeSubscription?.Dispose();
 		_dockyardUpgradeSubscription = null;
+		_shieldRechargeSubscription?.Dispose();
+		_shieldRechargeSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -195,6 +202,33 @@ public sealed class State : IDisposable
 		{
 			GameLog.Log(
 				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
+			return;
+		}
+
+		ShipRegistry.Update(purchase.After.Clone());
+	}
+
+	private void OnShieldRechargePurchased(Record<ShieldRechargePurchased> record)
+	{
+		var purchase = record.Value;
+		if (!PlayerParty.ShipIds.Contains(purchase.ShipId, StringComparer.Ordinal))
+		{
+			GameLog.Log(
+				$"Ignoring shield recharge for ship '{purchase.ShipId}'; ship is not in the player party.");
+			return;
+		}
+
+		if (!ShipRegistry.TryGet(purchase.ShipId, out var current))
+		{
+			GameLog.Log(
+				$"Ignoring shield recharge for ship '{purchase.ShipId}'; ship is missing from the registry.");
+			return;
+		}
+
+		if (!RegistryMatchesDockyardBefore(current, purchase.Before))
+		{
+			GameLog.Log(
+				$"Ignoring shield recharge for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
 			return;
 		}
 

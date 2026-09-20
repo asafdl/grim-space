@@ -6,13 +6,14 @@
 [ext_resource type="Script" path="res://src/world/star-system/presentation/RoutesView.cs" id="4_routes"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/UnitsView.cs" id="5_units"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/CourseView.cs" id="6_course"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/ObjectivesHud.cs" id="7_objectives"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/DebugHud.cs" id="8_debug"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/ResourceHud.cs" id="10_resources"]
 [ext_resource type="Texture2D" uid="uid://vqro6ros3fnm" path="res://assets/ui/map/dock-facilities.svg" id="9_access_icon"]
+[ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="10_strategic_hud"]
 
 [node name="Map" type="Node3D"]
 script = ExtResource("1_controller")
+
+[node name="StrategicHud" parent="." instance=ExtResource("10_strategic_hud")]
 
 [node name="CameraPivot" type="Node3D" parent="."]
 
@@ -53,24 +54,6 @@ layout_mode = 1
 anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("8_debug")
-
-[node name="ObjectivesHud" type="MarginContainer" parent="UI"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-grow_horizontal = 0
-mouse_filter = 2
-script = ExtResource("7_objectives")
-
-[node name="ResourceHud" type="MarginContainer" parent="UI"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-grow_horizontal = 0
-mouse_filter = 2
-script = ExtResource("10_resources")
 
 [node name="AccessButton" type="Button" parent="UI"]
 visible = false

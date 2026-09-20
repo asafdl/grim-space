@@ -10,7 +10,6 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Narrative;
-using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 using GrimSpace.World.StarSystem.Vision;
@@ -39,8 +38,7 @@ public partial class MapController : Node3D
 	private Button _overviewButton = null!;
 	private Button _accessButton = null!;
 	private CanvasLayer _uiLayer = null!;
-	private ObjectivesHud _objectivesHud = null!;
-	private ResourceHud _resourceHud = null!;
+	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
 	private TutorialDialog? _tutorialDialog;
@@ -48,7 +46,6 @@ public partial class MapController : Node3D
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private WorldLinkNavigator? _objectivesLinks;
-	private ResourceTransactionFeed _resourceTransactions = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -80,16 +77,10 @@ public partial class MapController : Node3D
 		_rebuildButton = debugHud.RebuildButton;
 		_overviewButton = debugHud.OverviewButton;
 		_accessButton = GetNode<Button>("UI/AccessButton");
-		_objectivesHud = GetNode<ObjectivesHud>("UI/ObjectivesHud");
-		_resourceHud = GetNode<ResourceHud>("UI/ResourceHud");
+		_strategicHud = GetNode<StrategicHud>("StrategicHud");
 
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
-		_resourceTransactions = new ResourceTransactionFeed();
-		_resourceTransactions.Bind(
-			Session.Instance.Run.Transitions,
-			_orchestrator,
-			_resourceHud);
 
 		var engagementHud = new EngagementHudOverlay();
 		_uiLayer.AddChild(engagementHud);
@@ -206,7 +197,7 @@ public partial class MapController : Node3D
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
 		_objectivesLinks = new WorldLinkNavigator(_worldFocus, _worldIndicator);
-		_objectivesHud.LandmarkLinkClicked += OnObjectiveLandmarkLinkClicked;
+		_strategicHud.Objectives.LandmarkLinkClicked += OnObjectiveLandmarkLinkClicked;
 
 		var narrativeHud = new NarrativeHudOverlay();
 		_uiLayer.AddChild(narrativeHud);
@@ -236,8 +227,6 @@ public partial class MapController : Node3D
 
 		UpdateSystemLabel(world);
 		UpdateDebugUi();
-		UpdateObjectivesHud();
-
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
 			_director.SetInitialMode(
@@ -273,7 +262,6 @@ public partial class MapController : Node3D
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
 		UpdateDebugUi();
-		UpdateObjectivesHud();
 		_director.Update(delta);
 
 		if (!_director.EffectiveInputPolicy.AllowsStrategicHover)
@@ -295,7 +283,6 @@ public partial class MapController : Node3D
 
 	public override void _ExitTree()
 	{
-		_resourceTransactions?.Dispose();
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
@@ -303,7 +290,7 @@ public partial class MapController : Node3D
 		_tutorial?.Dispose();
 		if (_objectivesLinks is not null)
 		{
-			_objectivesHud.LandmarkLinkClicked -= OnObjectiveLandmarkLinkClicked;
+			_strategicHud.Objectives.LandmarkLinkClicked -= OnObjectiveLandmarkLinkClicked;
 			_objectivesLinks.Dispose();
 			_objectivesLinks = null;
 		}
@@ -542,12 +529,6 @@ public partial class MapController : Node3D
 	{
 		Session.Instance.Run.RegenerateMap();
 		GetTree().ReloadCurrentScene();
-	}
-
-	private void UpdateObjectivesHud()
-	{
-		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
-		_objectivesHud.Sync(objectives);
 	}
 
 	private void OnObjectiveLandmarkLinkClicked(string objectId)

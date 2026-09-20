@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -14,6 +15,7 @@ public partial class DockyardController : Control
 	private StarMapPlayerExecutionAgent _playerAgent = null!;
 	private CanvasLayer _dockyardHudLayer = null!;
 	private DockyardHudOverlay _dockyardHud = null!;
+	private DockyardShieldRechargeHudOverlay _shieldRechargeHud = null!;
 	private Button _backButton = null!;
 
 	public override void _Ready()
@@ -25,6 +27,7 @@ public partial class DockyardController : Control
 
 		var scene = GetNode<DockyardSceneView>("Scene");
 		scene.SalesmanClicked += OpenDockyardHud;
+		scene.ShieldRechargeClicked += OpenShieldRechargeHud;
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
@@ -35,6 +38,12 @@ public partial class DockyardController : Control
 		_dockyardHud.PurchaseRequested += OnPurchaseRequested;
 		_dockyardHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_dockyardHud);
+
+		_shieldRechargeHud = new DockyardShieldRechargeHudOverlay();
+		_shieldRechargeHud.FaceRechargeRequested += OnFaceShieldRechargeRequested;
+		_shieldRechargeHud.FillAllRechargeRequested += OnFillAllShieldRechargeRequested;
+		_shieldRechargeHud.Closed += UpdateBackButton;
+		_dockyardHudLayer.AddChild(_shieldRechargeHud);
 	}
 
 	public override void _ExitTree()
@@ -48,7 +57,7 @@ public partial class DockyardController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_dockyardHud.IsOpen)
+		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen)
 			return;
 
 		ReturnToMap();
@@ -70,6 +79,21 @@ public partial class DockyardController : Control
 			before));
 	}
 
+	public bool TryPurchaseShieldRecharge(string shipId, ESpatialOrientation? face = null)
+	{
+		var poiId = MapNavigationContext.ActivePoiId
+			?? throw new InvalidOperationException("Dockyard requires an active POI.");
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
+		return _orchestrator.TryCommitPlayerInput(new PurchaseShieldRechargeAction(
+			State.PlayerFleetUnitId,
+			poiId,
+			facilityId,
+			before,
+			face));
+	}
+
 	private void OpenDockyardHud()
 	{
 		var poiId = MapNavigationContext.ActivePoiId
@@ -80,6 +104,19 @@ public partial class DockyardController : Control
 		var facility = poi.Facilities.First(f => f.Id == facilityId);
 
 		_dockyardHud.Open(Session.Instance.Run, _orchestrator.Map, facility.DisplayName);
+		UpdateBackButton();
+	}
+
+	private void OpenShieldRechargeHud()
+	{
+		var poiId = MapNavigationContext.ActivePoiId
+			?? throw new InvalidOperationException("Dockyard requires an active POI.");
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var poi = _orchestrator.Map.PointsOfInterest.First(p => p.Id == poiId);
+		var facility = poi.Facilities.First(f => f.Id == facilityId);
+
+		_shieldRechargeHud.Open(Session.Instance.Run, _orchestrator.Map, facility.DisplayName);
 		UpdateBackButton();
 	}
 
@@ -97,6 +134,26 @@ public partial class DockyardController : Control
 		UpdateBackButton();
 	}
 
+	private void OnFaceShieldRechargeRequested(string shipId, ESpatialOrientation face) =>
+		CommitShieldRecharge(shipId, face);
+
+	private void OnFillAllShieldRechargeRequested(string shipId) =>
+		CommitShieldRecharge(shipId, null);
+
+	private void CommitShieldRecharge(string shipId, ESpatialOrientation? face)
+	{
+		if (!TryPurchaseShieldRecharge(shipId, face))
+		{
+			_shieldRechargeHud.ShowError("Unable to recharge shields.");
+			UpdateBackButton();
+			return;
+		}
+
+		_shieldRechargeHud.Sync(Session.Instance.Run, _orchestrator.Map);
+		_shieldRechargeHud.ShowConfirmation("Shields recharged.", HudStatusKind.Success);
+		UpdateBackButton();
+	}
+
 	private void ReturnToMap()
 	{
 		_orchestrator.RefreshPlayerAgent();
@@ -104,5 +161,5 @@ public partial class DockyardController : Control
 	}
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _dockyardHud.IsOpen;
+		_backButton.Disabled = _dockyardHud.IsOpen || _shieldRechargeHud.IsOpen;
 }

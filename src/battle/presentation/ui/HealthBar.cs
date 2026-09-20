@@ -1,8 +1,8 @@
 using Godot;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
+using GrimSpace.Components;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -16,10 +16,6 @@ public sealed partial class HealthBar : HBoxContainer
 	private static readonly Color HullEmpty = new(0.18f, 0.08f, 0.08f, 0.85f);
 	private static readonly Color HullBorder = new(0.02f, 0.02f, 0.02f, 1f);
 
-	private static readonly Color ShieldFilled = new(0.25f, 0.55f, 0.95f, 0.95f);
-	private static readonly Color ShieldEmpty = new(0.08f, 0.12f, 0.22f, 0.85f);
-	private static readonly Color ShieldBorder = new(0.92f, 0.95f, 1f, 0.95f);
-
 	private static readonly ESpatialOrientation[] Faces =
 	[
 		ESpatialOrientation.Forward,
@@ -31,10 +27,9 @@ public sealed partial class HealthBar : HBoxContainer
 	];
 
 	private readonly VBoxContainer _hullHost;
-	private readonly VBoxContainer _shieldColumn;
+	private readonly ShieldBlockBar _shieldBars;
 	private readonly Control _shieldSection;
 	private readonly List<Panel> _hullBlocks = [];
-	private readonly List<(VBoxContainer Host, List<Panel> Blocks)> _shieldFaces = [];
 
 	public HealthBar()
 	{
@@ -54,9 +49,8 @@ public sealed partial class HealthBar : HBoxContainer
 		_shieldSection.AddThemeConstantOverride("separation", 4);
 		_shieldSection.TooltipText = BattleHudCopy.ShieldsTooltip;
 		_shieldSection.AddChild(CreateTitle(BattleHudCopy.ShieldsTitle, new Color(0.75f, 0.88f, 1f)));
-		_shieldColumn = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-		_shieldColumn.AddThemeConstantOverride("separation", 6);
-		_shieldSection.AddChild(_shieldColumn);
+		_shieldBars = new ShieldBlockBar(ShieldBlockBarSize.Default) { MouseFilter = MouseFilterEnum.Ignore };
+		_shieldSection.AddChild(_shieldBars);
 		AddChild(_shieldSection);
 	}
 
@@ -68,46 +62,29 @@ public sealed partial class HealthBar : HBoxContainer
 		SetShields(state.ShieldPoints, state.Spec.MaxShieldPoints);
 	}
 
-	private void SetShields(FaceShieldPoints shieldPoints, FaceShieldPoints maxPoints)
+	private void SetShields(
+		GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints shieldPoints,
+		GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints maxPoints)
 	{
 		_shieldSection.Visible = maxPoints.MaxOnAnyFace > 0;
 		if (maxPoints.MaxOnAnyFace <= 0)
 			return;
 
-		while (_shieldFaces.Count < Faces.Length)
-		{
-			var host = new VBoxContainer
-			{
-				MouseFilter = MouseFilterEnum.Stop,
-			};
-			host.AddThemeConstantOverride("separation", 2);
-			_shieldFaces.Add((host, []));
-			_shieldColumn.AddChild(host);
-		}
-
+		_shieldBars.Set(shieldPoints, maxPoints);
 		for (var faceIndex = 0; faceIndex < Faces.Length; faceIndex++)
 		{
 			var face = Faces[faceIndex];
-			var (host, blocks) = _shieldFaces[faceIndex];
 			var maxPerFace = maxPoints[face];
-			host.Visible = maxPerFace > 0;
 			if (maxPerFace <= 0)
 				continue;
 
 			var current = System.Math.Clamp(shieldPoints[face], 0, maxPerFace);
-			host.TooltipText = BattleHudCopy.FaceShieldTooltip(
-				BattleHudCopy.FaceName(face),
-				current,
-				maxPerFace);
-			SyncBlockCount(host, blocks, maxPerFace);
-
-			for (var i = 0; i < blocks.Count; i++)
-			{
-				var filled = i < current;
-				blocks[i].AddThemeStyleboxOverride(
-					"panel",
-					MakeStyle(filled ? ShieldFilled : ShieldEmpty, ShieldBorder, borderWidth: 2));
-			}
+			_shieldBars.SetFaceTooltip(
+				faceIndex,
+				BattleHudCopy.FaceShieldTooltip(
+					BattleHudCopy.FaceName(face),
+					current,
+					maxPerFace));
 		}
 	}
 

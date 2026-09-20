@@ -5,6 +5,8 @@
 [ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/ServiceButtonView.cs" id="3_salesman"]
 [ext_resource type="Texture2D" uid="uid://bihmyhslop7m2" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://1e4y2ewe504" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
+[ext_resource type="Texture2D" uid="uid://wqwohcvsqbyw" path="res://assets/ui/map/services/shield-recharge.png" id="6_shield_recharge"]
+[ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="7_strategic_hud"]
 
 [node name="Dockyard" type="Control" unique_id=835188839]
 layout_mode = 3
@@ -14,6 +16,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
+
+[node name="StrategicHud" parent="." instance=ExtResource("7_strategic_hud")]
 
 [node name="Scene" type="Control" parent="." unique_id=1096377716]
 layout_mode = 1
@@ -46,6 +50,20 @@ offset_bottom = 1188.0
 scale = Vector2(0.8250968, 0.85275424)
 tooltip_text = "Browse upgrades"
 texture_normal = ExtResource("5_salesman")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("3_salesman")
+
+[node name="ShieldRecharge" type="TextureButton" parent="Scene" unique_id=1771624543]
+layout_mode = 0
+offset_left = 671.0
+offset_top = 539.0
+offset_right = 928.96545
+offset_bottom = 875.7693
+rotation = -0.1663151
+scale = Vector2(0.8250968, 0.85275424)
+tooltip_text = "Recharge shields"
+texture_normal = ExtResource("6_shield_recharge")
 ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("3_salesman")
