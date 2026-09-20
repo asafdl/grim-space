@@ -9,6 +9,7 @@ using GrimSpace.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Dockyard;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Run;
@@ -32,6 +33,7 @@ public sealed class State : IDisposable
 	private readonly HashSet<string> _launchedEngagementIds = new(StringComparer.Ordinal);
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _fleetSpawnSubscription;
+	private IDisposable? _dockyardUpgradeSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -113,6 +115,8 @@ public sealed class State : IDisposable
 		_engagementSubscription = null;
 		_fleetSpawnSubscription?.Dispose();
 		_fleetSpawnSubscription = null;
+		_dockyardUpgradeSubscription?.Dispose();
+		_dockyardUpgradeSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -124,6 +128,8 @@ public sealed class State : IDisposable
 		Transitions.Bind(StarSystem);
 		_engagementSubscription = StarSystem.Subscribe<Record<EngagementCommitted>>(OnCommittedEngagement);
 		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
+		_dockyardUpgradeSubscription =
+			StarSystem.Subscribe<Record<DockyardUpgradePurchased>>(OnDockyardUpgradePurchased);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -132,6 +138,8 @@ public sealed class State : IDisposable
 		_engagementSubscription = null;
 		_fleetSpawnSubscription?.Dispose();
 		_fleetSpawnSubscription = null;
+		_dockyardUpgradeSubscription?.Dispose();
+		_dockyardUpgradeSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -165,6 +173,47 @@ public sealed class State : IDisposable
 		foreach (var declaration in record.Value.Members)
 			ShipRegistry.Register(declaration);
 	}
+
+	private void OnDockyardUpgradePurchased(Record<DockyardUpgradePurchased> record)
+	{
+		var purchase = record.Value;
+		if (!PlayerParty.ShipIds.Contains(purchase.ShipId, StringComparer.Ordinal))
+		{
+			GameLog.Log(
+				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; ship is not in the player party.");
+			return;
+		}
+
+		if (!ShipRegistry.TryGet(purchase.ShipId, out var current))
+		{
+			GameLog.Log(
+				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; ship is missing from the registry.");
+			return;
+		}
+
+		if (!RegistryMatchesDockyardBefore(current, purchase.Before))
+		{
+			GameLog.Log(
+				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
+			return;
+		}
+
+		ShipRegistry.Update(purchase.After.Clone());
+	}
+
+	private static bool RegistryMatchesDockyardBefore(ShipInstance current, ShipInstance before) =>
+		string.Equals(current.Id, before.Id, StringComparison.Ordinal)
+		&& current.HullPoints == before.HullPoints
+		&& current.ShieldPoints.Matches(before.ShieldPoints)
+		&& LoadoutMatches(current.Spec, before.Spec);
+
+	private static bool LoadoutMatches(ShipSpec current, ShipSpec before) =>
+		current.Chassis == before.Chassis
+		&& current.MaxHullPoints == before.MaxHullPoints
+		&& current.ShieldUpgradeTier == before.ShieldUpgradeTier
+		&& current.MaxShieldPoints.Matches(before.MaxShieldPoints)
+		&& current.InstalledAbilities.SequenceEqual(before.InstalledAbilities)
+		&& Equals(current.TorpedoBody, before.TorpedoBody);
 
 	private void OnCommittedEngagement(Record<EngagementCommitted> record)
 	{

@@ -22,11 +22,25 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void TradeHub_HasDockyardFacility()
+	{
+		var world = maps.Fresh(42);
+		var hub = world.PointsOfInterest.OfType<TradeHub>().Single();
+		var facility = Assert.Single(hub.Facilities);
+
+		Assert.Equal("poi-trade-dockyard", facility.Id);
+		Assert.Equal("Dockyard", facility.DisplayName);
+		Assert.Equal(EPresentationAnchor.Dockyard, facility.PresentationAnchor);
+		Assert.Equal([EServiceKind.Dockyard], facility.ServiceKinds);
+	}
+
+	[Fact]
 	public void OtherMapPois_HaveEmptyFacilities()
 	{
 		var world = maps.Fresh(42);
 
-		foreach (var poi in world.PointsOfInterest.Where(poi => poi is not AdministrativeCore))
+		foreach (var poi in world.PointsOfInterest.Where(poi =>
+			         poi is not AdministrativeCore and not TradeHub))
 			Assert.Empty(poi.Facilities);
 	}
 

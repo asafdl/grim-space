@@ -30,7 +30,7 @@ public static class ShipCatalog
 			DefaultMaxHull(chassis),
 			DefaultDefensesFor(chassis),
 			DefaultInstalledAbilitiesFor(chassis),
-			chassis == EType.Torpedo ? DefaultTorpedoBody() : null);
+			torpedoBody: chassis == EType.Torpedo ? DefaultTorpedoBody() : null);
 
 	public static AbilitySpec? DefaultAbilitySpec(EType chassis, EAbilityKind kind)
 	{

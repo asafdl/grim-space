@@ -13,13 +13,23 @@ public sealed class TradeHub : PointOfInterest
 
 	public static TradeHub Template(SupplySystemPlan plan) => new(plan, null);
 
+	private static IReadOnlyList<Facility> DefaultFacilities(SupplySystemPlan plan) =>
+	[
+		new Facility(
+			Facility.ScopedId(plan.TradeHubPoiId, "dockyard"),
+			"Dockyard",
+			EPresentationAnchor.Dockyard,
+			[EServiceKind.Dockyard]),
+	];
+
 	private TradeHub(SupplySystemPlan plan, Coord? center) :
 		base(
 			plan.TradeHubPoiId,
 			"Trade Hub",
 			DefaultRadius,
 			EPoiLogicalRole.Trade,
-			center)
+			center,
+			facilities: DefaultFacilities(plan))
 	{
 		_plan = plan;
 	}
@@ -40,6 +50,7 @@ public sealed class TradeHub : PointOfInterest
 		var clone = new TradeHub(_plan, Center);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
+		ForkFacilityState(clone);
 		return clone;
 	}
 

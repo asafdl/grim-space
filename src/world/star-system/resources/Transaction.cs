@@ -6,4 +6,5 @@ public static class TransactionSource
 {
 	public const string BattleLoot = "battle-loot";
 	public const string ContractPayment = "contract-payment";
+	public const string DockyardPurchase = "dockyard";
 }

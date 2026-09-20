@@ -12,6 +12,8 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private const float FacilityZoomDistance = 2.8f;
 	private const float FacilityFadeDuration = 0.35f;
 	private const string ManagementIconPath = "res://assets/ui/map/management-facility.svg";
+	private const string DockyardIconPath = "res://assets/ui/map/dockyard-facility-icon.png";
+	private static readonly Color DockyardIconTint = new(0.45f, 0.65f, 1f);
 	private const int IconPx = 40;
 
 	private static readonly HashSet<string> AllowedSources = new(StringComparer.Ordinal)
@@ -215,7 +217,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 				MouseFilter = Control.MouseFilterEnum.Stop,
 				Flat = true,
 				ThemeTypeVariation = "MapIcon",
-				Icon = SvgIconLoader.LoadRaw(ResolveFacilityIconPath(facility.PresentationAnchor), IconPx),
+				Icon = LoadFacilityIcon(facility.PresentationAnchor),
 				ExpandIcon = true,
 				CustomMinimumSize = new Vector2(48, 48),
 			};
@@ -267,11 +269,12 @@ public sealed class FacadePresentationMode : IPresentationMode
 		_facilityButtons.Clear();
 	}
 
-	private static string ResolveFacilityIconPath(EPresentationAnchor anchor) =>
+	private static Texture2D LoadFacilityIcon(EPresentationAnchor anchor) =>
 		anchor switch
 		{
-			EPresentationAnchor.Management => ManagementIconPath,
-			_ => ManagementIconPath,
+			EPresentationAnchor.Management => SvgIconLoader.LoadRaw(ManagementIconPath, IconPx),
+			EPresentationAnchor.Dockyard => SvgIconLoader.Load(DockyardIconPath, DockyardIconTint, IconPx),
+			_ => SvgIconLoader.LoadRaw(ManagementIconPath, IconPx),
 		};
 
 	private static void RestoreStrategicCameraPose(MapPresentationContext ctx)

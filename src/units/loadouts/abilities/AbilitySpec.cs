@@ -41,7 +41,7 @@ public abstract record AbilitySpec
 	}
 }
 
-public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange)
+public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange, int UpgradeTier = 0)
 	: AbilitySpec, IAreaDamage, IPerTurnAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets =
@@ -76,7 +76,7 @@ public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange)
 	}
 }
 
-public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, int PyramidRange)
+public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, int PyramidRange, int UpgradeTier = 0)
 	: AbilitySpec, IAreaDamage, IPerTurnAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
@@ -119,7 +119,8 @@ public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, in
 public sealed record PatrolBaySpec(
 	int CooldownTurns,
 	ShipSpec ChildSpec,
-	int MaxLivingChildren) : AbilitySpec, ISpawnable, ICooldownAbility
+	int MaxLivingChildren,
+	int UpgradeTier = 0) : AbilitySpec, ISpawnable, ICooldownAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Ventral];
 
@@ -130,7 +131,7 @@ public sealed record PatrolBaySpec(
 	int ISpawnable.MaxLivingChildren => MaxLivingChildren;
 }
 
-public sealed record TorpedoLauncherSpec(int CooldownTurns, ShipSpec ChildSpec)
+public sealed record TorpedoLauncherSpec(int CooldownTurns, ShipSpec ChildSpec, int UpgradeTier = 0)
 	: AbilitySpec, ISpawnable, ICooldownAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets =

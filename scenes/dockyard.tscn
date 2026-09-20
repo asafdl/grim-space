@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/world/star-system/presentation/DockyardController.cs" id="1_controller"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/DockyardSceneView.cs" id="2_scene"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/DockyardSalesmanView.cs" id="3_salesman"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
+
+[node name="Dockyard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="Scene" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_scene")
+
+[node name="Background" type="TextureRect" parent="Scene"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_backdrop")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Salesman" type="TextureButton" parent="Scene"]
+layout_mode = 0
+offset_left = 327.0
+offset_top = 323.0
+offset_right = 951.0
+offset_bottom = 1032.0
+scale = Vector2(0.8250968, 0.85275424)
+tooltip_text = "Browse upgrades"
+texture_normal = ExtResource("5_salesman")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("3_salesman")
+
+[node name="Back" type="Button" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 80.0
+offset_bottom = 47.0
+theme_type_variation = &"SecondaryButton"
+text = "Back"
