@@ -1,12 +1,12 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bm4uvj8rmdpy1"]
 
-[ext_resource type="Script" path="res://src/world/star-system/presentation/DockyardController.cs" id="1_controller"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/DockyardSceneView.cs" id="2_scene"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/DockyardSalesmanView.cs" id="3_salesman"]
-[ext_resource type="Texture2D" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
-[ext_resource type="Texture2D" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
+[ext_resource type="Script" uid="uid://b6f8u8gdg2ocn" path="res://src/world/star-system/presentation/DockyardController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://eks85d2nkfv5" path="res://src/world/star-system/presentation/DockyardSceneView.cs" id="2_scene"]
+[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/ServiceButtonView.cs" id="3_salesman"]
+[ext_resource type="Texture2D" uid="uid://bihmyhslop7m2" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
+[ext_resource type="Texture2D" uid="uid://1e4y2ewe504" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
 
-[node name="Dockyard" type="Control"]
+[node name="Dockyard" type="Control" unique_id=835188839]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,7 +15,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
 
-[node name="Scene" type="Control" parent="."]
+[node name="Scene" type="Control" parent="." unique_id=1096377716]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -25,7 +25,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_scene")
 
-[node name="Background" type="TextureRect" parent="Scene"]
+[node name="Background" type="TextureRect" parent="Scene" unique_id=11298352]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -37,12 +37,12 @@ texture = ExtResource("4_backdrop")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Salesman" type="TextureButton" parent="Scene"]
+[node name="Salesman" type="TextureButton" parent="Scene" unique_id=2081282210]
 layout_mode = 0
-offset_left = 327.0
-offset_top = 323.0
-offset_right = 951.0
-offset_bottom = 1032.0
+offset_left = 1249.0
+offset_top = 479.00003
+offset_right = 1873.0
+offset_bottom = 1188.0
 scale = Vector2(0.8250968, 0.85275424)
 tooltip_text = "Browse upgrades"
 texture_normal = ExtResource("5_salesman")
@@ -50,7 +50,7 @@ ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("3_salesman")
 
-[node name="Back" type="Button" parent="."]
+[node name="Back" type="Button" parent="." unique_id=1403616787]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 16.0

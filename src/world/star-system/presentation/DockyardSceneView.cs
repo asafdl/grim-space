@@ -7,7 +7,7 @@ public partial class DockyardSceneView : Control
 	private static readonly Vector2 DesignViewportSize = new(1920f, 1080f);
 
 	private TextureRect _background = null!;
-	private DockyardSalesmanView _salesman = null!;
+	private ServiceButtonView _salesman = null!;
 	private Rect2 _designSalesmanRect;
 
 	public event Action? SalesmanClicked;
@@ -15,9 +15,9 @@ public partial class DockyardSceneView : Control
 	public override void _Ready()
 	{
 		_background = GetNode<TextureRect>("Background");
-		_salesman = GetNode<DockyardSalesmanView>("Salesman");
+		_salesman = GetNode<ServiceButtonView>("Salesman");
 		_designSalesmanRect = new Rect2(_salesman.Position, _salesman.Size);
-		_salesman.SalesmanClicked += () => SalesmanClicked?.Invoke();
+		_salesman.Pressed += () => SalesmanClicked?.Invoke();
 
 		Resized += LayoutSalesman;
 		Callable.From(LayoutSalesman).CallDeferred();

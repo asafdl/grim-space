@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://co3qwxper2wnd" path="res://src/world/star-system/presentation/CommandAuthorityController.cs" id="1_controller"]
 [ext_resource type="Script" uid="uid://cugv20r1oyujg" path="res://src/world/star-system/presentation/CommandAuthoritySceneView.cs" id="2_scene"]
-[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/ContractGiverView.cs" id="3_giver"]
+[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/ServiceButtonView.cs" id="3_giver"]
 [ext_resource type="Texture2D" uid="uid://b3k2qm3nqj8tm" path="res://assets/ui/map/facilities/command-authority-scene.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://jhrb0o1clbaa" path="res://assets/ui/map/services/optimality-robot.png" id="5_manager"]
 

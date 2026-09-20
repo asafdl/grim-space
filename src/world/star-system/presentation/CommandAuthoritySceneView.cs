@@ -7,7 +7,7 @@ public partial class CommandAuthoritySceneView : Control
 	private static readonly Vector2 DesignViewportSize = new(1920f, 1080f);
 
 	private TextureRect _background = null!;
-	private ContractGiverView _giver = null!;
+	private ServiceButtonView _giver = null!;
 	private Rect2 _designGiverRect;
 
 	public event Action? GiverClicked;
@@ -15,9 +15,9 @@ public partial class CommandAuthoritySceneView : Control
 	public override void _Ready()
 	{
 		_background = GetNode<TextureRect>("Background");
-		_giver = GetNode<ContractGiverView>("Manager");
+		_giver = GetNode<ServiceButtonView>("Manager");
 		_designGiverRect = new Rect2(_giver.Position, _giver.Size);
-		_giver.GiverClicked += () => GiverClicked?.Invoke();
+		_giver.Pressed += () => GiverClicked?.Invoke();
 
 		Resized += LayoutGiver;
 		Callable.From(LayoutGiver).CallDeferred();
