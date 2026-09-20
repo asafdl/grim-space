@@ -11,19 +11,20 @@ public sealed partial class DockyardHudOverlay : Control
 {
 	private enum DockyardTab
 	{
+		Hull,
 		Shields,
 		Abilities,
 	}
 
 	private readonly ModalShell _shell;
 	private State _run = null!;
-	private StarMap _map = null!;
 	private string _facilityTitle = "";
 	private DockyardTab _activeTab = DockyardTab.Shields;
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
 	public event Action<string, string>? PurchaseRequested;
+	public event Action<string>? HullRepairRequested;
 	public event Action? Closed;
 
 	public DockyardHudOverlay()
@@ -45,9 +46,8 @@ public sealed partial class DockyardHudOverlay : Control
 	public void Open(State run, StarMap map, string facilityTitle)
 	{
 		_run = run;
-		_map = map;
 		_facilityTitle = facilityTitle;
-		_activeTab = DockyardTab.Shields;
+		_activeTab = DockyardTab.Hull;
 		_statusKind = null;
 		_statusMessage = "";
 		_shell.Open(_facilityTitle, string.Empty);
@@ -61,11 +61,7 @@ public sealed partial class DockyardHudOverlay : Control
 		_shell.Close();
 	}
 
-	public void Sync(State run, StarMap map)
-	{
-		_run = run;
-		_map = map;
-	}
+	public void Sync(State run, StarMap map) => _run = run;
 
 	public void ShowError(string message)
 	{
@@ -94,7 +90,6 @@ public sealed partial class DockyardHudOverlay : Control
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
 			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 
-		body.AddChild(CreateScrapLine());
 		body.AddChild(CreateTabBar());
 
 		if (!TryGetActiveShip(out var ship))
@@ -108,6 +103,9 @@ public sealed partial class DockyardHudOverlay : Control
 
 		switch (_activeTab)
 		{
+			case DockyardTab.Hull:
+				AppendHullTab(body, ship);
+				break;
 			case DockyardTab.Shields:
 				AppendShieldTab(body, ship);
 				break;
@@ -137,6 +135,7 @@ public sealed partial class DockyardHudOverlay : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		row.AddThemeConstantOverride("separation", 8);
+		row.AddChild(CreateTabButton("Hull", DockyardTab.Hull));
 		row.AddChild(CreateTabButton("Shields", DockyardTab.Shields));
 		row.AddChild(CreateTabButton("Abilities", DockyardTab.Abilities));
 		return row;
@@ -157,6 +156,27 @@ public sealed partial class DockyardHudOverlay : Control
 			ShowMain();
 		};
 		return button;
+	}
+
+	private void AppendHullTab(VBoxContainer body, ShipInstance ship)
+	{
+		if (!DockyardHullRepair.TryQuote(ship, out var cost))
+		{
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				"Hull integrity is full."));
+			return;
+		}
+
+		var missing = DockyardHullRepair.MissingHull(ship);
+		body.AddChild(HudWidgets.CreateCard(
+			"Hull repair",
+			[
+				ResourceCostDisplay.CreateMetadataRow(
+					cost,
+					$"Restore {missing} hull to {ship.Spec.MaxHullPoints}"),
+			],
+			() => HullRepairRequested?.Invoke(ship.Id)));
 	}
 
 	private void AppendShieldTab(VBoxContainer body, ShipInstance ship)
@@ -200,7 +220,7 @@ public sealed partial class DockyardHudOverlay : Control
 			var captured = offer;
 			body.AddChild(HudWidgets.CreateCard(
 				TitleFor(offer, ship),
-				[ new HudTextLine($"{FormatCost(captured.Cost)} · {BodyFor(offer, ship)}", HudTextRole.Metadata) ],
+				[ ResourceCostDisplay.CreateMetadataRow(captured.Cost, BodyFor(offer, ship)) ],
 				() => PurchaseRequested?.Invoke(captured.Id, ship.Id)));
 		}
 	}
@@ -224,28 +244,4 @@ public sealed partial class DockyardHudOverlay : Control
 			_ => string.Empty,
 		};
 
-	private Control CreateScrapLine()
-	{
-		var scrap = _map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
-		return HudWidgets.CreateStatusPanel(
-			HudStatusKind.Neutral,
-			$"Scrap alloy on hand: {scrap}");
-	}
-
-	private static string FormatCost(ResourceBundle cost) => $"COST  {FormatCostPlain(cost)}";
-
-	private static string FormatCostPlain(ResourceBundle cost)
-	{
-		foreach (var (id, amount) in cost)
-		{
-			return id switch
-			{
-				ResourceId.ScrapAlloy => $"{amount} scrap alloy",
-				ResourceId.Credits => $"{amount} credits",
-				_ => $"{amount} {id}",
-			};
-		}
-
-		return "free";
-	}
 }

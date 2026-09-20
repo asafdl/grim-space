@@ -36,6 +36,7 @@ public partial class DockyardController : Control
 		AddChild(_dockyardHudLayer);
 		_dockyardHud = new DockyardHudOverlay();
 		_dockyardHud.PurchaseRequested += OnPurchaseRequested;
+		_dockyardHud.HullRepairRequested += OnHullRepairRequested;
 		_dockyardHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_dockyardHud);
 
@@ -79,6 +80,20 @@ public partial class DockyardController : Control
 			before));
 	}
 
+	public bool TryPurchaseHullRepair(string shipId)
+	{
+		var poiId = MapNavigationContext.ActivePoiId
+			?? throw new InvalidOperationException("Dockyard requires an active POI.");
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
+		return _orchestrator.TryCommitPlayerInput(new PurchaseHullRepairAction(
+			State.PlayerFleetUnitId,
+			poiId,
+			facilityId,
+			before));
+	}
+
 	public bool TryPurchaseShieldRecharge(string shipId, ESpatialOrientation? face = null)
 	{
 		var poiId = MapNavigationContext.ActivePoiId
@@ -117,6 +132,20 @@ public partial class DockyardController : Control
 		var facility = poi.Facilities.First(f => f.Id == facilityId);
 
 		_shieldRechargeHud.Open(Session.Instance.Run, _orchestrator.Map, facility.DisplayName);
+		UpdateBackButton();
+	}
+
+	private void OnHullRepairRequested(string shipId)
+	{
+		if (!TryPurchaseHullRepair(shipId))
+		{
+			_dockyardHud.ShowError("Unable to repair hull.");
+			UpdateBackButton();
+			return;
+		}
+
+		_dockyardHud.Sync(Session.Instance.Run, _orchestrator.Map);
+		_dockyardHud.ShowConfirmation("Hull repaired.", HudStatusKind.Success);
 		UpdateBackButton();
 	}
 

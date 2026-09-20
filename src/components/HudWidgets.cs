@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 
 namespace GrimSpace.Components;
@@ -17,6 +18,12 @@ public static class HudWidgets
 	public static Control CreateCard(
 		string title,
 		IReadOnlyList<HudTextLine> rows,
+		Action onPressed) =>
+		CreateCard(title, rows.Select(CreateTextLine).Cast<Control>().ToArray(), onPressed);
+
+	public static Control CreateCard(
+		string title,
+		IReadOnlyList<Control> rows,
 		Action onPressed)
 	{
 		var panel = new PanelContainer
@@ -57,7 +64,7 @@ public static class HudWidgets
 		column.AddChild(titleLabel);
 
 		foreach (var row in rows)
-			column.AddChild(CreateTextLine(row));
+			column.AddChild(row);
 
 		panel.MouseEntered += () => HudStyles.SetPanelVariation(panel, "CardHover");
 		panel.MouseExited += () => HudStyles.SetPanelVariation(panel, "Card");

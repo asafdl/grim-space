@@ -36,13 +36,13 @@ public static class ResourceRewardDisplay
 
 		row.AddChild(new TextureRect
 		{
-			Texture = GD.Load<Texture2D>(IconPath(id)),
+			Texture = GD.Load<Texture2D>(ResourceIconCatalog.IconPath(id)),
 			CustomMinimumSize = new Vector2(IconSize, IconSize),
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-			TooltipText = DisplayName(id),
+			TooltipText = ResourceIconCatalog.DisplayName(id),
 		});
 
 		var amountLabel = new Label
@@ -59,21 +59,4 @@ public static class ResourceRewardDisplay
 		return row;
 	}
 
-	private static string DisplayName(ResourceId id) =>
-		id switch
-		{
-			ResourceId.Credits => "Credits",
-			ResourceId.ScrapAlloy => "Scrap Alloy",
-			ResourceId.IndustrialCore => "Industrial Core",
-			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
-		};
-
-	private static string IconPath(ResourceId id) =>
-		id switch
-		{
-			ResourceId.Credits => "res://assets/ui/resources/credits.svg",
-			ResourceId.ScrapAlloy => "res://assets/ui/resources/scrap-alloy.svg",
-			ResourceId.IndustrialCore => "res://assets/ui/resources/industrial-core.svg",
-			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
-		};
 }

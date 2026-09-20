@@ -35,6 +35,7 @@ public sealed class State : IDisposable
 	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _dockyardUpgradeSubscription;
 	private IDisposable? _shieldRechargeSubscription;
+	private IDisposable? _hullRepairSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -120,6 +121,8 @@ public sealed class State : IDisposable
 		_dockyardUpgradeSubscription = null;
 		_shieldRechargeSubscription?.Dispose();
 		_shieldRechargeSubscription = null;
+		_hullRepairSubscription?.Dispose();
+		_hullRepairSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -135,6 +138,8 @@ public sealed class State : IDisposable
 			StarSystem.Subscribe<Record<DockyardUpgradePurchased>>(OnDockyardUpgradePurchased);
 		_shieldRechargeSubscription =
 			StarSystem.Subscribe<Record<ShieldRechargePurchased>>(OnShieldRechargePurchased);
+		_hullRepairSubscription =
+			StarSystem.Subscribe<Record<HullRepairPurchased>>(OnHullRepairPurchased);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -147,6 +152,8 @@ public sealed class State : IDisposable
 		_dockyardUpgradeSubscription = null;
 		_shieldRechargeSubscription?.Dispose();
 		_shieldRechargeSubscription = null;
+		_hullRepairSubscription?.Dispose();
+		_hullRepairSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -229,6 +236,33 @@ public sealed class State : IDisposable
 		{
 			GameLog.Log(
 				$"Ignoring shield recharge for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
+			return;
+		}
+
+		ShipRegistry.Update(purchase.After.Clone());
+	}
+
+	private void OnHullRepairPurchased(Record<HullRepairPurchased> record)
+	{
+		var purchase = record.Value;
+		if (!PlayerParty.ShipIds.Contains(purchase.ShipId, StringComparer.Ordinal))
+		{
+			GameLog.Log(
+				$"Ignoring hull repair for ship '{purchase.ShipId}'; ship is not in the player party.");
+			return;
+		}
+
+		if (!ShipRegistry.TryGet(purchase.ShipId, out var current))
+		{
+			GameLog.Log(
+				$"Ignoring hull repair for ship '{purchase.ShipId}'; ship is missing from the registry.");
+			return;
+		}
+
+		if (!RegistryMatchesDockyardBefore(current, purchase.Before))
+		{
+			GameLog.Log(
+				$"Ignoring hull repair for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
 			return;
 		}
 

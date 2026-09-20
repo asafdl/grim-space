@@ -177,8 +177,9 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			? CreditAmount(allCost)
 			: 0;
 		var fillAllMissing = DockyardShieldRecharge.MissingPoints(ship);
-		column.AddChild(CreateFillButton(
+		column.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
 			"Fill all",
+			ResourceId.Credits,
 			fillAllCost,
 			fillAllMissing > 0 && creditsOnHand >= fillAllCost,
 			() => FillAllRechargeRequested?.Invoke(shipId)));
@@ -214,8 +215,9 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		var blocks = new List<Panel>();
 		ShieldBlockVisuals.SyncBlocks(barHost, blocks, CompactMetrics, max, current);
 
-		row.AddChild(CreateFillButton(
+		row.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
 			"Fill",
+			ResourceId.Credits,
 			creditCost,
 			missing > 0 && creditsOnHand >= creditCost,
 			() => FaceRechargeRequested?.Invoke(shipId, face)));
@@ -230,21 +232,6 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		padding.AddThemeConstantOverride("margin_bottom", 2);
 		padding.AddChild(HudWidgets.CreateInformativeHairline());
 		return padding;
-	}
-
-	private static Button CreateFillButton(string label, int creditCost, bool enabled, Action onPressed)
-	{
-		var button = new Button
-		{
-			Text = enabled ? $"{label} · {creditCost} cr" : label,
-			Disabled = !enabled,
-			CustomMinimumSize = new Vector2(0, 44),
-		};
-		HudStyles.StyleButton(button, HudActionKind.Primary);
-		if (enabled)
-			button.Pressed += onPressed;
-
-		return button;
 	}
 
 	private static int CreditAmount(ResourceBundle cost)
