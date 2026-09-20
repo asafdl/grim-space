@@ -3,7 +3,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 namespace GrimSpace.Battle.Player;
 
 public sealed record MountDisplayState(
-	EAbilityKind Kind,
+	AbilityMount Mount,
 	int UsesRemaining,
 	int UsesPerTurn,
 	int CooldownRemaining)
@@ -12,7 +12,7 @@ public sealed record MountDisplayState(
 	{
 		var usesPerTurn = installed.Spec is IPerTurnAbility perTurn ? perTurn.UsesPerTurn : 0;
 		return new(
-			installed.Spec.Kind,
+			installed.Mount,
 			runtime.UsesRemaining,
 			usesPerTurn,
 			runtime.CooldownRemaining);

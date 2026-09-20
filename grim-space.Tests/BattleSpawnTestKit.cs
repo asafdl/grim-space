@@ -40,5 +40,6 @@ internal static class BattleSpawnTestKit
 			ShipSpec.Create(
 				EType.Fighter,
 				ShipCatalog.DefaultFor(EType.Fighter).MaxHullPoints,
+				ShipCatalog.DefaultFor(EType.Fighter).MaxShieldPoints,
 				installed));
 }

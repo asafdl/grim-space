@@ -28,11 +28,9 @@ public static class ShipCatalog
 		ShipSpec.Create(
 			chassis,
 			DefaultMaxHull(chassis),
+			DefaultDefensesFor(chassis),
 			DefaultInstalledAbilitiesFor(chassis),
 			chassis == EType.Torpedo ? DefaultTorpedoBody() : null);
-
-	public static FaceShieldPoints MaxShieldPointsFor(EType chassis) =>
-		DefaultDefensesFor(chassis);
 
 	public static AbilitySpec? DefaultAbilitySpec(EType chassis, EAbilityKind kind)
 	{
@@ -110,31 +108,23 @@ public static class ShipCatalog
 
 	private static IReadOnlyList<InstalledAbility> DefaultFighterInstalledAbilities() =>
 	[
-		new InstalledAbility(
-			FlakSpec(),
-			[ESpatialOrientation.Port, ESpatialOrientation.Starboard]),
-		new InstalledAbility(
-			RailgunSpec(),
-			[ESpatialOrientation.Forward]),
-		new InstalledAbility(
-			TorpedoLauncherSpec(),
-			[
-				ESpatialOrientation.Retro,
-				ESpatialOrientation.Ventral,
-				ESpatialOrientation.Dorsal,
-			]),
+		new InstalledAbility(FlakSpec(), ESpatialOrientation.Port),
+		new InstalledAbility(FlakSpec(), ESpatialOrientation.Starboard),
+		new InstalledAbility(RailgunSpec(), ESpatialOrientation.Forward),
+		new InstalledAbility(TorpedoLauncherSpec(), ESpatialOrientation.Retro),
+		new InstalledAbility(TorpedoLauncherSpec(), ESpatialOrientation.Ventral),
+		new InstalledAbility(TorpedoLauncherSpec(), ESpatialOrientation.Dorsal),
 	];
 
 	private static IReadOnlyList<InstalledAbility> DefaultCarrierInstalledAbilities() =>
 	[
-		new InstalledAbility(RailgunSpec(), [ESpatialOrientation.Forward]),
-		new InstalledAbility(PatrolBaySpec(), [ESpatialOrientation.Ventral]),
+		new InstalledAbility(RailgunSpec(), ESpatialOrientation.Forward),
+		new InstalledAbility(PatrolBaySpec(), ESpatialOrientation.Ventral),
 	];
 
 	private static IReadOnlyList<InstalledAbility> DefaultPatrolInstalledAbilities() =>
 	[
-		new InstalledAbility(
-			FlakSpec(),
-			[ESpatialOrientation.Port, ESpatialOrientation.Starboard]),
+		new InstalledAbility(FlakSpec(), ESpatialOrientation.Port),
+		new InstalledAbility(FlakSpec(), ESpatialOrientation.Starboard),
 	];
 }

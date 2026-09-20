@@ -65,7 +65,7 @@ public sealed partial class HealthBar : HBoxContainer
 	public void Set(UnitDisplayState state)
 	{
 		SetHull(state.HullPoints, state.MaxHullPoints);
-		SetShields(state.ShieldPoints, state.MaxShieldPoints);
+		SetShields(state.ShieldPoints, state.Spec.MaxShieldPoints);
 	}
 
 	private void SetShields(FaceShieldPoints shieldPoints, FaceShieldPoints maxPoints)

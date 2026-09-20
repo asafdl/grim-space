@@ -90,11 +90,9 @@ public static class AbilityHudCatalog
 					new Color(0.25f, 0.85f, 0.95f, 0.55f)),
 				"res://assets/ui/abilities/torpedo.svg",
 				BattleHudCopy.TorpedoTooltip,
-				(unit, legality) => BattleHudCopy.Charges(
-					CooldownUses(
-						unit.CooldownRemaining(EAbilityKind.TorpedoLauncher),
-						legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
-					1),
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ReadyMounts(EAbilityKind.TorpedoLauncher),
+					unit.MountCount(EAbilityKind.TorpedoLauncher)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
 			DetonateDef => new(
 				EPlayerMode.Detonate,
@@ -118,18 +116,13 @@ public static class AbilityHudCatalog
 					new Color(0.4f, 0.9f, 0.58f, 0.48f)),
 				"res://assets/ui/abilities/patrol.svg",
 				BattleHudCopy.SpawnPatrolTooltip,
-				(unit, legality) => BattleHudCopy.Charges(
-					CooldownUses(
-						unit.CooldownRemaining(EAbilityKind.PatrolBay),
-						legality.SpawnPatrol),
-					1),
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ReadyMounts(EAbilityKind.PatrolBay),
+					unit.MountCount(EAbilityKind.PatrolBay)),
 				legality => legality.SpawnPatrol),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};
-
-	private static int CooldownUses(int cooldownRemaining, bool legal) =>
-		legal && cooldownRemaining == 0 ? 1 : 0;
 
 	private static AbilitySourcePose AdjacentMountedSource(State actor, IAction action)
 	{
@@ -165,9 +158,13 @@ public static class AbilityHudCatalog
 
 	private static AbilitySourcePose PatrolSource(State actor, IAction action)
 	{
-		Require<SpawnPatrolAction>(action);
-		var pose = PatrolBayMount.LaunchPose(actor);
-		return new AbilitySourcePose(pose.Position, pose.Fore, pose.Dorsal);
+		var patrol = Require<SpawnPatrolAction>(action);
+		var pose = PatrolBayMount.LaunchPose(actor, patrol.MountedOn);
+		return new AbilitySourcePose(
+			pose.Position,
+			pose.Fore,
+			pose.Dorsal,
+			patrol.MountedOn);
 	}
 
 	private static AbilitySourcePose SelfSource<TAction>(State actor, IAction action)

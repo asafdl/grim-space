@@ -17,7 +17,7 @@ public sealed class RailgunActionClip : IReplayClip
 	{
 		var railgun = (RailgunAction)action;
 		var state = context.ReplayState.StateOf(railgun.ActorId);
-		var reachCells = state.FindInstalled(EAbilityKind.Railgun)?.Spec is RailgunSpec railgunSpec
+		var reachCells = state.FindInstalled(EAbilityKind.Railgun, railgun.MountedOn)?.Spec is RailgunSpec railgunSpec
 			? AbilityReach.RailgunReplayShotLength(railgunSpec)
 			: 10.7f;
 

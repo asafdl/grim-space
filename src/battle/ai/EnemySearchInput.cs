@@ -112,8 +112,7 @@ internal static class EnemySearchInput
 			if (installed.Spec is not IPerTurnAbility)
 				continue;
 
-			var kind = installed.Spec.Kind;
-			if (state.UsesRemaining(kind) <= 0)
+			if (state.UsesRemaining(installed.Mount) <= 0)
 				continue;
 
 			reach = System.Math.Max(reach, AbilityReach.MaxManhattanFromFirer(installed.Spec));
@@ -215,8 +214,8 @@ internal static class EnemySearchInput
 	private static bool WouldDamage(BattleWorld world, string actorId, IAction action) =>
 		action switch
 		{
-			RailgunAction { ActorId: var railgunActorId } when railgunActorId == actorId =>
-				WouldRailgunDamage(world, actorId),
+			RailgunAction { ActorId: var railgunActorId, MountedOn: var mountedOn } when railgunActorId == actorId =>
+				WouldRailgunDamage(world, actorId, mountedOn),
 			FlakAction { ActorId: var flakActorId, MountedOn: var mountedOn } when flakActorId == actorId =>
 				WouldFlakDamage(world, actorId, mountedOn),
 			_ => false,
@@ -225,20 +224,29 @@ internal static class EnemySearchInput
 	private static bool CanDamageNow(BattleWorld world, string actorId)
 	{
 		var state = world.StateOf(actorId);
-		if (state.UsesRemaining(EAbilityKind.Railgun) > 0
-			&& WouldRailgunDamage(world, actorId))
-			return true;
+		foreach (var installed in state.Spec.InstalledAbilities)
+		{
+			if (state.UsesRemaining(installed.Mount) <= 0)
+				continue;
 
-		if (state.UsesRemaining(EAbilityKind.Flak) <= 0)
-			return false;
+			if (installed.Spec.Kind == EAbilityKind.Railgun
+				&& WouldRailgunDamage(world, actorId, installed.MountedOn))
+				return true;
 
-		return WouldFlakDamage(world, actorId, ESpatialOrientation.Port)
-			|| WouldFlakDamage(world, actorId, ESpatialOrientation.Starboard);
+			if (installed.Spec.Kind == EAbilityKind.Flak
+				&& WouldFlakDamage(world, actorId, installed.MountedOn))
+				return true;
+		}
+
+		return false;
 	}
 
-	private static bool WouldRailgunDamage(BattleWorld world, string actorId)
+	private static bool WouldRailgunDamage(
+		BattleWorld world,
+		string actorId,
+		ESpatialOrientation mountedOn = ESpatialOrientation.Forward)
 	{
-		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(actorId), world);
+		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(actorId, mountedOn), world);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 

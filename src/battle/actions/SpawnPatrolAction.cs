@@ -6,14 +6,18 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core.Ids;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record SpawnPatrolAction(string ActorId, string SpawnedUnitId)
-	: IAction<BattleWorld, ActorRuntime>
+public sealed record SpawnPatrolAction(
+	string ActorId,
+	ESpatialOrientation MountedOn,
+	string SpawnedUnitId)
+	: IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		SpawnPatrolDef.Instance;
@@ -21,24 +25,28 @@ public sealed record SpawnPatrolAction(string ActorId, string SpawnedUnitId)
 
 public sealed class SpawnPatrolDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IActorActionDef
+		IMountedActionDef
 {
 	public static SpawnPatrolDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		if (world.StateOf(actorId).FindInstalled(EAbilityKind.PatrolBay) is null)
-			yield break;
+		foreach (var installed in world.StateOf(actorId).Spec.InstalledAbilities)
+		{
+			if (installed.Spec.Kind != EAbilityKind.PatrolBay)
+				continue;
 
-		var action = Bind(actorId);
-		if (IsLegal(action, world, runtime))
-			yield return action;
+			var action = Bind(actorId, installed.MountedOn);
+			if (IsLegal(action, world, runtime))
+				yield return action;
+		}
 	}
 
-	public SpawnPatrolAction Bind(string actorId) =>
-		new(actorId, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Patrol)));
+	public SpawnPatrolAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+		new(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Patrol)));
 
-	IAction IActorActionDef.Bind(string actorId) => Bind(actorId);
+	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
+		Bind(actorId, mountedOn);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -58,17 +66,20 @@ public sealed class SpawnPatrolDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		var (position, _, _) = PatrolBayMount.LaunchPose(actor);
+		if (actor.FindInstalled(EAbilityKind.PatrolBay, action.MountedOn) is null)
+			return false;
+
+		var (position, _, _) = PatrolBayMount.LaunchPose(actor, action.MountedOn);
 		return world.Grid.IsInBounds(position) && !world.BlockedFor(action.ActorId).Contains(position);
 	}
 
 	public bool IsLegal(SpawnPatrolAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		var installed = actor.FindInstalled(EAbilityKind.PatrolBay);
+		var installed = actor.FindInstalled(EAbilityKind.PatrolBay, action.MountedOn);
 		if (installed is null)
 			return false;
-		if (actor.CooldownRemaining(EAbilityKind.PatrolBay) > 0)
+		if (actor.CooldownRemaining(installed.Mount) > 0)
 			return false;
 		if (installed.Spec is not ISpawnable spawnable)
 			return false;
@@ -84,15 +95,15 @@ public sealed class SpawnPatrolDef
 		ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.PatrolBay)
+		var installed = state.FindInstalled(EAbilityKind.PatrolBay, action.MountedOn)
 			?? throw new InvalidOperationException("Patrol bay not installed for actor.");
 		var cooldown = installed.Spec is ICooldownAbility cooldownAbility
 			? cooldownAbility.CooldownTurns
 			: throw new InvalidOperationException("Patrol bay spec missing cooldown.");
 		return
 		[
-			new SpawnPatrolEffect(action.SpawnedUnitId),
-			new MountCooldownEffect(EAbilityKind.PatrolBay, cooldown),
+			new SpawnPatrolEffect(installed.Mount, action.SpawnedUnitId),
+			new MountCooldownEffect(installed.Mount, cooldown),
 		];
 	}
 

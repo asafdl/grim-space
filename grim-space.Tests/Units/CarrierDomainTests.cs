@@ -17,13 +17,11 @@ public sealed class CarrierDomainTests
 	{
 		var stats = Stats.ForType(EType.Carrier);
 		var configuration = ShipCatalog.DefaultFor(EType.Carrier);
-		var snapshot = ShipInstance.FromCatalog("carrier", EType.Carrier);
-
 		Assert.Equal(3, stats.MaxAp);
 		Assert.Equal(2, configuration.MaxHullPoints);
-		Assert.Equal(2, ShipCatalog.MaxShieldPointsFor(EType.Carrier).MaxOnAnyFace);
-		Assert.Equal(0, AbilityLoadout.PerTurnUsesForAbility(snapshot, EAbilityKind.Flak));
-		Assert.Equal(1, AbilityLoadout.PerTurnUsesForAbility(snapshot, EAbilityKind.Railgun));
+		Assert.Equal(2, configuration.MaxShieldPoints.MaxOnAnyFace);
+		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.Flak));
+		Assert.Equal(1, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.Railgun));
 	}
 
 	[Fact]
@@ -53,7 +51,7 @@ public sealed class CarrierDomainTests
 			unit with
 			{
 				Mounts = unit.Mounts
-					.Select(mount => mount.Kind == EAbilityKind.PatrolBay
+					.Select(mount => mount.Mount.Kind == EAbilityKind.PatrolBay
 						? mount with
 						{
 							CooldownRemaining = CatalogExpectations.DefaultPatrolBaySpec().CooldownTurns,

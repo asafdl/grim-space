@@ -36,7 +36,6 @@ public sealed partial class PosedUnitGhostView : Node3D
 
 		var configuration = ShipCatalog.DefaultFor(spec.Type);
 		var stats = Stats.ForSpec(configuration);
-		var maxShields = ShipCatalog.MaxShieldPointsFor(spec.Type).Clone();
 		var state = new State
 		{
 			Id = GhostId,
@@ -48,8 +47,7 @@ public sealed partial class PosedUnitGhostView : Node3D
 			Starboard = GrimSpace.Math.Grid.Coord.Cross(spec.Dorsal, spec.Fore),
 			Stats = stats,
 			HullPoints = configuration.MaxHullPoints,
-			MaxShieldPoints = maxShields,
-			ShieldPoints = maxShields.Clone(),
+			ShieldPoints = configuration.MaxShieldPoints.Clone(),
 		};
 		var view = _view
 			?? throw new InvalidOperationException("Posed ghost view was not initialized.");

@@ -67,7 +67,7 @@ public static class Capabilities
 			var candidates = def switch
 			{
 				TorpedoDef torpedo => torpedo.Discover(actorId, PreviewTorpedoId, world),
-				SpawnPatrolDef => DiscoverPreviewPatrolSpawn(state),
+				SpawnPatrolDef => DiscoverPreviewPatrolSpawns(state),
 				_ => def.Discover(world, runtime, actorId),
 			};
 
@@ -102,13 +102,13 @@ public static class Capabilities
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 
-	private static IEnumerable<IAction> DiscoverPreviewPatrolSpawn(State state)
+	private static IEnumerable<IAction> DiscoverPreviewPatrolSpawns(State state)
 	{
-		var installed = state.FindInstalled(EAbilityKind.PatrolBay);
-		if (installed is null)
-			yield break;
-
-		yield return new SpawnPatrolAction(state.Id, PreviewPatrolId);
+		foreach (var installed in state.Spec.InstalledAbilities)
+		{
+			if (installed.Spec.Kind == EAbilityKind.PatrolBay)
+				yield return new SpawnPatrolAction(state.Id, installed.MountedOn, PreviewPatrolId);
+		}
 	}
 
 	private static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsFor(

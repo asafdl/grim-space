@@ -170,8 +170,12 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 
 	private static bool TryAppendPatrolDeploy(BattleSimulation session, Unit actor)
 	{
-		var action = SpawnPatrolDef.Instance.Bind(actor.State.Id);
-		if (!SpawnPatrolDef.Instance.IsLegal(action, session.World, session.Runtimes.For(actor.State.Id)))
+		var runtime = session.Runtimes.For(actor.State.Id);
+		var action = SpawnPatrolDef.Instance
+			.Discover(session.World, runtime, actor.State.Id)
+			.OfType<SpawnPatrolAction>()
+			.FirstOrDefault();
+		if (action is null)
 			return false;
 
 		return session.TryEnqueue(action);

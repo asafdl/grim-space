@@ -95,9 +95,9 @@ public sealed class AbilityActivationTests
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
 		var railgun = new RailgunAction(actor.Id);
-		var patrol = new SpawnPatrolAction(actor.Id, "patrol");
+		var patrol = new SpawnPatrolAction(actor.Id, ESpatialOrientation.Ventral, "patrol");
 		var detonate = new DetonateAction(actor.Id);
-		var patrolPose = PatrolBayMount.LaunchPose(actor);
+		var patrolPose = PatrolBayMount.LaunchPose(actor, ESpatialOrientation.Ventral);
 
 		var railgunSpec = Spec(EPlayerMode.Railgun);
 		var patrolSpec = Spec(EPlayerMode.SpawnPatrol);
@@ -134,7 +134,10 @@ public sealed class AbilityActivationTests
 			actor.Id,
 			ESpatialOrientation.Retro,
 			"__preview_torpedo__");
-		var previewPatrol = new SpawnPatrolAction(actor.Id, "__preview_patrol__");
+		var previewPatrol = new SpawnPatrolAction(
+			actor.Id,
+			ESpatialOrientation.Ventral,
+			"__preview_patrol__");
 		var torpedoChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				Spec(EPlayerMode.Torpedo),
@@ -154,6 +157,7 @@ public sealed class AbilityActivationTests
 		Assert.NotEqual(previewTorpedo.SpawnedUnitId, torpedo.SpawnedUnitId);
 		Assert.NotEqual(previewPatrol.SpawnedUnitId, patrol.SpawnedUnitId);
 		Assert.Equal(previewTorpedo.MountedOn, torpedo.MountedOn);
+		Assert.Equal(previewPatrol.MountedOn, patrol.MountedOn);
 	}
 
 	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>

@@ -272,7 +272,7 @@ public partial class TurnReplayPlayer : Node3D
 		if (action is SpawnPatrolAction deploy)
 		{
 			var carrier = _clipContext.ReplayState.StateOf(deploy.ActorId);
-			var (launchCell, _, _) = PatrolBayMount.LaunchPose(carrier);
+			var (launchCell, _, _) = PatrolBayMount.LaunchPose(carrier, deploy.MountedOn);
 			_clipContext.ReportInterest(new CameraInterest(
 				[
 					WorldMapping.ToWorld(carrier.Position),

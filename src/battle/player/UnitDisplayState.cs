@@ -18,7 +18,6 @@ public sealed record UnitDisplayState(
 	int HullPoints,
 	int MaxHullPoints,
 	FaceShieldPoints ShieldPoints,
-	FaceShieldPoints MaxShieldPoints,
 	int ActionPoints,
 	int MaxActionPoints,
 	IReadOnlyList<MountDisplayState> Mounts,
@@ -36,25 +35,33 @@ public sealed record UnitDisplayState(
 			state.HullPoints,
 			state.Spec.MaxHullPoints,
 			state.ShieldPoints.Clone(),
-			state.MaxShieldPoints.Clone(),
 			state.ActionPoints,
 			state.Stats.MaxAp,
 			state.Spec.InstalledAbilities
 				.Select(installed => MountDisplayState.Capture(
 					installed,
-					state.MountRuntimeFor(installed.Spec.Kind)))
+					state.MountRuntimeFor(installed.Mount)))
 				.ToList(),
 			state.FuelRemaining,
 			state.IsAlive);
 
 	public int UsesRemaining(EAbilityKind kind) =>
-		MountFor(kind)?.UsesRemaining ?? 0;
+		Mounts
+			.Where(mount => mount.Mount.Kind == kind)
+			.Sum(mount => mount.UsesRemaining);
 
 	public int MaxUsesPerTurn(EAbilityKind kind) =>
-		MountFor(kind)?.UsesPerTurn ?? 0;
+		Mounts
+			.Where(mount => mount.Mount.Kind == kind)
+			.Sum(mount => mount.UsesPerTurn);
 
-	public int CooldownRemaining(EAbilityKind kind) =>
-		MountFor(kind)?.CooldownRemaining ?? 0;
+	public int ReadyMounts(EAbilityKind kind) =>
+		Mounts.Count(mount =>
+			mount.Mount.Kind == kind
+			&& mount.CooldownRemaining == 0);
+
+	public int MountCount(EAbilityKind kind) =>
+		Mounts.Count(mount => mount.Mount.Kind == kind);
 
 	public BodyFrame ToBodyFrame() =>
 		new(Position, Fore, Dorsal, Coord.Cross(Dorsal, Fore));
@@ -62,7 +69,6 @@ public sealed record UnitDisplayState(
 	public State ToState()
 	{
 		var shields = ShieldPoints.Clone();
-		var maxShields = MaxShieldPoints.Clone();
 		var state = new State
 		{
 			Id = Id,
@@ -74,14 +80,13 @@ public sealed record UnitDisplayState(
 			Starboard = Coord.Cross(Dorsal, Fore),
 			ActionPoints = ActionPoints,
 			HullPoints = HullPoints,
-			MaxShieldPoints = maxShields,
 			ShieldPoints = shields,
 			FuelRemaining = FuelRemaining,
 			Stats = Stats.ForSpec(Spec),
 		};
 		foreach (var mount in Mounts)
 		{
-			state.MountRuntime[mount.Kind] = new MountRuntimeCounters
+			state.MountRuntime[mount.Mount] = new MountRuntimeCounters
 			{
 				UsesRemaining = mount.UsesRemaining,
 				CooldownRemaining = mount.CooldownRemaining,
@@ -89,16 +94,5 @@ public sealed record UnitDisplayState(
 		}
 
 		return state;
-	}
-
-	private MountDisplayState? MountFor(EAbilityKind kind)
-	{
-		foreach (var mount in Mounts)
-		{
-			if (mount.Kind == kind)
-				return mount;
-		}
-
-		return null;
 	}
 }

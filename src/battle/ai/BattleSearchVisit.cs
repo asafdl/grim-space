@@ -100,7 +100,7 @@ internal static class BattleSearchVisit
 			'|',
 			actor.Spec.InstalledAbilities.Select(installed =>
 			{
-				var runtime = actor.MountRuntimeFor(installed.Spec.Kind);
-				return $"{installed.Spec.Kind}:{runtime.UsesRemaining}:{runtime.CooldownRemaining}";
+				var runtime = actor.MountRuntimeFor(installed.Mount);
+				return $"{installed.Spec.Kind}:{installed.MountedOn}:{runtime.UsesRemaining}:{runtime.CooldownRemaining}";
 			}));
 }

@@ -16,7 +16,7 @@ public sealed class TorpedoDomainTests
 		var stats = Stats.ForType(EType.Torpedo);
 		var configuration = ShipCatalog.DefaultFor(EType.Torpedo);
 
-		var maxShields = ShipCatalog.MaxShieldPointsFor(EType.Torpedo);
+		var maxShields = configuration.MaxShieldPoints;
 
 		Assert.Equal(1, configuration.MaxHullPoints);
 		Assert.Equal(1, maxShields.MaxOnAnyFace);

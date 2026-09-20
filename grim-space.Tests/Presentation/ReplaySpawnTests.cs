@@ -16,7 +16,7 @@ public sealed class ReplaySpawnTests
 	{
 		ITimelineEntry[] history =
 		[
-			new SpawnPatrolAction("carrier-a", "patrol-b"),
+			new SpawnPatrolAction("carrier-a", ESpatialOrientation.Ventral, "patrol-b"),
 			new Record<SpawnFacts>(new SpawnFacts(
 				"carrier-a",
 				"patrol-b",
@@ -37,7 +37,8 @@ public sealed class ReplaySpawnTests
 	[Fact]
 	public void ActionLog_UsesSpawnedUnitIdWhenPresent()
 	{
-		ITimelineEntry[] history = [new SpawnPatrolAction("carrier-a", "patrol-b")];
+		ITimelineEntry[] history =
+			[new SpawnPatrolAction("carrier-a", ESpatialOrientation.Ventral, "patrol-b")];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 

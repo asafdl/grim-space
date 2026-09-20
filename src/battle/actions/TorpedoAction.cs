@@ -46,8 +46,7 @@ public sealed class TorpedoDef
 			if (installed.Spec.Kind != EAbilityKind.TorpedoLauncher)
 				continue;
 
-			foreach (var mountedOn in installed.ForAction().Facets)
-				yield return Bind(actorId, mountedOn, spawnedUnitId);
+			yield return Bind(actorId, installed.MountedOn, spawnedUnitId);
 		}
 	}
 
@@ -56,8 +55,6 @@ public sealed class TorpedoDef
 
 	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn, string spawnedUnitId) =>
 		new(actorId, mountedOn, spawnedUnitId);
-
-	public bool SupportsMount(ESpatialOrientation mountedOn) => true;
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
@@ -82,7 +79,7 @@ public sealed class TorpedoDef
 		var installed = world.StateOf(action.ActorId).FindInstalled(
 			EAbilityKind.TorpedoLauncher,
 			action.MountedOn);
-		if (installed is null || !installed.Facets.Contains(action.MountedOn))
+		if (installed is null)
 			return false;
 
 		var ship = world.StateOf(action.ActorId);
@@ -96,7 +93,7 @@ public sealed class TorpedoDef
 		var installed = state.FindInstalled(EAbilityKind.TorpedoLauncher, action.MountedOn);
 		if (installed is null)
 			return false;
-		if (state.MountRuntimeFor(EAbilityKind.TorpedoLauncher).CooldownRemaining > 0)
+		if (state.MountRuntimeFor(installed.Mount).CooldownRemaining > 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -115,8 +112,8 @@ public sealed class TorpedoDef
 			: throw new InvalidOperationException("Torpedo launcher spec missing cooldown.");
 		return
 		[
-			new SpawnTorpedoEffect(action.MountedOn, action.SpawnedUnitId),
-			new MountCooldownEffect(EAbilityKind.TorpedoLauncher, cooldown),
+			new SpawnTorpedoEffect(installed.Mount, action.SpawnedUnitId),
+			new MountCooldownEffect(installed.Mount, cooldown),
 		];
 	}
 

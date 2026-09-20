@@ -9,7 +9,7 @@ namespace GrimSpace.Battle.Effects;
 public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previousActionPoints;
-	private Dictionary<EAbilityKind, MountRuntimeCounters>? _previousMountRuntime;
+	private Dictionary<AbilityMount, MountRuntimeCounters>? _previousMountRuntime;
 	private bool _previousApPenaltyNextTurn;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -30,7 +30,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 
 		actor.ActionPoints = maxAp;
 		foreach (var installed in actor.Spec.InstalledAbilities)
-			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Spec.Kind]);
+			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
 		return [];
 	}
@@ -44,7 +44,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 			return;
 
 		actor.MountRuntime.Clear();
-		foreach (var (kind, snapshot) in _previousMountRuntime)
-			actor.MountRuntime[kind] = snapshot;
+		foreach (var (mount, snapshot) in _previousMountRuntime)
+			actor.MountRuntime[mount] = snapshot;
 	}
 }

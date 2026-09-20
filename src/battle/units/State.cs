@@ -18,9 +18,8 @@ public sealed class State
 	public Coord Starboard { get; set; }
 	public int ActionPoints { get; set; }
 	public int HullPoints { get; set; }
-	public FaceShieldPoints MaxShieldPoints { get; set; } = new();
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
-	public Dictionary<EAbilityKind, MountRuntimeCounters> MountRuntime { get; } = new();
+	public Dictionary<AbilityMount, MountRuntimeCounters> MountRuntime { get; } = new();
 	public int FuelRemaining { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public bool ApPenaltyNextTurn { get; set; }
@@ -28,50 +27,45 @@ public sealed class State
 
 	public bool IsAlive => HullPoints > 0;
 
-	public InstalledAbility? FindInstalled(EAbilityKind kind, ESpatialOrientation? facet = null)
+	public InstalledAbility? FindInstalled(EAbilityKind kind, ESpatialOrientation mountedOn)
 	{
 		foreach (var installed in Spec.InstalledAbilities)
 		{
-			if (installed.Spec.Kind != kind)
-				continue;
-
-			if (facet is { } requiredFacet && !installed.Facets.Contains(requiredFacet))
-				continue;
-
-			return installed;
+			if (installed.Mount == new AbilityMount(kind, mountedOn))
+				return installed;
 		}
 
 		return null;
 	}
 
-	public MountRuntimeCounters MountRuntimeFor(EAbilityKind kind) => MountRuntime[kind];
+	public InstalledAbility? FindInstalled(EAbilityKind kind) =>
+		Spec.InstalledAbilities.FirstOrDefault(installed => installed.Spec.Kind == kind);
 
-	public int UsesRemaining(EAbilityKind kind)
-	{
-		var installed = FindInstalled(kind);
-		if (installed is null || installed.Spec is not IPerTurnAbility)
-			return 0;
+	public MountRuntimeCounters MountRuntimeFor(AbilityMount mount) => MountRuntime[mount];
 
-		return MountRuntime[kind].UsesRemaining;
-	}
+	public int UsesRemaining(AbilityMount mount) =>
+		MountRuntime.TryGetValue(mount, out var runtime) ? runtime.UsesRemaining : 0;
 
-	public int MaxUsesPerTurn(EAbilityKind kind)
-	{
-		var installed = FindInstalled(kind);
-		if (installed is null || installed.Spec is not IPerTurnAbility perTurn)
-			return 0;
+	public int UsesRemaining(EAbilityKind kind) =>
+		Spec.InstalledAbilities
+			.Where(installed => installed.Spec.Kind == kind)
+			.Sum(installed => UsesRemaining(installed.Mount));
 
-		return perTurn.UsesPerTurn;
-	}
+	public int MaxUsesPerTurn(EAbilityKind kind) =>
+		Spec.InstalledAbilities
+			.Where(installed => installed.Spec.Kind == kind)
+			.Sum(installed => installed.Spec is IPerTurnAbility perTurn ? perTurn.UsesPerTurn : 0);
 
-	public int CooldownRemaining(EAbilityKind kind)
-	{
-		var installed = FindInstalled(kind);
-		if (installed is null || installed.Spec is not ICooldownAbility)
-			return 0;
+	public int CooldownRemaining(AbilityMount mount) =>
+		MountRuntime.TryGetValue(mount, out var runtime) ? runtime.CooldownRemaining : 0;
 
-		return MountRuntime[kind].CooldownRemaining;
-	}
+	public int ReadyMounts(EAbilityKind kind) =>
+		Spec.InstalledAbilities.Count(installed =>
+			installed.Spec.Kind == kind
+			&& CooldownRemaining(installed.Mount) == 0);
+
+	public int MountCount(EAbilityKind kind) =>
+		Spec.InstalledAbilities.Count(installed => installed.Spec.Kind == kind);
 
 	public State Clone()
 	{
@@ -86,15 +80,14 @@ public sealed class State
 			Starboard = Starboard,
 			ActionPoints = ActionPoints,
 			HullPoints = HullPoints,
-			MaxShieldPoints = MaxShieldPoints.Clone(),
 			ShieldPoints = ShieldPoints.Clone(),
 			FuelRemaining = FuelRemaining,
 			ParentId = ParentId,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
 		};
-		foreach (var (kind, runtime) in MountRuntime)
-			copy.MountRuntime[kind] = runtime.Clone();
+		foreach (var (mount, runtime) in MountRuntime)
+			copy.MountRuntime[mount] = runtime.Clone();
 		return copy;
 	}
 
@@ -120,14 +113,13 @@ public sealed class State
 			Starboard = Coord.Cross(dorsal, fore),
 			ActionPoints = stats.MaxAp,
 			HullPoints = ship.HullPoints,
-			MaxShieldPoints = ship.MaxShieldPoints.Clone(),
 			ShieldPoints = ship.ShieldPoints.Clone(),
 			FuelRemaining = 0,
 			ParentId = parentId,
 			Stats = stats,
 		};
 		foreach (var installed in ship.Spec.InstalledAbilities)
-			state.MountRuntime[installed.Spec.Kind] = installed.ForState();
+			state.MountRuntime[installed.Mount] = installed.Spec.CreateInitialRuntime();
 		return state;
 	}
 }

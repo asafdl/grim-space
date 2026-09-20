@@ -32,7 +32,11 @@ public sealed class FlakActionTests
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.Flak));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(flak));
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak) - 1, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.Flak));
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(flak));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
+		Assert.Equal(0, StateMountTestKit.UsesRemaining(
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId),
+			EAbilityKind.Flak));
 	}
 
 	[Fact]

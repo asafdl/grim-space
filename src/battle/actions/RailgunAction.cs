@@ -9,7 +9,10 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record RailgunAction(string ActorId) : IAction<BattleWorld, ActorRuntime>
+public sealed record RailgunAction(
+	string ActorId,
+	ESpatialOrientation MountedOn = ESpatialOrientation.Forward)
+	: IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		RailgunDef.Instance;
@@ -17,24 +20,31 @@ public sealed record RailgunAction(string ActorId) : IAction<BattleWorld, ActorR
 
 public sealed class RailgunDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IActorActionDef,
+		IMountedActionDef,
 		IAreaActionDef
 {
 	public static RailgunDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		if (world.StateOf(actorId).FindInstalled(EAbilityKind.Railgun) is null)
-			yield break;
+		foreach (var installed in world.StateOf(actorId).Spec.InstalledAbilities)
+		{
+			if (installed.Spec.Kind != EAbilityKind.Railgun)
+				continue;
 
-		var action = Bind(actorId);
-		if (IsPossible(action, world, runtime))
-			yield return action;
+			var action = Bind(actorId, installed.MountedOn);
+			if (IsPossible(action, world, runtime))
+				yield return action;
+		}
 	}
 
-	public RailgunAction Bind(string actorId) => new(actorId);
+	public RailgunAction Bind(
+		string actorId,
+		ESpatialOrientation mountedOn = ESpatialOrientation.Forward) =>
+		new(actorId, mountedOn);
 
-	IAction IActorActionDef.Bind(string actorId) => Bind(actorId);
+	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
+		Bind(actorId, mountedOn);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);
@@ -54,8 +64,8 @@ public sealed class RailgunDef
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Railgun);
-		if (installed is null || state.MountRuntimeFor(EAbilityKind.Railgun).UsesRemaining <= 0)
+		var installed = state.FindInstalled(EAbilityKind.Railgun, action.MountedOn);
+		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -69,28 +79,28 @@ public sealed class RailgunDef
 		var cells = AffectedCells(action, world);
 
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Railgun)
+		var installed = state.FindInstalled(EAbilityKind.Railgun, action.MountedOn)
 			?? throw new InvalidOperationException("Railgun ability not installed for actor.");
-		var damage = installed.ForAction().Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Railgun spec missing area damage.");
+		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Railgun spec missing area damage.");
 		return
 		[
 			new ResolveHazardEffect(
 				EHazardKind.RailgunBurst,
 				cells,
 				damage),
-			new MountUsesChangeEffect(EAbilityKind.Railgun, -1),
+			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}
 
 	public HashSet<Coord> AffectedCells(RailgunAction action, BattleWorld world)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Railgun);
-		if (installed?.ForAction().Spec is not IAreaDamage areaDamage)
+		var installed = state.FindInstalled(EAbilityKind.Railgun, action.MountedOn);
+		if (installed?.Spec is not IAreaDamage areaDamage)
 			return [];
 
 		var frame = BodyFrame.From(state);
-		return AbilityArea.CellsInBounds(areaDamage, frame, world.Grid.IsInBounds);
+		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid.IsInBounds);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

@@ -32,19 +32,14 @@ public sealed class FlakDef
 			if (installed.Spec.Kind != EAbilityKind.Flak)
 				continue;
 
-			foreach (var mountedOn in installed.ForAction().Facets)
-			{
-				var action = Bind(actorId, mountedOn);
-				if (IsPossible(action, world, runtime))
-					yield return action;
-			}
+			var action = Bind(actorId, installed.MountedOn);
+			if (IsPossible(action, world, runtime))
+				yield return action;
 		}
 	}
 
 	public FlakAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
-
-	public bool SupportsMount(ESpatialOrientation mountedOn) => true;
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
@@ -66,7 +61,7 @@ public sealed class FlakDef
 		var installed = world.StateOf(action.ActorId).FindInstalled(
 			EAbilityKind.Flak,
 			action.MountedOn);
-		if (installed is null || !installed.Facets.Contains(action.MountedOn))
+		if (installed is null)
 			return false;
 
 		return AffectedCells(action, world).Count > 0;
@@ -76,7 +71,7 @@ public sealed class FlakDef
 	{
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn);
-		if (installed is null || state.MountRuntimeFor(EAbilityKind.Flak).UsesRemaining <= 0)
+		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -92,15 +87,14 @@ public sealed class FlakDef
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn)
 			?? throw new InvalidOperationException("Flak ability not installed for actor.");
-		var actionContext = installed.ForAction();
-		var damage = actionContext.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Flak spec missing area damage.");
+		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Flak spec missing area damage.");
 		return
 		[
 			new ResolveHazardEffect(
 				EHazardKind.FlakBurst,
 				cells,
 				damage),
-			new MountUsesChangeEffect(EAbilityKind.Flak, -1),
+			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}
 
@@ -108,7 +102,7 @@ public sealed class FlakDef
 	{
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn);
-		if (installed?.ForAction().Spec is not IAreaDamage areaDamage)
+		if (installed?.Spec is not IAreaDamage areaDamage)
 			return [];
 
 		var frame = BodyFrame.From(state);

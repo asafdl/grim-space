@@ -83,7 +83,12 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 
 		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
-		Assert.Equal(0, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak));
+		Assert.Equal(
+			0,
+			StateMountTestKit.UsesRemaining(
+				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId),
+				EAbilityKind.Flak,
+				ESpatialOrientation.Port));
 
 		Assert.True(BattleTestCommands.Undo(battle));
 

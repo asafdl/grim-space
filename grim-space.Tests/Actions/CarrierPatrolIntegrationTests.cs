@@ -50,7 +50,7 @@ public sealed class CarrierPatrolIntegrationTests
 		carrier.State.Starboard = Coord.Cross(carrier.State.Dorsal, carrier.State.Fore);
 		carrier.State.ActionPoints = 0;
 
-		var (_, fore, dorsal) = PatrolBayMount.LaunchPose(carrier.State);
+		var (_, fore, dorsal) = PatrolBayMount.LaunchPose(carrier.State, ESpatialOrientation.Ventral);
 		var patrolFrame = new BodyFrame(
 			carrierPos + BodyFrame.From(carrier.State).Step(ESpatialOrientation.Ventral),
 			fore,

@@ -9,7 +9,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, ActorRuntime>
+public sealed class SpawnPatrolEffect(AbilityMount mount, string unitId) : IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
 
@@ -17,8 +17,8 @@ public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, Acto
 	{
 		var units = UnitRegistry.For(world);
 		var parent = units.UnitOf(actorId);
-		var (position, fore, dorsal) = PatrolBayMount.LaunchPose(parent.State);
-		var child = Factory.ChildFromSpawnableMount(parent.State, EAbilityKind.PatrolBay, unitId);
+		var (position, fore, dorsal) = PatrolBayMount.LaunchPose(parent.State, mount.Facet);
+		var child = Factory.ChildFromSpawnableMount(parent.State, mount, unitId);
 		var patrol = Factory.Create(
 			child,
 			parent.Team,

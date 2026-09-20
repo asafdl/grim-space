@@ -43,10 +43,11 @@ public static class Factory
 		return new Unit(state, executionAgent, team);
 	}
 
-	public static ShipInstance ChildFromSpawnableMount(State parent, EAbilityKind kind, string childId)
+	public static ShipInstance ChildFromSpawnableMount(State parent, AbilityMount mount, string childId)
 	{
-		var installed = parent.FindInstalled(kind)
-			?? throw new InvalidOperationException($"No installed ability of kind '{kind}' on actor '{parent.Id}'.");
+		var installed = parent.FindInstalled(mount.Kind, mount.Facet)
+			?? throw new InvalidOperationException(
+				$"No '{mount.Kind}' ability installed on facet '{mount.Facet}' for actor '{parent.Id}'.");
 		if (installed.Spec is not ISpawnable spawnable)
 			throw new InvalidOperationException($"Installed ability '{installed.Spec.Kind}' is not spawnable.");
 

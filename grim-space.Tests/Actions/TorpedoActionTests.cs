@@ -25,7 +25,16 @@ public sealed class TorpedoActionTests
 		var ship = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(
 			CatalogExpectations.DefaultTorpedoLauncherSpec().CooldownTurns,
-			StateMountTestKit.CooldownRemaining(ship, EAbilityKind.TorpedoLauncher));
+			StateMountTestKit.CooldownRemaining(
+				ship,
+				EAbilityKind.TorpedoLauncher,
+				ESpatialOrientation.Retro));
+		Assert.Equal(
+			0,
+			StateMountTestKit.CooldownRemaining(
+				ship,
+				EAbilityKind.TorpedoLauncher,
+				ESpatialOrientation.Ventral));
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
 		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns, torpedo.State.FuelRemaining);
@@ -36,7 +45,7 @@ public sealed class TorpedoActionTests
 	}
 
 	[Fact]
-	public void FireIllegalWhileCooldownActive()
+	public void CooldownAppliesOnlyToFiredLauncher()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -44,6 +53,8 @@ public sealed class TorpedoActionTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
 			TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Dorsal)));
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(
+			TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Dorsal)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
 			TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral)));
 	}
 

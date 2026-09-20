@@ -27,7 +27,7 @@ public sealed class SpawnPatrolActionTests
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
+		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral)));
 
 		var carrier = sim.StateOf<ActorState>(carrierId);
 		Assert.Equal(
@@ -53,7 +53,7 @@ public sealed class SpawnPatrolActionTests
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
+		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral)));
 		Assert.Single(UnitRegistry.For(sim.World).All, unit => unit.State.Type == EType.Patrol);
 		Assert.Equal(
 			CatalogExpectations.DefaultPatrolBaySpec().CooldownTurns,
@@ -71,7 +71,7 @@ public sealed class SpawnPatrolActionTests
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
-		var action = SpawnPatrolDef.Instance.Bind(carrierId);
+		var action = SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral);
 
 		Assert.True(sim.TryEnqueue(action));
 		AssertSpawned(sim.World, action.SpawnedUnitId);
@@ -89,8 +89,8 @@ public sealed class SpawnPatrolActionTests
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
-		Assert.False(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
+		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral)));
+		Assert.False(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral)));
 	}
 
 	[Fact]
@@ -102,7 +102,10 @@ public sealed class SpawnPatrolActionTests
 		FillLivingPatrols(sim.World, carrierId, CatalogExpectations.DefaultPatrolBaySpec().MaxLivingChildren);
 
 		StateMountTestKit.SetCooldownRemaining(sim.World.StateOf(carrierId), EAbilityKind.PatrolBay, 0);
-		Assert.False(sim.TryEnqueue(new SpawnPatrolAction(carrierId, "patrol-overflow")));
+		Assert.False(sim.TryEnqueue(new SpawnPatrolAction(
+			carrierId,
+			ESpatialOrientation.Ventral,
+			"patrol-overflow")));
 	}
 
 	[Fact]
@@ -117,7 +120,10 @@ public sealed class SpawnPatrolActionTests
 		doomed.State.HullPoints = 0;
 		StateMountTestKit.SetCooldownRemaining(sim.World.StateOf(carrierId), EAbilityKind.PatrolBay, 0);
 
-		Assert.True(sim.TryEnqueue(new SpawnPatrolAction(carrierId, "patrol-replacement")));
+		Assert.True(sim.TryEnqueue(new SpawnPatrolAction(
+			carrierId,
+			ESpatialOrientation.Ventral,
+			"patrol-replacement")));
 	}
 
 	[Fact]
@@ -137,7 +143,7 @@ public sealed class SpawnPatrolActionTests
 	{
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
-		battle.Engine.Commit([SpawnPatrolDef.Instance.Bind(carrierId)]);
+		battle.Engine.Commit([SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral)]);
 
 		var patrol = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,

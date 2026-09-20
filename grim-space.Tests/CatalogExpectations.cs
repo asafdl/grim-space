@@ -7,7 +7,9 @@ namespace GrimSpace.Tests;
 internal static class CatalogExpectations
 {
 	public static int UsesPerTurn(EType chassis, EAbilityKind kind) =>
-		AbilityLoadout.PerTurnUsesForAbility(ShipInstance.FromCatalog("ref", chassis), kind);
+		ShipCatalog.DefaultInstalledAbilitiesFor(chassis)
+			.Where(installed => installed.Spec.Kind == kind)
+			.Sum(installed => installed.Spec is IPerTurnAbility perTurn ? perTurn.UsesPerTurn : 0);
 
 	public static int FlakDamage(EType chassis = EType.Fighter) =>
 		DefaultFlakSpec(chassis).Damage;

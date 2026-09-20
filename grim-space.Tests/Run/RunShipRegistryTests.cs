@@ -67,7 +67,7 @@ public sealed class RunShipRegistryTests
 	{
 		var registry = new RunShipRegistry();
 		registry.Register(ShipInstance.FromCatalog("patrol-a", EType.Patrol));
-		var shields = ShipCatalog.MaxShieldPointsFor(EType.Patrol).Clone();
+		var shields = ShipCatalog.DefaultFor(EType.Patrol).MaxShieldPoints.Clone();
 		shields[GrimSpace.Math.Grid.ESpatialOrientation.Forward] = 1;
 
 		registry.ApplyHandoff(new GrimSpace.Battle.Objectives.UnitStateHandoff(

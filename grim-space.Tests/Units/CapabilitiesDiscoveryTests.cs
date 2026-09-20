@@ -16,7 +16,11 @@ public sealed class CapabilitiesDiscoveryTests
 		var installed = ShipCatalog.DefaultInstalledAbilitiesFor(EType.Fighter)
 			.Where(ability => ability.Spec.Kind != EAbilityKind.Railgun)
 			.ToArray();
-		var spec = ShipSpec.Create(EType.Fighter, 2, installed);
+		var spec = ShipSpec.Create(
+			EType.Fighter,
+			2,
+			ShipCatalog.DefaultFor(EType.Fighter).MaxShieldPoints,
+			installed);
 		var ship = ShipInstance.FromSpec("fighter-a", spec);
 		var player = Factory.Create(ship, ETeam.Player, Coord.Zero, new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(Coord.Forward * 6);
