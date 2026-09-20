@@ -233,11 +233,11 @@ public partial class BattleHud : Node
 			focusState.ActionPoints,
 			focusState.MaxActionPoints);
 
-		var abilitySpecs = AbilityHudCatalog.ForUnit(focusState.Type);
+		var abilitySpecs = AbilityHudCatalog.ForDisplayState(focusState);
 		var abilitySlots = abilitySpecs
 			.Select(spec => AbilityHudCatalog.BuildState(spec, focusState, frame.Abilities))
 			.ToList();
-		ActionBar.ApplyLayout(focusState.Type, abilitySpecs);
+		ActionBar.ApplyLayout(abilitySpecs);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots, allowEndTurn);
 		ActionBar.InstructionBar.Apply(frame.Instruction);

@@ -21,7 +21,7 @@ public sealed partial class ActionBar : HBoxContainer
 	private VBoxContainer _actionStack = null!;
 	private PanelContainer _endTurnPanel = null!;
 	private Button _endTurnButton = null!;
-	private EType? _layoutType;
+	private string? _layoutKey;
 
 	public bool CanEndTurn => !_endTurnButton.Disabled;
 
@@ -34,12 +34,15 @@ public sealed partial class ActionBar : HBoxContainer
 		Build();
 	}
 
-	public void ApplyLayout(EType unitType, IReadOnlyList<AbilityHudCatalog.Spec> specs)
+	public void ApplyLayout(IReadOnlyList<AbilityHudCatalog.Spec> specs)
 	{
-		if (_layoutType == unitType && _abilitySlots.Count == specs.Count)
+		var layoutKey = string.Join(
+			'\0',
+			specs.Select(spec => spec.Mode.ToString()));
+		if (_layoutKey == layoutKey && _abilitySlots.Count == specs.Count)
 			return;
 
-		_layoutType = unitType;
+		_layoutKey = layoutKey;
 		RebuildAbilityRow(specs);
 	}
 

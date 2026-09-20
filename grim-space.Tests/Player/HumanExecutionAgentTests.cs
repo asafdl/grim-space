@@ -6,6 +6,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Player;
 
@@ -134,7 +135,9 @@ public sealed class HumanExecutionAgentTests
 		Assert.Contains(
 			preview.AreaPreviews(agent.Sim, PlayerId, []).Queued,
 			item => item.Action is RailgunAction);
-		Assert.Equal(0, preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].RailgunRemaining);
+		Assert.Equal(
+			0,
+			preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].UsesRemaining(EAbilityKind.Railgun));
 		Assert.NotEmpty(preview.ThreatenedUnitIds(agent.Sim, PlayerId));
 	}
 

@@ -198,15 +198,9 @@ internal static class BattleTestFixture
 		Coord position,
 		EType type = EType.Fighter)
 	{
-		var instance = new Instance
-		{
-			Id = id,
-			Type = type,
-			Team = team,
-		};
-
 		return Factory.Create(
-			instance,
+			ShipInstance.FromCatalog(id, type),
+			team,
 			position,
 			team == ETeam.Player ? new UserExecutionAgent() : new AiController());
 	}

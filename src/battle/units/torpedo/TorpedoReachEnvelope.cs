@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
+using GrimSpace.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
@@ -18,7 +18,7 @@ internal enum ETorpedoTargetClass
 	InTrajectory = 2,
 }
 
-public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> layers)
+public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> layers, int blastRadius)
 {
 	public IReadOnlyList<IReadOnlySet<Coord>> Layers { get; } = layers;
 
@@ -31,7 +31,7 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 
 		foreach (var position in Layers[turn])
 		{
-			if (position.ManhattanDistanceTo(target) <= TorpedoConfig.BlastRadius)
+			if (position.ManhattanDistanceTo(target) <= blastRadius)
 				return true;
 		}
 
@@ -65,9 +65,11 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 
 	public static TorpedoReachEnvelope Build(BattleSimulation session, string actorId)
 	{
-		var fuel = session.StateOf<ActorState>(actorId).FuelRemaining;
+		var actor = session.World.StateOf(actorId);
+		var body = TorpedoBodySpec.Require(actor.Spec);
+		var fuel = actor.FuelRemaining;
 		if (fuel <= 0)
-			return new TorpedoReachEnvelope([]);
+			return new TorpedoReachEnvelope([], body.BlastRadius);
 
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities =
 			[TorpedoMoveDef.Instance];
@@ -114,6 +116,6 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 				break;
 		}
 
-		return new TorpedoReachEnvelope(layers);
+		return new TorpedoReachEnvelope(layers, body.BlastRadius);
 	}
 }

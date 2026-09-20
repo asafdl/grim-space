@@ -5,6 +5,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
@@ -35,7 +36,8 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 	{
 		var start = session.Actions.Count;
 		var actorId = actor.State.Id;
-		if (!TorpedoSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position)
+		var blastRadius = TorpedoBodySpec.Require(actor.State.Spec).BlastRadius;
+		if (!TorpedoSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position, blastRadius)
 			&& session.TryEnqueue(new DetonateAction(actorId)))
 		{
 			return session.Actions.Skip(start).ToList();

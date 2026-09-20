@@ -14,6 +14,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -29,7 +30,9 @@ public sealed class SpawnPatrolActionTests
 		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
 
 		var carrier = sim.StateOf<ActorState>(carrierId);
-		Assert.Equal(CombatConfig.PatrolCooldownTurns, carrier.PatrolSpawnCooldownRemaining);
+		Assert.Equal(
+			CatalogExpectations.DefaultPatrolBaySpec().CooldownTurns,
+			StateMountTestKit.CooldownRemaining(carrier, EAbilityKind.PatrolBay));
 
 		var patrol = Assert.Single(
 			UnitRegistry.For(sim.World).All,
@@ -52,12 +55,14 @@ public sealed class SpawnPatrolActionTests
 
 		Assert.True(sim.TryEnqueue(SpawnPatrolDef.Instance.Bind(carrierId)));
 		Assert.Single(UnitRegistry.For(sim.World).All, unit => unit.State.Type == EType.Patrol);
-		Assert.Equal(CombatConfig.PatrolCooldownTurns, sim.StateOf<ActorState>(carrierId).PatrolSpawnCooldownRemaining);
+		Assert.Equal(
+			CatalogExpectations.DefaultPatrolBaySpec().CooldownTurns,
+			StateMountTestKit.CooldownRemaining(sim.StateOf<ActorState>(carrierId), EAbilityKind.PatrolBay));
 
 		Assert.True(sim.TryUndoLast());
 
 		Assert.DoesNotContain(UnitRegistry.For(sim.World).All, unit => unit.State.Type == EType.Patrol);
-		Assert.Equal(0, sim.StateOf<ActorState>(carrierId).PatrolSpawnCooldownRemaining);
+		Assert.Equal(0, StateMountTestKit.CooldownRemaining(sim.StateOf<ActorState>(carrierId), EAbilityKind.PatrolBay));
 	}
 
 	[Fact]
@@ -94,9 +99,9 @@ public sealed class SpawnPatrolActionTests
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
-		FillLivingPatrols(sim.World, carrierId, CombatConfig.MaxLivingPatrolChildren);
+		FillLivingPatrols(sim.World, carrierId, CatalogExpectations.DefaultPatrolBaySpec().MaxLivingChildren);
 
-		sim.World.StateOf(carrierId).PatrolSpawnCooldownRemaining = 0;
+		StateMountTestKit.SetCooldownRemaining(sim.World.StateOf(carrierId), EAbilityKind.PatrolBay, 0);
 		Assert.False(sim.TryEnqueue(new SpawnPatrolAction(carrierId, "patrol-overflow")));
 	}
 
@@ -106,11 +111,11 @@ public sealed class SpawnPatrolActionTests
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		var sim = battle.Engine.CreateSimulation();
-		FillLivingPatrols(sim.World, carrierId, CombatConfig.MaxLivingPatrolChildren);
+		FillLivingPatrols(sim.World, carrierId, CatalogExpectations.DefaultPatrolBaySpec().MaxLivingChildren);
 
 		var doomed = UnitRegistry.For(sim.World).All.First(unit => unit.State.Type == EType.Patrol);
 		doomed.State.HullPoints = 0;
-		sim.World.StateOf(carrierId).PatrolSpawnCooldownRemaining = 0;
+		StateMountTestKit.SetCooldownRemaining(sim.World.StateOf(carrierId), EAbilityKind.PatrolBay, 0);
 
 		Assert.True(sim.TryEnqueue(new SpawnPatrolAction(carrierId, "patrol-replacement")));
 	}
@@ -120,11 +125,11 @@ public sealed class SpawnPatrolActionTests
 	{
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
-		battle.Engine.World.StateOf(carrierId).PatrolSpawnCooldownRemaining = 2;
+		StateMountTestKit.SetCooldownRemaining(battle.Engine.World.StateOf(carrierId), EAbilityKind.PatrolBay, 2);
 
 		battle.Engine.Commit([new RoundUpkeepAction(carrierId)]);
 
-		Assert.Equal(1, battle.Engine.World.StateOf(carrierId).PatrolSpawnCooldownRemaining);
+		Assert.Equal(1, StateMountTestKit.CooldownRemaining(battle.Engine.World.StateOf(carrierId), EAbilityKind.PatrolBay));
 	}
 
 	[Fact]
@@ -174,12 +179,8 @@ public sealed class SpawnPatrolActionTests
 		for (var i = 0; i < count; i++)
 		{
 			var patrol = Factory.Create(
-				new Instance
-				{
-					Id = $"patrol-{i}",
-					Type = EType.Patrol,
-					Team = carrier.Team,
-				},
+				ShipInstance.FromCatalog($"patrol-{i}", EType.Patrol),
+				carrier.Team,
 				new Coord(1 + i, 1, 5),
 				new AiController(),
 				Coord.Forward,

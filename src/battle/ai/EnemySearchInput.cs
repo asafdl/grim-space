@@ -8,6 +8,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -100,15 +101,24 @@ internal static class EnemySearchInput
 	}
 
 	private static bool HasOffensiveCharges(State state) =>
-		state.RailgunRemaining > 0 || state.FlakRemaining > 0;
+		state.UsesRemaining(EAbilityKind.Railgun) > 0
+		|| state.UsesRemaining(EAbilityKind.Flak) > 0;
 
 	private static int OptimisticWeaponReach(State state)
 	{
 		var reach = 0;
-		if (state.RailgunRemaining > 0)
-			reach = System.Math.Max(reach, CombatConfig.MaxRailgunManhattanRange);
-		if (state.FlakRemaining > 0)
-			reach = System.Math.Max(reach, CombatConfig.MaxFlakManhattanRange);
+		foreach (var installed in state.Spec.InstalledAbilities)
+		{
+			if (installed.Spec is not IPerTurnAbility)
+				continue;
+
+			var kind = installed.Spec.Kind;
+			if (state.UsesRemaining(kind) <= 0)
+				continue;
+
+			reach = System.Math.Max(reach, AbilityReach.MaxManhattanFromFirer(installed.Spec));
+		}
+
 		return reach;
 	}
 
@@ -215,10 +225,11 @@ internal static class EnemySearchInput
 	private static bool CanDamageNow(BattleWorld world, string actorId)
 	{
 		var state = world.StateOf(actorId);
-		if (state.RailgunRemaining > 0 && WouldRailgunDamage(world, actorId))
+		if (state.UsesRemaining(EAbilityKind.Railgun) > 0
+			&& WouldRailgunDamage(world, actorId))
 			return true;
 
-		if (state.FlakRemaining <= 0)
+		if (state.UsesRemaining(EAbilityKind.Flak) <= 0)
 			return false;
 
 		return WouldFlakDamage(world, actorId, ESpatialOrientation.Port)

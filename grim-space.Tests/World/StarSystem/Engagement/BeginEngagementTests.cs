@@ -62,7 +62,7 @@ public sealed class BeginEngagementTests
 			encounter.Spawns,
 			spawn => Assert.Equal(
 				OutcomeTestKit.ChassisFromShipId(spawn.Ship.Id),
-				spawn.Ship.Configuration.Chassis));
+				spawn.Ship.Spec.Chassis));
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player),
 			spawn => Assert.IsType<UserExecutionAgent>(spawn.ExecutionAgent));
@@ -88,7 +88,7 @@ public sealed class BeginEngagementTests
 			Enumerable.Range(0, 5)
 				.Select(index => new FleetMember($"patrol-{index}")));
 		foreach (var member in pirateFleet.Members)
-			run.ShipRegistry.Register(RunShip.CreateDefault(member.Id, GrimSpace.Units.Enums.EType.Patrol));
+			run.ShipRegistry.Register(ShipInstance.FromCatalog(member.Id, GrimSpace.Units.Enums.EType.Patrol));
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
@@ -135,7 +135,7 @@ public sealed class BeginEngagementTests
 		}
 
 		foreach (var member in fleet.Members)
-			run.ShipRegistry.Register(RunShip.CreateDefault(
+			run.ShipRegistry.Register(ShipInstance.FromCatalog(
 				member.Id,
 				OutcomeTestKit.ChassisFromShipId(member.Id)));
 	}

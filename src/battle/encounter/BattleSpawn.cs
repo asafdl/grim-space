@@ -9,7 +9,7 @@ namespace GrimSpace.Battle.Encounter;
 
 public sealed class BattleSpawn
 {
-	public required ShipSnapshot Ship { get; init; }
+	public required ShipInstance Ship { get; init; }
 	public required ETeam Team { get; init; }
 	public Coord Position { get; init; }
 	public Coord Fore { get; init; } = Coord.Forward;

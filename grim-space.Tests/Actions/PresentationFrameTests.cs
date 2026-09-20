@@ -15,6 +15,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -66,13 +67,13 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 
 		Assert.True(BattleTestCommands.FireRailgun(battle));
-		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(0, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Railgun));
 		Assert.Single(battle.PlayerAgent.Sim.Actions);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Railgun));
 	}
 
 	[Fact]
@@ -82,12 +83,12 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
 
 		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
-		Assert.Equal(0, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
+		Assert.Equal(0, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak));
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
-		Assert.Equal(CombatConfig.FlaksPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).FlakRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Flak));
 	}
 
 	[Fact]
@@ -105,7 +106,7 @@ public sealed class PresentationFrameTests
 		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Railgun));
 		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count(action => action is MoveStepAction));
 	}
 
@@ -126,7 +127,7 @@ public sealed class PresentationFrameTests
 
 		Assert.Equal(pathAfterMove, preview.CommittedMoveCheckpoints(battle.PlayerAgent.Sim, battle.PlayerId));
 		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Railgun));
 	}
 
 	[Fact]
@@ -329,7 +330,7 @@ public sealed class PresentationFrameTests
 
 		Assert.NotNull(aim);
 		Assert.Null(frame.TorpedoPreviews.Queued);
-		Assert.Equal(TorpedoConfig.Fuel, aim.TurnBands.Count);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns, aim.TurnBands.Count);
 		Assert.Equal(
 			TorpedoMount.LaunchPose(
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId),

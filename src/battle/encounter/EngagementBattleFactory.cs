@@ -101,7 +101,7 @@ public static class EngagementBattleFactory
 
 			spawns.Add(new BattleSpawn
 			{
-				Ship = registry.Snapshot(member.Id),
+				Ship = registry.Get(member.Id).Clone(),
 				Team = team.on,
 				Position = position,
 				Fore = AxisToward(position, fieldCenter),

@@ -1,13 +1,13 @@
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
-using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Tests;
 
 internal static class OutcomeTestKit
 {
 	public static UnitStateHandoff Handoff(string id, EType chassis, int hullPoints) =>
-		new(id, chassis, hullPoints, FaceShieldPoints.MaxFor(chassis));
+		new(id, chassis, hullPoints, ShipCatalog.MaxShieldPointsFor(chassis).Clone());
 
 	public static EType ChassisFromShipId(string shipId)
 	{

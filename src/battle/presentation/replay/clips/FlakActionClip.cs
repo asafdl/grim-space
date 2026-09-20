@@ -1,10 +1,10 @@
 using Godot;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
@@ -13,14 +13,16 @@ public sealed class FlakActionClip : IReplayClip
 	private static readonly Color PortTint = new(0.95f, 0.55f, 0.18f, 0.50f);
 	private static readonly Color StarboardTint = new(0.98f, 0.78f, 0.22f, 0.50f);
 
-	private static readonly float ReachCells = CombatConfig.FlakRange + 1.6f;
-
 	public Type ActionType => typeof(FlakAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
 		var flak = (FlakAction)action;
 		var state = context.ReplayState.StateOf(flak.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Flak, flak.MountedOn);
+		var reachCells = installed?.Spec is FlakSpec flakSpec
+			? AbilityReach.FlakReplayShotLength(flakSpec)
+			: 3.6f;
 		var starboard = ToVector3(state.Starboard);
 		var direction = flak.MountedOn == ESpatialOrientation.Port ? -starboard : starboard;
 		var tint = flak.MountedOn == ESpatialOrientation.Port ? PortTint : StarboardTint;
@@ -28,7 +30,7 @@ public sealed class FlakActionClip : IReplayClip
 		context.HazardBursts.PlayShotBurst(
 			state.Position,
 			direction,
-			ReachCells,
+			reachCells,
 			tint,
 			ReplayTiming.WeaponBurstSeconds);
 

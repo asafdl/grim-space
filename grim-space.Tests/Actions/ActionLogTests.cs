@@ -1,9 +1,12 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -85,7 +88,11 @@ public sealed class ActionLogTests
 			new EndOfPhaseAction("patrol-a"),
 			new RoundUpkeepAction("patrol-a"),
 			new FuelBurnAction("patrol-a"),
-			new Record<SpawnFacts>(new SpawnFacts("patrol-a", "torpedo-x", GrimSpace.Units.Enums.EType.Torpedo)),
+			new Record<SpawnFacts>(new SpawnFacts(
+				"patrol-a",
+				"torpedo-x",
+				EType.Torpedo,
+				State.FromShipInstance(ShipInstance.FromCatalog("torpedo-x", EType.Torpedo), Coord.Zero))),
 		];
 
 		Assert.Empty(ActionLog.Format(history, id => id));

@@ -1,10 +1,11 @@
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -23,6 +24,9 @@ public sealed class RailgunDef
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
+		if (world.StateOf(actorId).FindInstalled(EAbilityKind.Railgun) is null)
+			yield break;
+
 		var action = Bind(actorId);
 		if (IsPossible(action, world, runtime))
 			yield return action;
@@ -49,7 +53,9 @@ public sealed class RailgunDef
 
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		if (world.StateOf(action.ActorId).RailgunRemaining <= 0)
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Railgun);
+		if (installed is null || state.MountRuntimeFor(EAbilityKind.Railgun).UsesRemaining <= 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -62,46 +68,29 @@ public sealed class RailgunDef
 	{
 		var cells = AffectedCells(action, world);
 
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Railgun)
+			?? throw new InvalidOperationException("Railgun ability not installed for actor.");
+		var damage = installed.ForAction().Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Railgun spec missing area damage.");
 		return
 		[
 			new ResolveHazardEffect(
 				EHazardKind.RailgunBurst,
 				cells,
-				CombatConfig.RailgunDamage),
-			new RailgunChangeEffect(-1),
+				damage),
+			new MountUsesChangeEffect(EAbilityKind.Railgun, -1),
 		];
 	}
 
 	public HashSet<Coord> AffectedCells(RailgunAction action, BattleWorld world)
 	{
-		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var result = new HashSet<Coord>();
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Railgun);
+		if (installed?.ForAction().Spec is not IAreaDamage areaDamage)
+			return [];
 
-		for (var fore = 1; fore <= CombatConfig.RailgunLineLength; fore++)
-		{
-			var cell = frame.ToWorld(fore, 0, 0);
-			if (world.Grid.IsInBounds(cell))
-				result.Add(cell);
-		}
-
-		for (var depth = 0; depth <= CombatConfig.RailgunPyramidRange; depth++)
-		{
-			var fore = CombatConfig.RailgunLineLength + depth;
-			for (var port = -depth; port <= depth; port++)
-			{
-				for (var dorsal = -depth; dorsal <= depth; dorsal++)
-				{
-					if (System.Math.Abs(port) + System.Math.Abs(dorsal) > depth)
-						continue;
-
-					var cell = frame.ToWorld(fore, port, dorsal);
-					if (world.Grid.IsInBounds(cell))
-						result.Add(cell);
-				}
-			}
-		}
-
-		return result;
+		var frame = BodyFrame.From(state);
+		return AbilityArea.CellsInBounds(areaDamage, frame, world.Grid.IsInBounds);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

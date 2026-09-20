@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Weapons;
 
@@ -14,18 +14,19 @@ public sealed class WeaponsTests
 	public void RailgunBurstIsStraightLineThenForePyramid()
 	{
 		var (world, frame) = CreateWorld();
+		var railgun = CatalogExpectations.DefaultRailgunSpec();
 		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(PlayerId), world);
 
 		Assert.Equal(26, cells.Count);
-		for (var fore = 1; fore <= CombatConfig.RailgunLineLength; fore++)
+		for (var fore = 1; fore <= railgun.LineLength; fore++)
 			Assert.Contains(frame.ToWorld(fore, 0, 0), cells);
 
-		var pyramidApex = frame.ToWorld(CombatConfig.RailgunLineLength, 0, 0);
+		var pyramidApex = frame.ToWorld(railgun.LineLength, 0, 0);
 		Assert.Contains(pyramidApex, cells);
-		Assert.Contains(frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange, 1, 1), cells);
-		Assert.Contains(frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange, -1, 1), cells);
+		Assert.Contains(frame.ToWorld(railgun.LineLength + railgun.PyramidRange, 1, 1), cells);
+		Assert.Contains(frame.ToWorld(railgun.LineLength + railgun.PyramidRange, -1, 1), cells);
 		Assert.DoesNotContain(frame.Origin, cells);
-		Assert.DoesNotContain(frame.ToWorld(CombatConfig.RailgunLineLength + CombatConfig.RailgunPyramidRange + 1, 0, 0), cells);
+		Assert.DoesNotContain(frame.ToWorld(railgun.LineLength + railgun.PyramidRange + 1, 0, 0), cells);
 	}
 
 	[Theory]
@@ -34,11 +35,12 @@ public sealed class WeaponsTests
 	public void FlakBurstIsThreeDimensionalPyramidFromMountTip(ESpatialOrientation mountedOn)
 	{
 		var (world, frame) = CreateWorld();
+		var flak = CatalogExpectations.DefaultFlakSpec();
 		var cells = FlakDef.Instance.AffectedCells(new FlakAction(PlayerId, mountedOn), world);
 		var apexPort = mountedOn == ESpatialOrientation.Port ? 1 : -1;
 		var outwardStep = mountedOn == ESpatialOrientation.Port ? 1 : -1;
 		var apex = frame.ToWorld(0, apexPort, 0);
-		var basePort = apexPort + outwardStep * CombatConfig.FlakRange;
+		var basePort = apexPort + outwardStep * flak.BurstRange;
 
 		Assert.Equal(19, cells.Count);
 		Assert.Contains(apex, cells);

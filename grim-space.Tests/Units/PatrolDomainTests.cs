@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Units;
-using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Units;
 
@@ -12,13 +12,20 @@ public sealed class PatrolDomainTests
 	public void PatrolStatsAreConfigured()
 	{
 		var stats = Stats.ForType(EType.Patrol);
+		var configuration = ShipCatalog.DefaultFor(EType.Patrol);
+
+		var maxShields = ShipCatalog.MaxShieldPointsFor(EType.Patrol);
 
 		Assert.Equal(4, stats.MaxAp);
-		Assert.Equal(1, stats.MaxHullPoints);
-		Assert.Equal(3, stats.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(0, stats.MaxShieldPoints[ESpatialOrientation.Retro]);
-		Assert.Equal(1, stats.FlaksPerTurn);
-		Assert.Equal(0, stats.RailgunsPerTurn);
+		Assert.Equal(1, configuration.MaxHullPoints);
+		Assert.Equal(3, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
+		Assert.Equal(0, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Retro]);
+		Assert.Equal(1, AbilityLoadout.PerTurnUsesForAbility(
+			ShipInstance.FromCatalog("patrol", EType.Patrol),
+			EAbilityKind.Flak));
+		Assert.Equal(0, AbilityLoadout.PerTurnUsesForAbility(
+			ShipInstance.FromCatalog("patrol", EType.Patrol),
+			EAbilityKind.Railgun));
 	}
 
 	[Fact]

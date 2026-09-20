@@ -4,23 +4,17 @@ namespace GrimSpace.Units.Loadouts.Abilities;
 
 public static class AbilityLoadout
 {
-	public static IReadOnlyDictionary<AbilityMount, int> UsesPerMount(ShipSnapshot snapshot)
+	public static int PerTurnUsesForAbility(ShipInstance ship, EAbilityKind ability)
 	{
-		var uses = new Dictionary<AbilityMount, int>();
-		foreach (var mount in snapshot.Configuration.AbilityMounts)
+		foreach (var installed in ship.Spec.InstalledAbilities)
 		{
-			_ = AbilityDefinition.For(mount.Ability);
-			uses[mount] = mount.Definition.UsesPerTurn;
+			if (installed.Spec.Kind != ability)
+				continue;
+
+			if (installed.Spec is IPerTurnAbility perTurn)
+				return perTurn.UsesPerTurn;
 		}
 
-		return uses;
-	}
-
-	public static int UsesPerTurnForAbility(ShipSnapshot snapshot, EAbilityKind ability)
-	{
-		if (!snapshot.Configuration.AbilityMounts.Any(mount => mount.Ability == ability))
-			return 0;
-
-		return AbilityDefinition.For(ability).UsesPerTurn;
+		return 0;
 	}
 }

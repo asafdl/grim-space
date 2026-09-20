@@ -1,9 +1,9 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Units;
@@ -14,16 +14,19 @@ public sealed class TorpedoDomainTests
 	public void TorpedoStatsAreConfigured()
 	{
 		var stats = Stats.ForType(EType.Torpedo);
+		var configuration = ShipCatalog.DefaultFor(EType.Torpedo);
 
-		Assert.Equal(1, stats.MaxHullPoints);
-		Assert.Equal(1, stats.MaxShieldPoints.MaxOnAnyFace);
+		var maxShields = ShipCatalog.MaxShieldPointsFor(EType.Torpedo);
+
+		Assert.Equal(1, configuration.MaxHullPoints);
+		Assert.Equal(1, maxShields.MaxOnAnyFace);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
 			Assert.Equal(
 				face == ESpatialOrientation.Retro ? 0 : 1,
-				stats.MaxShieldPoints[face]);
+				maxShields[face]);
 		}
-		Assert.Equal(TorpedoConfig.MovementActionPoints, stats.MaxAp);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().MovementActionPoints, stats.MaxAp);
 	}
 
 	[Fact]
@@ -48,17 +51,11 @@ public sealed class TorpedoDomainTests
 		var spec = Assert.Single(
 			AbilityHudCatalog.ForUnit(EType.Torpedo),
 			entry => entry.Mode == EPlayerMode.Detonate);
-		var unit = UnitDisplayState.Capture(new State
-		{
-			Id = "torpedo",
-			Type = EType.Torpedo,
-			Position = new Coord(5, 5, 5),
-			Fore = Coord.Forward,
-			Dorsal = Coord.Up,
-			Starboard = Coord.Cross(Coord.Up, Coord.Forward),
-			FuelRemaining = 2,
-			Stats = Stats.ForType(EType.Torpedo),
-		});
+		var torpedoState = State.FromShipInstance(
+			ShipInstance.FromCatalog("torpedo", EType.Torpedo),
+			new Coord(5, 5, 5));
+		torpedoState.FuelRemaining = 2;
+		var unit = UnitDisplayState.Capture(torpedoState);
 
 		var ready = AbilityHudCatalog.BuildState(
 			spec,

@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
@@ -14,19 +13,18 @@ public sealed class TorpedoMovementTests
 	[Fact]
 	public void ForwardAndLateralStepsUseTorpedoCosts()
 	{
+		var body = CatalogExpectations.DefaultTorpedoBody();
 		var (sim, torpedoId) = CreateSimulation();
 		var state = sim.StateOf<ActorState>(torpedoId);
 
 		Assert.True(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Port)));
 		Assert.Equal(
-			TorpedoConfig.MovementActionPoints - TorpedoConfig.LateralMoveApCost,
+			body.MovementActionPoints - body.LateralMoveApCost,
 			state.ActionPoints);
 
 		Assert.True(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Forward)));
 		Assert.Equal(
-			TorpedoConfig.MovementActionPoints
-				- TorpedoConfig.LateralMoveApCost
-				- TorpedoConfig.ForwardMoveApCost,
+			body.MovementActionPoints - body.LateralMoveApCost - body.ForwardMoveApCost,
 			state.ActionPoints);
 	}
 

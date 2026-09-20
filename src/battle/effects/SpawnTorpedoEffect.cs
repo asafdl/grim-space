@@ -1,12 +1,13 @@
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
+using GrimSpace.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
@@ -20,18 +21,15 @@ public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string uni
 		var units = UnitRegistry.For(world);
 		var firer = units.UnitOf(actorId);
 		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer.State, mountedOn);
+		var child = Factory.ChildFromSpawnableMount(firer.State, EAbilityKind.TorpedoLauncher, unitId);
 		var torpedo = Factory.Create(
-			new Instance
-			{
-				Id = unitId,
-				Type = EType.Torpedo,
-				Team = firer.Team,
-			},
+			child,
+			firer.Team,
 			position,
 			new TorpedoExecutionAgent(),
 			fore,
 			dorsal);
-		torpedo.State.FuelRemaining = TorpedoConfig.Fuel;
+		torpedo.State.FuelRemaining = TorpedoBodySpec.Require(torpedo.State.Spec).FuelTurns;
 		torpedo.State.ParentId = actorId;
 		units.Add(torpedo);
 		_spawned = torpedo;
@@ -41,7 +39,8 @@ public sealed class SpawnTorpedoEffect(ESpatialOrientation mountedOn, string uni
 			new Record<SpawnFacts>(new SpawnFacts(
 				SourceId: actorId,
 				TargetId: torpedo.State.Id,
-				EntityType: EType.Torpedo)),
+				EntityType: EType.Torpedo,
+				SpawnedState: torpedo.State.Clone())),
 		];
 	}
 

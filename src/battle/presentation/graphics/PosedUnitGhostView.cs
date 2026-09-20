@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -33,17 +34,22 @@ public sealed partial class PosedUnitGhostView : Node3D
 			_tint = spec.Tint;
 		}
 
-		var stats = Stats.ForType(spec.Type);
+		var configuration = ShipCatalog.DefaultFor(spec.Type);
+		var stats = Stats.ForSpec(configuration);
+		var maxShields = ShipCatalog.MaxShieldPointsFor(spec.Type).Clone();
 		var state = new State
 		{
 			Id = GhostId,
 			Type = spec.Type,
+			Spec = configuration.DeepCopy(),
 			Position = spec.Position,
 			Fore = spec.Fore,
 			Dorsal = spec.Dorsal,
 			Starboard = GrimSpace.Math.Grid.Coord.Cross(spec.Dorsal, spec.Fore),
 			Stats = stats,
-			HullPoints = stats.MaxHullPoints,
+			HullPoints = configuration.MaxHullPoints,
+			MaxShieldPoints = maxShields,
+			ShieldPoints = maxShields.Clone(),
 		};
 		var view = _view
 			?? throw new InvalidOperationException("Posed ghost view was not initialized.");

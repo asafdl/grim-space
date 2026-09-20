@@ -28,7 +28,7 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			try
 			{
 				var start = session.Actions.Count;
-				var capabilities = Capabilities.For(actor.State.Type)
+				var capabilities = Capabilities.For(actor.State)
 					.Where(def => def is not SpawnPatrolDef)
 					.ToArray();
 				var actions = Runner.CalcActions(

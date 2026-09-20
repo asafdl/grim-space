@@ -1,10 +1,10 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -23,10 +23,12 @@ public sealed class TorpedoActionTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
 		var ship = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
-		Assert.Equal(TorpedoConfig.CooldownTurns, ship.TorpedoCooldownRemaining);
+		Assert.Equal(
+			CatalogExpectations.DefaultTorpedoLauncherSpec().CooldownTurns,
+			StateMountTestKit.CooldownRemaining(ship, EAbilityKind.TorpedoLauncher));
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
-		Assert.Equal(TorpedoConfig.Fuel, torpedo.State.FuelRemaining);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns, torpedo.State.FuelRemaining);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
 		Assert.Equal(ETeam.Player, torpedo.Team);
@@ -69,11 +71,11 @@ public sealed class TorpedoActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		battle.Engine.World.StateOf(PlayerId).TorpedoCooldownRemaining = 2;
+		StateMountTestKit.SetCooldownRemaining(battle.Engine.World.StateOf(PlayerId), EAbilityKind.TorpedoLauncher, 2);
 
 		BattleTestActions.CommitAndResolve(battle);
 
-		Assert.Equal(1, battle.Engine.World.StateOf(PlayerId).TorpedoCooldownRemaining);
+		Assert.Equal(1, StateMountTestKit.CooldownRemaining(battle.Engine.World.StateOf(PlayerId), EAbilityKind.TorpedoLauncher));
 	}
 
 	[Fact]
@@ -88,7 +90,7 @@ public sealed class TorpedoActionTests
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
-		Assert.Equal(TorpedoConfig.Fuel - 1, torpedo.State.FuelRemaining);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns - 1, torpedo.State.FuelRemaining);
 		Assert.NotEqual(origin - shipFore, torpedo.State.Position);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);
 		Assert.Contains(

@@ -1,8 +1,10 @@
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Components;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -32,35 +34,15 @@ internal static class BattleHudCopy
 	public const string MoveTooltip =
 		"Move:\nEach AP advances one cell and may include one quarter-turn and one quarter-roll.";
 
-	public static string FlakTooltip =>
-		$"Flak:\nSide burst (port or starboard).\n" +
-		$"Range: {CombatConfig.MaxFlakManhattanRange} cells.\n" +
-		$"Deals {CombatConfig.FlakDamage} damage.\n" +
-		$"Cooldown: {CombatConfig.FlaksPerTurn} use per turn.";
+	public static string FlakTooltip => FlakTooltipFor(EType.Fighter);
 
-	public static string RailgunTooltip =>
-		$"Railgun:\nFires in a long straight line ahead.\n" +
-		$"Range: {CombatConfig.MaxRailgunManhattanRange} cells.\n" +
-		$"Deals {CombatConfig.RailgunDamage} damage.\n" +
-		$"Cooldown: {CombatConfig.RailgunsPerTurn} use per turn.";
+	public static string RailgunTooltip => RailgunTooltipFor(EType.Fighter);
 
-	public static string TorpedoTooltip =>
-		$"Torpedo:\nFires in a set direction.\n" +
-		$"Travels for {TorpedoConfig.Fuel} turns with {TorpedoConfig.MovementActionPoints} AP per turn.\n" +
-		$"Forward movement costs {TorpedoConfig.ForwardMoveApCost} AP; lateral movement costs {TorpedoConfig.LateralMoveApCost} AP.\n" +
-		$"Blast radius: {TorpedoConfig.BlastRadius} cells, {TorpedoConfig.BlastDamage} damage.\n" +
-		$"Cooldown: {TorpedoConfig.CooldownTurns} turns after launch.";
+	public static string TorpedoTooltip => TorpedoTooltipFor(EType.Fighter);
 
-	public static string DetonateTooltip =>
-		$"Detonate:\nExplodes for {TorpedoConfig.BlastDamage} damage in a {TorpedoConfig.BlastRadius}-cell radius.\n" +
-		$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
-		$"Fuel: {TorpedoConfig.Fuel} turns after launch.";
+	public static string DetonateTooltip => DetonateTooltipFor(EType.Torpedo);
 
-	public static string SpawnPatrolTooltip =>
-		$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
-		$"Patrols can shoot flak cannons, and have forward facing shields.\n" +
-		$"Max living patrols: {CombatConfig.MaxLivingPatrolChildren}.\n" +
-		$"Cooldown: {CombatConfig.PatrolCooldownTurns} turns after launch.";
+	public static string SpawnPatrolTooltip => SpawnPatrolTooltipFor(EType.Carrier);
 	public const string EndTurn = "End Turn";
 	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
 
@@ -120,4 +102,63 @@ internal static class BattleHudCopy
 			EBattleResult.Tie => OutcomeDraw,
 			_ => OutcomeDefault,
 		};
+
+	private static string FlakTooltipFor(EType chassis)
+	{
+		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.Flak) is not FlakSpec flak)
+			return "Flak";
+
+		return
+			$"Flak:\nSide burst (port or starboard).\n" +
+			$"Range: {AbilityReach.MaxManhattanFromFirer(flak)} cells.\n" +
+			$"Deals {flak.Damage} damage.\n" +
+			$"Cooldown: {flak.UsesPerTurn} use per turn.";
+	}
+
+	private static string RailgunTooltipFor(EType chassis)
+	{
+		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.Railgun) is not RailgunSpec railgun)
+			return "Railgun";
+
+		return
+			$"Railgun:\nFires in a long straight line ahead.\n" +
+			$"Range: {AbilityReach.MaxManhattanFromFirer(railgun)} cells.\n" +
+			$"Deals {railgun.Damage} damage.\n" +
+			$"Cooldown: {railgun.UsesPerTurn} use per turn.";
+	}
+
+	private static string TorpedoTooltipFor(EType chassis)
+	{
+		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.TorpedoLauncher) is not TorpedoLauncherSpec launcher)
+			return "Torpedo";
+
+		var body = TorpedoBodySpec.Require(launcher.ChildSpec);
+		return
+			$"Torpedo:\nFires in a set direction.\n" +
+			$"Travels for {body.FuelTurns} turns with {body.MovementActionPoints} AP per turn.\n" +
+			$"Forward movement costs {body.ForwardMoveApCost} AP; lateral movement costs {body.LateralMoveApCost} AP.\n" +
+			$"Blast radius: {body.BlastRadius} cells, {body.BlastDamage} damage.\n" +
+			$"Cooldown: {launcher.CooldownTurns} turns after launch.";
+	}
+
+	private static string DetonateTooltipFor(EType chassis)
+	{
+		var body = TorpedoBodySpec.Require(ShipCatalog.DefaultFor(chassis));
+		return
+			$"Detonate:\nExplodes for {body.BlastDamage} damage in a {body.BlastRadius}-cell radius.\n" +
+			$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
+			$"Fuel: {body.FuelTurns} turns after launch.";
+	}
+
+	private static string SpawnPatrolTooltipFor(EType chassis)
+	{
+		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.PatrolBay) is not PatrolBaySpec bay)
+			return "Deploy Patrol";
+
+		return
+			$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
+			$"Patrols can shoot flak cannons, and have forward facing shields.\n" +
+			$"Max living patrols: {bay.MaxLivingChildren}.\n" +
+			$"Cooldown: {bay.CooldownTurns} turns after launch.";
+	}
 }

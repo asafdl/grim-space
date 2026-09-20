@@ -22,18 +22,18 @@ public static class DeploymentPlacement
 		string? playerId = null,
 		string? enemyId = null)
 	{
-		var playerSnapshot = ShipCatalog.DefaultSnapshot(
+		var playerShip = ShipInstance.FromCatalog(
 			playerId ?? "dev-player",
 			playerChassis);
-		var enemySnapshot = ShipCatalog.DefaultSnapshot(
+		var enemyShip = ShipInstance.FromCatalog(
 			enemyId ?? "dev-enemy",
 			enemyChassis);
-		return DevDuel(playerSnapshot, enemySnapshot, seed, gridSize);
+		return DevDuel(playerShip, enemyShip, seed, gridSize);
 	}
 
 	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
-		ShipSnapshot playerSnapshot,
-		ShipSnapshot enemySnapshot,
+		ShipInstance playerShip,
+		ShipInstance enemyShip,
 		int seed,
 		int gridSize)
 	{
@@ -49,7 +49,7 @@ public static class DeploymentPlacement
 		return (
 			new BattleSpawn
 			{
-				Ship = playerSnapshot,
+				Ship = playerShip,
 				Team = ETeam.Player,
 				Position = playerPosition,
 				Fore = playerFore,
@@ -58,7 +58,7 @@ public static class DeploymentPlacement
 			},
 			new BattleSpawn
 			{
-				Ship = enemySnapshot,
+				Ship = enemyShip,
 				Team = ETeam.Enemy,
 				Position = enemyPosition,
 				Fore = enemyFore,

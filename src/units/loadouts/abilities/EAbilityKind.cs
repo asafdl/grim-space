@@ -4,4 +4,6 @@ public enum EAbilityKind
 {
 	Flak,
 	Railgun,
+	PatrolBay,
+	TorpedoLauncher,
 }

@@ -9,7 +9,6 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
@@ -56,7 +55,7 @@ public sealed class BattleOrchestrator : IDisposable
 	public UserExecutionAgent PlayerAgent =>
 		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(PlayerId).ExecutionAgent;
 
-	public static BattleOrchestrator FromEncounter(BattleEncounter encounter, int gridSize = CombatConfig.DefaultGridSize)
+	public static BattleOrchestrator FromEncounter(BattleEncounter encounter, int gridSize = 64)
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var timeline = new Timeline();

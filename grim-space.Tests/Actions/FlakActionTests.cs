@@ -5,6 +5,8 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Units;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -27,9 +29,9 @@ public sealed class FlakActionTests
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var flak = new FlakAction(PlayerId, ESpatialOrientation.Port);
 
-		Assert.Equal(CombatConfig.FlaksPerTurn, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.Flak));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(flak));
-		Assert.Equal(CombatConfig.FlaksPerTurn - 1, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).FlakRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak) - 1, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.Flak));
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
 	}
 
@@ -46,7 +48,7 @@ public sealed class FlakActionTests
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
-		Assert.Equal(shieldsBefore - CombatConfig.FlakDamage, TotalShieldPoints(enemy.State));
+		Assert.Equal(shieldsBefore - CatalogExpectations.FlakDamage(), TotalShieldPoints(enemy.State));
 		Assert.False(enemy.State.ApPenaltyNextTurn);
 	}
 }

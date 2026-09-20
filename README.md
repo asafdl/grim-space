@@ -256,9 +256,35 @@ The player plans an action batch and publishes it at end of turn. [`BattleOrches
 | **World** (`BattleWorld`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
 | **Runtime** (`ActorRuntimes<ActorRuntime>`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
 
-[`Capabilities`](src/battle/units/Capabilities.cs) maps each unit type to its available action definitions. AI and UI start from that set and ask each definition what is legal or discoverable; they do not maintain separate rule tables.
+[`Capabilities`](src/battle/units/Capabilities.cs) maps each unit type to its available action definitions. AI and UI start from that set and ask each definition what is legal or discoverable; they do not maintain separate rule tables. (Loadout-driven discovery per actor configuration is the target; type-based lists are legacy.)
 
 `BattleOrchestrator` owns phase transitions, activation order, outcome evaluation, and the engine commit boundary. Godot-facing [`BattleController`](src/battle/presentation/scene/BattleController.cs), [`BattleHud`](src/battle/presentation/ui/BattleHud.cs), and [`PresentationFrameBuilder`](src/battle/presentation/PresentationFrameBuilder.cs) consume previews and committed history but do not implement battle rules.
+
+### Ship spec and ability spec (`src/units/`)
+
+Combat loadouts are modeled in two layers, both owned by the units package (no Godot, no battle imports):
+
+| Layer | Type | Meaning |
+|-------|------|---------|
+| **Ship spec** | [`ShipSpec`](src/units/ShipSpec.cs) | What this ship *is*: chassis, hull cap, and **installed abilities** — each row is an [`InstalledAbility`](src/units/loadouts/abilities/InstalledAbility.cs) with an **`AbilitySpec`** (unique **`EAbilityKind`** per ship) and **facets** (where on the hull that ability can fire). Per-face shield **caps** and **current** points live on [`ShipInstance`](src/units/ShipInstance.cs) / battle [`State`](src/battle/units/State.cs), not on the spec. |
+| **Ability spec** | [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs) (+ sealed records) | What an ability *does*: per-turn uses or cooldown, compatible facets, and behavior via small interfaces. |
+
+Capability interfaces (metadata + helpers, still in units):
+
+- [`IAreaDamage`](src/units/loadouts/abilities/IAreaDamage.cs) — `Damage` and `GetArea(origin, direction, fore, dorsal)` in world grid steps. Battle builds origin/direction from [`BodyFrame`](src/battle/spatial/BodyFrame.cs) and the chosen facet ([`AbilityArea`](src/battle/spatial/AbilityArea.cs) clips to the grid).
+- [`ISpawnable`](src/units/loadouts/abilities/ISpawnable.cs) — **`ChildSpec`** is a nested **`ShipSpec`** (the spawned patrol/torpedo ship spec), plus `MaxLivingChildren` where relevant.
+
+#### Who creates ships vs who consumes them
+
+| Layer | Role |
+|-------|------|
+| **[`ShipCatalog`](src/units/ShipCatalog.cs)** | **Creation bootstrap only** — default `ShipSpec` when a new hull is first instantiated ([`ShipInstance.FromCatalog`](src/units/ShipInstance.cs)). Not consulted during combat. |
+| **Star map / run** ([`RunShipRegistry`](src/run/RunShipRegistry.cs), engagement setup) | **Owns each [`ShipInstance`](src/units/ShipInstance.cs)** — id, `ShipSpec`, hull/shields (upgrades, dockyard). |
+| **Battle** ([`State.FromShipInstance`](src/battle/units/State.cs), action defs) | **Reads the `ShipInstance` copy on each actor** — per-actor `Spec` for installed abilities, damage, spawn child specs, and caps. Does **not** look up loadouts by [`EType`](src/units/Enums/EType.cs), does **not** re-validate against catalog defaults, and does **not** enforce “is this a legal chassis template” (that belongs to run/map setup). |
+
+[`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time. [`AbilityLoadout`](src/units/loadouts/abilities/AbilityLoadout.cs) seeds per-slot runtime from that instance when battle [`State`](src/battle/units/State.cs) is created. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Spawn, weapon, and torpedo-body numbers live on [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs) / [`TorpedoBodySpec`](src/units/TorpedoBodySpec.cs) via [`ShipCatalog`](src/units/ShipCatalog.cs).
+
+**Upgrade identity:** run-level **`shipId`** on snapshots; replace the `AbilitySpec` for an **`EAbilityKind`** on the ship’s installed list (battle resolves mounts by kind + facet). [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
 
 ---
 

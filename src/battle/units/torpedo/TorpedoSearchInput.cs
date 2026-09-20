@@ -1,8 +1,8 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
+using GrimSpace.Units;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -114,12 +114,13 @@ internal static class TorpedoSearchInput
 			return new(false, false, 0, 0, score);
 
 		var state = frame.World.StateOf(actorId);
+		var blastRadius = TorpedoBodySpec.Require(state.Spec).BlastRadius;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
 		var approachGain = ApproachGainToward(start.Position, state.Position, target);
 		var opponentInBlast = target is not null
-			? state.Position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius
+			? state.Position.ManhattanDistanceTo(target.State.Position) <= blastRadius
 			: DetonateDef.HasOpponentInBlast(frame.World, actorId, state.Position);
-		var allyInBlast = HasAllyInBlast(frame.World, actorId, state.Position);
+		var allyInBlast = HasAllyInBlast(frame.World, actorId, state.Position, blastRadius);
 
 		return new(opponentInBlast, allyInBlast, approachGain, frame.Depth, score);
 	}
@@ -137,6 +138,7 @@ internal static class TorpedoSearchInput
 			return int.MinValue;
 
 		var state = unit.State;
+		var blastRadius = TorpedoBodySpec.Require(state.Spec).BlastRadius;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
 		var score = -state.ActionPoints * UnusedApPenalty;
 
@@ -145,17 +147,17 @@ internal static class TorpedoSearchInput
 		score += ApproachGainToward(start.Position, state.Position, target) * ApproachWeight;
 
 		if (target is not null
-			&& state.Position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius)
+			&& state.Position.ManhattanDistanceTo(target.State.Position) <= blastRadius)
 		{
 			score += BlastTargetBonus;
 		}
 
-		if (HasAllyInBlast(world, actorId, state.Position))
+		if (HasAllyInBlast(world, actorId, state.Position, blastRadius))
 			score -= BlastAllyPenalty;
 
 		var fuelAfterBurn = System.Math.Max(0, state.FuelRemaining - 1);
 		var targetInBlast = target is not null
-			&& state.Position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius;
+			&& state.Position.ManhattanDistanceTo(target.State.Position) <= blastRadius;
 		if (fuelAfterBurn == 0 && !targetInBlast)
 			score -= WetBoomPenalty;
 
@@ -164,14 +166,15 @@ internal static class TorpedoSearchInput
 
 	private static int BlastScore(BattleWorld world, string actorId, Coord position, Unit? target)
 	{
+		var blastRadius = TorpedoBodySpec.Require(world.StateOf(actorId).Spec).BlastRadius;
 		var score = 0;
 		if (target is not null
-			&& position.ManhattanDistanceTo(target.State.Position) <= TorpedoConfig.BlastRadius)
+			&& position.ManhattanDistanceTo(target.State.Position) <= blastRadius)
 		{
 			score += BlastTargetBonus;
 		}
 
-		if (HasAllyInBlast(world, actorId, position))
+		if (HasAllyInBlast(world, actorId, position, blastRadius))
 			score -= BlastAllyPenalty;
 
 		return score;
@@ -187,7 +190,7 @@ internal static class TorpedoSearchInput
 		return after < before ? before - after : 0;
 	}
 
-	internal static bool HasAllyInBlast(BattleWorld world, string actorId, Coord origin)
+	internal static bool HasAllyInBlast(BattleWorld world, string actorId, Coord origin, int blastRadius)
 	{
 		var units = UnitRegistry.For(world);
 		var actor = units.UnitOf(actorId);
@@ -195,7 +198,7 @@ internal static class TorpedoSearchInput
 		{
 			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Ally)
 				continue;
-			if (origin.ManhattanDistanceTo(unit.State.Position) <= TorpedoConfig.BlastRadius)
+			if (origin.ManhattanDistanceTo(unit.State.Position) <= blastRadius)
 				return true;
 		}
 

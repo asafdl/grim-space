@@ -11,7 +11,9 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -32,10 +34,19 @@ public static class AbilityHudCatalog
 	private static Color OpaqueTint(Color previewTint) =>
 		new(previewTint.R, previewTint.G, previewTint.B, 1f);
 
+	/// <summary>Chassis-default HUD rows (tests and type-only previews).</summary>
 	public static IReadOnlyList<Spec> ForUnit(EType type) =>
-		Capabilities.AbilitiesFor(type)
-			.Select(Resolve)
-			.ToList();
+		ForActor(State.FromShipInstance(ShipInstance.FromCatalog("__hud__", type), Coord.Zero));
+
+	public static IReadOnlyList<Spec> ForActor(State state) =>
+		state.Type == EType.Torpedo
+			? [Resolve(DetonateDef.Instance)]
+			: Capabilities.AbilityDefsForLoadout(state.Spec.InstalledAbilities)
+				.Select(Resolve)
+				.ToList();
+
+	public static IReadOnlyList<Spec> ForDisplayState(UnitDisplayState unit) =>
+		ForActor(unit.ToState());
 
 	public static AbilityBarSlotState BuildState(Spec spec, UnitDisplayState unit, AbilityLegality legality) =>
 		new(spec.Tooltip, spec.Charges(unit, legality), spec.IsLegal(legality));
@@ -53,7 +64,9 @@ public static class AbilityHudCatalog
 					new Color(0.96f, 0.64f, 0.2f, 0.44f)),
 				"res://assets/ui/abilities/flak.svg",
 				BattleHudCopy.FlakTooltip,
-				(unit, _) => BattleHudCopy.Charges(unit.FlakRemaining, unit.FlaksPerTurn),
+				(unit, _) => BattleHudCopy.Charges(
+					unit.UsesRemaining(EAbilityKind.Flak),
+					unit.MaxUsesPerTurn(EAbilityKind.Flak)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Flak)),
 			RailgunDef => new(
 				EPlayerMode.Railgun,
@@ -64,7 +77,9 @@ public static class AbilityHudCatalog
 					new Color(0.55f, 0.82f, 1f, 0.42f)),
 				"res://assets/ui/abilities/railgun.svg",
 				BattleHudCopy.RailgunTooltip,
-				(unit, _) => BattleHudCopy.Charges(unit.RailgunRemaining, unit.RailgunsPerTurn),
+				(unit, _) => BattleHudCopy.Charges(
+					unit.UsesRemaining(EAbilityKind.Railgun),
+					unit.MaxUsesPerTurn(EAbilityKind.Railgun)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Railgun)),
 			TorpedoDef => new(
 				EPlayerMode.Torpedo,
@@ -76,7 +91,9 @@ public static class AbilityHudCatalog
 				"res://assets/ui/abilities/torpedo.svg",
 				BattleHudCopy.TorpedoTooltip,
 				(unit, legality) => BattleHudCopy.Charges(
-					CooldownUses(unit.TorpedoCooldownRemaining, legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
+					CooldownUses(
+						unit.CooldownRemaining(EAbilityKind.TorpedoLauncher),
+						legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
 					1),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
 			DetonateDef => new(
@@ -88,7 +105,9 @@ public static class AbilityHudCatalog
 					new Color(1f, 0.42f, 0.18f, 0.5f)),
 				"res://assets/ui/abilities/detonate.svg",
 				BattleHudCopy.DetonateTooltip,
-				(unit, _) => BattleHudCopy.Charges(unit.FuelRemaining, TorpedoConfig.Fuel),
+				(unit, _) => BattleHudCopy.Charges(
+					unit.FuelRemaining,
+					TorpedoBodySpec.Require(unit.Spec).FuelTurns),
 				legality => legality.Detonate),
 			SpawnPatrolDef => new(
 				EPlayerMode.SpawnPatrol,
@@ -100,7 +119,9 @@ public static class AbilityHudCatalog
 				"res://assets/ui/abilities/patrol.svg",
 				BattleHudCopy.SpawnPatrolTooltip,
 				(unit, legality) => BattleHudCopy.Charges(
-					CooldownUses(unit.PatrolSpawnCooldownRemaining, legality.SpawnPatrol),
+					CooldownUses(
+						unit.CooldownRemaining(EAbilityKind.PatrolBay),
+						legality.SpawnPatrol),
 					1),
 				legality => legality.SpawnPatrol),
 			_ => throw new NotSupportedException(

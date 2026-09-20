@@ -107,7 +107,7 @@ public sealed class DetonateActionTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).ActionPoints = 0;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoBody().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);

@@ -4,8 +4,8 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
@@ -18,13 +18,10 @@ public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, Acto
 		var units = UnitRegistry.For(world);
 		var parent = units.UnitOf(actorId);
 		var (position, fore, dorsal) = PatrolBayMount.LaunchPose(parent.State);
+		var child = Factory.ChildFromSpawnableMount(parent.State, EAbilityKind.PatrolBay, unitId);
 		var patrol = Factory.Create(
-			new Instance
-			{
-				Id = unitId,
-				Type = EType.Patrol,
-				Team = parent.Team,
-			},
+			child,
+			parent.Team,
 			position,
 			new AiController(),
 			fore,
@@ -38,7 +35,8 @@ public sealed class SpawnPatrolEffect(string unitId) : IEffect<BattleWorld, Acto
 			new Record<SpawnFacts>(new SpawnFacts(
 				SourceId: actorId,
 				TargetId: patrol.State.Id,
-				EntityType: EType.Patrol)),
+				EntityType: EType.Patrol,
+				SpawnedState: patrol.State.Clone())),
 		];
 	}
 

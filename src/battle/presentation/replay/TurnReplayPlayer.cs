@@ -12,6 +12,7 @@ using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
 using GrimSpace.Core;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
@@ -161,25 +162,7 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void ApplyTorpedoSpawn(SpawnFacts spawn)
 	{
-		if (_clipContext.PendingTorpedoMountedOn is not { } mountedOn)
-			throw new InvalidOperationException($"SpawnFacts for {spawn.TargetId} missing preceding TorpedoAction mount.");
-
-		if (!_clipContext.EndStates.TryGetValue(spawn.TargetId, out var template))
-			throw new InvalidOperationException($"SpawnFacts target {spawn.TargetId} missing from EndStates.");
-
-		var firer = _clipContext.ReplayState.StateOf(spawn.SourceId);
-		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer, mountedOn);
-
-		var spawned = template.Clone();
-		spawned.Position = position;
-		spawned.Fore = fore;
-		spawned.Dorsal = dorsal;
-		spawned.Starboard = Coord.Cross(dorsal, fore);
-		spawned.ParentId = spawn.SourceId;
-		spawned.FuelRemaining = TorpedoConfig.Fuel;
-		spawned.HullPoints = spawned.Stats.MaxHullPoints;
-		spawned.ActionPoints = spawned.Stats.MaxAp;
-
+		var spawned = spawn.SpawnedState.Clone();
 		_clipContext.ReplayState.Add(spawned);
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
 		_clipContext.UnitViews[spawned.Id].Sync(spawned);
@@ -188,25 +171,7 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void ApplyPatrolSpawn(SpawnFacts spawn)
 	{
-		if (!_clipContext.EndStates.TryGetValue(spawn.TargetId, out var template))
-			throw new InvalidOperationException($"SpawnFacts target {spawn.TargetId} missing from EndStates.");
-
-		var carrier = _clipContext.ReplayState.StateOf(spawn.SourceId);
-		var (position, fore, dorsal) = PatrolBayMount.LaunchPose(carrier);
-
-		var spawned = template.Clone();
-		spawned.Position = position;
-		spawned.Fore = fore;
-		spawned.Dorsal = dorsal;
-		spawned.Starboard = Coord.Cross(dorsal, fore);
-		spawned.ParentId = spawn.SourceId;
-		spawned.HullPoints = spawned.Stats.MaxHullPoints;
-		spawned.ActionPoints = spawned.Stats.MaxAp;
-		spawned.ShieldPoints = spawned.Stats.MaxShieldPoints.Clone();
-		spawned.FlakRemaining = spawned.Stats.FlaksPerTurn;
-		spawned.RailgunRemaining = spawned.Stats.RailgunsPerTurn;
-		spawned.PatrolSpawnCooldownRemaining = 0;
-
+		var spawned = spawn.SpawnedState.Clone();
 		_clipContext.ReplayState.Add(spawned);
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
 		_clipContext.UnitViews[spawned.Id].Sync(spawned);

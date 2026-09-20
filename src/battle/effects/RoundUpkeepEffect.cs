@@ -1,27 +1,25 @@
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
 public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previousActionPoints;
-	private int _previousFlakRemaining;
-	private int _previousRailgunRemaining;
-	private int _previousTorpedoCooldownRemaining;
-	private int _previousPatrolSpawnCooldownRemaining;
+	private Dictionary<EAbilityKind, MountRuntimeCounters>? _previousMountRuntime;
 	private bool _previousApPenaltyNextTurn;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
 		_previousActionPoints = actor.ActionPoints;
-		_previousFlakRemaining = actor.FlakRemaining;
-		_previousRailgunRemaining = actor.RailgunRemaining;
-		_previousTorpedoCooldownRemaining = actor.TorpedoCooldownRemaining;
-		_previousPatrolSpawnCooldownRemaining = actor.PatrolSpawnCooldownRemaining;
 		_previousApPenaltyNextTurn = actor.ApPenaltyNextTurn;
+		_previousMountRuntime = actor.MountRuntime.ToDictionary(
+			entry => entry.Key,
+			entry => entry.Value.Clone());
 
 		var maxAp = actor.Stats.MaxAp;
 		if (actor.ApPenaltyNextTurn)
@@ -31,12 +29,9 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		}
 
 		actor.ActionPoints = maxAp;
-		actor.FlakRemaining = actor.Stats.FlaksPerTurn;
-		actor.RailgunRemaining = actor.Stats.RailgunsPerTurn;
-		if (actor.TorpedoCooldownRemaining > 0)
-			actor.TorpedoCooldownRemaining--;
-		if (actor.PatrolSpawnCooldownRemaining > 0)
-			actor.PatrolSpawnCooldownRemaining--;
+		foreach (var installed in actor.Spec.InstalledAbilities)
+			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Spec.Kind]);
+
 		return [];
 	}
 
@@ -44,10 +39,12 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	{
 		var actor = world.StateOf(actorId);
 		actor.ActionPoints = _previousActionPoints;
-		actor.FlakRemaining = _previousFlakRemaining;
-		actor.RailgunRemaining = _previousRailgunRemaining;
-		actor.TorpedoCooldownRemaining = _previousTorpedoCooldownRemaining;
-		actor.PatrolSpawnCooldownRemaining = _previousPatrolSpawnCooldownRemaining;
 		actor.ApPenaltyNextTurn = _previousApPenaltyNextTurn;
+		if (_previousMountRuntime is null)
+			return;
+
+		actor.MountRuntime.Clear();
+		foreach (var (kind, snapshot) in _previousMountRuntime)
+			actor.MountRuntime[kind] = snapshot;
 	}
 }

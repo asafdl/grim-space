@@ -1,5 +1,4 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Units.Loadouts.Defenses;
 
@@ -22,29 +21,6 @@ public sealed class FaceShieldPoints
 				max = System.Math.Max(max, value);
 			return max;
 		}
-	}
-
-	public static FaceShieldPoints MaxFor(EType type)
-	{
-		var profile = new FaceShieldPoints();
-		switch (type)
-		{
-			case EType.Fighter:
-			case EType.Carrier:
-				profile.Fill(2);
-				break;
-			case EType.Patrol:
-				profile[ESpatialOrientation.Forward] = 3;
-				break;
-			case EType.Torpedo:
-				profile.Fill(1);
-				profile[ESpatialOrientation.Retro] = 0;
-				break;
-			default:
-				throw new ArgumentOutOfRangeException(nameof(type), type, null);
-		}
-
-		return profile;
 	}
 
 	public FaceShieldPoints Clone()

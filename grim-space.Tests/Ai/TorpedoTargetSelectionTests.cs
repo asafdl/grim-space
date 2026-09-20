@@ -1,7 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
 using GrimSpace.Units;
@@ -43,12 +42,8 @@ public sealed class TorpedoTargetSelectionTests
 		inTrajectory.State.Position = start + Coord.Forward * 2;
 
 		var future = Factory.Create(
-			new Instance
-			{
-				Id = "future",
-				Type = EType.Carrier,
-				Team = ETeam.Enemy,
-			},
+			ShipInstance.FromCatalog("future", EType.Carrier),
+			ETeam.Enemy,
 			start + Coord.Forward * 10,
 			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(future);
@@ -77,12 +72,8 @@ public sealed class TorpedoTargetSelectionTests
 		ahead.State.Position = start + Coord.Forward * 2;
 
 		var behind = Factory.Create(
-			new Instance
-			{
-				Id = "behind",
-				Type = EType.Carrier,
-				Team = ETeam.Enemy,
-			},
+			ShipInstance.FromCatalog("behind", EType.Carrier),
+			ETeam.Enemy,
 			new Coord(5, 5, 0),
 			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(behind);
@@ -99,19 +90,15 @@ public sealed class TorpedoTargetSelectionTests
 		FaceForward(battle, torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = TorpedoConfig.Fuel;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoBody().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		ahead.State.Position = torpedoPos + Coord.Forward * 6;
 
 		var behind = Factory.Create(
-			new Instance
-			{
-				Id = "behind",
-				Type = EType.Carrier,
-				Team = ETeam.Enemy,
-			},
+			ShipInstance.FromCatalog("behind", EType.Carrier),
+			ETeam.Enemy,
 			torpedoPos + Coord.Forward * -2,
 			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(behind);

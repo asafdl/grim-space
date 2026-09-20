@@ -7,6 +7,8 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Movement;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -19,14 +21,14 @@ public sealed class RoundUpkeepTests
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ActionPoints = 0;
-		player.State.FlakRemaining = 0;
-		player.State.RailgunRemaining = 0;
+		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak, 0);
+		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Railgun, 0);
 
 		ApplyRoundUpkeep(player);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
-		Assert.Equal(CombatConfig.FlaksPerTurn, player.State.FlakRemaining);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, player.State.RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.Flak));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.Railgun));
 	}
 
 	[Fact]
@@ -48,14 +50,14 @@ public sealed class RoundUpkeepTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var playerState = battle.Engine.World.StateOf(battle.PlayerId);
 		playerState.ActionPoints = 0;
-		playerState.FlakRemaining = 0;
-		playerState.RailgunRemaining = 0;
+		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak, 0);
+		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Railgun, 0);
 
 		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
-		Assert.Equal(CombatConfig.FlaksPerTurn, playerState.FlakRemaining);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, playerState.RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.Flak));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.Railgun));
 	}
 
 	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)

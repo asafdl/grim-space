@@ -2,9 +2,10 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -23,27 +24,27 @@ public sealed class FlakDef
 {
 	public static FlakDef Instance { get; } = new();
 
-	private static readonly ESpatialOrientation[] MountedOn =
-	[
-		ESpatialOrientation.Port,
-		ESpatialOrientation.Starboard,
-	];
-
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		foreach (var mountedOn in MountedOn)
+		var state = world.StateOf(actorId);
+		foreach (var installed in state.Spec.InstalledAbilities)
 		{
-			var action = Bind(actorId, mountedOn);
-			if (IsPossible(action, world, runtime))
-				yield return action;
+			if (installed.Spec.Kind != EAbilityKind.Flak)
+				continue;
+
+			foreach (var mountedOn in installed.ForAction().Facets)
+			{
+				var action = Bind(actorId, mountedOn);
+				if (IsPossible(action, world, runtime))
+					yield return action;
+			}
 		}
 	}
 
 	public FlakAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
-	public bool SupportsMount(ESpatialOrientation mountedOn) =>
-		MountedOn.Contains(mountedOn);
+	public bool SupportsMount(ESpatialOrientation mountedOn) => true;
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
@@ -62,7 +63,10 @@ public sealed class FlakDef
 
 	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		if (!SupportsMount(action.MountedOn))
+		var installed = world.StateOf(action.ActorId).FindInstalled(
+			EAbilityKind.Flak,
+			action.MountedOn);
+		if (installed is null || !installed.Facets.Contains(action.MountedOn))
 			return false;
 
 		return AffectedCells(action, world).Count > 0;
@@ -70,7 +74,9 @@ public sealed class FlakDef
 
 	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		if (world.StateOf(action.ActorId).FlakRemaining <= 0)
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn);
+		if (installed is null || state.MountRuntimeFor(EAbilityKind.Flak).UsesRemaining <= 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -83,52 +89,34 @@ public sealed class FlakDef
 	{
 		var cells = AffectedCells(action, world);
 
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn)
+			?? throw new InvalidOperationException("Flak ability not installed for actor.");
+		var actionContext = installed.ForAction();
+		var damage = actionContext.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Flak spec missing area damage.");
 		return
 		[
 			new ResolveHazardEffect(
 				EHazardKind.FlakBurst,
 				cells,
-				CombatConfig.FlakDamage),
-			new FlakChangeEffect(-1),
+				damage),
+			new MountUsesChangeEffect(EAbilityKind.Flak, -1),
 		];
 	}
 
 	public HashSet<Coord> AffectedCells(FlakAction action, BattleWorld world)
 	{
-		var frame = BodyFrame.From(world.StateOf(action.ActorId));
-		var result = new HashSet<Coord>();
-		var (apexPort, outwardStep) = BurstAxes(action.MountedOn);
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn);
+		if (installed?.ForAction().Spec is not IAreaDamage areaDamage)
+			return [];
 
-		for (var outward = 0; outward <= CombatConfig.FlakRange; outward++)
-		{
-			for (var fore = -outward; fore <= outward; fore++)
-			{
-				for (var dorsal = -outward; dorsal <= outward; dorsal++)
-				{
-					if (System.Math.Abs(fore) + System.Math.Abs(dorsal) > outward)
-						continue;
-
-					var port = apexPort + outwardStep * outward;
-					var cell = frame.ToWorld(fore, port, dorsal);
-					if (world.Grid.IsInBounds(cell))
-						result.Add(cell);
-				}
-			}
-		}
-
-		return result;
+		var frame = BodyFrame.From(state);
+		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid.IsInBounds);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
 		AffectedCells(Cast(action), world);
-
-	private static (int ApexPort, int OutwardStep) BurstAxes(ESpatialOrientation mountedOn) =>
-		mountedOn switch
-		{
-			ESpatialOrientation.Port => (1, 1),
-			ESpatialOrientation.Starboard => (-1, -1),
-			_ => throw new ArgumentOutOfRangeException(nameof(mountedOn), mountedOn, null),
-		};
 
 	private static FlakAction Cast(IAction action) =>
 		action as FlakAction ?? throw new ArgumentException($"Expected {nameof(FlakAction)}.", nameof(action));

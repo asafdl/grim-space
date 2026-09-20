@@ -7,22 +7,50 @@ namespace GrimSpace.Units;
 
 public static class ShipCatalog
 {
-	public static ShipConfiguration DefaultFor(EType chassis) =>
-		ShipConfiguration.Create(
+	private const int FlakDamage = 1;
+	private const int FlakRange = 2;
+	private const int FlaksPerTurn = 1;
+	private const int RailgunDamage = 3;
+	private const int RailgunLineLength = 8;
+	private const int RailgunPyramidRange = 2;
+	private const int RailgunsPerTurn = 1;
+	private const int PatrolCooldownTurns = 2;
+	private const int MaxLivingPatrolChildren = 5;
+	private const int TorpedoLauncherCooldownTurns = 3;
+	private const int TorpedoFuelTurns = 3;
+	private const int TorpedoMovementActionPoints = 4;
+	private const int TorpedoForwardMoveApCost = 1;
+	private const int TorpedoLateralMoveApCost = 2;
+	private const int TorpedoBlastRadius = 4;
+	private const int TorpedoBlastDamage = 3;
+
+	public static ShipSpec DefaultFor(EType chassis) =>
+		ShipSpec.Create(
 			chassis,
 			DefaultMaxHull(chassis),
-			FaceShieldPoints.MaxFor(chassis),
-			DefaultAbilityMountsFor(chassis));
+			DefaultInstalledAbilitiesFor(chassis),
+			chassis == EType.Torpedo ? DefaultTorpedoBody() : null);
 
-	public static ShipSnapshot DefaultSnapshot(string shipId, EType chassis) =>
-		ShipSnapshot.FromConfiguration(shipId, DefaultFor(chassis));
+	public static FaceShieldPoints MaxShieldPointsFor(EType chassis) =>
+		DefaultDefensesFor(chassis);
 
-	public static IReadOnlyList<AbilityMount> DefaultAbilityMountsFor(EType chassis) =>
+	public static AbilitySpec? DefaultAbilitySpec(EType chassis, EAbilityKind kind)
+	{
+		foreach (var installed in DefaultInstalledAbilitiesFor(chassis))
+		{
+			if (installed.Spec.Kind == kind)
+				return installed.Spec;
+		}
+
+		return null;
+	}
+
+	public static IReadOnlyList<InstalledAbility> DefaultInstalledAbilitiesFor(EType chassis) =>
 		chassis switch
 		{
-			EType.Fighter => DefaultFighterAbilityMounts(),
-			EType.Carrier => DefaultCarrierAbilityMounts(),
-			EType.Patrol => DefaultPatrolAbilityMounts(),
+			EType.Fighter => DefaultFighterInstalledAbilities(),
+			EType.Carrier => DefaultCarrierInstalledAbilities(),
+			EType.Patrol => DefaultPatrolInstalledAbilities(),
 			EType.Torpedo => [],
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
@@ -37,20 +65,76 @@ public static class ShipCatalog
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
 
-	private static IReadOnlyList<AbilityMount> DefaultFighterAbilityMounts() =>
+	private static FaceShieldPoints DefaultDefensesFor(EType chassis)
+	{
+		var profile = new FaceShieldPoints();
+		switch (chassis)
+		{
+			case EType.Fighter:
+			case EType.Carrier:
+				profile.Fill(2);
+				break;
+			case EType.Patrol:
+				profile[ESpatialOrientation.Forward] = 3;
+				break;
+			case EType.Torpedo:
+				profile.Fill(1);
+				profile[ESpatialOrientation.Retro] = 0;
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null);
+		}
+
+		return profile;
+	}
+
+	private static FlakSpec FlakSpec() => new(FlaksPerTurn, FlakDamage, FlakRange);
+
+	private static RailgunSpec RailgunSpec() =>
+		new(RailgunsPerTurn, RailgunDamage, RailgunLineLength, RailgunPyramidRange);
+
+	private static PatrolBaySpec PatrolBaySpec() =>
+		new(PatrolCooldownTurns, DefaultFor(EType.Patrol), MaxLivingPatrolChildren);
+
+	private static TorpedoBodySpec DefaultTorpedoBody() =>
+		new(
+			TorpedoFuelTurns,
+			TorpedoMovementActionPoints,
+			TorpedoForwardMoveApCost,
+			TorpedoLateralMoveApCost,
+			TorpedoBlastRadius,
+			TorpedoBlastDamage);
+
+	private static TorpedoLauncherSpec TorpedoLauncherSpec() =>
+		new(TorpedoLauncherCooldownTurns, DefaultFor(EType.Torpedo));
+
+	private static IReadOnlyList<InstalledAbility> DefaultFighterInstalledAbilities() =>
 	[
-		new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port),
-		new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Starboard),
-		new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward),
+		new InstalledAbility(
+			FlakSpec(),
+			[ESpatialOrientation.Port, ESpatialOrientation.Starboard]),
+		new InstalledAbility(
+			RailgunSpec(),
+			[ESpatialOrientation.Forward]),
+		new InstalledAbility(
+			TorpedoLauncherSpec(),
+			[
+				ESpatialOrientation.Retro,
+				ESpatialOrientation.Ventral,
+				ESpatialOrientation.Dorsal,
+			]),
 	];
 
-	private static IReadOnlyList<AbilityMount> DefaultCarrierAbilityMounts() =>
+	private static IReadOnlyList<InstalledAbility> DefaultCarrierInstalledAbilities() =>
 	[
-		new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward),
+		new InstalledAbility(RailgunSpec(), [ESpatialOrientation.Forward]),
+		new InstalledAbility(PatrolBaySpec(), [ESpatialOrientation.Ventral]),
 	];
 
-	private static IReadOnlyList<AbilityMount> DefaultPatrolAbilityMounts() =>
+	private static IReadOnlyList<InstalledAbility> DefaultPatrolInstalledAbilities() =>
 	[
-		new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Starboard),
+		new InstalledAbility(
+			FlakSpec(),
+			[ESpatialOrientation.Port, ESpatialOrientation.Starboard]),
 	];
 }

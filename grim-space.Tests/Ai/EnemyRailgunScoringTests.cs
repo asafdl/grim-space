@@ -83,12 +83,8 @@ public sealed class EnemyRailgunScoringTests
 		Coord fore,
 		Coord dorsal) =>
 		Factory.Create(
-			new Instance
-			{
-				Id = id,
-				Type = type,
-				Team = team,
-			},
+			ShipInstance.FromCatalog(id, type),
+			team,
 			position,
 			new AiController(),
 			fore,

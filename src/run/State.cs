@@ -97,7 +97,7 @@ public sealed class State : IDisposable
 	{
 		var run = new State();
 		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
-		run.ShipRegistry.Register(RunShip.CreateDefault(playerShipId, BattleUnitType.Fighter));
+		run.ShipRegistry.Register(ShipInstance.FromCatalog(playerShipId, BattleUnitType.Fighter));
 		run.PlayerParty.Add(playerShipId);
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
@@ -211,7 +211,7 @@ public sealed class State : IDisposable
 				throw new InvalidOperationException(
 					$"Battle outcome handoff '{handoff.Id}' has no registry row.");
 
-			if (ship.Configuration.Chassis != handoff.Chassis)
+			if (ship.Spec.Chassis != handoff.Chassis)
 				throw new InvalidOperationException(
 					$"Battle outcome chassis mismatch for ship '{handoff.Id}'.");
 		}

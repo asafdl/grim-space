@@ -8,6 +8,7 @@ using GrimSpace.Battle.Ids;
 using GrimSpace.Core.Ids;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -26,6 +27,9 @@ public sealed class SpawnPatrolDef
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
+		if (world.StateOf(actorId).FindInstalled(EAbilityKind.PatrolBay) is null)
+			yield break;
+
 		var action = Bind(actorId);
 		if (IsLegal(action, world, runtime))
 			yield return action;
@@ -61,9 +65,14 @@ public sealed class SpawnPatrolDef
 	public bool IsLegal(SpawnPatrolAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (actor.PatrolSpawnCooldownRemaining > 0)
+		var installed = actor.FindInstalled(EAbilityKind.PatrolBay);
+		if (installed is null)
 			return false;
-		if (LivingPatrolChildren(world, action.ActorId) >= CombatConfig.MaxLivingPatrolChildren)
+		if (actor.CooldownRemaining(EAbilityKind.PatrolBay) > 0)
+			return false;
+		if (installed.Spec is not ISpawnable spawnable)
+			return false;
+		if (LivingPatrolChildren(world, action.ActorId) >= spawnable.MaxLivingChildren)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -72,11 +81,20 @@ public sealed class SpawnPatrolDef
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		SpawnPatrolAction action,
 		BattleWorld world,
-		ActorRuntime runtime) =>
-	[
-		new SpawnPatrolEffect(action.SpawnedUnitId),
-		new PatrolSpawnCooldownEffect(CombatConfig.PatrolCooldownTurns),
-	];
+		ActorRuntime runtime)
+	{
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.PatrolBay)
+			?? throw new InvalidOperationException("Patrol bay not installed for actor.");
+		var cooldown = installed.Spec is ICooldownAbility cooldownAbility
+			? cooldownAbility.CooldownTurns
+			: throw new InvalidOperationException("Patrol bay spec missing cooldown.");
+		return
+		[
+			new SpawnPatrolEffect(action.SpawnedUnitId),
+			new MountCooldownEffect(EAbilityKind.PatrolBay, cooldown),
+		];
+	}
 
 	private static int LivingPatrolChildren(BattleWorld world, string parentId)
 	{

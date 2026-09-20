@@ -1,7 +1,9 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Ai;
 
@@ -12,8 +14,7 @@ internal readonly record struct CapabilitySearchState(
 	Coord Starboard,
 	ManeuverProgress ManeuverProgress,
 	int ActionPoints,
-	int FlakRemaining,
-	int RailgunRemaining);
+	string MountFingerprint);
 
 internal readonly record struct MoveSearchState(
 	Coord Position,
@@ -50,8 +51,7 @@ internal static class BattleSearchVisit
 				actor.Starboard,
 				ManeuverInvariant.ProgressOf(sim.Actions, actorId),
 				actor.ActionPoints,
-				actor.FlakRemaining,
-				actor.RailgunRemaining),
+				MountFingerprint(actor)),
 			[]);
 	}
 
@@ -95,4 +95,12 @@ internal static class BattleSearchVisit
 			]);
 	}
 
+	private static string MountFingerprint(ActorState actor) =>
+		string.Join(
+			'|',
+			actor.Spec.InstalledAbilities.Select(installed =>
+			{
+				var runtime = actor.MountRuntimeFor(installed.Spec.Kind);
+				return $"{installed.Spec.Kind}:{runtime.UsesRemaining}:{runtime.CooldownRemaining}";
+			}));
 }

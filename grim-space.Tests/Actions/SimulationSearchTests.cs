@@ -8,6 +8,8 @@ using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -22,9 +24,9 @@ public sealed class SimulationSearchTests
 		var session = battle.PlayerAgent.Sim;
 		var railgun = new RailgunAction(PlayerId);
 
-		Assert.Equal(CombatConfig.RailgunsPerTurn, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.Railgun));
 		Assert.True(session.TryEnqueue(railgun));
-		Assert.Equal(CombatConfig.RailgunsPerTurn - 1, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun) - 1, StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.Railgun));
 		Assert.False(session.TryEnqueue(new RailgunAction(PlayerId)));
 	}
 
@@ -58,7 +60,7 @@ public sealed class SimulationSearchTests
 		var peek = session.Peek(railgun);
 		Assert.NotNull(peek);
 		Assert.Empty(session.Actions);
-		Assert.Equal(CombatConfig.RailgunsPerTurn, session.StateOf<ActorState>(PlayerId).RailgunRemaining);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.Railgun));
 	}
 
 	[Fact]
@@ -71,7 +73,7 @@ public sealed class SimulationSearchTests
 
 		Assert.Equal(3, actions.Count(action => action is TorpedoAction));
 		Assert.Empty(session.Actions);
-		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).TorpedoCooldownRemaining);
+		Assert.Equal(0, StateMountTestKit.CooldownRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.TorpedoLauncher));
 		Assert.DoesNotContain(
 			UnitRegistry.For(session.World).All,
 			unit => unit.State.Type == GrimSpace.Units.Enums.EType.Torpedo);

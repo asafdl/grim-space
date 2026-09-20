@@ -1,7 +1,10 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Presentation;
@@ -14,7 +17,11 @@ public sealed class ReplaySpawnTests
 		ITimelineEntry[] history =
 		[
 			new SpawnPatrolAction("carrier-a", "patrol-b"),
-			new Record<SpawnFacts>(new SpawnFacts("carrier-a", "patrol-b", EType.Patrol)),
+			new Record<SpawnFacts>(new SpawnFacts(
+				"carrier-a",
+				"patrol-b",
+				EType.Patrol,
+				State.FromShipInstance(ShipInstance.FromCatalog("patrol-b", EType.Patrol), Coord.Zero))),
 		];
 
 		var lines = ActionLog.Format(history, id => id switch

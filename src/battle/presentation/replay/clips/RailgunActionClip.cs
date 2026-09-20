@@ -1,9 +1,9 @@
 using Godot;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
@@ -11,22 +11,20 @@ public sealed class RailgunActionClip : IReplayClip
 {
 	private static readonly Color Tint = new(0.85f, 0.35f, 1f, 0.55f);
 
-	private static readonly float ReachCells =
-		CombatConfig.RailgunLineLength
-		+ CombatConfig.RailgunPyramidRange
-		+ 0.7f;
-
 	public Type ActionType => typeof(RailgunAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
 		var railgun = (RailgunAction)action;
 		var state = context.ReplayState.StateOf(railgun.ActorId);
+		var reachCells = state.FindInstalled(EAbilityKind.Railgun)?.Spec is RailgunSpec railgunSpec
+			? AbilityReach.RailgunReplayShotLength(railgunSpec)
+			: 10.7f;
 
 		context.HazardBursts.PlayShotBurst(
 			state.Position,
 			ToVector3(state.Fore),
-			ReachCells,
+			reachCells,
 			Tint,
 			ReplayTiming.WeaponBurstSeconds);
 

@@ -4,7 +4,9 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Units;
 
@@ -14,12 +16,14 @@ public sealed class CarrierDomainTests
 	public void CarrierStatsAreConfigured()
 	{
 		var stats = Stats.ForType(EType.Carrier);
+		var configuration = ShipCatalog.DefaultFor(EType.Carrier);
+		var snapshot = ShipInstance.FromCatalog("carrier", EType.Carrier);
 
 		Assert.Equal(3, stats.MaxAp);
-		Assert.Equal(2, stats.MaxHullPoints);
-		Assert.Equal(2, stats.MaxShieldPoints.MaxOnAnyFace);
-		Assert.Equal(0, stats.FlaksPerTurn);
-		Assert.Equal(1, stats.RailgunsPerTurn);
+		Assert.Equal(2, configuration.MaxHullPoints);
+		Assert.Equal(2, ShipCatalog.MaxShieldPointsFor(EType.Carrier).MaxOnAnyFace);
+		Assert.Equal(0, AbilityLoadout.PerTurnUsesForAbility(snapshot, EAbilityKind.Flak));
+		Assert.Equal(1, AbilityLoadout.PerTurnUsesForAbility(snapshot, EAbilityKind.Railgun));
 	}
 
 	[Fact]
@@ -35,16 +39,10 @@ public sealed class CarrierDomainTests
 	[Fact]
 	public void SpawnPatrolChargesShowOneWhenReady()
 	{
-		var unit = UnitDisplayState.Capture(new State
-		{
-			Id = "carrier",
-			Type = EType.Carrier,
-			Position = new Coord(5, 5, 5),
-			Fore = Coord.Forward,
-			Dorsal = Coord.Up,
-			Starboard = Coord.Cross(Coord.Up, Coord.Forward),
-			Stats = Stats.ForType(EType.Carrier),
-		});
+		var unit = UnitDisplayState.Capture(
+			State.FromShipInstance(
+				ShipInstance.FromCatalog("carrier", EType.Carrier),
+				new Coord(5, 5, 5)));
 
 		var ready = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
@@ -52,7 +50,17 @@ public sealed class CarrierDomainTests
 			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true, Detonate: false));
 		var cooling = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
-			unit with { PatrolSpawnCooldownRemaining = CombatConfig.PatrolCooldownTurns },
+			unit with
+			{
+				Mounts = unit.Mounts
+					.Select(mount => mount.Kind == EAbilityKind.PatrolBay
+						? mount with
+						{
+							CooldownRemaining = CatalogExpectations.DefaultPatrolBaySpec().CooldownTurns,
+						}
+						: mount)
+					.ToList(),
+			},
 			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true, Detonate: false));
 
 		Assert.Equal("1/1", ready.Charges);

@@ -9,23 +9,23 @@ namespace GrimSpace.Tests.Units.Loadouts.Defenses;
 public sealed class FaceShieldPointsTests
 {
 	[Fact]
-	public void MaxFor_Patrol_HasForwardShieldsOnly()
+	public void Catalog_Patrol_HasForwardShieldsOnly()
 	{
-		var max = FaceShieldPoints.MaxFor(EType.Patrol);
+		var defenses = ShipCatalog.MaxShieldPointsFor(EType.Patrol);
 
-		Assert.Equal(3, max[ESpatialOrientation.Forward]);
-		Assert.Equal(0, max[ESpatialOrientation.Retro]);
-		Assert.Equal(0, max[ESpatialOrientation.Dorsal]);
-		Assert.Equal(0, max[ESpatialOrientation.Ventral]);
-		Assert.Equal(0, max[ESpatialOrientation.Port]);
-		Assert.Equal(0, max[ESpatialOrientation.Starboard]);
+		Assert.Equal(3, defenses[ESpatialOrientation.Forward]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Retro]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Dorsal]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Ventral]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Port]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Starboard]);
 	}
 
 	[Fact]
 	public void FromSpawn_Patrol_ClonesForwardShieldProfile()
 	{
-		var state = State.FromSpawn(
-			new Instance { Id = "patrol-1", Type = EType.Patrol, Team = ETeam.Enemy },
+		var state = State.FromShipInstance(
+			ShipInstance.FromCatalog("patrol-1", EType.Patrol),
 			Coord.Zero);
 
 		Assert.Equal(3, state.ShieldPoints[ESpatialOrientation.Forward]);
@@ -33,22 +33,22 @@ public sealed class FaceShieldPointsTests
 	}
 
 	[Fact]
-	public void MaxFor_Torpedo_HasOneShieldOnEveryFaceExceptRetro()
+	public void Catalog_Torpedo_HasOneShieldOnEveryFaceExceptRetro()
 	{
-		var max = FaceShieldPoints.MaxFor(EType.Torpedo);
+		var defenses = ShipCatalog.MaxShieldPointsFor(EType.Torpedo);
 
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 1, max[face]);
+			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 1, defenses[face]);
 	}
 
 	[Fact]
-	public void MaxFor_FighterAndCarrier_FillAllFaces()
+	public void Catalog_FighterAndCarrier_FillAllFaces()
 	{
 		foreach (var type in new[] { EType.Fighter, EType.Carrier })
 		{
-			var max = FaceShieldPoints.MaxFor(type);
+			var defenses = ShipCatalog.MaxShieldPointsFor(type);
 			foreach (var face in Enum.GetValues<ESpatialOrientation>())
-				Assert.Equal(2, max[face]);
+				Assert.Equal(2, defenses[face]);
 		}
 	}
 }

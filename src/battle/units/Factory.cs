@@ -6,6 +6,8 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Units;
 
@@ -21,44 +23,38 @@ public static class Factory
 			spawn.Dorsal);
 
 	public static Unit Create(
-		Instance instance,
+		ShipInstance ship,
+		ETeam team,
 		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent) =>
-		Create(instance, position, executionAgent, Coord.Forward, Coord.Up);
+		Create(ship, team, position, executionAgent, Coord.Forward, Coord.Up);
 
 	public static Unit Create(
-		Instance instance,
+		ShipInstance ship,
+		ETeam team,
 		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
 		Coord fore,
 		Coord dorsal,
 		string parentId = BattleActorIds.Rules)
 	{
-		var id = ResolveId(instance);
-		var state = State.FromSpawn(new Instance
-		{
-			Id = id,
-			Type = instance.Type,
-			Team = instance.Team,
-		}, position, fore, dorsal, parentId);
-		return new Unit(state, executionAgent, instance.Team);
-	}
-
-	public static Unit Create(
-		ShipSnapshot snapshot,
-		GrimSpace.Units.Enums.ETeam team,
-		Coord position,
-		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
-		Coord fore,
-		Coord dorsal,
-		string parentId = BattleActorIds.Rules)
-	{
-		var state = State.FromSnapshot(snapshot, position, fore, dorsal, parentId);
+		var id = ResolveId(ship);
+		var state = State.FromShipInstance(ship, position, fore, dorsal, parentId);
 		return new Unit(state, executionAgent, team);
 	}
 
-	private static string ResolveId(Instance instance) =>
-		!string.IsNullOrWhiteSpace(instance.Id)
-			? instance.Id
-			: TypedIdGenerator.NextId(UnitTypeSlug.For(instance.Type));
+	public static ShipInstance ChildFromSpawnableMount(State parent, EAbilityKind kind, string childId)
+	{
+		var installed = parent.FindInstalled(kind)
+			?? throw new InvalidOperationException($"No installed ability of kind '{kind}' on actor '{parent.Id}'.");
+		if (installed.Spec is not ISpawnable spawnable)
+			throw new InvalidOperationException($"Installed ability '{installed.Spec.Kind}' is not spawnable.");
+
+		return ShipInstance.FromSpec(childId, spawnable.ChildSpec);
+	}
+
+	private static string ResolveId(ShipInstance ship) =>
+		string.IsNullOrWhiteSpace(ship.Id)
+			? TypedIdGenerator.NextId("unit")
+			: ship.Id;
 }

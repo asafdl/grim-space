@@ -60,13 +60,8 @@ public sealed class ReplayIdentityTests
 	[Fact]
 	public void ImpactInterestUsesTargetWhenSourceIsNotAUnit()
 	{
-		var target = State.FromSpawn(
-			new Instance
-			{
-				Id = "fighter-a",
-				Type = EType.Fighter,
-				Team = ETeam.Player,
-			},
+		var target = State.FromShipInstance(
+			ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			new Coord(2, 3, 4));
 		var replayState = new ReplayState(new Dictionary<string, State>
 		{
@@ -102,13 +97,8 @@ public sealed class ReplayIdentityTests
 	[Fact]
 	public void ApplyMoveUsesQueuedBodyRelativeDirection()
 	{
-		var state = State.FromSpawn(
-			new Instance
-			{
-				Id = "fighter-a",
-				Type = EType.Fighter,
-				Team = ETeam.Player,
-			},
+		var state = State.FromShipInstance(
+			ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			new Coord(2, 3, 4));
 		var replayState = new ReplayState(new Dictionary<string, State>
 		{

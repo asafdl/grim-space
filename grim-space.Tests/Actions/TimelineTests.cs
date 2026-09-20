@@ -7,6 +7,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
@@ -113,7 +114,11 @@ public sealed class TimelineTests
 		var timeline = new Timeline();
 		timeline.Clock.Set(1);
 		var action = new HeadingTurnAction("a", EHeadingTurn.YawRight);
-		var spawn = new Record<SpawnFacts>(new SpawnFacts("a", "t1", EType.Torpedo));
+		var spawn = new Record<SpawnFacts>(new SpawnFacts(
+			"a",
+			"t1",
+			EType.Torpedo,
+			State.FromShipInstance(ShipInstance.FromCatalog("t1", EType.Torpedo), Coord.Zero)));
 		timeline.Append(action, spawn);
 		timeline.Schedule(1, new HeadingTurnAction("b", EHeadingTurn.YawLeft));
 

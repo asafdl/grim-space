@@ -9,6 +9,7 @@ using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -27,34 +28,36 @@ public sealed class TorpedoDef
 {
 	public static TorpedoDef Instance { get; } = new();
 
-	private static readonly ESpatialOrientation[] MountedOn =
-	[
-		ESpatialOrientation.Retro,
-		ESpatialOrientation.Ventral,
-		ESpatialOrientation.Dorsal,
-	];
-
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var spawnedUnitId = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo));
-		foreach (var action in Discover(actorId, spawnedUnitId))
+		foreach (var action in Discover(actorId, spawnedUnitId, world))
 		{
 			if (IsPossible(action, world, runtime))
 				yield return action;
 		}
 	}
 
-	internal IEnumerable<TorpedoAction> Discover(string actorId, string spawnedUnitId) =>
-		MountedOn.Select(mountedOn => new TorpedoAction(actorId, mountedOn, spawnedUnitId));
+	internal IEnumerable<TorpedoAction> Discover(string actorId, string spawnedUnitId, BattleWorld world)
+	{
+		var state = world.StateOf(actorId);
+		foreach (var installed in state.Spec.InstalledAbilities)
+		{
+			if (installed.Spec.Kind != EAbilityKind.TorpedoLauncher)
+				continue;
+
+			foreach (var mountedOn in installed.ForAction().Facets)
+				yield return Bind(actorId, mountedOn, spawnedUnitId);
+		}
+	}
 
 	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
-		new(
-			actorId,
-			mountedOn,
-			TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo)));
+		Bind(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo)));
 
-	public bool SupportsMount(ESpatialOrientation mountedOn) =>
-		MountedOn.Contains(mountedOn);
+	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn, string spawnedUnitId) =>
+		new(actorId, mountedOn, spawnedUnitId);
+
+	public bool SupportsMount(ESpatialOrientation mountedOn) => true;
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
@@ -73,8 +76,13 @@ public sealed class TorpedoDef
 
 	public bool IsPossible(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		if (string.IsNullOrWhiteSpace(action.SpawnedUnitId)
-			|| !SupportsMount(action.MountedOn))
+		if (string.IsNullOrWhiteSpace(action.SpawnedUnitId))
+			return false;
+
+		var installed = world.StateOf(action.ActorId).FindInstalled(
+			EAbilityKind.TorpedoLauncher,
+			action.MountedOn);
+		if (installed is null || !installed.Facets.Contains(action.MountedOn))
 			return false;
 
 		var ship = world.StateOf(action.ActorId);
@@ -84,10 +92,11 @@ public sealed class TorpedoDef
 
 	public bool IsLegal(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
 	{
-		var firer = UnitRegistry.For(world).UnitOf(action.ActorId);
-		if (firer.Team != ETeam.Player)
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.TorpedoLauncher, action.MountedOn);
+		if (installed is null)
 			return false;
-		if (firer.State.TorpedoCooldownRemaining > 0)
+		if (state.MountRuntimeFor(EAbilityKind.TorpedoLauncher).CooldownRemaining > 0)
 			return false;
 
 		return IsPossible(action, world, runtime);
@@ -96,11 +105,20 @@ public sealed class TorpedoDef
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		TorpedoAction action,
 		BattleWorld world,
-		ActorRuntime runtime) =>
-	[
-		new SpawnTorpedoEffect(action.MountedOn, action.SpawnedUnitId),
-		new TorpedoCooldownEffect(TorpedoConfig.CooldownTurns),
-	];
+		ActorRuntime runtime)
+	{
+		var state = world.StateOf(action.ActorId);
+		var installed = state.FindInstalled(EAbilityKind.TorpedoLauncher, action.MountedOn)
+			?? throw new InvalidOperationException("Torpedo launcher not installed for actor.");
+		var cooldown = installed.Spec is ICooldownAbility cooldownAbility
+			? cooldownAbility.CooldownTurns
+			: throw new InvalidOperationException("Torpedo launcher spec missing cooldown.");
+		return
+		[
+			new SpawnTorpedoEffect(action.MountedOn, action.SpawnedUnitId),
+			new MountCooldownEffect(EAbilityKind.TorpedoLauncher, cooldown),
+		];
+	}
 
 	private static TorpedoAction Cast(IAction action) =>
 		action as TorpedoAction ?? throw new ArgumentException($"Expected {nameof(TorpedoAction)}.", nameof(action));

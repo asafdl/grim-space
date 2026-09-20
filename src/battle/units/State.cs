@@ -11,24 +11,67 @@ public sealed class State
 {
 	public required string Id { get; init; }
 	public required EType Type { get; init; }
+	public required ShipSpec Spec { get; init; }
 	public Coord Position { get; set; }
 	public Coord Fore { get; set; }
 	public Coord Dorsal { get; set; }
 	public Coord Starboard { get; set; }
 	public int ActionPoints { get; set; }
 	public int HullPoints { get; set; }
+	public FaceShieldPoints MaxShieldPoints { get; set; } = new();
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
-	public int FlakRemaining { get; set; }
-	public int RailgunRemaining { get; set; }
-	public Dictionary<AbilityMount, int> MountUsesRemaining { get; } = [];
+	public Dictionary<EAbilityKind, MountRuntimeCounters> MountRuntime { get; } = new();
 	public int FuelRemaining { get; set; }
-	public int TorpedoCooldownRemaining { get; set; }
-	public int PatrolSpawnCooldownRemaining { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; init; }
 
 	public bool IsAlive => HullPoints > 0;
+
+	public InstalledAbility? FindInstalled(EAbilityKind kind, ESpatialOrientation? facet = null)
+	{
+		foreach (var installed in Spec.InstalledAbilities)
+		{
+			if (installed.Spec.Kind != kind)
+				continue;
+
+			if (facet is { } requiredFacet && !installed.Facets.Contains(requiredFacet))
+				continue;
+
+			return installed;
+		}
+
+		return null;
+	}
+
+	public MountRuntimeCounters MountRuntimeFor(EAbilityKind kind) => MountRuntime[kind];
+
+	public int UsesRemaining(EAbilityKind kind)
+	{
+		var installed = FindInstalled(kind);
+		if (installed is null || installed.Spec is not IPerTurnAbility)
+			return 0;
+
+		return MountRuntime[kind].UsesRemaining;
+	}
+
+	public int MaxUsesPerTurn(EAbilityKind kind)
+	{
+		var installed = FindInstalled(kind);
+		if (installed is null || installed.Spec is not IPerTurnAbility perTurn)
+			return 0;
+
+		return perTurn.UsesPerTurn;
+	}
+
+	public int CooldownRemaining(EAbilityKind kind)
+	{
+		var installed = FindInstalled(kind);
+		if (installed is null || installed.Spec is not ICooldownAbility)
+			return 0;
+
+		return MountRuntime[kind].CooldownRemaining;
+	}
 
 	public State Clone()
 	{
@@ -36,88 +79,55 @@ public sealed class State
 		{
 			Id = Id,
 			Type = Type,
+			Spec = Spec.DeepCopy(),
 			Position = Position,
 			Fore = Fore,
 			Dorsal = Dorsal,
 			Starboard = Starboard,
 			ActionPoints = ActionPoints,
 			HullPoints = HullPoints,
+			MaxShieldPoints = MaxShieldPoints.Clone(),
 			ShieldPoints = ShieldPoints.Clone(),
-			FlakRemaining = FlakRemaining,
-			RailgunRemaining = RailgunRemaining,
 			FuelRemaining = FuelRemaining,
-			TorpedoCooldownRemaining = TorpedoCooldownRemaining,
-			PatrolSpawnCooldownRemaining = PatrolSpawnCooldownRemaining,
 			ParentId = ParentId,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
 		};
-		foreach (var (mount, uses) in MountUsesRemaining)
-			copy.MountUsesRemaining[mount] = uses;
+		foreach (var (kind, runtime) in MountRuntime)
+			copy.MountRuntime[kind] = runtime.Clone();
 		return copy;
 	}
 
-	public static State FromSpawn(Instance instance, Coord position) =>
-		FromSpawn(instance, position, Coord.Forward, Coord.Up);
+	public static State FromShipInstance(ShipInstance ship, Coord position) =>
+		FromShipInstance(ship, position, Coord.Forward, Coord.Up);
 
-	public static State FromSpawn(
-		Instance instance,
+	public static State FromShipInstance(
+		ShipInstance ship,
 		Coord position,
 		Coord fore,
 		Coord dorsal,
 		string parentId = BattleActorIds.Rules)
 	{
-		var stats = Stats.ForType(instance.Type);
-		return new State
-		{
-			Id = instance.Id,
-			Type = instance.Type,
-			Position = position,
-			Fore = fore,
-			Dorsal = dorsal,
-			Starboard = Coord.Cross(dorsal, fore),
-			ActionPoints = stats.MaxAp,
-			HullPoints = stats.MaxHullPoints,
-			ShieldPoints = stats.MaxShieldPoints.Clone(),
-			FlakRemaining = stats.FlaksPerTurn,
-			RailgunRemaining = stats.RailgunsPerTurn,
-			FuelRemaining = 0,
-			TorpedoCooldownRemaining = 0,
-			PatrolSpawnCooldownRemaining = 0,
-			ParentId = parentId,
-			Stats = stats,
-		};
-	}
-
-	public static State FromSnapshot(
-		ShipSnapshot snapshot,
-		Coord position,
-		Coord fore,
-		Coord dorsal,
-		string parentId = BattleActorIds.Rules)
-	{
-		var stats = Stats.ForType(snapshot.Configuration.Chassis);
+		var stats = Stats.ForSpec(ship.Spec);
 		var state = new State
 		{
-			Id = snapshot.Id,
-			Type = snapshot.Configuration.Chassis,
+			Id = ship.Id,
+			Type = ship.Spec.Chassis,
+			Spec = ship.Spec.DeepCopy(),
 			Position = position,
 			Fore = fore,
 			Dorsal = dorsal,
 			Starboard = Coord.Cross(dorsal, fore),
 			ActionPoints = stats.MaxAp,
-			HullPoints = snapshot.HullPoints,
-			ShieldPoints = snapshot.ShieldPoints.Clone(),
-			FlakRemaining = AbilityLoadout.UsesPerTurnForAbility(snapshot, EAbilityKind.Flak),
-			RailgunRemaining = AbilityLoadout.UsesPerTurnForAbility(snapshot, EAbilityKind.Railgun),
+			HullPoints = ship.HullPoints,
+			MaxShieldPoints = ship.MaxShieldPoints.Clone(),
+			ShieldPoints = ship.ShieldPoints.Clone(),
 			FuelRemaining = 0,
-			TorpedoCooldownRemaining = 0,
-			PatrolSpawnCooldownRemaining = 0,
 			ParentId = parentId,
 			Stats = stats,
 		};
-		foreach (var (mount, uses) in AbilityLoadout.UsesPerMount(snapshot))
-			state.MountUsesRemaining[mount] = uses;
+		foreach (var installed in ship.Spec.InstalledAbilities)
+			state.MountRuntime[installed.Spec.Kind] = installed.ForState();
 		return state;
 	}
 }

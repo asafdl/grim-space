@@ -32,7 +32,7 @@ public sealed class CarrierDeployTests
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var carrier = BattleTestFixture.Carrier(new Coord(5, 5, 5));
 		carrier.State.ActionPoints = 0;
-		carrier.State.PatrolSpawnCooldownRemaining = 1;
+		StateMountTestKit.SetCooldownRemaining(carrier.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.PatrolBay, 1);
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
@@ -68,7 +68,10 @@ public sealed class CarrierDeployTests
 		carrier.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
-		FillLivingPatrols(battle.Engine.World, carrier.State.Id, CombatConfig.MaxLivingPatrolChildren);
+		FillLivingPatrols(
+			battle.Engine.World,
+			carrier.State.Id,
+			CatalogExpectations.DefaultPatrolBaySpec().MaxLivingChildren);
 
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
@@ -81,12 +84,8 @@ public sealed class CarrierDeployTests
 		for (var i = 0; i < count; i++)
 		{
 			var patrol = Factory.Create(
-				new Instance
-				{
-					Id = $"patrol-{i}",
-					Type = EType.Patrol,
-					Team = carrier.Team,
-				},
+				ShipInstance.FromCatalog($"patrol-{i}", EType.Patrol),
+				carrier.Team,
 				new Coord(1 + i, 1, 5),
 				new AiController(),
 				Coord.Forward,
