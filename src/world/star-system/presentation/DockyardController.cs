@@ -16,6 +16,7 @@ public partial class DockyardController : Control
 	private DockyardHudOverlay _dockyardHud = null!;
 	private DockyardShieldRechargeHudOverlay _shieldRechargeHud = null!;
 	private Button _backButton = null!;
+	private FacilityNpcDialogPresenter _npcDialog = null!;
 
 	public override void _Ready()
 	{
@@ -49,6 +50,8 @@ public partial class DockyardController : Control
 		_shieldRechargeHud.FillAllRechargeRequested += OnFillAllShieldRechargeRequested;
 		_shieldRechargeHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_shieldRechargeHud);
+
+		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
 	}
 
 	public override void _ExitTree()
@@ -59,10 +62,13 @@ public partial class DockyardController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_npcDialog.TryHandleInput(@event))
+			return;
+
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen)
+		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen)
 			return;
 
 		ReturnToMap();
@@ -131,7 +137,8 @@ public partial class DockyardController : Control
 				OpenShieldRechargeHud(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
-				throw new NotImplementedException("Dialog operators are not implemented yet.");
+				_npcDialog.Open(facilityOperator);
+				break;
 			default:
 				throw new InvalidOperationException(
 					$"Unexpected operator role '{facilityOperator.Role}' in dockyard facility.");
@@ -210,5 +217,5 @@ public partial class DockyardController : Control
 		?? throw new InvalidOperationException("Dockyard purchase requires an active facility operator.");
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _dockyardHud.IsOpen || _shieldRechargeHud.IsOpen;
+		_backButton.Disabled = _dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen;
 }

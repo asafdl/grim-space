@@ -3,7 +3,6 @@ using GrimSpace.Application;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Poi;
-using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
@@ -11,6 +10,7 @@ public partial class WarehouseController : Control
 {
 	private StarSystemOrchestrator _orchestrator = null!;
 	private Button _backButton = null!;
+	private FacilityNpcDialogPresenter _npcDialog = null!;
 
 	public override void _Ready()
 	{
@@ -30,6 +30,7 @@ public partial class WarehouseController : Control
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
+		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
 	}
 
 	public override void _ExitTree()
@@ -40,7 +41,13 @@ public partial class WarehouseController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_npcDialog.TryHandleInput(@event))
+			return;
+
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+			return;
+
+		if (_npcDialog.IsOpen)
 			return;
 
 		ReturnToMap();
@@ -53,26 +60,12 @@ public partial class WarehouseController : Control
 		switch (facilityOperator.Role)
 		{
 			case EFacilityOperatorRole.Dialog:
-				ShowPlaceholderDialog(facilityOperator);
+				_npcDialog.Open(facilityOperator);
 				break;
 			default:
 				throw new InvalidOperationException(
 					$"Unexpected operator role '{facilityOperator.Role}' in warehouse facility.");
 		}
-	}
-
-	private void ShowPlaceholderDialog(FacilityOperator facilityOperator)
-	{
-		var dialog = new AcceptDialog
-		{
-			Title = OperatorDisplayLabels.Title(facilityOperator),
-			DialogText = "Cargo inventory is not available yet.",
-			Exclusive = true,
-		};
-		AddChild(dialog);
-		dialog.PopupCentered();
-		dialog.Confirmed += () => dialog.QueueFree();
-		dialog.Canceled += () => dialog.QueueFree();
 	}
 
 	private void ReturnToMap()

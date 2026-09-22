@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://4laxghv08asj" path="res://src/world/star-system/presentation/MarketController.cs" id="1_controller"]
 [ext_resource type="Script" uid="uid://mucjijdmhn5m" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_operator"]
-[ext_resource type="Texture2D" uid="uid://b02y8exb084py" path="res://assets/ui/map/facilities/tradehub-market.png" id="4_backdrop"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/facilities/tradehub-market.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://dmem4x25xnxyn" path="res://assets/ui/map/npcs/weird-dude2.png" id="5_operator"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 

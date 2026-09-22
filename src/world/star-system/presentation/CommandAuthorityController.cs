@@ -14,6 +14,7 @@ public partial class CommandAuthorityController : Control
 	private CanvasLayer _contractHudLayer = null!;
 	private ContractHudOverlay _contractHud = null!;
 	private Button _backButton = null!;
+	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private string _activePoiId = null!;
 
 	public override void _Ready()
@@ -42,6 +43,8 @@ public partial class CommandAuthorityController : Control
 		_contractHud.DeclineRequested += OnDeclineRequested;
 		_contractHud.Closed += UpdateBackButton;
 		_contractHudLayer.AddChild(_contractHud);
+
+		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
 	}
 
 	public override void _ExitTree()
@@ -52,10 +55,13 @@ public partial class CommandAuthorityController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_npcDialog.TryHandleInput(@event))
+			return;
+
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_contractHud.IsOpen)
+		if (_contractHud.IsOpen || _npcDialog.IsOpen)
 			return;
 
 		ReturnToMap();
@@ -97,7 +103,8 @@ public partial class CommandAuthorityController : Control
 				OpenContractHud(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
-				throw new NotImplementedException("Dialog operators are not implemented yet.");
+				_npcDialog.Open(facilityOperator);
+				break;
 			default:
 				throw new InvalidOperationException(
 					$"Unexpected operator role '{facilityOperator.Role}' in command authority facility.");
@@ -150,5 +157,5 @@ public partial class CommandAuthorityController : Control
 		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _contractHud.IsOpen;
+		_backButton.Disabled = _contractHud.IsOpen || _npcDialog.IsOpen;
 }
