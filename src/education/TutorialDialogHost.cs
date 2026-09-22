@@ -22,21 +22,16 @@ public sealed partial class TutorialDialogHost : CanvasLayer
 		ApplyMapLayout();
 	}
 
-	public void ApplyMapLayout()
-	{
-		_dialog.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-		_dialog.OffsetLeft = -DialogWidth - HudStyles.Margin;
-		_dialog.OffsetTop = MapDialogTop;
-		_dialog.OffsetRight = -HudStyles.Margin;
-		_dialog.OffsetBottom = MapDialogTop;
-	}
+	public void ApplyMapLayout() => ApplyLayout(MapDialogTop);
 
-	public void ApplyBattleLayout()
+	public void ApplyBattleLayout() => ApplyLayout(BattleDialogTop);
+
+	private void ApplyLayout(int top)
 	{
 		_dialog.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
 		_dialog.OffsetLeft = HudStyles.Margin;
-		_dialog.OffsetTop = BattleDialogTop;
+		_dialog.OffsetTop = top;
 		_dialog.OffsetRight = DialogWidth + HudStyles.Margin;
-		_dialog.OffsetBottom = BattleDialogTop;
+		_dialog.OffsetBottom = top;
 	}
 }

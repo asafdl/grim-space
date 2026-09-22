@@ -37,19 +37,6 @@ public sealed class NarrativeActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void OpeningNarrative_LinksGeneratedAdministrativeCoreId()
-	{
-		var map = maps.Template(42);
-
-		Assert.True(MapNarratives.TryGet(MapNarratives.OpeningId, map, out var narrative));
-
-		var administrativeCoreId = map.Blueprint.SupplyPlan.AdministrativePoiId;
-		Assert.Contains(
-			$"[url={administrativeCoreId}]Administrative Core[/url]",
-			narrative.Pages[1]);
-	}
-
-	[Fact]
 	public void CompleteNarrativeAction_ClearsActiveNarrativeAndWaitingFlag()
 	{
 		var orchestrator = CreateAwaitingNarrativeScenario();

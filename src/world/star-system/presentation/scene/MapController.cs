@@ -45,7 +45,7 @@ public partial class MapController : Node3D
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
-	private MapTutorialAdapter? _mapTutorial;
+	private TutorialPresentationBinding? _mapTutorialBinding;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private WorldLinkNavigator? _objectivesLinks;
@@ -233,8 +233,15 @@ public partial class MapController : Node3D
 			{
 				var host = Session.Instance.TutorialDialogHost;
 				host.ApplyMapLayout();
-				_mapTutorial = new MapTutorialAdapter(tutorials, _orchestrator);
-				_mapTutorial.Attach(host.Dialog, _worldFocus, _worldIndicator);
+				tutorials.EnsureContractObservation();
+				tutorials.FlowCompleted += OnTutorialFlowCompleted;
+				tutorials.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: true);
+				tutorials.PresentGraduationIfPending();
+				_mapTutorialBinding = new TutorialPresentationBinding(
+					tutorials,
+					host.Dialog,
+					new WorldLinkNavigator(_worldFocus, _worldIndicator));
+				_mapTutorialBinding.Attach();
 			}
 		}
 
@@ -300,8 +307,10 @@ public partial class MapController : Node3D
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
 		_narrative.Dispose();
-		_mapTutorial?.Dispose();
-		_mapTutorial = null;
+		if (Session.Instance.Run.Tutorials is { } tutorials)
+			tutorials.FlowCompleted -= OnTutorialFlowCompleted;
+		_mapTutorialBinding?.Dispose();
+		_mapTutorialBinding = null;
 		if (_objectivesLinks is not null)
 		{
 			_strategicHud.Objectives.LandmarkLinkClicked -= OnObjectiveLandmarkLinkClicked;
@@ -553,6 +562,12 @@ public partial class MapController : Node3D
 
 	private static bool ShouldInitializeTutorials() =>
 		GameSettings.ReadShowTutorials() || Session.Instance.Run.PendingTutorialGraduation;
+
+	private static void OnTutorialFlowCompleted(TutorialFlow flow)
+	{
+		if (flow.Id == TutorialController.GraduationFlowId)
+			GameSettings.SaveShowTutorials(false);
+	}
 
 	private void UpdateSystemLabel(StarMap world)
 	{

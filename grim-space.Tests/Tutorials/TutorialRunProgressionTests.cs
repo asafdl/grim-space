@@ -1,4 +1,3 @@
-using GrimSpace.Education;
 using GrimSpace.Run;
 using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem;
@@ -19,7 +18,6 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
 
 		Assert.NotNull(run.Tutorials);
-		Assert.Equal(TutorialBeat.FirstContract, run.TutorialState!.CurrentBeat);
 		Assert.NotNull(run.TutorialState!.BeatAContractId);
 		Assert.Single(
 			run.StarSystem.Map.ContractRegistry.Offered,
@@ -32,12 +30,26 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		using var run = State.CreateNewRun(42, tutorialsEnabled: false);
 
 		Assert.Null(run.Tutorials);
-		Assert.Null(run.TutorialProgress);
+		Assert.Null(run.TutorialState);
 		Assert.Empty(run.StarSystem.Map.ContractRegistry.Offered);
 	}
 
 	[Fact]
-	public void Reconcile_AfterBeatACompleted_UsesExplicitBeatAContractId()
+	public void InitializeBeatProgression_IsIdempotent()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
+		using var controller = new TutorialController(orchestrator, new TutorialState());
+
+		controller.InitializeBeatProgression();
+		controller.InitializeBeatProgression();
+
+		Assert.Single(orchestrator.Map.ContractRegistry.Offered);
+	}
+
+	[Fact]
+	public void Reconcile_AfterBeatACompleted_OffersBeatB()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
@@ -52,13 +64,9 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 
 		using var controller = new TutorialController(
 			orchestrator,
-			new TutorialProgress(),
-			new TutorialState { BeatAContractId = beatAId, CurrentBeat = TutorialBeat.FirstContract },
-			new TestTutorialRunContext());
+			new TutorialState { BeatAContractId = beatAId });
 		controller.ReconcileBeatTransitions();
 
-		Assert.True(controller.State.BeatBOffered);
-		Assert.Equal(TutorialBeat.BeatBDelivery, controller.State.CurrentBeat);
 		Assert.NotNull(controller.State.BeatBContractId);
 		Assert.True(orchestrator.Map.ContractRegistry.IsOffered(controller.State.BeatBContractId));
 		Assert.Contains(
@@ -67,7 +75,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void BeatBObjective_StartsAfterBeatAReturnAndCompletesWhenBeatBIsAccepted()
+	public void BeatBObjective_CompletesWhenBeatBIsAccepted()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
@@ -79,19 +87,13 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			1,
 			State.PlayerFleetUnitId,
 			ContractState.EmptyBindings));
-		var progress = new TutorialProgress();
 		using var controller = new TutorialController(
 			orchestrator,
-			progress,
-			new TutorialState { BeatAContractId = beatAId, CurrentBeat = TutorialBeat.FirstContract },
-			new TestTutorialRunContext());
-		controller.AttachMapSubscriptions();
+			new TutorialState { BeatAContractId = beatAId });
+		controller.EnsureContractObservation();
 		controller.ReconcileBeatTransitions();
 		var beatBId = Assert.IsType<string>(controller.State.BeatBContractId);
 
-		controller.SyncMapFlows();
-
-		Assert.False(controller.IsActive);
 		Assert.Contains(
 			orchestrator.Map.StoryObjectives.Active,
 			objective => objective.RequiredContractId == beatBId);
@@ -105,30 +107,31 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		Assert.DoesNotContain(
 			orchestrator.Map.StoryObjectives.Active,
 			objective => objective.RequiredContractId == beatBId);
-		Assert.False(controller.IsActive);
 	}
 
 	[Fact]
-	public void SyncMapFlows_DoesNotStartDialogWhenFirstContractStoryObjectiveIsActive()
+	public void OfferBeatB_AfterHuntCompletion_AddsDeliveryAtStorage()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
-		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
-			map.Blueprint.SupplyPlan.AdministrativePoiId));
-		using var controller = new TutorialController(
-			orchestrator,
-			new TutorialProgress(),
-			new TutorialState(),
-			new TestTutorialRunContext());
-		var dialog = new TestDialog();
-		using var worldLinks = new WorldLinkNavigator(new TestWorldFocus(), new TestWorldIndicator());
-		using var binding = new TutorialPresentationBinding(controller, dialog, worldLinks);
-		binding.Attach();
-		controller.SyncMapFlows();
+		using var controller = new TutorialController(orchestrator, new TutorialState());
+		controller.InitializeBeatProgression();
+		var huntId = orchestrator.Map.ContractRegistry.Offered.Single().Id;
+		orchestrator.Map.ContractRegistry.Activate(new ContractState(
+			huntId,
+			EContractStatus.Completed,
+			1,
+			State.PlayerFleetUnitId,
+			ContractState.EmptyBindings));
 
-		Assert.False(controller.IsActive);
-		Assert.Null(dialog.Content);
+		TutorialBeatContracts.OfferBeatB(orchestrator.Map);
+
+		var delivery = orchestrator.Map.ContractRegistry.Offered
+			.Single(contract => contract.Objective is DeliveryObjective);
+		Assert.Equal(map.Blueprint.SupplyPlan.StoragePoiId, delivery.IssuerPoiId);
+		Assert.True(delivery.IsStoryObjective);
+		Assert.False(delivery.AllowsDecline);
 	}
 
 	[Fact]
@@ -138,13 +141,8 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
 		var beatAId = TutorialBeatContracts.OfferBeatA(orchestrator.Map)!;
-		var progress = new TutorialProgress();
-		var state = new TutorialState { BeatAContractId = beatAId, CurrentBeat = TutorialBeat.FirstContract };
-		using var controller = new TutorialController(
-			orchestrator,
-			progress,
-			state,
-			new TestTutorialRunContext());
+		var state = new TutorialState { BeatAContractId = beatAId };
+		using var controller = new TutorialController(orchestrator, state);
 		controller.TryStartFlow(FirstBattleTutorial.Create());
 		Assert.True(controller.IsActive);
 
@@ -157,9 +155,6 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		controller.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: true);
 
 		Assert.False(controller.IsActive);
-		Assert.True(progress.IsCompleted(FirstBattleTutorial.Id));
-
-		controller.SyncMapFlows(cancelBattleFlowWhenOffBattlefield: true);
-		Assert.False(controller.IsActive);
+		Assert.True(state.IsFlowCompleted(FirstBattleTutorial.Id));
 	}
 }

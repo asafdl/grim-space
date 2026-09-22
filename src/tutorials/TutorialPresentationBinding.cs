@@ -15,9 +15,9 @@ public sealed class TutorialPresentationBinding : IDisposable
 		ITutorialDialog dialog,
 		WorldLinkNavigator worldLinks)
 	{
-		_controller = controller ?? throw new ArgumentNullException(nameof(controller));
-		_dialog = dialog ?? throw new ArgumentNullException(nameof(dialog));
-		_worldLinks = worldLinks ?? throw new ArgumentNullException(nameof(worldLinks));
+		_controller = controller;
+		_dialog = dialog;
+		_worldLinks = worldLinks;
 		_dialog.Accepted += OnAccepted;
 		_dialog.AssistanceRequested += OnAssistanceRequested;
 		_dialog.WorldLinkClicked += OnWorldLinkClicked;
@@ -78,34 +78,14 @@ public sealed class TutorialPresentationBinding : IDisposable
 
 	private void OnAccepted()
 	{
-		if (_controller.ActiveStep is not { AdvanceOnAccept: true })
-			return;
-
-		var result = _controller.AdvanceActive();
-		if (result is TutorialAdvanceResult.FocusFailed or TutorialAdvanceResult.IndicatorFailed)
-		{
-			GD.PushWarning(
-				$"Tutorial could not advance to its next step: {result.GetType().Name}.");
-		}
+		if (_controller.ActiveStep is { AdvanceOnAccept: true })
+			_controller.AdvanceActive();
 	}
 
 	private void OnAssistanceRequested() => _controller.NotifyAssistanceRequested();
 
-	private void OnWorldLinkClicked(string objectId)
-	{
-		if (!_controller.IsActive)
-		{
-			GD.PushWarning("Tutorial link clicked without an active flow.");
-			return;
-		}
-
-		var result = _worldLinks.Follow(objectId);
-		if (result is not WorldLinkNavigationResult.Followed)
-		{
-			GD.PushWarning(
-				$"Tutorial world link '{objectId}' failed: {result.GetType().Name}.");
-		}
-	}
+	private void OnWorldLinkClicked(string objectId) =>
+		_worldLinks.Follow(objectId);
 
 	private WorldLinkNavigationResult PresentTarget(TutorialStep step)
 	{

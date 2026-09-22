@@ -26,9 +26,9 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 		Assert.Equal("Pick up at ", route.Prefix);
 		Assert.Equal(issuer.Id, route.LandmarkAPoiId);
 		Assert.Equal(issuer.DisplayName, route.LandmarkADisplayName);
-		Assert.Equal(", deliver to ", route.Connector);
+		Assert.Equal($", deliver to \"{delivery.TurnInOperatorName}\" at ", route.Connector);
 		Assert.Equal(dropoff.Id, route.LandmarkBPoiId);
-		Assert.Equal(delivery.TurnInOperatorName, route.LandmarkBDisplayName);
+		Assert.Equal(dropoff.DisplayName, route.LandmarkBDisplayName);
 		Assert.Equal(".", route.Suffix);
 	}
 }

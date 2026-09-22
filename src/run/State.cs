@@ -15,24 +15,21 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Run;
 
-public sealed class State : IDisposable, ITutorialRunContext
+public sealed class State : IDisposable
 {
 	//TODO: player fleet should not be hardcoded here
 	public const string PlayerFleetUnitId = "player-fleet";
 
 	public RunShipRegistry ShipRegistry { get; } = new();
 	public Party PlayerParty { get; } = new();
-	private TutorialProgress? _tutorialProgress;
 	private TutorialState? _tutorialState;
-
-	public TutorialProgress? TutorialProgress => _tutorialProgress;
 
 	public TutorialState? TutorialState => _tutorialState;
 
 	public TutorialController? Tutorials { get; private set; }
 
-	/// <summary>Set when the player completes their first delivery contract; cleared after the graduation dialog is accepted.</summary>
-	public bool PendingTutorialGraduation { get; set; }
+	public bool PendingTutorialGraduation =>
+		_tutorialState?.PendingTutorialGraduation ?? false;
 	public RunTransitionInbox Transitions { get; } = new();
 	public StarSystemOrchestrator StarSystem { get; private set; } = null!;
 	public BattleEncounter? ActiveBattle { get; internal set; }
@@ -132,14 +129,12 @@ public sealed class State : IDisposable, ITutorialRunContext
 		{
 			Tutorials?.Dispose();
 			Tutorials = null;
-			_tutorialProgress = null;
 			_tutorialState = null;
 			return;
 		}
 
-		_tutorialProgress = new TutorialProgress();
 		_tutorialState = new TutorialState();
-		Tutorials = new TutorialController(StarSystem, _tutorialProgress, _tutorialState, this);
+		Tutorials = new TutorialController(StarSystem, _tutorialState);
 		Tutorials.InitializeBeatProgression();
 	}
 

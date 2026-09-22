@@ -74,9 +74,9 @@ public static class ContractObjectiveProjection
 			"Pick up at ",
 			issuerPoiId,
 			issuer.DisplayName,
-			", deliver to ",
+			$", deliver to \"{delivery.TurnInOperatorName}\" at ",
 			delivery.TurnInPoiId,
-			delivery.TurnInOperatorName,
+			dropoff.DisplayName,
 			".");
 	}
 

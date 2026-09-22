@@ -1,12 +1,6 @@
 using GrimSpace.Education;
-using GrimSpace.Tutorials;
 
 namespace GrimSpace.Tests.Tutorials;
-
-internal sealed class TestTutorialRunContext : ITutorialRunContext
-{
-	public bool PendingTutorialGraduation { get; set; }
-}
 
 internal sealed class TestDialog : ITutorialDialog
 {

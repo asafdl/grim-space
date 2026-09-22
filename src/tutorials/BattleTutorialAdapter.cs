@@ -21,32 +21,26 @@ public sealed class BattleTutorialAdapter : IDisposable
 	private readonly TutorialController _controller;
 	private readonly BattleOrchestrator _battle;
 	private readonly UserExecutionAgent _battleAgent;
-	private readonly TutorialGhostPresenter _ghostPresenter;
+	private readonly PosedUnitGhostView _ghostView;
 	private TutorialPresentationBinding? _presentation;
 	private BattleTutorialObjective? _turn1Objective;
 	private BattleTutorialObjective? _turn2Objective;
 	private bool _turn2AwaitingPlayerTurn;
+	private PosedUnitGhostSpec? _ghostSpec;
+	private bool _ghostSuppressed;
 
 	public BattleTutorialAdapter(
 		TutorialController controller,
 		BattleOrchestrator battle,
 		PosedUnitGhostView battleGhost)
 	{
-		_controller = controller ?? throw new ArgumentNullException(nameof(controller));
-		_battle = battle ?? throw new ArgumentNullException(nameof(battle));
+		_controller = controller;
+		_battle = battle;
 		_battleAgent = battle.PlayerAgent;
-		_ghostPresenter = new TutorialGhostPresenter(battleGhost);
+		_ghostView = battleGhost;
 		_battleAgent.PlanningChanged += OnBattlePlanningChanged;
 		_controller.AssistanceRequested += OnAssistanceRequested;
 		_controller.StepPresented += OnStepPresented;
-	}
-
-	private void OnStepPresented(TutorialFlow flow, TutorialStep step, bool openDialog)
-	{
-		_ = openDialog;
-		_ = flow;
-		_ = step;
-		UpdateGhostForActiveStep();
 	}
 
 	public bool AllowsEndTurn =>
@@ -61,7 +55,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 			new WorldLinkNavigator(worldFocus, worldIndicator));
 		_controller.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: false);
 
-		if (_controller.Progress.IsCompleted(FirstBattleTutorial.Id))
+		if (_controller.State.IsFlowCompleted(FirstBattleTutorial.Id))
 			return;
 
 		if (_controller.IsActive && _controller.ActiveFlow?.Id == FirstBattleTutorial.Id)
@@ -76,12 +70,14 @@ public sealed class BattleTutorialAdapter : IDisposable
 		_presentation?.Detach();
 		_presentation?.Dispose();
 		_presentation = null;
-		_ghostPresenter.SetSpec(null);
+		SetGhostSpec(null);
 	}
+
+	private void OnStepPresented(TutorialFlow _, TutorialStep __, bool ___) => UpdateGhostForActiveStep();
 
 	private void TryStartBattleTutorial()
 	{
-		if (_controller.IsActive || _controller.Progress.IsCompleted(FirstBattleTutorial.Id))
+		if (_controller.IsActive || _controller.State.IsFlowCompleted(FirstBattleTutorial.Id))
 			return;
 
 		var player = _battleAgent.Sim.StateOf<ActorState>(_battle.PlayerId);
@@ -95,8 +91,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 		}
 
 		_turn1Objective = ((BattleTutorialObjectiveResult.Resolved)turn1Result).Objective;
-		var startResult = _controller.TryStartFlow(FirstBattleTutorial.Create());
-		if (startResult is TutorialStartResult.Started)
+		if (_controller.TryStartFlow(FirstBattleTutorial.Create()))
 			_presentation?.Attach();
 	}
 
@@ -105,7 +100,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 		if (_battleAgent.Sim.Actions.Count == 0
 			&& _controller.ActiveStep?.TargetId is FirstBattleTutorial.Turn1MoveTargetId
 				or FirstBattleTutorial.Turn2MoveTargetId)
-			_ghostPresenter.Restore();
+			RestoreGhost();
 
 		AdvanceBattleStepIfReady();
 	}
@@ -232,9 +227,13 @@ public sealed class BattleTutorialAdapter : IDisposable
 		return movement;
 	}
 
-	public void NotifyMoveSelectionStarted() => _ghostPresenter.Suppress();
+	public void NotifyMoveSelectionStarted()
+	{
+		_ghostSuppressed = true;
+		ApplyGhost();
+	}
 
-	public void NotifyMoveSelectionCanceled() => _ghostPresenter.Restore();
+	public void NotifyMoveSelectionCanceled() => RestoreGhost();
 
 	public void NotifyBattlePhaseChanged(EBattlePhase phase)
 	{
@@ -306,7 +305,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 	{
 		GD.PushWarning(reason);
 		_turn2AwaitingPlayerTurn = false;
-		_ghostPresenter.SetSpec(null);
+		SetGhostSpec(null);
 		_controller.CancelActive();
 	}
 
@@ -320,12 +319,12 @@ public sealed class BattleTutorialAdapter : IDisposable
 		};
 		if (objective is null)
 		{
-			_ghostPresenter.SetSpec(null);
+			SetGhostSpec(null);
 			return;
 		}
 
 		var player = _battle.Engine.World.StateOf(_battle.PlayerId);
-		_ghostPresenter.SetSpec(new PosedUnitGhostSpec(
+		SetGhostSpec(new PosedUnitGhostSpec(
 			player.Type,
 			objective.Destination,
 			objective.RequiredBasis.Forward,
@@ -333,12 +332,28 @@ public sealed class BattleTutorialAdapter : IDisposable
 			Colors.Cyan));
 	}
 
+	private void SetGhostSpec(PosedUnitGhostSpec? spec)
+	{
+		_ghostSpec = spec;
+		_ghostSuppressed = false;
+		ApplyGhost();
+	}
+
+	private void RestoreGhost()
+	{
+		_ghostSuppressed = false;
+		ApplyGhost();
+	}
+
+	private void ApplyGhost() => _ghostView.Apply(_ghostSuppressed ? null : _ghostSpec);
+
 	public void Dispose()
 	{
 		_battleAgent.PlanningChanged -= OnBattlePlanningChanged;
 		_controller.AssistanceRequested -= OnAssistanceRequested;
 		_controller.StepPresented -= OnStepPresented;
-		_ghostPresenter.Dispose();
+		if (GodotObject.IsInstanceValid(_ghostView))
+			_ghostView.QueueFree();
 		Detach();
 	}
 }
