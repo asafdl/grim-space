@@ -708,6 +708,8 @@ public partial class MapView : Node3D
 			(EPresentationAnchor.Refinery, EFacadeLayout.Default, new Vector3(-0.15f, 0.38f, 0f)),
 			(EPresentationAnchor.Travel, EFacadeLayout.Station, new Vector3(0.1f, 0.44f, 0.1f)),
 			(EPresentationAnchor.Travel, EFacadeLayout.Default, new Vector3(0.08f, 0.4f, 0f)),
+			(EPresentationAnchor.Market, EFacadeLayout.Station, new Vector3(0.16f, 0.36f, -0.12f)),
+			(EPresentationAnchor.Market, EFacadeLayout.Default, new Vector3(0.1f, 0.34f, 0f)),
 		];
 
 		public static Vector3 Resolve(EPresentationAnchor anchor, EFacadeLayout layout)

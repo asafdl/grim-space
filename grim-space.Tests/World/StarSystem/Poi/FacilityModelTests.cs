@@ -30,30 +30,43 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void TradeHub_HasDockyardFacility()
+	public void TradeHub_HasDockyardAndMarketFacilities()
 	{
 		var world = maps.Fresh(42);
 		var hub = world.PointsOfInterest.OfType<TradeHub>().Single();
-		var facility = Assert.Single(hub.Facilities);
+		Assert.Equal(2, hub.Facilities.Count);
 
-		Assert.Equal(
-			Facility.ScopedId(SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.DockyardFacilitySlug),
-			facility.Id);
-		Assert.Equal("Dockyard", facility.DisplayName);
-		Assert.Equal(EPresentationAnchor.Dockyard, facility.PresentationAnchor);
-		Assert.Equal(TradeHub.DockyardScenePath, facility.ScenePath);
-		Assert.Equal(2, facility.Operators.Count);
+		var dockyard = hub.Facilities.Single(f =>
+			f.Id == Facility.ScopedId(SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.DockyardFacilitySlug));
+		Assert.Equal("Dockyard", dockyard.DisplayName);
+		Assert.Equal(EPresentationAnchor.Dockyard, dockyard.PresentationAnchor);
+		Assert.Equal(TradeHub.DockyardScenePath, dockyard.ScenePath);
+		Assert.Equal(2, dockyard.Operators.Count);
 
-		var shop = facility.Operators.Single(op => op.Role == EFacilityOperatorRole.DockyardShop);
+		var shop = dockyard.Operators.Single(op => op.Role == EFacilityOperatorRole.DockyardShop);
 		Assert.Equal(MapFacilityOperators.ShopOperatorName(world), shop.Name);
 		Assert.Equal(TradeHub.ShopOperatorSceneSlotId, shop.SceneSlotId);
 
-		var shield = facility.Operators.Single(op => op.Role == EFacilityOperatorRole.ShieldRecharge);
+		var shield = dockyard.Operators.Single(op => op.Role == EFacilityOperatorRole.ShieldRecharge);
 		Assert.Equal(MapFacilityOperators.ShieldOperatorName(world), shield.Name);
 		Assert.Equal(TradeHub.ShieldOperatorSceneSlotId, shield.SceneSlotId);
 
-		foreach (var op in facility.Operators)
-			Assert.Contains(op.Name, OperatorNames.Pool);
+		var market = hub.Facilities.Single(f =>
+			f.Id == Facility.ScopedId(SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.MarketFacilitySlug));
+		Assert.Equal("Market", market.DisplayName);
+		Assert.Equal(EPresentationAnchor.Market, market.PresentationAnchor);
+		Assert.Equal(TradeHub.MarketScenePath, market.ScenePath);
+
+		var vendor = Assert.Single(market.Operators);
+		Assert.Equal(MapFacilityOperators.MarketOperatorName(world), vendor.Name);
+		Assert.Equal(EFacilityOperatorRole.Dialog, vendor.Role);
+		Assert.Equal(TradeHub.MarketOperatorSceneSlotId, vendor.SceneSlotId);
+
+		foreach (var facility in hub.Facilities)
+		{
+			foreach (var op in facility.Operators)
+				Assert.Contains(op.Name, OperatorNames.Pool);
+		}
 	}
 
 	[Fact]

@@ -1,13 +1,13 @@
-[gd_scene format=3 uid="uid://bjw7m2o1rwe0w"]
+[gd_scene format=3 uid="uid://dprk435bl8qbg"]
 
-[ext_resource type="Script" uid="uid://crefblkj410u4" path="res://src/world/star-system/presentation/TravelController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://4laxghv08asj" path="res://src/world/star-system/presentation/MarketController.cs" id="1_controller"]
 [ext_resource type="Script" uid="uid://mucjijdmhn5m" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_operator"]
-[ext_resource type="Texture2D" uid="uid://di5tt86cstp24" path="res://assets/ui/map/facilities/wormhole-lounge.png" id="4_backdrop"]
-[ext_resource type="Texture2D" uid="uid://s821adsxxgc2" path="res://assets/ui/map/npcs/weird-dude1.png" id="5_operator"]
+[ext_resource type="Texture2D" uid="uid://b02y8exb084py" path="res://assets/ui/map/facilities/tradehub-market.png" id="4_backdrop"]
+[ext_resource type="Texture2D" uid="uid://dmem4x25xnxyn" path="res://assets/ui/map/npcs/weird-dude2.png" id="5_operator"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 
-[node name="Travel" type="Control" unique_id=2102728578]
+[node name="Market" type="Control" unique_id=1345592585]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,9 +16,9 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
 
-[node name="StrategicHud" parent="." unique_id=130413828 instance=ExtResource("6_strategic_hud")]
+[node name="StrategicHud" parent="." unique_id=2094779367 instance=ExtResource("6_strategic_hud")]
 
-[node name="Scene" type="Control" parent="." unique_id=2005635195]
+[node name="Scene" type="Control" parent="." unique_id=773438085]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -28,7 +28,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_scene")
 
-[node name="Background" type="TextureRect" parent="Scene" unique_id=1998854597]
+[node name="Background" type="TextureRect" parent="Scene" unique_id=955480]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -40,19 +40,19 @@ texture = ExtResource("4_backdrop")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="WeirdDude" type="TextureButton" parent="Scene" unique_id=410270283]
+[node name="WeirdDude" type="TextureButton" parent="Scene" unique_id=663325064]
 layout_mode = 0
-offset_left = 825.0
-offset_top = 477.0
-offset_right = 1141.3265
-offset_bottom = 916.7516
+offset_left = 1343.0
+offset_top = 401.0
+offset_right = 1535.7046
+offset_bottom = 751.62854
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_operator")
 ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("3_operator")
 
-[node name="Back" type="Button" parent="." unique_id=2136380102]
+[node name="Back" type="Button" parent="." unique_id=842182499]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 16.0

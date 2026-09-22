@@ -12,6 +12,9 @@ public sealed class TradeHub : PointOfInterest
 	public const string DockyardScenePath = "res://scenes/dockyard.tscn";
 	public const string ShopOperatorSceneSlotId = "Salesman";
 	public const string ShieldOperatorSceneSlotId = "ShieldRecharge";
+	public const string MarketFacilitySlug = "market";
+	public const string MarketScenePath = "res://scenes/market.tscn";
+	public const string MarketOperatorSceneSlotId = "WeirdDude";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -34,6 +37,17 @@ public sealed class TradeHub : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.ShieldRecharge,
 					ShieldOperatorSceneSlotId),
+			]),
+		new Facility(
+			Facility.ScopedId(plan.TradeHubPoiId, MarketFacilitySlug),
+			"Market",
+			EPresentationAnchor.Market,
+			MarketScenePath,
+			[
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.Dialog,
+					MarketOperatorSceneSlotId),
 			]),
 	];
 

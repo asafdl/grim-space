@@ -7,4 +7,5 @@ public enum EPresentationAnchor
 	Warehouse,
 	Refinery,
 	Travel,
+	Market,
 }

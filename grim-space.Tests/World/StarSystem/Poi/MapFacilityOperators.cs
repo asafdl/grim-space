@@ -13,6 +13,13 @@ internal static class MapFacilityOperators
 	public static string ShieldOperatorName(StarMap map) =>
 		OperatorName(map, SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.DockyardFacilitySlug, EFacilityOperatorRole.ShieldRecharge);
 
+	public static string MarketOperatorName(StarMap map) =>
+		OperatorName(
+			map,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			TradeHub.MarketFacilitySlug,
+			EFacilityOperatorRole.Dialog);
+
 	public static string ContractOperatorName(StarMap map) =>
 		OperatorName(
 			map,

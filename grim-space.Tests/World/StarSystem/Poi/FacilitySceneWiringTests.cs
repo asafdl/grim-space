@@ -20,6 +20,14 @@ public sealed class FacilitySceneWiringTests
 	}
 
 	[Fact]
+	public void MarketScene_DefinesModeledOperatorSlots()
+	{
+		var scene = File.ReadAllText(RepoPath("scenes/market.tscn"));
+		Assert.Contains(NodeDeclaration(TradeHub.MarketOperatorSceneSlotId), scene);
+		Assert.Contains("FacilityOperatorButtonView.cs", scene);
+	}
+
+	[Fact]
 	public void CommandAuthorityScene_DefinesModeledOperatorSlots()
 	{
 		var scene = File.ReadAllText(RepoPath("scenes/command_authority.tscn"));
