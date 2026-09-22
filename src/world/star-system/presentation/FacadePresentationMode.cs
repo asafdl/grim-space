@@ -13,6 +13,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private const float FacilityFadeDuration = 0.35f;
 	private const string ManagementIconPath = "res://assets/ui/map/management-facility.svg";
 	private const string DockyardIconPath = "res://assets/ui/map/dockyard-facility-icon.png";
+	private const string WarehouseIconPath = "res://assets/ui/map/warehouse-facility-icon.png";
 	private static readonly Color DockyardIconTint = new(0.45f, 0.65f, 1f);
 	private const int IconPx = 40;
 
@@ -274,6 +275,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 		{
 			EPresentationAnchor.Management => SvgIconLoader.LoadRaw(ManagementIconPath, IconPx),
 			EPresentationAnchor.Dockyard => SvgIconLoader.Load(DockyardIconPath, DockyardIconTint, IconPx),
+			EPresentationAnchor.Warehouse => SvgIconLoader.LoadRaw(WarehouseIconPath, IconPx),
 			_ => SvgIconLoader.LoadRaw(ManagementIconPath, IconPx),
 		};
 

@@ -65,7 +65,7 @@ public sealed record SupplySystemPlan(
 			Star.Template(),
 			OreMine.Template(this),
 			Refinery.Template(this),
-			StorageFacility.Template(this),
+			StorageFacility.Template(this, operatorNames),
 			Wormhole.Template(this),
 			AdministrativeCore.Template(this, seed, operatorNames),
 			TradeHub.Template(this, operatorNames),

@@ -702,6 +702,8 @@ public partial class MapView : Node3D
 			(EPresentationAnchor.Management, EFacadeLayout.Default, new Vector3(0.28f, 0.38f, 0f)),
 			(EPresentationAnchor.Dockyard, EFacadeLayout.Station, new Vector3(-0.18f, 0.38f, 0.14f)),
 			(EPresentationAnchor.Dockyard, EFacadeLayout.Default, new Vector3(-0.12f, 0.36f, 0f)),
+			(EPresentationAnchor.Warehouse, EFacadeLayout.Station, new Vector3(0.2f, 0.4f, -0.1f)),
+			(EPresentationAnchor.Warehouse, EFacadeLayout.Default, new Vector3(0.15f, 0.38f, 0f)),
 		];
 
 		public static Vector3 Resolve(EPresentationAnchor anchor, EFacadeLayout layout)

@@ -27,5 +27,13 @@ public sealed class FacilitySceneWiringTests
 		Assert.Contains("FacilityOperatorButtonView.cs", scene);
 	}
 
+	[Fact]
+	public void WarehouseScene_DefinesModeledOperatorSlots()
+	{
+		var scene = File.ReadAllText(RepoPath("scenes/warehouse.tscn"));
+		Assert.Contains(NodeDeclaration(StorageFacility.WarehouseManagerOperatorSceneSlotId), scene);
+		Assert.Contains("FacilityOperatorButtonView.cs", scene);
+	}
+
 	private static string NodeDeclaration(string nodeName) => $"[node name=\"{nodeName}\"";
 }

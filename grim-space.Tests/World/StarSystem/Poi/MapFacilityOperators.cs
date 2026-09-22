@@ -20,6 +20,13 @@ internal static class MapFacilityOperators
 			AdministrativeCore.ManagementFacilitySlug,
 			EFacilityOperatorRole.Contracts);
 
+	public static string WarehouseManagerOperatorName(StarMap map) =>
+		OperatorName(
+			map,
+			SupplySystemPlan.Copper.StoragePoiId,
+			StorageFacility.WarehouseFacilitySlug,
+			EFacilityOperatorRole.Dialog);
+
 	private static string OperatorName(StarMap map, string poiId, string facilitySlug, EFacilityOperatorRole role)
 	{
 		var facilityId = Facility.ScopedId(poiId, facilitySlug);

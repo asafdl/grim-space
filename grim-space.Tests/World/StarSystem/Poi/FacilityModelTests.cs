@@ -57,12 +57,33 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void StorageFacility_HasWarehouseFacility()
+	{
+		var world = maps.Fresh(42);
+		var storage = world.PointsOfInterest.OfType<StorageFacility>().Single();
+		var facility = Assert.Single(storage.Facilities);
+
+		Assert.Equal(
+			Facility.ScopedId(SupplySystemPlan.Copper.StoragePoiId, StorageFacility.WarehouseFacilitySlug),
+			facility.Id);
+		Assert.Equal("Warehouse", facility.DisplayName);
+		Assert.Equal(EPresentationAnchor.Warehouse, facility.PresentationAnchor);
+		Assert.Equal(StorageFacility.WarehouseScenePath, facility.ScenePath);
+
+		var manager = Assert.Single(facility.Operators);
+		Assert.Equal(MapFacilityOperators.WarehouseManagerOperatorName(world), manager.Name);
+		Assert.Equal(EFacilityOperatorRole.Dialog, manager.Role);
+		Assert.Equal(StorageFacility.WarehouseManagerOperatorSceneSlotId, manager.SceneSlotId);
+		Assert.Contains(manager.Name, OperatorNames.Pool);
+	}
+
+	[Fact]
 	public void OtherMapPois_HaveEmptyFacilities()
 	{
 		var world = maps.Fresh(42);
 
 		foreach (var poi in world.PointsOfInterest.Where(poi =>
-			         poi is not AdministrativeCore and not TradeHub))
+			         poi is not AdministrativeCore and not TradeHub and not StorageFacility))
 			Assert.Empty(poi.Facilities);
 	}
 

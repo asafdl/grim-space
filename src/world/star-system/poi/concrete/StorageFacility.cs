@@ -8,18 +8,38 @@ namespace GrimSpace.World.StarSystem.Poi.Concrete;
 public sealed class StorageFacility : PointOfInterest
 {
 	public const int DefaultRadius = 32;
+	public const string WarehouseFacilitySlug = "warehouse";
+	public const string WarehouseScenePath = "res://scenes/warehouse.tscn";
+	public const string WarehouseManagerOperatorSceneSlotId = "WarehouseManager";
 
 	private readonly SupplySystemPlan _plan;
 
-	public static StorageFacility Template(SupplySystemPlan plan) => new(plan, null);
+	public static StorageFacility Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
+		new(plan, null, BuildFacilities(plan, operatorNames));
 
-	private StorageFacility(SupplySystemPlan plan, Coord? center) :
+	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
+	[
+		new Facility(
+			Facility.ScopedId(plan.StoragePoiId, WarehouseFacilitySlug),
+			"Warehouse",
+			EPresentationAnchor.Warehouse,
+			WarehouseScenePath,
+			[
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.Dialog,
+					WarehouseManagerOperatorSceneSlotId),
+			]),
+	];
+
+	private StorageFacility(SupplySystemPlan plan, Coord? center, IReadOnlyList<Facility> facilities) :
 		base(
 			plan.StoragePoiId,
 			"Storage",
 			DefaultRadius,
 			EPoiLogicalRole.Storage,
-			center)
+			center,
+			facilities: facilities)
 	{
 		_plan = plan;
 	}
@@ -40,11 +60,13 @@ public sealed class StorageFacility : PointOfInterest
 
 	public override PointOfInterest Fork()
 	{
-		var clone = new StorageFacility(_plan, Center);
+		var clone = new StorageFacility(_plan, Center, Facilities);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
+		ForkFacilityState(clone);
 		return clone;
 	}
 
-	protected override PointOfInterest WithCenter(Coord center) => new StorageFacility(_plan, center);
+	protected override PointOfInterest WithCenter(Coord center) =>
+		new StorageFacility(_plan, center, Facilities);
 }
