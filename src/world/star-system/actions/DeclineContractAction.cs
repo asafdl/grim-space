@@ -29,7 +29,8 @@ public sealed class DeclineContractDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is DeclineContractAction decline
 		&& world.FleetRegistry.TryGet(decline.ActorId, out _)
-		&& world.ContractRegistry.TryGet(decline.ContractId, out _)
+		&& world.ContractRegistry.TryGet(decline.ContractId, out var contract)
+		&& contract.AllowsDecline
 		&& world.ContractRegistry.IsOffered(decline.ContractId);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(

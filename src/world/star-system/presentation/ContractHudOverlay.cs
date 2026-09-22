@@ -146,12 +146,14 @@ public sealed partial class ContractHudOverlay : Control
 		body.AddChild(details);
 
 		_shell.SetBody(body);
-		_shell.SetFooter(
-		[
-			new HudAction("Back", HudActionKind.Secondary, ShowList),
-			new HudAction("Decline", HudActionKind.Destructive, ShowDeclineConfirm),
-			new HudAction("Accept", HudActionKind.Primary, OnAcceptPressed),
-		]);
+		var footer = new List<HudAction>
+		{
+			new("Back", HudActionKind.Secondary, ShowList),
+		};
+		if (_selected.AllowsDecline)
+			footer.Add(new HudAction("Decline", HudActionKind.Destructive, ShowDeclineConfirm));
+		footer.Add(new HudAction("Accept", HudActionKind.Primary, OnAcceptPressed));
+		_shell.SetFooter(footer);
 	}
 
 	private void ShowDeclineConfirm()

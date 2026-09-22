@@ -27,6 +27,8 @@ public sealed class StarterContractTests(StarMapFixture maps)
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
 			Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
 			Assert.Equal(StarMap.StarterContractRewardCredits, credits);
+			Assert.True(contract.IsStoryObjective);
+			Assert.False(contract.AllowsDecline);
 
 			var hunt = (HuntObjective)contract.Objective;
 			Assert.Single(hunt.SpawnGroups);

@@ -122,11 +122,14 @@ internal static class ActionLegalityDiagnostics
 		if (!world.FleetRegistry.TryGet(decline.ActorId, out _))
 			return "actor_missing";
 
-		if (!world.ContractRegistry.TryGet(decline.ContractId, out _))
+		if (!world.ContractRegistry.TryGet(decline.ContractId, out var contract))
 			return "contract_missing";
 
 		if (!world.ContractRegistry.IsOffered(decline.ContractId))
 			return "contract_not_offered";
+
+		if (!contract.AllowsDecline)
+			return "decline_not_allowed";
 
 		return "illegal";
 	}

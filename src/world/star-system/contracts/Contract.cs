@@ -9,4 +9,8 @@ public sealed record Contract(
 	EFaction IssuerFaction,
 	string? IssuerPoiId,
 	ContractTerms Terms,
-	ContractNarrative Narrative);
+	ContractNarrative Narrative,
+	bool IsStoryObjective = false)
+{
+	public bool AllowsDecline => !IsStoryObjective;
+}
