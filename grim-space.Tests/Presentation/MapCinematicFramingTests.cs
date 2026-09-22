@@ -1,6 +1,6 @@
 using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
-using GrimSpace.World.StarSystem.Presentation;
+using GrimSpace.World.StarSystem.Presentation.Camera;
 
 namespace GrimSpace.Tests.Presentation;
 

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.World.StarSystem.Presentation.Picking;
 
 namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 

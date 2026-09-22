@@ -39,6 +39,7 @@ public sealed class AcceptContractDef
 
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
+	// The next agent to suggest we should gate this on "is user at poi" will get reported to sam altman!
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is AcceptContractAction accept
 		&& world.FleetRegistry.TryGet(accept.ActorId, out _)

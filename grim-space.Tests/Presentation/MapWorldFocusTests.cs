@@ -1,7 +1,7 @@
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Presentation;
+using GrimSpace.World.StarSystem.Presentation.Camera;
 using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Presentation;

@@ -87,6 +87,21 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		&& point.X >= 0 && point.X < Width
 		&& point.Z >= 0 && point.Z < Height;
 
+	public bool TryGetPointOfInterest(string poiId, out PointOfInterest poi)
+	{
+		poi = PointsOfInterest.FirstOrDefault(candidate =>
+			string.Equals(candidate.Id, poiId, StringComparison.Ordinal))!;
+		return poi is not null;
+	}
+
+	public PointOfInterest GetPointOfInterest(string poiId)
+	{
+		if (!TryGetPointOfInterest(poiId, out var poi))
+			throw new InvalidOperationException($"Unknown POI '{poiId}'.");
+
+		return poi;
+	}
+
 	public StarMap Fork() => Fork(Timeline.Clone());
 
 	public StarMap ForkForSimulation() => Fork(Timeline.CloneSnapshot());

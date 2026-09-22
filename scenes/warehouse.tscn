@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://byl0y2ya5dhsi"]
 
-[ext_resource type="Script" path="res://src/world/star-system/presentation/WarehouseController.cs" id="1_controller"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_manager"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/WarehouseController.cs" id="1_controller"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_manager"]
 [ext_resource type="Texture2D" path="res://assets/ui/map/facilities/warehouse.png" id="4_backdrop"]
 [ext_resource type="Texture2D" path="res://assets/ui/map/services/warehouse-manager.png" id="5_manager"]
 [ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]

@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://waif4sl50qkc"]
 
-[ext_resource type="Script" uid="uid://co3qwxper2wnd" path="res://src/world/star-system/presentation/CommandAuthorityController.cs" id="1_controller"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_giver"]
+[ext_resource type="Script" uid="uid://co3qwxper2wnd" path="res://src/world/star-system/presentation/facilities/CommandAuthorityController.cs" id="1_controller"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_giver"]
 [ext_resource type="Texture2D" uid="uid://b3k2qm3nqj8tm" path="res://assets/ui/map/facilities/command-authority-scene.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://jhrb0o1clbaa" path="res://assets/ui/map/services/optimality-robot.png" id="5_manager"]
 [ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]

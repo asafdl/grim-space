@@ -37,6 +37,17 @@ public abstract class PointOfInterest
 
 	public bool HasDock => LogicalRole != EPoiLogicalRole.Environment;
 
+	public Facility GetFacility(string facilityId)
+	{
+		var facility = Facilities.FirstOrDefault(candidate =>
+			string.Equals(candidate.Id, facilityId, StringComparison.Ordinal))!;
+
+		if (facility is null)
+			throw new InvalidOperationException($"Unknown facility '{facilityId}' at POI '{Id}'.");
+
+		return facility;
+	}
+
 	public virtual int RouteExclusionRadius => Radius + 6;
 
 	public Coord PlacedCenter =>

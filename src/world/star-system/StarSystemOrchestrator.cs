@@ -7,7 +7,7 @@ using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
-using GrimSpace.World.StarSystem.Presentation;
+using GrimSpace.World.StarSystem.Presentation.Diagnostics;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;

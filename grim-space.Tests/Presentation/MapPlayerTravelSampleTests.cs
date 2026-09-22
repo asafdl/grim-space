@@ -2,7 +2,8 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Pathfinding;
-using GrimSpace.World.StarSystem.Presentation;
+using GrimSpace.World.StarSystem.Presentation.Camera;
+using GrimSpace.World.StarSystem.Presentation.Picking;
 
 namespace GrimSpace.Tests.Presentation;
 

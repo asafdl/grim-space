@@ -1,0 +1,309 @@
+using Godot;
+using GrimSpace.World.StarSystem.Presentation.Camera;
+
+namespace GrimSpace.World.StarSystem.Presentation.Director;
+
+public sealed class WorldMapDirector
+{
+	private readonly MapPresentationContext _ctx;
+	private readonly Dictionary<string, IPresentationMode> _modes = new(StringComparer.Ordinal);
+	private readonly List<Action> _pendingFocusCallbacks = [];
+	private IPresentationMode? _currentMode;
+	private bool _isTransitioning;
+	private int _transitionToken;
+	private bool _pendingMovementNotification;
+
+	public WorldMapDirector(MapPresentationContext context) => _ctx = context;
+
+	public string? CurrentModeId => _currentMode?.Id;
+	public IPresentationMode? CurrentMode => _currentMode;
+	public bool IsTransitioning => _isTransitioning;
+
+	public PresentationInputPolicy EffectiveInputPolicy =>
+		_isTransitioning || (_currentMode?.IsBusy ?? false)
+			? PresentationInputPolicy.Locked
+			: _currentMode?.InputPolicy ?? PresentationInputPolicy.Locked;
+
+	public void RegisterMode(IPresentationMode mode) => _modes[mode.Id] = mode;
+
+	public void SetInitialMode(string id, object? payload = null)
+	{
+		if (!_modes.TryGetValue(id, out var target))
+			throw new InvalidOperationException($"Unknown presentation mode '{id}'.");
+
+		var validation = target.ValidateEnterPayload(payload);
+		if (!validation.Succeeded)
+			throw new InvalidOperationException(
+				$"Invalid bootstrap payload for mode '{id}': {validation.Failure}.");
+
+		_ctx.SetOcclusionEnabled(UsesCameraOcclusion(target));
+		var pose = target.ResolveEnterPose(string.Empty, _ctx, payload);
+		target.OnEntering(_ctx, string.Empty, payload);
+		_ctx.ApplyLimits(target.Limits);
+		_ctx.SnapToPose(pose, target.Limits);
+		target.OnSettled(_ctx);
+		_currentMode = target;
+		_isTransitioning = false;
+	}
+
+	public PresentationTransitionResult TryEnter(string modeId, object? payload = null)
+	{
+		if (_isTransitioning)
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.AlreadyTransitioning);
+
+		if (_currentMode is null)
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.WrongCurrentMode);
+
+		if (_currentMode.IsBusy)
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.ModeBusy);
+
+		if (!_modes.TryGetValue(modeId, out var target))
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.UnknownMode);
+
+		if (target.IsBusy)
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.ModeBusy);
+
+		var source = _currentMode;
+		if (ReferenceEquals(source, target))
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.NotAllowed);
+
+		var payloadValidation = target.ValidateEnterPayload(payload);
+		if (!payloadValidation.Succeeded)
+			return payloadValidation;
+
+		if (!target.AllowedFrom.Contains(source.Id))
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.NotAllowed);
+
+		if (!target.CanEnter(_ctx, source.Id, payload))
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.CanEnterRejected);
+
+		BeginTransition(source, target, payload);
+		return PresentationTransitionResult.Ok();
+	}
+
+	public PresentationTransitionResult TryExit(string modeId)
+	{
+		if (_currentMode is null || _currentMode.Id != modeId)
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.WrongCurrentMode);
+
+		var exitTargetId = _currentMode.ExitTargetId;
+		if (exitTargetId is null)
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.ExitTargetMissing);
+
+		return TryEnter(exitTargetId);
+	}
+
+	public void Update(double delta)
+	{
+		TryApplyPendingMovement();
+		if (_isTransitioning)
+			return;
+
+		_currentMode?.Update(_ctx, delta);
+	}
+
+	public PresentationTransitionResult OnPlayerMovement()
+	{
+		if (_isTransitioning || (_currentMode?.IsBusy ?? false))
+		{
+			_pendingMovementNotification = true;
+			return PresentationTransitionResult.Ok();
+		}
+
+		return ApplyPlayerMovement();
+	}
+
+	public PresentationTransitionResult PrepareForFocus(Action onReady)
+	{
+		ArgumentNullException.ThrowIfNull(onReady);
+		if (_isTransitioning || (_currentMode?.IsBusy ?? false))
+			return PresentationTransitionResult.Fail(PresentationTransitionFailure.ModeBusy);
+
+		var modeId = _currentMode?.Id;
+		if (modeId == OverviewPresentationMode.ModeId)
+		{
+			onReady();
+			return PresentationTransitionResult.Ok();
+		}
+
+		if (modeId == FacadePresentationMode.ModeId)
+		{
+			var result = TryExit(FacadePresentationMode.ModeId);
+			if (result.Succeeded)
+				_pendingFocusCallbacks.Add(() => ScheduleFocusAfterOverview(onReady));
+			return result;
+		}
+
+		if (modeId == CinematicPresentationMode.ModeId)
+			return EnterOverviewForFocus(onReady);
+
+		onReady();
+		return PresentationTransitionResult.Ok();
+	}
+
+	public void OnWheelZoom(int direction)
+	{
+		if (direction == 0)
+			return;
+
+		if (_isTransitioning
+		    || (_currentMode?.IsBusy ?? false)
+		    || _ctx.IsCameraAnimating())
+			return;
+
+		if (_currentMode is null)
+			return;
+
+		var limits = _currentMode.Limits;
+		var distance = _ctx.ResolveCameraPose().Distance;
+		var zoomPolicy = ResolveZoomPolicy(_currentMode.Id);
+		if (MapZoomNavigation.WouldCrossOutward(distance, limits, direction, zoomPolicy))
+		{
+			TryEnterZoomOutTarget(_currentMode.Id);
+			return;
+		}
+
+		if (MapZoomNavigation.WouldCrossInward(distance, limits, direction, zoomPolicy))
+		{
+			if (!TryEnterZoomInTarget(_currentMode.Id))
+				_ctx.ApplyCameraDistanceDelta(limits.MinDistance - distance);
+			return;
+		}
+
+		_ctx.ApplyCameraDistanceDelta(
+			MapZoomNavigation.ProportionalStep(distance, limits, direction, zoomPolicy));
+	}
+
+	private static ZoomStepPolicy ResolveZoomPolicy(string modeId) =>
+		modeId == OverviewPresentationMode.ModeId
+			? MapZoomNavigation.OverviewStepPolicy
+			: MapZoomNavigation.LinearBandStepPolicy;
+
+	private void TryEnterZoomOutTarget(string modeId)
+	{
+		switch (modeId)
+		{
+			case FacadePresentationMode.ModeId:
+				TryEnter(CinematicPresentationMode.ModeId);
+				break;
+			case CinematicPresentationMode.ModeId:
+				TryEnter(OverviewPresentationMode.ModeId);
+				break;
+		}
+	}
+
+	private bool TryEnterZoomInTarget(string modeId)
+	{
+		switch (modeId)
+		{
+			case CinematicPresentationMode.ModeId:
+				var dockedPoiId = _ctx.ResolveDockedPoiId();
+				if (dockedPoiId is null || !_ctx.CanAccessFacilities())
+					return false;
+
+				TryEnter(FacadePresentationMode.ModeId, new FacadeEnterPayload(dockedPoiId));
+				return true;
+			case OverviewPresentationMode.ModeId:
+				TryEnter(CinematicPresentationMode.ModeId);
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public bool FilterInput(InputEvent @event)
+	{
+		if (_currentMode is FacadePresentationMode facade && facade.FilterInput(@event))
+		{
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
+			    && !IsTransitioning
+			    && !facade.IsBusy)
+				TryExit(FacadePresentationMode.ModeId);
+			return true;
+		}
+
+		if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left })
+			return !EffectiveInputPolicy.AllowsMapMovement;
+
+		return false;
+	}
+
+	private void BeginTransition(IPresentationMode source, IPresentationMode target, object? payload)
+	{
+		var token = ++_transitionToken;
+		_isTransitioning = true;
+
+		source.OnExiting(_ctx, target.Id);
+		_ctx.SetOcclusionEnabled(UsesCameraOcclusion(target));
+		var targetPose = target.ResolveEnterPose(source.Id, _ctx, payload);
+		target.OnEntering(_ctx, source.Id, payload);
+
+		_ctx.TweenToPose(targetPose, target.Limits, () =>
+		{
+			if (token != _transitionToken)
+				return;
+
+			_isTransitioning = false;
+			target.OnSettled(_ctx);
+			_currentMode = target;
+			InvokePendingFocusCallbacks();
+		});
+	}
+
+	private void InvokePendingFocusCallbacks()
+	{
+		var callbacks = _pendingFocusCallbacks.ToArray();
+		_pendingFocusCallbacks.Clear();
+		foreach (var callback in callbacks)
+			callback();
+	}
+
+	private void TryApplyPendingMovement()
+	{
+		if (!_pendingMovementNotification)
+			return;
+
+		if (_isTransitioning || (_currentMode?.IsBusy ?? false))
+			return;
+
+		_pendingMovementNotification = false;
+		ApplyPlayerMovement();
+	}
+
+	private PresentationTransitionResult ApplyPlayerMovement()
+	{
+		if (!_ctx.ResolvePlayerTravelSample().IsTravelActiveOrPending)
+			return PresentationTransitionResult.Ok();
+
+		return _currentMode?.Id switch
+		{
+			CinematicPresentationMode.ModeId => PresentationTransitionResult.Ok(),
+			OverviewPresentationMode.ModeId => TryEnter(CinematicPresentationMode.ModeId),
+			FacadePresentationMode.ModeId =>
+				PresentationTransitionResult.Fail(PresentationTransitionFailure.NotAllowed),
+			_ => PresentationTransitionResult.Fail(PresentationTransitionFailure.WrongCurrentMode),
+		};
+	}
+
+	private PresentationTransitionResult EnterOverviewForFocus(Action onReady)
+	{
+		var result = TryEnter(OverviewPresentationMode.ModeId);
+		if (result.Succeeded)
+			_pendingFocusCallbacks.Add(onReady);
+		return result;
+	}
+
+	private void ScheduleFocusAfterOverview(Action onReady)
+	{
+		if (_currentMode?.Id == OverviewPresentationMode.ModeId)
+		{
+			onReady();
+			return;
+		}
+
+		EnterOverviewForFocus(onReady);
+	}
+
+	private static bool UsesCameraOcclusion(IPresentationMode mode) =>
+		mode.Id == CinematicPresentationMode.ModeId;
+}

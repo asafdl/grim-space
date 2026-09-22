@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bm4uvj8rmdpy1"]
 
-[ext_resource type="Script" uid="uid://b6f8u8gdg2ocn" path="res://src/world/star-system/presentation/DockyardController.cs" id="1_controller"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_salesman"]
+[ext_resource type="Script" uid="uid://b6f8u8gdg2ocn" path="res://src/world/star-system/presentation/facilities/DockyardController.cs" id="1_controller"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_salesman"]
 [ext_resource type="Texture2D" uid="uid://bihmyhslop7m2" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://1e4y2ewe504" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
 [ext_resource type="Texture2D" uid="uid://wqwohcvsqbyw" path="res://assets/ui/map/services/shield-recharge.png" id="6_shield_recharge"]

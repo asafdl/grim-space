@@ -1,4 +1,6 @@
 using Godot;
+using GrimSpace.World.StarSystem.Presentation.Camera;
+using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.Math;
 using GrimSpace.Presentation.Graphics;
 using GrimSpace.World.StarSystem.Poi;

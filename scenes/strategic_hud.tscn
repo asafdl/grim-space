@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://cstrategic_hud01"]
 
-[ext_resource type="Script" path="res://src/world/star-system/presentation/StrategicHud.cs" id="1_binder"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/ObjectivesHud.cs" id="2_objectives"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/ResourceHud.cs" id="3_resources"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/ui/StrategicHud.cs" id="1_binder"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/ui/ObjectivesHud.cs" id="2_objectives"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/ui/ResourceHud.cs" id="3_resources"]
 
 [node name="StrategicHud" type="CanvasLayer"]
 layer = 10
