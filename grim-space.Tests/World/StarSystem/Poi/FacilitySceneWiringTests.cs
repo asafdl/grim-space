@@ -35,5 +35,13 @@ public sealed class FacilitySceneWiringTests
 		Assert.Contains("FacilityOperatorButtonView.cs", scene);
 	}
 
+	[Fact]
+	public void RefineryScene_DefinesModeledOperatorSlots()
+	{
+		var scene = File.ReadAllText(RepoPath("scenes/refinery.tscn"));
+		Assert.Contains(NodeDeclaration(Refinery.RefineryOperatorSceneSlotId), scene);
+		Assert.Contains("FacilityOperatorButtonView.cs", scene);
+	}
+
 	private static string NodeDeclaration(string nodeName) => $"[node name=\"{nodeName}\"";
 }

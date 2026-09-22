@@ -8,18 +8,38 @@ namespace GrimSpace.World.StarSystem.Poi.Concrete;
 public sealed class Refinery : PointOfInterest
 {
 	public const int DefaultRadius = 32;
+	public const string RefineryFacilitySlug = "refinery";
+	public const string RefineryScenePath = "res://scenes/refinery.tscn";
+	public const string RefineryOperatorSceneSlotId = "WeirdDude";
 
 	private readonly SupplySystemPlan _plan;
 
-	public static Refinery Template(SupplySystemPlan plan) => new(plan, null);
+	public static Refinery Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
+		new(plan, null, BuildFacilities(plan, operatorNames));
 
-	private Refinery(SupplySystemPlan plan, Coord? center) :
+	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
+	[
+		new Facility(
+			Facility.ScopedId(plan.RefineryPoiId, RefineryFacilitySlug),
+			"Refinery",
+			EPresentationAnchor.Refinery,
+			RefineryScenePath,
+			[
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.Dialog,
+					RefineryOperatorSceneSlotId),
+			]),
+	];
+
+	private Refinery(SupplySystemPlan plan, Coord? center, IReadOnlyList<Facility> facilities) :
 		base(
 			plan.RefineryPoiId,
 			"Refinery",
 			DefaultRadius,
 			EPoiLogicalRole.Refinery,
-			center)
+			center,
+			facilities: facilities)
 	{
 		_plan = plan;
 	}
@@ -40,11 +60,13 @@ public sealed class Refinery : PointOfInterest
 
 	public override PointOfInterest Fork()
 	{
-		var clone = new Refinery(_plan, Center);
+		var clone = new Refinery(_plan, Center, Facilities);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
+		ForkFacilityState(clone);
 		return clone;
 	}
 
-	protected override PointOfInterest WithCenter(Coord center) => new Refinery(_plan, center);
+	protected override PointOfInterest WithCenter(Coord center) =>
+		new Refinery(_plan, center, Facilities);
 }

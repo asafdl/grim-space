@@ -5,4 +5,5 @@ public enum EPresentationAnchor
 	Management,
 	Dockyard,
 	Warehouse,
+	Refinery,
 }

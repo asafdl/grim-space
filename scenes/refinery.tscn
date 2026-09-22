@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://dgdn5kgdu4yk1"]
+
+[ext_resource type="Script" uid="uid://djx0eq81cer8c" path="res://src/world/star-system/presentation/RefineryController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://mucjijdmhn5m" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_operator"]
+[ext_resource type="Texture2D" uid="uid://cwrwtni0jvv7p" path="res://assets/ui/map/facilities/refinery.png" id="4_backdrop"]
+[ext_resource type="Texture2D" uid="uid://bgclsyynt30np" path="res://assets/ui/map/npcs/weird-dude3.png" id="5_operator"]
+[ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
+
+[node name="Refinery" type="Control" unique_id=1468599674]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="StrategicHud" parent="." unique_id=1878646705 instance=ExtResource("6_strategic_hud")]
+
+[node name="Scene" type="Control" parent="." unique_id=1537760816]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_scene")
+
+[node name="Background" type="TextureRect" parent="Scene" unique_id=2115141637]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_backdrop")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WeirdDude" type="TextureButton" parent="Scene" unique_id=197700140]
+layout_mode = 0
+offset_left = 1233.0
+offset_top = 402.99994
+offset_right = 1856.7969
+offset_bottom = 1276.1677
+scale = Vector2(0.8250968, 0.85275424)
+texture_normal = ExtResource("5_operator")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("3_operator")
+
+[node name="Back" type="Button" parent="." unique_id=1103525098]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 80.0
+offset_bottom = 47.0
+theme_type_variation = &"SecondaryButton"
+text = "Back"
