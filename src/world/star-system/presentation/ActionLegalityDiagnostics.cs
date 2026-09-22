@@ -105,28 +105,28 @@ internal static class ActionLegalityDiagnostics
 
 	private static string DescribeAcceptIllegality(AcceptContractAction accept, StarMap world)
 	{
+		if (!world.FleetRegistry.TryGet(accept.ActorId, out _))
+			return "actor_missing";
+
 		if (!world.ContractRegistry.TryGet(accept.ContractId, out _))
 			return "contract_missing";
 
 		if (!world.ContractRegistry.IsOffered(accept.ContractId))
 			return "contract_not_offered";
 
-		if (!world.FleetRegistry.TryGet(accept.ActorId, out _))
-			return "actor_missing";
-
 		return "illegal";
 	}
 
 	private static string DescribeDeclineIllegality(DeclineContractAction decline, StarMap world)
 	{
+		if (!world.FleetRegistry.TryGet(decline.ActorId, out _))
+			return "actor_missing";
+
 		if (!world.ContractRegistry.TryGet(decline.ContractId, out _))
 			return "contract_missing";
 
 		if (!world.ContractRegistry.IsOffered(decline.ContractId))
 			return "contract_not_offered";
-
-		if (!world.FleetRegistry.TryGet(decline.ActorId, out _))
-			return "actor_missing";
 
 		return "illegal";
 	}

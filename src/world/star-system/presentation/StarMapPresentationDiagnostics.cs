@@ -57,9 +57,9 @@ internal static class StarMapPresentationDiagnostics
 		EngageAction engage => $"engage actor={engage.ActorId}",
 		FleeAction flee => $"flee actor={flee.ActorId}",
 		AcceptContractAction accept =>
-			$"accept_contract actor={accept.ActorId} contract={accept.ContractId}",
+			$"accept_contract actor={accept.ActorId} poi={accept.PoiId} facility={accept.FacilityId} operator={accept.OperatorName} contract={accept.ContractId}",
 		DeclineContractAction decline =>
-			$"decline_contract actor={decline.ActorId} contract={decline.ContractId}",
+			$"decline_contract actor={decline.ActorId} poi={decline.PoiId} facility={decline.FacilityId} operator={decline.OperatorName} contract={decline.ContractId}",
 		_ => $"{action.GetType().Name} actor={action.ActorId}",
 	};
 

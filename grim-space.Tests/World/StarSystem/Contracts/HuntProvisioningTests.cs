@@ -32,7 +32,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void AcceptSingleHuntSpawnsPirateFleet()
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
-		engine.Commit(new AcceptContractAction(unitId, contractId));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 
 		var spawned = engine.World.FleetRegistry.All
 			.Single(unit => unit.State.Type == EType.PirateFleet);
@@ -56,7 +56,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void PreviewReevaluationAndCommitPreserveFleetMemberIds()
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
-		var action = new AcceptContractAction(unitId, contractId);
+		var action = ContractActionTestContext.Accept(engine.World, unitId, contractId);
 		var sim = engine.CreateSimulation();
 
 		Assert.True(sim.TryEnqueue(action));
@@ -87,7 +87,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);
-		engine.Commit(new AcceptContractAction(unitId, "mixed-hunt"));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, "mixed-hunt"));
 
 		var fleet = engine.World.FleetRegistry.All
 			.Single(unit => unit.State.Id.Contains("mixed-fleet", StringComparison.Ordinal));
@@ -111,7 +111,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);
-		engine.Commit(new AcceptContractAction(unitId, "multi-hunt"));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, "multi-hunt"));
 
 		var pirateFleets = engine.World.FleetRegistry.All
 			.Where(unit => unit.State.Type == EType.PirateFleet)
@@ -150,7 +150,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void ProvisioningDeterministic_ForkPreservesPlannedProvisioning()
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
-		engine.Commit(new AcceptContractAction(unitId, contractId));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 		var fork = engine.World.Fork();
 
 		var original = CaptureProvisioning(engine.World);
@@ -162,7 +162,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void SpawnBindingsMatchGroups()
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
-		engine.Commit(new AcceptContractAction(unitId, contractId));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 
 		var contract = engine.World.ContractRegistry.All.First(c => c.Id == contractId);
 		var hunt = (HuntObjective)contract.Objective;
@@ -194,7 +194,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 
 		var engine = CreateEngine(map, unitId);
 		Assert.Throws<InvalidOperationException>(() =>
-			engine.Commit(new AcceptContractAction(unitId, contract.Id)));
+			engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contract.Id)));
 		Assert.True(map.ContractRegistry.IsOffered(contract.Id));
 		Assert.Equal(1, map.FleetRegistry.All.Count(unit => unit.State.Type == EType.PirateFleet));
 	}
@@ -206,7 +206,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var initialCount = engine.World.FleetRegistry.All.Count();
 		var sim = engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
+		Assert.True(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, contractId)));
 		Assert.Equal(initialCount + 1, sim.World.FleetRegistry.All.Count());
 		Assert.False(sim.World.ContractRegistry.IsOffered(contractId));
 

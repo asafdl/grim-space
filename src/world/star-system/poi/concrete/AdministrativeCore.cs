@@ -9,30 +9,47 @@ namespace GrimSpace.World.StarSystem.Poi.Concrete;
 public sealed class AdministrativeCore : PointOfInterest
 {
 	public const int DefaultRadius = 36;
+	public const string ManagementFacilitySlug = "management";
+	public const string ManagementScenePath = "res://scenes/command_authority.tscn";
+	public const string ContractOperatorSceneSlotId = "Manager";
 
 	private readonly SupplySystemPlan _plan;
 
 	public EPoiPhysicalForm PhysicalForm { get; }
 
-	public static AdministrativeCore Template(SupplySystemPlan plan, int seed)
+	public static AdministrativeCore Template(SupplySystemPlan plan, int seed, OperatorNameAllocator operatorNames)
 	{
 		var random = new StableRandom(StableSeedMixer.From(seed).Add("admin-core-form").Value);
 		var form = random.NextDouble() < 0.7
 			? EPoiPhysicalForm.Planet
 			: EPoiPhysicalForm.LargeStation;
-		return new AdministrativeCore(plan, null, form);
+		return new AdministrativeCore(
+			plan,
+			null,
+			form,
+			BuildFacilities(plan, operatorNames));
 	}
 
-	private static IReadOnlyList<Facility> DefaultFacilities(SupplySystemPlan plan) =>
+	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(
-			Facility.ScopedId(plan.AdministrativePoiId, "management"),
+			Facility.ScopedId(plan.AdministrativePoiId, ManagementFacilitySlug),
 			"Command Authority",
 			EPresentationAnchor.Management,
-			[EServiceKind.Contracts]),
+			ManagementScenePath,
+			[
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.Contracts,
+					ContractOperatorSceneSlotId),
+			]),
 	];
 
-	private AdministrativeCore(SupplySystemPlan plan, Coord? center, EPoiPhysicalForm physicalForm) :
+	private AdministrativeCore(
+		SupplySystemPlan plan,
+		Coord? center,
+		EPoiPhysicalForm physicalForm,
+		IReadOnlyList<Facility> facilities) :
 		base(
 			plan.AdministrativePoiId,
 			"Administrative Core",
@@ -40,7 +57,7 @@ public sealed class AdministrativeCore : PointOfInterest
 			EPoiLogicalRole.Administrative,
 			center,
 			physicalForm == EPoiPhysicalForm.Planet ? PoiFacade.Planet : PoiFacade.LargeStation,
-			DefaultFacilities(plan))
+			facilities)
 	{
 		_plan = plan;
 		PhysicalForm = physicalForm;
@@ -60,7 +77,7 @@ public sealed class AdministrativeCore : PointOfInterest
 
 	public override PointOfInterest Fork()
 	{
-		var clone = new AdministrativeCore(_plan, Center, PhysicalForm);
+		var clone = new AdministrativeCore(_plan, Center, PhysicalForm, Facilities);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
 		ForkFacilityState(clone);
@@ -68,5 +85,5 @@ public sealed class AdministrativeCore : PointOfInterest
 	}
 
 	protected override PointOfInterest WithCenter(Coord center) =>
-		new AdministrativeCore(_plan, center, PhysicalForm);
+		new AdministrativeCore(_plan, center, PhysicalForm, Facilities);
 }

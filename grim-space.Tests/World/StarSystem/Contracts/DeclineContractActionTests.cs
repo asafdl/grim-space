@@ -3,6 +3,10 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.Tests.World.StarSystem.Poi;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.Tests.World.StarSystem;
 
@@ -17,7 +21,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 		var agent = orchestrator.PlayerAgent!;
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 
-		Assert.True(agent.TryEnqueue([new DeclineContractAction(State.PlayerFleetUnitId, contractId)]));
+		Assert.True(agent.TryEnqueue([ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 	}
 
 	[Fact]
@@ -27,7 +31,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 		var agent = orchestrator.PlayerAgent!;
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 
-		Assert.True(agent.TryEnqueue([new DeclineContractAction(State.PlayerFleetUnitId, contractId)]));
+		Assert.True(agent.TryEnqueue([ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 		orchestrator.AdvanceClock();
 
 		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
@@ -41,7 +45,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 
 		Assert.True(orchestrator.PlayerAgent!.TryEnqueue(
-			[new DeclineContractAction(State.PlayerFleetUnitId, contractId)]));
+			[ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 		orchestrator.AdvanceClock();
 
 		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
@@ -61,7 +65,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 			ContractState.EmptyBindings));
 		var agent = orchestrator.PlayerAgent!;
 
-		Assert.False(agent.TryEnqueue([new DeclineContractAction(State.PlayerFleetUnitId, contractId)]));
+		Assert.False(agent.TryEnqueue([ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 	}
 
 	[Fact]
@@ -71,7 +75,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 
 		Assert.True(orchestrator.PlayerAgent!.TryEnqueue(
-			[new DeclineContractAction(State.PlayerFleetUnitId, contractId)]));
+			[ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 		orchestrator.AdvanceClock();
 
 		Assert.True(orchestrator.Map.ContractRegistry.IsRejected(contractId));

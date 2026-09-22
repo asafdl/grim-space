@@ -57,14 +57,18 @@ public sealed record SupplySystemPlan(
 		return false;
 	}
 
-	public PointOfInterest[] CreatePoiTemplates(int seed) =>
-	[
-		Star.Template(),
-		OreMine.Template(this),
-		Refinery.Template(this),
-		StorageFacility.Template(this),
-		Wormhole.Template(this),
-		AdministrativeCore.Template(this, seed),
-		TradeHub.Template(this),
-	];
+	public PointOfInterest[] CreatePoiTemplates(int seed)
+	{
+		var operatorNames = new OperatorNameAllocator(seed);
+		return
+		[
+			Star.Template(),
+			OreMine.Template(this),
+			Refinery.Template(this),
+			StorageFacility.Template(this),
+			Wormhole.Template(this),
+			AdministrativeCore.Template(this, seed, operatorNames),
+			TradeHub.Template(this, operatorNames),
+		];
+	}
 }

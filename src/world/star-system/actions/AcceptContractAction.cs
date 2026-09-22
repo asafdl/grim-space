@@ -8,11 +8,21 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record AcceptContractAction(string ActorId, string ContractId, string SpawnIdentity)
-	: IAction<StarMap, ActorRuntime>
+public sealed record AcceptContractAction(
+	string ActorId,
+	string PoiId,
+	string FacilityId,
+	string OperatorName,
+	string ContractId,
+	string SpawnIdentity) : IAction<StarMap, ActorRuntime>
 {
-	public AcceptContractAction(string actorId, string contractId)
-		: this(actorId, contractId, TypedIdGenerator.NextInstanceSlug())
+	public AcceptContractAction(
+		string actorId,
+		string poiId,
+		string facilityId,
+		string operatorName,
+		string contractId)
+		: this(actorId, poiId, facilityId, operatorName, contractId, TypedIdGenerator.NextInstanceSlug())
 	{
 	}
 
@@ -31,9 +41,9 @@ public sealed class AcceptContractDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is AcceptContractAction accept
+		&& world.FleetRegistry.TryGet(accept.ActorId, out _)
 		&& world.ContractRegistry.TryGet(accept.ContractId, out _)
-		&& world.ContractRegistry.IsOffered(accept.ContractId)
-		&& world.FleetRegistry.TryGet(accept.ActorId, out _);
+		&& world.ContractRegistry.IsOffered(accept.ContractId);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

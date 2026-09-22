@@ -10,6 +10,8 @@ public static class MapNavigationContext
 
 	public static string? ActiveFacilityId { get; private set; }
 
+	public static string? ActiveOperatorName { get; private set; }
+
 	public static bool ReturnToFacade { get; private set; }
 
 	public static OrbitPose? StrategicCameraPose { get; private set; }
@@ -18,8 +20,14 @@ public static class MapNavigationContext
 	{
 		ActivePoiId = poiId;
 		ActiveFacilityId = facilityId;
+		ActiveOperatorName = null;
 		ReturnToFacade = true;
 	}
+
+	public static void ActivateOperator(string operatorName) =>
+		ActiveOperatorName = operatorName;
+
+	public static void ClearActiveOperator() => ActiveOperatorName = null;
 
 	public static void SaveStrategicCameraPose(OrbitPose pose) => StrategicCameraPose = pose;
 

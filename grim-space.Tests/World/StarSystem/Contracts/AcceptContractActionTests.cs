@@ -4,10 +4,14 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -19,7 +23,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId) = CreateEngine();
 		var sim = engine.CreateSimulation();
 
-		Assert.True(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
+		Assert.True(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, contractId)));
 		Assert.Single(sim.Actions);
 	}
 
@@ -29,7 +33,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var (engine, unitId, _) = CreateEngine();
 		var sim = engine.CreateSimulation();
 
-		Assert.False(sim.TryEnqueue(new AcceptContractAction(unitId, "contract-missing")));
+		Assert.False(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, "contract-missing")));
 		Assert.Empty(sim.Actions);
 	}
 
@@ -37,10 +41,10 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 	public void TryEnqueue_FailsForAlreadyAcceptedContract()
 	{
 		var (engine, unitId, contractId) = CreateEngine();
-		engine.Commit(new AcceptContractAction(unitId, contractId));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 		var sim = engine.CreateSimulation();
 
-		Assert.False(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
+		Assert.False(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, contractId)));
 		Assert.Empty(sim.Actions);
 	}
 
@@ -50,7 +54,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var (engine, _, contractId) = CreateEngine();
 		var sim = engine.CreateSimulation();
 
-		Assert.False(sim.TryEnqueue(new AcceptContractAction("missing-actor", contractId)));
+		Assert.False(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, "missing-actor", contractId)));
 		Assert.Empty(sim.Actions);
 	}
 
@@ -66,7 +70,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			ContractState.EmptyBindings));
 		var sim = engine.CreateSimulation();
 
-		Assert.False(sim.TryEnqueue(new AcceptContractAction(unitId, contractId)));
+		Assert.False(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, contractId)));
 		Assert.Empty(sim.Actions);
 	}
 
@@ -77,7 +81,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var tick = engine.Tick;
 		var initialUnitCount = engine.World.FleetRegistry.All.Count();
 
-		engine.Commit(new AcceptContractAction(unitId, contractId));
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 
 		Assert.False(engine.World.ContractRegistry.IsOffered(contractId));
 		Assert.True(engine.World.ContractRegistry.TryGetState(contractId, out var state));
@@ -108,7 +112,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 				StoryObjective.FirstContract);
 		};
 
-		orchestrator.CommitSetup(new AcceptContractAction(unitId, contractId));
+		orchestrator.CommitSetup(ContractActionTestContext.Accept(orchestrator.Map, unitId, contractId));
 
 		Assert.False(objectiveActiveWhenNotified);
 		Assert.DoesNotContain(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
@@ -130,7 +134,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
 
-		orchestrator.CommitSetup(new AcceptContractAction(npcId, contractId));
+		orchestrator.CommitSetup(ContractActionTestContext.Accept(orchestrator.Map, npcId, contractId));
 
 		Assert.Contains(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
 		Assert.DoesNotContain(
@@ -146,7 +150,10 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			42);
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
-		var action = new AcceptContractAction(GrimSpace.Run.State.PlayerFleetUnitId, contractId);
+		var action = ContractActionTestContext.Accept(
+			orchestrator.Map,
+			GrimSpace.Run.State.PlayerFleetUnitId,
+			contractId);
 
 		Assert.True(orchestrator.TryCommitPlayerInput(action));
 		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
@@ -166,7 +173,12 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var agent = orchestrator.PlayerAgent!;
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
 
-		Assert.True(agent.TryEnqueue([new AcceptContractAction(GrimSpace.Run.State.PlayerFleetUnitId, contractId)]));
+		Assert.True(agent.TryEnqueue([
+			ContractActionTestContext.Accept(
+				orchestrator.Map,
+				GrimSpace.Run.State.PlayerFleetUnitId,
+				contractId),
+		]));
 		Assert.True(agent.Commit());
 		Assert.False(agent.IsPlanning);
 

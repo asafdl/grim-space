@@ -8,28 +8,43 @@ namespace GrimSpace.World.StarSystem.Poi.Concrete;
 public sealed class TradeHub : PointOfInterest
 {
 	public const int DefaultRadius = 34;
+	public const string DockyardFacilitySlug = "dockyard";
+	public const string DockyardScenePath = "res://scenes/dockyard.tscn";
+	public const string ShopOperatorSceneSlotId = "Salesman";
+	public const string ShieldOperatorSceneSlotId = "ShieldRecharge";
 
 	private readonly SupplySystemPlan _plan;
 
-	public static TradeHub Template(SupplySystemPlan plan) => new(plan, null);
+	public static TradeHub Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
+		new(plan, null, BuildFacilities(plan, operatorNames));
 
-	private static IReadOnlyList<Facility> DefaultFacilities(SupplySystemPlan plan) =>
+	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(
-			Facility.ScopedId(plan.TradeHubPoiId, "dockyard"),
+			Facility.ScopedId(plan.TradeHubPoiId, DockyardFacilitySlug),
 			"Dockyard",
 			EPresentationAnchor.Dockyard,
-			[EServiceKind.Dockyard]),
+			DockyardScenePath,
+			[
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.DockyardShop,
+					ShopOperatorSceneSlotId),
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.ShieldRecharge,
+					ShieldOperatorSceneSlotId),
+			]),
 	];
 
-	private TradeHub(SupplySystemPlan plan, Coord? center) :
+	private TradeHub(SupplySystemPlan plan, Coord? center, IReadOnlyList<Facility> facilities) :
 		base(
 			plan.TradeHubPoiId,
 			"Trade Hub",
 			DefaultRadius,
 			EPoiLogicalRole.Trade,
 			center,
-			facilities: DefaultFacilities(plan))
+			facilities: facilities)
 	{
 		_plan = plan;
 	}
@@ -47,12 +62,12 @@ public sealed class TradeHub : PointOfInterest
 
 	public override PointOfInterest Fork()
 	{
-		var clone = new TradeHub(_plan, Center);
+		var clone = new TradeHub(_plan, Center, Facilities);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
 		ForkFacilityState(clone);
 		return clone;
 	}
 
-	protected override PointOfInterest WithCenter(Coord center) => new TradeHub(_plan, center);
+	protected override PointOfInterest WithCenter(Coord center) => new TradeHub(_plan, center, Facilities);
 }

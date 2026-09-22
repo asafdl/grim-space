@@ -8,11 +8,11 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Dockyard;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
-
-namespace GrimSpace.Tests.World.StarSystem.Dockyard;
+using GrimSpace.Tests.World.StarSystem.Poi;
 
 public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 {
@@ -30,6 +30,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(engine.World),
 			offerId,
 			before));
 
@@ -50,22 +51,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
-			offerId,
-			before)));
-	}
-
-	[Fact]
-	public void TryEnqueue_FailsForWrongFacility()
-	{
-		var (engine, unitId, ship, offerId) = CreateEngine();
-		SeedScrap(engine.World, 100);
-		var sim = engine.CreateSimulation();
-		var before = ship.Clone();
-
-		Assert.False(sim.TryEnqueue(new PurchaseDockyardUpgradeAction(
-			unitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			"poi-trade-missing",
+			MapFacilityOperators.ShopOperatorName(engine.World),
 			offerId,
 			before)));
 	}
@@ -84,6 +70,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(engine.World),
 			offerId,
 			stale)));
 	}
@@ -101,6 +88,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 			State.PlayerFleetUnitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(run.StarSystem.Map),
 			offerId,
 			before);
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);

@@ -4,7 +4,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Agents;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -12,7 +12,6 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public partial class DockyardController : Control
 {
 	private StarSystemOrchestrator _orchestrator = null!;
-	private StarMapPlayerExecutionAgent _playerAgent = null!;
 	private CanvasLayer _dockyardHudLayer = null!;
 	private DockyardHudOverlay _dockyardHud = null!;
 	private DockyardShieldRechargeHudOverlay _shieldRechargeHud = null!;
@@ -22,12 +21,17 @@ public partial class DockyardController : Control
 	{
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
-		_playerAgent = _orchestrator.PlayerAgent
-			?? throw new InvalidOperationException("Dockyard requires a player execution agent.");
+		if (_orchestrator.PlayerAgent is null)
+			throw new InvalidOperationException("Dockyard requires a player execution agent.");
 
-		var scene = GetNode<DockyardSceneView>("Scene");
-		scene.SalesmanClicked += OpenDockyardHud;
-		scene.ShieldRechargeClicked += OpenShieldRechargeHud;
+		var poiId = MapNavigationContext.ActivePoiId
+			?? throw new InvalidOperationException("Dockyard requires an active POI.");
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var facility = FacilityLookup.Get(_orchestrator.Map, poiId, facilityId);
+
+		var scene = GetNode<FacilitySceneView>("Scene");
+		FacilityOperatorBinder.Bind(scene, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
@@ -71,11 +75,13 @@ public partial class DockyardController : Control
 			?? throw new InvalidOperationException("Dockyard requires an active POI.");
 		var facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var operatorName = RequireActiveOperatorName();
 		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
 		return _orchestrator.TryCommitPlayerInput(new PurchaseDockyardUpgradeAction(
 			State.PlayerFleetUnitId,
 			poiId,
 			facilityId,
+			operatorName,
 			offerId,
 			before));
 	}
@@ -86,11 +92,13 @@ public partial class DockyardController : Control
 			?? throw new InvalidOperationException("Dockyard requires an active POI.");
 		var facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var operatorName = RequireActiveOperatorName();
 		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
 		return _orchestrator.TryCommitPlayerInput(new PurchaseHullRepairAction(
 			State.PlayerFleetUnitId,
 			poiId,
 			facilityId,
+			operatorName,
 			before));
 	}
 
@@ -100,38 +108,45 @@ public partial class DockyardController : Control
 			?? throw new InvalidOperationException("Dockyard requires an active POI.");
 		var facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Dockyard requires an active facility.");
+		var operatorName = RequireActiveOperatorName();
 		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
 		return _orchestrator.TryCommitPlayerInput(new PurchaseShieldRechargeAction(
 			State.PlayerFleetUnitId,
 			poiId,
 			facilityId,
+			operatorName,
 			before,
 			face));
 	}
 
-	private void OpenDockyardHud()
+	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator)
 	{
-		var poiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Dockyard requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Dockyard requires an active facility.");
-		var poi = _orchestrator.Map.PointsOfInterest.First(p => p.Id == poiId);
-		var facility = poi.Facilities.First(f => f.Id == facilityId);
+		MapNavigationContext.ActivateOperator(facilityOperator.Name);
+		switch (facilityOperator.Role)
+		{
+			case EFacilityOperatorRole.DockyardShop:
+				OpenDockyardHud(facilityOperator);
+				break;
+			case EFacilityOperatorRole.ShieldRecharge:
+				OpenShieldRechargeHud(facilityOperator);
+				break;
+			case EFacilityOperatorRole.Dialog:
+				throw new NotImplementedException("Dialog operators are not implemented yet.");
+			default:
+				throw new InvalidOperationException(
+					$"Unexpected operator role '{facilityOperator.Role}' in dockyard facility.");
+		}
+	}
 
-		_dockyardHud.Open(Session.Instance.Run, _orchestrator.Map, facility.DisplayName);
+	private void OpenDockyardHud(FacilityOperator facilityOperator)
+	{
+		_dockyardHud.Open(Session.Instance.Run, _orchestrator.Map, OperatorDisplayLabels.Title(facilityOperator));
 		UpdateBackButton();
 	}
 
-	private void OpenShieldRechargeHud()
+	private void OpenShieldRechargeHud(FacilityOperator facilityOperator)
 	{
-		var poiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Dockyard requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Dockyard requires an active facility.");
-		var poi = _orchestrator.Map.PointsOfInterest.First(p => p.Id == poiId);
-		var facility = poi.Facilities.First(f => f.Id == facilityId);
-
-		_shieldRechargeHud.Open(Session.Instance.Run, _orchestrator.Map, facility.DisplayName);
+		_shieldRechargeHud.Open(Session.Instance.Run, _orchestrator.Map, OperatorDisplayLabels.Title(facilityOperator));
 		UpdateBackButton();
 	}
 
@@ -185,9 +200,14 @@ public partial class DockyardController : Control
 
 	private void ReturnToMap()
 	{
+		MapNavigationContext.ClearActiveOperator();
 		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
+
+	private static string RequireActiveOperatorName() =>
+		MapNavigationContext.ActiveOperatorName
+		?? throw new InvalidOperationException("Dockyard purchase requires an active facility operator.");
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _dockyardHud.IsOpen || _shieldRechargeHud.IsOpen;

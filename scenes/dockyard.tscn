@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bm4uvj8rmdpy1"]
 
 [ext_resource type="Script" uid="uid://b6f8u8gdg2ocn" path="res://src/world/star-system/presentation/DockyardController.cs" id="1_controller"]
-[ext_resource type="Script" uid="uid://eks85d2nkfv5" path="res://src/world/star-system/presentation/DockyardSceneView.cs" id="2_scene"]
-[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/ServiceButtonView.cs" id="3_salesman"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/FacilityOperatorButtonView.cs" id="3_salesman"]
 [ext_resource type="Texture2D" uid="uid://bihmyhslop7m2" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://1e4y2ewe504" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
 [ext_resource type="Texture2D" uid="uid://wqwohcvsqbyw" path="res://assets/ui/map/services/shield-recharge.png" id="6_shield_recharge"]
@@ -48,7 +48,6 @@ offset_top = 479.00003
 offset_right = 1873.0
 offset_bottom = 1188.0
 scale = Vector2(0.8250968, 0.85275424)
-tooltip_text = "Browse upgrades"
 texture_normal = ExtResource("5_salesman")
 ignore_texture_size = true
 stretch_mode = 5
@@ -62,7 +61,6 @@ offset_right = 928.96545
 offset_bottom = 875.7693
 rotation = -0.1663151
 scale = Vector2(0.8250968, 0.85275424)
-tooltip_text = "Recharge shields"
 texture_normal = ExtResource("6_shield_recharge")
 ignore_texture_size = true
 stretch_mode = 5

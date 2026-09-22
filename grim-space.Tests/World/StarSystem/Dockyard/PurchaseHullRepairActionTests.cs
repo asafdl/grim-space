@@ -8,11 +8,11 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Dockyard;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
-
-namespace GrimSpace.Tests.World.StarSystem.Dockyard;
+using GrimSpace.Tests.World.StarSystem.Poi;
 
 public sealed class PurchaseHullRepairActionTests(StarMapFixture maps)
 {
@@ -32,6 +32,7 @@ public sealed class PurchaseHullRepairActionTests(StarMapFixture maps)
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(engine.World),
 			before));
 
 		Assert.Contains(records, record => record is Record<HullRepairPurchased>);
@@ -54,6 +55,7 @@ public sealed class PurchaseHullRepairActionTests(StarMapFixture maps)
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(engine.World),
 			before)));
 	}
 
@@ -71,6 +73,7 @@ public sealed class PurchaseHullRepairActionTests(StarMapFixture maps)
 			State.PlayerFleetUnitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(run.StarSystem.Map),
 			before);
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
 		Assert.True(PurchaseHullRepairDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));

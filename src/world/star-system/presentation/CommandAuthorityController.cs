@@ -3,7 +3,7 @@ using GrimSpace.Application;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Agents;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation;
@@ -11,20 +11,26 @@ namespace GrimSpace.World.StarSystem.Presentation;
 public partial class CommandAuthorityController : Control
 {
 	private StarSystemOrchestrator _orchestrator = null!;
-	private StarMapPlayerExecutionAgent _playerAgent = null!;
 	private CanvasLayer _contractHudLayer = null!;
 	private ContractHudOverlay _contractHud = null!;
 	private Button _backButton = null!;
+	private string _activePoiId = null!;
 
 	public override void _Ready()
 	{
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
-		_playerAgent = _orchestrator.PlayerAgent
-			?? throw new InvalidOperationException("Command Authority requires a player execution agent.");
+		if (_orchestrator.PlayerAgent is null)
+			throw new InvalidOperationException("Command Authority requires a player execution agent.");
 
-		var scene = GetNode<CommandAuthoritySceneView>("Scene");
-		scene.GiverClicked += OpenContractHud;
+		_activePoiId = MapNavigationContext.ActivePoiId
+			?? throw new InvalidOperationException("Command Authority requires an active POI.");
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Command Authority requires an active facility.");
+		var facility = FacilityLookup.Get(_orchestrator.Map, _activePoiId, facilityId);
+
+		var scene = GetNode<FacilitySceneView>("Scene");
+		FacilityOperatorBinder.Bind(scene, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
@@ -56,22 +62,51 @@ public partial class CommandAuthorityController : Control
 		GetViewport().SetInputAsHandled();
 	}
 
-	public bool TryAcceptContract(string contractId) =>
-		_orchestrator.TryCommitPlayerInput(new AcceptContractAction(State.PlayerFleetUnitId, contractId));
-
-	public bool TryDeclineContract(string contractId) =>
-		_orchestrator.TryCommitPlayerInput(new DeclineContractAction(State.PlayerFleetUnitId, contractId));
-
-	private void OpenContractHud()
+	public bool TryAcceptContract(string contractId)
 	{
-		var poiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Command Authority requires an active POI.");
 		var facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Command Authority requires an active facility.");
-		var poi = _orchestrator.Map.PointsOfInterest.First(p => p.Id == poiId);
-		var facility = poi.Facilities.First(f => f.Id == facilityId);
+		var operatorName = RequireActiveOperatorName();
+		return _orchestrator.TryCommitPlayerInput(new AcceptContractAction(
+			State.PlayerFleetUnitId,
+			_activePoiId,
+			facilityId,
+			operatorName,
+			contractId));
+	}
 
-		_contractHud.Open(_orchestrator.Map, poiId, facility.DisplayName);
+	public bool TryDeclineContract(string contractId)
+	{
+		var facilityId = MapNavigationContext.ActiveFacilityId
+			?? throw new InvalidOperationException("Command Authority requires an active facility.");
+		var operatorName = RequireActiveOperatorName();
+		return _orchestrator.TryCommitPlayerInput(new DeclineContractAction(
+			State.PlayerFleetUnitId,
+			_activePoiId,
+			facilityId,
+			operatorName,
+			contractId));
+	}
+
+	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator)
+	{
+		MapNavigationContext.ActivateOperator(facilityOperator.Name);
+		switch (facilityOperator.Role)
+		{
+			case EFacilityOperatorRole.Contracts:
+				OpenContractHud(facilityOperator);
+				break;
+			case EFacilityOperatorRole.Dialog:
+				throw new NotImplementedException("Dialog operators are not implemented yet.");
+			default:
+				throw new InvalidOperationException(
+					$"Unexpected operator role '{facilityOperator.Role}' in command authority facility.");
+		}
+	}
+
+	private void OpenContractHud(FacilityOperator facilityOperator)
+	{
+		_contractHud.Open(_orchestrator.Map, _activePoiId, OperatorDisplayLabels.Title(facilityOperator));
 		UpdateBackButton();
 	}
 
@@ -105,9 +140,14 @@ public partial class CommandAuthorityController : Control
 
 	private void ReturnToMap()
 	{
+		MapNavigationContext.ClearActiveOperator();
 		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
+
+	private static string RequireActiveOperatorName() =>
+		MapNavigationContext.ActiveOperatorName
+		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _contractHud.IsOpen;

@@ -3,7 +3,6 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Dockyard;
 using GrimSpace.World.StarSystem.Effects;
-using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 
@@ -13,6 +12,7 @@ public sealed record PurchaseDockyardUpgradeAction(
 	string ActorId,
 	string PoiId,
 	string FacilityId,
+	string OperatorName,
 	string OfferId,
 	ShipInstance Before) : IAction<StarMap, ActorRuntime>
 {
@@ -32,7 +32,6 @@ public sealed class PurchaseDockyardUpgradeDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is PurchaseDockyardUpgradeAction purchase
 		&& world.FleetRegistry.TryGet(purchase.ActorId, out _)
-		&& TryResolveFacility(purchase, world, out _)
 		&& DockyardOffers.TryApply(purchase.OfferId, purchase.Before, out _)
 		&& DockyardOffers.TryQuote(purchase.OfferId, purchase.Before, out var cost)
 		&& world.PlayerResources.CanApply(cost.Negate());
@@ -59,24 +58,5 @@ public sealed class PurchaseDockyardUpgradeDef
 			new ChangeResourceEffect(TransactionSource.DockyardPurchase, cost.Negate()),
 			new RecordDockyardUpgradeEffect(fact),
 		];
-	}
-
-	internal static bool TryResolveFacility(
-		PurchaseDockyardUpgradeAction purchase,
-		StarMap world,
-		out Facility facility)
-	{
-		facility = null!;
-		var poi = world.PointsOfInterest.FirstOrDefault(candidate =>
-			string.Equals(candidate.Id, purchase.PoiId, StringComparison.Ordinal));
-		if (poi is null)
-			return false;
-
-		facility = poi.Facilities.FirstOrDefault(candidate =>
-			string.Equals(candidate.Id, purchase.FacilityId, StringComparison.Ordinal))!;
-		if (facility is null)
-			return false;
-
-		return facility.ServiceKinds.Contains(EServiceKind.Dockyard);
 	}
 }

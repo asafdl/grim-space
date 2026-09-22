@@ -2,7 +2,7 @@ using Godot;
 
 namespace GrimSpace.World.StarSystem.Presentation;
 
-public partial class ServiceButtonView : TextureButton
+public partial class FacilityOperatorButtonView : TextureButton
 {
 	private const string HaloShaderPath = "res://assets/shaders/service_button_halo.gdshader";
 	private ShaderMaterial _haloMaterial = null!;
@@ -12,7 +12,7 @@ public partial class ServiceButtonView : TextureButton
 	public override void _Ready()
 	{
 		var texture = TextureNormal
-			?? throw new InvalidOperationException("Service buttons require a normal texture.");
+			?? throw new InvalidOperationException("Facility operator buttons require a normal texture.");
 		var clickMask = new Bitmap();
 		clickMask.CreateFromImageAlpha(texture.GetImage(), 0.2f);
 		TextureClickMask = clickMask;
