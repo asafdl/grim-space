@@ -20,7 +20,7 @@ public sealed class StarMapFixture
 	public StarMap FreshWithBeatAHunt(int seed = 42)
 	{
 		var map = Fresh(seed);
-		TutorialContractScheduler.OfferBeatA(map);
+		TutorialBeatContracts.OfferBeatA(map);
 		return map;
 	}
 }

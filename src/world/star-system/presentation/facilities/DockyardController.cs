@@ -18,6 +18,9 @@ public partial class DockyardController : Control
 	private DockyardShieldRechargeHudOverlay _shieldRechargeHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
+	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
+	private string _activePoiId = null!;
+	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
@@ -26,14 +29,15 @@ public partial class DockyardController : Control
 		if (_orchestrator.PlayerAgent is null)
 			throw new InvalidOperationException("Dockyard requires a player execution agent.");
 
-		var poiId = MapNavigationContext.ActivePoiId
+		_activePoiId = MapNavigationContext.ActivePoiId
 			?? throw new InvalidOperationException("Dockyard requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
+		_facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Dockyard requires an active facility.");
-		var facility = _orchestrator.Map.GetPointOfInterest(poiId).GetFacility(facilityId);
+		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
+		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, facility, OnFacilityOperatorActivated);
+		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
@@ -53,6 +57,12 @@ public partial class DockyardController : Control
 		_dockyardHudLayer.AddChild(_shieldRechargeHud);
 
 		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
+			this,
+			_backButton,
+			_orchestrator,
+			_activePoiId,
+			_facilityId);
 	}
 
 	public override void _ExitTree()
@@ -63,13 +73,13 @@ public partial class DockyardController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_npcDialog.TryHandleInput(@event))
+		if (_npcDialog.TryHandleInput(@event) || _deliveryTurnInDialog.TryHandleInput(@event))
 			return;
 
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen)
+		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
 		ReturnToMap();
@@ -126,10 +136,10 @@ public partial class DockyardController : Control
 			face));
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator)
+	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (facilityOperator.Role)
+		switch (role)
 		{
 			case EFacilityOperatorRole.DockyardShop:
 				OpenDockyardHud(facilityOperator);
@@ -140,9 +150,12 @@ public partial class DockyardController : Control
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
 				break;
+			case EFacilityOperatorRole.DeliveryTurnIn:
+				_deliveryTurnInDialog.Open(facilityOperator);
+				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{facilityOperator.Role}' in dockyard facility.");
+					$"Unexpected operator role '{role}' in dockyard facility.");
 		}
 	}
 
@@ -218,5 +231,8 @@ public partial class DockyardController : Control
 		?? throw new InvalidOperationException("Dockyard purchase requires an active facility operator.");
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen;
+		_backButton.Disabled = _dockyardHud.IsOpen
+			|| _shieldRechargeHud.IsOpen
+			|| _npcDialog.IsOpen
+			|| _deliveryTurnInDialog.IsOpen;
 }

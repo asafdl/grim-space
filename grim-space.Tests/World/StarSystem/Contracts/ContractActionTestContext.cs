@@ -1,5 +1,6 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
@@ -21,6 +22,29 @@ internal static class ContractActionTestContext
 			ManagementFacilityId,
 			MapFacilityOperators.ContractOperatorName(map),
 			contractId);
+
+	public static AcceptContractAction AcceptDelivery(StarMap map, string actorId, string contractId)
+	{
+		var poiId = map.Blueprint.SupplyPlan.StoragePoiId;
+		return new AcceptContractAction(
+			actorId,
+			poiId,
+			Facility.ScopedId(poiId, StorageFacility.WarehouseFacilitySlug),
+			MapFacilityOperators.WarehouseManagerOperatorName(map),
+			contractId);
+	}
+
+	public static TurnInDeliveryAction TurnInDelivery(StarMap map, string actorId, string contractId)
+	{
+		var contract = map.ContractRegistry.All.First(entry => entry.Id == contractId);
+		var delivery = (DeliveryObjective)contract.Objective;
+		return new TurnInDeliveryAction(
+			actorId,
+			delivery.TurnInPoiId,
+			delivery.TurnInFacilityId,
+			delivery.TurnInOperatorName,
+			contractId);
+	}
 
 	public static DeclineContractAction Decline(StarMap map, string actorId, string contractId) =>
 		new(

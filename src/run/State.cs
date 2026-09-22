@@ -5,6 +5,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
 using GrimSpace.Core.Log;
 using GrimSpace.Tutorials;
+
 using GrimSpace.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
@@ -14,14 +15,24 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Run;
 
-public sealed class State : IDisposable
+public sealed class State : IDisposable, ITutorialRunContext
 {
 	//TODO: player fleet should not be hardcoded here
 	public const string PlayerFleetUnitId = "player-fleet";
 
 	public RunShipRegistry ShipRegistry { get; } = new();
 	public Party PlayerParty { get; } = new();
-	public TutorialProgress TutorialProgress { get; } = new();
+	private TutorialProgress? _tutorialProgress;
+	private TutorialState? _tutorialState;
+
+	public TutorialProgress? TutorialProgress => _tutorialProgress;
+
+	public TutorialState? TutorialState => _tutorialState;
+
+	public TutorialController? Tutorials { get; private set; }
+
+	/// <summary>Set when the player completes their first delivery contract; cleared after the graduation dialog is accepted.</summary>
+	public bool PendingTutorialGraduation { get; set; }
 	public RunTransitionInbox Transitions { get; } = new();
 	public StarSystemOrchestrator StarSystem { get; private set; } = null!;
 	public BattleEncounter? ActiveBattle { get; internal set; }
@@ -66,6 +77,9 @@ public sealed class State : IDisposable
 			return;
 		}
 
+		GameLog.Log(
+			$"Battle outcome resolved: id='{outcome.BattleId}', result='{outcome.Result}', "
+			+ $"tutorialsEnabled={Tutorials is not null}.");
 		ApplyOutcomeToRegistry(outcome);
 
 		_resolvedBattleIds.Add(outcome.BattleId);
@@ -97,7 +111,7 @@ public sealed class State : IDisposable
 			nextSeed));
 	}
 
-	public static State CreateNewRun(int seed = 0)
+	public static State CreateNewRun(int seed = 0, bool tutorialsEnabled = false)
 	{
 		var run = new State();
 		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
@@ -108,11 +122,31 @@ public sealed class State : IDisposable
 			run.PlayerParty.ShipIds,
 			seed);
 		run.BindStarSystem(orchestrator);
+		run.ConfigureTutorials(tutorialsEnabled);
 		return run;
+	}
+
+	public void ConfigureTutorials(bool enabled)
+	{
+		if (!enabled)
+		{
+			Tutorials?.Dispose();
+			Tutorials = null;
+			_tutorialProgress = null;
+			_tutorialState = null;
+			return;
+		}
+
+		_tutorialProgress = new TutorialProgress();
+		_tutorialState = new TutorialState();
+		Tutorials = new TutorialController(StarSystem, _tutorialProgress, _tutorialState, this);
+		Tutorials.InitializeBeatProgression();
 	}
 
 	public void Dispose()
 	{
+		Tutorials?.Dispose();
+		Tutorials = null;
 		_engagementSubscription?.Dispose();
 		_engagementSubscription = null;
 		_fleetSpawnSubscription?.Dispose();

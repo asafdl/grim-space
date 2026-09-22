@@ -35,7 +35,7 @@ public sealed class Wormhole : PointOfInterest
 	private Wormhole(SupplySystemPlan plan, Coord? center, IReadOnlyList<Facility> facilities) :
 		base(
 			plan.ExitPoiId,
-			"Exit",
+			"Wormhole",
 			DefaultRadius,
 			EPoiLogicalRole.Exit,
 			center,
@@ -54,7 +54,7 @@ public sealed class Wormhole : PointOfInterest
 			EType.CargoShuttle => 3,
 			EType.ServiceVessel => 4,
 			_ => throw new InvalidOperationException(
-				$"Exit POI has no task for unit type {unitType}."),
+				$"Wormhole POI has no task for unit type {unitType}."),
 		};
 
 	public override PointOfInterest Fork()
@@ -63,6 +63,7 @@ public sealed class Wormhole : PointOfInterest
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
 		ForkFacilityState(clone);
+		ForkOperatorTemporaryRoles(clone);
 		return clone;
 	}
 

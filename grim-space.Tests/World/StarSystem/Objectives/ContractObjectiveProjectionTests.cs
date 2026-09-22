@@ -44,7 +44,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 				searchArea.Intel,
 				poiId => map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName));
 		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, credits);
+		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, credits);
 	}
 
 	[Fact]
@@ -59,7 +59,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
 		var plain = Assert.IsType<ObjectiveSummaryContent.Plain>(objective.Summary);
-		Assert.Equal(ContractDisplay.ObjectivePreview(contract), plain.Text);
+		Assert.Equal(ContractDisplay.ObjectivePreview(contract, map), plain.Text);
 	}
 
 	[Fact]

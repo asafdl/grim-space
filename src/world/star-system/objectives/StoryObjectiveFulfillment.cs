@@ -14,7 +14,9 @@ public static class StoryObjectiveFulfillment
 			return [];
 
 		return map.StoryObjectives.Active
-			.Where(objective => objective.Id == StoryObjective.FirstContract.Id)
+			.Where(objective =>
+				objective.Id == StoryObjective.FirstContract.Id
+				|| objective.RequiredContractId == accepted.ContractId)
 			.Select(objective => (IAction)new CompleteStoryObjectiveAction(
 				accepted.ActorId,
 				objective.Id))

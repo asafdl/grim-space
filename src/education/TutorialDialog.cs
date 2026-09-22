@@ -119,7 +119,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		_accept.Visible = content.AcceptText is not null;
 		if (content.AcceptText is { } acceptText)
 			_accept.Text = acceptText;
-		else
+		else if (_accept.IsInsideTree())
 			_accept.ReleaseFocus();
 		Visible = true;
 		if (_accept.Visible)
@@ -141,7 +141,8 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 	public void ClearAssistance()
 	{
 		_assistance.Visible = false;
-		_assistanceAction.ReleaseFocus();
+		if (_assistanceAction.IsInsideTree())
+			_assistanceAction.ReleaseFocus();
 	}
 
 	public void Close()

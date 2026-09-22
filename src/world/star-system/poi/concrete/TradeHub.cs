@@ -80,6 +80,7 @@ public sealed class TradeHub : PointOfInterest
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
 		ForkFacilityState(clone);
+		ForkOperatorTemporaryRoles(clone);
 		return clone;
 	}
 

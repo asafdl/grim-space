@@ -41,14 +41,14 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 		Assert.Equal(holderUnitId, completion.ActorId);
 		Assert.Equal(contractId, completion.ContractId);
 		Assert.True(completion.Payment.TryGet(ResourceId.Credits, out var payment));
-		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, payment);
+		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, payment);
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(holderUnitId);
 		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		engine.Commit(completion);
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
-		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]
@@ -159,7 +159,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 		Assert.Equal(relation.LandmarkAId, route.LandmarkAPoiId);
 		Assert.Equal(relation.LandmarkBId, route.LandmarkBPoiId);
 		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, credits);
+		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, credits);
 	}
 
 	[Fact]

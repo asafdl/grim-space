@@ -30,6 +30,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly Queue<IAction> _reactionQueue = [];
 	private readonly IDisposable _storyObjectiveSubscription;
 	private readonly IDisposable _contractFulfillmentSubscription;
+	private readonly IDisposable _deliveryTurnInSubscription;
 	private readonly IDisposable _resourceTransactionSubscription;
 	private ESimMode _simMode = (ESimMode)(-1);
 	private bool _resolvingInputAction;
@@ -49,6 +50,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_contractFulfillmentSubscription =
 			_engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
+		_deliveryTurnInSubscription =
+			_engine.Subscribe<TurnInDeliveryAction>(OnDeliveryTurnedIn);
 		_resourceTransactionSubscription =
 			_engine.Subscribe<Record<Transaction>>(record => ResourceTransactionCommitted?.Invoke(record.Value));
 	}
@@ -395,7 +398,17 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void OnEngagementResolved(ResolveEngagementAction resolved)
 	{
-		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, resolved.InitiatorId))
+		EnqueueContractFulfillmentReactions(resolved.InitiatorId);
+	}
+
+	private void OnDeliveryTurnedIn(TurnInDeliveryAction turnedIn)
+	{
+		EnqueueContractFulfillmentReactions(turnedIn.ActorId);
+	}
+
+	private void EnqueueContractFulfillmentReactions(string actorId)
+	{
+		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, actorId))
 		{
 			if (!_reactionQueue.Contains(reaction))
 				_reactionQueue.Enqueue(reaction);
@@ -425,6 +438,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		_storyObjectiveSubscription.Dispose();
 		_contractFulfillmentSubscription.Dispose();
+		_deliveryTurnInSubscription.Dispose();
 		_resourceTransactionSubscription.Dispose();
 		_engine.Dispose();
 	}

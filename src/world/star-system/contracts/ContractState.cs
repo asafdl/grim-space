@@ -5,7 +5,8 @@ public sealed record ContractState(
 	EContractStatus Status,
 	int? AcceptedAtTick,
 	string? HolderUnitId,
-	IReadOnlyDictionary<string, IReadOnlyList<string>> SpawnBindings)
+	IReadOnlyDictionary<string, IReadOnlyList<string>> SpawnBindings,
+	bool DeliveryTurnedIn = false)
 {
 	public static IReadOnlyDictionary<string, IReadOnlyList<string>> EmptyBindings { get; } =
 		new Dictionary<string, IReadOnlyList<string>>();

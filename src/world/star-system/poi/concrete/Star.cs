@@ -30,6 +30,7 @@ public sealed class Star : PointOfInterest
 		var clone = new Star(Center);
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
+		ForkOperatorTemporaryRoles(clone);
 		return clone;
 	}
 

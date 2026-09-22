@@ -16,6 +16,7 @@ public sealed class CompleteContractEffect(string contractId)
 			throw new InvalidOperationException($"Contract '{contractId}' has no runtime state.");
 
 		world.ContractRegistry.Complete(contractId);
+		ContractDeliveryRoleSupport.OnContractEnded(world, contractId);
 		return [];
 	}
 
@@ -25,6 +26,7 @@ public sealed class CompleteContractEffect(string contractId)
 			throw new InvalidOperationException($"Contract '{contractId}' completion was not applied.");
 
 		world.ContractRegistry.Restore(_previous);
+		ContractDeliveryRoleSupport.OnContractActivated(world, _previous);
 		_previous = null;
 	}
 }

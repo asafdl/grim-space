@@ -6,4 +6,5 @@ public enum EFacilityOperatorRole
 	DockyardShop,
 	ShieldRecharge,
 	Dialog,
+	DeliveryTurnIn,
 }

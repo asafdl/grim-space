@@ -1,4 +1,5 @@
 using GrimSpace.Run;
+using GrimSpace.Tests.Tutorials;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
@@ -14,7 +15,7 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 	public void Create_Hunt_RegistersOfferedContract()
 	{
 		var map = maps.Fresh(42);
-		var args = TutorialContractScheduler.CreateBeatAHuntArgs(map);
+		var args = TutorialBeatContracts.CreateBeatAHuntArgs(map);
 
 		var contract = ContractFactory.Create(map, EContractKind.Hunt, args);
 
@@ -29,21 +30,13 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 
+		var deliveryArgs = TutorialBeatContracts.CreateBeatBDeliveryArgs(map);
 		Assert.Throws<ArgumentException>(() =>
-			ContractFactory.Create(map, EContractKind.Hunt, new DeliveryCreateArgs("poi-storage")));
-	}
-
-	[Fact]
-	public void Create_Delivery_ThrowsNotSupported()
-	{
-		var map = maps.Fresh(42);
-
-		Assert.Throws<NotSupportedException>(() =>
-			ContractFactory.Create(map, EContractKind.Delivery, new DeliveryCreateArgs("poi-storage")));
+			ContractFactory.Create(map, EContractKind.Hunt, deliveryArgs));
 	}
 }
 
-public sealed class TutorialContractSchedulerTests(StarMapFixture maps)
+public sealed class TutorialBeatProgressionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Create_EmptyContractRegistry()
@@ -59,7 +52,7 @@ public sealed class TutorialContractSchedulerTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		var plan = map.Blueprint.SupplyPlan;
 
-		TutorialContractScheduler.OfferBeatA(map);
+		TutorialBeatContracts.OfferBeatA(map);
 
 		var contract = Assert.Single(map.ContractRegistry.Offered);
 		Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
@@ -67,18 +60,75 @@ public sealed class TutorialContractSchedulerTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Start_IsIdempotent()
+	public void InitializeBeatProgression_IsIdempotent()
 	{
 		var map = maps.Fresh(42);
-		StarSystemTestHarness.AddPlayerFleet(map, GrimSpace.Run.State.PlayerFleetUnitId);
-		using var orchestrator = StarSystemOrchestrator.FromMap(
-			map,
-			GrimSpace.Run.State.PlayerFleetUnitId);
-		var scheduler = new TutorialContractScheduler(orchestrator);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
+		using var controller = CreateController(orchestrator);
 
-		scheduler.Start();
-		scheduler.Start();
+		controller.InitializeBeatProgression();
+		controller.InitializeBeatProgression();
 
 		Assert.Single(orchestrator.Map.ContractRegistry.Offered);
 	}
+
+	[Fact]
+	public void Reconcile_AfterBeatACompletedWhileMapWasUnloaded_OffersBeatB()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
+		var beatAId = TutorialBeatContracts.OfferBeatA(orchestrator.Map);
+		Assert.NotNull(beatAId);
+		orchestrator.Map.ContractRegistry.Activate(new ContractState(
+			beatAId!,
+			EContractStatus.Completed,
+			1,
+			State.PlayerFleetUnitId,
+			ContractState.EmptyBindings));
+
+		using var controller = CreateController(orchestrator);
+		controller.State.BeatAContractId = beatAId;
+		controller.State.CurrentBeat = TutorialBeat.FirstContract;
+		controller.ReconcileBeatTransitions();
+
+		Assert.Single(
+			orchestrator.Map.ContractRegistry.All,
+			contract => contract.IsStoryObjective && contract.Objective is HuntObjective);
+		Assert.Single(
+			orchestrator.Map.ContractRegistry.Offered,
+			contract => contract.Objective is DeliveryObjective);
+	}
+
+	[Fact]
+	public void OfferBeatB_AfterHuntCompletion_AddsDeliveryAtStorage()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
+		using var controller = CreateController(orchestrator);
+		controller.InitializeBeatProgression();
+		var huntId = orchestrator.Map.ContractRegistry.Offered.Single().Id;
+		orchestrator.Map.ContractRegistry.Activate(new ContractState(
+			huntId,
+			EContractStatus.Completed,
+			1,
+			State.PlayerFleetUnitId,
+			ContractState.EmptyBindings));
+
+		TutorialBeatContracts.OfferBeatB(orchestrator.Map);
+
+		Assert.Equal(2, orchestrator.Map.ContractRegistry.All.Count());
+		var delivery = orchestrator.Map.ContractRegistry.Offered
+			.Single(contract => contract.Objective is DeliveryObjective);
+		Assert.Equal(map.Blueprint.SupplyPlan.StoragePoiId, delivery.IssuerPoiId);
+	}
+
+	private static TutorialController CreateController(StarSystemOrchestrator orchestrator) =>
+		new(
+			orchestrator,
+			new TutorialProgress(),
+			new TutorialState(),
+			new TestTutorialRunContext());
 }

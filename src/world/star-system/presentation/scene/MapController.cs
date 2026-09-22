@@ -25,8 +25,6 @@ namespace GrimSpace.World.StarSystem.Presentation.Scene;
 public partial class MapController : Node3D
 {
 	private const float SecondsPerTick = 0.2f;
-	private const int TutorialDialogWidth = 380;
-	private const int TutorialDialogTop = 270;
 	private static readonly float[] SpeedOptions = [0.5f, 1f, 2f, 4f, 8f];
 
 	private MapView _view = null!;
@@ -47,8 +45,7 @@ public partial class MapController : Node3D
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
 	private NarrativeController _narrative = null!;
-	private TutorialDialog? _tutorialDialog;
-	private TutorialController? _tutorial;
+	private MapTutorialAdapter? _mapTutorial;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private WorldLinkNavigator? _objectivesLinks;
@@ -226,16 +223,21 @@ public partial class MapController : Node3D
 				[new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]),
 			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
 				action => onBegin(action.NarrativeId)));
-		if (GameSettings.ReadShowTutorials())
+		if (ShouldInitializeTutorials())
 		{
-			_tutorialDialog = new TutorialDialog();
-			_uiLayer.AddChild(_tutorialDialog);
-			ConfigureTutorialDialog(_tutorialDialog);
-			_tutorial = new TutorialController(
-				_orchestrator,
-				Session.Instance.Run.TutorialProgress,
-				_tutorialDialog,
-				new WorldLinkNavigator(_worldFocus, _worldIndicator));
+			var run = Session.Instance.Run;
+			if (!GameSettings.ReadShowTutorials() && run.PendingTutorialGraduation)
+				GameSettings.SaveShowTutorials(true);
+			if (run.Tutorials is null)
+				run.ConfigureTutorials(true);
+
+			if (run.Tutorials is { } tutorials)
+			{
+				var host = Session.Instance.TutorialDialogHost;
+				host.ApplyMapLayout();
+				_mapTutorial = new MapTutorialAdapter(tutorials, _orchestrator);
+				_mapTutorial.Attach(host.Dialog, _worldFocus, _worldIndicator);
+			}
 		}
 
 		_orchestrator.PlayerAgent!.PlanningChanged += OnPlayerPlanningChanged;
@@ -253,8 +255,6 @@ public partial class MapController : Node3D
 		{
 			_director.SetInitialMode(CinematicPresentationMode.ModeId);
 		}
-
-		_tutorial?.Sync();
 
 		RefreshPlayerVisibleFleets(0f);
 		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible);
@@ -302,7 +302,8 @@ public partial class MapController : Node3D
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
 		_narrative.Dispose();
-		_tutorial?.Dispose();
+		_mapTutorial?.Dispose();
+		_mapTutorial = null;
 		if (_objectivesLinks is not null)
 		{
 			_strategicHud.Objectives.LandmarkLinkClicked -= OnObjectiveLandmarkLinkClicked;
@@ -552,14 +553,8 @@ public partial class MapController : Node3D
 			GD.PushWarning($"Objective landmark link '{objectId}' failed: {result.GetType().Name}.");
 	}
 
-	private static void ConfigureTutorialDialog(TutorialDialog dialog)
-	{
-		dialog.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-		dialog.OffsetLeft = -TutorialDialogWidth - HudStyles.Margin;
-		dialog.OffsetTop = TutorialDialogTop;
-		dialog.OffsetRight = -HudStyles.Margin;
-		dialog.OffsetBottom = TutorialDialogTop;
-	}
+	private static bool ShouldInitializeTutorials() =>
+		GameSettings.ReadShowTutorials() || Session.Instance.Run.PendingTutorialGraduation;
 
 	private void UpdateSystemLabel(StarMap world)
 	{

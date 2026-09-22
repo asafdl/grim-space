@@ -44,10 +44,11 @@ public static class ContractDisplay
 		return parts.Count == 0 ? "—" : string.Join("\n\n", parts);
 	}
 
-	internal static string ObjectivePreview(Contract contract) =>
+	internal static string ObjectivePreview(Contract contract, StarMap map) =>
 		contract.Objective switch
 		{
 			HuntObjective hunt => FormatHuntObjective(hunt),
+			DeliveryObjective delivery => FormatDeliveryObjective(contract, delivery, map),
 			_ => "—",
 		};
 
@@ -56,6 +57,7 @@ public static class ContractDisplay
 		{
 			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
 				FormatSearchAreaIntel(hunt.SpawnGroups[0].SearchArea.Intel, map),
+			DeliveryObjective delivery => FormatDeliveryRoute(contract, delivery, map),
 			_ => "—",
 		};
 
@@ -112,6 +114,25 @@ public static class ContractDisplay
 		danger = default;
 		return false;
 	}
+
+	private static string FormatDeliveryObjective(Contract contract, DeliveryObjective delivery, StarMap map)
+	{
+		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
+		var dropoffName = ResolvePoiDisplayName(map, delivery.TurnInPoiId);
+		return $"Pick up cargo at {issuerName}, then deliver it to {dropoffName}.";
+	}
+
+	private static string FormatDeliveryRoute(Contract contract, DeliveryObjective delivery, StarMap map)
+	{
+		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
+		var dropoffName = ResolvePoiDisplayName(map, delivery.TurnInPoiId);
+		return $"From {issuerName} to {dropoffName}.";
+	}
+
+	private static string ResolvePoiDisplayName(StarMap map, string? poiId) =>
+		poiId is null
+			? "—"
+			: map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName ?? poiId;
 
 	private static string FormatHuntObjective(HuntObjective hunt)
 	{

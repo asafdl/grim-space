@@ -1,480 +1,370 @@
-using Godot;
 using GrimSpace.Application;
-using GrimSpace.Battle;
-using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Presentation.Graphics;
-using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions;
+using GrimSpace.Core.Log;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.Tutorials;
 
 public sealed class TutorialController : IDisposable
 {
-	private const int TutorialTurn1 = 1;
-	private const int TutorialTurn2 = 2;
-
-	private readonly StarSystemOrchestrator? _orchestrator;
-	private readonly BattleOrchestrator? _battle;
-	private readonly UserExecutionAgent? _battleAgent;
+	private readonly StarSystemOrchestrator _orchestrator;
 	private readonly TutorialProgress _progress;
-	private readonly TutorialRunner _runner;
-	private readonly TutorialGhostPresenter? _ghostPresenter;
+	private readonly TutorialState _state;
+	private readonly ITutorialRunContext _runContext;
 	private readonly HashSet<string> _reportedStartFailures = new(StringComparer.Ordinal);
-	private readonly TutorialContractScheduler? _contractScheduler;
+	private IDisposable? _contractCompletionSubscription;
 	private IDisposable? _narrativeSubscription;
-	private IDisposable? _activeActionSubscription;
-	private BattleTutorialObjective? _turn1Objective;
-	private BattleTutorialObjective? _turn2Objective;
-	private bool _turn2AwaitingPlayerTurn;
+	private TutorialFlow? _activeFlow;
 
-	public event Action<TutorialFlow>? Completed;
-	public event Action<TutorialFlow, TutorialStep>? StepStarted;
 	public TutorialController(
 		StarSystemOrchestrator orchestrator,
 		TutorialProgress progress,
-		ITutorialDialog dialog,
-		WorldLinkNavigator worldLinks)
-		: this(progress, dialog, worldLinks, battle: null, battleAgent: null)
+		TutorialState state,
+		ITutorialRunContext runContext)
 	{
 		_orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
-		_contractScheduler = new TutorialContractScheduler(_orchestrator);
-		_contractScheduler.Start();
-		_narrativeSubscription = _orchestrator.Subscribe<CompleteNarrativeAction>(_ => Sync());
-	}
-
-	private TutorialController(
-		TutorialProgress progress,
-		ITutorialDialog dialog,
-		WorldLinkNavigator worldLinks,
-		BattleOrchestrator? battle,
-		UserExecutionAgent? battleAgent,
-		PosedUnitGhostView? battleGhost = null)
-	{
 		_progress = progress ?? throw new ArgumentNullException(nameof(progress));
-		_battle = battle;
-		_battleAgent = battleAgent;
-		_ghostPresenter = battleGhost is null ? null : new TutorialGhostPresenter(battleGhost);
-		_runner = new TutorialRunner(progress, dialog, worldLinks);
-		_runner.Started += OnStarted;
-		_runner.StepStarted += OnStepStarted;
-		_runner.AssistanceRequested += OnAssistanceRequested;
-		_runner.Completed += OnCompleted;
-		if (_battleAgent is not null)
-			_battleAgent.PlanningChanged += OnBattlePlanningChanged;
+		_state = state ?? throw new ArgumentNullException(nameof(state));
+		_runContext = runContext ?? throw new ArgumentNullException(nameof(runContext));
 	}
 
-	public static TutorialController CreateForBattle(
-		BattleOrchestrator battle,
-		TutorialProgress progress,
-		ITutorialDialog dialog,
-		WorldLinkNavigator worldLinks,
-		PosedUnitGhostView ghost)
+	public TutorialState State => _state;
+
+	public TutorialProgress Progress => _progress;
+
+	public event Action<TutorialFlow>? FlowStarted;
+
+	public event Action<TutorialFlow, TutorialStep, bool>? StepPresented;
+
+	public event Action<TutorialFlow>? FlowCompleted;
+
+	public event Action? AssistanceRequested;
+
+	public TutorialFlow? ActiveFlow => _activeFlow;
+
+	public TutorialStep? ActiveStep =>
+		_activeFlow is { } flow && _state.ActiveStepIndex >= 0
+			? flow.Steps[_state.ActiveStepIndex]
+			: null;
+
+	public bool IsActive => _activeFlow is not null;
+
+	public void InitializeBeatProgression()
 	{
-		ArgumentNullException.ThrowIfNull(battle);
-		ArgumentNullException.ThrowIfNull(ghost);
-		var controller = new TutorialController(
-			progress,
-			dialog,
-			worldLinks,
-			battle,
-			battle.PlayerAgent,
-			ghost);
-		controller.TryStartBattleTutorial();
-		return controller;
+		if (_state.CurrentBeat != TutorialBeat.None)
+			return;
+
+		_state.BeatAContractId = TutorialBeatContracts.OfferBeatA(_orchestrator.Map);
+		_state.CurrentBeat = TutorialBeat.FirstContract;
+		GameLog.Log($"Tutorial initialized: beatAContractId='{_state.BeatAContractId}'.");
+		RegisterContractObservation();
+		ReconcileBeatTransitions();
 	}
 
-	public bool IsActive => _runner.ActiveFlow is not null;
-
-	public bool AllowsEndTurn =>
-		_runner.ActiveStep?.TargetId is FirstBattleTutorial.Turn1EndTargetId
-			or FirstBattleTutorial.Turn2EndTargetId;
-
-	public void Sync()
+	public void AttachMapSubscriptions()
 	{
-		if (_orchestrator is null)
-			throw new InvalidOperationException("Only star-system tutorial controllers can be synchronized.");
+		_narrativeSubscription ??= _orchestrator.Subscribe<CompleteNarrativeAction>(
+			_ => SyncMapFlows(cancelBattleFlowWhenOffBattlefield: false));
+		RegisterContractObservation();
+	}
+
+	public void DetachMapSubscriptions()
+	{
+		_narrativeSubscription?.Dispose();
+		_narrativeSubscription = null;
+	}
+
+	public void ReconcileFromWorldState(bool cancelBattleFlowWhenOffBattlefield)
+	{
+		ReconcileBeatTransitions();
+		ReconcileFlowProgress(cancelBattleFlowWhenOffBattlefield);
+	}
+
+	public void SyncMapFlows(bool cancelBattleFlowWhenOffBattlefield = false)
+	{
+		ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield);
 		if (IsActive)
 			return;
 
-		var flow = NextFlow();
+		var flow = SelectNextMapFlow();
 		if (flow is null)
 			return;
 
-		Start(flow);
+		TryStartFlow(flow);
 	}
 
-	private void TryStartBattleTutorial()
+	public void PresentGraduationIfPending()
 	{
-		var battle = _battle
-			?? throw new InvalidOperationException("Battle tutorial requires a battle orchestrator.");
-		var player = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId);
-		var initialBasis = GridBasis.From(player.Fore, player.Dorsal, player.Starboard);
+		ReconcileFlowProgress(cancelBattleFlowWhenOffBattlefield: true);
 
-		var turn1Result = BattleTutorialObjectives.ResolveTurn1(battle, initialBasis);
-		if (turn1Result is BattleTutorialObjectiveResult.Unreachable unreachable)
+		if (!_runContext.PendingTutorialGraduation)
+			return;
+
+		if (_progress.IsCompleted(TutorialGraduation.Id))
 		{
-			GD.PushWarning($"First battle tutorial setup failed: {unreachable.Reason}");
+			_runContext.PendingTutorialGraduation = false;
 			return;
 		}
 
-		_turn1Objective = ((BattleTutorialObjectiveResult.Resolved)turn1Result).Objective;
-		Start(FirstBattleTutorial.Create());
-	}
-
-	private void Start(TutorialFlow flow)
-	{
-		var result = _runner.Start(flow);
-		if (result is TutorialStartResult.Started or TutorialStartResult.AlreadyCompleted)
+		if (IsActive)
 			return;
 
-		if (_reportedStartFailures.Add(flow.Id))
-		{
-			GD.PushWarning(
-				$"Tutorial '{flow.Id}' could not start: {result.GetType().Name}.");
-		}
+		GameSettings.SaveShowTutorials(true);
+		_state.CurrentBeat = TutorialBeat.Graduation;
+		TryStartFlow(TutorialGraduation.Create());
 	}
 
-	private TutorialFlow? NextFlow()
+	public TutorialStartResult TryStartFlow(TutorialFlow flow)
 	{
-		var orchestrator = _orchestrator
-			?? throw new InvalidOperationException("Battle tutorial controllers do not select star-system flows.");
+		ArgumentNullException.ThrowIfNull(flow);
+		ValidateFlow(flow);
+
+		if (_progress.IsCompleted(flow.Id))
+			return new TutorialStartResult.AlreadyCompleted();
+
+		if (_activeFlow is { } active)
+			return new TutorialStartResult.Busy(active.Id);
+
+		_activeFlow = flow;
+		_state.ActiveFlowId = flow.Id;
+		_state.ActiveStepIndex = 0;
+		FlowStarted?.Invoke(flow);
+		RepresentActiveStep();
+		return new TutorialStartResult.Started();
+	}
+
+	public void RepresentActiveStep(bool openDialog = true)
+	{
+		if (_activeFlow is null || ActiveStep is not { } step)
+			return;
+
+		StepPresented?.Invoke(_activeFlow, step, openDialog);
+	}
+
+	public TutorialAdvanceResult AdvanceActive() => AdvanceActive(clearDialogBeforeNext: false);
+
+	public TutorialAdvanceResult AdvanceActiveSilently() =>
+		AdvanceActive(clearDialogBeforeNext: true);
+
+	private TutorialAdvanceResult AdvanceActive(bool clearDialogBeforeNext)
+	{
+		if (_activeFlow is not { } flow)
+			return new TutorialAdvanceResult.NoActiveFlow();
+
+		var nextStepIndex = _state.ActiveStepIndex + 1;
+		if (nextStepIndex >= flow.Steps.Count)
+		{
+			CompleteActiveFlow();
+			return new TutorialAdvanceResult.Completed();
+		}
+
+		_state.ActiveStepIndex = nextStepIndex;
+		if (clearDialogBeforeNext)
+		{
+			StepPresented?.Invoke(flow, flow.Steps[nextStepIndex], false);
+			return new TutorialAdvanceResult.Advanced();
+		}
+
+		RepresentActiveStep(openDialog: true);
+		return new TutorialAdvanceResult.Advanced();
+	}
+
+	public event Action<TutorialAssistanceContent>? AssistancePresented;
+
+	public event Action? AssistanceCleared;
+
+	public void ShowAssistance(TutorialAssistanceContent content)
+	{
+		if (!IsActive)
+			throw new InvalidOperationException("Cannot show assistance without an active tutorial.");
+		AssistancePresented?.Invoke(content);
+	}
+
+	public void ClearAssistance() => AssistanceCleared?.Invoke();
+
+	public void CancelActive()
+	{
+		if (_activeFlow is null)
+			return;
+
+		_activeFlow = null;
+		_state.ActiveFlowId = null;
+		_state.ActiveStepIndex = -1;
+		AssistanceCleared?.Invoke();
+	}
+
+	public void NotifyAssistanceRequested() => AssistanceRequested?.Invoke();
+
+	public void NotifyMoveToDock(string unitId, string dockPoiId, Coord destination, Coord dockPosition)
+	{
+		if (_activeFlow is not { Id: FirstContractTutorial.Id }
+			|| ActiveStep?.TargetId is not { } targetId
+			|| unitId != _orchestrator.PlayerId
+			|| targetId != dockPoiId
+			|| destination != dockPosition)
+			return;
+
+		AdvanceActive();
+	}
+
+	public void NotifyDeliveryContractCompleted(string contractId)
+	{
+		if (_progress.IsCompleted(TutorialGraduation.Id))
+			return;
+
+		if (!_orchestrator.Map.ContractRegistry.TryGet(contractId, out var contract)
+			|| contract.Objective is not DeliveryObjective)
+			return;
+
+		_runContext.PendingTutorialGraduation = true;
+		_state.CurrentBeat = TutorialBeat.Graduation;
+	}
+
+	public void NotifyFlowCompleted(TutorialFlow flow)
+	{
+		if (flow.Id == TutorialGraduation.Id)
+			_runContext.PendingTutorialGraduation = false;
+	}
+
+	private void CompleteActiveFlow()
+	{
+		var flow = _activeFlow
+			?? throw new InvalidOperationException("Cannot complete a tutorial without an active flow.");
+
+		_progress.Complete(flow.Id);
+		_activeFlow = null;
+		_state.ActiveFlowId = null;
+		_state.ActiveStepIndex = -1;
+		AssistanceCleared?.Invoke();
+		NotifyFlowCompleted(flow);
+		FlowCompleted?.Invoke(flow);
+	}
+
+	private TutorialFlow? SelectNextMapFlow()
+	{
 		if (!_progress.IsCompleted(FirstContractTutorial.Id)
-			&& orchestrator.Map.StoryObjectives.Active.Any(
+			&& _orchestrator.Map.StoryObjectives.Active.Any(
 				objective => objective.Id == StoryObjective.FirstContract.Id))
-			return FirstContractTutorial.Create(orchestrator.Map);
+			return FirstContractTutorial.Create(_orchestrator.Map);
 
 		return null;
 	}
 
-	private void OnStarted(TutorialFlow flow)
+	private void RegisterContractObservation()
 	{
-		if (_orchestrator is null)
+		_contractCompletionSubscription ??=
+			_orchestrator.Subscribe<CompleteContractAction>(OnContractCompleted);
+	}
+
+	private void OnContractCompleted(CompleteContractAction action)
+	{
+		if (action.ActorId != _orchestrator.PlayerId
+			|| !_orchestrator.Map.ContractRegistry.TryGet(action.ContractId, out var contract))
 			return;
 
-		_activeActionSubscription?.Dispose();
-		_activeActionSubscription = flow.Id switch
-		{
-			FirstContractTutorial.Id => _orchestrator.Subscribe<MoveAction>(OnMove),
-			_ => null,
-		};
+		GameLog.Log(
+			$"Tutorial observed completed contract: id='{action.ContractId}', "
+			+ $"objective='{contract.Objective.GetType().Name}'.");
+		if (contract.Objective is DeliveryObjective)
+			NotifyDeliveryContractCompleted(action.ContractId);
+
+		ReconcileBeatTransitions();
+		ReconcileFlowProgress(cancelBattleFlowWhenOffBattlefield: false);
 	}
 
-	private void OnCompleted(TutorialFlow flow)
+	public void ReconcileBeatTransitions()
 	{
-		_activeActionSubscription?.Dispose();
-		_activeActionSubscription = null;
-		_turn2AwaitingPlayerTurn = false;
-		_ghostPresenter?.SetSpec(null);
-		if (flow.Id == FirstBattleTutorial.Id)
-			GameSettings.SaveShowTutorials(false);
-		Completed?.Invoke(flow);
-	}
-
-	private void OnStepStarted(TutorialFlow flow, TutorialStep step)
-	{
-		StepStarted?.Invoke(flow, step);
-		if (flow.Id == FirstBattleTutorial.Id)
-		{
-			UpdateGhostForActiveStep();
-			AdvanceBattleStepIfReady();
-		}
-	}
-
-	private void OnBattlePlanningChanged()
-	{
-		if (_battleAgent?.Sim.Actions.Count == 0
-			&& _runner.ActiveStep?.TargetId is FirstBattleTutorial.Turn1MoveTargetId
-				or FirstBattleTutorial.Turn2MoveTargetId)
-		{
-			_ghostPresenter?.Restore();
-		}
-
-		AdvanceBattleStepIfReady();
-	}
-
-	private void AdvanceBattleStepIfReady()
-	{
-		if (_battleAgent is null
-			|| _battle is null
-			|| _runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
+		if (_state.BeatBOffered || _state.BeatAContractId is not { } beatAId)
 			return;
 
-		switch (_runner.ActiveStep?.TargetId)
-		{
-			case FirstBattleTutorial.Turn1MoveTargetId:
-				AdvanceBattleMoveIfReady(_turn1Objective, TutorialCopy.MoveToMarkedGhostAssistance);
-				break;
-			case FirstBattleTutorial.Turn2MoveTargetId:
-				AdvanceBattleMoveIfReady(_turn2Objective, TutorialCopy.MatchGhostPoseAssistance);
-				break;
-			case FirstBattleTutorial.Turn2TorpedoTargetId:
-				AdvanceBattleTorpedoIfReady();
-				break;
-		}
-	}
-
-	private void AdvanceBattleMoveIfReady(BattleTutorialObjective? objective, string mismatchMessage)
-	{
-		if (objective is null)
+		var beatACompleted = _orchestrator.Map.ContractRegistry.IsCompleted(beatAId);
+		GameLog.Log(
+			$"Tutorial Beat B reconciliation: beatAContractId='{beatAId}', "
+			+ $"beatACompleted={beatACompleted}.");
+		if (!beatACompleted)
 			return;
 
-		var battleAgent = _battleAgent
-			?? throw new InvalidOperationException("Battle movement requires a battle agent.");
-		if (battleAgent.Sim.Actions.Count == 0)
+		_state.CurrentBeat = TutorialBeat.BeatBDelivery;
+		_state.BeatBContractId = TutorialBeatContracts.OfferBeatB(_orchestrator.Map);
+		_orchestrator.Map.StoryObjectives.Add(
+			StoryObjective.BeatBContract(_state.BeatBContractId));
+		_state.BeatBOffered = true;
+		GameLog.Log(
+			$"Tutorial Beat B offered: beatAContractId='{beatAId}', "
+			+ $"beatBContractId='{_state.BeatBContractId}'.");
+	}
+
+	private void ReconcileFlowProgress(bool cancelBattleFlowWhenOffBattlefield)
+	{
+		if (IsFirstContractTutorialSatisfied())
+			EnsureFlowCompleted(FirstContractTutorial.Id);
+
+		if (IsFirstBattleTutorialSatisfied())
+			EnsureFlowCompleted(FirstBattleTutorial.Id);
+		else if (cancelBattleFlowWhenOffBattlefield
+			&& _activeFlow?.Id == FirstBattleTutorial.Id)
+			CancelActive();
+
+		if (_progress.IsCompleted(FirstContractTutorial.Id)
+			&& _activeFlow?.Id == FirstContractTutorial.Id)
+			CancelActive();
+	}
+
+	private bool IsFirstContractTutorialSatisfied() =>
+		!_orchestrator.Map.StoryObjectives.Active.Any(
+			objective => objective.Id == StoryObjective.FirstContract.Id);
+
+	private bool IsFirstBattleTutorialSatisfied() =>
+		_state.BeatAContractId is { } beatAId
+		&& _orchestrator.Map.ContractRegistry.IsCompleted(beatAId);
+
+	private void EnsureFlowCompleted(string flowId)
+	{
+		if (_progress.IsCompleted(flowId))
 		{
-			_runner.ClearAssistance();
+			if (_activeFlow?.Id == flowId)
+				CancelActive();
 			return;
 		}
 
-		if (QueuedMovementMatchesObjective(battleAgent, objective))
+		if (_activeFlow?.Id == flowId)
 		{
-			_runner.ClearAssistance();
-			_runner.AdvanceActive();
+			CompleteActiveFlow();
 			return;
 		}
 
-		_runner.ShowAssistance(new TutorialAssistanceContent(
-			mismatchMessage,
-			TutorialCopy.UndoAndRetryAssistance));
+		_progress.Complete(flowId);
 	}
 
-	private void AdvanceBattleTorpedoIfReady()
+	private static void ValidateFlow(TutorialFlow flow)
 	{
-		var battleAgent = _battleAgent
-			?? throw new InvalidOperationException("Battle torpedo step requires a battle agent.");
-		if (_turn2Objective is null || !QueuedMovementMatchesObjective(battleAgent, _turn2Objective))
+		ArgumentException.ThrowIfNullOrEmpty(flow.Id);
+		ArgumentNullException.ThrowIfNull(flow.Steps);
+		if (flow.Steps.Count == 0)
+			throw new ArgumentException("Tutorial flow must contain at least one step.", nameof(flow));
+		foreach (var candidate in flow.Steps)
 		{
-			_runner.ShowAssistance(new TutorialAssistanceContent(
-				TutorialCopy.MatchGhostPoseAssistance,
-				TutorialCopy.UndoAndRetryAssistance));
-			return;
+			ArgumentNullException.ThrowIfNull(candidate);
+			if (candidate.TargetId is not null)
+				ArgumentException.ThrowIfNullOrEmpty(candidate.TargetId);
+			ArgumentNullException.ThrowIfNull(candidate.Dialog);
+			if (candidate.AdvanceOnAccept)
+				ArgumentException.ThrowIfNullOrEmpty(candidate.Dialog.AcceptText);
+			else if (candidate.Dialog.AcceptText is not null)
+				throw new ArgumentException(
+					"Externally advanced tutorial steps cannot show an accept button.",
+					nameof(flow));
 		}
-
-		if (!battleAgent.Sim.Actions.Any(action =>
-				action is TorpedoAction { MountedOn: ESpatialOrientation.Ventral }))
-		{
-			if (battleAgent.Sim.Actions.Any(action => action is TorpedoAction))
-			{
-				_runner.ShowAssistance(new TutorialAssistanceContent(
-					TutorialCopy.QueueVentralTorpedoAssistance,
-					TutorialCopy.UndoAndRetryAssistance));
-			}
-			else
-			{
-				_runner.ClearAssistance();
-			}
-
-			return;
-		}
-
-		_runner.ClearAssistance();
-		_runner.AdvanceActive();
-	}
-
-	private bool QueuedMovementMatchesObjective(
-		UserExecutionAgent battleAgent,
-		BattleTutorialObjective objective)
-	{
-		var battle = _battle
-			?? throw new InvalidOperationException("Battle objective validation requires a battle orchestrator.");
-		var movementActions = MovementPrefix(battleAgent.Sim.Actions);
-		if (movementActions.Count == 0)
-			return false;
-
-		var checkpoints = MovePathIndex.ProjectCheckpoints(
-			battleAgent.Sim.ForkFromAnchor(),
-			battle.PlayerId,
-			movementActions,
-			includeStart: false);
-		if (checkpoints.Count == 0)
-			return false;
-
-		var end = checkpoints[^1];
-		return end.Position == objective.Destination && end.Basis == objective.RequiredBasis;
-	}
-
-	private void OnAssistanceRequested()
-	{
-		if (_battleAgent is null
-			|| _runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (_runner.ActiveStep?.TargetId)
-		{
-			case FirstBattleTutorial.Turn1MoveTargetId:
-			case FirstBattleTutorial.Turn2MoveTargetId:
-			case FirstBattleTutorial.Turn2TorpedoTargetId:
-				if (!_battleAgent.Undo())
-					GD.PushWarning("Tutorial could not undo the invalid battle plan.");
-				break;
-		}
-	}
-
-	private static List<IAction> MovementPrefix(IReadOnlyList<IAction> actions)
-	{
-		var movement = new List<IAction>();
-		foreach (var action in actions)
-		{
-			if (action is MoveStepAction or HeadingTurnAction or RollAction)
-			{
-				movement.Add(action);
-				continue;
-			}
-
-			break;
-		}
-
-		return movement;
-	}
-
-	public void NotifyMoveSelectionStarted() => _ghostPresenter?.Suppress();
-
-	public void NotifyMoveSelectionCanceled() => _ghostPresenter?.Restore();
-
-	public void NotifyBattlePhaseChanged(EBattlePhase phase)
-	{
-		if (_runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (phase)
-		{
-			case EBattlePhase.Resolving
-				when _runner.ActiveStep?.TargetId == FirstBattleTutorial.Turn1EndTargetId:
-				_runner.AdvanceActiveSilently();
-				break;
-			case EBattlePhase.PlayerTurn:
-				TryPresentTurn2();
-				break;
-		}
-	}
-
-	public void NotifyBattleTurnResolved(int completedTurn)
-	{
-		if (_runner.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (completedTurn)
-		{
-			case TutorialTurn1
-				when _runner.ActiveStep?.TargetId == FirstBattleTutorial.Turn2MoveTargetId:
-				_turn2AwaitingPlayerTurn = PrepareTurn2Objective();
-				break;
-			case TutorialTurn2
-				when _runner.ActiveStep?.TargetId == FirstBattleTutorial.Turn2EndTargetId:
-				_runner.AdvanceActive();
-				break;
-		}
-	}
-
-	private void TryPresentTurn2()
-	{
-		if (!_turn2AwaitingPlayerTurn
-			|| _runner.ActiveStep?.TargetId != FirstBattleTutorial.Turn2MoveTargetId
-			|| _turn2Objective is not { } objective)
-			return;
-
-		var battle = _battle
-			?? throw new InvalidOperationException("Battle tutorial requires a battle orchestrator.");
-		if (!BattleTutorialObjectives.IsReachable(battle, objective))
-		{
-			AbortBattleTutorial("First battle tutorial turn 2 setup failed: Turn 2 objective is unreachable.");
-			return;
-		}
-
-		_turn2AwaitingPlayerTurn = false;
-		_runner.PresentActiveStep();
-	}
-
-	private bool PrepareTurn2Objective()
-	{
-		var battle = _battle
-			?? throw new InvalidOperationException("Battle tutorial requires a battle orchestrator.");
-		var turn2Result = BattleTutorialObjectives.ResolveTurn2(battle);
-		if (turn2Result is BattleTutorialObjectiveResult.Unreachable unreachable)
-		{
-			AbortBattleTutorial($"First battle tutorial turn 2 setup failed: {unreachable.Reason}");
-			return false;
-		}
-
-		_turn2Objective = ((BattleTutorialObjectiveResult.Resolved)turn2Result).Objective;
-		UpdateGhostForActiveStep();
-		return true;
-	}
-
-	private void AbortBattleTutorial(string reason)
-	{
-		GD.PushWarning(reason);
-		_turn2AwaitingPlayerTurn = false;
-		_ghostPresenter?.SetSpec(null);
-		_runner.CancelActive();
-	}
-
-	private void UpdateGhostForActiveStep()
-	{
-		if (_battle is null)
-		{
-			_ghostPresenter?.SetSpec(null);
-			return;
-		}
-
-		var objective = _runner.ActiveStep?.TargetId switch
-		{
-			FirstBattleTutorial.Turn1MoveTargetId => _turn1Objective,
-			FirstBattleTutorial.Turn2MoveTargetId => _turn2Objective,
-			_ => null,
-		};
-		if (objective is null)
-		{
-			_ghostPresenter?.SetSpec(null);
-			return;
-		}
-
-		var player = _battle.Engine.World.StateOf(_battle.PlayerId);
-		_ghostPresenter?.SetSpec(new PosedUnitGhostSpec(
-			player.Type,
-			objective.Destination,
-			objective.RequiredBasis.Forward,
-			objective.RequiredBasis.Up,
-			Colors.Cyan));
-	}
-
-	private void OnMove(MoveAction move)
-	{
-		var orchestrator = _orchestrator
-			?? throw new InvalidOperationException("Battle tutorials do not observe star-system movement.");
-		if (_runner.ActiveFlow is not { Id: FirstContractTutorial.Id }
-			|| _runner.ActiveStep?.TargetId is not { } targetId
-			|| move.ActorId != orchestrator.PlayerId
-			|| move.UnitId != orchestrator.PlayerId
-			|| !orchestrator.Map.DocksByPoiId.TryGetValue(targetId, out var dock)
-			|| move.Destination != dock.Position)
-			return;
-
-		_runner.AdvanceActive();
 	}
 
 	public void Dispose()
 	{
-		_contractScheduler?.Dispose();
+		_contractCompletionSubscription?.Dispose();
 		_narrativeSubscription?.Dispose();
-		if (_battleAgent is not null)
-			_battleAgent.PlanningChanged -= OnBattlePlanningChanged;
-		_runner.Started -= OnStarted;
-		_runner.StepStarted -= OnStepStarted;
-		_runner.AssistanceRequested -= OnAssistanceRequested;
-		_runner.Completed -= OnCompleted;
-		_activeActionSubscription?.Dispose();
-		_activeActionSubscription = null;
-		_ghostPresenter?.Dispose();
-		_runner.Dispose();
+		CancelActive();
 	}
 }

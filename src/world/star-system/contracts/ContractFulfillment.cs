@@ -10,6 +10,7 @@ public static class ContractFulfillment
 		active.Definition.Objective switch
 		{
 			HuntObjective => AreHuntTargetsEliminated(map, active.State),
+			DeliveryObjective => active.State.DeliveryTurnedIn,
 			_ => false,
 		};
 

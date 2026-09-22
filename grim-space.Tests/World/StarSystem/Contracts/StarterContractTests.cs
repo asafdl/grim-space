@@ -14,7 +14,7 @@ public sealed class StarterContractTests(StarMapFixture maps)
 	public void BeatAHunt_OfferedContractHasValidShape()
 	{
 		var map = maps.Fresh(42);
-		TutorialContractScheduler.OfferBeatA(map);
+		TutorialBeatContracts.OfferBeatA(map);
 		var plan = map.Blueprint.SupplyPlan;
 		var offered = map.ContractRegistry.Offered.ToList();
 
@@ -27,7 +27,7 @@ public sealed class StarterContractTests(StarMapFixture maps)
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
 			Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
-			Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, credits);
+			Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, credits);
 			Assert.True(contract.IsStoryObjective);
 			Assert.False(contract.AllowsDecline);
 

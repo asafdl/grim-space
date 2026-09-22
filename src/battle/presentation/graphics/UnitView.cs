@@ -17,6 +17,13 @@ public partial class UnitView : Node3D
 	private bool _hitMarked;
 	private Tween? _poseTween;
 
+	public override void _ExitTree()
+	{
+		_poseTween?.Kill();
+		_poseTween = null;
+		base._ExitTree();
+	}
+
 	public void Bind(State state, Color color)
 	{
 		Name = state.Id;
@@ -89,14 +96,17 @@ public partial class UnitView : Node3D
 
 		var startPosition = Position;
 		var targetPosition = WorldMapping.ToWorld(state.Position);
-		var startRotation = Basis.GetRotationQuaternion();
-		var targetRotation = BasisFrom(state).GetRotationQuaternion();
+		var startRotation = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
+		var targetRotation = NormalizeRotationQuaternion(BasisFrom(state).GetRotationQuaternion());
 		_poseTween = CreateTween();
 		_poseTween.TweenMethod(
 			Callable.From<float>(weight =>
 			{
+				if (!IsInstanceValid(this))
+					return;
+
 				Position = startPosition.Lerp(targetPosition, weight);
-				Basis = new Basis(startRotation.Slerp(targetRotation, weight));
+				Basis = new Basis(startRotation.Slerp(targetRotation, weight).Normalized());
 			}),
 			0f,
 			1f,
@@ -117,13 +127,16 @@ public partial class UnitView : Node3D
 		if (!state.IsAlive)
 			return;
 
-		var startQuat = Basis.GetRotationQuaternion();
-		var endQuat = BasisFrom(state).GetRotationQuaternion();
+		var startQuat = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
+		var endQuat = NormalizeRotationQuaternion(BasisFrom(state).GetRotationQuaternion());
 		_poseTween = CreateTween();
 		_poseTween.TweenMethod(
 			Callable.From<float>(weight =>
 			{
-				Basis = new Basis(startQuat.Slerp(endQuat, weight));
+				if (!IsInstanceValid(this))
+					return;
+
+				Basis = new Basis(startQuat.Slerp(endQuat, weight).Normalized());
 			}),
 			0f,
 			1f,
@@ -476,6 +489,9 @@ public partial class UnitView : Node3D
 
 	private void ApplyOrientation(State state) =>
 		Basis = BasisFrom(state);
+
+	private static Quaternion NormalizeRotationQuaternion(Quaternion quaternion) =>
+		quaternion.LengthSquared() < Mathf.Epsilon ? Quaternion.Identity : quaternion.Normalized();
 
 	private static Basis BasisFrom(State state) =>
 		new(

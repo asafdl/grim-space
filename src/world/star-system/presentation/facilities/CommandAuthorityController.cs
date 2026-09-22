@@ -16,7 +16,9 @@ public partial class CommandAuthorityController : Control
 	private ContractHudOverlay _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
+	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
 	private string _activePoiId = null!;
+	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
@@ -27,12 +29,13 @@ public partial class CommandAuthorityController : Control
 
 		_activePoiId = MapNavigationContext.ActivePoiId
 			?? throw new InvalidOperationException("Command Authority requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
+		_facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Command Authority requires an active facility.");
-		var facility = _orchestrator.Map.GetPointOfInterest(_activePoiId).GetFacility(facilityId);
+		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
+		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, facility, OnFacilityOperatorActivated);
+		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
@@ -46,6 +49,12 @@ public partial class CommandAuthorityController : Control
 		_contractHudLayer.AddChild(_contractHud);
 
 		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
+			this,
+			_backButton,
+			_orchestrator,
+			_activePoiId,
+			_facilityId);
 	}
 
 	public override void _ExitTree()
@@ -56,13 +65,13 @@ public partial class CommandAuthorityController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_npcDialog.TryHandleInput(@event))
+		if (_npcDialog.TryHandleInput(@event) || _deliveryTurnInDialog.TryHandleInput(@event))
 			return;
 
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_contractHud.IsOpen || _npcDialog.IsOpen)
+		if (_contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
 		ReturnToMap();
@@ -71,34 +80,30 @@ public partial class CommandAuthorityController : Control
 
 	public bool TryAcceptContract(string contractId)
 	{
-		var facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Command Authority requires an active facility.");
 		var operatorName = RequireActiveOperatorName();
 		return _orchestrator.TryCommitPlayerInput(new AcceptContractAction(
 			State.PlayerFleetUnitId,
 			_activePoiId,
-			facilityId,
+			_facilityId,
 			operatorName,
 			contractId));
 	}
 
 	public bool TryDeclineContract(string contractId)
 	{
-		var facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Command Authority requires an active facility.");
 		var operatorName = RequireActiveOperatorName();
 		return _orchestrator.TryCommitPlayerInput(new DeclineContractAction(
 			State.PlayerFleetUnitId,
 			_activePoiId,
-			facilityId,
+			_facilityId,
 			operatorName,
 			contractId));
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator)
+	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (facilityOperator.Role)
+		switch (role)
 		{
 			case EFacilityOperatorRole.Contracts:
 				OpenContractHud(facilityOperator);
@@ -106,9 +111,12 @@ public partial class CommandAuthorityController : Control
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
 				break;
+			case EFacilityOperatorRole.DeliveryTurnIn:
+				_deliveryTurnInDialog.Open(facilityOperator);
+				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{facilityOperator.Role}' in command authority facility.");
+					$"Unexpected operator role '{role}' in command authority facility.");
 		}
 	}
 
@@ -158,5 +166,5 @@ public partial class CommandAuthorityController : Control
 		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _contractHud.IsOpen || _npcDialog.IsOpen;
+		_backButton.Disabled = _contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen;
 }

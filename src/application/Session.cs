@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Godot;
 using GrimSpace.Core.Log;
+using GrimSpace.Education;
 using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
@@ -18,6 +19,7 @@ public partial class Session : Node
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
+	private TutorialDialogHost? _tutorialDialogHost;
 
 	public static Session Instance =>
 		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
@@ -25,6 +27,9 @@ public partial class Session : Node
 	public State Run { get; private set; } = null!;
 
 	public DevMenuOverlay DevMenu => _devMenu;
+
+	public TutorialDialogHost TutorialDialogHost =>
+		_tutorialDialogHost ?? throw new InvalidOperationException("Session tutorial host is not ready.");
 
 	public override void _EnterTree()
 	{
@@ -41,6 +46,8 @@ public partial class Session : Node
 		_devMenu = new DevMenuOverlay();
 		devMenuLayer.AddChild(_devMenu);
 		_devMenu.StartBattleRequested += StartDevBattle;
+		_tutorialDialogHost = new TutorialDialogHost();
+		AddChild(_tutorialDialogHost);
 	}
 
 	public override void _ExitTree()
@@ -144,7 +151,7 @@ public partial class Session : Node
 
 	public void StartNewRun()
 	{
-		AdoptRun(State.CreateNewRun(Random.Shared.Next()));
+		AdoptRun(State.CreateNewRun(Random.Shared.Next(), GameSettings.ReadShowTutorials()));
 	}
 
 	private void AdoptRun(State next)
@@ -191,7 +198,8 @@ public partial class Session : Node
 		if (_preparedRunTask is { IsCompleted: true, IsFaulted: false })
 			return;
 
-		_preparedRunTask = Task.Run(() => State.CreateNewRun(Random.Shared.Next()));
+		_preparedRunTask = Task.Run(() =>
+			State.CreateNewRun(Random.Shared.Next(), GameSettings.ReadShowTutorials()));
 	}
 
 	private bool TryAdoptPreparedRun()

@@ -7,8 +7,9 @@ public static class FacilityOperatorBinder
 {
 	public static void Bind(
 		Node operatorRoot,
+		PointOfInterest poi,
 		Facility facility,
-		Action<FacilityOperator> onActivated)
+		Action<FacilityOperator, EFacilityOperatorRole> onActivated)
 	{
 		foreach (var facilityOperator in facility.Operators)
 		{
@@ -20,7 +21,11 @@ public static class FacilityOperatorBinder
 
 			button.TooltipText = OperatorDisplayLabels.Title(facilityOperator);
 			var captured = facilityOperator;
-			button.Pressed += () => onActivated(captured);
+			button.Pressed += () =>
+			{
+				var role = poi.ResolveInteractionRole(facility.Id, captured.Name, captured.Role);
+				onActivated(captured, role);
+			};
 		}
 	}
 }

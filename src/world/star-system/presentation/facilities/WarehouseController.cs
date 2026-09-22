@@ -2,16 +2,23 @@ using Godot;
 using GrimSpace.Application;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
+using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public partial class WarehouseController : Control
 {
 	private StarSystemOrchestrator _orchestrator = null!;
+	private CanvasLayer _contractHudLayer = null!;
+	private ContractHudOverlay _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
+	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
+	private string _activePoiId = null!;
+	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
@@ -20,18 +27,34 @@ public partial class WarehouseController : Control
 		if (_orchestrator.PlayerAgent is null)
 			throw new InvalidOperationException("Warehouse requires a player execution agent.");
 
-		var poiId = MapNavigationContext.ActivePoiId
+		_activePoiId = MapNavigationContext.ActivePoiId
 			?? throw new InvalidOperationException("Warehouse requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
+		_facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Warehouse requires an active facility.");
-		var facility = _orchestrator.Map.GetPointOfInterest(poiId).GetFacility(facilityId);
+		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
+		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, facility, OnFacilityOperatorActivated);
+		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
+
+		_contractHudLayer = new CanvasLayer { Layer = 20 };
+		AddChild(_contractHudLayer);
+		_contractHud = new ContractHudOverlay();
+		_contractHud.AcceptRequested += OnAcceptRequested;
+		_contractHud.DeclineRequested += OnDeclineRequested;
+		_contractHud.Closed += UpdateBackButton;
+		_contractHudLayer.AddChild(_contractHud);
+
 		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
+			this,
+			_backButton,
+			_orchestrator,
+			_activePoiId,
+			_facilityId);
 	}
 
 	public override void _ExitTree()
@@ -42,32 +65,94 @@ public partial class WarehouseController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_npcDialog.TryHandleInput(@event))
+		if (_npcDialog.TryHandleInput(@event) || _deliveryTurnInDialog.TryHandleInput(@event))
 			return;
 
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_npcDialog.IsOpen)
+		if (_contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
 		ReturnToMap();
 		GetViewport().SetInputAsHandled();
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator)
+	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (facilityOperator.Role)
+		switch (role)
 		{
+			case EFacilityOperatorRole.Contracts:
+				_contractHud.Open(_orchestrator.Map, _activePoiId, OperatorDisplayLabels.Title(facilityOperator));
+				UpdateBackButton();
+				break;
 			case EFacilityOperatorRole.Dialog:
-				_npcDialog.Open(facilityOperator);
+				if (_orchestrator.Map.ContractRegistry.AvailableForPoi(_activePoiId).Any())
+				{
+					_contractHud.Open(
+						_orchestrator.Map,
+						_activePoiId,
+						OperatorDisplayLabels.Title(facilityOperator));
+					UpdateBackButton();
+				}
+				else
+				{
+					_npcDialog.Open(facilityOperator);
+				}
+				break;
+			case EFacilityOperatorRole.DeliveryTurnIn:
+				_deliveryTurnInDialog.Open(facilityOperator);
 				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{facilityOperator.Role}' in warehouse facility.");
+					$"Unexpected operator role '{role}' in warehouse facility.");
 		}
 	}
+
+	private void OnAcceptRequested(string contractId)
+	{
+		if (!TryAcceptContract(contractId))
+		{
+			_contractHud.ShowError("Unable to accept contract.");
+			UpdateBackButton();
+			return;
+		}
+
+		_contractHud.SyncMap(_orchestrator.Map);
+		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
+		UpdateBackButton();
+	}
+
+	private void OnDeclineRequested(string contractId)
+	{
+		if (!TryDeclineContract(contractId))
+		{
+			_contractHud.ShowError("Unable to decline contract.");
+			UpdateBackButton();
+			return;
+		}
+
+		_contractHud.SyncMap(_orchestrator.Map);
+		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
+		UpdateBackButton();
+	}
+
+	private bool TryAcceptContract(string contractId) =>
+		_orchestrator.TryCommitPlayerInput(new AcceptContractAction(
+			State.PlayerFleetUnitId,
+			_activePoiId,
+			_facilityId,
+			RequireActiveOperatorName(),
+			contractId));
+
+	private bool TryDeclineContract(string contractId) =>
+		_orchestrator.TryCommitPlayerInput(new DeclineContractAction(
+			State.PlayerFleetUnitId,
+			_activePoiId,
+			_facilityId,
+			RequireActiveOperatorName(),
+			contractId));
 
 	private void ReturnToMap()
 	{
@@ -75,4 +160,11 @@ public partial class WarehouseController : Control
 		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
+
+	private static string RequireActiveOperatorName() =>
+		MapNavigationContext.ActiveOperatorName
+		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
+
+	private void UpdateBackButton() =>
+		_backButton.Disabled = _contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen;
 }

@@ -84,8 +84,8 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(StorageFacility.WarehouseScenePath, facility.ScenePath);
 
 		var manager = Assert.Single(facility.Operators);
-		Assert.Equal(MapFacilityOperators.WarehouseManagerOperatorName(world), manager.Name);
 		Assert.Equal(EFacilityOperatorRole.Dialog, manager.Role);
+		Assert.Equal(MapFacilityOperators.WarehouseManagerOperatorName(world), manager.Name);
 		Assert.Equal(StorageFacility.WarehouseManagerOperatorSceneSlotId, manager.SceneSlotId);
 		Assert.Contains(manager.Name, OperatorNames.Pool);
 	}

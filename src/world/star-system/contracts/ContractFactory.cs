@@ -21,8 +21,7 @@ public static class ContractFactory
 			},
 			EContractKind.Delivery => args switch
 			{
-				DeliveryCreateArgs => throw new NotSupportedException(
-					$"Contract kind '{kind}' is not implemented yet."),
+				DeliveryCreateArgs deliveryArgs => CreateDelivery(map, deliveryArgs),
 				_ => throw Mismatch(kind, args),
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
@@ -69,6 +68,45 @@ public static class ContractFactory
 			args.Terms,
 			args.Narrative,
 			args.IsStoryObjective);
+	}
+
+	private static Contract CreateDelivery(StarMap map, DeliveryCreateArgs args)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
+
+		var contractId = TypedIdGenerator.NextId("contract");
+		var (turnInPoiId, turnInFacilityId, turnInOperatorName) = ResolveDropoff(map, args, contractId);
+		var objective = new DeliveryObjective(turnInPoiId, turnInFacilityId, turnInOperatorName);
+
+		return new Contract(
+			contractId,
+			objective,
+			map.ControllingFaction,
+			args.IssuerPoiId,
+			args.Terms,
+			args.Narrative,
+			args.IsStoryObjective);
+	}
+
+	private static (string PoiId, string FacilityId, string OperatorName) ResolveDropoff(
+		StarMap map,
+		DeliveryCreateArgs args,
+		string contractId)
+	{
+		var hasOverride = args.DropoffPoiId is not null
+			|| args.DropoffFacilityId is not null
+			|| args.DropoffOperatorName is not null;
+		if (!hasOverride)
+			return DeliveryDropoffPicker.Pick(map, args.IssuerPoiId, contractId);
+
+		if (string.IsNullOrEmpty(args.DropoffPoiId)
+			|| string.IsNullOrEmpty(args.DropoffFacilityId)
+			|| string.IsNullOrEmpty(args.DropoffOperatorName))
+			throw new ArgumentException(
+				"Delivery dropoff override requires PoiId, FacilityId, and OperatorName.",
+				nameof(args));
+
+		return (args.DropoffPoiId, args.DropoffFacilityId, args.DropoffOperatorName);
 	}
 
 	private static AreaPick? PickSearchArea(StarMap map, AreaPickerArgs picker)

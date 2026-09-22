@@ -12,4 +12,11 @@ public sealed record HuntCreateArgs(
 	ContractNarrative Narrative,
 	bool IsStoryObjective) : ContractCreateArgs;
 
-public sealed record DeliveryCreateArgs(string PickupPoiId) : ContractCreateArgs;
+public sealed record DeliveryCreateArgs(
+	string IssuerPoiId,
+	ContractTerms Terms,
+	ContractNarrative Narrative,
+	bool IsStoryObjective,
+	string? DropoffPoiId = null,
+	string? DropoffFacilityId = null,
+	string? DropoffOperatorName = null) : ContractCreateArgs;

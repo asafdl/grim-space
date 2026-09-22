@@ -64,6 +64,7 @@ public sealed class Refinery : PointOfInterest
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
 		ForkFacilityState(clone);
+		ForkOperatorTemporaryRoles(clone);
 		return clone;
 	}
 

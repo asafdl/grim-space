@@ -242,7 +242,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			objective,
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
-			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialContractScheduler.BeatAHuntRewardCredits)),
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialBeatContracts.BeatAHuntRewardCredits)),
 			ContractNarrative.ForHunt("Synthetic Hunt"));
 		map.ContractRegistry.RegisterOffered(contract);
 	}

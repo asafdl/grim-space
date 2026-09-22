@@ -13,6 +13,15 @@ public static class FacilityNpcDialogs
 {
 	public const string LeaveChoiceId = "leave";
 	public const string MoreChoiceId = "more";
+	public const string TurnInChoiceId = "turn-in";
+
+	public static NpcDialogDefinition DeliveryTurnIn(FacilityOperator facilityOperator, string turnInDialog) =>
+		new(
+			facilityOperator.Name,
+			turnInDialog,
+			[
+				new NpcDialogChoice(TurnInChoiceId, "Deliver"),
+			]);
 
 	public static NpcDialogDefinition Idle(
 		Facility facility,

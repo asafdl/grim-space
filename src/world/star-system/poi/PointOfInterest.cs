@@ -13,6 +13,7 @@ public abstract class PointOfInterest
 	public EPoiLogicalRole LogicalRole { get; }
 	public PoiFacade Facade { get; internal set; } = PoiFacade.Default;
 	public IReadOnlyList<Facility> Facilities { get; internal set; } = [];
+	public FacilityOperatorTemporaryRoles OperatorTemporaryRoles { get; private set; } = new();
 	public int NextAvailableTaskTick { get; set; } = 1;
 
 	protected PointOfInterest(
@@ -47,6 +48,14 @@ public abstract class PointOfInterest
 
 		return facility;
 	}
+
+	public EFacilityOperatorRole ResolveInteractionRole(
+		string facilityId,
+		string operatorName,
+		EFacilityOperatorRole templateRole) =>
+		OperatorTemporaryRoles.TryGetRole(facilityId, operatorName, out var overlayRole)
+			? overlayRole
+			: templateRole;
 
 	public virtual int RouteExclusionRadius => Radius + 6;
 
@@ -91,4 +100,7 @@ public abstract class PointOfInterest
 
 	protected void ForkReservationState(PointOfInterest clone) =>
 		clone.NextAvailableTaskTick = NextAvailableTaskTick;
+
+	protected void ForkOperatorTemporaryRoles(PointOfInterest clone) =>
+		clone.OperatorTemporaryRoles = OperatorTemporaryRoles.CloneForFork();
 }

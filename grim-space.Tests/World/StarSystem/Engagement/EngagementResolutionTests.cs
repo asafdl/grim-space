@@ -110,15 +110,17 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void RunResolution_ClearsActiveBattleOnlyAfterSuccessfulVictory()
+	public void RunResolution_CompletesBeatAAndAddsBeatBStoryObjective()
 	{
-		var run = RunState.CreateNewRun(42);
+		using var run = RunState.CreateNewRun(42, tutorialsEnabled: true);
 		AddPirate(run.StarSystem.Map, PirateId);
 		new CommitEngagementEffect(PlayerId, PirateId)
 			.Apply(
 				run.StarSystem.Map,
 				new GrimSpace.World.StarSystem.Runtime.ActorRuntime(),
 				PlayerId);
+		var beatAId = Assert.IsType<string>(run.TutorialState?.BeatAContractId);
+		ActivateHuntContract(run.StarSystem.Map, [PirateId]);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerId);
 		var pirateFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PirateId);
 		foreach (var declaration in pirateFleet.Registrations)
@@ -139,6 +141,12 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var victory = Victory(run.StarSystem.Map, PirateId);
 		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(victory));
 		Assert.Null(run.ActiveBattle);
+		Assert.True(run.StarSystem.Map.ContractRegistry.IsCompleted(beatAId));
+		var beatBId = Assert.IsType<string>(run.TutorialState?.BeatBContractId);
+		Assert.True(run.StarSystem.Map.ContractRegistry.IsOffered(beatBId));
+		Assert.Contains(
+			run.StarSystem.Map.StoryObjectives.Active,
+			objective => objective.RequiredContractId == beatBId);
 		var historyCount = run.StarSystem.Map.Timeline.History().Count;
 
 		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(victory));
@@ -231,7 +239,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			150,
 			360);
 		Assert.Equal(
-			initialCredits + TutorialContractScheduler.BeatAHuntRewardCredits,
+			initialCredits + TutorialBeatContracts.BeatAHuntRewardCredits,
 			map.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
 	}

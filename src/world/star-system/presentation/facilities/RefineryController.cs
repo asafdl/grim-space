@@ -12,6 +12,9 @@ public partial class RefineryController : Control
 	private StarSystemOrchestrator _orchestrator = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
+	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
+	private string _activePoiId = null!;
+	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
@@ -20,18 +23,25 @@ public partial class RefineryController : Control
 		if (_orchestrator.PlayerAgent is null)
 			throw new InvalidOperationException("Refinery requires a player execution agent.");
 
-		var poiId = MapNavigationContext.ActivePoiId
+		_activePoiId = MapNavigationContext.ActivePoiId
 			?? throw new InvalidOperationException("Refinery requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
+		_facilityId = MapNavigationContext.ActiveFacilityId
 			?? throw new InvalidOperationException("Refinery requires an active facility.");
-		var facility = _orchestrator.Map.GetPointOfInterest(poiId).GetFacility(facilityId);
+		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
+		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, facility, OnFacilityOperatorActivated);
+		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
+			this,
+			_backButton,
+			_orchestrator,
+			_activePoiId,
+			_facilityId);
 	}
 
 	public override void _ExitTree()
@@ -42,30 +52,33 @@ public partial class RefineryController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_npcDialog.TryHandleInput(@event))
+		if (_npcDialog.TryHandleInput(@event) || _deliveryTurnInDialog.TryHandleInput(@event))
 			return;
 
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_npcDialog.IsOpen)
+		if (_npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
 		ReturnToMap();
 		GetViewport().SetInputAsHandled();
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator)
+	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (facilityOperator.Role)
+		switch (role)
 		{
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
 				break;
+			case EFacilityOperatorRole.DeliveryTurnIn:
+				_deliveryTurnInDialog.Open(facilityOperator);
+				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{facilityOperator.Role}' in refinery facility.");
+					$"Unexpected operator role '{role}' in refinery facility.");
 		}
 	}
 

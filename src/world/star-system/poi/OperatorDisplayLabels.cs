@@ -8,6 +8,7 @@ public static class OperatorDisplayLabels
 		EFacilityOperatorRole.DockyardShop => "Dockyard Shop",
 		EFacilityOperatorRole.ShieldRecharge => "Shield Recharge",
 		EFacilityOperatorRole.Dialog => "",
+		EFacilityOperatorRole.DeliveryTurnIn => "Delivery",
 		_ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
 	};
 

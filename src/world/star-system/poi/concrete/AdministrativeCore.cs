@@ -81,6 +81,7 @@ public sealed class AdministrativeCore : PointOfInterest
 		ForkReservationState(clone);
 		ForkFacadeState(clone);
 		ForkFacilityState(clone);
+		ForkOperatorTemporaryRoles(clone);
 		return clone;
 	}
 
