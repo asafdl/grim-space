@@ -41,7 +41,10 @@ public sealed class CompleteNarrativeDef
 		};
 
 		if (complete.NarrativeId == MapNarratives.OpeningId)
-			effects.Add(new AddStoryObjectiveEffect(StoryObjective.FirstContract));
+		{
+			effects.Add(new AddStoryObjectiveEffect(
+				StoryObjective.FirstContract(world.Blueprint.SupplyPlan.AdministrativePoiId)));
+		}
 
 		return effects;
 	}

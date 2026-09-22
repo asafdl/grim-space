@@ -28,7 +28,7 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 		Assert.Equal(issuer.DisplayName, route.LandmarkADisplayName);
 		Assert.Equal(", deliver to ", route.Connector);
 		Assert.Equal(dropoff.Id, route.LandmarkBPoiId);
-		Assert.Equal(dropoff.DisplayName, route.LandmarkBDisplayName);
+		Assert.Equal(delivery.TurnInOperatorName, route.LandmarkBDisplayName);
 		Assert.Equal(".", route.Suffix);
 	}
 }

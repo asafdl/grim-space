@@ -109,12 +109,13 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void ActiveFlow_SurvivesPresentationDetachAndReattach()
+	public void SyncMapFlows_DoesNotStartDialogWhenFirstContractStoryObjectiveIsActive()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
-		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
+		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
+			map.Blueprint.SupplyPlan.AdministrativePoiId));
 		using var controller = new TutorialController(
 			orchestrator,
 			new TutorialProgress(),
@@ -126,14 +127,8 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		binding.Attach();
 		controller.SyncMapFlows();
 
-		Assert.Equal(FirstContractTutorial.Id, controller.ActiveFlow?.Id);
-		binding.Detach();
-
-		using var rebound = new TutorialPresentationBinding(controller, dialog, worldLinks);
-		rebound.Attach();
-
-		Assert.Equal(FirstContractTutorial.Id, controller.ActiveFlow?.Id);
-		Assert.NotNull(dialog.Content);
+		Assert.False(controller.IsActive);
+		Assert.Null(dialog.Content);
 	}
 
 	[Fact]

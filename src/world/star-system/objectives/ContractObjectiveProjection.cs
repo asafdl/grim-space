@@ -35,7 +35,7 @@ public static class ContractObjectiveProjection
 	{
 		if (contract.Objective is DeliveryObjective delivery
 			&& contract.IssuerPoiId is { } issuerPoiId)
-			return BuildDeliverySummary(map, issuerPoiId, delivery.TurnInPoiId);
+			return BuildDeliverySummary(map, issuerPoiId, delivery);
 
 		if (contract.Objective is not HuntObjective hunt
 			|| hunt.SpawnGroups.Count == 0)
@@ -63,10 +63,10 @@ public static class ContractObjectiveProjection
 	private static ObjectiveSummaryContent BuildDeliverySummary(
 		StarMap map,
 		string issuerPoiId,
-		string dropoffPoiId)
+		DeliveryObjective delivery)
 	{
 		var issuer = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == issuerPoiId);
-		var dropoff = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == dropoffPoiId);
+		var dropoff = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == delivery.TurnInPoiId);
 		if (issuer is null || dropoff is null)
 			return new ObjectiveSummaryContent.Plain("Deliver cargo to the designated contact.");
 
@@ -75,8 +75,8 @@ public static class ContractObjectiveProjection
 			issuerPoiId,
 			issuer.DisplayName,
 			", deliver to ",
-			dropoffPoiId,
-			dropoff.DisplayName,
+			delivery.TurnInPoiId,
+			delivery.TurnInOperatorName,
 			".");
 	}
 

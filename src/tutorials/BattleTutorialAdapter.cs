@@ -59,9 +59,6 @@ public sealed class BattleTutorialAdapter : IDisposable
 			_controller,
 			dialog,
 			new WorldLinkNavigator(worldFocus, worldIndicator));
-		if (_controller.ActiveFlow?.Id == FirstContractTutorial.Id)
-			_controller.CancelActive();
-
 		_controller.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: false);
 
 		if (_controller.Progress.IsCompleted(FirstBattleTutorial.Id))

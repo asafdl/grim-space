@@ -77,7 +77,7 @@ public static class TutorialBeatContracts
 				"Supply Run",
 				$"We have this package for a dude {travelOperatorName} at Wormhole Travel. He's kinda weird, I don't want to deal with him so I'll pay you to do it.",
 				"Fuuuuucking Finally!\nI've been waiting in this hellhole for 352.1123221119 days already. The Optimality idiots say that all travel is stopped until the demo is completed.\nFucking Calculators, efficient my ass!\nWell anyways... Thanks for bringing me my lubricant, I need it for... stuff..."),
-			IsStoryObjective: false,
+			IsStoryObjective: true,
 			DropoffPoiId: exitPoiId,
 			DropoffFacilityId: travelFacilityId,
 			DropoffOperatorName: travelOperatorName);

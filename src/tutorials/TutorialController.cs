@@ -1,7 +1,5 @@
-using GrimSpace.Application;
 using GrimSpace.Core.Log;
 using GrimSpace.Education;
-using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -84,18 +82,8 @@ public sealed class TutorialController : IDisposable
 		ReconcileFlowProgress(cancelBattleFlowWhenOffBattlefield);
 	}
 
-	public void SyncMapFlows(bool cancelBattleFlowWhenOffBattlefield = false)
-	{
+	public void SyncMapFlows(bool cancelBattleFlowWhenOffBattlefield = false) =>
 		ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield);
-		if (IsActive)
-			return;
-
-		var flow = SelectNextMapFlow();
-		if (flow is null)
-			return;
-
-		TryStartFlow(flow);
-	}
 
 	public void PresentGraduationIfPending()
 	{
@@ -113,7 +101,6 @@ public sealed class TutorialController : IDisposable
 		if (IsActive)
 			return;
 
-		GameSettings.SaveShowTutorials(true);
 		_state.CurrentBeat = TutorialBeat.Graduation;
 		TryStartFlow(TutorialGraduation.Create());
 	}
@@ -199,21 +186,12 @@ public sealed class TutorialController : IDisposable
 
 	public void NotifyAssistanceRequested() => AssistanceRequested?.Invoke();
 
-	public void NotifyMoveToDock(string unitId, string dockPoiId, Coord destination, Coord dockPosition)
-	{
-		if (_activeFlow is not { Id: FirstContractTutorial.Id }
-			|| ActiveStep?.TargetId is not { } targetId
-			|| unitId != _orchestrator.PlayerId
-			|| targetId != dockPoiId
-			|| destination != dockPosition)
-			return;
-
-		AdvanceActive();
-	}
-
 	public void NotifyDeliveryContractCompleted(string contractId)
 	{
 		if (_progress.IsCompleted(TutorialGraduation.Id))
+			return;
+
+		if (_state.BeatBContractId is not { } beatBId || contractId != beatBId)
 			return;
 
 		if (!_orchestrator.Map.ContractRegistry.TryGet(contractId, out var contract)
@@ -244,16 +222,6 @@ public sealed class TutorialController : IDisposable
 		FlowCompleted?.Invoke(flow);
 	}
 
-	private TutorialFlow? SelectNextMapFlow()
-	{
-		if (!_progress.IsCompleted(FirstContractTutorial.Id)
-			&& _orchestrator.Map.StoryObjectives.Active.Any(
-				objective => objective.Id == StoryObjective.FirstContract.Id))
-			return FirstContractTutorial.Create(_orchestrator.Map);
-
-		return null;
-	}
-
 	private void RegisterContractObservation()
 	{
 		_contractCompletionSubscription ??=
@@ -274,6 +242,7 @@ public sealed class TutorialController : IDisposable
 
 		ReconcileBeatTransitions();
 		ReconcileFlowProgress(cancelBattleFlowWhenOffBattlefield: false);
+		PresentGraduationIfPending();
 	}
 
 	public void ReconcileBeatTransitions()
@@ -300,23 +269,19 @@ public sealed class TutorialController : IDisposable
 
 	private void ReconcileFlowProgress(bool cancelBattleFlowWhenOffBattlefield)
 	{
-		if (IsFirstContractTutorialSatisfied())
-			EnsureFlowCompleted(FirstContractTutorial.Id);
+		if (IsFirstContractBeatSatisfied())
+			EnsureFlowCompleted(StoryObjective.FirstContractId);
 
 		if (IsFirstBattleTutorialSatisfied())
 			EnsureFlowCompleted(FirstBattleTutorial.Id);
 		else if (cancelBattleFlowWhenOffBattlefield
 			&& _activeFlow?.Id == FirstBattleTutorial.Id)
 			CancelActive();
-
-		if (_progress.IsCompleted(FirstContractTutorial.Id)
-			&& _activeFlow?.Id == FirstContractTutorial.Id)
-			CancelActive();
 	}
 
-	private bool IsFirstContractTutorialSatisfied() =>
+	private bool IsFirstContractBeatSatisfied() =>
 		!_orchestrator.Map.StoryObjectives.Active.Any(
-			objective => objective.Id == StoryObjective.FirstContract.Id);
+			objective => objective.Id == StoryObjective.FirstContractId);
 
 	private bool IsFirstBattleTutorialSatisfied() =>
 		_state.BeatAContractId is { } beatAId

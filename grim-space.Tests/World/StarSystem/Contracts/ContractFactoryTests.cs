@@ -123,6 +123,8 @@ public sealed class TutorialBeatProgressionTests(StarMapFixture maps)
 		var delivery = orchestrator.Map.ContractRegistry.Offered
 			.Single(contract => contract.Objective is DeliveryObjective);
 		Assert.Equal(map.Blueprint.SupplyPlan.StoragePoiId, delivery.IssuerPoiId);
+		Assert.True(delivery.IsStoryObjective);
+		Assert.False(delivery.AllowsDecline);
 	}
 
 	private static TutorialController CreateController(StarSystemOrchestrator orchestrator) =>

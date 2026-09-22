@@ -104,18 +104,21 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			42);
 		var unitId = GrimSpace.Run.State.PlayerFleetUnitId;
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
-		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
+		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
+			orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId));
 		var objectiveActiveWhenNotified = true;
 		orchestrator.WorldUpdated += () =>
 		{
-			objectiveActiveWhenNotified = orchestrator.Map.StoryObjectives.Active.Contains(
-				StoryObjective.FirstContract);
+			objectiveActiveWhenNotified = orchestrator.Map.StoryObjectives.Active.Any(
+				objective => objective.Id == StoryObjective.FirstContractId);
 		};
 
 		orchestrator.CommitSetup(ContractActionTestContext.Accept(orchestrator.Map, unitId, contractId));
 
 		Assert.False(objectiveActiveWhenNotified);
-		Assert.DoesNotContain(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
+		Assert.DoesNotContain(
+			orchestrator.Map.StoryObjectives.Active,
+			objective => objective.Id == StoryObjective.FirstContractId);
 		var history = orchestrator.Map.Timeline.History();
 		Assert.True(
 			history.ToList().FindIndex(entry => entry is CompleteStoryObjectiveAction)
@@ -132,11 +135,14 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var npcId = orchestrator.Map.FleetRegistry.Ids.First(
 			id => id != GrimSpace.Run.State.PlayerFleetUnitId);
 		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
-		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract);
+		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
+			orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId));
 
 		orchestrator.CommitSetup(ContractActionTestContext.Accept(orchestrator.Map, npcId, contractId));
 
-		Assert.Contains(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
+		Assert.Contains(
+			orchestrator.Map.StoryObjectives.Active,
+			objective => objective.Id == StoryObjective.FirstContractId);
 		Assert.DoesNotContain(
 			orchestrator.Map.Timeline.History(),
 			entry => entry is CompleteStoryObjectiveAction);

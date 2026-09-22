@@ -27,10 +27,10 @@ internal static class TutorialCopy
 
 	public const string UndoAndRetryAssistance = "Undo and try again";
 
+	public const string EndBattleDialog = "3 Dimensional space is hard to navigate, take full advantage of camera controls and firing hints. Now go kill those scum.";
+
 	public const string TutorialGraduationMessage =
 		"Tutorial completed — explore the world, earn credits, and enjoy. " +
 		"You can turn tutorials back on any time in settings.";
 
-	public static string MapMoveToPoi(string poiId, string poiLabel) =>
-		$"{InputShortcutText.LeftClick} the [url={poiId}]{poiLabel}[/url] on the map to move your fleet there.";
 }

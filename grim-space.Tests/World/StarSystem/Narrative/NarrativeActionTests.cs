@@ -61,7 +61,13 @@ public sealed class NarrativeActionTests(StarMapFixture maps)
 		Assert.Null(orchestrator.Map.ActiveNarrativeId);
 		Assert.False(orchestrator.Map.WaitingForPlayerInput);
 		Assert.True(orchestrator.CanAdvance);
-		Assert.Contains(StoryObjective.FirstContract, orchestrator.Map.StoryObjectives.Active);
+		var administrativeCoreId = orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId;
+		Assert.Contains(
+			orchestrator.Map.StoryObjectives.Active,
+			objective => objective.Id == StoryObjective.FirstContractId
+				&& objective.Summary.Contains(
+					$"[url={administrativeCoreId}]Administrative Core[/url]",
+					StringComparison.Ordinal));
 	}
 
 	[Fact]

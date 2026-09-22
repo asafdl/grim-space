@@ -10,6 +10,7 @@ public static class FirstBattleTutorial
 	public const string Turn2MoveTargetId = "battle-turn2-move";
 	public const string Turn2TorpedoTargetId = "battle-turn2-torpedo";
 	public const string Turn2EndTargetId = "battle-turn2-end";
+	public const string GoodLuckPilot = "battle-good-luck-pilot";
 
 	public static TutorialFlow Create() =>
 		new(
@@ -60,5 +61,14 @@ public static class FirstBattleTutorial
 					ShowIndicator: false,
 					FocusTarget: false,
 					AdvanceOnAccept: false),
+				new TutorialStep(
+					GoodLuckPilot,
+					new TutorialDialogContent(
+						"Good Luck Pilot",
+						TutorialCopy.EndBattleDialog,
+						AcceptText: "Accept"),
+					ShowIndicator: false,
+					FocusTarget: false,
+					AdvanceOnAccept: true),
 			]);
 }

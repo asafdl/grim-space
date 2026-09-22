@@ -226,8 +226,6 @@ public partial class MapController : Node3D
 		if (ShouldInitializeTutorials())
 		{
 			var run = Session.Instance.Run;
-			if (!GameSettings.ReadShowTutorials() && run.PendingTutorialGraduation)
-				GameSettings.SaveShowTutorials(true);
 			if (run.Tutorials is null)
 				run.ConfigureTutorials(true);
 

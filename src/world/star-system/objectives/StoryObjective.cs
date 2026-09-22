@@ -6,10 +6,16 @@ public sealed record StoryObjective(
 	string Summary,
 	string? RequiredContractId = null)
 {
-	public static StoryObjective FirstContract { get; } = new(
-		"first-contract",
-		"Get your first contract",
-		"Go to the Administrative Core and accept your first contract.");
+	public const string FirstContractId = "first-contract";
+
+	public static StoryObjective FirstContract(string administrativePoiId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(administrativePoiId);
+		return new StoryObjective(
+			FirstContractId,
+			"Get your first contract",
+			$"Go to the [url={administrativePoiId}]Administrative Core[/url] and accept your first contract.");
+	}
 
 	public static StoryObjective BeatBContract(string contractId)
 	{
