@@ -34,6 +34,13 @@ internal static class MapFacilityOperators
 			Refinery.RefineryFacilitySlug,
 			EFacilityOperatorRole.Dialog);
 
+	public static string TravelOperatorName(StarMap map) =>
+		OperatorName(
+			map,
+			SupplySystemPlan.Copper.ExitPoiId,
+			Wormhole.TravelFacilitySlug,
+			EFacilityOperatorRole.Dialog);
+
 	private static string OperatorName(StarMap map, string poiId, string facilitySlug, EFacilityOperatorRole role)
 	{
 		var facilityId = Facility.ScopedId(poiId, facilitySlug);

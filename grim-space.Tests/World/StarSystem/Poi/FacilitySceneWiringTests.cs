@@ -43,5 +43,13 @@ public sealed class FacilitySceneWiringTests
 		Assert.Contains("FacilityOperatorButtonView.cs", scene);
 	}
 
+	[Fact]
+	public void TravelScene_DefinesModeledOperatorSlots()
+	{
+		var scene = File.ReadAllText(RepoPath("scenes/travel.tscn"));
+		Assert.Contains(NodeDeclaration(Wormhole.TravelOperatorSceneSlotId), scene);
+		Assert.Contains("FacilityOperatorButtonView.cs", scene);
+	}
+
 	private static string NodeDeclaration(string nodeName) => $"[node name=\"{nodeName}\"";
 }

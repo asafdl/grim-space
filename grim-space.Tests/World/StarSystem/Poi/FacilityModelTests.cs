@@ -99,12 +99,34 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Wormhole_HasTravelFacility()
+	{
+		var world = maps.Fresh(42);
+		var wormhole = world.PointsOfInterest.OfType<Wormhole>().Single();
+		var facility = Assert.Single(wormhole.Facilities);
+
+		Assert.Equal(
+			Facility.ScopedId(SupplySystemPlan.Copper.ExitPoiId, Wormhole.TravelFacilitySlug),
+			facility.Id);
+		Assert.Equal("Travel", facility.DisplayName);
+		Assert.Equal(EPresentationAnchor.Travel, facility.PresentationAnchor);
+		Assert.Equal(Wormhole.TravelScenePath, facility.ScenePath);
+
+		var operatorNpc = Assert.Single(facility.Operators);
+		Assert.Equal(MapFacilityOperators.TravelOperatorName(world), operatorNpc.Name);
+		Assert.Equal(EFacilityOperatorRole.Dialog, operatorNpc.Role);
+		Assert.Equal(Wormhole.TravelOperatorSceneSlotId, operatorNpc.SceneSlotId);
+		Assert.Contains(operatorNpc.Name, OperatorNames.Pool);
+	}
+
+	[Fact]
 	public void OtherMapPois_HaveEmptyFacilities()
 	{
 		var world = maps.Fresh(42);
 
 		foreach (var poi in world.PointsOfInterest.Where(poi =>
-			         poi is not AdministrativeCore and not TradeHub and not StorageFacility and not Refinery))
+			         poi is not AdministrativeCore and not TradeHub and not StorageFacility and not Refinery
+			         and not Wormhole))
 			Assert.Empty(poi.Facilities);
 	}
 

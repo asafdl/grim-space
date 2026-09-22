@@ -6,4 +6,5 @@ public enum EPresentationAnchor
 	Dockyard,
 	Warehouse,
 	Refinery,
+	Travel,
 }
