@@ -172,9 +172,9 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 	[InlineData(42)]
 	[InlineData(99)]
 	[InlineData(500)]
-	public void Create_SeedsStarterSearchAreaThatMeetsBandCriteria(int seed)
+	public void OfferBeatA_SearchAreaMeetsBandCriteria(int seed)
 	{
-		var map = maps.Template(seed);
+		var map = maps.FreshWithBeatAHunt(seed);
 		var hunt = Assert.IsType<HuntObjective>(map.ContractRegistry.Offered.Single().Objective);
 		var searchArea = hunt.SpawnGroups[0].SearchArea;
 		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(searchArea.Relation);

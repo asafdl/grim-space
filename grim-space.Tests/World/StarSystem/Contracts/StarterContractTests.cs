@@ -1,9 +1,9 @@
+using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Resources;
-using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
@@ -11,9 +11,10 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class StarterContractTests(StarMapFixture maps)
 {
 	[Fact]
-	public void Create_SeedsOfferedContractsWithValidShape()
+	public void BeatAHunt_OfferedContractHasValidShape()
 	{
 		var map = maps.Fresh(42);
+		TutorialContractScheduler.OfferBeatA(map);
 		var plan = map.Blueprint.SupplyPlan;
 		var offered = map.ContractRegistry.Offered.ToList();
 
@@ -26,7 +27,7 @@ public sealed class StarterContractTests(StarMapFixture maps)
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
 			Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
-			Assert.Equal(StarMap.StarterContractRewardCredits, credits);
+			Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, credits);
 			Assert.True(contract.IsStoryObjective);
 			Assert.False(contract.AllowsDecline);
 
@@ -46,5 +47,4 @@ public sealed class StarterContractTests(StarMapFixture maps)
 				searchArea.Intel.LandmarkBId);
 		}
 	}
-
 }

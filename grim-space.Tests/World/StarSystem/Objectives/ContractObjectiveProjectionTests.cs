@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.Tutorials;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
@@ -18,7 +19,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	[Fact]
 	public void Project_StarterContract_UsesPersistedIntelTitleAndReward()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contract = map.ContractRegistry.Offered.Single();
 		var objective = ContractObjectiveProjection.Project(map, contract);
 		var hunt = (HuntObjective)contract.Objective;
@@ -43,13 +44,13 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 				searchArea.Intel,
 				poiId => map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName));
 		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(StarMap.StarterContractRewardCredits, credits);
+		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, credits);
 	}
 
 	[Fact]
 	public void Project_NonLinkableIntel_FallsBackToPlainPreview()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contract = CreateContract(
 			map,
 			new AreaIntel("No landmarks here.", "poi-a", "poi-b"),
@@ -64,7 +65,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	[Fact]
 	public void Project_MissingLandmarkId_FallsBackToPlainPreview()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contract = CreateContract(
 			map,
 			new AreaIntel("Between {A} and {B}.", "poi-missing-a", "poi-missing-b"),

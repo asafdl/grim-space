@@ -1,5 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Tutorials;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -21,7 +22,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	[Fact]
 	public void OfferedContractsSpawnNothing()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var initialCount = map.FleetRegistry.All.Count();
 
 		Assert.Single(map.ContractRegistry.Offered);
@@ -72,7 +73,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	[Fact]
 	public void AcceptHunt_UsesCompositionDeclaredBySpawnSpec()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var searchArea = CreateSyntheticSearchArea(map);
 		var spawnSpec = new FleetSpawnSpec(
 			EType.PirateFleet,
@@ -99,7 +100,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	[Fact]
 	public void AcceptMultiGroupMultiCount_ProvisionsExpectedFleetTotal()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var searchArea = CreateSyntheticSearchArea(map);
 		var objective = new HuntObjective(
 		[
@@ -124,7 +125,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	[Fact]
 	public void ProvisioningDeterministic_PlanIsStableForSameInputs()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contract = map.ContractRegistry.Offered.First();
 		var hunt = (HuntObjective)contract.Objective;
 
@@ -179,7 +180,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	[Fact]
 	public void DuplicateUnitIdFailsBeforeMutation()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 
@@ -241,7 +242,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			objective,
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
-			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, StarMap.StarterContractRewardCredits)),
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialContractScheduler.BeatAHuntRewardCredits)),
 			ContractNarrative.ForHunt("Synthetic Hunt"));
 		map.ContractRegistry.RegisterOffered(contract);
 	}
@@ -283,7 +284,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	private (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngineAtIssuerDock(
 		int seed = 42)
 	{
-		var map = maps.Fresh(seed);
+		var map = maps.FreshWithBeatAHunt(seed);
 		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);

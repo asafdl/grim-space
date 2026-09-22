@@ -13,7 +13,7 @@ namespace GrimSpace.Tests.World.StarSystem.Traffic;
 internal static class StarSystemTestHarness
 {
 	public static StarSystemOrchestrator CreateOrchestrator(StarMapFixture maps, int seed = 0) =>
-		CreateOrchestrator(maps.Fresh(seed));
+		CreateOrchestrator(maps.FreshWithBeatAHunt(seed));
 
 	public static StarSystemOrchestrator CreateOrchestrator(StarMap map) =>
 		StarSystemOrchestrator.FromMap(map, new StraightLinePathfinder());
@@ -25,7 +25,7 @@ internal static class StarSystemTestHarness
 		IPathfinder? pathfinder = null,
 		StarMap? map = null)
 	{
-		map ??= maps.Fresh(seed);
+		map ??= maps.FreshWithBeatAHunt(seed);
 		if (map.FleetRegistry.All.All(unit => unit.State.Id != playerFleetUnitId))
 			AddPlayerFleet(map, playerFleetUnitId);
 		return StarSystemOrchestrator.FromMap(

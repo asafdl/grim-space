@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem;
@@ -15,4 +16,11 @@ public sealed class StarMapFixture
 		_templates.GetOrAdd(seed, StarMap.Create);
 
 	public StarMap Fresh(int seed = 42) => Template(seed).Fork();
+
+	public StarMap FreshWithBeatAHunt(int seed = 42)
+	{
+		var map = Fresh(seed);
+		TutorialContractScheduler.OfferBeatA(map);
+		return map;
+	}
 }

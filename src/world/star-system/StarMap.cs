@@ -1,12 +1,7 @@
 using GrimSpace.Core.Engine;
-using GrimSpace.Core.Ids;
-using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
-using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
-using GrimSpace.World.StarSystem.Contracts.Objectives;
-using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -14,7 +9,6 @@ using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
-using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem;
 
@@ -23,7 +17,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public const int MapWidth = 1024;
 	public const int MapHeight = 1024;
 	public const int RouteHalfWidth = 24;
-	public const int StarterContractRewardCredits = 100;
 
 	public StarSystemBlueprint Blueprint { get; }
 	public EFaction ControllingFaction => Blueprint.ControllingFaction;
@@ -131,78 +124,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		return distanceSquared < (long)combined * combined;
 	}
 
-	public static StarMap Create(int seed = 0)
-	{
-		var map = StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
-		SeedStarterContracts(map);
-		return map;
-	}
-
-	private static void SeedStarterContracts(StarMap map)
-	{
-		var plan = map.Blueprint.SupplyPlan;
-		var issuerPoiId = plan.AdministrativePoiId;
-		var landmarkGroups = new[]
-		{
-			new[] { plan.RefineryPoiId, plan.StoragePoiId },
-			new[] { plan.ExtractionPoiId, plan.StoragePoiId },
-			new[] { plan.RefineryPoiId, plan.ExitPoiId },
-		};
-		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
-		var searchArea = TryPickStarterSearchArea(map, landmarkGroups, distances)
-			?? throw new InvalidOperationException(
-				$"Could not seed a starter contract search area for map seed {map.Seed}.");
-		var contractId = TypedIdGenerator.NextId("contract");
-		var groupId = TypedIdGenerator.NextId("spawn-group");
-		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
-		var objective = new HuntObjective(
-		[
-			new SpawnEncounterGroup(
-				groupId,
-				searchArea,
-				1,
-				new FleetSpawnSpec(
-					Units.EType.PirateFleet,
-					EFaction.Pirates,
-					EDangerLevel.VeryLow,
-					spawnSeed,
-					[
-						BattleUnitType.Patrol,
-						BattleUnitType.Patrol,
-						BattleUnitType.Patrol,
-					])),
-		]);
-		var narrative = ContractNarrative.ForHunt("Pirate Hunt");
-		var contract = new Contract(
-			contractId,
-			objective,
-			map.ControllingFaction,
-			issuerPoiId,
-			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, StarterContractRewardCredits)),
-			narrative,
-			IsStoryObjective: true);
-		map.ContractRegistry.RegisterOffered(contract);
-	}
-
-	private static AreaPick? TryPickStarterSearchArea(
-		StarMap map,
-		IReadOnlyList<IReadOnlyList<string>> landmarkGroups,
-		IReadOnlyList<EAreaDistance> distances)
-	{
-		foreach (var group in landmarkGroups)
-		{
-			foreach (var distance in distances)
-			{
-				try
-				{
-					return AreaPicker.Pick(map, [group], [distance], 2);
-				}
-				catch (InvalidOperationException)
-				{
-				}
-			}
-		}
-
-		return null;
-	}
+	public static StarMap Create(int seed = 0) =>
+		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
 }

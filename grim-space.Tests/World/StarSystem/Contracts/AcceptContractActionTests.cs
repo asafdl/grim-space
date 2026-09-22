@@ -191,7 +191,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 	private (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateEngine(
 		int seed = 42)
 	{
-		var map = maps.Fresh(seed);
+		var map = maps.FreshWithBeatAHunt(seed);
 		var unit = map.FleetRegistry.All.First();
 		var unitId = unit.State.Id;
 

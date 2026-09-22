@@ -3,6 +3,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
+using GrimSpace.Tutorials;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -230,7 +231,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			150,
 			360);
 		Assert.Equal(
-			initialCredits + StarMap.StarterContractRewardCredits,
+			initialCredits + TutorialContractScheduler.BeatAHuntRewardCredits,
 			map.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
 	}
@@ -257,7 +258,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 	private StarSystemOrchestrator CreateEngagement(string? additionalPirateId = null)
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		StarSystemTestHarness.AddPlayerFleet(map, PlayerId);
 		AddPirate(map, PirateId);
 		if (additionalPirateId is not null)

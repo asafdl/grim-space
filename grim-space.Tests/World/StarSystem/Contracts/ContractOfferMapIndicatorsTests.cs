@@ -9,7 +9,7 @@ public sealed class ContractOfferMapIndicatorsTests(StarMapFixture maps)
 	[Fact]
 	public void CountOfferedByIssuerPoi_IncludesStarterContractAtAdminPoi()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var plan = map.Blueprint.SupplyPlan;
 		var counts = ContractOfferMapIndicators.CountOfferedByIssuerPoi(map);
 
@@ -20,7 +20,7 @@ public sealed class ContractOfferMapIndicatorsTests(StarMapFixture maps)
 	[Fact]
 	public void CountOfferedByIssuerPoi_OmitsPoiAfterContractRejected()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		map.ContractRegistry.Activate(new ContractState(
 			contractId,

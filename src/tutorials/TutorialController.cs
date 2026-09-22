@@ -29,6 +29,7 @@ public sealed class TutorialController : IDisposable
 	private readonly TutorialRunner _runner;
 	private readonly TutorialGhostPresenter? _ghostPresenter;
 	private readonly HashSet<string> _reportedStartFailures = new(StringComparer.Ordinal);
+	private readonly TutorialContractScheduler? _contractScheduler;
 	private IDisposable? _narrativeSubscription;
 	private IDisposable? _activeActionSubscription;
 	private BattleTutorialObjective? _turn1Objective;
@@ -45,6 +46,8 @@ public sealed class TutorialController : IDisposable
 		: this(progress, dialog, worldLinks, battle: null, battleAgent: null)
 	{
 		_orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+		_contractScheduler = new TutorialContractScheduler(_orchestrator);
+		_contractScheduler.Start();
 		_narrativeSubscription = _orchestrator.Subscribe<CompleteNarrativeAction>(_ => Sync());
 	}
 
@@ -461,6 +464,7 @@ public sealed class TutorialController : IDisposable
 
 	public void Dispose()
 	{
+		_contractScheduler?.Dispose();
 		_narrativeSubscription?.Dispose();
 		if (_battleAgent is not null)
 			_battleAgent.PlanningChanged -= OnBattlePlanningChanged;

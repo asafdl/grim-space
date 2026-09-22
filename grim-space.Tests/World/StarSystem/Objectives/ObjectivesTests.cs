@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Engine;
 using GrimSpace.Run;
+using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Actions;
@@ -18,7 +19,7 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 	[Fact]
 	public void ReactionsFor_ReturnsCompletionWhenDefeatedFleetWasLastBoundTarget()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
@@ -40,20 +41,20 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 		Assert.Equal(holderUnitId, completion.ActorId);
 		Assert.Equal(contractId, completion.ContractId);
 		Assert.True(completion.Payment.TryGet(ResourceId.Credits, out var payment));
-		Assert.Equal(StarMap.StarterContractRewardCredits, payment);
+		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, payment);
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(holderUnitId);
 		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		engine.Commit(completion);
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
-		Assert.Equal(StarMap.StarterContractRewardCredits, map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]
 	public void Completion_GrantsContractPaymentOnce()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
@@ -92,7 +93,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 	[Fact]
 	public void Collect_IncludesActiveContractsAndStoryObjectives()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 
@@ -115,7 +116,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 	[Fact]
 	public void Collect_ExcludesCompletedContracts()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 
@@ -135,7 +136,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 	[Fact]
 	public void Collect_ActiveStarterContract_IncludesRouteIntelAndReward()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var contract = map.ContractRegistry.All.First(candidate => candidate.Id == contractId);
@@ -158,13 +159,13 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 		Assert.Equal(relation.LandmarkAId, route.LandmarkAPoiId);
 		Assert.Equal(relation.LandmarkBId, route.LandmarkBPoiId);
 		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(StarMap.StarterContractRewardCredits, credits);
+		Assert.Equal(TutorialContractScheduler.BeatAHuntRewardCredits, credits);
 	}
 
 	[Fact]
 	public void Collect_StoryObjective_HasPlainSummaryAndNoReward()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		map.StoryObjectives.Add(new StoryObjective("story-1", "Reach the refinery", "Survey the supply chain."));
 

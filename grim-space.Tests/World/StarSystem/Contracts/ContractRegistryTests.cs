@@ -10,7 +10,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	[Fact]
 	public void AvailableForPoi_ReturnsOnlyOfferedContractsForIssuer()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var issuerPoiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
 		var contract = map.ContractRegistry.AvailableForPoi(issuerPoiId).Single();
 
@@ -21,7 +21,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	[Fact]
 	public void Reject_ExcludesContractFromOffered()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 
 		map.ContractRegistry.Activate(CreateRejectedState(contractId));
@@ -34,7 +34,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	[Fact]
 	public void IsOffered_DistinguishesOfferedFromActive()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 
@@ -53,7 +53,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	[Fact]
 	public void Fork_PreservesAcceptedContractState()
 	{
-		var map = maps.Fresh(42);
+		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Offered.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		map.ContractRegistry.Activate(CreateActiveState(map, contractId, holderUnitId, 1));
