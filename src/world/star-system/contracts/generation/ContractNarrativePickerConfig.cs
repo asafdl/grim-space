@@ -58,12 +58,12 @@ public sealed class ContractNarrativePickerConfig
 		new(
 			EContractKind.Hunt,
 			"Peacekeeping",
-			"Negotiations failed after the pirates shot the negotiator. We are sending you as the new negotiator.",
+			"Negotiations failed after the pirates shot the negotiator. We are sending you as the new lead negotiator.",
 			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
 		new(
 			EContractKind.Hunt,
 			"Fiscal Cleanup",
-			"Every pirate attack creates paperwork. Destroy the source before it reproduces.",
+			"Every pirate attack creates paperwork. I mean why even use paper anymore?!?",
 			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
 		new(
 			EContractKind.Hunt,
@@ -73,7 +73,7 @@ public sealed class ContractNarrativePickerConfig
 		new(
 			EContractKind.Hunt,
 			"Compliance Visit",
-			"Several captains declined inspection by accelerating away. Deliver the inspection at weapons range.",
+			"Several pilots declined inspection by accelerating away, respectfully \"inspect\" them anyway...",
 			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
 
 		new(
@@ -90,7 +90,7 @@ public sealed class ContractNarrativePickerConfig
 			EContractKind.Delivery,
 			"Fragile, Apparently",
 			"Don't worry about the bumps, I think the FRAGILE sticker is a mistake...",
-			"My baby suction-bot, did they treat you well? Good. Now come with papa, we have.. Uh, work to do..."),
+			"My baby suction-bot, did they treat you well? Good. Now come with papa, we have... Uh, work to do..."),
 		new(
 			EContractKind.Delivery,
 			"Wrong Address",
@@ -105,7 +105,7 @@ public sealed class ContractNarrativePickerConfig
 			EContractKind.Delivery,
 			"Replacement Part",
 			"A critical machine needs this replacement part. It was designed by the same team as the failed one, so manage expectations.",
-			"How did they FUCK THIS UP AGAIN!?! Give me that! Your higher ups will get word of this."),
+			"How did they FUCK THIS UP AGAIN!?! Give me that! By Syndi's beard they will get word of this."),
 		new(
 			EContractKind.Delivery,
 			"Routine Transfer",
