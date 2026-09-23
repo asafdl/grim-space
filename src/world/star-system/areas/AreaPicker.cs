@@ -5,211 +5,214 @@ using GrimSpace.World.StarSystem.Landmarks;
 
 namespace GrimSpace.World.StarSystem.Areas;
 
+public sealed record AreaPickerArgs(
+	IReadOnlyList<string> LandmarkCandidateIds,
+	int MinimumPoiClearance = 0,
+	double? MaximumReferenceDistance = null,
+	AreaRadiusConfig? RadiusConfig = null,
+	long? DeterministicPickMix = null);
+
 public static class AreaPicker
 {
-	private const int SamplesPerAxis = 16;
-	private const double MinAxisFraction = 0.20;
-	private const double MaxAxisFraction = 0.80;
-
-	public static AreaPick Pick(
-		StarMap map,
-		IReadOnlyCollection<IReadOnlyCollection<string>> landmarkGroups,
-		IReadOnlyCollection<EAreaDistance> allowedDistances,
-		int landmarksToPick,
-		AreaDistanceConfig? distanceConfig = null,
-		AreaRadiusConfig? radiusConfig = null,
-		long? deterministicPickMix = null)
+	public static bool TryPick(StarMap map, AreaPickerArgs args, out AreaPick pick)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-		ArgumentNullException.ThrowIfNull(landmarkGroups);
-		ArgumentNullException.ThrowIfNull(allowedDistances);
-		if (landmarksToPick < 1)
-			throw new ArgumentException("landmarksToPick must be at least 1.", nameof(landmarksToPick));
-		if (landmarksToPick != 2)
-			throw new ArgumentException("Only landmarksToPick == 2 is supported.", nameof(landmarksToPick));
-		if (landmarkGroups.Count == 0)
-			throw new ArgumentException("landmarkGroups must not be empty.", nameof(landmarkGroups));
-		if (allowedDistances.Count == 0)
-			throw new ArgumentException("allowedDistances must not be empty.", nameof(allowedDistances));
+		ArgumentNullException.ThrowIfNull(args);
+		ArgumentOutOfRangeException.ThrowIfNegative(args.MinimumPoiClearance);
 
-		distanceConfig ??= new AreaDistanceConfig();
-		radiusConfig ??= new AreaRadiusConfig();
-		StableRandom? random = deterministicPickMix is long mix
+		if (args.LandmarkCandidateIds.Count < 3)
+		{
+			pick = null!;
+			return false;
+		}
+
+		foreach (var landmarkId in args.LandmarkCandidateIds)
+		{
+			if (!MapLandmarkQueries.TryGet(map, landmarkId, out _))
+				throw new ArgumentException($"Unknown landmark '{landmarkId}'.", nameof(args));
+		}
+
+		var radiusConfig = args.RadiusConfig ?? new AreaRadiusConfig();
+		var radius = ResolveSearchRadius(map, args.LandmarkCandidateIds, radiusConfig);
+		if (radius <= 0)
+		{
+			pick = null!;
+			return false;
+		}
+
+		StableRandom? random = args.DeterministicPickMix is long mix
 			? new StableRandom((ulong)mix)
 			: null;
 
-		ValidateLandmarkGroups(map, landmarkGroups, landmarksToPick);
-
-		var group = PickRandom(landmarkGroups.ToArray(), random);
-		var combination = PickRandom(Combinations(group, landmarksToPick).ToArray(), random);
-		var distance = PickRandom(allowedDistances.ToArray(), random);
-
-		var landmarkAId = combination[0];
-		var landmarkBId = combination[1];
-		if (!MapLandmarkQueries.TryGet(map, landmarkAId, out var landmarkA)
-			|| !MapLandmarkQueries.TryGet(map, landmarkBId, out var landmarkB))
-		{
-			throw new InvalidOperationException(
-				$"Sampled landmarks '{landmarkAId}' and '{landmarkBId}' could not be resolved.");
-		}
-
-		var centerA = landmarkA.Position;
-		var centerB = landmarkB.Position;
-		var span = RouteGeometry.Distance(centerA, centerB);
-		if (span <= 0.0)
-		{
-			throw new InvalidOperationException(
-				$"Sampled landmarks '{landmarkAId}' and '{landmarkBId}' share the same position.");
-		}
-
-		var radius = AreaRadiusPicker.Pick(span, radiusConfig);
-		var axis = new[] { centerA, centerB };
-		var candidates = new List<Candidate>();
-		CollectCandidates(
-			map,
-			candidates,
-			axis,
-			span,
-			span,
-			radius,
-			landmarkAId,
-			landmarkBId,
-			distance,
-			distanceConfig);
-
-		if (candidates.Count == 0)
-		{
-			throw new InvalidOperationException(
-				$"No valid area for landmarks '{landmarkAId}' and '{landmarkBId}' at distance {distance}.");
-		}
-
-		var chosen = candidates[PickIndex(candidates.Count, random)];
-		var intel = AreaIntelProducer.Produce(
-			new AreaIntelContext(chosen.LandmarkAId, chosen.LandmarkBId, chosen.Distance));
-
-		return new AreaPick(
-			chosen.Center,
-			chosen.Radius,
-			intel,
-			new AreaRelation.BetweenLandmarks(chosen.LandmarkAId, chosen.LandmarkBId, chosen.Distance));
-	}
-
-	private static void ValidateLandmarkGroups(
-		StarMap map,
-		IReadOnlyCollection<IReadOnlyCollection<string>> landmarkGroups,
-		int landmarksToPick)
-	{
-		foreach (var group in landmarkGroups)
-		{
-			if (group.Count == 0)
-				throw new ArgumentException("Landmark group must not be empty.", nameof(landmarkGroups));
-
-			if (group.Count < landmarksToPick)
+		var positions = args.LandmarkCandidateIds
+			.Select(id =>
 			{
-				throw new ArgumentException(
-					$"Landmark group has {group.Count} landmark(s) but {landmarksToPick} required.",
-					nameof(landmarkGroups));
-			}
+				MapLandmarkQueries.TryGet(map, id, out var landmark);
+				return (Id: id, landmark.Position);
+			})
+			.ToArray();
 
-			foreach (var landmarkId in group)
-			{
-				if (!MapLandmarkQueries.TryGet(map, landmarkId, out _))
-					throw new ArgumentException($"Unknown landmark '{landmarkId}'.", nameof(landmarkGroups));
-			}
-		}
-	}
+		var combinations = Combinations(args.LandmarkCandidateIds, 3).ToArray();
+		var bestScore = double.PositiveInfinity;
+		var best = new List<Solution>();
 
-	private static T PickRandom<T>(IReadOnlyList<T> items, StableRandom? random) =>
-		items[PickIndex(items.Count, random)];
-
-	private static int PickIndex(int count, StableRandom? random) =>
-		random is null ? Random.Shared.Next(count) : (int)(random.Value.NextDouble() * count);
-
-	private static void CollectCandidates(
-		StarMap map,
-		List<Candidate> candidates,
-		IReadOnlyList<Coord> axis,
-		double axisLength,
-		double span,
-		int radius,
-		string landmarkAId,
-		string landmarkBId,
-		EAreaDistance distance,
-		AreaDistanceConfig distanceConfig)
-	{
-		for (var sample = 0; sample < SamplesPerAxis; sample++)
+		foreach (var center in SampleCandidateCenters(map, radius))
 		{
-			var fraction = SamplesPerAxis == 1
-				? (MinAxisFraction + MaxAxisFraction) * 0.5
-				: MinAxisFraction + (MaxAxisFraction - MinAxisFraction) * sample / (SamplesPerAxis - 1);
-			var arcLength = axisLength * fraction;
-			var routeSample = RouteGeometry.SampleAtArcLength(axis, arcLength);
-			var sampleX = routeSample.X;
-			var sampleZ = routeSample.Z;
-			var tangentX = routeSample.TangentX;
-			var tangentZ = routeSample.TangentZ;
-			var perpendicularX = -tangentZ;
-			var perpendicularZ = tangentX;
-
-			var lateralRange = LateralSampleRange(span, radius, distance, distanceConfig);
-			if (lateralRange.Min > lateralRange.Max)
+			if (!MeetsPoiClearance(map, center, radius, args.MinimumPoiClearance))
 				continue;
 
-			foreach (var side in new[] { -1.0, 1.0 })
+			foreach (var combination in combinations)
 			{
-				foreach (var lateralT in new[] { 0.0, 0.5, 1.0 })
+				var a = positions.First(entry => entry.Id == combination[0]);
+				var b = positions.First(entry => entry.Id == combination[1]);
+				var c = positions.First(entry => entry.Id == combination[2]);
+
+				if (!CircleWhollyInsideTriangle(center, radius, a.Position, b.Position, c.Position))
+					continue;
+
+				var maxReferenceDistance = System.Math.Max(
+					RouteGeometry.Distance(center, a.Position),
+					System.Math.Max(
+						RouteGeometry.Distance(center, b.Position),
+						RouteGeometry.Distance(center, c.Position)));
+
+				if (args.MaximumReferenceDistance is double maxReference
+					&& maxReferenceDistance > maxReference)
 				{
-					var lateralDistance = lateralRange.Min + lateralT * (lateralRange.Max - lateralRange.Min);
-					var center = new Coord(
-						(int)System.Math.Round(sampleX + perpendicularX * lateralDistance * side),
-						0,
-						(int)System.Math.Round(sampleZ + perpendicularZ * lateralDistance * side));
+					continue;
+				}
 
-					if (!IsValidCandidate(map, center, radius, axis, span, distance, distanceConfig))
-						continue;
+				if (maxReferenceDistance < bestScore)
+				{
+					bestScore = maxReferenceDistance;
+					best.Clear();
+				}
 
-					candidates.Add(new Candidate(center, radius, landmarkAId, landmarkBId, distance));
+				if (System.Math.Abs(maxReferenceDistance - bestScore) <= 0.000001)
+				{
+					best.Add(new Solution(
+						center,
+						radius,
+						combination[0],
+						combination[1],
+						combination[2]));
 				}
 			}
 		}
+
+		if (best.Count == 0)
+		{
+			pick = null!;
+			return false;
+		}
+
+		var chosen = best[PickIndex(best.Count, random)];
+		var (closestId, secondClosestId, thirdClosestId) = AreaIntelProducer.OrderLandmarksByDistanceFromCenter(
+			chosen.Center,
+			chosen.LandmarkAId,
+			chosen.LandmarkBId,
+			chosen.LandmarkCId,
+			id => positions.First(entry => entry.Id == id).Position);
+		var intel = AreaIntelProducer.Produce(
+			new AreaIntelContext(closestId, secondClosestId, thirdClosestId));
+
+		pick = new AreaPick(
+			chosen.Center,
+			chosen.Radius,
+			intel,
+			new AreaRelation.TriangulatedLandmarks(
+				chosen.LandmarkAId,
+				chosen.LandmarkBId,
+				chosen.LandmarkCId));
+		return true;
 	}
 
-	private static (double Min, double Max) LateralSampleRange(
-		double span,
-		int radius,
-		EAreaDistance distance,
-		AreaDistanceConfig config) =>
-		distance switch
-		{
-			EAreaDistance.Low => (0.0, span * config.LowFraction - radius),
-			EAreaDistance.Med => (span * config.MedMinFraction + radius, span * config.MedMaxFraction - radius),
-			EAreaDistance.High => (span * config.HighMinFraction + radius, span),
-			_ => throw new ArgumentOutOfRangeException(nameof(distance), distance, null),
-		};
-
-	private static bool IsValidCandidate(
+	private static int ResolveSearchRadius(
 		StarMap map,
+		IReadOnlyList<string> landmarkCandidateIds,
+		AreaRadiusConfig radiusConfig)
+	{
+		var span = MaxPairwiseSpan(map, landmarkCandidateIds);
+		return span > 0.0
+			? AreaRadiusPicker.Pick(span, radiusConfig)
+			: radiusConfig.MinRadius;
+	}
+
+	private static double MaxPairwiseSpan(StarMap map, IReadOnlyList<string> landmarkIds)
+	{
+		var span = 0.0;
+		for (var i = 0; i < landmarkIds.Count; i++)
+		{
+			MapLandmarkQueries.TryGet(map, landmarkIds[i], out var left);
+			for (var j = i + 1; j < landmarkIds.Count; j++)
+			{
+				MapLandmarkQueries.TryGet(map, landmarkIds[j], out var right);
+				span = System.Math.Max(span, RouteGeometry.Distance(left.Position, right.Position));
+			}
+		}
+
+		return span;
+	}
+
+	private static IEnumerable<Coord> SampleCandidateCenters(StarMap map, int radius)
+	{
+		var step = System.Math.Max(radius * 2, 16);
+		for (var z = radius; z < map.Height - radius; z += step)
+		{
+			for (var x = radius; x < map.Width - radius; x += step)
+			{
+				var center = new Coord(x, 0, z);
+				if (map.PathfindingTerrain.IsCircleTraversable(center, radius))
+					yield return center;
+			}
+		}
+	}
+
+	private static bool MeetsPoiClearance(StarMap map, Coord center, int radius, int minimumPoiClearance)
+	{
+		foreach (var poi in map.PointsOfInterest)
+		{
+			var clearance = poi.RouteExclusionRadius + minimumPoiClearance + radius;
+			if (RouteGeometry.Distance(center, poi.PlacedCenter) < clearance)
+				return false;
+		}
+
+		return true;
+	}
+
+	private static bool CircleWhollyInsideTriangle(
 		Coord center,
 		int radius,
-		IReadOnlyList<Coord> axis,
-		double span,
-		EAreaDistance distance,
-		AreaDistanceConfig config)
+		Coord a,
+		Coord b,
+		Coord c)
 	{
-		if (!map.PathfindingTerrain.IsCircleTraversable(center, radius))
+		if (!IsPointInsideTriangle(center, a, b, c))
 			return false;
 
-		var axisDistance = RouteGeometry.PointToPolylineDistance(center, axis);
-		return distance switch
-		{
-			EAreaDistance.Low => axisDistance + radius <= span * config.LowFraction,
-			EAreaDistance.Med =>
-				axisDistance - radius >= span * config.MedMinFraction
-				&& axisDistance + radius <= span * config.MedMaxFraction,
-			EAreaDistance.High => axisDistance - radius >= span * config.HighMinFraction,
-			_ => false,
-		};
+		var minEdgeDistance = RouteGeometry.PointToSegmentDistance(center, a, b);
+		minEdgeDistance = System.Math.Min(minEdgeDistance, RouteGeometry.PointToSegmentDistance(center, b, c));
+		minEdgeDistance = System.Math.Min(minEdgeDistance, RouteGeometry.PointToSegmentDistance(center, c, a));
+		return minEdgeDistance >= radius;
 	}
+
+	private static bool IsPointInsideTriangle(Coord point, Coord a, Coord b, Coord c)
+	{
+		var area = TriangleSignedArea(a, b, c);
+		if (System.Math.Abs(area) <= 0.000001)
+			return false;
+
+		var sign = area > 0.0 ? 1.0 : -1.0;
+		return TriangleSignedArea(point, a, b) * sign >= 0.0
+			&& TriangleSignedArea(point, b, c) * sign >= 0.0
+			&& TriangleSignedArea(point, c, a) * sign >= 0.0;
+	}
+
+	private static double TriangleSignedArea(Coord p, Coord q, Coord r) =>
+		(q.X - p.X) * (double)(r.Z - p.Z) - (r.X - p.X) * (double)(q.Z - p.Z);
+
+	private static int PickIndex(int count, StableRandom? random) =>
+		random is null ? Random.Shared.Next(count) : (int)(random.Value.NextDouble() * count);
 
 	private static IEnumerable<string[]> Combinations(IReadOnlyCollection<string> group, int count)
 	{
@@ -239,10 +242,10 @@ public static class AreaPicker
 		}
 	}
 
-	private sealed record Candidate(
+	private sealed record Solution(
 		Coord Center,
 		int Radius,
 		string LandmarkAId,
 		string LandmarkBId,
-		EAreaDistance Distance);
+		string LandmarkCId);
 }

@@ -142,8 +142,8 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 		var contractId = map.ContractRegistry.Pending.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var contract = map.ContractRegistry.All.First(candidate => candidate.Id == contractId);
-		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(
-			((HuntObjective)contract.Objective).SpawnGroups[0].SearchArea.Relation);
+		var searchArea = ((HuntObjective)contract.Objective).SpawnGroups[0].SearchArea;
+		Assert.IsType<AreaRelation.TriangulatedLandmarks>(searchArea.Relation);
 
 		map.ContractRegistry.Activate(new ContractState(
 			contractId,
@@ -157,9 +157,16 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 
 		Assert.Equal(EObjectiveSource.Contract, objective.Source);
 		Assert.Equal("Pirate Hunt ★", objective.Title);
-		var route = Assert.IsType<ObjectiveSummaryContent.RouteBetweenLandmarks>(objective.Summary);
-		Assert.Equal(relation.LandmarkAId, route.LandmarkAPoiId);
-		Assert.Equal(relation.LandmarkBId, route.LandmarkBPoiId);
+		Assert.False(objective.Summary is ObjectiveSummaryContent.Plain);
+		Assert.Equal(
+			searchArea.Intel.LandmarkAId,
+			objective.Summary switch
+			{
+				ObjectiveSummaryContent.NearLandmark near => near.LandmarkPoiId,
+				ObjectiveSummaryContent.RouteBetweenLandmarks route => route.LandmarkAPoiId,
+				ObjectiveSummaryContent.RouteAmongLandmarks route => route.LandmarkAPoiId,
+				_ => throw new InvalidOperationException("Unexpected summary shape."),
+			});
 		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, credits);
 	}

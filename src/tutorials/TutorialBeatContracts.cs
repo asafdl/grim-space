@@ -34,17 +34,9 @@ public static class TutorialBeatContracts
 	internal static HuntCreateArgs CreateBeatAHuntArgs(StarMap map)
 	{
 		var plan = map.Blueprint.SupplyPlan;
-		var landmarkGroups = new[]
-		{
-			new[] { plan.RefineryPoiId, plan.StoragePoiId },
-			new[] { plan.ExtractionPoiId, plan.StoragePoiId },
-			new[] { plan.RefineryPoiId, plan.ExitPoiId },
-		};
-		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
-
 		return new HuntCreateArgs(
 			plan.AdministrativePoiId,
-			new AreaPickerArgs(landmarkGroups, distances),
+			new AreaPickerArgs(plan.OperationalPoiIds),
 			new HuntEncounterArgs(
 				FleetType.PirateFleet,
 				EFaction.Pirates,

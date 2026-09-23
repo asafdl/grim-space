@@ -98,7 +98,11 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 		var searchArea = new AreaPick(
 			new Coord(map.Width / 2, 0, map.Height / 2),
 			32,
-			new AreaIntel("Test area.", ContractPlacementTestMaps.IssuerAId, ContractPlacementTestMaps.IssuerBId),
+			new AreaIntel(
+				"Near {A}.",
+				ContractPlacementTestMaps.IssuerAId,
+				ContractPlacementTestMaps.IssuerBId,
+				ContractPlacementTestMaps.IssuerAId),
 			default!);
 		return new HuntObjective(
 		[

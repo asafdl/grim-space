@@ -39,13 +39,10 @@ public sealed class StarterContractTests(StarMapFixture maps)
 			var searchArea = hunt.SpawnGroups[0].SearchArea;
 			Assert.False(string.IsNullOrWhiteSpace(ContractDisplay.DetailsBody(contract, map)));
 			Assert.Contains(contract.Narrative.Briefing, ContractDisplay.DetailsBody(contract, map));
-			Assert.IsType<AreaRelation.BetweenLandmarks>(searchArea.Relation);
-			Assert.Equal(
-				((AreaRelation.BetweenLandmarks)searchArea.Relation).LandmarkAId,
-				searchArea.Intel.LandmarkAId);
-			Assert.Equal(
-				((AreaRelation.BetweenLandmarks)searchArea.Relation).LandmarkBId,
-				searchArea.Intel.LandmarkBId);
+			var relation = Assert.IsType<AreaRelation.TriangulatedLandmarks>(searchArea.Relation);
+			Assert.Equal(relation.LandmarkAId, searchArea.Intel.LandmarkAId);
+			Assert.Equal(relation.LandmarkBId, searchArea.Intel.LandmarkBId);
+			Assert.Equal(relation.LandmarkCId, searchArea.Intel.LandmarkCId);
 		}
 	}
 }

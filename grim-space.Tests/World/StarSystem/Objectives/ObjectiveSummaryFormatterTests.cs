@@ -10,7 +10,7 @@ public sealed class ObjectiveSummaryFormatterTests
 	{
 		var summary = new ObjectiveSummaryContent.Plain("Survey the supply chain.");
 
-		var bbcode = ObjectiveSummaryFormatter.ToBbcode(summary);
+		var bbcode = summary.ToBbcode();
 
 		Assert.Equal("Survey the supply chain.", bbcode);
 		Assert.DoesNotContain("[url=", bbcode);
@@ -28,7 +28,7 @@ public sealed class ObjectiveSummaryFormatterTests
 			"Storage",
 			".");
 
-		var bbcode = ObjectiveSummaryFormatter.ToBbcode(summary);
+		var bbcode = summary.ToBbcode();
 
 		Assert.Equal(
 			"A pirate fleet spotted ambushing ships on route between [url=poi-a]Refinery[/url] and [url=poi-b]Storage[/url].",

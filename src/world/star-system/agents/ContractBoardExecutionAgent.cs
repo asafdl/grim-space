@@ -4,6 +4,7 @@ using GrimSpace.Math;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Resources;
@@ -140,20 +141,13 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		int tick,
 		int slot)
 	{
-		var plan = map.Blueprint.SupplyPlan;
-		var landmarkGroups = new[]
-		{
-			new[] { plan.RefineryPoiId, plan.StoragePoiId },
-			new[] { plan.ExtractionPoiId, plan.StoragePoiId },
-			new[] { plan.RefineryPoiId, plan.ExitPoiId },
-		};
-		var distances = new[] { EAreaDistance.Low, EAreaDistance.Med, EAreaDistance.High };
+		var landmarkIds = MapLandmarkQueries.AllIds(map);
 		var areaPickMix = (long)StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("hunt-area").Value;
 		var narrative = _narrativePicker.Pick(map, issuerPoiId, EContractKind.Hunt, tick, slot);
 
 		return new HuntCreateArgs(
 			issuerPoiId,
-			new AreaPickerArgs(landmarkGroups, distances, DeterministicPickMix: areaPickMix),
+			new AreaPickerArgs(landmarkIds, DeterministicPickMix: areaPickMix),
 			profile.HuntEncounter,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, profile.HuntRewardCredits)),
 			narrative,

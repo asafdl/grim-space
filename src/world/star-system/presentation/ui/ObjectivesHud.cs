@@ -132,7 +132,7 @@ public partial class ObjectivesHud : MarginContainer
 		var summary = new RichTextLabel
 		{
 			BbcodeEnabled = true,
-			Text = ObjectiveSummaryFormatter.ToBbcode(objective.Summary),
+			Text = objective.Summary.ToBbcode(),
 			FitContent = true,
 			ScrollActive = false,
 			SelectionEnabled = false,
@@ -180,11 +180,21 @@ public partial class ObjectivesHud : MarginContainer
 		var summarySignature = objective.Summary switch
 		{
 			ObjectiveSummaryContent.Plain plain => $"plain:{plain.Text}",
+			ObjectiveSummaryContent.NearLandmark near =>
+				$"near:{near.Prefix}{near.LandmarkPoiId}:{near.LandmarkDisplayName}{near.Suffix}",
 			ObjectiveSummaryContent.RouteBetweenLandmarks route =>
 				$"route:{route.Prefix}" +
 				$"{route.LandmarkAPoiId}:{route.LandmarkADisplayName}" +
 				$"{route.Connector}" +
 				$"{route.LandmarkBPoiId}:{route.LandmarkBDisplayName}" +
+				$"{route.Suffix}",
+			ObjectiveSummaryContent.RouteAmongLandmarks route =>
+				$"triangle:{route.Prefix}" +
+				$"{route.LandmarkAPoiId}:{route.LandmarkADisplayName}" +
+				$"{route.ConnectorAB}" +
+				$"{route.LandmarkBPoiId}:{route.LandmarkBDisplayName}" +
+				$"{route.ConnectorBC}" +
+				$"{route.LandmarkCPoiId}:{route.LandmarkCDisplayName}" +
 				$"{route.Suffix}",
 			_ => "unknown",
 		};

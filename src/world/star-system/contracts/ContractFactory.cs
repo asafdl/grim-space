@@ -47,9 +47,12 @@ public static class ContractFactory
 	{
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 
-		var searchArea = PickSearchArea(map, args.SearchAreaPicker)
-			?? throw new InvalidOperationException(
+		ArgumentNullException.ThrowIfNull(args.SearchAreaPicker);
+		if (!AreaPicker.TryPick(map, args.SearchAreaPicker, out var searchArea))
+		{
+			throw new InvalidOperationException(
 				$"Could not pick a hunt search area for map seed {map.Seed}.");
+		}
 
 		var groupId = SpawnGroupIdFor(contractId);
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
@@ -116,29 +119,5 @@ public static class ContractFactory
 				nameof(args));
 
 		return (args.DropoffPoiId, args.DropoffFacilityId, args.DropoffOperatorName);
-	}
-
-	private static AreaPick? PickSearchArea(StarMap map, AreaPickerArgs picker)
-	{
-		foreach (var group in picker.LandmarkGroups)
-		{
-			foreach (var distance in picker.Distances)
-			{
-				try
-				{
-					return AreaPicker.Pick(
-						map,
-						[group],
-						[distance],
-						picker.MinLandmarkSeparation,
-						deterministicPickMix: picker.DeterministicPickMix);
-				}
-				catch (InvalidOperationException)
-				{
-				}
-			}
-		}
-
-		return null;
 	}
 }

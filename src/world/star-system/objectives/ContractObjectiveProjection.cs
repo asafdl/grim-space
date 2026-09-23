@@ -46,9 +46,39 @@ public static class ContractObjectiveProjection
 		if (!AreaIntelDisplay.TryParseLinkableSegments(intel, out var segments))
 			return PlainOrPreview(map, contract);
 
+		return segments switch
+		{
+			AreaIntelDisplay.ParsedSegments.ClosestOnly closest =>
+				BuildClosestSummary(map, closest),
+			AreaIntelDisplay.ParsedSegments.ClosestAndSecondary pair =>
+				BuildClosestAndSecondarySummary(map, pair),
+			AreaIntelDisplay.ParsedSegments.ClosestSecondaryAndAnchor triangle =>
+				BuildTriangleSummary(map, triangle),
+			_ => PlainOrPreview(map, contract),
+		};
+	}
+
+	private static ObjectiveSummaryContent BuildClosestSummary(
+		StarMap map,
+		AreaIntelDisplay.ParsedSegments.ClosestOnly segments)
+	{
+		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmark))
+			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
+
+		return new ObjectiveSummaryContent.NearLandmark(
+			segments.Prefix,
+			landmark.Id,
+			landmark.DisplayName,
+			segments.Suffix);
+	}
+
+	private static ObjectiveSummaryContent BuildClosestAndSecondarySummary(
+		StarMap map,
+		AreaIntelDisplay.ParsedSegments.ClosestAndSecondary segments)
+	{
 		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmarkA)
 			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkBId, out var landmarkB))
-			return PlainOrPreview(map, contract);
+			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
 
 		return new ObjectiveSummaryContent.RouteBetweenLandmarks(
 			segments.Prefix,
@@ -57,6 +87,28 @@ public static class ContractObjectiveProjection
 			segments.Connector,
 			landmarkB.Id,
 			landmarkB.DisplayName,
+			segments.Suffix);
+	}
+
+	private static ObjectiveSummaryContent BuildTriangleSummary(
+		StarMap map,
+		AreaIntelDisplay.ParsedSegments.ClosestSecondaryAndAnchor segments)
+	{
+		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmarkA)
+			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkBId, out var landmarkB)
+			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkCId, out var landmarkC))
+			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
+
+		return new ObjectiveSummaryContent.RouteAmongLandmarks(
+			segments.Prefix,
+			landmarkA.Id,
+			landmarkA.DisplayName,
+			segments.ConnectorAB,
+			landmarkB.Id,
+			landmarkB.DisplayName,
+			segments.ConnectorBC,
+			landmarkC.Id,
+			landmarkC.DisplayName,
 			segments.Suffix);
 	}
 

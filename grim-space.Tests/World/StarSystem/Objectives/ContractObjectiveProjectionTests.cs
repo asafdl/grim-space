@@ -1,3 +1,4 @@
+using GrimSpace.Math.Routes;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tutorials;
 using GrimSpace.World.Factions;
@@ -6,6 +7,7 @@ using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
@@ -25,25 +27,16 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var objective = ContractObjectiveProjection.Project(map, contract);
 		var hunt = (HuntObjective)contract.Objective;
 		var searchArea = hunt.SpawnGroups[0].SearchArea;
-		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(searchArea.Relation);
-		var landmarkA = map.PointsOfInterest.First(poi => poi.Id == relation.LandmarkAId);
-		var landmarkB = map.PointsOfInterest.First(poi => poi.Id == relation.LandmarkBId);
-		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(searchArea.Intel, out var segments));
+		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(searchArea.Intel, out _));
+		AssertIntelLandmarksOrderedByProximity(map, searchArea);
 
 		Assert.Equal("Pirate Hunt ★", objective.Title);
-		var route = Assert.IsType<ObjectiveSummaryContent.RouteBetweenLandmarks>(objective.Summary);
-		Assert.Equal(segments.Prefix, route.Prefix);
-		Assert.Equal(relation.LandmarkAId, route.LandmarkAPoiId);
-		Assert.Equal(landmarkA.DisplayName, route.LandmarkADisplayName);
-		Assert.Equal(segments.Connector, route.Connector);
-		Assert.Equal(relation.LandmarkBId, route.LandmarkBPoiId);
-		Assert.Equal(landmarkB.DisplayName, route.LandmarkBDisplayName);
-		Assert.Equal(segments.Suffix, route.Suffix);
+		Assert.False(objective.Summary is ObjectiveSummaryContent.Plain);
 		Assert.Equal(
 			ContractDisplay.SearchArea(contract, map),
 			AreaIntelDisplay.FormatPlain(
 				searchArea.Intel,
-				poiId => map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName));
+				id => MapLandmarkQueries.GetDisplayName(map, id)));
 		Assert.True(objective.Reward.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, credits);
 	}
@@ -54,7 +47,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var map = maps.FreshWithBeatAHunt(42);
 		var contract = CreateContract(
 			map,
-			new AreaIntel("No landmarks here.", "poi-a", "poi-b"),
+			new AreaIntel("No landmarks here.", "poi-a", "poi-b", "poi-c"),
 			null!);
 
 		var objective = ContractObjectiveProjection.Project(map, contract);
@@ -69,12 +62,32 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var map = maps.FreshWithBeatAHunt(42);
 		var contract = CreateContract(
 			map,
-			new AreaIntel("Between {A} and {B}.", "poi-missing-a", "poi-missing-b"),
-			new AreaRelation.BetweenLandmarks("poi-missing-a", "poi-missing-b", EAreaDistance.Low));
+			new AreaIntel("Near {A}.", "poi-missing-a", "poi-missing-b", "poi-missing-c"),
+			new AreaRelation.TriangulatedLandmarks("poi-missing-a", "poi-missing-b", "poi-missing-c"));
 
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
 		Assert.IsType<ObjectiveSummaryContent.Plain>(objective.Summary);
+	}
+
+	private static void AssertIntelLandmarksOrderedByProximity(StarMap map, AreaPick searchArea)
+	{
+		var center = searchArea.Center;
+		var intel = searchArea.Intel;
+		var ids = new[] { intel.LandmarkAId, intel.LandmarkBId, intel.LandmarkCId };
+		MapLandmarkQueries.TryGet(map, ids[0], out var a);
+		MapLandmarkQueries.TryGet(map, ids[1], out var b);
+		MapLandmarkQueries.TryGet(map, ids[2], out var c);
+
+		var distances = new[]
+		{
+			RouteGeometry.Distance(center, a.Position),
+			RouteGeometry.Distance(center, b.Position),
+			RouteGeometry.Distance(center, c.Position),
+		};
+
+		Assert.True(distances[0] <= distances[1]);
+		Assert.True(distances[1] <= distances[2]);
 	}
 
 	private static Contract CreateContract(StarMap map, AreaIntel intel, AreaRelation relation)

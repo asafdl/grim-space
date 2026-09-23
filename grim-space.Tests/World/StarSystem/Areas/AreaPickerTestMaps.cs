@@ -21,6 +21,7 @@ internal static class AreaPickerTestMaps
 	public const string NavLandmarkCId = "landmark:nav-c:00";
 	public const string NavLandmarkAId = "landmark:nav-a:00";
 	public const string NavLandmarkBId = "landmark:nav-b:00";
+	public const string NavLandmarkDId = "landmark:nav-d:00";
 
 	public static StarMap OpenLandmarkPair(int span, int mapSize = 512)
 	{
@@ -71,6 +72,64 @@ internal static class AreaPickerTestMaps
 			1,
 			7);
 		return Rebuild(map, map.PointsOfInterest, [nav]);
+	}
+
+	public static StarMap OpenNavigationTriangle(int span, int mapSize = 512)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(span, 1);
+		ArgumentOutOfRangeException.ThrowIfLessThan(mapSize, span + 32);
+
+		var margin = (mapSize - span) / 2;
+		var landmarks = new NavigationLandmark[]
+		{
+			new(
+				NavLandmarkAId,
+				"Nav A",
+				ENavigationLandmarkKind.Moonlet,
+				new Coord(margin, 0, margin),
+				1,
+				1),
+			new(
+				NavLandmarkBId,
+				"Nav B",
+				ENavigationLandmarkKind.Moonlet,
+				new Coord(margin + span, 0, margin),
+				1,
+				2),
+			new(
+				NavLandmarkDId,
+				"Nav D",
+				ENavigationLandmarkKind.Moonlet,
+				new Coord(margin + span / 2, 0, margin + span),
+				1,
+				3),
+		};
+		var cells = Enumerable.Repeat(PathfindingCell.OpenSpace, mapSize * mapSize).ToArray();
+		var terrain = PathfindingTerrain.FromCells(mapSize, mapSize, cells);
+		var blueprint = new StarSystemBlueprint(
+			0,
+			mapSize,
+			mapSize,
+			EStarSystemClass.Supply,
+			EFaction.TheOptimality,
+			SupplySystemPlan.Copper,
+			[],
+			[],
+			NavigationLandmarkGenerationProfile.Disabled);
+
+		return new StarMap(
+			blueprint,
+			[],
+			landmarks,
+			new Timeline(),
+			new Dictionary<string, Dock>(StringComparer.Ordinal),
+			new Dictionary<string, Dock>(StringComparer.Ordinal),
+			new Dictionary<string, SpaceRoute>(StringComparer.Ordinal),
+			new FleetRegistry(),
+			new ContractRegistry(),
+			new StoryObjectiveRegistry(),
+			new PlayerResources(),
+			terrain);
 	}
 
 	public static StarMap OpenNavigationLandmarkPair(int span, int mapSize = 512)

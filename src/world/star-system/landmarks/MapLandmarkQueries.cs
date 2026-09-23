@@ -30,6 +30,9 @@ public static class MapLandmarkQueries
 		return refs;
 	}
 
+	public static IReadOnlyList<string> AllIds(StarMap map) =>
+		All(map).Select(landmark => landmark.Id).ToArray();
+
 	public static bool TryGet(StarMap map, string id, out MapLandmarkRef reference)
 	{
 		ArgumentNullException.ThrowIfNull(map);
