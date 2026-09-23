@@ -20,7 +20,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	public void Project_StarterContract_UsesPersistedIntelTitleAndReward()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contract = map.ContractRegistry.Offered.Single();
+		var contract = map.ContractRegistry.Pending.Single();
 		var objective = ContractObjectiveProjection.Project(map, contract);
 		var hunt = (HuntObjective)contract.Objective;
 		var searchArea = hunt.SpawnGroups[0].SearchArea;

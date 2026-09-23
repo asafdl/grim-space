@@ -44,7 +44,7 @@ public sealed class AcceptContractDef
 		action is AcceptContractAction accept
 		&& world.FleetRegistry.TryGet(accept.ActorId, out _)
 		&& world.ContractRegistry.TryGet(accept.ContractId, out _)
-		&& world.ContractRegistry.IsOffered(accept.ContractId);
+		&& world.ContractRegistry.IsPending(accept.ContractId);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

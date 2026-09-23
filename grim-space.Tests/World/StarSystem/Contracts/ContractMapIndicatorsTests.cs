@@ -4,24 +4,24 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
-public sealed class ContractOfferMapIndicatorsTests(StarMapFixture maps)
+public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 {
 	[Fact]
-	public void CountOfferedByIssuerPoi_IncludesStarterContractAtAdminPoi()
+	public void CountPendingByIssuerPoi_IncludesStarterContractAtAdminPoi()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
 		var plan = map.Blueprint.SupplyPlan;
-		var counts = ContractOfferMapIndicators.CountOfferedByIssuerPoi(map);
+		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
 
 		Assert.True(counts.TryGetValue(plan.AdministrativePoiId, out var count));
 		Assert.Equal(1, count);
 	}
 
 	[Fact]
-	public void CountOfferedByIssuerPoi_OmitsPoiAfterContractRejected()
+	public void CountPendingByIssuerPoi_OmitsPoiAfterContractRejected()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		map.ContractRegistry.Activate(new ContractState(
 			contractId,
 			EContractStatus.Rejected,
@@ -29,7 +29,7 @@ public sealed class ContractOfferMapIndicatorsTests(StarMapFixture maps)
 			null,
 			ContractState.EmptyBindings));
 
-		var counts = ContractOfferMapIndicators.CountOfferedByIssuerPoi(map);
+		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
 
 		Assert.Empty(counts);
 	}
@@ -37,7 +37,7 @@ public sealed class ContractOfferMapIndicatorsTests(StarMapFixture maps)
 	[Fact]
 	public void TooltipForCount_UsesAvailablePhrase()
 	{
-		Assert.Equal("1 available", ContractOfferMapIndicators.TooltipForCount(1));
-		Assert.Equal("3 available", ContractOfferMapIndicators.TooltipForCount(3));
+		Assert.Equal("1 available", ContractMapIndicators.TooltipForCount(1));
+		Assert.Equal("3 available", ContractMapIndicators.TooltipForCount(3));
 	}
 }

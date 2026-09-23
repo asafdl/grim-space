@@ -31,7 +31,7 @@ public sealed class DeclineContractDef
 		&& world.FleetRegistry.TryGet(decline.ActorId, out _)
 		&& world.ContractRegistry.TryGet(decline.ContractId, out var contract)
 		&& contract.AllowsDecline
-		&& world.ContractRegistry.IsOffered(decline.ContractId);
+		&& world.ContractRegistry.IsPending(decline.ContractId);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

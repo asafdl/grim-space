@@ -16,13 +16,13 @@ public sealed class StarterContractTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		TutorialBeatContracts.OfferBeatA(map);
 		var plan = map.Blueprint.SupplyPlan;
-		var offered = map.ContractRegistry.Offered.ToList();
+		var offered = map.ContractRegistry.Pending.ToList();
 
 		Assert.Single(offered);
 
 		foreach (var contract in offered)
 		{
-			Assert.True(map.ContractRegistry.IsOffered(contract.Id));
+			Assert.True(map.ContractRegistry.IsPending(contract.Id));
 			Assert.IsType<HuntObjective>(contract.Objective);
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
 			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);

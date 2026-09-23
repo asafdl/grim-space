@@ -111,8 +111,8 @@ internal static class ActionLegalityDiagnostics
 		if (!world.ContractRegistry.TryGet(accept.ContractId, out _))
 			return "contract_missing";
 
-		if (!world.ContractRegistry.IsOffered(accept.ContractId))
-			return "contract_not_offered";
+		if (!world.ContractRegistry.IsPending(accept.ContractId))
+			return "contract_not_pending";
 
 		return "illegal";
 	}
@@ -125,8 +125,8 @@ internal static class ActionLegalityDiagnostics
 		if (!world.ContractRegistry.TryGet(decline.ContractId, out var contract))
 			return "contract_missing";
 
-		if (!world.ContractRegistry.IsOffered(decline.ContractId))
-			return "contract_not_offered";
+		if (!world.ContractRegistry.IsPending(decline.ContractId))
+			return "contract_not_pending";
 
 		if (!contract.AllowsDecline)
 			return "decline_not_allowed";

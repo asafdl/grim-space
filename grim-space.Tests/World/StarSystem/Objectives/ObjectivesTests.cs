@@ -20,7 +20,7 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 	public void ReactionsFor_ReturnsCompletionWhenDefeatedFleetWasLastBoundTarget()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
 		var group = hunt.SpawnGroups[0];
@@ -55,7 +55,7 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 	public void Completion_GrantsContractPaymentOnce()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
 		var group = hunt.SpawnGroups[0];
@@ -94,7 +94,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 	public void Collect_IncludesActiveContractsAndStoryObjectives()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 
 		map.ContractRegistry.Activate(new ContractState(
@@ -117,7 +117,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 	public void Collect_ExcludesCompletedContracts()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 
 		map.ContractRegistry.Activate(new ContractState(
@@ -137,7 +137,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 	public void Collect_ActiveStarterContract_IncludesRouteIntelAndReward()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		var holderUnitId = map.FleetRegistry.Ids.First();
 		var contract = map.ContractRegistry.All.First(candidate => candidate.Id == contractId);
 		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(

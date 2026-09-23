@@ -1,11 +1,11 @@
 namespace GrimSpace.World.StarSystem.Contracts;
 
-public static class ContractOfferMapIndicators
+public static class ContractMapIndicators
 {
-	public static Dictionary<string, int> CountOfferedByIssuerPoi(StarMap map)
+	public static Dictionary<string, int> CountPendingByIssuerPoi(StarMap map)
 	{
 		var counts = new Dictionary<string, int>(StringComparer.Ordinal);
-		foreach (var contract in map.ContractRegistry.Offered)
+		foreach (var contract in map.ContractRegistry.Pending)
 		{
 			if (contract.IssuerPoiId is not { } poiId)
 				continue;

@@ -143,7 +143,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		Assert.Null(run.ActiveBattle);
 		Assert.True(run.StarSystem.Map.ContractRegistry.IsCompleted(beatAId));
 		var beatBId = Assert.IsType<string>(run.TutorialState?.BeatBContractId);
-		Assert.True(run.StarSystem.Map.ContractRegistry.IsOffered(beatBId));
+		Assert.True(run.StarSystem.Map.ContractRegistry.IsPending(beatBId));
 		Assert.Contains(
 			run.StarSystem.Map.StoryObjectives.Active,
 			objective => objective.RequiredContractId == beatBId);
@@ -285,7 +285,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 	private static string ActivateHuntContract(StarMap map, IReadOnlyList<string> targetIds)
 	{
-		var contract = map.ContractRegistry.Offered.First();
+		var contract = map.ContractRegistry.Pending.First();
 		var groupId = ((HuntObjective)contract.Objective).SpawnGroups[0].GroupId;
 		map.ContractRegistry.Activate(new ContractState(
 			contract.Id,

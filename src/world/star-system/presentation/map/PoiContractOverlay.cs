@@ -7,7 +7,7 @@ using GrimSpace.World.StarSystem.Presentation.Camera;
 
 namespace GrimSpace.World.StarSystem.Presentation.Map;
 
-public sealed partial class PoiContractOfferOverlay : Control
+public sealed partial class PoiContractOverlay : Control
 {
 	private const string BadgePath = "res://assets/ui/map/contract-offer-icon.svg";
 	private const float BadgePx = 32f;
@@ -45,7 +45,7 @@ public sealed partial class PoiContractOfferOverlay : Control
 		}
 
 		var map = _world();
-		var counts = ContractOfferMapIndicators.CountOfferedByIssuerPoi(map);
+		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
 		var activePoiIds = new HashSet<string>(counts.Keys, StringComparer.Ordinal);
 
 		foreach (var poiId in _badges.Keys.ToArray())

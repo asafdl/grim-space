@@ -10,6 +10,7 @@ using GrimSpace.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Dockyard;
 using GrimSpace.World.StarSystem.Units;
 
@@ -17,8 +18,7 @@ namespace GrimSpace.Run;
 
 public sealed class State : IDisposable
 {
-	//TODO: player fleet should not be hardcoded here
-	public const string PlayerFleetUnitId = "player-fleet";
+	public const string PlayerFleetUnitId = StarSystemActorIds.PlayerFleet;
 
 	public RunShipRegistry ShipRegistry { get; } = new();
 	public Party PlayerParty { get; } = new();
@@ -106,6 +106,7 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			PlayerParty.ShipIds,
 			nextSeed));
+		SyncContractGenerationFromTutorialState();
 	}
 
 	public static State CreateNewRun(int seed = 0, bool tutorialsEnabled = false)
@@ -125,21 +126,42 @@ public sealed class State : IDisposable
 
 	public void ConfigureTutorials(bool enabled)
 	{
+		if (Tutorials is not null)
+			Tutorials.FlowCompleted -= OnTutorialFlowCompleted;
+
 		if (!enabled)
 		{
 			Tutorials?.Dispose();
 			Tutorials = null;
 			_tutorialState = null;
+			StarSystem.SetContractGenerationEnabled(true);
 			return;
 		}
 
 		_tutorialState = new TutorialState();
 		Tutorials = new TutorialController(StarSystem, _tutorialState);
 		Tutorials.InitializeBeatProgression();
+		Tutorials.FlowCompleted += OnTutorialFlowCompleted;
+		SyncContractGenerationFromTutorialState();
+	}
+
+	private void SyncContractGenerationFromTutorialState()
+	{
+		var enabled = Tutorials is null
+			|| (_tutorialState?.IsFlowCompleted(TutorialController.GraduationFlowId) ?? false);
+		StarSystem.SetContractGenerationEnabled(enabled);
+	}
+
+	private void OnTutorialFlowCompleted(TutorialFlow flow)
+	{
+		if (flow.Id == TutorialController.GraduationFlowId)
+			StarSystem.SetContractGenerationEnabled(true);
 	}
 
 	public void Dispose()
 	{
+		if (Tutorials is not null)
+			Tutorials.FlowCompleted -= OnTutorialFlowCompleted;
 		Tutorials?.Dispose();
 		Tutorials = null;
 		_engagementSubscription?.Dispose();

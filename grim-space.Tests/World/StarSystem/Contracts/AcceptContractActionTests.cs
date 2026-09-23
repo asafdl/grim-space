@@ -83,7 +83,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 
 		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 
-		Assert.False(engine.World.ContractRegistry.IsOffered(contractId));
+		Assert.False(engine.World.ContractRegistry.IsPending(contractId));
 		Assert.True(engine.World.ContractRegistry.TryGetState(contractId, out var state));
 		Assert.Equal(EContractStatus.Active, state.Status);
 		Assert.Equal(unitId, state.HolderUnitId);
@@ -103,7 +103,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			42);
 		var unitId = GrimSpace.Run.State.PlayerFleetUnitId;
-		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
 			orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId));
 		var objectiveActiveWhenNotified = true;
@@ -134,7 +134,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			42);
 		var npcId = orchestrator.Map.FleetRegistry.Ids.First(
 			id => id != GrimSpace.Run.State.PlayerFleetUnitId);
-		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
 			orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId));
 
@@ -155,14 +155,14 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			maps,
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			42);
-		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 		var action = ContractActionTestContext.Accept(
 			orchestrator.Map,
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			contractId);
 
 		Assert.True(orchestrator.TryCommitPlayerInput(action));
-		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
+		Assert.False(orchestrator.Map.ContractRegistry.IsPending(contractId));
 		Assert.True(orchestrator.PlayerAgent!.IsPlanning);
 
 		var destination = new Coord(50, 0, 50);
@@ -177,7 +177,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			42);
 		var agent = orchestrator.PlayerAgent!;
-		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 
 		Assert.True(agent.TryEnqueue([
 			ContractActionTestContext.Accept(
@@ -204,7 +204,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(unitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		return (engine, unitId, contractId);
 	}
 }

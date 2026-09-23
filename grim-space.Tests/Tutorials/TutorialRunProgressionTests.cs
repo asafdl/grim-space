@@ -20,7 +20,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		Assert.NotNull(run.Tutorials);
 		Assert.NotNull(run.TutorialState!.BeatAContractId);
 		Assert.Single(
-			run.StarSystem.Map.ContractRegistry.Offered,
+			run.StarSystem.Map.ContractRegistry.Pending,
 			contract => contract.IsStoryObjective && contract.Objective is HuntObjective);
 	}
 
@@ -31,7 +31,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 
 		Assert.Null(run.Tutorials);
 		Assert.Null(run.TutorialState);
-		Assert.Empty(run.StarSystem.Map.ContractRegistry.Offered);
+		Assert.Empty(run.StarSystem.Map.ContractRegistry.Pending);
 	}
 
 	[Fact]
@@ -45,7 +45,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		controller.InitializeBeatProgression();
 		controller.InitializeBeatProgression();
 
-		Assert.Single(orchestrator.Map.ContractRegistry.Offered);
+		Assert.Single(orchestrator.Map.ContractRegistry.Pending);
 	}
 
 	[Fact]
@@ -68,7 +68,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		controller.ReconcileBeatTransitions();
 
 		Assert.NotNull(controller.State.BeatBContractId);
-		Assert.True(orchestrator.Map.ContractRegistry.IsOffered(controller.State.BeatBContractId));
+		Assert.True(orchestrator.Map.ContractRegistry.IsPending(controller.State.BeatBContractId));
 		Assert.Contains(
 			orchestrator.Map.StoryObjectives.Active,
 			objective => objective.RequiredContractId == controller.State.BeatBContractId);
@@ -117,7 +117,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, State.PlayerFleetUnitId);
 		using var controller = new TutorialController(orchestrator, new TutorialState());
 		controller.InitializeBeatProgression();
-		var huntId = orchestrator.Map.ContractRegistry.Offered.Single().Id;
+		var huntId = orchestrator.Map.ContractRegistry.Pending.Single().Id;
 		orchestrator.Map.ContractRegistry.Activate(new ContractState(
 			huntId,
 			EContractStatus.Completed,
@@ -127,7 +127,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 
 		TutorialBeatContracts.OfferBeatB(orchestrator.Map);
 
-		var delivery = orchestrator.Map.ContractRegistry.Offered
+		var delivery = orchestrator.Map.ContractRegistry.Pending
 			.Single(contract => contract.Objective is DeliveryObjective);
 		Assert.Equal(map.Blueprint.SupplyPlan.StoragePoiId, delivery.IssuerPoiId);
 		Assert.True(delivery.IsStoryObjective);

@@ -13,7 +13,9 @@ public sealed class ActivateContractEffect : IEffect<StarMap, ActorRuntime>
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
-		world.ContractRegistry.Activate(_state);
+		if (!world.ContractRegistry.Activate(_state))
+			return [];
+
 		ContractDeliveryRoleSupport.OnContractActivated(world, _state);
 		return [];
 	}

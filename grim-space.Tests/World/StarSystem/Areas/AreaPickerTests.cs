@@ -175,7 +175,7 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 	public void OfferBeatA_SearchAreaMeetsBandCriteria(int seed)
 	{
 		var map = maps.FreshWithBeatAHunt(seed);
-		var hunt = Assert.IsType<HuntObjective>(map.ContractRegistry.Offered.Single().Objective);
+		var hunt = Assert.IsType<HuntObjective>(map.ContractRegistry.Pending.Single().Objective);
 		var searchArea = hunt.SpawnGroups[0].SearchArea;
 		var relation = Assert.IsType<AreaRelation.BetweenLandmarks>(searchArea.Relation);
 		var distanceConfig = new AreaDistanceConfig();

@@ -1,3 +1,4 @@
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem.Poi;
@@ -16,7 +17,8 @@ public static class AreaPicker
 		IReadOnlyCollection<EAreaDistance> allowedDistances,
 		int landmarksToPick,
 		AreaDistanceConfig? distanceConfig = null,
-		AreaRadiusConfig? radiusConfig = null)
+		AreaRadiusConfig? radiusConfig = null,
+		long? deterministicPickMix = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentNullException.ThrowIfNull(landmarkGroups);
@@ -32,13 +34,16 @@ public static class AreaPicker
 
 		distanceConfig ??= new AreaDistanceConfig();
 		radiusConfig ??= new AreaRadiusConfig();
+		StableRandom? random = deterministicPickMix is long mix
+			? new StableRandom((ulong)mix)
+			: null;
 
 		var poiById = map.PointsOfInterest.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
 		ValidateLandmarkGroups(landmarkGroups, landmarksToPick, poiById);
 
-		var group = PickRandom(landmarkGroups.ToArray());
-		var combination = PickRandom(Combinations(group, landmarksToPick).ToArray());
-		var distance = PickRandom(allowedDistances.ToArray());
+		var group = PickRandom(landmarkGroups.ToArray(), random);
+		var combination = PickRandom(Combinations(group, landmarksToPick).ToArray(), random);
+		var distance = PickRandom(allowedDistances.ToArray(), random);
 
 		var landmarkAId = combination[0];
 		var landmarkBId = combination[1];
@@ -72,7 +77,7 @@ public static class AreaPicker
 				$"No valid area for landmarks '{landmarkAId}' and '{landmarkBId}' at distance {distance}.");
 		}
 
-		var chosen = candidates[Random.Shared.Next(candidates.Count)];
+		var chosen = candidates[PickIndex(candidates.Count, random)];
 		var intel = AreaIntelProducer.Produce(
 			new AreaIntelContext(chosen.LandmarkAId, chosen.LandmarkBId, chosen.Distance));
 
@@ -108,7 +113,11 @@ public static class AreaPicker
 		}
 	}
 
-	private static T PickRandom<T>(IReadOnlyList<T> items) => items[Random.Shared.Next(items.Count)];
+	private static T PickRandom<T>(IReadOnlyList<T> items, StableRandom? random) =>
+		items[PickIndex(items.Count, random)];
+
+	private static int PickIndex(int count, StableRandom? random) =>
+		random is null ? Random.Shared.Next(count) : (int)(random.Value.NextDouble() * count);
 
 	private static void CollectCandidates(
 		StarMap map,

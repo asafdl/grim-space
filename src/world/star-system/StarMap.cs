@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
@@ -30,7 +31,15 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public IReadOnlyDictionary<Coord, Dock> DocksByPosition { get; }
 	public IReadOnlyDictionary<string, SpaceRoute> RoutesById { get; }
 	public FleetRegistry FleetRegistry { get; }
-	public IEnumerable<string> ActorIds => FleetRegistry.Ids;
+	public IEnumerable<string> ActorIds
+	{
+		get
+		{
+			yield return StarSystemActorIds.Contracts;
+			foreach (var id in FleetRegistry.Ids)
+				yield return id;
+		}
+	}
 	public ContractRegistry ContractRegistry { get; }
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PlayerResources PlayerResources { get; }

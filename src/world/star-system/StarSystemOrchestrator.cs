@@ -12,6 +12,7 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
@@ -27,7 +28,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly ActionBatchSink _actionSink = new();
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
+	private readonly ContractBoardExecutionAgent _contractBoardAgent;
 	private readonly Queue<IAction> _reactionQueue = [];
+	private bool _contractGenerationEnabled = true;
 	private readonly IDisposable _storyObjectiveSubscription;
 	private readonly IDisposable _contractFulfillmentSubscription;
 	private readonly IDisposable _deliveryTurnInSubscription;
@@ -40,13 +43,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 		ContactMonitor contactMonitor,
 		string? playerId,
 		StarMapPlayerExecutionAgent? playerAgent,
-		IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> trafficAgents)
+		IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> trafficAgents,
+		ContractBoardExecutionAgent contractBoardAgent)
 	{
 		_engine = engine;
 		_contactMonitor = contactMonitor;
 		PlayerId = playerId;
 		_playerAgent = playerAgent;
 		_trafficAgents = trafficAgents;
+		_contractBoardAgent = contractBoardAgent;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_contractFulfillmentSubscription =
 			_engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
@@ -76,6 +81,10 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public bool CanAdvance =>
 		_simMode == ESimMode.Running
 		&& !Map.WaitingForPlayerInput;
+
+	public bool ContractGenerationEnabled => _contractGenerationEnabled;
+
+	public void SetContractGenerationEnabled(bool enabled) => _contractGenerationEnabled = enabled;
 
 	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
 
@@ -139,6 +148,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 			ScheduleSpawnedWorkerIfNeeded(map, unit);
 		}
 
+		actorRuntimes.For(StarSystemActorIds.Contracts);
+
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		var contactMonitor = new ContactMonitor(engine, pathfinder);
 		StarMapPlayerExecutionAgent? playerAgent = null;
@@ -165,12 +176,22 @@ public sealed class StarSystemOrchestrator : IDisposable
 				unit.State.Id))
 			.ToArray();
 
-		var orchestrator = new StarSystemOrchestrator(
+		StarSystemOrchestrator orchestrator = null!;
+		var contractBoardAgent = new ContractBoardExecutionAgent(
+			() => engine.World,
+			id => engine.ActorRuntimes.For(id),
+			() => orchestrator.ContractGenerationEnabled);
+		orchestrator = new StarSystemOrchestrator(
 			engine,
 			contactMonitor,
 			playerId,
 			playerAgent,
-			trafficAgents);
+			trafficAgents,
+			contractBoardAgent);
+
+		contractBoardAgent.Init(
+			StarSystemActorIds.Contracts,
+			orchestrator._actionSink.WriterFor(StarSystemActorIds.Contracts));
 
 		if (playerAgent is not null)
 		{
@@ -240,6 +261,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitPlayerActions();
 		var history = _engine.AdvanceTick();
 		CommitReactions();
+		CommitContractBoardActions();
 		NotifyWorldUpdated();
 		return history;
 	}
@@ -301,6 +323,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitReactions();
 
 		CommitContactActions();
+		CommitContractBoardActions();
 		NotifyWorldUpdated();
 		return history;
 	}
@@ -328,6 +351,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		foreach (var (agent, _) in _trafficAgents)
 			agent.SetCanWork(trafficCanWork);
 
+		_contractBoardAgent.SetCanWork(trafficCanWork);
 		_playerAgent?.SetCanWork(PlayerId is not null);
 	}
 
@@ -385,6 +409,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 		var produced = _contactMonitor.Update(Tick);
 		if (produced.Count > 0)
 			Commit([..produced]);
+	}
+
+	private void CommitContractBoardActions()
+	{
+		_contractBoardAgent.PlanAndPublish();
+		if (!_actionSink.TryTakeBatch(StarSystemActorIds.Contracts, out var batch) || batch.Actions.Count == 0)
+			return;
+
+		_engine.Commit([..batch.Actions]);
 	}
 
 	private void OnContractAccepted(AcceptContractAction accepted)

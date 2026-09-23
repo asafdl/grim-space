@@ -12,29 +12,38 @@ public static class ContractFactory
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentNullException.ThrowIfNull(args);
 
-		var contract = kind switch
+		var contract = Build(map, TypedIdGenerator.NextId("contract"), kind, args);
+		if (!map.ContractRegistry.TryAdd(contract))
+			throw new InvalidOperationException($"Failed to add contract '{contract.Id}'.");
+		return contract;
+	}
+
+	public static Contract Build(StarMap map, string contractId, EContractKind kind, ContractCreateArgs args)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		ArgumentException.ThrowIfNullOrEmpty(contractId);
+		ArgumentNullException.ThrowIfNull(args);
+
+		return kind switch
 		{
 			EContractKind.Hunt => args switch
 			{
-				HuntCreateArgs huntArgs => CreateHunt(map, huntArgs),
+				HuntCreateArgs huntArgs => BuildHunt(map, contractId, huntArgs),
 				_ => throw Mismatch(kind, args),
 			},
 			EContractKind.Delivery => args switch
 			{
-				DeliveryCreateArgs deliveryArgs => CreateDelivery(map, deliveryArgs),
+				DeliveryCreateArgs deliveryArgs => BuildDelivery(map, contractId, deliveryArgs),
 				_ => throw Mismatch(kind, args),
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
-
-		map.ContractRegistry.RegisterOffered(contract);
-		return contract;
 	}
 
 	private static ArgumentException Mismatch(EContractKind kind, ContractCreateArgs args) =>
 		new($"Contract kind '{kind}' requires matching create args, but received '{args.GetType().Name}'.", nameof(args));
 
-	private static Contract CreateHunt(StarMap map, HuntCreateArgs args)
+	private static Contract BuildHunt(StarMap map, string contractId, HuntCreateArgs args)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 
@@ -42,8 +51,7 @@ public static class ContractFactory
 			?? throw new InvalidOperationException(
 				$"Could not pick a hunt search area for map seed {map.Seed}.");
 
-		var contractId = TypedIdGenerator.NextId("contract");
-		var groupId = TypedIdGenerator.NextId("spawn-group");
+		var groupId = SpawnGroupIdFor(contractId);
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
 		var encounter = args.Encounter;
 		var objective = new HuntObjective(
@@ -70,11 +78,10 @@ public static class ContractFactory
 			args.IsStoryObjective);
 	}
 
-	private static Contract CreateDelivery(StarMap map, DeliveryCreateArgs args)
+	private static Contract BuildDelivery(StarMap map, string contractId, DeliveryCreateArgs args)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 
-		var contractId = TypedIdGenerator.NextId("contract");
 		var (turnInPoiId, turnInFacilityId, turnInOperatorName) = ResolveDropoff(map, args, contractId);
 		var objective = new DeliveryObjective(turnInPoiId, turnInFacilityId, turnInOperatorName);
 
@@ -87,6 +94,8 @@ public static class ContractFactory
 			args.Narrative,
 			args.IsStoryObjective);
 	}
+
+	internal static string SpawnGroupIdFor(string contractId) => $"{contractId}.spawns";
 
 	private static (string PoiId, string FacilityId, string OperatorName) ResolveDropoff(
 		StarMap map,
@@ -121,7 +130,8 @@ public static class ContractFactory
 						map,
 						[group],
 						[distance],
-						picker.MinLandmarkSeparation);
+						picker.MinLandmarkSeparation,
+						deterministicPickMix: picker.DeterministicPickMix);
 				}
 				catch (InvalidOperationException)
 				{

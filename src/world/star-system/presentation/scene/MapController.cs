@@ -49,7 +49,7 @@ public partial class MapController : Node3D
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
 	private WorldLinkNavigator? _objectivesLinks;
-	private PoiContractOfferOverlay _contractOfferOverlay = null!;
+	private PoiContractOverlay _poiContractOverlay = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -183,13 +183,13 @@ public partial class MapController : Node3D
 		_director.RegisterMode(new OverviewPresentationMode());
 		_director.RegisterMode(_facadeMode);
 
-		_contractOfferOverlay = new PoiContractOfferOverlay();
-		_contractOfferOverlay.Configure(
+		_poiContractOverlay = new PoiContractOverlay();
+		_poiContractOverlay.Configure(
 			_camera,
 			_view,
 			() => _orchestrator.Map,
 			() => _director.CurrentModeId == OverviewPresentationMode.ModeId && !IsBlockingModalOpen());
-		_uiLayer.AddChild(_contractOfferOverlay);
+		_uiLayer.AddChild(_poiContractOverlay);
 
 		_worldFocus = new MapWorldFocus(
 			_camera,

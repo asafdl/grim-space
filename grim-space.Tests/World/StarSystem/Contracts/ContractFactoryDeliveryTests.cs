@@ -14,7 +14,7 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 {
 	[Fact]
-	public void Create_Delivery_WithOverride_RegistersOfferedContract()
+	public void Create_Delivery_WithOverride_RegistersPendingContract()
 	{
 		var map = maps.Fresh(42);
 		var plan = map.Blueprint.SupplyPlan;
@@ -32,7 +32,7 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 
 		var contract = ContractFactory.Create(map, EContractKind.Delivery, args);
 
-		Assert.True(map.ContractRegistry.IsOffered(contract.Id));
+		Assert.True(map.ContractRegistry.IsPending(contract.Id));
 		var objective = Assert.IsType<DeliveryObjective>(contract.Objective);
 		Assert.Equal(dropoffPoiId, objective.TurnInPoiId);
 		Assert.Equal(dropoffFacilityId, objective.TurnInFacilityId);

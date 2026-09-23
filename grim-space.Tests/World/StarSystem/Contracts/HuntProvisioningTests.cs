@@ -25,7 +25,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var map = maps.FreshWithBeatAHunt(42);
 		var initialCount = map.FleetRegistry.All.Count();
 
-		Assert.Single(map.ContractRegistry.Offered);
+		Assert.Single(map.ContractRegistry.Pending);
 		Assert.Equal(initialCount, map.FleetRegistry.All.Count());
 	}
 
@@ -126,7 +126,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void ProvisioningDeterministic_PlanIsStableForSameInputs()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var contract = map.ContractRegistry.Offered.First();
+		var contract = map.ContractRegistry.Pending.First();
 		var hunt = (HuntObjective)contract.Objective;
 
 		var first = ContractFleetPlacement.Plan(
@@ -184,7 +184,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 
-		var contract = map.ContractRegistry.Offered.First();
+		var contract = map.ContractRegistry.Pending.First();
 		var groupId = ((HuntObjective)contract.Objective).SpawnGroups[0].GroupId;
 		var existingId = $"{contract.Id}.{groupId}.0";
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
@@ -196,7 +196,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var engine = CreateEngine(map, unitId);
 		Assert.Throws<InvalidOperationException>(() =>
 			engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contract.Id)));
-		Assert.True(map.ContractRegistry.IsOffered(contract.Id));
+		Assert.True(map.ContractRegistry.IsPending(contract.Id));
 		Assert.Equal(1, map.FleetRegistry.All.Count(unit => unit.State.Type == EType.PirateFleet));
 	}
 
@@ -209,12 +209,12 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 
 		Assert.True(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, contractId)));
 		Assert.Equal(initialCount + 1, sim.World.FleetRegistry.All.Count());
-		Assert.False(sim.World.ContractRegistry.IsOffered(contractId));
+		Assert.False(sim.World.ContractRegistry.IsPending(contractId));
 
 		sim.Dequeue();
 
 		Assert.Equal(initialCount, sim.World.FleetRegistry.All.Count());
-		Assert.True(sim.World.ContractRegistry.IsOffered(contractId));
+		Assert.True(sim.World.ContractRegistry.IsPending(contractId));
 		Assert.False(sim.World.ContractRegistry.TryGetState(contractId, out _));
 	}
 
@@ -244,7 +244,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialBeatContracts.BeatAHuntRewardCredits)),
 			ContractNarrative.ForHunt("Synthetic Hunt"));
-		map.ContractRegistry.RegisterOffered(contract);
+		Assert.True(map.ContractRegistry.TryAdd(contract));
 	}
 
 	private static AreaPick CreateSyntheticSearchArea(StarMap map)
@@ -288,7 +288,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var unitId = map.FleetRegistry.Ids.First();
 		DockAtIssuer(map, unitId);
 		var engine = CreateEngine(map, unitId);
-		var contractId = map.ContractRegistry.Offered.First().Id;
+		var contractId = map.ContractRegistry.Pending.First().Id;
 		return (engine, unitId, contractId);
 	}
 }

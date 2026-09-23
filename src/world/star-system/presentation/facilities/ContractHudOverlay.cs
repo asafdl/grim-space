@@ -50,7 +50,7 @@ public sealed partial class ContractHudOverlay : Control
 		_statusKind = null;
 		_statusMessage = "";
 		_mode = ViewMode.List;
-		_shell.Open(_facilityTitle, "Select an offer");
+		_shell.Open(_facilityTitle, "Select a contract");
 		ShowList();
 	}
 
@@ -86,8 +86,8 @@ public sealed partial class ContractHudOverlay : Control
 		var contracts = _map.ContractRegistry.AvailableForPoi(_activePoiId).ToArray();
 		_shell.SetTitle(_facilityTitle);
 		_shell.SetSubtitle(contracts.Length == 0
-			? "No contract offers available"
-			: $"{contracts.Length} contract {Pluralize(contracts.Length, "offer", "offers")} available");
+			? "No contracts available"
+			: $"{contracts.Length} {Pluralize(contracts.Length, "contract", "contracts")} available");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -208,7 +208,7 @@ public sealed partial class ContractHudOverlay : Control
 			return false;
 
 		if (!_map.ContractRegistry.TryGet(_selected.Id, out var contract)
-			|| !_map.ContractRegistry.IsOffered(_selected.Id))
+			|| !_map.ContractRegistry.IsPending(_selected.Id))
 			return false;
 
 		_selected = contract;

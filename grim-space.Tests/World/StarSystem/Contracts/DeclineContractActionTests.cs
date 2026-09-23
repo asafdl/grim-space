@@ -22,7 +22,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 	{
 		var orchestrator = CreateOrchestrator();
 		var agent = orchestrator.PlayerAgent!;
-		var contractId = orchestrator.Map.ContractRegistry.Offered.First().Id;
+		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 
 		Assert.False(agent.TryEnqueue([ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 	}
@@ -47,7 +47,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 		Assert.True(agent.TryEnqueue([ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 		orchestrator.AdvanceClock();
 
-		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
+		Assert.False(orchestrator.Map.ContractRegistry.IsPending(contractId));
 		Assert.True(orchestrator.Map.ContractRegistry.IsRejected(contractId));
 	}
 
@@ -61,7 +61,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 			[ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
 		orchestrator.AdvanceClock();
 
-		Assert.False(orchestrator.Map.ContractRegistry.IsOffered(contractId));
+		Assert.False(orchestrator.Map.ContractRegistry.IsPending(contractId));
 		Assert.True(orchestrator.Map.ContractRegistry.IsRejected(contractId));
 	}
 
@@ -100,16 +100,16 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 
 	private static string RegisterDeclineableOffer(StarMap map)
 	{
-		var starter = map.ContractRegistry.Offered.First();
+		var starter = map.ContractRegistry.Pending.First();
 		var hunt = (HuntObjective)starter.Objective;
 		var contractId = TypedIdGenerator.NextId("contract");
-		map.ContractRegistry.RegisterOffered(new Contract(
+		Assert.True(map.ContractRegistry.TryAdd(new Contract(
 			contractId,
 			hunt,
 			starter.IssuerFaction,
 			starter.IssuerPoiId,
 			starter.Terms,
-			ContractNarrative.ForHunt("Optional Hunt")));
+			ContractNarrative.ForHunt("Optional Hunt"))));
 		return contractId;
 	}
 
