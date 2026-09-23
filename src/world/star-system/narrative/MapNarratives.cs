@@ -12,7 +12,7 @@ public static class MapNarratives
 				OpeningId,
 				[
 					"Oh, Syndi's beard, WHAT. A. SHITHOLE. this system is, how did I even end up here?",
-					$"Oh right, the drugs...\nWell I need credits unless I want trouble, does this place even have work???.",
+					$"Oh right, the drugs...\nWell I need credits unless I want trouble, does this place even have work???",
 				]);
 			return true;
 		}

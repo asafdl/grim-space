@@ -1,8 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem.Effects;
-using GrimSpace.World.StarSystem.Narrative;
-using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Actions;
@@ -33,19 +31,10 @@ public sealed class CompleteNarrativeDef
 		StarMap world,
 		ActorRuntime runtime)
 	{
-		var complete = (CompleteNarrativeAction)action;
-		var effects = new List<IEffect<StarMap, ActorRuntime>>
-		{
+		return
+		[
 			new SetActiveNarrativeEffect(null),
 			new PlayerInputEffect(false),
-		};
-
-		if (complete.NarrativeId == MapNarratives.OpeningId)
-		{
-			effects.Add(new AddStoryObjectiveEffect(
-				StoryObjective.FirstContract(world.Blueprint.SupplyPlan.AdministrativePoiId)));
-		}
-
-		return effects;
+		];
 	}
 }

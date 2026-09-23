@@ -3,6 +3,7 @@ using GrimSpace.Education;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.Tutorials;
@@ -14,6 +15,7 @@ public sealed class TutorialController : IDisposable
 	private readonly StarSystemOrchestrator _orchestrator;
 	private readonly TutorialState _state;
 	private IDisposable? _contractCompletionSubscription;
+	private IDisposable? _narrativeCompletionSubscription;
 	private TutorialFlow? _activeFlow;
 
 	public TutorialController(StarSystemOrchestrator orchestrator, TutorialState state)
@@ -47,12 +49,17 @@ public sealed class TutorialController : IDisposable
 		_state.BeatAContractId = TutorialBeatContracts.OfferBeatA(_orchestrator.Map);
 		GameLog.Log($"Tutorial initialized: beatAContractId='{_state.BeatAContractId}'.");
 		EnsureContractObservation();
+		ReconcileFirstContractStoryObjective();
 		ReconcileBeatTransitions();
 	}
 
-	public void EnsureContractObservation() =>
+	public void EnsureContractObservation()
+	{
 		_contractCompletionSubscription ??=
 			_orchestrator.Subscribe<CompleteContractAction>(OnContractCompleted);
+		_narrativeCompletionSubscription ??=
+			_orchestrator.Subscribe<CompleteNarrativeAction>(OnNarrativeCompleted);
+	}
 
 	public void ReconcileFromWorldState(bool cancelBattleFlowWhenOffBattlefield)
 	{
@@ -165,6 +172,30 @@ public sealed class TutorialController : IDisposable
 		FlowCompleted?.Invoke(flow);
 	}
 
+	private void OnNarrativeCompleted(CompleteNarrativeAction action)
+	{
+		if (action.NarrativeId != MapNarratives.OpeningId)
+			return;
+
+		ReconcileFirstContractStoryObjective();
+	}
+
+	private void ReconcileFirstContractStoryObjective()
+	{
+		var map = _orchestrator.Map;
+		if (map.ActiveNarrativeId is not null)
+			return;
+
+		if (map.StoryObjectives.Active.Any(objective => objective.Id == StoryObjective.FirstContractId))
+			return;
+
+		if (_state.BeatAContractId is { } beatAId && !map.ContractRegistry.IsPending(beatAId))
+			return;
+
+		map.StoryObjectives.Add(
+			StoryObjective.FirstContract(map.Blueprint.SupplyPlan.AdministrativePoiId));
+	}
+
 	private void OnContractCompleted(CompleteContractAction action)
 	{
 		if (action.ActorId != _orchestrator.PlayerId
@@ -238,6 +269,7 @@ public sealed class TutorialController : IDisposable
 	public void Dispose()
 	{
 		_contractCompletionSubscription?.Dispose();
+		_narrativeCompletionSubscription?.Dispose();
 		CancelActive();
 	}
 }

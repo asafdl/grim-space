@@ -3,7 +3,6 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Narrative;
-using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
@@ -49,13 +48,7 @@ public sealed class NarrativeActionTests(StarMapFixture maps)
 		Assert.Null(orchestrator.Map.ActiveNarrativeId);
 		Assert.False(orchestrator.Map.WaitingForPlayerInput);
 		Assert.True(orchestrator.CanAdvance);
-		var administrativeCoreId = orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId;
-		Assert.Contains(
-			orchestrator.Map.StoryObjectives.Active,
-			objective => objective.Id == StoryObjective.FirstContractId
-				&& objective.Summary.Contains(
-					$"[url={administrativeCoreId}]Administrative Core[/url]",
-					StringComparison.Ordinal));
+		Assert.Empty(orchestrator.Map.StoryObjectives.Active);
 	}
 
 	[Fact]
