@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 
@@ -57,6 +58,20 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 
 		Assert.Equal(unitId, requestedId);
 		Assert.Equal(new WorldObjectResolution.Found(livePosition), result);
+	}
+
+	[Fact]
+	public void ResolveFocusable_NavigationLandmark_ReturnsPosition()
+	{
+		var map = maps.Template(42);
+		var landmark = map.NavigationLandmarks[0];
+
+		var result = WorldObjectQueries.ResolveFocusable(
+			map,
+			landmark.Id,
+			_ => throw new InvalidOperationException("Unit position should not be requested."));
+
+		Assert.Equal(new WorldObjectResolution.Found(landmark.Position), result);
 	}
 
 	[Fact]
@@ -158,6 +173,7 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 	{
 		var map = maps.Template(seed);
 		var ids = map.PointsOfInterest.Select(poi => poi.Id)
+			.Concat(map.NavigationLandmarks.Select(landmark => landmark.Id))
 			.Concat(map.DocksById.Values.Select(dock => dock.Id))
 			.Concat(map.FleetRegistry.Ids)
 			.ToArray();

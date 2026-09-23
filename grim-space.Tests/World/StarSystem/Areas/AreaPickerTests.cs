@@ -153,6 +153,30 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 		AssertRadiusScalesWithSpan(map, result);
 	}
 
+	[Fact]
+	public void Pick_PoiAndNavigationLandmark_Succeeds()
+	{
+		const int span = 200;
+		var map = AreaPickerTestMaps.OpenPoiAndNavigationLandmark(span);
+		var group = new[] { AreaPickerTestMaps.LandmarkAId, AreaPickerTestMaps.NavLandmarkCId };
+
+		var result = AreaPicker.Pick(map, [group], [EAreaDistance.High], 2);
+
+		Assert.IsType<AreaRelation.BetweenLandmarks>(result.Relation);
+	}
+
+	[Fact]
+	public void Pick_TwoNavigationLandmarks_Succeeds()
+	{
+		const int span = 200;
+		var map = AreaPickerTestMaps.OpenNavigationLandmarkPair(span);
+		var group = new[] { AreaPickerTestMaps.NavLandmarkAId, AreaPickerTestMaps.NavLandmarkBId };
+
+		var result = AreaPicker.Pick(map, [group], [EAreaDistance.Low], 2);
+
+		Assert.IsType<AreaRelation.BetweenLandmarks>(result.Relation);
+	}
+
 	[Theory]
 	[InlineData(EAreaDistance.Low)]
 	[InlineData(EAreaDistance.Med)]

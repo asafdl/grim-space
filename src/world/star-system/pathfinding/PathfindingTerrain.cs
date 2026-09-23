@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 
@@ -68,6 +69,7 @@ public sealed class PathfindingTerrain
 		int height,
 		IEnumerable<SpaceRoute> routes,
 		IReadOnlyCollection<PointOfInterest> pois,
+		IReadOnlyCollection<NavigationLandmark> landmarks,
 		IEnumerable<Dock> docks)
 	{
 		ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);
@@ -92,6 +94,16 @@ public sealed class PathfindingTerrain
 				height,
 				poi.PlacedCenter,
 				poi.RouteExclusionRadius,
+				(x, z) => cells[new Coord(x, 0, z).ToIndex(width)] = PathfindingCell.Obstacle);
+		}
+
+		foreach (var landmark in landmarks)
+		{
+			GridRaster.FillCircle(
+				width,
+				height,
+				landmark.Position,
+				landmark.Radius,
 				(x, z) => cells[new Coord(x, 0, z).ToIndex(width)] = PathfindingCell.Obstacle);
 		}
 

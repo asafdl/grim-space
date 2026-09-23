@@ -1,4 +1,5 @@
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Resources;
@@ -45,18 +46,17 @@ public static class ContractObjectiveProjection
 		if (!AreaIntelDisplay.TryParseLinkableSegments(intel, out var segments))
 			return PlainOrPreview(map, contract);
 
-		var poiA = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == segments.LandmarkAId);
-		var poiB = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == segments.LandmarkBId);
-		if (poiA is null || poiB is null)
+		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmarkA)
+			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkBId, out var landmarkB))
 			return PlainOrPreview(map, contract);
 
 		return new ObjectiveSummaryContent.RouteBetweenLandmarks(
 			segments.Prefix,
-			poiA.Id,
-			poiA.DisplayName,
+			landmarkA.Id,
+			landmarkA.DisplayName,
 			segments.Connector,
-			poiB.Id,
-			poiB.DisplayName,
+			landmarkB.Id,
+			landmarkB.DisplayName,
 			segments.Suffix);
 	}
 

@@ -4,6 +4,7 @@ using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
@@ -35,11 +36,13 @@ internal static class ContractPlacementTestMaps
 			EFaction.TheOptimality,
 			SupplySystemPlan.Copper,
 			[],
-			[]);
+			[],
+			NavigationLandmarkGenerationProfile.Disabled);
 
 		return new StarMap(
 			blueprint,
 			pois,
+			[],
 			new Timeline(),
 			new Dictionary<string, Dock>(StringComparer.Ordinal),
 			new Dictionary<string, Dock>(StringComparer.Ordinal),

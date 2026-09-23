@@ -64,6 +64,10 @@ public partial class MapView : Node3D
 		if (poi is not null)
 			return MapMapping.ToWorldRadius(poi.Radius) + IndicatorClearancePadding;
 
+		var landmark = world.NavigationLandmarks.FirstOrDefault(candidate => candidate.Id == objectId);
+		if (landmark is not null)
+			return MapMapping.ToWorldRadius(landmark.Radius) + IndicatorClearancePadding;
+
 		if (world.FleetRegistry.TryGet(objectId, out _))
 			return 0.12f;
 

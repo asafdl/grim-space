@@ -1,7 +1,7 @@
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
-using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Landmarks;
 
 namespace GrimSpace.World.StarSystem.Areas;
 
@@ -38,8 +38,7 @@ public static class AreaPicker
 			? new StableRandom((ulong)mix)
 			: null;
 
-		var poiById = map.PointsOfInterest.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
-		ValidateLandmarkGroups(landmarkGroups, landmarksToPick, poiById);
+		ValidateLandmarkGroups(map, landmarkGroups, landmarksToPick);
 
 		var group = PickRandom(landmarkGroups.ToArray(), random);
 		var combination = PickRandom(Combinations(group, landmarksToPick).ToArray(), random);
@@ -47,8 +46,15 @@ public static class AreaPicker
 
 		var landmarkAId = combination[0];
 		var landmarkBId = combination[1];
-		var centerA = poiById[landmarkAId].PlacedCenter;
-		var centerB = poiById[landmarkBId].PlacedCenter;
+		if (!MapLandmarkQueries.TryGet(map, landmarkAId, out var landmarkA)
+			|| !MapLandmarkQueries.TryGet(map, landmarkBId, out var landmarkB))
+		{
+			throw new InvalidOperationException(
+				$"Sampled landmarks '{landmarkAId}' and '{landmarkBId}' could not be resolved.");
+		}
+
+		var centerA = landmarkA.Position;
+		var centerB = landmarkB.Position;
 		var span = RouteGeometry.Distance(centerA, centerB);
 		if (span <= 0.0)
 		{
@@ -89,9 +95,9 @@ public static class AreaPicker
 	}
 
 	private static void ValidateLandmarkGroups(
+		StarMap map,
 		IReadOnlyCollection<IReadOnlyCollection<string>> landmarkGroups,
-		int landmarksToPick,
-		IReadOnlyDictionary<string, PointOfInterest> poiById)
+		int landmarksToPick)
 	{
 		foreach (var group in landmarkGroups)
 		{
@@ -107,7 +113,7 @@ public static class AreaPicker
 
 			foreach (var landmarkId in group)
 			{
-				if (!poiById.ContainsKey(landmarkId))
+				if (!MapLandmarkQueries.TryGet(map, landmarkId, out _))
 					throw new ArgumentException($"Unknown landmark '{landmarkId}'.", nameof(landmarkGroups));
 			}
 		}

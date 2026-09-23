@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Ids;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
@@ -25,6 +26,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public int Width => Blueprint.Width;
 	public int Height => Blueprint.Height;
 	public IReadOnlyList<PointOfInterest> PointsOfInterest { get; }
+	public IReadOnlyList<NavigationLandmark> NavigationLandmarks { get; }
 	public Timeline Timeline { get; }
 	public IReadOnlyDictionary<string, Dock> DocksById { get; }
 	public IReadOnlyDictionary<string, Dock> DocksByPoiId { get; }
@@ -54,6 +56,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	internal StarMap(
 		StarSystemBlueprint blueprint,
 		IReadOnlyList<PointOfInterest> pointsOfInterest,
+		IReadOnlyList<NavigationLandmark> navigationLandmarks,
 		Timeline timeline,
 		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, Dock> docksByPoiId,
@@ -68,6 +71,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
+		NavigationLandmarks = navigationLandmarks;
 		Timeline = timeline;
 		DocksById = docksById;
 		DocksByPoiId = docksByPoiId;
@@ -112,6 +116,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		new(
 			Blueprint,
 			PointsOfInterest.Select(poi => poi.Fork()).ToList(),
+			NavigationLandmarks,
 			timeline,
 			DocksById,
 			DocksByPoiId,

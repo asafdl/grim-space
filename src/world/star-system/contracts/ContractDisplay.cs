@@ -1,5 +1,6 @@
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Resources;
@@ -62,8 +63,7 @@ public static class ContractDisplay
 		};
 
 	internal static string FormatSearchAreaIntel(AreaIntel intel, StarMap map) =>
-		AreaIntelDisplay.FormatPlain(intel, poiId =>
-			map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName);
+		AreaIntelDisplay.FormatPlain(intel, id => MapLandmarkQueries.GetDisplayName(map, id));
 
 	public static string Reward(Contract contract) =>
 		contract.Terms.Payment.IsEmpty

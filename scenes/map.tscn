@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://src/world/star-system/presentation/scene/MapController.cs" id="1_controller"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/MapView.cs" id="2_view"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/map/NavigationLandmarksView.cs" id="2_landmarks"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/camera/MapCamera.cs" id="3_camera"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/RoutesView.cs" id="4_routes"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/UnitsView.cs" id="5_units"]
@@ -32,6 +33,9 @@ light_energy = 0.39
 
 [node name="MapView" type="Node3D" parent="."]
 script = ExtResource("2_view")
+
+[node name="NavigationLandmarksView" type="Node3D" parent="."]
+script = ExtResource("2_landmarks")
 
 [node name="RoutesView" type="Node3D" parent="."]
 script = ExtResource("4_routes")

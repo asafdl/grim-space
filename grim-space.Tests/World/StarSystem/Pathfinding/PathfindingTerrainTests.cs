@@ -27,7 +27,7 @@ public sealed class PathfindingTerrainTests
 		};
 		var pois = new TestPoi("poi-b", new Coord(20, 0, 12), 4);
 
-		var terrain = PathfindingTerrain.Create(32, 32, routes.Values, [pois], docks);
+		var terrain = PathfindingTerrain.Create(32, 32, routes.Values, [pois], [], docks);
 
 		Assert.False(terrain[10, 5].Blocked);
 		Assert.Equal(1.5, terrain[10, 5].SpeedMultiplier);
@@ -60,6 +60,7 @@ public sealed class PathfindingTerrainTests
 			256,
 			Array.Empty<SpaceRoute>(),
 			[star],
+			[],
 			Array.Empty<Dock>());
 
 		var exclusionEdge = star.PlacedCenter.X + star.RouteExclusionRadius;

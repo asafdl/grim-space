@@ -10,9 +10,6 @@ namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 public static class MapCelestialVisuals
 {
 	private const string SunTexturePath = "res://assets/textures/2k_sun.jpg";
-	private const string SmokeTexturePath =
-		"res://assets/kenny-particle-pack/PNG (Transparent)/smoke_02.png";
-
 	private static readonly string[] PlanetTexturePaths =
 	[
 		"res://assets/textures/2k_venus_surface.jpg",
@@ -94,6 +91,23 @@ public static class MapCelestialVisuals
 		});
 	}
 
+	public static void AddMoonlet(Node3D root, int visualSeed, float worldRadius)
+	{
+		var variant = (int)(StableSeedMixer.From(visualSeed).Add("nav-moonlet").Value
+			% (ulong)PlanetTexturePaths.Length);
+		var texture = GD.Load<Texture2D>(PlanetTexturePaths[variant]);
+		var tint = PlanetTints[variant].Lerp(new Color(0.62f, 0.68f, 0.82f), 0.22f);
+		var bodyRadius = Mathf.Clamp(worldRadius * 0.55f, 0.14f, 0.42f);
+
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "Body",
+			Mesh = CreateSphere(bodyRadius, 32, 16),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = CreatePlanetSurfaceMaterial(texture, tint),
+		});
+	}
+
 	public static void AddMiningDust(
 		Node3D root,
 		int seed,
@@ -106,67 +120,13 @@ public static class MapCelestialVisuals
 			(int)(28f + worldRadius * 18f * settings.DustDensity),
 			18,
 			72);
-		var texture = GD.Load<Texture2D>(SmokeTexturePath);
-		root.AddChild(CreateDustLayer(texture, worldRadius, amount, settings.DustOpacity, random));
-	}
-
-	private static MultiMeshInstance3D CreateDustLayer(
-		Texture2D texture,
-		float worldRadius,
-		int amount,
-		float opacity,
-		StableRandom random)
-	{
-		var drawMaterial = new StandardMaterial3D
-		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-			BlendMode = BaseMaterial3D.BlendModeEnum.Mix,
-			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-			AlbedoTexture = texture,
-			VertexColorUseAsAlbedo = true,
-			BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-			BillboardKeepScale = true,
-		};
-		var multiMesh = new MultiMesh
-		{
-			TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-			UseColors = true,
-			InstanceCount = amount,
-			Mesh = new QuadMesh
-			{
-				Size = Vector2.One * (0.55f + worldRadius * 0.22f),
-				Material = drawMaterial,
-			},
-		};
-
-		for (var i = 0; i < amount; i++)
-		{
-			var angle = random.NextDouble() * System.Math.Tau;
-			var distance = random.NextDouble() * worldRadius * 0.88;
-			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.18;
-			var position = new Vector3(
-				(float)(System.Math.Cos(angle) * distance),
-				(float)lift,
-				(float)(System.Math.Sin(angle) * distance));
-			var scale = 0.7f + (float)random.NextDouble() * 1.1f;
-			multiMesh.SetInstanceTransform(
-				i,
-				new Transform3D(Basis.Identity.Scaled(Vector3.One * scale), position));
-
-			var tone = 0.42f + (float)random.NextDouble() * 0.18f;
-			var alpha = opacity * (0.45f + (float)random.NextDouble() * 0.55f);
-			multiMesh.SetInstanceColor(
-				i,
-				new Color(tone * 0.72f, tone * 0.66f, tone * 0.58f, alpha));
-		}
-
-		return new MultiMeshInstance3D
-		{
-			Name = "RegionalDust",
-			Multimesh = multiMesh,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
+		var texture = MapSmokeDustVisuals.LoadDefaultSmokeTexture();
+		root.AddChild(MapSmokeDustVisuals.CreateRegionalMiningLayer(
+			texture,
+			worldRadius,
+			amount,
+			settings.DustOpacity,
+			random));
 	}
 
 	private static SphereMesh CreateSphere(float radius, int radialSegments, int rings) =>

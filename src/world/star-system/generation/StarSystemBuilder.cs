@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Generation;
@@ -112,16 +113,30 @@ public static class StarSystemBuilder
 
 		Validate(blueprint, pois, docksByPoiId, routesById, fleetRegistry);
 
+		var landmarks = NavigationLandmarkGenerator.Generate(
+			blueprint,
+			layoutAttempt,
+			pois,
+			routesById.Values);
+		NavigationLandmarkValidator.Validate(
+			blueprint.Width,
+			blueprint.Height,
+			landmarks,
+			pois,
+			docksById.Values);
+
 		var terrain = PathfindingTerrain.Create(
 			blueprint.Width,
 			blueprint.Height,
 			routesById.Values,
 			pois,
+			landmarks,
 			docksById.Values);
 
 		return new StarMap(
 			blueprint,
 			pois,
+			landmarks,
 			new Timeline(),
 			docksById,
 			docksByPoiId,

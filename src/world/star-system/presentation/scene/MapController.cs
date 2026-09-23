@@ -28,6 +28,7 @@ public partial class MapController : Node3D
 	private static readonly float[] SpeedOptions = [0.5f, 1f, 2f, 4f, 8f];
 
 	private MapView _view = null!;
+	private NavigationLandmarksView _landmarks = null!;
 	private RoutesView _routes = null!;
 	private UnitsView _units = null!;
 	private CourseView _course = null!;
@@ -64,6 +65,7 @@ public partial class MapController : Node3D
 	public override void _Ready()
 	{
 		_view = GetNode<MapView>("MapView");
+		_landmarks = GetNode<NavigationLandmarksView>("NavigationLandmarksView");
 		_routes = GetNode<RoutesView>("RoutesView");
 		_units = GetNode<UnitsView>("UnitsView");
 		_course = GetNode<CourseView>("CourseView");
@@ -136,6 +138,7 @@ public partial class MapController : Node3D
 
 		_view.ConfigureAtmosphere(atmosphere);
 		_view.Build(world);
+		_landmarks.Build(world);
 
 		var star = world.PointsOfInterest.OfType<Star>().First();
 		MapStarLighting.Configure(
@@ -204,7 +207,7 @@ public partial class MapController : Node3D
 			() => _director.CurrentModeId is CinematicPresentationMode.ModeId
 				or OverviewPresentationMode.ModeId,
 			() => new WorldArrowIndicator(),
-			objectId => _view.GetIndicatorClearance(objectId, _orchestrator.Map),
+			ResolveIndicatorClearance,
 			IsPlayerFleetVisible);
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
@@ -295,10 +298,18 @@ public partial class MapController : Node3D
 		var unitHover = point is { } unitPoint
 			? _units.UnitAt(_orchestrator, unitPoint, tickFraction, IsPlayerFleetVisible)
 			: null;
-		var dockHover = unitHover is null && point is { } dockPoint ? _view.DockAt(dockPoint) : null;
-		var poiId = dockHover is null && unitHover is null && point is { } pick ? _view.PoiAt(pick) : null;
+		var landmarkId = unitHover is null && point is { } landmarkPoint
+			? _landmarks.LandmarkAt(landmarkPoint)
+			: null;
+		var dockHover = unitHover is null && landmarkId is null && point is { } dockPoint
+			? _view.DockAt(dockPoint)
+			: null;
+		var poiId = dockHover is null && unitHover is null && landmarkId is null && point is { } pick
+			? _view.PoiAt(pick)
+			: null;
+		_landmarks.SetHovered(landmarkId);
 		_view.SetHovered(poiId);
-		UpdateTooltip(world, poiId, dockHover, unitHover, screen);
+		UpdateTooltip(world, poiId, landmarkId, dockHover, unitHover, screen);
 	}
 
 	public override void _ExitTree()
@@ -402,10 +413,23 @@ public partial class MapController : Node3D
 				CycleSpeed(-1);
 				GetViewport().SetInputAsHandled();
 				break;
+			case Key.F when key.ShiftPressed:
+				_landmarks.ShowNavigationFootprints = !_landmarks.ShowNavigationFootprints;
+				GetViewport().SetInputAsHandled();
+				break;
+			case Key.B when key.ShiftPressed:
+				_landmarks.ShowLocalBounds = !_landmarks.ShowLocalBounds;
+				GetViewport().SetInputAsHandled();
+				break;
+			case Key.L when key.ShiftPressed:
+				_landmarks.LandmarksVisible = !_landmarks.LandmarksVisible;
+				GetViewport().SetInputAsHandled();
+				break;
 		}
 	}
 
-	private bool IsBlockingModalOpen() => _narrative.IsOpen || _engagement.IsOpen;
+	private bool IsBlockingModalOpen() =>
+		(_narrative?.IsOpen ?? false) || (_engagement?.IsOpen ?? false);
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
 	{
@@ -575,9 +599,19 @@ public partial class MapController : Node3D
 		_systemLabel.Text = $"{blueprint.SystemClass} · seed {blueprint.Seed} · {blueprint.SupplyPlan.ResourceId}";
 	}
 
+	private float ResolveIndicatorClearance(string objectId)
+	{
+		var world = _orchestrator.Map;
+		var landmarkClearance = _landmarks.GetIndicatorClearance(objectId, world);
+		return landmarkClearance > 0f
+			? landmarkClearance
+			: _view.GetIndicatorClearance(objectId, world);
+	}
+
 	private void UpdateTooltip(
 		StarMap world,
 		string? poiId,
+		string? landmarkId,
 		MapView.DockHoverInfo? dockHover,
 		UnitsView.UnitHoverInfo? unitHover,
 		Vector2 screen)
@@ -585,6 +619,14 @@ public partial class MapController : Node3D
 		if (unitHover is not null)
 		{
 			_tooltip.Text = $"{unitHover.Type} ({unitHover.UnitId})";
+			_tooltip.Visible = true;
+			_tooltip.Position = screen + new Vector2(14, 18);
+			return;
+		}
+
+		if (landmarkId is not null)
+		{
+			_tooltip.Text = _landmarks.GetDisplayName(landmarkId) ?? landmarkId;
 			_tooltip.Visible = true;
 			_tooltip.Position = screen + new Vector2(14, 18);
 			return;

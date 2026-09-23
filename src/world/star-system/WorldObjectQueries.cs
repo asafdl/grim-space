@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Landmarks;
 
 namespace GrimSpace.World.StarSystem;
 
@@ -15,9 +16,10 @@ public static class WorldObjectQueries
 		ArgumentNullException.ThrowIfNull(committedPositionOf);
 
 		var pois = world.PointsOfInterest.Where(poi => poi.Id == objectId).Take(2).ToArray();
+		var landmarks = world.NavigationLandmarks.Where(landmark => landmark.Id == objectId).Take(2).ToArray();
 		var docks = world.DocksById.Values.Where(dock => dock.Id == objectId).Take(2).ToArray();
 		var hasUnit = world.FleetRegistry.TryGet(objectId, out _);
-		var matches = pois.Length + docks.Length + (hasUnit ? 1 : 0);
+		var matches = pois.Length + landmarks.Length + docks.Length + (hasUnit ? 1 : 0);
 
 		if (matches == 0)
 			return new WorldObjectResolution.Missing();
@@ -32,6 +34,9 @@ public static class WorldObjectQueries
 				? new WorldObjectResolution.Found(center)
 				: new WorldObjectResolution.NotFocusable();
 		}
+
+		if (landmarks.Length == 1)
+			return new WorldObjectResolution.Found(landmarks[0].Position);
 
 		if (docks.Length == 1)
 			return new WorldObjectResolution.Found(docks[0].Position);

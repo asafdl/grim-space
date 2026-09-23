@@ -1,6 +1,7 @@
 using GrimSpace.Core.Ids;
 using GrimSpace.Math;
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -29,7 +30,8 @@ public static class SupplySystemGenerator
 			FactionCatalog.SupplySystemController,
 			plan,
 			plan.CreatePoiTemplates(seed),
-			unitSpawns);
+			unitSpawns,
+			NavigationLandmarkGenerationProfile.DefaultSupply);
 
 		static (string StartPoiId, string[] ChorePoiIds) MinerSpawn(
 			SupplySystemPlan plan,
