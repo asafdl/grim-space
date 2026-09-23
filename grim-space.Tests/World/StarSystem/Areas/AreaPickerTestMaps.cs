@@ -23,6 +23,40 @@ internal static class AreaPickerTestMaps
 	public const string NavLandmarkBId = "landmark:nav-b:00";
 	public const string NavLandmarkDId = "landmark:nav-d:00";
 
+	public static StarMap OpenSingleCenterLandmark(int mapSize = 512)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(mapSize, 64);
+
+		var center = new Coord(mapSize / 2, 0, mapSize / 2);
+		var poi = new TestLandmark(LandmarkAId, "Landmark A", center);
+		var cells = Enumerable.Repeat(PathfindingCell.OpenSpace, mapSize * mapSize).ToArray();
+		var terrain = PathfindingTerrain.FromCells(mapSize, mapSize, cells);
+		var blueprint = new StarSystemBlueprint(
+			0,
+			mapSize,
+			mapSize,
+			EStarSystemClass.Supply,
+			EFaction.TheOptimality,
+			SupplySystemPlan.Copper,
+			[],
+			[],
+			NavigationLandmarkGenerationProfile.Disabled);
+
+		return new StarMap(
+			blueprint,
+			new PointOfInterest[] { poi },
+			[],
+			new Timeline(),
+			new Dictionary<string, Dock>(StringComparer.Ordinal),
+			new Dictionary<string, Dock>(StringComparer.Ordinal),
+			new Dictionary<string, SpaceRoute>(StringComparer.Ordinal),
+			new FleetRegistry(),
+			new ContractRegistry(),
+			new StoryObjectiveRegistry(),
+			new PlayerResources(),
+			terrain);
+	}
+
 	public static StarMap OpenLandmarkPair(int span, int mapSize = 512)
 	{
 		ArgumentOutOfRangeException.ThrowIfLessThan(span, 1);

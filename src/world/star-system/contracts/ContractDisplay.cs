@@ -63,7 +63,9 @@ public static class ContractDisplay
 		};
 
 	internal static string FormatSearchAreaIntel(AreaIntel intel, StarMap map) =>
-		AreaIntelDisplay.FormatPlain(intel, id => MapLandmarkQueries.GetDisplayName(map, id));
+		AreaIntelDisplay.FormatPlain(
+			intel,
+			id => AreaBorderAnchor.TryGetDisplayName(id) ?? MapLandmarkQueries.GetDisplayName(map, id));
 
 	public static string Reward(Contract contract) =>
 		contract.Terms.Payment.IsEmpty

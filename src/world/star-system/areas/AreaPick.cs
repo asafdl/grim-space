@@ -14,6 +14,11 @@ public abstract record AreaRelation
 		string LandmarkAId,
 		string LandmarkBId,
 		string LandmarkCId) : AreaRelation;
+
+	public sealed record LandmarkWithBorderTriangle(
+		string LandmarkId,
+		Coord BorderPointA,
+		Coord BorderPointB) : AreaRelation;
 }
 
 public sealed record AreaPick(

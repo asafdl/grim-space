@@ -1,3 +1,4 @@
+using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
@@ -25,6 +26,63 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 			[AreaPickerTestMaps.NavLandmarkAId, "poi-missing", AreaPickerTestMaps.NavLandmarkBId]);
 
 		Assert.Throws<ArgumentException>(() => AreaPicker.TryPick(map, args, out _));
+	}
+
+	[Fact]
+	public void TryPick_LandmarkWithBorderTriangle_OnNavigationTriangle_Succeeds()
+	{
+		var map = AreaPickerTestMaps.OpenNavigationTriangle(240);
+		var args = new AreaPickerArgs(
+			MapLandmarkQueries.AllIds(map),
+			ReferenceMode: EAreaPickerReferenceMode.LandmarkWithBorderTriangle,
+			BorderReferenceConfig: new AreaBorderReferenceConfig(0.15),
+			DeterministicPickMix: 3);
+
+		Assert.True(AreaPicker.TryPick(map, args, out var result));
+		var relation = Assert.IsType<AreaRelation.LandmarkWithBorderTriangle>(result.Relation);
+		MapLandmarkQueries.TryGet(map, relation.LandmarkId, out var landmark);
+		var maximumDistance = 0.15 * RouteGeometry.Distance(
+			new Coord(0, 0, 0),
+			new Coord(map.Width - 1, 0, map.Height - 1));
+		var distanceFromBorder = System.Math.Min(
+			System.Math.Min(landmark.Position.X, map.Width - 1 - landmark.Position.X),
+			System.Math.Min(landmark.Position.Z, map.Height - 1 - landmark.Position.Z));
+		Assert.True(distanceFromBorder <= maximumDistance);
+		Assert.True(
+			(relation.BorderPointA.Z == relation.BorderPointB.Z
+				&& (relation.BorderPointA.Z == 0 || relation.BorderPointA.Z == map.Height - 1))
+			|| (relation.BorderPointA.X == relation.BorderPointB.X
+				&& (relation.BorderPointA.X == 0 || relation.BorderPointA.X == map.Width - 1)));
+		Assert.True(map.PathfindingTerrain.IsCircleTraversable(result.Center, result.Radius));
+	}
+
+	[Fact]
+	public void TryPick_LandmarkWithBorderTriangle_UsesConfiguredLandmark()
+	{
+		var map = AreaPickerTestMaps.OpenSingleCenterLandmark(512);
+		var args = new AreaPickerArgs(
+			[AreaPickerTestMaps.LandmarkAId],
+			ReferenceMode: EAreaPickerReferenceMode.LandmarkWithBorderTriangle,
+			BorderReferenceConfig: new AreaBorderReferenceConfig(0.5),
+			DeterministicPickMix: 7);
+
+		Assert.True(AreaPicker.TryPick(map, args, out var result));
+
+		var relation = Assert.IsType<AreaRelation.LandmarkWithBorderTriangle>(result.Relation);
+		Assert.Equal(AreaPickerTestMaps.LandmarkAId, relation.LandmarkId);
+		Assert.True(map.PathfindingTerrain.IsCircleTraversable(result.Center, result.Radius));
+		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(result.Intel, out _));
+	}
+
+	[Fact]
+	public void TryPick_LandmarkWithBorderTriangle_ReturnsFalseWithNoCandidates()
+	{
+		var map = AreaPickerTestMaps.OpenSingleCenterLandmark();
+		var args = new AreaPickerArgs(
+			[],
+			ReferenceMode: EAreaPickerReferenceMode.LandmarkWithBorderTriangle);
+
+		Assert.False(AreaPicker.TryPick(map, args, out _));
 	}
 
 	[Fact]
