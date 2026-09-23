@@ -20,7 +20,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private const string RefineryIconPath = "res://assets/ui/map/icons/refinery-icon.png";
 	private const string TravelIconPath = "res://assets/ui/map/icons/travel-icon.png";
 	private const string MarketIconPath = "res://assets/ui/map/icons/market-icon.png";
-	private const string MineIconPath = "res://assets/ui/map/services/copper-mine-manager.png";
+	private const string MineIconPath = "res://assets/ui/map/icons/mine-icon.png";
 	private static readonly Color DockyardIconTint = new(0.45f, 0.65f, 1f);
 	private const int IconPx = 40;
 
