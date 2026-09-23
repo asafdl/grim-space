@@ -67,8 +67,8 @@ public sealed class ContractNarrativePicker
 			EContractKind.Hunt => ContractNarrative.ForHunt("Pirate Hunt"),
 			EContractKind.Delivery => ContractNarrative.ForDelivery(
 				"Supply Run",
-				"Move this cargo to the marked drop-off. Standard rates apply.",
-				"Thanks. Dock fees are still your problem."),
+				"Take this package to the marked facility. The recipient knows what it is. We have made a deliberate choice not to.",
+				"Put it down gently. No, not there. There. No—fine. Payment is already someone else's problem."),
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 
