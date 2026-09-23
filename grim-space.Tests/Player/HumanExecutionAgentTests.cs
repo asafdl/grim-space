@@ -10,6 +10,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Player;
 
+[BattleTestSuite]
 public sealed class HumanExecutionAgentTests
 {
 	private const string PlayerId = "player";

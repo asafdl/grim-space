@@ -6,6 +6,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Weapons;
 
+[BattleTestSuite]
 public sealed class WeaponsTests
 {
 	private const string PlayerId = "player";

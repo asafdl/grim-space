@@ -13,6 +13,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
+[StarSystemTestSuite]
 public sealed class EngageActionTests(StarMapFixture maps)
 {
 	[Fact]
@@ -98,6 +99,7 @@ public sealed class EngageActionTests(StarMapFixture maps)
 	}
 }
 
+[StarSystemTestSuite]
 public sealed class FleeActionTests(StarMapFixture maps)
 {
 	[Fact]
@@ -149,6 +151,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 	}
 }
 
+[StarSystemTestSuite]
 public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 {
 	[Fact]

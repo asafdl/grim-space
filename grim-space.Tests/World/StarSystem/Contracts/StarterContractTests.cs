@@ -8,6 +8,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
+[StarSystemTestSuite]
 public sealed class StarterContractTests(StarMapFixture maps)
 {
 	[Fact]

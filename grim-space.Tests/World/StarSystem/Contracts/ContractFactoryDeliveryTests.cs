@@ -11,6 +11,7 @@ using GrimSpace.Tests.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
+[StarSystemTestSuite]
 public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 {
 	[Fact]

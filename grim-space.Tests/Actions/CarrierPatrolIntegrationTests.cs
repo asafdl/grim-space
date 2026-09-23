@@ -11,6 +11,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
+[IntegrationTestSuite]
 public sealed class CarrierPatrolIntegrationTests
 {
 	[Fact]

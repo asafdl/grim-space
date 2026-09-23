@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
 
+[StarSystemTestSuite]
 public sealed class TransitPathRemainingTests
 {
 	[Fact]

@@ -2,6 +2,7 @@ using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
 
+[StarSystemTestSuite]
 public sealed class FacilityOperatorTemporaryRolesTests
 {
 	[Fact]

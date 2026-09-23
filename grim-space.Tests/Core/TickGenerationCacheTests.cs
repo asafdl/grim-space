@@ -2,6 +2,7 @@ using GrimSpace.Core.Cache;
 
 namespace GrimSpace.Tests.Caching;
 
+[BattleTestSuite]
 public sealed class TickGenerationCacheTests
 {
 	[Fact]

@@ -9,6 +9,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
 
+[BattleTestSuite]
 public sealed class MovePathSearchTests
 {
 	private const string PlayerId = "player";

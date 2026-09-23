@@ -8,6 +8,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class TorpedoActionTests
 {
 	private const string PlayerId = "player";

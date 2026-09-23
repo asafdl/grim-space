@@ -6,6 +6,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Units;
 
+[BattleTestSuite]
 public sealed class PatrolDomainTests
 {
 	[Fact]

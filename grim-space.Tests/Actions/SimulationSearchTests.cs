@@ -13,6 +13,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class SimulationSearchTests
 {
 	private const string PlayerId = "player";

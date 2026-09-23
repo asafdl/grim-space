@@ -11,6 +11,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Dfs;
 
+[BattleTestSuite]
 public sealed class ActionSearchBehaviorTests
 {
 	private const string PlayerId = "player";
@@ -303,6 +304,7 @@ public sealed class ActionSearchBehaviorTests
 	}
 }
 
+[BattleTestSuite]
 public sealed class BudgetFrontierTests
 {
 	[Fact]

@@ -3,6 +3,7 @@ using GrimSpace.World.StarSystem.Generation;
 
 namespace GrimSpace.Tests.World.StarSystem.Areas;
 
+[StarSystemTestSuite]
 public sealed class AreaRadiusPickerTests
 {
 	[Fact]

@@ -10,6 +10,7 @@ using GrimSpace.Tests.Simulation;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class SimulationSessionTests
 {
 	private const string PlayerId = "player";

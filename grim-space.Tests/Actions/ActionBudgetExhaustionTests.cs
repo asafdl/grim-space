@@ -5,6 +5,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class ActionBudgetExhaustionTests
 {
 	private const string PlayerId = "player";

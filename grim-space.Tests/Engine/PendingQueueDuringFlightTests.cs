@@ -9,6 +9,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Engine;
 
+[BattleTestSuite]
 public sealed class PendingQueueDuringFlightTests(StarMapFixture maps)
 {
 	[Fact]

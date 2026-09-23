@@ -12,6 +12,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class TimelineTests
 {
 	[Fact]

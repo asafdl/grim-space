@@ -4,6 +4,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Movement;
 
+[BattleTestSuite]
 public sealed class MovePreviewSearchTests
 {
 	private const string PlayerId = "player";

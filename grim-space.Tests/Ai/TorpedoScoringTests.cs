@@ -9,6 +9,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Ai;
 
+[BattleTestSuite]
 public sealed class TorpedoScoringTests
 {
 	private const string PlayerId = "player";

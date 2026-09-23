@@ -15,6 +15,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
+[StarSystemTestSuite]
 public sealed class DeclineContractActionTests(StarMapFixture maps)
 {
 	[Fact]

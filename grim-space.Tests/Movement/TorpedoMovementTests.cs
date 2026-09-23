@@ -6,6 +6,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Movement;
 
+[BattleTestSuite]
 public sealed class TorpedoMovementTests
 {
 	private const string PlayerId = "player";

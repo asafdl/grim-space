@@ -4,6 +4,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
+[StarSystemTestSuite]
 public sealed class FleetTests
 {
 	[Fact]

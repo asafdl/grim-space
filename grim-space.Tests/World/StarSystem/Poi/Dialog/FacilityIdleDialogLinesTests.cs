@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Poi.Dialog;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi.Dialog;
 
+[StarSystemTestSuite]
 public sealed class FacilityIdleDialogLinesTests
 {
 	[Theory]

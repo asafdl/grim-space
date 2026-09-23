@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Math.Grid;
 
+[BattleTestSuite]
 public sealed class GridRasterTests
 {
 	[Fact]

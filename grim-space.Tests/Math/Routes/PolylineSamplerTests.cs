@@ -3,6 +3,7 @@ using GrimSpace.Math.Routes;
 
 namespace GrimSpace.Tests.Math.Routes;
 
+[BattleTestSuite]
 public sealed class PolylineSamplerTests
 {
 	[Fact]

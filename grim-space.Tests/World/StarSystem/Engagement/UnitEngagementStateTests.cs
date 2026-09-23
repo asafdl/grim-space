@@ -7,6 +7,7 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
+[StarSystemTestSuite]
 public sealed class UnitEngagementStateTests(StarMapFixture maps)
 {
 	[Fact]

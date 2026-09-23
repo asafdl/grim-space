@@ -13,6 +13,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
 
+[StarSystemTestSuite]
 public sealed class MoveActionTests(StarMapFixture maps)
 {
 	[Fact]

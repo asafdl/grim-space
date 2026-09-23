@@ -2,6 +2,7 @@ using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.Tests.World.StarSystem.Objectives;
 
+[StarSystemTestSuite]
 public sealed class ObjectiveSummaryFormatterTests
 {
 	[Fact]

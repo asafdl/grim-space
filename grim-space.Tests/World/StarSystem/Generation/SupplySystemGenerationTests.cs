@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem.Generation;
 
+[StarSystemTestSuite]
 public sealed class SupplySystemGenerationTests
 {
 	[Fact]

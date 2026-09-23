@@ -5,6 +5,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Ids;
 
+[BattleTestSuite]
 public sealed class UnitIdGeneratorTests
 {
 	[Fact]

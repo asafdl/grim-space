@@ -12,6 +12,7 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
+[StarSystemTestSuite]
 public sealed class TurnInDeliveryActionTests(StarMapFixture maps)
 {
 	[Fact]

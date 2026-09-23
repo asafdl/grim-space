@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Grid;
 
+[BattleTestSuite]
 public sealed class ManhattanBallTests
 {
 	[Fact]

@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.Tests.Run;
 
+[IntegrationTestSuite]
 public sealed class LootCatalogTests
 {
 	[Fact]

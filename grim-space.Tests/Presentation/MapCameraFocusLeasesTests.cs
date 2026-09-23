@@ -2,6 +2,7 @@ using GrimSpace.World.StarSystem.Presentation.Camera;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class MapCameraFocusLeasesTests
 {
 	[Fact]

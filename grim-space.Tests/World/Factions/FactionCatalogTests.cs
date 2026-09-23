@@ -5,6 +5,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.Factions;
 
+[BattleTestSuite]
 public sealed class FactionCatalogTests(StarMapFixture maps)
 {
 	[Fact]

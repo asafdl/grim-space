@@ -12,6 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
+[StarSystemTestSuite]
 public sealed class PlayerInputEffectTests(StarMapFixture maps)
 {
 	[Fact]

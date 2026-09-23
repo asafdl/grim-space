@@ -10,6 +10,8 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Generation;
 
+[StarSystemTestSuite]
+[IntegrationTestSuite]
 public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 {
 	[Fact]

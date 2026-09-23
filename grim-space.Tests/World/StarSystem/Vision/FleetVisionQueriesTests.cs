@@ -13,6 +13,7 @@ using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.World.StarSystem.Vision;
 
+[StarSystemTestSuite]
 public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 {
 	[Theory]

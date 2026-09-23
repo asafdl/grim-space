@@ -14,6 +14,7 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Poi;
 
+[StarSystemTestSuite]
 public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 {
 	private const string DockyardFacilityId = "poi-trade-dockyard";

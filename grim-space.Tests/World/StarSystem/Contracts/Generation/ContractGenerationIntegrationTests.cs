@@ -8,6 +8,8 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
 
+[StarSystemTestSuite]
+[IntegrationTestSuite]
 public sealed class ContractGenerationIntegrationTests(StarMapFixture maps)
 {
 	[Fact]

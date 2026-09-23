@@ -14,6 +14,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Objectives;
 
+[StarSystemTestSuite]
 public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 {
 	[Fact]

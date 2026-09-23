@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.Tests.World.StarSystem.Dockyard;
 
+[StarSystemTestSuite]
 public sealed class DockyardHullRepairTests
 {
 	[Fact]

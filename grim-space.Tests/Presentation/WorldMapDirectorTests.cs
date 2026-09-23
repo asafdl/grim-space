@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Presentation.Director;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class WorldMapDirectorTests
 {
 	[Fact]

@@ -4,6 +4,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Units.Loadouts.Abilities;
 
+[BattleTestSuite]
 public sealed class InstalledAbilityTests
 {
 	[Fact]

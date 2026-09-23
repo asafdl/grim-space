@@ -12,6 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.PlayerFleet;
 
+[StarSystemTestSuite]
 public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 {
 	[Fact]

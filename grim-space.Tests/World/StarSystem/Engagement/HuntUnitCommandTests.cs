@@ -8,6 +8,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
+[StarSystemTestSuite]
 public sealed class HuntUnitCommandTests(StarMapFixture maps)
 {
 	[Fact]

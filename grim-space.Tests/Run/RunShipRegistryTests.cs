@@ -4,6 +4,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Run;
 
+[IntegrationTestSuite]
 public sealed class RunShipRegistryTests
 {
 	[Fact]

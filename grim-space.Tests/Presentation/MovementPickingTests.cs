@@ -3,6 +3,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class MovementPickingTests
 {
 	[Fact]

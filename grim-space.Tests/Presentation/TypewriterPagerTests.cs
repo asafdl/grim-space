@@ -2,6 +2,7 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class TypewriterPagerTests
 {
 	[Fact]

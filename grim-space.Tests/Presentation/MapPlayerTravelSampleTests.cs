@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Presentation.Picking;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class MapPlayerTravelSampleTests
 {
 	[Fact]

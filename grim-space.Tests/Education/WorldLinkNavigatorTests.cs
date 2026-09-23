@@ -2,6 +2,7 @@ using GrimSpace.Education;
 
 namespace GrimSpace.Tests.Education;
 
+[BattleTestSuite]
 public sealed class WorldLinkNavigatorTests
 {
 	[Fact]

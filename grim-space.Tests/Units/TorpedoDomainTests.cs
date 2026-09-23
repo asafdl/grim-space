@@ -8,6 +8,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Units;
 
+[BattleTestSuite]
 public sealed class TorpedoDomainTests
 {
 	[Fact]

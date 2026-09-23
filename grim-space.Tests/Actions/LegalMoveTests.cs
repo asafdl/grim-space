@@ -6,6 +6,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class LegalMoveTests
 {
 	[Fact]

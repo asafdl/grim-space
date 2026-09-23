@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Presentation.Director;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class WorldMapDirectorZoomTests
 {
 	private static readonly OrbitLimits FacadeLimits = new(2f, 7f, 0.26f, 0.79f);

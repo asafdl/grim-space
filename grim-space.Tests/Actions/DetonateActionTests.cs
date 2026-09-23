@@ -10,6 +10,7 @@ using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class DetonateActionTests
 {
 	private const string PlayerId = "player";

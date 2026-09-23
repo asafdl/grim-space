@@ -17,6 +17,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
+[StarSystemTestSuite]
 public sealed class HuntProvisioningTests(StarMapFixture maps)
 {
 	[Fact]

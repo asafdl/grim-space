@@ -11,6 +11,7 @@ using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.Engine;
 
+[BattleTestSuite]
 public sealed class EngineCommitTests(StarMapFixture maps)
 {
 	[Fact]

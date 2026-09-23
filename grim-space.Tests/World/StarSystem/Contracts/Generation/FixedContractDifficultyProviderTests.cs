@@ -5,6 +5,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
 
+[StarSystemTestSuite]
 public sealed class FixedContractDifficultyProviderTests(StarMapFixture maps)
 {
 	[Fact]

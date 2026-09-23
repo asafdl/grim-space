@@ -11,6 +11,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Narrative;
 
+[StarSystemTestSuite]
 public sealed class NarrativeActionTests(StarMapFixture maps)
 {
 	[Fact]

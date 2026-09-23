@@ -7,6 +7,7 @@ using GrimSpace.Tests.Actions;
 
 namespace GrimSpace.Tests.Movement;
 
+[BattleTestSuite]
 public sealed class MoveUiTests
 {
 	[Fact]

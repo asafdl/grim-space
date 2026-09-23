@@ -9,6 +9,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Weapons;
 
+[BattleTestSuite]
 public sealed class WeaponSpecOverrideTests
 {
 	private const string PlayerId = "custom-fighter";

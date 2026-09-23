@@ -7,6 +7,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.ShieldDefense;
 
+[BattleTestSuite]
 public sealed class HitFaceTests
 {
 	private static BodyFrame FrameAt(Coord position) =>
@@ -71,6 +72,7 @@ public sealed class HitFaceTests
 	}
 }
 
+[BattleTestSuite]
 public sealed class ApplyDamageTests
 {
 	private static State FreshUnit() =>

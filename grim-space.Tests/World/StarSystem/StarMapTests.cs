@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
+[StarSystemTestSuite]
 public sealed class StarMapTests
 {
 	[Fact]

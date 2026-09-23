@@ -9,6 +9,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Engine;
 
+[BattleTestSuite]
 public sealed class ExecutionAgentTests(StarMapFixture maps)
 {
 	[Fact]

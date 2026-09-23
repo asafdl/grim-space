@@ -3,6 +3,7 @@ using GrimSpace.Core.Engine;
 
 namespace GrimSpace.Tests.Engine;
 
+[BattleTestSuite]
 public sealed class ActionBatchSinkTests
 {
 	[Fact]

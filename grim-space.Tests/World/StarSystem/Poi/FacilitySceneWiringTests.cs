@@ -5,6 +5,7 @@ namespace GrimSpace.Tests.World.StarSystem.Poi;
 /// <summary>
 /// Godot-free check that facility .tscn files define nodes matching modeled <see cref="FacilityOperator.SceneSlotId"/> values.
 /// </summary>
+[StarSystemTestSuite]
 public sealed class FacilitySceneWiringTests
 {
 	private static string RepoPath(string relativePath) =>

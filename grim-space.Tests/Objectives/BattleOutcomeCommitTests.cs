@@ -9,6 +9,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Objectives;
 
+[IntegrationTestSuite]
 public sealed class BattleOutcomeCommitTests
 {
 	[Fact]

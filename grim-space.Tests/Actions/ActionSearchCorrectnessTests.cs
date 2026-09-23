@@ -12,6 +12,7 @@ using GrimSpace.Tests.Dfs;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class ActionSearchCorrectnessTests
 {
 	private const string PlayerId = "player";

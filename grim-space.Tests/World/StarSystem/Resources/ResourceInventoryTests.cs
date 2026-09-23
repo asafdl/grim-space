@@ -2,6 +2,7 @@ using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.Tests.World.StarSystem.Resources;
 
+[StarSystemTestSuite]
 public sealed class ResourceInventoryTests
 {
 	[Fact]

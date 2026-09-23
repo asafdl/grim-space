@@ -11,6 +11,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class ReplayIdentityTests
 {
 	[Fact]

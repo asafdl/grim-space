@@ -7,6 +7,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Objectives;
 
+[StarSystemTestSuite]
 public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps)
 {
 	[Fact]

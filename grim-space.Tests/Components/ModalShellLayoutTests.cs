@@ -2,6 +2,7 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Tests.Components;
 
+[BattleTestSuite]
 public sealed class ModalShellLayoutTests
 {
 	[Fact]

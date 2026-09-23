@@ -8,6 +8,7 @@ using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Tests.Ai;
 
+[BattleTestSuite]
 public sealed class TorpedoReachEnvelopeTests
 {
 	private const string PlayerId = "player";

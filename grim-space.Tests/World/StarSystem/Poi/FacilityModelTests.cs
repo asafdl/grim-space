@@ -6,6 +6,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
 
+[StarSystemTestSuite]
 public sealed class FacilityModelTests(StarMapFixture maps)
 {
 	[Fact]

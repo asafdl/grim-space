@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Presentation.Camera;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class MapCinematicFramingTests
 {
 	private static readonly OrbitLimits Limits = new(

@@ -10,6 +10,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class FlakActionTests
 {
 	private const string PlayerId = "player";

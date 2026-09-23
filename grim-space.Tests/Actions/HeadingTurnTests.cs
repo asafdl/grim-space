@@ -4,6 +4,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class HeadingTurnTests
 {
 	private const string PlayerId = "player";

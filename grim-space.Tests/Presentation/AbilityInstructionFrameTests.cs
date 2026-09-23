@@ -10,6 +10,7 @@ using GrimSpace.Tests.Actions;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class AbilityInstructionFrameTests
 {
 	[Fact]

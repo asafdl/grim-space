@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Contracts;
 
 namespace GrimSpace.Tests.Tutorials;
 
+[IntegrationTestSuite]
 public sealed class TutorialGraduationTests(StarMapFixture maps)
 {
 	[Fact]

@@ -2,6 +2,7 @@ using GrimSpace.World.StarSystem.Areas;
 
 namespace GrimSpace.Tests.World.StarSystem.Areas;
 
+[StarSystemTestSuite]
 public sealed class AreaIntelProducerTests
 {
 	[Theory]

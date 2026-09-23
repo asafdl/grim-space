@@ -14,6 +14,7 @@ using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
 
+[StarSystemTestSuite]
 public sealed class ContractPlacementTests(StarMapFixture maps)
 {
 	[Fact]

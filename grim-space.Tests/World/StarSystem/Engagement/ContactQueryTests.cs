@@ -12,6 +12,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
+[StarSystemTestSuite]
 public sealed class ContactQueryTests(StarMapFixture maps)
 {
 	[Fact]

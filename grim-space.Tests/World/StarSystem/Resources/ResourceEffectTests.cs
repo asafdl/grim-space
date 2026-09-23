@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.Tests.World.StarSystem.Resources;
 
+[StarSystemTestSuite]
 public sealed class ResourceEffectTests(StarMapFixture maps)
 {
 	[Fact]

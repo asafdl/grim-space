@@ -7,6 +7,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Areas;
 
+[StarSystemTestSuite]
 public sealed class AreaPickerTests(StarMapFixture maps)
 {
 	[Fact]

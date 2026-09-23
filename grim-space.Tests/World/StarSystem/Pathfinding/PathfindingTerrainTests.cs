@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Pathfinding;
 
+[StarSystemTestSuite]
 public sealed class PathfindingTerrainTests
 {
 	[Fact]

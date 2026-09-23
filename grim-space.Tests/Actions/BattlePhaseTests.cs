@@ -16,6 +16,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class BattlePhaseTests
 {
 	private const string PlayerId = "player";

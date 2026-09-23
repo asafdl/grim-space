@@ -6,6 +6,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.Presentation;
 
+[BattleTestSuite]
 public sealed class MapWorldFocusTests(StarMapFixture maps)
 {
 	[Fact]

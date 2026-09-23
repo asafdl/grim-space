@@ -14,6 +14,7 @@ using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
+[StarSystemTestSuite]
 public sealed class ContractFulfillmentTests(StarMapFixture maps)
 {
 	[Fact]
@@ -88,6 +89,7 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 
 }
 
+[StarSystemTestSuite]
 public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 {
 	[Fact]

@@ -11,6 +11,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Actions;
 
+[BattleTestSuite]
 public sealed class TurnOrchestrationTests
 {
 	private const string PlayerId = "player";

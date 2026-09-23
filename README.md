@@ -319,4 +319,34 @@ Rebuild after changing exported properties, signals, or tool scripts.
 
 ### Tests
 
-Rules and orchestration tests live in `grim-space.Tests/` and run without Godot
+Rules and orchestration tests live in `grim-space.Tests/` and run without Godot:
+
+```bash
+dotnet test grim-space.Tests/grim-space.Tests.csproj
+```
+
+CI runs the full suite (no filter).
+
+#### Suites
+
+Test classes are tagged with xUnit traits (`Suite=Battle`, `Suite=StarSystem`, or `Suite=Integration`) via `[BattleTestSuite]`, `[StarSystemTestSuite]`, and `[IntegrationTestSuite]` in `grim-space.Tests/`. Filter with `dotnet test --filter`:
+
+| Suite | When to run |
+|-------|-------------|
+| **Battle** | Tactical combat, movement, actions, presentation tied to battle |
+| **StarSystem** | Map, contracts, traffic, facilities, engagement on the star map |
+| **Integration** | Run/tutorials and cross-layer flows (e.g. session assembly, contract generation integration) |
+
+```bash
+dotnet test grim-space.Tests/grim-space.Tests.csproj --filter "Suite=Battle"
+dotnet test grim-space.Tests/grim-space.Tests.csproj --filter "Suite=StarSystem"
+dotnet test grim-space.Tests/grim-space.Tests.csproj --filter "Suite=Integration"
+```
+
+For work on the application seam ([`Session`](src/application/Session.cs), [`Run.State`](src/run/State.cs)), run battle and star-system suites (and integration if you touched those tests)—either two filtered runs or one combined filter:
+
+```bash
+dotnet test grim-space.Tests/grim-space.Tests.csproj --filter "(Suite=Battle)|(Suite=StarSystem)|(Suite=Integration)"
+```
+
+New `*Tests.cs` files should declare a suite attribute: `[BattleTestSuite]` by default, `[StarSystemTestSuite]` under `World/StarSystem/`, and `[IntegrationTestSuite]` (optionally alongside StarSystem) for run/tutorials, `*IntegrationTests.cs`, and similar cross-layer tests.

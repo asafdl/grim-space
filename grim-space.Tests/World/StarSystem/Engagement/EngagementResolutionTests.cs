@@ -20,6 +20,7 @@ using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
+[StarSystemTestSuite]
 public sealed class EngagementResolutionTests(StarMapFixture maps)
 {
 	private const string PlayerId = RunState.PlayerFleetUnitId;

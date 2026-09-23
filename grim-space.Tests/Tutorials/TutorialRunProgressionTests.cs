@@ -10,6 +10,7 @@ using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.Tests.Tutorials;
 
+[IntegrationTestSuite]
 public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 {
 	[Fact]

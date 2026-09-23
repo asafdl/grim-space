@@ -6,6 +6,7 @@ using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Tests.Units.Loadouts.Defenses;
 
+[BattleTestSuite]
 public sealed class FaceShieldPointsTests
 {
 	[Fact]
