@@ -20,6 +20,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private const string RefineryIconPath = "res://assets/ui/map/icons/refinery-icon.png";
 	private const string TravelIconPath = "res://assets/ui/map/icons/travel-icon.png";
 	private const string MarketIconPath = "res://assets/ui/map/icons/market-icon.png";
+	private const string MineIconPath = "res://assets/ui/map/services/copper-mine-manager.png";
 	private static readonly Color DockyardIconTint = new(0.45f, 0.65f, 1f);
 	private const int IconPx = 40;
 
@@ -285,6 +286,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 			EPresentationAnchor.Refinery => SvgIconLoader.LoadRaw(RefineryIconPath, IconPx),
 			EPresentationAnchor.Travel => SvgIconLoader.LoadRaw(TravelIconPath, IconPx),
 			EPresentationAnchor.Market => SvgIconLoader.LoadRaw(MarketIconPath, IconPx),
+			EPresentationAnchor.Mine => SvgIconLoader.LoadRaw(MineIconPath, IconPx),
 			_ => SvgIconLoader.LoadRaw(ManagementIconPath, IconPx),
 		};
 

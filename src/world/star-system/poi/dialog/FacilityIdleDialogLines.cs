@@ -47,6 +47,14 @@ public static class FacilityIdleDialogLines
 				"I've seen captains kiss their hull goodbye. Usually right before bankruptcy.",
 				"Shields optional. Dignity not included.",
 			],
+			[EPresentationAnchor.Mine] =
+			[
+				"Ore doesn't care about your schedule. Neither does the quota board.",
+				"That glow isn't ambiance. It's molten regret.",
+				"We dig until something breaks. Usually a miner.",
+				"Copper pays the bills. Blood pays the overtime.",
+				"The manager drinks martinis. You drink recycled air.",
+			],
 			[EPresentationAnchor.Management] =
 			[
 				"Policy exists so someone else can be blamed when it fails.",

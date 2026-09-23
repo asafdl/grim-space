@@ -63,7 +63,7 @@ public sealed record SupplySystemPlan(
 		return
 		[
 			Star.Template(),
-			OreMine.Template(this),
+			OreMine.Template(this, operatorNames),
 			Refinery.Template(this, operatorNames),
 			StorageFacility.Template(this, operatorNames),
 			Wormhole.Template(this, operatorNames),

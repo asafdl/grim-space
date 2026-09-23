@@ -18,18 +18,22 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
 public sealed class ContractPlacementTests(StarMapFixture maps)
 {
 	[Fact]
-	public void Pick_SingleIssuer_AlwaysUsesAdministrativePoi()
+	public void Pick_FreshMap_UsesBothContractIssuersOverManySlots()
 	{
 		var map = maps.Fresh(42);
 		var placement = new ContractPlacement();
-		var adminPoiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
+		var plan = map.Blueprint.SupplyPlan;
+		var issuers = new HashSet<string>(StringComparer.Ordinal);
 
-		for (var slot = 0; slot < 8; slot++)
+		for (var slot = 0; slot < 24; slot++)
 		{
 			var decision = placement.Pick(map, tick: 1, slot);
 			Assert.NotNull(decision);
-			Assert.Equal(adminPoiId, decision.IssuerPoiId);
+			issuers.Add(decision.IssuerPoiId);
 		}
+
+		Assert.Contains(plan.AdministrativePoiId, issuers);
+		Assert.Contains(plan.ExtractionPoiId, issuers);
 	}
 
 	[Fact]

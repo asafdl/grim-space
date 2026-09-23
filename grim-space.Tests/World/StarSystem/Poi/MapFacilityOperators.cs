@@ -27,6 +27,13 @@ internal static class MapFacilityOperators
 			AdministrativeCore.ManagementFacilitySlug,
 			EFacilityOperatorRole.Contracts);
 
+	public static string MineContractOperatorName(StarMap map) =>
+		OperatorName(
+			map,
+			SupplySystemPlan.Copper.ExtractionPoiId,
+			OreMine.MineFacilitySlug,
+			EFacilityOperatorRole.Contracts);
+
 	public static string WarehouseManagerOperatorName(StarMap map) =>
 		OperatorName(
 			map,

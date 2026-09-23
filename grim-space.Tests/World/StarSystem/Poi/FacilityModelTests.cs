@@ -92,6 +92,27 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void OreMine_HasMineFacility()
+	{
+		var world = maps.Fresh(42);
+		var mine = world.PointsOfInterest.OfType<OreMine>().Single();
+		var facility = Assert.Single(mine.Facilities);
+
+		Assert.Equal(
+			Facility.ScopedId(SupplySystemPlan.Copper.ExtractionPoiId, OreMine.MineFacilitySlug),
+			facility.Id);
+		Assert.Equal("Mine", facility.DisplayName);
+		Assert.Equal(EPresentationAnchor.Mine, facility.PresentationAnchor);
+		Assert.Equal(OreMine.MineScenePath, facility.ScenePath);
+
+		var contractOperator = Assert.Single(facility.Operators);
+		Assert.Equal(MapFacilityOperators.MineContractOperatorName(world), contractOperator.Name);
+		Assert.Equal(EFacilityOperatorRole.Contracts, contractOperator.Role);
+		Assert.Equal(OreMine.MineContractOperatorSceneSlotId, contractOperator.SceneSlotId);
+		Assert.Contains(contractOperator.Name, OperatorNames.Pool);
+	}
+
+	[Fact]
 	public void Refinery_HasRefineryFacility()
 	{
 		var world = maps.Fresh(42);
@@ -140,7 +161,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 
 		foreach (var poi in world.PointsOfInterest.Where(poi =>
 			         poi is not AdministrativeCore and not TradeHub and not StorageFacility and not Refinery
-			         and not Wormhole))
+			         and not OreMine and not Wormhole))
 			Assert.Empty(poi.Facilities);
 	}
 

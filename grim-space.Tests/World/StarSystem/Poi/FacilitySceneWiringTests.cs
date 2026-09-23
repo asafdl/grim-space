@@ -45,6 +45,14 @@ public sealed class FacilitySceneWiringTests
 	}
 
 	[Fact]
+	public void CopperMineScene_DefinesModeledOperatorSlots()
+	{
+		var scene = File.ReadAllText(RepoPath("scenes/copper_mine.tscn"));
+		Assert.Contains(NodeDeclaration(OreMine.MineContractOperatorSceneSlotId), scene);
+		Assert.Contains("FacilityOperatorButtonView.cs", scene);
+	}
+
+	[Fact]
 	public void RefineryScene_DefinesModeledOperatorSlots()
 	{
 		var scene = File.ReadAllText(RepoPath("scenes/refinery.tscn"));

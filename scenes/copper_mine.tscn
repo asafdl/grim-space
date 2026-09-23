@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://b70uv5uj70xxh"]
+
+[ext_resource type="Script" uid="uid://co3qwxper2wnd" path="res://src/world/star-system/presentation/facilities/CommandAuthorityController.cs" id="1_controller"]
+[ext_resource type="Script" uid="uid://mucjijdmhn5m" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_manager"]
+[ext_resource type="Texture2D" uid="uid://c8ue4vp17utx" path="res://assets/ui/map/facilities/copper-mine.png" id="4_backdrop"]
+[ext_resource type="Texture2D" uid="uid://ddl270tqdo3je" path="res://assets/ui/map/services/copper-mine-manager.png" id="5_manager"]
+[ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
+
+[node name="CopperMine" type="Control" unique_id=695372942]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="StrategicHud" parent="." unique_id=182470401 instance=ExtResource("6_strategic_hud")]
+
+[node name="Scene" type="Control" parent="." unique_id=883747904]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_scene")
+
+[node name="Background" type="TextureRect" parent="Scene" unique_id=573684459]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_backdrop")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Manager" type="TextureButton" parent="Scene" unique_id=192948774]
+layout_mode = 0
+offset_left = 1023.0
+offset_top = 327.0
+offset_right = 1615.6577
+offset_bottom = 1190.7926
+scale = Vector2(0.8250968, 0.85275424)
+texture_normal = ExtResource("5_manager")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("3_manager")
+
+[node name="Back" type="Button" parent="." unique_id=426961029]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 80.0
+offset_bottom = 47.0
+theme_type_variation = &"SecondaryButton"
+text = "Back"
