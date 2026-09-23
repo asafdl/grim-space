@@ -62,7 +62,11 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var map = maps.FreshWithBeatAHunt(42);
 		var contract = CreateContract(
 			map,
-			new AreaIntel("Near {A}.", "poi-missing-a", "poi-missing-b", "poi-missing-c"),
+			new AreaIntel(
+				"Somewhere in the area of {A}.",
+				"poi-missing-a",
+				"poi-missing-b",
+				"poi-missing-c"),
 			new AreaRelation.TriangulatedLandmarks("poi-missing-a", "poi-missing-b", "poi-missing-c"));
 
 		var objective = ContractObjectiveProjection.Project(map, contract);

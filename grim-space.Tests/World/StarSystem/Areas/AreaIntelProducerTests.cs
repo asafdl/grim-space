@@ -27,11 +27,8 @@ public sealed class AreaIntelProducerTests
 
 		for (var i = 0; i < 24; i++)
 		{
-			var intel = AreaIntelProducer.Produce(context, [EAreaIntelTone.Fragmentary]);
-			Assert.True(
-				intel.Template.Contains("Ping", StringComparison.Ordinal)
-				|| intel.Template.Contains("Sounds near", StringComparison.Ordinal)
-				|| intel.Template.Contains("Near {A}", StringComparison.Ordinal));
+			var intel = AreaIntelProducer.Produce(context, [EAreaIntelTone.Brief]);
+			Assert.StartsWith("Somewhere in the area ", intel.Template, StringComparison.Ordinal);
 		}
 	}
 

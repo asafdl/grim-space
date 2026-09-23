@@ -255,7 +255,11 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		return new AreaPick(
 			center,
 			48,
-			new AreaIntel("Near {A}, toward {B}.", plan.RefineryPoiId, plan.StoragePoiId, plan.ExtractionPoiId),
+			new AreaIntel(
+				"Somewhere in the area between {A} and {B}.",
+				plan.RefineryPoiId,
+				plan.StoragePoiId,
+				plan.ExtractionPoiId),
 			default!);
 	}
 

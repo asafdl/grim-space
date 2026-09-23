@@ -99,7 +99,7 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 			new Coord(map.Width / 2, 0, map.Height / 2),
 			32,
 			new AreaIntel(
-				"Near {A}.",
+				"Somewhere in the area of {A}.",
 				ContractPlacementTestMaps.IssuerAId,
 				ContractPlacementTestMaps.IssuerBId,
 				ContractPlacementTestMaps.IssuerAId),

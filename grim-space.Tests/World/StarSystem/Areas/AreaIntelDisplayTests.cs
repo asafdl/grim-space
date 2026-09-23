@@ -8,7 +8,11 @@ public sealed class AreaIntelDisplayTests
 	[Fact]
 	public void FormatPlain_SubstitutesResolvedDisplayNames()
 	{
-		var intel = new AreaIntel("Near {A}, toward {B}.", "poi-a", "poi-b", "poi-c");
+		var intel = new AreaIntel(
+			"Somewhere in the area between {A} and {B}.",
+			"poi-a",
+			"poi-b",
+			"poi-c");
 
 		var text = AreaIntelDisplay.FormatPlain(
 			intel,
@@ -20,17 +24,17 @@ public sealed class AreaIntelDisplayTests
 				_ => null,
 			});
 
-		Assert.Equal("Near Refinery, toward Storage.", text);
+		Assert.Equal("Somewhere in the area between Refinery and Storage.", text);
 	}
 
 	[Fact]
 	public void TryParseLinkableSegments_ClosestOnly()
 	{
-		var intel = new AreaIntel("Near {A}.", "poi-a", "poi-b", "poi-c");
+		var intel = new AreaIntel("Somewhere in the area of {A}.", "poi-a", "poi-b", "poi-c");
 
 		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(intel, out var segments));
 		var closest = Assert.IsType<AreaIntelDisplay.ParsedSegments.ClosestOnly>(segments);
-		Assert.Equal("Near ", closest.Prefix);
+		Assert.Equal("Somewhere in the area of ", closest.Prefix);
 		Assert.Equal("poi-a", closest.LandmarkAId);
 		Assert.Equal(".", closest.Suffix);
 	}
@@ -38,11 +42,15 @@ public sealed class AreaIntelDisplayTests
 	[Fact]
 	public void TryParseLinkableSegments_ClosestAndSecondary()
 	{
-		var intel = new AreaIntel("Near {A}, toward {B}.", "poi-a", "poi-b", "poi-c");
+		var intel = new AreaIntel(
+			"Somewhere in the area between {A} and {B}.",
+			"poi-a",
+			"poi-b",
+			"poi-c");
 
 		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(intel, out var segments));
 		var pair = Assert.IsType<AreaIntelDisplay.ParsedSegments.ClosestAndSecondary>(segments);
-		Assert.Equal(", toward ", pair.Connector);
+		Assert.Equal(" and ", pair.Connector);
 		Assert.Equal("poi-b", pair.LandmarkBId);
 	}
 

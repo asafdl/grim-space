@@ -26,15 +26,8 @@ public static class AreaIntelProducer
 
 	private static readonly IntelLine[] Lines =
 	[
-		new(EAreaIntelTone.Brief, "Near {A}."),
-		new(EAreaIntelTone.Brief, "Near {A}, toward {B}."),
-		new(EAreaIntelTone.Brief, "Near {A}; backup bearing from {B}."),
-		new(EAreaIntelTone.Operational, "Primary search anchor: {A}."),
-		new(EAreaIntelTone.Operational, "Concentrate on {A}; cross-check against {B}."),
-		new(EAreaIntelTone.Operational, "Sweep around {A}. Secondary bearing: {B}; distant corner {C}."),
-		new(EAreaIntelTone.Fragmentary, "Ping puts it close to {A}."),
-		new(EAreaIntelTone.Fragmentary, "Sounds near {A}, maybe {B} if the tip is good."),
-		new(EAreaIntelTone.Fragmentary, "Near {A}, with {B} lining up — {C} is just the far edge."),
+		new(EAreaIntelTone.Brief, "Somewhere in the area of {A}."),
+		new(EAreaIntelTone.Brief, "Somewhere in the area between {A} and {B}."),
 	];
 
 	public static AreaIntel Produce(AreaIntelContext context) =>

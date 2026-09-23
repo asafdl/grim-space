@@ -46,9 +46,16 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 		Assert.True(AreaPicker.TryPick(map, args, out var result));
 
 		var relation = Assert.IsType<AreaRelation.TriangulatedLandmarks>(result.Relation);
-		Assert.Equal(relation.LandmarkAId, result.Intel.LandmarkAId);
-		Assert.Equal(relation.LandmarkBId, result.Intel.LandmarkBId);
-		Assert.Equal(relation.LandmarkCId, result.Intel.LandmarkCId);
+		Assert.Equal(
+			new HashSet<string> { relation.LandmarkAId, relation.LandmarkBId, relation.LandmarkCId },
+			new HashSet<string>
+			{
+				result.Intel.LandmarkAId,
+				result.Intel.LandmarkBId,
+				result.Intel.LandmarkCId,
+			});
+		AssertIntelLandmarksOrderedByDistance(map, result);
+		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(result.Intel, out _));
 		Assert.True(map.PathfindingTerrain.IsCircleTraversable(result.Center, result.Radius));
 	}
 
