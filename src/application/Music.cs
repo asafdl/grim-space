@@ -10,6 +10,7 @@ public partial class Music : Node
 	private const float SilentVolumeDb = -80f;
 	private const float NormalVolumeDb = 0f;
 	private const string TrackPathPrefix = "res://assets/music/terraforming-mars-tracks/track-";
+	private const string TrackExtension = ".ogg";
 
 	private readonly record struct MusicCue(string Path, double StartSeconds = 0);
 
@@ -21,8 +22,8 @@ public partial class Music : Node
 	private static readonly Dictionary<string, SceneMusic> SceneTracks = new()
 	{
 		["res://scenes/intro.tscn"] = new([
-			new($"{TrackPathPrefix}15.mp3", 24),
-			new($"{TrackPathPrefix}19.mp3"),
+			new($"{TrackPathPrefix}15{TrackExtension}", 24),
+			new($"{TrackPathPrefix}19{TrackExtension}"),
 		]),
 		["res://scenes/main.tscn"] = LoopingTracks(1, 6),
 		["res://scenes/battle.tscn"] = LoopingTracks(7, 14, shuffleOnLoad: true),
@@ -217,7 +218,7 @@ public partial class Music : Node
 	{
 		var cues = new MusicCue[to - from + 1];
 		for (var i = from; i <= to; i++)
-			cues[i - from] = new($"{TrackPathPrefix}{i:D2}.mp3");
+			cues[i - from] = new($"{TrackPathPrefix}{i:D2}{TrackExtension}");
 		return new SceneMusic(cues, Loop: true, ShuffleOnLoad: shuffleOnLoad);
 	}
 
@@ -235,7 +236,7 @@ public partial class Music : Node
 		for (var i = 1; i <= TrackCount; i++)
 		{
 			if (!assigned.Contains(i))
-				cues.Add(new($"{TrackPathPrefix}{i:D2}.mp3"));
+				cues.Add(new($"{TrackPathPrefix}{i:D2}{TrackExtension}"));
 		}
 
 		return new SceneMusic(cues.ToArray(), Loop: true, ShuffleOnLoad: shuffleOnLoad);
