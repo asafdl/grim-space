@@ -6,7 +6,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 public static class MapSmokeDustVisuals
 {
 	public const string DefaultSmokeTexturePath =
-		"res://assets/kenny-particle-pack/PNG (Transparent)/smoke_02.png";
+		"res://assets/textures/particles/smoke_02.png";
 
 	private static Texture2D? _defaultTexture;
 

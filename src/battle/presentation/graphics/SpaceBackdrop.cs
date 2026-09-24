@@ -6,10 +6,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class SpaceBackdrop : Node3D
 {
 	private const string StarsTexturePath = "res://assets/textures/8k_stars.jpg";
-	private const string DustTexturePath =
-		"res://assets/kenny-particle-pack/PNG (Transparent)/circle_05.png";
-	private const string SmokeTexturePath =
-		"res://assets/kenny-particle-pack/PNG (Transparent)/smoke_02.png";
+	private const string DustTexturePath = "res://assets/textures/particles/circle_05.png";
+	private const string SmokeTexturePath = "res://assets/textures/particles/smoke_02.png";
 	private const string PlanetTexturePath = "res://assets/textures/2k_venus_surface.jpg";
 	private const ulong DustSeedSalt = 0xC6A4A7935BD1E995;
 	private const float PlanetDistanceScale = 2.65f;
