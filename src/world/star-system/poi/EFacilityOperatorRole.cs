@@ -3,8 +3,7 @@ namespace GrimSpace.World.StarSystem.Poi;
 public enum EFacilityOperatorRole
 {
 	Contracts,
-	DockyardShop,
-	ShieldRecharge,
+	Merchant,
 	Dialog,
 	DeliveryTurnIn,
 }

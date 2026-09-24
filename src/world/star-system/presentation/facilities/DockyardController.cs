@@ -4,6 +4,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.Components;
@@ -46,13 +47,13 @@ public partial class DockyardController : Control
 		AddChild(_dockyardHudLayer);
 		_dockyardHud = new DockyardHudOverlay();
 		_dockyardHud.PurchaseRequested += OnPurchaseRequested;
-		_dockyardHud.HullRepairRequested += OnHullRepairRequested;
 		_dockyardHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_dockyardHud);
 
 		_shieldRechargeHud = new DockyardShieldRechargeHudOverlay();
 		_shieldRechargeHud.FaceRechargeRequested += OnFaceShieldRechargeRequested;
 		_shieldRechargeHud.FillAllRechargeRequested += OnFillAllShieldRechargeRequested;
+		_shieldRechargeHud.HullRepairRequested += OnHullRepairRequested;
 		_shieldRechargeHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_shieldRechargeHud);
 
@@ -94,7 +95,7 @@ public partial class DockyardController : Control
 			?? throw new InvalidOperationException("Dockyard requires an active facility.");
 		var operatorName = RequireActiveOperatorName();
 		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
-		return _orchestrator.TryCommitPlayerInput(new PurchaseDockyardUpgradeAction(
+		return _orchestrator.TryCommitPlayerInput(new PurchaseWeaponsUpgradeAction(
 			State.PlayerFleetUnitId,
 			poiId,
 			facilityId,
@@ -141,11 +142,11 @@ public partial class DockyardController : Control
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
 		switch (role)
 		{
-			case EFacilityOperatorRole.DockyardShop:
+			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.Weapons:
 				OpenDockyardHud(facilityOperator);
 				break;
-			case EFacilityOperatorRole.ShieldRecharge:
-				OpenShieldRechargeHud(facilityOperator);
+			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.ShipSupport:
+				OpenShipSupportHud(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
@@ -165,7 +166,7 @@ public partial class DockyardController : Control
 		UpdateBackButton();
 	}
 
-	private void OpenShieldRechargeHud(FacilityOperator facilityOperator)
+	private void OpenShipSupportHud(FacilityOperator facilityOperator)
 	{
 		_shieldRechargeHud.Open(Session.Instance.Run, _orchestrator.Map, OperatorDisplayLabels.Title(facilityOperator));
 		UpdateBackButton();
@@ -175,13 +176,13 @@ public partial class DockyardController : Control
 	{
 		if (!TryPurchaseHullRepair(shipId))
 		{
-			_dockyardHud.ShowError("Unable to repair hull.");
+			_shieldRechargeHud.ShowError("Unable to repair hull.");
 			UpdateBackButton();
 			return;
 		}
 
-		_dockyardHud.Sync(Session.Instance.Run, _orchestrator.Map);
-		_dockyardHud.ShowConfirmation("Hull repaired.", HudStatusKind.Success);
+		_shieldRechargeHud.Sync(Session.Instance.Run, _orchestrator.Map);
+		_shieldRechargeHud.ShowConfirmation("Hull repaired.", HudStatusKind.Success);
 		UpdateBackButton();
 	}
 

@@ -3,7 +3,7 @@ using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units;
-using GrimSpace.World.StarSystem.Dockyard;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -12,7 +12,6 @@ public sealed partial class DockyardHudOverlay : Control
 {
 	private enum DockyardTab
 	{
-		Hull,
 		Shields,
 		Abilities,
 	}
@@ -25,7 +24,6 @@ public sealed partial class DockyardHudOverlay : Control
 	private string _statusMessage = "";
 
 	public event Action<string, string>? PurchaseRequested;
-	public event Action<string>? HullRepairRequested;
 	public event Action? Closed;
 
 	public DockyardHudOverlay()
@@ -48,7 +46,7 @@ public sealed partial class DockyardHudOverlay : Control
 	{
 		_run = run;
 		_facilityTitle = facilityTitle;
-		_activeTab = DockyardTab.Hull;
+		_activeTab = DockyardTab.Shields;
 		_statusKind = null;
 		_statusMessage = "";
 		_shell.Open(_facilityTitle, string.Empty);
@@ -104,9 +102,6 @@ public sealed partial class DockyardHudOverlay : Control
 
 		switch (_activeTab)
 		{
-			case DockyardTab.Hull:
-				AppendHullTab(body, ship);
-				break;
 			case DockyardTab.Shields:
 				AppendShieldTab(body, ship);
 				break;
@@ -136,7 +131,6 @@ public sealed partial class DockyardHudOverlay : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		row.AddThemeConstantOverride("separation", 8);
-		row.AddChild(CreateTabButton("Hull", DockyardTab.Hull));
 		row.AddChild(CreateTabButton("Shields", DockyardTab.Shields));
 		row.AddChild(CreateTabButton("Abilities", DockyardTab.Abilities));
 		return row;
@@ -159,31 +153,10 @@ public sealed partial class DockyardHudOverlay : Control
 		return button;
 	}
 
-	private void AppendHullTab(VBoxContainer body, ShipInstance ship)
-	{
-		if (!DockyardHullRepair.TryQuote(ship, out var cost))
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"Hull integrity is full."));
-			return;
-		}
-
-		var missing = DockyardHullRepair.MissingHull(ship);
-		body.AddChild(HudWidgets.CreateCard(
-			"Hull repair",
-			[
-				ResourceCostDisplay.CreateMetadataRow(
-					cost,
-					$"Restore {missing} hull to {ship.Spec.MaxHullPoints}"),
-			],
-			() => HullRepairRequested?.Invoke(ship.Id)));
-	}
-
 	private void AppendShieldTab(VBoxContainer body, ShipInstance ship)
 	{
-		var offers = DockyardOffers.ListFor(ship)
-			.Where(offer => offer.Category == EDockyardUpgradeCategory.MaxShields)
+		var offers = WeaponsCatalog.ListFor(ship)
+			.Where(offer => offer.Category == EWeaponsOfferCategory.MaxShields)
 			.ToArray();
 
 		if (offers.Length == 0)
@@ -199,8 +172,8 @@ public sealed partial class DockyardHudOverlay : Control
 
 	private void AppendAbilitiesTab(VBoxContainer body, ShipInstance ship)
 	{
-		var offers = DockyardOffers.ListFor(ship)
-			.Where(offer => offer.Category == EDockyardUpgradeCategory.Ability)
+		var offers = WeaponsCatalog.ListFor(ship)
+			.Where(offer => offer.Category == EWeaponsOfferCategory.Ability)
 			.ToArray();
 
 		if (offers.Length == 0)
@@ -214,7 +187,7 @@ public sealed partial class DockyardHudOverlay : Control
 		AppendPurchaseCards(body, ship, offers);
 	}
 
-	private void AppendPurchaseCards(VBoxContainer body, ShipInstance ship, IReadOnlyList<DockyardUpgradeOffer> offers)
+	private void AppendPurchaseCards(VBoxContainer body, ShipInstance ship, IReadOnlyList<WeaponsMerchantOffer> offers)
 	{
 		foreach (var offer in offers)
 		{
@@ -226,22 +199,22 @@ public sealed partial class DockyardHudOverlay : Control
 		}
 	}
 
-	private static string TitleFor(DockyardUpgradeOffer offer, ShipInstance ship) =>
+	private static string TitleFor(WeaponsMerchantOffer offer, ShipInstance ship) =>
 		offer.Category switch
 		{
-			EDockyardUpgradeCategory.MaxShields => DockyardUpgradeDisplay.ShieldUpgradeTitle(ship.Spec),
-			EDockyardUpgradeCategory.Ability when offer.Mount is { } mount
+			EWeaponsOfferCategory.MaxShields => MerchantOfferDisplay.ShieldUpgradeTitle(ship.Spec),
+			EWeaponsOfferCategory.Ability when offer.Mount is { } mount
 				&& offer.RequiredAbilitySpec is { } required =>
-				DockyardUpgradeDisplay.AbilityUpgradeTitle(mount, required),
+				MerchantOfferDisplay.AbilityUpgradeTitle(mount, required),
 			_ => "Upgrade",
 		};
 
-	private static string BodyFor(DockyardUpgradeOffer offer, ShipInstance ship) =>
+	private static string BodyFor(WeaponsMerchantOffer offer, ShipInstance ship) =>
 		offer.Category switch
 		{
-			EDockyardUpgradeCategory.MaxShields => "Raise max shields on all faces",
-			EDockyardUpgradeCategory.Ability when offer.RequiredAbilitySpec is { } required =>
-				DockyardUpgradeDisplay.AbilityUpgradeBody(required),
+			EWeaponsOfferCategory.MaxShields => "Raise max shields on all faces",
+			EWeaponsOfferCategory.Ability when offer.RequiredAbilitySpec is { } required =>
+				MerchantOfferDisplay.AbilityUpgradeBody(required),
 			_ => string.Empty,
 		};
 

@@ -1,3 +1,5 @@
+using GrimSpace.World.StarSystem.Merchants;
+
 namespace GrimSpace.World.StarSystem.Poi;
 
 public sealed class Facility
@@ -53,6 +55,18 @@ public sealed class Facility
 			if (!slots.Add(operatorEntry.SceneSlotId))
 				throw new ArgumentException(
 					$"Duplicate facility operator scene slot id '{operatorEntry.SceneSlotId}'.");
+
+			if (operatorEntry.Role == EFacilityOperatorRole.Merchant)
+			{
+				if (operatorEntry.MerchantCatalog is null)
+					throw new ArgumentException(
+						$"Merchant operator '{operatorEntry.Name}' requires a merchant catalog.");
+			}
+			else if (operatorEntry.MerchantCatalog is not null)
+			{
+				throw new ArgumentException(
+					$"Operator '{operatorEntry.Name}' with role '{operatorEntry.Role}' cannot carry a merchant catalog.");
+			}
 		}
 	}
 }

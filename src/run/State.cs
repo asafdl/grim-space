@@ -11,7 +11,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Ids;
-using GrimSpace.World.StarSystem.Dockyard;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Run;
@@ -41,9 +41,7 @@ public sealed class State : IDisposable
 	private readonly HashSet<string> _launchedEngagementIds = new(StringComparer.Ordinal);
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _fleetSpawnSubscription;
-	private IDisposable? _dockyardUpgradeSubscription;
-	private IDisposable? _shieldRechargeSubscription;
-	private IDisposable? _hullRepairSubscription;
+	private IDisposable? _merchantShipPurchaseSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -168,12 +166,8 @@ public sealed class State : IDisposable
 		_engagementSubscription = null;
 		_fleetSpawnSubscription?.Dispose();
 		_fleetSpawnSubscription = null;
-		_dockyardUpgradeSubscription?.Dispose();
-		_dockyardUpgradeSubscription = null;
-		_shieldRechargeSubscription?.Dispose();
-		_shieldRechargeSubscription = null;
-		_hullRepairSubscription?.Dispose();
-		_hullRepairSubscription = null;
+		_merchantShipPurchaseSubscription?.Dispose();
+		_merchantShipPurchaseSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -185,12 +179,8 @@ public sealed class State : IDisposable
 		Transitions.Bind(StarSystem);
 		_engagementSubscription = StarSystem.Subscribe<Record<EngagementCommitted>>(OnCommittedEngagement);
 		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
-		_dockyardUpgradeSubscription =
-			StarSystem.Subscribe<Record<DockyardUpgradePurchased>>(OnDockyardUpgradePurchased);
-		_shieldRechargeSubscription =
-			StarSystem.Subscribe<Record<ShieldRechargePurchased>>(OnShieldRechargePurchased);
-		_hullRepairSubscription =
-			StarSystem.Subscribe<Record<HullRepairPurchased>>(OnHullRepairPurchased);
+		_merchantShipPurchaseSubscription =
+			StarSystem.Subscribe<Record<MerchantShipPurchase>>(OnMerchantShipPurchase);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -199,12 +189,8 @@ public sealed class State : IDisposable
 		_engagementSubscription = null;
 		_fleetSpawnSubscription?.Dispose();
 		_fleetSpawnSubscription = null;
-		_dockyardUpgradeSubscription?.Dispose();
-		_dockyardUpgradeSubscription = null;
-		_shieldRechargeSubscription?.Dispose();
-		_shieldRechargeSubscription = null;
-		_hullRepairSubscription?.Dispose();
-		_hullRepairSubscription = null;
+		_merchantShipPurchaseSubscription?.Dispose();
+		_merchantShipPurchaseSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -239,88 +225,34 @@ public sealed class State : IDisposable
 			ShipRegistry.Register(declaration);
 	}
 
-	private void OnDockyardUpgradePurchased(Record<DockyardUpgradePurchased> record)
+	private void OnMerchantShipPurchase(Record<MerchantShipPurchase> record)
 	{
 		var purchase = record.Value;
 		if (!PlayerParty.ShipIds.Contains(purchase.ShipId, StringComparer.Ordinal))
 		{
 			GameLog.Log(
-				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; ship is not in the player party.");
+				$"Ignoring merchant ship purchase for '{purchase.ShipId}'; ship is not in the player party.");
 			return;
 		}
 
 		if (!ShipRegistry.TryGet(purchase.ShipId, out var current))
 		{
 			GameLog.Log(
-				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; ship is missing from the registry.");
+				$"Ignoring merchant ship purchase for '{purchase.ShipId}'; ship is missing from the registry.");
 			return;
 		}
 
-		if (!RegistryMatchesDockyardBefore(current, purchase.Before))
+		if (!RegistryMatchesMerchantPurchaseBefore(current, purchase.Before))
 		{
 			GameLog.Log(
-				$"Ignoring dockyard upgrade for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
+				$"Ignoring merchant ship purchase for '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
 			return;
 		}
 
 		ShipRegistry.Update(purchase.After.Clone());
 	}
 
-	private void OnShieldRechargePurchased(Record<ShieldRechargePurchased> record)
-	{
-		var purchase = record.Value;
-		if (!PlayerParty.ShipIds.Contains(purchase.ShipId, StringComparer.Ordinal))
-		{
-			GameLog.Log(
-				$"Ignoring shield recharge for ship '{purchase.ShipId}'; ship is not in the player party.");
-			return;
-		}
-
-		if (!ShipRegistry.TryGet(purchase.ShipId, out var current))
-		{
-			GameLog.Log(
-				$"Ignoring shield recharge for ship '{purchase.ShipId}'; ship is missing from the registry.");
-			return;
-		}
-
-		if (!RegistryMatchesDockyardBefore(current, purchase.Before))
-		{
-			GameLog.Log(
-				$"Ignoring shield recharge for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
-			return;
-		}
-
-		ShipRegistry.Update(purchase.After.Clone());
-	}
-
-	private void OnHullRepairPurchased(Record<HullRepairPurchased> record)
-	{
-		var purchase = record.Value;
-		if (!PlayerParty.ShipIds.Contains(purchase.ShipId, StringComparer.Ordinal))
-		{
-			GameLog.Log(
-				$"Ignoring hull repair for ship '{purchase.ShipId}'; ship is not in the player party.");
-			return;
-		}
-
-		if (!ShipRegistry.TryGet(purchase.ShipId, out var current))
-		{
-			GameLog.Log(
-				$"Ignoring hull repair for ship '{purchase.ShipId}'; ship is missing from the registry.");
-			return;
-		}
-
-		if (!RegistryMatchesDockyardBefore(current, purchase.Before))
-		{
-			GameLog.Log(
-				$"Ignoring hull repair for ship '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
-			return;
-		}
-
-		ShipRegistry.Update(purchase.After.Clone());
-	}
-
-	private static bool RegistryMatchesDockyardBefore(ShipInstance current, ShipInstance before) =>
+	private static bool RegistryMatchesMerchantPurchaseBefore(ShipInstance current, ShipInstance before) =>
 		string.Equals(current.Id, before.Id, StringComparison.Ordinal)
 		&& current.HullPoints == before.HullPoints
 		&& current.ShieldPoints.Matches(before.ShieldPoints)

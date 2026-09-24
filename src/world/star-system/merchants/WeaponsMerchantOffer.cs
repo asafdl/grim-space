@@ -1,17 +1,17 @@
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Resources;
 
-namespace GrimSpace.World.StarSystem.Dockyard;
+namespace GrimSpace.World.StarSystem.Merchants;
 
-public enum EDockyardUpgradeCategory
+public enum EWeaponsOfferCategory
 {
 	MaxShields,
 	Ability,
 }
 
-public sealed record DockyardUpgradeOffer(
+public sealed record WeaponsMerchantOffer(
 	string Id,
-	EDockyardUpgradeCategory Category,
+	EWeaponsOfferCategory Category,
 	AbilityMount? Mount,
 	int RequiredShieldTier,
 	AbilitySpec? RequiredAbilitySpec,

@@ -1,6 +1,6 @@
-namespace GrimSpace.World.StarSystem.Dockyard;
+namespace GrimSpace.World.StarSystem.Merchants;
 
-public static class DockyardUpgradeRules
+public static class MerchantPricingRules
 {
 	public const int MaxShieldUpgradeTier = 3;
 

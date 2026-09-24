@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -31,12 +32,14 @@ public sealed class TradeHub : PointOfInterest
 			[
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.DockyardShop,
-					ShopOperatorSceneSlotId),
+					EFacilityOperatorRole.Merchant,
+					ShopOperatorSceneSlotId,
+					EMerchantCatalog.Weapons),
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.ShieldRecharge,
-					ShieldOperatorSceneSlotId),
+					EFacilityOperatorRole.Merchant,
+					ShieldOperatorSceneSlotId,
+					EMerchantCatalog.ShipSupport),
 			]),
 		new Facility(
 			Facility.ScopedId(plan.TradeHubPoiId, MarketFacilitySlug),

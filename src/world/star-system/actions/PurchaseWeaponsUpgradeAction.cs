@@ -1,44 +1,45 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Units;
-using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record PurchaseHullRepairAction(
+public sealed record PurchaseWeaponsUpgradeAction(
 	string ActorId,
 	string PoiId,
 	string FacilityId,
 	string OperatorName,
+	string OfferId,
 	ShipInstance Before) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
-		PurchaseHullRepairDef.Instance;
+		PurchaseWeaponsUpgradeDef.Instance;
 }
 
-public sealed class PurchaseHullRepairDef
+public sealed class PurchaseWeaponsUpgradeDef
 	: IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	public static PurchaseHullRepairDef Instance { get; } = new();
+	public static PurchaseWeaponsUpgradeDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(StarMap world, ActorRuntime runtime, string actorId) => [];
 
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
-		action is PurchaseHullRepairAction purchase
+		action is PurchaseWeaponsUpgradeAction purchase
 		&& world.FleetRegistry.TryGet(purchase.ActorId, out _)
 		&& MerchantPurchaseValidation.OperatorServesCatalog(
 			world,
 			purchase.PoiId,
 			purchase.FacilityId,
 			purchase.OperatorName,
-			EMerchantCatalog.ShipSupport)
-		&& TryResolvePurchase(purchase.Before, out _, out var cost)
+			EMerchantCatalog.Weapons)
+		&& TryResolvePurchase(purchase.OfferId, purchase.Before, out _, out var cost)
 		&& world.PlayerResources.CanApply(cost.Negate());
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
@@ -46,15 +47,16 @@ public sealed class PurchaseHullRepairDef
 		StarMap world,
 		ActorRuntime runtime)
 	{
-		var purchase = (PurchaseHullRepairAction)action;
-		if (!TryResolvePurchase(purchase.Before, out var after, out var cost))
+		var purchase = (PurchaseWeaponsUpgradeAction)action;
+		if (!TryResolvePurchase(purchase.OfferId, purchase.Before, out var after, out var cost))
 			return [];
 
 		var fact = new MerchantShipPurchase(
 			purchase.Before.Id,
 			purchase.Before.Clone(),
 			after.Clone(),
-			cost);
+			cost,
+			purchase.OfferId);
 
 		return
 		[
@@ -64,13 +66,23 @@ public sealed class PurchaseHullRepairDef
 	}
 
 	private static bool TryResolvePurchase(
+		string offerId,
 		ShipInstance before,
 		out ShipInstance after,
 		out ResourceBundle cost)
 	{
 		after = null!;
 		cost = ResourceBundle.Empty;
-		return ShipSupportCatalog.TryQuoteHullRepair(before, out cost)
-			&& before.TryWithHullRepaired(out after);
+		if (!WeaponsCatalog.TryQuote(offerId, before, out cost)
+			|| !WeaponsCatalog.TryGetOffer(offerId, before, out var offer))
+			return false;
+
+		return offer.Category switch
+		{
+			EWeaponsOfferCategory.MaxShields => before.TryWithUpgradedMaxShields(out after),
+			EWeaponsOfferCategory.Ability => offer.Mount is { } mount
+				&& before.TryWithUpgradedAbility(mount, out after),
+			_ => false,
+		};
 	}
 }

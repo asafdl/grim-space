@@ -279,12 +279,25 @@ Capability interfaces (metadata + helpers, still in units):
 | Layer | Role |
 |-------|------|
 | **[`ShipCatalog`](src/units/ShipCatalog.cs)** | **Creation bootstrap only** — default `ShipSpec` when a new hull is first instantiated ([`ShipInstance.FromCatalog`](src/units/ShipInstance.cs)). Not consulted during combat. |
-| **Star map / run** ([`RunShipRegistry`](src/run/RunShipRegistry.cs), engagement setup) | **Owns each [`ShipInstance`](src/units/ShipInstance.cs)** — id, `ShipSpec`, current hull, and current shields (upgrades, dockyard). |
+| **Star map / run** ([`RunShipRegistry`](src/run/RunShipRegistry.cs), engagement setup) | **Owns each [`ShipInstance`](src/units/ShipInstance.cs)** — id, `ShipSpec`, current hull, and current shields (merchant purchases, repairs, recharges). |
 | **Battle** ([`State.FromShipInstance`](src/battle/units/State.cs), action defs) | **Reads the `ShipInstance` copy on each actor** — per-actor `Spec` for installed abilities, damage, spawn child specs, and caps. Does **not** look up loadouts by [`EType`](src/units/Enums/EType.cs), does **not** re-validate against catalog defaults, and does **not** enforce “is this a legal chassis template” (that belongs to run/map setup). |
 
 [`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time. Battle [`State`](src/battle/units/State.cs) creates one runtime counter set per kind+facet mount. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Spawn, weapon, and torpedo-body numbers live on [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs) / [`TorpedoBodySpec`](src/units/TorpedoBodySpec.cs) via [`ShipCatalog`](src/units/ShipCatalog.cs).
 
 **Upgrade identity:** run-level **`shipId`** plus **ability kind + facet**; replace the `AbilitySpec` on that exact installed mount. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
+
+#### Star-map merchant commerce (boundaries)
+
+Trade-hub commerce is split so quoting stays in [`merchants/`](src/world/star-system/merchants/), ship mutations in [`units`](src/units/ShipInstance.cs), commits in [`actions`](src/world/star-system/actions/), and run persistence via a single [`MerchantShipPurchase`](src/world/star-system/merchants/MerchantShipPurchase.cs) fact in [`State`](src/run/State.cs).
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Max-shield tier offers | [`WeaponsCatalog`](src/world/star-system/merchants/WeaponsCatalog.cs) / weapons merchant NPC | Scrap-priced spec upgrades alongside ability tiers; not a credits-per-point service like recharge. |
+| Hull repair + shield recharge | [`ShipSupportCatalog`](src/world/star-system/merchants/ShipSupportCatalog.cs) / support merchant NPC | Consumable restore services; separate HUD from weapons upgrades. |
+| Purchase actions | Three actions (`PurchaseWeaponsUpgrade`, `PurchaseHullRepair`, `PurchaseShieldRecharge`) | Distinct quote/legality; shared `MerchantShipPurchase` record and `TransactionSource.MerchantPurchase`. |
+| Who sells what | `MerchantCatalog` on [`FacilityOperator`](src/world/star-system/poi/FacilityOperator.cs) (`EFacilityOperatorRole.Merchant`) | One catalog per operator is enough for current facilities; facility-level catalog config deferred until one NPC sells multiple catalogs. |
+
+Presentation ([`DockyardController`](src/world/star-system/presentation/facilities/DockyardController.cs), facility scene slug **Dockyard**) only lists quotes and commits actions; it does not mutate ships.
 
 ---
 

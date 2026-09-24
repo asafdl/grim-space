@@ -1,19 +1,17 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.World.StarSystem.Merchants;
 
-namespace GrimSpace.World.StarSystem.Dockyard;
+namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
-public static class DockyardUpgradeDisplay
+internal static class MerchantOfferDisplay
 {
 	public static string ShieldUpgradeTitle(ShipSpec spec) =>
-		$"Max shields {DockyardUpgradeRules.MkLabel(spec.ShieldUpgradeTier + 1)}";
-
-	public static string ShieldUpgradeBody(ShipSpec spec) =>
-		$"Raise maximum shield capacity on every face (current {DockyardUpgradeRules.MkLabel(spec.ShieldUpgradeTier)}).";
+		$"Max shields {MerchantPricingRules.MkLabel(spec.ShieldUpgradeTier + 1)}";
 
 	public static string AbilityUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
-		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} {DockyardUpgradeRules.MkLabel(AbilitySpecUpgrade.Tier(current) + 1)}";
+		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} {MerchantPricingRules.MkLabel(current.UpgradeTier + 1)}";
 
 	public static string AbilityUpgradeBody(AbilitySpec current) =>
 		current switch
@@ -23,19 +21,6 @@ public static class DockyardUpgradeDisplay
 			RailgunSpec railgun =>
 				$"Increase shot damage from {railgun.Damage} to {railgun.Damage + 1}.",
 			_ => "Improve this mounted system.",
-		};
-
-	public static string MountedAbilitySummary(InstalledAbility installed) =>
-		$"{FacetLabel(installed.MountedOn)} · {KindLabel(installed.Spec.Kind)} · {DockyardUpgradeRules.MkLabel(AbilitySpecUpgrade.Tier(installed.Spec))} · {AbilityStatSummary(installed.Spec)}";
-
-	private static string AbilityStatSummary(AbilitySpec spec) =>
-		spec switch
-		{
-			FlakSpec flak => $"damage {flak.Damage}",
-			RailgunSpec railgun => $"damage {railgun.Damage}",
-			PatrolBaySpec bay => $"cooldown {bay.CooldownTurns}t",
-			TorpedoLauncherSpec launcher => $"cooldown {launcher.CooldownTurns}t",
-			_ => spec.Kind.ToString(),
 		};
 
 	private static string FacetLabel(ESpatialOrientation facet) =>

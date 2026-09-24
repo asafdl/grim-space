@@ -1,5 +1,6 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.Tests.World.StarSystem;
@@ -44,13 +45,15 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(TradeHub.DockyardScenePath, dockyard.ScenePath);
 		Assert.Equal(2, dockyard.Operators.Count);
 
-		var shop = dockyard.Operators.Single(op => op.Role == EFacilityOperatorRole.DockyardShop);
-		Assert.Equal(MapFacilityOperators.ShopOperatorName(world), shop.Name);
-		Assert.Equal(TradeHub.ShopOperatorSceneSlotId, shop.SceneSlotId);
+		var weaponsMerchant = dockyard.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.Weapons);
+		Assert.Equal(MapFacilityOperators.ShopOperatorName(world), weaponsMerchant.Name);
+		Assert.Equal(TradeHub.ShopOperatorSceneSlotId, weaponsMerchant.SceneSlotId);
 
-		var shield = dockyard.Operators.Single(op => op.Role == EFacilityOperatorRole.ShieldRecharge);
-		Assert.Equal(MapFacilityOperators.ShieldOperatorName(world), shield.Name);
-		Assert.Equal(TradeHub.ShieldOperatorSceneSlotId, shield.SceneSlotId);
+		var supportMerchant = dockyard.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.ShipSupport);
+		Assert.Equal(MapFacilityOperators.ShieldOperatorName(world), supportMerchant.Name);
+		Assert.Equal(TradeHub.ShieldOperatorSceneSlotId, supportMerchant.SceneSlotId);
 
 		var market = hub.Facilities.Single(f =>
 			f.Id == Facility.ScopedId(SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.MarketFacilitySlug));
@@ -198,8 +201,16 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			EPresentationAnchor.Dockyard,
 			TradeHub.DockyardScenePath,
 			[
-				new FacilityOperator(OperatorNames.Cl4nk, EFacilityOperatorRole.DockyardShop, "Salesman"),
-				new FacilityOperator(OperatorNames.Zorp, EFacilityOperatorRole.ShieldRecharge, "Salesman"),
+				new FacilityOperator(
+					OperatorNames.Cl4nk,
+					EFacilityOperatorRole.Merchant,
+					"Salesman",
+					EMerchantCatalog.Weapons),
+				new FacilityOperator(
+					OperatorNames.Zorp,
+					EFacilityOperatorRole.Merchant,
+					"Salesman",
+					EMerchantCatalog.ShipSupport),
 			]));
 	}
 
@@ -211,7 +222,11 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			"Test",
 			EPresentationAnchor.Dockyard,
 			"",
-			[new FacilityOperator(OperatorNames.Cl4nk, EFacilityOperatorRole.DockyardShop, "Salesman")]));
+			[new FacilityOperator(
+				OperatorNames.Cl4nk,
+				EFacilityOperatorRole.Merchant,
+				"Salesman",
+				EMerchantCatalog.Weapons)]));
 	}
 
 	[Fact]
@@ -222,7 +237,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			"Test",
 			EPresentationAnchor.Dockyard,
 			TradeHub.DockyardScenePath,
-			[new FacilityOperator("  ", EFacilityOperatorRole.DockyardShop, "Salesman")]));
+			[new FacilityOperator("  ", EFacilityOperatorRole.Merchant, "Salesman", EMerchantCatalog.Weapons)]));
 	}
 
 	[Fact]
@@ -233,7 +248,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			"Test",
 			EPresentationAnchor.Dockyard,
 			TradeHub.DockyardScenePath,
-			[new FacilityOperator(OperatorNames.Cl4nk, EFacilityOperatorRole.DockyardShop, "")]));
+			[new FacilityOperator(OperatorNames.Cl4nk, EFacilityOperatorRole.Merchant, "", EMerchantCatalog.Weapons)]));
 	}
 
 	[Fact]

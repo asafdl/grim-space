@@ -4,7 +4,7 @@ using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
-using GrimSpace.World.StarSystem.Dockyard;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -32,6 +32,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 
 	public event Action<string, ESpatialOrientation>? FaceRechargeRequested;
 	public event Action<string>? FillAllRechargeRequested;
+	public event Action<string>? HullRepairRequested;
 	public event Action? Closed;
 
 	public DockyardShieldRechargeHudOverlay()
@@ -91,7 +92,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	private void ShowMain()
 	{
 		_shell.SetTitle(_facilityTitle);
-		_shell.SetSubtitle("Shield recharge");
+		_shell.SetSubtitle("Ship support");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -110,6 +111,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			return;
 		}
 
+		body.AddChild(CreateHullRepairPanel(ship));
 		body.AddChild(CreateShieldRechargePanel(ship));
 
 		_shell.SetBody(body);
@@ -124,6 +126,49 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 
 		ship = _run.ShipRegistry.Get(shipId);
 		return true;
+	}
+
+	private Control CreateHullRepairPanel(ShipInstance ship)
+	{
+		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		HudStyles.SetPanelVariation(panel, "Status");
+
+		var margin = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
+		panel.AddChild(margin);
+
+		var column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		column.AddThemeConstantOverride("separation", 8);
+		margin.AddChild(column);
+
+		if (!ShipSupportCatalog.TryQuoteHullRepair(ship, out var cost))
+		{
+			var label = new Label
+			{
+				Text = "Hull integrity is full.",
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			};
+			HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
+			column.AddChild(label);
+			return panel;
+		}
+
+		var missing = ship.MissingHullPoints;
+		var shipId = ship.Id;
+		column.AddChild(HudWidgets.CreateCard(
+			"Hull repair",
+			[
+				ResourceCostDisplay.CreateMetadataRow(
+					cost,
+					$"Restore {missing} hull to {ship.Spec.MaxHullPoints}"),
+			],
+			() => HullRepairRequested?.Invoke(shipId)));
+
+		return panel;
 	}
 
 	private Control CreateShieldRechargePanel(ShipInstance ship)
@@ -174,10 +219,10 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		if (addedRow)
 			column.AddChild(CreateRowDivider());
 
-		var fillAllCost = DockyardShieldRecharge.TryQuote(ship, out var allCost)
+		var fillAllCost = ShipSupportCatalog.TryQuoteShieldRecharge(ship, out var allCost)
 			? CreditAmount(allCost)
 			: 0;
-		var fillAllMissing = DockyardShieldRecharge.MissingPoints(ship);
+		var fillAllMissing = ship.MissingShieldPoints;
 		column.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
 			"Fill all",
 			ResourceId.Credits,
@@ -196,8 +241,8 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	{
 		var max = ship.Spec.MaxShieldPoints[face];
 		var current = System.Math.Clamp(ship.ShieldPoints[face], 0, max);
-		var missing = DockyardShieldRecharge.MissingPointsOnFace(ship, face);
-		var creditCost = missing * DockyardShieldRecharge.CreditsPerPoint;
+		var missing = ship.MissingShieldPointsOnFace(face);
+		var creditCost = missing * ShipSupportCatalog.ShieldRechargeCreditsPerPoint;
 
 		var row = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		row.AddThemeConstantOverride("separation", 10);

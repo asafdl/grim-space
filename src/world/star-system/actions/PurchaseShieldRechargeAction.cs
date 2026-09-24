@@ -2,8 +2,9 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
-using GrimSpace.World.StarSystem.Dockyard;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 
@@ -33,6 +34,12 @@ public sealed class PurchaseShieldRechargeDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is PurchaseShieldRechargeAction purchase
 		&& world.FleetRegistry.TryGet(purchase.ActorId, out _)
+		&& MerchantPurchaseValidation.OperatorServesCatalog(
+			world,
+			purchase.PoiId,
+			purchase.FacilityId,
+			purchase.OperatorName,
+			EMerchantCatalog.ShipSupport)
 		&& TryResolvePurchase(purchase.Before, purchase.Face, out _, out var cost)
 		&& world.PlayerResources.CanApply(cost.Negate());
 
@@ -45,7 +52,7 @@ public sealed class PurchaseShieldRechargeDef
 		if (!TryResolvePurchase(purchase.Before, purchase.Face, out var after, out var cost))
 			return [];
 
-		var fact = new ShieldRechargePurchased(
+		var fact = new MerchantShipPurchase(
 			purchase.Before.Id,
 			purchase.Before.Clone(),
 			after.Clone(),
@@ -53,8 +60,8 @@ public sealed class PurchaseShieldRechargeDef
 
 		return
 		[
-			new ChangeResourceEffect(TransactionSource.DockyardPurchase, cost.Negate()),
-			new RecordShieldRechargeEffect(fact),
+			new ChangeResourceEffect(TransactionSource.MerchantPurchase, cost.Negate()),
+			new RecordMerchantShipPurchaseEffect(fact),
 		];
 	}
 
@@ -67,10 +74,10 @@ public sealed class PurchaseShieldRechargeDef
 		after = null!;
 		cost = ResourceBundle.Empty;
 		if (face is { } target)
-			return DockyardShieldRecharge.TryApplyFace(before, target, out after)
-				&& DockyardShieldRecharge.TryQuoteFace(before, target, out cost);
+			return ShipSupportCatalog.TryQuoteShieldRechargeFace(before, target, out cost)
+				&& before.TryWithShieldsRechargedOnFace(target, out after);
 
-		return DockyardShieldRecharge.TryApply(before, out after)
-			&& DockyardShieldRecharge.TryQuote(before, out cost);
+		return ShipSupportCatalog.TryQuoteShieldRecharge(before, out cost)
+			&& before.TryWithShieldsRecharged(out after);
 	}
 }

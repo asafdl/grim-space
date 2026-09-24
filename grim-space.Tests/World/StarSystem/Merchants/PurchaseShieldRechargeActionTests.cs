@@ -6,7 +6,7 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Dockyard;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi.Concrete;
@@ -14,6 +14,8 @@ using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Poi;
+
+namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
 [StarSystemTestSuite]
 public sealed class PurchaseShieldRechargeActionTests(StarMapFixture maps)
@@ -36,8 +38,8 @@ public sealed class PurchaseShieldRechargeActionTests(StarMapFixture maps)
 			MapFacilityOperators.ShieldOperatorName(engine.World),
 			before));
 
-		Assert.Contains(records, record => record is Record<ShieldRechargePurchased>);
-		Assert.True(DockyardShieldRecharge.TryQuote(before, out var cost));
+		Assert.Contains(records, record => record is Record<MerchantShipPurchase>);
+		Assert.True(ShipSupportCatalog.TryQuoteShieldRecharge(before, out var cost));
 		Assert.True(cost.TryGet(ResourceId.Credits, out var creditCost));
 		Assert.Equal(initialCredits - creditCost, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 	}
@@ -75,9 +77,28 @@ public sealed class PurchaseShieldRechargeActionTests(StarMapFixture maps)
 			before,
 			ESpatialOrientation.Forward));
 
-		Assert.True(DockyardShieldRecharge.TryQuoteFace(before, ESpatialOrientation.Forward, out var cost));
+		Assert.True(ShipSupportCatalog.TryQuoteShieldRechargeFace(before, ESpatialOrientation.Forward, out var cost));
 		Assert.True(cost.TryGet(ResourceId.Credits, out var creditCost));
 		Assert.Equal(500 - creditCost, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+	}
+
+	[Fact]
+	public void TryEnqueue_FailsForStaleBeforeSnapshot()
+	{
+		var (engine, unitId, ship) = CreateEngine();
+		ship.ShieldPoints[ESpatialOrientation.Forward] = 0;
+		SeedCredits(engine.World, 500);
+		var sim = engine.CreateSimulation();
+		var stale = ship.Clone();
+		Assert.True(stale.TryWithShieldsRecharged(out var recharged));
+		stale.ShieldPoints = recharged.ShieldPoints.Clone();
+
+		Assert.False(sim.TryEnqueue(new PurchaseShieldRechargeAction(
+			unitId,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			DockyardFacilityId,
+			MapFacilityOperators.ShieldOperatorName(engine.World),
+			stale)));
 	}
 
 	[Fact]
@@ -99,8 +120,8 @@ public sealed class PurchaseShieldRechargeActionTests(StarMapFixture maps)
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
 		Assert.True(PurchaseShieldRechargeDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));
 
-		ShieldRechargePurchased? purchase = null;
-		using var subscription = run.StarSystem.Subscribe<Record<ShieldRechargePurchased>>(record =>
+		MerchantShipPurchase? purchase = null;
+		using var subscription = run.StarSystem.Subscribe<Record<MerchantShipPurchase>>(record =>
 			purchase = record.Value);
 
 		run.StarSystem.CommitSetup(action);
@@ -110,10 +131,27 @@ public sealed class PurchaseShieldRechargeActionTests(StarMapFixture maps)
 		Assert.Equal(before.Spec.MaxShieldPoints[ESpatialOrientation.Forward], updated.ShieldPoints[ESpatialOrientation.Forward]);
 	}
 
+	[Fact]
+	public void TryEnqueue_FailsWhenWeaponsMerchantOperatorForged()
+	{
+		var (engine, unitId, ship) = CreateEngine();
+		ship.ShieldPoints[ESpatialOrientation.Forward] = 0;
+		SeedCredits(engine.World, 500);
+		var sim = engine.CreateSimulation();
+		var before = ship.Clone();
+
+		Assert.False(sim.TryEnqueue(new PurchaseShieldRechargeAction(
+			unitId,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			DockyardFacilityId,
+			MapFacilityOperators.ShopOperatorName(engine.World),
+			before)));
+	}
+
 	private static void SeedCredits(StarMap map, int amount)
 	{
 		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(TransactionSource.DockyardPurchase, ResourceBundle.Of(ResourceId.Credits, amount))
+		new ChangeResourceEffect(TransactionSource.MerchantPurchase, ResourceBundle.Of(ResourceId.Credits, amount))
 			.Apply(map, runtime, "seed");
 	}
 

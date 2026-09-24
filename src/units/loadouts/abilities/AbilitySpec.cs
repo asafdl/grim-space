@@ -7,6 +7,15 @@ public abstract record AbilitySpec
 {
 	public abstract EAbilityKind Kind { get; }
 	public abstract IReadOnlyList<ESpatialOrientation> CompatibleFacets { get; }
+	public abstract int UpgradeTier { get; init; }
+
+	public virtual bool CanUpgrade => false;
+
+	public virtual bool TryCreateUpgraded(out AbilitySpec upgraded)
+	{
+		upgraded = null!;
+		return false;
+	}
 
 	public MountRuntimeCounters CreateInitialRuntime() =>
 		this switch
@@ -52,6 +61,18 @@ public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange, int U
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
+	public override bool CanUpgrade => true;
+
+	public override bool TryCreateUpgraded(out AbilitySpec upgraded)
+	{
+		upgraded = this with
+		{
+			Damage = Damage + 1,
+			UpgradeTier = UpgradeTier + 1,
+		};
+		return true;
+	}
+
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
 	{
 		var starboard = Coord.Cross(dorsal, fore);
@@ -85,6 +106,18 @@ public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, in
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
+
+	public override bool CanUpgrade => true;
+
+	public override bool TryCreateUpgraded(out AbilitySpec upgraded)
+	{
+		upgraded = this with
+		{
+			Damage = Damage + 1,
+			UpgradeTier = UpgradeTier + 1,
+		};
+		return true;
+	}
 
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
 	{

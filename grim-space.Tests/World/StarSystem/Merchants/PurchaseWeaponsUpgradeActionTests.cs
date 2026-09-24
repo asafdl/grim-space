@@ -5,17 +5,19 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Dockyard;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Poi;
 
+namespace GrimSpace.Tests.World.StarSystem.Merchants;
+
 [StarSystemTestSuite]
-public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
+public sealed class PurchaseWeaponsUpgradeActionTests(StarMapFixture maps)
 {
 	private const string DockyardFacilityId = "poi-trade-dockyard";
 
@@ -27,7 +29,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 		var before = ship.Clone();
 		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		var records = engine.Commit(new PurchaseDockyardUpgradeAction(
+		var records = engine.Commit(new PurchaseWeaponsUpgradeAction(
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
@@ -35,8 +37,8 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 			offerId,
 			before));
 
-		Assert.Contains(records, record => record is Record<DockyardUpgradePurchased>);
-		Assert.True(DockyardOffers.TryQuote(offerId, ship, out var cost));
+		Assert.Contains(records, record => record is Record<MerchantShipPurchase>);
+		Assert.True(WeaponsCatalog.TryQuote(offerId, ship, out var cost));
 		Assert.True(cost.TryGet(ResourceId.ScrapAlloy, out var scrapCost));
 		Assert.Equal(initialScrap - scrapCost, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
@@ -48,7 +50,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 		var sim = engine.CreateSimulation();
 		var before = ship.Clone();
 
-		Assert.False(sim.TryEnqueue(new PurchaseDockyardUpgradeAction(
+		Assert.False(sim.TryEnqueue(new PurchaseWeaponsUpgradeAction(
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
@@ -64,10 +66,11 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 		SeedScrap(engine.World, 100);
 		var sim = engine.CreateSimulation();
 		var stale = ship.Clone();
-		Assert.True(DockyardOffers.TryApply(offerId, stale, out var upgraded));
+		Assert.True(stale.TryWithUpgradedMaxShields(out var upgraded));
 		stale.Spec = upgraded.Spec;
+		stale.ShieldPoints = upgraded.ShieldPoints.Clone();
 
-		Assert.False(sim.TryEnqueue(new PurchaseDockyardUpgradeAction(
+		Assert.False(sim.TryEnqueue(new PurchaseWeaponsUpgradeAction(
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
@@ -82,10 +85,10 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 		using var run = State.CreateNewRun(42);
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
-		var offerId = DockyardOffers.ListFor(ship).First().Id;
+		var offerId = WeaponsCatalog.ListFor(ship).First().Id;
 		SeedScrap(run.StarSystem.Map, 200);
 		var before = ship.Clone();
-		var action = new PurchaseDockyardUpgradeAction(
+		var action = new PurchaseWeaponsUpgradeAction(
 			State.PlayerFleetUnitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
@@ -93,10 +96,10 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 			offerId,
 			before);
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		Assert.True(PurchaseDockyardUpgradeDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));
+		Assert.True(PurchaseWeaponsUpgradeDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));
 
-		DockyardUpgradePurchased? purchase = null;
-		using var subscription = run.StarSystem.Subscribe<Record<DockyardUpgradePurchased>>(record =>
+		MerchantShipPurchase? purchase = null;
+		using var subscription = run.StarSystem.Subscribe<Record<MerchantShipPurchase>>(record =>
 			purchase = record.Value);
 
 		run.StarSystem.CommitSetup(action);
@@ -104,13 +107,30 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 
 		var updated = run.ShipRegistry.Get(shipId);
 		Assert.NotEqual(before.Spec, updated.Spec);
-		Assert.DoesNotContain(offerId, DockyardOffers.ListFor(updated).Select(o => o.Id));
+		Assert.DoesNotContain(offerId, WeaponsCatalog.ListFor(updated).Select(o => o.Id));
+	}
+
+	[Fact]
+	public void TryEnqueue_FailsWhenWeaponsMerchantOperatorForged()
+	{
+		var (engine, unitId, ship, offerId) = CreateEngine();
+		SeedScrap(engine.World, 100);
+		var sim = engine.CreateSimulation();
+		var before = ship.Clone();
+
+		Assert.False(sim.TryEnqueue(new PurchaseWeaponsUpgradeAction(
+			unitId,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			DockyardFacilityId,
+			MapFacilityOperators.ShieldOperatorName(engine.World),
+			offerId,
+			before)));
 	}
 
 	private static void SeedScrap(StarMap map, int amount)
 	{
 		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(TransactionSource.DockyardPurchase, ResourceBundle.Of(ResourceId.ScrapAlloy, amount))
+		new ChangeResourceEffect(TransactionSource.MerchantPurchase, ResourceBundle.Of(ResourceId.ScrapAlloy, amount))
 			.Apply(map, runtime, "seed");
 	}
 
@@ -120,7 +140,7 @@ public sealed class PurchaseDockyardUpgradeActionTests(StarMapFixture maps)
 		var map = maps.Fresh(seed);
 		var unitId = map.FleetRegistry.All.First().State.Id;
 		var ship = ShipInstance.FromCatalog("test-fighter", EType.Fighter);
-		var offerId = DockyardOffers.ListFor(ship).First().Id;
+		var offerId = WeaponsCatalog.ListFor(ship).First().Id;
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(unitId);

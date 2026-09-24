@@ -1,5 +1,6 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 
@@ -8,10 +9,18 @@ namespace GrimSpace.Tests.World.StarSystem.Poi;
 internal static class MapFacilityOperators
 {
 	public static string ShopOperatorName(StarMap map) =>
-		OperatorName(map, SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.DockyardFacilitySlug, EFacilityOperatorRole.DockyardShop);
+		MerchantOperatorName(
+			map,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			TradeHub.DockyardFacilitySlug,
+			EMerchantCatalog.Weapons);
 
 	public static string ShieldOperatorName(StarMap map) =>
-		OperatorName(map, SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.DockyardFacilitySlug, EFacilityOperatorRole.ShieldRecharge);
+		MerchantOperatorName(
+			map,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			TradeHub.DockyardFacilitySlug,
+			EMerchantCatalog.ShipSupport);
 
 	public static string MarketOperatorName(StarMap map) =>
 		OperatorName(
@@ -54,6 +63,19 @@ internal static class MapFacilityOperators
 			SupplySystemPlan.Copper.ExitPoiId,
 			Wormhole.TravelFacilitySlug,
 			EFacilityOperatorRole.Dialog);
+
+	private static string MerchantOperatorName(
+		StarMap map,
+		string poiId,
+		string facilitySlug,
+		EMerchantCatalog catalog)
+	{
+		var facilityId = Facility.ScopedId(poiId, facilitySlug);
+		var poi = map.PointsOfInterest.First(p => p.Id == poiId);
+		var facility = poi.Facilities.First(f => f.Id == facilityId);
+		return facility.Operators.First(op =>
+			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == catalog).Name;
+	}
 
 	private static string OperatorName(StarMap map, string poiId, string facilitySlug, EFacilityOperatorRole role)
 	{
