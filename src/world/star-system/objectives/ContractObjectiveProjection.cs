@@ -34,9 +34,8 @@ public static class ContractObjectiveProjection
 
 	private static ObjectiveSummaryContent BuildSummary(StarMap map, Contract contract)
 	{
-		if (contract.Objective is DeliveryObjective delivery
-			&& contract.IssuerPoiId is { } issuerPoiId)
-			return BuildDeliverySummary(map, issuerPoiId, delivery);
+		if (contract.Objective is DeliveryObjective delivery)
+			return BuildDeliverySummary(map, delivery);
 
 		var searchIntel = contract.Objective switch
 		{
@@ -146,19 +145,15 @@ public static class ContractObjectiveProjection
 
 	private static ObjectiveSummaryContent BuildDeliverySummary(
 		StarMap map,
-		string issuerPoiId,
 		DeliveryObjective delivery)
 	{
-		var issuer = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == issuerPoiId);
 		var dropoff = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == delivery.TurnInPoiId);
-		if (issuer is null || dropoff is null)
+		if (dropoff is null)
 			return new ObjectiveSummaryContent.Plain("Deliver cargo to the designated contact.");
 
-		return new ObjectiveSummaryContent.RouteBetweenLandmarks(
-			"Pick up at ",
-			issuerPoiId,
-			issuer.DisplayName,
-			$", deliver to \"{delivery.TurnInOperatorName}\" at ",
+		// Acceptance happens at the issuer; cargo is already aboard. Single-leg deliveries only for now.
+		return new ObjectiveSummaryContent.NearLandmark(
+			$"Deliver cargo to \"{delivery.TurnInOperatorName}\" at ",
 			delivery.TurnInPoiId,
 			dropoff.DisplayName,
 			".");

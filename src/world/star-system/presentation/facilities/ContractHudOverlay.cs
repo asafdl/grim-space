@@ -190,7 +190,7 @@ public sealed partial class ContractHudOverlay : Control
 		};
 
 		return HudWidgets.CreateCard(
-			ContractDisplay.Title(contract),
+			ContractDisplay.ListTitle(contract),
 			rows,
 			() =>
 			{

@@ -11,6 +11,8 @@ public static class ContractDisplay
 {
 	public static string Title(Contract contract) => contract.Narrative.Title;
 
+	public static string ListTitle(Contract contract) => $"{Title(contract)} - {KindDisplayName(Kind(contract))}";
+
 	public static string Narrative(Contract contract) => contract.Narrative.Briefing;
 
 	public static string Issuer(Contract contract, StarMap map)
@@ -180,4 +182,22 @@ public static class ContractDisplay
 
 	private static string Pluralize(int count, string singular, string plural) =>
 		count == 1 ? singular : plural;
+
+	private static EContractKind Kind(Contract contract) =>
+		contract.Objective switch
+		{
+			HuntObjective => EContractKind.Hunt,
+			DeliveryObjective => EContractKind.Delivery,
+			WreckageObjective => EContractKind.Wreckage,
+			_ => throw new ArgumentOutOfRangeException(nameof(contract), contract.Objective, null),
+		};
+
+	private static string KindDisplayName(EContractKind kind) =>
+		kind switch
+		{
+			EContractKind.Hunt => "Hunt",
+			EContractKind.Delivery => "Delivery",
+			EContractKind.Wreckage => "Wreckage",
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+		};
 }

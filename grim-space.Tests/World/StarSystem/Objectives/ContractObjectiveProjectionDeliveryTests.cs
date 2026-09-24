@@ -11,25 +11,21 @@ namespace GrimSpace.Tests.World.StarSystem.Objectives;
 public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps)
 {
 	[Fact]
-	public void Project_DeliveryContract_UsesRouteBetweenIssuerAndDropoff()
+	public void Project_ActiveDeliveryContract_PointsAtDropoffOnly()
 	{
 		var map = maps.Fresh(42);
 		var args = TutorialBeatContracts.CreateBeatBDeliveryArgs(map);
 		var contract = ContractFactory.Create(map, EContractKind.Delivery, args);
 		var delivery = (DeliveryObjective)contract.Objective;
-		var issuer = map.PointsOfInterest.First(poi => poi.Id == contract.IssuerPoiId);
 		var dropoff = map.PointsOfInterest.First(poi => poi.Id == delivery.TurnInPoiId);
 
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
 		Assert.Equal("Supply Run", objective.Title);
-		var route = Assert.IsType<ObjectiveSummaryContent.RouteBetweenLandmarks>(objective.Summary);
-		Assert.Equal("Pick up at ", route.Prefix);
-		Assert.Equal(issuer.Id, route.LandmarkAPoiId);
-		Assert.Equal(issuer.DisplayName, route.LandmarkADisplayName);
-		Assert.Equal($", deliver to \"{delivery.TurnInOperatorName}\" at ", route.Connector);
-		Assert.Equal(dropoff.Id, route.LandmarkBPoiId);
-		Assert.Equal(dropoff.DisplayName, route.LandmarkBDisplayName);
-		Assert.Equal(".", route.Suffix);
+		var near = Assert.IsType<ObjectiveSummaryContent.NearLandmark>(objective.Summary);
+		Assert.Equal($"Deliver cargo to \"{delivery.TurnInOperatorName}\" at ", near.Prefix);
+		Assert.Equal(dropoff.Id, near.LandmarkPoiId);
+		Assert.Equal(dropoff.DisplayName, near.LandmarkDisplayName);
+		Assert.Equal(".", near.Suffix);
 	}
 }
