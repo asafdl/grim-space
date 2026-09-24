@@ -19,7 +19,7 @@ public sealed partial class PosedUnitGhostView : Node3D
 		if (spec is null)
 		{
 			if (_view is not null)
-				_view.Visible = false;
+				_view.HideVisual();
 			Visible = false;
 			return;
 		}
@@ -52,14 +52,8 @@ public sealed partial class PosedUnitGhostView : Node3D
 		var view = _view
 			?? throw new InvalidOperationException("Posed ghost view was not initialized.");
 		if (needsBinding)
-		{
 			view.Bind(state, spec.Tint);
-			view.SetGhost(selected: false);
-		}
-		else
-		{
-			view.Sync(state);
-		}
+		view.Present(state, UnitVisualState.Ghost);
 		Visible = true;
 	}
 }

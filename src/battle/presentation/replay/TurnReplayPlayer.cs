@@ -189,7 +189,10 @@ public partial class TurnReplayPlayer : Node3D
 		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
 			return false;
 
-		view.ShowImpactState(state);
+		if (state.IsAlive)
+			view.Sync(state);
+		else
+			view.ShowPendingDeath(state);
 		view.PlayHitFlash();
 		view.PlayDamagePopup(impact.TotalDamage);
 

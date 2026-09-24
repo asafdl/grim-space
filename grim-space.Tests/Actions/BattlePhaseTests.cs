@@ -212,10 +212,6 @@ public sealed class BattlePhaseTests
 	public void FrameUnitStatesAreNotAppliedDuringReplay(EBattlePhase phase, bool expected) =>
 		Assert.Equal(expected, BattleController.ShouldApplyFrameUnitStates(phase));
 
-	[Fact]
-	public void BattleOverFrameDoesNotShowPredictedDeaths() =>
-		Assert.False(BattleController.ShouldShowPredictedDeath(EBattlePhase.BattleOver));
-
 	[Theory]
 	[InlineData(true, false, true)]
 	[InlineData(true, true, false)]
@@ -230,13 +226,12 @@ public sealed class BattlePhaseTests
 			BattleController.ShouldAllowEndTurn(acceptsCommands, tutorialBlocksEndTurn));
 
 	[Fact]
-	public void BattleViewRetainsPredictedDeathButNotAuthoritativeDeath()
+	public void BattleViewNeverRetainsSimulationDeadUnits()
 	{
 		var state = BattleTestFixture.Enemy(Coord.Zero).State;
 		state.HullPoints = 0;
 
-		Assert.True(BattleView.ShouldRetain(state, showPredictedDeath: true));
-		Assert.False(BattleView.ShouldRetain(state, showPredictedDeath: false));
+		Assert.False(BattleView.ShouldRetain(state));
 	}
 
 	[Fact]

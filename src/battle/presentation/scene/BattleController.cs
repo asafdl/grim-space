@@ -496,8 +496,7 @@ public partial class BattleController : Node3D
 			entry => entry.Value.ToState());
 		_battleView.ApplyUnitStates(
 			states,
-			ColorForActor,
-			showPredictedDeath: ShouldShowPredictedDeath(_battle.Phase));
+			ColorForActor);
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
 
@@ -509,9 +508,6 @@ public partial class BattleController : Node3D
 
 	internal static bool ShouldApplyFrameUnitStates(EBattlePhase phase) =>
 		phase != EBattlePhase.Replaying;
-
-	internal static bool ShouldShowPredictedDeath(EBattlePhase phase) =>
-		phase != EBattlePhase.BattleOver;
 
 	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialBlocksEndTurn) =>
 		acceptsCommands && !tutorialBlocksEndTurn;

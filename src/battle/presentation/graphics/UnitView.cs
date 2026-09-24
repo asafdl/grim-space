@@ -17,6 +17,8 @@ public partial class UnitView : Node3D
 	private bool _hitMarked;
 	private Tween? _poseTween;
 
+	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
+
 	public override void _ExitTree()
 	{
 		_poseTween?.Kill();
@@ -44,27 +46,53 @@ public partial class UnitView : Node3D
 		Sync(state);
 	}
 
+	/// <summary>Synchronizes an authoritative unit state; dead units are not rendered.</summary>
 	public void Sync(State state)
+	{
+		Present(state, state.IsAlive ? UnitVisualState.Live : UnitVisualState.Hidden);
+	}
+
+	public void Present(State state, UnitVisualState visualState)
 	{
 		_poseTween?.Kill();
 		_poseTween = null;
-		Visible = state.IsAlive;
-		if (!state.IsAlive)
+		VisualState = visualState;
+		Visible = visualState != UnitVisualState.Hidden;
+		if (!Visible)
 			return;
 
 		ApplyPose(state);
+		ApplyVisualState();
 	}
 
-	public void SetGhost(bool selected)
+	public void HideVisual()
 	{
+		_poseTween?.Kill();
+		_poseTween = null;
+		VisualState = UnitVisualState.Hidden;
+		Visible = false;
+	}
+
+	private void ApplyVisualState()
+	{
+		var selectedGhost = VisualState == UnitVisualState.SelectedGhost;
+		var passiveGhost = VisualState == UnitVisualState.Ghost;
 		foreach (var child in GetChildren())
 		{
 			if (child is GeometryInstance3D visual)
 			{
-				visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-				visual.Transparency = selected
-					? visual == _hull ? 0.45f : 0f
-					: 0.75f;
+				if (selectedGhost)
+				{
+					visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+					visual.Transparency = visual == _hull ? 0.45f : 0f;
+				}
+				else if (passiveGhost)
+				{
+					visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+					visual.Transparency = 0.75f;
+				}
+				else
+					visual.Transparency = 0f;
 			}
 		}
 	}
@@ -72,10 +100,12 @@ public partial class UnitView : Node3D
 	public void AnimateMoveTo(State state, double duration)
 	{
 		_poseTween?.Kill();
-		Visible = state.IsAlive;
 		if (!state.IsAlive)
 			return;
 
+		VisualState = UnitVisualState.Live;
+		Visible = true;
+		ApplyVisualState();
 		var target = WorldMapping.ToWorld(state.Position);
 		_poseTween = CreateTween();
 		_poseTween.TweenProperty(this, "position", target, duration)
@@ -90,10 +120,12 @@ public partial class UnitView : Node3D
 	public void AnimatePoseTo(State state, double duration)
 	{
 		_poseTween?.Kill();
-		Visible = state.IsAlive;
 		if (!state.IsAlive)
 			return;
 
+		VisualState = UnitVisualState.Live;
+		Visible = true;
+		ApplyVisualState();
 		var startPosition = Position;
 		var targetPosition = WorldMapping.ToWorld(state.Position);
 		var startRotation = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
@@ -123,10 +155,12 @@ public partial class UnitView : Node3D
 	public void AnimateOrientationTo(State state, double duration)
 	{
 		_poseTween?.Kill();
-		Visible = state.IsAlive;
 		if (!state.IsAlive)
 			return;
 
+		VisualState = UnitVisualState.Live;
+		Visible = true;
+		ApplyVisualState();
 		var startQuat = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
 		var endQuat = NormalizeRotationQuaternion(BasisFrom(state).GetRotationQuaternion());
 		_poseTween = CreateTween();
@@ -212,12 +246,8 @@ public partial class UnitView : Node3D
 			scale);
 	}
 
-	/// <summary>Apply post-hit state while keeping the mesh visible for the flash window.</summary>
-	public void ShowImpactState(State state)
-	{
-		Visible = true;
-		ApplyPose(state);
-	}
+	/// <summary>Shows a simulation-dead unit only until its replay death animation finishes.</summary>
+	public void ShowPendingDeath(State state) => Present(state, UnitVisualState.PendingDeath);
 
 	public void SetHitMarked(bool marked)
 	{

@@ -4,8 +4,7 @@ using GrimSpace.Battle.Units;
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 /// <summary>
-/// Owns unit views and applies backend <see cref="State"/> snapshots via in-place <see cref="UnitView.Sync"/>.
-/// Shared by planning preview and turn playback.
+/// Owns authoritative unit views. Replay-only visual states are driven by the replay player.
 /// </summary>
 public partial class BattleView : Node3D
 {
@@ -40,13 +39,12 @@ public partial class BattleView : Node3D
 
 	public void ApplyUnitStates(
 		IReadOnlyDictionary<string, State> states,
-		Func<string, Color>? colorFor = null,
-		bool showPredictedDeath = false)
+		Func<string, Color>? colorFor = null)
 	{
 		var keep = new HashSet<string>(states.Count);
 		foreach (var (unitId, state) in states)
 		{
-			if (!ShouldRetain(state, showPredictedDeath))
+			if (!ShouldRetain(state))
 			{
 				Remove(unitId);
 				continue;
@@ -59,13 +57,8 @@ public partial class BattleView : Node3D
 				view = _unitViews[unitId];
 			}
 
-			if (state.IsAlive)
-			{
-				view.Sync(state);
-				view.SetHitMarked(false);
-			}
-			else
-				view.ShowImpactState(state);
+			view.Sync(state);
+			view.SetHitMarked(false);
 		}
 
 		if (keep.Count == _unitViews.Count)
@@ -75,8 +68,7 @@ public partial class BattleView : Node3D
 			Remove(id);
 	}
 
-	internal static bool ShouldRetain(State state, bool showPredictedDeath) =>
-		state.IsAlive || showPredictedDeath;
+	internal static bool ShouldRetain(State state) => state.IsAlive;
 
 	public void ApplyHitMarks(IReadOnlySet<string> threatenedUnitIds)
 	{

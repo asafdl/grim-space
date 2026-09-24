@@ -43,7 +43,7 @@ public sealed partial class MoveGhostView : Node3D
 		if (state is null)
 		{
 			if (_view is not null)
-				_view.Visible = false;
+				_view.HideVisual();
 			_orientationOverlay.Apply(null, NoHeadings, null);
 			Visible = _activePathViews.Count > 0;
 			return;
@@ -59,8 +59,9 @@ public sealed partial class MoveGhostView : Node3D
 			_selected = selected;
 		}
 
-		_view.Sync(state.ToState());
-		_view.SetGhost(selected);
+		_view.Present(
+			state.ToState(),
+			selected ? UnitVisualState.SelectedGhost : UnitVisualState.Ghost);
 		_orientationOverlay.Apply(
 			selected ? state.Position : null,
 			selected ? reachableHeadings : NoHeadings,
@@ -84,9 +85,8 @@ public sealed partial class MoveGhostView : Node3D
 				Dorsal = checkpoint.Basis.Up,
 			};
 			var view = AcquirePathView(state);
-			view.Sync(state.ToState());
+			view.Present(state.ToState(), UnitVisualState.Ghost);
 			view.Scale = Vector3.One * PathGhostScale;
-			view.Visible = true;
 			_activePathViews.Add((state.Type, view));
 		}
 	}
@@ -102,7 +102,6 @@ public sealed partial class MoveGhostView : Node3D
 			Name = "PathGhost",
 		};
 		view.Bind(state.ToState(), PassiveColor);
-		view.SetGhost(selected: false);
 		AddChild(view);
 		return view;
 	}
@@ -111,7 +110,7 @@ public sealed partial class MoveGhostView : Node3D
 	{
 		foreach (var (type, view) in _activePathViews)
 		{
-			view.Visible = false;
+			view.HideVisual();
 			if (!_freePathViews.TryGetValue(type, out var free))
 			{
 				free = [];
