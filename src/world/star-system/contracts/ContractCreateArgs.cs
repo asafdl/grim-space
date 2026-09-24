@@ -1,4 +1,5 @@
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
@@ -20,3 +21,11 @@ public sealed record DeliveryCreateArgs(
 	string? DropoffPoiId = null,
 	string? DropoffFacilityId = null,
 	string? DropoffOperatorName = null) : ContractCreateArgs;
+
+public sealed record WreckageCreateArgs(
+	string IssuerPoiId,
+	AreaPickerArgs SearchAreaPicker,
+	WreckageOutcome Outcome,
+	ContractTerms Terms,
+	ContractNarrative Narrative,
+	bool IsStoryObjective) : ContractCreateArgs;

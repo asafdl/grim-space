@@ -69,6 +69,9 @@ public sealed class ContractNarrativePicker
 				"Supply Run",
 				"Take this package to the marked facility. The recipient knows what it is. We have made a deliberate choice not to.",
 				"Put it down gently. No, not there. There. No—fine. Payment is already someone else's problem."),
+			EContractKind.Wreckage => new ContractNarrative(
+				"Derelict Survey",
+				"Scanners flagged wreckage in open space. Find it, inspect it, and file whatever report you can justify."),
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 

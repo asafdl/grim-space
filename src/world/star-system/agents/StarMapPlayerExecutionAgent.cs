@@ -2,6 +2,8 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Presentation.Diagnostics;
 using GrimSpace.World.StarSystem.Runtime;
@@ -75,6 +77,58 @@ public sealed class StarMapPlayerExecutionAgent
 			anchorWorld,
 			_runtimeFor(_actorId).CachedPath,
 			0f);
+		var result = _pathfinder.FindPath(origin, destination);
+		if (result is not PathfindingResult.Found found)
+		{
+			StarMapPresentationDiagnostics.LogMoveQueueFailed("no_path", destination, this);
+			return new CourseCommandResult.Unreachable();
+		}
+
+		if (TryEnqueue([new MoveAction(_actorId, _actorId, destination, found.Path)]))
+		{
+			StarMapPresentationDiagnostics.LogCourseQueued("move", destination, this);
+			return new CourseCommandResult.Queued(found.Path);
+		}
+
+		return new CourseCommandResult.Unreachable();
+	}
+
+	public CourseCommandResult TryQueueInvestigateWreckage(string contractId)
+	{
+		if (_committed || !_canWork || _actorId is null)
+		{
+			StarMapPresentationDiagnostics.LogMoveQueueFailed(
+				ActionLegalityDiagnostics.DescribeAgentBlocked(this),
+				null,
+				this);
+			return new CourseCommandResult.Unreachable();
+		}
+
+		var anchorWorld = _anchorWorld();
+		var runtime = _runtimeFor(_actorId);
+		var investigate = new InvestigateWreckageAction(_actorId, contractId);
+		if (InvestigateWreckageDef.Instance.IsLegal(investigate, anchorWorld, runtime))
+		{
+			if (TryEnqueue([investigate]))
+			{
+				StarMapPresentationDiagnostics.LogActionQueued(investigate, this);
+				var committed = _committedPositionOf(_actorId);
+				return new CourseCommandResult.Queued(
+					TransitPath.FromPoints([committed], [1.0]));
+			}
+
+			return new CourseCommandResult.Unreachable();
+		}
+
+		if (!anchorWorld.ContractRegistry.TryGet(contractId, out var contract)
+			|| contract.Objective is not WreckageObjective wreckage)
+		{
+			StarMapPresentationDiagnostics.LogMoveQueueFailed("invalid_wreckage_contract", null, this);
+			return new CourseCommandResult.Unreachable();
+		}
+
+		var destination = wreckage.Position;
+		var origin = _committedPositionOf(_actorId);
 		var result = _pathfinder.FindPath(origin, destination);
 		if (result is not PathfindingResult.Found found)
 		{

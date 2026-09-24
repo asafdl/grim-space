@@ -50,6 +50,7 @@ public static class ContractDisplay
 		{
 			HuntObjective hunt => FormatHuntObjective(hunt),
 			DeliveryObjective delivery => FormatDeliveryObjective(contract, delivery, map),
+			WreckageObjective => "Locate the derelict and investigate it.",
 			_ => "—",
 		};
 
@@ -58,6 +59,8 @@ public static class ContractDisplay
 		{
 			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
 				FormatSearchAreaIntel(hunt.SpawnGroups[0].SearchArea.Intel, map),
+			WreckageObjective wreckage =>
+				FormatSearchAreaIntel(wreckage.SearchArea.Intel, map),
 			DeliveryObjective delivery => FormatDeliveryRoute(contract, delivery, map),
 			_ => "—",
 		};

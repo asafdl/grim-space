@@ -34,7 +34,7 @@ public sealed class TurnInDeliveryDef
 		&& world.ContractRegistry.TryGetState(turnIn.ContractId, out var state)
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == turnIn.ActorId
-		&& !state.DeliveryTurnedIn
+		&& !ContractFactory.IsDeliveryObjectiveMet(turnIn.ContractId, world, turnIn.ActorId)
 		&& contract.Objective is DeliveryObjective delivery
 		&& delivery.TurnInPoiId == turnIn.PoiId
 		&& delivery.TurnInFacilityId == turnIn.FacilityId
@@ -49,6 +49,6 @@ public sealed class TurnInDeliveryDef
 		if (!IsLegal(turnIn, world, runtime))
 			return [];
 
-		return [new SetDeliveryTurnedInEffect(turnIn.ContractId)];
+		return [new RecordDeliveryTurnedInEffect(turnIn.ContractId)];
 	}
 }

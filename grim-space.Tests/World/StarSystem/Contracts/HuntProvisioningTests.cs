@@ -75,7 +75,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void AcceptHunt_UsesCompositionDeclaredBySpawnSpec()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var searchArea = CreateSyntheticSearchArea(map);
+		var searchArea = CreateSyntheticSearchArea(map, 1);
 		var spawnSpec = new FleetSpawnSpec(
 			EType.PirateFleet,
 			EFaction.Pirates,
@@ -102,11 +102,12 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	public void AcceptMultiGroupMultiCount_ProvisionsExpectedFleetTotal()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var searchArea = CreateSyntheticSearchArea(map);
+		var searchAreaAlpha = CreateSyntheticSearchArea(map, 2);
+		var searchAreaBeta = CreateSyntheticSearchArea(map, 1);
 		var objective = new HuntObjective(
 		[
-			new SpawnEncounterGroup("alpha", searchArea, 2, CreateSpawnSpec(map.Seed, "alpha")),
-			new SpawnEncounterGroup("beta", searchArea, 1, CreateSpawnSpec(map.Seed, "beta")),
+			new SpawnEncounterGroup("alpha", searchAreaAlpha, 2, CreateSpawnSpec(map.Seed, "alpha")),
+			new SpawnEncounterGroup("beta", searchAreaBeta, 1, CreateSpawnSpec(map.Seed, "beta")),
 		]);
 		RegisterSyntheticContract(map, "multi-hunt", objective);
 
@@ -133,13 +134,11 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var first = ContractFleetPlacement.Plan(
 			hunt.SpawnGroups,
 			contract.Id,
-			map.Seed,
 			map,
 			map.FleetRegistry);
 		var second = ContractFleetPlacement.Plan(
 			hunt.SpawnGroups,
 			contract.Id,
-			map.Seed,
 			map,
 			map.FleetRegistry);
 
@@ -161,20 +160,22 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void SpawnBindingsMatchGroups()
+	public void AcceptedSpawnIdsMatchObjectiveGroups()
 	{
 		var (engine, unitId, contractId) = CreateEngineAtIssuerDock(42);
 		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 
 		var contract = engine.World.ContractRegistry.All.First(c => c.Id == contractId);
 		var hunt = (HuntObjective)contract.Objective;
-		Assert.True(engine.World.ContractRegistry.TryGetState(contractId, out var state));
+		Assert.True(engine.World.ContractRegistry.TryGetState(contractId, out _));
 
-		Assert.Equal(hunt.SpawnGroups.Count, state.SpawnBindings.Count);
 		foreach (var group in hunt.SpawnGroups)
 		{
-			Assert.True(state.SpawnBindings.TryGetValue(group.GroupId, out var unitIds));
-			Assert.Equal(group.RequiredCount, unitIds.Count);
+			for (var index = 0; index < group.RequiredCount; index++)
+			{
+				var spawnUnitId = $"{contractId}.{group.GroupId}.{index}";
+				Assert.True(engine.World.FleetRegistry.Contains(spawnUnitId));
+			}
 		}
 	}
 
@@ -244,23 +245,25 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialBeatContracts.BeatAHuntRewardCredits)),
-			ContractNarrative.ForHunt("Synthetic Hunt"));
+			ContractNarrative.ForHunt("Synthetic Hunt"),
+			ContractFactory.IsHuntObjectiveMet);
 		Assert.True(map.ContractRegistry.TryAdd(contract));
 	}
 
-	private static AreaPick CreateSyntheticSearchArea(StarMap map)
+	private static AreaPick CreateSyntheticSearchArea(StarMap map, int spawnCount)
 	{
 		var center = new Coord(map.Width / 2, 0, map.Height / 2);
 		var plan = map.Blueprint.SupplyPlan;
+		var spawnPoints = Enumerable.Range(0, spawnCount)
+			.Select(index => center + new Coord(index, 0, 0))
+			.ToArray();
 		return new AreaPick(
-			center,
-			48,
 			new AreaIntel(
 				"Somewhere in the area between {A} and {B}.",
 				plan.RefineryPoiId,
 				plan.StoragePoiId,
 				plan.ExtractionPoiId),
-			default!);
+			spawnPoints);
 	}
 
 	private static FleetSpawnSpec CreateSpawnSpec(int mapSeed, string groupId) =>

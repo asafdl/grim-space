@@ -4,6 +4,7 @@ using GrimSpace.Math;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Ids;
@@ -95,20 +96,8 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 
 		var contractId = ContractIdFor(map, tick, slot);
 		var profile = _difficulty.Get(map, tick);
-		var contract = decision.Kind switch
-		{
-			EContractKind.Hunt => ContractFactory.Build(
-				map,
-				contractId,
-				EContractKind.Hunt,
-				BuildHuntArgs(map, decision.IssuerPoiId, profile, tick, slot)),
-			EContractKind.Delivery => ContractFactory.Build(
-				map,
-				contractId,
-				EContractKind.Delivery,
-				BuildDeliveryArgs(map, decision.IssuerPoiId, profile, tick, slot)),
-			_ => throw new ArgumentOutOfRangeException(nameof(decision.Kind), decision.Kind, null),
-		};
+		if (!TryBuildContract(map, contractId, decision, profile, tick, slot, out var contract))
+			return false;
 
 		addition = new ContractAddition(contract, tick + _config.TtlTicks);
 		return true;
@@ -133,6 +122,43 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 
 	private static string ContractIdFor(StarMap map, int tick, int slot) =>
 		$"contract-gen-{StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("contract-id").Value:x}";
+
+	private bool TryBuildContract(
+		StarMap map,
+		string contractId,
+		ContractPlacement.Decision decision,
+		ContractDifficultyProfile profile,
+		int tick,
+		int slot,
+		out Contract contract)
+	{
+		contract = null!;
+		switch (decision.Kind)
+		{
+			case EContractKind.Hunt:
+				contract = ContractFactory.Build(
+					map,
+					contractId,
+					EContractKind.Hunt,
+					BuildHuntArgs(map, decision.IssuerPoiId, profile, tick, slot));
+				return true;
+			case EContractKind.Delivery:
+				contract = ContractFactory.Build(
+					map,
+					contractId,
+					EContractKind.Delivery,
+					BuildDeliveryArgs(map, decision.IssuerPoiId, profile, tick, slot));
+				return true;
+			case EContractKind.Wreckage:
+				return ContractFactory.TryBuildWreckage(
+					map,
+					contractId,
+					BuildWreckageArgs(map, decision.IssuerPoiId, profile, tick, slot, contractId),
+					out contract);
+			default:
+				throw new ArgumentOutOfRangeException(nameof(decision.Kind), decision.Kind, null);
+		}
+	}
 
 	private HuntCreateArgs BuildHuntArgs(
 		StarMap map,
@@ -167,5 +193,69 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, profile.DeliveryRewardCredits)),
 			narrative,
 			IsStoryObjective: false);
+	}
+
+	private WreckageCreateArgs BuildWreckageArgs(
+		StarMap map,
+		string issuerPoiId,
+		ContractDifficultyProfile profile,
+		int tick,
+		int slot,
+		string contractId)
+	{
+		var navLandmarkIds = map.NavigationLandmarks
+			.Select(landmark => landmark.Id)
+			.OrderBy(id => id, StringComparer.Ordinal)
+			.ToArray();
+		var areaPickMix = (long)StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("wreckage-area").Value;
+		var modeRandom = new StableRandom(
+			StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("wreckage-area-mode").Value);
+		var referenceMode = modeRandom.NextDouble() < profile.WreckageBorderReferenceWeight
+			? EAreaPickerReferenceMode.LandmarkWithBorderTriangle
+			: EAreaPickerReferenceMode.TriangulateLandmarks;
+		var narrative = _narrativePicker.Pick(map, issuerPoiId, EContractKind.Wreckage, tick, slot);
+		var outcome = RollWreckageOutcome(map, profile, tick, slot, contractId);
+
+		return new WreckageCreateArgs(
+			issuerPoiId,
+			new AreaPickerArgs(
+				navLandmarkIds,
+				profile.WreckageMinimumPoiClearance,
+				DeterministicPickMix: areaPickMix,
+				ReferenceMode: referenceMode,
+				BorderReferenceConfig: new AreaBorderReferenceConfig()),
+			outcome,
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, profile.WreckageRewardCredits)),
+			narrative,
+			IsStoryObjective: false);
+	}
+
+	private static WreckageOutcome RollWreckageOutcome(
+		StarMap map,
+		ContractDifficultyProfile profile,
+		int tick,
+		int slot,
+		string contractId)
+	{
+		var random = new StableRandom(
+			StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("wreckage-outcome").Value);
+		if (random.NextDouble() < profile.WreckageSalvageWeight)
+		{
+			return new WreckageOutcome.Salvage(
+				ResourceBundle.Of(ResourceId.ScrapAlloy, profile.WreckageSalvageScrapAlloy));
+		}
+
+		var encounter = profile.HuntEncounter;
+		var ambushSeed = unchecked((int)StableSeedMixer.From(map.Seed)
+			.Add(contractId)
+			.Add("wreckage-ambush")
+			.Value);
+		return new WreckageOutcome.Ambush(
+			new FleetSpawnSpec(
+				encounter.FleetType,
+				encounter.Faction,
+				encounter.Danger,
+				ambushSeed,
+				encounter.MemberTypes));
 	}
 }

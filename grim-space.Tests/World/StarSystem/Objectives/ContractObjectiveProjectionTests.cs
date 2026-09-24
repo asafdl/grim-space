@@ -12,6 +12,7 @@ using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Contracts;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Objectives;
@@ -53,7 +54,27 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
 		var plain = Assert.IsType<ObjectiveSummaryContent.Plain>(objective.Summary);
-		Assert.Equal(ContractDisplay.ObjectivePreview(contract, map), plain.Text);
+		Assert.Equal("Search the indicated sector.", plain.Text);
+	}
+
+	[Fact]
+	public void Project_WreckageContract_ResolvesNavLandmarkSummary()
+	{
+		var map = maps.Fresh(91);
+		Assert.True(ContractFactory.TryBuildWreckage(
+			map,
+			"contract-wreckage-projection",
+			WreckageContractFactoryTests.CreateWreckageArgs(map, tick: 2, slot: 1),
+			out var contract));
+
+		var objective = ContractObjectiveProjection.Project(map, contract);
+		Assert.False(objective.Summary is ObjectiveSummaryContent.Plain);
+		var wreckage = (WreckageObjective)contract.Objective;
+		Assert.Equal(
+			ContractDisplay.SearchArea(contract, map),
+			AreaIntelDisplay.FormatPlain(
+				wreckage.SearchArea.Intel,
+				id => AreaBorderAnchor.TryGetDisplayName(id) ?? MapLandmarkQueries.GetDisplayName(map, id)));
 	}
 
 	[Fact]
@@ -76,7 +97,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 
 	private static void AssertIntelLandmarksOrderedByProximity(StarMap map, AreaPick searchArea)
 	{
-		var center = searchArea.Center;
+		var anchor = searchArea.SpawnPoints[0];
 		var intel = searchArea.Intel;
 		var ids = new[] { intel.LandmarkAId, intel.LandmarkBId, intel.LandmarkCId };
 		MapLandmarkQueries.TryGet(map, ids[0], out var a);
@@ -85,17 +106,18 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 
 		var distances = new[]
 		{
-			RouteGeometry.Distance(center, a.Position),
-			RouteGeometry.Distance(center, b.Position),
-			RouteGeometry.Distance(center, c.Position),
+			RouteGeometry.Distance(anchor, a.Position),
+			RouteGeometry.Distance(anchor, b.Position),
+			RouteGeometry.Distance(anchor, c.Position),
 		};
 
 		Assert.True(distances[0] <= distances[1]);
 		Assert.True(distances[1] <= distances[2]);
 	}
 
-	private static Contract CreateContract(StarMap map, AreaIntel intel, AreaRelation relation)
+	private static Contract CreateContract(StarMap map, AreaIntel intel, AreaRelation? relation)
 	{
+		_ = relation;
 		var plan = map.Blueprint.SupplyPlan;
 		return new Contract(
 			"contract-test",
@@ -103,7 +125,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 			[
 				new SpawnEncounterGroup(
 					"group-test",
-					new AreaPick(new Coord(4, 0, 4), 12, intel, relation),
+					new AreaPick(intel, [new Coord(4, 0, 4)]),
 					1,
 					new FleetSpawnSpec(
 						EType.PirateFleet,
@@ -115,6 +137,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),
-			ContractNarrative.ForHunt("Synthetic Hunt"));
+			ContractNarrative.ForHunt("Synthetic Hunt"),
+			ContractFactory.IsHuntObjectiveMet);
 	}
 }

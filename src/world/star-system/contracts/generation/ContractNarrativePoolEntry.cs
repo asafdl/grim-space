@@ -18,6 +18,7 @@ public sealed record ContractNarrativePoolEntry(
 		{
 			EContractKind.Hunt => new ContractNarrative(Title, Briefing),
 			EContractKind.Delivery => ContractNarrative.ForDelivery(Title, Briefing, TurnInDialog),
+			EContractKind.Wreckage => new ContractNarrative(Title, Briefing),
 			_ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, null),
 		};
 }

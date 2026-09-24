@@ -32,8 +32,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly Queue<IAction> _reactionQueue = [];
 	private bool _contractGenerationEnabled = true;
 	private readonly IDisposable _storyObjectiveSubscription;
-	private readonly IDisposable _contractFulfillmentSubscription;
+	private readonly IDisposable _engagementResolvedSubscription;
 	private readonly IDisposable _deliveryTurnInSubscription;
+	private readonly IDisposable _wreckageInvestigationSubscription;
 	private readonly IDisposable _resourceTransactionSubscription;
 	private ESimMode _simMode = (ESimMode)(-1);
 	private bool _resolvingInputAction;
@@ -53,10 +54,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_trafficAgents = trafficAgents;
 		_contractBoardAgent = contractBoardAgent;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
-		_contractFulfillmentSubscription =
-			_engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
-		_deliveryTurnInSubscription =
-			_engine.Subscribe<TurnInDeliveryAction>(OnDeliveryTurnedIn);
+		_engagementResolvedSubscription = _engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
+		_deliveryTurnInSubscription = _engine.Subscribe<TurnInDeliveryAction>(OnDeliveryTurnedIn);
+		_wreckageInvestigationSubscription = _engine.Subscribe<InvestigateWreckageAction>(OnWreckageInvestigated);
 		_resourceTransactionSubscription =
 			_engine.Subscribe<Record<Transaction>>(record => ResourceTransactionCommitted?.Invoke(record.Value));
 	}
@@ -431,17 +431,26 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void OnEngagementResolved(ResolveEngagementAction resolved)
 	{
-		EnqueueContractFulfillmentReactions(resolved.InitiatorId);
+		EnqueueContractCompletions(resolved.InitiatorId, EContractKind.Hunt);
 	}
 
 	private void OnDeliveryTurnedIn(TurnInDeliveryAction turnedIn)
 	{
-		EnqueueContractFulfillmentReactions(turnedIn.ActorId);
+		EnqueueContractCompletions(turnedIn.ActorId, EContractKind.Delivery);
 	}
 
-	private void EnqueueContractFulfillmentReactions(string actorId)
+	private void OnWreckageInvestigated(InvestigateWreckageAction investigated)
 	{
-		foreach (var reaction in ContractFulfillment.ReactionsFor(Map, actorId))
+		EnqueueContractCompletions(investigated.ActorId, EContractKind.Wreckage);
+	}
+
+	private void EnqueueContractCompletions(string actorId, EContractKind? kind = null)
+	{
+		foreach (var reaction in ContractReevaluation.ReevaluateFor(
+			Map,
+			_engine.ActorRuntimes.For(actorId),
+			actorId,
+			kind))
 		{
 			if (!_reactionQueue.Contains(reaction))
 				_reactionQueue.Enqueue(reaction);
@@ -470,8 +479,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public void Dispose()
 	{
 		_storyObjectiveSubscription.Dispose();
-		_contractFulfillmentSubscription.Dispose();
+		_engagementResolvedSubscription.Dispose();
 		_deliveryTurnInSubscription.Dispose();
+		_wreckageInvestigationSubscription.Dispose();
 		_resourceTransactionSubscription.Dispose();
 		_engine.Dispose();
 	}

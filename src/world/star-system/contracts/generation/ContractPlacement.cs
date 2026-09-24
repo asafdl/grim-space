@@ -63,23 +63,38 @@ public sealed class ContractPlacement
 
 	private EContractKind PickKind(StarMap map, string issuerPoiId, StableRandom random)
 	{
-		var (huntCount, deliveryCount) = CountPendingKindsAtIssuer(map, issuerPoiId);
+		var (huntCount, deliveryCount, wreckageCount) = CountPendingKindsAtIssuer(map, issuerPoiId);
 		var huntWeight = _config.HuntKindWeight;
 		var deliveryWeight = _config.DeliveryKindWeight;
+		var wreckageWeight = _config.WreckageKindWeight;
 
-		if (huntCount > 0 && deliveryCount == 0)
+		if (huntCount > 0 && deliveryCount == 0 && wreckageCount == 0)
 		{
 			huntWeight *= 0.5f;
 			deliveryWeight *= 2f;
+			wreckageWeight *= 2f;
 		}
-		else if (deliveryCount > 0 && huntCount == 0)
+		else if (deliveryCount > 0 && huntCount == 0 && wreckageCount == 0)
 		{
 			huntWeight *= 2f;
 			deliveryWeight *= 0.5f;
+			wreckageWeight *= 2f;
+		}
+		else if (wreckageCount > 0 && huntCount == 0 && deliveryCount == 0)
+		{
+			huntWeight *= 2f;
+			deliveryWeight *= 2f;
+			wreckageWeight *= 0.5f;
 		}
 
-		var weights = new[] { huntWeight, deliveryWeight };
-		return PickWeightedIndex(weights, random) == 0 ? EContractKind.Hunt : EContractKind.Delivery;
+		return PickWeightedIndex(
+			[huntWeight, deliveryWeight, wreckageWeight],
+			random) switch
+		{
+			0 => EContractKind.Hunt,
+			1 => EContractKind.Delivery,
+			_ => EContractKind.Wreckage,
+		};
 	}
 
 	private static Dictionary<string, int> CountPendingByIssuer(StarMap map)
@@ -97,22 +112,33 @@ public sealed class ContractPlacement
 		return counts;
 	}
 
-	private static (int HuntCount, int DeliveryCount) CountPendingKindsAtIssuer(StarMap map, string issuerPoiId)
+	private static (int HuntCount, int DeliveryCount, int WreckageCount) CountPendingKindsAtIssuer(
+		StarMap map,
+		string issuerPoiId)
 	{
 		var huntCount = 0;
 		var deliveryCount = 0;
+		var wreckageCount = 0;
 		foreach (var contract in map.ContractRegistry.Pending)
 		{
 			if (!string.Equals(contract.IssuerPoiId, issuerPoiId, StringComparison.Ordinal))
 				continue;
 
-			if (contract.Objective is HuntObjective)
-				huntCount++;
-			else if (contract.Objective is DeliveryObjective)
-				deliveryCount++;
+			switch (contract.Objective)
+			{
+				case HuntObjective:
+					huntCount++;
+					break;
+				case DeliveryObjective:
+					deliveryCount++;
+					break;
+				case WreckageObjective:
+					wreckageCount++;
+					break;
+			}
 		}
 
-		return (huntCount, deliveryCount);
+		return (huntCount, deliveryCount, wreckageCount);
 	}
 
 	private static StableRandom CreateRandom(int mapSeed, int tick, int slotIndex) =>

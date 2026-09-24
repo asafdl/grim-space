@@ -27,7 +27,10 @@ public static class TutorialBeatContracts
 				.First(contract => contract.IsStoryObjective && contract.Objective is HuntObjective)
 				.Id;
 
-		var contract = ContractFactory.Create(map, EContractKind.Hunt, CreateBeatAHuntArgs(map));
+		var contractId = BeatAContractId(map.Seed);
+		var contract = ContractFactory.Build(map, contractId, EContractKind.Hunt, CreateBeatAHuntArgs(map));
+		if (!map.ContractRegistry.TryAdd(contract))
+			throw new InvalidOperationException($"Failed to add tutorial hunt contract '{contractId}'.");
 		return contract.Id;
 	}
 
@@ -36,7 +39,7 @@ public static class TutorialBeatContracts
 		var plan = map.Blueprint.SupplyPlan;
 		return new HuntCreateArgs(
 			plan.AdministrativePoiId,
-			new AreaPickerArgs(plan.OperationalPoiIds),
+			new AreaPickerArgs(plan.OperationalPoiIds, DeterministicPickMix: map.Seed),
 			new HuntEncounterArgs(
 				FleetType.PirateFleet,
 				EFaction.Pirates,
@@ -79,7 +82,14 @@ public static class TutorialBeatContracts
 	{
 		ArgumentNullException.ThrowIfNull(map);
 
-		var contract = ContractFactory.Create(map, EContractKind.Delivery, CreateBeatBDeliveryArgs(map));
+		var contractId = BeatBContractId(map.Seed);
+		var contract = ContractFactory.Build(map, contractId, EContractKind.Delivery, CreateBeatBDeliveryArgs(map));
+		if (!map.ContractRegistry.TryAdd(contract))
+			throw new InvalidOperationException($"Failed to add tutorial delivery contract '{contractId}'.");
 		return contract.Id;
 	}
+
+	private static string BeatAContractId(int mapSeed) => $"tutorial-beat-a-hunt-{mapSeed}";
+
+	private static string BeatBContractId(int mapSeed) => $"tutorial-beat-b-delivery-{mapSeed}";
 }

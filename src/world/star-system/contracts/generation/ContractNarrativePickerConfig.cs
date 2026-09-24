@@ -136,5 +136,18 @@ public sealed class ContractNarrativePickerConfig
 			"Nutritional Equipment",
 			"The manifest says nutritional equipment. The package is warm and occasionally sighs. No refunds.",
 			"Still warm? Excellent. It hates being cold."),
+
+		new(
+			EContractKind.Wreckage,
+			"Derelict Survey",
+			"Navigation markers triangulate a debris field. Someone wants it catalogued before scavengers strip it."),
+		new(
+			EContractKind.Wreckage,
+			"Lost Registration",
+			"A hull fragment is broadcasting a stale beacon. Recover whatever identity data still exists."),
+		new(
+			EContractKind.Wreckage,
+			"Insurance Claim",
+			"Underwriters need eyes on a wreck before they pay out. Do not mention that we already know it is empty."),
 	];
 }

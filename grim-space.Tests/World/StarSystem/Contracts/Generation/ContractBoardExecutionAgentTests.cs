@@ -6,6 +6,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
@@ -106,6 +107,28 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		Assert.Equal(
 			first.Additions.Select(addition => addition.Contract.Id),
 			second.Additions.Select(addition => addition.Contract.Id));
+	}
+
+	[Fact]
+	public void Plan_WreckageOnlyWeight_CanProduceWreckageContracts()
+	{
+		var map = maps.Fresh(55);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig
+			{
+				TargetGeneratedCount = 6,
+				HuntKindWeight = 0f,
+				DeliveryKindWeight = 0f,
+				WreckageKindWeight = 1f,
+			},
+		};
+		var action = PlanAtTick(map, tick: 1, generationEnabled: true, config);
+		Assert.NotNull(action);
+		Assert.Contains(
+			action.Additions,
+			addition => addition.Contract.Objective is WreckageObjective);
 	}
 
 	[Fact]

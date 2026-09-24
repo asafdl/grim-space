@@ -29,6 +29,7 @@ public partial class MapController : Node3D
 
 	private MapView _view = null!;
 	private NavigationLandmarksView _landmarks = null!;
+	private WreckageView _wreckage = null!;
 	private RoutesView _routes = null!;
 	private UnitsView _units = null!;
 	private CourseView _course = null!;
@@ -66,6 +67,7 @@ public partial class MapController : Node3D
 	{
 		_view = GetNode<MapView>("MapView");
 		_landmarks = GetNode<NavigationLandmarksView>("NavigationLandmarksView");
+		_wreckage = GetNode<WreckageView>("WreckageView");
 		_routes = GetNode<RoutesView>("RoutesView");
 		_units = GetNode<UnitsView>("UnitsView");
 		_course = GetNode<CourseView>("CourseView");
@@ -114,7 +116,8 @@ public partial class MapController : Node3D
 			{
 				var tickFraction = _tickAccumulator / SecondsPerTick;
 				return _units.UnitAt(_orchestrator, point, tickFraction, IsPlayerFleetVisible)?.UnitId;
-			});
+			},
+			point => _wreckage.WreckContractAt(point, _orchestrator.Map));
 		_pauseButton.Pressed += () => _orchestrator.TogglePause();
 		_stepButton.Pressed += () =>
 		{
@@ -266,6 +269,7 @@ public partial class MapController : Node3D
 
 		RefreshPlayerVisibleFleets(0f);
 		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible);
+		_wreckage.Sync(_orchestrator.Map);
 	}
 
 	public override void _Process(double delta)
@@ -281,6 +285,7 @@ public partial class MapController : Node3D
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		RefreshPlayerVisibleFleets(tickFraction);
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible);
+		_wreckage.Sync(_orchestrator.Map);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
@@ -298,7 +303,10 @@ public partial class MapController : Node3D
 		var unitHover = point is { } unitPoint
 			? _units.UnitAt(_orchestrator, unitPoint, tickFraction, IsPlayerFleetVisible)
 			: null;
-		var landmarkId = unitHover is null && point is { } landmarkPoint
+		var wreckContractId = unitHover is null && point is { } wreckPoint
+			? _wreckage.WreckContractAt(wreckPoint, world)
+			: null;
+		var landmarkId = unitHover is null && wreckContractId is null && point is { } landmarkPoint
 			? _landmarks.LandmarkAt(landmarkPoint)
 			: null;
 		var dockHover = unitHover is null && landmarkId is null && point is { } dockPoint
@@ -307,9 +315,10 @@ public partial class MapController : Node3D
 		var poiId = dockHover is null && unitHover is null && landmarkId is null && point is { } pick
 			? _view.PoiAt(pick)
 			: null;
+		_wreckage.SetHovered(wreckContractId);
 		_landmarks.SetHovered(landmarkId);
 		_view.SetHovered(poiId);
-		UpdateTooltip(world, poiId, landmarkId, dockHover, unitHover, screen);
+		UpdateTooltip(world, poiId, landmarkId, dockHover, unitHover, wreckContractId, screen);
 	}
 
 	public override void _ExitTree()
@@ -614,11 +623,20 @@ public partial class MapController : Node3D
 		string? landmarkId,
 		MapView.DockHoverInfo? dockHover,
 		UnitsView.UnitHoverInfo? unitHover,
+		string? wreckContractId,
 		Vector2 screen)
 	{
 		if (unitHover is not null)
 		{
 			_tooltip.Text = $"{unitHover.Type} ({unitHover.UnitId})";
+			_tooltip.Visible = true;
+			_tooltip.Position = screen + new Vector2(14, 18);
+			return;
+		}
+
+		if (wreckContractId is not null)
+		{
+			_tooltip.Text = _wreckage.TooltipFor(wreckContractId);
 			_tooltip.Visible = true;
 			_tooltip.Position = screen + new Vector2(14, 18);
 			return;

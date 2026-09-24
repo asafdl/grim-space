@@ -17,6 +17,7 @@ public sealed class UserIntentTranslator
 	private readonly Func<int> _mapHeight;
 	private readonly Func<Coord, Coord>? _resolveDestination;
 	private readonly Func<Coord, string?>? _unitAt;
+	private readonly Func<Coord, string?>? _wreckContractAt;
 	private Vector2? _lmbPressPosition;
 
 	public UserIntentTranslator(
@@ -26,7 +27,8 @@ public sealed class UserIntentTranslator
 		Func<int> mapWidth,
 		Func<int> mapHeight,
 		Func<Coord, Coord>? resolveDestination = null,
-		Func<Coord, string?>? unitAt = null)
+		Func<Coord, string?>? unitAt = null,
+		Func<Coord, string?>? wreckContractAt = null)
 	{
 		_playerAgent = playerAgent;
 		_camera = camera;
@@ -35,6 +37,7 @@ public sealed class UserIntentTranslator
 		_mapHeight = mapHeight;
 		_resolveDestination = resolveDestination;
 		_unitAt = unitAt;
+		_wreckContractAt = wreckContractAt;
 	}
 
 	public bool TryHandleMouseButton(InputEventMouseButton mouseButton, out bool unreachable)
@@ -72,6 +75,9 @@ public sealed class UserIntentTranslator
 
 		if (_unitAt?.Invoke(destination.Value) is { } targetUnitId)
 			return _playerAgent.TryQueueHuntUnit(targetUnitId);
+
+		if (_wreckContractAt?.Invoke(destination.Value) is { } wreckContractId)
+			return _playerAgent.TryQueueInvestigateWreckage(wreckContractId);
 
 		var resolved = _resolveDestination?.Invoke(destination.Value) ?? destination.Value;
 		return _playerAgent.TryQueueMove(resolved);

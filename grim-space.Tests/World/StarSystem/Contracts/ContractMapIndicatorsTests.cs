@@ -27,8 +27,7 @@ public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 			contractId,
 			EContractStatus.Rejected,
 			null,
-			null,
-			ContractState.EmptyBindings));
+			null));
 
 		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
 

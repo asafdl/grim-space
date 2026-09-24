@@ -67,8 +67,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			contractId,
 			EContractStatus.Rejected,
 			null,
-			null,
-			ContractState.EmptyBindings));
+			null));
 		var sim = engine.CreateSimulation();
 
 		Assert.False(sim.TryEnqueue(ContractActionTestContext.Accept(engine.World, unitId, contractId)));

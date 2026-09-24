@@ -1,9 +1,12 @@
+using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
@@ -53,4 +56,13 @@ internal static class ContractActionTestContext
 			ManagementFacilityId,
 			MapFacilityOperators.ContractOperatorName(map),
 			contractId);
+
+	public static void ReevaluateAndComplete(Engine<StarMap, ActorRuntime> engine, string actorId)
+	{
+		foreach (var completion in ContractReevaluation.ReevaluateFor(
+			engine.World,
+			engine.ActorRuntimes.For(actorId),
+			actorId))
+			engine.Commit(completion);
+	}
 }

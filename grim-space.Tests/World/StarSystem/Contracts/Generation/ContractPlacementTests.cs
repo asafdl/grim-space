@@ -95,15 +95,14 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 
 	private static HuntObjective SyntheticHunt(StarMap map, string groupId)
 	{
+		var center = new Coord(map.Width / 2, 0, map.Height / 2);
 		var searchArea = new AreaPick(
-			new Coord(map.Width / 2, 0, map.Height / 2),
-			32,
 			new AreaIntel(
 				"Somewhere in the area of {A}.",
 				ContractPlacementTestMaps.IssuerAId,
 				ContractPlacementTestMaps.IssuerBId,
 				ContractPlacementTestMaps.IssuerAId),
-			default!);
+			[center]);
 		return new HuntObjective(
 		[
 			new SpawnEncounterGroup(
@@ -130,5 +129,6 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 			map.ControllingFaction,
 			issuerPoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
-			ContractNarrative.ForHunt("Test"));
+			ContractNarrative.ForHunt("Test"),
+			ContractFactory.IsHuntObjectiveMet);
 }

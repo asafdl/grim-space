@@ -24,8 +24,7 @@ public sealed class TutorialGraduationTests(StarMapFixture maps)
 			beatAId,
 			EContractStatus.Completed,
 			1,
-			State.PlayerFleetUnitId,
-			ContractState.EmptyBindings));
+			State.PlayerFleetUnitId));
 		var tutorialState = new TutorialState { BeatAContractId = beatAId };
 		using var controller = new TutorialController(orchestrator, tutorialState);
 		controller.EnsureContractObservation();

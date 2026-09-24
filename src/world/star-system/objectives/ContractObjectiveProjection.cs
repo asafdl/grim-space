@@ -38,13 +38,22 @@ public static class ContractObjectiveProjection
 			&& contract.IssuerPoiId is { } issuerPoiId)
 			return BuildDeliverySummary(map, issuerPoiId, delivery);
 
-		if (contract.Objective is not HuntObjective hunt
-			|| hunt.SpawnGroups.Count == 0)
+		var searchIntel = contract.Objective switch
+		{
+			HuntObjective hunt when hunt.SpawnGroups.Count > 0 => hunt.SpawnGroups[0].SearchArea.Intel,
+			WreckageObjective wreckage => wreckage.SearchArea.Intel,
+			_ => null,
+		};
+		if (searchIntel is null)
 			return PlainOrPreview(map, contract);
 
-		var intel = hunt.SpawnGroups[0].SearchArea.Intel;
+		return BuildSearchAreaSummary(map, searchIntel);
+	}
+
+	private static ObjectiveSummaryContent BuildSearchAreaSummary(StarMap map, AreaIntel intel)
+	{
 		if (!AreaIntelDisplay.TryParseLinkableSegments(intel, out var segments))
-			return PlainOrPreview(map, contract);
+			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
 
 		return segments switch
 		{
@@ -54,7 +63,7 @@ public static class ContractObjectiveProjection
 				BuildClosestAndSecondarySummary(map, pair),
 			AreaIntelDisplay.ParsedSegments.ClosestSecondaryAndAnchor triangle =>
 				BuildTriangleSummary(map, triangle),
-			_ => PlainOrPreview(map, contract),
+			_ => new ObjectiveSummaryContent.Plain("Search the indicated sector."),
 		};
 	}
 
@@ -62,13 +71,13 @@ public static class ContractObjectiveProjection
 		StarMap map,
 		AreaIntelDisplay.ParsedSegments.ClosestOnly segments)
 	{
-		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmark))
+		if (!TryResolveLandmarkForSummary(map, segments.LandmarkAId, out var landmarkId, out var displayName))
 			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
 
 		return new ObjectiveSummaryContent.NearLandmark(
 			segments.Prefix,
-			landmark.Id,
-			landmark.DisplayName,
+			landmarkId,
+			displayName,
 			segments.Suffix);
 	}
 
@@ -76,17 +85,17 @@ public static class ContractObjectiveProjection
 		StarMap map,
 		AreaIntelDisplay.ParsedSegments.ClosestAndSecondary segments)
 	{
-		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmarkA)
-			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkBId, out var landmarkB))
+		if (!TryResolveLandmarkForSummary(map, segments.LandmarkAId, out var landmarkAId, out var landmarkAName)
+			|| !TryResolveLandmarkForSummary(map, segments.LandmarkBId, out var landmarkBId, out var landmarkBName))
 			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
 
 		return new ObjectiveSummaryContent.RouteBetweenLandmarks(
 			segments.Prefix,
-			landmarkA.Id,
-			landmarkA.DisplayName,
+			landmarkAId,
+			landmarkAName,
 			segments.Connector,
-			landmarkB.Id,
-			landmarkB.DisplayName,
+			landmarkBId,
+			landmarkBName,
 			segments.Suffix);
 	}
 
@@ -94,22 +103,45 @@ public static class ContractObjectiveProjection
 		StarMap map,
 		AreaIntelDisplay.ParsedSegments.ClosestSecondaryAndAnchor segments)
 	{
-		if (!MapLandmarkQueries.TryGet(map, segments.LandmarkAId, out var landmarkA)
-			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkBId, out var landmarkB)
-			|| !MapLandmarkQueries.TryGet(map, segments.LandmarkCId, out var landmarkC))
+		if (!TryResolveLandmarkForSummary(map, segments.LandmarkAId, out var landmarkAId, out var landmarkAName)
+			|| !TryResolveLandmarkForSummary(map, segments.LandmarkBId, out var landmarkBId, out var landmarkBName)
+			|| !TryResolveLandmarkForSummary(map, segments.LandmarkCId, out var landmarkCId, out var landmarkCName))
 			return new ObjectiveSummaryContent.Plain("Search the indicated sector.");
 
 		return new ObjectiveSummaryContent.RouteAmongLandmarks(
 			segments.Prefix,
-			landmarkA.Id,
-			landmarkA.DisplayName,
+			landmarkAId,
+			landmarkAName,
 			segments.ConnectorAB,
-			landmarkB.Id,
-			landmarkB.DisplayName,
+			landmarkBId,
+			landmarkBName,
 			segments.ConnectorBC,
-			landmarkC.Id,
-			landmarkC.DisplayName,
+			landmarkCId,
+			landmarkCName,
 			segments.Suffix);
+	}
+
+	private static bool TryResolveLandmarkForSummary(
+		StarMap map,
+		string landmarkId,
+		out string resolvedId,
+		out string displayName)
+	{
+		resolvedId = landmarkId;
+		if (AreaBorderAnchor.TryGetDisplayName(landmarkId) is { } rimName)
+		{
+			displayName = rimName;
+			return true;
+		}
+
+		if (MapLandmarkQueries.TryGet(map, landmarkId, out var landmark))
+		{
+			displayName = landmark.DisplayName;
+			return true;
+		}
+
+		displayName = "";
+		return false;
 	}
 
 	private static ObjectiveSummaryContent BuildDeliverySummary(

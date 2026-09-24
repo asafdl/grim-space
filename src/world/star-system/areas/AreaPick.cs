@@ -21,8 +21,4 @@ public abstract record AreaRelation
 		Coord BorderPointB) : AreaRelation;
 }
 
-public sealed record AreaPick(
-	Coord Center,
-	int Radius,
-	AreaIntel Intel,
-	AreaRelation Relation);
+public sealed record AreaPick(AreaIntel Intel, IReadOnlyList<Coord> SpawnPoints);

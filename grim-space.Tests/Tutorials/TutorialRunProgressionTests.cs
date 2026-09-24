@@ -95,8 +95,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			beatAId,
 			EContractStatus.Completed,
 			1,
-			State.PlayerFleetUnitId,
-			ContractState.EmptyBindings));
+			State.PlayerFleetUnitId));
 
 		using var controller = new TutorialController(
 			orchestrator,
@@ -121,8 +120,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			beatAId,
 			EContractStatus.Completed,
 			1,
-			State.PlayerFleetUnitId,
-			ContractState.EmptyBindings));
+			State.PlayerFleetUnitId));
 		using var controller = new TutorialController(
 			orchestrator,
 			new TutorialState { BeatAContractId = beatAId });
@@ -158,8 +156,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			huntId,
 			EContractStatus.Completed,
 			1,
-			State.PlayerFleetUnitId,
-			ContractState.EmptyBindings));
+			State.PlayerFleetUnitId));
 
 		TutorialBeatContracts.OfferBeatB(orchestrator.Map);
 
@@ -186,8 +183,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			beatAId,
 			EContractStatus.Completed,
 			1,
-			State.PlayerFleetUnitId,
-			ContractState.EmptyBindings));
+			State.PlayerFleetUnitId));
 		controller.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: true);
 
 		Assert.False(controller.IsActive);

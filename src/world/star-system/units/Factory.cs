@@ -1,4 +1,5 @@
 using GrimSpace.Core.Ids;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -24,7 +25,6 @@ public static class Factory
 		var planned = ContractFleetPlacement.Plan(
 			hasSpawnGroups.SpawnGroups,
 			contract.Id,
-			world.Seed,
 			world,
 			world.FleetRegistry);
 		var fleets = planned
@@ -43,14 +43,34 @@ public static class Factory
 				spawn.Spawn.MemberTypes,
 				$"{memberIdentity}-{index}"))
 			.ToArray();
-		var bindings = planned
-			.GroupBy(spawn => spawn.GroupId, StringComparer.Ordinal)
-			.ToDictionary(
-				group => group.Key,
-				group => (IReadOnlyList<string>)group.Select(spawn => spawn.UnitId).ToArray(),
-				StringComparer.Ordinal);
 
-		return new ContractFleetSpawns(fleets, bindings);
+		return new ContractFleetSpawns(fleets);
+	}
+
+	public static Fleet CreateAmbushFleet(
+		FleetSpawnSpec spec,
+		Coord coord,
+		string unitId,
+		string memberIdentity)
+	{
+		ArgumentNullException.ThrowIfNull(spec);
+		ArgumentException.ThrowIfNullOrEmpty(unitId);
+		ArgumentException.ThrowIfNullOrEmpty(memberIdentity);
+
+		return Create(
+			new Spawn(
+				unitId,
+				spec.Type,
+				"",
+				coord,
+				UnitDefaults.SpeedPerTick(spec.Type),
+				UnitDefaults.EngageRadius(spec.Type),
+				UnitDefaults.VisionRadius(spec.Type),
+				[],
+				spec.Faction,
+				new CombatProfile(spec.Danger, spec.Seed)),
+			spec.MemberTypes,
+			memberIdentity);
 	}
 
 	public static Fleet Create(Spawn spawn) => Create(spawn, Array.Empty<ShipSpawnDeclaration>());
@@ -92,10 +112,7 @@ public static class Factory
 			.ToArray();
 }
 
-public sealed record ContractFleetSpawns(
-	IReadOnlyList<Fleet> Fleets,
-	IReadOnlyDictionary<string, IReadOnlyList<string>> Bindings)
+public sealed record ContractFleetSpawns(IReadOnlyList<Fleet> Fleets)
 {
-	public static ContractFleetSpawns Empty { get; } =
-		new([], ContractState.EmptyBindings);
+	public static ContractFleetSpawns Empty { get; } = new([]);
 }

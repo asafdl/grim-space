@@ -181,10 +181,11 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 			template.IssuerFaction,
 			template.IssuerPoiId,
 			template.Terms,
-			template.Narrative);
+			template.Narrative,
+			ContractFactory.IsHuntObjectiveMet);
 
 	private static ContractState CreateRejectedState(string contractId) =>
-		new(contractId, EContractStatus.Rejected, null, null, ContractState.EmptyBindings);
+		new(contractId, EContractStatus.Rejected, null, null);
 
 	private static ContractState CreateActiveState(
 		StarMap map,
@@ -192,17 +193,10 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 		string holderUnitId,
 		int acceptedAtTick)
 	{
-		var hunt = (HuntObjective)map.ContractRegistry.All.First(contract => contract.Id == contractId).Objective;
-		var group = hunt.SpawnGroups[0];
-		var bindings = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
-		{
-			[group.GroupId] = [$"{contractId}.{group.GroupId}.0"],
-		};
 		return new ContractState(
 			contractId,
 			EContractStatus.Active,
 			acceptedAtTick,
-			holderUnitId,
-			bindings);
+			holderUnitId);
 	}
 }

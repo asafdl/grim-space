@@ -2,6 +2,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -54,16 +55,18 @@ public sealed class AcceptContractDef
 		var accept = (AcceptContractAction)action;
 		var contract = world.ContractRegistry.All.First(c => c.Id == accept.ContractId);
 		var spawns = Factory.Create(contract, world, accept.SpawnIdentity);
-		var effects = spawns.Fleets
-			.Select(fleet => (IEffect<StarMap, ActorRuntime>)new SpawnMapUnitEffect(fleet))
-			.ToList();
+		List<IEffect<StarMap, ActorRuntime>> effects = [];
+		if (contract.Objective is IHasSpawnGroups && spawns.Fleets.Count != 0) {
+			effects.AddRange(spawns.Fleets
+				.Select(fleet => (IEffect<StarMap, ActorRuntime>)new SpawnMapUnitEffect(fleet))
+				.ToList());
+		}
 
 		var state = new ContractState(
 			accept.ContractId,
 			EContractStatus.Active,
 			world.Timeline.Clock.Current,
-			accept.ActorId,
-			spawns.Bindings);
+			accept.ActorId);
 		effects.Add(new ActivateContractEffect(state));
 		return effects;
 	}

@@ -75,8 +75,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 			contractId,
 			EContractStatus.Rejected,
 			null,
-			null,
-			ContractState.EmptyBindings));
+			null));
 		var agent = orchestrator.PlayerAgent!;
 
 		Assert.False(agent.TryEnqueue([ContractActionTestContext.Decline(orchestrator.Map, State.PlayerFleetUnitId, contractId)]));
@@ -110,7 +109,8 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 			starter.IssuerFaction,
 			starter.IssuerPoiId,
 			starter.Terms,
-			ContractNarrative.ForHunt("Optional Hunt"))));
+			ContractNarrative.ForHunt("Optional Hunt"),
+			ContractFactory.IsHuntObjectiveMet)));
 		return contractId;
 	}
 

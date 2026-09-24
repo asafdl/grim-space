@@ -1,7 +1,4 @@
-using GrimSpace.Math;
 using GrimSpace.Math.Grid;
-using GrimSpace.Math.Routes;
-using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Units;
 
@@ -9,8 +6,6 @@ namespace GrimSpace.World.StarSystem.Contracts;
 
 public static class ContractFleetPlacement
 {
-	private const int SamplesPerSpawn = 64;
-
 	public sealed record PlannedSpawn(
 		string GroupId,
 		string UnitId,
@@ -20,7 +15,6 @@ public static class ContractFleetPlacement
 	public static IReadOnlyList<PlannedSpawn> Plan(
 		IReadOnlyList<ISpawnEncounterGroup> spawnGroups,
 		string contractId,
-		int mapSeed,
 		StarMap map,
 		FleetRegistry existingUnits)
 	{
@@ -35,6 +29,12 @@ public static class ContractFleetPlacement
 		foreach (var group in spawnGroups)
 		{
 			ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(group.RequiredCount, 0);
+			if (group.SearchArea.SpawnPoints.Count < group.RequiredCount)
+			{
+				throw new InvalidOperationException(
+					$"Search area for group '{group.GroupId}' has {group.SearchArea.SpawnPoints.Count} spawn points, "
+					+ $"but {group.RequiredCount} are required.");
+			}
 
 			for (var index = 0; index < group.RequiredCount; index++)
 			{
@@ -51,13 +51,7 @@ public static class ContractFleetPlacement
 						$"Fleet id '{unitId}' already exists in the registry.");
 				}
 
-				var coord = SampleCoord(
-					map,
-					group.SearchArea,
-					mapSeed,
-					contractId,
-					group.GroupId,
-					index);
+				var coord = group.SearchArea.SpawnPoints[index];
 				planned.Add(new PlannedSpawn(group.GroupId, unitId, coord, group.Spawn));
 			}
 		}
@@ -65,39 +59,4 @@ public static class ContractFleetPlacement
 		return planned;
 	}
 
-	private static Coord SampleCoord(
-		StarMap map,
-		AreaPick area,
-		int mapSeed,
-		string contractId,
-		string groupId,
-		int index)
-	{
-		var random = new StableRandom(
-			StableSeedMixer.From(mapSeed)
-				.Add(contractId)
-				.Add(groupId)
-				.Add(index)
-				.Value);
-
-		for (var sample = 0; sample < SamplesPerSpawn; sample++)
-		{
-			var angle = random.NextDouble() * System.Math.Tau;
-			var radius = System.Math.Sqrt(random.NextDouble()) * area.Radius;
-			var x = (int)System.Math.Round(area.Center.X + radius * System.Math.Cos(angle));
-			var z = (int)System.Math.Round(area.Center.Z + radius * System.Math.Sin(angle));
-			var coord = new Coord(x, 0, z);
-
-			if (!map.IsInBounds(coord))
-				continue;
-
-			if (RouteGeometry.Distance(coord, area.Center) > area.Radius)
-				continue;
-
-			return coord;
-		}
-
-		throw new InvalidOperationException(
-			$"Could not place fleet for contract '{contractId}' group '{groupId}' index {index} within search area.");
-	}
 }

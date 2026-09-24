@@ -45,8 +45,7 @@ public sealed class DeclineContractDef
 				decline.ContractId,
 				EContractStatus.Rejected,
 				AcceptedAtTick: null,
-				HolderUnitId: null,
-				ContractState.EmptyBindings)),
+				HolderUnitId: null)),
 		];
 	}
 }

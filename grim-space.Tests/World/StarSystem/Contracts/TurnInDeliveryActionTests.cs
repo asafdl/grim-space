@@ -41,9 +41,12 @@ public sealed class TurnInDeliveryActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId, delivery) = CreateDeliveryEngine();
 		engine.Commit(ContractActionTestContext.AcceptDelivery(engine.World, unitId, contractId));
 		engine.Commit(ContractActionTestContext.TurnInDelivery(engine.World, unitId, contractId));
-
 		var completion = Assert.IsType<CompleteContractAction>(
-			Assert.Single(ContractFulfillment.ReactionsFor(engine.World, unitId)));
+			Assert.Single(ContractReevaluation.ReevaluateFor(
+				engine.World,
+				engine.ActorRuntimes.For(unitId),
+				unitId,
+				EContractKind.Delivery)));
 		engine.Commit(completion);
 
 		Assert.True(engine.World.ContractRegistry.IsCompleted(contractId));

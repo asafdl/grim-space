@@ -9,7 +9,6 @@ public sealed record AreaPickerArgs(
 	IReadOnlyList<string> LandmarkCandidateIds,
 	int MinimumPoiClearance = 0,
 	double? MaximumReferenceDistance = null,
-	AreaRadiusConfig? RadiusConfig = null,
 	long? DeterministicPickMix = null,
 	EAreaPickerReferenceMode ReferenceMode = EAreaPickerReferenceMode.TriangulateLandmarks,
 	AreaBorderReferenceConfig? BorderReferenceConfig = null);
@@ -17,11 +16,23 @@ public sealed record AreaPickerArgs(
 public static class AreaPicker
 {
 	private const double AreaEpsilon = 0.000001;
+	private const int SamplesPerSpawnAttempt = 64;
+	private const int MinimumBorderLegOffset = 16;
 
-	public static bool TryPick(StarMap map, AreaPickerArgs args, out AreaPick pick)
+	public static bool TryPick(StarMap map, AreaPickerArgs args, out AreaPick pick) =>
+		TryPick(map, args, [DefaultSpawnSeed(args)], out pick);
+
+	public static bool TryPick(
+		StarMap map,
+		AreaPickerArgs args,
+		IReadOnlyList<ulong> spawnSeeds,
+		out AreaPick pick)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentNullException.ThrowIfNull(args);
+		ArgumentNullException.ThrowIfNull(spawnSeeds);
+		if (spawnSeeds.Count == 0)
+			throw new ArgumentException("At least one spawn seed is required.", nameof(spawnSeeds));
 		ArgumentOutOfRangeException.ThrowIfNegative(args.MinimumPoiClearance);
 
 		foreach (var landmarkId in args.LandmarkCandidateIds)
@@ -31,12 +42,19 @@ public static class AreaPicker
 		}
 
 		if (args.ReferenceMode == EAreaPickerReferenceMode.LandmarkWithBorderTriangle)
-			return TryPickLandmarkWithBorder(map, args, out pick);
+			return TryPickLandmarkWithBorder(map, args, spawnSeeds, out pick);
 
-		return TryPickTriangulatedLandmarks(map, args, out pick);
+		return TryPickTriangulatedLandmarks(map, args, spawnSeeds, out pick);
 	}
 
-	private static bool TryPickLandmarkWithBorder(StarMap map, AreaPickerArgs args, out AreaPick pick)
+	private static ulong DefaultSpawnSeed(AreaPickerArgs args) =>
+		args.DeterministicPickMix is long mix ? (ulong)mix : 0UL;
+
+	private static bool TryPickLandmarkWithBorder(
+		StarMap map,
+		AreaPickerArgs args,
+		IReadOnlyList<ulong> spawnSeeds,
+		out AreaPick pick)
 	{
 		if (args.LandmarkCandidateIds.Count < 1)
 		{
@@ -52,25 +70,9 @@ public static class AreaPicker
 				"Max distance from border fraction must be non-negative.");
 		}
 
-		var radiusConfig = args.RadiusConfig ?? new AreaRadiusConfig();
-		var mapDiagonal = MapDiagonal(map);
-		var radius = ResolveSearchRadiusFromSpan(mapDiagonal, radiusConfig);
-		if (radius <= 0)
-		{
-			pick = null!;
-			return false;
-		}
-
 		var random = CreateRandom(args.DeterministicPickMix);
+		var mapDiagonal = MapDiagonal(map);
 		var maxDistanceFromBorder = borderConfig.MaxDistanceFromBorderFractionOfMapDiagonal * mapDiagonal;
-		var centerCandidates = SampleCandidateCenters(map, radius)
-			.Where(center => MeetsPoiClearance(map, center, radius, args.MinimumPoiClearance))
-			.ToArray();
-		if (centerCandidates.Length == 0)
-		{
-			pick = null!;
-			return false;
-		}
 
 		var landmarkOrder = args.LandmarkCandidateIds.ToArray();
 		Shuffle(landmarkOrder, random);
@@ -84,17 +86,23 @@ public static class AreaPicker
 			if (RouteGeometry.Distance(anchor, borderProjection) > maxDistanceFromBorder)
 				continue;
 
-			if (!TryCreateBorderBase(map, borderProjection, radius, random, out var borderA, out var borderB))
+			if (!TryCreateBorderBase(map, borderProjection, random, out var borderA, out var borderB))
 				continue;
 
-			foreach (var center in centerCandidates)
+			if (!TrySampleSpawnPoints(
+				map,
+				args,
+				spawnSeeds,
+				anchor,
+				borderA,
+				borderB,
+				out var spawnPoints))
 			{
-				if (!CircleWhollyInsideTriangle(center, radius, anchor, borderA, borderB))
-					continue;
-
-				pick = BuildBorderPick(map, landmarkId, center, radius, anchor, borderA, borderB);
-				return true;
+				continue;
 			}
+
+			pick = BuildBorderPick(map, landmarkId, anchor, borderA, borderB, spawnPoints);
+			return true;
 		}
 
 		pick = null!;
@@ -104,7 +112,6 @@ public static class AreaPicker
 	private static bool TryCreateBorderBase(
 		StarMap map,
 		Coord projection,
-		int radius,
 		StableRandom? random,
 		out Coord borderA,
 		out Coord borderB)
@@ -119,7 +126,7 @@ public static class AreaPicker
 		if (coordinate <= 0 || coordinate >= maximumCoordinate)
 			return false;
 
-		var minimumOffset = System.Math.Max(radius * 2, 1);
+		var minimumOffset = MinimumBorderLegOffset;
 		var negativeOffset = PickBorderOffset(coordinate, minimumOffset, random);
 		var positiveOffset = PickBorderOffset(maximumCoordinate - coordinate, minimumOffset, random);
 		borderA = horizontal
@@ -164,16 +171,16 @@ public static class AreaPicker
 	private static AreaPick BuildBorderPick(
 		StarMap map,
 		string landmarkId,
-		Coord center,
-		int radius,
 		Coord anchor,
 		Coord borderA,
-		Coord borderB)
+		Coord borderB,
+		Coord[] spawnPoints)
 	{
 		var borderAId = AreaBorderAnchor.Id(borderA);
 		var borderBId = AreaBorderAnchor.Id(borderB);
+		var intelAnchor = spawnPoints[0];
 		var (closestId, secondClosestId, thirdClosestId) = AreaIntelProducer.OrderLandmarksByDistanceFromCenter(
-			center,
+			intelAnchor,
 			landmarkId,
 			borderAId,
 			borderBId,
@@ -188,24 +195,16 @@ public static class AreaPicker
 			new AreaIntelContext(closestId, secondClosestId, thirdClosestId),
 			[EAreaIntelTone.Brief]);
 
-		return new AreaPick(
-			center,
-			radius,
-			intel,
-			new AreaRelation.LandmarkWithBorderTriangle(landmarkId, borderA, borderB));
+		return new AreaPick(intel, spawnPoints);
 	}
 
-	private static bool TryPickTriangulatedLandmarks(StarMap map, AreaPickerArgs args, out AreaPick pick)
+	private static bool TryPickTriangulatedLandmarks(
+		StarMap map,
+		AreaPickerArgs args,
+		IReadOnlyList<ulong> spawnSeeds,
+		out AreaPick pick)
 	{
 		if (args.LandmarkCandidateIds.Count < 3)
-		{
-			pick = null!;
-			return false;
-		}
-
-		var radiusConfig = args.RadiusConfig ?? new AreaRadiusConfig();
-		var radius = ResolveSearchRadiusFromSpan(MaxPairwiseSpan(map, args.LandmarkCandidateIds), radiusConfig);
-		if (radius <= 0)
 		{
 			pick = null!;
 			return false;
@@ -218,80 +217,155 @@ public static class AreaPicker
 				MapLandmarkQueries.TryGet(map, id, out var landmark);
 				return (Id: id, landmark.Position);
 			})
-			.ToArray();
+			.ToDictionary(entry => entry.Id, entry => entry.Position, StringComparer.Ordinal);
 
 		var combinations = Combinations(args.LandmarkCandidateIds, 3).ToArray();
-		var bestScore = double.PositiveInfinity;
-		var best = new List<LandmarkSolution>();
+		Shuffle(combinations, random);
 
-		foreach (var center in SampleCandidateCenters(map, radius))
+		foreach (var combination in combinations)
 		{
-			if (!MeetsPoiClearance(map, center, radius, args.MinimumPoiClearance))
+			var a = positions[combination[0]];
+			var b = positions[combination[1]];
+			var c = positions[combination[2]];
+			if (TriangleSignedArea(a, b, c) is var area && System.Math.Abs(area) <= AreaEpsilon)
 				continue;
 
-			foreach (var combination in combinations)
-			{
-				var a = positions.First(entry => entry.Id == combination[0]);
-				var b = positions.First(entry => entry.Id == combination[1]);
-				var c = positions.First(entry => entry.Id == combination[2]);
+			if (!TrySampleSpawnPoints(map, args, spawnSeeds, a, b, c, out var spawnPoints))
+				continue;
 
-				if (!CircleWhollyInsideTriangle(center, radius, a.Position, b.Position, c.Position))
-					continue;
+			var intelAnchor = spawnPoints[0];
+			var (closestId, secondClosestId, thirdClosestId) = AreaIntelProducer.OrderLandmarksByDistanceFromCenter(
+				intelAnchor,
+				combination[0],
+				combination[1],
+				combination[2],
+				id => positions[id]);
+			var intel = AreaIntelProducer.Produce(
+				new AreaIntelContext(closestId, secondClosestId, thirdClosestId));
 
-				var maxReferenceDistance = System.Math.Max(
-					RouteGeometry.Distance(center, a.Position),
-					System.Math.Max(
-						RouteGeometry.Distance(center, b.Position),
-						RouteGeometry.Distance(center, c.Position)));
-
-				if (args.MaximumReferenceDistance is double maxReference
-					&& maxReferenceDistance > maxReference)
-				{
-					continue;
-				}
-
-				if (maxReferenceDistance < bestScore)
-				{
-					bestScore = maxReferenceDistance;
-					best.Clear();
-				}
-
-				if (System.Math.Abs(maxReferenceDistance - bestScore) <= AreaEpsilon)
-				{
-					best.Add(new LandmarkSolution(
-						center,
-						radius,
-						combination[0],
-						combination[1],
-						combination[2]));
-				}
-			}
+			pick = new AreaPick(intel, spawnPoints);
+			return true;
 		}
 
-		if (best.Count == 0)
+		pick = null!;
+		return false;
+	}
+
+	private static bool TrySampleSpawnPoints(
+		StarMap map,
+		AreaPickerArgs args,
+		IReadOnlyList<ulong> spawnSeeds,
+		Coord cornerA,
+		Coord cornerB,
+		Coord cornerC,
+		out Coord[] spawnPoints)
+	{
+		spawnPoints = new Coord[spawnSeeds.Count];
+		for (var index = 0; index < spawnSeeds.Count; index++)
 		{
-			pick = null!;
-			return false;
+			if (!TrySampleSpawnInTriangle(
+				map,
+				args,
+				cornerA,
+				cornerB,
+				cornerC,
+				spawnSeeds[index],
+				out var spawn))
+			{
+				spawnPoints = [];
+				return false;
+			}
+
+			spawnPoints[index] = spawn;
 		}
 
-		var chosen = best[PickIndex(best.Count, random)];
-		var (closestId, secondClosestId, thirdClosestId) = AreaIntelProducer.OrderLandmarksByDistanceFromCenter(
-			chosen.Center,
-			chosen.LandmarkAId,
-			chosen.LandmarkBId,
-			chosen.LandmarkCId,
-			id => positions.First(entry => entry.Id == id).Position);
-		var intel = AreaIntelProducer.Produce(
-			new AreaIntelContext(closestId, secondClosestId, thirdClosestId));
+		return true;
+	}
 
-		pick = new AreaPick(
-			chosen.Center,
-			chosen.Radius,
-			intel,
-			new AreaRelation.TriangulatedLandmarks(
-				chosen.LandmarkAId,
-				chosen.LandmarkBId,
-				chosen.LandmarkCId));
+	private static bool TrySampleSpawnInTriangle(
+		StarMap map,
+		AreaPickerArgs args,
+		Coord cornerA,
+		Coord cornerB,
+		Coord cornerC,
+		ulong seed,
+		out Coord spawn)
+	{
+		spawn = default;
+		var random = new StableRandom(seed);
+		for (var attempt = 0; attempt < SamplesPerSpawnAttempt; attempt++)
+		{
+			var candidate = SampleUniformTrianglePoint(cornerA, cornerB, cornerC, random);
+			if (!map.IsInBounds(candidate) || !map.PathfindingTerrain.IsTraversable(candidate))
+				continue;
+
+			if (!MeetsPoiClearance(map, candidate, args.MinimumPoiClearance))
+				continue;
+
+			if (!MeetsMaximumReferenceDistance(
+				candidate,
+				cornerA,
+				cornerB,
+				cornerC,
+				args.MaximumReferenceDistance))
+			{
+				continue;
+			}
+
+			spawn = candidate;
+			return true;
+		}
+
+		return false;
+	}
+
+	private static Coord SampleUniformTrianglePoint(
+		Coord a,
+		Coord b,
+		Coord c,
+		StableRandom random)
+	{
+		var r1 = random.NextDouble();
+		var r2 = random.NextDouble();
+		if (r1 + r2 > 1.0)
+		{
+			r1 = 1.0 - r1;
+			r2 = 1.0 - r2;
+		}
+
+		var r3 = 1.0 - r1 - r2;
+		var x = r1 * a.X + r2 * b.X + r3 * c.X;
+		var z = r1 * a.Z + r2 * b.Z + r3 * c.Z;
+		return new Coord((int)System.Math.Round(x), 0, (int)System.Math.Round(z));
+	}
+
+	private static bool MeetsMaximumReferenceDistance(
+		Coord coord,
+		Coord cornerA,
+		Coord cornerB,
+		Coord cornerC,
+		double? maximumReferenceDistance)
+	{
+		if (maximumReferenceDistance is not double maxReference)
+			return true;
+
+		var maxDistance = System.Math.Max(
+			RouteGeometry.Distance(coord, cornerA),
+			System.Math.Max(
+				RouteGeometry.Distance(coord, cornerB),
+				RouteGeometry.Distance(coord, cornerC)));
+		return maxDistance <= maxReference;
+	}
+
+	private static bool MeetsPoiClearance(StarMap map, Coord coord, int minimumPoiClearance)
+	{
+		foreach (var poi in map.PointsOfInterest)
+		{
+			var clearance = poi.RouteExclusionRadius + minimumPoiClearance;
+			if (RouteGeometry.Distance(coord, poi.PlacedCenter) < clearance)
+				return false;
+		}
+
 		return true;
 	}
 
@@ -307,81 +381,17 @@ public static class AreaPicker
 		}
 	}
 
+	private static void Shuffle(string[][] items, StableRandom? random)
+	{
+		for (var i = items.Length - 1; i > 0; i--)
+		{
+			var j = PickIndex(i + 1, random);
+			(items[i], items[j]) = (items[j], items[i]);
+		}
+	}
+
 	private static double MapDiagonal(StarMap map) =>
 		RouteGeometry.Distance(new Coord(0, 0, 0), new Coord(map.Width - 1, 0, map.Height - 1));
-
-	private static int ResolveSearchRadiusFromSpan(double span, AreaRadiusConfig radiusConfig) =>
-		span > 0.0 ? AreaRadiusPicker.Pick(span, radiusConfig) : radiusConfig.MinRadius;
-
-	private static double MaxPairwiseSpan(StarMap map, IReadOnlyList<string> landmarkIds)
-	{
-		var span = 0.0;
-		for (var i = 0; i < landmarkIds.Count; i++)
-		{
-			MapLandmarkQueries.TryGet(map, landmarkIds[i], out var left);
-			for (var j = i + 1; j < landmarkIds.Count; j++)
-			{
-				MapLandmarkQueries.TryGet(map, landmarkIds[j], out var right);
-				span = System.Math.Max(span, RouteGeometry.Distance(left.Position, right.Position));
-			}
-		}
-
-		return span;
-	}
-
-	private static IEnumerable<Coord> SampleCandidateCenters(StarMap map, int radius)
-	{
-		var step = System.Math.Max(radius * 2, 16);
-		for (var z = radius; z < map.Height - radius; z += step)
-		{
-			for (var x = radius; x < map.Width - radius; x += step)
-			{
-				var center = new Coord(x, 0, z);
-				if (map.PathfindingTerrain.IsCircleTraversable(center, radius))
-					yield return center;
-			}
-		}
-	}
-
-	private static bool MeetsPoiClearance(StarMap map, Coord center, int radius, int minimumPoiClearance)
-	{
-		foreach (var poi in map.PointsOfInterest)
-		{
-			var clearance = poi.RouteExclusionRadius + minimumPoiClearance + radius;
-			if (RouteGeometry.Distance(center, poi.PlacedCenter) < clearance)
-				return false;
-		}
-
-		return true;
-	}
-
-	private static bool CircleWhollyInsideTriangle(
-		Coord center,
-		int radius,
-		Coord a,
-		Coord b,
-		Coord c)
-	{
-		if (!IsPointInsideTriangle(center, a, b, c))
-			return false;
-
-		var minEdgeDistance = RouteGeometry.PointToSegmentDistance(center, a, b);
-		minEdgeDistance = System.Math.Min(minEdgeDistance, RouteGeometry.PointToSegmentDistance(center, b, c));
-		minEdgeDistance = System.Math.Min(minEdgeDistance, RouteGeometry.PointToSegmentDistance(center, c, a));
-		return minEdgeDistance >= radius;
-	}
-
-	private static bool IsPointInsideTriangle(Coord point, Coord a, Coord b, Coord c)
-	{
-		var area = TriangleSignedArea(a, b, c);
-		if (System.Math.Abs(area) <= AreaEpsilon)
-			return false;
-
-		var sign = area > 0.0 ? 1.0 : -1.0;
-		return TriangleSignedArea(point, a, b) * sign >= 0.0
-			&& TriangleSignedArea(point, b, c) * sign >= 0.0
-			&& TriangleSignedArea(point, c, a) * sign >= 0.0;
-	}
 
 	private static double TriangleSignedArea(Coord p, Coord q, Coord r) =>
 		(q.X - p.X) * (double)(r.Z - p.Z) - (r.X - p.X) * (double)(q.Z - p.Z);
@@ -390,7 +400,7 @@ public static class AreaPicker
 		count <= 0
 			? 0
 			: random is null
-				? Random.Shared.Next(count)
+				? 0
 				: (int)(random.Value.NextDouble() * count);
 
 	private static IEnumerable<string[]> Combinations(IReadOnlyCollection<string> group, int count)
@@ -420,12 +430,5 @@ public static class AreaPicker
 				yield return combination;
 		}
 	}
-
-	private sealed record LandmarkSolution(
-		Coord Center,
-		int Radius,
-		string LandmarkAId,
-		string LandmarkBId,
-		string LandmarkCId);
 
 }

@@ -58,11 +58,7 @@ public sealed class DeliveryTurnInDialogPresenter
 			.Select(active => active.Definition)
 			.FirstOrDefault(contract =>
 				contract.Objective is DeliveryObjective delivery
-				&& delivery.TurnInPoiId == _poiId
-				&& delivery.TurnInFacilityId == _facilityId
-				&& delivery.TurnInOperatorName == facilityOperator.Name
-				&& _orchestrator.Map.ContractRegistry.TryGetState(contract.Id, out var state)
-				&& !state.DeliveryTurnedIn);
+				&& delivery.TurnInOperatorName == facilityOperator.Name);
 
 	private void OnChoiceSelected(string choiceId)
 	{
