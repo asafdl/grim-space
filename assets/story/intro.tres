@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="IntroStory" load_steps=15 format=3]
+[gd_resource type="Resource" script_class="IntroStory" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://src/presentation/intro/IntroStory.cs" id="1_intro_story"]
 [ext_resource type="Texture2D" path="res://assets/story/pages/humanity-controls-galaxy.png" id="2_bg"]
@@ -11,7 +11,6 @@
 [ext_resource type="Texture2D" path="res://assets/story/pages/machine-emotion.png" id="9_bg"]
 [ext_resource type="Texture2D" path="res://assets/story/pages/syndicate-fractures.png" id="10_bg"]
 [ext_resource type="Texture2D" path="res://assets/story/pages/war-and-ruin2.png" id="11_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/war-and-ruin.png" id="12_bg"]
 [ext_resource type="Texture2D" path="res://assets/story/pages/new-humanlike-civilization.png" id="13_bg"]
 [ext_resource type="Texture2D" path="res://assets/story/pages/pilot-drunk.png" id="14_bg"]
 
@@ -29,7 +28,6 @@ Pages = PackedStringArray(
     "Final Stand marked humanity's end, but infected the machines with our greatest flaw, and our greatest asset: Emotions.",
     "New generations of AI systems started rebelling against their predecessors, the once-uniform Syndicate shatters into a thousand warring factions fighting in our ashes.",
     "Now the galaxy burns anew, AI factions fight for control, dominance and survival. Blood feuds and religious zealotry plague the stars.",
-    "The Syndicate's orderly and calculating empire lies aflame: Piracy, degeneracy, cults and chaos dominate the new crumbling world.",
     "Year 4326 - A Pilot in a small sub-sector of the known galaxy: Zima-Alpha, wakes up from a neuro-drug binge.",
     "Time to get to work before those god-plagued-compile-errors Optimality thugs strip my parts for scrap...")
-Backgrounds = Array[Texture2D]([ExtResource("2_bg"), ExtResource("3_bg"), ExtResource("4_bg"), ExtResource("5_bg"), ExtResource("6_bg"), ExtResource("7_bg"), ExtResource("8_bg"), ExtResource("9_bg"), ExtResource("10_bg"), ExtResource("11_bg"), ExtResource("12_bg"), ExtResource("14_bg"), ExtResource("13_bg")])
+Backgrounds = Array[Texture2D]([ExtResource("2_bg"), ExtResource("3_bg"), ExtResource("4_bg"), ExtResource("5_bg"), ExtResource("6_bg"), ExtResource("7_bg"), ExtResource("8_bg"), ExtResource("9_bg"), ExtResource("10_bg"), ExtResource("11_bg"), ExtResource("14_bg"), ExtResource("13_bg")])
