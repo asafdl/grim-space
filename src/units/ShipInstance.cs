@@ -110,12 +110,14 @@ public sealed class ShipInstance
 		return true;
 	}
 
-	public bool TryWithUpgradedMaxShields(out ShipInstance after)
+	public bool TryWithUpgradedMaxShields(ESpatialOrientation face, out ShipInstance after)
 	{
 		after = null!;
+		if (!Enum.IsDefined(face) || Spec.ShieldUpgradeTiers[face] >= ShipSpec.MaxShieldUpgradeTier)
+			return false;
 		try
 		{
-			var updatedSpec = Spec.WithUpgradedMaxShields();
+			var updatedSpec = Spec.WithUpgradedMaxShields(face);
 			var shields = BumpCurrentShields(ShieldPoints, Spec.MaxShieldPoints, updatedSpec.MaxShieldPoints);
 			after = new ShipInstance(Id, updatedSpec, HullPoints, shields);
 			return true;

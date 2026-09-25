@@ -7,6 +7,7 @@ using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -17,6 +18,7 @@ public sealed partial class DockyardHudOverlay : Control
 	private string _facilityTitle = "";
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
+	private ESpatialOrientation? _selectedFace;
 
 	public event Action<MerchantCatalog.Offering, string>? PurchaseRequested;
 	public event Action? Closed;
@@ -32,6 +34,7 @@ public sealed partial class DockyardHudOverlay : Control
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
 		AddChild(_shell);
+		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
 	}
 
@@ -43,6 +46,7 @@ public sealed partial class DockyardHudOverlay : Control
 		_facilityTitle = facilityTitle;
 		_statusKind = null;
 		_statusMessage = "";
+		_selectedFace = null;
 		_shell.Open(_facilityTitle, string.Empty);
 		ShowMain();
 	}
@@ -93,7 +97,14 @@ public sealed partial class DockyardHudOverlay : Control
 		}
 
 		var offers = WeaponsCatalog.ListFor(ship).ToArray();
-		if (offers.Length == 0)
+		var faces = offers
+			.Where(offer => offer.Offering.Mount is not null)
+			.Select(offer => offer.Offering.Mount!.Value.Facet)
+			.Concat(ship.Spec.InstalledAbilities.Select(ability => ability.Mount.Facet))
+			.Distinct()
+			.OrderBy(face => face)
+			.ToArray();
+		if (faces.Length == 0)
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
@@ -102,7 +113,34 @@ public sealed partial class DockyardHudOverlay : Control
 			return;
 		}
 
-		foreach (var offer in offers)
+		if (_selectedFace is not { } selected || !faces.Contains(selected))
+			_selectedFace = faces[0];
+
+		var tabs = new TabBar { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		foreach (var face in faces)
+			tabs.AddTab(FaceLabel(face));
+		tabs.CurrentTab = Array.IndexOf(faces, _selectedFace.Value);
+		tabs.TabChanged += index =>
+		{
+			_selectedFace = faces[index];
+			ShowMain();
+		};
+		body.AddChild(tabs);
+
+		var mounted = ship.Spec.InstalledAbilities
+			.Where(ability => ability.Mount.Facet == _selectedFace)
+			.ToArray();
+		body.AddChild(HudWidgets.CreateStatusPanel(
+			HudStatusKind.Neutral,
+			mounted.Length == 0
+				? "No weapon installed on this facet."
+				: $"Installed: {string.Join(", ", mounted.Select(ability => ability.Spec.Kind.ToString()))}"));
+
+		var faceOffers = offers.Where(offer => offer.Offering.Mount?.Facet == _selectedFace).ToArray();
+		if (faceOffers.Length == 0)
+			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No upgrades available on this facet."));
+
+		foreach (var offer in faceOffers)
 		{
 			var captured = offer;
 			var shipId = ship.Id;
@@ -114,6 +152,18 @@ public sealed partial class DockyardHudOverlay : Control
 
 		_shell.SetBody(body);
 	}
+
+	private static string FaceLabel(ESpatialOrientation face) =>
+		face switch
+		{
+			ESpatialOrientation.Forward => "Forward",
+			ESpatialOrientation.Retro => "Aft",
+			ESpatialOrientation.Port => "Port",
+			ESpatialOrientation.Starboard => "Starboard",
+			ESpatialOrientation.Dorsal => "Dorsal",
+			ESpatialOrientation.Ventral => "Ventral",
+			_ => face.ToString(),
+		};
 
 	private bool TryGetActiveShip(out ShipInstance ship)
 	{

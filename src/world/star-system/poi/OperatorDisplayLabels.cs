@@ -16,7 +16,7 @@ public static class OperatorDisplayLabels
 	public static string MerchantRole(EMerchantCatalog catalog) => catalog switch
 	{
 		EMerchantCatalog.Weapons => "Dockyard Shop",
-		EMerchantCatalog.ShipSupport => "Shield Recharge",
+		EMerchantCatalog.ShipSupport => "Ship Support",
 		_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
 	};
 

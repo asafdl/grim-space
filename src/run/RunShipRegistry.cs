@@ -55,7 +55,7 @@ public sealed class RunShipRegistry : IShipRegistryReader
 		current.Chassis == before.Chassis
 		&& current.MaxHullPoints == before.MaxHullPoints
 		&& current.HullUpgradeTier == before.HullUpgradeTier
-		&& current.ShieldUpgradeTier == before.ShieldUpgradeTier
+		&& current.ShieldUpgradeTiers.Matches(before.ShieldUpgradeTiers)
 		&& current.MaxShieldPoints.Matches(before.MaxShieldPoints)
 		&& current.InstalledAbilities.SequenceEqual(before.InstalledAbilities)
 		&& Equals(current.TorpedoBody, before.TorpedoBody);

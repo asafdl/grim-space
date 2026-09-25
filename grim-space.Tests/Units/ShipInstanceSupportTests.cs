@@ -13,11 +13,13 @@ public sealed class ShipInstanceSupportTests
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var previousMax = ship.Spec.MaxShieldPoints[ESpatialOrientation.Forward];
 
-		Assert.True(ship.TryWithUpgradedMaxShields(out var after));
+		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out var after));
 
-		Assert.Equal(1, after.Spec.ShieldUpgradeTier);
+		Assert.Equal(1, after.Spec.ShieldUpgradeTiers[ESpatialOrientation.Forward]);
 		Assert.Equal(previousMax + 1, after.Spec.MaxShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(previousMax + 1, after.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(ship.Spec.MaxShieldPoints[ESpatialOrientation.Port], after.Spec.MaxShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(ship.ShieldPoints[ESpatialOrientation.Port], after.ShieldPoints[ESpatialOrientation.Port]);
 	}
 
 	[Fact]
@@ -26,13 +28,55 @@ public sealed class ShipInstanceSupportTests
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var previousMax = ship.Spec.MaxShieldPoints[ESpatialOrientation.Forward];
 		ship.ShieldPoints[ESpatialOrientation.Forward] = 0;
-		ship.ShieldPoints[ESpatialOrientation.Port] = previousMax;
+		var previousPort = ship.ShieldPoints[ESpatialOrientation.Port];
 
-		Assert.True(ship.TryWithUpgradedMaxShields(out var after));
+		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out var after));
 
 		Assert.Equal(previousMax + 1, after.Spec.MaxShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(1, after.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(previousMax + 1, after.ShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(previousPort, after.ShieldPoints[ESpatialOrientation.Port]);
+	}
+
+	[Fact]
+	public void TryWithUpgradedMaxShields_ZeroMaxFaceBecomesShieldedAndStopsAtPerFaceCap()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var face = ESpatialOrientation.Dorsal;
+		ship.Spec.MaxShieldPoints[face] = 0;
+		ship.ShieldPoints[face] = 0;
+
+		for (var tier = 1; tier <= ShipSpec.MaxShieldUpgradeTier; tier++)
+		{
+			Assert.True(ship.TryWithUpgradedMaxShields(face, out var after));
+			Assert.Equal(tier, after.Spec.ShieldUpgradeTiers[face]);
+			Assert.Equal(tier, after.Spec.MaxShieldPoints[face]);
+			Assert.Equal(tier, after.ShieldPoints[face]);
+			ship = after;
+		}
+
+		Assert.False(ship.TryWithUpgradedMaxShields(face, out _));
+		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out _));
+	}
+
+	[Fact]
+	public void ShieldUpgradeTiers_AreIndependentAcrossCopiesAndValidateBounds()
+	{
+		var spec = ShipCatalog.DefaultFor(EType.Fighter);
+		var tiers = new GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints();
+		tiers[ESpatialOrientation.Port] = 2;
+		var upgraded = ShipSpec.Create(spec.Chassis, spec.MaxHullPoints, spec.MaxShieldPoints, spec.InstalledAbilities, tiers);
+		tiers[ESpatialOrientation.Port] = 0;
+		var copy = upgraded.DeepCopy();
+		copy.ShieldUpgradeTiers[ESpatialOrientation.Port] = 1;
+
+		Assert.Equal(2, upgraded.ShieldUpgradeTiers[ESpatialOrientation.Port]);
+		Assert.Equal(1, copy.ShieldUpgradeTiers[ESpatialOrientation.Port]);
+		tiers[ESpatialOrientation.Port] = -1;
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			ShipSpec.Create(spec.Chassis, spec.MaxHullPoints, spec.MaxShieldPoints, spec.InstalledAbilities, tiers));
+		tiers[ESpatialOrientation.Port] = ShipSpec.MaxShieldUpgradeTier + 1;
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			ShipSpec.Create(spec.Chassis, spec.MaxHullPoints, spec.MaxShieldPoints, spec.InstalledAbilities, tiers));
 	}
 
 	[Fact]

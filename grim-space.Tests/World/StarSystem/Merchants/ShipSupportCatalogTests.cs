@@ -76,7 +76,8 @@ public sealed class ShipSupportCatalogTests
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offers = ShipSupportCatalog.ListFor(ship);
 
-		Assert.Contains(offers, o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
+			Assert.Contains(offers, o => o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face));
 		Assert.Contains(offers, o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxHull);
 	}
 
@@ -85,7 +86,7 @@ public sealed class ShipSupportCatalogTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+			.Single(o => o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
 		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
 		Assert.Equal(35, scrap);
 	}
@@ -103,14 +104,35 @@ public sealed class ShipSupportCatalogTests
 	}
 
 	[Fact]
-	public void ListFor_AtMaxShieldTier_ExcludesShieldUpgradeOffer()
+	public void ListFor_PerFaceTierPricingAndCap_KeepOtherFacesAvailable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		for (var tier = 0; tier < ShipSpec.MaxShieldUpgradeTier; tier++)
-			Assert.True(ship.TryWithUpgradedMaxShields(out ship));
+		{
+			var offer = ShipSupportCatalog.ListFor(ship).Single(o =>
+				o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
+			Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
+			Assert.Equal(35 + 15 * tier, scrap);
+			Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Dorsal, out ship));
+		}
 
 		Assert.DoesNotContain(
 			ShipSupportCatalog.ListFor(ship),
-			offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+			offer => offer.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
+		Assert.Contains(
+			ShipSupportCatalog.ListFor(ship),
+			offer => offer.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
+	}
+
+	[Fact]
+	public void ListFor_OffersUpgradeOnZeroMaxFace()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		ship.Spec.MaxShieldPoints[ESpatialOrientation.Dorsal] = 0;
+		ship.ShieldPoints[ESpatialOrientation.Dorsal] = 0;
+
+		Assert.Contains(ShipSupportCatalog.ListFor(ship), offer =>
+			offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
 	}
 }

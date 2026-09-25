@@ -6,6 +6,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.Components;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -14,6 +15,7 @@ public partial class WarehouseController : Control
 	private StarSystemOrchestrator _orchestrator = null!;
 	private CanvasLayer _contractHudLayer = null!;
 	private ContractHudOverlay _contractHud = null!;
+	private StrategicHud _strategicHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -35,6 +37,7 @@ public partial class WarehouseController : Control
 		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
+		_strategicHud = GetNode<StrategicHud>("StrategicHud");
 		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
@@ -45,7 +48,7 @@ public partial class WarehouseController : Control
 		_contractHud = new ContractHudOverlay();
 		_contractHud.AcceptRequested += OnAcceptRequested;
 		_contractHud.DeclineRequested += OnDeclineRequested;
-		_contractHud.Closed += UpdateBackButton;
+		_contractHud.Closed += OnContractHudClosed;
 		_contractHudLayer.AddChild(_contractHud);
 
 		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
@@ -119,9 +122,8 @@ public partial class WarehouseController : Control
 			return;
 		}
 
-		_contractHud.SyncMap(_orchestrator.Map);
-		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
-		UpdateBackButton();
+		_contractHud.Close();
+		_strategicHud.NotifyContractAccepted(contractId);
 	}
 
 	private void OnDeclineRequested(string contractId)
@@ -164,6 +166,12 @@ public partial class WarehouseController : Control
 	private static string RequireActiveOperatorName() =>
 		MapNavigationContext.ActiveOperatorName
 		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
+
+	private void OnContractHudClosed()
+	{
+		MapNavigationContext.ClearActiveOperator();
+		UpdateBackButton();
+	}
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen;

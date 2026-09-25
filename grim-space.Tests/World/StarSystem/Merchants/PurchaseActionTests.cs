@@ -237,6 +237,82 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			before)));
 	}
 
+	[Fact]
+	public void Commit_ShieldFaceUpgrade_DebitsPerFacePriceAndChangesOnlyChosenFace()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		SeedScrap(engine.World, 150);
+		var before = ship.Clone();
+		var face = ESpatialOrientation.Dorsal;
+		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
+		var otherFace = ESpatialOrientation.Forward;
+		var records = engine.Commit(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport, offering, before));
+
+		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
+		Assert.Equal(115, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		var after = purchase.After;
+		Assert.Equal(before.Spec.MaxShieldPoints[face] + 1, after.Spec.MaxShieldPoints[face]);
+		Assert.Equal(before.ShieldPoints[face] + 1, after.ShieldPoints[face]);
+		Assert.Equal(1, after.Spec.ShieldUpgradeTiers[face]);
+		Assert.Equal(before.Spec.MaxShieldPoints[otherFace], after.Spec.MaxShieldPoints[otherFace]);
+		Assert.Equal(before.ShieldPoints[otherFace], after.ShieldPoints[otherFace]);
+		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.ShipSupport, offering, after, out var nextOffer));
+		Assert.True(nextOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var nextScrap));
+		Assert.Equal(50, nextScrap);
+	}
+
+	[Fact]
+	public void TryEnqueue_ShieldFaceUpgrade_RejectsMissingInvalidAndStaleFaces()
+	{
+		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		SeedScrap(engine.World, 150);
+		var before = ship.Clone();
+		var face = ESpatialOrientation.Dorsal;
+		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
+		var sim = engine.CreateSimulation();
+		Assert.False(sim.TryEnqueue(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields), before)));
+		Assert.False(sim.TryEnqueue(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: (ESpatialOrientation)100), before)));
+
+		Assert.True(ship.TryWithUpgradedMaxShields(face, out var changed));
+		registry.Update(changed);
+		Assert.False(sim.TryEnqueue(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport, offering, before)));
+	}
+
+	[Fact]
+	public void TryEnqueue_ShieldFaceUpgrade_RejectsForgedTierEvenWhenMaxMatches()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		SeedScrap(engine.World, 150);
+		var forged = ship.Clone();
+		forged.Spec.ShieldUpgradeTiers[ESpatialOrientation.Forward] = 1;
+
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+			unitId,
+			engine.World,
+			EMerchantCatalog.ShipSupport,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward),
+			forged)));
+	}
+
+	[Fact]
+	public void TryEnqueue_ShieldFaceUpgrade_RejectsInsufficientScrapAndMaxedFace()
+	{
+		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		var face = ESpatialOrientation.Forward;
+		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+			unitId, engine.World, EMerchantCatalog.ShipSupport, offering, ship.Clone())));
+
+		SeedScrap(engine.World, 500);
+		for (var tier = 0; tier < ShipSpec.MaxShieldUpgradeTier; tier++)
+			Assert.True(ship.TryWithUpgradedMaxShields(face, out ship));
+		registry.Update(ship);
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+			unitId, engine.World, EMerchantCatalog.ShipSupport, offering, ship.Clone())));
+	}
+
 	private static PurchaseAction CreateAction(
 		string unitId,
 		StarMap map,
@@ -292,7 +368,8 @@ public sealed class MerchantCommerceCharacterizationTests
 			o => o.Offering == MerchantPurchaseTestHarness.FlakPortDamageUpgrade);
 
 		var supportOffers = ShipSupportCatalog.ListFor(ship);
-		var shieldOffer = supportOffers.Single(o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+		var shieldOffer = supportOffers.Single(o => o.Offering ==
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
 		Assert.True(shieldOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var shieldScrap));
 		Assert.Equal(35, shieldScrap);
 

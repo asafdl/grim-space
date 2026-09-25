@@ -10,7 +10,7 @@ public sealed record ShipSpec(
 	int MaxHullPoints,
 	FaceShieldPoints MaxShieldPoints,
 	IReadOnlyList<InstalledAbility> InstalledAbilities,
-	int ShieldUpgradeTier = 0,
+	FaceShieldPoints ShieldUpgradeTiers,
 	int HullUpgradeTier = 0,
 	TorpedoBodySpec? TorpedoBody = null)
 {
@@ -23,7 +23,7 @@ public sealed record ShipSpec(
 			MaxHullPoints,
 			MaxShieldPoints.Clone(),
 			InstalledAbilities.ToArray(),
-			ShieldUpgradeTier,
+			ShieldUpgradeTiers.Clone(),
 			HullUpgradeTier,
 			TorpedoBody);
 
@@ -37,7 +37,7 @@ public sealed record ShipSpec(
 			MaxHullPoints,
 			MaxShieldPoints,
 			updated,
-			ShieldUpgradeTier,
+			ShieldUpgradeTiers,
 			HullUpgradeTier,
 			TorpedoBody);
 	}
@@ -67,26 +67,29 @@ public sealed record ShipSpec(
 			MaxHullPoints,
 			MaxShieldPoints,
 			updated,
-			ShieldUpgradeTier,
+			ShieldUpgradeTiers,
 			HullUpgradeTier,
 			TorpedoBody);
 	}
 
-	public ShipSpec WithUpgradedMaxShields()
+	public ShipSpec WithUpgradedMaxShields(ESpatialOrientation face)
 	{
-		if (ShieldUpgradeTier >= MaxShieldUpgradeTier)
-			throw new InvalidOperationException($"Ship shields are already at upgrade tier {ShieldUpgradeTier}.");
+		if (!Enum.IsDefined(face))
+			throw new ArgumentOutOfRangeException(nameof(face));
+		if (ShieldUpgradeTiers[face] >= MaxShieldUpgradeTier)
+			throw new InvalidOperationException($"Ship shields on {face} are already at upgrade tier {ShieldUpgradeTiers[face]}.");
 
 		var max = MaxShieldPoints.Clone();
-		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			max[face] += 1;
+		max[face] += 1;
+		var tiers = ShieldUpgradeTiers.Clone();
+		tiers[face] += 1;
 
 		return Create(
 			Chassis,
 			MaxHullPoints,
 			max,
 			InstalledAbilities,
-			ShieldUpgradeTier + 1,
+			tiers,
 			HullUpgradeTier,
 			TorpedoBody);
 	}
@@ -101,7 +104,7 @@ public sealed record ShipSpec(
 			MaxHullPoints + 1,
 			MaxShieldPoints,
 			InstalledAbilities,
-			ShieldUpgradeTier,
+			ShieldUpgradeTiers,
 			HullUpgradeTier + 1,
 			TorpedoBody);
 	}
@@ -111,12 +114,18 @@ public sealed record ShipSpec(
 		int maxHullPoints,
 		FaceShieldPoints maxShieldPoints,
 		IReadOnlyList<InstalledAbility> installedAbilities,
-		int shieldUpgradeTier = 0,
+		FaceShieldPoints? shieldUpgradeTiers = null,
 		int hullUpgradeTier = 0,
 		TorpedoBodySpec? torpedoBody = null)
 	{
 		ArgumentNullException.ThrowIfNull(maxShieldPoints);
 		InstalledAbility.EnsureValidOnShip(installedAbilities);
+		var tiers = shieldUpgradeTiers?.Clone() ?? new FaceShieldPoints();
+		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
+		{
+			if (tiers[face] < 0 || tiers[face] > MaxShieldUpgradeTier)
+				throw new ArgumentOutOfRangeException(nameof(shieldUpgradeTiers), $"Shield upgrade tier on {face} must be between 0 and {MaxShieldUpgradeTier}.");
+		}
 		if (chassis == EType.Torpedo && torpedoBody is null)
 			throw new ArgumentException("Torpedo chassis requires a torpedo body configuration.", nameof(torpedoBody));
 		if (chassis != EType.Torpedo && torpedoBody is not null)
@@ -127,7 +136,7 @@ public sealed record ShipSpec(
 			maxHullPoints,
 			maxShieldPoints.Clone(),
 			installedAbilities,
-			shieldUpgradeTier,
+			tiers,
 			hullUpgradeTier,
 			torpedoBody);
 	}

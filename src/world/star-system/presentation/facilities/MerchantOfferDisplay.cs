@@ -5,8 +5,8 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 internal static class MerchantOfferDisplay
 {
-	public static string ShieldUpgradeTitle(ShipSpec spec) =>
-		$"Max shields {MkLabel(spec.ShieldUpgradeTier + 1)}";
+	public static string ShieldUpgradeTitle(ShipSpec spec, ESpatialOrientation face) =>
+		$"{FacetLabel(face)} max shields {MkLabel(spec.ShieldUpgradeTiers[face] + 1)}";
 
 	public static string HullUpgradeTitle(ShipSpec spec) =>
 		$"Max hull {MkLabel(spec.HullUpgradeTier + 1)}";

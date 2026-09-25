@@ -9,6 +9,7 @@ public sealed partial class ModalShell : Control
 	private Label _title = null!;
 	private Label _subtitle = null!;
 	private Button _headerButton = null!;
+	private Button _dismissButton = null!;
 	private ScrollContainer _bodyScroll = null!;
 	private VBoxContainer _bodyHost = null!;
 	private HBoxContainer _footer = null!;
@@ -72,6 +73,13 @@ public sealed partial class ModalShell : Control
 		_headerMode = mode;
 		_headerAction = onHeaderPressed;
 		_headerButton.Text = mode == HudHeaderMode.Close ? "×" : "←";
+		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissButton.Visible;
+	}
+
+	public void SetDismissVisible(bool visible)
+	{
+		_dismissButton.Visible = visible;
+		_headerButton.Visible = _headerMode == HudHeaderMode.Back || !visible;
 	}
 
 	public void SetBackHandler(Action? handler) => _backHandler = handler;
@@ -252,6 +260,15 @@ public sealed partial class ModalShell : Control
 		titles.AddChild(_subtitle);
 
 		row.AddChild(titles);
+		_dismissButton = new Button
+		{
+			Text = "Close",
+			Visible = false,
+			FocusMode = FocusModeEnum.All,
+		};
+		HudStyles.StyleButton(_dismissButton, HudActionKind.Secondary);
+		_dismissButton.Pressed += CloseWithHandler;
+		row.AddChild(_dismissButton);
 		return row;
 	}
 

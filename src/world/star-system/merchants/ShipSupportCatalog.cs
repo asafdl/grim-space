@@ -21,14 +21,16 @@ public static class ShipSupportCatalog
 		ArgumentNullException.ThrowIfNull(ship);
 		var offers = new List<MerchantCatalog.Offer>();
 
-		var maxShields = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields);
-		if (MerchantShipChanges.TryPrepareAfter(maxShields, ship, out _))
+		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
+			var maxShields = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
+			if (!MerchantShipChanges.TryPrepareAfter(maxShields, ship, out _))
+				continue;
 			offers.Add(new MerchantCatalog.Offer(
 				maxShields,
 				ResourceBundle.Of(
 					ResourceId.ScrapAlloy,
-					ShieldUpgradeBaseScrap + ShieldUpgradeStepScrap * ship.Spec.ShieldUpgradeTier)));
+					ShieldUpgradeBaseScrap + ShieldUpgradeStepScrap * ship.Spec.ShieldUpgradeTiers[face])));
 		}
 
 		var maxHull = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxHull);

@@ -12,6 +12,7 @@ public partial class ObjectivesHud : MarginContainer
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
 	private Label _headerCountLabel = null!;
+	private readonly Dictionary<string, PanelContainer> _entries = new(StringComparer.Ordinal);
 	private string _lastSignature = "";
 
 	public event Action<string>? LandmarkLinkClicked;
@@ -30,6 +31,28 @@ public partial class ObjectivesHud : MarginContainer
 
 		_lastSignature = signature;
 		RebuildEntries(objectives);
+	}
+
+	public void NotifyAccepted(string contractId)
+	{
+		if (!_entries.TryGetValue(contractId, out var panel))
+		{
+			GD.PushError($"Accepted contract '{contractId}' has no objective entry.");
+			return;
+		}
+
+		var badge = new Label
+		{
+			Text = "NEW",
+			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
+		};
+		badge.AddThemeColorOverride("font_color", new Color(0.45f, 0.95f, 0.55f));
+		((HBoxContainer)panel.GetChild(0)).AddChild(badge);
+		var tween = CreateTween();
+		tween.TweenInterval(4f);
+		tween.TweenProperty(badge, "modulate:a", 0f, 1.5f);
+		tween.Finished += badge.QueueFree;
 	}
 
 	private void ConfigureChrome()
@@ -76,16 +99,21 @@ public partial class ObjectivesHud : MarginContainer
 	{
 		foreach (var child in _entriesHost.GetChildren())
 			child.QueueFree();
+		_entries.Clear();
 
 		_emptyLabel.Visible = objectives.Count == 0;
 		_entriesHost.Visible = objectives.Count > 0;
 		_headerCountLabel.Text = $"{objectives.Count:D2}";
 
 		for (var index = 0; index < objectives.Count; index++)
-			_entriesHost.AddChild(WrapEntry(CreateEntry(objectives[index], index + 1)));
+		{
+			var panel = WrapEntry(CreateEntry(objectives[index], index + 1));
+			_entries[objectives[index].Id] = panel;
+			_entriesHost.AddChild(panel);
+		}
 	}
 
-	private Control WrapEntry(Control content)
+	private PanelContainer WrapEntry(Control content)
 	{
 		var panel = new PanelContainer
 		{

@@ -27,16 +27,9 @@ internal static class MerchantShipChanges
 				break;
 
 			case MerchantCatalog.Kind.UpgradeMaxShields:
-				if (next.Spec.ShieldUpgradeTier >= ShipSpec.MaxShieldUpgradeTier)
+				if (key.Face is not { } upgradeFace || !next.TryWithUpgradedMaxShields(upgradeFace, out var upgraded))
 					return false;
-				var oldMax = next.Spec.MaxShieldPoints;
-				next.Spec = next.Spec.WithUpgradedMaxShields();
-				foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-				{
-					next.ShieldPoints[face] = System.Math.Min(
-						next.ShieldPoints[face] + next.Spec.MaxShieldPoints[face] - oldMax[face],
-						next.Spec.MaxShieldPoints[face]);
-				}
+				next = upgraded;
 				break;
 
 			case MerchantCatalog.Kind.UpgradeMaxHull:
@@ -113,7 +106,9 @@ internal static class MerchantShipChanges
 				or MerchantCatalog.Kind.UpgradeRange =>
 				key.Mount is not null && key.Face is null,
 			MerchantCatalog.Kind.RechargeShieldFace =>
-				key.Mount is null && key.Face is not null,
+				key.Mount is null && key.Face is { } rechargeFace && Enum.IsDefined(rechargeFace),
+			MerchantCatalog.Kind.UpgradeMaxShields =>
+				key.Mount is null && key.Face is { } upgradeFace && Enum.IsDefined(upgradeFace),
 			_ => key.Mount is null && key.Face is null,
 		};
 }

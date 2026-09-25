@@ -15,6 +15,12 @@ public partial class StrategicHud : CanvasLayer
 
 	public ObjectivesHud Objectives => _objectivesHud;
 
+	public void NotifyContractAccepted(string contractId)
+	{
+		SyncObjectives();
+		_objectivesHud.NotifyAccepted(contractId);
+	}
+
 	public override void _Ready()
 	{
 		_objectivesHud = GetNode<ObjectivesHud>("ObjectivesHud");

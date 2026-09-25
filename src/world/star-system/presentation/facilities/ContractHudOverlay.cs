@@ -36,6 +36,7 @@ public sealed partial class ContractHudOverlay : Control
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
 		AddChild(_shell);
+		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
 	}
 
