@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Effects;
-using GrimSpace.Units;
+using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
@@ -52,7 +52,10 @@ public sealed class TorpedoMoveDef
 	public bool IsPossible(TorpedoMoveStepAction action, BattleWorld world)
 	{
 		var actor = world.StateOf(action.ActorId);
-		var body = actor.Type == EType.Torpedo ? TorpedoBodySpec.Require(actor.Spec) : null;
+		if (actor.Type != EType.Torpedo)
+			return false;
+
+		var body = actor.Projectile;
 		if (body is null || body.MoveApCost(action.Direction) is null)
 			return false;
 
@@ -66,7 +69,7 @@ public sealed class TorpedoMoveDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		var stepCost = TorpedoBodySpec.Require(actor.Spec).MoveApCost(action.Direction)
+		var stepCost = actor.RequireProjectile().MoveApCost(action.Direction)
 			?? throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
 		return stepCost <= actor.ActionPoints;
 	}
@@ -77,7 +80,7 @@ public sealed class TorpedoMoveDef
 		ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		var body = TorpedoBodySpec.Require(actor.Spec);
+		var body = actor.RequireProjectile();
 		var to = actor.Position + BodyFrame.From(actor).Step(action.Direction);
 		var stepCost = body.MoveApCost(action.Direction)
 			?? throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");

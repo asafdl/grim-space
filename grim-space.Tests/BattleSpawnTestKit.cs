@@ -6,6 +6,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Tests;
 
@@ -37,9 +38,10 @@ internal static class BattleSpawnTestKit
 		IReadOnlyList<InstalledAbility> installed) =>
 		ShipInstance.FromSpec(
 			id,
-			ShipSpec.Create(
-				EType.Fighter,
-				ShipCatalog.DefaultFor(EType.Fighter).MaxHullPoints,
-				ShipCatalog.DefaultFor(EType.Fighter).MaxShieldPoints,
+			FighterSpec.Instance,
+			ShipLoadout.Create(
+				FighterSpec.Instance,
+				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxHullPoints,
+				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 				installed));
 }

@@ -41,7 +41,7 @@ public sealed class TorpedoDef
 	internal IEnumerable<TorpedoAction> Discover(string actorId, string spawnedUnitId, BattleWorld world)
 	{
 		var state = world.StateOf(actorId);
-		foreach (var installed in state.Spec.InstalledAbilities)
+		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
 			if (installed.Spec.Kind != EAbilityKind.TorpedoLauncher)
 				continue;

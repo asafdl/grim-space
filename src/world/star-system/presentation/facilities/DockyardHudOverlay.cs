@@ -100,7 +100,7 @@ public sealed partial class DockyardHudOverlay : Control
 		var faces = offers
 			.Where(offer => offer.Offering.Mount is not null)
 			.Select(offer => offer.Offering.Mount!.Value.Facet)
-			.Concat(ship.Spec.InstalledAbilities.Select(ability => ability.Mount.Facet))
+			.Concat(ship.Loadout.InstalledAbilities.Select(ability => ability.Mount.Facet))
 			.Distinct()
 			.OrderBy(face => face)
 			.ToArray();
@@ -127,7 +127,7 @@ public sealed partial class DockyardHudOverlay : Control
 		};
 		body.AddChild(tabs);
 
-		var mounted = ship.Spec.InstalledAbilities
+		var mounted = ship.Loadout.InstalledAbilities
 			.Where(ability => ability.Mount.Facet == _selectedFace)
 			.ToArray();
 		body.AddChild(HudWidgets.CreateStatusPanel(
@@ -184,11 +184,11 @@ public sealed partial class DockyardHudOverlay : Control
 			MerchantCatalog.Kind.UpgradeDamage when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.DamageUpgradeTitle(
 					mount,
-					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
+					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			MerchantCatalog.Kind.UpgradeRange when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.RangeUpgradeTitle(
 					mount,
-					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
+					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			_ => "Upgrade",
 		};
 
@@ -196,14 +196,13 @@ public sealed partial class DockyardHudOverlay : Control
 		offer.Offering.Kind switch
 		{
 			MerchantCatalog.Kind.InstallWeapon when offer.Offering.Mount is { } mount =>
-				MerchantOfferDisplay.InstallBody(
-					ShipCatalog.DefaultAbilitySpec(EType.Fighter, mount.Kind)!),
+				MerchantOfferDisplay.InstallBody(ship.Spec.BaselineFor(mount)),
 			MerchantCatalog.Kind.UpgradeDamage when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.DamageUpgradeBody(
-					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
+					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			MerchantCatalog.Kind.UpgradeRange when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.RangeUpgradeBody(
-					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
+					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			_ => string.Empty,
 		};
 }

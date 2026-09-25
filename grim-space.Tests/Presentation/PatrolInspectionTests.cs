@@ -19,8 +19,8 @@ public sealed class PatrolInspectionTests
 
 		Assert.Equal("patrol-a", frame.FocusId);
 		Assert.Equal(EType.Patrol, frame.FocusState.Type);
-		Assert.Equal(3, frame.FocusState.Spec.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(0, frame.FocusState.Spec.MaxShieldPoints[ESpatialOrientation.Retro]);
+		Assert.Equal(3, frame.FocusState.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(0, frame.FocusState.Loadout.MaxShieldPoints[ESpatialOrientation.Retro]);
 		Assert.Contains("patrol-a", frame.PreviewUnits.Keys);
 	}
 }

@@ -427,7 +427,7 @@ public partial class UnitView : Node3D
 	private void BindShieldBubble(State state)
 	{
 		var bounds = LocalVisualBounds();
-		var maxProfile = state.Spec.MaxShieldPoints;
+		var maxProfile = state.Loadout.MaxShieldPoints;
 		foreach (var face in Faces)
 		{
 			if (maxProfile[face] <= 0)
@@ -447,7 +447,7 @@ public partial class UnitView : Node3D
 
 	private void ApplyShields(State state)
 	{
-		var maxProfile = state.Spec.MaxShieldPoints;
+		var maxProfile = state.Loadout.MaxShieldPoints;
 		foreach (var face in Faces)
 		{
 			var index = (int)face;

@@ -103,7 +103,7 @@ public sealed partial class ActionBar : HBoxContainer
 			var hotkey = (i + 2).ToString();
 			var button = CreateAbilitySlot(
 				hotkey,
-				spec.Tooltip,
+				"Ability",
 				spec.IconPath,
 				spec.IconTint,
 				abilityAccent,

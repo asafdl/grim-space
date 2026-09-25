@@ -7,7 +7,7 @@ namespace GrimSpace.Tests;
 internal static class OutcomeTestKit
 {
 	public static UnitStateHandoff Handoff(string id, EType chassis, int hullPoints) =>
-		new(id, chassis, hullPoints, ShipCatalog.DefaultFor(chassis).MaxShieldPoints.Clone());
+		new(id, chassis, hullPoints, ShipCatalog.NewRunLoadoutFor(chassis).MaxShieldPoints.Clone());
 
 	public static EType ChassisFromShipId(string shipId)
 	{

@@ -66,7 +66,7 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 	public static TorpedoReachEnvelope Build(BattleSimulation session, string actorId)
 	{
 		var actor = session.World.StateOf(actorId);
-		var body = TorpedoBodySpec.Require(actor.Spec);
+		var body = actor.RequireProjectile();
 		var fuel = actor.FuelRemaining;
 		if (fuel <= 0)
 			return new TorpedoReachEnvelope([], body.BlastRadius);

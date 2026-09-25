@@ -11,7 +11,7 @@ public sealed class State
 {
 	public required string Id { get; init; }
 	public required EType Type { get; init; }
-	public required ShipSpec Spec { get; init; }
+	public required ShipLoadout Loadout { get; init; }
 	public Coord Position { get; set; }
 	public Coord Fore { get; set; }
 	public Coord Dorsal { get; set; }
@@ -21,15 +21,20 @@ public sealed class State
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
 	public Dictionary<AbilityMount, MountRuntimeCounters> MountRuntime { get; } = new();
 	public int FuelRemaining { get; set; }
+	public TorpedoProjectile? Projectile { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public bool ApPenaltyNextTurn { get; set; }
-	public required Stats Stats { get; init; }
+	public required Stats Stats { get; set; }
 
 	public bool IsAlive => HullPoints > 0;
 
+	public TorpedoProjectile RequireProjectile() =>
+		Projectile
+		?? throw new InvalidOperationException($"Actor '{Id}' has no torpedo projectile profile.");
+
 	public InstalledAbility? FindInstalled(EAbilityKind kind, ESpatialOrientation mountedOn)
 	{
-		foreach (var installed in Spec.InstalledAbilities)
+		foreach (var installed in Loadout.InstalledAbilities)
 		{
 			if (installed.Mount == new AbilityMount(kind, mountedOn))
 				return installed;
@@ -39,7 +44,7 @@ public sealed class State
 	}
 
 	public InstalledAbility? FindInstalled(EAbilityKind kind) =>
-		Spec.InstalledAbilities.FirstOrDefault(installed => installed.Spec.Kind == kind);
+		Loadout.InstalledAbilities.FirstOrDefault(installed => installed.Spec.Kind == kind);
 
 	public MountRuntimeCounters MountRuntimeFor(AbilityMount mount) => MountRuntime[mount];
 
@@ -47,12 +52,12 @@ public sealed class State
 		MountRuntime.TryGetValue(mount, out var runtime) ? runtime.UsesRemaining : 0;
 
 	public int UsesRemaining(EAbilityKind kind) =>
-		Spec.InstalledAbilities
+		Loadout.InstalledAbilities
 			.Where(installed => installed.Spec.Kind == kind)
 			.Sum(installed => UsesRemaining(installed.Mount));
 
 	public int MaxUsesPerTurn(EAbilityKind kind) =>
-		Spec.InstalledAbilities
+		Loadout.InstalledAbilities
 			.Where(installed => installed.Spec.Kind == kind)
 			.Sum(installed => installed.Spec is IPerTurnAbility perTurn ? perTurn.UsesPerTurn : 0);
 
@@ -60,12 +65,12 @@ public sealed class State
 		MountRuntime.TryGetValue(mount, out var runtime) ? runtime.CooldownRemaining : 0;
 
 	public int ReadyMounts(EAbilityKind kind) =>
-		Spec.InstalledAbilities.Count(installed =>
+		Loadout.InstalledAbilities.Count(installed =>
 			installed.Spec.Kind == kind
 			&& CooldownRemaining(installed.Mount) == 0);
 
 	public int MountCount(EAbilityKind kind) =>
-		Spec.InstalledAbilities.Count(installed => installed.Spec.Kind == kind);
+		Loadout.InstalledAbilities.Count(installed => installed.Spec.Kind == kind);
 
 	public State Clone()
 	{
@@ -73,7 +78,7 @@ public sealed class State
 		{
 			Id = Id,
 			Type = Type,
-			Spec = Spec.DeepCopy(),
+			Loadout = Loadout.DeepCopy(),
 			Position = Position,
 			Fore = Fore,
 			Dorsal = Dorsal,
@@ -82,6 +87,7 @@ public sealed class State
 			HullPoints = HullPoints,
 			ShieldPoints = ShieldPoints.Clone(),
 			FuelRemaining = FuelRemaining,
+			Projectile = Projectile,
 			ParentId = ParentId,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
 			Stats = Stats,
@@ -101,12 +107,17 @@ public sealed class State
 		Coord dorsal,
 		string parentId = BattleActorIds.Rules)
 	{
-		var stats = Stats.ForSpec(ship.Spec);
+		var projectile = ship.Spec.Chassis == EType.Torpedo
+			? TorpedoProjectile.CatalogDefault()
+			: null;
+		var stats = ship.Spec.Chassis == EType.Torpedo && projectile is not null
+			? new Stats { MaxAp = projectile.MovementActionPoints }
+			: Stats.ForLoadout(ship.Spec, ship.Loadout);
 		var state = new State
 		{
 			Id = ship.Id,
 			Type = ship.Spec.Chassis,
-			Spec = ship.Spec.DeepCopy(),
+			Loadout = ship.Loadout.DeepCopy(),
 			Position = position,
 			Fore = fore,
 			Dorsal = dorsal,
@@ -115,10 +126,11 @@ public sealed class State
 			HullPoints = ship.HullPoints,
 			ShieldPoints = ship.ShieldPoints.Clone(),
 			FuelRemaining = 0,
+			Projectile = projectile,
 			ParentId = parentId,
 			Stats = stats,
 		};
-		foreach (var installed in ship.Spec.InstalledAbilities)
+		foreach (var installed in ship.Loadout.InstalledAbilities)
 			state.MountRuntime[installed.Mount] = installed.Spec.CreateInitialRuntime();
 		return state;
 	}

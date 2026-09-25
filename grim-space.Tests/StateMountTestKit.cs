@@ -10,7 +10,7 @@ internal static class StateMountTestKit
 		state.UsesRemaining(kind);
 
 	public static int CooldownRemaining(State state, EAbilityKind kind) =>
-		state.Spec.InstalledAbilities
+		state.Loadout.InstalledAbilities
 			.Where(installed => installed.Spec.Kind == kind)
 			.Select(installed => state.CooldownRemaining(installed.Mount))
 			.DefaultIfEmpty()

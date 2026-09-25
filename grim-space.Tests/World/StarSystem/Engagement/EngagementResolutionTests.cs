@@ -177,14 +177,14 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var history = map.Timeline.History();
 		Assert.Contains(
 			history,
-			entry => entry is ResolveEngagementAction { LootRolls.Count: 3 });
+			entry => entry is ResolveEngagementAction { LootRolls.Count: 1 });
 		Assert.Contains(
 			history,
 			entry => entry is Record<Transaction> { Value.Source: TransactionSource.BattleLoot });
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
-			150,
-			360);
+			50,
+			120);
 	}
 
 	[Fact]
@@ -233,8 +233,8 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
-			150,
-			360);
+			50,
+			120);
 		Assert.False(map.ContractRegistry.IsCompleted(contractId));
 		Assert.True(map.ContractRegistry.TryGetActive(PlayerId, out _));
 	}
@@ -255,8 +255,8 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
-			150,
-			360);
+			50,
+			120);
 		Assert.Equal(
 			initialCredits + TutorialBeatContracts.BeatAHuntRewardCredits,
 			map.PlayerResources.GetBalance(ResourceId.Credits));

@@ -1,49 +1,46 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Units;
 
-public sealed record ShipSpec(
-	EType Chassis,
+public sealed record ShipLoadout(
 	int MaxHullPoints,
 	FaceShieldPoints MaxShieldPoints,
 	IReadOnlyList<InstalledAbility> InstalledAbilities,
 	FaceShieldPoints ShieldUpgradeTiers,
-	int HullUpgradeTier = 0,
-	TorpedoBodySpec? TorpedoBody = null)
+	int HullUpgradeTier = 0)
 {
 	public const int MaxShieldUpgradeTier = 3;
 	public const int MaxHullUpgradeTier = 3;
 
-	public ShipSpec DeepCopy() =>
+	public ShipLoadout DeepCopy() =>
 		new(
-			Chassis,
 			MaxHullPoints,
 			MaxShieldPoints.Clone(),
 			InstalledAbilities.ToArray(),
 			ShieldUpgradeTiers.Clone(),
-			HullUpgradeTier,
-			TorpedoBody);
+			HullUpgradeTier);
 
-	public ShipSpec WithInstalledAbility(InstalledAbility installed)
+	public ShipLoadout WithInstalledAbility(ShipSpec spec, InstalledAbility installed)
 	{
+		ArgumentNullException.ThrowIfNull(spec);
 		ArgumentNullException.ThrowIfNull(installed);
 
 		var updated = InstalledAbilities.Append(installed).ToArray();
 		return Create(
-			Chassis,
+			spec,
 			MaxHullPoints,
 			MaxShieldPoints,
 			updated,
 			ShieldUpgradeTiers,
-			HullUpgradeTier,
-			TorpedoBody);
+			HullUpgradeTier);
 	}
 
-	public ShipSpec WithReplacedMount(AbilityMount mount, AbilitySpec replacement)
+	public ShipLoadout WithReplacedMount(ShipSpec spec, AbilityMount mount, AbilitySpec replacement)
 	{
+		ArgumentNullException.ThrowIfNull(spec);
 		ArgumentNullException.ThrowIfNull(replacement);
 
 		var found = false;
@@ -63,17 +60,17 @@ public sealed record ShipSpec(
 				$"Ship has no installed ability on mount '{mount.Kind}' / '{mount.Facet}'.");
 
 		return Create(
-			Chassis,
+			spec,
 			MaxHullPoints,
 			MaxShieldPoints,
 			updated,
 			ShieldUpgradeTiers,
-			HullUpgradeTier,
-			TorpedoBody);
+			HullUpgradeTier);
 	}
 
-	public ShipSpec WithUpgradedMaxShields(ESpatialOrientation face)
+	public ShipLoadout WithUpgradedMaxShields(ShipSpec spec, ESpatialOrientation face)
 	{
+		ArgumentNullException.ThrowIfNull(spec);
 		if (!Enum.IsDefined(face))
 			throw new ArgumentOutOfRangeException(nameof(face));
 		if (ShieldUpgradeTiers[face] >= MaxShieldUpgradeTier)
@@ -85,59 +82,73 @@ public sealed record ShipSpec(
 		tiers[face] += 1;
 
 		return Create(
-			Chassis,
+			spec,
 			MaxHullPoints,
 			max,
 			InstalledAbilities,
 			tiers,
-			HullUpgradeTier,
-			TorpedoBody);
+			HullUpgradeTier);
 	}
 
-	public ShipSpec WithUpgradedMaxHull()
+	public ShipLoadout WithUpgradedMaxHull(ShipSpec spec)
 	{
+		ArgumentNullException.ThrowIfNull(spec);
 		if (HullUpgradeTier >= MaxHullUpgradeTier)
 			throw new InvalidOperationException($"Ship hull capacity is already at upgrade tier {HullUpgradeTier}.");
 
 		return Create(
-			Chassis,
+			spec,
 			MaxHullPoints + 1,
 			MaxShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,
-			HullUpgradeTier + 1,
-			TorpedoBody);
+			HullUpgradeTier + 1);
 	}
 
-	public static ShipSpec Create(
-		EType chassis,
+	public static ShipLoadout Create(
+		ShipSpec spec,
 		int maxHullPoints,
 		FaceShieldPoints maxShieldPoints,
 		IReadOnlyList<InstalledAbility> installedAbilities,
 		FaceShieldPoints? shieldUpgradeTiers = null,
-		int hullUpgradeTier = 0,
-		TorpedoBodySpec? torpedoBody = null)
+		int hullUpgradeTier = 0)
 	{
+		ArgumentNullException.ThrowIfNull(spec);
 		ArgumentNullException.ThrowIfNull(maxShieldPoints);
-		InstalledAbility.EnsureValidOnShip(installedAbilities);
+		EnsureInstalledCompatible(spec, installedAbilities);
 		var tiers = shieldUpgradeTiers?.Clone() ?? new FaceShieldPoints();
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
 			if (tiers[face] < 0 || tiers[face] > MaxShieldUpgradeTier)
 				throw new ArgumentOutOfRangeException(nameof(shieldUpgradeTiers), $"Shield upgrade tier on {face} must be between 0 and {MaxShieldUpgradeTier}.");
 		}
-		if (chassis == EType.Torpedo && torpedoBody is null)
-			throw new ArgumentException("Torpedo chassis requires a torpedo body configuration.", nameof(torpedoBody));
-		if (chassis != EType.Torpedo && torpedoBody is not null)
-			throw new ArgumentException("Only torpedo chassis may carry a torpedo body configuration.", nameof(torpedoBody));
 
-		return new ShipSpec(
-			chassis,
+		return new ShipLoadout(
 			maxHullPoints,
 			maxShieldPoints.Clone(),
 			installedAbilities,
 			tiers,
-			hullUpgradeTier,
-			torpedoBody);
+			hullUpgradeTier);
+	}
+
+	public static void EnsureCompatibleWith(ShipSpec spec, ShipLoadout loadout)
+	{
+		ArgumentNullException.ThrowIfNull(spec);
+		ArgumentNullException.ThrowIfNull(loadout);
+		EnsureInstalledCompatible(spec, loadout.InstalledAbilities);
+	}
+
+	public static void EnsureInstalledCompatible(ShipSpec spec, IReadOnlyList<InstalledAbility> installed)
+	{
+		ArgumentNullException.ThrowIfNull(spec);
+		InstalledAbility.EnsureValidOnShip(installed);
+
+		foreach (var ability in installed)
+		{
+			if (!spec.Supports(ability.Mount))
+				throw new ArgumentException(
+					$"Mount '{ability.Mount.Kind}' / '{ability.Mount.Facet}' is not supported by chassis '{spec.Chassis}'.",
+					nameof(installed));
+		}
 	}
 }

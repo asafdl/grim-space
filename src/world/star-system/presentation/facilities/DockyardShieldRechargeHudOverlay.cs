@@ -166,9 +166,9 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		}
 
 		body.AddChild(HudWidgets.CreateCard(
-			MerchantOfferDisplay.HullUpgradeTitle(ship.Spec),
+			MerchantOfferDisplay.HullUpgradeTitle(ship.Loadout),
 			[ResourceCostDisplay.CreateMetadataRow(
-				offer.Cost, $"Max hull {ship.Spec.MaxHullPoints} -> {ship.Spec.MaxHullPoints + 1}")],
+				offer.Cost, $"Max hull {ship.Loadout.MaxHullPoints} -> {ship.Loadout.MaxHullPoints + 1}")],
 			() => SupportPurchaseRequested?.Invoke(offer.Offering, ship.Id)));
 	}
 
@@ -190,7 +190,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			[
 				ResourceCostDisplay.CreateMetadataRow(
 					repairOffer.Cost,
-					$"Restore {missing} hull to {ship.Spec.MaxHullPoints}"),
+					$"Restore {missing} hull to {ship.Loadout.MaxHullPoints}"),
 			],
 			() => SupportPurchaseRequested?.Invoke(repairOffer.Offering, shipId)));
 
@@ -217,10 +217,10 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			if (upgradeOffer is not null)
 			{
 				column.AddChild(HudWidgets.CreateCard(
-					MerchantOfferDisplay.ShieldUpgradeTitle(ship.Spec, face),
+					MerchantOfferDisplay.ShieldUpgradeTitle(ship.Loadout, face),
 					[ResourceCostDisplay.CreateMetadataRow(
 						upgradeOffer.Cost,
-						$"{ShortFaceName(face)} capacity {ship.Spec.MaxShieldPoints[face]} -> {ship.Spec.MaxShieldPoints[face] + 1}")],
+						$"{ShortFaceName(face)} capacity {ship.Loadout.MaxShieldPoints[face]} -> {ship.Loadout.MaxShieldPoints[face] + 1}")],
 					() => SupportPurchaseRequested?.Invoke(upgradeOffer.Offering, shipId)));
 			}
 			else
@@ -254,7 +254,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		string shipId,
 		MerchantCatalog.Offer? faceOffer)
 	{
-		var max = ship.Spec.MaxShieldPoints[face];
+		var max = ship.Loadout.MaxShieldPoints[face];
 		var current = System.Math.Clamp(ship.ShieldPoints[face], 0, max);
 		var creditCost = faceOffer is null ? 0 : CreditAmount(faceOffer.Cost);
 

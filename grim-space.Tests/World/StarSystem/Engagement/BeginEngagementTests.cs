@@ -48,7 +48,7 @@ public sealed class BeginEngagementTests
 			7,
 			committed.EngagementId);
 		Assert.Equal(playerId, committed.InitiatorUnitId);
-		Assert.Equal(4, encounter.Spawns.Count);
+		Assert.Equal(2, encounter.Spawns.Count);
 		Assert.Equal(
 			playerFleet.Members.Concat(pirateFleet.Members).Select(member => member.Id).Order(),
 			encounter.Spawns.Select(spawn => spawn.Ship.Id).Order());

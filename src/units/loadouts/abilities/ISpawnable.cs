@@ -1,4 +1,4 @@
-using GrimSpace.Units;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Units.Loadouts.Abilities;
 

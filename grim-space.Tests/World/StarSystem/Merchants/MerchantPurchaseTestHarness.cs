@@ -16,6 +16,9 @@ internal static class MerchantPurchaseTestHarness
 	public static MerchantCatalog.Offering FlakPortDamageUpgrade =>
 		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
 
+	public static MerchantCatalog.Offering RailgunForwardDamageUpgrade =>
+		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward));
+
 	public static MerchantCatalog.Offering FlakPortRangeUpgrade =>
 		new(MerchantCatalog.Kind.UpgradeRange, new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
 

@@ -1,6 +1,8 @@
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Tests.Units.Loadouts.Abilities;
 
@@ -18,10 +20,10 @@ public sealed class InstalledAbilityTests
 		};
 
 		Assert.Throws<ArgumentException>(() =>
-			ShipSpec.Create(
-				EType.Fighter,
+			ShipLoadout.Create(
+				FighterSpec.Instance,
 				maxHullPoints: 2,
-				ShipCatalog.DefaultFor(EType.Fighter).MaxShieldPoints,
+				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 				installed));
 	}
 
@@ -29,23 +31,26 @@ public sealed class InstalledAbilityTests
 	public void SameKindOnDifferentFacets_IsAllowed()
 	{
 		var flak = new FlakSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
-		var spec = ShipSpec.Create(
-			EType.Fighter,
+		var loadout = ShipLoadout.Create(
+			FighterSpec.Instance,
 			maxHullPoints: 2,
-			ShipCatalog.DefaultFor(EType.Fighter).MaxShieldPoints,
+			ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 			[
 				new InstalledAbility(flak, GrimSpace.Math.Grid.ESpatialOrientation.Port),
 				new InstalledAbility(flak, GrimSpace.Math.Grid.ESpatialOrientation.Starboard),
 			]);
 
-		Assert.Equal(2, spec.InstalledAbilities.Count);
+		Assert.Equal(2, loadout.InstalledAbilities.Count);
 	}
 
 	[Fact]
 	public void EachFacetMount_YieldsIndependentRuntime()
 	{
-		var snapshot = ShipInstance.FromCatalog("fighter-a", EType.Fighter);
-		var flak = snapshot.Spec.InstalledAbilities
+		var snapshot = ShipInstance.FromSpec(
+			"fighter-a",
+			FighterSpec.Instance,
+			ShipCatalog.FullFighterLoadout());
+		var flak = snapshot.Loadout.InstalledAbilities
 			.Where(ability => ability.Spec.Kind == EAbilityKind.Flak)
 			.ToArray();
 
@@ -55,9 +60,23 @@ public sealed class InstalledAbilityTests
 	}
 
 	[Fact]
-	public void FighterCatalog_HasExpectedMounts()
+	public void FighterNewRun_HasStarterMounts()
 	{
-		var installed = ShipCatalog.DefaultInstalledAbilitiesFor(EType.Fighter);
+		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities;
+
+		Assert.Equal(2, installed.Count);
+		Assert.Contains(
+			installed,
+			ability => ability.Mount == new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward));
+		Assert.Contains(
+			installed,
+			ability => ability.Mount == new AbilityMount(EAbilityKind.TorpedoLauncher, ESpatialOrientation.Ventral));
+	}
+
+	[Fact]
+	public void FighterFullCatalog_HasAllWeaponMounts()
+	{
+		var installed = ShipCatalog.FullFighterLoadout().InstalledAbilities;
 
 		Assert.Equal(6, installed.Count);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.Flak);
@@ -68,7 +87,7 @@ public sealed class InstalledAbilityTests
 	[Fact]
 	public void PatrolFlak_HasIndependentPortAndStarboardMounts()
 	{
-		var installed = ShipCatalog.DefaultInstalledAbilitiesFor(EType.Patrol);
+		var installed = ShipCatalog.NewRunLoadoutFor(EType.Patrol).InstalledAbilities;
 
 		Assert.Equal(2, installed.Count);
 		Assert.Contains(installed, ability => ability.Mount == new AbilityMount(EAbilityKind.Flak, GrimSpace.Math.Grid.ESpatialOrientation.Port));

@@ -28,7 +28,7 @@ public sealed class FixedContractDifficultyProviderTests(StarMapFixture maps)
 		var profile = FixedContractDifficultyProvider.Alpha.Get(maps.Fresh(42), 1);
 
 		Assert.Equal(EDangerLevel.VeryLow, profile.HuntEncounter.Danger);
-		Assert.Equal(3, profile.HuntEncounter.MemberTypes.Count);
+		Assert.Single(profile.HuntEncounter.MemberTypes);
 		Assert.True(profile.HuntRewardCredits > 0);
 		Assert.True(profile.DeliveryRewardCredits > 0);
 	}

@@ -12,7 +12,7 @@ public sealed class FaceShieldPointsTests
 	[Fact]
 	public void Catalog_Patrol_HasForwardShieldsOnly()
 	{
-		var defenses = ShipCatalog.DefaultFor(EType.Patrol).MaxShieldPoints;
+		var defenses = ShipCatalog.NewRunLoadoutFor(EType.Patrol).MaxShieldPoints;
 
 		Assert.Equal(3, defenses[ESpatialOrientation.Forward]);
 		Assert.Equal(0, defenses[ESpatialOrientation.Retro]);
@@ -36,21 +36,31 @@ public sealed class FaceShieldPointsTests
 	[Fact]
 	public void Catalog_Torpedo_HasOneShieldOnEveryFaceExceptRetro()
 	{
-		var defenses = ShipCatalog.DefaultFor(EType.Torpedo).MaxShieldPoints;
+		var defenses = ShipCatalog.NewRunLoadoutFor(EType.Torpedo).MaxShieldPoints;
 
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 1, defenses[face]);
 	}
 
 	[Fact]
-	public void Catalog_FighterAndCarrier_FillAllFaces()
+	public void Catalog_Carrier_FillsAllFaces()
 	{
-		foreach (var type in new[] { EType.Fighter, EType.Carrier })
-		{
-			var defenses = ShipCatalog.DefaultFor(type).MaxShieldPoints;
-			foreach (var face in Enum.GetValues<ESpatialOrientation>())
-				Assert.Equal(2, defenses[face]);
-		}
+		var defenses = ShipCatalog.NewRunLoadoutFor(EType.Carrier).MaxShieldPoints;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			Assert.Equal(2, defenses[face]);
+	}
+
+	[Fact]
+	public void NewRun_Fighter_HasForwardPortAndStarboardShieldsOnly()
+	{
+		var defenses = ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints;
+
+		Assert.Equal(1, defenses[ESpatialOrientation.Forward]);
+		Assert.Equal(1, defenses[ESpatialOrientation.Port]);
+		Assert.Equal(1, defenses[ESpatialOrientation.Starboard]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Retro]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Dorsal]);
+		Assert.Equal(0, defenses[ESpatialOrientation.Ventral]);
 	}
 
 	[Fact]
@@ -58,20 +68,20 @@ public sealed class FaceShieldPointsTests
 	{
 		var maxShields = new FaceShieldPoints();
 		maxShields[ESpatialOrientation.Dorsal] = 4;
-		var defaults = ShipCatalog.DefaultFor(EType.Fighter);
-		var spec = ShipSpec.Create(
-			EType.Fighter,
+		var defaults = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
+		var loadout = ShipLoadout.Create(
+			GrimSpace.Units.Specs.FighterSpec.Instance,
 			defaults.MaxHullPoints,
 			maxShields,
 			defaults.InstalledAbilities);
 
-		var ship = ShipInstance.FromSpec("custom-fighter", spec);
+		var ship = ShipInstance.FromSpec("custom-fighter", GrimSpace.Units.Specs.FighterSpec.Instance, loadout);
 		var state = State.FromShipInstance(ship, Coord.Zero);
 
 		Assert.Equal(4, ship.ShieldPoints[ESpatialOrientation.Dorsal]);
-		Assert.Equal(4, state.Spec.MaxShieldPoints[ESpatialOrientation.Dorsal]);
+		Assert.Equal(4, state.Loadout.MaxShieldPoints[ESpatialOrientation.Dorsal]);
 		Assert.Equal(4, state.ShieldPoints[ESpatialOrientation.Dorsal]);
-		Assert.Equal(0, state.Spec.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(0, state.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
 	}
 
 	[Fact]
@@ -80,8 +90,8 @@ public sealed class FaceShieldPointsTests
 		var ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter);
 		var state = State.FromShipInstance(ship, Coord.Zero);
 
-		ship.Spec.MaxShieldPoints[ESpatialOrientation.Forward] = 7;
+		ship.Loadout.MaxShieldPoints[ESpatialOrientation.Forward] = 7;
 
-		Assert.Equal(2, state.Spec.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(2, state.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
 	}
 }

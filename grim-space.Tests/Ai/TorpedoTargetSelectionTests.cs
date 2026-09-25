@@ -91,7 +91,7 @@ public sealed class TorpedoTargetSelectionTests
 		FaceForward(battle, torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoBody().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);

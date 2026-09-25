@@ -1,5 +1,5 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Units.Loadouts.Abilities;
 
@@ -216,8 +216,14 @@ public sealed record PatrolBaySpec(
 	int ISpawnable.MaxLivingChildren => MaxLivingChildren;
 }
 
-public sealed record TorpedoLauncherSpec(int CooldownTurns, ShipSpec ChildSpec)
-	: AbilitySpec, ISpawnable, ICooldownAbility
+public sealed record TorpedoLauncherSpec(
+	int CooldownTurns,
+	int FuelTurns,
+	int MovementActionPoints,
+	int ForwardMoveApCost,
+	int LateralMoveApCost,
+	int BlastRadius,
+	int BlastDamage) : AbilitySpec, ISpawnable, ICooldownAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets =
 	[
@@ -229,8 +235,19 @@ public sealed record TorpedoLauncherSpec(int CooldownTurns, ShipSpec ChildSpec)
 	public override EAbilityKind Kind => EAbilityKind.TorpedoLauncher;
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
-	ShipSpec ISpawnable.ChildSpec => ChildSpec;
+	ShipSpec ISpawnable.ChildSpec => TorpedoSpec.Instance;
 	int ISpawnable.MaxLivingChildren => 0;
+
+	public int? MoveApCost(ESpatialOrientation direction) =>
+		direction switch
+		{
+			ESpatialOrientation.Forward => ForwardMoveApCost,
+			ESpatialOrientation.Port
+				or ESpatialOrientation.Starboard
+				or ESpatialOrientation.Dorsal
+				or ESpatialOrientation.Ventral => LateralMoveApCost,
+			_ => null,
+		};
 }
 
 public interface IPerTurnAbility

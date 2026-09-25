@@ -107,7 +107,7 @@ internal static class EnemySearchInput
 	private static int OptimisticWeaponReach(State state)
 	{
 		var reach = 0;
-		foreach (var installed in state.Spec.InstalledAbilities)
+		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
 			if (installed.Spec is not IPerTurnAbility)
 				continue;
@@ -224,7 +224,7 @@ internal static class EnemySearchInput
 	private static bool CanDamageNow(BattleWorld world, string actorId)
 	{
 		var state = world.StateOf(actorId);
-		foreach (var installed in state.Spec.InstalledAbilities)
+		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
 			if (state.UsesRemaining(installed.Mount) <= 0)
 				continue;

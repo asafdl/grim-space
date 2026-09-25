@@ -98,7 +98,7 @@ internal static class BattleSearchVisit
 	private static string MountFingerprint(ActorState actor) =>
 		string.Join(
 			'|',
-			actor.Spec.InstalledAbilities.Select(installed =>
+			actor.Loadout.InstalledAbilities.Select(installed =>
 			{
 				var runtime = actor.MountRuntimeFor(installed.Mount);
 				return $"{installed.Spec.Kind}:{installed.MountedOn}:{runtime.UsesRemaining}:{runtime.CooldownRemaining}";

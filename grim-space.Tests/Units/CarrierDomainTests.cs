@@ -17,7 +17,7 @@ public sealed class CarrierDomainTests
 	public void CarrierStatsAreConfigured()
 	{
 		var stats = Stats.ForType(EType.Carrier);
-		var configuration = ShipCatalog.DefaultFor(EType.Carrier);
+		var configuration = ShipCatalog.NewRunLoadoutFor(EType.Carrier);
 		Assert.Equal(3, stats.MaxAp);
 		Assert.Equal(2, configuration.MaxHullPoints);
 		Assert.Equal(2, configuration.MaxShieldPoints.MaxOnAnyFace);

@@ -51,7 +51,11 @@ public static class Factory
 		if (installed.Spec is not ISpawnable spawnable)
 			throw new InvalidOperationException($"Installed ability '{installed.Spec.Kind}' is not spawnable.");
 
-		return ShipInstance.FromSpec(childId, spawnable.ChildSpec);
+		var childSpec = spawnable.ChildSpec;
+		return ShipInstance.FromSpec(
+			childId,
+			childSpec,
+			childSpec.NewDefaultLoadout());
 	}
 
 	private static string ResolveId(ShipInstance ship) =>

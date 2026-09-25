@@ -53,7 +53,7 @@ public static class StateLog
 	private static string FormatUnit(State state) =>
 		$"{state.Id}: pos={state.Position} fore={state.Fore} dorsal={state.Dorsal} "
 		+ $"starboard={state.Starboard} "
-		+ $"hull={state.HullPoints}/{state.Spec.MaxHullPoints} "
+		+ $"hull={state.HullPoints}/{state.Loadout.MaxHullPoints} "
 		+ $"shields=F{state.ShieldPoints[ESpatialOrientation.Forward]}"
 		+ $"/A{state.ShieldPoints[ESpatialOrientation.Retro]}"
 		+ $"/S{state.ShieldPoints[ESpatialOrientation.Starboard]}"

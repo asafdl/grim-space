@@ -107,7 +107,7 @@ public sealed class ShipSupportCatalogTests
 	public void ListFor_PerFaceTierPricingAndCap_KeepOtherFacesAvailable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		for (var tier = 0; tier < ShipSpec.MaxShieldUpgradeTier; tier++)
+		for (var tier = 0; tier < ShipLoadout.MaxShieldUpgradeTier; tier++)
 		{
 			var offer = ShipSupportCatalog.ListFor(ship).Single(o =>
 				o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
@@ -128,7 +128,7 @@ public sealed class ShipSupportCatalogTests
 	public void ListFor_OffersUpgradeOnZeroMaxFace()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		ship.Spec.MaxShieldPoints[ESpatialOrientation.Dorsal] = 0;
+		ship.Loadout.MaxShieldPoints[ESpatialOrientation.Dorsal] = 0;
 		ship.ShieldPoints[ESpatialOrientation.Dorsal] = 0;
 
 		Assert.Contains(ShipSupportCatalog.ListFor(ship), offer =>

@@ -30,7 +30,7 @@ public static class ShipSupportCatalog
 				maxShields,
 				ResourceBundle.Of(
 					ResourceId.ScrapAlloy,
-					ShieldUpgradeBaseScrap + ShieldUpgradeStepScrap * ship.Spec.ShieldUpgradeTiers[face])));
+					ShieldUpgradeBaseScrap + ShieldUpgradeStepScrap * ship.Loadout.ShieldUpgradeTiers[face])));
 		}
 
 		var maxHull = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxHull);
@@ -40,7 +40,7 @@ public static class ShipSupportCatalog
 				maxHull,
 				ResourceBundle.Create(
 					(ResourceId.Credits, HullUpgradeCreditCost),
-					(ResourceId.ScrapAlloy, HullUpgradeBaseScrap + HullUpgradeStepScrap * ship.Spec.HullUpgradeTier))));
+					(ResourceId.ScrapAlloy, HullUpgradeBaseScrap + HullUpgradeStepScrap * ship.Loadout.HullUpgradeTier))));
 		}
 
 		var repair = new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull);
@@ -65,7 +65,7 @@ public static class ShipSupportCatalog
 
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
-			if (ship.Spec.MaxShieldPoints[face] <= 0)
+			if (ship.Loadout.MaxShieldPoints[face] <= 0)
 				continue;
 
 			var faceOffering = new MerchantCatalog.Offering(

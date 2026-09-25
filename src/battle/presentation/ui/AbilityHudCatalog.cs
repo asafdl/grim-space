@@ -24,7 +24,7 @@ public static class AbilityHudCatalog
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Def,
 		AbilityTargetingSpec Targeting,
 		string? IconPath,
-		string Tooltip,
+		Func<UnitDisplayState, string> Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
 		Func<AbilityLegality, bool> IsLegal)
 	{
@@ -41,7 +41,7 @@ public static class AbilityHudCatalog
 	public static IReadOnlyList<Spec> ForActor(State state) =>
 		state.Type == EType.Torpedo
 			? [Resolve(DetonateDef.Instance)]
-			: Capabilities.AbilityDefsForLoadout(state.Spec.InstalledAbilities)
+			: Capabilities.AbilityDefsForLoadout(state.Loadout.InstalledAbilities)
 				.Select(Resolve)
 				.ToList();
 
@@ -49,7 +49,7 @@ public static class AbilityHudCatalog
 		ForActor(unit.ToState());
 
 	public static AbilityBarSlotState BuildState(Spec spec, UnitDisplayState unit, AbilityLegality legality) =>
-		new(spec.Tooltip, spec.Charges(unit, legality), spec.IsLegal(legality));
+		new(spec.Tooltip(unit), spec.Charges(unit, legality), spec.IsLegal(legality));
 
 	private static Spec Resolve(
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
@@ -63,7 +63,7 @@ public static class AbilityHudCatalog
 					AbilitySourceMeshes.CreateFlakBurst,
 					new Color(0.96f, 0.64f, 0.2f, 0.44f)),
 				"res://assets/ui/abilities/flak.svg",
-				BattleHudCopy.FlakTooltip,
+				BattleHudCopy.FlakTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.Flak),
 					unit.MaxUsesPerTurn(EAbilityKind.Flak)),
@@ -76,7 +76,7 @@ public static class AbilityHudCatalog
 					AbilitySourceMeshes.CreateRailgun,
 					new Color(0.55f, 0.82f, 1f, 0.42f)),
 				"res://assets/ui/abilities/railgun.svg",
-				BattleHudCopy.RailgunTooltip,
+				BattleHudCopy.RailgunTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.Railgun),
 					unit.MaxUsesPerTurn(EAbilityKind.Railgun)),
@@ -89,7 +89,7 @@ public static class AbilityHudCatalog
 					AbilitySourceMeshes.CreateTorpedo,
 					new Color(0.25f, 0.85f, 0.95f, 0.55f)),
 				"res://assets/ui/abilities/torpedo.svg",
-				BattleHudCopy.TorpedoTooltip,
+				BattleHudCopy.TorpedoTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.TorpedoLauncher),
 					unit.MountCount(EAbilityKind.TorpedoLauncher)),
@@ -102,10 +102,10 @@ public static class AbilityHudCatalog
 					AbilitySourceMeshes.CreateDetonation,
 					new Color(1f, 0.42f, 0.18f, 0.5f)),
 				"res://assets/ui/abilities/detonate.svg",
-				BattleHudCopy.DetonateTooltip,
+				BattleHudCopy.DetonateTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.FuelRemaining,
-					TorpedoBodySpec.Require(unit.Spec).FuelTurns),
+					unit.Projectile?.FuelTurns ?? 0),
 				legality => legality.Detonate),
 			SpawnPatrolDef => new(
 				EPlayerMode.SpawnPatrol,
@@ -115,7 +115,7 @@ public static class AbilityHudCatalog
 					AbilitySourceMeshes.CreatePatrol,
 					new Color(0.4f, 0.9f, 0.58f, 0.48f)),
 				"res://assets/ui/abilities/patrol.svg",
-				BattleHudCopy.SpawnPatrolTooltip,
+				BattleHudCopy.SpawnPatrolTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.PatrolBay),
 					unit.MountCount(EAbilityKind.PatrolBay)),

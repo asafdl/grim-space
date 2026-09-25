@@ -2,7 +2,6 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
-using GrimSpace.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -64,7 +63,7 @@ public sealed class DetonateDef
 		ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		var body = TorpedoBodySpec.Require(actor.Spec);
+		var body = actor.RequireProjectile();
 		var origin = actor.Position;
 		var cells = Manhattan.EnumerateBall(origin, body.BlastRadius)
 			.Where(world.Grid.IsInBounds)
@@ -81,9 +80,9 @@ public sealed class DetonateDef
 
 	public static bool HasOpponentInBlast(BattleWorld world, string actorId, Coord origin)
 	{
-		var blastRadius = TorpedoBodySpec.Require(world.StateOf(actorId).Spec).BlastRadius;
 		var units = UnitRegistry.For(world);
 		var actor = units.UnitOf(actorId);
+		var blastRadius = actor.State.RequireProjectile().BlastRadius;
 		foreach (var unit in units.Except(actorId))
 		{
 			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Opponent)

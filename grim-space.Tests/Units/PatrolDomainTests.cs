@@ -13,7 +13,7 @@ public sealed class PatrolDomainTests
 	public void PatrolStatsAreConfigured()
 	{
 		var stats = Stats.ForType(EType.Patrol);
-		var configuration = ShipCatalog.DefaultFor(EType.Patrol);
+		var configuration = ShipCatalog.NewRunLoadoutFor(EType.Patrol);
 
 		var maxShields = configuration.MaxShieldPoints;
 

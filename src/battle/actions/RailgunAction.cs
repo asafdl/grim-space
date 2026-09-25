@@ -27,7 +27,7 @@ public sealed class RailgunDef
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		foreach (var installed in world.StateOf(actorId).Spec.InstalledAbilities)
+		foreach (var installed in world.StateOf(actorId).Loadout.InstalledAbilities)
 		{
 			if (installed.Spec.Kind != EAbilityKind.Railgun)
 				continue;

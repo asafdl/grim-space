@@ -14,7 +14,7 @@ public sealed class TorpedoMovementTests
 	[Fact]
 	public void ForwardAndLateralStepsUseTorpedoCosts()
 	{
-		var body = CatalogExpectations.DefaultTorpedoBody();
+		var body = CatalogExpectations.DefaultTorpedoLauncher();
 		var (sim, torpedoId) = CreateSimulation();
 		var state = sim.StateOf<ActorState>(torpedoId);
 

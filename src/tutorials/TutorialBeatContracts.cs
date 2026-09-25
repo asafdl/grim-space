@@ -44,11 +44,7 @@ public static class TutorialBeatContracts
 				FleetType.PirateFleet,
 				EFaction.Pirates,
 				EDangerLevel.VeryLow,
-				[
-					BattleUnitType.Patrol,
-					BattleUnitType.Patrol,
-					BattleUnitType.Patrol,
-				]),
+				[BattleUnitType.Patrol]),
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, BeatAHuntRewardCredits)),
 			ContractNarrative.ForHunt("Pirate Hunt"),
 			IsStoryObjective: true);

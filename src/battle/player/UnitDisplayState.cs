@@ -5,13 +5,14 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Battle.Player;
 
 public sealed record UnitDisplayState(
 	string Id,
 	EType Type,
-	ShipSpec Spec,
+	ShipLoadout Loadout,
 	Coord Position,
 	Coord Fore,
 	Coord Dorsal,
@@ -22,27 +23,29 @@ public sealed record UnitDisplayState(
 	int MaxActionPoints,
 	IReadOnlyList<MountDisplayState> Mounts,
 	int FuelRemaining,
+	TorpedoProjectile? Projectile,
 	bool IsAlive)
 {
 	public static UnitDisplayState Capture(State state) =>
 		new(
 			state.Id,
 			state.Type,
-			state.Spec.DeepCopy(),
+			state.Loadout.DeepCopy(),
 			state.Position,
 			state.Fore,
 			state.Dorsal,
 			state.HullPoints,
-			state.Spec.MaxHullPoints,
+			state.Loadout.MaxHullPoints,
 			state.ShieldPoints.Clone(),
 			state.ActionPoints,
 			state.Stats.MaxAp,
-			state.Spec.InstalledAbilities
+			state.Loadout.InstalledAbilities
 				.Select(installed => MountDisplayState.Capture(
 					installed,
 					state.MountRuntimeFor(installed.Mount)))
 				.ToList(),
 			state.FuelRemaining,
+			state.Projectile,
 			state.IsAlive);
 
 	public int UsesRemaining(EAbilityKind kind) =>
@@ -73,7 +76,7 @@ public sealed record UnitDisplayState(
 		{
 			Id = Id,
 			Type = Type,
-			Spec = Spec.DeepCopy(),
+			Loadout = Loadout.DeepCopy(),
 			Position = Position,
 			Fore = Fore,
 			Dorsal = Dorsal,
@@ -82,7 +85,10 @@ public sealed record UnitDisplayState(
 			HullPoints = HullPoints,
 			ShieldPoints = shields,
 			FuelRemaining = FuelRemaining,
-			Stats = Stats.ForSpec(Spec),
+			Projectile = Projectile,
+			Stats = Projectile is not null
+				? new Stats { MaxAp = Projectile.MovementActionPoints }
+				: Stats.ForType(Type),
 		};
 		foreach (var mount in Mounts)
 		{

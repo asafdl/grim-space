@@ -29,33 +29,29 @@ public static class WeaponsCatalog
 		ArgumentNullException.ThrowIfNull(ship);
 		var offers = new List<MerchantCatalog.Offer>();
 
-		foreach (var kind in SellableKinds)
+		foreach (var slot in ship.Spec.Slots)
 		{
-			var spec = ShipCatalog.DefaultAbilitySpec(EType.Fighter, kind);
-			if (spec is null)
+			if (!SellableKinds.Contains(slot.Baseline.Kind))
 				continue;
 
-			foreach (var facet in spec.CompatibleFacets)
+			var mount = slot.Mount;
+			if (ship.Loadout.InstalledAbilities.Any(installed => installed.Mount == mount))
+				continue;
+
+			var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.InstallWeapon, mount);
+			if (!MerchantShipChanges.TryPrepareAfter(offering, ship, out _))
+				continue;
+
+			var cost = mount.Kind switch
 			{
-				var mount = new AbilityMount(kind, facet);
-				if (ship.Spec.InstalledAbilities.Any(installed => installed.Mount == mount))
-					continue;
-
-				var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.InstallWeapon, mount);
-				if (!MerchantShipChanges.TryPrepareAfter(offering, ship, out _))
-					continue;
-
-				var cost = mount.Kind switch
-				{
-					EAbilityKind.Flak => FlakInstallPrice,
-					EAbilityKind.Railgun => RailgunInstallPrice,
-					_ => DefaultInstallPrice,
-				};
-				offers.Add(new MerchantCatalog.Offer(offering, cost));
-			}
+				EAbilityKind.Flak => FlakInstallPrice,
+				EAbilityKind.Railgun => RailgunInstallPrice,
+				_ => DefaultInstallPrice,
+			};
+			offers.Add(new MerchantCatalog.Offer(offering, cost));
 		}
 
-		foreach (var installed in ship.Spec.InstalledAbilities)
+		foreach (var installed in ship.Loadout.InstalledAbilities)
 		{
 			var damageOffering = new MerchantCatalog.Offering(
 				MerchantCatalog.Kind.UpgradeDamage,

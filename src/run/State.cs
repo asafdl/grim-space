@@ -112,7 +112,7 @@ public sealed class State : IDisposable
 	{
 		var run = new State();
 		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
-		run.ShipRegistry.Register(ShipInstance.FromCatalog(playerShipId, BattleUnitType.Fighter));
+		run.ShipRegistry.Register(ShipCatalog.CreateInstance(playerShipId, BattleUnitType.Fighter));
 		run.PlayerParty.Add(playerShipId);
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,

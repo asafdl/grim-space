@@ -27,7 +27,7 @@ public sealed class FlakDef
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var state = world.StateOf(actorId);
-		foreach (var installed in state.Spec.InstalledAbilities)
+		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
 			if (installed.Spec.Kind != EAbilityKind.Flak)
 				continue;

@@ -107,7 +107,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		using var run = State.CreateNewRun(42);
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
-		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
+		var offering = MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade;
 		SeedScrap(run.StarSystem.Map, 200);
 		var before = ship.Clone();
 		var action = CreateAction(
@@ -127,7 +127,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		Assert.NotNull(purchase);
 
 		var updated = run.ShipRegistry.Get(shipId);
-		Assert.NotEqual(before.Spec, updated.Spec);
+		Assert.NotEqual(before.Loadout, updated.Loadout);
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, updated, out var nextOffer));
 		Assert.True(nextOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var nextScrap));
 		Assert.Equal(60, nextScrap);
@@ -215,7 +215,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		run.StarSystem.CommitSetup(action);
 
 		var updated = run.ShipRegistry.Get(shipId);
-		Assert.Equal(before.Spec.MaxHullPoints, updated.HullPoints);
+		Assert.Equal(before.Loadout.MaxHullPoints, updated.HullPoints);
 	}
 
 	[Fact]
@@ -251,10 +251,10 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
 		Assert.Equal(115, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 		var after = purchase.After;
-		Assert.Equal(before.Spec.MaxShieldPoints[face] + 1, after.Spec.MaxShieldPoints[face]);
+		Assert.Equal(before.Loadout.MaxShieldPoints[face] + 1, after.Loadout.MaxShieldPoints[face]);
 		Assert.Equal(before.ShieldPoints[face] + 1, after.ShieldPoints[face]);
-		Assert.Equal(1, after.Spec.ShieldUpgradeTiers[face]);
-		Assert.Equal(before.Spec.MaxShieldPoints[otherFace], after.Spec.MaxShieldPoints[otherFace]);
+		Assert.Equal(1, after.Loadout.ShieldUpgradeTiers[face]);
+		Assert.Equal(before.Loadout.MaxShieldPoints[otherFace], after.Loadout.MaxShieldPoints[otherFace]);
 		Assert.Equal(before.ShieldPoints[otherFace], after.ShieldPoints[otherFace]);
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.ShipSupport, offering, after, out var nextOffer));
 		Assert.True(nextOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var nextScrap));
@@ -286,7 +286,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
 		SeedScrap(engine.World, 150);
 		var forged = ship.Clone();
-		forged.Spec.ShieldUpgradeTiers[ESpatialOrientation.Forward] = 1;
+		forged.Loadout.ShieldUpgradeTiers[ESpatialOrientation.Forward] = 1;
 
 		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
 			unitId,
@@ -306,7 +306,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			unitId, engine.World, EMerchantCatalog.ShipSupport, offering, ship.Clone())));
 
 		SeedScrap(engine.World, 500);
-		for (var tier = 0; tier < ShipSpec.MaxShieldUpgradeTier; tier++)
+		for (var tier = 0; tier < ShipLoadout.MaxShieldUpgradeTier; tier++)
 			Assert.True(ship.TryWithUpgradedMaxShields(face, out ship));
 		registry.Update(ship);
 		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
@@ -367,6 +367,15 @@ public sealed class MerchantCommerceCharacterizationTests
 			weaponOffers,
 			o => o.Offering == MerchantPurchaseTestHarness.FlakPortDamageUpgrade);
 
+		var starter = ShipCatalog.CreateInstance("starter-1", EType.Fighter);
+		var starterWeaponOffers = WeaponsCatalog.ListFor(starter);
+		Assert.Contains(
+			starterWeaponOffers,
+			o => o.Offering == MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade);
+		Assert.DoesNotContain(
+			starterWeaponOffers,
+			o => o.Offering == MerchantPurchaseTestHarness.FlakPortDamageUpgrade);
+
 		var supportOffers = ShipSupportCatalog.ListFor(ship);
 		var shieldOffer = supportOffers.Single(o => o.Offering ==
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
@@ -401,7 +410,7 @@ public sealed class MerchantCommerceCharacterizationTests
 		using var run = State.CreateNewRun(42);
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
-		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
+		var offering = MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade;
 		SeedScrap(run.StarSystem.Map, 500);
 		var before = ship.Clone();
 		var action = new PurchaseAction(
@@ -424,12 +433,12 @@ public sealed class MerchantCommerceCharacterizationTests
 			id: "characterization-engagement");
 
 		var spawn = encounter.Spawns.Single(s => s.Ship.Id == shipId);
-		var portBefore = (FlakSpec)before.Spec.InstalledAbilities
-			.First(a => a.MountedOn == ESpatialOrientation.Port).Spec;
-		var portAfter = (FlakSpec)registryShip.Spec.InstalledAbilities
-			.First(a => a.MountedOn == ESpatialOrientation.Port).Spec;
-		Assert.Equal(portBefore.Damage + 1, portAfter.Damage);
-		Assert.Equal(registryShip.Spec.InstalledAbilities, spawn.Ship.Spec.InstalledAbilities);
+		var railgunBefore = (RailgunSpec)before.Loadout.InstalledAbilities
+			.First(a => a.MountedOn == ESpatialOrientation.Forward).Spec;
+		var railgunAfter = (RailgunSpec)registryShip.Loadout.InstalledAbilities
+			.First(a => a.MountedOn == ESpatialOrientation.Forward).Spec;
+		Assert.Equal(railgunBefore.Damage + 1, railgunAfter.Damage);
+		Assert.Equal(registryShip.Loadout.InstalledAbilities, spawn.Ship.Loadout.InstalledAbilities);
 		Assert.Equal(registryShip.HullPoints, spawn.Ship.HullPoints);
 		Assert.True(registryShip.ShieldPoints.Matches(spawn.Ship.ShieldPoints));
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, registryShip, out var nextOffer));

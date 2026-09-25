@@ -29,7 +29,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		}
 
 		actor.ActionPoints = maxAp;
-		foreach (var installed in actor.Spec.InstalledAbilities)
+		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
 		return [];

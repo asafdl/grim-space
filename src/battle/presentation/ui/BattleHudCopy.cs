@@ -1,10 +1,11 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Units;
 using GrimSpace.Components;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -34,15 +35,6 @@ internal static class BattleHudCopy
 	public const string MoveTooltip =
 		"Move:\nEach AP advances one cell and may include one quarter-turn and one quarter-roll.";
 
-	public static string FlakTooltip => FlakTooltipFor(EType.Fighter);
-
-	public static string RailgunTooltip => RailgunTooltipFor(EType.Fighter);
-
-	public static string TorpedoTooltip => TorpedoTooltipFor(EType.Fighter);
-
-	public static string DetonateTooltip => DetonateTooltipFor(EType.Torpedo);
-
-	public static string SpawnPatrolTooltip => SpawnPatrolTooltipFor(EType.Carrier);
 	public const string EndTurn = "End Turn";
 	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
 
@@ -103,62 +95,64 @@ internal static class BattleHudCopy
 			_ => OutcomeDefault,
 		};
 
-	private static string FlakTooltipFor(EType chassis)
-	{
-		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.Flak) is not FlakSpec flak)
-			return "Flak";
+	public static string FlakTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<FlakSpec>(unit, EAbilityKind.Flak) is { } flak
+			? FlakTooltipFor(flak)
+			: "Flak";
 
-		return
-			$"Flak:\nSide burst (port or starboard).\n" +
-			$"Range: {AbilityReach.MaxManhattanFromFirer(flak)} cells.\n" +
-			$"Deals {flak.Damage} damage.\n" +
-			$"Cooldown: {flak.UsesPerTurn} use per turn.";
-	}
+	public static string RailgunTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<RailgunSpec>(unit, EAbilityKind.Railgun) is { } railgun
+			? RailgunTooltipFor(railgun)
+			: "Railgun";
 
-	private static string RailgunTooltipFor(EType chassis)
-	{
-		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.Railgun) is not RailgunSpec railgun)
-			return "Railgun";
+	public static string TorpedoTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<TorpedoLauncherSpec>(unit, EAbilityKind.TorpedoLauncher) is { } launcher
+			? TorpedoTooltipFor(launcher)
+			: "Torpedo";
 
-		return
-			$"Railgun:\nFires in a long straight line ahead.\n" +
-			$"Range: {AbilityReach.MaxManhattanFromFirer(railgun)} cells.\n" +
-			$"Deals {railgun.Damage} damage.\n" +
-			$"Cooldown: {railgun.UsesPerTurn} use per turn.";
-	}
+	public static string DetonateTooltipFor(UnitDisplayState unit) =>
+		unit.Projectile is { } projectile
+			? DetonateTooltipFor(projectile)
+			: "Detonate";
 
-	private static string TorpedoTooltipFor(EType chassis)
-	{
-		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.TorpedoLauncher) is not TorpedoLauncherSpec launcher)
-			return "Torpedo";
+	public static string SpawnPatrolTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<PatrolBaySpec>(unit, EAbilityKind.PatrolBay) is { } bay
+			? SpawnPatrolTooltipFor(bay)
+			: "Deploy Patrol";
 
-		var body = TorpedoBodySpec.Require(launcher.ChildSpec);
-		return
-			$"Torpedo:\nFires in a set direction.\n" +
-			$"Travels for {body.FuelTurns} turns with {body.MovementActionPoints} AP per turn.\n" +
-			$"Forward movement costs {body.ForwardMoveApCost} AP; lateral movement costs {body.LateralMoveApCost} AP.\n" +
-			$"Blast radius: {body.BlastRadius} cells, {body.BlastDamage} damage.\n" +
-			$"Cooldown: {launcher.CooldownTurns} turns after launch.";
-	}
+	public static string FlakTooltipFor(FlakSpec flak) =>
+		$"Flak:\nSide burst (port or starboard).\n" +
+		$"Range: {AbilityReach.MaxManhattanFromFirer(flak)} cells.\n" +
+		$"Deals {flak.Damage} damage.\n" +
+		$"Cooldown: {flak.UsesPerTurn} use per turn.";
 
-	private static string DetonateTooltipFor(EType chassis)
-	{
-		var body = TorpedoBodySpec.Require(ShipCatalog.DefaultFor(chassis));
-		return
-			$"Detonate:\nExplodes for {body.BlastDamage} damage in a {body.BlastRadius}-cell radius.\n" +
-			$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
-			$"Fuel: {body.FuelTurns} turns after launch.";
-	}
+	public static string RailgunTooltipFor(RailgunSpec railgun) =>
+		$"Railgun:\nFires in a long straight line ahead.\n" +
+		$"Range: {AbilityReach.MaxManhattanFromFirer(railgun)} cells.\n" +
+		$"Deals {railgun.Damage} damage.\n" +
+		$"Cooldown: {railgun.UsesPerTurn} use per turn.";
 
-	private static string SpawnPatrolTooltipFor(EType chassis)
-	{
-		if (ShipCatalog.DefaultAbilitySpec(chassis, EAbilityKind.PatrolBay) is not PatrolBaySpec bay)
-			return "Deploy Patrol";
+	public static string TorpedoTooltipFor(TorpedoLauncherSpec launcher) =>
+		$"Torpedo:\nFires in a set direction.\n" +
+		$"Travels for {launcher.FuelTurns} turns with {launcher.MovementActionPoints} AP per turn.\n" +
+		$"Forward movement costs {launcher.ForwardMoveApCost} AP; lateral movement costs {launcher.LateralMoveApCost} AP.\n" +
+		$"Blast radius: {launcher.BlastRadius} cells, {launcher.BlastDamage} damage.\n" +
+		$"Cooldown: {launcher.CooldownTurns} turns after launch.";
 
-		return
-			$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
-			$"Patrols can shoot flak cannons, and have forward facing shields.\n" +
-			$"Max living patrols: {bay.MaxLivingChildren}.\n" +
-			$"Cooldown: {bay.CooldownTurns} turns after launch.";
-	}
+	public static string DetonateTooltipFor(TorpedoProjectile projectile) =>
+		$"Detonate:\nExplodes for {projectile.BlastDamage} damage in a {projectile.BlastRadius}-cell radius.\n" +
+		$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
+		$"Fuel: {projectile.FuelTurns} turns after launch.";
+
+	public static string SpawnPatrolTooltipFor(PatrolBaySpec bay) =>
+		$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
+		$"Patrols can shoot flak cannons, and have forward facing shields.\n" +
+		$"Max living patrols: {bay.MaxLivingChildren}.\n" +
+		$"Cooldown: {bay.CooldownTurns} turns after launch.";
+
+	private static T? FirstInstalled<T>(UnitDisplayState unit, EAbilityKind kind)
+		where T : AbilitySpec =>
+		unit.Loadout.InstalledAbilities
+			.FirstOrDefault(installed => installed.Spec.Kind == kind)
+			?.Spec as T;
 }

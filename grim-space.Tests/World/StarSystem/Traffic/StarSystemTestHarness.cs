@@ -67,11 +67,7 @@ internal static class StarSystemTestHarness
 				[],
 				faction,
 				combatProfile),
-			[
-				BattleUnitType.Patrol,
-				BattleUnitType.Patrol,
-				BattleUnitType.Patrol,
-			]);
+			[BattleUnitType.Patrol]);
 
 	private sealed class StraightLinePathfinder : IPathfinder
 	{

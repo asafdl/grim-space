@@ -5,11 +5,11 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 internal static class MerchantOfferDisplay
 {
-	public static string ShieldUpgradeTitle(ShipSpec spec, ESpatialOrientation face) =>
-		$"{FacetLabel(face)} max shields {MkLabel(spec.ShieldUpgradeTiers[face] + 1)}";
+	public static string ShieldUpgradeTitle(ShipLoadout loadout, ESpatialOrientation face) =>
+		$"{FacetLabel(face)} max shields {MkLabel(loadout.ShieldUpgradeTiers[face] + 1)}";
 
-	public static string HullUpgradeTitle(ShipSpec spec) =>
-		$"Max hull {MkLabel(spec.HullUpgradeTier + 1)}";
+	public static string HullUpgradeTitle(ShipLoadout loadout) =>
+		$"Max hull {MkLabel(loadout.HullUpgradeTier + 1)}";
 
 	public static string InstallTitle(AbilityMount mount) =>
 		$"Install {KindLabel(mount.Kind)} ({FacetLabel(mount.Facet)})";

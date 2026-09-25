@@ -1,7 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Replay;
-using GrimSpace.Units;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
@@ -16,7 +16,7 @@ public sealed class DetonateActionClip : IReplayClip
 	{
 		var detonate = (DetonateAction)action;
 		var actor = context.ReplayState.StateOf(detonate.ActorId);
-		var blastRadius = TorpedoBodySpec.Require(actor.Spec).BlastRadius;
+		var blastRadius = actor.RequireProjectile().BlastRadius;
 
 		context.HazardBursts.PlayRadialBurst(
 			actor.Position,

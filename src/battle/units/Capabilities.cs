@@ -2,9 +2,9 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
-using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Math.Grid;
 
@@ -29,7 +29,7 @@ public static class Capabilities
 		EType type) =>
 		type == EType.Torpedo
 			? [DetonateDef.Instance]
-			: AbilityDefsForLoadout(ShipCatalog.DefaultInstalledAbilitiesFor(type));
+			: AbilityDefsForLoadout(ChassisSpec(type).NewDefaultLoadout().InstalledAbilities);
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsForLoadout(
 		IReadOnlyList<InstalledAbility> installed) =>
@@ -41,7 +41,7 @@ public static class Capabilities
 		if (state.Type == EType.Torpedo)
 			return [TorpedoMoveDef.Instance, DetonateDef.Instance];
 
-		return [..Movement, ..AbilityDefsForLoadout(state.Spec.InstalledAbilities)];
+		return [..Movement, ..AbilityDefsForLoadout(state.Loadout.InstalledAbilities)];
 	}
 
 	/// <summary>
@@ -104,7 +104,7 @@ public static class Capabilities
 
 	private static IEnumerable<IAction> DiscoverPreviewPatrolSpawns(State state)
 	{
-		foreach (var installed in state.Spec.InstalledAbilities)
+		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
 			if (installed.Spec.Kind == EAbilityKind.PatrolBay)
 				yield return new SpawnPatrolAction(state.Id, installed.MountedOn, PreviewPatrolId);
@@ -117,7 +117,7 @@ public static class Capabilities
 		if (state.Type == EType.Torpedo)
 			return [DetonateDef.Instance];
 
-		return AbilityDefsForLoadout(state.Spec.InstalledAbilities);
+		return AbilityDefsForLoadout(state.Loadout.InstalledAbilities);
 	}
 
 	private static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> CollectAbilityDefs(
@@ -134,4 +134,14 @@ public static class Capabilities
 
 		return defs;
 	}
+
+	private static ShipSpec ChassisSpec(EType type) =>
+		type switch
+		{
+			EType.Fighter => FighterSpec.Instance,
+			EType.Carrier => CarrierSpec.Instance,
+			EType.Patrol => PatrolSpec.Instance,
+			EType.Torpedo => TorpedoSpec.Instance,
+			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+		};
 }

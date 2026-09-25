@@ -48,17 +48,16 @@ public sealed class RunShipRegistry : IShipRegistryReader
 		return string.Equals(current.Id, expected.Id, StringComparison.Ordinal)
 			&& current.HullPoints == expected.HullPoints
 			&& current.ShieldPoints.Matches(expected.ShieldPoints)
-			&& LoadoutMatches(current.Spec, expected.Spec);
+			&& LoadoutMatches(current, expected);
 	}
 
-	private static bool LoadoutMatches(ShipSpec current, ShipSpec before) =>
-		current.Chassis == before.Chassis
-		&& current.MaxHullPoints == before.MaxHullPoints
-		&& current.HullUpgradeTier == before.HullUpgradeTier
-		&& current.ShieldUpgradeTiers.Matches(before.ShieldUpgradeTiers)
-		&& current.MaxShieldPoints.Matches(before.MaxShieldPoints)
-		&& current.InstalledAbilities.SequenceEqual(before.InstalledAbilities)
-		&& Equals(current.TorpedoBody, before.TorpedoBody);
+	private static bool LoadoutMatches(ShipInstance current, ShipInstance before) =>
+		current.Spec.Chassis == before.Spec.Chassis
+		&& current.Loadout.MaxHullPoints == before.Loadout.MaxHullPoints
+		&& current.Loadout.HullUpgradeTier == before.Loadout.HullUpgradeTier
+		&& current.Loadout.ShieldUpgradeTiers.Matches(before.Loadout.ShieldUpgradeTiers)
+		&& current.Loadout.MaxShieldPoints.Matches(before.Loadout.MaxShieldPoints)
+		&& current.Loadout.InstalledAbilities.SequenceEqual(before.Loadout.InstalledAbilities);
 
 	public void ApplyHandoff(UnitStateHandoff handoff)
 	{

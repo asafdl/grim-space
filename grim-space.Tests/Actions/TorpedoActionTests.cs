@@ -38,7 +38,7 @@ public sealed class TorpedoActionTests
 				ESpatialOrientation.Ventral));
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.Torpedo);
-		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns, torpedo.State.FuelRemaining);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().FuelTurns, torpedo.State.FuelRemaining);
 		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
 		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
 		Assert.Equal(ETeam.Player, torpedo.Team);
@@ -102,7 +102,7 @@ public sealed class TorpedoActionTests
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
-		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns - 1, torpedo.State.FuelRemaining);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().FuelTurns - 1, torpedo.State.FuelRemaining);
 		Assert.NotEqual(origin - shipFore, torpedo.State.Position);
 		Assert.Contains(replay.Actions, action => action is TorpedoAction);
 		Assert.Contains(

@@ -336,7 +336,7 @@ public sealed class PresentationFrameTests
 
 		Assert.NotNull(aim);
 		Assert.Null(frame.TorpedoPreviews.Queued);
-		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().FuelTurns, aim.TurnBands.Count);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().FuelTurns, aim.TurnBands.Count);
 		Assert.Equal(
 			TorpedoMount.LaunchPose(
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId),

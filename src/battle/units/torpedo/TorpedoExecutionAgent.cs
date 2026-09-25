@@ -36,7 +36,7 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 	{
 		var start = session.Actions.Count;
 		var actorId = actor.State.Id;
-		var blastRadius = TorpedoBodySpec.Require(actor.State.Spec).BlastRadius;
+		var blastRadius = actor.State.RequireProjectile().BlastRadius;
 		if (!TorpedoSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position, blastRadius)
 			&& session.TryEnqueue(new DetonateAction(actorId)))
 		{

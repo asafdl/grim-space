@@ -14,11 +14,7 @@ public sealed class FixedContractDifficultyProvider
 			FleetType.PirateFleet,
 			EFaction.Pirates,
 			EDangerLevel.VeryLow,
-			[
-				BattleUnitType.Patrol,
-				BattleUnitType.Patrol,
-				BattleUnitType.Patrol,
-			]),
+			[BattleUnitType.Patrol]),
 		HuntRewardCredits: 75,
 		DeliveryRewardCredits: 50);
 

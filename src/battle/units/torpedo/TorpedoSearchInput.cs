@@ -114,7 +114,7 @@ internal static class TorpedoSearchInput
 			return new(false, false, 0, 0, score);
 
 		var state = frame.World.StateOf(actorId);
-		var blastRadius = TorpedoBodySpec.Require(state.Spec).BlastRadius;
+		var blastRadius = state.RequireProjectile().BlastRadius;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
 		var approachGain = ApproachGainToward(start.Position, state.Position, target);
 		var opponentInBlast = target is not null
@@ -138,7 +138,7 @@ internal static class TorpedoSearchInput
 			return int.MinValue;
 
 		var state = unit.State;
-		var blastRadius = TorpedoBodySpec.Require(state.Spec).BlastRadius;
+		var blastRadius = state.RequireProjectile().BlastRadius;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
 		var score = -state.ActionPoints * UnusedApPenalty;
 
@@ -166,7 +166,7 @@ internal static class TorpedoSearchInput
 
 	private static int BlastScore(BattleWorld world, string actorId, Coord position, Unit? target)
 	{
-		var blastRadius = TorpedoBodySpec.Require(world.StateOf(actorId).Spec).BlastRadius;
+		var blastRadius = world.StateOf(actorId).RequireProjectile().BlastRadius;
 		var score = 0;
 		if (target is not null
 			&& position.ManhattanDistanceTo(target.State.Position) <= blastRadius)

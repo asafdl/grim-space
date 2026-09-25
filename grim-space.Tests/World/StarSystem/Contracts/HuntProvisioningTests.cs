@@ -44,7 +44,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		Assert.Equal(EPhase.Docked, spawned.State.Phase);
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
-		Assert.Equal(3, spawned.Members.Count);
+		Assert.Single(spawned.Members);
 		Assert.All(spawned.Members, member => Assert.StartsWith("patrol-", member.Id));
 		Assert.All(
 			spawned.Registrations,

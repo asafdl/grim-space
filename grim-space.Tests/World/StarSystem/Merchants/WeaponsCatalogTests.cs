@@ -1,6 +1,7 @@
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
@@ -24,15 +25,37 @@ public sealed class WeaponsCatalogTests
 	}
 
 	[Fact]
-	public void ListFor_Patrol_IncludesRailgunInstallOnForward()
+	public void ListFor_PartialFighterLoadout_OffersFlakInstallOnOpenFacets()
+	{
+		var ship = FighterWithRailgunOnly("fighter-partial");
+		var offers = WeaponsCatalog.ListFor(ship);
+
+		Assert.Contains(
+			offers,
+			offer => offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.InstallWeapon,
+				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
+		Assert.Contains(
+			offers,
+			offer => offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.InstallWeapon,
+				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Starboard)));
+		Assert.DoesNotContain(
+			offers,
+			offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon
+				&& offer.Offering.Mount?.Kind == EAbilityKind.Railgun);
+	}
+
+	[Fact]
+	public void ListFor_Patrol_DoesNotOfferRailgunWithoutChassisSlot()
 	{
 		var ship = ShipInstance.FromCatalog("patrol-1", EType.Patrol);
 		var offers = WeaponsCatalog.ListFor(ship);
 
-		var install = MerchantPurchaseTestHarness.RailgunForwardInstall;
-		var installOffer = offers.Single(o => o.Offering == install);
-		Assert.True(installOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(80, scrap);
+		Assert.DoesNotContain(
+			offers,
+			offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon
+				&& offer.Offering.Mount?.Kind == EAbilityKind.Railgun);
 	}
 
 	[Fact]
@@ -76,13 +99,15 @@ public sealed class WeaponsCatalogTests
 	[Fact]
 	public void ListFor_AfterInstallCommit_RemovesInstallOfferAndListsUpgrades()
 	{
-		var ship = ShipInstance.FromCatalog("patrol-1", EType.Patrol);
-		var install = MerchantPurchaseTestHarness.RailgunForwardInstall;
+		var ship = FighterWithRailgunOnly("fighter-partial");
+		var install = new MerchantCatalog.Offering(
+			MerchantCatalog.Kind.InstallWeapon,
+			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
 		Assert.Contains(WeaponsCatalog.ListFor(ship), offer => offer.Offering == install);
 
-		var spec = ShipCatalog.DefaultAbilitySpec(EType.Fighter, EAbilityKind.Railgun)!;
+		var baseline = FighterSpec.Instance.BaselineFor(install.Mount!.Value);
 		Assert.True(ship.TryWithInstalledAbility(
-			new InstalledAbility(spec, ESpatialOrientation.Forward),
+			new InstalledAbility(baseline, ESpatialOrientation.Port),
 			out ship));
 
 		var offers = WeaponsCatalog.ListFor(ship);
@@ -91,6 +116,18 @@ public sealed class WeaponsCatalogTests
 			offers,
 			offer => offer.Offering == new MerchantCatalog.Offering(
 				MerchantCatalog.Kind.UpgradeDamage,
-				new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward)));
+				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
+	}
+
+	private static ShipInstance FighterWithRailgunOnly(string id)
+	{
+		var mount = new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward);
+		var baseline = FighterSpec.Instance.BaselineFor(mount);
+		var loadout = ShipLoadout.Create(
+			FighterSpec.Instance,
+			FighterSpec.Instance.DefaultMaxHullPoints,
+			FighterSpec.Instance.DefaultMaxShieldPoints,
+			[new InstalledAbility(baseline, ESpatialOrientation.Forward)]);
+		return ShipInstance.FromSpec(id, FighterSpec.Instance, loadout);
 	}
 }

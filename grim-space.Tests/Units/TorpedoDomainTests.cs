@@ -15,7 +15,7 @@ public sealed class TorpedoDomainTests
 	public void TorpedoStatsAreConfigured()
 	{
 		var stats = Stats.ForType(EType.Torpedo);
-		var configuration = ShipCatalog.DefaultFor(EType.Torpedo);
+		var configuration = ShipCatalog.NewRunLoadoutFor(EType.Torpedo);
 
 		var maxShields = configuration.MaxShieldPoints;
 
@@ -27,7 +27,7 @@ public sealed class TorpedoDomainTests
 				face == ESpatialOrientation.Retro ? 0 : 1,
 				maxShields[face]);
 		}
-		Assert.Equal(CatalogExpectations.DefaultTorpedoBody().MovementActionPoints, stats.MaxAp);
+		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().MovementActionPoints, stats.MaxAp);
 	}
 
 	[Fact]
@@ -67,7 +67,7 @@ public sealed class TorpedoDomainTests
 			unit,
 			new AbilityLegality(WeaponPeek.Empty, false, Detonate: false));
 
-		Assert.Equal(BattleHudCopy.DetonateTooltip, spec.Tooltip);
+		Assert.Equal(BattleHudCopy.DetonateTooltipFor(unit), spec.Tooltip(unit));
 		Assert.Equal("res://assets/ui/abilities/detonate.svg", spec.IconPath);
 		Assert.Equal("2/3", ready.Charges);
 		Assert.True(ready.Enabled);

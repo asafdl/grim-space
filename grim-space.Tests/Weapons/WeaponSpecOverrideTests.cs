@@ -59,14 +59,14 @@ public sealed class WeaponSpecOverrideTests
 	}
 
 	private static IReadOnlyList<InstalledAbility> ReplaceFlakSpec(FlakSpec flak) =>
-		ShipCatalog.DefaultInstalledAbilitiesFor(EType.Fighter)
+		ShipCatalog.FullFighterLoadout().InstalledAbilities
 			.Select(ability => ability.Spec.Kind == EAbilityKind.Flak
 				? ability with { Spec = flak }
 				: ability)
 			.ToArray();
 
 	private static IReadOnlyList<InstalledAbility> ReplaceRailgunSpec(RailgunSpec railgun) =>
-		ShipCatalog.DefaultInstalledAbilitiesFor(EType.Fighter)
+		ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
 			.Select(ability => ability.Spec.Kind == EAbilityKind.Railgun
 				? ability with { Spec = railgun }
 				: ability)
