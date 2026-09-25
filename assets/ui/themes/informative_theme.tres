@@ -414,6 +414,54 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_map_icon_normal"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.03, 0.06, 0.09, 0.78)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.94, 0.91, 0.84, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_map_icon_hover"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.12, 0.17, 0.21, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.98, 0.91, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_map_icon_pressed"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.06, 0.1, 0.13, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.98, 0.91, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [resource]
 default_font = ExtResource("1_inter_medium")
 default_font_size = 18
@@ -484,6 +532,12 @@ InformativeSectionTitleLabel/colors/font_color = Color(0.55, 0.78, 1, 1)
 InformativeSectionTitleLabel/font_sizes/font_size = 19
 InformativeSectionTitleLabel/fonts/font = ExtResource("2_inter_semibold")
 Label/colors/font_color = Color(0.82, 0.88, 0.92, 1)
+MapIcon/base_type = &"Button"
+MapIcon/styles/focus = SubResource("StyleBox_map_icon_hover")
+MapIcon/styles/hover = SubResource("StyleBox_map_icon_hover")
+MapIcon/styles/hover_pressed = SubResource("StyleBox_map_icon_pressed")
+MapIcon/styles/normal = SubResource("StyleBox_map_icon_normal")
+MapIcon/styles/pressed = SubResource("StyleBox_map_icon_pressed")
 MapIconButton/styles/focus = SubResource("StyleBox_icon_hover")
 MapIconButton/styles/hover = SubResource("StyleBox_icon_hover")
 MapIconButton/styles/normal = SubResource("StyleBox_icon_normal")

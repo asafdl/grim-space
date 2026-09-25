@@ -23,6 +23,12 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private const string MineIconPath = "res://assets/ui/map/icons/mine-icon.png";
 	private static readonly Color DockyardIconTint = new(0.45f, 0.65f, 1f);
 	private const int IconPx = 40;
+	private static readonly StyleBoxFlat ButtonNormal = CreateButtonStyle(
+		new Color(0.03f, 0.06f, 0.09f, 0.78f), new Color(0.94f, 0.91f, 0.84f, 0.85f));
+	private static readonly StyleBoxFlat ButtonHover = CreateButtonStyle(
+		new Color(0.12f, 0.17f, 0.21f, 0.92f), new Color(1f, 0.98f, 0.91f));
+	private static readonly StyleBoxFlat ButtonPressed = CreateButtonStyle(
+		new Color(0.06f, 0.1f, 0.13f, 0.96f), new Color(1f, 0.98f, 0.91f));
 
 	private static readonly HashSet<string> AllowedSources = new(StringComparer.Ordinal)
 	{
@@ -223,12 +229,16 @@ public sealed class FacadePresentationMode : IPresentationMode
 				TooltipText = facility.DisplayName,
 				Visible = true,
 				MouseFilter = Control.MouseFilterEnum.Stop,
-				Flat = true,
 				ThemeTypeVariation = "MapIcon",
 				Icon = LoadFacilityIcon(facility.PresentationAnchor),
 				ExpandIcon = true,
 				CustomMinimumSize = new Vector2(48, 48),
 			};
+			button.AddThemeStyleboxOverride("normal", ButtonNormal);
+			button.AddThemeStyleboxOverride("hover", ButtonHover);
+			button.AddThemeStyleboxOverride("pressed", ButtonPressed);
+			button.AddThemeStyleboxOverride("hover_pressed", ButtonPressed);
+			button.AddThemeStyleboxOverride("focus", ButtonHover);
 			button.Pressed += () =>
 			{
 				if (_activePoi is null || _ctx is null)
@@ -276,6 +286,24 @@ public sealed class FacadePresentationMode : IPresentationMode
 			button.QueueFree();
 		_facilityButtons.Clear();
 	}
+
+	private static StyleBoxFlat CreateButtonStyle(Color background, Color border) => new()
+	{
+		BgColor = background,
+		BorderColor = border,
+		BorderWidthLeft = 1,
+		BorderWidthTop = 1,
+		BorderWidthRight = 1,
+		BorderWidthBottom = 1,
+		CornerRadiusTopLeft = 6,
+		CornerRadiusTopRight = 6,
+		CornerRadiusBottomRight = 6,
+		CornerRadiusBottomLeft = 6,
+		ContentMarginLeft = 4,
+		ContentMarginTop = 4,
+		ContentMarginRight = 4,
+		ContentMarginBottom = 4,
+	};
 
 	private static Texture2D LoadFacilityIcon(EPresentationAnchor anchor) =>
 		anchor switch
