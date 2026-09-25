@@ -32,7 +32,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	{
 		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Salvage(
 			ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)));
-		PlaceHolderAtWreck(engine, unitId, contractId);
+		OpenWreckDecision(engine, unitId, contractId);
 
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
 
@@ -57,7 +57,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 			[BattleUnitType.Patrol]);
 		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Ambush(ambushSpec));
 		var ambushUnitId = $"{contractId}.wreckage.ambush";
-		PlaceHolderAtWreck(engine, unitId, contractId);
+		OpenWreckDecision(engine, unitId, contractId);
 
 		var history = engine.Commit(new InvestigateWreckageAction(unitId, contractId, "ambush-test"));
 
@@ -74,7 +74,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	public void Investigate_WhenAlreadyInvestigated_IsIllegal()
 	{
 		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Salvage(ResourceBundle.Empty));
-		PlaceHolderAtWreck(engine, unitId, contractId);
+		OpenWreckDecision(engine, unitId, contractId);
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
 
 		var runtime = engine.ActorRuntimes.For(unitId);
@@ -85,10 +85,10 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Investigate_OutOfRange_IsIllegal()
+	public void Investigate_WithoutPendingDecision_IsIllegal()
 	{
 		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Salvage(ResourceBundle.Empty));
-		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
+		PlaceHolderAtWreck(engine, unitId, contractId);
 
 		var sim = engine.CreateSimulation();
 		Assert.False(sim.TryEnqueue(new InvestigateWreckageAction(unitId, contractId)));
@@ -106,6 +106,12 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		runtimes.For(RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, RunState.PlayerFleetUnitId, contract.Id);
+	}
+
+	private static void OpenWreckDecision(Engine<StarMap, ActorRuntime> engine, string unitId, string contractId)
+	{
+		PlaceHolderAtWreck(engine, unitId, contractId);
+		engine.Commit([new ReachWreckageAction(unitId, contractId)]);
 	}
 
 	private static void PlaceHolderAtWreck(Engine<StarMap, ActorRuntime> engine, string unitId, string contractId)

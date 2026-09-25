@@ -35,6 +35,7 @@ public sealed class FleeDef
 		return
 		[
 			new StopAtCurrentLocationEffect(flee.ActorId),
+			new ClearPursueContactEffect(flee.ActorId),
 			new FleeEngagementEffect(flee.ActorId, counterpartyId),
 			new PlayerInputEffect(false),
 		];

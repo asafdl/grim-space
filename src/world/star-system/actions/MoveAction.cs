@@ -51,7 +51,7 @@ public sealed class MoveDef
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
 			CancelPendingMoveEffect.Instance,
-			new ClearEngagementIntentEffect(move.UnitId),
+			new ClearPursueContactEffect(move.UnitId),
 		};
 
 		if (unit.State.Type == EType.PlayerFleet

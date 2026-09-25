@@ -126,7 +126,7 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
 		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
-		orchestrator.PlayerAgent!.TryQueueHuntUnit(pirateId);
+		orchestrator.PlayerAgent!.TryQueuePursueFleet(pirateId);
 		orchestrator.AdvanceTick();
 		return orchestrator;
 	}
@@ -145,6 +145,8 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 				1)));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
 		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
@@ -167,6 +169,8 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 				1)));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
 		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);

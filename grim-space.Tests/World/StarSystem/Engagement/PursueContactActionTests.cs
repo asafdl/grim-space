@@ -4,6 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
@@ -15,7 +16,7 @@ using GrimSpace.Tests.World.StarSystem;
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
 [StarSystemTestSuite]
-public sealed class HuntUnitActionTests(StarMapFixture maps)
+public sealed class PursueContactActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void Preview_DoesNotMutateLiveMap()
@@ -24,7 +25,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		var destination = orchestrator.CommittedPositionOf(pirateId);
 
 		Assert.True(orchestrator.PlayerAgent!.TryEnqueue([
-			CreateHuntAction(orchestrator, playerId, pirateId, destination)]));
+			CreatePursueAction(orchestrator, playerId, pirateId, destination)]));
 
 		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
 		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
@@ -36,7 +37,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 	{
 		var (orchestrator, playerId, pirateId) = CreateScenario();
 		var destination = orchestrator.CommittedPositionOf(pirateId);
-		orchestrator.PlayerAgent!.TryEnqueue([CreateHuntAction(orchestrator, playerId, pirateId, destination)]);
+		orchestrator.PlayerAgent!.TryEnqueue([CreatePursueAction(orchestrator, playerId, pirateId, destination)]);
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(pirateId, EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
@@ -44,6 +45,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		Assert.Equal(playerId, EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
 		Assert.Equal(EPhase.InTransit, orchestrator.Map.StateOf(playerId).Phase);
 		Assert.Equal(destination, orchestrator.Map.StateOf(playerId).Journey.Destination);
+		Assert.True(orchestrator.Map.StateOf(playerId).TravelTarget.MatchesFleet(pirateId));
 	}
 
 	[Fact]
@@ -51,9 +53,9 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 	{
 		var (orchestrator, playerId, firstPirateId) = CreateScenario();
 		var secondPirateId = AddPirate(orchestrator.Map, "pirate-b", new Coord(40, 0, 40));
-		QueueHunt(orchestrator, playerId, firstPirateId);
+		QueuePursue(orchestrator, playerId, firstPirateId);
 		orchestrator.AdvanceTick();
-		QueueHunt(orchestrator, playerId, secondPirateId);
+		QueuePursue(orchestrator, playerId, secondPirateId);
 		orchestrator.AdvanceTick();
 
 		Assert.Equal(secondPirateId, EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
@@ -68,7 +70,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		var sim = orchestrator.CreateSimulation();
 		var destination = orchestrator.CommittedPositionOf(playerId);
 
-		Assert.False(sim.TryEnqueue(CreateHuntAction(orchestrator, playerId, playerId, destination)));
+		Assert.False(sim.TryEnqueue(CreatePursueAction(orchestrator, playerId, playerId, destination)));
 	}
 
 	[Fact]
@@ -81,7 +83,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		var sim = orchestrator.CreateSimulation();
 		var destination = orchestrator.CommittedPositionOf(trafficUnit.State.Id);
 
-		Assert.False(sim.TryEnqueue(CreateHuntAction(
+		Assert.False(sim.TryEnqueue(CreatePursueAction(
 			orchestrator,
 			RunState.PlayerFleetUnitId,
 			trafficUnit.State.Id,
@@ -92,7 +94,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 	public void Move_ClearsHuntLink()
 	{
 		var (orchestrator, playerId, pirateId) = CreateScenario();
-		QueueHunt(orchestrator, playerId, pirateId);
+		QueuePursue(orchestrator, playerId, pirateId);
 		orchestrator.AdvanceTick();
 
 		var destination = new Coord(5, 0, 5);
@@ -101,6 +103,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 
 		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
 		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
+		Assert.False(orchestrator.Map.StateOf(playerId).TravelTarget.IsActive);
 	}
 
 	private (StarSystemOrchestrator orchestrator, string playerId, string pirateId) CreateScenario()
@@ -115,7 +118,7 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 		return (orchestrator, RunState.PlayerFleetUnitId, pirateId);
 	}
 
-	private static HuntUnitAction CreateHuntAction(
+	private static PursueContactAction CreatePursueAction(
 		StarSystemOrchestrator orchestrator,
 		string playerId,
 		string targetId,
@@ -123,13 +126,17 @@ public sealed class HuntUnitActionTests(StarMapFixture maps)
 	{
 		var origin = orchestrator.CommittedPositionOf(playerId);
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
-		return new HuntUnitAction(playerId, targetId, destination, path);
+		return new PursueContactAction(
+			playerId,
+			new FleetContactTarget(targetId),
+			destination,
+			path);
 	}
 
-	private static void QueueHunt(StarSystemOrchestrator orchestrator, string playerId, string targetId)
+	private static void QueuePursue(StarSystemOrchestrator orchestrator, string playerId, string targetId)
 	{
 		var destination = orchestrator.CommittedPositionOf(targetId);
-		orchestrator.PlayerAgent!.TryEnqueue([CreateHuntAction(orchestrator, playerId, targetId, destination)]);
+		orchestrator.PlayerAgent!.TryEnqueue([CreatePursueAction(orchestrator, playerId, targetId, destination)]);
 	}
 
 	private static string AddPirate(StarMap map, string id, Coord coord)

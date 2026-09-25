@@ -407,9 +407,22 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void CommitContactActions()
 	{
-		var produced = _contactMonitor.Update(Tick);
-		if (produced.Count > 0)
-			Commit([..produced]);
+		var reached = _contactMonitor.Update(Tick);
+		if (reached.Count == 0)
+			return;
+
+		var actions = new List<IAction<StarMap, ActorRuntime>>(reached.Count);
+		foreach (var contact in reached)
+		{
+			actions.Add(contact.Target switch
+			{
+				FleetContactTarget fleet => new ReachContactAction(contact.ActorId, fleet.UnitId),
+				WreckContactTarget wreck => new ReachWreckageAction(contact.ActorId, wreck.ContractId),
+				_ => throw new InvalidOperationException($"Unknown contact target {contact.Target}"),
+			});
+		}
+
+		Commit([..actions]);
 	}
 
 	private void CommitContractBoardActions()

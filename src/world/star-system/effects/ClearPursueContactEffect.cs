@@ -4,22 +4,24 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
 
-public sealed class ClearEngagementIntentEffect : IEffect<StarMap, Runtime.ActorRuntime>
+public sealed class ClearPursueContactEffect : IEffect<StarMap, Runtime.ActorRuntime>
 {
-	private readonly string _initiatorId;
+	private readonly string _actorId;
 
-	public ClearEngagementIntentEffect(string initiatorId) => _initiatorId = initiatorId;
+	public ClearPursueContactEffect(string actorId) => _actorId = actorId;
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
 	{
-		var initiator = world.StateOf(_initiatorId);
-		if (initiator.CurrentEngagement?.Hunting is not { } targetId)
+		var state = world.StateOf(_actorId);
+		state.TravelTarget = TravelTarget.None;
+
+		if (state.CurrentEngagement?.Hunting is not { } targetId)
 			return [];
 
-		initiator.CurrentEngagement = null;
+		state.CurrentEngagement = null;
 
 		if (world.FleetRegistry.TryGet(targetId, out var target))
-			EngagementState.ClearHuntedBy(target.State, _initiatorId);
+			EngagementState.ClearHuntedBy(target.State, _actorId);
 
 		return [];
 	}

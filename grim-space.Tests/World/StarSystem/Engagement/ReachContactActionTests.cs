@@ -23,6 +23,8 @@ public sealed class ReachContactActionTests(StarMapFixture maps)
 		var pirateId = AddPirate(map, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 
 		engine.Commit([new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)]);
@@ -39,6 +41,8 @@ public sealed class ReachContactActionTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = AddPirate(map, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 		engine.Commit([new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)]);

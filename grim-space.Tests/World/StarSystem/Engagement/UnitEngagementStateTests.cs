@@ -52,7 +52,7 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void ClearEngagementIntentEffect_ClearsBidirectionalHuntLink()
+	public void ClearPursueContactEffect_ClearsBidirectionalHuntLink()
 	{
 		var map = maps.Fresh(42);
 		var runtime = new ActorRuntime();
@@ -60,7 +60,7 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
-		new ClearEngagementIntentEffect(hunter).Apply(map, runtime, hunter);
+		new ClearPursueContactEffect(hunter).Apply(map, runtime, hunter);
 
 		Assert.Null(EngagementAssertions.Hunting(map.StateOf(hunter)));
 		Assert.Null(EngagementAssertions.HuntedBy(map.StateOf(target)));
@@ -93,10 +93,27 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
 		var snapshot = map.StateOf(hunter).Clone();
-		new ClearEngagementIntentEffect(hunter).Apply(map, runtime, hunter);
+		new ClearPursueContactEffect(hunter).Apply(map, runtime, hunter);
 
 		Assert.Null(EngagementAssertions.Hunting(map.StateOf(hunter)));
 		Assert.Equal(target, EngagementAssertions.Hunting(snapshot));
+	}
+
+	[Fact]
+	public void Clone_CopiesTravelTargetIndependently()
+	{
+		var map = maps.Fresh(42);
+		var runtime = new ActorRuntime();
+		var hunter = map.FleetRegistry.Ids.First();
+		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
+		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
+		new SetTravelTargetEffect(hunter, TravelTarget.Fleet(target)).Apply(map, runtime, hunter);
+
+		var snapshot = map.StateOf(hunter).Clone();
+		new ClearPursueContactEffect(hunter).Apply(map, runtime, hunter);
+
+		Assert.False(map.StateOf(hunter).TravelTarget.IsActive);
+		Assert.True(snapshot.TravelTarget.MatchesFleet(target));
 	}
 
 	private static string AddPirate(StarMap map, string id, GrimSpace.Math.Grid.Coord coord)

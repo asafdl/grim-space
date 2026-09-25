@@ -28,6 +28,7 @@ public sealed class ReachContactDef
 		action is ReachContactAction reach
 		&& world.FleetRegistry.TryGet(reach.InitiatorId, out var initiator)
 		&& world.FleetRegistry.TryGet(reach.TargetId, out _)
+		&& initiator.State.TravelTarget.MatchesFleet(reach.TargetId)
 		&& initiator.State.CurrentEngagement?.Phase == EEngagementPhase.Pursuing
 		&& initiator.State.CurrentEngagement?.Hunting == reach.TargetId
 		&& !EngagementState.IsEngaged(initiator.State);
@@ -40,6 +41,8 @@ public sealed class ReachContactDef
 		var reach = (ReachContactAction)action;
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
+			new StopAtCurrentLocationEffect(reach.InitiatorId),
+			new SetTravelTargetEffect(reach.InitiatorId, TravelTarget.None),
 			new ReachContactEffect(reach.InitiatorId, reach.TargetId),
 		};
 

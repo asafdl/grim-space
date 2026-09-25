@@ -3,6 +3,8 @@ using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
@@ -35,11 +37,14 @@ internal static class ActionLegalityDiagnostics
 		return action switch
 		{
 			MoveAction move => DescribeMoveIllegality(move, world),
-			HuntUnitAction hunt => DescribeHuntIllegality(hunt, world),
+			PursueContactAction pursue => DescribePursueIllegality(pursue, world),
 			EngageAction engage => DescribeEngageIllegality(engage, world),
 			FleeAction flee => DescribeEngageIllegality(flee, world),
 			AcceptContractAction accept => DescribeAcceptIllegality(accept, world),
 			DeclineContractAction decline => DescribeDeclineIllegality(decline, world),
+			ReachWreckageAction reach => DescribeReachWreckIllegality(reach, world),
+			LeaveWreckageAction leave => DescribeLeaveWreckIllegality(leave, world),
+			InvestigateWreckageAction investigate => DescribeInvestigateWreckIllegality(investigate, world),
 			_ => "illegal",
 		};
 	}
@@ -61,24 +66,28 @@ internal static class ActionLegalityDiagnostics
 		return "illegal";
 	}
 
-	private static string DescribeHuntIllegality(HuntUnitAction hunt, StarMap world)
+	private static string DescribePursueIllegality(PursueContactAction pursue, StarMap world)
 	{
-		if (hunt.ActorId == hunt.TargetUnitId)
-			return "self_target";
-
-		if (!world.FleetRegistry.TryGet(hunt.ActorId, out var initiator))
+		if (!world.FleetRegistry.TryGet(pursue.ActorId, out var initiator))
 			return "actor_missing";
-
-		if (!world.FleetRegistry.TryGet(hunt.TargetUnitId, out var target))
-			return "target_missing";
 
 		if (!initiator.State.CanMove)
 			return $"cannot_move phase={initiator.State.Phase}";
 
-		if (target.State.CombatProfile is null)
-			return "target_not_combatant";
-
-		return "illegal";
+		return pursue.Target switch
+		{
+			FleetContactTarget fleet when pursue.ActorId == fleet.UnitId => "self_target",
+			FleetContactTarget fleet when !world.FleetRegistry.TryGet(fleet.UnitId, out var target) =>
+				"target_missing",
+			FleetContactTarget fleet when world.FleetRegistry.TryGet(fleet.UnitId, out var target)
+				&& target.State.CombatProfile is null => "target_not_combatant",
+			WreckContactTarget wreck when !world.ContractRegistry.TryGet(wreck.ContractId, out _) =>
+				"contract_missing",
+			WreckContactTarget wreck
+				when world.ContractRegistry.TryGet(wreck.ContractId, out var contract)
+				&& contract.Objective is not WreckageObjective => "not_wreckage_contract",
+			_ => "illegal",
+		};
 	}
 
 	private static string DescribeEngageIllegality(IAction action, StarMap world)
@@ -113,6 +122,47 @@ internal static class ActionLegalityDiagnostics
 
 		if (!world.ContractRegistry.IsPending(accept.ContractId))
 			return "contract_not_pending";
+
+		return "illegal";
+	}
+
+	private static string DescribeReachWreckIllegality(ReachWreckageAction reach, StarMap world)
+	{
+		if (!world.FleetRegistry.TryGet(reach.ActorId, out var unit))
+			return "actor_missing";
+
+		if (!string.IsNullOrEmpty(unit.State.PendingWreckContractId))
+			return "wreck_decision_pending";
+
+		if (!WreckageQueries.IsActiveWreckContractForHolder(world, reach.ActorId, reach.ContractId))
+			return "invalid_wreck_contract";
+
+		return "illegal";
+	}
+
+	private static string DescribeLeaveWreckIllegality(LeaveWreckageAction leave, StarMap world)
+	{
+		if (!world.FleetRegistry.TryGet(leave.ActorId, out var unit))
+			return "actor_missing";
+
+		if (string.IsNullOrEmpty(unit.State.PendingWreckContractId))
+			return "no_pending_wreck";
+
+		return "illegal";
+	}
+
+	private static string DescribeInvestigateWreckIllegality(
+		InvestigateWreckageAction investigate,
+		StarMap world)
+	{
+		if (!world.FleetRegistry.TryGet(investigate.ActorId, out var unit))
+			return "actor_missing";
+
+		if (unit.State.PendingWreckContractId != investigate.ContractId)
+			return "wreck_decision_mismatch";
+
+		if (!WreckageQueries.IsActiveWreckContractForHolder(world, investigate.ActorId, investigate.ContractId))
+			return "invalid_wreck_contract";
 
 		return "illegal";
 	}

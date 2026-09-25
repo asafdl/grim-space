@@ -26,7 +26,8 @@ public sealed class State
 	internal string? SpawnWorkPoiId { get; set; }
 	internal int SpawnWorkRemainingTicks { get; set; }
 	public Engagement? CurrentEngagement { get; internal set; }
-
+	public TravelTarget TravelTarget { get; set; } = TravelTarget.None;
+	public string PendingWreckContractId { get; set; } = "";
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -151,6 +152,8 @@ public sealed class State
 		clone.Journey.Origin = Journey.Origin;
 		clone.Journey.Destination = Journey.Destination;
 		clone.Journey.StartTick = Journey.StartTick;
+		clone.TravelTarget = TravelTarget;
+		clone.PendingWreckContractId = PendingWreckContractId;
 		return clone;
 	}
 

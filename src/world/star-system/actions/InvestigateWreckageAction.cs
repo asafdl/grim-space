@@ -1,8 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
-using GrimSpace.Math.Grid;
-using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
@@ -43,8 +41,8 @@ public sealed class InvestigateWreckageDef
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == investigate.ActorId
 		&& !ContractFactory.IsWreckageObjectiveMet(investigate.ContractId, world, investigate.ActorId)
-		&& contract.Objective is WreckageObjective wreckage
-		&& IsWithinInvestigationRange(world, runtime, investigate.ActorId, wreckage.Position);
+		&& contract.Objective is WreckageObjective
+		&& unit.State.PendingWreckContractId == investigate.ContractId;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -61,6 +59,7 @@ public sealed class InvestigateWreckageDef
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
+			new ClearPendingWreckContractEffect(investigate.ActorId),
 			new RecordWreckInvestigatedEffect(investigate.ContractId, wreckage.WreckageId),
 		};
 
@@ -69,6 +68,7 @@ public sealed class InvestigateWreckageDef
 			case WreckageOutcome.Salvage salvage:
 				if (!salvage.Loot.IsEmpty)
 					effects.Add(new ChangeResourceEffect(TransactionSource.WreckageSalvage, salvage.Loot));
+				effects.Add(new PlayerInputEffect(false));
 				break;
 			case WreckageOutcome.Ambush ambush:
 				var ambushUnitId = AmbushUnitIdFor(wreckage);
@@ -88,22 +88,6 @@ public sealed class InvestigateWreckageDef
 		}
 
 		return effects;
-	}
-
-	private static bool IsWithinInvestigationRange(
-		StarMap world,
-		ActorRuntime runtime,
-		string actorId,
-		Coord wreckPosition)
-	{
-		if (!world.FleetRegistry.TryGet(actorId, out var unit))
-			return false;
-
-		var position = MoveDef.ResolveOrigin(world, unit, runtime);
-		return EngagementQueries.IsHunterInEngageRange(
-			position,
-			wreckPosition,
-			unit.State.EngageRadius);
 	}
 
 	internal static string AmbushUnitIdFor(WreckageObjective wreckage) =>

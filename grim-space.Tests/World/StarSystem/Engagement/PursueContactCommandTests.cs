@@ -9,17 +9,17 @@ using GrimSpace.Tests.World.StarSystem;
 namespace GrimSpace.Tests.World.StarSystem.Engagement;
 
 [StarSystemTestSuite]
-public sealed class HuntUnitCommandTests(StarMapFixture maps)
+public sealed class PursueContactCommandTests(StarMapFixture maps)
 {
 	[Fact]
-	public void TryQueueHuntUnit_QueuesCourseWithoutMutatingLiveMap()
+	public void TryQueuePursueFleet_QueuesCourseWithoutMutatingLiveMap()
 	{
 		var orchestrator = CreateScenario();
 		var pirateId = orchestrator.Map.FleetRegistry.All
 			.Single(unit => unit.State.Type == EType.PirateFleet)
 			.State.Id;
 
-		var result = orchestrator.PlayerAgent!.TryQueueHuntUnit(pirateId);
+		var result = orchestrator.PlayerAgent!.TryQueuePursueFleet(pirateId);
 
 		Assert.IsType<CourseCommandResult.Queued>(result);
 		Assert.NotNull(orchestrator.PlayerAgent.PendingCourse);
@@ -30,10 +30,10 @@ public sealed class HuntUnitCommandTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void TryQueueHuntUnit_RejectsPlayerFleetTarget()
+	public void TryQueuePursueFleet_RejectsPlayerFleetTarget()
 	{
 		var orchestrator = CreateScenario();
-		var result = orchestrator.PlayerAgent!.TryQueueHuntUnit(RunState.PlayerFleetUnitId);
+		var result = orchestrator.PlayerAgent!.TryQueuePursueFleet(RunState.PlayerFleetUnitId);
 		Assert.IsType<CourseCommandResult.Unreachable>(result);
 	}
 

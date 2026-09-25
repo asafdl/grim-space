@@ -74,10 +74,10 @@ public sealed class UserIntentTranslator
 		}
 
 		if (_unitAt?.Invoke(destination.Value) is { } targetUnitId)
-			return _playerAgent.TryQueueHuntUnit(targetUnitId);
+			return _playerAgent.TryQueuePursueFleet(targetUnitId);
 
 		if (_wreckContractAt?.Invoke(destination.Value) is { } wreckContractId)
-			return _playerAgent.TryQueueInvestigateWreckage(wreckContractId);
+			return _playerAgent.TryQueueWreckContact(wreckContractId);
 
 		var resolved = _resolveDestination?.Invoke(destination.Value) ?? destination.Value;
 		return _playerAgent.TryQueueMove(resolved);

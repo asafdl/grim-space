@@ -76,6 +76,8 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		var pirateId = AddPirate(map, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 
 		engine.Commit([new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)]);
@@ -90,6 +92,8 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		var hunterId = AddPirate(map, new Coord(4, 0, 0), "pirate-hunter");
 		var targetId = AddPirate(map, new Coord(8, 0, 0), "pirate-target");
 		new SetEngagementIntentEffect(hunterId, targetId)
+			.Apply(map, new ActorRuntime(), hunterId);
+		new SetTravelTargetEffect(hunterId, TravelTarget.Fleet(targetId))
 			.Apply(map, new ActorRuntime(), hunterId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 
@@ -161,6 +165,8 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = AddPirate(map, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 		engine.Commit([new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)]);

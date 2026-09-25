@@ -46,6 +46,7 @@ public partial class MapController : Node3D
 	private CanvasLayer _uiLayer = null!;
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
+	private WreckController _wreck = null!;
 	private NarrativeController _narrative = null!;
 	private TutorialPresentationBinding? _mapTutorialBinding;
 	private IWorldFocus _worldFocus = null!;
@@ -105,6 +106,27 @@ public partial class MapController : Node3D
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new FleeAction(State.PlayerFleetUnitId)]),
 			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()));
+
+		var wreckHud = new WreckHudOverlay();
+		_uiLayer.AddChild(wreckHud);
+		_wreck = new WreckController(
+			wreckHud,
+			() => WreckageQueries.TryGetPendingPlayerWreckDecision(
+				_orchestrator.Map,
+				State.PlayerFleetUnitId,
+				out var pending)
+					? pending
+					: null,
+			() =>
+			{
+				var contractId = _orchestrator.Map.StateOf(State.PlayerFleetUnitId).PendingWreckContractId;
+				return !string.IsNullOrEmpty(contractId)
+					&& _orchestrator.PlayerAgent!.TryEnqueue(
+						[new InvestigateWreckageAction(State.PlayerFleetUnitId, contractId)]);
+			},
+			() => _orchestrator.PlayerAgent!.TryEnqueue(
+				[new LeaveWreckageAction(State.PlayerFleetUnitId)]),
+			sync => _orchestrator.Subscribe<ReachWreckageAction>(_ => sync()));
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			_camera,
@@ -326,6 +348,7 @@ public partial class MapController : Node3D
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
+		_wreck.Dispose();
 		_narrative.Dispose();
 		if (Session.Instance.Run.Tutorials is { } tutorials)
 			tutorials.FlowCompleted -= OnTutorialFlowCompleted;
@@ -343,7 +366,8 @@ public partial class MapController : Node3D
 	public override void _UnhandledInput(InputEvent @event)
 	{
 		if (_narrative.TryHandleInput(@event)
-			|| _engagement.TryHandleInput(@event))
+			|| _engagement.TryHandleInput(@event)
+			|| _wreck.TryHandleInput(@event))
 		{
 			GetViewport().SetInputAsHandled();
 			return;
@@ -438,7 +462,9 @@ public partial class MapController : Node3D
 	}
 
 	private bool IsBlockingModalOpen() =>
-		(_narrative?.IsOpen ?? false) || (_engagement?.IsOpen ?? false);
+		(_narrative?.IsOpen ?? false)
+		|| (_engagement?.IsOpen ?? false)
+		|| (_wreck?.IsOpen ?? false);
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
 	{
@@ -446,7 +472,7 @@ public partial class MapController : Node3D
 		if (stale && !_staleWaitingForPlayerInputReported)
 		{
 			GD.PushWarning(
-				"StarMap.WaitingForPlayerInput is true but no narrative or engagement modal is open.");
+				"StarMap.WaitingForPlayerInput is true but no narrative, engagement, or wreck modal is open.");
 			_staleWaitingForPlayerInputReported = true;
 		}
 		else if (!stale)

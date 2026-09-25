@@ -52,14 +52,18 @@ internal static class StarMapPresentationDiagnostics
 	private static string DescribeAction(IAction action) => action switch
 	{
 		MoveAction move => $"move actor={move.ActorId} dest={move.Destination}",
-		HuntUnitAction hunt =>
-			$"hunt actor={hunt.ActorId} target={hunt.TargetUnitId} dest={hunt.Destination}",
+		PursueContactAction pursue =>
+			$"pursue actor={pursue.ActorId} target={pursue.Target} dest={pursue.Destination}",
 		EngageAction engage => $"engage actor={engage.ActorId}",
 		FleeAction flee => $"flee actor={flee.ActorId}",
 		AcceptContractAction accept =>
 			$"accept_contract actor={accept.ActorId} poi={accept.PoiId} facility={accept.FacilityId} operator={accept.OperatorName} contract={accept.ContractId}",
 		DeclineContractAction decline =>
 			$"decline_contract actor={decline.ActorId} poi={decline.PoiId} facility={decline.FacilityId} operator={decline.OperatorName} contract={decline.ContractId}",
+		ReachWreckageAction reach => $"reach_wreck actor={reach.ActorId} contract={reach.ContractId}",
+		LeaveWreckageAction leave => $"leave_wreck actor={leave.ActorId}",
+		InvestigateWreckageAction investigate =>
+			$"investigate_wreck actor={investigate.ActorId} contract={investigate.ContractId}",
 		_ => $"{action.GetType().Name} actor={action.ActorId}",
 	};
 

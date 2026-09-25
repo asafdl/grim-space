@@ -2,6 +2,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -46,7 +47,7 @@ public sealed class StarMapPlayerExecutionAgent
 	public PendingCourse? PendingCourse => _pendingAction switch
 	{
 		MoveAction move => new PendingCourse(move.Destination, move.Path),
-		HuntUnitAction hunt => new PendingCourse(hunt.Destination, hunt.Path),
+		PursueContactAction pursue => new PendingCourse(pursue.Destination, pursue.Path),
 		_ => null,
 	};
 
@@ -93,7 +94,7 @@ public sealed class StarMapPlayerExecutionAgent
 		return new CourseCommandResult.Unreachable();
 	}
 
-	public CourseCommandResult TryQueueInvestigateWreckage(string contractId)
+	public CourseCommandResult TryQueueWreckContact(string contractId)
 	{
 		if (_committed || !_canWork || _actorId is null)
 		{
@@ -106,12 +107,12 @@ public sealed class StarMapPlayerExecutionAgent
 
 		var anchorWorld = _anchorWorld();
 		var runtime = _runtimeFor(_actorId);
-		var investigate = new InvestigateWreckageAction(_actorId, contractId);
-		if (InvestigateWreckageDef.Instance.IsLegal(investigate, anchorWorld, runtime))
+		var reach = new ReachWreckageAction(_actorId, contractId);
+		if (ReachWreckageDef.Instance.IsLegal(reach, anchorWorld, runtime))
 		{
-			if (TryEnqueue([investigate]))
+			if (TryEnqueue([reach]))
 			{
-				StarMapPresentationDiagnostics.LogActionQueued(investigate, this);
+				StarMapPresentationDiagnostics.LogActionQueued(reach, this);
 				var committed = _committedPositionOf(_actorId);
 				return new CourseCommandResult.Queued(
 					TransitPath.FromPoints([committed], [1.0]));
@@ -136,16 +137,21 @@ public sealed class StarMapPlayerExecutionAgent
 			return new CourseCommandResult.Unreachable();
 		}
 
-		if (TryEnqueue([new MoveAction(_actorId, _actorId, destination, found.Path)]))
+		var pursue = new PursueContactAction(
+			_actorId,
+			new WreckContactTarget(contractId),
+			destination,
+			found.Path);
+		if (TryEnqueue([pursue]))
 		{
-			StarMapPresentationDiagnostics.LogCourseQueued("move", destination, this);
+			StarMapPresentationDiagnostics.LogCourseQueued("pursue_wreck", destination, this);
 			return new CourseCommandResult.Queued(found.Path);
 		}
 
 		return new CourseCommandResult.Unreachable();
 	}
 
-	public CourseCommandResult TryQueueHuntUnit(string targetUnitId)
+	public CourseCommandResult TryQueuePursueFleet(string targetUnitId)
 	{
 		if (_committed || !_canWork || _actorId is null)
 		{
@@ -162,7 +168,7 @@ public sealed class StarMapPlayerExecutionAgent
 			|| target.State.CombatProfile is null
 			|| target.State.Type == EType.PlayerFleet)
 		{
-			StarMapPresentationDiagnostics.LogMoveQueueFailed("invalid_hunt_target", null, this);
+			StarMapPresentationDiagnostics.LogMoveQueueFailed("invalid_pursue_fleet_target", null, this);
 			return new CourseCommandResult.Unreachable();
 		}
 
@@ -175,9 +181,14 @@ public sealed class StarMapPlayerExecutionAgent
 			return new CourseCommandResult.Unreachable();
 		}
 
-		if (TryEnqueue([new HuntUnitAction(_actorId, targetUnitId, destination, found.Path)]))
+		var pursue = new PursueContactAction(
+			_actorId,
+			new FleetContactTarget(targetUnitId),
+			destination,
+			found.Path);
+		if (TryEnqueue([pursue]))
 		{
-			StarMapPresentationDiagnostics.LogCourseQueued("hunt", destination, this);
+			StarMapPresentationDiagnostics.LogCourseQueued("pursue_fleet", destination, this);
 			return new CourseCommandResult.Queued(found.Path);
 		}
 

@@ -80,6 +80,8 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 				1)));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
 		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 	}
