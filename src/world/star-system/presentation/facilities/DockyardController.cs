@@ -46,14 +46,12 @@ public partial class DockyardController : Control
 		_dockyardHudLayer = new CanvasLayer { Layer = 20 };
 		AddChild(_dockyardHudLayer);
 		_dockyardHud = new DockyardHudOverlay();
-		_dockyardHud.PurchaseRequested += OnPurchaseRequested;
+		_dockyardHud.PurchaseRequested += OnWeaponsPurchaseRequested;
 		_dockyardHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_dockyardHud);
 
 		_shieldRechargeHud = new DockyardShieldRechargeHudOverlay();
-		_shieldRechargeHud.FaceRechargeRequested += OnFaceShieldRechargeRequested;
-		_shieldRechargeHud.FillAllRechargeRequested += OnFillAllShieldRechargeRequested;
-		_shieldRechargeHud.HullRepairRequested += OnHullRepairRequested;
+		_shieldRechargeHud.SupportPurchaseRequested += OnSupportPurchaseRequested;
 		_shieldRechargeHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_shieldRechargeHud);
 
@@ -87,7 +85,10 @@ public partial class DockyardController : Control
 		GetViewport().SetInputAsHandled();
 	}
 
-	public bool TryPurchaseUpgrade(string offerId, string shipId)
+	public bool TryPurchaseMerchantChange(
+		EMerchantCatalog catalog,
+		MerchantCatalog.Offering offering,
+		string shipId)
 	{
 		var poiId = MapNavigationContext.ActivePoiId
 			?? throw new InvalidOperationException("Dockyard requires an active POI.");
@@ -95,46 +96,14 @@ public partial class DockyardController : Control
 			?? throw new InvalidOperationException("Dockyard requires an active facility.");
 		var operatorName = RequireActiveOperatorName();
 		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
-		return _orchestrator.TryCommitPlayerInput(new PurchaseWeaponsUpgradeAction(
+		return _orchestrator.TryCommitPlayerInput(new PurchaseAction(
 			State.PlayerFleetUnitId,
 			poiId,
 			facilityId,
 			operatorName,
-			offerId,
+			catalog,
+			offering,
 			before));
-	}
-
-	public bool TryPurchaseHullRepair(string shipId)
-	{
-		var poiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Dockyard requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Dockyard requires an active facility.");
-		var operatorName = RequireActiveOperatorName();
-		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
-		return _orchestrator.TryCommitPlayerInput(new PurchaseHullRepairAction(
-			State.PlayerFleetUnitId,
-			poiId,
-			facilityId,
-			operatorName,
-			before));
-	}
-
-	public bool TryPurchaseShieldRecharge(string shipId, ESpatialOrientation? face = null)
-	{
-		var poiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Dockyard requires an active POI.");
-		var facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Dockyard requires an active facility.");
-		var operatorName = RequireActiveOperatorName();
-		var before = Session.Instance.Run.ShipRegistry.Get(shipId).Clone();
-		return _orchestrator.TryCommitPlayerInput(new PurchaseShieldRechargeAction(
-			State.PlayerFleetUnitId,
-			poiId,
-			facilityId,
-			operatorName,
-			before,
-			face));
 	}
 
 	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
@@ -172,23 +141,9 @@ public partial class DockyardController : Control
 		UpdateBackButton();
 	}
 
-	private void OnHullRepairRequested(string shipId)
+	private void OnWeaponsPurchaseRequested(MerchantCatalog.Offering offering, string shipId)
 	{
-		if (!TryPurchaseHullRepair(shipId))
-		{
-			_shieldRechargeHud.ShowError("Unable to repair hull.");
-			UpdateBackButton();
-			return;
-		}
-
-		_shieldRechargeHud.Sync(Session.Instance.Run, _orchestrator.Map);
-		_shieldRechargeHud.ShowConfirmation("Hull repaired.", HudStatusKind.Success);
-		UpdateBackButton();
-	}
-
-	private void OnPurchaseRequested(string offerId, string shipId)
-	{
-		if (!TryPurchaseUpgrade(offerId, shipId))
+		if (!TryPurchaseMerchantChange(EMerchantCatalog.Weapons, offering, shipId))
 		{
 			_dockyardHud.ShowError("Unable to purchase upgrade.");
 			UpdateBackButton();
@@ -200,23 +155,26 @@ public partial class DockyardController : Control
 		UpdateBackButton();
 	}
 
-	private void OnFaceShieldRechargeRequested(string shipId, ESpatialOrientation face) =>
-		CommitShieldRecharge(shipId, face);
-
-	private void OnFillAllShieldRechargeRequested(string shipId) =>
-		CommitShieldRecharge(shipId, null);
-
-	private void CommitShieldRecharge(string shipId, ESpatialOrientation? face)
+	private void OnSupportPurchaseRequested(MerchantCatalog.Offering offering, string shipId)
 	{
-		if (!TryPurchaseShieldRecharge(shipId, face))
+		if (!TryPurchaseMerchantChange(EMerchantCatalog.ShipSupport, offering, shipId))
 		{
-			_shieldRechargeHud.ShowError("Unable to recharge shields.");
+			_shieldRechargeHud.ShowError("Unable to complete purchase.");
 			UpdateBackButton();
 			return;
 		}
 
 		_shieldRechargeHud.Sync(Session.Instance.Run, _orchestrator.Map);
-		_shieldRechargeHud.ShowConfirmation("Shields recharged.", HudStatusKind.Success);
+		var message = offering.Kind switch
+		{
+			MerchantCatalog.Kind.RepairHull => "Hull repaired.",
+			MerchantCatalog.Kind.RechargeAllShields or MerchantCatalog.Kind.RechargeShieldFace =>
+				"Shields recharged.",
+			MerchantCatalog.Kind.UpgradeMaxShields => "Max shields upgraded.",
+			MerchantCatalog.Kind.UpgradeMaxHull => "Max hull upgraded.",
+			_ => "Purchase complete.",
+		};
+		_shieldRechargeHud.ShowConfirmation(message, HudStatusKind.Success);
 		UpdateBackButton();
 	}
 

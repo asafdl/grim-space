@@ -11,8 +11,12 @@ public sealed record ShipSpec(
 	FaceShieldPoints MaxShieldPoints,
 	IReadOnlyList<InstalledAbility> InstalledAbilities,
 	int ShieldUpgradeTier = 0,
+	int HullUpgradeTier = 0,
 	TorpedoBodySpec? TorpedoBody = null)
 {
+	public const int MaxShieldUpgradeTier = 3;
+	public const int MaxHullUpgradeTier = 3;
+
 	public ShipSpec DeepCopy() =>
 		new(
 			Chassis,
@@ -20,7 +24,23 @@ public sealed record ShipSpec(
 			MaxShieldPoints.Clone(),
 			InstalledAbilities.ToArray(),
 			ShieldUpgradeTier,
+			HullUpgradeTier,
 			TorpedoBody);
+
+	public ShipSpec WithInstalledAbility(InstalledAbility installed)
+	{
+		ArgumentNullException.ThrowIfNull(installed);
+
+		var updated = InstalledAbilities.Append(installed).ToArray();
+		return Create(
+			Chassis,
+			MaxHullPoints,
+			MaxShieldPoints,
+			updated,
+			ShieldUpgradeTier,
+			HullUpgradeTier,
+			TorpedoBody);
+	}
 
 	public ShipSpec WithReplacedMount(AbilityMount mount, AbilitySpec replacement)
 	{
@@ -42,13 +62,19 @@ public sealed record ShipSpec(
 			throw new InvalidOperationException(
 				$"Ship has no installed ability on mount '{mount.Kind}' / '{mount.Facet}'.");
 
-		return Create(Chassis, MaxHullPoints, MaxShieldPoints, updated, ShieldUpgradeTier, TorpedoBody);
+		return Create(
+			Chassis,
+			MaxHullPoints,
+			MaxShieldPoints,
+			updated,
+			ShieldUpgradeTier,
+			HullUpgradeTier,
+			TorpedoBody);
 	}
 
 	public ShipSpec WithUpgradedMaxShields()
 	{
-		const int maxTier = 3;
-		if (ShieldUpgradeTier >= maxTier)
+		if (ShieldUpgradeTier >= MaxShieldUpgradeTier)
 			throw new InvalidOperationException($"Ship shields are already at upgrade tier {ShieldUpgradeTier}.");
 
 		var max = MaxShieldPoints.Clone();
@@ -61,6 +87,22 @@ public sealed record ShipSpec(
 			max,
 			InstalledAbilities,
 			ShieldUpgradeTier + 1,
+			HullUpgradeTier,
+			TorpedoBody);
+	}
+
+	public ShipSpec WithUpgradedMaxHull()
+	{
+		if (HullUpgradeTier >= MaxHullUpgradeTier)
+			throw new InvalidOperationException($"Ship hull capacity is already at upgrade tier {HullUpgradeTier}.");
+
+		return Create(
+			Chassis,
+			MaxHullPoints + 1,
+			MaxShieldPoints,
+			InstalledAbilities,
+			ShieldUpgradeTier,
+			HullUpgradeTier + 1,
 			TorpedoBody);
 	}
 
@@ -70,6 +112,7 @@ public sealed record ShipSpec(
 		FaceShieldPoints maxShieldPoints,
 		IReadOnlyList<InstalledAbility> installedAbilities,
 		int shieldUpgradeTier = 0,
+		int hullUpgradeTier = 0,
 		TorpedoBodySpec? torpedoBody = null)
 	{
 		ArgumentNullException.ThrowIfNull(maxShieldPoints);
@@ -85,6 +128,7 @@ public sealed record ShipSpec(
 			maxShieldPoints.Clone(),
 			installedAbilities,
 			shieldUpgradeTier,
+			hullUpgradeTier,
 			torpedoBody);
 	}
 }

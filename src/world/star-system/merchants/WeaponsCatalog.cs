@@ -1,4 +1,5 @@
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -6,101 +7,81 @@ namespace GrimSpace.World.StarSystem.Merchants;
 
 public static class WeaponsCatalog
 {
-	public static IReadOnlyList<WeaponsMerchantOffer> ListFor(ShipInstance ship)
+	private static readonly EAbilityKind[] SellableKinds =
+		[EAbilityKind.Flak, EAbilityKind.Railgun];
+
+	private static readonly ResourceBundle FlakInstallPrice =
+		ResourceBundle.Of(ResourceId.ScrapAlloy, 50);
+
+	private static readonly ResourceBundle RailgunInstallPrice =
+		ResourceBundle.Of(ResourceId.ScrapAlloy, 80);
+
+	private static readonly ResourceBundle DefaultInstallPrice =
+		ResourceBundle.Of(ResourceId.ScrapAlloy, 100);
+
+	private const int DamageUpgradeBaseScrap = 40;
+	private const int DamageUpgradeStepScrap = 20;
+	private const int RangeUpgradeBaseScrap = 40;
+	private const int RangeUpgradeStepScrap = 20;
+
+	public static IReadOnlyList<MerchantCatalog.Offer> ListFor(ShipInstance ship)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
-		var offers = new List<WeaponsMerchantOffer>();
-		if (TryCreateShieldOffer(ship.Spec, out var shieldOffer))
-			offers.Add(shieldOffer);
+		var offers = new List<MerchantCatalog.Offer>();
+
+		foreach (var kind in SellableKinds)
+		{
+			var spec = ShipCatalog.DefaultAbilitySpec(EType.Fighter, kind);
+			if (spec is null)
+				continue;
+
+			foreach (var facet in spec.CompatibleFacets)
+			{
+				var mount = new AbilityMount(kind, facet);
+				if (ship.Spec.InstalledAbilities.Any(installed => installed.Mount == mount))
+					continue;
+
+				var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.InstallWeapon, mount);
+				if (!MerchantShipChanges.TryPrepareAfter(offering, ship, out _))
+					continue;
+
+				var cost = mount.Kind switch
+				{
+					EAbilityKind.Flak => FlakInstallPrice,
+					EAbilityKind.Railgun => RailgunInstallPrice,
+					_ => DefaultInstallPrice,
+				};
+				offers.Add(new MerchantCatalog.Offer(offering, cost));
+			}
+		}
 
 		foreach (var installed in ship.Spec.InstalledAbilities)
 		{
-			if (TryCreateAbilityOffer(installed, out var abilityOffer))
-				offers.Add(abilityOffer);
+			var damageOffering = new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeDamage,
+				installed.Mount);
+			if (MerchantShipChanges.TryPrepareAfter(damageOffering, ship, out _))
+			{
+				offers.Add(new MerchantCatalog.Offer(
+					damageOffering,
+					ResourceBundle.Of(
+						ResourceId.ScrapAlloy,
+						DamageUpgradeBaseScrap + DamageUpgradeStepScrap * installed.Spec.DamageUpgradeTier)));
+			}
+
+			var rangeOffering = new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeRange,
+				installed.Mount);
+			if (MerchantShipChanges.TryPrepareAfter(rangeOffering, ship, out _))
+			{
+				offers.Add(new MerchantCatalog.Offer(
+					rangeOffering,
+					ResourceBundle.Of(
+						ResourceId.ScrapAlloy,
+						RangeUpgradeBaseScrap + RangeUpgradeStepScrap * installed.Spec.RangeUpgradeTier)));
+			}
 		}
 
 		return offers;
-	}
-
-	public static bool TryQuote(string offerId, ShipInstance ship, out ResourceBundle cost)
-	{
-		cost = ResourceBundle.Empty;
-		if (!TryGetOffer(offerId, ship, out var offer) || !MatchesShip(offer, ship))
-			return false;
-
-		cost = offer.Cost;
-		return true;
-	}
-
-	public static bool TryGetOffer(string offerId, ShipInstance ship, out WeaponsMerchantOffer offer)
-	{
-		offer = ListFor(ship)
-			.FirstOrDefault(candidate => string.Equals(candidate.Id, offerId, StringComparison.Ordinal))!;
-		return offer is not null;
-	}
-
-	internal static bool MatchesShip(WeaponsMerchantOffer offer, ShipInstance ship) =>
-		offer.Category switch
-		{
-			EWeaponsOfferCategory.MaxShields =>
-				ship.Spec.ShieldUpgradeTier == offer.RequiredShieldTier,
-			EWeaponsOfferCategory.Ability => MatchesAbilityOffer(offer, ship),
-			_ => false,
-		};
-
-	public static string ShieldOfferId(int requiredTier) => $"max-shields:tier-{requiredTier}";
-
-	public static string AbilityOfferId(AbilityMount mount) =>
-		$"ability:{mount.Kind}:{mount.Facet}";
-
-	private static bool TryCreateShieldOffer(ShipSpec spec, out WeaponsMerchantOffer offer)
-	{
-		offer = null!;
-		if (spec.ShieldUpgradeTier >= MerchantPricingRules.MaxShieldUpgradeTier)
-			return false;
-
-		var tier = spec.ShieldUpgradeTier;
-		offer = new WeaponsMerchantOffer(
-			ShieldOfferId(tier),
-			EWeaponsOfferCategory.MaxShields,
-			null,
-			tier,
-			null,
-			ResourceBundle.Of(ResourceId.ScrapAlloy, MerchantPricingRules.ScrapForShieldUpgrade(tier)));
-		return true;
-	}
-
-	private static bool TryCreateAbilityOffer(InstalledAbility installed, out WeaponsMerchantOffer offer)
-	{
-		offer = null!;
-		if (!installed.Spec.CanUpgrade)
-			return false;
-
-		offer = new WeaponsMerchantOffer(
-			AbilityOfferId(installed.Mount),
-			EWeaponsOfferCategory.Ability,
-			installed.Mount,
-			0,
-			installed.Spec,
-			ResourceBundle.Of(
-				ResourceId.ScrapAlloy,
-				MerchantPricingRules.ScrapForAbilityUpgrade(installed.Spec.UpgradeTier)));
-		return true;
-	}
-
-	private static bool MatchesAbilityOffer(WeaponsMerchantOffer offer, ShipInstance ship)
-	{
-		if (offer.Mount is not { } mount || offer.RequiredAbilitySpec is not { } required)
-			return false;
-
-		foreach (var installed in ship.Spec.InstalledAbilities)
-		{
-			if (installed.Mount != mount)
-				continue;
-
-			return installed.Spec.Equals(required);
-		}
-
-		return false;
 	}
 }

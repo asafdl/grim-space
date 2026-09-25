@@ -13,7 +13,7 @@ public sealed class StarMapFixture
 	private readonly ConcurrentDictionary<int, StarMap> _templates = new();
 
 	public StarMap Template(int seed) =>
-		_templates.GetOrAdd(seed, StarMap.Create);
+		_templates.GetOrAdd(seed, static s => StarMap.Create(s));
 
 	public StarMap Fresh(int seed = 42) => Template(seed).Fork();
 

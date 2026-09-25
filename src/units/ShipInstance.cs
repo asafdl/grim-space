@@ -126,11 +126,54 @@ public sealed class ShipInstance
 		}
 	}
 
-	public bool TryWithUpgradedAbility(AbilityMount mount, out ShipInstance after)
+	public bool TryWithUpgradedMaxHull(out ShipInstance after)
+	{
+		after = null!;
+		try
+		{
+			var updatedSpec = Spec.WithUpgradedMaxHull();
+			after = new ShipInstance(Id, updatedSpec, HullPoints, ShieldPoints.Clone());
+			return true;
+		}
+		catch (InvalidOperationException)
+		{
+			return false;
+		}
+	}
+
+	public bool TryWithInstalledAbility(InstalledAbility installed, out ShipInstance after)
+	{
+		after = null!;
+		ArgumentNullException.ThrowIfNull(installed);
+		try
+		{
+			var updatedSpec = Spec.WithInstalledAbility(installed);
+			after = new ShipInstance(Id, updatedSpec, HullPoints, ShieldPoints.Clone());
+			return true;
+		}
+		catch (ArgumentException)
+		{
+			return false;
+		}
+	}
+
+	public bool TryWithDamageUpgraded(AbilityMount mount, out ShipInstance after)
 	{
 		after = null!;
 		var installed = Spec.InstalledAbilities.FirstOrDefault(a => a.Mount == mount);
-		if (installed is null || !installed.Spec.TryCreateUpgraded(out var replacement))
+		if (installed is null || !installed.Spec.TryCreateDamageUpgraded(out var replacement))
+			return false;
+
+		var updatedSpec = Spec.WithReplacedMount(mount, replacement);
+		after = new ShipInstance(Id, updatedSpec, HullPoints, ShieldPoints.Clone());
+		return true;
+	}
+
+	public bool TryWithRangeUpgraded(AbilityMount mount, out ShipInstance after)
+	{
+		after = null!;
+		var installed = Spec.InstalledAbilities.FirstOrDefault(a => a.Mount == mount);
+		if (installed is null || !installed.Spec.TryCreateRangeUpgraded(out var replacement))
 			return false;
 
 		var updatedSpec = Spec.WithReplacedMount(mount, replacement);

@@ -107,13 +107,14 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public static StarSystemOrchestrator CreateSession(
 		string playerFleetUnitId,
 		IReadOnlyList<string> playerShipIds,
-		int seed = 0)
+		int seed = 0,
+		IShipRegistryReader? shipRegistryReader = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
 		ArgumentNullException.ThrowIfNull(playerShipIds);
 		if (playerShipIds.Count == 0)
 			throw new ArgumentException("Player fleet must contain at least one ship.", nameof(playerShipIds));
-		var map = StarMap.Create(seed);
+		var map = StarMap.Create(seed, shipRegistryReader);
 		AddPlayerFleet(map, playerFleetUnitId, playerShipIds);
 		return InitializeSession(map, playerFleetUnitId);
 	}

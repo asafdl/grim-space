@@ -11,55 +11,86 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 public sealed class WeaponsCatalogTests
 {
 	[Fact]
-	public void ListFor_FighterIncludesShieldAndAbilityOffers()
+	public void ListFor_Fighter_ExcludesShields_IncludesDamageAndRangeUpgrades()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offers = WeaponsCatalog.ListFor(ship);
 
-		Assert.Contains(offers, offer => offer.Category == EWeaponsOfferCategory.MaxShields);
-		Assert.Equal(3, offers.Count(offer => offer.Category == EWeaponsOfferCategory.Ability));
+		Assert.DoesNotContain(
+			offers,
+			offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+		Assert.Equal(3, offers.Count(offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeDamage));
+		Assert.Equal(3, offers.Count(offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeRange));
 	}
 
 	[Fact]
-	public void ListFor_AbilityOfferPriceIncreasesAfterUpgrade()
+	public void ListFor_Patrol_IncludesRailgunInstallOnForward()
+	{
+		var ship = ShipInstance.FromCatalog("patrol-1", EType.Patrol);
+		var offers = WeaponsCatalog.ListFor(ship);
+
+		var install = MerchantPurchaseTestHarness.RailgunForwardInstall;
+		var installOffer = offers.Single(o => o.Offering == install);
+		Assert.True(installOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
+		Assert.Equal(80, scrap);
+	}
+
+	[Fact]
+	public void ListFor_DamageOfferPriceIncreasesAfterUpgrade()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offerId = WeaponsCatalog.AbilityOfferId(
-			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
-		Assert.True(WeaponsCatalog.TryQuote(offerId, ship, out var firstCost));
-		Assert.True(ship.TryWithUpgradedAbility(
+		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
+		var firstOffer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
+		Assert.True(ship.TryWithDamageUpgraded(
 			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port),
 			out ship));
-		Assert.True(WeaponsCatalog.TryQuote(offerId, ship, out var secondCost));
-		Assert.True(firstCost.TryGet(ResourceId.ScrapAlloy, out var firstScrap));
-		Assert.True(secondCost.TryGet(ResourceId.ScrapAlloy, out var secondScrap));
+		var secondOffer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
+		Assert.True(firstOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var firstScrap));
+		Assert.True(secondOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var secondScrap));
 		Assert.True(secondScrap > firstScrap);
 	}
 
 	[Fact]
-	public void TryQuote_UsesTierBasedAbilityPricing()
+	public void ListFor_DamageTierZeroCostsFortyScrap()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offerId = WeaponsCatalog.AbilityOfferId(
-			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
-		Assert.True(WeaponsCatalog.TryQuote(offerId, ship, out var cost));
-		Assert.True(cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(MerchantPricingRules.ScrapForAbilityUpgrade(0), scrap);
+		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
+		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
+		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
+		Assert.Equal(40, scrap);
 	}
 
 	[Fact]
-	public void ListFor_AtMaxShieldTier_ExcludesMaxShieldOffer()
+	public void ListFor_RangeTierOneCostsSixtyScrap()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		for (var tier = 0; tier < MerchantPricingRules.MaxShieldUpgradeTier; tier++)
-		{
-			var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Category == EWeaponsOfferCategory.MaxShields);
-			Assert.True(ship.TryWithUpgradedMaxShields(out ship));
-		}
+		Assert.True(ship.TryWithRangeUpgraded(
+			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port),
+			out ship));
+		var offering = MerchantPurchaseTestHarness.FlakPortRangeUpgrade;
+		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
+		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
+		Assert.Equal(60, scrap);
+	}
 
-		Assert.Equal(MerchantPricingRules.MaxShieldUpgradeTier, ship.Spec.ShieldUpgradeTier);
-		Assert.DoesNotContain(
-			WeaponsCatalog.ListFor(ship),
-			offer => offer.Category == EWeaponsOfferCategory.MaxShields);
+	[Fact]
+	public void ListFor_AfterInstallCommit_RemovesInstallOfferAndListsUpgrades()
+	{
+		var ship = ShipInstance.FromCatalog("patrol-1", EType.Patrol);
+		var install = MerchantPurchaseTestHarness.RailgunForwardInstall;
+		Assert.Contains(WeaponsCatalog.ListFor(ship), offer => offer.Offering == install);
+
+		var spec = ShipCatalog.DefaultAbilitySpec(EType.Fighter, EAbilityKind.Railgun)!;
+		Assert.True(ship.TryWithInstalledAbility(
+			new InstalledAbility(spec, ESpatialOrientation.Forward),
+			out ship));
+
+		var offers = WeaponsCatalog.ListFor(ship);
+		Assert.DoesNotContain(offers, offer => offer.Offering == install);
+		Assert.Contains(
+			offers,
+			offer => offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeDamage,
+				new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward)));
 	}
 }

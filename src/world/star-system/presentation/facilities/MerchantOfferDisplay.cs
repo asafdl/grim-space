@@ -1,19 +1,29 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Loadouts.Abilities;
-using GrimSpace.World.StarSystem.Merchants;
-
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 internal static class MerchantOfferDisplay
 {
 	public static string ShieldUpgradeTitle(ShipSpec spec) =>
-		$"Max shields {MerchantPricingRules.MkLabel(spec.ShieldUpgradeTier + 1)}";
+		$"Max shields {MkLabel(spec.ShieldUpgradeTier + 1)}";
 
-	public static string AbilityUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
-		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} {MerchantPricingRules.MkLabel(current.UpgradeTier + 1)}";
+	public static string HullUpgradeTitle(ShipSpec spec) =>
+		$"Max hull {MkLabel(spec.HullUpgradeTier + 1)}";
 
-	public static string AbilityUpgradeBody(AbilitySpec current) =>
+	public static string InstallTitle(AbilityMount mount) =>
+		$"Install {KindLabel(mount.Kind)} ({FacetLabel(mount.Facet)})";
+
+	public static string InstallBody(AbilitySpec spec) =>
+		$"Mount a new {KindLabel(spec.Kind)} on an open facet.";
+
+	public static string DamageUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
+		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} damage {MkLabel(current.DamageUpgradeTier + 1)}";
+
+	public static string RangeUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
+		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} range {MkLabel(current.RangeUpgradeTier + 1)}";
+
+	public static string DamageUpgradeBody(AbilitySpec current) =>
 		current switch
 		{
 			FlakSpec flak =>
@@ -21,6 +31,16 @@ internal static class MerchantOfferDisplay
 			RailgunSpec railgun =>
 				$"Increase shot damage from {railgun.Damage} to {railgun.Damage + 1}.",
 			_ => "Improve this mounted system.",
+		};
+
+	public static string RangeUpgradeBody(AbilitySpec current) =>
+		current switch
+		{
+			FlakSpec flak =>
+				$"Increase burst range from {flak.BurstRange} to {flak.BurstRange + 1}.",
+			RailgunSpec railgun =>
+				$"Increase line length from {railgun.LineLength} to {railgun.LineLength + 1}.",
+			_ => "Extend this mounted system's reach.",
 		};
 
 	private static string FacetLabel(ESpatialOrientation facet) =>
@@ -34,6 +54,8 @@ internal static class MerchantOfferDisplay
 			ESpatialOrientation.Ventral => "Ventral",
 			_ => facet.ToString(),
 		};
+
+	private static string MkLabel(int upgradeTier) => $"Mk {upgradeTier + 1}";
 
 	private static string KindLabel(EAbilityKind kind) =>
 		kind switch

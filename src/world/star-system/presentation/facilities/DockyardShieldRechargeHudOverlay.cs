@@ -30,9 +30,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<string, ESpatialOrientation>? FaceRechargeRequested;
-	public event Action<string>? FillAllRechargeRequested;
-	public event Action<string>? HullRepairRequested;
+	public event Action<MerchantCatalog.Offering, string>? SupportPurchaseRequested;
 	public event Action? Closed;
 
 	public DockyardShieldRechargeHudOverlay()
@@ -111,8 +109,10 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			return;
 		}
 
-		body.AddChild(CreateHullRepairPanel(ship));
-		body.AddChild(CreateShieldRechargePanel(ship));
+		var offers = ShipSupportCatalog.ListFor(ship);
+		AppendUpgradeCards(body, ship, offers);
+		body.AddChild(CreateHullRepairPanel(ship, offers));
+		body.AddChild(CreateShieldRechargePanel(ship, offers));
 
 		_shell.SetBody(body);
 	}
@@ -128,32 +128,40 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		return true;
 	}
 
-	private Control CreateHullRepairPanel(ShipInstance ship)
+	private void AppendUpgradeCards(
+		VBoxContainer body,
+		ShipInstance ship,
+		IReadOnlyList<MerchantCatalog.Offer> offers)
 	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, "Status");
-
-		var margin = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
-		panel.AddChild(margin);
-
-		var column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		column.AddThemeConstantOverride("separation", 8);
-		margin.AddChild(column);
-
-		if (!ShipSupportCatalog.TryQuoteHullRepair(ship, out var cost))
+		foreach (var offer in offers)
 		{
-			var label = new Label
+			if (offer.Offering.Kind is not (
+				MerchantCatalog.Kind.UpgradeMaxShields or MerchantCatalog.Kind.UpgradeMaxHull))
+				continue;
+
+			var captured = offer;
+			var shipId = ship.Id;
+			var title = offer.Offering.Kind switch
 			{
-				Text = "Hull integrity is full.",
-				AutowrapMode = TextServer.AutowrapMode.WordSmart,
-				SizeFlagsHorizontal = SizeFlags.ExpandFill,
+				MerchantCatalog.Kind.UpgradeMaxShields => MerchantOfferDisplay.ShieldUpgradeTitle(ship.Spec),
+				MerchantCatalog.Kind.UpgradeMaxHull => MerchantOfferDisplay.HullUpgradeTitle(ship.Spec),
+				_ => "Upgrade",
 			};
-			HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
-			column.AddChild(label);
+			body.AddChild(HudWidgets.CreateCard(
+				title,
+				[ResourceCostDisplay.CreateMetadataRow(captured.Cost, string.Empty)],
+				() => SupportPurchaseRequested?.Invoke(captured.Offering, shipId)));
+		}
+	}
+
+	private Control CreateHullRepairPanel(ShipInstance ship, IReadOnlyList<MerchantCatalog.Offer> offers)
+	{
+		var panel = CreateStatusPanelShell(out var column);
+		var repairOffer = offers.FirstOrDefault(o => o.Offering.Kind == MerchantCatalog.Kind.RepairHull);
+
+		if (repairOffer is null)
+		{
+			column.AddChild(FullStatusLabel("Hull integrity is full."));
 			return panel;
 		}
 
@@ -163,40 +171,21 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			"Hull repair",
 			[
 				ResourceCostDisplay.CreateMetadataRow(
-					cost,
+					repairOffer.Cost,
 					$"Restore {missing} hull to {ship.Spec.MaxHullPoints}"),
 			],
-			() => HullRepairRequested?.Invoke(shipId)));
+			() => SupportPurchaseRequested?.Invoke(repairOffer.Offering, shipId)));
 
 		return panel;
 	}
 
-	private Control CreateShieldRechargePanel(ShipInstance ship)
+	private Control CreateShieldRechargePanel(ShipInstance ship, IReadOnlyList<MerchantCatalog.Offer> offers)
 	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, "Status");
-
-		var margin = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
-		panel.AddChild(margin);
-
-		var column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		column.AddThemeConstantOverride("separation", 8);
-		margin.AddChild(column);
+		var panel = CreateStatusPanelShell(out var column);
 
 		if (ship.Spec.MaxShieldPoints.MaxOnAnyFace <= 0)
 		{
-			var label = new Label
-			{
-				Text = "This ship has no shield facings.",
-				AutowrapMode = TextServer.AutowrapMode.WordSmart,
-				SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			};
-			HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
-			column.AddChild(label);
+			column.AddChild(FullStatusLabel("This ship has no shield facings."));
 			return panel;
 		}
 
@@ -209,26 +198,34 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			if (ship.Spec.MaxShieldPoints[face] <= 0)
 				continue;
 
+			var faceOffer = offers.FirstOrDefault(o =>
+				o.Offering.Kind == MerchantCatalog.Kind.RechargeShieldFace
+				&& o.Offering.Face == face);
+			if (faceOffer is null)
+				continue;
+
 			if (addedRow)
 				column.AddChild(CreateRowDivider());
 
-			column.AddChild(CreateFaceRow(ship, face, creditsOnHand, shipId));
+			column.AddChild(CreateFaceRow(ship, face, creditsOnHand, shipId, faceOffer));
 			addedRow = true;
 		}
 
 		if (addedRow)
 			column.AddChild(CreateRowDivider());
 
-		var fillAllCost = ShipSupportCatalog.TryQuoteShieldRecharge(ship, out var allCost)
-			? CreditAmount(allCost)
-			: 0;
-		var fillAllMissing = ship.MissingShieldPoints;
-		column.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
-			"Fill all",
-			ResourceId.Credits,
-			fillAllCost,
-			fillAllMissing > 0 && creditsOnHand >= fillAllCost,
-			() => FillAllRechargeRequested?.Invoke(shipId)));
+		var fillAllOffer = offers.FirstOrDefault(o =>
+			o.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
+		if (fillAllOffer is not null)
+		{
+			var fillAllCost = CreditAmount(fillAllOffer.Cost);
+			column.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
+				"Fill all",
+				ResourceId.Credits,
+				fillAllCost,
+				creditsOnHand >= fillAllCost,
+				() => SupportPurchaseRequested?.Invoke(fillAllOffer.Offering, shipId)));
+		}
 
 		return panel;
 	}
@@ -237,12 +234,12 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		ShipInstance ship,
 		ESpatialOrientation face,
 		int creditsOnHand,
-		string shipId)
+		string shipId,
+		MerchantCatalog.Offer faceOffer)
 	{
 		var max = ship.Spec.MaxShieldPoints[face];
 		var current = System.Math.Clamp(ship.ShieldPoints[face], 0, max);
-		var missing = ship.MissingShieldPointsOnFace(face);
-		var creditCost = missing * ShipSupportCatalog.ShieldRechargeCreditsPerPoint;
+		var creditCost = CreditAmount(faceOffer.Cost);
 
 		var row = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		row.AddThemeConstantOverride("separation", 10);
@@ -265,10 +262,40 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			"Fill",
 			ResourceId.Credits,
 			creditCost,
-			missing > 0 && creditsOnHand >= creditCost,
-			() => FaceRechargeRequested?.Invoke(shipId, face)));
+			creditCost > 0 && creditsOnHand >= creditCost,
+			() => SupportPurchaseRequested?.Invoke(faceOffer.Offering, shipId)));
 
 		return row;
+	}
+
+	private static PanelContainer CreateStatusPanelShell(out VBoxContainer column)
+	{
+		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		HudStyles.SetPanelVariation(panel, "Status");
+
+		var margin = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
+		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
+		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
+		panel.AddChild(margin);
+
+		column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		column.AddThemeConstantOverride("separation", 8);
+		margin.AddChild(column);
+		return panel;
+	}
+
+	private static Label FullStatusLabel(string text)
+	{
+		var label = new Label
+		{
+			Text = text,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
+		return label;
 	}
 
 	private static Control CreateRowDivider()

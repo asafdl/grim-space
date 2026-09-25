@@ -3,6 +3,8 @@ using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -10,20 +12,13 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class DockyardHudOverlay : Control
 {
-	private enum DockyardTab
-	{
-		Shields,
-		Abilities,
-	}
-
 	private readonly ModalShell _shell;
 	private State _run = null!;
 	private string _facilityTitle = "";
-	private DockyardTab _activeTab = DockyardTab.Shields;
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<string, string>? PurchaseRequested;
+	public event Action<MerchantCatalog.Offering, string>? PurchaseRequested;
 	public event Action? Closed;
 
 	public DockyardHudOverlay()
@@ -46,7 +41,6 @@ public sealed partial class DockyardHudOverlay : Control
 	{
 		_run = run;
 		_facilityTitle = facilityTitle;
-		_activeTab = DockyardTab.Shields;
 		_statusKind = null;
 		_statusMessage = "";
 		_shell.Open(_facilityTitle, string.Empty);
@@ -89,8 +83,6 @@ public sealed partial class DockyardHudOverlay : Control
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
 			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 
-		body.AddChild(CreateTabBar());
-
 		if (!TryGetActiveShip(out var ship))
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
@@ -100,14 +92,24 @@ public sealed partial class DockyardHudOverlay : Control
 			return;
 		}
 
-		switch (_activeTab)
+		var offers = WeaponsCatalog.ListFor(ship).ToArray();
+		if (offers.Length == 0)
 		{
-			case DockyardTab.Shields:
-				AppendShieldTab(body, ship);
-				break;
-			case DockyardTab.Abilities:
-				AppendAbilitiesTab(body, ship);
-				break;
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				"No weapon offers available."));
+			_shell.SetBody(body);
+			return;
+		}
+
+		foreach (var offer in offers)
+		{
+			var captured = offer;
+			var shipId = ship.Id;
+			body.AddChild(HudWidgets.CreateCard(
+				TitleFor(captured, ship),
+				[ResourceCostDisplay.CreateMetadataRow(captured.Cost, BodyFor(captured, ship))],
+				() => PurchaseRequested?.Invoke(captured.Offering, shipId)));
 		}
 
 		_shell.SetBody(body);
@@ -124,98 +126,34 @@ public sealed partial class DockyardHudOverlay : Control
 		return true;
 	}
 
-	private Control CreateTabBar()
-	{
-		var row = new HBoxContainer
+	private static string TitleFor(MerchantCatalog.Offer offer, ShipInstance ship) =>
+		offer.Offering.Kind switch
 		{
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
-		row.AddThemeConstantOverride("separation", 8);
-		row.AddChild(CreateTabButton("Shields", DockyardTab.Shields));
-		row.AddChild(CreateTabButton("Abilities", DockyardTab.Abilities));
-		return row;
-	}
-
-	private Button CreateTabButton(string label, DockyardTab tab)
-	{
-		var button = new Button
-		{
-			Text = label,
-			CustomMinimumSize = new Vector2(0, 44),
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
-		HudStyles.StyleButton(button, _activeTab == tab ? HudActionKind.Primary : HudActionKind.Secondary);
-		button.Pressed += () =>
-		{
-			_activeTab = tab;
-			ShowMain();
-		};
-		return button;
-	}
-
-	private void AppendShieldTab(VBoxContainer body, ShipInstance ship)
-	{
-		var offers = WeaponsCatalog.ListFor(ship)
-			.Where(offer => offer.Category == EWeaponsOfferCategory.MaxShields)
-			.ToArray();
-
-		if (offers.Length == 0)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"No shield upgrades available."));
-			return;
-		}
-
-		AppendPurchaseCards(body, ship, offers);
-	}
-
-	private void AppendAbilitiesTab(VBoxContainer body, ShipInstance ship)
-	{
-		var offers = WeaponsCatalog.ListFor(ship)
-			.Where(offer => offer.Category == EWeaponsOfferCategory.Ability)
-			.ToArray();
-
-		if (offers.Length == 0)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"No ability upgrades available."));
-			return;
-		}
-
-		AppendPurchaseCards(body, ship, offers);
-	}
-
-	private void AppendPurchaseCards(VBoxContainer body, ShipInstance ship, IReadOnlyList<WeaponsMerchantOffer> offers)
-	{
-		foreach (var offer in offers)
-		{
-			var captured = offer;
-			body.AddChild(HudWidgets.CreateCard(
-				TitleFor(offer, ship),
-				[ ResourceCostDisplay.CreateMetadataRow(captured.Cost, BodyFor(offer, ship)) ],
-				() => PurchaseRequested?.Invoke(captured.Id, ship.Id)));
-		}
-	}
-
-	private static string TitleFor(WeaponsMerchantOffer offer, ShipInstance ship) =>
-		offer.Category switch
-		{
-			EWeaponsOfferCategory.MaxShields => MerchantOfferDisplay.ShieldUpgradeTitle(ship.Spec),
-			EWeaponsOfferCategory.Ability when offer.Mount is { } mount
-				&& offer.RequiredAbilitySpec is { } required =>
-				MerchantOfferDisplay.AbilityUpgradeTitle(mount, required),
+			MerchantCatalog.Kind.InstallWeapon when offer.Offering.Mount is { } mount =>
+				MerchantOfferDisplay.InstallTitle(mount),
+			MerchantCatalog.Kind.UpgradeDamage when offer.Offering.Mount is { } mount =>
+				MerchantOfferDisplay.DamageUpgradeTitle(
+					mount,
+					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
+			MerchantCatalog.Kind.UpgradeRange when offer.Offering.Mount is { } mount =>
+				MerchantOfferDisplay.RangeUpgradeTitle(
+					mount,
+					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			_ => "Upgrade",
 		};
 
-	private static string BodyFor(WeaponsMerchantOffer offer, ShipInstance ship) =>
-		offer.Category switch
+	private static string BodyFor(MerchantCatalog.Offer offer, ShipInstance ship) =>
+		offer.Offering.Kind switch
 		{
-			EWeaponsOfferCategory.MaxShields => "Raise max shields on all faces",
-			EWeaponsOfferCategory.Ability when offer.RequiredAbilitySpec is { } required =>
-				MerchantOfferDisplay.AbilityUpgradeBody(required),
+			MerchantCatalog.Kind.InstallWeapon when offer.Offering.Mount is { } mount =>
+				MerchantOfferDisplay.InstallBody(
+					ShipCatalog.DefaultAbilitySpec(EType.Fighter, mount.Kind)!),
+			MerchantCatalog.Kind.UpgradeDamage when offer.Offering.Mount is { } mount =>
+				MerchantOfferDisplay.DamageUpgradeBody(
+					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
+			MerchantCatalog.Kind.UpgradeRange when offer.Offering.Mount is { } mount =>
+				MerchantOfferDisplay.RangeUpgradeBody(
+					ship.Spec.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			_ => string.Empty,
 		};
-
 }

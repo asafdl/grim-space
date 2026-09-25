@@ -1,5 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Generation;
@@ -45,6 +46,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public ContractRegistry ContractRegistry { get; }
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PlayerResources PlayerResources { get; }
+	public IShipRegistryReader? ShipRegistryReader { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
@@ -66,6 +68,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		StoryObjectiveRegistry storyObjectives,
 		PlayerResources playerResources,
 		PathfindingTerrain pathfindingTerrain,
+		IShipRegistryReader? shipRegistryReader = null,
 		bool waitingForPlayerInput = false,
 		string? activeNarrativeId = null)
 	{
@@ -84,6 +87,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		StoryObjectives = storyObjectives;
 		PlayerResources = playerResources;
 		PathfindingTerrain = pathfindingTerrain;
+		ShipRegistryReader = shipRegistryReader;
 		WaitingForPlayerInput = waitingForPlayerInput;
 		ActiveNarrativeId = activeNarrativeId;
 	}
@@ -126,6 +130,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			StoryObjectives.CloneForFork(),
 			PlayerResources.CloneForFork(),
 			PathfindingTerrain,
+			ShipRegistryReader,
 			WaitingForPlayerInput,
 			ActiveNarrativeId);
 
@@ -138,6 +143,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		return distanceSquared < (long)combined * combined;
 	}
 
-	public static StarMap Create(int seed = 0) =>
-		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply);
+	public static StarMap Create(int seed = 0, IShipRegistryReader? shipRegistryReader = null) =>
+		StarSystemGenerator.Generate(seed, EStarSystemClass.Supply, shipRegistryReader);
 }

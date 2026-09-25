@@ -292,10 +292,10 @@ Trade-hub commerce is split so quoting stays in [`merchants/`](src/world/star-sy
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Max-shield tier offers | [`WeaponsCatalog`](src/world/star-system/merchants/WeaponsCatalog.cs) / weapons merchant NPC | Scrap-priced spec upgrades alongside ability tiers; not a credits-per-point service like recharge. |
-| Hull repair + shield recharge | [`ShipSupportCatalog`](src/world/star-system/merchants/ShipSupportCatalog.cs) / support merchant NPC | Consumable restore services; separate HUD from weapons upgrades. |
-| Purchase actions | Three actions (`PurchaseWeaponsUpgrade`, `PurchaseHullRepair`, `PurchaseShieldRecharge`) | Distinct quote/legality; shared `MerchantShipPurchase` record and `TransactionSource.MerchantPurchase`. |
-| Who sells what | `MerchantCatalog` on [`FacilityOperator`](src/world/star-system/poi/FacilityOperator.cs) (`EFacilityOperatorRole.Merchant`) | One catalog per operator is enough for current facilities; facility-level catalog config deferred until one NPC sells multiple catalogs. |
+| Weapon install / damage / range | [`WeaponsCatalog.ListFor`](src/world/star-system/merchants/WeaponsCatalog.cs) / weapons merchant NPC | Priced rows keyed by [`MerchantCatalog.Offering`](src/world/star-system/merchants/MerchantCatalog.cs); eligibility via [`MerchantShipChanges.TryPrepareAfter`](src/world/star-system/merchants/MerchantShipChanges.cs). |
+| Max shields / max hull / repair / recharge | [`ShipSupportCatalog.ListFor`](src/world/star-system/merchants/ShipSupportCatalog.cs) / support merchant NPC | Same offer model; support HUD lists all services from one catalog method. |
+| Purchase commit | [`PurchaseAction`](src/world/star-system/actions/PurchaseAction.cs) | Single action; `IsLegal` re-quotes via [`MerchantCatalog.TryFind`](src/world/star-system/merchants/MerchantCatalog.cs) and validates `Before` against [`IShipRegistryReader`](src/units/IShipRegistryReader.cs) on [`StarMap`](src/world/star-system/StarMap.cs). |
+| Who sells what | `MerchantCatalog` on [`FacilityOperator`](src/world/star-system/poi/FacilityOperator.cs) (`EFacilityOperatorRole.Merchant`) | One catalog enum per operator; facility-level catalog config deferred until one NPC sells multiple catalogs. |
 
 Presentation ([`DockyardController`](src/world/star-system/presentation/facilities/DockyardController.cs), facility scene slug **Dockyard**) only lists quotes and commits actions; it does not mutate ships.
 

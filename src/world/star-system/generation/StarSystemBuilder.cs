@@ -1,6 +1,7 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
@@ -21,7 +22,7 @@ public static class StarSystemBuilder
 	private const int EdgePadding = 32;
 	private const string PlacementTag = "poi-placement";
 
-	public static StarMap Build(StarSystemBlueprint blueprint)
+	public static StarMap Build(StarSystemBlueprint blueprint, IShipRegistryReader? shipRegistryReader = null)
 	{
 		ArgumentNullException.ThrowIfNull(blueprint);
 
@@ -30,7 +31,7 @@ public static class StarSystemBuilder
 		{
 			try
 			{
-				return BuildOnce(blueprint, layoutAttempt);
+				return BuildOnce(blueprint, layoutAttempt, shipRegistryReader);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -43,7 +44,10 @@ public static class StarSystemBuilder
 			lastFailure);
 	}
 
-	private static StarMap BuildOnce(StarSystemBlueprint blueprint, int layoutAttempt)
+	private static StarMap BuildOnce(
+		StarSystemBlueprint blueprint,
+		int layoutAttempt,
+		IShipRegistryReader? shipRegistryReader)
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
@@ -145,7 +149,8 @@ public static class StarSystemBuilder
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
-			terrain);
+			terrain,
+			shipRegistryReader);
 	}
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)

@@ -103,7 +103,8 @@ public sealed class State : IDisposable
 		ReplaceStarSystem(StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			PlayerParty.ShipIds,
-			nextSeed));
+			nextSeed,
+			ShipRegistry));
 		SyncContractGenerationFromTutorialState();
 	}
 
@@ -116,7 +117,8 @@ public sealed class State : IDisposable
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			run.PlayerParty.ShipIds,
-			seed);
+			seed,
+			run.ShipRegistry);
 		run.BindStarSystem(orchestrator);
 		run.ConfigureTutorials(tutorialsEnabled);
 		return run;
@@ -242,7 +244,7 @@ public sealed class State : IDisposable
 			return;
 		}
 
-		if (!RegistryMatchesMerchantPurchaseBefore(current, purchase.Before))
+		if (!ShipRegistry.Matches(purchase.ShipId, purchase.Before))
 		{
 			GameLog.Log(
 				$"Ignoring merchant ship purchase for '{purchase.ShipId}'; registry no longer matches purchase snapshot.");
@@ -251,20 +253,6 @@ public sealed class State : IDisposable
 
 		ShipRegistry.Update(purchase.After.Clone());
 	}
-
-	private static bool RegistryMatchesMerchantPurchaseBefore(ShipInstance current, ShipInstance before) =>
-		string.Equals(current.Id, before.Id, StringComparison.Ordinal)
-		&& current.HullPoints == before.HullPoints
-		&& current.ShieldPoints.Matches(before.ShieldPoints)
-		&& LoadoutMatches(current.Spec, before.Spec);
-
-	private static bool LoadoutMatches(ShipSpec current, ShipSpec before) =>
-		current.Chassis == before.Chassis
-		&& current.MaxHullPoints == before.MaxHullPoints
-		&& current.ShieldUpgradeTier == before.ShieldUpgradeTier
-		&& current.MaxShieldPoints.Matches(before.MaxShieldPoints)
-		&& current.InstalledAbilities.SequenceEqual(before.InstalledAbilities)
-		&& Equals(current.TorpedoBody, before.TorpedoBody);
 
 	private void OnCommittedEngagement(Record<EngagementCommitted> record)
 	{

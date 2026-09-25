@@ -64,6 +64,23 @@ public sealed class RunShipRegistryTests
 	}
 
 	[Fact]
+	public void Matches_ReturnsFalseForMissingShip()
+	{
+		var registry = new RunShipRegistry();
+		var ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter);
+		Assert.False(registry.Matches("fighter-a", ship));
+	}
+
+	[Fact]
+	public void Matches_ReturnsTrueWhenRegisteredShipMatchesSnapshot()
+	{
+		var registry = new RunShipRegistry();
+		var ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter);
+		registry.Register(ship);
+		Assert.True(registry.Matches("fighter-a", ship.Clone()));
+	}
+
+	[Fact]
 	public void ApplyHandoff_UpdatesVitals()
 	{
 		var registry = new RunShipRegistry();

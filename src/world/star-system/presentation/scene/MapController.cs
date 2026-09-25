@@ -428,8 +428,8 @@ public partial class MapController : Node3D
 				break;
 			case Key.B when key.ShiftPressed:
 				_landmarks.ShowLocalBounds = !_landmarks.ShowLocalBounds;
-				GetViewport().SetInputAsHandled();
-				break;
+ 				GetViewport().SetInputAsHandled();
+ 				 			break;
 			case Key.L when key.ShiftPressed:
 				_landmarks.LandmarksVisible = !_landmarks.LandmarksVisible;
 				GetViewport().SetInputAsHandled();

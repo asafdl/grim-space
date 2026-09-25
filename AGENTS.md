@@ -51,6 +51,7 @@ Before changing code:
 3. Extend that owner instead of creating parallel state, services, registries, or rule implementations.
 4. Keep generic code domain-agnostic and Godot-free; specialize in the consuming system.
 5. Keep presentation derived from authoritative world, runtime, simulation, and timeline state. UI-local state must not become gameplay truth.
+6. If you write an entire class just to put one function in it, or a one line function that all it does is a passthrough to another one line function, you will be shot and killed! 
 
 If the requested change conflicts with an established boundary, stop and explain the conflict before implementing it. Do not preserve a leak merely because nearby code already does it, and do not use an architectural issue as permission to refactor unrelated code.
 

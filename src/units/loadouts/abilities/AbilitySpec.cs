@@ -7,11 +7,17 @@ public abstract record AbilitySpec
 {
 	public abstract EAbilityKind Kind { get; }
 	public abstract IReadOnlyList<ESpatialOrientation> CompatibleFacets { get; }
-	public abstract int UpgradeTier { get; init; }
 
-	public virtual bool CanUpgrade => false;
+	public virtual int DamageUpgradeTier { get; init; }
+	public virtual int RangeUpgradeTier { get; init; }
 
-	public virtual bool TryCreateUpgraded(out AbilitySpec upgraded)
+	public virtual bool TryCreateDamageUpgraded(out AbilitySpec upgraded)
+	{
+		upgraded = null!;
+		return false;
+	}
+
+	public virtual bool TryCreateRangeUpgraded(out AbilitySpec upgraded)
 	{
 		upgraded = null!;
 		return false;
@@ -50,9 +56,16 @@ public abstract record AbilitySpec
 	}
 }
 
-public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange, int UpgradeTier = 0)
-	: AbilitySpec, IAreaDamage, IPerTurnAbility
+public sealed record FlakSpec(
+	int UsesPerTurn,
+	int Damage,
+	int BurstRange,
+	int DamageUpgradeTier = 0,
+	int RangeUpgradeTier = 0) : AbilitySpec, IAreaDamage, IPerTurnAbility
 {
+	public const int MaxDamageUpgradeTier = 3;
+	public const int MaxRangeUpgradeTier = 3;
+
 	private static readonly ESpatialOrientation[] DefaultFacets =
 		[ESpatialOrientation.Port, ESpatialOrientation.Starboard];
 
@@ -61,14 +74,30 @@ public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange, int U
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
-	public override bool CanUpgrade => true;
-
-	public override bool TryCreateUpgraded(out AbilitySpec upgraded)
+	public override bool TryCreateDamageUpgraded(out AbilitySpec upgraded)
 	{
+		upgraded = null!;
+		if (DamageUpgradeTier >= MaxDamageUpgradeTier)
+			return false;
+
 		upgraded = this with
 		{
 			Damage = Damage + 1,
-			UpgradeTier = UpgradeTier + 1,
+			DamageUpgradeTier = DamageUpgradeTier + 1,
+		};
+		return true;
+	}
+
+	public override bool TryCreateRangeUpgraded(out AbilitySpec upgraded)
+	{
+		upgraded = null!;
+		if (RangeUpgradeTier >= MaxRangeUpgradeTier)
+			return false;
+
+		upgraded = this with
+		{
+			BurstRange = BurstRange + 1,
+			RangeUpgradeTier = RangeUpgradeTier + 1,
 		};
 		return true;
 	}
@@ -97,9 +126,17 @@ public sealed record FlakSpec(int UsesPerTurn, int Damage, int BurstRange, int U
 	}
 }
 
-public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, int PyramidRange, int UpgradeTier = 0)
-	: AbilitySpec, IAreaDamage, IPerTurnAbility
+public sealed record RailgunSpec(
+	int UsesPerTurn,
+	int Damage,
+	int LineLength,
+	int PyramidRange,
+	int DamageUpgradeTier = 0,
+	int RangeUpgradeTier = 0) : AbilitySpec, IAreaDamage, IPerTurnAbility
 {
+	public const int MaxDamageUpgradeTier = 3;
+	public const int MaxRangeUpgradeTier = 3;
+
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
 
 	public override EAbilityKind Kind => EAbilityKind.Railgun;
@@ -107,14 +144,30 @@ public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, in
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
-	public override bool CanUpgrade => true;
-
-	public override bool TryCreateUpgraded(out AbilitySpec upgraded)
+	public override bool TryCreateDamageUpgraded(out AbilitySpec upgraded)
 	{
+		upgraded = null!;
+		if (DamageUpgradeTier >= MaxDamageUpgradeTier)
+			return false;
+
 		upgraded = this with
 		{
 			Damage = Damage + 1,
-			UpgradeTier = UpgradeTier + 1,
+			DamageUpgradeTier = DamageUpgradeTier + 1,
+		};
+		return true;
+	}
+
+	public override bool TryCreateRangeUpgraded(out AbilitySpec upgraded)
+	{
+		upgraded = null!;
+		if (RangeUpgradeTier >= MaxRangeUpgradeTier)
+			return false;
+
+		upgraded = this with
+		{
+			LineLength = LineLength + 1,
+			RangeUpgradeTier = RangeUpgradeTier + 1,
 		};
 		return true;
 	}
@@ -152,8 +205,7 @@ public sealed record RailgunSpec(int UsesPerTurn, int Damage, int LineLength, in
 public sealed record PatrolBaySpec(
 	int CooldownTurns,
 	ShipSpec ChildSpec,
-	int MaxLivingChildren,
-	int UpgradeTier = 0) : AbilitySpec, ISpawnable, ICooldownAbility
+	int MaxLivingChildren) : AbilitySpec, ISpawnable, ICooldownAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Ventral];
 
@@ -164,7 +216,7 @@ public sealed record PatrolBaySpec(
 	int ISpawnable.MaxLivingChildren => MaxLivingChildren;
 }
 
-public sealed record TorpedoLauncherSpec(int CooldownTurns, ShipSpec ChildSpec, int UpgradeTier = 0)
+public sealed record TorpedoLauncherSpec(int CooldownTurns, ShipSpec ChildSpec)
 	: AbilitySpec, ISpawnable, ICooldownAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets =
