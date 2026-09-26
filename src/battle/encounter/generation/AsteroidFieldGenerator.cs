@@ -5,13 +5,6 @@ namespace GrimSpace.Battle.Encounter.Generation;
 
 public static class AsteroidFieldGenerator
 {
-	private static readonly Coord[] Neighbors =
-	[
-		new(1, 0, 0), new(-1, 0, 0),
-		new(0, 1, 0), new(0, -1, 0),
-		new(0, 0, 1), new(0, 0, -1),
-	];
-
 	public static IReadOnlyList<BattleHazardSpawn> Generate(AsteroidFieldConfig config)
 	{
 		var rng = new Random(config.Seed);
@@ -20,7 +13,7 @@ public static class AsteroidFieldGenerator
 
 		for (var attempt = 0; attempt < maxAttempts && placed.Count < config.TargetCount; attempt++)
 		{
-			var localCells = GrowShape(rng, PickCellCount(rng));
+			var localCells = CreateVolume(PickSize(rng));
 			var origin = PickOrigin(config, rng);
 			var cells = localCells.Select(cell => cell + origin).ToHashSet();
 
@@ -39,58 +32,24 @@ public static class AsteroidFieldGenerator
 		return placed;
 	}
 
-	private static int PickCellCount(Random rng) =>
+	private static int PickSize(Random rng) =>
 		rng.Next(100) switch
 		{
-			< 35 => rng.Next(1, 4),
-			< 85 => rng.Next(4, 10),
-			_ => rng.Next(10, 19),
+			< 20 => 1,
+			< 60 => 2,
+			< 92 => 3,
+			_ => 4,
 		};
 
-	private static HashSet<Coord> GrowShape(Random rng, int targetCount)
+	private static HashSet<Coord> CreateVolume(int size)
 	{
-		var cells = new HashSet<Coord> { Coord.Zero };
-		var insertionOrder = new List<Coord> { Coord.Zero };
-		var axisWeights = PickAxisWeights(rng);
-
-		while (cells.Count < targetCount)
-		{
-			var source = insertionOrder[rng.Next(insertionOrder.Count)];
-			var direction = PickDirection(rng, axisWeights);
-			var candidate = source + direction;
-			if (cells.Add(candidate))
-				insertionOrder.Add(candidate);
-		}
-
+		var cells = new HashSet<Coord>();
+		var min = -(size / 2);
+		for (var x = min; x < min + size; x++)
+		for (var y = min; y < min + size; y++)
+		for (var z = min; z < min + size; z++)
+			cells.Add(new Coord(x, y, z));
 		return cells;
-	}
-
-	private static (int X, int Y, int Z) PickAxisWeights(Random rng)
-	{
-		var mode = rng.Next(3);
-		var dominantAxis = rng.Next(3);
-		return mode switch
-		{
-			0 => (3, 3, 3),
-			1 => AxisWeights(dominantAxis, dominant: 8, secondary: 1),
-			_ => AxisWeights(dominantAxis, dominant: 1, secondary: 5),
-		};
-	}
-
-	private static (int X, int Y, int Z) AxisWeights(int axis, int dominant, int secondary) =>
-		axis switch
-		{
-			0 => (dominant, secondary, secondary),
-			1 => (secondary, dominant, secondary),
-			_ => (secondary, secondary, dominant),
-		};
-
-	private static Coord PickDirection(Random rng, (int X, int Y, int Z) weights)
-	{
-		var total = weights.X + weights.Y + weights.Z;
-		var roll = rng.Next(total);
-		var axis = roll < weights.X ? 0 : roll < weights.X + weights.Y ? 1 : 2;
-		return Neighbors[axis * 2 + rng.Next(2)];
 	}
 
 	private static Coord PickOrigin(AsteroidFieldConfig config, Random rng) =>

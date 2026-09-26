@@ -6,32 +6,33 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class BoardHazardView : Node3D
 {
-	private const float CellFit = 0.94f;
+	private const string PackPath = "res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
+	private const string MetallicPackPath = "res://assets/models/asteroids/asteroids.glb";
+	private const float CellFit = 0.96f;
+	private static RockVariant[]? _rocks;
+	private static RockVariant[]? _metallicRocks;
 
-	private static readonly Coord[] PositiveFaceOffsets =
-	[
-		new(1, 0, 0),
-		new(0, 1, 0),
-		new(0, 0, 1),
-	];
-
-	// Strong value/chroma separation so differences survive warm key light.
 	private static readonly Color[] RockBases =
 	[
-		new(0.58f, 0.56f, 0.54f),
-		new(0.2f, 0.2f, 0.22f),
-		new(0.32f, 0.4f, 0.48f),
-		new(0.36f, 0.42f, 0.3f),
-		new(0.5f, 0.3f, 0.22f),
-		new(0.42f, 0.4f, 0.45f),
-		new(0.55f, 0.48f, 0.4f),
-		new(0.28f, 0.34f, 0.4f),
-		new(0.45f, 0.44f, 0.4f),
-		new(0.3f, 0.36f, 0.32f),
+		new(0.76f, 0.52f, 0.32f),
+		new(0.57f, 0.42f, 0.34f),
+		new(0.68f, 0.61f, 0.38f),
+		new(0.39f, 0.57f, 0.52f),
+		new(0.42f, 0.51f, 0.68f),
+		new(0.58f, 0.49f, 0.57f),
+	];
+	private static readonly Color[] MetallicBases =
+	[
+		new(0.76f, 0.81f, 0.87f),
+		new(0.86f, 0.71f, 0.44f),
+		new(0.58f, 0.74f, 0.76f),
 	];
 
 	public void Build(IReadOnlyList<Hazard> hazards)
 	{
+		if (hazards.Any(hazard => hazard.Kind == EHazardKind.Asteroid))
+			EnsureLoaded();
+
 		foreach (var hazard in hazards)
 		{
 			if (hazard.Kind == EHazardKind.Asteroid)
@@ -39,87 +40,102 @@ public partial class BoardHazardView : Node3D
 		}
 	}
 
-	private static Node3D CreateAsteroid(Hazard hazard)
+	private static MeshInstance3D CreateAsteroid(Hazard hazard)
 	{
-		var familyRng = RngFor(hazard.Center);
-		var baseColor = RockBases[familyRng.RandiRange(0, RockBases.Length - 1)];
+		var rng = RngFor(hazard.Center);
+		var metallic = rng.Randf() < 0.18f;
+		var variants = metallic ? _metallicRocks! : _rocks!;
+		var variant = variants[rng.Randi() % variants.Length];
+		var minX = hazard.Cells.Min(cell => cell.X);
+		var minY = hazard.Cells.Min(cell => cell.Y);
+		var minZ = hazard.Cells.Min(cell => cell.Z);
+		var maxX = hazard.Cells.Max(cell => cell.X);
+		var maxY = hazard.Cells.Max(cell => cell.Y);
+		var maxZ = hazard.Cells.Max(cell => cell.Z);
+		var center = (WorldMapping.ToWorld(new Coord(minX, minY, minZ))
+			+ WorldMapping.ToWorld(new Coord(maxX, maxY, maxZ))) * 0.5f;
+		var availableSize = new Vector3(
+			maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1) * (WorldMapping.CellSize * CellFit);
+		var rotation = Basis.FromEuler(new Vector3(
+			rng.Randf() * Mathf.Tau,
+			rng.Randf() * Mathf.Tau,
+			rng.Randf() * Mathf.Tau));
+		var rotatedSize = rotation.X.Abs() * variant.Bounds.Size.X
+			+ rotation.Y.Abs() * variant.Bounds.Size.Y
+			+ rotation.Z.Abs() * variant.Bounds.Size.Z;
+		var scale = Mathf.Min(
+			availableSize.X / rotatedSize.X,
+			Mathf.Min(availableSize.Y / rotatedSize.Y, availableSize.Z / rotatedSize.Z));
+		var palette = metallic ? MetallicBases : RockBases;
+		var color = palette[rng.RandiRange(0, palette.Length - 1)];
 
-		var root = new Node3D { Name = hazard.Id };
-		foreach (var cell in hazard.Cells)
-			root.AddChild(CreateCellRock(cell, baseColor));
-
-		foreach (var cell in hazard.Cells)
+		return new MeshInstance3D
 		{
-			foreach (var offset in PositiveFaceOffsets)
-			{
-				var other = cell + offset;
-				if (hazard.Cells.Contains(other))
-					root.AddChild(CreateCellBridge(cell, other, baseColor));
-			}
+			Name = hazard.Id,
+			Position = center - rotation * (variant.Bounds.GetCenter() * scale),
+			Basis = rotation.ScaledLocal(Vector3.One * scale),
+			Mesh = variant.Mesh,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = CreateRockMaterial(variant.Mesh, color, rng, metallic),
+		};
+	}
+
+	private static StandardMaterial3D CreateRockMaterial(
+		Mesh mesh,
+		Color color,
+		RandomNumberGenerator rng,
+		bool metallic)
+	{
+		if (mesh.SurfaceGetMaterial(0) is not StandardMaterial3D source)
+			throw new InvalidOperationException("Battle asteroid mesh has no standard material.");
+
+		var material = (StandardMaterial3D)source.Duplicate();
+		material.AlbedoColor *= Colors.White.Lerp(color, metallic ? 0.5f : 0.65f)
+			* rng.RandfRange(0.85f, 1.12f);
+		material.Roughness = metallic
+			? rng.RandfRange(0.28f, 0.4f)
+			: Mathf.Max(material.Roughness, 0.8f);
+		material.Metallic = metallic
+			? rng.RandfRange(0.65f, 0.8f)
+			: Mathf.Min(material.Metallic, 0.18f);
+		return material;
+	}
+
+	private static void EnsureLoaded()
+	{
+		if (_rocks is not null && _metallicRocks is not null)
+			return;
+
+		_rocks = LoadRocks(PackPath);
+		_metallicRocks = LoadRocks(MetallicPackPath)
+			.Where(rock => rock.Mesh is ArrayMesh mesh && mesh.SurfaceGetArrayLen(0) <= 500)
+			.ToArray();
+		if (_metallicRocks.Length == 0)
+			throw new InvalidOperationException($"Asteroid pack '{MetallicPackPath}' has no low-detail meshes.");
+	}
+
+	private static RockVariant[] LoadRocks(string path)
+	{
+		var scene = GD.Load<PackedScene>(path)
+			?? throw new InvalidOperationException($"Could not load asteroid pack '{path}'.");
+		var root = scene.Instantiate<Node3D>();
+		try
+		{
+			var rocks = root.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>()
+				.OrderBy(node => node.Name.ToString(), StringComparer.Ordinal)
+				.Select(node => node.Mesh is { } mesh
+					? new RockVariant(mesh, mesh.GetAabb())
+					: throw new InvalidOperationException($"Asteroid '{node.Name}' has no mesh."))
+				.ToArray();
+			if (rocks.Length == 0)
+				throw new InvalidOperationException($"Asteroid pack '{path}' has no meshes.");
+			return rocks;
 		}
-
-		return root;
-	}
-
-	private static MeshInstance3D CreateCellRock(Coord cell, Color baseColor)
-	{
-		var rng = RngFor(cell);
-		var fit = WorldMapping.CellSize * CellFit;
-		var size = new Vector3(
-			fit * rng.RandfRange(0.88f, 1f),
-			fit * rng.RandfRange(0.88f, 1f),
-			fit * rng.RandfRange(0.88f, 1f));
-
-		return new MeshInstance3D
+		finally
 		{
-			Name = $"rock_{cell.X}_{cell.Y}_{cell.Z}",
-			Position = WorldMapping.ToWorld(cell),
-			Mesh = AsteroidMesh.Create(size, rng),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateRockMaterial(baseColor, rng),
-		};
-	}
-
-	private static MeshInstance3D CreateCellBridge(Coord a, Coord b, Color baseColor)
-	{
-		var rng = RngFor(a + b);
-		var from = WorldMapping.ToWorld(a);
-		var to = WorldMapping.ToWorld(b);
-		var mid = (from + to) * 0.5f;
-		var delta = to - from;
-		var fit = WorldMapping.CellSize * CellFit;
-		var size = new Vector3(
-			fit * rng.RandfRange(0.9f, 1f),
-			fit * rng.RandfRange(0.9f, 1f),
-			delta.Length() * 2f * CellFit * rng.RandfRange(0.92f, 1f));
-
-		var direction = delta.Normalized();
-		var up = Mathf.Abs(direction.Dot(Vector3.Up)) > 0.95f ? Vector3.Right : Vector3.Up;
-
-		return new MeshInstance3D
-		{
-			Name = $"bridge_{a.X}_{a.Y}_{a.Z}_{b.X}_{b.Y}_{b.Z}",
-			Position = mid,
-			Basis = Basis.LookingAt(direction, up),
-			Mesh = AsteroidMesh.Create(size, rng),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateRockMaterial(baseColor, rng),
-		};
-	}
-
-	private static StandardMaterial3D CreateRockMaterial(Color baseColor, RandomNumberGenerator rng)
-	{
-		var albedo = new Color(
-			Mathf.Clamp(baseColor.R + rng.RandfRange(-0.1f, 0.1f), 0.12f, 0.72f),
-			Mathf.Clamp(baseColor.G + rng.RandfRange(-0.1f, 0.1f), 0.12f, 0.72f),
-			Mathf.Clamp(baseColor.B + rng.RandfRange(-0.1f, 0.1f), 0.12f, 0.72f));
-
-		return new StandardMaterial3D
-		{
-			AlbedoColor = albedo,
-			Roughness = rng.RandfRange(0.78f, 0.98f),
-			Metallic = rng.RandfRange(0.01f, 0.1f),
-		};
+			root.Free();
+		}
 	}
 
 	private static RandomNumberGenerator RngFor(Coord center)
@@ -128,4 +144,6 @@ public partial class BoardHazardView : Node3D
 		rng.Seed = (ulong)(center.X * 73856093 ^ center.Y * 19349663 ^ center.Z * 83492791);
 		return rng;
 	}
+
+	private readonly record struct RockVariant(Mesh Mesh, Aabb Bounds);
 }
