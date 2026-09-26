@@ -23,13 +23,15 @@ public partial class MapView : Node3D
 	private const float GridHaloAlpha = 0.12f;
 	private const int FootprintSegments = 48;
 	private const float IndicatorClearancePadding = 0.15f;
+	private const string TradeHubModelPath = "res://assets/models/spaceobjects/sci-fi_space_station_2.glb";
+	private const string StorageModelPath = "res://assets/models/spaceobjects/freeport_space_station1.glb";
+	private const string AdminStationModelPath = "res://assets/models/spaceobjects/gangut_space_hub.glb";
+	private const string WormholeModelPath = "res://assets/models/spaceobjects/black_hole_station_daily_draft_35.glb";
 
 	private static readonly Color GridMinor = new(0.28f, 0.78f, 0.88f, MinorAlpha);
 	private static readonly Color GridMajor = new(0.36f, 0.88f, 0.96f, MajorAlpha);
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
-	private static readonly Color StationSilver = new(0.72f, 0.74f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
-	private static readonly Color WormholeTint = new(0.55f, 0.35f, 0.95f);
 
 	private readonly Dictionary<string, MeshInstance3D> _footprints = new();
 	private readonly Dictionary<string, Node3D> _markers = new();
@@ -445,15 +447,20 @@ public partial class MapView : Node3D
 				ringRadius = 1.05f;
 				break;
 			case Wormhole:
-				AddWormhole(root, seed, poi);
+				AddImportedPoiModel(root, WormholeModelPath, "WormholeStation", 1.4f, Basis.Identity);
 				ringRadius = 0.88f;
 				break;
 			case StorageFacility:
-				AddStation(root);
+				AddImportedPoiModel(root, StorageModelPath, "StorageStation", 1.3225f, Basis.Identity);
 				ringRadius = 0.75f;
 				break;
 			case TradeHub:
-				AddStation(root);
+				AddImportedPoiModel(
+					root,
+					TradeHubModelPath,
+					"TradeHubStation",
+					1.25f,
+					Basis.Identity);
 				ringRadius = 0.82f;
 				break;
 			case AdministrativeCore admin:
@@ -464,7 +471,7 @@ public partial class MapView : Node3D
 				}
 				else
 				{
-					AddLargeStation(root);
+					AddImportedPoiModel(root, AdminStationModelPath, "AdminStation", 1.4f, Basis.Identity);
 					ringRadius = 0.95f;
 				}
 				break;
@@ -496,37 +503,35 @@ public partial class MapView : Node3D
 		return root;
 	}
 
-	private static StandardMaterial3D StationHullMaterial() =>
-		new()
-		{
-			AlbedoColor = StationSilver,
-			Metallic = 0.82f,
-			Roughness = 0.28f,
-		};
-
 	private static void AddAsteroidField(Node3D root, int seed, PointOfInterest poi)
 	{
 		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Value);
 		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
 		var mainCount = 3 + (int)(random.NextDouble() * 2);
-		var count = mainCount + 14 + (int)(random.NextDouble() * 7);
+		var supportCount = 14 + (int)(random.NextDouble() * 7);
+		var count = mainCount + supportCount + 34 + (int)(random.NextDouble() * 13);
 		var orientation = random.NextDouble() * System.Math.Tau;
-		var copper = new Color(0.82f, 0.47f, 0.28f);
+		var copper = new Color(0.98f, 0.37f, 0.15f);
+		var weatheredCopper = new Color(0.72f, 0.29f, 0.16f);
 
 		for (var i = 0; i < count; i++)
 		{
 			var rng = CreateGodotRng(seed, poi.Id, i);
 			var mainMass = i < mainCount;
+			var supportRock = i < mainCount + supportCount;
 			var angle = mainMass
 				? orientation + i * System.Math.Tau / mainCount + (random.NextDouble() - 0.5) * 0.25
 				: random.NextDouble() * System.Math.Tau;
 			var distance = mainMass
-				? worldRadius * (0.28 + random.NextDouble() * 0.20)
-				: worldRadius * System.Math.Sqrt(random.NextDouble()) * 0.76;
+				? worldRadius * (0.32 + random.NextDouble() * 0.22)
+				: worldRadius * ((supportRock ? 0.14 : 0.18)
+					+ System.Math.Sqrt(random.NextDouble()) * (supportRock ? 0.68 : 0.75));
 			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.18;
 			var diameter = worldRadius * (mainMass
 				? 0.38f + (float)random.NextDouble() * 0.16f
-				: 0.09f + (float)random.NextDouble() * 0.14f);
+				: supportRock
+					? 0.12f + (float)random.NextDouble() * 0.11f
+					: 0.065f + (float)random.NextDouble() * 0.045f);
 			var rock = NavigationLandmarkRockLibrary.CreateRock(rng, diameter, mainMass);
 			rock.Name = $"Rock_{i}";
 			rock.Position = new Vector3(
@@ -539,42 +544,9 @@ public partial class MapView : Node3D
 				(float)(random.NextDouble() * System.Math.Tau));
 			NavigationLandmarkRockLibrary.TintMeshes(
 				rock,
-				copper.Lerp(new Color(0.56f, 0.51f, 0.46f), rng.Randf() * 0.45f),
+				copper.Lerp(weatheredCopper, rng.Randf() * 0.55f),
 				emissionStrength: 0.05f);
 			root.AddChild(rock);
-		}
-	}
-
-	private static void AddWormhole(Node3D root, int seed, PointOfInterest poi)
-	{
-		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Add("wormhole").Value);
-		var ringCount = 2 + (int)(random.NextDouble() * 2);
-
-		for (var i = 0; i < ringCount; i++)
-		{
-			var inner = 0.28f + i * 0.10f + (float)random.NextDouble() * 0.04f;
-			var outer = inner + 0.05f + (float)random.NextDouble() * 0.03f;
-			var tiltX = 55f + i * 18f + (float)(random.NextDouble() * 16 - 8);
-			var tiltY = (float)(random.NextDouble() * 360);
-			var pulse = 0.75f + (float)random.NextDouble() * 0.35f;
-
-			root.AddChild(new MeshInstance3D
-			{
-				Name = $"Ring_{i}",
-				RotationDegrees = new Vector3(tiltX, tiltY, 0f),
-				Mesh = new TorusMesh { InnerRadius = inner, OuterRadius = outer },
-				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-				MaterialOverride = new StandardMaterial3D
-				{
-					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-					Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-					AlbedoColor = WormholeTint with { A = 0.55f },
-					EmissionEnabled = true,
-					Emission = WormholeTint,
-					EmissionEnergyMultiplier = pulse,
-					CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-				},
-			});
 		}
 	}
 
@@ -587,110 +559,51 @@ public partial class MapView : Node3D
 		return godotRng;
 	}
 
-	private static void AddLargeStation(Node3D root)
+	private static void AddImportedPoiModel(
+		Node3D root,
+		string path,
+		string name,
+		float targetDiameter,
+		Basis rotation)
 	{
-		var hull = StationHullMaterial();
-
-		root.AddChild(new MeshInstance3D
+		var scene = GD.Load<PackedScene>(path)
+			?? throw new InvalidOperationException($"Could not load POI model '{path}'.");
+		var model = scene.Instantiate<Node3D>();
+		var parts = model.FindChildren("*", "MeshInstance3D", true, false)
+			.OfType<MeshInstance3D>().ToArray();
+		if (parts.Length == 0 || parts.Any(part => part.Mesh is null))
 		{
-			Name = "Hub",
-			Position = Vector3.Zero,
-			Mesh = new SphereMesh { Radius = 0.32f, Height = 0.64f },
-			MaterialOverride = hull,
-		});
+			model.Free();
+			throw new InvalidOperationException($"POI model '{path}' has missing meshes.");
+		}
 
-		root.AddChild(new MeshInstance3D
+		var bounds = default(Aabb);
+		for (var i = 0; i < parts.Length; i++)
 		{
-			Name = "Ring",
-			Position = Vector3.Zero,
-			RotationDegrees = new Vector3(90f, 0f, 0f),
-			Mesh = new TorusMesh { InnerRadius = 0.58f, OuterRadius = 0.70f },
-			MaterialOverride = hull,
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "ArmA",
-			Position = Vector3.Zero,
-			Mesh = new BoxMesh { Size = new Vector3(1.45f, 0.08f, 0.18f) },
-			MaterialOverride = hull,
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "ArmB",
-			Position = Vector3.Zero,
-			Mesh = new BoxMesh { Size = new Vector3(0.18f, 0.08f, 1.45f) },
-			MaterialOverride = hull,
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Beacon",
-			Position = new Vector3(0f, 0.42f, 0f),
-			Mesh = new SphereMesh { Radius = 0.08f, Height = 0.16f },
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
+			var transform = Transform3D.Identity;
+			for (Node? node = parts[i]; node is not null && node != model; node = node.GetParent())
 			{
-				AlbedoColor = StationSilver.Lightened(0.18f),
-				EmissionEnabled = true,
-				Emission = StationSilver,
-				EmissionEnergyMultiplier = 0.55f,
-			},
-		});
-	}
+				if (node is Node3D spatial)
+					transform = spatial.Transform * transform;
+			}
 
-	private static void AddStation(Node3D root)
-	{
-		var hull = StationHullMaterial();
+			var partBounds = transform * parts[i].Mesh.GetAabb();
+			bounds = i == 0 ? partBounds : bounds.Merge(partBounds);
+		}
 
-		root.AddChild(new MeshInstance3D
+		var rotatedBounds = new Transform3D(rotation, Vector3.Zero) * bounds;
+		var diameter = Mathf.Max(rotatedBounds.Size.X, rotatedBounds.Size.Z);
+		if (diameter <= 0f)
 		{
-			Name = "Hub",
-			Position = Vector3.Zero,
-			Mesh = new SphereMesh { Radius = 0.20f, Height = 0.40f },
-			MaterialOverride = hull,
-		});
+			model.Free();
+			throw new InvalidOperationException($"POI model '{path}' has no horizontal extent.");
+		}
 
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Ring",
-			Position = Vector3.Zero,
-			RotationDegrees = new Vector3(90f, 0f, 0f),
-			Mesh = new TorusMesh { InnerRadius = 0.36f, OuterRadius = 0.44f },
-			MaterialOverride = hull,
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "ArmA",
-			Position = Vector3.Zero,
-			Mesh = new BoxMesh { Size = new Vector3(0.95f, 0.06f, 0.12f) },
-			MaterialOverride = hull,
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "ArmB",
-			Position = Vector3.Zero,
-			Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.06f, 0.95f) },
-			MaterialOverride = hull,
-		});
-
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Beacon",
-			Position = new Vector3(0f, 0.28f, 0f),
-			Mesh = new SphereMesh { Radius = 0.055f, Height = 0.11f },
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = StationSilver.Lightened(0.18f),
-				EmissionEnabled = true,
-				Emission = StationSilver,
-				EmissionEnergyMultiplier = 0.55f,
-			},
-		});
+		var scale = targetDiameter / diameter;
+		model.Name = name;
+		model.Basis = rotation.ScaledLocal(Vector3.One * scale);
+		model.Position = -(rotation * (bounds.GetCenter() * scale));
+		root.AddChild(model);
 	}
 
 	private static void AddCircleOutline(ImmediateMesh mesh, Vector3 center, float radius)

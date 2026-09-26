@@ -21,3 +21,11 @@ Kenny particle-pack smoke textures used for map dust: see `assets/kenny-particle
 "Low Poly Spaceship 1/10" (https://sketchfab.com/3d-models/low-poly-spaceship-110-b8f3d810d55c431eb4f4533ba9592c77) by Duane's Mind is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 
 "Cool Spaceship With Logo" (https://sketchfab.com/3d-models/cool-spaceship-with-logo-f4fc805112f542c89a04fc56847f1aac) by forbesandrew602 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+"Sci-Fi Space Station #2" (https://sketchfab.com/3d-models/sci-fi-space-station-2-c4262b7016c2454f810d1794447ff3b6) by Helindu is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+"Freeport Space Station1" (https://skfb.ly/oqx7z) by Inditrion Dradnon is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+"Gangut space hub" (https://sketchfab.com/3d-models/gangut-space-hub-db9e338f04ae402c82f8ebdf12b55f9e) by Comrade1280 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+"Black Hole Station, Daily Draft 3\5" (https://sketchfab.com/3d-models/black-hole-station-daily-draft-35-3ead2bf646c049fbb176470b38d459e1) by Ferot is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
