@@ -69,6 +69,18 @@ public sealed class LootCatalogTests
 	}
 
 	[Fact]
+	public void For_DestroyedPatrol_HigherGearTier_IncreasesScrapRange()
+	{
+		var low = LootCatalog.For(OutcomeWithDestroyedPatrol("patrol-0", EShipGearTier.T0));
+		var high = LootCatalog.For(OutcomeWithDestroyedPatrol("patrol-0", EShipGearTier.T3));
+
+		low.Total.TryGet(ResourceId.ScrapAlloy, out var lowScrap);
+		high.Total.TryGet(ResourceId.ScrapAlloy, out var highScrap);
+		Assert.InRange(lowScrap, 50, 120);
+		Assert.InRange(highScrap, 73, 174);
+	}
+
+	[Fact]
 	public void For_DestroyedTorpedo_YieldsEmptyLoot()
 	{
 		var outcome = new BattleOutcome(
@@ -87,4 +99,10 @@ public sealed class LootCatalogTests
 			"test-battle",
 			EBattleResult.Win,
 			[.. patrolIds.Select(id => OutcomeTestKit.Handoff(id, EType.Patrol, 0))]);
+
+	private static BattleOutcome OutcomeWithDestroyedPatrol(string patrolId, EShipGearTier gearTier) =>
+		new(
+			"test-battle",
+			EBattleResult.Win,
+			[OutcomeTestKit.Handoff(patrolId, EType.Patrol, 0, gearTier)]);
 }

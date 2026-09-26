@@ -7,7 +7,8 @@ public sealed record UnitStateHandoff(
 	string Id,
 	EType Chassis,
 	int HullPoints,
-	FaceShieldPoints ShieldPoints);
+	FaceShieldPoints ShieldPoints,
+	EShipGearTier GearTier = EShipGearTier.T0);
 
 public sealed record BattleOutcome(
 	string BattleId,

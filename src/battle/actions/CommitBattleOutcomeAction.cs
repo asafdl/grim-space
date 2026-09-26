@@ -5,6 +5,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Actions;
@@ -95,7 +96,8 @@ public static class CommitBattleOutcomeRules
 					unit.State.Id,
 					unit.State.Type,
 					unit.State.HullPoints,
-					unit.State.ShieldPoints.Clone()))
+					unit.State.ShieldPoints.Clone(),
+					ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type)))
 				.ToArray());
 
 	private static EBattleResult EvaluateEliminateOpponents(UnitRegistry units, ETeam team)
