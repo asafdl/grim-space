@@ -45,7 +45,7 @@ public sealed class CompleteContractDef
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
-			new CompleteContractEffect(complete.ContractId),
+			new EndContractEffect(complete.ContractId, EContractStatus.Completed),
 		};
 		if (!complete.Payment.IsEmpty)
 			effects.Add(new ChangeResourceEffect(TransactionSource.ContractPayment, complete.Payment));

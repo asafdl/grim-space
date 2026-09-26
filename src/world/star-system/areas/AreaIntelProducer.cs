@@ -46,21 +46,29 @@ public static class AreaIntelProducer
 			.Select(id => (Id: id, Position: resolvePosition(id)))
 			.OrderBy(reference => RouteGeometry.Distance(searchPoint, reference.Position))
 			.ToArray();
-		var closest = references[0];
-		if (RouteGeometry.Distance(searchPoint, closest.Position) <= mapSize * NearFractionOfMap)
-			return new AreaIntel("Somewhere near {A}.", closest.Id, context.LandmarkBId, context.LandmarkCId);
+		var navigationReferences = references
+			.Where(reference => !AreaBorderAnchor.TryParseId(reference.Id, out _))
+			.ToArray();
+		if (navigationReferences.Length == 0)
+			throw new InvalidOperationException("At least one navigation landmark reference is required.");
+
+		var closestNavigation = navigationReferences[0];
+		if (RouteGeometry.Distance(searchPoint, closestNavigation.Position) <= mapSize * NearFractionOfMap)
+		{
+			return new AreaIntel(
+				"Somewhere near {A}.",
+				closestNavigation.Id,
+				context.LandmarkBId,
+				context.LandmarkCId);
+		}
 
 		(string FirstId, string SecondId, double Distance)? bestPair = null;
-		for (var i = 0; i < references.Length; i++)
+		for (var i = 0; i < navigationReferences.Length; i++)
 		{
-			for (var j = i + 1; j < references.Length; j++)
+			for (var j = i + 1; j < navigationReferences.Length; j++)
 			{
-				var first = references[i];
-				var second = references[j];
-				if (AreaBorderAnchor.TryParseId(first.Id, out _)
-					&& AreaBorderAnchor.TryParseId(second.Id, out _))
-					continue;
-
+				var first = navigationReferences[i];
+				var second = navigationReferences[j];
 				var distance = RouteGeometry.PointToSegmentDistance(searchPoint, first.Position, second.Position);
 				if (distance <= mapSize * BetweenFractionOfMap
 					&& (bestPair is null || distance < bestPair.Value.Distance))
@@ -70,21 +78,44 @@ public static class AreaIntelProducer
 		if (bestPair is { } pair)
 			return new AreaIntel("Somewhere between {A} and {B}.", pair.FirstId, pair.SecondId, context.LandmarkCId);
 
-		var triangleIds = new[] { context.LandmarkAId, context.LandmarkBId, context.LandmarkCId };
-		var borderCount = triangleIds.Count(id => AreaBorderAnchor.TryParseId(id, out _));
-		if (borderCount == 2)
+		var landmarkIds = new List<string>();
+		foreach (var id in new[] { context.LandmarkAId, context.LandmarkBId, context.LandmarkCId })
 		{
-			var landmarkId = triangleIds.Single(id => !AreaBorderAnchor.TryParseId(id, out _));
+			if (AreaBorderAnchor.TryParseId(id, out _))
+				continue;
+			if (!landmarkIds.Contains(id, StringComparer.Ordinal))
+				landmarkIds.Add(id);
+		}
+
+		foreach (var reference in navigationReferences)
+		{
+			if (landmarkIds.Count >= 3)
+				break;
+			if (!landmarkIds.Contains(reference.Id, StringComparer.Ordinal))
+				landmarkIds.Add(reference.Id);
+		}
+
+		if (landmarkIds.Count >= 3)
+		{
 			return new AreaIntel(
-				"Somewhere in the general area between {A} and the sector rim.",
-				landmarkId,
-				context.LandmarkBId,
+				"Somewhere in the general area between {A}, {B}, and {C}.",
+				landmarkIds[0],
+				landmarkIds[1],
+				landmarkIds[2]);
+		}
+
+		if (landmarkIds.Count == 2)
+		{
+			return new AreaIntel(
+				"Somewhere between {A} and {B}.",
+				landmarkIds[0],
+				landmarkIds[1],
 				context.LandmarkCId);
 		}
 
 		return new AreaIntel(
-			"Somewhere in the general area between {A}, {B}, and {C}.",
-			context.LandmarkAId,
+			"Somewhere near {A}.",
+			landmarkIds[0],
 			context.LandmarkBId,
 			context.LandmarkCId);
 	}

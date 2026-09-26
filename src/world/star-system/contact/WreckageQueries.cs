@@ -4,7 +4,11 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contact;
 
-public readonly record struct PendingWreckDecision(string ContractId, string Title, string Briefing);
+public readonly record struct PendingWreckDecision(
+	string ContractId,
+	string Title,
+	string Briefing,
+	bool IsAmbush);
 
 public static class WreckageQueries
 {
@@ -22,13 +26,14 @@ public static class WreckageQueries
 			return false;
 
 		if (!world.ContractRegistry.TryGet(contractId, out var contract)
-			|| contract.Objective is not WreckageObjective)
+			|| contract.Objective is not WreckageObjective wreckage)
 			return false;
 
 		decision = new PendingWreckDecision(
 			contractId,
 			contract.Narrative.Title,
-			contract.Narrative.Briefing);
+			contract.Narrative.Briefing,
+			wreckage.Outcome is WreckageOutcome.Ambush);
 		return true;
 	}
 

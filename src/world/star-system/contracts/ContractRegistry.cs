@@ -63,6 +63,12 @@ public sealed class ContractRegistry
 		_states.Values.Count(state => state.Status == EContractStatus.Completed);
 
 	public void Complete(string contractId)
+		=> End(contractId, EContractStatus.Completed);
+
+	public void Fail(string contractId)
+		=> End(contractId, EContractStatus.Failed);
+
+	private void End(string contractId, EContractStatus status)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
 
@@ -72,7 +78,7 @@ public sealed class ContractRegistry
 		if (state.Status != EContractStatus.Active)
 			throw new InvalidOperationException($"Contract '{contractId}' is not active.");
 
-		_states[contractId] = state with { Status = EContractStatus.Completed };
+		_states[contractId] = state with { Status = status };
 	}
 
 	public bool TryAdd(Contract contract, int? expiresAtTick = null)

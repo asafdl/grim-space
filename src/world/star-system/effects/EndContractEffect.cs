@@ -5,7 +5,7 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Effects;
 
-public sealed class CompleteContractEffect(string contractId)
+public sealed class EndContractEffect(string contractId, EContractStatus status)
 	: IEffect<StarMap, ActorRuntime>
 {
 	private ContractState? _previous;
@@ -15,7 +15,17 @@ public sealed class CompleteContractEffect(string contractId)
 		if (!world.ContractRegistry.TryGetState(contractId, out _previous))
 			throw new InvalidOperationException($"Contract '{contractId}' has no runtime state.");
 
-		world.ContractRegistry.Complete(contractId);
+		switch (status)
+		{
+			case EContractStatus.Completed:
+				world.ContractRegistry.Complete(contractId);
+				break;
+			case EContractStatus.Failed:
+				world.ContractRegistry.Fail(contractId);
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(status), status, null);
+		}
 		ContractDeliveryRoleSupport.OnContractEnded(world, contractId);
 		return [];
 	}
@@ -23,7 +33,7 @@ public sealed class CompleteContractEffect(string contractId)
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId)
 	{
 		if (_previous is null)
-			throw new InvalidOperationException($"Contract '{contractId}' completion was not applied.");
+			throw new InvalidOperationException($"Contract '{contractId}' ending was not applied.");
 
 		world.ContractRegistry.Restore(_previous);
 		ContractDeliveryRoleSupport.OnContractActivated(world, _previous);

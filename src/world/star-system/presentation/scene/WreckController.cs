@@ -61,7 +61,7 @@ public sealed class WreckController : IDisposable
 			return;
 		}
 
-		_hud.ShowError("Unable to leave.");
+		_hud.ShowError(_pendingWreck()?.IsAmbush == true ? "Unable to flee." : "Unable to leave.");
 	}
 
 	public void Dispose()

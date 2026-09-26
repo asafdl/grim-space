@@ -12,6 +12,8 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
 using GrimSpace.Tests.World.StarSystem;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
+using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -58,6 +60,41 @@ public sealed class WreckDecisionActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void LeaveAmbushWreckage_FailsContractWithoutSpawningFleet()
+	{
+		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Ambush(
+			new FleetSpawnSpec(
+				FleetType.PirateFleet,
+				GrimSpace.World.Factions.EFaction.Pirates,
+				9,
+				[(BattleUnitType.Patrol, GrimSpace.Units.Enums.EShipGearTier.T0)])));
+		PlaceHolderAtWreck(engine, unitId, contractId);
+		engine.Commit([new ReachWreckageAction(unitId, contractId)]);
+
+		engine.Commit([new LeaveWreckageAction(unitId)]);
+
+		Assert.Equal("", engine.World.StateOf(unitId).PendingWreckContractId);
+		Assert.False(engine.World.WaitingForPlayerInput);
+		Assert.True(engine.World.ContractRegistry.TryGetState(contractId, out var state)
+			&& state.Status == EContractStatus.Failed);
+		Assert.Empty(engine.World.ContractRegistry.ActiveFor(unitId));
+		Assert.False(engine.World.FleetRegistry.Contains($"{contractId}.wreckage.ambush"));
+		Assert.False(ContractFactory.IsWreckageObjectiveMet(contractId, engine.World, unitId));
+		Assert.False(WreckageQueries.TryGetPendingPlayerWreckDecision(engine.World, unitId, out _));
+		Assert.False(engine.CreateSimulation().TryEnqueue(new InvestigateWreckageAction(unitId, contractId)));
+		Assert.True(engine.World.Fork().ContractRegistry.TryGetState(contractId, out var restored));
+		Assert.Equal(EContractStatus.Failed, restored.Status);
+	}
+
+	[Fact]
+	public void LeaveWreckage_WithoutPendingDecision_IsIllegal()
+	{
+		var (engine, unitId, _) = CreateEngine(new WreckageOutcome.Salvage(ResourceBundle.Empty));
+
+		Assert.False(engine.CreateSimulation().TryEnqueue(new LeaveWreckageAction(unitId)));
+	}
+
+	[Fact]
 	public void PendingWreckDecision_RestoredAfterOrchestratorRecreate()
 	{
 		var map = maps.Fresh(42);
@@ -75,6 +112,24 @@ public sealed class WreckDecisionActionTests(StarMapFixture maps)
 			RunState.PlayerFleetUnitId,
 			out var pending));
 		Assert.Equal(contract.Id, pending.ContractId);
+		Assert.False(pending.IsAmbush);
+	}
+
+	[Fact]
+	public void PendingWreckDecision_IdentifiesAmbushAfterReachingWreck()
+	{
+		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Ambush(
+			new FleetSpawnSpec(
+				FleetType.PirateFleet,
+				GrimSpace.World.Factions.EFaction.Pirates,
+				9,
+				[(BattleUnitType.Patrol, GrimSpace.Units.Enums.EShipGearTier.T0)])));
+		PlaceHolderAtWreck(engine, unitId, contractId);
+		engine.Commit([new ReachWreckageAction(unitId, contractId)]);
+
+		Assert.True(WreckageQueries.TryGetPendingPlayerWreckDecision(engine.World, unitId, out var pending));
+		Assert.Equal(contractId, pending.ContractId);
+		Assert.True(pending.IsAmbush);
 	}
 
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId) CreateEngine(

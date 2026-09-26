@@ -55,7 +55,7 @@ public sealed class AreaIntelProducerTests
 	}
 
 	[Fact]
-	public void Produce_BorderTriangleFallback_DoesNotRepeatSectorRim()
+	public void Produce_BorderTriangleFallback_UsesNavigationLandmarksOnly()
 	{
 		var rimA = AreaBorderAnchor.Id(new Coord(0, 0, 0));
 		var rimB = AreaBorderAnchor.Id(new Coord(600, 0, 0));
@@ -68,12 +68,13 @@ public sealed class AreaIntelProducerTests
 		var intel = AreaIntelProducer.Produce(
 			new AreaIntelContext(rimA, "north", rimB),
 			new Coord(300, 0, 250),
-			["north", rimA, rimB],
+			["north", "west", "east", rimA, rimB],
 			id => positions[id],
 			1024);
 
-		Assert.Equal("Somewhere in the general area between {A} and the sector rim.", intel.Template);
-		Assert.Equal("north", intel.LandmarkAId);
+		Assert.Equal("Somewhere in the general area between {A}, {B}, and {C}.", intel.Template);
+		foreach (var id in new[] { intel.LandmarkAId, intel.LandmarkBId, intel.LandmarkCId })
+			Assert.False(AreaBorderAnchor.TryParseId(id, out _));
 	}
 
 	private static AreaIntel Produce(Coord position, IReadOnlyList<string>? referenceIds = null) =>
