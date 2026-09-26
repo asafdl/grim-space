@@ -27,7 +27,7 @@ public sealed class StorageFacility : PointOfInterest
 			[
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.Dialog,
+					EFacilityOperatorRole.Contracts,
 					WarehouseManagerOperatorSceneSlotId),
 			]),
 	];

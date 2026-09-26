@@ -48,7 +48,7 @@ internal static class MapFacilityOperators
 			map,
 			SupplySystemPlan.Copper.StoragePoiId,
 			StorageFacility.WarehouseFacilitySlug,
-			EFacilityOperatorRole.Dialog);
+			EFacilityOperatorRole.Contracts);
 
 	public static string RefineryOperatorName(StarMap map) =>
 		OperatorName(
