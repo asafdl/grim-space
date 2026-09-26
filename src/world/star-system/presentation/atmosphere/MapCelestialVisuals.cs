@@ -10,21 +10,18 @@ namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 public static class MapCelestialVisuals
 {
 	private const string SunTexturePath = "res://assets/textures/2k_sun.jpg";
-	private static readonly string[] PlanetTexturePaths =
+	private const string PlanetPackPath = "res://assets/models/planets/various_planets.glb";
+	private static readonly (string Body, string[] Clouds)[] PlanetNodes =
 	[
-		"res://assets/textures/2k_venus_surface.jpg",
-		"res://assets/textures/2k_ceres_fictional.jpg",
-		"res://assets/textures/2k_haumea_fictional.jpg",
-		"res://assets/textures/2k_makemake_fictional.jpg",
+		("planet_smac_0", ["planet_smac_cloud_1"]),
+		("planet_gas_2", ["planet_gas_cloud_01_3", "planet_gas_cloud_02_9"]),
+		("planet_continental_4", ["planet_continental_clouds_5"]),
+		("planet_frozen_6", []),
+		("planet_lava_7", []),
+		("planet_barren_8", []),
 	];
-
-	private static readonly Color[] PlanetTints =
-	[
-		new(0.58f, 0.52f, 0.48f),
-		new(0.48f, 0.46f, 0.44f),
-		new(0.50f, 0.54f, 0.58f),
-		new(0.52f, 0.48f, 0.44f),
-	];
+	private static readonly int[] MoonletVariants = [0, 2, 3, 5];
+	private static PlanetVariant[]? _planets;
 
 	private static readonly Color[] AtmosphereTints =
 	[
@@ -32,6 +29,8 @@ public static class MapCelestialVisuals
 		new(0.58f, 0.60f, 0.64f),
 		new(0.64f, 0.70f, 0.76f),
 		new(0.60f, 0.58f, 0.56f),
+		new(0.86f, 0.46f, 0.26f),
+		new(0.66f, 0.62f, 0.56f),
 	];
 
 	public static void AddStar(
@@ -64,69 +63,122 @@ public static class MapCelestialVisuals
 
 	public static void AddPlanet(
 		Node3D root,
-		int seed,
-		string poiId,
+		int variant,
 		MapAtmosphereSettings settings)
 	{
-		var random = new StableRandom(StableSeedMixer.From(seed).Add(poiId).Add("map-planet").Value);
-		var variant = (int)(random.NextDouble() * PlanetTexturePaths.Length);
-		var texture = GD.Load<Texture2D>(PlanetTexturePaths[variant]);
-		var tint = PlanetTints[variant];
+		if (variant < 0 || variant >= PlanetNodes.Length)
+			throw new ArgumentOutOfRangeException(nameof(variant));
+
+		EnsurePlanetsLoaded();
 		var atmosphere = AtmosphereTints[variant];
 		var bodyRadius = 0.55f;
 
-		root.AddChild(new MeshInstance3D
-		{
-			Name = "Body",
-			Mesh = CreateSphere(bodyRadius, 40, 20),
-			MaterialOverride = CreatePlanetSurfaceMaterial(texture, tint),
-		});
+		AddPlanetBody(root, _planets![variant], bodyRadius, includeClouds: true);
 
 		root.AddChild(new MeshInstance3D
 		{
 			Name = "Atmosphere",
-			Mesh = CreateSphere(bodyRadius * 1.045f, 36, 18),
+			Mesh = CreateSphere(bodyRadius * 1.08f, 36, 18),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = CreateAtmosphereMaterial(atmosphere, settings.SunGlowEnergy * 0.18f),
 		});
 	}
 
+	public static IReadOnlyDictionary<string, int> AssignPlanetVariants(int seed, IEnumerable<string> poiIds)
+	{
+		var ids = poiIds.OrderBy(id => id, StringComparer.Ordinal).ToArray();
+		if (ids.Length > PlanetNodes.Length)
+			throw new InvalidOperationException(
+				$"Cannot assign {ids.Length} unique planet variants from {PlanetNodes.Length} available bodies.");
+
+		var variants = Enumerable.Range(0, PlanetNodes.Length).ToArray();
+		var random = new StableRandom(StableSeedMixer.From(seed).Add("map-planet-variants").Value);
+		for (var i = variants.Length - 1; i > 0; i--)
+		{
+			var j = (int)(random.NextDouble() * (i + 1));
+			(variants[i], variants[j]) = (variants[j], variants[i]);
+		}
+
+		return ids.Select((id, index) => (id, variant: variants[index]))
+			.ToDictionary(pair => pair.id, pair => pair.variant, StringComparer.Ordinal);
+	}
+
 	public static void AddMoonlet(Node3D root, int visualSeed, float worldRadius)
 	{
+		EnsurePlanetsLoaded();
 		var variant = (int)(StableSeedMixer.From(visualSeed).Add("nav-moonlet").Value
-			% (ulong)PlanetTexturePaths.Length);
-		var texture = GD.Load<Texture2D>(PlanetTexturePaths[variant]);
-		var tint = PlanetTints[variant].Lerp(new Color(0.62f, 0.68f, 0.82f), 0.22f);
+			% (ulong)MoonletVariants.Length);
 		var bodyRadius = Mathf.Clamp(worldRadius * 0.55f, 0.14f, 0.42f);
 
+		AddPlanetBody(root, _planets![MoonletVariants[variant]], bodyRadius, includeClouds: false);
+	}
+
+	private static void AddPlanetBody(
+		Node3D root,
+		PlanetVariant planet,
+		float radius,
+		bool includeClouds)
+	{
 		root.AddChild(new MeshInstance3D
 		{
 			Name = "Body",
-			Mesh = CreateSphere(bodyRadius, 32, 16),
+			Mesh = planet.Body,
+			Scale = Vector3.One * radius,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreatePlanetSurfaceMaterial(texture, tint),
 		});
+
+		if (!includeClouds)
+			return;
+
+		for (var i = 0; i < planet.Clouds.Count; i++)
+		{
+			var cloud = planet.Clouds[i];
+			root.AddChild(new MeshInstance3D
+			{
+				Name = $"Clouds_{i}",
+				Mesh = cloud.Mesh,
+				Scale = Vector3.One * (radius * cloud.Scale),
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			});
+		}
 	}
 
-	public static void AddMiningDust(
-		Node3D root,
-		int seed,
-		PointOfInterest poi,
-		MapAtmosphereSettings settings)
+	private static void EnsurePlanetsLoaded()
 	{
-		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Add("map-dust").Value);
-		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
-		var amount = Mathf.Clamp(
-			(int)(28f + worldRadius * 18f * settings.DustDensity),
-			18,
-			72);
-		var texture = MapSmokeDustVisuals.LoadDefaultSmokeTexture();
-		root.AddChild(MapSmokeDustVisuals.CreateRegionalMiningLayer(
-			texture,
-			worldRadius,
-			amount,
-			settings.DustOpacity,
-			random));
+		if (_planets is not null)
+			return;
+
+		var scene = GD.Load<PackedScene>(PlanetPackPath)
+			?? throw new InvalidOperationException($"Could not load planet pack '{PlanetPackPath}'.");
+		var root = scene.Instantiate<Node3D>();
+		try
+		{
+			_planets = PlanetNodes.Select(entry =>
+			{
+				var body = FindPlanetMesh(root, entry.Body);
+				var clouds = entry.Clouds.Select(name =>
+				{
+					var mesh = FindPlanetMesh(root, name);
+					var parent = (Node3D)mesh.GetParent();
+					return new CloudLayer(mesh.Mesh, parent.Scale.X);
+				}).ToArray();
+				return new PlanetVariant(body.Mesh, clouds);
+			}).ToArray();
+		}
+		finally
+		{
+			root.Free();
+		}
+	}
+
+	private static MeshInstance3D FindPlanetMesh(Node3D root, string nodeName)
+	{
+		if (root.FindChild(nodeName, recursive: true, owned: false) is not Node3D node
+			|| node.FindChildren("*", "MeshInstance3D", true, false).SingleOrDefault()
+				is not MeshInstance3D { Mesh: not null } mesh)
+			throw new InvalidOperationException($"Planet pack '{PlanetPackPath}' is missing mesh '{nodeName}'.");
+
+		return mesh;
 	}
 
 	private static SphereMesh CreateSphere(float radius, int radialSegments, int rings) =>
@@ -180,36 +232,6 @@ public static class MapCelestialVisuals
 		return material;
 	}
 
-	private static ShaderMaterial CreatePlanetSurfaceMaterial(Texture2D texture, Color tint)
-	{
-		var material = new ShaderMaterial
-		{
-			Shader = new Shader
-			{
-				Code =
-					"""
-					shader_type spatial;
-
-					uniform sampler2D surface_texture : source_color;
-					uniform vec3 surface_tint : source_color;
-
-					void fragment()
-					{
-						vec3 source = texture(surface_texture, UV).rgb;
-						float luma = dot(source, vec3(0.299, 0.587, 0.114));
-						vec3 shadow = surface_tint * 0.34;
-						vec3 lit = surface_tint * 0.82;
-						ALBEDO = mix(shadow, lit, smoothstep(0.08, 0.92, luma));
-						ROUGHNESS = 0.94;
-					}
-					""",
-			},
-		};
-		material.SetShaderParameter("surface_texture", texture);
-		material.SetShaderParameter("surface_tint", tint);
-		return material;
-	}
-
 	private static ShaderMaterial CreateAtmosphereMaterial(Color tint, float emissionEnergy)
 	{
 		var material = new ShaderMaterial
@@ -249,4 +271,6 @@ public static class MapCelestialVisuals
 		return material;
 	}
 
+	private sealed record CloudLayer(Mesh Mesh, float Scale);
+	private sealed record PlanetVariant(Mesh Body, IReadOnlyList<CloudLayer> Clouds);
 }

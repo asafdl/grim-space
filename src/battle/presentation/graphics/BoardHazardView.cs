@@ -7,7 +7,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public partial class BoardHazardView : Node3D
 {
 	private const string PackPath = "res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
-	private const string MetallicPackPath = "res://assets/models/asteroids/asteroids.glb";
+	private const string MetallicPackPath = "res://assets/models/asteroids/wandering_asteroids_of_andromeda.glb";
 	private const float CellFit = 0.96f;
 	private static RockVariant[]? _rocks;
 	private static RockVariant[]? _metallicRocks;
@@ -56,24 +56,33 @@ public partial class BoardHazardView : Node3D
 			+ WorldMapping.ToWorld(new Coord(maxX, maxY, maxZ))) * 0.5f;
 		var availableSize = new Vector3(
 			maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1) * (WorldMapping.CellSize * CellFit);
-		var rotation = Basis.FromEuler(new Vector3(
-			rng.Randf() * Mathf.Tau,
-			rng.Randf() * Mathf.Tau,
-			rng.Randf() * Mathf.Tau));
+		var large = Mathf.Max(maxX - minX, Mathf.Max(maxY - minY, maxZ - minZ)) >= 9;
+		var rotation = large
+			? Basis.FromEuler(new Vector3(0f, rng.RandiRange(0, 3) * Mathf.Pi * 0.5f, 0f))
+			: Basis.FromEuler(new Vector3(
+				rng.Randf() * Mathf.Tau,
+				rng.Randf() * Mathf.Tau,
+				rng.Randf() * Mathf.Tau));
 		var rotatedSize = rotation.X.Abs() * variant.Bounds.Size.X
 			+ rotation.Y.Abs() * variant.Bounds.Size.Y
 			+ rotation.Z.Abs() * variant.Bounds.Size.Z;
 		var scale = Mathf.Min(
 			availableSize.X / rotatedSize.X,
 			Mathf.Min(availableSize.Y / rotatedSize.Y, availableSize.Z / rotatedSize.Z));
+		var sizeScale = large
+			? new Vector3(
+				rotation.X.Abs().Dot(availableSize) / variant.Bounds.Size.X,
+				rotation.Y.Abs().Dot(availableSize) / variant.Bounds.Size.Y,
+				rotation.Z.Abs().Dot(availableSize) / variant.Bounds.Size.Z)
+			: Vector3.One * scale;
 		var palette = metallic ? MetallicBases : RockBases;
 		var color = palette[rng.RandiRange(0, palette.Length - 1)];
 
 		return new MeshInstance3D
 		{
 			Name = hazard.Id,
-			Position = center - rotation * (variant.Bounds.GetCenter() * scale),
-			Basis = rotation.ScaledLocal(Vector3.One * scale),
+			Position = center - rotation * (variant.Bounds.GetCenter() * sizeScale),
+			Basis = rotation.ScaledLocal(sizeScale),
 			Mesh = variant.Mesh,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = CreateRockMaterial(variant.Mesh, color, rng, metallic),
@@ -107,11 +116,7 @@ public partial class BoardHazardView : Node3D
 			return;
 
 		_rocks = LoadRocks(PackPath);
-		_metallicRocks = LoadRocks(MetallicPackPath)
-			.Where(rock => rock.Mesh is ArrayMesh mesh && mesh.SurfaceGetArrayLen(0) <= 500)
-			.ToArray();
-		if (_metallicRocks.Length == 0)
-			throw new InvalidOperationException($"Asteroid pack '{MetallicPackPath}' has no low-detail meshes.");
+		_metallicRocks = LoadRocks(MetallicPackPath);
 	}
 
 	private static RockVariant[] LoadRocks(string path)

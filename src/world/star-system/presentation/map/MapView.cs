@@ -129,6 +129,12 @@ public partial class MapView : Node3D
 
 		AddChild(BuildReferenceGrid(world.Width, world.Height));
 
+		var planetVariants = MapCelestialVisuals.AssignPlanetVariants(
+			world.Seed,
+			world.PointsOfInterest
+				.Where(poi => poi is Refinery
+					|| poi is AdministrativeCore { PhysicalForm: EPoiPhysicalForm.Planet })
+				.Select(poi => poi.Id));
 		foreach (var poi in world.PointsOfInterest)
 		{
 			var footprint = BuildPoiFootprint(poi, world.Width, world.Height);
@@ -136,7 +142,7 @@ public partial class MapView : Node3D
 			_footprints[poi.Id] = footprint;
 			AddChild(footprint);
 
-			var marker = BuildPoiMarker(poi, world.Seed, world.Width, world.Height);
+			var marker = BuildPoiMarker(poi, world.Seed, world.Width, world.Height, planetVariants);
 			_markers[poi.Id] = marker;
 			AddChild(marker);
 		}
@@ -414,7 +420,8 @@ public partial class MapView : Node3D
 		PointOfInterest poi,
 		int seed,
 		int width,
-		int height)
+		int height,
+		IReadOnlyDictionary<string, int> planetVariants)
 	{
 		var root = new Node3D
 		{
@@ -430,12 +437,11 @@ public partial class MapView : Node3D
 				ringRadius = MapMapping.ToWorldRadius(star.Radius) * 1.25f;
 				break;
 			case Refinery:
-				MapCelestialVisuals.AddPlanet(root, seed, poi.Id, _atmosphere);
+				MapCelestialVisuals.AddPlanet(root, planetVariants[poi.Id], _atmosphere);
 				ringRadius = 0.95f;
 				break;
 			case OreMine:
 				AddAsteroidField(root, seed, poi);
-				MapCelestialVisuals.AddMiningDust(root, seed, poi, _atmosphere);
 				ringRadius = 1.05f;
 				break;
 			case Wormhole:
@@ -453,7 +459,7 @@ public partial class MapView : Node3D
 			case AdministrativeCore admin:
 				if (admin.PhysicalForm == EPoiPhysicalForm.Planet)
 				{
-					MapCelestialVisuals.AddPlanet(root, seed, poi.Id, _atmosphere);
+					MapCelestialVisuals.AddPlanet(root, planetVariants[poi.Id], _atmosphere);
 					ringRadius = 1.0f;
 				}
 				else
@@ -502,16 +508,26 @@ public partial class MapView : Node3D
 	{
 		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Value);
 		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
-		var count = 8 + (int)(random.NextDouble() * 8);
+		var mainCount = 3 + (int)(random.NextDouble() * 2);
+		var count = mainCount + 14 + (int)(random.NextDouble() * 7);
+		var orientation = random.NextDouble() * System.Math.Tau;
+		var copper = new Color(0.82f, 0.47f, 0.28f);
 
 		for (var i = 0; i < count; i++)
 		{
 			var rng = CreateGodotRng(seed, poi.Id, i);
-			var angle = random.NextDouble() * System.Math.Tau;
-			var distance = random.NextDouble() * worldRadius * 0.82;
-			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.25;
-			var scale = 0.06f + (float)random.NextDouble() * 0.12f;
-			var rock = NavigationLandmarkRockLibrary.CreateRock(rng, scale, mainMass: false);
+			var mainMass = i < mainCount;
+			var angle = mainMass
+				? orientation + i * System.Math.Tau / mainCount + (random.NextDouble() - 0.5) * 0.25
+				: random.NextDouble() * System.Math.Tau;
+			var distance = mainMass
+				? worldRadius * (0.28 + random.NextDouble() * 0.20)
+				: worldRadius * System.Math.Sqrt(random.NextDouble()) * 0.76;
+			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.18;
+			var diameter = worldRadius * (mainMass
+				? 0.38f + (float)random.NextDouble() * 0.16f
+				: 0.09f + (float)random.NextDouble() * 0.14f);
+			var rock = NavigationLandmarkRockLibrary.CreateRock(rng, diameter, mainMass);
 			rock.Name = $"Rock_{i}";
 			rock.Position = new Vector3(
 				(float)(System.Math.Cos(angle) * distance),
@@ -522,7 +538,9 @@ public partial class MapView : Node3D
 				(float)(random.NextDouble() * System.Math.Tau),
 				(float)(random.NextDouble() * System.Math.Tau));
 			NavigationLandmarkRockLibrary.TintMeshes(
-				rock, NavigationLandmarkPalette.MainRockAccent(rng), emissionStrength: 0.04f);
+				rock,
+				copper.Lerp(new Color(0.56f, 0.51f, 0.46f), rng.Randf() * 0.45f),
+				emissionStrength: 0.05f);
 			root.AddChild(rock);
 		}
 	}

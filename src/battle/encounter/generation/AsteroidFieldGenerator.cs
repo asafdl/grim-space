@@ -9,27 +9,51 @@ public static class AsteroidFieldGenerator
 	{
 		var rng = new Random(config.Seed);
 		var placed = new List<BattleHazardSpawn>();
+		var bounds = new List<(Coord Min, Coord Max)>();
 		var maxAttempts = config.TargetCount * 100;
+
+		var largeCount = System.Math.Min(config.TargetCount, 3 + rng.Next(3));
+		for (var i = 0; i < largeCount && placed.Count == i; i++)
+		{
+			var size = new Coord(10 + rng.Next(4), 12 + rng.Next(4), 5 + rng.Next(3));
+			size = rng.Next(3) switch
+			{
+				0 => size,
+				1 => new Coord(size.Y, size.Z, size.X),
+				_ => new Coord(size.Z, size.X, size.Y),
+			};
+			for (var attempt = 0; attempt < 100 && placed.Count == i; attempt++)
+				TryPlace(size);
+		}
 
 		for (var attempt = 0; attempt < maxAttempts && placed.Count < config.TargetCount; attempt++)
 		{
-			var localCells = CreateVolume(PickSize(rng));
-			var origin = PickOrigin(config, rng);
-			var cells = localCells.Select(cell => cell + origin).ToHashSet();
-
-			if (!FitsField(cells, config))
-				continue;
-
-			if (!IsClearOfUnits(cells, config))
-				continue;
-
-			if (!IsClearOfAsteroids(cells, placed, config.AsteroidGap))
-				continue;
-
-			placed.Add(new BattleHazardSpawn { Origin = origin, Cells = cells });
+			var size = PickSize(rng);
+			TryPlace(new Coord(size, size, size));
 		}
 
 		return placed;
+
+		void TryPlace(Coord size)
+		{
+			var localCells = CreateVolume(size);
+			var origin = PickOrigin(config, rng);
+			var cells = localCells.Select(cell => cell + origin).ToHashSet();
+			var min = origin - new Coord(size.X / 2, size.Y / 2, size.Z / 2);
+			var max = min + size - new Coord(1, 1, 1);
+
+			if (!FitsField(cells, config))
+				return;
+
+			if (!IsClearOfUnits(cells, config))
+				return;
+
+			if (!IsClearOfAsteroids(min, max, bounds, config.AsteroidGap))
+				return;
+
+			placed.Add(new BattleHazardSpawn { Origin = origin, Cells = cells });
+			bounds.Add((min, max));
+		}
 	}
 
 	private static int PickSize(Random rng) =>
@@ -41,13 +65,15 @@ public static class AsteroidFieldGenerator
 			_ => 4,
 		};
 
-	private static HashSet<Coord> CreateVolume(int size)
+	private static HashSet<Coord> CreateVolume(Coord size)
 	{
 		var cells = new HashSet<Coord>();
-		var min = -(size / 2);
-		for (var x = min; x < min + size; x++)
-		for (var y = min; y < min + size; y++)
-		for (var z = min; z < min + size; z++)
+		var minX = -(size.X / 2);
+		var minY = -(size.Y / 2);
+		var minZ = -(size.Z / 2);
+		for (var x = minX; x < minX + size.X; x++)
+		for (var y = minY; y < minY + size.Y; y++)
+		for (var z = minZ; z < minZ + size.Z; z++)
 			cells.Add(new Coord(x, y, z));
 		return cells;
 	}
@@ -89,17 +115,17 @@ public static class AsteroidFieldGenerator
 	}
 
 	private static bool IsClearOfAsteroids(
-		IReadOnlySet<Coord> cells,
-		IReadOnlyList<BattleHazardSpawn> placed,
+		Coord min,
+		Coord max,
+		IReadOnlyList<(Coord Min, Coord Max)> placed,
 		int gap)
 	{
-		foreach (var asteroid in placed)
+		foreach (var (otherMin, otherMax) in placed)
 		{
-			foreach (var cell in cells)
-			{
-				if (asteroid.Cells.Any(other => ChebyshevDistance(cell, other) <= gap))
-					return false;
-			}
+			if (min.X <= otherMax.X + gap && max.X >= otherMin.X - gap
+				&& min.Y <= otherMax.Y + gap && max.Y >= otherMin.Y - gap
+				&& min.Z <= otherMax.Z + gap && max.Z >= otherMin.Z - gap)
+				return false;
 		}
 
 		return true;

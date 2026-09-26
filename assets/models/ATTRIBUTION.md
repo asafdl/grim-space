@@ -12,4 +12,6 @@ Kenny particle-pack smoke textures used for map dust: see `assets/kenny-particle
 
 "Asteroids Pack (metallic version)" (https://skfb.ly/o6LtG) by SebastianSosnowski is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 
-"Asteroids" (https://skfb.ly/6XOHV) by jackmcintosh is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+"Wandering Asteroids Of Andromeda" (https://sketchfab.com/3d-models/wandering-asteroids-of-andromeda-6a8e84e0fdea43628b8b3ab85b130281) by ARCTIC WOLVES is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+"Various Planets" (https://skfb.ly/o7F9p) by Feivelyn is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).

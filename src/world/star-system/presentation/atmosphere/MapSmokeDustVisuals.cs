@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Math;
 
 namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 
@@ -47,36 +46,6 @@ public static class MapSmokeDustVisuals
 			Multimesh = multiMesh,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 		};
-	}
-
-	public static MultiMeshInstance3D CreateRegionalMiningLayer(
-		Texture2D texture,
-		float worldRadius,
-		int amount,
-		float opacity,
-		StableRandom random)
-	{
-		var quadSize = 0.55f + worldRadius * 0.22f;
-		var cards = new List<SmokeDustCard>(amount);
-		for (var i = 0; i < amount; i++)
-		{
-			var angle = random.NextDouble() * System.Math.Tau;
-			var distance = random.NextDouble() * worldRadius * 0.88;
-			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.18;
-			var position = new Vector3(
-				(float)(System.Math.Cos(angle) * distance),
-				(float)lift,
-				(float)(System.Math.Sin(angle) * distance));
-			var scale = 0.7f + (float)random.NextDouble() * 1.1f;
-			var tone = 0.42f + (float)random.NextDouble() * 0.18f;
-			var alpha = opacity * (0.45f + (float)random.NextDouble() * 0.55f);
-			cards.Add(new SmokeDustCard(
-				position,
-				scale,
-				new Color(tone * 0.72f, tone * 0.66f, tone * 0.58f, alpha)));
-		}
-
-		return CreateLayer(texture, quadSize, cards, "RegionalDust");
 	}
 
 	public static MultiMeshInstance3D CreateSingleBillboardLayer(
