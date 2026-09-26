@@ -21,7 +21,7 @@ internal static class AbilitySourceMeshes
 
 	public static Mesh CreateTorpedo() => TorpedoMesh.CreateHull();
 
-	public static Mesh CreatePatrol() => PatrolMesh.CreateHull();
+	public static Mesh CreatePatrol() => PatrolMesh.CreatePreviewHull();
 
 	public static Mesh CreateDetonation() =>
 		new SphereMesh

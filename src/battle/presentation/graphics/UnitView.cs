@@ -35,11 +35,11 @@ public partial class UnitView : Node3D
 		if (state.Type == EType.Torpedo)
 			BindTorpedo(color);
 		else if (state.Type == EType.Patrol)
-			BindPatrol(color);
+			BindPatrol();
 		else if (state.Type == EType.Carrier)
-			BindCarrier(color);
+			BindCarrier();
 		else
-			BindShip(color);
+			BindShip();
 
 		BindShieldBubble(state);
 
@@ -77,14 +77,15 @@ public partial class UnitView : Node3D
 	{
 		var selectedGhost = VisualState == UnitVisualState.SelectedGhost;
 		var passiveGhost = VisualState == UnitVisualState.Ghost;
-		foreach (var child in GetChildren())
+		foreach (var child in FindChildren("*", "GeometryInstance3D", true, false))
 		{
 			if (child is GeometryInstance3D visual)
 			{
 				if (selectedGhost)
 				{
 					visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-					visual.Transparency = visual == _hull ? 0.45f : 0f;
+					visual.Transparency = visual == _hull || _hull?.IsAncestorOf(visual) == true
+						? 0.45f : 0f;
 				}
 				else if (passiveGhost)
 				{
@@ -324,77 +325,22 @@ public partial class UnitView : Node3D
 		AddChild(_hitMark);
 	}
 
-	private void BindShip(Color color)
+	private void BindShip()
 	{
-		_hull = new MeshInstance3D
-		{
-			Mesh = ShipMesh.CreateHull(),
-			MaterialOverride = CreateHullMaterial(color),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
+		_hull = ShipMesh.CreateFighterHull();
 		AddChild(_hull);
-
-		var nose = new MeshInstance3D
-		{
-			Mesh = ShipMesh.CreateNoseMarker(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateForeMarkerMaterial(color),
-		};
-		AddChild(nose);
-
-		var bridge = new MeshInstance3D
-		{
-			Mesh = ShipMesh.CreateBridgeMarker(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateDorsalMarkerMaterial(),
-		};
-		AddChild(bridge);
 	}
 
-	private void BindCarrier(Color color)
+	private void BindCarrier()
 	{
-		_hull = new MeshInstance3D
-		{
-			Mesh = CarrierMesh.CreateHull(),
-			MaterialOverride = CreateHullMaterial(color),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
+		_hull = CarrierMesh.CreateHullInstance();
 		AddChild(_hull);
-
-		var island = new MeshInstance3D
-		{
-			Mesh = CarrierMesh.CreateIslandMarker(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateDorsalMarkerMaterial(),
-		};
-		AddChild(island);
 	}
 
-	private void BindPatrol(Color color)
+	private void BindPatrol()
 	{
-		_hull = new MeshInstance3D
-		{
-			Mesh = PatrolMesh.CreateHull(),
-			MaterialOverride = CreateHullMaterial(color),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
+		_hull = PatrolMesh.CreateHullInstance();
 		AddChild(_hull);
-
-		var nose = new MeshInstance3D
-		{
-			Mesh = PatrolMesh.CreateNoseMarker(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateForeMarkerMaterial(color),
-		};
-		AddChild(nose);
-
-		var bridge = new MeshInstance3D
-		{
-			Mesh = PatrolMesh.CreateBridgeMarker(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateDorsalMarkerMaterial(),
-		};
-		AddChild(bridge);
 	}
 
 	private void BindTorpedo(Color color)
@@ -471,12 +417,15 @@ public partial class UnitView : Node3D
 	{
 		var found = false;
 		var bounds = default(Aabb);
-		foreach (var child in GetChildren())
+		foreach (var child in FindChildren("*", "MeshInstance3D", true, false))
 		{
-			if (child is not MeshInstance3D { Mesh: { } mesh })
+			if (child is not MeshInstance3D { Mesh: { } mesh } instance)
 				continue;
 
-			var meshBounds = mesh.GetAabb();
+			var transform = instance.GetParent() is Node3D parent && parent != this
+				? parent.Transform * instance.Transform
+				: instance.Transform;
+			var meshBounds = transform * mesh.GetAabb();
 			bounds = found ? bounds.Merge(meshBounds) : meshBounds;
 			found = true;
 		}
