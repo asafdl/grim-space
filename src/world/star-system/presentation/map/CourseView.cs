@@ -118,7 +118,7 @@ public partial class CourseView : Node3D
 			_pathMesh.Mesh = BuildPathMesh(path);
 		}
 
-		_pathMesh.Visible = true;
+		_pathMesh.Visible = _pathMesh.Mesh is not null;
 		ShowDestinationRing(destination, unreachableFlash);
 	}
 
@@ -131,7 +131,7 @@ public partial class CourseView : Node3D
 		_shownJourneyId = 0;
 		_shownPath = path;
 		_pathMesh.Mesh = BuildRemainingPathMesh(path, sample);
-		_pathMesh.Visible = true;
+		_pathMesh.Visible = _pathMesh.Mesh is not null;
 		ShowDestinationRing(destination, unreachableFlash);
 	}
 
@@ -154,11 +154,12 @@ public partial class CourseView : Node3D
 		_destinationRing.Visible = false;
 	}
 
-	private ImmediateMesh BuildPathMesh(TransitPath path)
+	private ImmediateMesh? BuildPathMesh(TransitPath path)
 	{
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(PathColor);
+		var hasVertices = false;
 
 		foreach (var leg in path.Legs)
 		{
@@ -166,16 +167,23 @@ public partial class CourseView : Node3D
 			{
 				mesh.SurfaceAddVertex(ToWorld(leg.Points[i - 1]));
 				mesh.SurfaceAddVertex(ToWorld(leg.Points[i]));
+				hasVertices = true;
 			}
 		}
+
+		if (!hasVertices)
+			return null;
 
 		mesh.SurfaceEnd();
 		return mesh;
 	}
 
-	private ImmediateMesh BuildRemainingPathMesh(TransitPath path, Math.Routes.PiecewiseRouteSample sample)
+	private ImmediateMesh? BuildRemainingPathMesh(TransitPath path, Math.Routes.PiecewiseRouteSample sample)
 	{
 		var points = path.RemainingPoints(sample);
+		if (points.Count < 2)
+			return null;
+
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(PathColor);

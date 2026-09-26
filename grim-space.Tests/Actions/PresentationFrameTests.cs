@@ -371,11 +371,12 @@ public sealed class PresentationFrameTests
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
 			TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
+		var launchedId = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions)).SpawnedUnitId;
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 		var torpedo = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
-			unit => unit.State.Type == EType.Torpedo);
+			unit => unit.State.Id == launchedId);
 
 		Assert.Contains(
 			replay.Actions,

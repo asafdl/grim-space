@@ -24,8 +24,9 @@ public sealed class CapabilitiesDiscoveryTests
 			ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 			installed);
 		var ship = ShipInstance.FromSpec("fighter-a", FighterSpec.Instance, loadout);
-		var player = Factory.Create(ship, ETeam.Player, Coord.Zero, new UserExecutionAgent());
-		var enemy = BattleTestFixture.Enemy(Coord.Forward * 6);
+		var origin = new Coord(5, 5, 5);
+		var player = Factory.Create(ship, ETeam.Player, origin, new UserExecutionAgent());
+		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward * 6);
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		BattleTestFixture.GrantPlayerPlanning(battle);
 

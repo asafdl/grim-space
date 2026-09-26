@@ -85,6 +85,12 @@ public sealed class StarMapPlayerExecutionAgent
 			return new CourseCommandResult.Unreachable();
 		}
 
+		if (found.Path.TotalLength <= 0)
+		{
+			StarMapPresentationDiagnostics.LogMoveQueueFailed("already_at_destination", destination, this);
+			return new CourseCommandResult.Unreachable();
+		}
+
 		if (TryEnqueue([new MoveAction(_actorId, _actorId, destination, found.Path)]))
 		{
 			StarMapPresentationDiagnostics.LogCourseQueued("move", destination, this);
@@ -134,6 +140,12 @@ public sealed class StarMapPlayerExecutionAgent
 		if (result is not PathfindingResult.Found found)
 		{
 			StarMapPresentationDiagnostics.LogMoveQueueFailed("no_path", destination, this);
+			return new CourseCommandResult.Unreachable();
+		}
+
+		if (found.Path.TotalLength <= 0)
+		{
+			StarMapPresentationDiagnostics.LogMoveQueueFailed("already_at_wreck", destination, this);
 			return new CourseCommandResult.Unreachable();
 		}
 
