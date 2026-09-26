@@ -28,10 +28,11 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void Commit_WeaponsUpgrade_DebitsScrapAndEmitsPurchaseRecord()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 100);
+		SeedResources(engine.World, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
 		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
 
 		var records = engine.Commit(CreateAction(
 			unitId,
@@ -43,7 +44,9 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		Assert.Contains(records, record => record is Record<MerchantShipPurchase>);
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, ship, out var offer));
 		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrapCost));
+		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var creditCost));
 		Assert.Equal(initialScrap - scrapCost, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(initialCredits - creditCost, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]
@@ -65,7 +68,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void TryEnqueue_FailsForStaleBeforeSnapshot()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 100);
+		SeedResources(engine.World, credits: 500, scrap: 500);
 		var sim = engine.CreateSimulation();
 		var before = ship.Clone();
 		var mount = new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port);
@@ -85,7 +88,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void TryEnqueue_FailsWhenRegistryMutatedAfterBeforeSnapshot()
 	{
 		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 100);
+		SeedResources(engine.World, credits: 500, scrap: 500);
 		var sim = engine.CreateSimulation();
 		var before = ship.Clone();
 		Assert.True(ship.TryWithDamageUpgraded(
@@ -108,7 +111,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
 		var offering = MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade;
-		SeedScrap(run.StarSystem.Map, 200);
+		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var action = CreateAction(
 			State.PlayerFleetUnitId,
@@ -129,8 +132,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var updated = run.ShipRegistry.Get(shipId);
 		Assert.NotEqual(before.Loadout, updated.Loadout);
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, updated, out var nextOffer));
-		Assert.True(nextOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var nextScrap));
-		Assert.Equal(60, nextScrap);
+		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(1), nextOffer.Cost);
 	}
 
 	[Fact]
@@ -241,7 +243,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void Commit_ShieldFaceUpgrade_DebitsPerFacePriceAndChangesOnlyChosenFace()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 150);
+		SeedResources(engine.World, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var face = ESpatialOrientation.Dorsal;
 		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
@@ -249,7 +251,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var records = engine.Commit(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport, offering, before));
 
 		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
-		Assert.Equal(115, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(240, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(390, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 		var after = purchase.After;
 		Assert.Equal(before.Loadout.MaxShieldPoints[face] + 1, after.Loadout.MaxShieldPoints[face]);
 		Assert.Equal(before.ShieldPoints[face] + 1, after.ShieldPoints[face]);
@@ -257,15 +260,14 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		Assert.Equal(before.Loadout.MaxShieldPoints[otherFace], after.Loadout.MaxShieldPoints[otherFace]);
 		Assert.Equal(before.ShieldPoints[otherFace], after.ShieldPoints[otherFace]);
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.ShipSupport, offering, after, out var nextOffer));
-		Assert.True(nextOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var nextScrap));
-		Assert.Equal(50, nextScrap);
+		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(1), nextOffer.Cost);
 	}
 
 	[Fact]
 	public void TryEnqueue_ShieldFaceUpgrade_RejectsMissingInvalidAndStaleFaces()
 	{
 		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 150);
+		SeedResources(engine.World, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var face = ESpatialOrientation.Dorsal;
 		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
@@ -284,7 +286,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void TryEnqueue_ShieldFaceUpgrade_RejectsForgedTierEvenWhenMaxMatches()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 150);
+		SeedResources(engine.World, credits: 500, scrap: 500);
 		var forged = ship.Clone();
 		forged.Loadout.ShieldUpgradeTiers[ESpatialOrientation.Forward] = 1;
 
@@ -305,7 +307,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
 			unitId, engine.World, EMerchantCatalog.ShipSupport, offering, ship.Clone())));
 
-		SeedScrap(engine.World, 500);
+		SeedResources(engine.World, credits: 10_000, scrap: 10_000);
 		for (var tier = 0; tier < ShipLoadout.MaxShieldUpgradeTier; tier++)
 			Assert.True(ship.TryWithUpgradedMaxShields(face, out ship));
 		registry.Update(ship);
@@ -379,12 +381,10 @@ public sealed class MerchantCommerceCharacterizationTests
 		var supportOffers = ShipSupportCatalog.ListFor(ship);
 		var shieldOffer = supportOffers.Single(o => o.Offering ==
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
-		Assert.True(shieldOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var shieldScrap));
-		Assert.Equal(35, shieldScrap);
+		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(0), shieldOffer.Cost);
 
 		var flakOffer = weaponOffers.Single(o => o.Offering == MerchantPurchaseTestHarness.FlakPortDamageUpgrade);
-		Assert.True(flakOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var flakScrap));
-		Assert.Equal(40, flakScrap);
+		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(0), flakOffer.Cost);
 
 		ship.HullPoints = 1;
 		var repairOffer = ShipSupportCatalog.ListFor(ship)
@@ -411,7 +411,7 @@ public sealed class MerchantCommerceCharacterizationTests
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
 		var offering = MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade;
-		SeedScrap(run.StarSystem.Map, 500);
+		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var action = new PurchaseAction(
 			State.PlayerFleetUnitId,
@@ -442,14 +442,17 @@ public sealed class MerchantCommerceCharacterizationTests
 		Assert.Equal(registryShip.HullPoints, spawn.Ship.HullPoints);
 		Assert.True(registryShip.ShieldPoints.Matches(spawn.Ship.ShieldPoints));
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, registryShip, out var nextOffer));
-		Assert.True(nextOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var nextScrap));
-		Assert.Equal(60, nextScrap);
+		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(1), nextOffer.Cost);
 	}
 
-	private static void SeedScrap(StarMap map, int amount)
+	private static void SeedResources(StarMap map, int credits, int scrap)
 	{
 		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(TransactionSource.MerchantPurchase, ResourceBundle.Of(ResourceId.ScrapAlloy, amount))
+		new ChangeResourceEffect(
+				TransactionSource.MerchantPurchase,
+				ResourceBundle.Create(
+					(ResourceId.Credits, credits),
+					(ResourceId.ScrapAlloy, scrap)))
 			.Apply(map, runtime, "seed");
 	}
 }

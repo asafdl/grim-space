@@ -10,24 +10,12 @@ public static class WeaponsCatalog
 	private static readonly EAbilityKind[] SellableKinds =
 		[EAbilityKind.Flak, EAbilityKind.Railgun];
 
-	private static readonly ResourceBundle FlakInstallPrice =
-		ResourceBundle.Of(ResourceId.ScrapAlloy, 50);
-
-	private static readonly ResourceBundle RailgunInstallPrice =
-		ResourceBundle.Of(ResourceId.ScrapAlloy, 80);
-
-	private static readonly ResourceBundle DefaultInstallPrice =
-		ResourceBundle.Of(ResourceId.ScrapAlloy, 100);
-
-	private const int DamageUpgradeBaseScrap = 40;
-	private const int DamageUpgradeStepScrap = 20;
-	private const int RangeUpgradeBaseScrap = 40;
-	private const int RangeUpgradeStepScrap = 20;
-
 	public static IReadOnlyList<MerchantCatalog.Offer> ListFor(ShipInstance ship)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
 		var offers = new List<MerchantCatalog.Offer>();
+		var installedFlak = ship.Loadout.InstalledAbilities.Count(
+			installed => installed.Mount.Kind == EAbilityKind.Flak);
 
 		foreach (var slot in ship.Spec.Slots)
 		{
@@ -44,9 +32,9 @@ public static class WeaponsCatalog
 
 			var cost = mount.Kind switch
 			{
-				EAbilityKind.Flak => FlakInstallPrice,
-				EAbilityKind.Railgun => RailgunInstallPrice,
-				_ => DefaultInstallPrice,
+				EAbilityKind.Flak => MerchantUpgradePricing.FlakInstall(installedFlak),
+				EAbilityKind.Railgun => MerchantUpgradePricing.RailgunInstall(),
+				_ => MerchantUpgradePricing.WeaponDamageUpgrade(0),
 			};
 			offers.Add(new MerchantCatalog.Offer(offering, cost));
 		}
@@ -60,9 +48,7 @@ public static class WeaponsCatalog
 			{
 				offers.Add(new MerchantCatalog.Offer(
 					damageOffering,
-					ResourceBundle.Of(
-						ResourceId.ScrapAlloy,
-						DamageUpgradeBaseScrap + DamageUpgradeStepScrap * installed.Spec.DamageUpgradeTier)));
+					MerchantUpgradePricing.WeaponDamageUpgrade(installed.Spec.DamageUpgradeTier)));
 			}
 
 			var rangeOffering = new MerchantCatalog.Offering(
@@ -72,9 +58,7 @@ public static class WeaponsCatalog
 			{
 				offers.Add(new MerchantCatalog.Offer(
 					rangeOffering,
-					ResourceBundle.Of(
-						ResourceId.ScrapAlloy,
-						RangeUpgradeBaseScrap + RangeUpgradeStepScrap * installed.Spec.RangeUpgradeTier)));
+					MerchantUpgradePricing.WeaponRangeUpgrade(installed.Spec.RangeUpgradeTier)));
 			}
 		}
 

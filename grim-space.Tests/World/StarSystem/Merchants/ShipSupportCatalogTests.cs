@@ -82,25 +82,21 @@ public sealed class ShipSupportCatalogTests
 	}
 
 	[Fact]
-	public void ListFor_ShieldUpgradeTierZeroCostsThirtyFiveScrap()
+	public void ListFor_ShieldUpgradeTierZero_MatchesEconomyTable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offer = ShipSupportCatalog.ListFor(ship)
 			.Single(o => o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(35, scrap);
+		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(0), offer.Cost);
 	}
 
 	[Fact]
-	public void ListFor_HullUpgradeTierZeroCostsTwentyFiveCreditsAndThirtyFiveScrap()
+	public void ListFor_HullUpgradeTierZero_MatchesEconomyTable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offer = ShipSupportCatalog.ListFor(ship)
 			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxHull);
-		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var credits));
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(25, credits);
-		Assert.Equal(35, scrap);
+		Assert.Equal(MerchantUpgradePricing.HullMaxUpgrade(0), offer.Cost);
 	}
 
 	[Fact]
@@ -111,8 +107,7 @@ public sealed class ShipSupportCatalogTests
 		{
 			var offer = ShipSupportCatalog.ListFor(ship).Single(o =>
 				o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
-			Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-			Assert.Equal(35 + 15 * tier, scrap);
+			Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(tier), offer.Cost);
 			Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Dorsal, out ship));
 		}
 

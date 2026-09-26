@@ -66,4 +66,38 @@ public sealed class ResourceBundle : IEnumerable<KeyValuePair<ResourceId, int>>
 	public IEnumerator<KeyValuePair<ResourceId, int>> GetEnumerator() => _entries.GetEnumerator();
 
 	System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+	public override bool Equals(object? obj) => obj is ResourceBundle other && Equals(other);
+
+	public bool Equals(ResourceBundle? other)
+	{
+		if (other is null)
+			return false;
+
+		if (_entries.Count != other._entries.Count)
+			return false;
+
+		foreach (var (id, amount) in _entries)
+		{
+			if (!other.TryGet(id, out var otherAmount) || otherAmount != amount)
+				return false;
+		}
+
+		return true;
+	}
+
+	public override int GetHashCode()
+	{
+		var hash = new HashCode();
+		foreach (ResourceId id in Enum.GetValues<ResourceId>())
+		{
+			if (!_entries.TryGetValue(id, out var amount))
+				continue;
+
+			hash.Add(id);
+			hash.Add(amount);
+		}
+
+		return hash.ToHashCode();
+	}
 }

@@ -6,10 +6,10 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 internal static class MerchantOfferDisplay
 {
 	public static string ShieldUpgradeTitle(ShipLoadout loadout, ESpatialOrientation face) =>
-		$"{FacetLabel(face)} max shields {MkLabel(loadout.ShieldUpgradeTiers[face] + 1)}";
+		$"{FacetLabel(face)} max shields {MkLabel(loadout.ShieldUpgradeTiers[face])}";
 
 	public static string HullUpgradeTitle(ShipLoadout loadout) =>
-		$"Max hull {MkLabel(loadout.HullUpgradeTier + 1)}";
+		$"Max hull {MkLabel(loadout.HullUpgradeTier)}";
 
 	public static string InstallTitle(AbilityMount mount) =>
 		$"Install {KindLabel(mount.Kind)} ({FacetLabel(mount.Facet)})";
@@ -18,10 +18,10 @@ internal static class MerchantOfferDisplay
 		$"Mount a new {KindLabel(spec.Kind)} on an open facet.";
 
 	public static string DamageUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
-		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} damage {MkLabel(current.DamageUpgradeTier + 1)}";
+		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} damage {MkLabel(current.DamageUpgradeTier)}";
 
 	public static string RangeUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
-		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} range {MkLabel(current.RangeUpgradeTier + 1)}";
+		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} range {MkLabel(current.RangeUpgradeTier)}";
 
 	public static string DamageUpgradeBody(AbilitySpec current) =>
 		current switch

@@ -10,12 +10,6 @@ public static class ShipSupportCatalog
 	public const int HullRepairScrapCost = 20;
 	public const int ShieldRechargeCreditsPerPoint = 10;
 
-	private const int ShieldUpgradeBaseScrap = 35;
-	private const int ShieldUpgradeStepScrap = 15;
-	private const int HullUpgradeCreditCost = 25;
-	private const int HullUpgradeBaseScrap = 35;
-	private const int HullUpgradeStepScrap = 15;
-
 	public static IReadOnlyList<MerchantCatalog.Offer> ListFor(ShipInstance ship)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
@@ -28,9 +22,7 @@ public static class ShipSupportCatalog
 				continue;
 			offers.Add(new MerchantCatalog.Offer(
 				maxShields,
-				ResourceBundle.Of(
-					ResourceId.ScrapAlloy,
-					ShieldUpgradeBaseScrap + ShieldUpgradeStepScrap * ship.Loadout.ShieldUpgradeTiers[face])));
+				MerchantUpgradePricing.ShieldMaxUpgrade(ship.Loadout.ShieldUpgradeTiers[face])));
 		}
 
 		var maxHull = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxHull);
@@ -38,9 +30,7 @@ public static class ShipSupportCatalog
 		{
 			offers.Add(new MerchantCatalog.Offer(
 				maxHull,
-				ResourceBundle.Create(
-					(ResourceId.Credits, HullUpgradeCreditCost),
-					(ResourceId.ScrapAlloy, HullUpgradeBaseScrap + HullUpgradeStepScrap * ship.Loadout.HullUpgradeTier))));
+				MerchantUpgradePricing.HullMaxUpgrade(ship.Loadout.HullUpgradeTier)));
 		}
 
 		var repair = new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull);

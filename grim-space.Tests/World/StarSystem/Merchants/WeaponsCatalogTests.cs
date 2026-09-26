@@ -74,17 +74,16 @@ public sealed class WeaponsCatalogTests
 	}
 
 	[Fact]
-	public void ListFor_DamageTierZeroCostsFortyScrap()
+	public void ListFor_DamageTierZero_MatchesEconomyTable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
 		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(40, scrap);
+		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(0), offer.Cost);
 	}
 
 	[Fact]
-	public void ListFor_RangeTierOneCostsSixtyScrap()
+	public void ListFor_RangeTierOne_MatchesEconomyTable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		Assert.True(ship.TryWithRangeUpgraded(
@@ -92,8 +91,7 @@ public sealed class WeaponsCatalogTests
 			out ship));
 		var offering = MerchantPurchaseTestHarness.FlakPortRangeUpgrade;
 		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(60, scrap);
+		Assert.Equal(MerchantUpgradePricing.WeaponRangeUpgrade(1), offer.Cost);
 	}
 
 	[Fact]
