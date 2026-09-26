@@ -1,4 +1,5 @@
 using GrimSpace.Math;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Encounter;
 
@@ -23,7 +24,7 @@ public static class EncounterBudgetRoller
 
 		while (remaining > 0)
 		{
-			var affordable = EncounterPowerCatalog.Affordable(remaining).ToArray();
+			var affordable = ShipPowerCatalog.Affordable(remaining).ToArray();
 			if (affordable.Length == 0)
 				break;
 

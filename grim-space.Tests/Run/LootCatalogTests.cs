@@ -1,5 +1,7 @@
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Math;
 using GrimSpace.Run;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -78,6 +80,32 @@ public sealed class LootCatalogTests
 		high.Total.TryGet(ResourceId.ScrapAlloy, out var highScrap);
 		Assert.InRange(lowScrap, 50, 120);
 		Assert.InRange(highScrap, 73, 174);
+	}
+
+	[Fact]
+	public void SalvageFromShip_PowerAbove10_CanDropIndustrialCore()
+	{
+		var carrier = new ShipPowerLevel(EType.Carrier, EShipGearTier.T0, 11);
+		var foundCore = false;
+		for (ulong seed = 0; seed < 500; seed++)
+		{
+			var loot = LootCatalog.SalvageFromShip(carrier, new StableRandom(seed));
+			if (loot.TryGet(ResourceId.IndustrialCore, out _))
+				foundCore = true;
+		}
+
+		Assert.True(foundCore);
+	}
+
+	[Fact]
+	public void SalvageFromShip_PowerAtMost10_NeverDropsIndustrialCore()
+	{
+		var patrol = new ShipPowerLevel(EType.Patrol, EShipGearTier.T3, 8);
+		for (ulong seed = 0; seed < 200; seed++)
+		{
+			var loot = LootCatalog.SalvageFromShip(patrol, new StableRandom(seed));
+			Assert.False(loot.TryGet(ResourceId.IndustrialCore, out _));
+		}
 	}
 
 	[Fact]

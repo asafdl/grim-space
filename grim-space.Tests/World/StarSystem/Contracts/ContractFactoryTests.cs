@@ -25,8 +25,9 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 		Assert.IsType<HuntObjective>(contract.Objective);
 		Assert.Equal(args.IssuerPoiId, contract.IssuerPoiId);
 		Assert.False(contract.IsStoryObjective);
-		Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(75, credits);
+		Assert.Equal(
+			ContractRewardCalculator.Roll(map.Seed, contract.Id, EContractKind.Hunt, args.Danger),
+			contract.Terms);
 	}
 
 	[Fact]

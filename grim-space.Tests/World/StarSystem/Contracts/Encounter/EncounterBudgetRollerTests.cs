@@ -1,3 +1,4 @@
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Contracts.Encounter;
 using GrimSpace.World.StarSystem.Encounter;
@@ -30,7 +31,7 @@ public sealed class EncounterBudgetRollerTests
 	{
 		var ships = EncounterBudgetRoller.Roll(99, "budget-test", "hunt-encounter", EDangerLevel.Low);
 		var total = ships.Sum(ship =>
-			EncounterPowerCatalog.AllEntries
+			ShipPowerCatalog.All
 				.First(entry => entry.Chassis == ship.Chassis && entry.Tier == ship.GearTier)
 				.Power);
 

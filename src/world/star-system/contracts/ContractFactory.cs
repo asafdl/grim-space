@@ -14,12 +14,6 @@ namespace GrimSpace.World.StarSystem.Contracts;
 
 public static class ContractFactory
 {
-	private const int HuntRewardCredits = 75;
-	private const int DeliveryRewardCredits = 50;
-	private const int WreckageRewardCredits = 60;
-	private const float WreckageSalvageWeight = 0.6f;
-	private const int WreckageSalvageScrapAlloy = 3;
-
 	public static Contract Create(StarMap map, EContractKind kind, ContractCreateArgs args)
 	{
 		ArgumentNullException.ThrowIfNull(map);
@@ -82,7 +76,7 @@ public static class ContractFactory
 			args.Danger,
 			map.ControllingFaction,
 			args.IssuerPoiId,
-			ResolvePayment(EContractKind.Hunt, args.Danger),
+			ResolvePayment(map.Seed, contractId, EContractKind.Hunt, args.Danger),
 			args.Narrative,
 			IsHuntObjectiveMet,
 			args.IsStoryObjective);
@@ -126,7 +120,7 @@ public static class ContractFactory
 			args.Danger,
 			map.ControllingFaction,
 			args.IssuerPoiId,
-			ResolvePayment(EContractKind.Delivery, args.Danger),
+			ResolvePayment(map.Seed, contractId, EContractKind.Delivery, args.Danger),
 			args.Narrative,
 			IsDeliveryObjectiveMet,
 			args.IsStoryObjective);
@@ -159,7 +153,7 @@ public static class ContractFactory
 			args.Danger,
 			map.ControllingFaction,
 			args.IssuerPoiId,
-			ResolvePayment(EContractKind.Wreckage, args.Danger),
+			ResolvePayment(map.Seed, contractId, EContractKind.Wreckage, args.Danger),
 			args.Narrative,
 			IsWreckageObjectiveMet,
 			args.IsStoryObjective);
@@ -179,13 +173,9 @@ public static class ContractFactory
 
 	private static WreckageOutcome RollWreckageOutcome(StarMap map, string contractId, WreckageCreateArgs args)
 	{
-		var random = new StableRandom(
-			StableSeedMixer.From(map.Seed).Add(contractId).Add("wreckage-outcome").Value);
-		if (random.NextDouble() < WreckageSalvageWeight)
-		{
+		if (WreckageSalvageRoller.RollSalvageOutcome(map.Seed, contractId))
 			return new WreckageOutcome.Salvage(
-				ResourceBundle.Of(ResourceId.ScrapAlloy, WreckageSalvageScrapAlloy));
-		}
+				WreckageSalvageRoller.RollSalvageLoot(map.Seed, contractId, args.Danger));
 
 		var faction = ResolveOppositionFaction(map, contractId);
 		var fleetType = ResolveFleetType(faction);
@@ -212,18 +202,12 @@ public static class ContractFactory
 			_ => throw new ArgumentOutOfRangeException(nameof(faction), faction, "Unsupported opposition faction."),
 		};
 
-	private static ContractTerms ResolvePayment(EContractKind kind, EDangerLevel danger)
-	{
-		_ = danger;
-		var credits = kind switch
-		{
-			EContractKind.Hunt => HuntRewardCredits,
-			EContractKind.Delivery => DeliveryRewardCredits,
-			EContractKind.Wreckage => WreckageRewardCredits,
-			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
-		};
-		return new ContractTerms(ResourceBundle.Of(ResourceId.Credits, credits));
-	}
+	private static ContractTerms ResolvePayment(
+		int mapSeed,
+		string contractId,
+		EContractKind kind,
+		EDangerLevel danger) =>
+		ContractRewardCalculator.Roll(mapSeed, contractId, kind, danger);
 
 	private static bool TryPickSearchArea(
 		StarMap map,

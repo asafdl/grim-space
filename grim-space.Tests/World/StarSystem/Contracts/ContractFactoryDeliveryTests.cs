@@ -42,8 +42,9 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 		Assert.Equal(dropoffOperatorName, objective.TurnInOperatorName);
 		Assert.Equal(plan.StoragePoiId, contract.IssuerPoiId);
 		Assert.Equal("Drop off there.", contract.Narrative.TurnInDialog);
-		Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(50, credits);
+		Assert.Equal(
+			ContractRewardCalculator.Roll(map.Seed, contract.Id, EContractKind.Delivery, args.Danger),
+			contract.Terms);
 	}
 
 	[Fact]
