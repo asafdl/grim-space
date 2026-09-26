@@ -1,4 +1,8 @@
+using GrimSpace.Math;
+using GrimSpace.Run;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Encounter;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -8,12 +12,26 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class WreckageSalvageRollerTests
 {
 	[Fact]
-	public void RollSalvageLoot_UsesLootCatalogScale()
+	public void RollSalvageLoot_TriplesShipScrapWithoutChangingOtherLoot()
 	{
-		var loot = WreckageSalvageRoller.RollSalvageLoot(42, "wreck-loot", EDangerLevel.Moderate);
+		const int mapSeed = 42;
+		const string contractId = "wreck-loot";
+		const EDangerLevel danger = EDangerLevel.Moderate;
+		var tierSeed = StableSeedMixer.From(mapSeed).Add(contractId).Add("wreckage-salvage-tier").Value;
+		var lootSeed = StableSeedMixer.From(mapSeed).Add(contractId).Add("wreckage-salvage-loot").Value;
+		var wreck = ShipPowerCatalog.PickRandomWithinBudget(
+			new StableRandom(tierSeed),
+			EncounterPowerCatalog.EncounterPowerBudget(danger));
+		var shipLoot = LootCatalog.SalvageFromShip(wreck, new StableRandom(lootSeed));
 
+		var loot = WreckageSalvageRoller.RollSalvageLoot(mapSeed, contractId, danger);
+
+		Assert.True(shipLoot.TryGet(ResourceId.ScrapAlloy, out var shipScrap));
 		Assert.True(loot.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.InRange(scrap, 50, 400);
+		Assert.Equal(shipScrap * 3, scrap);
+		Assert.Equal(
+			shipLoot.TryGet(ResourceId.IndustrialCore, out var shipCores) ? shipCores : 0,
+			loot.TryGet(ResourceId.IndustrialCore, out var wreckCores) ? wreckCores : 0);
 	}
 
 	[Fact]

@@ -153,7 +153,7 @@ public static class ContractObjectiveProjection
 
 		// Acceptance happens at the issuer; cargo is already aboard. Single-leg deliveries only for now.
 		return new ObjectiveSummaryContent.NearLandmark(
-			$"Deliver cargo to \"{delivery.TurnInOperatorName}\" at ",
+			$"Deliver cargo to \"{delivery.TurnInOperatorName}\" at {dropoff.GetFacility(delivery.TurnInFacilityId).DisplayName} in ",
 			delivery.TurnInPoiId,
 			dropoff.DisplayName,
 			".");

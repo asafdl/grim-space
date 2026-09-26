@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://bm4uvj8rmdpy1"]
 
 [ext_resource type="Script" uid="uid://b6f8u8gdg2ocn" path="res://src/world/star-system/presentation/facilities/DockyardController.cs" id="1_controller"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_salesman"]
+[ext_resource type="Script" uid="uid://mucjijdmhn5m" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
+[ext_resource type="Script" uid="uid://bbpygudsjk1mr" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_salesman"]
 [ext_resource type="Texture2D" uid="uid://bihmyhslop7m2" path="res://assets/ui/map/facilities/tradehub-dockyard.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://1e4y2ewe504" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
 [ext_resource type="Texture2D" uid="uid://wqwohcvsqbyw" path="res://assets/ui/map/services/shield-recharge.png" id="6_shield_recharge"]
-[ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="7_strategic_hud"]
+[ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="7_strategic_hud"]
 
 [node name="Dockyard" type="Control" unique_id=835188839]
 layout_mode = 3
@@ -17,7 +17,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
 
-[node name="StrategicHud" parent="." instance=ExtResource("7_strategic_hud")]
+[node name="StrategicHud" parent="." unique_id=719546923 instance=ExtResource("7_strategic_hud")]
 
 [node name="Scene" type="Control" parent="." unique_id=1096377716]
 layout_mode = 1
@@ -55,11 +55,11 @@ script = ExtResource("3_salesman")
 
 [node name="ShieldRecharge" type="TextureButton" parent="Scene" unique_id=1771624543]
 layout_mode = 0
-offset_left = 671.0
-offset_top = 539.0
-offset_right = 928.96545
-offset_bottom = 875.7693
-rotation = -0.1663151
+offset_left = 681.00006
+offset_top = 543.0
+offset_right = 927.8155
+offset_bottom = 873.20197
+rotation = -0.022727013
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("6_shield_recharge")
 ignore_texture_size = true

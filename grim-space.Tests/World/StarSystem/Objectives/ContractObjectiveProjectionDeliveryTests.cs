@@ -18,12 +18,13 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 		var contract = map.ContractRegistry.Pending.Single();
 		var delivery = (DeliveryObjective)contract.Objective;
 		var dropoff = map.PointsOfInterest.First(poi => poi.Id == delivery.TurnInPoiId);
+		var facility = dropoff.GetFacility(delivery.TurnInFacilityId);
 
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
 		Assert.Equal("Supply Run ★", objective.Title);
 		var near = Assert.IsType<ObjectiveSummaryContent.NearLandmark>(objective.Summary);
-		Assert.Equal($"Deliver cargo to \"{delivery.TurnInOperatorName}\" at ", near.Prefix);
+		Assert.Equal($"Deliver cargo to \"{delivery.TurnInOperatorName}\" at {facility.DisplayName} in ", near.Prefix);
 		Assert.Equal(dropoff.Id, near.LandmarkPoiId);
 		Assert.Equal(dropoff.DisplayName, near.LandmarkDisplayName);
 		Assert.Equal(".", near.Suffix);

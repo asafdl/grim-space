@@ -109,15 +109,21 @@ public static class ContractDisplay
 	private static string FormatDeliveryObjective(Contract contract, DeliveryObjective delivery, StarMap map)
 	{
 		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
-		var dropoffName = ResolvePoiDisplayName(map, delivery.TurnInPoiId);
-		return $"Pick up cargo at {issuerName}, then deliver it to {dropoffName}.";
+		return $"Pick up cargo at {issuerName}, then deliver it to {DeliveryDestination(map, delivery)}.";
 	}
 
 	private static string FormatDeliveryRoute(Contract contract, DeliveryObjective delivery, StarMap map)
 	{
 		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
-		var dropoffName = ResolvePoiDisplayName(map, delivery.TurnInPoiId);
-		return $"From {issuerName} to {dropoffName}.";
+		return $"From {issuerName} to {DeliveryDestination(map, delivery)}.";
+	}
+
+	private static string DeliveryDestination(StarMap map, DeliveryObjective delivery)
+	{
+		var poi = map.PointsOfInterest.FirstOrDefault(candidate => candidate.Id == delivery.TurnInPoiId);
+		return poi is null
+			? delivery.TurnInPoiId
+			: $"{poi.GetFacility(delivery.TurnInFacilityId).DisplayName} at {poi.DisplayName}";
 	}
 
 	private static string ResolvePoiDisplayName(StarMap map, string? poiId) =>

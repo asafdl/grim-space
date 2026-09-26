@@ -101,7 +101,7 @@ public static class AreaPicker
 				continue;
 			}
 
-			pick = BuildBorderPick(map, landmarkId, anchor, borderA, borderB, spawnPoints);
+			pick = BuildBorderPick(map, args.LandmarkCandidateIds, landmarkId, anchor, borderA, borderB, spawnPoints);
 			return true;
 		}
 
@@ -170,6 +170,7 @@ public static class AreaPicker
 
 	private static AreaPick BuildBorderPick(
 		StarMap map,
+		IReadOnlyList<string> landmarkCandidateIds,
 		string landmarkId,
 		Coord anchor,
 		Coord borderA,
@@ -193,7 +194,16 @@ public static class AreaPicker
 
 		var intel = AreaIntelProducer.Produce(
 			new AreaIntelContext(closestId, secondClosestId, thirdClosestId),
-			[EAreaIntelTone.Brief]);
+			intelAnchor,
+			[.. landmarkCandidateIds, borderAId, borderBId],
+			id => id switch
+			{
+				_ when AreaBorderAnchor.TryParseId(id, out var border) => border,
+				_ => MapLandmarkQueries.TryGet(map, id, out var reference)
+					? reference.Position
+					: throw new InvalidOperationException($"Unknown reference id '{id}'."),
+			},
+			System.Math.Min(map.Width, map.Height));
 
 		return new AreaPick(intel, spawnPoints);
 	}
@@ -241,7 +251,11 @@ public static class AreaPicker
 				combination[2],
 				id => positions[id]);
 			var intel = AreaIntelProducer.Produce(
-				new AreaIntelContext(closestId, secondClosestId, thirdClosestId));
+				new AreaIntelContext(closestId, secondClosestId, thirdClosestId),
+				intelAnchor,
+				args.LandmarkCandidateIds,
+				id => positions[id],
+				System.Math.Min(map.Width, map.Height));
 
 			pick = new AreaPick(intel, spawnPoints);
 			return true;

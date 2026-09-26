@@ -46,7 +46,7 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 			id => id == result.Intel.LandmarkAId
 				|| id == result.Intel.LandmarkBId
 				|| id == result.Intel.LandmarkCId);
-		AssertIntelLandmarksOrderedByDistance(map, result);
+		AssertIntelMatchesSearchPoint(map, result);
 	}
 
 	[Fact]
@@ -123,7 +123,7 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 		Assert.True(AreaPicker.TryPick(map, args, out var result));
 
 		Assert.Single(result.SpawnPoints);
-		AssertIntelLandmarksOrderedByDistance(map, result);
+		AssertIntelMatchesSearchPoint(map, result);
 		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(result.Intel, out _));
 	}
 
@@ -168,17 +168,30 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 
 		Assert.Single(searchArea.SpawnPoints);
 		Assert.True(AreaIntelDisplay.TryParseLinkableSegments(searchArea.Intel, out _));
-		AssertIntelLandmarksOrderedByDistance(map, searchArea);
+		AssertIntelMatchesSearchPoint(map, searchArea);
 	}
 
-	private static void AssertIntelLandmarksOrderedByDistance(StarMap map, AreaPick pick)
+	private static void AssertIntelMatchesSearchPoint(StarMap map, AreaPick pick)
 	{
 		var intel = pick.Intel;
-		var anchor = pick.SpawnPoints[0];
-		var d0 = RouteGeometry.Distance(anchor, ResolveIntelReferencePosition(map, intel.LandmarkAId));
-		var d1 = RouteGeometry.Distance(anchor, ResolveIntelReferencePosition(map, intel.LandmarkBId));
-		var d2 = RouteGeometry.Distance(anchor, ResolveIntelReferencePosition(map, intel.LandmarkCId));
-		Assert.True(d0 <= d1 && d1 <= d2);
+		var point = pick.SpawnPoints[0];
+		var mapSize = System.Math.Min(map.Width, map.Height);
+		if (intel.Template == "Somewhere near {A}.")
+		{
+			Assert.True(RouteGeometry.Distance(point, ResolveIntelReferencePosition(map, intel.LandmarkAId))
+				<= mapSize * 0.1);
+		}
+		else if (intel.Template == "Somewhere between {A} and {B}.")
+		{
+			Assert.True(RouteGeometry.PointToSegmentDistance(
+				point,
+				ResolveIntelReferencePosition(map, intel.LandmarkAId),
+				ResolveIntelReferencePosition(map, intel.LandmarkBId)) <= mapSize * 0.15);
+		}
+		else
+		{
+			Assert.StartsWith("Somewhere in the general area between ", intel.Template, StringComparison.Ordinal);
+		}
 	}
 
 	private static Coord ResolveIntelReferencePosition(StarMap map, string id)

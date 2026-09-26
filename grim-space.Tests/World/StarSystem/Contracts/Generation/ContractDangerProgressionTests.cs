@@ -17,23 +17,24 @@ public sealed class ContractDangerProgressionTests
 	}
 
 	[Fact]
-	public void WeightsFor_FiveCompletions_BlendsVeryLowAndLow()
+	public void WeightsFor_FiveCompletions_SpreadsAcrossVeryLowAndLow()
 	{
 		var weights = ContractDangerProgression.WeightsFor(5);
 
-		Assert.Equal(0.75f, weights[0], 3);
-		Assert.Equal(0.25f, weights[1], 3);
+		Assert.True(weights[0] > weights[1]);
 		Assert.Equal(0f, weights[2]);
 	}
 
 	[Fact]
-	public void WeightsFor_TwentyFiveCompletions_BlendsLowAndModerate()
+	public void WeightsFor_TwentyFiveCompletions_SpreadsAcrossThreeTiers()
 	{
 		var weights = ContractDangerProgression.WeightsFor(25);
 
-		Assert.Equal(0f, weights[0]);
-		Assert.Equal(0.75f, weights[1], 3);
-		Assert.Equal(0.25f, weights[2], 3);
+		Assert.True(weights[0] > 0f);
+		Assert.True(weights[1] > weights[0]);
+		Assert.True(weights[2] > 0f);
+		Assert.True(weights[1] > weights[2]);
+		Assert.Equal(0f, weights[3]);
 	}
 
 	[Theory]

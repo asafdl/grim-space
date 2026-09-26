@@ -5,6 +5,9 @@ namespace GrimSpace.World.StarSystem.Areas;
 
 public static class AreaIntelProducer
 {
+	private const double NearFractionOfMap = 0.1;
+	private const double BetweenFractionOfMap = 0.15;
+
 	public static (string ClosestId, string SecondClosestId, string ThirdClosestId) OrderLandmarksByDistanceFromCenter(
 		Coord center,
 		string landmarkAId,
@@ -22,47 +25,65 @@ public static class AreaIntelProducer
 		return (ordered[0].Id, ordered[1].Id, ordered[2].Id);
 	}
 
-	private sealed record IntelLine(EAreaIntelTone Tone, string Template);
-
-	private static readonly IntelLine[] Lines =
-	[
-		new(EAreaIntelTone.Brief, "Somewhere in the area of {A}."),
-		new(EAreaIntelTone.Brief, "Somewhere in the area between {A} and {B}."),
-	];
-
-	public static AreaIntel Produce(AreaIntelContext context) =>
-		Produce(context, allowedTones: null);
-
-	public static AreaIntel Produce(AreaIntelContext context, IReadOnlyCollection<EAreaIntelTone>? allowedTones)
+	public static AreaIntel Produce(
+		AreaIntelContext context,
+		Coord searchPoint,
+		IReadOnlyList<string> referenceIds,
+		Func<string, Coord> resolvePosition,
+		int mapSize)
 	{
 		ArgumentNullException.ThrowIfNull(context);
+		ArgumentNullException.ThrowIfNull(referenceIds);
+		ArgumentNullException.ThrowIfNull(resolvePosition);
 		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkAId);
 		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkBId);
 		ArgumentException.ThrowIfNullOrEmpty(context.LandmarkCId);
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(mapSize);
+		if (referenceIds.Count == 0)
+			throw new ArgumentException("At least one reference is required.", nameof(referenceIds));
 
-		var lines = Lines;
-		if (allowedTones is not null)
+		var references = referenceIds
+			.Select(id => (Id: id, Position: resolvePosition(id)))
+			.OrderBy(reference => RouteGeometry.Distance(searchPoint, reference.Position))
+			.ToArray();
+		var closest = references[0];
+		if (RouteGeometry.Distance(searchPoint, closest.Position) <= mapSize * NearFractionOfMap)
+			return new AreaIntel("Somewhere near {A}.", closest.Id, context.LandmarkBId, context.LandmarkCId);
+
+		(string FirstId, string SecondId, double Distance)? bestPair = null;
+		for (var i = 0; i < references.Length; i++)
 		{
-			if (allowedTones.Count == 0)
+			for (var j = i + 1; j < references.Length; j++)
 			{
-				throw new ArgumentException(
-					"allowedTones must not be empty when provided.",
-					nameof(allowedTones));
+				var first = references[i];
+				var second = references[j];
+				if (AreaBorderAnchor.TryParseId(first.Id, out _)
+					&& AreaBorderAnchor.TryParseId(second.Id, out _))
+					continue;
+
+				var distance = RouteGeometry.PointToSegmentDistance(searchPoint, first.Position, second.Position);
+				if (distance <= mapSize * BetweenFractionOfMap
+					&& (bestPair is null || distance < bestPair.Value.Distance))
+					bestPair = (first.Id, second.Id, distance);
 			}
-
-			lines = lines.Where(line => allowedTones.Contains(line.Tone)).ToArray();
 		}
+		if (bestPair is { } pair)
+			return new AreaIntel("Somewhere between {A} and {B}.", pair.FirstId, pair.SecondId, context.LandmarkCId);
 
-		if (lines.Length == 0)
+		var triangleIds = new[] { context.LandmarkAId, context.LandmarkBId, context.LandmarkCId };
+		var borderCount = triangleIds.Count(id => AreaBorderAnchor.TryParseId(id, out _));
+		if (borderCount == 2)
 		{
-			throw new ArgumentException(
-				"No intel lines match the requested tone filter.",
-				nameof(allowedTones));
+			var landmarkId = triangleIds.Single(id => !AreaBorderAnchor.TryParseId(id, out _));
+			return new AreaIntel(
+				"Somewhere in the general area between {A} and the sector rim.",
+				landmarkId,
+				context.LandmarkBId,
+				context.LandmarkCId);
 		}
 
-		var line = lines[Random.Shared.Next(lines.Length)];
 		return new AreaIntel(
-			line.Template,
+			"Somewhere in the general area between {A}, {B}, and {C}.",
 			context.LandmarkAId,
 			context.LandmarkBId,
 			context.LandmarkCId);

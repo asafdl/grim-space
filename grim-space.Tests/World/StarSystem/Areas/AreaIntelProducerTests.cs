@@ -1,3 +1,4 @@
+using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Areas;
 
 namespace GrimSpace.Tests.World.StarSystem.Areas;
@@ -5,51 +6,81 @@ namespace GrimSpace.Tests.World.StarSystem.Areas;
 [StarSystemTestSuite]
 public sealed class AreaIntelProducerTests
 {
-	[Fact]
-	public void Produce_PreservesLandmarkIds()
+	private static readonly Dictionary<string, Coord> References = new()
 	{
-		var context = new AreaIntelContext("poi-refinery", "poi-storage", "landmark:nav-a:00");
+		["west"] = new Coord(0, 0, 0),
+		["east"] = new Coord(600, 0, 0),
+		["north"] = new Coord(300, 0, 600),
+		["nearby"] = new Coord(300, 0, 290),
+	};
 
-		for (var i = 0; i < 16; i++)
+	private static readonly AreaIntelContext Triangle = new("west", "east", "north");
+
+	[Fact]
+	public void Produce_UsesNearestEligibleReferenceAfterSearchPointIsPicked()
+	{
+		var intel = Produce(new Coord(300, 0, 300));
+
+		Assert.Equal("Somewhere near {A}.", intel.Template);
+		Assert.Equal("nearby", intel.LandmarkAId);
+	}
+
+	[Fact]
+	public void Produce_FarFromReferencesButNearConnectingSegment_UsesBetween()
+	{
+		var intel = Produce(new Coord(300, 0, 150), ["west", "east"]);
+
+		Assert.Equal("Somewhere between {A} and {B}.", intel.Template);
+		Assert.Equal("west", intel.LandmarkAId);
+		Assert.Equal("east", intel.LandmarkBId);
+	}
+
+	[Fact]
+	public void Produce_OutsideSegmentProximity_DoesNotSayBetween()
+	{
+		var intel = Produce(new Coord(300, 0, 160), ["west", "east"]);
+
+		Assert.Equal("Somewhere in the general area between {A}, {B}, and {C}.", intel.Template);
+	}
+
+	[Fact]
+	public void Produce_FarFromReferencesAndSegments_UsesGeneralArea()
+	{
+		var intel = Produce(new Coord(300, 0, 250), ["west", "east", "north"]);
+
+		Assert.Equal("Somewhere in the general area between {A}, {B}, and {C}.", intel.Template);
+		Assert.Equal("west", intel.LandmarkAId);
+		Assert.Equal("east", intel.LandmarkBId);
+		Assert.Equal("north", intel.LandmarkCId);
+	}
+
+	[Fact]
+	public void Produce_BorderTriangleFallback_DoesNotRepeatSectorRim()
+	{
+		var rimA = AreaBorderAnchor.Id(new Coord(0, 0, 0));
+		var rimB = AreaBorderAnchor.Id(new Coord(600, 0, 0));
+		var positions = new Dictionary<string, Coord>(References)
 		{
-			var intel = AreaIntelProducer.Produce(context);
-			Assert.Equal("poi-refinery", intel.LandmarkAId);
-			Assert.Equal("poi-storage", intel.LandmarkBId);
-			Assert.Equal("landmark:nav-a:00", intel.LandmarkCId);
-			Assert.Contains("{A}", intel.Template);
-		}
+			[rimA] = new Coord(0, 0, 0),
+			[rimB] = new Coord(600, 0, 0),
+		};
+
+		var intel = AreaIntelProducer.Produce(
+			new AreaIntelContext(rimA, "north", rimB),
+			new Coord(300, 0, 250),
+			["north", rimA, rimB],
+			id => positions[id],
+			1024);
+
+		Assert.Equal("Somewhere in the general area between {A} and the sector rim.", intel.Template);
+		Assert.Equal("north", intel.LandmarkAId);
 	}
 
-	[Fact]
-	public void Produce_ToneFilter_UsesOnlyRequestedTone()
-	{
-		var context = new AreaIntelContext("poi-refinery", "poi-storage", "landmark:nav-a:00");
-
-		for (var i = 0; i < 24; i++)
-		{
-			var intel = AreaIntelProducer.Produce(context, [EAreaIntelTone.Brief]);
-			Assert.StartsWith("Somewhere in the area ", intel.Template, StringComparison.Ordinal);
-		}
-	}
-
-	[Fact]
-	public void Produce_ImpossibleToneFilter_Throws()
-	{
-		var context = new AreaIntelContext("poi-refinery", "poi-storage", "landmark:nav-a:00");
-
-		Assert.Throws<ArgumentException>(() =>
-			AreaIntelProducer.Produce(context, []));
-	}
-
-	[Fact]
-	public void Produce_HasVariationAcrossSamples()
-	{
-		var context = new AreaIntelContext("poi-refinery", "poi-storage", "landmark:nav-a:00");
-		var lines = new HashSet<string>();
-
-		for (var i = 0; i < 48; i++)
-			lines.Add(AreaIntelProducer.Produce(context).Template);
-
-		Assert.True(lines.Count > 1);
-	}
+	private static AreaIntel Produce(Coord position, IReadOnlyList<string>? referenceIds = null) =>
+		AreaIntelProducer.Produce(
+			Triangle,
+			position,
+			referenceIds ?? ["west", "east", "north", "nearby"],
+			id => References[id],
+			1024);
 }

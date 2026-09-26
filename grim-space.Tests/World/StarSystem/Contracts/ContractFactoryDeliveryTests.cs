@@ -74,4 +74,28 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 			dropoffFacilityId);
 		Assert.Equal(MapFacilityOperators.TravelOperatorName(map), dropoffOperatorName);
 	}
+
+	[Fact]
+	public void Display_Delivery_IdentifiesDestinationFacility()
+	{
+		var map = maps.Fresh(42);
+		var plan = map.Blueprint.SupplyPlan;
+		var dropoff = map.PointsOfInterest.First(poi => poi.Id == plan.TradeHubPoiId);
+		var facility = dropoff.Facilities.First(f => f.DisplayName == "Dockyard");
+		var contract = ContractFactory.Build(
+			map,
+			"delivery-display",
+			EContractKind.Delivery,
+			new DeliveryCreateArgs(
+				plan.StoragePoiId,
+				EDangerLevel.VeryLow,
+				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				DropoffPoiId: dropoff.Id,
+				DropoffFacilityId: facility.Id,
+				DropoffOperatorName: facility.Operators[0].Name));
+
+		Assert.Contains($"Dockyard at {dropoff.DisplayName}", ContractDisplay.SearchArea(contract, map));
+		Assert.Contains($"Dockyard at {dropoff.DisplayName}", ContractDisplay.ObjectivePreview(contract, map));
+		Assert.Contains($"Dockyard at {dropoff.DisplayName}", ContractDisplay.DetailsBody(contract, map));
+	}
 }

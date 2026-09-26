@@ -13,6 +13,7 @@ namespace GrimSpace.World.StarSystem.Contracts;
 public static class WreckageSalvageRoller
 {
 	private const float SalvageOutcomeWeight = 0.6f;
+	private const int WreckScrapMultiplier = 3;
 
 	public static bool RollSalvageOutcome(int mapSeed, string contractId)
 	{
@@ -28,7 +29,12 @@ public static class WreckageSalvageRoller
 		var wreck = ShipPowerCatalog.PickRandomWithinBudget(
 			Rng(mapSeed, contractId, "wreckage-salvage-tier"),
 			budget);
-		return LootCatalog.SalvageFromShip(wreck, Rng(mapSeed, contractId, "wreckage-salvage-loot"));
+		var salvage = LootCatalog.SalvageFromShip(wreck, Rng(mapSeed, contractId, "wreckage-salvage-loot"));
+		return ResourceBundle.Create(salvage.ToDictionary(
+			entry => entry.Key,
+			entry => entry.Key == ResourceId.ScrapAlloy
+				? entry.Value * WreckScrapMultiplier
+				: entry.Value));
 	}
 
 	private static StableRandom Rng(int mapSeed, string contractId, string scope) =>

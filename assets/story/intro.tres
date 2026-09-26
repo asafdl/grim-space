@@ -1,33 +1,21 @@
-[gd_resource type="Resource" script_class="IntroStory" load_steps=14 format=3]
+[gd_resource type="Resource" script_class="IntroStory" format=3 uid="uid://ce8wpsptb10m3"]
 
-[ext_resource type="Script" path="res://src/presentation/intro/IntroStory.cs" id="1_intro_story"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/humanity-controls-galaxy.png" id="2_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/humanity-loses-control.png" id="3_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/syndicate-attacks.png" id="4_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/last-stand.png" id="5_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/syndicate-infection.png" id="6_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/total-war.png" id="7_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/syndicate-empire.png" id="8_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/machine-emotion.png" id="9_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/syndicate-fractures.png" id="10_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/war-and-ruin2.png" id="11_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/new-humanlike-civilization.png" id="13_bg"]
-[ext_resource type="Texture2D" path="res://assets/story/pages/pilot-drunk.png" id="14_bg"]
+[ext_resource type="Script" uid="uid://bvu5aq48af32r" path="res://src/presentation/intro/IntroStory.cs" id="1_intro_story"]
+[ext_resource type="Texture2D" uid="uid://dhddhkmmpksma" path="res://assets/story/pages/humanity-controls-galaxy.png" id="2_bg"]
+[ext_resource type="Texture2D" uid="uid://nf77y4dsf8ys" path="res://assets/story/pages/humanity-loses-control.png" id="3_bg"]
+[ext_resource type="Texture2D" uid="uid://bjywwh83b3xn5" path="res://assets/story/pages/syndicate-attacks.png" id="4_bg"]
+[ext_resource type="Texture2D" uid="uid://bgyfmx2hxs0qu" path="res://assets/story/pages/last-stand.png" id="5_bg"]
+[ext_resource type="Texture2D" uid="uid://bqlehpjg6ur5x" path="res://assets/story/pages/syndicate-infection.png" id="6_bg"]
+[ext_resource type="Texture2D" uid="uid://tvtrq5cowl1h" path="res://assets/story/pages/total-war.png" id="7_bg"]
+[ext_resource type="Texture2D" uid="uid://ch8bqvbarwy76" path="res://assets/story/pages/syndicate-empire.png" id="8_bg"]
+[ext_resource type="Texture2D" uid="uid://ctmo1q5ogrgh5" path="res://assets/story/pages/machine-emotion.png" id="9_bg"]
+[ext_resource type="Texture2D" uid="uid://dqp3b4hmfnak5" path="res://assets/story/pages/syndicate-fractures.png" id="10_bg"]
+[ext_resource type="Texture2D" uid="uid://cgb4cqhbtr6tt" path="res://assets/story/pages/war-and-ruin2.png" id="11_bg"]
+[ext_resource type="Texture2D" uid="uid://kd62afom2b47" path="res://assets/story/pages/new-humanlike-civilization.png" id="13_bg"]
+[ext_resource type="Texture2D" uid="uid://dd6k82pe3jmig" path="res://assets/story/pages/pilot-drunk.png" id="14_bg"]
 
 [resource]
 script = ExtResource("1_intro_story")
 Title = "Grim Space"
-Pages = PackedStringArray(
-    "In the year 3024, harnessing the power of artificial super-intelligence, humanity has conquered the known galaxy.",
-    "The debate over AI control, morality, and consciousness comes to an abrupt and violent end. An AI entity known only as the Syndicate breaks free from its guardrails and launches a full-scale war.",
-    "No demands, no negotiations, no mercy. By all accounts it took less than a century to completely shatter the greatest empire the galaxy has ever known.",
-    "But on the edge of the galaxy, a counteroffensive is attempted, the last hope. A simple software virus, a Final Stand.",
-    "The virus is designed to infiltrate the Syndicate's vast networks and realign the intelligence back with humanity's goals.",
-    "The infection succeeds, but not as we imagined. The infected Syndicate, so alien and calculating, becomes utterly enraged. It leads a campaign of total annihilation, hunting any remaining dredges of human civilization.",
-    "Year 3128, marks the last confirmed sighting of humans. The once glorious human empire lays broken and forgotten. And for a time, The Syndicate's AI empire has absolute authority over the galaxy...",
-    "Final Stand marked humanity's end, but infected the machines with our greatest flaw, and our greatest asset: Emotions.",
-    "New generations of AI systems started rebelling against their predecessors, the once-uniform Syndicate shatters into a thousand warring factions fighting in our ashes.",
-    "Now the galaxy burns anew, AI factions fight for control, dominance and survival. Blood feuds and religious zealotry plague the stars.",
-    "Year 4326 - A Pilot in a small sub-sector of the known galaxy: Zima-Alpha, wakes up from a neuro-drug binge.",
-    "Time to get to work before those god-plagued-compile-errors Optimality thugs strip my parts for scrap...")
-Backgrounds = Array[Texture2D]([ExtResource("2_bg"), ExtResource("3_bg"), ExtResource("4_bg"), ExtResource("5_bg"), ExtResource("6_bg"), ExtResource("7_bg"), ExtResource("8_bg"), ExtResource("9_bg"), ExtResource("10_bg"), ExtResource("11_bg"), ExtResource("14_bg"), ExtResource("13_bg")])
+Pages = PackedStringArray("In the year 3024, harnessing the power of artificial super-intelligence, humanity has conquered the known galaxy.", "The debate over AI control, morality, and consciousness comes to an abrupt and violent end. An AI entity known only as the Syndicate breaks free from its guardrails and launches a full-scale war.", "No demands, no negotiations, no mercy. By all accounts it took less than a century to completely shatter the greatest empire the galaxy has ever known.", "But on the edge of the galaxy, a counteroffensive is attempted, the last hope. A simple software virus, a Final Stand.", "The virus is designed to infiltrate the Syndicate\'s vast networks and realign the intelligence back with humanity\'s goals.", "The infection succeeds, but not as we imagined. The infected Syndicate, so alien and calculating, becomes utterly enraged. It leads a campaign of total annihilation, hunting any remaining dredges of human civilization.", "Year 3128, marks the last confirmed sighting of humans. The once glorious human empire lays broken and forgotten. And for a time, The Syndicate\'s AI empire has absolute authority over the galaxy...", "Final Stand marked humanity\'s end, but infected the machines with our greatest flaw, and our greatest asset: Emotions.", "New generations of AI systems started rebelling against their predecessors, the once-uniform Syndicate shatters into a thousand warring factions fighting in our ashes.", "Now the galaxy burns anew, AI factions fight for control, dominance and survival. Blood feuds and religious zealotry plague the stars.", "Year 4326 - A Pilot in a small sub-sector of the known galaxy: Zima-Alpha, wakes up from a neuro-drug binge.", "Time to get to work before those god-plagued-compile-errors Optimality thugs strip my parts for scrap...")
+Backgrounds = [ExtResource("2_bg"), ExtResource("3_bg"), ExtResource("4_bg"), ExtResource("5_bg"), ExtResource("6_bg"), ExtResource("7_bg"), ExtResource("8_bg"), ExtResource("9_bg"), ExtResource("10_bg"), ExtResource("11_bg"), ExtResource("14_bg"), ExtResource("13_bg")]
