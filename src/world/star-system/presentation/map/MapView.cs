@@ -1,6 +1,5 @@
 using Godot;
 using GrimSpace.World.StarSystem.Presentation.Picking;
-using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Math;
 using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
@@ -30,7 +29,6 @@ public partial class MapView : Node3D
 	private static readonly Color HoverAccent = new(0.41f, 0.69f, 0.76f, 0.28f);
 	private static readonly Color StationSilver = new(0.72f, 0.74f, 0.78f);
 	private static readonly Color DockMarkerColor = new(0.45f, 0.72f, 0.78f, 0.85f);
-	private static readonly Color CopperTint = new(0.76f, 0.48f, 0.26f);
 	private static readonly Color WormholeTint = new(0.55f, 0.35f, 0.95f);
 
 	private readonly Dictionary<string, MeshInstance3D> _footprints = new();
@@ -513,27 +511,19 @@ public partial class MapView : Node3D
 			var distance = random.NextDouble() * worldRadius * 0.82;
 			var lift = (random.NextDouble() - 0.5) * worldRadius * 0.25;
 			var scale = 0.06f + (float)random.NextDouble() * 0.12f;
-			var tint = CopperTint.Lightened((float)(random.NextDouble() * 0.12 - 0.06));
-
-			root.AddChild(new MeshInstance3D
-			{
-				Name = $"Rock_{i}",
-				Position = new Vector3(
-					(float)(System.Math.Cos(angle) * distance),
-					(float)lift,
-					(float)(System.Math.Sin(angle) * distance)),
-				Rotation = new Vector3(
-					(float)(random.NextDouble() * System.Math.Tau),
-					(float)(random.NextDouble() * System.Math.Tau),
-					(float)(random.NextDouble() * System.Math.Tau)),
-				Mesh = AsteroidMesh.Create(Vector3.One * scale, rng),
-				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-				MaterialOverride = new StandardMaterial3D
-				{
-					AlbedoColor = tint,
-					Roughness = 0.92f,
-				},
-			});
+			var rock = NavigationLandmarkRockLibrary.CreateRock(rng, scale, mainMass: false);
+			rock.Name = $"Rock_{i}";
+			rock.Position = new Vector3(
+				(float)(System.Math.Cos(angle) * distance),
+				(float)lift,
+				(float)(System.Math.Sin(angle) * distance));
+			rock.Rotation = new Vector3(
+				(float)(random.NextDouble() * System.Math.Tau),
+				(float)(random.NextDouble() * System.Math.Tau),
+				(float)(random.NextDouble() * System.Math.Tau));
+			NavigationLandmarkRockLibrary.TintMeshes(
+				rock, NavigationLandmarkPalette.MainRockAccent(rng), emissionStrength: 0.04f);
+			root.AddChild(rock);
 		}
 	}
 

@@ -16,17 +16,19 @@ internal static class NavigationLandmarkPalette
 
 	private static readonly Color[] MainRockAccents =
 	[
-		new(0.72f, 0.66f, 0.58f),
-		new(0.58f, 0.64f, 0.78f),
-		new(0.78f, 0.58f, 0.42f),
-		new(0.66f, 0.54f, 0.62f),
+		new(0.82f, 0.51f, 0.29f),
+		new(0.66f, 0.38f, 0.31f),
+		new(0.78f, 0.69f, 0.37f),
+		new(0.38f, 0.62f, 0.55f),
+		new(0.43f, 0.53f, 0.72f),
 	];
 
 	private static readonly Color[] SupportRockAccents =
 	[
-		new(0.62f, 0.58f, 0.54f),
-		new(0.54f, 0.6f, 0.7f),
-		new(0.7f, 0.56f, 0.46f),
+		new(0.73f, 0.48f, 0.32f),
+		new(0.55f, 0.42f, 0.36f),
+		new(0.65f, 0.61f, 0.39f),
+		new(0.39f, 0.55f, 0.53f),
 	];
 
 	public static Color DustCardColor(int visualSeed, int cardIndex, RandomNumberGenerator random, float alpha)

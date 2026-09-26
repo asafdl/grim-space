@@ -4,20 +4,8 @@ namespace GrimSpace.World.StarSystem.Presentation.Map;
 
 internal static class NavigationLandmarkRockLibrary
 {
-	private static readonly string[] MainRockScenePaths =
-	[
-		"res://assets/models/asteroids/rock.glb",
-		"res://assets/models/asteroids/rock_large_a.glb",
-		"res://assets/models/asteroids/rock_large_b.glb",
-	];
-	private static readonly string[] SmallRockScenePaths =
-	[
-		"res://assets/models/asteroids/rock_small_a.glb",
-		"res://assets/models/asteroids/rock_small_b.glb",
-	];
-
-	private static PackedScene[]? _mainScenes;
-	private static PackedScene[]? _smallScenes;
+	private const string PackPath = "res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
+	private static (Mesh Mesh, Aabb Bounds)[]? _rocks;
 
 	public static Node3D CreateRock(
 		RandomNumberGenerator random,
@@ -25,16 +13,17 @@ internal static class NavigationLandmarkRockLibrary
 		bool mainMass)
 	{
 		EnsureLoaded();
-		var scenes = mainMass ? _mainScenes! : _smallScenes!;
-		var scene = scenes[random.Randi() % scenes.Length];
-		var meshRoot = scene.Instantiate<Node3D>();
-		var bounds = MeasureLocalBounds(meshRoot);
+		var (mesh, bounds) = _rocks![random.Randi() % _rocks.Length];
 		var maxExtent = Mathf.Max(bounds.Size.X, Mathf.Max(bounds.Size.Y, bounds.Size.Z));
 		var uniformScale = targetDiameter / Mathf.Max(maxExtent, 0.001f);
 
 		var pivot = new Node3D { Name = mainMass ? "MainRock" : "Rock" };
-		meshRoot.Position = -bounds.GetCenter();
-		pivot.AddChild(meshRoot);
+		pivot.AddChild(new MeshInstance3D
+		{
+			Mesh = mesh,
+			Position = -bounds.GetCenter(),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		});
 		pivot.Scale = Vector3.One * uniformScale;
 		return pivot;
 	}
@@ -73,31 +62,28 @@ internal static class NavigationLandmarkRockLibrary
 
 	private static void EnsureLoaded()
 	{
-		if (_mainScenes is not null)
+		if (_rocks is not null)
 			return;
 
-		_mainScenes = MainRockScenePaths.Select(GD.Load<PackedScene>).ToArray();
-		_smallScenes = SmallRockScenePaths.Select(GD.Load<PackedScene>).ToArray();
-	}
-
-	private static Aabb MeasureLocalBounds(Node root)
-	{
-		var combined = new Aabb();
-		var hasBounds = false;
-
-		foreach (var node in root.FindChildren("*", "VisualInstance3D", true, false))
+		var scene = GD.Load<PackedScene>(PackPath)
+			?? throw new InvalidOperationException($"Could not load asteroid pack '{PackPath}'.");
+		var root = scene.Instantiate<Node3D>();
+		try
 		{
-			if (node is not VisualInstance3D visual)
-				continue;
-
-			var local = visual.GetAabb();
-			if (local.Size == Vector3.Zero)
-				continue;
-
-			combined = hasBounds ? combined.Merge(local) : local;
-			hasBounds = true;
+			var rocks = root.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>()
+				.OrderBy(node => node.Name.ToString(), StringComparer.Ordinal)
+				.Select(node => node.Mesh is { } mesh
+					? (Mesh: mesh, Bounds: mesh.GetAabb())
+					: throw new InvalidOperationException($"Asteroid '{node.Name}' has no mesh."))
+				.ToArray();
+			if (rocks.Length == 0)
+				throw new InvalidOperationException($"Asteroid pack '{PackPath}' has no meshes.");
+			_rocks = rocks;
 		}
-
-		return hasBounds ? combined : new Aabb(Vector3.Zero, Vector3.One * 0.1f);
+		finally
+		{
+			root.Free();
+		}
 	}
 }

@@ -218,7 +218,7 @@ internal static class NavigationLandmarkVisualCatalog
 			piece.RotationDegrees = new Vector3(random.Randf() * 45f, random.Randf() * 360f, random.Randf() * 45f);
 			NavigationLandmarkRockLibrary.TintMeshes(
 				piece,
-				new Color(0.34f, 0.32f, 0.3f).Lerp(new Color(0.52f, 0.38f, 0.28f), random.Randf() * 0.35f),
+				NavigationLandmarkPalette.SupportRockAccent(random),
 				roughness: 0.78f);
 			root.AddChild(piece);
 		}
