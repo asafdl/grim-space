@@ -88,20 +88,10 @@ public static class ContractDisplay
 		};
 
 	public static string Danger(Contract contract) =>
-		contract.Objective switch
-		{
-			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
-				DangerDisplayName(hunt.SpawnGroups.Max(group => group.Spawn.Danger)),
-			_ => "—",
-		};
+		DangerDisplayName(contract.Danger);
 
 	public static int Difficulty(Contract contract) =>
-		contract.Objective switch
-		{
-			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
-				Difficulty(hunt.SpawnGroups.Max(group => group.Spawn.Danger)),
-			_ => 0,
-		};
+		Difficulty(contract.Danger);
 
 	public static string DifficultyStars(Contract contract)
 	{
@@ -112,14 +102,8 @@ public static class ContractDisplay
 
 	public static bool TryGetDangerLevel(Contract contract, out EDangerLevel danger)
 	{
-		if (contract.Objective is HuntObjective hunt && hunt.SpawnGroups.Count > 0)
-		{
-			danger = hunt.SpawnGroups[0].Spawn.Danger;
-			return true;
-		}
-
-		danger = default;
-		return false;
+		danger = contract.Danger;
+		return true;
 	}
 
 	private static string FormatDeliveryObjective(Contract contract, DeliveryObjective delivery, StarMap map)
@@ -160,6 +144,10 @@ public static class ContractDisplay
 		danger switch
 		{
 			EDangerLevel.VeryLow => "minimal",
+			EDangerLevel.Low => "low",
+			EDangerLevel.Moderate => "moderate",
+			EDangerLevel.High => "high",
+			EDangerLevel.VeryHigh => "severe",
 			_ => throw new ArgumentOutOfRangeException(nameof(danger), danger, null),
 		};
 
@@ -167,6 +155,10 @@ public static class ContractDisplay
 		danger switch
 		{
 			EDangerLevel.VeryLow => 1,
+			EDangerLevel.Low => 2,
+			EDangerLevel.Moderate => 3,
+			EDangerLevel.High => 4,
+			EDangerLevel.VeryHigh => 5,
 			_ => throw new ArgumentOutOfRangeException(nameof(danger), danger, null),
 		};
 

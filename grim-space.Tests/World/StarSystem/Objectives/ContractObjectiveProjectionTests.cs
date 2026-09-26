@@ -14,6 +14,7 @@ using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Contracts;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.World.StarSystem.Objectives;
 
@@ -127,13 +128,9 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 					"group-test",
 					new AreaPick(intel, [new Coord(4, 0, 4)]),
 					1,
-					new FleetSpawnSpec(
-						EType.PirateFleet,
-						EFaction.Pirates,
-						EDangerLevel.VeryLow,
-						42,
-						[BattleUnitType.Patrol])),
+					new FleetSpawnSpec(GrimSpace.World.StarSystem.Units.EType.PirateFleet, EFaction.Pirates, 42, [(BattleUnitType.Patrol, EShipGearTier.T0)])),
 			]),
+			EDangerLevel.VeryLow,
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),

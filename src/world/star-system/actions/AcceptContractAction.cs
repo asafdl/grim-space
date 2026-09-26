@@ -54,7 +54,7 @@ public sealed class AcceptContractDef
 	{
 		var accept = (AcceptContractAction)action;
 		var contract = world.ContractRegistry.All.First(c => c.Id == accept.ContractId);
-		var spawns = Factory.Create(contract, world, accept.SpawnIdentity);
+		var spawns = ContractEnemySpawner.SpawnForContract(contract, world, accept.SpawnIdentity);
 		List<IEffect<StarMap, ActorRuntime>> effects = [];
 		if (contract.Objective is IHasSpawnGroups && spawns.Fleets.Count != 0) {
 			effects.AddRange(spawns.Fleets

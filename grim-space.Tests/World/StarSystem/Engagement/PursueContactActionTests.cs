@@ -145,7 +145,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 			id,
 			coord,
 			EFaction.Pirates,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 		return id;
 	}
 }

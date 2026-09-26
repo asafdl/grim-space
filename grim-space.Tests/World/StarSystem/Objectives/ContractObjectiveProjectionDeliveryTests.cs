@@ -14,14 +14,14 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 	public void Project_ActiveDeliveryContract_PointsAtDropoffOnly()
 	{
 		var map = maps.Fresh(42);
-		var args = TutorialBeatContracts.CreateBeatBDeliveryArgs(map);
-		var contract = ContractFactory.Create(map, EContractKind.Delivery, args);
+		TutorialBeatContracts.OfferBeatB(map);
+		var contract = map.ContractRegistry.Pending.Single();
 		var delivery = (DeliveryObjective)contract.Objective;
 		var dropoff = map.PointsOfInterest.First(poi => poi.Id == delivery.TurnInPoiId);
 
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
-		Assert.Equal("Supply Run", objective.Title);
+		Assert.Equal("Supply Run ★", objective.Title);
 		var near = Assert.IsType<ObjectiveSummaryContent.NearLandmark>(objective.Summary);
 		Assert.Equal($"Deliver cargo to \"{delivery.TurnInOperatorName}\" at ", near.Prefix);
 		Assert.Equal(dropoff.Id, near.LandmarkPoiId);

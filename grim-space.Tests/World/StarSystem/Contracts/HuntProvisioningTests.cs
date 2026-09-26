@@ -14,6 +14,8 @@ using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
+using GrimSpace.Units.Enums;
+using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -37,10 +39,10 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contractId));
 
 		var spawned = engine.World.FleetRegistry.All
-			.Single(unit => unit.State.Type == EType.PirateFleet);
+			.Single(unit => unit.State.Type == FleetType.PirateFleet);
 
 		Assert.Equal(EFaction.Pirates, spawned.State.Faction);
-		Assert.Equal(EDangerLevel.VeryLow, spawned.State.CombatProfile?.Danger);
+		Assert.NotNull(spawned.State.CombatProfile);
 		Assert.Equal(EPhase.Docked, spawned.State.Phase);
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
@@ -77,11 +79,13 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var map = maps.FreshWithBeatAHunt(42);
 		var searchArea = CreateSyntheticSearchArea(map, 1);
 		var spawnSpec = new FleetSpawnSpec(
-			EType.PirateFleet,
+			FleetType.PirateFleet,
 			EFaction.Pirates,
-			EDangerLevel.VeryLow,
 			7,
-			[BattleUnitType.Carrier, BattleUnitType.Fighter]);
+			[
+				(BattleUnitType.Carrier, EShipGearTier.T0),
+				(BattleUnitType.Fighter, EShipGearTier.T0),
+			]);
 		var objective = new HuntObjective(
 			[new SpawnEncounterGroup("mixed-fleet", searchArea, 1, spawnSpec)]);
 		RegisterSyntheticContract(map, "mixed-hunt", objective);
@@ -117,7 +121,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, "multi-hunt"));
 
 		var pirateFleets = engine.World.FleetRegistry.All
-			.Where(unit => unit.State.Type == EType.PirateFleet)
+			.Where(unit => unit.State.Type == FleetType.PirateFleet)
 			.ToList();
 		Assert.Equal(3, pirateFleets.Count);
 		Assert.Equal(2, pirateFleets.Count(unit => unit.State.Id.Contains("alpha", StringComparison.Ordinal)));
@@ -193,13 +197,13 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			existingId,
 			new Coord(10, 0, 10),
 			EFaction.Pirates,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 
 		var engine = CreateEngine(map, unitId);
 		Assert.Throws<InvalidOperationException>(() =>
 			engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contract.Id)));
 		Assert.True(map.ContractRegistry.IsPending(contract.Id));
-		Assert.Equal(1, map.FleetRegistry.All.Count(unit => unit.State.Type == EType.PirateFleet));
+		Assert.Equal(1, map.FleetRegistry.All.Count(unit => unit.State.Type == FleetType.PirateFleet));
 	}
 
 	[Fact]
@@ -222,14 +226,14 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 
 	private static IReadOnlyList<(string UnitId, int X, int Z)> CaptureProvisioning(StarMap map) =>
 		map.FleetRegistry.All
-			.Where(unit => unit.State.Type == EType.PirateFleet)
+			.Where(unit => unit.State.Type == FleetType.PirateFleet)
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 			.Select(unit => (unit.State.Id, unit.State.IdleCoord.X, unit.State.IdleCoord.Z))
 			.ToList();
 
 	private static string[] PirateMemberIds(StarMap map) =>
 		map.FleetRegistry.All
-			.Where(fleet => fleet.State.Type == EType.PirateFleet)
+			.Where(fleet => fleet.State.Type == FleetType.PirateFleet)
 			.SelectMany(fleet => fleet.Members)
 			.Select(member => member.Id)
 			.OrderBy(id => id, StringComparer.Ordinal)
@@ -242,6 +246,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		var contract = new Contract(
 			contractId,
 			objective,
+			EDangerLevel.VeryLow,
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialBeatContracts.BeatAHuntRewardCredits)),
@@ -268,11 +273,10 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 
 	private static FleetSpawnSpec CreateSpawnSpec(int mapSeed, string groupId) =>
 		new(
-			EType.PirateFleet,
+			FleetType.PirateFleet,
 			EFaction.Pirates,
-			EDangerLevel.VeryLow,
 			unchecked((int)GrimSpace.Math.StableSeedMixer.From(mapSeed).Add(groupId).Value),
-			[BattleUnitType.Patrol]);
+			[(BattleUnitType.Patrol, EShipGearTier.T0)]);
 
 	private static void DockAtIssuer(StarMap map, string unitId)
 	{

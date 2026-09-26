@@ -10,6 +10,7 @@ using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
+using GrimSpace.Units.Enums;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
@@ -109,12 +110,7 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 				groupId,
 				searchArea,
 				1,
-				new FleetSpawnSpec(
-					FleetType.PirateFleet,
-					EFaction.Pirates,
-					EDangerLevel.VeryLow,
-					1,
-					[BattleUnitType.Patrol])),
+				new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 1, [(BattleUnitType.Patrol, EShipGearTier.T0)])),
 		]);
 	}
 
@@ -126,6 +122,7 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 		new(
 			contractId,
 			hunt,
+			GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 			map.ControllingFaction,
 			issuerPoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),

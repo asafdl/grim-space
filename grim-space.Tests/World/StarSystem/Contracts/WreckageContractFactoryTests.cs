@@ -1,9 +1,12 @@
 using GrimSpace.Math;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Units;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Tests.World.StarSystem;
@@ -92,9 +95,7 @@ public sealed class WreckageContractFactoryTests(StarMapFixture maps)
 				DeterministicPickMix: areaPickMix,
 				ReferenceMode: mode,
 				BorderReferenceConfig: new AreaBorderReferenceConfig()),
-			new WreckageOutcome.Salvage(ResourceBundle.Of(ResourceId.ScrapAlloy, 2)),
-			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 60)),
-			new ContractNarrative("Test Wreck", "Briefing."),
-			IsStoryObjective: false);
+			EDangerLevel.VeryLow,
+			new ContractNarrative("Test Wreck", "Briefing."));
 	}
 }

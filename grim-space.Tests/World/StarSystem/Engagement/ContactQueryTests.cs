@@ -135,7 +135,7 @@ public sealed class ContactQueryTests(StarMapFixture maps)
 			id,
 			coord,
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 		return id;
 	}
 

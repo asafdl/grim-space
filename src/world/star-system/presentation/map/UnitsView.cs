@@ -44,8 +44,7 @@ public partial class UnitsView : Node3D
 	public sealed record UnitHoverInfo(
 		string UnitId,
 		EType Type,
-		EFaction Faction,
-		EDangerLevel? Danger);
+		EFaction Faction);
 
 	public void Build(StarMap world)
 	{
@@ -154,8 +153,7 @@ public partial class UnitsView : Node3D
 			best = new UnitHoverInfo(
 				unit.State.Id,
 				unit.State.Type,
-				unit.State.Faction,
-				unit.State.CombatProfile?.Danger);
+				unit.State.Faction);
 		}
 
 		return best;

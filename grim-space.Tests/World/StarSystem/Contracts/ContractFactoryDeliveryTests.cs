@@ -1,8 +1,11 @@
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
@@ -24,9 +27,8 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 		var dropoffOperatorName = MapFacilityOperators.TravelOperatorName(map);
 		var args = new DeliveryCreateArgs(
 			plan.StoragePoiId,
-			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),
+			EDangerLevel.VeryLow,
 			ContractNarrative.ForDelivery("Test Delivery", "Pick up here.", "Drop off there."),
-			IsStoryObjective: false,
 			DropoffPoiId: dropoffPoiId,
 			DropoffFacilityId: dropoffFacilityId,
 			DropoffOperatorName: dropoffOperatorName);
@@ -40,29 +42,35 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 		Assert.Equal(dropoffOperatorName, objective.TurnInOperatorName);
 		Assert.Equal(plan.StoragePoiId, contract.IssuerPoiId);
 		Assert.Equal("Drop off there.", contract.Narrative.TurnInDialog);
+		Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
+		Assert.Equal(50, credits);
 	}
 
 	[Fact]
 	public void Create_Delivery_WithMismatchedArgs_Throws()
 	{
 		var map = maps.Fresh(42);
+		var huntArgs = new HuntCreateArgs(
+			map.Blueprint.SupplyPlan.AdministrativePoiId,
+			new AreaPickerArgs(MapLandmarkQueries.AllIds(map)),
+			EDangerLevel.VeryLow,
+			ContractNarrative.ForHunt("Hunt"));
 
 		Assert.Throws<ArgumentException>(() =>
-			ContractFactory.Create(map, EContractKind.Delivery, TutorialBeatContracts.CreateBeatAHuntArgs(map)));
+			ContractFactory.Create(map, EContractKind.Delivery, huntArgs));
 	}
 
 	[Fact]
-	public void CreateBeatBDeliveryArgs_UsesWormholeTravelLoungeDropoff()
+	public void BeatBDropoff_UsesWormholeTravelLoungeDropoff()
 	{
 		var map = maps.Fresh(42);
 		var plan = map.Blueprint.SupplyPlan;
-		var args = TutorialBeatContracts.CreateBeatBDeliveryArgs(map);
+		var (_, dropoffPoiId, dropoffFacilityId, dropoffOperatorName) = TutorialBeatContracts.BeatBDropoff(map);
 
-		Assert.Equal(plan.StoragePoiId, args.IssuerPoiId);
-		Assert.Equal(plan.ExitPoiId, args.DropoffPoiId);
+		Assert.Equal(plan.ExitPoiId, dropoffPoiId);
 		Assert.Equal(
 			Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
-			args.DropoffFacilityId);
-		Assert.Equal(MapFacilityOperators.TravelOperatorName(map), args.DropoffOperatorName);
+			dropoffFacilityId);
+		Assert.Equal(MapFacilityOperators.TravelOperatorName(map), dropoffOperatorName);
 	}
 }

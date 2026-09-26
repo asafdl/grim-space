@@ -1,3 +1,4 @@
 namespace GrimSpace.World.StarSystem.Encounter;
 
-public sealed record CombatProfile(EDangerLevel Danger, int GenerationSeed);
+/// <summary>Marks a star-map fleet as a combatant. Composition lives on fleet ship registrations.</summary>
+public sealed record CombatProfile;

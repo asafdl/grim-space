@@ -1,7 +1,9 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Run;
-using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contracts;
@@ -25,7 +27,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			map,
 			"due-generated",
 			EContractKind.Hunt,
-			TutorialBeatContracts.CreateBeatAHuntArgs(map) with { IsStoryObjective = false });
+			CreateGeneratedHuntArgs(map));
 		map.ContractRegistry.TryAdd(due, expiresAtTick: 5);
 		var action = PlanAtTick(map, tick: 5, generationEnabled: false);
 
@@ -71,7 +73,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			map,
 			"due-generated",
 			EContractKind.Hunt,
-			TutorialBeatContracts.CreateBeatAHuntArgs(map) with { IsStoryObjective = false });
+			CreateGeneratedHuntArgs(map));
 		map.ContractRegistry.TryAdd(due, expiresAtTick: 7);
 
 		var action = PlanAtTick(map, tick: 7, generationEnabled: false);
@@ -158,7 +160,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			map,
 			"due-generated",
 			EContractKind.Hunt,
-			TutorialBeatContracts.CreateBeatAHuntArgs(map) with { IsStoryObjective = false });
+			CreateGeneratedHuntArgs(map));
 		map.ContractRegistry.TryAdd(due, expiresAtTick: tick);
 		var action = PlanAtTick(map, tick, generationEnabled: true, config);
 		Assert.NotNull(action);
@@ -200,6 +202,16 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		agent.Init(StarSystemActorIds.Contracts, sink.WriterFor(StarSystemActorIds.Contracts));
 		agent.SetCanWork(true);
 		return agent;
+	}
+
+	private static HuntCreateArgs CreateGeneratedHuntArgs(StarMap map)
+	{
+		var plan = map.Blueprint.SupplyPlan;
+		return new HuntCreateArgs(
+			plan.AdministrativePoiId,
+			new AreaPickerArgs(MapLandmarkQueries.AllIds(map), DeterministicPickMix: 1),
+			EDangerLevel.VeryLow,
+			ContractNarrative.ForHunt("Generated Hunt"));
 	}
 
 	private static Engine<StarMap, ActorRuntime> CreateEngine(StarMap map)

@@ -307,7 +307,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			pirateId,
 			new Coord(4, 0, 0),
 			EFaction.Pirates,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 
 	private static string HuntTargetId(StarMap map, string contractId, int index)
 	{

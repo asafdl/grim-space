@@ -106,6 +106,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 		Assert.True(map.ContractRegistry.TryAdd(new Contract(
 			contractId,
 			hunt,
+			starter.Danger,
 			starter.IssuerFaction,
 			starter.IssuerPoiId,
 			starter.Terms,

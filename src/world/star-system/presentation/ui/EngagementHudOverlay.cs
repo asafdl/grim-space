@@ -2,8 +2,6 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contact;
-using GrimSpace.World.StarSystem.Encounter;
-
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public sealed partial class EngagementHudOverlay : Control
@@ -43,8 +41,8 @@ public sealed partial class EngagementHudOverlay : Control
 		body.AddChild(HudWidgets.CreateSection("Fleet type", pending.CounterpartyType.ToString()));
 		body.AddChild(HudWidgets.CreateSection("Faction", FormatFaction(pending.CounterpartyFaction)));
 		body.AddChild(HudWidgets.CreateSection(
-			"Threat",
-			pending.Danger.ToString(),
+			"Composition",
+			pending.EncounterIntel,
 			bodyRole: HudTextRole.Danger));
 
 		_shell.SetBody(body);

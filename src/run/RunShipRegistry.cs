@@ -30,7 +30,10 @@ public sealed class RunShipRegistry : IShipRegistryReader
 	}
 
 	public void Register(ShipSpawnDeclaration declaration) =>
-		Register(ShipInstance.FromCatalog(declaration.ShipId, declaration.Chassis));
+		Register(ShipInstance.FromSpec(
+			declaration.ShipId,
+			ShipCatalog.SpecFor(declaration.Chassis),
+			ShipCatalog.LoadoutForTier(declaration.Chassis, declaration.GearTier, declaration.RollSeed)));
 
 	public ShipInstance Get(string shipId) =>
 		_ships.TryGetValue(shipId, out var ship)

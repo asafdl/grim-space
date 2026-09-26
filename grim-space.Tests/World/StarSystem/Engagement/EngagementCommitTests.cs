@@ -200,7 +200,5 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 			pirateId,
 			position ?? new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				1)));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
 }

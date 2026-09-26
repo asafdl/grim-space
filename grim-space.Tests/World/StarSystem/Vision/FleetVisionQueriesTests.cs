@@ -293,7 +293,7 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 			visionRadius,
 			[],
 			faction,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 		map.FleetRegistry.Add(fleet);
 		return id;
 	}

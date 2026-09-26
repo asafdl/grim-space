@@ -59,6 +59,9 @@ public sealed class ContractRegistry
 	public bool IsCompleted(string contractId) =>
 		_states.TryGetValue(contractId, out var state) && state.Status == EContractStatus.Completed;
 
+	public int CountCompleted() =>
+		_states.Values.Count(state => state.Status == EContractStatus.Completed);
+
 	public void Complete(string contractId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(contractId);

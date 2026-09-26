@@ -180,9 +180,7 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 			id,
 			coord,
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				1)));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
 		return id;
 	}
 }

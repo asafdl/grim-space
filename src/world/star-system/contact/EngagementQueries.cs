@@ -1,6 +1,5 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
-using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contact;
@@ -9,7 +8,7 @@ public readonly record struct PendingEngagement(
 	string CounterpartyUnitId,
 	EType CounterpartyType,
 	EFaction CounterpartyFaction,
-	EDangerLevel Danger);
+	string EncounterIntel);
 
 public readonly record struct CommittedEngagement(
 	string EngagementId,
@@ -35,15 +34,15 @@ public static class EngagementQueries
 			|| !world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
 			return false;
 
-		var profile = counterparty.State.CombatProfile
-			?? throw new InvalidOperationException(
+		if (counterparty.State.CombatProfile is null)
+			throw new InvalidOperationException(
 				$"Engagement counterparty '{counterpartyId}' has no combat profile.");
 
 		info = new PendingEngagement(
 			counterpartyId,
 			counterparty.State.Type,
 			counterparty.State.Faction,
-			profile.Danger);
+			EncounterIntelFormatter.FormatFleet(counterparty));
 		return true;
 	}
 

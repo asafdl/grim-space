@@ -72,7 +72,7 @@ public sealed class InvestigateWreckageDef
 				break;
 			case WreckageOutcome.Ambush ambush:
 				var ambushUnitId = AmbushUnitIdFor(wreckage);
-				var ambushFleet = Factory.CreateAmbushFleet(
+				var ambushFleet = ContractEnemySpawner.CreateAmbushFleet(
 					ambush.Fleet,
 					wreckage.Position,
 					ambushUnitId,

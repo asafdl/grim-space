@@ -110,6 +110,7 @@ public sealed class MaintainContractBoardActionTests(StarMapFixture maps)
 		new(
 			contractId,
 			hunt,
+			template.Danger,
 			template.IssuerFaction,
 			template.IssuerPoiId,
 			template.Terms,

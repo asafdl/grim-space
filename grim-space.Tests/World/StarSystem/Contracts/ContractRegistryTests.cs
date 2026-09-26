@@ -178,6 +178,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 		new(
 			contractId,
 			hunt,
+			template.Danger,
 			template.IssuerFaction,
 			template.IssuerPoiId,
 			template.Terms,

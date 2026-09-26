@@ -94,7 +94,7 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 			poiId,
 			new Coord(1, 0, 1),
 			EFaction.Pirates,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 
 		var result = WorldObjectQueries.ResolveFocusable(
 			map,
@@ -150,7 +150,7 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 			poiId,
 			new Coord(1, 0, 1),
 			EFaction.Pirates,
-			new CombatProfile(EDangerLevel.VeryLow, 1)));
+			new CombatProfile()));
 
 		var result = WorldObjectQueries.ResolveFocusable(
 			map,

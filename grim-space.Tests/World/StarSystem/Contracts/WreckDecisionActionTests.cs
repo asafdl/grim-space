@@ -114,6 +114,7 @@ public sealed class WreckDecisionActionTests(StarMapFixture maps)
 		var contract = new Contract(
 			contractId,
 			new WreckageObjective($"{contractId}.wreckage", searchArea, outcome),
+			GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 			map.ControllingFaction,
 			ContractActionTestContext.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 75)),

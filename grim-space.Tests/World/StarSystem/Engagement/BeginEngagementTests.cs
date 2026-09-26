@@ -27,9 +27,7 @@ public sealed class BeginEngagementTests
 			pirateId,
 			new GrimSpace.Math.Grid.Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				7));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile());
 		run.StarSystem.Map.FleetRegistry.Add(pirateFleet);
 		EnsureRegistry(run, pirateFleet);
 		new SetEngagementIntentEffect(playerId, pirateId)
@@ -81,9 +79,7 @@ public sealed class BeginEngagementTests
 			"pirate-a",
 			new GrimSpace.Math.Grid.Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				231));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile());
 		pirateFleet = new Fleet(
 			pirateFleet.State,
 			Enumerable.Range(0, 5)
@@ -111,9 +107,7 @@ public sealed class BeginEngagementTests
 			"pirate-a",
 			new GrimSpace.Math.Grid.Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				-227155311));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile());
 		EnsureRegistry(run, pirateFleet);
 
 		var encounter = EngagementBattleFactory.Create(

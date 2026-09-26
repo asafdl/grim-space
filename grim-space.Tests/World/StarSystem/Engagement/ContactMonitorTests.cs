@@ -75,9 +75,7 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 			pirateId,
 			new Coord(4, 0, 0),
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				1)));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))

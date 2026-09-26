@@ -1,14 +1,25 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts.Encounter;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Resources;
+using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
 public static class ContractFactory
 {
+	private const int HuntRewardCredits = 75;
+	private const int DeliveryRewardCredits = 50;
+	private const int WreckageRewardCredits = 60;
+	private const float WreckageSalvageWeight = 0.6f;
+	private const int WreckageSalvageScrapAlloy = 3;
+
 	public static Contract Create(StarMap map, EContractKind kind, ContractCreateArgs args)
 	{
 		ArgumentNullException.ThrowIfNull(map);
@@ -53,42 +64,53 @@ public static class ContractFactory
 	private static Contract BuildHunt(StarMap map, string contractId, HuntCreateArgs args)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
-
 		ArgumentNullException.ThrowIfNull(args.SearchAreaPicker);
+
+		var faction = ResolveOppositionFaction(map, contractId);
+		var fleetType = ResolveFleetType(faction);
+		var objective = CreateHuntObjective(
+			map,
+			contractId,
+			args.SearchAreaPicker,
+			args.Danger,
+			fleetType,
+			faction);
+
+		return new Contract(
+			contractId,
+			objective,
+			args.Danger,
+			map.ControllingFaction,
+			args.IssuerPoiId,
+			ResolvePayment(EContractKind.Hunt, args.Danger),
+			args.Narrative,
+			IsHuntObjectiveMet,
+			args.IsStoryObjective);
+	}
+
+	internal static HuntObjective CreateHuntObjective(
+		StarMap map,
+		string contractId,
+		AreaPickerArgs searchAreaPicker,
+		EDangerLevel danger,
+		FleetType fleetType,
+		EFaction faction)
+	{
 		var groupId = SpawnGroupIdFor(contractId);
 		var spawnSeeds = CreateSpawnSeeds(map.Seed, contractId, groupId, 1);
-		if (!TryPickSearchArea(map, args.SearchAreaPicker, spawnSeeds, out var searchArea))
+		if (!TryPickSearchArea(map, searchAreaPicker, spawnSeeds, out var searchArea))
 		{
 			throw new InvalidOperationException(
 				$"Could not pick a hunt search area for map seed {map.Seed}.");
 		}
 
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
-		var encounter = args.Encounter;
-		var objective = new HuntObjective(
+		var members = EncounterBudgetRoller.Roll(map.Seed, contractId, "hunt-encounter", danger);
+		var spawnSpec = new FleetSpawnSpec(fleetType, faction, spawnSeed, members);
+		return new HuntObjective(
 		[
-			new SpawnEncounterGroup(
-				groupId,
-				searchArea,
-				1,
-				new FleetSpawnSpec(
-					encounter.FleetType,
-					encounter.Faction,
-					encounter.Danger,
-					spawnSeed,
-					encounter.MemberTypes)),
+			new SpawnEncounterGroup(groupId, searchArea, 1, spawnSpec),
 		]);
-
-		return new Contract(
-			contractId,
-			objective,
-			map.ControllingFaction,
-			args.IssuerPoiId,
-			args.Terms,
-			args.Narrative,
-			IsHuntObjectiveMet,
-			args.IsStoryObjective
-			);
 	}
 
 	private static Contract BuildDelivery(StarMap map, string contractId, DeliveryCreateArgs args)
@@ -101,9 +123,10 @@ public static class ContractFactory
 		return new Contract(
 			contractId,
 			objective,
+			args.Danger,
 			map.ControllingFaction,
 			args.IssuerPoiId,
-			args.Terms,
+			ResolvePayment(EContractKind.Delivery, args.Danger),
 			args.Narrative,
 			IsDeliveryObjectiveMet,
 			args.IsStoryObjective);
@@ -128,13 +151,15 @@ public static class ContractFactory
 			|| !TryPickSearchArea(map, args.SearchAreaPicker, spawnSeeds, out var searchArea))
 			return false;
 
-		var objective = new WreckageObjective(wreckageId, searchArea, args.Outcome);
+		var outcome = RollWreckageOutcome(map, contractId, args);
+		var objective = new WreckageObjective(wreckageId, searchArea, outcome);
 		contract = new Contract(
 			contractId,
 			objective,
+			args.Danger,
 			map.ControllingFaction,
 			args.IssuerPoiId,
-			args.Terms,
+			ResolvePayment(EContractKind.Wreckage, args.Danger),
 			args.Narrative,
 			IsWreckageObjectiveMet,
 			args.IsStoryObjective);
@@ -150,6 +175,54 @@ public static class ContractFactory
 		}
 
 		return contract;
+	}
+
+	private static WreckageOutcome RollWreckageOutcome(StarMap map, string contractId, WreckageCreateArgs args)
+	{
+		var random = new StableRandom(
+			StableSeedMixer.From(map.Seed).Add(contractId).Add("wreckage-outcome").Value);
+		if (random.NextDouble() < WreckageSalvageWeight)
+		{
+			return new WreckageOutcome.Salvage(
+				ResourceBundle.Of(ResourceId.ScrapAlloy, WreckageSalvageScrapAlloy));
+		}
+
+		var faction = ResolveOppositionFaction(map, contractId);
+		var fleetType = ResolveFleetType(faction);
+		var ambushSeed = unchecked((int)StableSeedMixer.From(map.Seed)
+			.Add(contractId)
+			.Add("wreckage-ambush")
+			.Value);
+		var members = EncounterBudgetRoller.Roll(map.Seed, contractId, "wreckage-ambush", args.Danger);
+		return new WreckageOutcome.Ambush(
+			new FleetSpawnSpec(fleetType, faction, ambushSeed, members));
+	}
+
+	private static EFaction ResolveOppositionFaction(StarMap map, string contractId)
+	{
+		_ = map;
+		_ = contractId;
+		return EFaction.Pirates;
+	}
+
+	private static FleetType ResolveFleetType(EFaction faction) =>
+		faction switch
+		{
+			EFaction.Pirates => FleetType.PirateFleet,
+			_ => throw new ArgumentOutOfRangeException(nameof(faction), faction, "Unsupported opposition faction."),
+		};
+
+	private static ContractTerms ResolvePayment(EContractKind kind, EDangerLevel danger)
+	{
+		_ = danger;
+		var credits = kind switch
+		{
+			EContractKind.Hunt => HuntRewardCredits,
+			EContractKind.Delivery => DeliveryRewardCredits,
+			EContractKind.Wreckage => WreckageRewardCredits,
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+		};
+		return new ContractTerms(ResourceBundle.Of(ResourceId.Credits, credits));
 	}
 
 	private static bool TryPickSearchArea(

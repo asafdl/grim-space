@@ -45,9 +45,7 @@ public sealed class PursueContactCommandTests(StarMapFixture maps)
 			"pirate-a",
 			new Coord(20, 0, 20),
 			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile(
-				GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-				1)));
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
 		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 	}
 }

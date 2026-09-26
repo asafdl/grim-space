@@ -85,15 +85,13 @@ public sealed class TurnInDeliveryActionTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(seed);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
-		var contract = ContractFactory.Create(
-			map,
-			EContractKind.Delivery,
-			TutorialBeatContracts.CreateBeatBDeliveryArgs(map));
+		var contractId = TutorialBeatContracts.OfferBeatB(map);
+		var contract = map.ContractRegistry.All.First(c => c.Id == contractId);
 		var delivery = (DeliveryObjective)contract.Objective;
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(State.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
-		return (engine, State.PlayerFleetUnitId, contract.Id, delivery);
+		return (engine, State.PlayerFleetUnitId, contractId, delivery);
 	}
 }
