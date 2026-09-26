@@ -81,8 +81,8 @@ public partial class DockyardController : Control
 		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
-		ReturnToMap();
 		GetViewport().SetInputAsHandled();
+		ReturnToMap();
 	}
 
 	public bool TryPurchaseMerchantChange(

@@ -77,8 +77,8 @@ public partial class CommandAuthorityController : Control
 		if (_contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
-		ReturnToMap();
 		GetViewport().SetInputAsHandled();
+		ReturnToMap();
 	}
 
 	public bool TryAcceptContract(string contractId)

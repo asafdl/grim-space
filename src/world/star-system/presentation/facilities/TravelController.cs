@@ -61,8 +61,8 @@ public partial class TravelController : Control
 		if (_npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
-		ReturnToMap();
 		GetViewport().SetInputAsHandled();
+		ReturnToMap();
 	}
 
 	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)

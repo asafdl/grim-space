@@ -77,8 +77,8 @@ public partial class WarehouseController : Control
 		if (_contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
-		ReturnToMap();
 		GetViewport().SetInputAsHandled();
+		ReturnToMap();
 	}
 
 	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
