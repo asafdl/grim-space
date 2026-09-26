@@ -251,8 +251,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var records = engine.Commit(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport, offering, before));
 
 		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
-		Assert.Equal(240, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
-		Assert.Equal(390, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(430, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(470, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 		var after = purchase.After;
 		Assert.Equal(before.Loadout.MaxShieldPoints[face] + 1, after.Loadout.MaxShieldPoints[face]);
 		Assert.Equal(before.ShieldPoints[face] + 1, after.ShieldPoints[face]);

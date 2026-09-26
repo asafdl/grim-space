@@ -5,32 +5,39 @@ namespace GrimSpace.World.StarSystem.Merchants;
 public static class MerchantUpgradePricing
 {
 	// Tier index = current upgrade tier before purchase (0 → first upgrade, etc.).
+	// Tier-0 credits follow install > damage > hull > range > shield (5:4:3:2:1); higher tiers scale similarly.
+	private static readonly (int Credits, int Scrap, int Cores)[] WeaponInstall =
+	[
+		(150, 350, 0),
+		(180, 420, 0),
+	];
+
 	private static readonly (int Credits, int Scrap, int Cores)[] WeaponDamage =
 	[
 		(120, 280, 0),
-		(660, 1560, 1),
-		(2720, 6400, 2),
+		(660, 1540, 1),
+		(2720, 6340, 2),
 	];
 
 	private static readonly (int Credits, int Scrap, int Cores)[] WeaponRange =
 	[
-		(110, 260, 0),
-		(600, 1410, 1),
-		(2400, 5600, 2),
+		(60, 140, 0),
+		(330, 770, 1),
+		(1360, 3170, 2),
 	];
 
 	private static readonly (int Credits, int Scrap, int Cores)[] ShieldMaxPerFace =
 	[
-		(110, 260, 0),
-		(600, 1410, 1),
-		(2400, 5600, 2),
+		(30, 70, 0),
+		(165, 385, 1),
+		(680, 1590, 2),
 	];
 
 	private static readonly (int Credits, int Scrap, int Cores)[] HullMax =
 	[
-		(130, 300, 0),
-		(690, 1620, 1),
-		(2800, 6560, 2),
+		(90, 210, 0),
+		(495, 1155, 1),
+		(2040, 4760, 2),
 	];
 
 	public static ResourceBundle WeaponDamageUpgrade(int currentTier) => Bundle(WeaponDamage[currentTier]);
@@ -42,11 +49,9 @@ public static class MerchantUpgradePricing
 	public static ResourceBundle HullMaxUpgrade(int currentTier) => Bundle(HullMax[currentTier]);
 
 	public static ResourceBundle FlakInstall(int installedFlakCount) =>
-		installedFlakCount == 0
-			? Bundle((140, 340, 0))
-			: Bundle((170, 390, 0));
+		Bundle(WeaponInstall[installedFlakCount == 0 ? 0 : 1]);
 
-	public static ResourceBundle RailgunInstall() => WeaponDamageUpgrade(0);
+	public static ResourceBundle RailgunInstall() => Bundle(WeaponInstall[0]);
 
 	private static ResourceBundle Bundle((int Credits, int Scrap, int Cores) price) =>
 		ResourceBundle.Create(

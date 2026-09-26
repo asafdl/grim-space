@@ -18,22 +18,32 @@ public static class ShipCatalog
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
 
+	public static ShipLoadout LoadoutForTier(EType chassis, EShipGearTier tier, int? rollSeed = null)
+	{
+		var baseline = BaselineLoadoutFor(chassis);
+		if (tier == EShipGearTier.T0)
+			return baseline;
+
+		return ShipLoadoutTierRoller.Roll(chassis, tier, rollSeed, baseline);
+	}
+
 	public static ShipLoadout NewRunLoadoutFor(EType chassis) =>
-		chassis switch
-		{
-			EType.Fighter => StarterFighterLoadout(),
-			EType.Carrier => SpecFor(chassis).NewDefaultLoadout(),
-			EType.Patrol => SpecFor(chassis).NewDefaultLoadout(),
-			EType.Torpedo => SpecFor(chassis).NewDefaultLoadout(),
-			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
-		};
+		LoadoutForTier(chassis, EShipGearTier.T0);
 
 	public static ShipLoadout FullFighterLoadout() => FighterSpec.Instance.NewDefaultLoadout();
 
 	public static ShipInstance CreateInstance(string id, EType chassis) =>
-		ShipInstance.FromSpec(id, SpecFor(chassis), NewRunLoadoutFor(chassis));
+		ShipInstance.FromSpec(id, SpecFor(chassis), LoadoutForTier(chassis, EShipGearTier.T0));
 
-	private static ShipLoadout StarterFighterLoadout()
+	private static ShipLoadout BaselineLoadoutFor(EType chassis) =>
+		chassis switch
+		{
+			EType.Fighter => BaselineFighterLoadout(),
+			EType.Carrier or EType.Patrol or EType.Torpedo => SpecFor(chassis).NewDefaultLoadout(),
+			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
+		};
+
+	private static ShipLoadout BaselineFighterLoadout()
 	{
 		var spec = FighterSpec.Instance;
 		var shields = new FaceShieldPoints();
