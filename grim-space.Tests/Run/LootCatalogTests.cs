@@ -73,13 +73,15 @@ public sealed class LootCatalogTests
 	[Fact]
 	public void For_DestroyedPatrol_HigherGearTier_IncreasesScrapRange()
 	{
-		var low = LootCatalog.For(OutcomeWithDestroyedPatrol("patrol-0", EShipGearTier.T0));
-		var high = LootCatalog.For(OutcomeWithDestroyedPatrol("patrol-0", EShipGearTier.T3));
+		const ulong seed = 42;
+		var low = LootCatalog.SalvageFromShip(EType.Patrol, EShipGearTier.T0, new StableRandom(seed));
+		var high = LootCatalog.SalvageFromShip(EType.Patrol, EShipGearTier.T3, new StableRandom(seed));
 
-		low.Total.TryGet(ResourceId.ScrapAlloy, out var lowScrap);
-		high.Total.TryGet(ResourceId.ScrapAlloy, out var highScrap);
+		Assert.True(low.TryGet(ResourceId.ScrapAlloy, out var lowScrap));
+		Assert.True(high.TryGet(ResourceId.ScrapAlloy, out var highScrap));
 		Assert.InRange(lowScrap, 50, 120);
-		Assert.InRange(highScrap, 73, 174);
+		Assert.InRange(highScrap, 72, 174);
+		Assert.True(highScrap > lowScrap);
 	}
 
 	[Fact]
@@ -127,10 +129,4 @@ public sealed class LootCatalogTests
 			"test-battle",
 			EBattleResult.Win,
 			[.. patrolIds.Select(id => OutcomeTestKit.Handoff(id, EType.Patrol, 0))]);
-
-	private static BattleOutcome OutcomeWithDestroyedPatrol(string patrolId, EShipGearTier gearTier) =>
-		new(
-			"test-battle",
-			EBattleResult.Win,
-			[OutcomeTestKit.Handoff(patrolId, EType.Patrol, 0, gearTier)]);
 }

@@ -138,8 +138,10 @@ public partial class CommandAuthorityController : Control
 			return;
 		}
 
-		_contractHud.Close();
+		_contractHud.SyncMap(_orchestrator.Map);
+		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
 		_strategicHud.NotifyContractAccepted(contractId);
+		UpdateBackButton();
 	}
 
 	private void OnDeclineRequested(string contractId)
