@@ -56,16 +56,8 @@ public sealed class FlakDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime)
-	{
-		var installed = world.StateOf(action.ActorId).FindInstalled(
-			EAbilityKind.Flak,
-			action.MountedOn);
-		if (installed is null)
-			return false;
-
-		return AffectedCells(action, world).Count > 0;
-	}
+	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime) =>
+		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.Flak, action.MountedOn) is not null;
 
 	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
 	{
@@ -106,7 +98,7 @@ public sealed class FlakDef
 			return [];
 
 		var frame = BodyFrame.From(state);
-		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid.IsInBounds);
+		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

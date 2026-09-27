@@ -58,8 +58,8 @@ public sealed class RailgunDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime)
-		=> AffectedCells(action, world).Count > 0;
+	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime) =>
+		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.Railgun, action.MountedOn) is not null;
 
 	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
 	{
@@ -100,7 +100,7 @@ public sealed class RailgunDef
 			return [];
 
 		var frame = BodyFrame.From(state);
-		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid.IsInBounds);
+		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

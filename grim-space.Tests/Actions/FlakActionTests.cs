@@ -41,6 +41,19 @@ public sealed class FlakActionTests
 	}
 
 	[Fact]
+	public void FlakLegalWhenBurstHasNoInBoundsCells()
+	{
+		var grid = BattleTestFixture.Grid(1);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(Coord.Zero),
+			BattleTestFixture.Enemy(Coord.Zero),
+			grid);
+		var action = new FlakAction(PlayerId, ESpatialOrientation.Port);
+		Assert.Empty(FlakDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
+	}
+
+	[Fact]
 	public void FlakAppliesDamageWithoutApPenalty()
 	{
 		var origin = new Coord(5, 5, 5);
