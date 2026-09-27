@@ -13,5 +13,5 @@ public readonly record struct AbilitySourcePose(
 
 public sealed record AbilityTargetingSpec(
 	Func<State, IAction, AbilitySourcePose> ResolveSource,
-	Func<Mesh> CreateGhostMesh,
+	Func<Node3D> CreateGhost,
 	Color Tint);

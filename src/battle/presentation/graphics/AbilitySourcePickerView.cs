@@ -108,7 +108,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 	private sealed class SourceView
 	{
 		private AbilityTargetingSpec? _targeting;
-		private MeshInstance3D? _ghost;
+		private Node3D? _ghost;
 		private ShaderMaterial? _ghostMaterial;
 
 		public SourceView(int index)
@@ -155,14 +155,22 @@ public sealed partial class AbilitySourcePickerView : Node3D
 
 			_ghost?.QueueFree();
 			_ghostMaterial = WeaponPreviewMaterials.CreateDotted(targeting.Tint);
-			_ghost = new MeshInstance3D
+			_ghost = targeting.CreateGhost();
+			_ghost.Name = "AbilityGhost";
+			if (_ghost is MeshInstance3D rootMesh)
 			{
-				Name = "AbilityGhost",
-				Mesh = targeting.CreateGhostMesh(),
-				MaterialOverride = _ghostMaterial,
-				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			};
-			PresentationLayers.MarkUx(_ghost);
+				rootMesh.MaterialOverride = _ghostMaterial;
+				rootMesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+				PresentationLayers.MarkUx(rootMesh);
+			}
+			foreach (var child in _ghost.FindChildren("*", "MeshInstance3D", true, false))
+			{
+				if (child is not MeshInstance3D mesh)
+					continue;
+				mesh.MaterialOverride = _ghostMaterial;
+				mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+				PresentationLayers.MarkUx(mesh);
+			}
 			Root.AddChild(_ghost);
 			_targeting = targeting;
 		}

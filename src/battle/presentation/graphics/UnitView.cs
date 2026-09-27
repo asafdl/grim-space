@@ -33,7 +33,7 @@ public partial class UnitView : Node3D
 		Array.Fill(_shieldPoints, -1);
 
 		if (state.Type == EType.Torpedo)
-			BindTorpedo(color);
+			BindTorpedo();
 		else if (state.Type == EType.Patrol)
 			BindPatrol();
 		else if (state.Type == EType.Carrier)
@@ -343,31 +343,10 @@ public partial class UnitView : Node3D
 		AddChild(_hull);
 	}
 
-	private void BindTorpedo(Color color)
+	private void BindTorpedo()
 	{
-		_hull = new MeshInstance3D
-		{
-			Mesh = TorpedoMesh.CreateHull(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				AlbedoColor = color.Lightened(0.08f),
-				EmissionEnabled = true,
-				Emission = color.Lightened(0.25f),
-				EmissionEnergyMultiplier = 0.4f,
-				Roughness = 0.35f,
-				Metallic = 0.35f,
-			},
-		};
+		_hull = TorpedoMesh.CreateHullInstance();
 		AddChild(_hull);
-
-		var fin = new MeshInstance3D
-		{
-			Mesh = TorpedoMesh.CreateDorsalFin(),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateDorsalMarkerMaterial(),
-		};
-		AddChild(fin);
 	}
 
 	private void BindShieldBubble(State state)
@@ -422,9 +401,9 @@ public partial class UnitView : Node3D
 			if (child is not MeshInstance3D { Mesh: { } mesh } instance)
 				continue;
 
-			var transform = instance.GetParent() is Node3D parent && parent != this
-				? parent.Transform * instance.Transform
-				: instance.Transform;
+			var transform = Transform3D.Identity;
+			for (Node3D? node = instance; node is not null && node != this; node = node.GetParent() as Node3D)
+				transform = node.Transform * transform;
 			var meshBounds = transform * mesh.GetAabb();
 			bounds = found ? bounds.Merge(meshBounds) : meshBounds;
 			found = true;
@@ -454,16 +433,6 @@ public partial class UnitView : Node3D
 			Emission = color.Lightened(0.5f),
 			EmissionEnergyMultiplier = 0.6f,
 			Roughness = 0.3f,
-		};
-
-	private static StandardMaterial3D CreateDorsalMarkerMaterial() =>
-		new()
-		{
-			AlbedoColor = new Color(0.82f, 0.90f, 1f),
-			EmissionEnabled = true,
-			Emission = new Color(0.65f, 0.82f, 1f),
-			EmissionEnergyMultiplier = 0.9f,
-			Roughness = 0.2f,
 		};
 
 	private void ApplyOrientation(State state) =>

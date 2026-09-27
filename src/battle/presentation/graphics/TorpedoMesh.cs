@@ -4,126 +4,61 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public static class TorpedoMesh
 {
-	public static ArrayMesh CreateDorsalFin()
+	private const string ModelPath = "res://assets/models/ships/scfi_starburst_torpedo_v2.glb";
+	private const float Length = 1.27f;
+	private static PackedScene? _model;
+
+	public static MeshInstance3D CreateHullInstance()
 	{
-		var tip = new Vector3(0f, 0.30f, 0.02f);
-		var fore = new Vector3(0f, 0.15f, 0.28f);
-		var aft = new Vector3(0f, 0.15f, -0.18f);
+		_model ??= GD.Load<PackedScene>(ModelPath)
+			?? throw new InvalidOperationException($"Could not load torpedo model '{ModelPath}'.");
+		var scene = _model.Instantiate<Node3D>();
+		scene.Rotation = new Vector3(0f, Mathf.Pi / 2f, 0f);
 
-		var vertices = new List<Vector3>();
-		AddTriangle(vertices, tip, fore, aft);
-
-		var mesh = new ArrayMesh();
-		AddSurface(mesh, vertices);
-		return mesh;
-	}
-
-	public static ArrayMesh CreateHull()
-	{
-		var aft = Ring(z: -0.55f, radius: 0.10f);
-		var mid = Ring(z: 0.05f, radius: 0.14f);
-		var fore = Ring(z: 0.45f, radius: 0.09f);
-		var nose = new Vector3(0f, 0f, 0.72f);
-		var stern = new Vector3(0f, 0f, aft.Z);
-
-		var vertices = new List<Vector3>();
-		Cap(vertices, nose, fore, outward: true);
-		Join(vertices, aft, mid);
-		Join(vertices, mid, fore);
-		Cap(vertices, stern, aft, outward: false);
-
-		var mesh = new ArrayMesh();
-		AddSurface(mesh, vertices);
-		return mesh;
-	}
-
-	private static HullRing Ring(float z, float radius) =>
-		new(
-			Z: z,
-			Top: new Vector3(0f, radius, z),
-			Port: new Vector3(-radius, 0f, z),
-			Bottom: new Vector3(0f, -radius, z),
-			Starboard: new Vector3(radius, 0f, z));
-
-	private static void Cap(List<Vector3> vertices, Vector3 tip, HullRing ring, bool outward)
-	{
-		if (outward)
+		try
 		{
-			AddTriangle(vertices, tip, ring.Top, ring.Port);
-			AddTriangle(vertices, tip, ring.Port, ring.Bottom);
-			AddTriangle(vertices, tip, ring.Bottom, ring.Starboard);
-			AddTriangle(vertices, tip, ring.Starboard, ring.Top);
-			return;
-		}
+			var meshes = scene.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>().ToArray();
+			if (meshes.Length == 0)
+				throw new InvalidOperationException($"Torpedo model '{ModelPath}' has no meshes.");
 
-		AddTriangle(vertices, tip, ring.Port, ring.Top);
-		AddTriangle(vertices, tip, ring.Bottom, ring.Port);
-		AddTriangle(vertices, tip, ring.Starboard, ring.Bottom);
-		AddTriangle(vertices, tip, ring.Top, ring.Starboard);
-	}
-
-	private static void Join(List<Vector3> vertices, HullRing from, HullRing to)
-	{
-		AddQuad(vertices, from.Top, from.Port, to.Port, to.Top);
-		AddQuad(vertices, from.Port, from.Bottom, to.Bottom, to.Port);
-		AddQuad(vertices, from.Bottom, from.Starboard, to.Starboard, to.Bottom);
-		AddQuad(vertices, from.Starboard, from.Top, to.Top, to.Starboard);
-	}
-
-	private static void AddTriangle(List<Vector3> vertices, Vector3 a, Vector3 b, Vector3 c)
-	{
-		vertices.Add(a);
-		vertices.Add(b);
-		vertices.Add(c);
-	}
-
-	private static void AddQuad(List<Vector3> vertices, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
-	{
-		AddTriangle(vertices, a, b, c);
-		AddTriangle(vertices, a, c, d);
-	}
-
-	private static void AddSurface(ArrayMesh mesh, List<Vector3> sourceVertices)
-	{
-		var vertices = sourceVertices.ToArray();
-		var normals = new Vector3[vertices.Length];
-		var interior = Vector3.Zero;
-
-		for (var i = 0; i < vertices.Length; i += 3)
-		{
-			var a = vertices[i];
-			var b = vertices[i + 1];
-			var c = vertices[i + 2];
-			var triangleCenter = (a + b + c) / 3f;
-			var outwardDirection = triangleCenter - interior;
-			var geometricNormal = (b - a).Cross(c - a);
-
-			if (geometricNormal.LengthSquared() < 0.000001f)
-				throw new InvalidOperationException($"Degenerate torpedo triangle at vertex index {i}.");
-
-			if (geometricNormal.Dot(outwardDirection) > 0f)
+			var bounds = default(Aabb);
+			for (var i = 0; i < meshes.Length; i++)
 			{
-				(vertices[i + 1], vertices[i + 2]) = (vertices[i + 2], vertices[i + 1]);
-				geometricNormal = -geometricNormal;
+				if (meshes[i].Mesh is not { } mesh)
+					throw new InvalidOperationException($"Torpedo model '{ModelPath}' has an empty mesh.");
+
+				var transform = Transform3D.Identity;
+				for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
+				{
+					transform = node.Transform * transform;
+					if (node == scene)
+						break;
+				}
+
+				var partBounds = transform * mesh.GetAabb();
+				bounds = i == 0 ? partBounds : bounds.Merge(partBounds);
+				meshes[i].CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
 			}
 
-			var outwardNormal = -geometricNormal.Normalized();
-			normals[i] = outwardNormal;
-			normals[i + 1] = outwardNormal;
-			normals[i + 2] = outwardNormal;
+			if (bounds.Size.Z <= 0f)
+				throw new InvalidOperationException($"Torpedo model '{ModelPath}' has no forward extent.");
+
+			var scale = Length / bounds.Size.Z;
+			var hull = new MeshInstance3D
+			{
+				Name = "TorpedoHull",
+				Position = -bounds.GetCenter() * scale,
+				Scale = Vector3.One * scale,
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			};
+			hull.AddChild(scene);
+			return hull;
 		}
-
-		var arrays = new Godot.Collections.Array();
-		arrays.Resize((int)Mesh.ArrayType.Max);
-		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
-		arrays[(int)Mesh.ArrayType.Normal] = normals;
-		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+		finally
+		{
+			if (scene.GetParent() is null)
+				scene.Free();
+		}
 	}
-
-	private readonly record struct HullRing(
-		float Z,
-		Vector3 Top,
-		Vector3 Port,
-		Vector3 Bottom,
-		Vector3 Starboard);
 }
