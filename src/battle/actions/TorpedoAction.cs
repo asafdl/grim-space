@@ -84,7 +84,7 @@ public sealed class TorpedoDef
 
 		var ship = world.StateOf(action.ActorId);
 		var (position, _, _) = TorpedoMount.LaunchPose(ship, action.MountedOn);
-		return world.Grid.IsInBounds(position) && !world.BlockedFor(action.ActorId).Contains(position);
+		return world.Grid.IsInBounds(position) && !world.IsCellBlocked(position);
 	}
 
 	public bool IsLegal(TorpedoAction action, BattleWorld world, ActorRuntime runtime)

@@ -60,9 +60,8 @@ public sealed class MoveDef
 			return false;
 
 		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);
-		var blocked = world.BlockedFor(action.ActorId);
 		return world.Grid.IsInBounds(destination)
-			&& !blocked.Contains(destination);
+			&& !world.IsCellBlocked(destination);
 	}
 
 	public bool IsLegal(MoveStepAction action, BattleWorld world, ActorRuntime runtime)

@@ -60,7 +60,7 @@ public sealed class TorpedoMoveDef
 			return false;
 
 		var to = actor.Position + BodyFrame.From(actor).Step(action.Direction);
-		return world.Grid.IsInBounds(to) && !world.BlockedFor(action.ActorId).Contains(to);
+		return world.Grid.IsInBounds(to) && !world.IsCellBlocked(to);
 	}
 
 	public bool IsLegal(TorpedoMoveStepAction action, BattleWorld world, ActorRuntime runtime)

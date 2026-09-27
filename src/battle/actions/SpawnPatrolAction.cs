@@ -70,7 +70,7 @@ public sealed class SpawnPatrolDef
 			return false;
 
 		var (position, _, _) = PatrolBayMount.LaunchPose(actor, action.MountedOn);
-		return world.Grid.IsInBounds(position) && !world.BlockedFor(action.ActorId).Contains(position);
+		return world.Grid.IsInBounds(position) && !world.IsCellBlocked(position);
 	}
 
 	public bool IsLegal(SpawnPatrolAction action, BattleWorld world, ActorRuntime runtime)

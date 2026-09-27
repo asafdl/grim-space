@@ -86,16 +86,18 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		return cells;
 	}
 
-	public HashSet<Coord> BlockedFor(string actorId)
+	public bool IsCellBlocked(Coord cell)
 	{
-		var blocked = new HashSet<Coord>(BlockedCells);
-		foreach (var unit in UnitRegistry.Except(actorId))
+		if (BlockedCells.Contains(cell))
+			return true;
+
+		foreach (var unit in UnitRegistry.All)
 		{
-			if (unit.State.IsAlive)
-				blocked.Add(unit.State.Position);
+			if (unit.State.IsAlive && unit.State.Position == cell)
+				return true;
 		}
 
-		return blocked;
+		return false;
 	}
 
 	private BattleWorld(

@@ -10,6 +10,34 @@ namespace GrimSpace.Tests.Actions;
 public sealed class LegalMoveTests
 {
 	[Fact]
+	public void BlockedDestinationsIncludeTerrainAndLivingUnitsButNotDeadUnits()
+	{
+		var origin = new Coord(5, 5, 5);
+		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward);
+		var terrain = origin + Coord.Up;
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			enemy,
+			blocked: new HashSet<Coord> { terrain });
+		var world = battle.Engine.World;
+
+		Assert.True(world.IsCellBlocked(terrain));
+		Assert.True(world.IsCellBlocked(origin));
+		Assert.True(world.IsCellBlocked(enemy.State.Position));
+		Assert.False(MoveDef.Instance.IsPossible(
+			new MoveStepAction(battle.PlayerId),
+			world,
+			battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId)));
+
+		enemy.State.HullPoints = 0;
+		Assert.False(world.IsCellBlocked(enemy.State.Position));
+		Assert.True(MoveDef.Instance.IsPossible(
+			new MoveStepAction(battle.PlayerId),
+			world,
+			battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId)));
+	}
+
+	[Fact]
 	public void EnqueueMovePathAddsExactCombinedSteps()
 	{
 		var origin = new Coord(5, 5, 5);
