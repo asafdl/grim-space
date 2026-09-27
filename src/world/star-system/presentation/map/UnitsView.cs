@@ -127,6 +127,63 @@ public partial class UnitsView : Node3D
 		}
 	}
 
+	public UnitHoverInfo? PickAtScreen(MapInteractivePick.Context context)
+	{
+		var world = context.Orchestrator.Map;
+		UnitHoverInfo? best = null;
+		var bestDirect = false;
+		var bestDistance = float.MaxValue;
+
+		foreach (var unit in world.FleetRegistry.All)
+		{
+			if (string.Equals(unit.State.Id, Run.State.PlayerFleetUnitId, StringComparison.Ordinal))
+				continue;
+
+			if (!context.IsFleetVisible(unit.State.Id))
+				continue;
+
+			var sample = ResolveSample(
+				world, unit, context.Orchestrator.RuntimeFor(unit.State.Id), context.TickFraction);
+			var direct = context.GridPoint is { } grid
+				&& GridDistanceSquared(grid, sample) <= 1.0;
+			var worldPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height)
+				+ Vector3.Up * MarkerYOffset;
+			var screenDistance = MapScreenPick.DistancePixels(context.Camera, worldPosition, context.ScreenPos);
+			if (!direct && screenDistance > MapScreenPick.SnapMarginPixels)
+				continue;
+
+			if (!MapScreenPick.IsBetterHit(direct, screenDistance, bestDirect, bestDistance))
+				continue;
+
+			bestDirect = direct;
+			bestDistance = screenDistance;
+			best = new UnitHoverInfo(unit.State.Id, unit.State.Type, unit.State.Faction);
+		}
+
+		return best;
+	}
+
+	public bool IsPlayerFleetAtGrid(
+		Camera3D camera,
+		Vector2 screenPos,
+		Coord grid,
+		StarSystemOrchestrator orchestrator,
+		float tickFraction)
+	{
+		var world = orchestrator.Map;
+		if (!world.FleetRegistry.TryGet(Run.State.PlayerFleetUnitId, out var unit))
+			return false;
+
+		var sample = ResolveSample(world, unit, orchestrator.RuntimeFor(unit.State.Id), tickFraction);
+		if (GridDistanceSquared(grid, sample) <= 1.0)
+			return true;
+
+		var worldPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height)
+			+ Vector3.Up * MarkerYOffset;
+		return MapScreenPick.DistancePixels(camera, worldPosition, screenPos)
+			<= MapScreenPick.SnapMarginPixels;
+	}
+
 	public UnitHoverInfo? UnitAt(
 		StarSystemOrchestrator orchestrator,
 		Coord point,
@@ -537,4 +594,12 @@ public partial class UnitsView : Node3D
 	private sealed record PlayerBeaconVisual(Node3D Root);
 
 	private readonly record struct TrafficSample(double X, double Z, float HeadingY);
+
+	private static double GridDistanceSquared(Coord grid, TrafficSample sample)
+	{
+		var dx = grid.X - sample.X;
+		var dz = grid.Z - sample.Z;
+		return dx * dx + dz * dz;
+	}
+
 }

@@ -11,33 +11,18 @@ namespace GrimSpace.World.StarSystem.Presentation.Scene;
 public sealed class UserIntentTranslator
 {
 	private readonly StarMapPlayerExecutionAgent _playerAgent;
-	private readonly MapCamera _camera;
-	private readonly Func<Vector2> _screenPosition;
-	private readonly Func<int> _mapWidth;
-	private readonly Func<int> _mapHeight;
 	private readonly Func<Coord, Coord>? _resolveDestination;
-	private readonly Func<Coord, string?>? _unitAt;
-	private readonly Func<Coord, string?>? _wreckContractAt;
+	private readonly Func<MapInteractiveTarget> _resolveTarget;
 	private Vector2? _lmbPressPosition;
 
 	public UserIntentTranslator(
 		StarMapPlayerExecutionAgent playerAgent,
-		MapCamera camera,
-		Func<Vector2> screenPosition,
-		Func<int> mapWidth,
-		Func<int> mapHeight,
-		Func<Coord, Coord>? resolveDestination = null,
-		Func<Coord, string?>? unitAt = null,
-		Func<Coord, string?>? wreckContractAt = null)
+		Func<Coord, Coord>? resolveDestination,
+		Func<MapInteractiveTarget> resolveTarget)
 	{
 		_playerAgent = playerAgent;
-		_camera = camera;
-		_screenPosition = screenPosition;
-		_mapWidth = mapWidth;
-		_mapHeight = mapHeight;
 		_resolveDestination = resolveDestination;
-		_unitAt = unitAt;
-		_wreckContractAt = wreckContractAt;
+		_resolveTarget = resolveTarget;
 	}
 
 	public bool TryHandleMouseButton(InputEventMouseButton mouseButton, out bool unreachable)
@@ -59,27 +44,31 @@ public sealed class UserIntentTranslator
 		}
 
 		_lmbPressPosition = null;
-		var result = TryQueueIntent();
+		var result = TryQueueIntent(_resolveTarget());
 		unreachable = result is CourseCommandResult.Unreachable;
 		return result is not CourseCommandResult.Ignored;
 	}
 
-	public CourseCommandResult TryQueueIntent()
-	{
-		var destination = MapPick.PickPoint(_camera, _screenPosition(), _mapWidth(), _mapHeight());
-		if (destination is null)
+	public CourseCommandResult TryQueueIntent(MapInteractiveTarget target) =>
+		target.Kind switch
 		{
-			StarMapPresentationDiagnostics.LogMovePickMiss();
-			return new CourseCommandResult.Ignored();
-		}
+			MapInteractiveTargetKind.Unit when target.Unit is { } unit =>
+				_playerAgent.TryQueuePursueFleet(unit.UnitId),
+			MapInteractiveTargetKind.Wreck when target.WreckContractId is { } wreckContractId =>
+				_playerAgent.TryQueueWreckContact(wreckContractId),
+			MapInteractiveTargetKind.SelfClickNoOp =>
+				new CourseCommandResult.SelfClickIgnored(),
+			MapInteractiveTargetKind.None
+				or MapInteractiveTargetKind.Landmark
+				or MapInteractiveTargetKind.Dock
+				or MapInteractiveTargetKind.Poi when target.MoveGridPoint is { } pick =>
+				_playerAgent.TryQueueMove(_resolveDestination?.Invoke(pick) ?? pick),
+			_ => LogMovePickMissAndIgnore(),
+		};
 
-		if (_unitAt?.Invoke(destination.Value) is { } targetUnitId)
-			return _playerAgent.TryQueuePursueFleet(targetUnitId);
-
-		if (_wreckContractAt?.Invoke(destination.Value) is { } wreckContractId)
-			return _playerAgent.TryQueueWreckContact(wreckContractId);
-
-		var resolved = _resolveDestination?.Invoke(destination.Value) ?? destination.Value;
-		return _playerAgent.TryQueueMove(resolved);
+	private CourseCommandResult LogMovePickMissAndIgnore()
+	{
+		StarMapPresentationDiagnostics.LogMovePickMiss();
+		return new CourseCommandResult.Ignored();
 	}
 }

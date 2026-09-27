@@ -61,6 +61,39 @@ public partial class WreckageView : Node3D
 			_hoveredContractId = null;
 	}
 
+	public string? PickAtScreen(MapInteractivePick.Context context)
+	{
+		var map = context.Orchestrator.Map;
+		string? bestContractId = null;
+		var bestDirect = false;
+		var bestDistance = float.MaxValue;
+
+		foreach (var wreck in WreckageVisibilityQueries.VisibleForHolder(
+			         map,
+			         State.PlayerFleetUnitId,
+			         context.Orchestrator.RuntimeFor,
+			         context.TickFraction))
+		{
+			var position = wreck.Objective.Position;
+			var direct = context.GridPoint is { } grid
+				&& GridDistanceSquared(grid, position) <= WreckageVisibilityQueries.MapPickRadius
+					* WreckageVisibilityQueries.MapPickRadius;
+			var worldPosition = MapMapping.ToWorld(position, _width, _height);
+			var screenDistance = MapScreenPick.DistancePixels(context.Camera, worldPosition, context.ScreenPos);
+			if (!direct && screenDistance > MapScreenPick.SnapMarginPixels)
+				continue;
+
+			if (!MapScreenPick.IsBetterHit(direct, screenDistance, bestDirect, bestDistance))
+				continue;
+
+			bestDirect = direct;
+			bestDistance = screenDistance;
+			bestContractId = wreck.ContractId;
+		}
+
+		return bestContractId;
+	}
+
 	public string? WreckContractAt(
 		Coord point,
 		StarMap map,
@@ -150,6 +183,13 @@ public partial class WreckageView : Node3D
 			MaterialOverride = ringMaterial,
 		});
 		return new MarkerVisual(root, ringMaterial);
+	}
+
+	private static long GridDistanceSquared(Coord grid, Coord position)
+	{
+		var dx = (long)grid.X - position.X;
+		var dz = (long)grid.Z - position.Z;
+		return dx * dx + dz * dz;
 	}
 
 	private static void ApplyStyle(MarkerVisual visual, bool hovered)

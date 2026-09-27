@@ -6,6 +6,8 @@ public abstract record CourseCommandResult
 {
 	public sealed record Ignored : CourseCommandResult;
 
+	public sealed record SelfClickIgnored : CourseCommandResult;
+
 	public sealed record Queued(TransitPath Path) : CourseCommandResult;
 
 	public sealed record Unreachable : CourseCommandResult;

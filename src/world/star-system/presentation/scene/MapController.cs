@@ -129,18 +129,8 @@ public partial class MapController : Node3D
 			sync => _orchestrator.Subscribe<ReachWreckageAction>(_ => sync()));
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
-			_camera,
-			() => GetViewport().GetMousePosition(),
-			() => _orchestrator.Map.Width,
-			() => _orchestrator.Map.Height,
 			picked => _view.ResolveMoveDestination(picked),
-			point =>
-			{
-				var tickFraction = _tickAccumulator / SecondsPerTick;
-				return _units.UnitAt(_orchestrator, point, tickFraction, IsPlayerFleetVisible)?.UnitId;
-			},
-			point => _wreckage.WreckContractAt(
-				point, _orchestrator.Map, _orchestrator.RuntimeFor, _tickAccumulator / SecondsPerTick));
+			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
 		_pauseButton.Pressed += () => _orchestrator.TogglePause();
 		_stepButton.Pressed += () =>
 		{
@@ -322,23 +312,12 @@ public partial class MapController : Node3D
 		}
 
 		var screen = GetViewport().GetMousePosition();
-		var point = MapPick.PickPoint(_camera, screen, world.Width, world.Height);
-		var unitHover = point is { } unitPoint
-			? _units.UnitAt(_orchestrator, unitPoint, tickFraction, IsPlayerFleetVisible)
-			: null;
-		var wreckContractId = unitHover is null && point is { } wreckPoint
-			? _wreckage.WreckContractAt(
-				wreckPoint, world, _orchestrator.RuntimeFor, tickFraction)
-			: null;
-		var landmarkId = unitHover is null && wreckContractId is null && point is { } landmarkPoint
-			? _landmarks.LandmarkAt(landmarkPoint)
-			: null;
-		var dockHover = unitHover is null && landmarkId is null && point is { } dockPoint
-			? _view.DockAt(dockPoint)
-			: null;
-		var poiId = dockHover is null && unitHover is null && landmarkId is null && point is { } pick
-			? _view.PoiAt(pick)
-			: null;
+		var target = ResolveInteractiveTarget(screen, tickFraction);
+		var unitHover = target.Unit;
+		var wreckContractId = target.WreckContractId;
+		var landmarkId = target.LandmarkId;
+		var dockHover = target.Dock;
+		var poiId = target.PoiId;
 		_wreckage.SetHovered(wreckContractId);
 		_landmarks.SetHovered(landmarkId);
 		_view.SetHovered(poiId);
@@ -643,6 +622,23 @@ public partial class MapController : Node3D
 		return landmarkClearance > 0f
 			? landmarkClearance
 			: _view.GetIndicatorClearance(objectId, world);
+	}
+
+	private MapInteractiveTarget ResolveInteractiveTarget(Vector2 screen, float? tickFraction = null)
+	{
+		var world = _orchestrator.Map;
+		var fraction = tickFraction ?? _tickAccumulator / SecondsPerTick;
+		return MapInteractivePick.Resolve(new MapInteractivePick.Context(
+			_camera,
+			screen,
+			MapPick.PickPoint(_camera, screen, world.Width, world.Height),
+			_orchestrator,
+			fraction,
+			_units,
+			_view,
+			_landmarks,
+			_wreckage,
+			IsPlayerFleetVisible));
 	}
 
 	private void UpdateTooltip(

@@ -210,6 +210,65 @@ public partial class MapView : Node3D
 		return bestId;
 	}
 
+	public DockHoverInfo? PickDockAtScreen(MapInteractivePick.Context context)
+	{
+		var world = context.Orchestrator.Map;
+		var width = world.Width;
+		var height = world.Height;
+		DockHoverInfo? best = null;
+		var bestDirect = false;
+		var bestDistance = float.MaxValue;
+
+		foreach (var dock in _docks)
+		{
+			var direct = context.GridPoint == dock.Position;
+			var worldPosition = MapMapping.ToWorld(dock.Position, width, height);
+			var screenDistance = MapScreenPick.DistancePixels(context.Camera, worldPosition, context.ScreenPos);
+			if (!direct && screenDistance > MapScreenPick.SnapMarginPixels)
+				continue;
+
+			if (!MapScreenPick.IsBetterHit(direct, screenDistance, bestDirect, bestDistance))
+				continue;
+
+			bestDirect = direct;
+			bestDistance = screenDistance;
+			best = new DockHoverInfo(
+				dock.Id,
+				dock.PoiId,
+				_dockDisplayNames.GetValueOrDefault(dock.PoiId, dock.PoiId));
+		}
+
+		return best;
+	}
+
+	public string? PickPoiAtScreen(MapInteractivePick.Context context)
+	{
+		var world = context.Orchestrator.Map;
+		var width = world.Width;
+		var height = world.Height;
+		string? bestId = null;
+		var bestDirect = false;
+		var bestDistance = float.MaxValue;
+
+		foreach (var poi in _pois)
+		{
+			var direct = context.GridPoint is { } grid && ContainsPoint(poi, grid);
+			var worldPosition = MapMapping.ToWorld(poi.PlacedCenter, width, height);
+			var screenDistance = MapScreenPick.DistancePixels(context.Camera, worldPosition, context.ScreenPos);
+			if (!direct && screenDistance > MapScreenPick.SnapMarginPixels)
+				continue;
+
+			if (!MapScreenPick.IsBetterHit(direct, screenDistance, bestDirect, bestDistance))
+				continue;
+
+			bestDirect = direct;
+			bestDistance = screenDistance;
+			bestId = poi.Id;
+		}
+
+		return bestId;
+	}
+
 	public DockHoverInfo? DockAt(Coord point)
 	{
 		DockHoverInfo? best = null;

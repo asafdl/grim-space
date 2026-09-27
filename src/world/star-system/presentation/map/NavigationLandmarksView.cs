@@ -85,6 +85,31 @@ public partial class NavigationLandmarksView : Node3D
 		Visible = _landmarksVisible;
 	}
 
+	public string? PickAtScreen(MapInteractivePick.Context context)
+	{
+		string? bestId = null;
+		var bestDirect = false;
+		var bestDistance = float.MaxValue;
+
+		foreach (var landmark in _source)
+		{
+			var direct = context.GridPoint is { } grid && ContainsPoint(landmark, grid);
+			var worldPosition = MapMapping.ToWorld(landmark.Position, _width, _height);
+			var screenDistance = MapScreenPick.DistancePixels(context.Camera, worldPosition, context.ScreenPos);
+			if (!direct && screenDistance > MapScreenPick.SnapMarginPixels)
+				continue;
+
+			if (!MapScreenPick.IsBetterHit(direct, screenDistance, bestDirect, bestDistance))
+				continue;
+
+			bestDirect = direct;
+			bestDistance = screenDistance;
+			bestId = landmark.Id;
+		}
+
+		return bestId;
+	}
+
 	public string? LandmarkAt(Coord point)
 	{
 		string? bestId = null;
