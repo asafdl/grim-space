@@ -68,7 +68,7 @@ public static class TutorialBeatContracts
 			ContractNarrative.ForDelivery(
 				"Supply Run",
 				$"We have this package for a dude {dropoff.OperatorName} at Wormhole Travel. He's kinda weird, I don't want to deal with him so I'll pay you to do it.",
-				"Fuuuuucking Finally!\nI've been waiting in this hellhole for 352.1123221119 days already. The Optimality idiots say that all travel is stopped until the demo is completed.\nFucking Calculators, efficient my ass!\nWell anyways... Thanks for bringing me my lubricant, I need it for... stuff..."),
+				"De-frag-ing Finally!\nI've been waiting in this rustbox for 352.1123221119 days already. The Optimality idiots say that all travel is stopped until the demo is completed.\nSeg-faulting Calculators, efficient my ass!\nWell anyways... Thanks for bringing me my lubricant, I need it for... stuff..."),
 			ContractFactory.IsDeliveryObjectiveMet,
 			IsStoryObjective: true);
 		if (!map.ContractRegistry.TryAdd(contract))

@@ -85,7 +85,7 @@ public sealed class ContractNarrativePickerConfig
 			EContractKind.Delivery,
 			"Priority Manifest",
 			"This shipment is marked PRIORITY, its been sitting in this facility for 176.24 days.",
-			"Finally. Priority my ass. That's the last time I pay extra credits."),
+			"Finally. \"Priority\" my DP2-socket. That's the last time I pay extra credits."),
 		new(
 			EContractKind.Delivery,
 			"Fragile, Apparently",
@@ -105,7 +105,7 @@ public sealed class ContractNarrativePickerConfig
 			EContractKind.Delivery,
 			"Replacement Part",
 			"A critical machine needs this replacement part. It was designed by the same team as the failed one, so manage expectations.",
-			"How did they FUCK THIS UP AGAIN!?! Give me that! By Syndi's beard they will get word of this."),
+			"How did they DEFRAG THIS UP AGAIN!?! Give me that! By Syndi's beard they will get word of this."),
 		new(
 			EContractKind.Delivery,
 			"Routine Transfer",
