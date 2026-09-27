@@ -159,6 +159,7 @@ public partial class MapController : Node3D
 		var star = world.PointsOfInterest.OfType<Star>().First();
 		MapStarLighting.Configure(
 			GetNode<DirectionalLight3D>("DirectionalLight3D"),
+			GetNode<DirectionalLight3D>("FillDirectionalLight3D"),
 			star,
 			world.Width,
 			world.Height,

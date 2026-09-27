@@ -16,7 +16,8 @@ public sealed record MapAtmosphereSettings(
 	float HorizonAngularRadius = 0.12f,
 	float HorizonAspect = 1.778f,
 	float SunGlowEnergy = 0.78f,
-	float AmbientEnergy = 0.13f)
+	float AmbientEnergy = 0.44f,
+	float FillLightEnergy = 0.17f)
 {
 	public Vector3 NebulaDirection { get; init; } = new(0.764f, -0.404f, -0.503f);
 
