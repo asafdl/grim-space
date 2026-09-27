@@ -71,21 +71,6 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public IEnumerable<NonUnit> NonUnitsOwnedBy(string actorId) =>
 		_nonUnits.Values.Where(nonUnit => nonUnit.ActorId == actorId);
 
-	public HashSet<Coord> OccupiedCellsFor(string actorId)
-	{
-		var cells = new HashSet<Coord>();
-		foreach (var unit in UnitRegistry.Except(actorId))
-		{
-			if (unit.State.IsAlive)
-				cells.Add(unit.State.Position);
-		}
-
-		foreach (var nonUnit in _nonUnits.Values)
-			cells.UnionWith(nonUnit.Cells);
-
-		return cells;
-	}
-
 	public bool IsCellBlocked(Coord cell)
 	{
 		if (BlockedCells.Contains(cell))

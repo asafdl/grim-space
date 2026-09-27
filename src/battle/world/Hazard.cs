@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
@@ -35,7 +36,7 @@ public sealed class Hazard : NonUnit
 			ActorId = BattleActorIds.Terrain,
 			Center = origin,
 			Frame = BodyFrame.WorldAligned(origin),
-			Cells = occupied,
+			Cells = occupied.ToFrozenSet(),
 			Passable = false,
 			Damage = 0,
 			Kind = EHazardKind.Asteroid,
@@ -73,7 +74,7 @@ public sealed class Hazard : NonUnit
 	}
 
 	public Hazard Clone() =>
-		new()
+		Cells is FrozenSet<Coord> ? this : new Hazard
 		{
 			Id = Id,
 			ActorId = ActorId,
