@@ -9,27 +9,27 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record RailgunAction(
+public sealed record LightningCannonAction(
 	string ActorId,
 	ESpatialOrientation MountedOn = ESpatialOrientation.Forward)
 	: IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		RailgunDef.Instance;
+		LightningCannonDef.Instance;
 }
 
-public sealed class RailgunDef
+public sealed class LightningCannonDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IMountedActionDef,
 		IAreaActionDef
 {
-	public static RailgunDef Instance { get; } = new();
+	public static LightningCannonDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var installed in world.StateOf(actorId).Loadout.InstalledAbilities)
 		{
-			if (installed.Spec.Kind != EAbilityKind.Railgun)
+			if (installed.Spec.Kind != EAbilityKind.LightningCannon)
 				continue;
 
 			var action = Bind(actorId, installed.MountedOn);
@@ -38,7 +38,7 @@ public sealed class RailgunDef
 		}
 	}
 
-	public RailgunAction Bind(
+	public LightningCannonAction Bind(
 		string actorId,
 		ESpatialOrientation mountedOn = ESpatialOrientation.Forward) =>
 		new(actorId, mountedOn);
@@ -58,13 +58,13 @@ public sealed class RailgunDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(RailgunAction action, BattleWorld world, ActorRuntime runtime) =>
-		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.Railgun, action.MountedOn) is not null;
+	public bool IsPossible(LightningCannonAction action, BattleWorld world, ActorRuntime runtime) =>
+		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.LightningCannon, action.MountedOn) is not null;
 
-	public bool IsLegal(RailgunAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsLegal(LightningCannonAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Railgun, action.MountedOn);
+		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
 			return false;
 
@@ -72,30 +72,30 @@ public sealed class RailgunDef
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
-		RailgunAction action,
+		LightningCannonAction action,
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
 		var cells = AffectedCells(action, world);
 
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Railgun, action.MountedOn)
-			?? throw new InvalidOperationException("Railgun ability not installed for actor.");
-		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Railgun spec missing area damage.");
+		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn)
+			?? throw new InvalidOperationException("Lightning cannon ability not installed for actor.");
+		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Lightning cannon spec missing area damage.");
 		return
 		[
 			new ResolveHazardEffect(
-				EHazardKind.RailgunBurst,
+				EHazardKind.LightningCannonBurst,
 				cells,
 				damage),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}
 
-	public HashSet<Coord> AffectedCells(RailgunAction action, BattleWorld world)
+	public HashSet<Coord> AffectedCells(LightningCannonAction action, BattleWorld world)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Railgun, action.MountedOn);
+		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn);
 		if (installed?.Spec is not IAreaDamage areaDamage)
 			return [];
 
@@ -106,6 +106,6 @@ public sealed class RailgunDef
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
 		AffectedCells(Cast(action), world);
 
-	private static RailgunAction Cast(IAction action) =>
-		action as RailgunAction ?? throw new ArgumentException($"Expected {nameof(RailgunAction)}.", nameof(action));
+	private static LightningCannonAction Cast(IAction action) =>
+		action as LightningCannonAction ?? throw new ArgumentException($"Expected {nameof(LightningCannonAction)}.", nameof(action));
 }

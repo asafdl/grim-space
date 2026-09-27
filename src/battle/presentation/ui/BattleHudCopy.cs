@@ -100,10 +100,10 @@ internal static class BattleHudCopy
 			? FlakTooltipFor(flak)
 			: "Flak";
 
-	public static string RailgunTooltipFor(UnitDisplayState unit) =>
-		FirstInstalled<RailgunSpec>(unit, EAbilityKind.Railgun) is { } railgun
-			? RailgunTooltipFor(railgun)
-			: "Railgun";
+	public static string LightningCannonTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<LightningCannonSpec>(unit, EAbilityKind.LightningCannon) is { } lightningCannon
+			? LightningCannonTooltipFor(lightningCannon)
+			: "Lightning Cannon";
 
 	public static string TorpedoTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<TorpedoLauncherSpec>(unit, EAbilityKind.TorpedoLauncher) is { } launcher
@@ -126,11 +126,11 @@ internal static class BattleHudCopy
 		$"Deals {flak.Damage} damage.\n" +
 		$"Cooldown: {flak.UsesPerTurn} use per turn.";
 
-	public static string RailgunTooltipFor(RailgunSpec railgun) =>
-		$"Railgun:\nFires in a long straight line ahead.\n" +
-		$"Range: {AbilityReach.MaxManhattanFromFirer(railgun)} cells.\n" +
-		$"Deals {railgun.Damage} damage.\n" +
-		$"Cooldown: {railgun.UsesPerTurn} use per turn.";
+	public static string LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
+		$"Lightning Cannon:\nFires in a long straight line ahead.\n" +
+		$"Range: {AbilityReach.MaxManhattanFromFirer(lightningCannon)} cells.\n" +
+		$"Deals {lightningCannon.Damage} damage.\n" +
+		$"Cooldown: {lightningCannon.UsesPerTurn} use per turn.";
 
 	public static string TorpedoTooltipFor(TorpedoLauncherSpec launcher) =>
 		$"Torpedo:\nFires in a set direction.\n" +

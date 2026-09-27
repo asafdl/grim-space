@@ -28,8 +28,8 @@ internal static class MerchantOfferDisplay
 		{
 			FlakSpec flak =>
 				$"Increase burst damage from {flak.Damage} to {flak.Damage + 1}.",
-			RailgunSpec railgun =>
-				$"Increase shot damage from {railgun.Damage} to {railgun.Damage + 1}.",
+			LightningCannonSpec lightningCannon =>
+				$"Increase shot damage from {lightningCannon.Damage} to {lightningCannon.Damage + 1}.",
 			_ => "Improve this mounted system.",
 		};
 
@@ -38,8 +38,8 @@ internal static class MerchantOfferDisplay
 		{
 			FlakSpec flak =>
 				$"Increase burst range from {flak.BurstRange} to {flak.BurstRange + 1}.",
-			RailgunSpec railgun =>
-				$"Increase line length from {railgun.LineLength} to {railgun.LineLength + 1}.",
+			LightningCannonSpec lightningCannon =>
+				$"Increase line length from {lightningCannon.LineLength} to {lightningCannon.LineLength + 1}.",
 			_ => "Extend this mounted system's reach.",
 		};
 
@@ -61,7 +61,7 @@ internal static class MerchantOfferDisplay
 		kind switch
 		{
 			EAbilityKind.Flak => "Flak",
-			EAbilityKind.Railgun => "Railgun",
+			EAbilityKind.LightningCannon => "Lightning cannon",
 			EAbilityKind.PatrolBay => "Patrol bay",
 			EAbilityKind.TorpedoLauncher => "Torpedo launcher",
 			_ => kind.ToString(),

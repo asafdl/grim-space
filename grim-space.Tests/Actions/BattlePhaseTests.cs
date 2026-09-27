@@ -147,7 +147,7 @@ public sealed class BattlePhaseTests
 	public void EndTurnProceedsRegardlessOfInteractionFocus()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = BattleTestFixture.FrameBuilder(battle);
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1);
@@ -164,7 +164,7 @@ public sealed class BattlePhaseTests
 	public void ClearFocusRestoresCommands()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = BattleTestFixture.FrameBuilder(battle);
 
 		var option = MovementExpectations.PureForwardMove(PlayerId, origin, stepCount: 1);
@@ -266,7 +266,7 @@ public sealed class BattlePhaseTests
 	public void FocusUnitRejectsMissingTarget()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = BattleTestFixture.FrameBuilder(battle);
 
 		var previewUnits = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: false).PreviewUnits;

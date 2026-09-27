@@ -110,7 +110,7 @@ public sealed class PlanningPreview
 	{
 		var portFlak = false;
 		var starboardFlak = false;
-		var railgun = false;
+		var lightningCannon = false;
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 
 		foreach (var action in actions)
@@ -123,8 +123,8 @@ public sealed class PlanningPreview
 				case FlakAction { MountedOn: ESpatialOrientation.Starboard }:
 					starboardFlak = true;
 					break;
-				case RailgunAction:
-					railgun = true;
+				case LightningCannonAction:
+					lightningCannon = true;
 					break;
 				case TorpedoAction torpedo:
 					torpedoMounts.Add(torpedo.MountedOn);
@@ -132,7 +132,7 @@ public sealed class PlanningPreview
 			}
 		}
 
-		return new WeaponPeek(portFlak, starboardFlak, railgun, torpedoMounts);
+		return new WeaponPeek(portFlak, starboardFlak, lightningCannon, torpedoMounts);
 	}
 
 	public AreaActionPreviews AreaPreviews(

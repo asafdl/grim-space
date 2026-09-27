@@ -22,7 +22,7 @@ public sealed class PatrolDomainTests
 		Assert.Equal(3, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 		Assert.Equal(0, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Retro]);
 		Assert.Equal(2, CatalogExpectations.UsesPerTurn(EType.Patrol, EAbilityKind.Flak));
-		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Patrol, EAbilityKind.Railgun));
+		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Patrol, EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
@@ -31,6 +31,6 @@ public sealed class PatrolDomainTests
 		var abilities = Capabilities.AbilitiesFor(EType.Patrol);
 
 		Assert.Single(abilities, def => def is FlakDef);
-		Assert.DoesNotContain(abilities, def => def is RailgunDef);
+		Assert.DoesNotContain(abilities, def => def is LightningCannonDef);
 	}
 }

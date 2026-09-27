@@ -110,7 +110,7 @@ public sealed class ActionSearchCorrectnessTests
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
 			FlakAction flak => $"flak:{flak.ActorId}:{flak.MountedOn}",
-			RailgunAction railgun => $"railgun:{railgun.ActorId}",
+			LightningCannonAction lightningCannon => $"lightningCannon:{lightningCannon.ActorId}",
 			_ => action.GetType().FullName ?? "action",
 		};
 

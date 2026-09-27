@@ -15,12 +15,12 @@ public sealed class PoseHitOpportunityTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RailgunHitFromPoseIncludesEnemyAndRailgunIcon()
+	public void LightningCannonHitFromPoseIncludesEnemyAndIcon()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var preview = new PlanningPreview();
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
 		var selected = RouteAt(
@@ -33,10 +33,10 @@ public sealed class PoseHitOpportunityTests
 			PlayerId,
 			selected);
 
-		var railgun = Assert.Single(
+		var lightningCannon = Assert.Single(
 			opportunities,
-			opportunity => opportunity.IconPath == "res://assets/ui/abilities/railgun.svg");
-		Assert.Equal(enemyId, railgun.TargetId);
+			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
+		Assert.Equal(enemyId, lightningCannon.TargetId);
 	}
 
 	[Fact]
@@ -45,7 +45,7 @@ public sealed class PoseHitOpportunityTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var preview = new PlanningPreview();
 		var sim = battle.PlayerAgent.Sim;
 		var selected = RouteAt(BattleTestCommands.MoveOptions(battle), origin, Coord.Forward);
@@ -104,14 +104,14 @@ public sealed class PoseHitOpportunityTests
 	}
 
 	[Fact]
-	public void SpentRailgunIsExcludedFromOpportunities()
+	public void SpentLightningCannonIsExcludedFromOpportunities()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var preview = new PlanningPreview();
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 		var selected = RouteAt(BattleTestCommands.MoveOptions(battle), origin, Coord.Forward);
 
 		var opportunities = preview.PoseHitOpportunities(
@@ -121,16 +121,16 @@ public sealed class PoseHitOpportunityTests
 
 		Assert.DoesNotContain(
 			opportunities,
-			opportunity => opportunity.IconPath == "res://assets/ui/abilities/railgun.svg");
+			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
 	}
 
 	[Fact]
-	public void HeadingChangeAffectsRailgunLine()
+	public void HeadingChangeAffectsLightningCannonLine()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var preview = new PlanningPreview();
 		var options = BattleTestCommands.MoveOptions(battle)
 			.Where(option => option.EndPosition == origin)
@@ -149,10 +149,10 @@ public sealed class PoseHitOpportunityTests
 
 		Assert.Contains(
 			linedUpHits,
-			opportunity => opportunity.IconPath == "res://assets/ui/abilities/railgun.svg");
+			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
 		Assert.DoesNotContain(
 			turnedAwayHits,
-			opportunity => opportunity.IconPath == "res://assets/ui/abilities/railgun.svg");
+			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
 	}
 
 	private static MovePathOption RouteAt(

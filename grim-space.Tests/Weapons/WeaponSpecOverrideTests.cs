@@ -36,9 +36,9 @@ public sealed class WeaponSpecOverrideTests
 	}
 
 	[Fact]
-	public void CustomRailgunLineLengthChangesReachEnvelope()
+	public void CustomLightningCannonLineLengthChangesReachEnvelope()
 	{
-		var installed = ReplaceRailgunSpec(new RailgunSpec(UsesPerTurn: 1, Damage: 1, LineLength: 3, PyramidRange: 1));
+		var installed = ReplaceLightningCannonSpec(new LightningCannonSpec(UsesPerTurn: 1, Damage: 1, LineLength: 3, PyramidRange: 1));
 		var player = Factory.Create(
 			BattleSpawnTestKit.FighterWithInstalledAbilities(PlayerId, installed),
 			ETeam.Player,
@@ -49,8 +49,8 @@ public sealed class WeaponSpecOverrideTests
 			BattleTestFixture.Enemy(Coord.Zero),
 			BattleTestFixture.Grid(size: 30));
 		var world = battle.PlayerAgent.Sim.World;
-		var spec = (RailgunSpec)world.StateOf(PlayerId).FindInstalled(EAbilityKind.Railgun)!.Spec;
-		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(PlayerId), world);
+		var spec = (LightningCannonSpec)world.StateOf(PlayerId).FindInstalled(EAbilityKind.LightningCannon)!.Spec;
+		var cells = LightningCannonDef.Instance.AffectedCells(new LightningCannonAction(PlayerId), world);
 		var frame = BodyFrame.From(world.StateOf(PlayerId));
 
 		Assert.Equal(3, spec.LineLength);
@@ -65,10 +65,10 @@ public sealed class WeaponSpecOverrideTests
 				: ability)
 			.ToArray();
 
-	private static IReadOnlyList<InstalledAbility> ReplaceRailgunSpec(RailgunSpec railgun) =>
+	private static IReadOnlyList<InstalledAbility> ReplaceLightningCannonSpec(LightningCannonSpec lightningCannon) =>
 		ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
-			.Select(ability => ability.Spec.Kind == EAbilityKind.Railgun
-				? ability with { Spec = railgun }
+			.Select(ability => ability.Spec.Kind == EAbilityKind.LightningCannon
+				? ability with { Spec = lightningCannon }
 				: ability)
 			.ToArray();
 }

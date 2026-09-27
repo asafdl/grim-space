@@ -12,22 +12,22 @@ public sealed class WeaponsTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RailgunBurstIsStraightLineThenForePyramid()
+	public void LightningCannonBurstIsStraightLineThenForePyramid()
 	{
 		var (world, frame) = CreateWorld();
-		var railgun = CatalogExpectations.DefaultRailgunSpec();
-		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(PlayerId), world);
+		var lightningCannon = CatalogExpectations.DefaultLightningCannonSpec();
+		var cells = LightningCannonDef.Instance.AffectedCells(new LightningCannonAction(PlayerId), world);
 
 		Assert.Equal(26, cells.Count);
-		for (var fore = 1; fore <= railgun.LineLength; fore++)
+		for (var fore = 1; fore <= lightningCannon.LineLength; fore++)
 			Assert.Contains(frame.ToWorld(fore, 0, 0), cells);
 
-		var pyramidApex = frame.ToWorld(railgun.LineLength, 0, 0);
+		var pyramidApex = frame.ToWorld(lightningCannon.LineLength, 0, 0);
 		Assert.Contains(pyramidApex, cells);
-		Assert.Contains(frame.ToWorld(railgun.LineLength + railgun.PyramidRange, 1, 1), cells);
-		Assert.Contains(frame.ToWorld(railgun.LineLength + railgun.PyramidRange, -1, 1), cells);
+		Assert.Contains(frame.ToWorld(lightningCannon.LineLength + lightningCannon.PyramidRange, 1, 1), cells);
+		Assert.Contains(frame.ToWorld(lightningCannon.LineLength + lightningCannon.PyramidRange, -1, 1), cells);
 		Assert.DoesNotContain(frame.Origin, cells);
-		Assert.DoesNotContain(frame.ToWorld(railgun.LineLength + railgun.PyramidRange + 1, 0, 0), cells);
+		Assert.DoesNotContain(frame.ToWorld(lightningCannon.LineLength + lightningCannon.PyramidRange + 1, 0, 0), cells);
 	}
 
 	[Theory]

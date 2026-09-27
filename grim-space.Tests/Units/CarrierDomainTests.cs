@@ -22,15 +22,15 @@ public sealed class CarrierDomainTests
 		Assert.Equal(2, configuration.MaxHullPoints);
 		Assert.Equal(2, configuration.MaxShieldPoints.MaxOnAnyFace);
 		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.Flak));
-		Assert.Equal(1, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.Railgun));
+		Assert.Equal(1, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
-	public void CarrierAbilitiesIncludeRailgunAndSpawnPatrol()
+	public void CarrierAbilitiesIncludeLightningCannonAndSpawnPatrol()
 	{
 		var abilities = Capabilities.AbilitiesFor(EType.Carrier);
 
-		Assert.Contains(abilities, def => def is RailgunDef);
+		Assert.Contains(abilities, def => def is LightningCannonDef);
 		Assert.Contains(abilities, def => def is SpawnPatrolDef);
 		Assert.DoesNotContain(abilities, def => def is FlakDef);
 	}

@@ -13,7 +13,7 @@ public sealed class ReplayClipRegistry
 		new RollClip(),
 		new TorpedoActionClip(),
 		new SpawnPatrolActionClip(),
-		new RailgunActionClip(),
+		new LightningCannonActionClip(),
 		new FlakActionClip(),
 		new DetonateActionClip(),
 	]);

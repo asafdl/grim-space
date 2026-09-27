@@ -37,8 +37,8 @@ internal static class BattleTestCommands
 	public static bool FireFlak(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
 		Enqueue(battle, [new FlakAction(battle.PlayerId, mountedOn)]);
 
-	public static bool FireRailgun(BattleOrchestrator battle) =>
-		Enqueue(battle, [new RailgunAction(battle.PlayerId)]);
+	public static bool FireLightningCannon(BattleOrchestrator battle) =>
+		Enqueue(battle, [new LightningCannonAction(battle.PlayerId)]);
 
 	public static bool DeployPatrol(BattleOrchestrator battle)
 	{

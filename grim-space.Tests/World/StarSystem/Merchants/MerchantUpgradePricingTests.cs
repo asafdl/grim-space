@@ -24,7 +24,7 @@ public sealed class MerchantUpgradePricingTests
 	[Fact]
 	public void Tier0_InstallPricedAboveDamage()
 	{
-		int install = Credits(MerchantUpgradePricing.RailgunInstall());
+		int install = Credits(MerchantUpgradePricing.LightningCannonInstall());
 		int damage = Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0));
 		Assert.True(install > damage);
 	}
@@ -33,7 +33,7 @@ public sealed class MerchantUpgradePricingTests
 	public void WeaponInstall_PricedAboveFirstDamageUpgrade()
 	{
 		Assert.True(
-			Credits(MerchantUpgradePricing.RailgunInstall())
+			Credits(MerchantUpgradePricing.LightningCannonInstall())
 			> Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0)));
 		Assert.True(
 			Credits(MerchantUpgradePricing.FlakInstall(0))

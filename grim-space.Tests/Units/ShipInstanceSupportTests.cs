@@ -142,7 +142,7 @@ public sealed class ShipInstanceSupportTests
 			FighterSpec.Instance.DefaultMaxShieldPoints,
 			[
 				new InstalledAbility(
-					FighterSpec.Instance.BaselineFor(new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward)),
+					FighterSpec.Instance.BaselineFor(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
 					ESpatialOrientation.Forward),
 			]);
 		var ship = ShipInstance.FromSpec("fighter-partial", FighterSpec.Instance, loadout);

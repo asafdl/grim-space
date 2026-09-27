@@ -96,7 +96,7 @@ public static class Capabilities
 		kind switch
 		{
 			EAbilityKind.Flak => FlakDef.Instance,
-			EAbilityKind.Railgun => RailgunDef.Instance,
+			EAbilityKind.LightningCannon => LightningCannonDef.Instance,
 			EAbilityKind.PatrolBay => SpawnPatrolDef.Instance,
 			EAbilityKind.TorpedoLauncher => TorpedoDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),

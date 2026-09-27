@@ -19,16 +19,16 @@ public sealed class SimulationSearchTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RailgunBudgetEnforcedBySimulationTryEnqueue()
+	public void LightningCannonBudgetEnforcedBySimulationTryEnqueue()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
-		var railgun = new RailgunAction(PlayerId);
+		var lightningCannon = new LightningCannonAction(PlayerId);
 
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.Railgun));
-		Assert.True(session.TryEnqueue(railgun));
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun) - 1, StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.Railgun));
-		Assert.False(session.TryEnqueue(new RailgunAction(PlayerId)));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.LightningCannon));
+		Assert.True(session.TryEnqueue(lightningCannon));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon) - 1, StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.LightningCannon));
+		Assert.False(session.TryEnqueue(new LightningCannonAction(PlayerId)));
 	}
 
 	[Fact]
@@ -48,8 +48,8 @@ public sealed class SimulationSearchTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
 
-		Assert.True(session.TryEnqueue(new RailgunAction(PlayerId)));
-		Assert.Null(session.Peek(new RailgunAction(PlayerId)));
+		Assert.True(session.TryEnqueue(new LightningCannonAction(PlayerId)));
+		Assert.Null(session.Peek(new LightningCannonAction(PlayerId)));
 	}
 
 	[Fact]
@@ -57,12 +57,12 @@ public sealed class SimulationSearchTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
-		var railgun = new RailgunAction(PlayerId);
+		var lightningCannon = new LightningCannonAction(PlayerId);
 
-		var peek = session.Peek(railgun);
+		var peek = session.Peek(lightningCannon);
 		Assert.NotNull(peek);
 		Assert.Empty(session.Actions);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.Railgun));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.LightningCannon));
 	}
 
 	[Fact]

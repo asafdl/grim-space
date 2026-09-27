@@ -129,7 +129,7 @@ public sealed class InvariantTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
 			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new RailgunAction(PlayerId)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 		Assert.Single(battle.PlayerAgent.Sim.Actions);
 		Assert.Equal(InvariantStatus.Incomplete, battle.PlayerAgent.Sim.InvariantStatus);
 	}

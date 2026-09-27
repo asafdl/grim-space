@@ -7,7 +7,7 @@ namespace GrimSpace.Battle.Player;
 public readonly record struct WeaponPeek(
 	bool PortFlak,
 	bool StarboardFlak,
-	bool Railgun,
+	bool LightningCannon,
 	IReadOnlySet<ESpatialOrientation> TorpedoMounts)
 {
 	public static WeaponPeek Empty { get; } =
@@ -17,7 +17,7 @@ public readonly record struct WeaponPeek(
 		kind switch
 		{
 			EWeaponKind.Flak => PortFlak || StarboardFlak,
-			EWeaponKind.Railgun => Railgun,
+			EWeaponKind.LightningCannon => LightningCannon,
 			EWeaponKind.Torpedo => TorpedoMounts.Count > 0,
 			_ => false,
 		};

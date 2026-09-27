@@ -14,17 +14,17 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class AbilityInstructionFrameTests
 {
 	[Fact]
-	public void RailgunModeShowsPassiveMountInstruction()
+	public void LightningCannonModeShowsPassiveMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Railgun);
+			.First(entry => entry.Mode == EPlayerMode.LightningCannon);
 
-		frames.Interaction.SetMode(EPlayerMode.Railgun, spec);
+		frames.Interaction.SetMode(EPlayerMode.LightningCannon, spec);
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
@@ -38,7 +38,7 @@ public sealed class AbilityInstructionFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
 			.First(entry => entry.Mode == EPlayerMode.Flak);
@@ -59,7 +59,7 @@ public sealed class AbilityInstructionFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(
 				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
@@ -108,11 +108,11 @@ public sealed class AbilityInstructionFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Railgun);
-		frames.Interaction.SetMode(EPlayerMode.Railgun, spec);
+			.First(entry => entry.Mode == EPlayerMode.LightningCannon);
+		frames.Interaction.SetMode(EPlayerMode.LightningCannon, spec);
 		frames.Interaction.ReportActionFailure();
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
@@ -126,7 +126,7 @@ public sealed class AbilityInstructionFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
@@ -140,12 +140,12 @@ public sealed class AbilityInstructionFrameTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Railgun);
+			.First(entry => entry.Mode == EPlayerMode.LightningCannon);
 
-		frames.Interaction.SetMode(EPlayerMode.Railgun, spec);
+		frames.Interaction.SetMode(EPlayerMode.LightningCannon, spec);
 		frames.Interaction.FocusUnit(BattleTestFixture.FirstEnemyId(battle));
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);

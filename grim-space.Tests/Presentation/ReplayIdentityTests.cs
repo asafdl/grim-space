@@ -87,7 +87,7 @@ public sealed class ReplayIdentityTests
 		var impact = new ImpactFacts(
 			SourceId: "enemy",
 			TargetId: "fighter-a",
-			Cause: EHazardKind.RailgunBurst,
+			Cause: EHazardKind.LightningCannonBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 2,
 			HullDamage: 1);

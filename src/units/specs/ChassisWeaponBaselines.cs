@@ -8,12 +8,12 @@ internal static class ChassisWeaponBaselines
 	internal const int FlakDamage = 1;
 	internal const int FlakRange = 2;
 	internal const int FlaksPerTurn = 1;
-	internal const int RailgunDamage = 3;
-	internal const int RailgunLineLength = 8;
-	internal const int RailgunPyramidRange = 2;
-	internal const int RailgunsPerTurn = 1;
-	internal const int StarterRailgunDamage = 2;
-	internal const int StarterRailgunLineLength = 5;
+	internal const int LightningCannonDamage = 3;
+	internal const int LightningCannonLineLength = 8;
+	internal const int LightningCannonPyramidRange = 2;
+	internal const int LightningCannonsPerTurn = 1;
+	internal const int StarterLightningCannonDamage = 2;
+	internal const int StarterLightningCannonLineLength = 5;
 	internal const int PatrolCooldownTurns = 2;
 	internal const int MaxLivingPatrolChildren = 5;
 	internal const int TorpedoLauncherCooldownTurns = 3;
@@ -21,11 +21,11 @@ internal static class ChassisWeaponBaselines
 
 	internal static FlakSpec Flak() => new(FlaksPerTurn, FlakDamage, FlakRange);
 
-	internal static RailgunSpec Railgun() =>
-		new(RailgunsPerTurn, RailgunDamage, RailgunLineLength, RailgunPyramidRange);
+	internal static LightningCannonSpec LightningCannon() =>
+		new(LightningCannonsPerTurn, LightningCannonDamage, LightningCannonLineLength, LightningCannonPyramidRange);
 
-	internal static RailgunSpec StarterRailgun() =>
-		new(RailgunsPerTurn, StarterRailgunDamage, StarterRailgunLineLength, RailgunPyramidRange);
+	internal static LightningCannonSpec StarterLightningCannon() =>
+		new(LightningCannonsPerTurn, StarterLightningCannonDamage, StarterLightningCannonLineLength, LightningCannonPyramidRange);
 
 	internal static TorpedoLauncherSpec StarterTorpedoLauncher() =>
 		TorpedoLauncher(StarterTorpedoFuelTurns);

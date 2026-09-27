@@ -28,7 +28,7 @@ public sealed class CarrierSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.Railgun, ESpatialOrientation.Forward), ChassisWeaponBaselines.Railgun()),
+		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Forward), ChassisWeaponBaselines.LightningCannon()),
 		new(new(EAbilityKind.PatrolBay, ESpatialOrientation.Ventral), ChassisWeaponBaselines.PatrolBay(PatrolSpec.Instance)),
 	];
 }

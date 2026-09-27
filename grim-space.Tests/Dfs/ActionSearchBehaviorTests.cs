@@ -112,7 +112,7 @@ public sealed class ActionSearchBehaviorTests
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
 		[
 			..Capabilities.Movement,
-			RailgunDef.Instance,
+			LightningCannonDef.Instance,
 		];
 
 		var frames = ActionSearch.Run(
@@ -134,7 +134,7 @@ public sealed class ActionSearchBehaviorTests
 		Assert.All(frames.Skip(firstRemaining), frame =>
 		{
 			Assert.Equal(SearchFramePhase.Remaining, frame.Phase);
-			Assert.Contains(frame.Actions, action => action is RailgunAction);
+			Assert.Contains(frame.Actions, action => action is LightningCannonAction);
 		});
 	}
 
@@ -145,7 +145,7 @@ public sealed class ActionSearchBehaviorTests
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
 		[
 			..Capabilities.Movement,
-			RailgunDef.Instance,
+			LightningCannonDef.Instance,
 		];
 		var expected = ActionSearch.Run(
 				battle.PlayerAgent.Sim,
@@ -175,7 +175,7 @@ public sealed class ActionSearchBehaviorTests
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
 		[
 			..Capabilities.Movement,
-			RailgunDef.Instance,
+			LightningCannonDef.Instance,
 		];
 		var priorityCount = ActionSearch.Run(
 			battle.PlayerAgent.Sim,
@@ -207,7 +207,7 @@ public sealed class ActionSearchBehaviorTests
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> allDefs =
 		[
 			..Capabilities.Movement,
-			RailgunDef.Instance,
+			LightningCannonDef.Instance,
 		];
 		var frames = new List<SearchFrame<BattleWorld, ActorRuntime>>();
 
@@ -238,14 +238,14 @@ public sealed class ActionSearchBehaviorTests
 			normalMove,
 			HeadingDef.Instance,
 			RollDef.Instance,
-			RailgunDef.Instance,
+			LightningCannonDef.Instance,
 		];
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> prioritizedDefs =
 		[
 			prioritizedMove,
 			HeadingDef.Instance,
 			RollDef.Instance,
-			RailgunDef.Instance,
+			LightningCannonDef.Instance,
 		];
 
 		_ = ActionSearch.Run(

@@ -126,7 +126,7 @@ public sealed record FlakSpec(
 	}
 }
 
-public sealed record RailgunSpec(
+public sealed record LightningCannonSpec(
 	int UsesPerTurn,
 	int Damage,
 	int LineLength,
@@ -139,7 +139,7 @@ public sealed record RailgunSpec(
 
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
 
-	public override EAbilityKind Kind => EAbilityKind.Railgun;
+	public override EAbilityKind Kind => EAbilityKind.LightningCannon;
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;

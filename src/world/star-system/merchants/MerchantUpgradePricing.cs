@@ -51,7 +51,7 @@ public static class MerchantUpgradePricing
 	public static ResourceBundle FlakInstall(int installedFlakCount) =>
 		Bundle(WeaponInstall[installedFlakCount == 0 ? 0 : 1]);
 
-	public static ResourceBundle RailgunInstall() => Bundle(WeaponInstall[0]);
+	public static ResourceBundle LightningCannonInstall() => Bundle(WeaponInstall[0]);
 
 	private static ResourceBundle Bundle((int Credits, int Scrap, int Cores) price) =>
 		ResourceBundle.Create(

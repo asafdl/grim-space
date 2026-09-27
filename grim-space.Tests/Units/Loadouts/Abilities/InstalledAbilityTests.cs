@@ -67,7 +67,7 @@ public sealed class InstalledAbilityTests
 		Assert.Equal(2, installed.Count);
 		Assert.Contains(
 			installed,
-			ability => ability.Mount == new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward));
+			ability => ability.Mount == new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
 		Assert.Contains(
 			installed,
 			ability => ability.Mount == new AbilityMount(EAbilityKind.TorpedoLauncher, ESpatialOrientation.Ventral));
@@ -80,7 +80,7 @@ public sealed class InstalledAbilityTests
 
 		Assert.Equal(6, installed.Count);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.Flak);
-		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.Railgun);
+		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.LightningCannon);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.TorpedoLauncher);
 	}
 

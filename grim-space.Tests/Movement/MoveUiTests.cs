@@ -228,7 +228,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var option = BattleTestCommands.MoveOptions(battle)
 			.First(path =>
@@ -241,7 +241,7 @@ public sealed class MoveUiTests
 		Assert.NotEmpty(frame.PoseHitOpportunities);
 		Assert.Contains(
 			frame.PoseHitOpportunities,
-			opportunity => opportunity.IconPath == "res://assets/ui/abilities/railgun.svg");
+			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
 	}
 
 	[Fact]
@@ -250,7 +250,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var options = BattleTestCommands.MoveOptions(battle);
 		var hovered = options.First(option => option.EndPosition == origin + Coord.Forward);
@@ -267,7 +267,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var option = BattleTestCommands.MoveOptions(battle)
 			.First(path =>
@@ -286,7 +286,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var option = BattleTestCommands.MoveOptions(battle)
 			.First(path =>
@@ -310,7 +310,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var option = BattleTestCommands.MoveOptions(battle)
 			.First(path =>
@@ -333,7 +333,7 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var builder = BattleTestFixture.FrameBuilder(battle);
 		var option = BattleTestCommands.MoveOptions(battle)
 			.First(path =>

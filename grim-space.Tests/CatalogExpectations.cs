@@ -20,12 +20,12 @@ internal static class CatalogExpectations
 	public static int FlakDamage(EType chassis = EType.Fighter) =>
 		DefaultFlakSpec(chassis).Damage;
 
-	public static int RailgunMaxReach(EType chassis = EType.Fighter) =>
+	public static int LightningCannonMaxReach(EType chassis = EType.Fighter) =>
 		AbilityReach.MaxManhattanFromFirer(
-			ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.Railgun)!);
+			ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.LightningCannon)!);
 
-	public static RailgunSpec DefaultRailgunSpec(EType chassis = EType.Fighter) =>
-		(RailgunSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.Railgun)!;
+	public static LightningCannonSpec DefaultLightningCannonSpec(EType chassis = EType.Fighter) =>
+		(LightningCannonSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.LightningCannon)!;
 
 	public static FlakSpec DefaultFlakSpec(EType chassis = EType.Fighter) =>
 		(FlakSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.Flak)!;

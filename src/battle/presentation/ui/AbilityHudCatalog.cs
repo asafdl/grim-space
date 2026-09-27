@@ -68,19 +68,19 @@ public static class AbilityHudCatalog
 					unit.UsesRemaining(EAbilityKind.Flak),
 					unit.MaxUsesPerTurn(EAbilityKind.Flak)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Flak)),
-			RailgunDef => new(
-				EPlayerMode.Railgun,
+			LightningCannonDef => new(
+				EPlayerMode.LightningCannon,
 				def,
 				new AbilityTargetingSpec(
-					ForwardSource<RailgunAction>,
-					AbilitySourceMeshes.CreateRailgun,
+					ForwardSource<LightningCannonAction>,
+					AbilitySourceMeshes.CreateLightningCannon,
 					new Color(0.55f, 0.82f, 1f, 0.42f)),
-				"res://assets/ui/abilities/railgun.svg",
-				BattleHudCopy.RailgunTooltipFor,
+				"res://assets/ui/abilities/lightning_cannon.svg",
+				BattleHudCopy.LightningCannonTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
-					unit.UsesRemaining(EAbilityKind.Railgun),
-					unit.MaxUsesPerTurn(EAbilityKind.Railgun)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.Railgun)),
+					unit.UsesRemaining(EAbilityKind.LightningCannon),
+					unit.MaxUsesPerTurn(EAbilityKind.LightningCannon)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.LightningCannon)),
 			TorpedoDef => new(
 				EPlayerMode.Torpedo,
 				def,

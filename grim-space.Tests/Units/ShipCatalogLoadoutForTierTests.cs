@@ -30,9 +30,9 @@ public sealed class ShipCatalogLoadoutForTierTests
 
 		AssertLoadoutEquivalent(starter, t0);
 		Assert.Equal(2, t0.InstalledAbilities.Count);
-		var railgun = (RailgunSpec)t0.InstalledAbilities
-			.Single(ability => ability.Spec.Kind == EAbilityKind.Railgun).Spec;
-		Assert.Equal(2, railgun.Damage);
+		var lightningCannon = (LightningCannonSpec)t0.InstalledAbilities
+			.Single(ability => ability.Spec.Kind == EAbilityKind.LightningCannon).Spec;
+		Assert.Equal(2, lightningCannon.Damage);
 	}
 
 	[Fact]

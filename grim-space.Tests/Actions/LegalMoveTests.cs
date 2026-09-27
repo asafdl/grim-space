@@ -59,14 +59,14 @@ public sealed class LegalMoveTests
 		var first = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
 			.First(option => option.EndPosition == origin + Coord.Forward);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, first));
-		Assert.True(battle.PlayerAgent.TryEnqueue([new RailgunAction(battle.PlayerId)]));
+		Assert.True(battle.PlayerAgent.TryEnqueue([new LightningCannonAction(battle.PlayerId)]));
 
 		var second = MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
 			.First(option => option.ExtensionApCost == 1);
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, second));
 
 		Assert.IsType<MoveStepAction>(battle.PlayerAgent.Sim.Actions[0]);
-		Assert.IsType<RailgunAction>(battle.PlayerAgent.Sim.Actions[1]);
+		Assert.IsType<LightningCannonAction>(battle.PlayerAgent.Sim.Actions[1]);
 		Assert.All(
 			battle.PlayerAgent.Sim.Actions.Skip(2),
 			action => Assert.True(action is HeadingTurnAction or RollAction or MoveStepAction));

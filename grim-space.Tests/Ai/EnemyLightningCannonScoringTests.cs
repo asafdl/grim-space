@@ -9,10 +9,10 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Ai;
 
 [BattleTestSuite]
-public sealed class EnemyRailgunScoringTests
+public sealed class EnemyLightningCannonScoringTests
 {
 	[Fact]
-	public async Task BuildTurnActions_FiresRailgunWhenAlignedWithPlayer()
+	public async Task BuildTurnActions_FiresLightningCannonWhenAlignedWithPlayer()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -23,11 +23,11 @@ public sealed class EnemyRailgunScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
-		Assert.Contains(actions, action => action is RailgunAction);
+		Assert.Contains(actions, action => action is LightningCannonAction);
 	}
 
 	[Fact]
-	public async Task BuildTurnActions_DoesNotFireRailgunWhenMisaligned()
+	public async Task BuildTurnActions_DoesNotFireLightningCannonWhenMisaligned()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -38,7 +38,7 @@ public sealed class EnemyRailgunScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
-		Assert.DoesNotContain(actions, action => action is RailgunAction);
+		Assert.DoesNotContain(actions, action => action is LightningCannonAction);
 	}
 
 	[Fact]
@@ -56,7 +56,7 @@ public sealed class EnemyRailgunScoringTests
 	}
 
 	[Fact]
-	public async Task BuildTurnActions_TurnsToFireRailgunWhenShotNeedsAlignment()
+	public async Task BuildTurnActions_TurnsToFireLightningCannonWhenShotNeedsAlignment()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -73,7 +73,7 @@ public sealed class EnemyRailgunScoringTests
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
-		Assert.Contains(actions, action => action is RailgunAction);
+		Assert.Contains(actions, action => action is LightningCannonAction);
 	}
 
 	private static Unit CreateUnit(

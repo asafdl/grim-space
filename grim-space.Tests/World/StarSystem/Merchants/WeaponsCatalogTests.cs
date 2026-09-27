@@ -27,7 +27,7 @@ public sealed class WeaponsCatalogTests
 	[Fact]
 	public void ListFor_PartialFighterLoadout_OffersFlakInstallOnOpenFacets()
 	{
-		var ship = FighterWithRailgunOnly("fighter-partial");
+		var ship = FighterWithLightningCannonOnly("fighter-partial");
 		var offers = WeaponsCatalog.ListFor(ship);
 
 		Assert.Contains(
@@ -43,11 +43,11 @@ public sealed class WeaponsCatalogTests
 		Assert.DoesNotContain(
 			offers,
 			offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon
-				&& offer.Offering.Mount?.Kind == EAbilityKind.Railgun);
+				&& offer.Offering.Mount?.Kind == EAbilityKind.LightningCannon);
 	}
 
 	[Fact]
-	public void ListFor_Patrol_DoesNotOfferRailgunWithoutChassisSlot()
+	public void ListFor_Patrol_DoesNotOfferLightningCannonWithoutChassisSlot()
 	{
 		var ship = ShipInstance.FromCatalog("patrol-1", EType.Patrol);
 		var offers = WeaponsCatalog.ListFor(ship);
@@ -55,7 +55,7 @@ public sealed class WeaponsCatalogTests
 		Assert.DoesNotContain(
 			offers,
 			offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon
-				&& offer.Offering.Mount?.Kind == EAbilityKind.Railgun);
+				&& offer.Offering.Mount?.Kind == EAbilityKind.LightningCannon);
 	}
 
 	[Fact]
@@ -97,7 +97,7 @@ public sealed class WeaponsCatalogTests
 	[Fact]
 	public void ListFor_AfterInstallCommit_RemovesInstallOfferAndListsUpgrades()
 	{
-		var ship = FighterWithRailgunOnly("fighter-partial");
+		var ship = FighterWithLightningCannonOnly("fighter-partial");
 		var install = new MerchantCatalog.Offering(
 			MerchantCatalog.Kind.InstallWeapon,
 			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
@@ -117,9 +117,9 @@ public sealed class WeaponsCatalogTests
 				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
 	}
 
-	private static ShipInstance FighterWithRailgunOnly(string id)
+	private static ShipInstance FighterWithLightningCannonOnly(string id)
 	{
-		var mount = new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward);
+		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
 		var baseline = FighterSpec.Instance.BaselineFor(mount);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,

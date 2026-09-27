@@ -101,7 +101,7 @@ internal static class EnemySearchInput
 	}
 
 	private static bool HasOffensiveCharges(State state) =>
-		state.UsesRemaining(EAbilityKind.Railgun) > 0
+		state.UsesRemaining(EAbilityKind.LightningCannon) > 0
 		|| state.UsesRemaining(EAbilityKind.Flak) > 0;
 
 	private static int OptimisticWeaponReach(State state)
@@ -125,7 +125,7 @@ internal static class EnemySearchInput
 	{
 		for (var i = searchStartDepth; i < actions.Count; i++)
 		{
-			if (actions[i] is RailgunAction { ActorId: var railgunActorId } && railgunActorId == actorId)
+			if (actions[i] is LightningCannonAction { ActorId: var lightningCannonActorId } && lightningCannonActorId == actorId)
 				return true;
 
 			if (actions[i] is FlakAction { ActorId: var flakActorId } && flakActorId == actorId)
@@ -186,7 +186,7 @@ internal static class EnemySearchInput
 		for (var i = searchStartDepth; i < actions.Count; i++)
 		{
 			var action = actions[i];
-			if (action is not RailgunAction and not FlakAction)
+			if (action is not LightningCannonAction and not FlakAction)
 				continue;
 
 			if (action.ActorId != actorId)
@@ -214,8 +214,8 @@ internal static class EnemySearchInput
 	private static bool WouldDamage(BattleWorld world, string actorId, IAction action) =>
 		action switch
 		{
-			RailgunAction { ActorId: var railgunActorId, MountedOn: var mountedOn } when railgunActorId == actorId =>
-				WouldRailgunDamage(world, actorId, mountedOn),
+			LightningCannonAction { ActorId: var lightningCannonActorId, MountedOn: var mountedOn } when lightningCannonActorId == actorId =>
+				WouldLightningCannonDamage(world, actorId, mountedOn),
 			FlakAction { ActorId: var flakActorId, MountedOn: var mountedOn } when flakActorId == actorId =>
 				WouldFlakDamage(world, actorId, mountedOn),
 			_ => false,
@@ -229,8 +229,8 @@ internal static class EnemySearchInput
 			if (state.UsesRemaining(installed.Mount) <= 0)
 				continue;
 
-			if (installed.Spec.Kind == EAbilityKind.Railgun
-				&& WouldRailgunDamage(world, actorId, installed.MountedOn))
+			if (installed.Spec.Kind == EAbilityKind.LightningCannon
+				&& WouldLightningCannonDamage(world, actorId, installed.MountedOn))
 				return true;
 
 			if (installed.Spec.Kind == EAbilityKind.Flak
@@ -241,12 +241,12 @@ internal static class EnemySearchInput
 		return false;
 	}
 
-	private static bool WouldRailgunDamage(
+	private static bool WouldLightningCannonDamage(
 		BattleWorld world,
 		string actorId,
 		ESpatialOrientation mountedOn = ESpatialOrientation.Forward)
 	{
-		var cells = RailgunDef.Instance.AffectedCells(new RailgunAction(actorId, mountedOn), world);
+		var cells = LightningCannonDef.Instance.AffectedCells(new LightningCannonAction(actorId, mountedOn), world);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 

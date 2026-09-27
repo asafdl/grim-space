@@ -137,9 +137,9 @@ public static class ActionLog
 				weapon = "Flak";
 				mount = $"{FormatEnum(a.MountedOn)} mount";
 				return true;
-			case RailgunAction a:
+			case LightningCannonAction a:
 				actorId = a.ActorId;
-				weapon = "Railgun";
+				weapon = "Lightning Cannon";
 				mount = null;
 				return true;
 			case DetonateAction a:

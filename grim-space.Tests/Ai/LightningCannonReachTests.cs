@@ -10,13 +10,13 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Ai;
 
 [BattleTestSuite]
-public sealed class RailgunReachTests
+public sealed class LightningCannonReachTests
 {
 	[Fact]
 	public void CouldPossiblyDamage_WhenWithinWeaponReachAlone_ReturnsTrue()
 	{
 		var self = Coord.Zero;
-		var reach = CatalogExpectations.RailgunMaxReach();
+		var reach = CatalogExpectations.LightningCannonMaxReach();
 		var opponent = new Coord(reach, 0, 0);
 
 		Assert.True(OffensiveReach.CouldPossiblyDamage(self, actionPoints: 0, opponent, reach));
@@ -26,7 +26,7 @@ public sealed class RailgunReachTests
 	public void CouldPossiblyDamage_WhenJustBeyondReachAndMoveBubble_ReturnsFalse()
 	{
 		var ap = 2;
-		var reach = CatalogExpectations.RailgunMaxReach();
+		var reach = CatalogExpectations.LightningCannonMaxReach();
 		var bubble = OffensiveReach.OptimisticMoveBubble(ap);
 		var self = Coord.Zero;
 		var opponent = new Coord(bubble + reach + 1, 0, 0);
@@ -38,7 +38,7 @@ public sealed class RailgunReachTests
 	public void CouldPossiblyDamage_WhenMoveBubbleClosesTheGap_ReturnsTrue()
 	{
 		var ap = 5;
-		var reach = CatalogExpectations.RailgunMaxReach();
+		var reach = CatalogExpectations.LightningCannonMaxReach();
 		var bubble = OffensiveReach.OptimisticMoveBubble(ap);
 		var self = Coord.Zero;
 		var opponent = new Coord(bubble + reach, 0, 0);
@@ -56,7 +56,7 @@ public sealed class RailgunReachTests
 	public void UpperBound_IncludesMaximumEngagementScore_WhenOpponentOutOfOptimisticReach()
 	{
 		var ap = 0;
-		var gap = OffensiveReach.OptimisticMoveBubble(ap) + CatalogExpectations.RailgunMaxReach() + 1;
+		var gap = OffensiveReach.OptimisticMoveBubble(ap) + CatalogExpectations.LightningCannonMaxReach() + 1;
 		var player = CreateUnit(ETeam.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
 		enemy.State.ActionPoints = ap;

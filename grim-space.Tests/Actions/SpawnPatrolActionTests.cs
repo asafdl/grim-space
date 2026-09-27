@@ -162,7 +162,7 @@ public sealed class SpawnPatrolActionTests
 	{
 		var abilities = Capabilities.AbilitiesFor(EType.Carrier);
 
-		Assert.Contains(abilities, def => def is RailgunDef);
+		Assert.Contains(abilities, def => def is LightningCannonDef);
 		Assert.Contains(abilities, def => def is SpawnPatrolDef);
 	}
 

@@ -8,7 +8,7 @@ namespace GrimSpace.World.StarSystem.Merchants;
 public static class WeaponsCatalog
 {
 	private static readonly EAbilityKind[] SellableKinds =
-		[EAbilityKind.Flak, EAbilityKind.Railgun];
+		[EAbilityKind.Flak, EAbilityKind.LightningCannon];
 
 	public static IReadOnlyList<MerchantCatalog.Offer> ListFor(ShipInstance ship)
 	{
@@ -33,7 +33,7 @@ public static class WeaponsCatalog
 			var cost = mount.Kind switch
 			{
 				EAbilityKind.Flak => MerchantUpgradePricing.FlakInstall(installedFlak),
-				EAbilityKind.Railgun => MerchantUpgradePricing.RailgunInstall(),
+				EAbilityKind.LightningCannon => MerchantUpgradePricing.LightningCannonInstall(),
 				_ => MerchantUpgradePricing.WeaponDamageUpgrade(0),
 			};
 			offers.Add(new MerchantCatalog.Offer(offering, cost));

@@ -12,7 +12,7 @@ public static class HazardResolution
 		kind switch
 		{
 			EHazardKind.FlakBurst => shooterPosition,
-			EHazardKind.RailgunBurst => shooterPosition,
+			EHazardKind.LightningCannonBurst => shooterPosition,
 			EHazardKind.TorpedoBlast => shooterPosition,
 			_ => cells.Count > 0 ? cells.First() : Coord.Zero,
 		};
@@ -73,7 +73,7 @@ public static class HazardResolution
 		switch (hazard.Kind)
 		{
 			case EHazardKind.FlakBurst:
-			case EHazardKind.RailgunBurst:
+			case EHazardKind.LightningCannonBurst:
 			case EHazardKind.TorpedoBlast:
 				ApplyDirectedDamage(hazard, unit, face);
 				break;

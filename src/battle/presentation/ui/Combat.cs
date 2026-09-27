@@ -4,7 +4,7 @@ public enum EPlayerMode
 {
 	Move,
 	Flak,
-	Railgun,
+	LightningCannon,
 	Torpedo,
 	SpawnPatrol,
 	Detonate,

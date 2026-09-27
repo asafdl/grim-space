@@ -110,7 +110,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		using var run = State.CreateNewRun(42);
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
-		var offering = MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade;
+		var offering = MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade;
 		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var action = CreateAction(
@@ -373,7 +373,7 @@ public sealed class MerchantCommerceCharacterizationTests
 		var starterWeaponOffers = WeaponsCatalog.ListFor(starter);
 		Assert.Contains(
 			starterWeaponOffers,
-			o => o.Offering == MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade);
+			o => o.Offering == MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade);
 		Assert.DoesNotContain(
 			starterWeaponOffers,
 			o => o.Offering == MerchantPurchaseTestHarness.FlakPortDamageUpgrade);
@@ -410,7 +410,7 @@ public sealed class MerchantCommerceCharacterizationTests
 		using var run = State.CreateNewRun(42);
 		var shipId = run.PlayerParty.ShipIds[0];
 		var ship = run.ShipRegistry.Get(shipId);
-		var offering = MerchantPurchaseTestHarness.RailgunForwardDamageUpgrade;
+		var offering = MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade;
 		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
 		var before = ship.Clone();
 		var action = new PurchaseAction(
@@ -433,11 +433,11 @@ public sealed class MerchantCommerceCharacterizationTests
 			id: "characterization-engagement");
 
 		var spawn = encounter.Spawns.Single(s => s.Ship.Id == shipId);
-		var railgunBefore = (RailgunSpec)before.Loadout.InstalledAbilities
+		var lightningCannonBefore = (LightningCannonSpec)before.Loadout.InstalledAbilities
 			.First(a => a.MountedOn == ESpatialOrientation.Forward).Spec;
-		var railgunAfter = (RailgunSpec)registryShip.Loadout.InstalledAbilities
+		var lightningCannonAfter = (LightningCannonSpec)registryShip.Loadout.InstalledAbilities
 			.First(a => a.MountedOn == ESpatialOrientation.Forward).Spec;
-		Assert.Equal(railgunBefore.Damage + 1, railgunAfter.Damage);
+		Assert.Equal(lightningCannonBefore.Damage + 1, lightningCannonAfter.Damage);
 		Assert.Equal(registryShip.Loadout.InstalledAbilities, spawn.Ship.Loadout.InstalledAbilities);
 		Assert.Equal(registryShip.HullPoints, spawn.Ship.HullPoints);
 		Assert.True(registryShip.ShieldPoints.Matches(spawn.Ship.ShieldPoints));

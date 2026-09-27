@@ -22,7 +22,7 @@ public sealed class HumanExecutionAgentTests
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 		var preview = new PlanningPreview();
 
@@ -43,7 +43,7 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var option = BattleTestCommands.MoveOptions(battle)
 			.First(path => path.Steps.Any(step => step is HeadingTurnAction or RollAction));
 
@@ -60,16 +60,16 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 
 		var changes = 0;
 		agent.PlanningChanged += () => changes++;
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 		var actionsBefore = agent.Sim.Actions.Count;
 
-		Assert.False(BattleTestCommands.FireRailgun(battle));
+		Assert.False(BattleTestCommands.FireLightningCannon(battle));
 
 		Assert.Equal(1, changes);
 		Assert.Equal(actionsBefore, agent.Sim.Actions.Count);
@@ -82,7 +82,7 @@ public sealed class HumanExecutionAgentTests
 		var end = origin + Coord.Forward * 3;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var preview = new PlanningPreview();
 		var liveBefore = battle.Engine.World.StateOf(PlayerId).Position;
 
@@ -99,7 +99,7 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 
 		Assert.True(agent.IsPlanning);
@@ -118,27 +118,27 @@ public sealed class HumanExecutionAgentTests
 	}
 
 	[Fact]
-	public void FireRailgunUpdatesQueuedWeaponPreview()
+	public void FireLightningCannonUpdatesQueuedWeaponPreview()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 		var preview = new PlanningPreview();
 
 		Assert.DoesNotContain(
 			preview.AreaPreviews(agent.Sim, PlayerId, []).Queued,
-			item => item.Action is RailgunAction);
+			item => item.Action is LightningCannonAction);
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 
 		Assert.Contains(
 			preview.AreaPreviews(agent.Sim, PlayerId, []).Queued,
-			item => item.Action is RailgunAction);
+			item => item.Action is LightningCannonAction);
 		Assert.Equal(
 			0,
-			preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].UsesRemaining(EAbilityKind.Railgun));
+			preview.PreviewUnits(agent.Sim, PlayerId)[PlayerId].UsesRemaining(EAbilityKind.LightningCannon));
 		Assert.NotEmpty(preview.ThreatenedUnitIds(agent.Sim, PlayerId));
 	}
 
@@ -148,17 +148,17 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 		var preview = new PlanningPreview();
 
 		Assert.True(agent.IsPlanning);
-		Assert.True(preview.Weapons(agent.Sim, PlayerId).Railgun);
-		Assert.True(preview.Weapons(agent.Sim, PlayerId).IsKindLegal(EWeaponKind.Railgun));
+		Assert.True(preview.Weapons(agent.Sim, PlayerId).LightningCannon);
+		Assert.True(preview.Weapons(agent.Sim, PlayerId).IsKindLegal(EWeaponKind.LightningCannon));
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 
-		Assert.False(preview.Weapons(agent.Sim, PlayerId).Railgun);
+		Assert.False(preview.Weapons(agent.Sim, PlayerId).LightningCannon);
 	}
 
 	[Fact]
@@ -167,7 +167,7 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 
 		BattleTestFixture.RevokePlayerPlanning(battle);
@@ -188,7 +188,7 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 
 		BattleTestFixture.ResetPlayerPlanning(battle);
@@ -209,7 +209,7 @@ public sealed class HumanExecutionAgentTests
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			origin,
-			TurnOrchestrationTests.EnemyInRailgunLine(origin));
+			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var agent = battle.PlayerAgent;
 
 		BattleTestFixture.ResetPlayerPlanning(battle);

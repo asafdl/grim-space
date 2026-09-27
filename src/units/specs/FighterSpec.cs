@@ -30,7 +30,7 @@ public sealed class FighterSpec : ShipSpec
 	[
 		new(new(EAbilityKind.Flak, ESpatialOrientation.Port), ChassisWeaponBaselines.Flak()),
 		new(new(EAbilityKind.Flak, ESpatialOrientation.Starboard), ChassisWeaponBaselines.Flak()),
-		new(new(EAbilityKind.Railgun, ESpatialOrientation.Forward), ChassisWeaponBaselines.Railgun()),
+		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Forward), ChassisWeaponBaselines.LightningCannon()),
 		new(new(EAbilityKind.TorpedoLauncher, ESpatialOrientation.Retro), ChassisWeaponBaselines.TorpedoLauncher()),
 		new(new(EAbilityKind.TorpedoLauncher, ESpatialOrientation.Ventral), ChassisWeaponBaselines.TorpedoLauncher()),
 		new(new(EAbilityKind.TorpedoLauncher, ESpatialOrientation.Dorsal), ChassisWeaponBaselines.TorpedoLauncher()),

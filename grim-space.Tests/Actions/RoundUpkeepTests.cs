@@ -23,13 +23,13 @@ public sealed class RoundUpkeepTests
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ActionPoints = 0;
 		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak, 0);
-		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Railgun, 0);
+		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
 		ApplyRoundUpkeep(player);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.Flak));
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.Railgun));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
@@ -52,13 +52,13 @@ public sealed class RoundUpkeepTests
 		var playerState = battle.Engine.World.StateOf(battle.PlayerId);
 		playerState.ActionPoints = 0;
 		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak, 0);
-		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Railgun, 0);
+		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
 		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.Flak));
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.Railgun));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.LightningCannon));
 	}
 
 	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)

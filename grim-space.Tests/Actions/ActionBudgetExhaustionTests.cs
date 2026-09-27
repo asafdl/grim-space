@@ -42,6 +42,6 @@ public sealed class ActionBudgetExhaustionTests
 			Assert.True(session.TryEnqueue(new MoveStepAction(PlayerId)));
 
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, FlakDef.Instance));
-		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, RailgunDef.Instance));
+		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, LightningCannonDef.Instance));
 	}
 }

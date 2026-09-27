@@ -67,7 +67,7 @@ public sealed class InteractionStateTests
 		var state = new InteractionState();
 		var spec = AbilityHudCatalog.ForUnit(GrimSpace.Units.Enums.EType.Fighter)[0];
 
-		state.SetMode(EPlayerMode.Railgun, spec);
+		state.SetMode(EPlayerMode.LightningCannon, spec);
 		state.FocusUnit("enemy");
 
 		Assert.Equal(EPlayerMode.Move, state.Mode);

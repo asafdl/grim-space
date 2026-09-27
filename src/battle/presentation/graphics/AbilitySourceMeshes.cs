@@ -13,7 +13,7 @@ internal static class AbilitySourceMeshes
 			Rings = 6,
 		});
 
-	public static Node3D CreateRailgun() =>
+	public static Node3D CreateLightningCannon() =>
 		Ghost(new BoxMesh
 		{
 			Size = new Vector3(0.18f, 0.18f, 1.35f),

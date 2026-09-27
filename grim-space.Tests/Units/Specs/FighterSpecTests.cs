@@ -14,7 +14,7 @@ public sealed class FighterSpecTests
 		var spec = FighterSpec.Instance;
 
 		Assert.Equal(6, spec.Slots.Count);
-		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.Railgun, ESpatialOrientation.Forward)));
+		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)));
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
 	}
 
@@ -41,15 +41,15 @@ public sealed class FighterSpecTests
 	public void NewRunLoadout_IsStarterConfiguration()
 	{
 		var loadout = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
-		var railgun = (RailgunSpec)loadout.InstalledAbilities
-			.Single(ability => ability.Spec.Kind == EAbilityKind.Railgun).Spec;
+		var lightningCannon = (LightningCannonSpec)loadout.InstalledAbilities
+			.Single(ability => ability.Spec.Kind == EAbilityKind.LightningCannon).Spec;
 		var launcher = (TorpedoLauncherSpec)loadout.InstalledAbilities
 			.Single(ability => ability.Spec.Kind == EAbilityKind.TorpedoLauncher).Spec;
 
 		Assert.Equal(2, loadout.InstalledAbilities.Count);
-		Assert.Equal(2, railgun.Damage);
-		Assert.Equal(5, railgun.LineLength);
-		Assert.Equal(2, railgun.PyramidRange);
+		Assert.Equal(2, lightningCannon.Damage);
+		Assert.Equal(5, lightningCannon.LineLength);
+		Assert.Equal(2, lightningCannon.PyramidRange);
 		Assert.Equal(2, launcher.FuelTurns);
 	}
 }

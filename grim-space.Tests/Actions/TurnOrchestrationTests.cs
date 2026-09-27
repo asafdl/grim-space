@@ -61,7 +61,7 @@ public sealed class TurnOrchestrationTests
 		Assert.Contains(replay.Actions, action => action is MoveStepAction);
 	}
 
-	public static Coord EnemyInRailgunLine(Coord playerPos) => playerPos + Coord.Forward * 6;
+	public static Coord EnemyInLightningCannonLine(Coord playerPos) => playerPos + Coord.Forward * 6;
 
 	public static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{

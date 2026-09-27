@@ -13,10 +13,10 @@ namespace GrimSpace.Tests.Units;
 public sealed class CapabilitiesDiscoveryTests
 {
 	[Fact]
-	public void FighterWithoutRailgun_DoesNotDiscoverRailgun()
+	public void FighterWithoutLightningCannon_DoesNotDiscoverLightningCannon()
 	{
 		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
-			.Where(ability => ability.Spec.Kind != EAbilityKind.Railgun)
+			.Where(ability => ability.Spec.Kind != EAbilityKind.LightningCannon)
 			.ToArray();
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
@@ -32,7 +32,7 @@ public sealed class CapabilitiesDiscoveryTests
 
 		var legal = Capabilities.LegalCapabilities(battle.PlayerAgent.Sim, player.State.Id);
 
-		Assert.DoesNotContain(legal, action => action is RailgunAction);
+		Assert.DoesNotContain(legal, action => action is LightningCannonAction);
 		Assert.Contains(legal, action => action is TorpedoAction);
 	}
 

@@ -128,7 +128,7 @@ public sealed class MovePreviewSearchTests
 		Assert.True(sim.TryEnqueue(firstMove.Session.Steps.Cast<IAction>().ToArray()));
 		var afterMove = cache.GetPaths(sim, PlayerId);
 
-		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.RailgunAction(PlayerId)));
+		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.LightningCannonAction(PlayerId)));
 		var afterWeapon = cache.GetPaths(sim, PlayerId);
 
 		Assert.Equal(

@@ -49,7 +49,7 @@ public sealed class AbilityActivationTests
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
 		var port = new FlakAction(actor.Id, ESpatialOrientation.Port);
 		var starboard = new FlakAction(actor.Id, ESpatialOrientation.Starboard);
-		IAction[] capabilities = [port, new RailgunAction(actor.Id), starboard];
+		IAction[] capabilities = [port, new LightningCannonAction(actor.Id), starboard];
 
 		var spec = Spec(EPlayerMode.Flak);
 		var choices = AbilityActivation.ResolveChoices(spec, actor, capabilities);
@@ -95,32 +95,32 @@ public sealed class AbilityActivationTests
 	public void ResolveChoicesPlacesActorOnlyAbilitySources()
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		var railgun = new RailgunAction(actor.Id);
+		var lightningCannon = new LightningCannonAction(actor.Id);
 		var patrol = new SpawnPatrolAction(actor.Id, ESpatialOrientation.Ventral, "patrol");
 		var detonate = new DetonateAction(actor.Id);
 		var patrolPose = PatrolBayMount.LaunchPose(actor, ESpatialOrientation.Ventral);
 
-		var railgunSpec = Spec(EPlayerMode.Railgun);
+		var lightningCannonSpec = Spec(EPlayerMode.LightningCannon);
 		var patrolSpec = Spec(EPlayerMode.SpawnPatrol);
 		var detonateSpec = AbilityHudCatalog.ForUnit(EType.Torpedo).Single();
-		var railgunChoice = Assert.Single(
+		var lightningCannonChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
-				railgunSpec,
+				lightningCannonSpec,
 				actor,
-				[railgun, patrol, detonate]));
+				[lightningCannon, patrol, detonate]));
 		var patrolChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				patrolSpec,
 				actor,
-				[railgun, patrol, detonate]));
+				[lightningCannon, patrol, detonate]));
 		var detonateChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				detonateSpec,
 				actor,
-				[railgun, patrol, detonate]));
+				[lightningCannon, patrol, detonate]));
 
-		Assert.Equal(actor.Position + actor.Fore, railgunChoice.Position);
-		Assert.Same(railgunSpec.Targeting, railgunChoice.Targeting);
+		Assert.Equal(actor.Position + actor.Fore, lightningCannonChoice.Position);
+		Assert.Same(lightningCannonSpec.Targeting, lightningCannonChoice.Targeting);
 		Assert.Equal(patrolPose.Position, patrolChoice.Position);
 		Assert.Same(patrolSpec.Targeting, patrolChoice.Targeting);
 		Assert.Equal(actor.Position, detonateChoice.Position);

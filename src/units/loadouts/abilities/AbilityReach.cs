@@ -7,13 +7,13 @@ public static class AbilityReach
 		spec switch
 		{
 			FlakSpec flak => flak.BurstRange * 3 + 1,
-			RailgunSpec railgun => railgun.LineLength + 2 * railgun.PyramidRange,
+			LightningCannonSpec lightningCannon => lightningCannon.LineLength + 2 * lightningCannon.PyramidRange,
 			_ => 0,
 		};
 
 	public static float FlakReplayShotLength(FlakSpec spec) =>
 		spec.BurstRange + 1.6f;
 
-	public static float RailgunReplayShotLength(RailgunSpec spec) =>
+	public static float LightningCannonReplayShotLength(LightningCannonSpec spec) =>
 		spec.LineLength + spec.PyramidRange + 0.7f;
 }

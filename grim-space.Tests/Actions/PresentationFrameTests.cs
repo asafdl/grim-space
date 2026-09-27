@@ -26,7 +26,7 @@ public sealed class PresentationFrameTests
 	public void FrameAfterQueuedMoveShowsReachableExtensions()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var options = BattleTestCommands.MoveOptions(battle).ToList();
 		var threeStepEnd = origin + Coord.Forward * 3;
 
@@ -45,7 +45,7 @@ public sealed class PresentationFrameTests
 	public void UndoClearsQueuedMoveFromFrame()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var threeStepEnd = origin + Coord.Forward * 3;
 
 		BattleTestCommands.Move(battle, threeStepEnd);
@@ -62,26 +62,26 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void UndoClearsQueuedRailgun()
+	public void UndoClearsQueuedLightningCannon()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
-		Assert.Equal(0, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Railgun));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
+		Assert.Equal(0, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon));
 		Assert.Single(battle.PlayerAgent.Sim.Actions);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Railgun));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
 	public void UndoClearsQueuedFlak()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 
 		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
 		Assert.Equal(
@@ -98,29 +98,29 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void UndoClearsRailgunQueuedAfterMove()
+	public void UndoClearsLightningCannonQueuedAfterMove()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var threeStepEnd = origin + Coord.Forward * 3;
 
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 
 		Assert.Equal(4, battle.PlayerAgent.Sim.Actions.Count);
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
-		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Railgun));
+		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is LightningCannonAction);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.LightningCannon));
 		Assert.Equal(3, battle.PlayerAgent.Sim.Actions.Count(action => action is MoveStepAction));
 	}
 
 	[Fact]
-	public void UndoRailgunPreservesCommittedMoveCheckpoints()
+	public void UndoLightningCannonPreservesCommittedMoveCheckpoints()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var threeStepEnd = origin + Coord.Forward * 3;
 
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
@@ -128,19 +128,19 @@ public sealed class PresentationFrameTests
 		var pathAfterMove = preview.CommittedMoveCheckpoints(battle.PlayerAgent.Sim, battle.PlayerId).ToList();
 		Assert.NotEmpty(pathAfterMove);
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Equal(pathAfterMove, preview.CommittedMoveCheckpoints(battle.PlayerAgent.Sim, battle.PlayerId));
-		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is RailgunAction);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Railgun), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Railgun));
+		Assert.DoesNotContain(battle.PlayerAgent.Sim.Actions, action => action is LightningCannonAction);
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
 	public void DefaultFocusIsPlayer()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 
 		var frame = BattleTestCommands.Frame(battle);
 
@@ -156,7 +156,7 @@ public sealed class PresentationFrameTests
 	public void FocusEnemyShowsInspectionFrame()
 	{
 		var origin = new Coord(5, 5, 5);
-		var enemyPos = TurnOrchestrationTests.EnemyInRailgunLine(origin);
+		var enemyPos = TurnOrchestrationTests.EnemyInLightningCannonLine(origin);
 		var battle = CreateOrchestrator(origin, enemyPos);
 
 		BattleTestCommands.Focus(battle, BattleTestFixture.FirstEnemyId(battle));
@@ -178,7 +178,7 @@ public sealed class PresentationFrameTests
 	public void InspectionDoesNotMutatePlanning()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var threeStepEnd = origin + Coord.Forward * 3;
 		Assert.True(BattleTestCommands.Move(battle, threeStepEnd));
 
@@ -196,10 +196,10 @@ public sealed class PresentationFrameTests
 	public void QueuedAreaActionsUseTheirOwnActorStateAtQueueIndex()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var afterMove = origin + Coord.Forward * 2;
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 		Assert.True(BattleTestCommands.Move(battle, afterMove));
 		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
 
@@ -209,27 +209,27 @@ public sealed class PresentationFrameTests
 			preview.PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId)[battle.PlayerId].Position);
 
 		var frame = BattleTestCommands.Frame(battle);
-		var railgunPreview = Assert.Single(
+		var lightningCannonPreview = Assert.Single(
 			frame.AreaActions.Queued,
-			preview => preview.Action is RailgunAction);
+			preview => preview.Action is LightningCannonAction);
 		var flakPreview = Assert.Single(
 			frame.AreaActions.Queued,
 			preview => preview.Action is FlakAction);
-		var railgunIndex = battle.PlayerAgent.Sim.Actions
+		var lightningCannonIndex = battle.PlayerAgent.Sim.Actions
 			.ToList()
-			.FindIndex(action => action is RailgunAction);
+			.FindIndex(action => action is LightningCannonAction);
 		var flakIndex = battle.PlayerAgent.Sim.Actions
 			.ToList()
 			.FindIndex(action => action is FlakAction);
-		var expectedRailgun = RailgunDef.Instance.AffectedCells(
-			(RailgunAction)railgunPreview.Action,
-			battle.PlayerAgent.Sim.ReplayWorld(railgunIndex));
+		var expectedLightningCannon = LightningCannonDef.Instance.AffectedCells(
+			(LightningCannonAction)lightningCannonPreview.Action,
+			battle.PlayerAgent.Sim.ReplayWorld(lightningCannonIndex));
 		var expectedFlak = FlakDef.Instance.AffectedCells(
 			(FlakAction)flakPreview.Action,
 			battle.PlayerAgent.Sim.ReplayWorld(flakIndex));
-		Assert.True(expectedRailgun.SetEquals(railgunPreview.Volume.Cells));
+		Assert.True(expectedLightningCannon.SetEquals(lightningCannonPreview.Volume.Cells));
 		Assert.True(expectedFlak.SetEquals(flakPreview.Volume.Cells));
-		Assert.Equal(origin, railgunPreview.Volume.Origin);
+		Assert.Equal(origin, lightningCannonPreview.Volume.Origin);
 		Assert.Equal(afterMove, flakPreview.Volume.Origin);
 	}
 
@@ -240,14 +240,14 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		var frame = BattleTestCommands.Frame(battle);
-		var railgunPreview = Assert.Single(
+		var lightningCannonPreview = Assert.Single(
 			frame.AreaActions.Aim,
-			preview => preview.Action is RailgunAction);
-		var expectedRailgun = RailgunDef.Instance.AffectedCells(
-			(RailgunAction)railgunPreview.Action,
+			preview => preview.Action is LightningCannonAction);
+		var expectedLightningCannon = LightningCannonDef.Instance.AffectedCells(
+			(LightningCannonAction)lightningCannonPreview.Action,
 			battle.PlayerAgent.Sim.World);
-		Assert.True(expectedRailgun.SetEquals(railgunPreview.Volume.Cells));
-		Assert.Equal(origin, railgunPreview.Volume.Origin);
+		Assert.True(expectedLightningCannon.SetEquals(lightningCannonPreview.Volume.Cells));
+		Assert.Equal(origin, lightningCannonPreview.Volume.Origin);
 		var flakPreviews = frame.AreaActions.Aim
 			.Where(preview => preview.Action is FlakAction)
 			.ToDictionary(
@@ -283,14 +283,14 @@ public sealed class PresentationFrameTests
 		actor.Dorsal = Coord.Up;
 		actor.Starboard = Coord.Cross(actor.Dorsal, actor.Fore);
 		var frame = BodyFrame.From(actor);
-		var railgun = new RailgunAction(battle.PlayerId);
+		var lightningCannon = new LightningCannonAction(battle.PlayerId);
 		var flak = new FlakAction(battle.PlayerId, ESpatialOrientation.Port);
 
-		var railgunCells = ((IAreaActionDef)railgun.Definition).AffectedCells(railgun, world);
+		var lightningCannonCells = ((IAreaActionDef)lightningCannon.Definition).AffectedCells(lightningCannon, world);
 		var flakCells = ((IAreaActionDef)flak.Definition).AffectedCells(flak, world);
 
-		Assert.Contains(frame.ToWorld(1, 0, 0), railgunCells);
-		Assert.DoesNotContain(frame.Origin, railgunCells);
+		Assert.Contains(frame.ToWorld(1, 0, 0), lightningCannonCells);
+		Assert.DoesNotContain(frame.Origin, lightningCannonCells);
 		Assert.Contains(frame.ToWorld(0, 1, 0), flakCells);
 		Assert.DoesNotContain(frame.ToWorld(0, -1, 0), flakCells);
 	}
@@ -436,11 +436,11 @@ public sealed class PresentationFrameTests
 	public void ThreatenedUnitIdsIncludesTargetsFromEveryQueuedWeapon()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
 		var preview = new PlanningPreview();
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 		Assert.Contains(
 			enemyId,
 			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId));
@@ -456,14 +456,14 @@ public sealed class PresentationFrameTests
 	public void PreviewRetainsPredictedDeadUnits()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
 		var enemy = battle.PlayerAgent.Sim.StateOf<ActorState>(enemyId);
 		enemy.HullPoints = 1;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			enemy.ShieldPoints[face] = 0;
 
-		Assert.True(BattleTestCommands.FireRailgun(battle));
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 
 		var preview = new PlanningPreview().PreviewUnits(battle.PlayerAgent.Sim, battle.PlayerId);
 
@@ -475,7 +475,7 @@ public sealed class PresentationFrameTests
 	public void InvalidFocusTargetFallsBackToPlayer()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInRailgunLine(origin));
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 
 		BattleTestCommands.Focus(battle, "missing");
 		var frame = BattleTestCommands.Frame(battle);

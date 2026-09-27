@@ -8,16 +8,16 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
-public sealed class RailgunActionClip : IReplayClip
+public sealed class LightningCannonActionClip : IReplayClip
 {
-	public Type ActionType => typeof(RailgunAction);
+	public Type ActionType => typeof(LightningCannonAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
-		var railgun = (RailgunAction)action;
-		var state = context.ReplayState.StateOf(railgun.ActorId);
-		var spec = state.FindInstalled(EAbilityKind.Railgun, railgun.MountedOn)?.Spec as RailgunSpec
-			?? throw new InvalidOperationException($"Railgun replay actor '{railgun.ActorId}' has no railgun installed on {railgun.MountedOn}.");
+		var lightningCannon = (LightningCannonAction)action;
+		var state = context.ReplayState.StateOf(lightningCannon.ActorId);
+		var spec = state.FindInstalled(EAbilityKind.LightningCannon, lightningCannon.MountedOn)?.Spec as LightningCannonSpec
+			?? throw new InvalidOperationException($"Lightning cannon replay actor '{lightningCannon.ActorId}' has no lightning cannon installed on {lightningCannon.MountedOn}.");
 
 		LightningCannonEffect.Fire(
 			context.HazardBursts,

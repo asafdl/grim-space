@@ -45,15 +45,15 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
-	public void FormatsRailgunHit()
+	public void FormatsLightningCannonHit()
 	{
 		ITimelineEntry[] history =
 		[
-			new RailgunAction("patrol-a"),
+			new LightningCannonAction("patrol-a"),
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "patrol-a",
 				TargetId: "fighter-b",
-				Cause: EHazardKind.RailgunBurst,
+				Cause: EHazardKind.LightningCannonBurst,
 				Face: ESpatialOrientation.Dorsal,
 				ShieldDamage: 2,
 				HullDamage: 1)),
@@ -68,7 +68,7 @@ public sealed class ActionLogTests
 
 		AssertEntries(
 			lines,
-			"Railgun · Hit|enemy patrol-a → player fighter-b|dorsal · 2 shield · 1 hull");
+			"Lightning Cannon · Hit|enemy patrol-a → player fighter-b|dorsal · 2 shield · 1 hull");
 	}
 
 	[Fact]

@@ -53,7 +53,7 @@ public static class ShipCatalog
 
 		var installed = new[]
 		{
-			new InstalledAbility(ChassisWeaponBaselines.StarterRailgun(), ESpatialOrientation.Forward),
+			new InstalledAbility(ChassisWeaponBaselines.StarterLightningCannon(), ESpatialOrientation.Forward),
 			new InstalledAbility(
 				ChassisWeaponBaselines.StarterTorpedoLauncher(),
 				ESpatialOrientation.Ventral),
