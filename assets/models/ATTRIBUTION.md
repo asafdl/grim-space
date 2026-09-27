@@ -30,4 +30,4 @@ Kenny particle-pack smoke textures used for map dust: see `assets/kenny-particle
 
 "Black Hole Station, Daily Draft 3\5" (https://sketchfab.com/3d-models/black-hole-station-daily-draft-35-3ead2bf646c049fbb176470b38d459e1) by Ferot is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 
-`abilities/lightning_cannon_bolts.glb` adapts "Lighting Pack 2 - Forked Lightning" (https://sketchfab.com/3d-models/lighting-pack-2-forked-lightning-ae1340ba8cb647dda502d884e5c1b862) by re1monsen, licensed under Creative Commons Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/). The bolts were arranged into a line-and-fork effect.
+`abilities/lightning_cannon_bolts_bold.glb` adapts "Lighting Pack 2 - Forked Lightning" (https://sketchfab.com/3d-models/lighting-pack-2-forked-lightning-ae1340ba8cb647dda502d884e5c1b862) by re1monsen, licensed under Creative Commons Attribution 4.0 (http://creativecommons.org/licenses/by/4.0/). The bolts were arranged into a line-and-fork effect.

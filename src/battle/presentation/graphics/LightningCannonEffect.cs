@@ -4,12 +4,15 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class LightningCannonEffect : Node3D
 {
-	private const string BoltPath = "res://assets/models/abilities/lightning_cannon_bolts.glb";
-	private const float StrikeSeconds = 0.065f;
+	private const string BoltPath = "res://assets/models/abilities/lightning_cannon_bolts_bold.glb";
+	internal const float StrikeSeconds = 0.065f;
 	private const float LifetimeSeconds = 0.22f;
+	private const float BeamThicknessScale = 1.22f * 1.35f;
 	private static PackedScene? _bolts;
 	private readonly List<MeshInstance3D> _pieces = [];
 	private float _elapsed;
+	private float _strikeSeconds = StrikeSeconds;
+	private float _lifetimeSeconds = LifetimeSeconds;
 
 	public static LightningCannonEffect Fire(
 		Node3D parent,
@@ -18,7 +21,9 @@ public partial class LightningCannonEffect : Node3D
 		Vector3 dorsal,
 		float cellSize,
 		int lineLength,
-		int pyramidRange)
+		int pyramidRange,
+		float strikeSeconds = StrikeSeconds,
+		float lifetimeSeconds = LifetimeSeconds)
 	{
 		if (cellSize <= 0 || lineLength < 1 || pyramidRange < 0)
 			throw new ArgumentOutOfRangeException(nameof(cellSize), "Cell size and line length must be positive; pyramid range cannot be negative.");
@@ -31,33 +36,41 @@ public partial class LightningCannonEffect : Node3D
 		_bolts ??= GD.Load<PackedScene>(BoltPath)
 			?? throw new InvalidOperationException($"Could not load lightning VFX '{BoltPath}'.");
 		var root = _bolts.Instantiate<Node3D>();
-		var effect = new LightningCannonEffect { Name = "LightningCannonEffect" };
+		var effect = new LightningCannonEffect
+		{
+			Name = "LightningCannonEffect",
+			_strikeSeconds = strikeSeconds,
+			_lifetimeSeconds = lifetimeSeconds,
+		};
 		try
 		{
 			var meshes = root.FindChildren("*", "MeshInstance3D", true, false)
 				.OfType<MeshInstance3D>().ToDictionary(mesh => mesh.Name.ToString());
 			var right = up.Cross(fore).Normalized();
 			var orientation = new Basis(fore, right, up);
+			var beamThickness = cellSize * BeamThicknessScale;
 			foreach (var name in new[] { "MainBoltA", "MainBoltB", "MainBoltC" })
 			{
 				effect.AddPiece(FindMesh(name), origin, orientation,
-					new Vector3(lineLength * cellSize, cellSize, cellSize), 0.95f);
+					new Vector3(lineLength * cellSize, beamThickness, beamThickness), 1f);
 			}
 
 			if (pyramidRange > 0)
 			{
-				var forks = FindMesh("TerminalForks");
-				const float overlapCells = 0.5f;
-				for (var i = 0; i < 3; i++)
-				{
-					var angle = i * Mathf.Tau / 3f;
-					var forkRight = right * Mathf.Cos(angle) + up * Mathf.Sin(angle);
-					var forkUp = up * Mathf.Cos(angle) - right * Mathf.Sin(angle);
-					effect.AddPiece(forks, origin + fore * ((lineLength - overlapCells) * cellSize),
-						new Basis(fore, forkRight, forkUp),
-						new Vector3((pyramidRange + overlapCells) * cellSize,
-							pyramidRange * cellSize, pyramidRange * cellSize), 0.64f);
-				}
+				// TerminalForks: short +X trunk, branches in local Y/Z — one aligned copy at the beam tip.
+				var rng = new RandomNumberGenerator { Seed = GD.Randi() };
+				const float overlapCells = 0.35f;
+				var roll = rng.RandfRange(-0.22f, 0.22f);
+				var forkOrientation = orientation.Rotated(fore, roll);
+				var junction = origin + fore * ((lineLength - overlapCells) * cellSize);
+				var depthScale = (pyramidRange + overlapCells) * rng.RandfRange(0.96f, 1.04f);
+				var spreadScale = pyramidRange * rng.RandfRange(0.95f, 1.08f);
+				effect.AddPiece(
+					FindMesh("TerminalForks"),
+					junction,
+					forkOrientation,
+					new Vector3(depthScale * cellSize, spreadScale * cellSize, spreadScale * cellSize),
+					rng.RandfRange(0.78f, 0.84f));
 			}
 
 			parent.AddChild(effect);
@@ -104,15 +117,15 @@ public partial class LightningCannonEffect : Node3D
 	public override void _Process(double delta)
 	{
 		_elapsed += (float)delta;
-		if (_elapsed >= LifetimeSeconds)
+		if (_elapsed >= _lifetimeSeconds)
 		{
 			QueueFree();
 			return;
 		}
 
-		var alpha = _elapsed < StrikeSeconds
+		var alpha = _elapsed < _strikeSeconds
 			? 1f
-			: 0.3f * (1f - (_elapsed - StrikeSeconds) / (LifetimeSeconds - StrikeSeconds));
+			: 0.3f * (1f - (_elapsed - _strikeSeconds) / (_lifetimeSeconds - _strikeSeconds));
 		foreach (var piece in _pieces)
 			piece.Transparency = 1f - alpha;
 	}

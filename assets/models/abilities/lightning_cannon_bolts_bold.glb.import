@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cxt8y8vjr6ho"
-path="res://.godot/imported/lightning_cannon_bolts.glb-1d10b45de5ffd8fdc0d6a50224b77fb5.scn"
+uid="uid://cf53s4sl6ryqn"
+path="res://.godot/imported/lightning_cannon_bolts_bold.glb-47dab790ae95d7d684addcbe5f4118cb.scn"
 
 [deps]
 
-source_file="res://assets/models/abilities/lightning_cannon_bolts.glb"
-dest_files=["res://.godot/imported/lightning_cannon_bolts.glb-1d10b45de5ffd8fdc0d6a50224b77fb5.scn"]
+source_file="res://assets/models/abilities/lightning_cannon_bolts_bold.glb"
+dest_files=["res://.godot/imported/lightning_cannon_bolts_bold.glb-47dab790ae95d7d684addcbe5f4118cb.scn"]
 
 [params]
 

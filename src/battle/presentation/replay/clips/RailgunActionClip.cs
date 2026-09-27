@@ -28,7 +28,7 @@ public sealed class RailgunActionClip : IReplayClip
 			spec.LineLength,
 			spec.PyramidRange);
 
-		return ClipPlayback.Pause(ReplayTiming.WeaponBurstSeconds);
+		return ClipPlayback.Pause(LightningCannonEffect.StrikeSeconds);
 	}
 
 	private static Vector3 ToVector3(Coord coord) =>
