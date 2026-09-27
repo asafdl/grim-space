@@ -46,6 +46,14 @@ public partial class TurnReplayPlayer : Node3D
 	private double _upkeepAnimMs;
 	private double _timeToEnemyAnimMs;
 	private bool _loggedEnemyAnimStart;
+	private double _actionWorkMs;
+	private double _spawnWorkMs;
+	private double _impactWorkMs;
+	private double _scheduledWaitMs;
+	private double _actualWaitMs;
+	private int _actionCount;
+	private int _spawnCount;
+	private int _impactCount;
 
 	public bool IsPlaying { get; private set; }
 
@@ -105,6 +113,14 @@ public partial class TurnReplayPlayer : Node3D
 		_upkeepAnimMs = 0;
 		_timeToEnemyAnimMs = 0;
 		_loggedEnemyAnimStart = false;
+		_actionWorkMs = 0;
+		_spawnWorkMs = 0;
+		_impactWorkMs = 0;
+		_scheduledWaitMs = 0;
+		_actualWaitMs = 0;
+		_actionCount = 0;
+		_spawnCount = 0;
+		_impactCount = 0;
 		_phase = EReplayPlaybackPhase.Player;
 		_playbackTimer.Restart();
 		_phaseTimer.Restart();
@@ -117,6 +133,7 @@ public partial class TurnReplayPlayer : Node3D
 		while (_entryIndex < _history.Count)
 		{
 			var entry = _history[_entryIndex++];
+			var entryStart = Stopwatch.GetTimestamp();
 			switch (entry)
 			{
 				case IAction action:
@@ -124,9 +141,17 @@ public partial class TurnReplayPlayer : Node3D
 					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
 					ReportActionInterest(action);
 					Clips.TryPlay(action, _clipContext, out var playback);
+					_actionWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
+					_actionCount++;
 					if (playback.Pauses)
 					{
-						GetTree().CreateTimer(playback.PauseSeconds).Timeout += PlayNext;
+						var waitStart = Stopwatch.GetTimestamp();
+						_scheduledWaitMs += playback.PauseSeconds * 1000;
+						GetTree().CreateTimer(playback.PauseSeconds).Timeout += () =>
+						{
+							_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+							PlayNext();
+						};
 						return;
 					}
 
@@ -135,11 +160,18 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<SpawnFacts> { Value: var spawn }:
 					BeginPhase(ReplayActorPhase.Classify(spawn.SourceId, _participants));
 					ApplySpawn(spawn);
+					_spawnWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
+					_spawnCount++;
 					break;
 				case Record<ImpactFacts> { Value: var impact }:
 					BeginPhase(ReplayActorPhase.Classify(impact.SourceId, _participants));
+					_impactCount++;
 					if (PlayImpact(impact))
+					{
+						_impactWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 						return;
+					}
+					_impactWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 					break;
 			}
 		}
@@ -204,8 +236,12 @@ public partial class TurnReplayPlayer : Node3D
 			? ReplayTiming.ImpactPauseSeconds + ReplayTiming.DeathExplosionSeconds
 			: ReplayTiming.ImpactPauseSeconds;
 
+		var waitStart = Stopwatch.GetTimestamp();
+		_scheduledWaitMs += pause * 1000;
 		GetTree().CreateTimer(pause).Timeout += () =>
 		{
+			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+			var cleanupStart = Stopwatch.GetTimestamp();
 			if (died)
 			{
 				_removeView(impact.TargetId);
@@ -216,6 +252,7 @@ public partial class TurnReplayPlayer : Node3D
 				lingering.Sync(_clipContext.ReplayState.StateOf(impact.TargetId));
 			}
 
+			_impactWorkMs += Stopwatch.GetElapsedTime(cleanupStart).TotalMilliseconds;
 			PlayNext();
 		};
 		return true;
@@ -323,6 +360,14 @@ public partial class TurnReplayPlayer : Node3D
 			+ $"upkeepAnim={_upkeepAnimMs:F1}ms "
 			+ $"toEnemyAnim={_timeToEnemyAnimMs:F1}ms "
 			+ $"history={_history.Count}");
+		GameLog.Log(
+			$"Turn {_turnNumber} replay breakdown: "
+			+ $"actions={_actionCount}/{_actionWorkMs:F1}ms "
+			+ $"spawns={_spawnCount}/{_spawnWorkMs:F1}ms "
+			+ $"impacts={_impactCount}/{_impactWorkMs:F1}ms "
+			+ $"waitScheduled={_scheduledWaitMs:F1}ms "
+			+ $"waitActual={_actualWaitMs:F1}ms "
+			+ $"other={totalMs - _actionWorkMs - _spawnWorkMs - _impactWorkMs - _actualWaitMs:F1}ms");
 
 		EmitSignal(SignalName.PlaybackComplete);
 	}

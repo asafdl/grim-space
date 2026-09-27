@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/dev/LightningCannonPreview.cs" id="1_preview"]
+
+[node name="LightningCannonPreview" type="Node3D"]
+script = ExtResource("1_preview")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(7, 10, 26)
+current = true
+fov = 60.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 1100.0
+offset_bottom = 100.0

@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Godot;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Log;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Replay;
@@ -81,11 +83,18 @@ public sealed partial class ReplayDirector : Node
 	private void StartPlayback(TurnReplay replay, int completedTurn)
 	{
 		_playbackEndStates = replay.EndStates;
+		var start = Stopwatch.GetTimestamp();
 		_replayPlayer.ResetToLive(
 			replay.StartStates,
 			replay.EndStates,
 			interest => _cameraDirector.ReportInterest(interest));
-		_replayPlayer.Play(replay.History, completedTurn, ParticipantTeams());
+		var resetMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+		var participants = ParticipantTeams();
+		var participantsMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds - resetMs;
+		GameLog.Log(
+			$"Turn {completedTurn} replay setup: reset={resetMs:F1}ms "
+			+ $"participants={participantsMs:F1}ms");
+		_replayPlayer.Play(replay.History, completedTurn, participants);
 	}
 
 	private IReadOnlyDictionary<string, ETeam> ParticipantTeams() =>
@@ -94,10 +103,15 @@ public sealed partial class ReplayDirector : Node
 
 	private void OnPlaybackComplete()
 	{
+		var start = Stopwatch.GetTimestamp();
 		if (_playbackEndStates is not null)
 			_battleView.ApplyUnitStates(_playbackEndStates, _colorForActor);
 
+		var syncMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 		_playbackEndStates = null;
 		_battle.NotifyReplayComplete();
+		GameLog.Log(
+			$"Turn {_pendingCompletedTurn} replay teardown: "
+			+ $"sync={syncMs:F1}ms notify={Stopwatch.GetElapsedTime(start).TotalMilliseconds - syncMs:F1}ms");
 	}
 }

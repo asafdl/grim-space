@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -9,24 +10,23 @@ namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
 public sealed class RailgunActionClip : IReplayClip
 {
-	private static readonly Color Tint = new(0.85f, 0.35f, 1f, 0.55f);
-
 	public Type ActionType => typeof(RailgunAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
 		var railgun = (RailgunAction)action;
 		var state = context.ReplayState.StateOf(railgun.ActorId);
-		var reachCells = state.FindInstalled(EAbilityKind.Railgun, railgun.MountedOn)?.Spec is RailgunSpec railgunSpec
-			? AbilityReach.RailgunReplayShotLength(railgunSpec)
-			: 10.7f;
+		var spec = state.FindInstalled(EAbilityKind.Railgun, railgun.MountedOn)?.Spec as RailgunSpec
+			?? throw new InvalidOperationException($"Railgun replay actor '{railgun.ActorId}' has no railgun installed on {railgun.MountedOn}.");
 
-		context.HazardBursts.PlayShotBurst(
-			state.Position,
+		LightningCannonEffect.Fire(
+			context.HazardBursts,
+			WorldMapping.ToWorld(state.Position),
 			ToVector3(state.Fore),
-			reachCells,
-			Tint,
-			ReplayTiming.WeaponBurstSeconds);
+			ToVector3(state.Dorsal),
+			WorldMapping.CellSize,
+			spec.LineLength,
+			spec.PyramidRange);
 
 		return ClipPlayback.Pause(ReplayTiming.WeaponBurstSeconds);
 	}
