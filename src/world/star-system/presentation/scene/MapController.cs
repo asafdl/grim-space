@@ -139,7 +139,8 @@ public partial class MapController : Node3D
 				var tickFraction = _tickAccumulator / SecondsPerTick;
 				return _units.UnitAt(_orchestrator, point, tickFraction, IsPlayerFleetVisible)?.UnitId;
 			},
-			point => _wreckage.WreckContractAt(point, _orchestrator.Map));
+			point => _wreckage.WreckContractAt(
+				point, _orchestrator.Map, _orchestrator.RuntimeFor, _tickAccumulator / SecondsPerTick));
 		_pauseButton.Pressed += () => _orchestrator.TogglePause();
 		_stepButton.Pressed += () =>
 		{
@@ -291,7 +292,7 @@ public partial class MapController : Node3D
 
 		RefreshPlayerVisibleFleets(0f);
 		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible);
-		_wreckage.Sync(_orchestrator.Map);
+		_wreckage.Sync(_orchestrator.Map, _orchestrator.RuntimeFor, 0f);
 	}
 
 	public override void _Process(double delta)
@@ -307,7 +308,7 @@ public partial class MapController : Node3D
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		RefreshPlayerVisibleFleets(tickFraction);
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible);
-		_wreckage.Sync(_orchestrator.Map);
+		_wreckage.Sync(world, _orchestrator.RuntimeFor, tickFraction);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
@@ -326,7 +327,8 @@ public partial class MapController : Node3D
 			? _units.UnitAt(_orchestrator, unitPoint, tickFraction, IsPlayerFleetVisible)
 			: null;
 		var wreckContractId = unitHover is null && point is { } wreckPoint
-			? _wreckage.WreckContractAt(wreckPoint, world)
+			? _wreckage.WreckContractAt(
+				wreckPoint, world, _orchestrator.RuntimeFor, tickFraction)
 			: null;
 		var landmarkId = unitHover is null && wreckContractId is null && point is { } landmarkPoint
 			? _landmarks.LandmarkAt(landmarkPoint)
