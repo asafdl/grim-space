@@ -280,8 +280,7 @@ public sealed partial class UserIntentTranslator : Node
 				CancelMoveSelection();
 				GetViewport().SetInputAsHandled();
 			}
-			else if (TryCancelAbilityMode())
-				GetViewport().SetInputAsHandled();
+
 			return;
 		}
 
