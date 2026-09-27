@@ -30,7 +30,7 @@ internal static class TutorialCopy
 	public const string EndBattleDialog = "3 Dimensional space is hard to navigate, take full advantage of camera controls and firing hints. Now go kill those scum.";
 
 	public const string TutorialGraduationMessage =
-		"Tutorial completed — explore the world, earn credits, and enjoy. " +
+		"Tutorial completed — explore the world, earn resources, and don't forget to upgrade your ship in the Tradehub! " +
 		"You can turn tutorials back on any time in settings.";
 
 }
