@@ -5,6 +5,7 @@ using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 using GrimSpace.World.StarSystem.Presentation.Scene;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Director;
 
@@ -24,7 +25,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private static readonly Color DockyardIconTint = new(0.45f, 0.65f, 1f);
 	private const int IconPx = 40;
 	private static readonly StyleBoxFlat ButtonNormal = CreateButtonStyle(
-		new Color(0.03f, 0.06f, 0.09f, 0.78f), new Color(0.94f, 0.91f, 0.84f, 0.85f));
+		new Color(0.03f, 0.06f, 0.09f, 0.78f), FacilityFacadeCallout.IconBorderColor);
 	private static readonly StyleBoxFlat ButtonHover = CreateButtonStyle(
 		new Color(0.12f, 0.17f, 0.21f, 0.92f), new Color(1f, 0.98f, 0.91f));
 	private static readonly StyleBoxFlat ButtonPressed = CreateButtonStyle(
@@ -53,7 +54,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private readonly ColorRect _fadeOverlay;
 	private readonly Func<PresentationTransitionResult> _requestExit;
 
-	private readonly List<Button> _facilityButtons = [];
+	private readonly List<FacilityFacadeCallout> _facilityCallouts = [];
 	private PointOfInterest? _activePoi;
 	private FacadeEnterPayload? _pendingPayload;
 	private MapPresentationContext? _ctx;
@@ -227,16 +228,11 @@ public sealed class FacadePresentationMode : IPresentationMode
 
 		foreach (var facility in poi.Facilities)
 		{
-			var button = new Button
-			{
-				TooltipText = facility.DisplayName,
-				Visible = true,
-				MouseFilter = Control.MouseFilterEnum.Stop,
-				ThemeTypeVariation = "MapIcon",
-				Icon = LoadFacilityIcon(facility.PresentationAnchor),
-				ExpandIcon = true,
-				CustomMinimumSize = new Vector2(48, 48),
-			};
+			var callout = new FacilityFacadeCallout();
+			var button = callout.Button;
+			button.TooltipText = facility.DisplayName;
+			button.Visible = true;
+			button.Icon = LoadFacilityIcon(facility.PresentationAnchor);
 			button.AddThemeStyleboxOverride("normal", ButtonNormal);
 			button.AddThemeStyleboxOverride("hover", ButtonHover);
 			button.AddThemeStyleboxOverride("pressed", ButtonPressed);
@@ -249,8 +245,8 @@ public sealed class FacadePresentationMode : IPresentationMode
 
 				BeginEnterFacility(_activePoi, facility, _ctx);
 			};
-			_uiLayer.AddChild(button);
-			_facilityButtons.Add(button);
+			_uiLayer.AddChild(callout);
+			_facilityCallouts.Add(callout);
 		}
 	}
 
@@ -258,36 +254,80 @@ public sealed class FacadePresentationMode : IPresentationMode
 	{
 		var viewport = ctx.ViewportSize();
 		var world = ctx.Map();
-		for (var i = 0; i < _facilityButtons.Count; i++)
+		var count = _facilityCallouts.Count;
+		if (count == 0)
+			return;
+
+		var camera = ctx.Camera;
+		var naturalCenters = new Vector2[count];
+		var anchorScreens = new Vector2[count];
+		var visible = new bool[count];
+
+		for (var i = 0; i < count; i++)
 		{
 			var facility = poi.Facilities[i];
-			var worldPos = ctx.View.ResolveFacilityAnchorWorldPosition(
+			var anchorWorld = ctx.View.ResolveFacilityAnchorWorldPosition(
 				poi,
 				facility.PresentationAnchor,
 				world.Width,
 				world.Height);
-			var screen = ctx.Camera.UnprojectPosition(worldPos);
-			var button = _facilityButtons[i];
-			button.ResetSize();
-			var buttonSize = button.Size;
-			var position = screen - buttonSize * 0.5f;
-			position.X = Mathf.Clamp(position.X, 8f, viewport.Width - buttonSize.X - 8f);
-			position.Y = Mathf.Clamp(position.Y, 8f, viewport.Height - buttonSize.Y - 8f);
-			button.Position = position;
+			if (!MapScreenAnchor.TryProject(camera, anchorWorld, out anchorScreens[i]))
+				continue;
+
+			var iconWorld = anchorWorld + Vector3.Up * FacilityFacadeCallout.IconFloatHeight;
+			if (camera.IsPositionBehind(iconWorld))
+				continue;
+
+			naturalCenters[i] = camera.UnprojectPosition(iconWorld);
+			visible[i] = true;
+		}
+
+		var separatedCenters = new Vector2[count];
+		for (var i = 0; i < count; i++)
+			separatedCenters[i] = naturalCenters[i];
+
+		var visibleIndices = new List<int>(count);
+		for (var i = 0; i < count; i++)
+		{
+			if (visible[i])
+				visibleIndices.Add(i);
+		}
+
+		if (visibleIndices.Count > 1)
+		{
+			var batch = new Vector2[visibleIndices.Count];
+			for (var i = 0; i < visibleIndices.Count; i++)
+				batch[i] = naturalCenters[visibleIndices[i]];
+
+			var separated = FacilityCalloutScreenLayout.SeparateIconCenters(
+				batch,
+				FacilityFacadeCallout.IconSize);
+			for (var i = 0; i < visibleIndices.Count; i++)
+				separatedCenters[visibleIndices[i]] = separated[i];
+		}
+
+		for (var i = 0; i < count; i++)
+		{
+			_facilityCallouts[i].UpdateLayout(
+				anchorScreens[i],
+				separatedCenters[i],
+				viewport.Width,
+				viewport.Height,
+				visible[i]);
 		}
 	}
 
 	private void SetFacilityButtonsVisible(bool visible)
 	{
-		foreach (var button in _facilityButtons)
-			button.Visible = visible;
+		foreach (var callout in _facilityCallouts)
+			callout.Visible = visible;
 	}
 
 	private void ClearFacilityButtons()
 	{
-		foreach (var button in _facilityButtons)
-			button.QueueFree();
-		_facilityButtons.Clear();
+		foreach (var callout in _facilityCallouts)
+			callout.QueueFree();
+		_facilityCallouts.Clear();
 	}
 
 	private static StyleBoxFlat CreateButtonStyle(Color background, Color border) => new()
