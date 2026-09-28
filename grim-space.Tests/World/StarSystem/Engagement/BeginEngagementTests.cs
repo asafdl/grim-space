@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
+using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -68,6 +69,31 @@ public sealed class BeginEngagementTests
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy),
 			spawn => Assert.IsType<AiController>(spawn.ExecutionAgent));
+	}
+
+	[Fact]
+	public void Create_PlacesDuelOpponentsWithinAFewTurnsOfTravel()
+	{
+		var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-a",
+			new Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.Pirates,
+			new GrimSpace.World.StarSystem.Encounter.CombatProfile());
+		EnsureRegistry(run, pirateFleet);
+
+		var encounter = EngagementBattleFactory.Create(
+			[playerFleet, pirateFleet],
+			run.ShipRegistry,
+			231,
+			"test-engagement");
+		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+		var delta = player.Position - enemy.Position;
+		var separation = System.Math.Abs(delta.X) + System.Math.Abs(delta.Y) + System.Math.Abs(delta.Z);
+
+		Assert.InRange(separation, 4, 24);
 	}
 
 	[Fact]

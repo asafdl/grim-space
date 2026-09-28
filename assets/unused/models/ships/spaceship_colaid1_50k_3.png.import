@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b3i8dp2jiu453"
-path.s3tc="res://.godot/imported/spaceship_colaid1_50k_3.png-d29031c6e29afd5c2202d319964cf2ea.s3tc.ctex"
-path.etc2="res://.godot/imported/spaceship_colaid1_50k_3.png-d29031c6e29afd5c2202d319964cf2ea.etc2.ctex"
+path.s3tc="res://.godot/imported/spaceship_colaid1_50k_3.png-6fe756540f1abac9e11adf920e273f2f.s3tc.ctex"
+path.etc2="res://.godot/imported/spaceship_colaid1_50k_3.png-6fe756540f1abac9e11adf920e273f2f.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -16,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/unused/models/ships/spaceship_colaid1_50k_3.png"
-dest_files=["res://.godot/imported/spaceship_colaid1_50k_3.png-d29031c6e29afd5c2202d319964cf2ea.s3tc.ctex", "res://.godot/imported/spaceship_colaid1_50k_3.png-d29031c6e29afd5c2202d319964cf2ea.etc2.ctex"]
+dest_files=["res://.godot/imported/spaceship_colaid1_50k_3.png-6fe756540f1abac9e11adf920e273f2f.s3tc.ctex", "res://.godot/imported/spaceship_colaid1_50k_3.png-6fe756540f1abac9e11adf920e273f2f.etc2.ctex"]
 
 [params]
 
