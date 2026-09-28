@@ -108,6 +108,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 	private sealed class SourceView
 	{
 		private AbilityTargetingSpec? _targeting;
+		private readonly Node3D _orient;
 		private Node3D? _ghost;
 		private ShaderMaterial? _ghostMaterial;
 
@@ -125,6 +126,8 @@ public sealed partial class AbilitySourcePickerView : Node3D
 			};
 			PresentationLayers.MarkUx(Cell);
 			Root.AddChild(Cell);
+			_orient = new Node3D { Name = "Orient" };
+			Root.AddChild(_orient);
 		}
 
 		public Node3D Root { get; }
@@ -141,7 +144,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 			Cell.Mesh = cellMesh;
 			Cell.MaterialOverride = hovered ? hoverCellMaterial : cellMaterial;
 			EnsureGhost(choice.Targeting);
-			_ghost!.Basis = BasisFrom(choice);
+			_orient.Basis = BasisFrom(choice);
 			WeaponPreviewMaterials.ApplyAim(
 				_ghostMaterial!,
 				choice.Targeting.Tint,
@@ -171,7 +174,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 				mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
 				PresentationLayers.MarkUx(mesh);
 			}
-			Root.AddChild(_ghost);
+			_orient.AddChild(_ghost);
 			_targeting = targeting;
 		}
 
