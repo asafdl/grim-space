@@ -5,6 +5,7 @@ namespace GrimSpace.Tests.Tutorials;
 
 internal static class TutorialTestFlows
 {
+	// Do not use FirstBattleTutorial.Create() in tests — it resolves TutorialCopy via GameInputBindings (Godot).
 	public static TutorialFlow MinimalFirstBattleFlow() =>
 		new(
 			FirstBattleTutorial.Id,

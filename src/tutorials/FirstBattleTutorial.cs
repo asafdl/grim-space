@@ -46,7 +46,7 @@ public static class FirstBattleTutorial
 				new TutorialStep(
 					Turn2TorpedoTargetId,
 					new TutorialDialogContent(
-						"Torpedo",
+						"Shoot",
 						TutorialCopy.LaunchVentralTorpedo,
 						AcceptText: null),
 					ShowIndicator: false,
