@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Godot;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
@@ -225,7 +226,10 @@ public partial class TurnReplayPlayer : Node3D
 			view.Sync(state);
 		else
 			view.ShowPendingDeath(state);
-		view.PlayHitFlash();
+		if (impact.Cause == EHazardKind.LightningCannonBurst)
+			view.PlayLightningHitSparks();
+		else
+			view.PlayHitFlash();
 		view.PlayDamagePopup(impact.TotalDamage);
 
 		var died = !state.IsAlive;

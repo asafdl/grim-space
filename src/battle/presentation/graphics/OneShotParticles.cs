@@ -7,6 +7,22 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 /// </summary>
 internal static class OneShotParticles
 {
+	private const string HitSparksPath = "res://assets/vfx/hit_sparks.tscn";
+	private static PackedScene? _hitSparks;
+
+	public static void PlayHitSparks(Node parent, Vector3 localPosition)
+	{
+		_hitSparks ??= GD.Load<PackedScene>(HitSparksPath)
+			?? throw new InvalidOperationException($"Could not load hit sparks VFX '{HitSparksPath}'.");
+
+		var particles = _hitSparks.Instantiate<GpuParticles3D>();
+		particles.Position = localPosition;
+		parent.AddChild(particles);
+		particles.Finished += particles.QueueFree;
+		particles.Restart();
+		particles.Emitting = true;
+	}
+
 	public static void Play(Node parent, Vector3 localPosition, Color color, float scale = 1f)
 	{
 		var material = new ParticleProcessMaterial
