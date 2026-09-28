@@ -13,4 +13,5 @@ public sealed class AsteroidFieldConfig
 	public int TargetCount { get; init; } = 128;
 	public int UnitClearance { get; init; } = 2;
 	public int AsteroidGap { get; init; } = 1;
+	public IReadOnlySet<Coord> ReservedCells { get; init; } = new HashSet<Coord>();
 }

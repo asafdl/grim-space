@@ -72,6 +72,7 @@ public static class EngagementBattleFactory
 				RegionCenter = fieldCenter,
 				RegionHalfExtent = GridSize / 2 - FieldMargin,
 				RegionMargin = FieldMargin,
+				ReservedCells = AsteroidFieldReservations.PlayerCorridors(spawns),
 			}),
 		};
 	}

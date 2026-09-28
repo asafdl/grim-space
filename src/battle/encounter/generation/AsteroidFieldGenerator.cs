@@ -48,6 +48,9 @@ public static class AsteroidFieldGenerator
 			if (!IsClearOfUnits(cells, config))
 				return;
 
+			if (!IsClearOfReservedCells(cells, config))
+				return;
+
 			if (!IsClearOfAsteroids(min, max, bounds, config.AsteroidGap))
 				return;
 
@@ -98,6 +101,20 @@ public static class AsteroidFieldGenerator
 			&& cell.X >= regionMin.X && cell.X <= regionMax.X
 			&& cell.Y >= regionMin.Y && cell.Y <= regionMax.Y
 			&& cell.Z >= regionMin.Z && cell.Z <= regionMax.Z);
+	}
+
+	private static bool IsClearOfReservedCells(IReadOnlySet<Coord> cells, AsteroidFieldConfig config)
+	{
+		if (config.ReservedCells.Count == 0)
+			return true;
+
+		foreach (var cell in cells)
+		{
+			if (config.ReservedCells.Contains(cell))
+				return false;
+		}
+
+		return true;
 	}
 
 	private static bool IsClearOfUnits(IReadOnlySet<Coord> cells, AsteroidFieldConfig config)

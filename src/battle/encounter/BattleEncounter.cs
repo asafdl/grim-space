@@ -46,6 +46,7 @@ public sealed class BattleEncounter
 				RegionCenter = fieldCenter,
 				RegionHalfExtent = gridSize / 2 - fieldMargin,
 				RegionMargin = fieldMargin,
+				ReservedCells = AsteroidFieldReservations.PlayerCorridors(spawns),
 			}),
 		};
 	}

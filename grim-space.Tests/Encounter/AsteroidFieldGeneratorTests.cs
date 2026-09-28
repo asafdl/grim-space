@@ -1,5 +1,7 @@
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Math.Grid;
+using GrimSpace.Tutorials;
 
 namespace GrimSpace.Tests.Encounter;
 
@@ -73,6 +75,24 @@ public sealed class AsteroidFieldGeneratorTests
 		{
 			var hazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig { Seed = seed });
 			Assert.InRange(hazards.Count(hazard => hazard.Cells.Count > 64), 3, 5);
+		}
+	}
+
+	[Fact]
+	public void DevDefault_ReservesPlayerCorridorFromAsteroids()
+	{
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
+			var player = encounter.Spawns[0];
+			var reserved = AsteroidFieldReservations.PlayerCorridor(player);
+			Assert.All(encounter.WorldHazards, hazard =>
+				Assert.DoesNotContain(hazard.Cells, cell => reserved.Contains(cell)));
+
+			var battle = GrimSpace.Battle.BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
+			var basis = GridBasis.From(player.Fore, player.Dorsal, Coord.Cross(player.Dorsal, player.Fore));
+			Assert.IsType<BattleTutorialObjectiveResult.Resolved>(
+				BattleTutorialObjectives.ResolveTurn1(battle, basis));
 		}
 	}
 
