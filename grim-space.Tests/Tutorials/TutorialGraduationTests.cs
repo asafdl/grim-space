@@ -1,4 +1,3 @@
-using GrimSpace.Education;
 using GrimSpace.Run;
 using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem;
@@ -31,8 +30,7 @@ public sealed class TutorialGraduationTests(StarMapFixture maps)
 		controller.ReconcileBeatTransitions();
 		var beatBId = Assert.IsType<string>(tutorialState.BeatBContractId);
 		var dialog = new TestDialog();
-		using var worldLinks = new WorldLinkNavigator(new TestWorldFocus(), new TestWorldIndicator());
-		using var binding = new TutorialPresentationBinding(controller, dialog, worldLinks);
+		using var binding = new TutorialDialogTestBinding(controller, dialog);
 		binding.Attach();
 
 		controller.NotifyDeliveryContractCompleted(beatBId);

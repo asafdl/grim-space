@@ -176,7 +176,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		var beatAId = TutorialBeatContracts.OfferBeatA(orchestrator.Map)!;
 		var state = new TutorialState { BeatAContractId = beatAId };
 		using var controller = new TutorialController(orchestrator, state);
-		controller.TryStartFlow(FirstBattleTutorial.Create());
+		controller.TryStartFlow(TutorialTestFlows.MinimalFirstBattleFlow());
 		Assert.True(controller.IsActive);
 
 		orchestrator.Map.ContractRegistry.Activate(new ContractState(
