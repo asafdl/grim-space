@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -20,6 +21,8 @@ public sealed partial class UtilityBar : PanelContainer
 	private Button _focusButton = null!;
 	private Button _undoButton = null!;
 	private Button _backButton = null!;
+	private Label _focusHotkeyLabel = null!;
+	private Label _undoHotkeyLabel = null!;
 
 	public bool CanUndo => !_undoButton.Disabled;
 
@@ -58,6 +61,14 @@ public sealed partial class UtilityBar : PanelContainer
 		return true;
 	}
 
+	public void RefreshBindingLabels()
+	{
+		_focusHotkeyLabel.Text = GameInputBindings.Label("battle_focus");
+		_undoHotkeyLabel.Text = GameInputBindings.Label("battle_undo");
+		_focusButton.TooltipText = BattleHudCopy.FocusTooltip;
+		_undoButton.TooltipText = BattleHudCopy.UndoTooltip;
+	}
+
 	public bool TryBackToPlayer()
 	{
 		if (!_inspectionCol.Visible)
@@ -83,13 +94,13 @@ public sealed partial class UtilityBar : PanelContainer
 		_normalCol.AddThemeConstantOverride("separation", 8);
 		root.AddChild(_normalCol);
 
-		_focusButton = CreateIconSlot(
-			hotkey: "F",
+		(_focusButton, _focusHotkeyLabel) = CreateIconSlot(
+			hotkey: GameInputBindings.Label("battle_focus"),
 			tooltip: BattleHudCopy.FocusTooltip,
 			iconPath: "res://assets/ui/abilities/focus.svg",
 			onPressed: () => FocusRequested?.Invoke());
-		_undoButton = CreateIconSlot(
-			hotkey: "⌘Z",
+		(_undoButton, _undoHotkeyLabel) = CreateIconSlot(
+			hotkey: GameInputBindings.Label("battle_undo"),
 			tooltip: BattleHudCopy.UndoTooltip,
 			iconPath: "res://assets/ui/abilities/undo.svg",
 			onPressed: () => UndoRequested?.Invoke());
@@ -128,7 +139,11 @@ public sealed partial class UtilityBar : PanelContainer
 		return button;
 	}
 
-	private static Button CreateIconSlot(string hotkey, string tooltip, string iconPath, Action onPressed)
+	private static (Button Button, Label HotkeyLabel) CreateIconSlot(
+		string hotkey,
+		string tooltip,
+		string iconPath,
+		Action onPressed)
 	{
 		var button = new Button
 		{
@@ -145,9 +160,9 @@ public sealed partial class UtilityBar : PanelContainer
 		button.AddThemeConstantOverride("h_separation", 0);
 
 		ApplySlotStyles(button);
-		AddHotkeyBadge(button, hotkey);
+		var hotkeyLabel = AddHotkeyBadge(button, hotkey);
 		button.Pressed += onPressed;
-		return button;
+		return (button, hotkeyLabel);
 	}
 
 	private static void ApplySlotStyles(Button button)
@@ -164,7 +179,7 @@ public sealed partial class UtilityBar : PanelContainer
 		button.AddThemeStyleboxOverride("focus", (StyleBox)pressed.Duplicate());
 	}
 
-	private static void AddHotkeyBadge(Button button, string text)
+	private static Label AddHotkeyBadge(Button button, string text)
 	{
 		var width = text.Length <= 1 ? 16f : 8f + text.Length * 6.5f;
 		var height = 14f;
@@ -212,6 +227,7 @@ public sealed partial class UtilityBar : PanelContainer
 		};
 		keycap.AddChild(label);
 		button.AddChild(keycap);
+		return label;
 	}
 
 	private static StyleBoxFlat MakeStyle(Color bg, Color border, int borderWidth, int radius) =>

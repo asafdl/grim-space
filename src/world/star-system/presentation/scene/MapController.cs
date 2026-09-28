@@ -411,23 +411,39 @@ public partial class MapController : Node3D
 				GetViewport().SetInputAsHandled();
 				GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 				break;
-			case Key.Space:
-				_orchestrator.TogglePause();
-				GetViewport().SetInputAsHandled();
-				break;
-			case Key.Period when _orchestrator.IsStepped:
-				_orchestrator.Step();
-				_tickAccumulator = 0f;
-				GetViewport().SetInputAsHandled();
-				break;
-			case Key.Bracketright:
-				CycleSpeed(1);
-				GetViewport().SetInputAsHandled();
-				break;
-			case Key.Bracketleft:
-				CycleSpeed(-1);
-				GetViewport().SetInputAsHandled();
-				break;
+		}
+
+		if (@event.IsActionPressed("map_pause", false, true))
+		{
+			_orchestrator.TogglePause();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event.IsActionPressed("map_step", false, true) && _orchestrator.IsStepped)
+		{
+			_orchestrator.Step();
+			_tickAccumulator = 0f;
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event.IsActionPressed("map_speed_up", false, true))
+		{
+			CycleSpeed(1);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (@event.IsActionPressed("map_speed_down", false, true))
+		{
+			CycleSpeed(-1);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		switch (key.Keycode)
+		{
 			case Key.F when key.ShiftPressed:
 				_landmarks.ShowNavigationFootprints = !_landmarks.ShowNavigationFootprints;
 				GetViewport().SetInputAsHandled();

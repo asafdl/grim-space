@@ -240,6 +240,9 @@ public partial class BattleHud : Node
 		ActionBar.ApplyLayout(abilitySpecs);
 		ActionBar.SetMode(frame.Mode);
 		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots, allowEndTurn);
+		ManeuverBar.RefreshBindingLabels();
+		ActionBar.RefreshBindingLabels();
+		UtilityBar.RefreshBindingLabels();
 		ActionBar.InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}

@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
-using GrimSpace.Components;
+using GrimSpace.Application;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -44,8 +44,8 @@ internal static class BattleHudCopy
 	public const string ActionUnavailable = "Action is no longer available";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
-	public static readonly string UndoTooltip =
-		$"Undo your last action this turn.\n({InputShortcutText.WithPrimaryModifier("Z")})";
+	public static string UndoTooltip =>
+		$"Undo your last action this turn.\n({GameInputBindings.Label("battle_undo")})";
 	public const string BackToPlayer = "Back";
 	public const string BackToPlayerTooltip = "Return to your ship and resume planning.";
 

@@ -215,43 +215,53 @@ public sealed partial class UserIntentTranslator : Node
 						MovePoseRequested?.Invoke(basis);
 					GetViewport().SetInputAsHandled();
 					return;
-				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
+				case InputEvent rollCw
+					when rollCw.IsPressed() && rollCw.IsActionPressed("battle_roll_clockwise", false, true):
 					WithCooldown(() => RequestRoll(1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
-				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
+				case InputEvent rollCcw
+					when rollCcw.IsPressed() && rollCcw.IsActionPressed("battle_roll_counterclockwise", false, true):
 					WithCooldown(() => RequestRoll(-1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
-				case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
+				case InputEvent confirm
+					when !confirm.IsPressed() && confirm.IsActionReleased("battle_move_confirm", true):
 					QueueMoveSelection();
 					GetViewport().SetInputAsHandled();
 					return;
-				case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+				case InputEvent cancel
+					when cancel.IsPressed() && cancel.IsActionPressed("battle_move_cancel", false, true):
 					CancelMoveSelection();
 					GetViewport().SetInputAsHandled();
 					return;
 			}
 		}
 
-		if (@event is InputEventKey
-			{
-				Pressed: true,
-				Echo: false,
-				Keycode: Key.Z
-			} key
-			&& (key.CtrlPressed || key.MetaPressed)
-			&& _hud.UtilityBar.CanUndo)
-		{
-			UndoShortcutRequested?.Invoke();
-			GetViewport().SetInputAsHandled();
-		}
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
 		if (!_enabled)
 			return;
+
+		if (_hud.IsPauseMenuOpen)
+		{
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+			{
+				_hud.ClosePauseMenu();
+				GetViewport().SetInputAsHandled();
+			}
+
+			return;
+		}
+
+		if (@event.IsActionPressed("battle_undo", false, true) && _hud.UtilityBar.CanUndo)
+		{
+			UndoShortcutRequested?.Invoke();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 
 		if (@event is InputEventKey { Pressed: true, Echo: false } key)
 		{
@@ -260,14 +270,7 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
-		if (_hud.IsPauseMenuOpen)
-			return;
-
-		if (@event is InputEventMouseButton
-			{
-				Pressed: true,
-				ButtonIndex: MouseButton.Right
-			})
+		if (@event.IsActionPressed("battle_move_cancel", false, true))
 		{
 			if (_reopenHold.IsPending)
 			{
@@ -288,14 +291,9 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_canIssueActions && !_isInspecting)
 			return;
 
-		if (@event is InputEventMouseButton
-			{
-				Pressed: true,
-				ButtonIndex: MouseButton.Left
-			} click)
-		{
+		if (@event is InputEventMouseButton { Pressed: true } click
+			&& click.IsActionPressed("battle_primary_click", false, true))
 			HandleClick(click.Position);
-		}
 	}
 
 	public void OnMoveMode() => ModeRequested?.Invoke(EPlayerMode.Move);
@@ -325,9 +323,6 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		switch (key.Keycode)
 		{
-			case Key.Escape when _hud.IsPauseMenuOpen:
-				_hud.ClosePauseMenu();
-				return true;
 			case Key.Escape when _mode != EPlayerMode.Move:
 				return TryCancelAbilityMode();
 			case Key.Escape when _moveInput.Destination is not null:
@@ -340,22 +335,28 @@ public sealed partial class UserIntentTranslator : Node
 				ClearMoveHover();
 				_hud.TogglePauseMenu();
 				return true;
-			case Key.Key1:
-				return _hud.ManeuverBar.TryActivateMove();
-			case Key.Key2:
-				return _hud.ActionBar.TryActivateHotkey(2);
-			case Key.Key3:
-				return _hud.ActionBar.TryActivateHotkey(3);
-			case Key.Key4:
-				return _hud.ActionBar.TryActivateHotkey(4);
-			case Key.Space:
-				OnEndTurn();
-				return true;
-			case Key.F:
-				return _hud.UtilityBar.TryFocus();
 			default:
-				return false;
+				break;
 		}
+
+		if (key.IsActionPressed("battle_move_mode", false, true))
+			return _hud.ManeuverBar.TryActivateMove();
+		if (key.IsActionPressed("battle_ability_2", false, true))
+			return _hud.ActionBar.TryActivateHotkey(2);
+		if (key.IsActionPressed("battle_ability_3", false, true))
+			return _hud.ActionBar.TryActivateHotkey(3);
+		if (key.IsActionPressed("battle_ability_4", false, true))
+			return _hud.ActionBar.TryActivateHotkey(4);
+		if (key.IsActionPressed("battle_end_turn", false, true))
+		{
+			OnEndTurn();
+			return true;
+		}
+
+		if (key.IsActionPressed("battle_focus", false, true))
+			return _hud.UtilityBar.TryFocus();
+
+		return false;
 	}
 
 	private bool TryCancelAbilityMode()
@@ -599,7 +600,7 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (!_reopenHold.TryAdvance(
 			delta,
-			Input.IsMouseButtonPressed(MouseButton.Left),
+			Input.IsActionPressed("battle_primary_click", true),
 			out var activatedCell))
 			return;
 

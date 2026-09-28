@@ -287,13 +287,13 @@ public partial class MapCamera : Camera3D
 			return;
 
 		var pan = Vector2.Zero;
-		if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up))
+		if (Input.IsActionPressed("map_pan_up", true))
 			pan.Y += 1f;
-		if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down))
+		if (Input.IsActionPressed("map_pan_down", true))
 			pan.Y -= 1f;
-		if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left))
+		if (Input.IsActionPressed("map_pan_left", true))
 			pan.X -= 1f;
-		if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right))
+		if (Input.IsActionPressed("map_pan_right", true))
 			pan.X += 1f;
 
 		if (pan == Vector2.Zero)

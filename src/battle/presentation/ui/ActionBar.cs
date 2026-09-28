@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Units.Enums;
 
@@ -21,6 +22,7 @@ public sealed partial class ActionBar : HBoxContainer
 	private VBoxContainer _actionStack = null!;
 	private PanelContainer _endTurnPanel = null!;
 	private Button _endTurnButton = null!;
+	private Label _endTurnHotkeyLabel = null!;
 	private string? _layoutKey;
 
 	public bool CanEndTurn => !_endTurnButton.Disabled;
@@ -40,10 +42,24 @@ public sealed partial class ActionBar : HBoxContainer
 			'\0',
 			specs.Select(spec => spec.Mode.ToString()));
 		if (_layoutKey == layoutKey && _abilitySlots.Count == specs.Count)
+		{
+			RefreshBindingLabels();
 			return;
+		}
 
 		_layoutKey = layoutKey;
 		RebuildAbilityRow(specs);
+		RefreshBindingLabels();
+	}
+
+	public void RefreshBindingLabels()
+	{
+		_endTurnHotkeyLabel.Text = GameInputBindings.Label("battle_end_turn");
+		for (var i = 0; i < _abilitySlots.Count; i++)
+		{
+			var slotIndex = i + 2;
+			_abilitySlots[i].HotkeyLabel.Text = GameInputBindings.Label($"battle_ability_{slotIndex}");
+		}
 	}
 
 	public void SetMode(EPlayerMode mode)
@@ -108,9 +124,10 @@ public sealed partial class ActionBar : HBoxContainer
 				spec.IconTint,
 				abilityAccent,
 				spec,
-				out var charges);
+				out var charges,
+				out var hotkeyLabel);
 			_abilityRow.AddChild(button);
-			_abilitySlots.Add(new AbilitySlot(button, charges, spec));
+			_abilitySlots.Add(new AbilitySlot(button, charges, hotkeyLabel, spec));
 		}
 	}
 
@@ -165,7 +182,8 @@ public sealed partial class ActionBar : HBoxContainer
 		Color iconTint,
 		Color slotAccent,
 		AbilityHudCatalog.Spec spec,
-		out Label charges)
+		out Label charges,
+		out Label hotkeyLabel)
 	{
 		var button = new Button
 		{
@@ -184,7 +202,7 @@ public sealed partial class ActionBar : HBoxContainer
 		button.AddThemeConstantOverride("h_separation", 0);
 
 		ApplySlotStyles(button, slotAccent);
-		AddHotkeyBadge(button, hotkey);
+		hotkeyLabel = AddHotkeyBadge(button, hotkey);
 		charges = AddChargeBadge(button);
 
 		button.Toggled += pressed =>
@@ -218,13 +236,13 @@ public sealed partial class ActionBar : HBoxContainer
 		button.AddThemeStyleboxOverride("focus", (StyleBox)normal.Duplicate());
 		button.ThemeTypeVariation = "BattleEndTurn";
 
-		AddHotkeyBadge(button, InputShortcutText.Space);
+		_endTurnHotkeyLabel = AddHotkeyBadge(button, GameInputBindings.Label("battle_end_turn"));
 
 		button.Pressed += () => EndTurnRequested?.Invoke();
 		return button;
 	}
 
-	private static void AddHotkeyBadge(Button button, string text)
+	private static Label AddHotkeyBadge(Button button, string text)
 	{
 		var width = text.Length <= 1 ? 16f : 8f + text.Length * 6.5f;
 		var height = 14f;
@@ -272,6 +290,7 @@ public sealed partial class ActionBar : HBoxContainer
 		};
 		keycap.AddChild(label);
 		button.AddChild(keycap);
+		return label;
 	}
 
 	private static Label AddChargeBadge(Button button)
@@ -375,5 +394,9 @@ public sealed partial class ActionBar : HBoxContainer
 			ContentMarginBottom = 4,
 		};
 
-	private sealed record AbilitySlot(Button Button, Label Charges, AbilityHudCatalog.Spec Spec);
+	private sealed record AbilitySlot(
+		Button Button,
+		Label Charges,
+		Label HotkeyLabel,
+		AbilityHudCatalog.Spec Spec);
 }

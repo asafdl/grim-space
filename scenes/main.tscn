@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bqx8main001"]
 
 [ext_resource type="Script" path="res://src/presentation/menu/StartMenu.cs" id="1_startmenu"]
+[ext_resource type="Script" path="res://src/presentation/menu/KeyBindingsTab.cs" id="5_keybindings"]
 [ext_resource type="Texture2D" uid="uid://db6wrgc2sxapk" path="res://assets/story/pages/intro-screen.png" id="2_bg"]
 [ext_resource type="Material" uid="uid://capdxwvlpcvkg" path="res://assets/ui/menu_dust_material.tres" id="3_dust_mat"]
 [ext_resource type="Theme" path="res://assets/ui/themes/main_menu_theme.tres" id="4_theme"]
@@ -155,7 +156,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="SettingsOverlay" unique_id=711205938]
-custom_minimum_size = Vector2(420, 0)
+unique_name_in_owner = true
+custom_minimum_size = Vector2(840, 560)
 layout_mode = 2
 theme_type_variation = &"ShellPanelContainer"
 
@@ -169,6 +171,8 @@ theme_override_constants/margin_bottom = 28
 [node name="SettingsPanel" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin" unique_id=678690386]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 16
 
 [node name="Breadcrumb" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=632842195]
@@ -177,26 +181,40 @@ theme_type_variation = &"SubtitleLabel"
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="VideoSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=1727980572]
+[node name="SettingsTabs" type="TabContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(760, 420)
+tabs_clipped = true
+
+[node name="Video" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="VideoSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video" unique_id=1727980572]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="VideoLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection" unique_id=1697330380]
+[node name="VideoLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=1697330380]
 layout_mode = 2
 theme_type_variation = &"SectionHeadingLabel"
 text = "Video"
 
-[node name="DisplayModeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection" unique_id=493878421]
+[node name="DisplayModeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=493878421]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="DisplayModeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow" unique_id=1324513783]
+[node name="DisplayModeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/DisplayModeRow" unique_id=1324513783]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "Display mode"
 
-[node name="DisplayMode" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/DisplayModeRow" unique_id=14600198]
+[node name="DisplayMode" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/DisplayModeRow" unique_id=14600198]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -206,41 +224,47 @@ popup/item_0/id = 0
 popup/item_1/text = "Windowed"
 popup/item_1/id = 1
 
-[node name="ResolutionRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection" unique_id=174775208]
+[node name="ResolutionRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=174775208]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ResolutionLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow" unique_id=271919803]
+[node name="ResolutionLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/ResolutionRow" unique_id=271919803]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "Resolution"
 
-[node name="Resolution" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/VideoSection/ResolutionRow" unique_id=21458426]
+[node name="Resolution" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/ResolutionRow" unique_id=21458426]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="AudioSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
+[node name="Audio" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="AudioSection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="AudioLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+[node name="AudioLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection"]
 layout_mode = 2
 theme_type_variation = &"SectionHeadingLabel"
 text = "Audio"
 
-[node name="MasterVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+[node name="MasterVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MasterVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MasterVolumeRow"]
+[node name="MasterVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MasterVolumeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "Master volume"
 
-[node name="MasterVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MasterVolumeRow"]
+[node name="MasterVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MasterVolumeRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -249,17 +273,17 @@ max_value = 100.0
 step = 1.0
 value = 100.0
 
-[node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+[node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MusicVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MusicVolumeRow"]
+[node name="MusicVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MusicVolumeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "Music volume"
 
-[node name="MusicVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MusicVolumeRow"]
+[node name="MusicVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MusicVolumeRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -268,17 +292,17 @@ max_value = 100.0
 step = 1.0
 value = 100.0
 
-[node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+[node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="SfxVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/SfxVolumeRow"]
+[node name="SfxVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/SfxVolumeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"BodyLabel"
 text = "SFX volume"
 
-[node name="SfxVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/SfxVolumeRow"]
+[node name="SfxVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/SfxVolumeRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -287,20 +311,33 @@ max_value = 100.0
 step = 1.0
 value = 100.0
 
-[node name="GameplaySection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
+[node name="Gameplay" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="GameplaySection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="GameplayLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/GameplaySection"]
+[node name="GameplayLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
 layout_mode = 2
 theme_type_variation = &"SectionHeadingLabel"
 text = "Gameplay"
 
-[node name="ShowTutorials" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/GameplaySection"]
+[node name="ShowTutorials" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "Show tutorials"
+
+[node name="Keys" type="Control" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("5_keybindings")
 
 [node name="Apply" type="Button" parent="SettingsOverlay/Panel/Margin/SettingsPanel" unique_id=432609691]
 unique_name_in_owner = true
@@ -315,3 +352,10 @@ custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
 text = "Back"
+
+[node name="Reset" type="Button" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryButton"
+text = "Reset"

@@ -1,3 +1,4 @@
+using GrimSpace.Application;
 using GrimSpace.Components;
 
 namespace GrimSpace.Tutorials;
@@ -6,7 +7,7 @@ namespace GrimSpace.Tutorials;
 internal static class TutorialCopy
 {
 	public static string EndTurnPrompt =>
-		$"Press {InputShortcutText.Space} to end your turn or click the HUD.";
+		$"Press {GameInputBindings.Label("battle_end_turn")} to end your turn or click the HUD.";
 
 	public const string MoveToGhostShip = "Pilot, lets go get the enemies, move your ship forward, to the marked location.";
 

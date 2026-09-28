@@ -90,10 +90,38 @@ public static class GameSettings
 	public static void SaveAudioConfig(AudioConfig audio)
 	{
 		var config = LoadOrCreate();
+		WriteAudioConfig(config, audio);
+		config.Save(SettingsPath);
+	}
+
+	internal static void WriteAudioConfig(ConfigFile config, AudioConfig audio)
+	{
+		ArgumentNullException.ThrowIfNull(config);
 		WriteVolume(config, "master_volume", audio.MasterVolume);
 		WriteVolume(config, "music_volume", audio.MusicVolume);
 		WriteVolume(config, "sfx_volume", audio.SfxVolume);
-		config.Save(SettingsPath);
+	}
+
+	public static IReadOnlyDictionary<StringName, BindingPair> ReadKeyBindings()
+	{
+		if (!TryLoad(out var config))
+			return GameInputBindings.DefaultBindings();
+
+		return GameInputBindings.OverlaySavedBindings(config!);
+	}
+
+	public static Error SaveAll(
+		VideoConfig video,
+		AudioConfig audio,
+		bool showTutorials,
+		IReadOnlyDictionary<StringName, BindingPair> bindings)
+	{
+		var config = LoadOrCreate();
+		WriteVideoConfig(config, video);
+		WriteAudioConfig(config, audio);
+		config.SetValue("gameplay", "show_tutorials", showTutorials);
+		GameInputBindings.WriteBindingsSection(config, bindings);
+		return config.Save(SettingsPath);
 	}
 
 	public static void ApplySavedAudioConfig() =>

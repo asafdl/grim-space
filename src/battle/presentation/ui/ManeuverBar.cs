@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -14,6 +15,7 @@ public sealed partial class ManeuverBar : PanelContainer
 	private readonly ButtonGroup _modeGroup;
 	private Button _moveButton = null!;
 	private Label _apLabel = null!;
+	private Label _moveHotkeyLabel = null!;
 
 	public ManeuverBar(ButtonGroup modeGroup)
 	{
@@ -47,6 +49,9 @@ public sealed partial class ManeuverBar : PanelContainer
 		_moveButton.ButtonPressed = true;
 		return true;
 	}
+
+	public void RefreshBindingLabels() =>
+		_moveHotkeyLabel.Text = GameInputBindings.Label("battle_move_mode");
 
 	private void Build()
 	{
@@ -90,7 +95,55 @@ public sealed partial class ManeuverBar : PanelContainer
 			if (pressed)
 				MoveModeRequested?.Invoke();
 		};
+		_moveHotkeyLabel = AddHotkeyBadge(_moveButton, GameInputBindings.Label("battle_move_mode"));
 		col.AddChild(_moveButton);
+	}
+
+	private static Label AddHotkeyBadge(Button button, string text)
+	{
+		var width = text.Length <= 1 ? 16f : 8f + text.Length * 6.5f;
+		const float height = 14f;
+		var keycap = new PanelContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			CustomMinimumSize = new Vector2(width, height),
+			AnchorLeft = 0.5f,
+			AnchorTop = 0f,
+			AnchorRight = 0.5f,
+			AnchorBottom = 0f,
+			OffsetLeft = -width * 0.5f,
+			OffsetTop = -height * 0.5f,
+			OffsetRight = width * 0.5f,
+			OffsetBottom = height * 0.5f,
+			GrowHorizontal = GrowDirection.Both,
+		};
+		keycap.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+		{
+			BgColor = new Color(0.06f, 0.08f, 0.12f, 0.95f),
+			BorderColor = new Color(0.7f, 0.82f, 1f, 0.85f),
+			BorderWidthLeft = 1,
+			BorderWidthTop = 1,
+			BorderWidthRight = 1,
+			BorderWidthBottom = 1,
+			CornerRadiusTopLeft = 2,
+			CornerRadiusTopRight = 2,
+			CornerRadiusBottomRight = 2,
+			CornerRadiusBottomLeft = 2,
+			ContentMarginLeft = 3,
+			ContentMarginRight = 3,
+		});
+
+		var label = new Label
+		{
+			Text = text,
+			MouseFilter = MouseFilterEnum.Ignore,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "Micro",
+		};
+		keycap.AddChild(label);
+		button.AddChild(keycap);
+		return label;
 	}
 
 	private static StyleBoxFlat MakeStyle(Color bg, Color border, int borderWidth, int radius) =>

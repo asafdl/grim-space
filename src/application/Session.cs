@@ -37,6 +37,7 @@ public partial class Session : Node
 		ConfigureLogging();
 		GameSettings.ApplySavedVideoConfig();
 		GameSettings.ApplySavedAudioConfig();
+		GameInputBindings.Apply(GameSettings.ReadKeyBindings());
 	}
 
 	public override void _Ready()

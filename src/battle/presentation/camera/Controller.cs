@@ -218,13 +218,13 @@ public partial class Controller : Camera3D, ICameraRig
 			return;
 
 		var pan = Vector2.Zero;
-		if (Input.IsKeyPressed(Key.W))
+		if (Input.IsActionPressed("battle_pan_up", true))
 			pan.Y += 1f;
-		if (Input.IsKeyPressed(Key.S))
+		if (Input.IsActionPressed("battle_pan_down", true))
 			pan.Y -= 1f;
-		if (Input.IsKeyPressed(Key.A))
+		if (Input.IsActionPressed("battle_pan_left", true))
 			pan.X -= 1f;
-		if (Input.IsKeyPressed(Key.D))
+		if (Input.IsActionPressed("battle_pan_right", true))
 			pan.X += 1f;
 
 		if (pan == Vector2.Zero)
@@ -244,49 +244,41 @@ public partial class Controller : Camera3D, ICameraRig
 
 		switch (@event)
 		{
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } mouseButton:
+			case InputEventMouseButton { Pressed: true } orbitStart
+				when orbitStart.IsActionPressed("battle_camera_orbit", false, true):
 				_orbiting = true;
-				_lastMousePosition = mouseButton.Position;
+				_lastMousePosition = orbitStart.Position;
 				NotifyManualInput();
 				break;
 
-			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Right }:
+			case InputEventMouseButton orbitEnd
+				when !orbitEnd.Pressed && orbitEnd.IsActionReleased("battle_camera_orbit", true):
 				_orbiting = false;
 				break;
 
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } mouseButton:
+			case InputEventMouseButton { Pressed: true } panStart
+				when panStart.IsActionPressed("battle_camera_pan", false, true):
 				_panning = true;
-				_lastMousePosition = mouseButton.Position;
+				_lastMousePosition = panStart.Position;
 				NotifyManualInput();
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Middle }:
+			case InputEventMouseButton panEnd
+				when !panEnd.Pressed && panEnd.IsActionReleased("battle_camera_pan", true):
 				_panning = false;
 				break;
 
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
+			case InputEvent zoomIn
+				when zoomIn.IsPressed() && zoomIn.IsActionPressed("battle_zoom_in", false, true):
 				NotifyManualInput();
 				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-				NotifyManualInput();
-				_pose.Zoom(OrbitControls.ZoomStep, Limits);
-				ApplyTransform();
-				GetViewport().SetInputAsHandled();
-				break;
-
-			case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Equal or Key.KpAdd }:
-				NotifyManualInput();
-				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
-				ApplyTransform();
-				GetViewport().SetInputAsHandled();
-				break;
-
-			case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Minus or Key.KpSubtract }:
+			case InputEvent zoomOut
+				when zoomOut.IsPressed() && zoomOut.IsActionPressed("battle_zoom_out", false, true):
 				NotifyManualInput();
 				_pose.Zoom(OrbitControls.ZoomStep, Limits);
 				ApplyTransform();

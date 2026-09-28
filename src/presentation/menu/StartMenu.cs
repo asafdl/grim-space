@@ -24,7 +24,19 @@ public partial class StartMenu : Control
 	private HSlider _musicVolume = null!;
 	private HSlider _sfxVolume = null!;
 	private CheckBox _showTutorials = null!;
+	private KeyBindingsTab _keyBindingsTab = null!;
+	private TabContainer _settingsTabs = null!;
+	private PanelContainer _settingsPanelFrame = null!;
+	private Button _resetSettings = null!;
 	private Button _startButton = null!;
+
+	private enum SettingsTab
+	{
+		Video = 0,
+		Audio = 1,
+		Gameplay = 2,
+		KeyBindings = 3,
+	}
 
 	public override void _Ready()
 	{
@@ -46,8 +58,15 @@ public partial class StartMenu : Control
 		_musicVolume = GetNode<HSlider>("%MusicVolume");
 		_sfxVolume = GetNode<HSlider>("%SfxVolume");
 		_showTutorials = GetNode<CheckBox>("%ShowTutorials");
+		_keyBindingsTab = GetNode<KeyBindingsTab>("%Keys");
+		_settingsTabs = GetNode<TabContainer>("%SettingsTabs");
+		_settingsPanelFrame = GetNode<PanelContainer>("%Panel");
+		_settingsTabs.SetTabTitle((int)SettingsTab.KeyBindings, "Key Bindings");
+		_resetSettings = GetNode<Button>("%Reset");
+		_resetSettings.Pressed += OnResetActiveTab;
 
 		PopulateResolutions();
+		CallDeferred(MethodName.FitSettingsPanelToViewport);
 
 		_startButton = GetNode<Button>("%Start");
 		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
@@ -100,36 +119,92 @@ public partial class StartMenu : Control
 	private Vector2I SelectedResolution() =>
 		GameSettings.SupportedResolutions[_resolution.Selected];
 
-	private void ApplyAudioSettings()
-	{
-		var audio = new GameSettings.AudioConfig(
+	private GameSettings.AudioConfig SelectedAudioConfig() =>
+		new(
 			(float)(_masterVolume.Value / 100.0),
 			(float)(_musicVolume.Value / 100.0),
 			(float)(_sfxVolume.Value / 100.0));
-		GameSettings.ApplyAudioConfig(audio);
-		GameSettings.SaveAudioConfig(audio);
-	}
 
 	private void OnApply()
 	{
+		if (!_keyBindingsTab.TryGetCommittedBindings(out var bindings, out var bindingError))
+		{
+			_keyBindingsTab.ShowStatus(bindingError ?? "Invalid key bindings.");
+			return;
+		}
+
 		var video = SelectedVideoConfig();
+		var audio = SelectedAudioConfig();
+		var saveError = GameSettings.SaveAll(
+			video,
+			audio,
+			_showTutorials.ButtonPressed,
+			bindings);
+		if (saveError != Error.Ok)
+		{
+			_keyBindingsTab.ShowStatus("Could not save settings to disk.");
+			return;
+		}
+
 		GameSettings.ApplyVideoConfig(video);
-		GameSettings.SaveVideoConfig(video);
-		ApplyAudioSettings();
-		GameSettings.SaveShowTutorials(_showTutorials.ButtonPressed);
+		GameSettings.ApplyAudioConfig(audio);
+		GameInputBindings.Apply(bindings);
+		_keyBindingsTab.ShowStatus(string.Empty);
 	}
 
 	private void ShowSettingsPanel()
 	{
-		_menuColumn.Visible = false;
-		_settingsOverlay.Visible = true;
+		FitSettingsPanelToViewport();
 		LoadSettingsToUi();
+		_keyBindingsTab.LoadDraft(GameSettings.ReadKeyBindings());
+		_menuColumn.Hide();
+		_settingsOverlay.Show();
+	}
+
+	private void OnResetActiveTab()
+	{
+		switch ((SettingsTab)_settingsTabs.CurrentTab)
+		{
+			case SettingsTab.Video:
+				ResetVideoUiToDefaults();
+				break;
+			case SettingsTab.Audio:
+				_masterVolume.Value = 100f;
+				_musicVolume.Value = 100f;
+				_sfxVolume.Value = 100f;
+				break;
+			case SettingsTab.Gameplay:
+				_showTutorials.ButtonPressed = true;
+				break;
+			case SettingsTab.KeyBindings:
+				_keyBindingsTab.ResetToDefaults();
+				break;
+		}
+	}
+
+	private void ResetVideoUiToDefaults()
+	{
+		_displayMode.Selected = 0;
+		SelectResolution(GameSettings.FitResolutionToScreen(
+			DisplayServer.ScreenGetSize(),
+			DisplayServer.ScreenGetScale()));
+	}
+
+	private void FitSettingsPanelToViewport()
+	{
+		const float maxWidth = 880f;
+		const float maxHeight = 600f;
+		const float margin = 40f;
+		var viewport = GetViewport().GetVisibleRect().Size;
+		_settingsPanelFrame.CustomMinimumSize = new Vector2I(
+			(int)Mathf.Min(maxWidth, viewport.X - margin),
+			(int)Mathf.Min(maxHeight, viewport.Y - margin));
 	}
 
 	private void ShowMainPanel()
 	{
-		_settingsOverlay.Visible = false;
-		_menuColumn.Visible = true;
+		_settingsOverlay.Hide();
+		_menuColumn.Show();
 	}
 
 	private void OnPlayIntro() =>
