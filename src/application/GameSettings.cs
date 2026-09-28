@@ -71,23 +71,40 @@ public static class GameSettings
 		ApplyVideoConfig(ReadVideoConfig());
 	}
 
-	public static float ReadMasterVolume()
+	public readonly record struct AudioConfig(
+		float MasterVolume,
+		float MusicVolume,
+		float SfxVolume);
+
+	public static AudioConfig ReadAudioConfig()
 	{
 		if (!TryLoad(out var config))
-			return 1f;
+			return new(1f, 1f, 1f);
 
-		return Mathf.Clamp(config!.GetValue("audio", "master_volume", 1f).AsSingle(), 0f, 1f);
+		return new(
+			ReadVolume(config, "master_volume"),
+			ReadVolume(config, "music_volume"),
+			ReadVolume(config, "sfx_volume"));
 	}
 
-	public static void SaveMasterVolume(float linear)
+	public static void SaveAudioConfig(AudioConfig audio)
 	{
 		var config = LoadOrCreate();
-		config.SetValue("audio", "master_volume", Mathf.Clamp(linear, 0f, 1f));
+		WriteVolume(config, "master_volume", audio.MasterVolume);
+		WriteVolume(config, "music_volume", audio.MusicVolume);
+		WriteVolume(config, "sfx_volume", audio.SfxVolume);
 		config.Save(SettingsPath);
 	}
 
 	public static void ApplySavedAudioConfig() =>
-		ApplyMasterVolume(ReadMasterVolume());
+		ApplyAudioConfig(ReadAudioConfig());
+
+	public static void ApplyAudioConfig(AudioConfig audio)
+	{
+		ApplyBusVolume(AudioBuses.Master, audio.MasterVolume);
+		ApplyBusVolume(AudioBuses.Music, audio.MusicVolume);
+		ApplyBusVolume(AudioBuses.Sfx, audio.SfxVolume);
+	}
 
 	public static bool ReadShowTutorials()
 	{
@@ -104,9 +121,18 @@ public static class GameSettings
 		config.Save(SettingsPath);
 	}
 
-	public static void ApplyMasterVolume(float linear)
+	private static float ReadVolume(ConfigFile config, string key) =>
+		Mathf.Clamp(config.GetValue("audio", key, 1f).AsSingle(), 0f, 1f);
+
+	private static void WriteVolume(ConfigFile config, string key, float linear) =>
+		config.SetValue("audio", key, Mathf.Clamp(linear, 0f, 1f));
+
+	private static void ApplyBusVolume(string busName, float linear)
 	{
-		var bus = AudioServer.GetBusIndex("Master");
+		var bus = AudioServer.GetBusIndex(busName);
+		if (bus < 0)
+			throw new InvalidOperationException($"Missing audio bus '{busName}'.");
+
 		AudioServer.SetBusVolumeDb(bus, linear <= 0f ? -80f : Mathf.LinearToDb(linear));
 	}
 

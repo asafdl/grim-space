@@ -249,6 +249,44 @@ max_value = 100.0
 step = 1.0
 value = 100.0
 
+[node name="MusicVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MusicVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Music volume"
+
+[node name="MusicVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/MusicVolumeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="SfxVolumeRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SfxVolumeLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/SfxVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "SFX volume"
+
+[node name="SfxVolume" type="HSlider" parent="SettingsOverlay/Panel/Margin/SettingsPanel/AudioSection/SfxVolumeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+value = 100.0
+
 [node name="GameplaySection" type="VBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel"]
 layout_mode = 2
 theme_override_constants/separation = 12

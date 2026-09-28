@@ -84,6 +84,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? RestartRequested;
 	public event Action? RetireRequested;
 	public event Action<Coord>? MoveReopenRequested;
+	public event Action<AbilityActivationChoice>? AbilityConfirmed;
 
 	public void SetPresentation(
 		bool enabled,
@@ -399,13 +400,15 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
-		var action = AbilityActivation.CreateExecutionAction(_abilityChoices[choiceIndex]);
+		var choice = _abilityChoices[choiceIndex];
+		var action = AbilityActivation.CreateExecutionAction(choice);
 		if (!Enqueue(action))
 		{
 			ActionFailed?.Invoke();
 			return;
 		}
 
+		AbilityConfirmed?.Invoke(choice);
 		ModeRequested?.Invoke(EPlayerMode.Move);
 	}
 

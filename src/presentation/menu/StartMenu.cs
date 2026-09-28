@@ -21,6 +21,8 @@ public partial class StartMenu : Control
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
 	private HSlider _masterVolume = null!;
+	private HSlider _musicVolume = null!;
+	private HSlider _sfxVolume = null!;
 	private CheckBox _showTutorials = null!;
 	private Button _startButton = null!;
 
@@ -41,6 +43,8 @@ public partial class StartMenu : Control
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
 		_masterVolume = GetNode<HSlider>("%MasterVolume");
+		_musicVolume = GetNode<HSlider>("%MusicVolume");
+		_sfxVolume = GetNode<HSlider>("%SfxVolume");
 		_showTutorials = GetNode<CheckBox>("%ShowTutorials");
 
 		PopulateResolutions();
@@ -61,7 +65,10 @@ public partial class StartMenu : Control
 		var video = GameSettings.ReadVideoConfig();
 		_displayMode.Selected = video.Mode == GameSettings.DisplayMode.Windowed ? 1 : 0;
 		SelectResolution(video.Resolution);
-		_masterVolume.Value = GameSettings.ReadMasterVolume() * 100f;
+		var audio = GameSettings.ReadAudioConfig();
+		_masterVolume.Value = audio.MasterVolume * 100f;
+		_musicVolume.Value = audio.MusicVolume * 100f;
+		_sfxVolume.Value = audio.SfxVolume * 100f;
 		_showTutorials.ButtonPressed = GameSettings.ReadShowTutorials();
 	}
 
@@ -95,9 +102,12 @@ public partial class StartMenu : Control
 
 	private void ApplyAudioSettings()
 	{
-		var linear = (float)(_masterVolume.Value / 100.0);
-		GameSettings.ApplyMasterVolume(linear);
-		GameSettings.SaveMasterVolume(linear);
+		var audio = new GameSettings.AudioConfig(
+			(float)(_masterVolume.Value / 100.0),
+			(float)(_musicVolume.Value / 100.0),
+			(float)(_sfxVolume.Value / 100.0));
+		GameSettings.ApplyAudioConfig(audio);
+		GameSettings.SaveAudioConfig(audio);
 	}
 
 	private void OnApply()

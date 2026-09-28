@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c647h2vxt40ov"
-path="res://.godot/imported/lightning_cannon.svg-a008697d9e341bb85c8c090b078ba5b6.ctex"
+path="res://.godot/imported/lightning_cannon.svg-5ff144480b28e9d9c50f9acf4a2f8718.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/abilities/lightning_cannon.svg"
-dest_files=["res://.godot/imported/lightning_cannon.svg-a008697d9e341bb85c8c090b078ba5b6.ctex"]
+dest_files=["res://.godot/imported/lightning_cannon.svg-5ff144480b28e9d9c50f9acf4a2f8718.ctex"]
 
 [params]
 

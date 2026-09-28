@@ -1,12 +1,16 @@
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Run;
@@ -294,6 +298,7 @@ public partial class BattleController : Node3D
 		_translator.UndoShortcutRequested += OnUndoShortcutRequested;
 		_translator.EndTurnRequested += OnEndTurn;
 		_translator.ActionFailed += OnActionFailed;
+		_translator.AbilityConfirmed += OnAbilityConfirmed;
 		_translator.RestartRequested += ResetBattle;
 		_translator.RetireRequested += () => _battle.Retire();
 	}
@@ -319,6 +324,18 @@ public partial class BattleController : Node3D
 
 		_frames.Interaction.SetMode(spec.Mode, spec);
 		RefreshPresentation();
+	}
+
+	private void OnAbilityConfirmed(AbilityActivationChoice choice)
+	{
+		if (choice.Action is not LightningCannonAction)
+			return;
+
+		var position = WorldMapping.ToWorld(choice.Position);
+		PresentationSfx.PlayWorldOneShot(
+			this,
+			position,
+			PresentationSfx.LightningCannonMountChargePath);
 	}
 
 	private void OnModeRequested(EPlayerMode mode)

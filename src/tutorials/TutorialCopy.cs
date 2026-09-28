@@ -17,10 +17,10 @@ internal static class TutorialCopy
 	public const string LaunchVentralTorpedo =
 		"Weapons have launch mounts, select torpedo from HUD and shoot from the highlighted underside mount.";
 
-	public const string MoveToMarkedGhostAssistance = "Move to the marked ghost ship.";
+	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
 	public const string MatchGhostPoseAssistance =
-		"Match the ghost: pitch heading to dorsal, then roll so the underside faces the enemy.";
+		"Match the preview: pitch heading to UP (dorsal), then roll so the underside faces the enemy.";
 
 	public const string QueueVentralTorpedoAssistance =
 		"Queue a torpedo from the underside (ventral) mount.";

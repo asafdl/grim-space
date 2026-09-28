@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Presentation;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -13,6 +14,8 @@ public partial class LightningCannonEffect : Node3D
 	private float _elapsed;
 	private float _strikeSeconds = StrikeSeconds;
 	private float _lifetimeSeconds = LifetimeSeconds;
+	private Vector3 _chargeSoundPosition;
+	private Node3D _soundParent = null!;
 
 	public static LightningCannonEffect Fire(
 		Node3D parent,
@@ -41,6 +44,8 @@ public partial class LightningCannonEffect : Node3D
 			Name = "LightningCannonEffect",
 			_strikeSeconds = strikeSeconds,
 			_lifetimeSeconds = lifetimeSeconds,
+			_chargeSoundPosition = origin,
+			_soundParent = parent,
 		};
 		try
 		{
@@ -113,6 +118,12 @@ public partial class LightningCannonEffect : Node3D
 		AddChild(piece);
 		_pieces.Add(piece);
 	}
+
+	public override void _Ready() =>
+		PresentationSfx.PlayWorldOneShot(
+			_soundParent,
+			_chargeSoundPosition,
+			PresentationSfx.LightningCannonFirePath);
 
 	public override void _Process(double delta)
 	{

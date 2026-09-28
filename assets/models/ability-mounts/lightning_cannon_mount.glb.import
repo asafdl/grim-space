@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cn36vxfuabskk"
-path="res://.godot/imported/lightning_cannon_mount.glb-7c19f00210dfdd39ac1e5c9e1cc44dca.scn"
+path="res://.godot/imported/lightning_cannon_mount.glb-d86c22f5d024999c03b268fbf3a7d9ab.scn"
 
 [deps]
 
 source_file="res://assets/models/ability-mounts/lightning_cannon_mount.glb"
-dest_files=["res://.godot/imported/lightning_cannon_mount.glb-7c19f00210dfdd39ac1e5c9e1cc44dca.scn"]
+dest_files=["res://.godot/imported/lightning_cannon_mount.glb-d86c22f5d024999c03b268fbf3a7d9ab.scn"]
 
 [params]
 

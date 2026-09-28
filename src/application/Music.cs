@@ -50,7 +50,7 @@ public partial class Music : Node
 
 	public override void _Ready()
 	{
-		_player = new AudioStreamPlayer();
+		_player = new AudioStreamPlayer { Bus = AudioBuses.Music };
 		AddChild(_player);
 		_player.Finished += OnPlayerFinished;
 		GetTree().SceneChanged += OnSceneChanged;
