@@ -31,11 +31,8 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		MinPitch: Mathf.DegToRad(20f),
 		MaxPitch: Mathf.DegToRad(40f));
 
-	private readonly Button _accessButton;
 	private OrbitPose _savedPose;
 	private bool _hasSavedPose;
-
-	public CinematicPresentationMode(Button accessButton) => _accessButton = accessButton;
 
 	public string Id => ModeId;
 	public OrbitLimits Limits => ModeLimits;
@@ -93,7 +90,6 @@ public sealed class CinematicPresentationMode : IPresentationMode
 
 	public void OnEntering(MapPresentationContext ctx, string sourceModeId, object? payload)
 	{
-		_accessButton.Visible = false;
 		if (sourceModeId == FacadePresentationMode.ModeId)
 			MapNavigationContext.ClearStrategicCameraPose();
 	}
@@ -111,37 +107,12 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		}
 
 		_hasSavedPose = true;
-		_accessButton.Visible = false;
 
 		if (targetModeId == FacadePresentationMode.ModeId)
 			MapNavigationContext.SaveStrategicCameraPose(_savedPose);
 	}
 
-	public void Update(MapPresentationContext ctx, double delta)
-	{
-		FollowPlayer(ctx, delta);
-
-		var world = ctx.Map();
-		var dockedPoiId = ctx.ResolveDockedPoiId();
-		var showAccess = dockedPoiId is not null && ctx.CanAccessFacilities();
-		_accessButton.Visible = showAccess;
-		if (!showAccess || dockedPoiId is null)
-			return;
-
-		var worldPos = ctx.View.GetDockWorldPosition(dockedPoiId, world.Width, world.Height);
-		if (!MapScreenAnchor.TryProject(ctx.Camera, worldPos, out var screen))
-		{
-			_accessButton.Visible = false;
-			return;
-		}
-
-		_accessButton.ResetSize();
-		var buttonSize = _accessButton.Size;
-		_accessButton.Position = MapScreenAnchor.TopLeftForControl(
-			screen,
-			buttonSize,
-			new Vector2(8f, 0f));
-	}
+	public void Update(MapPresentationContext ctx, double delta) => FollowPlayer(ctx, delta);
 
 	private static void FollowPlayer(MapPresentationContext ctx, double delta)
 	{

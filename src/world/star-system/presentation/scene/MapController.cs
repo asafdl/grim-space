@@ -42,7 +42,6 @@ public partial class MapController : Node3D
 	private Button _speedButton = null!;
 	private Button _rebuildButton = null!;
 	private Button _overviewButton = null!;
-	private Button _accessButton = null!;
 	private CanvasLayer _uiLayer = null!;
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
@@ -62,6 +61,8 @@ public partial class MapController : Node3D
 	private int _speedIndex = 1;
 	private float _unreachableFlashTimer;
 	private bool _staleWaitingForPlayerInputReported;
+	private string? _syncedDockedPoiId;
+	private bool _hidePlayerBeacon;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
 
 	public override void _Ready()
@@ -85,7 +86,6 @@ public partial class MapController : Node3D
 		_speedButton = debugHud.SpeedButton;
 		_rebuildButton = debugHud.RebuildButton;
 		_overviewButton = debugHud.OverviewButton;
-		_accessButton = GetNode<Button>("UI/AccessButton");
 		_strategicHud = GetNode<StrategicHud>("StrategicHud");
 
 		_orchestrator = Session.Instance.Run.StarSystem;
@@ -140,7 +140,6 @@ public partial class MapController : Node3D
 		_speedButton.Pressed += () => CycleSpeed(1);
 		_rebuildButton.Pressed += RebuildScene;
 		_overviewButton.Pressed += OnOverviewButtonPressed;
-		_accessButton.Pressed += OnAccessButtonPressed;
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -192,6 +191,7 @@ public partial class MapController : Node3D
 			SetOcclusionEnabled = enabled => _camera.SetOcclusionEnabled(enabled),
 			SnapToPose = (pose, limits) => _camera.SnapToPose(pose, limits),
 			TweenToPose = (pose, limits, onComplete) => _camera.TweenToPose(pose, limits, onComplete),
+			SetPlayerBeaconHidden = SetPlayerBeaconHidden,
 		};
 		_director = new WorldMapDirector(presentationContext);
 		_facadeMode = new FacadePresentationMode(
@@ -199,7 +199,7 @@ public partial class MapController : Node3D
 			fadeOverlay,
 			() => _director.TryExit(FacadePresentationMode.ModeId));
 		_facadeMode.FacilityEntered += OnFacilityEntered;
-		_director.RegisterMode(new CinematicPresentationMode(_accessButton));
+		_director.RegisterMode(new CinematicPresentationMode());
 		_director.RegisterMode(new OverviewPresentationMode());
 		_director.RegisterMode(_facadeMode);
 
@@ -275,14 +275,14 @@ public partial class MapController : Node3D
 				FacadePresentationMode.ModeId,
 				new FacadeEnterPayload(returnPoiId));
 			MapNavigationContext.ClearReturnToFacade();
+			_syncedDockedPoiId = returnPoiId;
 		}
 		else
-		{
 			_director.SetInitialMode(CinematicPresentationMode.ModeId);
-		}
 
 		RefreshPlayerVisibleFleets(0f);
-		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible);
+		TryAutoEnterDockedFacade();
+		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible, _hidePlayerBeacon);
 		_wreckage.Sync(_orchestrator.Map, _orchestrator.RuntimeFor, 0f);
 	}
 
@@ -298,13 +298,14 @@ public partial class MapController : Node3D
 		_camera.ApplyInputPolicy(_director.EffectiveInputPolicy, IsBlockingModalOpen());
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		RefreshPlayerVisibleFleets(tickFraction);
-		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible);
 		_wreckage.Sync(world, _orchestrator.RuntimeFor, tickFraction);
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
 		UpdateDebugUi();
 		_director.Update(delta);
+		SyncDockedFacadePresentation();
+		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, _hidePlayerBeacon);
 
 		if (!_director.EffectiveInputPolicy.AllowsStrategicHover)
 		{
@@ -390,6 +391,12 @@ public partial class MapController : Node3D
 
 			if (mouseButton.ButtonIndex == MouseButton.Left)
 			{
+				if (TryEnterDockedFacadeFromClick(mouseButton))
+				{
+					GetViewport().SetInputAsHandled();
+					return;
+				}
+
 				if (_intentTranslator.TryHandleMouseButton(mouseButton, out var unreachable))
 				{
 					if (unreachable)
@@ -498,6 +505,13 @@ public partial class MapController : Node3D
 	private bool IsPlayerFleetVisible(string fleetId) =>
 		_playerVisibleFleetIds.Contains(fleetId);
 
+	private void SetPlayerBeaconHidden(bool hidden)
+	{
+		_hidePlayerBeacon = hidden;
+		var tickFraction = _tickAccumulator / SecondsPerTick;
+		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, hidden);
+	}
+
 	private void RefreshPlayerVisibleFleets(float tickFraction)
 	{
 		_playerVisibleFleetIds = FleetVisionQueries.VisibleTo(
@@ -577,13 +591,47 @@ public partial class MapController : Node3D
 			_director.TryEnter(OverviewPresentationMode.ModeId);
 	}
 
-	private void OnAccessButtonPressed()
+	private void SyncDockedFacadePresentation()
 	{
-		var dockedPoiId = ResolveDockedPoiId(_orchestrator.Map);
-		if (dockedPoiId is null)
+		if (_director.IsTransitioning)
 			return;
 
-		_director.TryEnter(FacadePresentationMode.ModeId, new FacadeEnterPayload(dockedPoiId));
+		var dockedPoiId = ResolveDockedPoiId(_orchestrator.Map);
+		if (dockedPoiId == _syncedDockedPoiId)
+			return;
+
+		_syncedDockedPoiId = dockedPoiId;
+		if (dockedPoiId is null || IsBlockingModalOpen())
+			return;
+
+		if (_director.CurrentModeId is CinematicPresentationMode.ModeId or OverviewPresentationMode.ModeId)
+			_director.TryEnterDockedFacade();
+	}
+
+	private void TryAutoEnterDockedFacade()
+	{
+		_syncedDockedPoiId = ResolveDockedPoiId(_orchestrator.Map);
+		if (_syncedDockedPoiId is null || IsBlockingModalOpen())
+			return;
+
+		_director.TryEnterDockedFacade();
+	}
+
+	private bool TryEnterDockedFacadeFromClick(InputEventMouseButton mouseButton)
+	{
+		if (mouseButton.Pressed)
+			return false;
+
+		var target = ResolveInteractiveTarget(mouseButton.Position);
+		var poiId = target.PoiId ?? target.Dock?.PoiId;
+		if (poiId is null)
+			return false;
+
+		var dockedPoiId = ResolveDockedPoiId(_orchestrator.Map);
+		if (dockedPoiId != poiId || IsBlockingModalOpen())
+			return false;
+
+		return _director.TryEnterDockedFacade();
 	}
 
 	private static string? ResolveDockedPoiId(StarMap world)

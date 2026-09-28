@@ -280,6 +280,7 @@ public sealed class WorldMapDirectorZoomTests
 					LastTweenPose = pose;
 					LastTweenCallback = onComplete;
 				},
+				SetPlayerBeaconHidden = _ => { },
 			};
 	}
 

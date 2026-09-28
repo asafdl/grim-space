@@ -12,7 +12,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 {
 	public const string ModeId = "facade";
 
-	private const float FacilityZoomDistance = 2.8f;
+	private const float FacilityZoomDistance = 1.2f;
 	private const float FacilityFadeDuration = 0.35f;
 	private const string ManagementIconPath = "res://assets/ui/map/icons/management-icon.svg";
 	private const string DockyardIconPath = "res://assets/ui/map/icons/dockyard-icon.png";
@@ -33,6 +33,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private static readonly HashSet<string> AllowedSources = new(StringComparer.Ordinal)
 	{
 		CinematicPresentationMode.ModeId,
+		OverviewPresentationMode.ModeId,
 	};
 
 	private static readonly PresentationInputPolicy Policy = new(
@@ -43,8 +44,8 @@ public sealed class FacadePresentationMode : IPresentationMode
 		AllowsStrategicHover: false);
 
 	private static readonly OrbitLimits ModeLimits = new(
-		MinDistance: 2f,
-		MaxDistance: 7f,
+		MinDistance: 1.2f,
+		MaxDistance: 5.75f,
 		MinPitch: Mathf.DegToRad(15f),
 		MaxPitch: Mathf.DegToRad(45f));
 
@@ -111,6 +112,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 		_ctx = ctx;
 		_pendingPayload = payload as FacadeEnterPayload;
 		_activePoi = null;
+		ctx.SetPlayerBeaconHidden(true);
 
 		if (string.IsNullOrEmpty(sourceModeId))
 			RestoreStrategicCameraPose(ctx);
@@ -132,6 +134,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 		_pendingPayload = null;
 		_activePoi = null;
 		_enteringFacility = false;
+		ctx.SetPlayerBeaconHidden(false);
 		ctx.Camera.SetFacadeActive(false);
 		ClearFacilityButtons();
 	}

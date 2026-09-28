@@ -71,7 +71,8 @@ public partial class UnitsView : Node3D
 	public void Sync(
 		StarSystemOrchestrator orchestrator,
 		float tickFraction,
-		Func<string, bool> isFleetVisible)
+		Func<string, bool> isFleetVisible,
+		bool hidePlayerBeacon = false)
 	{
 		var world = orchestrator.Map;
 		var registryIds = world.FleetRegistry.Ids.ToHashSet(StringComparer.Ordinal);
@@ -113,8 +114,11 @@ public partial class UnitsView : Node3D
 			unitVisual.Marker.Position = worldPosition;
 			unitVisual.Marker.Rotation = new Vector3(0f, sample.HeadingY, 0f);
 
-			if (unitVisual.Beacon is { } beacon)
-				beacon.Root.Position = worldPosition;
+			if (unitVisual.Beacon is { Root: var beaconRoot })
+			{
+				beaconRoot.Position = worldPosition;
+				beaconRoot.Visible = visible && !hidePlayerBeacon;
+			}
 
 			var inTransit = unit.State.Phase == EPhase.InTransit;
 			UpdateTrail(unit.State.Id, worldPosition, inTransit);

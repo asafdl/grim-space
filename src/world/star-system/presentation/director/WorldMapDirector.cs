@@ -141,6 +141,26 @@ public sealed class WorldMapDirector
 		return PresentationTransitionResult.Ok();
 	}
 
+	public bool TryEnterDockedFacade()
+	{
+		if (_isTransitioning || (_currentMode?.IsBusy ?? false))
+			return false;
+
+		var dockedPoiId = _ctx.ResolveDockedPoiId();
+		if (dockedPoiId is null || !_ctx.CanAccessFacilities())
+			return false;
+
+		if (_currentMode?.Id == FacadePresentationMode.ModeId)
+			return true;
+
+		if (_currentMode?.Id is not (CinematicPresentationMode.ModeId or OverviewPresentationMode.ModeId))
+			return false;
+
+		return TryEnter(
+			FacadePresentationMode.ModeId,
+			new FacadeEnterPayload(dockedPoiId)).Succeeded;
+	}
+
 	public void OnWheelZoom(int direction)
 	{
 		if (direction == 0)

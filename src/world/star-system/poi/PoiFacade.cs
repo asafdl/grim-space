@@ -12,11 +12,11 @@ public readonly record struct PoiFacade(
 	float Distance,
 	EFacadeLayout Layout = EFacadeLayout.Default)
 {
-	public static PoiFacade Default => new(0f, 0.25f, 0f, -38f, 32f, 6.5f, EFacadeLayout.Default);
+	public static PoiFacade Default => new(0f, 0.25f, 0f, -38f, 32f, 4f, EFacadeLayout.Default);
 
-	public static PoiFacade Planet => new(0f, 0.35f, 0f, -38f, 28f, 7.5f, EFacadeLayout.Planet);
+	public static PoiFacade Planet => new(0f, 0.35f, 0f, -38f, 28f, 4.6f, EFacadeLayout.Planet);
 
-	public static PoiFacade LargeStation => new(0f, 0.15f, 0f, 7f, 25f, 6f, EFacadeLayout.Station);
+	public static PoiFacade LargeStation => new(0f, 0.15f, 0f, 7f, 25f, 3.6f, EFacadeLayout.Station);
 
 	public PoiFacade WithYawFromApproach(double dirX, double dirZ)
 	{

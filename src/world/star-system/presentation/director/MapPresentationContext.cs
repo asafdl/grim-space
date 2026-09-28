@@ -29,4 +29,5 @@ public sealed class MapPresentationContext
 	public required Action<bool> SetOcclusionEnabled { get; init; }
 	public required Action<OrbitPose, OrbitLimits> SnapToPose { get; init; }
 	public required Action<OrbitPose, OrbitLimits, Action?> TweenToPose { get; init; }
+	public required Action<bool> SetPlayerBeaconHidden { get; init; }
 }

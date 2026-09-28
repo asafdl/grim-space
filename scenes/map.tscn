@@ -9,7 +9,6 @@
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/UnitsView.cs" id="5_units"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/CourseView.cs" id="6_course"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/ui/DebugHud.cs" id="8_debug"]
-[ext_resource type="Texture2D" uid="uid://vqro6ros3fnm" path="res://assets/ui/map/dock-facilities.svg" id="9_access_icon"]
 [ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="10_strategic_hud"]
 
 [node name="Map" type="Node3D"]
@@ -67,17 +66,6 @@ layout_mode = 1
 anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("8_debug")
-
-[node name="AccessButton" type="Button" parent="UI"]
-visible = false
-offset_right = 48.0
-offset_bottom = 48.0
-theme_type_variation = &"MapIcon"
-tooltip_text = "View local facilities"
-flat = true
-custom_minimum_size = Vector2(48, 48)
-icon = ExtResource("9_access_icon")
-expand_icon = true
 
 [node name="FadeOverlay" type="ColorRect" parent="UI"]
 visible = false

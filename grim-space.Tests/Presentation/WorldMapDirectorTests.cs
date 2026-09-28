@@ -474,6 +474,7 @@ public sealed class WorldMapDirectorTests
 					Calls.Add(("Tween", pose));
 					LastTweenCallback = onComplete;
 				},
+				SetPlayerBeaconHidden = _ => { },
 			};
 	}
 
