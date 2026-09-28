@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -185,8 +186,11 @@ public partial class UnitView : Node3D
 		}));
 	}
 
-	public void PlayLightningHitSparks() =>
+	public void PlayLightningHitSparks()
+	{
 		OneShotParticles.PlayHitSparks(this, Vector3.Zero);
+		PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.LightningCannonHitPath);
+	}
 
 	/// <summary>Brief red pulse so replay impacts read as hits, not silent state changes.</summary>
 	public void PlayHitFlash()

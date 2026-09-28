@@ -9,6 +9,8 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/lightning_cannon_charge_snap.wav";
 	public const string LightningCannonMountChargePath =
 		"res://assets/sfx/abilities/lightning_cannon_mount_charge.wav";
+	public const string LightningCannonHitPath =
+		"res://assets/sfx/abilities/lightning_cannon_hit.wav";
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 
