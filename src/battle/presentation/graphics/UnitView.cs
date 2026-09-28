@@ -17,6 +17,8 @@ public partial class UnitView : Node3D
 	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
 	private bool _hitMarked;
 	private Tween? _poseTween;
+	private Color _bindColor = Colors.White;
+	private ShaderMaterial? _ghostMaterial;
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
 
@@ -31,6 +33,7 @@ public partial class UnitView : Node3D
 	{
 		Name = state.Id;
 		_type = state.Type;
+		_bindColor = color;
 		Array.Fill(_shieldPoints, -1);
 
 		if (state.Type == EType.Torpedo)
@@ -80,23 +83,47 @@ public partial class UnitView : Node3D
 		var passiveGhost = VisualState == UnitVisualState.Ghost;
 		foreach (var child in FindChildren("*", "GeometryInstance3D", true, false))
 		{
-			if (child is GeometryInstance3D visual)
+			if (child is not GeometryInstance3D visual)
+				continue;
+
+			if (!IsHullVisual(visual))
 			{
-				if (selectedGhost)
-				{
-					visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-					visual.Transparency = visual == _hull || _hull?.IsAncestorOf(visual) == true
-						? 0.45f : 0f;
-				}
-				else if (passiveGhost)
-				{
-					visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-					visual.Transparency = 0.75f;
-				}
-				else
+				if (!selectedGhost && !passiveGhost)
 					visual.Transparency = 0f;
+				continue;
 			}
+
+			visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+			visual.Transparency = 0f;
+			if (selectedGhost || passiveGhost)
+			{
+				_ghostMaterial ??= WeaponPreviewMaterials.CreateDotted(GhostMarkerTint(selectedGhost));
+				var tint = GhostMarkerTint(selectedGhost);
+				var strength = selectedGhost ? 1.55f : 0.95f;
+				WeaponPreviewMaterials.ApplyAim(_ghostMaterial, tint, strength);
+				_ghostMaterial.SetShaderParameter(
+					"fill",
+					selectedGhost ? GhostGoalFill : GhostPassiveFill);
+				visual.MaterialOverride = _ghostMaterial;
+				continue;
+			}
+
+			visual.MaterialOverride = null;
 		}
+	}
+
+	private const float GhostGoalFill = 0.14f;
+	private const float GhostPassiveFill = 0.06f;
+
+	private bool IsHullVisual(GeometryInstance3D visual) =>
+		_hull is not null && (visual == _hull || _hull.IsAncestorOf(visual));
+
+	private Color GhostMarkerTint(bool selected)
+	{
+		var marker = selected
+			? new Color(0.42f, 0.92f, 1f, 0.68f)
+			: new Color(0.58f, 0.66f, 0.78f, 0.42f);
+		return selected ? marker.Lerp(_bindColor, 0.18f) : marker;
 	}
 
 	public void AnimateMoveTo(State state, double duration)
@@ -379,6 +406,7 @@ public partial class UnitView : Node3D
 
 	private void ApplyShields(State state)
 	{
+		var hideForGhost = VisualState is UnitVisualState.Ghost or UnitVisualState.SelectedGhost;
 		var maxProfile = state.Loadout.MaxShieldPoints;
 		foreach (var face in Faces)
 		{
@@ -386,6 +414,12 @@ public partial class UnitView : Node3D
 			var instance = _shieldFaces[index];
 			if (instance is null)
 				continue;
+
+			if (hideForGhost)
+			{
+				instance.Visible = false;
+				continue;
+			}
 
 			var maxOnFace = maxProfile[face];
 			var points = System.Math.Clamp(state.ShieldPoints[face], 0, maxOnFace);

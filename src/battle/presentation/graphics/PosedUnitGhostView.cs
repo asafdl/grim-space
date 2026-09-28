@@ -54,7 +54,7 @@ public sealed partial class PosedUnitGhostView : Node3D
 			?? throw new InvalidOperationException("Posed ghost view was not initialized.");
 		if (needsBinding)
 			view.Bind(state, spec.Tint);
-		view.Present(state, UnitVisualState.Ghost);
+		view.Present(state, UnitVisualState.SelectedGhost);
 		Visible = true;
 	}
 }

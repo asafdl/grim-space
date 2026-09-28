@@ -8,7 +8,7 @@ path="res://.godot/imported/spaceship_colaid1_50k.glb-e25e64ea70f8829ce0252b5e90
 
 [deps]
 
-source_file="res://assets/models/ships/spaceship_colaid1_50k.glb"
+source_file="res://assets/unused/models/ships/spaceship_colaid1_50k.glb"
 dest_files=["res://.godot/imported/spaceship_colaid1_50k.glb-e25e64ea70f8829ce0252b5e90d2d9a4.scn"]
 
 [params]

@@ -5,10 +5,9 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public static class ShipMesh
 {
-	private const string FighterPath = "res://assets/models/ships/spaceship_colaid1_50k.glb";
+	private const string FighterPath = "res://assets/models/ships/spaceship.glb";
 	private const float FighterLength = 1.8f;
-	private static Mesh? _fighterMesh;
-	private static Aabb _fighterBounds;
+	private static PackedScene? _fighterModel;
 
 	public static int SurfaceIndex(ESpatialOrientation face) =>
 		face switch
@@ -24,37 +23,54 @@ public static class ShipMesh
 
 	public static MeshInstance3D CreateFighterHull()
 	{
-		if (_fighterMesh is null)
-		{
-			var scene = GD.Load<PackedScene>(FighterPath)
-				?? throw new InvalidOperationException($"Could not load fighter model '{FighterPath}'.");
-			var root = scene.Instantiate<Node3D>();
-			try
-			{
-				var meshes = root.FindChildren("*", "MeshInstance3D", true, false)
-					.OfType<MeshInstance3D>().ToArray();
-				if (meshes.Length != 1 || meshes[0].Mesh is not { } mesh)
-					throw new InvalidOperationException($"Fighter model '{FighterPath}' must contain one mesh.");
+		_fighterModel ??= GD.Load<PackedScene>(FighterPath)
+			?? throw new InvalidOperationException($"Could not load fighter model '{FighterPath}'.");
+		var scene = _fighterModel.Instantiate<Node3D>();
 
-				_fighterBounds = mesh.GetAabb();
-				if (_fighterBounds.Size.Z <= 0f)
-					throw new InvalidOperationException($"Fighter model '{FighterPath}' has no forward extent.");
-				_fighterMesh = mesh;
-			}
-			finally
+		try
+		{
+			var meshes = scene.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>().ToArray();
+			if (meshes.Length == 0)
+				throw new InvalidOperationException($"Fighter model '{FighterPath}' has no meshes.");
+
+			var bounds = default(Aabb);
+			for (var i = 0; i < meshes.Length; i++)
 			{
-				root.Free();
+				if (meshes[i].Mesh is not { } mesh)
+					throw new InvalidOperationException($"Fighter model '{FighterPath}' has an empty mesh.");
+
+				var transform = Transform3D.Identity;
+				for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
+				{
+					transform = node.Transform * transform;
+					if (node == scene)
+						break;
+				}
+
+				var partBounds = transform * mesh.GetAabb();
+				bounds = i == 0 ? partBounds : bounds.Merge(partBounds);
+				meshes[i].CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
 			}
+
+			if (bounds.Size.Z <= 0f)
+				throw new InvalidOperationException($"Fighter model '{FighterPath}' has no forward extent.");
+
+			var scale = FighterLength / bounds.Size.Z;
+			var hull = new MeshInstance3D
+			{
+				Name = "FighterHull",
+				Position = -bounds.GetCenter() * scale,
+				Scale = Vector3.One * scale,
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			};
+			hull.AddChild(scene);
+			return hull;
 		}
-
-		var scale = FighterLength / _fighterBounds.Size.Z;
-		return new MeshInstance3D
+		finally
 		{
-			Name = "FighterHull",
-			Mesh = _fighterMesh,
-			Scale = Vector3.One * scale,
-			Position = -_fighterBounds.GetCenter() * scale,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
+			if (scene.GetParent() is null)
+				scene.Free();
+		}
 	}
 }
