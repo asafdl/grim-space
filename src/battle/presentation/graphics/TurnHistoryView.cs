@@ -11,16 +11,28 @@ public partial class TurnHistoryView : Node3D
 	private const float TrailYOffset = 0.18f;
 	private const float TrailThickness = 0.07f;
 
-	private readonly List<Node3D> _ownedNodes = new();
+	private readonly Dictionary<string, List<Node3D>> _segmentsByActor = new(StringComparer.Ordinal);
 
 	public void BeginTurn() => Clear();
 
 	public void Clear()
 	{
-		foreach (var node in _ownedNodes)
-			node.Free();
+		foreach (var segments in _segmentsByActor.Values)
+		{
+			foreach (var node in segments)
+				node.Free();
+		}
 
-		_ownedNodes.Clear();
+		_segmentsByActor.Clear();
+	}
+
+	public void ClearActor(string actorId)
+	{
+		if (!_segmentsByActor.Remove(actorId, out var segments))
+			return;
+
+		foreach (var node in segments)
+			node.Free();
 	}
 
 	public void RecordMove(string actorId, Coord from, Coord to, Color color)
@@ -28,10 +40,10 @@ public partial class TurnHistoryView : Node3D
 		if (from == to)
 			return;
 
-		AddTrailSegment(from, to, color);
+		AddTrailSegment(actorId, from, to, color);
 	}
 
-	private void AddTrailSegment(Coord from, Coord to, Color color)
+	private void AddTrailSegment(string actorId, Coord from, Coord to, Color color)
 	{
 		var start = WorldMapping.ToWorld(from) + Vector3.Up * TrailYOffset;
 		var end = WorldMapping.ToWorld(to) + Vector3.Up * TrailYOffset;
@@ -62,7 +74,13 @@ public partial class TurnHistoryView : Node3D
 		segment.Position = (start + end) * 0.5f;
 		segment.Basis = BasisAlignedToDirection(delta);
 		AddChild(segment);
-		_ownedNodes.Add(segment);
+		if (!_segmentsByActor.TryGetValue(actorId, out var segments))
+		{
+			segments = [];
+			_segmentsByActor[actorId] = segments;
+		}
+
+		segments.Add(segment);
 	}
 
 	private static Basis BasisAlignedToDirection(Vector3 direction)

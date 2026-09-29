@@ -36,7 +36,7 @@ public sealed class FaceShieldPointsTests
 	[Fact]
 	public void Catalog_Torpedo_HasOneShieldOnEveryFaceExceptRetro()
 	{
-		var defenses = ShipCatalog.NewRunLoadoutFor(EType.Torpedo).MaxShieldPoints;
+		var defenses = ShipCatalog.NewRunLoadoutFor(EType.VoidBomb).MaxShieldPoints;
 
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 1, defenses[face]);

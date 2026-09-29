@@ -4,7 +4,7 @@ using GrimSpace.Battle.Presentation.Ui;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-public sealed partial class TorpedoPreviewView : Node3D
+public sealed partial class VoidBombPreviewView : Node3D
 {
 	private static readonly Color[] TurnTints =
 	[
@@ -26,10 +26,10 @@ public sealed partial class TorpedoPreviewView : Node3D
 
 	public void ApplyFrame(PresentationFrame frame)
 	{
-		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.Torpedo;
+		var aiming = frame.ShowWeaponPreviews && frame.Mode == EPlayerMode.VoidBomb;
 		_aimTravel?.Apply(
-			aiming ? frame.TorpedoPreviews.Aim : null,
+			aiming ? frame.VoidBombPreviews.Aim : null,
 			frame.SimulationTick);
-		Visible = aiming && frame.TorpedoPreviews.Aim is not null;
+		Visible = aiming && frame.VoidBombPreviews.Aim is not null;
 	}
 }

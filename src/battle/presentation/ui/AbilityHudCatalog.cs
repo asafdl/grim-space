@@ -19,6 +19,11 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 public static class AbilityHudCatalog
 {
+	// Action bar + targeting preview accents (icons are white SVG, tinted at load).
+	private static readonly Color ScrapDroneAccent = new(0.98f, 0.82f, 0.14f, 0.48f);
+	private static readonly Color LightningAccent = new(0.38f, 0.68f, 1f, 0.48f);
+	private static readonly Color VoidBombAccent = new(0.68f, 0.32f, 0.98f, 0.52f);
+
 	public sealed record Spec(
 		EPlayerMode Mode,
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Def,
@@ -39,7 +44,7 @@ public static class AbilityHudCatalog
 		ForActor(State.FromShipInstance(ShipInstance.FromCatalog("__hud__", type), Coord.Zero));
 
 	public static IReadOnlyList<Spec> ForActor(State state) =>
-		state.Type == EType.Torpedo
+		state.Type == EType.VoidBomb
 			? [Resolve(DetonateDef.Instance)]
 			: Capabilities.AbilityDefsForLoadout(state.Loadout.InstalledAbilities)
 				.Select(Resolve)
@@ -61,7 +66,7 @@ public static class AbilityHudCatalog
 				new AbilityTargetingSpec(
 					AdjacentMountedSource,
 					AbilitySourceMeshes.CreateScrapDroneSwarmBurst,
-					new Color(0.96f, 0.64f, 0.2f, 0.44f)),
+					ScrapDroneAccent),
 				"res://assets/ui/abilities/scrap_drone_swarm.svg",
 				BattleHudCopy.ScrapDroneSwarmTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
@@ -74,26 +79,26 @@ public static class AbilityHudCatalog
 				new AbilityTargetingSpec(
 					ForwardSource<LightningCannonAction>,
 					AbilitySourceMeshes.CreateLightningCannon,
-					new Color(0.55f, 0.82f, 1f, 0.42f)),
+					LightningAccent),
 				"res://assets/ui/abilities/lightning_cannon.svg",
 				BattleHudCopy.LightningCannonTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.LightningCannon),
 					unit.MaxUsesPerTurn(EAbilityKind.LightningCannon)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.LightningCannon)),
-			TorpedoDef => new(
-				EPlayerMode.Torpedo,
+			VoidBombDef => new(
+				EPlayerMode.VoidBomb,
 				def,
 				new AbilityTargetingSpec(
-					TorpedoSource,
-					AbilitySourceMeshes.CreateTorpedo,
-					new Color(0.25f, 0.85f, 0.95f, 0.55f)),
-				"res://assets/ui/abilities/torpedo.svg",
-				BattleHudCopy.TorpedoTooltipFor,
+					VoidBombSource,
+					AbilitySourceMeshes.CreateVoidBomb,
+					VoidBombAccent),
+				"res://assets/ui/abilities/void_bomb.svg",
+				BattleHudCopy.VoidBombTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
-					unit.ReadyMounts(EAbilityKind.TorpedoLauncher),
-					unit.MountCount(EAbilityKind.TorpedoLauncher)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.Torpedo)),
+					unit.ReadyMounts(EAbilityKind.VoidBombLauncher),
+					unit.MountCount(EAbilityKind.VoidBombLauncher)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.VoidBomb)),
 			DetonateDef => new(
 				EPlayerMode.Detonate,
 				def,
@@ -145,15 +150,15 @@ public static class AbilityHudCatalog
 		return new AbilitySourcePose(actor.Position + actor.Fore, actor.Fore, actor.Dorsal);
 	}
 
-	private static AbilitySourcePose TorpedoSource(State actor, IAction action)
+	private static AbilitySourcePose VoidBombSource(State actor, IAction action)
 	{
-		var torpedo = Require<TorpedoAction>(action);
-		var pose = TorpedoMount.LaunchPose(actor, torpedo.MountedOn);
+		var voidBomb = Require<VoidBombAction>(action);
+		var pose = VoidBombMount.LaunchPose(actor, voidBomb.MountedOn);
 		return new AbilitySourcePose(
 			pose.Position,
 			pose.Fore,
 			pose.Dorsal,
-			torpedo.MountedOn);
+			voidBomb.MountedOn);
 	}
 
 	private static AbilitySourcePose PatrolSource(State actor, IAction action)

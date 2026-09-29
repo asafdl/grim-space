@@ -50,12 +50,12 @@ public static class ActionLog
 				continue;
 			}
 
-			if (entry is TorpedoMoveStepAction)
+			if (entry is VoidBombMoveStepAction)
 			{
 				var actorId = ((IAction)entry).ActorId;
 				var steps = 0;
 				while (i < history.Count
-					&& history[i] is TorpedoMoveStepAction next
+					&& history[i] is VoidBombMoveStepAction next
 					&& next.ActorId == actorId)
 				{
 					steps++;
@@ -200,8 +200,8 @@ public static class ActionLog
 	private static Entry? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>
 		entry switch
 		{
-			TorpedoAction a => new Entry(
-				"Launch torpedo",
+			VoidBombAction a => new Entry(
+				"Launch void bomb",
 				[displayName(a.ActorId), $"{FormatEnum(a.MountedOn)} mount"]),
 			HeadingTurnAction a => new Entry(
 				$"Turn · {FormatEnum(a.Turn)}",

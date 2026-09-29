@@ -5,5 +5,5 @@ public enum EType
 	Fighter,
 	Carrier,
 	Patrol,
-	Torpedo,
+	VoidBomb,
 }

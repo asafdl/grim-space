@@ -15,6 +15,7 @@ public sealed class ReplayClipContext(
 	Func<string, Color> colorFor,
 	IReadOnlyDictionary<string, State> endStates,
 	Action<State, Color> ensureView,
+	Action<string> dismissUnitPresentation,
 	Action<CameraInterest>? reportInterest = null)
 {
 	public ReplayState ReplayState { get; } = replayState;
@@ -24,6 +25,13 @@ public sealed class ReplayClipContext(
 	public Func<string, Color> ColorFor { get; } = colorFor;
 	public IReadOnlyDictionary<string, State> EndStates { get; } = endStates;
 	public Action<State, Color> EnsureView { get; } = ensureView;
+
+	/// <summary>
+	/// Replay-only: hide hull and movement trail before <see cref="ReplayState"/>
+	/// reflects death (e.g. void bomb detonate VFX lead-in). Live world is unchanged until playback ends.
+	/// </summary>
+	public Action<string> DismissUnitPresentation { get; } = dismissUnitPresentation;
+
 	public Action<CameraInterest>? ReportInterest { get; } = reportInterest;
-	public ESpatialOrientation? PendingTorpedoMountedOn { get; set; }
+	public ESpatialOrientation? PendingVoidBombMountedOn { get; set; }
 }

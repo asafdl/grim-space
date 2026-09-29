@@ -20,7 +20,7 @@ public sealed class AbilityActivationTests
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
 	[InlineData(EType.Patrol)]
-	[InlineData(EType.Torpedo)]
+	[InlineData(EType.VoidBomb)]
 	public void IconTintIsOpaqueAndMatchesTargetingTint(EType type)
 	{
 		foreach (var spec in AbilityHudCatalog.ForUnit(type))
@@ -36,7 +36,7 @@ public sealed class AbilityActivationTests
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
 	[InlineData(EType.Patrol)]
-	[InlineData(EType.Torpedo)]
+	[InlineData(EType.VoidBomb)]
 	public void EveryRegisteredAbilityResolvesActivation(EType type)
 	{
 		foreach (var spec in AbilityHudCatalog.ForUnit(type))
@@ -77,12 +77,12 @@ public sealed class AbilityActivationTests
 	public void ResolveChoicesUsesTorpedoLaunchPose()
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		var action = new TorpedoAction(actor.Id, ESpatialOrientation.Dorsal, "torpedo");
+		var action = new VoidBombAction(actor.Id, ESpatialOrientation.Dorsal, "void_bomb");
 
-		var spec = Spec(EPlayerMode.Torpedo);
+		var spec = Spec(EPlayerMode.VoidBomb);
 		var choice = Assert.Single(
 			AbilityActivation.ResolveChoices(spec, actor, [action]));
-		var pose = TorpedoMount.LaunchPose(actor, ESpatialOrientation.Dorsal);
+		var pose = VoidBombMount.LaunchPose(actor, ESpatialOrientation.Dorsal);
 
 		Assert.Same(action, choice.Action);
 		Assert.Equal(pose.Position, choice.Position);
@@ -102,7 +102,7 @@ public sealed class AbilityActivationTests
 
 		var lightningCannonSpec = Spec(EPlayerMode.LightningCannon);
 		var patrolSpec = Spec(EPlayerMode.SpawnPatrol);
-		var detonateSpec = AbilityHudCatalog.ForUnit(EType.Torpedo).Single();
+		var detonateSpec = AbilityHudCatalog.ForUnit(EType.VoidBomb).Single();
 		var lightningCannonChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				lightningCannonSpec,
@@ -131,17 +131,17 @@ public sealed class AbilityActivationTests
 	public void ExecutionRebindsSpawnActionsWithFreshIds()
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		var previewTorpedo = new TorpedoAction(
+		var previewTorpedo = new VoidBombAction(
 			actor.Id,
 			ESpatialOrientation.Retro,
-			"__preview_torpedo__");
+			"__preview_void_bomb__");
 		var previewPatrol = new SpawnPatrolAction(
 			actor.Id,
 			ESpatialOrientation.Ventral,
 			"__preview_patrol__");
 		var torpedoChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
-				Spec(EPlayerMode.Torpedo),
+				Spec(EPlayerMode.VoidBomb),
 				actor,
 				[previewTorpedo]));
 		var patrolChoice = Assert.Single(
@@ -150,7 +150,7 @@ public sealed class AbilityActivationTests
 				actor,
 				[previewPatrol]));
 
-		var torpedo = Assert.IsType<TorpedoAction>(
+		var torpedo = Assert.IsType<VoidBombAction>(
 			AbilityActivation.CreateExecutionAction(torpedoChoice));
 		var patrol = Assert.IsType<SpawnPatrolAction>(
 			AbilityActivation.CreateExecutionAction(patrolChoice));

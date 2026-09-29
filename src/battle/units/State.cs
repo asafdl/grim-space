@@ -21,14 +21,14 @@ public sealed class State
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
 	public Dictionary<AbilityMount, MountRuntimeCounters> MountRuntime { get; } = new();
 	public int FuelRemaining { get; set; }
-	public TorpedoProjectile? Projectile { get; set; }
+	public VoidBombProjectile? Projectile { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public bool ApPenaltyNextTurn { get; set; }
 	public required Stats Stats { get; set; }
 
 	public bool IsAlive => HullPoints > 0;
 
-	public TorpedoProjectile RequireProjectile() =>
+	public VoidBombProjectile RequireProjectile() =>
 		Projectile
 		?? throw new InvalidOperationException($"Actor '{Id}' has no torpedo projectile profile.");
 
@@ -107,10 +107,10 @@ public sealed class State
 		Coord dorsal,
 		string parentId = BattleActorIds.Rules)
 	{
-		var projectile = ship.Spec.Chassis == EType.Torpedo
-			? TorpedoProjectile.CatalogDefault()
+		var projectile = ship.Spec.Chassis == EType.VoidBomb
+			? VoidBombProjectile.CatalogDefault()
 			: null;
-		var stats = ship.Spec.Chassis == EType.Torpedo && projectile is not null
+		var stats = ship.Spec.Chassis == EType.VoidBomb && projectile is not null
 			? new Stats { MaxAp = projectile.MovementActionPoints }
 			: Stats.ForLoadout(ship.Spec, ship.Loadout);
 		var state = new State

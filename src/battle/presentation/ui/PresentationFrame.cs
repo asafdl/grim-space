@@ -24,7 +24,7 @@ public sealed class PresentationFrame
 	public int? AbilityHoveredIndex { get; init; }
 	public AbilityActivationChoice? HoveredAbilityChoice { get; init; }
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
-	public required TurnVolumePreviews TorpedoPreviews { get; init; }
+	public required TurnVolumePreviews VoidBombPreviews { get; init; }
 	public ActionInstruction Instruction { get; init; }
 	public required IReadOnlyList<MoveCheckpoint> MoveCheckpoints { get; init; }
 	public Coord? MoveTarget { get; init; }

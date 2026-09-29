@@ -116,7 +116,7 @@ public sealed class LootCatalogTests
 		var outcome = new BattleOutcome(
 			"test-battle",
 			EBattleResult.Win,
-			[OutcomeTestKit.Handoff("torpedo-1", EType.Torpedo, 0)]);
+			[OutcomeTestKit.Handoff("torpedo-1", EType.VoidBomb, 0)]);
 
 		var result = LootCatalog.For(outcome);
 

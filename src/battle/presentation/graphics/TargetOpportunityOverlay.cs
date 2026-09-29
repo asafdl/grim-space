@@ -15,7 +15,7 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 	private Camera3D _camera = null!;
 	private IReadOnlyDictionary<string, UnitDisplayState> _previewUnits = new Dictionary<string, UnitDisplayState>();
 	private IReadOnlyList<PoseHitOpportunity> _opportunities = [];
-	private readonly Dictionary<string, Texture2D> _glyphCache = new(StringComparer.Ordinal);
+	private readonly Dictionary<(string Path, Color Tint), Texture2D> _glyphCache = new();
 	private readonly List<IconBadge> _activeBadges = [];
 	private readonly Stack<IconBadge> _freeBadges = [];
 
@@ -60,7 +60,7 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 					? 0f
 					: (i - (count - 1) * 0.5f) * FanSpacingPx;
 				var badge = AcquireBadge();
-				badge.Apply(GetGlyph(opportunity.IconPath), opportunity.IconTint);
+				badge.Apply(GetGlyph(opportunity.IconPath, opportunity.IconTint), opportunity.IconTint);
 				badge.Position = screenCenter
 					+ new Vector2(fanOffset - BadgePx * 0.5f, -VerticalOffsetPx - BadgePx * 0.5f);
 				badge.Visible = true;
@@ -69,13 +69,13 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 		}
 	}
 
-	private Texture2D GetGlyph(string? iconPath)
+	private Texture2D GetGlyph(string? iconPath, Color tint)
 	{
-		var key = iconPath ?? string.Empty;
+		var key = (iconPath ?? string.Empty, tint);
 		if (_glyphCache.TryGetValue(key, out var cached))
 			return cached;
 
-		cached = SvgIconLoader.Load(iconPath, Colors.White, (int)GlyphPx);
+		cached = SvgIconLoader.Load(iconPath, tint, (int)GlyphPx);
 		_glyphCache[key] = cached;
 		return cached;
 	}

@@ -33,7 +33,7 @@ public sealed class CapabilitiesDiscoveryTests
 		var legal = Capabilities.LegalCapabilities(battle.PlayerAgent.Sim, player.State.Id);
 
 		Assert.DoesNotContain(legal, action => action is LightningCannonAction);
-		Assert.Contains(legal, action => action is TorpedoAction);
+		Assert.Contains(legal, action => action is VoidBombAction);
 	}
 
 	[Fact]

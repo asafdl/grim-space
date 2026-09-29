@@ -4,6 +4,6 @@ public enum EHazardKind
 {
 	ScrapDroneSwarmBurst,
 	LightningCannonBurst,
-	TorpedoBlast,
+	VoidBombBlast,
 	Asteroid,
 }

@@ -112,7 +112,6 @@ public sealed partial class ActionBar : HBoxContainer
 			slot.Button.QueueFree();
 		_abilitySlots.Clear();
 
-		var abilityAccent = new Color(0.55f, 0.78f, 1f);
 		for (var i = 0; i < specs.Count; i++)
 		{
 			var spec = specs[i];
@@ -122,7 +121,7 @@ public sealed partial class ActionBar : HBoxContainer
 				"Ability",
 				spec.IconPath,
 				spec.IconTint,
-				abilityAccent,
+				spec.IconTint,
 				spec,
 				out var charges,
 				out var hotkeyLabel);

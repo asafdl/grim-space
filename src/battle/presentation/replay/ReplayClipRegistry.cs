@@ -8,10 +8,10 @@ public sealed class ReplayClipRegistry
 	public static ReplayClipRegistry Default { get; } = new(
 	[
 		new MoveStepClip(),
-		new TorpedoMoveStepClip(),
+		new VoidBombMoveStepClip(),
 		new HeadingTurnClip(),
 		new RollClip(),
-		new TorpedoActionClip(),
+		new VoidBombActionClip(),
 		new SpawnPatrolActionClip(),
 		new LightningCannonActionClip(),
 		new ScrapDroneSwarmActionClip(),

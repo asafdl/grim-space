@@ -10,14 +10,14 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-internal readonly record struct TorpedoFrameRank(
+internal readonly record struct VoidBombFrameRank(
 	bool OpponentInBlast,
 	bool AllyInBlast,
 	int ApproachGain,
 	int MoveCount,
-	int Score) : IComparable<TorpedoFrameRank>
+	int Score) : IComparable<VoidBombFrameRank>
 {
-	public int CompareTo(TorpedoFrameRank other)
+	public int CompareTo(VoidBombFrameRank other)
 	{
 		var detonate = OpponentInBlast.CompareTo(other.OpponentInBlast);
 		if (detonate != 0)
@@ -44,7 +44,7 @@ internal readonly record struct TorpedoFrameRank(
 	}
 }
 
-internal static class TorpedoSearchInput
+internal static class VoidBombSearchInput
 {
 	internal const int ApproachWeight = 200;
 	internal const int ForwardWeight = 120;
@@ -55,11 +55,11 @@ internal static class TorpedoSearchInput
 
 	public static Unit? BestReachableOpponent(BattleSimulation session, string actorId)
 	{
-		var envelope = TorpedoReachEnvelope.Build(session, actorId);
+		var envelope = VoidBombReachEnvelope.Build(session, actorId);
 		var units = UnitRegistry.For(session.World);
 		var actor = units.UnitOf(actorId);
 		Unit? best = null;
-		var bestClass = ETorpedoTargetClass.Unreachable;
+		var bestClass = EVoidBombTargetClass.Unreachable;
 		var bestTurn = int.MaxValue;
 		var bestDistance = int.MaxValue;
 
@@ -67,7 +67,7 @@ internal static class TorpedoSearchInput
 		{
 			if (!unit.State.IsAlive
 				|| actor.RelationTo(unit) != EUnitRelation.Opponent
-				|| unit.State.Type == EType.Torpedo)
+				|| unit.State.Type == EType.VoidBomb)
 			{
 				continue;
 			}
@@ -77,7 +77,7 @@ internal static class TorpedoSearchInput
 				continue;
 
 			var targetClass = envelope.Classify(unit.State.Position);
-			if (targetClass == ETorpedoTargetClass.Unreachable)
+			if (targetClass == EVoidBombTargetClass.Unreachable)
 				continue;
 
 			var turn = envelope.EarliestReachTurn(unit.State.Position);
@@ -102,7 +102,7 @@ internal static class TorpedoSearchInput
 		return best;
 	}
 
-	public static TorpedoFrameRank RankFrame(
+	public static VoidBombFrameRank RankFrame(
 		SearchFrame<BattleWorld, ActorRuntime> frame,
 		BattleSimulation anchor,
 		string actorId,

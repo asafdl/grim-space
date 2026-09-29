@@ -63,7 +63,7 @@ internal static class MerchantOfferDisplay
 			EAbilityKind.ScrapDroneSwarm => "Scrap drone swarm",
 			EAbilityKind.LightningCannon => "Lightning cannon",
 			EAbilityKind.PatrolBay => "Patrol bay",
-			EAbilityKind.TorpedoLauncher => "Torpedo launcher",
+			EAbilityKind.VoidBombLauncher => "VoidBomb launcher",
 			_ => kind.ToString(),
 		};
 }

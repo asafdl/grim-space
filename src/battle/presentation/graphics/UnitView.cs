@@ -36,8 +36,8 @@ public partial class UnitView : Node3D
 		_bindColor = color;
 		Array.Fill(_shieldPoints, -1);
 
-		if (state.Type == EType.Torpedo)
-			BindTorpedo();
+		if (state.Type == EType.VoidBomb)
+			BindVoidBomb();
 		else if (state.Type == EType.Patrol)
 			BindPatrol();
 		else if (state.Type == EType.Carrier)
@@ -232,7 +232,7 @@ public partial class UnitView : Node3D
 			Text = $"-{damage}",
 			Position = new Vector3(0f, PopupLabelHeight(_type) + 0.45f, 0f),
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			FontSize = _type == EType.Torpedo ? 44 : 56,
+			FontSize = _type == EType.VoidBomb ? 44 : 56,
 			OutlineSize = 10,
 			Modulate = new Color(1f, 0.22f, 0.18f),
 		};
@@ -249,7 +249,7 @@ public partial class UnitView : Node3D
 	{
 		var scale = _type switch
 		{
-			EType.Torpedo => 0.55f,
+			EType.VoidBomb => 0.55f,
 			EType.Patrol => 0.72f,
 			EType.Carrier => 1.35f,
 			_ => 1.1f,
@@ -301,7 +301,7 @@ public partial class UnitView : Node3D
 
 		var radius = _type switch
 		{
-			EType.Torpedo => 0.45f,
+			EType.VoidBomb => 0.45f,
 			EType.Patrol => 0.58f,
 			EType.Carrier => 1.15f,
 			_ => 0.95f,
@@ -345,9 +345,9 @@ public partial class UnitView : Node3D
 		AddChild(_hull);
 	}
 
-	private void BindTorpedo()
+	private void BindVoidBomb()
 	{
-		_hull = TorpedoMesh.CreateHullInstance();
+		_hull = VoidBombMesh.CreateHullInstance();
 		AddChild(_hull);
 	}
 
@@ -459,7 +459,7 @@ public partial class UnitView : Node3D
 	private static float PopupLabelHeight(EType type) =>
 		type switch
 		{
-			EType.Torpedo => 0.55f,
+			EType.VoidBomb => 0.55f,
 			EType.Patrol => 0.82f,
 			EType.Carrier => 1.35f,
 			_ => 1.2f,

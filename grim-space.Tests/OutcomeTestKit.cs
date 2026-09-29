@@ -26,7 +26,7 @@ internal static class OutcomeTestKit
 			"fighter" => EType.Fighter,
 			"carrier" => EType.Carrier,
 			"patrol" => EType.Patrol,
-			"torpedo" => EType.Torpedo,
+			"void_bomb" => EType.VoidBomb,
 			_ => throw new ArgumentException($"Unknown ship id prefix in '{shipId}'.", nameof(shipId)),
 		};
 	}

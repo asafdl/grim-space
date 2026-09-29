@@ -7,23 +7,23 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Movement;
 
 [BattleTestSuite]
-public sealed class TorpedoMovementTests
+public sealed class VoidBombMovementTests
 {
 	private const string PlayerId = "player";
 
 	[Fact]
 	public void ForwardAndLateralStepsUseTorpedoCosts()
 	{
-		var body = CatalogExpectations.DefaultTorpedoLauncher();
+		var body = CatalogExpectations.DefaultVoidBombLauncher();
 		var (sim, torpedoId) = CreateSimulation();
 		var state = sim.StateOf<ActorState>(torpedoId);
 
-		Assert.True(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Port)));
+		Assert.True(sim.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Port)));
 		Assert.Equal(
 			body.MovementActionPoints - body.LateralMoveApCost,
 			state.ActionPoints);
 
-		Assert.True(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Forward)));
+		Assert.True(sim.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Forward)));
 		Assert.Equal(
 			body.MovementActionPoints - body.LateralMoveApCost - body.ForwardMoveApCost,
 			state.ActionPoints);
@@ -36,7 +36,7 @@ public sealed class TorpedoMovementTests
 		var state = sim.StateOf<ActorState>(torpedoId);
 		var basis = (state.Fore, state.Dorsal, state.Starboard);
 
-		Assert.True(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Dorsal)));
+		Assert.True(sim.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Dorsal)));
 
 		Assert.Equal(basis, (state.Fore, state.Dorsal, state.Starboard));
 	}
@@ -46,7 +46,7 @@ public sealed class TorpedoMovementTests
 	{
 		var (sim, torpedoId) = CreateSimulation();
 
-		Assert.False(sim.TryEnqueue(new TorpedoMoveStepAction(torpedoId, ESpatialOrientation.Retro)));
+		Assert.False(sim.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Retro)));
 	}
 
 	[Fact]
@@ -56,12 +56,12 @@ public sealed class TorpedoMovementTests
 		var (lateralSim, lateralId) = CreateSimulation();
 
 		for (var step = 0; step < 4; step++)
-			Assert.True(forwardSim.TryEnqueue(new TorpedoMoveStepAction(forwardId, ESpatialOrientation.Forward)));
+			Assert.True(forwardSim.TryEnqueue(new VoidBombMoveStepAction(forwardId, ESpatialOrientation.Forward)));
 
-		Assert.False(forwardSim.TryEnqueue(new TorpedoMoveStepAction(forwardId, ESpatialOrientation.Forward)));
-		Assert.True(lateralSim.TryEnqueue(new TorpedoMoveStepAction(lateralId, ESpatialOrientation.Port)));
-		Assert.True(lateralSim.TryEnqueue(new TorpedoMoveStepAction(lateralId, ESpatialOrientation.Port)));
-		Assert.False(lateralSim.TryEnqueue(new TorpedoMoveStepAction(lateralId, ESpatialOrientation.Port)));
+		Assert.False(forwardSim.TryEnqueue(new VoidBombMoveStepAction(forwardId, ESpatialOrientation.Forward)));
+		Assert.True(lateralSim.TryEnqueue(new VoidBombMoveStepAction(lateralId, ESpatialOrientation.Port)));
+		Assert.True(lateralSim.TryEnqueue(new VoidBombMoveStepAction(lateralId, ESpatialOrientation.Port)));
+		Assert.False(lateralSim.TryEnqueue(new VoidBombMoveStepAction(lateralId, ESpatialOrientation.Port)));
 	}
 
 	private static (BattleSimulation Sim, string TorpedoId) CreateSimulation()
@@ -69,10 +69,10 @@ public sealed class TorpedoMovementTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			new Coord(5, 5, 5),
 			new Coord(0, 0, 0));
-		battle.Engine.Commit(TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
 		var torpedo = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
-			unit => unit.State.Type == EType.Torpedo);
+			unit => unit.State.Type == EType.VoidBomb);
 		torpedo.State.Position = new Coord(5, 5, 5);
 		torpedo.State.Fore = Coord.Forward;
 		torpedo.State.Dorsal = Coord.Up;

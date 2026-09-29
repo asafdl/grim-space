@@ -18,7 +18,7 @@ public sealed partial class ActionInstructionBar : CenterContainer
 			MouseFilter = MouseFilterEnum.Ignore,
 			Visible = false,
 		};
-		_panel.AddThemeStyleboxOverride("panel", MakeStyle());
+		_panel.AddThemeStyleboxOverride("panel", MakeStyle(new Color(0.55f, 0.78f, 1f)));
 		_label = new Label
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
@@ -37,13 +37,15 @@ public sealed partial class ActionInstructionBar : CenterContainer
 			return;
 
 		_label.Text = instruction.Label;
+		var accent = instruction.Accent ?? new Color(0.55f, 0.78f, 1f);
+		_panel.AddThemeStyleboxOverride("panel", MakeStyle(accent));
 	}
 
-	private static StyleBoxFlat MakeStyle() =>
+	private static StyleBoxFlat MakeStyle(Color accent) =>
 		new()
 		{
 			BgColor = new Color(0.1f, 0.13f, 0.18f, 0.86f),
-			BorderColor = new Color(0.55f, 0.78f, 1f, 0.55f),
+			BorderColor = new Color(accent.R, accent.G, accent.B, 0.72f),
 			BorderWidthLeft = 1,
 			BorderWidthTop = 1,
 			BorderWidthRight = 1,

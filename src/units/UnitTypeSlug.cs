@@ -9,7 +9,7 @@ public static class UnitTypeSlug
 		EType.Fighter => "fighter",
 		EType.Carrier => "carrier",
 		EType.Patrol => "patrol",
-		EType.Torpedo => "torpedo",
+		EType.VoidBomb => "void_bomb",
 		_ => throw new ArgumentOutOfRangeException(nameof(type)),
 	};
 }

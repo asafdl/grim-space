@@ -73,12 +73,12 @@ public sealed class SimulationSearchTests
 
 		var actions = Capabilities.LegalCapabilities(session, PlayerId);
 
-		Assert.Equal(3, actions.Count(action => action is TorpedoAction));
+		Assert.Equal(3, actions.Count(action => action is VoidBombAction));
 		Assert.Empty(session.Actions);
-		Assert.Equal(0, StateMountTestKit.CooldownRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.TorpedoLauncher));
+		Assert.Equal(0, StateMountTestKit.CooldownRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.VoidBombLauncher));
 		Assert.DoesNotContain(
 			UnitRegistry.For(session.World).All,
-			unit => unit.State.Type == GrimSpace.Units.Enums.EType.Torpedo);
+			unit => unit.State.Type == GrimSpace.Units.Enums.EType.VoidBomb);
 	}
 
 	[Fact]

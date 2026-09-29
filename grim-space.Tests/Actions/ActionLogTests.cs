@@ -94,8 +94,8 @@ public sealed class ActionLogTests
 			new Record<SpawnFacts>(new SpawnFacts(
 				"patrol-a",
 				"torpedo-x",
-				EType.Torpedo,
-				State.FromShipInstance(ShipInstance.FromCatalog("torpedo-x", EType.Torpedo), Coord.Zero))),
+				EType.VoidBomb,
+				State.FromShipInstance(ShipInstance.FromCatalog("torpedo-x", EType.VoidBomb), Coord.Zero))),
 		];
 
 		Assert.Empty(ActionLog.Format(history, id => id));

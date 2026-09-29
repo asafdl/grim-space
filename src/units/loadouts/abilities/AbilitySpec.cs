@@ -216,7 +216,7 @@ public sealed record PatrolBaySpec(
 	int ISpawnable.MaxLivingChildren => MaxLivingChildren;
 }
 
-public sealed record TorpedoLauncherSpec(
+public sealed record VoidBombLauncherSpec(
 	int CooldownTurns,
 	int FuelTurns,
 	int MovementActionPoints,
@@ -232,10 +232,10 @@ public sealed record TorpedoLauncherSpec(
 		ESpatialOrientation.Dorsal,
 	];
 
-	public override EAbilityKind Kind => EAbilityKind.TorpedoLauncher;
+	public override EAbilityKind Kind => EAbilityKind.VoidBombLauncher;
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
-	ShipSpec ISpawnable.ChildSpec => TorpedoSpec.Instance;
+	ShipSpec ISpawnable.ChildSpec => VoidBombSpec.Instance;
 	int ISpawnable.MaxLivingChildren => 0;
 
 	public int? MoveApCost(ESpatialOrientation direction) =>

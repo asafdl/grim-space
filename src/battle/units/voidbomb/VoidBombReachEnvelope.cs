@@ -11,14 +11,14 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-internal enum ETorpedoTargetClass
+internal enum EVoidBombTargetClass
 {
 	Unreachable = 0,
 	Future = 1,
 	InTrajectory = 2,
 }
 
-public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> layers, int blastRadius)
+public sealed class VoidBombReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> layers, int blastRadius)
 {
 	public IReadOnlyList<IReadOnlySet<Coord>> Layers { get; } = layers;
 
@@ -38,18 +38,18 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 		return false;
 	}
 
-	internal ETorpedoTargetClass Classify(Coord target)
+	internal EVoidBombTargetClass Classify(Coord target)
 	{
 		if (WithinBlast(0, target))
-			return ETorpedoTargetClass.InTrajectory;
+			return EVoidBombTargetClass.InTrajectory;
 
 		for (var turn = 1; turn < Count; turn++)
 		{
 			if (WithinBlast(turn, target))
-				return ETorpedoTargetClass.Future;
+				return EVoidBombTargetClass.Future;
 		}
 
-		return ETorpedoTargetClass.Unreachable;
+		return EVoidBombTargetClass.Unreachable;
 	}
 
 	public int EarliestReachTurn(Coord target)
@@ -63,16 +63,16 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 		return int.MaxValue;
 	}
 
-	public static TorpedoReachEnvelope Build(BattleSimulation session, string actorId)
+	public static VoidBombReachEnvelope Build(BattleSimulation session, string actorId)
 	{
 		var actor = session.World.StateOf(actorId);
 		var body = actor.RequireProjectile();
 		var fuel = actor.FuelRemaining;
 		if (fuel <= 0)
-			return new TorpedoReachEnvelope([], body.BlastRadius);
+			return new VoidBombReachEnvelope([], body.BlastRadius);
 
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> capabilities =
-			[TorpedoMoveDef.Instance];
+			[VoidBombMoveDef.Instance];
 		var frontiers = new List<(BattleWorld World, ActorRuntimes<ActorRuntime> Runtimes)>
 		{
 			(session.World.Fork(), session.Runtimes.Fork()),
@@ -116,6 +116,6 @@ public sealed class TorpedoReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> laye
 				break;
 		}
 
-		return new TorpedoReachEnvelope(layers, body.BlastRadius);
+		return new VoidBombReachEnvelope(layers, body.BlastRadius);
 	}
 }

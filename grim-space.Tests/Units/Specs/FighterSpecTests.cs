@@ -43,8 +43,8 @@ public sealed class FighterSpecTests
 		var loadout = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
 		var lightningCannon = (LightningCannonSpec)loadout.InstalledAbilities
 			.Single(ability => ability.Spec.Kind == EAbilityKind.LightningCannon).Spec;
-		var launcher = (TorpedoLauncherSpec)loadout.InstalledAbilities
-			.Single(ability => ability.Spec.Kind == EAbilityKind.TorpedoLauncher).Spec;
+		var launcher = (VoidBombLauncherSpec)loadout.InstalledAbilities
+			.Single(ability => ability.Spec.Kind == EAbilityKind.VoidBombLauncher).Spec;
 
 		Assert.Equal(2, loadout.InstalledAbilities.Count);
 		Assert.Equal(2, lightningCannon.Damage);

@@ -10,7 +10,7 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Ai;
 
 [BattleTestSuite]
-public sealed class TorpedoScoringTests
+public sealed class VoidBombScoringTests
 {
 	private const string PlayerId = "player";
 
@@ -27,7 +27,7 @@ public sealed class TorpedoScoringTests
 
 		var startDistance = torpedoPos.ManhattanDistanceTo(enemy.State.Position);
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		agent.Plan(torpedo, session);
 
@@ -46,17 +46,17 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
-		enemy.State.Position = torpedoPos + Coord.Forward * (CatalogExpectations.DefaultTorpedoLauncher().BlastRadius + 1);
+		enemy.State.Position = torpedoPos + Coord.Forward * (CatalogExpectations.DefaultVoidBombLauncher().BlastRadius + 1);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		var actions = agent.Plan(torpedo, session);
 
 		Assert.Contains(actions, action => action is DetonateAction);
 		Assert.True(
 			session.StateOf<ActorState>(torpedoId).Position.ManhattanDistanceTo(enemy.State.Position)
-			<= CatalogExpectations.DefaultTorpedoLauncher().BlastRadius);
+			<= CatalogExpectations.DefaultVoidBombLauncher().BlastRadius);
 		Assert.False(session.StateOf<ActorState>(torpedoId).IsAlive);
 	}
 
@@ -67,13 +67,13 @@ public sealed class TorpedoScoringTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		var actions = agent.Plan(torpedo, session);
 
@@ -89,13 +89,13 @@ public sealed class TorpedoScoringTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * -2;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		var actions = agent.Plan(torpedo, session);
 
@@ -111,7 +111,7 @@ public sealed class TorpedoScoringTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
@@ -125,7 +125,7 @@ public sealed class TorpedoScoringTests
 		UnitRegistry.For(battle.Engine.World).Add(behind);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		var actions = agent.Plan(torpedo, session);
 
@@ -143,7 +143,7 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
 		battle.Engine.World.StateOf(torpedoId).Dorsal = Coord.Up;
 		battle.Engine.World.StateOf(torpedoId).Starboard = Coord.Cross(Coord.Up, Coord.Forward);
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 
 		var ally = battle.Engine.World.StateOf(PlayerId);
 		ally.Position = new Coord(1, 5, 6);
@@ -152,12 +152,12 @@ public sealed class TorpedoScoringTests
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var session = battle.Engine.CreateSimulation();
-		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
 		var detonationPosition = session.StateOf<ActorState>(torpedoId).Position;
 
 		Assert.Contains(actions, action => action is DetonateAction);
-		Assert.True(detonationPosition.ManhattanDistanceTo(enemy.State.Position) <= CatalogExpectations.DefaultTorpedoLauncher().BlastRadius);
-		Assert.True(detonationPosition.ManhattanDistanceTo(ally.Position) > CatalogExpectations.DefaultTorpedoLauncher().BlastRadius);
+		Assert.True(detonationPosition.ManhattanDistanceTo(enemy.State.Position) <= CatalogExpectations.DefaultVoidBombLauncher().BlastRadius);
+		Assert.True(detonationPosition.ManhattanDistanceTo(ally.Position) > CatalogExpectations.DefaultVoidBombLauncher().BlastRadius);
 	}
 
 	[Fact]
@@ -167,21 +167,21 @@ public sealed class TorpedoScoringTests
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(4, 4, 5);
 
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 4;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		agent.Plan(torpedo, session);
 
 		var end = session.StateOf<ActorState>(torpedoId).Position;
 		var playerPos = session.StateOf<ActorState>(PlayerId).Position;
 		Assert.True(end.Z > torpedoPos.Z);
-		Assert.True(end.ManhattanDistanceTo(playerPos) > CatalogExpectations.DefaultTorpedoLauncher().BlastRadius);
+		Assert.True(end.ManhattanDistanceTo(playerPos) > CatalogExpectations.DefaultVoidBombLauncher().BlastRadius);
 	}
 
 	[Fact]
@@ -193,20 +193,20 @@ public sealed class TorpedoScoringTests
 		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
 		battle.Engine.World.StateOf(torpedoId).Dorsal = Coord.Up;
 		battle.Engine.World.StateOf(torpedoId).Starboard = Coord.Cross(Coord.Up, Coord.Forward);
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var agent = (TorpedoExecutionAgent)torpedo.ExecutionAgent;
+		var agent = (VoidBombExecutionAgent)torpedo.ExecutionAgent;
 		var session = battle.Engine.CreateSimulation();
 		var actions = agent.Plan(torpedo, session);
 
 		Assert.Contains(actions, action => action is DetonateAction);
 		Assert.True(
 			session.StateOf<ActorState>(torpedoId).Position.ManhattanDistanceTo(enemy.State.Position)
-			<= CatalogExpectations.DefaultTorpedoLauncher().BlastRadius);
+			<= CatalogExpectations.DefaultVoidBombLauncher().BlastRadius);
 		Assert.True(session.StateOf<ActorState>(torpedoId).Position.Z <= torpedoPos.Z + 1);
 	}
 
@@ -225,11 +225,11 @@ public sealed class TorpedoScoringTests
 		enemy.State.Position = torpedoPos - Coord.Forward * 5;
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent)
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent)
 			.Plan(torpedo, battle.Engine.CreateSimulation());
-		var moves = actions.OfType<TorpedoMoveStepAction>().ToList();
+		var moves = actions.OfType<VoidBombMoveStepAction>().ToList();
 
-		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().MovementActionPoints, moves.Count);
+		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().MovementActionPoints, moves.Count);
 		Assert.All(moves, move => Assert.Equal(ESpatialOrientation.Forward, move.Direction));
 	}
 
@@ -245,15 +245,15 @@ public sealed class TorpedoScoringTests
 		state.Starboard = Coord.Cross(Coord.Up, Coord.Forward);
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
-		enemy.State.Position = torpedoPos + state.Starboard * (CatalogExpectations.DefaultTorpedoLauncher().BlastRadius + 1);
+		enemy.State.Position = torpedoPos + state.Starboard * (CatalogExpectations.DefaultVoidBombLauncher().BlastRadius + 1);
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
-		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent)
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent)
 			.Plan(torpedo, battle.Engine.CreateSimulation());
 
 		Assert.Contains(
 			actions,
-			action => action is TorpedoMoveStepAction
+			action => action is VoidBombMoveStepAction
 			{
 				Direction: ESpatialOrientation.Starboard
 			});
@@ -264,8 +264,8 @@ public sealed class TorpedoScoringTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		battle.Engine.Commit(TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
-		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.VoidBomb);
 		torpedoId = torpedo.State.Id;
 		return battle;
 	}

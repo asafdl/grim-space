@@ -7,7 +7,7 @@ namespace GrimSpace.Battle.Units;
 /// <summary>
 /// Launch-time snapshot of the firing mount's torpedo parameters. Authoritative for spawned torpedo behavior in battle.
 /// </summary>
-public sealed record TorpedoProjectile(
+public sealed record VoidBombProjectile(
 	int FuelTurns,
 	int MovementActionPoints,
 	int ForwardMoveApCost,
@@ -26,7 +26,7 @@ public sealed record TorpedoProjectile(
 			_ => null,
 		};
 
-	public static TorpedoProjectile FromLauncher(TorpedoLauncherSpec launcher) =>
+	public static VoidBombProjectile FromLauncher(VoidBombLauncherSpec launcher) =>
 		new(
 			launcher.FuelTurns,
 			launcher.MovementActionPoints,
@@ -35,6 +35,6 @@ public sealed record TorpedoProjectile(
 			launcher.BlastRadius,
 			launcher.BlastDamage);
 
-	public static TorpedoProjectile CatalogDefault() =>
-		FromLauncher(ChassisWeaponBaselines.TorpedoLauncher());
+	public static VoidBombProjectile CatalogDefault() =>
+		FromLauncher(ChassisWeaponBaselines.VoidBombLauncher());
 }

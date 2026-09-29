@@ -41,10 +41,10 @@ public static class AbilityActivation
 	public static IAction CreateExecutionAction(AbilityActivationChoice choice) =>
 		choice.Action switch
 		{
-			TorpedoAction torpedo when torpedo.SpawnedUnitId == Capabilities.PreviewTorpedoId =>
-				TorpedoDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn),
-			TorpedoAction torpedo =>
-				TorpedoDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn, torpedo.SpawnedUnitId),
+			VoidBombAction torpedo when torpedo.SpawnedUnitId == Capabilities.PreviewVoidBombId =>
+				VoidBombDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn),
+			VoidBombAction torpedo =>
+				VoidBombDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn, torpedo.SpawnedUnitId),
 			SpawnPatrolAction patrol when patrol.SpawnedUnitId == Capabilities.PreviewPatrolId =>
 				SpawnPatrolDef.Instance.Bind(patrol.ActorId, patrol.MountedOn),
 			SpawnPatrolAction patrol =>

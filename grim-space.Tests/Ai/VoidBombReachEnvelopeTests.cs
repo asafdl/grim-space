@@ -9,7 +9,7 @@ using GrimSpace.Battle.Units;
 namespace GrimSpace.Tests.Ai;
 
 [BattleTestSuite]
-public sealed class TorpedoReachEnvelopeTests
+public sealed class VoidBombReachEnvelopeTests
 {
 	private const string PlayerId = "player";
 
@@ -20,7 +20,7 @@ public sealed class TorpedoReachEnvelopeTests
 		FaceForward(battle, torpedoId);
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 2;
 
-		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
+		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 
 		Assert.Equal(2, envelope.Count);
 		Assert.NotEmpty(envelope.Layers[0]);
@@ -36,7 +36,7 @@ public sealed class TorpedoReachEnvelopeTests
 		torpedo.FuelRemaining = 1;
 		torpedo.ActionPoints = torpedo.Stats.MaxAp;
 
-		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
+		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 		var start = torpedo.Position;
 
 		Assert.Contains(start, envelope.Layers[0]);
@@ -53,7 +53,7 @@ public sealed class TorpedoReachEnvelopeTests
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemyPos = start + Coord.Forward * 2;
 
-		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
+		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 
 		Assert.True(envelope.WithinBlast(0, enemyPos));
 	}
@@ -70,7 +70,7 @@ public sealed class TorpedoReachEnvelopeTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = new Coord(5, 5, 0);
 
-		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
+		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 
 		Assert.False(envelope.WithinBlast(0, enemy.State.Position));
 	}
@@ -88,7 +88,7 @@ public sealed class TorpedoReachEnvelopeTests
 		enemy.State.Position = new Coord(1, 1, 1);
 		var farAhead = start + Coord.Forward * 10;
 
-		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
+		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 
 		Assert.False(envelope.WithinBlast(0, farAhead));
 		Assert.True(
@@ -108,8 +108,8 @@ public sealed class TorpedoReachEnvelopeTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		battle.Engine.Commit(TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
-		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.VoidBomb);
 		torpedoId = torpedo.State.Id;
 		return battle;
 	}

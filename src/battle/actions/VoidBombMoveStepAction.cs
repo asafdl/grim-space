@@ -9,18 +9,18 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record TorpedoMoveStepAction(
+public sealed record VoidBombMoveStepAction(
 	string ActorId,
 	ESpatialOrientation Direction) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		TorpedoMoveDef.Instance;
+		VoidBombMoveDef.Instance;
 }
 
-public sealed class TorpedoMoveDef
+public sealed class VoidBombMoveDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public static TorpedoMoveDef Instance { get; } = new();
+	public static VoidBombMoveDef Instance { get; } = new();
 
 	private static readonly ESpatialOrientation[] AllDirections = Enum.GetValues<ESpatialOrientation>();
 
@@ -34,7 +34,7 @@ public sealed class TorpedoMoveDef
 		}
 	}
 
-	public TorpedoMoveStepAction Bind(string actorId, ESpatialOrientation direction) =>
+	public VoidBombMoveStepAction Bind(string actorId, ESpatialOrientation direction) =>
 		new(actorId, direction);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
@@ -49,10 +49,10 @@ public sealed class TorpedoMoveDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(TorpedoMoveStepAction action, BattleWorld world)
+	public bool IsPossible(VoidBombMoveStepAction action, BattleWorld world)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Type != EType.Torpedo)
+		if (actor.Type != EType.VoidBomb)
 			return false;
 
 		var body = actor.Projectile;
@@ -63,7 +63,7 @@ public sealed class TorpedoMoveDef
 		return world.Grid.IsInBounds(to) && !world.IsCellBlocked(to);
 	}
 
-	public bool IsLegal(TorpedoMoveStepAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsLegal(VoidBombMoveStepAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (!IsPossible(action, world))
 			return false;
@@ -75,7 +75,7 @@ public sealed class TorpedoMoveDef
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
-		TorpedoMoveStepAction action,
+		VoidBombMoveStepAction action,
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
@@ -92,7 +92,7 @@ public sealed class TorpedoMoveDef
 		];
 	}
 
-	private static TorpedoMoveStepAction Cast(IAction action) =>
-		action as TorpedoMoveStepAction
-			?? throw new ArgumentException($"Expected {nameof(TorpedoMoveStepAction)}.", nameof(action));
+	private static VoidBombMoveStepAction Cast(IAction action) =>
+		action as VoidBombMoveStepAction
+			?? throw new ArgumentException($"Expected {nameof(VoidBombMoveStepAction)}.", nameof(action));
 }

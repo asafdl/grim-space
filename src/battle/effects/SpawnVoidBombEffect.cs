@@ -10,7 +10,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnTorpedoEffect(AbilityMount mount, string unitId)
+public sealed class SpawnVoidBombEffect(AbilityMount mount, string unitId)
 	: IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
@@ -19,19 +19,19 @@ public sealed class SpawnTorpedoEffect(AbilityMount mount, string unitId)
 	{
 		var units = UnitRegistry.For(world);
 		var firer = units.UnitOf(actorId);
-		var (position, fore, dorsal) = TorpedoMount.LaunchPose(firer.State, mount.Facet);
+		var (position, fore, dorsal) = VoidBombMount.LaunchPose(firer.State, mount.Facet);
 		var installed = firer.State.FindInstalled(mount.Kind, mount.Facet)
 			?? throw new InvalidOperationException(
 				$"No '{mount.Kind}' ability installed on facet '{mount.Facet}' for actor '{actorId}'.");
-		if (installed.Spec is not TorpedoLauncherSpec launcher)
+		if (installed.Spec is not VoidBombLauncherSpec launcher)
 			throw new InvalidOperationException($"Mount '{mount}' is not a torpedo launcher.");
-		var projectile = TorpedoProjectile.FromLauncher(launcher);
+		var projectile = VoidBombProjectile.FromLauncher(launcher);
 		var child = Factory.ChildFromSpawnableMount(firer.State, mount, unitId);
 		var torpedo = Factory.Create(
 			child,
 			firer.Team,
 			position,
-			new TorpedoExecutionAgent(),
+			new VoidBombExecutionAgent(),
 			fore,
 			dorsal);
 		torpedo.State.Projectile = projectile;
@@ -47,7 +47,7 @@ public sealed class SpawnTorpedoEffect(AbilityMount mount, string unitId)
 			new Record<SpawnFacts>(new SpawnFacts(
 				SourceId: actorId,
 				TargetId: torpedo.State.Id,
-				EntityType: EType.Torpedo,
+				EntityType: EType.VoidBomb,
 				SpawnedState: torpedo.State.Clone())),
 		];
 	}

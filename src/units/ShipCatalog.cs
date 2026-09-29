@@ -14,7 +14,7 @@ public static class ShipCatalog
 			EType.Fighter => FighterSpec.Instance,
 			EType.Carrier => CarrierSpec.Instance,
 			EType.Patrol => PatrolSpec.Instance,
-			EType.Torpedo => TorpedoSpec.Instance,
+			EType.VoidBomb => VoidBombSpec.Instance,
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
 
@@ -39,7 +39,7 @@ public static class ShipCatalog
 		chassis switch
 		{
 			EType.Fighter => BaselineFighterLoadout(),
-			EType.Carrier or EType.Patrol or EType.Torpedo => SpecFor(chassis).NewDefaultLoadout(),
+			EType.Carrier or EType.Patrol or EType.VoidBomb => SpecFor(chassis).NewDefaultLoadout(),
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
 
@@ -55,7 +55,7 @@ public static class ShipCatalog
 		{
 			new InstalledAbility(ChassisWeaponBaselines.StarterLightningCannon(), ESpatialOrientation.Forward),
 			new InstalledAbility(
-				ChassisWeaponBaselines.StarterTorpedoLauncher(),
+				ChassisWeaponBaselines.StarterVoidBombLauncher(),
 				ESpatialOrientation.Ventral),
 		};
 

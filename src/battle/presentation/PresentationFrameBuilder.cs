@@ -145,7 +145,7 @@ public sealed class PresentationFrameBuilder
 				hoveredAbilityChoice?.Action)
 			: new HashSet<string>();
 		var torpedoPreviews = showWeaponPreviews
-			? _preview.TorpedoPreviews(
+			? _preview.VoidBombPreviews(
 				sim,
 				playerId,
 				hoveredAbilityChoice?.Action)
@@ -162,7 +162,8 @@ public sealed class PresentationFrameBuilder
 		{
 			instruction = new ActionInstruction(
 				Visible: true,
-				Label: BattleHudCopy.PickAbilitySource(state.Mode));
+				Label: BattleHudCopy.PickAbilitySource(state.Mode),
+				Accent: state.ActiveAbilitySpec?.IconTint);
 		}
 
 		PresentationDiagnostics.LogMovePreview(
@@ -218,7 +219,7 @@ public sealed class PresentationFrameBuilder
 			AbilityHoveredIndex = canControl ? state.AbilityHoveredIndex : null,
 			HoveredAbilityChoice = canControl ? hoveredAbilityChoice : null,
 			ThreatenedUnitIds = threatenedUnitIds,
-			TorpedoPreviews = torpedoPreviews,
+			VoidBombPreviews = torpedoPreviews,
 			Instruction = instruction,
 			MoveCheckpoints = moveCheckpoints,
 			MoveTarget = moveTarget,

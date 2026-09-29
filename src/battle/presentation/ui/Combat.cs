@@ -5,7 +5,7 @@ public enum EPlayerMode
 	Move,
 	ScrapDroneSwarm,
 	LightningCannon,
-	Torpedo,
+	VoidBomb,
 	SpawnPatrol,
 	Detonate,
 }

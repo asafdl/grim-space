@@ -18,8 +18,8 @@ internal static class TutorialCopy
 		$"Hold {GameInputBindings.Label("battle_primary_click")} to set heading; use {GameInputBindings.Label("battle_roll_clockwise")} / " +
 		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll. Align to the ghost.";
 
-	public const string LaunchVentralTorpedo =
-		"Weapons have launch mounts, select torpedo from Ability Bar and shoot from the highlighted underside mount.";
+	public const string LaunchVentralVoidBomb =
+		"Weapons have launch mounts, select void bomb from Ability Bar and shoot from the highlighted underside mount.";
 
 	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
@@ -27,8 +27,8 @@ internal static class TutorialCopy
 		$"Match the preview: pitch heading to UP (dorsal), then roll ({GameInputBindings.Label("battle_roll_clockwise")} / " +
 		$"{GameInputBindings.Label("battle_roll_counterclockwise")}) so the underside faces the enemy.";
 
-	public const string QueueVentralTorpedoAssistance =
-		"Queue a torpedo from the underside (ventral) mount.";
+	public const string QueueVentralVoidBombAssistance =
+		"Queue a void bomb from the underside (ventral) mount.";
 
 	public static string UndoAndRetryAssistance =>
 		$"Press {GameInputBindings.Label("battle_undo")} to undo and try again.";

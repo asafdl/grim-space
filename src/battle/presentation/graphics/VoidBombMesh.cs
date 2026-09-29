@@ -2,7 +2,7 @@ using Godot;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-public static class TorpedoMesh
+public static class VoidBombMesh
 {
 	private const string ModelPath = "res://assets/models/ships/scfi_starburst_torpedo_v2.glb";
 	private const float Length = 1.27f;
@@ -11,7 +11,7 @@ public static class TorpedoMesh
 	public static MeshInstance3D CreateHullInstance()
 	{
 		_model ??= GD.Load<PackedScene>(ModelPath)
-			?? throw new InvalidOperationException($"Could not load torpedo model '{ModelPath}'.");
+			?? throw new InvalidOperationException($"Could not load void bomb model '{ModelPath}'.");
 		var scene = _model.Instantiate<Node3D>();
 		scene.Rotation = new Vector3(0f, Mathf.Pi / 2f, 0f);
 
@@ -20,13 +20,19 @@ public static class TorpedoMesh
 			var meshes = scene.FindChildren("*", "MeshInstance3D", true, false)
 				.OfType<MeshInstance3D>().ToArray();
 			if (meshes.Length == 0)
-				throw new InvalidOperationException($"Torpedo model '{ModelPath}' has no meshes.");
+				throw new InvalidOperationException($"VoidBomb model '{ModelPath}' has no meshes.");
 
 			var bounds = default(Aabb);
 			for (var i = 0; i < meshes.Length; i++)
 			{
 				if (meshes[i].Mesh is not { } mesh)
-					throw new InvalidOperationException($"Torpedo model '{ModelPath}' has an empty mesh.");
+					throw new InvalidOperationException($"VoidBomb model '{ModelPath}' has an empty mesh.");
+
+				if (mesh is ArrayMesh arrayMesh)
+				{
+					mesh = WithGeneratedTangents(arrayMesh);
+					meshes[i].Mesh = mesh;
+				}
 
 				var transform = Transform3D.Identity;
 				for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
@@ -42,12 +48,12 @@ public static class TorpedoMesh
 			}
 
 			if (bounds.Size.Z <= 0f)
-				throw new InvalidOperationException($"Torpedo model '{ModelPath}' has no forward extent.");
+				throw new InvalidOperationException($"VoidBomb model '{ModelPath}' has no forward extent.");
 
 			var scale = Length / bounds.Size.Z;
 			var hull = new MeshInstance3D
 			{
-				Name = "TorpedoHull",
+				Name = "VoidBombHull",
 				Position = -bounds.GetCenter() * scale,
 				Scale = Vector3.One * scale,
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
@@ -60,5 +66,20 @@ public static class TorpedoMesh
 			if (scene.GetParent() is null)
 				scene.Free();
 		}
+	}
+
+	internal static ArrayMesh WithGeneratedTangents(ArrayMesh source)
+	{
+		var mesh = new ArrayMesh();
+		for (var surface = 0; surface < source.GetSurfaceCount(); surface++)
+		{
+			var tool = new SurfaceTool();
+			tool.CreateFrom(source, surface);
+			tool.GenerateTangents();
+			tool.Commit(mesh);
+			mesh.SurfaceSetMaterial(surface, source.SurfaceGetMaterial(surface));
+		}
+
+		return mesh;
 	}
 }

@@ -118,8 +118,8 @@ public sealed class TimelineTests
 		var spawn = new Record<SpawnFacts>(new SpawnFacts(
 			"a",
 			"t1",
-			EType.Torpedo,
-			State.FromShipInstance(ShipInstance.FromCatalog("t1", EType.Torpedo), Coord.Zero)));
+			EType.VoidBomb,
+			State.FromShipInstance(ShipInstance.FromCatalog("t1", EType.VoidBomb), Coord.Zero)));
 		timeline.Append(action, spawn);
 		timeline.Schedule(1, new HeadingTurnAction("b", EHeadingTurn.YawLeft));
 
@@ -159,18 +159,18 @@ public sealed class TimelineTests
 	public void CommitAppendsActionThenSpawnRecord()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		battle.Engine.Commit(TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro));
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro));
 
 		var history = battle.Engine.History();
-		var torpedoIndex = history.ToList().FindIndex(entry => entry is TorpedoAction);
+		var torpedoIndex = history.ToList().FindIndex(entry => entry is VoidBombAction);
 		Assert.True(torpedoIndex >= 0);
 		var spawn = Assert.IsType<Record<SpawnFacts>>(history[torpedoIndex + 1]);
 		Assert.Equal(battle.PlayerId, spawn.Value.SourceId);
-		Assert.Equal(EType.Torpedo, spawn.Value.EntityType);
+		Assert.Equal(EType.VoidBomb, spawn.Value.EntityType);
 
 		var torpedo = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
-			unit => unit.State.Type == EType.Torpedo);
+			unit => unit.State.Type == EType.VoidBomb);
 		Assert.Equal(torpedo.State.Id, spawn.Value.TargetId);
 	}
 

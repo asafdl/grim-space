@@ -12,7 +12,7 @@ internal static class AbilitySourceMeshes
 			Size = new Vector3(0.18f, 0.18f, 1.35f),
 		});
 
-	public static Node3D CreateTorpedo() => TorpedoMesh.CreateHullInstance();
+	public static Node3D CreateVoidBomb() => VoidBombMesh.CreateHullInstance();
 
 	public static Node3D CreatePatrol() => Ghost(PatrolMesh.CreatePreviewHull());
 

@@ -13,7 +13,7 @@ namespace GrimSpace.Battle.Units;
 public static class Capabilities
 {
 	internal const string PreviewPatrolId = "__preview_patrol__";
-	internal const string PreviewTorpedoId = "__preview_torpedo__";
+	internal const string PreviewVoidBombId = "__preview_void_bomb__";
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> Movement { get; } =
 	[
@@ -27,7 +27,7 @@ public static class Capabilities
 	/// </summary>
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilitiesFor(
 		EType type) =>
-		type == EType.Torpedo
+		type == EType.VoidBomb
 			? [DetonateDef.Instance]
 			: AbilityDefsForLoadout(ChassisSpec(type).NewDefaultLoadout().InstalledAbilities);
 
@@ -38,8 +38,8 @@ public static class Capabilities
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(
 		State state)
 	{
-		if (state.Type == EType.Torpedo)
-			return [TorpedoMoveDef.Instance, DetonateDef.Instance];
+		if (state.Type == EType.VoidBomb)
+			return [VoidBombMoveDef.Instance, DetonateDef.Instance];
 
 		return [..Movement, ..AbilityDefsForLoadout(state.Loadout.InstalledAbilities)];
 	}
@@ -51,7 +51,7 @@ public static class Capabilities
 		EType type) =>
 		type switch
 		{
-			EType.Torpedo => [TorpedoMoveDef.Instance, ..AbilitiesFor(EType.Torpedo)],
+			EType.VoidBomb => [VoidBombMoveDef.Instance, ..AbilitiesFor(EType.VoidBomb)],
 			_ => [..Movement, ..AbilitiesFor(type)],
 		};
 
@@ -66,7 +66,7 @@ public static class Capabilities
 		{
 			var candidates = def switch
 			{
-				TorpedoDef torpedo => torpedo.Discover(actorId, PreviewTorpedoId, world),
+				VoidBombDef torpedo => torpedo.Discover(actorId, PreviewVoidBombId, world),
 				SpawnPatrolDef => DiscoverPreviewPatrolSpawns(state),
 				_ => def.Discover(world, runtime, actorId),
 			};
@@ -98,7 +98,7 @@ public static class Capabilities
 			EAbilityKind.ScrapDroneSwarm => ScrapDroneSwarmDef.Instance,
 			EAbilityKind.LightningCannon => LightningCannonDef.Instance,
 			EAbilityKind.PatrolBay => SpawnPatrolDef.Instance,
-			EAbilityKind.TorpedoLauncher => TorpedoDef.Instance,
+			EAbilityKind.VoidBombLauncher => VoidBombDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 
@@ -114,7 +114,7 @@ public static class Capabilities
 	private static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsFor(
 		State state)
 	{
-		if (state.Type == EType.Torpedo)
+		if (state.Type == EType.VoidBomb)
 			return [DetonateDef.Instance];
 
 		return AbilityDefsForLoadout(state.Loadout.InstalledAbilities);
@@ -141,7 +141,7 @@ public static class Capabilities
 			EType.Fighter => FighterSpec.Instance,
 			EType.Carrier => CarrierSpec.Instance,
 			EType.Patrol => PatrolSpec.Instance,
-			EType.Torpedo => TorpedoSpec.Instance,
+			EType.VoidBomb => VoidBombSpec.Instance,
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 }

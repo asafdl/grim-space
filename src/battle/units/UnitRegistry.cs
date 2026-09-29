@@ -92,7 +92,7 @@ public sealed class UnitRegistry
 	private int Rank(string unitId)
 	{
 		var unit = _units[unitId];
-		return unit.State.Type == EType.Torpedo ? 2
+		return unit.State.Type == EType.VoidBomb ? 2
 			: unit.Team == ETeam.Player ? 0
 			: 1;
 	}

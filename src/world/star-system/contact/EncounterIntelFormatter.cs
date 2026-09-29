@@ -27,7 +27,7 @@ public static class EncounterIntelFormatter
 			BattleUnitType.Patrol => "Patrol",
 			BattleUnitType.Fighter => "Fighter",
 			BattleUnitType.Carrier => "Carrier",
-			BattleUnitType.Torpedo => "Torpedo",
+			BattleUnitType.VoidBomb => "VoidBomb",
 			_ => chassis.ToString(),
 		};
 }

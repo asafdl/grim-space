@@ -8,7 +8,6 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class AbilitySourcePickerView : Node3D
 {
 	private const float ViewDotThreshold = 0.9995f;
-	private static readonly Color CellHoverTint = new(0.55f, 0.82f, 1f);
 
 	private readonly List<SourceView> _sources = [];
 	private IReadOnlyList<AbilityActivationChoice> _choices = [];
@@ -16,13 +15,11 @@ public sealed partial class AbilitySourcePickerView : Node3D
 	private ArrayMesh _cellMesh = null!;
 	private Vector3? _cellMeshViewDirection;
 	private StandardMaterial3D _cellMaterial = null!;
-	private StandardMaterial3D _hoverCellMaterial = null!;
 
 	public void Configure(Camera3D camera)
 	{
 		_camera = camera;
 		_cellMaterial = CellGridGeometry.CreateMaterial(Colors.White);
-		_hoverCellMaterial = CellGridGeometry.CreateMaterial(CellHoverTint);
 		RefreshCellMesh();
 		Visible = false;
 	}
@@ -51,8 +48,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 					choices[i],
 					_cellMesh,
 					i == hoveredIndex,
-					_cellMaterial,
-					_hoverCellMaterial);
+					_cellMaterial);
 			}
 		}
 
@@ -137,12 +133,14 @@ public sealed partial class AbilitySourcePickerView : Node3D
 			AbilityActivationChoice choice,
 			ArrayMesh cellMesh,
 			bool hovered,
-			Material cellMaterial,
-			Material hoverCellMaterial)
+			Material idleCellMaterial)
 		{
 			Root.Position = WorldMapping.ToWorld(choice.Position);
 			Cell.Mesh = cellMesh;
-			Cell.MaterialOverride = hovered ? hoverCellMaterial : cellMaterial;
+			var accent = choice.Targeting.Tint;
+			Cell.MaterialOverride = hovered
+				? CellGridGeometry.CreateMaterial(new Color(accent.R, accent.G, accent.B, 0.92f))
+				: idleCellMaterial;
 			EnsureGhost(choice.Targeting);
 			_orient.Basis = BasisFrom(choice);
 			WeaponPreviewMaterials.ApplyAim(

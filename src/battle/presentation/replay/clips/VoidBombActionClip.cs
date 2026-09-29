@@ -3,13 +3,13 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
-public sealed class TorpedoActionClip : IReplayClip
+public sealed class VoidBombActionClip : IReplayClip
 {
-	public Type ActionType => typeof(TorpedoAction);
+	public Type ActionType => typeof(VoidBombAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
-		context.PendingTorpedoMountedOn = ((TorpedoAction)action).MountedOn;
+		context.PendingVoidBombMountedOn = ((VoidBombAction)action).MountedOn;
 		return ClipPlayback.Instant;
 	}
 }

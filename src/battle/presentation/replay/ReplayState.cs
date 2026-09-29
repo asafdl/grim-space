@@ -35,7 +35,7 @@ public sealed class ReplayState
 		state.Position += BodyFrame.From(state).Step(move.Direction);
 	}
 
-	public void ApplyTorpedoMove(TorpedoMoveStepAction move)
+	public void ApplyVoidBombMove(VoidBombMoveStepAction move)
 	{
 		var state = _states[move.ActorId];
 		state.Position += BodyFrame.From(state).Step(move.Direction);

@@ -9,13 +9,13 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Units;
 
 [BattleTestSuite]
-public sealed class TorpedoDomainTests
+public sealed class VoidBombDomainTests
 {
 	[Fact]
 	public void TorpedoStatsAreConfigured()
 	{
-		var stats = Stats.ForType(EType.Torpedo);
-		var configuration = ShipCatalog.NewRunLoadoutFor(EType.Torpedo);
+		var stats = Stats.ForType(EType.VoidBomb);
+		var configuration = ShipCatalog.NewRunLoadoutFor(EType.VoidBomb);
 
 		var maxShields = configuration.MaxShieldPoints;
 
@@ -27,21 +27,21 @@ public sealed class TorpedoDomainTests
 				face == ESpatialOrientation.Retro ? 0 : 1,
 				maxShields[face]);
 		}
-		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().MovementActionPoints, stats.MaxAp);
+		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().MovementActionPoints, stats.MaxAp);
 	}
 
 	[Fact]
 	public void TorpedoCapabilitiesAreMoveAndDetonate()
 	{
-		var caps = Capabilities.For(EType.Torpedo);
+		var caps = Capabilities.For(EType.VoidBomb);
 
-		Assert.Equal([TorpedoMoveDef.Instance, DetonateDef.Instance], caps);
+		Assert.Equal([VoidBombMoveDef.Instance, DetonateDef.Instance], caps);
 	}
 
 	[Fact]
 	public void TorpedoAbilitiesAreDetonateOnly()
 	{
-		var abilities = Capabilities.AbilitiesFor(EType.Torpedo);
+		var abilities = Capabilities.AbilitiesFor(EType.VoidBomb);
 
 		Assert.Single(abilities, def => def is DetonateDef);
 	}
@@ -50,10 +50,10 @@ public sealed class TorpedoDomainTests
 	public void DetonateHudShowsFuelAndLegality()
 	{
 		var spec = Assert.Single(
-			AbilityHudCatalog.ForUnit(EType.Torpedo),
+			AbilityHudCatalog.ForUnit(EType.VoidBomb),
 			entry => entry.Mode == EPlayerMode.Detonate);
 		var torpedoState = State.FromShipInstance(
-			ShipInstance.FromCatalog("torpedo", EType.Torpedo),
+			ShipInstance.FromCatalog("void_bomb", EType.VoidBomb),
 			new Coord(5, 5, 5));
 		torpedoState.FuelRemaining = 2;
 		var unit = UnitDisplayState.Capture(torpedoState);

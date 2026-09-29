@@ -118,8 +118,8 @@ public sealed class BattleTutorialAdapter : IDisposable
 			case FirstBattleTutorial.Turn2MoveTargetId:
 				AdvanceBattleMoveIfReady(_turn2Objective, TutorialCopy.MatchGhostPoseAssistance);
 				break;
-			case FirstBattleTutorial.Turn2TorpedoTargetId:
-				AdvanceBattleTorpedoIfReady();
+			case FirstBattleTutorial.Turn2VoidBombTargetId:
+				AdvanceBattleVoidBombIfReady();
 				break;
 		}
 	}
@@ -147,7 +147,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 			TutorialCopy.UndoAndRetryAssistance));
 	}
 
-	private void AdvanceBattleTorpedoIfReady()
+	private void AdvanceBattleVoidBombIfReady()
 	{
 		if (_turn2Objective is null || !QueuedMovementMatchesObjective(_turn2Objective))
 		{
@@ -158,12 +158,12 @@ public sealed class BattleTutorialAdapter : IDisposable
 		}
 
 		if (!_battleAgent.Sim.Actions.Any(action =>
-				action is TorpedoAction { MountedOn: ESpatialOrientation.Ventral }))
+				action is VoidBombAction { MountedOn: ESpatialOrientation.Ventral }))
 		{
-			if (_battleAgent.Sim.Actions.Any(action => action is TorpedoAction))
+			if (_battleAgent.Sim.Actions.Any(action => action is VoidBombAction))
 			{
 				_controller.ShowAssistance(new TutorialAssistanceContent(
-					TutorialCopy.QueueVentralTorpedoAssistance,
+					TutorialCopy.QueueVentralVoidBombAssistance,
 					TutorialCopy.UndoAndRetryAssistance));
 			}
 			else
@@ -203,7 +203,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 		{
 			case FirstBattleTutorial.Turn1MoveTargetId:
 			case FirstBattleTutorial.Turn2MoveTargetId:
-			case FirstBattleTutorial.Turn2TorpedoTargetId:
+			case FirstBattleTutorial.Turn2VoidBombTargetId:
 				if (!_battleAgent.Undo())
 					GD.PushWarning("Tutorial could not undo the invalid battle plan.");
 				break;

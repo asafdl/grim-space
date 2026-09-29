@@ -56,7 +56,7 @@ public sealed class MoveDef
 	public bool IsPossible(MoveStepAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Type == EType.Torpedo || !AllDirections.Contains(action.Direction))
+		if (actor.Type == EType.VoidBomb || !AllDirections.Contains(action.Direction))
 			return false;
 
 		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);

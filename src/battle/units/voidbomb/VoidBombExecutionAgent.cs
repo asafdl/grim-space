@@ -10,7 +10,7 @@ using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Ai;
 
-public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld, ActorRuntime>
+public sealed class VoidBombExecutionAgent : SimulationExecutionAgent<BattleWorld, ActorRuntime>
 {
 	protected override bool PublishOnActivate => false;
 
@@ -37,18 +37,18 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 		var start = session.Actions.Count;
 		var actorId = actor.State.Id;
 		var blastRadius = actor.State.RequireProjectile().BlastRadius;
-		if (!TorpedoSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position, blastRadius)
+		if (!VoidBombSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position, blastRadius)
 			&& session.TryEnqueue(new DetonateAction(actorId)))
 		{
 			return session.Actions.Skip(start).ToList();
 		}
 
-		var target = TorpedoSearchInput.BestReachableOpponent(session, actorId);
+		var target = VoidBombSearchInput.BestReachableOpponent(session, actorId);
 
 		Runner.CalcActions(
 			session,
 			actor,
-			[TorpedoMoveDef.Instance],
+			[VoidBombMoveDef.Instance],
 			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove),
 			frames => SelectBest(session, actorId, target, frames));
 
@@ -77,11 +77,11 @@ public sealed class TorpedoExecutionAgent : SimulationExecutionAgent<BattleWorld
 	{
 		var searchStartDepth = session.Actions.Count;
 		SearchFrame<BattleWorld, ActorRuntime>? best = null;
-		TorpedoFrameRank bestRank = default;
+		VoidBombFrameRank bestRank = default;
 
 		foreach (var frame in frames)
 		{
-			var rank = TorpedoSearchInput.RankFrame(frame, session, actorId, target, searchStartDepth);
+			var rank = VoidBombSearchInput.RankFrame(frame, session, actorId, target, searchStartDepth);
 			if (rank.Score == int.MinValue)
 				continue;
 			if (best is not null && rank.CompareTo(bestRank) <= 0)

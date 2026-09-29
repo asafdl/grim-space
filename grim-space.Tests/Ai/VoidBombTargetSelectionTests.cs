@@ -9,7 +9,7 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Ai;
 
 [BattleTestSuite]
-public sealed class TorpedoTargetSelectionTests
+public sealed class VoidBombTargetSelectionTests
 {
 	private const string PlayerId = "player";
 
@@ -23,10 +23,10 @@ public sealed class TorpedoTargetSelectionTests
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 1;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
-		var envelope = TorpedoReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
+		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 
-		Assert.Equal(ETorpedoTargetClass.InTrajectory, envelope.Classify(start + Coord.Forward * 2));
-		Assert.Equal(ETorpedoTargetClass.Unreachable, envelope.Classify(new Coord(5, 5, 0)));
+		Assert.Equal(EVoidBombTargetClass.InTrajectory, envelope.Classify(start + Coord.Forward * 2));
+		Assert.Equal(EVoidBombTargetClass.Unreachable, envelope.Classify(new Coord(5, 5, 0)));
 	}
 
 	[Fact]
@@ -50,11 +50,11 @@ public sealed class TorpedoTargetSelectionTests
 		UnitRegistry.For(battle.Engine.World).Add(future);
 
 		var session = battle.Engine.CreateSimulation();
-		var envelope = TorpedoReachEnvelope.Build(session, torpedoId);
-		Assert.Equal(ETorpedoTargetClass.InTrajectory, envelope.Classify(inTrajectory.State.Position));
-		Assert.Equal(ETorpedoTargetClass.Future, envelope.Classify(future.State.Position));
+		var envelope = VoidBombReachEnvelope.Build(session, torpedoId);
+		Assert.Equal(EVoidBombTargetClass.InTrajectory, envelope.Classify(inTrajectory.State.Position));
+		Assert.Equal(EVoidBombTargetClass.Future, envelope.Classify(future.State.Position));
 
-		var chosen = TorpedoSearchInput.BestReachableOpponent(session, torpedoId);
+		var chosen = VoidBombSearchInput.BestReachableOpponent(session, torpedoId);
 		Assert.NotNull(chosen);
 		Assert.Equal(inTrajectory.State.Id, chosen.State.Id);
 	}
@@ -79,7 +79,7 @@ public sealed class TorpedoTargetSelectionTests
 			new AiController());
 		UnitRegistry.For(battle.Engine.World).Add(behind);
 
-		var chosen = TorpedoSearchInput.BestReachableOpponent(battle.Engine.CreateSimulation(), torpedoId);
+		var chosen = VoidBombSearchInput.BestReachableOpponent(battle.Engine.CreateSimulation(), torpedoId);
 		Assert.NotNull(chosen);
 		Assert.Equal(ahead.State.Id, chosen.State.Id);
 	}
@@ -91,7 +91,7 @@ public sealed class TorpedoTargetSelectionTests
 		FaceForward(battle, torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
-		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultTorpedoLauncher().FuelTurns;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 
 		var ahead = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
@@ -106,7 +106,7 @@ public sealed class TorpedoTargetSelectionTests
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var session = battle.Engine.CreateSimulation();
-		var actions = ((TorpedoExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
 
 		Assert.DoesNotContain(actions, action => action is MoveStepAction);
 		Assert.DoesNotContain(actions, action => action is FuelBurnAction);
@@ -125,8 +125,8 @@ public sealed class TorpedoTargetSelectionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		battle.Engine.Commit(TorpedoDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
-		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.Torpedo);
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
+		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.VoidBomb);
 		torpedoId = torpedo.State.Id;
 		return battle;
 	}

@@ -40,7 +40,7 @@ internal static class BattleHudCopy
 
 	public const string PickFiringMount = "Pick firing mount";
 	public const string PickLaunchBay = "Pick launch bay";
-	public const string PickTorpedo = "Pick torpedo";
+	public const string PickVoidBomb = "Pick void bomb";
 	public const string ActionUnavailable = "Action is no longer available";
 
 	public const string FocusTooltip = "Snap the camera to your active ship.";
@@ -82,7 +82,7 @@ internal static class BattleHudCopy
 		mode switch
 		{
 			EPlayerMode.SpawnPatrol => PickLaunchBay,
-			EPlayerMode.Detonate => PickTorpedo,
+			EPlayerMode.Detonate => PickVoidBomb,
 			_ => PickFiringMount,
 		};
 
@@ -105,10 +105,10 @@ internal static class BattleHudCopy
 			? LightningCannonTooltipFor(lightningCannon)
 			: "Lightning Cannon";
 
-	public static string TorpedoTooltipFor(UnitDisplayState unit) =>
-		FirstInstalled<TorpedoLauncherSpec>(unit, EAbilityKind.TorpedoLauncher) is { } launcher
-			? TorpedoTooltipFor(launcher)
-			: "Torpedo";
+	public static string VoidBombTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<VoidBombLauncherSpec>(unit, EAbilityKind.VoidBombLauncher) is { } launcher
+			? VoidBombTooltipFor(launcher)
+			: "Void bomb";
 
 	public static string DetonateTooltipFor(UnitDisplayState unit) =>
 		unit.Projectile is { } projectile
@@ -132,14 +132,14 @@ internal static class BattleHudCopy
 		$"Deals {lightningCannon.Damage} damage.\n" +
 		$"Cooldown: {lightningCannon.UsesPerTurn} use per turn.";
 
-	public static string TorpedoTooltipFor(TorpedoLauncherSpec launcher) =>
-		$"Torpedo:\nFires in a set direction.\n" +
+	public static string VoidBombTooltipFor(VoidBombLauncherSpec launcher) =>
+		$"Void bomb:\nFires in a set direction.\n" +
 		$"Travels for {launcher.FuelTurns} turns with {launcher.MovementActionPoints} AP per turn.\n" +
 		$"Forward movement costs {launcher.ForwardMoveApCost} AP; lateral movement costs {launcher.LateralMoveApCost} AP.\n" +
 		$"Blast radius: {launcher.BlastRadius} cells, {launcher.BlastDamage} damage.\n" +
 		$"Cooldown: {launcher.CooldownTurns} turns after launch.";
 
-	public static string DetonateTooltipFor(TorpedoProjectile projectile) =>
+	public static string DetonateTooltipFor(VoidBombProjectile projectile) =>
 		$"Detonate:\nExplodes for {projectile.BlastDamage} damage in a {projectile.BlastRadius}-cell radius.\n" +
 		$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
 		$"Fuel: {projectile.FuelTurns} turns after launch.";

@@ -76,12 +76,12 @@ public sealed class AbilityInstructionFrameTests
 	}
 
 	[Fact]
-	public void BlockedTorpedoMountIsNotPublishedAsChoice()
+	public void BlockedVoidBombMountIsNotPublishedAsChoice()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var (blockedMount, _, _) = TorpedoMount.LaunchPose(
+		var (blockedMount, _, _) = VoidBombMount.LaunchPose(
 			player.State,
 			ESpatialOrientation.Dorsal);
 		var battle = BattleTestFixture.BeginSimulation(
@@ -91,8 +91,8 @@ public sealed class AbilityInstructionFrameTests
 			new HashSet<Coord> { enemy.State.Position, blockedMount });
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(player.State.Type)
-			.First(entry => entry.Mode == EPlayerMode.Torpedo);
-		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+			.First(entry => entry.Mode == EPlayerMode.VoidBomb);
+		frames.Interaction.SetMode(EPlayerMode.VoidBomb, spec);
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 

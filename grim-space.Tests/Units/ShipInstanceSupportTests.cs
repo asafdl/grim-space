@@ -156,7 +156,7 @@ public sealed class ShipInstanceSupportTests
 	public void TryWithInstalledAbility_RejectsOccupiedFacet()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var mount = new AbilityMount(EAbilityKind.TorpedoLauncher, ESpatialOrientation.Ventral);
+		var mount = new AbilityMount(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral);
 		var installed = new InstalledAbility(FighterSpec.Instance.BaselineFor(mount), ESpatialOrientation.Ventral);
 
 		Assert.False(ship.TryWithInstalledAbility(installed, out _));

@@ -33,9 +33,9 @@ internal static class CatalogExpectations
 	public static PatrolBaySpec DefaultPatrolBaySpec(EType chassis = EType.Carrier) =>
 		(PatrolBaySpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.PatrolBay)!;
 
-	public static TorpedoLauncherSpec DefaultTorpedoLauncherSpec(EType chassis = EType.Fighter) =>
-		(TorpedoLauncherSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.TorpedoLauncher)!;
+	public static VoidBombLauncherSpec DefaultVoidBombLauncherSpec(EType chassis = EType.Fighter) =>
+		(VoidBombLauncherSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.VoidBombLauncher)!;
 
-	public static TorpedoLauncherSpec DefaultTorpedoLauncher() =>
-		DefaultTorpedoLauncherSpec(EType.Fighter);
+	public static VoidBombLauncherSpec DefaultVoidBombLauncher() =>
+		DefaultVoidBombLauncherSpec(EType.Fighter);
 }

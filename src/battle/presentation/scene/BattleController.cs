@@ -45,7 +45,7 @@ public partial class BattleController : Node3D
 
 	private GridView _gridView = null!;
 	private AreaActionPreviewView _areaActionPreview = null!;
-	private TorpedoPreviewView _torpedoPreview = null!;
+	private VoidBombPreviewView _voidBombPreview = null!;
 	private AbilitySourcePickerView _abilitySourcePicker = null!;
 	private CellVolumeMeshStore _cellVolumeMeshes = null!;
 	private Controller _camera = null!;
@@ -105,9 +105,9 @@ public partial class BattleController : Node3D
 		_areaActionPreview.Build(_cellVolumeMeshes);
 		AddChild(_areaActionPreview);
 
-		_torpedoPreview = new TorpedoPreviewView { Name = "TorpedoPreview" };
-		_torpedoPreview.Build(_cellVolumeMeshes);
-		AddChild(_torpedoPreview);
+		_voidBombPreview = new VoidBombPreviewView { Name = "VoidBombPreview" };
+		_voidBombPreview.Build(_cellVolumeMeshes);
+		AddChild(_voidBombPreview);
 
 		_abilitySourcePicker = new AbilitySourcePickerView { Name = "AbilitySourcePicker" };
 		_abilitySourcePicker.Configure(_camera);
@@ -496,7 +496,7 @@ public partial class BattleController : Node3D
 		_targetOpportunityOverlay.Apply(frame.PreviewUnits, frame.PoseHitOpportunities);
 		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
 		_areaActionPreview.ApplyFrame(frame);
-		_torpedoPreview.ApplyFrame(frame);
+		_voidBombPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame, allowEndTurn: CanEndTurn);
 	}
 

@@ -20,7 +20,7 @@ namespace GrimSpace.Battle.Presentation;
 /// </summary>
 public sealed class PlanningPreview
 {
-	private const string PreviewTorpedoId = "__preview_torpedo__";
+	private const string PreviewVoidBombId = "__preview_void_bomb__";
 
 	private readonly MovePreviewCache _moveCache = new();
 
@@ -28,7 +28,7 @@ public sealed class PlanningPreview
 	private BattleSimulation? _envelopeCacheSim;
 	private int _envelopeCacheWorldVersion;
 	private IReadOnlyList<IAction> _envelopeCacheActions = [];
-	private readonly Dictionary<TorpedoAction, IReadOnlyList<IReadOnlySet<Coord>>> _envelopeCache = [];
+	private readonly Dictionary<VoidBombAction, IReadOnlyList<IReadOnlySet<Coord>>> _envelopeCache = [];
 
 	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits(
 		BattleSimulation sim,
@@ -126,7 +126,7 @@ public sealed class PlanningPreview
 				case LightningCannonAction:
 					lightningCannon = true;
 					break;
-				case TorpedoAction torpedo:
+				case VoidBombAction torpedo:
 					torpedoMounts.Add(torpedo.MountedOn);
 					break;
 			}
@@ -184,18 +184,18 @@ public sealed class PlanningPreview
 		return targets;
 	}
 
-	public TurnVolumePreviews TorpedoPreviews(
+	public TurnVolumePreviews VoidBombPreviews(
 		BattleSimulation sim,
 		string playerId,
 		IAction? hoveredAbilityAction = null)
 	{
 		EnsureSim(sim);
 		TurnVolumePreview? aim = null;
-		var effectiveMount = (hoveredAbilityAction as TorpedoAction)?.MountedOn;
+		var effectiveMount = (hoveredAbilityAction as VoidBombAction)?.MountedOn;
 		if (effectiveMount is ESpatialOrientation aimMount)
 		{
 			var ship = sim.World.StateOf(playerId);
-			var (launchCell, _, _) = TorpedoMount.LaunchPose(ship, aimMount);
+			var (launchCell, _, _) = VoidBombMount.LaunchPose(ship, aimMount);
 			aim = TurnVolumePreview.FromCumulativeReach(
 				launchCell,
 				EnvelopeLayersForMount(sim, playerId, aimMount));
@@ -227,23 +227,23 @@ public sealed class PlanningPreview
 		string playerId,
 		ESpatialOrientation mountedOn)
 	{
-		var request = new TorpedoAction(playerId, mountedOn, PreviewTorpedoId);
+		var request = new VoidBombAction(playerId, mountedOn, PreviewVoidBombId);
 		if (TryGetEnvelopeCache(sim, request, out var cached))
 			return cached;
 
 		var peek = sim.Peek(request);
 		if (peek is null
-			|| !UnitRegistry.For(peek.Value.World).TryGet(PreviewTorpedoId, out var spawned))
+			|| !UnitRegistry.For(peek.Value.World).TryGet(PreviewVoidBombId, out var spawned))
 			return CacheEnvelope(sim, request, []);
 
 		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
 		session.Begin(sim.AnchorTick, sim.WorldVersion);
-		return CacheEnvelope(sim, request, TorpedoReachEnvelope.Build(session, spawned.State.Id).Layers);
+		return CacheEnvelope(sim, request, VoidBombReachEnvelope.Build(session, spawned.State.Id).Layers);
 	}
 
 	private bool TryGetEnvelopeCache(
 		BattleSimulation sim,
-		TorpedoAction request,
+		VoidBombAction request,
 		out IReadOnlyList<IReadOnlySet<Coord>> layers)
 	{
 		RefreshEnvelopeCache(sim);
@@ -252,7 +252,7 @@ public sealed class PlanningPreview
 
 	private IReadOnlyList<IReadOnlySet<Coord>> CacheEnvelope(
 		BattleSimulation sim,
-		TorpedoAction request,
+		VoidBombAction request,
 		IReadOnlyList<IReadOnlySet<Coord>> layers)
 	{
 		RefreshEnvelopeCache(sim);

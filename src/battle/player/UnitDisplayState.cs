@@ -23,7 +23,7 @@ public sealed record UnitDisplayState(
 	int MaxActionPoints,
 	IReadOnlyList<MountDisplayState> Mounts,
 	int FuelRemaining,
-	TorpedoProjectile? Projectile,
+	VoidBombProjectile? Projectile,
 	bool IsAlive)
 {
 	public static UnitDisplayState Capture(State state) =>

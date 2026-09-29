@@ -302,16 +302,16 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
+			VoidBombDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
 
-		var action = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions));
+		var action = Assert.IsType<VoidBombAction>(Assert.Single(battle.PlayerAgent.Sim.Actions));
 		Assert.NotNull(action.SpawnedUnitId);
 		var frame = BattleTestCommands.Frame(battle);
 
-		Assert.Null(frame.TorpedoPreviews.Queued);
+		Assert.Null(frame.VoidBombPreviews.Queued);
 		Assert.Contains(
 			frame.PreviewUnits.Values,
-			unit => unit.Type == EType.Torpedo);
+			unit => unit.Type == EType.VoidBomb);
 	}
 
 	[Fact]
@@ -322,8 +322,8 @@ public sealed class PresentationFrameTests
 		var frames = BattleTestFixture.FrameBuilder(battle);
 		var spec = AbilityHudCatalog.ForUnit(
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Torpedo);
-		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+			.First(entry => entry.Mode == EPlayerMode.VoidBomb);
+		frames.Interaction.SetMode(EPlayerMode.VoidBomb, spec);
 		var choices = BattleTestCommands.Frame(battle).AbilityChoices;
 		var dorsalIndex = choices
 			.Select((choice, index) => (choice, index))
@@ -332,13 +332,13 @@ public sealed class PresentationFrameTests
 		frames.Interaction.SetAbilityHover(dorsalIndex, choices.Count);
 
 		var frame = BattleTestCommands.Frame(battle);
-		var aim = frame.TorpedoPreviews.Aim;
+		var aim = frame.VoidBombPreviews.Aim;
 
 		Assert.NotNull(aim);
-		Assert.Null(frame.TorpedoPreviews.Queued);
-		Assert.Equal(CatalogExpectations.DefaultTorpedoLauncher().FuelTurns, aim.TurnBands.Count);
+		Assert.Null(frame.VoidBombPreviews.Queued);
+		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().FuelTurns, aim.TurnBands.Count);
 		Assert.Equal(
-			TorpedoMount.LaunchPose(
+			VoidBombMount.LaunchPose(
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId),
 				ESpatialOrientation.Dorsal).Position,
 			aim.Origin);
@@ -357,21 +357,21 @@ public sealed class PresentationFrameTests
 		var frames = BattleTestFixture.FrameBuilder(battle);
 		var spec = AbilityHudCatalog.ForUnit(
 				battle.PlayerAgent.Sim.World.StateOf(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Torpedo);
-		frames.Interaction.SetMode(EPlayerMode.Torpedo, spec);
+			.First(entry => entry.Mode == EPlayerMode.VoidBomb);
+		frames.Interaction.SetMode(EPlayerMode.VoidBomb, spec);
 		var choices = BattleTestCommands.Frame(battle).AbilityChoices;
 		var retroIndex = choices
 			.Select((choice, index) => (choice, index))
 			.Single(entry => entry.choice.MountedOn == ESpatialOrientation.Retro)
 			.index;
 		frames.Interaction.SetAbilityHover(retroIndex, choices.Count);
-		var aim = BattleTestCommands.Frame(battle).TorpedoPreviews.Aim;
+		var aim = BattleTestCommands.Frame(battle).VoidBombPreviews.Aim;
 		Assert.NotNull(aim);
 		var firstLayer = aim.TurnBands[0];
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			TorpedoDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
-		var launchedId = Assert.IsType<TorpedoAction>(Assert.Single(battle.PlayerAgent.Sim.Actions)).SpawnedUnitId;
+			VoidBombDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro)));
+		var launchedId = Assert.IsType<VoidBombAction>(Assert.Single(battle.PlayerAgent.Sim.Actions)).SpawnedUnitId;
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 		var torpedo = Assert.Single(
@@ -380,7 +380,7 @@ public sealed class PresentationFrameTests
 
 		Assert.Contains(
 			replay.Actions,
-			action => action is TorpedoMoveStepAction { ActorId: var id } && id == torpedo.State.Id);
+			action => action is VoidBombMoveStepAction { ActorId: var id } && id == torpedo.State.Id);
 		Assert.Contains(torpedo.State.Position, firstLayer);
 	}
 
@@ -411,12 +411,12 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void TorpedoMountsExcludeBlockedLaunchCells()
+	public void VoidBombMountsExcludeBlockedLaunchCells()
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var (blockedMount, _, _) = TorpedoMount.LaunchPose(
+		var (blockedMount, _, _) = VoidBombMount.LaunchPose(
 			player.State,
 			ESpatialOrientation.Dorsal);
 		var battle = BattleTestFixture.BeginSimulation(
@@ -425,7 +425,7 @@ public sealed class PresentationFrameTests
 			BattleTestFixture.Grid(),
 			new HashSet<Coord> { enemy.State.Position, blockedMount });
 
-		var mounts = BattleTestCommands.Frame(battle).Weapons.TorpedoMounts;
+		var mounts = BattleTestCommands.Frame(battle).Weapons.VoidBombMounts;
 
 		Assert.DoesNotContain(ESpatialOrientation.Dorsal, mounts);
 		Assert.Contains(ESpatialOrientation.Retro, mounts);

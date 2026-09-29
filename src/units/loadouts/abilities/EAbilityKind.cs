@@ -5,5 +5,5 @@ public enum EAbilityKind
 	ScrapDroneSwarm,
 	LightningCannon,
 	PatrolBay,
-	TorpedoLauncher,
+	VoidBombLauncher,
 }

@@ -40,6 +40,14 @@ public partial class HazardBurstView : Node3D
 		}
 	}
 
+	public double PlayVoidBomb(Coord origin, int radiusCells)
+	{
+		return VoidBombEffect.Play(
+			this,
+			WorldMapping.ToWorld(origin),
+			radiusCells * WorldMapping.CellSize);
+	}
+
 	public void PlayRadialBurst(
 		Coord origin,
 		int radiusCells,

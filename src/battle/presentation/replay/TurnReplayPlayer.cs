@@ -94,6 +94,7 @@ public partial class TurnReplayPlayer : Node3D
 			_colorFor,
 			endStates,
 			_ensureView,
+			DismissUnitPresentation,
 			reportInterest);
 		_turnHistory.BeginTurn();
 		_hazardBursts.Clear();
@@ -184,8 +185,8 @@ public partial class TurnReplayPlayer : Node3D
 	{
 		switch (spawn.EntityType)
 		{
-			case EType.Torpedo:
-				ApplyTorpedoSpawn(spawn);
+			case EType.VoidBomb:
+				ApplyVoidBombSpawn(spawn);
 				break;
 			case EType.Patrol:
 				ApplyPatrolSpawn(spawn);
@@ -193,13 +194,13 @@ public partial class TurnReplayPlayer : Node3D
 		}
 	}
 
-	private void ApplyTorpedoSpawn(SpawnFacts spawn)
+	private void ApplyVoidBombSpawn(SpawnFacts spawn)
 	{
 		var spawned = spawn.SpawnedState.Clone();
 		_clipContext.ReplayState.Add(spawned);
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
 		_clipContext.UnitViews[spawned.Id].Sync(spawned);
-		_clipContext.PendingTorpedoMountedOn = null;
+		_clipContext.PendingVoidBombMountedOn = null;
 	}
 
 	private void ApplyPatrolSpawn(SpawnFacts spawn)
@@ -221,6 +222,16 @@ public partial class TurnReplayPlayer : Node3D
 		_stateChanged(state);
 		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
 			return false;
+
+		if (impact.Cause == EHazardKind.VoidBombBlast && impact.TargetId == impact.SourceId)
+		{
+			DismissUnitPresentation(impact.TargetId);
+			_removeView(impact.TargetId);
+			return false;
+		}
+
+		if (!state.IsAlive)
+			ClearReplayMovementTrail(impact.TargetId);
 
 		if (state.IsAlive)
 			view.Sync(state);
@@ -262,6 +273,16 @@ public partial class TurnReplayPlayer : Node3D
 		return true;
 	}
 
+	private void DismissUnitPresentation(string unitId)
+	{
+		ClearReplayMovementTrail(unitId);
+		if (_unitViews.TryGetValue(unitId, out var view))
+			view.HideVisual();
+	}
+
+	private void ClearReplayMovementTrail(string unitId) =>
+		_turnHistory.ClearActor(unitId);
+
 	private void BeginPhase(EReplayPlaybackPhase phase)
 	{
 		if (phase == _phase)
@@ -300,10 +321,10 @@ public partial class TurnReplayPlayer : Node3D
 		if (_clipContext.ReportInterest is null)
 			return;
 
-		if (action is TorpedoAction torpedo)
+		if (action is VoidBombAction torpedo)
 		{
 			var firer = _clipContext.ReplayState.StateOf(torpedo.ActorId);
-			var (launchCell, _, _) = TorpedoMount.LaunchPose(firer, torpedo.MountedOn);
+			var (launchCell, _, _) = VoidBombMount.LaunchPose(firer, torpedo.MountedOn);
 			_clipContext.ReportInterest(new CameraInterest(
 				[
 					WorldMapping.ToWorld(firer.Position),

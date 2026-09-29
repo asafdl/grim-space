@@ -13,24 +13,24 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record TorpedoAction(
+public sealed record VoidBombAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
 	string SpawnedUnitId) : IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		TorpedoDef.Instance;
+		VoidBombDef.Instance;
 }
 
-public sealed class TorpedoDef
+public sealed class VoidBombDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IMountedActionDef
 {
-	public static TorpedoDef Instance { get; } = new();
+	public static VoidBombDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		var spawnedUnitId = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo));
+		var spawnedUnitId = TypedIdGenerator.NextId(UnitTypeSlug.For(EType.VoidBomb));
 		foreach (var action in Discover(actorId, spawnedUnitId, world))
 		{
 			if (IsPossible(action, world, runtime))
@@ -38,22 +38,22 @@ public sealed class TorpedoDef
 		}
 	}
 
-	internal IEnumerable<TorpedoAction> Discover(string actorId, string spawnedUnitId, BattleWorld world)
+	internal IEnumerable<VoidBombAction> Discover(string actorId, string spawnedUnitId, BattleWorld world)
 	{
 		var state = world.StateOf(actorId);
 		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
-			if (installed.Spec.Kind != EAbilityKind.TorpedoLauncher)
+			if (installed.Spec.Kind != EAbilityKind.VoidBombLauncher)
 				continue;
 
 			yield return Bind(actorId, installed.MountedOn, spawnedUnitId);
 		}
 	}
 
-	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Torpedo)));
+	public VoidBombAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+		Bind(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.VoidBomb)));
 
-	public TorpedoAction Bind(string actorId, ESpatialOrientation mountedOn, string spawnedUnitId) =>
+	public VoidBombAction Bind(string actorId, ESpatialOrientation mountedOn, string spawnedUnitId) =>
 		new(actorId, mountedOn, spawnedUnitId);
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
@@ -71,26 +71,26 @@ public sealed class TorpedoDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsPossible(VoidBombAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (string.IsNullOrWhiteSpace(action.SpawnedUnitId))
 			return false;
 
 		var installed = world.StateOf(action.ActorId).FindInstalled(
-			EAbilityKind.TorpedoLauncher,
+			EAbilityKind.VoidBombLauncher,
 			action.MountedOn);
 		if (installed is null)
 			return false;
 
 		var ship = world.StateOf(action.ActorId);
-		var (position, _, _) = TorpedoMount.LaunchPose(ship, action.MountedOn);
+		var (position, _, _) = VoidBombMount.LaunchPose(ship, action.MountedOn);
 		return world.Grid.IsInBounds(position) && !world.IsCellBlocked(position);
 	}
 
-	public bool IsLegal(TorpedoAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsLegal(VoidBombAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.TorpedoLauncher, action.MountedOn);
+		var installed = state.FindInstalled(EAbilityKind.VoidBombLauncher, action.MountedOn);
 		if (installed is null)
 			return false;
 		if (state.MountRuntimeFor(installed.Mount).CooldownRemaining > 0)
@@ -100,23 +100,23 @@ public sealed class TorpedoDef
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
-		TorpedoAction action,
+		VoidBombAction action,
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.TorpedoLauncher, action.MountedOn)
-			?? throw new InvalidOperationException("Torpedo launcher not installed for actor.");
+		var installed = state.FindInstalled(EAbilityKind.VoidBombLauncher, action.MountedOn)
+			?? throw new InvalidOperationException("VoidBomb launcher not installed for actor.");
 		var cooldown = installed.Spec is ICooldownAbility cooldownAbility
 			? cooldownAbility.CooldownTurns
-			: throw new InvalidOperationException("Torpedo launcher spec missing cooldown.");
+			: throw new InvalidOperationException("VoidBomb launcher spec missing cooldown.");
 		return
 		[
-			new SpawnTorpedoEffect(installed.Mount, action.SpawnedUnitId),
+			new SpawnVoidBombEffect(installed.Mount, action.SpawnedUnitId),
 			new MountCooldownEffect(installed.Mount, cooldown),
 		];
 	}
 
-	private static TorpedoAction Cast(IAction action) =>
-		action as TorpedoAction ?? throw new ArgumentException($"Expected {nameof(TorpedoAction)}.", nameof(action));
+	private static VoidBombAction Cast(IAction action) =>
+		action as VoidBombAction ?? throw new ArgumentException($"Expected {nameof(VoidBombAction)}.", nameof(action));
 }

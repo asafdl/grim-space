@@ -16,8 +16,8 @@ internal static class ChassisWeaponBaselines
 	internal const int StarterLightningCannonLineLength = 5;
 	internal const int PatrolCooldownTurns = 2;
 	internal const int MaxLivingPatrolChildren = 5;
-	internal const int TorpedoLauncherCooldownTurns = 3;
-	internal const int StarterTorpedoFuelTurns = 2;
+	internal const int VoidBombLauncherCooldownTurns = 3;
+	internal const int StarterVoidBombFuelTurns = 2;
 
 	internal static ScrapDroneSwarmSpec ScrapDroneSwarm() => new(ScrapDroneSwarmsPerTurn, ScrapDroneSwarmDamage, ScrapDroneSwarmRange);
 
@@ -27,19 +27,19 @@ internal static class ChassisWeaponBaselines
 	internal static LightningCannonSpec StarterLightningCannon() =>
 		new(LightningCannonsPerTurn, StarterLightningCannonDamage, StarterLightningCannonLineLength, LightningCannonPyramidRange);
 
-	internal static TorpedoLauncherSpec StarterTorpedoLauncher() =>
-		TorpedoLauncher(StarterTorpedoFuelTurns);
+	internal static VoidBombLauncherSpec StarterVoidBombLauncher() =>
+		VoidBombLauncher(StarterVoidBombFuelTurns);
 
 	internal static PatrolBaySpec PatrolBay(ShipSpec patrolChild) =>
 		new(PatrolCooldownTurns, patrolChild, MaxLivingPatrolChildren);
 
-	internal static TorpedoLauncherSpec TorpedoLauncher(int fuelTurns = TorpedoSpec.FuelTurns) =>
+	internal static VoidBombLauncherSpec VoidBombLauncher(int fuelTurns = VoidBombSpec.FuelTurns) =>
 		new(
-			TorpedoLauncherCooldownTurns,
+			VoidBombLauncherCooldownTurns,
 			fuelTurns,
-			TorpedoSpec.MovementActionPoints,
-			TorpedoSpec.ForwardMoveApCost,
-			TorpedoSpec.LateralMoveApCost,
-			TorpedoSpec.BlastRadius,
-			TorpedoSpec.BlastDamage);
+			VoidBombSpec.MovementActionPoints,
+			VoidBombSpec.ForwardMoveApCost,
+			VoidBombSpec.LateralMoveApCost,
+			VoidBombSpec.BlastRadius,
+			VoidBombSpec.BlastDamage);
 }

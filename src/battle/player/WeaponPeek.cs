@@ -8,7 +8,7 @@ public readonly record struct WeaponPeek(
 	bool PortScrapDroneSwarm,
 	bool StarboardScrapDroneSwarm,
 	bool LightningCannon,
-	IReadOnlySet<ESpatialOrientation> TorpedoMounts)
+	IReadOnlySet<ESpatialOrientation> VoidBombMounts)
 {
 	public static WeaponPeek Empty { get; } =
 		new(false, false, false, new HashSet<ESpatialOrientation>());
@@ -18,7 +18,7 @@ public readonly record struct WeaponPeek(
 		{
 			EWeaponKind.ScrapDroneSwarm => PortScrapDroneSwarm || StarboardScrapDroneSwarm,
 			EWeaponKind.LightningCannon => LightningCannon,
-			EWeaponKind.Torpedo => TorpedoMounts.Count > 0,
+			EWeaponKind.VoidBomb => VoidBombMounts.Count > 0,
 			_ => false,
 		};
 }

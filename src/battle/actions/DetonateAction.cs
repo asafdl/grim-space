@@ -72,7 +72,7 @@ public sealed class DetonateDef
 		return
 		[
 			new ResolveHazardEffect(
-				EHazardKind.TorpedoBlast,
+				EHazardKind.VoidBombBlast,
 				cells,
 				body.BlastDamage),
 		];

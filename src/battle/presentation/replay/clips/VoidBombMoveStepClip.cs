@@ -3,15 +3,15 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
-public sealed class TorpedoMoveStepClip : IReplayClip
+public sealed class VoidBombMoveStepClip : IReplayClip
 {
-	public Type ActionType => typeof(TorpedoMoveStepAction);
+	public Type ActionType => typeof(VoidBombMoveStepAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
-		var move = (TorpedoMoveStepAction)action;
+		var move = (VoidBombMoveStepAction)action;
 		var from = context.ReplayState.StateOf(move.ActorId).Position;
-		context.ReplayState.ApplyTorpedoMove(move);
+		context.ReplayState.ApplyVoidBombMove(move);
 		var state = context.ReplayState.StateOf(move.ActorId);
 
 		context.UnitViews[move.ActorId].AnimateMoveTo(state, ReplayTiming.MoveStepSeconds);

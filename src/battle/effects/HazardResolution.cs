@@ -13,7 +13,7 @@ public static class HazardResolution
 		{
 			EHazardKind.ScrapDroneSwarmBurst => shooterPosition,
 			EHazardKind.LightningCannonBurst => shooterPosition,
-			EHazardKind.TorpedoBlast => shooterPosition,
+			EHazardKind.VoidBombBlast => shooterPosition,
 			_ => cells.Count > 0 ? cells.First() : Coord.Zero,
 		};
 
@@ -74,7 +74,7 @@ public static class HazardResolution
 		{
 			case EHazardKind.ScrapDroneSwarmBurst:
 			case EHazardKind.LightningCannonBurst:
-			case EHazardKind.TorpedoBlast:
+			case EHazardKind.VoidBombBlast:
 				ApplyDirectedDamage(hazard, unit, face);
 				break;
 			default:
