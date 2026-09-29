@@ -386,7 +386,6 @@ public static class GameInputBindings
 		Map("map_pan_left", "Pan left", Phy(Key.A), Phy(Key.Left)),
 		Map("map_pan_right", "Pan right", Phy(Key.D), Phy(Key.Right)),
 		Map("map_pause", "Pause / resume", Log(Key.Space)),
-		Map("map_step", "Step", Log(Key.Period)),
 		Map("map_speed_up", "Speed up", Log(Key.Bracketright)),
 		Map("map_speed_down", "Speed down", Log(Key.Bracketleft)),
 

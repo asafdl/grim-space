@@ -49,7 +49,7 @@ public partial class KeyBindingsTab : Control
 			["map_pan_up", "map_pan_down", "map_pan_left", "map_pan_right"]),
 		new(
 			"Time",
-			["map_pause", "map_step", "map_speed_up", "map_speed_down"]),
+			["map_pause", "map_speed_up", "map_speed_down"]),
 	];
 
 	private const float ActionColumnMinWidth = 200f;

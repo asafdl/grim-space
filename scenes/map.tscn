@@ -8,7 +8,7 @@
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/RoutesView.cs" id="4_routes"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/UnitsView.cs" id="5_units"]
 [ext_resource type="Script" path="res://src/world/star-system/presentation/map/CourseView.cs" id="6_course"]
-[ext_resource type="Script" path="res://src/world/star-system/presentation/ui/DebugHud.cs" id="8_debug"]
+[ext_resource type="Script" path="res://src/world/star-system/presentation/ui/MapTimeControls.cs" id="8_time_controls"]
 [ext_resource type="PackedScene" uid="uid://cstrategic_hud01" path="res://scenes/strategic_hud.tscn" id="10_strategic_hud"]
 
 [node name="Map" type="Node3D"]
@@ -61,11 +61,14 @@ visible = false
 mouse_filter = 2
 theme_type_variation = &"TooltipName"
 
-[node name="DebugHud" type="MarginContainer" parent="UI"]
+[node name="MapTimeControls" type="MarginContainer" parent="UI"]
 layout_mode = 1
-anchors_preset = 0
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+grow_horizontal = 2
 mouse_filter = 2
-script = ExtResource("8_debug")
+script = ExtResource("8_time_controls")
 
 [node name="FadeOverlay" type="ColorRect" parent="UI"]
 visible = false

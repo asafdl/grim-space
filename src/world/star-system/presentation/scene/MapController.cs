@@ -25,7 +25,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Scene;
 public partial class MapController : Node3D
 {
 	private const float SecondsPerTick = 0.2f;
-	private static readonly float[] SpeedOptions = [0.5f, 1f, 2f, 4f, 8f];
+	private static readonly float[] SpeedOptions = [1f, 2f, 4f];
 
 	private MapView _view = null!;
 	private NavigationLandmarksView _landmarks = null!;
@@ -35,13 +35,7 @@ public partial class MapController : Node3D
 	private CourseView _course = null!;
 	private MapCamera _camera = null!;
 	private Label _tooltip = null!;
-	private Label _tickLabel = null!;
-	private Label _systemLabel = null!;
-	private Button _pauseButton = null!;
-	private Button _stepButton = null!;
-	private Button _speedButton = null!;
-	private Button _rebuildButton = null!;
-	private Button _overviewButton = null!;
+	private MapTimeControls _timeControls = null!;
 	private CanvasLayer _uiLayer = null!;
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
@@ -58,7 +52,7 @@ public partial class MapController : Node3D
 	private WorldMapDirector _director = null!;
 	private FacadePresentationMode _facadeMode = null!;
 	private float _tickAccumulator;
-	private int _speedIndex = 1;
+	private int _speedIndex;
 	private float _unreachableFlashTimer;
 	private bool _staleWaitingForPlayerInputReported;
 	private string? _syncedDockedPoiId;
@@ -78,14 +72,7 @@ public partial class MapController : Node3D
 		_uiLayer = GetNode<CanvasLayer>("UI");
 		_tooltip = GetNode<Label>("UI/Tooltip");
 		HudThemes.Apply(_tooltip, HudThemeFamily.Debug);
-		var debugHud = GetNode<DebugHud>("UI/DebugHud");
-		_systemLabel = debugHud.SystemLabel;
-		_tickLabel = debugHud.TickLabel;
-		_pauseButton = debugHud.PauseButton;
-		_stepButton = debugHud.StepButton;
-		_speedButton = debugHud.SpeedButton;
-		_rebuildButton = debugHud.RebuildButton;
-		_overviewButton = debugHud.OverviewButton;
+		_timeControls = GetNode<MapTimeControls>("UI/MapTimeControls");
 		_strategicHud = GetNode<StrategicHud>("StrategicHud");
 
 		_orchestrator = Session.Instance.Run.StarSystem;
@@ -131,15 +118,8 @@ public partial class MapController : Node3D
 			_orchestrator.PlayerAgent!,
 			picked => _view.ResolveMoveDestination(picked),
 			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
-		_pauseButton.Pressed += () => _orchestrator.TogglePause();
-		_stepButton.Pressed += () =>
-		{
-			_orchestrator.Step();
-			_tickAccumulator = 0f;
-		};
-		_speedButton.Pressed += () => CycleSpeed(1);
-		_rebuildButton.Pressed += RebuildScene;
-		_overviewButton.Pressed += OnOverviewButtonPressed;
+		_timeControls.PausePressed += () => _orchestrator.TogglePause();
+		_timeControls.SpeedPressed += CycleSpeed;
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -267,8 +247,7 @@ public partial class MapController : Node3D
 
 		_orchestrator.PlayerAgent!.PlanningChanged += OnPlayerPlanningChanged;
 
-		UpdateSystemLabel(world);
-		UpdateDebugUi();
+		SyncTimeControls();
 		if (MapNavigationContext.ReturnToFacade && MapNavigationContext.ActivePoiId is { } returnPoiId)
 		{
 			_director.SetInitialMode(
@@ -302,7 +281,7 @@ public partial class MapController : Node3D
 		if (_unreachableFlashTimer > 0f)
 			_unreachableFlashTimer = Mathf.Max(0f, _unreachableFlashTimer - (float)delta);
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
-		UpdateDebugUi();
+		SyncTimeControls();
 		_director.Update(delta);
 		SyncDockedFacadePresentation();
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, _hidePlayerBeacon);
@@ -427,24 +406,16 @@ public partial class MapController : Node3D
 			return;
 		}
 
-		if (@event.IsActionPressed("map_step", false, true) && _orchestrator.IsStepped)
-		{
-			_orchestrator.Step();
-			_tickAccumulator = 0f;
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
 		if (@event.IsActionPressed("map_speed_up", false, true))
 		{
-			CycleSpeed(1);
+			AdjustSpeed(1);
 			GetViewport().SetInputAsHandled();
 			return;
 		}
 
 		if (@event.IsActionPressed("map_speed_down", false, true))
 		{
-			CycleSpeed(-1);
+			AdjustSpeed(-1);
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -571,25 +542,8 @@ public partial class MapController : Node3D
 		GetTree().ChangeSceneToFile(entry.Facility.ScenePath);
 	}
 
-	private void UpdateDebugUi()
-	{
-		_tickLabel.Text = $"Tick {_orchestrator.Tick}";
-		_pauseButton.Text = _orchestrator.IsStepped ? "Resume" : "Pause";
-		_pauseButton.Disabled = false;
-		_stepButton.Disabled = !_orchestrator.IsStepped;
-		_speedButton.Text = $"Speed {SpeedOptions[_speedIndex]:0.#}x";
-		_overviewButton.Text = _director.CurrentModeId == OverviewPresentationMode.ModeId
-			? "Exit Overview"
-			: "Overview";
-	}
-
-	private void OnOverviewButtonPressed()
-	{
-		if (_director.CurrentModeId == OverviewPresentationMode.ModeId)
-			_director.TryExit(OverviewPresentationMode.ModeId);
-		else
-			_director.TryEnter(OverviewPresentationMode.ModeId);
-	}
+	private void SyncTimeControls() =>
+		_timeControls.Sync(_orchestrator.IsStepped, SpeedOptions[_speedIndex]);
 
 	private void SyncDockedFacadePresentation()
 	{
@@ -644,16 +598,11 @@ public partial class MapController : Node3D
 		return world.DocksById[player.State.DockedAtDockId].PoiId;
 	}
 
-	private void CycleSpeed(int delta)
-	{
-		_speedIndex = Mathf.PosMod(_speedIndex + delta, SpeedOptions.Length);
-	}
+	private void CycleSpeed() =>
+		_speedIndex = (_speedIndex + 1) % SpeedOptions.Length;
 
-	private void RebuildScene()
-	{
-		Session.Instance.Run.RegenerateMap();
-		GetTree().ReloadCurrentScene();
-	}
+	private void AdjustSpeed(int delta) =>
+		_speedIndex = Mathf.Clamp(_speedIndex + delta, 0, SpeedOptions.Length - 1);
 
 	private void OnObjectiveLandmarkLinkClicked(string objectId)
 	{
@@ -672,12 +621,6 @@ public partial class MapController : Node3D
 	{
 		if (flow.Id == TutorialController.GraduationFlowId)
 			GameSettings.SaveShowTutorials(false);
-	}
-
-	private void UpdateSystemLabel(StarMap world)
-	{
-		var blueprint = world.Blueprint;
-		_systemLabel.Text = $"{blueprint.SystemClass} · seed {blueprint.Seed} · {blueprint.SupplyPlan.ResourceId}";
 	}
 
 	private float ResolveIndicatorClearance(string objectId)
