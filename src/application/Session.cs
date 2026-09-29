@@ -127,6 +127,17 @@ public partial class Session : Node
 		BeginPreparedRun();
 	}
 
+	/// <summary>
+	/// Drops a background-prepared run so the next prepare uses current settings (e.g. tutorial toggle).
+	/// </summary>
+	public void DiscardPreparedRun()
+	{
+		var task = _preparedRunTask;
+		_preparedRunTask = null;
+		if (task is { IsCompleted: true, IsFaulted: false })
+			task.Result.Dispose();
+	}
+
 	public async Task BeginMapFromMenuAsync()
 	{
 		if (_beginningMapFromMenu)

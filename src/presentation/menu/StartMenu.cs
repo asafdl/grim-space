@@ -135,10 +135,12 @@ public partial class StartMenu : Control
 
 		var video = SelectedVideoConfig();
 		var audio = SelectedAudioConfig();
+		var showTutorials = _showTutorials.ButtonPressed;
+		var tutorialsSettingChanged = showTutorials != GameSettings.ReadShowTutorials();
 		var saveError = GameSettings.SaveAll(
 			video,
 			audio,
-			_showTutorials.ButtonPressed,
+			showTutorials,
 			bindings);
 		if (saveError != Error.Ok)
 		{
@@ -149,6 +151,12 @@ public partial class StartMenu : Control
 		GameSettings.ApplyVideoConfig(video);
 		GameSettings.ApplyAudioConfig(audio);
 		GameInputBindings.Apply(bindings);
+		if (tutorialsSettingChanged)
+		{
+			Session.Instance.DiscardPreparedRun();
+			Session.Instance.PrepareFirstScene();
+		}
+
 		_keyBindingsTab.ShowStatus(string.Empty);
 	}
 
