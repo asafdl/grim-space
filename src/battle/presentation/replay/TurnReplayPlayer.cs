@@ -229,7 +229,7 @@ public partial class TurnReplayPlayer : Node3D
 		if (impact.Cause == EHazardKind.LightningCannonBurst)
 			view.PlayLightningHitSparks();
 		else
-			view.PlayHitFlash();
+			view.PlayHitSparks();
 		view.PlayDamagePopup(impact.TotalDamage);
 
 		var died = !state.IsAlive;

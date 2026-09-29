@@ -213,32 +213,13 @@ public partial class UnitView : Node3D
 		}));
 	}
 
+	public void PlayHitSparks() =>
+		OneShotParticles.PlayHitSparks(this, Vector3.Zero);
+
 	public void PlayLightningHitSparks()
 	{
-		OneShotParticles.PlayHitSparks(this, Vector3.Zero);
+		PlayHitSparks();
 		PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.LightningCannonHitPath);
-	}
-
-	/// <summary>Brief red pulse so replay impacts read as hits, not silent state changes.</summary>
-	public void PlayHitFlash()
-	{
-		EnsureHitMark();
-		Visible = true;
-		_hitMark!.Visible = true;
-		_hitMark.Scale = Vector3.One * 0.45f;
-
-		var mat = (StandardMaterial3D)_hitMark.MaterialOverride!;
-		mat.EmissionEnergyMultiplier = 2.4f;
-		mat.AlbedoColor = new Color(1f, 0.28f, 0.22f, 0.55f);
-
-		var tween = CreateTween();
-		tween.SetParallel(true);
-		tween.TweenProperty(_hitMark, "scale", Vector3.One * 1.75f, 0.16)
-			.SetTrans(Tween.TransitionType.Quad)
-			.SetEase(Tween.EaseType.Out);
-		tween.TweenProperty(mat, "emission_energy_multiplier", 0.55f, 0.28);
-		tween.TweenProperty(mat, "albedo_color", new Color(1f, 0.28f, 0.22f, 0.12f), 0.28);
-		tween.Chain().TweenCallback(Callable.From(EndHitFlash));
 	}
 
 	public void PlayDamagePopup(int damage)
@@ -311,19 +292,6 @@ public partial class UnitView : Node3D
 		Position = WorldMapping.ToWorld(state.Position);
 		ApplyOrientation(state);
 		ApplyShields(state);
-	}
-
-	private void EndHitFlash()
-	{
-		if (_hitMark is null)
-			return;
-
-		_hitMark.Scale = Vector3.One;
-		var mat = (StandardMaterial3D)_hitMark.MaterialOverride!;
-		mat.EmissionEnergyMultiplier = 0.7f;
-		mat.AlbedoColor = new Color(1f, 0.28f, 0.22f, 0.28f);
-		if (!_hitMarked)
-			_hitMark.Visible = false;
 	}
 
 	private void EnsureHitMark()

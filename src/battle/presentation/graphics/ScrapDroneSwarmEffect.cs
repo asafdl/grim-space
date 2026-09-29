@@ -59,11 +59,10 @@ internal static class ScrapDroneAttackEffect
 		_attackScene ??= GD.Load<PackedScene>(AttackScenePath)
 			?? throw new InvalidOperationException($"Could not load scrap drone VFX '{AttackScenePath}'.");
 
-		PresentationSfx.PlayScrapDroneMount(parent, muzzle);
-
 		var effect = _attackScene.Instantiate<ScrapDroneAttack>();
 		parent.AddChild(effect);
 		effect.Play(muzzle, worldForward, worldUp, hits, missEnd);
+		PresentationSfx.PlayWorldOneShot(parent, muzzle, PresentationSfx.ScrapDroneFirePath);
 		return effect;
 	}
 
