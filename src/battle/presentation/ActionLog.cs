@@ -2,6 +2,7 @@ using System.Text;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Enums;
 
@@ -134,7 +135,7 @@ public static class ActionLog
 		{
 			case FlakAction a:
 				actorId = a.ActorId;
-				weapon = "Flak";
+				weapon = "Scrap Drone Swarm";
 				mount = $"{FormatEnum(a.MountedOn)} mount";
 				return true;
 			case LightningCannonAction a:
@@ -210,7 +211,7 @@ public static class ActionLog
 				[displayName(a.ActorId)]),
 			Record<ImpactFacts> { Value: var impact } =>
 				new Entry(
-					$"Impact · {FormatEnum(impact.Cause)}",
+					$"Impact · {HazardCauseLabel(impact.Cause)}",
 					[
 						$"{displayName(impact.SourceId)} → {displayName(impact.TargetId)}",
 						FormatImpactDetail(impact),
@@ -231,6 +232,13 @@ public static class ActionLog
 			parts.Add($"{impact.HullDamage} hull");
 		return string.Join(" · ", parts);
 	}
+
+	private static string HazardCauseLabel(EHazardKind cause) =>
+		cause switch
+		{
+			EHazardKind.FlakBurst => "Scrap Drone Swarm",
+			_ => FormatEnum(cause),
+		};
 
 	private static string FormatEnum<T>(T value) where T : struct, Enum
 	{

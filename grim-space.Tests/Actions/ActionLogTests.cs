@@ -78,7 +78,9 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => $"player {id}");
 
-		AssertEntries(lines, "Flak · Miss|player fighter-a|port mount");
+		AssertEntries(
+			lines,
+			"Scrap Drone Swarm · Miss|player fighter-a|port mount");
 	}
 
 	[Fact]
@@ -158,7 +160,7 @@ public sealed class ActionLogTests
 		AssertEntries(
 			lines,
 			"Move · 2 steps|fighter-a",
-			"Impact · flak burst|hazard → fighter-a|forward · 1 shield",
+			"Impact · Scrap Drone Swarm|hazard → fighter-a|forward · 1 shield",
 			"Move · 1 step|fighter-a");
 	}
 

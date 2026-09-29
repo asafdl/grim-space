@@ -1,7 +1,7 @@
 Icons from https://game-icons.net/ (CC BY 3.0)
 
 move.svg      — rocket-flight by Lorc
-flak.svg      — striking-balls by Lorc
+scrap_drone_swarm.svg — custom scrap-drone silhouette (project art)
 lightning_cannon.svg   — sinusoidal-beam by Lorc
 torpedo.svg   — torpedo by Delapouite
 spin.svg      — screw by Lorc

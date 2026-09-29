@@ -98,7 +98,7 @@ internal static class BattleHudCopy
 	public static string FlakTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<FlakSpec>(unit, EAbilityKind.Flak) is { } flak
 			? FlakTooltipFor(flak)
-			: "Flak";
+			: "Scrap Drone Swarm";
 
 	public static string LightningCannonTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<LightningCannonSpec>(unit, EAbilityKind.LightningCannon) is { } lightningCannon
@@ -121,13 +121,13 @@ internal static class BattleHudCopy
 			: "Deploy Patrol";
 
 	public static string FlakTooltipFor(FlakSpec flak) =>
-		$"Flak:\nSide burst (port or starboard).\n" +
+		$"Scrap Drone Swarm:\nSend a drone swarm to dismantle your foes.\n" +
 		$"Range: {AbilityReach.MaxManhattanFromFirer(flak)} cells.\n" +
 		$"Deals {flak.Damage} damage.\n" +
 		$"Cooldown: {flak.UsesPerTurn} use per turn.";
 
 	public static string LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
-		$"Lightning Cannon:\nFires in a long straight line ahead.\n" +
+		$"Lightning Cannon:\nFry anything in front.\n" +
 		$"Range: {AbilityReach.MaxManhattanFromFirer(lightningCannon)} cells.\n" +
 		$"Deals {lightningCannon.Damage} damage.\n" +
 		$"Cooldown: {lightningCannon.UsesPerTurn} use per turn.";
@@ -146,7 +146,7 @@ internal static class BattleHudCopy
 
 	public static string SpawnPatrolTooltipFor(PatrolBaySpec bay) =>
 		$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
-		$"Patrols can shoot flak cannons, and have forward facing shields.\n" +
+		$"Patrols can launch scrap drone swarms, and have forward facing shields.\n" +
 		$"Max living patrols: {bay.MaxLivingChildren}.\n" +
 		$"Cooldown: {bay.CooldownTurns} turns after launch.";
 

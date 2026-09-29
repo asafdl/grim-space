@@ -99,7 +99,7 @@ public sealed class PoseHitOpportunityTests
 		Assert.Equal(
 			1,
 			opportunities.Count(opportunity =>
-				opportunity.IconPath == "res://assets/ui/abilities/flak.svg"
+				opportunity.IconPath == "res://assets/ui/abilities/scrap_drone_swarm.svg"
 				&& opportunity.TargetId == enemyId));
 	}
 

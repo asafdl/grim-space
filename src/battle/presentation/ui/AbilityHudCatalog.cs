@@ -62,7 +62,7 @@ public static class AbilityHudCatalog
 					AdjacentMountedSource,
 					AbilitySourceMeshes.CreateFlakBurst,
 					new Color(0.96f, 0.64f, 0.2f, 0.44f)),
-				"res://assets/ui/abilities/flak.svg",
+				"res://assets/ui/abilities/scrap_drone_swarm.svg",
 				BattleHudCopy.FlakTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.Flak),

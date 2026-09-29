@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/dev/ScrapDronePreview.cs" id="1"]
+[ext_resource type="PackedScene" path="res://assets/vfx/scrap_drone_attack.tscn" id="2"]
+
+[node name="ScrapDronePreview" type="Node3D"]
+script = ExtResource("1")
+AttackScene = ExtResource("2")

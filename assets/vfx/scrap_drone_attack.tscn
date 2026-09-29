@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/battle/presentation/graphics/ScrapDroneAttack.cs" id="1"]
+[ext_resource type="PackedScene" path="res://assets/vfx/scrap_drone.tscn" id="2"]
+
+[node name="ScrapDroneAttack" type="Node3D"]
+script = ExtResource("1")
+DroneScene = ExtResource("2")
+DroneSize = 0.8
+BubbleRadius = 0.45
+TeamRadius = 0.28
+SplitDistance = 1.0
+LaunchSeconds = 0.32
+FlightSeconds = 0.65
+FadeSeconds = 0.18
+WeaveAmount = 0.5

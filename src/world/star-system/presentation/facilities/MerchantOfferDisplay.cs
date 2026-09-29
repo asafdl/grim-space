@@ -60,7 +60,7 @@ internal static class MerchantOfferDisplay
 	private static string KindLabel(EAbilityKind kind) =>
 		kind switch
 		{
-			EAbilityKind.Flak => "Flak",
+			EAbilityKind.Flak => "Scrap drone swarm",
 			EAbilityKind.LightningCannon => "Lightning cannon",
 			EAbilityKind.PatrolBay => "Patrol bay",
 			EAbilityKind.TorpedoLauncher => "Torpedo launcher",
