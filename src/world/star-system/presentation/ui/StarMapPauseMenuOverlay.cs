@@ -2,20 +2,17 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Presentation.Support;
 
-namespace GrimSpace.Battle.Presentation.Ui;
+namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
-public sealed partial class BattlePauseMenuOverlay : CanvasLayer
+public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 {
 	public event Action? ContinueRequested;
-	public event Action? RetireRequested;
-	public event Action? RestartRequested;
 	public event Action? MainMenuRequested;
 
 	private Control _root = null!;
-	private Button _restartButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
 
-	public BattlePauseMenuOverlay()
+	public StarMapPauseMenuOverlay()
 	{
 		Layer = 15;
 		Build();
@@ -29,8 +26,6 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		_root.Theme = theme;
 		_reportDialog.ApplyTheme(theme);
 	}
-
-	public void SetRestartEnabled(bool enabled) => _restartButton.Disabled = !enabled;
 
 	private void Build()
 	{
@@ -86,65 +81,47 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		content.AddThemeConstantOverride("separation", 12);
 		margin.AddChild(content);
 
-		var title = new Label
+		content.AddChild(new Label
 		{
-			Text = BattleHudCopy.PauseMenuTitle,
+			Text = "Paused",
 			HorizontalAlignment = HorizontalAlignment.Center,
 			ThemeTypeVariation = "OverlayTitle",
-		};
-		content.AddChild(title);
+		});
 
+		content.AddChild(CreateMenuButton("Continue", "Resume star map", () => ContinueRequested?.Invoke()));
 		content.AddChild(CreateMenuButton(
-			BattleHudCopy.Continue,
-			BattleHudCopy.ContinueTooltip,
-			() => ContinueRequested?.Invoke()));
-		content.AddChild(CreateMenuButton(
-			BattleHudCopy.Retire,
-			BattleHudCopy.RetireTooltip,
-			() => RetireRequested?.Invoke()));
-		content.AddChild(CreateMenuButton(
-			BattleHudCopy.Restart,
-			BattleHudCopy.RestartTooltip,
-			() => RestartRequested?.Invoke(),
-			out _restartButton));
-		content.AddChild(CreateMenuButton(
-			BattleHudCopy.MainMenu,
-			BattleHudCopy.MainMenuTooltip,
+			"Main Menu",
+			"Leave run and return to the title screen",
 			() => MainMenuRequested?.Invoke()));
 
 		_reportDialog = new ReportIssueDialog();
 		_root.AddChild(_reportDialog);
 
-		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("battle"));
+		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("star-map"));
 	}
 
-	public override void _UnhandledInput(InputEvent @event)
+	public bool TryHandleInput(InputEvent @event)
 	{
-		if (!Visible)
-			return;
+		if (!Visible && !_reportDialog.IsOpen)
+			return false;
 
 		if (_reportDialog.IsOpen)
-			return;
+			return true;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
 			ContinueRequested?.Invoke();
 			GetViewport().SetInputAsHandled();
+			return true;
 		}
+
+		GetViewport().SetInputAsHandled();
+		return true;
 	}
 
 	private static Button CreateMenuButton(string text, string tooltip, Action onPressed)
 	{
-		return CreateMenuButton(text, tooltip, onPressed, out _);
-	}
-
-	private static Button CreateMenuButton(
-		string text,
-		string tooltip,
-		Action onPressed,
-		out Button button)
-	{
-		button = new Button
+		var button = new Button
 		{
 			Text = text,
 			TooltipText = tooltip,

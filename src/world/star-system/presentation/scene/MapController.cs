@@ -46,6 +46,7 @@ public partial class MapController : Node3D
 	private IWorldIndicator _worldIndicator = null!;
 	private WorldLinkNavigator? _objectivesLinks;
 	private PoiContractOverlay _poiContractOverlay = null!;
+	private StarMapPauseMenuOverlay _pauseMenu = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -120,6 +121,12 @@ public partial class MapController : Node3D
 			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
 		_timeControls.PausePressed += () => _orchestrator.TogglePause();
 		_timeControls.SpeedPressed += CycleSpeed;
+
+		_pauseMenu = new StarMapPauseMenuOverlay();
+		_pauseMenu.ContinueRequested += ClosePauseMenu;
+		_pauseMenu.MainMenuRequested += () => GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+		_pauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.Battle));
+		_uiLayer.AddChild(_pauseMenu);
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -327,6 +334,12 @@ public partial class MapController : Node3D
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_pauseMenu.TryHandleInput(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (_narrative.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event)
 			|| _wreck.TryHandleInput(@event))
@@ -395,7 +408,7 @@ public partial class MapController : Node3D
 		{
 			case Key.Escape:
 				GetViewport().SetInputAsHandled();
-				GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+				TogglePauseMenu();
 				break;
 		}
 
@@ -438,9 +451,17 @@ public partial class MapController : Node3D
 	}
 
 	private bool IsBlockingModalOpen() =>
-		(_narrative?.IsOpen ?? false)
+		_pauseMenu.Visible
+		|| _pauseMenu.IsReportDialogOpen
+		|| (_narrative?.IsOpen ?? false)
 		|| (_engagement?.IsOpen ?? false)
 		|| (_wreck?.IsOpen ?? false);
+
+	private void TogglePauseMenu() =>
+		_pauseMenu.Visible = !_pauseMenu.Visible;
+
+	private void ClosePauseMenu() =>
+		_pauseMenu.Visible = false;
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
 	{

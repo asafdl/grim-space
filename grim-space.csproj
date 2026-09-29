@@ -17,4 +17,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="grim-space.Tests" />
   </ItemGroup>
+  <Target Name="GenerateIssueReportChannels" BeforeTargets="BeforeCompile">
+    <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/scripts/generate_issue_report_channels.py&quot;" />
+  </Target>
 </Project>

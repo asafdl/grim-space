@@ -34,6 +34,8 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Build
+        env:
+          DISCORD_ISSUE_WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_WEBHOOK_URL }}
         run: dotnet build --configuration Release
 
       - name: Test
@@ -82,6 +84,8 @@ jobs:
         run: godot --headless --build-solutions --quit || exit 0
 
       - name: Build
+        env:
+          DISCORD_ISSUE_WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_WEBHOOK_URL }}
         run: dotnet build --configuration Release
 
       - name: Export

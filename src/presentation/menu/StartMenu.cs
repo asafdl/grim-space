@@ -6,6 +6,7 @@ namespace GrimSpace.Presentation.Menu;
 public partial class StartMenu : Control
 {
 	private const string IntroScenePath = "res://scenes/intro.tscn";
+	private const string DiscordInviteUrl = "https://discord.gg/dMPX9SH3Dd";
 
 	[Export(PropertyHint.Range, "0.005,0.05,0.005")]
 	private float _dustBandEndHalfThicknessRatio = 0.015f;
@@ -75,6 +76,9 @@ public partial class StartMenu : Control
 		GetNode<Button>("%Back").Pressed += ShowMainPanel;
 		GetNode<Button>("%Apply").Pressed += OnApply;
 		GetNode<Button>("%Quit").Pressed += () => GetTree().Quit();
+		var discord = GetNode<TextureButton>("%Discord");
+		discord.MouseDefaultCursorShape = CursorShape.PointingHand;
+		discord.Pressed += OnDiscordPressed;
 
 		CallDeferred(MethodName.PrepareFirstScene);
 	}
@@ -217,6 +221,9 @@ public partial class StartMenu : Control
 
 	private void OnPlayIntro() =>
 		GetTree().ChangeSceneToFile(IntroScenePath);
+
+	private static void OnDiscordPressed() =>
+		OS.ShellOpen(DiscordInviteUrl);
 
 	private void PrepareFirstScene() =>
 		Session.Instance.PrepareFirstScene();

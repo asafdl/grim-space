@@ -20,7 +20,7 @@ public partial class BattleHud : Node
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
-	public bool IsPauseMenuOpen => PauseMenu.Visible;
+	public bool IsPauseMenuOpen => PauseMenu.Visible || PauseMenu.IsReportDialogOpen;
 
 	private bool _strategicBattle;
 
