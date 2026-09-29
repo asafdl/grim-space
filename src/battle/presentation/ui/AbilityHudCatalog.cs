@@ -55,19 +55,19 @@ public static class AbilityHudCatalog
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
 		def switch
 		{
-			FlakDef => new(
-				EPlayerMode.Flak,
+			ScrapDroneSwarmDef => new(
+				EPlayerMode.ScrapDroneSwarm,
 				def,
 				new AbilityTargetingSpec(
 					AdjacentMountedSource,
-					AbilitySourceMeshes.CreateFlakBurst,
+					AbilitySourceMeshes.CreateScrapDroneSwarmBurst,
 					new Color(0.96f, 0.64f, 0.2f, 0.44f)),
 				"res://assets/ui/abilities/scrap_drone_swarm.svg",
-				BattleHudCopy.FlakTooltipFor,
+				BattleHudCopy.ScrapDroneSwarmTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
-					unit.UsesRemaining(EAbilityKind.Flak),
-					unit.MaxUsesPerTurn(EAbilityKind.Flak)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.Flak)),
+					unit.UsesRemaining(EAbilityKind.ScrapDroneSwarm),
+					unit.MaxUsesPerTurn(EAbilityKind.ScrapDroneSwarm)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.ScrapDroneSwarm)),
 			LightningCannonDef => new(
 				EPlayerMode.LightningCannon,
 				def,

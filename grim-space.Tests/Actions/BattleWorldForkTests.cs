@@ -57,7 +57,7 @@ public sealed class BattleWorldForkTests
 		var origin = new Coord(5, 5, 5);
 		var world = BattleTestFixture.BeginSimulation(origin).Engine.World;
 		var hazard = HazardResolution.BuildTransient(
-			EHazardKind.FlakBurst, [origin], 1, origin);
+			EHazardKind.ScrapDroneSwarmBurst, [origin], 1, origin);
 		BattleTestWorld.InjectHazard(world, hazard);
 
 		var fork = world.Fork();

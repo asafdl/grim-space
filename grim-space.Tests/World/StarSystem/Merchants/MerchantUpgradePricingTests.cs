@@ -36,7 +36,7 @@ public sealed class MerchantUpgradePricingTests
 			Credits(MerchantUpgradePricing.LightningCannonInstall())
 			> Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0)));
 		Assert.True(
-			Credits(MerchantUpgradePricing.FlakInstall(0))
+			Credits(MerchantUpgradePricing.ScrapDroneSwarmInstall(0))
 			> Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0)));
 	}
 

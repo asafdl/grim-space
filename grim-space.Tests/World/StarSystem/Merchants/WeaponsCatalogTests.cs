@@ -25,7 +25,7 @@ public sealed class WeaponsCatalogTests
 	}
 
 	[Fact]
-	public void ListFor_PartialFighterLoadout_OffersFlakInstallOnOpenFacets()
+	public void ListFor_PartialFighterLoadout_OffersScrapDroneSwarmInstallOnOpenFacets()
 	{
 		var ship = FighterWithLightningCannonOnly("fighter-partial");
 		var offers = WeaponsCatalog.ListFor(ship);
@@ -34,12 +34,12 @@ public sealed class WeaponsCatalogTests
 			offers,
 			offer => offer.Offering == new MerchantCatalog.Offering(
 				MerchantCatalog.Kind.InstallWeapon,
-				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
+				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 		Assert.Contains(
 			offers,
 			offer => offer.Offering == new MerchantCatalog.Offering(
 				MerchantCatalog.Kind.InstallWeapon,
-				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Starboard)));
+				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard)));
 		Assert.DoesNotContain(
 			offers,
 			offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon
@@ -62,10 +62,10 @@ public sealed class WeaponsCatalogTests
 	public void ListFor_DamageOfferPriceIncreasesAfterUpgrade()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
+		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
 		var firstOffer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
 		Assert.True(ship.TryWithDamageUpgraded(
-			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port),
+			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
 			out ship));
 		var secondOffer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
 		Assert.True(firstOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var firstScrap));
@@ -77,7 +77,7 @@ public sealed class WeaponsCatalogTests
 	public void ListFor_DamageTierZero_MatchesEconomyTable()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offering = MerchantPurchaseTestHarness.FlakPortDamageUpgrade;
+		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
 		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
 		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(0), offer.Cost);
 	}
@@ -87,9 +87,9 @@ public sealed class WeaponsCatalogTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		Assert.True(ship.TryWithRangeUpgraded(
-			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port),
+			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
 			out ship));
-		var offering = MerchantPurchaseTestHarness.FlakPortRangeUpgrade;
+		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortRangeUpgrade;
 		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
 		Assert.Equal(MerchantUpgradePricing.WeaponRangeUpgrade(1), offer.Cost);
 	}
@@ -100,7 +100,7 @@ public sealed class WeaponsCatalogTests
 		var ship = FighterWithLightningCannonOnly("fighter-partial");
 		var install = new MerchantCatalog.Offering(
 			MerchantCatalog.Kind.InstallWeapon,
-			new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
+			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
 		Assert.Contains(WeaponsCatalog.ListFor(ship), offer => offer.Offering == install);
 
 		var baseline = FighterSpec.Instance.BaselineFor(install.Mount!.Value);
@@ -114,7 +114,7 @@ public sealed class WeaponsCatalogTests
 			offers,
 			offer => offer.Offering == new MerchantCatalog.Offering(
 				MerchantCatalog.Kind.UpgradeDamage,
-				new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
+				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 	}
 
 	private static ShipInstance FighterWithLightningCannonOnly(string id)

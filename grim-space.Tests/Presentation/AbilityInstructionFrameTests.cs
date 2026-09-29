@@ -33,7 +33,7 @@ public sealed class AbilityInstructionFrameTests
 	}
 
 	[Fact]
-	public void FlakShowsPassiveMountInstruction()
+	public void ScrapDroneSwarmShowsPassiveMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -41,9 +41,9 @@ public sealed class AbilityInstructionFrameTests
 			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Flak);
+			.First(entry => entry.Mode == EPlayerMode.ScrapDroneSwarm);
 
-		frames.Interaction.SetMode(EPlayerMode.Flak, spec);
+		frames.Interaction.SetMode(EPlayerMode.ScrapDroneSwarm, spec);
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
@@ -63,8 +63,8 @@ public sealed class AbilityInstructionFrameTests
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForUnit(
 				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
-			.First(entry => entry.Mode == EPlayerMode.Flak);
-		frames.Interaction.SetMode(EPlayerMode.Flak, spec);
+			.First(entry => entry.Mode == EPlayerMode.ScrapDroneSwarm);
+		frames.Interaction.SetMode(EPlayerMode.ScrapDroneSwarm, spec);
 		frames.Interaction.SetAbilityHover(1, optionCount: 2);
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
@@ -72,7 +72,7 @@ public sealed class AbilityInstructionFrameTests
 		Assert.Equal(1, frame.AbilityHoveredIndex);
 		var choice = Assert.IsType<AbilityActivationChoice>(frame.HoveredAbilityChoice);
 		Assert.Same(frame.AbilityChoices[1], choice);
-		Assert.IsType<FlakAction>(choice.Action);
+		Assert.IsType<ScrapDroneSwarmAction>(choice.Action);
 	}
 
 	[Fact]

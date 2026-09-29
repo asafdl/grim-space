@@ -32,14 +32,14 @@ public sealed class SimulationSearchTests
 	}
 
 	[Fact]
-	public void FlakBudgetEnforcedBySimulationTryEnqueue()
+	public void ScrapDroneSwarmBudgetEnforcedBySimulationTryEnqueue()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
 
-		Assert.True(session.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Port)));
-		Assert.False(session.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Port)));
-		Assert.True(session.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
+		Assert.True(session.TryEnqueue(new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port)));
+		Assert.False(session.TryEnqueue(new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port)));
+		Assert.True(session.TryEnqueue(new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard)));
 	}
 
 	[Fact]

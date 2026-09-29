@@ -8,7 +8,7 @@ internal static class SimulationPreviewShim
 {
 	public static IReadOnlyList<MovePathSession> GetLegalMoves(BattleOrchestrator battle) =>
 		battle.PlayerAgent.Sim.Actions.Count == 0
-			|| battle.PlayerAgent.Sim.Actions[^1] is not FlakAction and not LightningCannonAction
+			|| battle.PlayerAgent.Sim.Actions[^1] is not ScrapDroneSwarmAction and not LightningCannonAction
 			? MovePathEndpoints.DiscoverExtensions(battle.PlayerAgent.Sim, battle.PlayerId)
 			: [];
 }

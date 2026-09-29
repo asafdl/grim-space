@@ -72,9 +72,9 @@ public sealed class ActionLogTests
 	}
 
 	[Fact]
-	public void FormatsFlakMiss()
+	public void FormatsScrapDroneSwarmMiss()
 	{
-		ITimelineEntry[] history = [new FlakAction("fighter-a", ESpatialOrientation.Port)];
+		ITimelineEntry[] history = [new ScrapDroneSwarmAction("fighter-a", ESpatialOrientation.Port)];
 
 		var lines = ActionLog.Format(history, id => $"player {id}");
 
@@ -148,7 +148,7 @@ public sealed class ActionLogTests
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "hazard",
 				TargetId: "fighter-a",
-				Cause: EHazardKind.FlakBurst,
+				Cause: EHazardKind.ScrapDroneSwarmBurst,
 				Face: ESpatialOrientation.Forward,
 				ShieldDamage: 1,
 				HullDamage: 0)),

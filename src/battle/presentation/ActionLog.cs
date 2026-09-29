@@ -133,7 +133,7 @@ public static class ActionLog
 	{
 		switch (entry)
 		{
-			case FlakAction a:
+			case ScrapDroneSwarmAction a:
 				actorId = a.ActorId;
 				weapon = "Scrap Drone Swarm";
 				mount = $"{FormatEnum(a.MountedOn)} mount";
@@ -236,7 +236,7 @@ public static class ActionLog
 	private static string HazardCauseLabel(EHazardKind cause) =>
 		cause switch
 		{
-			EHazardKind.FlakBurst => "Scrap Drone Swarm",
+			EHazardKind.ScrapDroneSwarmBurst => "Scrap Drone Swarm",
 			_ => FormatEnum(cause),
 		};
 

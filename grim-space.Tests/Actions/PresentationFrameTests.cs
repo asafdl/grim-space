@@ -78,23 +78,23 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void UndoClearsQueuedFlak()
+	public void UndoClearsQueuedScrapDroneSwarm()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 
-		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
+		Assert.True(BattleTestCommands.FireScrapDroneSwarm(battle, ESpatialOrientation.Port));
 		Assert.Equal(
 			0,
 			StateMountTestKit.UsesRemaining(
 				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId),
-				EAbilityKind.Flak,
+				EAbilityKind.ScrapDroneSwarm,
 				ESpatialOrientation.Port));
 
 		Assert.True(BattleTestCommands.Undo(battle));
 
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.Flak));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId), EAbilityKind.ScrapDroneSwarm));
 	}
 
 	[Fact]
@@ -201,7 +201,7 @@ public sealed class PresentationFrameTests
 
 		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 		Assert.True(BattleTestCommands.Move(battle, afterMove));
-		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
+		Assert.True(BattleTestCommands.FireScrapDroneSwarm(battle, ESpatialOrientation.Port));
 
 		var preview = new PlanningPreview();
 		Assert.Equal(
@@ -212,25 +212,25 @@ public sealed class PresentationFrameTests
 		var lightningCannonPreview = Assert.Single(
 			frame.AreaActions.Queued,
 			preview => preview.Action is LightningCannonAction);
-		var flakPreview = Assert.Single(
+		var swarmPreview = Assert.Single(
 			frame.AreaActions.Queued,
-			preview => preview.Action is FlakAction);
+			preview => preview.Action is ScrapDroneSwarmAction);
 		var lightningCannonIndex = battle.PlayerAgent.Sim.Actions
 			.ToList()
 			.FindIndex(action => action is LightningCannonAction);
-		var flakIndex = battle.PlayerAgent.Sim.Actions
+		var swarmIndex = battle.PlayerAgent.Sim.Actions
 			.ToList()
-			.FindIndex(action => action is FlakAction);
+			.FindIndex(action => action is ScrapDroneSwarmAction);
 		var expectedLightningCannon = LightningCannonDef.Instance.AffectedCells(
 			(LightningCannonAction)lightningCannonPreview.Action,
 			battle.PlayerAgent.Sim.ReplayWorld(lightningCannonIndex));
-		var expectedFlak = FlakDef.Instance.AffectedCells(
-			(FlakAction)flakPreview.Action,
-			battle.PlayerAgent.Sim.ReplayWorld(flakIndex));
+		var expectedSwarmBurst = ScrapDroneSwarmDef.Instance.AffectedCells(
+			(ScrapDroneSwarmAction)swarmPreview.Action,
+			battle.PlayerAgent.Sim.ReplayWorld(swarmIndex));
 		Assert.True(expectedLightningCannon.SetEquals(lightningCannonPreview.Volume.Cells));
-		Assert.True(expectedFlak.SetEquals(flakPreview.Volume.Cells));
+		Assert.True(expectedSwarmBurst.SetEquals(swarmPreview.Volume.Cells));
 		Assert.Equal(origin, lightningCannonPreview.Volume.Origin);
-		Assert.Equal(afterMove, flakPreview.Volume.Origin);
+		Assert.Equal(afterMove, swarmPreview.Volume.Origin);
 	}
 
 	[Fact]
@@ -248,23 +248,23 @@ public sealed class PresentationFrameTests
 			battle.PlayerAgent.Sim.World);
 		Assert.True(expectedLightningCannon.SetEquals(lightningCannonPreview.Volume.Cells));
 		Assert.Equal(origin, lightningCannonPreview.Volume.Origin);
-		var flakPreviews = frame.AreaActions.Aim
-			.Where(preview => preview.Action is FlakAction)
+		var swarmPreviews = frame.AreaActions.Aim
+			.Where(preview => preview.Action is ScrapDroneSwarmAction)
 			.ToDictionary(
-				preview => ((FlakAction)preview.Action).MountedOn,
+				preview => ((ScrapDroneSwarmAction)preview.Action).MountedOn,
 				preview => preview.Volume);
 		Assert.Equal(
-			frame.Weapons.PortFlak,
-			flakPreviews.ContainsKey(ESpatialOrientation.Port));
+			frame.Weapons.PortScrapDroneSwarm,
+			swarmPreviews.ContainsKey(ESpatialOrientation.Port));
 		Assert.Equal(
-			frame.Weapons.StarboardFlak,
-			flakPreviews.ContainsKey(ESpatialOrientation.Starboard));
-		foreach (var (mountedOn, volume) in flakPreviews)
+			frame.Weapons.StarboardScrapDroneSwarm,
+			swarmPreviews.ContainsKey(ESpatialOrientation.Starboard));
+		foreach (var (mountedOn, volume) in swarmPreviews)
 		{
-			var expectedFlak = FlakDef.Instance.AffectedCells(
-				new FlakAction(battle.PlayerId, mountedOn),
+			var expectedSwarmBurst = ScrapDroneSwarmDef.Instance.AffectedCells(
+				new ScrapDroneSwarmAction(battle.PlayerId, mountedOn),
 				battle.PlayerAgent.Sim.World);
-			Assert.True(expectedFlak.SetEquals(volume.Cells));
+			Assert.True(expectedSwarmBurst.SetEquals(volume.Cells));
 			Assert.Equal(origin, volume.Origin);
 			Assert.All(
 				volume.Cells,
@@ -284,15 +284,15 @@ public sealed class PresentationFrameTests
 		actor.Starboard = Coord.Cross(actor.Dorsal, actor.Fore);
 		var frame = BodyFrame.From(actor);
 		var lightningCannon = new LightningCannonAction(battle.PlayerId);
-		var flak = new FlakAction(battle.PlayerId, ESpatialOrientation.Port);
+		var swarm = new ScrapDroneSwarmAction(battle.PlayerId, ESpatialOrientation.Port);
 
 		var lightningCannonCells = ((IAreaActionDef)lightningCannon.Definition).AffectedCells(lightningCannon, world);
-		var flakCells = ((IAreaActionDef)flak.Definition).AffectedCells(flak, world);
+		var swarmBurstCells = ((IAreaActionDef)swarm.Definition).AffectedCells(swarm, world);
 
 		Assert.Contains(frame.ToWorld(1, 0, 0), lightningCannonCells);
 		Assert.DoesNotContain(frame.Origin, lightningCannonCells);
-		Assert.Contains(frame.ToWorld(0, 1, 0), flakCells);
-		Assert.DoesNotContain(frame.ToWorld(0, -1, 0), flakCells);
+		Assert.Contains(frame.ToWorld(0, 1, 0), swarmBurstCells);
+		Assert.DoesNotContain(frame.ToWorld(0, -1, 0), swarmBurstCells);
 	}
 
 	[Fact]
@@ -445,7 +445,7 @@ public sealed class PresentationFrameTests
 			enemyId,
 			preview.ThreatenedUnitIds(battle.PlayerAgent.Sim, battle.PlayerId));
 
-		Assert.True(BattleTestCommands.FireFlak(battle, ESpatialOrientation.Port));
+		Assert.True(BattleTestCommands.FireScrapDroneSwarm(battle, ESpatialOrientation.Port));
 
 		Assert.Contains(
 			enemyId,

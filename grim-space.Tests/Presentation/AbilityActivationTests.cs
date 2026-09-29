@@ -44,14 +44,14 @@ public sealed class AbilityActivationTests
 	}
 
 	[Fact]
-	public void ResolveChoicesFiltersCapabilitiesAndPlacesFlakMounts()
+	public void ResolveChoicesFiltersCapabilitiesAndPlacesScrapDroneSwarmMounts()
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		var port = new FlakAction(actor.Id, ESpatialOrientation.Port);
-		var starboard = new FlakAction(actor.Id, ESpatialOrientation.Starboard);
+		var port = new ScrapDroneSwarmAction(actor.Id, ESpatialOrientation.Port);
+		var starboard = new ScrapDroneSwarmAction(actor.Id, ESpatialOrientation.Starboard);
 		IAction[] capabilities = [port, new LightningCannonAction(actor.Id), starboard];
 
-		var spec = Spec(EPlayerMode.Flak);
+		var spec = Spec(EPlayerMode.ScrapDroneSwarm);
 		var choices = AbilityActivation.ResolveChoices(spec, actor, capabilities);
 
 		var frame = BodyFrame.From(actor);

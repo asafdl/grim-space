@@ -2,7 +2,7 @@ namespace GrimSpace.Battle.Player;
 
 public enum EWeaponKind
 {
-	Flak,
+	ScrapDroneSwarm,
 	LightningCannon,
 	Torpedo,
 }

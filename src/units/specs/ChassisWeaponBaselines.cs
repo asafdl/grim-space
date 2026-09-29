@@ -5,9 +5,9 @@ namespace GrimSpace.Units.Specs;
 
 internal static class ChassisWeaponBaselines
 {
-	internal const int FlakDamage = 1;
-	internal const int FlakRange = 2;
-	internal const int FlaksPerTurn = 1;
+	internal const int ScrapDroneSwarmDamage = 1;
+	internal const int ScrapDroneSwarmRange = 2;
+	internal const int ScrapDroneSwarmsPerTurn = 1;
 	internal const int LightningCannonDamage = 3;
 	internal const int LightningCannonLineLength = 8;
 	internal const int LightningCannonPyramidRange = 2;
@@ -19,7 +19,7 @@ internal static class ChassisWeaponBaselines
 	internal const int TorpedoLauncherCooldownTurns = 3;
 	internal const int StarterTorpedoFuelTurns = 2;
 
-	internal static FlakSpec Flak() => new(FlaksPerTurn, FlakDamage, FlakRange);
+	internal static ScrapDroneSwarmSpec ScrapDroneSwarm() => new(ScrapDroneSwarmsPerTurn, ScrapDroneSwarmDamage, ScrapDroneSwarmRange);
 
 	internal static LightningCannonSpec LightningCannon() =>
 		new(LightningCannonsPerTurn, LightningCannonDamage, LightningCannonLineLength, LightningCannonPyramidRange);

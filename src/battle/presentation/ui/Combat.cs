@@ -3,7 +3,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public enum EPlayerMode
 {
 	Move,
-	Flak,
+	ScrapDroneSwarm,
 	LightningCannon,
 	Torpedo,
 	SpawnPatrol,

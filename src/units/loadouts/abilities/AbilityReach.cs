@@ -6,12 +6,12 @@ public static class AbilityReach
 	public static int MaxManhattanFromFirer(AbilitySpec spec) =>
 		spec switch
 		{
-			FlakSpec flak => flak.BurstRange * 3 + 1,
+			ScrapDroneSwarmSpec swarm => swarm.BurstRange * 3 + 1,
 			LightningCannonSpec lightningCannon => lightningCannon.LineLength + 2 * lightningCannon.PyramidRange,
 			_ => 0,
 		};
 
-	public static float FlakReplayShotLength(FlakSpec spec) =>
+	public static float ScrapDroneSwarmReplayShotLength(ScrapDroneSwarmSpec spec) =>
 		spec.BurstRange + 1.6f;
 
 	public static float LightningCannonReplayShotLength(LightningCannonSpec spec) =>

@@ -2,7 +2,7 @@ namespace GrimSpace.Battle.World;
 
 public enum EHazardKind
 {
-	FlakBurst,
+	ScrapDroneSwarmBurst,
 	LightningCannonBurst,
 	TorpedoBlast,
 	Asteroid,

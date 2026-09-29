@@ -108,8 +108,8 @@ public sealed class PlanningPreview
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{
-		var portFlak = false;
-		var starboardFlak = false;
+		var portScrapDroneSwarm = false;
+		var starboardScrapDroneSwarm = false;
 		var lightningCannon = false;
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 
@@ -117,11 +117,11 @@ public sealed class PlanningPreview
 		{
 			switch (action)
 			{
-				case FlakAction { MountedOn: ESpatialOrientation.Port }:
-					portFlak = true;
+				case ScrapDroneSwarmAction { MountedOn: ESpatialOrientation.Port }:
+					portScrapDroneSwarm = true;
 					break;
-				case FlakAction { MountedOn: ESpatialOrientation.Starboard }:
-					starboardFlak = true;
+				case ScrapDroneSwarmAction { MountedOn: ESpatialOrientation.Starboard }:
+					starboardScrapDroneSwarm = true;
 					break;
 				case LightningCannonAction:
 					lightningCannon = true;
@@ -132,7 +132,7 @@ public sealed class PlanningPreview
 			}
 		}
 
-		return new WeaponPeek(portFlak, starboardFlak, lightningCannon, torpedoMounts);
+		return new WeaponPeek(portScrapDroneSwarm, starboardScrapDroneSwarm, lightningCannon, torpedoMounts);
 	}
 
 	public AreaActionPreviews AreaPreviews(

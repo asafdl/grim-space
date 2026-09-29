@@ -71,7 +71,7 @@ public sealed class ReplayIdentityTests
 		var impact = new ImpactFacts(
 			SourceId: "terrain",
 			TargetId: target.Id,
-			Cause: EHazardKind.FlakBurst,
+			Cause: EHazardKind.ScrapDroneSwarmBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 1,
 			HullDamage: 0);

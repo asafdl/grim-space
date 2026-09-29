@@ -8,14 +8,14 @@ namespace GrimSpace.World.StarSystem.Merchants;
 public static class WeaponsCatalog
 {
 	private static readonly EAbilityKind[] SellableKinds =
-		[EAbilityKind.Flak, EAbilityKind.LightningCannon];
+		[EAbilityKind.ScrapDroneSwarm, EAbilityKind.LightningCannon];
 
 	public static IReadOnlyList<MerchantCatalog.Offer> ListFor(ShipInstance ship)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
 		var offers = new List<MerchantCatalog.Offer>();
-		var installedFlak = ship.Loadout.InstalledAbilities.Count(
-			installed => installed.Mount.Kind == EAbilityKind.Flak);
+		var installedScrapDroneSwarm = ship.Loadout.InstalledAbilities.Count(
+			installed => installed.Mount.Kind == EAbilityKind.ScrapDroneSwarm);
 
 		foreach (var slot in ship.Spec.Slots)
 		{
@@ -32,7 +32,7 @@ public static class WeaponsCatalog
 
 			var cost = mount.Kind switch
 			{
-				EAbilityKind.Flak => MerchantUpgradePricing.FlakInstall(installedFlak),
+				EAbilityKind.ScrapDroneSwarm => MerchantUpgradePricing.ScrapDroneSwarmInstall(installedScrapDroneSwarm),
 				EAbilityKind.LightningCannon => MerchantUpgradePricing.LightningCannonInstall(),
 				_ => MerchantUpgradePricing.WeaponDamageUpgrade(0),
 			};

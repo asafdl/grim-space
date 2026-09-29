@@ -2,7 +2,7 @@ namespace GrimSpace.Units.Loadouts.Abilities;
 
 public enum EAbilityKind
 {
-	Flak,
+	ScrapDroneSwarm,
 	LightningCannon,
 	PatrolBay,
 	TorpedoLauncher,

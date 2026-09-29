@@ -15,9 +15,9 @@ public sealed class WeaponSpecOverrideTests
 	private const string PlayerId = "custom-fighter";
 
 	[Fact]
-	public void CustomFlakBurstRangeShrinksAffectedCells()
+	public void CustomScrapDroneSwarmBurstRangeShrinksAffectedCells()
 	{
-		var installed = ReplaceFlakSpec(new FlakSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 1));
+		var installed = ReplaceScrapDroneSwarmSpec(new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 1));
 		var player = Factory.Create(
 			BattleSpawnTestKit.FighterWithInstalledAbilities(PlayerId, installed),
 			ETeam.Player,
@@ -28,8 +28,8 @@ public sealed class WeaponSpecOverrideTests
 			BattleTestFixture.Enemy(Coord.Zero),
 			BattleTestFixture.Grid(size: 30));
 		var world = battle.PlayerAgent.Sim.World;
-		var cells = FlakDef.Instance.AffectedCells(
-			new FlakAction(PlayerId, ESpatialOrientation.Port),
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(
+			new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port),
 			world);
 
 		Assert.Equal(6, cells.Count);
@@ -58,10 +58,10 @@ public sealed class WeaponSpecOverrideTests
 		Assert.Contains(frame.ToWorld(3, 0, 0), cells);
 	}
 
-	private static IReadOnlyList<InstalledAbility> ReplaceFlakSpec(FlakSpec flak) =>
+	private static IReadOnlyList<InstalledAbility> ReplaceScrapDroneSwarmSpec(ScrapDroneSwarmSpec swarm) =>
 		ShipCatalog.FullFighterLoadout().InstalledAbilities
-			.Select(ability => ability.Spec.Kind == EAbilityKind.Flak
-				? ability with { Spec = flak }
+			.Select(ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm
+				? ability with { Spec = swarm }
 				: ability)
 			.ToArray();
 

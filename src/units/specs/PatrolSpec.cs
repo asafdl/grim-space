@@ -28,7 +28,7 @@ public sealed class PatrolSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.Flak, ESpatialOrientation.Port), ChassisWeaponBaselines.Flak()),
-		new(new(EAbilityKind.Flak, ESpatialOrientation.Starboard), ChassisWeaponBaselines.Flak()),
+		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port), ChassisWeaponBaselines.ScrapDroneSwarm()),
+		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard), ChassisWeaponBaselines.ScrapDroneSwarm()),
 	];
 }

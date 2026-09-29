@@ -56,7 +56,7 @@ public abstract record AbilitySpec
 	}
 }
 
-public sealed record FlakSpec(
+public sealed record ScrapDroneSwarmSpec(
 	int UsesPerTurn,
 	int Damage,
 	int BurstRange,
@@ -69,7 +69,7 @@ public sealed record FlakSpec(
 	private static readonly ESpatialOrientation[] DefaultFacets =
 		[ESpatialOrientation.Port, ESpatialOrientation.Starboard];
 
-	public override EAbilityKind Kind => EAbilityKind.Flak;
+	public override EAbilityKind Kind => EAbilityKind.ScrapDroneSwarm;
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;

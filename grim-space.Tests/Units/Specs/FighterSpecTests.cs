@@ -15,16 +15,16 @@ public sealed class FighterSpecTests
 
 		Assert.Equal(6, spec.Slots.Count);
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)));
-		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port)));
+		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 	}
 
 	[Fact]
 	public void BaselineFor_ReturnsPrototypeAbilitySpecs()
 	{
 		var spec = FighterSpec.Instance;
-		var mount = new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Starboard);
+		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard);
 
-		Assert.IsType<FlakSpec>(spec.BaselineFor(mount));
+		Assert.IsType<ScrapDroneSwarmSpec>(spec.BaselineFor(mount));
 	}
 
 	[Fact]

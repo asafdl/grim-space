@@ -53,7 +53,7 @@ public sealed class InteractionStateTests
 		var state = new InteractionState();
 		var spec = AbilityHudCatalog.ForUnit(GrimSpace.Units.Enums.EType.Fighter)[0];
 
-		state.SetMode(EPlayerMode.Flak, spec);
+		state.SetMode(EPlayerMode.ScrapDroneSwarm, spec);
 		state.SetAbilityHover(0, optionCount: 1);
 		state.SetMode(EPlayerMode.Move);
 
@@ -177,7 +177,7 @@ public sealed class InteractionStateTests
 		var state = new InteractionState();
 		var spec = AbilityHudCatalog.ForUnit(GrimSpace.Units.Enums.EType.Fighter)[0];
 
-		state.SetMode(EPlayerMode.Flak, spec);
+		state.SetMode(EPlayerMode.ScrapDroneSwarm, spec);
 		state.SetAbilityHover(0, optionCount: 1);
 		state.ResetAfterTurn();
 

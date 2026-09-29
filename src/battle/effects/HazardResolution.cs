@@ -11,7 +11,7 @@ public static class HazardResolution
 	public static Coord ResolveCenter(EHazardKind kind, Coord shooterPosition, HashSet<Coord> cells) =>
 		kind switch
 		{
-			EHazardKind.FlakBurst => shooterPosition,
+			EHazardKind.ScrapDroneSwarmBurst => shooterPosition,
 			EHazardKind.LightningCannonBurst => shooterPosition,
 			EHazardKind.TorpedoBlast => shooterPosition,
 			_ => cells.Count > 0 ? cells.First() : Coord.Zero,
@@ -72,7 +72,7 @@ public static class HazardResolution
 
 		switch (hazard.Kind)
 		{
-			case EHazardKind.FlakBurst:
+			case EHazardKind.ScrapDroneSwarmBurst:
 			case EHazardKind.LightningCannonBurst:
 			case EHazardKind.TorpedoBlast:
 				ApplyDirectedDamage(hazard, unit, face);

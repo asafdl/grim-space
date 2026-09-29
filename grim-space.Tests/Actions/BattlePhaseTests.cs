@@ -175,8 +175,8 @@ public sealed class BattlePhaseTests
 		frames.Interaction.ClearFocus();
 		Assert.False(frames.IsInspecting(battle));
 
-		frames.Interaction.SetMode(EPlayerMode.Flak);
-		Assert.Equal(EPlayerMode.Flak, frames.Interaction.Mode);
+		frames.Interaction.SetMode(EPlayerMode.ScrapDroneSwarm);
+		Assert.Equal(EPlayerMode.ScrapDroneSwarm, frames.Interaction.Mode);
 		Assert.Equal(queuedCount, battle.PlayerAgent.Sim.Actions.Count);
 	}
 

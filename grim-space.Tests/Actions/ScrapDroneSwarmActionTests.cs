@@ -11,7 +11,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 namespace GrimSpace.Tests.Actions;
 
 [BattleTestSuite]
-public sealed class FlakActionTests
+public sealed class ScrapDroneSwarmActionTests
 {
 	private const string PlayerId = "player";
 
@@ -24,49 +24,49 @@ public sealed class FlakActionTests
 	}
 
 	[Fact]
-	public void FlakAppliesResolveImmediately()
+	public void ScrapDroneSwarmAppliesResolveImmediately()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var flak = new FlakAction(PlayerId, ESpatialOrientation.Port);
+		var swarm = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port);
 
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.Flak));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(flak));
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak) - 1, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.Flak));
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(flak));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new FlakAction(PlayerId, ESpatialOrientation.Starboard)));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.ScrapDroneSwarm));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(swarm));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm) - 1, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.ScrapDroneSwarm));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(swarm));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard)));
 		Assert.Equal(0, StateMountTestKit.UsesRemaining(
 			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId),
-			EAbilityKind.Flak));
+			EAbilityKind.ScrapDroneSwarm));
 	}
 
 	[Fact]
-	public void FlakLegalWhenBurstHasNoInBoundsCells()
+	public void ScrapDroneSwarmLegalWhenBurstHasNoInBoundsCells()
 	{
 		var grid = BattleTestFixture.Grid(1);
 		var battle = BattleTestFixture.BeginSimulation(
 			BattleTestFixture.Player(Coord.Zero),
 			BattleTestFixture.Enemy(Coord.Zero),
 			grid);
-		var action = new FlakAction(PlayerId, ESpatialOrientation.Port);
-		Assert.Empty(FlakDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World));
+		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port);
+		Assert.Empty(ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 	}
 
 	[Fact]
-	public void FlakAppliesDamageWithoutApPenalty()
+	public void ScrapDroneSwarmAppliesDamageWithoutApPenalty()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var action = new FlakAction(PlayerId, ESpatialOrientation.Starboard);
-		var cells = FlakDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World);
+		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World);
 		var enemy = UnitRegistry.For(battle.PlayerAgent.Sim.World).All.First(unit => unit.State.Id != PlayerId);
 		enemy.State.Position = cells.First();
 		var shieldsBefore = TotalShieldPoints(enemy.State);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
-		Assert.Equal(shieldsBefore - CatalogExpectations.FlakDamage(), TotalShieldPoints(enemy.State));
+		Assert.Equal(shieldsBefore - CatalogExpectations.ScrapDroneSwarmDamage(), TotalShieldPoints(enemy.State));
 		Assert.False(enemy.State.ApPenaltyNextTurn);
 	}
 }

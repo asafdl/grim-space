@@ -48,8 +48,8 @@ public static class MerchantUpgradePricing
 
 	public static ResourceBundle HullMaxUpgrade(int currentTier) => Bundle(HullMax[currentTier]);
 
-	public static ResourceBundle FlakInstall(int installedFlakCount) =>
-		Bundle(WeaponInstall[installedFlakCount == 0 ? 0 : 1]);
+	public static ResourceBundle ScrapDroneSwarmInstall(int installedScrapDroneSwarmCount) =>
+		Bundle(WeaponInstall[installedScrapDroneSwarmCount == 0 ? 0 : 1]);
 
 	public static ResourceBundle LightningCannonInstall() => Bundle(WeaponInstall[0]);
 

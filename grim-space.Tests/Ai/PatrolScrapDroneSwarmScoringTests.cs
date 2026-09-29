@@ -12,10 +12,10 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Ai;
 
 [BattleTestSuite]
-public sealed class PatrolFlakScoringTests
+public sealed class PatrolScrapDroneSwarmScoringTests
 {
 	[Fact]
-	public async Task BuildTurnActions_FiresFlakWhenBurstHitsPlayer()
+	public async Task BuildTurnActions_FiresScrapDroneSwarmWhenBurstHitsPlayer()
 	{
 		var grid = BattleTestFixture.Grid();
 		var patrolPos = new Coord(5, 5, 5);
@@ -32,11 +32,11 @@ public sealed class PatrolFlakScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, patrol, grid);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, patrol);
 
-		Assert.Contains(actions, action => action is FlakAction);
+		Assert.Contains(actions, action => action is ScrapDroneSwarmAction);
 	}
 
 	[Fact]
-	public async Task BuildTurnActions_DoesNotFireFlakWhenBurstMissesPlayer()
+	public async Task BuildTurnActions_DoesNotFireScrapDroneSwarmWhenBurstMissesPlayer()
 	{
 		var patrolPos = new Coord(8, 5, 5);
 		var player = BattleTestFixture.Player(new Coord(2, 5, 5));
@@ -49,6 +49,6 @@ public sealed class PatrolFlakScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, patrol);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, patrol);
 
-		Assert.DoesNotContain(actions, action => action is FlakAction);
+		Assert.DoesNotContain(actions, action => action is ScrapDroneSwarmAction);
 	}
 }

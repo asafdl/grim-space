@@ -21,16 +21,16 @@ public sealed class PatrolDomainTests
 		Assert.Equal(1, configuration.MaxHullPoints);
 		Assert.Equal(3, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 		Assert.Equal(0, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Retro]);
-		Assert.Equal(2, CatalogExpectations.UsesPerTurn(EType.Patrol, EAbilityKind.Flak));
+		Assert.Equal(2, CatalogExpectations.UsesPerTurn(EType.Patrol, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Patrol, EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
-	public void PatrolAbilitiesAreFlakOnly()
+	public void PatrolAbilitiesAreScrapDroneSwarmOnly()
 	{
 		var abilities = Capabilities.AbilitiesFor(EType.Patrol);
 
-		Assert.Single(abilities, def => def is FlakDef);
+		Assert.Single(abilities, def => def is ScrapDroneSwarmDef);
 		Assert.DoesNotContain(abilities, def => def is LightningCannonDef);
 	}
 }

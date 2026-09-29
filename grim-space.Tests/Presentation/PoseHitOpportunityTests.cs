@@ -79,16 +79,16 @@ public sealed class PoseHitOpportunityTests
 	}
 
 	[Fact]
-	public void GroupedFlakMountsEmitOneEntryPerTarget()
+	public void GroupedScrapDroneSwarmMountsEmitOneEntryPerTarget()
 	{
 		var origin = new Coord(5, 5, 5);
 		var probe = BattleTestFixture.BeginSimulation(origin);
-		var flakCell = FlakDef.Instance.AffectedCells(
-			new FlakAction(PlayerId, ESpatialOrientation.Starboard),
+		var swarmBurstCell = ScrapDroneSwarmDef.Instance.AffectedCells(
+			new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard),
 			probe.PlayerAgent.Sim.World).First();
 		var battle = BattleTestFixture.BeginSimulation(
 			BattleTestFixture.Player(origin),
-			BattleTestFixture.Enemy(flakCell),
+			BattleTestFixture.Enemy(swarmBurstCell),
 			BattleTestFixture.Grid(20));
 		var sim = battle.PlayerAgent.Sim;
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);

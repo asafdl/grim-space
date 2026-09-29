@@ -95,9 +95,9 @@ internal static class BattleHudCopy
 			_ => OutcomeDefault,
 		};
 
-	public static string FlakTooltipFor(UnitDisplayState unit) =>
-		FirstInstalled<FlakSpec>(unit, EAbilityKind.Flak) is { } flak
-			? FlakTooltipFor(flak)
+	public static string ScrapDroneSwarmTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<ScrapDroneSwarmSpec>(unit, EAbilityKind.ScrapDroneSwarm) is { } swarm
+			? ScrapDroneSwarmTooltipFor(swarm)
 			: "Scrap Drone Swarm";
 
 	public static string LightningCannonTooltipFor(UnitDisplayState unit) =>
@@ -120,11 +120,11 @@ internal static class BattleHudCopy
 			? SpawnPatrolTooltipFor(bay)
 			: "Deploy Patrol";
 
-	public static string FlakTooltipFor(FlakSpec flak) =>
+	public static string ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		$"Scrap Drone Swarm:\nSend a drone swarm to dismantle your foes.\n" +
-		$"Range: {AbilityReach.MaxManhattanFromFirer(flak)} cells.\n" +
-		$"Deals {flak.Damage} damage.\n" +
-		$"Cooldown: {flak.UsesPerTurn} use per turn.";
+		$"Range: {AbilityReach.MaxManhattanFromFirer(swarm)} cells.\n" +
+		$"Deals {swarm.Damage} damage.\n" +
+		$"Cooldown: {swarm.UsesPerTurn} use per turn.";
 
 	public static string LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
 		$"Lightning Cannon:\nFry anything in front.\n" +

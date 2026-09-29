@@ -14,7 +14,7 @@ public sealed class ReplayClipRegistry
 		new TorpedoActionClip(),
 		new SpawnPatrolActionClip(),
 		new LightningCannonActionClip(),
-		new FlakActionClip(),
+		new ScrapDroneSwarmActionClip(),
 		new DetonateActionClip(),
 	]);
 

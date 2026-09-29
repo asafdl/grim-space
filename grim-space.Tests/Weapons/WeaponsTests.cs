@@ -33,15 +33,15 @@ public sealed class WeaponsTests
 	[Theory]
 	[InlineData(ESpatialOrientation.Port)]
 	[InlineData(ESpatialOrientation.Starboard)]
-	public void FlakBurstIsThreeDimensionalPyramidFromMountTip(ESpatialOrientation mountedOn)
+	public void ScrapDroneSwarmBurstIsThreeDimensionalPyramidFromMountTip(ESpatialOrientation mountedOn)
 	{
 		var (world, frame) = CreateWorld();
-		var flak = CatalogExpectations.DefaultFlakSpec();
-		var cells = FlakDef.Instance.AffectedCells(new FlakAction(PlayerId, mountedOn), world);
+		var swarm = CatalogExpectations.DefaultScrapDroneSwarmSpec();
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(new ScrapDroneSwarmAction(PlayerId, mountedOn), world);
 		var apexPort = mountedOn == ESpatialOrientation.Port ? 1 : -1;
 		var outwardStep = mountedOn == ESpatialOrientation.Port ? 1 : -1;
 		var apex = frame.ToWorld(0, apexPort, 0);
-		var basePort = apexPort + outwardStep * flak.BurstRange;
+		var basePort = apexPort + outwardStep * swarm.BurstRange;
 
 		Assert.Equal(19, cells.Count);
 		Assert.Contains(apex, cells);

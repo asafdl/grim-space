@@ -5,8 +5,8 @@ namespace GrimSpace.Battle.Player;
 
 /// <summary>Published weapon availability for the current human planning snapshot.</summary>
 public readonly record struct WeaponPeek(
-	bool PortFlak,
-	bool StarboardFlak,
+	bool PortScrapDroneSwarm,
+	bool StarboardScrapDroneSwarm,
 	bool LightningCannon,
 	IReadOnlySet<ESpatialOrientation> TorpedoMounts)
 {
@@ -16,7 +16,7 @@ public readonly record struct WeaponPeek(
 	public bool IsKindLegal(EWeaponKind kind) =>
 		kind switch
 		{
-			EWeaponKind.Flak => PortFlak || StarboardFlak,
+			EWeaponKind.ScrapDroneSwarm => PortScrapDroneSwarm || StarboardScrapDroneSwarm,
 			EWeaponKind.LightningCannon => LightningCannon,
 			EWeaponKind.Torpedo => TorpedoMounts.Count > 0,
 			_ => false,

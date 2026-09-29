@@ -102,7 +102,7 @@ internal static class EnemySearchInput
 
 	private static bool HasOffensiveCharges(State state) =>
 		state.UsesRemaining(EAbilityKind.LightningCannon) > 0
-		|| state.UsesRemaining(EAbilityKind.Flak) > 0;
+		|| state.UsesRemaining(EAbilityKind.ScrapDroneSwarm) > 0;
 
 	private static int OptimisticWeaponReach(State state)
 	{
@@ -128,7 +128,7 @@ internal static class EnemySearchInput
 			if (actions[i] is LightningCannonAction { ActorId: var lightningCannonActorId } && lightningCannonActorId == actorId)
 				return true;
 
-			if (actions[i] is FlakAction { ActorId: var flakActorId } && flakActorId == actorId)
+			if (actions[i] is ScrapDroneSwarmAction { ActorId: var swarmActorId } && swarmActorId == actorId)
 				return true;
 		}
 
@@ -186,7 +186,7 @@ internal static class EnemySearchInput
 		for (var i = searchStartDepth; i < actions.Count; i++)
 		{
 			var action = actions[i];
-			if (action is not LightningCannonAction and not FlakAction)
+			if (action is not LightningCannonAction and not ScrapDroneSwarmAction)
 				continue;
 
 			if (action.ActorId != actorId)
@@ -216,8 +216,8 @@ internal static class EnemySearchInput
 		{
 			LightningCannonAction { ActorId: var lightningCannonActorId, MountedOn: var mountedOn } when lightningCannonActorId == actorId =>
 				WouldLightningCannonDamage(world, actorId, mountedOn),
-			FlakAction { ActorId: var flakActorId, MountedOn: var mountedOn } when flakActorId == actorId =>
-				WouldFlakDamage(world, actorId, mountedOn),
+			ScrapDroneSwarmAction { ActorId: var swarmActorId, MountedOn: var mountedOn } when swarmActorId == actorId =>
+				WouldScrapDroneSwarmDamage(world, actorId, mountedOn),
 			_ => false,
 		};
 
@@ -233,8 +233,8 @@ internal static class EnemySearchInput
 				&& WouldLightningCannonDamage(world, actorId, installed.MountedOn))
 				return true;
 
-			if (installed.Spec.Kind == EAbilityKind.Flak
-				&& WouldFlakDamage(world, actorId, installed.MountedOn))
+			if (installed.Spec.Kind == EAbilityKind.ScrapDroneSwarm
+				&& WouldScrapDroneSwarmDamage(world, actorId, installed.MountedOn))
 				return true;
 		}
 
@@ -250,9 +250,9 @@ internal static class EnemySearchInput
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 
-	private static bool WouldFlakDamage(BattleWorld world, string actorId, ESpatialOrientation mountedOn)
+	private static bool WouldScrapDroneSwarmDamage(BattleWorld world, string actorId, ESpatialOrientation mountedOn)
 	{
-		var cells = FlakDef.Instance.AffectedCells(new FlakAction(actorId, mountedOn), world);
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(new ScrapDroneSwarmAction(actorId, mountedOn), world);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
 

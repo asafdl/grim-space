@@ -13,14 +13,14 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
 internal static class MerchantPurchaseTestHarness
 {
-	public static MerchantCatalog.Offering FlakPortDamageUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
+	public static MerchantCatalog.Offering ScrapDroneSwarmPortDamageUpgrade =>
+		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
 
 	public static MerchantCatalog.Offering LightningCannonForwardDamageUpgrade =>
 		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
 
-	public static MerchantCatalog.Offering FlakPortRangeUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeRange, new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port));
+	public static MerchantCatalog.Offering ScrapDroneSwarmPortRangeUpgrade =>
+		new(MerchantCatalog.Kind.UpgradeRange, new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
 
 	public static MerchantCatalog.Offering LightningCannonForwardInstall =>
 		new(

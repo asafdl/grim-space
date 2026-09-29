@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using GrimSpace.Battle.Presentation;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -142,6 +143,7 @@ public partial class ScrapDroneAttack : Node3D
 		}
 
 		SetProcess(true);
+		PresentationSfx.PlayWorldOneShot(this, _origin, PresentationSfx.ScrapDroneFirePath);
 	}
 
 	private void BuildVisual(Drone drone)

@@ -92,40 +92,40 @@ public sealed class ShipInstanceSupportTests
 	public void TryWithDamageUpgraded_ReplacesOnlyTargetMountAndBumpsDamageTier()
 	{
 		var ship = FullCatalogFighter("fighter-1");
-		var mount = new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port);
+		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
 
 		Assert.True(ship.TryWithDamageUpgraded(mount, out var after));
 
 		var port = after.Loadout.InstalledAbilities.First(a => a.MountedOn == ESpatialOrientation.Port);
-		Assert.IsType<FlakSpec>(port.Spec);
-		Assert.Equal(2, ((FlakSpec)port.Spec).Damage);
-		Assert.Equal(1, ((FlakSpec)port.Spec).DamageUpgradeTier);
+		Assert.IsType<ScrapDroneSwarmSpec>(port.Spec);
+		Assert.Equal(2, ((ScrapDroneSwarmSpec)port.Spec).Damage);
+		Assert.Equal(1, ((ScrapDroneSwarmSpec)port.Spec).DamageUpgradeTier);
 
 		var starboard = after.Loadout.InstalledAbilities.First(a => a.MountedOn == ESpatialOrientation.Starboard);
-		Assert.Equal(0, ((FlakSpec)starboard.Spec).DamageUpgradeTier);
+		Assert.Equal(0, ((ScrapDroneSwarmSpec)starboard.Spec).DamageUpgradeTier);
 	}
 
 	[Fact]
-	public void TryWithRangeUpgraded_IncreasesFlakBurstRange()
+	public void TryWithRangeUpgraded_IncreasesScrapDroneSwarmBurstRange()
 	{
 		var ship = FullCatalogFighter("fighter-1");
-		var mount = new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port);
-		var beforeRange = ((FlakSpec)ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec).BurstRange;
+		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
+		var beforeRange = ((ScrapDroneSwarmSpec)ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec).BurstRange;
 
 		Assert.True(ship.TryWithRangeUpgraded(mount, out var after));
 
-		var flak = (FlakSpec)after.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec;
-		Assert.Equal(beforeRange + 1, flak.BurstRange);
-		Assert.Equal(1, flak.RangeUpgradeTier);
+		var swarm = (ScrapDroneSwarmSpec)after.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec;
+		Assert.Equal(beforeRange + 1, swarm.BurstRange);
+		Assert.Equal(1, swarm.RangeUpgradeTier);
 	}
 
 	[Fact]
 	public void TryWithDamageUpgraded_StopsAtMaxTier()
 	{
 		var ship = FullCatalogFighter("fighter-1");
-		var mount = new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port);
+		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
 
-		for (var tier = 0; tier < FlakSpec.MaxDamageUpgradeTier; tier++)
+		for (var tier = 0; tier < ScrapDroneSwarmSpec.MaxDamageUpgradeTier; tier++)
 			Assert.True(ship.TryWithDamageUpgraded(mount, out ship));
 
 		Assert.False(ship.TryWithDamageUpgraded(mount, out _));
@@ -134,7 +134,7 @@ public sealed class ShipInstanceSupportTests
 	[Fact]
 	public void TryWithInstalledAbility_AddsMountWhenFacetIsOpen()
 	{
-		var mount = new AbilityMount(EAbilityKind.Flak, ESpatialOrientation.Port);
+		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
 		var baseline = FighterSpec.Instance.BaselineFor(mount);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,

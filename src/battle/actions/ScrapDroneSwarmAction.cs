@@ -9,27 +9,27 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record FlakAction(
+public sealed record ScrapDroneSwarmAction(
 	string ActorId,
 	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		FlakDef.Instance;
+		ScrapDroneSwarmDef.Instance;
 }
 
-public sealed class FlakDef
+public sealed class ScrapDroneSwarmDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IMountedActionDef,
 		IAreaActionDef
 {
-	public static FlakDef Instance { get; } = new();
+	public static ScrapDroneSwarmDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var state = world.StateOf(actorId);
 		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
-			if (installed.Spec.Kind != EAbilityKind.Flak)
+			if (installed.Spec.Kind != EAbilityKind.ScrapDroneSwarm)
 				continue;
 
 			var action = Bind(actorId, installed.MountedOn);
@@ -38,7 +38,7 @@ public sealed class FlakDef
 		}
 	}
 
-	public FlakAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+	public ScrapDroneSwarmAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
@@ -56,13 +56,13 @@ public sealed class FlakDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(FlakAction action, BattleWorld world, ActorRuntime runtime) =>
-		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.Flak, action.MountedOn) is not null;
+	public bool IsPossible(ScrapDroneSwarmAction action, BattleWorld world, ActorRuntime runtime) =>
+		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn) is not null;
 
-	public bool IsLegal(FlakAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsLegal(ScrapDroneSwarmAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn);
+		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
 			return false;
 
@@ -70,30 +70,30 @@ public sealed class FlakDef
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
-		FlakAction action,
+		ScrapDroneSwarmAction action,
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
 		var cells = AffectedCells(action, world);
 
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn)
-			?? throw new InvalidOperationException("Flak ability not installed for actor.");
-		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Flak spec missing area damage.");
+		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn)
+			?? throw new InvalidOperationException("Scrap drone swarm ability not installed for actor.");
+		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Scrap drone swarm spec missing area damage.");
 		return
 		[
 			new ResolveHazardEffect(
-				EHazardKind.FlakBurst,
+				EHazardKind.ScrapDroneSwarmBurst,
 				cells,
 				damage),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}
 
-	public HashSet<Coord> AffectedCells(FlakAction action, BattleWorld world)
+	public HashSet<Coord> AffectedCells(ScrapDroneSwarmAction action, BattleWorld world)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.Flak, action.MountedOn);
+		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
 		if (installed?.Spec is not IAreaDamage areaDamage)
 			return [];
 
@@ -104,6 +104,6 @@ public sealed class FlakDef
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
 		AffectedCells(Cast(action), world);
 
-	private static FlakAction Cast(IAction action) =>
-		action as FlakAction ?? throw new ArgumentException($"Expected {nameof(FlakAction)}.", nameof(action));
+	private static ScrapDroneSwarmAction Cast(IAction action) =>
+		action as ScrapDroneSwarmAction ?? throw new ArgumentException($"Expected {nameof(ScrapDroneSwarmAction)}.", nameof(action));
 }

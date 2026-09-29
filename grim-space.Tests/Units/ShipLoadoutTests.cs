@@ -11,8 +11,8 @@ public sealed class ShipLoadoutTests
 	[Fact]
 	public void Create_RejectsInstalledMountNotOnChassis()
 	{
-		var flak = new FlakSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
-		var installed = new[] { new InstalledAbility(flak, ESpatialOrientation.Forward) };
+		var swarm = new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
+		var installed = new[] { new InstalledAbility(swarm, ESpatialOrientation.Forward) };
 
 		Assert.Throws<ArgumentException>(() =>
 			ShipLoadout.Create(
@@ -37,7 +37,7 @@ public sealed class ShipLoadoutTests
 		Assert.True(FighterSpec.Instance.Supports(lightningCannonMount));
 		Assert.DoesNotContain(
 			loadout.InstalledAbilities,
-			a => a.Mount.Kind == EAbilityKind.Flak);
+			a => a.Mount.Kind == EAbilityKind.ScrapDroneSwarm);
 	}
 
 	[Fact]

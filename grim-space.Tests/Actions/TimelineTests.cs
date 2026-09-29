@@ -175,24 +175,24 @@ public sealed class TimelineTests
 	}
 
 	[Fact]
-	public void CommitAppendsImpactRecordAfterFlak()
+	public void CommitAppendsImpactRecordAfterScrapDroneSwarm()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
-		var action = new FlakAction(battle.PlayerId, ESpatialOrientation.Starboard);
-		var cells = FlakDef.Instance.AffectedCells(action, battle.Engine.World);
+		var action = new ScrapDroneSwarmAction(battle.PlayerId, ESpatialOrientation.Starboard);
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.Engine.World);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.State.Id != battle.PlayerId);
 		enemy.State.Position = cells.First();
 
 		battle.Engine.Commit(action);
 
 		var history = battle.Engine.History();
-		var flakIndex = history.ToList().FindIndex(entry => entry is FlakAction);
-		Assert.True(flakIndex >= 0);
-		var impact = Assert.IsType<Record<ImpactFacts>>(history[flakIndex + 1]);
+		var swarmIndex = history.ToList().FindIndex(entry => entry is ScrapDroneSwarmAction);
+		Assert.True(swarmIndex >= 0);
+		var impact = Assert.IsType<Record<ImpactFacts>>(history[swarmIndex + 1]);
 		Assert.Equal(battle.PlayerId, impact.Value.SourceId);
 		Assert.Equal(enemy.State.Id, impact.Value.TargetId);
-		Assert.Equal(EHazardKind.FlakBurst, impact.Value.Cause);
+		Assert.Equal(EHazardKind.ScrapDroneSwarmBurst, impact.Value.Cause);
 		Assert.True(impact.Value.TotalDamage > 0);
 	}
 

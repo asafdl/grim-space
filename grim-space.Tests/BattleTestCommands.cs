@@ -34,8 +34,8 @@ internal static class BattleTestCommands
 	public static bool Undo(BattleOrchestrator battle) =>
 		battle.PlayerAgent.Undo();
 
-	public static bool FireFlak(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
-		Enqueue(battle, [new FlakAction(battle.PlayerId, mountedOn)]);
+	public static bool FireScrapDroneSwarm(BattleOrchestrator battle, ESpatialOrientation mountedOn) =>
+		Enqueue(battle, [new ScrapDroneSwarmAction(battle.PlayerId, mountedOn)]);
 
 	public static bool FireLightningCannon(BattleOrchestrator battle) =>
 		Enqueue(battle, [new LightningCannonAction(battle.PlayerId)]);

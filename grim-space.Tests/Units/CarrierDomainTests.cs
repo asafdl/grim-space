@@ -21,7 +21,7 @@ public sealed class CarrierDomainTests
 		Assert.Equal(3, stats.MaxAp);
 		Assert.Equal(2, configuration.MaxHullPoints);
 		Assert.Equal(2, configuration.MaxShieldPoints.MaxOnAnyFace);
-		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.Flak));
+		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(1, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.LightningCannon));
 	}
 
@@ -32,7 +32,7 @@ public sealed class CarrierDomainTests
 
 		Assert.Contains(abilities, def => def is LightningCannonDef);
 		Assert.Contains(abilities, def => def is SpawnPatrolDef);
-		Assert.DoesNotContain(abilities, def => def is FlakDef);
+		Assert.DoesNotContain(abilities, def => def is ScrapDroneSwarmDef);
 	}
 
 	[Fact]

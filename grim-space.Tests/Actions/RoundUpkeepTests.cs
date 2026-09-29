@@ -18,22 +18,22 @@ public sealed class RoundUpkeepTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RoundUpkeepActionRefillsApAndFlak()
+	public void RoundUpkeepActionRefillsApAndScrapDroneSwarm()
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ActionPoints = 0;
-		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak, 0);
+		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.ScrapDroneSwarm, 0);
 		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
 		ApplyRoundUpkeep(player);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.Flak));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.LightningCannon));
 	}
 
 	[Fact]
-	public void RoundUpkeepActionAppliesFlakPenaltyThenRefills()
+	public void RoundUpkeepActionAppliesScrapDroneSwarmPenaltyThenRefills()
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ApPenaltyNextTurn = true;
@@ -51,13 +51,13 @@ public sealed class RoundUpkeepTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var playerState = battle.Engine.World.StateOf(battle.PlayerId);
 		playerState.ActionPoints = 0;
-		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.Flak, 0);
+		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.ScrapDroneSwarm, 0);
 		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
 		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.Flak), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.Flak));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.LightningCannon));
 	}
 

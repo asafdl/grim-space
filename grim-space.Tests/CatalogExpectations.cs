@@ -17,8 +17,8 @@ internal static class CatalogExpectations
 			.Where(installed => installed.Spec.Kind == kind)
 			.Sum(installed => installed.Spec is IPerTurnAbility perTurn ? perTurn.UsesPerTurn : 0);
 
-	public static int FlakDamage(EType chassis = EType.Fighter) =>
-		DefaultFlakSpec(chassis).Damage;
+	public static int ScrapDroneSwarmDamage(EType chassis = EType.Fighter) =>
+		DefaultScrapDroneSwarmSpec(chassis).Damage;
 
 	public static int LightningCannonMaxReach(EType chassis = EType.Fighter) =>
 		AbilityReach.MaxManhattanFromFirer(
@@ -27,8 +27,8 @@ internal static class CatalogExpectations
 	public static LightningCannonSpec DefaultLightningCannonSpec(EType chassis = EType.Fighter) =>
 		(LightningCannonSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.LightningCannon)!;
 
-	public static FlakSpec DefaultFlakSpec(EType chassis = EType.Fighter) =>
-		(FlakSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.Flak)!;
+	public static ScrapDroneSwarmSpec DefaultScrapDroneSwarmSpec(EType chassis = EType.Fighter) =>
+		(ScrapDroneSwarmSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.ScrapDroneSwarm)!;
 
 	public static PatrolBaySpec DefaultPatrolBaySpec(EType chassis = EType.Carrier) =>
 		(PatrolBaySpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.PatrolBay)!;

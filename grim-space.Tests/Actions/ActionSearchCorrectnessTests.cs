@@ -109,7 +109,7 @@ public sealed class ActionSearchCorrectnessTests
 			MoveStepAction move => $"move:{move.ActorId}",
 			HeadingTurnAction heading => $"heading:{heading.ActorId}:{heading.Turn}",
 			RollAction roll => $"roll:{roll.ActorId}:{roll.Direction}",
-			FlakAction flak => $"flak:{flak.ActorId}:{flak.MountedOn}",
+			ScrapDroneSwarmAction swarm => $"swarm:{swarm.ActorId}:{swarm.MountedOn}",
 			LightningCannonAction lightningCannon => $"lightningCannon:{lightningCannon.ActorId}",
 			_ => action.GetType().FullName ?? "action",
 		};

@@ -87,7 +87,7 @@ public sealed class LightningCannonReachTests
 	}
 
 	[Fact]
-	public void UpperBound_IncludesDamageBonus_WhenPatrolCanReachPlayerWithFlak()
+	public void UpperBound_IncludesDamageBonus_WhenPatrolCanReachPlayerWithScrapDroneSwarm()
 	{
 		var player = CreateUnit(ETeam.Player, "player", new Coord(4, 5, 5), EType.Fighter);
 		var patrol = CreateUnit(ETeam.Enemy, "patrol", new Coord(0, 5, 5), EType.Patrol);

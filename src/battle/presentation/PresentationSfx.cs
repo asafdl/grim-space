@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using GrimSpace.Application;
 
@@ -11,6 +12,12 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/lightning_cannon_mount_charge.wav";
 	public const string LightningCannonHitPath =
 		"res://assets/sfx/abilities/lightning_cannon_hit.wav";
+	public const string ScrapDroneFirePath =
+		"res://assets/sfx/abilities/scrap_drone_flight_1150ms.wav";
+	public const string ScrapDroneMountLatchPath =
+		"res://assets/sfx/abilities/latch_release_80ms.wav";
+	public const string ScrapDroneMountBeepsPath =
+		"res://assets/sfx/abilities/robot_beeps_300ms.wav";
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 
@@ -27,6 +34,17 @@ public static class PresentationSfx
 		parent.AddChild(player);
 		player.Play();
 		player.Finished += player.QueueFree;
+	}
+
+	public static void PlayScrapDroneMount(Node parent, Vector3 localPosition)
+	{
+		PlayWorldOneShot(parent, localPosition, ScrapDroneMountLatchPath);
+		var tree = parent.GetTree();
+		if (tree is null)
+			return;
+
+		tree.CreateTimer(0.08).Timeout += () =>
+			PlayWorldOneShot(parent, localPosition, ScrapDroneMountBeepsPath);
 	}
 
 	private static AudioStream Load(string path) =>

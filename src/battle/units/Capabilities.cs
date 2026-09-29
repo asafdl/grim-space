@@ -95,7 +95,7 @@ public static class Capabilities
 		EAbilityKind kind) =>
 		kind switch
 		{
-			EAbilityKind.Flak => FlakDef.Instance,
+			EAbilityKind.ScrapDroneSwarm => ScrapDroneSwarmDef.Instance,
 			EAbilityKind.LightningCannon => LightningCannonDef.Instance,
 			EAbilityKind.PatrolBay => SpawnPatrolDef.Instance,
 			EAbilityKind.TorpedoLauncher => TorpedoDef.Instance,

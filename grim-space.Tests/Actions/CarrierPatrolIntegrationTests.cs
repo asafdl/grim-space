@@ -40,7 +40,7 @@ public sealed class CarrierPatrolIntegrationTests
 	}
 
 	[Fact]
-	public void ResolveTurn_SpawnedPatrolCanFireFlakSameCycle()
+	public void ResolveTurn_SpawnedPatrolCanFireScrapDroneSwarmSameCycle()
 	{
 		var grid = BattleTestFixture.Grid();
 		var carrierPos = new Coord(5, 5, 5);
@@ -67,6 +67,6 @@ public sealed class CarrierPatrolIntegrationTests
 			unit => unit.State.Type == EType.Patrol);
 		Assert.Contains(
 			replay.Actions,
-			action => action is FlakAction { ActorId: var actorId } && actorId == patrol.State.Id);
+			action => action is ScrapDroneSwarmAction { ActorId: var actorId } && actorId == patrol.State.Id);
 	}
 }

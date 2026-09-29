@@ -6,16 +6,16 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Presentation.Replay.Clips;
 
-public sealed class FlakActionClip : IReplayClip
+public sealed class ScrapDroneSwarmActionClip : IReplayClip
 {
-	public Type ActionType => typeof(FlakAction);
+	public Type ActionType => typeof(ScrapDroneSwarmAction);
 
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
-		var flak = (FlakAction)action;
-		var effect = ScrapDroneFlakEffect.Play(
+		var swarm = (ScrapDroneSwarmAction)action;
+		var effect = ScrapDroneAttackEffect.Play(
 			context.HazardBursts,
-			flak,
+			swarm,
 			context.ReplayState,
 			context.UnitViews);
 

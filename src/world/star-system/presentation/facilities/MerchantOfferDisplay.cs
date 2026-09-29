@@ -26,8 +26,8 @@ internal static class MerchantOfferDisplay
 	public static string DamageUpgradeBody(AbilitySpec current) =>
 		current switch
 		{
-			FlakSpec flak =>
-				$"Increase burst damage from {flak.Damage} to {flak.Damage + 1}.",
+			ScrapDroneSwarmSpec swarm =>
+				$"Increase burst damage from {swarm.Damage} to {swarm.Damage + 1}.",
 			LightningCannonSpec lightningCannon =>
 				$"Increase shot damage from {lightningCannon.Damage} to {lightningCannon.Damage + 1}.",
 			_ => "Improve this mounted system.",
@@ -36,8 +36,8 @@ internal static class MerchantOfferDisplay
 	public static string RangeUpgradeBody(AbilitySpec current) =>
 		current switch
 		{
-			FlakSpec flak =>
-				$"Increase burst range from {flak.BurstRange} to {flak.BurstRange + 1}.",
+			ScrapDroneSwarmSpec swarm =>
+				$"Increase burst range from {swarm.BurstRange} to {swarm.BurstRange + 1}.",
 			LightningCannonSpec lightningCannon =>
 				$"Increase line length from {lightningCannon.LineLength} to {lightningCannon.LineLength + 1}.",
 			_ => "Extend this mounted system's reach.",
@@ -60,7 +60,7 @@ internal static class MerchantOfferDisplay
 	private static string KindLabel(EAbilityKind kind) =>
 		kind switch
 		{
-			EAbilityKind.Flak => "Scrap drone swarm",
+			EAbilityKind.ScrapDroneSwarm => "Scrap drone swarm",
 			EAbilityKind.LightningCannon => "Lightning cannon",
 			EAbilityKind.PatrolBay => "Patrol bay",
 			EAbilityKind.TorpedoLauncher => "Torpedo launcher",

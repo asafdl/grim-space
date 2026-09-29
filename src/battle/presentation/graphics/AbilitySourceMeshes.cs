@@ -4,14 +4,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 internal static class AbilitySourceMeshes
 {
-	public static Node3D CreateFlakBurst() =>
-		Ghost(new SphereMesh
-		{
-			Radius = 0.42f,
-			Height = 0.84f,
-			RadialSegments = 12,
-			Rings = 6,
-		});
+	public static Node3D CreateScrapDroneSwarmBurst() => ScrapDroneMesh.CreateMountPreview();
 
 	public static Node3D CreateLightningCannon() =>
 		Ghost(new BoxMesh

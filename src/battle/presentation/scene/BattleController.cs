@@ -328,14 +328,19 @@ public partial class BattleController : Node3D
 
 	private void OnAbilityConfirmed(AbilityActivationChoice choice)
 	{
-		if (choice.Action is not LightningCannonAction)
-			return;
-
 		var position = WorldMapping.ToWorld(choice.Position);
-		PresentationSfx.PlayWorldOneShot(
-			this,
-			position,
-			PresentationSfx.LightningCannonMountChargePath);
+		switch (choice.Action)
+		{
+			case LightningCannonAction:
+				PresentationSfx.PlayWorldOneShot(
+					this,
+					position,
+					PresentationSfx.LightningCannonMountChargePath);
+				break;
+			case ScrapDroneSwarmAction:
+				PresentationSfx.PlayScrapDroneMount(this, position);
+				break;
+		}
 	}
 
 	private void OnModeRequested(EPlayerMode mode)

@@ -12,11 +12,11 @@ public sealed class InstalledAbilityTests
 	[Fact]
 	public void DuplicateKindOnSameFacet_IsRejected()
 	{
-		var flak = new FlakSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
+		var swarm = new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
 		var installed = new[]
 		{
-			new InstalledAbility(flak, GrimSpace.Math.Grid.ESpatialOrientation.Port),
-			new InstalledAbility(flak, GrimSpace.Math.Grid.ESpatialOrientation.Port),
+			new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Port),
+			new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Port),
 		};
 
 		Assert.Throws<ArgumentException>(() =>
@@ -30,14 +30,14 @@ public sealed class InstalledAbilityTests
 	[Fact]
 	public void SameKindOnDifferentFacets_IsAllowed()
 	{
-		var flak = new FlakSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
+		var swarm = new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			maxHullPoints: 2,
 			ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 			[
-				new InstalledAbility(flak, GrimSpace.Math.Grid.ESpatialOrientation.Port),
-				new InstalledAbility(flak, GrimSpace.Math.Grid.ESpatialOrientation.Starboard),
+				new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Port),
+				new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Starboard),
 			]);
 
 		Assert.Equal(2, loadout.InstalledAbilities.Count);
@@ -50,12 +50,12 @@ public sealed class InstalledAbilityTests
 			"fighter-a",
 			FighterSpec.Instance,
 			ShipCatalog.FullFighterLoadout());
-		var flak = snapshot.Loadout.InstalledAbilities
-			.Where(ability => ability.Spec.Kind == EAbilityKind.Flak)
+		var swarm = snapshot.Loadout.InstalledAbilities
+			.Where(ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm)
 			.ToArray();
 
-		Assert.Equal(2, flak.Length);
-		Assert.All(flak, installed =>
+		Assert.Equal(2, swarm.Length);
+		Assert.All(swarm, installed =>
 			Assert.Equal(1, installed.Spec.CreateInitialRuntime().UsesRemaining));
 	}
 
@@ -79,19 +79,19 @@ public sealed class InstalledAbilityTests
 		var installed = ShipCatalog.FullFighterLoadout().InstalledAbilities;
 
 		Assert.Equal(6, installed.Count);
-		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.Flak);
+		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.LightningCannon);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.TorpedoLauncher);
 	}
 
 	[Fact]
-	public void PatrolFlak_HasIndependentPortAndStarboardMounts()
+	public void PatrolScrapDroneSwarm_HasIndependentPortAndStarboardMounts()
 	{
 		var installed = ShipCatalog.NewRunLoadoutFor(EType.Patrol).InstalledAbilities;
 
 		Assert.Equal(2, installed.Count);
-		Assert.Contains(installed, ability => ability.Mount == new AbilityMount(EAbilityKind.Flak, GrimSpace.Math.Grid.ESpatialOrientation.Port));
-		Assert.Contains(installed, ability => ability.Mount == new AbilityMount(EAbilityKind.Flak, GrimSpace.Math.Grid.ESpatialOrientation.Starboard));
+		Assert.Contains(installed, ability => ability.Mount == new AbilityMount(EAbilityKind.ScrapDroneSwarm, GrimSpace.Math.Grid.ESpatialOrientation.Port));
+		Assert.Contains(installed, ability => ability.Mount == new AbilityMount(EAbilityKind.ScrapDroneSwarm, GrimSpace.Math.Grid.ESpatialOrientation.Starboard));
 	}
 
 	[Fact]
