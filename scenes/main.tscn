@@ -50,7 +50,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 ratio = 1.7778969
-stretch_mode = 3
+stretch_mode = 2
 
 [node name="Art" type="Control" parent="ArtFrame" unique_id=879073018]
 layout_mode = 2
@@ -273,6 +273,21 @@ theme_type_variation = &"BodyLabel"
 text = "Resolution"
 
 [node name="Resolution" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/ResolutionRow" unique_id=21458426]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UiScaleRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=21458427]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="UiScaleLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/UiScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "UI scale"
+
+[node name="UiScale" type="OptionButton" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/UiScaleRow" unique_id=21458428]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

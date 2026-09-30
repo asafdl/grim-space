@@ -19,6 +19,8 @@ public static class GameSettings
 		new(1280, 720),
 	];
 
+	public static readonly float[] SupportedUiScales = [0.8f, 1f, 1.25f, 1.5f];
+
 	public enum DisplayMode
 	{
 		BorderlessFullscreen,
@@ -27,12 +29,13 @@ public static class GameSettings
 
 	public readonly record struct VideoConfig(
 		DisplayMode Mode,
-		Vector2I Resolution);
+		Vector2I Resolution,
+		float UiScale);
 
 	public static VideoConfig ReadVideoConfig()
 	{
 		if (!TryLoad(out var config))
-			return new VideoConfig(DisplayMode.BorderlessFullscreen, DefaultResolution());
+			return new VideoConfig(DisplayMode.BorderlessFullscreen, DefaultResolution(), 1f);
 
 		var mode = config!.GetValue("video", "mode", BorderlessFullscreenMode).AsString();
 		var width = config.GetValue("video", "width", 0).AsInt32();
@@ -40,10 +43,12 @@ public static class GameSettings
 		var resolution = TryFindResolution(width, height, out var saved)
 			? saved
 			: DefaultResolution();
+		var uiScale = NormalizeUiScale(config.GetValue("video", "ui_scale", 1f).AsSingle());
 
 		return new VideoConfig(
 			mode == WindowedMode ? DisplayMode.Windowed : DisplayMode.BorderlessFullscreen,
-			resolution);
+			resolution,
+			uiScale);
 	}
 
 	public static void SaveVideoConfig(VideoConfig video)
@@ -62,8 +67,7 @@ public static class GameSettings
 			video.Mode == DisplayMode.Windowed ? WindowedMode : BorderlessFullscreenMode);
 		config.SetValue("video", "width", video.Resolution.X);
 		config.SetValue("video", "height", video.Resolution.Y);
-		if (config.HasSectionKey("video", "render_scale"))
-			config.EraseSectionKey("video", "render_scale");
+		config.SetValue("video", "ui_scale", NormalizeUiScale(video.UiScale));
 	}
 
 	public static void ApplySavedVideoConfig()
@@ -82,9 +86,9 @@ public static class GameSettings
 			return new(1f, 1f, 1f);
 
 		return new(
-			ReadVolume(config, "master_volume"),
-			ReadVolume(config, "music_volume"),
-			ReadVolume(config, "sfx_volume"));
+			ReadVolume(config!, "master_volume"),
+			ReadVolume(config!, "music_volume"),
+			ReadVolume(config!, "sfx_volume"));
 	}
 
 	public static void SaveAudioConfig(AudioConfig audio)
@@ -169,9 +173,9 @@ public static class GameSettings
 		var window = (Window)((SceneTree)Godot.Engine.GetMainLoop()).Root;
 		var resolution = NormalizeResolution(video.Resolution.X, video.Resolution.Y);
 		window.ContentScaleMode = Window.ContentScaleModeEnum.Viewport;
-		window.ContentScaleAspect = Window.ContentScaleAspectEnum.Expand;
-		window.ContentScaleSize = resolution;
-		window.ContentScaleFactor = 1f;
+		window.ContentScaleAspect = Window.ContentScaleAspectEnum.Keep;
+		window.ContentScaleSize = DesignCanvasSize;
+		window.ContentScaleFactor = NormalizeUiScale(video.UiScale);
 		window.Scaling3DScale = 1f;
 
 		if (video.Mode == DisplayMode.Windowed)
@@ -207,6 +211,23 @@ public static class GameSettings
 		}
 
 		return SupportedResolutions[^1];
+	}
+
+	public static float NormalizeUiScale(float uiScale)
+	{
+		var closest = SupportedUiScales[0];
+		var closestDistance = Mathf.Abs(uiScale - closest);
+		foreach (var candidate in SupportedUiScales)
+		{
+			var distance = Mathf.Abs(uiScale - candidate);
+			if (distance < closestDistance)
+			{
+				closest = candidate;
+				closestDistance = distance;
+			}
+		}
+
+		return closest;
 	}
 
 	public static bool TryFindResolutionIndex(int width, int height, out int index)

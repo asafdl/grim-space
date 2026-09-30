@@ -21,6 +21,7 @@ public partial class StartMenu : Control
 	private ParticleProcessMaterial _dustMaterial = null!;
 	private OptionButton _displayMode = null!;
 	private OptionButton _resolution = null!;
+	private OptionButton _uiScale = null!;
 	private HSlider _masterVolume = null!;
 	private HSlider _musicVolume = null!;
 	private HSlider _sfxVolume = null!;
@@ -45,6 +46,7 @@ public partial class StartMenu : Control
 
 		_menuColumn = GetNode<Control>("%MenuColumn");
 		_settingsOverlay = GetNode<Control>("%SettingsOverlay");
+		GetViewport().SizeChanged += OnViewportSizeChanged;
 		_art = GetNode<Control>("ArtFrame/Art");
 		_dustBandStart = GetNode<Control>("%DustBandStart");
 		_dustBandEnd = GetNode<Control>("%DustBandEnd");
@@ -57,6 +59,7 @@ public partial class StartMenu : Control
 
 		_displayMode = GetNode<OptionButton>("%DisplayMode");
 		_resolution = GetNode<OptionButton>("%Resolution");
+		_uiScale = GetNode<OptionButton>("%UiScale");
 		_masterVolume = GetNode<HSlider>("%MasterVolume");
 		_musicVolume = GetNode<HSlider>("%MusicVolume");
 		_sfxVolume = GetNode<HSlider>("%SfxVolume");
@@ -67,8 +70,10 @@ public partial class StartMenu : Control
 		_settingsTabs.SetTabTitle((int)SettingsTab.KeyBindings, "Key Bindings");
 		_resetSettings = GetNode<Button>("%Reset");
 		_resetSettings.Pressed += OnResetActiveTab;
+		_displayMode.ItemSelected += OnDisplayModeSelected;
 
 		PopulateResolutions();
+		PopulateUiScales();
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
 
 		_startButton = GetNode<Button>("%Start");
@@ -85,11 +90,23 @@ public partial class StartMenu : Control
 		CallDeferred(MethodName.PrepareFirstScene);
 	}
 
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
+			|| !_settingsOverlay.Visible)
+			return;
+
+		ShowMainPanel();
+		GetViewport().SetInputAsHandled();
+	}
+
 	private void LoadSettingsToUi()
 	{
 		var video = GameSettings.ReadVideoConfig();
 		_displayMode.Selected = video.Mode == GameSettings.DisplayMode.Windowed ? 1 : 0;
 		SelectResolution(video.Resolution);
+		SelectUiScale(video.UiScale);
+		UpdateResolutionAvailability();
 		var audio = GameSettings.ReadAudioConfig();
 		_masterVolume.Value = audio.MasterVolume * 100f;
 		_musicVolume.Value = audio.MusicVolume * 100f;
@@ -104,6 +121,13 @@ public partial class StartMenu : Control
 			_resolution.AddItem($"{resolution.X}x{resolution.Y}");
 	}
 
+	private void PopulateUiScales()
+	{
+		_uiScale.Clear();
+		foreach (var scale in GameSettings.SupportedUiScales)
+			_uiScale.AddItem($"{scale * 100f:0}%");
+	}
+
 	private void SelectResolution(Vector2I resolution)
 	{
 		_resolution.Selected = GameSettings.TryFindResolutionIndex(
@@ -114,8 +138,23 @@ public partial class StartMenu : Control
 			: 0;
 	}
 
+	private void SelectUiScale(float scale)
+	{
+		var normalized = GameSettings.NormalizeUiScale(scale);
+		for (var i = 0; i < GameSettings.SupportedUiScales.Length; i++)
+		{
+			if (Mathf.IsEqualApprox(GameSettings.SupportedUiScales[i], normalized))
+			{
+				_uiScale.Selected = i;
+				return;
+			}
+		}
+
+		_uiScale.Selected = 0;
+	}
+
 	private GameSettings.VideoConfig SelectedVideoConfig() =>
-		new(SelectedDisplayMode(), SelectedResolution());
+		new(SelectedDisplayMode(), SelectedResolution(), SelectedUiScale());
 
 	private GameSettings.DisplayMode SelectedDisplayMode() =>
 		_displayMode.Selected == 1
@@ -124,6 +163,9 @@ public partial class StartMenu : Control
 
 	private Vector2I SelectedResolution() =>
 		GameSettings.SupportedResolutions[_resolution.Selected];
+
+	private float SelectedUiScale() =>
+		GameSettings.SupportedUiScales[_uiScale.Selected];
 
 	private GameSettings.AudioConfig SelectedAudioConfig() =>
 		new(
@@ -157,6 +199,7 @@ public partial class StartMenu : Control
 		GameSettings.ApplyVideoConfig(video);
 		GameSettings.ApplyAudioConfig(audio);
 		GameInputBindings.Apply(bindings);
+		CallDeferred(MethodName.FitSettingsPanelToViewport);
 		if (tutorialsSettingChanged)
 		{
 			Session.Instance.DiscardPreparedRun();
@@ -202,7 +245,14 @@ public partial class StartMenu : Control
 		SelectResolution(GameSettings.FitResolutionToScreen(
 			DisplayServer.ScreenGetSize(),
 			DisplayServer.ScreenGetScale()));
+		SelectUiScale(1f);
+		UpdateResolutionAvailability();
 	}
+
+	private void OnDisplayModeSelected(long _index) => UpdateResolutionAvailability();
+
+	private void UpdateResolutionAvailability() =>
+		_resolution.Disabled = SelectedDisplayMode() == GameSettings.DisplayMode.BorderlessFullscreen;
 
 	private void FitSettingsPanelToViewport()
 	{
@@ -214,6 +264,8 @@ public partial class StartMenu : Control
 			(int)Mathf.Min(maxWidth, viewport.X - margin),
 			(int)Mathf.Min(maxHeight, viewport.Y - margin));
 	}
+
+	private void OnViewportSizeChanged() => FitSettingsPanelToViewport();
 
 	private void ShowMainPanel()
 	{
