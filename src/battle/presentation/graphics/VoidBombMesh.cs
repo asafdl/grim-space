@@ -4,8 +4,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public static class VoidBombMesh
 {
-	private const string ModelPath = "res://assets/models/ships/scfi_starburst_torpedo_v2.glb";
-	private const float Length = 1.27f;
+	private const string ModelPath = "res://assets/models/spaceobjects/hi-tech_missile.glb";
+	private const float Length = 1f;
 	private static PackedScene? _model;
 
 	public static MeshInstance3D CreateHullInstance()
@@ -13,7 +13,7 @@ public static class VoidBombMesh
 		_model ??= GD.Load<PackedScene>(ModelPath)
 			?? throw new InvalidOperationException($"Could not load void bomb model '{ModelPath}'.");
 		var scene = _model.Instantiate<Node3D>();
-		scene.Rotation = new Vector3(0f, Mathf.Pi / 2f, 0f);
+		scene.Rotation = new Vector3(Mathf.Pi / 2f, 0f, 0f);
 
 		try
 		{
@@ -27,12 +27,6 @@ public static class VoidBombMesh
 			{
 				if (meshes[i].Mesh is not { } mesh)
 					throw new InvalidOperationException($"VoidBomb model '{ModelPath}' has an empty mesh.");
-
-				if (mesh is ArrayMesh arrayMesh)
-				{
-					mesh = WithGeneratedTangents(arrayMesh);
-					meshes[i].Mesh = mesh;
-				}
 
 				var transform = Transform3D.Identity;
 				for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
@@ -66,20 +60,5 @@ public static class VoidBombMesh
 			if (scene.GetParent() is null)
 				scene.Free();
 		}
-	}
-
-	internal static ArrayMesh WithGeneratedTangents(ArrayMesh source)
-	{
-		var mesh = new ArrayMesh();
-		for (var surface = 0; surface < source.GetSurfaceCount(); surface++)
-		{
-			var tool = new SurfaceTool();
-			tool.CreateFrom(source, surface);
-			tool.GenerateTangents();
-			tool.Commit(mesh);
-			mesh.SurfaceSetMaterial(surface, source.SurfaceGetMaterial(surface));
-		}
-
-		return mesh;
 	}
 }

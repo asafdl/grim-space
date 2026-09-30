@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dm3m3ilnbbni7"
-path="res://.godot/imported/scfi_starburst_torpedo_v2.glb-12c3dcefeed774872637535f3e408538.scn"
+uid="uid://ch7bvq4mau8qi"
+path="res://.godot/imported/hi-tech_missile.glb-35ec7fb9363b696de0ea8cbcc587574c.scn"
 
 [deps]
 
-source_file="res://assets/models/ships/scfi_starburst_torpedo_v2.glb"
-dest_files=["res://.godot/imported/scfi_starburst_torpedo_v2.glb-12c3dcefeed774872637535f3e408538.scn"]
+source_file="res://assets/models/spaceobjects/hi-tech_missile.glb"
+dest_files=["res://.godot/imported/hi-tech_missile.glb-35ec7fb9363b696de0ea8cbcc587574c.scn"]
 
 [params]
 

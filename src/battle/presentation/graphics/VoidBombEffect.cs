@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using GrimSpace.Battle.Presentation;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -10,6 +11,8 @@ public partial class VoidBombEffect : Node3D
 
 	// Approximate maximum ray reach in this particular GLB.
 	private const float AuthoredRadius = 2.4f;
+	private const float AnimationSpeed = 0.82f;
+	private const double FlashDuration = 0.18;
 
 	private static PackedScene? _scene;
 
@@ -62,24 +65,79 @@ public partial class VoidBombEffect : Node3D
 		effect.GlobalPosition = worldPosition;
 		effect.Scale = Vector3.One *
 			(Mathf.Max(worldRadius, 0.01f) / AuthoredRadius);
+		AddOriginFlash(effect);
+		PresentationSfx.PlayWorldOneShot(
+			effect,
+			Vector3.Zero,
+			PresentationSfx.VoidBombExplosionPath);
 
 		player.AnimationFinished += _ => effect.QueueFree();
 
-		player.Play(animationName, customBlend: 0);
+		player.Play(
+			animationName,
+			customBlend: 0,
+			customSpeed: AnimationSpeed);
 		player.Advance(0);
 
 		effect.Visible = true;
 
-		return animation.Length;
+		return animation.Length / AnimationSpeed;
+	}
+
+	private static void AddOriginFlash(VoidBombEffect effect)
+	{
+		var material = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
+			NoDepthTest = true,
+			AlbedoColor = Colors.White,
+			EmissionEnabled = true,
+			Emission = Colors.White,
+			EmissionEnergyMultiplier = 5f,
+		};
+		var flash = new MeshInstance3D
+		{
+			Name = "VoidBombOriginFlash",
+			Mesh = new SphereMesh
+			{
+				Radius = 0.18f,
+				Height = 0.36f,
+				RadialSegments = 16,
+				Rings = 8,
+			},
+			Scale = Vector3.One * 0.25f,
+			MaterialOverride = material,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		};
+		effect.AddChild(flash);
+
+		var tween = effect.CreateTween();
+		tween.SetParallel();
+		tween.TweenProperty(
+			flash,
+			"scale",
+			Vector3.One * 2.8f,
+			FlashDuration);
+		tween.TweenMethod(
+			Callable.From<float>(alpha =>
+				material.AlbedoColor = Colors.White with { A = alpha }),
+			1f,
+			0f,
+			FlashDuration);
+		tween.TweenMethod(
+			Callable.From<float>(energy =>
+				material.EmissionEnergyMultiplier = energy),
+			5f,
+			0f,
+			FlashDuration);
 	}
 
 	private static void PrepareMeshes(Node node)
 	{
 		if (node is MeshInstance3D mesh)
 		{
-			if (mesh.Mesh is ArrayMesh arrayMesh)
-				mesh.Mesh = VoidBombMesh.WithGeneratedTangents(arrayMesh);
-
 			PresentationLayers.MarkWorld(mesh);
 			mesh.CastShadow =
 				GeometryInstance3D.ShadowCastingSetting.Off;
