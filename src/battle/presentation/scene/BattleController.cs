@@ -18,6 +18,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Components;
 using GrimSpace.Education;
+using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
 using GrimSpace.Units.Enums;
 
@@ -498,6 +499,8 @@ public partial class BattleController : Node3D
 		_areaActionPreview.ApplyFrame(frame);
 		_voidBombPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame, allowEndTurn: CanEndTurn);
+		ReportIssueSystemContext.SetBattleSnapshot(
+			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
 	}
 
 	private void OnTutorialFlowCompleted(TutorialFlow _) => RefreshPresentation();
@@ -588,6 +591,7 @@ public partial class BattleController : Node3D
 		Session.Instance.DevMenu.ClearBattleActions();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
+		ReportIssueSystemContext.SetBattleSnapshot(null);
 		base._ExitTree();
 	}
 }

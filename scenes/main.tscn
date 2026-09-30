@@ -29,6 +29,19 @@ grow_vertical = 2
 theme = ExtResource("4_theme")
 script = ExtResource("1_startmenu")
 
+[node name="VersionLabel" type="Label" parent="."]
+unique_name_in_owner = true
+z_index = 10
+layout_mode = 1
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 16.0
+offset_right = 220.0
+offset_bottom = 44.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.5)
+text = "v0.0.0"
+
 [node name="ArtFrame" type="AspectRatioContainer" parent="." unique_id=1825310002]
 layout_mode = 1
 anchors_preset = 15

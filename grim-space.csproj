@@ -5,7 +5,18 @@
     <RootNamespace>grimspace</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <InformationalVersion Condition="'$(GRIM_SPACE_VERSION)' != ''">$(GRIM_SPACE_VERSION)</InformationalVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(GRIM_SPACE_VERSION)' != ''">
+      <_Parameter1>GrimSpaceReleaseVersion</_Parameter1>
+      <_Parameter2>$(GRIM_SPACE_VERSION)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(DISCORD_ISSUE_WEBHOOK_URL)' != ''">
+      <_Parameter1>DiscordIssueWebhookUrl</_Parameter1>
+      <_Parameter2>$(DISCORD_ISSUE_WEBHOOK_URL)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
   <ItemGroup>
     <Compile Remove="grim-space.Tests/**" />
   </ItemGroup>
@@ -17,7 +28,4 @@
   <ItemGroup>
     <InternalsVisibleTo Include="grim-space.Tests" />
   </ItemGroup>
-  <Target Name="GenerateIssueReportChannels" BeforeTargets="BeforeCompile">
-    <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/scripts/generate_issue_report_channels.py&quot;" />
-  </Target>
 </Project>

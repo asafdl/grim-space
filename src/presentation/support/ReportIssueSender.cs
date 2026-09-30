@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Godot;
+using GrimSpace.Application;
 
 namespace GrimSpace.Presentation.Support;
 
@@ -10,11 +11,14 @@ internal static class ReportIssueSender
 	internal static string FormatMessage(string context, string title, string description)
 	{
 		var godotVersion = Engine.GetVersionInfo();
-		var diagnostics = $"""
-			Context: {context}
-			OS: {OS.GetName()} {OS.GetVersion()}
-			Godot: {godotVersion["major"]}.{godotVersion["minor"]}.{godotVersion["patch"]}
-			""";
+		var diagnostics = new StringBuilder();
+		diagnostics.Append(ReportIssueSystemContext.Format(context));
+		diagnostics.AppendLine();
+		if (GameVersion.TryGetReleaseVersion(out var releaseVersion))
+			diagnostics.AppendLine($"Game: v{releaseVersion}");
+		diagnostics.AppendLine($"OS: {OS.GetName()} {OS.GetVersion()}");
+		diagnostics.AppendLine(
+			$"Godot: {godotVersion["major"]}.{godotVersion["minor"]}.{godotVersion["patch"]}");
 
 		return $"""
 			**{title.Trim()}**

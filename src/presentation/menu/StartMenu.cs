@@ -41,6 +41,8 @@ public partial class StartMenu : Control
 
 	public override void _Ready()
 	{
+		GetNode<Label>("%VersionLabel").Text = $"v{GameVersion.Display}";
+
 		_menuColumn = GetNode<Control>("%MenuColumn");
 		_settingsOverlay = GetNode<Control>("%SettingsOverlay");
 		_art = GetNode<Control>("ArtFrame/Art");

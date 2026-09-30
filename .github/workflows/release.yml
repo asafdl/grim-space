@@ -41,10 +41,44 @@ jobs:
       - name: Test
         run: dotnet test --configuration Release --no-build
 
-  export:
+  resolve-version:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+      - name: Resolve release version (semantic-release dry-run)
+        id: version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          LOG=$(mktemp)
+          npx --yes -p semantic-release@24 -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/github \
+            semantic-release --dry-run --no-ci >"$LOG" 2>&1
+          VERSION=$(grep -oE 'The next release version is [0-9]+\.[0-9]+\.[0-9]+' "$LOG" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+          if [ -z "$VERSION" ]; then
+            TAG=$(git describe --tags --abbrev=0 --match 'v*-pre-alpha')
+            VERSION=${TAG#v}
+            VERSION=${VERSION%-pre-alpha}
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  export:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs: [test, resolve-version]
+    runs-on: ubuntu-latest
+    env:
+      GRIM_SPACE_VERSION: ${{ needs.resolve-version.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
