@@ -17,6 +17,17 @@ public static class ContractMapIndicators
 		return counts;
 	}
 
+	public static string TooltipForPoi(StarMap map, string poiId)
+	{
+		var counts = map.ContractRegistry.Pending
+			.Where(contract => contract.IssuerPoiId == poiId)
+			.GroupBy(ContractDisplay.Kind)
+			.OrderBy(group => group.Key)
+			.Select(group => $"{group.Count()}x {ContractDisplay.KindDisplayName(group.Key)}");
+
+		return string.Join("\n", counts);
+	}
+
 	public static string TooltipForCount(int count) =>
 		count == 1 ? "1 available" : $"{count} available";
 }

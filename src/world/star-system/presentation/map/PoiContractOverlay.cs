@@ -54,11 +54,10 @@ public sealed partial class PoiContractOverlay : Control
 				RemoveBadge(poiId);
 		}
 
-		foreach (var (poiId, count) in counts)
+		foreach (var (poiId, _) in counts)
 		{
 			var badge = GetOrCreateBadge(poiId);
-			var label = $"{count} Contracts available";
-			badge.TooltipText = label;
+			badge.TooltipText = ContractMapIndicators.TooltipForPoi(map, poiId);
 			if (!TryProjectBadgePosition(map, poiId, out var screen))
 			{
 				badge.Visible = false;

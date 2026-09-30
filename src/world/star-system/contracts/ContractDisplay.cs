@@ -181,7 +181,7 @@ public static class ContractDisplay
 	private static string Pluralize(int count, string singular, string plural) =>
 		count == 1 ? singular : plural;
 
-	private static EContractKind Kind(Contract contract) =>
+	public static EContractKind Kind(Contract contract) =>
 		contract.Objective switch
 		{
 			HuntObjective => EContractKind.Hunt,
@@ -190,7 +190,7 @@ public static class ContractDisplay
 			_ => throw new ArgumentOutOfRangeException(nameof(contract), contract.Objective, null),
 		};
 
-	private static string KindDisplayName(EContractKind kind) =>
+	public static string KindDisplayName(EContractKind kind) =>
 		kind switch
 		{
 			EContractKind.Hunt => "Hunt",

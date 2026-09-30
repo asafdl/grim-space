@@ -40,4 +40,13 @@ public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 		Assert.Equal("1 available", ContractMapIndicators.TooltipForCount(1));
 		Assert.Equal("3 available", ContractMapIndicators.TooltipForCount(3));
 	}
+
+	[Fact]
+	public void TooltipForPoi_ListsPendingContractsByKind()
+	{
+		var map = maps.FreshWithBeatAHunt(42);
+		var poiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
+
+		Assert.Equal("1x Hunt", ContractMapIndicators.TooltipForPoi(map, poiId));
+	}
 }
