@@ -343,7 +343,6 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		_simMode = mode;
 		ApplyCanWorkPolicy();
-		NotifyWorldUpdated();
 	}
 
 	private void ApplyCanWorkPolicy()

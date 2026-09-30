@@ -49,6 +49,26 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void OrderMove_QueuesWhileSteppedAndCommitsAfterResume()
+	{
+		var orchestrator = CreatePlayerOrchestrator(42);
+		var player = orchestrator.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var destination = orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
+
+		orchestrator.SetStepped();
+		var result = QueueMove(orchestrator, destination);
+
+		Assert.IsType<CourseCommandResult.Queued>(result);
+		Assert.False(player.State.Journey.IsActive);
+
+		orchestrator.SetRunning();
+		orchestrator.AdvanceTick();
+
+		Assert.True(player.State.Journey.IsActive);
+		Assert.Equal(destination, player.State.Journey.Destination);
+	}
+
+	[Fact]
 	public void OrderMove_Unreachable_DoesNotQueue()
 	{
 		var map = maps.Fresh(42);

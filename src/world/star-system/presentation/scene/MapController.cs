@@ -58,6 +58,8 @@ public partial class MapController : Node3D
 	private bool _staleWaitingForPlayerInputReported;
 	private string? _syncedDockedPoiId;
 	private bool _hidePlayerBeacon;
+	private ESimMode _pauseMenuPreviousSimMode;
+	private string? _settledPresentationModeId;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
 
 	public override void _Ready()
@@ -119,7 +121,7 @@ public partial class MapController : Node3D
 			_orchestrator.PlayerAgent!,
 			picked => _view.ResolveMoveDestination(picked),
 			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
-		_timeControls.PausePressed += () => _orchestrator.TogglePause();
+		_timeControls.PausePressed += HandlePauseRequest;
 		_timeControls.SpeedPressed += CycleSpeed;
 
 		_pauseMenu = new StarMapPauseMenuOverlay();
@@ -266,6 +268,7 @@ public partial class MapController : Node3D
 		else
 			_director.SetInitialMode(CinematicPresentationMode.ModeId);
 
+		_settledPresentationModeId = _director.CurrentModeId;
 		RefreshPlayerVisibleFleets(0f);
 		TryAutoEnterDockedFacade();
 		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible, _hidePlayerBeacon);
@@ -290,6 +293,7 @@ public partial class MapController : Node3D
 		_course.Sync(_orchestrator, _unreachableFlashTimer > 0f, tickFraction);
 		SyncTimeControls();
 		_director.Update(delta);
+		SyncSettledPresentationMode();
 		SyncDockedFacadePresentation();
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, _hidePlayerBeacon);
 
@@ -414,7 +418,7 @@ public partial class MapController : Node3D
 
 		if (@event.IsActionPressed("map_pause", false, true))
 		{
-			_orchestrator.TogglePause();
+			HandlePauseRequest();
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -465,6 +469,7 @@ public partial class MapController : Node3D
 			return;
 		}
 
+		_pauseMenuPreviousSimMode = _orchestrator.SimMode;
 		_pauseMenu.Visible = true;
 		_orchestrator.SetStepped();
 	}
@@ -472,7 +477,10 @@ public partial class MapController : Node3D
 	private void ClosePauseMenu()
 	{
 		_pauseMenu.Visible = false;
-		_orchestrator.SetRunning();
+		if (_pauseMenuPreviousSimMode == ESimMode.Running)
+			_orchestrator.SetRunning();
+		else
+			_orchestrator.SetStepped();
 	}
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
@@ -536,7 +544,48 @@ public partial class MapController : Node3D
 		if (_orchestrator.PlayerAgent?.PendingCourse is null)
 			return;
 
+		if (_director.CurrentModeId == OverviewPresentationMode.ModeId)
+			return;
+
 		_director.OnPlayerMovement();
+	}
+
+	private void HandlePauseRequest()
+	{
+		if (_director.CurrentModeId == OverviewPresentationMode.ModeId
+			&& _orchestrator.IsStepped)
+		{
+			UnpauseToCinematic();
+			return;
+		}
+
+		_orchestrator.TogglePause();
+	}
+
+	private void UnpauseToCinematic()
+	{
+		_orchestrator.SetRunning();
+		if (_director.CurrentModeId == OverviewPresentationMode.ModeId)
+			_director.TryEnter(CinematicPresentationMode.ModeId);
+	}
+
+	private void SyncSettledPresentationMode()
+	{
+		if (_director.IsTransitioning)
+			return;
+
+		var currentModeId = _director.CurrentModeId;
+		if (currentModeId == _settledPresentationModeId)
+			return;
+
+		var previousModeId = _settledPresentationModeId;
+		_settledPresentationModeId = currentModeId;
+
+		if (currentModeId == OverviewPresentationMode.ModeId)
+			_orchestrator.SetStepped();
+		else if (previousModeId == OverviewPresentationMode.ModeId
+			&& currentModeId == CinematicPresentationMode.ModeId)
+			_orchestrator.SetRunning();
 	}
 
 	private PlayerTravelSample ResolvePlayerTravelSample()
