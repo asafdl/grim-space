@@ -227,6 +227,9 @@ public partial class Controller : Camera3D, ICameraRig
 		if (Input.IsActionPressed("battle_pan_right", true))
 			pan.X += 1f;
 
+		if (pan == Vector2.Zero && !IsMouseOverUi())
+			pan = MouseEdgePan();
+
 		if (pan == Vector2.Zero)
 			return;
 
@@ -337,6 +340,27 @@ public partial class Controller : Camera3D, ICameraRig
 	{
 		CancelAutomation();
 		ManualInputStarted?.Invoke();
+	}
+
+	private bool IsMouseOverUi() => GetViewport().GuiGetHoveredControl() is not null;
+
+	private Vector2 MouseEdgePan()
+	{
+		var viewportRect = GetViewport().GetVisibleRect();
+		var mousePosition = GetViewport().GetMousePosition();
+		var pan = Vector2.Zero;
+
+		if (mousePosition.X <= viewportRect.Position.X + OrbitControls.MousePanEdgeMargin)
+			pan.X -= 1f;
+		else if (mousePosition.X >= viewportRect.End.X - OrbitControls.MousePanEdgeMargin)
+			pan.X += 1f;
+
+		if (mousePosition.Y <= viewportRect.Position.Y + OrbitControls.MousePanEdgeMargin)
+			pan.Y += 1f;
+		else if (mousePosition.Y >= viewportRect.End.Y - OrbitControls.MousePanEdgeMargin)
+			pan.Y -= 1f;
+
+		return pan;
 	}
 
 	private bool AreVisibleWithCurrentTransform(IReadOnlyList<Vector3> points, float margin)

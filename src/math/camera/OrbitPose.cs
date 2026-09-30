@@ -15,6 +15,7 @@ public static class OrbitControls
 	public const float OrbitSensitivity = 0.004f;
 	public const float PanSensitivity = 0.025f;
 	public const float KeyboardPanSpeed = 28f;
+	public const float MousePanEdgeMargin = 32f;
 	public const float ZoomStep = 1.5f;
 }
 

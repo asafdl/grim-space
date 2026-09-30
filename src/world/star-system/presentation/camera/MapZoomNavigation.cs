@@ -13,8 +13,8 @@ public enum ZoomStepCurve
 /// </summary>
 public static class MapZoomNavigation
 {
-	public const int DefaultDetentsPerBand = 12;
-	public const int DefaultInteriorDetents = 3;
+	public const int DefaultDetentsPerBand = 6;
+	public const int DefaultInteriorDetents = 2;
 	public const float DefaultMultiplicativeFactor = 0.10f;
 
 	public static ZoomStepPolicy LinearBandStepPolicy => new(ZoomStepCurve.LinearBand);
