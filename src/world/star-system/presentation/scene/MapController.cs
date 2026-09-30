@@ -457,11 +457,23 @@ public partial class MapController : Node3D
 		|| (_engagement?.IsOpen ?? false)
 		|| (_wreck?.IsOpen ?? false);
 
-	private void TogglePauseMenu() =>
-		_pauseMenu.Visible = !_pauseMenu.Visible;
+	private void TogglePauseMenu()
+	{
+		if (_pauseMenu.Visible)
+		{
+			ClosePauseMenu();
+			return;
+		}
 
-	private void ClosePauseMenu() =>
+		_pauseMenu.Visible = true;
+		_orchestrator.SetStepped();
+	}
+
+	private void ClosePauseMenu()
+	{
 		_pauseMenu.Visible = false;
+		_orchestrator.SetRunning();
+	}
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
 	{
