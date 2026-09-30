@@ -46,6 +46,7 @@ internal static class ReportIssueSender
 		});
 
 		using var client = new System.Net.Http.HttpClient();
+		client.DefaultRequestHeaders.UserAgent.ParseAdd("grim-space/1.0");
 		using var response = await client.PostAsync(
 			webhookUrl,
 			new StringContent(payload, Encoding.UTF8, "application/json"),
