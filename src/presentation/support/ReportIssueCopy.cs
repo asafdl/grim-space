@@ -6,6 +6,8 @@ internal static class ReportIssueCopy
 	public const string DialogTitle = "Report Issue";
 	public const string TitleField = "Title";
 	public const string DescriptionField = "Description";
+	public const int MaxTitleLength = 100;
+	public const int MaxDescriptionLength = 1000;
 	public const string Send = "Send";
 	public const string Cancel = "Cancel";
 	public const string Sending = "Sending…";

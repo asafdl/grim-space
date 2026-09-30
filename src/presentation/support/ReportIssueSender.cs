@@ -43,6 +43,7 @@ internal static class ReportIssueSender
 		var payload = JsonSerializer.Serialize(new
 		{
 			content = TrimToDiscordLimit(FormatMessage(context, title, description)),
+			thread_name = TrimToDiscordThreadName(title),
 		});
 
 		using var client = new System.Net.Http.HttpClient();
@@ -51,9 +52,21 @@ internal static class ReportIssueSender
 			webhookUrl,
 			new StringContent(payload, Encoding.UTF8, "application/json"),
 			cancellationToken);
-		return response.IsSuccessStatusCode;
+		if (response.IsSuccessStatusCode)
+			return true;
+
+		var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+		GD.PushError(
+			$"Issue report failed with HTTP {(int)response.StatusCode} {response.StatusCode}: {responseBody}");
+		return false;
 	}
 
 	private static string TrimToDiscordLimit(string message) =>
 		message.Length <= 2000 ? message : message[..1997] + "...";
+
+	private static string TrimToDiscordThreadName(string title)
+	{
+		var trimmed = title.Trim();
+		return trimmed.Length <= 100 ? trimmed : trimmed[..100];
+	}
 }

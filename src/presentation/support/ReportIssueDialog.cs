@@ -12,6 +12,7 @@ public sealed partial class ReportIssueDialog : Control
 	private Button _cancelButton = null!;
 	private string _context = string.Empty;
 	private bool _sending;
+	private bool _limitingDescription;
 
 	public bool IsOpen => Visible;
 
@@ -116,6 +117,7 @@ public sealed partial class ReportIssueDialog : Control
 		_titleField = new LineEdit
 		{
 			PlaceholderText = "Short summary",
+			MaxLength = ReportIssueCopy.MaxTitleLength,
 			CaretColumn = 0,
 		};
 		content.AddChild(_titleField);
@@ -130,6 +132,7 @@ public sealed partial class ReportIssueDialog : Control
 			CustomMinimumSize = new Vector2(0, 140),
 			PlaceholderText = "What happened? What did you expect?",
 		};
+		_descriptionField.TextChanged += LimitDescriptionLength;
 		content.AddChild(_descriptionField);
 
 		_status = new Label
@@ -204,5 +207,16 @@ public sealed partial class ReportIssueDialog : Control
 		_cancelButton.Disabled = sending;
 		_titleField.Editable = !sending;
 		_descriptionField.Editable = !sending;
+	}
+
+	private void LimitDescriptionLength()
+	{
+		if (_limitingDescription
+			|| _descriptionField.Text.Length <= ReportIssueCopy.MaxDescriptionLength)
+			return;
+
+		_limitingDescription = true;
+		_descriptionField.Text = _descriptionField.Text[..ReportIssueCopy.MaxDescriptionLength];
+		_limitingDescription = false;
 	}
 }
