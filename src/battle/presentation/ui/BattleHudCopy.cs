@@ -58,6 +58,7 @@ internal static class BattleHudCopy
 	public const string OutcomeDefault = "Battle Over";
 	public const string Reset = "Reset";
 	public const string ReturnToStarMap = "Return to Star Map";
+	public const string ReturnToMainMenu = "Main Menu";
 
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 

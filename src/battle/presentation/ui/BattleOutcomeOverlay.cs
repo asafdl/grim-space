@@ -29,10 +29,12 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 	{
 		_title.Text = BattleHudCopy.OutcomeTitle(result);
 		_actionLog.SetEntries(actionLogEntries);
-		_actionButton.Text = strategicBattle
+		_actionButton.Text = strategicBattle && result == EBattleResult.Win
 			? BattleHudCopy.ReturnToStarMap
-			: BattleHudCopy.Reset;
-		_actionButton.Disabled = strategicBattle && result != EBattleResult.Win;
+			: strategicBattle
+				? BattleHudCopy.ReturnToMainMenu
+				: BattleHudCopy.Reset;
+		_actionButton.Disabled = false;
 	}
 
 	private void Build()

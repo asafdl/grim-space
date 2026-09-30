@@ -539,7 +539,9 @@ public partial class BattleController : Node3D
 
 	private void OnOutcomeOverlayAction()
 	{
-		if (_strategicBattle)
+		if (_strategicBattle && _currentFrame.Outcome == EBattleResult.Lose)
+			GoToMainMenu();
+		else if (_strategicBattle)
 			ReturnToStarMap();
 		else
 			ResetBattle();
