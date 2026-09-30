@@ -19,6 +19,7 @@ public partial class IntroController : Control
 		_scene = GetNode<IntroSceneView>("Scene");
 		_scene.NextPressed += AdvancePage;
 		_scene.BodyPressed += _pager.RevealCurrentPage;
+		_scene.SkipPressed += SkipIntro;
 		_pager.VisibleCharacterCountChanged += count => _scene.SetBodyVisibleCharacters(count);
 		_pager.PageBegan += pageIndex =>
 		{
@@ -72,6 +73,8 @@ public partial class IntroController : Control
 	}
 
 	private void OnPagerCompleted() => GetTree().ChangeSceneToFile(MainScenePath);
+
+	private void SkipIntro() => GetTree().ChangeSceneToFile(MainScenePath);
 
 	private Texture2D? PageBackground(int pageIndex)
 	{

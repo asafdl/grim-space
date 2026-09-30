@@ -8,17 +8,22 @@ public partial class IntroSceneView : Control
 	private TextureRect _background = null!;
 	private Label _artCredit = null!;
 	private RichTextLabel _body = null!;
+	private Button _skipButton = null!;
 	private FramedActionBar _bar = null!;
 
 	public event Action? NextPressed;
 
 	public event Action? BodyPressed;
 
+	public event Action? SkipPressed;
+
 	public override void _Ready()
 	{
 		_background = GetNode<TextureRect>("Background");
 		_artCredit = GetNode<Label>("ArtCredit");
 		_artCredit.OffsetTop = HudStyles.HalfMargin;
+		_skipButton = GetNode<Button>("Skip");
+		_skipButton.Pressed += () => SkipPressed?.Invoke();
 
 		_body = new RichTextLabel
 		{
