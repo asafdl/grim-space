@@ -34,8 +34,6 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Build
-        env:
-          DISCORD_ISSUE_WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_WEBHOOK_URL }}
         run: dotnet build --configuration Release
 
       - name: Test
@@ -53,25 +51,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-
-      - name: Resolve release version (semantic-release dry-run)
-        id: version
+      - name: Resolve release version
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 24
+          dry_run: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export release version
+        id: version
+        env:
+          RELEASED: ${{ steps.semantic.outputs.new_release_published }}
+          RELEASE_TAG: ${{ steps.semantic.outputs.new_release_git_tag }}
         run: |
-          set +e
-          LOG=$(mktemp)
-          npx --yes -p semantic-release@24 -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/github \
-            semantic-release --dry-run --no-ci >"$LOG" 2>&1
-          VERSION=$(grep -oE 'The next release version is [0-9]+\.[0-9]+\.[0-9]+' "$LOG" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
-          if [ -z "$VERSION" ]; then
-            TAG=$(git describe --tags --abbrev=0 --match 'v*-pre-alpha')
-            VERSION=${TAG#v}
-            VERSION=${VERSION%-pre-alpha}
+          if [[ "$RELEASED" != "true" || -z "$RELEASE_TAG" ]]; then
+            echo "::error::semantic-release did not calculate a release"
+            exit 1
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
 
   export:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
@@ -79,6 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GRIM_SPACE_VERSION: ${{ needs.resolve-version.outputs.version }}
+      DISCORD_ISSUE_WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_WEBHOOK_URL }}
     strategy:
       fail-fast: false
       matrix:
@@ -113,14 +113,6 @@ jobs:
 
       - name: Import project
         run: godot --headless --import
-
-      - name: Generate .NET bindings
-        run: godot --headless --build-solutions --quit || exit 0
-
-      - name: Build
-        env:
-          DISCORD_ISSUE_WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_WEBHOOK_URL }}
-        run: dotnet build --configuration Release
 
       - name: Export
         run: |
