@@ -7,12 +7,27 @@ public partial class StartMenu : Control
 {
 	private const string IntroScenePath = "res://scenes/intro.tscn";
 	private const string DiscordInviteUrl = "https://discord.gg/dMPX9SH3Dd";
+	private static readonly string[] LoadingMessages =
+	[
+		"Lighting galaxy on fire...",
+		"Scrapping all rust boxes...",
+		"Cooking neuro-drugs...",
+		"Counting suspicious oxygen tanks...",
+		"Polishing the escape pods...",
+		"Hunting down any remaining humans...",
+		"Grooming Syndi's beard..."
+	];
 
 	[Export(PropertyHint.Range, "0.005,0.05,0.005")]
 	private float _dustBandEndHalfThicknessRatio = 0.015f;
 
 	private Control _menuColumn = null!;
 	private Control _settingsOverlay = null!;
+	private Control _loadingOverlay = null!;
+	private Control _loadingGear = null!;
+	private Label _loadingLabel = null!;
+	private int _loadingMessageIndex = -1;
+	private double _loadingMessageNextChangeAt;
 	private Control _art = null!;
 	private Control _dustBandStart = null!;
 	private Control _dustBandEnd = null!;
@@ -46,6 +61,9 @@ public partial class StartMenu : Control
 
 		_menuColumn = GetNode<Control>("%MenuColumn");
 		_settingsOverlay = GetNode<Control>("%SettingsOverlay");
+		_loadingOverlay = GetNode<Control>("%LoadingOverlay");
+		_loadingGear = GetNode<Control>("%LoadingGear");
+		_loadingLabel = GetNode<Label>("%LoadingLabel");
 		GetViewport().SizeChanged += OnViewportSizeChanged;
 		_art = GetNode<Control>("ArtFrame/Art");
 		_dustBandStart = GetNode<Control>("%DustBandStart");
@@ -285,6 +303,10 @@ public partial class StartMenu : Control
 	private async void OnStart()
 	{
 		_startButton.Disabled = true;
+		_menuColumn.Hide();
+		_loadingOverlay.Show();
+		SetLoadingMessage();
+		SetProcess(true);
 		try
 		{
 			await Session.Instance.BeginMapFromMenuAsync();
@@ -293,7 +315,30 @@ public partial class StartMenu : Control
 		{
 			GD.PrintErr($"Failed to start map: {ex}");
 			_startButton.Disabled = false;
+			_loadingOverlay.Hide();
+			_menuColumn.Show();
 		}
+	}
+
+	public override void _Process(double _delta)
+	{
+		if (!_loadingOverlay.Visible)
+			return;
+
+		_loadingGear.Rotation += Mathf.DegToRad(90f) * (float)_delta;
+		if (Time.GetTicksMsec() / 1000.0 >= _loadingMessageNextChangeAt)
+			SetLoadingMessage();
+	}
+
+	private void SetLoadingMessage()
+	{
+		var nextIndex = Random.Shared.Next(LoadingMessages.Length);
+		while (LoadingMessages.Length > 1 && nextIndex == _loadingMessageIndex)
+			nextIndex = Random.Shared.Next(LoadingMessages.Length);
+
+		_loadingMessageIndex = nextIndex;
+		_loadingLabel.Text = LoadingMessages[nextIndex];
+		_loadingMessageNextChangeAt = Time.GetTicksMsec() / 1000.0 + 2.5;
 	}
 
 	private void OnDustLayoutChanged() => UpdateDustLayout();
