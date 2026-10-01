@@ -64,13 +64,24 @@ jobs:
         id: version
         env:
           RELEASED: ${{ steps.semantic.outputs.new_release_published }}
+          RELEASE_VERSION: ${{ steps.semantic.outputs.new_release_version }}
           RELEASE_TAG: ${{ steps.semantic.outputs.new_release_git_tag }}
         run: |
-          if [[ "$RELEASED" != "true" || -z "$RELEASE_TAG" ]]; then
-            echo "::error::semantic-release did not calculate a release"
+          set -euo pipefail
+
+          echo "semantic-release outputs:"
+          echo "  new_release_published=$RELEASED"
+          echo "  new_release_version=$RELEASE_VERSION"
+          echo "  new_release_git_tag=$RELEASE_TAG"
+
+          if [[ -z "$RELEASE_VERSION" || -z "$RELEASE_TAG" ]]; then
+            echo "::error::semantic-release did not calculate a release version and tag"
+            echo "::error::This resolver runs with dry_run=true, so new_release_published is expected to be false."
             exit 1
           fi
+
           echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Resolved game version: ${RELEASE_TAG#v}"
 
   export:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
