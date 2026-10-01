@@ -365,6 +365,18 @@ public partial class MapController : Node3D
 			return;
 		}
 
+		if (@event.IsActionPressed("map_zoom_in", false, true)
+			|| @event.IsActionPressed("map_zoom_out", false, true))
+		{
+			if (GetViewport().GuiGetHoveredControl() is not null)
+				return;
+
+			var direction = @event.IsActionPressed("map_zoom_in", false, true) ? 1 : -1;
+			_director.OnWheelZoom(direction);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (@event is InputEventMouseButton { Pressed: true } wheel
 			&& wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
 		{

@@ -116,7 +116,10 @@ public static class GameInputBindings
 		if (!_current.TryGetValue(action, out var pair))
 			return "?";
 
-		return LabelForBinding(pair.Primary);
+		var primary = LabelForBinding(pair.Primary);
+		return pair.Secondary is { } secondary && !secondary.IsEmpty
+			? $"({primary}) OR ({LabelForBinding(secondary)})"
+			: primary;
 	}
 
 	public static string LabelForBinding(KeyBinding binding) => FormatBinding(binding);
@@ -388,6 +391,18 @@ public static class GameInputBindings
 		Map("map_pause", "Pause / resume", Log(Key.Space)),
 		Map("map_speed_up", "Speed up", Log(Key.Bracketright)),
 		Map("map_speed_down", "Speed down", Log(Key.Bracketleft)),
+		MapAny(
+			"map_zoom_in",
+			"Zoom in",
+			KeyBinding.Mouse(MouseButton.WheelUp),
+			Log(Key.Equal),
+			conflictGroup: "map_zoom"),
+		MapAny(
+			"map_zoom_out",
+			"Zoom out",
+			KeyBinding.Mouse(MouseButton.WheelDown),
+			Log(Key.Minus),
+			conflictGroup: "map_zoom"),
 
 		BattleKey("battle_pan_up", "Pan up", Phy(Key.W)),
 		BattleKey("battle_pan_down", "Pan down", Phy(Key.S)),
@@ -442,11 +457,13 @@ public static class GameInputBindings
 			"battle_roll_clockwise",
 			"Roll clockwise",
 			KeyBinding.Mouse(MouseButton.WheelUp),
+			Phy(Key.Z),
 			conflictGroup: "battle_move_roll"),
 		BattleAny(
 			"battle_roll_counterclockwise",
 			"Roll counter-clockwise",
 			KeyBinding.Mouse(MouseButton.WheelDown),
+			Phy(Key.X),
 			conflictGroup: "battle_move_roll"),
 	];
 
@@ -456,6 +473,21 @@ public static class GameInputBindings
 		KeyBinding primary,
 		KeyBinding? secondary = null) =>
 		new(action, BindingContext.WorldMap, label, primary, secondary);
+
+	private static BindingSpec MapAny(
+		string action,
+		string label,
+		KeyBinding primary,
+		KeyBinding? secondary = null,
+		string? conflictGroup = null) =>
+		new(
+			action,
+			BindingContext.WorldMap,
+			label,
+			primary,
+			secondary,
+			BindingCapturePolicy.Any,
+			conflictGroup);
 
 	private static BindingSpec BattleKey(
 		string action,

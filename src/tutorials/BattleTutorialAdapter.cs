@@ -22,6 +22,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 	private readonly BattleOrchestrator _battle;
 	private readonly UserExecutionAgent _battleAgent;
 	private readonly PosedUnitGhostView _ghostView;
+	private readonly Action _refocusCamera;
 	private TutorialPresentationBinding? _presentation;
 	private BattleTutorialObjective? _turn1Objective;
 	private BattleTutorialObjective? _turn2Objective;
@@ -32,15 +33,18 @@ public sealed class BattleTutorialAdapter : IDisposable
 	public BattleTutorialAdapter(
 		TutorialController controller,
 		BattleOrchestrator battle,
-		PosedUnitGhostView battleGhost)
+		PosedUnitGhostView battleGhost,
+		Action refocusCamera)
 	{
 		_controller = controller;
 		_battle = battle;
 		_battleAgent = battle.PlayerAgent;
 		_ghostView = battleGhost;
+		_refocusCamera = refocusCamera;
 		_battleAgent.PlanningChanged += OnBattlePlanningChanged;
 		_controller.AssistanceRequested += OnAssistanceRequested;
 		_controller.StepPresented += OnStepPresented;
+		_controller.StepAccepted += OnStepAccepted;
 	}
 
 	public bool AllowsEndTurn =>
@@ -73,7 +77,26 @@ public sealed class BattleTutorialAdapter : IDisposable
 		SetGhostSpec(null);
 	}
 
-	private void OnStepPresented(TutorialFlow _, TutorialStep __, bool ___) => UpdateGhostForActiveStep();
+	private void OnStepPresented(TutorialFlow _, TutorialStep step, bool __)
+	{
+		if (step.TargetId == FirstBattleTutorial.Turn1MoveTargetId)
+			_refocusCamera();
+
+		UpdateGhostForActiveStep();
+	}
+
+	private void OnStepAccepted()
+	{
+		if (_controller.ActiveStep?.TargetId == FirstBattleTutorial.CameraControlsTargetId)
+		{
+			while (_battleAgent.Sim.Actions.Count > 0)
+			{
+				if (!_battleAgent.Undo())
+					break;
+			}
+
+		}
+	}
 
 	private void TryStartBattleTutorial()
 	{
@@ -352,6 +375,7 @@ public sealed class BattleTutorialAdapter : IDisposable
 		_battleAgent.PlanningChanged -= OnBattlePlanningChanged;
 		_controller.AssistanceRequested -= OnAssistanceRequested;
 		_controller.StepPresented -= OnStepPresented;
+		_controller.StepAccepted -= OnStepAccepted;
 		if (GodotObject.IsInstanceValid(_ghostView))
 			_ghostView.QueueFree();
 		Detach();

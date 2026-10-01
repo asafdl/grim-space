@@ -78,6 +78,7 @@ public sealed class TutorialPresentationBinding : IDisposable
 
 	private void OnAccepted()
 	{
+		_controller.NotifyStepAccepted();
 		if (_controller.ActiveStep is { AdvanceOnAccept: true })
 			_controller.AdvanceActive();
 	}

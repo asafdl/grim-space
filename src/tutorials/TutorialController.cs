@@ -28,6 +28,8 @@ public sealed class TutorialController : IDisposable
 
 	public event Action<TutorialFlow, TutorialStep, bool>? StepPresented;
 
+	public event Action? StepAccepted;
+
 	public event Action<TutorialFlow>? FlowCompleted;
 
 	public event Action? AssistanceRequested;
@@ -131,6 +133,8 @@ public sealed class TutorialController : IDisposable
 		AssistancePresented?.Invoke(content);
 
 	public void ClearAssistance() => AssistanceCleared?.Invoke();
+
+	public void NotifyStepAccepted() => StepAccepted?.Invoke();
 
 	public void CancelActive()
 	{

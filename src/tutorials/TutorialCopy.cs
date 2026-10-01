@@ -9,17 +9,22 @@ internal static class TutorialCopy
 		$"Press {GameInputBindings.Label("battle_end_turn")} to end your turn or click the Ability Bar on bottom of screen.";
 
 	public static string MoveToGhostShip =>
-		$"Pilot, lets go get the enemies — press {GameInputBindings.Label("battle_move_mode")} for move mode, then advance to the marked location.";
+		$"Pilot, lets go get the enemies — advance to the marked location.";
+
+	public static string CameraControls =>
+		$"3 Dimensional space is hard to navigate, make full use of the camera controls:\n- HOLD {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit.\n" +
+		$"- Move camera with {GameInputBindings.Label("battle_pan_up")} {GameInputBindings.Label("battle_pan_left")} " +
+		$"{GameInputBindings.Label("battle_pan_down")} {GameInputBindings.Label("battle_pan_right")}, " +
+		$"or HOLD {GameInputBindings.Label("battle_camera_pan")} and drag.\n" +
+		$"- Press {GameInputBindings.Label("battle_focus")} to refocus on your ship.";
 
 	public static string Turn2MovePrompt =>
-		$"Enemies closing in, lets get in position to shoot — hold {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit the camera, " +
-		$"or pan with {GameInputBindings.Label("battle_pan_up")} {GameInputBindings.Label("battle_pan_left")} " +
-		$"{GameInputBindings.Label("battle_pan_down")} {GameInputBindings.Label("battle_pan_right")}. " +
-		$"Hold {GameInputBindings.Label("battle_primary_click")} to set heading; use {GameInputBindings.Label("battle_roll_clockwise")} / " +
-		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll. Align to the ghost.";
+		$"Enemies closing in, using weapons forces you to reposition your ship. Lets get in position to shoot — Keep HOLDING {GameInputBindings.Label("battle_primary_click")} " +
+		$"and DRAG heading in correct direction.\nKeep HOLDING and {GameInputBindings.Label("battle_roll_clockwise")} / " +
+		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll.\n Align yourself to the marked ship.";
 
-	public const string LaunchVentralVoidBomb =
-		"Weapons have launch mounts, select void bomb from Ability Bar and shoot from the highlighted underside mount.";
+	public static string LaunchVentralVoidBomb =>
+		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside mount.";
 
 	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
@@ -33,10 +38,10 @@ internal static class TutorialCopy
 	public static string UndoAndRetryAssistance =>
 		$"Press {GameInputBindings.Label("battle_undo")} to undo and try again.";
 
-	public const string EndBattleDialog = "3 Dimensional space is hard to navigate, take full advantage of camera controls and firing hints. Now go kill those scum.";
+	public const string EndBattleDialog = "Take full advantage of camera controls and firing hints. Now go kill those defragging rust boxes.";
 
 	public const string TutorialGraduationMessage =
-		"Tutorial completed — explore the world, earn resources, and don't forget to upgrade your ship and heal in the Trade Hub! " +
+		"Tutorial completed — explore the world, earn resources, and don't forget to upgrade your ship and heal at the Trade Hub! " +
 		"You can turn tutorials back on any time in settings.";
 
 }

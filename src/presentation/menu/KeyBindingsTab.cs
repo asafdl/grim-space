@@ -46,7 +46,14 @@ public partial class KeyBindingsTab : Control
 	[
 		new(
 			"Camera",
-			["map_pan_up", "map_pan_down", "map_pan_left", "map_pan_right"]),
+			[
+				"map_pan_up",
+				"map_pan_down",
+				"map_pan_left",
+				"map_pan_right",
+				"map_zoom_in",
+				"map_zoom_out",
+			]),
 		new(
 			"Time",
 			["map_pause", "map_speed_up", "map_speed_down"]),

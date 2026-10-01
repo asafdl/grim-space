@@ -221,7 +221,8 @@ public partial class BattleController : Node3D
 		_battleTutorial = new BattleTutorialAdapter(
 			tutorials,
 			_battle,
-			CreatePosedUnitGhost("TutorialGhost"));
+			CreatePosedUnitGhost("TutorialGhost"),
+			() => _cameraDirector.FocusPlayer(GetPlayerRenderedPosition()));
 		_battleTutorial.Attach(
 			host.Dialog,
 			new BattleWorldFocus(

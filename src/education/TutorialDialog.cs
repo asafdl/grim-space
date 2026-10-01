@@ -38,7 +38,6 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 			MouseFilter = MouseFilterEnum.Ignore,
 			ThemeTypeVariation = "CardTitle",
 		};
-		_title.AddThemeFontSizeOverride("font_size", 18);
 		content.AddChild(_title);
 
 		_message = new RichTextLabel
@@ -53,7 +52,6 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 			ThemeTypeVariation = "TutorialRichTextLabel",
 			MetaUnderlined = true,
 		};
-		_message.AddThemeFontSizeOverride("normal_font_size", 15);
 		_message.MetaClicked += OnMetaClicked;
 		content.AddChild(_message);
 

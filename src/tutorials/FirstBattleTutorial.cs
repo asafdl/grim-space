@@ -5,6 +5,7 @@ namespace GrimSpace.Tutorials;
 public static class FirstBattleTutorial
 {
 	public const string Id = "first-battle";
+	public const string CameraControlsTargetId = "battle-camera-controls";
 	public const string Turn1MoveTargetId = "battle-turn1-move";
 	public const string Turn1EndTargetId = "battle-turn1-end";
 	public const string Turn2MoveTargetId = "battle-turn2-move";
@@ -16,6 +17,15 @@ public static class FirstBattleTutorial
 		new(
 			Id,
 			[
+				new TutorialStep(
+					CameraControlsTargetId,
+					new TutorialDialogContent(
+						"Camera controls",
+						TutorialCopy.CameraControls,
+						AcceptText: "Accept"),
+					ShowIndicator: false,
+					FocusTarget: false,
+					AdvanceOnAccept: true),
 				new TutorialStep(
 					Turn1MoveTargetId,
 					new TutorialDialogContent(

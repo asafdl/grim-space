@@ -1,13 +1,11 @@
 using Godot;
-using GrimSpace.Components;
 
 namespace GrimSpace.Education;
 
 public sealed partial class TutorialDialogHost : CanvasLayer
 {
-	private const int DialogWidth = 380;
-	private const int MapDialogTop = 270;
-	private const int BattleDialogTop = 120;
+	private const int DialogWidth = 560;
+	private const int DialogTop = 32;
 
 	private readonly TutorialDialog _dialog;
 
@@ -22,16 +20,18 @@ public sealed partial class TutorialDialogHost : CanvasLayer
 		ApplyMapLayout();
 	}
 
-	public void ApplyMapLayout() => ApplyLayout(MapDialogTop);
+	public void ApplyMapLayout() => ApplyLayout();
 
-	public void ApplyBattleLayout() => ApplyLayout(BattleDialogTop);
+	public void ApplyBattleLayout() => ApplyLayout();
 
-	private void ApplyLayout(int top)
+	private void ApplyLayout()
 	{
 		_dialog.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-		_dialog.OffsetLeft = HudStyles.Margin;
-		_dialog.OffsetTop = top;
-		_dialog.OffsetRight = DialogWidth + HudStyles.Margin;
-		_dialog.OffsetBottom = top;
+		_dialog.AnchorLeft = 0.5f;
+		_dialog.AnchorRight = 0.5f;
+		_dialog.OffsetLeft = -DialogWidth * 0.5f;
+		_dialog.OffsetTop = DialogTop;
+		_dialog.OffsetRight = DialogWidth * 0.5f;
+		_dialog.OffsetBottom = DialogTop;
 	}
 }
