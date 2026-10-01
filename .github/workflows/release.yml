@@ -75,16 +75,16 @@ jobs:
           echo "  new_release_git_tag=$RELEASE_TAG"
 
           if [[ -z "$RELEASE_VERSION" || -z "$RELEASE_TAG" ]]; then
-            echo "::error::semantic-release did not calculate a release version and tag"
-            echo "::error::This resolver runs with dry_run=true, so new_release_published is expected to be false."
-            exit 1
+            echo "::notice::No relevant commits; no release will be created."
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
           echo "Resolved game version: ${RELEASE_TAG#v}"
 
   export:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') && needs.resolve-version.outputs.version != '' }}
     needs: [test, resolve-version]
     runs-on: ubuntu-latest
     env:
