@@ -21,6 +21,7 @@ public partial class TurnReplayPlayer : Node3D
 {
 	[Signal]
 	public delegate void PlaybackCompleteEventHandler();
+	public event Action<int>? TurnFlowIndexChanged;
 
 	private static readonly ReplayClipRegistry Clips = ReplayClipRegistry.Default;
 
@@ -35,6 +36,8 @@ public partial class TurnReplayPlayer : Node3D
 	private HazardBurstView _hazardBursts = null!;
 	private ReplayClipContext _clipContext = null!;
 	private IReadOnlyList<ITimelineEntry> _history = [];
+	private IReadOnlyList<string> _activationOrder = [];
+	private int _flowCompletedCount;
 	private int _entryIndex;
 
 	private int _turnNumber;
@@ -102,11 +105,13 @@ public partial class TurnReplayPlayer : Node3D
 	}
 
 	public void Play(
-		IReadOnlyList<ITimelineEntry> history,
+		TurnReplay replay,
 		int turnNumber,
 		IReadOnlyDictionary<string, ETeam> participants)
 	{
-		_history = history;
+		_history = replay.History;
+		_activationOrder = replay.ActivationOrder;
+		_flowCompletedCount = 0;
 		_entryIndex = 0;
 		_turnNumber = turnNumber;
 		_participants = participants;
@@ -127,6 +132,7 @@ public partial class TurnReplayPlayer : Node3D
 		_playbackTimer.Restart();
 		_phaseTimer.Restart();
 		IsPlaying = true;
+		EmitTurnFlowIndexChanged();
 		PlayNext();
 	}
 
@@ -138,6 +144,10 @@ public partial class TurnReplayPlayer : Node3D
 			var entryStart = Stopwatch.GetTimestamp();
 			switch (entry)
 			{
+				case EndOfPhaseAction endOfPhase:
+					_flowCompletedCount++;
+					EmitTurnFlowIndexChanged();
+					break;
 				case IAction action:
 				{
 					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
@@ -179,6 +189,14 @@ public partial class TurnReplayPlayer : Node3D
 		}
 
 		Finish();
+	}
+
+	private void EmitTurnFlowIndexChanged()
+	{
+		var current = _activationOrder.Count == 0
+			? 0
+			: System.Math.Min(_flowCompletedCount, _activationOrder.Count - 1);
+		TurnFlowIndexChanged?.Invoke(current);
 	}
 
 	private void ApplySpawn(SpawnFacts spawn)
@@ -376,6 +394,7 @@ public partial class TurnReplayPlayer : Node3D
 	{
 		FlushPhase();
 		IsPlaying = false;
+		EmitTurnFlowIndexChanged();
 
 		var totalMs = _playbackTimer.Elapsed.TotalMilliseconds;
 		GameLog.Log(

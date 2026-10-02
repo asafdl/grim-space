@@ -94,7 +94,7 @@ public sealed partial class ReplayDirector : Node
 		GameLog.Log(
 			$"Turn {completedTurn} replay setup: reset={resetMs:F1}ms "
 			+ $"participants={participantsMs:F1}ms");
-		_replayPlayer.Play(replay.History, completedTurn, participants);
+		_replayPlayer.Play(replay, completedTurn, participants);
 	}
 
 	private IReadOnlyDictionary<string, ETeam> ParticipantTeams() =>

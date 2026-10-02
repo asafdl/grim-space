@@ -81,4 +81,5 @@ assets are mostly for debugging purposes waiting for real artist if game turns o
 - [Godot 4 C# API differences from GDScript](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_differences.html)
 
 ## Developer Communication
-The main developer for this project is a corporate software engineer unfamiliar with gaming development, so any gaming specific changes should be challenged, slowed down, and explained.
+- The main developer for this project is a corporate software engineer unfamiliar with gaming development, so any gaming specific changes should be challenged, slowed down, and explained.
+- Only ask for confimation if plan is complex or poorly articulated, otherwise proceed to implemenation. Constant "Proceed?" are just as bad as over implementing.

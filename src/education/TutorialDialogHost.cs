@@ -6,6 +6,7 @@ public sealed partial class TutorialDialogHost : CanvasLayer
 {
 	private const int DialogWidth = 560;
 	private const int DialogTop = 32;
+	private const int BattleDialogTop = 84;
 
 	private readonly TutorialDialog _dialog;
 
@@ -20,18 +21,18 @@ public sealed partial class TutorialDialogHost : CanvasLayer
 		ApplyMapLayout();
 	}
 
-	public void ApplyMapLayout() => ApplyLayout();
+	public void ApplyMapLayout() => ApplyLayout(DialogTop);
 
-	public void ApplyBattleLayout() => ApplyLayout();
+	public void ApplyBattleLayout() => ApplyLayout(BattleDialogTop);
 
-	private void ApplyLayout()
+	private void ApplyLayout(int dialogTop)
 	{
 		_dialog.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
 		_dialog.AnchorLeft = 0.5f;
 		_dialog.AnchorRight = 0.5f;
 		_dialog.OffsetLeft = -DialogWidth * 0.5f;
-		_dialog.OffsetTop = DialogTop;
+		_dialog.OffsetTop = dialogTop;
 		_dialog.OffsetRight = DialogWidth * 0.5f;
-		_dialog.OffsetBottom = DialogTop;
+		_dialog.OffsetBottom = dialogTop;
 	}
 }

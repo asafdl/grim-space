@@ -1,8 +1,10 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
+using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
@@ -57,6 +59,11 @@ public partial class BattleController : Node3D
 	private PresentationFrame _currentFrame = null!;
 
 	private bool _strategicBattle;
+	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
+	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
+	private readonly Dictionary<string, EType> _unitTypes = new(StringComparer.Ordinal);
+	private IReadOnlyList<string> _currentTurnActivations = [];
+	private IReadOnlyList<TurnFlowEntry> _turnFlowTimeline = [];
 
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
@@ -153,6 +160,7 @@ public partial class BattleController : Node3D
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
 		_battleHud.SetStrategicBattle(_strategicBattle);
+		_battleHud.TurnFlowBar.SetPortraitResolver(PortraitForUnit);
 		AddChild(_battleHud);
 
 		_translator = new UserIntentTranslator(
@@ -178,6 +186,7 @@ public partial class BattleController : Node3D
 			_battleView.Remove,
 			states => _battleView.ApplyUnitStates(states, ColorForActor),
 			ApplyReplayState);
+		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
 		AddChild(_replayPlayer);
 
 		_replayDirector = new ReplayDirector { Name = "ReplayDirector" };
@@ -257,6 +266,7 @@ public partial class BattleController : Node3D
 
 	private void WireHudToTranslator()
 	{
+		_battleHud.TurnFlowBar.UnitClicked += FocusUnitFromTopBar;
 		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
 		_battleHud.ActionBar.AbilityModeRequested += OnAbilityModeRequested;
 		_battleHud.ActionBar.EndTurnRequested += _translator.OnEndTurn;
@@ -307,12 +317,31 @@ public partial class BattleController : Node3D
 
 	private void OnPhaseChanged(EBattlePhase phase)
 	{
+		var previous = _lastPhase;
+		_lastPhase = phase;
+		if (phase == EBattlePhase.PlayerTurn && previous == EBattlePhase.Replaying)
+		{
+			if (_currentTurnActivations.Count > 0)
+				_completedTurnOrders.Add(_currentTurnActivations);
+			_currentTurnActivations = [];
+			RebuildTurnFlowTimeline();
+		}
+
 		RefreshPresentation();
 		_battleTutorial?.NotifyBattlePhaseChanged(phase);
 	}
 
 	private void OnTurnResolved(TurnReplay replay, int completedTurn)
 	{
+		foreach (var spawn in replay.History
+			.OfType<Record<SpawnFacts>>()
+			.Select(entry => entry.Value))
+		{
+			_unitTypes[spawn.SpawnedState.Id] = spawn.EntityType;
+		}
+
+		_currentTurnActivations = replay.ActivationOrder;
+		RebuildTurnFlowTimeline();
 		_frames.Interaction.ResetAfterTurn();
 		_frames.AppendTurn(_battle, completedTurn, replay.History);
 		_battleTutorial?.NotifyBattleTurnResolved(completedTurn);
@@ -415,6 +444,14 @@ public partial class BattleController : Node3D
 
 	private void RefreshPresentation()
 	{
+		if (_battle.Phase == EBattlePhase.PlayerTurn && !_replayPlayer.IsPlaying)
+		{
+			_currentTurnActivations = CurrentTurnActivations();
+			RebuildTurnFlowTimeline();
+			_battleHud.SetTurnFlowIndex(
+				TurnFlowTimeline.StartOfCurrentSegment(_turnFlowTimeline));
+		}
+
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		_currentFrame = frame;
 		_translator.SetPresentation(
@@ -460,6 +497,60 @@ public partial class BattleController : Node3D
 
 		_frames.Interaction.FocusUnit(unitId);
 		RefreshPresentation();
+	}
+
+	private void FocusUnitFromTopBar(string unitId)
+	{
+		if (_battle.Phase == EBattlePhase.Replaying)
+		{
+			if (!UnitRegistry.For(_battle.Engine.World).TryGet(unitId, out var liveUnit)
+				|| !liveUnit.State.IsAlive)
+				return;
+
+			_frames.Interaction.FocusUnit(unitId);
+			RefreshPresentation();
+			return;
+		}
+
+		FocusUnit(unitId);
+	}
+
+	private void RebuildTurnFlowTimeline()
+	{
+		_turnFlowTimeline = TurnFlowTimeline.Build(
+			_completedTurnOrders,
+			_currentTurnActivations);
+		_battleHud.SetTurnFlowTimeline(_turnFlowTimeline);
+	}
+
+	private void OnTurnFlowIndexChanged(int indexInTurn)
+	{
+		var globalIndex = TurnFlowTimeline.StartOfCurrentSegment(_turnFlowTimeline) + indexInTurn;
+		_battleHud.SetTurnFlowIndex(globalIndex);
+	}
+
+	private IReadOnlyList<string> CurrentTurnActivations()
+	{
+		var registry = UnitRegistry.For(_battle.Engine.World);
+		foreach (var unit in registry.All)
+			_unitTypes[unit.State.Id] = unit.State.Type;
+
+		return registry.ActivationOrder
+			.Where(id => registry.TryGet(id, out var unit) && unit.State.IsAlive)
+			.ToList();
+	}
+
+	private Texture2D? PortraitForUnit(string unitId)
+	{
+		if (_unitTypes.TryGetValue(unitId, out var knownType))
+			return UnitPortraitCatalog.For(knownType);
+
+		var registry = UnitRegistry.For(_battle.Engine.World);
+		if (!registry.TryGet(unitId, out var unit))
+			return null;
+
+		_unitTypes[unitId] = unit.State.Type;
+		return UnitPortraitCatalog.For(unit.State.Type);
 	}
 
 	private void ReturnToPlayer()
@@ -587,6 +678,10 @@ public partial class BattleController : Node3D
 	{
 		_camera.ManualInputStarted -= _cameraDirector.OnManualInputStarted;
 		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;
+		_replayPlayer.TurnFlowIndexChanged -= OnTurnFlowIndexChanged;
+		_agent.PlanningChanged -= RefreshPresentation;
+		_battle.PhaseChanged -= OnPhaseChanged;
+		_battle.TurnResolved -= OnTurnResolved;
 		if (Session.Instance.Run.Tutorials is { } tutorials)
 			tutorials.FlowCompleted -= OnTutorialFlowCompleted;
 		_battleTutorial?.Dispose();

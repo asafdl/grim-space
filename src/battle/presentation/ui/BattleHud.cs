@@ -17,6 +17,7 @@ public partial class BattleHud : Node
 	public HealthBar HealthBar { get; private set; } = null!;
 	public ManeuverBar ManeuverBar { get; private set; } = null!;
 	public UtilityBar UtilityBar { get; private set; } = null!;
+	public TurnFlowBar TurnFlowBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
@@ -50,7 +51,7 @@ public partial class BattleHud : Node
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
-		topColumn.AddThemeConstantOverride("separation", 28);
+		topColumn.AddThemeConstantOverride("separation", 16);
 		topMargin.AddChild(topColumn);
 
 		var turnRow = new HBoxContainer
@@ -100,6 +101,19 @@ public partial class BattleHud : Node
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
 		};
 		topColumn.AddChild(HealthBar);
+
+		var flowCenter = new CenterContainer
+		{
+			AnchorsPreset = (int)Control.LayoutPreset.TopWide,
+			AnchorRight = 1f,
+			OffsetTop = 12f,
+			OffsetBottom = 100f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		TurnFlowBar = new TurnFlowBar();
+		flowCenter.AddChild(TurnFlowBar);
+		_topHud.AddChild(flowCenter);
 		AddChild(_topHud);
 
 		_bottomHud = new CanvasLayer { Layer = 10 };
@@ -246,4 +260,9 @@ public partial class BattleHud : Node
 		ActionBar.InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
 	}
+
+	public void SetTurnFlowTimeline(IReadOnlyList<TurnFlowEntry> timeline) =>
+		TurnFlowBar.SetTimeline(timeline);
+
+	public void SetTurnFlowIndex(int index) => TurnFlowBar.SetIndex(index);
 }
