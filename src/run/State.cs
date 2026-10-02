@@ -19,10 +19,14 @@ namespace GrimSpace.Run;
 public sealed class State : IDisposable
 {
 	public const string PlayerFleetUnitId = StarSystemActorIds.PlayerFleet;
+	private static readonly string[] PlayerPortraitPool =
+		["pilot_01", "pilot_02", "pilot_03", "pilot_04", "pilot_05", "pilot_06", "pilot_07", "pilot_08"];
 
 	public RunShipRegistry ShipRegistry { get; } = new();
 	public Party PlayerParty { get; } = new();
+	public IReadOnlyDictionary<string, string> PlayerShipPortraitIds => _playerShipPortraitIds;
 	private TutorialState? _tutorialState;
+	private readonly Dictionary<string, string> _playerShipPortraitIds = new(StringComparer.Ordinal);
 
 	public TutorialState? TutorialState => _tutorialState;
 
@@ -36,6 +40,15 @@ public sealed class State : IDisposable
 	public BattleOutcome? PendingBattleOutcome { get; private set; }
 
 	public event Action? BattleReady;
+
+	public void EnsurePlayerShipPortraits(IEnumerable<string> shipIds)
+	{
+		foreach (var shipId in shipIds)
+		{
+			if (!_playerShipPortraitIds.ContainsKey(shipId))
+				_playerShipPortraitIds[shipId] = PlayerPortraitPool[Random.Shared.Next(PlayerPortraitPool.Length)];
+		}
+	}
 
 	private readonly HashSet<string> _resolvedBattleIds = new(StringComparer.Ordinal);
 	private readonly HashSet<string> _launchedEngagementIds = new(StringComparer.Ordinal);

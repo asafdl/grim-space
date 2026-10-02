@@ -11,6 +11,7 @@ public partial class StrategicHud : CanvasLayer
 	private ObjectivesHud _objectivesHud = null!;
 	private ResourceHud _resourceHud = null!;
 	private ResourceTransactionFeed _resourceFeed = null!;
+	private PlayerFleetHud _playerFleetHud = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
 
 	public ObjectivesHud Objectives => _objectivesHud;
@@ -25,14 +26,20 @@ public partial class StrategicHud : CanvasLayer
 	{
 		_objectivesHud = GetNode<ObjectivesHud>("ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("ResourceHud");
+		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);
 		SetProcess(true);
 		SyncObjectives();
+		_playerFleetHud.Sync(Session.Instance.Run);
 	}
 
-	public override void _Process(double _) => SyncObjectives();
+	public override void _Process(double _)
+	{
+		SyncObjectives();
+		_playerFleetHud.Sync(Session.Instance.Run);
+	}
 
 	public override void _ExitTree() => _resourceFeed.Dispose();
 
@@ -41,4 +48,5 @@ public partial class StrategicHud : CanvasLayer
 		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
 		_objectivesHud.Sync(objectives);
 	}
+
 }
