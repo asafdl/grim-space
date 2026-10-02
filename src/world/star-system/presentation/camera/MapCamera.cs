@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Education;
 using GrimSpace.Math.Camera;
 using GrimSpace.World.StarSystem.Presentation.Director;
@@ -296,7 +297,9 @@ public partial class MapCamera : Camera3D
 		if (Input.IsActionPressed("map_pan_right", true))
 			pan.X += 1f;
 
-		if (pan == Vector2.Zero && !IsMouseOverUi())
+		if (pan == Vector2.Zero
+			&& GameSettings.MouseCameraPanEnabled
+			&& !IsMouseOverUi())
 			pan = MouseEdgePan();
 
 		if (pan == Vector2.Zero)

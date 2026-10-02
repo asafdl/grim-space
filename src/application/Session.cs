@@ -37,6 +37,7 @@ public partial class Session : Node
 		ConfigureLogging();
 		GameSettings.ApplySavedVideoConfig();
 		GameSettings.ApplySavedAudioConfig();
+		GameSettings.ApplyMouseCameraPan(GameSettings.ReadMouseCameraPan());
 		GameInputBindings.Apply(GameSettings.ReadKeyBindings());
 	}
 

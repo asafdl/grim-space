@@ -41,6 +41,7 @@ public partial class StartMenu : Control
 	private HSlider _musicVolume = null!;
 	private HSlider _sfxVolume = null!;
 	private CheckBox _showTutorials = null!;
+	private CheckBox _mouseCameraPan = null!;
 	private KeyBindingsTab _keyBindingsTab = null!;
 	private TabContainer _settingsTabs = null!;
 	private PanelContainer _settingsPanelFrame = null!;
@@ -82,6 +83,7 @@ public partial class StartMenu : Control
 		_musicVolume = GetNode<HSlider>("%MusicVolume");
 		_sfxVolume = GetNode<HSlider>("%SfxVolume");
 		_showTutorials = GetNode<CheckBox>("%ShowTutorials");
+		_mouseCameraPan = GetNode<CheckBox>("%MouseCameraPan");
 		_keyBindingsTab = GetNode<KeyBindingsTab>("%Keys");
 		_settingsTabs = GetNode<TabContainer>("%SettingsTabs");
 		_settingsPanelFrame = GetNode<PanelContainer>("%Panel");
@@ -130,6 +132,7 @@ public partial class StartMenu : Control
 		_musicVolume.Value = audio.MusicVolume * 100f;
 		_sfxVolume.Value = audio.SfxVolume * 100f;
 		_showTutorials.ButtonPressed = GameSettings.ReadShowTutorials();
+		_mouseCameraPan.ButtonPressed = GameSettings.ReadMouseCameraPan();
 	}
 
 	private void PopulateResolutions()
@@ -202,11 +205,13 @@ public partial class StartMenu : Control
 		var video = SelectedVideoConfig();
 		var audio = SelectedAudioConfig();
 		var showTutorials = _showTutorials.ButtonPressed;
+		var mouseCameraPan = _mouseCameraPan.ButtonPressed;
 		var tutorialsSettingChanged = showTutorials != GameSettings.ReadShowTutorials();
 		var saveError = GameSettings.SaveAll(
 			video,
 			audio,
 			showTutorials,
+			mouseCameraPan,
 			bindings);
 		if (saveError != Error.Ok)
 		{
@@ -216,6 +221,7 @@ public partial class StartMenu : Control
 
 		GameSettings.ApplyVideoConfig(video);
 		GameSettings.ApplyAudioConfig(audio);
+		GameSettings.ApplyMouseCameraPan(mouseCameraPan);
 		GameInputBindings.Apply(bindings);
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
 		if (tutorialsSettingChanged)
@@ -250,6 +256,7 @@ public partial class StartMenu : Control
 				break;
 			case SettingsTab.Gameplay:
 				_showTutorials.ButtonPressed = true;
+				_mouseCameraPan.ButtonPressed = true;
 				break;
 			case SettingsTab.KeyBindings:
 				_keyBindingsTab.ResetToDefaults();

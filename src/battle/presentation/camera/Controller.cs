@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Math.Camera;
 
@@ -227,7 +228,9 @@ public partial class Controller : Camera3D, ICameraRig
 		if (Input.IsActionPressed("battle_pan_right", true))
 			pan.X += 1f;
 
-		if (pan == Vector2.Zero && !IsMouseOverUi())
+		if (pan == Vector2.Zero
+			&& GameSettings.MouseCameraPanEnabled
+			&& !IsMouseOverUi())
 			pan = MouseEdgePan();
 
 		if (pan == Vector2.Zero)
@@ -260,7 +263,8 @@ public partial class Controller : Camera3D, ICameraRig
 				break;
 
 			case InputEventMouseButton { Pressed: true } panStart
-				when panStart.IsActionPressed("battle_camera_pan", false, true):
+				when GameSettings.MouseCameraPanEnabled
+					&& panStart.IsActionPressed("battle_camera_pan", false, true):
 				_panning = true;
 				_lastMousePosition = panStart.Position;
 				NotifyManualInput();

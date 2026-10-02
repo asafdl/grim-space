@@ -380,11 +380,37 @@ layout_mode = 2
 theme_type_variation = &"SectionHeadingLabel"
 text = "Gameplay"
 
-[node name="ShowTutorials" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
+[node name="ShowTutorialsRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ShowTutorialsLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowTutorialsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Show tutorials"
+
+[node name="ShowTutorials" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowTutorialsRow"]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(32, 32)
 button_pressed = true
-text = "Show tutorials"
+
+[node name="MouseCameraPanRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MouseCameraPanLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/MouseCameraPanRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Pan camera with mouse"
+
+[node name="MouseCameraPan" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/MouseCameraPanRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(32, 32)
+button_pressed = true
 
 [node name="Keys" type="Control" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs"]
 unique_name_in_owner = true

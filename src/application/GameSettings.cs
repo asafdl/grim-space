@@ -9,6 +9,7 @@ public static class GameSettings
 	private const string WindowedMode = "windowed";
 
 	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
+	public static bool MouseCameraPanEnabled { get; private set; } = true;
 
 	public static readonly Vector2I[] SupportedResolutions =
 	[
@@ -118,12 +119,14 @@ public static class GameSettings
 		VideoConfig video,
 		AudioConfig audio,
 		bool showTutorials,
+		bool mouseCameraPanEnabled,
 		IReadOnlyDictionary<StringName, BindingPair> bindings)
 	{
 		var config = LoadOrCreate();
 		WriteVideoConfig(config, video);
 		WriteAudioConfig(config, audio);
 		config.SetValue("gameplay", "show_tutorials", showTutorials);
+		config.SetValue("gameplay", "mouse_camera_pan", mouseCameraPanEnabled);
 		GameInputBindings.WriteBindingsSection(config, bindings);
 		return config.Save(SettingsPath);
 	}
@@ -145,6 +148,17 @@ public static class GameSettings
 
 		return config!.GetValue("gameplay", "show_tutorials", true).AsBool();
 	}
+
+	public static bool ReadMouseCameraPan()
+	{
+		if (!TryLoad(out var config))
+			return true;
+
+		return config!.GetValue("gameplay", "mouse_camera_pan", true).AsBool();
+	}
+
+	public static void ApplyMouseCameraPan(bool enabled) =>
+		MouseCameraPanEnabled = enabled;
 
 	public static void SaveShowTutorials(bool enabled)
 	{
