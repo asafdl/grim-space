@@ -25,7 +25,8 @@ internal static class OutcomeTestKit
 		{
 			"fighter" => EType.Fighter,
 			"carrier" => EType.Carrier,
-			"repurposedMiner" => EType.RepurposedMiner,
+			"repurposed" when shipId.StartsWith("repurposed-miner-", StringComparison.Ordinal) =>
+				EType.RepurposedMiner,
 			"void_bomb" => EType.VoidBomb,
 			_ => throw new ArgumentException($"Unknown ship id prefix in '{shipId}'.", nameof(shipId)),
 		};
