@@ -91,27 +91,52 @@ public sealed class BattleOrchestrator : IDisposable
 			engagedShipIds,
 			timeline);
 		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
+		return CreateFromWorld(world, layout, player.State.Id, "encounter ready");
+	}
 
+	public static BattleOrchestrator FromWorld(BattleWorld world, string playerId)
+	{
+		ArgumentNullException.ThrowIfNull(world);
+		ArgumentException.ThrowIfNullOrEmpty(playerId);
+
+		if (!world.UnitRegistry.TryGet(playerId, out var player) || player.Team != ETeam.Player)
+			throw new InvalidOperationException($"Battle world has no player unit '{playerId}'.");
+
+		var layout = new BattleLayout(
+			world.Grid,
+			world.TerrainHazards.ToList(),
+			world.UnitRegistry.All.ToDictionary(unit => unit.State.Id, unit => unit.Team));
+		return CreateFromWorld(world, layout, playerId, "battle world restored");
+	}
+
+	private static BattleOrchestrator CreateFromWorld(
+		BattleWorld world,
+		BattleLayout layout,
+		string playerId,
+		string phaseReason)
+	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		foreach (var unit in units) 
+		foreach (var unit in world.UnitRegistry.All)
 			actorRuntimes.For(unit.State.Id);
-			
-		
 		actorRuntimes.For(BattleActorIds.Rules);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
-		var orchestrator = new BattleOrchestrator(engine, layout, player.State.Id);
+		var orchestrator = new BattleOrchestrator(engine, layout, playerId);
 
-		foreach (var unit in units)
+		foreach (var unit in world.UnitRegistry.All)
 		{
-			ExecutionAgent<BattleWorld, ActorRuntime>.Initialize(
-				unit.ExecutionAgent,
-				unit.State.Id,
-				orchestrator.Engine.CreateSimulation,
-				orchestrator._actionSink.WriterFor(unit.State.Id));
+			var writer = orchestrator._actionSink.WriterFor(unit.State.Id);
+			if (unit.ExecutionAgent is SimulationExecutionAgent<BattleWorld, ActorRuntime> simulationAgent)
+				simulationAgent.Rebind(unit.State.Id, orchestrator.Engine.CreateSimulation, writer);
+			else
+				unit.ExecutionAgent.Rebind(unit.State.Id, writer);
 		}
 
-		orchestrator.EnterPlayerTurn("encounter ready");
+		if (world.battleResult == EBattleResult.Ongoing)
+			orchestrator.EnterPlayerTurn(phaseReason);
+		else
+			orchestrator.SetPhase(EBattlePhase.BattleOver, phaseReason);
+
 		return orchestrator;
 	}
 

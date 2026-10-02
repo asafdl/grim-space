@@ -24,6 +24,20 @@ public abstract class SimulationExecutionAgent<TWorld, TRuntime>
 		Init(actorId, writer);
 	}
 
+	internal void Rebind(
+		string actorId,
+		Func<Simulation<TWorld, TRuntime>> createSimulation,
+		IActionBatchWriter writer)
+	{
+		ArgumentNullException.ThrowIfNull(createSimulation);
+
+		_createSimulation = createSimulation;
+		_pendingActions.Clear();
+		_refreshPending = false;
+		Sim = null!;
+		base.Rebind(actorId, writer);
+	}
+
 	public override void OnWorldUpdated()
 	{
 		if (!IsInitialized || _createSimulation is null)

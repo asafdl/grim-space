@@ -38,6 +38,19 @@ public abstract class ExecutionAgent<TWorld, TRuntime>
 		_writer = writer;
 	}
 
+	internal virtual void Rebind(string actorId, IActionBatchWriter writer)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(actorId);
+		ArgumentNullException.ThrowIfNull(writer);
+
+		_isInitialized = true;
+		_actorId = actorId;
+		_writer = writer;
+		_canWork = false;
+		_batchInFlight = false;
+		_canWorkGeneration++;
+	}
+
 	public virtual void SetCanWork(bool canWork)
 	{
 		if (!_isInitialized)
