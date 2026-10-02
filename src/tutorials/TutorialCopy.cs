@@ -21,7 +21,7 @@ internal static class TutorialCopy
 	public static string Turn2MovePrompt =>
 		$"Enemies closing in, using weapons forces you to reposition your ship. Lets get in position to shoot — Keep HOLDING {GameInputBindings.Label("battle_primary_click")} " +
 		$"and DRAG heading in correct direction.\nKeep HOLDING and {GameInputBindings.Label("battle_roll_clockwise")} / " +
-		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll.\n Align yourself to the marked ship.";
+		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll.\nAlign yourself to the marked ship.";
 
 	public static string LaunchVentralVoidBomb =>
 		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside mount.";

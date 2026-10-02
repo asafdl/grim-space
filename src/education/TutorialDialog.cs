@@ -5,6 +5,9 @@ namespace GrimSpace.Education;
 
 public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 {
+	private Tween? _tutorialPulse;
+	private Tween? _acceptGlint;
+	private readonly Label _tutorialTitle;
 	private readonly Label _title;
 	private readonly RichTextLabel _message;
 	private readonly VBoxContainer _assistance;
@@ -32,6 +35,16 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		};
 		content.AddThemeConstantOverride("separation", 10);
 		panel.AddChild(content);
+
+		_tutorialTitle = new Label
+		{
+			Text = "TUTORIAL",
+			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "CardTitle",
+		};
+		_tutorialTitle.AddThemeColorOverride("font_color", new Color(1f, 0.78f, 0.35f));
+		_tutorialTitle.AddThemeFontSizeOverride("font_size", 18);
+		content.AddChild(_tutorialTitle);
 
 		_title = new Label
 		{
@@ -120,6 +133,11 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		else if (_accept.IsInsideTree())
 			_accept.ReleaseFocus();
 		Visible = true;
+		StartTutorialPulse();
+		if (_accept.Visible)
+			StartAcceptGlint();
+		else
+			StopAcceptGlint();
 		if (_accept.Visible)
 			_accept.GrabFocus();
 	}
@@ -146,7 +164,57 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 	public void Close()
 	{
 		ClearAssistance();
+		_tutorialPulse?.Kill();
+		_tutorialPulse = null;
+		StopAcceptGlint();
 		Visible = false;
+	}
+
+	private void StartTutorialPulse()
+	{
+		_tutorialPulse?.Kill();
+		_tutorialTitle.Modulate = new Color(1f, 1f, 1f, 0.88f);
+		_tutorialPulse = CreateTween()
+			.SetLoops()
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.InOut);
+		_tutorialPulse.TweenProperty(
+			_tutorialTitle,
+			"modulate",
+			new Color(1f, 1f, 1f, 1f),
+			1.5);
+		_tutorialPulse.TweenProperty(
+			_tutorialTitle,
+			"modulate",
+			new Color(1f, 1f, 1f, 0.88f),
+			1.5);
+	}
+
+	private void StartAcceptGlint()
+	{
+		StopAcceptGlint();
+		_accept.Modulate = new Color(1f, 1f, 1f, 0.86f);
+		_acceptGlint = CreateTween()
+			.SetLoops()
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.InOut);
+		_acceptGlint.TweenProperty(
+			_accept,
+			"modulate",
+			Colors.White,
+			0.65);
+		_acceptGlint.TweenProperty(
+			_accept,
+			"modulate",
+			new Color(1f, 1f, 1f, 0.86f),
+			0.65);
+	}
+
+	private void StopAcceptGlint()
+	{
+		_acceptGlint?.Kill();
+		_acceptGlint = null;
+		_accept.Modulate = Colors.White;
 	}
 
 	private void OnMetaClicked(Variant metadata)
