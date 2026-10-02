@@ -49,7 +49,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	[Fact]
 	public void InvestigateAmbush_SpawnsFleetAndCommitsEngagement()
 	{
-		var ambushSpec = new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 9, [(BattleUnitType.Patrol, EShipGearTier.T0)]);
+		var ambushSpec = new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 9, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]);
 		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Ambush(ambushSpec));
 		var ambushUnitId = $"{contractId}.wreckage.ambush";
 		OpenWreckDecision(engine, unitId, contractId);

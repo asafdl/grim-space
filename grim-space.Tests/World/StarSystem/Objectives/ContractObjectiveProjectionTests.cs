@@ -128,7 +128,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 					"group-test",
 					new AreaPick(intel, [new Coord(4, 0, 4)]),
 					1,
-					new FleetSpawnSpec(GrimSpace.World.StarSystem.Units.EType.PirateFleet, EFaction.Pirates, 42, [(BattleUnitType.Patrol, EShipGearTier.T0)])),
+					new FleetSpawnSpec(GrimSpace.World.StarSystem.Units.EType.PirateFleet, EFaction.Pirates, 42, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)])),
 			]),
 			EDangerLevel.VeryLow,
 			map.ControllingFaction,

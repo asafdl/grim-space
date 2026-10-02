@@ -90,12 +90,12 @@ public static class ActionLog
 				continue;
 			}
 
-			if (entry is SpawnPatrolAction deploy)
+			if (entry is SpawnRepurposedMinerAction deploy)
 			{
-				var patrolId = ResolveSpawnedPatrolId(deploy, history, i);
+				var repurposedMinerId = ResolveSpawnedRepurposedMinerId(deploy, history, i);
 				Emit(
-					"Deploy patrol",
-					$"{displayName(deploy.ActorId)} → {displayName(patrolId)}");
+					"Deploy Repurposed Miner",
+					$"{displayName(deploy.ActorId)} → {displayName(repurposedMinerId)}");
 				i++;
 				continue;
 			}
@@ -180,8 +180,8 @@ public static class ActionLog
 		return impacts;
 	}
 
-	private static string ResolveSpawnedPatrolId(
-		SpawnPatrolAction deploy,
+	private static string ResolveSpawnedRepurposedMinerId(
+		SpawnRepurposedMinerAction deploy,
 		IReadOnlyList<ITimelineEntry> history,
 		int index)
 	{
@@ -191,10 +191,10 @@ public static class ActionLog
 		if (index + 1 < history.Count
 			&& history[index + 1] is Record<SpawnFacts> { Value: var spawn }
 			&& spawn.SourceId == deploy.ActorId
-			&& spawn.EntityType == EType.Patrol)
+			&& spawn.EntityType == EType.RepurposedMiner)
 			return spawn.TargetId;
 
-		return "patrol";
+		return "repurposed-miner";
 	}
 
 	private static Entry? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>

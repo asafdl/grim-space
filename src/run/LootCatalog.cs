@@ -9,8 +9,8 @@ namespace GrimSpace.Run;
 /// <summary>Salvage rolled from destroyed ships (battle) or wreckage contracts. Power-based bonuses use <see cref="ShipPowerCatalog"/>.</summary>
 public static class LootCatalog
 {
-	private const int PatrolScrapMin = 50;
-	private const int PatrolScrapMaxExclusive = 121;
+	private const int RepurposedMinerScrapMin = 50;
+	private const int RepurposedMinerScrapMaxExclusive = 121;
 	private const int CarrierScrapMin = 140;
 	private const int CarrierScrapMaxExclusive = 281;
 	private const int ScrapBonusPercentPerGearTier = 15;
@@ -72,9 +72,9 @@ public static class LootCatalog
 	{
 		switch (chassis)
 		{
-			case EType.Patrol:
+			case EType.RepurposedMiner:
 				scrapAmount = ScaleScrap(
-					rollInRange((PatrolScrapMin, PatrolScrapMaxExclusive)),
+					rollInRange((RepurposedMinerScrapMin, RepurposedMinerScrapMaxExclusive)),
 					gearTier);
 				return true;
 			case EType.Carrier:

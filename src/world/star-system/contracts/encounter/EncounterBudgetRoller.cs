@@ -34,7 +34,7 @@ public static class EncounterBudgetRoller
 		}
 
 		if (ships.Count == 0)
-			ships.Add((EType.Patrol, EShipGearTier.T0));
+			ships.Add((EType.RepurposedMiner, EShipGearTier.T0));
 
 		return ships;
 	}

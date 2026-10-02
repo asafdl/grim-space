@@ -5,15 +5,15 @@ using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Units.Specs;
 
-public sealed class PatrolSpec : ShipSpec
+public sealed class RepurposedMinerSpec : ShipSpec
 {
-	public static PatrolSpec Instance { get; } = new();
+	public static RepurposedMinerSpec Instance { get; } = new();
 
-	private PatrolSpec()
+	private RepurposedMinerSpec()
 	{
 	}
 
-	public override EType Chassis => EType.Patrol;
+	public override EType Chassis => EType.RepurposedMiner;
 	public override int DefaultMaxHullPoints => 1;
 
 	public override FaceShieldPoints DefaultMaxShieldPoints

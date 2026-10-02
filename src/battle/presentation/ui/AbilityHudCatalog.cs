@@ -112,19 +112,19 @@ public static class AbilityHudCatalog
 					unit.FuelRemaining,
 					unit.Projectile?.FuelTurns ?? 0),
 				legality => legality.Detonate),
-			SpawnPatrolDef => new(
-				EPlayerMode.SpawnPatrol,
+			SpawnRepurposedMinerDef => new(
+				EPlayerMode.SpawnRepurposedMiner,
 				def,
 				new AbilityTargetingSpec(
-					PatrolSource,
-					AbilitySourceMeshes.CreatePatrol,
+					RepurposedMinerSource,
+					AbilitySourceMeshes.CreateRepurposedMiner,
 					new Color(0.4f, 0.9f, 0.58f, 0.48f)),
-				"res://assets/ui/abilities/patrol.svg",
-				BattleHudCopy.SpawnPatrolTooltipFor,
+				"res://assets/ui/abilities/repurposed-miner.svg",
+				BattleHudCopy.SpawnRepurposedMinerTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
-					unit.ReadyMounts(EAbilityKind.PatrolBay),
-					unit.MountCount(EAbilityKind.PatrolBay)),
-				legality => legality.SpawnPatrol),
+					unit.ReadyMounts(EAbilityKind.MinerBay),
+					unit.MountCount(EAbilityKind.MinerBay)),
+				legality => legality.SpawnRepurposedMiner),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};
@@ -161,15 +161,15 @@ public static class AbilityHudCatalog
 			voidBomb.MountedOn);
 	}
 
-	private static AbilitySourcePose PatrolSource(State actor, IAction action)
+	private static AbilitySourcePose RepurposedMinerSource(State actor, IAction action)
 	{
-		var patrol = Require<SpawnPatrolAction>(action);
-		var pose = PatrolBayMount.LaunchPose(actor, patrol.MountedOn);
+		var repurposedMiner = Require<SpawnRepurposedMinerAction>(action);
+		var pose = MinerBayMount.LaunchPose(actor, repurposedMiner.MountedOn);
 		return new AbilitySourcePose(
 			pose.Position,
 			pose.Fore,
 			pose.Dorsal,
-			patrol.MountedOn);
+			repurposedMiner.MountedOn);
 	}
 
 	private static AbilitySourcePose SelfSource<TAction>(State actor, IAction action)

@@ -206,8 +206,8 @@ public partial class TurnReplayPlayer : Node3D
 			case EType.VoidBomb:
 				ApplyVoidBombSpawn(spawn);
 				break;
-			case EType.Patrol:
-				ApplyPatrolSpawn(spawn);
+			case EType.RepurposedMiner:
+				ApplyRepurposedMinerSpawn(spawn);
 				break;
 		}
 	}
@@ -221,7 +221,7 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.PendingVoidBombMountedOn = null;
 	}
 
-	private void ApplyPatrolSpawn(SpawnFacts spawn)
+	private void ApplyRepurposedMinerSpawn(SpawnFacts spawn)
 	{
 		var spawned = spawn.SpawnedState.Clone();
 		_clipContext.ReplayState.Add(spawned);
@@ -352,10 +352,10 @@ public partial class TurnReplayPlayer : Node3D
 			return;
 		}
 
-		if (action is SpawnPatrolAction deploy)
+		if (action is SpawnRepurposedMinerAction deploy)
 		{
 			var carrier = _clipContext.ReplayState.StateOf(deploy.ActorId);
-			var (launchCell, _, _) = PatrolBayMount.LaunchPose(carrier, deploy.MountedOn);
+			var (launchCell, _, _) = MinerBayMount.LaunchPose(carrier, deploy.MountedOn);
 			_clipContext.ReportInterest(new CameraInterest(
 				[
 					WorldMapping.ToWorld(carrier.Position),

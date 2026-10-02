@@ -47,9 +47,9 @@ public sealed class WeaponsCatalogTests
 	}
 
 	[Fact]
-	public void ListFor_Patrol_DoesNotOfferLightningCannonWithoutChassisSlot()
+	public void ListFor_RepurposedMiner_DoesNotOfferLightningCannonWithoutChassisSlot()
 	{
-		var ship = ShipInstance.FromCatalog("patrol-1", EType.Patrol);
+		var ship = ShipInstance.FromCatalog("repurposed-miner-1", EType.RepurposedMiner);
 		var offers = WeaponsCatalog.ListFor(ship);
 
 		Assert.DoesNotContain(

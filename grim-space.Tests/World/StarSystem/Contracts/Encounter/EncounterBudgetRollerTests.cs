@@ -39,10 +39,10 @@ public sealed class EncounterBudgetRollerTests
 	}
 
 	[Fact]
-	public void Roll_VeryLow_IncludesPatrol()
+	public void Roll_VeryLow_IncludesRepurposedMiner()
 	{
 		var ships = EncounterBudgetRoller.Roll(42, "tutorial-beat-a-hunt-42", "hunt-encounter", EDangerLevel.VeryLow);
 
-		Assert.Contains(ships, ship => ship.Chassis == EType.Patrol);
+		Assert.Contains(ships, ship => ship.Chassis == EType.RepurposedMiner);
 	}
 }

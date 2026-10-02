@@ -82,7 +82,7 @@ internal static class BattleHudCopy
 	public static string PickAbilitySource(EPlayerMode mode) =>
 		mode switch
 		{
-			EPlayerMode.SpawnPatrol => PickLaunchBay,
+			EPlayerMode.SpawnRepurposedMiner => PickLaunchBay,
 			EPlayerMode.Detonate => PickVoidBomb,
 			_ => PickFiringMount,
 		};
@@ -116,10 +116,10 @@ internal static class BattleHudCopy
 			? DetonateTooltipFor(projectile)
 			: "Detonate";
 
-	public static string SpawnPatrolTooltipFor(UnitDisplayState unit) =>
-		FirstInstalled<PatrolBaySpec>(unit, EAbilityKind.PatrolBay) is { } bay
-			? SpawnPatrolTooltipFor(bay)
-			: "Deploy Patrol";
+	public static string SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<MinerBaySpec>(unit, EAbilityKind.MinerBay) is { } bay
+			? SpawnRepurposedMinerTooltipFor(bay)
+			: "Deploy Repurposed Miner";
 
 	public static string ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		$"Scrap Drone Swarm:\nSend a drone swarm to dismantle your foes.\n" +
@@ -145,10 +145,10 @@ internal static class BattleHudCopy
 		$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
 		$"Fuel: {projectile.FuelTurns} turns after launch.";
 
-	public static string SpawnPatrolTooltipFor(PatrolBaySpec bay) =>
-		$"Deploy Patrol:\nLaunches a patrol ship from the ventral bay.\n" +
-		$"Patrols can launch scrap drone swarms, and have forward facing shields.\n" +
-		$"Max living patrols: {bay.MaxLivingChildren}.\n" +
+	public static string SpawnRepurposedMinerTooltipFor(MinerBaySpec bay) =>
+		$"Deploy Repurposed Miner:\nLaunches a repurposed miner ship from the ventral bay.\n" +
+		$"Repurposed Miners can launch scrap drone swarms, and have forward facing shields.\n" +
+		$"Max living repurposed miners: {bay.MaxLivingChildren}.\n" +
 		$"Cooldown: {bay.CooldownTurns} turns after launch.";
 
 	private static T? FirstInstalled<T>(UnitDisplayState unit, EAbilityKind kind)

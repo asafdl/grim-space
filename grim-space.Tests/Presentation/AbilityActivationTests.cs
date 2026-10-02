@@ -19,7 +19,7 @@ public sealed class AbilityActivationTests
 	[Theory]
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
-	[InlineData(EType.Patrol)]
+	[InlineData(EType.RepurposedMiner)]
 	[InlineData(EType.VoidBomb)]
 	public void IconTintIsOpaqueAndMatchesTargetingTint(EType type)
 	{
@@ -35,7 +35,7 @@ public sealed class AbilityActivationTests
 	[Theory]
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
-	[InlineData(EType.Patrol)]
+	[InlineData(EType.RepurposedMiner)]
 	[InlineData(EType.VoidBomb)]
 	public void EveryRegisteredAbilityResolvesActivation(EType type)
 	{
@@ -96,33 +96,33 @@ public sealed class AbilityActivationTests
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
 		var lightningCannon = new LightningCannonAction(actor.Id);
-		var patrol = new SpawnPatrolAction(actor.Id, ESpatialOrientation.Ventral, "patrol");
+		var repurposedMiner = new SpawnRepurposedMinerAction(actor.Id, ESpatialOrientation.Ventral, "repurposedMiner");
 		var detonate = new DetonateAction(actor.Id);
-		var patrolPose = PatrolBayMount.LaunchPose(actor, ESpatialOrientation.Ventral);
+		var repurposedMinerPose = MinerBayMount.LaunchPose(actor, ESpatialOrientation.Ventral);
 
 		var lightningCannonSpec = Spec(EPlayerMode.LightningCannon);
-		var patrolSpec = Spec(EPlayerMode.SpawnPatrol);
+		var repurposedMinerSpec = Spec(EPlayerMode.SpawnRepurposedMiner);
 		var detonateSpec = AbilityHudCatalog.ForUnit(EType.VoidBomb).Single();
 		var lightningCannonChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				lightningCannonSpec,
 				actor,
-				[lightningCannon, patrol, detonate]));
-		var patrolChoice = Assert.Single(
+				[lightningCannon, repurposedMiner, detonate]));
+		var repurposedMinerChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
-				patrolSpec,
+				repurposedMinerSpec,
 				actor,
-				[lightningCannon, patrol, detonate]));
+				[lightningCannon, repurposedMiner, detonate]));
 		var detonateChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				detonateSpec,
 				actor,
-				[lightningCannon, patrol, detonate]));
+				[lightningCannon, repurposedMiner, detonate]));
 
 		Assert.Equal(actor.Position + actor.Fore, lightningCannonChoice.Position);
 		Assert.Same(lightningCannonSpec.Targeting, lightningCannonChoice.Targeting);
-		Assert.Equal(patrolPose.Position, patrolChoice.Position);
-		Assert.Same(patrolSpec.Targeting, patrolChoice.Targeting);
+		Assert.Equal(repurposedMinerPose.Position, repurposedMinerChoice.Position);
+		Assert.Same(repurposedMinerSpec.Targeting, repurposedMinerChoice.Targeting);
 		Assert.Equal(actor.Position, detonateChoice.Position);
 		Assert.Same(detonateSpec.Targeting, detonateChoice.Targeting);
 	}
@@ -135,30 +135,30 @@ public sealed class AbilityActivationTests
 			actor.Id,
 			ESpatialOrientation.Retro,
 			"__preview_void_bomb__");
-		var previewPatrol = new SpawnPatrolAction(
+		var previewRepurposedMiner = new SpawnRepurposedMinerAction(
 			actor.Id,
 			ESpatialOrientation.Ventral,
-			"__preview_patrol__");
+			"__preview_repurposed_miner__");
 		var torpedoChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
 				Spec(EPlayerMode.VoidBomb),
 				actor,
 				[previewTorpedo]));
-		var patrolChoice = Assert.Single(
+		var repurposedMinerChoice = Assert.Single(
 			AbilityActivation.ResolveChoices(
-				Spec(EPlayerMode.SpawnPatrol),
+				Spec(EPlayerMode.SpawnRepurposedMiner),
 				actor,
-				[previewPatrol]));
+				[previewRepurposedMiner]));
 
 		var torpedo = Assert.IsType<VoidBombAction>(
 			AbilityActivation.CreateExecutionAction(torpedoChoice));
-		var patrol = Assert.IsType<SpawnPatrolAction>(
-			AbilityActivation.CreateExecutionAction(patrolChoice));
+		var repurposedMiner = Assert.IsType<SpawnRepurposedMinerAction>(
+			AbilityActivation.CreateExecutionAction(repurposedMinerChoice));
 
 		Assert.NotEqual(previewTorpedo.SpawnedUnitId, torpedo.SpawnedUnitId);
-		Assert.NotEqual(previewPatrol.SpawnedUnitId, patrol.SpawnedUnitId);
+		Assert.NotEqual(previewRepurposedMiner.SpawnedUnitId, repurposedMiner.SpawnedUnitId);
 		Assert.Equal(previewTorpedo.MountedOn, torpedo.MountedOn);
-		Assert.Equal(previewPatrol.MountedOn, patrol.MountedOn);
+		Assert.Equal(previewRepurposedMiner.MountedOn, repurposedMiner.MountedOn);
 	}
 
 	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>

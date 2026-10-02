@@ -12,7 +12,7 @@ public sealed class ReplayClipRegistry
 		new HeadingTurnClip(),
 		new RollClip(),
 		new VoidBombActionClip(),
-		new SpawnPatrolActionClip(),
+		new SpawnRepurposedMinerActionClip(),
 		new LightningCannonActionClip(),
 		new ScrapDroneSwarmActionClip(),
 		new DetonateActionClip(),

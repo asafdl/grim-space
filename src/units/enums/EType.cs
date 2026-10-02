@@ -4,6 +4,6 @@ public enum EType
 {
 	Fighter,
 	Carrier,
-	Patrol,
+	RepurposedMiner,
 	VoidBomb,
 }

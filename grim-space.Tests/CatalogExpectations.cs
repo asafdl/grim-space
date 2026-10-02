@@ -30,8 +30,8 @@ internal static class CatalogExpectations
 	public static ScrapDroneSwarmSpec DefaultScrapDroneSwarmSpec(EType chassis = EType.Fighter) =>
 		(ScrapDroneSwarmSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.ScrapDroneSwarm)!;
 
-	public static PatrolBaySpec DefaultPatrolBaySpec(EType chassis = EType.Carrier) =>
-		(PatrolBaySpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.PatrolBay)!;
+	public static MinerBaySpec DefaultMinerBaySpec(EType chassis = EType.Carrier) =>
+		(MinerBaySpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.MinerBay)!;
 
 	public static VoidBombLauncherSpec DefaultVoidBombLauncherSpec(EType chassis = EType.Fighter) =>
 		(VoidBombLauncherSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.VoidBombLauncher)!;

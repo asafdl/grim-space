@@ -6,6 +6,6 @@ public enum EPlayerMode
 	ScrapDroneSwarm,
 	LightningCannon,
 	VoidBomb,
-	SpawnPatrol,
+	SpawnRepurposedMiner,
 	Detonate,
 }

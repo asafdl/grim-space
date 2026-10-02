@@ -8,7 +8,7 @@ public enum EType
 	CargoShuttle,
 	ComplianceVessel,
 	ServiceVessel,
-	Patrol,
+	RepurposedMiner,
 	MiningBarge,
 	RefineryHauler,
 	ExportFreighter,

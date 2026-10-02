@@ -11,10 +11,10 @@ public static class ShipPowerCatalog
 {
 	private static readonly ShipPowerLevel[] Levels =
 	[
-		new(EType.Patrol, EShipGearTier.T0, 1),
-		new(EType.Patrol, EShipGearTier.T1, 2),
-		new(EType.Patrol, EShipGearTier.T2, 4),
-		new(EType.Patrol, EShipGearTier.T3, 8),
+		new(EType.RepurposedMiner, EShipGearTier.T0, 1),
+		new(EType.RepurposedMiner, EShipGearTier.T1, 2),
+		new(EType.RepurposedMiner, EShipGearTier.T2, 4),
+		new(EType.RepurposedMiner, EShipGearTier.T3, 8),
 		new(EType.Carrier, EShipGearTier.T0, 11),
 	];
 

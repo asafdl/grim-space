@@ -135,8 +135,8 @@ internal static class BattleTestFixture
 	public static Unit Carrier(Coord position) =>
 		Create(ETeam.Enemy, "carrier", position, EType.Carrier);
 
-	public static Unit Patrol(Coord position, string id = "patrol") =>
-		Create(ETeam.Enemy, id, position, EType.Patrol);
+	public static Unit RepurposedMiner(Coord position, string id = "repurposedMiner") =>
+		Create(ETeam.Enemy, id, position, EType.RepurposedMiner);
 
 	public static BattleOrchestrator BeginCarrierVsPlayer(
 		Coord playerPos,

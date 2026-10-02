@@ -10,9 +10,9 @@ namespace GrimSpace.Tests.Units.Loadouts.Defenses;
 public sealed class FaceShieldPointsTests
 {
 	[Fact]
-	public void Catalog_Patrol_HasForwardShieldsOnly()
+	public void Catalog_RepurposedMiner_HasForwardShieldsOnly()
 	{
-		var defenses = ShipCatalog.NewRunLoadoutFor(EType.Patrol).MaxShieldPoints;
+		var defenses = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).MaxShieldPoints;
 
 		Assert.Equal(3, defenses[ESpatialOrientation.Forward]);
 		Assert.Equal(0, defenses[ESpatialOrientation.Retro]);
@@ -23,10 +23,10 @@ public sealed class FaceShieldPointsTests
 	}
 
 	[Fact]
-	public void FromSpawn_Patrol_ClonesForwardShieldProfile()
+	public void FromSpawn_RepurposedMiner_ClonesForwardShieldProfile()
 	{
 		var state = State.FromShipInstance(
-			ShipInstance.FromCatalog("patrol-1", EType.Patrol),
+			ShipInstance.FromCatalog("repurposed-miner-1", EType.RepurposedMiner),
 			Coord.Zero);
 
 		Assert.Equal(3, state.ShieldPoints[ESpatialOrientation.Forward]);

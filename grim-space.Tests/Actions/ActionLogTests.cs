@@ -18,14 +18,14 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new MoveStepAction("patrol-a"),
-			new MoveStepAction("patrol-a"),
-			new MoveStepAction("patrol-a"),
+			new MoveStepAction("repurposed-miner-a"),
+			new MoveStepAction("repurposed-miner-a"),
+			new MoveStepAction("repurposed-miner-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
-		AssertEntries(lines, "Move · 3 steps|enemy patrol-a");
+		AssertEntries(lines, "Move · 3 steps|enemy repurposed-miner-a");
 	}
 
 	[Fact]
@@ -33,15 +33,15 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new HeadingTurnAction("patrol-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
-			new MoveStepAction("patrol-a"),
-			new RollAction("patrol-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
-			new MoveStepAction("patrol-a"),
+			new HeadingTurnAction("repurposed-miner-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new MoveStepAction("repurposed-miner-a"),
+			new RollAction("repurposed-miner-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new MoveStepAction("repurposed-miner-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
-		AssertEntries(lines, "Move · 2 steps|enemy patrol-a");
+		AssertEntries(lines, "Move · 2 steps|enemy repurposed-miner-a");
 	}
 
 	[Fact]
@@ -49,9 +49,9 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new LightningCannonAction("patrol-a"),
+			new LightningCannonAction("repurposed-miner-a"),
 			new Record<ImpactFacts>(new ImpactFacts(
-				SourceId: "patrol-a",
+				SourceId: "repurposed-miner-a",
 				TargetId: "fighter-b",
 				Cause: EHazardKind.LightningCannonBurst,
 				Face: ESpatialOrientation.Dorsal,
@@ -61,14 +61,14 @@ public sealed class ActionLogTests
 
 		var lines = ActionLog.Format(history, id => id switch
 		{
-			"patrol-a" => "enemy patrol-a",
+			"repurposed-miner-a" => "enemy repurposed-miner-a",
 			"fighter-b" => "player fighter-b",
 			_ => id,
 		});
 
 		AssertEntries(
 			lines,
-			"Lightning Cannon · Hit|enemy patrol-a → player fighter-b|dorsal · 2 shield · 1 hull");
+			"Lightning Cannon · Hit|enemy repurposed-miner-a → player fighter-b|dorsal · 2 shield · 1 hull");
 	}
 
 	[Fact]
@@ -88,11 +88,11 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new EndOfPhaseAction("patrol-a"),
-			new RoundUpkeepAction("patrol-a"),
-			new FuelBurnAction("patrol-a"),
+			new EndOfPhaseAction("repurposed-miner-a"),
+			new RoundUpkeepAction("repurposed-miner-a"),
+			new FuelBurnAction("repurposed-miner-a"),
 			new Record<SpawnFacts>(new SpawnFacts(
-				"patrol-a",
+				"repurposed-miner-a",
 				"torpedo-x",
 				EType.VoidBomb,
 				State.FromShipInstance(ShipInstance.FromCatalog("torpedo-x", EType.VoidBomb), Coord.Zero))),
@@ -108,8 +108,8 @@ public sealed class ActionLogTests
 		[
 			new MoveStepAction("fighter-a"),
 			new EndOfPhaseAction("fighter-a"),
-			new MoveStepAction("patrol-b"),
-			new MoveStepAction("patrol-b"),
+			new MoveStepAction("repurposed-miner-b"),
+			new MoveStepAction("repurposed-miner-b"),
 		];
 
 		var lines = ActionLog.Format(history, id => id);
@@ -117,7 +117,7 @@ public sealed class ActionLogTests
 		AssertEntries(
 			lines,
 			"Move · 1 step|fighter-a",
-			"Move · 2 steps|patrol-b");
+			"Move · 2 steps|repurposed-miner-b");
 	}
 
 	[Fact]

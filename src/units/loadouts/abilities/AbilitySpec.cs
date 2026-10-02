@@ -202,14 +202,14 @@ public sealed record LightningCannonSpec(
 	}
 }
 
-public sealed record PatrolBaySpec(
+public sealed record MinerBaySpec(
 	int CooldownTurns,
 	ShipSpec ChildSpec,
 	int MaxLivingChildren) : AbilitySpec, ISpawnable, ICooldownAbility
 {
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Ventral];
 
-	public override EAbilityKind Kind => EAbilityKind.PatrolBay;
+	public override EAbilityKind Kind => EAbilityKind.MinerBay;
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
 	ShipSpec ISpawnable.ChildSpec => ChildSpec;

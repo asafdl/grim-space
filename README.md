@@ -275,7 +275,7 @@ Each [`InstalledAbility`](src/units/loadouts/abilities/InstalledAbility.cs) is o
 Capability interfaces (metadata + helpers, still in units):
 
 - [`IAreaDamage`](src/units/loadouts/abilities/IAreaDamage.cs) — `Damage` and `GetArea(origin, direction, fore, dorsal)` in world grid steps. Battle builds origin/direction from [`BodyFrame`](src/battle/spatial/BodyFrame.cs) and the chosen facet ([`AbilityArea`](src/battle/spatial/AbilityArea.cs) clips to the grid).
-- [`ISpawnable`](src/units/loadouts/abilities/ISpawnable.cs) — **`ChildSpec`** is a nested **`ShipSpec`** (the spawned patrol/torpedo ship spec), plus `MaxLivingChildren` where relevant.
+- [`ISpawnable`](src/units/loadouts/abilities/ISpawnable.cs) — **`ChildSpec`** is a nested **`ShipSpec`** (the spawned repurposedMiner/torpedo ship spec), plus `MaxLivingChildren` where relevant.
 
 #### Who creates ships vs who consumes them
 

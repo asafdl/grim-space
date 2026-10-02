@@ -87,19 +87,19 @@ public sealed class LightningCannonReachTests
 	}
 
 	[Fact]
-	public void UpperBound_IncludesDamageBonus_WhenPatrolCanReachPlayerWithScrapDroneSwarm()
+	public void UpperBound_IncludesDamageBonus_WhenRepurposedMinerCanReachPlayerWithScrapDroneSwarm()
 	{
 		var player = CreateUnit(ETeam.Player, "player", new Coord(4, 5, 5), EType.Fighter);
-		var patrol = CreateUnit(ETeam.Enemy, "patrol", new Coord(0, 5, 5), EType.Patrol);
-		patrol.State.ActionPoints = 0;
+		var repurposedMiner = CreateUnit(ETeam.Enemy, "repurposedMiner", new Coord(0, 5, 5), EType.RepurposedMiner);
+		repurposedMiner.State.ActionPoints = 0;
 
-		var battle = BattleTestFixture.BeginSimulation(player, patrol);
-		var bound = EnemySearchInput.UpperBound(battle.Engine.World, patrol.State.Id);
+		var battle = BattleTestFixture.BeginSimulation(player, repurposedMiner);
+		var bound = EnemySearchInput.UpperBound(battle.Engine.World, repurposedMiner.State.Id);
 
 		Assert.Equal(
 			EnemySearchInput.DamageHitBonus
 				+ EnemySearchInput.FacingWeight
-				+ patrol.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
+				+ repurposedMiner.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 

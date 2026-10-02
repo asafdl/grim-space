@@ -111,7 +111,7 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 				groupId,
 				searchArea,
 				1,
-				new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 1, [(BattleUnitType.Patrol, EShipGearTier.T0)])),
+				new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 1, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)])),
 		]);
 	}
 

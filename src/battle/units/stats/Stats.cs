@@ -18,7 +18,7 @@ public sealed class Stats
 		{
 			EType.Fighter => new Stats { MaxAp = 4 },
 			EType.Carrier => new Stats { MaxAp = 3 },
-			EType.Patrol => new Stats { MaxAp = 4 },
+			EType.RepurposedMiner => new Stats { MaxAp = 4 },
 			EType.VoidBomb => new Stats { MaxAp = VoidBombSpec.MovementActionPoints },
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};

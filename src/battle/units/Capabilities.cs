@@ -12,7 +12,7 @@ namespace GrimSpace.Battle.Units;
 
 public static class Capabilities
 {
-	internal const string PreviewPatrolId = "__preview_patrol__";
+	internal const string PreviewRepurposedMinerId = "__preview_repurposed_miner__";
 	internal const string PreviewVoidBombId = "__preview_void_bomb__";
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> Movement { get; } =
@@ -67,7 +67,7 @@ public static class Capabilities
 			var candidates = def switch
 			{
 				VoidBombDef torpedo => torpedo.Discover(actorId, PreviewVoidBombId, world),
-				SpawnPatrolDef => DiscoverPreviewPatrolSpawns(state),
+				SpawnRepurposedMinerDef => DiscoverPreviewRepurposedMinerSpawns(state),
 				_ => def.Discover(world, runtime, actorId),
 			};
 
@@ -97,17 +97,17 @@ public static class Capabilities
 		{
 			EAbilityKind.ScrapDroneSwarm => ScrapDroneSwarmDef.Instance,
 			EAbilityKind.LightningCannon => LightningCannonDef.Instance,
-			EAbilityKind.PatrolBay => SpawnPatrolDef.Instance,
+			EAbilityKind.MinerBay => SpawnRepurposedMinerDef.Instance,
 			EAbilityKind.VoidBombLauncher => VoidBombDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 
-	private static IEnumerable<IAction> DiscoverPreviewPatrolSpawns(State state)
+	private static IEnumerable<IAction> DiscoverPreviewRepurposedMinerSpawns(State state)
 	{
 		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
-			if (installed.Spec.Kind == EAbilityKind.PatrolBay)
-				yield return new SpawnPatrolAction(state.Id, installed.MountedOn, PreviewPatrolId);
+			if (installed.Spec.Kind == EAbilityKind.MinerBay)
+				yield return new SpawnRepurposedMinerAction(state.Id, installed.MountedOn, PreviewRepurposedMinerId);
 		}
 	}
 
@@ -140,7 +140,7 @@ public static class Capabilities
 		{
 			EType.Fighter => FighterSpec.Instance,
 			EType.Carrier => CarrierSpec.Instance,
-			EType.Patrol => PatrolSpec.Instance,
+			EType.RepurposedMiner => RepurposedMinerSpec.Instance,
 			EType.VoidBomb => VoidBombSpec.Instance,
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};

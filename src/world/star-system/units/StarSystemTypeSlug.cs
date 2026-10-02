@@ -8,7 +8,7 @@ public static class StarSystemTypeSlug
 			EType.CargoShuttle => "cargo-shuttle",
 			EType.ComplianceVessel => "compliance-vessel",
 			EType.ServiceVessel => "service-vessel",
-			EType.Patrol => "patrol",
+			EType.RepurposedMiner => "repurposed-miner",
 			EType.MiningBarge => "mining-barge",
 			EType.RefineryHauler => "refinery-hauler",
 			EType.ExportFreighter => "export-freighter",

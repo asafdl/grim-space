@@ -97,7 +97,7 @@ public sealed class BeginEngagementTests
 	}
 
 	[Fact]
-	public void Create_UsesUniquePatrolPositions()
+	public void Create_UsesUniqueRepurposedMinerPositions()
 	{
 		var run = RunState.CreateNewRun(42);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -109,9 +109,9 @@ public sealed class BeginEngagementTests
 		pirateFleet = new Fleet(
 			pirateFleet.State,
 			Enumerable.Range(0, 5)
-				.Select(index => new FleetMember($"patrol-{index}")));
+				.Select(index => new FleetMember($"repurposed-miner-{index}")));
 		foreach (var member in pirateFleet.Members)
-			run.ShipRegistry.Register(ShipInstance.FromCatalog(member.Id, GrimSpace.Units.Enums.EType.Patrol));
+			run.ShipRegistry.Register(ShipInstance.FromCatalog(member.Id, GrimSpace.Units.Enums.EType.RepurposedMiner));
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],

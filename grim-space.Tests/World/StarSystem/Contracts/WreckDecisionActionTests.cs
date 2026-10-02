@@ -67,7 +67,7 @@ public sealed class WreckDecisionActionTests(StarMapFixture maps)
 				FleetType.PirateFleet,
 				GrimSpace.World.Factions.EFaction.Pirates,
 				9,
-				[(BattleUnitType.Patrol, GrimSpace.Units.Enums.EShipGearTier.T0)])));
+				[(BattleUnitType.RepurposedMiner, GrimSpace.Units.Enums.EShipGearTier.T0)])));
 		PlaceHolderAtWreck(engine, unitId, contractId);
 		engine.Commit([new ReachWreckageAction(unitId, contractId)]);
 
@@ -123,7 +123,7 @@ public sealed class WreckDecisionActionTests(StarMapFixture maps)
 				FleetType.PirateFleet,
 				GrimSpace.World.Factions.EFaction.Pirates,
 				9,
-				[(BattleUnitType.Patrol, GrimSpace.Units.Enums.EShipGearTier.T0)])));
+				[(BattleUnitType.RepurposedMiner, GrimSpace.Units.Enums.EShipGearTier.T0)])));
 		PlaceHolderAtWreck(engine, unitId, contractId);
 		engine.Commit([new ReachWreckageAction(unitId, contractId)]);
 

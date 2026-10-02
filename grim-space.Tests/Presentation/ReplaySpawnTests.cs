@@ -13,37 +13,37 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class ReplaySpawnTests
 {
 	[Fact]
-	public void ActionLog_FormatsPatrolDeploy()
+	public void ActionLog_FormatsRepurposedMinerDeploy()
 	{
 		ITimelineEntry[] history =
 		[
-			new SpawnPatrolAction("carrier-a", ESpatialOrientation.Ventral, "patrol-b"),
+			new SpawnRepurposedMinerAction("carrier-a", ESpatialOrientation.Ventral, "repurposed-miner-b"),
 			new Record<SpawnFacts>(new SpawnFacts(
 				"carrier-a",
-				"patrol-b",
-				EType.Patrol,
-				State.FromShipInstance(ShipInstance.FromCatalog("patrol-b", EType.Patrol), Coord.Zero))),
+				"repurposed-miner-b",
+				EType.RepurposedMiner,
+				State.FromShipInstance(ShipInstance.FromCatalog("repurposed-miner-b", EType.RepurposedMiner), Coord.Zero))),
 		];
 
 		var lines = ActionLog.Format(history, id => id switch
 		{
 			"carrier-a" => "enemy carrier-a",
-			"patrol-b" => "enemy patrol-b",
+			"repurposed-miner-b" => "enemy repurposed-miner-b",
 			_ => id,
 		});
 
-		AssertEntry(lines, "Deploy patrol", "enemy carrier-a → enemy patrol-b");
+		AssertEntry(lines, "Deploy Repurposed Miner", "enemy carrier-a → enemy repurposed-miner-b");
 	}
 
 	[Fact]
 	public void ActionLog_UsesSpawnedUnitIdWhenPresent()
 	{
 		ITimelineEntry[] history =
-			[new SpawnPatrolAction("carrier-a", ESpatialOrientation.Ventral, "patrol-b")];
+			[new SpawnRepurposedMinerAction("carrier-a", ESpatialOrientation.Ventral, "repurposed-miner-b")];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
-		AssertEntry(lines, "Deploy patrol", "enemy carrier-a → enemy patrol-b");
+		AssertEntry(lines, "Deploy Repurposed Miner", "enemy carrier-a → enemy repurposed-miner-b");
 	}
 
 	private static void AssertEntry(

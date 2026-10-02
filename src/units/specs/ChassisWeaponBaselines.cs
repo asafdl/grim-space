@@ -14,8 +14,8 @@ internal static class ChassisWeaponBaselines
 	internal const int LightningCannonsPerTurn = 1;
 	internal const int StarterLightningCannonDamage = 2;
 	internal const int StarterLightningCannonLineLength = 5;
-	internal const int PatrolCooldownTurns = 2;
-	internal const int MaxLivingPatrolChildren = 5;
+	internal const int RepurposedMinerCooldownTurns = 2;
+	internal const int MaxLivingRepurposedMinerChildren = 5;
 	internal const int VoidBombLauncherCooldownTurns = 3;
 	internal const int StarterVoidBombFuelTurns = 2;
 
@@ -30,8 +30,8 @@ internal static class ChassisWeaponBaselines
 	internal static VoidBombLauncherSpec StarterVoidBombLauncher() =>
 		VoidBombLauncher(StarterVoidBombFuelTurns);
 
-	internal static PatrolBaySpec PatrolBay(ShipSpec patrolChild) =>
-		new(PatrolCooldownTurns, patrolChild, MaxLivingPatrolChildren);
+	internal static MinerBaySpec MinerBay(ShipSpec repurposedMinerChild) =>
+		new(RepurposedMinerCooldownTurns, repurposedMinerChild, MaxLivingRepurposedMinerChildren);
 
 	internal static VoidBombLauncherSpec VoidBombLauncher(int fuelTurns = VoidBombSpec.FuelTurns) =>
 		new(

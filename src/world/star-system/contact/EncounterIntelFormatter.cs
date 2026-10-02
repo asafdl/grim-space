@@ -24,7 +24,7 @@ public static class EncounterIntelFormatter
 	private static string DisplayName(BattleUnitType chassis) =>
 		chassis switch
 		{
-			BattleUnitType.Patrol => "Patrol",
+			BattleUnitType.RepurposedMiner => "Repurposed Miner",
 			BattleUnitType.Fighter => "Fighter",
 			BattleUnitType.Carrier => "Carrier",
 			BattleUnitType.VoidBomb => "VoidBomb",

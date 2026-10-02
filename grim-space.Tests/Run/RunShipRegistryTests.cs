@@ -25,7 +25,7 @@ public sealed class RunShipRegistryTests
 	{
 		var registry = new RunShipRegistry();
 		registry.Register(ShipInstance.FromCatalog("fighter-a", EType.Fighter));
-		registry.Register(ShipInstance.FromCatalog("fighter-a", EType.Patrol));
+		registry.Register(ShipInstance.FromCatalog("fighter-a", EType.RepurposedMiner));
 
 		Assert.Equal(EType.Fighter, registry.Get("fighter-a").Spec.Chassis);
 	}
@@ -35,11 +35,11 @@ public sealed class RunShipRegistryTests
 	{
 		var registry = new RunShipRegistry();
 		registry.Register(ShipInstance.FromCatalog("fighter-a", EType.Fighter));
-		var upgraded = ShipInstance.FromCatalog("fighter-a", EType.Patrol);
+		var upgraded = ShipInstance.FromCatalog("fighter-a", EType.RepurposedMiner);
 
 		registry.Update(upgraded);
 
-		Assert.Equal(EType.Patrol, registry.Get("fighter-a").Spec.Chassis);
+		Assert.Equal(EType.RepurposedMiner, registry.Get("fighter-a").Spec.Chassis);
 	}
 
 	[Fact]
@@ -84,17 +84,17 @@ public sealed class RunShipRegistryTests
 	public void ApplyHandoff_UpdatesVitals()
 	{
 		var registry = new RunShipRegistry();
-		registry.Register(ShipInstance.FromCatalog("patrol-a", EType.Patrol));
-		var shields = ShipCatalog.NewRunLoadoutFor(EType.Patrol).MaxShieldPoints.Clone();
+		registry.Register(ShipInstance.FromCatalog("repurposed-miner-a", EType.RepurposedMiner));
+		var shields = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).MaxShieldPoints.Clone();
 		shields[GrimSpace.Math.Grid.ESpatialOrientation.Forward] = 1;
 
 		registry.ApplyHandoff(new GrimSpace.Battle.Objectives.UnitStateHandoff(
-			"patrol-a",
-			EType.Patrol,
+			"repurposed-miner-a",
+			EType.RepurposedMiner,
 			0,
 			shields));
 
-		Assert.Equal(0, registry.Get("patrol-a").HullPoints);
-		Assert.Equal(1, registry.Get("patrol-a").ShieldPoints[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
+		Assert.Equal(0, registry.Get("repurposed-miner-a").HullPoints);
+		Assert.Equal(1, registry.Get("repurposed-miner-a").ShieldPoints[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 	}
 }

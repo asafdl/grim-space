@@ -13,27 +13,27 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record SpawnPatrolAction(
+public sealed record SpawnRepurposedMinerAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
 	string SpawnedUnitId)
 	: IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		SpawnPatrolDef.Instance;
+		SpawnRepurposedMinerDef.Instance;
 }
 
-public sealed class SpawnPatrolDef
+public sealed class SpawnRepurposedMinerDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IMountedActionDef
 {
-	public static SpawnPatrolDef Instance { get; } = new();
+	public static SpawnRepurposedMinerDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var installed in world.StateOf(actorId).Loadout.InstalledAbilities)
 		{
-			if (installed.Spec.Kind != EAbilityKind.PatrolBay)
+			if (installed.Spec.Kind != EAbilityKind.MinerBay)
 				continue;
 
 			var action = Bind(actorId, installed.MountedOn);
@@ -42,8 +42,8 @@ public sealed class SpawnPatrolDef
 		}
 	}
 
-	public SpawnPatrolAction Bind(string actorId, ESpatialOrientation mountedOn) =>
-		new(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.Patrol)));
+	public SpawnRepurposedMinerAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+		new(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.RepurposedMiner)));
 
 	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
 		Bind(actorId, mountedOn);
@@ -60,60 +60,60 @@ public sealed class SpawnPatrolDef
 		ActorRuntime runtime) =>
 		Resolve(Cast(action), world, runtime);
 
-	public bool IsPossible(SpawnPatrolAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsPossible(SpawnRepurposedMinerAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		if (string.IsNullOrWhiteSpace(action.SpawnedUnitId))
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		if (actor.FindInstalled(EAbilityKind.PatrolBay, action.MountedOn) is null)
+		if (actor.FindInstalled(EAbilityKind.MinerBay, action.MountedOn) is null)
 			return false;
 
-		var (position, _, _) = PatrolBayMount.LaunchPose(actor, action.MountedOn);
+		var (position, _, _) = MinerBayMount.LaunchPose(actor, action.MountedOn);
 		return world.Grid.IsInBounds(position) && !world.IsCellBlocked(position);
 	}
 
-	public bool IsLegal(SpawnPatrolAction action, BattleWorld world, ActorRuntime runtime)
+	public bool IsLegal(SpawnRepurposedMinerAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		var installed = actor.FindInstalled(EAbilityKind.PatrolBay, action.MountedOn);
+		var installed = actor.FindInstalled(EAbilityKind.MinerBay, action.MountedOn);
 		if (installed is null)
 			return false;
 		if (actor.CooldownRemaining(installed.Mount) > 0)
 			return false;
 		if (installed.Spec is not ISpawnable spawnable)
 			return false;
-		if (LivingPatrolChildren(world, action.ActorId) >= spawnable.MaxLivingChildren)
+		if (LivingRepurposedMinerChildren(world, action.ActorId) >= spawnable.MaxLivingChildren)
 			return false;
 
 		return IsPossible(action, world, runtime);
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
-		SpawnPatrolAction action,
+		SpawnRepurposedMinerAction action,
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.PatrolBay, action.MountedOn)
-			?? throw new InvalidOperationException("Patrol bay not installed for actor.");
+		var installed = state.FindInstalled(EAbilityKind.MinerBay, action.MountedOn)
+			?? throw new InvalidOperationException("Repurposed Miner bay not installed for actor.");
 		var cooldown = installed.Spec is ICooldownAbility cooldownAbility
 			? cooldownAbility.CooldownTurns
-			: throw new InvalidOperationException("Patrol bay spec missing cooldown.");
+			: throw new InvalidOperationException("Repurposed Miner bay spec missing cooldown.");
 		return
 		[
-			new SpawnPatrolEffect(installed.Mount, action.SpawnedUnitId),
+			new SpawnRepurposedMinerEffect(installed.Mount, action.SpawnedUnitId),
 			new MountCooldownEffect(installed.Mount, cooldown),
 		];
 	}
 
-	private static int LivingPatrolChildren(BattleWorld world, string parentId)
+	private static int LivingRepurposedMinerChildren(BattleWorld world, string parentId)
 	{
 		var count = 0;
 		foreach (var unit in UnitRegistry.For(world).All)
 		{
 			if (unit.State.ParentId != parentId
-				|| unit.State.Type != EType.Patrol
+				|| unit.State.Type != EType.RepurposedMiner
 				|| !unit.State.IsAlive)
 			{
 				continue;
@@ -125,6 +125,6 @@ public sealed class SpawnPatrolDef
 		return count;
 	}
 
-	private static SpawnPatrolAction Cast(IAction action) =>
-		action as SpawnPatrolAction ?? throw new ArgumentException($"Expected {nameof(SpawnPatrolAction)}.", nameof(action));
+	private static SpawnRepurposedMinerAction Cast(IAction action) =>
+		action as SpawnRepurposedMinerAction ?? throw new ArgumentException($"Expected {nameof(SpawnRepurposedMinerAction)}.", nameof(action));
 }

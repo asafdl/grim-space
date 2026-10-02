@@ -103,7 +103,7 @@ public sealed class PlanningPreview
 	public static AbilityLegality Abilities(IReadOnlyList<IAction> actions) =>
 		new(
 			Weapons(actions),
-			actions.Any(action => action is SpawnPatrolAction),
+			actions.Any(action => action is SpawnRepurposedMinerAction),
 			actions.Any(action => action is DetonateAction));
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)

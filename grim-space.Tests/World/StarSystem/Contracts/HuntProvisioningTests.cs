@@ -47,10 +47,10 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
 		Assert.Single(spawned.Members);
-		Assert.All(spawned.Members, member => Assert.StartsWith("patrol-", member.Id));
+		Assert.All(spawned.Members, member => Assert.StartsWith("repurposed-miner-", member.Id));
 		Assert.All(
 			spawned.Registrations,
-			declaration => Assert.Equal(GrimSpace.Units.Enums.EType.Patrol, declaration.Chassis));
+			declaration => Assert.Equal(GrimSpace.Units.Enums.EType.RepurposedMiner, declaration.Chassis));
 		Assert.Equal(
 			spawned.Members.Count,
 			spawned.Members.Select(member => member.Id).Distinct(StringComparer.Ordinal).Count());
@@ -276,7 +276,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			FleetType.PirateFleet,
 			EFaction.Pirates,
 			unchecked((int)GrimSpace.Math.StableSeedMixer.From(mapSeed).Add(groupId).Value),
-			[(BattleUnitType.Patrol, EShipGearTier.T0)]);
+			[(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]);
 
 	private static void DockAtIssuer(StarMap map, string unitId)
 	{

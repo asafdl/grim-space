@@ -45,10 +45,10 @@ public static class AbilityActivation
 				VoidBombDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn),
 			VoidBombAction torpedo =>
 				VoidBombDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn, torpedo.SpawnedUnitId),
-			SpawnPatrolAction patrol when patrol.SpawnedUnitId == Capabilities.PreviewPatrolId =>
-				SpawnPatrolDef.Instance.Bind(patrol.ActorId, patrol.MountedOn),
-			SpawnPatrolAction patrol =>
-				new SpawnPatrolAction(patrol.ActorId, patrol.MountedOn, patrol.SpawnedUnitId),
+			SpawnRepurposedMinerAction repurposedMiner when repurposedMiner.SpawnedUnitId == Capabilities.PreviewRepurposedMinerId =>
+				SpawnRepurposedMinerDef.Instance.Bind(repurposedMiner.ActorId, repurposedMiner.MountedOn),
+			SpawnRepurposedMinerAction repurposedMiner =>
+				new SpawnRepurposedMinerAction(repurposedMiner.ActorId, repurposedMiner.MountedOn, repurposedMiner.SpawnedUnitId),
 			IMountedAction mounted
 				when choice.Action is IAction<BattleWorld, ActorRuntime>
 				{

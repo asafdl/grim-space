@@ -480,7 +480,7 @@ public partial class UnitsView : Node3D
 			EType.ComplianceVessel => new Color(0.58f, 0.62f, 0.92f),
 			EType.ServiceVessel => new Color(0.42f, 0.72f, 0.88f),
 			EType.PlayerFleet => PlayerColor,
-			EType.Patrol => new Color(0.88f, 0.38f, 0.34f),
+			EType.RepurposedMiner => new Color(0.88f, 0.38f, 0.34f),
 			EType.PirateFleet => new Color(0.72f, 0.22f, 0.58f),
 			_ => new Color(0.75f, 0.75f, 0.75f),
 		};

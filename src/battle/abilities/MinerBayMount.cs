@@ -4,7 +4,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Abilities;
 
-public static class PatrolBayMount
+public static class MinerBayMount
 {
 	public static (Coord Position, Coord Fore, Coord Dorsal) LaunchPose(
 		State ship,

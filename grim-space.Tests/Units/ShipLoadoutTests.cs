@@ -46,6 +46,6 @@ public sealed class ShipLoadoutTests
 		var fighterLoadout = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
 
 		Assert.Throws<ArgumentException>(() =>
-			ShipInstance.FromSpec("mismatch", PatrolSpec.Instance, fighterLoadout));
+			ShipInstance.FromSpec("mismatch", RepurposedMinerSpec.Instance, fighterLoadout));
 	}
 }

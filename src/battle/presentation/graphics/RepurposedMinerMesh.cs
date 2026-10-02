@@ -2,7 +2,7 @@ using Godot;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-public static class PatrolMesh
+public static class RepurposedMinerMesh
 {
 	private const string ModelPath = "res://assets/models/ships/low_poly_spaceship_110.glb";
 	private const float Length = 1.25f;
@@ -16,7 +16,7 @@ public static class PatrolMesh
 		var scale = Length / _bounds.Size.Z;
 		return new MeshInstance3D
 		{
-			Name = "PatrolHull",
+			Name = "Repurposed Miner Hull",
 			Mesh = _mesh,
 			Position = -_bounds.GetCenter() * scale,
 			Scale = Vector3.One * scale,
@@ -49,18 +49,18 @@ public static class PatrolMesh
 			return;
 
 		var scene = GD.Load<PackedScene>(ModelPath)
-			?? throw new InvalidOperationException($"Could not load patrol model '{ModelPath}'.");
+			?? throw new InvalidOperationException($"Could not load repurposed miner model '{ModelPath}'.");
 		var root = scene.Instantiate<Node3D>();
 		try
 		{
 			var meshes = root.FindChildren("*", "MeshInstance3D", true, false)
 				.OfType<MeshInstance3D>().ToArray();
 			if (meshes.Length != 1 || meshes[0].Mesh is not { } mesh || mesh.GetSurfaceCount() != 1)
-				throw new InvalidOperationException($"Patrol model '{ModelPath}' must contain one mesh surface.");
+				throw new InvalidOperationException($"Repurposed Miner model '{ModelPath}' must contain one mesh surface.");
 
 			_bounds = mesh.GetAabb();
 			if (_bounds.Size.Z <= 0f)
-				throw new InvalidOperationException($"Patrol model '{ModelPath}' has no forward extent.");
+				throw new InvalidOperationException($"Repurposed Miner model '{ModelPath}' has no forward extent.");
 			_mesh = mesh;
 		}
 		finally

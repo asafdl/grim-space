@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6r78hftclxlc"
-path="res://.godot/imported/patrol.svg-1e6f3f7ed9d2550bacd2af5eaed2704b.ctex"
+uid="uid://gxoig3pkg5q6"
+path="res://.godot/imported/repurposed-miner.png-c0beb1be92fc1b44037cc8e1069bd624.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/abilities/patrol.svg"
-dest_files=["res://.godot/imported/patrol.svg-1e6f3f7ed9d2550bacd2af5eaed2704b.ctex"]
+source_file="res://assets/ui/unit_portraits/repurposed-miner.png"
+dest_files=["res://.godot/imported/repurposed-miner.png-c0beb1be92fc1b44037cc8e1069bd624.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

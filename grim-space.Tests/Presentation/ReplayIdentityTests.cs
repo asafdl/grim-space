@@ -28,11 +28,11 @@ public sealed class ReplayIdentityTests
 		var participants = new Dictionary<string, ETeam>
 		{
 			["carrier-a"] = ETeam.Enemy,
-			["patrol-b"] = ETeam.Enemy,
+			["repurposed-miner-b"] = ETeam.Enemy,
 		};
 
 		Assert.Equal(EReplayPlaybackPhase.Enemy, ReplayActorPhase.Classify("carrier-a", participants));
-		Assert.Equal(EReplayPlaybackPhase.Enemy, ReplayActorPhase.Classify("patrol-b", participants));
+		Assert.Equal(EReplayPlaybackPhase.Enemy, ReplayActorPhase.Classify("repurposed-miner-b", participants));
 	}
 
 	[Fact]

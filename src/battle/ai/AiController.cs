@@ -29,7 +29,7 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			{
 				var start = session.Actions.Count;
 				var capabilities = Capabilities.For(actor.State)
-					.Where(def => def is not SpawnPatrolDef)
+					.Where(def => def is not SpawnRepurposedMinerDef)
 					.ToArray();
 				var actions = Runner.CalcActions(
 					session,
@@ -37,7 +37,7 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 					capabilities,
 					new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
 					frames => SelectBest(session, actor.State.Id, frames));
-				if (actor.State.Type == EType.Carrier && TryAppendPatrolDeploy(session, actor))
+				if (actor.State.Type == EType.Carrier && TryAppendRepurposedMinerDeploy(session, actor))
 					actions = session.Actions.Skip(start).ToList();
 
 				Publish(actions, jobCanWorkGeneration);
@@ -168,12 +168,12 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 		finalists[worstIndex] = (frame, heuristicScore);
 	}
 
-	private static bool TryAppendPatrolDeploy(BattleSimulation session, Unit actor)
+	private static bool TryAppendRepurposedMinerDeploy(BattleSimulation session, Unit actor)
 	{
 		var runtime = session.Runtimes.For(actor.State.Id);
-		var action = SpawnPatrolDef.Instance
+		var action = SpawnRepurposedMinerDef.Instance
 			.Discover(session.World, runtime, actor.State.Id)
-			.OfType<SpawnPatrolAction>()
+			.OfType<SpawnRepurposedMinerAction>()
 			.FirstOrDefault();
 		if (action is null)
 			return false;

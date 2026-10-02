@@ -24,7 +24,7 @@ public sealed class CarrierDeployTests
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
-		Assert.Contains(actions, action => action is SpawnPatrolAction);
+		Assert.Contains(actions, action => action is SpawnRepurposedMinerAction);
 	}
 
 	[Fact]
@@ -33,12 +33,12 @@ public sealed class CarrierDeployTests
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var carrier = BattleTestFixture.Carrier(new Coord(5, 5, 5));
 		carrier.State.ActionPoints = 0;
-		StateMountTestKit.SetCooldownRemaining(carrier.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.PatrolBay, 1);
+		StateMountTestKit.SetCooldownRemaining(carrier.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.MinerBay, 1);
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
-		Assert.DoesNotContain(actions, action => action is SpawnPatrolAction);
+		Assert.DoesNotContain(actions, action => action is SpawnRepurposedMinerAction);
 	}
 
 	[Fact]
@@ -58,7 +58,7 @@ public sealed class CarrierDeployTests
 
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
-		Assert.DoesNotContain(actions, action => action is SpawnPatrolAction);
+		Assert.DoesNotContain(actions, action => action is SpawnRepurposedMinerAction);
 	}
 
 	[Fact]
@@ -69,30 +69,30 @@ public sealed class CarrierDeployTests
 		carrier.State.ActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
-		FillLivingPatrols(
+		FillLivingRepurposedMiners(
 			battle.Engine.World,
 			carrier.State.Id,
-			CatalogExpectations.DefaultPatrolBaySpec().MaxLivingChildren);
+			CatalogExpectations.DefaultMinerBaySpec().MaxLivingChildren);
 
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
 
-		Assert.DoesNotContain(actions, action => action is SpawnPatrolAction);
+		Assert.DoesNotContain(actions, action => action is SpawnRepurposedMinerAction);
 	}
 
-	private static void FillLivingPatrols(BattleWorld world, string carrierId, int count)
+	private static void FillLivingRepurposedMiners(BattleWorld world, string carrierId, int count)
 	{
 		var carrier = UnitRegistry.For(world).UnitOf(carrierId);
 		for (var i = 0; i < count; i++)
 		{
-			var patrol = Factory.Create(
-				ShipInstance.FromCatalog($"patrol-{i}", EType.Patrol),
+			var repurposedMiner = Factory.Create(
+				ShipInstance.FromCatalog($"repurposed-miner-{i}", EType.RepurposedMiner),
 				carrier.Team,
 				new Coord(1 + i, 1, 5),
 				new AiController(),
 				Coord.Forward,
 				Coord.Up,
 				parentId: carrierId);
-			UnitRegistry.For(world).Add(patrol);
+			UnitRegistry.For(world).Add(repurposedMiner);
 		}
 	}
 }

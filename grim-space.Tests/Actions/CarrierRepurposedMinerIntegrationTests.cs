@@ -12,35 +12,35 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Tests.Actions;
 
 [IntegrationTestSuite]
-public sealed class CarrierPatrolIntegrationTests
+public sealed class CarrierRepurposedMinerIntegrationTests
 {
 	[Fact]
-	public void ResolveTurn_CarrierDeploysAndActivatesPatrolSameCycle()
+	public void ResolveTurn_CarrierDeploysAndActivatesRepurposedMinerSameCycle()
 	{
 		var battle = BattleTestFixture.BeginCarrierVsPlayer(new Coord(0, 5, 5), new Coord(8, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
-		var patrol = Assert.Single(
+		var repurposedMiner = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
-			unit => unit.State.Type == EType.Patrol);
-		Assert.Equal(carrierId, patrol.State.ParentId);
+			unit => unit.State.Type == EType.RepurposedMiner);
+		Assert.Equal(carrierId, repurposedMiner.State.ParentId);
 
-		Assert.Contains(replay.History, entry => entry is SpawnPatrolAction { ActorId: var actorId } && actorId == carrierId);
+		Assert.Contains(replay.History, entry => entry is SpawnRepurposedMinerAction { ActorId: var actorId } && actorId == carrierId);
 		Assert.Contains(
 			replay.History,
 			entry => entry is Record<SpawnFacts> { Value: var spawn }
 				&& spawn.SourceId == carrierId
-				&& spawn.TargetId == patrol.State.Id
-				&& spawn.EntityType == EType.Patrol);
+				&& spawn.TargetId == repurposedMiner.State.Id
+				&& spawn.EntityType == EType.RepurposedMiner);
 		Assert.Contains(
 			replay.Actions,
-			action => action is EndOfPhaseAction { ActorId: var actorId } && actorId == patrol.State.Id);
+			action => action is EndOfPhaseAction { ActorId: var actorId } && actorId == repurposedMiner.State.Id);
 	}
 
 	[Fact]
-	public void ResolveTurn_SpawnedPatrolCanFireScrapDroneSwarmSameCycle()
+	public void ResolveTurn_SpawnedRepurposedMinerCanFireScrapDroneSwarmSameCycle()
 	{
 		var grid = BattleTestFixture.Grid();
 		var carrierPos = new Coord(5, 5, 5);
@@ -51,22 +51,22 @@ public sealed class CarrierPatrolIntegrationTests
 		carrier.State.Starboard = Coord.Cross(carrier.State.Dorsal, carrier.State.Fore);
 		carrier.State.ActionPoints = 0;
 
-		var (_, fore, dorsal) = PatrolBayMount.LaunchPose(carrier.State, ESpatialOrientation.Ventral);
-		var patrolFrame = new BodyFrame(
+		var (_, fore, dorsal) = MinerBayMount.LaunchPose(carrier.State, ESpatialOrientation.Ventral);
+		var repurposedMinerFrame = new BodyFrame(
 			carrierPos + BodyFrame.From(carrier.State).Step(ESpatialOrientation.Ventral),
 			fore,
 			dorsal,
 			Coord.Cross(dorsal, fore));
-		player.State.Position = patrolFrame.ToWorld(0, 1, 0);
+		player.State.Position = repurposedMinerFrame.ToWorld(0, 1, 0);
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier, grid);
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
-		var patrol = Assert.Single(
+		var repurposedMiner = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
-			unit => unit.State.Type == EType.Patrol);
+			unit => unit.State.Type == EType.RepurposedMiner);
 		Assert.Contains(
 			replay.Actions,
-			action => action is ScrapDroneSwarmAction { ActorId: var actorId } && actorId == patrol.State.Id);
+			action => action is ScrapDroneSwarmAction { ActorId: var actorId } && actorId == repurposedMiner.State.Id);
 	}
 }

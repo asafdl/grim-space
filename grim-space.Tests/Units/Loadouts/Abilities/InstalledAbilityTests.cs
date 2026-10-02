@@ -85,9 +85,9 @@ public sealed class InstalledAbilityTests
 	}
 
 	[Fact]
-	public void PatrolScrapDroneSwarm_HasIndependentPortAndStarboardMounts()
+	public void RepurposedMinerScrapDroneSwarm_HasIndependentPortAndStarboardMounts()
 	{
-		var installed = ShipCatalog.NewRunLoadoutFor(EType.Patrol).InstalledAbilities;
+		var installed = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).InstalledAbilities;
 
 		Assert.Equal(2, installed.Count);
 		Assert.Contains(installed, ability => ability.Mount == new AbilityMount(EAbilityKind.ScrapDroneSwarm, GrimSpace.Math.Grid.ESpatialOrientation.Port));

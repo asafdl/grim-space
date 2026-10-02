@@ -165,14 +165,14 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Victory_AppliesLootFromDestroyedPatrols()
+	public void Victory_AppliesLootFromDestroyedRepurposedMiners()
 	{
 		using var orchestrator = CreateEngagement();
 		var map = orchestrator.Map;
 		var enemyId = HuntTargetId(map, map.ContractRegistry.Pending.First().Id, 0);
 		var initialScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(map, enemyId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedRepurposedMiners(map, enemyId)));
 
 		var history = map.Timeline.History();
 		Assert.Contains(
@@ -195,7 +195,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		inbox.Bind(orchestrator);
 		var enemyId = HuntTargetId(orchestrator.Map, orchestrator.Map.ContractRegistry.Pending.First().Id, 0);
 
-		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedPatrols(orchestrator.Map, enemyId)));
+		Assert.True(orchestrator.ResolveEngagement(PlayerId, VictoryWithDestroyedRepurposedMiners(orchestrator.Map, enemyId)));
 
 		var transaction = Assert.Single(inbox.DrainResourceTransactions());
 		Assert.Equal(TransactionSource.BattleLoot, transaction.Source);
@@ -208,7 +208,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		using var orchestrator = CreateEngagement();
 		var map = orchestrator.Map;
 		var enemyId = HuntTargetId(orchestrator.Map, orchestrator.Map.ContractRegistry.Pending.First().Id, 0);
-		var victory = VictoryWithDestroyedPatrols(orchestrator.Map, enemyId);
+		var victory = VictoryWithDestroyedRepurposedMiners(orchestrator.Map, enemyId);
 
 		Assert.True(orchestrator.ResolveEngagement(PlayerId, victory));
 		var scrapAfterFirst = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
@@ -229,7 +229,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 		Assert.True(orchestrator.ResolveEngagement(
 			PlayerId,
-			VictoryWithDestroyedPatrols(map, HuntTargetId(map, contractId, 0))));
+			VictoryWithDestroyedRepurposedMiners(map, HuntTargetId(map, contractId, 0))));
 
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
@@ -251,7 +251,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 
 		Assert.True(orchestrator.ResolveEngagement(
 			PlayerId,
-			VictoryWithDestroyedPatrols(map, HuntTargetId(map, contractId, 0))));
+			VictoryWithDestroyedRepurposedMiners(map, HuntTargetId(map, contractId, 0))));
 
 		Assert.InRange(
 			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) - initialScrap,
@@ -356,6 +356,6 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 					OutcomeTestKit.ChassisFromShipId(member.Id),
 					fleet.State.Id == pirateId ? 0 : 1)))]);
 
-	private static BattleOutcome VictoryWithDestroyedPatrols(StarMap map, string pirateId) =>
+	private static BattleOutcome VictoryWithDestroyedRepurposedMiners(StarMap map, string pirateId) =>
 		Victory(map, pirateId);
 }

@@ -11,13 +11,13 @@ namespace GrimSpace.Tests.Run;
 public sealed class LootCatalogTests
 {
 	[Fact]
-	public void For_DestroyedPatrolFromDefeatedFleet_GrantsScrapInRange()
+	public void For_DestroyedRepurposedMinerFromDefeatedFleet_GrantsScrapInRange()
 	{
-		var result = LootCatalog.For(OutcomeWithDestroyedPatrols("patrol-0"));
+		var result = LootCatalog.For(OutcomeWithDestroyedRepurposedMiners("repurposed-miner-0"));
 		var roll = Assert.Single(result.Rolls);
 
-		Assert.Equal("patrol-0", roll.TacticalUnitId);
-		Assert.Equal(EType.Patrol, roll.Kind);
+		Assert.Equal("repurposed-miner-0", roll.TacticalUnitId);
+		Assert.Equal(EType.RepurposedMiner, roll.Kind);
 		Assert.True(roll.Awarded.TryGet(ResourceId.ScrapAlloy, out var scrap));
 		Assert.InRange(scrap, 50, 120);
 		Assert.True(result.Total.TryGet(ResourceId.ScrapAlloy, out var total));
@@ -25,9 +25,9 @@ public sealed class LootCatalogTests
 	}
 
 	[Fact]
-	public void For_MultipleDestroyedPatrols_SumsRollsInRange()
+	public void For_MultipleDestroyedRepurposedMiners_SumsRollsInRange()
 	{
-		var result = LootCatalog.For(OutcomeWithDestroyedPatrols("patrol-0", "patrol-1", "patrol-2"));
+		var result = LootCatalog.For(OutcomeWithDestroyedRepurposedMiners("repurposed-miner-0", "repurposed-miner-1", "repurposed-miner-2"));
 
 		Assert.Equal(3, result.Rolls.Count);
 		var expectedTotal = 0;
@@ -43,12 +43,12 @@ public sealed class LootCatalogTests
 	}
 
 	[Fact]
-	public void For_SurvivingPatrol_YieldsEmptyLoot()
+	public void For_SurvivingRepurposedMiner_YieldsEmptyLoot()
 	{
 		var outcome = new BattleOutcome(
 			"test-battle",
 			EBattleResult.Ongoing,
-			[OutcomeTestKit.Handoff("patrol-0", EType.Patrol, 1)]);
+			[OutcomeTestKit.Handoff("repurposed-miner-0", EType.RepurposedMiner, 1)]);
 
 		var result = LootCatalog.For(outcome);
 
@@ -71,11 +71,11 @@ public sealed class LootCatalogTests
 	}
 
 	[Fact]
-	public void For_DestroyedPatrol_HigherGearTier_IncreasesScrapRange()
+	public void For_DestroyedRepurposedMiner_HigherGearTier_IncreasesScrapRange()
 	{
 		const ulong seed = 42;
-		var low = LootCatalog.SalvageFromShip(EType.Patrol, EShipGearTier.T0, new StableRandom(seed));
-		var high = LootCatalog.SalvageFromShip(EType.Patrol, EShipGearTier.T3, new StableRandom(seed));
+		var low = LootCatalog.SalvageFromShip(EType.RepurposedMiner, EShipGearTier.T0, new StableRandom(seed));
+		var high = LootCatalog.SalvageFromShip(EType.RepurposedMiner, EShipGearTier.T3, new StableRandom(seed));
 
 		Assert.True(low.TryGet(ResourceId.ScrapAlloy, out var lowScrap));
 		Assert.True(high.TryGet(ResourceId.ScrapAlloy, out var highScrap));
@@ -102,10 +102,10 @@ public sealed class LootCatalogTests
 	[Fact]
 	public void SalvageFromShip_PowerAtMost10_NeverDropsIndustrialCore()
 	{
-		var patrol = new ShipPowerLevel(EType.Patrol, EShipGearTier.T3, 8);
+		var repurposedMiner = new ShipPowerLevel(EType.RepurposedMiner, EShipGearTier.T3, 8);
 		for (ulong seed = 0; seed < 200; seed++)
 		{
-			var loot = LootCatalog.SalvageFromShip(patrol, new StableRandom(seed));
+			var loot = LootCatalog.SalvageFromShip(repurposedMiner, new StableRandom(seed));
 			Assert.False(loot.TryGet(ResourceId.IndustrialCore, out _));
 		}
 	}
@@ -124,9 +124,9 @@ public sealed class LootCatalogTests
 		Assert.True(result.Total.IsEmpty);
 	}
 
-	private static BattleOutcome OutcomeWithDestroyedPatrols(params string[] patrolIds) =>
+	private static BattleOutcome OutcomeWithDestroyedRepurposedMiners(params string[] repurposedMinerIds) =>
 		new(
 			"test-battle",
 			EBattleResult.Win,
-			[.. patrolIds.Select(id => OutcomeTestKit.Handoff(id, EType.Patrol, 0))]);
+			[.. repurposedMinerIds.Select(id => OutcomeTestKit.Handoff(id, EType.RepurposedMiner, 0))]);
 }

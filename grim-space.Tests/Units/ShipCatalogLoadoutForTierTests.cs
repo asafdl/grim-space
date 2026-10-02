@@ -11,9 +11,9 @@ public sealed class ShipCatalogLoadoutForTierTests
 	[Fact]
 	public void T0_NoSpends_MatchesBaseline_AndIgnoresRollSeed()
 	{
-		var baseline = PatrolSpec.Instance.NewDefaultLoadout();
-		var t0 = ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T0);
-		var t0Seeded = ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T0, rollSeed: 99173);
+		var baseline = RepurposedMinerSpec.Instance.NewDefaultLoadout();
+		var t0 = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T0);
+		var t0Seeded = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T0, rollSeed: 99173);
 
 		AssertLoadoutEquivalent(baseline, t0);
 		AssertLoadoutEquivalent(t0, t0Seeded);
@@ -36,10 +36,10 @@ public sealed class ShipCatalogLoadoutForTierTests
 	}
 
 	[Fact]
-	public void T0_Patrol_MatchesNewDefaultLoadout()
+	public void T0_RepurposedMiner_MatchesNewDefaultLoadout()
 	{
-		var expected = PatrolSpec.Instance.NewDefaultLoadout();
-		var t0 = ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T0);
+		var expected = RepurposedMinerSpec.Instance.NewDefaultLoadout();
+		var t0 = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T0);
 
 		AssertLoadoutEquivalent(expected, t0);
 	}
@@ -65,8 +65,8 @@ public sealed class ShipCatalogLoadoutForTierTests
 	[Fact]
 	public void Deterministic_NoSeed_SameLoadoutTwice()
 	{
-		var first = ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T2);
-		var second = ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T2);
+		var first = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T2);
+		var second = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T2);
 
 		AssertLoadoutEquivalent(first, second);
 	}
@@ -93,10 +93,10 @@ public sealed class ShipCatalogLoadoutForTierTests
 	[Fact]
 	public void BudgetMonotonic_CanonicalPath_IncreasesUpgradeWeight()
 	{
-		var t0 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T0));
-		var t1 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T1));
-		var t2 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T2));
-		var t3 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.Patrol, EShipGearTier.T3));
+		var t0 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T0));
+		var t1 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T1));
+		var t2 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T2));
+		var t3 = UpgradeWeight(ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T3));
 
 		Assert.True(t1 >= t0);
 		Assert.True(t2 >= t1);

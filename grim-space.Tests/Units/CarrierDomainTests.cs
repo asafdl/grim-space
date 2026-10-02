@@ -26,17 +26,17 @@ public sealed class CarrierDomainTests
 	}
 
 	[Fact]
-	public void CarrierAbilitiesIncludeLightningCannonAndSpawnPatrol()
+	public void CarrierAbilitiesIncludeLightningCannonAndSpawnRepurposedMiner()
 	{
 		var abilities = Capabilities.AbilitiesFor(EType.Carrier);
 
 		Assert.Contains(abilities, def => def is LightningCannonDef);
-		Assert.Contains(abilities, def => def is SpawnPatrolDef);
+		Assert.Contains(abilities, def => def is SpawnRepurposedMinerDef);
 		Assert.DoesNotContain(abilities, def => def is ScrapDroneSwarmDef);
 	}
 
 	[Fact]
-	public void SpawnPatrolChargesShowOneWhenReady()
+	public void SpawnRepurposedMinerChargesShowOneWhenReady()
 	{
 		var unit = UnitDisplayState.Capture(
 			State.FromShipInstance(
@@ -46,21 +46,21 @@ public sealed class CarrierDomainTests
 		var ready = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true, Detonate: false));
+			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false));
 		var cooling = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
 			unit with
 			{
 				Mounts = unit.Mounts
-					.Select(mount => mount.Mount.Kind == EAbilityKind.PatrolBay
+					.Select(mount => mount.Mount.Kind == EAbilityKind.MinerBay
 						? mount with
 						{
-							CooldownRemaining = CatalogExpectations.DefaultPatrolBaySpec().CooldownTurns,
+							CooldownRemaining = CatalogExpectations.DefaultMinerBaySpec().CooldownTurns,
 						}
 						: mount)
 					.ToList(),
 			},
-			new AbilityLegality(WeaponPeek.Empty, SpawnPatrol: true, Detonate: false));
+			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false));
 
 		Assert.Equal("1/1", ready.Charges);
 		Assert.Equal("0/1", cooling.Charges);

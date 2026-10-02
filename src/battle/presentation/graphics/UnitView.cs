@@ -38,8 +38,8 @@ public partial class UnitView : Node3D
 
 		if (state.Type == EType.VoidBomb)
 			BindVoidBomb();
-		else if (state.Type == EType.Patrol)
-			BindPatrol();
+		else if (state.Type == EType.RepurposedMiner)
+			BindRepurposedMiner();
 		else if (state.Type == EType.Carrier)
 			BindCarrier();
 		else
@@ -250,7 +250,7 @@ public partial class UnitView : Node3D
 		var scale = _type switch
 		{
 			EType.VoidBomb => 0.55f,
-			EType.Patrol => 0.72f,
+			EType.RepurposedMiner => 0.72f,
 			EType.Carrier => 1.35f,
 			_ => 1.1f,
 		};
@@ -302,7 +302,7 @@ public partial class UnitView : Node3D
 		var radius = _type switch
 		{
 			EType.VoidBomb => 0.45f,
-			EType.Patrol => 0.58f,
+			EType.RepurposedMiner => 0.58f,
 			EType.Carrier => 1.15f,
 			_ => 0.95f,
 		};
@@ -339,9 +339,9 @@ public partial class UnitView : Node3D
 		AddChild(_hull);
 	}
 
-	private void BindPatrol()
+	private void BindRepurposedMiner()
 	{
-		_hull = PatrolMesh.CreateHullInstance();
+		_hull = RepurposedMinerMesh.CreateHullInstance();
 		AddChild(_hull);
 	}
 
@@ -460,7 +460,7 @@ public partial class UnitView : Node3D
 		type switch
 		{
 			EType.VoidBomb => 0.55f,
-			EType.Patrol => 0.82f,
+			EType.RepurposedMiner => 0.82f,
 			EType.Carrier => 1.35f,
 			_ => 1.2f,
 		};

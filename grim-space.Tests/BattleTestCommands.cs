@@ -40,11 +40,11 @@ internal static class BattleTestCommands
 	public static bool FireLightningCannon(BattleOrchestrator battle) =>
 		Enqueue(battle, [new LightningCannonAction(battle.PlayerId)]);
 
-	public static bool DeployPatrol(BattleOrchestrator battle)
+	public static bool DeployRepurposedMiner(BattleOrchestrator battle)
 	{
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
-		var action = SpawnPatrolDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral);
-		if (!SpawnPatrolDef.Instance.IsLegal(action, battle.Engine.World, battle.Engine.ActorRuntimes.For(carrierId)))
+		var action = SpawnRepurposedMinerDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral);
+		if (!SpawnRepurposedMinerDef.Instance.IsLegal(action, battle.Engine.World, battle.Engine.ActorRuntimes.For(carrierId)))
 			return false;
 
 		battle.Engine.Commit([action]);

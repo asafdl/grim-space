@@ -9,7 +9,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class SpawnPatrolEffect(AbilityMount mount, string unitId) : IEffect<BattleWorld, ActorRuntime>
+public sealed class SpawnRepurposedMinerEffect(AbilityMount mount, string unitId) : IEffect<BattleWorld, ActorRuntime>
 {
 	private Unit? _spawned;
 
@@ -17,9 +17,9 @@ public sealed class SpawnPatrolEffect(AbilityMount mount, string unitId) : IEffe
 	{
 		var units = UnitRegistry.For(world);
 		var parent = units.UnitOf(actorId);
-		var (position, fore, dorsal) = PatrolBayMount.LaunchPose(parent.State, mount.Facet);
+		var (position, fore, dorsal) = MinerBayMount.LaunchPose(parent.State, mount.Facet);
 		var child = Factory.ChildFromSpawnableMount(parent.State, mount, unitId);
-		var patrol = Factory.Create(
+		var repurposedMiner = Factory.Create(
 			child,
 			parent.Team,
 			position,
@@ -27,16 +27,16 @@ public sealed class SpawnPatrolEffect(AbilityMount mount, string unitId) : IEffe
 			fore,
 			dorsal,
 			parentId: actorId);
-		units.Add(patrol);
-		_spawned = patrol;
+		units.Add(repurposedMiner);
+		_spawned = repurposedMiner;
 
 		return
 		[
 			new Record<SpawnFacts>(new SpawnFacts(
 				SourceId: actorId,
-				TargetId: patrol.State.Id,
-				EntityType: EType.Patrol,
-				SpawnedState: patrol.State.Clone())),
+				TargetId: repurposedMiner.State.Id,
+				EntityType: EType.RepurposedMiner,
+				SpawnedState: repurposedMiner.State.Clone())),
 		];
 	}
 

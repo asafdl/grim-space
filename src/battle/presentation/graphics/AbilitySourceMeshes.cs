@@ -14,7 +14,7 @@ internal static class AbilitySourceMeshes
 
 	public static Node3D CreateVoidBomb() => VoidBombMesh.CreateHullInstance();
 
-	public static Node3D CreatePatrol() => Ghost(PatrolMesh.CreatePreviewHull());
+	public static Node3D CreateRepurposedMiner() => Ghost(RepurposedMinerMesh.CreatePreviewHull());
 
 	public static Node3D CreateDetonation() =>
 		Ghost(new SphereMesh
