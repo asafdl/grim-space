@@ -15,6 +15,7 @@ public partial class Session : Node
 
 	private static Session? _instance;
 	private DevMenuOverlay _devMenu = null!;
+	private Label _fpsLabel = null!;
 	private bool _beginningMapFromMenu;
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
@@ -48,8 +49,30 @@ public partial class Session : Node
 		_devMenu = new DevMenuOverlay();
 		devMenuLayer.AddChild(_devMenu);
 		_devMenu.StartBattleRequested += StartDevBattle;
+
+		var performanceLayer = new CanvasLayer { Layer = 30 };
+		AddChild(performanceLayer);
+		_fpsLabel = new Label
+		{
+			AnchorLeft = 1f,
+			AnchorRight = 1f,
+			OffsetLeft = -120f,
+			OffsetTop = 16f,
+			OffsetRight = -16f,
+			OffsetBottom = 44f,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			HorizontalAlignment = HorizontalAlignment.Right,
+		};
+		performanceLayer.AddChild(_fpsLabel);
+		_fpsLabel.ProcessMode = Node.ProcessModeEnum.Always;
+
 		_tutorialDialogHost = new TutorialDialogHost();
 		AddChild(_tutorialDialogHost);
+	}
+
+	public override void _Process(double delta)
+	{
+		_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
 	}
 
 	public override void _ExitTree()
