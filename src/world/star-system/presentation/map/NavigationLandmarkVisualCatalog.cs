@@ -61,6 +61,15 @@ internal static class NavigationLandmarkVisualCatalog
 		return hasBounds ? combined : new Aabb(Vector3.Zero, Vector3.One * 0.05f);
 	}
 
+	public static IReadOnlyList<Node3D> FindAnimatedRockRoots(Node3D root) =>
+		root.FindChildren("*", "Node3D", true, false)
+			.OfType<Node3D>()
+			.Where(node =>
+				node.Name.ToString().StartsWith("Asteroid_", StringComparison.Ordinal)
+				|| node.Name.ToString().StartsWith("TailingsShard_", StringComparison.Ordinal)
+				|| node.Name.ToString().StartsWith("DebrisPiece_", StringComparison.Ordinal))
+			.ToArray();
+
 	private static RandomNumberGenerator CreateRng(int visualSeed)
 	{
 		var rng = new RandomNumberGenerator();
@@ -80,6 +89,7 @@ internal static class NavigationLandmarkVisualCatalog
 			var position = LayoutPoint(layout, i, mainCount, clusterRadius, random, 0.55f);
 			var diameter = worldRadius * (0.3f + random.Randf() * 0.35f);
 			var rock = NavigationLandmarkRockLibrary.CreateRock(random, diameter, mainMass: true);
+			rock.Name = $"Asteroid_Main_{i}";
 			rock.Position = position;
 			rock.RotationDegrees = new Vector3(
 				random.Randf() * 35f,
@@ -97,6 +107,7 @@ internal static class NavigationLandmarkVisualCatalog
 			var position = LayoutPoint(layout, i, supportCount, clusterRadius, random, 0.95f);
 			var diameter = worldRadius * (0.08f + random.Randf() * 0.12f);
 			var rock = NavigationLandmarkRockLibrary.CreateRock(random, diameter, mainMass: false);
+			rock.Name = $"Asteroid_Support_{i}";
 			rock.Position = position;
 			rock.RotationDegrees = new Vector3(
 				random.Randf() * 180f,
@@ -179,6 +190,7 @@ internal static class NavigationLandmarkVisualCatalog
 				random,
 				worldRadius * (0.04f + random.Randf() * 0.06f),
 				mainMass: false);
+			shard.Name = $"TailingsShard_{i}";
 			shard.Position = new Vector3(
 				Mathf.Cos(angle) * distance,
 				(random.Randf() - 0.5f) * worldRadius * 0.03f,
@@ -211,6 +223,7 @@ internal static class NavigationLandmarkVisualCatalog
 				random,
 				worldRadius * (0.06f + random.Randf() * 0.1f),
 				mainMass: i < 2);
+			piece.Name = $"DebrisPiece_{i}";
 			piece.Position = new Vector3(
 				Mathf.Cos(angle) * distance,
 				(random.Randf() - 0.5f) * worldRadius * 0.04f,

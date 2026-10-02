@@ -36,8 +36,11 @@ public partial class MapView : Node3D
 	private readonly Dictionary<string, MeshInstance3D> _footprints = new();
 	private readonly Dictionary<string, Node3D> _markers = new();
 	private readonly Dictionary<string, MeshInstance3D> _hoverRings = new();
+	private readonly Dictionary<string, PoiAnimation> _poiAnimations = new();
+	private readonly List<MeshAnimation> _meshAnimations = [];
 
 	private string? _hoveredId;
+	private float _animationTime;
 	private Node3D? _minorGridRoot;
 	private MapAtmosphereSettings _atmosphere = MapAtmosphereSettings.Default;
 	private IReadOnlyList<PointOfInterest> _pois = [];
@@ -48,6 +51,38 @@ public partial class MapView : Node3D
 	private const int DockPickRadius = 12;
 
 	public sealed record DockHoverInfo(string DockId, string PoiId, string DisplayName);
+	private readonly record struct PoiAnimation(float TiltX, float TiltZ, float RotationSpeed, float Phase);
+	private readonly record struct MeshAnimation(
+		Node3D Target,
+		Vector3 BaseRotation,
+		Vector3 Axis,
+		float RotationSpeed,
+		float Phase);
+
+	public override void _Process(double delta)
+	{
+		if (_poiAnimations.Count == 0)
+			return;
+
+		_animationTime += (float)delta;
+		foreach (var (poiId, animation) in _poiAnimations)
+		{
+			if (!_markers.TryGetValue(poiId, out var marker))
+				continue;
+
+			marker.Rotation = new Vector3(
+				animation.TiltX,
+				animation.Phase + _animationTime * animation.RotationSpeed,
+				animation.TiltZ);
+		}
+
+		foreach (var animation in _meshAnimations)
+		{
+			var angle = animation.Phase + _animationTime * animation.RotationSpeed;
+			animation.Target.Rotation =
+				animation.BaseRotation + animation.Axis * angle;
+		}
+	}
 
 	public Vector3 GetPoiWorldPosition(string poiId, int width, int height)
 	{
@@ -119,6 +154,9 @@ public partial class MapView : Node3D
 		_footprints.Clear();
 		_markers.Clear();
 		_hoverRings.Clear();
+		_poiAnimations.Clear();
+		_meshAnimations.Clear();
+		_animationTime = 0f;
 		_hoveredId = null;
 		_minorGridRoot = null;
 		_pois = world.PointsOfInterest;
@@ -147,6 +185,9 @@ public partial class MapView : Node3D
 			var marker = BuildPoiMarker(poi, world.Seed, world.Width, world.Height, planetVariants);
 			_markers[poi.Id] = marker;
 			AddChild(marker);
+
+			if (poi is not OreMine)
+				_poiAnimations[poi.Id] = CreatePoiAnimation(world.Seed, poi.Id, poi.Radius);
 		}
 
 		foreach (var dock in _docks)
@@ -332,6 +373,20 @@ public partial class MapView : Node3D
 			},
 		});
 		return root;
+	}
+
+	private static PoiAnimation CreatePoiAnimation(int seed, string poiId, int radius)
+	{
+		var random = new StableRandom(
+			StableSeedMixer.From(seed).Add("poi-animation").Add(poiId).Value);
+
+		var sizeSpeedScale = Mathf.Clamp(34f / Mathf.Max(radius, 1), 0.2f, 1.1f);
+
+		return new PoiAnimation(
+			TiltX: Mathf.DegToRad(-12f + (float)random.NextDouble() * 24f),
+			TiltZ: Mathf.DegToRad(-12f + (float)random.NextDouble() * 24f),
+			RotationSpeed: (0.08f + (float)random.NextDouble() * 0.06f) * sizeSpeedScale,
+			Phase: (float)(random.NextDouble() * Mathf.Tau));
 	}
 
 	private static bool ContainsPoint(PointOfInterest poi, Coord point)
@@ -562,7 +617,7 @@ public partial class MapView : Node3D
 		return root;
 	}
 
-	private static void AddAsteroidField(Node3D root, int seed, PointOfInterest poi)
+	private void AddAsteroidField(Node3D root, int seed, PointOfInterest poi)
 	{
 		var random = new StableRandom(StableSeedMixer.From(seed).Add(poi.Id).Value);
 		var worldRadius = poi.Radius * MapMapping.WorldUnitsPerPoint;
@@ -601,6 +656,16 @@ public partial class MapView : Node3D
 				(float)(random.NextDouble() * System.Math.Tau),
 				(float)(random.NextDouble() * System.Math.Tau),
 				(float)(random.NextDouble() * System.Math.Tau));
+			var rotationAxis = new Vector3(
+				(float)(random.NextDouble() - 0.5),
+				(float)(random.NextDouble() - 0.5),
+				(float)(random.NextDouble() - 0.5)).Normalized();
+			_meshAnimations.Add(new MeshAnimation(
+				rock,
+				rock.Rotation,
+				rotationAxis,
+				0.04f + (float)random.NextDouble() * 0.08f,
+				(float)(random.NextDouble() * Mathf.Tau)));
 			NavigationLandmarkRockLibrary.TintMeshes(
 				rock,
 				copper.Lerp(weatheredCopper, rng.Randf() * 0.55f),

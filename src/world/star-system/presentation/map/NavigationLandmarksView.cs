@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Landmarks;
@@ -15,6 +16,7 @@ public partial class NavigationLandmarksView : Node3D
 	private static readonly Color BoundsColor = new(0.82f, 0.62f, 0.38f, 0.42f);
 
 	private readonly Dictionary<string, LandmarkVisual> _landmarks = new(StringComparer.Ordinal);
+	private readonly List<RockAnimation> _rockAnimations = [];
 	private IReadOnlyList<NavigationLandmark> _source = [];
 	private string? _hoveredId;
 	private int _width;
@@ -22,6 +24,14 @@ public partial class NavigationLandmarksView : Node3D
 	private bool _showNavigationFootprints;
 	private bool _showLocalBounds;
 	private bool _landmarksVisible = true;
+	private float _animationTime;
+
+	private readonly record struct RockAnimation(
+		Node3D Target,
+		Vector3 BaseRotation,
+		Vector3 Axis,
+		float RotationSpeed,
+		float Phase);
 
 	public bool ShowNavigationFootprints
 	{
@@ -59,6 +69,20 @@ public partial class NavigationLandmarksView : Node3D
 		}
 	}
 
+	public override void _Process(double delta)
+	{
+		if (_rockAnimations.Count == 0)
+			return;
+
+		_animationTime += (float)delta;
+		foreach (var animation in _rockAnimations)
+		{
+			var angle = animation.Phase + _animationTime * animation.RotationSpeed;
+			animation.Target.Rotation =
+				animation.BaseRotation + animation.Axis * angle;
+		}
+	}
+
 	public void Build(StarMap world)
 	{
 		foreach (var child in GetChildren().ToArray())
@@ -68,7 +92,9 @@ public partial class NavigationLandmarksView : Node3D
 		}
 
 		_landmarks.Clear();
+		_rockAnimations.Clear();
 		_hoveredId = null;
+		_animationTime = 0f;
 		_source = world.NavigationLandmarks;
 		_width = world.Width;
 		_height = world.Height;
@@ -77,12 +103,35 @@ public partial class NavigationLandmarksView : Node3D
 		{
 			var root = NavigationLandmarkVisualCatalog.Build(landmark);
 			root.Position = MapMapping.ToWorld(landmark.Position, _width, _height);
+			RegisterRockAnimations(root, landmark.VisualSeed);
 			_landmarks[landmark.Id] = new LandmarkVisual(root, landmark);
 			AddChild(root);
 		}
 
 		RefreshDebugOverlays();
 		Visible = _landmarksVisible;
+	}
+
+	private void RegisterRockAnimations(Node3D root, int visualSeed)
+	{
+		var random = new RandomNumberGenerator
+		{
+			Seed = StableSeedMixer.From(visualSeed).Add("landmark-motion").Value,
+		};
+
+		foreach (var rock in NavigationLandmarkVisualCatalog.FindAnimatedRockRoots(root))
+		{
+			var axis = new Vector3(
+				random.Randf() - 0.5f,
+				random.Randf() - 0.5f,
+				random.Randf() - 0.5f).Normalized();
+			_rockAnimations.Add(new RockAnimation(
+				rock,
+				rock.Rotation,
+				axis,
+				0.04f + random.Randf() * 0.08f,
+				random.Randf() * Mathf.Tau));
+		}
 	}
 
 	public string? PickAtScreen(MapInteractivePick.Context context)
