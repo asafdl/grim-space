@@ -17,3 +17,8 @@ public sealed record StarMapContractDto(
 	bool IsStoryObjective,
 	ContractState? State,
 	int? ExpiresAtTick);
+
+internal sealed record MaintainContractBoardDto(
+	string ActorId,
+	int Tick,
+	IReadOnlyList<StarMapContractDto> Additions);

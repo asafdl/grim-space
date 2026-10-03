@@ -21,6 +21,8 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.Factions;
 using BattleUnitState = GrimSpace.Battle.Units.State;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
@@ -358,6 +360,38 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(4, restored.Clock.Current);
 		Assert.Equal(history, Assert.Single(restored.History(4)));
 		Assert.Equal(pending, Assert.Single(restored.TakePending(6)));
+	}
+
+	[Fact]
+	public void PersistenceRegistry_RoundTripsContractBoardActionWithoutDelegateSerialization()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var contract = new Contract(
+			"contract-1",
+			new DeliveryObjective("poi-1", "facility-1", "operator"),
+			EDangerLevel.Low,
+			EFaction.Player,
+			"issuer-poi",
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
+			new ContractNarrative("Delivery", "Deliver the cargo."),
+			ContractFactory.IsDeliveryObjectiveMet);
+		var action = new MaintainContractBoardAction(
+			"contracts",
+			4,
+			[new ContractAddition(contract, 24)]);
+
+		var restored = Assert.IsType<MaintainContractBoardAction>(
+			registry.Read(registry.Write(action)));
+
+		var addition = Assert.Single(restored.Additions);
+		Assert.Equal(action.ActorId, restored.ActorId);
+		Assert.Equal(action.Tick, restored.Tick);
+		Assert.Equal(contract.Id, addition.Contract.Id);
+		Assert.Equal(24, addition.ExpiresAtTick);
+		Assert.Equal(
+			typeof(DeliveryObjective),
+			addition.Contract.Objective.GetType());
+		Assert.NotNull(addition.Contract.ObjectiveMet);
 	}
 
 	[Fact]

@@ -65,6 +65,10 @@ public sealed class PersistenceRegistry
 			DiscriminatorFor(typeof(PurchaseAction)),
 			ReadPurchase,
 			WritePurchase);
+		registry.Register(
+			DiscriminatorFor(typeof(MaintainContractBoardAction)),
+			element => ReadMaintainContractBoard(element, registry),
+			value => WriteMaintainContractBoard(value, registry));
 
 		registry.RegisterDiscoveredActions(typeof(PersistenceRegistry).Assembly);
 
@@ -230,6 +234,34 @@ public sealed class PersistenceRegistry
 			value.Catalog,
 			value.Offering,
 			SaveDtoMapper.CaptureShip(value.Before)));
+
+	private static MaintainContractBoardAction ReadMaintainContractBoard(
+		JsonElement element,
+		PersistenceRegistry registry)
+	{
+		var dto = Deserialize<MaintainContractBoardDto>(element);
+		var additions = dto.Additions.Select(contractDto =>
+		{
+			var restored = SaveDtoMapper.RestoreContract(contractDto, registry);
+			if (restored.ExpiresAtTick is not int expiresAtTick)
+				throw new InvalidDataException(
+					$"Contract '{restored.Contract.Id}' has no expiration tick.");
+			return new ContractAddition(restored.Contract, expiresAtTick);
+		}).ToArray();
+		return new MaintainContractBoardAction(dto.ActorId, dto.Tick, additions);
+	}
+
+	private static JsonElement WriteMaintainContractBoard(
+		MaintainContractBoardAction value,
+		PersistenceRegistry registry) =>
+		Serialize(new MaintainContractBoardDto(
+			value.ActorId,
+			value.Tick,
+			value.Additions
+				.Select(addition => SaveDtoMapper.CaptureContract(
+					(addition.Contract, null, addition.ExpiresAtTick),
+					registry))
+				.ToArray()));
 
 	private static AcceptContractAction ReadAcceptContract(JsonElement element)
 	{

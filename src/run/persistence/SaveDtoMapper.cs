@@ -482,7 +482,7 @@ public static class SaveDtoMapper
 		return new Fleet(restored, dto.Members.Select(id => new FleetMember(id)), dto.Registrations);
 	}
 
-	private static StarMapContractDto CaptureContract(
+	internal static StarMapContractDto CaptureContract(
 		(Contract Contract, ContractState? State, int? ExpiresAtTick) entry,
 		PersistenceRegistry registry) =>
 		ReflectionJson.Map<StarMapContractDto>(new
@@ -503,7 +503,7 @@ public static class SaveDtoMapper
 			entry.ExpiresAtTick,
 		}, registry.Options);
 
-	private static (Contract Contract, ContractState? State, int? ExpiresAtTick) RestoreContract(
+	internal static (Contract Contract, ContractState? State, int? ExpiresAtTick) RestoreContract(
 		StarMapContractDto dto,
 		PersistenceRegistry registry)
 	{
