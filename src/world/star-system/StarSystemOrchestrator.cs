@@ -17,6 +17,7 @@ using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Run.Persistence;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem;
@@ -86,6 +87,20 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public void SetContractGenerationEnabled(bool enabled) => _contractGenerationEnabled = enabled;
 
+	internal IReadOnlyList<StarSystemRuntimeDto> CaptureRuntimeSnapshots(
+		PersistenceRegistry registry) =>
+		Map.ActorIds
+			.Select(actorId => SaveDtoMapper.CaptureRuntime(actorId, RuntimeFor(actorId), registry))
+			.ToArray();
+
+	internal void RestoreRuntimeSnapshots(
+		IEnumerable<StarSystemRuntimeDto> snapshots,
+		PersistenceRegistry registry)
+	{
+		foreach (var snapshot in snapshots)
+			SaveDtoMapper.RestoreRuntime(snapshot, RuntimeFor(snapshot.ActorId), registry);
+	}
+
 	public ActorRuntime RuntimeFor(string unitId) => _engine.ActorRuntimes.For(unitId);
 
 	public Coord CommittedPositionOf(string unitId, float tickFraction = 0f) =>
@@ -130,13 +145,24 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public static StarSystemOrchestrator FromMap(StarMap map) =>
 		FromMap(map, new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)), playerId: null);
 
+	public static StarSystemOrchestrator FromMapForRestore(
+		StarMap map,
+		string? playerId = null,
+		bool skipWorkerScheduling = true) =>
+		FromMap(
+			map,
+			new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)),
+			playerId,
+			skipWorkerScheduling);
+
 	public static StarSystemOrchestrator FromMap(StarMap map, string playerId) =>
 		FromMap(map, new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)), playerId);
 
 	public static StarSystemOrchestrator FromMap(
 		StarMap map,
 		IPathfinder pathfinder,
-		string? playerId = null)
+		string? playerId = null,
+		bool skipWorkerScheduling = false)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		if (map.Timeline.Clock.Current == 0)
@@ -146,7 +172,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 		{
 			var runtime = actorRuntimes.For(unit.State.Id);
 			TransitCache.RebuildIfMissing(unit, runtime, pathfinder);
-			ScheduleSpawnedWorkerIfNeeded(map, unit);
+			if (!skipWorkerScheduling)
+				ScheduleSpawnedWorkerIfNeeded(map, unit);
 		}
 
 		actorRuntimes.For(StarSystemActorIds.Contracts);

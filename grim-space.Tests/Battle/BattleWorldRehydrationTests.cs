@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.World;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Math.Grid;
@@ -53,6 +54,27 @@ public sealed class BattleWorldRehydrationTests
 			restoredWorld.Hazards.Select(HazardSnapshot));
 		Assert.True(restoredWorld.Timeline.ContainsPending(
 			action => action is EndOfPhaseAction end && end.ActorId == player.State.Id));
+	}
+
+	[Fact]
+	public void FromSavedWorld_RecreatesAgentsInsteadOfReusingInstances()
+	{
+		using var original = BattleOrchestrator.FromEncounter(
+			BattleEncounter.DevDefault(seed: 18, gridSize: 12),
+			gridSize: 12);
+		var savedWorld = original.Engine.World.Fork();
+		var savedAgents = savedWorld.UnitRegistry.All
+			.ToDictionary(unit => unit.State.Id, unit => unit.ExecutionAgent);
+
+		using var restored = BattleOrchestrator.FromSavedWorld(savedWorld, original.PlayerId);
+
+		foreach (var unit in restored.Engine.World.UnitRegistry.All)
+		{
+			Assert.NotSame(savedAgents[unit.State.Id], unit.ExecutionAgent);
+			Assert.True(unit.ExecutionAgent.IsInitialized);
+		}
+		Assert.IsType<UserExecutionAgent>(
+			restored.Engine.World.UnitRegistry.UnitOf(original.PlayerId).ExecutionAgent);
 	}
 
 	private static object HazardSnapshot(Hazard hazard) =>

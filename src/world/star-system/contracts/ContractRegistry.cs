@@ -195,6 +195,28 @@ public sealed class ContractRegistry
 		return clone;
 	}
 
+	internal IReadOnlyList<(Contract Contract, ContractState? State, int? ExpiresAtTick)> Snapshot() =>
+		_contracts.Values
+			.Select(contract => (
+				contract,
+				_states.GetValueOrDefault(contract.Id),
+				_expirations.GetValueOrDefault(contract.Id)))
+			.ToArray();
+
+	internal void RestoreSnapshot(
+		IEnumerable<(Contract Contract, ContractState? State, int? ExpiresAtTick)> entries,
+		int maxPending)
+	{
+		MaxPending = maxPending;
+		foreach (var entry in entries)
+		{
+			if (!TryAdd(entry.Contract, entry.ExpiresAtTick))
+				throw new InvalidOperationException($"Unable to restore contract '{entry.Contract.Id}'.");
+			if (entry.State is not null && !Activate(entry.State))
+				throw new InvalidOperationException($"Unable to restore contract state '{entry.Contract.Id}'.");
+		}
+	}
+
 	private void OnBecamePending(Contract contract)
 	{
 		_pendingCount++;

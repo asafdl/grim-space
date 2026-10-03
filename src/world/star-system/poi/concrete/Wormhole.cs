@@ -17,6 +17,12 @@ public sealed class Wormhole : PointOfInterest
 	public static Wormhole Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 		new(plan, null, BuildFacilities(plan, operatorNames));
 
+	internal static Wormhole FromPersistence(
+		SupplySystemPlan plan,
+		Coord? center,
+		IReadOnlyList<Facility> facilities) =>
+		new(plan, center, facilities);
+
 	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(

@@ -277,6 +277,19 @@ public partial class BattleController : Node3D
 		_battleHud.RestartRequested += _translator.OnRestart;
 		_battleHud.RetireRequested += _translator.OnRetire;
 		_battleHud.MainMenuRequested += GoToMainMenu;
+		_battleHud.PauseMenu.SaveRequested += SaveGame;
+	}
+
+	private void SaveGame()
+	{
+		if (_battle.Phase != EBattlePhase.PlayerTurn || _replayPlayer.IsPlaying)
+			return;
+
+		var result = Session.Instance.TrySaveGame(_battle.Engine.World);
+		if (result == GrimSpace.Run.Persistence.SaveStorageResult.Success)
+			_battleHud.PauseMenu.ShowSaveConfirmation();
+		else
+			GD.PrintErr($"Failed to save game: {result}");
 	}
 
 	private void WireTranslator()

@@ -1,6 +1,12 @@
 using GrimSpace.Core.Actions;
+using System.Collections.ObjectModel;
 
 namespace GrimSpace.Core.Engine;
+
+public sealed record TimelineSnapshot(
+	int CurrentTick,
+	IReadOnlyDictionary<int, IReadOnlyList<ITimelineEntry>> History,
+	IReadOnlyDictionary<int, IReadOnlyList<IAction>> Pending);
 
 public sealed class Timeline
 {
@@ -102,6 +108,43 @@ public sealed class Timeline
 		}
 
 		return false;
+	}
+
+	public TimelineSnapshot ToSnapshot()
+	{
+		lock (_sync)
+		{
+			var history = _history.ToDictionary(
+				pair => pair.Key,
+				pair => (IReadOnlyList<ITimelineEntry>)Array.AsReadOnly(pair.Value.ToArray()));
+			var pending = _pending.ToDictionary(
+				pair => pair.Key,
+				pair => (IReadOnlyList<IAction>)Array.AsReadOnly(pair.Value.ToArray()));
+
+			return new TimelineSnapshot(
+				Clock.Current,
+				new ReadOnlyDictionary<int, IReadOnlyList<ITimelineEntry>>(history),
+				new ReadOnlyDictionary<int, IReadOnlyList<IAction>>(pending));
+		}
+	}
+
+	public static Timeline From(TimelineSnapshot snapshot)
+	{
+		ArgumentNullException.ThrowIfNull(snapshot);
+
+		var timeline = new Timeline();
+		lock (timeline._sync)
+		{
+			foreach (var (tick, entries) in snapshot.History)
+				timeline._history[tick] = [.. entries];
+
+			foreach (var (tick, actions) in snapshot.Pending)
+				timeline._pending[tick] = [.. actions];
+
+			timeline.Clock.Set(snapshot.CurrentTick);
+		}
+
+		return timeline;
 	}
 
 	public IReadOnlyList<ITimelineEntry> History(int? tick = null)

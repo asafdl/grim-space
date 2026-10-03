@@ -7,11 +7,13 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 {
 	public event Action? ContinueRequested;
+	public event Action? SaveRequested;
 	public event Action? RetireRequested;
 	public event Action? RestartRequested;
 	public event Action? MainMenuRequested;
 
 	private Control _root = null!;
+	private Button _saveButton = null!;
 	private Button _restartButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
 
@@ -98,6 +100,11 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 			BattleHudCopy.Continue,
 			BattleHudCopy.ContinueTooltip,
 			() => ContinueRequested?.Invoke()));
+		_saveButton = CreateMenuButton(
+			"Save",
+			"Save the current battle",
+			() => SaveRequested?.Invoke());
+		content.AddChild(_saveButton);
 		content.AddChild(CreateMenuButton(
 			BattleHudCopy.Retire,
 			BattleHudCopy.RetireTooltip,
@@ -132,6 +139,8 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 			GetViewport().SetInputAsHandled();
 		}
 	}
+
+	public void ShowSaveConfirmation() => _saveButton.Text = "✓ Saved";
 
 	private static Button CreateMenuButton(string text, string tooltip, Action onPressed)
 	{

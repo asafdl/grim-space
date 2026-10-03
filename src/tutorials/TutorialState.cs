@@ -15,4 +15,13 @@ public sealed class TutorialState
 	public bool IsFlowCompleted(string flowId) => _completedFlows.Contains(flowId);
 
 	public void CompleteFlow(string flowId) => _completedFlows.Add(flowId);
+
+	internal IReadOnlyList<string> CaptureCompletedFlows() => _completedFlows.ToArray();
+
+	internal void RestoreCompletedFlows(IEnumerable<string> flowIds)
+	{
+		_completedFlows.Clear();
+		foreach (var flowId in flowIds)
+			_completedFlows.Add(flowId);
+	}
 }

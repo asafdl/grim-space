@@ -109,6 +109,23 @@ public sealed class BattleOrchestrator : IDisposable
 		return CreateFromWorld(world, layout, playerId, "battle world restored");
 	}
 
+	public static BattleOrchestrator FromSavedWorld(BattleWorld world, string playerId)
+	{
+		ArgumentNullException.ThrowIfNull(world);
+		ArgumentException.ThrowIfNullOrEmpty(playerId);
+
+		var savedUnits = world.UnitRegistry.All.ToArray();
+		foreach (var savedUnit in savedUnits)
+		{
+			var agentKind = BattleAgentFactory.KindOf(savedUnit.ExecutionAgent);
+			world.UnitRegistry.Remove(savedUnit.State.Id);
+			world.UnitRegistry.Add(
+				Factory.Create(savedUnit.State.Clone(), savedUnit.Team, agentKind));
+		}
+
+		return FromWorld(world, playerId);
+	}
+
 	private static BattleOrchestrator CreateFromWorld(
 		BattleWorld world,
 		BattleLayout layout,

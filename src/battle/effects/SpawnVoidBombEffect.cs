@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
@@ -31,7 +30,7 @@ public sealed class SpawnVoidBombEffect(AbilityMount mount, string unitId)
 			child,
 			firer.Team,
 			position,
-			new VoidBombExecutionAgent(),
+			EBattleAgentKind.VoidBomb,
 			fore,
 			dorsal);
 		torpedo.State.Projectile = projectile;

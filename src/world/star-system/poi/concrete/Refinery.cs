@@ -17,6 +17,12 @@ public sealed class Refinery : PointOfInterest
 	public static Refinery Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 		new(plan, null, BuildFacilities(plan, operatorNames));
 
+	internal static Refinery FromPersistence(
+		SupplySystemPlan plan,
+		Coord? center,
+		IReadOnlyList<Facility> facilities) =>
+		new(plan, center, facilities);
+
 	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(

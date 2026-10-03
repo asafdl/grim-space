@@ -103,4 +103,8 @@ public abstract class PointOfInterest
 
 	protected void ForkOperatorTemporaryRoles(PointOfInterest clone) =>
 		clone.OperatorTemporaryRoles = OperatorTemporaryRoles.CloneForFork();
+
+	internal void RestoreOperatorTemporaryRoles(
+		IEnumerable<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> entries) =>
+		OperatorTemporaryRoles = FacilityOperatorTemporaryRoles.FromSnapshot(entries);
 }

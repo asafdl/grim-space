@@ -33,6 +33,39 @@ public static class Factory
 		ShipInstance ship,
 		ETeam team,
 		Coord position,
+		EBattleAgentKind agentKind) =>
+		Create(
+			ship,
+			team,
+			position,
+			BattleAgentFactory.Create(agentKind),
+			Coord.Forward,
+			Coord.Up);
+
+	public static Unit Create(
+		ShipInstance ship,
+		ETeam team,
+		Coord position,
+		EBattleAgentKind agentKind,
+		Coord fore,
+		Coord dorsal,
+		string parentId = BattleActorIds.Rules) =>
+		Create(
+			ship,
+			team,
+			position,
+			BattleAgentFactory.Create(agentKind),
+			fore,
+			dorsal,
+			parentId);
+
+	public static Unit Create(State state, ETeam team, EBattleAgentKind agentKind) =>
+		new(state, BattleAgentFactory.Create(agentKind), team);
+
+	public static Unit Create(
+		ShipInstance ship,
+		ETeam team,
+		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
 		Coord fore,
 		Coord dorsal,

@@ -22,6 +22,12 @@ public sealed class TradeHub : PointOfInterest
 	public static TradeHub Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 		new(plan, null, BuildFacilities(plan, operatorNames));
 
+	internal static TradeHub FromPersistence(
+		SupplySystemPlan plan,
+		Coord? center,
+		IReadOnlyList<Facility> facilities) =>
+		new(plan, center, facilities);
+
 	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(

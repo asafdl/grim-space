@@ -1,4 +1,3 @@
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
@@ -23,7 +22,7 @@ public sealed class SpawnRepurposedMinerEffect(AbilityMount mount, string unitId
 			child,
 			parent.Team,
 			position,
-			new AiController(),
+			EBattleAgentKind.Ai,
 			fore,
 			dorsal,
 			parentId: actorId);

@@ -64,5 +64,17 @@ public sealed class FacilityOperatorTemporaryRoles
 		return clone;
 	}
 
+	internal IReadOnlyList<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> Snapshot() =>
+		_overlays.Select(pair => (pair.Key.FacilityId, pair.Key.OperatorName, pair.Value.Role, pair.Value.SourceId)).ToArray();
+
+	internal static FacilityOperatorTemporaryRoles FromSnapshot(
+		IEnumerable<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> entries)
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		foreach (var entry in entries)
+			roles.Grant(entry.FacilityId, entry.OperatorName, entry.Role, entry.SourceId);
+		return roles;
+	}
+
 	private readonly record struct Entry(EFacilityOperatorRole Role, string SourceId);
 }

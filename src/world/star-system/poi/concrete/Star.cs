@@ -10,6 +10,8 @@ public sealed class Star : PointOfInterest
 
 	public static Star Template() => new(null);
 
+	internal static Star FromPersistence(Coord? center) => new(center);
+
 	private Star(Coord? center) :
 		base(
 			SupplySystemPlan.StarPoiId,

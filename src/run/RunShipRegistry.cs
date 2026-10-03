@@ -11,6 +11,16 @@ public sealed class RunShipRegistry : IShipRegistryReader
 
 	public IReadOnlyCollection<ShipInstance> All => _ships.Values;
 
+	internal IReadOnlyList<ShipInstance> CaptureSnapshot() =>
+		_ships.Values.Select(ship => ship.Clone()).ToArray();
+
+	internal void RestoreSnapshot(IEnumerable<ShipInstance> ships)
+	{
+		_ships.Clear();
+		foreach (var ship in ships)
+			Register(ship);
+	}
+
 	public void Register(ShipInstance ship)
 	{
 		ArgumentNullException.ThrowIfNull(ship);

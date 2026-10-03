@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
 using GrimSpace.Core.Log;
@@ -13,6 +14,7 @@ using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Run.Persistence;
 
 namespace GrimSpace.Run;
 
@@ -38,8 +40,87 @@ public sealed class State : IDisposable
 	public StarSystemOrchestrator StarSystem { get; private set; } = null!;
 	public BattleEncounter? ActiveBattle { get; internal set; }
 	public BattleOutcome? PendingBattleOutcome { get; private set; }
+	public BattleWorld? RestoredBattleWorld { get; private set; }
 
 	public event Action? BattleReady;
+
+	public RunStateSnapshotDto CaptureSnapshot(
+		PersistenceRegistry registry,
+		BattleWorld? battleWorld = null)
+	{
+		ArgumentNullException.ThrowIfNull(registry);
+		return new RunStateSnapshotDto(
+			PlayerParty.CaptureSnapshot(),
+			ShipRegistry.CaptureSnapshot().Select(SaveDtoMapper.CaptureShip).ToArray(),
+			new Dictionary<string, string>(_playerShipPortraitIds, StringComparer.Ordinal),
+			_tutorialState is null ? null : new TutorialStateDto(
+				_tutorialState.BeatAContractId,
+				_tutorialState.BeatBContractId,
+				_tutorialState.ActiveStepIndex,
+				_tutorialState.PendingTutorialGraduation,
+				_tutorialState.CaptureCompletedFlows()),
+			SaveDtoMapper.CaptureStarMap(StarSystem.Map, registry),
+			StarSystem.ContractGenerationEnabled,
+			StarSystem.SimMode,
+			ActiveBattle is null ? null : SaveDtoMapper.CaptureBattleEncounter(ActiveBattle),
+			PendingBattleOutcome,
+			_resolvedBattleIds.ToArray(),
+			_launchedEngagementIds.ToArray(),
+			battleWorld is null ? null : SaveDtoMapper.CaptureBattleWorld(battleWorld, registry),
+			StarSystem.CaptureRuntimeSnapshots(registry));
+	}
+
+	public static State FromSnapshot(
+		RunStateSnapshotDto snapshot,
+		PersistenceRegistry registry)
+	{
+		ArgumentNullException.ThrowIfNull(snapshot);
+		ArgumentNullException.ThrowIfNull(registry);
+
+		var run = new State();
+		run.ShipRegistry.RestoreSnapshot(snapshot.Ships.Select(SaveDtoMapper.RestoreShip));
+		run.PlayerParty.RestoreSnapshot(snapshot.PartyShipIds);
+		foreach (var (shipId, portraitId) in snapshot.Portraits)
+			run._playerShipPortraitIds[shipId] = portraitId;
+
+		var map = SaveDtoMapper.RestoreStarMap(snapshot.StarMap, registry);
+		run.BindStarSystem(StarSystemOrchestrator.FromMapForRestore(
+			map,
+			PlayerFleetUnitId));
+		run.StarSystem.SetContractGenerationEnabled(snapshot.ContractGenerationEnabled);
+		if (snapshot.SimMode == ESimMode.Stepped)
+			run.StarSystem.SetStepped();
+		else
+			run.StarSystem.SetRunning();
+		run.StarSystem.RestoreRuntimeSnapshots(snapshot.StarSystemRuntimes, registry);
+		run.ActiveBattle = snapshot.ActiveBattle is null
+			? null
+			: SaveDtoMapper.RestoreBattleEncounter(snapshot.ActiveBattle);
+		run.RestoredBattleWorld = snapshot.BattleWorld is null
+			? null
+			: SaveDtoMapper.RestoreBattleWorld(snapshot.BattleWorld, registry);
+		run.PendingBattleOutcome = snapshot.PendingBattleOutcome;
+		run._resolvedBattleIds.UnionWith(snapshot.ResolvedBattleIds);
+		run._launchedEngagementIds.UnionWith(snapshot.LaunchedEngagementIds);
+
+		if (snapshot.Tutorial is { } tutorial)
+		{
+			run._tutorialState = new TutorialState
+			{
+				BeatAContractId = tutorial.BeatAContractId,
+				BeatBContractId = tutorial.BeatBContractId,
+				ActiveStepIndex = tutorial.ActiveStepIndex,
+				PendingTutorialGraduation = tutorial.PendingTutorialGraduation,
+			};
+			run._tutorialState.RestoreCompletedFlows(tutorial.CompletedFlows);
+			run.Tutorials = new TutorialController(run.StarSystem, run._tutorialState);
+			run.Tutorials.EnsureContractObservation();
+			run.Tutorials.FlowCompleted += run.OnTutorialFlowCompleted;
+		}
+
+		run.SyncContractGenerationFromTutorialState();
+		return run;
+	}
 
 	public void EnsurePlayerShipPortraits(IEnumerable<string> shipIds)
 	{
@@ -102,7 +183,12 @@ public sealed class State : IDisposable
 			throw new InvalidOperationException("No active strategic battle.");
 
 		ReleaseBattleOutcomeSubscription();
-		var orchestrator = BattleOrchestrator.FromEncounter(ActiveBattle);
+		var orchestrator = RestoredBattleWorld is { } savedWorld
+			? BattleOrchestrator.FromSavedWorld(
+				savedWorld,
+				PlayerParty.ShipIds.First())
+			: BattleOrchestrator.FromEncounter(ActiveBattle);
+		RestoredBattleWorld = null;
 		_battleOutcomeSubscription = orchestrator.Subscribe<Record<BattleOutcome>>(OnCommittedBattleOutcome);
 		return orchestrator;
 	}

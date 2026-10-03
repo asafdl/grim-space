@@ -7,9 +7,11 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 {
 	public event Action? ContinueRequested;
+	public event Action? SaveRequested;
 	public event Action? MainMenuRequested;
 
 	private Control _root = null!;
+	private Button _saveButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
 
 	public StarMapPauseMenuOverlay()
@@ -89,6 +91,8 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 		});
 
 		content.AddChild(CreateMenuButton("Continue", "Resume star map", () => ContinueRequested?.Invoke()));
+		_saveButton = CreateMenuButton("Save", "Save the current run", () => SaveRequested?.Invoke());
+		content.AddChild(_saveButton);
 		content.AddChild(CreateMenuButton(
 			"Main Menu",
 			"Leave run and return to the title screen",
@@ -99,6 +103,8 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 
 		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("star-map"));
 	}
+
+	public void ShowSaveConfirmation() => _saveButton.Text = "✓ Saved";
 
 	public bool TryHandleInput(InputEvent @event)
 	{

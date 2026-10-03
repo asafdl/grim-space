@@ -30,6 +30,13 @@ public sealed class AdministrativeCore : PointOfInterest
 			BuildFacilities(plan, operatorNames));
 	}
 
+	internal static AdministrativeCore FromPersistence(
+		SupplySystemPlan plan,
+		Coord? center,
+		EPoiPhysicalForm physicalForm,
+		IReadOnlyList<Facility> facilities) =>
+		new(plan, center, physicalForm, facilities);
+
 	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(

@@ -1,9 +1,12 @@
+using System.Text.Json;
 using System.Threading.Tasks;
+using GrimSpace.Battle.World;
 using Godot;
 using GrimSpace.Core.Log;
 using GrimSpace.Education;
 using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
+using GrimSpace.Run.Persistence;
 using GrimSpace.World.StarSystem;
 
 namespace GrimSpace.Application;
@@ -21,11 +24,83 @@ public partial class Session : Node
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
 	private TutorialDialogHost? _tutorialDialogHost;
+	private readonly ISaveGameStorage _saveStorage;
+	private readonly PersistenceRegistry _persistenceRegistry;
 
 	public static Session Instance =>
 		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
 
 	public State Run { get; private set; } = null!;
+
+	public Session()
+		: this(new SaveGameStore(), PersistenceRegistry.CreateDefault())
+	{
+	}
+
+	internal Session(
+		ISaveGameStorage saveStorage,
+		PersistenceRegistry persistenceRegistry)
+	{
+		_saveStorage = saveStorage
+			?? throw new ArgumentNullException(nameof(saveStorage));
+		_persistenceRegistry = persistenceRegistry
+			?? throw new ArgumentNullException(nameof(persistenceRegistry));
+	}
+
+	public bool HasSaveGame => _saveStorage.Exists();
+
+	public SaveStorageResult TrySaveGame(BattleWorld? battleWorld = null)
+	{
+		if (!IsRunReady())
+			return SaveStorageResult.Failed;
+
+		var activeScene = GetTree().CurrentScene?.SceneFilePath
+			?? MapScenePath;
+		var snapshot = Run.CaptureSnapshot(_persistenceRegistry, battleWorld);
+		var document = SaveGameDocument.Create(
+			GameVersion.Display,
+			activeScene,
+			snapshot,
+			options: _persistenceRegistry.Options);
+		return _saveStorage.TryWrite(document);
+	}
+
+	public LoadResult TryLoadGame()
+	{
+		var storageResult = _saveStorage.TryRead(out var document);
+		var result = SaveLoadResult.Classify(storageResult, document);
+		if (result != LoadResult.Success)
+			return result;
+
+		State? restored = null;
+		try
+		{
+			var snapshot = ReflectionJson.Read<RunStateSnapshotDto>(
+				document!.Payload,
+				_persistenceRegistry.Options);
+			restored = State.FromSnapshot(snapshot, _persistenceRegistry);
+			AdoptRun(restored);
+			restored = null;
+			NavigateToRunScene();
+			return LoadResult.Success;
+		}
+		catch (JsonException)
+		{
+			return LoadResult.Corrupt;
+		}
+		catch (InvalidDataException)
+		{
+			return LoadResult.Corrupt;
+		}
+		catch (Exception)
+		{
+			return LoadResult.Failed;
+		}
+		finally
+		{
+			restored?.Dispose();
+		}
+	}
 
 	public DevMenuOverlay DevMenu => _devMenu;
 

@@ -17,6 +17,12 @@ public sealed class StorageFacility : PointOfInterest
 	public static StorageFacility Template(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 		new(plan, null, BuildFacilities(plan, operatorNames));
 
+	internal static StorageFacility FromPersistence(
+		SupplySystemPlan plan,
+		Coord? center,
+		IReadOnlyList<Facility> facilities) =>
+		new(plan, center, facilities);
+
 	public static IReadOnlyList<Facility> BuildFacilities(SupplySystemPlan plan, OperatorNameAllocator operatorNames) =>
 	[
 		new Facility(

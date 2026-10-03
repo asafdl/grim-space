@@ -82,6 +82,26 @@ public sealed class TimelineTests
 	}
 
 	[Fact]
+	public void CaptureSnapshot_RestoresHistoryAndPendingWithoutDraining()
+	{
+		var source = new Timeline();
+		source.Clock.Set(3);
+		var committed = new HeadingTurnAction("a", EHeadingTurn.YawRight);
+		var pending = new HeadingTurnAction("b", EHeadingTurn.YawLeft);
+		source.Append(committed);
+		source.Schedule(2, pending);
+
+		var snapshot = source.ToSnapshot();
+		var restored = Timeline.From(snapshot);
+
+		Assert.Equal(3, restored.Clock.Current);
+		Assert.Same(committed, Assert.Single(restored.History(3)));
+		Assert.Same(pending, Assert.Single(restored.TakePending(5)));
+		Assert.Same(committed, Assert.Single(source.History(3)));
+		Assert.Same(pending, Assert.Single(source.TakePending(5)));
+	}
+
+	[Fact]
 	public void DrainUntilRemovesAndReturnsHistoryBatchesInTickOrder()
 	{
 		var timeline = new Timeline();

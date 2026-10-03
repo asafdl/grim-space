@@ -126,6 +126,7 @@ public partial class MapController : Node3D
 
 		_pauseMenu = new StarMapPauseMenuOverlay();
 		_pauseMenu.ContinueRequested += ClosePauseMenu;
+		_pauseMenu.SaveRequested += SaveGame;
 		_pauseMenu.MainMenuRequested += () => GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 		_pauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.Battle));
 		_uiLayer.AddChild(_pauseMenu);
@@ -493,6 +494,15 @@ public partial class MapController : Node3D
 			_orchestrator.SetRunning();
 		else
 			_orchestrator.SetStepped();
+	}
+
+	private void SaveGame()
+	{
+		var result = Session.Instance.TrySaveGame();
+		if (result == GrimSpace.Run.Persistence.SaveStorageResult.Success)
+			_pauseMenu.ShowSaveConfirmation();
+		else
+			GD.PrintErr($"Failed to save game: {result}");
 	}
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)

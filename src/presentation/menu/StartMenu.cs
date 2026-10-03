@@ -46,7 +46,8 @@ public partial class StartMenu : Control
 	private TabContainer _settingsTabs = null!;
 	private PanelContainer _settingsPanelFrame = null!;
 	private Button _resetSettings = null!;
-	private Button _startButton = null!;
+	private Button _newGameButton = null!;
+	private Button _continueButton = null!;
 
 	private enum SettingsTab
 	{
@@ -96,9 +97,12 @@ public partial class StartMenu : Control
 		PopulateUiScales();
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
 
-		_startButton = GetNode<Button>("%Start");
+		_newGameButton = GetNode<Button>("%NewGame");
+		_continueButton = GetNode<Button>("%Continue");
+		_continueButton.Disabled = !Session.Instance.HasSaveGame;
 		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
-		_startButton.Pressed += OnStart;
+		_newGameButton.Pressed += OnNewGame;
+		_continueButton.Pressed += OnContinue;
 		GetNode<Button>("%Settings").Pressed += ShowSettingsPanel;
 		GetNode<Button>("%Back").Pressed += ShowMainPanel;
 		GetNode<Button>("%Apply").Pressed += OnApply;
@@ -307,9 +311,9 @@ public partial class StartMenu : Control
 	private void PrepareFirstScene() =>
 		Session.Instance.PrepareFirstScene();
 
-	private async void OnStart()
+	private async void OnNewGame()
 	{
-		_startButton.Disabled = true;
+		_newGameButton.Disabled = true;
 		_menuColumn.Hide();
 		_loadingOverlay.Show();
 		SetLoadingMessage();
@@ -321,10 +325,29 @@ public partial class StartMenu : Control
 		catch (Exception ex)
 		{
 			GD.PrintErr($"Failed to start map: {ex}");
-			_startButton.Disabled = false;
+			_newGameButton.Disabled = false;
 			_loadingOverlay.Hide();
 			_menuColumn.Show();
 		}
+	}
+
+	private void OnContinue()
+	{
+		_continueButton.Disabled = true;
+		_newGameButton.Disabled = true;
+		_menuColumn.Hide();
+		_loadingOverlay.Show();
+		_loadingLabel.Text = "Restoring run...";
+
+		var result = Session.Instance.TryLoadGame();
+		if (result == GrimSpace.Run.Persistence.LoadResult.Success)
+			return;
+
+		_newGameButton.Disabled = false;
+		_continueButton.Disabled = !Session.Instance.HasSaveGame;
+		_loadingOverlay.Hide();
+		_menuColumn.Show();
+		GD.PrintErr($"Failed to load save game: {result}");
 	}
 
 	public override void _Process(double _delta)

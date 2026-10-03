@@ -14,6 +14,16 @@ namespace GrimSpace.World.StarSystem.Contracts;
 
 public static class ContractFactory
 {
+	internal static IsMetDelegate ObjectiveMetFor(IContractObjective objective) =>
+		objective switch
+		{
+			HuntObjective => IsHuntObjectiveMet,
+			DeliveryObjective => IsDeliveryObjectiveMet,
+			WreckageObjective => IsWreckageObjectiveMet,
+			_ => throw new InvalidDataException(
+				$"Unsupported contract objective '{objective.GetType().Name}'."),
+		};
+
 	public static Contract Create(StarMap map, EContractKind kind, ContractCreateArgs args)
 	{
 		ArgumentNullException.ThrowIfNull(map);

@@ -11,4 +11,12 @@ public sealed class Party
 	public void Add(string shipId) => _shipIds.Add(shipId);
 
 	public void Remove(string shipId) => _shipIds.Remove(shipId);
+
+	internal IReadOnlyList<string> CaptureSnapshot() => _shipIds.ToArray();
+
+	internal void RestoreSnapshot(IEnumerable<string> shipIds)
+	{
+		_shipIds.Clear();
+		_shipIds.AddRange(shipIds);
+	}
 }
