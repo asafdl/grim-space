@@ -273,13 +273,15 @@ public sealed class SaveGamePersistenceTests
 			new AcceptContractAction("fleet", "poi", "facility", "operator", "contract", "spawn"),
 			new DeclineContractAction("fleet", "poi", "facility", "operator", "contract"),
 			new TurnInDeliveryAction("fleet", "poi", "facility", "operator", "contract"),
+			new InvestigateWreckageAction("fleet", "contract", "ambush-spawn"),
 		};
 
 		Assert.Collection(
 			actions.Select(action => registry.Read(registry.Write(action))),
 			restored => Assert.Equal(actions[0], restored),
 			restored => Assert.Equal(actions[1], restored),
-			restored => Assert.Equal(actions[2], restored));
+			restored => Assert.Equal(actions[2], restored),
+			restored => Assert.Equal(actions[3], restored));
 	}
 
 	[Fact]
@@ -417,6 +419,23 @@ public sealed class SaveGamePersistenceTests
 			ship.Loadout.ShieldUpgradeTiers.Matches(restored.Loadout.ShieldUpgradeTiers));
 		Assert.Equal(ship.Loadout.HullUpgradeTier, restored.Loadout.HullUpgradeTier);
 		Assert.Equal(ship.Loadout.InstalledAbilities, restored.Loadout.InstalledAbilities);
+	}
+
+	[Fact]
+	public void SaveDtoMapper_RoundTripsPlayerResources()
+	{
+		var map = StarMap.Create(42);
+		map.PlayerResources.TryApply(ResourceBundle.Create(
+			(ResourceId.Credits, 120),
+			(ResourceId.ScrapAlloy, 7)));
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var restored = SaveDtoMapper.RestoreStarMap(
+			SaveDtoMapper.CaptureStarMap(map, registry),
+			registry);
+
+		Assert.Equal(120, restored.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(7, restored.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]

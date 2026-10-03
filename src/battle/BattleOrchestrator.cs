@@ -144,7 +144,10 @@ public sealed class BattleOrchestrator : IDisposable
 		{
 			var writer = orchestrator._actionSink.WriterFor(unit.State.Id);
 			if (unit.ExecutionAgent is SimulationExecutionAgent<BattleWorld, ActorRuntime> simulationAgent)
+			{
 				simulationAgent.Rebind(unit.State.Id, orchestrator.Engine.CreateSimulation, writer);
+				simulationAgent.OnWorldUpdated();
+			}
 			else
 				unit.ExecutionAgent.Rebind(unit.State.Id, writer);
 		}

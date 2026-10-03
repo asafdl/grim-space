@@ -109,8 +109,9 @@ public partial class Session : Node
 		{
 			return LoadResult.Corrupt;
 		}
-		catch (Exception)
+		catch (Exception ex)
 		{
+			GameLog.LogException(ex, "Failed to restore save game.");
 			return LoadResult.Failed;
 		}
 		finally

@@ -14,6 +14,7 @@ using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Resources;
@@ -31,6 +32,7 @@ public sealed class PersistenceRegistry
 			options.Converters.Add(new ResourceBundleJsonConverter());
 			options.Converters.Add(new TransitPathJsonConverter());
 			options.Converters.Add(new ContactTargetJsonConverter());
+			options.Converters.Add(new WreckageOutcomeJsonConverter());
 		});
 	private readonly Dictionary<string, Func<JsonElement, object>> _readers =
 		new(StringComparer.Ordinal);
@@ -69,6 +71,10 @@ public sealed class PersistenceRegistry
 			DiscriminatorFor(typeof(MaintainContractBoardAction)),
 			element => ReadMaintainContractBoard(element, registry),
 			value => WriteMaintainContractBoard(value, registry));
+		registry.Register(
+			DiscriminatorFor(typeof(InvestigateWreckageAction)),
+			ReadInvestigateWreckage,
+			WriteInvestigateWreckage);
 
 		registry.RegisterDiscoveredActions(typeof(PersistenceRegistry).Assembly);
 
@@ -276,6 +282,17 @@ public sealed class PersistenceRegistry
 			value.ActorId, value.PoiId, value.FacilityId, value.OperatorName,
 			value.ContractId, value.SpawnIdentity));
 
+	private static InvestigateWreckageAction ReadInvestigateWreckage(JsonElement element)
+	{
+		var dto = Deserialize<InvestigateWreckageDto>(element);
+		return new InvestigateWreckageAction(
+			dto.ActorId, dto.ContractId, dto.AmbushSpawnIdentity);
+	}
+
+	private static JsonElement WriteInvestigateWreckage(InvestigateWreckageAction value) =>
+		Serialize(new InvestigateWreckageDto(
+			value.ActorId, value.ContractId, value.AmbushSpawnIdentity));
+
 	private static DeclineContractAction ReadDeclineContract(JsonElement element)
 	{
 		var dto = Deserialize<DeclineContractDto>(element);
@@ -413,6 +430,53 @@ public sealed class PersistenceRegistry
 					$"Unsupported contact target '{value.GetType().Name}'."),
 			};
 			JsonSerializer.Serialize(writer, dto, options);
+		}
+	}
+
+	private sealed class WreckageOutcomeJsonConverter : JsonConverter<WreckageOutcome>
+	{
+		public override WreckageOutcome Read(
+			ref Utf8JsonReader reader,
+			Type typeToConvert,
+			JsonSerializerOptions options)
+		{
+			using var document = JsonDocument.ParseValue(ref reader);
+			var value = document.RootElement;
+			if (value.TryGetProperty("loot", out var loot))
+				return new WreckageOutcome.Salvage(
+					JsonSerializer.Deserialize<ResourceBundle>(loot, options)
+					?? throw new InvalidDataException("Wreckage salvage loot is missing."));
+
+			if (value.TryGetProperty("fleet", out var fleet))
+				return new WreckageOutcome.Ambush(
+					JsonSerializer.Deserialize<FleetSpawnSpec>(fleet, options)
+					?? throw new InvalidDataException("Wreckage ambush fleet is missing."));
+
+			throw new InvalidDataException(
+				"Wreckage outcome must contain either 'loot' or 'fleet'.");
+		}
+
+		public override void Write(
+			Utf8JsonWriter writer,
+			WreckageOutcome value,
+			JsonSerializerOptions options)
+		{
+			writer.WriteStartObject();
+			switch (value)
+			{
+				case WreckageOutcome.Salvage salvage:
+					writer.WritePropertyName("loot");
+					JsonSerializer.Serialize(writer, salvage.Loot, options);
+					break;
+				case WreckageOutcome.Ambush ambush:
+					writer.WritePropertyName("fleet");
+					JsonSerializer.Serialize(writer, ambush.Fleet, options);
+					break;
+				default:
+					throw new InvalidDataException(
+						$"Unsupported wreckage outcome '{value.GetType().FullName}'.");
+			}
+			writer.WriteEndObject();
 		}
 	}
 

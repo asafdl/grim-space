@@ -347,7 +347,11 @@ public static class SaveDtoMapper
 					.ToArray(),
 				poi.NextAvailableTaskTick,
 				TemporaryRoles = poi.OperatorTemporaryRoles.Snapshot()
-					.Select(role => ReflectionJson.Map<TemporaryOperatorRoleDto>(role))
+					.Select(role => new TemporaryOperatorRoleDto(
+						role.FacilityId,
+						role.OperatorName,
+						role.Role,
+						role.SourceId))
 					.ToArray(),
 			}).ToArray(),
 			Landmarks = map.NavigationLandmarks,
@@ -359,7 +363,8 @@ public static class SaveDtoMapper
 			MaxPendingContracts = map.ContractRegistry.MaxPending,
 			StoryObjectives = map.StoryObjectives.Active,
 			Resources = map.PlayerResources.EnumerateBalances()
-				.Select(pair => ReflectionJson.Map<ResourceBalanceDto>(pair)).ToArray(),
+				.Select(pair => new ResourceBalanceDto(pair.Id, pair.Balance))
+				.ToArray(),
 			map.WaitingForPlayerInput,
 			map.ActiveNarrativeId,
 			Timeline = CaptureTimeline(map.Timeline.ToSnapshot(), registry),

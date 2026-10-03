@@ -255,11 +255,29 @@ public partial class UnitView : Node3D
 			_ => 1.1f,
 		};
 
+		var host = GetParent();
+		if (host is null)
+			return;
+
+		HideHullForDeath();
+
+		var worldPosition = GlobalPosition;
 		OneShotParticles.Play(
-			this,
-			Vector3.Zero,
+			host,
+			worldPosition,
 			new Color(1f, 0.42f, 0.12f, 0.9f),
-			scale);
+			scale,
+			worldSpace: true);
+		OneShotParticles.PlayExplosionModel(host, worldPosition, scale * 3.3f);
+	}
+
+	void HideHullForDeath()
+	{
+		foreach (var child in FindChildren("*", "GeometryInstance3D", true, false))
+		{
+			if (child is GeometryInstance3D visual)
+				visual.Visible = false;
+		}
 	}
 
 	/// <summary>Shows a simulation-dead unit only until its replay death animation finishes.</summary>

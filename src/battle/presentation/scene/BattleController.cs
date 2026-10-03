@@ -134,7 +134,7 @@ public partial class BattleController : Node3D
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		var openingPose = BattleCameraPoses.PlayerAft(
-			_agent.Sim.StateOf<ActorState>(_battle.PlayerId));
+			_battle.Engine.World.StateOf(_battle.PlayerId));
 		_camera.SetFocus(
 			openingPose.Pivot,
 			openingPose.Distance,
@@ -153,7 +153,7 @@ public partial class BattleController : Node3D
 		_battleView = new BattleView { Name = "BattleView" };
 		_unitsRoot.AddChild(_battleView);
 		_battleView.BindInitial(layout.Participants.Select(pair =>
-			(pair.Key, _agent.Sim.World.StateOf(pair.Key), ColorFor(pair.Value))));
+			(pair.Key, _battle.Engine.World.StateOf(pair.Key), ColorFor(pair.Value))));
 		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
 		_moveGhost.Configure(_camera);
 		_unitsRoot.AddChild(_moveGhost);
@@ -265,6 +265,9 @@ public partial class BattleController : Node3D
 
 	public override void _Process(double delta)
 	{
+		if (_cellVolumeMeshes is null || _currentFrame is null)
+			return;
+
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
 

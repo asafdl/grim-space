@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GrimSpace.Core.Log;
 
 namespace GrimSpace.Run.Persistence;
 
@@ -57,12 +58,14 @@ public sealed class FileSystemSaveGameStorage : ISaveGameStorage
 		{
 			return SaveStorageResult.Corrupt;
 		}
-		catch (IOException)
+		catch (IOException ex)
 		{
+			GameLog.LogException(ex, $"Failed to read save game '{_path}'.");
 			return SaveStorageResult.Failed;
 		}
-		catch (UnauthorizedAccessException)
+		catch (UnauthorizedAccessException ex)
 		{
+			GameLog.LogException(ex, $"Failed to read save game '{_path}'.");
 			return SaveStorageResult.Failed;
 		}
 	}
