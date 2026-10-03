@@ -9,7 +9,7 @@ internal static class TutorialCopy
 		$"Press {GameInputBindings.Label("battle_end_turn")} to end your turn or click the Ability Bar on bottom of screen.";
 
 	public static string MoveToGhostShip =>
-		$"Pilot, lets go get the enemies — advance to the marked location.";
+		$"Pilot, lets go get the enemies — advance to the marked location use {GameInputBindings.Label("battle_primary_click")}.";
 
 	public static string CameraControls =>
 		$"3 Dimensional space is hard to navigate, make full use of the camera controls:\n- HOLD {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit.\n" +
