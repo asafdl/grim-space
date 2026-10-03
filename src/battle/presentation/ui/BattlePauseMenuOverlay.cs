@@ -115,8 +115,8 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 			() => RestartRequested?.Invoke(),
 			out _restartButton));
 		content.AddChild(CreateMenuButton(
-			BattleHudCopy.MainMenu,
-			BattleHudCopy.MainMenuTooltip,
+			"Save and Quit",
+			"Save the battle and return to the title screen",
 			() => MainMenuRequested?.Invoke()));
 
 		_reportDialog = new ReportIssueDialog();

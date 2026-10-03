@@ -79,6 +79,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public bool IsStepped => _simMode == ESimMode.Stepped;
 
+	public bool IsResolvingInputAction => _resolvingInputAction;
+
 	public bool CanAdvance =>
 		_simMode == ESimMode.Running
 		&& !Map.WaitingForPlayerInput;

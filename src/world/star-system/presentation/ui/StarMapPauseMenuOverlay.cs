@@ -94,8 +94,8 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 		_saveButton = CreateMenuButton("Save", "Save the current run", () => SaveRequested?.Invoke());
 		content.AddChild(_saveButton);
 		content.AddChild(CreateMenuButton(
-			"Main Menu",
-			"Leave run and return to the title screen",
+			"Save and Quit",
+			"Save the run and return to the title screen",
 			() => MainMenuRequested?.Invoke()));
 
 		_reportDialog = new ReportIssueDialog();

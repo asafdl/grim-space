@@ -16,6 +16,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Run;
+using GrimSpace.Run.Persistence;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Components;
@@ -89,6 +90,16 @@ public partial class BattleController : Node3D
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);
 			backdropSeed = devEncounter.Seed;
 		}
+		Session.Instance.RegisterAutosaveContext(
+			() => _battle.Engine.World,
+			() => new SaveGateState(
+				HasActiveRun: true,
+				StrategicWaitingForPlayerInput: false,
+				StrategicResolvingAction: false,
+				StrategicHasUncommittedPlayerBatch: false,
+				BattleResolving: _battle.Phase == EBattlePhase.Resolving,
+				BattleReplaying: _battle.Phase == EBattlePhase.Replaying,
+				SceneTransitioning: false));
 		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
@@ -676,6 +687,9 @@ public partial class BattleController : Node3D
 
 	private void GoToMainMenu()
 	{
+		var result = Session.Instance.TrySaveBeforeLeavingRun(_battle.Engine.World);
+		if (result != GrimSpace.Run.Persistence.SaveStorageResult.Success)
+			GD.PrintErr($"Failed to save game before returning to main menu: {result}");
 		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 	}
 
@@ -689,6 +703,7 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
+		Session.Instance.ClearAutosaveContext();
 		_camera.ManualInputStarted -= _cameraDirector.OnManualInputStarted;
 		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;
 		_replayPlayer.TurnFlowIndexChanged -= OnTurnFlowIndexChanged;

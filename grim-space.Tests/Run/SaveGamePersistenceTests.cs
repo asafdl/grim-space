@@ -24,6 +24,7 @@ using GrimSpace.World.StarSystem;
 using BattleUnitState = GrimSpace.Battle.Units.State;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.Application;
 
 namespace GrimSpace.Tests.Run;
 
@@ -154,6 +155,27 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(
 			SaveBlockReason.UncommittedPlayerBatch,
 			SaveLoadPolicy.CanSave(stable with { StrategicHasUncommittedPlayerBatch = true }));
+	}
+
+	[Fact]
+	public void AutosaveSchedulerSignalsAtIntervalAndRetainsRemainder()
+	{
+		var scheduler = new AutosaveScheduler(10);
+
+		Assert.False(scheduler.Advance(4));
+		Assert.True(scheduler.Advance(6));
+		Assert.False(scheduler.Advance(9));
+		Assert.True(scheduler.Advance(1));
+	}
+
+	[Fact]
+	public void AutosaveSchedulerRejectsInvalidTiming()
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() => new AutosaveScheduler(0));
+		Assert.Throws<ArgumentOutOfRangeException>(() => new AutosaveScheduler(double.NaN));
+
+		var scheduler = new AutosaveScheduler(10);
+		Assert.Throws<ArgumentOutOfRangeException>(() => scheduler.Advance(-1));
 	}
 
 	[Fact]

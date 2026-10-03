@@ -13,10 +13,13 @@ namespace GrimSpace.Application;
 
 public partial class Session : Node
 {
+	public const double DefaultAutosaveIntervalSeconds = 60;
+
 	private const string BattleScenePath = "res://scenes/battle.tscn";
 	private const string MapScenePath = "res://scenes/map.tscn";
 
 	private static Session? _instance;
+	private AutosaveScheduler _autosaveScheduler = null!;
 	private DevMenuOverlay _devMenu = null!;
 	private Label _fpsLabel = null!;
 	private bool _beginningMapFromMenu;
@@ -26,6 +29,11 @@ public partial class Session : Node
 	private TutorialDialogHost? _tutorialDialogHost;
 	private readonly ISaveGameStorage _saveStorage;
 	private readonly PersistenceRegistry _persistenceRegistry;
+	private Func<BattleWorld?>? _autosaveBattleWorldProvider;
+	private Func<SaveGateState>? _autosaveGateProvider;
+
+	[Export(PropertyHint.Range, "5,3600,5")]
+	public double AutosaveIntervalSeconds { get; set; } = DefaultAutosaveIntervalSeconds;
 
 	public static Session Instance =>
 		_instance ?? throw new InvalidOperationException("Session autoload is not ready.");
@@ -63,6 +71,15 @@ public partial class Session : Node
 			snapshot,
 			options: _persistenceRegistry.Options);
 		return _saveStorage.TryWrite(document);
+	}
+
+	public SaveStorageResult TrySaveBeforeLeavingRun(BattleWorld? battleWorld = null)
+	{
+		if (_autosaveGateProvider is not null
+			&& SaveLoadPolicy.CanSave(_autosaveGateProvider()) != SaveBlockReason.None)
+			return SaveStorageResult.Failed;
+
+		return TrySaveGame(battleWorld ?? _autosaveBattleWorldProvider?.Invoke());
 	}
 
 	public LoadResult TryLoadGame()
@@ -119,6 +136,7 @@ public partial class Session : Node
 
 	public override void _Ready()
 	{
+		_autosaveScheduler = new AutosaveScheduler(AutosaveIntervalSeconds);
 		var devMenuLayer = new CanvasLayer { Layer = 20 };
 		AddChild(devMenuLayer);
 		_devMenu = new DevMenuOverlay();
@@ -148,6 +166,32 @@ public partial class Session : Node
 	public override void _Process(double delta)
 	{
 		_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
+		if (_autosaveScheduler.Advance(delta)
+			&& _autosaveGateProvider is not null
+			&& SaveLoadPolicy.CanSave(_autosaveGateProvider()) == SaveBlockReason.None)
+		{
+			var result = TrySaveGame(_autosaveBattleWorldProvider?.Invoke());
+			if (result != SaveStorageResult.Success)
+				GameLog.Log($"Autosave failed: {result}");
+		}
+	}
+
+	internal void RegisterAutosaveContext(
+		Func<BattleWorld?> battleWorldProvider,
+		Func<SaveGateState> gateProvider)
+	{
+		ArgumentNullException.ThrowIfNull(battleWorldProvider);
+		ArgumentNullException.ThrowIfNull(gateProvider);
+		_autosaveBattleWorldProvider = battleWorldProvider;
+		_autosaveGateProvider = gateProvider;
+		_autosaveScheduler?.Reset();
+	}
+
+	internal void ClearAutosaveContext()
+	{
+		_autosaveBattleWorldProvider = null;
+		_autosaveGateProvider = null;
+		_autosaveScheduler?.Reset();
 	}
 
 	public override void _ExitTree()

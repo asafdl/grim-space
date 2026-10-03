@@ -4,6 +4,7 @@ using GrimSpace.Components;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
+using GrimSpace.Run.Persistence;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -80,6 +81,16 @@ public partial class MapController : Node3D
 
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_orchestrator.RefreshPlayerAgent();
+		Session.Instance.RegisterAutosaveContext(
+			() => null,
+			() => new SaveGateState(
+				HasActiveRun: true,
+				StrategicWaitingForPlayerInput: _orchestrator.Map.WaitingForPlayerInput,
+				StrategicResolvingAction: _orchestrator.IsResolvingInputAction,
+				StrategicHasUncommittedPlayerBatch: _orchestrator.PlayerAgent?.HasPendingAction == true,
+				BattleResolving: false,
+				BattleReplaying: false,
+				SceneTransitioning: false));
 
 		var engagementHud = new EngagementHudOverlay();
 		_uiLayer.AddChild(engagementHud);
@@ -127,7 +138,7 @@ public partial class MapController : Node3D
 		_pauseMenu = new StarMapPauseMenuOverlay();
 		_pauseMenu.ContinueRequested += ClosePauseMenu;
 		_pauseMenu.SaveRequested += SaveGame;
-		_pauseMenu.MainMenuRequested += () => GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+		_pauseMenu.MainMenuRequested += ReturnToMainMenu;
 		_pauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.Battle));
 		_uiLayer.AddChild(_pauseMenu);
 
@@ -319,6 +330,7 @@ public partial class MapController : Node3D
 
 	public override void _ExitTree()
 	{
+		Session.Instance.ClearAutosaveContext();
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
@@ -503,6 +515,14 @@ public partial class MapController : Node3D
 			_pauseMenu.ShowSaveConfirmation();
 		else
 			GD.PrintErr($"Failed to save game: {result}");
+	}
+
+	private void ReturnToMainMenu()
+	{
+		var result = Session.Instance.TrySaveBeforeLeavingRun();
+		if (result != SaveStorageResult.Success)
+			GD.PrintErr($"Failed to save game before returning to main menu: {result}");
+		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 	}
 
 	private void ReportStaleWaitingForPlayerInputInvariant(StarMap world)
