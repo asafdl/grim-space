@@ -94,6 +94,28 @@ public sealed class TutorialController : IDisposable
 		return true;
 	}
 
+	public void RestoreActiveFlow(string flowId, int activeStepIndex)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(flowId);
+		if (_state.IsFlowCompleted(flowId))
+			throw new InvalidDataException($"Tutorial flow '{flowId}' is already completed.");
+		if (_activeFlow is not null)
+			throw new InvalidDataException("A tutorial flow is already active.");
+
+		var flow = flowId switch
+		{
+			FirstBattleTutorial.Id => FirstBattleTutorial.Create(),
+			GraduationFlowId => CreateGraduationFlow(),
+			_ => throw new InvalidDataException($"Unknown tutorial flow '{flowId}'."),
+		};
+		if (activeStepIndex < 0 || activeStepIndex >= flow.Steps.Count)
+			throw new InvalidDataException(
+				$"Tutorial flow '{flowId}' has invalid active step '{activeStepIndex}'.");
+
+		_activeFlow = flow;
+		_state.ActiveStepIndex = activeStepIndex;
+	}
+
 	public void RepresentActiveStep(bool openDialog = true)
 	{
 		if (_activeFlow is null || ActiveStep is not { } step)

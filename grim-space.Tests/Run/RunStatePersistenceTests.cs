@@ -39,7 +39,7 @@ public sealed class RunStatePersistenceTests
 		run.EnsurePlayerShipPortraits([shipId]);
 		var portraitId = run.PlayerShipPortraitIds[shipId];
 		run.TutorialState!.ActiveStepIndex = 2;
-		run.TutorialState.PendingTutorialGraduation = true;
+		run.TutorialState!.PendingTutorialGraduation = true;
 
 		var previousMap = run.StarSystem.Map;
 		run.RegenerateMap(99);
@@ -64,7 +64,7 @@ public sealed class RunStatePersistenceTests
 			run.ShipRegistry.Get(shipId).Loadout.InstalledAbilities);
 		Assert.Equal(portraitId, run.PlayerShipPortraitIds[shipId]);
 		Assert.NotNull(run.Tutorials);
-		Assert.Equal(2, run.TutorialState.ActiveStepIndex);
+		Assert.Equal(2, run.TutorialState!.ActiveStepIndex);
 		Assert.True(run.TutorialState.PendingTutorialGraduation);
 		Assert.Contains(
 			run.StarSystem.Map.FleetRegistry.FleetOf(State.PlayerFleetUnitId).Members,
@@ -94,7 +94,7 @@ public sealed class RunStatePersistenceTests
 		var shipId = Assert.Single(run.PlayerParty.ShipIds);
 		run.EnsurePlayerShipPortraits([shipId]);
 		run.TutorialState!.ActiveStepIndex = 2;
-		run.TutorialState.PendingTutorialGraduation = true;
+		run.TutorialState!.PendingTutorialGraduation = true;
 		run.ActiveBattle = BattleEncounter.DevDefault(123, 12);
 		run.StarSystem.SetStepped();
 		var registry = PersistenceRegistry.CreateDefault();
@@ -149,4 +149,5 @@ public sealed class RunStatePersistenceTests
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy),
 			spawn => Assert.NotEqual(EType.Fighter, spawn.Ship.Spec.Chassis));
 	}
+
 }

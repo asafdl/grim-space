@@ -63,7 +63,10 @@ public sealed class BattleTutorialAdapter : IDisposable
 			return;
 
 		if (_controller.IsActive && _controller.ActiveFlow?.Id == FirstBattleTutorial.Id)
+		{
+			RestoreObjectives();
 			_presentation.Attach();
+		}
 		else
 			TryStartBattleTutorial();
 	}
@@ -116,6 +119,26 @@ public sealed class BattleTutorialAdapter : IDisposable
 		_turn1Objective = ((BattleTutorialObjectiveResult.Resolved)turn1Result).Objective;
 		if (_controller.TryStartFlow(FirstBattleTutorial.Create()))
 			_presentation?.Attach();
+	}
+
+	private void RestoreObjectives()
+	{
+		switch (_controller.ActiveStep?.TargetId)
+		{
+			case FirstBattleTutorial.Turn1MoveTargetId:
+				var player = _battleAgent.Sim.StateOf<ActorState>(_battle.PlayerId);
+				var basis = GridBasis.From(player.Fore, player.Dorsal, player.Starboard);
+				if (BattleTutorialObjectives.ResolveTurn1(_battle, basis)
+					is BattleTutorialObjectiveResult.Resolved turn1)
+					_turn1Objective = turn1.Objective;
+				break;
+			case FirstBattleTutorial.Turn2MoveTargetId:
+			case FirstBattleTutorial.Turn2VoidBombTargetId:
+				if (BattleTutorialObjectives.ResolveTurn2(_battle)
+					is BattleTutorialObjectiveResult.Resolved turn2)
+					_turn2Objective = turn2.Objective;
+				break;
+		}
 	}
 
 	private void OnBattlePlanningChanged()

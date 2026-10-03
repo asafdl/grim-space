@@ -56,6 +56,7 @@ public sealed class State : IDisposable
 			_tutorialState is null ? null : new TutorialStateDto(
 				_tutorialState.BeatAContractId,
 				_tutorialState.BeatBContractId,
+				Tutorials?.ActiveFlow?.Id,
 				_tutorialState.ActiveStepIndex,
 				_tutorialState.PendingTutorialGraduation,
 				_tutorialState.CaptureCompletedFlows()),
@@ -115,6 +116,10 @@ public sealed class State : IDisposable
 			run._tutorialState.RestoreCompletedFlows(tutorial.CompletedFlows);
 			run.Tutorials = new TutorialController(run.StarSystem, run._tutorialState);
 			run.Tutorials.EnsureContractObservation();
+			if (tutorial.ActiveFlowId is not null)
+				run.Tutorials.RestoreActiveFlow(
+					tutorial.ActiveFlowId,
+					tutorial.ActiveStepIndex);
 			run.Tutorials.FlowCompleted += run.OnTutorialFlowCompleted;
 		}
 
