@@ -14,4 +14,5 @@ public sealed record Spawn(
 	double VisionRadius,
 	IReadOnlyList<string> ChoreDockIds,
 	EFaction Faction = EFaction.TheOptimality,
-	CombatProfile? CombatProfile = null);
+	CombatProfile? CombatProfile = null,
+	int PatrolRadius = 0);

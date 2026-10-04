@@ -448,7 +448,8 @@ public static class SaveDtoMapper
 			{
 				fleet.State.Id, fleet.State.Type, fleet.State.Faction,
 				fleet.State.CombatProfile, fleet.State.DockedAtDockId,
-				fleet.State.IdleCoord, fleet.State.Phase, fleet.State.ChoreDockIds,
+				fleet.State.IdleCoord, fleet.State.PatrolOrigin, fleet.State.PatrolRadius,
+				fleet.State.Phase, fleet.State.ChoreDockIds,
 				fleet.State.ChoreIndex, fleet.State.SpeedPerTick,
 				fleet.State.EngageRadius, fleet.State.VisionRadius,
 				fleet.State.WorkStartTick, fleet.State.SpawnWorkPoiId,
@@ -468,7 +469,8 @@ public static class SaveDtoMapper
 		{
 			Id = state.Id, Type = state.Type, Faction = state.Faction,
 			CombatProfile = state.CombatProfile, DockedAtDockId = state.DockedAtDockId,
-			IdleCoord = state.IdleCoord, Phase = state.Phase,
+			IdleCoord = state.IdleCoord, PatrolOrigin = state.PatrolOrigin,
+			PatrolRadius = state.PatrolRadius, Phase = state.Phase,
 			ChoreDockIds = state.ChoreDockIds, ChoreIndex = state.ChoreIndex,
 			SpeedPerTick = state.SpeedPerTick, EngageRadius = state.EngageRadius,
 			VisionRadius = state.VisionRadius, WorkStartTick = state.WorkStartTick,
@@ -479,9 +481,9 @@ public static class SaveDtoMapper
 		restored.TravelTarget = state.TravelTarget;
 		restored.PendingWreckContractId = state.PendingWreckContractId;
 		restored.Journey.JourneyId = state.JourneyId;
-		restored.Journey.Origin = state.JourneyOrigin;
-		restored.Journey.Destination = state.JourneyDestination;
-		restored.Journey.StartTick = state.JourneyStartTick;
+		restored.Journey.Origin = state.Origin;
+		restored.Journey.Destination = state.Destination;
+		restored.Journey.StartTick = state.StartTick;
 		return new Fleet(restored, dto.Members.Select(id => new FleetMember(id)), dto.Registrations);
 	}
 
@@ -534,12 +536,12 @@ public static class SaveDtoMapper
 
 	private sealed record StarMapStateData(
 		string Id, MapUnitType Type, EFaction Faction, CombatProfile? CombatProfile,
-		string DockedAtDockId, Coord IdleCoord, EPhase Phase,
+		string DockedAtDockId, Coord IdleCoord, Coord PatrolOrigin, int PatrolRadius, EPhase Phase,
 		IReadOnlyList<string> ChoreDockIds, int ChoreIndex, double SpeedPerTick,
 		double EngageRadius, double VisionRadius, int WorkStartTick,
 		string? SpawnWorkPoiId, int SpawnWorkRemainingTicks,
-		Engagement? CurrentEngagement, long JourneyId, Coord JourneyOrigin,
-		Coord JourneyDestination, int JourneyStartTick, TravelTarget TravelTarget,
+		Engagement? CurrentEngagement, long JourneyId, Coord Origin,
+		Coord Destination, int StartTick, TravelTarget TravelTarget,
 		string PendingWreckContractId);
 
 	public static BattleWorld RestoreBattleWorld(

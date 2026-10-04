@@ -14,6 +14,8 @@ namespace GrimSpace.World.StarSystem.Contracts;
 
 public static class ContractFactory
 {
+	private const int HuntPatrolRadius = 24;
+
 	internal static IsMetDelegate ObjectiveMetFor(IContractObjective objective) =>
 		objective switch
 		{
@@ -110,7 +112,12 @@ public static class ContractFactory
 
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
 		var members = EncounterBudgetRoller.Roll(map.Seed, contractId, "hunt-encounter", danger);
-		var spawnSpec = new FleetSpawnSpec(fleetType, faction, spawnSeed, members);
+		var spawnSpec = new FleetSpawnSpec(
+			fleetType,
+			faction,
+			spawnSeed,
+			members,
+			HuntPatrolRadius);
 		return new HuntObjective(
 		[
 			new SpawnEncounterGroup(groupId, searchArea, 1, spawnSpec),

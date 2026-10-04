@@ -62,7 +62,8 @@ public static class ContractEnemySpawner
 			UnitDefaults.VisionRadius(spec.Type),
 			[],
 			spec.Faction,
-			new CombatProfile());
+			new CombatProfile(),
+			spec.PatrolRadius);
 		var declarations = DeclarationsFor(spec, memberIdentity);
 		return Factory.Create(spawn, declarations);
 	}

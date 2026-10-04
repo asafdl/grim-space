@@ -11,6 +11,9 @@ using GrimSpace.Run.Persistence;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.Tests.World.StarSystem.Contracts;
+using FleetType = GrimSpace.World.StarSystem.Units.EType;
+using FleetPhase = GrimSpace.World.StarSystem.Units.EPhase;
 
 namespace GrimSpace.Tests.Run;
 
@@ -117,6 +120,36 @@ public sealed class RunStatePersistenceTests
 		Assert.All(
 			restoredHunt.SpawnGroups[0].Spawn.Members,
 			member => Assert.NotEqual(EType.Fighter, member.Chassis));
+	}
+
+	[Fact]
+	public void Snapshot_RestoresActivePatrolFleetAndRoute()
+	{
+		using var run = State.CreateNewRun(42);
+		var map = run.StarSystem.Map;
+		var contractId = TutorialBeatContracts.OfferBeatA(map)!;
+		run.StarSystem.CommitSetup(
+			ContractActionTestContext.Accept(map, State.PlayerFleetUnitId, contractId));
+		var pirate = map.FleetRegistry.All.Single(fleet => fleet.State.Type == FleetType.PirateFleet);
+
+		run.StarSystem.AdvanceTick();
+		Assert.Equal(FleetPhase.InTransit, pirate.State.Phase);
+		var path = run.StarSystem.RuntimeFor(pirate.State.Id).CachedPath!;
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var snapshot = run.CaptureSnapshot(registry);
+		using var restored = State.FromSnapshot(snapshot, registry);
+
+		Assert.True(restored.StarSystem.Map.ContractRegistry.TryGetState(contractId, out var contractState));
+		Assert.Equal(EContractStatus.Active, contractState.Status);
+		var restoredPirate = restored.StarSystem.Map.FleetRegistry.FleetOf(pirate.State.Id);
+		Assert.Equal(FleetPhase.InTransit, restoredPirate.State.Phase);
+		Assert.Equal(pirate.State.Journey.Origin, restoredPirate.State.Journey.Origin);
+		Assert.Equal(pirate.State.Journey.Destination, restoredPirate.State.Journey.Destination);
+		var restoredPath = restored.StarSystem.RuntimeFor(pirate.State.Id).CachedPath;
+		Assert.NotNull(restoredPath);
+		Assert.Equal(path.Legs.Length, restoredPath.Legs.Length);
+		Assert.Equal(path.TotalLength, restoredPath.TotalLength);
 	}
 
 	[Fact]

@@ -8,4 +8,5 @@ public sealed record FleetSpawnSpec(
 	FleetType Type,
 	EFaction Faction,
 	int Seed,
-	IReadOnlyList<(EType Chassis, EShipGearTier GearTier)> Members);
+	IReadOnlyList<(EType Chassis, EShipGearTier GearTier)> Members,
+	int PatrolRadius = 0);

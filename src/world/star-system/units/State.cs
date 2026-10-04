@@ -15,6 +15,8 @@ public sealed class State
 	public CombatProfile? CombatProfile { get; init; }
 	public string DockedAtDockId { get; set; } = "";
 	public Coord IdleCoord { get; set; }
+	public Coord PatrolOrigin { get; init; }
+	public int PatrolRadius { get; init; }
 	public EPhase Phase { get; set; } = EPhase.Docked;
 	public JourneyState Journey { get; } = new();
 	public IReadOnlyList<string> ChoreDockIds { get; init; } = [];
@@ -131,6 +133,8 @@ public sealed class State
 			CombatProfile = CombatProfile,
 			DockedAtDockId = DockedAtDockId,
 			IdleCoord = IdleCoord,
+			PatrolOrigin = PatrolOrigin,
+			PatrolRadius = PatrolRadius,
 			Phase = Phase,
 			ChoreDockIds = ChoreDockIds,
 			ChoreIndex = ChoreIndex,
@@ -166,6 +170,8 @@ public sealed class State
 			CombatProfile = spawn.CombatProfile,
 			DockedAtDockId = spawn.DockedAtDockId,
 			IdleCoord = spawn.IdleCoord,
+			PatrolOrigin = spawn.IdleCoord,
+			PatrolRadius = spawn.PatrolRadius,
 			SpeedPerTick = spawn.SpeedPerTick,
 			EngageRadius = spawn.EngageRadius,
 			VisionRadius = spawn.VisionRadius,

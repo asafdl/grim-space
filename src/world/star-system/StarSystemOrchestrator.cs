@@ -28,7 +28,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly ContactMonitor _contactMonitor;
 	private readonly ActionBatchSink _actionSink = new();
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
-	private readonly IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
+	private readonly List<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
+	private readonly List<(PatrolExecutionAgent Agent, string ActorId)> _patrolAgents = [];
+	private readonly IPathfinder _pathfinder;
 	private readonly ContractBoardExecutionAgent _contractBoardAgent;
 	private readonly Queue<IAction> _reactionQueue = [];
 	private bool _contractGenerationEnabled = true;
@@ -46,13 +48,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 		string? playerId,
 		StarMapPlayerExecutionAgent? playerAgent,
 		IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> trafficAgents,
-		ContractBoardExecutionAgent contractBoardAgent)
+		ContractBoardExecutionAgent contractBoardAgent,
+		IPathfinder pathfinder)
 	{
 		_engine = engine;
 		_contactMonitor = contactMonitor;
 		PlayerId = playerId;
 		_playerAgent = playerAgent;
-		_trafficAgents = trafficAgents;
+		_trafficAgents = [..trafficAgents];
+		_pathfinder = pathfinder;
 		_contractBoardAgent = contractBoardAgent;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_engagementResolvedSubscription = _engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
@@ -217,7 +221,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 			playerId,
 			playerAgent,
 			trafficAgents,
-			contractBoardAgent);
+			contractBoardAgent,
+			pathfinder);
 
 		contractBoardAgent.Init(
 			StarSystemActorIds.Contracts,
@@ -353,6 +358,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitReactions();
 
 		CommitContactActions();
+		CommitPatrolActions();
 		CommitContractBoardActions();
 		NotifyWorldUpdated();
 		return history;
@@ -378,6 +384,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		var trafficCanWork = _simMode is ESimMode.Running or ESimMode.Stepped;
 		foreach (var (agent, _) in _trafficAgents)
+			agent.SetCanWork(trafficCanWork);
+		foreach (var (agent, _) in _patrolAgents)
 			agent.SetCanWork(trafficCanWork);
 
 		_contractBoardAgent.SetCanWork(trafficCanWork);
@@ -430,6 +438,39 @@ public sealed class StarSystemOrchestrator : IDisposable
 				continue;
 
 			Commit([..batch.Actions]);
+		}
+	}
+
+	private void CommitPatrolActions()
+	{
+		EnsurePatrolAgents();
+		foreach (var (agent, actorId) in _patrolAgents)
+		{
+			agent.PlanAndPublish();
+			if (!_actionSink.TryTakeBatch(actorId, out var batch) || batch.Actions.Count == 0)
+				continue;
+
+			Commit([..batch.Actions]);
+		}
+	}
+
+	private void EnsurePatrolAgents()
+	{
+		var knownIds = _patrolAgents
+			.Select(entry => entry.ActorId)
+			.ToHashSet(StringComparer.Ordinal);
+		foreach (var unit in Map.FleetRegistry.All)
+		{
+			if (unit.State.PatrolRadius <= 0 || !knownIds.Add(unit.State.Id))
+				continue;
+
+			var agent = new PatrolExecutionAgent(
+				() => _engine.World,
+				unitId => _engine.ActorRuntimes.For(unitId),
+				_pathfinder);
+			agent.Init(unit.State.Id, _actionSink.WriterFor(unit.State.Id));
+			agent.SetCanWork(_simMode is ESimMode.Running or ESimMode.Stepped);
+			_patrolAgents.Add((agent, unit.State.Id));
 		}
 	}
 
