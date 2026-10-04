@@ -26,7 +26,7 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		AllowsStrategicHover: true);
 
 	private static readonly OrbitLimits ModeLimits = new(
-		MinDistance: 9f,
+		MinDistance: 8f,
 		MaxDistance: 18f,
 		MinPitch: Mathf.DegToRad(20f),
 		MaxPitch: Mathf.DegToRad(40f));
