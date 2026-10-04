@@ -32,7 +32,7 @@ public static class HudWidgets
 			MouseDefaultCursorShape = Control.CursorShape.PointingHand,
 			FocusMode = Control.FocusModeEnum.All,
 		};
-		HudStyles.SetPanelVariation(panel, "Card");
+		HudStyles.SetPanelVariation(panel, "CardPanelContainer");
 
 		var margin = new MarginContainer
 		{
@@ -59,24 +59,24 @@ public static class HudWidgets
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			ThemeTypeVariation = "CardTitle",
+			ThemeTypeVariation = "CardTitleLabel",
 		};
 		column.AddChild(titleLabel);
 
 		foreach (var row in rows)
 			column.AddChild(row);
 
-		panel.MouseEntered += () => HudStyles.SetPanelVariation(panel, "CardHover");
-		panel.MouseExited += () => HudStyles.SetPanelVariation(panel, "Card");
+		panel.MouseEntered += () => HudStyles.SetPanelVariation(panel, "CardHoverPanelContainer");
+		panel.MouseExited += () => HudStyles.SetPanelVariation(panel, "CardPanelContainer");
 		panel.GuiInput += @event =>
 		{
 			if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
 				return;
 
-			HudStyles.SetPanelVariation(panel, "CardPressed");
+			HudStyles.SetPanelVariation(panel, "CardPressedPanelContainer");
 			onPressed();
 		};
-		panel.FocusEntered += () => HudStyles.SetPanelVariation(panel, "CardHover");
+		panel.FocusEntered += () => HudStyles.SetPanelVariation(panel, "CardHoverPanelContainer");
 
 		return panel;
 	}

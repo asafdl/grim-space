@@ -247,7 +247,7 @@ public sealed partial class ModalShell : Control
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			ThemeTypeVariation = "Title",
+			ThemeTypeVariation = "TitleLabel",
 		};
 		titles.AddChild(_title);
 
@@ -255,7 +255,7 @@ public sealed partial class ModalShell : Control
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			ThemeTypeVariation = "Subtitle",
+			ThemeTypeVariation = "SubtitleLabel",
 		};
 		titles.AddChild(_subtitle);
 

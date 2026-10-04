@@ -185,9 +185,9 @@ public sealed partial class ContractHudOverlay : Control
 
 	private Control CreateContractCard(Contract contract)
 	{
-		var rows = new List<HudTextLine>
+		var rows = new List<Control>
 		{
-			new($"DIFFICULTY  {ContractDisplay.DifficultyStars(contract)}", HudTextRole.Metadata),
+			CreateDifficultyRow(contract),
 		};
 
 		return HudWidgets.CreateCard(
@@ -198,6 +198,39 @@ public sealed partial class ContractHudOverlay : Control
 				_selected = contract;
 				ShowDetails();
 			});
+	}
+
+	private static Control CreateDifficultyRow(Contract contract)
+	{
+		var row = new HBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+
+		var label = new Label { Text = "DIFFICULTY" };
+		HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
+		row.AddChild(label);
+
+		var filledStars = new Label
+		{
+			Text = $"  {new string('★', ContractDisplay.Difficulty(contract))}",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudStyles.ApplyTextRole(filledStars, HudTextRole.Warning);
+		filledStars.AddThemeColorOverride("font_color", Colors.Yellow);
+		filledStars.SelfModulate = Colors.Yellow;
+		row.AddChild(filledStars);
+
+		var emptyStars = new Label
+		{
+			Text = new string('☆', 5 - ContractDisplay.Difficulty(contract)),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		HudStyles.ApplyTextRole(emptyStars, HudTextRole.Metadata);
+		row.AddChild(emptyStars);
+
+		return row;
 	}
 
 	private static string Pluralize(int count, string singular, string plural) =>

@@ -462,17 +462,98 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_ability_tab"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(0.03, 0.05, 0.08, 0)
+border_width_bottom = 2
+border_color = Color(0.22, 0.32, 0.42, 0.55)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_ability_tab_selected"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(0.09, 0.16, 0.21, 1)
+border_width_bottom = 2
+border_color = Color(0.55, 0.78, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_ability_tab_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.91, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_ability_installed"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1, 0.23, 0.19, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_ability_available"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.14, 0.22, 0.3, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
 [resource]
 default_font = ExtResource("1_inter_medium")
 default_font_size = 18
+AbilityMountTabBar/base_type = &"TabBar"
+AbilityMountTabBar/font_sizes/font_size = 20
+AbilityMountTabBar/colors/font_selected_color = Color(0.7, 0.86, 1, 1)
+AbilityMountTabBar/colors/font_unselected_color = Color(0.62, 0.7, 0.77, 1)
+AbilityMountTabBar/colors/font_hovered_color = Color(0.9, 0.96, 1, 1)
+AbilityMountTabBar/styles/tab_selected = SubResource("StyleBox_ability_tab_selected")
+AbilityMountTabBar/styles/tab_unselected = SubResource("StyleBox_ability_tab")
+AbilityMountTabBar/styles/tab_hovered = SubResource("StyleBox_ability_tab_selected")
+AbilityMountTabBar/styles/tab_focus = SubResource("StyleBox_ability_tab_focus")
+AbilityChoiceButton/base_type = &"Button"
+AbilityChoiceButton/styles/normal = SubResource("StyleBox_card")
+AbilityChoiceButton/styles/hover = SubResource("StyleBox_card_hover")
+AbilityChoiceButton/styles/pressed = SubResource("StyleBox_card_pressed")
+AbilityChoiceButton/styles/hover_pressed = SubResource("StyleBox_card_pressed")
+AbilityChoiceButton/styles/focus = SubResource("StyleBox_ability_tab_focus")
+AbilityNameLabel/base_type = &"Label"
+AbilityNameLabel/font_sizes/font_size = 20
+AbilityNameLabel/fonts/font = ExtResource("2_inter_semibold")
+AbilityNameLabel/colors/font_color = Color(0.9, 0.94, 0.98, 1)
+AbilityInstalledPanelContainer/base_type = &"PanelContainer"
+AbilityInstalledPanelContainer/styles/panel = SubResource("StyleBox_ability_installed")
+AbilityAvailablePanelContainer/base_type = &"PanelContainer"
+AbilityAvailablePanelContainer/styles/panel = SubResource("StyleBox_ability_available")
+AbilityInstalledLabel/base_type = &"Label"
+AbilityInstalledLabel/font_sizes/font_size = 16
+AbilityInstalledLabel/colors/font_color = Color(0.65, 0.88, 0.75, 1)
+AbilityAvailableLabel/base_type = &"Label"
+AbilityAvailableLabel/font_sizes/font_size = 16
+AbilityAvailableLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
 BannerPanelContainer/styles/panel = SubResource("StyleBox_banner")
 BannerTitleLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 BannerTitleLabel/font_sizes/font_size = 22
 BannerTitleLabel/fonts/font = ExtResource("2_inter_semibold")
 BodyLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
+CardHoverPanelContainer/base_type = &"PanelContainer"
 CardHoverPanelContainer/styles/panel = SubResource("StyleBox_card_hover")
+CardPanelContainer/base_type = &"PanelContainer"
 CardPanelContainer/styles/panel = SubResource("StyleBox_card")
+CardPressedPanelContainer/base_type = &"PanelContainer"
 CardPressedPanelContainer/styles/panel = SubResource("StyleBox_card_pressed")
+CardTitleLabel/base_type = &"Label"
 CardTitleLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 CardTitleLabel/font_sizes/font_size = 22
 CardTitleLabel/fonts/font = ExtResource("2_inter_semibold")
@@ -556,6 +637,7 @@ PrimaryButton/styles/focus = SubResource("StyleBox_btn_primary_hover")
 PrimaryButton/styles/hover = SubResource("StyleBox_btn_primary_hover")
 PrimaryButton/styles/normal = SubResource("StyleBox_btn_primary_normal")
 PrimaryButton/styles/pressed = SubResource("StyleBox_btn_primary_pressed")
+SecondaryButton/base_type = &"Button"
 SecondaryButton/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 SecondaryButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
 SecondaryButton/colors/font_hover_color = Color(1, 1, 1, 1)
@@ -578,10 +660,12 @@ StatusNeutralPanelContainer/styles/panel = SubResource("StyleBox_status_neutral"
 StatusSuccessPanelContainer/styles/panel = SubResource("StyleBox_status_success")
 StatusWarningPanelContainer/styles/panel = SubResource("StyleBox_status_warning")
 StoryBarPanelContainer/styles/panel = SubResource("StyleBox_story_bar")
+SubtitleLabel/base_type = &"Label"
 SubtitleLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
 SuccessLabel/colors/font_color = Color(0.55, 0.82, 0.62, 1)
 SystemMetaLabel/colors/font_color = Color(0.44, 0.51, 0.58, 1)
 SystemMetaLabel/font_sizes/font_size = 14
+TitleLabel/base_type = &"Label"
 TitleLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 TitleLabel/font_sizes/font_size = 28
 TitleLabel/fonts/font = ExtResource("2_inter_semibold")

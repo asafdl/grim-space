@@ -47,7 +47,7 @@ public sealed partial class DockyardHudOverlay : Control
 		_statusMessage = "";
 		_selectedFace = null;
 		_selectedMount = null;
-		_shell.Open(_facilityTitle, string.Empty);
+		_shell.Open("Abilities & upgrades", _facilityTitle);
 		ShowMain();
 	}
 
@@ -76,13 +76,14 @@ public sealed partial class DockyardHudOverlay : Control
 
 	private void ShowMain()
 	{
-		_shell.SetTitle(_facilityTitle);
-		_shell.SetSubtitle("Abilities & upgrades");
+		_shell.SetTitle("Abilities & upgrades");
+		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 
 		var body = HudWidgets.CreateCardList();
+		body.AddThemeConstantOverride("separation", 18);
 
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
 			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
@@ -115,21 +116,19 @@ public sealed partial class DockyardHudOverlay : Control
 		if (_selectedFace is not { } selected || !faces.Contains(selected))
 			_selectedFace = faces[0];
 
-		body.AddChild(CreateSelectorHeading("1 / Mount orientation"));
 		var tabs = new TabBar
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			CustomMinimumSize = new Vector2(0, 40),
+			ThemeTypeVariation = "AbilityMountTabBar",
 		};
 		foreach (var face in faces)
 			tabs.AddTab(FaceLabel(face));
 		tabs.CurrentTab = Array.IndexOf(faces, _selectedFace.Value);
 		body.AddChild(tabs);
-		body.AddChild(CreateSelectorHeading("2 / Ability"));
 
 		var abilityList = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		abilityList.AddThemeConstantOverride("h_separation", 10);
-		abilityList.AddThemeConstantOverride("v_separation", 10);
+		abilityList.AddThemeConstantOverride("h_separation", 12);
+		abilityList.AddThemeConstantOverride("v_separation", 12);
 		body.AddChild(abilityList);
 		var offerList = HudWidgets.CreateCardList();
 		body.AddChild(offerList);
@@ -164,23 +163,7 @@ public sealed partial class DockyardHudOverlay : Control
 
 		foreach (var ability in faceAbilities)
 		{
-			var name = MerchantOfferDisplay.KindLabel(ability.Mount.Kind);
-			var status = ability.IsInstalled ? "Installed" : "Available to install";
-			var button = new Button
-			{
-				Text = $"{name}\n{status}",
-				TooltipText = $"{FaceLabel(ability.Mount.Facet)} / {name} / {status}",
-				Icon = SvgIconLoader.Load(
-					MerchantOfferDisplay.AbilityIconPath(ability.Mount.Kind), HudStyles.AccentCyan, 36),
-				IconAlignment = HorizontalAlignment.Center,
-				VerticalIconAlignment = VerticalAlignment.Top,
-				CustomMinimumSize = new Vector2(190, 112),
-				ToggleMode = true,
-				ButtonGroup = group,
-				ButtonPressed = ability.Mount == _selectedMount,
-				MouseDefaultCursorShape = CursorShape.PointingHand,
-			};
-			HudStyles.StyleButton(button, HudActionKind.Secondary);
+			var button = CreateAbilityButton(ability, group);
 			button.Toggled += pressed =>
 			{
 				if (!pressed)
@@ -203,11 +186,6 @@ public sealed partial class DockyardHudOverlay : Control
 			child.QueueFree();
 		}
 
-		body.AddChild(HudWidgets.CreateStatusPanel(
-			HudStatusKind.Neutral,
-			$"{MerchantOfferDisplay.KindLabel(ability.Mount.Kind)} / "
-				+ (ability.IsInstalled ? "Installed" : "Available to install")));
-
 		if (ability.Offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No upgrades available for this ability."));
 
@@ -222,12 +200,68 @@ public sealed partial class DockyardHudOverlay : Control
 		}
 	}
 
-	private static Label CreateSelectorHeading(string text) =>
-		new()
+	private Button CreateAbilityButton(MerchantOfferDisplay.AbilityEntry ability, ButtonGroup group)
+	{
+		var name = MerchantOfferDisplay.KindLabel(ability.Mount.Kind);
+		var status = ability.IsInstalled ? "Installed" : "Not installed";
+		var button = new Button
 		{
-			Text = text,
-			ThemeTypeVariation = "SectionHeading",
+			TooltipText = $"{FaceLabel(ability.Mount.Facet)} / {name} / {status}",
+			CustomMinimumSize = new Vector2(230, 160),
+			ToggleMode = true,
+			ButtonGroup = group,
+			ButtonPressed = ability.Mount == _selectedMount,
+			MouseDefaultCursorShape = CursorShape.PointingHand,
+			ThemeTypeVariation = "AbilityChoiceButton",
 		};
+
+		var content = new VBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		content.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		content.OffsetLeft = 12;
+		content.OffsetTop = 12;
+		content.OffsetRight = -12;
+		content.OffsetBottom = -12;
+		content.AddThemeConstantOverride("separation", 8);
+		button.AddChild(content);
+
+		content.AddChild(new TextureRect
+		{
+			Texture = SvgIconLoader.Load(
+				MerchantOfferDisplay.AbilityIconPath(ability.Mount.Kind), HudStyles.AccentCyan, 48),
+			CustomMinimumSize = new Vector2(48, 48),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			MouseFilter = MouseFilterEnum.Ignore,
+		});
+		content.AddChild(new Label
+		{
+			Text = name,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			ThemeTypeVariation = "AbilityNameLabel",
+			MouseFilter = MouseFilterEnum.Ignore,
+		});
+
+		var badge = new PanelContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			ThemeTypeVariation = ability.IsInstalled ? "AbilityInstalledPanelContainer" : "AbilityAvailablePanelContainer",
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		badge.AddChild(new Label
+		{
+			Text = status,
+			ThemeTypeVariation = ability.IsInstalled ? "AbilityInstalledLabel" : "AbilityAvailableLabel",
+			MouseFilter = MouseFilterEnum.Ignore,
+		});
+		content.AddChild(badge);
+		return button;
+	}
 
 	private static string FaceLabel(ESpatialOrientation face) =>
 		face switch
