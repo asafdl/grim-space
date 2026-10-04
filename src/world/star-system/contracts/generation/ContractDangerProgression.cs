@@ -5,8 +5,8 @@ namespace GrimSpace.World.StarSystem.Contracts.Generation;
 
 public static class ContractDangerProgression
 {
-	/// <summary>Each completed contract shifts the danger center by 0.05 tiers (one full tier every 20 completions).</summary>
-	public const double TierShiftPerCompletion = 0.05;
+	/// <summary>Initial danger progression is 0.1 tiers per completion, easing near the middle and upper tiers.</summary>
+	public const double TierShiftPerCompletion = 0.1;
 
 	/// <summary>Triangular falloff radius: tiers within this distance of the center keep non-zero weight.</summary>
 	public const float TierSpread = 1.7f;
@@ -20,7 +20,7 @@ public static class ContractDangerProgression
 			return weights;
 		}
 
-		var center = (float)System.Math.Min(completedCount * TierShiftPerCompletion, 4);
+		var center = ProgressionCenterFor(completedCount);
 		for (var i = 0; i < weights.Length; i++)
 		{
 			var distance = System.Math.Abs(i - center);
@@ -29,6 +29,13 @@ public static class ContractDangerProgression
 
 		NormalizeInPlace(weights);
 		return weights;
+	}
+
+	private static float ProgressionCenterFor(int completedCount)
+	{
+		const float maximumCenter = 4f;
+		var normalizedProgress = (float)(completedCount * TierShiftPerCompletion / maximumCenter);
+		return maximumCenter * (1f - System.MathF.Exp(-normalizedProgress));
 	}
 
 	private static void NormalizeInPlace(float[] weights)

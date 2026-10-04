@@ -205,8 +205,8 @@ public static class DeploymentPlacement
 
 		return new Coord(
 			NextInBounds(rng, minX, maxX, gridSize),
-			center,
-			center);
+			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize),
+			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize));
 	}
 
 	private static Coord PickEnemyPosition(int seed, int gridSize, Coord playerPosition)

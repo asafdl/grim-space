@@ -59,6 +59,7 @@ TODO comments identify known rework or boundary debt. When touching a file or fl
 
 ### Tests
 - Tests must not test GODOT framework, this has caused previous segmentation faults in project. We assume GODOT works properly. We should test our c# code or use fixtures.
+- Run tests with `dotnet test grim-space.Tests/grim-space.Tests.csproj`; in Cursor, use host filesystem access because the .NET test runner requires named-pipe IPC.
 - See README for test instructions
 
 ## Coding conventions
