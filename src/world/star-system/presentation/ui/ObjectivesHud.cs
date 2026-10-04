@@ -12,10 +12,14 @@ public partial class ObjectivesHud : MarginContainer
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
 	private Label _headerCountLabel = null!;
+	private PanelContainer _dismissPopup = null!;
+	private Label _dismissPopupLabel = null!;
 	private readonly Dictionary<string, PanelContainer> _entries = new(StringComparer.Ordinal);
 	private string _lastSignature = "";
+	private string? _dismissContractId;
 
 	public event Action<string>? LandmarkLinkClicked;
+	public event Action<string>? DismissRequested;
 
 	public override void _Ready()
 	{
@@ -31,6 +35,9 @@ public partial class ObjectivesHud : MarginContainer
 
 		_lastSignature = signature;
 		RebuildEntries(objectives);
+		if (_dismissContractId is not null
+			&& !objectives.Any(objective => objective.Id == _dismissContractId))
+			CloseDismissConfirmation();
 	}
 
 	public void NotifyAccepted(string contractId)
@@ -93,6 +100,9 @@ public partial class ObjectivesHud : MarginContainer
 			ThemeTypeVariation = HudStyles.InformativeListVBoxType,
 		};
 		shell.Body.AddChild(_entriesHost);
+
+		_dismissPopup = BuildDismissPopup();
+		AddChild(_dismissPopup);
 	}
 
 	private void RebuildEntries(IReadOnlyList<ActiveObjective> objectives)
@@ -179,7 +189,106 @@ public partial class ObjectivesHud : MarginContainer
 		if (objective.Source == EObjectiveSource.Contract && !objective.Reward.IsEmpty)
 			row.AddChild(ResourceRewardDisplay.CreateCompact(objective.Reward));
 
+		if (objective.Source == EObjectiveSource.Contract)
+		{
+			var dismissButton = new Button
+			{
+				Text = "×",
+				TooltipText = "Dismiss contract",
+				CustomMinimumSize = new Vector2(36, 36),
+				FocusMode = Control.FocusModeEnum.All,
+			};
+			HudStyles.StyleButton(dismissButton, HudActionKind.Secondary);
+			dismissButton.Pressed += () => RequestDismissConfirmation(objective.Id, objective.Title);
+			row.AddChild(dismissButton);
+		}
+
 		return row;
+	}
+
+	private PanelContainer BuildDismissPopup()
+	{
+		var panel = new PanelContainer
+		{
+			Visible = false,
+			MouseFilter = Control.MouseFilterEnum.Stop,
+			CustomMinimumSize = new Vector2(300, 0),
+			ZIndex = 10,
+		};
+		HudStyles.SetPanelVariation(panel, "Shell");
+
+		var content = new VBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Stop,
+		};
+		content.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
+		panel.AddChild(content);
+
+		_dismissPopupLabel = new Label
+		{
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		content.AddChild(_dismissPopupLabel);
+
+		var actions = new HBoxContainer
+		{
+			Alignment = BoxContainer.AlignmentMode.End,
+			MouseFilter = Control.MouseFilterEnum.Stop,
+		};
+		var cancel = new Button { Text = "Cancel" };
+		HudStyles.StyleButton(cancel, HudActionKind.Secondary);
+		cancel.Pressed += CloseDismissConfirmation;
+		actions.AddChild(cancel);
+		var confirm = new Button { Text = "Dismiss" };
+		HudStyles.StyleButton(confirm, HudActionKind.Primary);
+		confirm.Pressed += ConfirmDismiss;
+		actions.AddChild(confirm);
+		content.AddChild(actions);
+		return panel;
+	}
+
+	private void RequestDismissConfirmation(string contractId, string title)
+	{
+		_dismissContractId = contractId;
+		_dismissPopupLabel.Text = $"Dismiss \"{title}\"?";
+		CallDeferred(MethodName.ShowDismissConfirmation);
+	}
+
+	private void ShowDismissConfirmation()
+	{
+		if (_dismissContractId is null)
+			return;
+
+		_dismissPopup.Position = new Vector2(-310, 54);
+		_dismissPopup.Visible = true;
+	}
+
+	private void ConfirmDismiss()
+	{
+		if (_dismissContractId is not { } contractId)
+			return;
+
+		CloseDismissConfirmation();
+		DismissRequested?.Invoke(contractId);
+	}
+
+	private void CloseDismissConfirmation()
+	{
+		_dismissContractId = null;
+		_dismissPopup.Visible = false;
+	}
+
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (_dismissContractId is null
+			|| @event is not InputEventMouseButton { Pressed: true } mouse
+			|| _dismissPopup.GetGlobalRect().HasPoint(mouse.Position))
+			return;
+
+		CloseDismissConfirmation();
+		GetViewport().SetInputAsHandled();
 	}
 
 	private void OnSummaryMetaClicked(Variant metadata)

@@ -57,6 +57,9 @@ internal static class ContractActionTestContext
 			MapFacilityOperators.ContractOperatorName(map),
 			contractId);
 
+	public static DismissContractAction Dismiss(string actorId, string contractId) =>
+		new(actorId, contractId);
+
 	public static void ReevaluateAndComplete(Engine<StarMap, ActorRuntime> engine, string actorId)
 	{
 		foreach (var completion in ContractReevaluation.ReevaluateFor(
