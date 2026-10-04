@@ -6,5 +6,7 @@ public enum UnitVisualState
 	Live,
 	Ghost,
 	SelectedGhost,
+	MoveGhost,
+	SelectedMoveGhost,
 	PendingDeath,
 }

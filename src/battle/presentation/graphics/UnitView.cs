@@ -15,10 +15,12 @@ public partial class UnitView : Node3D
 	private EType _type;
 	private readonly int[] _shieldPoints = new int[Faces.Length];
 	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
+	private Aabb _hullBounds;
 	private bool _hitMarked;
 	private Tween? _poseTween;
 	private Color _bindColor = Colors.White;
 	private ShaderMaterial? _ghostMaterial;
+	private readonly Dictionary<GeometryInstance3D, ShaderMaterial> _moveGhostMaterials = [];
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
 
@@ -81,6 +83,9 @@ public partial class UnitView : Node3D
 	{
 		var selectedGhost = VisualState == UnitVisualState.SelectedGhost;
 		var passiveGhost = VisualState == UnitVisualState.Ghost;
+		var selectedMoveGhost = VisualState == UnitVisualState.SelectedMoveGhost;
+		var passiveMoveGhost = VisualState == UnitVisualState.MoveGhost;
+		var anyGhost = selectedGhost || passiveGhost || selectedMoveGhost || passiveMoveGhost;
 		foreach (var child in FindChildren("*", "GeometryInstance3D", true, false))
 		{
 			if (child is not GeometryInstance3D visual)
@@ -88,13 +93,27 @@ public partial class UnitView : Node3D
 
 			if (!IsHullVisual(visual))
 			{
-				if (!selectedGhost && !passiveGhost)
+				if (!anyGhost)
 					visual.Transparency = 0f;
 				continue;
 			}
 
 			visual.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
 			visual.Transparency = 0f;
+			if (selectedMoveGhost || passiveMoveGhost)
+			{
+				if (!_moveGhostMaterials.TryGetValue(visual, out var material))
+				{
+					material = MoveGhostMaterials.Create(
+						MeshToUnitTransform(visual),
+						_hullBounds);
+					_moveGhostMaterials.Add(visual, material);
+				}
+				MoveGhostMaterials.Apply(material, selectedMoveGhost);
+				visual.MaterialOverride = material;
+				continue;
+			}
+
 			if (selectedGhost || passiveGhost)
 			{
 				_ghostMaterial ??= WeaponPreviewMaterials.CreateDotted(GhostMarkerTint(selectedGhost));
@@ -117,6 +136,14 @@ public partial class UnitView : Node3D
 
 	private bool IsHullVisual(GeometryInstance3D visual) =>
 		_hull is not null && (visual == _hull || _hull.IsAncestorOf(visual));
+
+	private Transform3D MeshToUnitTransform(GeometryInstance3D visual)
+	{
+		var transform = Transform3D.Identity;
+		for (Node3D? node = visual; node is not null && node != this; node = node.GetParent() as Node3D)
+			transform = node.Transform * transform;
+		return transform;
+	}
 
 	private Color GhostMarkerTint(bool selected)
 	{
@@ -371,7 +398,7 @@ public partial class UnitView : Node3D
 
 	private void BindShieldBubble(State state)
 	{
-		var bounds = LocalVisualBounds();
+		_hullBounds = LocalVisualBounds();
 		var maxProfile = state.Loadout.MaxShieldPoints;
 		foreach (var face in Faces)
 		{
@@ -381,7 +408,7 @@ public partial class UnitView : Node3D
 			var instance = new MeshInstance3D
 			{
 				Name = $"Shield{face}",
-				Mesh = ShieldBubbleMesh.CreateFace(bounds, face),
+				Mesh = ShieldBubbleMesh.CreateFace(_hullBounds, face),
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			};
 			PresentationLayers.MarkUx(instance);
@@ -392,7 +419,11 @@ public partial class UnitView : Node3D
 
 	private void ApplyShields(State state)
 	{
-		var hideForGhost = VisualState is UnitVisualState.Ghost or UnitVisualState.SelectedGhost;
+		var hideForGhost = VisualState is
+			UnitVisualState.Ghost
+			or UnitVisualState.SelectedGhost
+			or UnitVisualState.MoveGhost
+			or UnitVisualState.SelectedMoveGhost;
 		var maxProfile = state.Loadout.MaxShieldPoints;
 		foreach (var face in Faces)
 		{

@@ -21,10 +21,26 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		foreach (var heading in MovePose.Headings)
 		{
 			var arrow = new ArrowView();
+			var style = StyleFor(heading);
+			arrow.Configure(style.Label, style.Color);
 			AddChild(arrow);
 			_arrows[heading] = arrow;
 		}
 	}
+
+	private static DirectionStyle StyleFor(Coord heading) =>
+		heading switch
+		{
+			{ X: 1, Y: 0, Z: 0 } => new("+X", new Color(1f, 0.34f, 0.28f)),
+			{ X: -1, Y: 0, Z: 0 } => new("-X", new Color(1f, 0.56f, 0.18f)),
+			{ X: 0, Y: 1, Z: 0 } => new("+Y", new Color(0.28f, 1f, 0.38f)),
+			{ X: 0, Y: -1, Z: 0 } => new("-Y", new Color(0.78f, 0.94f, 0.2f)),
+			{ X: 0, Y: 0, Z: 1 } => new("+Z", new Color(0.2f, 0.72f, 1f)),
+			{ X: 0, Y: 0, Z: -1 } => new("-Z", new Color(0.58f, 0.38f, 1f)),
+			_ => throw new ArgumentOutOfRangeException(nameof(heading), heading, null),
+		};
+
+	private readonly record struct DirectionStyle(string Label, Color Color);
 
 	public void Apply(Coord? destination, IReadOnlySet<Coord> reachableHeadings, Coord? selectedHeading)
 	{
@@ -87,18 +103,42 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			new(-30f, 8f),
 		];
 		private static readonly Vector2[] Outline = [.. Shape, Shape[0]];
-		private static readonly Color BodyColor = new(0.55f, 0.58f, 0.62f, 0.5f);
-		private static readonly Color FillColor = new(0.82f, 0.86f, 0.9f, 0.9f);
 
 		private MovementSelection.HeadingHandleKind _kind;
 		private bool _selected;
 		private float _progress;
+		private Color _bodyColor;
+		private Color _fillColor;
+		private Label _label = null!;
+
+		public void Configure(string label, Color color)
+		{
+			_bodyColor = new Color(color.R, color.G, color.B, 0.72f);
+			var fill = color.Lerp(Colors.White, 0.35f);
+			_fillColor = new Color(fill.R, fill.G, fill.B, 0.96f);
+			_label = new Label
+			{
+				Text = label,
+				Position = new Vector2(-18f, 20f),
+				Size = new Vector2(36f, 22f),
+				PivotOffset = new Vector2(18f, 11f),
+				HorizontalAlignment = HorizontalAlignment.Center,
+				VerticalAlignment = VerticalAlignment.Center,
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			};
+			_label.AddThemeFontSizeOverride("font_size", 12);
+			_label.AddThemeColorOverride("font_color", Colors.White);
+			_label.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.9f));
+			_label.AddThemeConstantOverride("outline_size", 4);
+			AddChild(_label);
+		}
 
 		public void Apply(MovementSelection.HeadingHandleKind kind, bool selected, float progress)
 		{
 			_kind = kind;
 			_selected = selected;
 			_progress = progress;
+			_label.Rotation = -Rotation;
 			QueueRedraw();
 		}
 
@@ -111,16 +151,28 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			if (_kind == MovementSelection.HeadingHandleKind.Arrow)
 			{
 				DrawColoredPolygon(Shape.Select(point => point + new Vector2(3f, 3f)).ToArray(), new Color(0f, 0f, 0f, 0.55f));
-				DrawColoredPolygon(Shape, BodyColor);
+				DrawColoredPolygon(Shape, _bodyColor);
 				if (_progress > 0f)
-					DrawColoredPolygon(ClipAt(Shape, -30f + 64f * _progress), FillColor);
+					DrawColoredPolygon(ClipAt(Shape, -30f + 64f * _progress), _fillColor);
 				DrawPolyline(Outline, outlineColor, 2f, antialiased: true);
 				return;
 			}
 
 			DrawCircle(new Vector2(3f, 3f), 18f, new Color(0f, 0f, 0f, 0.55f));
-			DrawCircle(Vector2.Zero, 18f, BodyColor);
+			DrawCircle(Vector2.Zero, 18f, _bodyColor);
 			DrawArc(Vector2.Zero, 18f, 0f, Mathf.Tau, 32, outlineColor, 2f, antialiased: true);
+			if (_progress > 0f)
+			{
+				DrawArc(
+					Vector2.Zero,
+					15f,
+					-Mathf.Pi / 2f,
+					-Mathf.Pi / 2f + Mathf.Tau * _progress,
+					32,
+					_fillColor,
+					5f,
+					antialiased: true);
+			}
 
 			if (_kind == MovementSelection.HeadingHandleKind.TowardCamera)
 				DrawCircle(Vector2.Zero, 5f, outlineColor);

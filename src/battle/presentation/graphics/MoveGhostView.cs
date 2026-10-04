@@ -61,7 +61,7 @@ public sealed partial class MoveGhostView : Node3D
 
 		_view.Present(
 			state.ToState(),
-			selected ? UnitVisualState.SelectedGhost : UnitVisualState.Ghost);
+			selected ? UnitVisualState.SelectedMoveGhost : UnitVisualState.MoveGhost);
 		_orientationOverlay.Apply(
 			selected ? state.Position : null,
 			selected ? reachableHeadings : NoHeadings,

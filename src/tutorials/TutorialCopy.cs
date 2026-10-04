@@ -20,20 +20,22 @@ internal static class TutorialCopy
 
 	public static string Turn2MovePrompt =>
 		$"Enemies closing in, using weapons forces you to reposition your ship. Lets get in position to shoot — Keep HOLDING {GameInputBindings.Label("battle_primary_click")} " +
-		$"and DRAG heading in correct direction.\nKeep HOLDING and {GameInputBindings.Label("battle_roll_clockwise")} / " +
-		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll.\nAlign yourself to the marked ship.";
+		$"and DRAG toward the green heading arrow.\nKeep HOLDING and {GameInputBindings.Label("battle_roll_clockwise")} / " +
+		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll. The gold section of the preview hull is the topside (dorsal); " +
+		$"put the opposite underside (ventral) toward the enemy.\nAlign yourself to the marked ship.";
 
 	public static string LaunchVentralVoidBomb =>
-		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside mount.\nSome weapons will shoot instantly at end turn, others, like void bombs, will launch a homing projectile at enemy.\nHover Ability to see more information.";
+		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside (ventral) mount—the side opposite the gold topside shown in the movement preview.\n" +
+		$"Some weapons will shoot instantly at end turn, others, like void bombs, will launch a homing projectile at enemy.\nHover Ability to see more information.";
 
 	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
 	public static string MatchGhostPoseAssistance =>
-		$"Match the preview: pitch heading to UP (dorsal), then roll ({GameInputBindings.Label("battle_roll_clockwise")} / " +
-		$"{GameInputBindings.Label("battle_roll_counterclockwise")}) so the underside faces the enemy.";
+		$"Match the preview: drag heading to the green +Y arrow, then roll ({GameInputBindings.Label("battle_roll_clockwise")} / " +
+		$"{GameInputBindings.Label("battle_roll_counterclockwise")}). Gold marks the topside (dorsal); put the opposite underside (ventral) toward the enemy.";
 
 	public const string QueueVentralVoidBombAssistance =
-		"Queue a void bomb from the underside (ventral) mount.";
+		"Queue a void bomb from the underside (ventral) mount, opposite the gold topside shown during movement.";
 
 	public static string UndoAndRetryAssistance =>
 		$"Press {GameInputBindings.Label("battle_undo")} to undo and try again.";
