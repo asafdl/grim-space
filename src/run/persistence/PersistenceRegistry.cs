@@ -24,16 +24,7 @@ namespace GrimSpace.Run.Persistence;
 
 public sealed class PersistenceRegistry
 {
-	private static readonly JsonSerializerOptions JsonOptions =
-		ReflectionJson.CreateOptions(options =>
-		{
-			options.IncludeFields = true;
-			options.Converters.Add(new ContractSpawnMemberJsonConverter());
-			options.Converters.Add(new ResourceBundleJsonConverter());
-			options.Converters.Add(new TransitPathJsonConverter());
-			options.Converters.Add(new ContactTargetJsonConverter());
-			options.Converters.Add(new WreckageOutcomeJsonConverter());
-		});
+	private static readonly JsonSerializerOptions JsonOptions = PersistenceJson.CreateOptions();
 	private readonly Dictionary<string, Func<JsonElement, object>> _readers =
 		new(StringComparer.Ordinal);
 	private readonly Dictionary<Type, (string Discriminator, Func<object, JsonElement> Writer)> _writers = [];
@@ -48,22 +39,6 @@ public sealed class PersistenceRegistry
 		var registry = new PersistenceRegistry();
 
 		registry.Register(
-			DiscriminatorFor(typeof(AcceptContractAction)),
-			ReadAcceptContract,
-			WriteAcceptContract);
-		registry.Register(
-			DiscriminatorFor(typeof(DeclineContractAction)),
-			ReadDeclineContract,
-			WriteDeclineContract);
-		registry.Register(
-			DiscriminatorFor(typeof(TurnInDeliveryAction)),
-			ReadTurnInDelivery,
-			WriteTurnInDelivery);
-		registry.Register(
-			DiscriminatorFor(typeof(ResolveEngagementAction)),
-			ReadResolveEngagement,
-			WriteResolveEngagement);
-		registry.Register(
 			DiscriminatorFor(typeof(PurchaseAction)),
 			ReadPurchase,
 			WritePurchase);
@@ -71,10 +46,6 @@ public sealed class PersistenceRegistry
 			DiscriminatorFor(typeof(MaintainContractBoardAction)),
 			element => ReadMaintainContractBoard(element, registry),
 			value => WriteMaintainContractBoard(value, registry));
-		registry.Register(
-			DiscriminatorFor(typeof(InvestigateWreckageAction)),
-			ReadInvestigateWreckage,
-			WriteInvestigateWreckage);
 
 		registry.RegisterDiscoveredActions(typeof(PersistenceRegistry).Assembly);
 
@@ -269,63 +240,6 @@ public sealed class PersistenceRegistry
 					registry))
 				.ToArray()));
 
-	private static AcceptContractAction ReadAcceptContract(JsonElement element)
-	{
-		var dto = Deserialize<AcceptContractDto>(element);
-		return new AcceptContractAction(
-			dto.ActorId, dto.PoiId, dto.FacilityId, dto.OperatorName,
-			dto.ContractId, dto.SpawnIdentity);
-	}
-
-	private static JsonElement WriteAcceptContract(AcceptContractAction value) =>
-		Serialize(new AcceptContractDto(
-			value.ActorId, value.PoiId, value.FacilityId, value.OperatorName,
-			value.ContractId, value.SpawnIdentity));
-
-	private static InvestigateWreckageAction ReadInvestigateWreckage(JsonElement element)
-	{
-		var dto = Deserialize<InvestigateWreckageDto>(element);
-		return new InvestigateWreckageAction(
-			dto.ActorId, dto.ContractId, dto.AmbushSpawnIdentity);
-	}
-
-	private static JsonElement WriteInvestigateWreckage(InvestigateWreckageAction value) =>
-		Serialize(new InvestigateWreckageDto(
-			value.ActorId, value.ContractId, value.AmbushSpawnIdentity));
-
-	private static DeclineContractAction ReadDeclineContract(JsonElement element)
-	{
-		var dto = Deserialize<DeclineContractDto>(element);
-		return new DeclineContractAction(
-			dto.ActorId, dto.PoiId, dto.FacilityId, dto.OperatorName, dto.ContractId);
-	}
-
-	private static JsonElement WriteDeclineContract(DeclineContractAction value) =>
-		Serialize(new DeclineContractDto(
-			value.ActorId, value.PoiId, value.FacilityId, value.OperatorName, value.ContractId));
-
-	private static TurnInDeliveryAction ReadTurnInDelivery(JsonElement element)
-	{
-		var dto = Deserialize<TurnInDeliveryDto>(element);
-		return new TurnInDeliveryAction(
-			dto.ActorId, dto.PoiId, dto.FacilityId, dto.OperatorName, dto.ContractId);
-	}
-
-	private static JsonElement WriteTurnInDelivery(TurnInDeliveryAction value) =>
-		Serialize(new TurnInDeliveryDto(
-			value.ActorId, value.PoiId, value.FacilityId, value.OperatorName, value.ContractId));
-
-	private static ResolveEngagementAction ReadResolveEngagement(JsonElement element)
-	{
-		var dto = Deserialize<ResolveEngagementDto>(element);
-		return new ResolveEngagementAction(
-			dto.InitiatorId, dto.Outcome, dto.LootRolls, dto.LootTotal);
-	}
-
-	private static JsonElement WriteResolveEngagement(ResolveEngagementAction value) =>
-		Serialize(new ResolveEngagementDto(
-			value.InitiatorId, value.Outcome, value.LootRolls, value.LootTotal));
-
 	private static Record<SpawnFacts> ReadSpawnFacts(JsonElement element)
 	{
 		var dto = Deserialize<SpawnFactsDto>(element);
@@ -348,136 +262,5 @@ public sealed class PersistenceRegistry
 
 	private static T Deserialize<T>(JsonElement value) =>
 		ReflectionJson.Read<T>(value, JsonOptions);
-
-	private sealed class ResourceBundleJsonConverter : JsonConverter<ResourceBundle>
-	{
-		public override ResourceBundle Read(
-			ref Utf8JsonReader reader,
-			Type typeToConvert,
-			JsonSerializerOptions options)
-		{
-			var values = JsonSerializer.Deserialize<Dictionary<ResourceId, int>>(
-				ref reader,
-				options) ?? [];
-			return ResourceBundle.Create(values);
-		}
-
-		public override void Write(
-			Utf8JsonWriter writer,
-			ResourceBundle value,
-			JsonSerializerOptions options) =>
-			JsonSerializer.Serialize(
-				writer,
-				value.ToDictionary(pair => pair.Key, pair => pair.Value),
-				options);
-	}
-
-	private sealed class TransitPathJsonConverter : JsonConverter<TransitPath>
-	{
-		public override TransitPath Read(
-			ref Utf8JsonReader reader,
-			Type typeToConvert,
-			JsonSerializerOptions options)
-		{
-			var dto = JsonSerializer.Deserialize<TransitPathDto>(ref reader, options)
-				?? throw new InvalidDataException("Transit path payload is missing.");
-			return new TransitPath(dto.Legs
-				.Select(leg => new TransitLeg(
-					leg.Points.ToImmutableArray(),
-					leg.SpeedMultiplier,
-					leg.Length))
-				.ToImmutableArray());
-		}
-
-		public override void Write(
-			Utf8JsonWriter writer,
-			TransitPath value,
-			JsonSerializerOptions options) =>
-			JsonSerializer.Serialize(
-				writer,
-				new TransitPathDto(value.Legs.Select(leg =>
-					new TransitLegDto(leg.Points, leg.SpeedMultiplier, leg.Length)).ToArray()),
-				options);
-	}
-
-	private sealed class ContactTargetJsonConverter : JsonConverter<ContactTarget>
-	{
-		public override ContactTarget Read(
-			ref Utf8JsonReader reader,
-			Type typeToConvert,
-			JsonSerializerOptions options)
-		{
-			var dto = JsonSerializer.Deserialize<ContactTargetDto>(ref reader, options)
-				?? throw new InvalidDataException("Contact target payload is missing.");
-			return dto.Kind switch
-			{
-				"fleet" => new FleetContactTarget(dto.Id),
-				"wreck" => new WreckContactTarget(dto.Id),
-				_ => throw new InvalidDataException($"Unknown contact target '{dto.Kind}'."),
-			};
-		}
-
-		public override void Write(
-			Utf8JsonWriter writer,
-			ContactTarget value,
-			JsonSerializerOptions options)
-		{
-			var dto = value switch
-			{
-				FleetContactTarget fleet => new ContactTargetDto("fleet", fleet.UnitId),
-				WreckContactTarget wreck => new ContactTargetDto("wreck", wreck.ContractId),
-				_ => throw new InvalidDataException(
-					$"Unsupported contact target '{value.GetType().Name}'."),
-			};
-			JsonSerializer.Serialize(writer, dto, options);
-		}
-	}
-
-	private sealed class WreckageOutcomeJsonConverter : JsonConverter<WreckageOutcome>
-	{
-		public override WreckageOutcome Read(
-			ref Utf8JsonReader reader,
-			Type typeToConvert,
-			JsonSerializerOptions options)
-		{
-			using var document = JsonDocument.ParseValue(ref reader);
-			var value = document.RootElement;
-			if (value.TryGetProperty("loot", out var loot))
-				return new WreckageOutcome.Salvage(
-					JsonSerializer.Deserialize<ResourceBundle>(loot, options)
-					?? throw new InvalidDataException("Wreckage salvage loot is missing."));
-
-			if (value.TryGetProperty("fleet", out var fleet))
-				return new WreckageOutcome.Ambush(
-					JsonSerializer.Deserialize<FleetSpawnSpec>(fleet, options)
-					?? throw new InvalidDataException("Wreckage ambush fleet is missing."));
-
-			throw new InvalidDataException(
-				"Wreckage outcome must contain either 'loot' or 'fleet'.");
-		}
-
-		public override void Write(
-			Utf8JsonWriter writer,
-			WreckageOutcome value,
-			JsonSerializerOptions options)
-		{
-			writer.WriteStartObject();
-			switch (value)
-			{
-				case WreckageOutcome.Salvage salvage:
-					writer.WritePropertyName("loot");
-					JsonSerializer.Serialize(writer, salvage.Loot, options);
-					break;
-				case WreckageOutcome.Ambush ambush:
-					writer.WritePropertyName("fleet");
-					JsonSerializer.Serialize(writer, ambush.Fleet, options);
-					break;
-				default:
-					throw new InvalidDataException(
-						$"Unsupported wreckage outcome '{value.GetType().FullName}'.");
-			}
-			writer.WriteEndObject();
-		}
-	}
-
 }
+

@@ -234,6 +234,17 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void ReflectionJson_MapsValueTupleMembersToDtoProperties()
+	{
+		(ResourceId Id, int Balance) balance = (ResourceId.Credits, 42);
+
+		var mapped = ReflectionJson.Map<ResourceBalanceDto>(balance);
+
+		Assert.Equal(ResourceId.Credits, mapped.Id);
+		Assert.Equal(42, mapped.Balance);
+	}
+
+	[Fact]
 	public void DefaultRegistry_RoundTripsBattleActionAndRecord()
 	{
 		var registry = PersistenceRegistry.CreateDefault();

@@ -46,7 +46,7 @@ public static class SaveDtoMapper
 			actorId,
 			runtime.CachedPath is null
 				? null
-				: JsonSerializer.SerializeToElement(runtime.CachedPath),
+				: JsonSerializer.SerializeToElement(runtime.CachedPath, registry.Options),
 			runtime.PendingCompletion is null
 				? null
 				: registry.Write(runtime.PendingCompletion),
@@ -63,7 +63,7 @@ public static class SaveDtoMapper
 		ArgumentNullException.ThrowIfNull(runtime);
 		ArgumentNullException.ThrowIfNull(registry);
 		runtime.CachedPath = dto.CachedPath is { } path
-			? path.Deserialize<TransitPath>()
+			? JsonSerializer.Deserialize<TransitPath>(path, registry.Options)
 			: null;
 		runtime.PendingCompletion = dto.PendingCompletion is { } pending
 			? registry.Read(pending) as IAction
@@ -347,11 +347,9 @@ public static class SaveDtoMapper
 					.ToArray(),
 				poi.NextAvailableTaskTick,
 				TemporaryRoles = poi.OperatorTemporaryRoles.Snapshot()
-					.Select(role => new TemporaryOperatorRoleDto(
-						role.FacilityId,
-						role.OperatorName,
-						role.Role,
-						role.SourceId))
+					.Select(role => ReflectionJson.Map<TemporaryOperatorRoleDto>(
+						role,
+						registry.Options))
 					.ToArray(),
 			}).ToArray(),
 			Landmarks = map.NavigationLandmarks,
@@ -363,7 +361,7 @@ public static class SaveDtoMapper
 			MaxPendingContracts = map.ContractRegistry.MaxPending,
 			StoryObjectives = map.StoryObjectives.Active,
 			Resources = map.PlayerResources.EnumerateBalances()
-				.Select(pair => new ResourceBalanceDto(pair.Id, pair.Balance))
+				.Select(pair => ReflectionJson.Map<ResourceBalanceDto>(pair, registry.Options))
 				.ToArray(),
 			map.WaitingForPlayerInput,
 			map.ActiveNarrativeId,

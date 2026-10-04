@@ -9,7 +9,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 
 public static class MapCelestialVisuals
 {
-	private const string SunTexturePath = "res://assets/textures/2k_sun.jpg";
+	private const string SunTexturePath = "res://assets/textures/8k_sun.jpg";
 	private const string PlanetPackPath = "res://assets/models/planets/various_planets.glb";
 	private static readonly (string Body, string[] Clouds)[] PlanetNodes =
 	[
