@@ -582,6 +582,21 @@ public partial class UnitsView : Node3D
 		Runtime.ActorRuntime runtime,
 		float tickFraction)
 	{
+		if (unit.State.Phase == EPhase.InTransit
+			&& unit.State.Journey.IsActive
+			&& runtime.CachedPath is { } path)
+		{
+			var elapsed = world.Timeline.Clock.Current
+				- unit.State.Journey.StartTick
+				+ tickFraction;
+			var route = RoundedTransitRoute.For(path)
+				.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);
+			return new TrafficSample(
+				route.X,
+				route.Z,
+				Mathf.Atan2((float)route.TangentX, (float)route.TangentZ));
+		}
+
 		var sample = FleetPositionSampler.Sample(world, unit.State, runtime, tickFraction);
 		var heading = sample.Tangent is { } tangent
 			? Mathf.Atan2(tangent.X * 0.001f, tangent.Z * 0.001f)

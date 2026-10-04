@@ -3,6 +3,7 @@ using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.Presentation.Map;
 
 namespace GrimSpace.World.StarSystem.Presentation.Camera;
 
@@ -97,7 +98,7 @@ public static class MapPlayerTravelSample
 		Coord destination,
 		Coord origin)
 	{
-		var sample = path.SampleContinuousAtElapsed(0, speedPerTick).Route;
+		var sample = RoundedTransitRoute.For(path).SampleAtElapsed(0, speedPerTick);
 		var direction = TangentToWorldDirection(sample.TangentX, sample.TangentZ);
 		if (direction is not null)
 			return direction;

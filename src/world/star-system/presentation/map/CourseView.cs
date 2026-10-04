@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.Math.Grid;
+using GrimSpace.Math.Routes;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
@@ -93,14 +94,13 @@ public partial class CourseView : Node3D
 			return;
 		}
 
-		var sample = unit.State.CommittedPositionContinuous(world, path, tickFraction);
-		if (sample is null)
-		{
-			HideCourse();
-			return;
-		}
+		var elapsed = world.Timeline.Clock.Current
+			- unit.State.Journey.StartTick
+			+ tickFraction;
+		var sample = RoundedTransitRoute.For(path)
+			.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);
 
-		ShowActiveCourse(path, sample.Value, unit.State.Journey.Destination, unreachableFlash);
+		ShowActiveCourse(path, sample, unit.State.Journey.Destination, unreachableFlash);
 	}
 
 	private void ShowCourse(TransitPath path, Coord destination, long journeyId, bool unreachableFlash)
@@ -124,7 +124,7 @@ public partial class CourseView : Node3D
 
 	private void ShowActiveCourse(
 		TransitPath path,
-		Math.Routes.PiecewiseRouteSample sample,
+		RouteSample sample,
 		Coord destination,
 		bool unreachableFlash)
 	{
@@ -156,31 +156,26 @@ public partial class CourseView : Node3D
 
 	private ImmediateMesh? BuildPathMesh(TransitPath path)
 	{
+		var points = RoundedTransitRoute.For(path).Points;
+		if (points.Count < 2)
+			return null;
+
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(PathColor);
-		var hasVertices = false;
-
-		foreach (var leg in path.Legs)
+		for (var i = 1; i < points.Count; i++)
 		{
-			for (var i = 1; i < leg.Points.Length; i++)
-			{
-				mesh.SurfaceAddVertex(ToWorld(leg.Points[i - 1]));
-				mesh.SurfaceAddVertex(ToWorld(leg.Points[i]));
-				hasVertices = true;
-			}
+			mesh.SurfaceAddVertex(ToWorld(points[i - 1].X, points[i - 1].Z));
+			mesh.SurfaceAddVertex(ToWorld(points[i].X, points[i].Z));
 		}
-
-		if (!hasVertices)
-			return null;
 
 		mesh.SurfaceEnd();
 		return mesh;
 	}
 
-	private ImmediateMesh? BuildRemainingPathMesh(TransitPath path, Math.Routes.PiecewiseRouteSample sample)
+	private ImmediateMesh? BuildRemainingPathMesh(TransitPath path, RouteSample sample)
 	{
-		var points = path.RemainingPoints(sample);
+		var points = RoundedTransitRoute.For(path).RemainingPoints(sample);
 		if (points.Count < 2)
 			return null;
 

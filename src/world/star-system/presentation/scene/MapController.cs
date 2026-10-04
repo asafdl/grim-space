@@ -20,6 +20,7 @@ using GrimSpace.World.StarSystem.Presentation.Map;
 using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Vision;
+using FleetPhase = GrimSpace.World.StarSystem.Units.EPhase;
 
 namespace GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -638,6 +639,26 @@ public partial class MapController : Node3D
 		var unit = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		var cachedPath = _orchestrator.RuntimeFor(State.PlayerFleetUnitId).CachedPath;
+		if (unit.State.Phase == FleetPhase.InTransit
+			&& unit.State.Journey.IsActive
+			&& cachedPath is { } path)
+		{
+			var elapsed = world.Timeline.Clock.Current
+				- unit.State.Journey.StartTick
+				+ tickFraction;
+			var route = RoundedTransitRoute.For(path)
+				.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);
+			return MapPlayerTravelSample.Resolve(
+				world.Width,
+				world.Height,
+				route.X,
+				route.Z,
+				route.TangentX,
+				route.TangentZ,
+				_orchestrator.PlayerAgent?.PendingCourse,
+				unit.State.SpeedPerTick);
+		}
+
 		var continuousPosition = unit.State.CommittedPositionContinuous(
 			world,
 			cachedPath,
