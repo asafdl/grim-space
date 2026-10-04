@@ -17,6 +17,9 @@ public static class UnitDefaults
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, "No default speed for unit type."),
 		};
 
+	public static double PatrolSpeedPerTick(EType type) =>
+		type == EType.PirateFleet ? 3 : SpeedPerTick(type);
+
 	public static double EngageRadius(EType type) =>
 		type switch
 		{

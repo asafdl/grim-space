@@ -1,10 +1,44 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.World.StarSystem.Merchants;
+
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 internal static class MerchantOfferDisplay
 {
+	internal sealed record AbilityEntry(
+		AbilityMount Mount,
+		bool IsInstalled,
+		IReadOnlyList<MerchantCatalog.Offer> Offers);
+
+	public static AbilityEntry[] AbilitiesFor(ShipInstance ship, IReadOnlyList<MerchantCatalog.Offer> offers)
+	{
+		var installed = ship.Loadout.InstalledAbilities.Select(ability => ability.Mount).ToHashSet();
+		return offers
+			.Select(offer => offer.Offering.Mount)
+			.OfType<AbilityMount>()
+			.Concat(installed)
+			.Distinct()
+			.OrderBy(mount => mount.Facet)
+			.ThenBy(mount => mount.Kind)
+			.Select(mount => new AbilityEntry(
+				mount,
+				installed.Contains(mount),
+				offers.Where(offer => offer.Offering.Mount == mount).ToArray()))
+			.ToArray();
+	}
+
+	public static string AbilityIconPath(EAbilityKind kind) =>
+		kind switch
+		{
+			EAbilityKind.ScrapDroneSwarm => "res://assets/ui/abilities/scrap_drone_swarm.svg",
+			EAbilityKind.LightningCannon => "res://assets/ui/abilities/lightning_cannon.svg",
+			EAbilityKind.MinerBay => "res://assets/ui/abilities/repurposed-miner.svg",
+			EAbilityKind.VoidBombLauncher => "res://assets/ui/abilities/void_bomb.svg",
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown ability icon."),
+		};
+
 	public static string ShieldUpgradeTitle(ShipLoadout loadout, ESpatialOrientation face) =>
 		$"{FacetLabel(face)} max shields {MkLabel(loadout.ShieldUpgradeTiers[face])}";
 
@@ -57,7 +91,7 @@ internal static class MerchantOfferDisplay
 
 	private static string MkLabel(int upgradeTier) => $"Mk {upgradeTier + 1}";
 
-	private static string KindLabel(EAbilityKind kind) =>
+	public static string KindLabel(EAbilityKind kind) =>
 		kind switch
 		{
 			EAbilityKind.ScrapDroneSwarm => "Scrap drone swarm",

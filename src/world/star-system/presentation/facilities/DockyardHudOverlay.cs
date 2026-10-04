@@ -3,10 +3,8 @@ using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units;
-using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Merchants;
-using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -19,6 +17,7 @@ public sealed partial class DockyardHudOverlay : Control
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 	private ESpatialOrientation? _selectedFace;
+	private AbilityMount? _selectedMount;
 
 	public event Action<MerchantCatalog.Offering, string>? PurchaseRequested;
 	public event Action? Closed;
@@ -47,6 +46,7 @@ public sealed partial class DockyardHudOverlay : Control
 		_statusKind = null;
 		_statusMessage = "";
 		_selectedFace = null;
+		_selectedMount = null;
 		_shell.Open(_facilityTitle, string.Empty);
 		ShowMain();
 	}
@@ -77,7 +77,7 @@ public sealed partial class DockyardHudOverlay : Control
 	private void ShowMain()
 	{
 		_shell.SetTitle(_facilityTitle);
-		_shell.SetSubtitle(string.Empty);
+		_shell.SetSubtitle("Abilities & upgrades");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -97,10 +97,9 @@ public sealed partial class DockyardHudOverlay : Control
 		}
 
 		var offers = WeaponsCatalog.ListFor(ship).ToArray();
-		var faces = offers
-			.Where(offer => offer.Offering.Mount is not null)
-			.Select(offer => offer.Offering.Mount!.Value.Facet)
-			.Concat(ship.Loadout.InstalledAbilities.Select(ability => ability.Mount.Facet))
+		var abilities = MerchantOfferDisplay.AbilitiesFor(ship, offers);
+		var faces = abilities
+			.Select(ability => ability.Mount.Facet)
 			.Distinct()
 			.OrderBy(face => face)
 			.ToArray();
@@ -108,7 +107,7 @@ public sealed partial class DockyardHudOverlay : Control
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				"No weapon offers available."));
+				"No abilities available."));
 			_shell.SetBody(body);
 			return;
 		}
@@ -116,31 +115,103 @@ public sealed partial class DockyardHudOverlay : Control
 		if (_selectedFace is not { } selected || !faces.Contains(selected))
 			_selectedFace = faces[0];
 
-		var tabs = new TabBar { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		body.AddChild(CreateSelectorHeading("1 / Mount orientation"));
+		var tabs = new TabBar
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(0, 40),
+		};
 		foreach (var face in faces)
 			tabs.AddTab(FaceLabel(face));
 		tabs.CurrentTab = Array.IndexOf(faces, _selectedFace.Value);
+		body.AddChild(tabs);
+		body.AddChild(CreateSelectorHeading("2 / Ability"));
+
+		var abilityList = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		abilityList.AddThemeConstantOverride("h_separation", 10);
+		abilityList.AddThemeConstantOverride("v_separation", 10);
+		body.AddChild(abilityList);
+		var offerList = HudWidgets.CreateCardList();
+		body.AddChild(offerList);
+
 		tabs.TabChanged += index =>
 		{
 			_selectedFace = faces[index];
-			ShowMain();
+			_selectedMount = null;
+			ShowAbilities(abilityList, offerList, ship, abilities);
 		};
-		body.AddChild(tabs);
+		ShowAbilities(abilityList, offerList, ship, abilities);
+		_shell.SetBody(body);
+	}
 
-		var mounted = ship.Loadout.InstalledAbilities
-			.Where(ability => ability.Mount.Facet == _selectedFace)
-			.ToArray();
+	private void ShowAbilities(
+		HFlowContainer abilityList,
+		VBoxContainer offerList,
+		ShipInstance ship,
+		IReadOnlyList<MerchantOfferDisplay.AbilityEntry> abilities)
+	{
+		foreach (var child in abilityList.GetChildren())
+		{
+			abilityList.RemoveChild(child);
+			child.QueueFree();
+		}
+
+		var faceAbilities = abilities.Where(ability => ability.Mount.Facet == _selectedFace).ToArray();
+		var selected = faceAbilities.FirstOrDefault(ability => ability.Mount == _selectedMount)
+			?? faceAbilities.First();
+		_selectedMount = selected.Mount;
+		var group = new ButtonGroup();
+
+		foreach (var ability in faceAbilities)
+		{
+			var name = MerchantOfferDisplay.KindLabel(ability.Mount.Kind);
+			var status = ability.IsInstalled ? "Installed" : "Available to install";
+			var button = new Button
+			{
+				Text = $"{name}\n{status}",
+				TooltipText = $"{FaceLabel(ability.Mount.Facet)} / {name} / {status}",
+				Icon = SvgIconLoader.Load(
+					MerchantOfferDisplay.AbilityIconPath(ability.Mount.Kind), HudStyles.AccentCyan, 36),
+				IconAlignment = HorizontalAlignment.Center,
+				VerticalIconAlignment = VerticalAlignment.Top,
+				CustomMinimumSize = new Vector2(190, 112),
+				ToggleMode = true,
+				ButtonGroup = group,
+				ButtonPressed = ability.Mount == _selectedMount,
+				MouseDefaultCursorShape = CursorShape.PointingHand,
+			};
+			HudStyles.StyleButton(button, HudActionKind.Secondary);
+			button.Toggled += pressed =>
+			{
+				if (!pressed)
+					return;
+
+				_selectedMount = ability.Mount;
+				ShowOffers(offerList, ship, ability);
+			};
+			abilityList.AddChild(button);
+		}
+
+		ShowOffers(offerList, ship, selected);
+	}
+
+	private void ShowOffers(VBoxContainer body, ShipInstance ship, MerchantOfferDisplay.AbilityEntry ability)
+	{
+		foreach (var child in body.GetChildren())
+		{
+			body.RemoveChild(child);
+			child.QueueFree();
+		}
+
 		body.AddChild(HudWidgets.CreateStatusPanel(
 			HudStatusKind.Neutral,
-			mounted.Length == 0
-				? "No weapon installed on this facet."
-				: $"Installed: {string.Join(", ", mounted.Select(ability => ability.Spec.Kind.ToString()))}"));
+			$"{MerchantOfferDisplay.KindLabel(ability.Mount.Kind)} / "
+				+ (ability.IsInstalled ? "Installed" : "Available to install")));
 
-		var faceOffers = offers.Where(offer => offer.Offering.Mount?.Facet == _selectedFace).ToArray();
-		if (faceOffers.Length == 0)
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No upgrades available on this facet."));
+		if (ability.Offers.Count == 0)
+			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No upgrades available for this ability."));
 
-		foreach (var offer in faceOffers)
+		foreach (var offer in ability.Offers)
 		{
 			var captured = offer;
 			var shipId = ship.Id;
@@ -149,9 +220,14 @@ public sealed partial class DockyardHudOverlay : Control
 				[ResourceCostDisplay.CreateMetadataRow(captured.Cost, BodyFor(captured, ship))],
 				() => PurchaseRequested?.Invoke(captured.Offering, shipId)));
 		}
-
-		_shell.SetBody(body);
 	}
+
+	private static Label CreateSelectorHeading(string text) =>
+		new()
+		{
+			Text = text,
+			ThemeTypeVariation = "SectionHeading",
+		};
 
 	private static string FaceLabel(ESpatialOrientation face) =>
 		face switch

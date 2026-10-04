@@ -302,6 +302,8 @@ Trade-hub commerce is split so quoting stays in [`merchants/`](src/world/star-sy
 
 Presentation ([`DockyardController`](src/world/star-system/presentation/facilities/DockyardController.cs), facility scene slug **Dockyard**) only lists quotes and commits actions; it does not mutate ships.
 
+The ability merchant UI selects **mount orientation -> ability icon -> offers**. Selectors include catalog offers and installed abilities (even when no upgrades remain); the existing offer list is filtered to the exact ability kind and orientation. Selection is UI-local and retained after a purchase while that mount remains available. The UI uses "ability" terminology; the existing `WeaponsCatalog` and purchase action identities are unchanged.
+
 ---
 
 ## Local development

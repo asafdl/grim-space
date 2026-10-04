@@ -57,7 +57,9 @@ public static class ContractEnemySpawner
 			spec.Type,
 			"",
 			coord,
-			UnitDefaults.SpeedPerTick(spec.Type),
+			spec.PatrolRadius > 0
+				? UnitDefaults.PatrolSpeedPerTick(spec.Type)
+				: UnitDefaults.SpeedPerTick(spec.Type),
 			UnitDefaults.EngageRadius(spec.Type),
 			UnitDefaults.VisionRadius(spec.Type),
 			[],

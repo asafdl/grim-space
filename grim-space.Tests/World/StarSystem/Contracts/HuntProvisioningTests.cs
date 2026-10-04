@@ -47,6 +47,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
 		Assert.Equal(24, spawned.State.PatrolRadius);
+		Assert.Equal(3, spawned.State.SpeedPerTick);
 		Assert.Single(spawned.Members);
 		Assert.All(spawned.Members, member => Assert.StartsWith("repurposed-miner-", member.Id));
 		Assert.All(
