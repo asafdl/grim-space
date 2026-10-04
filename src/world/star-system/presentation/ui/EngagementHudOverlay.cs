@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contact;
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -38,12 +39,28 @@ public sealed partial class EngagementHudOverlay : Control
 
 		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		body.AddChild(HudWidgets.CreateSection("Fleet type", pending.CounterpartyType.ToString()));
 		body.AddChild(HudWidgets.CreateSection("Faction", FormatFaction(pending.CounterpartyFaction)));
 		body.AddChild(HudWidgets.CreateSection(
-			"Composition",
+			"Fleet composition",
 			pending.EncounterIntel,
-			bodyRole: HudTextRole.Danger));
+			scrollBody: true));
+		body.AddChild(HudWidgets.CreateSection(
+			"Threat assessment",
+			pending.AssignedContract is { } contract
+				? ContractDisplay.Danger(contract)
+				: "Unknown"));
+
+		if (pending.AssignedContract is { } assignedContract)
+		{
+			var details = ContractDisplay.Narrative(assignedContract);
+			var assignment = ContractDisplay.Kind(assignedContract) == EContractKind.Hunt
+				? $"You have a bounty on this fleet.\n\n{ContractDisplay.Title(assignedContract)}"
+				: $"This fleet is associated with an active contract.\n\n{ContractDisplay.Title(assignedContract)}";
+			if (!string.IsNullOrWhiteSpace(details))
+				assignment += $"\n\n{details}";
+
+			body.AddChild(HudWidgets.CreateSection("Additional details", assignment));
+		}
 
 		_shell.SetBody(body);
 		_shell.SetFooter(

@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contact;
@@ -8,7 +9,8 @@ public readonly record struct PendingEngagement(
 	string CounterpartyUnitId,
 	EType CounterpartyType,
 	EFaction CounterpartyFaction,
-	string EncounterIntel);
+	string EncounterIntel,
+	Contract? AssignedContract);
 
 public readonly record struct CommittedEngagement(
 	string EngagementId,
@@ -42,7 +44,8 @@ public static class EngagementQueries
 			counterpartyId,
 			counterparty.State.Type,
 			counterparty.State.Faction,
-			EncounterIntelFormatter.FormatFleet(counterparty));
+			EncounterIntelFormatter.FormatFleet(counterparty),
+			FindAssignedContract(world, counterpartyId));
 		return true;
 	}
 
@@ -89,6 +92,12 @@ public static class EngagementQueries
 
 		return engagement.EngagementParticipantIds.FirstOrDefault(id => id != state.Id);
 	}
+
+	private static Contract? FindAssignedContract(StarMap world, string unitId) =>
+		world.ContractRegistry.All.FirstOrDefault(contract =>
+			world.ContractRegistry.TryGetState(contract.Id, out var state)
+			&& state.Status == EContractStatus.Active
+			&& unitId.StartsWith($"{contract.Id}.", StringComparison.Ordinal));
 
 	public static bool IsHunterInEngageRange(
 		Coord hunterPosition,

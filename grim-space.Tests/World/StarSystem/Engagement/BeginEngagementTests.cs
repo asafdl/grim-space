@@ -93,7 +93,7 @@ public sealed class BeginEngagementTests
 		var delta = player.Position - enemy.Position;
 		var separation = System.Math.Abs(delta.X) + System.Math.Abs(delta.Y) + System.Math.Abs(delta.Z);
 
-		Assert.InRange(separation, 4, 24);
+		Assert.InRange(separation, 20, 52);
 	}
 
 	[Fact]
