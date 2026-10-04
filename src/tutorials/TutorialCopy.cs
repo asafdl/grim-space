@@ -24,7 +24,7 @@ internal static class TutorialCopy
 		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll.\nAlign yourself to the marked ship.";
 
 	public static string LaunchVentralVoidBomb =>
-		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside mount.";
+		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside mount.\nSome weapons will shoot instantly at end turn, others, like void bombs, will launch a homing projectile at enemy.\nHover Ability to see more information.";
 
 	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
