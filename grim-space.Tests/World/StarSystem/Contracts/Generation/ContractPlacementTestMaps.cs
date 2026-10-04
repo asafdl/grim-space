@@ -24,7 +24,17 @@ internal static class ContractPlacementTestMaps
 	{
 		var poiA = CreateIssuerPoi(IssuerAId, new Coord(128, 0, 256));
 		var poiB = CreateIssuerPoi(IssuerBId, new Coord(384, 0, 256));
-		var pois = new PointOfInterest[] { poiA, poiB };
+		return CreateMap(seed, [poiA, poiB]);
+	}
+
+	public static StarMap OneIssuer(int seed = 42)
+	{
+		var poi = CreateIssuerPoi(IssuerAId, new Coord(256, 0, 256));
+		return CreateMap(seed, [poi]);
+	}
+
+	private static StarMap CreateMap(int seed, PointOfInterest[] pois)
+	{
 		var mapSize = 512;
 		var cells = Enumerable.Repeat(PathfindingCell.OpenSpace, mapSize * mapSize).ToArray();
 		var terrain = PathfindingTerrain.FromCells(mapSize, mapSize, cells);

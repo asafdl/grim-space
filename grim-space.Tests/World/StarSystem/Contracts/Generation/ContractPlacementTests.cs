@@ -73,18 +73,44 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Pick_WhenIssuerHasOnlyHunts_PrefersDelivery()
+	public void Pick_ExcludesIssuerDuringGenerationCooldown()
 	{
 		var map = ContractPlacementTestMaps.TwoIssuers();
+		map.ContractRegistry.PauseIssuerGeneration(
+			ContractPlacementTestMaps.IssuerAId,
+			untilTick: 10);
+		var placement = new ContractPlacement();
+
+		var duringCooldown = placement.Pick(map, tick: 9, slotIndex: 0);
+		var afterCooldown = Enumerable.Range(0, 100)
+			.Select(slot => placement.Pick(map, tick: 10, slot))
+			.ToArray();
+
+		Assert.NotNull(duringCooldown);
+		Assert.Equal(ContractPlacementTestMaps.IssuerBId, duringCooldown.IssuerPoiId);
+		Assert.Contains(
+			afterCooldown,
+			decision => decision?.IssuerPoiId == ContractPlacementTestMaps.IssuerAId);
+	}
+
+	[Fact]
+	public void Pick_WhenIssuerHasOnlyHunts_ReducesHuntWeight()
+	{
+		var map = ContractPlacementTestMaps.OneIssuer();
 		var placement = new ContractPlacement();
 		var hunt = SyntheticHunt(map, "stacked-group");
 		map.ContractRegistry.TryAdd(CloneAtIssuer(map, "hunt-1", hunt, ContractPlacementTestMaps.IssuerAId));
 		map.ContractRegistry.TryAdd(CloneAtIssuer(map, "hunt-2", hunt, ContractPlacementTestMaps.IssuerAId));
+		var kinds = Enumerable.Range(0, 1000)
+			.Select(slot => placement.Pick(map, tick: 3, slot))
+			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision).Kind)
+			.ToArray();
 
-		var decision = placement.Pick(map, tick: 3, slotIndex: 4);
-		Assert.NotNull(decision);
-		if (decision.IssuerPoiId == ContractPlacementTestMaps.IssuerAId)
-			Assert.Equal(EContractKind.Delivery, decision.Kind);
+		Assert.NotEmpty(kinds);
+		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
+			< kinds.Count(kind => kind == EContractKind.Delivery));
+		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
+			< kinds.Count(kind => kind == EContractKind.Wreckage));
 	}
 
 	[Fact]

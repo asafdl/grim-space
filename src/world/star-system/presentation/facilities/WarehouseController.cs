@@ -87,18 +87,11 @@ public partial class WarehouseController : Control
 		switch (role)
 		{
 			case EFacilityOperatorRole.Contracts:
-				_contractHud.Open(_orchestrator.Map, _activePoiId, OperatorDisplayLabels.Title(facilityOperator));
-				UpdateBackButton();
+				OpenContractHud(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
 				if (_orchestrator.Map.ContractRegistry.AvailableForPoi(_activePoiId).Any())
-				{
-					_contractHud.Open(
-						_orchestrator.Map,
-						_activePoiId,
-						OperatorDisplayLabels.Title(facilityOperator));
-					UpdateBackButton();
-				}
+					OpenContractHud(facilityOperator);
 				else
 				{
 					_npcDialog.Open(facilityOperator);
@@ -111,6 +104,22 @@ public partial class WarehouseController : Control
 				throw new InvalidOperationException(
 					$"Unexpected operator role '{role}' in warehouse facility.");
 		}
+	}
+
+	private void OpenContractHud(FacilityOperator facilityOperator)
+	{
+		if (!_orchestrator.TryCommitPlayerInput(new VisitContractMerchantAction(
+			State.PlayerFleetUnitId,
+			_activePoiId,
+			_facilityId,
+			facilityOperator.Name)))
+		{
+			GD.PushError($"Unable to record contract merchant visit at POI '{_activePoiId}'.");
+			return;
+		}
+
+		_contractHud.Open(_orchestrator.Map, _activePoiId, OperatorDisplayLabels.Title(facilityOperator));
+		UpdateBackButton();
 	}
 
 	private void OnAcceptRequested(string contractId)

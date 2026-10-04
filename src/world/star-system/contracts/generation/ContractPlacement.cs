@@ -16,7 +16,7 @@ public sealed class ContractPlacement
 	{
 		ArgumentNullException.ThrowIfNull(map);
 
-		var issuers = ListIssuerPoiIds(map);
+		var issuers = ListIssuerPoiIds(map, tick);
 		if (issuers.Count == 0)
 			return null;
 
@@ -29,13 +29,14 @@ public sealed class ContractPlacement
 		return new Decision(issuerPoiId, kind);
 	}
 
-	private IReadOnlyList<string> ListIssuerPoiIds(StarMap map)
+	private IReadOnlyList<string> ListIssuerPoiIds(StarMap map, int tick)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 
 		return map.PointsOfInterest
 			.Where(HasContractsDesk)
 			.Select(poi => poi.Id)
+			.Where(poiId => !map.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, tick))
 			.OrderBy(id => id, StringComparer.Ordinal)
 			.ToArray();
 	}
@@ -100,7 +101,7 @@ public sealed class ContractPlacement
 	private static Dictionary<string, int> CountPendingByIssuer(StarMap map)
 	{
 		var counts = new Dictionary<string, int>(StringComparer.Ordinal);
-		foreach (var contract in map.ContractRegistry.Pending)
+		foreach (var contract in GeneratedBoardOccupants(map))
 		{
 			if (contract.IssuerPoiId is not { } issuerPoiId)
 				continue;
@@ -119,7 +120,7 @@ public sealed class ContractPlacement
 		var huntCount = 0;
 		var deliveryCount = 0;
 		var wreckageCount = 0;
-		foreach (var contract in map.ContractRegistry.Pending)
+		foreach (var contract in GeneratedBoardOccupants(map))
 		{
 			if (!string.Equals(contract.IssuerPoiId, issuerPoiId, StringComparison.Ordinal))
 				continue;
@@ -140,6 +141,13 @@ public sealed class ContractPlacement
 
 		return (huntCount, deliveryCount, wreckageCount);
 	}
+
+	private static IEnumerable<Contract> GeneratedBoardOccupants(StarMap map) =>
+		map.ContractRegistry.All.Where(contract =>
+			!contract.IsStoryObjective
+			&& (map.ContractRegistry.IsPending(contract.Id)
+				|| map.ContractRegistry.TryGetState(contract.Id, out var state)
+				&& state.Status == EContractStatus.Active));
 
 	private static StableRandom CreateRandom(int mapSeed, int tick, int slotIndex) =>
 		new(StableSeedMixer.From(mapSeed).Add(tick).Add(slotIndex).Add("contract-placement").Value);
@@ -171,6 +179,4 @@ public sealed class ContractPlacement
 	private static bool HasContractsDesk(PointOfInterest poi) =>
 		poi.Facilities.Any(facility =>
 			facility.Operators.Any(operatorEntry => operatorEntry.Role == EFacilityOperatorRole.Contracts));
-
-	
 }

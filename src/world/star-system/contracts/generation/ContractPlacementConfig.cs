@@ -6,7 +6,7 @@ public sealed class ContractPlacementConfig
 	public const float DefaultDeliveryKindWeight = 1.0f;
 	public const float DefaultWreckageKindWeight = 1.0f;
 
-	public int TargetGeneratedCount { get; init; } = 3;
+	public int TargetGeneratedCount { get; init; } = 6;
 
 	public float HuntKindWeight { get; init; } = DefaultHuntKindWeight;
 

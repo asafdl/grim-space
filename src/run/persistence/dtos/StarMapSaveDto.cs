@@ -15,6 +15,7 @@ public sealed record StarMapSaveDto(
 	IReadOnlyList<StarMapFleetDto> Fleets,
 	IReadOnlyList<StarMapContractDto> Contracts,
 	int MaxPendingContracts,
+	IReadOnlyDictionary<string, int>? ContractIssuerCooldowns,
 	IReadOnlyList<StoryObjective> StoryObjectives,
 	IReadOnlyList<ResourceBalanceDto> Resources,
 	bool WaitingForPlayerInput,

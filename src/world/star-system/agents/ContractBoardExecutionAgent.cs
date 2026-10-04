@@ -76,15 +76,14 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		return new MaintainContractBoardAction(StarSystemActorIds.Contracts, tick, additions);
 	}
 
-	// TODO: Cadence is configured as same for contract creation and clear, these are two different flows that need their own timer
 	private bool IsCadenceTick(int tick) =>
 		_config.CadenceTicks > 0 && tick % _config.CadenceTicks == 0;
 
 	private int SlotsToFill(StarMap map)
 	{
 		var target = _config.Placement.TargetGeneratedCount;
-		var pending = map.ContractRegistry.CountPendingGenerated();
-		return System.Math.Max(0, target - pending);
+		var occupied = map.ContractRegistry.CountGeneratedBoardOccupancy();
+		return System.Math.Max(0, target - occupied);
 	}
 
 	private bool TryBuildAddition(StarMap map, int tick, int slot, out ContractAddition addition)

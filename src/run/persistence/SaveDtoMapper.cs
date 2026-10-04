@@ -359,6 +359,7 @@ public static class SaveDtoMapper
 			Contracts = map.ContractRegistry.Snapshot()
 				.Select(entry => CaptureContract(entry, registry)).ToArray(),
 			MaxPendingContracts = map.ContractRegistry.MaxPending,
+			ContractIssuerCooldowns = map.ContractRegistry.IssuerGenerationCooldownsSnapshot(),
 			StoryObjectives = map.StoryObjectives.Active,
 			Resources = map.PlayerResources.EnumerateBalances()
 				.Select(pair => ReflectionJson.Map<ResourceBalanceDto>(pair, registry.Options))
@@ -410,7 +411,8 @@ public static class SaveDtoMapper
 		contracts.RestoreSnapshot(
 			dto.Contracts.Select(contract => RestoreContract(contract, registry)).Select(entry =>
 				(entry.Contract, entry.State, entry.ExpiresAtTick)),
-			dto.MaxPendingContracts);
+			dto.MaxPendingContracts,
+			dto.ContractIssuerCooldowns);
 		var objectives = new StoryObjectiveRegistry();
 		foreach (var objective in dto.StoryObjectives)
 			objectives.Add(objective);

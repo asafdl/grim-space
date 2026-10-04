@@ -3,7 +3,8 @@ namespace GrimSpace.World.StarSystem.Contracts.Generation;
 public sealed class ContractBoardConfig
 {
 	public const int DefaultCadenceTicks = 5;
-	public const int DefaultTtlTicks = 1000;
+	public const int DefaultTtlTicks = 300;
+	public const int DefaultMerchantRefreshCooldownTicks = 150;
 
 	public int CadenceTicks { get; init; } = DefaultCadenceTicks;
 

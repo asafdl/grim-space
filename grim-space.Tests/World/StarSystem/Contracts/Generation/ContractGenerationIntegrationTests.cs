@@ -26,7 +26,7 @@ public sealed class ContractGenerationIntegrationTests(StarMapFixture maps)
 		var generated = orchestrator.Map.ContractRegistry.Pending
 			.Where(contract => !contract.IsStoryObjective)
 			.ToList();
-		Assert.Equal(3, generated.Count);
+		Assert.Equal(6, generated.Count);
 	}
 
 	[Fact]

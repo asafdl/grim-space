@@ -456,6 +456,17 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void EnsurePatrolAgents()
 	{
+		for (var index = _patrolAgents.Count - 1; index >= 0; index--)
+		{
+			var (agent, actorId) = _patrolAgents[index];
+			if (Map.FleetRegistry.TryGet(actorId, out var fleet)
+				&& fleet.State.PatrolRadius > 0)
+				continue;
+
+			agent.SetCanWork(false);
+			_patrolAgents.RemoveAt(index);
+		}
+
 		var knownIds = _patrolAgents
 			.Select(entry => entry.ActorId)
 			.ToHashSet(StringComparer.Ordinal);

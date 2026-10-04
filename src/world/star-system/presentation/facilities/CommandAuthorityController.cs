@@ -125,6 +125,16 @@ public partial class CommandAuthorityController : Control
 
 	private void OpenContractHud(FacilityOperator facilityOperator)
 	{
+		if (!_orchestrator.TryCommitPlayerInput(new VisitContractMerchantAction(
+			State.PlayerFleetUnitId,
+			_activePoiId,
+			_facilityId,
+			facilityOperator.Name)))
+		{
+			GD.PushError($"Unable to record contract merchant visit at POI '{_activePoiId}'.");
+			return;
+		}
+
 		_contractHud.Open(_orchestrator.Map, _activePoiId, OperatorDisplayLabels.Title(facilityOperator));
 		UpdateBackButton();
 	}

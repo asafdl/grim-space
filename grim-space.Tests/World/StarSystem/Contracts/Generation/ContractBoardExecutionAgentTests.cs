@@ -98,6 +98,34 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Plan_ActiveGeneratedContracts_OccupyBoardSlots()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		var active = ContractFactory.Build(
+			map,
+			"active-generated",
+			EContractKind.Hunt,
+			CreateGeneratedHuntArgs(map));
+		map.ContractRegistry.TryAdd(active, expiresAtTick: 50);
+		map.ContractRegistry.Activate(new ContractState(
+			active.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 1,
+			State.PlayerFleetUnitId));
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 3 },
+		};
+
+		var action = PlanAtTick(map, tick: 1, generationEnabled: true, config);
+
+		Assert.NotNull(action);
+		Assert.Equal(2, action.Additions.Count);
+	}
+
+	[Fact]
 	public void Plan_SameInputs_ProduceDeterministicContractIds()
 	{
 		var map = maps.Fresh(99);
@@ -145,7 +173,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		engine.Commit(action);
 
 		var generated = engine.World.ContractRegistry.Pending.Where(contract => !contract.IsStoryObjective).ToList();
-		Assert.Equal(3, generated.Count);
+		Assert.Equal(6, generated.Count);
 	}
 
 	[Fact]

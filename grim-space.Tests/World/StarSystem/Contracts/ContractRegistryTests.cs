@@ -114,6 +114,29 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void CountGeneratedBoardOccupancy_IncludesActiveGeneratedContracts()
+	{
+		var map = maps.FreshWithBeatAHunt(42);
+		var registry = map.ContractRegistry;
+		var template = registry.Pending.First();
+		var hunt = (HuntObjective)template.Objective;
+		var holderUnitId = map.FleetRegistry.Ids.First();
+		var generated = CloneContract(template, "generated", hunt) with { IsStoryObjective = false };
+		registry.TryAdd(generated, expiresAtTick: 50);
+
+		Assert.Equal(1, registry.CountGeneratedBoardOccupancy());
+
+		registry.Activate(CreateActiveState(map, generated.Id, holderUnitId, 1));
+
+		Assert.Equal(0, registry.CountPendingGenerated());
+		Assert.Equal(1, registry.CountGeneratedBoardOccupancy());
+
+		registry.Fail(generated.Id);
+
+		Assert.Equal(0, registry.CountGeneratedBoardOccupancy());
+	}
+
+	[Fact]
 	public void TryAdd_AtOfferedCap_FailsWithoutMutation()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
@@ -148,6 +171,19 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 		Assert.True(fork.ContractRegistry.TryGetExpiration("fork-exp", out var expiresAtTick));
 		Assert.Equal(99, expiresAtTick);
 		Assert.Equal(registry.MaxPending, fork.ContractRegistry.MaxPending);
+	}
+
+	[Fact]
+	public void IssuerGenerationCooldown_UsesExclusiveUntilTickAndSurvivesFork()
+	{
+		var map = maps.FreshWithBeatAHunt(42);
+		var poiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
+		map.ContractRegistry.PauseIssuerGeneration(poiId, untilTick: 151);
+
+		var fork = map.Fork();
+
+		Assert.True(fork.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 150));
+		Assert.False(fork.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 151));
 	}
 
 	[Fact]

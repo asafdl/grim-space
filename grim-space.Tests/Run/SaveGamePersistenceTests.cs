@@ -283,6 +283,7 @@ public sealed class SaveGamePersistenceTests
 		{
 			new AcceptContractAction("fleet", "poi", "facility", "operator", "contract", "spawn"),
 			new DeclineContractAction("fleet", "poi", "facility", "operator", "contract"),
+			new VisitContractMerchantAction("fleet", "poi", "facility", "operator"),
 			new TurnInDeliveryAction("fleet", "poi", "facility", "operator", "contract"),
 			new InvestigateWreckageAction("fleet", "contract", "ambush-spawn"),
 		};
@@ -292,7 +293,8 @@ public sealed class SaveGamePersistenceTests
 			restored => Assert.Equal(actions[0], restored),
 			restored => Assert.Equal(actions[1], restored),
 			restored => Assert.Equal(actions[2], restored),
-			restored => Assert.Equal(actions[3], restored));
+			restored => Assert.Equal(actions[3], restored),
+			restored => Assert.Equal(actions[4], restored));
 	}
 
 	[Fact]
@@ -447,6 +449,22 @@ public sealed class SaveGamePersistenceTests
 
 		Assert.Equal(120, restored.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.Equal(7, restored.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+	}
+
+	[Fact]
+	public void SaveDtoMapper_RoundTripsContractIssuerCooldowns()
+	{
+		var map = StarMap.Create(42);
+		var poiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
+		map.ContractRegistry.PauseIssuerGeneration(poiId, untilTick: 151);
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var restored = SaveDtoMapper.RestoreStarMap(
+			SaveDtoMapper.CaptureStarMap(map, registry),
+			registry);
+
+		Assert.True(restored.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 150));
+		Assert.False(restored.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 151));
 	}
 
 	[Fact]

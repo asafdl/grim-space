@@ -62,6 +62,20 @@ public sealed class PatrolExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void AdvanceTick_AfterPatrolFleetRemoved_RetiresAgent()
+	{
+		var map = maps.Fresh(42);
+		var unit = AddPatrolUnit(map);
+		var orchestrator = StarSystemOrchestrator.FromMap(map, new StraightLinePathfinder());
+		orchestrator.AdvanceTick();
+		Assert.True(map.FleetRegistry.Remove(unit.State.Id));
+
+		var exception = Record.Exception(orchestrator.AdvanceTick);
+
+		Assert.Null(exception);
+	}
+
+	[Fact]
 	public void PlanAndPublish_WaitsForArrivalThenSelectsAnotherDestination()
 	{
 		var (agent, sink, engine, unit) = CreateAgent(maps.Fresh(42));
