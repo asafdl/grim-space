@@ -130,7 +130,7 @@ public partial class MapController : Node3D
 			sync => _orchestrator.Subscribe<ReachWreckageAction>(_ => sync()));
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
-			picked => _view.ResolveMoveDestination(picked),
+			ResolveMoveDestination,
 			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
 		_timeControls.PausePressed += HandlePauseRequest;
 		_timeControls.SpeedPressed += CycleSpeed;
@@ -729,6 +729,16 @@ public partial class MapController : Node3D
 
 	private void AdjustSpeed(int delta) =>
 		_speedIndex = Mathf.Clamp(_speedIndex + delta, 0, SpeedOptions.Length - 1);
+
+	private Coord ResolveMoveDestination(Coord picked)
+	{
+		var destination = _view.ResolveMoveDestination(picked);
+		if (_orchestrator.Map.PathfindingTerrain.IsTraversable(destination))
+			return destination;
+
+		return _orchestrator.Map.PathfindingTerrain.NearestTraversable(destination)
+			?? destination;
+	}
 
 	private void OnObjectiveLandmarkLinkClicked(string objectId)
 	{

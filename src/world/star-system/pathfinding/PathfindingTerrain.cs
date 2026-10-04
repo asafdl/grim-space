@@ -26,6 +26,33 @@ public sealed class PathfindingTerrain
 		GridBounds.IsPointInRectangle(coord, Width, Height)
 		&& !CellAt(coord).Blocked;
 
+	public Coord? NearestTraversable(Coord point)
+	{
+		Coord? nearest = null;
+		var bestDistance = long.MaxValue;
+
+		for (var z = 0; z < Height; z++)
+		{
+			for (var x = 0; x < Width; x++)
+			{
+				var candidate = new Coord(x, 0, z);
+				if (!IsTraversable(candidate))
+					continue;
+
+				var dx = candidate.X - point.X;
+				var dz = candidate.Z - point.Z;
+				var distance = (long)dx * dx + (long)dz * dz;
+				if (distance >= bestDistance)
+					continue;
+
+				bestDistance = distance;
+				nearest = candidate;
+			}
+		}
+
+		return nearest;
+	}
+
 	public bool IsCircleTraversable(Coord center, int radius)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(radius);
