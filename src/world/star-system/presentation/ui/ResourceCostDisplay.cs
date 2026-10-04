@@ -59,6 +59,27 @@ public static class ResourceCostDisplay
 		return row;
 	}
 
+	public static Control CreateOfferDetails(string description, ResourceBundle cost)
+	{
+		var row = new HBoxContainer
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		row.AddThemeConstantOverride("separation", 24);
+		row.AddChild(new Label
+		{
+			Text = description,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "MerchantOfferStatLabel",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		});
+		row.AddChild(CreateBundleInline(cost));
+		return row;
+	}
+
 	public static Control CreatePrefixed(string prefix, ResourceBundle bundle, HudTextRole role = HudTextRole.Metadata)
 	{
 		var row = new HBoxContainer

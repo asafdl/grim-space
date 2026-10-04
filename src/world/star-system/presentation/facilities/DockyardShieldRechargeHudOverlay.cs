@@ -5,14 +5,11 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
-using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class DockyardShieldRechargeHudOverlay : Control
 {
-	private enum SupportTab { Hull, Shields, Capacity }
-
 	private static readonly ESpatialOrientation[] Faces =
 	[
 		ESpatialOrientation.Forward,
@@ -24,14 +21,12 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	];
 
 	private static readonly ShieldBlockMetrics CompactMetrics = ShieldBlockMetrics.For(ShieldBlockBarSize.Compact);
-
 	private readonly ModalShell _shell;
 	private State _run = null!;
-	private StarMap _map = null!;
 	private string _facilityTitle = "";
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
-	private SupportTab _selectedTab;
+	private ESpatialOrientation _selectedFace;
 
 	public event Action<MerchantCatalog.Offering, string>? SupportPurchaseRequested;
 	public event Action? Closed;
@@ -56,12 +51,11 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	public void Open(State run, StarMap map, string facilityTitle)
 	{
 		_run = run;
-		_map = map;
 		_facilityTitle = facilityTitle;
 		_statusKind = null;
 		_statusMessage = "";
-		_selectedTab = SupportTab.Hull;
-		_shell.Open(_facilityTitle, string.Empty);
+		_selectedFace = ESpatialOrientation.Forward;
+		_shell.Open("Ship support", _facilityTitle);
 		ShowMain();
 	}
 
@@ -72,11 +66,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		_shell.Close();
 	}
 
-	public void Sync(State run, StarMap map)
-	{
-		_run = run;
-		_map = map;
-	}
+	public void Sync(State run, StarMap map) => _run = run;
 
 	public void ShowError(string message)
 	{
@@ -94,13 +84,15 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 
 	private void ShowMain()
 	{
-		_shell.SetTitle(_facilityTitle);
-		_shell.SetSubtitle("Ship support");
+		_shell.SetTitle("Ship support");
+		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 
 		var body = HudWidgets.CreateCardList();
+		body.SizeFlagsVertical = SizeFlags.ExpandFill;
+		body.AddThemeConstantOverride("separation", 18);
 
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
 			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
@@ -115,29 +107,8 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		}
 
 		var offers = ShipSupportCatalog.ListFor(ship);
-		var tabs = new TabBar { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		foreach (var tab in Enum.GetValues<SupportTab>())
-			tabs.AddTab(tab.ToString());
-		tabs.CurrentTab = (int)_selectedTab;
-		tabs.TabChanged += index =>
-		{
-			_selectedTab = (SupportTab)index;
-			ShowMain();
-		};
-		body.AddChild(tabs);
-
-		switch (_selectedTab)
-		{
-			case SupportTab.Hull:
-				body.AddChild(CreateHullRepairPanel(ship, offers));
-				break;
-			case SupportTab.Shields:
-				body.AddChild(CreateShieldRechargePanel(ship, offers));
-				break;
-			case SupportTab.Capacity:
-				AppendHullUpgradeCard(body, ship, offers);
-				break;
-		}
+		body.AddChild(CreateHullSection(ship, offers));
+		body.AddChild(CreateShieldSection(ship, offers));
 
 		_shell.SetBody(body);
 	}
@@ -153,154 +124,176 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		return true;
 	}
 
-	private void AppendHullUpgradeCard(
-		VBoxContainer body,
+	private Control CreateHullSection(
 		ShipInstance ship,
 		IReadOnlyList<MerchantCatalog.Offer> offers)
 	{
-		var offer = offers.FirstOrDefault(o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxHull);
-		if (offer is null)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "Hull capacity is fully upgraded."));
-			return;
-		}
+		var panel = CreateSupportSection("Hull", out var column);
+		column.AddChild(FullStatusLabel($"Hull integrity {ship.HullPoints}/{ship.Loadout.MaxHullPoints}"));
 
-		body.AddChild(HudWidgets.CreateCard(
-			MerchantOfferDisplay.HullUpgradeTitle(ship.Loadout),
-			[ResourceCostDisplay.CreateMetadataRow(
-				offer.Cost, $"Max hull {ship.Loadout.MaxHullPoints} -> {ship.Loadout.MaxHullPoints + 1}")],
-			() => SupportPurchaseRequested?.Invoke(offer.Offering, ship.Id)));
-	}
-
-	private Control CreateHullRepairPanel(ShipInstance ship, IReadOnlyList<MerchantCatalog.Offer> offers)
-	{
-		var panel = CreateStatusPanelShell(out var column);
 		var repairOffer = offers.FirstOrDefault(o => o.Offering.Kind == MerchantCatalog.Kind.RepairHull);
-
-		if (repairOffer is null)
+		if (repairOffer is not null)
 		{
-			column.AddChild(FullStatusLabel("Hull integrity is full."));
-			return panel;
+			column.AddChild(HudWidgets.CreateCard(
+				"Repair",
+				[ResourceCostDisplay.CreateOfferDetails(
+					MerchantOfferDisplay.HullRepairBody(ship.HullPoints, ship.Loadout.MaxHullPoints),
+					repairOffer.Cost)],
+				() => SupportPurchaseRequested?.Invoke(repairOffer.Offering, ship.Id)));
 		}
 
-		var missing = ship.MissingHullPoints;
-		var shipId = ship.Id;
-		column.AddChild(HudWidgets.CreateCard(
-			"Hull repair",
-			[
-				ResourceCostDisplay.CreateMetadataRow(
-					repairOffer.Cost,
-					$"Restore {missing} hull to {ship.Loadout.MaxHullPoints}"),
-			],
-			() => SupportPurchaseRequested?.Invoke(repairOffer.Offering, shipId)));
+		var upgradeOffer = offers.FirstOrDefault(o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxHull);
+		if (upgradeOffer is null)
+		{
+			column.AddChild(FullStatusLabel("Hull capacity is fully upgraded."));
+		}
+		else
+		{
+			column.AddChild(HudWidgets.CreateCard(
+				MerchantOfferDisplay.CapacityUpgradeTitle(ship.Loadout.HullUpgradeTier),
+				[ResourceCostDisplay.CreateOfferDetails(
+					MerchantOfferDisplay.HullCapacityBody(ship.Loadout.MaxHullPoints),
+					upgradeOffer.Cost)],
+				() => SupportPurchaseRequested?.Invoke(upgradeOffer.Offering, ship.Id)));
+		}
 
 		return panel;
 	}
 
-	private Control CreateShieldRechargePanel(ShipInstance ship, IReadOnlyList<MerchantCatalog.Offer> offers)
+	private Control CreateShieldSection(ShipInstance ship, IReadOnlyList<MerchantCatalog.Offer> offers)
 	{
-		var panel = CreateStatusPanelShell(out var column);
-
-		var creditsOnHand = _map.PlayerResources.GetBalance(ResourceId.Credits);
-		var shipId = ship.Id;
-
-		foreach (var face in Faces)
+		var panel = CreateSupportSection("Shields", out var column);
+		var tabs = new TabBar
 		{
-			var faceOffer = offers.FirstOrDefault(o =>
-				o.Offering.Kind == MerchantCatalog.Kind.RechargeShieldFace
-				&& o.Offering.Face == face);
-			var upgradeOffer = offers.FirstOrDefault(o =>
-				o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
-				&& o.Offering.Face == face);
-			column.AddChild(CreateRowDivider());
-			column.AddChild(CreateFaceRow(ship, face, creditsOnHand, shipId, faceOffer));
-			if (upgradeOffer is not null)
-			{
-				column.AddChild(HudWidgets.CreateCard(
-					MerchantOfferDisplay.ShieldUpgradeTitle(ship.Loadout, face),
-					[ResourceCostDisplay.CreateMetadataRow(
-						upgradeOffer.Cost,
-						$"{ShortFaceName(face)} capacity {ship.Loadout.MaxShieldPoints[face]} -> {ship.Loadout.MaxShieldPoints[face] + 1}")],
-					() => SupportPurchaseRequested?.Invoke(upgradeOffer.Offering, shipId)));
-			}
-			else
-			{
-				column.AddChild(FullStatusLabel($"{ShortFaceName(face)} capacity fully upgraded."));
-			}
-		}
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			ThemeTypeVariation = "MerchantTabBar",
+		};
+		foreach (var face in Faces)
+			tabs.AddTab(FaceLabel(face));
+		tabs.CurrentTab = Array.IndexOf(Faces, _selectedFace);
+		column.AddChild(tabs);
 
-		column.AddChild(CreateRowDivider());
+		var faceContent = HudWidgets.CreateCardList();
+		column.AddChild(faceContent);
+		tabs.TabChanged += index =>
+		{
+			_selectedFace = Faces[index];
+			ShowShieldFace(faceContent, ship, offers);
+		};
+		ShowShieldFace(faceContent, ship, offers);
 
 		var fillAllOffer = offers.FirstOrDefault(o =>
 			o.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
 		if (fillAllOffer is not null)
 		{
-			var fillAllCost = CreditAmount(fillAllOffer.Cost);
-			column.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
-				"Fill all",
-				ResourceId.Credits,
-				fillAllCost,
-				creditsOnHand >= fillAllCost,
-				() => SupportPurchaseRequested?.Invoke(fillAllOffer.Offering, shipId)));
+			column.AddChild(HudWidgets.CreateCard(
+				"Recharge all",
+				[ResourceCostDisplay.CreateOfferDetails(
+					MerchantOfferDisplay.RechargeAllBody(
+						ship.TotalCurrentShieldPoints,
+						ship.TotalMaxShieldPoints),
+					fillAllOffer.Cost)],
+				() => SupportPurchaseRequested?.Invoke(fillAllOffer.Offering, ship.Id)));
 		}
 
 		return panel;
 	}
 
-	private Control CreateFaceRow(
+	private void ShowShieldFace(
+		VBoxContainer body,
 		ShipInstance ship,
-		ESpatialOrientation face,
-		int creditsOnHand,
-		string shipId,
-		MerchantCatalog.Offer? faceOffer)
+		IReadOnlyList<MerchantCatalog.Offer> offers)
+	{
+		foreach (var child in body.GetChildren())
+		{
+			body.RemoveChild(child);
+			child.QueueFree();
+		}
+
+		body.AddChild(CreateFaceStatus(ship, _selectedFace));
+
+		var rechargeOffer = offers.FirstOrDefault(o =>
+			o.Offering.Kind == MerchantCatalog.Kind.RechargeShieldFace
+				&& o.Offering.Face == _selectedFace);
+		if (rechargeOffer is not null)
+		{
+			var max = ship.Loadout.MaxShieldPoints[_selectedFace];
+			var current = System.Math.Clamp(ship.ShieldPoints[_selectedFace], 0, max);
+			body.AddChild(HudWidgets.CreateCard(
+				"Recharge",
+				[ResourceCostDisplay.CreateOfferDetails(
+					MerchantOfferDisplay.ShieldRechargeBody(current, max),
+					rechargeOffer.Cost)],
+				() => SupportPurchaseRequested?.Invoke(rechargeOffer.Offering, ship.Id)));
+		}
+
+		var upgradeOffer = offers.FirstOrDefault(o =>
+			o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
+				&& o.Offering.Face == _selectedFace);
+		if (upgradeOffer is null)
+		{
+			body.AddChild(FullStatusLabel($"{FaceLabel(_selectedFace)} capacity is fully upgraded."));
+		}
+		else
+		{
+			var max = ship.Loadout.MaxShieldPoints[_selectedFace];
+			body.AddChild(HudWidgets.CreateCard(
+				MerchantOfferDisplay.CapacityUpgradeTitle(
+					ship.Loadout.ShieldUpgradeTiers[_selectedFace]),
+				[ResourceCostDisplay.CreateOfferDetails(
+					MerchantOfferDisplay.ShieldCapacityBody(max),
+					upgradeOffer.Cost)],
+				() => SupportPurchaseRequested?.Invoke(upgradeOffer.Offering, ship.Id)));
+		}
+	}
+
+	private static Control CreateFaceStatus(ShipInstance ship, ESpatialOrientation face)
 	{
 		var max = ship.Loadout.MaxShieldPoints[face];
 		var current = System.Math.Clamp(ship.ShieldPoints[face], 0, max);
-		var creditCost = faceOffer is null ? 0 : CreditAmount(faceOffer.Cost);
-
 		var row = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		row.AddThemeConstantOverride("separation", 10);
 
-		var name = new Label
-		{
-			Text = $"{ShortFaceName(face)} {current}/{max}",
-			CustomMinimumSize = new Vector2(72f, 0f),
-		};
-		HudStyles.ApplyTextRole(name, HudTextRole.Metadata);
-		row.AddChild(name);
-
+		var status = FullStatusLabel($"{FaceLabel(face)} shields {current}/{max}");
+		status.CustomMinimumSize = new Vector2(180, 0);
+		row.AddChild(status);
 		var barHost = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		barHost.AddThemeConstantOverride("separation", CompactMetrics.Separation);
 		row.AddChild(barHost);
 		var blocks = new List<Panel>();
 		ShieldBlockVisuals.SyncBlocks(barHost, blocks, CompactMetrics, max, current);
-
-		if (faceOffer is not null)
-			row.AddChild(ResourceCostDisplay.CreateLabeledCostButton(
-				"Fill",
-				ResourceId.Credits,
-				creditCost,
-				creditCost > 0 && creditsOnHand >= creditCost,
-				() => SupportPurchaseRequested?.Invoke(faceOffer.Offering, shipId)));
-
 		return row;
 	}
 
-	private static PanelContainer CreateStatusPanelShell(out VBoxContainer column)
+	private static PanelContainer CreateSupportSection(string title, out VBoxContainer column)
 	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		var panel = new PanelContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
 		HudStyles.SetPanelVariation(panel, "Status");
 
-		var margin = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		var margin = new MarginContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
 		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
 		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
 		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
 		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
 		panel.AddChild(margin);
 
-		column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		column = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
 		column.AddThemeConstantOverride("separation", 8);
 		margin.AddChild(column);
+		column.AddChild(new Label
+		{
+			Text = title.ToUpperInvariant(),
+			ThemeTypeVariation = HudStyles.InformativeSectionTitleLabelType,
+		});
 		return panel;
 	}
 
@@ -316,35 +309,15 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		return label;
 	}
 
-	private static Control CreateRowDivider()
-	{
-		var padding = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		padding.AddThemeConstantOverride("margin_top", 2);
-		padding.AddThemeConstantOverride("margin_bottom", 2);
-		padding.AddChild(HudWidgets.CreateInformativeHairline());
-		return padding;
-	}
-
-	private static int CreditAmount(ResourceBundle cost)
-	{
-		foreach (var (id, amount) in cost)
-		{
-			if (id == ResourceId.Credits)
-				return amount;
-		}
-
-		return 0;
-	}
-
-	private static string ShortFaceName(ESpatialOrientation face) =>
+	private static string FaceLabel(ESpatialOrientation face) =>
 		face switch
 		{
-			ESpatialOrientation.Forward => "fore",
-			ESpatialOrientation.Retro => "aft",
-			ESpatialOrientation.Starboard => "stbd",
-			ESpatialOrientation.Port => "port",
-			ESpatialOrientation.Dorsal => "dorsal",
-			ESpatialOrientation.Ventral => "ventral",
-			_ => face.ToString().ToLowerInvariant(),
+			ESpatialOrientation.Forward => "Forward",
+			ESpatialOrientation.Retro => "Aft",
+			ESpatialOrientation.Starboard => "Starboard",
+			ESpatialOrientation.Port => "Port",
+			ESpatialOrientation.Dorsal => "Dorsal",
+			ESpatialOrientation.Ventral => "Ventral",
+			_ => face.ToString(),
 		};
 }

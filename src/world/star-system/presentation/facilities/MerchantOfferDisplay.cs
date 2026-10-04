@@ -39,11 +39,23 @@ internal static class MerchantOfferDisplay
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown ability icon."),
 		};
 
-	public static string ShieldUpgradeTitle(ShipLoadout loadout, ESpatialOrientation face) =>
-		$"{FacetLabel(face)} max shields {MkLabel(loadout.ShieldUpgradeTiers[face])}";
+	public static string CapacityUpgradeTitle(int currentTier) =>
+		$"Capacity \u00b7 {MkLabel(currentTier)}";
 
-	public static string HullUpgradeTitle(ShipLoadout loadout) =>
-		$"Max hull {MkLabel(loadout.HullUpgradeTier)}";
+	public static string HullRepairBody(int current, int max) =>
+		$"Hull integrity {current} \u2192 {max}";
+
+	public static string HullCapacityBody(int currentMax) =>
+		$"Max hull {currentMax} \u2192 {currentMax + 1}";
+
+	public static string ShieldRechargeBody(int current, int max) =>
+		$"Shield charge {current} \u2192 {max}";
+
+	public static string ShieldCapacityBody(int currentMax) =>
+		$"Max shields {currentMax} \u2192 {currentMax + 1}";
+
+	public static string RechargeAllBody(int current, int max) =>
+		$"Total shields {current} \u2192 {max}";
 
 	public const string InstallTitle = "Install ability";
 	public const string InstallBody = "Add this ability to the selected mount.";

@@ -119,7 +119,7 @@ public sealed partial class DockyardHudOverlay : Control
 		var tabs = new TabBar
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			ThemeTypeVariation = "AbilityMountTabBar",
+			ThemeTypeVariation = "MerchantTabBar",
 		};
 		foreach (var face in faces)
 			tabs.AddTab(FaceLabel(face));
@@ -195,30 +195,9 @@ public sealed partial class DockyardHudOverlay : Control
 			var shipId = ship.Id;
 			body.AddChild(HudWidgets.CreateCard(
 				TitleFor(captured, ship),
-				[CreateOfferDetails(captured, ship)],
+				[ResourceCostDisplay.CreateOfferDetails(BodyFor(captured, ship), captured.Cost)],
 				() => PurchaseRequested?.Invoke(captured.Offering, shipId)));
 		}
-	}
-
-	private static Control CreateOfferDetails(MerchantCatalog.Offer offer, ShipInstance ship)
-	{
-		var row = new HBoxContainer
-		{
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		row.AddThemeConstantOverride("separation", 24);
-		row.AddChild(new Label
-		{
-			Text = BodyFor(offer, ship),
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			VerticalAlignment = VerticalAlignment.Center,
-			ThemeTypeVariation = "AbilityOfferStatLabel",
-			MouseFilter = MouseFilterEnum.Ignore,
-		});
-		row.AddChild(ResourceCostDisplay.CreateBundleInline(offer.Cost));
-		return row;
 	}
 
 	private Button CreateAbilityButton(MerchantOfferDisplay.AbilityEntry ability, ButtonGroup group)

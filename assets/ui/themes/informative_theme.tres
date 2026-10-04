@@ -462,7 +462,7 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_ability_tab"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab"]
 content_margin_left = 20.0
 content_margin_top = 12.0
 content_margin_right = 20.0
@@ -471,7 +471,7 @@ bg_color = Color(0.03, 0.05, 0.08, 0)
 border_width_bottom = 2
 border_color = Color(0.22, 0.32, 0.42, 0.55)
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_ability_tab_selected"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab_selected"]
 content_margin_left = 20.0
 content_margin_top = 12.0
 content_margin_right = 20.0
@@ -480,7 +480,7 @@ bg_color = Color(0.09, 0.16, 0.21, 1)
 border_width_bottom = 2
 border_color = Color(0.55, 0.78, 1, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_ability_tab_focus"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab_focus"]
 bg_color = Color(0, 0, 0, 0)
 border_width_left = 1
 border_width_top = 1
@@ -491,28 +491,28 @@ border_color = Color(0.8, 0.91, 1, 1)
 [resource]
 default_font = ExtResource("1_inter_medium")
 default_font_size = 18
-AbilityMountTabBar/base_type = &"TabBar"
-AbilityMountTabBar/font_sizes/font_size = 20
-AbilityMountTabBar/colors/font_selected_color = Color(0.7, 0.86, 1, 1)
-AbilityMountTabBar/colors/font_unselected_color = Color(0.62, 0.7, 0.77, 1)
-AbilityMountTabBar/colors/font_hovered_color = Color(0.9, 0.96, 1, 1)
-AbilityMountTabBar/styles/tab_selected = SubResource("StyleBox_ability_tab_selected")
-AbilityMountTabBar/styles/tab_unselected = SubResource("StyleBox_ability_tab")
-AbilityMountTabBar/styles/tab_hovered = SubResource("StyleBox_ability_tab_selected")
-AbilityMountTabBar/styles/tab_focus = SubResource("StyleBox_ability_tab_focus")
+MerchantTabBar/base_type = &"TabBar"
+MerchantTabBar/font_sizes/font_size = 20
+MerchantTabBar/colors/font_selected_color = Color(0.7, 0.86, 1, 1)
+MerchantTabBar/colors/font_unselected_color = Color(0.62, 0.7, 0.77, 1)
+MerchantTabBar/colors/font_hovered_color = Color(0.9, 0.96, 1, 1)
+MerchantTabBar/styles/tab_selected = SubResource("StyleBox_merchant_tab_selected")
+MerchantTabBar/styles/tab_unselected = SubResource("StyleBox_merchant_tab")
+MerchantTabBar/styles/tab_hovered = SubResource("StyleBox_merchant_tab_selected")
+MerchantTabBar/styles/tab_focus = SubResource("StyleBox_merchant_tab_focus")
 AbilityChoiceButton/base_type = &"Button"
 AbilityChoiceButton/styles/normal = SubResource("StyleBox_card")
 AbilityChoiceButton/styles/hover = SubResource("StyleBox_card_hover")
 AbilityChoiceButton/styles/pressed = SubResource("StyleBox_card_pressed")
 AbilityChoiceButton/styles/hover_pressed = SubResource("StyleBox_card_pressed")
-AbilityChoiceButton/styles/focus = SubResource("StyleBox_ability_tab_focus")
+AbilityChoiceButton/styles/focus = SubResource("StyleBox_merchant_tab_focus")
 AbilityNameLabel/base_type = &"Label"
 AbilityNameLabel/font_sizes/font_size = 20
 AbilityNameLabel/fonts/font = ExtResource("2_inter_semibold")
 AbilityNameLabel/colors/font_color = Color(0.9, 0.94, 0.98, 1)
-AbilityOfferStatLabel/base_type = &"Label"
-AbilityOfferStatLabel/font_sizes/font_size = 20
-AbilityOfferStatLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
+MerchantOfferStatLabel/base_type = &"Label"
+MerchantOfferStatLabel/font_sizes/font_size = 20
+MerchantOfferStatLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
 AbilityInstalledLabel/base_type = &"Label"
 AbilityInstalledLabel/font_sizes/font_size = 16
 AbilityInstalledLabel/colors/font_color = Color(0.65, 0.88, 0.75, 1)

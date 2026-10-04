@@ -124,4 +124,22 @@ public sealed class MerchantOfferDisplayTests
 		Assert.Equal(damageBody, MerchantOfferDisplay.DamageUpgradeBody(spec));
 		Assert.Equal(rangeBody, MerchantOfferDisplay.RangeUpgradeBody(spec));
 	}
+
+	[Theory]
+	[InlineData(0, "Capacity \u00b7 Mk 1")]
+	[InlineData(2, "Capacity \u00b7 Mk 3")]
+	public void CapacityUpgradeTitle_ContainsOnlyNextTier(int currentTier, string expected)
+	{
+		Assert.Equal(expected, MerchantOfferDisplay.CapacityUpgradeTitle(currentTier));
+	}
+
+	[Fact]
+	public void SupportOfferBodies_ShowCurrentAndResultingStats()
+	{
+		Assert.Equal("Hull integrity 4 \u2192 8", MerchantOfferDisplay.HullRepairBody(4, 8));
+		Assert.Equal("Max hull 8 \u2192 9", MerchantOfferDisplay.HullCapacityBody(8));
+		Assert.Equal("Shield charge 1 \u2192 3", MerchantOfferDisplay.ShieldRechargeBody(1, 3));
+		Assert.Equal("Max shields 3 \u2192 4", MerchantOfferDisplay.ShieldCapacityBody(3));
+		Assert.Equal("Total shields 10 \u2192 18", MerchantOfferDisplay.RechargeAllBody(10, 18));
+	}
 }
