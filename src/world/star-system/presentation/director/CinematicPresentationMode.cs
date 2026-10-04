@@ -26,8 +26,8 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		AllowsStrategicHover: true);
 
 	private static readonly OrbitLimits ModeLimits = new(
-		MinDistance: 8f,
-		MaxDistance: 18f,
+		MinDistance: 6f,
+		MaxDistance: 14f,
 		MinPitch: Mathf.DegToRad(20f),
 		MaxPitch: Mathf.DegToRad(40f));
 
@@ -56,14 +56,13 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		if (sourceModeId == OverviewPresentationMode.ModeId)
 		{
 			var sample = ctx.ResolvePlayerTravelSample();
-			var interiorDistance = MapZoomNavigation.InteriorDistance(ModeLimits, fromMinSide: true);
 			if (sample.TravelDirection is { } direction)
 			{
 				return MapCinematicFraming.BehindShip(
 					sample.WorldPosition,
 					direction,
 					ModeLimits,
-					interiorDistance);
+					ModeLimits.MinDistance);
 			}
 		}
 

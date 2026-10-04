@@ -8,7 +8,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Camera;
 /// </summary>
 public static class MapCinematicFraming
 {
-	private const float DefaultDistance = 8f;
+	private const float DefaultDistance = 6f;
 	private const float DorsalOffset = 0.45f;
 
 	public static OrbitPose BootstrapAtPlayer(PlayerTravelSample sample, in OrbitLimits limits)
