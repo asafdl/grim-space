@@ -326,6 +326,23 @@ public sealed class StarSystemOrchestrator : IDisposable
 		return true;
 	}
 
+	public bool TryGrantDebugResources(ResourceBundle resources)
+	{
+		if (resources.IsEmpty || PlayerId is null || !Map.PlayerResources.CanApply(resources))
+			return false;
+
+		var before = Map.PlayerResources.EnumerateBalances()
+			.ToDictionary(entry => entry.Id, entry => entry.Balance);
+		Commit(new GrantDebugResourcesAction(PlayerId, resources));
+		var applied = resources.All(entry =>
+			Map.PlayerResources.GetBalance(entry.Key)
+			== before.GetValueOrDefault(entry.Key) + entry.Value);
+		if (applied)
+			NotifyWorldUpdated();
+
+		return applied;
+	}
+
 	public void RefreshPlayerAgent() => _playerAgent?.OnWorldUpdated();
 
 	public bool TryCommitPlayerInput(IAction action)

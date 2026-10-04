@@ -9,6 +9,8 @@ public sealed partial class DevMenuOverlay : Control
 	private Func<bool>? _canForceBattleOutcome;
 	private Action? _winBattle;
 	private Action? _loseBattle;
+	private Func<bool>? _canGrantResources;
+	private Action? _grantResources;
 
 	public event Action? StartBattleRequested;
 
@@ -35,28 +37,22 @@ public sealed partial class DevMenuOverlay : Control
 		_shell.SetBackHandler(null);
 		_shell.SetCloseHandler(null);
 
-		var battleSection = HudWidgets.CreateInformativePanel("Battle");
-		battleSection.Body.AddChild(new Label
-		{
-			Text = "Jump into the default dev duel without a star-map engagement.",
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			ThemeTypeVariation = HudStyles.InformativeItemDescriptionLabelType,
-		});
+		var items = HudWidgets.CreateCardList();
+		items.MouseFilter = Control.MouseFilterEnum.Ignore;
+		items.AddChild(CreateMenuItem("Start Battle", true, OnStartBattle));
 
-		_shell.SetBody(battleSection.Root);
-		var actions = new List<HudAction>
-		{
-			new("Start Battle", HudActionKind.Secondary, OnStartBattle),
-		};
-		if (_canForceBattleOutcome is not null)
-		{
-			var enabled = _canForceBattleOutcome();
-			actions.Add(new HudAction("Win Battle", HudActionKind.Primary, OnWinBattle, enabled));
-			actions.Add(new HudAction("Lose Battle", HudActionKind.Destructive, OnLoseBattle, enabled));
-		}
+		var canForceBattleOutcome = _canForceBattleOutcome?.Invoke() == true;
+		items.AddChild(CreateMenuItem("Win Battle", canForceBattleOutcome, OnWinBattle));
+		items.AddChild(CreateMenuItem("Lose Battle", canForceBattleOutcome, OnLoseBattle));
 
-		_shell.SetFooter(actions);
+		if (_canGrantResources is not null)
+			items.AddChild(CreateMenuItem(
+				"Add Resource Bundle",
+				_canGrantResources(),
+				OnGrantResources));
+
+		_shell.SetBody(items);
+		_shell.SetFooter([]);
 	}
 
 	public void Close() => _shell.Close();
@@ -75,6 +71,18 @@ public sealed partial class DevMenuOverlay : Control
 		_loseBattle = null;
 	}
 
+	public void SetResourceActions(Func<bool> canGrantResources, Action grantResources)
+	{
+		_canGrantResources = canGrantResources;
+		_grantResources = grantResources;
+	}
+
+	public void ClearResourceActions()
+	{
+		_canGrantResources = null;
+		_grantResources = null;
+	}
+
 	private void OnStartBattle() => StartBattleRequested?.Invoke();
 
 	private void OnWinBattle()
@@ -87,5 +95,20 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		Close();
 		_loseBattle?.Invoke();
+	}
+
+	private void OnGrantResources()
+	{
+		Close();
+		_grantResources?.Invoke();
+	}
+
+	private static Button CreateMenuItem(string text, bool enabled, Action onPressed)
+	{
+		var button = HudWidgets.CreateCompactButton(text, onPressed);
+		button.Disabled = !enabled;
+		button.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		button.Alignment = HorizontalAlignment.Left;
+		return button;
 	}
 }

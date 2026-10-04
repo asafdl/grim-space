@@ -5,6 +5,9 @@ using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
@@ -42,6 +45,7 @@ internal static class ActionLegalityDiagnostics
 			FleeAction flee => DescribeEngageIllegality(flee, world),
 			AcceptContractAction accept => DescribeAcceptIllegality(accept, world),
 			DeclineContractAction decline => DescribeDeclineIllegality(decline, world),
+			PurchaseAction purchase => DescribePurchaseIllegality(purchase, world),
 			ReachWreckageAction reach => DescribeReachWreckIllegality(reach, world),
 			LeaveWreckageAction leave => DescribeLeaveWreckIllegality(leave, world),
 			InvestigateWreckageAction investigate => DescribeInvestigateWreckIllegality(investigate, world),
@@ -183,6 +187,43 @@ internal static class ActionLegalityDiagnostics
 
 		return "illegal";
 	}
+
+	private static string DescribePurchaseIllegality(PurchaseAction purchase, StarMap world)
+	{
+		if (!world.FleetRegistry.TryGet(purchase.ActorId, out var fleet))
+			return "actor_missing";
+
+		if (!fleet.Members.Any(member =>
+				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
+			return "ship_not_in_fleet";
+
+		if (!MerchantPurchaseValidation.OperatorServesCatalog(
+				world,
+				purchase.PoiId,
+				purchase.FacilityId,
+				purchase.OperatorName,
+				purchase.Catalog))
+			return $"operator_catalog_mismatch catalog={purchase.Catalog}";
+
+		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
+			return "ship_snapshot_stale";
+
+		if (!MerchantCatalog.TryFind(purchase.Catalog, purchase.Offering, purchase.Before, out var offer))
+			return $"offer_unavailable offering={purchase.Offering}";
+
+		if (!MerchantShipChanges.TryPrepareAfter(purchase.Offering, purchase.Before, out _))
+			return $"ship_change_invalid offering={purchase.Offering}";
+
+		if (!world.PlayerResources.CanApply(offer.Cost.Negate()))
+			return $"insufficient_resources cost={FormatResources(offer.Cost)}";
+
+		return "illegal";
+	}
+
+	private static string FormatResources(ResourceBundle bundle) =>
+		string.Join(
+			",",
+			bundle.Select(entry => $"{entry.Key}={entry.Value}"));
 
 	private static bool IsWaitingForScheduledWork(StarMap world, State state) =>
 		state.ChoreDockIds.Count > 0

@@ -8,6 +8,7 @@ using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.Application;
 
@@ -143,6 +144,9 @@ public partial class Session : Node
 		_devMenu = new DevMenuOverlay();
 		devMenuLayer.AddChild(_devMenu);
 		_devMenu.StartBattleRequested += StartDevBattle;
+		_devMenu.SetResourceActions(
+			() => Run is not null && Run.StarSystem is not null,
+			GrantDebugResources);
 
 		var performanceLayer = new CanvasLayer { Layer = 30 };
 		AddChild(performanceLayer);
@@ -232,6 +236,17 @@ public partial class Session : Node
 		Run.ActiveBattle = null;
 		_devMenu.Close();
 		GetTree().ChangeSceneToFile(BattleScenePath);
+	}
+
+	private void GrantDebugResources()
+	{
+		if (Run is null || Run.StarSystem is null)
+			return;
+
+		Run.StarSystem.TryGrantDebugResources(ResourceBundle.Create(
+			(ResourceId.Credits, 1000),
+			(ResourceId.ScrapAlloy, 1000),
+			(ResourceId.IndustrialCore, 1000)));
 	}
 
 	private bool IsRunReady() =>
