@@ -84,4 +84,44 @@ public sealed class MerchantOfferDisplayTests
 		Assert.NotEqual(kind.ToString(), MerchantOfferDisplay.KindLabel(kind));
 		Assert.StartsWith("res://assets/ui/abilities/", MerchantOfferDisplay.AbilityIconPath(kind));
 	}
+
+	[Theory]
+	[InlineData(0, 0, "Damage \u00b7 Mk 1", "Range \u00b7 Mk 1")]
+	[InlineData(1, 2, "Damage \u00b7 Mk 2", "Range \u00b7 Mk 3")]
+	public void UpgradeTitles_ContainOnlyStatAndNextTier(
+		int damageTier, int rangeTier, string damageTitle, string rangeTitle)
+	{
+		var spec = new LightningCannonSpec(1, 2, 5, 0)
+		{
+			DamageUpgradeTier = damageTier,
+			RangeUpgradeTier = rangeTier,
+		};
+
+		Assert.Equal(damageTitle, MerchantOfferDisplay.DamageUpgradeTitle(spec));
+		Assert.Equal(rangeTitle, MerchantOfferDisplay.RangeUpgradeTitle(spec));
+	}
+
+	[Theory]
+	[InlineData(2, 5, "Shot damage 2 \u2192 3", "Line length 5 \u2192 6 cells")]
+	[InlineData(4, 7, "Shot damage 4 \u2192 5", "Line length 7 \u2192 8 cells")]
+	public void LightningUpgradeBody_ShowsCurrentAndUpgradedStats(
+		int damage, int range, string damageBody, string rangeBody)
+	{
+		var spec = new LightningCannonSpec(1, damage, range, 0);
+
+		Assert.Equal(damageBody, MerchantOfferDisplay.DamageUpgradeBody(spec));
+		Assert.Equal(rangeBody, MerchantOfferDisplay.RangeUpgradeBody(spec));
+	}
+
+	[Theory]
+	[InlineData(1, 2, "Burst damage 1 \u2192 2", "Burst range 2 \u2192 3 cells")]
+	[InlineData(3, 4, "Burst damage 3 \u2192 4", "Burst range 4 \u2192 5 cells")]
+	public void DroneUpgradeBody_ShowsCurrentAndUpgradedStats(
+		int damage, int range, string damageBody, string rangeBody)
+	{
+		var spec = new ScrapDroneSwarmSpec(1, damage, range);
+
+		Assert.Equal(damageBody, MerchantOfferDisplay.DamageUpgradeBody(spec));
+		Assert.Equal(rangeBody, MerchantOfferDisplay.RangeUpgradeBody(spec));
+	}
 }

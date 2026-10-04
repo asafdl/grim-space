@@ -45,25 +45,22 @@ internal static class MerchantOfferDisplay
 	public static string HullUpgradeTitle(ShipLoadout loadout) =>
 		$"Max hull {MkLabel(loadout.HullUpgradeTier)}";
 
-	public static string InstallTitle(AbilityMount mount) =>
-		$"Install {KindLabel(mount.Kind)} ({FacetLabel(mount.Facet)})";
+	public const string InstallTitle = "Install ability";
+	public const string InstallBody = "Add this ability to the selected mount.";
 
-	public static string InstallBody(AbilitySpec spec) =>
-		$"Mount a new {KindLabel(spec.Kind)} on an open facet.";
+	public static string DamageUpgradeTitle(AbilitySpec current) =>
+		$"Damage \u00b7 {MkLabel(current.DamageUpgradeTier)}";
 
-	public static string DamageUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
-		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} damage {MkLabel(current.DamageUpgradeTier)}";
-
-	public static string RangeUpgradeTitle(AbilityMount mount, AbilitySpec current) =>
-		$"{FacetLabel(mount.Facet)} {KindLabel(mount.Kind)} range {MkLabel(current.RangeUpgradeTier)}";
+	public static string RangeUpgradeTitle(AbilitySpec current) =>
+		$"Range \u00b7 {MkLabel(current.RangeUpgradeTier)}";
 
 	public static string DamageUpgradeBody(AbilitySpec current) =>
 		current switch
 		{
 			ScrapDroneSwarmSpec swarm =>
-				$"Increase burst damage from {swarm.Damage} to {swarm.Damage + 1}.",
+				$"Burst damage {swarm.Damage} \u2192 {swarm.Damage + 1}",
 			LightningCannonSpec lightningCannon =>
-				$"Increase shot damage from {lightningCannon.Damage} to {lightningCannon.Damage + 1}.",
+				$"Shot damage {lightningCannon.Damage} \u2192 {lightningCannon.Damage + 1}",
 			_ => "Improve this mounted system.",
 		};
 
@@ -71,9 +68,9 @@ internal static class MerchantOfferDisplay
 		current switch
 		{
 			ScrapDroneSwarmSpec swarm =>
-				$"Increase burst range from {swarm.BurstRange} to {swarm.BurstRange + 1}.",
+				$"Burst range {swarm.BurstRange} \u2192 {swarm.BurstRange + 1} cells",
 			LightningCannonSpec lightningCannon =>
-				$"Increase line length from {lightningCannon.LineLength} to {lightningCannon.LineLength + 1}.",
+				$"Line length {lightningCannon.LineLength} \u2192 {lightningCannon.LineLength + 1} cells",
 			_ => "Extend this mounted system's reach.",
 		};
 

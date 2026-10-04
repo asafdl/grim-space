@@ -488,28 +488,6 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.8, 0.91, 1, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_ability_installed"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-bg_color = Color(0.1, 0.23, 0.19, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_ability_available"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-bg_color = Color(0.14, 0.22, 0.3, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-
 [resource]
 default_font = ExtResource("1_inter_medium")
 default_font_size = 18
@@ -532,10 +510,9 @@ AbilityNameLabel/base_type = &"Label"
 AbilityNameLabel/font_sizes/font_size = 20
 AbilityNameLabel/fonts/font = ExtResource("2_inter_semibold")
 AbilityNameLabel/colors/font_color = Color(0.9, 0.94, 0.98, 1)
-AbilityInstalledPanelContainer/base_type = &"PanelContainer"
-AbilityInstalledPanelContainer/styles/panel = SubResource("StyleBox_ability_installed")
-AbilityAvailablePanelContainer/base_type = &"PanelContainer"
-AbilityAvailablePanelContainer/styles/panel = SubResource("StyleBox_ability_available")
+AbilityOfferStatLabel/base_type = &"Label"
+AbilityOfferStatLabel/font_sizes/font_size = 20
+AbilityOfferStatLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
 AbilityInstalledLabel/base_type = &"Label"
 AbilityInstalledLabel/font_sizes/font_size = 16
 AbilityInstalledLabel/colors/font_color = Color(0.65, 0.88, 0.75, 1)
@@ -637,7 +614,6 @@ PrimaryButton/styles/focus = SubResource("StyleBox_btn_primary_hover")
 PrimaryButton/styles/hover = SubResource("StyleBox_btn_primary_hover")
 PrimaryButton/styles/normal = SubResource("StyleBox_btn_primary_normal")
 PrimaryButton/styles/pressed = SubResource("StyleBox_btn_primary_pressed")
-SecondaryButton/base_type = &"Button"
 SecondaryButton/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 SecondaryButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
 SecondaryButton/colors/font_hover_color = Color(1, 1, 1, 1)

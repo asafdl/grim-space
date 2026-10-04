@@ -304,7 +304,9 @@ Presentation ([`DockyardController`](src/world/star-system/presentation/faciliti
 
 The ability merchant UI selects **mount orientation -> ability icon -> offers**. Selectors include catalog offers and installed abilities (even when no upgrades remain); the existing offer list is filtered to the exact ability kind and orientation. Selection is UI-local and retained after a purchase while that mount remains available. The UI uses "ability" terminology; the existing `WeaponsCatalog` and purchase action identities are unchanged.
 
-Merchant orientation tabs and ability tiles use dedicated variations in the informative theme, with separate installed-status badges and keyboard-focus outlines. Shared modal headings and offer cards bind to the theme's full variation names (`TitleLabel`, `CardPanelContainer`, etc.); merchant-specific styling does not change other tab bars.
+Merchant orientation tabs and compact horizontal ability selectors use dedicated variations in the informative theme. Each selector places its icon to the left of the ability name and installed status, with a keyboard-focus outline. Shared modal headings and offer cards bind to the theme's full variation names (`TitleLabel`, `CardPanelContainer`, etc.); merchant-specific styling does not change other tab bars.
+
+Ability offer cards use short stat/tier titles, current-to-upgraded values on a separate line, and right-aligned resource prices. The selected orientation and ability provide context rather than being repeated in every title. Whole-card purchase interaction is unchanged.
 
 ---
 

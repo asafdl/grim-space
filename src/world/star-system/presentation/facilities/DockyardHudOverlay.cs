@@ -195,9 +195,30 @@ public sealed partial class DockyardHudOverlay : Control
 			var shipId = ship.Id;
 			body.AddChild(HudWidgets.CreateCard(
 				TitleFor(captured, ship),
-				[ResourceCostDisplay.CreateMetadataRow(captured.Cost, BodyFor(captured, ship))],
+				[CreateOfferDetails(captured, ship)],
 				() => PurchaseRequested?.Invoke(captured.Offering, shipId)));
 		}
+	}
+
+	private static Control CreateOfferDetails(MerchantCatalog.Offer offer, ShipInstance ship)
+	{
+		var row = new HBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		row.AddThemeConstantOverride("separation", 24);
+		row.AddChild(new Label
+		{
+			Text = BodyFor(offer, ship),
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "AbilityOfferStatLabel",
+			MouseFilter = MouseFilterEnum.Ignore,
+		});
+		row.AddChild(ResourceCostDisplay.CreateBundleInline(offer.Cost));
+		return row;
 	}
 
 	private Button CreateAbilityButton(MerchantOfferDisplay.AbilityEntry ability, ButtonGroup group)
@@ -207,7 +228,7 @@ public sealed partial class DockyardHudOverlay : Control
 		var button = new Button
 		{
 			TooltipText = $"{FaceLabel(ability.Mount.Facet)} / {name} / {status}",
-			CustomMinimumSize = new Vector2(230, 160),
+			CustomMinimumSize = new Vector2(300, 76),
 			ToggleMode = true,
 			ButtonGroup = group,
 			ButtonPressed = ability.Mount == _selectedMount,
@@ -215,51 +236,50 @@ public sealed partial class DockyardHudOverlay : Control
 			ThemeTypeVariation = "AbilityChoiceButton",
 		};
 
-		var content = new VBoxContainer
+		var content = new HBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
-			Alignment = BoxContainer.AlignmentMode.Center,
 		};
 		content.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		content.OffsetLeft = 12;
-		content.OffsetTop = 12;
+		content.OffsetTop = 10;
 		content.OffsetRight = -12;
-		content.OffsetBottom = -12;
-		content.AddThemeConstantOverride("separation", 8);
+		content.OffsetBottom = -10;
+		content.AddThemeConstantOverride("separation", 12);
 		button.AddChild(content);
 
 		content.AddChild(new TextureRect
 		{
 			Texture = SvgIconLoader.Load(
-				MerchantOfferDisplay.AbilityIconPath(ability.Mount.Kind), HudStyles.AccentCyan, 48),
-			CustomMinimumSize = new Vector2(48, 48),
+				MerchantOfferDisplay.AbilityIconPath(ability.Mount.Kind), HudStyles.AccentCyan, 40),
+			CustomMinimumSize = new Vector2(40, 40),
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 			MouseFilter = MouseFilterEnum.Ignore,
 		});
-		content.AddChild(new Label
+		var description = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		description.AddThemeConstantOverride("separation", 2);
+		content.AddChild(description);
+		description.AddChild(new Label
 		{
 			Text = name,
-			HorizontalAlignment = HorizontalAlignment.Center,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			ThemeTypeVariation = "AbilityNameLabel",
 			MouseFilter = MouseFilterEnum.Ignore,
 		});
 
-		var badge = new PanelContainer
-		{
-			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-			ThemeTypeVariation = ability.IsInstalled ? "AbilityInstalledPanelContainer" : "AbilityAvailablePanelContainer",
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		badge.AddChild(new Label
+		description.AddChild(new Label
 		{
 			Text = status,
 			ThemeTypeVariation = ability.IsInstalled ? "AbilityInstalledLabel" : "AbilityAvailableLabel",
 			MouseFilter = MouseFilterEnum.Ignore,
 		});
-		content.AddChild(badge);
 		return button;
 	}
 
@@ -289,15 +309,13 @@ public sealed partial class DockyardHudOverlay : Control
 	private static string TitleFor(MerchantCatalog.Offer offer, ShipInstance ship) =>
 		offer.Offering.Kind switch
 		{
-			MerchantCatalog.Kind.InstallWeapon when offer.Offering.Mount is { } mount =>
-				MerchantOfferDisplay.InstallTitle(mount),
+			MerchantCatalog.Kind.InstallWeapon =>
+				MerchantOfferDisplay.InstallTitle,
 			MerchantCatalog.Kind.UpgradeDamage when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.DamageUpgradeTitle(
-					mount,
 					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			MerchantCatalog.Kind.UpgradeRange when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.RangeUpgradeTitle(
-					mount,
 					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
 			_ => "Upgrade",
 		};
@@ -305,8 +323,8 @@ public sealed partial class DockyardHudOverlay : Control
 	private static string BodyFor(MerchantCatalog.Offer offer, ShipInstance ship) =>
 		offer.Offering.Kind switch
 		{
-			MerchantCatalog.Kind.InstallWeapon when offer.Offering.Mount is { } mount =>
-				MerchantOfferDisplay.InstallBody(ship.Spec.BaselineFor(mount)),
+			MerchantCatalog.Kind.InstallWeapon =>
+				MerchantOfferDisplay.InstallBody,
 			MerchantCatalog.Kind.UpgradeDamage when offer.Offering.Mount is { } mount =>
 				MerchantOfferDisplay.DamageUpgradeBody(
 					ship.Loadout.InstalledAbilities.First(a => a.Mount == mount).Spec),
