@@ -30,6 +30,18 @@ internal sealed class RoundedTransitRoute
 	public static RoundedTransitRoute For(TransitPath source) =>
 		Cache.GetValue(source, static path => new RoundedTransitRoute(path));
 
+	public static IReadOnlyList<(double X, double Z)> SmoothCenterline(IReadOnlyList<Coord> centerline)
+	{
+		ArgumentNullException.ThrowIfNull(centerline);
+		if (centerline.Count == 0)
+			throw new ArgumentException("Centerline must contain at least one point.", nameof(centerline));
+
+		return new RoundedPolyline(
+			SimplifyMicroCorrections(centerline),
+			CornerRadius,
+			CornerSubdivisions).Points;
+	}
+
 	public RouteSample SampleAtElapsed(double elapsedTicks, double speedPerTick)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(speedPerTick);

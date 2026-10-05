@@ -30,10 +30,11 @@ public partial class RoutesView : Node3D
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		mesh.SurfaceSetColor(CenterlineColor);
 
-		for (var i = 1; i < route.Centerline.Count; i++)
+		var points = RoundedTransitRoute.SmoothCenterline(route.Centerline);
+		for (var i = 1; i < points.Count; i++)
 		{
-			mesh.SurfaceAddVertex(ToRouteWorld(route.Centerline[i - 1], width, height));
-			mesh.SurfaceAddVertex(ToRouteWorld(route.Centerline[i], width, height));
+			mesh.SurfaceAddVertex(ToRouteWorld(points[i - 1].X, points[i - 1].Z, width, height));
+			mesh.SurfaceAddVertex(ToRouteWorld(points[i].X, points[i].Z, width, height));
 		}
 
 		mesh.SurfaceEnd();
@@ -53,4 +54,7 @@ public partial class RoutesView : Node3D
 
 	private static Vector3 ToRouteWorld(Coord point, int mapWidth, int mapHeight) =>
 		MapMapping.ToWorld(point, mapWidth, mapHeight) + Vector3.Up * YOffset;
+
+	private static Vector3 ToRouteWorld(double x, double z, int mapWidth, int mapHeight) =>
+		MapMapping.ToWorld(x, z, mapWidth, mapHeight) + Vector3.Up * YOffset;
 }

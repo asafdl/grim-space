@@ -12,7 +12,12 @@ public sealed class ContractPlacement
 	public ContractPlacement(ContractPlacementConfig? config = null) =>
 		_config = config ?? new ContractPlacementConfig();
 
-	public Decision? Pick(StarMap map, int tick, int slotIndex)
+	public Decision? Pick(
+		StarMap map,
+		int tick,
+		int slotIndex,
+		IReadOnlyDictionary<string, int>? supplementalPendingByIssuer = null,
+		IReadOnlyList<Contract>? supplementalBoardContracts = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 
@@ -21,11 +26,11 @@ public sealed class ContractPlacement
 			return null;
 
 		var random = CreateRandom(map.Seed, tick, slotIndex);
-		var issuerPoiId = PickIssuer(map, issuers, random);
+		var issuerPoiId = PickIssuer(map, issuers, random, supplementalPendingByIssuer);
 		if (issuerPoiId is null)
 			return null;
 
-		var kind = PickKind(map, issuerPoiId, random);
+		var kind = PickKind(map, issuerPoiId, random, supplementalBoardContracts);
 		return new Decision(issuerPoiId, kind);
 	}
 
@@ -41,9 +46,22 @@ public sealed class ContractPlacement
 			.ToArray();
 	}
 
-	private string? PickIssuer(StarMap map, IReadOnlyList<string> issuers, StableRandom random)
+	private string? PickIssuer(
+		StarMap map,
+		IReadOnlyList<string> issuers,
+		StableRandom random,
+		IReadOnlyDictionary<string, int>? supplementalPendingByIssuer)
 	{
 		var counts = CountPendingByIssuer(map);
+		if (supplementalPendingByIssuer is not null)
+		{
+			foreach (var (issuerId, pending) in supplementalPendingByIssuer)
+			{
+				counts.TryGetValue(issuerId, out var count);
+				counts[issuerId] = count + pending;
+			}
+		}
+
 		var maxPerPoi = _config.MaxPendingPerIssuerPoi(issuers.Count);
 		var eligible = issuers
 			.Where(issuerId => counts.GetValueOrDefault(issuerId) < maxPerPoi)
@@ -62,13 +80,44 @@ public sealed class ContractPlacement
 		return eligible[PickWeightedIndex(weights, random)];
 	}
 
-	private EContractKind PickKind(StarMap map, string issuerPoiId, StableRandom random)
+	private EContractKind PickKind(
+		StarMap map,
+		string issuerPoiId,
+		StableRandom random,
+		IReadOnlyList<Contract>? supplementalBoardContracts)
 	{
-		var (huntCount, deliveryCount, wreckageCount) = CountPendingKindsAtIssuer(map, issuerPoiId);
 		var huntWeight = _config.HuntKindWeight;
 		var deliveryWeight = _config.DeliveryKindWeight;
 		var wreckageWeight = _config.WreckageKindWeight;
 
+		ApplyMonolithicKindWeights(
+			ref huntWeight,
+			ref deliveryWeight,
+			ref wreckageWeight,
+			CountPendingKindsAtIssuer(map, issuerPoiId, supplementalBoardContracts));
+		ApplyMonolithicKindWeights(
+			ref huntWeight,
+			ref deliveryWeight,
+			ref wreckageWeight,
+			CountPendingKinds(map, supplementalBoardContracts));
+
+		return PickWeightedIndex(
+			[huntWeight, deliveryWeight, wreckageWeight],
+			random) switch
+		{
+			0 => EContractKind.Hunt,
+			1 => EContractKind.Delivery,
+			_ => EContractKind.Wreckage,
+		};
+	}
+
+	private static void ApplyMonolithicKindWeights(
+		ref float huntWeight,
+		ref float deliveryWeight,
+		ref float wreckageWeight,
+		(int HuntCount, int DeliveryCount, int WreckageCount) counts)
+	{
+		var (huntCount, deliveryCount, wreckageCount) = counts;
 		if (huntCount > 0 && deliveryCount == 0 && wreckageCount == 0)
 		{
 			huntWeight *= 0.5f;
@@ -87,15 +136,6 @@ public sealed class ContractPlacement
 			deliveryWeight *= 2f;
 			wreckageWeight *= 0.5f;
 		}
-
-		return PickWeightedIndex(
-			[huntWeight, deliveryWeight, wreckageWeight],
-			random) switch
-		{
-			0 => EContractKind.Hunt,
-			1 => EContractKind.Delivery,
-			_ => EContractKind.Wreckage,
-		};
 	}
 
 	private static Dictionary<string, int> CountPendingByIssuer(StarMap map)
@@ -113,33 +153,60 @@ public sealed class ContractPlacement
 		return counts;
 	}
 
+	private static (int HuntCount, int DeliveryCount, int WreckageCount) CountPendingKinds(
+		StarMap map,
+		IReadOnlyList<Contract>? supplementalBoardContracts) =>
+		CountKinds(GeneratedBoardOccupants(map), supplementalBoardContracts, issuerPoiId: null);
+
 	private static (int HuntCount, int DeliveryCount, int WreckageCount) CountPendingKindsAtIssuer(
 		StarMap map,
-		string issuerPoiId)
+		string issuerPoiId,
+		IReadOnlyList<Contract>? supplementalBoardContracts) =>
+		CountKinds(GeneratedBoardOccupants(map), supplementalBoardContracts, issuerPoiId);
+
+	private static (int HuntCount, int DeliveryCount, int WreckageCount) CountKinds(
+		IEnumerable<Contract> boardContracts,
+		IReadOnlyList<Contract>? supplementalBoardContracts,
+		string? issuerPoiId)
 	{
 		var huntCount = 0;
 		var deliveryCount = 0;
 		var wreckageCount = 0;
-		foreach (var contract in GeneratedBoardOccupants(map))
-		{
-			if (!string.Equals(contract.IssuerPoiId, issuerPoiId, StringComparison.Ordinal))
-				continue;
+		foreach (var contract in boardContracts)
+			AccumulateKind(contract, issuerPoiId, ref huntCount, ref deliveryCount, ref wreckageCount);
 
-			switch (contract.Objective)
-			{
-				case HuntObjective:
-					huntCount++;
-					break;
-				case DeliveryObjective:
-					deliveryCount++;
-					break;
-				case WreckageObjective:
-					wreckageCount++;
-					break;
-			}
+		if (supplementalBoardContracts is not null)
+		{
+			foreach (var contract in supplementalBoardContracts)
+				AccumulateKind(contract, issuerPoiId, ref huntCount, ref deliveryCount, ref wreckageCount);
 		}
 
 		return (huntCount, deliveryCount, wreckageCount);
+	}
+
+	private static void AccumulateKind(
+		Contract contract,
+		string? issuerPoiId,
+		ref int huntCount,
+		ref int deliveryCount,
+		ref int wreckageCount)
+	{
+		if (issuerPoiId is not null
+			&& !string.Equals(contract.IssuerPoiId, issuerPoiId, StringComparison.Ordinal))
+			return;
+
+		switch (contract.Objective)
+		{
+			case HuntObjective:
+				huntCount++;
+				break;
+			case DeliveryObjective:
+				deliveryCount++;
+				break;
+			case WreckageObjective:
+				wreckageCount++;
+				break;
+		}
 	}
 
 	private static IEnumerable<Contract> GeneratedBoardOccupants(StarMap map) =>

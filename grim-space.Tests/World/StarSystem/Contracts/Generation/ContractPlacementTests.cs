@@ -121,6 +121,44 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 		Assert.Equal(int.MaxValue, config.MaxPendingPerIssuerPoi(1));
 	}
 
+	[Fact]
+	public void Pick_SupplementalQueuedHunts_ReducesFurtherHuntPicksAtSameIssuer()
+	{
+		var map = ContractPlacementTestMaps.OneIssuer();
+		var placement = new ContractPlacement();
+		var hunt = SyntheticHunt(map, "queued-hunt");
+		var queued = new[]
+		{
+			CloneAtIssuer(map, "queued-1", hunt, ContractPlacementTestMaps.IssuerAId),
+			CloneAtIssuer(map, "queued-2", hunt, ContractPlacementTestMaps.IssuerAId),
+		};
+		var kinds = Enumerable.Range(0, 500)
+			.Select(slot => placement.Pick(map, tick: 2, slot, supplementalBoardContracts: queued))
+			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision).Kind)
+			.ToArray();
+
+		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
+			< kinds.Count(kind => kind == EContractKind.Delivery));
+		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
+			< kinds.Count(kind => kind == EContractKind.Wreckage));
+	}
+
+	[Fact]
+	public void Pick_SupplementalPendingCounts_RedirectsAwayFromQueuedIssuer()
+	{
+		var map = ContractPlacementTestMaps.TwoIssuers();
+		var placement = new ContractPlacement();
+		var maxPerIssuer = new ContractPlacementConfig().MaxPendingPerIssuerPoi(2);
+		var supplemental = new Dictionary<string, int>(StringComparer.Ordinal)
+		{
+			[ContractPlacementTestMaps.IssuerAId] = maxPerIssuer,
+		};
+
+		var decision = placement.Pick(map, tick: 4, slotIndex: 0, supplemental);
+		Assert.NotNull(decision);
+		Assert.Equal(ContractPlacementTestMaps.IssuerBId, decision.IssuerPoiId);
+	}
+
 	private static HuntObjective SyntheticHunt(StarMap map, string groupId)
 	{
 		var center = new Coord(map.Width / 2, 0, map.Height / 2);

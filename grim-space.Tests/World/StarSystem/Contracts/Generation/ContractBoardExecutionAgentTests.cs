@@ -3,11 +3,11 @@ using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Encounter;
-using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
+using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Runtime;
@@ -123,6 +123,47 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 
 		Assert.NotNull(action);
 		Assert.Equal(2, action.Additions.Count);
+	}
+
+	[Fact]
+	public void Plan_OnCadence_DoesNotMonopolizeKindsPerIssuer()
+	{
+		var map = maps.Fresh(42);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 5,
+			Placement = new ContractPlacementConfig
+			{
+				TargetGeneratedCount = 6,
+				HuntKindWeight = 1f,
+				DeliveryKindWeight = 1f,
+				WreckageKindWeight = 1f,
+			},
+		};
+		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
+		Assert.NotNull(action);
+		Assert.Equal(6, action.Additions.Count);
+
+		var issuerProfiles = action.Additions
+			.Where(addition => addition.Contract.IssuerPoiId is not null)
+			.GroupBy(addition => addition.Contract.IssuerPoiId!, StringComparer.Ordinal)
+			.Select(group => new
+			{
+				Hunts = group.Count(addition => addition.Contract.Objective is HuntObjective),
+				Wrecks = group.Count(addition => addition.Contract.Objective is WreckageObjective),
+				Deliveries = group.Count(addition => addition.Contract.Objective is DeliveryObjective),
+			})
+			.ToArray();
+
+		var huntOnlyIssuers = issuerProfiles
+			.Where(profile => profile.Hunts > 0 && profile.Wrecks == 0 && profile.Deliveries == 0)
+			.ToArray();
+		var wreckOnlyIssuers = issuerProfiles
+			.Where(profile => profile.Wrecks > 0 && profile.Hunts == 0 && profile.Deliveries == 0)
+			.ToArray();
+		Assert.False(
+			huntOnlyIssuers.Sum(profile => profile.Hunts) >= 2
+			&& wreckOnlyIssuers.Sum(profile => profile.Wrecks) >= 2);
 	}
 
 	[Fact]
