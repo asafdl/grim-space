@@ -2,7 +2,6 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
@@ -53,8 +52,7 @@ internal static class StarSystemTestHarness
 	internal static Fleet CreatePirateFleet(
 		string id,
 		Coord coord,
-		EFaction faction,
-		CombatProfile combatProfile) =>
+		EFaction faction) =>
 		Factory.Create(
 			new Spawn(
 				id,
@@ -65,8 +63,7 @@ internal static class StarSystemTestHarness
 				UnitDefaults.EngageRadius(EType.PirateFleet),
 				UnitDefaults.VisionRadius(EType.PirateFleet),
 				[],
-				faction,
-				combatProfile),
+				faction),
 			[BattleUnitType.RepurposedMiner]);
 
 	private sealed class StraightLinePathfinder : IPathfinder

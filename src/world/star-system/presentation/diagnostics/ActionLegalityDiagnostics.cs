@@ -83,8 +83,6 @@ internal static class ActionLegalityDiagnostics
 			FleetContactTarget fleet when pursue.ActorId == fleet.UnitId => "self_target",
 			FleetContactTarget fleet when !world.FleetRegistry.TryGet(fleet.UnitId, out var target) =>
 				"target_missing",
-			FleetContactTarget fleet when world.FleetRegistry.TryGet(fleet.UnitId, out var target)
-				&& target.State.CombatProfile is null => "target_not_combatant",
 			WreckContactTarget wreck when !world.ContractRegistry.TryGet(wreck.ContractId, out _) =>
 				"contract_missing",
 			WreckContactTarget wreck

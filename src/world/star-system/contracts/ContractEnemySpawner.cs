@@ -3,7 +3,6 @@ using GrimSpace.Units.Enums;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
-using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
@@ -64,7 +63,6 @@ public static class ContractEnemySpawner
 			UnitDefaults.VisionRadius(spec.Type),
 			[],
 			spec.Faction,
-			new CombatProfile(),
 			spec.PatrolRadius);
 		var declarations = DeclarationsFor(spec, memberIdentity);
 		return Factory.Create(spawn, declarations);

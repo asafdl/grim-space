@@ -69,8 +69,7 @@ public sealed class EngageActionTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		new ReachContactEffect(RunState.PlayerFleetUnitId, pirateId)
@@ -136,8 +135,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		new ReachContactEffect(RunState.PlayerFleetUnitId, pirateId)
@@ -159,8 +157,7 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		new CommitEngagementEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var handoffs = map.FleetRegistry.All

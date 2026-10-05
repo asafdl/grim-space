@@ -18,7 +18,6 @@ using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
-using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -449,7 +448,7 @@ public static class SaveDtoMapper
 			JsonSerializer.SerializeToElement(new
 			{
 				fleet.State.Id, fleet.State.Type, fleet.State.Faction,
-				fleet.State.CombatProfile, fleet.State.DockedAtDockId,
+				fleet.State.DockedAtDockId,
 				fleet.State.IdleCoord, fleet.State.PatrolOrigin, fleet.State.PatrolRadius,
 				fleet.State.Phase, fleet.State.ChoreDockIds,
 				fleet.State.ChoreIndex, fleet.State.SpeedPerTick,
@@ -470,7 +469,7 @@ public static class SaveDtoMapper
 		var restored = new StarState
 		{
 			Id = state.Id, Type = state.Type, Faction = state.Faction,
-			CombatProfile = state.CombatProfile, DockedAtDockId = state.DockedAtDockId,
+			DockedAtDockId = state.DockedAtDockId,
 			IdleCoord = state.IdleCoord, PatrolOrigin = state.PatrolOrigin,
 			PatrolRadius = state.PatrolRadius, Phase = state.Phase,
 			ChoreDockIds = state.ChoreDockIds, ChoreIndex = state.ChoreIndex,
@@ -537,7 +536,7 @@ public static class SaveDtoMapper
 	}
 
 	private sealed record StarMapStateData(
-		string Id, MapUnitType Type, EFaction Faction, CombatProfile? CombatProfile,
+		string Id, MapUnitType Type, EFaction Faction,
 		string DockedAtDockId, Coord IdleCoord, Coord PatrolOrigin, int PatrolRadius, EPhase Phase,
 		IReadOnlyList<string> ChoreDockIds, int ChoreIndex, double SpeedPerTick,
 		double EngageRadius, double VisionRadius, int WorkStartTick,

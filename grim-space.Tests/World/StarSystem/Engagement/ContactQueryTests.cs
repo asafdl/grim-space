@@ -134,8 +134,7 @@ public sealed class ContactQueryTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		return id;
 	}
 

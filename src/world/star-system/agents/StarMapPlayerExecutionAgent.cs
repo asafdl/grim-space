@@ -177,7 +177,6 @@ public sealed class StarMapPlayerExecutionAgent
 		var anchorWorld = _anchorWorld();
 		if (!anchorWorld.FleetRegistry.TryGet(_actorId, out var initiator)
 			|| !anchorWorld.FleetRegistry.TryGet(targetUnitId, out var target)
-			|| target.State.CombatProfile is null
 			|| target.State.Type == EType.PlayerFleet)
 		{
 			StarMapPresentationDiagnostics.LogMoveQueueFailed("invalid_pursue_fleet_target", null, this);

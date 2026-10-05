@@ -36,10 +36,6 @@ public static class EngagementQueries
 			|| !world.FleetRegistry.TryGet(counterpartyId, out var counterparty))
 			return false;
 
-		if (counterparty.State.CombatProfile is null)
-			throw new InvalidOperationException(
-				$"Engagement counterparty '{counterpartyId}' has no combat profile.");
-
 		info = new PendingEngagement(
 			counterpartyId,
 			counterparty.State.Type,

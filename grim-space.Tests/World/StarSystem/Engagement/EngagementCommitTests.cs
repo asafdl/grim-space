@@ -199,6 +199,5 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			position ?? new Coord(4, 0, 0),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 }

@@ -42,7 +42,6 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			.Single(unit => unit.State.Type == FleetType.PirateFleet);
 
 		Assert.Equal(EFaction.Pirates, spawned.State.Faction);
-		Assert.NotNull(spawned.State.CombatProfile);
 		Assert.Equal(EPhase.Docked, spawned.State.Phase);
 		Assert.True(spawned.State.IdleCoord != default);
 		Assert.Empty(spawned.State.DockedAtDockId);
@@ -198,8 +197,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			existingId,
 			new Coord(10, 0, 10),
-			EFaction.Pirates,
-			new CombatProfile()));
+			EFaction.Pirates));
 
 		var engine = CreateEngine(map, unitId);
 		Assert.Throws<InvalidOperationException>(() =>

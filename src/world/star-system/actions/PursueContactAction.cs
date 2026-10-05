@@ -78,8 +78,7 @@ public sealed class PursueContactDef
 
 	private static bool IsFleetTargetLegal(StarMap world, string actorId, string targetUnitId) =>
 		actorId != targetUnitId
-		&& world.FleetRegistry.TryGet(targetUnitId, out var target)
-		&& target.State.CombatProfile is not null;
+		&& world.FleetRegistry.Contains(targetUnitId);
 
 	private static bool IsWreckTargetLegal(StarMap world, string actorId, string contractId) =>
 		WreckageQueries.IsActiveWreckContractForHolder(world, actorId, contractId);

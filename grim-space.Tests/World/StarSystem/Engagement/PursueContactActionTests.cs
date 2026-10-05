@@ -74,7 +74,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void IsLegal_RejectsNonCombatTarget()
+	public void IsLegal_AllowsTrafficFleetTarget()
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
@@ -83,7 +83,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		var sim = orchestrator.CreateSimulation();
 		var destination = orchestrator.CommittedPositionOf(trafficUnit.State.Id);
 
-		Assert.False(sim.TryEnqueue(CreatePursueAction(
+		Assert.True(sim.TryEnqueue(CreatePursueAction(
 			orchestrator,
 			RunState.PlayerFleetUnitId,
 			trafficUnit.State.Id,
@@ -144,8 +144,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
-			EFaction.Pirates,
-			new CombatProfile()));
+			EFaction.Pirates));
 		return id;
 	}
 }

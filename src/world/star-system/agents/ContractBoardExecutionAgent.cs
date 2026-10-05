@@ -94,7 +94,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			return false;
 
 		var contractId = ContractIdFor(map, tick, slot);
-		var danger = ContractDangerProgression.RollDanger(map, tick, slot);
+		var danger = StarSystemDangerProgression.RollDanger(map, tick, slot, "contract-danger");
 		if (!TryBuildContract(map, contractId, decision, danger, tick, slot, out var contract))
 			return false;
 

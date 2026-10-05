@@ -93,8 +93,7 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			poiId,
 			new Coord(1, 0, 1),
-			EFaction.Pirates,
-			new CombatProfile()));
+			EFaction.Pirates));
 
 		var result = WorldObjectQueries.ResolveFocusable(
 			map,
@@ -149,8 +148,7 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			poiId,
 			new Coord(1, 0, 1),
-			EFaction.Pirates,
-			new CombatProfile()));
+			EFaction.Pirates));
 
 		var result = WorldObjectQueries.ResolveFocusable(
 			map,

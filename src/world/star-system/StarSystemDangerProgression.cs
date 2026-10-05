@@ -1,9 +1,9 @@
 using GrimSpace.Math;
 using GrimSpace.World.StarSystem.Encounter;
 
-namespace GrimSpace.World.StarSystem.Contracts.Generation;
+namespace GrimSpace.World.StarSystem;
 
-public static class ContractDangerProgression
+public static class StarSystemDangerProgression
 {
 	/// <summary>Initial danger progression is 0.1 tiers per completion, easing near the middle and upper tiers.</summary>
 	public const double TierShiftPerCompletion = 0.1;
@@ -54,14 +54,24 @@ public static class ContractDangerProgression
 			weights[i] /= total;
 	}
 
-	public static EDangerLevel RollDanger(StarMap map, int tick, int slot) =>
-		RollDanger(map.Seed, tick, slot, map.ContractRegistry.CountCompleted());
-
-	public static EDangerLevel RollDanger(int mapSeed, int tick, int slot, int completedCount)
+	public static EDangerLevel RollDanger(StarMap map, int tick, int slot, string rngScope)
 	{
-		var weights = WeightsFor(completedCount);
+		ArgumentException.ThrowIfNullOrEmpty(rngScope);
+		return RollDanger(map.Seed, tick, slot, map.ContractRegistry.CountCompleted(), rngScope);
+	}
+
+	public static EDangerLevel RollDanger(
+		int mapSeed,
+		int tick,
+		int slot,
+		int completedContractCount,
+		string rngScope)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(rngScope);
+
+		var weights = WeightsFor(completedContractCount);
 		var random = new StableRandom(
-			StableSeedMixer.From(mapSeed).Add(tick).Add(slot).Add("contract-danger").Value);
+			StableSeedMixer.From(mapSeed).Add(tick).Add(slot).Add(rngScope).Value);
 		var index = PickWeightedIndex(weights, random);
 		return (EDangerLevel)index;
 	}

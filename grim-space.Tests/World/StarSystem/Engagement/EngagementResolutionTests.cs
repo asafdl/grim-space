@@ -306,8 +306,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
-			EFaction.Pirates,
-			new CombatProfile()));
+			EFaction.Pirates));
 
 	private static string HuntTargetId(StarMap map, string contractId, int index)
 	{

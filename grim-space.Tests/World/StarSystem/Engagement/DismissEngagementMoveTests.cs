@@ -118,8 +118,7 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(playerDock.Position.X + 4, 0, playerDock.Position.Z),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
@@ -138,8 +137,7 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(playerDock.Position.X + 4, 0, playerDock.Position.Z),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
@@ -160,8 +158,7 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,
 			new Coord(4, 0, 0),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))

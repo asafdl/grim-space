@@ -44,8 +44,7 @@ public sealed class PursueContactCommandTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
 			new Coord(20, 0, 20),
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
 	}
 }

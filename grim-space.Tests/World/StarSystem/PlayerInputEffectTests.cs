@@ -179,8 +179,7 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			id,
 			coord,
-			GrimSpace.World.Factions.EFaction.Pirates,
-			new GrimSpace.World.StarSystem.Encounter.CombatProfile()));
+			GrimSpace.World.Factions.EFaction.Pirates));
 		return id;
 	}
 }

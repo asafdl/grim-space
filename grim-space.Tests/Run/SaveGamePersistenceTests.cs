@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
@@ -21,8 +22,10 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.Factions;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 using BattleUnitState = GrimSpace.Battle.Units.State;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
@@ -503,6 +506,63 @@ public sealed class SaveGamePersistenceTests
 		var restoredAdmin = Assert.IsType<AdministrativeCore>(
 			restored.PointsOfInterest.Single(poi => poi is AdministrativeCore));
 		Assert.Equal(originalAdmin.PhysicalForm, restoredAdmin.PhysicalForm);
+	}
+
+	[Fact]
+	public void SaveDtoMapper_RestoresLegacyCombatProfileAndFleetParticipants()
+	{
+		var map = StarMap.Create(42);
+		const string playerId = "save-test-player";
+		StarSystemTestHarness.AddPlayerFleet(map, playerId);
+		map.FleetRegistry.Add(
+			StarSystemTestHarness.CreatePirateFleet(
+				"save-test-pirate",
+				new Coord(20, 0, 20),
+				EFaction.Pirates));
+		var registry = PersistenceRegistry.CreateDefault();
+		var captured = SaveDtoMapper.CaptureStarMap(map, registry);
+		var legacyState = JsonNode.Parse(captured.Fleets[0].State.GetRawText())!.AsObject();
+		legacyState["combatProfile"] = new JsonObject();
+		var legacyFleet = captured.Fleets[0] with
+		{
+			State = JsonSerializer.SerializeToElement(legacyState, registry.Options),
+		};
+		var legacySave = captured with
+		{
+			Fleets = captured.Fleets
+				.Select((fleet, index) => index == 0 ? legacyFleet : fleet)
+				.ToArray(),
+		};
+
+		var restored = SaveDtoMapper.RestoreStarMap(legacySave, registry);
+		var player = restored.FleetRegistry.FleetOf(playerId);
+		var targetIds = restored.FleetRegistry.All
+			.Where(fleet => fleet.State.Id != playerId)
+			.Select(fleet => fleet.State.Id)
+			.ToArray();
+
+		Assert.Contains(
+			restored.FleetRegistry.All,
+			fleet => fleet.State.Faction == EFaction.Pirates);
+		Assert.Contains(
+			restored.FleetRegistry.All,
+			fleet => fleet.State.Faction == EFaction.TheOptimality);
+		foreach (var targetId in targetIds)
+		{
+			var target = restored.FleetRegistry.FleetOf(targetId);
+			var action = new PursueContactAction(
+				playerId,
+				new FleetContactTarget(targetId),
+				target.State.IdleCoord,
+				TransitPath.FromPoints(
+					[player.State.IdleCoord, target.State.IdleCoord],
+					[1.0, 1.0]));
+
+			Assert.True(PursueContactDef.Instance.IsLegal(
+				action,
+				restored,
+				new GrimSpace.World.StarSystem.Runtime.ActorRuntime()));
+		}
 	}
 
 	[Fact]
