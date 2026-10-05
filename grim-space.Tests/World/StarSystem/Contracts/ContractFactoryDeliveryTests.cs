@@ -62,6 +62,40 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Build_Delivery_WithConfiguredFacilityLegs_IsDeterministicAndDistinct()
+	{
+		var map = maps.Fresh(42);
+		var args = new DeliveryCreateArgs(
+			map.Blueprint.SupplyPlan.StoragePoiId,
+			EDangerLevel.VeryLow,
+			ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+			Generation: new DeliveryGenerationConfig(2));
+
+		var firstContract = ContractFactory.Build(map, "delivery-route", EContractKind.Delivery, args);
+		var first = Assert.IsType<DeliveryObjective>(firstContract.Objective);
+		var second = Assert.IsType<DeliveryObjective>(
+			ContractFactory.Build(map, "delivery-route", EContractKind.Delivery, args).Objective);
+
+		Assert.Equal(
+			first.Route.Legs.Select(leg => leg.ToString()),
+			second.Route.Legs.Select(leg => leg.ToString()));
+		Assert.Equal(2, first.RouteLegCount);
+		Assert.Equal(
+			2,
+			first.Route.Legs
+				.OfType<FacilityDeliveryLeg>()
+				.Select(leg => leg.PoiId)
+				.Distinct(StringComparer.Ordinal)
+				.Count());
+
+		var finalLeg = Assert.IsType<FacilityDeliveryLeg>(first.Route.Legs[^1]);
+		var finalPoi = map.PointsOfInterest.First(poi => poi.Id == finalLeg.PoiId);
+		var finalFacility = finalPoi.GetFacility(finalLeg.FacilityId);
+		Assert.Contains("2-leg delivery route", ContractDisplay.SearchArea(firstContract, map));
+		Assert.DoesNotContain(finalFacility.DisplayName, ContractDisplay.SearchArea(firstContract, map));
+	}
+
+	[Fact]
 	public void BeatBDropoff_UsesWormholeTravelLoungeDropoff()
 	{
 		var map = maps.Fresh(42);

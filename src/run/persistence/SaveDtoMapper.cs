@@ -526,7 +526,7 @@ public static class SaveDtoMapper
 			entry.Contract.IsStoryObjective,
 			StateType = entry.State?.GetType().Name,
 			State = entry.State is null
-				? default(JsonElement)
+				? JsonSerializer.SerializeToElement<object?>(null, registry.Options)
 				: JsonSerializer.SerializeToElement(
 					entry.State,
 					entry.State.GetType(),
@@ -543,9 +543,7 @@ public static class SaveDtoMapper
 			nameof(HuntObjective) => JsonSerializer.Deserialize<HuntObjective>(
 				dto.Objective,
 				registry.Options)!,
-			nameof(DeliveryObjective) => JsonSerializer.Deserialize<DeliveryObjective>(
-				dto.Objective,
-				registry.Options)!,
+			nameof(DeliveryObjective) => RestoreDeliveryObjective(dto.Objective, registry.Options),
 			nameof(WreckageObjective) => JsonSerializer.Deserialize<WreckageObjective>(
 				dto.Objective,
 				registry.Options)!,
@@ -561,6 +559,26 @@ public static class SaveDtoMapper
 			dto.ExpiresAtTick);
 	}
 
+	private static DeliveryObjective RestoreDeliveryObjective(
+		JsonElement payload,
+		JsonSerializerOptions options)
+	{
+		if (payload.TryGetProperty("route", out var route))
+		{
+			var restoredRoute = JsonSerializer.Deserialize<DeliveryRoute>(route, options)
+				?? throw new InvalidDataException("Delivery route is missing.");
+			return new DeliveryObjective(restoredRoute);
+		}
+
+		return new DeliveryObjective(
+			payload.GetProperty("turnInPoiId").GetString()
+				?? throw new InvalidDataException("Legacy delivery POI is missing."),
+			payload.GetProperty("turnInFacilityId").GetString()
+				?? throw new InvalidDataException("Legacy delivery facility is missing."),
+			payload.GetProperty("turnInOperatorName").GetString()
+				?? throw new InvalidDataException("Legacy delivery operator is missing."));
+	}
+
 	private static ContractState? RestoreContractState(
 		JsonElement statePayload,
 		string? stateType,
@@ -572,7 +590,7 @@ public static class SaveDtoMapper
 
 		var state = stateType switch
 		{
-			nameof(DeliveryContractState) => JsonSerializer.Deserialize<DeliveryContractState>(
+			nameof(DeliveryContractState) => RestoreDeliveryContractState(
 				statePayload,
 				registry.Options),
 			nameof(HuntContractState) => JsonSerializer.Deserialize<HuntContractState>(
@@ -594,6 +612,30 @@ public static class SaveDtoMapper
 			state.Status,
 			state.AcceptedAtTick,
 			state.HolderUnitId);
+	}
+
+	private static DeliveryContractState RestoreDeliveryContractState(
+		JsonElement payload,
+		JsonSerializerOptions options)
+	{
+		var contractId = payload.GetProperty("contractId").GetString()
+			?? throw new InvalidDataException("Delivery contract state id is missing.");
+		var status = payload.GetProperty("status").Deserialize<EContractStatus>(options);
+		var acceptedAtTick = payload.GetProperty("acceptedAtTick").Deserialize<int?>(options);
+		var holderUnitId = payload.GetProperty("holderUnitId").GetString();
+		var progress = payload.TryGetProperty("progress", out var progressPayload)
+			? JsonSerializer.Deserialize<DeliveryProgress>(progressPayload, options)
+			: new DeliveryProgress(
+				JsonSerializer.Deserialize<IReadOnlyList<bool>>(
+					payload.GetProperty("deliveryProgressLegs"),
+					options)
+					?? throw new InvalidDataException("Delivery progress is missing."));
+		return new DeliveryContractState(
+			contractId,
+			status,
+			acceptedAtTick,
+			holderUnitId,
+			progress ?? throw new InvalidDataException("Delivery progress is missing."));
 	}
 
 	private sealed record StarMapStateData(

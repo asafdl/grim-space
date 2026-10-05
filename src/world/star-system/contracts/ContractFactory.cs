@@ -117,8 +117,8 @@ public static class ContractFactory
 	{
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 
-		var (turnInPoiId, turnInFacilityId, turnInOperatorName) = ResolveDropoff(map, args, contractId);
-		var objective = new DeliveryObjective(turnInPoiId, turnInFacilityId, turnInOperatorName);
+		var objective = new DeliveryObjective(
+			ResolveDeliveryRoute(map, args, contractId));
 
 		return new Contract(
 			contractId,
@@ -126,9 +126,63 @@ public static class ContractFactory
 			args.Danger,
 			map.ControllingFaction,
 			args.IssuerPoiId,
-			ResolvePayment(map.Seed, contractId, EContractKind.Delivery, args.Danger),
+			ResolvePayment(
+				map.Seed,
+				contractId,
+				EContractKind.Delivery,
+				args.Danger),
 			args.Narrative,
 			args.IsStoryObjective);
+	}
+
+	private static DeliveryRoute ResolveDeliveryRoute(
+		StarMap map,
+		DeliveryCreateArgs args,
+		string contractId)
+	{
+		var hasOverride = args.DropoffPoiId is not null
+			|| args.DropoffFacilityId is not null
+			|| args.DropoffOperatorName is not null;
+		if (!hasOverride)
+		{
+			var legCount = args.Generation?.FacilityLegCount ?? 1;
+			var legs = new List<DeliveryLeg>(legCount);
+			var excludedPoiIds = new HashSet<string>(StringComparer.Ordinal);
+			for (var legIndex = 0; legIndex < legCount; legIndex++)
+			{
+				var dropoff = DeliveryDropoffPicker.Pick(
+					map,
+					args.IssuerPoiId,
+					contractId,
+					$"delivery-route-leg-{legIndex}",
+					excludedPoiIds);
+				legs.Add(new FacilityDeliveryLeg(
+					dropoff.PoiId,
+					dropoff.FacilityId,
+					dropoff.OperatorName));
+				excludedPoiIds.Add(dropoff.PoiId);
+			}
+
+			return new DeliveryRoute(legs);
+		}
+
+		if (args.Generation?.FacilityLegCount > 1)
+			throw new ArgumentException(
+				"Delivery dropoff overrides support only a single facility leg.",
+				nameof(args));
+
+		if (string.IsNullOrEmpty(args.DropoffPoiId)
+			|| string.IsNullOrEmpty(args.DropoffFacilityId)
+			|| string.IsNullOrEmpty(args.DropoffOperatorName))
+			throw new ArgumentException(
+				"Delivery dropoff override requires PoiId, FacilityId, and OperatorName.",
+				nameof(args));
+
+		return new DeliveryRoute(
+			[new FacilityDeliveryLeg(
+				args.DropoffPoiId,
+				args.DropoffFacilityId,
+				args.DropoffOperatorName)]);
 	}
 
 	public static bool TryBuildWreckage(
@@ -232,27 +286,6 @@ public static class ContractFactory
 	internal static string SpawnGroupIdFor(string contractId) => $"{contractId}.spawns";
 
 	internal static string WreckageIdFor(string contractId) => $"{contractId}.wreckage";
-
-	private static (string PoiId, string FacilityId, string OperatorName) ResolveDropoff(
-		StarMap map,
-		DeliveryCreateArgs args,
-		string contractId)
-	{
-		var hasOverride = args.DropoffPoiId is not null
-			|| args.DropoffFacilityId is not null
-			|| args.DropoffOperatorName is not null;
-		if (!hasOverride)
-			return DeliveryDropoffPicker.Pick(map, args.IssuerPoiId, contractId);
-
-		if (string.IsNullOrEmpty(args.DropoffPoiId)
-			|| string.IsNullOrEmpty(args.DropoffFacilityId)
-			|| string.IsNullOrEmpty(args.DropoffOperatorName))
-			throw new ArgumentException(
-				"Delivery dropoff override requires PoiId, FacilityId, and OperatorName.",
-				nameof(args));
-
-		return (args.DropoffPoiId, args.DropoffFacilityId, args.DropoffOperatorName);
-	}
 
 	internal static bool IsHuntObjectiveMet(string contractId, StarMap map, string actorId)
 	{

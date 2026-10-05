@@ -16,12 +16,17 @@ public static class ContractRewardCalculator
 	private const float MaxDangerCreditMultiplier = 2.2f;
 	private const float CreditVariance = 0.1f;
 
-	public static ContractTerms Roll(int mapSeed, string contractId, EContractKind kind, EDangerLevel danger)
+	public static ContractTerms Roll(
+		int mapSeed,
+		string contractId,
+		EContractKind kind,
+		EDangerLevel danger)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
 
 		var rng = Rng(mapSeed, contractId, "contract-reward");
-		var scaledCredits = (int)System.Math.Round(BaseCredits(kind) * DangerCreditMultiplier(danger));
+		var scaledCredits = (int)System.Math.Round(
+			BaseCredits(kind) * DangerCreditMultiplier(danger));
 		var credits = ApplyVariance(rng, scaledCredits);
 
 		if (danger < EDangerLevel.High)

@@ -19,7 +19,8 @@ public sealed record DeliveryCreateArgs(
 	bool IsStoryObjective = false,
 	string? DropoffPoiId = null,
 	string? DropoffFacilityId = null,
-	string? DropoffOperatorName = null) : ContractCreateArgs;
+	string? DropoffOperatorName = null,
+	DeliveryGenerationConfig? Generation = null) : ContractCreateArgs;
 
 public sealed record WreckageCreateArgs(
 	string IssuerPoiId,

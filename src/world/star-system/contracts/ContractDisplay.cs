@@ -109,12 +109,18 @@ public static class ContractDisplay
 	private static string FormatDeliveryObjective(Contract contract, DeliveryObjective delivery, StarMap map)
 	{
 		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
+		if (delivery.RouteLegCount > 1)
+			return $"Pick up cargo at {issuerName}, then complete a {delivery.RouteLegCount}-leg delivery route.";
+
 		return $"Pick up cargo at {issuerName}, then deliver it to {DeliveryDestination(map, delivery)}.";
 	}
 
 	private static string FormatDeliveryRoute(Contract contract, DeliveryObjective delivery, StarMap map)
 	{
 		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
+		if (delivery.RouteLegCount > 1)
+			return $"From {issuerName} along a {delivery.RouteLegCount}-leg delivery route.";
+
 		return $"From {issuerName} to {DeliveryDestination(map, delivery)}.";
 	}
 

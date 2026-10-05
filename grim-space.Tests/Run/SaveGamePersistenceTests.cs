@@ -412,6 +412,38 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void PersistenceRegistry_RoundTripsMultiLegDeliveryObjective()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var objective = new DeliveryObjective(
+			new DeliveryRoute(
+			[
+				new FacilityDeliveryLeg("poi-a", "facility-a", "operator-a"),
+				new FacilityDeliveryLeg("poi-b", "facility-b", "operator-b"),
+			]));
+		var contract = new Contract(
+			"contract-route",
+			objective,
+			EDangerLevel.Low,
+			EFaction.Player,
+			"issuer-poi",
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
+			new ContractNarrative("Delivery", "Deliver the cargo."));
+		var action = new MaintainContractBoardAction(
+			"contracts",
+			4,
+			[new ContractAddition(contract, 24)]);
+
+		var restored = Assert.IsType<MaintainContractBoardAction>(
+			registry.Read(registry.Write(action)));
+		var restoredObjective = Assert.IsType<DeliveryObjective>(
+			Assert.Single(restored.Additions).Contract.Objective);
+
+		Assert.Equal(objective.Route.Legs.Select(leg => leg.ToString()), restoredObjective.Route.Legs.Select(leg => leg.ToString()));
+		Assert.Equal(2, restoredObjective.RouteLegCount);
+	}
+
+	[Fact]
 	public void SaveDtoMapper_RoundTripsIdentityStateAndLoadout()
 	{
 		var ship = ShipCatalog.CreateInstance("fighter-1", EType.Fighter);

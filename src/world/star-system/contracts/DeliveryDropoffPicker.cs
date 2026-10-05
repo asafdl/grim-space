@@ -8,19 +8,22 @@ public static class DeliveryDropoffPicker
 	public static (string PoiId, string FacilityId, string OperatorName) Pick(
 		StarMap map,
 		string excludeIssuerPoiId,
-		string contractId)
+		string contractId,
+		string scope = "delivery-dropoff",
+		IReadOnlySet<string>? excludedPoiIds = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentException.ThrowIfNullOrEmpty(excludeIssuerPoiId);
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
+		ArgumentException.ThrowIfNullOrEmpty(scope);
 
-		var candidates = CollectCandidates(map, excludeIssuerPoiId);
+		var candidates = CollectCandidates(map, excludeIssuerPoiId, excludedPoiIds);
 		if (candidates.Count == 0)
 			throw new InvalidOperationException(
 				$"No delivery dropoff candidates for map seed {map.Seed} excluding issuer '{excludeIssuerPoiId}'.");
 
 		var random = new StableRandom(
-			StableSeedMixer.From(map.Seed).Add("delivery-dropoff").Add(contractId).Value);
+			StableSeedMixer.From(map.Seed).Add(scope).Add(contractId).Value);
 
 		var poiIndex = (int)(random.NextDouble() * candidates.Count);
 		var (poiId, facilityId, operators) = candidates[poiIndex];
@@ -33,13 +36,15 @@ public static class DeliveryDropoffPicker
 
 	private static List<(string PoiId, string FacilityId, IReadOnlyList<FacilityOperator> Operators)> CollectCandidates(
 		StarMap map,
-		string excludeIssuerPoiId)
+		string excludeIssuerPoiId,
+		IReadOnlySet<string>? excludedPoiIds)
 	{
 		var candidates = new List<(string, string, IReadOnlyList<FacilityOperator>)>();
 
 		foreach (var poi in map.PointsOfInterest.OrderBy(p => p.Id, StringComparer.Ordinal))
 		{
-			if (poi.Id == excludeIssuerPoiId)
+			if (poi.Id == excludeIssuerPoiId
+				|| excludedPoiIds?.Contains(poi.Id) == true)
 				continue;
 
 			foreach (var facility in poi.Facilities.OrderBy(f => f.Id, StringComparer.Ordinal))
