@@ -54,6 +54,11 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 
 	public string? ActiveNarrativeId { get; internal set; }
 
+	internal int DebugAdditionalCompletedContracts { get; private set; }
+
+	internal void BumpDebugDangerProgression() =>
+		DebugAdditionalCompletedContracts += StarSystemDangerProgression.CompletionsPerTier;
+
 	public State StateOf(string unitId) => FleetRegistry.FleetOf(unitId).State;
 
 	internal StarMap(
@@ -133,7 +138,10 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			PathfindingTerrain,
 			ShipRegistryReader,
 			WaitingForPlayerInput,
-			ActiveNarrativeId);
+			ActiveNarrativeId)
+		{
+			DebugAdditionalCompletedContracts = DebugAdditionalCompletedContracts,
+		};
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)
 	{

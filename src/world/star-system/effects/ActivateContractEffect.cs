@@ -16,7 +16,8 @@ public sealed class ActivateContractEffect : IEffect<StarMap, ActorRuntime>
 		if (!world.ContractRegistry.Activate(_state))
 			return [];
 
-		ContractDeliveryRoleSupport.OnContractActivated(world, _state);
+		if (world.ContractRegistry.TryGetState(_state.ContractId, out var activated))
+			ContractDeliveryRoleSupport.OnContractActivated(world, activated);
 		return [];
 	}
 

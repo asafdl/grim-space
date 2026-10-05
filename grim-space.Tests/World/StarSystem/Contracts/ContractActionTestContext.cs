@@ -37,16 +37,20 @@ internal static class ContractActionTestContext
 			contractId);
 	}
 
-	public static TurnInDeliveryAction TurnInDelivery(StarMap map, string actorId, string contractId)
+	public static CompleteDeliveryFacilityLegAction TurnInDelivery(
+		StarMap map,
+		string actorId,
+		string contractId)
 	{
 		var contract = map.ContractRegistry.All.First(entry => entry.Id == contractId);
 		var delivery = (DeliveryObjective)contract.Objective;
-		return new TurnInDeliveryAction(
+		return new CompleteDeliveryFacilityLegAction(
 			actorId,
 			delivery.TurnInPoiId,
 			delivery.TurnInFacilityId,
 			delivery.TurnInOperatorName,
-			contractId);
+			contractId,
+			0);
 	}
 
 	public static DeclineContractAction Decline(StarMap map, string actorId, string contractId) =>

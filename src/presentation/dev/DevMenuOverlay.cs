@@ -11,6 +11,8 @@ public sealed partial class DevMenuOverlay : Control
 	private Action? _loseBattle;
 	private Func<bool>? _canGrantResources;
 	private Action? _grantResources;
+	private Func<bool>? _canBumpDanger;
+	private Action? _bumpDanger;
 	private Func<bool>? _canRevealAllUnits;
 	private Action? _revealAllUnits;
 
@@ -53,6 +55,12 @@ public sealed partial class DevMenuOverlay : Control
 				_canGrantResources(),
 				OnGrantResources));
 
+		if (_canBumpDanger is not null)
+			items.AddChild(CreateMenuItem(
+				"Increase Danger (+1 Tier)",
+				_canBumpDanger(),
+				OnBumpDanger));
+
 		if (_canRevealAllUnits is not null)
 			items.AddChild(CreateMenuItem(
 				"Reveal All Units",
@@ -83,6 +91,12 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		_canGrantResources = canGrantResources;
 		_grantResources = grantResources;
+	}
+
+	public void SetDangerActions(Func<bool> canBumpDanger, Action bumpDanger)
+	{
+		_canBumpDanger = canBumpDanger;
+		_bumpDanger = bumpDanger;
 	}
 
 	public void ClearResourceActions()
@@ -121,6 +135,12 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		Close();
 		_grantResources?.Invoke();
+	}
+
+	private void OnBumpDanger()
+	{
+		Close();
+		_bumpDanger?.Invoke();
 	}
 
 	private void OnRevealAllUnits()

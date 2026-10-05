@@ -287,7 +287,7 @@ public sealed class SaveGamePersistenceTests
 			new AcceptContractAction("fleet", "poi", "facility", "operator", "contract", "spawn"),
 			new DeclineContractAction("fleet", "poi", "facility", "operator", "contract"),
 			new VisitContractMerchantAction("fleet", "poi", "facility", "operator"),
-			new TurnInDeliveryAction("fleet", "poi", "facility", "operator", "contract"),
+			new CompleteDeliveryFacilityLegAction("fleet", "poi", "facility", "operator", "contract", 0),
 			new InvestigateWreckageAction("fleet", "contract", "ambush-spawn"),
 		};
 

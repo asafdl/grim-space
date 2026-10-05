@@ -153,7 +153,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 					map,
 					contractId,
 					EContractKind.Delivery,
-					BuildDeliveryArgs(map, decision.IssuerPoiId, danger, tick, slot));
+					BuildDeliveryArgs(map, contractId, decision.IssuerPoiId, danger, tick, slot));
 				return true;
 			case EContractKind.Wreckage:
 				return ContractFactory.TryBuildWreckage(
@@ -186,13 +186,19 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 
 	private DeliveryCreateArgs BuildDeliveryArgs(
 		StarMap map,
+		string contractId,
 		string issuerPoiId,
 		EDangerLevel danger,
 		int tick,
 		int slot)
 	{
 		var narrative = _narrativePicker.Pick(map, issuerPoiId, EContractKind.Delivery, tick, slot);
-		return new DeliveryCreateArgs(issuerPoiId, danger, narrative);
+		return new DeliveryCreateArgs(
+			issuerPoiId,
+			danger,
+			narrative,
+			Generation: new DeliveryGenerationConfig(
+				StarSystemDangerProgression.RollDeliveryLegCount(map.Seed, contractId, danger)));
 	}
 
 	private WreckageCreateArgs BuildWreckageArgs(

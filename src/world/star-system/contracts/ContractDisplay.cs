@@ -109,27 +109,29 @@ public static class ContractDisplay
 	private static string FormatDeliveryObjective(Contract contract, DeliveryObjective delivery, StarMap map)
 	{
 		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
-		if (delivery.RouteLegCount > 1)
-			return $"Pick up cargo at {issuerName}, then complete a {delivery.RouteLegCount}-leg delivery route.";
-
-		return $"Pick up cargo at {issuerName}, then deliver it to {DeliveryDestination(map, delivery)}.";
+		return $"Pick up cargo at {issuerName}, then deliver it to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
 	}
 
 	private static string FormatDeliveryRoute(Contract contract, DeliveryObjective delivery, StarMap map)
 	{
 		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
-		if (delivery.RouteLegCount > 1)
-			return $"From {issuerName} along a {delivery.RouteLegCount}-leg delivery route.";
-
-		return $"From {issuerName} to {DeliveryDestination(map, delivery)}.";
+		return $"From {issuerName} to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
 	}
 
-	private static string DeliveryDestination(StarMap map, DeliveryObjective delivery)
+	private static string DeliveryDestination(StarMap map, DeliveryLeg leg) =>
+		leg switch
+		{
+			FacilityDeliveryLeg facility => FacilityDestination(map, facility),
+			SpaceMeetingDeliveryLeg meeting => $"contact {meeting.ContactName}",
+			_ => throw new ArgumentOutOfRangeException(nameof(leg), leg, null),
+		};
+
+	private static string FacilityDestination(StarMap map, FacilityDeliveryLeg facility)
 	{
-		var poi = map.PointsOfInterest.FirstOrDefault(candidate => candidate.Id == delivery.TurnInPoiId);
+		var poi = map.PointsOfInterest.FirstOrDefault(candidate => candidate.Id == facility.PoiId);
 		return poi is null
-			? delivery.TurnInPoiId
-			: $"{poi.GetFacility(delivery.TurnInFacilityId).DisplayName} at {poi.DisplayName}";
+			? facility.PoiId
+			: $"{poi.GetFacility(facility.FacilityId).DisplayName} at {poi.DisplayName}";
 	}
 
 	private static string ResolvePoiDisplayName(StarMap map, string? poiId) =>

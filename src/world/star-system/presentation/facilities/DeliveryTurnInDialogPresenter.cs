@@ -41,24 +41,39 @@ public sealed class DeliveryTurnInDialogPresenter
 
 	public void Open(FacilityOperator facilityOperator)
 	{
-		var contract = FindTurnInContract(facilityOperator);
-		if (contract is null)
+		var active = FindTurnInContract(facilityOperator);
+		if (active is null)
 			return;
 
 		_operator = facilityOperator;
-		_hud.Open(FacilityNpcDialogs.DeliveryTurnIn(facilityOperator, contract.Narrative.TurnInDialog));
+		var delivery = (DeliveryObjective)active.Definition.Objective;
+		var deliveryState = (DeliveryContractState)active.State;
+		var isFinal = deliveryState.Progress.CurrentLegIndex == delivery.Route.Legs.Count - 1;
+		_hud.Open(FacilityNpcDialogs.DeliveryTurnIn(
+			facilityOperator,
+			isFinal
+				? active.Definition.Narrative.TurnInDialog
+				: DeliveryLegMessageCatalog.Pick(
+					active.Definition.Id,
+					deliveryState.Progress.CurrentLegIndex,
+					NextLegDestination(
+						delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex + 1]))));
 		UpdateBackButton();
 	}
 
 	public bool TryHandleInput(InputEvent @event) => _hud.TryHandleInput(@event);
 
-	private Contract? FindTurnInContract(FacilityOperator facilityOperator) =>
+	private ActiveContract? FindTurnInContract(FacilityOperator facilityOperator) =>
 		_orchestrator.Map.ContractRegistry
 			.ActiveFor(State.PlayerFleetUnitId)
-			.Select(active => active.Definition)
-			.FirstOrDefault(contract =>
-				contract.Objective is DeliveryObjective delivery
-				&& delivery.TurnInOperatorName == facilityOperator.Name);
+			.FirstOrDefault(active =>
+				active.Definition.Objective is DeliveryObjective delivery
+				&& active.State is DeliveryContractState deliveryState
+				&& delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
+					is FacilityDeliveryLeg facility
+				&& facility.PoiId == _poiId
+				&& facility.FacilityId == _facilityId
+				&& facility.OperatorName == facilityOperator.Name);
 
 	private void OnChoiceSelected(string choiceId)
 	{
@@ -74,19 +89,21 @@ public sealed class DeliveryTurnInDialogPresenter
 		if (choiceId != FacilityNpcDialogs.TurnInChoiceId)
 			throw new InvalidOperationException($"Unknown delivery dialog choice '{choiceId}'.");
 
-		var contract = FindTurnInContract(_operator);
-		if (contract is null)
+		var active = FindTurnInContract(_operator);
+		if (active is null)
 		{
 			_hud.Close();
 			return;
 		}
 
-		var committed = _orchestrator.TryCommitPlayerInput(new TurnInDeliveryAction(
+		var delivery = (DeliveryContractState)active.State;
+		var committed = _orchestrator.TryCommitPlayerInput(new CompleteDeliveryFacilityLegAction(
 			State.PlayerFleetUnitId,
 			_poiId,
 			_facilityId,
 			_operator.Name,
-			contract.Id));
+			active.Definition.Id,
+			delivery.Progress.CurrentLegIndex));
 		if (!committed)
 		{
 			_hud.Open(FacilityNpcDialogs.DeliveryTurnIn(
@@ -105,6 +122,17 @@ public sealed class DeliveryTurnInDialogPresenter
 		MapNavigationContext.ClearActiveOperator();
 		UpdateBackButton();
 	}
+
+	private string NextLegDestination(DeliveryLeg leg) =>
+		leg switch
+		{
+			FacilityDeliveryLeg facility => _orchestrator.Map.PointsOfInterest
+				.FirstOrDefault(poi => poi.Id == facility.PoiId) is { } poi
+				? $"{poi.GetFacility(facility.FacilityId).DisplayName} at {poi.DisplayName}"
+				: facility.PoiId,
+			SpaceMeetingDeliveryLeg meeting => $"contact {meeting.ContactName}",
+			_ => throw new ArgumentOutOfRangeException(nameof(leg), leg, null),
+		};
 
 	private void UpdateBackButton() => _backButton.Disabled = _hud.IsOpen;
 }

@@ -12,6 +12,7 @@ using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
@@ -63,7 +64,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_fleetSpawnerAgent = fleetSpawnerAgent;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_engagementResolvedSubscription = _engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
-		_deliveryTurnInSubscription = _engine.Subscribe<TurnInDeliveryAction>(OnDeliveryTurnedIn);
+		_deliveryTurnInSubscription =
+			_engine.Subscribe<Record<DeliveryRouteCompleted>>(OnDeliveryRouteCompleted);
 		_wreckageInvestigationSubscription = _engine.Subscribe<InvestigateWreckageAction>(OnWreckageInvestigated);
 		_resourceTransactionSubscription =
 			_engine.Subscribe<Record<Transaction>>(record => ResourceTransactionCommitted?.Invoke(record.Value));
@@ -356,6 +358,16 @@ public sealed class StarSystemOrchestrator : IDisposable
 		return applied;
 	}
 
+	public bool TryBumpDebugDangerProgression()
+	{
+		if (PlayerId is null)
+			return false;
+
+		Map.BumpDebugDangerProgression();
+		NotifyWorldUpdated();
+		return true;
+	}
+
 	public void RefreshPlayerAgent() => _playerAgent?.OnWorldUpdated();
 
 	public bool TryCommitPlayerInput(IAction action)
@@ -570,9 +582,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 		EnqueueContractCompletions(resolved.InitiatorId, EContractKind.Hunt);
 	}
 
-	private void OnDeliveryTurnedIn(TurnInDeliveryAction turnedIn)
+	private void OnDeliveryRouteCompleted(Record<DeliveryRouteCompleted> completed)
 	{
-		EnqueueContractCompletions(turnedIn.ActorId, EContractKind.Delivery);
+		if (!Map.ContractRegistry.TryGetState(completed.Value.ContractId, out var state)
+			|| string.IsNullOrEmpty(state.HolderUnitId))
+			return;
+
+		EnqueueContractCompletions(state.HolderUnitId, EContractKind.Delivery);
 	}
 
 	private void OnWreckageInvestigated(InvestigateWreckageAction investigated)

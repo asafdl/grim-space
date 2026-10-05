@@ -5,11 +5,13 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Effects;
 
-public record DeliveryTurnedIn(string contractId);
+public record DeliveryLegCompleted(string ContractId, int LegIndex);
+public record DeliveryRouteCompleted(string ContractId);
 
-public sealed class RecordDeliveryTurnedInEffect(string contractId) : IEffect<StarMap, ActorRuntime>
+public class AdvanceDeliveryLegEffect(string contractId, int legIndex) : IEffect<StarMap, ActorRuntime>
 {
 	private ContractState? _previous;
+	private ContractState? _applied;
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
@@ -17,15 +19,39 @@ public sealed class RecordDeliveryTurnedInEffect(string contractId) : IEffect<St
 			|| state is not DeliveryContractState delivery)
 			return [];
 
+		if (delivery.Progress.CurrentLegIndex != legIndex
+			|| legIndex < 0
+			|| legIndex >= delivery.Progress.CompletedLegs.Count
+			|| delivery.Progress.CompletedLegs[legIndex])
+			return [];
+
 		_previous = state;
-		world.ContractRegistry.ReplaceState(delivery.MarkLegCompleted(0));
-		return [new Record<DeliveryTurnedIn>(new DeliveryTurnedIn(contractId))];
+		var next = delivery.MarkLegCompleted(legIndex);
+		world.ContractRegistry.ReplaceState(next);
+		ContractDeliveryRoleSupport.OnDeliveryLegAdvanced(world, state, next);
+		_applied = next;
+
+		var records = new List<IRecord>
+		{
+			new Record<DeliveryLegCompleted>(
+				new DeliveryLegCompleted(contractId, legIndex)),
+		};
+		if (next.IsObjectiveMet())
+			records.Add(new Record<DeliveryRouteCompleted>(
+				new DeliveryRouteCompleted(contractId)));
+		return records;
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId)
 	{
 		if (_previous is not null)
+		{
+			if (_applied is not null)
+				ContractDeliveryRoleSupport.OnDeliveryLegAdvanced(world, _applied, _previous);
 			world.ContractRegistry.ReplaceState(_previous);
+		}
 		_previous = null;
+		_applied = null;
 	}
 }
+

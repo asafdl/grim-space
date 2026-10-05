@@ -147,6 +147,9 @@ public partial class Session : Node
 		_devMenu.SetResourceActions(
 			() => Run is not null && Run.StarSystem is not null,
 			GrantDebugResources);
+		_devMenu.SetDangerActions(
+			() => Run is not null && Run.StarSystem is not null,
+			BumpDebugDanger);
 
 		var performanceLayer = new CanvasLayer { Layer = 30 };
 		AddChild(performanceLayer);
@@ -247,6 +250,11 @@ public partial class Session : Node
 			(ResourceId.Credits, 1000),
 			(ResourceId.ScrapAlloy, 1000),
 			(ResourceId.IndustrialCore, 1000)));
+	}
+
+	private void BumpDebugDanger()
+	{
+		Run?.StarSystem?.TryBumpDebugDangerProgression();
 	}
 
 	private bool IsRunReady() =>

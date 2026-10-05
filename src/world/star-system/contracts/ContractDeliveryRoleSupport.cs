@@ -11,14 +11,29 @@ internal static class ContractDeliveryRoleSupport
 			return;
 
 		if (!world.ContractRegistry.TryGet(state.ContractId, out var contract)
-			|| contract.Objective is not DeliveryObjective delivery)
+			|| contract.Objective is not DeliveryObjective delivery
+			|| state is not DeliveryContractState deliveryState)
 			return;
 
-		world.GetPointOfInterest(delivery.TurnInPoiId).OperatorTemporaryRoles.Grant(
-			delivery.TurnInFacilityId,
-			delivery.TurnInOperatorName,
-			EFacilityOperatorRole.DeliveryTurnIn,
-			state.ContractId);
+		GrantCurrentFacilityRole(world, delivery, deliveryState);
+	}
+
+	public static void OnDeliveryLegAdvanced(
+		StarMap world,
+		ContractState previous,
+		ContractState current)
+	{
+		if (!world.ContractRegistry.TryGet(previous.ContractId, out var contract)
+			|| contract.Objective is not DeliveryObjective delivery
+			|| previous is not DeliveryContractState previousDelivery
+			|| current is not DeliveryContractState currentDelivery)
+			return;
+
+		if (delivery.Route.Legs[previousDelivery.Progress.CurrentLegIndex] is FacilityDeliveryLeg previousFacility)
+			world.GetPointOfInterest(previousFacility.PoiId)
+				.OperatorTemporaryRoles.RevokeBySource(previous.ContractId);
+		if (current.Status == EContractStatus.Active && !currentDelivery.IsObjectiveMet())
+			GrantCurrentFacilityRole(world, delivery, currentDelivery);
 	}
 
 	public static void OnContractEnded(StarMap world, string contractId)
@@ -27,6 +42,22 @@ internal static class ContractDeliveryRoleSupport
 			|| contract.Objective is not DeliveryObjective delivery)
 			return;
 
-		world.GetPointOfInterest(delivery.TurnInPoiId).OperatorTemporaryRoles.RevokeBySource(contractId);
+		foreach (var poi in world.PointsOfInterest)
+			poi.OperatorTemporaryRoles.RevokeBySource(contractId);
+	}
+
+	private static void GrantCurrentFacilityRole(
+		StarMap world,
+		DeliveryObjective delivery,
+		DeliveryContractState state)
+	{
+		if (delivery.Route.Legs[state.Progress.CurrentLegIndex] is not FacilityDeliveryLeg facility)
+			return;
+
+		world.GetPointOfInterest(facility.PoiId).OperatorTemporaryRoles.Grant(
+			facility.FacilityId,
+			facility.OperatorName,
+			EFacilityOperatorRole.DeliveryTurnIn,
+			state.ContractId);
 	}
 }

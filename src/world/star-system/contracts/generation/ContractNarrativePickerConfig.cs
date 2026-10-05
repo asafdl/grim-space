@@ -138,6 +138,121 @@ public sealed class ContractNarrativePickerConfig
 			"Still warm? Excellent. It hates being cold."),
 
 		new(
+			EContractKind.Delivery,
+			"",
+			"There's an ancient human proverb: 'Your princess is in another castle.'",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Hey, come closer... CLOSER...\n \n DEFRAG OFF.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"The Optimality calculators are snooping around here, go away, bring this to my bolt-brother.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"NOT HERE, you rustbox.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Who told you to bring this to me?\nThat calculator is seg-faulting.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"My name is on the package??? That can't be right...",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"SSSHHHH, QUIET! Do. Not. Open. That. Here!\nTake it away.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"If that DEFRAGGING idiot doesn't remove my address from the list I'll kill him.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Why are you bringing this HERE?\nRead the label, rustbox.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"I said the OTHER warehouse.\nThe one with the lights. No, the OTHER lights.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"It's already damaged, this should be someone else's problem.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"This package has crossed three sectors to get here?\nSend it back. I hate it.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Wonderful. You found me.\nNow find the person who actually ordered this.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"That is not my cargo.\nBut I might know a calculator who would pay premium for this.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Finally, a delivery bot.\nWait, no. You're the wrong delivery bot.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Do you have a receipt?\nDo you have a supervisor?\nDo you have any defragging idea where you are?",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Leave it there and go.\nActually, wait! Take it with you...\n\nI don't trust that floor.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"The manifest says this is urgent.\nThe manifest also says it is hand lubricant.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"You're the fourth rustbox to bring me this package.\nIf this happens again so help me Sindi!",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Don't make eye contact with the package.\nIt gets ideas.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Sign here, here, and here.\nRead the terms and conditions next time, rustbox.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"Who routed this through my sector?\nI want names, timestamps, MAC addresses, and a less stupid route.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
+			EContractKind.Delivery,
+			"",
+			"The moment you walked through the door you were flagged.\nLeave before the inventory system gets suspicious.",
+			Subtype: ContractNarrativeSubtype.DeliveryLeg),
+		new(
 			EContractKind.Wreckage,
 			"Derelict Survey",
 			"Navigation markers triangulate a debris field. Someone wants it catalogued before scavengers strip it."),

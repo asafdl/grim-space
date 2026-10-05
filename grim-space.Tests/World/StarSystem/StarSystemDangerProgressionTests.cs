@@ -101,6 +101,37 @@ public sealed class StarSystemDangerProgressionTests
 	}
 
 	[Theory]
+	[InlineData(EDangerLevel.VeryLow, 1, 2)]
+	[InlineData(EDangerLevel.Low, 1, 2)]
+	[InlineData(EDangerLevel.Moderate, 2, 4)]
+	[InlineData(EDangerLevel.High, 3, 5)]
+	[InlineData(EDangerLevel.VeryHigh, 3, 5)]
+	public void RollDeliveryLegCount_StaysWithinDangerRange(
+		EDangerLevel danger,
+		int minimum,
+		int maximum)
+	{
+		for (var contractIndex = 0; contractIndex < 100; contractIndex++)
+		{
+			var count = StarSystemDangerProgression.RollDeliveryLegCount(
+				42,
+				$"contract-{contractIndex}",
+				danger);
+
+			Assert.InRange(count, minimum, maximum);
+		}
+	}
+
+	[Fact]
+	public void RollDeliveryLegCount_SameContract_IsDeterministic()
+	{
+		var first = StarSystemDangerProgression.RollDeliveryLegCount(42, "contract-1", EDangerLevel.High);
+		var second = StarSystemDangerProgression.RollDeliveryLegCount(42, "contract-1", EDangerLevel.High);
+
+		Assert.Equal(first, second);
+	}
+
+	[Theory]
 	[InlineData(null)]
 	[InlineData("")]
 	public void RollDanger_RejectsMissingScope(string? rngScope)

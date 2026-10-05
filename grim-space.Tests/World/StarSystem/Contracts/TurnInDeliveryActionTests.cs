@@ -13,7 +13,7 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
 [StarSystemTestSuite]
-public sealed class TurnInDeliveryActionTests(StarMapFixture maps)
+public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 {
 	[Fact]
 	public void AcceptDelivery_GrantsTurnInOverlayOnWormholeOperator()
@@ -69,12 +69,13 @@ public sealed class TurnInDeliveryActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId, _) = CreateDeliveryEngine();
 		engine.Commit(ContractActionTestContext.AcceptDelivery(engine.World, unitId, contractId));
 
-		var wrongTurnIn = new TurnInDeliveryAction(
+		var wrongTurnIn = new CompleteDeliveryFacilityLegAction(
 			unitId,
 			ContractActionTestContext.AdministrativePoiId,
 			ContractActionTestContext.ManagementFacilityId,
 			"Wrong Operator",
-			contractId);
+			contractId,
+			0);
 		var sim = engine.CreateSimulation();
 
 		Assert.False(sim.TryEnqueue(wrongTurnIn));

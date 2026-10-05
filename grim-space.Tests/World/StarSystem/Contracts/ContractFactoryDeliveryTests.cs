@@ -88,10 +88,13 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 				.Distinct(StringComparer.Ordinal)
 				.Count());
 
+		var firstLeg = Assert.IsType<FacilityDeliveryLeg>(first.Route.Legs[0]);
+		var firstPoi = map.PointsOfInterest.First(poi => poi.Id == firstLeg.PoiId);
+		var firstFacility = firstPoi.GetFacility(firstLeg.FacilityId);
 		var finalLeg = Assert.IsType<FacilityDeliveryLeg>(first.Route.Legs[^1]);
 		var finalPoi = map.PointsOfInterest.First(poi => poi.Id == finalLeg.PoiId);
 		var finalFacility = finalPoi.GetFacility(finalLeg.FacilityId);
-		Assert.Contains("2-leg delivery route", ContractDisplay.SearchArea(firstContract, map));
+		Assert.Contains(firstFacility.DisplayName, ContractDisplay.SearchArea(firstContract, map));
 		Assert.DoesNotContain(finalFacility.DisplayName, ContractDisplay.SearchArea(firstContract, map));
 	}
 

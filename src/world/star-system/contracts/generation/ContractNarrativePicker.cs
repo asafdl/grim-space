@@ -35,7 +35,11 @@ public sealed class ContractNarrativePicker
 		string issuerPoiId,
 		EContractKind kind)
 	{
-		var byKind = _config.Entries.Where(entry => entry.Kind == kind).ToArray();
+		var byKind = _config.Entries
+			.Where(entry =>
+				entry.Kind == kind
+				&& entry.Subtype == ContractNarrativeSubtype.Contract)
+			.ToArray();
 		if (byKind.Length == 0)
 			return [];
 

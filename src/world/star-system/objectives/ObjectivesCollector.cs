@@ -13,7 +13,7 @@ public static class ObjectivesCollector
 		var objectives = new List<ActiveObjective>();
 
 		foreach (var active in map.ContractRegistry.ActiveFor(playerUnitId))
-			objectives.Add(ContractObjectiveProjection.Project(map, active.Definition));
+			objectives.Add(ContractObjectiveProjection.Project(map, active.Definition, active.State));
 
 		foreach (var story in map.StoryObjectives.Active)
 			objectives.Add(new ActiveObjective(

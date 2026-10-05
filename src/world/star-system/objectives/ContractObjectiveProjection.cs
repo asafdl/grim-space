@@ -14,11 +14,33 @@ public static class ContractObjectiveProjection
 		ArgumentNullException.ThrowIfNull(contract);
 
 		var title = FormatTitle(contract);
-		var summary = BuildSummary(map, contract);
+		var state = map.ContractRegistry.TryGetState(contract.Id, out var activeState)
+			? activeState
+			: null;
+		var summary = BuildSummary(map, contract, state);
 		return new ActiveObjective(
 			contract.Id,
 			title,
 			summary,
+			contract.Terms.Payment,
+			EObjectiveSource.Contract);
+	}
+
+	public static ActiveObjective Project(
+		StarMap map,
+		Contract contract,
+		ContractState state)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		ArgumentNullException.ThrowIfNull(contract);
+		ArgumentNullException.ThrowIfNull(state);
+		if (!string.Equals(contract.Id, state.ContractId, StringComparison.Ordinal))
+			throw new ArgumentException("Contract and state IDs must match.", nameof(state));
+
+		return new ActiveObjective(
+			contract.Id,
+			FormatTitle(contract),
+			BuildSummary(map, contract, state),
 			contract.Terms.Payment,
 			EObjectiveSource.Contract);
 	}
@@ -32,10 +54,13 @@ public static class ContractObjectiveProjection
 		return $"{ContractDisplay.Title(contract)} {new string('★', difficulty)}";
 	}
 
-	private static ObjectiveSummaryContent BuildSummary(StarMap map, Contract contract)
+	private static ObjectiveSummaryContent BuildSummary(
+		StarMap map,
+		Contract contract,
+		ContractState? state)
 	{
 		if (contract.Objective is DeliveryObjective delivery)
-			return BuildDeliverySummary(map, delivery);
+			return BuildDeliverySummary(map, delivery, state);
 
 		var searchIntel = contract.Objective switch
 		{
@@ -145,16 +170,22 @@ public static class ContractObjectiveProjection
 
 	private static ObjectiveSummaryContent BuildDeliverySummary(
 		StarMap map,
-		DeliveryObjective delivery)
+		DeliveryObjective delivery,
+		ContractState? state)
 	{
-		var dropoff = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == delivery.TurnInPoiId);
+		var leg = state is DeliveryContractState deliveryState
+			? delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
+			: delivery.Route.Legs[0];
+		if (leg is not FacilityDeliveryLeg facility)
+			return new ObjectiveSummaryContent.Plain("Meet the designated delivery contact.");
+
+		var dropoff = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == facility.PoiId);
 		if (dropoff is null)
 			return new ObjectiveSummaryContent.Plain("Deliver cargo to the designated contact.");
 
-		// Acceptance happens at the issuer; cargo is already aboard. Single-leg deliveries only for now.
 		return new ObjectiveSummaryContent.NearLandmark(
-			$"Deliver cargo to \"{delivery.TurnInOperatorName}\" at {dropoff.GetFacility(delivery.TurnInFacilityId).DisplayName} in ",
-			delivery.TurnInPoiId,
+			$"Deliver cargo to \"{facility.OperatorName}\" at {dropoff.GetFacility(facility.FacilityId).DisplayName} in ",
+			facility.PoiId,
 			dropoff.DisplayName,
 			".");
 	}
