@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
@@ -145,7 +146,8 @@ public sealed class PatrolExecutionAgentTests(StarMapFixture maps)
 			1.0,
 			1.0,
 			[],
-			PatrolRadius: 8));
+			PatrolRadius: 8),
+			[BattleUnitType.RepurposedMiner]);
 		map.FleetRegistry.Add(unit);
 		return unit;
 	}

@@ -50,7 +50,11 @@ public static class SaveDtoMapper
 				? null
 				: registry.Write(runtime.PendingCompletion),
 			runtime.PendingCompletionTick,
-			runtime.JourneyIdSequence);
+			runtime.JourneyIdSequence,
+			new Dictionary<string, int>(
+				runtime.IgnoreUntilTickByTargetId,
+				StringComparer.Ordinal),
+			runtime.ActionCooldownUntilTick);
 	}
 
 	public static void RestoreRuntime(
@@ -69,6 +73,13 @@ public static class SaveDtoMapper
 			: null;
 		runtime.PendingCompletionTick = dto.PendingCompletionTick;
 		runtime.JourneyIdSequence = dto.JourneyIdSequence;
+		runtime.ActionCooldownUntilTick = dto.ActionCooldownUntilTick;
+		runtime.IgnoreUntilTickByTargetId.Clear();
+		if (dto.IgnoreUntilTickByTargetId is not null)
+		{
+			foreach (var (targetId, ignoreUntilTick) in dto.IgnoreUntilTickByTargetId)
+				runtime.IgnoreUntilTickByTargetId[targetId] = ignoreUntilTick;
+		}
 	}
 
 	public static BattleEncounterSaveDto CaptureBattleEncounter(BattleEncounter encounter)
@@ -448,6 +459,7 @@ public static class SaveDtoMapper
 			JsonSerializer.SerializeToElement(new
 			{
 				fleet.State.Id, fleet.State.Type, fleet.State.Faction,
+				fleet.State.AggressionRating,
 				fleet.State.DockedAtDockId,
 				fleet.State.IdleCoord, fleet.State.PatrolOrigin, fleet.State.PatrolRadius,
 				fleet.State.Phase, fleet.State.ChoreDockIds,
@@ -469,6 +481,7 @@ public static class SaveDtoMapper
 		var restored = new StarState
 		{
 			Id = state.Id, Type = state.Type, Faction = state.Faction,
+			AggressionRating = state.AggressionRating,
 			DockedAtDockId = state.DockedAtDockId,
 			IdleCoord = state.IdleCoord, PatrolOrigin = state.PatrolOrigin,
 			PatrolRadius = state.PatrolRadius, Phase = state.Phase,
@@ -543,7 +556,8 @@ public static class SaveDtoMapper
 		string? SpawnWorkPoiId, int SpawnWorkRemainingTicks,
 		Engagement? CurrentEngagement, long JourneyId, Coord Origin,
 		Coord Destination, int StartTick, TravelTarget TravelTarget,
-		string PendingWreckContractId);
+		string PendingWreckContractId,
+		int AggressionRating = 0);
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,

@@ -9,6 +9,27 @@ public struct StableRandom
 	public double NextDouble() =>
 		(NextUInt64() >> 11) * (1.0 / (1UL << 53));
 
+	public int TriangularWeightedNumber(int minInclusive, int maxInclusive)
+	{
+		if (minInclusive > maxInclusive)
+			throw new ArgumentException("Minimum must not exceed maximum.");
+
+		var totalWeight = 0;
+		for (var value = minInclusive; value <= maxInclusive; value++)
+			totalWeight += 1 + System.Math.Min(value - minInclusive, maxInclusive - value);
+
+		var roll = NextDouble() * totalWeight;
+		var cumulativeWeight = 0;
+		for (var value = minInclusive; value <= maxInclusive; value++)
+		{
+			cumulativeWeight += 1 + System.Math.Min(value - minInclusive, maxInclusive - value);
+			if (roll < cumulativeWeight)
+				return value;
+		}
+
+		return maxInclusive;
+	}
+
 	private ulong NextUInt64()
 	{
 		_state += 0x9E3779B97F4A7C15UL;

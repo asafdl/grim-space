@@ -26,6 +26,8 @@ public static class Factory
 		ArgumentNullException.ThrowIfNull(spawn);
 		ArgumentNullException.ThrowIfNull(declarations);
 		ArgumentException.ThrowIfNullOrEmpty(spawn.Id);
+		ArgumentOutOfRangeException.ThrowIfNegative(spawn.AggressionRating);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(spawn.AggressionRating, 10);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.SpeedPerTick, 0);
 		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(spawn.EngageRadius, 0);
 		if (!double.IsFinite(spawn.VisionRadius) || spawn.VisionRadius <= 0)

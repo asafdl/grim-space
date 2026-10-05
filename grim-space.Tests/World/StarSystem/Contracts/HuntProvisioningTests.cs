@@ -1,4 +1,5 @@
 using GrimSpace.Core.Engine;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tutorials;
 using GrimSpace.World.Factions;
@@ -222,6 +223,56 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		Assert.Equal(initialCount, sim.World.FleetRegistry.All.Count());
 		Assert.True(sim.World.ContractRegistry.IsPending(contractId));
 		Assert.False(sim.World.ContractRegistry.TryGetState(contractId, out _));
+	}
+
+	[Fact]
+	public void PirateAggressionRating_IsDeterministicForSameSpawnIdentity()
+	{
+		var spec = new FleetSpawnSpec(
+			FleetType.PirateFleet,
+			EFaction.Pirates,
+			42,
+			[(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]);
+
+		var first = ContractEnemySpawner.CreateAmbushFleet(
+			spec,
+			new Coord(1, 0, 1),
+			"pirate-one",
+			"member-one");
+		var second = ContractEnemySpawner.CreateAmbushFleet(
+			spec,
+			new Coord(1, 0, 1),
+			"pirate-one",
+			"member-two");
+
+		Assert.Equal(first.State.AggressionRating, second.State.AggressionRating);
+		Assert.InRange(first.State.AggressionRating, 0, 10);
+		var expected = new StableRandom(
+			StableSeedMixer.From(spec.Seed)
+				.Add("pirate-one")
+				.Add("fleet-aggression")
+				.Value)
+			.TriangularWeightedNumber(0, 10);
+		Assert.Equal(expected, first.State.AggressionRating);
+	}
+
+	[Fact]
+	public void PirateAggressionRatingOverride_IsUsed()
+	{
+		var spec = new FleetSpawnSpec(
+			FleetType.PirateFleet,
+			EFaction.Pirates,
+			42,
+			[(BattleUnitType.RepurposedMiner, EShipGearTier.T0)],
+			AggressionRatingOverride: 3);
+
+		var fleet = ContractEnemySpawner.CreateAmbushFleet(
+			spec,
+			new Coord(1, 0, 1),
+			"pirate",
+			"member");
+
+		Assert.Equal(3, fleet.State.AggressionRating);
 	}
 
 	private static IReadOnlyList<(string UnitId, int X, int Z)> CaptureProvisioning(StarMap map) =>

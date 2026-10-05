@@ -3,6 +3,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -17,6 +18,7 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, ActorRuntime> _runtimeFor;
 	private readonly IPathfinder _pathfinder;
+	private readonly HostileContactPlanner _hostileContactPlanner;
 
 	public PatrolExecutionAgent(
 		Func<StarMap> world,
@@ -26,6 +28,7 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 		_world = world;
 		_runtimeFor = runtimeFor;
 		_pathfinder = pathfinder;
+		_hostileContactPlanner = new HostileContactPlanner(world, runtimeFor, pathfinder);
 	}
 
 	public void PlanAndPublish()
@@ -34,6 +37,20 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 			return;
 
 		ClearBatchInFlight();
+		var world = _world();
+		var state = world.FleetRegistry.FleetOf(_actorId).State;
+		var runtime = _runtimeFor(_actorId);
+		if (state.CurrentEngagement is not null
+			|| runtime.ActionCooldownUntilTick > world.Timeline.Clock.Current)
+			return;
+
+		var hostileReaction = _hostileContactPlanner.Plan(_actorId);
+		if (hostileReaction is not null)
+		{
+			Publish([hostileReaction]);
+			return;
+		}
+
 		var action = PlanFromSettledState();
 		if (action is not null)
 			Publish([action]);

@@ -3,21 +3,13 @@
 [ext_resource type="FontFile" uid="uid://bd2pyx81ilhy7" path="res://assets/ui/fonts/Inter-Medium.ttf" id="1_inter_medium"]
 [ext_resource type="FontFile" uid="uid://inyxv1dijc8k" path="res://assets/ui/fonts/Inter-SemiBold.ttf" id="2_inter_semibold"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_banner"]
-content_margin_left = 28.0
-content_margin_top = 14.0
-content_margin_right = 28.0
-content_margin_bottom = 14.0
-bg_color = Color(0.06, 0.08, 0.12, 0.92)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.9, 0.25, 0.35, 0.95)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.91, 1, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_card_hover"]
 content_margin_left = 10.0
@@ -25,6 +17,22 @@ content_margin_top = 10.0
 content_margin_right = 10.0
 content_margin_bottom = 10.0
 bg_color = Color(0.09, 0.13, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.78, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_card_pressed"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.11, 0.16, 0.24, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -51,21 +59,21 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_card_pressed"]
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-bg_color = Color(0.11, 0.16, 0.24, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBox_banner"]
+content_margin_left = 28.0
+content_margin_top = 14.0
+content_margin_right = 28.0
+content_margin_bottom = 14.0
+bg_color = Color(0.06, 0.08, 0.12, 0.92)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.55, 0.78, 1, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_color = Color(0.9, 0.25, 0.35, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_btn_secondary_disabled"]
 content_margin_left = 10.0
@@ -220,6 +228,24 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab_selected"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(0.09, 0.16, 0.21, 1)
+border_width_bottom = 2
+border_color = Color(0.55, 0.78, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(0.03, 0.05, 0.08, 0)
+border_width_bottom = 2
+border_color = Color(0.22, 0.32, 0.42, 0.55)
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_objectives_hud"]
 content_margin_left = 0.0
@@ -462,63 +488,25 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab"]
-content_margin_left = 20.0
-content_margin_top = 12.0
-content_margin_right = 20.0
-content_margin_bottom = 12.0
-bg_color = Color(0.03, 0.05, 0.08, 0)
-border_width_bottom = 2
-border_color = Color(0.22, 0.32, 0.42, 0.55)
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab_selected"]
-content_margin_left = 20.0
-content_margin_top = 12.0
-content_margin_right = 20.0
-content_margin_bottom = 12.0
-bg_color = Color(0.09, 0.16, 0.21, 1)
-border_width_bottom = 2
-border_color = Color(0.55, 0.78, 1, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBox_merchant_tab_focus"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.8, 0.91, 1, 1)
-
 [resource]
 default_font = ExtResource("1_inter_medium")
 default_font_size = 18
-MerchantTabBar/base_type = &"TabBar"
-MerchantTabBar/font_sizes/font_size = 20
-MerchantTabBar/colors/font_selected_color = Color(0.7, 0.86, 1, 1)
-MerchantTabBar/colors/font_unselected_color = Color(0.62, 0.7, 0.77, 1)
-MerchantTabBar/colors/font_hovered_color = Color(0.9, 0.96, 1, 1)
-MerchantTabBar/styles/tab_selected = SubResource("StyleBox_merchant_tab_selected")
-MerchantTabBar/styles/tab_unselected = SubResource("StyleBox_merchant_tab")
-MerchantTabBar/styles/tab_hovered = SubResource("StyleBox_merchant_tab_selected")
-MerchantTabBar/styles/tab_focus = SubResource("StyleBox_merchant_tab_focus")
+AbilityAvailableLabel/base_type = &"Label"
+AbilityAvailableLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
+AbilityAvailableLabel/font_sizes/font_size = 16
 AbilityChoiceButton/base_type = &"Button"
-AbilityChoiceButton/styles/normal = SubResource("StyleBox_card")
-AbilityChoiceButton/styles/hover = SubResource("StyleBox_card_hover")
-AbilityChoiceButton/styles/pressed = SubResource("StyleBox_card_pressed")
-AbilityChoiceButton/styles/hover_pressed = SubResource("StyleBox_card_pressed")
 AbilityChoiceButton/styles/focus = SubResource("StyleBox_merchant_tab_focus")
+AbilityChoiceButton/styles/hover = SubResource("StyleBox_card_hover")
+AbilityChoiceButton/styles/hover_pressed = SubResource("StyleBox_card_pressed")
+AbilityChoiceButton/styles/normal = SubResource("StyleBox_card")
+AbilityChoiceButton/styles/pressed = SubResource("StyleBox_card_pressed")
+AbilityInstalledLabel/base_type = &"Label"
+AbilityInstalledLabel/colors/font_color = Color(0.65, 0.88, 0.75, 1)
+AbilityInstalledLabel/font_sizes/font_size = 16
 AbilityNameLabel/base_type = &"Label"
+AbilityNameLabel/colors/font_color = Color(0.9, 0.94, 0.98, 1)
 AbilityNameLabel/font_sizes/font_size = 20
 AbilityNameLabel/fonts/font = ExtResource("2_inter_semibold")
-AbilityNameLabel/colors/font_color = Color(0.9, 0.94, 0.98, 1)
-MerchantOfferStatLabel/base_type = &"Label"
-MerchantOfferStatLabel/font_sizes/font_size = 20
-MerchantOfferStatLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
-AbilityInstalledLabel/base_type = &"Label"
-AbilityInstalledLabel/font_sizes/font_size = 16
-AbilityInstalledLabel/colors/font_color = Color(0.65, 0.88, 0.75, 1)
-AbilityAvailableLabel/base_type = &"Label"
-AbilityAvailableLabel/font_sizes/font_size = 16
-AbilityAvailableLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
 BannerPanelContainer/styles/panel = SubResource("StyleBox_banner")
 BannerTitleLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 BannerTitleLabel/font_sizes/font_size = 22
@@ -600,6 +588,18 @@ MapIconButton/styles/focus = SubResource("StyleBox_icon_hover")
 MapIconButton/styles/hover = SubResource("StyleBox_icon_hover")
 MapIconButton/styles/normal = SubResource("StyleBox_icon_normal")
 MapIconButton/styles/pressed = SubResource("StyleBox_icon_pressed")
+MerchantOfferStatLabel/base_type = &"Label"
+MerchantOfferStatLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
+MerchantOfferStatLabel/font_sizes/font_size = 20
+MerchantTabBar/base_type = &"TabBar"
+MerchantTabBar/colors/font_hovered_color = Color(0.9, 0.96, 1, 1)
+MerchantTabBar/colors/font_selected_color = Color(0.7, 0.86, 1, 1)
+MerchantTabBar/colors/font_unselected_color = Color(0.62, 0.7, 0.77, 1)
+MerchantTabBar/font_sizes/font_size = 20
+MerchantTabBar/styles/tab_focus = SubResource("StyleBox_merchant_tab_focus")
+MerchantTabBar/styles/tab_hovered = SubResource("StyleBox_merchant_tab_selected")
+MerchantTabBar/styles/tab_selected = SubResource("StyleBox_merchant_tab_selected")
+MerchantTabBar/styles/tab_unselected = SubResource("StyleBox_merchant_tab")
 MetadataLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
 MetadataLabel/font_sizes/font_size = 14
 ObjectivesHudPanelContainer/base_type = &"PanelContainer"

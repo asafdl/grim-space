@@ -51,6 +51,27 @@ public sealed class ReachContactActionTests(StarMapFixture maps)
 		Assert.False(sim.TryEnqueue(new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)));
 	}
 
+	[Fact]
+	public void Commit_PirateInitiatorPresentsEngagementToPlayer()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var pirateId = AddPirate(map, new Coord(4, 0, 0));
+		new SetEngagementIntentEffect(pirateId, RunState.PlayerFleetUnitId)
+			.Apply(map, new ActorRuntime(), pirateId);
+		new SetTravelTargetEffect(pirateId, TravelTarget.Fleet(RunState.PlayerFleetUnitId))
+			.Apply(map, new ActorRuntime(), pirateId);
+		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
+
+		engine.Commit([new ReachContactAction(pirateId, RunState.PlayerFleetUnitId)]);
+
+		Assert.Equal(EEngagementPhase.AwaitingDecision, EngagementAssertions.Phase(
+			map.StateOf(pirateId)));
+		Assert.Equal(EEngagementPhase.AwaitingDecision, EngagementAssertions.Phase(
+			map.StateOf(RunState.PlayerFleetUnitId)));
+		Assert.True(map.WaitingForPlayerInput);
+	}
+
 	private static string AddPirate(StarMap map, Coord coord)
 	{
 		var id = "pirate-a";

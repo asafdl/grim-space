@@ -1,10 +1,12 @@
 using GrimSpace.Core.Ids;
+using GrimSpace.Math;
 using GrimSpace.Units.Enums;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
+using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
@@ -63,10 +65,22 @@ public static class ContractEnemySpawner
 			UnitDefaults.VisionRadius(spec.Type),
 			[],
 			spec.Faction,
-			spec.PatrolRadius);
+			spec.PatrolRadius,
+			AggressionRatingFor(spec, unitId));
 		var declarations = DeclarationsFor(spec, memberIdentity);
 		return Factory.Create(spawn, declarations);
 	}
+
+	private static int AggressionRatingFor(FleetSpawnSpec spec, string unitId) =>
+		spec.Type != FleetType.PirateFleet
+			? 0
+			: spec.AggressionRatingOverride
+				?? new StableRandom(
+					StableSeedMixer.From(spec.Seed)
+						.Add(unitId)
+						.Add("fleet-aggression")
+						.Value)
+					.TriangularWeightedNumber(0, 10);
 
 	private static IReadOnlyList<ShipSpawnDeclaration> DeclarationsFor(
 		FleetSpawnSpec spec,

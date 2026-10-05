@@ -7,4 +7,6 @@ public sealed record StarSystemRuntimeDto(
 	JsonElement? CachedPath,
 	JsonElement? PendingCompletion,
 	int PendingCompletionTick,
-	long JourneyIdSequence);
+	long JourneyIdSequence,
+	IReadOnlyDictionary<string, int>? IgnoreUntilTickByTargetId = null,
+	int ActionCooldownUntilTick = 0);

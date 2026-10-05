@@ -10,6 +10,9 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public IAction? PendingCompletion { get; set; }
 	public int PendingCompletionTick { get; set; }
 	public long JourneyIdSequence { get; set; }
+	public int ActionCooldownUntilTick { get; set; }
+	public Dictionary<string, int> IgnoreUntilTickByTargetId { get; } =
+		new(StringComparer.Ordinal);
 
 	public long NextJourneyId() => ++JourneyIdSequence;
 
@@ -30,6 +33,8 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 		CachedPath = null;
 		ClearPendingCompletion();
 		JourneyIdSequence = 0;
+		ActionCooldownUntilTick = 0;
+		IgnoreUntilTickByTargetId.Clear();
 	}
 
 	public ActorRuntime Fork() => ActorRuntimeCopy.Clone(this);
@@ -39,7 +44,9 @@ public readonly record struct ActorRuntimeSnapshot(
 	TransitPath? CachedPath,
 	IAction? PendingCompletion,
 	int PendingCompletionTick,
-	long JourneyIdSequence);
+	long JourneyIdSequence,
+	int ActionCooldownUntilTick,
+	IReadOnlyDictionary<string, int> IgnoreUntilTickByTargetId);
 
 public static class ActorRuntimeCopy
 {
@@ -48,7 +55,11 @@ public static class ActorRuntimeCopy
 			session.CachedPath,
 			session.PendingCompletion,
 			session.PendingCompletionTick,
-			session.JourneyIdSequence);
+			session.JourneyIdSequence,
+			session.ActionCooldownUntilTick,
+			new Dictionary<string, int>(
+				session.IgnoreUntilTickByTargetId,
+				StringComparer.Ordinal));
 
 	public static void Restore(ActorRuntime session, ActorRuntimeSnapshot snapshot)
 	{
@@ -56,6 +67,10 @@ public static class ActorRuntimeCopy
 		session.PendingCompletion = snapshot.PendingCompletion;
 		session.PendingCompletionTick = snapshot.PendingCompletionTick;
 		session.JourneyIdSequence = snapshot.JourneyIdSequence;
+		session.ActionCooldownUntilTick = snapshot.ActionCooldownUntilTick;
+		session.IgnoreUntilTickByTargetId.Clear();
+		foreach (var (targetId, ignoreUntilTick) in snapshot.IgnoreUntilTickByTargetId)
+			session.IgnoreUntilTickByTargetId[targetId] = ignoreUntilTick;
 	}
 
 	public static ActorRuntime Clone(ActorRuntime session)

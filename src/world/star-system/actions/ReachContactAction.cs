@@ -47,7 +47,9 @@ public sealed class ReachContactDef
 		};
 
 		if (world.FleetRegistry.TryGet(reach.InitiatorId, out var initiator)
-			&& initiator.State.Type == EType.PlayerFleet)
+			&& (initiator.State.Type == EType.PlayerFleet
+				|| world.FleetRegistry.TryGet(reach.TargetId, out var target)
+					&& target.State.Type == EType.PlayerFleet))
 			effects.Add(new PlayerInputEffect(true));
 
 		return effects;

@@ -11,6 +11,7 @@ public sealed class State
 	public required string Id { get; init; }
 	public required EType Type { get; init; }
 	public EFaction Faction { get; init; } = EFaction.TheOptimality;
+	public int AggressionRating { get; init; }
 	public string DockedAtDockId { get; set; } = "";
 	public Coord IdleCoord { get; set; }
 	public Coord PatrolOrigin { get; init; }
@@ -128,6 +129,7 @@ public sealed class State
 			Id = Id,
 			Type = Type,
 			Faction = Faction,
+			AggressionRating = AggressionRating,
 			DockedAtDockId = DockedAtDockId,
 			IdleCoord = IdleCoord,
 			PatrolOrigin = PatrolOrigin,
@@ -164,6 +166,7 @@ public sealed class State
 			Id = spawn.Id,
 			Type = spawn.Type,
 			Faction = spawn.Faction,
+			AggressionRating = spawn.AggressionRating,
 			DockedAtDockId = spawn.DockedAtDockId,
 			IdleCoord = spawn.IdleCoord,
 			PatrolOrigin = spawn.IdleCoord,

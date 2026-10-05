@@ -45,6 +45,14 @@ public sealed class PursueContactDef
 		ActorRuntime runtime)
 	{
 		var pursue = (PursueContactAction)action;
+		return ResolveEffects(pursue, world, runtime);
+	}
+
+	internal static IReadOnlyList<IEffect<StarMap, ActorRuntime>> ResolveEffects(
+		PursueContactAction pursue,
+		StarMap world,
+		ActorRuntime runtime)
+	{
 		var unit = world.FleetRegistry.FleetOf(pursue.ActorId);
 		var origin = MoveDef.ResolveOrigin(world, unit, runtime);
 
