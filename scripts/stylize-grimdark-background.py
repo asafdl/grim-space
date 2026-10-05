@@ -7,6 +7,7 @@ Usage:
   python3 scripts/stylize-grimdark-background.py assets/backgrounds/Hangar.png
   python3 scripts/stylize-grimdark-background.py input.jpg output.png
   python3 scripts/stylize-grimdark-background.py input.jpg output.png --force
+  python3 scripts/stylize-grimdark-background.py sprite.png output.png --foreground
 """
 
 from __future__ import annotations
@@ -95,7 +96,34 @@ def build_filter(width: int, height: int) -> str:
     )
 
 
-def stylize(ffmpeg: str, source: Path, destination: Path, width: int, height: int) -> None:
+def build_foreground_filter() -> str:
+    return (
+        "[0:v]split=2[color][alpha];"
+        "[alpha]alphaextract[mask];"
+        "[color]format=gbrp,"
+        "colorbalance="
+        "rs=-0.02:gs=0.004:bs=0.03:"
+        "rm=-0.01:gm=-0.003:bm=0.012:"
+        "rh=0.015:gh=0.0:bh=-0.012,"
+        "eq=contrast=1.06:brightness=-0.012:saturation=0.78:"
+        "gamma=0.99:gamma_weight=0.9,"
+        "curves="
+        "all='0/0 0.12/0.09 0.45/0.41 0.78/0.75 1/0.97',"
+        "noise=alls=0.8:allf=t+u,"
+        "unsharp=5:5:0.55:3:3:0.15,"
+        "format=rgb24[styled];"
+        "[styled][mask]alphamerge,format=rgba[out]"
+    )
+
+
+def stylize(
+    ffmpeg: str,
+    source: Path,
+    destination: Path,
+    width: int,
+    height: int,
+    foreground: bool,
+) -> None:
     command = [
         ffmpeg,
         "-hide_banner",
@@ -105,7 +133,7 @@ def stylize(ffmpeg: str, source: Path, destination: Path, width: int, height: in
         "-i",
         str(source),
         "-filter_complex",
-        build_filter(width, height),
+        build_foreground_filter() if foreground else build_filter(width, height),
         "-map",
         "[out]",
         "-frames:v",
@@ -136,6 +164,11 @@ def main() -> None:
         action="store_true",
         help="Replace the output if it already exists",
     )
+    parser.add_argument(
+        "--foreground",
+        action="store_true",
+        help="Preserve transparency and use a gentler character/sprite treatment",
+    )
     args = parser.parse_args()
 
     source = args.input.expanduser().resolve()
@@ -161,7 +194,7 @@ def main() -> None:
     width, height = probe_dimensions(ffprobe, source)
 
     try:
-        stylize(ffmpeg, source, destination, width, height)
+        stylize(ffmpeg, source, destination, width, height, args.foreground)
     except subprocess.CalledProcessError as error:
         sys.exit(f"error: ffmpeg failed with exit code {error.returncode}")
 

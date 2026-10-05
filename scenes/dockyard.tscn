@@ -4,8 +4,8 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_salesman"]
 [ext_resource type="Texture2D" uid="uid://bnrm63j66dkhx" path="res://assets/backgrounds/HangarGrimdarkHardEdges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" uid="uid://1e4y2ewe504" path="res://assets/ui/map/services/dockyard-salesman.png" id="5_salesman"]
-[ext_resource type="Texture2D" uid="uid://wqwohcvsqbyw" path="res://assets/ui/map/services/shield-recharge.png" id="6_shield_recharge"]
+[ext_resource type="Texture2D" uid="uid://cl02ma1cjvxj4" path="res://assets/robots/05-grimdark-hard-edges.png" id="5_salesman"]
+[ext_resource type="Texture2D" uid="uid://co2mjemwx0j17" path="res://assets/robots/06-grimdark-hard-edges.png" id="6_shield_recharge"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="7_strategic_hud"]
 
 [node name="Dockyard" type="Control" unique_id=835188839]
@@ -43,22 +43,23 @@ stretch_mode = 5
 
 [node name="Salesman" type="TextureButton" parent="Scene" unique_id=2081282210]
 layout_mode = 0
-offset_left = 1325.0
-offset_top = 679.0
-offset_right = 1721.3171
-offset_bottom = 1207.8746
+offset_left = 1341.0
+offset_top = 643.0
+offset_right = 1591.8796
+offset_bottom = 1058.1255
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_salesman")
 ignore_texture_size = true
 stretch_mode = 5
+flip_h = true
 script = ExtResource("3_salesman")
 
 [node name="ShieldRecharge" type="TextureButton" parent="Scene" unique_id=1771624543]
 layout_mode = 0
-offset_left = 305.00003
-offset_top = 641.00006
-offset_right = 542.17725
-offset_bottom = 968.6441
+offset_left = 601.0
+offset_top = 614.0
+offset_right = 838.17725
+offset_bottom = 941.64404
 rotation = 0.013295315
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("6_shield_recharge")

@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_manager"]
 [ext_resource type="Texture2D" uid="uid://dgb1nhutqhnxc" path="res://assets/backgrounds/warehouse2-grimdark-hard-edges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" uid="uid://cmtilediov1sl" path="res://assets/ui/map/services/warehouse-manager.png" id="5_manager"]
+[ext_resource type="Texture2D" uid="uid://bl2ughsmxn353" path="res://assets/robots/07-grimdark-hard-edges.png" id="5_manager"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 
 [node name="Warehouse" type="Control" unique_id=649382312]
@@ -42,10 +42,10 @@ stretch_mode = 5
 
 [node name="WarehouseManager" type="TextureButton" parent="Scene" unique_id=10660735]
 layout_mode = 0
-offset_left = 717.0
-offset_top = 719.0
-offset_right = 958.18384
-offset_bottom = 1079.01
+offset_left = 781.0
+offset_top = 727.0
+offset_right = 1022.18384
+offset_bottom = 1087.01
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_manager")
 ignore_texture_size = true

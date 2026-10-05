@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_giver"]
 [ext_resource type="Texture2D" uid="uid://cn1phv56e1yoi" path="res://assets/backgrounds/Engine-room-basic-grimdark-hard-edges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" uid="uid://jhrb0o1clbaa" path="res://assets/ui/map/services/optimality-robot.png" id="5_manager"]
+[ext_resource type="Texture2D" uid="uid://c3phb222m52pq" path="res://assets/robots/02-grimdark-hard-edges.png" id="5_manager"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 
 [node name="CommandAuthority" type="Control" unique_id=1433652594]
@@ -42,14 +42,15 @@ stretch_mode = 5
 
 [node name="Manager" type="TextureButton" parent="Scene" unique_id=1587884116]
 layout_mode = 0
-offset_left = 1411.0
-offset_top = 321.0
-offset_right = 2035.0
-offset_bottom = 1030.0
+offset_left = 1479.0
+offset_top = 395.0
+offset_right = 2103.0
+offset_bottom = 1104.0
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_manager")
 ignore_texture_size = true
 stretch_mode = 5
+flip_h = true
 script = ExtResource("3_giver")
 
 [node name="Back" type="Button" parent="." unique_id=1559382956]

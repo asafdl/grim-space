@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_operator"]
 [ext_resource type="Texture2D" uid="uid://bhewokm1ii0yg" path="res://assets/backgrounds/Corridor-2-grimdark-hard-edges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" uid="uid://s821adsxxgc2" path="res://assets/ui/map/npcs/weird-dude1.png" id="5_operator"]
+[ext_resource type="Texture2D" uid="uid://du6k4yxkydk78" path="res://assets/robots/08-grimdark-hard-edges.png" id="5_operator"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 
 [node name="Travel" type="Control" unique_id=2102728578]
@@ -42,10 +42,10 @@ stretch_mode = 5
 
 [node name="WeirdDude" type="TextureButton" parent="Scene" unique_id=410270283]
 layout_mode = 0
-offset_left = 1459.0
-offset_top = 657.0
-offset_right = 1775.3265
-offset_bottom = 1096.7516
+offset_left = 189.0
+offset_top = 651.00006
+offset_right = 505.32654
+offset_bottom = 1090.7517
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_operator")
 ignore_texture_size = true

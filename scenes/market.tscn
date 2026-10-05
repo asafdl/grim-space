@@ -4,8 +4,10 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_operator"]
 [ext_resource type="Texture2D" uid="uid://cca3030g6nclo" path="res://assets/backgrounds/City-grimdark-hard-edges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" uid="uid://dmem4x25xnxyn" path="res://assets/ui/map/npcs/weird-dude2.png" id="5_operator"]
+[ext_resource type="Texture2D" uid="uid://dhqcqwxe4dx3x" path="res://assets/robots/04-grimdark-hard-edges.png" id="5_operator"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
+[ext_resource type="Texture2D" uid="uid://cqdm5mwtpvak4" path="res://assets/robots/09-grimdark-hard-edges.png" id="7_npc"]
+[ext_resource type="Texture2D" uid="uid://ds0njj7jj4cjb" path="res://assets/robots/10-grimdark-hard-edges.png" id="8_npc"]
 
 [node name="Market" type="Control" unique_id=1345592585]
 layout_mode = 3
@@ -51,6 +53,29 @@ texture_normal = ExtResource("5_operator")
 ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("3_operator")
+
+[node name="PlainNpc09" type="TextureRect" parent="Scene" unique_id=124368816]
+layout_mode = 0
+offset_left = 1150.0
+offset_top = 488.0
+offset_right = 1300.0
+offset_bottom = 808.0
+mouse_filter = 2
+texture = ExtResource("7_npc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlainNpc10" type="TextureRect" parent="Scene" unique_id=1957987980]
+layout_mode = 0
+offset_left = 1390.0
+offset_top = 464.0
+offset_right = 1680.0
+offset_bottom = 1034.0
+mouse_filter = 2
+texture = ExtResource("8_npc")
+expand_mode = 1
+stretch_mode = 5
+flip_h = true
 
 [node name="Back" type="Button" parent="." unique_id=842182499]
 layout_mode = 0
