@@ -18,6 +18,7 @@ using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.FleetSpawner;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -467,6 +468,7 @@ public static class SaveDtoMapper
 				fleet.State.EngageRadius, fleet.State.VisionRadius,
 				fleet.State.WorkStartTick, fleet.State.SpawnWorkPoiId,
 				fleet.State.SpawnWorkRemainingTicks, fleet.State.CurrentEngagement,
+				fleet.State.SpawnerSource, fleet.State.FleetSpawnerExpiresAtTick,
 				fleet.State.Journey.JourneyId, fleet.State.Journey.Origin,
 				fleet.State.Journey.Destination, fleet.State.Journey.StartTick,
 				fleet.State.TravelTarget, fleet.State.PendingWreckContractId,
@@ -488,6 +490,8 @@ public static class SaveDtoMapper
 			ChoreDockIds = state.ChoreDockIds, ChoreIndex = state.ChoreIndex,
 			SpeedPerTick = state.SpeedPerTick, EngageRadius = state.EngageRadius,
 			VisionRadius = state.VisionRadius, WorkStartTick = state.WorkStartTick,
+			SpawnerSource = state.SpawnerSource,
+			FleetSpawnerExpiresAtTick = state.FleetSpawnerExpiresAtTick,
 		};
 		restored.SpawnWorkPoiId = state.SpawnWorkPoiId;
 		restored.SpawnWorkRemainingTicks = state.SpawnWorkRemainingTicks;
@@ -557,7 +561,9 @@ public static class SaveDtoMapper
 		Engagement? CurrentEngagement, long JourneyId, Coord Origin,
 		Coord Destination, int StartTick, TravelTarget TravelTarget,
 		string PendingWreckContractId,
-		int AggressionRating = 0);
+		int AggressionRating = 0,
+		EFleetSpawnerSource SpawnerSource = EFleetSpawnerSource.None,
+		int? FleetSpawnerExpiresAtTick = null);
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,

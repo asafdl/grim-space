@@ -11,6 +11,8 @@ public sealed partial class DevMenuOverlay : Control
 	private Action? _loseBattle;
 	private Func<bool>? _canGrantResources;
 	private Action? _grantResources;
+	private Func<bool>? _canRevealAllUnits;
+	private Action? _revealAllUnits;
 
 	public event Action? StartBattleRequested;
 
@@ -51,6 +53,12 @@ public sealed partial class DevMenuOverlay : Control
 				_canGrantResources(),
 				OnGrantResources));
 
+		if (_canRevealAllUnits is not null)
+			items.AddChild(CreateMenuItem(
+				"Reveal All Units",
+				_canRevealAllUnits(),
+				OnRevealAllUnits));
+
 		_shell.SetBody(items);
 		_shell.SetFooter([]);
 	}
@@ -83,6 +91,18 @@ public sealed partial class DevMenuOverlay : Control
 		_grantResources = null;
 	}
 
+	public void SetMapActions(Func<bool> canRevealAllUnits, Action revealAllUnits)
+	{
+		_canRevealAllUnits = canRevealAllUnits;
+		_revealAllUnits = revealAllUnits;
+	}
+
+	public void ClearMapActions()
+	{
+		_canRevealAllUnits = null;
+		_revealAllUnits = null;
+	}
+
 	private void OnStartBattle() => StartBattleRequested?.Invoke();
 
 	private void OnWinBattle()
@@ -101,6 +121,12 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		Close();
 		_grantResources?.Invoke();
+	}
+
+	private void OnRevealAllUnits()
+	{
+		Close();
+		_revealAllUnits?.Invoke();
 	}
 
 	private static Button CreateMenuItem(string text, bool enabled, Action onPressed)

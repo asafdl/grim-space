@@ -47,6 +47,28 @@ public static class AreaPicker
 		return TryPickTriangulatedLandmarks(map, args, spawnSeeds, out pick);
 	}
 
+	public static bool TryPickWithFallback(
+		StarMap map,
+		AreaPickerArgs args,
+		IReadOnlyList<ulong> spawnSeeds,
+		out AreaPick pick)
+	{
+		if (TryPick(map, args, spawnSeeds, out pick))
+			return true;
+
+		var alternate = args.ReferenceMode == EAreaPickerReferenceMode.LandmarkWithBorderTriangle
+			? EAreaPickerReferenceMode.TriangulateLandmarks
+			: EAreaPickerReferenceMode.LandmarkWithBorderTriangle;
+		if (alternate == EAreaPickerReferenceMode.TriangulateLandmarks
+			&& args.LandmarkCandidateIds.Count < 3)
+		{
+			pick = null!;
+			return false;
+		}
+
+		return TryPick(map, args with { ReferenceMode = alternate }, spawnSeeds, out pick);
+	}
+
 	private static ulong DefaultSpawnSeed(AreaPickerArgs args) =>
 		args.DeterministicPickMix is long mix ? (ulong)mix : 0UL;
 

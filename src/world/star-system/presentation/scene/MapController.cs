@@ -60,6 +60,7 @@ public partial class MapController : Node3D
 	private bool _staleWaitingForPlayerInputReported;
 	private string? _syncedDockedPoiId;
 	private bool _hidePlayerBeacon;
+	private bool _revealAllUnits;
 	private ESimMode _pauseMenuPreviousSimMode;
 	private string? _settledPresentationModeId;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
@@ -204,6 +205,9 @@ public partial class MapController : Node3D
 		_director.RegisterMode(new CinematicPresentationMode());
 		_director.RegisterMode(new OverviewPresentationMode());
 		_director.RegisterMode(_facadeMode);
+		Session.Instance.DevMenu.SetMapActions(
+			() => !_director.IsTransitioning && !(_director.CurrentMode?.IsBusy ?? false),
+			RevealAllUnits);
 
 		_poiContractOverlay = new PoiContractOverlay();
 		_poiContractOverlay.Configure(
@@ -333,6 +337,7 @@ public partial class MapController : Node3D
 	public override void _ExitTree()
 	{
 		Session.Instance.ClearAutosaveContext();
+		Session.Instance.DevMenu.ClearMapActions();
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
@@ -560,7 +565,17 @@ public partial class MapController : Node3D
 		_orchestrator.CommittedPositionOf(unitId, _tickAccumulator / SecondsPerTick);
 
 	private bool IsPlayerFleetVisible(string fleetId) =>
-		_playerVisibleFleetIds.Contains(fleetId);
+		_revealAllUnits || _playerVisibleFleetIds.Contains(fleetId);
+
+	private void RevealAllUnits()
+	{
+		_revealAllUnits = true;
+		_units.Sync(
+			_orchestrator,
+			_tickAccumulator / SecondsPerTick,
+			IsPlayerFleetVisible,
+			_hidePlayerBeacon);
+	}
 
 	private void SetPlayerBeaconHidden(bool hidden)
 	{

@@ -39,6 +39,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		get
 		{
 			yield return StarSystemActorIds.Contracts;
+			yield return StarSystemActorIds.FleetSpawner;
 			foreach (var id in FleetRegistry.Ids)
 				yield return id;
 		}

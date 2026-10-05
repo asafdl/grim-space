@@ -3,6 +3,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Math.Routes;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.FleetSpawner;
 
 namespace GrimSpace.World.StarSystem.Units;
 
@@ -29,6 +30,8 @@ public sealed class State
 	public Engagement? CurrentEngagement { get; internal set; }
 	public TravelTarget TravelTarget { get; set; } = TravelTarget.None;
 	public string PendingWreckContractId { get; set; } = "";
+	public EFleetSpawnerSource SpawnerSource { get; set; }
+	public int? FleetSpawnerExpiresAtTick { get; set; }
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -143,6 +146,8 @@ public sealed class State
 			WorkStartTick = WorkStartTick,
 			SpawnWorkPoiId = SpawnWorkPoiId,
 			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
+			SpawnerSource = SpawnerSource,
+			FleetSpawnerExpiresAtTick = FleetSpawnerExpiresAtTick,
 		};
 		clone.CurrentEngagement = CurrentEngagement is null
 			? null

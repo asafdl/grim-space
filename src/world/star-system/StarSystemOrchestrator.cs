@@ -32,6 +32,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly List<(PatrolExecutionAgent Agent, string ActorId)> _patrolAgents = [];
 	private readonly IPathfinder _pathfinder;
 	private readonly ContractBoardExecutionAgent _contractBoardAgent;
+	private readonly FleetSpawnerExecutionAgent _fleetSpawnerAgent;
 	private readonly Queue<IAction> _reactionQueue = [];
 	private bool _contractGenerationEnabled = true;
 	private readonly IDisposable _storyObjectiveSubscription;
@@ -49,6 +50,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		StarMapPlayerExecutionAgent? playerAgent,
 		IReadOnlyList<(TrafficExecutionAgent Agent, string ActorId)> trafficAgents,
 		ContractBoardExecutionAgent contractBoardAgent,
+		FleetSpawnerExecutionAgent fleetSpawnerAgent,
 		IPathfinder pathfinder)
 	{
 		_engine = engine;
@@ -58,6 +60,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_trafficAgents = [..trafficAgents];
 		_pathfinder = pathfinder;
 		_contractBoardAgent = contractBoardAgent;
+		_fleetSpawnerAgent = fleetSpawnerAgent;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_engagementResolvedSubscription = _engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
 		_deliveryTurnInSubscription = _engine.Subscribe<TurnInDeliveryAction>(OnDeliveryTurnedIn);
@@ -183,6 +186,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 
 		actorRuntimes.For(StarSystemActorIds.Contracts);
+		actorRuntimes.For(StarSystemActorIds.FleetSpawner);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		var contactMonitor = new ContactMonitor(engine, pathfinder);
@@ -215,6 +219,10 @@ public sealed class StarSystemOrchestrator : IDisposable
 			() => engine.World,
 			id => engine.ActorRuntimes.For(id),
 			() => orchestrator.ContractGenerationEnabled);
+		var fleetSpawnerAgent = new FleetSpawnerExecutionAgent(
+			() => engine.World,
+			id => engine.ActorRuntimes.For(id),
+			() => orchestrator.ContractGenerationEnabled);
 		orchestrator = new StarSystemOrchestrator(
 			engine,
 			contactMonitor,
@@ -222,11 +230,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 			playerAgent,
 			trafficAgents,
 			contractBoardAgent,
+			fleetSpawnerAgent,
 			pathfinder);
 
 		contractBoardAgent.Init(
 			StarSystemActorIds.Contracts,
 			orchestrator._actionSink.WriterFor(StarSystemActorIds.Contracts));
+		fleetSpawnerAgent.Init(
+			StarSystemActorIds.FleetSpawner,
+			orchestrator._actionSink.WriterFor(StarSystemActorIds.FleetSpawner));
 
 		if (playerAgent is not null)
 		{
@@ -296,6 +308,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitPlayerActions();
 		var history = _engine.AdvanceTick();
 		CommitReactions();
+		CommitFleetSpawnerActions();
 		CommitContractBoardActions();
 		NotifyWorldUpdated();
 		return history;
@@ -374,6 +387,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		var history = _engine.AdvanceTick();
 		CommitReactions();
 
+		CommitFleetSpawnerActions();
 		CommitContactActions();
 		CommitPatrolActions();
 		CommitContractBoardActions();
@@ -406,6 +420,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			agent.SetCanWork(trafficCanWork);
 
 		_contractBoardAgent.SetCanWork(trafficCanWork);
+		_fleetSpawnerAgent.SetCanWork(trafficCanWork);
 		_playerAgent?.SetCanWork(PlayerId is not null);
 	}
 
@@ -526,6 +541,16 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		_contractBoardAgent.PlanAndPublish();
 		if (!_actionSink.TryTakeBatch(StarSystemActorIds.Contracts, out var batch) || batch.Actions.Count == 0)
+			return;
+
+		_engine.Commit([..batch.Actions]);
+	}
+
+	private void CommitFleetSpawnerActions()
+	{
+		_fleetSpawnerAgent.PlanAndPublish();
+		if (!_actionSink.TryTakeBatch(StarSystemActorIds.FleetSpawner, out var batch)
+			|| batch.Actions.Count == 0)
 			return;
 
 		_engine.Commit([..batch.Actions]);

@@ -104,7 +104,7 @@ public static class ContractFactory
 	{
 		var groupId = SpawnGroupIdFor(contractId);
 		var spawnSeeds = CreateSpawnSeeds(map.Seed, contractId, groupId, 1);
-		if (!TryPickSearchArea(map, searchAreaPicker, spawnSeeds, out var searchArea))
+		if (!AreaPicker.TryPickWithFallback(map, searchAreaPicker, spawnSeeds, out var searchArea))
 		{
 			throw new InvalidOperationException(
 				$"Could not pick a hunt search area for map seed {map.Seed}.");
@@ -159,7 +159,7 @@ public static class ContractFactory
 		var wreckageId = WreckageIdFor(contractId);
 		var spawnSeeds = CreateSpawnSeeds(map.Seed, contractId, wreckageId, 1);
 		if (args.SearchAreaPicker.LandmarkCandidateIds.Count < 1
-			|| !TryPickSearchArea(map, args.SearchAreaPicker, spawnSeeds, out var searchArea))
+			|| !AreaPicker.TryPickWithFallback(map, args.SearchAreaPicker, spawnSeeds, out var searchArea))
 			return false;
 
 		var outcome = RollWreckageOutcome(map, contractId, args);
@@ -225,25 +225,6 @@ public static class ContractFactory
 		EContractKind kind,
 		EDangerLevel danger) =>
 		ContractRewardCalculator.Roll(mapSeed, contractId, kind, danger);
-
-	private static bool TryPickSearchArea(
-		StarMap map,
-		AreaPickerArgs args,
-		IReadOnlyList<ulong> spawnSeeds,
-		out AreaPick pick)
-	{
-		if (AreaPicker.TryPick(map, args, spawnSeeds, out pick))
-			return true;
-
-		var alternate = args.ReferenceMode == EAreaPickerReferenceMode.LandmarkWithBorderTriangle
-			? EAreaPickerReferenceMode.TriangulateLandmarks
-			: EAreaPickerReferenceMode.LandmarkWithBorderTriangle;
-		if (alternate == EAreaPickerReferenceMode.TriangulateLandmarks
-			&& args.LandmarkCandidateIds.Count < 3)
-			return false;
-
-		return AreaPicker.TryPick(map, args with { ReferenceMode = alternate }, spawnSeeds, out pick);
-	}
 
 	internal static ulong[] CreateSpawnSeeds(int mapSeed, string contractId, string scopeId, int count)
 	{
