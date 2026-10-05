@@ -31,7 +31,7 @@ internal static class TutorialCopy
 	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
 	public static string MatchGhostPoseAssistance =>
-		$"Match the preview: drag heading to the green +Y arrow, then roll ({GameInputBindings.Label("battle_roll_clockwise")} / " +
+		$"Match the preview: drag heading to the green arrow, then roll ({GameInputBindings.Label("battle_roll_clockwise")} / " +
 		$"{GameInputBindings.Label("battle_roll_counterclockwise")}). Gold marks the topside (dorsal); put the opposite underside (ventral) toward the enemy.";
 
 	public const string QueueVentralVoidBombAssistance =

@@ -22,7 +22,7 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		{
 			var arrow = new ArrowView();
 			var style = StyleFor(heading);
-			arrow.Configure(style.Label, style.Color);
+			arrow.Configure(style.Color);
 			AddChild(arrow);
 			_arrows[heading] = arrow;
 		}
@@ -31,16 +31,16 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	private static DirectionStyle StyleFor(Coord heading) =>
 		heading switch
 		{
-			{ X: 1, Y: 0, Z: 0 } => new("+X", new Color(1f, 0.34f, 0.28f)),
-			{ X: -1, Y: 0, Z: 0 } => new("-X", new Color(1f, 0.56f, 0.18f)),
-			{ X: 0, Y: 1, Z: 0 } => new("+Y", new Color(0.28f, 1f, 0.38f)),
-			{ X: 0, Y: -1, Z: 0 } => new("-Y", new Color(0.78f, 0.94f, 0.2f)),
-			{ X: 0, Y: 0, Z: 1 } => new("+Z", new Color(0.2f, 0.72f, 1f)),
-			{ X: 0, Y: 0, Z: -1 } => new("-Z", new Color(0.58f, 0.38f, 1f)),
+			{ X: 1, Y: 0, Z: 0 } => new(new Color(1f, 0.34f, 0.28f)),
+			{ X: -1, Y: 0, Z: 0 } => new(new Color(1f, 0.56f, 0.18f)),
+			{ X: 0, Y: 1, Z: 0 } => new(new Color(0.28f, 1f, 0.38f)),
+			{ X: 0, Y: -1, Z: 0 } => new(new Color(0.78f, 0.94f, 0.2f)),
+			{ X: 0, Y: 0, Z: 1 } => new(new Color(0.2f, 0.72f, 1f)),
+			{ X: 0, Y: 0, Z: -1 } => new(new Color(0.58f, 0.38f, 1f)),
 			_ => throw new ArgumentOutOfRangeException(nameof(heading), heading, null),
 		};
 
-	private readonly record struct DirectionStyle(string Label, Color Color);
+	private readonly record struct DirectionStyle(Color Color);
 
 	public void Apply(Coord? destination, IReadOnlySet<Coord> reachableHeadings, Coord? selectedHeading)
 	{
@@ -109,28 +109,12 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		private float _progress;
 		private Color _bodyColor;
 		private Color _fillColor;
-		private Label _label = null!;
 
-		public void Configure(string label, Color color)
+		public void Configure(Color color)
 		{
 			_bodyColor = new Color(color.R, color.G, color.B, 0.72f);
 			var fill = color.Lerp(Colors.White, 0.35f);
 			_fillColor = new Color(fill.R, fill.G, fill.B, 0.96f);
-			_label = new Label
-			{
-				Text = label,
-				Position = new Vector2(-18f, 20f),
-				Size = new Vector2(36f, 22f),
-				PivotOffset = new Vector2(18f, 11f),
-				HorizontalAlignment = HorizontalAlignment.Center,
-				VerticalAlignment = VerticalAlignment.Center,
-				MouseFilter = Control.MouseFilterEnum.Ignore,
-			};
-			_label.AddThemeFontSizeOverride("font_size", 12);
-			_label.AddThemeColorOverride("font_color", Colors.White);
-			_label.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.9f));
-			_label.AddThemeConstantOverride("outline_size", 4);
-			AddChild(_label);
 		}
 
 		public void Apply(MovementSelection.HeadingHandleKind kind, bool selected, float progress)
@@ -138,7 +122,6 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			_kind = kind;
 			_selected = selected;
 			_progress = progress;
-			_label.Rotation = -Rotation;
 			QueueRedraw();
 		}
 
