@@ -342,6 +342,8 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			EContractStatus.Active,
 			map.Timeline.Clock.Current,
 			PlayerId));
+		foreach (var index in boundTargetIndices)
+			map.StateOf(HuntTargetId(map, contract.Id, index)).SourceContractId = contract.Id;
 		return contract.Id;
 	}
 

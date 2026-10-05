@@ -108,8 +108,7 @@ public sealed class DismissContractActionTests(StarMapFixture maps)
 			map.ContractRegistry.Pending.First().IssuerFaction,
 			map.ContractRegistry.Pending.First().IssuerPoiId,
 			map.ContractRegistry.Pending.First().Terms,
-			ContractNarrative.ForHunt("Dismiss test"),
-			ContractFactory.IsHuntObjectiveMet)));
+			ContractNarrative.ForHunt("Dismiss test"))));
 
 		var runtimes = new ActorRuntimes<GrimSpace.World.StarSystem.Runtime.ActorRuntime>();
 		runtimes.For(actorId);

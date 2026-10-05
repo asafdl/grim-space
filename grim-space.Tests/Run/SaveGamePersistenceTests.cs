@@ -391,8 +391,7 @@ public sealed class SaveGamePersistenceTests
 			EFaction.Player,
 			"issuer-poi",
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
-			new ContractNarrative("Delivery", "Deliver the cargo."),
-			ContractFactory.IsDeliveryObjectiveMet);
+			new ContractNarrative("Delivery", "Deliver the cargo."));
 		var action = new MaintainContractBoardAction(
 			"contracts",
 			4,
@@ -409,7 +408,7 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(
 			typeof(DeliveryObjective),
 			addition.Contract.Objective.GetType());
-		Assert.NotNull(addition.Contract.ObjectiveMet);
+		Assert.NotNull(addition.Contract.Objective);
 	}
 
 	[Fact]

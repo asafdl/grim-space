@@ -32,6 +32,7 @@ public sealed class State
 	public string PendingWreckContractId { get; set; } = "";
 	public EFleetSpawnerSource SpawnerSource { get; set; }
 	public int? FleetSpawnerExpiresAtTick { get; set; }
+	public string? SourceContractId { get; set; }
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -148,6 +149,7 @@ public sealed class State
 			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
 			SpawnerSource = SpawnerSource,
 			FleetSpawnerExpiresAtTick = FleetSpawnerExpiresAtTick,
+			SourceContractId = SourceContractId,
 		};
 		clone.CurrentEngagement = CurrentEngagement is null
 			? null
@@ -180,5 +182,6 @@ public sealed class State
 			EngageRadius = spawn.EngageRadius,
 			VisionRadius = spawn.VisionRadius,
 			ChoreDockIds = spawn.ChoreDockIds,
+			SourceContractId = spawn.SourceContractId,
 		};
 }

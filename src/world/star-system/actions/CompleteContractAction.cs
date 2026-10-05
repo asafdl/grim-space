@@ -32,7 +32,7 @@ public sealed class CompleteContractDef
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == complete.ActorId
 		&& PaymentMatches(contract.Terms.Payment, complete.Payment)
-		&& contract.ObjectiveMet(complete.ContractId, world, complete.ActorId);
+		&& state.IsObjectiveMet();
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

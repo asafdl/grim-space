@@ -110,7 +110,8 @@ internal sealed class ContactMonitor
 		&& Map.ContractRegistry.TryGetState(contractId, out var state)
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == actorId
-		&& !ContractFactory.IsWreckageObjectiveMet(contractId, Map, actorId)
+		&& state is WreckageContractState wreckage
+		&& !wreckage.IsObjectiveMet()
 		&& contract.Objective is WreckageObjective;
 
 	private bool TryProduceContact(ContactWatch watch, int currentTick, out ContactReached reached)

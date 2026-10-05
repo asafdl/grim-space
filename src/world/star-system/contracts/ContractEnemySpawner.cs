@@ -34,7 +34,8 @@ public static class ContractEnemySpawner
 				spawn.UnitId,
 				spawn.Coord,
 				spawn.Spawn,
-				$"{memberIdentity}-{index}"))
+				$"{memberIdentity}-{index}",
+				contract.Id))
 			.ToArray();
 
 		return new ContractFleetSpawns(fleets);
@@ -45,13 +46,14 @@ public static class ContractEnemySpawner
 		Coord coord,
 		string unitId,
 		string memberIdentity) =>
-		CreateFleet(unitId, coord, spec, memberIdentity);
+		CreateFleet(unitId, coord, spec, memberIdentity, null);
 
 	private static Fleet CreateFleet(
 		string unitId,
 		Coord coord,
 		FleetSpawnSpec spec,
-		string memberIdentity)
+		string memberIdentity,
+		string? sourceContractId)
 	{
 		var spawn = new Spawn(
 			unitId,
@@ -66,7 +68,8 @@ public static class ContractEnemySpawner
 			[],
 			spec.Faction,
 			spec.PatrolRadius,
-			AggressionRatingFor(spec, unitId));
+			AggressionRatingFor(spec, unitId),
+			sourceContractId);
 		var declarations = DeclarationsFor(spec, memberIdentity);
 		return Factory.Create(spawn, declarations);
 	}

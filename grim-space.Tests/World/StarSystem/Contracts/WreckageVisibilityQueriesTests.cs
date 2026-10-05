@@ -134,8 +134,7 @@ public sealed class WreckageVisibilityQueriesTests(StarMapFixture maps)
 			map.ControllingFaction,
 			ContractActionTestContext.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),
-			new ContractNarrative("Wreck", "Briefing."),
-			ContractFactory.IsWreckageObjectiveMet);
+			new ContractNarrative("Wreck", "Briefing."));
 		Assert.True(map.ContractRegistry.TryAdd(contract));
 		return contract;
 	}

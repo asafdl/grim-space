@@ -62,11 +62,12 @@ public sealed class AcceptContractDef
 				.ToList());
 		}
 
-		var state = new ContractState(
-			accept.ContractId,
+		var state = ContractState.CreateFor(
+			contract,
 			EContractStatus.Active,
 			world.Timeline.Clock.Current,
-			accept.ActorId);
+			accept.ActorId,
+			spawns.Fleets.Select(fleet => fleet.State.Id).ToArray());
 		effects.Add(new ActivateContractEffect(state));
 		return effects;
 	}

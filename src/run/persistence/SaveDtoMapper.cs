@@ -469,6 +469,7 @@ public static class SaveDtoMapper
 				fleet.State.WorkStartTick, fleet.State.SpawnWorkPoiId,
 				fleet.State.SpawnWorkRemainingTicks, fleet.State.CurrentEngagement,
 				fleet.State.SpawnerSource, fleet.State.FleetSpawnerExpiresAtTick,
+				fleet.State.SourceContractId,
 				fleet.State.Journey.JourneyId, fleet.State.Journey.Origin,
 				fleet.State.Journey.Destination, fleet.State.Journey.StartTick,
 				fleet.State.TravelTarget, fleet.State.PendingWreckContractId,
@@ -492,6 +493,7 @@ public static class SaveDtoMapper
 			VisionRadius = state.VisionRadius, WorkStartTick = state.WorkStartTick,
 			SpawnerSource = state.SpawnerSource,
 			FleetSpawnerExpiresAtTick = state.FleetSpawnerExpiresAtTick,
+			SourceContractId = state.SourceContractId,
 		};
 		restored.SpawnWorkPoiId = state.SpawnWorkPoiId;
 		restored.SpawnWorkRemainingTicks = state.SpawnWorkRemainingTicks;
@@ -522,7 +524,13 @@ public static class SaveDtoMapper
 			entry.Contract.Terms,
 			entry.Contract.Narrative,
 			entry.Contract.IsStoryObjective,
-			entry.State,
+			StateType = entry.State?.GetType().Name,
+			State = entry.State is null
+				? default(JsonElement)
+				: JsonSerializer.SerializeToElement(
+					entry.State,
+					entry.State.GetType(),
+					registry.Options),
 			entry.ExpiresAtTick,
 		}, registry.Options);
 
@@ -543,13 +551,49 @@ public static class SaveDtoMapper
 				registry.Options)!,
 			_ => throw new InvalidDataException($"Unknown contract objective '{dto.ObjectiveType}'."),
 		};
-		return (
-			new Contract(
+		var contract = new Contract(
 				dto.Id, objective, dto.Danger, dto.IssuerFaction, dto.IssuerPoiId,
-				dto.Terms, dto.Narrative, ContractFactory.ObjectiveMetFor(objective),
-				dto.IsStoryObjective),
-			dto.State,
+				dto.Terms, dto.Narrative,
+				dto.IsStoryObjective);
+		return (
+			contract,
+			RestoreContractState(dto.State, dto.StateType, contract, registry),
 			dto.ExpiresAtTick);
+	}
+
+	private static ContractState? RestoreContractState(
+		JsonElement statePayload,
+		string? stateType,
+		Contract contract,
+		PersistenceRegistry registry)
+	{
+		if (statePayload.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+			return null;
+
+		var state = stateType switch
+		{
+			nameof(DeliveryContractState) => JsonSerializer.Deserialize<DeliveryContractState>(
+				statePayload,
+				registry.Options),
+			nameof(HuntContractState) => JsonSerializer.Deserialize<HuntContractState>(
+				statePayload,
+				registry.Options),
+			nameof(WreckageContractState) => JsonSerializer.Deserialize<WreckageContractState>(
+				statePayload,
+				registry.Options),
+			_ => JsonSerializer.Deserialize<ContractState>(statePayload, registry.Options),
+		};
+		if (state is not null && state.GetType() != typeof(ContractState))
+			return state;
+
+		if (state is null)
+			return null;
+
+		return ContractState.CreateFor(
+			contract,
+			state.Status,
+			state.AcceptedAtTick,
+			state.HolderUnitId);
 	}
 
 	private sealed record StarMapStateData(
@@ -563,7 +607,8 @@ public static class SaveDtoMapper
 		string PendingWreckContractId,
 		int AggressionRating = 0,
 		EFleetSpawnerSource SpawnerSource = EFleetSpawnerSource.None,
-		int? FleetSpawnerExpiresAtTick = null);
+		int? FleetSpawnerExpiresAtTick = null,
+		string? SourceContractId = null);
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,

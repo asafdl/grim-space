@@ -45,6 +45,7 @@ public static class WreckageQueries
 		&& world.ContractRegistry.TryGetState(contractId, out var state)
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == actorId
-		&& !ContractFactory.IsWreckageObjectiveMet(contractId, world, actorId)
+		&& state is WreckageContractState wreckage
+		&& !wreckage.IsObjectiveMet()
 		&& contract.Objective is WreckageObjective;
 }

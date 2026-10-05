@@ -3,4 +3,7 @@ namespace GrimSpace.World.StarSystem.Contracts.Objectives;
 public sealed record DeliveryObjective(
 	string TurnInPoiId,
 	string TurnInFacilityId,
-	string TurnInOperatorName) : IContractObjective;
+	string TurnInOperatorName) : IContractObjective
+{
+	public int RouteLegCount => 1;
+}

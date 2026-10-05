@@ -110,8 +110,7 @@ public sealed class DeclineContractActionTests(StarMapFixture maps)
 			starter.IssuerFaction,
 			starter.IssuerPoiId,
 			starter.Terms,
-			ContractNarrative.ForHunt("Optional Hunt"),
-			ContractFactory.IsHuntObjectiveMet)));
+			ContractNarrative.ForHunt("Optional Hunt"))));
 		return contractId;
 	}
 

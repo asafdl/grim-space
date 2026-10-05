@@ -34,7 +34,8 @@ public sealed class TurnInDeliveryDef
 		&& world.ContractRegistry.TryGetState(turnIn.ContractId, out var state)
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == turnIn.ActorId
-		&& !ContractFactory.IsDeliveryObjectiveMet(turnIn.ContractId, world, turnIn.ActorId)
+		&& state is DeliveryContractState deliveryState
+		&& !deliveryState.IsObjectiveMet()
 		&& contract.Objective is DeliveryObjective delivery
 		&& delivery.TurnInPoiId == turnIn.PoiId
 		&& delivery.TurnInFacilityId == turnIn.FacilityId

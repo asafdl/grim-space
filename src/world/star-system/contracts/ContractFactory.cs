@@ -16,16 +16,6 @@ public static class ContractFactory
 {
 	private const int HuntPatrolRadius = 24;
 
-	internal static IsMetDelegate ObjectiveMetFor(IContractObjective objective) =>
-		objective switch
-		{
-			HuntObjective => IsHuntObjectiveMet,
-			DeliveryObjective => IsDeliveryObjectiveMet,
-			WreckageObjective => IsWreckageObjectiveMet,
-			_ => throw new InvalidDataException(
-				$"Unsupported contract objective '{objective.GetType().Name}'."),
-		};
-
 	public static Contract Create(StarMap map, EContractKind kind, ContractCreateArgs args)
 	{
 		ArgumentNullException.ThrowIfNull(map);
@@ -90,7 +80,6 @@ public static class ContractFactory
 			args.IssuerPoiId,
 			ResolvePayment(map.Seed, contractId, EContractKind.Hunt, args.Danger),
 			args.Narrative,
-			IsHuntObjectiveMet,
 			args.IsStoryObjective);
 	}
 
@@ -139,7 +128,6 @@ public static class ContractFactory
 			args.IssuerPoiId,
 			ResolvePayment(map.Seed, contractId, EContractKind.Delivery, args.Danger),
 			args.Narrative,
-			IsDeliveryObjectiveMet,
 			args.IsStoryObjective);
 	}
 
@@ -172,7 +160,6 @@ public static class ContractFactory
 			args.IssuerPoiId,
 			ResolvePayment(map.Seed, contractId, EContractKind.Wreckage, args.Danger),
 			args.Narrative,
-			IsWreckageObjectiveMet,
 			args.IsStoryObjective);
 		return true;
 	}
@@ -270,43 +257,25 @@ public static class ContractFactory
 	internal static bool IsHuntObjectiveMet(string contractId, StarMap map, string actorId)
 	{
 		_ = actorId;
-		if (!map.ContractRegistry.TryGet(contractId, out var contract)
-			|| contract.Objective is not HuntObjective hunt)
-			return false;
-
-		foreach (var group in hunt.SpawnGroups)
-		{
-			for (var index = 0; index < group.RequiredCount; index++)
-			{
-				var unitId = $"{contractId}.{group.GroupId}.{index}";
-				if (map.FleetRegistry.Contains(unitId))
-					return false;
-			}
-		}
-
-		return true;
+		return map.ContractRegistry.TryGetState(contractId, out var state)
+			&& state is HuntContractState hunt
+			&& hunt.IsObjectiveMet();
 	}
 
 	internal static bool IsDeliveryObjectiveMet(string contractId, StarMap map, string actorId)
 	{
 		_ = actorId;
-		return map.Timeline.History()
-			.OfType<Record<DeliveryTurnedIn>>()
-			.Any(record => string.Equals(record.Value.contractId, contractId, StringComparison.Ordinal));
+		return map.ContractRegistry.TryGetState(contractId, out var state)
+			&& state is DeliveryContractState delivery
+			&& delivery.IsObjectiveMet();
 	}
 
 	internal static bool IsWreckageObjectiveMet(string contractId, StarMap map, string actorId)
 	{
 		_ = actorId;
-		if (!map.ContractRegistry.TryGet(contractId, out var contract)
-			|| contract.Objective is not WreckageObjective wreckage)
-			return false;
-
-		return map.Timeline.History()
-			.OfType<Record<WreckInvestigated>>()
-			.Any(record =>
-				string.Equals(record.Value.contractId, contractId, StringComparison.Ordinal)
-				&& string.Equals(record.Value.wreckageId, wreckage.WreckageId, StringComparison.Ordinal));
+		return map.ContractRegistry.TryGetState(contractId, out var state)
+			&& state is WreckageContractState wreckage
+			&& wreckage.IsObjectiveMet();
 	}
 
 }

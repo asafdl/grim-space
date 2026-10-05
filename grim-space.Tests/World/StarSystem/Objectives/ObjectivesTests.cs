@@ -33,6 +33,11 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		engine.Commit(ContractActionTestContext.Accept(engine.World, holderUnitId, contractId));
 		Assert.True(map.FleetRegistry.Contains(targetUnitId));
+		var huntState = Assert.IsType<HuntContractState>(
+			map.ContractRegistry.TryGetState(contractId, out var state)
+				? state
+				: null);
+		map.ContractRegistry.ReplaceState(huntState.MarkFleetDefeated(targetUnitId));
 		map.FleetRegistry.Remove(targetUnitId);
 
 		var completion = Assert.IsType<CompleteContractAction>(
@@ -64,6 +69,11 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 		runtimes.For(holderUnitId);
 		using var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		engine.Commit(ContractActionTestContext.Accept(engine.World, holderUnitId, contractId));
+		var huntState = Assert.IsType<HuntContractState>(
+			map.ContractRegistry.TryGetState(contractId, out var state)
+				? state
+				: null);
+		map.ContractRegistry.ReplaceState(huntState.MarkFleetDefeated(targetUnitId));
 		map.FleetRegistry.Remove(targetUnitId);
 		var completion = Assert.IsType<CompleteContractAction>(
 			Assert.Single(ContractReevaluation.ReevaluateFor(

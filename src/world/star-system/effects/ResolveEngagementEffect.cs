@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
@@ -22,7 +23,13 @@ public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRunt
 
 			var surviving = fleet.Members.Where(member => member.Id != handoff.Id).ToArray();
 			if (surviving.Length == 0)
+			{
+				if (fleet.State.SourceContractId is string contractId
+					&& world.ContractRegistry.TryGetState(contractId, out var contractState)
+					&& contractState is HuntContractState hunt)
+					world.ContractRegistry.ReplaceState(hunt.MarkFleetDefeated(fleet.State.Id));
 				RemoveFleet(world, fleet.State.Id);
+			}
 			else
 				world.FleetRegistry.Replace(new Fleet(fleet.State, surviving));
 		}

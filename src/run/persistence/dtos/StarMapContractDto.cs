@@ -15,7 +15,8 @@ public sealed record StarMapContractDto(
 	ContractTerms Terms,
 	ContractNarrative Narrative,
 	bool IsStoryObjective,
-	ContractState? State,
+	string? StateType,
+	JsonElement State,
 	int? ExpiresAtTick);
 
 internal sealed record MaintainContractBoardDto(

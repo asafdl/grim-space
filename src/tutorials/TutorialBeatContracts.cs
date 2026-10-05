@@ -44,7 +44,6 @@ public static class TutorialBeatContracts
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, BeatAHuntRewardCredits)),
 			ContractNarrative.ForHunt("Pirate Hunt"),
-			ContractFactory.IsHuntObjectiveMet,
 			IsStoryObjective: true);
 		if (!map.ContractRegistry.TryAdd(contract))
 			throw new InvalidOperationException($"Failed to add tutorial hunt contract '{contractId}'.");
@@ -69,7 +68,6 @@ public static class TutorialBeatContracts
 				"Supply Run",
 				$"We have this package for a dude {dropoff.OperatorName} at Wormhole Travel. He's kinda weird, I don't want to deal with him so I'll pay you to do it.",
 				"De-frag-ing Finally!\nI've been waiting in this rustbox for 352.1123221119 days already. The Optimality idiots say that all travel is stopped until the demo is completed.\nSeg-faulting Calculators, efficient my ass!\nWell anyways... Thanks for bringing me my lubricant, I need it for... stuff..."),
-			ContractFactory.IsDeliveryObjectiveMet,
 			IsStoryObjective: true);
 		if (!map.ContractRegistry.TryAdd(contract))
 			throw new InvalidOperationException($"Failed to add tutorial delivery contract '{contractId}'.");

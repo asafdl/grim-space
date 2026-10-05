@@ -32,7 +32,9 @@ public static class WreckageVisibilityQueries
 			.Select(active => active.Definition)
 			.Where(contract => contract.Objective is WreckageObjective)
 			.Where(contract =>
-				!ContractFactory.IsWreckageObjectiveMet(contract.Id, map, holderUnitId))
+				map.ContractRegistry.TryGetState(contract.Id, out var state)
+				&& state is WreckageContractState wreckage
+				&& !wreckage.IsObjectiveMet())
 			.Where(contract =>
 			{
 				var position = ((WreckageObjective)contract.Objective).Position;

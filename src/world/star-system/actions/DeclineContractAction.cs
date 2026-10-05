@@ -39,13 +39,15 @@ public sealed class DeclineContractDef
 		ActorRuntime runtime)
 	{
 		var decline = (DeclineContractAction)action;
+		var contract = world.ContractRegistry.All
+			.Single(contract => contract.Id == decline.ContractId);
 		return
 		[
-			new ActivateContractEffect(new ContractState(
-				decline.ContractId,
+			new ActivateContractEffect(ContractState.CreateFor(
+				contract,
 				EContractStatus.Rejected,
-				AcceptedAtTick: null,
-				HolderUnitId: null)),
+				acceptedAtTick: null,
+				holderUnitId: null)),
 		];
 	}
 }

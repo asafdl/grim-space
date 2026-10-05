@@ -222,6 +222,5 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 			map.ControllingFaction,
 			issuerPoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
-			ContractNarrative.ForHunt("Test"),
-			ContractFactory.IsHuntObjectiveMet);
+			ContractNarrative.ForHunt("Test"));
 }

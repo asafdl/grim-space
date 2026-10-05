@@ -218,8 +218,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 			template.IssuerFaction,
 			template.IssuerPoiId,
 			template.Terms,
-			template.Narrative,
-			ContractFactory.IsHuntObjectiveMet);
+			template.Narrative);
 
 	private static ContractState CreateRejectedState(string contractId) =>
 		new(contractId, EContractStatus.Rejected, null, null);

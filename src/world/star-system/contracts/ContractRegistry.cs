@@ -1,3 +1,5 @@
+using GrimSpace.World.StarSystem.Contracts.Objectives;
+
 namespace GrimSpace.World.StarSystem.Contracts;
 
 public sealed class ContractRegistry
@@ -171,7 +173,7 @@ public sealed class ContractRegistry
 		if (_states.ContainsKey(state.ContractId))
 			return false;
 
-		_states[state.ContractId] = state;
+		_states[state.ContractId] = NormalizeState(_contracts[state.ContractId], state);
 		OnLeftPending(_contracts[state.ContractId]);
 		return true;
 	}
@@ -194,9 +196,37 @@ public sealed class ContractRegistry
 			throw new InvalidOperationException($"Contract '{state.ContractId}' does not exist.");
 
 		var wasPending = !_states.ContainsKey(state.ContractId);
-		_states[state.ContractId] = state;
+		_states[state.ContractId] = NormalizeState(contract, state);
 		if (wasPending)
 			OnLeftPending(contract);
+	}
+
+	internal bool ReplaceState(ContractState state)
+	{
+		if (!_states.ContainsKey(state.ContractId))
+			return false;
+
+		_states[state.ContractId] = state;
+		return true;
+	}
+
+	private static ContractState NormalizeState(Contract contract, ContractState state)
+	{
+		if (state.GetType() != typeof(ContractState))
+			return state;
+
+		var spawnedFleetIds = contract.Objective is HuntObjective hunt
+			? hunt.SpawnGroups
+				.SelectMany(group => Enumerable.Range(0, group.RequiredCount)
+					.Select(index => $"{contract.Id}.{group.GroupId}.{index}"))
+				.ToArray()
+			: null;
+		return ContractState.CreateFor(
+			contract,
+			state.Status,
+			state.AcceptedAtTick,
+			state.HolderUnitId,
+			spawnedFleetIds);
 	}
 
 	public ContractRegistry CloneForFork()

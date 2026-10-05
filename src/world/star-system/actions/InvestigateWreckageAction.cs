@@ -40,7 +40,8 @@ public sealed class InvestigateWreckageDef
 		&& world.ContractRegistry.TryGetState(investigate.ContractId, out var state)
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == investigate.ActorId
-		&& !ContractFactory.IsWreckageObjectiveMet(investigate.ContractId, world, investigate.ActorId)
+		&& state is WreckageContractState wreckageState
+		&& !wreckageState.IsObjectiveMet()
 		&& contract.Objective is WreckageObjective
 		&& unit.State.PendingWreckContractId == investigate.ContractId;
 

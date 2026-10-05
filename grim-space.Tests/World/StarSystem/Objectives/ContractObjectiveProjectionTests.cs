@@ -134,7 +134,6 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 			map.ControllingFaction,
 			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),
-			ContractNarrative.ForHunt("Synthetic Hunt"),
-			ContractFactory.IsHuntObjectiveMet);
+			ContractNarrative.ForHunt("Synthetic Hunt"));
 	}
 }
