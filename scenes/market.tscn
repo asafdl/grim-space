@@ -54,28 +54,30 @@ ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("3_operator")
 
-[node name="PlainNpc09" type="TextureRect" parent="Scene" unique_id=124368816]
+[node name="PlainNpc09" type="TextureButton" parent="Scene" unique_id=124368816]
 layout_mode = 0
 offset_left = 1150.0
 offset_top = 488.0
 offset_right = 1300.0
 offset_bottom = 808.0
-mouse_filter = 2
-texture = ExtResource("7_npc")
+texture_normal = ExtResource("7_npc")
+ignore_texture_size = true
 expand_mode = 1
 stretch_mode = 5
+script = ExtResource("3_operator")
 
-[node name="PlainNpc10" type="TextureRect" parent="Scene" unique_id=1957987980]
+[node name="PlainNpc10" type="TextureButton" parent="Scene" unique_id=1957987980]
 layout_mode = 0
 offset_left = 1390.0
 offset_top = 464.0
 offset_right = 1680.0
 offset_bottom = 1034.0
-mouse_filter = 2
-texture = ExtResource("8_npc")
+texture_normal = ExtResource("8_npc")
+ignore_texture_size = true
 expand_mode = 1
 stretch_mode = 5
 flip_h = true
+script = ExtResource("3_operator")
 
 [node name="Back" type="Button" parent="." unique_id=842182499]
 layout_mode = 0

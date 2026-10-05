@@ -61,10 +61,21 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Market, market.PresentationAnchor);
 		Assert.Equal(TradeHub.MarketScenePath, market.ScenePath);
 
-		var vendor = Assert.Single(market.Operators);
-		Assert.Equal(MapFacilityOperators.MarketOperatorName(world), vendor.Name);
-		Assert.Equal(EFacilityOperatorRole.Dialog, vendor.Role);
-		Assert.Equal(TradeHub.MarketOperatorSceneSlotId, vendor.SceneSlotId);
+		Assert.Equal(3, market.Operators.Count);
+		Assert.All(market.Operators, operatorNpc =>
+		{
+			Assert.Equal(EFacilityOperatorRole.Dialog, operatorNpc.Role);
+			Assert.Contains(operatorNpc.SceneSlotId, new[]
+			{
+				TradeHub.MarketOperatorSceneSlotId,
+				TradeHub.MarketOperatorSceneSlotId09,
+				TradeHub.MarketOperatorSceneSlotId10,
+			});
+			Assert.Contains(operatorNpc.Name, OperatorNames.Pool);
+		});
+		Assert.Equal(
+			MapFacilityOperators.MarketOperatorName(world),
+			market.Operators.Single(op => op.SceneSlotId == TradeHub.MarketOperatorSceneSlotId).Name);
 
 		foreach (var facility in hub.Facilities)
 		{
@@ -125,7 +136,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(
 			Facility.ScopedId(SupplySystemPlan.Copper.RefineryPoiId, Refinery.RefineryFacilitySlug),
 			facility.Id);
-		Assert.Equal("Refinery", facility.DisplayName);
+		Assert.Equal("Left Hallway", facility.DisplayName);
 		Assert.Equal(EPresentationAnchor.Refinery, facility.PresentationAnchor);
 		Assert.Equal(Refinery.RefineryScenePath, facility.ScenePath);
 

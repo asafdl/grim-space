@@ -16,6 +16,8 @@ public sealed class TradeHub : PointOfInterest
 	public const string MarketFacilitySlug = "market";
 	public const string MarketScenePath = "res://scenes/market.tscn";
 	public const string MarketOperatorSceneSlotId = "WeirdDude";
+	public const string MarketOperatorSceneSlotId09 = "PlainNpc09";
+	public const string MarketOperatorSceneSlotId10 = "PlainNpc10";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -57,6 +59,14 @@ public sealed class TradeHub : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,
 					MarketOperatorSceneSlotId),
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.Dialog,
+					MarketOperatorSceneSlotId09),
+				new FacilityOperator(
+					operatorNames.Take(),
+					EFacilityOperatorRole.Dialog,
+					MarketOperatorSceneSlotId10),
 			]),
 	];
 

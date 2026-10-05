@@ -27,7 +27,7 @@ public sealed class Refinery : PointOfInterest
 	[
 		new Facility(
 			Facility.ScopedId(plan.RefineryPoiId, RefineryFacilitySlug),
-			"Refinery",
+			"Left Hallway",
 			EPresentationAnchor.Refinery,
 			RefineryScenePath,
 			[

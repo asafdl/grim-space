@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_operator"]
 [ext_resource type="Texture2D" uid="uid://buciuggitfj5i" path="res://assets/backgrounds/Industrious-grimdark-hard-edges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" path="res://assets/robots/03-grimdark-hard-edges.png" id="5_operator"]
+[ext_resource type="Texture2D" uid="uid://d37gfhgpgb7su" path="res://assets/robots/03-grimdark-hard-edges.png" id="5_operator"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 
 [node name="Refinery" type="Control" unique_id=1468599674]
@@ -37,7 +37,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("4_backdrop")
-expand_mode = 1
 stretch_mode = 5
 
 [node name="WeirdDude" type="TextureButton" parent="Scene" unique_id=197700140]
