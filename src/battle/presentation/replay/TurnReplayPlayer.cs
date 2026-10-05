@@ -32,7 +32,6 @@ public partial class TurnReplayPlayer : Node3D
 	private Action<IReadOnlyDictionary<string, State>> _synchronizeViews = _ => { };
 	private Action<State> _stateChanged = _ => { };
 
-	private TurnHistoryView _turnHistory = null!;
 	private HazardBurstView _hazardBursts = null!;
 	private ReplayClipContext _clipContext = null!;
 	private IReadOnlyList<ITimelineEntry> _history = [];
@@ -41,7 +40,7 @@ public partial class TurnReplayPlayer : Node3D
 	private int _entryIndex;
 
 	private int _turnNumber;
-	private IReadOnlyDictionary<string, ETeam> _participants = new Dictionary<string, ETeam>();
+	private Dictionary<string, ETeam> _participants = new(StringComparer.Ordinal);
 	private readonly Stopwatch _playbackTimer = new();
 	private readonly Stopwatch _phaseTimer = new();
 	private EReplayPlaybackPhase _phase;
@@ -76,9 +75,6 @@ public partial class TurnReplayPlayer : Node3D
 		_synchronizeViews = synchronizeViews;
 		_stateChanged = stateChanged;
 
-		_turnHistory = new TurnHistoryView { Name = "TurnHistory" };
-		AddChild(_turnHistory);
-
 		_hazardBursts = new HazardBurstView { Name = "HazardBursts" };
 		AddChild(_hazardBursts);
 	}
@@ -92,14 +88,14 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext = new ReplayClipContext(
 			replayState,
 			_unitViews,
-			_turnHistory,
 			_hazardBursts,
 			_colorFor,
 			endStates,
 			_ensureView,
 			DismissUnitPresentation,
 			reportInterest);
-		_turnHistory.BeginTurn();
+		foreach (var view in _unitViews.Values)
+			view.ClearMovementTrail();
 		_hazardBursts.Clear();
 		_synchronizeViews(turnStart);
 	}
@@ -114,7 +110,9 @@ public partial class TurnReplayPlayer : Node3D
 		_flowCompletedCount = 0;
 		_entryIndex = 0;
 		_turnNumber = turnNumber;
-		_participants = participants;
+		_participants = participants.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+		foreach (var (actorId, view) in _unitViews)
+			view.ConfigureMovementTrail(TrailColorFor(actorId));
 		_playerAnimMs = 0;
 		_enemyAnimMs = 0;
 		_upkeepAnimMs = 0;
@@ -152,6 +150,11 @@ public partial class TurnReplayPlayer : Node3D
 				{
 					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
 					ReportActionInterest(action);
+					_clipContext.FollowingActions = _history
+						.Skip(_entryIndex)
+						.TakeWhile(entry => entry is IAction)
+						.Cast<IAction>()
+						.ToArray();
 					Clips.TryPlay(action, _clipContext, out var playback);
 					_actionWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 					_actionCount++;
@@ -201,6 +204,9 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void ApplySpawn(SpawnFacts spawn)
 	{
+		if (_participants.TryGetValue(spawn.SourceId, out var team))
+			_participants[spawn.TargetId] = team;
+
 		switch (spawn.EntityType)
 		{
 			case EType.VoidBomb:
@@ -217,7 +223,9 @@ public partial class TurnReplayPlayer : Node3D
 		var spawned = spawn.SpawnedState.Clone();
 		_clipContext.ReplayState.Add(spawned);
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
-		_clipContext.UnitViews[spawned.Id].Sync(spawned);
+		var view = _clipContext.UnitViews[spawned.Id];
+		view.ConfigureMovementTrail(TrailColorFor(spawned.Id));
+		view.Sync(spawned);
 		_clipContext.PendingVoidBombMountedOn = null;
 	}
 
@@ -226,7 +234,9 @@ public partial class TurnReplayPlayer : Node3D
 		var spawned = spawn.SpawnedState.Clone();
 		_clipContext.ReplayState.Add(spawned);
 		_clipContext.EnsureView(spawned, _clipContext.ColorFor(spawned.Id));
-		_clipContext.UnitViews[spawned.Id].Sync(spawned);
+		var view = _clipContext.UnitViews[spawned.Id];
+		view.ConfigureMovementTrail(TrailColorFor(spawned.Id));
+		view.Sync(spawned);
 	}
 
 	private bool PlayImpact(ImpactFacts impact)
@@ -298,8 +308,19 @@ public partial class TurnReplayPlayer : Node3D
 			view.HideVisual();
 	}
 
-	private void ClearReplayMovementTrail(string unitId) =>
-		_turnHistory.ClearActor(unitId);
+	private void ClearReplayMovementTrail(string unitId)
+	{
+		if (_unitViews.TryGetValue(unitId, out var view))
+			view.ClearMovementTrail();
+	}
+
+	private Color TrailColorFor(string actorId) =>
+		_participants.GetValueOrDefault(actorId) switch
+		{
+			ETeam.Player => new Color(0.18f, 0.62f, 1f),
+			ETeam.Enemy => new Color(1f, 0.2f, 0.16f),
+			_ => new Color(0.72f, 0.78f, 0.86f),
+		};
 
 	private void BeginPhase(EReplayPlaybackPhase phase)
 	{

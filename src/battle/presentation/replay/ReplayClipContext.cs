@@ -1,16 +1,19 @@
 using Godot;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using BattleOrientation = GrimSpace.Battle.Movement.Orientation;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 
 public sealed class ReplayClipContext(
 	ReplayState replayState,
 	IReadOnlyDictionary<string, UnitView> unitViews,
-	TurnHistoryView turnHistory,
 	HazardBurstView hazardBursts,
 	Func<string, Color> colorFor,
 	IReadOnlyDictionary<string, State> endStates,
@@ -20,7 +23,6 @@ public sealed class ReplayClipContext(
 {
 	public ReplayState ReplayState { get; } = replayState;
 	public IReadOnlyDictionary<string, UnitView> UnitViews { get; } = unitViews;
-	public TurnHistoryView TurnHistory { get; } = turnHistory;
 	public HazardBurstView HazardBursts { get; } = hazardBursts;
 	public Func<string, Color> ColorFor { get; } = colorFor;
 	public IReadOnlyDictionary<string, State> EndStates { get; } = endStates;
@@ -34,4 +36,33 @@ public sealed class ReplayClipContext(
 
 	public Action<CameraInterest>? ReportInterest { get; } = reportInterest;
 	public ESpatialOrientation? PendingVoidBombMountedOn { get; set; }
+	public IReadOnlyList<IAction> FollowingActions { private get; set; } = [];
+
+	public Coord? NextMovePosition(string actorId)
+	{
+		var projected = ReplayState.StateOf(actorId).Clone();
+		foreach (var action in FollowingActions)
+		{
+			if (action.ActorId != actorId)
+				return null;
+
+			switch (action)
+			{
+				case HeadingTurnAction heading:
+					BattleOrientation.ApplyHeadingTurn(projected, heading.Turn);
+					break;
+				case RollAction roll:
+					BattleOrientation.ApplyRoll(projected, roll.Direction);
+					break;
+				case MoveStepAction move:
+					return projected.Position + BodyFrame.From(projected).Step(move.Direction);
+				case VoidBombMoveStepAction move:
+					return projected.Position + BodyFrame.From(projected).Step(move.Direction);
+				default:
+					return null;
+			}
+		}
+
+		return null;
+	}
 }

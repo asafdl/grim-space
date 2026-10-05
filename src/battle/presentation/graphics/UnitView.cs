@@ -21,6 +21,8 @@ public partial class UnitView : Node3D
 	private Color _bindColor = Colors.White;
 	private ShaderMaterial? _ghostMaterial;
 	private readonly Dictionary<GeometryInstance3D, ShaderMaterial> _moveGhostMaterials = [];
+	private MovementTrailView? _movementTrail;
+	private Vector3? _movementTangent;
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
 
@@ -62,6 +64,8 @@ public partial class UnitView : Node3D
 	{
 		_poseTween?.Kill();
 		_poseTween = null;
+		_movementTangent = null;
+		SetMovementTrailEmitting(false);
 		VisualState = visualState;
 		Visible = visualState != UnitVisualState.Hidden;
 		if (!Visible)
@@ -75,9 +79,30 @@ public partial class UnitView : Node3D
 	{
 		_poseTween?.Kill();
 		_poseTween = null;
+		_movementTangent = null;
+		SetMovementTrailEmitting(false);
 		VisualState = UnitVisualState.Hidden;
 		Visible = false;
 	}
+
+	public void ConfigureMovementTrail(Color color)
+	{
+		if (_movementTrail is null)
+		{
+			_movementTrail = new MovementTrailView { Name = "MovementTrail" };
+			AddChild(_movementTrail);
+		}
+
+		_movementTrail.Configure(
+			_hullBounds,
+			_type == EType.VoidBomb,
+			color);
+	}
+
+	public void SetMovementTrailEmitting(bool emitting) =>
+		_movementTrail?.SetEmitting(emitting);
+
+	public void ClearMovementTrail() => _movementTrail?.Clear();
 
 	private void ApplyVisualState()
 	{
@@ -153,37 +178,39 @@ public partial class UnitView : Node3D
 		return selected ? marker.Lerp(_bindColor, 0.18f) : marker;
 	}
 
-	public void AnimateMoveTo(State state, double duration)
+	public void AnimateMoveTo(State state, double duration, Coord? nextPosition = null)
 	{
-		_poseTween?.Kill();
-		if (!state.IsAlive)
-			return;
-
-		VisualState = UnitVisualState.Live;
-		Visible = true;
-		ApplyVisualState();
-		var target = WorldMapping.ToWorld(state.Position);
-		_poseTween = CreateTween();
-		_poseTween.TweenProperty(this, "position", target, duration)
-			.SetTrans(Tween.TransitionType.Linear);
-		_poseTween.Chain().TweenCallback(Callable.From(() =>
-		{
-			ApplyShields(state);
-			_poseTween = null;
-		}));
+		AnimateMovementTo(state, duration, nextPosition, rotate: false);
 	}
 
-	public void AnimatePoseTo(State state, double duration)
+	public void AnimatePoseTo(State state, double duration, Coord? nextPosition = null)
+	{
+		AnimateMovementTo(state, duration, nextPosition, rotate: true);
+	}
+
+	private void AnimateMovementTo(
+		State state,
+		double duration,
+		Coord? nextPosition,
+		bool rotate)
 	{
 		_poseTween?.Kill();
 		if (!state.IsAlive)
+		{
+			SetMovementTrailEmitting(false);
 			return;
+		}
 
 		VisualState = UnitVisualState.Live;
 		Visible = true;
 		ApplyVisualState();
+		SetMovementTrailEmitting(true);
 		var startPosition = Position;
 		var targetPosition = WorldMapping.ToWorld(state.Position);
+		var chord = targetPosition - startPosition;
+		var startTangent = _movementTangent ?? chord * 0.65f;
+		var endTangent = MovementEndTangent(chord, targetPosition, nextPosition);
+		_movementTangent = nextPosition is null ? null : endTangent;
 		var startRotation = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
 		var targetRotation = NormalizeRotationQuaternion(BasisFrom(state).GetRotationQuaternion());
 		_poseTween = CreateTween();
@@ -193,17 +220,18 @@ public partial class UnitView : Node3D
 				if (!IsInstanceValid(this))
 					return;
 
-				Position = startPosition.Lerp(targetPosition, weight);
-				Basis = new Basis(startRotation.Slerp(targetRotation, weight).Normalized());
+				Position = Hermite(startPosition, targetPosition, startTangent, endTangent, weight);
+				if (rotate)
+					Basis = new Basis(startRotation.Slerp(targetRotation, weight).Normalized());
 			}),
 			0f,
 			1f,
 			duration)
-			.SetTrans(Tween.TransitionType.Quad)
-			.SetEase(Tween.EaseType.InOut);
+			.SetTrans(Tween.TransitionType.Linear);
 		_poseTween.Chain().TweenCallback(Callable.From(() =>
 		{
 			ApplyPose(state);
+			SetMovementTrailEmitting(false);
 			_poseTween = null;
 		}));
 	}
@@ -211,12 +239,14 @@ public partial class UnitView : Node3D
 	public void AnimateOrientationTo(State state, double duration)
 	{
 		_poseTween?.Kill();
+		SetMovementTrailEmitting(false);
 		if (!state.IsAlive)
 			return;
 
 		VisualState = UnitVisualState.Live;
 		Visible = true;
 		ApplyVisualState();
+		SetMovementTrailEmitting(true);
 		var startQuat = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
 		var endQuat = NormalizeRotationQuaternion(BasisFrom(state).GetRotationQuaternion());
 		_poseTween = CreateTween();
@@ -236,6 +266,7 @@ public partial class UnitView : Node3D
 		_poseTween.Chain().TweenCallback(Callable.From(() =>
 		{
 			ApplyShields(state);
+			SetMovementTrailEmitting(false);
 			_poseTween = null;
 		}));
 	}
@@ -498,6 +529,41 @@ public partial class UnitView : Node3D
 
 	private static Quaternion NormalizeRotationQuaternion(Quaternion quaternion) =>
 		quaternion.LengthSquared() < Mathf.Epsilon ? Quaternion.Identity : quaternion.Normalized();
+
+	private static Vector3 MovementEndTangent(
+		Vector3 chord,
+		Vector3 targetPosition,
+		Coord? nextPosition)
+	{
+		if (nextPosition is null)
+			return chord * 0.65f;
+
+		var outgoing = WorldMapping.ToWorld(nextPosition.Value) - targetPosition;
+		if (chord.LengthSquared() < Mathf.Epsilon || outgoing.LengthSquared() < Mathf.Epsilon)
+			return chord * 0.65f;
+
+		var direction = chord.Normalized() + outgoing.Normalized();
+		if (direction.LengthSquared() < Mathf.Epsilon)
+			return chord * 0.35f;
+
+		var length = Mathf.Min(chord.Length(), outgoing.Length()) * 0.65f;
+		return direction.Normalized() * length;
+	}
+
+	private static Vector3 Hermite(
+		Vector3 start,
+		Vector3 end,
+		Vector3 startTangent,
+		Vector3 endTangent,
+		float weight)
+	{
+		var squared = weight * weight;
+		var cubed = squared * weight;
+		return start * (2f * cubed - 3f * squared + 1f)
+			+ startTangent * (cubed - 2f * squared + weight)
+			+ end * (-2f * cubed + 3f * squared)
+			+ endTangent * (cubed - squared);
+	}
 
 	private static Basis BasisFrom(State state) =>
 		new(

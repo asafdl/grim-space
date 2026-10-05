@@ -12,12 +12,13 @@ public sealed class MoveStepClip : IReplayClip
 	public ClipPlayback Play(IAction action, ReplayClipContext context)
 	{
 		var move = (MoveStepAction)action;
-		var from = context.ReplayState.StateOf(move.ActorId).Position;
 		context.ReplayState.ApplyMove(move);
 		var state = context.ReplayState.StateOf(move.ActorId);
 
-		context.UnitViews[move.ActorId].AnimatePoseTo(state, ReplayTiming.MoveStepSeconds);
-		context.TurnHistory.RecordMove(move.ActorId, from, state.Position, context.ColorFor(move.ActorId));
+		context.UnitViews[move.ActorId].AnimatePoseTo(
+			state,
+			ReplayTiming.MoveStepSeconds,
+			context.NextMovePosition(move.ActorId));
 		return ClipPlayback.Pause(ReplayTiming.MoveStepSeconds);
 	}
 }
