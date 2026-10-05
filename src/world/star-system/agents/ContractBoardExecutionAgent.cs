@@ -61,11 +61,10 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		if (_generationEnabled() && IsCadenceTick(tick))
 		{
 			var slots = SlotsToFill(map);
-			var pendingByIssuer = new Dictionary<string, int>(StringComparer.Ordinal);
 			var queuedContracts = new List<Contract>();
 			for (var slot = 0; slot < slots; slot++)
 			{
-				if (!TryBuildAddition(map, tick, slot, pendingByIssuer, queuedContracts, out var addition))
+				if (!TryBuildAddition(map, tick, slot, queuedContracts, out var addition))
 					continue;
 
 				if (!CanRegisterAfterPriorAdditions(map, additions, addition))
@@ -73,11 +72,6 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 
 				additions.Add(addition);
 				queuedContracts.Add(addition.Contract);
-				if (addition.Contract.IssuerPoiId is { } issuerPoiId)
-				{
-					pendingByIssuer.TryGetValue(issuerPoiId, out var count);
-					pendingByIssuer[issuerPoiId] = count + 1;
-				}
 			}
 		}
 
@@ -98,12 +92,11 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		StarMap map,
 		int tick,
 		int slot,
-		IReadOnlyDictionary<string, int> queuedPendingByIssuer,
 		IReadOnlyList<Contract> queuedBoardContracts,
 		out ContractAddition addition)
 	{
 		addition = default!;
-		var decision = _placement.Pick(map, tick, slot, queuedPendingByIssuer, queuedBoardContracts);
+		var decision = _placement.Pick(map, tick, slot, queuedBoardContracts);
 		if (decision is null)
 			return false;
 

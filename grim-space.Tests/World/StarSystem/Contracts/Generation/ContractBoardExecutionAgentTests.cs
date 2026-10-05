@@ -126,44 +126,23 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Plan_OnCadence_DoesNotMonopolizeKindsPerIssuer()
+	public void Plan_OnCadence_SpreadsContractsAcrossIssuers()
 	{
 		var map = maps.Fresh(42);
 		var config = new ContractBoardConfig
 		{
 			CadenceTicks = 5,
-			Placement = new ContractPlacementConfig
-			{
-				TargetGeneratedCount = 6,
-				HuntKindWeight = 1f,
-				DeliveryKindWeight = 1f,
-				WreckageKindWeight = 1f,
-			},
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 6 },
 		};
 		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
 		Assert.NotNull(action);
-		Assert.Equal(6, action.Additions.Count);
 
-		var issuerProfiles = action.Additions
-			.Where(addition => addition.Contract.IssuerPoiId is not null)
+		var countsByIssuer = action.Additions
 			.GroupBy(addition => addition.Contract.IssuerPoiId!, StringComparer.Ordinal)
-			.Select(group => new
-			{
-				Hunts = group.Count(addition => addition.Contract.Objective is HuntObjective),
-				Wrecks = group.Count(addition => addition.Contract.Objective is WreckageObjective),
-				Deliveries = group.Count(addition => addition.Contract.Objective is DeliveryObjective),
-			})
-			.ToArray();
-
-		var huntOnlyIssuers = issuerProfiles
-			.Where(profile => profile.Hunts > 0 && profile.Wrecks == 0 && profile.Deliveries == 0)
-			.ToArray();
-		var wreckOnlyIssuers = issuerProfiles
-			.Where(profile => profile.Wrecks > 0 && profile.Hunts == 0 && profile.Deliveries == 0)
-			.ToArray();
-		Assert.False(
-			huntOnlyIssuers.Sum(profile => profile.Hunts) >= 2
-			&& wreckOnlyIssuers.Sum(profile => profile.Wrecks) >= 2);
+			.ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+		Assert.Equal(2, countsByIssuer[map.Blueprint.SupplyPlan.AdministrativePoiId]);
+		Assert.Equal(2, countsByIssuer[map.Blueprint.SupplyPlan.ExtractionPoiId]);
+		Assert.Equal(2, countsByIssuer[map.Blueprint.SupplyPlan.StoragePoiId]);
 	}
 
 	[Fact]

@@ -57,6 +57,33 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Pick_IssuerSelectionDoesNotDetermineContractKind()
+	{
+		var map = ContractPlacementTestMaps.TwoIssuers();
+		var placement = new ContractPlacement(new ContractPlacementConfig
+		{
+			HuntKindWeight = 1f,
+			DeliveryKindWeight = 1f,
+			WreckageKindWeight = 0f,
+		});
+		var kindsByIssuer = Enumerable.Range(0, 100)
+			.Select(slot => placement.Pick(map, tick: 5, slot))
+			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision))
+			.GroupBy(decision => decision.IssuerPoiId, StringComparer.Ordinal)
+			.ToDictionary(
+				group => group.Key,
+				group => group.Select(decision => decision.Kind).ToHashSet(),
+				StringComparer.Ordinal);
+
+		Assert.Equal(
+			[EContractKind.Hunt, EContractKind.Delivery],
+			kindsByIssuer[ContractPlacementTestMaps.IssuerAId]);
+		Assert.Equal(
+			[EContractKind.Hunt, EContractKind.Delivery],
+			kindsByIssuer[ContractPlacementTestMaps.IssuerBId]);
+	}
+
+	[Fact]
 	public void Pick_RespectsMaxPendingPerIssuerPoi()
 	{
 		var map = ContractPlacementTestMaps.TwoIssuers();
@@ -144,17 +171,21 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Pick_SupplementalPendingCounts_RedirectsAwayFromQueuedIssuer()
+	public void Pick_SupplementalQueuedContracts_RedirectsAwayFromQueuedIssuer()
 	{
 		var map = ContractPlacementTestMaps.TwoIssuers();
 		var placement = new ContractPlacement();
+		var hunt = SyntheticHunt(map, "queued-hunt");
 		var maxPerIssuer = new ContractPlacementConfig().MaxPendingPerIssuerPoi(2);
-		var supplemental = new Dictionary<string, int>(StringComparer.Ordinal)
-		{
-			[ContractPlacementTestMaps.IssuerAId] = maxPerIssuer,
-		};
+		var queued = Enumerable.Range(0, maxPerIssuer)
+			.Select(index => CloneAtIssuer(
+				map,
+				$"queued-{index}",
+				hunt,
+				ContractPlacementTestMaps.IssuerAId))
+			.ToArray();
 
-		var decision = placement.Pick(map, tick: 4, slotIndex: 0, supplemental);
+		var decision = placement.Pick(map, tick: 4, slotIndex: 0, queued);
 		Assert.NotNull(decision);
 		Assert.Equal(ContractPlacementTestMaps.IssuerBId, decision.IssuerPoiId);
 	}

@@ -16,7 +16,6 @@ public sealed class ContractPlacement
 		StarMap map,
 		int tick,
 		int slotIndex,
-		IReadOnlyDictionary<string, int>? supplementalPendingByIssuer = null,
 		IReadOnlyList<Contract>? supplementalBoardContracts = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
@@ -25,12 +24,13 @@ public sealed class ContractPlacement
 		if (issuers.Count == 0)
 			return null;
 
-		var random = CreateRandom(map.Seed, tick, slotIndex);
-		var issuerPoiId = PickIssuer(map, issuers, random, supplementalPendingByIssuer);
+		var issuerRandom = CreateRandom(map.Seed, tick, slotIndex, "contract-issuer");
+		var issuerPoiId = PickIssuer(map, issuers, issuerRandom, supplementalBoardContracts);
 		if (issuerPoiId is null)
 			return null;
 
-		var kind = PickKind(map, issuerPoiId, random, supplementalBoardContracts);
+		var kindRandom = CreateRandom(map.Seed, tick, slotIndex, "contract-kind");
+		var kind = PickKind(map, issuerPoiId, kindRandom, supplementalBoardContracts);
 		return new Decision(issuerPoiId, kind);
 	}
 
@@ -50,18 +50,9 @@ public sealed class ContractPlacement
 		StarMap map,
 		IReadOnlyList<string> issuers,
 		StableRandom random,
-		IReadOnlyDictionary<string, int>? supplementalPendingByIssuer)
+		IReadOnlyList<Contract>? supplementalBoardContracts)
 	{
-		var counts = CountPendingByIssuer(map);
-		if (supplementalPendingByIssuer is not null)
-		{
-			foreach (var (issuerId, pending) in supplementalPendingByIssuer)
-			{
-				counts.TryGetValue(issuerId, out var count);
-				counts[issuerId] = count + pending;
-			}
-		}
-
+		var counts = CountPendingByIssuer(map, supplementalBoardContracts);
 		var maxPerPoi = _config.MaxPendingPerIssuerPoi(issuers.Count);
 		var eligible = issuers
 			.Where(issuerId => counts.GetValueOrDefault(issuerId) < maxPerPoi)
@@ -69,15 +60,11 @@ public sealed class ContractPlacement
 		if (eligible.Length == 0)
 			return null;
 
-		var weights = new double[eligible.Length];
-		for (var i = 0; i < eligible.Length; i++)
-		{
-			var count = counts.GetValueOrDefault(eligible[i]);
-			var denominator = 1 + count;
-			weights[i] = 1.0 / (denominator * denominator);
-		}
-
-		return eligible[PickWeightedIndex(weights, random)];
+		var minimumCount = eligible.Min(issuerId => counts.GetValueOrDefault(issuerId));
+		var leastLoaded = eligible
+			.Where(issuerId => counts.GetValueOrDefault(issuerId) == minimumCount)
+			.ToArray();
+		return leastLoaded[(int)(random.NextDouble() * leastLoaded.Length)];
 	}
 
 	private EContractKind PickKind(
@@ -90,16 +77,11 @@ public sealed class ContractPlacement
 		var deliveryWeight = _config.DeliveryKindWeight;
 		var wreckageWeight = _config.WreckageKindWeight;
 
-		ApplyMonolithicKindWeights(
+		ApplyIssuerKindDiversityWeights(
 			ref huntWeight,
 			ref deliveryWeight,
 			ref wreckageWeight,
 			CountPendingKindsAtIssuer(map, issuerPoiId, supplementalBoardContracts));
-		ApplyMonolithicKindWeights(
-			ref huntWeight,
-			ref deliveryWeight,
-			ref wreckageWeight,
-			CountPendingKinds(map, supplementalBoardContracts));
 
 		return PickWeightedIndex(
 			[huntWeight, deliveryWeight, wreckageWeight],
@@ -111,7 +93,7 @@ public sealed class ContractPlacement
 		};
 	}
 
-	private static void ApplyMonolithicKindWeights(
+	private static void ApplyIssuerKindDiversityWeights(
 		ref float huntWeight,
 		ref float deliveryWeight,
 		ref float wreckageWeight,
@@ -138,25 +120,31 @@ public sealed class ContractPlacement
 		}
 	}
 
-	private static Dictionary<string, int> CountPendingByIssuer(StarMap map)
+	private static Dictionary<string, int> CountPendingByIssuer(
+		StarMap map,
+		IReadOnlyList<Contract>? supplementalBoardContracts)
 	{
 		var counts = new Dictionary<string, int>(StringComparer.Ordinal);
 		foreach (var contract in GeneratedBoardOccupants(map))
-		{
-			if (contract.IssuerPoiId is not { } issuerPoiId)
-				continue;
+			AccumulateIssuer(contract, counts);
 
-			counts.TryGetValue(issuerPoiId, out var count);
-			counts[issuerPoiId] = count + 1;
+		if (supplementalBoardContracts is not null)
+		{
+			foreach (var contract in supplementalBoardContracts)
+				AccumulateIssuer(contract, counts);
 		}
 
 		return counts;
 	}
 
-	private static (int HuntCount, int DeliveryCount, int WreckageCount) CountPendingKinds(
-		StarMap map,
-		IReadOnlyList<Contract>? supplementalBoardContracts) =>
-		CountKinds(GeneratedBoardOccupants(map), supplementalBoardContracts, issuerPoiId: null);
+	private static void AccumulateIssuer(Contract contract, Dictionary<string, int> counts)
+	{
+		if (contract.IssuerPoiId is not { } issuerPoiId)
+			return;
+
+		counts.TryGetValue(issuerPoiId, out var count);
+		counts[issuerPoiId] = count + 1;
+	}
 
 	private static (int HuntCount, int DeliveryCount, int WreckageCount) CountPendingKindsAtIssuer(
 		StarMap map,
@@ -216,10 +204,10 @@ public sealed class ContractPlacement
 				|| map.ContractRegistry.TryGetState(contract.Id, out var state)
 				&& state.Status == EContractStatus.Active));
 
-	private static StableRandom CreateRandom(int mapSeed, int tick, int slotIndex) =>
-		new(StableSeedMixer.From(mapSeed).Add(tick).Add(slotIndex).Add("contract-placement").Value);
+	private static StableRandom CreateRandom(int mapSeed, int tick, int slotIndex, string stream) =>
+		new(StableSeedMixer.From(mapSeed).Add(tick).Add(slotIndex).Add(stream).Value);
 
-	private static int PickWeightedIndex(IReadOnlyList<double> weights, StableRandom random)
+	private static int PickWeightedIndex(IReadOnlyList<float> weights, StableRandom random)
 	{
 		var total = 0.0;
 		foreach (var weight in weights)
@@ -239,9 +227,6 @@ public sealed class ContractPlacement
 
 		return weights.Count - 1;
 	}
-
-	private static int PickWeightedIndex(IReadOnlyList<float> weights, StableRandom random) =>
-		PickWeightedIndex(weights.Select(weight => (double)weight).ToArray(), random);
 
 	private static bool HasContractsDesk(PointOfInterest poi) =>
 		poi.Facilities.Any(facility =>
