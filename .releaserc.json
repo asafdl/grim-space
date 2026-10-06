@@ -1,6 +1,6 @@
 {
   "branches": ["master"],
-  "tagFormat": "v${version}-pre-alpha",
+  "tagFormat": "v${version}-alpha",
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
