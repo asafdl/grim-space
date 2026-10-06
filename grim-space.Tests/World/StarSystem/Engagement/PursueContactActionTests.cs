@@ -46,6 +46,9 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		Assert.Equal(EPhase.InTransit, orchestrator.Map.StateOf(playerId).Phase);
 		Assert.Equal(destination, orchestrator.Map.StateOf(playerId).Journey.Destination);
 		Assert.True(orchestrator.Map.StateOf(playerId).TravelTarget.MatchesFleet(pirateId));
+		Assert.Equal(
+			EContactIntent.Engagement,
+			orchestrator.Map.StateOf(playerId).TravelTarget.ContactIntent);
 	}
 
 	[Fact]
@@ -91,6 +94,17 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void IsLegal_RejectsUnsupportedFleetContactIntent()
+	{
+		var (orchestrator, playerId, pirateId) = CreateScenario();
+		var destination = orchestrator.CommittedPositionOf(pirateId);
+		var action = CreatePursueAction(orchestrator, playerId, pirateId, destination)
+			with { Intent = EContactIntent.DeliveryMeeting };
+
+		Assert.False(orchestrator.CreateSimulation().TryEnqueue(action));
+	}
+
+	[Fact]
 	public void Move_ClearsHuntLink()
 	{
 		var (orchestrator, playerId, pirateId) = CreateScenario();
@@ -130,7 +144,8 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 			playerId,
 			new FleetContactTarget(targetId),
 			destination,
-			path);
+			path,
+			EContactIntent.Engagement);
 	}
 
 	private static void QueuePursue(StarSystemOrchestrator orchestrator, string playerId, string targetId)

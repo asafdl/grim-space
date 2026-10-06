@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -28,7 +29,9 @@ public sealed class ReachContactDef
 		action is ReachContactAction reach
 		&& world.FleetRegistry.TryGet(reach.InitiatorId, out var initiator)
 		&& world.FleetRegistry.TryGet(reach.TargetId, out _)
-		&& initiator.State.TravelTarget.MatchesFleet(reach.TargetId)
+		&& initiator.State.TravelTarget.MatchesFleet(
+			reach.TargetId,
+			EContactIntent.Engagement)
 		&& initiator.State.CurrentEngagement?.Phase == EEngagementPhase.Pursuing
 		&& initiator.State.CurrentEngagement?.Hunting == reach.TargetId
 		&& !EngagementState.IsEngaged(initiator.State);

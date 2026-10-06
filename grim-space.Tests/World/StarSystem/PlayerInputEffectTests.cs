@@ -3,6 +3,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -76,7 +77,9 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		var pirateId = AddPirate(map, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
-		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
+		new SetTravelTargetEffect(
+			RunState.PlayerFleetUnitId,
+			TravelTarget.Fleet(pirateId, EContactIntent.Engagement))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 
@@ -93,7 +96,9 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		var targetId = AddPirate(map, new Coord(8, 0, 0), "pirate-target");
 		new SetEngagementIntentEffect(hunterId, targetId)
 			.Apply(map, new ActorRuntime(), hunterId);
-		new SetTravelTargetEffect(hunterId, TravelTarget.Fleet(targetId))
+		new SetTravelTargetEffect(
+			hunterId,
+			TravelTarget.Fleet(targetId, EContactIntent.Engagement))
 			.Apply(map, new ActorRuntime(), hunterId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 
@@ -166,7 +171,9 @@ public sealed class PlayerInputEffectTests(StarMapFixture maps)
 		var pirateId = AddPirate(map, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
-		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
+		new SetTravelTargetEffect(
+			RunState.PlayerFleetUnitId,
+			TravelTarget.Fleet(pirateId, EContactIntent.Engagement))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
 		engine.Commit([new ReachContactAction(RunState.PlayerFleetUnitId, pirateId)]);

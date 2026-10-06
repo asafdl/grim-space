@@ -587,7 +587,8 @@ public sealed class SaveGamePersistenceTests
 				target.State.IdleCoord,
 				TransitPath.FromPoints(
 					[player.State.IdleCoord, target.State.IdleCoord],
-					[1.0, 1.0]));
+					[1.0, 1.0]),
+				EContactIntent.Engagement);
 
 			Assert.True(PursueContactDef.Instance.IsLegal(
 				action,

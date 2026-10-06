@@ -2,6 +2,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
@@ -60,7 +61,9 @@ public sealed class DismissContractActionTests(StarMapFixture maps)
 			.ToArray();
 		Assert.NotEmpty(spawnedIds);
 		engine.World.StateOf(actorId).TravelTarget =
-			GrimSpace.World.StarSystem.Units.TravelTarget.Fleet(spawnedIds[0]);
+			GrimSpace.World.StarSystem.Units.TravelTarget.Fleet(
+				spawnedIds[0],
+				EContactIntent.Engagement);
 		engine.World.WaitingForPlayerInput = true;
 
 		engine.Commit(ContractActionTestContext.Dismiss(actorId, contractId));

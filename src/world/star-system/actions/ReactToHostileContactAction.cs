@@ -66,7 +66,8 @@ public sealed class ReactToHostileContactDef
 					react.ActorId,
 					react.Target,
 					react.Destination,
-					react.Path),
+					react.Path,
+					EContactIntent.Engagement),
 				world,
 				runtime);
 		}

@@ -13,7 +13,8 @@ public sealed record PursueContactAction(
 	string ActorId,
 	ContactTarget Target,
 	Coord Destination,
-	TransitPath Path) : IAction<StarMap, ActorRuntime>
+	TransitPath Path,
+	EContactIntent Intent) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		PursueContactDef.Instance;
@@ -34,8 +35,16 @@ public sealed class PursueContactDef
 		&& initiator.State.CanMove
 		&& pursue.Target switch
 		{
-			FleetContactTarget fleet => IsFleetTargetLegal(world, pursue.ActorId, fleet.UnitId),
-			WreckContactTarget wreck => IsWreckTargetLegal(world, pursue.ActorId, wreck.ContractId),
+			FleetContactTarget fleet =>
+				pursue.Intent == EContactIntent.Engagement
+				&& pursue.ActorId != fleet.UnitId
+				&& world.FleetRegistry.Contains(fleet.UnitId),
+			WreckContactTarget wreck =>
+				pursue.Intent == EContactIntent.WreckInvestigation
+				&& WreckageQueries.IsActiveWreckContractForHolder(
+					world,
+					pursue.ActorId,
+					wreck.ContractId),
 			_ => false,
 		};
 
@@ -65,8 +74,11 @@ public sealed class PursueContactDef
 		switch (pursue.Target)
 		{
 			case FleetContactTarget fleet:
-				effects.Add(new SetEngagementIntentEffect(pursue.ActorId, fleet.UnitId));
-				effects.Add(new SetTravelTargetEffect(pursue.ActorId, TravelTarget.Fleet(fleet.UnitId)));
+				if (pursue.Intent == EContactIntent.Engagement)
+					effects.Add(new SetEngagementIntentEffect(pursue.ActorId, fleet.UnitId));
+				effects.Add(new SetTravelTargetEffect(
+					pursue.ActorId,
+					TravelTarget.Fleet(fleet.UnitId, pursue.Intent)));
 				break;
 			case WreckContactTarget wreck:
 				effects.Add(new SetTravelTargetEffect(pursue.ActorId, TravelTarget.Wreck(wreck.ContractId)));
@@ -83,11 +95,4 @@ public sealed class PursueContactDef
 
 		return effects;
 	}
-
-	private static bool IsFleetTargetLegal(StarMap world, string actorId, string targetUnitId) =>
-		actorId != targetUnitId
-		&& world.FleetRegistry.Contains(targetUnitId);
-
-	private static bool IsWreckTargetLegal(StarMap world, string actorId, string contractId) =>
-		WreckageQueries.IsActiveWreckContractForHolder(world, actorId, contractId);
 }

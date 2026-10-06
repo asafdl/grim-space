@@ -6,4 +6,14 @@ public sealed record FleetContactTarget(string UnitId) : ContactTarget;
 
 public sealed record WreckContactTarget(string ContractId) : ContactTarget;
 
-public sealed record ContactReached(string ActorId, ContactTarget Target);
+public enum EContactIntent
+{
+	Engagement,
+	DeliveryMeeting,
+	WreckInvestigation,
+}
+
+public sealed record ContactReached(
+	string ActorId,
+	ContactTarget Target,
+	EContactIntent? Intent);

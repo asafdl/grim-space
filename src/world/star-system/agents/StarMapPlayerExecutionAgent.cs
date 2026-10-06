@@ -153,7 +153,8 @@ public sealed class StarMapPlayerExecutionAgent
 			_actorId,
 			new WreckContactTarget(contractId),
 			destination,
-			found.Path);
+			found.Path,
+			EContactIntent.WreckInvestigation);
 		if (TryEnqueue([pursue]))
 		{
 			StarMapPresentationDiagnostics.LogCourseQueued("pursue_wreck", destination, this);
@@ -196,7 +197,8 @@ public sealed class StarMapPlayerExecutionAgent
 			_actorId,
 			new FleetContactTarget(targetUnitId),
 			destination,
-			found.Path);
+			found.Path,
+			EContactIntent.Engagement);
 		if (TryEnqueue([pursue]))
 		{
 			StarMapPresentationDiagnostics.LogCourseQueued("pursue_fleet", destination, this);

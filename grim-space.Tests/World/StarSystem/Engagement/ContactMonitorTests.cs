@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -125,7 +126,9 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 			GrimSpace.World.Factions.EFaction.Pirates));
 		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
-		new SetTravelTargetEffect(RunState.PlayerFleetUnitId, TravelTarget.Fleet(pirateId))
+		new SetTravelTargetEffect(
+			RunState.PlayerFleetUnitId,
+			TravelTarget.Fleet(pirateId, EContactIntent.Engagement))
 			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
 
 		return StarSystemTestHarness.CreatePlayerOrchestrator(maps, RunState.PlayerFleetUnitId, 42, map: map);
@@ -156,7 +159,9 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 			[GrimSpace.Units.Enums.EType.RepurposedMiner]));
 		new SetEngagementIntentEffect(pirateId, RunState.PlayerFleetUnitId)
 			.Apply(map, new ActorRuntime(), pirateId);
-		new SetTravelTargetEffect(pirateId, TravelTarget.Fleet(RunState.PlayerFleetUnitId))
+		new SetTravelTargetEffect(
+			pirateId,
+			TravelTarget.Fleet(RunState.PlayerFleetUnitId, EContactIntent.Engagement))
 			.Apply(map, new ActorRuntime(), pirateId);
 
 		return StarSystemTestHarness.CreatePlayerOrchestrator(

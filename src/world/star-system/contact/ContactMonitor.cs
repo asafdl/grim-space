@@ -164,7 +164,10 @@ internal sealed class ContactMonitor
 		}
 
 		_watches.Remove(watch.ActorId);
-		reached = new ContactReached(watch.ActorId, new FleetContactTarget(targetId));
+		reached = new ContactReached(
+			watch.ActorId,
+			new FleetContactTarget(targetId),
+			watch.TravelTarget.ContactIntent ?? EContactIntent.Engagement);
 		return true;
 
 		bool stateIsInvalidForFleetPursuit(string actorId, string fleetTargetId)
@@ -173,7 +176,8 @@ internal sealed class ContactMonitor
 				return true;
 
 			var actorState = actor.State;
-			return actorState.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
+			return watch.TravelTarget.ContactIntent != EContactIntent.Engagement
+				|| actorState.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
 				|| actorState.CurrentEngagement?.Hunting != fleetTargetId
 				|| !Map.FleetRegistry.TryGet(fleetTargetId, out _);
 		}
@@ -208,7 +212,10 @@ internal sealed class ContactMonitor
 		}
 
 		_watches.Remove(watch.ActorId);
-		reached = new ContactReached(watch.ActorId, new WreckContactTarget(contractId));
+		reached = new ContactReached(
+			watch.ActorId,
+			new WreckContactTarget(contractId),
+			null);
 		return true;
 	}
 

@@ -1,4 +1,5 @@
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -107,7 +108,10 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		var hunter = map.FleetRegistry.Ids.First();
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
-		new SetTravelTargetEffect(hunter, TravelTarget.Fleet(target)).Apply(map, runtime, hunter);
+		new SetTravelTargetEffect(
+			hunter,
+			TravelTarget.Fleet(target, EContactIntent.Engagement))
+			.Apply(map, runtime, hunter);
 
 		var snapshot = map.StateOf(hunter).Clone();
 		new ClearPursueContactEffect(hunter).Apply(map, runtime, hunter);
