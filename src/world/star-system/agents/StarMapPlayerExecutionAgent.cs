@@ -198,7 +198,7 @@ public sealed class StarMapPlayerExecutionAgent
 			new FleetContactTarget(targetUnitId),
 			destination,
 			found.Path,
-			EContactIntent.Engagement);
+			ResolveFleetContactIntent(anchorWorld, _actorId, target));
 		if (TryEnqueue([pursue]))
 		{
 			StarMapPresentationDiagnostics.LogCourseQueued("pursue_fleet", destination, this);
@@ -206,6 +206,26 @@ public sealed class StarMapPlayerExecutionAgent
 		}
 
 		return new CourseCommandResult.Unreachable();
+	}
+
+	private static EContactIntent ResolveFleetContactIntent(
+		StarMap world,
+		string actorId,
+		Fleet target)
+	{
+		if (target.State.SourceContractId is { } contractId
+			&& world.ContractRegistry.TryGetState(contractId, out var state)
+			&& state is DeliveryContractState deliveryState
+			&& deliveryState.Status == EContractStatus.Active
+			&& deliveryState.HolderUnitId == actorId
+			&& world.ContractRegistry.TryGet(contractId, out var contract)
+			&& contract.Objective is DeliveryObjective delivery
+			&& delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
+				is SpaceMeetingDeliveryLeg meeting
+			&& meeting.MeetingId == target.State.Id)
+			return EContactIntent.DeliveryMeeting;
+
+		return EContactIntent.Engagement;
 	}
 
 	public bool TryEnqueue(IReadOnlyList<IAction> actions)

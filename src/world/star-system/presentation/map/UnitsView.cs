@@ -1,8 +1,11 @@
 using Godot;
 using GrimSpace.World.StarSystem.Presentation.Picking;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.World.StarSystem.Vision;
@@ -35,6 +38,15 @@ public partial class UnitsView : Node3D
 	private const float TrailMinStep = 0.006f;
 	private const int TrailMaxPoints = 24;
 	private const int UnitPickRadius = 14;
+	private static readonly Color[] DeliveryMeetingRingColors =
+	[
+		new(0.98f, 0.38f, 0.24f),
+		new(0.98f, 0.78f, 0.22f),
+		new(0.34f, 0.92f, 0.54f),
+		new(0.24f, 0.82f, 0.98f),
+		new(0.64f, 0.42f, 0.98f),
+		new(0.98f, 0.34f, 0.72f),
+	];
 
 	private readonly Dictionary<string, UnitVisual> _units = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, List<Vector3>> _trailHistory = new(StringComparer.Ordinal);
@@ -61,7 +73,7 @@ public partial class UnitsView : Node3D
 
 		foreach (var unit in world.FleetRegistry.All.OrderBy(unit => unit.State.Id, StringComparer.Ordinal))
 		{
-			var unitVisual = BuildUnit(unit.State);
+			var unitVisual = BuildUnit(world, unit.State);
 			_units[unit.State.Id] = unitVisual;
 			AddChild(unitVisual.Root);
 		}
@@ -89,7 +101,7 @@ public partial class UnitsView : Node3D
 			if (_units.ContainsKey(unit.State.Id))
 				continue;
 
-			var unitVisual = BuildUnit(unit.State);
+			var unitVisual = BuildUnit(world, unit.State);
 			_units[unit.State.Id] = unitVisual;
 			AddChild(unitVisual.Root);
 		}
@@ -220,9 +232,10 @@ public partial class UnitsView : Node3D
 		return best;
 	}
 
-	private static UnitVisual BuildUnit(Units.State state)
+	private static UnitVisual BuildUnit(StarMap world, Units.State state)
 	{
 		var color = ColorForUnit(state);
+		var ringColor = RingColorForUnit(world, state);
 		var isPlayer = state.Type == EType.PlayerFleet;
 		var hullScale = isPlayer ? 1.35f : 1f;
 		var ringScale = isPlayer ? PlayerRingScale : 1f;
@@ -242,9 +255,9 @@ public partial class UnitsView : Node3D
 			{
 				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = color with { A = RingAlpha },
+				AlbedoColor = ringColor with { A = RingAlpha },
 				EmissionEnabled = true,
-				Emission = color with { A = RingAlpha },
+				Emission = ringColor with { A = RingAlpha },
 				EmissionEnergyMultiplier = 0.35f,
 				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
 			},
@@ -305,6 +318,42 @@ public partial class UnitsView : Node3D
 		root.AddChild(trailRoot);
 
 		return new UnitVisual(root, marker, trailSegments, beacon);
+	}
+
+	private static Color RingColorForUnit(StarMap world, Units.State state)
+	{
+		if (TryGetDeliveryMeetingId(world, state, out var meetingId))
+		{
+			var paletteIndex = (int)(
+				StableSeedMixer.From(world.Seed)
+					.Add("delivery-meeting-ring")
+					.Add(meetingId)
+					.Value
+				% (ulong)DeliveryMeetingRingColors.Length);
+			return DeliveryMeetingRingColors[paletteIndex];
+		}
+
+		return ColorForUnit(state);
+	}
+
+	private static bool TryGetDeliveryMeetingId(
+		StarMap world,
+		Units.State state,
+		out string meetingId)
+	{
+		meetingId = "";
+		if (state.SourceContractId is not { } contractId
+			|| !world.ContractRegistry.TryGet(contractId, out var contract)
+			|| !world.ContractRegistry.TryGetState(contractId, out var contractState)
+			|| contractState is not DeliveryContractState deliveryState
+			|| contractState.Status != EContractStatus.Active
+			|| contract.Objective is not DeliveryObjective delivery
+			|| delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
+				is not SpaceMeetingDeliveryLeg meeting)
+			return false;
+
+		meetingId = meeting.MeetingId;
+		return true;
 	}
 
 	private static PlayerBeaconVisual BuildPlayerBeacon(Node3D unitRoot, Color color)

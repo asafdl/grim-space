@@ -106,7 +106,8 @@ public sealed class BeginEngagementTests
 		pirateFleet = new Fleet(
 			pirateFleet.State,
 			Enumerable.Range(0, 5)
-				.Select(index => new FleetMember($"repurposed-miner-{index}")));
+				.Select(index => new FleetMember($"repurposed-miner-{index}"))
+				.ToArray());
 		foreach (var member in pirateFleet.Members)
 			run.ShipRegistry.Register(ShipInstance.FromCatalog(member.Id, GrimSpace.Units.Enums.EType.RepurposedMiner));
 

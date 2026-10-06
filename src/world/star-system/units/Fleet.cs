@@ -10,8 +10,8 @@ public sealed class Fleet
 
 	public Fleet(
 		State state,
-		IEnumerable<FleetMember>? members = null,
-		IEnumerable<ShipSpawnDeclaration>? registrations = null)
+		IReadOnlyList<FleetMember>? members = null,
+		IReadOnlyList<ShipSpawnDeclaration>? registrations = null)
 	{
 		ArgumentNullException.ThrowIfNull(state);
 		State = state;

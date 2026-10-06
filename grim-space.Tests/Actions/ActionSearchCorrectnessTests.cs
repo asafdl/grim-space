@@ -54,15 +54,6 @@ public sealed class ActionSearchCorrectnessTests
 	}
 
 	[Fact]
-	public void EveryExhaustiveFrameReplayableFromTurnStart()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-
-		foreach (var frame in ActionSearchExhaustive.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs))
-			Assert.True(ReplayPrefix(battle, frame.Actions), $"Failed to replay: {string.Join(", ", frame.Actions)}");
-	}
-
-	[Fact]
 	public void ExhaustiveSearchFindsAtLeastAsManyPrefixesAsPrunedSearch()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));

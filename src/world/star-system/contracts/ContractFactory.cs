@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Landmarks;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.World.StarSystem.Contracts;
@@ -150,6 +151,18 @@ public static class ContractFactory
 			var excludedPoiIds = new HashSet<string>(StringComparer.Ordinal);
 			for (var legIndex = 0; legIndex < legCount; legIndex++)
 			{
+				if (legIndex < legCount - 1
+					&& ShouldGenerateSpaceMeeting(
+						map,
+						contractId,
+						legIndex,
+						args.Generation?.SpaceMeetingChance ?? DeliveryGenerationConfig.DefaultSpaceMeetingChance)
+					&& TryPickSpaceMeeting(map, contractId, legIndex, out var meeting))
+				{
+					legs.Add(meeting);
+					continue;
+				}
+
 				var dropoff = DeliveryDropoffPicker.Pick(
 					map,
 					args.IssuerPoiId,
@@ -183,6 +196,48 @@ public static class ContractFactory
 				args.DropoffPoiId,
 				args.DropoffFacilityId,
 				args.DropoffOperatorName)]);
+	}
+
+	private static bool ShouldGenerateSpaceMeeting(
+		StarMap map,
+		string contractId,
+		int legIndex,
+		double chance)
+	{
+		var random = new StableRandom(
+			StableSeedMixer.From(map.Seed)
+				.Add(contractId)
+				.Add("delivery-space-meeting-roll")
+				.Add(legIndex)
+				.Value);
+		return random.NextDouble() < chance;
+	}
+
+	private static bool TryPickSpaceMeeting(
+		StarMap map,
+		string contractId,
+		int legIndex,
+		out SpaceMeetingDeliveryLeg meeting)
+	{
+		var meetingId = $"{contractId}.meeting.{legIndex}";
+		var pickerArgs = new AreaPickerArgs(
+			MapLandmarkQueries.AllIds(map),
+			DeterministicPickMix: (long)StableSeedMixer.From(map.Seed)
+				.Add(meetingId)
+				.Add("area")
+				.Value);
+		var seeds = CreateSpawnSeeds(map.Seed, contractId, meetingId, 1);
+		if (!AreaPicker.TryPickWithFallback(map, pickerArgs, seeds, out var area))
+		{
+			meeting = null!;
+			return false;
+		}
+
+		meeting = new SpaceMeetingDeliveryLeg(
+			meetingId,
+			"Rendezvous contact",
+			area);
+		return true;
 	}
 
 	public static bool TryBuildWreckage(

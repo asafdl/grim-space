@@ -504,7 +504,10 @@ public static class SaveDtoMapper
 		restored.Journey.Origin = state.Origin;
 		restored.Journey.Destination = state.Destination;
 		restored.Journey.StartTick = state.StartTick;
-		return new Fleet(restored, dto.Members.Select(id => new FleetMember(id)), dto.Registrations);
+		return new Fleet(
+			restored,
+			dto.Members.Select(id => new FleetMember(id)).ToArray(),
+			dto.Registrations);
 	}
 
 	internal static StarMapContractDto CaptureContract(

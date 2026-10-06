@@ -41,7 +41,9 @@ public partial class MapController : Node3D
 	private CanvasLayer _uiLayer = null!;
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
+	private DeliveryTurnInDialogPresenter _deliveryMeetingDialog = null!;
 	private WreckController _wreck = null!;
+	private IDisposable _deliveryMeetingSubscription = null!;
 	private NarrativeController _narrative = null!;
 	private TutorialPresentationBinding? _mapTutorialBinding;
 	private IWorldFocus _worldFocus = null!;
@@ -109,6 +111,8 @@ public partial class MapController : Node3D
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new FleeAction(State.PlayerFleetUnitId)]),
 			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()));
+		_deliveryMeetingDialog = new DeliveryTurnInDialogPresenter(_uiLayer, _orchestrator);
+		_deliveryMeetingSubscription = _orchestrator.Subscribe<ReachContactAction>(OnReachContact);
 
 		var wreckHud = new WreckHudOverlay();
 		_uiLayer.AddChild(wreckHud);
@@ -341,6 +345,7 @@ public partial class MapController : Node3D
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
+		_deliveryMeetingSubscription.Dispose();
 		_wreck.Dispose();
 		_narrative.Dispose();
 		if (Session.Instance.Run.Tutorials is { } tutorials)
@@ -366,6 +371,7 @@ public partial class MapController : Node3D
 		}
 
 		if (_narrative.TryHandleInput(@event)
+			|| _deliveryMeetingDialog.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event)
 			|| _wreck.TryHandleInput(@event))
 		{
@@ -491,6 +497,7 @@ public partial class MapController : Node3D
 		_pauseMenu.Visible
 		|| _pauseMenu.IsReportDialogOpen
 		|| (_narrative?.IsOpen ?? false)
+		|| (_deliveryMeetingDialog?.IsOpen ?? false)
 		|| (_engagement?.IsOpen ?? false)
 		|| (_wreck?.IsOpen ?? false);
 
@@ -608,6 +615,13 @@ public partial class MapController : Node3D
 			return;
 
 		_director.OnPlayerMovement();
+	}
+
+	private void OnReachContact(ReachContactAction action)
+	{
+		if (action.InitiatorId == State.PlayerFleetUnitId
+			&& action.Intent == EContactIntent.DeliveryMeeting)
+			_deliveryMeetingDialog.OpenMeeting(action.TargetId);
 	}
 
 	private void HandlePauseRequest()

@@ -60,18 +60,16 @@ public static class ContractObjectiveProjection
 		ContractState? state)
 	{
 		if (contract.Objective is DeliveryObjective delivery)
-			return BuildDeliverySummary(map, delivery, state);
-
-		var searchIntel = contract.Objective switch
 		{
-			HuntObjective hunt when hunt.SpawnGroups.Count > 0 => hunt.SpawnGroups[0].SearchArea.Intel,
-			WreckageObjective wreckage => wreckage.SearchArea.Intel,
-			_ => null,
-		};
-		if (searchIntel is null)
-			return PlainOrPreview(map, contract);
+			var leg = CurrentDeliveryLeg(delivery, state);
+			if (leg is FacilityDeliveryLeg facility)
+				return BuildFacilityDeliverySummary(map, facility);
+		}
 
-		return BuildSearchAreaSummary(map, searchIntel);
+		if (TryGetAreaIntel(contract, state, out var intel))
+			return BuildSearchAreaSummary(map, intel);
+
+		return PlainOrPreview(map, contract);
 	}
 
 	private static ObjectiveSummaryContent BuildSearchAreaSummary(StarMap map, AreaIntel intel)
@@ -168,26 +166,48 @@ public static class ContractObjectiveProjection
 		return false;
 	}
 
-	private static ObjectiveSummaryContent BuildDeliverySummary(
-		StarMap map,
+	private static DeliveryLeg CurrentDeliveryLeg(
 		DeliveryObjective delivery,
-		ContractState? state)
+		ContractState? state) =>
+		delivery.Route.Legs[
+			state is DeliveryContractState deliveryState
+				? deliveryState.Progress.CurrentLegIndex
+				: 0];
+
+	private static ObjectiveSummaryContent BuildFacilityDeliverySummary(
+		StarMap map,
+		FacilityDeliveryLeg facility)
 	{
-		var leg = state is DeliveryContractState deliveryState
-			? delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
-			: delivery.Route.Legs[0];
-		if (leg is not FacilityDeliveryLeg facility)
-			return new ObjectiveSummaryContent.Plain("Meet the designated delivery contact.");
-
-		var dropoff = map.PointsOfInterest.FirstOrDefault(poi => poi.Id == facility.PoiId);
-		if (dropoff is null)
-			return new ObjectiveSummaryContent.Plain("Deliver cargo to the designated contact.");
-
+		var dropoff = map.GetPointOfInterest(facility.PoiId);
 		return new ObjectiveSummaryContent.NearLandmark(
 			$"Deliver cargo to \"{facility.OperatorName}\" at {dropoff.GetFacility(facility.FacilityId).DisplayName} in ",
 			facility.PoiId,
 			dropoff.DisplayName,
 			".");
+	}
+
+	private static bool TryGetAreaIntel(
+		Contract contract,
+		ContractState? state,
+		out AreaIntel intel)
+	{
+		intel = null!;
+
+		switch (contract.Objective)
+		{
+			case DeliveryObjective delivery
+				when CurrentDeliveryLeg(delivery, state) is SpaceMeetingDeliveryLeg meeting:
+				intel = meeting.SearchArea.Intel;
+				return true;
+			case HuntObjective { SpawnGroups.Count: > 0 } hunt:
+				intel = hunt.SpawnGroups[0].SearchArea.Intel;
+				return true;
+			case WreckageObjective wreckage:
+				intel = wreckage.SearchArea.Intel;
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	private static ObjectiveSummaryContent PlainOrPreview(StarMap map, Contract contract) =>

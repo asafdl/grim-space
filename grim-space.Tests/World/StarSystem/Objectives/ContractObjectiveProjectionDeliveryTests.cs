@@ -1,7 +1,8 @@
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.Tests.World.StarSystem;
 
@@ -28,5 +29,27 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 		Assert.Equal(dropoff.Id, near.LandmarkPoiId);
 		Assert.Equal(dropoff.DisplayName, near.LandmarkDisplayName);
 		Assert.Equal(".", near.Suffix);
+	}
+
+	[Fact]
+	public void Project_DeliveryMeeting_IncludesAreaPickerIntel()
+	{
+		var map = maps.Fresh(42);
+		var contract = ContractFactory.Build(
+			map,
+			"delivery-meeting-objective",
+			EContractKind.Delivery,
+			new DeliveryCreateArgs(
+				map.Blueprint.SupplyPlan.StoragePoiId,
+				EDangerLevel.Moderate,
+				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				Generation: new DeliveryGenerationConfig(2, spaceMeetingChance: 1.0)));
+
+		var meeting = Assert.IsType<SpaceMeetingDeliveryLeg>(
+			((DeliveryObjective)contract.Objective).Route.Legs[0]);
+		var objective = ContractObjectiveProjection.Project(map, contract);
+
+		Assert.IsNotType<ObjectiveSummaryContent.Plain>(objective.Summary);
+		Assert.DoesNotContain(meeting.ContactName, objective.Summary.ToBbcode());
 	}
 }

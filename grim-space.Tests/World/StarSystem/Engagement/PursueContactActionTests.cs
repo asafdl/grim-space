@@ -99,7 +99,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		var (orchestrator, playerId, pirateId) = CreateScenario();
 		var destination = orchestrator.CommittedPositionOf(pirateId);
 		var action = CreatePursueAction(orchestrator, playerId, pirateId, destination)
-			with { Intent = EContactIntent.DeliveryMeeting };
+			with { Intent = EContactIntent.WreckInvestigation };
 
 		Assert.False(orchestrator.CreateSimulation().TryEnqueue(action));
 	}

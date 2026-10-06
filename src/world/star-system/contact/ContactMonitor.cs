@@ -176,9 +176,14 @@ internal sealed class ContactMonitor
 				return true;
 
 			var actorState = actor.State;
-			return watch.TravelTarget.ContactIntent != EContactIntent.Engagement
-				|| actorState.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
-				|| actorState.CurrentEngagement?.Hunting != fleetTargetId
+			return watch.TravelTarget.ContactIntent switch
+			{
+				EContactIntent.Engagement =>
+					actorState.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
+					|| actorState.CurrentEngagement?.Hunting != fleetTargetId,
+				EContactIntent.DeliveryMeeting => false,
+				_ => true,
+			}
 				|| !Map.FleetRegistry.TryGet(fleetTargetId, out _);
 		}
 	}

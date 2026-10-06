@@ -13,7 +13,8 @@ public record CompleteDeliveryFacilityLegAction(
 	string FacilityId,
 	string OperatorName,
 	string ContractId,
-	int LegIndex) : IAction<StarMap, ActorRuntime>
+	int LegIndex,
+	string? MeetingId = null) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		CompleteDeliveryFacilityLegDef.Instance;
@@ -40,11 +41,8 @@ public class CompleteDeliveryFacilityLegDef
 		&& turnIn.LegIndex == deliveryState.Progress.CurrentLegIndex
 		&& turnIn.LegIndex >= 0
 		&& turnIn.LegIndex < delivery.Route.Legs.Count
-		&& delivery.Route.Legs[turnIn.LegIndex] is FacilityDeliveryLeg facility
-		&& facility.PoiId == turnIn.PoiId
-		&& facility.FacilityId == turnIn.FacilityId
-		&& facility.OperatorName == turnIn.OperatorName
-		&& !deliveryState.Progress.CompletedLegs[turnIn.LegIndex];
+		&& !deliveryState.Progress.CompletedLegs[turnIn.LegIndex]
+		&& IsMatchingLeg(delivery.Route.Legs[turnIn.LegIndex], turnIn);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -55,6 +53,27 @@ public class CompleteDeliveryFacilityLegDef
 		if (!IsLegal(turnIn, world, runtime))
 			return [];
 
-		return [new AdvanceDeliveryLegEffect(turnIn.ContractId, turnIn.LegIndex)];
+		var effects = new List<IEffect<StarMap, ActorRuntime>>
+		{
+			new AdvanceDeliveryLegEffect(turnIn.ContractId, turnIn.LegIndex),
+		};
+		if (turnIn.MeetingId is not null)
+			effects.Add(new PlayerInputEffect(false));
+		return effects;
 	}
+
+	private static bool IsMatchingLeg(
+		DeliveryLeg leg,
+		CompleteDeliveryFacilityLegAction turnIn) =>
+		leg switch
+		{
+			FacilityDeliveryLeg facility =>
+				string.IsNullOrEmpty(turnIn.MeetingId)
+				&& facility.PoiId == turnIn.PoiId
+				&& facility.FacilityId == turnIn.FacilityId
+				&& facility.OperatorName == turnIn.OperatorName,
+			SpaceMeetingDeliveryLeg meeting =>
+				meeting.MeetingId == turnIn.MeetingId,
+			_ => false,
+		};
 }

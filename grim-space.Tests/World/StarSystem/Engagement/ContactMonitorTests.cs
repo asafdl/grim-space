@@ -1,9 +1,11 @@
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -41,6 +43,36 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 
 		Assert.Equal(EEngagementPhase.AwaitingDecision,
 			EngagementAssertions.Phase(orchestrator.Map.StateOf(RunState.PlayerFleetUnitId)));
+	}
+
+	[Fact]
+	public void DeliveryMeetingContact_ProducesReachedContact()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		player.State.Phase = EPhase.Docked;
+		player.State.DockedAtDockId = "";
+		player.State.IdleCoord = new Coord(0, 0, 0);
+		const string meetingId = "delivery-meeting";
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
+			meetingId,
+			new Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.TheOptimality));
+		new SetTravelTargetEffect(
+			RunState.PlayerFleetUnitId,
+			TravelTarget.Fleet(meetingId, EContactIntent.DeliveryMeeting))
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		var engine = new Engine<StarMap, ActorRuntime>(
+			map,
+			new ActorRuntimes<ActorRuntime>());
+		var monitor = new ContactMonitor(engine, new StraightLinePathfinder());
+
+		var contact = Assert.Single(monitor.Update(0));
+
+		Assert.Equal(RunState.PlayerFleetUnitId, contact.ActorId);
+		Assert.Equal(new FleetContactTarget(meetingId), contact.Target);
+		Assert.Equal(EContactIntent.DeliveryMeeting, contact.Intent);
 	}
 
 	[Fact]
@@ -169,5 +201,12 @@ public sealed class ContactMonitorTests(StarMapFixture maps)
 			RunState.PlayerFleetUnitId,
 			42,
 			map: map);
+	}
+
+	private sealed class StraightLinePathfinder : IPathfinder
+	{
+		public PathfindingResult FindPath(Coord origin, Coord destination) =>
+			new PathfindingResult.Found(
+				TransitPath.FromPoints([origin, destination], [1.0, 1.0]));
 	}
 }

@@ -540,7 +540,10 @@ public sealed class StarSystemOrchestrator : IDisposable
 		{
 			actions.Add(contact.Target switch
 			{
-				FleetContactTarget fleet => new ReachContactAction(contact.ActorId, fleet.UnitId),
+				FleetContactTarget fleet => contact.Intent is { } intent
+					? new ReachContactAction(contact.ActorId, fleet.UnitId, intent)
+					: throw new InvalidOperationException(
+						$"Fleet contact '{fleet.UnitId}' has no contact intent."),
 				WreckContactTarget wreck => new ReachWreckageAction(contact.ActorId, wreck.ContractId),
 				_ => throw new InvalidOperationException($"Unknown contact target {contact.Target}"),
 			});

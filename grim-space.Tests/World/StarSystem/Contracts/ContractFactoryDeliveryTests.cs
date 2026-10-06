@@ -99,6 +99,34 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Build_Delivery_WithMeetingChance_SelectsDeterministicAreaMeetingAndFinalFacility()
+	{
+		var map = maps.Fresh(42);
+		var args = new DeliveryCreateArgs(
+			map.Blueprint.SupplyPlan.StoragePoiId,
+			EDangerLevel.Moderate,
+			ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+			Generation: new DeliveryGenerationConfig(3, spaceMeetingChance: 1.0));
+
+		var first = Assert.IsType<DeliveryObjective>(
+			ContractFactory.Build(map, "delivery-meeting", EContractKind.Delivery, args).Objective);
+		var second = Assert.IsType<DeliveryObjective>(
+			ContractFactory.Build(map, "delivery-meeting", EContractKind.Delivery, args).Objective);
+
+		Assert.Equal(
+			first.Route.Legs.Select(leg => leg.ToString()),
+			second.Route.Legs.Select(leg => leg.ToString()));
+		Assert.Equal(2, first.Route.Legs.OfType<SpaceMeetingDeliveryLeg>().Count());
+		Assert.All(
+			first.Route.Legs.Take(2),
+			leg => Assert.IsType<SpaceMeetingDeliveryLeg>(leg));
+		Assert.IsType<FacilityDeliveryLeg>(first.Route.Legs[^1]);
+		Assert.All(
+			first.Route.Legs.OfType<SpaceMeetingDeliveryLeg>(),
+			meeting => Assert.True(map.IsInBounds(meeting.Position)));
+	}
+
+	[Fact]
 	public void BeatBDropoff_UsesWormholeTravelLoungeDropoff()
 	{
 		var map = maps.Fresh(42);

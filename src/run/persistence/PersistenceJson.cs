@@ -17,6 +17,7 @@ public static class PersistenceJson
 		var options = ReflectionJson.CreateOptions(o =>
 		{
 			o.IncludeFields = true;
+			o.Converters.Add(new FleetJsonConverter());
 			o.Converters.Add(new CanonicalConstructorJsonConverterFactory());
 			o.Converters.Add(new ContractSpawnMemberJsonConverter());
 			o.Converters.Add(new ResourceBundleJsonConverter());

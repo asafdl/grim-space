@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Areas;
 
 namespace GrimSpace.World.StarSystem.Contracts.Objectives;
 
@@ -14,7 +16,11 @@ public sealed record FacilityDeliveryLeg(
 
 public sealed record SpaceMeetingDeliveryLeg(
 	string MeetingId,
-	string ContactName) : DeliveryLeg;
+	string ContactName,
+	AreaPick SearchArea) : DeliveryLeg
+{
+	public Coord Position => SearchArea.SpawnPoints[0];
+}
 
 public sealed record DeliveryRoute
 {

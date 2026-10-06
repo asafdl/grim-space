@@ -5,6 +5,8 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
@@ -79,6 +81,45 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 		var sim = engine.CreateSimulation();
 
 		Assert.False(sim.TryEnqueue(wrongTurnIn));
+	}
+
+	[Fact]
+	public void CompleteSpaceMeetingLeg_ResumesSimulation()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		var contract = ContractFactory.Create(
+			map,
+			EContractKind.Delivery,
+			new DeliveryCreateArgs(
+				map.Blueprint.SupplyPlan.StoragePoiId,
+				EDangerLevel.Moderate,
+				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				Generation: new DeliveryGenerationConfig(2, spaceMeetingChance: 1.0)));
+		var meeting = Assert.IsType<SpaceMeetingDeliveryLeg>(
+			((DeliveryObjective)contract.Objective).Route.Legs[0]);
+		var engine = new Engine<StarMap, ActorRuntime>(
+			map,
+			new ActorRuntimes<ActorRuntime>());
+		engine.Commit(ContractActionTestContext.AcceptDelivery(
+			map,
+			State.PlayerFleetUnitId,
+			contract.Id));
+		new PlayerInputEffect(true).Apply(
+			map,
+			engine.ActorRuntimes.For(State.PlayerFleetUnitId),
+			State.PlayerFleetUnitId);
+
+		engine.Commit([new CompleteDeliveryFacilityLegAction(
+			State.PlayerFleetUnitId,
+			"",
+			"",
+			"",
+			contract.Id,
+			0,
+			meeting.MeetingId)]);
+
+		Assert.False(map.WaitingForPlayerInput);
 	}
 
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId, DeliveryObjective Delivery)

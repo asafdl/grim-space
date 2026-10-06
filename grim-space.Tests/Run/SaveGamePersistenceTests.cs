@@ -301,6 +301,25 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void DefaultRegistry_RoundTripsFleetSpawnerAction()
+	{
+		var map = StarMap.Create(42);
+		var fleet = map.FleetRegistry.All.First();
+		var action = new MaintainFleetSpawnerAction(
+			"fleet-spawner",
+			0,
+			[new FleetSpawnerAddition(fleet)]);
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var restored = Assert.IsType<MaintainFleetSpawnerAction>(
+			registry.Read(registry.Write(action)));
+
+		var restoredFleet = Assert.Single(restored.Additions).Fleet;
+		Assert.Equal(fleet.State.Id, restoredFleet.State.Id);
+		Assert.Equal(fleet.Members.Select(member => member.Id), restoredFleet.Members.Select(member => member.Id));
+	}
+
+	[Fact]
 	public void DefaultRegistry_RoundTripsResolveEngagementAction()
 	{
 		var registry = PersistenceRegistry.CreateDefault();
