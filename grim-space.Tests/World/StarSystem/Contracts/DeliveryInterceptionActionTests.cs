@@ -442,7 +442,10 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		Assert.Null(player.State.CurrentEngagement);
 		Assert.Equal(
 			new FleetPursuitChanged(pirateId, playerId, false),
-			Assert.IsType<Record<FleetPursuitChanged>>(Assert.Single(records)).Value);
+			Assert.Single(records.OfType<Record<FleetPursuitChanged>>()).Value);
+		Assert.Equal(
+			new ContractStateChanged(contractId, playerId, EContractStatus.Completed),
+			Assert.Single(records.OfType<Record<ContractStateChanged>>()).Value);
 		Assert.True(map.Timeline.ContainsPending(action =>
 			action is ReturnToPatrolAction patrol && patrol.ActorId == pirateId));
 

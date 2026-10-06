@@ -36,6 +36,8 @@ public sealed class TutorialPresentationBinding : IDisposable
 		_lastPresentedStep = null;
 	}
 
+	public void ClearWorldLinkIndicator() => _worldLinks.ClearIndicator();
+
 	private void OnFlowCompleted(TutorialFlow _)
 	{
 		_dialog.Close();

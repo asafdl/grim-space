@@ -116,7 +116,7 @@ public static class CommitBattleOutcomeRules
 		{
 			(true, false) => EBattleResult.Win,
 			(false, true) => EBattleResult.Lose,
-			(false, false) => EBattleResult.Tie,
+			(false, false) => EBattleResult.Lose,
 			_ => EBattleResult.Ongoing,
 		};
 	}

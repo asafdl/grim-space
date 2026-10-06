@@ -246,7 +246,6 @@ public partial class MapController : Node3D
 		_worldIndicator = worldIndicators;
 		_objectivesLinks = new WorldLinkNavigator(_worldFocus, _worldIndicator);
 		_strategicHud.Objectives.LandmarkLinkClicked += OnObjectiveLandmarkLinkClicked;
-		_strategicHud.Objectives.DismissRequested += OnObjectiveDismissRequested;
 
 		var narrativeHud = new NarrativeHudOverlay();
 		_uiLayer.AddChild(narrativeHud);
@@ -362,7 +361,6 @@ public partial class MapController : Node3D
 		if (_objectivesLinks is not null)
 		{
 			_strategicHud.Objectives.LandmarkLinkClicked -= OnObjectiveLandmarkLinkClicked;
-			_strategicHud.Objectives.DismissRequested -= OnObjectiveDismissRequested;
 			_objectivesLinks.Dispose();
 			_objectivesLinks = null;
 		}
@@ -664,9 +662,19 @@ public partial class MapController : Node3D
 
 		if (currentModeId == OverviewPresentationMode.ModeId)
 			_orchestrator.SetStepped();
-		else if (previousModeId == OverviewPresentationMode.ModeId
-			&& currentModeId == CinematicPresentationMode.ModeId)
-			_orchestrator.SetRunning();
+		else if (previousModeId == OverviewPresentationMode.ModeId)
+		{
+			ClearHyperlinkWorldIndicators();
+			if (currentModeId == CinematicPresentationMode.ModeId)
+				_orchestrator.SetRunning();
+		}
+	}
+
+	private void ClearHyperlinkWorldIndicators()
+	{
+		_objectivesLinks?.ClearIndicator();
+		_narrative.ClearWorldLinkIndicator();
+		_mapTutorialBinding?.ClearWorldLinkIndicator();
 	}
 
 	private PlayerTravelSample ResolvePlayerTravelSample()
@@ -822,16 +830,6 @@ public partial class MapController : Node3D
 		var result = _objectivesLinks.Follow(objectId);
 		if (result is not WorldLinkNavigationResult.Followed)
 			GD.PushWarning($"Objective landmark link '{objectId}' failed: {result.GetType().Name}.");
-	}
-
-	private void OnObjectiveDismissRequested(string contractId)
-	{
-		if (_orchestrator.TryCommitPlayerInput(new DismissContractAction(
-			State.PlayerFleetUnitId,
-			contractId)))
-			return;
-
-		GD.PushWarning($"Unable to dismiss contract '{contractId}'.");
 	}
 
 	private static bool ShouldInitializeTutorials() =>

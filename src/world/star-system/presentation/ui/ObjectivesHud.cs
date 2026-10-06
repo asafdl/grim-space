@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -8,6 +9,12 @@ public partial class ObjectivesHud : MarginContainer
 {
 	private const int ObjectiveTitleFontSize = 18;
 	private const int ObjectiveSummaryFontSize = 16;
+	private const float TransientBadgeHoldSeconds = 4f;
+	private const float TransientBadgeFadeSeconds = 1.5f;
+
+	private static readonly Color NewBadgeColor = new(0.45f, 0.95f, 0.55f);
+	private static readonly Color CompletedBadgeColor = new(0.45f, 0.95f, 0.55f);
+	private static readonly Color FailedBadgeColor = new(0.95f, 0.42f, 0.38f);
 
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
@@ -15,8 +22,10 @@ public partial class ObjectivesHud : MarginContainer
 	private PanelContainer _dismissPopup = null!;
 	private Label _dismissPopupLabel = null!;
 	private readonly Dictionary<string, PanelContainer> _entries = new(StringComparer.Ordinal);
+	private readonly HashSet<string> _lingeringObjectiveIds = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, DeadlineBadge> _deadlineBadges = new(StringComparer.Ordinal);
 	private string _lastSignature = "";
+	private int _activeObjectiveCount;
 	private string? _dismissContractId;
 
 	public event Action<string>? LandmarkLinkClicked;
@@ -31,39 +40,90 @@ public partial class ObjectivesHud : MarginContainer
 	public void Sync(IReadOnlyList<ActiveObjective> objectives)
 	{
 		var signature = BuildSignature(objectives);
-		if (signature == _lastSignature)
+		if (signature != _lastSignature)
 		{
-			SyncDeadlineBadges(objectives);
-			return;
+			_lastSignature = signature;
+			RebuildActiveEntries(objectives);
 		}
+		else
+			SyncDeadlineBadges(objectives);
 
-		_lastSignature = signature;
-		RebuildEntries(objectives);
+		_activeObjectiveCount = objectives.Count;
+		RefreshListChrome();
 		if (_dismissContractId is not null
 			&& !objectives.Any(objective => objective.Id == _dismissContractId))
 			CloseDismissConfirmation();
 	}
 
-	public void NotifyAccepted(string contractId)
+	public void NotifyContractStateChanged(string objectiveId, EContractStatus status)
 	{
-		if (!_entries.TryGetValue(contractId, out var panel))
-		{
-			GD.PushError($"Accepted contract '{contractId}' has no objective entry.");
+		if (!_entries.TryGetValue(objectiveId, out var panel))
 			return;
+
+		string text;
+		Color color;
+		var terminal = false;
+		switch (status)
+		{
+			case EContractStatus.Active:
+				text = "NEW";
+				color = NewBadgeColor;
+				break;
+			case EContractStatus.Completed:
+				text = "COMPLETED";
+				color = CompletedBadgeColor;
+				terminal = true;
+				break;
+			case EContractStatus.Failed:
+				text = "FAILED";
+				color = FailedBadgeColor;
+				terminal = true;
+				break;
+			default:
+				return;
+		}
+
+		var row = (HBoxContainer)panel.GetChild(0);
+		if (terminal)
+		{
+			_entries.Remove(objectiveId);
+			_deadlineBadges.Remove(objectiveId);
+			_lingeringObjectiveIds.Add(objectiveId);
+			foreach (var child in row.GetChildren())
+			{
+				if (child is Button)
+					child.QueueFree();
+			}
 		}
 
 		var badge = new Label
 		{
-			Text = "NEW",
+			Text = text,
 			MouseFilter = MouseFilterEnum.Ignore,
 			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
 		};
-		badge.AddThemeColorOverride("font_color", new Color(0.45f, 0.95f, 0.55f));
-		((HBoxContainer)panel.GetChild(0)).AddChild(badge);
+		badge.AddThemeColorOverride("font_color", color);
+		row.AddChild(badge);
+
 		var tween = CreateTween();
-		tween.TweenInterval(4f);
-		tween.TweenProperty(badge, "modulate:a", 0f, 1.5f);
-		tween.Finished += badge.QueueFree;
+		tween.TweenInterval(TransientBadgeHoldSeconds);
+		tween.TweenProperty(
+			terminal ? panel : badge,
+			"modulate:a",
+			0f,
+			TransientBadgeFadeSeconds);
+		tween.Finished += () =>
+		{
+			if (!terminal)
+			{
+				badge.QueueFree();
+				return;
+			}
+
+			_lingeringObjectiveIds.Remove(objectiveId);
+			panel.QueueFree();
+			RefreshListChrome();
+		};
 	}
 
 	private void ConfigureChrome()
@@ -109,16 +169,12 @@ public partial class ObjectivesHud : MarginContainer
 		AddChild(_dismissPopup);
 	}
 
-	private void RebuildEntries(IReadOnlyList<ActiveObjective> objectives)
+	private void RebuildActiveEntries(IReadOnlyList<ActiveObjective> objectives)
 	{
-		foreach (var child in _entriesHost.GetChildren())
-			child.QueueFree();
+		foreach (var panel in _entries.Values)
+			panel.QueueFree();
 		_entries.Clear();
 		_deadlineBadges.Clear();
-
-		_emptyLabel.Visible = objectives.Count == 0;
-		_entriesHost.Visible = objectives.Count > 0;
-		_headerCountLabel.Text = $"{objectives.Count:D2}";
 
 		for (var index = 0; index < objectives.Count; index++)
 		{
@@ -126,6 +182,14 @@ public partial class ObjectivesHud : MarginContainer
 			_entries[objectives[index].Id] = panel;
 			_entriesHost.AddChild(panel);
 		}
+	}
+
+	private void RefreshListChrome()
+	{
+		var visibleEntries = _activeObjectiveCount + _lingeringObjectiveIds.Count;
+		_emptyLabel.Visible = visibleEntries == 0;
+		_entriesHost.Visible = visibleEntries > 0;
+		_headerCountLabel.Text = $"{_activeObjectiveCount:D2}";
 	}
 
 	private PanelContainer WrapEntry(Control content)

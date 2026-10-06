@@ -115,6 +115,8 @@ public sealed class NarrativeController : IDisposable
 
 	private void ClearIndicator() => _worldLinks.Clear();
 
+	public void ClearWorldLinkIndicator() => _worldLinks.ClearIndicator();
+
 	public void Dispose()
 	{
 		ClearIndicator();

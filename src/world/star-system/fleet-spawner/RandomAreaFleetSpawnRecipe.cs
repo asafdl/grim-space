@@ -48,7 +48,8 @@ public static class RandomAreaFleetSpawnRecipe
 			EFaction.Pirates,
 			seed,
 			EncounterBudgetRoller.Roll(map.Seed, id, "random-area-fleet", danger),
-			PatrolRadius);
+			PatrolRadius,
+			AggressionRatingOverride: tick <= FleetSpawnerConfig.DefaultCadenceTicks ? 0 : null);
 		fleet = MapFleetFactory.CreatePatrolFleet(spec, coord, id, id);
 		fleet.State.SpawnerSource = EFleetSpawnerSource.RandomArea;
 		fleet.State.FleetSpawnerExpiresAtTick = expiresAtTick;

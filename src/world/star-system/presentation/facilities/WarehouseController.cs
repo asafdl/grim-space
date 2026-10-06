@@ -15,7 +15,6 @@ public partial class WarehouseController : Control
 	private StarSystemOrchestrator _orchestrator = null!;
 	private CanvasLayer _contractHudLayer = null!;
 	private ContractHudOverlay _contractHud = null!;
-	private StrategicHud _strategicHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -37,7 +36,6 @@ public partial class WarehouseController : Control
 		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		_strategicHud = GetNode<StrategicHud>("StrategicHud");
 		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
@@ -133,7 +131,6 @@ public partial class WarehouseController : Control
 
 		_contractHud.SyncMap(_orchestrator.Map);
 		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
-		_strategicHud.NotifyContractAccepted(contractId);
 		UpdateBackButton();
 	}
 

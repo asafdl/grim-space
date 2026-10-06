@@ -5,6 +5,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
+using GrimSpace.Battle.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Objectives;
@@ -62,6 +63,19 @@ public sealed class BattleOutcomeCommitTests
 		Assert.Equal(EBattleResult.Lose, battle.Engine.World.battleResult);
 		Assert.NotNull(received);
 		Assert.Equal(enemyHp, battle.Engine.World.StateOf(enemyId).HullPoints);
+	}
+
+	[Fact]
+	public void Draw_IsCommittedAsLoss()
+	{
+		using var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
+		foreach (var unit in UnitRegistry.For(battle.Engine.World).All)
+			unit.State.HullPoints = 0;
+		BattleTestFixture.ResetPlayerPlanning(battle);
+
+		BattleTestActions.CommitAndResolve(battle);
+
+		Assert.Equal(EBattleResult.Lose, battle.Engine.World.battleResult);
 	}
 
 	[Fact]

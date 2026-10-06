@@ -16,9 +16,21 @@ public sealed class ActivateContractEffect : IEffect<StarMap, ActorRuntime>
 		if (!world.ContractRegistry.Activate(_state))
 			return [];
 
-		if (world.ContractRegistry.TryGetState(_state.ContractId, out var activated))
-			ContractDeliveryRoleSupport.OnContractActivated(world, activated);
-		return [];
+		if (!world.ContractRegistry.TryGetState(_state.ContractId, out var activated))
+			return [];
+
+		ContractDeliveryRoleSupport.OnContractActivated(world, activated);
+		if (activated.Status != EContractStatus.Active
+			|| string.IsNullOrEmpty(activated.HolderUnitId))
+			return [];
+
+		return
+		[
+			new Record<ContractStateChanged>(new ContractStateChanged(
+				activated.ContractId,
+				activated.HolderUnitId,
+				EContractStatus.Active)),
+		];
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId)

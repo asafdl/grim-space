@@ -245,8 +245,7 @@ public sealed class TutorialController : IDisposable
 			return;
 
 		_state.BeatBContractId = TutorialBeatContracts.OfferBeatB(_orchestrator.Map);
-		_orchestrator.Map.StoryObjectives.Add(
-			StoryObjective.BeatBContract(_state.BeatBContractId));
+		_orchestrator.Map.StoryObjectives.Add(StoryObjective.BeatBContract(_state.BeatBContractId));
 		GameLog.Log(
 			$"Tutorial Beat B offered: beatAContractId='{beatAId}', "
 			+ $"beatBContractId='{_state.BeatBContractId}'.");
@@ -298,4 +297,5 @@ public sealed class TutorialController : IDisposable
 		_narrativeCompletionSubscription?.Dispose();
 		CancelActive();
 	}
+
 }

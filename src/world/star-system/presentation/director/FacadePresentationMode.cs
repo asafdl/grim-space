@@ -274,11 +274,8 @@ public sealed class FacadePresentationMode : IPresentationMode
 			if (!MapScreenAnchor.TryProject(camera, anchorWorld, out anchorScreens[i]))
 				continue;
 
-			var iconWorld = anchorWorld + Vector3.Up * FacilityFacadeCallout.IconFloatHeight;
-			if (camera.IsPositionBehind(iconWorld))
-				continue;
-
-			naturalCenters[i] = camera.UnprojectPosition(iconWorld);
+			naturalCenters[i] = anchorScreens[i]
+				+ Vector2.Up * FacilityFacadeCallout.IconFloatPixels;
 			visible[i] = true;
 		}
 
