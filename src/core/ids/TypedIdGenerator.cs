@@ -4,9 +4,9 @@ namespace GrimSpace.Core.Ids;
 
 public static class TypedIdGenerator
 {
-	private static readonly UniqueName InstanceNames = new UniqueName(Adjectives.WordList, Animals.WordList)
+	private static readonly UniqueName InstanceNames = new UniqueName(Adjectives.WordList, [Animals.WordList, Colors.WordList])
 		.Separator("-")
-		.Format(Style.LowerCase);
+		.Format(Style.LowerCase); 
 
 	public static string NextInstanceSlug() => InstanceNames.Generate();
 
