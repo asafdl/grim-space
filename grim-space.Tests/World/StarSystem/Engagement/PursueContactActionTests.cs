@@ -1,3 +1,4 @@
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -118,6 +119,78 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
 		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
 		Assert.False(orchestrator.Map.StateOf(playerId).TravelTarget.IsActive);
+	}
+
+	[Fact]
+	public void Commit_PirateEngagementPursuitUsesOneAndHalfSpeed()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var pirateId = AddPirate(map, "pirate-a", new Coord(20, 0, 20));
+		var pirate = map.FleetRegistry.FleetOf(pirateId);
+		var destination = map.DocksById[
+			map.StateOf(RunState.PlayerFleetUnitId).DockedAtDockId].Position;
+		var path = TransitPath.FromPoints(
+			[pirate.State.IdleCoord, destination],
+			[1.0, 1.0]);
+		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
+		var runtime = actorRuntimes.For(pirateId);
+		actorRuntimes.For(RunState.PlayerFleetUnitId);
+		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
+		var pursuitChanges = new List<FleetPursuitChanged>();
+		using var subscription = engine.Subscribe<Record<FleetPursuitChanged>>(
+			record => pursuitChanges.Add(record.Value));
+
+		var action = new PursueContactAction(
+			pirateId,
+			new FleetContactTarget(RunState.PlayerFleetUnitId),
+			destination,
+			path,
+			EContactIntent.Engagement);
+		engine.Commit(action);
+		engine.Commit(action);
+
+		var committedPath = Assert.IsType<TransitPath>(runtime.CachedPath);
+		Assert.Equal(
+			path.TicksRequired(pirate.State.SpeedPerTick * 1.5),
+			committedPath.TicksRequired(pirate.State.SpeedPerTick),
+			10);
+		Assert.Equal(
+			pirate.State.SpeedPerTick * PathfindingCell.RouteSpeedCeiling * 1.5,
+			EngagementQueries.MaximumTravelSpeed(pirate.State),
+			10);
+		Assert.Equal(
+			new FleetPursuitChanged(pirateId, RunState.PlayerFleetUnitId, true),
+			Assert.Single(pursuitChanges));
+	}
+
+	[Fact]
+	public void Commit_PlayerEngagementPursuitKeepsBaseSpeed()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var pirateId = AddPirate(map, "pirate-a", new Coord(20, 0, 20));
+		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var origin = map.DocksById[player.State.DockedAtDockId].Position;
+		var destination = map.StateOf(pirateId).IdleCoord;
+		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
+		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
+		var runtime = actorRuntimes.For(RunState.PlayerFleetUnitId);
+		actorRuntimes.For(pirateId);
+		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
+
+		engine.Commit(new PursueContactAction(
+			RunState.PlayerFleetUnitId,
+			new FleetContactTarget(pirateId),
+			destination,
+			path,
+			EContactIntent.Engagement));
+
+		Assert.Same(path, runtime.CachedPath);
+		Assert.Equal(
+			player.State.SpeedPerTick * PathfindingCell.RouteSpeedCeiling,
+			EngagementQueries.MaximumTravelSpeed(player.State),
+			10);
 	}
 
 	private (StarSystemOrchestrator orchestrator, string playerId, string pirateId) CreateScenario()

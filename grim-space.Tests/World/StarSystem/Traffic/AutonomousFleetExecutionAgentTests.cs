@@ -12,7 +12,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 namespace GrimSpace.Tests.World.StarSystem.Traffic;
 
 [StarSystemTestSuite]
-public sealed class PatrolExecutionAgentTests(StarMapFixture maps)
+public sealed class AutonomousFleetExecutionAgentTests(StarMapFixture maps)
 {
 	private static readonly Coord PatrolOrigin = new(-1000, 0, -1000);
 
@@ -106,6 +106,73 @@ public sealed class PatrolExecutionAgentTests(StarMapFixture maps)
 			unit.State.PatrolRadius);
 	}
 
+	[Fact]
+	public void ReturnToPatrolAction_ReplacesPursuitJourneyAndResumesPatrolOnArrival()
+	{
+		var map = maps.Fresh(42);
+		var patrolOrigin = FindPatrolOrigin(map, radius: 8);
+		var pursuitDestination = map.DocksById.Values.First().Position;
+		const string unitId = "returning-patrol";
+		var unit = Factory.Create(
+			new Spawn(
+				unitId,
+				EType.PirateFleet,
+				"",
+				patrolOrigin,
+				5.0,
+				1.0,
+				1.0,
+				[],
+				PatrolRadius: 8),
+			[BattleUnitType.RepurposedMiner]);
+		map.FleetRegistry.Add(unit);
+		var orchestrator = StarSystemOrchestrator.FromMap(map, new StraightLinePathfinder());
+		var runtime = orchestrator.RuntimeFor(unitId);
+		var pursuitPath = Assert.IsType<PathfindingResult.Found>(
+			new GridPathfinder(map.PathfindingTerrain)
+				.FindPath(patrolOrigin, pursuitDestination)).Path
+			.WithSpeedMultiplier(1.5);
+		runtime.CachedPath = pursuitPath;
+		unit.State.StartJourney(1, patrolOrigin, pursuitDestination, orchestrator.Tick);
+		var pursuitCompletion = new CompleteMoveAction(unitId, unitId, 1);
+		var pursuitDuration = pursuitPath.DurationTicks(unit.State.SpeedPerTick);
+		map.Timeline.Schedule(pursuitDuration, pursuitCompletion);
+		runtime.TrackPendingCompletion(
+			pursuitCompletion,
+			orchestrator.Tick + pursuitDuration);
+		map.Timeline.Schedule(1, new ReturnToPatrolAction(unitId));
+
+		orchestrator.AdvanceTick();
+
+		var returnJourneyId = unit.State.Journey.JourneyId;
+		Assert.Equal(patrolOrigin, unit.State.Journey.Destination);
+		Assert.NotEqual(patrolOrigin, unit.State.Journey.Origin);
+		var returnDuration = runtime.CachedPath!.DurationTicks(unit.State.SpeedPerTick);
+
+		orchestrator.AdvanceTicks(returnDuration);
+
+		Assert.Equal(EPhase.InTransit, unit.State.Phase);
+		Assert.True(unit.State.Journey.JourneyId > returnJourneyId);
+		Assert.Equal(patrolOrigin, unit.State.Journey.Origin);
+		Assert.NotEqual(patrolOrigin, unit.State.Journey.Destination);
+	}
+
+	private static Coord FindPatrolOrigin(StarMap map, int radius)
+	{
+		for (var z = radius; z < map.Height - radius; z++)
+		{
+			for (var x = radius; x < map.Width - radius; x++)
+			{
+				var candidate = new Coord(x, 0, z);
+				if (map.PathfindingTerrain.IsCircleTraversable(candidate, radius)
+					&& !map.DocksByPosition.ContainsKey(candidate))
+					return candidate;
+			}
+		}
+
+		throw new InvalidOperationException("Map has no traversable patrol area.");
+	}
+
 	private static void AssertMinimumPatrolDistance(Coord origin, Coord destination, int radius)
 	{
 		var displacement = destination - origin;
@@ -115,7 +182,7 @@ public sealed class PatrolExecutionAgentTests(StarMapFixture maps)
 	}
 
 	private static (
-		PatrolExecutionAgent Agent,
+		AutonomousFleetExecutionAgent Agent,
 		ActionBatchSink Sink,
 		Engine<StarMap, ActorRuntime> Engine,
 		Fleet Unit) CreateAgent(StarMap map)
@@ -126,7 +193,7 @@ public sealed class PatrolExecutionAgentTests(StarMapFixture maps)
 		actorRuntimes.For(unitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		var sink = new ActionBatchSink();
-		var agent = new PatrolExecutionAgent(
+		var agent = new AutonomousFleetExecutionAgent(
 			() => engine.World,
 			id => engine.ActorRuntimes.For(id),
 			new StraightLinePathfinder());

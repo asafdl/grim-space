@@ -12,7 +12,8 @@ public static class FleetSpawnerQueries
 			fleet.State.SpawnerSource == source
 			&& (fleet.State.FleetSpawnerExpiresAtTick > tick
 				|| (fleet.State.FleetSpawnerExpiresAtTick <= tick
-					&& fleet.State.CurrentEngagement is not null)));
+					&& (fleet.State.CurrentEngagement is not null
+						|| fleet.State.PursuitDirective is not null))));
 
 	public static IReadOnlyList<string> DueForExpiry(
 		FleetRegistry registry,
@@ -22,7 +23,8 @@ public static class FleetSpawnerQueries
 			.Where(fleet =>
 				fleet.State.SpawnerSource == source
 				&& fleet.State.FleetSpawnerExpiresAtTick <= tick
-				&& fleet.State.CurrentEngagement is null)
+				&& fleet.State.CurrentEngagement is null
+				&& fleet.State.PursuitDirective is null)
 			.Select(fleet => fleet.State.Id)
 			.ToArray();
 }

@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Log;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
@@ -45,7 +46,11 @@ public sealed class ReachContactEffect : IEffect<StarMap, Runtime.ActorRuntime>
 			$"[star-map] contact reached initiator={_initiatorId} target={_targetId} " +
 			$"initiatorPhase={EngagementState.Phase(initiator)} targetPhase={targetPhase}");
 
-		return [];
+		return
+		[
+			new Record<FleetPursuitChanged>(
+				new FleetPursuitChanged(_initiatorId, _targetId, false)),
+		];
 	}
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }

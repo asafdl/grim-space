@@ -1,16 +1,13 @@
 using System.Collections.Immutable;
-using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Agents;
 
-public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
+public sealed class PatrolPlanner
 {
 	private const int MinimumJourneyTicks = 2;
 	private const int WaypointsPerRoute = 4;
@@ -18,9 +15,8 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, ActorRuntime> _runtimeFor;
 	private readonly IPathfinder _pathfinder;
-	private readonly HostileContactPlanner _hostileContactPlanner;
 
-	public PatrolExecutionAgent(
+	public PatrolPlanner(
 		Func<StarMap> world,
 		Func<string, ActorRuntime> runtimeFor,
 		IPathfinder pathfinder)
@@ -28,40 +24,13 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 		_world = world;
 		_runtimeFor = runtimeFor;
 		_pathfinder = pathfinder;
-		_hostileContactPlanner = new HostileContactPlanner(world, runtimeFor, pathfinder);
 	}
 
-	public void PlanAndPublish()
+	public MoveAction? Plan(string actorId)
 	{
-		if (!_canWork || _actorId is null)
-			return;
-
-		ClearBatchInFlight();
 		var world = _world();
-		var state = world.FleetRegistry.FleetOf(_actorId).State;
-		var runtime = _runtimeFor(_actorId);
-		if (state.CurrentEngagement is not null
-			|| runtime.ActionCooldownUntilTick > world.Timeline.Clock.Current)
-			return;
-
-		var hostileReaction = _hostileContactPlanner.Plan(_actorId);
-		if (hostileReaction is not null)
-		{
-			Publish([hostileReaction]);
-			return;
-		}
-
-		var action = PlanFromSettledState();
-		if (action is not null)
-			Publish([action]);
-	}
-
-	private MoveAction? PlanFromSettledState()
-	{
-		var unitId = _actorId!;
-		var world = _world();
-		var runtime = _runtimeFor(unitId);
-		var fleet = world.FleetRegistry.FleetOf(unitId);
+		var runtime = _runtimeFor(actorId);
+		var fleet = world.FleetRegistry.FleetOf(actorId);
 		var state = fleet.State;
 
 		if (state.PatrolRadius <= 0
@@ -87,7 +56,7 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 		}
 
 		var route = new TransitPath(routeLegs.ToImmutableArray());
-		var move = new MoveAction(unitId, unitId, legStart, route);
+		var move = new MoveAction(actorId, actorId, legStart, route);
 		return MoveDef.Instance.IsLegal(move, world, runtime) ? move : null;
 	}
 
@@ -111,7 +80,7 @@ public sealed class PatrolExecutionAgent : ExecutionAgent<StarMap, ActorRuntime>
 		return null;
 	}
 
-	private static IEnumerable<Coord> PatrolDestinations(
+	internal static IEnumerable<Coord> PatrolDestinations(
 		State state,
 		StarMap world,
 		Coord current,

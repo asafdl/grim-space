@@ -469,7 +469,7 @@ public static class SaveDtoMapper
 				fleet.State.WorkStartTick, fleet.State.SpawnWorkPoiId,
 				fleet.State.SpawnWorkRemainingTicks, fleet.State.CurrentEngagement,
 				fleet.State.SpawnerSource, fleet.State.FleetSpawnerExpiresAtTick,
-				fleet.State.SourceContractId,
+				fleet.State.SourceContractId, fleet.State.PursuitDirective,
 				fleet.State.Journey.JourneyId, fleet.State.Journey.Origin,
 				fleet.State.Journey.Destination, fleet.State.Journey.StartTick,
 				fleet.State.TravelTarget, fleet.State.PendingWreckContractId,
@@ -495,6 +495,7 @@ public static class SaveDtoMapper
 			FleetSpawnerExpiresAtTick = state.FleetSpawnerExpiresAtTick,
 			SourceContractId = state.SourceContractId,
 		};
+		restored.PursuitDirective = state.PursuitDirective;
 		restored.SpawnWorkPoiId = state.SpawnWorkPoiId;
 		restored.SpawnWorkRemainingTicks = state.SpawnWorkRemainingTicks;
 		restored.CurrentEngagement = state.CurrentEngagement;
@@ -570,7 +571,10 @@ public static class SaveDtoMapper
 		{
 			var restoredRoute = JsonSerializer.Deserialize<DeliveryRoute>(route, options)
 				?? throw new InvalidDataException("Delivery route is missing.");
-			return new DeliveryObjective(restoredRoute);
+			var config = payload.TryGetProperty("config", out var configPayload)
+				? JsonSerializer.Deserialize<DeliveryGenerationConfig>(configPayload, options)
+				: null;
+			return new DeliveryObjective(restoredRoute, config);
 		}
 
 		return new DeliveryObjective(
@@ -653,7 +657,8 @@ public static class SaveDtoMapper
 		int AggressionRating = 0,
 		EFleetSpawnerSource SpawnerSource = EFleetSpawnerSource.None,
 		int? FleetSpawnerExpiresAtTick = null,
-		string? SourceContractId = null);
+		string? SourceContractId = null,
+		FleetPursuitDirective? PursuitDirective = null);
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,

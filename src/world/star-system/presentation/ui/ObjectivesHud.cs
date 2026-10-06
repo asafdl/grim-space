@@ -15,6 +15,7 @@ public partial class ObjectivesHud : MarginContainer
 	private PanelContainer _dismissPopup = null!;
 	private Label _dismissPopupLabel = null!;
 	private readonly Dictionary<string, PanelContainer> _entries = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, DeadlineBadge> _deadlineBadges = new(StringComparer.Ordinal);
 	private string _lastSignature = "";
 	private string? _dismissContractId;
 
@@ -31,7 +32,10 @@ public partial class ObjectivesHud : MarginContainer
 	{
 		var signature = BuildSignature(objectives);
 		if (signature == _lastSignature)
+		{
+			SyncDeadlineBadges(objectives);
 			return;
+		}
 
 		_lastSignature = signature;
 		RebuildEntries(objectives);
@@ -110,6 +114,7 @@ public partial class ObjectivesHud : MarginContainer
 		foreach (var child in _entriesHost.GetChildren())
 			child.QueueFree();
 		_entries.Clear();
+		_deadlineBadges.Clear();
 
 		_emptyLabel.Visible = objectives.Count == 0;
 		_entriesHost.Visible = objectives.Count > 0;
@@ -184,6 +189,13 @@ public partial class ObjectivesHud : MarginContainer
 		summary.AddThemeFontSizeOverride("normal_font_size", ObjectiveSummaryFontSize);
 		summary.MetaClicked += metadata => OnSummaryMetaClicked(metadata);
 		details.AddChild(summary);
+		if (objective.Deadline is { } deadline)
+		{
+			var deadlineBadge = new DeadlineBadge();
+			deadlineBadge.Sync(deadline);
+			_deadlineBadges[objective.Id] = deadlineBadge;
+			details.AddChild(deadlineBadge);
+		}
 		row.AddChild(details);
 
 		if (objective.Source == EObjectiveSource.Contract && !objective.Reward.IsEmpty)
@@ -204,6 +216,73 @@ public partial class ObjectivesHud : MarginContainer
 		}
 
 		return row;
+	}
+
+	private void SyncDeadlineBadges(IReadOnlyList<ActiveObjective> objectives)
+	{
+		foreach (var objective in objectives)
+		{
+			if (objective.Deadline is { } deadline
+				&& _deadlineBadges.TryGetValue(objective.Id, out var badge))
+				badge.Sync(deadline);
+		}
+	}
+
+	private sealed partial class DeadlineBadge : PanelContainer
+	{
+		private readonly Label _value;
+		private int _ticksRemaining = -1;
+		private bool _warning;
+		private bool _initialized;
+
+		public DeadlineBadge()
+		{
+			MouseFilter = MouseFilterEnum.Ignore;
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+
+			var content = new HBoxContainer
+			{
+				MouseFilter = MouseFilterEnum.Ignore,
+			};
+			content.AddThemeConstantOverride("separation", 6);
+			AddChild(content);
+
+			content.AddChild(new Label
+			{
+				Text = "DEADLINE",
+				MouseFilter = MouseFilterEnum.Ignore,
+				ThemeTypeVariation = HudStyles.ObjectiveDeadlineCaptionLabelType,
+			});
+
+			_value = new Label
+			{
+				MouseFilter = MouseFilterEnum.Ignore,
+				ThemeTypeVariation = HudStyles.ObjectiveDeadlineValueLabelType,
+			};
+			content.AddChild(_value);
+		}
+
+		public void Sync(ObjectiveDeadline deadline)
+		{
+			if (_initialized && _ticksRemaining == deadline.TicksRemaining)
+				return;
+
+			_ticksRemaining = deadline.TicksRemaining;
+			_value.Text = $"T-{deadline.TicksRemaining:D4}";
+
+			var warning = deadline.TicksRemaining <= 10;
+			if (_initialized && _warning == warning)
+				return;
+
+			_initialized = true;
+			_warning = warning;
+			ThemeTypeVariation = warning
+				? HudStyles.ObjectiveDeadlineWarningPanelType
+				: HudStyles.ObjectiveDeadlinePanelType;
+			_value.ThemeTypeVariation = warning
+				? HudStyles.ObjectiveDeadlineWarningValueLabelType
+				: HudStyles.ObjectiveDeadlineValueLabelType;
+		}
 	}
 
 	private PanelContainer BuildDismissPopup()
@@ -340,6 +419,10 @@ public partial class ObjectivesHud : MarginContainer
 			objective.Reward
 				.OrderBy(entry => entry.Key)
 				.Select(entry => $"{entry.Key}:{entry.Value}"));
-		return $"{objective.Source}:{objective.Id}:{objective.Title}:{summarySignature}:{rewardSignature}";
+		var deadlineSignature = objective.Deadline is { } deadline
+			? $"{deadline.Tick}"
+			: "none";
+		return $"{objective.Source}:{objective.Id}:{objective.Title}:{summarySignature}:" +
+			$"{rewardSignature}:{deadlineSignature}";
 	}
 }

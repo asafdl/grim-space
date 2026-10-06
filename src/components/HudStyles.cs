@@ -25,6 +25,11 @@ public static class HudStyles
 	public const string InformativeItemSeparatorLabelType = "InformativeItemSeparatorLabel";
 	public const string InformativeItemDescriptionLabelType = "InformativeItemDescriptionLabel";
 	public const string InformativeItemDescriptionRichTextLabelType = "InformativeItemDescriptionRichTextLabel";
+	public const string ObjectiveDeadlinePanelType = "ObjectiveDeadlinePanelContainer";
+	public const string ObjectiveDeadlineWarningPanelType = "ObjectiveDeadlineWarningPanelContainer";
+	public const string ObjectiveDeadlineCaptionLabelType = "ObjectiveDeadlineCaptionLabel";
+	public const string ObjectiveDeadlineValueLabelType = "ObjectiveDeadlineValueLabel";
+	public const string ObjectiveDeadlineWarningValueLabelType = "ObjectiveDeadlineWarningValueLabel";
 
 	public const string HudHeadingLabelType = "HudHeadingLabel";
 	public const string DebugHudPanelType = "DebugHudPanelContainer";

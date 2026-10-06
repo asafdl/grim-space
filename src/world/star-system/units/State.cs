@@ -33,6 +33,7 @@ public sealed class State
 	public EFleetSpawnerSource SpawnerSource { get; set; }
 	public int? FleetSpawnerExpiresAtTick { get; set; }
 	public string? SourceContractId { get; set; }
+	public FleetPursuitDirective? PursuitDirective { get; set; }
 
 	public bool IsReadyToDepart =>
 		!string.IsNullOrEmpty(DockedAtDockId)
@@ -150,6 +151,7 @@ public sealed class State
 			SpawnerSource = SpawnerSource,
 			FleetSpawnerExpiresAtTick = FleetSpawnerExpiresAtTick,
 			SourceContractId = SourceContractId,
+			PursuitDirective = PursuitDirective,
 		};
 		clone.CurrentEngagement = CurrentEngagement is null
 			? null
@@ -185,3 +187,8 @@ public sealed class State
 			SourceContractId = spawn.SourceContractId,
 		};
 }
+
+/// <summary>
+/// Ambient spawner fleet chasing a delivery holder without <see cref="State.SourceContractId"/>.
+/// </summary>
+public sealed record FleetPursuitDirective(string ContractId, string TargetFleetId);

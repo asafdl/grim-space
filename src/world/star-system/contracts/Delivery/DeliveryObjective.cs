@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts;
 
 namespace GrimSpace.World.StarSystem.Contracts.Objectives;
 
@@ -38,6 +39,7 @@ public sealed record DeliveryRoute
 public sealed record DeliveryObjective : IContractObjective
 {
 	public DeliveryRoute Route { get; }
+	public DeliveryGenerationConfig Config { get; }
 
 	// Kept as compatibility projections for existing callers and legacy saves.
 	public string TurnInPoiId => FinalFacility.PoiId;
@@ -49,17 +51,22 @@ public sealed record DeliveryObjective : IContractObjective
 		string turnInPoiId,
 		string turnInFacilityId,
 		string turnInOperatorName)
-		: this(new DeliveryRoute(
-			[new FacilityDeliveryLeg(turnInPoiId, turnInFacilityId, turnInOperatorName)]))
+		: this(
+			new DeliveryRoute(
+				[new FacilityDeliveryLeg(turnInPoiId, turnInFacilityId, turnInOperatorName)]),
+			DeliveryGenerationConfig.Default)
 	{
 	}
 
-	public DeliveryObjective(DeliveryRoute route)
+	public DeliveryObjective(
+		DeliveryRoute route,
+		DeliveryGenerationConfig? config = null)
 	{
 		ArgumentNullException.ThrowIfNull(route);
 		if (route.Legs[^1] is not FacilityDeliveryLeg)
 			throw new ArgumentException("A delivery route must end at a facility.", nameof(route));
 		Route = route;
+		Config = config ?? DeliveryGenerationConfig.Default;
 	}
 
 	private FacilityDeliveryLeg FinalFacility =>

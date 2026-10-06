@@ -23,7 +23,8 @@ public static class ContractObjectiveProjection
 			title,
 			summary,
 			contract.Terms.Payment,
-			EObjectiveSource.Contract);
+			EObjectiveSource.Contract,
+			DeadlineFor(map, state));
 	}
 
 	public static ActiveObjective Project(
@@ -42,7 +43,21 @@ public static class ContractObjectiveProjection
 			FormatTitle(contract),
 			BuildSummary(map, contract, state),
 			contract.Terms.Payment,
-			EObjectiveSource.Contract);
+			EObjectiveSource.Contract,
+			DeadlineFor(map, state));
+	}
+
+	private static ObjectiveDeadline? DeadlineFor(StarMap map, ContractState? state)
+	{
+		if (state is not DeliveryContractState
+			{
+				Progress.DeadlineTick: int deadlineTick,
+			})
+			return null;
+
+		return new ObjectiveDeadline(
+			deadlineTick,
+			System.Math.Max(0, deadlineTick - map.Timeline.Clock.Current));
 	}
 
 	private static string FormatTitle(Contract contract)

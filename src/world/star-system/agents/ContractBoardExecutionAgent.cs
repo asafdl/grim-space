@@ -142,12 +142,11 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		switch (decision.Kind)
 		{
 			case EContractKind.Hunt:
-				contract = ContractFactory.Build(
+				return ContractFactory.TryBuildHunt(
 					map,
 					contractId,
-					EContractKind.Hunt,
-					BuildHuntArgs(map, decision.IssuerPoiId, danger, tick, slot));
-				return true;
+					BuildHuntArgs(map, decision.IssuerPoiId, danger, tick, slot),
+					out contract);
 			case EContractKind.Delivery:
 				contract = ContractFactory.Build(
 					map,

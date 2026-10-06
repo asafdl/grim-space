@@ -16,6 +16,7 @@ public partial class MapTimeControls : MarginContainer
 	private Texture2D _fastForwardIcon = null!;
 	private Button _pauseButton = null!;
 	private Button _speedButton = null!;
+	private PanelContainer _pursuitWarning = null!;
 
 	public event Action? PausePressed;
 	public event Action? SpeedPressed;
@@ -39,12 +40,21 @@ public partial class MapTimeControls : MarginContainer
 		};
 		AddChild(center);
 
+		var stack = new VBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		stack.AddThemeConstantOverride("separation", 6);
+		center.AddChild(stack);
+
 		var buttons = new HBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
+			Alignment = BoxContainer.AlignmentMode.Center,
 		};
 		buttons.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		center.AddChild(buttons);
+		stack.AddChild(buttons);
 
 		_pauseButton = CreateIconButton("Pause");
 		_pauseButton.Pressed += () => PausePressed?.Invoke();
@@ -53,6 +63,9 @@ public partial class MapTimeControls : MarginContainer
 		_speedButton = CreateSpeedButton();
 		_speedButton.Pressed += () => SpeedPressed?.Invoke();
 		buttons.AddChild(_speedButton);
+
+		_pursuitWarning = CreatePursuitWarning();
+		stack.AddChild(_pursuitWarning);
 	}
 
 	public void Sync(bool paused, float speed)
@@ -60,6 +73,27 @@ public partial class MapTimeControls : MarginContainer
 		_pauseButton.Icon = paused ? _playIcon : _pauseIcon;
 		_pauseButton.TooltipText = paused ? "Resume" : "Pause";
 		_speedButton.Text = FormatSpeed(speed);
+	}
+
+	public void SetEnemyInPursuit(bool visible) => _pursuitWarning.Visible = visible;
+
+	private static PanelContainer CreatePursuitWarning()
+	{
+		var panel = new PanelContainer
+		{
+			Visible = false,
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			ThemeTypeVariation = "PursuitWarningPanelContainer",
+		};
+		panel.AddChild(new Label
+		{
+			Text = "HOSTILE IN PURSUIT",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+			ThemeTypeVariation = "PursuitWarningLabel",
+		});
+		return panel;
 	}
 
 	private Button CreateIconButton(string tooltip)

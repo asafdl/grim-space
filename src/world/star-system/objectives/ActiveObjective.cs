@@ -8,9 +8,12 @@ public enum EObjectiveSource
 	Story,
 }
 
+public readonly record struct ObjectiveDeadline(int Tick, int TicksRemaining);
+
 public readonly record struct ActiveObjective(
 	string Id,
 	string Title,
 	ObjectiveSummaryContent Summary,
 	ResourceBundle Reward,
-	EObjectiveSource Source);
+	EObjectiveSource Source,
+	ObjectiveDeadline? Deadline = null);

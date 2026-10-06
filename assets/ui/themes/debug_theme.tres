@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=9 format=3]
+[gd_resource type="Theme" load_steps=10 format=3]
 
 [sub_resource type="SystemFont" id="Font_mono"]
 font_names = PackedStringArray("SF Mono", "Cascadia Mono", "Consolas", "Menlo", "Monaco", "Courier New")
@@ -100,6 +100,22 @@ content_margin_top = 4
 content_margin_right = 8
 content_margin_bottom = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_pursuit_warning"]
+bg_color = Color(0.16, 0.035, 0.045, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.92, 0.25, 0.3, 0.72)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 10
+content_margin_top = 4
+content_margin_right = 10
+content_margin_bottom = 4
+
 [resource]
 default_font = SubResource("Font_mono")
 default_font_size = 20
@@ -130,3 +146,8 @@ HudHeadingLabel/base_type = &"Label"
 DebugValueLabel/base_type = &"Label"
 DebugValueRichTextLabel/base_type = &"RichTextLabel"
 DebugHudPanelContainer/base_type = &"PanelContainer"
+PursuitWarningLabel/base_type = &"Label"
+PursuitWarningLabel/colors/font_color = Color(1, 0.3, 0.34, 1)
+PursuitWarningLabel/font_sizes/font_size = 16
+PursuitWarningPanelContainer/base_type = &"PanelContainer"
+PursuitWarningPanelContainer/styles/panel = SubResource("StyleBox_pursuit_warning")

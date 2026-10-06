@@ -1,3 +1,4 @@
+using GrimSpace.Core.Actions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
@@ -53,6 +54,24 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void SetEngagementIntentEffect_RecordsPursuitStartOnce()
+	{
+		var map = maps.Fresh(42);
+		var runtime = new ActorRuntime();
+		var hunter = map.FleetRegistry.Ids.First();
+		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
+		var effect = new SetEngagementIntentEffect(hunter, target);
+
+		var started = Assert.Single(effect.Apply(map, runtime, hunter));
+		var repeated = effect.Apply(map, runtime, hunter);
+
+		Assert.Equal(
+			new FleetPursuitChanged(hunter, target, true),
+			Assert.IsType<Record<FleetPursuitChanged>>(started).Value);
+		Assert.Empty(repeated);
+	}
+
+	[Fact]
 	public void ClearPursueContactEffect_ClearsBidirectionalHuntLink()
 	{
 		var map = maps.Fresh(42);
@@ -61,10 +80,29 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
 		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
 
-		new ClearPursueContactEffect(hunter).Apply(map, runtime, hunter);
+		var records = new ClearPursueContactEffect(hunter).Apply(map, runtime, hunter);
 
 		Assert.Null(EngagementAssertions.Hunting(map.StateOf(hunter)));
 		Assert.Null(EngagementAssertions.HuntedBy(map.StateOf(target)));
+		Assert.Equal(
+			new FleetPursuitChanged(hunter, target, false),
+			Assert.IsType<Record<FleetPursuitChanged>>(Assert.Single(records)).Value);
+	}
+
+	[Fact]
+	public void ReachContactEffect_RecordsPursuitEnd()
+	{
+		var map = maps.Fresh(42);
+		var runtime = new ActorRuntime();
+		var hunter = map.FleetRegistry.Ids.First();
+		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
+		new SetEngagementIntentEffect(hunter, target).Apply(map, runtime, hunter);
+
+		var records = new ReachContactEffect(hunter, target).Apply(map, runtime, hunter);
+
+		Assert.Equal(
+			new FleetPursuitChanged(hunter, target, false),
+			Assert.IsType<Record<FleetPursuitChanged>>(Assert.Single(records)).Value);
 	}
 
 	[Fact]

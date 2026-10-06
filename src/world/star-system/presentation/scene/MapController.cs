@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Components;
+using GrimSpace.Core.Actions;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -21,6 +22,7 @@ using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Vision;
 using FleetPhase = GrimSpace.World.StarSystem.Units.EPhase;
+using EngagementPhase = GrimSpace.World.StarSystem.Units.EEngagementPhase;
 
 namespace GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -44,6 +46,7 @@ public partial class MapController : Node3D
 	private DeliveryTurnInDialogPresenter _deliveryMeetingDialog = null!;
 	private WreckController _wreck = null!;
 	private IDisposable _deliveryMeetingSubscription = null!;
+	private IDisposable _pursuitChangedSubscription = null!;
 	private NarrativeController _narrative = null!;
 	private TutorialPresentationBinding? _mapTutorialBinding;
 	private IWorldFocus _worldFocus = null!;
@@ -140,6 +143,9 @@ public partial class MapController : Node3D
 			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
 		_timeControls.PausePressed += HandlePauseRequest;
 		_timeControls.SpeedPressed += CycleSpeed;
+		_pursuitChangedSubscription =
+			_orchestrator.Subscribe<Record<FleetPursuitChanged>>(OnFleetPursuitChanged);
+		_timeControls.SetEnemyInPursuit(IsPlayerBeingPursued());
 
 		_pauseMenu = new StarMapPauseMenuOverlay();
 		_pauseMenu.ContinueRequested += ClosePauseMenu;
@@ -346,6 +352,7 @@ public partial class MapController : Node3D
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
 		_deliveryMeetingSubscription.Dispose();
+		_pursuitChangedSubscription.Dispose();
 		_wreck.Dispose();
 		_narrative.Dispose();
 		if (Session.Instance.Run.Tutorials is { } tutorials)
@@ -720,6 +727,23 @@ public partial class MapController : Node3D
 
 	private void SyncTimeControls() =>
 		_timeControls.Sync(_orchestrator.IsStepped, SpeedOptions[_speedIndex]);
+
+	private void OnFleetPursuitChanged(Record<FleetPursuitChanged> record)
+	{
+		if (string.Equals(
+			record.Value.TargetFleetId,
+			State.PlayerFleetUnitId,
+			StringComparison.Ordinal))
+			_timeControls.SetEnemyInPursuit(record.Value.IsActive);
+	}
+
+	private bool IsPlayerBeingPursued() =>
+		_orchestrator.Map.FleetRegistry.TryGet(State.PlayerFleetUnitId, out var player)
+		&& player.State.CurrentEngagement is
+		{
+			Phase: EngagementPhase.None,
+			HuntedBy: not null,
+		};
 
 	private void SyncDockedFacadePresentation()
 	{

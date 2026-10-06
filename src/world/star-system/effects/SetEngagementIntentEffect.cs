@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
@@ -20,10 +21,17 @@ public sealed class SetEngagementIntentEffect : IEffect<StarMap, Runtime.ActorRu
 	{
 		var initiator = world.StateOf(_initiatorId);
 		var target = world.StateOf(_targetId);
+		var priorTargetId = initiator.CurrentEngagement?.Hunting;
+		var records = new List<IRecord>();
 
-		if (initiator.CurrentEngagement?.Hunting is { } priorTargetId
-			&& world.FleetRegistry.TryGet(priorTargetId, out var priorTarget))
-			EngagementState.ClearHuntedBy(priorTarget.State, _initiatorId);
+		if (priorTargetId is not null
+			&& !string.Equals(priorTargetId, _targetId, StringComparison.Ordinal))
+		{
+			if (world.FleetRegistry.TryGet(priorTargetId, out var priorTarget))
+				EngagementState.ClearHuntedBy(priorTarget.State, _initiatorId);
+			records.Add(new Record<FleetPursuitChanged>(
+				new FleetPursuitChanged(_initiatorId, priorTargetId, false)));
+		}
 
 		var engagementId = initiator.CurrentEngagement?.Id ?? TypedIdGenerator.NextId("engagement");
 		initiator.CurrentEngagement = new Engagement(
@@ -42,7 +50,13 @@ public sealed class SetEngagementIntentEffect : IEffect<StarMap, Runtime.ActorRu
 			HuntedBy: _initiatorId,
 			Hunting: null);
 
-		return [];
+		if (!string.Equals(priorTargetId, _targetId, StringComparison.Ordinal))
+		{
+			records.Add(new Record<FleetPursuitChanged>(
+				new FleetPursuitChanged(_initiatorId, _targetId, true)));
+		}
+
+		return records;
 	}
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }

@@ -24,6 +24,7 @@ public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRunt
 			var surviving = fleet.Members.Where(member => member.Id != handoff.Id).ToArray();
 			if (surviving.Length == 0)
 			{
+				ResolveDeliveryInterception(world, fleet);
 				if (fleet.State.SourceContractId is string contractId
 					&& world.ContractRegistry.TryGetState(contractId, out var contractState)
 					&& contractState is HuntContractState hunt)
@@ -47,6 +48,23 @@ public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRunt
 
 	private static void RemoveFleet(StarMap world, string fleetId)
 		=> world.FleetRegistry.Remove(fleetId);
+
+	private static void ResolveDeliveryInterception(StarMap world, Fleet fleet)
+	{
+		if (fleet.State.PursuitDirective is not { } directive
+			|| !world.ContractRegistry.TryGetState(directive.ContractId, out var state)
+			|| state.Status != EContractStatus.Active
+			|| state is not DeliveryContractState delivery
+			|| delivery.Progress.InterceptionState != EDeliveryInterceptionState.Assigned
+			|| !string.Equals(
+				delivery.Progress.InterceptorFleetId,
+				fleet.State.Id,
+				StringComparison.Ordinal))
+			return;
+
+		world.ContractRegistry.ReplaceState(delivery.WithInterceptorResolved(fleet.State.Id));
+		DeliveryDiagnostics.ResolveInterception(directive.ContractId, fleet.State.Id);
+	}
 
 	public void Undo(StarMap world, Runtime.ActorRuntime runtime, string actorId) { }
 }

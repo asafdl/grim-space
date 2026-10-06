@@ -60,20 +60,41 @@ public static class ContractFactory
 
 	private static Contract BuildHunt(StarMap map, string contractId, HuntCreateArgs args)
 	{
+		if (TryBuildHunt(map, contractId, args, out var contract))
+			return contract;
+
+		throw new InvalidOperationException(
+			$"Could not pick a hunt search area for map seed {map.Seed}.");
+	}
+
+	public static bool TryBuildHunt(
+		StarMap map,
+		string contractId,
+		HuntCreateArgs args,
+		out Contract contract)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		ArgumentException.ThrowIfNullOrEmpty(contractId);
+		ArgumentNullException.ThrowIfNull(args);
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 		ArgumentNullException.ThrowIfNull(args.SearchAreaPicker);
 
 		var faction = ResolveOppositionFaction(map, contractId);
 		var fleetType = ResolveFleetType(faction);
-		var objective = CreateHuntObjective(
+		if (!TryCreateHuntObjective(
 			map,
 			contractId,
 			args.SearchAreaPicker,
 			args.Danger,
 			fleetType,
-			faction);
+			faction,
+			out var objective))
+		{
+			contract = null!;
+			return false;
+		}
 
-		return new Contract(
+		contract = new Contract(
 			contractId,
 			objective,
 			args.Danger,
@@ -82,6 +103,7 @@ public static class ContractFactory
 			ResolvePayment(map.Seed, contractId, EContractKind.Hunt, args.Danger),
 			args.Narrative,
 			args.IsStoryObjective);
+		return true;
 	}
 
 	internal static HuntObjective CreateHuntObjective(
@@ -92,12 +114,35 @@ public static class ContractFactory
 		FleetType fleetType,
 		EFaction faction)
 	{
+		if (TryCreateHuntObjective(
+			map,
+			contractId,
+			searchAreaPicker,
+			danger,
+			fleetType,
+			faction,
+			out var objective))
+			return objective;
+
+		throw new InvalidOperationException(
+			$"Could not pick a hunt search area for map seed {map.Seed}.");
+	}
+
+	private static bool TryCreateHuntObjective(
+		StarMap map,
+		string contractId,
+		AreaPickerArgs searchAreaPicker,
+		EDangerLevel danger,
+		FleetType fleetType,
+		EFaction faction,
+		out HuntObjective objective)
+	{
 		var groupId = SpawnGroupIdFor(contractId);
 		var spawnSeeds = CreateSpawnSeeds(map.Seed, contractId, groupId, 1);
 		if (!AreaPicker.TryPickWithFallback(map, searchAreaPicker, spawnSeeds, out var searchArea))
 		{
-			throw new InvalidOperationException(
-				$"Could not pick a hunt search area for map seed {map.Seed}.");
+			objective = null!;
+			return false;
 		}
 
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
@@ -108,18 +153,21 @@ public static class ContractFactory
 			spawnSeed,
 			members,
 			HuntPatrolRadius);
-		return new HuntObjective(
+		objective = new HuntObjective(
 		[
 			new SpawnEncounterGroup(groupId, searchArea, 1, spawnSpec),
 		]);
+		return true;
 	}
 
 	private static Contract BuildDelivery(StarMap map, string contractId, DeliveryCreateArgs args)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 
+		var config = args.Generation ?? DeliveryGenerationConfig.Default;
 		var objective = new DeliveryObjective(
-			ResolveDeliveryRoute(map, args, contractId));
+			ResolveDeliveryRoute(map, args, contractId),
+			config);
 
 		return new Contract(
 			contractId,
@@ -235,7 +283,7 @@ public static class ContractFactory
 
 		meeting = new SpaceMeetingDeliveryLeg(
 			meetingId,
-			"Rendezvous contact",
+			"Delivery contact",
 			area);
 		return true;
 	}

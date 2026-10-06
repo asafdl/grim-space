@@ -62,13 +62,30 @@ public sealed class AcceptContractDef
 				.ToList());
 		}
 
-		var state = ContractState.CreateFor(
-			contract,
-			EContractStatus.Active,
-			world.Timeline.Clock.Current,
-			accept.ActorId,
-			spawns.Fleets.Select(fleet => fleet.State.Id).ToArray());
+		var acceptedAtTick = world.Timeline.Clock.Current;
+		ContractState state = contract.Objective is DeliveryObjective delivery
+			? DeliveryContractState.CreateActiveOnAccept(
+				world,
+				contract,
+				delivery,
+				accept.ActorId,
+				acceptedAtTick)
+			: ContractState.CreateFor(
+				contract,
+				EContractStatus.Active,
+				acceptedAtTick,
+				accept.ActorId,
+				spawns.Fleets.Select(fleet => fleet.State.Id).ToArray());
 		effects.Add(new ActivateContractEffect(state));
+		if (state is DeliveryContractState deliveryState)
+		{
+			effects.Add(new ScheduleDeliveryContractTimelineEffect(
+				deliveryState.ContractId,
+				accept.ActorId,
+				acceptedAtTick,
+				deliveryState.Progress,
+				((DeliveryObjective)contract.Objective).Config));
+		}
 		return effects;
 	}
 }

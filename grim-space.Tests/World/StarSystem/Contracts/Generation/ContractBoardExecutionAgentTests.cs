@@ -182,6 +182,23 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void TryBuildHunt_WhenNoSearchAreaExists_ReturnsFalse()
+	{
+		var map = maps.Fresh(42);
+		var args = new HuntCreateArgs(
+			map.Blueprint.SupplyPlan.AdministrativePoiId,
+			new AreaPickerArgs([]),
+			EDangerLevel.VeryLow,
+			ContractNarrative.ForHunt("Unavailable Hunt"));
+
+		Assert.False(ContractFactory.TryBuildHunt(
+			map,
+			"unavailable-hunt",
+			args,
+			out _));
+	}
+
+	[Fact]
 	public void Commit_OnCadence_RegistersGeneratedContracts()
 	{
 		var map = maps.Fresh(42);

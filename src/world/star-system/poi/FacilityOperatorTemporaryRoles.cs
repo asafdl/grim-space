@@ -20,17 +20,24 @@ public sealed class FacilityOperatorTemporaryRoles
 		var key = (facilityId, operatorName);
 		if (_overlays.TryGetValue(key, out var existing))
 		{
-			if (existing.SourceId == sourceId)
+			if (existing.Role == role)
 			{
-				_overlays[key] = new Entry(role, sourceId);
+				existing.SourceIds.Add(sourceId);
+				return;
+			}
+
+			if (existing.SourceIds.Count == 1 && existing.SourceIds.Contains(sourceId))
+			{
+				_overlays[key] = new Entry(role, [sourceId]);
 				return;
 			}
 
 			throw new InvalidOperationException(
-				$"Operator '{operatorName}' at facility '{facilityId}' already has a temporary role from '{existing.SourceId}'.");
+				$"Operator '{operatorName}' at facility '{facilityId}' already has temporary role " +
+				$"'{existing.Role}' from '{string.Join(", ", existing.SourceIds.Order())}'.");
 		}
 
-		_overlays[key] = new Entry(role, sourceId);
+		_overlays[key] = new Entry(role, [sourceId]);
 	}
 
 	public void RevokeBySource(string sourceId)
@@ -39,7 +46,9 @@ public sealed class FacilityOperatorTemporaryRoles
 
 		foreach (var key in _overlays.Keys.ToArray())
 		{
-			if (_overlays[key].SourceId == sourceId)
+			var entry = _overlays[key];
+			entry.SourceIds.Remove(sourceId);
+			if (entry.SourceIds.Count == 0)
 				_overlays.Remove(key);
 		}
 	}
@@ -60,12 +69,17 @@ public sealed class FacilityOperatorTemporaryRoles
 	{
 		var clone = new FacilityOperatorTemporaryRoles();
 		foreach (var (key, entry) in _overlays)
-			clone._overlays[key] = entry;
+			clone._overlays[key] = new Entry(
+				entry.Role,
+				new HashSet<string>(entry.SourceIds, StringComparer.Ordinal));
 		return clone;
 	}
 
 	internal IReadOnlyList<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> Snapshot() =>
-		_overlays.Select(pair => (pair.Key.FacilityId, pair.Key.OperatorName, pair.Value.Role, pair.Value.SourceId)).ToArray();
+		_overlays
+			.SelectMany(pair => pair.Value.SourceIds.Select(sourceId =>
+				(pair.Key.FacilityId, pair.Key.OperatorName, pair.Value.Role, sourceId)))
+			.ToArray();
 
 	internal static FacilityOperatorTemporaryRoles FromSnapshot(
 		IEnumerable<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> entries)
@@ -76,5 +90,5 @@ public sealed class FacilityOperatorTemporaryRoles
 		return roles;
 	}
 
-	private readonly record struct Entry(EFacilityOperatorRole Role, string SourceId);
+	private sealed record Entry(EFacilityOperatorRole Role, HashSet<string> SourceIds);
 }

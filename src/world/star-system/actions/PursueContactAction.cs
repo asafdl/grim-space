@@ -68,19 +68,30 @@ public sealed class PursueContactDef
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
 			CancelPendingMoveEffect.Instance,
-			new ClearPursueContactEffect(pursue.ActorId),
 		};
 
 		switch (pursue.Target)
 		{
 			case FleetContactTarget fleet:
 				if (pursue.Intent == EContactIntent.Engagement)
-					effects.Add(new SetEngagementIntentEffect(pursue.ActorId, fleet.UnitId));
+				{
+					if (!string.Equals(
+						unit.State.CurrentEngagement?.Hunting,
+						fleet.UnitId,
+						StringComparison.Ordinal))
+					{
+						effects.Add(new ClearPursueContactEffect(pursue.ActorId));
+						effects.Add(new SetEngagementIntentEffect(pursue.ActorId, fleet.UnitId));
+					}
+				}
+				else
+					effects.Add(new ClearPursueContactEffect(pursue.ActorId));
 				effects.Add(new SetTravelTargetEffect(
 					pursue.ActorId,
 					TravelTarget.Fleet(fleet.UnitId, pursue.Intent)));
 				break;
 			case WreckContactTarget wreck:
+				effects.Add(new ClearPursueContactEffect(pursue.ActorId));
 				effects.Add(new SetTravelTargetEffect(pursue.ActorId, TravelTarget.Wreck(wreck.ContractId)));
 				break;
 		}
@@ -91,7 +102,8 @@ public sealed class PursueContactDef
 			world,
 			origin,
 			pursue.Destination,
-			pursue.Path));
+			pursue.Path.WithSpeedMultiplier(
+				EngagementQueries.PursuitSpeedMultiplier(unit.State, pursue.Intent))));
 
 		return effects;
 	}

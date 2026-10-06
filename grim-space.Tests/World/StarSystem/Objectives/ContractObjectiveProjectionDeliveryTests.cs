@@ -52,4 +52,28 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 		Assert.IsNotType<ObjectiveSummaryContent.Plain>(objective.Summary);
 		Assert.DoesNotContain(meeting.ContactName, objective.Summary.ToBbcode());
 	}
+
+	[Fact]
+	public void Project_ActiveDelivery_IncludesDeadlineCountdown()
+	{
+		var map = maps.Fresh(42);
+		TutorialBeatContracts.OfferBeatB(map);
+		var contract = map.ContractRegistry.Pending.Single();
+		map.Timeline.Clock.Set(25);
+		var state = new DeliveryContractState(
+			contract.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 10,
+			HolderUnitId: "player",
+			Progress: new DeliveryProgress([false], deadlineTick: 40));
+
+		var objective = ContractObjectiveProjection.Project(map, contract, state);
+
+		Assert.Equal(new ObjectiveDeadline(40, 15), objective.Deadline);
+
+		map.Timeline.Clock.Next();
+		objective = ContractObjectiveProjection.Project(map, contract, state);
+
+		Assert.Equal(new ObjectiveDeadline(40, 14), objective.Deadline);
+	}
 }

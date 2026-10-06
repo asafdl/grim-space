@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
@@ -43,6 +44,11 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId, delivery) = CreateDeliveryEngine();
 		engine.Commit(ContractActionTestContext.AcceptDelivery(engine.World, unitId, contractId));
 		engine.Commit(ContractActionTestContext.TurnInDelivery(engine.World, unitId, contractId));
+		var delivered = Assert.IsType<DeliveryContractState>(
+			engine.World.ContractRegistry.TryGetState(contractId, out var deliveredState)
+				? deliveredState
+				: null);
+		Assert.Null(delivered.Progress.DeadlineTick);
 		var completion = Assert.IsType<CompleteContractAction>(
 			Assert.Single(ContractReevaluation.ReevaluateFor(
 				engine.World,
@@ -120,6 +126,54 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 			meeting.MeetingId)]);
 
 		Assert.False(map.WaitingForPlayerInput);
+	}
+
+	[Fact]
+	public void CompleteLeg_ReplacesDeadlineForNextLeg()
+	{
+		var map = maps.Fresh(42);
+		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
+		var contract = ContractFactory.Create(
+			map,
+			EContractKind.Delivery,
+			new DeliveryCreateArgs(
+				map.Blueprint.SupplyPlan.StoragePoiId,
+				EDangerLevel.Moderate,
+				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				Generation: new DeliveryGenerationConfig(
+					facilityLegCount: 2,
+					spaceMeetingChance: 0)));
+		var delivery = Assert.IsType<DeliveryObjective>(contract.Objective);
+		var firstLeg = Assert.IsType<FacilityDeliveryLeg>(delivery.Route.Legs[0]);
+		var engine = new Engine<StarMap, ActorRuntime>(
+			map,
+			new ActorRuntimes<ActorRuntime>());
+		engine.Commit(ContractActionTestContext.AcceptDelivery(
+			map,
+			State.PlayerFleetUnitId,
+			contract.Id));
+		var firstState = Assert.IsType<DeliveryContractState>(
+			map.ContractRegistry.TryGetState(contract.Id, out var state) ? state : null);
+		var firstDeadline = firstState.Progress.DeadlineTick!.Value;
+		map.Timeline.Clock.Set(firstDeadline - 1);
+
+		engine.Commit(new CompleteDeliveryFacilityLegAction(
+			State.PlayerFleetUnitId,
+			firstLeg.PoiId,
+			firstLeg.FacilityId,
+			firstLeg.OperatorName,
+			contract.Id,
+			0));
+
+		var nextState = Assert.IsType<DeliveryContractState>(
+			map.ContractRegistry.TryGetState(contract.Id, out state) ? state : null);
+		Assert.Equal(1, nextState.Progress.CurrentLegIndex);
+		Assert.True(nextState.Progress.DeadlineTick > firstDeadline);
+		map.Timeline.Clock.Set(firstDeadline + 1);
+		Assert.False(FailDeliveryDeadlineDef.Instance.IsLegal(
+			new FailDeliveryDeadlineAction(StarSystemActorIds.Contracts, contract.Id),
+			map,
+			engine.ActorRuntimes.For(StarSystemActorIds.Contracts)));
 	}
 
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId, DeliveryObjective Delivery)

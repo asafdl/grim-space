@@ -30,7 +30,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly ActionBatchSink _actionSink = new();
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly List<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
-	private readonly List<(PatrolExecutionAgent Agent, string ActorId)> _patrolAgents = [];
+	private readonly List<(AutonomousFleetExecutionAgent Agent, string ActorId)> _autonomousAgents = [];
 	private readonly IPathfinder _pathfinder;
 	private readonly ContractBoardExecutionAgent _contractBoardAgent;
 	private readonly FleetSpawnerExecutionAgent _fleetSpawnerAgent;
@@ -401,7 +401,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		CommitFleetSpawnerActions();
 		CommitContactActions();
-		CommitPatrolActions();
+		CommitAutonomousFleetActions();
 		CommitContractBoardActions();
 		NotifyWorldUpdated();
 		return history;
@@ -428,7 +428,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		var trafficCanWork = _simMode is ESimMode.Running or ESimMode.Stepped;
 		foreach (var (agent, _) in _trafficAgents)
 			agent.SetCanWork(trafficCanWork);
-		foreach (var (agent, _) in _patrolAgents)
+		foreach (var (agent, _) in _autonomousAgents)
 			agent.SetCanWork(trafficCanWork);
 
 		_contractBoardAgent.SetCanWork(trafficCanWork);
@@ -485,10 +485,10 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 	}
 
-	private void CommitPatrolActions()
+	private void CommitAutonomousFleetActions()
 	{
-		EnsurePatrolAgents();
-		foreach (var (agent, actorId) in _patrolAgents)
+		EnsureAutonomousAgents();
+		foreach (var (agent, actorId) in _autonomousAgents)
 		{
 			agent.PlanAndPublish();
 			if (!_actionSink.TryTakeBatch(actorId, out var batch) || batch.Actions.Count == 0)
@@ -498,36 +498,39 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 	}
 
-	private void EnsurePatrolAgents()
+	private void EnsureAutonomousAgents()
 	{
-		for (var index = _patrolAgents.Count - 1; index >= 0; index--)
+		for (var index = _autonomousAgents.Count - 1; index >= 0; index--)
 		{
-			var (agent, actorId) = _patrolAgents[index];
+			var (agent, actorId) = _autonomousAgents[index];
 			if (Map.FleetRegistry.TryGet(actorId, out var fleet)
-				&& fleet.State.PatrolRadius > 0)
+				&& NeedsAutonomousAgent(fleet.State))
 				continue;
 
 			agent.SetCanWork(false);
-			_patrolAgents.RemoveAt(index);
+			_autonomousAgents.RemoveAt(index);
 		}
 
-		var knownIds = _patrolAgents
+		var knownIds = _autonomousAgents
 			.Select(entry => entry.ActorId)
 			.ToHashSet(StringComparer.Ordinal);
 		foreach (var unit in Map.FleetRegistry.All)
 		{
-			if (unit.State.PatrolRadius <= 0 || !knownIds.Add(unit.State.Id))
+			if (!NeedsAutonomousAgent(unit.State) || !knownIds.Add(unit.State.Id))
 				continue;
 
-			var agent = new PatrolExecutionAgent(
+			var agent = new AutonomousFleetExecutionAgent(
 				() => _engine.World,
 				unitId => _engine.ActorRuntimes.For(unitId),
 				_pathfinder);
 			agent.Init(unit.State.Id, _actionSink.WriterFor(unit.State.Id));
 			agent.SetCanWork(_simMode is ESimMode.Running or ESimMode.Stepped);
-			_patrolAgents.Add((agent, unit.State.Id));
+			_autonomousAgents.Add((agent, unit.State.Id));
 		}
 	}
+
+	private static bool NeedsAutonomousAgent(Units.State state) =>
+		state.PatrolRadius > 0 || state.PursuitDirective is not null;
 
 	private void CommitContactActions()
 	{

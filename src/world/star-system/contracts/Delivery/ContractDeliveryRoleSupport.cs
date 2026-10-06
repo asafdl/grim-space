@@ -18,6 +18,7 @@ internal static class ContractDeliveryRoleSupport
 
 		GrantCurrentFacilityRole(world, delivery, deliveryState);
 		EnsureCurrentMeetingFleet(world, delivery, deliveryState);
+		RestoreInterceptorDirective(world, deliveryState);
 	}
 
 	public static void OnDeliveryLegAdvanced(
@@ -34,7 +35,11 @@ internal static class ContractDeliveryRoleSupport
 		if (delivery.Route.Legs[previousDelivery.Progress.CurrentLegIndex] is FacilityDeliveryLeg previousFacility)
 			world.GetPointOfInterest(previousFacility.PoiId)
 				.OperatorTemporaryRoles.RevokeBySource(previous.ContractId);
-		RemoveMeetingFleet(world, delivery, previousDelivery.Progress.CurrentLegIndex);
+		RemoveMeetingFleet(
+			world,
+			delivery,
+			previousDelivery.Progress.CurrentLegIndex,
+			previous.ContractId);
 		if (current.Status == EContractStatus.Active && !currentDelivery.IsObjectiveMet())
 		{
 			GrantCurrentFacilityRole(world, delivery, currentDelivery);
@@ -45,16 +50,28 @@ internal static class ContractDeliveryRoleSupport
 	public static void OnContractEnded(StarMap world, string contractId)
 	{
 		if (!world.ContractRegistry.TryGet(contractId, out var contract)
-			|| contract.Objective is not DeliveryObjective delivery)
+			|| contract.Objective is not DeliveryObjective delivery
+			|| !world.ContractRegistry.TryGetState(contractId, out var state)
+			|| state is not DeliveryContractState deliveryState)
 			return;
 
 		foreach (var poi in world.PointsOfInterest)
 			poi.OperatorTemporaryRoles.RevokeBySource(contractId);
 
-		foreach (var fleet in world.FleetRegistry.All
-			         .Where(fleet => fleet.State.SourceContractId == contractId)
-			         .ToArray())
-			world.FleetRegistry.Remove(fleet.State.Id);
+		for (var index = 0; index < delivery.Route.Legs.Count; index++)
+			RemoveMeetingFleet(world, delivery, index, contractId);
+
+		if (deliveryState.Progress.InterceptorFleetId is { } interceptorFleetId
+			&& world.FleetRegistry.TryGet(interceptorFleetId, out var interceptor)
+			&& interceptor.State.PursuitDirective?.ContractId == contractId)
+			interceptor.State.PursuitDirective = null;
+
+		if (deliveryState.HolderUnitId is { } holderUnitId
+			&& world.FleetRegistry.TryGet(holderUnitId, out var holder)
+			&& ContractFleetIds(delivery, deliveryState).Contains(
+				holder.State.TravelTarget.TargetId,
+				StringComparer.Ordinal))
+			holder.State.TravelTarget = TravelTarget.None;
 	}
 
 	private static void GrantCurrentFacilityRole(
@@ -99,11 +116,41 @@ internal static class ContractDeliveryRoleSupport
 	private static void RemoveMeetingFleet(
 		StarMap world,
 		DeliveryObjective delivery,
-		int legIndex)
+		int legIndex,
+		string contractId)
 	{
 		if (delivery.Route.Legs[legIndex] is SpaceMeetingDeliveryLeg meeting
 			&& world.FleetRegistry.TryGet(meeting.MeetingId, out var fleet)
-			&& fleet.State.SourceContractId is not null)
+			&& string.Equals(
+				fleet.State.SourceContractId,
+				contractId,
+				StringComparison.Ordinal))
 			world.FleetRegistry.Remove(meeting.MeetingId);
+	}
+
+	private static void RestoreInterceptorDirective(
+		StarMap world,
+		DeliveryContractState state)
+	{
+		if (state.Progress.InterceptionState != EDeliveryInterceptionState.Assigned
+			|| state.Progress.InterceptorFleetId is not { } interceptorFleetId
+			|| state.HolderUnitId is not { } holderUnitId
+			|| !world.FleetRegistry.TryGet(interceptorFleetId, out var interceptor)
+			|| interceptor.State.PursuitDirective is not null)
+			return;
+
+		interceptor.State.PursuitDirective =
+			new FleetPursuitDirective(state.ContractId, holderUnitId);
+	}
+
+	private static IEnumerable<string> ContractFleetIds(
+		DeliveryObjective delivery,
+		DeliveryContractState state)
+	{
+		if (state.Progress.InterceptorFleetId is { } interceptorFleetId)
+			yield return interceptorFleetId;
+
+		foreach (var meeting in delivery.Route.Legs.OfType<SpaceMeetingDeliveryLeg>())
+			yield return meeting.MeetingId;
 	}
 }

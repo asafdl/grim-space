@@ -62,10 +62,20 @@ public sealed partial class EngagementHudOverlay : Control
 			body.AddChild(HudWidgets.CreateSection("Additional details", assignment));
 		}
 
+		if (pending.FleeFailsDelivery)
+		{
+			body.AddChild(HudWidgets.CreateSection(
+				"Flee consequence",
+				"Fleeing from this interceptor will immediately fail the delivery contract."));
+		}
+
 		_shell.SetBody(body);
 		_shell.SetFooter(
 		[
-			new HudAction("Flee", HudActionKind.Secondary, RequestFlee),
+			new HudAction(
+				pending.FleeFailsDelivery ? "Abandon delivery and flee" : "Flee",
+				HudActionKind.Secondary,
+				RequestFlee),
 			new HudAction("Engage", HudActionKind.Primary, RequestEngage),
 		]);
 	}

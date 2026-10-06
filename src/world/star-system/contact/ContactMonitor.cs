@@ -11,8 +11,6 @@ namespace GrimSpace.World.StarSystem.Contact;
 
 internal sealed class ContactMonitor
 {
-	private const int MaxCheckBackoffTicks = 64;
-
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly IPathfinder _pathfinder;
 	private readonly Dictionary<string, ContactWatch> _watches = [];
@@ -230,15 +228,13 @@ internal sealed class ContactMonitor
 		var target = Map.FleetRegistry.FleetOf(targetId);
 		var initiatorPosition = CommittedPositionOf(watch.ActorId);
 		var targetPosition = CommittedPositionOf(targetId);
-		var dx = initiatorPosition.X - targetPosition.X;
-		var dz = initiatorPosition.Z - targetPosition.Z;
-		var distance = System.Math.Sqrt(dx * dx + dz * dz);
-		var gap = System.Math.Max(0, distance - initiator.State.EngageRadius);
-		var maxClosingSpeed = (initiator.State.SpeedPerTick + target.State.SpeedPerTick)
-			* PathfindingCell.RouteSpeedCeiling;
-		var delay = maxClosingSpeed <= 0
-			? MaxCheckBackoffTicks
-			: (int)System.Math.Clamp(System.Math.Floor(gap / maxClosingSpeed), 1, MaxCheckBackoffTicks);
+		var maxClosingSpeed = EngagementQueries.MaximumTravelSpeed(initiator.State)
+			+ EngagementQueries.MaximumTravelSpeed(target.State);
+		var delay = EngagementQueries.ContactCheckDelay(
+			initiatorPosition,
+			targetPosition,
+			initiator.State.EngageRadius,
+			maxClosingSpeed);
 		watch.NextCheckTick = currentTick + delay;
 	}
 
@@ -249,14 +245,12 @@ internal sealed class ContactMonitor
 		Coord wreckPosition,
 		State actorState)
 	{
-		var dx = actorPosition.X - wreckPosition.X;
-		var dz = actorPosition.Z - wreckPosition.Z;
-		var distance = System.Math.Sqrt(dx * dx + dz * dz);
-		var gap = System.Math.Max(0, distance - actorState.EngageRadius);
-		var maxClosingSpeed = actorState.SpeedPerTick * PathfindingCell.RouteSpeedCeiling;
-		var delay = maxClosingSpeed <= 0
-			? MaxCheckBackoffTicks
-			: (int)System.Math.Clamp(System.Math.Floor(gap / maxClosingSpeed), 1, MaxCheckBackoffTicks);
+		var maxClosingSpeed = EngagementQueries.MaximumTravelSpeed(actorState);
+		var delay = EngagementQueries.ContactCheckDelay(
+			actorPosition,
+			wreckPosition,
+			actorState.EngageRadius,
+			maxClosingSpeed);
 		watch.NextCheckTick = currentTick + delay;
 	}
 }

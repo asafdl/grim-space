@@ -19,14 +19,29 @@ public sealed class FacilityOperatorTemporaryRolesTests
 	}
 
 	[Fact]
-	public void Grant_DifferentSourceOnSameOperator_Throws()
+	public void Grant_SameRoleFromDifferentSources_RemainsUntilBothRevoke()
 	{
 		var roles = new FacilityOperatorTemporaryRoles();
 
 		roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.DeliveryTurnIn, "contract-1");
+		roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.DeliveryTurnIn, "contract-2");
+
+		roles.RevokeBySource("contract-1");
+		Assert.True(roles.TryGetRole("poi-a.facility", "Operator", out var role));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, role);
+
+		roles.RevokeBySource("contract-2");
+		Assert.False(roles.TryGetRole("poi-a.facility", "Operator", out _));
+	}
+
+	[Fact]
+	public void Grant_DifferentRoleFromDifferentSource_Throws()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.DeliveryTurnIn, "contract-1");
 
 		Assert.Throws<InvalidOperationException>(() =>
-			roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.DeliveryTurnIn, "contract-2"));
+			roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.Contracts, "contract-2"));
 	}
 
 	[Fact]

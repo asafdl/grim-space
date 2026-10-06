@@ -27,6 +27,19 @@ public sealed record TransitPath(ImmutableArray<TransitLeg> Legs)
 	public (Coord Position, Coord Tangent) SampleAtElapsed(double elapsedTicks, double speedPerTick) =>
 		PiecewiseRouteSampler.SampleAtElapsed(Segments, elapsedTicks, speedPerTick);
 
+	public TransitPath WithSpeedMultiplier(double multiplier)
+	{
+		if (!double.IsFinite(multiplier) || multiplier <= 0)
+			throw new ArgumentOutOfRangeException(nameof(multiplier));
+
+		return multiplier == 1
+			? this
+			: new TransitPath(
+				Legs
+					.Select(leg => leg with { SpeedMultiplier = leg.SpeedMultiplier * multiplier })
+					.ToImmutableArray());
+	}
+
 	public IReadOnlyList<(double X, double Z)> RemainingPoints(PiecewiseRouteSample sample)
 	{
 		var result = new List<(double, double)> { (sample.Route.X, sample.Route.Z) };
