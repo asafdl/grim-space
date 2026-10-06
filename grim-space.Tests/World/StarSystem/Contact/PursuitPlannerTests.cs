@@ -112,6 +112,40 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		Assert.Equal(1, pathfinder.CallCount);
 	}
 
+	[Fact]
+	public void PlanInterceptCourse_TargetInTransit_LeadsTargetAlongCommittedJourney()
+	{
+		var map = maps.Fresh(11);
+		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		var target = map.FleetRegistry.FleetOf("player-pursuit");
+		target.State.DockedAtDockId = "";
+		target.State.IdleCoord = new Coord(20, 0, 0);
+		var pirate = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-pursuit",
+			new Coord(0, 0, 0),
+			map.ControllingFaction);
+		map.FleetRegistry.Add(pirate);
+
+		var (planner, _, engine) = CreatePlanner(map, pirate.State.Id);
+		var targetPath = TransitPath.FromPoints(
+			[new Coord(20, 0, 0), new Coord(200, 0, 0)],
+			[1.0, 1.0]);
+		engine.Commit(new MoveAction(
+			target.State.Id,
+			target.State.Id,
+			new Coord(200, 0, 0),
+			targetPath));
+
+		var course = planner.PlanInterceptCourse(
+			pirate.State.Id,
+			target.State.Id,
+			EContactIntent.Engagement);
+
+		Assert.NotNull(course);
+		Assert.True(course.Destination.X > 20);
+		Assert.True(course.Destination.X < 200);
+	}
+
 	private static (
 		PursuitPlanner Planner,
 		ActionBatchSink Sink,

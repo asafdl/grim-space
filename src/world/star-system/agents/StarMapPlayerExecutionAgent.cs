@@ -21,6 +21,7 @@ public sealed class StarMapPlayerExecutionAgent
 	private readonly Func<string, ActorRuntime> _runtimeFor;
 	private readonly Func<string, Coord> _committedPositionOf;
 	private readonly IPathfinder _pathfinder;
+	private readonly PursuitPlanner _pursuitPlanner;
 	private bool _committed;
 	private IAction? _pendingAction;
 
@@ -36,6 +37,7 @@ public sealed class StarMapPlayerExecutionAgent
 		_runtimeFor = runtimeFor;
 		_committedPositionOf = committedPositionOf;
 		_pathfinder = pathfinder;
+		_pursuitPlanner = new PursuitPlanner(anchorWorld, runtimeFor, pathfinder);
 	}
 
 	public new Simulation<StarMap, ActorRuntime> Sim { get; private set; } = null!;
@@ -184,25 +186,24 @@ public sealed class StarMapPlayerExecutionAgent
 			return new CourseCommandResult.Unreachable();
 		}
 
-		var origin = _committedPositionOf(_actorId);
-		var destination = _committedPositionOf(targetUnitId);
-		var result = _pathfinder.FindPath(origin, destination);
-		if (result is not PathfindingResult.Found found)
+		var intent = ResolveFleetContactIntent(anchorWorld, _actorId, target);
+		var course = _pursuitPlanner.PlanInterceptCourse(_actorId, targetUnitId, intent);
+		if (course is null)
 		{
-			StarMapPresentationDiagnostics.LogMoveQueueFailed("no_path", destination, this);
+			StarMapPresentationDiagnostics.LogMoveQueueFailed("no_intercept_path", null, this);
 			return new CourseCommandResult.Unreachable();
 		}
 
 		var pursue = new PursueContactAction(
 			_actorId,
 			new FleetContactTarget(targetUnitId),
-			destination,
-			found.Path,
-			ResolveFleetContactIntent(anchorWorld, _actorId, target));
+			course.Destination,
+			course.Path,
+			intent);
 		if (TryEnqueue([pursue]))
 		{
-			StarMapPresentationDiagnostics.LogCourseQueued("pursue_fleet", destination, this);
-			return new CourseCommandResult.Queued(found.Path);
+			StarMapPresentationDiagnostics.LogCourseQueued("pursue_fleet", course.Destination, this);
+			return new CourseCommandResult.Queued(course.Path);
 		}
 
 		return new CourseCommandResult.Unreachable();

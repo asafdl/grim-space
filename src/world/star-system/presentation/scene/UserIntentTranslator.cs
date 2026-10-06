@@ -14,6 +14,7 @@ public sealed class UserIntentTranslator
 	private readonly Func<Coord, Coord>? _resolveDestination;
 	private readonly Func<MapInteractiveTarget> _resolveTarget;
 	private Vector2? _lmbPressPosition;
+	private MapInteractiveTarget? _lmbPressUnit;
 
 	public UserIntentTranslator(
 		StarMapPlayerExecutionAgent playerAgent,
@@ -31,6 +32,8 @@ public sealed class UserIntentTranslator
 		if (mouseButton.ButtonIndex == MouseButton.Left && mouseButton.Pressed)
 		{
 			_lmbPressPosition = mouseButton.Position;
+			var pressTarget = _resolveTarget();
+			_lmbPressUnit = pressTarget.Kind == MapInteractiveTargetKind.Unit ? pressTarget : null;
 			return true;
 		}
 
@@ -40,11 +43,14 @@ public sealed class UserIntentTranslator
 			|| pressPosition.DistanceTo(mouseButton.Position) >= 4f)
 		{
 			_lmbPressPosition = null;
+			_lmbPressUnit = null;
 			return false;
 		}
 
 		_lmbPressPosition = null;
-		var result = TryQueueIntent(_resolveTarget());
+		var target = _lmbPressUnit ?? _resolveTarget();
+		_lmbPressUnit = null;
+		var result = TryQueueIntent(target);
 		unreachable = result is CourseCommandResult.Unreachable;
 		return result is not CourseCommandResult.Ignored;
 	}

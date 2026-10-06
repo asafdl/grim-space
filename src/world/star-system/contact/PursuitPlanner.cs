@@ -7,8 +7,12 @@ using GrimSpace.World.StarSystem.Vision;
 
 namespace GrimSpace.World.StarSystem.Contact;
 
+public sealed record PursuitCourse(Coord Destination, TransitPath Path);
+
 public sealed class PursuitPlanner
 {
+	private const int MaxInterceptSamples = 32;
+
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, ActorRuntime> _runtimeFor;
 	private readonly IPathfinder _pathfinder;
@@ -63,6 +67,63 @@ public sealed class PursuitPlanner
 			EContactIntent.Engagement);
 		return PursueContactDef.Instance.IsLegal(pursue, world, runtime) ? pursue : null;
 	}
+
+	public PursuitCourse? PlanInterceptCourse(
+		string actorId,
+		string targetFleetId,
+		EContactIntent intent)
+	{
+		var world = _world();
+		var runtime = _runtimeFor(actorId);
+		if (!world.FleetRegistry.TryGet(actorId, out var actor)
+			|| !world.FleetRegistry.TryGet(targetFleetId, out var target))
+			return null;
+
+		var origin = MoveDef.ResolveOrigin(world, actor, runtime);
+		var targetRuntime = _runtimeFor(targetFleetId);
+		TransitCache.RebuildIfMissing(target, targetRuntime, _pathfinder);
+		if (target.State.Phase != EPhase.InTransit
+			|| targetRuntime.CachedPath is not { } targetPath)
+			return FindCourse(origin, PursuitDestination(world, target, _runtimeFor));
+
+		var elapsed = world.Timeline.Clock.Current - target.State.Journey.StartTick;
+		var remaining = System.Math.Max(
+			0.0,
+			targetPath.TicksRequired(target.State.SpeedPerTick) - elapsed);
+		if (remaining <= 0.0)
+			return FindCourse(origin, target.State.Journey.Destination);
+
+		PursuitCourse? finalCourse = null;
+		var sampleCount = System.Math.Min(
+			MaxInterceptSamples,
+			System.Math.Max(1, (int)System.Math.Ceiling(remaining)));
+		var pursuitSpeedMultiplier = EngagementQueries.PursuitSpeedMultiplier(actor.State, intent);
+
+		for (var sampleIndex = 1; sampleIndex <= sampleCount; sampleIndex++)
+		{
+			var futureTicks = remaining * sampleIndex / sampleCount;
+			var destination = targetPath
+				.SampleAtElapsed(elapsed + futureTicks, target.State.SpeedPerTick)
+				.Position;
+			var course = FindCourse(origin, destination);
+			if (course is null)
+				continue;
+
+			finalCourse = course;
+			var travelTicks = course.Path
+				.WithSpeedMultiplier(pursuitSpeedMultiplier)
+				.TicksRequired(actor.State.SpeedPerTick);
+			if (travelTicks <= futureTicks)
+				return course;
+		}
+
+		return finalCourse;
+	}
+
+	private PursuitCourse? FindCourse(Coord origin, Coord destination) =>
+		_pathfinder.FindPath(origin, destination) is PathfindingResult.Found found
+			? new PursuitCourse(destination, found.Path)
+			: null;
 
 	private static Coord PursuitDestination(
 		StarMap world,

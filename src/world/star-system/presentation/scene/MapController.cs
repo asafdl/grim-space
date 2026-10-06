@@ -326,6 +326,8 @@ public partial class MapController : Node3D
 
 		if (!_director.EffectiveInputPolicy.AllowsStrategicHover)
 		{
+			_units.SetHovered(null);
+			Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
 			_tooltip.Visible = false;
 			return;
 		}
@@ -333,6 +335,9 @@ public partial class MapController : Node3D
 		var screen = GetViewport().GetMousePosition();
 		var target = ResolveInteractiveTarget(screen, tickFraction);
 		var unitHover = target.Unit;
+		_units.SetHovered(unitHover?.UnitId);
+		Input.SetDefaultCursorShape(
+			unitHover is null ? Input.CursorShape.Arrow : Input.CursorShape.PointingHand);
 		var wreckContractId = target.WreckContractId;
 		var landmarkId = target.LandmarkId;
 		var dockHover = target.Dock;
@@ -345,6 +350,7 @@ public partial class MapController : Node3D
 
 	public override void _ExitTree()
 	{
+		Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
 		Session.Instance.ClearAutosaveContext();
 		Session.Instance.DevMenu.ClearMapActions();
 		if (_orchestrator.PlayerAgent is not null)

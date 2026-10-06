@@ -38,6 +38,8 @@ public partial class UnitsView : Node3D
 	private const float TrailMinStep = 0.006f;
 	private const int TrailMaxPoints = 24;
 	private const int UnitPickRadius = 14;
+	private const float UnitSnapMarginPixels = 20f;
+	private const float HoverRingScale = 1.18f;
 	private static readonly Color[] DeliveryMeetingRingColors =
 	[
 		new(0.98f, 0.38f, 0.24f),
@@ -53,6 +55,7 @@ public partial class UnitsView : Node3D
 
 	private int _width;
 	private int _height;
+	private string? _hoveredUnitId;
 	public sealed record UnitHoverInfo(
 		string UnitId,
 		EType Type,
@@ -68,6 +71,7 @@ public partial class UnitsView : Node3D
 
 		_units.Clear();
 		_trailHistory.Clear();
+		_hoveredUnitId = null;
 		_width = world.Width;
 		_height = world.Height;
 
@@ -94,6 +98,8 @@ public partial class UnitsView : Node3D
 			_units[unitId].Root.QueueFree();
 			_units.Remove(unitId);
 			_trailHistory.Remove(unitId);
+			if (string.Equals(_hoveredUnitId, unitId, StringComparison.Ordinal))
+				_hoveredUnitId = null;
 		}
 
 		foreach (var unit in world.FleetRegistry.All)
@@ -143,6 +149,19 @@ public partial class UnitsView : Node3D
 		}
 	}
 
+	public void SetHovered(string? unitId)
+	{
+		if (string.Equals(_hoveredUnitId, unitId, StringComparison.Ordinal))
+			return;
+
+		if (_hoveredUnitId is { } previous && _units.TryGetValue(previous, out var previousVisual))
+			previousVisual.Ring.Scale = Vector3.One;
+
+		_hoveredUnitId = unitId;
+		if (unitId is not null && _units.TryGetValue(unitId, out var visual))
+			visual.Ring.Scale = Vector3.One * HoverRingScale;
+	}
+
 	public UnitHoverInfo? PickAtScreen(MapInteractivePick.Context context)
 	{
 		var world = context.Orchestrator.Map;
@@ -165,7 +184,7 @@ public partial class UnitsView : Node3D
 			var worldPosition = MapMapping.ToWorld(sample.X, sample.Z, _width, _height)
 				+ Vector3.Up * MarkerYOffset;
 			var screenDistance = MapScreenPick.DistancePixels(context.Camera, worldPosition, context.ScreenPos);
-			if (!direct && screenDistance > MapScreenPick.SnapMarginPixels)
+			if (!direct && screenDistance > UnitSnapMarginPixels)
 				continue;
 
 			if (!MapScreenPick.IsBetterHit(direct, screenDistance, bestDirect, bestDistance))
@@ -245,7 +264,7 @@ public partial class UnitsView : Node3D
 		var shipWidth = ShipWidth * hullScale;
 		var root = new Node3D { Name = $"Unit_{state.Id}", Visible = false };
 		var marker = new Node3D { Name = "Marker" };
-		marker.AddChild(new MeshInstance3D
+		var ring = new MeshInstance3D
 		{
 			Name = "Ring",
 			Position = new Vector3(0f, RingYOffset, 0f),
@@ -261,7 +280,8 @@ public partial class UnitsView : Node3D
 				EmissionEnergyMultiplier = 0.35f,
 				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
 			},
-		});
+		};
+		marker.AddChild(ring);
 		marker.AddChild(new MeshInstance3D
 		{
 			Name = "Hull",
@@ -317,7 +337,7 @@ public partial class UnitsView : Node3D
 
 		root.AddChild(trailRoot);
 
-		return new UnitVisual(root, marker, trailSegments, beacon);
+		return new UnitVisual(root, marker, ring, trailSegments, beacon);
 	}
 
 	private static Color RingColorForUnit(StarMap world, Units.State state)
@@ -656,6 +676,7 @@ public partial class UnitsView : Node3D
 	private sealed record UnitVisual(
 		Node3D Root,
 		Node3D Marker,
+		MeshInstance3D Ring,
 		MeshInstance3D[] TrailSegments,
 		PlayerBeaconVisual? Beacon);
 
