@@ -22,15 +22,21 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/void_bomb_explosion.wav";
 	public const string ShipDeathPath =
 		"res://assets/sfx/ships/ship_death_enhanced_v2.wav";
+	public const float ShipDeathPitchScale = 1.6f;
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 
-	public static void PlayWorldOneShot(Node parent, Vector3 localPosition, string path)
+	public static void PlayWorldOneShot(
+		Node parent,
+		Vector3 localPosition,
+		string path,
+		float pitchScale = 1f)
 	{
 		var player = new AudioStreamPlayer3D
 		{
 			Stream = Load(path),
 			Position = localPosition,
+			PitchScale = pitchScale,
 			Bus = AudioBuses.Sfx,
 			MaxDistance = 4096f,
 			AttenuationModel = AudioStreamPlayer3D.AttenuationModelEnum.Disabled,
