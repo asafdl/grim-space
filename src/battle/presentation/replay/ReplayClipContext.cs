@@ -38,6 +38,20 @@ public sealed class ReplayClipContext(
 	public ESpatialOrientation? PendingVoidBombMountedOn { get; set; }
 	public IReadOnlyList<IAction> FollowingActions { private get; set; } = [];
 
+	public bool OrientationFlowsIntoMove(string actorId)
+	{
+		foreach (var action in FollowingActions)
+		{
+			if (action.ActorId != actorId)
+				return false;
+			if (action is HeadingTurnAction or RollAction)
+				continue;
+			return action is MoveStepAction;
+		}
+
+		return false;
+	}
+
 	public Coord? NextMovePosition(string actorId)
 	{
 		var projected = ReplayState.StateOf(actorId).Clone();

@@ -101,9 +101,6 @@ public partial class MovementTrailView : Node3D
 
 		foreach (var emitter in _emitters)
 		{
-			if (emitter.HasPreviousPosition)
-				continue;
-
 			emitter.PreviousPosition = emitter.Particles.GlobalPosition;
 			emitter.HasPreviousPosition = true;
 		}

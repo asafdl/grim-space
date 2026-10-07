@@ -12,6 +12,9 @@ public sealed class RollClip : IReplayClip
 	{
 		var roll = (RollAction)action;
 		context.ReplayState.ApplyRoll(roll);
+		if (context.OrientationFlowsIntoMove(roll.ActorId))
+			return ClipPlayback.Instant;
+
 		var state = context.ReplayState.StateOf(roll.ActorId);
 		context.UnitViews[roll.ActorId].AnimateOrientationTo(state, ReplayTiming.OrientationSeconds);
 		return ClipPlayback.Pause(ReplayTiming.OrientationSeconds);

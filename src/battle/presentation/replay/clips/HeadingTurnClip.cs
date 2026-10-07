@@ -12,8 +12,14 @@ public sealed class HeadingTurnClip : IReplayClip
 	{
 		var heading = (HeadingTurnAction)action;
 		context.ReplayState.ApplyHeadingTurn(heading);
+		if (context.OrientationFlowsIntoMove(heading.ActorId))
+			return ClipPlayback.Instant;
+
 		var state = context.ReplayState.StateOf(heading.ActorId);
-		context.UnitViews[heading.ActorId].AnimateOrientationTo(state, ReplayTiming.OrientationSeconds);
+		context.UnitViews[heading.ActorId].AnimateOrientationTo(
+			state,
+			ReplayTiming.OrientationSeconds,
+			emitTrail: false);
 		return ClipPlayback.Pause(ReplayTiming.OrientationSeconds);
 	}
 }

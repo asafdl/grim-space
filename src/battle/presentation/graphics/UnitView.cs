@@ -234,7 +234,7 @@ public partial class UnitView : Node3D
 		}));
 	}
 
-	public void AnimateOrientationTo(State state, double duration)
+	public void AnimateOrientationTo(State state, double duration, bool emitTrail = true)
 	{
 		_poseTween?.Kill();
 		SetMovementTrailEmitting(false);
@@ -244,7 +244,7 @@ public partial class UnitView : Node3D
 		VisualState = UnitVisualState.Live;
 		Visible = true;
 		ApplyVisualState();
-		SetMovementTrailEmitting(true);
+		SetMovementTrailEmitting(emitTrail);
 		var startQuat = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
 		var endQuat = NormalizeRotationQuaternion(BasisFrom(state).GetRotationQuaternion());
 		_poseTween = CreateTween();
