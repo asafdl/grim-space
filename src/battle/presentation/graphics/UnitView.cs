@@ -320,13 +320,19 @@ public partial class UnitView : Node3D
 		HideHullForDeath();
 
 		var worldPosition = GlobalPosition;
-		OneShotParticles.Play(
-			host,
-			worldPosition,
-			new Color(1f, 0.42f, 0.12f, 0.9f),
-			scale,
-			worldSpace: true);
-		OneShotParticles.PlayExplosionModel(host, worldPosition, scale * 3.3f);
+		if (_type == EType.VoidBomb)
+		{
+			OneShotParticles.Play(
+				host,
+				worldPosition,
+				new Color(1f, 0.42f, 0.12f, 0.9f),
+				scale,
+				worldSpace: true);
+			OneShotParticles.PlayExplosionModel(host, worldPosition, scale * 3.3f);
+			return;
+		}
+
+		OneShotParticles.PlayShipDestruction(host, worldPosition, scale);
 	}
 
 	void HideHullForDeath()

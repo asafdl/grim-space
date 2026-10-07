@@ -11,10 +11,22 @@ internal static class OneShotParticles
 	private const double ExplosionFadeSeconds = 0.35;
 	private const double ShockwaveDelaySeconds = 0.14;
 	private const double ShockwaveExpandSeconds = 0.82;
+	private const double WreckageLifetimeSeconds = 8.0;
+	private const double WreckageFadeSeconds = 1.5;
 	private const string HitSparksPath = "res://assets/vfx/hit_sparks.tscn";
 	private const string ExplosionModelPath = "res://assets/vfx/sparksexplosion_clean.glb";
+	private static readonly string[] WreckageModelPaths =
+	[
+		"res://assets/models/wreck_debris_pack/bent_armor.glb",
+		"res://assets/models/wreck_debris_pack/broken_fuselage.glb",
+		"res://assets/models/wreck_debris_pack/engine_fragment.glb",
+		"res://assets/models/wreck_debris_pack/exposed_truss.glb",
+		"res://assets/models/wreck_debris_pack/hull_panel.glb",
+		"res://assets/models/wreck_debris_pack/severed_prow.glb",
+	];
 	private static PackedScene? _hitSparks;
 	private static PackedScene? _explosionModel;
+	private static PackedScene[]? _wreckageModels;
 
 	public static void PlayHitSparks(Node parent, Vector3 localPosition)
 	{
@@ -27,6 +39,25 @@ internal static class OneShotParticles
 		particles.Finished += particles.QueueFree;
 		particles.Restart();
 		particles.Emitting = true;
+	}
+
+	public static void PlayShipDestruction(
+		Node host,
+		Vector3 worldPosition,
+		float scale,
+		int debrisCount = 10)
+	{
+		if (debrisCount <= 0)
+			throw new ArgumentOutOfRangeException(nameof(debrisCount), debrisCount, "Debris count must be positive.");
+
+		Play(
+			host,
+			worldPosition,
+			new Color(1f, 0.42f, 0.12f, 0.9f),
+			scale,
+			worldSpace: true);
+		PlayExplosionModel(host, worldPosition, scale * 3.3f);
+		PlayWreckage(host, worldPosition, scale, debrisCount);
 	}
 
 	/// <param name="host">Scene node that outlives the dying unit (e.g. battle units root).</param>
@@ -42,7 +73,7 @@ internal static class OneShotParticles
 		effect.GlobalPosition = worldPosition;
 
 		var explosion = _explosionModel.Instantiate<Node3D>();
-		PrepareExplosionMeshes(explosion);
+		PrepareWorldMeshes(explosion);
 
 		var randomRoll = GD.Randf() * 360f;
 		var pivot = new Node3D
@@ -141,7 +172,81 @@ internal static class OneShotParticles
 		shockwaveTween.TweenCallback(Callable.From(effect.QueueFree));
 	}
 
-	static void PrepareExplosionMeshes(Node node)
+	private static void PlayWreckage(
+		Node host,
+		Vector3 worldPosition,
+		float scale,
+		int debrisCount)
+	{
+		_wreckageModels ??= WreckageModelPaths
+			.Select(path => GD.Load<PackedScene>(path)
+				?? throw new InvalidOperationException($"Could not load wreckage model '{path}'."))
+			.ToArray();
+
+		var wreckage = new Node3D { Name = "WreckageBurst" };
+		host.AddChild(wreckage);
+		wreckage.TopLevel = true;
+		wreckage.GlobalPosition = worldPosition;
+
+		for (var i = 0; i < debrisCount; i++)
+		{
+			var modelIndex = (int)(GD.Randi() % (uint)_wreckageModels.Length);
+			var fragment = _wreckageModels[modelIndex].Instantiate<Node3D>();
+			fragment.Name = $"WreckageFragment_{i}";
+			PrepareWorldMeshes(fragment);
+			wreckage.AddChild(fragment);
+
+			var direction = RandomDirection();
+			var start = direction * RandomRange(0.08f, 0.3f) * scale;
+			var duration = RandomRange(6.5f, (float)WreckageLifetimeSeconds);
+			fragment.Position = start;
+			fragment.Rotation = new Vector3(
+				RandomRange(0f, Mathf.Tau),
+				RandomRange(0f, Mathf.Tau),
+				RandomRange(0f, Mathf.Tau));
+			fragment.Scale = Vector3.One * RandomRange(0.12f, 0.26f) * scale;
+
+			var drift = direction * RandomRange(4.5f, 7.5f) * scale
+				+ RandomDirection() * RandomRange(0.4f, 1.1f) * scale;
+			var rotation = fragment.Rotation + RandomDirection() * RandomRange(6f, 13f);
+			var movement = wreckage.CreateTween();
+			movement.TweenProperty(fragment, "position", start + drift, duration)
+				.SetTrans(Tween.TransitionType.Quart)
+				.SetEase(Tween.EaseType.Out);
+			movement.Parallel()
+				.TweenProperty(fragment, "rotation", rotation, duration)
+				.SetTrans(Tween.TransitionType.Linear);
+
+			var meshes = fragment.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>()
+				.ToList();
+			if (meshes.Count == 0)
+				continue;
+
+			var fade = wreckage.CreateTween();
+			fade.TweenInterval(duration - WreckageFadeSeconds);
+			fade.TweenProperty(meshes[0], "transparency", 1f, WreckageFadeSeconds);
+			foreach (var mesh in meshes.Skip(1))
+				fade.Parallel().TweenProperty(mesh, "transparency", 1f, WreckageFadeSeconds);
+		}
+
+		var cleanup = wreckage.CreateTween();
+		cleanup.TweenInterval(WreckageLifetimeSeconds);
+		cleanup.TweenCallback(Callable.From(wreckage.QueueFree));
+	}
+
+	private static float RandomRange(float min, float max) =>
+		Mathf.Lerp(min, max, GD.Randf());
+
+	private static Vector3 RandomDirection()
+	{
+		var y = RandomRange(-1f, 1f);
+		var angle = RandomRange(0f, Mathf.Tau);
+		var radius = Mathf.Sqrt(1f - y * y);
+		return new Vector3(radius * Mathf.Cos(angle), y, radius * Mathf.Sin(angle));
+	}
+
+	static void PrepareWorldMeshes(Node node)
 	{
 		if (node is MeshInstance3D mesh)
 		{
@@ -150,7 +255,7 @@ internal static class OneShotParticles
 		}
 
 		foreach (var child in node.GetChildren())
-			PrepareExplosionMeshes(child);
+			PrepareWorldMeshes(child);
 	}
 
 	public static void Play(Node parent, Vector3 localPosition, Color color, float scale = 1f) =>
