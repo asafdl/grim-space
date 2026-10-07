@@ -211,7 +211,7 @@ public static class ActionLog
 				[displayName(a.ActorId)]),
 			Record<ImpactFacts> { Value: var impact } =>
 				new Entry(
-					$"Impact · {HazardCauseLabel(impact.Cause)}",
+					$"Impact · {ImpactCauseLabel(impact.Cause)}",
 					[
 						$"{displayName(impact.SourceId)} → {displayName(impact.TargetId)}",
 						FormatImpactDetail(impact),
@@ -233,10 +233,10 @@ public static class ActionLog
 		return string.Join(" · ", parts);
 	}
 
-	private static string HazardCauseLabel(EHazardKind cause) =>
+	private static string ImpactCauseLabel(EImpactCause cause) =>
 		cause switch
 		{
-			EHazardKind.ScrapDroneSwarmBurst => "Scrap Drone Swarm",
+			EImpactCause.ScrapDroneSwarmBurst => "Scrap Drone Swarm",
 			_ => FormatEnum(cause),
 		};
 

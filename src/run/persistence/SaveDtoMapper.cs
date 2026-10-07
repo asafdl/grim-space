@@ -311,7 +311,7 @@ public static class SaveDtoMapper
 				hazard.Frame,
 				Cells = hazard.Cells.ToArray(),
 				hazard.Passable,
-				hazard.Damage,
+				BlocksAbilities = hazard.BlocksAbilities,
 				hazard.Kind,
 			})).ToArray();
 
@@ -683,6 +683,9 @@ public static class SaveDtoMapper
 		Coord Destination,
 		int StartTick);
 
+	private static bool DefaultBlocksAbilities(EHazardKind kind) =>
+		kind == EHazardKind.Asteroid;
+
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,
 		PersistenceRegistry registry)
@@ -723,7 +726,8 @@ public static class SaveDtoMapper
 				Frame = hazard.Frame,
 				Cells = hazard.Cells.ToHashSet(),
 				Passable = hazard.Passable,
-				Damage = hazard.Damage,
+				BlocksAbilities = hazard.BlocksAbilities
+					?? DefaultBlocksAbilities(hazard.Kind),
 				Kind = hazard.Kind,
 			});
 		var world = BattleWorld.FromLive(

@@ -134,6 +134,123 @@ public sealed class DetonateActionTests
 		Assert.False(battle.Engine.World.StateOf(torpedoId).IsAlive);
 	}
 
+	[Fact]
+	public void AsteroidBetweenBombAndEnemyPreventsDamage()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 4;
+		var asteroidPos = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+
+		var sim = battle.Engine.CreateSimulation();
+		Assert.False(sim.TryEnqueue(new DetonateAction(torpedoId)));
+	}
+
+	[Fact]
+	public void EnemyBeforeAsteroidStillTakesDetonationDamage()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 1;
+		var asteroidPos = torpedoPos + Coord.Forward * 3;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+		var shieldsBefore = TotalShields(enemy.State);
+
+		var sim = battle.Engine.CreateSimulation();
+		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
+
+		Assert.True(TotalShields(sim.StateOf<ActorState>(enemy.State.Id)) < shieldsBefore);
+	}
+
+	[Fact]
+	public void OffAxisAsteroidDoesNotPreventDetonationDamage()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 2 + Coord.Up, grid, [torpedoPos + Coord.Forward * 2 + Coord.Up]));
+		var shieldsBefore = TotalShields(enemy.State);
+
+		var sim = battle.Engine.CreateSimulation();
+		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
+
+		Assert.True(TotalShields(sim.StateOf<ActorState>(enemy.State.Id)) < shieldsBefore);
+	}
+
+	[Fact]
+	public void DetonateIllegalWhenFuelRemainsAndEveryOpponentBlocked()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
+
+		var sim = battle.Engine.CreateSimulation();
+		Assert.False(sim.TryEnqueue(new DetonateAction(torpedoId)));
+	}
+
+	[Fact]
+	public void ForcedDetonationRemainsLegalWhenEveryOpponentBlocked()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = 0;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
+		var shieldsBefore = TotalShields(enemy.State);
+
+		var sim = battle.Engine.CreateSimulation();
+		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
+
+		Assert.Equal(shieldsBefore, TotalShields(sim.StateOf<ActorState>(enemy.State.Id)));
+		Assert.False(sim.StateOf<ActorState>(torpedoId).IsAlive);
+	}
+
+	[Fact]
+	public void AlliesBehindBlockersAreExcludedFromAffectedCells()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		var allyPos = torpedoPos + Coord.Forward * 4;
+		battle.Engine.World.StateOf(PlayerId).Position = allyPos;
+		var asteroidPos = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+		var affected = DetonateDef.Instance.AffectedCells(battle.Engine.World, torpedoId, torpedoPos);
+
+		Assert.DoesNotContain(allyPos, affected);
+		Assert.DoesNotContain(asteroidPos, affected);
+	}
+
 	private static BattleOrchestrator BattleWithTorpedo(out string torpedoId)
 	{
 		var origin = new Coord(5, 5, 5);

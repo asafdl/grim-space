@@ -71,7 +71,7 @@ public sealed class ReplayIdentityTests
 		var impact = new ImpactFacts(
 			SourceId: "terrain",
 			TargetId: target.Id,
-			Cause: EHazardKind.ScrapDroneSwarmBurst,
+			Cause: EImpactCause.ScrapDroneSwarmBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 1,
 			HullDamage: 0);
@@ -87,7 +87,7 @@ public sealed class ReplayIdentityTests
 		var impact = new ImpactFacts(
 			SourceId: "enemy",
 			TargetId: "fighter-a",
-			Cause: EHazardKind.LightningCannonBurst,
+			Cause: EImpactCause.LightningCannonBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 2,
 			HullDamage: 1);

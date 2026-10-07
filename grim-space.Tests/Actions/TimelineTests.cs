@@ -212,7 +212,7 @@ public sealed class TimelineTests
 		var impact = Assert.IsType<Record<ImpactFacts>>(history[swarmIndex + 1]);
 		Assert.Equal(battle.PlayerId, impact.Value.SourceId);
 		Assert.Equal(enemy.State.Id, impact.Value.TargetId);
-		Assert.Equal(EHazardKind.ScrapDroneSwarmBurst, impact.Value.Cause);
+		Assert.Equal(EImpactCause.ScrapDroneSwarmBurst, impact.Value.Cause);
 		Assert.True(impact.Value.TotalDamage > 0);
 	}
 

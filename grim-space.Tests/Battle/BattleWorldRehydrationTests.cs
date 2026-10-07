@@ -83,7 +83,7 @@ public sealed class BattleWorldRehydrationTests
 			hazard.ActorId,
 			hazard.Center,
 			hazard.Passable,
-			hazard.Damage,
+			hazard.BlocksAbilities,
 			hazard.Kind,
 			hazard.Cells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z));
 }

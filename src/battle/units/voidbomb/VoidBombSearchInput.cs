@@ -114,13 +114,13 @@ internal static class VoidBombSearchInput
 			return new(false, false, 0, 0, score);
 
 		var state = frame.World.StateOf(actorId);
-		var blastRadius = state.RequireProjectile().BlastRadius;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
 		var approachGain = ApproachGainToward(start.Position, state.Position, target);
+		var affected = DetonateDef.Instance.AffectedCells(frame.World, actorId, state.Position);
 		var opponentInBlast = target is not null
-			? state.Position.ManhattanDistanceTo(target.State.Position) <= blastRadius
+			? affected.Contains(target.State.Position)
 			: DetonateDef.HasOpponentInBlast(frame.World, actorId, state.Position);
-		var allyInBlast = HasAllyInBlast(frame.World, actorId, state.Position, blastRadius);
+		var allyInBlast = HasAllyInBlast(frame.World, actorId, state.Position, affected);
 
 		return new(opponentInBlast, allyInBlast, approachGain, frame.Depth, score);
 	}
@@ -138,7 +138,6 @@ internal static class VoidBombSearchInput
 			return int.MinValue;
 
 		var state = unit.State;
-		var blastRadius = state.RequireProjectile().BlastRadius;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
 		var score = -state.ActionPoints * UnusedApPenalty;
 
@@ -146,36 +145,17 @@ internal static class VoidBombSearchInput
 		score += Coord.Dot(displacement, start.Fore) * ForwardWeight;
 		score += ApproachGainToward(start.Position, state.Position, target) * ApproachWeight;
 
-		if (target is not null
-			&& state.Position.ManhattanDistanceTo(target.State.Position) <= blastRadius)
-		{
+		var affected = DetonateDef.Instance.AffectedCells(world, actorId, state.Position);
+		if (target is not null && affected.Contains(target.State.Position))
 			score += BlastTargetBonus;
-		}
 
-		if (HasAllyInBlast(world, actorId, state.Position, blastRadius))
+		if (HasAllyInBlast(world, actorId, state.Position, affected))
 			score -= BlastAllyPenalty;
 
 		var fuelAfterBurn = System.Math.Max(0, state.FuelRemaining - 1);
-		var targetInBlast = target is not null
-			&& state.Position.ManhattanDistanceTo(target.State.Position) <= blastRadius;
+		var targetInBlast = target is not null && affected.Contains(target.State.Position);
 		if (fuelAfterBurn == 0 && !targetInBlast)
 			score -= WetBoomPenalty;
-
-		return score;
-	}
-
-	private static int BlastScore(BattleWorld world, string actorId, Coord position, Unit? target)
-	{
-		var blastRadius = world.StateOf(actorId).RequireProjectile().BlastRadius;
-		var score = 0;
-		if (target is not null
-			&& position.ManhattanDistanceTo(target.State.Position) <= blastRadius)
-		{
-			score += BlastTargetBonus;
-		}
-
-		if (HasAllyInBlast(world, actorId, position, blastRadius))
-			score -= BlastAllyPenalty;
 
 		return score;
 	}
@@ -190,7 +170,11 @@ internal static class VoidBombSearchInput
 		return after < before ? before - after : 0;
 	}
 
-	internal static bool HasAllyInBlast(BattleWorld world, string actorId, Coord origin, int blastRadius)
+	internal static bool HasAllyInBlast(
+		BattleWorld world,
+		string actorId,
+		Coord origin,
+		HashSet<Coord> affected)
 	{
 		var units = UnitRegistry.For(world);
 		var actor = units.UnitOf(actorId);
@@ -198,7 +182,7 @@ internal static class VoidBombSearchInput
 		{
 			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Ally)
 				continue;
-			if (origin.ManhattanDistanceTo(unit.State.Position) <= blastRadius)
+			if (affected.Contains(unit.State.Position))
 				return true;
 		}
 

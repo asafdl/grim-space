@@ -25,6 +25,8 @@ public sealed class LightningCannonDef
 {
 	public static LightningCannonDef Instance { get; } = new();
 
+	public bool IsBlockable => true;
+
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		foreach (var installed in world.StateOf(actorId).Loadout.InstalledAbilities)
@@ -84,10 +86,11 @@ public sealed class LightningCannonDef
 		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Lightning cannon spec missing area damage.");
 		return
 		[
-			new ResolveHazardEffect(
-				EHazardKind.LightningCannonBurst,
+			new ApplyAreaDamageEffect(
+				EImpactCause.LightningCannonBurst,
 				cells,
-				damage),
+				damage,
+				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}
@@ -100,7 +103,8 @@ public sealed class LightningCannonDef
 			return [];
 
 		var frame = BodyFrame.From(state);
-		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
+		var geometric = AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
+		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.Hazards);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

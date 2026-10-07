@@ -11,7 +11,7 @@ public sealed class Hazard : NonUnit
 {
 	public required Coord Center { get; init; }
 	public required bool Passable { get; init; }
-	public required int Damage { get; init; }
+	public required bool BlocksAbilities { get; init; }
 	public required EHazardKind Kind { get; init; }
 
 	public static Hazard Asteroid(
@@ -38,7 +38,7 @@ public sealed class Hazard : NonUnit
 			Frame = BodyFrame.WorldAligned(origin),
 			Cells = occupied.ToFrozenSet(),
 			Passable = false,
-			Damage = 0,
+			BlocksAbilities = true,
 			Kind = EHazardKind.Asteroid,
 		};
 	}
@@ -82,7 +82,7 @@ public sealed class Hazard : NonUnit
 			Frame = Frame,
 			Cells = new HashSet<Coord>(Cells),
 			Passable = Passable,
-			Damage = Damage,
+			BlocksAbilities = BlocksAbilities,
 			Kind = Kind,
 		};
 }

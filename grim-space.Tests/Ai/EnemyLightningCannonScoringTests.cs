@@ -2,6 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -73,6 +74,44 @@ public sealed class EnemyLightningCannonScoringTests
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.Contains(actions, action => action is HeadingTurnAction);
+		Assert.Contains(actions, action => action is LightningCannonAction);
+	}
+
+	[Fact]
+	public async Task BuildTurnActions_DoesNotFireWhenLineFullyBlocked()
+	{
+		var playerPos = new Coord(2, 5, 5);
+		var enemyPos = new Coord(8, 5, 5);
+		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
+		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
+		enemy.State.ActionPoints = 0;
+
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", new Coord(5, 5, 5), grid, [new Coord(5, 5, 5)]));
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
+
+		Assert.DoesNotContain(actions, action => action is LightningCannonAction);
+	}
+
+	[Fact]
+	public async Task BuildTurnActions_OffAxisAsteroidDoesNotSuppressAttack()
+	{
+		var playerPos = new Coord(2, 5, 5);
+		var enemyPos = new Coord(8, 5, 5);
+		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
+		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
+		enemy.State.ActionPoints = 0;
+
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", new Coord(5, 6, 5), grid, [new Coord(5, 6, 5)]));
+		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
+
 		Assert.Contains(actions, action => action is LightningCannonAction);
 	}
 

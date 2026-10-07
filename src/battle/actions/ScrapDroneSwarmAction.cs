@@ -24,6 +24,8 @@ public sealed class ScrapDroneSwarmDef
 {
 	public static ScrapDroneSwarmDef Instance { get; } = new();
 
+	public bool IsBlockable => false;
+
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var state = world.StateOf(actorId);
@@ -82,10 +84,11 @@ public sealed class ScrapDroneSwarmDef
 		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Scrap drone swarm spec missing area damage.");
 		return
 		[
-			new ResolveHazardEffect(
-				EHazardKind.ScrapDroneSwarmBurst,
+			new ApplyAreaDamageEffect(
+				EImpactCause.ScrapDroneSwarmBurst,
 				cells,
-				damage),
+				damage,
+				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}
@@ -98,7 +101,8 @@ public sealed class ScrapDroneSwarmDef
 			return [];
 
 		var frame = BodyFrame.From(state);
-		return AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
+		var geometric = AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
+		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.Hazards);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

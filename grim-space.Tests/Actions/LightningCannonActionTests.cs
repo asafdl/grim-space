@@ -57,4 +57,80 @@ public sealed class LightningCannonActionTests
 		Assert.Contains(replay.Actions, action => action is LightningCannonAction);
 		Assert.True(shieldsBefore > TotalShieldPoints(battle.Engine.World.StateOf(BattleTestFixture.FirstEnemyId(battle))));
 	}
+
+	[Fact]
+	public void AsteroidBetweenShooterAndEnemyPreventsDamage()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = playerPos + Coord.Forward * 6;
+		var asteroidPos = playerPos + Coord.Forward * 3;
+		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
+		var grid = battle.Engine.World.Grid;
+		var world = battle.PlayerAgent.Sim.World;
+		BattleTestWorld.InjectHazard(
+			world,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
+
+		Assert.Equal(shieldsBefore, TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+	}
+
+	[Fact]
+	public void EnemyBeforeAsteroidStillTakesDamage()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = playerPos + Coord.Forward * 2;
+		var asteroidPos = playerPos + Coord.Forward * 4;
+		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
+		var grid = battle.Engine.World.Grid;
+		var world = battle.PlayerAgent.Sim.World;
+		BattleTestWorld.InjectHazard(
+			world,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
+
+		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+	}
+
+	[Fact]
+	public void OffAxisAsteroidDoesNotPreventDamage()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = playerPos + Coord.Forward * 6;
+		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
+		var grid = battle.Engine.World.Grid;
+		var world = battle.PlayerAgent.Sim.World;
+		BattleTestWorld.InjectHazard(
+			world,
+			Hazard.Asteroid("asteroid", playerPos + Coord.Forward * 3 + Coord.Up, grid, [playerPos + Coord.Forward * 3 + Coord.Up]));
+		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
+
+		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+	}
+
+	[Fact]
+	public void AffectedCellsExcludeAsteroidAndShadowedCells()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var asteroidPos = playerPos + Coord.Forward * 3;
+		var behind = playerPos + Coord.Forward * 6;
+		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, behind);
+		var grid = battle.Engine.World.Grid;
+		var world = battle.PlayerAgent.Sim.World;
+		BattleTestWorld.InjectHazard(
+			world,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+		var action = new LightningCannonAction(PlayerId);
+		var affected = LightningCannonDef.Instance.AffectedCells(action, world);
+
+		Assert.DoesNotContain(asteroidPos, affected);
+		Assert.DoesNotContain(behind, affected);
+		Assert.Contains(playerPos + Coord.Forward, affected);
+	}
 }

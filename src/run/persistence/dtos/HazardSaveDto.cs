@@ -11,5 +11,5 @@ public sealed record HazardSaveDto(
 	BodyFrame Frame,
 	IReadOnlyList<Coord> Cells,
 	bool Passable,
-	int Damage,
+	bool? BlocksAbilities,
 	EHazardKind Kind);

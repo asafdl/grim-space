@@ -251,7 +251,7 @@ public partial class TurnReplayPlayer : Node3D
 		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
 			return false;
 
-		if (impact.Cause == EHazardKind.VoidBombBlast && impact.TargetId == impact.SourceId)
+		if (impact.Cause == EImpactCause.VoidBombBlast && impact.TargetId == impact.SourceId)
 		{
 			DismissUnitPresentation(impact.TargetId);
 			_removeView(impact.TargetId);
@@ -265,7 +265,7 @@ public partial class TurnReplayPlayer : Node3D
 			view.Sync(state);
 		else
 			view.ShowPendingDeath(state);
-		if (impact.Cause == EHazardKind.LightningCannonBurst)
+		if (impact.Cause == EImpactCause.LightningCannonBurst)
 			view.PlayLightningHitSparks();
 		else
 			view.PlayHitSparks();

@@ -4,8 +4,10 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -654,6 +656,38 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void RestoreBattleWorld_LegacyAsteroidWithoutBlocksAbilitiesDefaultsToTrue()
+	{
+		var grid = BattleTestFixture.Grid();
+		var cell = new Coord(3, 3, 3);
+		var dto = new HazardSaveDto(
+			"asteroid",
+			BattleActorIds.Terrain,
+			cell,
+			BodyFrame.WorldAligned(cell),
+			[cell],
+			Passable: false,
+			BlocksAbilities: null,
+			Kind: EHazardKind.Asteroid);
+		var worldDto = new BattleWorldSaveDto(
+			"test",
+			EObjective.EliminateOpponents,
+			grid.Width,
+			grid.Height,
+			grid.Depth,
+			[],
+			[],
+			EBattleResult.Ongoing,
+			[],
+			[dto],
+			new TimelineSnapshotDto(0, [], []));
+
+		var restored = SaveDtoMapper.RestoreBattleWorld(worldDto, new PersistenceRegistry());
+		var hazard = Assert.Single(restored.Hazards);
+		Assert.True(hazard.BlocksAbilities);
+	}
+
+	[Fact]
 	public void SaveDtoMapper_RoundTripsBattleWorldState()
 	{
 		using var orchestrator = BattleOrchestrator.FromEncounter(
@@ -668,6 +702,11 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(dto.GridWidth, restored.Grid.Width);
 		Assert.Equal(dto.Units.Count, restored.UnitRegistry.All.Count());
 		Assert.Equal(dto.Hazards.Count, restored.Hazards.Count());
+		foreach (var hazard in restored.Hazards)
+		{
+			var captured = dto.Hazards.Single(saved => saved.Id == hazard.Id);
+			Assert.Equal(captured.BlocksAbilities ?? hazard.Kind == EHazardKind.Asteroid, hazard.BlocksAbilities);
+		}
 		Assert.Equal(
 			dto.EngagedShipIds.OrderBy(id => id),
 			restored.EngagedShipIds.OrderBy(id => id));

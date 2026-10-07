@@ -36,9 +36,12 @@ public sealed class VoidBombExecutionAgent : SimulationExecutionAgent<BattleWorl
 	{
 		var start = session.Actions.Count;
 		var actorId = actor.State.Id;
-		var blastRadius = actor.State.RequireProjectile().BlastRadius;
-		if (!VoidBombSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position, blastRadius)
-			&& session.TryEnqueue(new DetonateAction(actorId)))
+		var runtime = session.RuntimeFor(actorId);
+		var detonate = DetonateDef.Instance.Bind(actorId);
+		var affected = DetonateDef.Instance.AffectedCells(session.World, actorId, actor.State.Position);
+		if (!VoidBombSearchInput.HasAllyInBlast(session.World, actorId, actor.State.Position, affected)
+			&& DetonateDef.Instance.IsLegal(detonate, session.World, runtime)
+			&& session.TryEnqueue(detonate))
 		{
 			return session.Actions.Skip(start).ToList();
 		}

@@ -53,7 +53,7 @@ public sealed class ActionLogTests
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "repurposed-miner-a",
 				TargetId: "fighter-b",
-				Cause: EHazardKind.LightningCannonBurst,
+				Cause: EImpactCause.LightningCannonBurst,
 				Face: ESpatialOrientation.Dorsal,
 				ShieldDamage: 2,
 				HullDamage: 1)),
@@ -148,7 +148,7 @@ public sealed class ActionLogTests
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "hazard",
 				TargetId: "fighter-a",
-				Cause: EHazardKind.ScrapDroneSwarmBurst,
+				Cause: EImpactCause.ScrapDroneSwarmBurst,
 				Face: ESpatialOrientation.Forward,
 				ShieldDamage: 1,
 				HullDamage: 0)),

@@ -6,5 +6,7 @@ namespace GrimSpace.Battle.Actions;
 
 public interface IAreaActionDef
 {
+	bool IsBlockable { get; }
+
 	IReadOnlySet<Coord> AffectedCells(IAction action, BattleWorld world);
 }

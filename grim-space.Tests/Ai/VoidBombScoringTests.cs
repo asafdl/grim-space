@@ -2,6 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
 using GrimSpace.Units;
@@ -257,6 +258,79 @@ public sealed class VoidBombScoringTests
 			{
 				Direction: ESpatialOrientation.Starboard
 			});
+		Assert.Contains(actions, action => action is DetonateAction);
+	}
+
+	[Fact]
+	public void Plan_DoesNotTreatFullyShieldedOpponentAsImmediateCleanDetonation()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
+		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward, grid, [torpedoPos + Coord.Forward]));
+
+		Assert.False(DetonateDef.HasOpponentInBlast(battle.Engine.World, torpedoId, torpedoPos));
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent)
+			.Plan(torpedo, battle.Engine.CreateSimulation());
+
+		Assert.False(actions.Count > 0 && actions[0] is DetonateAction);
+		var detonateIndex = actions.ToList().FindIndex(action => action is DetonateAction);
+		if (detonateIndex >= 0)
+			Assert.True(actions.Take(detonateIndex).Any(action => action is VoidBombMoveStepAction));
+	}
+
+	[Fact]
+	public void Plan_CollateralPenaltyIgnoresAllyShieldedByAsteroid()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
+		battle.Engine.World.StateOf(torpedoId).Dorsal = Coord.Up;
+		battle.Engine.World.StateOf(torpedoId).Starboard = Coord.Cross(Coord.Up, Coord.Forward);
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
+		battle.Engine.World.StateOf(PlayerId).Position = torpedoPos + Coord.Forward * 4;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + Coord.Forward * 2;
+		var grid = battle.Engine.World.Grid;
+		BattleTestWorld.InjectHazard(
+			battle.Engine.World,
+			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 3, grid, [torpedoPos + Coord.Forward * 3]));
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent)
+			.Plan(torpedo, battle.Engine.CreateSimulation());
+
+		Assert.Contains(actions, action => action is DetonateAction);
+	}
+
+	[Fact]
+	public void Plan_UnblockedTargetPreservesDetonationBehavior()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedoPos = new Coord(5, 5, 5);
+		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
+		battle.Engine.World.StateOf(torpedoId).Fore = Coord.Forward;
+		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
+		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = torpedoPos + new Coord(1, 0, 0);
+
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent)
+			.Plan(torpedo, battle.Engine.CreateSimulation());
+
+		Assert.DoesNotContain(actions, action => action is MoveStepAction);
 		Assert.Contains(actions, action => action is DetonateAction);
 	}
 

@@ -69,4 +69,30 @@ public sealed class ScrapDroneSwarmActionTests
 		Assert.Equal(shieldsBefore - CatalogExpectations.ScrapDroneSwarmDamage(), TotalShieldPoints(enemy.State));
 		Assert.False(enemy.State.ApPenaltyNextTurn);
 	}
+
+	[Fact]
+	public void AsteroidBetweenActorAndEnemyDoesNotSuppressSwarmDamage()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var grid = battle.PlayerAgent.Sim.World.Grid;
+		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World);
+		var enemy = UnitRegistry.For(battle.PlayerAgent.Sim.World).All.First(unit => unit.State.Id != PlayerId);
+		var targetCell = cells.First();
+		enemy.State.Position = targetCell;
+		var shooterPos = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position;
+		var asteroidPos = new Coord(
+			(shooterPos.X + targetCell.X) / 2,
+			(shooterPos.Y + targetCell.Y) / 2,
+			(shooterPos.Z + targetCell.Z) / 2);
+		BattleTestWorld.InjectHazard(
+			battle.PlayerAgent.Sim.World,
+			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+		var shieldsBefore = TotalShieldPoints(enemy.State);
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
+
+		Assert.Equal(shieldsBefore - CatalogExpectations.ScrapDroneSwarmDamage(), TotalShieldPoints(enemy.State));
+	}
 }

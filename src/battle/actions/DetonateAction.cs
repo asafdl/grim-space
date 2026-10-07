@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -15,9 +16,12 @@ public sealed record DetonateAction(string ActorId) : IAction<BattleWorld, Actor
 
 public sealed class DetonateDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IActorActionDef
+		IActorActionDef,
+		IAreaActionDef
 {
 	public static DetonateDef Instance { get; } = new();
+
+	public bool IsBlockable => true;
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
@@ -64,30 +68,43 @@ public sealed class DetonateDef
 	{
 		var actor = world.StateOf(action.ActorId);
 		var body = actor.RequireProjectile();
-		var origin = actor.Position;
-		var cells = Manhattan.EnumerateBall(origin, body.BlastRadius)
-			.Where(world.Grid.IsInBounds)
-			.ToHashSet();
+		var cells = AffectedCells(world, action.ActorId, actor.Position);
 
 		return
 		[
-			new ResolveHazardEffect(
-				EHazardKind.VoidBombBlast,
+			new ApplyAreaDamageEffect(
+				EImpactCause.VoidBombBlast,
 				cells,
-				body.BlastDamage),
+				body.BlastDamage,
+				actor.Position),
 		];
 	}
+
+	public HashSet<Coord> AffectedCells(DetonateAction action, BattleWorld world) =>
+		AffectedCells(world, action.ActorId, world.StateOf(action.ActorId).Position);
+
+	public HashSet<Coord> AffectedCells(BattleWorld world, string actorId, Coord origin)
+	{
+		var blastRadius = world.StateOf(actorId).RequireProjectile().BlastRadius;
+		var geometric = Manhattan.EnumerateBall(origin, blastRadius)
+			.Where(world.Grid.IsInBounds)
+			.ToHashSet();
+		return AbilityArea.ApplyBlocking(origin, geometric, IsBlockable, world.Hazards);
+	}
+
+	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
+		AffectedCells(Cast(action), world);
 
 	public static bool HasOpponentInBlast(BattleWorld world, string actorId, Coord origin)
 	{
 		var units = UnitRegistry.For(world);
 		var actor = units.UnitOf(actorId);
-		var blastRadius = actor.State.RequireProjectile().BlastRadius;
+		var affected = Instance.AffectedCells(world, actorId, origin);
 		foreach (var unit in units.Except(actorId))
 		{
 			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Opponent)
 				continue;
-			if (origin.ManhattanDistanceTo(unit.State.Position) <= blastRadius)
+			if (affected.Contains(unit.State.Position))
 				return true;
 		}
 

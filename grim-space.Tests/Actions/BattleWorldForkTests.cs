@@ -1,6 +1,6 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
@@ -22,6 +22,7 @@ public sealed class BattleWorldForkTests
 			new HashSet<Coord> { rock });
 		var world = battle.Engine.World;
 		var asteroid = Hazard.Asteroid("asteroid", rock, grid, [rock]);
+		Assert.True(asteroid.BlocksAbilities);
 		BattleTestWorld.InjectHazard(world, asteroid);
 
 		var branch = world.Fork();
@@ -56,12 +57,22 @@ public sealed class BattleWorldForkTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var world = BattleTestFixture.BeginSimulation(origin).Engine.World;
-		var hazard = HazardResolution.BuildTransient(
-			EHazardKind.ScrapDroneSwarmBurst, [origin], 1, origin);
+		var hazard = new Hazard
+		{
+			Id = "mutable-hazard",
+			ActorId = "terrain",
+			Center = origin,
+			Frame = BodyFrame.WorldAligned(origin),
+			Cells = new HashSet<Coord> { origin },
+			Passable = true,
+			BlocksAbilities = false,
+			Kind = EHazardKind.Asteroid,
+		};
 		BattleTestWorld.InjectHazard(world, hazard);
 
 		var fork = world.Fork();
 		var copy = Assert.IsType<Hazard>(fork.NonUnits[hazard.Id]);
+		Assert.False(copy.BlocksAbilities);
 		Assert.NotSame(hazard, copy);
 		((HashSet<Coord>)copy.Cells).Add(origin + Coord.Up);
 		Assert.DoesNotContain(origin + Coord.Up, hazard.Cells);
