@@ -19,6 +19,30 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 {
 	[Fact]
+	public void RollTimedLeg_IsDeterministicForSeedAndLegIndex()
+	{
+		const int seed = 42;
+		const string contractId = "delivery-timed-roll";
+
+		var first = DeliveryContractState.RollTimedLeg(
+			seed,
+			contractId,
+			legIndex: 0,
+			DeliveryGenerationConfig.Default);
+		var second = DeliveryContractState.RollTimedLeg(
+			seed,
+			contractId,
+			legIndex: 0,
+			DeliveryGenerationConfig.Default);
+		Assert.Equal(first, second);
+		Assert.False(DeliveryContractState.RollTimedLeg(
+			seed,
+			contractId,
+			legIndex: 0,
+			timedLegChance: 0));
+	}
+
+	[Fact]
 	public void RollInterception_IsDeterministicForSeedAndDanger()
 	{
 		const int seed = 42;
@@ -85,7 +109,8 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 				ContractNarrative.ForDelivery("Delivery", "Pickup.", "Dropoff."),
 				DropoffPoiId: plan.ExitPoiId,
 				DropoffFacilityId: Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
-				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map)));
+				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map),
+				Generation: new DeliveryGenerationConfig(timedLegChance: 1.0)));
 		map.ContractRegistry.TryAdd(contract);
 		var unit = map.FleetRegistry.All.First();
 		var runtimes = new ActorRuntimes<ActorRuntime>();
@@ -102,12 +127,14 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 		var objective = Assert.IsType<DeliveryObjective>(contract.Objective);
 		var origin = map.GetPointOfInterest(contract.IssuerPoiId!).PlacedCenter;
 		Assert.Equal(
-			DeliveryContractState.DeadlineTickForLeg(
+			DeliveryContractState.ResolveDeadlineTickForLeg(
 				map,
+				contract.Id,
 				objective,
 				legIndex: 0,
 				origin,
-				acceptedAtTick),
+				acceptedAtTick,
+				DeliveryContractState.TimedLegChanceFor(contract, objective.Config)),
 			delivery.Progress.DeadlineTick);
 		Assert.Equal(
 			delivery.Progress.InterceptionState == EDeliveryInterceptionState.Pending,
@@ -172,7 +199,8 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 				ContractNarrative.ForDelivery("Delivery", "Pickup.", "Dropoff."),
 				DropoffPoiId: plan.ExitPoiId,
 				DropoffFacilityId: Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
-				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map)));
+				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map),
+				Generation: new DeliveryGenerationConfig(timedLegChance: 1.0)));
 		map.ContractRegistry.TryAdd(contract);
 		var unit = map.FleetRegistry.All.First();
 		var runtimes = new ActorRuntimes<ActorRuntime>();
@@ -182,6 +210,7 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 		engine.Commit(ContractActionTestContext.AcceptDelivery(map, unit.State.Id, contract.Id));
 		var delivery = Assert.IsType<DeliveryContractState>(
 			map.ContractRegistry.TryGetState(contract.Id, out var state) ? state : null);
+		Assert.NotNull(delivery.Progress.DeadlineTick);
 		map.Timeline.Clock.Set(delivery.Progress.DeadlineTick!.Value + 1);
 
 		engine.Commit(new FailDeliveryDeadlineAction(StarSystemActorIds.Contracts, contract.Id));

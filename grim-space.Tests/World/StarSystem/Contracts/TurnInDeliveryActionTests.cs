@@ -142,7 +142,8 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
 				Generation: new DeliveryGenerationConfig(
 					facilityLegCount: 2,
-					spaceMeetingChance: 0)));
+					spaceMeetingChance: 0,
+					timedLegChance: 1.0)));
 		var delivery = Assert.IsType<DeliveryObjective>(contract.Objective);
 		var firstLeg = Assert.IsType<FacilityDeliveryLeg>(delivery.Route.Legs[0]);
 		var engine = new Engine<StarMap, ActorRuntime>(

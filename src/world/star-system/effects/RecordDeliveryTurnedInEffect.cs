@@ -37,27 +37,31 @@ public class AdvanceDeliveryLegEffect(string contractId, int legIndex) : IEffect
 			next = next.WithDeadlineTick(null);
 		}
 		else if (world.ContractRegistry.TryGet(contractId, out var contract)
-			&& !contract.IsStoryObjective
 			&& contract.Objective is DeliveryObjective objective)
 		{
 			var origin = DeliveryContractState.CoordinateOf(
 				world,
 				objective.Route.Legs[legIndex]);
 			var currentTick = world.Timeline.Clock.Current;
-			var deadlineTick = DeliveryContractState.DeadlineTickForLeg(
+			var deadlineTick = DeliveryContractState.ResolveDeadlineTickForLeg(
 				world,
+				contractId,
 				objective,
 				next.Progress.CurrentLegIndex,
 				origin,
-				currentTick);
+				currentTick,
+				DeliveryContractState.TimedLegChanceFor(contract, objective.Config));
 			next = next.WithDeadlineTick(deadlineTick);
-			_scheduledDeadlineAction = new FailDeliveryDeadlineAction(
-				StarSystemActorIds.Contracts,
-				contractId);
-			_scheduledDeadlineTick = deadlineTick + 1;
-			world.Timeline.Schedule(
-				_scheduledDeadlineTick - currentTick,
-				_scheduledDeadlineAction);
+			if (deadlineTick is int tick)
+			{
+				_scheduledDeadlineAction = new FailDeliveryDeadlineAction(
+					StarSystemActorIds.Contracts,
+					contractId);
+				_scheduledDeadlineTick = tick + 1;
+				world.Timeline.Schedule(
+					_scheduledDeadlineTick - currentTick,
+					_scheduledDeadlineAction);
+			}
 		}
 		world.ContractRegistry.ReplaceState(next);
 		ContractDeliveryRoleSupport.OnDeliveryLegAdvanced(world, state, next);

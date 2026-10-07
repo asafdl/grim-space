@@ -216,14 +216,14 @@ public sealed record DeliveryContractState(
 			?? throw new InvalidOperationException(
 				$"Delivery contract '{contract.Id}' has no issuer POI.");
 		var origin = world.GetPointOfInterest(issuerPoiId).PlacedCenter;
-		int? deadlineTick = contract.IsStoryObjective
-			? null
-			: DeadlineTickForLeg(
-				world,
-				delivery,
-				legIndex: 0,
-				origin,
-				acceptedAtTick);
+		int? deadlineTick = ResolveDeadlineTickForLeg(
+			world,
+			contract.Id,
+			delivery,
+			legIndex: 0,
+			origin,
+			acceptedAtTick,
+			TimedLegChanceFor(contract, config));
 		var interceptionState = contract.IsStoryObjective
 			? EDeliveryInterceptionState.None
 			: RollInterception(world.Seed, contract.Id, contract.Danger, config)
@@ -242,6 +242,21 @@ public sealed record DeliveryContractState(
 			progress);
 	}
 
+	internal static double TimedLegChanceFor(Contract contract, DeliveryGenerationConfig config) =>
+		contract.IsStoryObjective ? 0 : config.TimedLegChance;
+
+	internal static int? ResolveDeadlineTickForLeg(
+		StarMap world,
+		string contractId,
+		DeliveryObjective delivery,
+		int legIndex,
+		Coord origin,
+		int startsAtTick,
+		double timedLegChance) =>
+		RollTimedLeg(world.Seed, contractId, legIndex, timedLegChance)
+			? DeadlineTickForLeg(world, delivery, legIndex, origin, startsAtTick)
+			: null;
+
 	internal static int DeadlineTickForLeg(
 		StarMap world,
 		DeliveryObjective delivery,
@@ -254,6 +269,31 @@ public sealed record DeliveryContractState(
 			+ (int)System.Math.Ceiling(
 				travelTicks * delivery.Config.DeadlineSlackMultiplier)
 			+ delivery.Config.InterruptionBufferTicks;
+	}
+
+	internal static bool RollTimedLeg(
+		int mapSeed,
+		string contractId,
+		int legIndex,
+		DeliveryGenerationConfig config) =>
+		RollTimedLeg(mapSeed, contractId, legIndex, config.TimedLegChance);
+
+	internal static bool RollTimedLeg(
+		int mapSeed,
+		string contractId,
+		int legIndex,
+		double timedLegChance)
+	{
+		if (timedLegChance <= 0)
+			return false;
+
+		var random = new StableRandom(
+			StableSeedMixer.From(mapSeed)
+				.Add(contractId)
+				.Add("delivery-timed-leg-roll")
+				.Add(legIndex)
+				.Value);
+		return random.NextDouble() < timedLegChance;
 	}
 
 	internal static double EstimateLegTravelTicks(

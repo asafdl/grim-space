@@ -5,6 +5,7 @@ namespace GrimSpace.World.StarSystem.Contracts;
 public sealed record DeliveryGenerationConfig
 {
 	public const double DefaultSpaceMeetingChance = 0.2;
+	public const double DefaultTimedLegChance = 0.2;
 	public const double DefaultDeadlineSlackMultiplier = 1.6;
 	public const int DefaultInterruptionBufferTicks = 15;
 	public const int DefaultInterceptionLeadTicks = 5;
@@ -14,6 +15,7 @@ public sealed record DeliveryGenerationConfig
 
 	public int FacilityLegCount { get; }
 	public double SpaceMeetingChance { get; }
+	public double TimedLegChance { get; }
 	public double DeadlineSlackMultiplier { get; }
 	public int InterruptionBufferTicks { get; }
 	public int InterceptionLeadTicks { get; }
@@ -22,6 +24,7 @@ public sealed record DeliveryGenerationConfig
 	public DeliveryGenerationConfig(
 		int facilityLegCount = 1,
 		double spaceMeetingChance = DefaultSpaceMeetingChance,
+		double timedLegChance = DefaultTimedLegChance,
 		double deadlineSlackMultiplier = DefaultDeadlineSlackMultiplier,
 		int interruptionBufferTicks = DefaultInterruptionBufferTicks,
 		int interceptionLeadTicks = DefaultInterceptionLeadTicks,
@@ -30,6 +33,8 @@ public sealed record DeliveryGenerationConfig
 		ArgumentOutOfRangeException.ThrowIfLessThan(facilityLegCount, 1);
 		if (spaceMeetingChance is < 0 or > 1)
 			throw new ArgumentOutOfRangeException(nameof(spaceMeetingChance));
+		if (timedLegChance is < 0 or > 1)
+			throw new ArgumentOutOfRangeException(nameof(timedLegChance));
 		if (deadlineSlackMultiplier <= 0)
 			throw new ArgumentOutOfRangeException(nameof(deadlineSlackMultiplier));
 		ArgumentOutOfRangeException.ThrowIfNegative(interruptionBufferTicks);
@@ -38,6 +43,7 @@ public sealed record DeliveryGenerationConfig
 
 		FacilityLegCount = facilityLegCount;
 		SpaceMeetingChance = spaceMeetingChance;
+		TimedLegChance = timedLegChance;
 		DeadlineSlackMultiplier = deadlineSlackMultiplier;
 		InterruptionBufferTicks = interruptionBufferTicks;
 		InterceptionLeadTicks = interceptionLeadTicks;
