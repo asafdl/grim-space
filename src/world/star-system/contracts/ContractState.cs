@@ -216,15 +216,19 @@ public sealed record DeliveryContractState(
 			?? throw new InvalidOperationException(
 				$"Delivery contract '{contract.Id}' has no issuer POI.");
 		var origin = world.GetPointOfInterest(issuerPoiId).PlacedCenter;
-		var deadlineTick = DeadlineTickForLeg(
-			world,
-			delivery,
-			legIndex: 0,
-			origin,
-			acceptedAtTick);
-		var interceptionState = RollInterception(world.Seed, contract.Id, contract.Danger, config)
-			? EDeliveryInterceptionState.Pending
-			: EDeliveryInterceptionState.None;
+		int? deadlineTick = contract.IsStoryObjective
+			? null
+			: DeadlineTickForLeg(
+				world,
+				delivery,
+				legIndex: 0,
+				origin,
+				acceptedAtTick);
+		var interceptionState = contract.IsStoryObjective
+			? EDeliveryInterceptionState.None
+			: RollInterception(world.Seed, contract.Id, contract.Danger, config)
+				? EDeliveryInterceptionState.Pending
+				: EDeliveryInterceptionState.None;
 		var progress = new DeliveryProgress(
 			Enumerable.Repeat(false, delivery.RouteLegCount).ToArray(),
 			activationTick: acceptedAtTick,

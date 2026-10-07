@@ -37,6 +37,7 @@ public class AdvanceDeliveryLegEffect(string contractId, int legIndex) : IEffect
 			next = next.WithDeadlineTick(null);
 		}
 		else if (world.ContractRegistry.TryGet(contractId, out var contract)
+			&& !contract.IsStoryObjective
 			&& contract.Objective is DeliveryObjective objective)
 		{
 			var origin = DeliveryContractState.CoordinateOf(

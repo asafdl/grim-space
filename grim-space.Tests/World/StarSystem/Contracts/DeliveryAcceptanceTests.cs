@@ -1,4 +1,5 @@
 using GrimSpace.Core.Engine;
+using GrimSpace.Tutorials;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -118,6 +119,31 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 			action is FailDeliveryDeadlineAction fail
 			&& fail.ContractId == contract.Id
 			&& fail.ActorId == StarSystemActorIds.Contracts));
+	}
+
+	[Fact]
+	public void AcceptStoryDelivery_SkipsDeadlineAndInterceptionTimeline()
+	{
+		var map = maps.Fresh(42);
+		TutorialBeatContracts.OfferBeatB(map);
+		var contract = map.ContractRegistry.Pending.Single();
+		Assert.True(contract.IsStoryObjective);
+		var unit = map.FleetRegistry.All.First();
+		var runtimes = new ActorRuntimes<ActorRuntime>();
+		runtimes.For(unit.State.Id);
+		runtimes.For(StarSystemActorIds.Contracts);
+		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+
+		engine.Commit(ContractActionTestContext.AcceptDelivery(map, unit.State.Id, contract.Id));
+
+		var delivery = Assert.IsType<DeliveryContractState>(
+			engine.World.ContractRegistry.TryGetState(contract.Id, out var state) ? state : null);
+		Assert.Null(delivery.Progress.DeadlineTick);
+		Assert.Equal(EDeliveryInterceptionState.None, delivery.Progress.InterceptionState);
+		Assert.False(engine.World.Timeline.ContainsPending(action =>
+			action is AttemptDeliveryInterceptionAction));
+		Assert.False(engine.World.Timeline.ContainsPending(action =>
+			action is FailDeliveryDeadlineAction));
 	}
 
 	[Fact]
