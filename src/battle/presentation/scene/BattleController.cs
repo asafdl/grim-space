@@ -65,7 +65,6 @@ public partial class BattleController : Node3D
 	private readonly Dictionary<string, EType> _unitTypes = new(StringComparer.Ordinal);
 	private IReadOnlyList<string> _currentTurnActivations = [];
 	private IReadOnlyList<TurnFlowEntry> _turnFlowTimeline = [];
-
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
 	private bool CanEndTurn =>
@@ -215,6 +214,8 @@ public partial class BattleController : Node3D
 		_battle.TurnResolved += OnTurnResolved;
 
 		_cameraDirector.EnterManual();
+		if (_battle.Phase == EBattlePhase.PlayerTurn)
+			SyncAuthoritativeUnitViewsFromWorld();
 		RefreshPresentation();
 		GetTree().CreateTimer(OpeningCameraHoldSeconds).Timeout += ConfigureTutorial;
 	}
@@ -346,6 +347,8 @@ public partial class BattleController : Node3D
 	{
 		var previous = _lastPhase;
 		_lastPhase = phase;
+		if (phase == EBattlePhase.PlayerTurn)
+			SyncAuthoritativeUnitViewsFromWorld();
 		if (phase == EBattlePhase.PlayerTurn && previous == EBattlePhase.Replaying)
 		{
 			if (_currentTurnActivations.Count > 0)
@@ -638,10 +641,19 @@ public partial class BattleController : Node3D
 		var states = frame.PreviewUnits.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.ToState());
-		_battleView.ApplyUnitStates(
-			states,
-			ColorForActor);
+		if (UsesPlanningPreviewForFrameUnitStates(_battle.Phase))
+			_battleView.ApplyPlanningPreview(states, ColorForActor);
+		else
+			_battleView.ApplyUnitStates(states, ColorForActor);
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
+	}
+
+	private void SyncAuthoritativeUnitViewsFromWorld()
+	{
+		var states = UnitRegistry.For(_battle.Engine.World).All
+			.Where(unit => unit.State.IsAlive)
+			.ToDictionary(unit => unit.State.Id, unit => unit.State);
+		_battleView.ApplyUnitStates(states, ColorForActor);
 	}
 
 	private void ApplyReplayState(ActorState state)
@@ -652,6 +664,9 @@ public partial class BattleController : Node3D
 
 	internal static bool ShouldApplyFrameUnitStates(EBattlePhase phase) =>
 		phase != EBattlePhase.Replaying;
+
+	internal static bool UsesPlanningPreviewForFrameUnitStates(EBattlePhase phase) =>
+		phase is EBattlePhase.PlayerTurn or EBattlePhase.Resolving;
 
 	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialBlocksEndTurn) =>
 		acceptsCommands && !tutorialBlocksEndTurn;

@@ -54,11 +54,9 @@ public partial class UnitView : Node3D
 		Sync(state);
 	}
 
-	/// <summary>Synchronizes an authoritative unit state; dead units are not rendered.</summary>
-	public void Sync(State state)
-	{
+	/// <summary>Synchronizes authoritative unit state; dead units are hidden.</summary>
+	public void Sync(State state) =>
 		Present(state, state.IsAlive ? UnitVisualState.Live : UnitVisualState.Hidden);
-	}
 
 	public void Present(State state, UnitVisualState visualState)
 	{

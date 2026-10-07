@@ -225,14 +225,13 @@ public sealed class BattlePhaseTests
 			expected,
 			BattleController.ShouldAllowEndTurn(acceptsCommands, tutorialBlocksEndTurn));
 
-	[Fact]
-	public void BattleViewNeverRetainsSimulationDeadUnits()
-	{
-		var state = BattleTestFixture.Enemy(Coord.Zero).State;
-		state.HullPoints = 0;
-
-		Assert.False(BattleView.ShouldRetain(state));
-	}
+	[Theory]
+	[InlineData(EBattlePhase.PlayerTurn, true)]
+	[InlineData(EBattlePhase.Resolving, true)]
+	[InlineData(EBattlePhase.Replaying, false)]
+	[InlineData(EBattlePhase.BattleOver, false)]
+	public void PlayerTurnAndResolvingFramesUsePlanningPreview(EBattlePhase phase, bool expected) =>
+		Assert.Equal(expected, BattleController.UsesPlanningPreviewForFrameUnitStates(phase));
 
 	[Fact]
 	public void ForceOutcome_WinKillsOpponentAndEndsBattle()

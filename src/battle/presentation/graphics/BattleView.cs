@@ -37,6 +37,9 @@ public partial class BattleView : Node3D
 		view.QueueFree();
 	}
 
+	/// <summary>
+	/// Authoritative sync from live or post-replay world: dead units are removed; survivors use <see cref="UnitView.Sync"/>.
+	/// </summary>
 	public void ApplyUnitStates(
 		IReadOnlyDictionary<string, State> states,
 		Func<string, Color>? colorFor = null)
@@ -44,7 +47,7 @@ public partial class BattleView : Node3D
 		var keep = new HashSet<string>(states.Count);
 		foreach (var (unitId, state) in states)
 		{
-			if (!ShouldRetain(state))
+			if (!state.IsAlive)
 			{
 				Remove(unitId);
 				continue;
@@ -68,7 +71,37 @@ public partial class BattleView : Node3D
 			Remove(id);
 	}
 
-	internal static bool ShouldRetain(State state) => state.IsAlive;
+	/// <summary>
+	/// Planning / resolving preview: existing views stay live even when preview marks them dead;
+	/// new views are created only for preview spawns; views missing from the preview set are removed.
+	/// </summary>
+	public void ApplyPlanningPreview(
+		IReadOnlyDictionary<string, State> states,
+		Func<string, Color>? colorFor = null)
+	{
+		var keep = new HashSet<string>(states.Count);
+		foreach (var (unitId, state) in states)
+		{
+			keep.Add(unitId);
+			if (_unitViews.TryGetValue(unitId, out var view))
+			{
+				view.Present(state, UnitVisualState.Live);
+				view.SetHitMarked(false);
+				continue;
+			}
+
+			if (!state.IsAlive)
+				continue;
+
+			Ensure(state, colorFor?.Invoke(unitId) ?? Colors.White);
+			view = _unitViews[unitId];
+			view.Present(state, UnitVisualState.Live);
+			view.SetHitMarked(false);
+		}
+
+		foreach (var id in _unitViews.Keys.Where(id => !keep.Contains(id)).ToList())
+			Remove(id);
+	}
 
 	public void ApplyHitMarks(IReadOnlySet<string> threatenedUnitIds)
 	{
