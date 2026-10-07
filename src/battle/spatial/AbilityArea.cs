@@ -1,4 +1,5 @@
-using GrimSpace.Battle.World;
+using System.Collections.Frozen;
+using System.Runtime.CompilerServices;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Loadouts.Abilities;
 using Microsoft.Extensions.Caching.Memory;
@@ -9,10 +10,13 @@ public static class AbilityArea
 {
 	private const int CacheSizeLimit = 256;
 
-	private static readonly MemoryCache Cache =
+	private static readonly MemoryCache GeometryCache =
 		new(new MemoryCacheOptions { SizeLimit = CacheSizeLimit });
 
-	public static HashSet<Coord> CellsInBounds(
+	private static readonly MemoryCache BlockingCache =
+		new(new MemoryCacheOptions { SizeLimit = CacheSizeLimit });
+
+	public static FrozenSet<Coord> CellsInBounds(
 		IAreaDamage area,
 		BodyFrame frame,
 		ESpatialOrientation direction,
@@ -32,46 +36,45 @@ public static class AbilityArea
 			grid.Depth,
 			spec);
 
-		return Cache.GetOrCreate(key, entry =>
+		return GeometryCache.GetOrCreate(key, entry =>
 		{
 			entry.Size = 1;
 			return Compute(area, frame, direction, grid);
 		})!;
 	}
 
-	public static HashSet<Coord> ApplyBlocking(
-		Coord origin,
-		HashSet<Coord> candidates,
-		bool isBlockable,
-		IEnumerable<Hazard> hazards)
+	public static FrozenSet<Coord> ManhattanBallInBounds(Coord origin, int radius, Grid grid)
 	{
-		var result = new HashSet<Coord>(candidates);
-		if (!isBlockable)
-			return result;
-
-		var blockers = CollectAbilityBlockingCells(hazards);
-		if (blockers.Count == 0)
-			return result;
-
-		result.RemoveWhere(cell => IsShadowed(origin, cell, blockers));
-		return result;
-	}
-
-	private static HashSet<Coord> CollectAbilityBlockingCells(IEnumerable<Hazard> hazards)
-	{
-		var blockers = new HashSet<Coord>();
-		foreach (var hazard in hazards)
+		var key = (origin, radius, grid.Width, grid.Height, grid.Depth);
+		return GeometryCache.GetOrCreate(key, entry =>
 		{
-			if (!hazard.BlocksAbilities)
-				continue;
-			foreach (var cell in hazard.Cells)
-				blockers.Add(cell);
-		}
-
-		return blockers;
+			entry.Size = 1;
+			return Manhattan.EnumerateBall(origin, radius)
+				.Where(grid.IsInBounds)
+				.ToFrozenSet();
+		})!;
 	}
 
-	private static bool IsShadowed(Coord origin, Coord target, HashSet<Coord> blockers)
+	public static IReadOnlySet<Coord> ApplyBlocking(
+		Coord origin,
+		FrozenSet<Coord> candidates,
+		bool isBlockable,
+		FrozenSet<Coord> blockingCells)
+	{
+		if (!isBlockable || blockingCells.Count == 0)
+			return candidates;
+
+		var key = new BlockingCacheKey(origin, candidates, blockingCells);
+		return BlockingCache.GetOrCreate(key, entry =>
+		{
+			entry.Size = 1;
+			return candidates
+				.Where(cell => !IsShadowed(origin, cell, blockingCells))
+				.ToFrozenSet();
+		})!;
+	}
+
+	private static bool IsShadowed(Coord origin, Coord target, IReadOnlySet<Coord> blockers)
 	{
 		if (origin.Equals(target))
 			return false;
@@ -146,7 +149,7 @@ public static class AbilityArea
 		return blockers.Contains(target);
 	}
 
-	private static HashSet<Coord> Compute(
+	private static FrozenSet<Coord> Compute(
 		IAreaDamage area,
 		BodyFrame frame,
 		ESpatialOrientation direction,
@@ -160,6 +163,37 @@ public static class AbilityArea
 				result.Add(cell);
 		}
 
-		return result;
+		return result.ToFrozenSet();
+	}
+
+	private readonly struct BlockingCacheKey : IEquatable<BlockingCacheKey>
+	{
+		private readonly Coord _origin;
+		private readonly FrozenSet<Coord> _candidates;
+		private readonly FrozenSet<Coord> _blockingCells;
+
+		public BlockingCacheKey(
+			Coord origin,
+			FrozenSet<Coord> candidates,
+			FrozenSet<Coord> blockingCells)
+		{
+			_origin = origin;
+			_candidates = candidates;
+			_blockingCells = blockingCells;
+		}
+
+		public bool Equals(BlockingCacheKey other) =>
+			_origin.Equals(other._origin)
+			&& ReferenceEquals(_candidates, other._candidates)
+			&& ReferenceEquals(_blockingCells, other._blockingCells);
+
+		public override bool Equals(object? obj) =>
+			obj is BlockingCacheKey other && Equals(other);
+
+		public override int GetHashCode() =>
+			HashCode.Combine(
+				_origin,
+				RuntimeHelpers.GetHashCode(_candidates),
+				RuntimeHelpers.GetHashCode(_blockingCells));
 	}
 }

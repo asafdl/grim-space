@@ -88,9 +88,9 @@ public sealed class EnemyLightningCannonScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", new Coord(5, 5, 5), grid, [new Coord(5, 5, 5)]));
+			Asteroid.Create("asteroid", new Coord(5, 5, 5), grid, [new Coord(5, 5, 5)]));
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.DoesNotContain(actions, action => action is LightningCannonAction);
@@ -107,9 +107,9 @@ public sealed class EnemyLightningCannonScoringTests
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", new Coord(5, 6, 5), grid, [new Coord(5, 6, 5)]));
+			Asteroid.Create("asteroid", new Coord(5, 6, 5), grid, [new Coord(5, 6, 5)]));
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
 		Assert.Contains(actions, action => action is LightningCannonAction);

@@ -80,16 +80,14 @@ public sealed class DetonateDef
 		];
 	}
 
-	public HashSet<Coord> AffectedCells(DetonateAction action, BattleWorld world) =>
+	public IReadOnlySet<Coord> AffectedCells(DetonateAction action, BattleWorld world) =>
 		AffectedCells(world, action.ActorId, world.StateOf(action.ActorId).Position);
 
-	public HashSet<Coord> AffectedCells(BattleWorld world, string actorId, Coord origin)
+	public IReadOnlySet<Coord> AffectedCells(BattleWorld world, string actorId, Coord origin)
 	{
 		var blastRadius = world.StateOf(actorId).RequireProjectile().BlastRadius;
-		var geometric = Manhattan.EnumerateBall(origin, blastRadius)
-			.Where(world.Grid.IsInBounds)
-			.ToHashSet();
-		return AbilityArea.ApplyBlocking(origin, geometric, IsBlockable, world.Hazards);
+		var geometric = AbilityArea.ManhattanBallInBounds(origin, blastRadius, world.Grid);
+		return AbilityArea.ApplyBlocking(origin, geometric, IsBlockable, world.AbilityBlockingCells);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

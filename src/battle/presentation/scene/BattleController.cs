@@ -144,9 +144,9 @@ public partial class BattleController : Node3D
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);
-		var hazardView = new BoardHazardView();
-		hazardView.Build(layout.TerrainHazards);
-		hazardsRoot.AddChild(hazardView);
+		var asteroidView = new BoardAsteroidView();
+		asteroidView.Build(layout.Asteroids);
+		hazardsRoot.AddChild(asteroidView);
 
 		_unitsRoot = GetNode<Node3D>("Units");
 		_battleView = new BattleView { Name = "BattleView" };

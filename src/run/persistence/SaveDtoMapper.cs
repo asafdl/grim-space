@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text.Json;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
@@ -302,18 +303,7 @@ public static class SaveDtoMapper
 				}).ToArray(),
 			});
 		}).ToArray();
-		var hazards = world.Hazards.Select(hazard =>
-			ReflectionJson.Map<HazardSaveDto>(new
-			{
-				hazard.Id,
-				hazard.ActorId,
-				hazard.Center,
-				hazard.Frame,
-				Cells = hazard.Cells.ToArray(),
-				hazard.Passable,
-				BlocksAbilities = hazard.BlocksAbilities,
-				hazard.Kind,
-			})).ToArray();
+		var hazards = world.NonUnits.Values.Select(CaptureNonUnit).ToArray();
 
 		return ReflectionJson.Map<BattleWorldSaveDto>(new
 		{
@@ -683,8 +673,47 @@ public static class SaveDtoMapper
 		Coord Destination,
 		int StartTick);
 
-	private static bool DefaultBlocksAbilities(EHazardKind kind) =>
-		kind == EHazardKind.Asteroid;
+	private static HazardSaveDto CaptureNonUnit(NonUnit nonUnit)
+	{
+		var center = nonUnit switch
+		{
+			Asteroid asteroid => asteroid.Center,
+			Hazard hazard => hazard.Center,
+			_ => throw new InvalidOperationException(
+				$"Unsupported non-unit type '{nonUnit.GetType().Name}'."),
+		};
+
+		return ReflectionJson.Map<HazardSaveDto>(new
+		{
+			nonUnit.Id,
+			nonUnit.ActorId,
+			Center = center,
+			nonUnit.Frame,
+			Cells = nonUnit.Cells.ToArray(),
+		});
+	}
+
+	private static NonUnit RestoreNonUnit(HazardSaveDto dto) =>
+		NonUnitTypeSlug.ParseTypeSlug(dto.Id) switch
+		{
+			NonUnitTypeSlug.Asteroid => new Asteroid
+			{
+				Id = dto.Id,
+				ActorId = dto.ActorId,
+				Center = dto.Center,
+				Frame = dto.Frame,
+				Cells = dto.Cells.ToFrozenSet(),
+			},
+			NonUnitTypeSlug.Goop => new GoopHazard
+			{
+				Id = dto.Id,
+				ActorId = dto.ActorId,
+				Center = dto.Center,
+				Frame = dto.Frame,
+				Cells = dto.Cells.ToFrozenSet(),
+			},
+			var slug => throw new InvalidDataException($"Unsupported non-unit type slug '{slug}'."),
+		};
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,
@@ -718,18 +747,7 @@ public static class SaveDtoMapper
 		}).ToArray();
 		var nonUnits = dto.Hazards.ToDictionary(
 			hazard => hazard.Id,
-			hazard => (NonUnit)new Hazard
-			{
-				Id = hazard.Id,
-				ActorId = hazard.ActorId,
-				Center = hazard.Center,
-				Frame = hazard.Frame,
-				Cells = hazard.Cells.ToHashSet(),
-				Passable = hazard.Passable,
-				BlocksAbilities = hazard.BlocksAbilities
-					?? DefaultBlocksAbilities(hazard.Kind),
-				Kind = hazard.Kind,
-			});
+			RestoreNonUnit);
 		var world = BattleWorld.FromLive(
 			units,
 			nonUnits,

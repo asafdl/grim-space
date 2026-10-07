@@ -21,19 +21,26 @@ public sealed class BattleWorldForkTests
 			grid,
 			new HashSet<Coord> { rock });
 		var world = battle.Engine.World;
-		var asteroid = Hazard.Asteroid("asteroid", rock, grid, [rock]);
+		var asteroid = Asteroid.Create("asteroid", rock, grid, [rock]);
 		Assert.True(asteroid.BlocksAbilities);
-		BattleTestWorld.InjectHazard(world, asteroid);
+		BattleTestWorld.InjectNonUnit(world, asteroid);
 
 		var branch = world.Fork();
 		var sibling = world.Fork();
 		Assert.IsAssignableFrom<FrozenSet<Coord>>(asteroid.Cells);
+		Assert.Contains(rock, (IReadOnlySet<Coord>)world.AbilityBlockingCells);
 		Assert.NotSame(world.NonUnits, branch.NonUnits);
 		Assert.Same(asteroid, branch.NonUnits[asteroid.Id]);
 		Assert.Same(asteroid, sibling.NonUnits[asteroid.Id]);
-		branch.MutableNonUnits.Remove(asteroid.Id);
+		Assert.Same(world.AbilityBlockingCells, branch.AbilityBlockingCells);
+		Assert.Same(world.AbilityBlockingCells, sibling.AbilityBlockingCells);
+		Assert.True(branch.RemoveNonUnit(asteroid.Id));
 		Assert.Contains(asteroid.Id, world.NonUnits.Keys);
 		Assert.Contains(asteroid.Id, sibling.NonUnits.Keys);
+		Assert.DoesNotContain(rock, (IReadOnlySet<Coord>)branch.AbilityBlockingCells);
+		Assert.Contains(rock, (IReadOnlySet<Coord>)world.AbilityBlockingCells);
+		Assert.Contains(rock, (IReadOnlySet<Coord>)sibling.AbilityBlockingCells);
+		Assert.NotSame(world.AbilityBlockingCells, branch.AbilityBlockingCells);
 
 		branch.StateOf(battle.PlayerId).Position += Coord.Forward;
 		branch.Timeline.Schedule(0, new MoveStepAction(battle.PlayerId));
@@ -53,28 +60,24 @@ public sealed class BattleWorldForkTests
 	}
 
 	[Fact]
-	public void MutableHazardStillClonesAcrossForks()
+	public void ImmutableGoopHazardIsSharedAcrossForks()
 	{
 		var origin = new Coord(5, 5, 5);
 		var world = BattleTestFixture.BeginSimulation(origin).Engine.World;
-		var hazard = new Hazard
+		var hazard = new GoopHazard
 		{
-			Id = "mutable-hazard",
-			ActorId = "terrain",
+			Id = "mutable-goop",
+			ActorId = "player",
 			Center = origin,
 			Frame = BodyFrame.WorldAligned(origin),
-			Cells = new HashSet<Coord> { origin },
-			Passable = true,
-			BlocksAbilities = false,
-			Kind = EHazardKind.Asteroid,
+			Cells = new HashSet<Coord> { origin }.ToFrozenSet(),
 		};
-		BattleTestWorld.InjectHazard(world, hazard);
+		BattleTestWorld.InjectNonUnit(world, hazard);
 
 		var fork = world.Fork();
-		var copy = Assert.IsType<Hazard>(fork.NonUnits[hazard.Id]);
-		Assert.False(copy.BlocksAbilities);
-		Assert.NotSame(hazard, copy);
-		((HashSet<Coord>)copy.Cells).Add(origin + Coord.Up);
-		Assert.DoesNotContain(origin + Coord.Up, hazard.Cells);
+		var copy = Assert.IsType<GoopHazard>(fork.NonUnits[hazard.Id]);
+		Assert.True(copy.BlocksAbilities);
+		Assert.Same(hazard, copy);
+		Assert.Same(world.AbilityBlockingCells, fork.AbilityBlockingCells);
 	}
 }

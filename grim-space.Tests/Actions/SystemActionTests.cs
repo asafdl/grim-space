@@ -12,12 +12,12 @@ public sealed class SystemActionTests
 	public void ResolveTurnPreservesWorldHazards()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
-		var asteroid = Hazard.Asteroid(
+		var asteroid = Asteroid.Create(
 			"asteroid-1",
 			new Coord(2, 2, 2),
 			battle.Layout.Grid,
 			[new Coord(2, 2, 2), new Coord(3, 2, 2)]);
-		BattleTestWorld.InjectHazard(battle.Engine.World, asteroid);
+		BattleTestWorld.InjectNonUnit(battle.Engine.World, asteroid);
 
 		BattleTestActions.CommitAndResolve(battle);
 

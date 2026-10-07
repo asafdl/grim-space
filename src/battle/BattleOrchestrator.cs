@@ -62,16 +62,16 @@ public sealed class BattleOrchestrator : IDisposable
 		var nonUnits = new Dictionary<string, NonUnit>();
 		foreach (var spawn in encounter.WorldHazards)
 		{
-			var hazard = Hazard.Asteroid(
-				TypedIdGenerator.NextId("asteroid"),
+			var asteroid = Asteroid.Create(
+				TypedIdGenerator.NextId(NonUnitTypeSlug.Asteroid),
 				spawn.Origin,
 				grid,
 				spawn.Cells);
-			nonUnits[hazard.Id] = hazard;
+			nonUnits[asteroid.Id] = asteroid;
 		}
 
-		var terrainHazards = nonUnits.Values.OfType<Hazard>().ToList();
-		var blockedCells = BattleWorld.TerrainBlockedCells(terrainHazards);
+		var asteroids = nonUnits.Values.OfType<Asteroid>().ToList();
+		var blockedCells = BattleWorld.TerrainBlockedCells(asteroids);
 
 		var units = encounter.Spawns
 			.Select(Factory.Create)
@@ -90,7 +90,7 @@ public sealed class BattleOrchestrator : IDisposable
 			encounter.Objective,
 			engagedShipIds,
 			timeline);
-		var layout = BattleLayout.FromEncounter(grid, terrainHazards, units);
+		var layout = BattleLayout.FromEncounter(grid, asteroids, units);
 		return CreateFromWorld(world, layout, player.State.Id, "encounter ready");
 	}
 
@@ -104,7 +104,7 @@ public sealed class BattleOrchestrator : IDisposable
 
 		var layout = new BattleLayout(
 			world.Grid,
-			world.TerrainHazards.ToList(),
+			world.Asteroids.ToList(),
 			world.UnitRegistry.All.ToDictionary(unit => unit.State.Id, unit => unit.Team));
 		return CreateFromWorld(world, layout, playerId, "battle world restored");
 	}

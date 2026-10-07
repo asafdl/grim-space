@@ -656,19 +656,16 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
-	public void RestoreBattleWorld_LegacyAsteroidWithoutBlocksAbilitiesDefaultsToTrue()
+	public void RestoreBattleWorld_AsteroidTypedIdRestoresAsAsteroid()
 	{
 		var grid = BattleTestFixture.Grid();
 		var cell = new Coord(3, 3, 3);
 		var dto = new HazardSaveDto(
-			"asteroid",
+			"asteroid-test-rock",
 			BattleActorIds.Terrain,
 			cell,
 			BodyFrame.WorldAligned(cell),
-			[cell],
-			Passable: false,
-			BlocksAbilities: null,
-			Kind: EHazardKind.Asteroid);
+			[cell]);
 		var worldDto = new BattleWorldSaveDto(
 			"test",
 			EObjective.EliminateOpponents,
@@ -683,8 +680,8 @@ public sealed class SaveGamePersistenceTests
 			new TimelineSnapshotDto(0, [], []));
 
 		var restored = SaveDtoMapper.RestoreBattleWorld(worldDto, new PersistenceRegistry());
-		var hazard = Assert.Single(restored.Hazards);
-		Assert.True(hazard.BlocksAbilities);
+		var asteroid = Assert.Single(restored.Asteroids);
+		Assert.True(asteroid.BlocksAbilities);
 	}
 
 	[Fact]
@@ -701,12 +698,9 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(dto.Objective, restored.Objective);
 		Assert.Equal(dto.GridWidth, restored.Grid.Width);
 		Assert.Equal(dto.Units.Count, restored.UnitRegistry.All.Count());
-		Assert.Equal(dto.Hazards.Count, restored.Hazards.Count());
-		foreach (var hazard in restored.Hazards)
-		{
-			var captured = dto.Hazards.Single(saved => saved.Id == hazard.Id);
-			Assert.Equal(captured.BlocksAbilities ?? hazard.Kind == EHazardKind.Asteroid, hazard.BlocksAbilities);
-		}
+		Assert.Equal(dto.Hazards.Count, restored.NonUnits.Count);
+		foreach (var nonUnit in restored.NonUnits.Values)
+			Assert.Equal(dto.Hazards.Single(saved => saved.Id == nonUnit.Id).Id, nonUnit.Id);
 		Assert.Equal(
 			dto.EngagedShipIds.OrderBy(id => id),
 			restored.EngagedShipIds.OrderBy(id => id));

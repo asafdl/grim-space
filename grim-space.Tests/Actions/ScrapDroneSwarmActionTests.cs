@@ -86,9 +86,9 @@ public sealed class ScrapDroneSwarmActionTests
 			(shooterPos.X + targetCell.X) / 2,
 			(shooterPos.Y + targetCell.Y) / 2,
 			(shooterPos.Z + targetCell.Z) / 2);
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.PlayerAgent.Sim.World,
-			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
 		var shieldsBefore = TotalShieldPoints(enemy.State);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));

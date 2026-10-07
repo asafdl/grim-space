@@ -144,9 +144,9 @@ public sealed class DetonateActionTests
 		enemy.State.Position = torpedoPos + Coord.Forward * 4;
 		var asteroidPos = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
 
 		var sim = battle.Engine.CreateSimulation();
 		Assert.False(sim.TryEnqueue(new DetonateAction(torpedoId)));
@@ -162,9 +162,9 @@ public sealed class DetonateActionTests
 		enemy.State.Position = torpedoPos + Coord.Forward * 1;
 		var asteroidPos = torpedoPos + Coord.Forward * 3;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
 		var shieldsBefore = TotalShields(enemy.State);
 
 		var sim = battle.Engine.CreateSimulation();
@@ -182,9 +182,9 @@ public sealed class DetonateActionTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 2 + Coord.Up, grid, [torpedoPos + Coord.Forward * 2 + Coord.Up]));
+			Asteroid.Create("asteroid", torpedoPos + Coord.Forward * 2 + Coord.Up, grid, [torpedoPos + Coord.Forward * 2 + Coord.Up]));
 		var shieldsBefore = TotalShields(enemy.State);
 
 		var sim = battle.Engine.CreateSimulation();
@@ -202,9 +202,9 @@ public sealed class DetonateActionTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
+			Asteroid.Create("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
 
 		var sim = battle.Engine.CreateSimulation();
 		Assert.False(sim.TryEnqueue(new DetonateAction(torpedoId)));
@@ -220,9 +220,9 @@ public sealed class DetonateActionTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
+			Asteroid.Create("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
 		var shieldsBefore = TotalShields(enemy.State);
 
 		var sim = battle.Engine.CreateSimulation();
@@ -242,11 +242,13 @@ public sealed class DetonateActionTests
 		battle.Engine.World.StateOf(PlayerId).Position = allyPos;
 		var asteroidPos = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", asteroidPos, grid, [asteroidPos]));
+			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
 		var affected = DetonateDef.Instance.AffectedCells(battle.Engine.World, torpedoId, torpedoPos);
+		var repeated = DetonateDef.Instance.AffectedCells(battle.Engine.World, torpedoId, torpedoPos);
 
+		Assert.Same(affected, repeated);
 		Assert.DoesNotContain(allyPos, affected);
 		Assert.DoesNotContain(asteroidPos, affected);
 	}

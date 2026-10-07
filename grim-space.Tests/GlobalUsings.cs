@@ -1,3 +1,4 @@
+global using GrimSpace.Battle.NonUnits;
 global using GrimSpace.Tests;
 global using GrimSpace.Battle;
 global using ActorState = GrimSpace.Battle.Units.State;

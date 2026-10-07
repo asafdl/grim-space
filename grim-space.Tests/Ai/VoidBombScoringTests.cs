@@ -273,9 +273,9 @@ public sealed class VoidBombScoringTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward, grid, [torpedoPos + Coord.Forward]));
+			Asteroid.Create("asteroid", torpedoPos + Coord.Forward, grid, [torpedoPos + Coord.Forward]));
 
 		Assert.False(DetonateDef.HasOpponentInBlast(battle.Engine.World, torpedoId, torpedoPos));
 
@@ -303,9 +303,9 @@ public sealed class VoidBombScoringTests
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
 		enemy.State.Position = torpedoPos + Coord.Forward * 2;
 		var grid = battle.Engine.World.Grid;
-		BattleTestWorld.InjectHazard(
+		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
-			Hazard.Asteroid("asteroid", torpedoPos + Coord.Forward * 3, grid, [torpedoPos + Coord.Forward * 3]));
+			Asteroid.Create("asteroid", torpedoPos + Coord.Forward * 3, grid, [torpedoPos + Coord.Forward * 3]));
 
 		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
 		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent)

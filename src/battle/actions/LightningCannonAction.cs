@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
@@ -95,16 +96,16 @@ public sealed class LightningCannonDef
 		];
 	}
 
-	public HashSet<Coord> AffectedCells(LightningCannonAction action, BattleWorld world)
+	public IReadOnlySet<Coord> AffectedCells(LightningCannonAction action, BattleWorld world)
 	{
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn);
 		if (installed?.Spec is not IAreaDamage areaDamage)
-			return [];
+			return FrozenSet<Coord>.Empty;
 
 		var frame = BodyFrame.From(state);
 		var geometric = AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
-		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.Hazards);
+		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.AbilityBlockingCells);
 	}
 
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>

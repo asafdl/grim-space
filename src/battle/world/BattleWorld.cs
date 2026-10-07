@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
 using GrimSpace.Battle.Units;
@@ -9,17 +10,17 @@ using GrimSpace.Battle.Objectives;
 namespace GrimSpace.Battle.World;
 
 /// <summary>
-/// Live battlefield world during a fight: units (via <see cref="UnitRegistry"/>), hazards, grid, and timeline.
+/// Live battlefield world during a fight: units (via <see cref="UnitRegistry"/>), non-units, grid, and timeline.
 /// <see cref="BattleWorld.Fork"/> snapshots for preview sims; commit writes back to this instance.
-/// Terrain hazards are partitioned by <see cref="BattleActorIds.Terrain"/> ownership.
 /// </summary>
 public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, BattleWorld>
 {
 	private readonly Dictionary<string, NonUnit> _nonUnits;
+	private FrozenSet<Coord> _abilityBlockingCells;
 
 	public UnitRegistry UnitRegistry { get; }
 	public IReadOnlyDictionary<string, NonUnit> NonUnits => _nonUnits;
-	public IDictionary<string, NonUnit> MutableNonUnits => _nonUnits;
+	public FrozenSet<Coord> AbilityBlockingCells => _abilityBlockingCells;
 	public BoundedGrid Grid { get; }
 	public IReadOnlySet<Coord> BlockedCells { get; }
 	public Timeline Timeline { get; }
@@ -32,6 +33,24 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public EBattleResult battleResult { get; set; } = EBattleResult.Ongoing;
 
 	public T NonUnitOf<T>(string id) where T : NonUnit => (T)_nonUnits[id];
+
+	public void AddNonUnit(NonUnit nonUnit)
+	{
+		ArgumentNullException.ThrowIfNull(nonUnit);
+		if (!_nonUnits.TryAdd(nonUnit.Id, nonUnit))
+			throw new InvalidOperationException($"Non-unit '{nonUnit.Id}' already exists.");
+
+		_abilityBlockingCells = CollectAbilityBlockingCells(_nonUnits.Values);
+	}
+
+	public bool RemoveNonUnit(string id)
+	{
+		if (!_nonUnits.Remove(id))
+			return false;
+
+		_abilityBlockingCells = CollectAbilityBlockingCells(_nonUnits.Values);
+		return true;
+	}
 
 	public IEnumerable<UnitInArea> UnitsInCells(string actorId, IEnumerable<Coord> cells)
 	{
@@ -51,18 +70,19 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public bool AnyOpponentInCells(string actorId, IEnumerable<Coord> cells) =>
 		UnitsInCells(actorId, cells).Any(entry => entry.Relation == EUnitRelation.Opponent);
 
+	public readonly record struct UnitInArea(Unit Unit, EUnitRelation Relation);
+
+	public IEnumerable<Asteroid> Asteroids => _nonUnits.Values.OfType<Asteroid>();
+
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
-	public IEnumerable<Hazard> TerrainHazards =>
-		Hazards.Where(hazard => hazard.ActorId == BattleActorIds.Terrain);
-
-	public static HashSet<Coord> TerrainBlockedCells(IEnumerable<Hazard> terrain)
+	public static HashSet<Coord> TerrainBlockedCells(IEnumerable<NonUnit> terrain)
 	{
 		var cells = new HashSet<Coord>();
-		foreach (var hazard in terrain)
+		foreach (var nonUnit in terrain)
 		{
-			if (!hazard.Passable)
-				cells.UnionWith(hazard.Cells);
+			if (!nonUnit.Passable)
+				cells.UnionWith(nonUnit.Cells);
 		}
 
 		return cells;
@@ -88,6 +108,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	private BattleWorld(
 		UnitRegistry unitRegistry,
 		Dictionary<string, NonUnit> nonUnits,
+		FrozenSet<Coord> abilityBlockingCells,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
 		Timeline timeline,
@@ -97,6 +118,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	{
 		UnitRegistry = unitRegistry;
 		_nonUnits = nonUnits;
+		_abilityBlockingCells = abilityBlockingCells;
 		Grid = grid;
 		BlockedCells = blockedCells;
 		Timeline = timeline;
@@ -116,7 +138,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		Timeline? timeline = null) =>
 		FromRoster(
 			roster.Select(CloneForSnapshot).ToList(),
-			nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
+			nonUnits.ToDictionary(),
 			grid,
 			blockedCells,
 			battleId,
@@ -135,7 +157,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		Timeline? timeline = null) =>
 		FromRoster(
 			roster,
-			nonUnits,
+			nonUnits.ToDictionary(),
 			grid,
 			blockedCells,
 			battleId,
@@ -160,6 +182,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		return new BattleWorld(
 			units,
 			nonUnits,
+			CollectAbilityBlockingCells(nonUnits.Values),
 			grid,
 			blockedCells,
 			timeline ?? new Timeline(),
@@ -178,7 +201,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	private BattleWorld Fork(Timeline timeline) =>
 		new(
 			UnitRegistry.CloneForFork(),
-			_nonUnits.ToDictionary(pair => pair.Key, pair => CloneNonUnit(pair.Value)),
+			_nonUnits.ToDictionary(),
+			_abilityBlockingCells,
 			Grid,
 			BlockedCells,
 			timeline,
@@ -186,10 +210,22 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			Objective,
 			EngagedShipIds);
 
-	private static NonUnit CloneNonUnit(NonUnit nonUnit) =>
-		nonUnit switch
+	private static FrozenSet<Coord> CollectAbilityBlockingCells(IEnumerable<NonUnit> nonUnits)
+	{
+		var cells = new HashSet<Coord>();
+		foreach (var nonUnit in nonUnits)
 		{
-			Hazard hazard => hazard.Clone(),
-			_ => throw new ArgumentOutOfRangeException(nameof(nonUnit)),
-		};
+			if (nonUnit.BlocksAbilities)
+				cells.UnionWith(nonUnit.Cells);
+		}
+
+		return cells.ToFrozenSet();
+	}
+}
+
+public enum EUnitRelation
+{
+	Self,
+	Ally,
+	Opponent,
 }

@@ -4,7 +4,7 @@ using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
-public partial class BoardHazardView : Node3D
+public partial class BoardAsteroidView : Node3D
 {
 	private const string PackPath = "res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
 	private const string MetallicPackPath = "res://assets/models/asteroids/wandering_asteroids_of_andromeda.glb";
@@ -28,30 +28,27 @@ public partial class BoardHazardView : Node3D
 		new(0.58f, 0.74f, 0.76f),
 	];
 
-	public void Build(IReadOnlyList<Hazard> hazards)
+	public void Build(IReadOnlyList<Asteroid> asteroids)
 	{
-		if (hazards.Any(hazard => hazard.Kind == EHazardKind.Asteroid))
+		if (asteroids.Count > 0)
 			EnsureLoaded();
 
-		foreach (var hazard in hazards)
-		{
-			if (hazard.Kind == EHazardKind.Asteroid)
-				AddChild(CreateAsteroid(hazard));
-		}
+		foreach (var asteroid in asteroids)
+			AddChild(CreateAsteroid(asteroid));
 	}
 
-	private static MeshInstance3D CreateAsteroid(Hazard hazard)
+	private static MeshInstance3D CreateAsteroid(Asteroid asteroid)
 	{
-		var rng = RngFor(hazard.Center);
+		var rng = RngFor(asteroid.Center);
 		var metallic = rng.Randf() < 0.18f;
 		var variants = metallic ? _metallicRocks! : _rocks!;
 		var variant = variants[rng.Randi() % variants.Length];
-		var minX = hazard.Cells.Min(cell => cell.X);
-		var minY = hazard.Cells.Min(cell => cell.Y);
-		var minZ = hazard.Cells.Min(cell => cell.Z);
-		var maxX = hazard.Cells.Max(cell => cell.X);
-		var maxY = hazard.Cells.Max(cell => cell.Y);
-		var maxZ = hazard.Cells.Max(cell => cell.Z);
+		var minX = asteroid.Cells.Min(cell => cell.X);
+		var minY = asteroid.Cells.Min(cell => cell.Y);
+		var minZ = asteroid.Cells.Min(cell => cell.Z);
+		var maxX = asteroid.Cells.Max(cell => cell.X);
+		var maxY = asteroid.Cells.Max(cell => cell.Y);
+		var maxZ = asteroid.Cells.Max(cell => cell.Z);
 		var center = (WorldMapping.ToWorld(new Coord(minX, minY, minZ))
 			+ WorldMapping.ToWorld(new Coord(maxX, maxY, maxZ))) * 0.5f;
 		var availableSize = new Vector3(
@@ -80,7 +77,7 @@ public partial class BoardHazardView : Node3D
 
 		return new MeshInstance3D
 		{
-			Name = hazard.Id,
+			Name = asteroid.Id,
 			Position = center - rotation * (variant.Bounds.GetCenter() * sizeScale),
 			Basis = rotation.ScaledLocal(sizeScale),
 			Mesh = variant.Mesh,

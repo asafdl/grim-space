@@ -1,5 +1,5 @@
+using System.Collections.Frozen;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Spatial;
@@ -7,10 +7,8 @@ namespace GrimSpace.Tests.Spatial;
 [BattleTestSuite]
 public sealed class AbilityAreaBlockingTests
 {
-	private static readonly GrimSpace.Math.Grid.Grid TestGrid = BattleTestFixture.Grid();
-
-	private static Hazard AsteroidAt(Coord cell) =>
-		Hazard.Asteroid($"rock-{cell}", cell, TestGrid, [cell]);
+	private static FrozenSet<Coord> Frozen(params Coord[] cells) =>
+		cells.ToFrozenSet();
 
 	[Fact]
 	public void AxialBlockerExcludesItselfAndCellsBehind()
@@ -18,12 +16,12 @@ public sealed class AbilityAreaBlockingTests
 		var origin = new Coord(0, 0, 0);
 		var blocker = new Coord(3, 0, 0);
 		var behind = new Coord(5, 0, 0);
-		var candidates = new HashSet<Coord> { blocker, behind, new Coord(1, 0, 0) };
+		var candidates = Frozen(blocker, behind, new Coord(1, 0, 0));
 		var filtered = AbilityArea.ApplyBlocking(
 			origin,
 			candidates,
 			isBlockable: true,
-			[AsteroidAt(blocker)]);
+			Frozen(blocker));
 
 		Assert.Contains(new Coord(1, 0, 0), filtered);
 		Assert.DoesNotContain(blocker, filtered);
@@ -36,12 +34,12 @@ public sealed class AbilityAreaBlockingTests
 		var origin = new Coord(0, 0, 0);
 		var before = new Coord(2, 0, 0);
 		var blocker = new Coord(4, 0, 0);
-		var candidates = new HashSet<Coord> { before, blocker, new Coord(6, 0, 0) };
+		var candidates = Frozen(before, blocker, new Coord(6, 0, 0));
 		var filtered = AbilityArea.ApplyBlocking(
 			origin,
 			candidates,
 			isBlockable: true,
-			[AsteroidAt(blocker)]);
+			Frozen(blocker));
 
 		Assert.Contains(before, filtered);
 		Assert.DoesNotContain(blocker, filtered);
@@ -53,12 +51,12 @@ public sealed class AbilityAreaBlockingTests
 	{
 		var origin = new Coord(0, 0, 0);
 		var target = new Coord(5, 0, 0);
-		var candidates = new HashSet<Coord> { target };
+		var candidates = Frozen(target);
 		var filtered = AbilityArea.ApplyBlocking(
 			origin,
 			candidates,
 			isBlockable: true,
-			[AsteroidAt(new Coord(3, 1, 0))]);
+			Frozen(new Coord(3, 1, 0)));
 
 		Assert.Contains(target, filtered);
 	}
@@ -67,12 +65,12 @@ public sealed class AbilityAreaBlockingTests
 	public void OriginNeverSelfBlocks()
 	{
 		var origin = new Coord(2, 2, 2);
-		var candidates = new HashSet<Coord> { origin, new Coord(4, 2, 2) };
+		var candidates = Frozen(origin, new Coord(4, 2, 2));
 		var filtered = AbilityArea.ApplyBlocking(
 			origin,
 			candidates,
 			isBlockable: true,
-			[AsteroidAt(origin)]);
+			Frozen(origin));
 
 		Assert.Contains(origin, filtered);
 	}
@@ -82,12 +80,12 @@ public sealed class AbilityAreaBlockingTests
 	{
 		var origin = new Coord(0, 0, 0);
 		var corner = new Coord(1, 1, 0);
-		var candidates = new HashSet<Coord> { new Coord(2, 2, 0) };
+		var candidates = Frozen(new Coord(2, 2, 0));
 		var filtered = AbilityArea.ApplyBlocking(
 			origin,
 			candidates,
 			isBlockable: true,
-			[AsteroidAt(corner)]);
+			Frozen(corner));
 
 		Assert.DoesNotContain(new Coord(2, 2, 0), filtered);
 	}
@@ -97,12 +95,12 @@ public sealed class AbilityAreaBlockingTests
 	{
 		var origin = new Coord(0, 0, 0);
 		var corner = new Coord(1, 1, 1);
-		var candidates = new HashSet<Coord> { new Coord(2, 2, 2) };
+		var candidates = Frozen(new Coord(2, 2, 2));
 		var filtered = AbilityArea.ApplyBlocking(
 			origin,
 			candidates,
 			isBlockable: true,
-			[AsteroidAt(corner)]);
+			Frozen(corner));
 
 		Assert.DoesNotContain(new Coord(2, 2, 2), filtered);
 	}
@@ -114,8 +112,7 @@ public sealed class AbilityAreaBlockingTests
 		var first = new Coord(2, 0, 0);
 		var second = new Coord(4, 0, 0);
 		var candidates = new HashSet<Coord> { new Coord(1, 0, 0), first, new Coord(3, 0, 0), second, new Coord(6, 0, 0) };
-		var hazards = new[] { AsteroidAt(second), AsteroidAt(first) };
-		var filtered = AbilityArea.ApplyBlocking(origin, candidates, true, hazards);
+		var filtered = AbilityArea.ApplyBlocking(origin, candidates.ToFrozenSet(), true, Frozen(second, first));
 
 		Assert.Contains(new Coord(1, 0, 0), filtered);
 		Assert.DoesNotContain(first, filtered);
@@ -128,10 +125,11 @@ public sealed class AbilityAreaBlockingTests
 	public void EmptyBlockerSetPreservesAllCandidates()
 	{
 		var origin = new Coord(1, 1, 1);
-		var candidates = new HashSet<Coord> { new Coord(2, 1, 1), new Coord(3, 1, 1) };
-		var filtered = AbilityArea.ApplyBlocking(origin, candidates, true, []);
+		var candidates = Frozen(new Coord(2, 1, 1), new Coord(3, 1, 1));
+		var filtered = AbilityArea.ApplyBlocking(origin, candidates, true, Frozen());
 
 		Assert.Equal(candidates, filtered);
+		Assert.Same(candidates, filtered);
 	}
 
 	[Fact]
@@ -140,7 +138,7 @@ public sealed class AbilityAreaBlockingTests
 		var origin = new Coord(0, 0, 0);
 		var candidates = new HashSet<Coord> { new Coord(5, 0, 0) };
 		var snapshot = candidates.ToHashSet();
-		_ = AbilityArea.ApplyBlocking(origin, candidates, true, [AsteroidAt(new Coord(3, 0, 0))]);
+		_ = AbilityArea.ApplyBlocking(origin, candidates.ToFrozenSet(), true, Frozen(new Coord(3, 0, 0)));
 		Assert.Equal(snapshot, candidates);
 	}
 
@@ -148,13 +146,24 @@ public sealed class AbilityAreaBlockingTests
 	public void NonBlockableLeavesCachedGeometryUntouchedAcrossCalls()
 	{
 		var origin = new Coord(5, 5, 5);
-		var candidates = new HashSet<Coord> { new Coord(6, 5, 5), new Coord(7, 5, 5) };
-		var first = AbilityArea.ApplyBlocking(origin, candidates, false, [AsteroidAt(new Coord(6, 5, 5))]);
-		candidates.Add(new Coord(8, 5, 5));
-		var second = AbilityArea.ApplyBlocking(origin, candidates, false, [AsteroidAt(new Coord(6, 5, 5))]);
+		var candidates = Frozen(new Coord(6, 5, 5), new Coord(7, 5, 5));
+		var first = AbilityArea.ApplyBlocking(origin, candidates, false, Frozen(new Coord(6, 5, 5)));
+		var second = AbilityArea.ApplyBlocking(origin, candidates, false, Frozen(new Coord(6, 5, 5)));
 
-		Assert.Equal(3, second.Count);
-		Assert.Contains(new Coord(8, 5, 5), second);
-		Assert.Equal(first.Count + 1, second.Count);
+		Assert.Same(candidates, first);
+		Assert.Same(first, second);
+	}
+
+	[Fact]
+	public void BlockedResultIsReusedForStableGeometryAndTopology()
+	{
+		var origin = Coord.Zero;
+		var candidates = Frozen(new Coord(1, 0, 0), new Coord(3, 0, 0));
+		var blockers = Frozen(new Coord(2, 0, 0));
+
+		var first = AbilityArea.ApplyBlocking(origin, candidates, true, blockers);
+		var second = AbilityArea.ApplyBlocking(origin, candidates, true, blockers);
+
+		Assert.Same(first, second);
 	}
 }

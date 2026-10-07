@@ -174,7 +174,7 @@ internal static class VoidBombSearchInput
 		BattleWorld world,
 		string actorId,
 		Coord origin,
-		HashSet<Coord> affected)
+		IReadOnlySet<Coord> affected)
 	{
 		var units = UnitRegistry.For(world);
 		var actor = units.UnitOf(actorId);

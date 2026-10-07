@@ -4,6 +4,6 @@ namespace GrimSpace.Tests;
 
 internal static class BattleTestWorld
 {
-	public static void InjectHazard(BattleWorld world, Hazard hazard) =>
-		world.MutableNonUnits[hazard.Id] = hazard;
+	public static void InjectNonUnit(BattleWorld world, NonUnit nonUnit) =>
+		world.AddNonUnit(nonUnit);
 }

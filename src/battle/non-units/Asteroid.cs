@@ -1,20 +1,19 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Spatial;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
-namespace GrimSpace.Battle.World;
+namespace GrimSpace.Battle.NonUnits;
 
-public sealed class Hazard : NonUnit
+public sealed class Asteroid : NonUnit
 {
 	public required Coord Center { get; init; }
-	public required bool Passable { get; init; }
-	public required bool BlocksAbilities { get; init; }
-	public required EHazardKind Kind { get; init; }
 
-	public static Hazard Asteroid(
+	public override bool Passable => false;
+	public override bool BlocksAbilities => true;
+
+	public static Asteroid Create(
 		string id,
 		Coord origin,
 		BoundedGrid grid,
@@ -30,16 +29,13 @@ public sealed class Hazard : NonUnit
 		if (!IsFaceConnected(occupied))
 			throw new ArgumentException("An asteroid's occupied cells must form one connected shape.", nameof(cells));
 
-		return new Hazard
+		return new Asteroid
 		{
 			Id = id,
 			ActorId = BattleActorIds.Terrain,
 			Center = origin,
 			Frame = BodyFrame.WorldAligned(origin),
 			Cells = occupied.ToFrozenSet(),
-			Passable = false,
-			BlocksAbilities = true,
-			Kind = EHazardKind.Asteroid,
 		};
 	}
 
@@ -73,16 +69,4 @@ public sealed class Hazard : NonUnit
 		yield return cell + new Coord(0, 0, -1);
 	}
 
-	public Hazard Clone() =>
-		Cells is FrozenSet<Coord> ? this : new Hazard
-		{
-			Id = Id,
-			ActorId = ActorId,
-			Center = Center,
-			Frame = Frame,
-			Cells = new HashSet<Coord>(Cells),
-			Passable = Passable,
-			BlocksAbilities = BlocksAbilities,
-			Kind = Kind,
-		};
 }

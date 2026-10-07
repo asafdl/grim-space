@@ -50,8 +50,8 @@ public sealed class BattleWorldRehydrationTests
 			liveWorld.UnitRegistry.Ids.OrderBy(id => id),
 			restoredWorld.UnitRegistry.Ids.OrderBy(id => id));
 		Assert.Equal(
-			liveWorld.Hazards.Select(HazardSnapshot),
-			restoredWorld.Hazards.Select(HazardSnapshot));
+			liveWorld.Asteroids.Select(AsteroidSnapshot),
+			restoredWorld.Asteroids.Select(AsteroidSnapshot));
 		Assert.True(restoredWorld.Timeline.ContainsPending(
 			action => action is EndOfPhaseAction end && end.ActorId == player.State.Id));
 	}
@@ -77,13 +77,12 @@ public sealed class BattleWorldRehydrationTests
 			restored.Engine.World.UnitRegistry.UnitOf(original.PlayerId).ExecutionAgent);
 	}
 
-	private static object HazardSnapshot(Hazard hazard) =>
+	private static object AsteroidSnapshot(Asteroid asteroid) =>
 		(
-			hazard.Id,
-			hazard.ActorId,
-			hazard.Center,
-			hazard.Passable,
-			hazard.BlocksAbilities,
-			hazard.Kind,
-			hazard.Cells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z));
+			asteroid.Id,
+			asteroid.ActorId,
+			asteroid.Center,
+			asteroid.Passable,
+			asteroid.BlocksAbilities,
+			asteroid.Cells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z));
 }
