@@ -7,6 +7,7 @@ public partial class StartMenu : Control
 {
 	private const string IntroScenePath = "res://scenes/intro.tscn";
 	private const string DiscordInviteUrl = "https://discord.gg/dMPX9SH3Dd";
+	private const string MenuHoverSfxPath = "res://assets/sfx/ui/menu_hover_click.wav";
 	private static readonly string[] LoadingMessages =
 	[
 		"Lighting galaxy on fire...",
@@ -48,6 +49,7 @@ public partial class StartMenu : Control
 	private Button _resetSettings = null!;
 	private Button _newGameButton = null!;
 	private Button _continueButton = null!;
+	private AudioStreamPlayer _menuHoverSfx = null!;
 
 	private enum SettingsTab
 	{
@@ -100,6 +102,19 @@ public partial class StartMenu : Control
 		_newGameButton = GetNode<Button>("%NewGame");
 		_continueButton = GetNode<Button>("%Continue");
 		_continueButton.Disabled = !Session.Instance.HasSaveGame;
+		_menuHoverSfx = new AudioStreamPlayer
+		{
+			Stream = GD.Load<AudioStream>(MenuHoverSfxPath)
+				?? throw new InvalidOperationException($"Could not load SFX '{MenuHoverSfxPath}'."),
+			Bus = AudioBuses.Sfx,
+		};
+		AddChild(_menuHoverSfx);
+		foreach (var child in _menuColumn.GetChildren())
+		{
+			if (child is Button button)
+				button.MouseEntered += () => PlayMenuHoverSfx(button);
+		}
+
 		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
 		_newGameButton.Pressed += OnNewGame;
 		_continueButton.Pressed += OnContinue;
@@ -112,6 +127,12 @@ public partial class StartMenu : Control
 		discord.Pressed += OnDiscordPressed;
 
 		CallDeferred(MethodName.PrepareFirstScene);
+	}
+
+	private void PlayMenuHoverSfx(Button button)
+	{
+		if (!button.Disabled)
+			_menuHoverSfx.Play();
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
