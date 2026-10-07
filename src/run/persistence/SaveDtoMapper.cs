@@ -461,17 +461,14 @@ public static class SaveDtoMapper
 			{
 				fleet.State.Id, fleet.State.Type, fleet.State.Faction,
 				fleet.State.AggressionRating,
-				fleet.State.DockedAtDockId,
-				fleet.State.IdleCoord, fleet.State.PatrolOrigin, fleet.State.PatrolRadius,
-				fleet.State.Phase, fleet.State.ChoreDockIds,
+				Travel = CaptureFleetTravel(fleet.State.Travel),
+				fleet.State.PatrolOrigin, fleet.State.PatrolRadius,
+				fleet.State.ChoreDockIds,
 				fleet.State.ChoreIndex, fleet.State.SpeedPerTick,
 				fleet.State.EngageRadius, fleet.State.VisionRadius,
-				fleet.State.WorkStartTick, fleet.State.SpawnWorkPoiId,
-				fleet.State.SpawnWorkRemainingTicks, fleet.State.CurrentEngagement,
+				fleet.State.CurrentEngagement,
 				fleet.State.SpawnerSource, fleet.State.FleetSpawnerExpiresAtTick,
 				fleet.State.SourceContractId, fleet.State.PursuitDirective,
-				fleet.State.Journey.JourneyId, fleet.State.Journey.Origin,
-				fleet.State.Journey.Destination, fleet.State.Journey.StartTick,
 				fleet.State.TravelTarget, fleet.State.PendingWreckContractId,
 			}),
 			fleet.Members.Select(member => member.Id).ToArray(),
@@ -485,31 +482,52 @@ public static class SaveDtoMapper
 		{
 			Id = state.Id, Type = state.Type, Faction = state.Faction,
 			AggressionRating = state.AggressionRating,
-			DockedAtDockId = state.DockedAtDockId,
-			IdleCoord = state.IdleCoord, PatrolOrigin = state.PatrolOrigin,
-			PatrolRadius = state.PatrolRadius, Phase = state.Phase,
+			Travel = RestoreFleetTravel(state.Travel),
+			PatrolOrigin = state.PatrolOrigin,
+			PatrolRadius = state.PatrolRadius,
 			ChoreDockIds = state.ChoreDockIds, ChoreIndex = state.ChoreIndex,
 			SpeedPerTick = state.SpeedPerTick, EngageRadius = state.EngageRadius,
-			VisionRadius = state.VisionRadius, WorkStartTick = state.WorkStartTick,
+			VisionRadius = state.VisionRadius,
 			SpawnerSource = state.SpawnerSource,
 			FleetSpawnerExpiresAtTick = state.FleetSpawnerExpiresAtTick,
 			SourceContractId = state.SourceContractId,
 		};
 		restored.PursuitDirective = state.PursuitDirective;
-		restored.SpawnWorkPoiId = state.SpawnWorkPoiId;
-		restored.SpawnWorkRemainingTicks = state.SpawnWorkRemainingTicks;
 		restored.CurrentEngagement = state.CurrentEngagement;
 		restored.TravelTarget = state.TravelTarget;
 		restored.PendingWreckContractId = state.PendingWreckContractId;
-		restored.Journey.JourneyId = state.JourneyId;
-		restored.Journey.Origin = state.Origin;
-		restored.Journey.Destination = state.Destination;
-		restored.Journey.StartTick = state.StartTick;
 		return new Fleet(
 			restored,
 			dto.Members.Select(id => new FleetMember(id)).ToArray(),
 			dto.Registrations);
 	}
+
+	private static StarMapTravelData CaptureFleetTravel(FleetTravel travel) =>
+		travel switch
+		{
+			FleetTravel.AtRest atRest =>
+				new StarMapTravelData(atRest.Position, 0, default, default, 0),
+			FleetTravel.Journey journey =>
+				new StarMapTravelData(
+					null,
+					journey.Id,
+					journey.Origin,
+					journey.Destination,
+					journey.StartTick),
+			_ => throw new InvalidOperationException($"Unknown fleet travel type '{travel.GetType().Name}'."),
+		};
+
+	private static FleetTravel RestoreFleetTravel(StarMapTravelData travel) =>
+		(travel.AtRestPosition, travel.JourneyId) switch
+		{
+			({ } position, 0) => new FleetTravel.AtRest(position),
+			(null, not 0) => new FleetTravel.Journey(
+				travel.JourneyId,
+				travel.Origin,
+				travel.Destination,
+				travel.StartTick),
+			_ => throw new InvalidDataException("Fleet travel state is inconsistent."),
+		};
 
 	internal static StarMapContractDto CaptureContract(
 		(Contract Contract, ContractState? State, int? ExpiresAtTick) entry,
@@ -647,18 +665,23 @@ public static class SaveDtoMapper
 
 	private sealed record StarMapStateData(
 		string Id, MapUnitType Type, EFaction Faction,
-		string DockedAtDockId, Coord IdleCoord, Coord PatrolOrigin, int PatrolRadius, EPhase Phase,
+		StarMapTravelData Travel, Coord PatrolOrigin, int PatrolRadius,
 		IReadOnlyList<string> ChoreDockIds, int ChoreIndex, double SpeedPerTick,
-		double EngageRadius, double VisionRadius, int WorkStartTick,
-		string? SpawnWorkPoiId, int SpawnWorkRemainingTicks,
-		Engagement? CurrentEngagement, long JourneyId, Coord Origin,
-		Coord Destination, int StartTick, TravelTarget TravelTarget,
+		double EngageRadius, double VisionRadius,
+		Engagement? CurrentEngagement, TravelTarget TravelTarget,
 		string PendingWreckContractId,
 		int AggressionRating = 0,
 		EFleetSpawnerSource SpawnerSource = EFleetSpawnerSource.None,
 		int? FleetSpawnerExpiresAtTick = null,
 		string? SourceContractId = null,
 		FleetPursuitDirective? PursuitDirective = null);
+
+	private sealed record StarMapTravelData(
+		Coord? AtRestPosition,
+		long JourneyId,
+		Coord Origin,
+		Coord Destination,
+		int StartTick);
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,

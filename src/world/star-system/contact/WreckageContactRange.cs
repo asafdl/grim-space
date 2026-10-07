@@ -16,7 +16,7 @@ internal static class WreckageContactRange
 		if (!world.FleetRegistry.TryGet(actorId, out var unit))
 			return false;
 
-		var position = MoveDef.ResolveOrigin(world, unit, runtime);
+		var position = unit.State.PositionAt(world, runtime.CachedPath, 0).Position;
 		return EngagementQueries.IsHunterInEngageRange(
 			position,
 			wreckPosition,

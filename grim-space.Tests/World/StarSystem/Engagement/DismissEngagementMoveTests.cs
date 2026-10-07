@@ -154,9 +154,7 @@ public sealed class DismissEngagementMoveTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		player.State.Phase = EPhase.Docked;
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(0, 0, 0);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(0, 0, 0));
 		var pirateId = "pirate-contact";
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			pirateId,

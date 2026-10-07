@@ -16,13 +16,13 @@ public static class FleetPositionSampler
 		ArgumentNullException.ThrowIfNull(state);
 		ArgumentNullException.ThrowIfNull(runtime);
 
-		if (state.CommittedPositionContinuous(world, runtime.CachedPath, tickFraction) is { } continuous)
+		if (state.PositionContinuousAt(world, runtime.CachedPath, tickFraction) is { } continuous)
 		{
 			var (_, routeTangent) = continuous.Route.ToRoundedCoord();
 			return new FleetPositionSample(continuous.Route.X, continuous.Route.Z, routeTangent);
 		}
 
-		var (position, tangent) = state.CommittedPosition(
+		var (position, tangent) = state.PositionAt(
 			world,
 			runtime.CachedPath,
 			tickFraction);

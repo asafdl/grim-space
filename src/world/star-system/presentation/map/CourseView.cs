@@ -86,21 +86,20 @@ public partial class CourseView : Node3D
 		var playerUnitId = orchestrator.PlayerId;
 		if (playerUnitId is null
 			|| !world.FleetRegistry.TryGet(playerUnitId, out var unit)
-			|| unit.State.Phase != EPhase.InTransit
-			|| orchestrator.RuntimeFor(playerUnitId).CachedPath is not { } path
-			|| !unit.State.Journey.IsActive)
+			|| unit.State.Travel is not FleetTravel.Journey journey
+			|| orchestrator.RuntimeFor(playerUnitId).CachedPath is not { } path)
 		{
 			HideCourse();
 			return;
 		}
 
 		var elapsed = world.Timeline.Clock.Current
-			- unit.State.Journey.StartTick
+			- journey.StartTick
 			+ tickFraction;
 		var sample = RoundedTransitRoute.For(path)
 			.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);
 
-		ShowActiveCourse(path, sample, unit.State.Journey.Destination, unreachableFlash);
+		ShowActiveCourse(path, sample, journey.Destination, unreachableFlash);
 	}
 
 	private void ShowCourse(TransitPath path, Coord destination, long journeyId, bool unreachableFlash)

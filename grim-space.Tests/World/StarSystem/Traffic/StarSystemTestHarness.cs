@@ -40,12 +40,12 @@ internal static class StarSystemTestHarness
 			new Spawn(
 				playerFleetUnitId,
 				EType.PlayerFleet,
-				tradeHubDock.Id,
-				default,
+				tradeHubDock.Position,
 				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 				UnitDefaults.EngageRadius(EType.PlayerFleet),
 				UnitDefaults.VisionRadius(EType.PlayerFleet),
-				[]),
+				[],
+				EFaction.Player),
 			[BattleUnitType.Fighter]));
 	}
 
@@ -57,7 +57,6 @@ internal static class StarSystemTestHarness
 			new Spawn(
 				id,
 				EType.PirateFleet,
-				"",
 				coord,
 				UnitDefaults.SpeedPerTick(EType.PirateFleet),
 				UnitDefaults.EngageRadius(EType.PirateFleet),

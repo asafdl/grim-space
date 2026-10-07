@@ -16,23 +16,23 @@ public sealed class TrafficSimulationTests(StarMapFixture maps)
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var map = orchestrator.Map;
-		var readyUnit = map.FleetRegistry.All.First(unit => unit.State.IsReadyToDepart);
+		var readyUnit = map.FleetRegistry.All.First(unit => unit.State.HasChoreAtDock(map));
 		var runtime = orchestrator.RuntimeFor(readyUnit.State.Id);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, readyUnit.State.Phase);
+		var journey = readyUnit.State.Journey();
 		Assert.NotNull(runtime.CachedPath);
-		Assert.NotEqual(0, readyUnit.State.Journey.JourneyId);
+		Assert.NotEqual(0, journey.Id);
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, readyUnit.State.Phase);
-		var (position, _) = readyUnit.State.CommittedPosition(
+		journey = readyUnit.State.Journey();
+		var (position, _) = readyUnit.State.PositionAt(
 			map,
 			runtime.CachedPath,
 			0f);
-		Assert.NotEqual(readyUnit.State.Journey.Origin, position);
+		Assert.NotEqual(journey.Origin, position);
 	}
 
 	[Fact]
@@ -40,20 +40,20 @@ public sealed class TrafficSimulationTests(StarMapFixture maps)
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
 		var unit = orchestrator.Map.FleetRegistry.All
-			.First(candidate => candidate.State.Phase == EPhase.InTransit
-				|| candidate.State.IsReadyToDepart);
+			.First(candidate => candidate.State.Travel is FleetTravel.Journey
+				|| candidate.State.HasChoreAtDock(orchestrator.Map));
 
-		while (unit.State.Phase != EPhase.InTransit)
+		while (unit.State.Travel is not FleetTravel.Journey)
 			orchestrator.AdvanceTick();
 
 		var map = orchestrator.Map;
 		var path = orchestrator.RuntimeFor(unit.State.Id).CachedPath!;
-		var positionAfterDepart = unit.State.CommittedPosition(map, path, 0f).Position;
+		var positionAfterDepart = unit.State.PositionAt(map, path, 0f).Position;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, unit.State.Phase);
-		var positionAfterTick = unit.State.CommittedPosition(map, path, 0f).Position;
+		Assert.IsType<FleetTravel.Journey>(unit.State.Travel);
+		var positionAfterTick = unit.State.PositionAt(map, path, 0f).Position;
 		Assert.NotEqual(positionAfterDepart, positionAfterTick);
 	}
 
@@ -70,8 +70,8 @@ public sealed class TrafficSimulationTests(StarMapFixture maps)
 		for (var tick = 0; tick < 1000; tick++)
 		{
 			orchestrator.AdvanceTick();
-			if (miner.Phase == EPhase.Working)
-				visited.Add(miner.DockedAtDockId);
+			if (WorkScheduler.IsWorking(map, miner.Id))
+				visited.Add(map.DockAt(miner)!.Id);
 		}
 
 		Assert.Contains(extractionDock, visited);
@@ -91,8 +91,8 @@ public sealed class TrafficSimulationTests(StarMapFixture maps)
 		for (var tick = 0; tick < 1200; tick++)
 		{
 			orchestrator.AdvanceTick();
-			if (freighter.Phase == EPhase.Working)
-				visited.Add(freighter.DockedAtDockId);
+			if (WorkScheduler.IsWorking(map, freighter.Id))
+				visited.Add(map.DockAt(freighter)!.Id);
 		}
 
 		Assert.Contains(storageDock, visited);
@@ -115,8 +115,8 @@ public sealed class TrafficSimulationTests(StarMapFixture maps)
 		for (var tick = 0; tick < 3000; tick++)
 		{
 			orchestrator.AdvanceTick();
-			if (compliance.Phase == EPhase.Working)
-				visited.Add(compliance.DockedAtDockId);
+			if (WorkScheduler.IsWorking(map, compliance.Id))
+				visited.Add(map.DockAt(compliance)!.Id);
 		}
 
 		Assert.Contains(extractionDock, visited);
@@ -155,14 +155,14 @@ public sealed class TrafficSimulationTests(StarMapFixture maps)
 		var forkedMiner = forkedOrchestrator.Map.FleetRegistry.FleetOf(
 			FirstUnitOfType(forkedOrchestrator.Map, EType.MiningBarge).Id);
 
-		if (originalMiner.State.Phase == EPhase.InTransit
-			&& forkedMiner.State.Phase == EPhase.InTransit)
+		if (originalMiner.State.Travel is FleetTravel.Journey
+			&& forkedMiner.State.Travel is FleetTravel.Journey)
 		{
-			var originalPosition = originalMiner.State.CommittedPosition(
+			var originalPosition = originalMiner.State.PositionAt(
 				orchestrator.Map,
 				orchestrator.RuntimeFor(originalMiner.State.Id).CachedPath,
 				0f).Position;
-			var forkedPosition = forkedMiner.State.CommittedPosition(
+			var forkedPosition = forkedMiner.State.PositionAt(
 				forkedOrchestrator.Map,
 				forkedOrchestrator.RuntimeFor(forkedMiner.State.Id).CachedPath,
 				0f).Position;

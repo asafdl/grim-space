@@ -23,7 +23,7 @@ public sealed class WreckageVisibilityQueriesTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var origin = map.StateOf(RunState.PlayerFleetUnitId).CommittedPosition(map, null, 0f).Position;
+		var origin = map.StateOf(RunState.PlayerFleetUnitId).PositionAt(map, null, 0f).Position;
 		var contract = RegisterWreckage(map, "wreck-visible", origin);
 		var engine = CreateEngine(map);
 		ActorRuntime RuntimeFor(string id) => engine.ActorRuntimes.For(id);
@@ -47,7 +47,7 @@ public sealed class WreckageVisibilityQueriesTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var origin = map.StateOf(RunState.PlayerFleetUnitId).CommittedPosition(map, null, 0f).Position;
+		var origin = map.StateOf(RunState.PlayerFleetUnitId).PositionAt(map, null, 0f).Position;
 		var near = RegisterWreckage(map, "wreck-near", new Coord(origin.X + 1, 0, origin.Z + 1));
 		var far = RegisterWreckage(map, "wreck-far", new Coord(origin.X + 2, 0, origin.Z + 1));
 		var engine = CreateEngine(map);
@@ -69,7 +69,7 @@ public sealed class WreckageVisibilityQueriesTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var origin = map.StateOf(RunState.PlayerFleetUnitId).CommittedPosition(map, null, 0f).Position;
+		var origin = map.StateOf(RunState.PlayerFleetUnitId).PositionAt(map, null, 0f).Position;
 		var nearPosition = new Coord(origin.X + 120, 0, origin.Z);
 		var farPosition = new Coord(origin.X, 0, origin.Z + 121);
 		var near = RegisterWreckage(map, "wreck-in-range", nearPosition);
@@ -93,7 +93,7 @@ public sealed class WreckageVisibilityQueriesTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var origin = map.StateOf(RunState.PlayerFleetUnitId).CommittedPosition(map, null, 0f).Position;
+		var origin = map.StateOf(RunState.PlayerFleetUnitId).PositionAt(map, null, 0f).Position;
 		var contract = RegisterWreckage(
 			map, "wreck-entering-range", new Coord(origin.X + 127, 0, origin.Z));
 		var engine = CreateEngine(map);

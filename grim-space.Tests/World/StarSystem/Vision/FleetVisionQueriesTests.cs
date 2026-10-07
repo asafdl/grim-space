@@ -172,13 +172,12 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 		var playerId = RunState.PlayerFleetUnitId;
 		var pirateId = AddFleet(map, "hidden-pirate", new Coord(100, 0, 100), visionRadius: 10);
 		var pirate = map.FleetRegistry.FleetOf(pirateId);
-		pirate.State.Phase = EPhase.Docked;
-		pirate.State.DockedAtDockId = "";
-		pirate.State.IdleCoord = new Coord(100, 0, 100);
+		var origin = new Coord(100, 0, 100);
+		pirate.State.Travel = new FleetTravel.AtRest(origin);
 		var destination = new Coord(110, 0, 110);
 		orchestrator.RuntimeFor(pirateId).CachedPath =
-			TransitPath.FromPoints([pirate.State.IdleCoord, destination], [1.0, 1.0]);
-		pirate.State.StartJourney(1, pirate.State.IdleCoord, destination, map.Timeline.Clock.Current);
+			TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
+		pirate.State.StartJourney(1, origin, destination, map.Timeline.Clock.Current);
 
 		Assert.False(FleetVisionQueries.CanSee(
 			map,
@@ -189,8 +188,8 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, pirate.State.Phase);
-		Assert.NotEqual(pirate.State.IdleCoord, orchestrator.CommittedPositionOf(pirateId));
+		Assert.IsType<FleetTravel.Journey>(pirate.State.Travel);
+		Assert.NotEqual(origin, orchestrator.CommittedPositionOf(pirateId));
 	}
 
 	[Fact]
@@ -199,7 +198,6 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 		var spawn = new Spawn(
 			"fleet",
 			EType.PirateFleet,
-			"",
 			new Coord(1, 0, 1),
 			UnitDefaults.SpeedPerTick(EType.PirateFleet),
 			UnitDefaults.EngageRadius(EType.PirateFleet),
@@ -222,7 +220,6 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 		var spawn = new Spawn(
 			"fleet",
 			EType.PirateFleet,
-			"",
 			new Coord(1, 0, 1),
 			UnitDefaults.SpeedPerTick(EType.PirateFleet),
 			UnitDefaults.EngageRadius(EType.PirateFleet),
@@ -246,8 +243,7 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 		map.FleetRegistry.Add(Factory.Create(new Spawn(
 			RunState.PlayerFleetUnitId,
 			EType.PlayerFleet,
-			tradeHubDock.Id,
-			default,
+			tradeHubDock.Position,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			UnitDefaults.EngageRadius(EType.PlayerFleet),
 			visionRadius,
@@ -286,8 +282,7 @@ public sealed class FleetVisionQueriesTests(StarMapFixture maps)
 		var fleet = Factory.Create(new Spawn(
 			id,
 			EType.PirateFleet,
-			dockId,
-			idleCoord,
+			string.IsNullOrEmpty(dockId) ? idleCoord : map.DocksById[dockId].Position,
 			UnitDefaults.SpeedPerTick(EType.PirateFleet),
 			UnitDefaults.EngageRadius(EType.PirateFleet),
 			visionRadius,

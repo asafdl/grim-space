@@ -51,14 +51,12 @@ public sealed class EngageActionTests(StarMapFixture maps)
 	public void Commit_MaterializesInTransitInitiator()
 	{
 		var orchestrator = CreateAwaitingDecisionScenario(inTransit: true);
-		var destinationBefore = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).Journey.Destination;
+		var destinationBefore = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId).Journey().Destination;
 		orchestrator.PlayerAgent!.TryEnqueue([new EngageAction(RunState.PlayerFleetUnitId)]);
 		orchestrator.AdvanceClock();
 
 		var player = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId);
-		Assert.Equal(EPhase.Docked, player.Phase);
-		Assert.Equal("", player.DockedAtDockId);
-		Assert.NotEqual(destinationBefore, player.IdleCoord);
+		Assert.NotEqual(destinationBefore, player.AtRest().Position);
 	}
 
 	private StarSystemOrchestrator CreateAwaitingDecisionScenario(bool inTransit = false)

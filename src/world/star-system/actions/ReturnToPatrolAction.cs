@@ -64,7 +64,7 @@ public sealed class ReturnToPatrolDef
 		out GrimSpace.Math.Grid.Coord origin,
 		out TransitPath path)
 	{
-		origin = MoveDef.ResolveOrigin(world, fleet, runtime);
+		origin = fleet.State.PositionAt(world, runtime.CachedPath, 0).Position;
 		if (origin == fleet.State.PatrolOrigin)
 		{
 			path = null!;

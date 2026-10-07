@@ -76,7 +76,7 @@ public sealed class StarMapPlayerExecutionAgent
 
 		var anchorWorld = _anchorWorld();
 		var unit = anchorWorld.FleetRegistry.FleetOf(_actorId);
-		var (origin, _) = unit.State.CommittedPosition(
+		var (origin, _) = unit.State.PositionAt(
 			anchorWorld,
 			_runtimeFor(_actorId).CachedPath,
 			0f);

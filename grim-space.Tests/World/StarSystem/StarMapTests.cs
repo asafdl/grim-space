@@ -90,13 +90,14 @@ public sealed class StarMapTests
 		Assert.Equal(26, fork.FleetRegistry.Ids.Count());
 
 		fork.Timeline.Clock.Set(9);
-		fork.FleetRegistry.FleetOf(FirstUnitOfType(world, EType.MiningBarge).Id).State.Journey.StartTick = 99;
+		var minerId = FirstUnitOfType(world, EType.MiningBarge).Id;
+		var originalTravel = world.FleetRegistry.FleetOf(minerId).State.Travel;
+		fork.FleetRegistry.FleetOf(minerId).State.Travel =
+			new FleetTravel.AtRest(new Coord(99, 0, 99));
 		Assert.Equal(3, world.Timeline.Clock.Current);
 		Assert.Equal(9, fork.Timeline.Clock.Current);
-		var minerId = FirstUnitOfType(world, EType.MiningBarge).Id;
-		Assert.NotEqual(
-			world.FleetRegistry.FleetOf(minerId).State.Journey.StartTick,
-			fork.FleetRegistry.FleetOf(minerId).State.Journey.StartTick);
+		Assert.Equal(originalTravel, world.FleetRegistry.FleetOf(minerId).State.Travel);
+		Assert.NotEqual(originalTravel, fork.FleetRegistry.FleetOf(minerId).State.Travel);
 
 		new PlayerInputEffect(true).Apply(world, new ActorRuntime(), "actor");
 		var waitingFork = world.Fork();
@@ -126,14 +127,13 @@ public sealed class StarMapTests
 		using var original = StarSystemOrchestrator.FromMap(map, playerFleetId);
 
 		var fleet = map.FleetRegistry.FleetOf(playerFleetId);
-		var origin = map.DocksById[fleet.State.DockedAtDockId].Position;
+		var origin = map.DockAt(fleet.State)!.Position;
 		var destination = origin + new Coord(1, 0, 0);
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
 		original.CommitSetup(new MoveAction(playerFleetId, playerFleetId, destination, path));
 
-		Assert.Equal(EPhase.InTransit, fleet.State.Phase);
-		Assert.Equal(destination, fleet.State.Journey.Destination);
+		Assert.Equal(destination, fleet.State.Journey().Destination);
 		Assert.True(map.Timeline.ContainsPending(
 			action => action is CompleteMoveAction complete && complete.UnitId == playerFleetId));
 
@@ -141,14 +141,12 @@ public sealed class StarMapTests
 		using var rehydrated = StarSystemOrchestrator.FromMap(map, playerFleetId);
 		var restoredFleet = map.FleetRegistry.FleetOf(playerFleetId);
 
-		Assert.Equal(EPhase.InTransit, restoredFleet.State.Phase);
-		Assert.Equal(destination, restoredFleet.State.Journey.Destination);
+		Assert.Equal(destination, restoredFleet.State.Journey().Destination);
 
-		for (var i = 0; i < 100 && restoredFleet.State.Phase == EPhase.InTransit; i++)
+		for (var i = 0; i < 100 && restoredFleet.State.Travel is FleetTravel.Journey; i++)
 			rehydrated.AdvanceTick();
 
-		Assert.Equal(EPhase.Docked, restoredFleet.State.Phase);
-		Assert.Equal(destination, restoredFleet.State.IdleCoord);
+		Assert.Equal(destination, restoredFleet.State.AtRest().Position);
 		Assert.False(map.Timeline.ContainsPending(
 			action => action is CompleteMoveAction complete && complete.UnitId == playerFleetId));
 	}
@@ -221,22 +219,15 @@ public sealed class StarMapTests
 			fleet.State.Id,
 			fleet.State.Type,
 			fleet.State.Faction,
-			fleet.State.DockedAtDockId,
-			fleet.State.IdleCoord,
-			fleet.State.Phase,
+			fleet.State.Travel,
 			fleet.State.ChoreDockIds,
 			fleet.State.ChoreIndex,
 			fleet.State.SpeedPerTick,
 			fleet.State.EngageRadius,
 			fleet.State.VisionRadius,
-			fleet.State.WorkStartTick,
 			fleet.State.CurrentEngagement,
 			fleet.State.TravelTarget,
 			fleet.State.PendingWreckContractId,
-			fleet.State.Journey.JourneyId,
-			fleet.State.Journey.Origin,
-			fleet.State.Journey.Destination,
-			fleet.State.Journey.StartTick,
 			fleet.Members,
 			fleet.Registrations);
 }

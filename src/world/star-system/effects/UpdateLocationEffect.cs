@@ -15,8 +15,7 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 	private readonly Coord _destination;
 	private readonly int _startTick;
 	private readonly TransitPath? _path;
-	private readonly string? _dockId;
-	private readonly Coord? _coord;
+	private readonly Coord? _position;
 
 	private UpdateLocationEffect(
 		string unitId,
@@ -25,8 +24,7 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 		Coord destination,
 		int startTick,
 		TransitPath? path,
-		string? dockId,
-		Coord? coord)
+		Coord? position)
 	{
 		_unitId = unitId;
 		_journeyId = journeyId;
@@ -34,8 +32,7 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 		_destination = destination;
 		_startTick = startTick;
 		_path = path;
-		_dockId = dockId;
-		_coord = coord;
+		_position = position;
 	}
 
 	public static UpdateLocationEffect BeginJourney(
@@ -45,13 +42,10 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 		Coord destination,
 		int startTick,
 		TransitPath path) =>
-		new(unitId, journeyId, origin, destination, startTick, path, null, null);
+		new(unitId, journeyId, origin, destination, startTick, path, null);
 
-	public static UpdateLocationEffect ArriveAtDock(string unitId, string dockId) =>
-		new(unitId, 0, default, default, 0, null, dockId, null);
-
-	public static UpdateLocationEffect ArriveAtCoord(string unitId, Coord coord) =>
-		new(unitId, 0, default, default, 0, null, null, coord);
+	public static UpdateLocationEffect StopAt(string unitId, Coord position) =>
+		new(unitId, 0, default, default, 0, null, position);
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
@@ -59,7 +53,7 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 
 		if (_path is not null)
 		{
-			if (!state.CanMove)
+			if (WorkScheduler.HasAssignment(world, _unitId))
 			{
 				throw new InvalidOperationException(
 					$"Fleet '{_unitId}' is not ready to move.");
@@ -70,15 +64,9 @@ public sealed class UpdateLocationEffect : IEffect<StarMap, ActorRuntime>
 			return [];
 		}
 
-		if (_dockId is not null)
+		if (_position is not null)
 		{
-			state.ArriveAt(_dockId);
-			return [];
-		}
-
-		if (_coord is not null)
-		{
-			state.ArriveAtFreeSpace(_coord.Value);
+			state.StopAt(_position.Value);
 			return [];
 		}
 

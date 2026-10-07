@@ -1,8 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -28,24 +26,13 @@ public sealed class CompleteWorkDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is CompleteWorkAction complete
 		&& world.FleetRegistry.TryGet(complete.UnitId, out var unit)
-		&& unit.State.Phase == EPhase.Working
-		&& unit.State.WorkStartTick == complete.StartTick
-		&& world.DocksById[unit.State.DockedAtDockId].PoiId == complete.PoiId;
+		&& world.DockAt(unit.State)?.PoiId == complete.PoiId
+		&& world.Timeline.Clock.Current
+			== complete.StartTick
+				+ world.GetPointOfInterest(complete.PoiId).DurationTicks(unit.State.Type);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
 		StarMap world,
-		ActorRuntime runtime)
-	{
-		var complete = (CompleteWorkAction)action;
-		if (!world.FleetRegistry.TryGet(complete.UnitId, out var unit)
-			|| unit.State.Phase != EPhase.Working
-			|| unit.State.WorkStartTick != complete.StartTick
-			|| world.DocksById[unit.State.DockedAtDockId].PoiId != complete.PoiId)
-		{
-			return [];
-		}
-
-		return [CompleteWorkEffect.Instance(complete.UnitId)];
-	}
+		ActorRuntime runtime) => [];
 }

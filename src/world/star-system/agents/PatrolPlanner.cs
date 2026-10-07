@@ -34,11 +34,9 @@ public sealed class PatrolPlanner
 		var state = fleet.State;
 
 		if (state.PatrolRadius <= 0
-			|| state.Phase != EPhase.Docked
-			|| !string.IsNullOrEmpty(state.DockedAtDockId))
+			|| state.Travel is not FleetTravel.AtRest { Position: var routeStart })
 			return null;
 
-		var routeStart = state.IdleCoord;
 		var legStart = routeStart;
 		var routeLegs = new List<TransitLeg>();
 		for (var waypointIndex = 0; waypointIndex < WaypointsPerRoute; waypointIndex++)

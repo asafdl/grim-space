@@ -20,9 +20,9 @@ public sealed class MoveActionTests(StarMapFixture maps)
 	public void Commit_RecordsMoveInTimelineAndStartsJourney()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var destinationDockId = unit.State.NextChoreDockId();
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var destination = map.DocksById[destinationDockId].Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
@@ -31,11 +31,11 @@ public sealed class MoveActionTests(StarMapFixture maps)
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 
-		Assert.Equal(EPhase.InTransit, unit.State.Phase);
-		Assert.NotEqual(0, unit.State.Journey.JourneyId);
-		Assert.Equal(origin, unit.State.Journey.Origin);
-		Assert.Equal(destination, unit.State.Journey.Destination);
-		Assert.Equal(map.Timeline.Clock.Current, unit.State.Journey.StartTick);
+		var journey = unit.State.Journey();
+		Assert.NotEqual(0, journey.Id);
+		Assert.Equal(origin, journey.Origin);
+		Assert.Equal(destination, journey.Destination);
+		Assert.Equal(map.Timeline.Clock.Current, journey.StartTick);
 		Assert.Same(path, runtime.CachedPath);
 		Assert.Contains(
 			engine.History().OfType<MoveAction>(),
@@ -46,7 +46,7 @@ public sealed class MoveActionTests(StarMapFixture maps)
 	public void CommittedPosition_InterpolatesAcrossElapsedTicks()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var origin = new Coord(0, 0, 0);
 		var destination = new Coord(100, 0, 0);
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
@@ -61,7 +61,7 @@ public sealed class MoveActionTests(StarMapFixture maps)
 		for (var tick = 0; tick < duration; tick++)
 		{
 			engine.AdvanceTick();
-			var (position, _) = unit.State.CommittedPosition(map, path, 0f);
+			var (position, _) = unit.State.PositionAt(map, path, 0f);
 			var expected = path.SampleAtElapsed(tick + 1, speed).Position;
 			Assert.Equal(expected, position);
 		}
@@ -71,9 +71,9 @@ public sealed class MoveActionTests(StarMapFixture maps)
 	public void CompleteMoveAction_ArrivesAtScheduledTick()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var destinationDockId = unit.State.NextChoreDockId();
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var destination = map.DocksById[destinationDockId].Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 		var duration = path.DurationTicks(unit.State.SpeedPerTick);
@@ -86,23 +86,23 @@ public sealed class MoveActionTests(StarMapFixture maps)
 		for (var tick = 0; tick < duration - 1; tick++)
 		{
 			engine.AdvanceTick();
-			Assert.Equal(EPhase.InTransit, unit.State.Phase);
+			Assert.IsType<FleetTravel.Journey>(unit.State.Travel);
 		}
 
 		engine.AdvanceTick();
 
-		Assert.Equal(EPhase.Working, unit.State.Phase);
-		Assert.Equal(destinationDockId, unit.State.DockedAtDockId);
+		Assert.True(WorkScheduler.IsWorking(map, unit.State.Id));
+		Assert.Equal(destinationDockId, map.DockAt(unit.State)!.Id);
 	}
 
 	[Fact]
 	public void CompleteMoveAction_InfersDockArrivalFromDestinationCoordinate()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var destinationDockId = unit.State.NextChoreDockId();
 		var destination = map.DocksById[destinationDockId].Position;
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
@@ -114,7 +114,7 @@ public sealed class MoveActionTests(StarMapFixture maps)
 		for (var tick = 0; tick < duration; tick++)
 			engine.AdvanceTick();
 
-		Assert.Equal(destinationDockId, unit.State.DockedAtDockId);
+		Assert.Equal(destinationDockId, map.DockAt(unit.State)!.Id);
 		Assert.True(map.DocksByPosition.ContainsKey(destination));
 	}
 
@@ -122,9 +122,9 @@ public sealed class MoveActionTests(StarMapFixture maps)
 	public void Repath_CancelsPendingCompletionAndSchedulesNewJourney()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var firstDestination = map.DocksById[unit.State.NextChoreDockId()].Position;
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var firstPath = TransitPath.FromPoints([origin, firstDestination], [1.0, 1.0]);
 		var secondDestination = new Coord(firstDestination.X + 50, 0, firstDestination.Z);
 		var secondPath = TransitPath.FromPoints([origin, secondDestination], [1.0, 1.0]);
@@ -133,14 +133,14 @@ public sealed class MoveActionTests(StarMapFixture maps)
 		var runtime = actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, firstDestination, firstPath));
-		var firstJourneyId = unit.State.Journey.JourneyId;
+		var firstJourneyId = unit.State.Journey().Id;
 		var firstCompletionTick = runtime.PendingCompletionTick;
 
 		engine.AdvanceTick();
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, secondDestination, secondPath));
 
-		Assert.NotEqual(firstJourneyId, unit.State.Journey.JourneyId);
-		Assert.Equal(secondDestination, unit.State.Journey.Destination);
+		Assert.NotEqual(firstJourneyId, unit.State.Journey().Id);
+		Assert.Equal(secondDestination, unit.State.Journey().Destination);
 		Assert.NotEqual(firstCompletionTick, runtime.PendingCompletionTick);
 		Assert.NotEqual(firstJourneyId, ((CompleteMoveAction)runtime.PendingCompletion!).JourneyId);
 	}
@@ -149,40 +149,37 @@ public sealed class MoveActionTests(StarMapFixture maps)
 	public void StaleCompleteMoveAction_IsNoOp()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var destination = map.DocksById[unit.State.NextChoreDockId()].Position;
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
-		var staleJourneyId = unit.State.Journey.JourneyId;
+		var staleJourneyId = unit.State.Journey().Id;
 
 		engine.AdvanceTick();
 		engine.Commit(new MoveAction(unit.State.Id, unit.State.Id, destination, path));
 
 		engine.Commit(new CompleteMoveAction(unit.State.Id, unit.State.Id, staleJourneyId));
 
-		Assert.Equal(EPhase.InTransit, unit.State.Phase);
+		Assert.IsType<FleetTravel.Journey>(unit.State.Travel);
 	}
 
 	[Fact]
 	public void IsLegal_ChoreUnitWaitingForScheduledWork_IsIllegal()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
-		var dockId = unit.State.DockedAtDockId;
-		var poiId = map.DocksById[dockId].PoiId;
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
+		var dockId = map.DockAt(unit.State)!.Id;
 		var destination = map.DocksById[unit.State.NextChoreDockId()].Position;
 		var origin = map.DocksById[dockId].Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 		var move = new MoveAction(unit.State.Id, unit.State.Id, destination, path);
 
-		map.Timeline.Schedule(
-			2,
-			new BeginWorkAction(unit.State.Id, unit.State.Id, poiId, map.Timeline.Clock.Current + 2));
+		WorkScheduler.ReserveOnArrival(map, unit.State.Id, dockId);
 
 		var runtime = new ActorRuntimes<ActorRuntime>().For(unit.State.Id);
 		Assert.False(MoveDef.Instance.IsLegal(move, map, runtime));
@@ -195,7 +192,7 @@ public sealed class MoveActionTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var destination = map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
-		var origin = map.DocksById[player.State.DockedAtDockId].Position;
+		var origin = map.DockAt(player.State)!.Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 		var move = new MoveAction(player.State.Id, player.State.Id, destination, path);
 

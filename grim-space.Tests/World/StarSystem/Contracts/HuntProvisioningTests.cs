@@ -43,9 +43,8 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 			.Single(unit => unit.State.Type == FleetType.PirateFleet);
 
 		Assert.Equal(EFaction.Pirates, spawned.State.Faction);
-		Assert.Equal(EPhase.Docked, spawned.State.Phase);
-		Assert.True(spawned.State.IdleCoord != default);
-		Assert.Empty(spawned.State.DockedAtDockId);
+		Assert.True(spawned.State.AtRest().Position != default);
+		Assert.Null(engine.World.DockAt(spawned.State));
 		Assert.Equal(24, spawned.State.PatrolRadius);
 		Assert.Equal(3, spawned.State.SpeedPerTick);
 		Assert.Single(spawned.Members);
@@ -279,7 +278,10 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 		map.FleetRegistry.All
 			.Where(unit => unit.State.Type == FleetType.PirateFleet)
 			.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
-			.Select(unit => (unit.State.Id, unit.State.IdleCoord.X, unit.State.IdleCoord.Z))
+			.Select(unit => (
+				unit.State.Id,
+				unit.State.AtRest().Position.X,
+				unit.State.AtRest().Position.Z))
 			.ToList();
 
 	private static string[] PirateMemberIds(StarMap map) =>
@@ -332,8 +334,7 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 	{
 		var issuerDockId = map.DocksByPoiId[map.Blueprint.SupplyPlan.AdministrativePoiId].Id;
 		var state = map.FleetRegistry.FleetOf(unitId).State;
-		state.Phase = EPhase.Docked;
-		state.DockedAtDockId = issuerDockId;
+		state.Travel = new FleetTravel.AtRest(map.DocksById[issuerDockId].Position);
 	}
 
 	private static Engine<StarMap, ActorRuntime> CreateEngine(StarMap map, string unitId)

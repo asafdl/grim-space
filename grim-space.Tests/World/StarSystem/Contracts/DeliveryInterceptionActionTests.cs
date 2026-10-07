@@ -37,8 +37,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		const string playerId = "player-select";
 		StarSystemTestHarness.AddPlayerFleet(map, playerId);
 		var player = map.FleetRegistry.FleetOf(playerId);
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(0, 0, 0);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(0, 0, 0));
 		AddAmbientPirate(map, "pirate-far", new Coord(30, 0, 30));
 		AddAmbientPirate(map, "pirate-near", new Coord(4, 0, 4));
 
@@ -56,8 +55,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		const string playerId = "player-tie";
 		StarSystemTestHarness.AddPlayerFleet(map, playerId);
 		var player = map.FleetRegistry.FleetOf(playerId);
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(0, 0, 0);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(0, 0, 0));
 		AddAmbientPirate(map, "pirate-b", new Coord(5, 0, 5));
 		AddAmbientPirate(map, "pirate-a", new Coord(5, 0, 5));
 
@@ -87,7 +85,9 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 			action is AttemptDeliveryInterceptionAction attempt
 			&& attempt.ContractId == contractId
 			&& attempt.PlayerFleetId == playerId));
-		Assert.False(map.Timeline.TakePending(map.Timeline.Clock.Current + 1).Any());
+		Assert.DoesNotContain(
+			map.Timeline.TakePending(map.Timeline.Clock.Current + 1),
+			action => action is AttemptDeliveryInterceptionAction);
 		Assert.Contains(
 			map.Timeline.TakePending(
 				map.Timeline.Clock.Current
@@ -101,7 +101,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		var map = maps.Fresh(5);
 		var (contractId, playerId) = SeedPendingDelivery(map);
 		var player = map.FleetRegistry.FleetOf(playerId);
-		player.State.Phase = EPhase.InTransit;
+		SetTraveling(map, playerId);
 		player.State.CurrentEngagement = new StrategicEngagement(
 			"engagement-retry",
 			EEngagementPhase.Engaged,
@@ -145,7 +145,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(5);
 		var (contractId, playerId) = SeedPendingDelivery(map);
-		map.FleetRegistry.FleetOf(playerId).State.Phase = EPhase.InTransit;
+		SetTraveling(map, playerId);
 		var engine = CreateEngine(map, playerId);
 
 		engine.Commit(new AttemptDeliveryInterceptionAction(
@@ -164,7 +164,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		var map = maps.Fresh(5);
 		var (contractId, playerId) = SeedPendingDelivery(map);
 		var player = map.FleetRegistry.FleetOf(playerId);
-		player.State.Phase = EPhase.InTransit;
+		SetTraveling(map, playerId);
 		AddAmbientPirate(map, "pirate-assign", new Coord(3, 0, 3));
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
@@ -194,7 +194,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, playerId);
 		var (contractId, _) = SeedPendingDelivery(map, holderId: playerId);
 		var player = map.FleetRegistry.FleetOf(playerId);
-		var origin = map.DocksById[player.State.DockedAtDockId].Position;
+		var origin = map.DockAt(player.State)!.Position;
 		var pathfinder = new GridPathfinder(map.PathfindingTerrain);
 		var exit = map.DocksByPoiId[map.Blueprint.SupplyPlan.ExitPoiId].Position;
 		var routeToExit = Assert.IsType<PathfindingResult.Found>(
@@ -229,25 +229,26 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		orchestrator.AdvanceTick();
 
 		var interceptor = map.FleetRegistry.FleetOf(interceptorId);
-		Assert.Equal(EPhase.InTransit, interceptor.State.Phase);
+		Assert.IsType<FleetTravel.Journey>(interceptor.State.Travel);
 		Assert.True(interceptor.State.TravelTarget.MatchesFleet(
 			playerId,
 			EContactIntent.Engagement));
-		var firstJourneyId = interceptor.State.Journey.JourneyId;
-		var firstDestination = interceptor.State.Journey.Destination;
+		var firstJourneyId = interceptor.State.Journey().Id;
+		var firstDestination = interceptor.State.Journey().Destination;
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(firstJourneyId, interceptor.State.Journey.JourneyId);
+		Assert.Equal(firstJourneyId, interceptor.State.Journey().Id);
 
 		for (var tick = 0;
 			tick < EngagementQueries.MaxContactCheckBackoffTicks
-			&& interceptor.State.Journey.JourneyId == firstJourneyId;
+			&& interceptor.State.Travel is FleetTravel.Journey { Id: var journeyId }
+			&& journeyId == firstJourneyId;
 			tick++)
 			orchestrator.AdvanceTick();
 
-		Assert.True(interceptor.State.Journey.JourneyId > firstJourneyId);
-		Assert.NotEqual(firstDestination, interceptor.State.Journey.Destination);
+		Assert.True(interceptor.State.Journey().Id > firstJourneyId);
+		Assert.NotEqual(firstDestination, interceptor.State.Journey().Destination);
 
 		for (var tick = 0;
 			tick < 50
@@ -271,7 +272,7 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 		var (firstContractId, playerId) = SeedPendingDelivery(map);
 		var secondContractId = SeedPendingDelivery(map, "delivery-interception-2").ContractId;
 		var player = map.FleetRegistry.FleetOf(playerId);
-		player.State.Phase = EPhase.InTransit;
+		SetTraveling(map, playerId);
 		AddAmbientPirate(map, "pirate-first", new Coord(3, 0, 3));
 		AddAmbientPirate(map, "pirate-second", new Coord(6, 0, 6));
 		var engine = CreateEngine(map, playerId);
@@ -606,7 +607,6 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 			new Spawn(
 				id,
 				EType.PirateFleet,
-				"",
 				coord,
 				UnitDefaults.PatrolSpeedPerTick(EType.PirateFleet),
 				UnitDefaults.EngageRadius(EType.PirateFleet),
@@ -617,6 +617,14 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 			[BattleUnitType.RepurposedMiner]);
 		pirate.State.SpawnerSource = EFleetSpawnerSource.RandomArea;
 		map.FleetRegistry.Add(pirate);
+	}
+
+	private static void SetTraveling(StarMap map, string unitId)
+	{
+		var state = map.StateOf(unitId);
+		var origin = state.AtRest().Position;
+		var destination = map.DocksByPoiId[map.Blueprint.SupplyPlan.ExitPoiId].Position;
+		state.StartJourney(1, origin, destination, map.Timeline.Clock.Current);
 	}
 
 }

@@ -41,7 +41,7 @@ public sealed class HostileContactPlanner
 			_runtimeFor,
 			0f,
 			world.Timeline.Clock.Current);
-		var origin = MoveDef.ResolveOrigin(world, actor, runtime);
+		var origin = actor.State.PositionAt(world, runtime.CachedPath, 0).Position;
 
 		foreach (var target in candidates)
 		{

@@ -83,6 +83,7 @@ public static class StarSystemBuilder
 		var poiById = pois.ToDictionary(poi => poi.Id, StringComparer.Ordinal);
 		var fleetRegistry = new FleetRegistry();
 		var poisWithSpawnedWorkers = new HashSet<string>(StringComparer.Ordinal);
+		var spawnedWork = new List<(Fleet Fleet, string PoiId, int RemainingTicks)>();
 		foreach (var intent in blueprint.UnitSpawns)
 		{
 			var choreDockIds = intent.ChorePoiIds
@@ -100,18 +101,20 @@ public static class StarSystemBuilder
 			var spawn = new Spawn(
 				intent.Id,
 				intent.Type,
-				placement.DockedAtDockId,
-				default,
+				placement.Position,
 				UnitDefaults.SpeedPerTick(intent.Type),
 				UnitDefaults.EngageRadius(intent.Type),
 				UnitDefaults.VisionRadius(intent.Type),
 				choreDockIds,
 				AggressionRating: 0);
 			var fleet = Factory.Create(spawn);
-			ApplySpawnPlacement(fleet.State, placement);
+			fleet.State.ChoreIndex = placement.ChoreIndex;
 
-			if (placement.Phase == EPhase.Working)
-				poisWithSpawnedWorkers.Add(placement.WorkingPoiId!);
+			if (placement.WorkingPoiId is { } workingPoiId)
+			{
+				poisWithSpawnedWorkers.Add(workingPoiId);
+				spawnedWork.Add((fleet, workingPoiId, placement.WorkTicksRemaining));
+			}
 
 			fleetRegistry.Add(fleet);
 		}
@@ -138,11 +141,13 @@ public static class StarSystemBuilder
 			landmarks,
 			docksById.Values);
 
-		return new StarMap(
+		var timeline = new Timeline();
+		timeline.Clock.Set(1);
+		var map = new StarMap(
 			blueprint,
 			pois,
 			landmarks,
-			new Timeline(),
+			timeline,
 			docksById,
 			docksByPoiId,
 			routesById,
@@ -152,6 +157,11 @@ public static class StarSystemBuilder
 			new PlayerResources(),
 			terrain,
 			shipRegistryReader);
+
+		foreach (var (fleet, poiId, remainingTicks) in spawnedWork)
+			WorkScheduler.ScheduleSpawnedWorker(map, fleet, poiId, remainingTicks);
+
+		return map;
 	}
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)
@@ -301,18 +311,6 @@ public static class StarSystemBuilder
 				.Add(layoutAttempt)
 				.Add(attempt)
 				.Value);
-
-	private static void ApplySpawnPlacement(State state, UnitSpawnPlacement.Result placement)
-	{
-		state.ChoreIndex = placement.ChoreIndex;
-		state.Phase = placement.Phase;
-		state.DockedAtDockId = placement.DockedAtDockId;
-		if (placement.Phase == EPhase.Working)
-		{
-			state.SpawnWorkPoiId = placement.WorkingPoiId;
-			state.SpawnWorkRemainingTicks = placement.WorkTicksRemaining;
-		}
-	}
 
 	private static Coord SampleFreeCenter(StarSystemBlueprint blueprint, int radius, StableRandom random)
 	{

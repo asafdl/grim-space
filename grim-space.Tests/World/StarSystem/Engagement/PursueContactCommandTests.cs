@@ -45,8 +45,7 @@ public sealed class PursueContactCommandTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(10, 0, 20);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(10, 0, 20));
 		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
 			new Coord(20, 0, 20),
@@ -77,7 +76,7 @@ public sealed class PursueContactCommandTests(StarMapFixture maps)
 		orchestrator.AdvanceTick();
 
 		var playerState = orchestrator.Map.StateOf(RunState.PlayerFleetUnitId);
-		Assert.Equal(interceptDestination, playerState.Journey.Destination);
+		Assert.Equal(interceptDestination, playerState.Journey().Destination);
 
 		for (var tick = 0;
 			tick < 30 && playerState.CurrentEngagement?.Phase != EEngagementPhase.AwaitingDecision;

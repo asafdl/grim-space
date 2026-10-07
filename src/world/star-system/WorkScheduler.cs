@@ -1,17 +1,13 @@
 using GrimSpace.Core.Actions;
-using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Poi;
-using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem;
 
 public sealed record WorkReservation(
 	int StartTick,
-	int EndTick,
-	IReadOnlyList<IEffect<StarMap, ActorRuntime>> Effects);
+	int EndTick);
 
 public static class WorkScheduler
 {
@@ -33,11 +29,8 @@ public static class WorkScheduler
 		var duration = poi.DurationTicks(state.Type);
 		var currentTick = world.Timeline.Clock.Current;
 		var (startTick, endTick) = poi.ReserveTaskWindow(currentTick, duration);
-		var effects = new List<IEffect<StarMap, ActorRuntime>>();
 
-		if (startTick == currentTick)
-			effects.Add(BeginWorkEffect.Start(unitId, startTick));
-		else
+		if (startTick > currentTick)
 			Schedule(world, startTick - currentTick, new BeginWorkAction(unitId, unitId, poiId, startTick));
 
 		Schedule(
@@ -45,7 +38,7 @@ public static class WorkScheduler
 			endTick - currentTick,
 			new CompleteWorkAction(unitId, unitId, poiId, startTick));
 
-		return new WorkReservation(startTick, endTick, effects);
+		return new WorkReservation(startTick, endTick);
 	}
 
 	public static void ScheduleSpawnedWorker(
@@ -61,13 +54,32 @@ public static class WorkScheduler
 		var startTick = endTick - duration;
 
 		poi.ExtendReservation(endTick);
-		unit.State.WorkStartTick = startTick;
-
 		Schedule(
 			world,
 			remainingTicks,
 			new CompleteWorkAction(unit.State.Id, unit.State.Id, poiId, startTick));
 	}
+
+	public static bool HasAssignment(StarMap world, string unitId) =>
+		world.Timeline.ContainsPending(action =>
+			action is CompleteWorkAction complete && complete.UnitId == unitId);
+
+	public static bool IsWorking(StarMap world, string unitId) =>
+		world.Timeline.ContainsPending(action =>
+			action is CompleteWorkAction complete
+			&& complete.UnitId == unitId
+			&& complete.StartTick <= world.Timeline.Clock.Current);
+
+	public static bool IsAssigned(
+		StarMap world,
+		string unitId,
+		string poiId,
+		int startTick) =>
+		world.Timeline.ContainsPending(action =>
+			action is CompleteWorkAction complete
+			&& complete.UnitId == unitId
+			&& complete.PoiId == poiId
+			&& complete.StartTick == startTick);
 
 	private static void Schedule(StarMap world, int delayTicks, IAction action) =>
 		world.Timeline.Schedule(delayTicks, action);

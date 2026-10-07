@@ -58,14 +58,11 @@ internal static class ActionLegalityDiagnostics
 		if (!world.FleetRegistry.TryGet(move.UnitId, out var unit))
 			return "unit_missing";
 
-		if (!unit.State.CanMove)
-			return $"cannot_move phase={unit.State.Phase}";
+		if (WorkScheduler.HasAssignment(world, move.UnitId))
+			return "work_assigned";
 
 		if (EngagementState.IsEngaged(unit.State))
 			return "engaged";
-
-		if (IsWaitingForScheduledWork(world, unit.State))
-			return "scheduled_work_pending";
 
 		return "illegal";
 	}
@@ -75,8 +72,8 @@ internal static class ActionLegalityDiagnostics
 		if (!world.FleetRegistry.TryGet(pursue.ActorId, out var initiator))
 			return "actor_missing";
 
-		if (!initiator.State.CanMove)
-			return $"cannot_move phase={initiator.State.Phase}";
+		if (WorkScheduler.HasAssignment(world, pursue.ActorId))
+			return "work_assigned";
 
 		return pursue.Target switch
 		{
@@ -223,8 +220,4 @@ internal static class ActionLegalityDiagnostics
 			",",
 			bundle.Select(entry => $"{entry.Key}={entry.Value}"));
 
-	private static bool IsWaitingForScheduledWork(StarMap world, State state) =>
-		state.ChoreDockIds.Count > 0
-		&& world.Timeline.ContainsPending(action =>
-			action is BeginWorkAction begin && begin.UnitId == state.Id);
 }

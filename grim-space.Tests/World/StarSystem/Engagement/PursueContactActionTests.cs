@@ -30,7 +30,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 
 		Assert.Null(EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
 		Assert.Null(EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
-		Assert.Equal(EPhase.Docked, orchestrator.Map.StateOf(playerId).Phase);
+		Assert.IsType<FleetTravel.AtRest>(orchestrator.Map.StateOf(playerId).Travel);
 	}
 
 	[Fact]
@@ -44,8 +44,7 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		Assert.Equal(pirateId, EngagementAssertions.Hunting(orchestrator.Map.StateOf(playerId)));
 		Assert.Equal(EEngagementPhase.Pursuing, EngagementAssertions.Phase(orchestrator.Map.StateOf(playerId)));
 		Assert.Equal(playerId, EngagementAssertions.HuntedBy(orchestrator.Map.StateOf(pirateId)));
-		Assert.Equal(EPhase.InTransit, orchestrator.Map.StateOf(playerId).Phase);
-		Assert.Equal(destination, orchestrator.Map.StateOf(playerId).Journey.Destination);
+		Assert.Equal(destination, orchestrator.Map.StateOf(playerId).Journey().Destination);
 		Assert.True(orchestrator.Map.StateOf(playerId).TravelTarget.MatchesFleet(pirateId));
 		Assert.Equal(
 			EContactIntent.Engagement,
@@ -128,10 +127,9 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = AddPirate(map, "pirate-a", new Coord(20, 0, 20));
 		var pirate = map.FleetRegistry.FleetOf(pirateId);
-		var destination = map.DocksById[
-			map.StateOf(RunState.PlayerFleetUnitId).DockedAtDockId].Position;
+		var destination = map.DockAt(map.StateOf(RunState.PlayerFleetUnitId))!.Position;
 		var path = TransitPath.FromPoints(
-			[pirate.State.IdleCoord, destination],
+			[pirate.State.AtRest().Position, destination],
 			[1.0, 1.0]);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		var runtime = actorRuntimes.For(pirateId);
@@ -171,8 +169,8 @@ public sealed class PursueContactActionTests(StarMapFixture maps)
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var pirateId = AddPirate(map, "pirate-a", new Coord(20, 0, 20));
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		var origin = map.DocksById[player.State.DockedAtDockId].Position;
-		var destination = map.StateOf(pirateId).IdleCoord;
+		var origin = map.DockAt(player.State)!.Position;
+		var destination = map.StateOf(pirateId).AtRest().Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		var runtime = actorRuntimes.For(RunState.PlayerFleetUnitId);

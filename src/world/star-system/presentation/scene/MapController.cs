@@ -21,8 +21,8 @@ using GrimSpace.World.StarSystem.Presentation.Map;
 using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Vision;
-using FleetPhase = GrimSpace.World.StarSystem.Units.EPhase;
 using EngagementPhase = GrimSpace.World.StarSystem.Units.EEngagementPhase;
+using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
 
 namespace GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -689,12 +689,11 @@ public partial class MapController : Node3D
 		var unit = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
 		var tickFraction = _tickAccumulator / SecondsPerTick;
 		var cachedPath = _orchestrator.RuntimeFor(State.PlayerFleetUnitId).CachedPath;
-		if (unit.State.Phase == FleetPhase.InTransit
-			&& unit.State.Journey.IsActive
+		if (unit.State.Travel is FleetTravel.Journey journey
 			&& cachedPath is { } path)
 		{
 			var elapsed = world.Timeline.Clock.Current
-				- unit.State.Journey.StartTick
+				- journey.StartTick
 				+ tickFraction;
 			var route = RoundedTransitRoute.For(path)
 				.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);
@@ -709,13 +708,13 @@ public partial class MapController : Node3D
 				unit.State.SpeedPerTick);
 		}
 
-		var continuousPosition = unit.State.CommittedPositionContinuous(
+		var continuousPosition = unit.State.PositionContinuousAt(
 			world,
 			cachedPath,
 			tickFraction);
 		if (continuousPosition is null)
 		{
-			var (position, tangent) = unit.State.CommittedPosition(world, cachedPath, tickFraction);
+			var (position, tangent) = unit.State.PositionAt(world, cachedPath, tickFraction);
 			return MapPlayerTravelSample.Resolve(
 				world.Width,
 				world.Height,
@@ -805,11 +804,7 @@ public partial class MapController : Node3D
 	private static string? ResolveDockedPoiId(StarMap world)
 	{
 		var player = world.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
-		if (player.State.Phase != Units.EPhase.Docked
-			|| string.IsNullOrEmpty(player.State.DockedAtDockId))
-			return null;
-
-		return world.DocksById[player.State.DockedAtDockId].PoiId;
+		return world.DockAt(player.State)?.PoiId;
 	}
 
 	private void CycleSpeed() =>

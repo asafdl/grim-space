@@ -43,14 +43,14 @@ public sealed class TrafficExecutionAgent : ExecutionAgent<StarMap, ActorRuntime
 		var world = _world();
 		var runtime = _runtimeFor(unitId);
 		var state = world.FleetRegistry.FleetOf(unitId).State;
+		var dock = world.DockAt(state);
 
 		if (state.ChoreDockIds.Count == 0
-			|| state.Phase != EPhase.Docked
-			|| string.IsNullOrEmpty(state.DockedAtDockId))
+			|| dock is null)
 			return [];
 
 		var destinationDockId = state.NextChoreDockId();
-		var origin = world.DocksById[state.DockedAtDockId].Position;
+		var origin = dock.Position;
 		var destination = world.DocksById[destinationDockId].Position;
 		var result = _pathfinder.FindPath(origin, destination);
 		if (result is not PathfindingResult.Found found)

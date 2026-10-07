@@ -53,7 +53,7 @@ public sealed class AttemptDeliveryInterceptionDef
 
 		var retryDelayTicks = deliveryObjective.Config.InterceptionRetryDelayTicks;
 		if (!world.FleetRegistry.TryGet(attempt.PlayerFleetId, out var player)
-			|| player.State.Phase != EPhase.InTransit)
+			|| player.State.Travel is not FleetTravel.Journey)
 		{
 			return
 			[
@@ -112,7 +112,7 @@ public sealed class AttemptDeliveryInterceptionDef
 		string? bestFleetId = null;
 		foreach (var fleet in world.FleetRegistry.All)
 		{
-			if (!IsEligibleAmbientInterceptor(fleet.State)
+			if (!IsEligibleAmbientInterceptor(world, fleet.State)
 				|| !TryResolvePosition(world, pathfinder, fleet, out var origin)
 				|| pathfinder.FindPath(origin, playerPosition) is not PathfindingResult.Found)
 				continue;
@@ -142,28 +142,28 @@ public sealed class AttemptDeliveryInterceptionDef
 		out Coord position)
 	{
 		var state = fleet.State;
-		if (state.Phase != EPhase.InTransit || !state.Journey.IsActive)
+		if (state.Travel is not FleetTravel.Journey journey)
 		{
-			position = state.CommittedPosition(world, null, 0).Position;
+			position = state.PositionAt(world, null, 0).Position;
 			return true;
 		}
 
-		if (pathfinder.FindPath(state.Journey.Origin, state.Journey.Destination)
+		if (pathfinder.FindPath(journey.Origin, journey.Destination)
 			is not PathfindingResult.Found found)
 		{
 			position = default;
 			return false;
 		}
 
-		position = state.CommittedPosition(world, found.Path, 0).Position;
+		position = state.PositionAt(world, found.Path, 0).Position;
 		return true;
 	}
 
-	internal static bool IsEligibleAmbientInterceptor(State interceptor) =>
+	internal static bool IsEligibleAmbientInterceptor(StarMap world, State interceptor) =>
 		interceptor.Type == EType.PirateFleet
 		&& interceptor.SpawnerSource == EFleetSpawnerSource.RandomArea
 		&& string.IsNullOrEmpty(interceptor.SourceContractId)
 		&& interceptor.PursuitDirective is null
 		&& interceptor.CurrentEngagement is null
-		&& interceptor.CanMove;
+		&& !WorkScheduler.HasAssignment(world, interceptor.Id);
 }

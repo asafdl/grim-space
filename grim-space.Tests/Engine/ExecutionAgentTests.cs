@@ -17,7 +17,8 @@ public sealed class ExecutionAgentTests(StarMapFixture maps)
 	{
 		var agent = new TestExecutionAgent();
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(u => u.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(u =>
+			u.State.ChoreDockIds.Count > 0 && map.DockAt(u.State) is not null);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 
@@ -30,7 +31,7 @@ public sealed class ExecutionAgentTests(StarMapFixture maps)
 			sink.WriterFor(unit.State.Id));
 		agent.SetCanWork(true);
 
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var destination = map.DocksById[unit.State.NextChoreDockId()].Position;
 		var path = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);
 		agent.PublishForTest([new MoveAction(unit.State.Id, unit.State.Id, destination, path)]);
@@ -50,7 +51,8 @@ public sealed class ExecutionAgentTests(StarMapFixture maps)
 	{
 		var agent = new TestExecutionAgent();
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(u => u.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(u =>
+			u.State.ChoreDockIds.Count > 0 && map.DockAt(u.State) is not null);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 

@@ -1,5 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Runtime;
@@ -15,13 +16,13 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 	public void ArrivalAtIdlePoi_StartsWorkImmediately()
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
-		var unit = orchestrator.Map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var map = orchestrator.Map;
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 
-		while (unit.State.Phase != EPhase.Working && orchestrator.Tick < 500)
+		while (!WorkScheduler.IsWorking(map, unit.State.Id) && orchestrator.Tick < 500)
 			orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.Working, unit.State.Phase);
-		Assert.True(unit.State.WorkStartTick > 0);
+		Assert.True(WorkScheduler.IsWorking(map, unit.State.Id));
 	}
 
 	[Fact]
@@ -31,7 +32,7 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
 		var units = map.FleetRegistry.All
-			.Where(unit => unit.State.Type == EType.MiningBarge && unit.State.IsReadyToDepart)
+			.Where(unit => unit.State.Type == EType.MiningBarge && unit.State.HasChoreAtDock(map))
 			.Take(2)
 			.ToArray();
 		var runtime = new ActorRuntime();
@@ -53,8 +54,7 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
 		var unit = map.FleetRegistry.All.First(candidate => candidate.State.Type == EType.MiningBarge);
-		unit.State.DockedAtDockId = dockId;
-		unit.State.Phase = EPhase.Docked;
+		unit.State.Travel = new FleetTravel.AtRest(map.DocksById[dockId].Position);
 		var duration = poi.DurationTicks(unit.State.Type);
 		var currentTick = map.Timeline.Clock.Current;
 		poi.NextAvailableTaskTick = currentTick + duration;
@@ -64,33 +64,38 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		var reservation = ApplyReservation(map, actorRuntimes.For(unit.State.Id), unit.State.Id, dockId);
 
-		Assert.Equal(EPhase.Docked, unit.State.Phase);
+		Assert.False(WorkScheduler.IsWorking(map, unit.State.Id));
 		Assert.Equal(currentTick + duration, reservation.StartTick);
 
 		while (map.Timeline.Clock.Current < reservation.StartTick)
 			engine.AdvanceTick();
 
-		Assert.Equal(EPhase.Working, unit.State.Phase);
+		Assert.True(WorkScheduler.IsWorking(map, unit.State.Id));
 
 		while (map.Timeline.Clock.Current < reservation.EndTick)
 			engine.AdvanceTick();
 
-		Assert.Equal(EPhase.Docked, unit.State.Phase);
+		Assert.False(WorkScheduler.IsWorking(map, unit.State.Id));
 	}
 
 	[Fact]
-	public void SpawnedWorkingUnit_SchedulesCompletionOnOrchestratorInit()
+	public void SpawnedWorkingUnit_HasScheduledCompletion()
 	{
 		var map = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
 		var workingUnit = map.FleetRegistry.All
-			.First(unit => unit.State.Phase == EPhase.Working);
-		var remaining = workingUnit.State.SpawnWorkRemainingTicks;
+			.First(unit => WorkScheduler.IsWorking(map, unit.State.Id));
+		var completionTick = map.Timeline.ToSnapshot().Pending
+			.Single(pair => pair.Value.Any(action =>
+				action is CompleteWorkAction complete
+				&& complete.UnitId == workingUnit.State.Id))
+			.Key;
+		var remaining = completionTick - map.Timeline.Clock.Current;
 
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(map);
 
-		Assert.Equal(EPhase.Working, workingUnit.State.Phase);
+		Assert.True(WorkScheduler.IsWorking(map, workingUnit.State.Id));
 		orchestrator.AdvanceTicks(remaining);
-		Assert.Equal(EPhase.Docked, workingUnit.State.Phase);
+		Assert.False(WorkScheduler.IsWorking(map, workingUnit.State.Id));
 	}
 
 	[Fact]
@@ -102,18 +107,15 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 		var originalPoi = orchestrator.Map.PointsOfInterest
 			.First(poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
 		var originalReservation = originalPoi.NextAvailableTaskTick;
-		var originalMiner = orchestrator.Map.FleetRegistry.All
-			.First(unit => unit.State.Type == EType.MiningBarge);
-
 		var fork = orchestrator.Map.Fork();
 		var forkedOrchestrator = StarSystemTestHarness.CreateOrchestrator(fork);
 		var forkedPoi = fork.PointsOfInterest
 			.First(poi => poi.LogicalRole == EPoiLogicalRole.Extraction);
-		var forkedMiner = fork.FleetRegistry.All
-			.First(unit => unit.State.Type == EType.MiningBarge);
 
 		Assert.Equal(originalReservation, forkedPoi.NextAvailableTaskTick);
-		Assert.Equal(originalMiner.State.WorkStartTick, forkedMiner.State.WorkStartTick);
+		Assert.Equal(
+			orchestrator.Map.Timeline.ToSnapshot().Pending,
+			fork.Timeline.ToSnapshot().Pending);
 
 		orchestrator.AdvanceTicks(10);
 		forkedOrchestrator.AdvanceTicks(3);
@@ -126,11 +128,5 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 		ActorRuntime runtime,
 		string unitId,
 		string dockId)
-	{
-		var reservation = WorkScheduler.ReserveOnArrival(map, unitId, dockId);
-		foreach (var effect in reservation.Effects)
-			effect.Apply(map, runtime, unitId);
-
-		return reservation;
-	}
+		=> WorkScheduler.ReserveOnArrival(map, unitId, dockId);
 }

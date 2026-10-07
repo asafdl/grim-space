@@ -158,13 +158,11 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public static StarSystemOrchestrator FromMapForRestore(
 		StarMap map,
-		string? playerId = null,
-		bool skipWorkerScheduling = true) =>
+		string? playerId = null) =>
 		FromMap(
 			map,
 			new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)),
-			playerId,
-			skipWorkerScheduling);
+			playerId);
 
 	public static StarSystemOrchestrator FromMap(StarMap map, string playerId) =>
 		FromMap(map, new CachedPathfinder(new GridPathfinder(map.PathfindingTerrain)), playerId);
@@ -172,8 +170,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public static StarSystemOrchestrator FromMap(
 		StarMap map,
 		IPathfinder pathfinder,
-		string? playerId = null,
-		bool skipWorkerScheduling = false)
+		string? playerId = null)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		if (map.Timeline.Clock.Current == 0)
@@ -183,8 +180,6 @@ public sealed class StarSystemOrchestrator : IDisposable
 		{
 			var runtime = actorRuntimes.For(unit.State.Id);
 			TransitCache.RebuildIfMissing(unit, runtime, pathfinder);
-			if (!skipWorkerScheduling)
-				ScheduleSpawnedWorkerIfNeeded(map, unit);
 		}
 
 		actorRuntimes.For(StarSystemActorIds.Contracts);
@@ -264,25 +259,19 @@ public sealed class StarSystemOrchestrator : IDisposable
 		IReadOnlyList<string> shipIds)
 	{
 		var members = shipIds.Select(id => new FleetMember(id)).ToArray();
-		map.FleetRegistry.Add(new Fleet(
-			Units.State.FromSpawn(CreatePlayerFleetSpawn(map, playerFleetUnitId)),
-			members));
-	}
-
-	//TODO: we should not be initializing this via orchestrator, this is bad design
-	private static Spawn CreatePlayerFleetSpawn(StarMap map, string playerFleetUnitId)
-	{
-		var tradeHubDock = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId];
-		return new Spawn(
+		var position = map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Position;
+		var spawn = new Spawn(
 			playerFleetUnitId,
 			EType.PlayerFleet,
-			tradeHubDock.Id,
-			default,
+			position,
 			UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 			UnitDefaults.EngageRadius(EType.PlayerFleet),
 			UnitDefaults.VisionRadius(EType.PlayerFleet),
 			[],
 			Factions.EFaction.Player);
+		map.FleetRegistry.Add(new Fleet(
+			Units.State.FromSpawn(spawn),
+			members));
 	}
 
 	public void SetRunning() => ApplySimMode(ESimMode.Running);
@@ -400,6 +389,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitReactions();
 
 		CommitFleetSpawnerActions();
+		CommitDockedTargetPursuitStops();
 		CommitContactActions();
 		CommitAutonomousFleetActions();
 		CommitContractBoardActions();
@@ -532,6 +522,26 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private static bool NeedsAutonomousAgent(Units.State state) =>
 		state.PatrolRadius > 0 || state.PursuitDirective is not null;
 
+	private void CommitDockedTargetPursuitStops()
+	{
+		var actions = Map.FleetRegistry.All
+			.Select(fleet => fleet.State)
+			.Where(state => state.CurrentEngagement is
+			{
+				Phase: EEngagementPhase.Pursuing,
+				Hunting: not null,
+			})
+			.Where(state =>
+				Map.FleetRegistry.TryGet(state.CurrentEngagement!.Hunting!, out var target)
+				&& Map.DockAt(target.State) is not null)
+			.Select(state => new StopPursuingDockedTargetAction(
+				state.Id,
+				state.CurrentEngagement!.Hunting!))
+			.ToArray();
+		if (actions.Length > 0)
+			Commit(actions);
+	}
+
 	private void CommitContactActions()
 	{
 		var reached = _contactMonitor.Update(Tick);
@@ -644,14 +654,4 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_engine.Dispose();
 	}
 
-	private static void ScheduleSpawnedWorkerIfNeeded(StarMap map, Units.Fleet unit)
-	{
-		var state = unit.State;
-		if (state.Phase != EPhase.Working || state.SpawnWorkPoiId is not { } poiId)
-			return;
-
-		WorkScheduler.ScheduleSpawnedWorker(map, unit, poiId, state.SpawnWorkRemainingTicks);
-		state.SpawnWorkPoiId = null;
-		state.SpawnWorkRemainingTicks = 0;
-	}
 }

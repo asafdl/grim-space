@@ -20,6 +20,8 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(11);
 		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		map.StateOf("player-pursuit").Travel =
+			new FleetTravel.AtRest(new Coord(5, 0, 5));
 		var pirate = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-pursuit",
 			new Coord(20, 0, 20),
@@ -41,6 +43,8 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(11);
 		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		map.StateOf("player-pursuit").Travel =
+			new FleetTravel.AtRest(new Coord(5, 0, 5));
 		var pirate = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-pursuit",
 			new Coord(20, 0, 20),
@@ -62,8 +66,7 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		var map = maps.Fresh(11);
 		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
 		var player = map.FleetRegistry.FleetOf("player-pursuit");
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(5, 0, 5);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(5, 0, 5));
 		var pirate = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-pursuit",
 			new Coord(20, 0, 20),
@@ -74,7 +77,7 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		var (planner, _, engine) = CreatePlanner(map, pirate.State.Id);
 		var first = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
 		engine.Commit(first);
-		player.State.IdleCoord = new Coord(8, 0, 8);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(8, 0, 8));
 
 		Assert.Null(planner.Plan(pirate.State.Id));
 		engine.AdvanceTick();
@@ -89,8 +92,7 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		var map = maps.Fresh(11);
 		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
 		var player = map.FleetRegistry.FleetOf("player-pursuit");
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(0, 0, 0);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(0, 0, 0));
 		var pirate = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-pursuit",
 			new Coord(200, 0, 200),
@@ -101,7 +103,7 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		var (planner, _, engine) = CreatePlanner(map, pirate.State.Id, pathfinder);
 		var first = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
 		engine.Commit(first);
-		player.State.IdleCoord = new Coord(10, 0, 10);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(10, 0, 10));
 
 		for (var tick = 0; tick < 5; tick++)
 		{
@@ -118,8 +120,7 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		var map = maps.Fresh(11);
 		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
 		var target = map.FleetRegistry.FleetOf("player-pursuit");
-		target.State.DockedAtDockId = "";
-		target.State.IdleCoord = new Coord(20, 0, 0);
+		target.State.Travel = new FleetTravel.AtRest(new Coord(20, 0, 0));
 		var pirate = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-pursuit",
 			new Coord(0, 0, 0),
@@ -144,6 +145,23 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		Assert.NotNull(course);
 		Assert.True(course.Destination.X > 20);
 		Assert.True(course.Destination.X < 200);
+	}
+
+	[Fact]
+	public void Plan_DirectiveTargetAtDock_Waits()
+	{
+		var map = maps.Fresh(11);
+		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		var pirate = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-pursuit",
+			new Coord(20, 0, 20),
+			map.ControllingFaction);
+		pirate.State.PursuitDirective = new FleetPursuitDirective("delivery-1", "player-pursuit");
+		map.FleetRegistry.Add(pirate);
+
+		var (planner, _, _) = CreatePlanner(map, pirate.State.Id);
+
+		Assert.Null(planner.Plan(pirate.State.Id));
 	}
 
 	private static (

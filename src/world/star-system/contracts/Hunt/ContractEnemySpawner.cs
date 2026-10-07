@@ -58,7 +58,6 @@ public static class ContractEnemySpawner
 		var spawn = new Spawn(
 			unitId,
 			spec.Type,
-			"",
 			coord,
 			spec.PatrolRadius > 0
 				? UnitDefaults.PatrolSpeedPerTick(spec.Type)

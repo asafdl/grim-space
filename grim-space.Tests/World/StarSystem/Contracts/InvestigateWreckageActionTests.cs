@@ -115,7 +115,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		var wreck = (WreckageObjective)engine.World.ContractRegistry.All
 			.First(contract => contract.Id == contractId)
 			.Objective;
-		UpdateLocationEffect.ArriveAtCoord(unitId, wreck.Position)
+		UpdateLocationEffect.StopAt(unitId, wreck.Position)
 			.Apply(engine.World, engine.ActorRuntimes.For(unitId), unitId);
 	}
 

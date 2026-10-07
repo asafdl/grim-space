@@ -30,14 +30,8 @@ public sealed class MoveDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is MoveAction move
 		&& world.FleetRegistry.TryGet(move.UnitId, out var unit)
-		&& unit.State.CanMove
-		&& !EngagementState.IsEngaged(unit.State)
-		&& !IsWaitingForScheduledWork(world, unit.State);
-
-	private static bool IsWaitingForScheduledWork(StarMap world, State state) =>
-		state.ChoreDockIds.Count > 0
-		&& world.Timeline.ContainsPending(action =>
-			action is BeginWorkAction begin && begin.UnitId == state.Id);
+		&& !WorkScheduler.HasAssignment(world, move.UnitId)
+		&& !EngagementState.IsEngaged(unit.State);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -46,7 +40,7 @@ public sealed class MoveDef
 	{
 		var move = (MoveAction)action;
 		var unit = world.FleetRegistry.FleetOf(move.UnitId);
-		var origin = ResolveOrigin(world, unit, runtime);
+		var origin = unit.State.PositionAt(world, runtime.CachedPath, 0).Position;
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
@@ -67,23 +61,5 @@ public sealed class MoveDef
 			move.Path));
 
 		return effects;
-	}
-
-	internal static Coord ResolveOrigin(StarMap world, Fleet unit, ActorRuntime runtime)
-	{
-		var state = unit.State;
-		if (state.Phase == EPhase.InTransit)
-		{
-			var path = runtime.CachedPath
-				?? throw new InvalidOperationException(
-					$"Fleet '{state.Id}' is in transit without a cached path.");
-			var elapsed = world.Timeline.Clock.Current - state.Journey.StartTick;
-			return path.SampleAtElapsed(elapsed, state.SpeedPerTick).Position;
-		}
-
-		if (!string.IsNullOrEmpty(state.DockedAtDockId))
-			return world.DocksById[state.DockedAtDockId].Position;
-
-		return state.IdleCoord;
 	}
 }

@@ -32,7 +32,7 @@ public sealed class PursueContactDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is PursueContactAction pursue
 		&& world.FleetRegistry.TryGet(pursue.ActorId, out var initiator)
-		&& initiator.State.CanMove
+		&& !WorkScheduler.HasAssignment(world, pursue.ActorId)
 		&& pursue.Target switch
 		{
 			FleetContactTarget fleet =>
@@ -63,7 +63,7 @@ public sealed class PursueContactDef
 		ActorRuntime runtime)
 	{
 		var unit = world.FleetRegistry.FleetOf(pursue.ActorId);
-		var origin = MoveDef.ResolveOrigin(world, unit, runtime);
+		var origin = unit.State.PositionAt(world, runtime.CachedPath, 0).Position;
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{

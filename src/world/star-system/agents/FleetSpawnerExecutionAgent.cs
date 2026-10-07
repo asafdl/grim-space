@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.FleetSpawner;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Agents;
 
@@ -56,7 +57,7 @@ public sealed class FleetSpawnerExecutionAgent : ExecutionAgent<StarMap, ActorRu
 					out var fleet))
 					continue;
 
-				reserved.Add(fleet.State.IdleCoord);
+				reserved.Add(((FleetTravel.AtRest)fleet.State.Travel).Position);
 				additions.Add(new FleetSpawnerAddition(fleet));
 			}
 		}

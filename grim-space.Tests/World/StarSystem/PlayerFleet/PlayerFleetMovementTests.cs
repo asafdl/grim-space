@@ -26,8 +26,7 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		var result = QueueMove(orchestrator, destination);
 
 		Assert.IsType<CourseCommandResult.Queued>(result);
-		Assert.Equal(EPhase.Docked, player.State.Phase);
-		Assert.False(player.State.Journey.IsActive);
+		Assert.IsType<FleetTravel.AtRest>(player.State.Travel);
 		Assert.Null(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).CachedPath);
 		Assert.Equal(destination, orchestrator.PlayerAgent!.PendingMove!.Destination);
 	}
@@ -43,8 +42,7 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, player.State.Phase);
-		Assert.Equal(destination, player.State.Journey.Destination);
+		Assert.Equal(destination, player.State.Journey().Destination);
 		Assert.NotNull(orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).CachedPath);
 	}
 
@@ -59,13 +57,12 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		var result = QueueMove(orchestrator, destination);
 
 		Assert.IsType<CourseCommandResult.Queued>(result);
-		Assert.False(player.State.Journey.IsActive);
+		Assert.IsType<FleetTravel.AtRest>(player.State.Travel);
 
 		orchestrator.SetRunning();
 		orchestrator.AdvanceTick();
 
-		Assert.True(player.State.Journey.IsActive);
-		Assert.Equal(destination, player.State.Journey.Destination);
+		Assert.Equal(destination, player.State.Journey().Destination);
 	}
 
 	[Fact]
@@ -82,8 +79,7 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		var result = QueueMove(orchestrator, new Coord(999, 0, 999));
 
 		Assert.IsType<CourseCommandResult.Unreachable>(result);
-		Assert.Equal(EPhase.Docked, player.State.Phase);
-		Assert.False(player.State.Journey.IsActive);
+		Assert.IsType<FleetTravel.AtRest>(player.State.Travel);
 		Assert.Null(orchestrator.PlayerAgent!.PendingMove);
 	}
 
@@ -98,13 +94,13 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 
 		QueueMove(orchestrator, firstDestination);
 		orchestrator.AdvanceTick();
-		var firstJourneyId = player.State.Journey.JourneyId;
+		var firstJourneyId = player.State.Journey().Id;
 
 		QueueMove(orchestrator, secondDestination);
 		orchestrator.AdvanceTick();
 
-		Assert.NotEqual(firstJourneyId, player.State.Journey.JourneyId);
-		Assert.Equal(secondDestination, player.State.Journey.Destination);
+		Assert.NotEqual(firstJourneyId, player.State.Journey().Id);
+		Assert.Equal(secondDestination, player.State.Journey().Destination);
 	}
 
 	[Fact]
@@ -120,7 +116,7 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		orchestrator.AdvanceTick();
 
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		Assert.Equal(secondDestination, player.State.Journey.Destination);
+		Assert.Equal(secondDestination, player.State.Journey().Destination);
 		Assert.DoesNotContain(
 			map.Timeline.History(orchestrator.Tick - 1).OfType<MoveAction>(),
 			action => action.UnitId == RunState.PlayerFleetUnitId
@@ -143,9 +139,8 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		var duration = path.DurationTicks(player.State.SpeedPerTick);
 		orchestrator.AdvanceTicks(duration);
 
-		Assert.Equal(EPhase.Docked, player.State.Phase);
-		Assert.Equal("", player.State.DockedAtDockId);
-		Assert.Equal(destination, player.State.IdleCoord);
+		Assert.Null(map.DockAt(player.State));
+		Assert.Equal(destination, player.State.AtRest().Position);
 	}
 
 	[Fact]
@@ -156,8 +151,7 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 
 		orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.Docked, player.State.Phase);
-		Assert.False(player.State.Journey.IsActive);
+		Assert.IsType<FleetTravel.AtRest>(player.State.Travel);
 	}
 
 	[Fact]
@@ -190,7 +184,7 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		var duration = runtime.CachedPath!.DurationTicks(player.State.SpeedPerTick);
 		orchestrator.AdvanceTicks(duration);
 
-		Assert.Equal(EPhase.Docked, player.State.Phase);
+		Assert.IsType<FleetTravel.AtRest>(player.State.Travel);
 		Assert.DoesNotContain(
 			map.Timeline.History().OfType<BeginWorkAction>(),
 			action => action.UnitId == RunState.PlayerFleetUnitId);
@@ -217,7 +211,8 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 
 		Assert.Equal(first.PlayerId, second.PlayerId);
 		Assert.True(second.Map.FleetRegistry.Contains(RunState.PlayerFleetUnitId));
-		Assert.Equal(EPhase.Docked, second.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId).State.Phase);
+		Assert.IsType<FleetTravel.AtRest>(
+			second.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId).State.Travel);
 	}
 
 	[Fact]
@@ -268,15 +263,15 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
-		var journeyId = player.State.Journey.JourneyId;
+		var journeyId = player.State.Journey().Id;
 		var cachedPath = runtime.CachedPath;
 
 		var result = QueueMove(orchestrator, new Coord(999, 0, 999));
 
 		Assert.IsType<CourseCommandResult.Unreachable>(result);
-		Assert.Equal(journeyId, player.State.Journey.JourneyId);
+		Assert.Equal(journeyId, player.State.Journey().Id);
 		Assert.Same(cachedPath, runtime.CachedPath);
-		Assert.Equal(EPhase.InTransit, player.State.Phase);
+		Assert.IsType<FleetTravel.Journey>(player.State.Travel);
 	}
 
 	[Fact]
@@ -290,28 +285,27 @@ public sealed class PlayerFleetMovementTests(StarMapFixture maps)
 		QueueMove(orchestrator, destination);
 		orchestrator.AdvanceTick();
 		var duration = runtime.CachedPath!.DurationTicks(player.State.SpeedPerTick);
-		var completionTick = player.State.Journey.StartTick + duration;
+		var completionTick = player.State.Journey().StartTick + duration;
 
 		while (orchestrator.Tick < completionTick)
 		{
-			Assert.Equal(EPhase.InTransit, player.State.Phase);
+			Assert.IsType<FleetTravel.Journey>(player.State.Travel);
 			orchestrator.AdvanceTick();
 		}
 
-		Assert.Equal(EPhase.Docked, player.State.Phase);
-		Assert.Equal(destination, orchestrator.Map.DocksById[player.State.DockedAtDockId].Position);
+		Assert.Equal(destination, orchestrator.Map.DockAt(player.State)!.Position);
 	}
 
 	[Fact]
-	public void JourneyState_StoresMetadataOnly()
+	public void FleetTravelJourney_StoresMetadataOnly()
 	{
-		var propertyNames = typeof(JourneyState)
+		var propertyNames = typeof(FleetTravel.Journey)
 			.GetProperties(BindingFlags.Public | BindingFlags.Instance)
 			.Select(property => property.Name)
 			.OrderBy(name => name);
 
 		Assert.Equal(
-			["Destination", "IsActive", "JourneyId", "Origin", "StartTick"],
+			["Destination", "Id", "Origin", "StartTick"],
 			propertyNames);
 	}
 

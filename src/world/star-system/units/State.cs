@@ -13,20 +13,14 @@ public sealed class State
 	public required EType Type { get; init; }
 	public EFaction Faction { get; init; } = EFaction.TheOptimality;
 	public int AggressionRating { get; init; }
-	public string DockedAtDockId { get; set; } = "";
-	public Coord IdleCoord { get; set; }
+	public FleetTravel Travel { get; internal set; } = new FleetTravel.AtRest(default);
 	public Coord PatrolOrigin { get; init; }
 	public int PatrolRadius { get; init; }
-	public EPhase Phase { get; set; } = EPhase.Docked;
-	public JourneyState Journey { get; } = new();
 	public IReadOnlyList<string> ChoreDockIds { get; init; } = [];
 	public int ChoreIndex { get; set; }
 	public double SpeedPerTick { get; init; }
 	public double EngageRadius { get; init; }
 	public double VisionRadius { get; init; }
-	public int WorkStartTick { get; set; }
-	internal string? SpawnWorkPoiId { get; set; }
-	internal int SpawnWorkRemainingTicks { get; set; }
 	public Engagement? CurrentEngagement { get; internal set; }
 	public TravelTarget TravelTarget { get; set; } = TravelTarget.None;
 	public string PendingWreckContractId { get; set; } = "";
@@ -35,97 +29,53 @@ public sealed class State
 	public string? SourceContractId { get; set; }
 	public FleetPursuitDirective? PursuitDirective { get; set; }
 
-	public bool IsReadyToDepart =>
-		!string.IsNullOrEmpty(DockedAtDockId)
-		&& Phase == EPhase.Docked
-		&& ChoreDockIds.Count > 0;
-
-	public bool CanMove => Phase != EPhase.Working;
-
 	public string NextChoreDockId() => ChoreDockIds[ChoreIndex];
 
 	public void AdvanceChoreIndex() =>
 		ChoreIndex = (ChoreIndex + 1) % ChoreDockIds.Count;
 
-	public (Coord Position, Coord? Tangent) CommittedPosition(
+	public (Coord Position, Coord? Tangent) PositionAt(
 		StarMap world,
 		TransitPath? path,
 		float tickFraction)
 	{
-		if (Phase == EPhase.InTransit && Journey.IsActive)
+		if (Travel is FleetTravel.Journey journey)
 		{
 			var transitPath = path
 				?? throw new InvalidOperationException(
 					$"Fleet '{Id}' is in transit without a cached path.");
-			var elapsed = world.Timeline.Clock.Current - Journey.StartTick + tickFraction;
-			var (position, tangent) = Journey.SamplePosition(transitPath, elapsed, SpeedPerTick);
+			var elapsed = world.Timeline.Clock.Current - journey.StartTick + tickFraction;
+			var (position, tangent) = transitPath.SampleAtElapsed(elapsed, SpeedPerTick);
 			return (position, tangent);
 		}
 
-		if (!string.IsNullOrEmpty(DockedAtDockId))
-			return (world.DocksById[DockedAtDockId].Position, null);
-
-		return (IdleCoord, null);
+		return (((FleetTravel.AtRest)Travel).Position, null);
 	}
 
-	public PiecewiseRouteSample? CommittedPositionContinuous(
+	public PiecewiseRouteSample? PositionContinuousAt(
 		StarMap world,
 		TransitPath? path,
 		float tickFraction)
 	{
-		if (Phase != EPhase.InTransit || !Journey.IsActive)
+		if (Travel is not FleetTravel.Journey journey)
 			return null;
 
 		var transitPath = path
 			?? throw new InvalidOperationException(
 				$"Fleet '{Id}' is in transit without a cached path.");
-		var elapsed = world.Timeline.Clock.Current - Journey.StartTick + tickFraction;
-		return Journey.SamplePositionContinuous(transitPath, elapsed, SpeedPerTick);
+		var elapsed = world.Timeline.Clock.Current - journey.StartTick + tickFraction;
+		return transitPath.SampleContinuousAtElapsed(elapsed, SpeedPerTick);
 	}
 
 	internal void StartJourney(
 		long journeyId,
 		Coord origin,
 		Coord destination,
-		int startTick)
-	{
-		Phase = EPhase.InTransit;
-		Journey.JourneyId = journeyId;
-		Journey.Origin = origin;
-		Journey.Destination = destination;
-		Journey.StartTick = startTick;
-	}
+		int startTick) =>
+		Travel = new FleetTravel.Journey(journeyId, origin, destination, startTick);
 
-	internal void ArriveAt(string dockId)
-	{
-		ClearTransit();
-		DockedAtDockId = dockId;
-	}
-
-	internal void ArriveAtFreeSpace(Coord coord)
-	{
-		ClearTransit();
-		DockedAtDockId = "";
-		IdleCoord = coord;
-	}
-
-	internal void BeginWork(int startTick)
-	{
-		Phase = EPhase.Working;
-		WorkStartTick = startTick;
-	}
-
-	internal void CompleteWork()
-	{
-		Phase = EPhase.Docked;
-		WorkStartTick = 0;
-	}
-
-	internal void ClearTransit()
-	{
-		Phase = EPhase.Docked;
-		Journey.Clear();
-	}
+	internal void StopAt(Coord position) =>
+		Travel = new FleetTravel.AtRest(position);
 
 	public State Clone()
 	{
@@ -135,19 +85,14 @@ public sealed class State
 			Type = Type,
 			Faction = Faction,
 			AggressionRating = AggressionRating,
-			DockedAtDockId = DockedAtDockId,
-			IdleCoord = IdleCoord,
+			Travel = Travel,
 			PatrolOrigin = PatrolOrigin,
 			PatrolRadius = PatrolRadius,
-			Phase = Phase,
 			ChoreDockIds = ChoreDockIds,
 			ChoreIndex = ChoreIndex,
 			SpeedPerTick = SpeedPerTick,
 			EngageRadius = EngageRadius,
 			VisionRadius = VisionRadius,
-			WorkStartTick = WorkStartTick,
-			SpawnWorkPoiId = SpawnWorkPoiId,
-			SpawnWorkRemainingTicks = SpawnWorkRemainingTicks,
 			SpawnerSource = SpawnerSource,
 			FleetSpawnerExpiresAtTick = FleetSpawnerExpiresAtTick,
 			SourceContractId = SourceContractId,
@@ -160,10 +105,6 @@ public sealed class State
 				EngagementParticipantIds =
 					new HashSet<string>(CurrentEngagement.EngagementParticipantIds, StringComparer.Ordinal),
 			};
-		clone.Journey.JourneyId = Journey.JourneyId;
-		clone.Journey.Origin = Journey.Origin;
-		clone.Journey.Destination = Journey.Destination;
-		clone.Journey.StartTick = Journey.StartTick;
 		clone.TravelTarget = TravelTarget;
 		clone.PendingWreckContractId = PendingWreckContractId;
 		return clone;
@@ -176,9 +117,8 @@ public sealed class State
 			Type = spawn.Type,
 			Faction = spawn.Faction,
 			AggressionRating = spawn.AggressionRating,
-			DockedAtDockId = spawn.DockedAtDockId,
-			IdleCoord = spawn.IdleCoord,
-			PatrolOrigin = spawn.IdleCoord,
+			Travel = new FleetTravel.AtRest(spawn.Position),
+			PatrolOrigin = spawn.Position,
 			PatrolRadius = spawn.PatrolRadius,
 			SpeedPerTick = spawn.SpeedPerTick,
 			EngageRadius = spawn.EngageRadius,

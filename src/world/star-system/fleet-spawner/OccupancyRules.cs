@@ -24,9 +24,9 @@ public static class OccupancyRules
 				&& fleet.State.CurrentEngagement is null)
 				continue;
 
-			var position = fleet.State.Phase == EPhase.InTransit
-				? fleet.State.Journey.Destination
-				: fleet.State.CommittedPosition(map, null, 0).Position;
+			var position = fleet.State.Travel is FleetTravel.Journey journey
+				? journey.Destination
+				: fleet.State.PositionAt(map, null, 0).Position;
 			if (position == coord)
 				return true;
 		}

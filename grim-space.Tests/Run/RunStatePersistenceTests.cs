@@ -13,7 +13,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.Tests.World.StarSystem.Contracts;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
-using FleetPhase = GrimSpace.World.StarSystem.Units.EPhase;
+using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
 
 namespace GrimSpace.Tests.Run;
 
@@ -133,7 +133,7 @@ public sealed class RunStatePersistenceTests
 		var pirate = map.FleetRegistry.All.Single(fleet => fleet.State.Type == FleetType.PirateFleet);
 
 		run.StarSystem.AdvanceTick();
-		Assert.Equal(FleetPhase.InTransit, pirate.State.Phase);
+		var pirateJourney = Assert.IsType<FleetTravel.Journey>(pirate.State.Travel);
 		var path = run.StarSystem.RuntimeFor(pirate.State.Id).CachedPath!;
 		var registry = PersistenceRegistry.CreateDefault();
 
@@ -143,9 +143,9 @@ public sealed class RunStatePersistenceTests
 		Assert.True(restored.StarSystem.Map.ContractRegistry.TryGetState(contractId, out var contractState));
 		Assert.Equal(EContractStatus.Active, contractState.Status);
 		var restoredPirate = restored.StarSystem.Map.FleetRegistry.FleetOf(pirate.State.Id);
-		Assert.Equal(FleetPhase.InTransit, restoredPirate.State.Phase);
-		Assert.Equal(pirate.State.Journey.Origin, restoredPirate.State.Journey.Origin);
-		Assert.Equal(pirate.State.Journey.Destination, restoredPirate.State.Journey.Destination);
+		var restoredJourney = Assert.IsType<FleetTravel.Journey>(restoredPirate.State.Travel);
+		Assert.Equal(pirateJourney.Origin, restoredJourney.Origin);
+		Assert.Equal(pirateJourney.Destination, restoredJourney.Destination);
 		var restoredPath = restored.StarSystem.RuntimeFor(pirate.State.Id).CachedPath;
 		Assert.NotNull(restoredPath);
 		Assert.Equal(path.Legs.Length, restoredPath.Legs.Length);

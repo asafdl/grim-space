@@ -17,7 +17,7 @@ public sealed class TrafficExecutionAgentTests(StarMapFixture maps)
 	public void PlanAndPublish_ReadyUnitPublishesMove()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
 		agent.SetCanWork(true);
@@ -31,14 +31,14 @@ public sealed class TrafficExecutionAgentTests(StarMapFixture maps)
 	public void PlanAndPublish_UsesCurrentLiveState()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
 		agent.SetCanWork(true);
 		agent.PlanAndPublish();
 		Assert.True(sink.TryTakeBatch(unit.State.Id, out _));
 
-		unit.State.Phase = EPhase.Working;
+		AssignWork(map, unit);
 
 		agent.PlanAndPublish();
 		Assert.False(sink.TryTakeBatch(unit.State.Id, out var batch));
@@ -48,12 +48,12 @@ public sealed class TrafficExecutionAgentTests(StarMapFixture maps)
 	public void PlanAndPublish_WaitsForScheduledBeginWork()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
-		var dockId = unit.State.DockedAtDockId;
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
+		var dockId = map.DockAt(unit.State)!.Id;
 		var poiId = map.DocksById[dockId].PoiId;
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
-		map.Timeline.Schedule(2, new BeginWorkAction(unit.State.Id, unit.State.Id, poiId, map.Timeline.Clock.Current + 2));
+		WorkScheduler.ReserveOnArrival(map, unit.State.Id, dockId);
 
 		agent.SetCanWork(true);
 		agent.PlanAndPublish();
@@ -65,15 +65,27 @@ public sealed class TrafficExecutionAgentTests(StarMapFixture maps)
 	public void PlanAndPublish_WorkingUnitPublishesNothing()
 	{
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(candidate => candidate.State.HasChoreAtDock(map));
 		var (agent, sink) = CreateAgent(map, unit.State.Id);
 
-		unit.State.Phase = EPhase.Working;
+		AssignWork(map, unit);
 
 		agent.SetCanWork(true);
 		agent.PlanAndPublish();
 
 		Assert.False(sink.TryTakeBatch(unit.State.Id, out _));
+	}
+
+	private static void AssignWork(StarMap map, Fleet unit)
+	{
+		var dock = map.DockAt(unit.State)!;
+		map.Timeline.Schedule(
+			1,
+			new CompleteWorkAction(
+				unit.State.Id,
+				unit.State.Id,
+				dock.PoiId,
+				map.Timeline.Clock.Current));
 	}
 
 	private static (TrafficExecutionAgent Agent, ActionBatchSink Sink) CreateAgent(

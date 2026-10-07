@@ -54,17 +54,17 @@ public sealed class SupplySystemGenerationTests
 	}
 
 	[Fact]
-	public void Generate_UnitSpawns_AreDistributedAcrossDockedAndWorkingPhases()
+	public void Generate_UnitSpawns_AreDistributedAcrossIdleAndWorking()
 	{
 		var world = StarSystemGenerator.Generate(42, EStarSystemClass.Supply);
 		var signatures = world.FleetRegistry.All
-			.Select(unit => unit.State.Phase)
+			.Select(unit => WorkScheduler.IsWorking(world, unit.State.Id))
 			.Distinct()
 			.ToArray();
 
 		Assert.True(signatures.Length > 1);
-		Assert.Contains(EPhase.Docked, signatures);
-		Assert.Contains(EPhase.Working, signatures);
+		Assert.Contains(false, signatures);
+		Assert.Contains(true, signatures);
 	}
 
 	[Fact]

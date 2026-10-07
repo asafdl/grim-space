@@ -66,10 +66,10 @@ internal static class ReportIssueSystemContext
 		if (playerId is not null
 			&& starSystem.Map.FleetRegistry.TryGet(playerId, out var fleet))
 		{
-			report.AppendLine($"Fleet phase: {fleet.State.Phase}");
-			report.AppendLine($"Fleet position: {fleet.State.IdleCoord}");
-			if (fleet.State.DockedAtDockId.Length > 0)
-				report.AppendLine($"Docked at: {fleet.State.DockedAtDockId}");
+			report.AppendLine($"Fleet travel: {fleet.State.Travel}");
+			report.AppendLine($"Fleet position: {starSystem.CommittedPositionOf(playerId)}");
+			if (starSystem.Map.DockAt(fleet.State) is { } dock)
+				report.AppendLine($"Docked at: {dock.Id}");
 		}
 	}
 

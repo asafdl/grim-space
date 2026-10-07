@@ -45,7 +45,6 @@ public sealed class FleetTests
 		new(
 			"pirate-fleet",
 			EType.PirateFleet,
-			"",
 			new Coord(0, 0, 0),
 			5,
 			6,

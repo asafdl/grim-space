@@ -18,7 +18,6 @@ public static class MapFleetFactory
 		var spawn = new Spawn(
 			fleetId,
 			spec.Type,
-			"",
 			coord,
 			spec.PatrolRadius > 0 ? UnitDefaults.PatrolSpeedPerTick(spec.Type) : UnitDefaults.SpeedPerTick(spec.Type),
 			UnitDefaults.EngageRadius(spec.Type),

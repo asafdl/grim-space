@@ -48,18 +48,18 @@ public sealed class AutonomousFleetExecutionAgentTests(StarMapFixture maps)
 		var orchestrator = StarSystemOrchestrator.FromMap(map, new StraightLinePathfinder());
 
 		orchestrator.AdvanceTick();
-		Assert.Equal(EPhase.InTransit, unit.State.Phase);
-		var firstJourneyId = unit.State.Journey.JourneyId;
-		var firstDestination = unit.State.Journey.Destination;
+		var firstJourney = unit.State.Journey();
+		var firstJourneyId = firstJourney.Id;
+		var firstDestination = firstJourney.Destination;
 		var firstPath = orchestrator.RuntimeFor(unit.State.Id).CachedPath!;
 
 		for (var i = 0; i < firstPath.DurationTicks(unit.State.SpeedPerTick); i++)
 			orchestrator.AdvanceTick();
 
-		Assert.Equal(EPhase.InTransit, unit.State.Phase);
-		Assert.NotEqual(firstJourneyId, unit.State.Journey.JourneyId);
-		Assert.Equal(firstDestination, unit.State.Journey.Origin);
-		Assert.Equal(orchestrator.Tick, unit.State.Journey.StartTick);
+		var nextJourney = unit.State.Journey();
+		Assert.NotEqual(firstJourneyId, nextJourney.Id);
+		Assert.Equal(firstDestination, nextJourney.Origin);
+		Assert.Equal(orchestrator.Tick, nextJourney.StartTick);
 	}
 
 	[Fact]
@@ -92,8 +92,7 @@ public sealed class AutonomousFleetExecutionAgentTests(StarMapFixture maps)
 
 		for (var i = 0; i < firstMove.Path.DurationTicks(unit.State.SpeedPerTick); i++)
 			engine.AdvanceTick();
-		Assert.Equal(EPhase.Docked, unit.State.Phase);
-		Assert.Equal(firstMove.Destination, unit.State.IdleCoord);
+		Assert.Equal(firstMove.Destination, unit.State.AtRest().Position);
 
 		agent.PlanAndPublish();
 
@@ -117,7 +116,6 @@ public sealed class AutonomousFleetExecutionAgentTests(StarMapFixture maps)
 			new Spawn(
 				unitId,
 				EType.PirateFleet,
-				"",
 				patrolOrigin,
 				5.0,
 				1.0,
@@ -144,17 +142,18 @@ public sealed class AutonomousFleetExecutionAgentTests(StarMapFixture maps)
 
 		orchestrator.AdvanceTick();
 
-		var returnJourneyId = unit.State.Journey.JourneyId;
-		Assert.Equal(patrolOrigin, unit.State.Journey.Destination);
-		Assert.NotEqual(patrolOrigin, unit.State.Journey.Origin);
+		var returnJourney = unit.State.Journey();
+		var returnJourneyId = returnJourney.Id;
+		Assert.Equal(patrolOrigin, returnJourney.Destination);
+		Assert.NotEqual(patrolOrigin, returnJourney.Origin);
 		var returnDuration = runtime.CachedPath!.DurationTicks(unit.State.SpeedPerTick);
 
 		orchestrator.AdvanceTicks(returnDuration);
 
-		Assert.Equal(EPhase.InTransit, unit.State.Phase);
-		Assert.True(unit.State.Journey.JourneyId > returnJourneyId);
-		Assert.Equal(patrolOrigin, unit.State.Journey.Origin);
-		Assert.NotEqual(patrolOrigin, unit.State.Journey.Destination);
+		var resumedJourney = unit.State.Journey();
+		Assert.True(resumedJourney.Id > returnJourneyId);
+		Assert.Equal(patrolOrigin, resumedJourney.Origin);
+		Assert.NotEqual(patrolOrigin, resumedJourney.Destination);
 	}
 
 	private static Coord FindPatrolOrigin(StarMap map, int radius)
@@ -207,7 +206,6 @@ public sealed class AutonomousFleetExecutionAgentTests(StarMapFixture maps)
 		var unit = Factory.Create(new Spawn(
 			unitId,
 			EType.PirateFleet,
-			"",
 			PatrolOrigin,
 			5.0,
 			1.0,

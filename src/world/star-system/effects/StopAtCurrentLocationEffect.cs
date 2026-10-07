@@ -14,11 +14,11 @@ public sealed class StopAtCurrentLocationEffect : IEffect<StarMap, ActorRuntime>
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
 		var unit = world.FleetRegistry.FleetOf(_unitId);
-		var position = MoveDef.ResolveOrigin(world, unit, runtime);
+		var position = unit.State.PositionAt(world, runtime.CachedPath, 0).Position;
 
 		CancelPendingMoveEffect.Instance.Apply(world, runtime, actorId);
 		ClearJourneyRuntimeEffect.Instance.Apply(world, runtime, actorId);
-		return UpdateLocationEffect.ArriveAtCoord(_unitId, position).Apply(world, runtime, actorId);
+		return UpdateLocationEffect.StopAt(_unitId, position).Apply(world, runtime, actorId);
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId) { }

@@ -36,10 +36,11 @@ public sealed class PursuitPlanner
 
 		var directive = actor.State.PursuitDirective;
 		if (directive is null
-			|| !world.FleetRegistry.TryGet(directive.TargetFleetId, out var target))
+			|| !world.FleetRegistry.TryGet(directive.TargetFleetId, out var target)
+			|| world.DockAt(target.State) is not null)
 			return null;
 
-		var origin = MoveDef.ResolveOrigin(world, actor, runtime);
+		var origin = actor.State.PositionAt(world, runtime.CachedPath, 0).Position;
 		var destination = PursuitDestination(world, target, _runtimeFor);
 		if (EngagementQueries.IsHunterInEngageRange(
 				origin,
@@ -79,19 +80,19 @@ public sealed class PursuitPlanner
 			|| !world.FleetRegistry.TryGet(targetFleetId, out var target))
 			return null;
 
-		var origin = MoveDef.ResolveOrigin(world, actor, runtime);
+		var origin = actor.State.PositionAt(world, runtime.CachedPath, 0).Position;
 		var targetRuntime = _runtimeFor(targetFleetId);
 		TransitCache.RebuildIfMissing(target, targetRuntime, _pathfinder);
-		if (target.State.Phase != EPhase.InTransit
+		if (target.State.Travel is not FleetTravel.Journey targetJourney
 			|| targetRuntime.CachedPath is not { } targetPath)
 			return FindCourse(origin, PursuitDestination(world, target, _runtimeFor));
 
-		var elapsed = world.Timeline.Clock.Current - target.State.Journey.StartTick;
+		var elapsed = world.Timeline.Clock.Current - targetJourney.StartTick;
 		var remaining = System.Math.Max(
 			0.0,
 			targetPath.TicksRequired(target.State.SpeedPerTick) - elapsed);
 		if (remaining <= 0.0)
-			return FindCourse(origin, target.State.Journey.Destination);
+			return FindCourse(origin, targetJourney.Destination);
 
 		PursuitCourse? finalCourse = null;
 		var sampleCount = System.Math.Min(
@@ -150,20 +151,20 @@ public sealed class PursuitPlanner
 		Coord targetDestination)
 	{
 		if (!state.TravelTarget.MatchesFleet(targetFleetId, EContactIntent.Engagement)
-			|| state.Phase != EPhase.InTransit
+			|| state.Travel is not FleetTravel.Journey journey
 			|| runtime.CachedPath is null)
 			return false;
 
-		if (state.Journey.Destination == targetDestination)
+		if (journey.Destination == targetDestination)
 			return true;
 
 		var maxClosingSpeed = EngagementQueries.MaximumTravelSpeed(state)
 			+ EngagementQueries.MaximumTravelSpeed(targetState);
 		var delay = EngagementQueries.ContactCheckDelay(
-			state.Journey.Origin,
-			state.Journey.Destination,
+			journey.Origin,
+			journey.Destination,
 			state.EngageRadius,
 			maxClosingSpeed);
-		return world.Timeline.Clock.Current - state.Journey.StartTick < delay;
+		return world.Timeline.Clock.Current - journey.StartTick < delay;
 	}
 }

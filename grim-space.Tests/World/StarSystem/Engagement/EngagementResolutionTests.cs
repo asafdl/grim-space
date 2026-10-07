@@ -32,7 +32,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		using var orchestrator = CreateEngagement();
 		var map = orchestrator.Map;
 		var enemyId = HuntTargetId(map, map.ContractRegistry.Pending.First().Id, 0);
-		var playerPosition = map.StateOf(PlayerId).CommittedPosition(map, null, 0).Position;
+		var playerPosition = map.StateOf(PlayerId).PositionAt(map, null, 0).Position;
 
 		Assert.True(orchestrator.ResolveEngagement(PlayerId, Victory(map, enemyId)));
 
@@ -40,7 +40,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		Assert.False(map.FleetRegistry.Contains(enemyId));
 		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(map.StateOf(PlayerId)));
 		Assert.Empty(EngagementAssertions.Participants(map.StateOf(PlayerId)));
-		Assert.Equal(playerPosition, map.StateOf(PlayerId).CommittedPosition(map, null, 0).Position);
+		Assert.Equal(playerPosition, map.StateOf(PlayerId).PositionAt(map, null, 0).Position);
 
 		var destination = playerPosition + new Coord(1, 0, 1);
 		var path = TransitPath.FromPoints([playerPosition, destination], [1.0, 1.0]);
@@ -55,7 +55,7 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var map = orchestrator.Map;
 		var enemyId = HuntTargetId(map, map.ContractRegistry.Pending.First().Id, 0);
 		var pirate = map.StateOf(enemyId);
-		var origin = pirate.IdleCoord;
+		var origin = pirate.AtRest().Position;
 		var destination = origin + new Coord(8, 0, 8);
 		var runtime = orchestrator.RuntimeFor(enemyId);
 		runtime.CachedPath = TransitPath.FromPoints([origin, destination], [1.0, 1.0]);

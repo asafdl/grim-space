@@ -17,7 +17,8 @@ public sealed class PendingQueueDuringFlightTests(StarMapFixture maps)
 	{
 		var agent = new RealtimeTestExecutionAgent();
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(u => u.State.IsReadyToDepart);
+		var unit = map.FleetRegistry.All.First(u =>
+			u.State.ChoreDockIds.Count > 0 && map.DockAt(u.State) is not null);
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 
@@ -30,7 +31,7 @@ public sealed class PendingQueueDuringFlightTests(StarMapFixture maps)
 			sink.WriterFor(unit.State.Id));
 		agent.SetCanWork(true);
 
-		var origin = map.DocksById[unit.State.DockedAtDockId].Position;
+		var origin = map.DockAt(unit.State)!.Position;
 		var firstDestination = map.DocksById[unit.State.NextChoreDockId()].Position;
 		var secondDestination = firstDestination + Coord.Forward;
 		var firstPath = TransitPath.FromPoints([origin, firstDestination], [1.0, 1.0]);

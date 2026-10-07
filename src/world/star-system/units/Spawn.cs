@@ -6,8 +6,7 @@ namespace GrimSpace.World.StarSystem.Units;
 public sealed record Spawn(
 	string Id,
 	EType Type,
-	string DockedAtDockId,
-	Coord IdleCoord,
+	Coord Position,
 	double SpeedPerTick,
 	double EngageRadius,
 	double VisionRadius,

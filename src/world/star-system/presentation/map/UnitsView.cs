@@ -138,13 +138,13 @@ public partial class UnitsView : Node3D
 				beaconRoot.Visible = visible && !hidePlayerBeacon;
 			}
 
-			var inTransit = unit.State.Phase == EPhase.InTransit;
-			UpdateTrail(unit.State.Id, worldPosition, inTransit);
+			var traveling = unit.State.Travel is FleetTravel.Journey;
+			UpdateTrail(unit.State.Id, worldPosition, traveling);
 			UpdateTrailSegments(
 				unitVisual,
 				_trailHistory.GetValueOrDefault(unit.State.Id),
 				worldPosition,
-				inTransit);
+				traveling);
 
 		}
 	}
@@ -651,12 +651,11 @@ public partial class UnitsView : Node3D
 		Runtime.ActorRuntime runtime,
 		float tickFraction)
 	{
-		if (unit.State.Phase == EPhase.InTransit
-			&& unit.State.Journey.IsActive
+		if (unit.State.Travel is FleetTravel.Journey journey
 			&& runtime.CachedPath is { } path)
 		{
 			var elapsed = world.Timeline.Clock.Current
-				- unit.State.Journey.StartTick
+				- journey.StartTick
 				+ tickFraction;
 			var route = RoundedTransitRoute.For(path)
 				.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);

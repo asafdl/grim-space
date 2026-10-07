@@ -28,7 +28,7 @@ internal sealed class ContactMonitor
 		var unit = Map.FleetRegistry.FleetOf(unitId);
 		var runtime = _engine.ActorRuntimes.For(unitId);
 		TransitCache.RebuildIfMissing(unit, runtime, _pathfinder);
-		return unit.State.CommittedPosition(Map, runtime.CachedPath, tickFraction).Position;
+		return unit.State.PositionAt(Map, runtime.CachedPath, tickFraction).Position;
 	}
 
 	public IReadOnlyList<ContactReached> Update(int currentTick)

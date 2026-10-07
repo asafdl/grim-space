@@ -8,7 +8,7 @@ public static class TransitCache
 {
 	public static void RebuildIfMissing(Fleet fleet, ActorRuntime runtime, IPathfinder pathfinder)
 	{
-		if (fleet.State.Phase != EPhase.InTransit)
+		if (fleet.State.Travel is not FleetTravel.Journey journey)
 		{
 			runtime.CachedPath = null;
 			return;
@@ -17,7 +17,6 @@ public static class TransitCache
 		if (runtime.CachedPath is not null)
 			return;
 
-		var journey = fleet.State.Journey;
 		var result = pathfinder.FindPath(journey.Origin, journey.Destination);
 		if (result is not PathfindingResult.Found found)
 		{

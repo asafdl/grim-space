@@ -19,14 +19,15 @@ public sealed class ContactQueryTests(StarMapFixture maps)
 	public void CommittedPositionOf_DockedUnit_ReturnsDockPosition()
 	{
 		var orchestrator = StarSystemTestHarness.CreateOrchestrator(maps, 42);
-		var unit = orchestrator.Map.FleetRegistry.All.First(candidate => candidate.State.IsReadyToDepart);
-		var dockPosition = orchestrator.Map.DocksById[unit.State.DockedAtDockId].Position;
+		var unit = orchestrator.Map.FleetRegistry.All.First(candidate =>
+			candidate.State.HasChoreAtDock(orchestrator.Map));
+		var dockPosition = orchestrator.Map.DockAt(unit.State)!.Position;
 
 		Assert.Equal(dockPosition, orchestrator.CommittedPositionOf(unit.State.Id));
 	}
 
 	[Fact]
-	public void CommittedPositionOf_IdleUnit_ReturnsIdleCoord()
+	public void CommittedPositionOf_AtRestUnit_ReturnsPosition()
 	{
 		var map = maps.Fresh(42);
 		var pirateId = AddPirate(map, new Coord(30, 0, 40));
@@ -49,7 +50,7 @@ public sealed class ContactQueryTests(StarMapFixture maps)
 		var position = orchestrator.CommittedPositionOf(playerId, 0.5f);
 
 		Assert.NotNull(orchestrator.RuntimeFor(playerId).CachedPath);
-		Assert.Equal(EPhase.InTransit, orchestrator.Map.StateOf(playerId).Phase);
+		Assert.IsType<FleetTravel.Journey>(orchestrator.Map.StateOf(playerId).Travel);
 		Assert.NotEqual(orchestrator.CommittedPositionOf(playerId, 0f), position);
 	}
 
@@ -78,9 +79,7 @@ public sealed class ContactQueryTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		player.State.Phase = EPhase.Docked;
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(0, 0, 0);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(0, 0, 0));
 		var pirateId = AddPirate(map, new Coord(6, 0, 0));
 		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,
@@ -101,9 +100,7 @@ public sealed class ContactQueryTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var player = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		player.State.Phase = EPhase.Docked;
-		player.State.DockedAtDockId = "";
-		player.State.IdleCoord = new Coord(0, 0, 0);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(0, 0, 0));
 		var pirateId = AddPirate(map, new Coord(7, 0, 0));
 		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(maps, 
 			RunState.PlayerFleetUnitId,

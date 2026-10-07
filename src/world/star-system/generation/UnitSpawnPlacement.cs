@@ -1,4 +1,5 @@
 using GrimSpace.Math;
+using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
@@ -16,8 +17,7 @@ public static class UnitSpawnPlacement
 	private sealed record Candidate(CandidateKind Kind, int LegIndex, string? WorkingPoiId);
 
 	public sealed record Result(
-		EPhase Phase,
-		string DockedAtDockId,
+		Coord Position,
 		int ChoreIndex,
 		int WorkTicksRemaining,
 		string? WorkingPoiId);
@@ -51,7 +51,7 @@ public static class UnitSpawnPlacement
 				.Add(unitId)
 				.Value);
 		var chosen = candidates[(int)(random.NextDouble() * candidates.Count)];
-		return Materialize(chosen, type, choreDockIds, poiById, random);
+		return Materialize(chosen, type, choreDockIds, docksById, poiById, random);
 	}
 
 	private static List<Candidate> BuildCandidates(
@@ -86,24 +86,24 @@ public static class UnitSpawnPlacement
 		Candidate candidate,
 		EType type,
 		IReadOnlyList<string> choreDockIds,
+		IReadOnlyDictionary<string, Dock> docksById,
 		IReadOnlyDictionary<string, PointOfInterest> poiById,
 		StableRandom random)
 	{
 		var legCount = choreDockIds.Count;
 		var dockId = choreDockIds[candidate.LegIndex];
+		var position = docksById[dockId].Position;
 		var choreIndex = (candidate.LegIndex + 1) % legCount;
 
 		return candidate.Kind switch
 		{
 			CandidateKind.DockedReady => new Result(
-				EPhase.Docked,
-				dockId,
+				position,
 				choreIndex,
 				0,
 				null),
 			CandidateKind.Working => new Result(
-				EPhase.Working,
-				dockId,
+				position,
 				choreIndex,
 				RandomWorkTicks(
 					random,

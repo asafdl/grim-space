@@ -27,8 +27,8 @@ public sealed class CompleteMoveDef
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is CompleteMoveAction complete
 		&& world.FleetRegistry.TryGet(complete.UnitId, out var unit)
-		&& unit.State.Phase == EPhase.InTransit
-		&& unit.State.Journey.JourneyId == complete.JourneyId;
+		&& unit.State.Travel is FleetTravel.Journey journey
+		&& journey.Id == complete.JourneyId;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -37,31 +37,27 @@ public sealed class CompleteMoveDef
 	{
 		var complete = (CompleteMoveAction)action;
 		if (!world.FleetRegistry.TryGet(complete.UnitId, out var unit)
-			|| unit.State.Phase != EPhase.InTransit
-			|| unit.State.Journey.JourneyId != complete.JourneyId)
+			|| unit.State.Travel is not FleetTravel.Journey journey
+			|| journey.Id != complete.JourneyId)
 		{
 			return [];
 		}
 
-		var destination = unit.State.Journey.Destination;
+		var destination = journey.Destination;
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
 			ClearJourneyRuntimeEffect.Instance,
+			UpdateLocationEffect.StopAt(complete.UnitId, destination),
 		};
 
 		if (world.DocksByPosition.TryGetValue(destination, out var dock))
 		{
-			effects.Add(UpdateLocationEffect.ArriveAtDock(complete.UnitId, dock.Id));
 			if (unit.State.ChoreDockIds.Count > 0)
-			{
-				var reservation = WorkScheduler.ReserveOnArrival(world, complete.UnitId, dock.Id);
-				effects.AddRange(reservation.Effects);
-			}
+				effects.Add(new ReserveWorkOnArrivalEffect(complete.UnitId, dock.Id));
 
 			return effects;
 		}
 
-		effects.Add(UpdateLocationEffect.ArriveAtCoord(complete.UnitId, destination));
 		return effects;
 	}
 }

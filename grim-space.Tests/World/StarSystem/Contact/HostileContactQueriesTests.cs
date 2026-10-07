@@ -17,22 +17,18 @@ public sealed class HostileContactQueriesTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var playerDock = map.DocksByPoiId[map.Blueprint.SupplyPlan.TradeHubPoiId];
+		var playerPosition = playerDock.Position + Coord.Forward;
 		map.FleetRegistry.Add(Factory.Create(
 			new Spawn(
 				"player",
 				EType.PlayerFleet,
-				playerDock.Id,
-				default,
+				playerPosition,
 				UnitDefaults.SpeedPerTick(EType.PlayerFleet),
 				UnitDefaults.EngageRadius(EType.PlayerFleet),
 				UnitDefaults.VisionRadius(EType.PlayerFleet),
 				[],
 				EFaction.Player),
 			[BattleUnitType.Fighter]));
-		var playerPosition = map.FleetRegistry.FleetOf("player").State.CommittedPosition(
-			map,
-			null,
-			0).Position;
 		map.FleetRegistry.Add(CreatePirate(
 			"pirate-far",
 			playerPosition + new Coord(10, 0, 10),
@@ -77,7 +73,6 @@ public sealed class HostileContactQueriesTests(StarMapFixture maps)
 			new Spawn(
 				id,
 				EType.PirateFleet,
-				"",
 				coord,
 				UnitDefaults.SpeedPerTick(EType.PirateFleet),
 				UnitDefaults.EngageRadius(EType.PirateFleet),

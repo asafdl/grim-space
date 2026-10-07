@@ -27,7 +27,7 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 		Assert.Empty(playerFleet.State.ChoreDockIds);
 		Assert.Equal(
 			starSystem.Map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Id,
-			playerFleet.State.DockedAtDockId);
+			starSystem.Map.DockAt(playerFleet.State)!.Id);
 	}
 
 	[Fact]
@@ -57,8 +57,10 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 
 		var firstFleet = first.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var secondFleet = second.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		Assert.Equal(firstFleet.State.DockedAtDockId, secondFleet.State.DockedAtDockId);
-		Assert.Equal(EPhase.Docked, secondFleet.State.Phase);
+		Assert.Equal(
+			first.Map.DockAt(firstFleet.State)!.Id,
+			second.Map.DockAt(secondFleet.State)!.Id);
+		Assert.IsType<FleetTravel.AtRest>(secondFleet.State.Travel);
 	}
 
 	[Fact]
@@ -87,6 +89,6 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 		var playerFleet = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(
 			map.DocksByPoiId[SupplySystemPlan.Copper.TradeHubPoiId].Id,
-			playerFleet.State.DockedAtDockId);
+			map.DockAt(playerFleet.State)!.Id);
 	}
 }

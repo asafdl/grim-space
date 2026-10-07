@@ -61,6 +61,12 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 
 	public State StateOf(string unitId) => FleetRegistry.FleetOf(unitId).State;
 
+	public Dock? DockAt(State state) =>
+		state.Travel is FleetTravel.AtRest atRest
+		&& DocksByPosition.TryGetValue(atRest.Position, out var dock)
+			? dock
+			: null;
+
 	internal StarMap(
 		StarSystemBlueprint blueprint,
 		IReadOnlyList<PointOfInterest> pointsOfInterest,

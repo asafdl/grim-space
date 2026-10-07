@@ -57,10 +57,11 @@ public sealed class MaintainFleetSpawnerDef
 			var state = addition.Fleet.State;
 			if (state.SpawnerSource != EFleetSpawnerSource.RandomArea
 				|| state.FleetSpawnerExpiresAtTick <= maintain.Tick
+				|| state.Travel is not FleetTravel.AtRest { Position: var position }
 				|| !ids.Add(state.Id)
 				|| world.FleetRegistry.Contains(state.Id)
-				|| !reserved.Add(state.IdleCoord)
-				|| OccupancyRules.IsOccupied(world, state.IdleCoord, reservedCoords: null, ignoredFleetId: state.Id))
+				|| !reserved.Add(position)
+				|| OccupancyRules.IsOccupied(world, position, reservedCoords: null, ignoredFleetId: state.Id))
 				return false;
 		}
 

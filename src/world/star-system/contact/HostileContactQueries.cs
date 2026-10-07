@@ -53,7 +53,7 @@ public static class HostileContactQueries
 			|| !world.FleetRegistry.TryGet(targetId, out var target))
 			return false;
 
-		return IsEligibleCore(observer, target, runtime, currentTick);
+		return IsEligibleCore(world, observer, target, runtime, currentTick);
 	}
 
 	public static bool IsEligible(
@@ -65,6 +65,7 @@ public static class HostileContactQueries
 		int currentTick)
 	{
 		if (!IsEligibleCore(
+				world,
 				observer,
 				target,
 				runtimeFor(observer.State.Id),
@@ -81,6 +82,7 @@ public static class HostileContactQueries
 	}
 
 	private static bool IsEligibleCore(
+		StarMap world,
 		Fleet observer,
 		Fleet target,
 		ActorRuntime runtime,
@@ -91,7 +93,8 @@ public static class HostileContactQueries
 			|| observer.Members.Count == 0
 			|| target.Members.Count == 0
 			|| !FactionRelations.IsHostile(observer.State.Faction, target.State.Faction)
-			|| !observer.State.CanMove
+			|| world.DockAt(target.State) is not null
+			|| WorkScheduler.HasAssignment(world, observer.State.Id)
 			|| observer.State.CurrentEngagement is not null
 			|| target.State.CurrentEngagement?.HuntedBy is not null
 			|| EngagementState.IsEngaged(target.State)

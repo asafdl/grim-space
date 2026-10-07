@@ -102,7 +102,6 @@ internal static class ContractDeliveryRoleSupport
 		var spawn = new Spawn(
 			meeting.MeetingId,
 			EType.ServiceVessel,
-			"",
 			meeting.Position,
 			UnitDefaults.SpeedPerTick(EType.ServiceVessel),
 			UnitDefaults.EngageRadius(EType.ServiceVessel),

@@ -27,6 +27,7 @@ using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.Factions;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using BattleUnitState = GrimSpace.Battle.Units.State;
+using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Application;
@@ -603,9 +604,12 @@ public sealed class SaveGamePersistenceTests
 			var action = new PursueContactAction(
 				playerId,
 				new FleetContactTarget(targetId),
-				target.State.IdleCoord,
+				Assert.IsType<FleetTravel.AtRest>(target.State.Travel).Position,
 				TransitPath.FromPoints(
-					[player.State.IdleCoord, target.State.IdleCoord],
+					[
+						Assert.IsType<FleetTravel.AtRest>(player.State.Travel).Position,
+						Assert.IsType<FleetTravel.AtRest>(target.State.Travel).Position,
+					],
 					[1.0, 1.0]),
 				EContactIntent.Engagement);
 
