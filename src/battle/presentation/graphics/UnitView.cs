@@ -331,6 +331,7 @@ public partial class UnitView : Node3D
 		}
 
 		OneShotParticles.PlayShipDestruction(host, worldPosition, scale);
+		PresentationSfx.PlayWorldOneShot(host, worldPosition, PresentationSfx.ShipDeathPath);
 	}
 
 	void HideHullForDeath()

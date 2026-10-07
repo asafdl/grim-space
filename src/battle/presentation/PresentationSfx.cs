@@ -20,6 +20,8 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/robot_beeps_300ms.wav";
 	public const string VoidBombExplosionPath =
 		"res://assets/sfx/abilities/void_bomb_explosion.wav";
+	public const string ShipDeathPath =
+		"res://assets/sfx/ships/ship_death_enhanced_v2.wav";
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 
