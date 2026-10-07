@@ -116,6 +116,8 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxEmpty" id="StyleBox_menu_nav_empty"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBox_shell"]
 bg_color = Color(0.02, 0.04, 0.07, 0.95)
 border_width_left = 1
@@ -144,6 +146,17 @@ CheckBox/icons/unchecked = ExtResource("3_checkbox_unchecked")
 Label/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 MetadataLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
 MetadataLabel/font_sizes/font_size = 44
+MenuNavButton/base_type = &"Button"
+MenuNavButton/colors/font_color = Color(0.82, 0.88, 0.92, 1)
+MenuNavButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
+MenuNavButton/colors/font_hover_color = Color(1, 1, 1, 1)
+MenuNavButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+MenuNavButton/font_sizes/font_size = 44
+MenuNavButton/styles/disabled = SubResource("StyleBox_menu_nav_empty")
+MenuNavButton/styles/focus = SubResource("StyleBox_menu_nav_empty")
+MenuNavButton/styles/hover = SubResource("StyleBox_menu_nav_empty")
+MenuNavButton/styles/normal = SubResource("StyleBox_menu_nav_empty")
+MenuNavButton/styles/pressed = SubResource("StyleBox_menu_nav_empty")
 PrimaryButton/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 PrimaryButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
 PrimaryButton/colors/font_hover_color = Color(1, 1, 1, 1)

@@ -125,14 +125,14 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"SecondaryButton"
+theme_type_variation = &"MenuNavButton"
 text = "Continue"
 
 [node name="NewGame" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=506187423]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
+theme_type_variation = &"MenuNavButton"
 text = "New Game"
 
 [node name="ActionGroupSpacer" type="Control" parent="ArtFrame/Art/MenuColumn"]
@@ -144,21 +144,21 @@ mouse_filter = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"SecondaryButton"
+theme_type_variation = &"MenuNavButton"
 text = "Play Intro"
 
 [node name="Settings" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=926748488]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"SecondaryButton"
+theme_type_variation = &"MenuNavButton"
 text = "Settings"
 
 [node name="Quit" type="Button" parent="ArtFrame/Art/MenuColumn" unique_id=1912949775]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"SecondaryButton"
+theme_type_variation = &"MenuNavButton"
 text = "Quit"
 
 [node name="SocialLinks" type="HBoxContainer" parent="ArtFrame/Art" unique_id=216370161]
