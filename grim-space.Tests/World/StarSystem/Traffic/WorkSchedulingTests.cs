@@ -54,6 +54,7 @@ public sealed class WorkSchedulingTests(StarMapFixture maps)
 		var poi = map.PointsOfInterest.Single(p => p.LogicalRole == EPoiLogicalRole.Extraction);
 		var dockId = map.DocksByPoiId[poi.Id].Id;
 		var unit = map.FleetRegistry.All.First(candidate => candidate.State.Type == EType.MiningBarge);
+		map.Timeline.CancelPendingForActor(unit.State.Id);
 		unit.State.Travel = new FleetTravel.AtRest(map.DocksById[dockId].Position);
 		var duration = poi.DurationTicks(unit.State.Type);
 		var currentTick = map.Timeline.Clock.Current;

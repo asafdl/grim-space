@@ -55,6 +55,7 @@ script = ExtResource("6_course")
 script = ExtResource("5_units")
 
 [node name="UI" type="CanvasLayer" parent="."]
+layer = 11
 
 [node name="Tooltip" type="Label" parent="UI"]
 visible = false

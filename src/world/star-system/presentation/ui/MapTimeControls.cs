@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -16,6 +17,7 @@ public partial class MapTimeControls : MarginContainer
 	private Texture2D _fastForwardIcon = null!;
 	private Button _pauseButton = null!;
 	private Button _speedButton = null!;
+	private Label _pausedLabel = null!;
 	private PanelContainer _pursuitWarning = null!;
 
 	public event Action? PausePressed;
@@ -64,15 +66,31 @@ public partial class MapTimeControls : MarginContainer
 		_speedButton.Pressed += () => SpeedPressed?.Invoke();
 		buttons.AddChild(_speedButton);
 
+		_pausedLabel = new Label
+		{
+			Text = "PAUSED",
+			Visible = false,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+			Theme = HudThemes.Load(HudThemeFamily.Theatrical),
+			ThemeTypeVariation = "BodyLabel",
+		};
+		_pausedLabel.AddThemeColorOverride("font_color", Colors.White);
+		_pausedLabel.AddThemeFontSizeOverride("font_size", 36);
+		stack.AddChild(_pausedLabel);
+
 		_pursuitWarning = CreatePursuitWarning();
 		stack.AddChild(_pursuitWarning);
+
+		_speedButton.TooltipText = SpeedTooltip();
 	}
 
 	public void Sync(bool paused, float speed)
 	{
 		_pauseButton.Icon = paused ? _playIcon : _pauseIcon;
-		_pauseButton.TooltipText = paused ? "Resume" : "Pause";
+		_pauseButton.TooltipText = PauseTooltip(paused);
 		_speedButton.Text = FormatSpeed(speed);
+		_pausedLabel.Visible = paused;
 	}
 
 	public void SetEnemyInPursuit(bool visible) => _pursuitWarning.Visible = visible;
@@ -119,7 +137,6 @@ public partial class MapTimeControls : MarginContainer
 			ExpandIcon = true,
 			Icon = _fastForwardIcon,
 			Text = "1×",
-			TooltipText = "Change speed",
 		};
 		ApplyObjectiveAccentIconColors(button);
 		return button;
@@ -137,4 +154,10 @@ public partial class MapTimeControls : MarginContainer
 
 	private static string FormatSpeed(float speed) =>
 		$"{speed:0}×";
+
+	private static string PauseTooltip(bool paused) =>
+		$"{(paused ? "Resume" : "Pause")} ({GameInputBindings.Label("map_pause")})";
+
+	private static string SpeedTooltip() =>
+		$"Cycle speed ({GameInputBindings.Label("map_speed_up")})";
 }

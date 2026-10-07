@@ -17,8 +17,7 @@ public sealed class PendingQueueDuringFlightTests(StarMapFixture maps)
 	{
 		var agent = new RealtimeTestExecutionAgent();
 		var map = maps.Fresh(42);
-		var unit = map.FleetRegistry.All.First(u =>
-			u.State.ChoreDockIds.Count > 0 && map.DockAt(u.State) is not null);
+		var unit = map.FleetRegistry.All.First(u => u.State.HasChoreAtDock(map));
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		actorRuntimes.For(unit.State.Id);
 
