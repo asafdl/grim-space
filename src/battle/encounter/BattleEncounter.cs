@@ -2,6 +2,7 @@
 
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Player;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -28,7 +29,16 @@ public sealed class BattleEncounter
 			gridSize,
 			$"fighter-dev-{seed}",
 			$"carrier-dev-{seed}");
-		var spawns = new[] { playerSpawn, enemySpawn };
+		var gunshipSpawn = new BattleSpawn
+		{
+			Ship = ShipInstance.FromCatalog($"gunship-dev-{seed}", EType.Gunship),
+			Team = ETeam.Player,
+			Position = playerSpawn.Position + new Coord(0, 4, 0),
+			Fore = playerSpawn.Fore,
+			Dorsal = playerSpawn.Dorsal,
+			ExecutionAgent = new UserExecutionAgent(),
+		};
+		var spawns = new[] { playerSpawn, gunshipSpawn, enemySpawn };
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 

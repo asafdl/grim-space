@@ -74,6 +74,39 @@ public sealed class AbilityActivationTests
 	}
 
 	[Fact]
+	public void ResolveChoicesPlacesGunshipLightningCannonMounts()
+	{
+		var actor = State.FromShipInstance(
+			GrimSpace.Units.ShipInstance.FromCatalog("gunship", EType.Gunship),
+			new Coord(5, 5, 5));
+		var port = new LightningCannonAction(actor.Id, ESpatialOrientation.Port);
+		var starboard = new LightningCannonAction(actor.Id, ESpatialOrientation.Starboard);
+		var spec = AbilityHudCatalog.ForUnit(EType.Gunship)
+			.Single(entry => entry.Mode == EPlayerMode.LightningCannon);
+
+		var choices = AbilityActivation.ResolveChoices(
+			spec,
+			actor,
+			[port, starboard]);
+
+		var frame = BodyFrame.From(actor);
+		Assert.Collection(
+			choices,
+			choice =>
+			{
+				Assert.Same(port, choice.Action);
+				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Port), choice.Position);
+				Assert.Equal(ESpatialOrientation.Port, choice.MountedOn);
+			},
+			choice =>
+			{
+				Assert.Same(starboard, choice.Action);
+				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Starboard), choice.Position);
+				Assert.Equal(ESpatialOrientation.Starboard, choice.MountedOn);
+			});
+	}
+
+	[Fact]
 	public void ResolveChoicesUsesTorpedoLaunchPose()
 	{
 		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
@@ -119,7 +152,10 @@ public sealed class AbilityActivationTests
 				actor,
 				[lightningCannon, repurposedMiner, detonate]));
 
-		Assert.Equal(actor.Position + actor.Fore, lightningCannonChoice.Position);
+		Assert.Equal(
+			actor.Position + BodyFrame.From(actor).Step(lightningCannon.MountedOn),
+			lightningCannonChoice.Position);
+		Assert.Equal(lightningCannon.MountedOn, lightningCannonChoice.MountedOn);
 		Assert.Same(lightningCannonSpec.Targeting, lightningCannonChoice.Targeting);
 		Assert.Equal(repurposedMinerPose.Position, repurposedMinerChoice.Position);
 		Assert.Same(repurposedMinerSpec.Targeting, repurposedMinerChoice.Targeting);

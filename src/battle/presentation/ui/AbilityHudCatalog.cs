@@ -78,7 +78,7 @@ public static class AbilityHudCatalog
 				EPlayerMode.LightningCannon,
 				def,
 				new AbilityTargetingSpec(
-					ForwardSource<LightningCannonAction>,
+					AdjacentMountedSource,
 					AbilitySourceMeshes.CreateLightningCannon,
 					LightningAccent),
 				"res://assets/ui/abilities/lightning_cannon.svg",
