@@ -142,6 +142,7 @@ public static class Capabilities
 		type switch
 		{
 			EType.Fighter => FighterSpec.Instance,
+			EType.Gunship => GunshipSpec.Instance,
 			EType.Carrier => CarrierSpec.Instance,
 			EType.RepurposedMiner => RepurposedMinerSpec.Instance,
 			EType.VoidBomb => VoidBombSpec.Instance,

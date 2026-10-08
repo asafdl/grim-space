@@ -46,6 +46,8 @@ public partial class UnitView : Node3D
 			BindRepurposedMiner();
 		else if (state.Type == EType.Carrier)
 			BindCarrier();
+		else if (state.Type == EType.Gunship)
+			BindGunship();
 		else
 			BindShip();
 
@@ -421,6 +423,12 @@ public partial class UnitView : Node3D
 	private void BindCarrier()
 	{
 		_hull = CarrierMesh.CreateHullInstance();
+		AddChild(_hull);
+	}
+
+	private void BindGunship()
+	{
+		_hull = GunshipMesh.CreateHullInstance();
 		AddChild(_hull);
 	}
 

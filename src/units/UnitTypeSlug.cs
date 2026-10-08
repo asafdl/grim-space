@@ -7,6 +7,7 @@ public static class UnitTypeSlug
 	public static string For(EType type) => type switch
 	{
 		EType.Fighter => "fighter",
+		EType.Gunship => "gunship",
 		EType.Carrier => "carrier",
 		EType.RepurposedMiner => "repurposed-miner",
 		EType.VoidBomb => "void_bomb",

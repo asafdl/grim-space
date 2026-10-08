@@ -5,7 +5,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public static class VoidBombMesh
 {
 	private const string ModelPath = "res://assets/models/spaceobjects/hi-tech_missile.glb";
-	private const float Length = 1f;
+	private const float Length = 0.5f;
 	private static PackedScene? _model;
 
 	public static MeshInstance3D CreateHullInstance()

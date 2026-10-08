@@ -27,6 +27,13 @@ internal static class ChassisWeaponBaselines
 	internal static LightningCannonSpec StarterLightningCannon() =>
 		new(LightningCannonsPerTurn, StarterLightningCannonDamage, StarterLightningCannonLineLength, LightningCannonPyramidRange);
 
+	internal static LightningCannonSpec GunshipLightningCannon() =>
+		new(
+			LightningCannonsPerTurn,
+			LightningCannonDamage,
+			LightningCannonLineLength + 1,
+			LightningCannonPyramidRange + 2);
+
 	internal static VoidBombLauncherSpec StarterVoidBombLauncher() =>
 		VoidBombLauncher(StarterVoidBombFuelTurns);
 

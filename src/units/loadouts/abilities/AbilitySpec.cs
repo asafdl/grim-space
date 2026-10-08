@@ -137,7 +137,8 @@ public sealed record LightningCannonSpec(
 	public const int MaxDamageUpgradeTier = 3;
 	public const int MaxRangeUpgradeTier = 3;
 
-	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
+	private static readonly ESpatialOrientation[] DefaultFacets =
+		[ESpatialOrientation.Forward, ESpatialOrientation.Port, ESpatialOrientation.Starboard];
 
 	public override EAbilityKind Kind => EAbilityKind.LightningCannon;
 	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;

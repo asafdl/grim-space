@@ -6,7 +6,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public static class ShipMesh
 {
 	private const string FighterPath = "res://assets/models/ships/spaceship.glb";
-	private const float FighterLength = 0.54f;
+	private const float FighterLength = 0.9f;
 	private static PackedScene? _fighterModel;
 
 	public static int SurfaceIndex(ESpatialOrientation face) =>
