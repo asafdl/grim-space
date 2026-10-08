@@ -10,11 +10,11 @@ public sealed class MovePreviewCache
 
 	public IReadOnlyList<RouteHitPreview> GetPaths(BattleSimulation sim, string actorId)
 	{
+		var movementPrefix = MovementPrefix(sim.Actions, actorId);
 		var cached = _entries.FirstOrDefault(entry =>
 			ReferenceEquals(entry.Sim, sim)
 			&& entry.ActorId == actorId
-			&& entry.WorldVersion == sim.WorldVersion
-			&& entry.Actions.SequenceEqual(sim.Actions));
+			&& entry.MovementPrefix.SequenceEqual(movementPrefix));
 		if (cached is not null)
 			return cached.Paths;
 
@@ -24,8 +24,7 @@ public sealed class MovePreviewCache
 		_entries.Add(new Entry(
 			sim,
 			actorId,
-			sim.WorldVersion,
-			sim.Actions.ToArray(),
+			movementPrefix,
 			paths));
 		BuildCount++;
 		return paths;
@@ -37,10 +36,14 @@ public sealed class MovePreviewCache
 		BuildCount = 0;
 	}
 
+	internal static IAction[] MovementPrefix(IReadOnlyList<IAction> actions, string actorId) =>
+		actions
+			.Where(action => action.ActorId == actorId && MovePathIndex.IsMovementAction(action))
+			.ToArray();
+
 	private sealed record Entry(
 		BattleSimulation Sim,
 		string ActorId,
-		int WorldVersion,
-		IReadOnlyList<IAction> Actions,
+		IReadOnlyList<IAction> MovementPrefix,
 		IReadOnlyList<RouteHitPreview> Paths);
 }

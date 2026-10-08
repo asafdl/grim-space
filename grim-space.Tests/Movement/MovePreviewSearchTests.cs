@@ -117,7 +117,7 @@ public sealed class MovePreviewSearchTests
 	}
 
 	[Fact]
-	public void CacheRebuildsWhenNonMovementQueueChanges()
+	public void CacheReusesPathsWhenNonMovementQueueChanges()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
@@ -131,10 +131,27 @@ public sealed class MovePreviewSearchTests
 		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.LightningCannonAction(PlayerId)));
 		var afterWeapon = cache.GetPaths(sim, PlayerId);
 
+		Assert.Same(afterMove, afterWeapon);
 		Assert.Equal(
 			afterMove.Select(route => PathKey(route.Session)),
 			afterWeapon.Select(route => PathKey(route.Session)));
-		Assert.Equal(3, cache.BuildCount);
+		Assert.Equal(2, cache.BuildCount);
+	}
+
+	[Fact]
+	public void CacheReusesPathsWhenOnlyWeaponQueued()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var sim = battle.PlayerAgent.Sim;
+		var cache = new MovePreviewCache();
+		var initial = cache.GetPaths(sim, PlayerId);
+
+		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.LightningCannonAction(PlayerId)));
+		var afterWeapon = cache.GetPaths(sim, PlayerId);
+
+		Assert.Same(initial, afterWeapon);
+		Assert.Equal(1, cache.BuildCount);
 	}
 
 	[Fact]
