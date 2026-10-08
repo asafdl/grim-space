@@ -39,13 +39,18 @@ public sealed class MoveUiTests
 	public void UnreachableRequestedPoseDoesNotCreateGhost()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
+		var player = BattleTestFixture.Player(origin);
+		player.State.Maneuverability = player.State.Maneuverability.WithBudgets(
+			player.State.Maneuverability.MaxActionPoints,
+			0);
+		player.State.ManeuverPoints = 0;
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			BattleTestFixture.Enemy(origin + Coord.Forward * 6));
 		var builder = BattleTestFixture.FrameBuilder(battle);
-		var option = BattleTestCommands.Frame(battle).MovePaths
-			.First(path => path.EndPosition == origin + Coord.Forward);
 		var unreachable = MovePose.For(-Coord.Forward, 0);
 
-		builder.Interaction.BeginMoveSelection(option.EndPosition, unreachable);
+		builder.Interaction.BeginMoveSelection(origin + Coord.Forward, unreachable);
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.Null(frame.SelectedMove);

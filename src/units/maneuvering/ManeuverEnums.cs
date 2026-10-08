@@ -1,4 +1,4 @@
-namespace GrimSpace.Battle.Movement.Enums;
+namespace GrimSpace.Units.Maneuvering;
 
 public enum ERollDirection
 {

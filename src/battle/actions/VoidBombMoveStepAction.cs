@@ -55,8 +55,8 @@ public sealed class VoidBombMoveDef
 		if (actor.Type != EType.VoidBomb)
 			return false;
 
-		var body = actor.Projectile;
-		if (body is null || body.MoveApCost(action.Direction) is null)
+		if (actor.Projectile is null
+			|| !actor.Maneuverability.TryGetTranslationApCost(action.Direction, out _))
 			return false;
 
 		var to = actor.Position + BodyFrame.From(actor).Step(action.Direction);
@@ -69,8 +69,9 @@ public sealed class VoidBombMoveDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		var stepCost = actor.RequireProjectile().MoveApCost(action.Direction)
-			?? throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
+		var stepCost = actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost)
+			? cost
+			: throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
 		return stepCost <= actor.ActionPoints;
 	}
 
@@ -80,10 +81,10 @@ public sealed class VoidBombMoveDef
 		ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		var body = actor.RequireProjectile();
 		var to = actor.Position + BodyFrame.From(actor).Step(action.Direction);
-		var stepCost = body.MoveApCost(action.Direction)
-			?? throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
+		var stepCost = actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost)
+			? cost
+			: throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
 
 		return
 		[

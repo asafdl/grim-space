@@ -33,7 +33,11 @@ internal static class BattleHudCopy
 	public const string FaceShieldPoolLine = "Each face has its own shield pool.";
 
 	public const string MoveTooltip =
-		"Move:\nEach AP advances one cell and may include one quarter-turn and one quarter-roll.";
+		"Move:\nAP pays for translation. MP pays for yaw, pitch, and roll.";
+	public const string ActionPointsTooltip =
+		"Action Points (AP)\nPays for translation between cells.\nAllotment and movement costs depend on the chassis.";
+	public const string ManeuverPointsTooltip =
+		"Maneuver Points (MP)\nPays for yaw, pitch, and roll.\nAllotment and rotation costs depend on the chassis.";
 
 	public const string EndTurn = "End Turn";
 	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
@@ -63,6 +67,8 @@ internal static class BattleHudCopy
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 
 	public static string Charges(int current, int max) => $"{current}/{max}";
+	public static string ResourcePoints(string resource, int current, int allotted) =>
+		$"{resource} {current}/{allotted}";
 
 	public static string FaceShieldTooltip(string faceName, int current, int max) =>
 		$"{faceName} {current}/{max}\n{FaceShieldAbsorbLine}\n{FaceShieldPoolLine}";

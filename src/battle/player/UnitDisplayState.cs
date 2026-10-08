@@ -5,7 +5,7 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
-using GrimSpace.Units.Specs;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Player;
 
@@ -20,7 +20,8 @@ public sealed record UnitDisplayState(
 	int MaxHullPoints,
 	FaceShieldPoints ShieldPoints,
 	int ActionPoints,
-	int MaxActionPoints,
+	int ManeuverPoints,
+	ManeuverabilitySpec Maneuverability,
 	IReadOnlyList<MountDisplayState> Mounts,
 	int FuelRemaining,
 	VoidBombProjectile? Projectile,
@@ -38,7 +39,8 @@ public sealed record UnitDisplayState(
 			state.Loadout.MaxHullPoints,
 			state.ShieldPoints.Clone(),
 			state.ActionPoints,
-			state.Stats.MaxAp,
+			state.ManeuverPoints,
+			state.Maneuverability,
 			state.Loadout.InstalledAbilities
 				.Select(installed => MountDisplayState.Capture(
 					installed,
@@ -47,6 +49,9 @@ public sealed record UnitDisplayState(
 			state.FuelRemaining,
 			state.Projectile,
 			state.IsAlive);
+
+	public int MaxActionPoints => Maneuverability.MaxActionPoints;
+	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
 
 	public int UsesRemaining(EAbilityKind kind) =>
 		Mounts
@@ -82,13 +87,12 @@ public sealed record UnitDisplayState(
 			Dorsal = Dorsal,
 			Starboard = Coord.Cross(Dorsal, Fore),
 			ActionPoints = ActionPoints,
+			ManeuverPoints = ManeuverPoints,
 			HullPoints = HullPoints,
 			ShieldPoints = shields,
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
-			Stats = Projectile is not null
-				? new Stats { MaxAp = Projectile.MovementActionPoints }
-				: Stats.ForType(Type),
+			Maneuverability = Maneuverability,
 		};
 		foreach (var mount in Mounts)
 		{

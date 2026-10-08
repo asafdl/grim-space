@@ -15,6 +15,7 @@ public sealed partial class ManeuverBar : PanelContainer
 	private readonly ButtonGroup _modeGroup;
 	private Button _moveButton = null!;
 	private Label _apLabel = null!;
+	private Label _mpLabel = null!;
 	private Label _moveHotkeyLabel = null!;
 
 	public ManeuverBar(ButtonGroup modeGroup)
@@ -36,10 +37,16 @@ public sealed partial class ManeuverBar : PanelContainer
 		_moveButton.SetBlockSignals(false);
 	}
 
-	public void Configure(bool canAct, int apCurrent, int apMax)
+	public void Configure(
+		bool canAct,
+		int apCurrent,
+		int apMax,
+		int mpCurrent,
+		int mpMax)
 	{
 		_moveButton.Disabled = !canAct;
-		_apLabel.Text = BattleHudCopy.Charges(apCurrent, apMax);
+		_apLabel.Text = BattleHudCopy.ResourcePoints("AP", apCurrent, apMax);
+		_mpLabel.Text = BattleHudCopy.ResourcePoints("MP", mpCurrent, mpMax);
 	}
 
 	public bool TryActivateMove()
@@ -68,13 +75,25 @@ public sealed partial class ManeuverBar : PanelContainer
 
 		_apLabel = new Label
 		{
-			Text = "0/0",
-			MouseFilter = MouseFilterEnum.Ignore,
+			Text = "AP 0/0",
+			MouseFilter = MouseFilterEnum.Stop,
+			TooltipText = BattleHudCopy.ActionPointsTooltip,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 			ThemeTypeVariation = "BattleAp",
 		};
 		col.AddChild(_apLabel);
+
+		_mpLabel = new Label
+		{
+			Text = "MP 0/0",
+			MouseFilter = MouseFilterEnum.Stop,
+			TooltipText = BattleHudCopy.ManeuverPointsTooltip,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			ThemeTypeVariation = "BattleAp",
+		};
+		col.AddChild(_mpLabel);
 
 		_moveButton = new Button
 		{

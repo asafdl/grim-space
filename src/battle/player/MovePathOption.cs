@@ -10,7 +10,9 @@ public sealed record MovePathOption(
 	Coord EndPosition,
 	GridBasis EndBasis,
 	int ExtensionApCost,
+	int ExtensionMpCost,
 	int RemainingAp,
+	int RemainingMp,
 	UnitDisplayState ResultState)
 {
 	public IReadOnlyList<Coord> Cells =>

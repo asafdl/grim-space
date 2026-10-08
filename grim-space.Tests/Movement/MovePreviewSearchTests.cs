@@ -62,13 +62,13 @@ public sealed class MovePreviewSearchTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
 		index.CompletePriority();
-		var priorityKeys = index.GetExtensions([]).Select(PathKey).ToHashSet();
+		var priorityPoses = index.GetExtensions([]).Select(Key).ToHashSet();
 
 		index.Complete();
 		var allPaths = index.GetExtensions([]);
 
 		Assert.True(index.IsComplete);
-		Assert.Subset(allPaths.Select(PathKey).ToHashSet(), priorityKeys);
+		Assert.Subset(allPaths.Select(Key).ToHashSet(), priorityPoses);
 		Assert.Contains(allPaths, path =>
 			path.Steps.Any(action => action is GrimSpace.Battle.Actions.HeadingTurnAction
 				or GrimSpace.Battle.Actions.RollAction));

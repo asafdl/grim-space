@@ -1,7 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;

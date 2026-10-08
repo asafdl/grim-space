@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;

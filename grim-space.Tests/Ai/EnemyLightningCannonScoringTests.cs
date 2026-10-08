@@ -28,7 +28,7 @@ public sealed class EnemyLightningCannonScoringTests
 	}
 
 	[Fact]
-	public async Task BuildTurnActions_DoesNotFireLightningCannonWhenMisaligned()
+	public async Task BuildTurnActions_TurnsAndFiresWhenTranslationApIsExhausted()
 	{
 		var playerPos = new Coord(2, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
@@ -39,7 +39,8 @@ public sealed class EnemyLightningCannonScoringTests
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
 
-		Assert.DoesNotContain(actions, action => action is LightningCannonAction);
+		Assert.Contains(actions, action => action is HeadingTurnAction);
+		Assert.Contains(actions, action => action is LightningCannonAction);
 	}
 
 	[Fact]

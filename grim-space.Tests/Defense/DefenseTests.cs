@@ -1,9 +1,9 @@
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Tests.ShieldDefense;
 

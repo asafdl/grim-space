@@ -14,7 +14,7 @@ public sealed class VoidBombDomainTests
 	[Fact]
 	public void TorpedoStatsAreConfigured()
 	{
-		var stats = Stats.ForType(EType.VoidBomb);
+		var maneuverability = ShipCatalog.SpecFor(EType.VoidBomb).Maneuverability;
 		var configuration = ShipCatalog.NewRunLoadoutFor(EType.VoidBomb);
 
 		var maxShields = configuration.MaxShieldPoints;
@@ -27,7 +27,9 @@ public sealed class VoidBombDomainTests
 				face == ESpatialOrientation.Retro ? 0 : 1,
 				maxShields[face]);
 		}
-		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().MovementActionPoints, stats.MaxAp);
+		Assert.Equal(
+			CatalogExpectations.DefaultVoidBombLauncher().MovementActionPoints,
+			maneuverability.MaxActionPoints);
 	}
 
 	[Fact]

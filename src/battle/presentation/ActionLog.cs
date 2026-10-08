@@ -45,8 +45,11 @@ public static class ActionLog
 					i++;
 				}
 
-				if (steps > 0)
-					Emit($"Move · {steps} {(steps == 1 ? "step" : "steps")}", displayName(actorId));
+				Emit(
+					steps > 0
+						? $"Move · {steps} {(steps == 1 ? "step" : "steps")}"
+						: "Maneuver",
+					displayName(actorId));
 				continue;
 			}
 

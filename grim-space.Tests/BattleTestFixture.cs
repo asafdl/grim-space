@@ -5,7 +5,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -182,7 +182,18 @@ internal static class BattleTestFixture
 		result.Dorsal = gridBasis.Up;
 		result.Starboard = gridBasis.Right;
 		result.ActionPoints = System.Math.Max(0, result.ActionPoints - pathApSpent);
-		return new MovePathSession(actorId, steps, checkpoints, result.ActionPoints, result);
+		var pathMpSpent = steps.OfType<HeadingTurnAction>().Sum(heading =>
+			result.Maneuverability.TryGetHeadingMpCost(heading.Turn, out var cost) ? cost : 0);
+		result.ManeuverPoints = System.Math.Max(0, result.ManeuverPoints - pathMpSpent);
+		return new MovePathSession(
+			actorId,
+			steps,
+			checkpoints,
+			pathApSpent,
+			pathMpSpent,
+			result.ActionPoints,
+			result.ManeuverPoints,
+			result);
 	}
 
 	public static MovePathSession ForwardPath(

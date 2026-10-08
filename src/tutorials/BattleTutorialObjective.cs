@@ -1,10 +1,10 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Tutorials;
 

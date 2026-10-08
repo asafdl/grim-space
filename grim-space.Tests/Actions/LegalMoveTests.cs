@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 
@@ -145,5 +145,37 @@ public sealed class LegalMoveTests
 			new MoveStepAction("player", ESpatialOrientation.Retro)));
 		Assert.True(session.TryEnqueue(
 			new MoveStepAction("player", ESpatialOrientation.Port)));
+	}
+
+	[Fact]
+	public void TranslationDiscoveryAndCostUseEffectiveProfile()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin);
+		player.State.Maneuverability = new ManeuverabilitySpec(
+			4,
+			3,
+			new Dictionary<ESpatialOrientation, int>
+			{
+				[ESpatialOrientation.Forward] = 2,
+			},
+			new Dictionary<EHeadingTurn, int>(),
+			new Dictionary<ERollDirection, int>());
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
+		var sim = battle.PlayerAgent.Sim;
+		var discovered = MoveDef.Instance
+			.Discover(sim.World, sim.RuntimeFor(battle.PlayerId), battle.PlayerId)
+			.Cast<MoveStepAction>()
+			.ToArray();
+
+		Assert.Single(discovered);
+		Assert.Equal(ESpatialOrientation.Forward, discovered[0].Direction);
+		Assert.False(sim.TryEnqueue(
+			new MoveStepAction(battle.PlayerId, ESpatialOrientation.Port)));
+		Assert.True(sim.TryEnqueue(new MoveStepAction(battle.PlayerId)));
+		Assert.Equal(2, sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
+		Assert.Equal(3, sim.StateOf<ActorState>(battle.PlayerId).ManeuverPoints);
 	}
 }

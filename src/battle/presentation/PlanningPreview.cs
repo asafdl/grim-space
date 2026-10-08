@@ -69,7 +69,9 @@ public sealed class PlanningPreview
 			path.EndPosition,
 			path.EndBasis,
 			path.ExtensionApCost,
+			path.ExtensionMpCost,
 			path.RemainingAp,
+			path.RemainingMp,
 			UnitDisplayState.Capture(path.ResultState));
 
 	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities(

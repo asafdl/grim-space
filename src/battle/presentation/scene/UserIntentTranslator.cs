@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Interaction;
@@ -10,6 +9,7 @@ using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Presentation.Scene;
 

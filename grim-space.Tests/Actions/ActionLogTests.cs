@@ -33,15 +33,29 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new HeadingTurnAction("repurposed-miner-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new HeadingTurnAction("repurposed-miner-a", GrimSpace.Units.Maneuvering.EHeadingTurn.YawRight),
 			new MoveStepAction("repurposed-miner-a"),
-			new RollAction("repurposed-miner-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new RollAction("repurposed-miner-a", GrimSpace.Units.Maneuvering.ERollDirection.Clockwise),
 			new MoveStepAction("repurposed-miner-a"),
 		];
 
 		var lines = ActionLog.Format(history, id => $"enemy {id}");
 
 		AssertEntries(lines, "Move · 2 steps|enemy repurposed-miner-a");
+	}
+
+	[Fact]
+	public void AggregatesRotationOnlyActionsAsManeuver()
+	{
+		ITimelineEntry[] history =
+		[
+			new HeadingTurnAction("fighter-a", GrimSpace.Units.Maneuvering.EHeadingTurn.YawRight),
+			new RollAction("fighter-a", GrimSpace.Units.Maneuvering.ERollDirection.Clockwise),
+		];
+
+		var lines = ActionLog.Format(history, id => id);
+
+		AssertEntries(lines, "Maneuver|fighter-a");
 	}
 
 	[Fact]
@@ -131,9 +145,9 @@ public sealed class ActionLogTests
 		ITimelineEntry[] history =
 		[
 			new MoveStepAction("fighter-a"),
-			new HeadingTurnAction("fighter-a", GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight),
+			new HeadingTurnAction("fighter-a", GrimSpace.Units.Maneuvering.EHeadingTurn.YawRight),
 			new MoveStepAction("fighter-a"),
-			new RollAction("fighter-a", GrimSpace.Battle.Movement.Enums.ERollDirection.Clockwise),
+			new RollAction("fighter-a", GrimSpace.Units.Maneuvering.ERollDirection.Clockwise),
 			new MoveStepAction("fighter-a"),
 			new MoveStepAction("fighter-a"),
 		];

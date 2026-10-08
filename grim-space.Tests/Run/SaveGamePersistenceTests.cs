@@ -8,7 +8,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Ids;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -788,6 +788,54 @@ public sealed class SaveGamePersistenceTests
 			BattleOrchestrator.FromSavedWorld(restored, playerId);
 		Assert.All(restoredOrchestrator.Engine.World.UnitRegistry.All, unit =>
 			Assert.True(unit.ExecutionAgent.IsInitialized));
+	}
+
+	[Fact]
+	public void SaveDtoMapper_RoundTripsManeuverPointState()
+	{
+		using var orchestrator = BattleOrchestrator.FromEncounter(
+			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
+			gridSize: 12);
+		var player = orchestrator.Engine.World.StateOf(orchestrator.PlayerId);
+		player.ManeuverPoints = 1;
+		player.Maneuverability = player.Maneuverability.WithBudgets(
+			player.Maneuverability.MaxActionPoints,
+			2);
+		var registry = new PersistenceRegistry();
+
+		var restored = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry),
+			registry);
+		var restoredPlayer = restored.StateOf(orchestrator.PlayerId);
+
+		Assert.Equal(1, restoredPlayer.ManeuverPoints);
+		Assert.Equal(2, restoredPlayer.Maneuverability.MaxManeuverPoints);
+	}
+
+	[Fact]
+	public void RestoreBattleWorld_DefaultsMissingManeuverPointsToChassisAllotment()
+	{
+		using var orchestrator = BattleOrchestrator.FromEncounter(
+			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
+			gridSize: 12);
+		var registry = new PersistenceRegistry();
+		var dto = SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry);
+		var json = JsonSerializer.SerializeToNode(dto, registry.Options)!.AsObject();
+		foreach (var unit in json["units"]!.AsArray())
+		{
+			unit!.AsObject().Remove("maneuverPoints");
+			unit.AsObject().Remove("maxMp");
+		}
+
+		var legacyDto = JsonSerializer.Deserialize<BattleWorldSaveDto>(
+			json,
+			registry.Options)!;
+		var restored = SaveDtoMapper.RestoreBattleWorld(legacyDto, registry);
+		var player = restored.StateOf(orchestrator.PlayerId);
+
+		Assert.Equal(
+			ShipCatalog.SpecFor(player.Type).Maneuverability.MaxManeuverPoints,
+			player.ManeuverPoints);
 	}
 
 	private sealed record ReflectionSample(

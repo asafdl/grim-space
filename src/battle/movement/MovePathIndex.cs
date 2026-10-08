@@ -6,6 +6,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -113,6 +114,7 @@ public sealed class MovePathIndex
 			return cached.Paths;
 
 		var prefixMoves = prefix.Count(action => action is MoveStepAction);
+		var prefixState = ProjectResultState(_sim, _actorId, prefix);
 		var results = new Dictionary<(Coord Position, GridBasis Basis), MovePathSession>();
 		foreach (var path in _paths)
 		{
@@ -123,7 +125,10 @@ public sealed class MovePathIndex
 				path.ActorId,
 				path.Steps.Skip(prefix.Count).ToArray(),
 				path.Checkpoints.Skip(prefixMoves).ToArray(),
+				prefixState.ActionPoints - path.RemainingAp,
+				prefixState.ManeuverPoints - path.RemainingMp,
 				path.RemainingAp,
+				path.RemainingMp,
 				path.ResultState.Clone());
 			var end = (extension.EndPosition, extension.EndBasis);
 			if (!results.TryGetValue(end, out var existing)
@@ -153,12 +158,16 @@ public sealed class MovePathIndex
 		if (steps.Length == 0 || steps.Any(action => !IsMovementAction(action)))
 			return;
 
+		var start = _sim.StateOf<State>(_actorId);
 		var result = frame.World.StateOf(_actorId).Clone();
 		_paths.Add(new MovePathSession(
 			_actorId,
 			steps,
 			ProjectCheckpoints(_sim, _actorId, steps, includeStart: true),
+			start.ActionPoints - result.ActionPoints,
+			start.ManeuverPoints - result.ManeuverPoints,
 			result.ActionPoints,
+			result.ManeuverPoints,
 			result));
 		_extensions.Clear();
 	}
@@ -183,6 +192,21 @@ public sealed class MovePathIndex
 		}
 
 		return checkpoints;
+	}
+
+	private static State ProjectResultState(
+		BattleSimulation sim,
+		string actorId,
+		IReadOnlyList<IAction> actions)
+	{
+		var projection = sim.Fork();
+		foreach (var action in actions)
+		{
+			if (!projection.TryEnqueue(action))
+				throw new InvalidOperationException($"Cannot project illegal action {action}.");
+		}
+
+		return projection.StateOf<State>(actorId).Clone();
 	}
 
 	private static MoveCheckpoint CaptureCheckpoint(State state) =>
@@ -224,6 +248,14 @@ public sealed class MovePathIndex
 			if (comparison != 0)
 				return comparison;
 
+			comparison = left.ExtensionMpCost.CompareTo(right.ExtensionMpCost);
+			if (comparison != 0)
+				return comparison;
+
+			comparison = left.Steps.Count.CompareTo(right.Steps.Count);
+			if (comparison != 0)
+				return comparison;
+
 			comparison = left.Steps.Count(step => step is HeadingTurnAction)
 				.CompareTo(right.Steps.Count(step => step is HeadingTurnAction));
 			if (comparison != 0)
@@ -248,12 +280,13 @@ public sealed class MovePathIndex
 			action switch
 			{
 				MoveStepAction => 0,
-				HeadingTurnAction { Turn: Movement.Enums.EHeadingTurn.YawLeft } => 1,
-				HeadingTurnAction { Turn: Movement.Enums.EHeadingTurn.YawRight } => 2,
-				HeadingTurnAction { Turn: Movement.Enums.EHeadingTurn.PitchUp } => 3,
-				HeadingTurnAction { Turn: Movement.Enums.EHeadingTurn.PitchDown } => 4,
-				RollAction { Direction: Movement.Enums.ERollDirection.Clockwise } => 5,
-				RollAction { Direction: Movement.Enums.ERollDirection.CounterClockwise } => 6,
+				HeadingTurnAction { Turn: EHeadingTurn.YawLeft } => 1,
+				HeadingTurnAction { Turn: EHeadingTurn.YawRight } => 2,
+				HeadingTurnAction { Turn: EHeadingTurn.Yaw180 } => 3,
+				HeadingTurnAction { Turn: EHeadingTurn.PitchUp } => 4,
+				HeadingTurnAction { Turn: EHeadingTurn.PitchDown } => 5,
+				RollAction { Direction: ERollDirection.Clockwise } => 6,
+				RollAction { Direction: ERollDirection.CounterClockwise } => 7,
 				_ => int.MaxValue,
 			};
 	}

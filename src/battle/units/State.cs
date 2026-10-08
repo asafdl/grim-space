@@ -4,6 +4,7 @@ using GrimSpace.Battle.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Units;
 
@@ -17,6 +18,7 @@ public sealed class State
 	public Coord Dorsal { get; set; }
 	public Coord Starboard { get; set; }
 	public int ActionPoints { get; set; }
+	public int ManeuverPoints { get; set; }
 	public int HullPoints { get; set; }
 	public FaceShieldPoints ShieldPoints { get; set; } = new();
 	public Dictionary<AbilityMount, MountRuntimeCounters> MountRuntime { get; } = new();
@@ -24,7 +26,7 @@ public sealed class State
 	public VoidBombProjectile? Projectile { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public bool ApPenaltyNextTurn { get; set; }
-	public required Stats Stats { get; set; }
+	public required ManeuverabilitySpec Maneuverability { get; set; }
 
 	public bool IsAlive => HullPoints > 0;
 
@@ -84,13 +86,14 @@ public sealed class State
 			Dorsal = Dorsal,
 			Starboard = Starboard,
 			ActionPoints = ActionPoints,
+			ManeuverPoints = ManeuverPoints,
 			HullPoints = HullPoints,
 			ShieldPoints = ShieldPoints.Clone(),
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
 			ParentId = ParentId,
 			ApPenaltyNextTurn = ApPenaltyNextTurn,
-			Stats = Stats,
+			Maneuverability = Maneuverability,
 		};
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
@@ -110,9 +113,7 @@ public sealed class State
 		var projectile = ship.Spec.Chassis == EType.VoidBomb
 			? VoidBombProjectile.CatalogDefault()
 			: null;
-		var stats = ship.Spec.Chassis == EType.VoidBomb && projectile is not null
-			? new Stats { MaxAp = projectile.MovementActionPoints }
-			: Stats.ForLoadout(ship.Spec, ship.Loadout);
+		var maneuverability = ship.Spec.Maneuverability;
 		var state = new State
 		{
 			Id = ship.Id,
@@ -122,13 +123,14 @@ public sealed class State
 			Fore = fore,
 			Dorsal = dorsal,
 			Starboard = Coord.Cross(dorsal, fore),
-			ActionPoints = stats.MaxAp,
+			ActionPoints = maneuverability.MaxActionPoints,
+			ManeuverPoints = maneuverability.MaxManeuverPoints,
 			HullPoints = ship.HullPoints,
 			ShieldPoints = ship.ShieldPoints.Clone(),
 			FuelRemaining = 0,
 			Projectile = projectile,
 			ParentId = parentId,
-			Stats = stats,
+			Maneuverability = maneuverability,
 		};
 		foreach (var installed in ship.Loadout.InstalledAbilities)
 			state.MountRuntime[installed.Mount] = installed.Spec.CreateInitialRuntime();

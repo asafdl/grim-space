@@ -1,9 +1,9 @@
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Effects;
 

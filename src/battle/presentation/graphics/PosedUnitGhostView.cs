@@ -36,7 +36,6 @@ public sealed partial class PosedUnitGhostView : Node3D
 
 		var chassis = ShipCatalog.SpecFor(spec.Type);
 		var loadout = ShipCatalog.NewRunLoadoutFor(spec.Type);
-		var stats = Stats.ForChassis(chassis);
 		var state = new State
 		{
 			Id = GhostId,
@@ -46,7 +45,7 @@ public sealed partial class PosedUnitGhostView : Node3D
 			Fore = spec.Fore,
 			Dorsal = spec.Dorsal,
 			Starboard = GrimSpace.Math.Grid.Coord.Cross(spec.Dorsal, spec.Fore),
-			Stats = stats,
+			Maneuverability = chassis.Maneuverability,
 			HullPoints = loadout.MaxHullPoints,
 			ShieldPoints = loadout.MaxShieldPoints.Clone(),
 		};

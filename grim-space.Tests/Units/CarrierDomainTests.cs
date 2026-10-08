@@ -16,9 +16,9 @@ public sealed class CarrierDomainTests
 	[Fact]
 	public void CarrierStatsAreConfigured()
 	{
-		var stats = Stats.ForType(EType.Carrier);
+		var maneuverability = ShipCatalog.SpecFor(EType.Carrier).Maneuverability;
 		var configuration = ShipCatalog.NewRunLoadoutFor(EType.Carrier);
-		Assert.Equal(3, stats.MaxAp);
+		Assert.Equal(3, maneuverability.MaxActionPoints);
 		Assert.Equal(2, configuration.MaxHullPoints);
 		Assert.Equal(2, configuration.MaxShieldPoints.MaxOnAnyFace);
 		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.ScrapDroneSwarm));

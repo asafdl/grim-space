@@ -16,4 +16,6 @@ public sealed record BattleUnitStateDto(
 	bool ApPenaltyNextTurn,
 	int MaxAp,
 	VoidBombProjectile? Projectile,
-	IReadOnlyList<MountRuntimeDto> MountRuntime);
+	IReadOnlyList<MountRuntimeDto> MountRuntime,
+	int? ManeuverPoints = null,
+	int? MaxMp = null);

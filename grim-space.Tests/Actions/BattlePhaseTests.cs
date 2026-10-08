@@ -2,7 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Scene;

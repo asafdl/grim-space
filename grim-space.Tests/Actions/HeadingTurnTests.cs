@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Actions;
@@ -27,6 +27,7 @@ public sealed class HeadingTurnTests
 		Assert.Equal(origin + new Coord(x, y, z), actor.Position);
 		Assert.Equal(new Coord(x, y, z), actor.Fore);
 		Assert.Equal(3, actor.ActionPoints);
+		Assert.Equal(2, actor.ManeuverPoints);
 	}
 
 	[Fact]
@@ -43,5 +44,6 @@ public sealed class HeadingTurnTests
 		Assert.Equal(new Coord(1, 0, 0), actor.Fore);
 		Assert.Equal(Coord.Forward, actor.Dorsal);
 		Assert.Equal(3, actor.ActionPoints);
+		Assert.Equal(1, actor.ManeuverPoints);
 	}
 }

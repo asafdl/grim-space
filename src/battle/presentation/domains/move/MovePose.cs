@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Movement;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Presentation.Domains.Move;
 
@@ -27,7 +28,7 @@ public static class MovePose
 			: Coord.Up;
 		var basis = GridBasis.From(forward, dorsal, Coord.Cross(dorsal, forward));
 		for (var i = 0; i < Orientation.NormalizeQuarters(clockwiseRollQuarters); i++)
-			basis = Orientation.Roll(basis, Movement.Enums.ERollDirection.Clockwise);
+			basis = Orientation.Roll(basis, ERollDirection.Clockwise);
 		return basis;
 	}
 

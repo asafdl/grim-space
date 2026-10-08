@@ -199,10 +199,12 @@ public static class SaveDtoMapper
 			state.Dorsal,
 			state.Starboard,
 			state.ActionPoints,
+			state.ManeuverPoints,
 			state.FuelRemaining,
 			state.ParentId,
 			state.ApPenaltyNextTurn,
-			MaxAp = state.Stats.MaxAp,
+			MaxAp = state.Maneuverability.MaxActionPoints,
+			MaxMp = state.Maneuverability.MaxManeuverPoints,
 			state.Projectile,
 			MountRuntime = state.MountRuntime.Select(pair => new
 			{
@@ -225,10 +227,15 @@ public static class SaveDtoMapper
 			dto.ParentId);
 		state.Starboard = dto.Starboard;
 		state.ActionPoints = dto.ActionPoints;
+		var maneuverability = dto.Projectile?.Maneuverability() ?? state.Maneuverability;
+		var maxMp = dto.MaxMp ?? maneuverability.MaxManeuverPoints;
+		state.ManeuverPoints = dto.ManeuverPoints ?? maxMp;
 		state.FuelRemaining = dto.FuelRemaining;
 		state.ApPenaltyNextTurn = dto.ApPenaltyNextTurn;
 		state.Projectile = dto.Projectile;
-		state.Stats = new Stats { MaxAp = dto.MaxAp };
+		state.Maneuverability = maneuverability.WithBudgets(
+			dto.MaxAp,
+			maxMp);
 		foreach (var runtime in dto.MountRuntime)
 			state.MountRuntime[new AbilityMount(runtime.Kind, runtime.MountedOn)] =
 				new MountRuntimeCounters
@@ -289,10 +296,12 @@ public static class SaveDtoMapper
 				state.Dorsal,
 				state.Starboard,
 				state.ActionPoints,
+				state.ManeuverPoints,
 				state.FuelRemaining,
 				state.ParentId,
 				state.ApPenaltyNextTurn,
-				MaxAp = state.Stats.MaxAp,
+				MaxAp = state.Maneuverability.MaxActionPoints,
+				MaxMp = state.Maneuverability.MaxManeuverPoints,
 				state.Projectile,
 				MountRuntime = state.MountRuntime.Select(pair => new
 				{
@@ -732,10 +741,15 @@ public static class SaveDtoMapper
 				unitDto.ParentId);
 			state.Starboard = unitDto.Starboard;
 			state.ActionPoints = unitDto.ActionPoints;
+			var maneuverability = unitDto.Projectile?.Maneuverability() ?? state.Maneuverability;
+			var maxMp = unitDto.MaxMp ?? maneuverability.MaxManeuverPoints;
+			state.ManeuverPoints = unitDto.ManeuverPoints ?? maxMp;
 			state.FuelRemaining = unitDto.FuelRemaining;
 			state.ApPenaltyNextTurn = unitDto.ApPenaltyNextTurn;
 			state.Projectile = unitDto.Projectile;
-			state.Stats = new Stats { MaxAp = unitDto.MaxAp };
+			state.Maneuverability = maneuverability.WithBudgets(
+				unitDto.MaxAp,
+				maxMp);
 			foreach (var runtime in unitDto.MountRuntime)
 				state.MountRuntime[new AbilityMount(runtime.Kind, runtime.MountedOn)] =
 					new MountRuntimeCounters

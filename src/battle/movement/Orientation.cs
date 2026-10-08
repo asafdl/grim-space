@@ -1,6 +1,6 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Units;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Movement;
 

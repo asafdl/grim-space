@@ -44,7 +44,7 @@ internal static class EnemySearchInput
 	{
 		var state = world.StateOf(actorId);
 		var score = FacingWeight
-			+ System.Math.Max(state.ActionPoints, state.Stats.MaxAp) * ApproachWeight;
+			+ System.Math.Max(state.ActionPoints, state.Maneuverability.MaxActionPoints) * ApproachWeight;
 		if (!HasOffensiveCharges(state))
 			return 0;
 

@@ -12,17 +12,13 @@ internal readonly record struct CapabilitySearchState(
 	Coord Fore,
 	Coord Dorsal,
 	Coord Starboard,
-	ManeuverProgress ManeuverProgress,
-	int ActionPoints,
 	string MountFingerprint);
 
 internal readonly record struct MoveSearchState(
 	Coord Position,
 	Coord Fore,
 	Coord Dorsal,
-	Coord Starboard,
-	int ActionPoints,
-	ManeuverProgress ManeuverProgress);
+	Coord Starboard);
 
 internal readonly record struct MovePreviewSearchState(
 	Coord Position,
@@ -35,8 +31,7 @@ internal readonly record struct MovePreviewSearchState(
 	int PortShield,
 	int StarboardShield,
 	int DorsalShield,
-	int VentralShield,
-	ManeuverProgress ManeuverProgress);
+	int VentralShield);
 
 internal static class BattleSearchVisit
 {
@@ -49,10 +44,12 @@ internal static class BattleSearchVisit
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				ManeuverInvariant.ProgressOf(sim.Actions, actorId),
-				actor.ActionPoints,
 				MountFingerprint(actor)),
-			[]);
+			[
+				actor.ActionPoints,
+				actor.ManeuverPoints,
+				-sim.Actions.Count(action => action.ActorId == actorId),
+			]);
 	}
 
 	public static SearchVisitState ForMove(BattleSimulation sim, string actorId)
@@ -63,17 +60,17 @@ internal static class BattleSearchVisit
 				actor.Position,
 				actor.Fore,
 				actor.Dorsal,
-				actor.Starboard,
+				actor.Starboard),
+			[
 				actor.ActionPoints,
-				ManeuverInvariant.ProgressOf(sim.Actions, actorId)),
-			[]);
+				actor.ManeuverPoints,
+				-sim.Actions.Count(action => action.ActorId == actorId),
+			]);
 	}
 
 	public static SearchVisitState ForMovePreview(BattleSimulation sim, string actorId)
 	{
 		var actor = sim.StateOf<ActorState>(actorId);
-		var headings = sim.Actions.Count(action => action is HeadingTurnAction && action.ActorId == actorId);
-		var rolls = sim.Actions.Count(action => action is RollAction && action.ActorId == actorId);
 		return new SearchVisitState(
 			new MovePreviewSearchState(
 				actor.Position,
@@ -86,12 +83,11 @@ internal static class BattleSearchVisit
 				actor.ShieldPoints[ESpatialOrientation.Port],
 				actor.ShieldPoints[ESpatialOrientation.Starboard],
 				actor.ShieldPoints[ESpatialOrientation.Dorsal],
-				actor.ShieldPoints[ESpatialOrientation.Ventral],
-				ManeuverInvariant.ProgressOf(sim.Actions, actorId)),
+				actor.ShieldPoints[ESpatialOrientation.Ventral]),
 			[
 				actor.ActionPoints,
-				-headings,
-				-rolls,
+				actor.ManeuverPoints,
+				-sim.Actions.Count(action => action.ActorId == actorId),
 			]);
 	}
 

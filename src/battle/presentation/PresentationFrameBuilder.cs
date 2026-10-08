@@ -91,7 +91,7 @@ public sealed class PresentationFrameBuilder
 			? abilityChoices[abilityHoverIndex]
 			: null;
 		var weaponQueued = sim.Actions.Any(action =>
-			action.ActorId == playerId && action is not MoveStepAction);
+			action.ActorId == playerId && !MovePathIndex.IsMovementAction(action));
 		var selectedMove = state.MoveDestination is { } destination
 			&& state.RequestedMoveBasis is { } requestedBasis
 			? moveOptions.FirstOrDefault(option =>

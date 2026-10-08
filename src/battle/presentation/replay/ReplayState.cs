@@ -1,10 +1,10 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Presentation.Replay;
 

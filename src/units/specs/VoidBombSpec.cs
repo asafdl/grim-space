@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Defenses;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Units.Specs;
 
@@ -22,6 +23,11 @@ public sealed class VoidBombSpec : ShipSpec
 	public override EType Chassis => EType.VoidBomb;
 
 	public override int DefaultMaxHullPoints => 1;
+	public override ManeuverabilitySpec Maneuverability { get; } =
+		ManeuverabilitySpec.VoidBomb(
+			MovementActionPoints,
+			ForwardMoveApCost,
+			LateralMoveApCost);
 
 	public override FaceShieldPoints DefaultMaxShieldPoints
 	{

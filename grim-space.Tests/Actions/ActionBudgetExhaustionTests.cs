@@ -1,5 +1,5 @@
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 
@@ -22,7 +22,7 @@ public sealed class ActionBudgetExhaustionTests
 	}
 
 	[Fact]
-	public void OrientationDoesNotAddToStepCost()
+	public void OrientationUsesMpWithoutAddingToStepApCost()
 	{
 		var session = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5)).PlayerAgent.Sim;
 
@@ -32,6 +32,7 @@ public sealed class ActionBudgetExhaustionTests
 			new MoveStepAction(PlayerId)));
 
 		Assert.Equal(3, session.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.Equal(1, session.StateOf<ActorState>(PlayerId).ManeuverPoints);
 	}
 
 	[Fact]

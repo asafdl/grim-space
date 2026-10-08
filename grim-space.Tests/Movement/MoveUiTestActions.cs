@@ -1,5 +1,5 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Math.Grid;
 

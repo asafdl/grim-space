@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
@@ -209,7 +209,10 @@ public sealed class TimelineTests
 		var history = battle.Engine.History();
 		var swarmIndex = history.ToList().FindIndex(entry => entry is ScrapDroneSwarmAction);
 		Assert.True(swarmIndex >= 0);
-		var impact = Assert.IsType<Record<ImpactFacts>>(history[swarmIndex + 1]);
+		var impact = history
+			.Skip(swarmIndex + 1)
+			.OfType<Record<ImpactFacts>>()
+			.First();
 		Assert.Equal(battle.PlayerId, impact.Value.SourceId);
 		Assert.Equal(enemy.State.Id, impact.Value.TargetId);
 		Assert.Equal(EImpactCause.ScrapDroneSwarmBurst, impact.Value.Cause);

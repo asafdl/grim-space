@@ -245,6 +245,8 @@ The base `ExecutionAgent` may support deterministic producers that read live sta
 
 Combat happens on a 3D cell lattice. Each ship has a facing; movement and weapons are expressed in ship-local directions. Range, arcs, cover, and hazards are all grid-based — positioning is meant to matter.
 
+Movement uses two independently refilled resources. Action points (AP) pay for translation, while maneuver points (MP) pay for yaw, pitch, and roll. Each chassis owns its AP/MP allotments, supported translations and rotations, and their costs through [`ManeuverabilitySpec`](src/units/maneuvering/ManeuverabilitySpec.cs); battle [`State`](src/battle/units/State.cs) holds the effective profile and current pools. Void bombs derive a zero-MP profile from their launcher snapshot. Path selection ranks exact destination poses by AP cost first, then MP cost.
+
 ### Turn loop
 
 The player plans an action batch and publishes it at end of turn. [`BattleOrchestrator`](src/battle/BattleOrchestrator.cs) then walks [`UnitRegistry.ActivationOrder`](src/battle/units/UnitRegistry.cs), activates each unit's execution agent, consumes its batch, and commits batches sequentially. Newly spawned actors join the remaining activation order. Round upkeep is committed last, the tick advances, and the committed history is packaged as a [`TurnReplay`](src/battle/TurnReplay.cs) for presentation. The next player turn starts only after replay completes.

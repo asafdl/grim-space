@@ -102,7 +102,7 @@ public sealed class SimulationSearchTests
 		var session = battle.PlayerAgent.Sim;
 		var heading = new HeadingTurnAction(
 			PlayerId,
-			GrimSpace.Battle.Movement.Enums.EHeadingTurn.YawRight);
+			GrimSpace.Units.Maneuvering.EHeadingTurn.YawRight);
 
 		Assert.True(session.TryEnqueue(heading));
 		var actionsBefore = session.Actions.ToList();

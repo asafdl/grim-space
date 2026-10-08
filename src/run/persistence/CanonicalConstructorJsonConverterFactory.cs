@@ -59,8 +59,15 @@ internal sealed class CanonicalConstructorJsonConverterFactory : JsonConverterFa
 				var propertyName = options.PropertyNamingPolicy?.ConvertName(parameter.Name!)
 					?? parameter.Name!;
 				if (!root.TryGetProperty(propertyName, out var property))
+				{
+					if (parameter.HasDefaultValue)
+					{
+						arguments[index] = parameter.DefaultValue;
+						continue;
+					}
 					throw new JsonException(
 						$"Missing property '{propertyName}' for '{typeToConvert.Name}'.");
+				}
 
 				arguments[index] = JsonSerializer.Deserialize(
 					property.GetRawText(),

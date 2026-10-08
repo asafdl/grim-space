@@ -9,6 +9,7 @@ namespace GrimSpace.Battle.Effects;
 public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previousActionPoints;
+	private int _previousManeuverPoints;
 	private Dictionary<AbilityMount, MountRuntimeCounters>? _previousMountRuntime;
 	private bool _previousApPenaltyNextTurn;
 
@@ -16,12 +17,13 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	{
 		var actor = world.StateOf(actorId);
 		_previousActionPoints = actor.ActionPoints;
+		_previousManeuverPoints = actor.ManeuverPoints;
 		_previousApPenaltyNextTurn = actor.ApPenaltyNextTurn;
 		_previousMountRuntime = actor.MountRuntime.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.Clone());
 
-		var maxAp = actor.Stats.MaxAp;
+		var maxAp = actor.Maneuverability.MaxActionPoints;
 		if (actor.ApPenaltyNextTurn)
 		{
 			maxAp = System.Math.Max(0, maxAp - 1);
@@ -29,6 +31,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		}
 
 		actor.ActionPoints = maxAp;
+		actor.ManeuverPoints = actor.Maneuverability.MaxManeuverPoints;
 		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
@@ -39,6 +42,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	{
 		var actor = world.StateOf(actorId);
 		actor.ActionPoints = _previousActionPoints;
+		actor.ManeuverPoints = _previousManeuverPoints;
 		actor.ApPenaltyNextTurn = _previousApPenaltyNextTurn;
 		if (_previousMountRuntime is null)
 			return;

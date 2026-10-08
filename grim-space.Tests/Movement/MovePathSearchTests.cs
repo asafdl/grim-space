@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Movement.Enums;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Dfs;
@@ -67,42 +67,66 @@ public sealed class MovePathSearchTests
 	}
 
 	[Theory]
-	[InlineData(ESpatialOrientation.Port, -1, 0, 0, 1)]
-	[InlineData(ESpatialOrientation.Retro, 0, 0, -1, 2)]
-	public void DirectionalRouteCheckpointsMatchSimulatedState(
-		ESpatialOrientation direction,
+	[InlineData(-1, 0, 0, 1, 0)]
+	[InlineData(0, 0, -1, 1, 2)]
+	public void SelectedDirectionalRouteUsesApFirstRanking(
 		int x,
 		int y,
 		int z,
-		int apCost)
+		int apCost,
+		int mpCost)
 	{
 		var origin = new Coord(5, 5, 5);
 		var paths = MovePathEndpoints.DiscoverExtensions(
 			BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim,
 			PlayerId);
 		var expected = origin + new Coord(x, y, z);
+		var startingBasis = GridBasis.From(Coord.Forward, Coord.Up, new Coord(1, 0, 0));
 
 		var path = paths.First(option =>
-			option.Steps.Count == 1
-			&& option.Steps[0] is MoveStepAction { Direction: var actual }
-			&& actual == direction);
+			option.EndPosition == expected
+			&& option.EndBasis == startingBasis);
 
 		Assert.Equal(expected, path.EndPosition);
 		Assert.Equal(path.ResultState.Position, path.EndPosition);
 		Assert.Equal(path.ResultState.Fore, path.EndBasis.Forward);
 		Assert.Equal(path.ResultState.Dorsal, path.EndBasis.Up);
 		Assert.Equal(apCost, path.ExtensionApCost);
+		Assert.Equal(mpCost, path.ExtensionMpCost);
 	}
 
 	[Fact]
-	public void FourStepRouteCanReturnToOrigin()
+	public void DominatedRouteReturningToOriginalPoseIsNotReturned()
+	{
+		var origin = new Coord(5, 5, 5);
+		var paths = MovePathEndpoints.DiscoverExtensions(
+			BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim,
+			PlayerId);
+		var startingBasis = GridBasis.From(Coord.Forward, Coord.Up, new Coord(1, 0, 0));
+
+		Assert.DoesNotContain(paths, path =>
+			path.EndPosition == origin
+			&& path.EndBasis == startingBasis);
+	}
+
+	[Fact]
+	public void RotationOnlyPathRetainsPositionAndChangesBasis()
 	{
 		var origin = new Coord(5, 5, 5);
 		var paths = MovePathEndpoints.DiscoverExtensions(
 			BattleTestFixture.BeginSimulation(origin).PlayerAgent.Sim,
 			PlayerId);
 
-		Assert.Contains(paths, path => path.EndPosition == origin && path.ExtensionApCost == 4);
+		var path = paths.First(option =>
+			option.EndPosition == origin
+			&& option.EndBasis.Forward == new Coord(1, 0, 0)
+			&& option.EndBasis.Up == Coord.Up);
+
+		Assert.Equal(0, path.ExtensionApCost);
+		Assert.Equal(1, path.ExtensionMpCost);
+		Assert.Equal(4, path.RemainingAp);
+		Assert.Equal(2, path.RemainingMp);
+		Assert.Single(path.Checkpoints);
 	}
 
 	[Fact]

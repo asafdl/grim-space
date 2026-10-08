@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Maneuvering;
 using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Battle.Units;
@@ -15,16 +16,11 @@ public sealed record VoidBombProjectile(
 	int BlastRadius,
 	int BlastDamage)
 {
-	public int? MoveApCost(ESpatialOrientation direction) =>
-		direction switch
-		{
-			ESpatialOrientation.Forward => ForwardMoveApCost,
-			ESpatialOrientation.Port
-				or ESpatialOrientation.Starboard
-				or ESpatialOrientation.Dorsal
-				or ESpatialOrientation.Ventral => LateralMoveApCost,
-			_ => null,
-		};
+	public ManeuverabilitySpec Maneuverability() =>
+		ManeuverabilitySpec.VoidBomb(
+			MovementActionPoints,
+			ForwardMoveApCost,
+			LateralMoveApCost);
 
 	public static VoidBombProjectile FromLauncher(VoidBombLauncherSpec launcher) =>
 		new(

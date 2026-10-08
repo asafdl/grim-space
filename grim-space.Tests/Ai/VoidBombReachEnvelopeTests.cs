@@ -34,7 +34,7 @@ public sealed class VoidBombReachEnvelopeTests
 		FaceForward(battle, torpedoId);
 		var torpedo = battle.Engine.World.StateOf(torpedoId);
 		torpedo.FuelRemaining = 1;
-		torpedo.ActionPoints = torpedo.Stats.MaxAp;
+		torpedo.ActionPoints = torpedo.Maneuverability.MaxActionPoints;
 
 		var envelope = VoidBombReachEnvelope.Build(battle.Engine.CreateSimulation(), torpedoId);
 		var start = torpedo.Position;

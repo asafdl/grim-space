@@ -12,12 +12,12 @@ public sealed class RepurposedMinerDomainTests
 	[Fact]
 	public void RepurposedMinerStatsAreConfigured()
 	{
-		var stats = Stats.ForType(EType.RepurposedMiner);
+		var maneuverability = ShipCatalog.SpecFor(EType.RepurposedMiner).Maneuverability;
 		var configuration = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner);
 
 		var maxShields = configuration.MaxShieldPoints;
 
-		Assert.Equal(4, stats.MaxAp);
+		Assert.Equal(4, maneuverability.MaxActionPoints);
 		Assert.Equal(1, configuration.MaxHullPoints);
 		Assert.Equal(3, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 		Assert.Equal(0, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Retro]);

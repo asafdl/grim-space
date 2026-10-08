@@ -60,5 +60,6 @@ public static class StateLog
 		+ $"/P{state.ShieldPoints[ESpatialOrientation.Port]}"
 		+ $"/D{state.ShieldPoints[ESpatialOrientation.Dorsal]}"
 		+ $"/V{state.ShieldPoints[ESpatialOrientation.Ventral]} "
-		+ $"ap={state.ActionPoints}/{state.Stats.MaxAp}";
+		+ $"ap={state.ActionPoints}/{state.Maneuverability.MaxActionPoints} "
+		+ $"mp={state.ManeuverPoints}/{state.Maneuverability.MaxManeuverPoints}";
 }

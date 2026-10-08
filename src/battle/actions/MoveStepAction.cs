@@ -19,17 +19,18 @@ public sealed record MoveStepAction(
 public sealed class MoveDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public const int StandardApCost = 1;
-	public const int RetroApCost = 2;
-
 	public static MoveDef Instance { get; } = new();
 
 	private static readonly ESpatialOrientation[] AllDirections = Enum.GetValues<ESpatialOrientation>();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
+		var actor = world.StateOf(actorId);
 		foreach (var direction in AllDirections)
 		{
+			if (!actor.Maneuverability.TryGetTranslationApCost(direction, out _))
+				continue;
+
 			var action = Bind(actorId, direction);
 			if (IsPossible(action, world, runtime))
 				yield return action;
@@ -56,7 +57,8 @@ public sealed class MoveDef
 	public bool IsPossible(MoveStepAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Type == EType.VoidBomb || !AllDirections.Contains(action.Direction))
+		if (actor.Projectile is not null
+			|| !actor.Maneuverability.TryGetTranslationApCost(action.Direction, out _))
 			return false;
 
 		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);
@@ -69,7 +71,9 @@ public sealed class MoveDef
 		if (!IsPossible(action, world, runtime))
 			return false;
 
-		return world.StateOf(action.ActorId).ActionPoints >= CostOf(action.Direction);
+		var actor = world.StateOf(action.ActorId);
+		return actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost)
+			&& actor.ActionPoints >= cost;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
@@ -78,16 +82,19 @@ public sealed class MoveDef
 		ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
+		if (!actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost))
+		{
+			throw new InvalidOperationException(
+				$"Actor '{actor.Id}' does not support translation '{action.Direction}'.");
+		}
+
 		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);
 		return
 		[
 			new MoveEffect(destination),
-			new ApChangeEffect(-CostOf(action.Direction)),
+			new ApChangeEffect(-cost),
 		];
 	}
-
-	public static int CostOf(ESpatialOrientation direction) =>
-		direction == ESpatialOrientation.Retro ? RetroApCost : StandardApCost;
 
 	private static MoveStepAction Cast(IAction action) =>
 		action as MoveStepAction ?? throw new ArgumentException($"Expected {nameof(MoveStepAction)}.", nameof(action));

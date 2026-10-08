@@ -65,7 +65,8 @@ public sealed class LightningCannonReachTests
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
 
 		Assert.Equal(
-			EnemySearchInput.FacingWeight + enemy.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
+			EnemySearchInput.FacingWeight
+				+ enemy.State.Maneuverability.MaxActionPoints * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 
@@ -82,7 +83,7 @@ public sealed class LightningCannonReachTests
 		Assert.Equal(
 			EnemySearchInput.DamageHitBonus
 				+ EnemySearchInput.FacingWeight
-				+ enemy.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
+				+ enemy.State.Maneuverability.MaxActionPoints * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 
@@ -99,7 +100,7 @@ public sealed class LightningCannonReachTests
 		Assert.Equal(
 			EnemySearchInput.DamageHitBonus
 				+ EnemySearchInput.FacingWeight
-				+ repurposedMiner.State.Stats.MaxAp * EnemySearchInput.ApproachWeight,
+				+ repurposedMiner.State.Maneuverability.MaxActionPoints * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 

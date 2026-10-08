@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
+using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Units.Specs;
 
@@ -15,6 +16,8 @@ public sealed class FighterSpec : ShipSpec
 
 	public override EType Chassis => EType.Fighter;
 	public override int DefaultMaxHullPoints => 2;
+	public override ManeuverabilitySpec Maneuverability { get; } =
+		ManeuverabilitySpec.StandardShip(4, 3);
 
 	public override FaceShieldPoints DefaultMaxShieldPoints
 	{
