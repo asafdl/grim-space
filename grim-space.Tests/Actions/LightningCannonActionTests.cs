@@ -1,5 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
@@ -132,6 +133,32 @@ public sealed class LightningCannonActionTests
 		Assert.DoesNotContain(asteroidPos, affected);
 		Assert.DoesNotContain(behind, affected);
 		Assert.Contains(playerPos + Coord.Forward, affected);
+	}
+
+	[Fact]
+	public void ResolveRecordsBlockedAreaForReplay()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var asteroidPos = playerPos + Coord.Forward * 3;
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			playerPos,
+			playerPos + Coord.Forward * 6);
+		var world = battle.PlayerAgent.Sim.World;
+		BattleTestWorld.InjectNonUnit(
+			world,
+			Asteroid.Create("asteroid", asteroidPos, world.Grid, [asteroidPos]));
+		var action = new LightningCannonAction(PlayerId);
+		var expected = LightningCannonDef.Instance.AffectedCells(action, world);
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(keepRecords: true, action));
+		var facts = Assert.Single(
+			battle.PlayerAgent.Sim.RecordsFor(0)
+				.OfType<GrimSpace.Core.Actions.Record<AreaDamageFacts>>()).Value;
+
+		Assert.Equal(PlayerId, facts.SourceId);
+		Assert.Equal(EImpactCause.LightningCannonBurst, facts.Cause);
+		Assert.Equal(playerPos, facts.Origin);
+		Assert.Equal(expected, facts.Cells);
 	}
 
 }

@@ -254,8 +254,9 @@ public sealed record GoopGunSpec(
 	int Range = 3,
 	int HalfWidth = 1,
 	int HalfHeight = 1,
-	int UnavailableTurns = 2) : AbilitySpec, ICooldownAbility
+	int UnavailableTurns = 2) : AbilitySpec, ICooldownAbility, IAreaDamage
 {
+	int IAreaDamage.Damage => 0;
 	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
 
 	public override EAbilityKind Kind => EAbilityKind.GoopGun;

@@ -19,7 +19,10 @@ public sealed class ApplyAreaDamageEffect(
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_snapshots = new Dictionary<string, UnitCombatSnapshot>();
-		var impacts = new List<IRecord>();
+		var records = new List<IRecord>
+		{
+			new Record<AreaDamageFacts>(new AreaDamageFacts(actorId, cause, origin, cells)),
+		};
 		foreach (var unit in UnitRegistry.For(world).All)
 		{
 			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
@@ -27,10 +30,10 @@ public sealed class ApplyAreaDamageEffect(
 
 			_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
 			if (ApplyTo(unit.State, actorId) is { } impact)
-				impacts.Add(new Record<ImpactFacts>(impact));
+				records.Add(new Record<ImpactFacts>(impact));
 		}
 
-		return impacts;
+		return records;
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

@@ -169,6 +169,13 @@ public static class ActionLog
 		string sourceId)
 	{
 		var impacts = new List<ImpactFacts>();
+		if (i < history.Count
+			&& history[i] is Record<AreaDamageFacts> { Value.SourceId: var areaSourceId }
+			&& areaSourceId == sourceId)
+		{
+			i++;
+		}
+
 		while (i < history.Count
 			&& history[i] is Record<ImpactFacts> { Value: var impact }
 			&& impact.SourceId == sourceId)

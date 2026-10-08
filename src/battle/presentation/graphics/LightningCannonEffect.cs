@@ -23,12 +23,12 @@ public partial class LightningCannonEffect : Node3D
 		Vector3 forward,
 		Vector3 dorsal,
 		float cellSize,
-		int lineLength,
+		float lineLength,
 		int pyramidRange,
 		float strikeSeconds = StrikeSeconds,
 		float lifetimeSeconds = LifetimeSeconds)
 	{
-		if (cellSize <= 0 || lineLength < 1 || pyramidRange < 0)
+		if (cellSize <= 0 || lineLength <= 0f || pyramidRange < 0)
 			throw new ArgumentOutOfRangeException(nameof(cellSize), "Cell size and line length must be positive; pyramid range cannot be negative.");
 
 		var fore = forward.Normalized();

@@ -31,6 +31,8 @@ public partial class TurnReplayPlayer : Node3D
 	private Action<string> _removeView = _ => { };
 	private Action<IReadOnlyDictionary<string, State>> _synchronizeViews = _ => { };
 	private Action<State> _stateChanged = _ => { };
+	private Action<GoopSpawnedFacts> _showGoop = _ => { };
+	private Action<string> _removeGoop = _ => { };
 
 	private HazardBurstView _hazardBursts = null!;
 	private ReplayClipContext _clipContext = null!;
@@ -66,7 +68,9 @@ public partial class TurnReplayPlayer : Node3D
 		Action<State, Color> ensureView,
 		Action<string> removeView,
 		Action<IReadOnlyDictionary<string, State>> synchronizeViews,
-		Action<State> stateChanged)
+		Action<State> stateChanged,
+		Action<GoopSpawnedFacts> showGoop,
+		Action<string> removeGoop)
 	{
 		_unitViews = unitViews;
 		_colorFor = colorFor;
@@ -74,6 +78,8 @@ public partial class TurnReplayPlayer : Node3D
 		_removeView = removeView;
 		_synchronizeViews = synchronizeViews;
 		_stateChanged = stateChanged;
+		_showGoop = showGoop;
+		_removeGoop = removeGoop;
 
 		_hazardBursts = new HazardBurstView { Name = "HazardBursts" };
 		AddChild(_hazardBursts);
@@ -93,7 +99,9 @@ public partial class TurnReplayPlayer : Node3D
 			endStates,
 			_ensureView,
 			DismissUnitPresentation,
-			reportInterest);
+			reportInterest,
+			_showGoop,
+			_removeGoop);
 		foreach (var view in _unitViews.Values)
 			view.ClearMovementTrail();
 		_hazardBursts.Clear();
@@ -155,6 +163,11 @@ public partial class TurnReplayPlayer : Node3D
 						.TakeWhile(entry => entry is IAction)
 						.Cast<IAction>()
 						.ToArray();
+					_clipContext.FollowingRecords = _history
+						.Skip(_entryIndex)
+						.TakeWhile(entry => entry is IRecord)
+						.Cast<IRecord>()
+						.ToArray();
 					Clips.TryPlay(action, _clipContext, out var playback);
 					_actionWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 					_actionCount++;
@@ -177,6 +190,14 @@ public partial class TurnReplayPlayer : Node3D
 					ApplySpawn(spawn);
 					_spawnWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 					_spawnCount++;
+					break;
+				case Record<GoopSpawnedFacts> { Value: var goopSpawned }:
+					BeginPhase(ReplayActorPhase.Classify(goopSpawned.SourceId, _participants));
+					_showGoop(goopSpawned);
+					break;
+				case Record<GoopDissipatedFacts> { Value: var goopDissipated }:
+					BeginPhase(ReplayActorPhase.Classify(goopDissipated.SourceId, _participants));
+					_removeGoop(goopDissipated.HazardId);
 					break;
 				case Record<ImpactFacts> { Value: var impact }:
 					BeginPhase(ReplayActorPhase.Classify(impact.SourceId, _participants));

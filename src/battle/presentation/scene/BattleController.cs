@@ -15,6 +15,7 @@ using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Math.Grid;
@@ -43,6 +44,7 @@ public partial class BattleController : Node3D
 	private ReplayDirector _replayDirector = null!;
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
+	private GoopHazardView _goopHazardView = null!;
 	private BattleHud _battleHud = null!;
 	private BattleTutorialAdapter? _battleTutorial;
 	private Node3D _unitsRoot = null!;
@@ -147,6 +149,9 @@ public partial class BattleController : Node3D
 		var asteroidView = new BoardAsteroidView();
 		asteroidView.Build(layout.Asteroids);
 		hazardsRoot.AddChild(asteroidView);
+		_goopHazardView = new GoopHazardView { Name = "GoopHazards" };
+		hazardsRoot.AddChild(_goopHazardView);
+		SyncAuthoritativeHazardViews();
 
 		_unitsRoot = GetNode<Node3D>("Units");
 		_battleView = new BattleView { Name = "BattleView" };
@@ -195,7 +200,9 @@ public partial class BattleController : Node3D
 			(state, color) => _battleView.Ensure(state, color),
 			_battleView.Remove,
 			states => _battleView.ApplyUnitStates(states, ColorForActor),
-			ApplyReplayState);
+			ApplyReplayState,
+			_goopHazardView.Show,
+			_goopHazardView.Remove);
 		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
 		AddChild(_replayPlayer);
 
@@ -348,7 +355,10 @@ public partial class BattleController : Node3D
 		var previous = _lastPhase;
 		_lastPhase = phase;
 		if (phase == EBattlePhase.PlayerTurn)
+		{
 			SyncAuthoritativeUnitViewsFromWorld();
+			SyncAuthoritativeHazardViews();
+		}
 		if (phase == EBattlePhase.PlayerTurn && previous == EBattlePhase.Replaying)
 		{
 			if (_currentTurnActivations.Count > 0)
@@ -654,6 +664,12 @@ public partial class BattleController : Node3D
 			.Where(unit => unit.State.IsAlive)
 			.ToDictionary(unit => unit.State.Id, unit => unit.State);
 		_battleView.ApplyUnitStates(states, ColorForActor);
+	}
+
+	private void SyncAuthoritativeHazardViews()
+	{
+		_goopHazardView.Apply(
+			_battle.Engine.World.NonUnits.Values.OfType<GoopHazard>());
 	}
 
 	private void ApplyReplayState(ActorState state)

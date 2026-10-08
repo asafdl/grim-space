@@ -11,6 +11,7 @@ public sealed class ReplayClipRegistry
 		new VoidBombMoveStepClip(),
 		new HeadingTurnClip(),
 		new RollClip(),
+		new GoopGunActionClip(),
 		new VoidBombActionClip(),
 		new SpawnRepurposedMinerActionClip(),
 		new LightningCannonActionClip(),

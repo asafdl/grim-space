@@ -4,5 +4,6 @@ public enum EWeaponKind
 {
 	ScrapDroneSwarm,
 	LightningCannon,
+	GoopGun,
 	VoidBomb,
 }

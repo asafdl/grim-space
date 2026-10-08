@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Spatial;
@@ -19,7 +20,9 @@ public sealed class ReplayClipContext(
 	IReadOnlyDictionary<string, State> endStates,
 	Action<State, Color> ensureView,
 	Action<string> dismissUnitPresentation,
-	Action<CameraInterest>? reportInterest = null)
+	Action<CameraInterest>? reportInterest = null,
+	Action<GoopSpawnedFacts>? showGoop = null,
+	Action<string>? removeGoop = null)
 {
 	public ReplayState ReplayState { get; } = replayState;
 	public IReadOnlyDictionary<string, UnitView> UnitViews { get; } = unitViews;
@@ -35,8 +38,22 @@ public sealed class ReplayClipContext(
 	public Action<string> DismissUnitPresentation { get; } = dismissUnitPresentation;
 
 	public Action<CameraInterest>? ReportInterest { get; } = reportInterest;
+	public Action<GoopSpawnedFacts>? ShowGoop { get; } = showGoop;
+	public Action<string>? RemoveGoop { get; } = removeGoop;
 	public ESpatialOrientation? PendingVoidBombMountedOn { get; set; }
 	public IReadOnlyList<IAction> FollowingActions { private get; set; } = [];
+	public IReadOnlyList<IRecord> FollowingRecords { private get; set; } = [];
+
+	public AreaDamageFacts? FollowingAreaDamage(string sourceId, EImpactCause cause)
+	{
+		foreach (var record in FollowingRecords.OfType<Record<AreaDamageFacts>>())
+		{
+			if (record.Value.SourceId == sourceId && record.Value.Cause == cause)
+				return record.Value;
+		}
+
+		return null;
+	}
 
 	public bool OrientationFlowsIntoMove(string actorId)
 	{

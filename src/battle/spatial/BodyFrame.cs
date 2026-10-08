@@ -11,6 +11,13 @@ public readonly record struct BodyFrame(Coord Origin, Coord Fore, Coord Dorsal, 
 	public static BodyFrame WorldAligned(Coord origin) =>
 		new(origin, Coord.Forward, Coord.Up, Coord.Cross(Coord.Up, Coord.Forward));
 
+	/// <summary>
+	/// Frame at a forward patch center: <see cref="Fore"/> is the burst axis (firing line);
+	/// occupied cells lie in the dorsal × starboard plane through <paramref name="center"/>.
+	/// </summary>
+	public static BodyFrame PatchAt(Coord center, Coord burstAxis, Coord dorsal) =>
+		new(center, burstAxis, dorsal, Coord.Cross(dorsal, burstAxis));
+
 	public Coord Step(ESpatialOrientation direction) =>
 		direction switch
 		{

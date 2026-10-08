@@ -92,14 +92,14 @@ public static class AbilityHudCatalog
 				def,
 				new AbilityTargetingSpec(
 					ForwardSource<GoopGunAction>,
-					AbilitySourceMeshes.CreateLightningCannon,
+					AbilitySourceMeshes.CreateGoopGun,
 					GoopGunAccent),
-				"res://assets/ui/abilities/lightning_cannon.svg",
+				"res://assets/ui/abilities/goop_gun.svg",
 				BattleHudCopy.GoopGunTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.GoopGun),
 					unit.MountCount(EAbilityKind.GoopGun)),
-				_ => false),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.GoopGun)),
 			VoidBombDef => new(
 				EPlayerMode.VoidBomb,
 				def,

@@ -111,6 +111,7 @@ public sealed class PlanningPreview
 		var portScrapDroneSwarm = false;
 		var starboardScrapDroneSwarm = false;
 		var lightningCannon = false;
+		var goopGun = false;
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 
 		foreach (var action in actions)
@@ -126,13 +127,21 @@ public sealed class PlanningPreview
 				case LightningCannonAction:
 					lightningCannon = true;
 					break;
+				case GoopGunAction:
+					goopGun = true;
+					break;
 				case VoidBombAction torpedo:
 					torpedoMounts.Add(torpedo.MountedOn);
 					break;
 			}
 		}
 
-		return new WeaponPeek(portScrapDroneSwarm, starboardScrapDroneSwarm, lightningCannon, torpedoMounts);
+		return new WeaponPeek(
+			portScrapDroneSwarm,
+			starboardScrapDroneSwarm,
+			lightningCannon,
+			goopGun,
+			torpedoMounts);
 	}
 
 	public AreaActionPreviews AreaPreviews(

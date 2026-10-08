@@ -50,6 +50,11 @@ public sealed class ActionLogTests
 		ITimelineEntry[] history =
 		[
 			new LightningCannonAction("repurposed-miner-a"),
+			new Record<AreaDamageFacts>(new AreaDamageFacts(
+				SourceId: "repurposed-miner-a",
+				Cause: EImpactCause.LightningCannonBurst,
+				Origin: Coord.Zero,
+				Cells: new HashSet<Coord> { Coord.Forward })),
 			new Record<ImpactFacts>(new ImpactFacts(
 				SourceId: "repurposed-miner-a",
 				TargetId: "fighter-b",

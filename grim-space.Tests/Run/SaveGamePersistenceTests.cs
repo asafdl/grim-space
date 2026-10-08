@@ -2,8 +2,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.NonUnits;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement.Enums;
 using GrimSpace.Battle.Objectives;
@@ -33,6 +36,7 @@ using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Application;
+using GrimSpace.Battle.Player;
 
 namespace GrimSpace.Tests.Run;
 
@@ -260,6 +264,15 @@ public sealed class SaveGamePersistenceTests
 
 		Assert.Equal(action, registry.Read(registry.Write(action)));
 		Assert.Equal(record, registry.Read(registry.Write(record)));
+	}
+
+	[Fact]
+	public void DefaultRegistry_RoundTripsRemoveHazardAction()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var action = new RemoveHazardAction("player-ship", "goop-test-1");
+
+		Assert.Equal(action, registry.Read(registry.Write(action)));
 	}
 
 	[Fact]
@@ -653,6 +666,70 @@ public sealed class SaveGamePersistenceTests
 		Assert.All(
 			spawned.Fleets.SelectMany(fleet => fleet.Registrations),
 			registration => Assert.NotEqual(EType.Fighter, registration.Chassis));
+	}
+
+	[Fact]
+	public void RestoreBattleWorld_PendingRemoveHazardPreservesRemainingLifetime()
+	{
+		const string playerId = "player";
+		var playerPos = new Coord(5, 5, 5);
+		using var battle = BattleOrchestrator.FromEncounter(
+			new BattleEncounter
+			{
+				Id = "goop-persist-test",
+				Seed = 1,
+				Objective = EObjective.EliminateOpponents,
+				Spawns =
+				[
+					BattleSpawnTestKit.Create(
+						BattleSpawnTestKit.FighterWithGoopGun(playerId),
+						ETeam.Player,
+						playerPos,
+						new UserExecutionAgent()),
+					BattleSpawnTestKit.Create(
+						"enemy",
+						EType.Fighter,
+						ETeam.Enemy,
+						playerPos + Coord.Forward * 10,
+						new AiController()),
+				],
+			},
+			gridSize: 30);
+
+		var action = GoopGunDef.Instance.Bind(playerId, ESpatialOrientation.Forward);
+		var world = battle.Engine.World;
+		var runtime = new ActorRuntime();
+		Assert.True(BattleTestApply.TryApplyOne(action, world, runtime, action.ActorId));
+
+		var hazardId = action.GoopHazardId;
+		Assert.True(world.NonUnits.ContainsKey(hazardId));
+		Assert.True(world.Timeline.ContainsPending(pending =>
+			pending is RemoveHazardAction remove
+			&& remove.HazardId == hazardId
+			&& remove.OwnerId == playerId));
+
+		var registry = PersistenceRegistry.CreateDefault();
+		var restored = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(world, registry),
+			registry);
+
+		Assert.True(restored.NonUnits.ContainsKey(hazardId));
+		Assert.True(restored.Timeline.ContainsPending(pending =>
+			pending is RemoveHazardAction remove
+			&& remove.HazardId == hazardId
+			&& remove.OwnerId == playerId));
+
+		using var restoredBattle = BattleOrchestrator.FromSavedWorld(restored, playerId);
+		var firstTick = restoredBattle.Engine.AdvanceTick();
+
+		Assert.Contains(hazardId, restoredBattle.Engine.World.NonUnits.Keys);
+		Assert.DoesNotContain(firstTick, entry => entry is RemoveHazardAction);
+
+		var secondTick = restoredBattle.Engine.AdvanceTick();
+
+		Assert.DoesNotContain(hazardId, restoredBattle.Engine.World.NonUnits.Keys);
+		Assert.IsType<RemoveHazardAction>(
+			secondTick.Single(entry => entry is RemoveHazardAction));
 	}
 
 	[Fact]

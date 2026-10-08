@@ -11,6 +11,15 @@ internal static class AbilitySourceMeshes
 
 	public static Node3D CreateLightningCannon() => Ghost(GetLightningBoltMesh());
 
+	public static Node3D CreateGoopGun() =>
+		Ghost(new SphereMesh
+		{
+			Radius = 0.34f,
+			Height = 0.68f,
+			RadialSegments = 12,
+			Rings = 6,
+		});
+
 	public static Node3D CreateVoidBomb() => VoidBombMesh.CreateHullInstance();
 
 	public static Node3D CreateRepurposedMiner() => Ghost(RepurposedMinerMesh.CreatePreviewHull());

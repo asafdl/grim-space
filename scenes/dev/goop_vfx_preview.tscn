@@ -1,0 +1,52 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/dev/GoopVfxPreview.cs" id="1_script"]
+
+[sub_resource type="Environment" id="Environment_preview"]
+background_mode = 1
+background_color = Color(0.005, 0.009, 0.016, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.32, 0.39, 0.48, 1)
+ambient_light_energy = 0.55
+reflected_light_source = 2
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.6
+glow_bloom = 0.06
+
+[node name="GoopVfxPreview" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(11, 8.5, 15)
+current = true
+fov = 48.0
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -34, 0)
+light_color = Color(0.78, 0.9, 1, 1)
+light_energy = 1.35
+shadow_enabled = false
+
+[node name="RimLight" type="OmniLight3D" parent="."]
+position = Vector3(1, 5, 1)
+light_color = Color(0.48, 1, 0.3, 1)
+light_energy = 0.8
+omni_range = 11.0
+shadow_enabled = false
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_preview")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 1050.0
+offset_bottom = 86.0
+theme_override_colors/font_color = Color(0.82, 1, 0.72, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
