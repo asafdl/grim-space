@@ -14,6 +14,7 @@ public static class Capabilities
 {
 	internal const string PreviewRepurposedMinerId = "__preview_repurposed_miner__";
 	internal const string PreviewVoidBombId = "__preview_void_bomb__";
+	internal const string PreviewGoopHazardId = "__preview_goop_hazard__";
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> Movement { get; } =
 	[
@@ -67,6 +68,7 @@ public static class Capabilities
 			var candidates = def switch
 			{
 				VoidBombDef torpedo => torpedo.Discover(actorId, PreviewVoidBombId, world),
+				GoopGunDef goopGun => goopGun.Discover(actorId, PreviewGoopHazardId, world),
 				SpawnRepurposedMinerDef => DiscoverPreviewRepurposedMinerSpawns(state),
 				_ => def.Discover(world, runtime, actorId),
 			};
@@ -99,6 +101,7 @@ public static class Capabilities
 			EAbilityKind.LightningCannon => LightningCannonDef.Instance,
 			EAbilityKind.MinerBay => SpawnRepurposedMinerDef.Instance,
 			EAbilityKind.VoidBombLauncher => VoidBombDef.Instance,
+			EAbilityKind.GoopGun => GoopGunDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 

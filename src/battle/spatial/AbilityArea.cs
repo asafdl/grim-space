@@ -10,11 +10,20 @@ public static class AbilityArea
 {
 	private const int CacheSizeLimit = 256;
 
-	private static readonly MemoryCache GeometryCache =
+	private static MemoryCache GeometryCache = CreateCache();
+
+	private static MemoryCache BlockingCache = CreateCache();
+
+	private static MemoryCache CreateCache() =>
 		new(new MemoryCacheOptions { SizeLimit = CacheSizeLimit });
 
-	private static readonly MemoryCache BlockingCache =
-		new(new MemoryCacheOptions { SizeLimit = CacheSizeLimit });
+	internal static void ClearCachesForTesting()
+	{
+		GeometryCache.Dispose();
+		BlockingCache.Dispose();
+		GeometryCache = CreateCache();
+		BlockingCache = CreateCache();
+	}
 
 	public static FrozenSet<Coord> CellsInBounds(
 		IAreaDamage area,

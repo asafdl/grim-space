@@ -9,12 +9,13 @@ namespace GrimSpace.Tests.Units.Specs;
 public sealed class FighterSpecTests
 {
 	[Fact]
-	public void Slots_IncludeSixWeaponMounts()
+	public void Slots_IncludeSevenWeaponMounts()
 	{
 		var spec = FighterSpec.Instance;
 
-		Assert.Equal(6, spec.Slots.Count);
+		Assert.Equal(7, spec.Slots.Count);
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)));
+		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Forward)));
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 	}
 
@@ -32,7 +33,7 @@ public sealed class FighterSpecTests
 	{
 		var loadout = FighterSpec.Instance.NewDefaultLoadout();
 
-		Assert.Equal(6, loadout.InstalledAbilities.Count);
+		Assert.Equal(7, loadout.InstalledAbilities.Count);
 		foreach (var slot in FighterSpec.Instance.Slots)
 			Assert.Contains(loadout.InstalledAbilities, installed => installed.Mount == slot.Mount);
 	}

@@ -47,7 +47,7 @@ public abstract class ShipSpec
 		return null;
 	}
 
-	public ShipLoadout NewDefaultLoadout() =>
+	public virtual ShipLoadout NewDefaultLoadout() =>
 		ShipLoadout.Create(
 			this,
 			DefaultMaxHullPoints,

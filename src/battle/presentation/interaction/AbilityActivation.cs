@@ -49,6 +49,10 @@ public static class AbilityActivation
 				SpawnRepurposedMinerDef.Instance.Bind(repurposedMiner.ActorId, repurposedMiner.MountedOn),
 			SpawnRepurposedMinerAction repurposedMiner =>
 				new SpawnRepurposedMinerAction(repurposedMiner.ActorId, repurposedMiner.MountedOn, repurposedMiner.SpawnedUnitId),
+			GoopGunAction goopGun when goopGun.GoopHazardId == Capabilities.PreviewGoopHazardId =>
+				GoopGunDef.Instance.Bind(goopGun.ActorId, goopGun.MountedOn),
+			GoopGunAction goopGun =>
+				GoopGunDef.Instance.Bind(goopGun.ActorId, goopGun.MountedOn, goopGun.GoopHazardId),
 			IMountedAction mounted
 				when choice.Action is IAction<BattleWorld, ActorRuntime>
 				{

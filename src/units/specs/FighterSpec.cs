@@ -31,6 +31,7 @@ public sealed class FighterSpec : ShipSpec
 		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port), ChassisWeaponBaselines.ScrapDroneSwarm()),
 		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard), ChassisWeaponBaselines.ScrapDroneSwarm()),
 		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Forward), ChassisWeaponBaselines.LightningCannon()),
+		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Forward), ChassisWeaponBaselines.GoopGun()),
 		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Retro), ChassisWeaponBaselines.VoidBombLauncher()),
 		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral), ChassisWeaponBaselines.VoidBombLauncher()),
 		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Dorsal), ChassisWeaponBaselines.VoidBombLauncher()),

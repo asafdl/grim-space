@@ -78,9 +78,10 @@ public sealed class InstalledAbilityTests
 	{
 		var installed = ShipCatalog.FullFighterLoadout().InstalledAbilities;
 
-		Assert.Equal(6, installed.Count);
+		Assert.Equal(7, installed.Count);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.LightningCannon);
+		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.GoopGun);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.VoidBombLauncher);
 	}
 

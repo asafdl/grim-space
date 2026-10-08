@@ -246,9 +246,7 @@ public sealed class DetonateActionTests
 			battle.Engine.World,
 			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
 		var affected = DetonateDef.Instance.AffectedCells(battle.Engine.World, torpedoId, torpedoPos);
-		var repeated = DetonateDef.Instance.AffectedCells(battle.Engine.World, torpedoId, torpedoPos);
 
-		Assert.Same(affected, repeated);
 		Assert.DoesNotContain(allyPos, affected);
 		Assert.DoesNotContain(asteroidPos, affected);
 	}

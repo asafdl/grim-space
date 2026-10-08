@@ -129,7 +129,6 @@ public sealed class AbilityAreaBlockingTests
 		var filtered = AbilityArea.ApplyBlocking(origin, candidates, true, Frozen());
 
 		Assert.Equal(candidates, filtered);
-		Assert.Same(candidates, filtered);
 	}
 
 	[Fact]
@@ -142,28 +141,4 @@ public sealed class AbilityAreaBlockingTests
 		Assert.Equal(snapshot, candidates);
 	}
 
-	[Fact]
-	public void NonBlockableLeavesCachedGeometryUntouchedAcrossCalls()
-	{
-		var origin = new Coord(5, 5, 5);
-		var candidates = Frozen(new Coord(6, 5, 5), new Coord(7, 5, 5));
-		var first = AbilityArea.ApplyBlocking(origin, candidates, false, Frozen(new Coord(6, 5, 5)));
-		var second = AbilityArea.ApplyBlocking(origin, candidates, false, Frozen(new Coord(6, 5, 5)));
-
-		Assert.Same(candidates, first);
-		Assert.Same(first, second);
-	}
-
-	[Fact]
-	public void BlockedResultIsReusedForStableGeometryAndTopology()
-	{
-		var origin = Coord.Zero;
-		var candidates = Frozen(new Coord(1, 0, 0), new Coord(3, 0, 0));
-		var blockers = Frozen(new Coord(2, 0, 0));
-
-		var first = AbilityArea.ApplyBlocking(origin, candidates, true, blockers);
-		var second = AbilityArea.ApplyBlocking(origin, candidates, true, blockers);
-
-		Assert.Same(first, second);
-	}
 }

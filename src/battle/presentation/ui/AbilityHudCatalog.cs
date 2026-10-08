@@ -23,6 +23,7 @@ public static class AbilityHudCatalog
 	private static readonly Color ScrapDroneAccent = new(0.98f, 0.82f, 0.14f, 0.48f);
 	private static readonly Color LightningAccent = new(0.38f, 0.68f, 1f, 0.48f);
 	private static readonly Color VoidBombAccent = new(0.68f, 0.32f, 0.98f, 0.52f);
+	private static readonly Color GoopGunAccent = new(0.42f, 0.88f, 0.38f, 0.48f);
 
 	public sealed record Spec(
 		EPlayerMode Mode,
@@ -86,6 +87,19 @@ public static class AbilityHudCatalog
 					unit.UsesRemaining(EAbilityKind.LightningCannon),
 					unit.MaxUsesPerTurn(EAbilityKind.LightningCannon)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.LightningCannon)),
+			GoopGunDef => new(
+				EPlayerMode.GoopGun,
+				def,
+				new AbilityTargetingSpec(
+					ForwardSource<GoopGunAction>,
+					AbilitySourceMeshes.CreateLightningCannon,
+					GoopGunAccent),
+				"res://assets/ui/abilities/lightning_cannon.svg",
+				BattleHudCopy.GoopGunTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ReadyMounts(EAbilityKind.GoopGun),
+					unit.MountCount(EAbilityKind.GoopGun)),
+				_ => false),
 			VoidBombDef => new(
 				EPlayerMode.VoidBomb,
 				def,

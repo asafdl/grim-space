@@ -133,6 +133,16 @@ internal static class BattleHudCopy
 		$"Deals {lightningCannon.Damage} damage.\n" +
 		$"Cooldown: {lightningCannon.UsesPerTurn} use per turn.";
 
+	public static string GoopGunTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<GoopGunSpec>(unit, EAbilityKind.GoopGun) is { } goop
+			? GoopGunTooltipFor(goop)
+			: "Goop Gun";
+
+	public static string GoopGunTooltipFor(GoopGunSpec goop) =>
+		$"Goop Gun:\nCoats a forward area in blocking goop.\n" +
+		$"Placement range: {goop.Range} cells.\n" +
+		$"Cooldown: {goop.UnavailableTurns} turns after use.";
+
 	public static string VoidBombTooltipFor(VoidBombLauncherSpec launcher) =>
 		$"Void bomb:\nFires in a set direction.\n" +
 		$"Travels for {launcher.FuelTurns} turns with {launcher.MovementActionPoints} AP per turn.\n" +

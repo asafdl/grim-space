@@ -42,4 +42,6 @@ internal static class ChassisWeaponBaselines
 			VoidBombSpec.LateralMoveApCost,
 			VoidBombSpec.BlastRadius,
 			VoidBombSpec.BlastDamage);
+
+	internal static GoopGunSpec GoopGun() => new();
 }

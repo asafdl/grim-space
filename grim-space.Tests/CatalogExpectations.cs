@@ -38,4 +38,6 @@ internal static class CatalogExpectations
 
 	public static VoidBombLauncherSpec DefaultVoidBombLauncher() =>
 		DefaultVoidBombLauncherSpec(EType.Fighter);
+
+	public static GoopGunSpec DefaultGoopGunSpec() => new();
 }

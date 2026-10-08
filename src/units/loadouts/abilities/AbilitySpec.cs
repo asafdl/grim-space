@@ -250,6 +250,33 @@ public sealed record VoidBombLauncherSpec(
 		};
 }
 
+public sealed record GoopGunSpec(
+	int Range = 3,
+	int HalfWidth = 1,
+	int HalfHeight = 1,
+	int UnavailableTurns = 2) : AbilitySpec, ICooldownAbility
+{
+	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
+
+	public override EAbilityKind Kind => EAbilityKind.GoopGun;
+	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
+	int ICooldownAbility.CooldownTurns => UnavailableTurns;
+
+	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
+	{
+		var starboard = Coord.Cross(dorsal, fore);
+		var center = origin + direction * Range;
+		var cells = new List<Coord>();
+		for (var port = -HalfWidth; port <= HalfWidth; port++)
+		{
+			for (var dorsalOffset = -HalfHeight; dorsalOffset <= HalfHeight; dorsalOffset++)
+				cells.Add(center + starboard * (-port) + dorsal * dorsalOffset);
+		}
+
+		return cells;
+	}
+}
+
 public interface IPerTurnAbility
 {
 	int UsesPerTurn { get; }

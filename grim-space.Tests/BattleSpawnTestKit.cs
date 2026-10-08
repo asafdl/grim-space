@@ -44,4 +44,16 @@ internal static class BattleSpawnTestKit
 				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxHullPoints,
 				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 				installed));
+
+	public static ShipInstance FighterWithGoopGun(
+		string id,
+		ESpatialOrientation mountedOn = ESpatialOrientation.Forward,
+		GoopGunSpec? spec = null)
+	{
+		spec ??= new GoopGunSpec();
+		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
+			.Append(new InstalledAbility(spec, mountedOn))
+			.ToArray();
+		return FighterWithInstalledAbilities(id, installed);
+	}
 }

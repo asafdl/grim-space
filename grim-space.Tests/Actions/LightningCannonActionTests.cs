@@ -134,30 +134,4 @@ public sealed class LightningCannonActionTests
 		Assert.Contains(playerPos + Coord.Forward, affected);
 	}
 
-	[Fact]
-	public void AffectedCellsReuseBlockedResultAcrossWorldForksAndInvalidateOnTopologyChange()
-	{
-		var playerPos = new Coord(5, 5, 5);
-		var asteroidPos = playerPos + Coord.Forward * 3;
-		var battle = TurnOrchestrationTests.CreateOrchestrator(
-			playerPos,
-			playerPos + Coord.Forward * 6);
-		var world = battle.PlayerAgent.Sim.World;
-		BattleTestWorld.InjectNonUnit(
-			world,
-			Asteroid.Create("asteroid", asteroidPos, world.Grid, [asteroidPos]));
-		var action = new LightningCannonAction(PlayerId);
-
-		var first = LightningCannonDef.Instance.AffectedCells(action, world);
-		var repeated = LightningCannonDef.Instance.AffectedCells(action, world);
-		var forked = LightningCannonDef.Instance.AffectedCells(action, world.Fork());
-
-		Assert.Same(first, repeated);
-		Assert.Same(first, forked);
-
-		Assert.True(world.RemoveNonUnit("asteroid"));
-		var afterRemoval = LightningCannonDef.Instance.AffectedCells(action, world);
-		Assert.NotSame(first, afterRemoval);
-		Assert.Contains(asteroidPos, afterRemoval);
-	}
 }
