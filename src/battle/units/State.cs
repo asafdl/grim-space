@@ -12,6 +12,7 @@ public sealed class State
 {
 	public required string Id { get; init; }
 	public required EType Type { get; init; }
+	public required int Initiative { get; set; }
 	public required ShipLoadout Loadout { get; init; }
 	public Coord Position { get; set; }
 	public Coord Fore { get; set; }
@@ -80,6 +81,7 @@ public sealed class State
 		{
 			Id = Id,
 			Type = Type,
+			Initiative = Initiative,
 			Loadout = Loadout.DeepCopy(),
 			Position = Position,
 			Fore = Fore,
@@ -118,6 +120,7 @@ public sealed class State
 		{
 			Id = ship.Id,
 			Type = ship.Spec.Chassis,
+			Initiative = ship.Spec.Initiative,
 			Loadout = ship.Loadout.DeepCopy(),
 			Position = position,
 			Fore = fore,

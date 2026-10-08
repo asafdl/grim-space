@@ -194,6 +194,7 @@ public static class SaveDtoMapper
 		return ReflectionJson.Map<BattleUnitStateDto>(new
 		{
 			Ship = ship,
+			state.Initiative,
 			state.Position,
 			state.Fore,
 			state.Dorsal,
@@ -226,6 +227,7 @@ public static class SaveDtoMapper
 			dto.Dorsal,
 			dto.ParentId);
 		state.Starboard = dto.Starboard;
+		state.Initiative = dto.Initiative ?? state.Initiative;
 		state.ActionPoints = dto.ActionPoints;
 		var maneuverability = dto.Projectile?.Maneuverability() ?? state.Maneuverability;
 		var maxMp = dto.MaxMp ?? maneuverability.MaxManeuverPoints;
@@ -291,6 +293,7 @@ public static class SaveDtoMapper
 				Ship = CaptureShip(ship),
 				unit.Team,
 				AgentKind = BattleAgentFactory.KindOf(unit.ExecutionAgent),
+				state.Initiative,
 				state.Position,
 				state.Fore,
 				state.Dorsal,
@@ -740,6 +743,7 @@ public static class SaveDtoMapper
 				unitDto.Dorsal,
 				unitDto.ParentId);
 			state.Starboard = unitDto.Starboard;
+			state.Initiative = unitDto.Initiative ?? state.Initiative;
 			state.ActionPoints = unitDto.ActionPoints;
 			var maneuverability = unitDto.Projectile?.Maneuverability() ?? state.Maneuverability;
 			var maxMp = unitDto.MaxMp ?? maneuverability.MaxManeuverPoints;

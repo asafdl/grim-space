@@ -226,6 +226,15 @@ public sealed class BattlePhaseTests
 			BattleController.ShouldAllowEndTurn(acceptsCommands, tutorialBlocksEndTurn));
 
 	[Theory]
+	[InlineData(1, 1, false)]
+	[InlineData(1, 2, true)]
+	public void ReplayCompletesRoundOnlyAfterTickAdvances(
+		int resolvedTurn,
+		int currentTurn,
+		bool expected) =>
+		Assert.Equal(expected, BattleController.DidRoundComplete(resolvedTurn, currentTurn));
+
+	[Theory]
 	[InlineData(EBattlePhase.PlayerTurn, true)]
 	[InlineData(EBattlePhase.Resolving, true)]
 	[InlineData(EBattlePhase.Replaying, false)]

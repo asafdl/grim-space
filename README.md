@@ -249,7 +249,7 @@ Movement uses two independently refilled resources. Action points (AP) pay for t
 
 ### Turn loop
 
-The player plans an action batch and publishes it at end of turn. [`BattleOrchestrator`](src/battle/BattleOrchestrator.cs) then walks [`UnitRegistry.ActivationOrder`](src/battle/units/UnitRegistry.cs), activates each unit's execution agent, consumes its batch, and commits batches sequentially. Newly spawned actors join the remaining activation order. Round upkeep is committed last, the tick advances, and the committed history is packaged as a [`TurnReplay`](src/battle/TurnReplay.cs) for presentation. The next player turn starts only after replay completes.
+[`BattleOrchestrator`](src/battle/BattleOrchestrator.cs) walks [`UnitRegistry.ActivationOrder`](src/battle/units/UnitRegistry.cs), ordered by descending chassis initiative with stable enlistment-order ties. Each player-controlled activation enters `PlayerTurn`; ending it commits that actor, resolves following AI activations up to the next player-controlled actor, and packages that segment as a [`TurnReplay`](src/battle/TurnReplay.cs). The next player activation starts only after the segment replay completes. Newly spawned actors join the remaining activation order. Round upkeep is committed after the final activation, then the tick advances and a new initiative pass begins.
 
 ### Battle state
 

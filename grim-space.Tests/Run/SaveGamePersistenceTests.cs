@@ -167,6 +167,9 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(
 			SaveBlockReason.UncommittedPlayerBatch,
 			SaveLoadPolicy.CanSave(stable with { StrategicHasUncommittedPlayerBatch = true }));
+		Assert.Equal(
+			SaveBlockReason.BattleTurnInProgress,
+			SaveLoadPolicy.CanSave(stable with { BattleTurnInProgress = true }));
 	}
 
 	[Fact]
@@ -810,6 +813,46 @@ public sealed class SaveGamePersistenceTests
 
 		Assert.Equal(1, restoredPlayer.ManeuverPoints);
 		Assert.Equal(2, restoredPlayer.Maneuverability.MaxManeuverPoints);
+	}
+
+	[Fact]
+	public void SaveDtoMapper_RoundTripsBattleInitiative()
+	{
+		using var orchestrator = BattleOrchestrator.FromEncounter(
+			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
+			gridSize: 12);
+		var player = orchestrator.Engine.World.StateOf(orchestrator.PlayerId);
+		player.Initiative = 99;
+		var registry = new PersistenceRegistry();
+
+		var restored = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry),
+			registry);
+
+		Assert.Equal(99, restored.StateOf(orchestrator.PlayerId).Initiative);
+	}
+
+	[Fact]
+	public void RestoreBattleWorld_DefaultsMissingInitiativeToChassis()
+	{
+		using var orchestrator = BattleOrchestrator.FromEncounter(
+			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
+			gridSize: 12);
+		var registry = new PersistenceRegistry();
+		var dto = SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry);
+		var json = JsonSerializer.SerializeToNode(dto, registry.Options)!.AsObject();
+		foreach (var unit in json["units"]!.AsArray())
+			unit!.AsObject().Remove("initiative");
+
+		var legacyDto = JsonSerializer.Deserialize<BattleWorldSaveDto>(
+			json,
+			registry.Options)!;
+		var restored = SaveDtoMapper.RestoreBattleWorld(legacyDto, registry);
+
+		Assert.All(restored.UnitRegistry.All, unit =>
+			Assert.Equal(
+				ShipCatalog.SpecFor(unit.State.Type).Initiative,
+				unit.State.Initiative));
 	}
 
 	[Fact]

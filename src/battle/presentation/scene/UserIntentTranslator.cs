@@ -19,8 +19,8 @@ namespace GrimSpace.Battle.Presentation.Scene;
 /// </summary>
 public sealed partial class UserIntentTranslator : Node
 {
-	private readonly string _actorId;
-	private readonly IActionSink _actions;
+	private string _actorId;
+	private IActionSink _actions;
 	private readonly Controller _camera;
 	private readonly BattleHud _hud;
 	private readonly AbilitySourcePickerView _abilitySourcePicker;
@@ -65,6 +65,15 @@ public sealed partial class UserIntentTranslator : Node
 		_hud = hud;
 		_abilitySourcePicker = abilitySourcePicker;
 		_unitViews = unitViews;
+	}
+
+	public void Bind(string actorId, IActionSink actions)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(actorId);
+		ArgumentNullException.ThrowIfNull(actions);
+		_actorId = actorId;
+		_actions = actions;
+		_reopenHold.Cancel();
 	}
 
 	public event Action<EPlayerMode>? ModeRequested;

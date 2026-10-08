@@ -12,6 +12,7 @@ namespace GrimSpace.Battle.Player;
 public sealed record UnitDisplayState(
 	string Id,
 	EType Type,
+	int Initiative,
 	ShipLoadout Loadout,
 	Coord Position,
 	Coord Fore,
@@ -31,6 +32,7 @@ public sealed record UnitDisplayState(
 		new(
 			state.Id,
 			state.Type,
+			state.Initiative,
 			state.Loadout.DeepCopy(),
 			state.Position,
 			state.Fore,
@@ -81,6 +83,7 @@ public sealed record UnitDisplayState(
 		{
 			Id = Id,
 			Type = Type,
+			Initiative = Initiative,
 			Loadout = Loadout.DeepCopy(),
 			Position = Position,
 			Fore = Fore,

@@ -40,6 +40,7 @@ public sealed partial class PosedUnitGhostView : Node3D
 		{
 			Id = GhostId,
 			Type = spec.Type,
+			Initiative = chassis.Initiative,
 			Loadout = loadout.DeepCopy(),
 			Position = spec.Position,
 			Fore = spec.Fore,

@@ -9,6 +9,7 @@ namespace GrimSpace.Units.Specs;
 public abstract class ShipSpec
 {
 	public abstract EType Chassis { get; }
+	public abstract int Initiative { get; }
 	public abstract int DefaultMaxHullPoints { get; }
 	public abstract FaceShieldPoints DefaultMaxShieldPoints { get; }
 	public abstract ManeuverabilitySpec Maneuverability { get; }

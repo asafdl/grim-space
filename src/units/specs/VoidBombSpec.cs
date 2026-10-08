@@ -21,6 +21,7 @@ public sealed class VoidBombSpec : ShipSpec
 	}
 
 	public override EType Chassis => EType.VoidBomb;
+	public override int Initiative => 10;
 
 	public override int DefaultMaxHullPoints => 1;
 	public override ManeuverabilitySpec Maneuverability { get; } =

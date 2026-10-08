@@ -22,6 +22,7 @@ public sealed class PresentationFrameBuilder
 	public InteractionState Interaction { get; } = new();
 
 	private readonly List<ActionLog.Entry> _actionLogEntries = [];
+	private int? _lastLoggedTurn;
 
 	public IReadOnlyList<ActionLog.Entry> ActionLogEntries => _actionLogEntries;
 
@@ -37,7 +38,11 @@ public sealed class PresentationFrameBuilder
 	public void AppendTurn(BattleOrchestrator battle, int turnNumber, IReadOnlyList<ITimelineEntry> history)
 	{
 		var units = UnitRegistry.For(battle.Engine.World);
-		_actionLogEntries.Add(ActionLog.TurnHeader(turnNumber));
+		if (_lastLoggedTurn != turnNumber)
+		{
+			_actionLogEntries.Add(ActionLog.TurnHeader(turnNumber));
+			_lastLoggedTurn = turnNumber;
+		}
 		_actionLogEntries.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
 	}
 

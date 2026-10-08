@@ -64,9 +64,11 @@ public partial class BattleController : Node3D
 	private bool _strategicBattle;
 	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
+	private readonly List<string> _resolvedRoundActivations = [];
 	private readonly Dictionary<string, EType> _unitTypes = new(StringComparer.Ordinal);
 	private IReadOnlyList<string> _currentTurnActivations = [];
 	private IReadOnlyList<TurnFlowEntry> _turnFlowTimeline = [];
+	private bool _replayCompletesRound;
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
 	private bool CanEndTurn =>
@@ -100,7 +102,10 @@ public partial class BattleController : Node3D
 				StrategicHasUncommittedPlayerBatch: false,
 				BattleResolving: _battle.Phase == EBattlePhase.Resolving,
 				BattleReplaying: _battle.Phase == EBattlePhase.Replaying,
-				SceneTransitioning: false));
+				SceneTransitioning: false,
+				BattleTurnInProgress:
+					_battle.Phase == EBattlePhase.PlayerTurn
+					&& !_battle.IsAtRoundStart));
 		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
@@ -356,19 +361,36 @@ public partial class BattleController : Node3D
 		_lastPhase = phase;
 		if (phase == EBattlePhase.PlayerTurn)
 		{
+			BindActivePlayer();
 			SyncAuthoritativeUnitViewsFromWorld();
 			SyncAuthoritativeHazardViews();
 		}
 		if (phase == EBattlePhase.PlayerTurn && previous == EBattlePhase.Replaying)
 		{
-			if (_currentTurnActivations.Count > 0)
-				_completedTurnOrders.Add(_currentTurnActivations);
+			if (_replayCompletesRound && _resolvedRoundActivations.Count > 0)
+			{
+				_completedTurnOrders.Add(_resolvedRoundActivations.ToArray());
+				_resolvedRoundActivations.Clear();
+			}
 			_currentTurnActivations = [];
 			RebuildTurnFlowTimeline();
 		}
 
 		RefreshPresentation();
 		_battleTutorial?.NotifyBattlePhaseChanged(phase);
+	}
+
+	private void BindActivePlayer()
+	{
+		var activeAgent = _battle.PlayerAgent;
+		if (ReferenceEquals(_agent, activeAgent))
+			return;
+
+		_agent.PlanningChanged -= RefreshPresentation;
+		_agent = activeAgent;
+		_translator.Bind(_battle.ActivePlayerId, _agent);
+		_agent.PlanningChanged += RefreshPresentation;
+		_frames.Interaction.ResetAfterTurn();
 	}
 
 	private void OnTurnResolved(TurnReplay replay, int completedTurn)
@@ -380,13 +402,19 @@ public partial class BattleController : Node3D
 			_unitTypes[spawn.SpawnedState.Id] = spawn.EntityType;
 		}
 
+		_resolvedRoundActivations.AddRange(replay.ActivationOrder);
+		_replayCompletesRound = DidRoundComplete(completedTurn, _battle.TurnNumber);
 		_currentTurnActivations = replay.ActivationOrder;
 		RebuildTurnFlowTimeline();
 		_frames.Interaction.ResetAfterTurn();
 		_frames.AppendTurn(_battle, completedTurn, replay.History);
-		_battleTutorial?.NotifyBattleTurnResolved(completedTurn);
+		if (_replayCompletesRound)
+			_battleTutorial?.NotifyBattleTurnResolved(completedTurn);
 		RefreshPresentation();
 	}
+
+	internal static bool DidRoundComplete(int resolvedTurn, int currentTurn) =>
+		currentTurn > resolvedTurn;
 
 	private void OnAbilityModeRequested(AbilityHudCatalog.Spec spec)
 	{

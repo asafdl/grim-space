@@ -21,4 +21,5 @@ public sealed record BattleUnitSaveDto(
 	VoidBombProjectile? Projectile,
 	IReadOnlyList<MountRuntimeDto> MountRuntime,
 	int? ManeuverPoints = null,
-	int? MaxMp = null);
+	int? MaxMp = null,
+	int? Initiative = null);

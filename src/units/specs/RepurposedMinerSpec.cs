@@ -15,6 +15,7 @@ public sealed class RepurposedMinerSpec : ShipSpec
 	}
 
 	public override EType Chassis => EType.RepurposedMiner;
+	public override int Initiative => 30;
 	public override int DefaultMaxHullPoints => 1;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 2);

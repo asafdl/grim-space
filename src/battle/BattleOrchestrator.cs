@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using GrimSpace.Core.Log;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Debug;
@@ -27,6 +26,7 @@ public sealed class BattleOrchestrator : IDisposable
 
 	private bool _resolveInProgress;
 	private int _resolveVersion;
+	private readonly HashSet<string> _activatedThisRound = new(StringComparer.Ordinal);
 
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
@@ -35,16 +35,20 @@ public sealed class BattleOrchestrator : IDisposable
 	{
 		_engine = engine;
 		Layout = layout;
-		PlayerId = playerId;
+		ActivePlayerId = playerId;
 	}
 
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
-	public string PlayerId { get; }
+	public string ActivePlayerId { get; private set; }
+	public string PlayerId => ActivePlayerId;
 	public bool IsBattleOver => _engine.World.battleResult != EBattleResult.Ongoing;
 	public int TurnNumber => _engine.Tick;
 	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
+	public bool IsAtRoundStart => _activatedThisRound.Count == 0;
+	public TurnReplay? PendingReplay { get; private set; }
+	public int PendingReplayTurn { get; private set; }
 
 	public bool AcceptsPlayerInput => Phase == EBattlePhase.PlayerTurn;
 	public bool CanForceOutcome => Phase == EBattlePhase.PlayerTurn && !IsBattleOver;
@@ -53,7 +57,7 @@ public sealed class BattleOrchestrator : IDisposable
 	public event Action<TurnReplay, int>? TurnResolved;
 
 	public UserExecutionAgent PlayerAgent =>
-		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(PlayerId).ExecutionAgent;
+		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(ActivePlayerId).ExecutionAgent;
 
 	public static BattleOrchestrator FromEncounter(BattleEncounter encounter, int gridSize = 64)
 	{
@@ -153,19 +157,23 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 
 		if (world.battleResult == EBattleResult.Ongoing)
-			orchestrator.EnterPlayerTurn(phaseReason);
+			orchestrator.BeginRound(phaseReason);
 		else
 			orchestrator.SetPhase(EBattlePhase.BattleOver, phaseReason);
 
 		return orchestrator;
 	}
 
-	internal void EnterPlayerTurn(string reason = "player turn") =>
+	internal void EnterPlayerTurn(string reason = "player turn")
+	{
+		PrepareRound();
+		EnsureAgentInitialized(ActivePlayerId);
 		SetPhase(EBattlePhase.PlayerTurn, reason);
+	}
 
-	internal void GrantPlayerCanWork() => SetAgentCanWork(PlayerId, true);
+	internal void GrantPlayerCanWork() => SetAgentCanWork(ActivePlayerId, true);
 
-	internal void RevokePlayerCanWork() => SetAgentCanWork(PlayerId, false);
+	internal void RevokePlayerCanWork() => SetAgentCanWork(ActivePlayerId, false);
 
 	public Task<ActionProductionResult> WaitForBatchAsync(
 		string actorId,
@@ -173,6 +181,52 @@ public sealed class BattleOrchestrator : IDisposable
 		_actionSink.WaitForBatchAsync(actorId, cancellationToken);
 
 	public IActionBatchWriter WriterFor(string actorId) => _actionSink.WriterFor(actorId);
+
+	private void BeginRound(string reason)
+	{
+		PrepareRound();
+		ContinueRound(reason);
+	}
+
+	private void ContinueRound(string reason)
+	{
+		var next = NextLivingActivation();
+		if (next is null)
+			throw new InvalidOperationException("An ongoing battle must have at least one living activation.");
+
+		if (next.ExecutionAgent is UserExecutionAgent)
+		{
+			ActivePlayerId = next.State.Id;
+			EnsureAgentInitialized(ActivePlayerId);
+			SetPhase(EBattlePhase.PlayerTurn, reason);
+			return;
+		}
+
+		SetPhase(EBattlePhase.Resolving, $"{reason}; resolving initiative leaders");
+		var version = ++_resolveVersion;
+		_ = ResolveSegmentAndReplay(TurnNumber, version, playerActorId: null);
+	}
+
+	private void PrepareRound()
+	{
+		_engine.ActorRuntimes.Reset();
+		RevokeAllCanWork();
+		_activatedThisRound.Clear();
+	}
+
+	private Unit? NextLivingActivation()
+	{
+		var units = UnitRegistry.For(_engine.World);
+		foreach (var actorId in units.ActivationOrder)
+		{
+			if (!_activatedThisRound.Contains(actorId)
+				&& units.TryGet(actorId, out var unit)
+				&& unit.State.IsAlive)
+				return unit;
+		}
+
+		return null;
+	}
 
 	public void EndTurn()
 	{
@@ -183,6 +237,7 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 
 		var completedTurn = TurnNumber;
+		var playerActorId = ActivePlayerId;
 		if (!PlayerAgent.Commit())
 		{
 			BattleDiagnostics.LogCommitFailed(
@@ -195,7 +250,7 @@ public sealed class BattleOrchestrator : IDisposable
 
 		SetPhase(EBattlePhase.Resolving, $"turn {completedTurn} committing");
 		var version = ++_resolveVersion;
-		_ = ResolveAndReplay(completedTurn, version);
+		_ = ResolveSegmentAndReplay(completedTurn, version, playerActorId);
 	}
 
 	public void NotifyReplayComplete()
@@ -206,13 +261,18 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 		}
 
+		var roundEnded = TurnNumber > PendingReplayTurn;
+		PendingReplay = null;
 		if (IsBattleOver)
 		{
 			SetPhase(EBattlePhase.BattleOver, "battle over after replay");
 			return;
 		}
 
-		SetPhase(EBattlePhase.PlayerTurn, "replay complete");
+		if (roundEnded)
+			BeginRound("next round");
+		else
+			ContinueRound("replay complete");
 	}
 
 	public void Retire()
@@ -232,87 +292,13 @@ public sealed class BattleOrchestrator : IDisposable
 		if (!CanForceOutcome)
 			throw new InvalidOperationException($"Cannot force an outcome during phase {Phase}.");
 
-		_engine.Commit(CommitBattleOutcomeDef.Instance.BindForce(result, PlayerId));
+		_engine.Commit(CommitBattleOutcomeDef.Instance.BindForce(result, ActivePlayerId));
 		SetPhase(EBattlePhase.BattleOver, $"debug forced {result.ToString().ToLowerInvariant()}");
 	}
 
 	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
 		where TEntry : ITimelineEntry =>
 		_engine.Subscribe(listener);
-
-	public TurnReplay ResolveTurn() =>
-		ResolveTurnAsync().GetAwaiter().GetResult();
-
-	public async Task<TurnReplay> ResolveTurnAsync()
-	{
-		if (IsBattleOver || _resolveInProgress)
-			throw new InvalidOperationException("Cannot resolve turn while battle is over or already resolving.");
-
-		_resolveInProgress = true;
-		try
-		{
-			return await ExecuteTurnAsync();
-		}
-		finally
-		{
-			_resolveInProgress = false;
-		}
-	}
-
-	private async Task<TurnReplay> ExecuteTurnAsync()
-	{
-		var resolveTimer = Stopwatch.StartNew();
-		var turnNumber = TurnNumber;
-		var unitsAtTurnStart = SnapshotAll();
-		IReadOnlyDictionary<string, UnitState>? unitsAfterPlayer = null;
-
-		_engine.ActorRuntimes.Reset();
-		RevokeAllCanWork();
-
-		var units = UnitRegistry.For(_engine.World);
-		var activationOrder = units.ActivationOrder.ToList();
-		var scheduled = activationOrder.ToHashSet(StringComparer.Ordinal);
-		for (var index = 0; index < activationOrder.Count; index++)
-		{
-			var actorId = activationOrder[index];
-			if (!units.TryGet(actorId, out var live) || !live.State.IsAlive)
-				continue;
-
-			EnsureAgentInitialized(actorId);
-			var batch = await TakeActorBatchAsync(actorId);
-			CommitActor(actorId, batch.Actions);
-			NotifyWorldUpdated();
-
-			if (actorId == PlayerId)
-				unitsAfterPlayer = SnapshotAll();
-
-			var spawnedActors = units.ActivationOrder
-				.Where(scheduled.Add)
-				.ToList();
-			activationOrder.InsertRange(index + 1, spawnedActors);
-		}
-
-		CommitRoundUpkeep();
-		_engine.Commit(CommitBattleOutcomeDef.Instance.BindEvaluate());
-		var history = _engine.History();
-		_engine.AdvanceTick();
-
-		GameLog.Log(
-			$"Turn {turnNumber} sim: "
-			+ $"total={resolveTimer.Elapsed.TotalMilliseconds:F1}ms "
-			+ $"history={history.Count}");
-
-		var endStates = SnapshotAll();
-		StateLog.LogTurnResolution(
-			turnNumber,
-			history,
-			unitsAtTurnStart,
-			unitsAfterPlayer ?? endStates,
-			endStates,
-			id => ActionLog.DisplayName(units, id));
-
-		return new TurnReplay(unitsAtTurnStart, history, endStates);
-	}
 
 	private async Task<ActionBatch> TakeActorBatchAsync(string actorId)
 	{
@@ -405,12 +391,64 @@ public sealed class BattleOrchestrator : IDisposable
 			unit.ExecutionAgent.OnWorldUpdated();
 	}
 
-	private async Task ResolveAndReplay(int completedTurn, int version)
+	private async Task<TurnReplay> ExecuteSegmentAsync(string? playerActorId)
+	{
+		if (_resolveInProgress)
+			throw new InvalidOperationException("Cannot resolve an activation segment while another resolve is running.");
+
+		_resolveInProgress = true;
+		try
+		{
+			var turnNumber = TurnNumber;
+			var historyStart = _engine.History(turnNumber).Count;
+			var segmentStart = SnapshotAll();
+
+			while (NextLivingActivation() is { } live)
+			{
+				var actorId = live.State.Id;
+				if (live.ExecutionAgent is UserExecutionAgent
+					&& !string.Equals(actorId, playerActorId, StringComparison.Ordinal))
+					break;
+
+				EnsureAgentInitialized(actorId);
+				var batch = await TakeActorBatchAsync(actorId);
+				CommitActor(actorId, batch.Actions);
+				_activatedThisRound.Add(actorId);
+				playerActorId = null;
+				NotifyWorldUpdated();
+			}
+
+			var roundEnded = NextLivingActivation() is null;
+			if (roundEnded)
+			{
+				CommitRoundUpkeep();
+				_engine.Commit(CommitBattleOutcomeDef.Instance.BindEvaluate());
+			}
+
+			var history = _engine.History(turnNumber)
+				.Skip(historyStart)
+				.ToArray();
+			var segmentEnd = SnapshotAll();
+			if (roundEnded)
+				_engine.AdvanceTick();
+
+			return new TurnReplay(segmentStart, history, segmentEnd);
+		}
+		finally
+		{
+			_resolveInProgress = false;
+		}
+	}
+
+	private async Task ResolveSegmentAndReplay(
+		int completedTurn,
+		int version,
+		string? playerActorId)
 	{
 		var resolveTimer = Stopwatch.StartNew();
 		try
 		{
-			var replay = await ResolveTurnAsync();
+			var replay = await ExecuteSegmentAsync(playerActorId);
 			resolveTimer.Stop();
 
 			if (version != _resolveVersion)
@@ -426,13 +464,15 @@ public sealed class BattleOrchestrator : IDisposable
 			}
 
 			TurnPresentationTiming.LogResolveWait(completedTurn, resolveTimer.Elapsed.TotalMilliseconds);
+			PendingReplay = replay;
+			PendingReplayTurn = completedTurn;
 			SetPhase(EBattlePhase.Replaying, $"turn {completedTurn} resolved");
 			TurnResolved?.Invoke(replay, completedTurn);
 		}
 		catch (Exception ex) when (version == _resolveVersion && Phase == EBattlePhase.Resolving)
 		{
 			BattleDiagnostics.LogJobFailed(ex);
-			throw new InvalidOperationException("Turn resolve failed after commit.", ex);
+			throw new InvalidOperationException("Activation segment resolve failed after commit.", ex);
 		}
 	}
 

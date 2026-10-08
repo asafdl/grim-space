@@ -18,4 +18,5 @@ public sealed record BattleUnitStateDto(
 	VoidBombProjectile? Projectile,
 	IReadOnlyList<MountRuntimeDto> MountRuntime,
 	int? ManeuverPoints = null,
-	int? MaxMp = null);
+	int? MaxMp = null,
+	int? Initiative = null);

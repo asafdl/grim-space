@@ -9,6 +9,7 @@ public enum SaveBlockReason
 	UncommittedPlayerBatch,
 	ResolvingBattle,
 	ReplayingBattle,
+	BattleTurnInProgress,
 	SceneTransition,
 }
 
@@ -19,7 +20,8 @@ public readonly record struct SaveGateState(
 	bool StrategicHasUncommittedPlayerBatch,
 	bool BattleResolving,
 	bool BattleReplaying,
-	bool SceneTransitioning);
+	bool SceneTransitioning,
+	bool BattleTurnInProgress = false);
 
 public static class SaveLoadPolicy
 {
@@ -33,6 +35,8 @@ public static class SaveLoadPolicy
 			return SaveBlockReason.ResolvingBattle;
 		if (state.BattleReplaying)
 			return SaveBlockReason.ReplayingBattle;
+		if (state.BattleTurnInProgress)
+			return SaveBlockReason.BattleTurnInProgress;
 		if (state.StrategicResolvingAction)
 			return SaveBlockReason.ResolvingAction;
 		if (state.StrategicHasUncommittedPlayerBatch)

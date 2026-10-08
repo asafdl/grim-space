@@ -30,10 +30,18 @@ internal static class BattleTestActions
 
 	public static TurnReplay CommitAndResolve(BattleOrchestrator battle)
 	{
-		Assert.True(battle.PlayerAgent.Commit());
-		battle.RevokePlayerCanWork();
-		var replay = battle.ResolveTurn();
-		BattleTestFixture.GrantPlayerPlanning(battle);
+		var replayReady = new TaskCompletionSource<TurnReplay>(
+			TaskCreationOptions.RunContinuationsAsynchronously);
+		battle.TurnResolved += OnTurnResolved;
+		battle.EndTurn();
+		var replay = replayReady.Task.GetAwaiter().GetResult();
+		battle.NotifyReplayComplete();
 		return replay;
+
+		void OnTurnResolved(TurnReplay replay, int _)
+		{
+			battle.TurnResolved -= OnTurnResolved;
+			replayReady.TrySetResult(replay);
+		}
 	}
 }

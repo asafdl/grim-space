@@ -15,6 +15,7 @@ public sealed class CarrierSpec : ShipSpec
 	}
 
 	public override EType Chassis => EType.Carrier;
+	public override int Initiative => 20;
 	public override int DefaultMaxHullPoints => 2;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(3, 1);
