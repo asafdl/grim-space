@@ -784,11 +784,8 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(
 			dto.EngagedShipIds.OrderBy(id => id),
 			restored.EngagedShipIds.OrderBy(id => id));
-		var playerId = dto.Units
-			.Single(unit => unit.Team == ETeam.Player)
-			.Ship.Id;
 		using var restoredOrchestrator =
-			BattleOrchestrator.FromSavedWorld(restored, playerId);
+			BattleOrchestrator.FromSavedWorld(restored, orchestrator.PlayerId);
 		Assert.All(restoredOrchestrator.Engine.World.UnitRegistry.All, unit =>
 			Assert.True(unit.ExecutionAgent.IsInitialized));
 	}
