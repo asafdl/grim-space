@@ -9,7 +9,7 @@ internal static class TutorialCopy
 		$"Press {GameInputBindings.Label("battle_end_turn")} to end your turn or click the Ability Bar on bottom of screen.";
 
 	public static string MoveToGhostShip =>
-		$"Pilot, lets go get the enemies — advance to the marked location use {GameInputBindings.Label("battle_primary_click")}.";
+		$"Pilot, lets go get the enemies — You have 4 Action points per turn, advance to the marked location use {GameInputBindings.Label("battle_primary_click")}.";
 
 	public static string CameraControls =>
 		$"3 Dimensional space is hard to navigate, make full use of the camera controls:\n- HOLD {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit.\n" +
@@ -19,7 +19,7 @@ internal static class TutorialCopy
 		$"- Press {GameInputBindings.Label("battle_focus")} to refocus on your ship.";
 
 	public static string Turn2MovePrompt =>
-		$"Enemies closing in, using weapons forces you to reposition your ship. Lets get in position to shoot — Keep HOLDING {GameInputBindings.Label("battle_primary_click")} " +
+		$"Enemies closing in, using weapons forces you to reposition your ship. Your have 3 Maneuver Points per turn, these are for ship rolls and turns.\nLets get in position to shoot — Keep HOLDING {GameInputBindings.Label("battle_primary_click")} " +
 		$"and DRAG toward the green heading arrow.\nKeep HOLDING and {GameInputBindings.Label("battle_roll_clockwise")} / " +
 		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll. The gold section of the preview hull is the topside (dorsal); " +
 		$"put the opposite underside (ventral) toward the enemy.\nAlign yourself to the marked ship.";
