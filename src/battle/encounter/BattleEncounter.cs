@@ -1,5 +1,6 @@
 // Placeholder until roguelike sector map exists.
 
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
@@ -38,7 +39,16 @@ public sealed class BattleEncounter
 			Dorsal = playerSpawn.Dorsal,
 			ExecutionAgent = new UserExecutionAgent(),
 		};
-		var spawns = new[] { playerSpawn, gunshipSpawn, enemySpawn };
+		var gooperSpawn = new BattleSpawn
+		{
+			Ship = ShipInstance.FromCatalog($"industrial-gooper-dev-{seed}", EType.IndustrialGooper),
+			Team = ETeam.Enemy,
+			Position = FlankPosition(enemySpawn, gridSize),
+			Fore = enemySpawn.Fore,
+			Dorsal = enemySpawn.Dorsal,
+			ExecutionAgent = new AiController(),
+		};
+		var spawns = new[] { playerSpawn, gunshipSpawn, enemySpawn, gooperSpawn };
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 
@@ -60,4 +70,24 @@ public sealed class BattleEncounter
 			}),
 		};
 	}
+
+	private static Coord FlankPosition(BattleSpawn spawn, int gridSize)
+	{
+		var lateral = Coord.Cross(spawn.Dorsal, spawn.Fore);
+		if (lateral == Coord.Zero)
+			lateral = new Coord(1, 0, 0);
+
+		var distance = System.Math.Min(4, gridSize - 1);
+		var positive = spawn.Position + lateral * distance;
+		if (IsInBounds(positive, gridSize))
+			return positive;
+
+		var negative = spawn.Position - lateral * distance;
+		return IsInBounds(negative, gridSize) ? negative : spawn.Position;
+	}
+
+	private static bool IsInBounds(Coord position, int gridSize) =>
+		position.X >= 0 && position.X < gridSize
+		&& position.Y >= 0 && position.Y < gridSize
+		&& position.Z >= 0 && position.Z < gridSize;
 }

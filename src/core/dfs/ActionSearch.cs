@@ -108,6 +108,10 @@ public static class ActionSearch
 
 			foreach (var candidate in candidates)
 			{
+				if (input.ShouldExploreAction is not null
+					&& !input.ShouldExploreAction(fork, actorId, candidate))
+					continue;
+
 				var checkpoint = fork.Actions.Count;
 				if (!fork.TryEnqueue(candidate))
 					continue;

@@ -106,6 +106,27 @@ public sealed class ActionSearchBehaviorTests
 	}
 
 	[Fact]
+	public void ActionFilterRejectsCandidatesBeforeTheyAreEnqueued()
+	{
+		var battle = OneApBattle();
+		var frames = ActionSearch.Run(
+				battle.PlayerAgent.Sim,
+				PlayerId,
+				[MoveDef.Instance],
+				new SearchInput<BattleWorld, ActorRuntime>(
+					BattleSearchVisit.ForCapabilities,
+					ShouldExploreAction: (_, _, action) =>
+						action is MoveStepAction { Direction: ESpatialOrientation.Forward }))
+			.ToList();
+
+		Assert.Equal(2, frames.Count);
+		Assert.Empty(frames[0].Actions);
+		Assert.All(
+			frames[1].Actions,
+			action => Assert.IsType<MoveStepAction>(action));
+	}
+
+	[Fact]
 	public void PrioritizedSearchYieldsEveryMovementBranchBeforeRemainingBranches()
 	{
 		var battle = OneApBattle();

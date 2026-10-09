@@ -8,6 +8,7 @@ public static class UnitTypeSlug
 	{
 		EType.Fighter => "fighter",
 		EType.Gunship => "gunship",
+		EType.IndustrialGooper => "industrial-gooper",
 		EType.Carrier => "carrier",
 		EType.RepurposedMiner => "repurposed-miner",
 		EType.VoidBomb => "void_bomb",

@@ -82,6 +82,22 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
+	public void DevDefault_AddsIndustrialGooperBesideEnemy()
+	{
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
+			var carrier = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == EType.Carrier);
+			var gooper = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == EType.IndustrialGooper);
+
+			Assert.Equal(ETeam.Enemy, gooper.Team);
+			Assert.Equal(4, carrier.Position.ManhattanDistanceTo(gooper.Position));
+			Assert.Equal(carrier.Fore, gooper.Fore);
+			Assert.Equal(carrier.Dorsal, gooper.Dorsal);
+		}
+	}
+
+	[Fact]
 	public void FromEncounter_AssignsGeneratedUnitIds()
 	{
 		var battle = GrimSpace.Battle.BattleOrchestrator.FromEncounter(

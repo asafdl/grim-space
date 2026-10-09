@@ -25,10 +25,6 @@ public sealed record InstalledAbility(
 					$"Ability '{ability.Spec.Kind}' is already installed on facet '{ability.MountedOn}'.",
 					nameof(installed));
 
-			if (!ability.Spec.CompatibleFacets.Contains(ability.MountedOn))
-				throw new ArgumentException(
-					$"Facet '{ability.MountedOn}' on '{ability.Spec.Kind}' is not allowed by that spec.",
-					nameof(installed));
 		}
 	}
 }

@@ -5,6 +5,7 @@ namespace GrimSpace.Core.Dfs;
 
 public readonly record struct SearchInput<TWorld, TRuntime>(
 	Func<Simulation<TWorld, TRuntime>, string, SearchVisitState> VisitState,
-	Func<IReadOnlyList<IAction>, bool>? IsPriorityBranch = null)
+	Func<IReadOnlyList<IAction>, bool>? IsPriorityBranch = null,
+	Func<Simulation<TWorld, TRuntime>, string, IAction, bool>? ShouldExploreAction = null)
 	where TWorld : IWorld<TWorld>
 	where TRuntime : IRuntimeContext<TRuntime>, new();

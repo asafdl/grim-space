@@ -48,6 +48,8 @@ public partial class UnitView : Node3D
 			BindCarrier();
 		else if (state.Type == EType.Gunship)
 			BindGunship();
+		else if (state.Type == EType.IndustrialGooper)
+			BindIndustrialGooper();
 		else
 			BindShip();
 
@@ -429,6 +431,12 @@ public partial class UnitView : Node3D
 	private void BindGunship()
 	{
 		_hull = GunshipMesh.CreateHullInstance();
+		AddChild(_hull);
+	}
+
+	private void BindIndustrialGooper()
+	{
+		_hull = IndustrialGooperMesh.CreateHullInstance();
 		AddChild(_hull);
 	}
 

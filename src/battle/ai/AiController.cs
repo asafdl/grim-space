@@ -28,14 +28,14 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			try
 			{
 				var start = session.Actions.Count;
-				var capabilities = Capabilities.For(actor.State)
-					.Where(def => def is not SpawnRepurposedMinerDef)
-					.ToArray();
+				var capabilities = SearchCapabilities(actor.State);
 				var actions = Runner.CalcActions(
 					session,
 					actor,
 					capabilities,
-					new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+					new SearchInput<BattleWorld, ActorRuntime>(
+						BattleSearchVisit.ForCapabilities,
+						ShouldExploreAction: EnemySearchInput.ShouldExploreAction),
 					frames => SelectBest(session, actor.State.Id, frames));
 				if (actor.State.Type == EType.Carrier && TryAppendRepurposedMinerDeploy(session, actor))
 					actions = session.Actions.Skip(start).ToList();
@@ -48,6 +48,14 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			}
 		});
 	}
+
+	internal static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> SearchCapabilities(
+		State actor) =>
+		Capabilities.For(actor)
+			.Where(def =>
+				def is not SpawnRepurposedMinerDef
+				&& (actor.Type != EType.IndustrialGooper || def is not RollDef))
+			.ToArray();
 
 	private static SearchFrame<BattleWorld, ActorRuntime> SelectBest(
 		BattleSimulation session,

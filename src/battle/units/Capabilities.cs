@@ -143,6 +143,7 @@ public static class Capabilities
 		{
 			EType.Fighter => FighterSpec.Instance,
 			EType.Gunship => GunshipSpec.Instance,
+			EType.IndustrialGooper => IndustrialGooperSpec.Instance,
 			EType.Carrier => CarrierSpec.Instance,
 			EType.RepurposedMiner => RepurposedMinerSpec.Instance,
 			EType.VoidBomb => VoidBombSpec.Instance,

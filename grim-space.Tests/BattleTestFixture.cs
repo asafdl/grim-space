@@ -35,14 +35,22 @@ internal static class BattleTestFixture
 		Unit player,
 		Unit enemy,
 		BoundedGrid? grid = null,
+		IReadOnlySet<Coord>? blocked = null) =>
+		BeginSimulation(player, [enemy], grid, blocked ?? new HashSet<Coord> { enemy.State.Position });
+
+	public static BattleOrchestrator BeginSimulation(
+		Unit player,
+		IReadOnlyList<Unit> enemies,
+		BoundedGrid? grid = null,
 		IReadOnlySet<Coord>? blocked = null)
 	{
 		grid ??= Grid();
-		blocked ??= new HashSet<Coord> { enemy.State.Position };
+		blocked ??= enemies.Select(enemy => enemy.State.Position).ToHashSet();
 
 		var timeline = new Timeline();
 		var nonUnits = new Dictionary<string, NonUnit>();
-		var units = new Unit[] { player, enemy };
+		var units = new List<Unit> { player };
+		units.AddRange(enemies);
 		var engagedShipIds = units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
 		var world = BattleWorld.FromLive(
 			units,
@@ -56,8 +64,8 @@ internal static class BattleTestFixture
 		var layout = BattleLayout.FromEncounter(grid, [], units);
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
-		actorRuntimes.For(player.State.Id);
-		actorRuntimes.For(enemy.State.Id);
+		foreach (var unit in units)
+			actorRuntimes.For(unit.State.Id);
 		actorRuntimes.For(BattleActorIds.Rules);
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);

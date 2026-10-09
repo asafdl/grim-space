@@ -6,7 +6,6 @@ namespace GrimSpace.Units.Loadouts.Abilities;
 public abstract record AbilitySpec
 {
 	public abstract EAbilityKind Kind { get; }
-	public abstract IReadOnlyList<ESpatialOrientation> CompatibleFacets { get; }
 
 	public virtual int DamageUpgradeTier { get; init; }
 	public virtual int RangeUpgradeTier { get; init; }
@@ -66,11 +65,7 @@ public sealed record ScrapDroneSwarmSpec(
 	public const int MaxDamageUpgradeTier = 3;
 	public const int MaxRangeUpgradeTier = 3;
 
-	private static readonly ESpatialOrientation[] DefaultFacets =
-		[ESpatialOrientation.Port, ESpatialOrientation.Starboard];
-
 	public override EAbilityKind Kind => EAbilityKind.ScrapDroneSwarm;
-	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
@@ -137,11 +132,7 @@ public sealed record LightningCannonSpec(
 	public const int MaxDamageUpgradeTier = 3;
 	public const int MaxRangeUpgradeTier = 3;
 
-	private static readonly ESpatialOrientation[] DefaultFacets =
-		[ESpatialOrientation.Forward, ESpatialOrientation.Port, ESpatialOrientation.Starboard];
-
 	public override EAbilityKind Kind => EAbilityKind.LightningCannon;
-	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
@@ -208,10 +199,7 @@ public sealed record MinerBaySpec(
 	ShipSpec ChildSpec,
 	int MaxLivingChildren) : AbilitySpec, ISpawnable, ICooldownAbility
 {
-	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Ventral];
-
 	public override EAbilityKind Kind => EAbilityKind.MinerBay;
-	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
 	ShipSpec ISpawnable.ChildSpec => ChildSpec;
 	int ISpawnable.MaxLivingChildren => MaxLivingChildren;
@@ -226,15 +214,7 @@ public sealed record VoidBombLauncherSpec(
 	int BlastRadius,
 	int BlastDamage) : AbilitySpec, ISpawnable, ICooldownAbility
 {
-	private static readonly ESpatialOrientation[] DefaultFacets =
-	[
-		ESpatialOrientation.Retro,
-		ESpatialOrientation.Ventral,
-		ESpatialOrientation.Dorsal,
-	];
-
 	public override EAbilityKind Kind => EAbilityKind.VoidBombLauncher;
-	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
 	ShipSpec ISpawnable.ChildSpec => VoidBombSpec.Instance;
 	int ISpawnable.MaxLivingChildren => 0;
@@ -258,10 +238,8 @@ public sealed record GoopGunSpec(
 	int UnavailableTurns = 2) : AbilitySpec, ICooldownAbility, IAreaDamage
 {
 	int IAreaDamage.Damage => 0;
-	private static readonly ESpatialOrientation[] DefaultFacets = [ESpatialOrientation.Forward];
 
 	public override EAbilityKind Kind => EAbilityKind.GoopGun;
-	public override IReadOnlyList<ESpatialOrientation> CompatibleFacets => DefaultFacets;
 	int ICooldownAbility.CooldownTurns => UnavailableTurns;
 
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)

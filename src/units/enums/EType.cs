@@ -4,6 +4,7 @@ public enum EType
 {
 	Fighter,
 	Gunship,
+	IndustrialGooper,
 	Carrier,
 	RepurposedMiner,
 	VoidBomb,
