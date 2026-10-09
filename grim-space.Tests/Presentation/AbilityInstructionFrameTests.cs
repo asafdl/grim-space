@@ -40,7 +40,7 @@ public sealed class AbilityInstructionFrameTests
 			origin,
 			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
-		var spec = AbilityHudCatalog.ForUnit(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
+		var spec = AbilityHudCatalog.ForActor(battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId))
 			.First(entry => entry.Mode == EPlayerMode.ScrapDroneSwarm);
 
 		frames.Interaction.SetMode(EPlayerMode.ScrapDroneSwarm, spec);
@@ -61,8 +61,8 @@ public sealed class AbilityInstructionFrameTests
 			origin,
 			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var frames = new PresentationFrameBuilder();
-		var spec = AbilityHudCatalog.ForUnit(
-				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Type)
+		var spec = AbilityHudCatalog.ForActor(
+				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId))
 			.First(entry => entry.Mode == EPlayerMode.ScrapDroneSwarm);
 		frames.Interaction.SetMode(EPlayerMode.ScrapDroneSwarm, spec);
 		frames.Interaction.SetAbilityHover(1, optionCount: 2);

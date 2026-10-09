@@ -36,6 +36,7 @@ internal static class MerchantOfferDisplay
 			EAbilityKind.LightningCannon => "res://assets/ui/abilities/lightning_cannon.svg",
 			EAbilityKind.MinerBay => "res://assets/ui/abilities/repurposed-miner.svg",
 			EAbilityKind.VoidBombLauncher => "res://assets/ui/abilities/void_bomb.svg",
+			EAbilityKind.GoopGun => "res://assets/ui/abilities/goop_gun.svg",
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown ability icon."),
 		};
 
@@ -107,6 +108,7 @@ internal static class MerchantOfferDisplay
 			EAbilityKind.LightningCannon => "Lightning cannon",
 			EAbilityKind.MinerBay => "Repurposed Miner bay",
 			EAbilityKind.VoidBombLauncher => "VoidBomb launcher",
+			EAbilityKind.GoopGun => "Goop gun",
 			_ => kind.ToString(),
 		};
 }

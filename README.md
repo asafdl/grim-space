@@ -289,6 +289,8 @@ Capability interfaces (metadata + helpers, still in units):
 
 [`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time. Battle [`State`](src/battle/units/State.cs) holds [`ShipLoadout`](src/units/ShipLoadout.cs) and creates one runtime counter set per mount. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) (chassis spec for the child) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Battle reads each mount's effective [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs); spawned torpedoes snapshot those effective values onto battle [`State.Projectile`](src/battle/units/VoidBombProjectile.cs).
 
+Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault/DevDuel derive separate scenario loadouts by installing every permissible mount and applying one damage/range upgrade wherever that ability supports it; these dev upgrades never change the catalog baseline.
+
 **Upgrade identity:** run-level **`shipId`** plus **ability kind + facet**; increment the validated damage/range delta on that exact installed mount. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
 
 #### Star-map merchant commerce (boundaries)

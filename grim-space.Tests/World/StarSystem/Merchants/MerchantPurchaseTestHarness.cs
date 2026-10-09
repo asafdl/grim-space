@@ -3,6 +3,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Merchants;
@@ -43,7 +44,10 @@ internal static class MerchantPurchaseTestHarness
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var unitId = State.PlayerFleetUnitId;
 		var shipId = map.FleetRegistry.FleetOf(unitId).Members[0].Id;
-		var ship = ShipInstance.FromCatalog(shipId, EType.Fighter);
+		var ship = ShipInstance.FromSpec(
+			shipId,
+			FighterSpec.Instance,
+			ShipCatalog.FullFighterLoadout());
 		registry.Register(ship);
 		map = map.Fork();
 

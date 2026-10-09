@@ -30,24 +30,39 @@ public static class DeploymentPlacement
 		var playerShip = ShipInstance.FromCatalog(
 			playerId ?? "dev-player",
 			playerChassis);
-		if (playerChassis == BattleUnitType.Fighter)
-			playerShip = UpgradeDevFighter(playerShip);
+		playerShip = UpgradeDevShip(playerShip);
 		var enemyShip = ShipInstance.FromCatalog(
 			enemyId ?? "dev-enemy",
 			enemyChassis);
+		enemyShip = UpgradeDevShip(enemyShip);
 		return DevDuel(playerShip, enemyShip, seed, gridSize);
 	}
 
-	private static ShipInstance UpgradeDevFighter(ShipInstance fighter)
+	internal static ShipInstance UpgradeDevShip(ShipInstance ship)
 	{
-		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
-		if (!fighter.TryWithDamageUpgraded(mount, out var damageUpgraded)
-			|| !damageUpgraded.TryWithRangeUpgraded(mount, out var rangeUpgraded))
+		foreach (var slot in ship.Spec.Slots)
 		{
-			throw new InvalidOperationException("Dev fighter Lightning Cannon could not be upgraded to +1 damage / +1 range.");
+			if (ship.Loadout.InstalledAbilities.Any(installed => installed.Mount == slot.Mount))
+				continue;
+			if (!ship.TryWithInstalledAbility(
+				new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet),
+				out var expanded))
+			{
+				throw new InvalidOperationException($"Dev ship '{ship.Spec.Chassis}' could not install '{slot.Mount}'.");
+			}
+
+			ship = expanded;
 		}
 
-		return rangeUpgraded;
+		foreach (var installed in ship.Loadout.InstalledAbilities.ToArray())
+		{
+			if (ship.TryWithDamageUpgraded(installed.Mount, out var damageUpgraded))
+				ship = damageUpgraded;
+			if (ship.TryWithRangeUpgraded(installed.Mount, out var rangeUpgraded))
+				ship = rangeUpgraded;
+		}
+
+		return ship;
 	}
 
 	public static List<BattleSpawn> ForEngagement(

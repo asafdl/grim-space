@@ -31,8 +31,18 @@ public static class ShipCatalog
 	public static ShipLoadout NewRunLoadoutFor(EType chassis) =>
 		LoadoutForTier(chassis, EShipGearTier.T0);
 
-	public static ShipLoadout FullFighterLoadout() =>
-		FighterSpec.Instance.NewDefaultLoadout();
+	public static ShipLoadout FullFighterLoadout()
+	{
+		var spec = FighterSpec.Instance;
+		var baseline = spec.NewDefaultLoadout();
+		return ShipLoadout.Create(
+			spec,
+			baseline.MaxHullPoints,
+			baseline.MaxShieldPoints,
+			spec.Slots
+				.Select(slot => new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet))
+				.ToArray());
+	}
 
 	public static ShipInstance CreateInstance(string id, EType chassis) =>
 		ShipInstance.FromSpec(id, SpecFor(chassis), LoadoutForTier(chassis, EShipGearTier.T0));

@@ -38,12 +38,11 @@ public partial class DockyardController : Control
 		var facility = poi.GetFacility(_facilityId);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 
-		_dockyardHudLayer = new CanvasLayer { Layer = 20 };
+		_dockyardHudLayer = new CanvasLayer { Layer = 5 };
 		AddChild(_dockyardHudLayer);
 		_dockyardHud = new DockyardHudOverlay();
 		_dockyardHud.PurchaseRequested += OnWeaponsPurchaseRequested;
@@ -62,10 +61,13 @@ public partial class DockyardController : Control
 			_orchestrator,
 			_activePoiId,
 			_facilityId);
+		_orchestrator.WorldUpdated += OnWorldUpdated;
+		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
 	}
 
 	public override void _ExitTree()
 	{
+		_orchestrator.WorldUpdated -= OnWorldUpdated;
 		_orchestrator.RefreshPlayerAgent();
 		base._ExitTree();
 	}
@@ -127,6 +129,13 @@ public partial class DockyardController : Control
 				throw new InvalidOperationException(
 					$"Unexpected operator role '{role}' in dockyard facility.");
 		}
+	}
+
+	private void OnWorldUpdated()
+	{
+		var run = Session.Instance.Run;
+		_dockyardHud.Sync(run, _orchestrator.Map);
+		_shieldRechargeHud.Sync(run, _orchestrator.Map);
 	}
 
 	private void OpenDockyardHud(FacilityOperator facilityOperator)

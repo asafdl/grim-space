@@ -53,7 +53,17 @@ public sealed class FighterSpecTests
 	{
 		var loadout = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
 
-		Assert.Equal(FighterSpec.Instance.Slots.Count, loadout.InstalledAbilities.Count);
+		Assert.Equal(2, loadout.InstalledAbilities.Count);
+		Assert.Contains(
+			loadout.InstalledAbilities,
+			installed => installed.Mount == new AbilityMount(
+				EAbilityKind.LightningCannon,
+				ESpatialOrientation.Forward));
+		Assert.Contains(
+			loadout.InstalledAbilities,
+			installed => installed.Mount == new AbilityMount(
+				EAbilityKind.VoidBombLauncher,
+				ESpatialOrientation.Ventral));
 		Assert.All(loadout.InstalledAbilities, installed =>
 		{
 			Assert.Equal(AbilitySpec.BaselineFor(installed.Kind), installed.Spec);

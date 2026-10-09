@@ -8,7 +8,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public partial class PlayerFleetHud : MarginContainer
 {
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
-	private HBoxContainer _pilotRow = null!;
+	private VBoxContainer _pilotColumn = null!;
 	private StarSystemOrchestrator? _orchestrator;
 
 	public override void _Ready()
@@ -20,9 +20,9 @@ public partial class PlayerFleetHud : MarginContainer
 			margin.AddThemeConstantOverride(marginName, 8);
 		AddChild(margin);
 
-		_pilotRow = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-		_pilotRow.AddThemeConstantOverride("separation", 8);
-		margin.AddChild(_pilotRow);
+		_pilotColumn = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		_pilotColumn.AddThemeConstantOverride("separation", 8);
+		margin.AddChild(_pilotColumn);
 	}
 
 	public void Sync(State run, StarSystemOrchestrator orchestrator)
@@ -47,7 +47,7 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot = new ShipPilot();
 				pilot.Selected += OnPilotSelected;
 				_pilots[shipId] = pilot;
-				_pilotRow.AddChild(pilot);
+				_pilotColumn.AddChild(pilot);
 			}
 
 			pilot.SetState(

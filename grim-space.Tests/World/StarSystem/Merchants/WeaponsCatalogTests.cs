@@ -12,7 +12,7 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 public sealed class WeaponsCatalogTests
 {
 	[Fact]
-	public void ListFor_Fighter_ExcludesShields_IncludesDamageAndRangeUpgrades()
+	public void ListFor_BaselineFighter_OffersInstalledUpgradesAndOpenMountInstalls()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var offers = WeaponsCatalog.ListFor(ship);
@@ -20,8 +20,9 @@ public sealed class WeaponsCatalogTests
 		Assert.DoesNotContain(
 			offers,
 			offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
-		Assert.Equal(3, offers.Count(offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeDamage));
-		Assert.Equal(3, offers.Count(offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeRange));
+		Assert.Single(offers, offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeDamage);
+		Assert.Single(offers, offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeRange);
+		Assert.Equal(2, offers.Count(offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon));
 	}
 
 	[Fact]
@@ -61,7 +62,7 @@ public sealed class WeaponsCatalogTests
 	[Fact]
 	public void ListFor_DamageOfferPriceIncreasesAfterUpgrade()
 	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var ship = FullFighter("fighter-1");
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
 		var firstOffer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
 		Assert.True(ship.TryWithDamageUpgraded(
@@ -76,7 +77,7 @@ public sealed class WeaponsCatalogTests
 	[Fact]
 	public void ListFor_DamageTierZero_MatchesEconomyTable()
 	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var ship = FullFighter("fighter-1");
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
 		var offer = WeaponsCatalog.ListFor(ship).Single(o => o.Offering == offering);
 		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(0), offer.Cost);
@@ -85,7 +86,7 @@ public sealed class WeaponsCatalogTests
 	[Fact]
 	public void ListFor_RangeTierOne_MatchesEconomyTable()
 	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var ship = FullFighter("fighter-1");
 		Assert.True(ship.TryWithRangeUpgraded(
 			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
 			out ship));
@@ -126,4 +127,7 @@ public sealed class WeaponsCatalogTests
 			[new InstalledAbility(mount.Kind, ESpatialOrientation.Forward)]);
 		return ShipInstance.FromSpec(id, FighterSpec.Instance, loadout);
 	}
+
+	private static ShipInstance FullFighter(string id) =>
+		ShipInstance.FromSpec(id, FighterSpec.Instance, ShipCatalog.FullFighterLoadout());
 }

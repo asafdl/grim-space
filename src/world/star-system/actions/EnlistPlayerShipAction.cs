@@ -17,6 +17,8 @@ public sealed record EnlistPlayerShipAction(string ActorId, ShipSpawnDeclaration
 public sealed class EnlistPlayerShipActionDef
 	: IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
+	public const int MaxPlayerShips = 4;
+
 	public static EnlistPlayerShipActionDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(StarMap world, ActorRuntime runtime, string actorId) => [];
@@ -28,6 +30,8 @@ public sealed class EnlistPlayerShipActionDef
 		if (action is not EnlistPlayerShipAction enlist)
 			return false;
 		if (!world.FleetRegistry.TryGet(enlist.ActorId, out var fleet))
+			return false;
+		if (fleet.Members.Count >= MaxPlayerShips)
 			return false;
 
 		var shipId = enlist.Declaration.ShipId;

@@ -62,13 +62,20 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(TradeHub.MarketScenePath, market.ScenePath);
 
 		Assert.Equal(3, market.Operators.Count);
-		Assert.All(market.Operators, operatorNpc =>
+		var shipMerchant = market.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.Ships);
+		Assert.Equal(MapFacilityOperators.ShipMerchantOperatorName(world), shipMerchant.Name);
+		Assert.Equal(TradeHub.ShipMerchantSceneSlotId, shipMerchant.SceneSlotId);
+
+		var dialogOperators = market.Operators
+			.Where(op => op.Role == EFacilityOperatorRole.Dialog)
+			.ToArray();
+		Assert.Equal(2, dialogOperators.Length);
+		Assert.All(dialogOperators, operatorNpc =>
 		{
-			Assert.Equal(EFacilityOperatorRole.Dialog, operatorNpc.Role);
 			Assert.Contains(operatorNpc.SceneSlotId, new[]
 			{
 				TradeHub.MarketOperatorSceneSlotId,
-				TradeHub.MarketOperatorSceneSlotId09,
 				TradeHub.MarketOperatorSceneSlotId10,
 			});
 			Assert.Contains(operatorNpc.Name, OperatorNames.Pool);

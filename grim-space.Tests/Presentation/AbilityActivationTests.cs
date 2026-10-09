@@ -198,7 +198,7 @@ public sealed class AbilityActivationTests
 	}
 
 	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>
-		AbilityHudCatalog.ForUnit(EType.Fighter)
+		AbilityHudCatalog.ForActor(BattleTestFixture.Player(Coord.Zero).State)
 			.Concat(AbilityHudCatalog.ForUnit(EType.Carrier))
 			.First(spec => spec.Mode == mode);
 }

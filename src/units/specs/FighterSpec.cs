@@ -52,6 +52,9 @@ public sealed class FighterSpec : ShipSpec
 			this,
 			DefaultMaxHullPoints,
 			shields,
-			Slots.Select(slot => new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet)).ToArray());
+			[
+				new InstalledAbility(EAbilityKind.LightningCannon, ESpatialOrientation.Forward),
+				new InstalledAbility(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral),
+			]);
 	}
 }

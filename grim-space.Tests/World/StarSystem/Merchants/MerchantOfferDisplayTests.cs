@@ -14,7 +14,10 @@ public sealed class MerchantOfferDisplayTests
 	[Fact]
 	public void AbilitiesFor_GroupsOffersByExactMount()
 	{
-		var ship = ShipInstance.FromCatalog("fighter", EType.Fighter);
+		var ship = ShipInstance.FromSpec(
+			"fighter",
+			FighterSpec.Instance,
+			ShipCatalog.FullFighterLoadout());
 		var port = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
 		var lightning = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Port);
 		var offers = WeaponsCatalog.ListFor(ship).Append(new MerchantCatalog.Offer(
@@ -79,6 +82,7 @@ public sealed class MerchantOfferDisplayTests
 	[InlineData(EAbilityKind.LightningCannon)]
 	[InlineData(EAbilityKind.MinerBay)]
 	[InlineData(EAbilityKind.VoidBombLauncher)]
+	[InlineData(EAbilityKind.GoopGun)]
 	public void AbilityMetadata_CoversEachSupportedKind(EAbilityKind kind)
 	{
 		Assert.NotEqual(kind.ToString(), MerchantOfferDisplay.KindLabel(kind));

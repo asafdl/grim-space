@@ -22,6 +22,13 @@ internal static class MapFacilityOperators
 			TradeHub.DockyardFacilitySlug,
 			EMerchantCatalog.ShipSupport);
 
+	public static string ShipMerchantOperatorName(StarMap map) =>
+		MerchantOperatorName(
+			map,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			TradeHub.MarketFacilitySlug,
+			EMerchantCatalog.Ships);
+
 	public static string MarketOperatorName(StarMap map) =>
 		OperatorName(
 			map,

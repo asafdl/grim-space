@@ -124,7 +124,8 @@ public sealed class ShipInstance
 		try
 		{
 			var updatedLoadout = Loadout.WithUpgradedMaxShields(Spec, face);
-			var shields = BumpCurrentShields(ShieldPoints, Loadout.MaxShieldPoints, updatedLoadout.MaxShieldPoints);
+			var shields = ShieldPoints.Clone();
+			shields[face] = updatedLoadout.MaxShieldPoints[face];
 			after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
 			return true;
 		}
@@ -140,7 +141,12 @@ public sealed class ShipInstance
 		try
 		{
 			var updatedLoadout = Loadout.WithUpgradedMaxHull(Spec);
-			after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+			after = new ShipInstance(
+				Id,
+				Spec,
+				updatedLoadout,
+				updatedLoadout.MaxHullPoints,
+				ShieldPoints.Clone());
 			return true;
 		}
 		catch (InvalidOperationException)
@@ -189,21 +195,4 @@ public sealed class ShipInstance
 		return true;
 	}
 
-	private static FaceShieldPoints BumpCurrentShields(
-		FaceShieldPoints current,
-		FaceShieldPoints previousMax,
-		FaceShieldPoints newMax)
-	{
-		var bumped = current.Clone();
-		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-		{
-			var delta = newMax[face] - previousMax[face];
-			if (delta <= 0)
-				continue;
-
-			bumped[face] = System.Math.Min(bumped[face] + delta, newMax[face]);
-		}
-
-		return bumped;
-	}
 }

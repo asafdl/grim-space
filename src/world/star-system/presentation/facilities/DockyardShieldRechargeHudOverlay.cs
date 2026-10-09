@@ -67,7 +67,12 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		_shell.Close();
 	}
 
-	public void Sync(State run, StarMap map) => _run = run;
+	public void Sync(State run, StarMap map)
+	{
+		_run = run;
+		if (IsOpen)
+			ShowMain();
+	}
 
 	public void ShowError(string message)
 	{

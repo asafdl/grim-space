@@ -29,7 +29,7 @@ public sealed class ShipCatalogLoadoutForTierTests
 		var t0 = ShipCatalog.LoadoutForTier(EType.Fighter, EShipGearTier.T0);
 
 		AssertLoadoutEquivalent(starter, t0);
-		Assert.Equal(FighterSpec.Instance.Slots.Count, t0.InstalledAbilities.Count);
+		Assert.Equal(2, t0.InstalledAbilities.Count);
 		var lightningCannon = (LightningCannonSpec)t0.InstalledAbilities
 			.Single(ability => ability.Spec.Kind == EAbilityKind.LightningCannon).Spec;
 		Assert.Equal(LightningCannonSpec.Baseline, lightningCannon);

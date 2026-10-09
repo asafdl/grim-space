@@ -18,7 +18,13 @@ internal static class BattleSpawnTestKit
 		ETeam team,
 		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent) =>
-		Create(ShipInstance.FromCatalog(id, chassis), team, position, executionAgent);
+		Create(
+			chassis == EType.Fighter
+				? ShipInstance.FromSpec(id, FighterSpec.Instance, ShipCatalog.FullFighterLoadout())
+				: ShipInstance.FromCatalog(id, chassis),
+			team,
+			position,
+			executionAgent);
 
 	public static BattleSpawn Create(
 		ShipInstance ship,
@@ -52,9 +58,8 @@ internal static class BattleSpawnTestKit
 	{
 		spec ??= new GoopGunSpec();
 		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
-			.Select(ability => ability.Mount == new AbilityMount(EAbilityKind.GoopGun, mountedOn)
-				? new InstalledAbility(spec, mountedOn)
-				: ability)
+			.Where(ability => ability.Mount != new AbilityMount(EAbilityKind.GoopGun, mountedOn))
+			.Append(new InstalledAbility(spec, mountedOn))
 			.ToArray();
 		return FighterWithInstalledAbilities(id, installed);
 	}

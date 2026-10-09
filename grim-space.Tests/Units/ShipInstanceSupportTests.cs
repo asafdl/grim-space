@@ -27,7 +27,7 @@ public sealed class ShipInstanceSupportTests
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxShields_WhenCurrentBelowMax_RaisesCurrentWithoutExceedingNewCap()
+	public void TryWithUpgradedMaxShields_WhenCurrentBelowMax_FillsUpgradedFace()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var previousMax = ship.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
@@ -37,7 +37,7 @@ public sealed class ShipInstanceSupportTests
 		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out var after));
 
 		Assert.Equal(previousMax + 1, after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(1, after.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward], after.ShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(previousPort, after.ShieldPoints[ESpatialOrientation.Port]);
 	}
 
@@ -162,7 +162,7 @@ public sealed class ShipInstanceSupportTests
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxHull_IncreasesCapacityWithoutChangingCurrentHull()
+	public void TryWithUpgradedMaxHull_IncreasesAndFillsHullCapacity()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		ship.HullPoints = 1;
@@ -172,7 +172,7 @@ public sealed class ShipInstanceSupportTests
 
 		Assert.Equal(1, after.Loadout.HullUpgradeTier);
 		Assert.Equal(previousMax + 1, after.Loadout.MaxHullPoints);
-		Assert.Equal(1, after.HullPoints);
+		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
 	}
 
 	[Fact]

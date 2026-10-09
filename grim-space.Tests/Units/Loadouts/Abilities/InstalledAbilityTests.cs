@@ -60,11 +60,11 @@ public sealed class InstalledAbilityTests
 	}
 
 	[Fact]
-	public void FighterNewRun_HasAllPermittedMountsAtBaseline()
+	public void FighterNewRun_HasStarterMountsAtBaseline()
 	{
 		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities;
 
-		Assert.Equal(7, installed.Count);
+		Assert.Equal(2, installed.Count);
 		Assert.All(installed, ability =>
 		{
 			Assert.Equal(0, ability.DamageUpgradeTier);

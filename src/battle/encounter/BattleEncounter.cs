@@ -32,7 +32,8 @@ public sealed class BattleEncounter
 			$"carrier-dev-{seed}");
 		var gunshipSpawn = new BattleSpawn
 		{
-			Ship = ShipInstance.FromCatalog($"gunship-dev-{seed}", EType.Gunship),
+			Ship = DeploymentPlacement.UpgradeDevShip(
+				ShipInstance.FromCatalog($"gunship-dev-{seed}", EType.Gunship)),
 			Team = ETeam.Player,
 			Position = playerSpawn.Position + new Coord(0, 4, 0),
 			Fore = playerSpawn.Fore,
@@ -41,7 +42,8 @@ public sealed class BattleEncounter
 		};
 		var gooperSpawn = new BattleSpawn
 		{
-			Ship = ShipInstance.FromCatalog($"industrial-gooper-dev-{seed}", EType.IndustrialGooper),
+			Ship = DeploymentPlacement.UpgradeDevShip(
+				ShipInstance.FromCatalog($"industrial-gooper-dev-{seed}", EType.IndustrialGooper)),
 			Team = ETeam.Enemy,
 			Position = FlankPosition(enemySpawn, gridSize),
 			Fore = enemySpawn.Fore,

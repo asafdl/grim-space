@@ -5,6 +5,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -240,6 +241,24 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Commit_HullUpgrade_FillsNewHullCapacity()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		ship.HullPoints = 1;
+		SeedResources(engine.World, credits: 10_000, scrap: 10_000);
+		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxHull);
+		var records = engine.Commit(CreateAction(
+			unitId,
+			engine.World,
+			EMerchantCatalog.ShipSupport,
+			offering,
+			ship.Clone()));
+
+		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
+		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
+	}
+
+	[Fact]
 	public void Commit_ShieldFaceUpgrade_DebitsPerFacePriceAndChangesOnlyChosenFace()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
@@ -261,6 +280,28 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		Assert.Equal(before.ShieldPoints[otherFace], after.ShieldPoints[otherFace]);
 		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.ShipSupport, offering, after, out var nextOffer));
 		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(1), nextOffer.Cost);
+	}
+
+	[Fact]
+	public void Commit_ShieldFaceUpgrade_FillsUpgradedFace()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		var face = ESpatialOrientation.Dorsal;
+		var otherFace = ESpatialOrientation.Forward;
+		ship.ShieldPoints[face] = 0;
+		ship.ShieldPoints[otherFace] = 0;
+		SeedResources(engine.World, credits: 10_000, scrap: 10_000);
+		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
+		var records = engine.Commit(CreateAction(
+			unitId,
+			engine.World,
+			EMerchantCatalog.ShipSupport,
+			offering,
+			ship.Clone()));
+
+		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
+		Assert.Equal(after.Loadout.MaxShieldPoints[face], after.ShieldPoints[face]);
+		Assert.Equal(0, after.ShieldPoints[otherFace]);
 	}
 
 	[Fact]
@@ -367,23 +408,35 @@ public sealed class MerchantCommerceCharacterizationTests
 			o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
 		Assert.Contains(
 			weaponOffers,
-			o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
+			o => o.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.InstallWeapon,
+				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 
 		var starter = ShipCatalog.CreateInstance("starter-1", EType.Fighter);
 		var starterWeaponOffers = WeaponsCatalog.ListFor(starter);
 		Assert.Contains(
 			starterWeaponOffers,
 			o => o.Offering == MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade);
-		Assert.Contains(
+		Assert.DoesNotContain(
 			starterWeaponOffers,
 			o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
+		Assert.Contains(
+			starterWeaponOffers,
+			o => o.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.InstallWeapon,
+				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 
 		var supportOffers = ShipSupportCatalog.ListFor(ship);
 		var shieldOffer = supportOffers.Single(o => o.Offering ==
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
 		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(0), shieldOffer.Cost);
 
-		var swarmOffer = weaponOffers.Single(o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
+		var fullFighter = ShipInstance.FromSpec(
+			"full-fighter",
+			FighterSpec.Instance,
+			ShipCatalog.FullFighterLoadout());
+		var swarmOffer = WeaponsCatalog.ListFor(fullFighter)
+			.Single(o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
 		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(0), swarmOffer.Cost);
 
 		ship.HullPoints = 1;

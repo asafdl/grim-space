@@ -17,6 +17,7 @@ public static class OperatorDisplayLabels
 	{
 		EMerchantCatalog.Weapons => "Dockyard Shop",
 		EMerchantCatalog.ShipSupport => "Ship Support",
+		EMerchantCatalog.Ships => "Ship Broker",
 		_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
 	};
 

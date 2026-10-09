@@ -18,6 +18,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Specs;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using System.Runtime.CompilerServices;
 
@@ -217,8 +218,11 @@ internal static class BattleTestFixture
 		Coord position,
 		EType type = EType.Fighter)
 	{
+		var ship = type == EType.Fighter
+			? ShipInstance.FromSpec(id, FighterSpec.Instance, ShipCatalog.FullFighterLoadout())
+			: ShipInstance.FromCatalog(id, type);
 		return Factory.Create(
-			ShipInstance.FromCatalog(id, type),
+			ship,
 			team,
 			position,
 			team == ETeam.Player ? new UserExecutionAgent() : new AiController());

@@ -4,4 +4,5 @@ public enum EMerchantCatalog
 {
 	Weapons,
 	ShipSupport,
+	Ships,
 }
