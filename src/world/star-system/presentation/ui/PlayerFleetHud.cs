@@ -1,5 +1,7 @@
 using Godot;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -7,6 +9,7 @@ public partial class PlayerFleetHud : MarginContainer
 {
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
 	private HBoxContainer _pilotRow = null!;
+	private StarSystemOrchestrator? _orchestrator;
 
 	public override void _Ready()
 	{
@@ -22,9 +25,16 @@ public partial class PlayerFleetHud : MarginContainer
 		margin.AddChild(_pilotRow);
 	}
 
-	public void Sync(State run)
+	public void Sync(State run, StarSystemOrchestrator orchestrator)
 	{
+		_orchestrator = orchestrator;
 		run.EnsurePlayerShipPortraits(run.PlayerParty.ShipIds);
+		var runtime = orchestrator.RuntimeFor(State.PlayerFleetUnitId);
+		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
+			orchestrator.Map,
+			runtime,
+			State.PlayerFleetUnitId,
+			run.PlayerParty.ShipIds);
 
 		foreach (var shipId in run.PlayerParty.ShipIds)
 		{
@@ -35,17 +45,30 @@ public partial class PlayerFleetHud : MarginContainer
 			if (!_pilots.TryGetValue(shipId, out var pilot))
 			{
 				pilot = new ShipPilot();
+				pilot.Selected += OnPilotSelected;
 				_pilots[shipId] = pilot;
 				_pilotRow.AddChild(pilot);
 			}
 
-			pilot.SetState(portraitId, ship);
+			pilot.SetState(
+				shipId,
+				portraitId,
+				ship,
+				string.Equals(shipId, selectedShipId, StringComparison.Ordinal));
 		}
 
 		foreach (var shipId in _pilots.Keys.Except(run.PlayerParty.ShipIds, StringComparer.Ordinal).ToArray())
 		{
-			_pilots[shipId].QueueFree();
+			var removed = _pilots[shipId];
+			removed.Selected -= OnPilotSelected;
+			removed.QueueFree();
 			_pilots.Remove(shipId);
 		}
+	}
+
+	private void OnPilotSelected(string shipId)
+	{
+		_orchestrator?.TryCommitPlayerInput(
+			new SelectActiveFleetShipAction(State.PlayerFleetUnitId, shipId));
 	}
 }

@@ -33,13 +33,13 @@ public partial class StrategicHud : CanvasLayer
 		_objectivesHud.DismissRequested += OnObjectiveDismissRequested;
 		SetProcess(true);
 		SyncObjectives();
-		_playerFleetHud.Sync(Session.Instance.Run);
+		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator);
 	}
 
 	public override void _Process(double _)
 	{
 		SyncObjectives();
-		_playerFleetHud.Sync(Session.Instance.Run);
+		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator);
 	}
 
 	public override void _ExitTree()

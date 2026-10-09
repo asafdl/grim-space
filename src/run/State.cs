@@ -10,6 +10,7 @@ using GrimSpace.Tutorials;
 using GrimSpace.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Merchants;
@@ -124,6 +125,11 @@ public sealed class State : IDisposable
 		}
 
 		run.SyncContractGenerationFromTutorialState();
+		PlayerFleetSelection.EnsureSelectedMember(
+			run.StarSystem.Map,
+			run.StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			run.PlayerParty.ShipIds);
 		return run;
 	}
 
@@ -141,6 +147,7 @@ public sealed class State : IDisposable
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _merchantShipPurchaseSubscription;
+	private IDisposable? _playerShipEnlistedSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -198,6 +205,32 @@ public sealed class State : IDisposable
 		return orchestrator;
 	}
 
+	public bool TryEnlistPlayerShip(ShipSpawnDeclaration declaration)
+	{
+		ArgumentNullException.ThrowIfNull(declaration);
+		var shipId = declaration.ShipId;
+		if (string.IsNullOrWhiteSpace(shipId))
+			return false;
+		if (PlayerParty.ShipIds.Contains(shipId, StringComparer.Ordinal))
+			return false;
+		if (ShipRegistry.TryGet(shipId, out _))
+			return false;
+		if (ActiveBattle is not null)
+			return false;
+		if (!StarSystem.Map.FleetRegistry.TryGet(PlayerFleetUnitId, out var fleet))
+			return false;
+		if (fleet.State.CurrentEngagement?.Phase == EEngagementPhase.Engaged)
+			return false;
+
+		var action = new EnlistPlayerShipAction(PlayerFleetUnitId, declaration);
+		var runtime = StarSystem.RuntimeFor(PlayerFleetUnitId);
+		if (!EnlistPlayerShipActionDef.Instance.IsLegal(action, StarSystem.Map, runtime))
+			return false;
+
+		StarSystem.CommitSetup(action);
+		return true;
+	}
+
 	public void RegenerateMap(int? seed = null)
 	{
 		var nextSeed = seed ?? Random.Shared.Next();
@@ -224,6 +257,11 @@ public sealed class State : IDisposable
 			seed,
 			run.ShipRegistry);
 		run.BindStarSystem(orchestrator);
+		PlayerFleetSelection.EnsureSelectedMember(
+			run.StarSystem.Map,
+			run.StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			run.PlayerParty.ShipIds);
 		run.ConfigureTutorials(tutorialsEnabled);
 		return run;
 	}
@@ -274,6 +312,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_merchantShipPurchaseSubscription?.Dispose();
 		_merchantShipPurchaseSubscription = null;
+		_playerShipEnlistedSubscription?.Dispose();
+		_playerShipEnlistedSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -287,6 +327,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
 		_merchantShipPurchaseSubscription =
 			StarSystem.Subscribe<Record<MerchantShipPurchase>>(OnMerchantShipPurchase);
+		_playerShipEnlistedSubscription =
+			StarSystem.Subscribe<Record<PlayerShipEnlisted>>(OnPlayerShipEnlisted);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -297,6 +339,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_merchantShipPurchaseSubscription?.Dispose();
 		_merchantShipPurchaseSubscription = null;
+		_playerShipEnlistedSubscription?.Dispose();
+		_playerShipEnlistedSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -329,6 +373,13 @@ public sealed class State : IDisposable
 	{
 		foreach (var declaration in record.Value.Members)
 			ShipRegistry.Register(declaration);
+	}
+
+	private void OnPlayerShipEnlisted(Record<PlayerShipEnlisted> record)
+	{
+		var declaration = record.Value.Declaration;
+		ShipRegistry.Register(declaration);
+		PlayerParty.Add(declaration.ShipId);
 	}
 
 	private void OnMerchantShipPurchase(Record<MerchantShipPurchase> record)

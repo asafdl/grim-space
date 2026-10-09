@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.World.StarSystem;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -277,7 +278,12 @@ public sealed partial class DockyardHudOverlay : Control
 	private bool TryGetActiveShip(out ShipInstance ship)
 	{
 		ship = null!;
-		var shipId = _run.PlayerParty.ShipIds.FirstOrDefault();
+		var runtime = _run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
+		var shipId = PlayerFleetSelection.EnsureSelectedMember(
+			_run.StarSystem.Map,
+			runtime,
+			State.PlayerFleetUnitId,
+			_run.PlayerParty.ShipIds);
 		if (shipId is null)
 			return false;
 

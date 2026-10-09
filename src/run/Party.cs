@@ -8,9 +8,9 @@ public sealed class Party
 
 	public IReadOnlyList<string> ShipIds => _shipIds;
 
-	public void Add(string shipId) => _shipIds.Add(shipId);
+	internal void Add(string shipId) => _shipIds.Add(shipId);
 
-	public void Remove(string shipId) => _shipIds.Remove(shipId);
+	internal void Remove(string shipId) => _shipIds.Remove(shipId);
 
 	internal IReadOnlyList<string> CaptureSnapshot() => _shipIds.ToArray();
 

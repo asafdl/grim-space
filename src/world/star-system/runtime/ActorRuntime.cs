@@ -11,6 +11,7 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public int PendingCompletionTick { get; set; }
 	public long JourneyIdSequence { get; set; }
 	public int ActionCooldownUntilTick { get; set; }
+	public string? SelectedMemberShipId { get; set; }
 	public Dictionary<string, int> IgnoreUntilTickByTargetId { get; } =
 		new(StringComparer.Ordinal);
 
@@ -34,6 +35,7 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 		ClearPendingCompletion();
 		JourneyIdSequence = 0;
 		ActionCooldownUntilTick = 0;
+		SelectedMemberShipId = null;
 		IgnoreUntilTickByTargetId.Clear();
 	}
 
@@ -77,6 +79,7 @@ public static class ActorRuntimeCopy
 	{
 		var clone = new ActorRuntime();
 		Restore(clone, Snapshot(session));
+		clone.SelectedMemberShipId = session.SelectedMemberShipId;
 		return clone;
 	}
 }
