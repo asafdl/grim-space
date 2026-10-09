@@ -72,6 +72,12 @@ public partial class MapController : Node3D
 
 	public override void _Ready()
 	{
+		if (Session.Instance.Run.ActiveBattle is not null)
+		{
+			Callable.From(() => GetTree().ChangeSceneToFile("res://scenes/battle.tscn")).CallDeferred();
+			return;
+		}
+
 		_view = GetNode<MapView>("MapView");
 		_landmarks = GetNode<NavigationLandmarksView>("NavigationLandmarksView");
 		_wreckage = GetNode<WreckageView>("WreckageView");

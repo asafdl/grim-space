@@ -18,6 +18,7 @@ public static class PersistenceJson
 		{
 			o.IncludeFields = true;
 			o.Converters.Add(new FleetJsonConverter());
+			o.Converters.Add(new ShipInstanceJsonConverter());
 			o.Converters.Add(new DeliveryProgressJsonConverter());
 			o.Converters.Add(new CanonicalConstructorJsonConverterFactory());
 			o.Converters.Add(new ContractSpawnMemberJsonConverter());

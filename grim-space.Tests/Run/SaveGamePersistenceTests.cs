@@ -35,6 +35,7 @@ using BattleUnitState = GrimSpace.Battle.Units.State;
 using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.Application;
 using GrimSpace.Battle.Player;
 
@@ -267,6 +268,35 @@ public sealed class SaveGamePersistenceTests
 
 		Assert.Equal(action, registry.Read(registry.Write(action)));
 		Assert.Equal(record, registry.Read(registry.Write(record)));
+	}
+
+	[Fact]
+	public void DefaultRegistry_RoundTripsMerchantShipPurchaseRecord()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
+		var after = before.Clone();
+		var record = new Record<MerchantShipPurchase>(
+			new MerchantShipPurchase(
+				before.Id,
+				before,
+				after,
+				ResourceBundle.Of(ResourceId.ScrapAlloy, 12),
+				"offer-1"));
+
+		var restored = Assert.IsType<Record<MerchantShipPurchase>>(registry.Read(registry.Write(record)));
+		Assert.Equal(record.Value.ShipId, restored.Value.ShipId);
+		Assert.Equal(record.Value.OfferId, restored.Value.OfferId);
+		Assert.Equal(record.Value.Cost, restored.Value.Cost);
+		Assert.True(runShipRegistryMatches(before, restored.Value.Before));
+		Assert.True(runShipRegistryMatches(after, restored.Value.After));
+
+		static bool runShipRegistryMatches(ShipInstance expected, ShipInstance actual) =>
+			expected.Id == actual.Id
+			&& expected.Spec.Chassis == actual.Spec.Chassis
+			&& expected.HullPoints == actual.HullPoints
+			&& expected.Loadout.MaxHullPoints == actual.Loadout.MaxHullPoints
+			&& expected.Loadout.InstalledAbilities.SequenceEqual(actual.Loadout.InstalledAbilities);
 	}
 
 	[Fact]

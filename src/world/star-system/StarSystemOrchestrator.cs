@@ -314,6 +314,18 @@ public sealed class StarSystemOrchestrator : IDisposable
 		NotifyWorldUpdated();
 	}
 
+	internal void RollbackFailedEngagementLaunch(EngagementCommitted fact, string actorId)
+	{
+		if (PlayerId is null)
+			return;
+
+		new RevertEngagementCommitEffect(fact).Apply(
+			Map,
+			RuntimeFor(actorId),
+			actorId);
+		NotifyWorldUpdated();
+	}
+
 	public bool ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
 		var loot = LootCatalog.For(outcome);

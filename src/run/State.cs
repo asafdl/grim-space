@@ -445,11 +445,27 @@ public sealed class State : IDisposable
 		if (!fact.ParticipantFleetIds.Contains(PlayerFleetUnitId, StringComparer.Ordinal))
 			return;
 
-		if (_launchedEngagementIds.Contains(fact.EngagementId))
+		if (ActiveBattle is { Id: var activeBattleId }
+			&& string.Equals(activeBattleId, fact.EngagementId, StringComparison.Ordinal))
 			return;
 
 		if (ActiveBattle is not null)
-			return;
+		{
+			GameLog.Log(
+				$"Replacing stale active battle '{ActiveBattle.Id}' to launch engagement '{fact.EngagementId}'.");
+			ActiveBattle = null;
+			ReleaseBattleOutcomeSubscription();
+		}
+
+		if (_launchedEngagementIds.Contains(fact.EngagementId))
+		{
+			if (ActiveBattle is not null)
+				return;
+
+			_launchedEngagementIds.Remove(fact.EngagementId);
+			GameLog.Log(
+				$"Retrying battle launch for engagement '{fact.EngagementId}' (no active battle in run state).");
+		}
 
 		try
 		{
@@ -465,6 +481,7 @@ public sealed class State : IDisposable
 		catch (Exception ex)
 		{
 			GameLog.LogException(ex, "Failed to construct battle from committed engagement.");
+			StarSystem.RollbackFailedEngagementLaunch(fact, PlayerFleetUnitId);
 		}
 	}
 

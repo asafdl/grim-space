@@ -2,12 +2,14 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
@@ -157,6 +159,35 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 		using var run = RunState.CreateNewRun(42);
 		Assert.Null(run.ActiveBattle);
 		Assert.Throws<InvalidOperationException>(() => run.CreateActiveBattleOrchestrator());
+	}
+
+	[Fact]
+	public void FailedBattleLaunch_RestoresAwaitingDecisionInsteadOfEngagedLimbo()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var pirateId = "pirate-a";
+		var pirate = StarSystemTestHarness.CreatePirateFleet(
+			pirateId,
+			new Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.Pirates);
+		run.StarSystem.Map.FleetRegistry.Add(new Fleet(
+			pirate.State,
+			[new FleetMember("unregistered-pirate-ship")],
+			[]));
+		PrepareAwaitingDecision(run.StarSystem.Map, pirateId);
+
+		run.StarSystem.PlayerAgent!.TryEnqueue([new EngageAction(RunState.PlayerFleetUnitId)]);
+		run.StarSystem.AdvanceClock();
+
+		Assert.Null(run.ActiveBattle);
+		Assert.Equal(
+			EEngagementPhase.AwaitingDecision,
+			EngagementAssertions.Phase(run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId)));
+		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
+		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(
+			run.StarSystem.Map,
+			RunState.PlayerFleetUnitId,
+			out _));
 	}
 
 	private static EngagementCommitted CommitPlayerEngagement(RunState run)
