@@ -59,7 +59,10 @@ public sealed class BattleOrchestrator : IDisposable
 	public UserExecutionAgent PlayerAgent =>
 		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(ActivePlayerId).ExecutionAgent;
 
-	public static BattleOrchestrator FromEncounter(BattleEncounter encounter, int gridSize = 64)
+	public static BattleOrchestrator FromEncounter(
+		BattleEncounter encounter,
+		int gridSize = 64,
+		string? preferredPlayerId = null)
 	{
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var timeline = new Timeline();
@@ -84,7 +87,16 @@ public sealed class BattleOrchestrator : IDisposable
 		var engagedShipIds = encounter.Spawns
 			.Select(spawn => spawn.Ship.Id)
 			.ToHashSet(StringComparer.Ordinal);
-		var player = units.First(unit => unit.Team == ETeam.Player);
+		var playerUnits = units.Where(unit => unit.Team == ETeam.Player).ToArray();
+		var player = playerUnits[0];
+		if (preferredPlayerId is not null)
+		{
+			var preferred = playerUnits.FirstOrDefault(unit =>
+				unit.State.Id.Equals(preferredPlayerId, StringComparison.Ordinal));
+			if (preferred is not null)
+				player = preferred;
+		}
+
 		var world = BattleWorld.FromLive(
 			units,
 			nonUnits,

@@ -9,6 +9,7 @@ using GrimSpace.Tutorials;
 
 using GrimSpace.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
@@ -198,11 +199,35 @@ public sealed class State : IDisposable
 		var orchestrator = RestoredBattleWorld is { } savedWorld
 			? BattleOrchestrator.FromSavedWorld(
 				savedWorld,
-				PlayerParty.ShipIds.First())
-			: BattleOrchestrator.FromEncounter(ActiveBattle);
+				ResolveActiveBattlePlayerId(savedWorld))
+			: BattleOrchestrator.FromEncounter(
+				ActiveBattle,
+				preferredPlayerId: ResolveActiveBattlePlayerId(null));
 		RestoredBattleWorld = null;
 		_battleOutcomeSubscription = orchestrator.Subscribe<Record<BattleOutcome>>(OnCommittedBattleOutcome);
 		return orchestrator;
+	}
+
+	private string ResolveActiveBattlePlayerId(BattleWorld? savedWorld)
+	{
+		var runtime = StarSystem.RuntimeFor(PlayerFleetUnitId);
+		var selected = PlayerFleetSelection.EnsureSelectedMember(
+			StarSystem.Map,
+			runtime,
+			PlayerFleetUnitId,
+			PlayerParty.ShipIds);
+
+		string[] playerUnitIds = savedWorld is not null
+			? savedWorld.UnitRegistry.All
+				.Where(unit => unit.Team == ETeam.Player)
+				.Select(unit => unit.State.Id)
+				.ToArray()
+			: ActiveBattle!.Spawns
+				.Where(spawn => spawn.Team == ETeam.Player)
+				.Select(spawn => spawn.Ship.Id)
+				.ToArray();
+
+		return PlayerFleetSelection.ResolveBattlePlayerId(selected, playerUnitIds);
 	}
 
 	public bool TryEnlistPlayerShip(ShipSpawnDeclaration declaration)
@@ -243,6 +268,11 @@ public sealed class State : IDisposable
 			nextSeed,
 			ShipRegistry));
 		SyncContractGenerationFromTutorialState();
+		PlayerFleetSelection.EnsureSelectedMember(
+			StarSystem.Map,
+			StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			PlayerParty.ShipIds);
 	}
 
 	public static State CreateNewRun(int seed = 0, bool tutorialsEnabled = false)

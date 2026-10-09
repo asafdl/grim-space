@@ -9,4 +9,5 @@ public sealed record StarSystemRuntimeDto(
 	int PendingCompletionTick,
 	long JourneyIdSequence,
 	IReadOnlyDictionary<string, int>? IgnoreUntilTickByTargetId = null,
-	int ActionCooldownUntilTick = 0);
+	int ActionCooldownUntilTick = 0,
+	string? SelectedMemberShipId = null);

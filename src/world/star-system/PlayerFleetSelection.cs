@@ -34,4 +34,18 @@ public static class PlayerFleetSelection
 		runtime.SelectedMemberShipId = fallback;
 		return fallback;
 	}
+
+	public static string ResolveBattlePlayerId(
+		string? selectedMemberShipId,
+		IReadOnlyList<string> playerBattleUnitIds)
+	{
+		if (playerBattleUnitIds.Count == 0)
+			throw new InvalidOperationException("Battle has no player units.");
+
+		if (selectedMemberShipId is not null
+			&& playerBattleUnitIds.Contains(selectedMemberShipId, StringComparer.Ordinal))
+			return selectedMemberShipId;
+
+		return playerBattleUnitIds[0];
+	}
 }

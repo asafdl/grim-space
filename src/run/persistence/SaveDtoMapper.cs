@@ -56,7 +56,8 @@ public static class SaveDtoMapper
 			new Dictionary<string, int>(
 				runtime.IgnoreUntilTickByTargetId,
 				StringComparer.Ordinal),
-			runtime.ActionCooldownUntilTick);
+			runtime.ActionCooldownUntilTick,
+			runtime.SelectedMemberShipId);
 	}
 
 	public static void RestoreRuntime(
@@ -76,6 +77,7 @@ public static class SaveDtoMapper
 		runtime.PendingCompletionTick = dto.PendingCompletionTick;
 		runtime.JourneyIdSequence = dto.JourneyIdSequence;
 		runtime.ActionCooldownUntilTick = dto.ActionCooldownUntilTick;
+		runtime.SelectedMemberShipId = dto.SelectedMemberShipId;
 		runtime.IgnoreUntilTickByTargetId.Clear();
 		if (dto.IgnoreUntilTickByTargetId is not null)
 		{

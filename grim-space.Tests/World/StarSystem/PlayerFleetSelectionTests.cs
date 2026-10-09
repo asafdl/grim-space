@@ -42,4 +42,12 @@ public sealed class PlayerFleetSelectionTests
 		Assert.Equal(run.PlayerParty.ShipIds[0], resolved);
 		Assert.Equal(run.PlayerParty.ShipIds[0], runtime.SelectedMemberShipId);
 	}
+
+	[Fact]
+	public void ResolveBattlePlayerId_PrefersSelectedShipInBattleRoster()
+	{
+		var roster = new[] { "fighter", "gunship" };
+		Assert.Equal("gunship", PlayerFleetSelection.ResolveBattlePlayerId("gunship", roster));
+		Assert.Equal("fighter", PlayerFleetSelection.ResolveBattlePlayerId("missing", roster));
+	}
 }

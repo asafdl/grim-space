@@ -25,6 +25,7 @@ public sealed class PersistenceAggressionTests
 		runtime.ActionCooldownUntilTick = 20;
 		runtime.IgnoreUntilTickByTargetId["target"] = 30;
 
+		runtime.SelectedMemberShipId = "gunship";
 		var dto = SaveDtoMapper.CaptureRuntime("actor", runtime, registry);
 		var restoredDto = JsonSerializer.Deserialize<StarSystemRuntimeDto>(
 			JsonSerializer.Serialize(dto))!;
@@ -33,6 +34,7 @@ public sealed class PersistenceAggressionTests
 
 		Assert.Equal(20, restored.ActionCooldownUntilTick);
 		Assert.Equal(30, restored.IgnoreUntilTickByTargetId["target"]);
+		Assert.Equal("gunship", restored.SelectedMemberShipId);
 
 		var legacyDto = JsonSerializer.Deserialize<StarSystemRuntimeDto>(
 			"""{"ActorId":"actor","CachedPath":null,"PendingCompletion":null,"PendingCompletionTick":0,"JourneyIdSequence":0}""")!;
@@ -41,6 +43,7 @@ public sealed class PersistenceAggressionTests
 
 		Assert.Equal(0, legacyRuntime.ActionCooldownUntilTick);
 		Assert.Empty(legacyRuntime.IgnoreUntilTickByTargetId);
+		Assert.Null(legacyRuntime.SelectedMemberShipId);
 	}
 
 	[Fact]
