@@ -60,7 +60,7 @@ internal static class ShipLoadoutTierRoller
 			if (ship.Loadout.InstalledAbilities.Any(installed => installed.Mount == slot.Mount))
 				continue;
 
-			var candidate = new InstalledAbility(slot.Baseline, slot.Mount.Facet);
+			var candidate = new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet);
 			if (CostInstallWeapon > remainingBudget)
 				continue;
 			if (!ship.TryWithInstalledAbility(candidate, out _))

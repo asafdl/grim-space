@@ -34,7 +34,7 @@ public sealed class ShipInstance
 	}
 
 	public static ShipInstance FromCatalog(string id, EType chassis) =>
-		ShipInstance.FromSpec(id, ShipCatalog.SpecFor(chassis), ShipCatalog.SpecFor(chassis).NewDefaultLoadout());
+		ShipInstance.FromSpec(id, ShipCatalog.SpecFor(chassis), ShipCatalog.LoadoutForTier(chassis, EShipGearTier.T0));
 
 	public static ShipInstance FromSpec(string id, ShipSpec spec, ShipLoadout loadout) =>
 		new(id, spec, loadout, loadout.MaxHullPoints, loadout.MaxShieldPoints.Clone());
@@ -169,10 +169,10 @@ public sealed class ShipInstance
 	{
 		after = null!;
 		var installed = Loadout.InstalledAbilities.FirstOrDefault(a => a.Mount == mount);
-		if (installed is null || !installed.Spec.TryCreateDamageUpgraded(out var replacement))
+		if (installed is null || installed.DamageUpgradeTier >= installed.Spec.MaxDamageUpgrades)
 			return false;
 
-		var updatedLoadout = Loadout.WithReplacedMount(Spec, mount, replacement);
+		var updatedLoadout = Loadout.WithReplacedMount(Spec, mount, installed.WithDamageUpgrade());
 		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
 		return true;
 	}
@@ -181,10 +181,10 @@ public sealed class ShipInstance
 	{
 		after = null!;
 		var installed = Loadout.InstalledAbilities.FirstOrDefault(a => a.Mount == mount);
-		if (installed is null || !installed.Spec.TryCreateRangeUpgraded(out var replacement))
+		if (installed is null || installed.RangeUpgradeTier >= installed.Spec.MaxRangeUpgrades)
 			return false;
 
-		var updatedLoadout = Loadout.WithReplacedMount(Spec, mount, replacement);
+		var updatedLoadout = Loadout.WithReplacedMount(Spec, mount, installed.WithRangeUpgrade());
 		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
 		return true;
 	}

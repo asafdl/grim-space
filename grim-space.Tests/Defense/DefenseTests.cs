@@ -76,7 +76,7 @@ public sealed class HitFaceTests
 public sealed class ApplyDamageTests
 {
 	private static State FreshUnit() =>
-		State.FromShipInstance(ShipInstance.FromCatalog("test", EType.Fighter), Coord.Zero);
+		State.FromShipInstance(ShipInstance.FromCatalog("test", EType.Carrier), Coord.Zero);
 
 	[Fact]
 	public void OneDamageOnFullFace_ReducesShieldOnly()

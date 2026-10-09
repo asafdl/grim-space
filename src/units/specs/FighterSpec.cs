@@ -32,12 +32,26 @@ public sealed class FighterSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port), ChassisWeaponBaselines.ScrapDroneSwarm()),
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard), ChassisWeaponBaselines.ScrapDroneSwarm()),
-		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Forward), ChassisWeaponBaselines.LightningCannon()),
-		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Forward), ChassisWeaponBaselines.GoopGun()),
-		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Retro), ChassisWeaponBaselines.VoidBombLauncher()),
-		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral), ChassisWeaponBaselines.VoidBombLauncher()),
-		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Dorsal), ChassisWeaponBaselines.VoidBombLauncher()),
+		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)),
+		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard)),
+		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
+		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Forward)),
+		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Retro)),
+		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral)),
+		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Dorsal)),
 	];
+
+	public override ShipLoadout NewDefaultLoadout()
+	{
+		var shields = new FaceShieldPoints();
+		shields[ESpatialOrientation.Forward] = 1;
+		shields[ESpatialOrientation.Starboard] = 1;
+		shields[ESpatialOrientation.Port] = 1;
+
+		return ShipLoadout.Create(
+			this,
+			DefaultMaxHullPoints,
+			shields,
+			Slots.Select(slot => new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet)).ToArray());
+	}
 }

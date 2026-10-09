@@ -374,7 +374,7 @@ public sealed class MerchantCommerceCharacterizationTests
 		Assert.Contains(
 			starterWeaponOffers,
 			o => o.Offering == MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade);
-		Assert.DoesNotContain(
+		Assert.Contains(
 			starterWeaponOffers,
 			o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
 

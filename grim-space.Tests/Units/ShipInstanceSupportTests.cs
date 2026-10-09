@@ -135,18 +135,17 @@ public sealed class ShipInstanceSupportTests
 	public void TryWithInstalledAbility_AddsMountWhenFacetIsOpen()
 	{
 		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
-		var baseline = FighterSpec.Instance.BaselineFor(mount);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			FighterSpec.Instance.DefaultMaxHullPoints,
 			FighterSpec.Instance.DefaultMaxShieldPoints,
 			[
 				new InstalledAbility(
-					FighterSpec.Instance.BaselineFor(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
+					EAbilityKind.LightningCannon,
 					ESpatialOrientation.Forward),
 			]);
 		var ship = ShipInstance.FromSpec("fighter-partial", FighterSpec.Instance, loadout);
-		var installed = new InstalledAbility(baseline, ESpatialOrientation.Port);
+		var installed = new InstalledAbility(mount.Kind, ESpatialOrientation.Port);
 
 		Assert.True(ship.TryWithInstalledAbility(installed, out var after));
 		Assert.Contains(after.Loadout.InstalledAbilities, a => a.Mount == installed.Mount);
@@ -157,7 +156,7 @@ public sealed class ShipInstanceSupportTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var mount = new AbilityMount(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral);
-		var installed = new InstalledAbility(FighterSpec.Instance.BaselineFor(mount), ESpatialOrientation.Ventral);
+		var installed = new InstalledAbility(mount.Kind, ESpatialOrientation.Ventral);
 
 		Assert.False(ship.TryWithInstalledAbility(installed, out _));
 	}

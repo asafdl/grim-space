@@ -165,12 +165,12 @@ public sealed class DetonateActionTests
 		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
 			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
-		var shieldsBefore = TotalShields(enemy.State);
+		var durabilityBefore = TotalDurability(enemy.State);
 
 		var sim = battle.Engine.CreateSimulation();
 		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
 
-		Assert.True(TotalShields(sim.StateOf<ActorState>(enemy.State.Id)) < shieldsBefore);
+		Assert.True(TotalDurability(sim.StateOf<ActorState>(enemy.State.Id)) < durabilityBefore);
 	}
 
 	[Fact]
@@ -185,12 +185,12 @@ public sealed class DetonateActionTests
 		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
 			Asteroid.Create("asteroid", torpedoPos + Coord.Forward * 2 + Coord.Up, grid, [torpedoPos + Coord.Forward * 2 + Coord.Up]));
-		var shieldsBefore = TotalShields(enemy.State);
+		var durabilityBefore = TotalDurability(enemy.State);
 
 		var sim = battle.Engine.CreateSimulation();
 		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
 
-		Assert.True(TotalShields(sim.StateOf<ActorState>(enemy.State.Id)) < shieldsBefore);
+		Assert.True(TotalDurability(sim.StateOf<ActorState>(enemy.State.Id)) < durabilityBefore);
 	}
 
 	[Fact]
@@ -223,12 +223,12 @@ public sealed class DetonateActionTests
 		BattleTestWorld.InjectNonUnit(
 			battle.Engine.World,
 			Asteroid.Create("asteroid", torpedoPos + Coord.Forward * 1, grid, [torpedoPos + Coord.Forward * 1]));
-		var shieldsBefore = TotalShields(enemy.State);
+		var durabilityBefore = TotalDurability(enemy.State);
 
 		var sim = battle.Engine.CreateSimulation();
 		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
 
-		Assert.Equal(shieldsBefore, TotalShields(sim.StateOf<ActorState>(enemy.State.Id)));
+		Assert.Equal(durabilityBefore, TotalDurability(sim.StateOf<ActorState>(enemy.State.Id)));
 		Assert.False(sim.StateOf<ActorState>(torpedoId).IsAlive);
 	}
 
@@ -282,4 +282,7 @@ public sealed class DetonateActionTests
 			total += state.ShieldPoints[face];
 		return total;
 	}
+
+	private static int TotalDurability(GrimSpace.Battle.Units.State state) =>
+		state.HullPoints + TotalShields(state);
 }

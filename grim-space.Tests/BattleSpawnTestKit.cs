@@ -52,7 +52,9 @@ internal static class BattleSpawnTestKit
 	{
 		spec ??= new GoopGunSpec();
 		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
-			.Append(new InstalledAbility(spec, mountedOn))
+			.Select(ability => ability.Mount == new AbilityMount(EAbilityKind.GoopGun, mountedOn)
+				? new InstalledAbility(spec, mountedOn)
+				: ability)
 			.ToArray();
 		return FighterWithInstalledAbilities(id, installed);
 	}

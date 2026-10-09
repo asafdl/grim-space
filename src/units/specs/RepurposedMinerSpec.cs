@@ -32,7 +32,7 @@ public sealed class RepurposedMinerSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port), ChassisWeaponBaselines.ScrapDroneSwarm()),
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard), ChassisWeaponBaselines.ScrapDroneSwarm()),
+		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)),
+		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard)),
 	];
 }

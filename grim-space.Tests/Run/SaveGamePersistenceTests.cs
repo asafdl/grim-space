@@ -485,14 +485,23 @@ public sealed class SaveGamePersistenceTests
 	public void SaveDtoMapper_RoundTripsIdentityStateAndLoadout()
 	{
 		var ship = ShipCatalog.CreateInstance("fighter-1", EType.Fighter);
+		var cannon = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
+		Assert.True(ship.TryWithDamageUpgraded(cannon, out ship));
+		Assert.True(ship.TryWithRangeUpgraded(cannon, out ship));
 		Assert.True(ship.TryWithUpgradedMaxHull(out ship));
 		Assert.True(ship.TryWithUpgradedMaxShields(
 			ESpatialOrientation.Forward,
 			out ship));
 		ship.HullPoints = 3;
 
-		var restored = SaveDtoMapper.RestoreShip(SaveDtoMapper.CaptureShip(ship));
+		var captured = SaveDtoMapper.CaptureShip(ship);
+		var capturedCannon = captured.InstalledAbilities.Single(
+			ability => ability.Kind == EAbilityKind.LightningCannon);
+		var restored = SaveDtoMapper.RestoreShip(captured);
 
+		Assert.Equal(1, capturedCannon.DamageUpgradeTier);
+		Assert.Equal(1, capturedCannon.RangeUpgradeTier);
+		Assert.Null(capturedCannon.Spec);
 		Assert.Equal(ship.Id, restored.Id);
 		Assert.Equal(ship.Spec.Chassis, restored.Spec.Chassis);
 		Assert.Equal(ship.HullPoints, restored.HullPoints);

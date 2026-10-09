@@ -101,7 +101,9 @@ public sealed class VoidBombActionTests
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
-		var torpedo = Assert.Single(UnitRegistry.For(battle.Engine.World).All, unit => unit.State.Type == EType.VoidBomb);
+		var torpedo = Assert.Single(
+			UnitRegistry.For(battle.Engine.World).All,
+			unit => unit.State.Type == EType.VoidBomb && unit.Team == ETeam.Player);
 		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().FuelTurns - 1, torpedo.State.FuelRemaining);
 		Assert.NotEqual(origin - shipFore, torpedo.State.Position);
 		Assert.Contains(replay.Actions, action => action is VoidBombAction);

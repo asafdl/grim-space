@@ -60,11 +60,16 @@ public sealed class InstalledAbilityTests
 	}
 
 	[Fact]
-	public void FighterNewRun_HasStarterMounts()
+	public void FighterNewRun_HasAllPermittedMountsAtBaseline()
 	{
 		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities;
 
-		Assert.Equal(2, installed.Count);
+		Assert.Equal(7, installed.Count);
+		Assert.All(installed, ability =>
+		{
+			Assert.Equal(0, ability.DamageUpgradeTier);
+			Assert.Equal(0, ability.RangeUpgradeTier);
+		});
 		Assert.Contains(
 			installed,
 			ability => ability.Mount == new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));

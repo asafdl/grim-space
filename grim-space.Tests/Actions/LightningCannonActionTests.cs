@@ -13,9 +13,9 @@ public sealed class LightningCannonActionTests
 {
 	private const string PlayerId = "player";
 
-	private static int TotalShieldPoints(GrimSpace.Battle.Units.State state)
+	private static int TotalDurability(GrimSpace.Battle.Units.State state)
 	{
-		var total = 0;
+		var total = state.HullPoints;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			total += state.ShieldPoints[face];
 		return total;
@@ -27,10 +27,10 @@ public sealed class LightningCannonActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
 			playerPos, TurnOrchestrationTests.EnemyInLightningCannonLine(playerPos));
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+		var durabilityBefore = TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+		Assert.True(durabilityBefore > TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
 	}
 
 	[Fact]
@@ -50,13 +50,13 @@ public sealed class LightningCannonActionTests
 		var playerPos = new Coord(5, 5, 5);
 		var enemyPos = playerPos + Coord.Forward * 6;
 		var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+		var durabilityBefore = TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Contains(replay.Actions, action => action is LightningCannonAction);
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.Engine.World.StateOf(BattleTestFixture.FirstEnemyId(battle))));
+		Assert.True(durabilityBefore > TotalDurability(battle.Engine.World.StateOf(BattleTestFixture.FirstEnemyId(battle))));
 	}
 
 	[Fact]
@@ -71,11 +71,11 @@ public sealed class LightningCannonActionTests
 		BattleTestWorld.InjectNonUnit(
 			world,
 			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+		var durabilityBefore = TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
-		Assert.Equal(shieldsBefore, TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+		Assert.Equal(durabilityBefore, TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
 	}
 
 	[Fact]
@@ -90,11 +90,11 @@ public sealed class LightningCannonActionTests
 		BattleTestWorld.InjectNonUnit(
 			world,
 			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+		var durabilityBefore = TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+		Assert.True(durabilityBefore > TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
 	}
 
 	[Fact]
@@ -108,11 +108,11 @@ public sealed class LightningCannonActionTests
 		BattleTestWorld.InjectNonUnit(
 			world,
 			Asteroid.Create("asteroid", playerPos + Coord.Forward * 3 + Coord.Up, grid, [playerPos + Coord.Forward * 3 + Coord.Up]));
-		var shieldsBefore = TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
+		var durabilityBefore = TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle)));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
-		Assert.True(shieldsBefore > TotalShieldPoints(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
+		Assert.True(durabilityBefore > TotalDurability(battle.PlayerAgent.Sim.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))));
 	}
 
 	[Fact]

@@ -19,7 +19,7 @@ public static class WeaponsCatalog
 
 		foreach (var slot in ship.Spec.Slots)
 		{
-			if (!SellableKinds.Contains(slot.Baseline.Kind))
+			if (!SellableKinds.Contains(slot.Mount.Kind))
 				continue;
 
 			var mount = slot.Mount;
@@ -48,7 +48,7 @@ public static class WeaponsCatalog
 			{
 				offers.Add(new MerchantCatalog.Offer(
 					damageOffering,
-					MerchantUpgradePricing.WeaponDamageUpgrade(installed.Spec.DamageUpgradeTier)));
+					MerchantUpgradePricing.WeaponDamageUpgrade(installed.DamageUpgradeTier)));
 			}
 
 			var rangeOffering = new MerchantCatalog.Offering(
@@ -58,7 +58,7 @@ public static class WeaponsCatalog
 			{
 				offers.Add(new MerchantCatalog.Offer(
 					rangeOffering,
-					MerchantUpgradePricing.WeaponRangeUpgrade(installed.Spec.RangeUpgradeTier)));
+					MerchantUpgradePricing.WeaponRangeUpgrade(installed.RangeUpgradeTier)));
 			}
 		}
 

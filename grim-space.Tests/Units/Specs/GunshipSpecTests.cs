@@ -9,7 +9,7 @@ namespace GrimSpace.Tests.Units.Specs;
 public sealed class GunshipSpecTests
 {
 	[Fact]
-	public void Slots_ArePortAndStarboardLongRangeLightningCannons()
+	public void Slots_ArePortAndStarboardBaselineLightningCannons()
 	{
 		var spec = GunshipSpec.Instance;
 
@@ -17,11 +17,9 @@ public sealed class GunshipSpecTests
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Port)));
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Starboard)));
 
-		var port = (LightningCannonSpec)spec.BaselineFor(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Port));
-		Assert.Equal(9, port.LineLength);
-		Assert.Equal(4, port.PyramidRange);
-		Assert.Equal(3, port.Damage);
-		Assert.Equal(1, port.UsesPerTurn);
+		var port = spec.NewDefaultLoadout().InstalledAbilities.Single(
+			ability => ability.MountedOn == ESpatialOrientation.Port);
+		Assert.Equal(LightningCannonSpec.Baseline, port.Spec);
 	}
 
 	[Fact]

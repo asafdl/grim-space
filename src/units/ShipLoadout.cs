@@ -38,10 +38,14 @@ public sealed record ShipLoadout(
 			HullUpgradeTier);
 	}
 
-	public ShipLoadout WithReplacedMount(ShipSpec spec, AbilityMount mount, AbilitySpec replacement)
+	public ShipLoadout WithReplacedMount(ShipSpec spec, AbilityMount mount, InstalledAbility replacement)
 	{
 		ArgumentNullException.ThrowIfNull(spec);
 		ArgumentNullException.ThrowIfNull(replacement);
+		if (replacement.Mount != mount)
+			throw new ArgumentException(
+				$"Replacement mount '{replacement.Mount}' does not match requested mount '{mount}'.",
+				nameof(replacement));
 
 		var found = false;
 		var updated = InstalledAbilities
@@ -51,7 +55,7 @@ public sealed record ShipLoadout(
 					return installed;
 
 				found = true;
-				return installed with { Spec = replacement };
+				return replacement;
 			})
 			.ToArray();
 

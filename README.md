@@ -268,11 +268,11 @@ Combat configuration is split in the units package (no Godot, no battle imports)
 
 | Layer | Type | Meaning |
 |-------|------|---------|
-| **Ship spec** | [`ShipSpec`](src/units/specs/ShipSpec.cs) (+ [`FighterSpec`](src/units/specs/FighterSpec.cs), etc.) | **Chassis definition only**: [`EType`](src/units/Enums/EType.cs), weapon **slot table** (mount + baseline [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs)), default hull/shield layout. Immutable after spawn. |
+| **Ship spec** | [`ShipSpec`](src/units/specs/ShipSpec.cs) (+ [`FighterSpec`](src/units/specs/FighterSpec.cs), etc.) | **Chassis definition only**: [`EType`](src/units/Enums/EType.cs), permissible ability mounts (**kind + facet**), default hull/shield layout. Immutable after spawn. |
 | **Ship loadout** | [`ShipLoadout`](src/units/ShipLoadout.cs) | **Configured instance**: installed abilities, max hull/shields, upgrade tiers. Mutates via dock / [`ShipInstance`](src/units/ShipInstance.cs) APIs. |
-| **Ability spec** | [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs) (+ sealed records) | What an ability *does*: per-turn uses or cooldown, compatible facets, and behavior via small interfaces. |
+| **Ability spec** | [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs) (+ sealed records) | What an ability *does*: canonical baseline values, independent per-stat upgrade caps, per-turn uses or cooldown, and behavior via small interfaces. |
 
-Each [`InstalledAbility`](src/units/loadouts/abilities/InstalledAbility.cs) is one physical mount (**`EAbilityKind` + facet**). A kind may appear on multiple facets; each mount has independent uses/cooldown in battle.
+Each [`InstalledAbility`](src/units/loadouts/abilities/InstalledAbility.cs) is one physical mount (**`EAbilityKind` + facet**) with damage/range upgrade deltas. Its effective spec is always derived as canonical baseline + validated deltas; chassis specs do not redefine weapon numbers. A kind may appear on multiple facets; each mount has independent upgrades and uses/cooldown in battle.
 
 Capability interfaces (metadata + helpers, still in units):
 
@@ -287,9 +287,9 @@ Capability interfaces (metadata + helpers, still in units):
 | **Star map / run** ([`RunShipRegistry`](src/run/RunShipRegistry.cs), engagement setup) | **Owns each [`ShipInstance`](src/units/ShipInstance.cs)** — id, readonly chassis `Spec`, mutable `Loadout`, current hull, and shields. |
 | **Battle** ([`State.FromShipInstance`](src/battle/units/State.cs), action defs) | **Copies `Loadout` from the spawned `ShipInstance`** — installed abilities, caps, upgrades. Does **not** re-query the catalog or validate against chassis templates (run/map setup owns that). |
 
-[`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time. Battle [`State`](src/battle/units/State.cs) holds [`ShipLoadout`](src/units/ShipLoadout.cs) and creates one runtime counter set per mount. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) (chassis spec for the child) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Weapon numbers live on [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs) (including [`VoidBombLauncherSpec`](src/units/loadouts/abilities/AbilitySpec.cs)); spawned torpedoes snapshot those values onto battle [`State.Projectile`](src/battle/units/VoidBombProjectile.cs).
+[`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time. Battle [`State`](src/battle/units/State.cs) holds [`ShipLoadout`](src/units/ShipLoadout.cs) and creates one runtime counter set per mount. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) (chassis spec for the child) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Battle reads each mount's effective [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs); spawned torpedoes snapshot those effective values onto battle [`State.Projectile`](src/battle/units/VoidBombProjectile.cs).
 
-**Upgrade identity:** run-level **`shipId`** plus **ability kind + facet**; replace the `AbilitySpec` on that exact installed mount. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
+**Upgrade identity:** run-level **`shipId`** plus **ability kind + facet**; increment the validated damage/range delta on that exact installed mount. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
 
 #### Star-map merchant commerce (boundaries)
 

@@ -26,12 +26,11 @@ public sealed class ShipLoadoutTests
 	public void Create_AllowsPartialLoadoutWithinSlotTable()
 	{
 		var lightningCannonMount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
-		var baseline = FighterSpec.Instance.BaselineFor(lightningCannonMount);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			FighterSpec.Instance.DefaultMaxHullPoints,
 			FighterSpec.Instance.DefaultMaxShieldPoints,
-			[new InstalledAbility(baseline, ESpatialOrientation.Forward)]);
+			[new InstalledAbility(lightningCannonMount.Kind, ESpatialOrientation.Forward)]);
 
 		Assert.Single(loadout.InstalledAbilities);
 		Assert.True(FighterSpec.Instance.Supports(lightningCannonMount));

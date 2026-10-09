@@ -20,37 +20,45 @@ public sealed class FighterSpecTests
 	}
 
 	[Fact]
-	public void BaselineFor_ReturnsPrototypeAbilitySpecs()
+	public void AbilitySpec_DefinesBaseline()
 	{
-		var spec = FighterSpec.Instance;
-		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard);
-
-		Assert.IsType<ScrapDroneSwarmSpec>(spec.BaselineFor(mount));
+		Assert.Equal(
+			ScrapDroneSwarmSpec.Baseline,
+			AbilitySpec.BaselineFor(EAbilityKind.ScrapDroneSwarm));
 	}
 
 	[Fact]
-	public void NewDefaultLoadout_InstallsAllSlots()
+	public void LightningCannonBaseline_HasStarterStats()
 	{
-		var loadout = FighterSpec.Instance.NewDefaultLoadout();
+		var lightningCannon = LightningCannonSpec.Baseline;
 
-		Assert.Equal(7, loadout.InstalledAbilities.Count);
-		foreach (var slot in FighterSpec.Instance.Slots)
-			Assert.Contains(loadout.InstalledAbilities, installed => installed.Mount == slot.Mount);
-	}
-
-	[Fact]
-	public void NewRunLoadout_IsStarterConfiguration()
-	{
-		var loadout = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
-		var lightningCannon = (LightningCannonSpec)loadout.InstalledAbilities
-			.Single(ability => ability.Spec.Kind == EAbilityKind.LightningCannon).Spec;
-		var launcher = (VoidBombLauncherSpec)loadout.InstalledAbilities
-			.Single(ability => ability.Spec.Kind == EAbilityKind.VoidBombLauncher).Spec;
-
-		Assert.Equal(2, loadout.InstalledAbilities.Count);
 		Assert.Equal(2, lightningCannon.Damage);
 		Assert.Equal(5, lightningCannon.LineLength);
 		Assert.Equal(2, lightningCannon.PyramidRange);
-		Assert.Equal(2, launcher.FuelTurns);
+	}
+
+	[Fact]
+	public void NewDefaultLoadout_MatchesRunStarter()
+	{
+		var fromCatalog = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
+		var fromSpec = FighterSpec.Instance.NewDefaultLoadout();
+
+		Assert.Equal(fromCatalog.InstalledAbilities.Count, fromSpec.InstalledAbilities.Count);
+		Assert.Equal(fromCatalog.MaxHullPoints, fromSpec.MaxHullPoints);
+		Assert.True(fromCatalog.MaxShieldPoints.Matches(fromSpec.MaxShieldPoints));
+	}
+
+	[Fact]
+	public void NewRunLoadout_UsesAbilityBaselines()
+	{
+		var loadout = ShipCatalog.NewRunLoadoutFor(EType.Fighter);
+
+		Assert.Equal(FighterSpec.Instance.Slots.Count, loadout.InstalledAbilities.Count);
+		Assert.All(loadout.InstalledAbilities, installed =>
+		{
+			Assert.Equal(AbilitySpec.BaselineFor(installed.Kind), installed.Spec);
+			Assert.Equal(0, installed.DamageUpgradeTier);
+			Assert.Equal(0, installed.RangeUpgradeTier);
+		});
 	}
 }

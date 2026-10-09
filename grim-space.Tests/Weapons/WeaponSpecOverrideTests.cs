@@ -15,9 +15,9 @@ public sealed class WeaponSpecOverrideTests
 	private const string PlayerId = "custom-fighter";
 
 	[Fact]
-	public void CustomScrapDroneSwarmBurstRangeShrinksAffectedCells()
+	public void ScrapDroneSwarmRangeUpgradeExpandsAffectedCells()
 	{
-		var installed = ReplaceScrapDroneSwarmSpec(new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 1));
+		var installed = WithScrapDroneSwarmRangeUpgrade(rangeUpgradeTier: 1);
 		var player = Factory.Create(
 			BattleSpawnTestKit.FighterWithInstalledAbilities(PlayerId, installed),
 			ETeam.Player,
@@ -32,13 +32,16 @@ public sealed class WeaponSpecOverrideTests
 			new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port),
 			world);
 
-		Assert.Equal(6, cells.Count);
+		var spec = (ScrapDroneSwarmSpec)world.StateOf(PlayerId)
+			.FindInstalled(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)!.Spec;
+		Assert.Equal(ScrapDroneSwarmSpec.Baseline.BurstRange + 1, spec.BurstRange);
+		Assert.Equal(44, cells.Count);
 	}
 
 	[Fact]
-	public void CustomLightningCannonLineLengthChangesReachEnvelope()
+	public void LightningCannonRangeUpgradeChangesReachEnvelope()
 	{
-		var installed = ReplaceLightningCannonSpec(new LightningCannonSpec(UsesPerTurn: 1, Damage: 1, LineLength: 3, PyramidRange: 1));
+		var installed = WithLightningCannonRangeUpgrade(rangeUpgradeTier: 1);
 		var player = Factory.Create(
 			BattleSpawnTestKit.FighterWithInstalledAbilities(PlayerId, installed),
 			ETeam.Player,
@@ -53,22 +56,28 @@ public sealed class WeaponSpecOverrideTests
 		var cells = LightningCannonDef.Instance.AffectedCells(new LightningCannonAction(PlayerId), world);
 		var frame = BodyFrame.From(world.StateOf(PlayerId));
 
-		Assert.Equal(3, spec.LineLength);
-		Assert.DoesNotContain(frame.ToWorld(5, 0, 0), cells);
-		Assert.Contains(frame.ToWorld(3, 0, 0), cells);
+		Assert.Equal(LightningCannonSpec.Baseline.LineLength + 1, spec.LineLength);
+		Assert.Contains(frame.ToWorld(6, 0, 0), cells);
+		Assert.DoesNotContain(frame.ToWorld(9, 0, 0), cells);
 	}
 
-	private static IReadOnlyList<InstalledAbility> ReplaceScrapDroneSwarmSpec(ScrapDroneSwarmSpec swarm) =>
+	private static IReadOnlyList<InstalledAbility> WithScrapDroneSwarmRangeUpgrade(int rangeUpgradeTier) =>
 		ShipCatalog.FullFighterLoadout().InstalledAbilities
-			.Select(ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm
-				? ability with { Spec = swarm }
+			.Select(ability => ability.Kind == EAbilityKind.ScrapDroneSwarm
+				? new InstalledAbility(
+					ability.Kind,
+					ability.MountedOn,
+					rangeUpgradeTier: rangeUpgradeTier)
 				: ability)
 			.ToArray();
 
-	private static IReadOnlyList<InstalledAbility> ReplaceLightningCannonSpec(LightningCannonSpec lightningCannon) =>
+	private static IReadOnlyList<InstalledAbility> WithLightningCannonRangeUpgrade(int rangeUpgradeTier) =>
 		ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
-			.Select(ability => ability.Spec.Kind == EAbilityKind.LightningCannon
-				? ability with { Spec = lightningCannon }
+			.Select(ability => ability.Kind == EAbilityKind.LightningCannon
+				? new InstalledAbility(
+					ability.Kind,
+					ability.MountedOn,
+					rangeUpgradeTier: rangeUpgradeTier)
 				: ability)
 			.ToArray();
 }

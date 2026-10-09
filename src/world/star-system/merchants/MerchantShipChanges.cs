@@ -60,9 +60,9 @@ internal static class MerchantShipChanges
 					return false;
 				if (next.Loadout.InstalledAbilities.Any(installed => installed.Mount == installMount))
 					return false;
-				if (!next.Spec.TryGetBaseline(installMount, out var installSpec) || installSpec is null)
+				if (!next.Spec.Supports(installMount))
 					return false;
-				if (!next.TryWithInstalledAbility(new InstalledAbility(installSpec, installMount.Facet), out upgraded))
+				if (!next.TryWithInstalledAbility(new InstalledAbility(installMount.Kind, installMount.Facet), out upgraded))
 					return false;
 				next = upgraded;
 				break;

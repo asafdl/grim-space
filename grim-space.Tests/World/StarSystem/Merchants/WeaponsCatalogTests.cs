@@ -103,9 +103,8 @@ public sealed class WeaponsCatalogTests
 			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
 		Assert.Contains(WeaponsCatalog.ListFor(ship), offer => offer.Offering == install);
 
-		var baseline = FighterSpec.Instance.BaselineFor(install.Mount!.Value);
 		Assert.True(ship.TryWithInstalledAbility(
-			new InstalledAbility(baseline, ESpatialOrientation.Port),
+			new InstalledAbility(install.Mount!.Value.Kind, ESpatialOrientation.Port),
 			out ship));
 
 		var offers = WeaponsCatalog.ListFor(ship);
@@ -120,12 +119,11 @@ public sealed class WeaponsCatalogTests
 	private static ShipInstance FighterWithLightningCannonOnly(string id)
 	{
 		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
-		var baseline = FighterSpec.Instance.BaselineFor(mount);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			FighterSpec.Instance.DefaultMaxHullPoints,
 			FighterSpec.Instance.DefaultMaxShieldPoints,
-			[new InstalledAbility(baseline, ESpatialOrientation.Forward)]);
+			[new InstalledAbility(mount.Kind, ESpatialOrientation.Forward)]);
 		return ShipInstance.FromSpec(id, FighterSpec.Instance, loadout);
 	}
 }

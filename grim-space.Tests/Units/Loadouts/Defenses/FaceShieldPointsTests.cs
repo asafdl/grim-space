@@ -88,10 +88,11 @@ public sealed class FaceShieldPointsTests
 	public void BattleState_ClonesConfiguredShieldCaps()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter);
+		var expected = ship.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
 		var state = State.FromShipInstance(ship, Coord.Zero);
 
 		ship.Loadout.MaxShieldPoints[ESpatialOrientation.Forward] = 7;
 
-		Assert.Equal(2, state.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(expected, state.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
 	}
 }

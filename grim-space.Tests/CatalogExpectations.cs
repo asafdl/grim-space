@@ -22,19 +22,19 @@ internal static class CatalogExpectations
 
 	public static int LightningCannonMaxReach(EType chassis = EType.Fighter) =>
 		AbilityReach.MaxManhattanFromFirer(
-			ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.LightningCannon)!);
+			DefaultLightningCannonSpec(chassis));
 
 	public static LightningCannonSpec DefaultLightningCannonSpec(EType chassis = EType.Fighter) =>
-		(LightningCannonSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.LightningCannon)!;
+		(LightningCannonSpec)AbilitySpec.BaselineFor(EAbilityKind.LightningCannon);
 
 	public static ScrapDroneSwarmSpec DefaultScrapDroneSwarmSpec(EType chassis = EType.Fighter) =>
-		(ScrapDroneSwarmSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.ScrapDroneSwarm)!;
+		(ScrapDroneSwarmSpec)AbilitySpec.BaselineFor(EAbilityKind.ScrapDroneSwarm);
 
 	public static MinerBaySpec DefaultMinerBaySpec(EType chassis = EType.Carrier) =>
-		(MinerBaySpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.MinerBay)!;
+		(MinerBaySpec)AbilitySpec.BaselineFor(EAbilityKind.MinerBay);
 
 	public static VoidBombLauncherSpec DefaultVoidBombLauncherSpec(EType chassis = EType.Fighter) =>
-		(VoidBombLauncherSpec)ShipCatalog.SpecFor(chassis).TryGetBaselineForKind(EAbilityKind.VoidBombLauncher)!;
+		(VoidBombLauncherSpec)AbilitySpec.BaselineFor(EAbilityKind.VoidBombLauncher);
 
 	public static VoidBombLauncherSpec DefaultVoidBombLauncher() =>
 		DefaultVoidBombLauncherSpec(EType.Fighter);

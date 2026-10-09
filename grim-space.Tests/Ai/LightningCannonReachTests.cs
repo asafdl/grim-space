@@ -6,6 +6,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Ai;
 
@@ -56,10 +57,10 @@ public sealed class LightningCannonReachTests
 	public void UpperBound_IncludesMaximumEngagementScore_WhenOpponentOutOfOptimisticReach()
 	{
 		var ap = 0;
-		var gap = OffensiveReach.OptimisticMoveBubble(ap) + CatalogExpectations.LightningCannonMaxReach() + 1;
-		var player = CreateUnit(ETeam.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
 		enemy.State.ActionPoints = ap;
+		var gap = OffensiveReach.OptimisticMoveBubble(ap) + MaxPerTurnWeaponReach(enemy.State) + 1;
+		var player = CreateUnit(ETeam.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, BattleTestFixture.Grid(size: 32));
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
@@ -112,4 +113,18 @@ public sealed class LightningCannonReachTests
 			new AiController(),
 			new Coord(1, 0, 0),
 			Coord.Up);
+
+	private static int MaxPerTurnWeaponReach(State state)
+	{
+		var reach = 0;
+		foreach (var installed in state.Loadout.InstalledAbilities)
+		{
+			if (installed.Spec is not IPerTurnAbility)
+				continue;
+
+			reach = System.Math.Max(reach, AbilityReach.MaxManhattanFromFirer(installed.Spec));
+		}
+
+		return reach;
+	}
 }

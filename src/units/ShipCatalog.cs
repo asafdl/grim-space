@@ -1,7 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
-using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Units;
@@ -32,7 +31,8 @@ public static class ShipCatalog
 	public static ShipLoadout NewRunLoadoutFor(EType chassis) =>
 		LoadoutForTier(chassis, EShipGearTier.T0);
 
-	public static ShipLoadout FullFighterLoadout() => FighterSpec.Instance.NewDefaultLoadout();
+	public static ShipLoadout FullFighterLoadout() =>
+		FighterSpec.Instance.NewDefaultLoadout();
 
 	public static ShipInstance CreateInstance(string id, EType chassis) =>
 		ShipInstance.FromSpec(id, SpecFor(chassis), LoadoutForTier(chassis, EShipGearTier.T0));
@@ -40,28 +40,8 @@ public static class ShipCatalog
 	private static ShipLoadout BaselineLoadoutFor(EType chassis) =>
 		chassis switch
 		{
-			EType.Fighter => BaselineFighterLoadout(),
-			EType.Gunship or EType.IndustrialGooper or EType.Carrier or EType.RepurposedMiner or EType.VoidBomb =>
+			EType.Fighter or EType.Gunship or EType.IndustrialGooper or EType.Carrier or EType.RepurposedMiner or EType.VoidBomb =>
 				SpecFor(chassis).NewDefaultLoadout(),
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
-
-	private static ShipLoadout BaselineFighterLoadout()
-	{
-		var spec = FighterSpec.Instance;
-		var shields = new FaceShieldPoints();
-		shields[ESpatialOrientation.Forward] = 1;
-		shields[ESpatialOrientation.Starboard] = 1;
-		shields[ESpatialOrientation.Port] = 1;
-
-		var installed = new[]
-		{
-			new InstalledAbility(ChassisWeaponBaselines.StarterLightningCannon(), ESpatialOrientation.Forward),
-			new InstalledAbility(
-				ChassisWeaponBaselines.StarterVoidBombLauncher(),
-				ESpatialOrientation.Ventral),
-		};
-
-		return ShipLoadout.Create(spec, spec.DefaultMaxHullPoints, shields, installed);
-	}
 }

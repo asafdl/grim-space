@@ -150,11 +150,13 @@ public static class SaveDtoMapper
 			MaxShieldPoints = CaptureFaces(loadout.MaxShieldPoints),
 			ShieldUpgradeTiers = CaptureFaces(loadout.ShieldUpgradeTiers),
 			loadout.HullUpgradeTier,
-			InstalledAbilities = loadout.InstalledAbilities.Select(installed => new
-			{
-				MountedOn = installed.MountedOn,
-				Spec = CaptureAbility(installed.Spec),
-			}).ToArray(),
+			InstalledAbilities = loadout.InstalledAbilities
+				.Select(installed => new InstalledAbilityDto(
+					installed.MountedOn,
+					installed.Kind,
+					installed.DamageUpgradeTier,
+					installed.RangeUpgradeTier))
+				.ToArray(),
 		});
 	}
 
@@ -163,9 +165,7 @@ public static class SaveDtoMapper
 		ArgumentNullException.ThrowIfNull(dto);
 		var spec = ShipCatalog.SpecFor(dto.Chassis);
 		var installed = dto.InstalledAbilities
-			.Select(ability => new InstalledAbility(
-				RestoreAbility(ability.Spec),
-				ability.MountedOn))
+			.Select(RestoreInstalledAbility)
 			.ToArray();
 		var loadout = ShipLoadout.Create(
 			spec,
@@ -779,8 +779,32 @@ public static class SaveDtoMapper
 		return world;
 	}
 
-	private static AbilitySpecDto CaptureAbility(AbilitySpec spec) =>
-		new(spec.Kind.ToString(), JsonSerializer.SerializeToElement(spec, spec.GetType()));
+	private static InstalledAbility RestoreInstalledAbility(InstalledAbilityDto dto)
+	{
+		if (dto.Kind is { } kind)
+		{
+			return new InstalledAbility(
+				kind,
+				dto.MountedOn,
+				dto.DamageUpgradeTier,
+				dto.RangeUpgradeTier);
+		}
+
+		if (dto.Spec is null)
+			throw new InvalidDataException("Installed ability is missing both kind and legacy spec data.");
+
+		var effective = RestoreAbility(dto.Spec);
+		try
+		{
+			return new InstalledAbility(effective, dto.MountedOn);
+		}
+		catch (ArgumentException exception)
+		{
+			throw new InvalidDataException(
+				$"Legacy ability '{effective.Kind}' does not match its canonical baseline and upgrades.",
+				exception);
+		}
+	}
 
 	private static AbilitySpec RestoreAbility(AbilitySpecDto dto)
 	{

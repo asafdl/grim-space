@@ -40,9 +40,9 @@ public static class ShipLoadoutGearTier
 				continue;
 			}
 
-			spent += (installed.Spec.DamageUpgradeTier - baselineInstalled.Spec.DamageUpgradeTier)
+			spent += (installed.DamageUpgradeTier - baselineInstalled.DamageUpgradeTier)
 				* ShipLoadoutTierRoller.CostWeaponDamage;
-			spent += (installed.Spec.RangeUpgradeTier - baselineInstalled.Spec.RangeUpgradeTier)
+			spent += (installed.RangeUpgradeTier - baselineInstalled.RangeUpgradeTier)
 				* ShipLoadoutTierRoller.CostWeaponRange;
 		}
 

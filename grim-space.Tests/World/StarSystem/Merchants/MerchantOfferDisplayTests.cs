@@ -56,7 +56,7 @@ public sealed class MerchantOfferDisplayTests
 		Assert.False(install.IsInstalled);
 		Assert.Equal(MerchantCatalog.Kind.InstallWeapon, Assert.Single(install.Offers).Offering.Kind);
 
-		Assert.True(ship.TryWithInstalledAbility(new InstalledAbility(spec.BaselineFor(mount), mount.Facet), out ship));
+		Assert.True(ship.TryWithInstalledAbility(new InstalledAbility(mount.Kind, mount.Facet), out ship));
 		var after = MerchantOfferDisplay.AbilitiesFor(ship, WeaponsCatalog.ListFor(ship));
 		var installed = Assert.Single(after, ability => ability.Mount == mount);
 		Assert.True(installed.IsInstalled);

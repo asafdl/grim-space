@@ -32,5 +32,5 @@ public sealed record VoidBombProjectile(
 			launcher.BlastDamage);
 
 	public static VoidBombProjectile CatalogDefault() =>
-		FromLauncher(ChassisWeaponBaselines.VoidBombLauncher());
+		FromLauncher(VoidBombLauncherSpec.Baseline);
 }

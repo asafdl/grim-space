@@ -5,6 +5,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Units;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
@@ -29,10 +30,24 @@ public static class DeploymentPlacement
 		var playerShip = ShipInstance.FromCatalog(
 			playerId ?? "dev-player",
 			playerChassis);
+		if (playerChassis == BattleUnitType.Fighter)
+			playerShip = UpgradeDevFighter(playerShip);
 		var enemyShip = ShipInstance.FromCatalog(
 			enemyId ?? "dev-enemy",
 			enemyChassis);
 		return DevDuel(playerShip, enemyShip, seed, gridSize);
+	}
+
+	private static ShipInstance UpgradeDevFighter(ShipInstance fighter)
+	{
+		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
+		if (!fighter.TryWithDamageUpgraded(mount, out var damageUpgraded)
+			|| !damageUpgraded.TryWithRangeUpgraded(mount, out var rangeUpgraded))
+		{
+			throw new InvalidOperationException("Dev fighter Lightning Cannon could not be upgraded to +1 damage / +1 range.");
+		}
+
+		return rangeUpgraded;
 	}
 
 	public static List<BattleSpawn> ForEngagement(

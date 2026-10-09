@@ -8,11 +8,6 @@ namespace GrimSpace.Units.Specs;
 
 public sealed class GunshipSpec : ShipSpec
 {
-	private static readonly LightningCannonSpec GunshipLightning = ExtendedLightning(
-		ChassisWeaponBaselines.LightningCannon(),
-		lineLengthBonus: 1,
-		pyramidRangeBonus: 2);
-
 	public static GunshipSpec Instance { get; } = new();
 
 	private GunshipSpec()
@@ -40,17 +35,7 @@ public sealed class GunshipSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Port), GunshipLightning),
-		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Starboard), GunshipLightning),
+		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Port)),
+		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Starboard)),
 	];
-
-	private static LightningCannonSpec ExtendedLightning(
-		LightningCannonSpec baseline,
-		int lineLengthBonus,
-		int pyramidRangeBonus) =>
-		baseline with
-		{
-			LineLength = baseline.LineLength + lineLengthBonus,
-			PyramidRange = baseline.PyramidRange + pyramidRangeBonus,
-		};
 }

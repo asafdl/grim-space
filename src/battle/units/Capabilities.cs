@@ -30,7 +30,10 @@ public static class Capabilities
 		EType type) =>
 		type == EType.VoidBomb
 			? [DetonateDef.Instance]
-			: AbilityDefsForLoadout(ChassisSpec(type).NewDefaultLoadout().InstalledAbilities);
+			: AbilityDefsForLoadout(
+				ChassisSpec(type).Slots
+					.Select(slot => new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet))
+					.ToList());
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsForLoadout(
 		IReadOnlyList<InstalledAbility> installed) =>

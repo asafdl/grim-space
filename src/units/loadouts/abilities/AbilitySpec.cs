@@ -9,18 +9,39 @@ public abstract record AbilitySpec
 
 	public virtual int DamageUpgradeTier { get; init; }
 	public virtual int RangeUpgradeTier { get; init; }
+	public virtual int MaxDamageUpgrades => 0;
+	public virtual int MaxRangeUpgrades => 0;
 
-	public virtual bool TryCreateDamageUpgraded(out AbilitySpec upgraded)
+	public static AbilitySpec BaselineFor(EAbilityKind kind) =>
+		kind switch
+		{
+			EAbilityKind.ScrapDroneSwarm => ScrapDroneSwarmSpec.Baseline,
+			EAbilityKind.LightningCannon => LightningCannonSpec.Baseline,
+			EAbilityKind.MinerBay => MinerBaySpec.Baseline,
+			EAbilityKind.VoidBombLauncher => VoidBombLauncherSpec.Baseline,
+			EAbilityKind.GoopGun => GoopGunSpec.Baseline,
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+		};
+
+	public static AbilitySpec Create(
+		EAbilityKind kind,
+		int damageUpgradeTier = 0,
+		int rangeUpgradeTier = 0)
 	{
-		upgraded = null!;
-		return false;
+		var baseline = BaselineFor(kind);
+		if (damageUpgradeTier < 0 || damageUpgradeTier > baseline.MaxDamageUpgrades)
+			throw new ArgumentOutOfRangeException(
+				nameof(damageUpgradeTier),
+				$"{kind} damage upgrade tier must be between 0 and {baseline.MaxDamageUpgrades}.");
+		if (rangeUpgradeTier < 0 || rangeUpgradeTier > baseline.MaxRangeUpgrades)
+			throw new ArgumentOutOfRangeException(
+				nameof(rangeUpgradeTier),
+				$"{kind} range upgrade tier must be between 0 and {baseline.MaxRangeUpgrades}.");
+
+		return baseline.ApplyUpgrades(damageUpgradeTier, rangeUpgradeTier);
 	}
 
-	public virtual bool TryCreateRangeUpgraded(out AbilitySpec upgraded)
-	{
-		upgraded = null!;
-		return false;
-	}
+	protected virtual AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) => this;
 
 	public MountRuntimeCounters CreateInitialRuntime() =>
 		this switch
@@ -58,44 +79,29 @@ public abstract record AbilitySpec
 public sealed record ScrapDroneSwarmSpec(
 	int UsesPerTurn,
 	int Damage,
-	int BurstRange,
-	int DamageUpgradeTier = 0,
-	int RangeUpgradeTier = 0) : AbilitySpec, IAreaDamage, IPerTurnAbility
+	int BurstRange) : AbilitySpec, IAreaDamage, IPerTurnAbility
 {
 	public const int MaxDamageUpgradeTier = 3;
 	public const int MaxRangeUpgradeTier = 3;
+	public static ScrapDroneSwarmSpec Baseline { get; } = new(
+		UsesPerTurn: 1,
+		Damage: 1,
+		BurstRange: 2);
 
 	public override EAbilityKind Kind => EAbilityKind.ScrapDroneSwarm;
+	public override int MaxDamageUpgrades => MaxDamageUpgradeTier;
+	public override int MaxRangeUpgrades => MaxRangeUpgradeTier;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
-	public override bool TryCreateDamageUpgraded(out AbilitySpec upgraded)
-	{
-		upgraded = null!;
-		if (DamageUpgradeTier >= MaxDamageUpgradeTier)
-			return false;
-
-		upgraded = this with
+	protected override AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) =>
+		this with
 		{
-			Damage = Damage + 1,
-			DamageUpgradeTier = DamageUpgradeTier + 1,
+			Damage = Damage + damageUpgradeTier,
+			BurstRange = BurstRange + rangeUpgradeTier,
+			DamageUpgradeTier = damageUpgradeTier,
+			RangeUpgradeTier = rangeUpgradeTier,
 		};
-		return true;
-	}
-
-	public override bool TryCreateRangeUpgraded(out AbilitySpec upgraded)
-	{
-		upgraded = null!;
-		if (RangeUpgradeTier >= MaxRangeUpgradeTier)
-			return false;
-
-		upgraded = this with
-		{
-			BurstRange = BurstRange + 1,
-			RangeUpgradeTier = RangeUpgradeTier + 1,
-		};
-		return true;
-	}
 
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
 	{
@@ -125,55 +131,45 @@ public sealed record LightningCannonSpec(
 	int UsesPerTurn,
 	int Damage,
 	int LineLength,
-	int PyramidRange,
-	int DamageUpgradeTier = 0,
-	int RangeUpgradeTier = 0) : AbilitySpec, IAreaDamage, IPerTurnAbility
+	int PyramidRange) : AbilitySpec, IAreaDamage, IPerTurnAbility
 {
 	public const int MaxDamageUpgradeTier = 3;
 	public const int MaxRangeUpgradeTier = 3;
+	public static LightningCannonSpec Baseline { get; } = new(
+		UsesPerTurn: 1,
+		Damage: 2,
+		LineLength: 5,
+		PyramidRange: 2);
 
 	public override EAbilityKind Kind => EAbilityKind.LightningCannon;
+	public override int MaxDamageUpgrades => MaxDamageUpgradeTier;
+	public override int MaxRangeUpgrades => MaxRangeUpgradeTier;
 	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
 	int IAreaDamage.Damage => Damage;
 
-	public override bool TryCreateDamageUpgraded(out AbilitySpec upgraded)
-	{
-		upgraded = null!;
-		if (DamageUpgradeTier >= MaxDamageUpgradeTier)
-			return false;
-
-		upgraded = this with
+	protected override AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) =>
+		this with
 		{
-			Damage = Damage + 1,
-			DamageUpgradeTier = DamageUpgradeTier + 1,
+			Damage = Damage + damageUpgradeTier,
+			LineLength = LineLength + rangeUpgradeTier,
+			DamageUpgradeTier = damageUpgradeTier,
+			RangeUpgradeTier = rangeUpgradeTier,
 		};
-		return true;
-	}
-
-	public override bool TryCreateRangeUpgraded(out AbilitySpec upgraded)
-	{
-		upgraded = null!;
-		if (RangeUpgradeTier >= MaxRangeUpgradeTier)
-			return false;
-
-		upgraded = this with
-		{
-			LineLength = LineLength + 1,
-			RangeUpgradeTier = RangeUpgradeTier + 1,
-		};
-		return true;
-	}
 
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
 	{
-		var starboard = Coord.Cross(dorsal, fore);
+		var spreadRight = Coord.Cross(dorsal, direction);
+		if (spreadRight == Coord.Zero)
+			spreadRight = Coord.Cross(fore, direction);
+		var spreadUp = Coord.Cross(direction, spreadRight);
+
 		var cells = new List<Coord>();
-		for (var foreOffset = 1; foreOffset <= LineLength; foreOffset++)
-			cells.Add(origin + direction * foreOffset);
+		for (var along = 1; along <= LineLength; along++)
+			cells.Add(origin + direction * along);
 
 		for (var depth = 0; depth <= PyramidRange; depth++)
 		{
-			var foreOffset = LineLength + depth;
+			var along = LineLength + depth;
 			for (var port = -depth; port <= depth; port++)
 			{
 				for (var dorsalOffset = -depth; dorsalOffset <= depth; dorsalOffset++)
@@ -183,9 +179,9 @@ public sealed record LightningCannonSpec(
 
 					cells.Add(
 						origin
-						+ direction * foreOffset
-						+ starboard * (-port)
-						+ dorsal * dorsalOffset);
+						+ direction * along
+						+ spreadRight * (-port)
+						+ spreadUp * dorsalOffset);
 				}
 			}
 		}
@@ -199,6 +195,11 @@ public sealed record MinerBaySpec(
 	ShipSpec ChildSpec,
 	int MaxLivingChildren) : AbilitySpec, ISpawnable, ICooldownAbility
 {
+	public static MinerBaySpec Baseline { get; } = new(
+		CooldownTurns: 2,
+		RepurposedMinerSpec.Instance,
+		MaxLivingChildren: 5);
+
 	public override EAbilityKind Kind => EAbilityKind.MinerBay;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
 	ShipSpec ISpawnable.ChildSpec => ChildSpec;
@@ -214,6 +215,15 @@ public sealed record VoidBombLauncherSpec(
 	int BlastRadius,
 	int BlastDamage) : AbilitySpec, ISpawnable, ICooldownAbility
 {
+	public static VoidBombLauncherSpec Baseline { get; } = new(
+		CooldownTurns: 3,
+		FuelTurns: VoidBombSpec.FuelTurns,
+		MovementActionPoints: VoidBombSpec.MovementActionPoints,
+		ForwardMoveApCost: VoidBombSpec.ForwardMoveApCost,
+		LateralMoveApCost: VoidBombSpec.LateralMoveApCost,
+		BlastRadius: VoidBombSpec.BlastRadius,
+		BlastDamage: VoidBombSpec.BlastDamage);
+
 	public override EAbilityKind Kind => EAbilityKind.VoidBombLauncher;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
 	ShipSpec ISpawnable.ChildSpec => VoidBombSpec.Instance;
@@ -237,6 +247,8 @@ public sealed record GoopGunSpec(
 	int HalfHeight = 1,
 	int UnavailableTurns = 2) : AbilitySpec, ICooldownAbility, IAreaDamage
 {
+	public static GoopGunSpec Baseline { get; } = new();
+
 	int IAreaDamage.Damage => 0;
 
 	public override EAbilityKind Kind => EAbilityKind.GoopGun;

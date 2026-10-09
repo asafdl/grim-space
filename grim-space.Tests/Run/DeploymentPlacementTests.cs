@@ -2,6 +2,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Run;
 
@@ -20,6 +21,29 @@ public sealed class DeploymentPlacementTests
 		Assert.True(player.Position.X < 64 / 2);
 		Assert.True(enemy.Position.X >= 64 / 2);
 		Assert.NotEqual(player.Position, enemy.Position);
+	}
+
+	[Fact]
+	public void DevDuel_UpgradesPlayerFighterLightningCannonByOnePerStat()
+	{
+		var (player, enemy) = DeploymentPlacement.DevDuel(
+			EType.Fighter,
+			EType.Carrier,
+			seed: 42,
+			gridSize: 64);
+
+		var playerCannon = player.Ship.Loadout.InstalledAbilities.Single(
+			ability => ability.Kind == EAbilityKind.LightningCannon);
+		var enemyCannon = enemy.Ship.Loadout.InstalledAbilities.Single(
+			ability => ability.Kind == EAbilityKind.LightningCannon);
+		var effective = Assert.IsType<LightningCannonSpec>(playerCannon.Spec);
+
+		Assert.Equal(1, playerCannon.DamageUpgradeTier);
+		Assert.Equal(1, playerCannon.RangeUpgradeTier);
+		Assert.Equal(LightningCannonSpec.Baseline.Damage + 1, effective.Damage);
+		Assert.Equal(LightningCannonSpec.Baseline.LineLength + 1, effective.LineLength);
+		Assert.Equal(0, enemyCannon.DamageUpgradeTier);
+		Assert.Equal(0, enemyCannon.RangeUpgradeTier);
 	}
 
 	[Fact]
