@@ -15,6 +15,7 @@ internal static class TutorialCopy
 		$"3 Dimensional space is hard to navigate, make full use of the camera controls:\n- HOLD {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit.\n" +
 		$"- Move camera with {GameInputBindings.Label("battle_pan_up")} {GameInputBindings.Label("battle_pan_left")} " +
 		$"{GameInputBindings.Label("battle_pan_down")} {GameInputBindings.Label("battle_pan_right")}, " +
+		$"{GameInputBindings.Label("battle_pan_vertical_up")} / {GameInputBindings.Label("battle_pan_vertical_down")} for height, " +
 		$"or HOLD {GameInputBindings.Label("battle_camera_pan")} and drag.\n" +
 		$"- Press {GameInputBindings.Label("battle_focus")} to refocus on your ship.";
 

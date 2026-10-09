@@ -408,6 +408,8 @@ public static class GameInputBindings
 		BattleKey("battle_pan_down", "Pan down", Phy(Key.S)),
 		BattleKey("battle_pan_left", "Pan left", Phy(Key.A)),
 		BattleKey("battle_pan_right", "Pan right", Phy(Key.D)),
+		BattleKey("battle_pan_vertical_up", "Pan up (height)", Phy(Key.T)),
+		BattleKey("battle_pan_vertical_down", "Pan down (height)", Phy(Key.G)),
 		BattleKey("battle_move_mode", "Move mode", Phy(Key.Key1)),
 		BattleKey("battle_ability_2", "Ability slot 2", Phy(Key.Key2)),
 		BattleKey("battle_ability_3", "Ability slot 3", Phy(Key.Key3)),

@@ -73,6 +73,15 @@ public struct OrbitPose
 		Pivot += (right * pan.X + forward * pan.Y) * speed * delta;
 	}
 
+	/// <summary>Moves the pivot along world up/down (Y axis).</summary>
+	public void VerticalPan(float axis, float speed, float delta)
+	{
+		if (axis == 0f)
+			return;
+
+		Pivot += Vector3.Up * axis * speed * delta;
+	}
+
 	public void Zoom(float amount, in OrbitLimits limits) =>
 		Distance = Mathf.Clamp(Distance + amount, limits.MinDistance, limits.MaxDistance);
 

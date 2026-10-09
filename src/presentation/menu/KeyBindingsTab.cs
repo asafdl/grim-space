@@ -16,6 +16,8 @@ public partial class KeyBindingsTab : Control
 				"battle_pan_down",
 				"battle_pan_left",
 				"battle_pan_right",
+				"battle_pan_vertical_up",
+				"battle_pan_vertical_down",
 				"battle_zoom_in",
 				"battle_zoom_out",
 				"battle_camera_orbit",

@@ -218,28 +218,43 @@ public partial class Controller : Camera3D, ICameraRig
 		if (GestureInputBlocked)
 			return;
 
-		var pan = Vector2.Zero;
+		var flatPan = Vector2.Zero;
 		if (Input.IsActionPressed("battle_pan_up", true))
-			pan.Y += 1f;
+			flatPan.Y += 1f;
 		if (Input.IsActionPressed("battle_pan_down", true))
-			pan.Y -= 1f;
+			flatPan.Y -= 1f;
 		if (Input.IsActionPressed("battle_pan_left", true))
-			pan.X -= 1f;
+			flatPan.X -= 1f;
 		if (Input.IsActionPressed("battle_pan_right", true))
-			pan.X += 1f;
+			flatPan.X += 1f;
 
-		if (pan == Vector2.Zero
+		if (flatPan == Vector2.Zero
 			&& GameSettings.MouseCameraPanEnabled
 			&& !IsMouseOverUi())
-			pan = MouseEdgePan();
+			flatPan = MouseEdgePan();
 
-		if (pan == Vector2.Zero)
+		var verticalPan = 0f;
+		if (Input.IsActionPressed("battle_pan_vertical_up", true))
+			verticalPan += 1f;
+		if (Input.IsActionPressed("battle_pan_vertical_down", true))
+			verticalPan -= 1f;
+
+		if (flatPan == Vector2.Zero && verticalPan == 0f)
 			return;
 
 		NotifyManualInput();
-		pan = pan.Normalized();
-		var (right, forward) = OrbitPose.FlatPanAxes(GlobalTransform.Basis);
-		_pose.FlatPan(pan, right, forward, OrbitControls.KeyboardPanSpeed, (float)delta);
+		var deltaF = (float)delta;
+		var panSpeed = OrbitControls.KeyboardPanSpeed;
+		if (flatPan != Vector2.Zero)
+		{
+			flatPan = flatPan.Normalized();
+			var (right, forward) = OrbitPose.FlatPanAxes(GlobalTransform.Basis);
+			_pose.FlatPan(flatPan, right, forward, panSpeed, deltaF);
+		}
+
+		if (verticalPan != 0f)
+			_pose.VerticalPan(Mathf.Sign(verticalPan), panSpeed, deltaF);
+
 		ApplyTransform();
 	}
 
