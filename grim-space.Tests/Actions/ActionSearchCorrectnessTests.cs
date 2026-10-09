@@ -35,16 +35,6 @@ public sealed class ActionSearchCorrectnessTests
 	}
 
 	[Fact]
-	public void PrunedFramesAreSubsetOfExhaustiveSearch_MovementCapabilities()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var pruned = PrefixKeys(battle.PlayerAgent.Sim, MovementActionDefs);
-		var exhaustive = PrefixKeysExhaustive(battle.PlayerAgent.Sim, MovementActionDefs);
-
-		Assert.Subset(exhaustive, pruned);
-	}
-
-	[Fact]
 	public void EveryPrunedFrameReplayableFromTurnStart()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));

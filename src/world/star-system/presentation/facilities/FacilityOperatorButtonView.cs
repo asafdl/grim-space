@@ -13,8 +13,13 @@ public partial class FacilityOperatorButtonView : TextureButton
 	{
 		var texture = TextureNormal
 			?? throw new InvalidOperationException("Facility operator buttons require a normal texture.");
+		var image = (Image)texture.GetImage().Duplicate();
+		if (FlipH)
+			image.FlipX();
+		if (FlipV)
+			image.FlipY();
 		var clickMask = new Bitmap();
-		clickMask.CreateFromImageAlpha(texture.GetImage(), 0.2f);
+		clickMask.CreateFromImageAlpha(image, 0.08f);
 		TextureClickMask = clickMask;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 		FocusMode = FocusModeEnum.All;
