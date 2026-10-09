@@ -116,12 +116,14 @@ public partial class ObjectivesHud : MarginContainer
 		{
 			if (!terminal)
 			{
-				badge.QueueFree();
+				if (GodotObject.IsInstanceValid(badge))
+					badge.QueueFree();
 				return;
 			}
 
 			_lingeringObjectiveIds.Remove(objectiveId);
-			panel.QueueFree();
+			if (GodotObject.IsInstanceValid(panel))
+				panel.QueueFree();
 			RefreshListChrome();
 		};
 	}

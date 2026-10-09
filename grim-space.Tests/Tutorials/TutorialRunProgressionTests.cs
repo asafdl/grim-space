@@ -66,7 +66,7 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			run.StarSystem.Map.StoryObjectives.Active,
 			objective => objective.Id == StoryObjective.FirstContractId
 				&& objective.Summary.Contains(
-					$"[url={administrativeCoreId}]Administrative Core[/url]",
+					$"[url=\"{administrativeCoreId}\"]Administrative Core[/url]",
 					StringComparison.Ordinal));
 	}
 

@@ -31,7 +31,23 @@ public sealed class ObjectiveSummaryFormatterTests
 		var bbcode = summary.ToBbcode();
 
 		Assert.Equal(
-			"A pirate fleet spotted ambushing ships on route between [url=poi-a]Refinery[/url] and [url=poi-b]Storage[/url].",
+			"A pirate fleet spotted ambushing ships on route between [url=\"poi-a\"]Refinery[/url] and [url=\"poi-b\"]Storage[/url].",
+			bbcode);
+	}
+
+	[Fact]
+	public void ToBbcode_NearLandmark_QuotesIdsWithColonsForRichTextParser()
+	{
+		var summary = new ObjectiveSummaryContent.NearLandmark(
+			"Search near ",
+			"area:border:12:34",
+			"the sector rim",
+			".");
+
+		var bbcode = summary.ToBbcode();
+
+		Assert.Equal(
+			"Search near [url=\"area:border:12:34\"]the sector rim[/url].",
 			bbcode);
 	}
 }

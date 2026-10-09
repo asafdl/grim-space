@@ -7,16 +7,23 @@ public abstract record ObjectiveSummaryContent
 		{
 			Plain plain => plain.Text,
 			NearLandmark near =>
-				$"{near.Prefix}[url={near.LandmarkPoiId}]{near.LandmarkDisplayName}[/url]{near.Suffix}",
+				$"{near.Prefix}{LandmarkLink(near.LandmarkPoiId, near.LandmarkDisplayName)}{near.Suffix}",
 			RouteBetweenLandmarks route =>
-				$"{route.Prefix}[url={route.LandmarkAPoiId}]{route.LandmarkADisplayName}[/url]" +
-				$"{route.Connector}[url={route.LandmarkBPoiId}]{route.LandmarkBDisplayName}[/url]{route.Suffix}",
+				$"{route.Prefix}{LandmarkLink(route.LandmarkAPoiId, route.LandmarkADisplayName)}" +
+				$"{route.Connector}{LandmarkLink(route.LandmarkBPoiId, route.LandmarkBDisplayName)}{route.Suffix}",
 			RouteAmongLandmarks route =>
-				$"{route.Prefix}[url={route.LandmarkAPoiId}]{route.LandmarkADisplayName}[/url]" +
-				$"{route.ConnectorAB}[url={route.LandmarkBPoiId}]{route.LandmarkBDisplayName}[/url]" +
-				$"{route.ConnectorBC}[url={route.LandmarkCPoiId}]{route.LandmarkCDisplayName}[/url]{route.Suffix}",
+				$"{route.Prefix}{LandmarkLink(route.LandmarkAPoiId, route.LandmarkADisplayName)}" +
+				$"{route.ConnectorAB}{LandmarkLink(route.LandmarkBPoiId, route.LandmarkBDisplayName)}" +
+				$"{route.ConnectorBC}{LandmarkLink(route.LandmarkCPoiId, route.LandmarkCDisplayName)}{route.Suffix}",
 			_ => throw new ArgumentOutOfRangeException(),
 		};
+
+	private static string LandmarkLink(string landmarkId, string displayName) =>
+		$"[url=\"{EscapeBbcodeAttribute(landmarkId)}\"]{displayName}[/url]";
+
+	private static string EscapeBbcodeAttribute(string value) =>
+		value.Replace("\\", "\\\\", StringComparison.Ordinal)
+			.Replace("\"", "\\\"", StringComparison.Ordinal);
 
 	public sealed record Plain(string Text) : ObjectiveSummaryContent;
 

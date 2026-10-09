@@ -14,7 +14,7 @@ public sealed record StoryObjective(
 		return new StoryObjective(
 			FirstContractId,
 			"Get your first contract",
-			$"Go to the [url={administrativePoiId}]Administrative Core[/url] and accept your first contract.");
+			$"Go to the [url=\"{administrativePoiId}\"]Administrative Core[/url] and accept your first contract.");
 	}
 
 	public static StoryObjective BeatBContract(string contractId)
