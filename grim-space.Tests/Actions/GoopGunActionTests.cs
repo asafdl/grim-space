@@ -1,6 +1,5 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
@@ -8,11 +7,13 @@ using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -210,10 +211,16 @@ public sealed class GoopGunActionTests
 					EType.Fighter,
 					ETeam.Enemy,
 					enemyPos,
-					new AiController()),
+					new IdleEnemyAgent()),
 			],
 		};
 
 		return BattleOrchestrator.FromEncounter(encounter, gridSize: 30);
+	}
+
+	/// <summary>Ends the enemy activation immediately (no action search).</summary>
+	private sealed class IdleEnemyAgent : ExecutionAgent<BattleWorld, ActorRuntime>
+	{
+		protected override void OnPublishIfReady() => Publish([]);
 	}
 }
