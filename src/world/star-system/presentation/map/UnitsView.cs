@@ -40,16 +40,6 @@ public partial class UnitsView : Node3D
 	private const int UnitPickRadius = 14;
 	private const float UnitSnapMarginPixels = 20f;
 	private const float HoverRingScale = 1.18f;
-	private static readonly Color[] DeliveryMeetingRingColors =
-	[
-		new(0.98f, 0.38f, 0.24f),
-		new(0.98f, 0.78f, 0.22f),
-		new(0.34f, 0.92f, 0.54f),
-		new(0.24f, 0.82f, 0.98f),
-		new(0.64f, 0.42f, 0.98f),
-		new(0.98f, 0.34f, 0.72f),
-	];
-
 	private readonly Dictionary<string, UnitVisual> _units = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, List<Vector3>> _trailHistory = new(StringComparer.Ordinal);
 
@@ -146,6 +136,7 @@ public partial class UnitsView : Node3D
 				worldPosition,
 				traveling);
 
+			ApplyRingColor(unitVisual.Ring, RingColorForUnit(world, unit.State));
 		}
 	}
 
@@ -270,16 +261,7 @@ public partial class UnitsView : Node3D
 			Position = new Vector3(0f, RingYOffset, 0f),
 			Mesh = BuildRingMesh(ringRadius, ringStroke, RingSegments),
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				AlbedoColor = ringColor with { A = RingAlpha },
-				EmissionEnabled = true,
-				Emission = ringColor with { A = RingAlpha },
-				EmissionEnergyMultiplier = 0.35f,
-				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			},
+			MaterialOverride = CreateRingMaterial(ringColor),
 		};
 		marker.AddChild(ring);
 		marker.AddChild(new MeshInstance3D
@@ -342,19 +324,48 @@ public partial class UnitsView : Node3D
 
 	private static Color RingColorForUnit(StarMap world, Units.State state)
 	{
-		if (TryGetDeliveryMeetingId(world, state, out var meetingId))
-		{
-			var paletteIndex = (int)(
-				StableSeedMixer.From(world.Seed)
-					.Add("delivery-meeting-ring")
-					.Add(meetingId)
-					.Value
-				% (ulong)DeliveryMeetingRingColors.Length);
-			return DeliveryMeetingRingColors[paletteIndex];
-		}
+		if (!TryGetDeliveryMeetingId(world, state, out var meetingId))
+			return ColorForUnit(state);
 
-		return ColorForUnit(state);
+		var hull = ToRgb(ColorForUnit(state));
+		var picked = DeliveryMeetingMarkerColors.Pick(
+			world.Seed,
+			meetingId,
+			hull,
+			ToRgb(PlayerColor));
+		return FromRgb(picked);
 	}
+
+	private static StandardMaterial3D CreateRingMaterial(Color ringColor)
+	{
+		var tinted = ringColor with { A = RingAlpha };
+		return new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			AlbedoColor = tinted,
+			EmissionEnabled = true,
+			Emission = tinted,
+			EmissionEnergyMultiplier = 0.35f,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+		};
+	}
+
+	private static void ApplyRingColor(MeshInstance3D ring, Color ringColor)
+	{
+		if (ring.MaterialOverride is not StandardMaterial3D material)
+			return;
+
+		var tinted = ringColor with { A = RingAlpha };
+		material.AlbedoColor = tinted;
+		material.Emission = tinted;
+	}
+
+	private static DeliveryMeetingMarkerColors.Rgb ToRgb(Color color) =>
+		new(color.R, color.G, color.B);
+
+	private static Color FromRgb(DeliveryMeetingMarkerColors.Rgb color) =>
+		new(color.R, color.G, color.B);
 
 	private static bool TryGetDeliveryMeetingId(
 		StarMap world,
@@ -370,6 +381,9 @@ public partial class UnitsView : Node3D
 			|| contract.Objective is not DeliveryObjective delivery
 			|| delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
 				is not SpaceMeetingDeliveryLeg meeting)
+			return false;
+
+		if (!string.Equals(meeting.MeetingId, state.Id, StringComparison.Ordinal))
 			return false;
 
 		meetingId = meeting.MeetingId;
