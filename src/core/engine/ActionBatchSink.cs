@@ -7,6 +7,8 @@ public sealed class ActionBatchSink
 	private readonly object _gate = new();
 	private readonly Dictionary<string, ActorSlot> _slots = new(StringComparer.Ordinal);
 
+	public event Action<string>? BatchPublished;
+
 	public IActionBatchWriter WriterFor(string actorId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(actorId);
@@ -66,8 +68,13 @@ public sealed class ActionBatchSink
 
 	private void Publish(string actorId, ActionBatch batch)
 	{
+		var published = false;
 		lock (_gate)
-			GetOrCreateSlot(actorId).Writer.TryWrite(ActionProductionResult.FromBatch(batch));
+			published = GetOrCreateSlot(actorId).Writer.TryWrite(
+				ActionProductionResult.FromBatch(batch));
+
+		if (published)
+			BatchPublished?.Invoke(actorId);
 	}
 
 	private void Fail(string actorId, Exception exception)
@@ -123,6 +130,6 @@ public sealed class ActionBatchSink
 
 		public void Fail(Exception exception) => _sink.Fail(_actorId, exception);
 
-		internal void TryWrite(ActionProductionResult result) => _writer.TryWrite(result);
+		internal bool TryWrite(ActionProductionResult result) => _writer.TryWrite(result);
 	}
 }

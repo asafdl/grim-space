@@ -28,6 +28,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly Engine<StarMap, ActorRuntime> _engine;
 	private readonly ContactMonitor _contactMonitor;
 	private readonly ActionBatchSink _actionSink = new();
+	private readonly ActionBatchSink _immediateActionSink = new();
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly List<(TrafficExecutionAgent Agent, string ActorId)> _trafficAgents;
 	private readonly List<(AutonomousFleetExecutionAgent Agent, string ActorId)> _autonomousAgents = [];
@@ -62,6 +63,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_pathfinder = pathfinder;
 		_contractBoardAgent = contractBoardAgent;
 		_fleetSpawnerAgent = fleetSpawnerAgent;
+		_immediateActionSink.BatchPublished += OnImmediateBatchPublished;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_engagementResolvedSubscription = _engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
 		_deliveryTurnInSubscription =
@@ -81,6 +83,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public string? PlayerId { get; }
 
 	public StarMapPlayerExecutionAgent? PlayerAgent => _playerAgent;
+
+	public IImmediateActionSink? ImmediatePlayerActions => _playerAgent;
 
 	public ESimMode SimMode => _simMode;
 
@@ -243,6 +247,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 				playerId!,
 				engine.CreateSimulation,
 				orchestrator._actionSink.WriterFor(playerId!));
+			playerAgent.BindImmediateWriter(
+				orchestrator._immediateActionSink.WriterFor(playerId!));
 			playerAgent.PlanningChanged += orchestrator.OnPlayerPlanningChanged;
 		}
 
@@ -457,22 +463,39 @@ public sealed class StarSystemOrchestrator : IDisposable
 		}
 	}
 
-	private void CommitPlayerActions()
+	private void OnImmediateBatchPublished(string actorId)
+	{
+		if (PlayerId is null || !string.Equals(actorId, PlayerId, StringComparison.Ordinal))
+			throw new InvalidOperationException(
+				$"Immediate action lane received unexpected actor '{actorId}'.");
+
+		if (!_immediateActionSink.TryTakeBatch(actorId, out var batch))
+			throw new InvalidOperationException(
+				$"Immediate action lane did not contain the published batch for '{actorId}'.");
+
+		if (batch.Actions.Count > 0)
+			Commit([..batch.Actions]);
+
+		NotifyWorldUpdated();
+	}
+
+	private bool CommitPlayerActions()
 	{
 		if (_playerAgent is null || PlayerId is null)
-			return;
+			return false;
 
 		if (!_playerAgent.Commit())
-			return;
+			return false;
 
 		if (!_actionSink.TryTakeBatch(PlayerId, out var batch) || batch.Actions.Count == 0)
 		{
 			StarMapPresentationDiagnostics.LogCommitSkipped("empty_batch_after_commit", _playerAgent);
 			RefreshPlayerAgent();
-			return;
+			return false;
 		}
 
 		Commit([..batch.Actions]);
+		return true;
 	}
 
 	private void CommitTrafficActions()
@@ -658,6 +681,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public void Dispose()
 	{
+		_immediateActionSink.BatchPublished -= OnImmediateBatchPublished;
 		_storyObjectiveSubscription.Dispose();
 		_engagementResolvedSubscription.Dispose();
 		_deliveryTurnInSubscription.Dispose();

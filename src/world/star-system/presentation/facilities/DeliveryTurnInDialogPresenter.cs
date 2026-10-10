@@ -12,7 +12,9 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed class DeliveryTurnInDialogPresenter
 {
-	private readonly StarSystemOrchestrator _orchestrator;
+	private readonly StarMap _map;
+	private readonly StarSystemOrchestrator? _orchestrator;
+	private readonly UserIntentTranslator? _intentTranslator;
 	private readonly string? _poiId;
 	private readonly string? _facilityId;
 	private readonly Button? _backButton;
@@ -23,10 +25,11 @@ public sealed class DeliveryTurnInDialogPresenter
 	public DeliveryTurnInDialogPresenter(
 		Node owner,
 		Button backButton,
-		StarSystemOrchestrator orchestrator,
+		StarMap map,
+		UserIntentTranslator intentTranslator,
 		string poiId,
 		string facilityId)
-		: this(owner, backButton, orchestrator)
+		: this(owner, backButton, map, intentTranslator, null)
 	{
 		_poiId = poiId;
 		_facilityId = facilityId;
@@ -35,15 +38,19 @@ public sealed class DeliveryTurnInDialogPresenter
 	public DeliveryTurnInDialogPresenter(
 		Node owner,
 		StarSystemOrchestrator orchestrator)
-		: this(owner, null, orchestrator)
+		: this(owner, null, orchestrator.Map, null, orchestrator)
 	{
 	}
 
 	private DeliveryTurnInDialogPresenter(
 		Node owner,
 		Button? backButton,
-		StarSystemOrchestrator orchestrator)
+		StarMap map,
+		UserIntentTranslator? intentTranslator,
+		StarSystemOrchestrator? orchestrator)
 	{
+		_map = map;
+		_intentTranslator = intentTranslator;
 		_orchestrator = orchestrator;
 		_backButton = backButton!;
 		_hud = new NpcDialogHudOverlay();
@@ -102,7 +109,7 @@ public sealed class DeliveryTurnInDialogPresenter
 	public bool TryHandleInput(InputEvent @event) => _hud.TryHandleInput(@event);
 
 	private ActiveContract? FindTurnInContract(FacilityOperator facilityOperator) =>
-		_orchestrator.Map.ContractRegistry
+		_map.ContractRegistry
 			.ActiveFor(State.PlayerFleetUnitId)
 			.FirstOrDefault(active =>
 				active.Definition.Objective is DeliveryObjective delivery
@@ -114,7 +121,7 @@ public sealed class DeliveryTurnInDialogPresenter
 				&& facility.OperatorName == facilityOperator.Name);
 
 	private ActiveContract? FindMeetingContract(string meetingId) =>
-		_orchestrator.Map.ContractRegistry
+		_map.ContractRegistry
 			.ActiveFor(State.PlayerFleetUnitId)
 			.FirstOrDefault(active =>
 				active.Definition.Objective is DeliveryObjective delivery
@@ -147,14 +154,22 @@ public sealed class DeliveryTurnInDialogPresenter
 		}
 
 		var delivery = (DeliveryContractState)active.State;
-		var committed = _orchestrator.TryCommitPlayerInput(new CompleteDeliveryFacilityLegAction(
-			State.PlayerFleetUnitId,
-			_poiId ?? "",
-			_facilityId ?? "",
-			_operator?.Name ?? "",
-			active.Definition.Id,
-			delivery.Progress.CurrentLegIndex,
-			_meetingId));
+		var committed = _intentTranslator is not null
+			? _intentTranslator.TryCompleteDeliveryFacilityLeg(
+				_poiId ?? "",
+				_facilityId ?? "",
+				_operator?.Name ?? "",
+				active.Definition.Id,
+				delivery.Progress.CurrentLegIndex,
+				_meetingId)
+			: _orchestrator!.TryCommitPlayerInput(new CompleteDeliveryFacilityLegAction(
+				State.PlayerFleetUnitId,
+				_poiId ?? "",
+				_facilityId ?? "",
+				_operator?.Name ?? "",
+				active.Definition.Id,
+				delivery.Progress.CurrentLegIndex,
+				_meetingId));
 		if (!committed)
 		{
 			var speaker = _operator?.Name ?? "Delivery contact";
@@ -185,7 +200,7 @@ public sealed class DeliveryTurnInDialogPresenter
 	private string NextLegDestination(DeliveryLeg leg) =>
 		leg switch
 		{
-			FacilityDeliveryLeg facility => _orchestrator.Map.PointsOfInterest
+			FacilityDeliveryLeg facility => _map.PointsOfInterest
 				.FirstOrDefault(poi => poi.Id == facility.PoiId) is { } poi
 				? $"{poi.GetFacility(facility.FacilityId).DisplayName} at {poi.DisplayName}"
 				: facility.PoiId,

@@ -1,9 +1,4 @@
 using Godot;
-using GrimSpace.Application;
-using GrimSpace.Core.Ids;
-using GrimSpace.Run;
-using GrimSpace.Units;
-using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
@@ -13,28 +8,16 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public partial class MarketController : Control
 {
-	private StarSystemOrchestrator _orchestrator = null!;
+	private FacilitySceneBinding _binding = null!;
 	private CanvasLayer _merchantHudLayer = null!;
 	private ShipRecruitmentHudOverlay _shipRecruitmentHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
-	private string _activePoiId = null!;
-	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
-		_orchestrator = Session.Instance.Run.StarSystem;
-		_orchestrator.RefreshPlayerAgent();
-		if (_orchestrator.PlayerAgent is null)
-			throw new InvalidOperationException("Market requires a player execution agent.");
-
-		_activePoiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Market requires an active POI.");
-		_facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Market requires an active facility.");
-		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
-		var facility = poi.GetFacility(_facilityId);
+		_binding = FacilitySceneBinding.Create("Market");
 
 		var scene = GetNode<FacilitySceneView>("Scene");
 
@@ -48,21 +31,30 @@ public partial class MarketController : Control
 		_shipRecruitmentHud.Closed += UpdateBackButton;
 		_merchantHudLayer.AddChild(_shipRecruitmentHud);
 
-		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_npcDialog = new FacilityNpcDialogPresenter(
+			this,
+			_backButton,
+			_binding.Facility,
+			_binding.Map);
 		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
 			this,
 			_backButton,
-			_orchestrator,
-			_activePoiId,
-			_facilityId);
-		_orchestrator.WorldUpdated += OnWorldUpdated;
-		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
+			_binding.Map,
+			_binding.Intents,
+			_binding.PoiId,
+			_binding.FacilityId);
+		_binding.WorldUpdated += OnWorldUpdated;
+		FacilityOperatorBinder.Bind(
+			scene,
+			_binding.Poi,
+			_binding.Facility,
+			OnFacilityOperatorActivated);
 	}
 
 	public override void _ExitTree()
 	{
-		_orchestrator.WorldUpdated -= OnWorldUpdated;
-		_orchestrator.RefreshPlayerAgent();
+		_binding.WorldUpdated -= OnWorldUpdated;
+		_binding.Dispose();
 		base._ExitTree();
 	}
 
@@ -87,7 +79,9 @@ public partial class MarketController : Control
 		switch (role)
 		{
 			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.Ships:
-				_shipRecruitmentHud.Open(Session.Instance.Run, OperatorDisplayLabels.Title(facilityOperator));
+				_shipRecruitmentHud.Open(
+					_binding.Run,
+					OperatorDisplayLabels.Title(facilityOperator));
 				UpdateBackButton();
 				break;
 			case EFacilityOperatorRole.Dialog:
@@ -103,26 +97,21 @@ public partial class MarketController : Control
 	}
 
 	private void OnWorldUpdated() =>
-		_shipRecruitmentHud.Sync(Session.Instance.Run);
+		_shipRecruitmentHud.Sync(_binding.Run);
 
 	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
 	{
-		var declaration = new ShipSpawnDeclaration(
-			TypedIdGenerator.NextId(UnitTypeSlug.For(offer.Chassis)),
-			offer.Chassis,
-			offer.GearTier);
-		var committed = _orchestrator.TryCommitPlayerInput(new RecruitShipAction(
-			State.PlayerFleetUnitId,
-			_activePoiId,
-			_facilityId,
+		var committed = _binding.Intents.TryRecruitShip(
+			_binding.PoiId,
+			_binding.FacilityId,
 			RequireActiveOperatorName(),
-			declaration));
+			offer);
 		if (!committed)
 		{
-			var run = Session.Instance.Run;
+			var run = _binding.Run;
 			if (run.PlayerParty.ShipIds.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
 				_shipRecruitmentHud.ShowError("Your fleet roster is full.");
-			else if (!run.StarSystem.Map.PlayerResources.CanApply(offer.Cost.Negate()))
+			else if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
 				_shipRecruitmentHud.ShowError("You do not have the required resources.");
 			else
 				_shipRecruitmentHud.ShowError("Unable to hire this ship.");
@@ -137,7 +126,6 @@ public partial class MarketController : Control
 	private void ReturnToMap()
 	{
 		MapNavigationContext.ClearActiveOperator();
-		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
 

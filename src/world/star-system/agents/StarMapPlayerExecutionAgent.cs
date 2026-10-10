@@ -14,7 +14,7 @@ namespace GrimSpace.World.StarSystem.Agents;
 
 public sealed class StarMapPlayerExecutionAgent
 	: SimulationExecutionAgent<StarMap, ActorRuntime>,
-		IActionSink
+		IImmediateActionSink
 {
 	private readonly Func<Simulation<StarMap, ActorRuntime>> _createSimulation;
 	private readonly Func<StarMap> _anchorWorld;
@@ -22,6 +22,7 @@ public sealed class StarMapPlayerExecutionAgent
 	private readonly Func<string, Coord> _committedPositionOf;
 	private readonly IPathfinder _pathfinder;
 	private readonly PursuitPlanner _pursuitPlanner;
+	private IActionBatchWriter? _immediateWriter;
 	private bool _committed;
 	private IAction? _pendingAction;
 
@@ -62,6 +63,12 @@ public sealed class StarMapPlayerExecutionAgent
 	internal bool CanWorkForDiagnostics => _canWork;
 
 	public event Action? PlanningChanged;
+
+	internal void BindImmediateWriter(IActionBatchWriter writer)
+	{
+		ArgumentNullException.ThrowIfNull(writer);
+		_immediateWriter = writer;
+	}
 
 	public CourseCommandResult TryQueueMove(Coord destination)
 	{
@@ -267,15 +274,23 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public bool Undo() => false;
 
-	public bool Commit()
+	public bool Commit() => CommitTo(Writer);
+
+	public bool CommitImmediately() => CommitTo(_immediateWriter);
+
+	private bool CommitTo(IActionBatchWriter? writer)
 	{
 		if (_pendingAction is null)
 			return false;
 
-		if (_committed || !_canWork)
+		if (_committed || !_canWork || writer is null)
 		{
 			StarMapPresentationDiagnostics.LogCommitSkipped(
-				_committed ? "already_committed" : "agent_not_working",
+				_committed
+					? "already_committed"
+					: !_canWork
+						? "agent_not_working"
+						: "writer_not_bound",
 				this);
 			return false;
 		}
@@ -283,7 +298,7 @@ public sealed class StarMapPlayerExecutionAgent
 		var action = _pendingAction;
 		_pendingAction = null;
 		_committed = true;
-		Publish([action]);
+		Publish([action], writer);
 		NotifyPlanningChanged();
 		StarMapPresentationDiagnostics.LogActionCommitted(action, this);
 		return true;

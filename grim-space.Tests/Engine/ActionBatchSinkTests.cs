@@ -50,6 +50,24 @@ public sealed class ActionBatchSinkTests
 	}
 
 	[Fact]
+	public void PublishNotifiesAfterBatchCanBeConsumed()
+	{
+		var sink = new ActionBatchSink();
+		var writer = sink.WriterFor("actor-a");
+		var batch = new ActionBatch("actor-a", []);
+		ActionBatch? observed = null;
+		sink.BatchPublished += actorId =>
+		{
+			Assert.Equal("actor-a", actorId);
+			Assert.True(sink.TryTakeBatch(actorId, out observed));
+		};
+
+		writer.Publish(batch);
+
+		Assert.Same(batch, observed);
+	}
+
+	[Fact]
 	public async Task FailPropagatesThroughWait()
 	{
 		var sink = new ActionBatchSink();

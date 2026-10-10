@@ -1,3 +1,4 @@
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
@@ -103,6 +104,7 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			42);
 		var unitId = GrimSpace.Run.State.PlayerFleetUnitId;
+		var tick = orchestrator.Tick;
 		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 		orchestrator.Map.StoryObjectives.Add(StoryObjective.FirstContract(
 			orchestrator.Map.Blueprint.SupplyPlan.AdministrativePoiId));
@@ -113,11 +115,17 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 				objective => objective.Id == StoryObjective.FirstContractId);
 		};
 
-		orchestrator.CommitSetup(ContractActionTestContext.Accept(orchestrator.Map, unitId, contractId));
+		var actions = Assert.IsAssignableFrom<IImmediateActionSink>(
+			orchestrator.ImmediatePlayerActions);
+		Assert.True(actions.TryEnqueue([
+			ContractActionTestContext.Accept(orchestrator.Map, unitId, contractId),
+		]));
+		Assert.True(actions.CommitImmediately());
 
+		Assert.Equal(tick, orchestrator.Tick);
 		Assert.False(objectiveActiveWhenNotified);
 		Assert.DoesNotContain(
-			orchestrator.Map.StoryObjectives.Active,
+		orchestrator.Map.StoryObjectives.Active,
 			objective => objective.Id == StoryObjective.FirstContractId);
 		var history = orchestrator.Map.Timeline.History();
 		Assert.True(
@@ -149,24 +157,54 @@ public sealed class AcceptContractActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void TryCommitPlayerInput_AfterAcceptContract_PlayerCanQueueMove()
+	public void ImmediatePlayerActions_AcceptsWithoutAdvancingTickAndPlayerCanQueueMove()
 	{
 		var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
 			maps,
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			42);
+		var tick = orchestrator.Tick;
 		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
 		var action = ContractActionTestContext.Accept(
 			orchestrator.Map,
 			GrimSpace.Run.State.PlayerFleetUnitId,
 			contractId);
 
-		Assert.True(orchestrator.TryCommitPlayerInput(action));
+		var actions = Assert.IsAssignableFrom<IImmediateActionSink>(
+			orchestrator.ImmediatePlayerActions);
+		Assert.True(actions.TryEnqueue([action]));
+		Assert.True(actions.CommitImmediately());
+		Assert.Equal(tick, orchestrator.Tick);
 		Assert.False(orchestrator.Map.ContractRegistry.IsPending(contractId));
 		Assert.True(orchestrator.PlayerAgent!.IsPlanning);
 
 		var destination = new Coord(50, 0, 50);
 		Assert.IsType<CourseCommandResult.Queued>(orchestrator.PlayerAgent.TryQueueMove(destination));
+	}
+
+	[Fact]
+	public void QueuedPlayerAction_WaitsForStepWhenSimulationIsStepped()
+	{
+		using var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+			maps,
+			GrimSpace.Run.State.PlayerFleetUnitId,
+			42);
+		orchestrator.SetStepped();
+		var tick = orchestrator.Tick;
+		var contractId = orchestrator.Map.ContractRegistry.Pending.First().Id;
+		var action = ContractActionTestContext.Accept(
+			orchestrator.Map,
+			GrimSpace.Run.State.PlayerFleetUnitId,
+			contractId);
+
+		Assert.True(orchestrator.PlayerAgent!.TryEnqueue([action]));
+		Assert.Equal(tick, orchestrator.Tick);
+		Assert.True(orchestrator.Map.ContractRegistry.IsPending(contractId));
+
+		orchestrator.Step();
+
+		Assert.Equal(tick + 1, orchestrator.Tick);
+		Assert.False(orchestrator.Map.ContractRegistry.IsPending(contractId));
 	}
 
 	[Fact]

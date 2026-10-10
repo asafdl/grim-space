@@ -89,11 +89,20 @@ public abstract class ExecutionAgent<TWorld, TRuntime>
 
 	protected void Publish(IReadOnlyList<IAction> actions)
 	{
-		if (!_canWork || _writer is null || _actorId is null)
+		if (_writer is null)
+			return;
+
+		Publish(actions, _writer);
+	}
+
+	protected void Publish(IReadOnlyList<IAction> actions, IActionBatchWriter writer)
+	{
+		ArgumentNullException.ThrowIfNull(writer);
+		if (!_canWork || _actorId is null)
 			return;
 
 		_batchInFlight = true;
-		_writer.Publish(new ActionBatch(_actorId, actions));
+		writer.Publish(new ActionBatch(_actorId, actions));
 	}
 
 	protected void Publish(IReadOnlyList<IAction> actions, int jobCanWorkGeneration)

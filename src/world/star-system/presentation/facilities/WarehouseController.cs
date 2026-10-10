@@ -1,8 +1,4 @@
 using Godot;
-using GrimSpace.Application;
-using GrimSpace.Run;
-using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.Components;
@@ -12,31 +8,23 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public partial class WarehouseController : Control
 {
-	private StarSystemOrchestrator _orchestrator = null!;
+	private FacilitySceneBinding _binding = null!;
 	private CanvasLayer _contractHudLayer = null!;
 	private ContractHudOverlay _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
-	private string _activePoiId = null!;
-	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
-		_orchestrator = Session.Instance.Run.StarSystem;
-		_orchestrator.RefreshPlayerAgent();
-		if (_orchestrator.PlayerAgent is null)
-			throw new InvalidOperationException("Warehouse requires a player execution agent.");
-
-		_activePoiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Warehouse requires an active POI.");
-		_facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Warehouse requires an active facility.");
-		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
-		var facility = poi.GetFacility(_facilityId);
+		_binding = FacilitySceneBinding.Create("Warehouse");
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
+		FacilityOperatorBinder.Bind(
+			scene,
+			_binding.Poi,
+			_binding.Facility,
+			OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
@@ -49,18 +37,23 @@ public partial class WarehouseController : Control
 		_contractHud.Closed += OnContractHudClosed;
 		_contractHudLayer.AddChild(_contractHud);
 
-		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_npcDialog = new FacilityNpcDialogPresenter(
+			this,
+			_backButton,
+			_binding.Facility,
+			_binding.Map);
 		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
 			this,
 			_backButton,
-			_orchestrator,
-			_activePoiId,
-			_facilityId);
+			_binding.Map,
+			_binding.Intents,
+			_binding.PoiId,
+			_binding.FacilityId);
 	}
 
 	public override void _ExitTree()
 	{
-		_orchestrator.RefreshPlayerAgent();
+		_binding.Dispose();
 		base._ExitTree();
 	}
 
@@ -88,7 +81,7 @@ public partial class WarehouseController : Control
 				OpenContractHud(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
-				if (_orchestrator.Map.ContractRegistry.AvailableForPoi(_activePoiId).Any())
+				if (_binding.Map.ContractRegistry.AvailableForPoi(_binding.PoiId).Any())
 					OpenContractHud(facilityOperator);
 				else
 				{
@@ -106,17 +99,20 @@ public partial class WarehouseController : Control
 
 	private void OpenContractHud(FacilityOperator facilityOperator)
 	{
-		if (!_orchestrator.TryCommitPlayerInput(new VisitContractMerchantAction(
-			State.PlayerFleetUnitId,
-			_activePoiId,
-			_facilityId,
-			facilityOperator.Name)))
+		if (!_binding.Intents.TryVisitContractMerchant(
+			_binding.PoiId,
+			_binding.FacilityId,
+			facilityOperator.Name))
 		{
-			GD.PushError($"Unable to record contract merchant visit at POI '{_activePoiId}'.");
+			GD.PushError(
+				$"Unable to record contract merchant visit at POI '{_binding.PoiId}'.");
 			return;
 		}
 
-		_contractHud.Open(_orchestrator.Map, _activePoiId, OperatorDisplayLabels.Title(facilityOperator));
+		_contractHud.Open(
+			_binding.Map,
+			_binding.PoiId,
+			OperatorDisplayLabels.Title(facilityOperator));
 		UpdateBackButton();
 	}
 
@@ -129,7 +125,7 @@ public partial class WarehouseController : Control
 			return;
 		}
 
-		_contractHud.SyncMap(_orchestrator.Map);
+		_contractHud.SyncMap(_binding.Map);
 		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
 		UpdateBackButton();
 	}
@@ -143,31 +139,28 @@ public partial class WarehouseController : Control
 			return;
 		}
 
-		_contractHud.SyncMap(_orchestrator.Map);
+		_contractHud.SyncMap(_binding.Map);
 		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
 		UpdateBackButton();
 	}
 
 	private bool TryAcceptContract(string contractId) =>
-		_orchestrator.TryCommitPlayerInput(new AcceptContractAction(
-			State.PlayerFleetUnitId,
-			_activePoiId,
-			_facilityId,
+		_binding.Intents.TryAcceptContract(
+			_binding.PoiId,
+			_binding.FacilityId,
 			RequireActiveOperatorName(),
-			contractId));
+			contractId);
 
 	private bool TryDeclineContract(string contractId) =>
-		_orchestrator.TryCommitPlayerInput(new DeclineContractAction(
-			State.PlayerFleetUnitId,
-			_activePoiId,
-			_facilityId,
+		_binding.Intents.TryDeclineContract(
+			_binding.PoiId,
+			_binding.FacilityId,
 			RequireActiveOperatorName(),
-			contractId));
+			contractId);
 
 	private void ReturnToMap()
 	{
 		MapNavigationContext.ClearActiveOperator();
-		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
 

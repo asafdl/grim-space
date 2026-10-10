@@ -1,7 +1,4 @@
 using Godot;
-using GrimSpace.Application;
-using GrimSpace.Run;
-using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -9,44 +6,41 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public partial class TravelController : Control
 {
-	private StarSystemOrchestrator _orchestrator = null!;
+	private FacilitySceneBinding _binding = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
-	private string _activePoiId = null!;
-	private string _facilityId = null!;
 
 	public override void _Ready()
 	{
-		_orchestrator = Session.Instance.Run.StarSystem;
-		_orchestrator.RefreshPlayerAgent();
-		if (_orchestrator.PlayerAgent is null)
-			throw new InvalidOperationException("Travel requires a player execution agent.");
-
-		_activePoiId = MapNavigationContext.ActivePoiId
-			?? throw new InvalidOperationException("Travel requires an active POI.");
-		_facilityId = MapNavigationContext.ActiveFacilityId
-			?? throw new InvalidOperationException("Travel requires an active facility.");
-		var poi = _orchestrator.Map.GetPointOfInterest(_activePoiId);
-		var facility = poi.GetFacility(_facilityId);
+		_binding = FacilitySceneBinding.Create("Travel");
 
 		var scene = GetNode<FacilitySceneView>("Scene");
-		FacilityOperatorBinder.Bind(scene, poi, facility, OnFacilityOperatorActivated);
+		FacilityOperatorBinder.Bind(
+			scene,
+			_binding.Poi,
+			_binding.Facility,
+			OnFacilityOperatorActivated);
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
-		_npcDialog = new FacilityNpcDialogPresenter(this, _backButton, facility, _orchestrator.Map);
+		_npcDialog = new FacilityNpcDialogPresenter(
+			this,
+			_backButton,
+			_binding.Facility,
+			_binding.Map);
 		_deliveryTurnInDialog = new DeliveryTurnInDialogPresenter(
 			this,
 			_backButton,
-			_orchestrator,
-			_activePoiId,
-			_facilityId);
+			_binding.Map,
+			_binding.Intents,
+			_binding.PoiId,
+			_binding.FacilityId);
 	}
 
 	public override void _ExitTree()
 	{
-		_orchestrator.RefreshPlayerAgent();
+		_binding.Dispose();
 		base._ExitTree();
 	}
 
@@ -85,7 +79,6 @@ public partial class TravelController : Control
 	private void ReturnToMap()
 	{
 		MapNavigationContext.ClearActiveOperator();
-		_orchestrator.RefreshPlayerAgent();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
 }
