@@ -45,8 +45,9 @@ public static class ContractEnemySpawner
 		FleetSpawnSpec spec,
 		Coord coord,
 		string unitId,
-		string memberIdentity) =>
-		CreateFleet(unitId, coord, spec, memberIdentity, null);
+		string memberIdentity,
+		string? sourceContractId = null) =>
+		CreateFleet(unitId, coord, spec, memberIdentity, sourceContractId);
 
 	private static Fleet CreateFleet(
 		string unitId,

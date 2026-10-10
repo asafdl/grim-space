@@ -26,9 +26,18 @@ public sealed class ResolveEngagementEffect : IEffect<StarMap, Runtime.ActorRunt
 			{
 				ResolveDeliveryInterception(world, fleet);
 				if (fleet.State.SourceContractId is string contractId
-					&& world.ContractRegistry.TryGetState(contractId, out var contractState)
-					&& contractState is HuntContractState hunt)
-					world.ContractRegistry.ReplaceState(hunt.MarkFleetDefeated(fleet.State.Id));
+					&& world.ContractRegistry.TryGetState(contractId, out var contractState))
+				{
+					switch (contractState)
+					{
+						case HuntContractState hunt:
+							world.ContractRegistry.ReplaceState(hunt.MarkFleetDefeated(fleet.State.Id));
+							break;
+						case WreckageContractState wreckage when wreckage.RequiresAmbushResolution:
+							world.ContractRegistry.ReplaceState(wreckage.MarkAmbushCleared());
+							break;
+					}
+				}
 				RemoveFleet(world, fleet.State.Id);
 			}
 			else

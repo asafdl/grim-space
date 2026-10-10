@@ -77,7 +77,8 @@ public sealed class InvestigateWreckageDef
 					ambush.Fleet,
 					wreckage.Position,
 					ambushUnitId,
-					investigate.AmbushSpawnIdentity);
+					investigate.AmbushSpawnIdentity,
+					investigate.ContractId);
 				effects.Add(new SpawnMapUnitEffect(ambushFleet));
 				effects.Add(new SetEngagementIntentEffect(investigate.ActorId, ambushUnitId));
 				effects.Add(new CommitEngagementEffect(investigate.ActorId, ambushUnitId));

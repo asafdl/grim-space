@@ -34,11 +34,13 @@ public record ContractState(
 				acceptedAtTick,
 				holderUnitId,
 				delivery.RouteLegCount),
-			WreckageObjective => new WreckageContractState(
+			WreckageObjective wreckage => new WreckageContractState(
 				contract.Id,
 				status,
 				acceptedAtTick,
 				holderUnitId,
+				false,
+				wreckage.Outcome is WreckageOutcome.Ambush,
 				false),
 			_ => throw new ArgumentOutOfRangeException(
 				nameof(contract),
@@ -340,8 +342,13 @@ public sealed record WreckageContractState(
 	EContractStatus Status,
 	int? AcceptedAtTick,
 	string? HolderUnitId,
-	bool Investigated)
+	bool Investigated,
+	bool RequiresAmbushResolution,
+	bool AmbushCleared)
 	: ContractState(ContractId, Status, AcceptedAtTick, HolderUnitId)
 {
-	public override bool IsObjectiveMet() => Investigated;
+	public override bool IsObjectiveMet() =>
+		Investigated && (!RequiresAmbushResolution || AmbushCleared);
+
+	public WreckageContractState MarkAmbushCleared() => this with { AmbushCleared = true };
 }

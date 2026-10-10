@@ -631,6 +631,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private void OnEngagementResolved(ResolveEngagementAction resolved)
 	{
 		EnqueueContractCompletions(resolved.InitiatorId, EContractKind.Hunt);
+		EnqueueContractCompletions(resolved.InitiatorId, EContractKind.Wreckage);
 	}
 
 	private void OnDeliveryRouteCompleted(Record<DeliveryRouteCompleted> completed)

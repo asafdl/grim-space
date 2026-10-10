@@ -16,6 +16,9 @@ using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Objectives;
+using GrimSpace.Tests;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
@@ -61,7 +64,16 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		Assert.Contains(
 			history,
 			entry => entry is Record<EngagementCommitted>);
+		Assert.False(ContractFactory.IsWreckageObjectiveMet(contractId, engine.World, unitId));
+		ContractActionTestContext.ReevaluateAndComplete(engine, unitId);
+		Assert.False(engine.World.ContractRegistry.IsCompleted(contractId));
+
+		var outcome = AmbushVictory(engine.World, unitId, ambushUnitId);
+		engine.Commit(new ResolveEngagementAction(unitId, outcome, [], ResourceBundle.Empty));
+		ContractActionTestContext.ReevaluateAndComplete(engine, unitId);
+
 		Assert.True(ContractFactory.IsWreckageObjectiveMet(contractId, engine.World, unitId));
+		Assert.True(engine.World.ContractRegistry.IsCompleted(contractId));
 		Assert.Equal(0, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
@@ -117,6 +129,19 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 			.Objective;
 		UpdateLocationEffect.StopAt(unitId, wreck.Position)
 			.Apply(engine.World, engine.ActorRuntimes.For(unitId), unitId);
+	}
+
+	private static BattleOutcome AmbushVictory(StarMap map, string playerId, string ambushUnitId)
+	{
+		var battleId = map.StateOf(playerId).CurrentEngagement!.Id;
+		return new BattleOutcome(
+			battleId,
+			EBattleResult.Win,
+			[..map.FleetRegistry.All.SelectMany(fleet =>
+				fleet.Members.Select(member => OutcomeTestKit.Handoff(
+					member.Id,
+					OutcomeTestKit.ChassisFromShipId(member.Id),
+					fleet.State.Id == ambushUnitId ? 0 : 1)))]);
 	}
 
 	private static Contract RegisterWreckageContract(StarMap map, string contractId, WreckageOutcome outcome)
