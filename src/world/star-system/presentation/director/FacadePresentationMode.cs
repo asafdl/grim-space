@@ -257,6 +257,9 @@ public sealed class FacadePresentationMode : IPresentationMode
 		var count = _facilityCallouts.Count;
 		if (count == 0)
 			return;
+		var pendingContractIds = world.ContractRegistry.Pending
+			.Select(contract => contract.Id)
+			.ToHashSet(StringComparer.Ordinal);
 
 		var camera = ctx.Camera;
 		var naturalCenters = new Vector2[count];
@@ -305,6 +308,15 @@ public sealed class FacadePresentationMode : IPresentationMode
 
 		for (var i = 0; i < count; i++)
 		{
+			var facility = poi.Facilities[i];
+			var hasContracts = HasPendingContractPresenter(
+				pendingContractIds,
+				poi,
+				facility);
+			_facilityCallouts[i].SetContractIndicatorVisible(hasContracts);
+			_facilityCallouts[i].Button.TooltipText = hasContracts
+				? $"{facility.DisplayName}\nContracts available"
+				: facility.DisplayName;
 			_facilityCallouts[i].UpdateLayout(
 				anchorScreens[i],
 				separatedCenters[i],
@@ -312,6 +324,19 @@ public sealed class FacadePresentationMode : IPresentationMode
 				viewport.Height,
 				visible[i]);
 		}
+	}
+
+	private static bool HasPendingContractPresenter(
+		IReadOnlySet<string> pendingContractIds,
+		PointOfInterest poi,
+		Facility facility)
+	{
+		return poi.OperatorTemporaryRoles
+			.Assignments(EFacilityOperatorRole.Contracts)
+			.Concat(poi.OperatorTemporaryRoles.Assignments(EFacilityOperatorRole.StoryContact))
+			.Where(assignment => assignment.FacilityId == facility.Id)
+			.SelectMany(assignment => assignment.SourceIds)
+			.Any(pendingContractIds.Contains);
 	}
 
 	private void SetFacilityButtonsVisible(bool visible)

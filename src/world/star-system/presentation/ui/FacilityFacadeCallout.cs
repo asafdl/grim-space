@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -13,11 +14,16 @@ public partial class FacilityFacadeCallout : Control
 
 	private static readonly Color AnchorDiamondColor = new(0.92f, 0.28f, 0.24f, 0.95f);
 
+	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
+	private const float ContractIndicatorSize = 16f;
+	private const float ContractIndicatorGap = 3f;
 	private const float PinWidth = 2f;
 	private const float AnchorDiamondRadius = 4.5f;
 	private const float ViewportMargin = 8f;
 
 	private readonly Button _button;
+	private readonly TextureRect _contractIndicator;
+	private bool _contractIndicatorEnabled;
 	private Vector2 _pinStart;
 	private Vector2 _pinEnd;
 	private bool _pinVisible;
@@ -36,7 +42,21 @@ public partial class FacilityFacadeCallout : Control
 			CustomMinimumSize = IconSize,
 		};
 		AddChild(_button);
+		_contractIndicator = new TextureRect
+		{
+			Texture = SvgIconLoader.LoadRaw(ContractIndicatorPath, (int)ContractIndicatorSize),
+			CustomMinimumSize = new Vector2(ContractIndicatorSize, ContractIndicatorSize),
+			Size = new Vector2(ContractIndicatorSize, ContractIndicatorSize),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = MouseFilterEnum.Ignore,
+			Visible = false,
+		};
+		AddChild(_contractIndicator);
 	}
+
+	public void SetContractIndicatorVisible(bool visible) =>
+		_contractIndicatorEnabled = visible;
 
 	public void UpdateLayout(
 		Vector2 anchorScreen,
@@ -49,6 +69,7 @@ public partial class FacilityFacadeCallout : Control
 		{
 			_pinVisible = false;
 			_button.Visible = false;
+			_contractIndicator.Visible = false;
 			QueueRedraw();
 			return;
 		}
@@ -63,6 +84,10 @@ public partial class FacilityFacadeCallout : Control
 			viewportHeight);
 		_button.Position = position;
 		_button.Visible = true;
+		_contractIndicator.Position = position + new Vector2(
+			(size.X - ContractIndicatorSize) * 0.5f,
+			-ContractIndicatorSize - ContractIndicatorGap);
+		_contractIndicator.Visible = _contractIndicatorEnabled;
 
 		_pinStart = anchorScreen;
 		_pinEnd = position + new Vector2(size.X * 0.5f, size.Y);
