@@ -294,14 +294,11 @@ public sealed class HuntProvisioningTests(StarMapFixture maps)
 
 	private static void RegisterSyntheticContract(StarMap map, string contractId, HuntObjective objective)
 	{
-		var plan = map.Blueprint.SupplyPlan;
-		var searchArea = objective.SpawnGroups[0].SearchArea;
 		var contract = new Contract(
 			contractId,
 			objective,
 			EDangerLevel.VeryLow,
 			map.ControllingFaction,
-			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, TutorialBeatContracts.BeatAHuntRewardCredits)),
 			ContractNarrative.ForHunt("Synthetic Hunt"));
 		Assert.True(map.ContractRegistry.TryAdd(contract));

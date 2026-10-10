@@ -13,6 +13,7 @@ public partial class DockyardController : Control
 	private CanvasLayer _dockyardHudLayer = null!;
 	private DockyardHudOverlay _dockyardHud = null!;
 	private DockyardShieldRechargeHudOverlay _shieldRechargeHud = null!;
+	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -37,6 +38,7 @@ public partial class DockyardController : Control
 		_shieldRechargeHud.SupportPurchaseRequested += OnSupportPurchaseRequested;
 		_shieldRechargeHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_shieldRechargeHud);
+		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
@@ -73,7 +75,11 @@ public partial class DockyardController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_dockyardHud.IsOpen || _shieldRechargeHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
+		if (_dockyardHud.IsOpen
+			|| _shieldRechargeHud.IsOpen
+			|| _contractHud.IsOpen
+			|| _npcDialog.IsOpen
+			|| _deliveryTurnInDialog.IsOpen)
 			return;
 
 		GetViewport().SetInputAsHandled();
@@ -107,6 +113,10 @@ public partial class DockyardController : Control
 			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.ShipSupport:
 				OpenShipSupportHud(facilityOperator);
 				break;
+			case EFacilityOperatorRole.Contracts:
+			case EFacilityOperatorRole.StoryContact:
+				_contractHud.Open(facilityOperator);
+				break;
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
 				break;
@@ -123,6 +133,7 @@ public partial class DockyardController : Control
 	{
 		_dockyardHud.Sync(_binding.Run, _binding.Map);
 		_shieldRechargeHud.Sync(_binding.Run, _binding.Map);
+		_contractHud.SyncMap();
 	}
 
 	private void OpenDockyardHud(FacilityOperator facilityOperator)
@@ -193,6 +204,7 @@ public partial class DockyardController : Control
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _dockyardHud.IsOpen
 			|| _shieldRechargeHud.IsOpen
+			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;
 }

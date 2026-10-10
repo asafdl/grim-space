@@ -132,7 +132,6 @@ public sealed class WreckageVisibilityQueriesTests(StarMapFixture maps)
 			new WreckageObjective($"{contractId}.wreckage", searchArea, new WreckageOutcome.Salvage(ResourceBundle.Empty)),
 			GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 			map.ControllingFaction,
-			ContractActionTestContext.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),
 			new ContractNarrative("Wreck", "Briefing."));
 		Assert.True(map.ContractRegistry.TryAdd(contract));

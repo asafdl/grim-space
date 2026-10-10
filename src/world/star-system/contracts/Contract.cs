@@ -9,7 +9,6 @@ public sealed record Contract(
 	IContractObjective Objective,
 	EDangerLevel Danger,
 	EFaction IssuerFaction,
-	string? IssuerPoiId,
 	ContractTerms Terms,
 	ContractNarrative Narrative,
 	bool IsStoryObjective = false)

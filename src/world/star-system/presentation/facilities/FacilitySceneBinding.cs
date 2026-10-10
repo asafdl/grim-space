@@ -46,6 +46,9 @@ public sealed class FacilitySceneBinding : IDisposable
 
 	public UserIntentTranslator Intents { get; }
 
+	public bool TryVisitContractOperator(string operatorName) =>
+		_orchestrator.TryVisitContractOperator(PoiId, FacilityId, operatorName);
+
 	public static FacilitySceneBinding Create(string sceneName)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(sceneName);

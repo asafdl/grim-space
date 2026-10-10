@@ -122,6 +122,7 @@ public sealed class State : IDisposable
 				run.Tutorials.RestoreActiveFlow(
 					tutorial.ActiveFlowId,
 					tutorial.ActiveStepIndex);
+			run.Tutorials.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: false);
 			run.Tutorials.FlowCompleted += run.OnTutorialFlowCompleted;
 		}
 

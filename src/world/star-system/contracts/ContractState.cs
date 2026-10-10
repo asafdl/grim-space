@@ -214,10 +214,7 @@ public sealed record DeliveryContractState(
 		int acceptedAtTick)
 	{
 		var config = delivery.Config;
-		var issuerPoiId = contract.IssuerPoiId
-			?? throw new InvalidOperationException(
-				$"Delivery contract '{contract.Id}' has no issuer POI.");
-		var origin = world.GetPointOfInterest(issuerPoiId).PlacedCenter;
+		var origin = world.GetPointOfInterest(delivery.PickupPoiId).PlacedCenter;
 		int? deadlineTick = ResolveDeadlineTickForLeg(
 			world,
 			contract.Id,

@@ -6,14 +6,13 @@ namespace GrimSpace.World.StarSystem.Contracts;
 public abstract record ContractCreateArgs;
 
 public sealed record HuntCreateArgs(
-	string IssuerPoiId,
 	AreaPickerArgs SearchAreaPicker,
 	EDangerLevel Danger,
 	ContractNarrative Narrative,
 	bool IsStoryObjective = false) : ContractCreateArgs;
 
 public sealed record DeliveryCreateArgs(
-	string IssuerPoiId,
+	string PickupPoiId,
 	EDangerLevel Danger,
 	ContractNarrative Narrative,
 	bool IsStoryObjective = false,
@@ -23,7 +22,6 @@ public sealed record DeliveryCreateArgs(
 	DeliveryGenerationConfig? Generation = null) : ContractCreateArgs;
 
 public sealed record WreckageCreateArgs(
-	string IssuerPoiId,
 	AreaPickerArgs SearchAreaPicker,
 	EDangerLevel Danger,
 	ContractNarrative Narrative,

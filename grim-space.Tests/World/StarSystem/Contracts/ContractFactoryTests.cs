@@ -23,7 +23,6 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 
 		Assert.True(map.ContractRegistry.IsPending(contract.Id));
 		Assert.IsType<HuntObjective>(contract.Objective);
-		Assert.Equal(args.IssuerPoiId, contract.IssuerPoiId);
 		Assert.False(contract.IsStoryObjective);
 		Assert.Equal(
 			ContractRewardCalculator.Roll(map.Seed, contract.Id, EContractKind.Hunt, args.Danger),
@@ -75,9 +74,7 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 
 	private static HuntCreateArgs CreateGeneratedHuntArgs(StarMap map)
 	{
-		var plan = map.Blueprint.SupplyPlan;
 		return new HuntCreateArgs(
-			plan.AdministrativePoiId,
 			new AreaPickerArgs(MapLandmarkQueries.AllIds(map), DeterministicPickMix: 1),
 			EDangerLevel.VeryLow,
 			ContractNarrative.ForHunt("Generated Hunt"));

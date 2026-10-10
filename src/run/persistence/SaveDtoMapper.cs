@@ -374,7 +374,6 @@ public static class SaveDtoMapper
 			Contracts = map.ContractRegistry.Snapshot()
 				.Select(entry => CaptureContract(entry, registry)).ToArray(),
 			MaxPendingContracts = map.ContractRegistry.MaxPending,
-			ContractIssuerCooldowns = map.ContractRegistry.IssuerGenerationCooldownsSnapshot(),
 			StoryObjectives = map.StoryObjectives.Active,
 			Resources = map.PlayerResources.EnumerateBalances()
 				.Select(pair => ReflectionJson.Map<ResourceBalanceDto>(pair, registry.Options))
@@ -426,8 +425,7 @@ public static class SaveDtoMapper
 		contracts.RestoreSnapshot(
 			dto.Contracts.Select(contract => RestoreContract(contract, registry)).Select(entry =>
 				(entry.Contract, entry.State, entry.ExpiresAtTick)),
-			dto.MaxPendingContracts,
-			dto.ContractIssuerCooldowns);
+			dto.MaxPendingContracts);
 		var objectives = new StoryObjectiveRegistry();
 		foreach (var objective in dto.StoryObjectives)
 			objectives.Add(objective);
@@ -546,7 +544,6 @@ public static class SaveDtoMapper
 				registry.Options),
 			entry.Contract.Danger,
 			entry.Contract.IssuerFaction,
-			entry.Contract.IssuerPoiId,
 			entry.Contract.Terms,
 			entry.Contract.Narrative,
 			entry.Contract.IsStoryObjective,
@@ -576,7 +573,7 @@ public static class SaveDtoMapper
 			_ => throw new InvalidDataException($"Unknown contract objective '{dto.ObjectiveType}'."),
 		};
 		var contract = new Contract(
-				dto.Id, objective, dto.Danger, dto.IssuerFaction, dto.IssuerPoiId,
+				dto.Id, objective, dto.Danger, dto.IssuerFaction,
 				dto.Terms, dto.Narrative,
 				dto.IsStoryObjective);
 		return (
@@ -591,21 +588,17 @@ public static class SaveDtoMapper
 	{
 		if (payload.TryGetProperty("route", out var route))
 		{
+			var pickupPoiId = payload.GetProperty("pickupPoiId").GetString()
+				?? throw new InvalidDataException("Delivery pickup POI is missing.");
 			var restoredRoute = JsonSerializer.Deserialize<DeliveryRoute>(route, options)
 				?? throw new InvalidDataException("Delivery route is missing.");
 			var config = payload.TryGetProperty("config", out var configPayload)
 				? JsonSerializer.Deserialize<DeliveryGenerationConfig>(configPayload, options)
 				: null;
-			return new DeliveryObjective(restoredRoute, config);
+			return new DeliveryObjective(pickupPoiId, restoredRoute, config);
 		}
 
-		return new DeliveryObjective(
-			payload.GetProperty("turnInPoiId").GetString()
-				?? throw new InvalidDataException("Legacy delivery POI is missing."),
-			payload.GetProperty("turnInFacilityId").GetString()
-				?? throw new InvalidDataException("Legacy delivery facility is missing."),
-			payload.GetProperty("turnInOperatorName").GetString()
-				?? throw new InvalidDataException("Legacy delivery operator is missing."));
+		throw new InvalidDataException("Delivery route is missing.");
 	}
 
 	private static ContractState? RestoreContractState(

@@ -19,23 +19,10 @@ internal static class ContractActionTestContext
 		Facility.ScopedId(AdministrativePoiId, AdministrativeCore.ManagementFacilitySlug);
 
 	public static AcceptContractAction Accept(StarMap map, string actorId, string contractId) =>
-		new(
-			actorId,
-			AdministrativePoiId,
-			ManagementFacilityId,
-			MapFacilityOperators.ContractOperatorName(map),
-			contractId);
+		new(actorId, contractId);
 
-	public static AcceptContractAction AcceptDelivery(StarMap map, string actorId, string contractId)
-	{
-		var poiId = map.Blueprint.SupplyPlan.StoragePoiId;
-		return new AcceptContractAction(
-			actorId,
-			poiId,
-			Facility.ScopedId(poiId, StorageFacility.WarehouseFacilitySlug),
-			MapFacilityOperators.WarehouseManagerOperatorName(map),
-			contractId);
-	}
+	public static AcceptContractAction AcceptDelivery(StarMap map, string actorId, string contractId) =>
+		new(actorId, contractId);
 
 	public static CompleteDeliveryFacilityLegAction TurnInDelivery(
 		StarMap map,
@@ -54,12 +41,7 @@ internal static class ContractActionTestContext
 	}
 
 	public static DeclineContractAction Decline(StarMap map, string actorId, string contractId) =>
-		new(
-			actorId,
-			AdministrativePoiId,
-			ManagementFacilityId,
-			MapFacilityOperators.ContractOperatorName(map),
-			contractId);
+		new(actorId, contractId);
 
 	public static DismissContractAction Dismiss(string actorId, string contractId) =>
 		new(actorId, contractId);

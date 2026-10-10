@@ -1,16 +1,13 @@
 using Godot;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
-using GrimSpace.Components;
-using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public partial class WarehouseController : Control
 {
 	private FacilitySceneBinding _binding = null!;
-	private CanvasLayer _contractHudLayer = null!;
-	private ContractHudOverlay _contractHud = null!;
+	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -29,13 +26,7 @@ public partial class WarehouseController : Control
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 
-		_contractHudLayer = new CanvasLayer { Layer = 20 };
-		AddChild(_contractHudLayer);
-		_contractHud = new ContractHudOverlay();
-		_contractHud.AcceptRequested += OnAcceptRequested;
-		_contractHud.DeclineRequested += OnDeclineRequested;
-		_contractHud.Closed += OnContractHudClosed;
-		_contractHudLayer.AddChild(_contractHud);
+		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
@@ -78,15 +69,11 @@ public partial class WarehouseController : Control
 		switch (role)
 		{
 			case EFacilityOperatorRole.Contracts:
-				OpenContractHud(facilityOperator);
+			case EFacilityOperatorRole.StoryContact:
+				_contractHud.Open(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
-				if (_binding.Map.ContractRegistry.AvailableForPoi(_binding.PoiId).Any())
-					OpenContractHud(facilityOperator);
-				else
-				{
-					_npcDialog.Open(facilityOperator);
-				}
+				_npcDialog.Open(facilityOperator);
 				break;
 			case EFacilityOperatorRole.DeliveryTurnIn:
 				_deliveryTurnInDialog.Open(facilityOperator);
@@ -97,81 +84,10 @@ public partial class WarehouseController : Control
 		}
 	}
 
-	private void OpenContractHud(FacilityOperator facilityOperator)
-	{
-		if (!_binding.Intents.TryVisitContractMerchant(
-			_binding.PoiId,
-			_binding.FacilityId,
-			facilityOperator.Name))
-		{
-			GD.PushError(
-				$"Unable to record contract merchant visit at POI '{_binding.PoiId}'.");
-			return;
-		}
-
-		_contractHud.Open(
-			_binding.Map,
-			_binding.PoiId,
-			OperatorDisplayLabels.Title(facilityOperator));
-		UpdateBackButton();
-	}
-
-	private void OnAcceptRequested(string contractId)
-	{
-		if (!TryAcceptContract(contractId))
-		{
-			_contractHud.ShowError("Unable to accept contract.");
-			UpdateBackButton();
-			return;
-		}
-
-		_contractHud.SyncMap(_binding.Map);
-		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
-		UpdateBackButton();
-	}
-
-	private void OnDeclineRequested(string contractId)
-	{
-		if (!TryDeclineContract(contractId))
-		{
-			_contractHud.ShowError("Unable to decline contract.");
-			UpdateBackButton();
-			return;
-		}
-
-		_contractHud.SyncMap(_binding.Map);
-		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
-		UpdateBackButton();
-	}
-
-	private bool TryAcceptContract(string contractId) =>
-		_binding.Intents.TryAcceptContract(
-			_binding.PoiId,
-			_binding.FacilityId,
-			RequireActiveOperatorName(),
-			contractId);
-
-	private bool TryDeclineContract(string contractId) =>
-		_binding.Intents.TryDeclineContract(
-			_binding.PoiId,
-			_binding.FacilityId,
-			RequireActiveOperatorName(),
-			contractId);
-
 	private void ReturnToMap()
 	{
 		MapNavigationContext.ClearActiveOperator();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
-	}
-
-	private static string RequireActiveOperatorName() =>
-		MapNavigationContext.ActiveOperatorName
-		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
-
-	private void OnContractHudClosed()
-	{
-		MapNavigationContext.ClearActiveOperator();
-		UpdateBackButton();
 	}
 
 	private void UpdateBackButton() =>

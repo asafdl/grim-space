@@ -9,17 +9,6 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class ContractRegistryTests(StarMapFixture maps)
 {
 	[Fact]
-	public void AvailableForPoi_ReturnsOnlyOfferedContractsForIssuer()
-	{
-		var map = maps.FreshWithBeatAHunt(42);
-		var issuerPoiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
-		var contract = map.ContractRegistry.AvailableForPoi(issuerPoiId).Single();
-
-		Assert.Equal(issuerPoiId, contract.IssuerPoiId);
-		Assert.Empty(map.ContractRegistry.AvailableForPoi(map.Blueprint.SupplyPlan.RefineryPoiId));
-	}
-
-	[Fact]
 	public void Reject_ExcludesContractFromOffered()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
@@ -174,19 +163,6 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void IssuerGenerationCooldown_UsesExclusiveUntilTickAndSurvivesFork()
-	{
-		var map = maps.FreshWithBeatAHunt(42);
-		var poiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
-		map.ContractRegistry.PauseIssuerGeneration(poiId, untilTick: 151);
-
-		var fork = map.Fork();
-
-		Assert.True(fork.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 150));
-		Assert.False(fork.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 151));
-	}
-
-	[Fact]
 	public void Fork_PreservesAcceptedContractState()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
@@ -216,7 +192,6 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 			hunt,
 			template.Danger,
 			template.IssuerFaction,
-			template.IssuerPoiId,
 			template.Terms,
 			template.Narrative);
 

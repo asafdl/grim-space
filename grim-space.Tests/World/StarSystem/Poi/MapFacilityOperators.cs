@@ -41,21 +41,21 @@ internal static class MapFacilityOperators
 			map,
 			SupplySystemPlan.Copper.AdministrativePoiId,
 			AdministrativeCore.ManagementFacilitySlug,
-			EFacilityOperatorRole.Contracts);
+			EFacilityOperatorRole.Dialog);
 
 	public static string MineContractOperatorName(StarMap map) =>
 		OperatorName(
 			map,
 			SupplySystemPlan.Copper.ExtractionPoiId,
 			OreMine.MineFacilitySlug,
-			EFacilityOperatorRole.Contracts);
+			EFacilityOperatorRole.Dialog);
 
 	public static string WarehouseManagerOperatorName(StarMap map) =>
 		OperatorName(
 			map,
 			SupplySystemPlan.Copper.StoragePoiId,
 			StorageFacility.WarehouseFacilitySlug,
-			EFacilityOperatorRole.Contracts);
+			EFacilityOperatorRole.Dialog);
 
 	public static string RefineryOperatorName(StarMap map) =>
 		OperatorName(

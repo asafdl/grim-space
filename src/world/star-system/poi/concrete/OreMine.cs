@@ -33,7 +33,7 @@ public sealed class OreMine : PointOfInterest
 			[
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.Contracts,
+					EFacilityOperatorRole.Dialog,
 					MineContractOperatorSceneSlotId),
 			]),
 	];

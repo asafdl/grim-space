@@ -159,7 +159,6 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 			new WreckageObjective($"{contractId}.wreckage", searchArea, outcome),
 			EDangerLevel.VeryLow,
 			map.ControllingFaction,
-			ContractActionTestContext.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, RewardCredits)),
 			new ContractNarrative("Test Wreck", "Investigate the debris."));
 		Assert.True(map.ContractRegistry.TryAdd(contract));

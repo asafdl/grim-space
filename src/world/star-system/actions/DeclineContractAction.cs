@@ -8,9 +8,6 @@ namespace GrimSpace.World.StarSystem.Actions;
 
 public sealed record DeclineContractAction(
 	string ActorId,
-	string PoiId,
-	string FacilityId,
-	string OperatorName,
 	string ContractId) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>

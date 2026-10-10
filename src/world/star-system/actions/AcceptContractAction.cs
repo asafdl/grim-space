@@ -11,19 +11,13 @@ namespace GrimSpace.World.StarSystem.Actions;
 
 public sealed record AcceptContractAction(
 	string ActorId,
-	string PoiId,
-	string FacilityId,
-	string OperatorName,
 	string ContractId,
 	string SpawnIdentity) : IAction<StarMap, ActorRuntime>
 {
 	public AcceptContractAction(
 		string actorId,
-		string poiId,
-		string facilityId,
-		string operatorName,
 		string contractId)
-		: this(actorId, poiId, facilityId, operatorName, contractId, TypedIdGenerator.NextInstanceSlug())
+		: this(actorId, contractId, TypedIdGenerator.NextInstanceSlug())
 	{
 	}
 

@@ -45,11 +45,13 @@ public sealed class TutorialController : IDisposable
 
 	public void InitializeBeatProgression()
 	{
-		if (_state.BeatAContractId is not null)
-			return;
+		if (_state.BeatAContractId is null)
+		{
+			_state.BeatAContractId = TutorialBeatContracts.OfferBeatA(_orchestrator.Map);
+			GameLog.Log($"Tutorial initialized: beatAContractId='{_state.BeatAContractId}'.");
+		}
 
-		_state.BeatAContractId = TutorialBeatContracts.OfferBeatA(_orchestrator.Map);
-		GameLog.Log($"Tutorial initialized: beatAContractId='{_state.BeatAContractId}'.");
+		ReconcileStoryContacts();
 		EnsureContractObservation();
 		ReconcileFirstContractStoryObjective();
 		ReconcileBeatTransitions();
@@ -66,6 +68,7 @@ public sealed class TutorialController : IDisposable
 	public void ReconcileFromWorldState(bool cancelBattleFlowWhenOffBattlefield)
 	{
 		ReconcileBeatTransitions();
+		ReconcileStoryContacts();
 		ReconcileFlowProgress(cancelBattleFlowWhenOffBattlefield);
 	}
 
@@ -246,9 +249,19 @@ public sealed class TutorialController : IDisposable
 
 		_state.BeatBContractId = TutorialBeatContracts.OfferBeatB(_orchestrator.Map);
 		_orchestrator.Map.StoryObjectives.Add(StoryObjective.BeatBContract(_state.BeatBContractId));
+		ReconcileStoryContacts();
 		GameLog.Log(
 			$"Tutorial Beat B offered: beatAContractId='{beatAId}', "
 			+ $"beatBContractId='{_state.BeatBContractId}'.");
+	}
+
+	private void ReconcileStoryContacts()
+	{
+		TutorialBeatContracts.ReconcileStoryContacts(
+			_orchestrator.Map,
+			_state.BeatAContractId,
+			_state.BeatBContractId);
+		_orchestrator.ReconcileContractPresentations();
 	}
 
 	private void ReconcileFlowProgress(bool cancelBattleFlowWhenOffBattlefield)

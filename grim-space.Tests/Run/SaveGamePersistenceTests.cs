@@ -33,6 +33,7 @@ using GrimSpace.World.Factions;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using BattleUnitState = GrimSpace.Battle.Units.State;
 using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Merchants;
@@ -333,9 +334,8 @@ public sealed class SaveGamePersistenceTests
 		var registry = PersistenceRegistry.CreateDefault();
 		var actions = new IAction[]
 		{
-			new AcceptContractAction("fleet", "poi", "facility", "operator", "contract", "spawn"),
-			new DeclineContractAction("fleet", "poi", "facility", "operator", "contract"),
-			new VisitContractMerchantAction("fleet", "poi", "facility", "operator"),
+			new AcceptContractAction("fleet", "contract", "spawn"),
+			new DeclineContractAction("fleet", "contract"),
 			new CompleteDeliveryFacilityLegAction("fleet", "poi", "facility", "operator", "contract", 0),
 			new InvestigateWreckageAction("fleet", "contract", "ambush-spawn"),
 		};
@@ -345,8 +345,18 @@ public sealed class SaveGamePersistenceTests
 			restored => Assert.Equal(actions[0], restored),
 			restored => Assert.Equal(actions[1], restored),
 			restored => Assert.Equal(actions[2], restored),
-			restored => Assert.Equal(actions[3], restored),
-			restored => Assert.Equal(actions[4], restored));
+			restored => Assert.Equal(actions[3], restored));
+	}
+
+	[Fact]
+	public void DefaultRegistry_RoundTripsLegacyContractMerchantVisit()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+#pragma warning disable CS0618
+		var action = new VisitContractMerchantAction("fleet", "poi", "facility", "operator");
+#pragma warning restore CS0618
+
+		Assert.Equal(action, registry.Read(registry.Write(action)));
 	}
 
 	[Fact]
@@ -454,10 +464,9 @@ public sealed class SaveGamePersistenceTests
 		var registry = PersistenceRegistry.CreateDefault();
 		var contract = new Contract(
 			"contract-1",
-			new DeliveryObjective("poi-1", "facility-1", "operator"),
+			new DeliveryObjective("pickup-poi", "poi-1", "facility-1", "operator"),
 			EDangerLevel.Low,
 			EFaction.Player,
-			"issuer-poi",
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
 			new ContractNarrative("Delivery", "Deliver the cargo."));
 		var action = new MaintainContractBoardAction(
@@ -484,6 +493,7 @@ public sealed class SaveGamePersistenceTests
 	{
 		var registry = PersistenceRegistry.CreateDefault();
 		var objective = new DeliveryObjective(
+			"pickup-poi",
 			new DeliveryRoute(
 			[
 				new FacilityDeliveryLeg("poi-a", "facility-a", "operator-a"),
@@ -494,7 +504,6 @@ public sealed class SaveGamePersistenceTests
 			objective,
 			EDangerLevel.Low,
 			EFaction.Player,
-			"issuer-poi",
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
 			new ContractNarrative("Delivery", "Deliver the cargo."));
 		var action = new MaintainContractBoardAction(
@@ -563,19 +572,27 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
-	public void SaveDtoMapper_RoundTripsContractIssuerCooldowns()
+	public void SaveDtoMapper_OmitsContractOperatorPlacementPauses()
 	{
 		var map = StarMap.Create(42);
-		var poiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
-		map.ContractRegistry.PauseIssuerGeneration(poiId, untilTick: 151);
+		var poi = map.PointsOfInterest.First();
+		var facility = poi.Facilities.First();
+		var facilityOperator = facility.Operators.First();
+		poi.OperatorTemporaryRoles.PauseContractPlacement(
+			facility.Id,
+			facilityOperator.Name,
+			untilTick: 151);
 		var registry = PersistenceRegistry.CreateDefault();
 
 		var restored = SaveDtoMapper.RestoreStarMap(
 			SaveDtoMapper.CaptureStarMap(map, registry),
 			registry);
+		var restoredPoi = restored.GetPointOfInterest(poi.Id);
 
-		Assert.True(restored.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 150));
-		Assert.False(restored.ContractRegistry.IsIssuerGenerationCoolingDown(poiId, currentTick: 151));
+		Assert.False(restoredPoi.OperatorTemporaryRoles.IsContractPlacementPaused(
+			facility.Id,
+			facilityOperator.Name,
+			currentTick: 150));
 	}
 
 	[Fact]
@@ -708,6 +725,23 @@ public sealed class SaveGamePersistenceTests
 		Assert.All(
 			spawned.Fleets.SelectMany(fleet => fleet.Registrations),
 			registration => Assert.NotEqual(EType.Fighter, registration.Chassis));
+	}
+
+	[Fact]
+	public void SaveDtoMapper_PreservesStoryContactAssignment()
+	{
+		var map = StarMap.Create(42);
+		var contractId = TutorialBeatContracts.OfferBeatA(map)!;
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var restored = SaveDtoMapper.RestoreStarMap(
+			SaveDtoMapper.CaptureStarMap(map, registry),
+			registry);
+
+		var contact = Assert.Single(restored.PointsOfInterest
+			.SelectMany(poi => poi.OperatorTemporaryRoles
+				.Assignments(EFacilityOperatorRole.StoryContact)));
+		Assert.Equal([contractId], contact.SourceIds);
 	}
 
 	[Fact]

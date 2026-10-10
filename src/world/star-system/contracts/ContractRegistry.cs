@@ -7,7 +7,6 @@ public sealed class ContractRegistry
 	private readonly Dictionary<string, Contract> _contracts = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, ContractState> _states = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, int?> _expirations = new(StringComparer.Ordinal);
-	private readonly Dictionary<string, int> _issuerGenerationCooldowns = new(StringComparer.Ordinal);
 	private int _pendingCount;
 	private int _pendingGeneratedCount;
 
@@ -27,23 +26,6 @@ public sealed class ContractRegistry
 		+ _states.Values.Count(state =>
 			state.Status == EContractStatus.Active
 			&& !_contracts[state.ContractId].IsStoryObjective);
-
-	public bool IsIssuerGenerationCoolingDown(string poiId, int currentTick) =>
-		_issuerGenerationCooldowns.TryGetValue(poiId, out var untilTick)
-		&& currentTick < untilTick;
-
-	public void PauseIssuerGeneration(string poiId, int untilTick)
-	{
-		ArgumentException.ThrowIfNullOrEmpty(poiId);
-		ArgumentOutOfRangeException.ThrowIfNegative(untilTick);
-
-		if (!_issuerGenerationCooldowns.TryGetValue(poiId, out var currentUntilTick)
-			|| untilTick > currentUntilTick)
-			_issuerGenerationCooldowns[poiId] = untilTick;
-	}
-
-	public IEnumerable<Contract> AvailableForPoi(string poiId) =>
-		Pending.Where(contract => contract.IssuerPoiId == poiId);
 
 	public bool Contains(string contractId) => _contracts.ContainsKey(contractId);
 
@@ -243,8 +225,6 @@ public sealed class ContractRegistry
 			clone._states[id] = state;
 		foreach (var (id, expiresAtTick) in _expirations)
 			clone._expirations[id] = expiresAtTick;
-		foreach (var (poiId, untilTick) in _issuerGenerationCooldowns)
-			clone._issuerGenerationCooldowns[poiId] = untilTick;
 		return clone;
 	}
 
@@ -256,13 +236,9 @@ public sealed class ContractRegistry
 				_expirations.GetValueOrDefault(contract.Id)))
 			.ToArray();
 
-	internal IReadOnlyDictionary<string, int> IssuerGenerationCooldownsSnapshot() =>
-		new Dictionary<string, int>(_issuerGenerationCooldowns, StringComparer.Ordinal);
-
 	internal void RestoreSnapshot(
 		IEnumerable<(Contract Contract, ContractState? State, int? ExpiresAtTick)> entries,
-		int maxPending,
-		IReadOnlyDictionary<string, int>? issuerGenerationCooldowns = null)
+		int maxPending)
 	{
 		MaxPending = maxPending;
 		foreach (var entry in entries)
@@ -273,20 +249,6 @@ public sealed class ContractRegistry
 				throw new InvalidOperationException($"Unable to restore contract state '{entry.Contract.Id}'.");
 		}
 
-		foreach (var (poiId, untilTick) in issuerGenerationCooldowns
-			?? new Dictionary<string, int>(StringComparer.Ordinal))
-			PauseIssuerGeneration(poiId, untilTick);
-	}
-
-	internal bool TryGetIssuerGenerationCooldown(string poiId, out int untilTick) =>
-		_issuerGenerationCooldowns.TryGetValue(poiId, out untilTick);
-
-	internal void RestoreIssuerGenerationCooldown(string poiId, int? untilTick)
-	{
-		if (untilTick is int value)
-			_issuerGenerationCooldowns[poiId] = value;
-		else
-			_issuerGenerationCooldowns.Remove(poiId);
 	}
 
 	private void OnBecamePending(Contract contract)

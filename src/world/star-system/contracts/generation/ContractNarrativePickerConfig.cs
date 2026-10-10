@@ -1,5 +1,3 @@
-using GrimSpace.World.StarSystem.Poi.Concrete;
-
 namespace GrimSpace.World.StarSystem.Contracts.Generation;
 
 public sealed class ContractNarrativePickerConfig
@@ -8,7 +6,6 @@ public sealed class ContractNarrativePickerConfig
 
 	public static IReadOnlyList<ContractNarrativePoolEntry> DefaultEntries =>
 	[
-		// Generic hunts for any future contract issuer without a facility-specific voice.
 		new(
 			EContractKind.Hunt,
 			"Pirate Hunt",
@@ -33,48 +30,39 @@ public sealed class ContractNarrativePickerConfig
 		new(
 			EContractKind.Hunt,
 			"Command Sweep",
-			"Hostile vessels are operating near authority space. Neutralize them before the next audit.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Hostile vessels are operating near authority space. Neutralize them before the next audit."),
 		new(
 			EContractKind.Hunt,
 			"Corrective Action",
-			"A pirate flotilla has mistaken our patience for policy.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"A pirate flotilla has mistaken our patience for policy."),
 		new(
 			EContractKind.Hunt,
 			"Statistical Adjustment",
-			"Traffic reports contain too many pirates and not enough wreckage.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Traffic reports contain too many pirates and not enough wreckage."),
 		new(
 			EContractKind.Hunt,
 			"Unscheduled Decommission",
-			"These vessels have exceeded their permitted service life and must be recalled, forcefully.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"These vessels have exceeded their permitted service life and must be recalled, forcefully."),
 		new(
 			EContractKind.Hunt,
 			"Mandatory Initiative",
-			"Congratulations! You volunteered to solve our pirate problem. The form confirming your enthusiasm has already been filed.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Congratulations! You volunteered to solve our pirate problem. The form confirming your enthusiasm has already been filed."),
 		new(
 			EContractKind.Hunt,
 			"Peacekeeping",
-			"Negotiations failed after the pirates shot the negotiator. We are sending you as the new lead negotiator.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Negotiations failed after the pirates shot the negotiator. We are sending you as the new lead negotiator."),
 		new(
 			EContractKind.Hunt,
 			"Fiscal Cleanup",
-			"Every pirate attack creates paperwork. I mean why even use paper anymore?!?",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Every pirate attack creates paperwork. I mean why even use paper anymore?!?"),
 		new(
 			EContractKind.Hunt,
 			"Asset Reclassification",
-			"Command has reclassified several hostile vessels as scrap.",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Command has reclassified several hostile vessels as scrap."),
 		new(
 			EContractKind.Hunt,
 			"Compliance Visit",
-			"Several pilots declined inspection by accelerating away, respectfully \"inspect\" them anyway...",
-			FacilitySlug: AdministrativeCore.ManagementFacilitySlug),
+			"Several pilots declined inspection by accelerating away, respectfully \"inspect\" them anyway..."),
 
 		new(
 			EContractKind.Delivery,

@@ -171,7 +171,6 @@ public sealed class WreckDecisionActionTests(StarMapFixture maps)
 			new WreckageObjective($"{contractId}.wreckage", searchArea, outcome),
 			GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
 			map.ControllingFaction,
-			ContractActionTestContext.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 75)),
 			new ContractNarrative("Test Wreck", "Investigate the debris."));
 		Assert.True(map.ContractRegistry.TryAdd(contract));

@@ -112,7 +112,6 @@ public sealed class MaintainContractBoardActionTests(StarMapFixture maps)
 			hunt,
 			template.Danger,
 			template.IssuerFaction,
-			template.IssuerPoiId,
 			template.Terms,
 			template.Narrative);
 }

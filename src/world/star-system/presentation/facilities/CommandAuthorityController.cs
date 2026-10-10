@@ -1,16 +1,13 @@
 using Godot;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
-using GrimSpace.Components;
-using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public partial class CommandAuthorityController : Control
 {
 	private FacilitySceneBinding _binding = null!;
-	private CanvasLayer _contractHudLayer = null!;
-	private ContractHudOverlay _contractHud = null!;
+	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -29,13 +26,7 @@ public partial class CommandAuthorityController : Control
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 
-		_contractHudLayer = new CanvasLayer { Layer = 20 };
-		AddChild(_contractHudLayer);
-		_contractHud = new ContractHudOverlay();
-		_contractHud.AcceptRequested += OnAcceptRequested;
-		_contractHud.DeclineRequested += OnDeclineRequested;
-		_contractHud.Closed += OnContractHudClosed;
-		_contractHudLayer.AddChild(_contractHud);
+		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
@@ -72,33 +63,14 @@ public partial class CommandAuthorityController : Control
 		ReturnToMap();
 	}
 
-	public bool TryAcceptContract(string contractId)
-	{
-		var operatorName = RequireActiveOperatorName();
-		return _binding.Intents.TryAcceptContract(
-			_binding.PoiId,
-			_binding.FacilityId,
-			operatorName,
-			contractId);
-	}
-
-	public bool TryDeclineContract(string contractId)
-	{
-		var operatorName = RequireActiveOperatorName();
-		return _binding.Intents.TryDeclineContract(
-			_binding.PoiId,
-			_binding.FacilityId,
-			operatorName,
-			contractId);
-	}
-
 	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
 		switch (role)
 		{
 			case EFacilityOperatorRole.Contracts:
-				OpenContractHud(facilityOperator);
+			case EFacilityOperatorRole.StoryContact:
+				_contractHud.Open(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
@@ -112,67 +84,10 @@ public partial class CommandAuthorityController : Control
 		}
 	}
 
-	private void OpenContractHud(FacilityOperator facilityOperator)
-	{
-		if (!_binding.Intents.TryVisitContractMerchant(
-			_binding.PoiId,
-			_binding.FacilityId,
-			facilityOperator.Name))
-		{
-			GD.PushError(
-				$"Unable to record contract merchant visit at POI '{_binding.PoiId}'.");
-			return;
-		}
-
-		_contractHud.Open(
-			_binding.Map,
-			_binding.PoiId,
-			OperatorDisplayLabels.Title(facilityOperator));
-		UpdateBackButton();
-	}
-
-	private void OnAcceptRequested(string contractId)
-	{
-		if (!TryAcceptContract(contractId))
-		{
-			_contractHud.ShowError("Unable to accept contract.");
-			UpdateBackButton();
-			return;
-		}
-
-		_contractHud.SyncMap(_binding.Map);
-		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
-		UpdateBackButton();
-	}
-
-	private void OnDeclineRequested(string contractId)
-	{
-		if (!TryDeclineContract(contractId))
-		{
-			_contractHud.ShowError("Unable to decline contract.");
-			UpdateBackButton();
-			return;
-		}
-
-		_contractHud.SyncMap(_binding.Map);
-		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
-		UpdateBackButton();
-	}
-
 	private void ReturnToMap()
 	{
 		MapNavigationContext.ClearActiveOperator();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
-	}
-
-	private static string RequireActiveOperatorName() =>
-		MapNavigationContext.ActiveOperatorName
-		?? throw new InvalidOperationException("Contract decision requires an active facility operator.");
-
-	private void OnContractHudClosed()
-	{
-		MapNavigationContext.ClearActiveOperator();
-		UpdateBackButton();
 	}
 
 	private void UpdateBackButton() =>

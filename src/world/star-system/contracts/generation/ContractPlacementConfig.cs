@@ -13,7 +13,4 @@ public sealed class ContractPlacementConfig
 	public float DeliveryKindWeight { get; init; } = DefaultDeliveryKindWeight;
 
 	public float WreckageKindWeight { get; init; } = DefaultWreckageKindWeight;
-
-	public int MaxPendingPerIssuerPoi(int issuerCount) =>
-		issuerCount > 1 ? System.Math.Max(1, TargetGeneratedCount - 1) : int.MaxValue;
 }

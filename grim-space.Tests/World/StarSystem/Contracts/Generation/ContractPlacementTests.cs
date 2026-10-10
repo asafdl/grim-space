@@ -1,17 +1,10 @@
-using GrimSpace.Math.Grid;
-using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
-using GrimSpace.World.StarSystem.Resources;
-using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
-using BattleUnitType = GrimSpace.Units.Enums.EType;
-using GrimSpace.Units.Enums;
-using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
 
@@ -19,121 +12,44 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
 public sealed class ContractPlacementTests(StarMapFixture maps)
 {
 	[Fact]
-	public void Pick_FreshMap_UsesAllContractIssuersOverManySlots()
+	public void Pick_SameInputs_ReturnsSameKind()
 	{
 		var map = maps.Fresh(42);
 		var placement = new ContractPlacement();
-		var plan = map.Blueprint.SupplyPlan;
-		var issuers = new HashSet<string>(StringComparer.Ordinal);
+		var first = placement.Pick(map, tick: 1, slotIndex: 2);
+		var second = placement.Pick(map, tick: 1, slotIndex: 2);
 
-		for (var slot = 0; slot < 36; slot++)
-		{
-			var decision = placement.Pick(map, tick: 1, slot);
-			Assert.NotNull(decision);
-			issuers.Add(decision.IssuerPoiId);
-		}
-
-		Assert.Contains(plan.AdministrativePoiId, issuers);
-		Assert.Contains(plan.ExtractionPoiId, issuers);
-		Assert.Contains(plan.StoragePoiId, issuers);
+		Assert.Equal(first, second);
 	}
 
 	[Fact]
-	public void Pick_TwoIssuers_UsesBothOverManySlots()
+	public void Pick_MixedWeights_UsesAllKindsOverManySlots()
 	{
-		var map = ContractPlacementTestMaps.TwoIssuers();
+		var map = maps.Fresh(42);
 		var placement = new ContractPlacement();
-		var issuers = new HashSet<string>(StringComparer.Ordinal);
-
-		for (var slot = 0; slot < 24; slot++)
-		{
-			var decision = placement.Pick(map, tick: 5, slot);
-			Assert.NotNull(decision);
-			issuers.Add(decision.IssuerPoiId);
-		}
-
-		Assert.Contains(ContractPlacementTestMaps.IssuerAId, issuers);
-		Assert.Contains(ContractPlacementTestMaps.IssuerBId, issuers);
-	}
-
-	[Fact]
-	public void Pick_IssuerSelectionDoesNotDetermineContractKind()
-	{
-		var map = ContractPlacementTestMaps.TwoIssuers();
-		var placement = new ContractPlacement(new ContractPlacementConfig
-		{
-			HuntKindWeight = 1f,
-			DeliveryKindWeight = 1f,
-			WreckageKindWeight = 0f,
-		});
-		var kindsByIssuer = Enumerable.Range(0, 100)
-			.Select(slot => placement.Pick(map, tick: 5, slot))
-			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision))
-			.GroupBy(decision => decision.IssuerPoiId, StringComparer.Ordinal)
-			.ToDictionary(
-				group => group.Key,
-				group => group.Select(decision => decision.Kind).ToHashSet(),
-				StringComparer.Ordinal);
+		var kinds = Enumerable.Range(0, 100)
+			.Select(slot => placement.Pick(map, tick: 3, slot))
+			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision).Kind)
+			.ToHashSet();
 
 		Assert.Equal(
-			[EContractKind.Hunt, EContractKind.Delivery],
-			kindsByIssuer[ContractPlacementTestMaps.IssuerAId]);
-		Assert.Equal(
-			[EContractKind.Hunt, EContractKind.Delivery],
-			kindsByIssuer[ContractPlacementTestMaps.IssuerBId]);
+			[EContractKind.Hunt, EContractKind.Delivery, EContractKind.Wreckage],
+			kinds);
 	}
 
 	[Fact]
-	public void Pick_RespectsMaxPendingPerIssuerPoi()
+	public void Pick_WhenBoardHasOnlyHunts_ReducesHuntWeightGlobally()
 	{
-		var map = ContractPlacementTestMaps.TwoIssuers();
-		var config = new ContractPlacementConfig { TargetGeneratedCount = 3 };
-		var placement = new ContractPlacement(config);
-		var hunt = SyntheticHunt(map, "prefill-group");
-
-		for (var i = 0; i < config.MaxPendingPerIssuerPoi(2); i++)
-			map.ContractRegistry.TryAdd(CloneAtIssuer(map, $"a-{i}", hunt, ContractPlacementTestMaps.IssuerAId));
-
-		var decision = placement.Pick(map, tick: 2, slotIndex: 0);
-		Assert.NotNull(decision);
-		Assert.Equal(ContractPlacementTestMaps.IssuerBId, decision.IssuerPoiId);
-	}
-
-	[Fact]
-	public void Pick_ExcludesIssuerDuringGenerationCooldown()
-	{
-		var map = ContractPlacementTestMaps.TwoIssuers();
-		map.ContractRegistry.PauseIssuerGeneration(
-			ContractPlacementTestMaps.IssuerAId,
-			untilTick: 10);
+		var map = maps.FreshWithBeatAHunt(42);
 		var placement = new ContractPlacement();
-
-		var duringCooldown = placement.Pick(map, tick: 9, slotIndex: 0);
-		var afterCooldown = Enumerable.Range(0, 100)
-			.Select(slot => placement.Pick(map, tick: 10, slot))
-			.ToArray();
-
-		Assert.NotNull(duringCooldown);
-		Assert.Equal(ContractPlacementTestMaps.IssuerBId, duringCooldown.IssuerPoiId);
-		Assert.Contains(
-			afterCooldown,
-			decision => decision?.IssuerPoiId == ContractPlacementTestMaps.IssuerAId);
-	}
-
-	[Fact]
-	public void Pick_WhenIssuerHasOnlyHunts_ReducesHuntWeight()
-	{
-		var map = ContractPlacementTestMaps.OneIssuer();
-		var placement = new ContractPlacement();
-		var hunt = SyntheticHunt(map, "stacked-group");
-		map.ContractRegistry.TryAdd(CloneAtIssuer(map, "hunt-1", hunt, ContractPlacementTestMaps.IssuerAId));
-		map.ContractRegistry.TryAdd(CloneAtIssuer(map, "hunt-2", hunt, ContractPlacementTestMaps.IssuerAId));
+		var template = map.ContractRegistry.Pending.Single();
+		map.ContractRegistry.TryAdd(template with { Id = "hunt-1", IsStoryObjective = false });
+		map.ContractRegistry.TryAdd(template with { Id = "hunt-2", IsStoryObjective = false });
 		var kinds = Enumerable.Range(0, 1000)
 			.Select(slot => placement.Pick(map, tick: 3, slot))
 			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision).Kind)
 			.ToArray();
 
-		Assert.NotEmpty(kinds);
 		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
 			< kinds.Count(kind => kind == EContractKind.Delivery));
 		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
@@ -141,26 +57,20 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void MaxPendingPerIssuerPoi_IsTargetMinusOneWhenMultipleIssuers()
+	public void Pick_SupplementalQueuedHunts_AffectGlobalDiversity()
 	{
-		var config = new ContractPlacementConfig { TargetGeneratedCount = 4 };
-		Assert.Equal(3, config.MaxPendingPerIssuerPoi(2));
-		Assert.Equal(int.MaxValue, config.MaxPendingPerIssuerPoi(1));
-	}
-
-	[Fact]
-	public void Pick_SupplementalQueuedHunts_ReducesFurtherHuntPicksAtSameIssuer()
-	{
-		var map = ContractPlacementTestMaps.OneIssuer();
+		var map = maps.FreshWithBeatAHunt(42);
 		var placement = new ContractPlacement();
-		var hunt = SyntheticHunt(map, "queued-hunt");
-		var queued = new[]
-		{
-			CloneAtIssuer(map, "queued-1", hunt, ContractPlacementTestMaps.IssuerAId),
-			CloneAtIssuer(map, "queued-2", hunt, ContractPlacementTestMaps.IssuerAId),
-		};
+		var template = map.ContractRegistry.Pending.Single();
+		var queued = Enumerable.Range(0, 2)
+			.Select(index => template with
+			{
+				Id = $"queued-{index}",
+				IsStoryObjective = false,
+			})
+			.ToArray();
 		var kinds = Enumerable.Range(0, 500)
-			.Select(slot => placement.Pick(map, tick: 2, slot, supplementalBoardContracts: queued))
+			.Select(slot => placement.Pick(map, tick: 2, slot, queued))
 			.Select(decision => Assert.IsType<ContractPlacement.Decision>(decision).Kind)
 			.ToArray();
 
@@ -169,58 +79,4 @@ public sealed class ContractPlacementTests(StarMapFixture maps)
 		Assert.True(kinds.Count(kind => kind == EContractKind.Hunt)
 			< kinds.Count(kind => kind == EContractKind.Wreckage));
 	}
-
-	[Fact]
-	public void Pick_SupplementalQueuedContracts_RedirectsAwayFromQueuedIssuer()
-	{
-		var map = ContractPlacementTestMaps.TwoIssuers();
-		var placement = new ContractPlacement();
-		var hunt = SyntheticHunt(map, "queued-hunt");
-		var maxPerIssuer = new ContractPlacementConfig().MaxPendingPerIssuerPoi(2);
-		var queued = Enumerable.Range(0, maxPerIssuer)
-			.Select(index => CloneAtIssuer(
-				map,
-				$"queued-{index}",
-				hunt,
-				ContractPlacementTestMaps.IssuerAId))
-			.ToArray();
-
-		var decision = placement.Pick(map, tick: 4, slotIndex: 0, queued);
-		Assert.NotNull(decision);
-		Assert.Equal(ContractPlacementTestMaps.IssuerBId, decision.IssuerPoiId);
-	}
-
-	private static HuntObjective SyntheticHunt(StarMap map, string groupId)
-	{
-		var center = new Coord(map.Width / 2, 0, map.Height / 2);
-		var searchArea = new AreaPick(
-			new AreaIntel(
-				"Somewhere in the area of {A}.",
-				ContractPlacementTestMaps.IssuerAId,
-				ContractPlacementTestMaps.IssuerBId,
-				ContractPlacementTestMaps.IssuerAId),
-			[center]);
-		return new HuntObjective(
-		[
-			new SpawnEncounterGroup(
-				groupId,
-				searchArea,
-				1,
-				new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 1, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)])),
-		]);
-	}
-
-	private static Contract CloneAtIssuer(
-		StarMap map,
-		string contractId,
-		HuntObjective hunt,
-		string issuerPoiId) =>
-		new(
-			contractId,
-			hunt,
-			GrimSpace.World.StarSystem.Encounter.EDangerLevel.VeryLow,
-			map.ControllingFaction,
-			issuerPoiId,
-			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
-			ContractNarrative.ForHunt("Test"));
 }

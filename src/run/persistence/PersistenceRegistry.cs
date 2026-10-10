@@ -263,4 +263,3 @@ public sealed class PersistenceRegistry
 	private static T Deserialize<T>(JsonElement value) =>
 		ReflectionJson.Read<T>(value, JsonOptions);
 }
-

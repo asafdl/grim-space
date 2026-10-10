@@ -125,7 +125,7 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 		var delivery = Assert.IsType<DeliveryContractState>(state);
 		Assert.Equal(acceptedAtTick, delivery.Progress.ActivationTick);
 		var objective = Assert.IsType<DeliveryObjective>(contract.Objective);
-		var origin = map.GetPointOfInterest(contract.IssuerPoiId!).PlacedCenter;
+		var origin = map.GetPointOfInterest(objective.PickupPoiId).PlacedCenter;
 		Assert.Equal(
 			DeliveryContractState.ResolveDeadlineTickForLeg(
 				map,

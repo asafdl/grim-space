@@ -15,15 +15,8 @@ public static class ContractDisplay
 
 	public static string Narrative(Contract contract) => contract.Narrative.Briefing;
 
-	public static string Issuer(Contract contract, StarMap map)
-	{
-		var faction = FactionCatalog.DisplayName(contract.IssuerFaction);
-		if (contract.IssuerPoiId is not { } poiId)
-			return faction;
-
-		var poiName = map.PointsOfInterest.First(poi => poi.Id == poiId).DisplayName;
-		return $"{faction} · {poiName}";
-	}
+	public static string Issuer(Contract contract) =>
+		FactionCatalog.DisplayName(contract.IssuerFaction);
 
 	public static string DetailsBody(Contract contract, StarMap map)
 	{
@@ -51,7 +44,7 @@ public static class ContractDisplay
 		contract.Objective switch
 		{
 			HuntObjective hunt => FormatHuntObjective(hunt),
-			DeliveryObjective delivery => FormatDeliveryObjective(contract, delivery, map),
+			DeliveryObjective delivery => FormatDeliveryObjective(delivery, map),
 			WreckageObjective => "Locate the derelict and investigate it.",
 			_ => "—",
 		};
@@ -63,7 +56,7 @@ public static class ContractDisplay
 				FormatSearchAreaIntel(hunt.SpawnGroups[0].SearchArea.Intel, map),
 			WreckageObjective wreckage =>
 				FormatSearchAreaIntel(wreckage.SearchArea.Intel, map),
-			DeliveryObjective delivery => FormatDeliveryRoute(contract, delivery, map),
+			DeliveryObjective delivery => FormatDeliveryRoute(delivery, map),
 			_ => "—",
 		};
 
@@ -106,16 +99,16 @@ public static class ContractDisplay
 		return true;
 	}
 
-	private static string FormatDeliveryObjective(Contract contract, DeliveryObjective delivery, StarMap map)
+	private static string FormatDeliveryObjective(DeliveryObjective delivery, StarMap map)
 	{
-		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
-		return $"Pick up cargo at {issuerName}, then deliver it to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
+		var pickupName = ResolvePoiDisplayName(map, delivery.PickupPoiId);
+		return $"Pick up cargo at {pickupName}, then deliver it to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
 	}
 
-	private static string FormatDeliveryRoute(Contract contract, DeliveryObjective delivery, StarMap map)
+	private static string FormatDeliveryRoute(DeliveryObjective delivery, StarMap map)
 	{
-		var issuerName = ResolvePoiDisplayName(map, contract.IssuerPoiId);
-		return $"From {issuerName} to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
+		var pickupName = ResolvePoiDisplayName(map, delivery.PickupPoiId);
+		return $"From {pickupName} to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
 	}
 
 	private static string DeliveryDestination(StarMap map, DeliveryLeg leg) =>
@@ -134,10 +127,8 @@ public static class ContractDisplay
 			: $"{poi.GetFacility(facility.FacilityId).DisplayName} at {poi.DisplayName}";
 	}
 
-	private static string ResolvePoiDisplayName(StarMap map, string? poiId) =>
-		poiId is null
-			? "—"
-			: map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName ?? poiId;
+	private static string ResolvePoiDisplayName(StarMap map, string poiId) =>
+		map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName ?? poiId;
 
 	private static string FormatHuntObjective(HuntObjective hunt)
 	{

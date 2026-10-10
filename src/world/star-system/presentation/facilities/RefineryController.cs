@@ -8,6 +8,7 @@ public partial class RefineryController : Control
 {
 	private FacilitySceneBinding _binding = null!;
 	private Button _backButton = null!;
+	private FacilityContractHudPresenter _contractHud = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
 
@@ -24,6 +25,7 @@ public partial class RefineryController : Control
 
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
+		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
 			_backButton,
@@ -52,7 +54,7 @@ public partial class RefineryController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
+		if (_contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
 			return;
 
 		GetViewport().SetInputAsHandled();
@@ -64,6 +66,10 @@ public partial class RefineryController : Control
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
 		switch (role)
 		{
+			case EFacilityOperatorRole.Contracts:
+			case EFacilityOperatorRole.StoryContact:
+				_contractHud.Open(facilityOperator);
+				break;
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
 				break;
@@ -81,4 +87,9 @@ public partial class RefineryController : Control
 		MapNavigationContext.ClearActiveOperator();
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
+
+	private void UpdateBackButton() =>
+		_backButton.Disabled = _contractHud.IsOpen
+			|| _npcDialog.IsOpen
+			|| _deliveryTurnInDialog.IsOpen;
 }

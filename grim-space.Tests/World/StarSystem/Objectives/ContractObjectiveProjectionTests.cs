@@ -119,7 +119,6 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	private static Contract CreateContract(StarMap map, AreaIntel intel, AreaRelation? relation)
 	{
 		_ = relation;
-		var plan = map.Blueprint.SupplyPlan;
 		return new Contract(
 			"contract-test",
 			new HuntObjective(
@@ -132,7 +131,6 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 			]),
 			EDangerLevel.VeryLow,
 			map.ControllingFaction,
-			plan.AdministrativePoiId,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 50)),
 			ContractNarrative.ForHunt("Synthetic Hunt"));
 	}

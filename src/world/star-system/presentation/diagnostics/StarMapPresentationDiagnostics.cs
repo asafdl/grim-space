@@ -57,9 +57,9 @@ internal static class StarMapPresentationDiagnostics
 		EngageAction engage => $"engage actor={engage.ActorId}",
 		FleeAction flee => $"flee actor={flee.ActorId}",
 		AcceptContractAction accept =>
-			$"accept_contract actor={accept.ActorId} poi={accept.PoiId} facility={accept.FacilityId} operator={accept.OperatorName} contract={accept.ContractId}",
+			$"accept_contract actor={accept.ActorId} contract={accept.ContractId}",
 		DeclineContractAction decline =>
-			$"decline_contract actor={decline.ActorId} poi={decline.PoiId} facility={decline.FacilityId} operator={decline.OperatorName} contract={decline.ContractId}",
+			$"decline_contract actor={decline.ActorId} contract={decline.ContractId}",
 		ReachWreckageAction reach => $"reach_wreck actor={reach.ActorId} contract={reach.ContractId}",
 		LeaveWreckageAction leave => $"leave_wreck actor={leave.ActorId}",
 		InvestigateWreckageAction investigate =>

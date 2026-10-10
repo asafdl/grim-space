@@ -109,7 +109,6 @@ public sealed class DismissContractActionTests(StarMapFixture maps)
 			hunt,
 			map.ContractRegistry.Pending.First().Danger,
 			map.ContractRegistry.Pending.First().IssuerFaction,
-			map.ContractRegistry.Pending.First().IssuerPoiId,
 			map.ContractRegistry.Pending.First().Terms,
 			ContractNarrative.ForHunt("Dismiss test"))));
 

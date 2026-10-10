@@ -19,12 +19,15 @@ public static class FacilityOperatorBinder
 					$"Facility '{facility.Id}' expects scene slot '{facilityOperator.SceneSlotId}' " +
 					$"to be a {nameof(FacilityOperatorButtonView)} under '{operatorRoot.Name}'.");
 
-			button.TooltipText = OperatorDisplayLabels.Title(facilityOperator);
 			var captured = facilityOperator;
+			EFacilityOperatorRole ResolveRole() =>
+				poi.ResolveInteractionRole(facility.Id, captured.Name, captured.Role);
+			button.ConfigureRolePresentation(
+				ResolveRole,
+				role => OperatorDisplayLabels.Title(captured, role));
 			button.Pressed += () =>
 			{
-				var role = poi.ResolveInteractionRole(facility.Id, captured.Name, captured.Role);
-				onActivated(captured, role);
+				onActivated(captured, ResolveRole());
 			};
 		}
 	}

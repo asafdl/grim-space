@@ -45,7 +45,7 @@ public sealed partial class PoiContractOverlay : Control
 		}
 
 		var map = _world();
-		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
+		var counts = ContractMapIndicators.CountPendingByPresenterPoi(map);
 		var activePoiIds = new HashSet<string>(counts.Keys, StringComparer.Ordinal);
 
 		foreach (var poiId in _badges.Keys.ToArray())

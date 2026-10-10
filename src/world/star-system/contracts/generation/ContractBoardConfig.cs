@@ -4,11 +4,19 @@ public sealed class ContractBoardConfig
 {
 	public const int DefaultCadenceTicks = 5;
 	public const int DefaultTtlTicks = 300;
-	public const int DefaultMerchantRefreshCooldownTicks = 150;
+	public const int DefaultContractGiverLeaseTicks = 30;
+	public const int DefaultContractOperatorVisitPauseTicks = 150;
+	public const int DefaultPreferredContractsPerGiver = 2;
 
 	public int CadenceTicks { get; init; } = DefaultCadenceTicks;
 
 	public int TtlTicks { get; init; } = DefaultTtlTicks;
+
+	public int ContractGiverLeaseTicks { get; init; } = DefaultContractGiverLeaseTicks;
+
+	public int ContractOperatorVisitPauseTicks { get; init; } = DefaultContractOperatorVisitPauseTicks;
+
+	public int PreferredContractsPerGiver { get; init; } = DefaultPreferredContractsPerGiver;
 
 	public ContractPlacementConfig Placement { get; init; } = new();
 

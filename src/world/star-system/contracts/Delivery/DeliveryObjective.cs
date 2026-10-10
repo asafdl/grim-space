@@ -38,6 +38,7 @@ public sealed record DeliveryRoute
 
 public sealed record DeliveryObjective : IContractObjective
 {
+	public string PickupPoiId { get; }
 	public DeliveryRoute Route { get; }
 	public DeliveryGenerationConfig Config { get; }
 
@@ -48,10 +49,12 @@ public sealed record DeliveryObjective : IContractObjective
 	public int RouteLegCount => Route.Legs.Count;
 
 	public DeliveryObjective(
+		string pickupPoiId,
 		string turnInPoiId,
 		string turnInFacilityId,
 		string turnInOperatorName)
 		: this(
+			pickupPoiId,
 			new DeliveryRoute(
 				[new FacilityDeliveryLeg(turnInPoiId, turnInFacilityId, turnInOperatorName)]),
 			DeliveryGenerationConfig.Default)
@@ -59,12 +62,15 @@ public sealed record DeliveryObjective : IContractObjective
 	}
 
 	public DeliveryObjective(
+		string pickupPoiId,
 		DeliveryRoute route,
 		DeliveryGenerationConfig? config = null)
 	{
+		ArgumentException.ThrowIfNullOrEmpty(pickupPoiId);
 		ArgumentNullException.ThrowIfNull(route);
 		if (route.Legs[^1] is not FacilityDeliveryLeg)
 			throw new ArgumentException("A delivery route must end at a facility.", nameof(route));
+		PickupPoiId = pickupPoiId;
 		Route = route;
 		Config = config ?? DeliveryGenerationConfig.Default;
 	}

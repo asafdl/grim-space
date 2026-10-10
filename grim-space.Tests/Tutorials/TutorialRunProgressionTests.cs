@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.Tutorials;
 
@@ -24,6 +25,10 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		Assert.Single(
 			run.StarSystem.Map.ContractRegistry.Pending,
 			contract => contract.IsStoryObjective && contract.Objective is HuntObjective);
+		var contact = Assert.Single(run.StarSystem.Map.PointsOfInterest
+			.SelectMany(poi => poi.OperatorTemporaryRoles
+				.Assignments(EFacilityOperatorRole.StoryContact)));
+		Assert.Equal([run.TutorialState.BeatAContractId], contact.SourceIds);
 	}
 
 	[Fact]
@@ -107,6 +112,10 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 		Assert.Contains(
 			orchestrator.Map.StoryObjectives.Active,
 			objective => objective.RequiredContractId == controller.State.BeatBContractId);
+		var contact = Assert.Single(orchestrator.Map.PointsOfInterest
+			.SelectMany(poi => poi.OperatorTemporaryRoles
+				.Assignments(EFacilityOperatorRole.StoryContact)));
+		Assert.Equal([controller.State.BeatBContractId], contact.SourceIds);
 	}
 
 	[Fact]
@@ -133,14 +142,14 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			objective => objective.RequiredContractId == beatBId);
 		orchestrator.CommitSetup(new AcceptContractAction(
 			State.PlayerFleetUnitId,
-			map.Blueprint.SupplyPlan.StoragePoiId,
-			"warehouse",
-			"manager",
 			beatBId));
 
 		Assert.DoesNotContain(
 			orchestrator.Map.StoryObjectives.Active,
 			objective => objective.RequiredContractId == beatBId);
+		Assert.Empty(orchestrator.Map.PointsOfInterest
+			.SelectMany(poi => poi.OperatorTemporaryRoles
+				.Assignments(EFacilityOperatorRole.StoryContact)));
 	}
 
 	[Fact]
@@ -162,7 +171,9 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 
 		var delivery = orchestrator.Map.ContractRegistry.Pending
 			.Single(contract => contract.Objective is DeliveryObjective);
-		Assert.Equal(map.Blueprint.SupplyPlan.StoragePoiId, delivery.IssuerPoiId);
+		Assert.Equal(
+			map.Blueprint.SupplyPlan.StoragePoiId,
+			Assert.IsType<DeliveryObjective>(delivery.Objective).PickupPoiId);
 		Assert.True(delivery.IsStoryObjective);
 		Assert.False(delivery.AllowsDecline);
 	}

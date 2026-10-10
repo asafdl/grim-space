@@ -71,6 +71,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_wreckageInvestigationSubscription = _engine.Subscribe<InvestigateWreckageAction>(OnWreckageInvestigated);
 		_resourceTransactionSubscription =
 			_engine.Subscribe<Record<Transaction>>(record => ResourceTransactionCommitted?.Invoke(record.Value));
+		_contractBoardAgent.ReconcilePresentations();
 	}
 
 	public event Action? WorldUpdated;
@@ -101,6 +102,15 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public bool ContractGenerationEnabled => _contractGenerationEnabled;
 
 	public void SetContractGenerationEnabled(bool enabled) => _contractGenerationEnabled = enabled;
+
+	internal void ReconcileContractPresentations() =>
+		_contractBoardAgent.ReconcilePresentations();
+
+	public bool TryVisitContractOperator(
+		string poiId,
+		string facilityId,
+		string operatorName) =>
+		_contractBoardAgent.TryPauseContractPresentation(poiId, facilityId, operatorName);
 
 	internal IReadOnlyList<StarSystemRuntimeDto> CaptureRuntimeSnapshots(
 		PersistenceRegistry registry) =>
@@ -665,6 +675,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		var history = _engine.Commit(actions);
 		CommitReactions();
+		_contractBoardAgent.ReconcilePresentations();
 		return history;
 	}
 

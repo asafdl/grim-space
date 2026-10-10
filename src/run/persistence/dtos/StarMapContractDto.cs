@@ -11,7 +11,6 @@ public sealed record StarMapContractDto(
 	JsonElement Objective,
 	EDangerLevel Danger,
 	EFaction IssuerFaction,
-	string? IssuerPoiId,
 	ContractTerms Terms,
 	ContractNarrative Narrative,
 	bool IsStoryObjective,

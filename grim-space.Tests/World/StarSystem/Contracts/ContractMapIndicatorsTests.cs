@@ -1,5 +1,6 @@
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
@@ -8,14 +9,13 @@ namespace GrimSpace.Tests.World.StarSystem.Contracts;
 public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 {
 	[Fact]
-	public void CountPendingByIssuerPoi_IncludesStarterContractAtAdminPoi()
+	public void CountPendingByPresenterPoi_IncludesAssignedPendingContract()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var plan = map.Blueprint.SupplyPlan;
-		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
+		var poiId = PresentPendingContract(map);
+		var counts = ContractMapIndicators.CountPendingByPresenterPoi(map);
 
-		Assert.True(counts.TryGetValue(plan.AdministrativePoiId, out var count));
-		Assert.Equal(1, count);
+		Assert.Equal(1, counts[poiId]);
 	}
 
 	[Fact]
@@ -23,13 +23,14 @@ public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 	{
 		var map = maps.FreshWithBeatAHunt(42);
 		var contractId = map.ContractRegistry.Pending.First().Id;
+		PresentPendingContract(map);
 		map.ContractRegistry.Activate(new ContractState(
 			contractId,
 			EContractStatus.Rejected,
 			null,
 			null));
 
-		var counts = ContractMapIndicators.CountPendingByIssuerPoi(map);
+		var counts = ContractMapIndicators.CountPendingByPresenterPoi(map);
 
 		Assert.Empty(counts);
 	}
@@ -42,11 +43,25 @@ public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void TooltipForPoi_ListsPendingContractsByKind()
+	public void TooltipForPoi_ListsAssignedPendingContractsByKind()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
-		var poiId = map.Blueprint.SupplyPlan.AdministrativePoiId;
+		var poiId = PresentPendingContract(map);
 
 		Assert.Equal("1x Hunt", ContractMapIndicators.TooltipForPoi(map, poiId));
+	}
+
+	private static string PresentPendingContract(StarMap map)
+	{
+		var poi = map.PointsOfInterest.First(candidate => candidate.Facilities.Count > 0);
+		var facility = poi.Facilities[0];
+		var facilityOperator = facility.Operators[0];
+		poi.OperatorTemporaryRoles.Grant(
+			facility.Id,
+			facilityOperator.Name,
+			EFacilityOperatorRole.Contracts,
+			map.ContractRegistry.Pending.Single().Id,
+			acceptsSourcesUntilTick: 10);
+		return poi.Id;
 	}
 }

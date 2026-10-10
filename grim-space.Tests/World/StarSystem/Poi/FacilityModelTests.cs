@@ -26,7 +26,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 
 		var contractOperator = Assert.Single(facility.Operators);
 		Assert.Equal(MapFacilityOperators.ContractOperatorName(world), contractOperator.Name);
-		Assert.Equal(EFacilityOperatorRole.Contracts, contractOperator.Role);
+		Assert.Equal(EFacilityOperatorRole.Dialog, contractOperator.Role);
 		Assert.Equal(AdministrativeCore.ContractOperatorSceneSlotId, contractOperator.SceneSlotId);
 		Assert.Contains(contractOperator.Name, OperatorNames.Pool);
 	}
@@ -106,7 +106,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(StorageFacility.WarehouseScenePath, facility.ScenePath);
 
 		var manager = Assert.Single(facility.Operators);
-		Assert.Equal(EFacilityOperatorRole.Contracts, manager.Role);
+		Assert.Equal(EFacilityOperatorRole.Dialog, manager.Role);
 		Assert.Equal(MapFacilityOperators.WarehouseManagerOperatorName(world), manager.Name);
 		Assert.Equal(StorageFacility.WarehouseManagerOperatorSceneSlotId, manager.SceneSlotId);
 		Assert.Contains(manager.Name, OperatorNames.Pool);
@@ -128,7 +128,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 
 		var contractOperator = Assert.Single(facility.Operators);
 		Assert.Equal(MapFacilityOperators.MineContractOperatorName(world), contractOperator.Name);
-		Assert.Equal(EFacilityOperatorRole.Contracts, contractOperator.Role);
+		Assert.Equal(EFacilityOperatorRole.Dialog, contractOperator.Role);
 		Assert.Equal(OreMine.MineContractOperatorSceneSlotId, contractOperator.SceneSlotId);
 		Assert.Contains(contractOperator.Name, OperatorNames.Pool);
 	}

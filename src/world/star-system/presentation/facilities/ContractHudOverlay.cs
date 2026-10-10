@@ -15,6 +15,8 @@ public sealed partial class ContractHudOverlay : Control
 	private readonly ModalShell _shell;
 	private StarMap _map = null!;
 	private string _activePoiId = "";
+	private string _activeFacilityId = "";
+	private string _activeOperatorName = "";
 	private string _facilityTitle = "";
 	private Contract? _selected;
 	private ViewMode _mode = ViewMode.List;
@@ -42,10 +44,17 @@ public sealed partial class ContractHudOverlay : Control
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Open(StarMap map, string activePoiId, string facilityTitle)
+	public void Open(
+		StarMap map,
+		string activePoiId,
+		string activeFacilityId,
+		string activeOperatorName,
+		string facilityTitle)
 	{
 		_map = map;
 		_activePoiId = activePoiId;
+		_activeFacilityId = activeFacilityId;
+		_activeOperatorName = activeOperatorName;
 		_facilityTitle = facilityTitle;
 		_selected = null;
 		_statusKind = null;
@@ -84,7 +93,7 @@ public sealed partial class ContractHudOverlay : Control
 	private void ShowList()
 	{
 		_mode = ViewMode.List;
-		var contracts = _map.ContractRegistry.AvailableForPoi(_activePoiId).ToArray();
+		var contracts = PresentedContracts();
 		_shell.SetTitle(_facilityTitle);
 		_shell.SetSubtitle(contracts.Length == 0
 			? "No contracts available"
@@ -94,7 +103,7 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.SetFooter([]);
 
 		if (_selected is not null
-			&& !_map.ContractRegistry.AvailableForPoi(_activePoiId).Any(contract => contract.Id == _selected.Id))
+			&& !contracts.Any(contract => contract.Id == _selected.Id))
 			_selected = null;
 
 		var body = HudWidgets.CreateCardList();
@@ -132,7 +141,7 @@ public sealed partial class ContractHudOverlay : Control
 		_statusMessage = "";
 		_mode = ViewMode.Details;
 		_shell.SetTitle(ContractDisplay.Title(_selected));
-		_shell.SetSubtitle($"Issued by {ContractDisplay.Issuer(_selected, _map)}");
+		_shell.SetSubtitle($"Issued by {ContractDisplay.Issuer(_selected)}");
 		_shell.SetHeader(HudHeaderMode.Back, ShowList);
 		_shell.SetBackHandler(ShowList);
 
@@ -241,12 +250,33 @@ public sealed partial class ContractHudOverlay : Control
 		if (_selected is null)
 			return false;
 
-		if (!_map.ContractRegistry.TryGet(_selected.Id, out var contract)
-			|| !_map.ContractRegistry.IsPending(_selected.Id))
+		var contract = PresentedContracts()
+			.FirstOrDefault(candidate => candidate.Id == _selected.Id);
+		if (contract is null)
 			return false;
 
 		_selected = contract;
 		return true;
+	}
+
+	private Contract[] PresentedContracts()
+	{
+		if (!_map.TryGetPointOfInterest(_activePoiId, out var poi)
+			|| !poi.OperatorTemporaryRoles.TryGetAssignment(
+				_activeFacilityId,
+				_activeOperatorName,
+				out var assignment))
+			return [];
+
+		return assignment.SourceIds
+			.Select(contractId =>
+				_map.ContractRegistry.TryGet(contractId, out var contract)
+					&& _map.ContractRegistry.IsPending(contractId)
+					? contract
+					: null)
+			.Where(contract => contract is not null)
+			.Cast<Contract>()
+			.ToArray();
 	}
 
 	private void OnAcceptPressed()

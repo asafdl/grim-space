@@ -7,6 +7,7 @@ public static class OperatorDisplayLabels
 	public static string Role(EFacilityOperatorRole role) => role switch
 	{
 		EFacilityOperatorRole.Contracts => "Contracts",
+		EFacilityOperatorRole.StoryContact => "Story Contract",
 		EFacilityOperatorRole.Merchant => "",
 		EFacilityOperatorRole.Dialog => "",
 		EFacilityOperatorRole.DeliveryTurnIn => "Delivery",
@@ -21,18 +22,23 @@ public static class OperatorDisplayLabels
 		_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
 	};
 
-	public static string Title(FacilityOperator facilityOperator)
+	public static string Title(FacilityOperator facilityOperator) =>
+		Title(facilityOperator, facilityOperator.Role);
+
+	public static string Title(
+		FacilityOperator facilityOperator,
+		EFacilityOperatorRole resolvedRole)
 	{
-		if (facilityOperator.Role == EFacilityOperatorRole.Merchant
+		if (resolvedRole == EFacilityOperatorRole.Merchant
 			&& facilityOperator.MerchantCatalog is { } catalog)
 		{
 			var role = MerchantRole(catalog);
 			return $"{facilityOperator.Name} - {role}";
 		}
 
-		var templateRole = Role(facilityOperator.Role);
-		return string.IsNullOrEmpty(templateRole)
+		var roleLabel = Role(resolvedRole);
+		return string.IsNullOrEmpty(roleLabel)
 			? facilityOperator.Name
-			: $"{facilityOperator.Name} - {templateRole}";
+			: $"{facilityOperator.Name} - {roleLabel}";
 	}
 }

@@ -41,41 +41,17 @@ public sealed class UserIntentTranslator
 		_immediateActions = immediateActions;
 	}
 
-	public bool TryAcceptContract(
-		string poiId,
-		string facilityId,
-		string operatorName,
-		string contractId)
+	public bool TryAcceptContract(string contractId)
 	{
 		return TrySubmitImmediately(new AcceptContractAction(
 			FacilityActorId(),
-			poiId,
-			facilityId,
-			operatorName,
 			contractId));
 	}
 
-	public bool TryDeclineContract(
-		string poiId,
-		string facilityId,
-		string operatorName,
-		string contractId) =>
+	public bool TryDeclineContract(string contractId) =>
 		TrySubmitImmediately(new DeclineContractAction(
 			FacilityActorId(),
-			poiId,
-			facilityId,
-			operatorName,
 			contractId));
-
-	public bool TryVisitContractMerchant(
-		string poiId,
-		string facilityId,
-		string operatorName) =>
-		TrySubmitImmediately(new VisitContractMerchantAction(
-			FacilityActorId(),
-			poiId,
-			facilityId,
-			operatorName));
 
 	public bool TryPurchase(
 		string poiId,

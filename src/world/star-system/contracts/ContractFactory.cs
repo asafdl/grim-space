@@ -76,7 +76,6 @@ public static class ContractFactory
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
 		ArgumentNullException.ThrowIfNull(args);
-		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 		ArgumentNullException.ThrowIfNull(args.SearchAreaPicker);
 
 		var faction = ResolveOppositionFaction(map, contractId);
@@ -99,7 +98,6 @@ public static class ContractFactory
 			objective,
 			args.Danger,
 			map.ControllingFaction,
-			args.IssuerPoiId,
 			ResolvePayment(map.Seed, contractId, EContractKind.Hunt, args.Danger),
 			args.Narrative,
 			args.IsStoryObjective);
@@ -162,10 +160,11 @@ public static class ContractFactory
 
 	private static Contract BuildDelivery(StarMap map, string contractId, DeliveryCreateArgs args)
 	{
-		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
+		ArgumentException.ThrowIfNullOrEmpty(args.PickupPoiId);
 
 		var config = args.Generation ?? DeliveryGenerationConfig.Default;
 		var objective = new DeliveryObjective(
+			args.PickupPoiId,
 			ResolveDeliveryRoute(map, args, contractId),
 			config);
 
@@ -174,7 +173,6 @@ public static class ContractFactory
 			objective,
 			args.Danger,
 			map.ControllingFaction,
-			args.IssuerPoiId,
 			ResolvePayment(
 				map.Seed,
 				contractId,
@@ -213,7 +211,7 @@ public static class ContractFactory
 
 				var dropoff = DeliveryDropoffPicker.Pick(
 					map,
-					args.IssuerPoiId,
+					args.PickupPoiId,
 					contractId,
 					$"delivery-route-leg-{legIndex}",
 					excludedPoiIds);
@@ -299,7 +297,6 @@ public static class ContractFactory
 		ArgumentNullException.ThrowIfNull(args);
 		contract = null!;
 
-		ArgumentException.ThrowIfNullOrEmpty(args.IssuerPoiId);
 		ArgumentNullException.ThrowIfNull(args.SearchAreaPicker);
 		var wreckageId = WreckageIdFor(contractId);
 		var spawnSeeds = CreateSpawnSeeds(map.Seed, contractId, wreckageId, 1);
@@ -314,7 +311,6 @@ public static class ContractFactory
 			objective,
 			args.Danger,
 			map.ControllingFaction,
-			args.IssuerPoiId,
 			ResolvePayment(map.Seed, contractId, EContractKind.Wreckage, args.Danger),
 			args.Narrative,
 			args.IsStoryObjective);

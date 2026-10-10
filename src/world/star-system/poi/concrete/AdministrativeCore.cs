@@ -47,7 +47,7 @@ public sealed class AdministrativeCore : PointOfInterest
 			[
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.Contracts,
+					EFacilityOperatorRole.Dialog,
 					ContractOperatorSceneSlotId),
 			]),
 	];

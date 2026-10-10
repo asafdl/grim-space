@@ -88,7 +88,6 @@ public sealed class WreckageContractFactoryTests(StarMapFixture maps)
 				: EAreaPickerReferenceMode.TriangulateLandmarks);
 
 		return new WreckageCreateArgs(
-			ContractActionTestContext.AdministrativePoiId,
 			new AreaPickerArgs(
 				navLandmarkIds,
 				minimumPoiClearance,

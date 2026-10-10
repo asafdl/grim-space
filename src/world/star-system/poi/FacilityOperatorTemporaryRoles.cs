@@ -65,6 +65,24 @@ public sealed class FacilityOperatorTemporaryRoles
 		}
 	}
 
+	public void RevokeSource(
+		string facilityId,
+		string operatorName,
+		string sourceId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(facilityId);
+		ArgumentException.ThrowIfNullOrEmpty(operatorName);
+		ArgumentException.ThrowIfNullOrEmpty(sourceId);
+
+		var key = (facilityId, operatorName);
+		if (!_overlays.TryGetValue(key, out var entry))
+			return;
+
+		entry.SourceIds.Remove(sourceId);
+		if (entry.SourceIds.Count == 0)
+			_overlays.Remove(key);
+	}
+
 	public IReadOnlyList<Assignment> Assignments(EFacilityOperatorRole role) =>
 		_overlays
 			.Where(pair => pair.Value.Role == role)
@@ -199,6 +217,7 @@ public sealed class FacilityOperatorTemporaryRoles
 
 	internal IReadOnlyList<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> Snapshot() =>
 		_overlays
+			.Where(pair => pair.Value.Role != EFacilityOperatorRole.Contracts)
 			.SelectMany(pair => pair.Value.SourceIds.Select(sourceId =>
 				(pair.Key.FacilityId, pair.Key.OperatorName, pair.Value.Role, sourceId)))
 			.ToArray();
@@ -208,7 +227,11 @@ public sealed class FacilityOperatorTemporaryRoles
 	{
 		var roles = new FacilityOperatorTemporaryRoles();
 		foreach (var entry in entries)
+		{
+			if (entry.Role == EFacilityOperatorRole.Contracts)
+				continue;
 			roles.Grant(entry.FacilityId, entry.OperatorName, entry.Role, entry.SourceId);
+		}
 		return roles;
 	}
 

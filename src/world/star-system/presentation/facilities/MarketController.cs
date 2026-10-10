@@ -11,6 +11,7 @@ public partial class MarketController : Control
 	private FacilitySceneBinding _binding = null!;
 	private CanvasLayer _merchantHudLayer = null!;
 	private ShipRecruitmentHudOverlay _shipRecruitmentHud = null!;
+	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -30,6 +31,7 @@ public partial class MarketController : Control
 		_shipRecruitmentHud.RecruitmentRequested += OnRecruitmentRequested;
 		_shipRecruitmentHud.Closed += UpdateBackButton;
 		_merchantHudLayer.AddChild(_shipRecruitmentHud);
+		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
@@ -66,7 +68,10 @@ public partial class MarketController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_shipRecruitmentHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
+		if (_shipRecruitmentHud.IsOpen
+			|| _contractHud.IsOpen
+			|| _npcDialog.IsOpen
+			|| _deliveryTurnInDialog.IsOpen)
 			return;
 
 		GetViewport().SetInputAsHandled();
@@ -84,6 +89,10 @@ public partial class MarketController : Control
 					OperatorDisplayLabels.Title(facilityOperator));
 				UpdateBackButton();
 				break;
+			case EFacilityOperatorRole.Contracts:
+			case EFacilityOperatorRole.StoryContact:
+				_contractHud.Open(facilityOperator);
+				break;
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);
 				break;
@@ -96,8 +105,11 @@ public partial class MarketController : Control
 		}
 	}
 
-	private void OnWorldUpdated() =>
+	private void OnWorldUpdated()
+	{
 		_shipRecruitmentHud.Sync(_binding.Run);
+		_contractHud.SyncMap();
+	}
 
 	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
 	{
@@ -135,6 +147,7 @@ public partial class MarketController : Control
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _shipRecruitmentHud.IsOpen
+			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;
 }

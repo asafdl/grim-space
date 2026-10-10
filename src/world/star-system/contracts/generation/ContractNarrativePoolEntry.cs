@@ -8,16 +8,11 @@ public enum ContractNarrativeSubtype
 	DeliveryLeg,
 }
 
-/// <param name="FacilitySlug">
-/// When set, entry is preferred when the issuer POI has
-/// <see cref="Poi.Facility.ScopedId"/> for that slug; otherwise generic entries apply.
-/// </param>
 public sealed record ContractNarrativePoolEntry(
 	EContractKind Kind,
 	string Title,
 	string Briefing,
 	string TurnInDialog = "",
-	string? FacilitySlug = null,
 	ContractNarrativeSubtype Subtype = ContractNarrativeSubtype.Contract)
 {
 	public ContractNarrative ToNarrative() =>

@@ -19,7 +19,12 @@ internal static class PoiRestore
 				facility.DisplayName,
 				facility.PresentationAnchor,
 				facility.ScenePath,
-				facility.Operators))
+				facility.Operators
+					.Select(facilityOperator =>
+						facilityOperator.Role == EFacilityOperatorRole.Contracts
+							? facilityOperator with { Role = EFacilityOperatorRole.Dialog }
+							: facilityOperator)
+					.ToArray()))
 			.ToArray();
 
 		return dto.Kind switch

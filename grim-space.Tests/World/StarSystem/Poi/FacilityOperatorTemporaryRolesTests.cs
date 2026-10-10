@@ -190,4 +190,43 @@ public sealed class FacilityOperatorTemporaryRolesTests
 			"Operator",
 			currentTick: 19));
 	}
+
+	[Fact]
+	public void Snapshot_OmitsContractAssignmentsButKeepsDeliveryRoles()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.contracts",
+			"Contract Operator",
+			EFacilityOperatorRole.Contracts,
+			"contract-1",
+			acceptsSourcesUntilTick: 10);
+		roles.Grant(
+			"poi-a.delivery",
+			"Delivery Operator",
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"contract-2");
+
+		var snapshot = roles.Snapshot();
+
+		var entry = Assert.Single(snapshot);
+		Assert.Equal("poi-a.delivery", entry.FacilityId);
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, entry.Role);
+		Assert.Equal("contract-2", entry.SourceId);
+	}
+
+	[Fact]
+	public void FromSnapshot_DropsLegacyGeneratedContractAssignments()
+	{
+		var roles = FacilityOperatorTemporaryRoles.FromSnapshot(
+		[
+			("poi-a.contracts", "Contract Operator", EFacilityOperatorRole.Contracts, "contract-1"),
+			("poi-a.story", "Story Contact", EFacilityOperatorRole.StoryContact, "story-1"),
+		]);
+
+		Assert.Empty(roles.Assignments(EFacilityOperatorRole.Contracts));
+		Assert.Equal(
+			["story-1"],
+			Assert.Single(roles.Assignments(EFacilityOperatorRole.StoryContact)).SourceIds);
+	}
 }

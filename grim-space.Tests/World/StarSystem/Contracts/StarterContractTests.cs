@@ -26,7 +26,6 @@ public sealed class StarterContractTests(StarMapFixture maps)
 			Assert.True(map.ContractRegistry.IsPending(contract.Id));
 			Assert.IsType<HuntObjective>(contract.Objective);
 			Assert.Equal(map.ControllingFaction, contract.IssuerFaction);
-			Assert.Equal(plan.AdministrativePoiId, contract.IssuerPoiId);
 			Assert.True(contract.Terms.Payment.TryGet(ResourceId.Credits, out var credits));
 			Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, credits);
 			Assert.True(contract.IsStoryObjective);
