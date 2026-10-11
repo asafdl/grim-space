@@ -39,8 +39,8 @@ public sealed class RunStatePersistenceTests
 			out ship));
 		ship.HullPoints = 3;
 		run.ShipRegistry.Update(ship);
-		run.EnsurePlayerShipPortraits([shipId]);
-		var portraitId = run.PlayerShipPortraitIds[shipId];
+		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
+		var portraitId = pilot.PortraitId;
 		run.TutorialState!.ActiveStepIndex = 2;
 		run.TutorialState!.PendingTutorialGraduation = true;
 
@@ -65,7 +65,8 @@ public sealed class RunStatePersistenceTests
 		Assert.Equal(
 			ship.Loadout.InstalledAbilities,
 			run.ShipRegistry.Get(shipId).Loadout.InstalledAbilities);
-		Assert.Equal(portraitId, run.PlayerShipPortraitIds[shipId]);
+		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilotAfterRegen));
+		Assert.Equal(portraitId, pilotAfterRegen.PortraitId);
 		Assert.NotNull(run.Tutorials);
 		Assert.Equal(2, run.TutorialState!.ActiveStepIndex);
 		Assert.True(run.TutorialState.PendingTutorialGraduation);
@@ -95,7 +96,7 @@ public sealed class RunStatePersistenceTests
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
 		var shipId = Assert.Single(run.PlayerParty.ShipIds);
-		run.EnsurePlayerShipPortraits([shipId]);
+		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		run.TutorialState!.ActiveStepIndex = 2;
 		run.TutorialState!.PendingTutorialGraduation = true;
 		run.ActiveBattle = BattleEncounter.DevDefault(123, 12);
@@ -107,7 +108,9 @@ public sealed class RunStatePersistenceTests
 
 		Assert.Equal(run.PlayerParty.ShipIds, restored.PlayerParty.ShipIds);
 		Assert.Equal(run.ShipRegistry.Get(shipId).HullPoints, restored.ShipRegistry.Get(shipId).HullPoints);
-		Assert.Equal(run.PlayerShipPortraitIds[shipId], restored.PlayerShipPortraitIds[shipId]);
+		Assert.True(restored.PilotRegistry.TryGetForShip(shipId, out var restoredPilot));
+		Assert.Equal(pilot.Id, restoredPilot.Id);
+		Assert.Equal(pilot.PortraitId, restoredPilot.PortraitId);
 		Assert.Equal(2, restored.TutorialState!.ActiveStepIndex);
 		Assert.True(restored.Tutorials is not null);
 		Assert.Equal(run.ActiveBattle!.Id, restored.ActiveBattle!.Id);

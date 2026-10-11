@@ -162,7 +162,8 @@ public static class TutorialBeatContracts
 		var poi = map.GetPointOfInterest(poiId);
 		var facilityId = Facility.ScopedId(poiId, facilitySlug);
 		var facility = poi.GetFacility(facilityId);
-		var facilityOperator = facility.Operators.Single();
+		var facilityOperator = facility.Operators.Single(operatorEntry =>
+			operatorEntry.Role == EFacilityOperatorRole.Dialog);
 		var roles = poi.OperatorTemporaryRoles;
 		if (roles.TryGetAssignment(facilityId, facilityOperator.Name, out var assignment))
 		{

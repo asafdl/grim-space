@@ -32,10 +32,10 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, role);
 		Assert.Equal(
 			EFacilityOperatorRole.DeliveryTurnIn,
-			turnInPoi.ResolveInteractionRole(
+			turnInPoi.ResolveInteraction(
 				delivery.TurnInFacilityId,
 				delivery.TurnInOperatorName,
-				EFacilityOperatorRole.Dialog));
+				new OperatorInteraction(EFacilityOperatorRole.Dialog)).Role);
 	}
 
 	[Fact]

@@ -49,13 +49,13 @@ public abstract class PointOfInterest
 		return facility;
 	}
 
-	public EFacilityOperatorRole ResolveInteractionRole(
+	public OperatorInteraction ResolveInteraction(
 		string facilityId,
 		string operatorName,
-		EFacilityOperatorRole templateRole) =>
+		OperatorInteraction baseInteraction) =>
 		OperatorTemporaryRoles.TryGetRole(facilityId, operatorName, out var overlayRole)
-			? overlayRole
-			: templateRole;
+			? new OperatorInteraction(overlayRole)
+			: baseInteraction;
 
 	public virtual int RouteExclusionRadius => Radius + 6;
 

@@ -16,13 +16,19 @@ public static class EngagementBattleFactory
 		Fleet[] participantFleets,
 		RunShipRegistry registry,
 		int seed,
-		string id)
+		string id,
+		IReadOnlyDictionary<string, string>? shipIdToPilotId = null)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 
 		var center = GridSize / 2;
 		var fieldCenter = new Coord(center, center, center);
-		var spawns = DeploymentPlacement.ForEngagement(participantFleets, registry, seed, GridSize);
+		var spawns = DeploymentPlacement.ForEngagement(
+			participantFleets,
+			registry,
+			seed,
+			GridSize,
+			shipIdToPilotId);
 
 		return new BattleEncounter
 		{

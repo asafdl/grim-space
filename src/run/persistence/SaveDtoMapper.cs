@@ -98,6 +98,7 @@ public static class SaveDtoMapper
 				ReflectionJson.Map<BattleEncounterSpawnDto>(new
 				{
 					Ship = CaptureShip(spawn.Ship),
+					spawn.PilotId,
 					spawn.Team,
 					spawn.Position,
 					spawn.Fore,
@@ -124,6 +125,7 @@ public static class SaveDtoMapper
 			Spawns = dto.Spawns.Select(spawn => new BattleSpawn
 			{
 				Ship = RestoreShip(spawn.Ship),
+				PilotId = spawn.PilotId,
 				Team = spawn.Team,
 				Position = spawn.Position,
 				Fore = spawn.Fore,

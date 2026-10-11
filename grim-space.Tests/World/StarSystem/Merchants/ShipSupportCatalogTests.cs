@@ -53,7 +53,9 @@ public sealed class ShipSupportCatalogTests
 				EMerchantCatalog.ShipSupport,
 				ship,
 				EMerchantAvailabilityBand.T1),
-			offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+			offer => offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeMaxShields,
+				1));
 	}
 
 	[Fact]
@@ -73,14 +75,14 @@ public sealed class ShipSupportCatalogTests
 	}
 
 	[Fact]
-	public void RepairAndRecharge_AreAvailableOutsideTierSheets()
+	public void HealingCatalog_ListsRepairAndRechargeServices()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		ship.HullPoints = 1;
 		ship.ShieldPoints.Fill(0);
 
 		var offers = MerchantCatalog.ListFor(
-			EMerchantCatalog.ShipSupport,
+			EMerchantCatalog.Healing,
 			ship,
 			EMerchantAvailabilityBand.T2);
 
@@ -93,7 +95,7 @@ public sealed class ShipSupportCatalogTests
 		Assert.Equal([default(MerchantCatalog.Target)], recharge.Targets);
 		Assert.True(recharge.Cost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(
-			ship.TotalMaxShieldPoints * ShipSupportCatalog.ShieldRechargeCreditsPerPoint,
+			ship.TotalMaxShieldPoints * HealingServiceCatalog.ShieldRechargeCreditsPerPoint,
 			credits);
 
 		var faceRecharge = offers.Single(offer =>

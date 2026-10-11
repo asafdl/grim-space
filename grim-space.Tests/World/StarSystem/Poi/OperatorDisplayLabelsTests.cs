@@ -36,6 +36,6 @@ public sealed class OperatorDisplayLabelsTests
 			"Rook - Story Contract",
 			OperatorDisplayLabels.Title(
 				facilityOperator,
-				EFacilityOperatorRole.StoryContact));
+				new OperatorInteraction(EFacilityOperatorRole.StoryContact)));
 	}
 }

@@ -22,16 +22,19 @@ public sealed class MerchantWeaponsCatalogTests
 	}
 
 	[Fact]
-	public void T1_ListsOneGenericDamagePackWithEligibleWeaponTargets()
+	public void T1_ListsDamageAndRangePacksWithEligibleWeaponTargets()
 	{
 		var ship = FullFighter();
-		var offer = Assert.Single(MerchantCatalog.ListFor(
+		var offers = MerchantCatalog.ListFor(
 			EMerchantCatalog.Weapons,
 			ship,
-			EMerchantAvailabilityBand.T1));
+			EMerchantAvailabilityBand.T1);
+		Assert.Equal(2, offers.Count);
+		var offer = offers.Single(candidate =>
+			candidate.Offering.Kind == MerchantCatalog.Kind.UpgradeDamage);
 
 		Assert.Equal(
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 1),
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
 			offer.Offering);
 		Assert.Equal(3, offer.Targets.Count);
 		Assert.Contains(MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget, offer.Targets);
@@ -42,12 +45,19 @@ public sealed class MerchantWeaponsCatalogTests
 	{
 		var ship = FullFighter();
 
-		var offer = Assert.Single(MerchantCatalog.ListFor(
+		var offers = MerchantCatalog.ListFor(
 			EMerchantCatalog.Weapons,
 			ship,
-			EMerchantAvailabilityBand.T1_5));
+			EMerchantAvailabilityBand.T1_5);
 
-		Assert.Equal(MerchantCatalog.Kind.UpgradeDamage, offer.Offering.Kind);
+		Assert.Contains(offers, offer =>
+			offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeDamage,
+				2));
+		Assert.Contains(offers, offer =>
+			offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeRange,
+				1));
 	}
 
 	[Fact]
@@ -55,12 +65,14 @@ public sealed class MerchantWeaponsCatalogTests
 	{
 		var ship = FullFighter();
 		var target = MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget;
-		Assert.True(ship.TryWithDamageUpgradeTier(target.Mount!.Value, 1, out ship));
+		Assert.True(ship.TryWithDamageUpgradeTier(target.Mount!.Value, 2, out ship));
 
-		var offer = Assert.Single(MerchantCatalog.ListFor(
-			EMerchantCatalog.Weapons,
-			ship,
-			EMerchantAvailabilityBand.T1));
+		var offer = MerchantCatalog.ListFor(
+				EMerchantCatalog.Weapons,
+				ship,
+				EMerchantAvailabilityBand.T1)
+			.Single(candidate =>
+				candidate.Offering.Kind == MerchantCatalog.Kind.UpgradeDamage);
 
 		Assert.DoesNotContain(target, offer.Targets);
 		Assert.NotEmpty(offer.Targets);

@@ -28,7 +28,6 @@ public partial class PlayerFleetHud : MarginContainer
 	public void Sync(State run, StarSystemOrchestrator orchestrator)
 	{
 		_orchestrator = orchestrator;
-		run.EnsurePlayerShipPortraits(run.PlayerParty.ShipIds);
 		var runtime = orchestrator.RuntimeFor(State.PlayerFleetUnitId);
 		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
 			orchestrator.Map,
@@ -36,33 +35,36 @@ public partial class PlayerFleetHud : MarginContainer
 			State.PlayerFleetUnitId,
 			run.PlayerParty.ShipIds);
 
+		var activePilotIds = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var shipId in run.PlayerParty.ShipIds)
 		{
 			if (!run.ShipRegistry.TryGet(shipId, out var ship)
-				|| !run.PlayerShipPortraitIds.TryGetValue(shipId, out var portraitId))
+				|| !run.PilotRegistry.TryGetForShip(shipId, out var pilot))
 				continue;
 
-			if (!_pilots.TryGetValue(shipId, out var pilot))
+			activePilotIds.Add(pilot.Id);
+			if (!_pilots.TryGetValue(pilot.Id, out var card))
 			{
-				pilot = new ShipPilot();
-				pilot.Selected += OnPilotSelected;
-				_pilots[shipId] = pilot;
-				_pilotColumn.AddChild(pilot);
+				card = new ShipPilot();
+				card.Selected += OnPilotSelected;
+				_pilots[pilot.Id] = card;
+				_pilotColumn.AddChild(card);
 			}
 
-			pilot.SetState(
-				shipId,
-				portraitId,
+			card.SetState(
+				pilot.Id,
+				pilot.Name,
+				pilot.PortraitId,
 				ship,
 				string.Equals(shipId, selectedShipId, StringComparison.Ordinal));
 		}
 
-		foreach (var shipId in _pilots.Keys.Except(run.PlayerParty.ShipIds, StringComparer.Ordinal).ToArray())
+		foreach (var pilotId in _pilots.Keys.Except(activePilotIds, StringComparer.Ordinal).ToArray())
 		{
-			var removed = _pilots[shipId];
+			var removed = _pilots[pilotId];
 			removed.Selected -= OnPilotSelected;
 			removed.QueueFree();
-			_pilots.Remove(shipId);
+			_pilots.Remove(pilotId);
 		}
 	}
 

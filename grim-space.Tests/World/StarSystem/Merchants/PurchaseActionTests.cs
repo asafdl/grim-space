@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
@@ -25,7 +26,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void Commit_DamagePack_UpgradesSelectedWeaponAndDebitsQuotedCost()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
 		var target = MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget;
@@ -135,7 +136,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var records = engine.Commit(CreateAction(
 			unitId,
 			engine.World,
-			EMerchantCatalog.ShipSupport,
+			EMerchantCatalog.Healing,
 			MerchantPurchaseTestHarness.RepairHull,
 			default,
 			ship.Clone()));
@@ -155,7 +156,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var records = engine.Commit(CreateAction(
 			unitId,
 			engine.World,
-			EMerchantCatalog.ShipSupport,
+			EMerchantCatalog.Healing,
 			MerchantPurchaseTestHarness.RechargeAllShields,
 			default,
 			ship.Clone()));
@@ -231,9 +232,13 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			unitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
-			catalog == EMerchantCatalog.Weapons
-				? MapFacilityOperators.ShopOperatorName(map)
-				: MapFacilityOperators.ShieldOperatorName(map),
+			catalog switch
+			{
+				EMerchantCatalog.Weapons => MapFacilityOperators.ShopOperatorName(map),
+				EMerchantCatalog.ShipSupport => MapFacilityOperators.ShieldOperatorName(map),
+				EMerchantCatalog.Healing => FacilityOperator.HealingStationName,
+				_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
+			},
 			catalog,
 			offering,
 			target,

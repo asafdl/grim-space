@@ -9,4 +9,7 @@ public sealed record FacilityOperator(
 	EMerchantCatalog? MerchantCatalog = null)
 {
 	public const string HealingStationName = "Recharge Unit";
+
+	public OperatorInteraction Interaction =>
+		OperatorInteraction.FromLegacyTemplate(Role, MerchantCatalog);
 }

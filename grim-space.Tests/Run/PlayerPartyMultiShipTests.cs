@@ -120,8 +120,8 @@ public sealed class PlayerPartyMultiShipTests
 			RunState.PlayerFleetUnitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			"poi-trade-dockyard",
-			MapFacilityOperators.ShieldOperatorName(run.StarSystem.Map),
-			EMerchantCatalog.ShipSupport,
+			FacilityOperator.HealingStationName,
+			EMerchantCatalog.Healing,
 			offering,
 			default,
 			before);
@@ -153,8 +153,8 @@ public sealed class PlayerPartyMultiShipTests
 			RunState.PlayerFleetUnitId,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			"poi-trade-dockyard",
-			MapFacilityOperators.ShieldOperatorName(restored.StarSystem.Map),
-			EMerchantCatalog.ShipSupport,
+			FacilityOperator.HealingStationName,
+			EMerchantCatalog.Healing,
 			MerchantPurchaseTestHarness.RechargeAllShields,
 			default,
 			before);

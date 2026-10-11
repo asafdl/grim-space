@@ -25,9 +25,14 @@ public partial class ShipPilot : PanelContainer
 		Build();
 	}
 
-	public void SetState(string shipId, string portraitId, ShipInstance ship, bool selected)
+	public void SetState(
+		string pilotId,
+		string pilotName,
+		string portraitId,
+		ShipInstance ship,
+		bool selected)
 	{
-		_shipId = shipId;
+		_shipId = ship.Id;
 		if (!string.Equals(_portraitId, portraitId, StringComparison.Ordinal))
 		{
 			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
@@ -36,7 +41,8 @@ public partial class ShipPilot : PanelContainer
 		SetBar(_hullBar, ship.HullPoints, ship.Loadout.MaxHullPoints);
 		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalMaxShieldPoints);
 		_portrait.TooltipText =
-			$"{ship.Spec.Chassis} Pilot\n"
+			$"{pilotName}\n"
+			+ $"{ship.Spec.Chassis}\n"
 			+ $"HP {ship.HullPoints}/{ship.Loadout.MaxHullPoints}\n"
 			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalMaxShieldPoints}";
 		SetSelected(selected);

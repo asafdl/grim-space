@@ -20,14 +20,14 @@ public static class FacilityOperatorBinder
 					$"to be a {nameof(FacilityOperatorButtonView)} under '{operatorRoot.Name}'.");
 
 			var captured = facilityOperator;
-			EFacilityOperatorRole ResolveRole() =>
-				poi.ResolveInteractionRole(facility.Id, captured.Name, captured.Role);
+			OperatorInteraction ResolveInteraction() =>
+				poi.ResolveInteraction(facility.Id, captured.Name, captured.Interaction);
 			button.ConfigureRolePresentation(
-				ResolveRole,
-				role => OperatorDisplayLabels.Title(captured, role));
+				() => ResolveInteraction().Role,
+				_ => OperatorDisplayLabels.Title(captured, ResolveInteraction()));
 			button.Pressed += () =>
 			{
-				onActivated(captured, ResolveRole());
+				onActivated(captured, ResolveInteraction().Role);
 			};
 		}
 	}

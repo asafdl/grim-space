@@ -7,7 +7,7 @@ namespace GrimSpace.Run.Persistence;
 public sealed record RunStateSnapshotDto(
 	IReadOnlyList<string> PartyShipIds,
 	IReadOnlyList<ShipPersistenceDto> Ships,
-	IReadOnlyDictionary<string, string> Portraits,
+	IReadOnlyList<PilotPersistenceDto> Pilots,
 	TutorialStateDto? Tutorial,
 	StarMapSaveDto StarMap,
 	bool ContractGenerationEnabled,

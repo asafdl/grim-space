@@ -7,6 +7,7 @@ namespace GrimSpace.Run.Persistence;
 
 public sealed record BattleEncounterSpawnDto(
 	ShipPersistenceDto Ship,
+	string? PilotId,
 	ETeam Team,
 	Coord Position,
 	Coord Fore,

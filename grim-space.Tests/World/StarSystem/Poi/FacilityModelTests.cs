@@ -24,11 +24,13 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Management, facility.PresentationAnchor);
 		Assert.Equal(AdministrativeCore.ManagementScenePath, facility.ScenePath);
 
-		var contractOperator = Assert.Single(facility.Operators);
+		var contractOperator = facility.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Dialog);
 		Assert.Equal(MapFacilityOperators.ContractOperatorName(world), contractOperator.Name);
 		Assert.Equal(EFacilityOperatorRole.Dialog, contractOperator.Role);
 		Assert.Equal(AdministrativeCore.ContractOperatorSceneSlotId, contractOperator.SceneSlotId);
 		Assert.Contains(contractOperator.Name, OperatorNames.Pool);
+		AssertHealingStation(facility, AdministrativeCore.HealingStationSceneSlotId);
 	}
 
 	[Fact]
@@ -43,7 +45,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal("Dockyard", dockyard.DisplayName);
 		Assert.Equal(EPresentationAnchor.Dockyard, dockyard.PresentationAnchor);
 		Assert.Equal(TradeHub.DockyardScenePath, dockyard.ScenePath);
-		Assert.Equal(2, dockyard.Operators.Count);
+		Assert.Equal(3, dockyard.Operators.Count);
 
 		var weaponsMerchant = dockyard.Operators.Single(op =>
 			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.Weapons);
@@ -54,6 +56,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.ShipSupport);
 		Assert.Equal(MapFacilityOperators.ShieldOperatorName(world), supportMerchant.Name);
 		Assert.Equal(TradeHub.ShieldOperatorSceneSlotId, supportMerchant.SceneSlotId);
+		AssertHealingStation(dockyard, TradeHub.DockyardHealingStationSceneSlotId);
 
 		var market = hub.Facilities.Single(f =>
 			f.Id == Facility.ScopedId(SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.MarketFacilitySlug));
@@ -61,7 +64,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Market, market.PresentationAnchor);
 		Assert.Equal(TradeHub.MarketScenePath, market.ScenePath);
 
-		Assert.Equal(3, market.Operators.Count);
+		Assert.Equal(4, market.Operators.Count);
 		var shipMerchant = market.Operators.Single(op =>
 			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.Ships);
 		Assert.Equal(MapFacilityOperators.ShipMerchantOperatorName(world), shipMerchant.Name);
@@ -83,10 +86,12 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(
 			MapFacilityOperators.MarketOperatorName(world),
 			market.Operators.Single(op => op.SceneSlotId == TradeHub.MarketOperatorSceneSlotId).Name);
+		AssertHealingStation(market, TradeHub.MarketHealingStationSceneSlotId);
 
 		foreach (var facility in hub.Facilities)
 		{
-			foreach (var op in facility.Operators)
+			foreach (var op in facility.Operators.Where(op =>
+				op.Role != EFacilityOperatorRole.HealingStation))
 				Assert.Contains(op.Name, OperatorNames.Pool);
 		}
 	}
@@ -105,11 +110,13 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Warehouse, facility.PresentationAnchor);
 		Assert.Equal(StorageFacility.WarehouseScenePath, facility.ScenePath);
 
-		var manager = Assert.Single(facility.Operators);
+		var manager = facility.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Dialog);
 		Assert.Equal(EFacilityOperatorRole.Dialog, manager.Role);
 		Assert.Equal(MapFacilityOperators.WarehouseManagerOperatorName(world), manager.Name);
 		Assert.Equal(StorageFacility.WarehouseManagerOperatorSceneSlotId, manager.SceneSlotId);
 		Assert.Contains(manager.Name, OperatorNames.Pool);
+		AssertHealingStation(facility, StorageFacility.HealingStationSceneSlotId);
 	}
 
 	[Fact]
@@ -126,11 +133,13 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Mine, facility.PresentationAnchor);
 		Assert.Equal(OreMine.MineScenePath, facility.ScenePath);
 
-		var contractOperator = Assert.Single(facility.Operators);
+		var contractOperator = facility.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Dialog);
 		Assert.Equal(MapFacilityOperators.MineContractOperatorName(world), contractOperator.Name);
 		Assert.Equal(EFacilityOperatorRole.Dialog, contractOperator.Role);
 		Assert.Equal(OreMine.MineContractOperatorSceneSlotId, contractOperator.SceneSlotId);
 		Assert.Contains(contractOperator.Name, OperatorNames.Pool);
+		AssertHealingStation(facility, OreMine.HealingStationSceneSlotId);
 	}
 
 	[Fact]
@@ -147,11 +156,13 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Refinery, facility.PresentationAnchor);
 		Assert.Equal(Refinery.RefineryScenePath, facility.ScenePath);
 
-		var operatorNpc = Assert.Single(facility.Operators);
+		var operatorNpc = facility.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Dialog);
 		Assert.Equal(MapFacilityOperators.RefineryOperatorName(world), operatorNpc.Name);
 		Assert.Equal(EFacilityOperatorRole.Dialog, operatorNpc.Role);
 		Assert.Equal(Refinery.RefineryOperatorSceneSlotId, operatorNpc.SceneSlotId);
 		Assert.Contains(operatorNpc.Name, OperatorNames.Pool);
+		AssertHealingStation(facility, Refinery.HealingStationSceneSlotId);
 	}
 
 	[Fact]
@@ -168,11 +179,13 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(EPresentationAnchor.Travel, facility.PresentationAnchor);
 		Assert.Equal(Wormhole.TravelScenePath, facility.ScenePath);
 
-		var operatorNpc = Assert.Single(facility.Operators);
+		var operatorNpc = facility.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.Dialog);
 		Assert.Equal(MapFacilityOperators.TravelOperatorName(world), operatorNpc.Name);
 		Assert.Equal(EFacilityOperatorRole.Dialog, operatorNpc.Role);
 		Assert.Equal(Wormhole.TravelOperatorSceneSlotId, operatorNpc.SceneSlotId);
 		Assert.Contains(operatorNpc.Name, OperatorNames.Pool);
+		AssertHealingStation(facility, Wormhole.HealingStationSceneSlotId);
 	}
 
 	[Fact]
@@ -184,6 +197,15 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			         poi is not AdministrativeCore and not TradeHub and not StorageFacility and not Refinery
 			         and not OreMine and not Wormhole))
 			Assert.Empty(poi.Facilities);
+	}
+
+	private static void AssertHealingStation(Facility facility, string expectedSceneSlotId)
+	{
+		var healingStation = facility.Operators.Single(op =>
+			op.Role == EFacilityOperatorRole.HealingStation);
+		Assert.Equal(FacilityOperator.HealingStationName, healingStation.Name);
+		Assert.Equal(expectedSceneSlotId, healingStation.SceneSlotId);
+		Assert.Equal(EMerchantCatalog.Healing, healingStation.MerchantCatalog);
 	}
 
 	[Fact]
@@ -293,6 +315,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		var names = world.PointsOfInterest
 			.SelectMany(poi => poi.Facilities)
 			.SelectMany(facility => facility.Operators)
+			.Where(op => op.Role != EFacilityOperatorRole.HealingStation)
 			.Select(op => op.Name)
 			.ToList();
 

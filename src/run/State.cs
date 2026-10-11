@@ -23,14 +23,10 @@ namespace GrimSpace.Run;
 public sealed class State : IDisposable
 {
 	public const string PlayerFleetUnitId = StarSystemActorIds.PlayerFleet;
-	private static readonly string[] PlayerPortraitPool =
-		["pilot_01", "pilot_02", "pilot_03", "pilot_04", "pilot_05", "pilot_06", "pilot_07", "pilot_08"];
-
 	public RunShipRegistry ShipRegistry { get; } = new();
 	public Party PlayerParty { get; } = new();
-	public IReadOnlyDictionary<string, string> PlayerShipPortraitIds => _playerShipPortraitIds;
+	public RunPilotRegistry PilotRegistry { get; } = new();
 	private TutorialState? _tutorialState;
-	private readonly Dictionary<string, string> _playerShipPortraitIds = new(StringComparer.Ordinal);
 
 	public TutorialState? TutorialState => _tutorialState;
 
@@ -54,7 +50,7 @@ public sealed class State : IDisposable
 		return new RunStateSnapshotDto(
 			PlayerParty.CaptureSnapshot(),
 			ShipRegistry.CaptureSnapshot().Select(SaveDtoMapper.CaptureShip).ToArray(),
-			new Dictionary<string, string>(_playerShipPortraitIds, StringComparer.Ordinal),
+			PilotRegistry.CaptureSnapshot(),
 			_tutorialState is null ? null : new TutorialStateDto(
 				_tutorialState.BeatAContractId,
 				_tutorialState.BeatBContractId,
@@ -83,8 +79,8 @@ public sealed class State : IDisposable
 		var run = new State();
 		run.ShipRegistry.RestoreSnapshot(snapshot.Ships.Select(SaveDtoMapper.RestoreShip));
 		run.PlayerParty.RestoreSnapshot(snapshot.PartyShipIds);
-		foreach (var (shipId, portraitId) in snapshot.Portraits)
-			run._playerShipPortraitIds[shipId] = portraitId;
+		run.PilotRegistry.RestoreSnapshot(snapshot.Pilots);
+		run.ValidatePartyPilotAlignment();
 
 		var map = SaveDtoMapper.RestoreStarMap(snapshot.StarMap, registry, run.ShipRegistry);
 		run.BindStarSystem(StarSystemOrchestrator.FromMapForRestore(
@@ -133,15 +129,6 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			run.PlayerParty.ShipIds);
 		return run;
-	}
-
-	public void EnsurePlayerShipPortraits(IEnumerable<string> shipIds)
-	{
-		foreach (var shipId in shipIds)
-		{
-			if (!_playerShipPortraitIds.ContainsKey(shipId))
-				_playerShipPortraitIds[shipId] = PlayerPortraitPool[Random.Shared.Next(PlayerPortraitPool.Length)];
-		}
 	}
 
 	private readonly HashSet<string> _resolvedBattleIds = new(StringComparer.Ordinal);
@@ -282,6 +269,7 @@ public sealed class State : IDisposable
 		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
 		run.ShipRegistry.Register(ShipCatalog.CreateInstance(playerShipId, BattleUnitType.Fighter));
 		run.PlayerParty.Add(playerShipId);
+		run.PilotRegistry.Register(Pilot.CreateForShip(playerShipId));
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			run.PlayerParty.ShipIds,
@@ -411,6 +399,7 @@ public sealed class State : IDisposable
 		var declaration = record.Value.Declaration;
 		ShipRegistry.Register(declaration);
 		PlayerParty.Add(declaration.ShipId);
+		PilotRegistry.Register(Pilot.CreateForShip(declaration.ShipId));
 	}
 
 	private void OnMerchantShipPurchase(Record<MerchantShipPurchase> record)
@@ -475,7 +464,12 @@ public sealed class State : IDisposable
 				.ToArray();
 			EnsureRegistryForFleets(fleets);
 			var seed = Random.Shared.Next();
-			ActiveBattle = EngagementBattleFactory.Create(fleets, ShipRegistry, seed, fact.EngagementId);
+			ActiveBattle = EngagementBattleFactory.Create(
+				fleets,
+				ShipRegistry,
+				seed,
+				fact.EngagementId,
+				BuildShipIdToPilotIdMap());
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();
 		}
@@ -519,6 +513,31 @@ public sealed class State : IDisposable
 				continue;
 
 			PlayerParty.Remove(handoff.Id);
+			PilotRegistry.RemoveForShip(handoff.Id);
+		}
+	}
+
+	private IReadOnlyDictionary<string, string> BuildShipIdToPilotIdMap()
+	{
+		var map = new Dictionary<string, string>(StringComparer.Ordinal);
+		foreach (var shipId in PlayerParty.ShipIds)
+		{
+			if (!PilotRegistry.TryGetForShip(shipId, out var pilot))
+				throw new InvalidOperationException(
+					$"Party ship '{shipId}' has no assigned pilot for engagement deployment.");
+
+			map[shipId] = pilot.Id;
+		}
+
+		return map;
+	}
+
+	private void ValidatePartyPilotAlignment()
+	{
+		foreach (var shipId in PlayerParty.ShipIds)
+		{
+			if (!PilotRegistry.TryGetForShip(shipId, out _))
+				throw new InvalidDataException($"Party ship '{shipId}' has no assigned pilot.");
 		}
 	}
 

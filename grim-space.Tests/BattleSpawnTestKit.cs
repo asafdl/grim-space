@@ -34,6 +34,7 @@ internal static class BattleSpawnTestKit
 		new()
 		{
 			Ship = ship,
+			PilotId = null,
 			Team = team,
 			Position = position,
 			ExecutionAgent = executionAgent,

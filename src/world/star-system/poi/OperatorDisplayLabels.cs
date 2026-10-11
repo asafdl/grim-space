@@ -18,7 +18,7 @@ public static class OperatorDisplayLabels
 	public static string MerchantRole(EMerchantCatalog catalog) => catalog switch
 	{
 		EMerchantCatalog.Weapons => "Dockyard Shop",
-		EMerchantCatalog.ShipSupport => "Ship Upgrades",
+		EMerchantCatalog.ShipSupport => "Ship Support",
 		EMerchantCatalog.Ships => "Ship Broker",
 		EMerchantCatalog.Healing => throw new ArgumentException(
 			"Healing stations do not use merchant role labels.",
@@ -26,21 +26,28 @@ public static class OperatorDisplayLabels
 		_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
 	};
 
+	public static string MerchantRole(EMerchantSubtype subtype) => subtype switch
+	{
+		EMerchantSubtype.Weapons => "Dockyard Shop",
+		EMerchantSubtype.ShipSupport => "Ship Support",
+		EMerchantSubtype.Ships => "Ship Broker",
+		_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
+	};
+
 	public static string Title(FacilityOperator facilityOperator) =>
-		Title(facilityOperator, facilityOperator.Role);
+		Title(facilityOperator, facilityOperator.Interaction);
 
 	public static string Title(
 		FacilityOperator facilityOperator,
-		EFacilityOperatorRole resolvedRole)
+		OperatorInteraction interaction)
 	{
-		if (resolvedRole == EFacilityOperatorRole.Merchant
-			&& facilityOperator.MerchantCatalog is { } catalog)
+		if (interaction.MerchantSubtype is { } subtype)
 		{
-			var role = MerchantRole(catalog);
+			var role = MerchantRole(subtype);
 			return $"{facilityOperator.Name} - {role}";
 		}
 
-		var roleLabel = Role(resolvedRole);
+		var roleLabel = Role(interaction.Role);
 		return string.IsNullOrEmpty(roleLabel)
 			? facilityOperator.Name
 			: $"{facilityOperator.Name} - {roleLabel}";
