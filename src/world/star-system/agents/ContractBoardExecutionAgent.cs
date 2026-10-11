@@ -203,7 +203,9 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		}
 
 		var eligible = ListOperators(map)
-			.Where(candidate => candidate.Operator.Role != EFacilityOperatorRole.Merchant)
+			.Where(candidate => candidate.Operator.Role is not (
+				EFacilityOperatorRole.Merchant
+				or EFacilityOperatorRole.HealingStation))
 			.Where(candidate => !HasTemporaryRole(map, candidate.Location))
 			.Where(candidate => !IsPlacementPaused(map, candidate.Location, tick))
 			.ToArray();

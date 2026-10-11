@@ -12,10 +12,15 @@ public sealed partial class DockyardHudOverlay : Control
 	private readonly ModalShell _shell;
 	private State _run = null!;
 	private string _facilityTitle = "";
+	private EMerchantCatalog _catalog;
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<MerchantCatalog.Offering, MerchantCatalog.Target, string>? PurchaseRequested;
+	public event Action<
+		EMerchantCatalog,
+		MerchantCatalog.Offering,
+		MerchantCatalog.Target,
+		string>? PurchaseRequested;
 	public event Action? Closed;
 
 	public DockyardHudOverlay()
@@ -35,13 +40,24 @@ public sealed partial class DockyardHudOverlay : Control
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Open(State run, StarMap map, string facilityTitle)
+	public void Open(
+		State run,
+		StarMap map,
+		string facilityTitle,
+		EMerchantCatalog catalog)
 	{
+		if (catalog is not (EMerchantCatalog.Weapons or EMerchantCatalog.ShipSupport))
+			throw new ArgumentOutOfRangeException(
+				nameof(catalog),
+				catalog,
+				"Dockyard upgrade HUD only supports upgrade merchant catalogs.");
+
 		_run = run;
 		_facilityTitle = facilityTitle;
+		_catalog = catalog;
 		_statusKind = null;
 		_statusMessage = "";
-		_shell.Open("Ability upgrades", facilityTitle);
+		_shell.Open(SheetTitle(), facilityTitle);
 		ShowMain();
 	}
 
@@ -76,7 +92,7 @@ public sealed partial class DockyardHudOverlay : Control
 	private void ShowMain()
 	{
 		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
-		_shell.SetTitle("Ability upgrades");
+		_shell.SetTitle(SheetTitle());
 		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
@@ -93,11 +109,11 @@ public sealed partial class DockyardHudOverlay : Control
 			return;
 		}
 
-		var offers = MerchantCatalog.ListFor(EMerchantCatalog.Weapons, ship, tier);
+		var offers = MerchantCatalog.ListFor(_catalog, ship, tier);
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				"No ability upgrade packs are available at this shop tier."));
+				"No upgrade packs are available at this shop tier."));
 
 		foreach (var offer in offers)
 		{
@@ -105,7 +121,7 @@ public sealed partial class DockyardHudOverlay : Control
 			body.AddChild(HudWidgets.CreateCard(
 				MerchantOfferDisplay.PackTitle(captured.Offering),
 				[ResourceCostDisplay.CreateOfferDetails(
-					$"{captured.Targets.Count} eligible installed abilities.",
+					$"{captured.Targets.Count} eligible targets.",
 					captured.Cost)],
 				() => ShowTargets(captured, ship)));
 		}
@@ -116,7 +132,7 @@ public sealed partial class DockyardHudOverlay : Control
 	private void ShowTargets(MerchantCatalog.Offer offer, ShipInstance ship)
 	{
 		_shell.SetTitle(MerchantOfferDisplay.PackTitle(offer.Offering));
-		_shell.SetSubtitle("Choose an installed ability");
+		_shell.SetSubtitle("Choose a target");
 		_shell.SetHeader(HudHeaderMode.Back, ShowMain);
 		_shell.SetBackHandler(ShowMain);
 		_shell.SetFooter([]);
@@ -124,19 +140,42 @@ public sealed partial class DockyardHudOverlay : Control
 		var body = HudWidgets.CreateCardList();
 		foreach (var target in offer.Targets)
 		{
-			if (target.Mount is not { } mount)
-				continue;
-
-			var installed = ship.Loadout.InstalledAbilities.Single(ability => ability.Mount == mount);
 			var captured = target;
-			body.AddChild(HudWidgets.CreateCard(
-				$"{MerchantOfferDisplay.FaceLabel(mount.Facet)} {MerchantOfferDisplay.KindLabel(mount.Kind)}",
-				[ResourceCostDisplay.CreateOfferDetails(
-					MerchantOfferDisplay.AbilityUpgradeBody(
+			if (target.Mount is { } mount)
+			{
+				var installed = ship.Loadout.InstalledAbilities.Single(
+					ability => ability.Mount == mount);
+				body.AddChild(HudWidgets.CreateCard(
+					$"{MerchantOfferDisplay.FaceLabel(mount.Facet)} {MerchantOfferDisplay.KindLabel(mount.Kind)}",
+					[ResourceCostDisplay.CreateOfferDetails(
+						MerchantOfferDisplay.AbilityUpgradeBody(
+							offer.Offering,
+							installed),
+						offer.Cost)],
+					() => PurchaseRequested?.Invoke(
+						_catalog,
 						offer.Offering,
-						installed),
-					offer.Cost)],
-				() => PurchaseRequested?.Invoke(offer.Offering, captured, ship.Id)));
+						captured,
+						ship.Id)));
+				continue;
+			}
+
+			if (target.Face is { } face)
+			{
+				body.AddChild(HudWidgets.CreateCard(
+					MerchantOfferDisplay.FaceLabel(face),
+					[ResourceCostDisplay.CreateOfferDetails(
+						MerchantOfferDisplay.ShieldUpgradeBody(
+							ship,
+							face,
+							offer.Offering.TargetLevel),
+						offer.Cost)],
+					() => PurchaseRequested?.Invoke(
+						_catalog,
+						offer.Offering,
+						captured,
+						ship.Id)));
+			}
 		}
 
 		_shell.SetBody(body);
@@ -147,6 +186,15 @@ public sealed partial class DockyardHudOverlay : Control
 		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
 			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 	}
+
+	private string SheetTitle() =>
+		_catalog switch
+		{
+			EMerchantCatalog.Weapons => "Ability upgrades",
+			EMerchantCatalog.ShipSupport => "Ship upgrades",
+			_ => throw new InvalidOperationException(
+				$"Unsupported dockyard catalog '{_catalog}'."),
+		};
 
 	private bool TryGetActiveShip(out ShipInstance ship)
 	{

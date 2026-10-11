@@ -77,7 +77,7 @@ public partial class FacilityOperatorButtonView : TextureButton
 	public override void _Process(double delta)
 	{
 		base._Process(delta);
-		_roleIndicator.Position = new Vector2((Size.X - IndicatorPx) * 0.5f, -IndicatorPx - 8f);
+		_roleIndicator.Position = new Vector2((Size.X - IndicatorPx) * 0.5f, -IndicatorPx * 0.5f);
 		if (_roleResolver is null)
 			return;
 

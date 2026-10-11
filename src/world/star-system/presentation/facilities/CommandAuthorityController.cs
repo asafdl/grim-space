@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -8,6 +9,7 @@ public partial class CommandAuthorityController : Control
 {
 	private FacilitySceneBinding _binding = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
+	private HealingStationPresenter _healingStation = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -27,6 +29,10 @@ public partial class CommandAuthorityController : Control
 		_backButton.Pressed += ReturnToMap;
 
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
+		_healingStation = new HealingStationPresenter(
+			this,
+			_binding,
+			UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
@@ -56,7 +62,10 @@ public partial class CommandAuthorityController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen)
+		if (_healingStation.IsOpen
+			|| _contractHud.IsOpen
+			|| _npcDialog.IsOpen
+			|| _deliveryTurnInDialog.IsOpen)
 			return;
 
 		GetViewport().SetInputAsHandled();
@@ -68,6 +77,9 @@ public partial class CommandAuthorityController : Control
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
 		switch (role)
 		{
+			case EFacilityOperatorRole.HealingStation:
+				_healingStation.Open(facilityOperator);
+				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
 				_contractHud.Open(facilityOperator);
@@ -91,5 +103,8 @@ public partial class CommandAuthorityController : Control
 	}
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _contractHud.IsOpen || _npcDialog.IsOpen || _deliveryTurnInDialog.IsOpen;
+		_backButton.Disabled = _healingStation.IsOpen
+			|| _contractHud.IsOpen
+			|| _npcDialog.IsOpen
+			|| _deliveryTurnInDialog.IsOpen;
 }

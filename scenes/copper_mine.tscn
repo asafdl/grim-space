@@ -4,8 +4,9 @@
 [ext_resource type="Script" uid="uid://o82s25bik5bj" path="res://src/world/star-system/presentation/facilities/FacilitySceneView.cs" id="2_scene"]
 [ext_resource type="Script" uid="uid://dvnu160ljpypy" path="res://src/world/star-system/presentation/facilities/FacilityOperatorButtonView.cs" id="3_manager"]
 [ext_resource type="Texture2D" uid="uid://byjxivyuclwbj" path="res://assets/backgrounds/BaseCorridor-grimdark-hard-edges.png" id="4_backdrop"]
-[ext_resource type="Texture2D" path="res://assets/robots/01-grimdark-hard-edges.png" id="5_manager"]
+[ext_resource type="Texture2D" uid="uid://b17ntj266veq2" path="res://assets/robots/01-grimdark-hard-edges.png" id="5_manager"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
+[ext_resource type="Texture2D" uid="uid://smfer3s0ljj0" path="res://assets/robots/industrial-sci-fi-drone-04.png" id="7_recharge"]
 
 [node name="CopperMine" type="Control" unique_id=695372942]
 layout_mode = 3
@@ -48,6 +49,17 @@ offset_right = 925.08704
 offset_bottom = 922.349
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_manager")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("3_manager")
+
+[node name="HealingStation" type="TextureButton" parent="Scene" unique_id=813116797]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 220.0
+offset_right = 276.0
+offset_bottom = 554.0
+texture_normal = ExtResource("7_recharge")
 ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("3_manager")

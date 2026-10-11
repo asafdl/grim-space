@@ -4,7 +4,7 @@ using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Merchants;
 
-internal static class ShipSupportCatalog
+internal static class HealingServiceCatalog
 {
 	public const int HullRepairCreditCost = 20;
 	public const int HullRepairScrapCost = 20;

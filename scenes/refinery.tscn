@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://buciuggitfj5i" path="res://assets/backgrounds/Industrious-grimdark-hard-edges.png" id="4_backdrop"]
 [ext_resource type="Texture2D" uid="uid://d37gfhgpgb7su" path="res://assets/robots/03-grimdark-hard-edges.png" id="5_operator"]
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
+[ext_resource type="Texture2D" uid="uid://2ohwaakk6ehv" path="res://assets/robots/industrial-sci-fi-drone-05.png" id="7_recharge"]
 
 [node name="Refinery" type="Control" unique_id=1468599674]
 layout_mode = 3
@@ -49,6 +50,18 @@ scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_operator")
 ignore_texture_size = true
 stretch_mode = 5
+script = ExtResource("3_operator")
+
+[node name="HealingStation" type="TextureButton" parent="Scene" unique_id=69084099]
+layout_mode = 0
+offset_left = 1618.0
+offset_top = 370.0
+offset_right = 1748.0
+offset_bottom = 618.0
+texture_normal = ExtResource("7_recharge")
+ignore_texture_size = true
+stretch_mode = 5
+flip_h = true
 script = ExtResource("3_operator")
 
 [node name="Back" type="Button" parent="." unique_id=1103525098]

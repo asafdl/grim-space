@@ -11,14 +11,18 @@ public static class OperatorDisplayLabels
 		EFacilityOperatorRole.Merchant => "",
 		EFacilityOperatorRole.Dialog => "",
 		EFacilityOperatorRole.DeliveryTurnIn => "Delivery",
+		EFacilityOperatorRole.HealingStation => "Healing Station",
 		_ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
 	};
 
 	public static string MerchantRole(EMerchantCatalog catalog) => catalog switch
 	{
 		EMerchantCatalog.Weapons => "Dockyard Shop",
-		EMerchantCatalog.ShipSupport => "Ship Support",
+		EMerchantCatalog.ShipSupport => "Ship Upgrades",
 		EMerchantCatalog.Ships => "Ship Broker",
+		EMerchantCatalog.Healing => throw new ArgumentException(
+			"Healing stations do not use merchant role labels.",
+			nameof(catalog)),
 		_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
 	};
 

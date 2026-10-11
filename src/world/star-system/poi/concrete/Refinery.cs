@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -11,6 +12,7 @@ public sealed class Refinery : PointOfInterest
 	public const string RefineryFacilitySlug = "refinery";
 	public const string RefineryScenePath = "res://scenes/refinery.tscn";
 	public const string RefineryOperatorSceneSlotId = "WeirdDude";
+	public const string HealingStationSceneSlotId = "HealingStation";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -35,6 +37,11 @@ public sealed class Refinery : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,
 					RefineryOperatorSceneSlotId),
+				new FacilityOperator(
+					FacilityOperator.HealingStationName,
+					EFacilityOperatorRole.HealingStation,
+					HealingStationSceneSlotId,
+					EMerchantCatalog.Healing),
 			]),
 	];
 

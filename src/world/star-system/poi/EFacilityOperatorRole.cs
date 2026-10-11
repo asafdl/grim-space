@@ -7,4 +7,5 @@ public enum EFacilityOperatorRole
 	Merchant,
 	Dialog,
 	DeliveryTurnIn,
+	HealingStation,
 }

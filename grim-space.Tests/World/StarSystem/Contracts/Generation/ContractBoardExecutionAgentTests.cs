@@ -516,7 +516,9 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			.SelectMany(poi => poi.Facilities.SelectMany(facility =>
 				facility.Operators
 					.Where(facilityOperator =>
-						facilityOperator.Role != EFacilityOperatorRole.Merchant)
+						facilityOperator.Role is not (
+							EFacilityOperatorRole.Merchant
+								or EFacilityOperatorRole.HealingStation))
 					.Select(facilityOperator => (
 						PoiId: poi.Id,
 						FacilityId: facility.Id,

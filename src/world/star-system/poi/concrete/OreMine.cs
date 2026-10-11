@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -11,6 +12,7 @@ public sealed class OreMine : PointOfInterest
 	public const string MineFacilitySlug = "mine";
 	public const string MineScenePath = "res://scenes/copper_mine.tscn";
 	public const string MineContractOperatorSceneSlotId = "Manager";
+	public const string HealingStationSceneSlotId = "HealingStation";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -35,6 +37,11 @@ public sealed class OreMine : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,
 					MineContractOperatorSceneSlotId),
+				new FacilityOperator(
+					FacilityOperator.HealingStationName,
+					EFacilityOperatorRole.HealingStation,
+					HealingStationSceneSlotId,
+					EMerchantCatalog.Healing),
 			]),
 	];
 

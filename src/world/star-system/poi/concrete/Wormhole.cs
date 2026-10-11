@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -11,6 +12,7 @@ public sealed class Wormhole : PointOfInterest
 	public const string TravelFacilitySlug = "travel";
 	public const string TravelScenePath = "res://scenes/travel.tscn";
 	public const string TravelOperatorSceneSlotId = "WeirdDude";
+	public const string HealingStationSceneSlotId = "HealingStation";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -35,6 +37,11 @@ public sealed class Wormhole : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,
 					TravelOperatorSceneSlotId),
+				new FacilityOperator(
+					FacilityOperator.HealingStationName,
+					EFacilityOperatorRole.HealingStation,
+					HealingStationSceneSlotId,
+					EMerchantCatalog.Healing),
 			]),
 	];
 

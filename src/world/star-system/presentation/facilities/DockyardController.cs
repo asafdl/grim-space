@@ -12,7 +12,7 @@ public partial class DockyardController : Control
 	private FacilitySceneBinding _binding = null!;
 	private CanvasLayer _dockyardHudLayer = null!;
 	private DockyardHudOverlay _dockyardHud = null!;
-	private DockyardShieldRechargeHudOverlay _shieldRechargeHud = null!;
+	private HealingStationPresenter _healingStation = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
@@ -34,10 +34,10 @@ public partial class DockyardController : Control
 		_dockyardHud.Closed += UpdateBackButton;
 		_dockyardHudLayer.AddChild(_dockyardHud);
 
-		_shieldRechargeHud = new DockyardShieldRechargeHudOverlay();
-		_shieldRechargeHud.SupportPurchaseRequested += OnSupportPurchaseRequested;
-		_shieldRechargeHud.Closed += UpdateBackButton;
-		_dockyardHudLayer.AddChild(_shieldRechargeHud);
+		_healingStation = new HealingStationPresenter(
+			this,
+			_binding,
+			UpdateBackButton);
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
@@ -76,7 +76,7 @@ public partial class DockyardController : Control
 			return;
 
 		if (_dockyardHud.IsOpen
-			|| _shieldRechargeHud.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -113,7 +113,10 @@ public partial class DockyardController : Control
 				OpenDockyardHud(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.ShipSupport:
-				OpenShipSupportHud(facilityOperator);
+				OpenDockyardHud(facilityOperator);
+				break;
+			case EFacilityOperatorRole.HealingStation:
+				_healingStation.Open(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
@@ -134,7 +137,6 @@ public partial class DockyardController : Control
 	private void OnWorldUpdated()
 	{
 		_dockyardHud.Sync(_binding.Run, _binding.Map);
-		_shieldRechargeHud.Sync(_binding.Run, _binding.Map);
 		_contractHud.SyncMap();
 	}
 
@@ -143,25 +145,20 @@ public partial class DockyardController : Control
 		_dockyardHud.Open(
 			_binding.Run,
 			_binding.Map,
-			OperatorDisplayLabels.Title(facilityOperator));
-		UpdateBackButton();
-	}
-
-	private void OpenShipSupportHud(FacilityOperator facilityOperator)
-	{
-		_shieldRechargeHud.Open(
-			_binding.Run,
-			_binding.Map,
-			OperatorDisplayLabels.Title(facilityOperator));
+			OperatorDisplayLabels.Title(facilityOperator),
+			facilityOperator.MerchantCatalog
+			?? throw new InvalidOperationException(
+				$"Merchant '{facilityOperator.Name}' requires a catalog."));
 		UpdateBackButton();
 	}
 
 	private void OnWeaponsPurchaseRequested(
+		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
 		MerchantCatalog.Target target,
 		string shipId)
 	{
-		if (!TryPurchaseMerchantChange(EMerchantCatalog.Weapons, offering, target, shipId))
+		if (!TryPurchaseMerchantChange(catalog, offering, target, shipId))
 		{
 			_dockyardHud.ShowError("Unable to purchase upgrade.");
 			UpdateBackButton();
@@ -169,32 +166,10 @@ public partial class DockyardController : Control
 		}
 
 		_dockyardHud.Sync(_binding.Run, _binding.Map);
-		_dockyardHud.ShowConfirmation("Upgrade installed.", HudStatusKind.Success);
-		UpdateBackButton();
-	}
-
-	private void OnSupportPurchaseRequested(
-		MerchantCatalog.Offering offering,
-		MerchantCatalog.Target target,
-		string shipId)
-	{
-		if (!TryPurchaseMerchantChange(EMerchantCatalog.ShipSupport, offering, target, shipId))
-		{
-			_shieldRechargeHud.ShowError("Unable to complete purchase.");
-			UpdateBackButton();
-			return;
-		}
-
-		_shieldRechargeHud.Sync(_binding.Run, _binding.Map);
-		var message = offering.Kind switch
-		{
-			MerchantCatalog.Kind.RepairHull => "Hull repaired.",
-			MerchantCatalog.Kind.RechargeAllShields or MerchantCatalog.Kind.RechargeShieldFace =>
-				"Shields recharged.",
-			MerchantCatalog.Kind.UpgradeMaxShields => "Max shields upgraded.",
-			_ => "Purchase complete.",
-		};
-		_shieldRechargeHud.ShowConfirmation(message, HudStatusKind.Success);
+		var message = offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
+			? "Max shields upgraded."
+			: "Upgrade installed.";
+		_dockyardHud.ShowConfirmation(message, HudStatusKind.Success);
 		UpdateBackButton();
 	}
 
@@ -210,7 +185,7 @@ public partial class DockyardController : Control
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _dockyardHud.IsOpen
-			|| _shieldRechargeHud.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;

@@ -7,7 +7,7 @@ using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
-public sealed partial class DockyardShieldRechargeHudOverlay : Control
+public sealed partial class HealingStationHudOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private State _run = null!;
@@ -15,10 +15,10 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<MerchantCatalog.Offering, MerchantCatalog.Target, string>? SupportPurchaseRequested;
+	public event Action<MerchantCatalog.Offering, MerchantCatalog.Target, string>? HealingPurchaseRequested;
 	public event Action? Closed;
 
-	public DockyardShieldRechargeHudOverlay()
+	public HealingStationHudOverlay()
 	{
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
@@ -41,7 +41,7 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 		_facilityTitle = facilityTitle;
 		_statusKind = null;
 		_statusMessage = "";
-		_shell.Open("Ship support", facilityTitle);
+		_shell.Open("Healing station", facilityTitle);
 		ShowMain();
 	}
 
@@ -76,8 +76,8 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 	private void ShowMain()
 	{
 		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
-		_shell.SetTitle("Ship support");
-		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
+		_shell.SetTitle("Healing station");
+		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -93,28 +93,17 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 			return;
 		}
 
-		var offers = MerchantCatalog.ListFor(EMerchantCatalog.ShipSupport, ship, tier);
+		var offers = MerchantCatalog.ListFor(EMerchantCatalog.Healing, ship, tier);
 		foreach (var offer in offers)
 		{
 			var captured = offer;
-			if (IsUpgradePack(captured.Offering))
-			{
-				body.AddChild(HudWidgets.CreateCard(
-					MerchantOfferDisplay.PackTitle(captured.Offering),
-					[ResourceCostDisplay.CreateOfferDetails(
-						$"{captured.Targets.Count} eligible shield faces.",
-						captured.Cost)],
-					() => ShowTargets(captured, ship)));
-				continue;
-			}
-
 			var target = captured.Targets.Single();
 			body.AddChild(HudWidgets.CreateCard(
 				ServiceTitle(captured, target),
 				[ResourceCostDisplay.CreateOfferDetails(
 					ServiceBody(captured, target, ship),
 					captured.Cost)],
-				() => SupportPurchaseRequested?.Invoke(
+				() => HealingPurchaseRequested?.Invoke(
 					captured.Offering,
 					target,
 					ship.Id)));
@@ -127,43 +116,6 @@ public sealed partial class DockyardShieldRechargeHudOverlay : Control
 
 		_shell.SetBody(body);
 	}
-
-	private void ShowTargets(MerchantCatalog.Offer offer, ShipInstance ship)
-	{
-		_shell.SetTitle(MerchantOfferDisplay.PackTitle(offer.Offering));
-		_shell.SetSubtitle("Choose a shield face");
-		_shell.SetHeader(HudHeaderMode.Back, ShowMain);
-		_shell.SetBackHandler(ShowMain);
-		_shell.SetFooter([]);
-
-		var body = HudWidgets.CreateCardList();
-		foreach (var target in offer.Targets)
-		{
-			if (target.Face is not { } face)
-				continue;
-
-			var captured = target;
-			body.AddChild(HudWidgets.CreateCard(
-				MerchantOfferDisplay.FaceLabel(face),
-				[ResourceCostDisplay.CreateOfferDetails(
-					MerchantOfferDisplay.ShieldUpgradeBody(
-						ship,
-						face,
-						offer.Offering.TargetLevel),
-					offer.Cost)],
-				() => SupportPurchaseRequested?.Invoke(
-					offer.Offering,
-					captured,
-					ship.Id)));
-		}
-
-		_shell.SetBody(body);
-	}
-
-	private static bool IsUpgradePack(MerchantCatalog.Offering offering) =>
-		offering.Kind is MerchantCatalog.Kind.UpgradeMaxShields
-			or MerchantCatalog.Kind.UpgradeDamage
-			or MerchantCatalog.Kind.UpgradeRange;
 
 	private static string ServiceTitle(
 		MerchantCatalog.Offer offer,

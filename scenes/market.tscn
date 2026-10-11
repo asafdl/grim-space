@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/strategic_hud.tscn" id="6_strategic_hud"]
 [ext_resource type="Texture2D" uid="uid://cqdm5mwtpvak4" path="res://assets/robots/09-grimdark-hard-edges.png" id="7_npc"]
 [ext_resource type="Texture2D" uid="uid://ds0njj7jj4cjb" path="res://assets/robots/10-grimdark-hard-edges.png" id="8_npc"]
+[ext_resource type="Texture2D" uid="uid://djjg8jkvycbos" path="res://assets/robots/industrial-sci-fi-drone-01.png" id="9_recharge"]
 
 [node name="Market" type="Control" unique_id=1345592585]
 layout_mode = 3
@@ -62,7 +63,6 @@ offset_right = 1300.0
 offset_bottom = 808.0
 texture_normal = ExtResource("7_npc")
 ignore_texture_size = true
-expand_mode = 1
 stretch_mode = 5
 script = ExtResource("3_operator")
 
@@ -74,9 +74,19 @@ offset_right = 1680.0
 offset_bottom = 1034.0
 texture_normal = ExtResource("8_npc")
 ignore_texture_size = true
-expand_mode = 1
 stretch_mode = 5
 flip_h = true
+script = ExtResource("3_operator")
+
+[node name="HealingStation" type="TextureButton" parent="Scene" unique_id=272184621]
+layout_mode = 0
+offset_left = 68.0
+offset_top = 492.0
+offset_right = 162.0
+offset_bottom = 710.0
+texture_normal = ExtResource("9_recharge")
+ignore_texture_size = true
+stretch_mode = 5
 script = ExtResource("3_operator")
 
 [node name="Back" type="Button" parent="." unique_id=842182499]

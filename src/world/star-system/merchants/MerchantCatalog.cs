@@ -81,8 +81,8 @@ public static class MerchantCatalog
 			.OfType<Offer>()
 			.ToList();
 
-		if (catalog == EMerchantCatalog.ShipSupport)
-			offers.AddRange(ShipSupportCatalog.ListServicesFor(ship));
+		if (catalog == EMerchantCatalog.Healing)
+			offers.AddRange(HealingServiceCatalog.ListServicesFor(ship));
 
 		return offers;
 	}

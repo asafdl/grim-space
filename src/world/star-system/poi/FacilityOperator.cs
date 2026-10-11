@@ -6,4 +6,7 @@ public sealed record FacilityOperator(
 	string Name,
 	EFacilityOperatorRole Role,
 	string SceneSlotId,
-	EMerchantCatalog? MerchantCatalog = null);
+	EMerchantCatalog? MerchantCatalog = null)
+{
+	public const string HealingStationName = "Recharge Unit";
+}

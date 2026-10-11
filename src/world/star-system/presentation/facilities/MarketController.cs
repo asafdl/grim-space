@@ -11,6 +11,7 @@ public partial class MarketController : Control
 	private FacilitySceneBinding _binding = null!;
 	private CanvasLayer _merchantHudLayer = null!;
 	private ShipRecruitmentHudOverlay _shipRecruitmentHud = null!;
+	private HealingStationPresenter _healingStation = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
@@ -31,6 +32,10 @@ public partial class MarketController : Control
 		_shipRecruitmentHud.RecruitmentRequested += OnRecruitmentRequested;
 		_shipRecruitmentHud.Closed += UpdateBackButton;
 		_merchantHudLayer.AddChild(_shipRecruitmentHud);
+		_healingStation = new HealingStationPresenter(
+			this,
+			_binding,
+			UpdateBackButton);
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
@@ -69,6 +74,7 @@ public partial class MarketController : Control
 			return;
 
 		if (_shipRecruitmentHud.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -88,6 +94,9 @@ public partial class MarketController : Control
 					_binding.Run,
 					OperatorDisplayLabels.Title(facilityOperator));
 				UpdateBackButton();
+				break;
+			case EFacilityOperatorRole.HealingStation:
+				_healingStation.Open(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
@@ -147,6 +156,7 @@ public partial class MarketController : Control
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _shipRecruitmentHud.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;

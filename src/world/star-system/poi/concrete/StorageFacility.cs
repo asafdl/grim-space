@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -11,6 +12,7 @@ public sealed class StorageFacility : PointOfInterest
 	public const string WarehouseFacilitySlug = "warehouse";
 	public const string WarehouseScenePath = "res://scenes/warehouse.tscn";
 	public const string WarehouseManagerOperatorSceneSlotId = "WarehouseManager";
+	public const string HealingStationSceneSlotId = "HealingStation";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -35,6 +37,11 @@ public sealed class StorageFacility : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,
 					WarehouseManagerOperatorSceneSlotId),
+				new FacilityOperator(
+					FacilityOperator.HealingStationName,
+					EFacilityOperatorRole.HealingStation,
+					HealingStationSceneSlotId,
+					EMerchantCatalog.Healing),
 			]),
 	];
 

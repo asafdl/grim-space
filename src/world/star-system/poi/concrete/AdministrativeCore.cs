@@ -1,6 +1,7 @@
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Units;
 
@@ -12,6 +13,7 @@ public sealed class AdministrativeCore : PointOfInterest
 	public const string ManagementFacilitySlug = "management";
 	public const string ManagementScenePath = "res://scenes/command_authority.tscn";
 	public const string ContractOperatorSceneSlotId = "Manager";
+	public const string HealingStationSceneSlotId = "HealingStation";
 
 	private readonly SupplySystemPlan _plan;
 
@@ -49,6 +51,11 @@ public sealed class AdministrativeCore : PointOfInterest
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,
 					ContractOperatorSceneSlotId),
+				new FacilityOperator(
+					FacilityOperator.HealingStationName,
+					EFacilityOperatorRole.HealingStation,
+					HealingStationSceneSlotId,
+					EMerchantCatalog.Healing),
 			]),
 	];
 

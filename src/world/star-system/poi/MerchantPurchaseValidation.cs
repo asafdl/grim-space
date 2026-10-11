@@ -29,7 +29,8 @@ public static class MerchantPurchaseValidation
 		if (facilityOperator is null)
 			return false;
 
-		return facilityOperator.Role == EFacilityOperatorRole.Merchant
+		return facilityOperator.Role is EFacilityOperatorRole.Merchant
+				or EFacilityOperatorRole.HealingStation
 			&& facilityOperator.MerchantCatalog == catalog;
 	}
 }

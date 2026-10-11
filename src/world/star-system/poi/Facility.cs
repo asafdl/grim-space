@@ -61,6 +61,15 @@ public sealed class Facility
 				if (operatorEntry.MerchantCatalog is null)
 					throw new ArgumentException(
 						$"Merchant operator '{operatorEntry.Name}' requires a merchant catalog.");
+				if (operatorEntry.MerchantCatalog == EMerchantCatalog.Healing)
+					throw new ArgumentException(
+						$"Merchant operator '{operatorEntry.Name}' cannot use the healing catalog.");
+			}
+			else if (operatorEntry.Role == EFacilityOperatorRole.HealingStation)
+			{
+				if (operatorEntry.MerchantCatalog != EMerchantCatalog.Healing)
+					throw new ArgumentException(
+						$"Healing station '{operatorEntry.Name}' requires the healing catalog.");
 			}
 			else if (operatorEntry.MerchantCatalog is not null)
 			{
