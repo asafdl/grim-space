@@ -1,7 +1,6 @@
 using Godot;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Ui;
@@ -222,23 +221,12 @@ public sealed class BattleTutorialAdapter : IDisposable
 		_controller.AdvanceActive();
 	}
 
-	private bool QueuedMovementMatchesObjective(BattleTutorialObjective objective)
-	{
-		var movementActions = MovementPrefix(_battleAgent.Sim.Actions);
-		if (movementActions.Count == 0)
-			return false;
-
-		var checkpoints = MovePathIndex.ProjectCheckpoints(
-			_battleAgent.Sim.ForkFromAnchor(),
+	private bool QueuedMovementMatchesObjective(BattleTutorialObjective objective) =>
+		BattleTutorialObjectives.MatchesQueuedMovement(
+			_battleAgent.Sim,
 			_battle.PlayerId,
-			movementActions,
-			includeStart: false);
-		if (checkpoints.Count == 0)
-			return false;
-
-		var end = checkpoints[^1];
-		return end.Position == objective.Destination && end.Basis == objective.RequiredBasis;
-	}
+			_battleAgent.Sim.Actions,
+			objective);
 
 	private void OnAssistanceRequested()
 	{
@@ -254,23 +242,6 @@ public sealed class BattleTutorialAdapter : IDisposable
 					GD.PushWarning("Tutorial could not undo the invalid battle plan.");
 				break;
 		}
-	}
-
-	private static List<IAction> MovementPrefix(IReadOnlyList<IAction> actions)
-	{
-		var movement = new List<IAction>();
-		foreach (var action in actions)
-		{
-			if (action is MoveStepAction or HeadingTurnAction or RollAction)
-			{
-				movement.Add(action);
-				continue;
-			}
-
-			break;
-		}
-
-		return movement;
 	}
 
 	public void NotifyMoveSelectionStarted()

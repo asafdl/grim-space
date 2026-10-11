@@ -15,7 +15,7 @@ public partial class FacilityFacadeCallout : Control
 	private static readonly Color AnchorDiamondColor = new(0.92f, 0.28f, 0.24f, 0.95f);
 
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
-	private const float ContractIndicatorSize = 16f;
+	private const float ContractIndicatorSize = 32f;
 	private const float ContractIndicatorGap = 3f;
 	private const float PinWidth = 2f;
 	private const float AnchorDiamondRadius = 4.5f;

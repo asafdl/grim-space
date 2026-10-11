@@ -137,7 +137,7 @@ public static class MerchantCatalog
 			.ToArray();
 	}
 
-	private static bool IncludesSheet(
+	public static bool IncludesSheet(
 		EMerchantAvailabilityBand current,
 		EMerchantAvailabilityBand sheet) =>
 		current switch

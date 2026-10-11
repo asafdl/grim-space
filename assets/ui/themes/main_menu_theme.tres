@@ -4,6 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://plhhgqn2wsk5" path="res://assets/ui/checkbox_checked.svg" id="2_checkbox_checked"]
 [ext_resource type="Texture2D" uid="uid://ck7uimstn0888" path="res://assets/ui/checkbox_unchecked.svg" id="3_checkbox_unchecked"]
 
+[sub_resource type="StyleBoxEmpty" id="StyleBox_menu_nav_empty"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBox_btn_secondary_disabled"]
 content_margin_left = 10.0
 content_margin_top = 4.0
@@ -116,8 +118,6 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxEmpty" id="StyleBox_menu_nav_empty"]
-
 [sub_resource type="StyleBoxFlat" id="StyleBox_shell"]
 bg_color = Color(0.02, 0.04, 0.07, 0.95)
 border_width_left = 1
@@ -144,8 +144,6 @@ BodyLabel/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 CheckBox/icons/checked = ExtResource("2_checkbox_checked")
 CheckBox/icons/unchecked = ExtResource("3_checkbox_unchecked")
 Label/colors/font_color = Color(0.82, 0.88, 0.92, 1)
-MetadataLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
-MetadataLabel/font_sizes/font_size = 44
 MenuNavButton/base_type = &"Button"
 MenuNavButton/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 MenuNavButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
@@ -157,6 +155,8 @@ MenuNavButton/styles/focus = SubResource("StyleBox_menu_nav_empty")
 MenuNavButton/styles/hover = SubResource("StyleBox_menu_nav_empty")
 MenuNavButton/styles/normal = SubResource("StyleBox_menu_nav_empty")
 MenuNavButton/styles/pressed = SubResource("StyleBox_menu_nav_empty")
+MetadataLabel/colors/font_color = Color(0.55, 0.62, 0.7, 1)
+MetadataLabel/font_sizes/font_size = 44
 PrimaryButton/colors/font_color = Color(0.82, 0.88, 0.92, 1)
 PrimaryButton/colors/font_disabled_color = Color(0.55, 0.62, 0.7, 1)
 PrimaryButton/colors/font_hover_color = Color(1, 1, 1, 1)

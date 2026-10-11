@@ -1,7 +1,9 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Maneuvering;
@@ -73,6 +75,28 @@ public static class BattleTutorialObjectives
 				&& session.EndBasis == objective.RequiredBasis
 				&& session.Steps.Count > 0);
 
+	public static bool MatchesQueuedMovement(
+		BattleSimulation sim,
+		string actorId,
+		IReadOnlyList<IAction> queuedActions,
+		BattleTutorialObjective objective)
+	{
+		var movementActions = MovementPrefix(queuedActions);
+		if (movementActions.Count == 0)
+			return false;
+
+		var projection = sim.ForkFromAnchor();
+		foreach (var action in movementActions)
+		{
+			if (!projection.TryEnqueue(action))
+				return false;
+		}
+
+		var actor = projection.StateOf<State>(actorId);
+		var basis = GridBasis.From(actor.Fore, actor.Dorsal, actor.Starboard);
+		return actor.Position == objective.Destination && basis == objective.RequiredBasis;
+	}
+
 	private static BattleTutorialObjectiveResult ResolveMoveObjective(
 		BattleOrchestrator battle,
 		Coord destination,
@@ -135,4 +159,21 @@ public static class BattleTutorialObjectives
 	}
 
 	private static Coord VentralDirection(GridBasis basis) => Coord.Zero - basis.Up;
+
+	private static List<IAction> MovementPrefix(IReadOnlyList<IAction> actions)
+	{
+		var movement = new List<IAction>();
+		foreach (var action in actions)
+		{
+			if (action is MoveStepAction or HeadingTurnAction or RollAction)
+			{
+				movement.Add(action);
+				continue;
+			}
+
+			break;
+		}
+
+		return movement;
+	}
 }

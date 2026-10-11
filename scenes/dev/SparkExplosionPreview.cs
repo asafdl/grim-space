@@ -5,13 +5,10 @@ public partial class SparkExplosionPreview : Node3D
 {
 	public override void _Ready()
 	{
-		var timer = new Godot.Timer
-		{
-			WaitTime = 1.2,
-			Autostart = true,
-		};
+		var timer = new Godot.Timer { WaitTime = 1.2 };
 		AddChild(timer);
 		timer.Timeout += PlayExplosion;
+		timer.Start();
 		PlayExplosion();
 	}
 
