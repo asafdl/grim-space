@@ -384,7 +384,10 @@ public static class SaveDtoMapper
 		}, registry.Options);
 	}
 
-	public static StarMap RestoreStarMap(StarMapSaveDto dto, PersistenceRegistry registry)
+	public static StarMap RestoreStarMap(
+		StarMapSaveDto dto,
+		PersistenceRegistry registry,
+		IShipRegistryReader? shipRegistryReader = null)
 	{
 		ArgumentNullException.ThrowIfNull(dto);
 		ArgumentNullException.ThrowIfNull(registry);
@@ -453,6 +456,7 @@ public static class SaveDtoMapper
 			objectives,
 			resources,
 			terrain,
+			shipRegistryReader,
 			waitingForPlayerInput: dto.WaitingForPlayerInput,
 			activeNarrativeId: dto.ActiveNarrativeId);
 	}

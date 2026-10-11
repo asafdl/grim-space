@@ -137,6 +137,34 @@ public sealed class PlayerPartyMultiShipTests
 	}
 
 	[Fact]
+	public void FromSnapshot_RestoredMap_AcceptsShieldRechargePurchase()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var ship = run.ShipRegistry.Get(run.PlayerParty.ShipIds[0]);
+		ship.ShieldPoints.Fill(0);
+		run.ShipRegistry.Update(ship);
+
+		var registry = PersistenceRegistry.CreateDefault();
+		using var restored = RunState.FromSnapshot(run.CaptureSnapshot(registry), registry);
+		SeedResources(restored.StarSystem.Map, credits: 5_000, scrap: 0);
+
+		var before = restored.ShipRegistry.Get(restored.PlayerParty.ShipIds[0]).Clone();
+		var action = new PurchaseAction(
+			RunState.PlayerFleetUnitId,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			"poi-trade-dockyard",
+			MapFacilityOperators.ShieldOperatorName(restored.StarSystem.Map),
+			EMerchantCatalog.ShipSupport,
+			MerchantPurchaseTestHarness.RechargeAllShields,
+			default,
+			before);
+		var runtime = restored.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
+
+		Assert.NotNull(restored.StarSystem.Map.ShipRegistryReader);
+		Assert.True(PurchaseActionDef.Instance.IsLegal(action, restored.StarSystem.Map, runtime));
+	}
+
+	[Fact]
 	public void EngagementFactory_SpawnsEveryPartyShipInPlayerFleet()
 	{
 		using var run = RunState.CreateNewRun(42);

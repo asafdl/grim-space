@@ -86,7 +86,7 @@ public sealed class State : IDisposable
 		foreach (var (shipId, portraitId) in snapshot.Portraits)
 			run._playerShipPortraitIds[shipId] = portraitId;
 
-		var map = SaveDtoMapper.RestoreStarMap(snapshot.StarMap, registry);
+		var map = SaveDtoMapper.RestoreStarMap(snapshot.StarMap, registry, run.ShipRegistry);
 		run.BindStarSystem(StarSystemOrchestrator.FromMapForRestore(
 			map,
 			PlayerFleetUnitId));
