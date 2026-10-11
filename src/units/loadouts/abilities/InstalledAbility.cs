@@ -50,11 +50,11 @@ public sealed record InstalledAbility
 			nameof(effectiveSpec));
 	}
 
-	public InstalledAbility WithDamageUpgrade() =>
-		new(Kind, MountedOn, DamageUpgradeTier + 1, RangeUpgradeTier);
+	public InstalledAbility WithDamageUpgradeTier(int targetTier) =>
+		new(Kind, MountedOn, targetTier, RangeUpgradeTier);
 
-	public InstalledAbility WithRangeUpgrade() =>
-		new(Kind, MountedOn, DamageUpgradeTier, RangeUpgradeTier + 1);
+	public InstalledAbility WithRangeUpgradeTier(int targetTier) =>
+		new(Kind, MountedOn, DamageUpgradeTier, targetTier);
 
 	public static void EnsureValidOnShip(IReadOnlyList<InstalledAbility> installed)
 	{

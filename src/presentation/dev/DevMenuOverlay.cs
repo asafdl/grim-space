@@ -57,7 +57,7 @@ public sealed partial class DevMenuOverlay : Control
 
 		if (_canBumpDanger is not null)
 			items.AddChild(CreateMenuItem(
-				"Increase Danger (+1 Tier)",
+				"Advance Danger Progression",
 				_canBumpDanger(),
 				OnBumpDanger));
 

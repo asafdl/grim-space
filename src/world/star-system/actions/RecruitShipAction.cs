@@ -43,6 +43,7 @@ public sealed class RecruitShipActionDef
 		if (!ShipRecruitmentCatalog.TryFind(
 				recruit.Declaration.Chassis,
 				recruit.Declaration.GearTier,
+				MerchantCatalog.Tier(world),
 				out var offer))
 			return false;
 		if (!EnlistPlayerShipActionDef.Instance.IsLegal(
@@ -63,6 +64,7 @@ public sealed class RecruitShipActionDef
 		if (!ShipRecruitmentCatalog.TryFind(
 				recruit.Declaration.Chassis,
 				recruit.Declaration.GearTier,
+				MerchantCatalog.Tier(world),
 				out var offer))
 			return [];
 

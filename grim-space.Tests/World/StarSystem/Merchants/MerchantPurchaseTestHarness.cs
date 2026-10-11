@@ -15,25 +15,24 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 internal static class MerchantPurchaseTestHarness
 {
 	public static MerchantCatalog.Offering ScrapDroneSwarmPortDamageUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
+		new(MerchantCatalog.Kind.UpgradeDamage, 1);
 
 	public static MerchantCatalog.Offering LightningCannonForwardDamageUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeDamage, new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
+		new(MerchantCatalog.Kind.UpgradeDamage, 1);
 
 	public static MerchantCatalog.Offering ScrapDroneSwarmPortRangeUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeRange, new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
+		new(MerchantCatalog.Kind.UpgradeRange, 1);
 
-	public static MerchantCatalog.Offering LightningCannonForwardInstall =>
-		new(
-			MerchantCatalog.Kind.InstallWeapon,
-			new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
+	public static MerchantCatalog.Target ScrapDroneSwarmPortTarget =>
+		new(new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
+
+	public static MerchantCatalog.Target LightningCannonForwardTarget =>
+		new(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
 
 	public static MerchantCatalog.Offering RepairHull => new(MerchantCatalog.Kind.RepairHull);
 
-	public static MerchantCatalog.Offering RechargeAllShields => new(MerchantCatalog.Kind.RechargeAllShields);
-
-	public static MerchantCatalog.Offering RechargeShieldFace(ESpatialOrientation face) =>
-		new(MerchantCatalog.Kind.RechargeShieldFace, Face: face);
+	public static MerchantCatalog.Offering RechargeAllShields =>
+		new(MerchantCatalog.Kind.RechargeAllShields);
 
 	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, RunShipRegistry registry) CreateEngine(
 		StarMapFixture maps,

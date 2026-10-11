@@ -199,6 +199,7 @@ public sealed class PersistenceRegistry
 			dto.OperatorName,
 			dto.Catalog,
 			dto.Offering,
+			dto.Target,
 			SaveDtoMapper.RestoreShip(dto.Before));
 	}
 
@@ -210,6 +211,7 @@ public sealed class PersistenceRegistry
 			value.OperatorName,
 			value.Catalog,
 			value.Offering,
+			value.Target,
 			SaveDtoMapper.CaptureShip(value.Before)));
 
 	private static MaintainContractBoardAction ReadMaintainContractBoard(

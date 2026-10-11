@@ -89,6 +89,7 @@ public partial class DockyardController : Control
 	public bool TryPurchaseMerchantChange(
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
 		string shipId)
 	{
 		var operatorName = RequireActiveOperatorName();
@@ -99,6 +100,7 @@ public partial class DockyardController : Control
 			operatorName,
 			catalog,
 			offering,
+			target,
 			before);
 	}
 
@@ -154,9 +156,12 @@ public partial class DockyardController : Control
 		UpdateBackButton();
 	}
 
-	private void OnWeaponsPurchaseRequested(MerchantCatalog.Offering offering, string shipId)
+	private void OnWeaponsPurchaseRequested(
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		string shipId)
 	{
-		if (!TryPurchaseMerchantChange(EMerchantCatalog.Weapons, offering, shipId))
+		if (!TryPurchaseMerchantChange(EMerchantCatalog.Weapons, offering, target, shipId))
 		{
 			_dockyardHud.ShowError("Unable to purchase upgrade.");
 			UpdateBackButton();
@@ -168,9 +173,12 @@ public partial class DockyardController : Control
 		UpdateBackButton();
 	}
 
-	private void OnSupportPurchaseRequested(MerchantCatalog.Offering offering, string shipId)
+	private void OnSupportPurchaseRequested(
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		string shipId)
 	{
-		if (!TryPurchaseMerchantChange(EMerchantCatalog.ShipSupport, offering, shipId))
+		if (!TryPurchaseMerchantChange(EMerchantCatalog.ShipSupport, offering, target, shipId))
 		{
 			_shieldRechargeHud.ShowError("Unable to complete purchase.");
 			UpdateBackButton();
@@ -184,7 +192,6 @@ public partial class DockyardController : Control
 			MerchantCatalog.Kind.RechargeAllShields or MerchantCatalog.Kind.RechargeShieldFace =>
 				"Shields recharged.",
 			MerchantCatalog.Kind.UpgradeMaxShields => "Max shields upgraded.",
-			MerchantCatalog.Kind.UpgradeMaxHull => "Max hull upgraded.",
 			_ => "Purchase complete.",
 		};
 		_shieldRechargeHud.ShowConfirmation(message, HudStatusKind.Success);

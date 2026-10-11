@@ -11,6 +11,25 @@ public sealed class ShipInstanceSupportTests
 	private static ShipInstance FullCatalogFighter(string id) =>
 		ShipInstance.FromSpec(id, FighterSpec.Instance, ShipCatalog.FullFighterLoadout());
 
+	private static ShipInstance LightningCannonFighter(
+		string id,
+		int damageUpgradeTier = 0,
+		int rangeUpgradeTier = 0)
+	{
+		var loadout = ShipLoadout.Create(
+			FighterSpec.Instance,
+			FighterSpec.Instance.DefaultMaxHullPoints,
+			FighterSpec.Instance.DefaultMaxShieldPoints,
+			[
+				new InstalledAbility(
+					EAbilityKind.LightningCannon,
+					ESpatialOrientation.Forward,
+					damageUpgradeTier,
+					rangeUpgradeTier),
+			]);
+		return ShipInstance.FromSpec(id, FighterSpec.Instance, loadout);
+	}
+
 	[Fact]
 	public void TryWithUpgradedMaxShields_IncreasesMaxAndCurrentShields()
 	{
@@ -184,5 +203,120 @@ public sealed class ShipInstanceSupportTests
 			Assert.True(ship.TryWithUpgradedMaxHull(out ship));
 
 		Assert.False(ship.TryWithUpgradedMaxHull(out _));
+	}
+
+	[Fact]
+	public void TryWithDamageUpgradeTier_SkipsIntermediateTiers()
+	{
+		var baseline = LightningCannonFighter("baseline");
+		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
+
+		Assert.True(baseline.TryWithDamageUpgradeTier(mount, 2, out var fromBaseline));
+		Assert.Equal(2, fromBaseline.Loadout.InstalledAbilities.Single().DamageUpgradeTier);
+		Assert.Equal(4, ((LightningCannonSpec)fromBaseline.Loadout.InstalledAbilities.Single().Spec).Damage);
+
+		var atTierOne = LightningCannonFighter("tier-one", damageUpgradeTier: 1);
+		Assert.True(atTierOne.TryWithDamageUpgradeTier(mount, 2, out var fromTierOne));
+		Assert.Equal(2, fromTierOne.Loadout.InstalledAbilities.Single().DamageUpgradeTier);
+		Assert.Equal(4, ((LightningCannonSpec)fromTierOne.Loadout.InstalledAbilities.Single().Spec).Damage);
+	}
+
+	[Fact]
+	public void TryWithRangeUpgradeTier_SkipsIntermediateTiers()
+	{
+		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
+		var baseline = LightningCannonFighter("baseline");
+
+		Assert.True(baseline.TryWithRangeUpgradeTier(mount, 2, out var fromBaseline));
+		Assert.Equal(2, fromBaseline.Loadout.InstalledAbilities.Single().RangeUpgradeTier);
+		Assert.Equal(7, ((LightningCannonSpec)fromBaseline.Loadout.InstalledAbilities.Single().Spec).LineLength);
+
+		var atTierOne = LightningCannonFighter("tier-one", rangeUpgradeTier: 1);
+		Assert.True(atTierOne.TryWithRangeUpgradeTier(mount, 2, out var fromTierOne));
+		Assert.Equal(2, fromTierOne.Loadout.InstalledAbilities.Single().RangeUpgradeTier);
+	}
+
+	[Fact]
+	public void TryWithMaxHullUpgradeTier_AppliesFullCapacityJump()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var previousMax = ship.Loadout.MaxHullPoints;
+
+		Assert.True(ship.TryWithMaxHullUpgradeTier(2, out var after));
+
+		Assert.Equal(2, after.Loadout.HullUpgradeTier);
+		Assert.Equal(previousMax + 2, after.Loadout.MaxHullPoints);
+		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
+	}
+
+	[Fact]
+	public void TryWithMaxShieldUpgradeTier_AppliesFullCapacityJumpOnRequestedFace()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var face = ESpatialOrientation.Forward;
+		var previousMax = ship.Loadout.MaxShieldPoints[face];
+		var previousPort = ship.Loadout.MaxShieldPoints[ESpatialOrientation.Port];
+
+		Assert.True(ship.TryWithMaxShieldUpgradeTier(face, 2, out var after));
+
+		Assert.Equal(2, after.Loadout.ShieldUpgradeTiers[face]);
+		Assert.Equal(previousMax + 2, after.Loadout.MaxShieldPoints[face]);
+		Assert.Equal(after.Loadout.MaxShieldPoints[face], after.ShieldPoints[face]);
+		Assert.Equal(previousPort, after.Loadout.MaxShieldPoints[ESpatialOrientation.Port]);
+	}
+
+	[Fact]
+	public void TryWithMaxShieldPoints_SetsRawFaceMaximum()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var face = ESpatialOrientation.Retro;
+		Assert.Equal(0, ship.Loadout.MaxShieldPoints[face]);
+
+		Assert.True(ship.TryWithMaxShieldPoints(face, 2, out var after));
+
+		Assert.Equal(2, after.Loadout.MaxShieldPoints[face]);
+		Assert.Equal(2, after.Loadout.ShieldUpgradeTiers[face]);
+		Assert.False(after.TryWithMaxShieldPoints(face, 2, out _));
+	}
+
+	[Fact]
+	public void TryWithMaxShieldPoints_RejectsBaselineAlreadyAtTarget()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var face = ESpatialOrientation.Forward;
+		Assert.Equal(1, ship.Loadout.MaxShieldPoints[face]);
+
+		Assert.False(ship.TryWithMaxShieldPoints(face, 1, out _));
+	}
+
+	[Fact]
+	public void TryWithTargetTierUpgrade_RejectsEqualDowngradeAndOverMax()
+	{
+		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
+		var ship = LightningCannonFighter("fighter", damageUpgradeTier: 1, rangeUpgradeTier: 1);
+
+		Assert.False(ship.TryWithDamageUpgradeTier(mount, 1, out _));
+		Assert.False(ship.TryWithDamageUpgradeTier(mount, 0, out _));
+		Assert.False(ship.TryWithDamageUpgradeTier(mount, LightningCannonSpec.MaxDamageUpgradeTier + 1, out _));
+		Assert.False(ship.TryWithRangeUpgradeTier(mount, 1, out _));
+		Assert.False(ship.TryWithMaxHullUpgradeTier(0, out _));
+		Assert.False(ship.TryWithMaxHullUpgradeTier(ShipLoadout.MaxHullUpgradeTier + 1, out _));
+		Assert.False(ship.TryWithMaxShieldUpgradeTier(ESpatialOrientation.Forward, 0, out _));
+	}
+
+	[Fact]
+	public void IncrementalUpgradeApis_StillAdvanceExactlyOneTier()
+	{
+		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
+		var ship = LightningCannonFighter("fighter");
+
+		Assert.True(ship.TryWithDamageUpgraded(mount, out ship));
+		Assert.Equal(1, ship.Loadout.InstalledAbilities.Single().DamageUpgradeTier);
+
+		Assert.True(ship.TryWithRangeUpgraded(mount, out ship));
+		Assert.Equal(1, ship.Loadout.InstalledAbilities.Single().RangeUpgradeTier);
+
+		Assert.True(ship.TryWithUpgradedMaxHull(out ship));
+		Assert.Equal(1, ship.Loadout.HullUpgradeTier);
 	}
 }

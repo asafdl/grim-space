@@ -69,8 +69,9 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 
 	private void ShowMain()
 	{
+		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
 		_shell.SetTitle("Ships for hire");
-		_shell.SetSubtitle(_facilityTitle);
+		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -95,7 +96,13 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 			return;
 		}
 
-		foreach (var offer in ShipRecruitmentCatalog.All)
+		var offers = ShipRecruitmentCatalog.ListFor(tier);
+		if (offers.Count == 0)
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				"No ships are available at this shop tier."));
+
+		foreach (var offer in offers)
 		{
 			var captured = offer;
 			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());

@@ -10,124 +10,96 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 public sealed class ShipSupportCatalogTests
 {
 	[Fact]
-	public void ListFor_HullRepair_ChargesFixedCreditsAndScrap()
+	public void T0_ListsOneGenericShieldPackWithEligibleFaces()
 	{
-		var ship = ShipInstance.FromCatalog("test-fighter", EType.Fighter);
-		ship.HullPoints = 1;
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var offer = MerchantCatalog.ListFor(
+				EMerchantCatalog.ShipSupport,
+				ship,
+				EMerchantAvailabilityBand.T0)
+			.Single(candidate => candidate.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
 
-		var offer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.RepairHull);
-		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var credits));
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(ShipSupportCatalog.HullRepairCreditCost, credits);
-		Assert.Equal(ShipSupportCatalog.HullRepairScrapCost, scrap);
-	}
-
-	[Fact]
-	public void ListFor_ExcludesHullRepairWhenHullIsFull()
-	{
-		var ship = ShipInstance.FromCatalog("test-fighter", EType.Fighter);
+		Assert.Equal(1, offer.Offering.TargetLevel);
 		Assert.DoesNotContain(
-			ShipSupportCatalog.ListFor(ship),
-			offer => offer.Offering.Kind == MerchantCatalog.Kind.RepairHull);
+			new MerchantCatalog.Target(Face: ESpatialOrientation.Forward),
+			offer.Targets);
+		Assert.Contains(
+			new MerchantCatalog.Target(Face: ESpatialOrientation.Retro),
+			offer.Targets);
 	}
 
 	[Fact]
-	public void ListFor_ShieldRechargeAll_ChargesTenCreditsPerMissingPoint()
+	public void T0_5_IncludesT0ShieldPack()
 	{
-		var ship = ShipInstance.FromCatalog("test-fighter", EType.Fighter);
-		var max = ship.TotalMaxShieldPoints;
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+
+		Assert.Contains(
+			MerchantCatalog.ListFor(
+				EMerchantCatalog.ShipSupport,
+				ship,
+				EMerchantAvailabilityBand.T0_5),
+			offer => offer.Offering == new MerchantCatalog.Offering(
+				MerchantCatalog.Kind.UpgradeMaxShields,
+				1));
+	}
+
+	[Fact]
+	public void T1_DoesNotIncludeT0ShieldPack()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+
+		Assert.DoesNotContain(
+			MerchantCatalog.ListFor(
+				EMerchantCatalog.ShipSupport,
+				ship,
+				EMerchantAvailabilityBand.T1),
+			offer => offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+	}
+
+	[Fact]
+	public void ShieldPack_ExcludesFacesAlreadyAtTargetMaximum()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		var face = ESpatialOrientation.Retro;
+		Assert.True(ship.TryWithMaxShieldPoints(face, 1, out ship));
+
+		var offer = MerchantCatalog.ListFor(
+				EMerchantCatalog.ShipSupport,
+				ship,
+				EMerchantAvailabilityBand.T0)
+			.Single(candidate => candidate.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
+
+		Assert.DoesNotContain(new MerchantCatalog.Target(Face: face), offer.Targets);
+	}
+
+	[Fact]
+	public void RepairAndRecharge_AreAvailableOutsideTierSheets()
+	{
+		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
+		ship.HullPoints = 1;
 		ship.ShieldPoints.Fill(0);
 
-		var offer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
-		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var credits));
-		Assert.Equal(max * ShipSupportCatalog.ShieldRechargeCreditsPerPoint, credits);
-	}
+		var offers = MerchantCatalog.ListFor(
+			EMerchantCatalog.ShipSupport,
+			ship,
+			EMerchantAvailabilityBand.T2);
 
-	[Fact]
-	public void ListFor_ExcludesShieldRechargeAllWhenAlreadyFull()
-	{
-		var ship = ShipInstance.FromCatalog("test-fighter", EType.Fighter);
-		Assert.DoesNotContain(
-			ShipSupportCatalog.ListFor(ship),
-			offer => offer.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
-	}
+		var repair = offers.Single(offer => offer.Offering.Kind == MerchantCatalog.Kind.RepairHull);
+		Assert.Equal([default(MerchantCatalog.Target)], repair.Targets);
+		Assert.True(repair.Cost.TryGet(ResourceId.Credits, out _));
 
-	[Fact]
-	public void ListFor_ShieldRechargeFace_QuotesOnlyRequestedFace()
-	{
-		var ship = ShipInstance.FromCatalog("test-fighter", EType.Fighter);
-		ship.ShieldPoints[ESpatialOrientation.Forward] = 0;
-		ship.ShieldPoints[ESpatialOrientation.Port] = 0;
-
-		var offer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering == MerchantPurchaseTestHarness.RechargeShieldFace(ESpatialOrientation.Forward));
-		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var credits));
+		var recharge = offers.Single(offer =>
+			offer.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
+		Assert.Equal([default(MerchantCatalog.Target)], recharge.Targets);
+		Assert.True(recharge.Cost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(
-			ship.MissingShieldPointsOnFace(ESpatialOrientation.Forward)
-				* ShipSupportCatalog.ShieldRechargeCreditsPerPoint,
+			ship.TotalMaxShieldPoints * ShipSupportCatalog.ShieldRechargeCreditsPerPoint,
 			credits);
-	}
 
-	[Fact]
-	public void ListFor_IncludesShieldAndHullUpgradesAtTierZero()
-	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offers = ShipSupportCatalog.ListFor(ship);
-
-		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			Assert.Contains(offers, o => o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face));
-		Assert.Contains(offers, o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxHull);
-	}
-
-	[Fact]
-	public void ListFor_ShieldUpgradeTierZero_MatchesEconomyTable()
-	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
-		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(0), offer.Cost);
-	}
-
-	[Fact]
-	public void ListFor_HullUpgradeTierZero_MatchesEconomyTable()
-	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var offer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxHull);
-		Assert.Equal(MerchantUpgradePricing.HullMaxUpgrade(0), offer.Cost);
-	}
-
-	[Fact]
-	public void ListFor_PerFaceTierPricingAndCap_KeepOtherFacesAvailable()
-	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		for (var tier = 0; tier < ShipLoadout.MaxShieldUpgradeTier; tier++)
-		{
-			var offer = ShipSupportCatalog.ListFor(ship).Single(o =>
-				o.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
-			Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(tier), offer.Cost);
-			Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Dorsal, out ship));
-		}
-
-		Assert.DoesNotContain(
-			ShipSupportCatalog.ListFor(ship),
-			offer => offer.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
-		Assert.Contains(
-			ShipSupportCatalog.ListFor(ship),
-			offer => offer.Offering == new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
-	}
-
-	[Fact]
-	public void ListFor_OffersUpgradeOnZeroMaxFace()
-	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		ship.Loadout.MaxShieldPoints[ESpatialOrientation.Dorsal] = 0;
-		ship.ShieldPoints[ESpatialOrientation.Dorsal] = 0;
-
-		Assert.Contains(ShipSupportCatalog.ListFor(ship), offer =>
-			offer.Offering == new MerchantCatalog.Offering(
-				MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Dorsal));
+		var faceRecharge = offers.Single(offer =>
+			offer.Offering.Kind == MerchantCatalog.Kind.RechargeShieldFace
+				&& offer.Targets.Contains(new MerchantCatalog.Target(
+					Face: ESpatialOrientation.Forward)));
+		Assert.Single(faceRecharge.Targets);
 	}
 }

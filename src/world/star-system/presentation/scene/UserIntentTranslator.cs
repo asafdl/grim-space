@@ -59,6 +59,7 @@ public sealed class UserIntentTranslator
 		string operatorName,
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
 		ShipInstance before) =>
 		TrySubmitImmediately(new PurchaseAction(
 			FacilityActorId(),
@@ -67,6 +68,7 @@ public sealed class UserIntentTranslator
 			operatorName,
 			catalog,
 			offering,
+			target,
 			before));
 
 	public bool TryRecruitShip(

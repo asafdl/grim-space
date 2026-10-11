@@ -4,71 +4,52 @@ using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Merchants;
 
-public static class ShipSupportCatalog
+internal static class ShipSupportCatalog
 {
 	public const int HullRepairCreditCost = 20;
 	public const int HullRepairScrapCost = 20;
 	public const int ShieldRechargeCreditsPerPoint = 10;
 
-	public static IReadOnlyList<MerchantCatalog.Offer> ListFor(ShipInstance ship)
+	public static IReadOnlyList<MerchantCatalog.Offer> ListServicesFor(ShipInstance ship)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
 		var offers = new List<MerchantCatalog.Offer>();
 
-		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-		{
-			var maxShields = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
-			if (!MerchantShipChanges.TryPrepareAfter(maxShields, ship, out _))
-				continue;
-			offers.Add(new MerchantCatalog.Offer(
-				maxShields,
-				MerchantUpgradePricing.ShieldMaxUpgrade(ship.Loadout.ShieldUpgradeTiers[face])));
-		}
-
-		var maxHull = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxHull);
-		if (MerchantShipChanges.TryPrepareAfter(maxHull, ship, out _))
-		{
-			offers.Add(new MerchantCatalog.Offer(
-				maxHull,
-				MerchantUpgradePricing.HullMaxUpgrade(ship.Loadout.HullUpgradeTier)));
-		}
-
 		var repair = new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull);
-		if (MerchantShipChanges.TryPrepareAfter(repair, ship, out _))
+		if (MerchantShipChanges.TryPrepareAfter(repair, default, ship, out _))
 		{
 			offers.Add(new MerchantCatalog.Offer(
 				repair,
 				ResourceBundle.Create(
 					(ResourceId.Credits, HullRepairCreditCost),
-					(ResourceId.ScrapAlloy, HullRepairScrapCost))));
+					(ResourceId.ScrapAlloy, HullRepairScrapCost)),
+				[default]));
 		}
 
 		var rechargeAll = new MerchantCatalog.Offering(MerchantCatalog.Kind.RechargeAllShields);
-		if (MerchantShipChanges.TryPrepareAfter(rechargeAll, ship, out _))
+		if (MerchantShipChanges.TryPrepareAfter(rechargeAll, default, ship, out _))
 		{
 			offers.Add(new MerchantCatalog.Offer(
 				rechargeAll,
 				ResourceBundle.Of(
 					ResourceId.Credits,
-					ship.MissingShieldPoints * ShieldRechargeCreditsPerPoint)));
+					ship.MissingShieldPoints * ShieldRechargeCreditsPerPoint),
+				[default]));
 		}
 
-		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
-			if (ship.Loadout.MaxShieldPoints[face] <= 0)
-				continue;
-
-			var faceOffering = new MerchantCatalog.Offering(
-				MerchantCatalog.Kind.RechargeShieldFace,
-				Face: face);
-			if (!MerchantShipChanges.TryPrepareAfter(faceOffering, ship, out _))
+			var target = new MerchantCatalog.Target(Face: face);
+			var rechargeFace = new MerchantCatalog.Offering(MerchantCatalog.Kind.RechargeShieldFace);
+			if (!MerchantShipChanges.TryPrepareAfter(rechargeFace, target, ship, out _))
 				continue;
 
 			offers.Add(new MerchantCatalog.Offer(
-				faceOffering,
+				rechargeFace,
 				ResourceBundle.Of(
 					ResourceId.Credits,
-					ship.MissingShieldPointsOnFace(face) * ShieldRechargeCreditsPerPoint)));
+					ship.MissingShieldPointsOnFace(face) * ShieldRechargeCreditsPerPoint),
+				[target]));
 		}
 
 		return offers;

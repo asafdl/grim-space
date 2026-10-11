@@ -6,38 +6,26 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 public sealed class MerchantUpgradePricingTests
 {
 	[Theory]
-	[InlineData(0)]
 	[InlineData(1)]
 	[InlineData(2)]
-	public void StatUpgradeTiers_ReflectPowerOrder_OnCredits(int tier)
+	[InlineData(3)]
+	public void UpgradePrices_IncreaseWithTargetTier(int targetTier)
 	{
-		int damage = Credits(MerchantUpgradePricing.WeaponDamageUpgrade(tier));
-		int hull = Credits(MerchantUpgradePricing.HullMaxUpgrade(tier));
-		int range = Credits(MerchantUpgradePricing.WeaponRangeUpgrade(tier));
-		int shield = Credits(MerchantUpgradePricing.ShieldMaxUpgrade(tier));
+		var damage = Credits(MerchantUpgradePricing.WeaponDamageUpgrade(targetTier));
+		var range = Credits(MerchantUpgradePricing.WeaponRangeUpgrade(targetTier));
+		var shield = Credits(MerchantUpgradePricing.ShieldMaxUpgrade(targetTier));
 
-		Assert.True(damage > hull);
-		Assert.True(hull > range);
+		Assert.True(damage > range);
 		Assert.True(range > shield);
 	}
 
-	[Fact]
-	public void Tier0_InstallPricedAboveDamage()
+	[Theory]
+	[InlineData(0)]
+	[InlineData(4)]
+	public void UpgradePrices_RejectUnsupportedTargetTier(int targetTier)
 	{
-		int install = Credits(MerchantUpgradePricing.LightningCannonInstall());
-		int damage = Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0));
-		Assert.True(install > damage);
-	}
-
-	[Fact]
-	public void WeaponInstall_PricedAboveFirstDamageUpgrade()
-	{
-		Assert.True(
-			Credits(MerchantUpgradePricing.LightningCannonInstall())
-			> Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0)));
-		Assert.True(
-			Credits(MerchantUpgradePricing.ScrapDroneSwarmInstall(0))
-			> Credits(MerchantUpgradePricing.WeaponDamageUpgrade(0)));
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			MerchantUpgradePricing.WeaponDamageUpgrade(targetTier));
 	}
 
 	private static int Credits(ResourceBundle bundle)

@@ -28,6 +28,15 @@ public static class StarSystemDangerProgression
 		return minimum + (int)(random.NextDouble() * (maximum - minimum + 1));
 	}
 
+	public static int EffectiveCompletedContractCount(StarMap map)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		return map.ContractRegistry.CountCompleted() + map.DebugAdditionalCompletedContracts;
+	}
+
+	public static int EffectiveCompletedContractCount(int completedContractCount) =>
+		completedContractCount;
+
 	public static float[] WeightsFor(int completedCount)
 	{
 		var weights = new float[5];
@@ -78,7 +87,7 @@ public static class StarSystemDangerProgression
 			map.Seed,
 			tick,
 			slot,
-			map.ContractRegistry.CountCompleted() + map.DebugAdditionalCompletedContracts,
+			EffectiveCompletedContractCount(map),
 			rngScope);
 	}
 

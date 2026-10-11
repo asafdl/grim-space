@@ -301,6 +301,60 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void DefaultRegistry_RoundTripsMerchantPurchaseTarget()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
+		var action = new PurchaseAction(
+			"player",
+			"trade-hub",
+			"dockyard",
+			"merchant",
+			EMerchantCatalog.Weapons,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
+			new MerchantCatalog.Target(
+				new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
+			before);
+
+		var restored = Assert.IsType<PurchaseAction>(registry.Read(registry.Write(action)));
+
+		Assert.Equal(action.Offering, restored.Offering);
+		Assert.Equal(action.Target, restored.Target);
+		Assert.Equal(action.Before.Id, restored.Before.Id);
+		Assert.Equal(
+			action.Before.Loadout.InstalledAbilities,
+			restored.Before.Loadout.InstalledAbilities);
+		Assert.True(action.Before.Loadout.MaxShieldPoints.Matches(
+			restored.Before.Loadout.MaxShieldPoints));
+	}
+
+	[Fact]
+	public void DefaultRegistry_LegacyMerchantServiceDefaultsMissingLevelAndTarget()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
+		var action = new PurchaseAction(
+			"player",
+			"trade-hub",
+			"dockyard",
+			"merchant",
+			EMerchantCatalog.ShipSupport,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
+			default,
+			before);
+		var payload = JsonNode.Parse(registry.Write(action).GetRawText())!.AsObject();
+		var actionPayload = payload["payload"]!.AsObject();
+		actionPayload.Remove("target");
+		actionPayload["offering"]!.AsObject().Remove("targetLevel");
+
+		var restored = Assert.IsType<PurchaseAction>(
+			registry.Read(JsonSerializer.SerializeToElement(payload)));
+
+		Assert.Equal(default, restored.Target);
+		Assert.Equal(0, restored.Offering.TargetLevel);
+	}
+
+	[Fact]
 	public void DefaultRegistry_RoundTripsRemoveHazardAction()
 	{
 		var registry = PersistenceRegistry.CreateDefault();

@@ -291,7 +291,7 @@ Capability interfaces (metadata + helpers, still in units):
 
 Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault/DevDuel derive separate scenario loadouts by installing every permissible mount and applying one damage/range upgrade wherever that ability supports it; these dev upgrades never change the catalog baseline.
 
-**Upgrade identity:** run-level **`shipId`** plus **ability kind + facet**; increment the validated damage/range delta on that exact installed mount. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
+**Upgrade target identity:** run-level **`shipId`** plus either ability kind + facet or a shield face. Merchant packs set an explicit target level on that target; they do not blindly increment it. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
 
 #### Star-map merchant commerce (boundaries)
 
@@ -299,18 +299,17 @@ Trade-hub commerce is split so quoting stays in [`merchants/`](src/world/star-sy
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Weapon install / damage / range | [`WeaponsCatalog.ListFor`](src/world/star-system/merchants/WeaponsCatalog.cs) / weapons merchant NPC | Priced rows keyed by [`MerchantCatalog.Offering`](src/world/star-system/merchants/MerchantCatalog.cs); eligibility via [`MerchantShipChanges.TryPrepareAfter`](src/world/star-system/merchants/MerchantShipChanges.cs). |
-| Max shields / max hull / repair / recharge | [`ShipSupportCatalog.ListFor`](src/world/star-system/merchants/ShipSupportCatalog.cs) / support merchant NPC | Same offer model; support HUD lists all services from one catalog method. |
-| Purchase commit | [`PurchaseAction`](src/world/star-system/actions/PurchaseAction.cs) | Single action; `IsLegal` re-quotes via [`MerchantCatalog.TryFind`](src/world/star-system/merchants/MerchantCatalog.cs) and validates `Before` against [`IShipRegistryReader`](src/units/IShipRegistryReader.cs) on [`StarMap`](src/world/star-system/StarMap.cs). |
+| Tiered inventory | [`MerchantCatalog`](src/world/star-system/merchants/MerchantCatalog.cs) | One declarative sheet table maps shop bands to generic upgrade packs. Integer bands show only their sheet; half bands combine the preceding integer sheet with their half-step sheet. |
+| Damage / range packs | [`MerchantShipChanges`](src/world/star-system/merchants/MerchantShipChanges.cs) | Pack level X sets the selected weapon's upgrade level to X, so its effective stat is its ability baseline plus X. Targets already at X or above are omitted. |
+| Shield packs | [`MerchantShipChanges`](src/world/star-system/merchants/MerchantShipChanges.cs) | Pack level X sets the selected face's raw maximum shields to X. Faces already at X or above are omitted. |
+| Repair / recharge | [`ShipSupportCatalog.ListServicesFor`](src/world/star-system/merchants/ShipSupportCatalog.cs) | Untiered services are available in every shop band and omitted when the selected ship does not need them. |
+| Ship recruitment | [`ShipRecruitmentCatalog.ListFor`](src/world/star-system/merchants/ShipRecruitmentCatalog.cs) | Uses the same shop-sheet composition: Repurposed Miner is on T1 and Gunship is on T2. |
+| Purchase commit | [`PurchaseAction`](src/world/star-system/actions/PurchaseAction.cs) | The action carries a generic offering plus the selected target. `IsLegal` re-quotes both via [`MerchantCatalog.TryFind`](src/world/star-system/merchants/MerchantCatalog.cs) and validates `Before` against [`IShipRegistryReader`](src/units/IShipRegistryReader.cs) on [`StarMap`](src/world/star-system/StarMap.cs). |
 | Who sells what | `MerchantCatalog` on [`FacilityOperator`](src/world/star-system/poi/FacilityOperator.cs) (`EFacilityOperatorRole.Merchant`) | One catalog enum per operator; facility-level catalog config deferred until one NPC sells multiple catalogs. |
 
 Facility controllers only render authoritative references supplied by [`FacilitySceneBinding`](src/world/star-system/presentation/facilities/FacilitySceneBinding.cs) and emit intents through [`UserIntentTranslator`](src/world/star-system/presentation/scene/UserIntentTranslator.cs). Facility intents use the player's immediate action lane: the orchestrator commits that lane at the current tick, resolves reactions, and reports `WorldUpdated` without advancing strategic time or consuming autonomous-agent batches. Map intents remain on the temporal player lane and are consumed only by the strategic tick cycle.
 
-The ability merchant UI selects **mount orientation -> ability icon -> offers**. Selectors include catalog offers and installed abilities (even when no upgrades remain); the existing offer list is filtered to the exact ability kind and orientation. Selection is UI-local and retained after a purchase while that mount remains available. The UI uses "ability" terminology; the existing `WeaponsCatalog` and purchase action identities are unchanged.
-
-Merchant orientation tabs and compact horizontal ability selectors use dedicated variations in the informative theme. Each selector places its icon to the left of the ability name and installed status, with a keyboard-focus outline. Shared modal headings and offer cards bind to the theme's full variation names (`TitleLabel`, `CardPanelContainer`, etc.); merchant-specific styling does not change other tab bars.
-
-Ability offer cards use short stat/tier titles, current-to-upgraded values on a separate line, and right-aligned resource prices. The selected orientation and ability provide context rather than being repeated in every title. Whole-card purchase interaction is unchanged.
+Merchant UI is pack-first: select an upgrade pack, then select one of the eligible targets returned by its authoritative quote. Repair and recharge services purchase directly. Shop tier is displayed separately from the pack's target level.
 
 ---
 

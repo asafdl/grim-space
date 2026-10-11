@@ -10,4 +10,5 @@ internal sealed record PurchaseDto(
 	string OperatorName,
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Offering Offering,
+	MerchantCatalog.Target Target,
 	ShipPersistenceDto Before);

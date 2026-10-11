@@ -121,38 +121,28 @@ public sealed class ShipInstance
 		after = null!;
 		if (!Enum.IsDefined(face) || Loadout.ShieldUpgradeTiers[face] >= ShipLoadout.MaxShieldUpgradeTier)
 			return false;
-		try
-		{
-			var updatedLoadout = Loadout.WithUpgradedMaxShields(Spec, face);
-			var shields = ShieldPoints.Clone();
-			shields[face] = updatedLoadout.MaxShieldPoints[face];
-			after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
-			return true;
-		}
-		catch (InvalidOperationException)
-		{
-			return false;
-		}
+
+		var updatedLoadout = Loadout.WithUpgradedMaxShields(Spec, face);
+		var shields = ShieldPoints.Clone();
+		shields[face] = updatedLoadout.MaxShieldPoints[face];
+		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
+		return true;
 	}
 
 	public bool TryWithUpgradedMaxHull(out ShipInstance after)
 	{
 		after = null!;
-		try
-		{
-			var updatedLoadout = Loadout.WithUpgradedMaxHull(Spec);
-			after = new ShipInstance(
-				Id,
-				Spec,
-				updatedLoadout,
-				updatedLoadout.MaxHullPoints,
-				ShieldPoints.Clone());
-			return true;
-		}
-		catch (InvalidOperationException)
-		{
+		if (Loadout.HullUpgradeTier >= ShipLoadout.MaxHullUpgradeTier)
 			return false;
-		}
+
+		var updatedLoadout = Loadout.WithUpgradedMaxHull(Spec);
+		after = new ShipInstance(
+			Id,
+			Spec,
+			updatedLoadout,
+			updatedLoadout.MaxHullPoints,
+			ShieldPoints.Clone());
+		return true;
 	}
 
 	public bool TryWithInstalledAbility(InstalledAbility installed, out ShipInstance after)
@@ -178,7 +168,10 @@ public sealed class ShipInstance
 		if (installed is null || installed.DamageUpgradeTier >= installed.Spec.MaxDamageUpgrades)
 			return false;
 
-		var updatedLoadout = Loadout.WithReplacedMount(Spec, mount, installed.WithDamageUpgrade());
+		var updatedLoadout = Loadout.WithReplacedMount(
+			Spec,
+			mount,
+			installed.WithDamageUpgradeTier(installed.DamageUpgradeTier + 1));
 		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
 		return true;
 	}
@@ -190,8 +183,100 @@ public sealed class ShipInstance
 		if (installed is null || installed.RangeUpgradeTier >= installed.Spec.MaxRangeUpgrades)
 			return false;
 
-		var updatedLoadout = Loadout.WithReplacedMount(Spec, mount, installed.WithRangeUpgrade());
+		var updatedLoadout = Loadout.WithReplacedMount(
+			Spec,
+			mount,
+			installed.WithRangeUpgradeTier(installed.RangeUpgradeTier + 1));
 		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		return true;
+	}
+
+	public bool TryWithDamageUpgradeTier(AbilityMount mount, int targetTier, out ShipInstance after)
+	{
+		after = null!;
+		var installed = Loadout.InstalledAbilities.FirstOrDefault(a => a.Mount == mount);
+		if (installed is null
+			|| targetTier <= installed.DamageUpgradeTier
+			|| targetTier > installed.Spec.MaxDamageUpgrades)
+			return false;
+
+		var updatedLoadout = Loadout.WithReplacedMount(
+			Spec,
+			mount,
+			installed.WithDamageUpgradeTier(targetTier));
+		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		return true;
+	}
+
+	public bool TryWithRangeUpgradeTier(AbilityMount mount, int targetTier, out ShipInstance after)
+	{
+		after = null!;
+		var installed = Loadout.InstalledAbilities.FirstOrDefault(a => a.Mount == mount);
+		if (installed is null
+			|| targetTier <= installed.RangeUpgradeTier
+			|| targetTier > installed.Spec.MaxRangeUpgrades)
+			return false;
+
+		var updatedLoadout = Loadout.WithReplacedMount(
+			Spec,
+			mount,
+			installed.WithRangeUpgradeTier(targetTier));
+		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		return true;
+	}
+
+	public bool TryWithMaxHullUpgradeTier(int targetTier, out ShipInstance after)
+	{
+		after = null!;
+		if (targetTier <= Loadout.HullUpgradeTier || targetTier > ShipLoadout.MaxHullUpgradeTier)
+			return false;
+
+		var updatedLoadout = Loadout.WithMaxHullUpgradeTier(Spec, targetTier);
+		after = new ShipInstance(
+			Id,
+			Spec,
+			updatedLoadout,
+			updatedLoadout.MaxHullPoints,
+			ShieldPoints.Clone());
+		return true;
+	}
+
+	public bool TryWithMaxShieldUpgradeTier(ESpatialOrientation face, int targetTier, out ShipInstance after)
+	{
+		after = null!;
+		if (!Enum.IsDefined(face))
+			return false;
+
+		var currentTier = Loadout.ShieldUpgradeTiers[face];
+		if (targetTier <= currentTier || targetTier > ShipLoadout.MaxShieldUpgradeTier)
+			return false;
+
+		var updatedLoadout = Loadout.WithMaxShieldUpgradeTier(Spec, face, targetTier);
+		var shields = ShieldPoints.Clone();
+		shields[face] = updatedLoadout.MaxShieldPoints[face];
+		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
+		return true;
+	}
+
+	public bool TryWithMaxShieldPoints(
+		ESpatialOrientation face,
+		int targetMaxShieldPoints,
+		out ShipInstance after)
+	{
+		after = null!;
+		if (!Enum.IsDefined(face) || targetMaxShieldPoints <= Loadout.MaxShieldPoints[face])
+			return false;
+
+		var currentTier = Loadout.ShieldUpgradeTiers[face];
+		var baselineMaxShieldPoints = Loadout.MaxShieldPoints[face] - currentTier;
+		var targetTier = targetMaxShieldPoints - baselineMaxShieldPoints;
+		if (targetTier <= currentTier || targetTier > ShipLoadout.MaxShieldUpgradeTier)
+			return false;
+
+		var updatedLoadout = Loadout.WithMaxShieldUpgradeTier(Spec, face, targetTier);
+		var shields = ShieldPoints.Clone();
+		shields[face] = updatedLoadout.MaxShieldPoints[face];
+		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
 		return true;
 	}
 

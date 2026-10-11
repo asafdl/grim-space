@@ -7,6 +7,18 @@ namespace GrimSpace.Tests.World.StarSystem;
 public sealed class StarSystemDangerProgressionTests
 {
 	[Fact]
+	public void EffectiveCompletedContractCount_IncludesDebugOffset()
+	{
+		var map = StarMap.Create(1);
+		Assert.Equal(0, StarSystemDangerProgression.EffectiveCompletedContractCount(map));
+
+		map.BumpDebugDangerProgression();
+		Assert.Equal(
+			StarSystemDangerProgression.CompletionsPerTier,
+			StarSystemDangerProgression.EffectiveCompletedContractCount(map));
+	}
+
+	[Fact]
 	public void WeightsFor_ZeroCompletions_IsVeryLowOnly()
 	{
 		var weights = StarSystemDangerProgression.WeightsFor(0);

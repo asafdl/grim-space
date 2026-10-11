@@ -203,10 +203,35 @@ internal static class ActionLegalityDiagnostics
 		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return "ship_snapshot_stale";
 
-		if (!MerchantCatalog.TryFind(purchase.Catalog, purchase.Offering, purchase.Before, out var offer))
-			return $"offer_unavailable offering={purchase.Offering}";
+		var shopTier = MerchantCatalog.Tier(world);
+		if (!MerchantCatalog.TryFind(
+				purchase.Catalog,
+				purchase.Offering,
+				purchase.Target,
+				purchase.Before,
+				shopTier,
+				out var offer))
+		{
+			var availableAtAnotherTier = Enum.GetValues<EMerchantAvailabilityBand>()
+				.Where(tier => tier != shopTier)
+				.Any(tier => MerchantCatalog.TryFind(
+					purchase.Catalog,
+					purchase.Offering,
+					purchase.Target,
+					purchase.Before,
+					tier,
+					out _));
+			var reason = availableAtAnotherTier ? "offer_locked" : "offer_unavailable";
+			return $"{reason} catalog={purchase.Catalog} shop_tier={shopTier}"
+				+ $" kind={purchase.Offering.Kind} target_level={purchase.Offering.TargetLevel}"
+				+ $" target={FormatTarget(purchase.Target)}";
+		}
 
-		if (!MerchantShipChanges.TryPrepareAfter(purchase.Offering, purchase.Before, out _))
+		if (!MerchantShipChanges.TryPrepareAfter(
+				purchase.Offering,
+				purchase.Target,
+				purchase.Before,
+				out _))
 			return $"ship_change_invalid offering={purchase.Offering}";
 
 		if (!world.PlayerResources.CanApply(offer.Cost.Negate()))
@@ -219,5 +244,13 @@ internal static class ActionLegalityDiagnostics
 		string.Join(
 			",",
 			bundle.Select(entry => $"{entry.Key}={entry.Value}"));
+
+	private static string FormatTarget(MerchantCatalog.Target target) =>
+		target switch
+		{
+			{ Mount: { } mount } => $"{mount.Kind}/{mount.Facet}",
+			{ Face: { } face } => face.ToString(),
+			_ => "none",
+		};
 
 }

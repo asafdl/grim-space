@@ -123,6 +123,7 @@ public sealed class PlayerPartyMultiShipTests
 			MapFacilityOperators.ShieldOperatorName(run.StarSystem.Map),
 			EMerchantCatalog.ShipSupport,
 			offering,
+			default,
 			before);
 		var runtime = run.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 		Assert.True(PurchaseActionDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));

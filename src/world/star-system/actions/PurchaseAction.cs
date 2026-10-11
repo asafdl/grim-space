@@ -16,6 +16,7 @@ public sealed record PurchaseAction(
 	string OperatorName,
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Offering Offering,
+	MerchantCatalog.Target Target,
 	ShipInstance Before) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
@@ -49,9 +50,19 @@ public sealed class PurchaseActionDef
 			return false;
 		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return false;
-		if (!MerchantCatalog.TryFind(purchase.Catalog, purchase.Offering, purchase.Before, out var offer))
+		if (!MerchantCatalog.TryFind(
+				purchase.Catalog,
+				purchase.Offering,
+				purchase.Target,
+				purchase.Before,
+				MerchantCatalog.Tier(world),
+				out var offer))
 			return false;
-		if (!MerchantShipChanges.TryPrepareAfter(purchase.Offering, purchase.Before, out _))
+		if (!MerchantShipChanges.TryPrepareAfter(
+				purchase.Offering,
+				purchase.Target,
+				purchase.Before,
+				out _))
 			return false;
 
 		return world.PlayerResources.CanApply(offer.Cost.Negate());
@@ -63,8 +74,18 @@ public sealed class PurchaseActionDef
 		ActorRuntime runtime)
 	{
 		var purchase = (PurchaseAction)action;
-		if (!MerchantCatalog.TryFind(purchase.Catalog, purchase.Offering, purchase.Before, out var offer)
-			|| !MerchantShipChanges.TryPrepareAfter(purchase.Offering, purchase.Before, out var after))
+		if (!MerchantCatalog.TryFind(
+				purchase.Catalog,
+				purchase.Offering,
+				purchase.Target,
+				purchase.Before,
+				MerchantCatalog.Tier(world),
+				out var offer)
+			|| !MerchantShipChanges.TryPrepareAfter(
+				purchase.Offering,
+				purchase.Target,
+				purchase.Before,
+				out var after))
 			return [];
 
 		var fact = new MerchantShipPurchase(

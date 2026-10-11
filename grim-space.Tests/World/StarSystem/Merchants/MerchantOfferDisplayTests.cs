@@ -2,7 +2,6 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
-using GrimSpace.Units.Specs;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -11,139 +10,62 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 [StarSystemTestSuite]
 public sealed class MerchantOfferDisplayTests
 {
-	[Fact]
-	public void AbilitiesFor_GroupsOffersByExactMount()
+	[Theory]
+	[InlineData(MerchantCatalog.Kind.UpgradeDamage, 1, "Damage upgrade pack · Level 1")]
+	[InlineData(MerchantCatalog.Kind.UpgradeRange, 2, "Range upgrade pack · Level 2")]
+	[InlineData(MerchantCatalog.Kind.UpgradeMaxShields, 3, "Shield upgrade pack · Level 3")]
+	public void PackTitle_SeparatesTargetLevelFromShopTier(
+		MerchantCatalog.Kind kind,
+		int targetTier,
+		string expected)
 	{
-		var ship = ShipInstance.FromSpec(
-			"fighter",
-			FighterSpec.Instance,
-			ShipCatalog.FullFighterLoadout());
-		var port = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
-		var lightning = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Port);
-		var offers = WeaponsCatalog.ListFor(ship).Append(new MerchantCatalog.Offer(
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.InstallWeapon, lightning),
-			MerchantUpgradePricing.LightningCannonInstall())).ToArray();
-
-		var abilities = MerchantOfferDisplay.AbilitiesFor(ship, offers);
-
-		Assert.Equal(abilities.Length, abilities.Select(ability => ability.Mount).Distinct().Count());
-		var portDrones = Assert.Single(abilities, ability => ability.Mount == port);
-		Assert.True(portDrones.IsInstalled);
-		Assert.Equal(2, portDrones.Offers.Count);
-		Assert.All(portDrones.Offers, offer => Assert.Equal(port, offer.Offering.Mount));
-		var portLightning = Assert.Single(abilities, ability => ability.Mount == lightning);
-		Assert.False(portLightning.IsInstalled);
-		Assert.Equal(lightning, Assert.Single(portLightning.Offers).Offering.Mount);
+		Assert.Equal(
+			expected,
+			MerchantOfferDisplay.PackTitle(new MerchantCatalog.Offering(kind, targetTier)));
 	}
 
 	[Fact]
-	public void AbilitiesFor_KeepsInstalledAbilitiesWithoutOffers()
+	public void AbilityUpgradeBody_ShowsCurrentAndTargetLevel()
 	{
-		var ship = ShipInstance.FromCatalog("carrier", EType.Carrier);
-		var abilities = MerchantOfferDisplay.AbilitiesFor(ship, WeaponsCatalog.ListFor(ship));
+		var installed = new InstalledAbility(
+			EAbilityKind.LightningCannon,
+			ESpatialOrientation.Forward);
 
-		var miner = Assert.Single(abilities, ability => ability.Mount.Kind == EAbilityKind.MinerBay);
-		Assert.True(miner.IsInstalled);
-		Assert.Empty(miner.Offers);
+		Assert.Equal(
+			"Upgrade level 0 \u2192 2",
+			MerchantOfferDisplay.AbilityUpgradeBody(
+				new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
+				installed));
 	}
 
 	[Fact]
-	public void AbilitiesFor_InstallRefreshKeepsMountAndReplacesOffers()
+	public void ShieldUpgradeBody_ShowsResultingCapacity()
 	{
-		var spec = FighterSpec.Instance;
-		var loadout = ShipLoadout.Create(spec, spec.DefaultMaxHullPoints, spec.DefaultMaxShieldPoints, []);
-		var ship = ShipInstance.FromSpec("fighter", spec, loadout);
-		var mount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
-		var before = MerchantOfferDisplay.AbilitiesFor(ship, WeaponsCatalog.ListFor(ship));
-		var install = Assert.Single(before, ability => ability.Mount == mount);
-		Assert.False(install.IsInstalled);
-		Assert.Equal(MerchantCatalog.Kind.InstallWeapon, Assert.Single(install.Offers).Offering.Kind);
+		var ship = ShipInstance.FromCatalog("fighter", EType.Fighter);
+		var face = ESpatialOrientation.Retro;
+		var current = ship.Loadout.MaxShieldPoints[face];
 
-		Assert.True(ship.TryWithInstalledAbility(new InstalledAbility(mount.Kind, mount.Facet), out ship));
-		var after = MerchantOfferDisplay.AbilitiesFor(ship, WeaponsCatalog.ListFor(ship));
-		var installed = Assert.Single(after, ability => ability.Mount == mount);
-		Assert.True(installed.IsInstalled);
-		Assert.Equal(2, installed.Offers.Count);
-		Assert.DoesNotContain(installed.Offers, offer => offer.Offering.Kind == MerchantCatalog.Kind.InstallWeapon);
+		Assert.Equal(
+			$"Max shields {current} \u2192 2",
+			MerchantOfferDisplay.ShieldUpgradeBody(ship, face, 2));
 	}
 
 	[Fact]
-	public void AbilitiesFor_EmptyCatalogAndLoadout_HasNoChoices()
-	{
-		var spec = CarrierSpec.Instance;
-		var loadout = ShipLoadout.Create(spec, spec.DefaultMaxHullPoints, spec.DefaultMaxShieldPoints, []);
-		var ship = ShipInstance.FromSpec("carrier", spec, loadout);
-
-		Assert.Empty(MerchantOfferDisplay.AbilitiesFor(ship, []));
-	}
-
-	[Theory]
-	[InlineData(EAbilityKind.ScrapDroneSwarm)]
-	[InlineData(EAbilityKind.LightningCannon)]
-	[InlineData(EAbilityKind.MinerBay)]
-	[InlineData(EAbilityKind.VoidBombLauncher)]
-	[InlineData(EAbilityKind.GoopGun)]
-	public void AbilityMetadata_CoversEachSupportedKind(EAbilityKind kind)
-	{
-		Assert.NotEqual(kind.ToString(), MerchantOfferDisplay.KindLabel(kind));
-		Assert.StartsWith("res://assets/ui/abilities/", MerchantOfferDisplay.AbilityIconPath(kind));
-	}
-
-	[Theory]
-	[InlineData(0, 0, "Damage \u00b7 Mk 1", "Range \u00b7 Mk 1")]
-	[InlineData(1, 2, "Damage \u00b7 Mk 2", "Range \u00b7 Mk 3")]
-	public void UpgradeTitles_ContainOnlyStatAndNextTier(
-		int damageTier, int rangeTier, string damageTitle, string rangeTitle)
-	{
-		var spec = new LightningCannonSpec(1, 2, 5, 0)
-		{
-			DamageUpgradeTier = damageTier,
-			RangeUpgradeTier = rangeTier,
-		};
-
-		Assert.Equal(damageTitle, MerchantOfferDisplay.DamageUpgradeTitle(spec));
-		Assert.Equal(rangeTitle, MerchantOfferDisplay.RangeUpgradeTitle(spec));
-	}
-
-	[Theory]
-	[InlineData(2, 5, "Shot damage 2 \u2192 3", "Line length 5 \u2192 6 cells")]
-	[InlineData(4, 7, "Shot damage 4 \u2192 5", "Line length 7 \u2192 8 cells")]
-	public void LightningUpgradeBody_ShowsCurrentAndUpgradedStats(
-		int damage, int range, string damageBody, string rangeBody)
-	{
-		var spec = new LightningCannonSpec(1, damage, range, 0);
-
-		Assert.Equal(damageBody, MerchantOfferDisplay.DamageUpgradeBody(spec));
-		Assert.Equal(rangeBody, MerchantOfferDisplay.RangeUpgradeBody(spec));
-	}
-
-	[Theory]
-	[InlineData(1, 2, "Burst damage 1 \u2192 2", "Burst range 2 \u2192 3 cells")]
-	[InlineData(3, 4, "Burst damage 3 \u2192 4", "Burst range 4 \u2192 5 cells")]
-	public void DroneUpgradeBody_ShowsCurrentAndUpgradedStats(
-		int damage, int range, string damageBody, string rangeBody)
-	{
-		var spec = new ScrapDroneSwarmSpec(1, damage, range);
-
-		Assert.Equal(damageBody, MerchantOfferDisplay.DamageUpgradeBody(spec));
-		Assert.Equal(rangeBody, MerchantOfferDisplay.RangeUpgradeBody(spec));
-	}
-
-	[Theory]
-	[InlineData(0, "Capacity \u00b7 Mk 1")]
-	[InlineData(2, "Capacity \u00b7 Mk 3")]
-	public void CapacityUpgradeTitle_ContainsOnlyNextTier(int currentTier, string expected)
-	{
-		Assert.Equal(expected, MerchantOfferDisplay.CapacityUpgradeTitle(currentTier));
-	}
-
-	[Fact]
-	public void SupportOfferBodies_ShowCurrentAndResultingStats()
+	public void ServiceBodies_ShowResultingState()
 	{
 		Assert.Equal("Hull integrity 4 \u2192 8", MerchantOfferDisplay.HullRepairBody(4, 8));
-		Assert.Equal("Max hull 8 \u2192 9", MerchantOfferDisplay.HullCapacityBody(8));
 		Assert.Equal("Shield charge 1 \u2192 3", MerchantOfferDisplay.ShieldRechargeBody(1, 3));
-		Assert.Equal("Max shields 3 \u2192 4", MerchantOfferDisplay.ShieldCapacityBody(3));
 		Assert.Equal("Total shields 10 \u2192 18", MerchantOfferDisplay.RechargeAllBody(10, 18));
+	}
+
+	[Theory]
+	[InlineData(EMerchantAvailabilityBand.T0, "Shop tier T0")]
+	[InlineData(EMerchantAvailabilityBand.T0_5, "Shop tier T0.5")]
+	[InlineData(EMerchantAvailabilityBand.T1, "Shop tier T1")]
+	public void BandLabel_UsesShopTierTerminology(
+		EMerchantAvailabilityBand band,
+		string expected)
+	{
+		Assert.Equal(expected, MerchantOfferDisplay.BandLabel(band));
 	}
 }

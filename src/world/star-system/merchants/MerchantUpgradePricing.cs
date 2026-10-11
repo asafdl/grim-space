@@ -4,14 +4,6 @@ namespace GrimSpace.World.StarSystem.Merchants;
 
 public static class MerchantUpgradePricing
 {
-	// Tier index = current upgrade tier before purchase (0 → first upgrade, etc.).
-	// Tier-0 credits follow install > damage > hull > range > shield (5:4:3:2:1); higher tiers scale similarly.
-	private static readonly (int Credits, int Scrap, int Cores)[] WeaponInstall =
-	[
-		(150, 350, 0),
-		(180, 420, 0),
-	];
-
 	private static readonly (int Credits, int Scrap, int Cores)[] WeaponDamage =
 	[
 		(120, 280, 0),
@@ -33,25 +25,24 @@ public static class MerchantUpgradePricing
 		(680, 1590, 2),
 	];
 
-	private static readonly (int Credits, int Scrap, int Cores)[] HullMax =
-	[
-		(90, 210, 0),
-		(495, 1155, 1),
-		(2040, 4760, 2),
-	];
+	public static ResourceBundle WeaponDamageUpgrade(int targetUpgradeTier) =>
+		Bundle(WeaponDamage[TierIndex(targetUpgradeTier, WeaponDamage.Length)]);
 
-	public static ResourceBundle WeaponDamageUpgrade(int currentTier) => Bundle(WeaponDamage[currentTier]);
+	public static ResourceBundle WeaponRangeUpgrade(int targetUpgradeTier) =>
+		Bundle(WeaponRange[TierIndex(targetUpgradeTier, WeaponRange.Length)]);
 
-	public static ResourceBundle WeaponRangeUpgrade(int currentTier) => Bundle(WeaponRange[currentTier]);
+	public static ResourceBundle ShieldMaxUpgrade(int targetMaxShieldPoints) =>
+		Bundle(ShieldMaxPerFace[TierIndex(targetMaxShieldPoints, ShieldMaxPerFace.Length)]);
 
-	public static ResourceBundle ShieldMaxUpgrade(int currentTier) => Bundle(ShieldMaxPerFace[currentTier]);
-
-	public static ResourceBundle HullMaxUpgrade(int currentTier) => Bundle(HullMax[currentTier]);
-
-	public static ResourceBundle ScrapDroneSwarmInstall(int installedScrapDroneSwarmCount) =>
-		Bundle(WeaponInstall[installedScrapDroneSwarmCount == 0 ? 0 : 1]);
-
-	public static ResourceBundle LightningCannonInstall() => Bundle(WeaponInstall[0]);
+	private static int TierIndex(int targetUpgradeTier, int tierCount)
+	{
+		if (targetUpgradeTier <= 0 || targetUpgradeTier > tierCount)
+			throw new ArgumentOutOfRangeException(
+				nameof(targetUpgradeTier),
+				targetUpgradeTier,
+				$"Upgrade tier must be between 1 and {tierCount}.");
+		return targetUpgradeTier - 1;
+	}
 
 	private static ResourceBundle Bundle((int Credits, int Scrap, int Cores) price) =>
 		ResourceBundle.Create(

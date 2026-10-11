@@ -1,12 +1,9 @@
-using GrimSpace.Battle.Encounter;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
-using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
-using GrimSpace.Units.Specs;
-using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
@@ -15,7 +12,6 @@ using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
@@ -26,232 +22,122 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	private const string DockyardFacilityId = "poi-trade-dockyard";
 
 	[Fact]
-	public void Commit_WeaponsUpgrade_DebitsScrapAndEmitsPurchaseRecord()
+	public void Commit_DamagePack_UpgradesSelectedWeaponAndDebitsQuotedCost()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedResources(engine.World, credits: 500, scrap: 500);
-		var before = ship.Clone();
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
-		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+		var target = MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget;
+		var before = ship.Clone();
 		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
+		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+
+		Assert.True(MerchantCatalog.TryFind(
+			EMerchantCatalog.Weapons,
+			offering,
+			target,
+			before,
+			MerchantCatalog.Tier(engine.World),
+			out var quote));
 
 		var records = engine.Commit(CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
 			offering,
+			target,
 			before));
 
-		Assert.Contains(records, record => record is Record<MerchantShipPurchase>);
-		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, ship, out var offer));
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrapCost));
-		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var creditCost));
-		Assert.Equal(initialScrap - scrapCost, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
-		Assert.Equal(initialCredits - creditCost, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
+		var upgraded = purchase.After.Loadout.InstalledAbilities.Single(
+			ability => ability.Mount == target.Mount);
+		Assert.Equal(1, upgraded.DamageUpgradeTier);
+		Assert.Equal(
+			initialCredits - Amount(quote.Cost, ResourceId.Credits),
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			initialScrap - Amount(quote.Cost, ResourceId.ScrapAlloy),
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]
-	public void TryEnqueue_FailsWhenScrapInsufficient()
+	public void TryEnqueue_DamagePack_RejectsWrongBand()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		var sim = engine.CreateSimulation();
-		var before = ship.Clone();
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 
-		Assert.False(sim.TryEnqueue(CreateAction(
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
-			before)));
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
+			ship.Clone())));
 	}
 
 	[Fact]
-	public void TryEnqueue_FailsForStaleBeforeSnapshot()
+	public void TryEnqueue_DamagePack_RejectsTargetNotListedByQuote()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedResources(engine.World, credits: 500, scrap: 500);
-		var sim = engine.CreateSimulation();
-		var before = ship.Clone();
-		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
-		var stale = before.Clone();
-		for (var tier = 0; tier < ScrapDroneSwarmSpec.MaxDamageUpgradeTier; tier++)
-			Assert.True(stale.TryWithDamageUpgraded(mount, out stale));
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
+		var invalidTarget = new MerchantCatalog.Target(
+			new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Forward));
 
-		Assert.False(sim.TryEnqueue(CreateAction(
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
-			stale)));
+			invalidTarget,
+			ship.Clone())));
 	}
 
 	[Fact]
-	public void TryEnqueue_FailsWhenRegistryMutatedAfterBeforeSnapshot()
-	{
-		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedResources(engine.World, credits: 500, scrap: 500);
-		var sim = engine.CreateSimulation();
-		var before = ship.Clone();
-		Assert.True(ship.TryWithDamageUpgraded(
-			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
-			out ship));
-		registry.Update(ship);
-
-		Assert.False(sim.TryEnqueue(CreateAction(
-			unitId,
-			engine.World,
-			EMerchantCatalog.Weapons,
-			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
-			before)));
-	}
-
-	[Fact]
-	public void CreateNewRun_AppliesUpgradeToRegistryWhenPurchaseCommits()
-	{
-		using var run = State.CreateNewRun(42);
-		var shipId = run.PlayerParty.ShipIds[0];
-		var ship = run.ShipRegistry.Get(shipId);
-		var offering = MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade;
-		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
-		var before = ship.Clone();
-		var action = CreateAction(
-			State.PlayerFleetUnitId,
-			run.StarSystem.Map,
-			EMerchantCatalog.Weapons,
-			offering,
-			before);
-		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		Assert.True(PurchaseActionDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));
-
-		MerchantShipPurchase? purchase = null;
-		using var subscription = run.StarSystem.Subscribe<Record<MerchantShipPurchase>>(record =>
-			purchase = record.Value);
-
-		run.StarSystem.CommitSetup(action);
-		Assert.NotNull(purchase);
-
-		var updated = run.ShipRegistry.Get(shipId);
-		Assert.NotEqual(before.Loadout, updated.Loadout);
-		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, updated, out var nextOffer));
-		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(1), nextOffer.Cost);
-	}
-
-	[Fact]
-	public void TryEnqueue_FailsWhenWeaponsMerchantOperatorForged()
+	public void Commit_ShieldPack_UpgradesOnlySelectedFace()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedScrap(engine.World, 100);
-		var sim = engine.CreateSimulation();
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000);
+		var face = ESpatialOrientation.Dorsal;
+		var target = new MerchantCatalog.Target(Face: face);
+		var offering = new MerchantCatalog.Offering(
+			MerchantCatalog.Kind.UpgradeMaxShields,
+			1);
 		var before = ship.Clone();
-
-		Assert.False(sim.TryEnqueue(new PurchaseAction(
-			unitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			DockyardFacilityId,
-			MapFacilityOperators.ShieldOperatorName(engine.World),
-			EMerchantCatalog.Weapons,
-			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
-			before)));
-	}
-
-	[Fact]
-	public void Commit_HullRepair_DebitsResourcesAndEmitsPurchaseRecord()
-	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		ship.HullPoints = 1;
-		SeedResources(engine.World, credits: 100, scrap: 100);
-		var before = ship.Clone();
-		var offering = MerchantPurchaseTestHarness.RepairHull;
-		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
-		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
 		var records = engine.Commit(CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.ShipSupport,
 			offering,
+			target,
 			before));
 
-		Assert.Contains(records, record => record is Record<MerchantShipPurchase>);
-		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.ShipSupport, offering, before, out var offer));
-		Assert.True(offer.Cost.TryGet(ResourceId.Credits, out var creditCost));
-		Assert.True(offer.Cost.TryGet(ResourceId.ScrapAlloy, out var scrapCost));
-		Assert.Equal(initialCredits - creditCost, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
-		Assert.Equal(initialScrap - scrapCost, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
+		Assert.Equal(1, after.Loadout.ShieldUpgradeTiers[face]);
+		Assert.Equal(
+			before.Loadout.MaxShieldPoints[face] + 1,
+			after.Loadout.MaxShieldPoints[face]);
+		Assert.Equal(
+			before.Loadout.MaxShieldPoints[ESpatialOrientation.Forward],
+			after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
 	}
 
 	[Fact]
-	public void TryEnqueue_HullRepair_FailsWhenResourcesInsufficient()
+	public void Commit_Repair_RemainsAvailableAtT2()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T2);
 		ship.HullPoints = 1;
-		var sim = engine.CreateSimulation();
-		var before = ship.Clone();
+		SeedResources(engine.World, credits: 500, scrap: 500);
 
-		Assert.False(sim.TryEnqueue(CreateAction(
+		var records = engine.Commit(CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.ShipSupport,
 			MerchantPurchaseTestHarness.RepairHull,
-			before)));
-	}
-
-	[Fact]
-	public void CreateNewRun_AppliesRepairToRegistryWhenPurchaseCommits()
-	{
-		using var run = State.CreateNewRun(42);
-		var shipId = run.PlayerParty.ShipIds[0];
-		var ship = run.ShipRegistry.Get(shipId);
-		ship.HullPoints = 1;
-		run.ShipRegistry.Update(ship);
-		SeedResources(run.StarSystem.Map, credits: 100, scrap: 100);
-		var before = run.ShipRegistry.Get(shipId).Clone();
-		var action = CreateAction(
-			State.PlayerFleetUnitId,
-			run.StarSystem.Map,
-			EMerchantCatalog.ShipSupport,
-			MerchantPurchaseTestHarness.RepairHull,
-			before);
-		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		Assert.True(PurchaseActionDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));
-
-		run.StarSystem.CommitSetup(action);
-
-		var updated = run.ShipRegistry.Get(shipId);
-		Assert.Equal(before.Loadout.MaxHullPoints, updated.HullPoints);
-	}
-
-	[Fact]
-	public void TryEnqueue_ShieldRecharge_FailsWhenSupportMerchantOperatorForged()
-	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		ship.ShieldPoints.Fill(0);
-		SeedResources(engine.World, credits: 500, scrap: 0);
-		var sim = engine.CreateSimulation();
-		var before = ship.Clone();
-
-		Assert.False(sim.TryEnqueue(new PurchaseAction(
-			unitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			DockyardFacilityId,
-			MapFacilityOperators.ShopOperatorName(engine.World),
-			EMerchantCatalog.ShipSupport,
-			MerchantPurchaseTestHarness.RechargeAllShields,
-			before)));
-	}
-
-	[Fact]
-	public void Commit_HullUpgrade_FillsNewHullCapacity()
-	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		ship.HullPoints = 1;
-		SeedResources(engine.World, credits: 10_000, scrap: 10_000);
-		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxHull);
-		var records = engine.Commit(CreateAction(
-			unitId,
-			engine.World,
-			EMerchantCatalog.ShipSupport,
-			offering,
+			default,
 			ship.Clone()));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
@@ -259,101 +145,79 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Commit_ShieldFaceUpgrade_DebitsPerFacePriceAndChangesOnlyChosenFace()
+	public void Commit_RechargeAll_RemainsAvailableAtT2()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedResources(engine.World, credits: 500, scrap: 500);
-		var before = ship.Clone();
-		var face = ESpatialOrientation.Dorsal;
-		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
-		var otherFace = ESpatialOrientation.Forward;
-		var records = engine.Commit(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport, offering, before));
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T2);
+		ship.ShieldPoints.Fill(0);
+		SeedResources(engine.World, credits: 5_000, scrap: 0);
 
-		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
-		Assert.Equal(430, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
-		Assert.Equal(470, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
-		var after = purchase.After;
-		Assert.Equal(before.Loadout.MaxShieldPoints[face] + 1, after.Loadout.MaxShieldPoints[face]);
-		Assert.Equal(before.ShieldPoints[face] + 1, after.ShieldPoints[face]);
-		Assert.Equal(1, after.Loadout.ShieldUpgradeTiers[face]);
-		Assert.Equal(before.Loadout.MaxShieldPoints[otherFace], after.Loadout.MaxShieldPoints[otherFace]);
-		Assert.Equal(before.ShieldPoints[otherFace], after.ShieldPoints[otherFace]);
-		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.ShipSupport, offering, after, out var nextOffer));
-		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(1), nextOffer.Cost);
-	}
-
-	[Fact]
-	public void Commit_ShieldFaceUpgrade_FillsUpgradedFace()
-	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		var face = ESpatialOrientation.Dorsal;
-		var otherFace = ESpatialOrientation.Forward;
-		ship.ShieldPoints[face] = 0;
-		ship.ShieldPoints[otherFace] = 0;
-		SeedResources(engine.World, credits: 10_000, scrap: 10_000);
-		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
 		var records = engine.Commit(CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.ShipSupport,
-			offering,
+			MerchantPurchaseTestHarness.RechargeAllShields,
+			default,
 			ship.Clone()));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
-		Assert.Equal(after.Loadout.MaxShieldPoints[face], after.ShieldPoints[face]);
-		Assert.Equal(0, after.ShieldPoints[otherFace]);
+		Assert.Equal(after.TotalMaxShieldPoints, after.TotalCurrentShieldPoints);
 	}
 
 	[Fact]
-	public void TryEnqueue_ShieldFaceUpgrade_RejectsMissingInvalidAndStaleFaces()
+	public void TryEnqueue_RejectsStaleShipSnapshot()
 	{
 		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedResources(engine.World, credits: 500, scrap: 500);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var before = ship.Clone();
-		var face = ESpatialOrientation.Dorsal;
-		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
-		var sim = engine.CreateSimulation();
-		Assert.False(sim.TryEnqueue(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields), before)));
-		Assert.False(sim.TryEnqueue(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: (ESpatialOrientation)100), before)));
-
-		Assert.True(ship.TryWithUpgradedMaxShields(face, out var changed));
-		registry.Update(changed);
-		Assert.False(sim.TryEnqueue(CreateAction(unitId, engine.World, EMerchantCatalog.ShipSupport, offering, before)));
-	}
-
-	[Fact]
-	public void TryEnqueue_ShieldFaceUpgrade_RejectsForgedTierEvenWhenMaxMatches()
-	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		SeedResources(engine.World, credits: 500, scrap: 500);
-		var forged = ship.Clone();
-		forged.Loadout.ShieldUpgradeTiers[ESpatialOrientation.Forward] = 1;
+		Assert.True(ship.TryWithDamageUpgradeTier(
+			MerchantPurchaseTestHarness.LightningCannonForwardTarget.Mount!.Value,
+			1,
+			out ship));
+		registry.Update(ship);
 
 		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
 			unitId,
 			engine.World,
-			EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward),
-			forged)));
+			EMerchantCatalog.Weapons,
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
+			before)));
 	}
 
 	[Fact]
-	public void TryEnqueue_ShieldFaceUpgrade_RejectsInsufficientScrapAndMaxedFace()
+	public void TryEnqueue_RejectsOperatorServingDifferentCatalog()
 	{
-		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		var face = ESpatialOrientation.Forward;
-		var offering = new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: face);
-		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
-			unitId, engine.World, EMerchantCatalog.ShipSupport, offering, ship.Clone())));
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
+		var action = new PurchaseAction(
+			unitId,
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			DockyardFacilityId,
+			MapFacilityOperators.ShieldOperatorName(engine.World),
+			EMerchantCatalog.Weapons,
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
+			ship.Clone());
 
-		SeedResources(engine.World, credits: 10_000, scrap: 10_000);
-		for (var tier = 0; tier < ShipLoadout.MaxShieldUpgradeTier; tier++)
-			Assert.True(ship.TryWithUpgradedMaxShields(face, out ship));
-		registry.Update(ship);
+		Assert.False(engine.CreateSimulation().TryEnqueue(action));
+	}
+
+	[Fact]
+	public void TryEnqueue_RejectsInsufficientResources()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+
 		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
-			unitId, engine.World, EMerchantCatalog.ShipSupport, offering, ship.Clone())));
+			unitId,
+			engine.World,
+			EMerchantCatalog.Weapons,
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
+			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
+			ship.Clone())));
 	}
 
 	private static PurchaseAction CreateAction(
@@ -361,6 +225,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		StarMap map,
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
 		ShipInstance before) =>
 		new(
 			unitId,
@@ -371,141 +236,24 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 				: MapFacilityOperators.ShieldOperatorName(map),
 			catalog,
 			offering,
+			target,
 			before);
 
-	private static void SeedScrap(StarMap map, int amount)
-	{
-		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(TransactionSource.MerchantPurchase, ResourceBundle.Of(ResourceId.ScrapAlloy, amount))
-			.Apply(map, runtime, "seed");
-	}
-
-	private static void SeedResources(StarMap map, int credits, int scrap)
+	private static void SeedResources(StarMap map, int credits, int scrap, int cores = 0)
 	{
 		var runtime = new ActorRuntime();
 		new ChangeResourceEffect(
 				TransactionSource.MerchantPurchase,
 				ResourceBundle.Create(
 					(ResourceId.Credits, credits),
-					(ResourceId.ScrapAlloy, scrap)))
+					(ResourceId.ScrapAlloy, scrap),
+					(ResourceId.IndustrialCore, cores)))
 			.Apply(map, runtime, "seed");
 	}
-}
 
-[StarSystemTestSuite]
-public sealed class MerchantCommerceCharacterizationTests
-{
-	private const string DockyardFacilityId = "poi-trade-dockyard";
-
-	[Fact]
-	public void FighterDockyard_ListsExpectedUpgradeAndSupportQuotes()
+	private static int Amount(ResourceBundle bundle, ResourceId resource)
 	{
-		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-
-		var weaponOffers = WeaponsCatalog.ListFor(ship);
-		Assert.DoesNotContain(
-			weaponOffers,
-			o => o.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields);
-		Assert.Contains(
-			weaponOffers,
-			o => o.Offering == new MerchantCatalog.Offering(
-				MerchantCatalog.Kind.InstallWeapon,
-				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
-
-		var starter = ShipCatalog.CreateInstance("starter-1", EType.Fighter);
-		var starterWeaponOffers = WeaponsCatalog.ListFor(starter);
-		Assert.Contains(
-			starterWeaponOffers,
-			o => o.Offering == MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade);
-		Assert.DoesNotContain(
-			starterWeaponOffers,
-			o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
-		Assert.Contains(
-			starterWeaponOffers,
-			o => o.Offering == new MerchantCatalog.Offering(
-				MerchantCatalog.Kind.InstallWeapon,
-				new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
-
-		var supportOffers = ShipSupportCatalog.ListFor(ship);
-		var shieldOffer = supportOffers.Single(o => o.Offering ==
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, Face: ESpatialOrientation.Forward));
-		Assert.Equal(MerchantUpgradePricing.ShieldMaxUpgrade(0), shieldOffer.Cost);
-
-		var fullFighter = ShipInstance.FromSpec(
-			"full-fighter",
-			FighterSpec.Instance,
-			ShipCatalog.FullFighterLoadout());
-		var swarmOffer = WeaponsCatalog.ListFor(fullFighter)
-			.Single(o => o.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade);
-		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(0), swarmOffer.Cost);
-
-		ship.HullPoints = 1;
-		var repairOffer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.RepairHull);
-		Assert.True(repairOffer.Cost.TryGet(ResourceId.Credits, out var hullCredits));
-		Assert.True(repairOffer.Cost.TryGet(ResourceId.ScrapAlloy, out var hullScrap));
-		Assert.Equal(ShipSupportCatalog.HullRepairCreditCost, hullCredits);
-		Assert.Equal(ShipSupportCatalog.HullRepairScrapCost, hullScrap);
-
-		ship = ShipInstance.FromCatalog("fighter-2", EType.Fighter);
-		ship.ShieldPoints.Fill(0);
-		var rechargeOffer = ShipSupportCatalog.ListFor(ship)
-			.Single(o => o.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
-		Assert.True(rechargeOffer.Cost.TryGet(ResourceId.Credits, out var rechargeCredits));
-		Assert.Equal(
-			ship.TotalMaxShieldPoints * ShipSupportCatalog.ShieldRechargeCreditsPerPoint,
-			rechargeCredits);
-	}
-
-	[Fact]
-	public void CreateNewRun_CommittedDamageUpgradeMatchesRegistryAndBattleSpawn()
-	{
-		using var run = State.CreateNewRun(42);
-		var shipId = run.PlayerParty.ShipIds[0];
-		var ship = run.ShipRegistry.Get(shipId);
-		var offering = MerchantPurchaseTestHarness.LightningCannonForwardDamageUpgrade;
-		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
-		var before = ship.Clone();
-		var action = new PurchaseAction(
-			State.PlayerFleetUnitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			DockyardFacilityId,
-			MapFacilityOperators.ShopOperatorName(run.StarSystem.Map),
-			EMerchantCatalog.Weapons,
-			offering,
-			before);
-
-		run.StarSystem.CommitSetup(action);
-
-		var registryShip = run.ShipRegistry.Get(shipId);
-		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
-		var encounter = EngagementBattleFactory.Create(
-			[playerFleet],
-			run.ShipRegistry,
-			seed: 9,
-			id: "characterization-engagement");
-
-		var spawn = encounter.Spawns.Single(s => s.Ship.Id == shipId);
-		var lightningCannonBefore = (LightningCannonSpec)before.Loadout.InstalledAbilities
-			.First(a => a.MountedOn == ESpatialOrientation.Forward).Spec;
-		var lightningCannonAfter = (LightningCannonSpec)registryShip.Loadout.InstalledAbilities
-			.First(a => a.MountedOn == ESpatialOrientation.Forward).Spec;
-		Assert.Equal(lightningCannonBefore.Damage + 1, lightningCannonAfter.Damage);
-		Assert.Equal(registryShip.Loadout.InstalledAbilities, spawn.Ship.Loadout.InstalledAbilities);
-		Assert.Equal(registryShip.HullPoints, spawn.Ship.HullPoints);
-		Assert.True(registryShip.ShieldPoints.Matches(spawn.Ship.ShieldPoints));
-		Assert.True(MerchantCatalog.TryFind(EMerchantCatalog.Weapons, offering, registryShip, out var nextOffer));
-		Assert.Equal(MerchantUpgradePricing.WeaponDamageUpgrade(1), nextOffer.Cost);
-	}
-
-	private static void SeedResources(StarMap map, int credits, int scrap)
-	{
-		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(
-				TransactionSource.MerchantPurchase,
-				ResourceBundle.Create(
-					(ResourceId.Credits, credits),
-					(ResourceId.ScrapAlloy, scrap)))
-			.Apply(map, runtime, "seed");
+		Assert.True(bundle.TryGet(resource, out var amount));
+		return amount;
 	}
 }

@@ -77,8 +77,6 @@ public sealed record ShipLoadout(
 		ArgumentNullException.ThrowIfNull(spec);
 		if (!Enum.IsDefined(face))
 			throw new ArgumentOutOfRangeException(nameof(face));
-		if (ShieldUpgradeTiers[face] >= MaxShieldUpgradeTier)
-			throw new InvalidOperationException($"Ship shields on {face} are already at upgrade tier {ShieldUpgradeTiers[face]}.");
 
 		var max = MaxShieldPoints.Clone();
 		max[face] += 1;
@@ -94,12 +92,31 @@ public sealed record ShipLoadout(
 			HullUpgradeTier);
 	}
 
+	public ShipLoadout WithMaxShieldUpgradeTier(ShipSpec spec, ESpatialOrientation face, int targetTier)
+	{
+		ArgumentNullException.ThrowIfNull(spec);
+		if (!Enum.IsDefined(face))
+			throw new ArgumentOutOfRangeException(nameof(face));
+
+		var currentTier = ShieldUpgradeTiers[face];
+		var capacityIncrease = targetTier - currentTier;
+		var max = MaxShieldPoints.Clone();
+		max[face] += capacityIncrease;
+		var tiers = ShieldUpgradeTiers.Clone();
+		tiers[face] = targetTier;
+
+		return Create(
+			spec,
+			MaxHullPoints,
+			max,
+			InstalledAbilities,
+			tiers,
+			HullUpgradeTier);
+	}
+
 	public ShipLoadout WithUpgradedMaxHull(ShipSpec spec)
 	{
 		ArgumentNullException.ThrowIfNull(spec);
-		if (HullUpgradeTier >= MaxHullUpgradeTier)
-			throw new InvalidOperationException($"Ship hull capacity is already at upgrade tier {HullUpgradeTier}.");
-
 		return Create(
 			spec,
 			MaxHullPoints + 1,
@@ -107,6 +124,19 @@ public sealed record ShipLoadout(
 			InstalledAbilities,
 			ShieldUpgradeTiers,
 			HullUpgradeTier + 1);
+	}
+
+	public ShipLoadout WithMaxHullUpgradeTier(ShipSpec spec, int targetTier)
+	{
+		ArgumentNullException.ThrowIfNull(spec);
+		var capacityIncrease = targetTier - HullUpgradeTier;
+		return Create(
+			spec,
+			MaxHullPoints + capacityIncrease,
+			MaxShieldPoints,
+			InstalledAbilities,
+			ShieldUpgradeTiers,
+			targetTier);
 	}
 
 	public static ShipLoadout Create(
