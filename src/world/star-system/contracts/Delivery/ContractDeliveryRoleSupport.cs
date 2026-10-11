@@ -82,7 +82,7 @@ internal static class ContractDeliveryRoleSupport
 		if (delivery.Route.Legs[state.Progress.CurrentLegIndex] is not FacilityDeliveryLeg facility)
 			return;
 
-		world.GetPointOfInterest(facility.PoiId).OperatorTemporaryRoles.Grant(
+		world.GetPointOfInterest(facility.PoiId).OperatorTemporaryRoles.GrantPrimary(
 			facility.FacilityId,
 			facility.OperatorName,
 			EFacilityOperatorRole.DeliveryTurnIn,

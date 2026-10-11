@@ -45,6 +45,85 @@ public sealed class FacilityOperatorTemporaryRolesTests
 	}
 
 	[Fact]
+	public void GrantPrimary_SuspendsAndRestoresExistingRole()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.Contracts,
+			"contract-offer",
+			acceptsSourcesUntilTick: 10);
+
+		roles.GrantPrimary(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"delivery-contract");
+
+		Assert.True(roles.TryGetRole("poi-a.facility", "Operator", out var role));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, role);
+		Assert.Empty(roles.Assignments(EFacilityOperatorRole.Contracts));
+
+		roles.RevokeBySource("delivery-contract");
+
+		Assert.True(roles.TryGetRole("poi-a.facility", "Operator", out role));
+		Assert.Equal(EFacilityOperatorRole.Contracts, role);
+		var restored = Assert.Single(roles.Assignments(EFacilityOperatorRole.Contracts));
+		Assert.Equal(["contract-offer"], restored.SourceIds);
+		Assert.Equal(10, restored.AcceptsSourcesUntilTick);
+	}
+
+	[Fact]
+	public void CloneForFork_CopiesSuspendedRole()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.Contracts,
+			"contract-offer",
+			acceptsSourcesUntilTick: 10);
+		roles.GrantPrimary(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"delivery-contract");
+
+		var clone = roles.CloneForFork();
+		clone.RevokeBySource("delivery-contract");
+
+		Assert.True(clone.TryGetRole("poi-a.facility", "Operator", out var cloneRole));
+		Assert.Equal(EFacilityOperatorRole.Contracts, cloneRole);
+		Assert.True(roles.TryGetRole("poi-a.facility", "Operator", out var originalRole));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, originalRole);
+	}
+
+	[Fact]
+	public void PruneSources_RemovesSuspendedRoleSource()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.Contracts,
+			"contract-offer",
+			acceptsSourcesUntilTick: 10);
+		roles.GrantPrimary(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"delivery-contract");
+
+		roles.PruneSources(
+			EFacilityOperatorRole.Contracts,
+			new HashSet<string>(StringComparer.Ordinal));
+		roles.RevokeBySource("delivery-contract");
+
+		Assert.False(roles.TryGetRole("poi-a.facility", "Operator", out _));
+	}
+
+	[Fact]
 	public void CloneForFork_CopiesOverlays()
 	{
 		var roles = new FacilityOperatorTemporaryRoles();

@@ -6,6 +6,7 @@ namespace GrimSpace.World.StarSystem.Poi;
 public sealed class FacilityOperatorTemporaryRoles
 {
 	private readonly Dictionary<(string FacilityId, string OperatorName), Entry> _overlays = new();
+	private readonly Dictionary<(string FacilityId, string OperatorName), Entry> _suspendedContractOverlays = new();
 	private readonly Dictionary<(string FacilityId, string OperatorName), int> _contractPlacementPauses = new();
 
 	public void Grant(
@@ -52,16 +53,66 @@ public sealed class FacilityOperatorTemporaryRoles
 		_overlays[key] = new Entry(role, [sourceId], acceptsSourcesUntilTick);
 	}
 
+	public void GrantPrimary(
+		string facilityId,
+		string operatorName,
+		EFacilityOperatorRole role,
+		string sourceId,
+		int? acceptsSourcesUntilTick = null)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(facilityId);
+		ArgumentException.ThrowIfNullOrEmpty(operatorName);
+		ArgumentException.ThrowIfNullOrEmpty(sourceId);
+		if (acceptsSourcesUntilTick is { } untilTick)
+			ArgumentOutOfRangeException.ThrowIfNegative(untilTick);
+
+		var key = (facilityId, operatorName);
+		if (!_overlays.TryGetValue(key, out var existing) || existing.Role == role)
+		{
+			Grant(facilityId, operatorName, role, sourceId, acceptsSourcesUntilTick);
+			return;
+		}
+
+		if (existing.Role != EFacilityOperatorRole.Contracts
+			|| _suspendedContractOverlays.ContainsKey(key))
+		{
+			throw new InvalidOperationException(
+				$"Operator '{operatorName}' at facility '{facilityId}' already has temporary role " +
+				$"'{existing.Role}' from '{string.Join(", ", existing.SourceIds.Order())}'.");
+		}
+
+		_suspendedContractOverlays[key] = existing;
+		_overlays[key] = new Entry(role, [sourceId], acceptsSourcesUntilTick);
+	}
+
 	public void RevokeBySource(string sourceId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(sourceId);
 
-		foreach (var key in _overlays.Keys.ToArray())
+		foreach (var key in _overlays.Keys
+			.Concat(_suspendedContractOverlays.Keys)
+			.Distinct()
+			.ToArray())
 		{
-			var entry = _overlays[key];
-			entry.SourceIds.Remove(sourceId);
-			if (entry.SourceIds.Count == 0)
-				_overlays.Remove(key);
+			if (_overlays.TryGetValue(key, out var active))
+			{
+				active.SourceIds.Remove(sourceId);
+				if (active.SourceIds.Count == 0)
+					_overlays.Remove(key);
+			}
+
+			if (_suspendedContractOverlays.TryGetValue(key, out var suspended))
+			{
+				suspended.SourceIds.Remove(sourceId);
+				if (suspended.SourceIds.Count == 0)
+					_suspendedContractOverlays.Remove(key);
+			}
+
+			if (!_overlays.ContainsKey(key)
+				&& _suspendedContractOverlays.Remove(key, out var restored))
+			{
+				_overlays[key] = restored;
+			}
 		}
 	}
 
@@ -75,16 +126,40 @@ public sealed class FacilityOperatorTemporaryRoles
 		ArgumentException.ThrowIfNullOrEmpty(sourceId);
 
 		var key = (facilityId, operatorName);
-		if (!_overlays.TryGetValue(key, out var entry))
-			return;
+		if (_overlays.TryGetValue(key, out var active))
+		{
+			active.SourceIds.Remove(sourceId);
+			if (active.SourceIds.Count == 0)
+				_overlays.Remove(key);
+		}
 
-		entry.SourceIds.Remove(sourceId);
-		if (entry.SourceIds.Count == 0)
-			_overlays.Remove(key);
+		if (_suspendedContractOverlays.TryGetValue(key, out var suspended))
+		{
+			suspended.SourceIds.Remove(sourceId);
+			if (suspended.SourceIds.Count == 0)
+				_suspendedContractOverlays.Remove(key);
+		}
+
+		if (!_overlays.ContainsKey(key)
+			&& _suspendedContractOverlays.Remove(key, out var restored))
+		{
+			_overlays[key] = restored;
+		}
 	}
 
 	public IReadOnlyList<Assignment> Assignments(EFacilityOperatorRole role) =>
-		_overlays
+		Assignments(_overlays, role);
+
+	internal IReadOnlyList<Assignment> AssignmentsIncludingSuspended(
+		EFacilityOperatorRole role) =>
+		Assignments(_overlays, role)
+			.Concat(Assignments(_suspendedContractOverlays, role))
+			.ToArray();
+
+	private static IReadOnlyList<Assignment> Assignments(
+		Dictionary<(string FacilityId, string OperatorName), Entry> overlays,
+		EFacilityOperatorRole role) =>
+		overlays
 			.Where(pair => pair.Value.Role == role)
 			.OrderBy(pair => pair.Key.FacilityId, StringComparer.Ordinal)
 			.ThenBy(pair => pair.Key.OperatorName, StringComparer.Ordinal)
@@ -179,26 +254,48 @@ public sealed class FacilityOperatorTemporaryRoles
 	{
 		ArgumentNullException.ThrowIfNull(retainedSourceIds);
 
-		foreach (var key in _overlays.Keys.ToArray())
+		PruneSources(_overlays, role, retainedSourceIds);
+		PruneSources(_suspendedContractOverlays, role, retainedSourceIds);
+	}
+
+	private static void PruneSources(
+		Dictionary<(string FacilityId, string OperatorName), Entry> overlays,
+		EFacilityOperatorRole role,
+		IReadOnlySet<string> retainedSourceIds)
+	{
+		foreach (var key in overlays.Keys.ToArray())
 		{
-			var entry = _overlays[key];
+			var entry = overlays[key];
 			if (entry.Role != role)
 				continue;
 
 			entry.SourceIds.RemoveWhere(sourceId => !retainedSourceIds.Contains(sourceId));
 			if (entry.SourceIds.Count == 0)
-				_overlays.Remove(key);
+				overlays.Remove(key);
 		}
 	}
 
 	public void Clear(EFacilityOperatorRole role)
 	{
-		foreach (var key in _overlays
+		var activeKeys = _overlays
+			.Where(pair => pair.Value.Role == role)
+			.Select(pair => pair.Key)
+			.ToArray();
+		foreach (var key in activeKeys)
+			_overlays.Remove(key);
+
+		foreach (var key in _suspendedContractOverlays
 			.Where(pair => pair.Value.Role == role)
 			.Select(pair => pair.Key)
 			.ToArray())
 		{
-			_overlays.Remove(key);
+			_suspendedContractOverlays.Remove(key);
+		}
+
+		foreach (var key in activeKeys)
+		{
+			if (_suspendedContractOverlays.Remove(key, out var restored))
+				_overlays[key] = restored;
 		}
 	}
 
@@ -206,14 +303,19 @@ public sealed class FacilityOperatorTemporaryRoles
 	{
 		var clone = new FacilityOperatorTemporaryRoles();
 		foreach (var (key, entry) in _overlays)
-			clone._overlays[key] = new Entry(
-				entry.Role,
-				new HashSet<string>(entry.SourceIds, StringComparer.Ordinal),
-				entry.AcceptsSourcesUntilTick);
+			clone._overlays[key] = Clone(entry);
+		foreach (var (key, entry) in _suspendedContractOverlays)
+			clone._suspendedContractOverlays[key] = Clone(entry);
 		foreach (var (key, untilTick) in _contractPlacementPauses)
 			clone._contractPlacementPauses[key] = untilTick;
 		return clone;
 	}
+
+	private static Entry Clone(Entry entry) =>
+		new(
+			entry.Role,
+			new HashSet<string>(entry.SourceIds, StringComparer.Ordinal),
+			entry.AcceptsSourcesUntilTick);
 
 	internal IReadOnlyList<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> Snapshot() =>
 		_overlays

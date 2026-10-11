@@ -139,6 +139,65 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Reconcile_SuspendedGiverRetainsContractWithoutReceivingAnother()
+	{
+		var map = maps.Fresh(42);
+		var existing = ContractFactory.Build(
+			map,
+			"existing-generated",
+			EContractKind.Hunt,
+			CreateGeneratedHuntArgs(map));
+		var unassigned = ContractFactory.Build(
+			map,
+			"unassigned-generated",
+			EContractKind.Hunt,
+			CreateGeneratedHuntArgs(map));
+		map.ContractRegistry.TryAdd(existing, expiresAtTick: 50);
+		map.ContractRegistry.TryAdd(unassigned, expiresAtTick: 50);
+		var candidate = FirstEligibleOperator(map);
+		var roles = map.GetPointOfInterest(candidate.PoiId).OperatorTemporaryRoles;
+		roles.Grant(
+			candidate.FacilityId,
+			candidate.OperatorName,
+			EFacilityOperatorRole.Contracts,
+			existing.Id,
+			acceptsSourcesUntilTick: 10);
+		roles.GrantPrimary(
+			candidate.FacilityId,
+			candidate.OperatorName,
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"delivery-contract");
+
+		ReconcilePresentations(map);
+
+		Assert.True(roles.TryGetRole(
+			candidate.FacilityId,
+			candidate.OperatorName,
+			out var activeRole));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, activeRole);
+		var visibleAssignments = ContractAssignments(map);
+		Assert.DoesNotContain(
+			visibleAssignments,
+			item => item.Assignment.SourceIds.Contains(existing.Id));
+		Assert.Contains(
+			visibleAssignments,
+			item => item.Assignment.SourceIds.Contains(unassigned.Id));
+
+		roles.RevokeBySource("delivery-contract");
+
+		Assert.True(roles.TryGetRole(
+			candidate.FacilityId,
+			candidate.OperatorName,
+			out activeRole));
+		Assert.Equal(EFacilityOperatorRole.Contracts, activeRole);
+		var restored = Assert.Single(ContractAssignments(map), item =>
+			item.Assignment.SourceIds.Contains(existing.Id));
+		Assert.Equal(candidate.PoiId, restored.PoiId);
+		Assert.Equal(candidate.FacilityId, restored.Assignment.FacilityId);
+		Assert.Equal(candidate.OperatorName, restored.Assignment.OperatorName);
+	}
+
+	[Fact]
 	public void Reconcile_WhenGiverHasTwoContracts_StartsAnotherGiver()
 	{
 		var map = maps.Fresh(42);

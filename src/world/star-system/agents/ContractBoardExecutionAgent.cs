@@ -189,6 +189,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 	{
 		var current = ListContractOperators(map);
 		var viable = current
+			.Where(item => IsActiveContractOperator(map, item.Location))
 			.Where(item =>
 				item.Assignment.AcceptsSourcesUntilTick is null
 				|| tick < item.Assignment.AcceptsSourcesUntilTick)
@@ -213,6 +214,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		}
 
 		var fallback = current
+			.Where(item => IsActiveContractOperator(map, item.Location))
 			.Where(item => !IsPlacementPaused(map, item.Location, tick))
 			.ToArray();
 		if (fallback.Length == 0)
@@ -235,7 +237,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		map.PointsOfInterest
 			.OrderBy(poi => poi.Id, StringComparer.Ordinal)
 			.SelectMany(poi => poi.OperatorTemporaryRoles
-				.Assignments(EFacilityOperatorRole.Contracts)
+				.AssignmentsIncludingSuspended(EFacilityOperatorRole.Contracts)
 				.Select(assignment => (
 					new OperatorLocation(poi.Id, assignment.FacilityId, assignment.OperatorName),
 					assignment)))
@@ -258,6 +260,13 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			location.FacilityId,
 			location.OperatorName,
 			out _);
+
+	private static bool IsActiveContractOperator(StarMap map, OperatorLocation location) =>
+		map.GetPointOfInterest(location.PoiId).OperatorTemporaryRoles.TryGetRole(
+			location.FacilityId,
+			location.OperatorName,
+			out var role)
+		&& role == EFacilityOperatorRole.Contracts;
 
 	private static bool IsPlacementPaused(
 		StarMap map,

@@ -72,6 +72,41 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void DeliveryRole_PreemptsAndRestoresContractOperatorRole()
+	{
+		var (engine, unitId, contractId, delivery) = CreateDeliveryEngine();
+		var turnInRoles = engine.World
+			.GetPointOfInterest(delivery.TurnInPoiId)
+			.OperatorTemporaryRoles;
+		turnInRoles.Grant(
+			delivery.TurnInFacilityId,
+			delivery.TurnInOperatorName,
+			EFacilityOperatorRole.Contracts,
+			"contract-offer",
+			acceptsSourcesUntilTick: 100);
+
+		engine.Commit(ContractActionTestContext.AcceptDelivery(engine.World, unitId, contractId));
+
+		Assert.True(turnInRoles.TryGetRole(
+			delivery.TurnInFacilityId,
+			delivery.TurnInOperatorName,
+			out var activeRole));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, activeRole);
+		Assert.Empty(turnInRoles.Assignments(EFacilityOperatorRole.Contracts));
+
+		engine.Commit(ContractActionTestContext.TurnInDelivery(engine.World, unitId, contractId));
+
+		Assert.True(turnInRoles.TryGetRole(
+			delivery.TurnInFacilityId,
+			delivery.TurnInOperatorName,
+			out activeRole));
+		Assert.Equal(EFacilityOperatorRole.Contracts, activeRole);
+		var restored = Assert.Single(turnInRoles.Assignments(EFacilityOperatorRole.Contracts));
+		Assert.Equal(["contract-offer"], restored.SourceIds);
+		Assert.Equal(100, restored.AcceptsSourcesUntilTick);
+	}
+
+	[Fact]
 	public void TurnIn_WithWrongOperator_IsIllegal()
 	{
 		var (engine, unitId, contractId, _) = CreateDeliveryEngine();
