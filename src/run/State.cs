@@ -170,6 +170,9 @@ public sealed class State : IDisposable
 		GameLog.Log(
 			$"Battle outcome resolved: id='{outcome.BattleId}', result='{outcome.Result}', "
 			+ $"tutorialsEnabled={Tutorials is not null}.");
+		if (outcome.Result == EBattleResult.Win)
+			GrantPilotBattleXp(ActiveBattle.Spawns, outcome);
+
 		ApplyOutcomeToRegistry(outcome);
 
 		_resolvedBattleIds.Add(outcome.BattleId);
@@ -499,6 +502,21 @@ public sealed class State : IDisposable
 			if (ship.Spec.Chassis != handoff.Chassis)
 				throw new InvalidOperationException(
 					$"Battle outcome chassis mismatch for ship '{handoff.Id}'.");
+		}
+	}
+
+	private void GrantPilotBattleXp(IReadOnlyList<BattleSpawn> spawns, BattleOutcome outcome)
+	{
+		foreach (var (pilotId, xp) in PilotProgression.RewardsFor(spawns, outcome))
+		{
+			if (!PilotRegistry.TryGet(pilotId, out var pilot))
+				continue;
+
+			var updated = PilotProgression.AddExperience(pilot, xp);
+			PilotRegistry.Update(updated);
+			GameLog.Log(
+				$"Pilot XP: '{updated.Name}' +{xp} → Lv {PilotProgression.LevelFor(updated.ExperiencePoints)} "
+				+ $"({updated.ExperiencePoints} total).");
 		}
 	}
 

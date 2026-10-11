@@ -55,6 +55,7 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot.Id,
 				pilot.Name,
 				pilot.PortraitId,
+				pilot.ExperiencePoints,
 				ship,
 				string.Equals(shipId, selectedShipId, StringComparison.Ordinal));
 		}

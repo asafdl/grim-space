@@ -39,6 +39,29 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
+	public void Update_ReplacesRegisteredPilot()
+	{
+		var registry = new RunPilotRegistry();
+		var pilot = Pilot.CreateForShip("fighter-test-ship");
+		registry.Register(pilot);
+		var leveled = PilotProgression.AddExperience(pilot, 150);
+
+		registry.Update(leveled);
+
+		Assert.True(registry.TryGet(pilot.Id, out var stored));
+		Assert.Equal(150, stored.ExperiencePoints);
+	}
+
+	[Fact]
+	public void Update_ThrowsWhenPilotNotRegistered()
+	{
+		var registry = new RunPilotRegistry();
+		var pilot = Pilot.CreateForShip("fighter-test-ship");
+
+		Assert.Throws<KeyNotFoundException>(() => registry.Update(pilot));
+	}
+
+	[Fact]
 	public void RemoveForShip_DropsPilotAssignedToThatShip()
 	{
 		var registry = new RunPilotRegistry();
@@ -71,7 +94,23 @@ public sealed class PilotRegistryTests
 			Assert.Equal(original.Name, roundTripped.Name);
 			Assert.Equal(original.PortraitId, roundTripped.PortraitId);
 			Assert.Equal(original.AssignedShipId, roundTripped.AssignedShipId);
+			Assert.Equal(original.ExperiencePoints, roundTripped.ExperiencePoints);
 		}
+	}
+
+	[Fact]
+	public void Snapshot_RoundTripsExperiencePoints()
+	{
+		var registry = new RunPilotRegistry();
+		var pilot = PilotProgression.AddExperience(Pilot.CreateForShip("fighter-test-ship"), 175);
+		registry.Register(pilot);
+
+		var dto = Assert.Single(registry.CaptureSnapshot());
+		var restoredRegistry = new RunPilotRegistry();
+		restoredRegistry.RestoreSnapshot([dto]);
+
+		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
+		Assert.Equal(175, restored.ExperiencePoints);
 	}
 
 	[Fact]

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Run;
 using GrimSpace.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -11,9 +12,11 @@ public partial class ShipPilot : PanelContainer
 	private static readonly Color DefaultBorderColor = new(0.3f, 0.42f, 0.6f, 0.8f);
 	private static readonly Color SelectedBorderColor = new(0.55f, 0.78f, 1f, 1f);
 
+	private Label _levelLabel = null!;
 	private TextureRect _portrait = null!;
 	private ProgressBar _hullBar = null!;
 	private ProgressBar _shieldBar = null!;
+	private ProgressBar _xpBar = null!;
 	private string? _portraitId;
 	private string? _shipId;
 	private bool _selected;
@@ -29,6 +32,7 @@ public partial class ShipPilot : PanelContainer
 		string pilotId,
 		string pilotName,
 		string portraitId,
+		int experiencePoints,
 		ShipInstance ship,
 		bool selected)
 	{
@@ -38,10 +42,18 @@ public partial class ShipPilot : PanelContainer
 			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
 			_portraitId = portraitId;
 		}
+		var level = PilotProgression.LevelFor(experiencePoints);
+		_levelLabel.Text = $"Lv {level}";
 		SetBar(_hullBar, ship.HullPoints, ship.Loadout.MaxHullPoints);
 		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalMaxShieldPoints);
+		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
+		SetBar(_xpBar, xpInLevel, xpToNext > 0 ? xpToNext : 1);
+		var xpLine = xpToNext > 0
+			? $"XP {xpInLevel}/{xpToNext}"
+			: "XP max";
 		_portrait.TooltipText =
 			$"{pilotName}\n"
+			+ $"Lv {level} · {xpLine}\n"
 			+ $"{ship.Spec.Chassis}\n"
 			+ $"HP {ship.HullPoints}/{ship.Loadout.MaxHullPoints}\n"
 			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalMaxShieldPoints}";
@@ -65,6 +77,15 @@ public partial class ShipPilot : PanelContainer
 		column.AddThemeConstantOverride("separation", 5);
 		margin.AddChild(column);
 
+		_levelLabel = new Label
+		{
+			HorizontalAlignment = HorizontalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		_levelLabel.AddThemeFontSizeOverride("font_size", 11);
+		_levelLabel.AddThemeColorOverride("font_color", new Color(0.75f, 0.82f, 0.92f));
+		column.AddChild(_levelLabel);
+
 		_portrait = new TextureRect
 		{
 			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
@@ -76,8 +97,10 @@ public partial class ShipPilot : PanelContainer
 		column.AddChild(_portrait);
 		_hullBar = CreateBar(new Color(0.85f, 0.15f, 0.18f));
 		_shieldBar = CreateBar(new Color(0.25f, 0.62f, 0.95f));
+		_xpBar = CreateBar(new Color(0.45f, 0.78f, 0.35f));
 		column.AddChild(_hullBar);
 		column.AddChild(_shieldBar);
+		column.AddChild(_xpBar);
 	}
 
 	private void OnPortraitGuiInput(InputEvent @event)

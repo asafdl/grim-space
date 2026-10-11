@@ -27,6 +27,15 @@ public sealed class RunPilotRegistry
 		_pilotsById[pilot.Id] = pilot;
 	}
 
+	public void Update(Pilot pilot)
+	{
+		ArgumentNullException.ThrowIfNull(pilot);
+		if (!_pilotsById.ContainsKey(pilot.Id))
+			throw new KeyNotFoundException($"Pilot '{pilot.Id}' is not registered.");
+
+		_pilotsById[pilot.Id] = pilot;
+	}
+
 	public void Remove(string pilotId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
