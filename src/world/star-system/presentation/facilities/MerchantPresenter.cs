@@ -1,0 +1,138 @@
+using Godot;
+using GrimSpace.Components;
+using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Presentation.Scene;
+
+namespace GrimSpace.World.StarSystem.Presentation.Facilities;
+
+public sealed class MerchantPresenter
+{
+	private readonly FacilitySceneBinding _binding;
+	private readonly DockyardHudOverlay _upgradeHud;
+	private readonly ShipRecruitmentHudOverlay _recruitmentHud;
+	private readonly Action _onStateChanged;
+	private EMerchantSubtype? _activeSubtype;
+
+	public MerchantPresenter(
+		Control host,
+		FacilitySceneBinding binding,
+		Action onStateChanged)
+	{
+		ArgumentNullException.ThrowIfNull(host);
+		ArgumentNullException.ThrowIfNull(binding);
+		ArgumentNullException.ThrowIfNull(onStateChanged);
+
+		_binding = binding;
+		_onStateChanged = onStateChanged;
+
+		var layer = new CanvasLayer { Layer = 5 };
+		host.AddChild(layer);
+		_upgradeHud = new DockyardHudOverlay();
+		_upgradeHud.PurchaseRequested += OnPurchaseRequested;
+		_upgradeHud.Closed += _onStateChanged;
+		layer.AddChild(_upgradeHud);
+		_recruitmentHud = new ShipRecruitmentHudOverlay();
+		_recruitmentHud.RecruitmentRequested += OnRecruitmentRequested;
+		_recruitmentHud.Closed += _onStateChanged;
+		layer.AddChild(_recruitmentHud);
+		_binding.WorldUpdated += Sync;
+	}
+
+	public bool IsOpen => _upgradeHud.IsOpen || _recruitmentHud.IsOpen;
+
+	public void Open(
+		FacilityOperator facilityOperator,
+		OperatorInteraction interaction)
+	{
+		if (interaction.Role != EFacilityOperatorRole.Merchant
+			|| interaction.MerchantSubtype is not { } subtype)
+		{
+			throw new ArgumentException(
+				$"Operator '{facilityOperator.Name}' does not have a merchant interaction.",
+				nameof(interaction));
+		}
+
+		_activeSubtype = subtype;
+		var title = OperatorDisplayLabels.Title(facilityOperator, interaction);
+		switch (MerchantSubtypeRouting.PresentationFor(subtype))
+		{
+			case EMerchantPresentation.Upgrades:
+				_upgradeHud.Open(_binding.Run, _binding.Map, title, subtype);
+				break;
+			case EMerchantPresentation.Recruitment:
+				_recruitmentHud.Open(_binding.Run, title);
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null);
+		}
+		_onStateChanged();
+	}
+
+	private void Sync()
+	{
+		_upgradeHud.Sync(_binding.Run, _binding.Map);
+		_recruitmentHud.Sync(_binding.Run);
+	}
+
+	private void OnPurchaseRequested(
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		string shipId)
+	{
+		var subtype = _activeSubtype
+			?? throw new InvalidOperationException(
+				"Merchant purchases require an active merchant subtype.");
+		var before = _binding.Run.ShipRegistry.Get(shipId).Clone();
+		if (!_binding.Intents.TryPurchase(
+			    _binding.PoiId,
+			    _binding.FacilityId,
+			    RequireActiveOperatorName(),
+			    MerchantSubtypeRouting.CatalogFor(subtype),
+			    offering,
+			    target,
+			    before))
+		{
+			_upgradeHud.ShowError("Unable to purchase upgrade.");
+			_onStateChanged();
+			return;
+		}
+
+		_upgradeHud.Sync(_binding.Run, _binding.Map);
+		var message = offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
+			? "Max shields upgraded."
+			: "Upgrade installed.";
+		_upgradeHud.ShowConfirmation(message, HudStatusKind.Success);
+		_onStateChanged();
+	}
+
+	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
+	{
+		var committed = _binding.Intents.TryRecruitShip(
+			_binding.PoiId,
+			_binding.FacilityId,
+			RequireActiveOperatorName(),
+			offer);
+		if (!committed)
+		{
+			var run = _binding.Run;
+			if (run.PlayerParty.ShipIds.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
+				_recruitmentHud.ShowError("Your fleet roster is full.");
+			else if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
+				_recruitmentHud.ShowError("You do not have the required resources.");
+			else
+				_recruitmentHud.ShowError("Unable to hire this ship.");
+			_onStateChanged();
+			return;
+		}
+
+		_recruitmentHud.ShowConfirmation("Ship hired.");
+		_onStateChanged();
+	}
+
+	private static string RequireActiveOperatorName() =>
+		MapNavigationContext.ActiveOperatorName
+		?? throw new InvalidOperationException(
+			"Merchant interaction requires an active facility operator.");
+}

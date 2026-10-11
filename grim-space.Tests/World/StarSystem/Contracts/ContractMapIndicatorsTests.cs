@@ -53,15 +53,11 @@ public sealed class ContractMapIndicatorsTests(StarMapFixture maps)
 
 	private static string PresentPendingContract(StarMap map)
 	{
-		var poi = map.PointsOfInterest.First(candidate => candidate.Facilities.Count > 0);
-		var facility = poi.Facilities[0];
-		var facilityOperator = facility.Operators[0];
-		poi.OperatorTemporaryRoles.Grant(
-			facility.Id,
-			facilityOperator.Name,
-			EFacilityOperatorRole.Contracts,
-			map.ContractRegistry.Pending.Single().Id,
-			acceptsSourcesUntilTick: 10);
-		return poi.Id;
+		var contractId = map.ContractRegistry.Pending.Single().Id;
+		return map.PointsOfInterest.Single(poi =>
+				poi.OperatorTemporaryRoles
+					.Assignments(EFacilityOperatorRole.StoryContact)
+					.Any(assignment => assignment.SourceIds.Contains(contractId)))
+			.Id;
 	}
 }

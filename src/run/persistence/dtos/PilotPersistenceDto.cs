@@ -4,4 +4,5 @@ public sealed record PilotPersistenceDto(
 	string Id,
 	string Name,
 	string PortraitId,
-	string AssignedShipId);
+	string AssignedShipId,
+	int ExperiencePoints = 0);

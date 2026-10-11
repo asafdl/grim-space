@@ -1,5 +1,6 @@
 using GrimSpace.Math.Routes;
 using GrimSpace.Math.Grid;
+using GrimSpace.Run.Persistence;
 using GrimSpace.Tutorials;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
@@ -9,6 +10,7 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
@@ -33,6 +35,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		AssertIntelLandmarksOrderedByProximity(map, searchArea);
 
 		Assert.Equal("Pirate Hunt ★", objective.Title);
+		Assert.Equal(EObjectiveKind.Hunt, objective.Kind);
 		Assert.False(objective.Summary is ObjectiveSummaryContent.Plain);
 		Assert.Equal(
 			ContractDisplay.SearchArea(contract, map),
@@ -76,6 +79,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 			AreaIntelDisplay.FormatPlain(
 				wreckage.SearchArea.Intel,
 				id => AreaBorderAnchor.TryGetDisplayName(id) ?? MapLandmarkQueries.GetDisplayName(map, id)));
+		Assert.Equal(EObjectiveKind.Wreckage, objective.Kind);
 	}
 
 	[Fact]
@@ -94,6 +98,57 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
 		Assert.IsType<ObjectiveSummaryContent.Plain>(objective.Summary);
+	}
+
+	[Fact]
+	public void Project_BlackMarketContract_UsesLeadSource()
+	{
+		var map = maps.FreshWithBeatAHunt(42);
+		var contract = map.ContractRegistry.Pending.Single() with
+		{
+			Category = EContractCategory.BlackMarketLead,
+		};
+
+		var objective = ContractObjectiveProjection.Project(map, contract);
+
+		Assert.Equal(EObjectiveSource.BlackMarketLead, objective.Source);
+		Assert.Equal(EObjectiveKind.BlackMarketLead, objective.Kind);
+		Assert.False(ObjectivePresentationPolicy.ShowsReward(objective.Source));
+		Assert.True(ObjectivePresentationPolicy.CanDismiss(objective.Source));
+		Assert.Equal(
+			"Abandon black market lead",
+			ObjectivePresentationPolicy.DismissTooltip(objective.Source));
+	}
+
+	[Theory]
+	[InlineData(EObjectiveKind.Hunt, "#F05F5F")]
+	[InlineData(EObjectiveKind.Wreckage, "#D7A93B")]
+	[InlineData(EObjectiveKind.Delivery, "#72D17C")]
+	[InlineData(EObjectiveKind.BlackMarketLead, "#8A9199")]
+	[InlineData(EObjectiveKind.Story, "#5794E6")]
+	public void AccentHex_MapsObjectiveKindToSemanticColor(
+		EObjectiveKind kind,
+		string expected)
+	{
+		Assert.Equal(expected, ObjectivePresentationPolicy.AccentHex(kind));
+	}
+
+	[Fact]
+	public void Persistence_PreservesBlackMarketContractCategory()
+	{
+		var map = maps.FreshWithBeatAHunt(42);
+		var contract = map.ContractRegistry.Pending.Single() with
+		{
+			Category = EContractCategory.BlackMarketLead,
+		};
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var dto = SaveDtoMapper.CaptureContract(
+			(contract, (ContractState?)null, (int?)null),
+			registry);
+		var restored = SaveDtoMapper.RestoreContract(dto, registry).Contract;
+
+		Assert.Equal(EContractCategory.BlackMarketLead, restored.Category);
 	}
 
 	private static void AssertIntelLandmarksOrderedByProximity(StarMap map, AreaPick searchArea)

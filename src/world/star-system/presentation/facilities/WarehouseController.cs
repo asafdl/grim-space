@@ -9,6 +9,7 @@ public partial class WarehouseController : Control
 {
 	private FacilitySceneBinding _binding = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
+	private MerchantPresenter _merchant = null!;
 	private HealingStationPresenter _healingStation = null!;
 	private Button _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
@@ -29,6 +30,7 @@ public partial class WarehouseController : Control
 		_backButton.Pressed += ReturnToMap;
 
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
+		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
 		_healingStation = new HealingStationPresenter(
 			this,
 			_binding,
@@ -62,7 +64,8 @@ public partial class WarehouseController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_healingStation.IsOpen
+		if (_merchant.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -72,11 +75,16 @@ public partial class WarehouseController : Control
 		ReturnToMap();
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
+	private void OnFacilityOperatorActivated(
+		FacilityOperator facilityOperator,
+		OperatorInteraction interaction)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (role)
+		switch (interaction.Role)
 		{
+			case EFacilityOperatorRole.Merchant:
+				_merchant.Open(facilityOperator, interaction);
+				break;
 			case EFacilityOperatorRole.HealingStation:
 				_healingStation.Open(facilityOperator);
 				break;
@@ -92,7 +100,7 @@ public partial class WarehouseController : Control
 				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{role}' in warehouse facility.");
+					$"Unexpected operator role '{interaction.Role}' in warehouse facility.");
 		}
 	}
 
@@ -103,7 +111,8 @@ public partial class WarehouseController : Control
 	}
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _healingStation.IsOpen
+		_backButton.Disabled = _merchant.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;

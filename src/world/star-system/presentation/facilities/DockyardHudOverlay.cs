@@ -12,15 +12,11 @@ public sealed partial class DockyardHudOverlay : Control
 	private readonly ModalShell _shell;
 	private State _run = null!;
 	private string _facilityTitle = "";
-	private EMerchantCatalog _catalog;
+	private EMerchantSubtype _subtype;
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<
-		EMerchantCatalog,
-		MerchantCatalog.Offering,
-		MerchantCatalog.Target,
-		string>? PurchaseRequested;
+	public event Action<MerchantCatalog.Offering, MerchantCatalog.Target, string>? PurchaseRequested;
 	public event Action? Closed;
 
 	public DockyardHudOverlay()
@@ -44,17 +40,17 @@ public sealed partial class DockyardHudOverlay : Control
 		State run,
 		StarMap map,
 		string facilityTitle,
-		EMerchantCatalog catalog)
+		EMerchantSubtype subtype)
 	{
-		if (catalog is not (EMerchantCatalog.Weapons or EMerchantCatalog.ShipSupport))
+		if (subtype is not (EMerchantSubtype.Weapons or EMerchantSubtype.ShipSupport))
 			throw new ArgumentOutOfRangeException(
-				nameof(catalog),
-				catalog,
-				"Dockyard upgrade HUD only supports upgrade merchant catalogs.");
+				nameof(subtype),
+				subtype,
+				"Upgrade HUD only supports weapon and ship-support merchants.");
 
 		_run = run;
 		_facilityTitle = facilityTitle;
-		_catalog = catalog;
+		_subtype = subtype;
 		_statusKind = null;
 		_statusMessage = "";
 		_shell.Open(SheetTitle(), facilityTitle);
@@ -109,7 +105,10 @@ public sealed partial class DockyardHudOverlay : Control
 			return;
 		}
 
-		var offers = MerchantCatalog.ListFor(_catalog, ship, tier);
+		var offers = MerchantCatalog.ListFor(
+			MerchantSubtypeRouting.CatalogFor(_subtype),
+			ship,
+			tier);
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
@@ -153,7 +152,6 @@ public sealed partial class DockyardHudOverlay : Control
 							installed),
 						offer.Cost)],
 					() => PurchaseRequested?.Invoke(
-						_catalog,
 						offer.Offering,
 						captured,
 						ship.Id)));
@@ -171,7 +169,6 @@ public sealed partial class DockyardHudOverlay : Control
 							offer.Offering.TargetLevel),
 						offer.Cost)],
 					() => PurchaseRequested?.Invoke(
-						_catalog,
 						offer.Offering,
 						captured,
 						ship.Id)));
@@ -188,12 +185,12 @@ public sealed partial class DockyardHudOverlay : Control
 	}
 
 	private string SheetTitle() =>
-		_catalog switch
+		_subtype switch
 		{
-			EMerchantCatalog.Weapons => "Ability upgrades",
-			EMerchantCatalog.ShipSupport => "Ship upgrades",
+			EMerchantSubtype.Weapons => "Ability upgrades",
+			EMerchantSubtype.ShipSupport => "Ship upgrades",
 			_ => throw new InvalidOperationException(
-				$"Unsupported dockyard catalog '{_catalog}'."),
+				$"Unsupported merchant subtype '{_subtype}'."),
 		};
 
 	private bool TryGetActiveShip(out ShipInstance ship)

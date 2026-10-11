@@ -407,7 +407,15 @@ public static class SaveDtoMapper
 			poi.Facade = saved.Facade;
 			poi.NextAvailableTaskTick = saved.NextAvailableTaskTick;
 			poi.RestoreOperatorTemporaryRoles(saved.TemporaryRoles.Select(role =>
-				(role.FacilityId, role.OperatorName, role.Role, role.SourceId)));
+				new FacilityOperatorTemporaryRoles.SnapshotEntry(
+					role.FacilityId,
+					role.OperatorName,
+					role.Role,
+					role.MerchantSubtype,
+					role.SourceId,
+					role.Priority
+						?? FacilityOperatorTemporaryRoles.PriorityFor(role.Role),
+					role.AcceptsSourcesUntilTick)));
 			return poi;
 		}).ToArray();
 		var docks = dto.Docks.ToDictionary(dock => dock.Id, StringComparer.Ordinal);
@@ -553,6 +561,7 @@ public static class SaveDtoMapper
 			entry.Contract.Terms,
 			entry.Contract.Narrative,
 			entry.Contract.IsStoryObjective,
+			entry.Contract.Category,
 			StateType = entry.State?.GetType().Name,
 			State = entry.State is null
 				? JsonSerializer.SerializeToElement<object?>(null, registry.Options)
@@ -581,7 +590,8 @@ public static class SaveDtoMapper
 		var contract = new Contract(
 				dto.Id, objective, dto.Danger, dto.IssuerFaction,
 				dto.Terms, dto.Narrative,
-				dto.IsStoryObjective);
+				dto.IsStoryObjective,
+				dto.Category);
 		return (
 			contract,
 			RestoreContractState(dto.State, dto.StateType, contract, registry),

@@ -10,8 +10,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 public partial class DockyardController : Control
 {
 	private FacilitySceneBinding _binding = null!;
-	private CanvasLayer _dockyardHudLayer = null!;
-	private DockyardHudOverlay _dockyardHud = null!;
+	private MerchantPresenter _merchant = null!;
 	private HealingStationPresenter _healingStation = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
@@ -27,13 +26,7 @@ public partial class DockyardController : Control
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 
-		_dockyardHudLayer = new CanvasLayer { Layer = 5 };
-		AddChild(_dockyardHudLayer);
-		_dockyardHud = new DockyardHudOverlay();
-		_dockyardHud.PurchaseRequested += OnWeaponsPurchaseRequested;
-		_dockyardHud.Closed += UpdateBackButton;
-		_dockyardHudLayer.AddChild(_dockyardHud);
-
+		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
 		_healingStation = new HealingStationPresenter(
 			this,
 			_binding,
@@ -75,7 +68,7 @@ public partial class DockyardController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_dockyardHud.IsOpen
+		if (_merchant.IsOpen
 			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
@@ -86,34 +79,15 @@ public partial class DockyardController : Control
 		ReturnToMap();
 	}
 
-	public bool TryPurchaseMerchantChange(
-		EMerchantCatalog catalog,
-		MerchantCatalog.Offering offering,
-		MerchantCatalog.Target target,
-		string shipId)
-	{
-		var operatorName = RequireActiveOperatorName();
-		var before = _binding.Run.ShipRegistry.Get(shipId).Clone();
-		return _binding.Intents.TryPurchase(
-			_binding.PoiId,
-			_binding.FacilityId,
-			operatorName,
-			catalog,
-			offering,
-			target,
-			before);
-	}
-
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
+	private void OnFacilityOperatorActivated(
+		FacilityOperator facilityOperator,
+		OperatorInteraction interaction)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (role)
+		switch (interaction.Role)
 		{
-			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.Weapons:
-				OpenDockyardHud(facilityOperator);
-				break;
-			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.ShipSupport:
-				OpenDockyardHud(facilityOperator);
+			case EFacilityOperatorRole.Merchant:
+				_merchant.Open(facilityOperator, interaction);
 				break;
 			case EFacilityOperatorRole.HealingStation:
 				_healingStation.Open(facilityOperator);
@@ -130,47 +104,13 @@ public partial class DockyardController : Control
 				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{role}' in dockyard facility.");
+					$"Unexpected operator role '{interaction.Role}' in dockyard facility.");
 		}
 	}
 
 	private void OnWorldUpdated()
 	{
-		_dockyardHud.Sync(_binding.Run, _binding.Map);
 		_contractHud.SyncMap();
-	}
-
-	private void OpenDockyardHud(FacilityOperator facilityOperator)
-	{
-		_dockyardHud.Open(
-			_binding.Run,
-			_binding.Map,
-			OperatorDisplayLabels.Title(facilityOperator),
-			facilityOperator.MerchantCatalog
-			?? throw new InvalidOperationException(
-				$"Merchant '{facilityOperator.Name}' requires a catalog."));
-		UpdateBackButton();
-	}
-
-	private void OnWeaponsPurchaseRequested(
-		EMerchantCatalog catalog,
-		MerchantCatalog.Offering offering,
-		MerchantCatalog.Target target,
-		string shipId)
-	{
-		if (!TryPurchaseMerchantChange(catalog, offering, target, shipId))
-		{
-			_dockyardHud.ShowError("Unable to purchase upgrade.");
-			UpdateBackButton();
-			return;
-		}
-
-		_dockyardHud.Sync(_binding.Run, _binding.Map);
-		var message = offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
-			? "Max shields upgraded."
-			: "Upgrade installed.";
-		_dockyardHud.ShowConfirmation(message, HudStatusKind.Success);
-		UpdateBackButton();
 	}
 
 	private void ReturnToMap()
@@ -179,12 +119,8 @@ public partial class DockyardController : Control
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
 
-	private static string RequireActiveOperatorName() =>
-		MapNavigationContext.ActiveOperatorName
-		?? throw new InvalidOperationException("Dockyard purchase requires an active facility operator.");
-
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _dockyardHud.IsOpen
+		_backButton.Disabled = _merchant.IsOpen
 			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen

@@ -41,12 +41,7 @@ public sealed class PurchaseActionDef
 		if (!fleet.Members.Any(member =>
 				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
 			return false;
-		if (!MerchantPurchaseValidation.OperatorServesCatalog(
-				world,
-				purchase.PoiId,
-				purchase.FacilityId,
-				purchase.OperatorName,
-				purchase.Catalog))
+		if (!OperatorServesPurchaseProvider(purchase, world))
 			return false;
 		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return false;
@@ -67,6 +62,29 @@ public sealed class PurchaseActionDef
 
 		return world.PlayerResources.CanApply(offer.Cost.Negate());
 	}
+
+	internal static bool OperatorServesPurchaseProvider(PurchaseAction purchase, StarMap world) =>
+		purchase.Catalog switch
+		{
+			EMerchantCatalog.Weapons => MerchantPurchaseValidation.OperatorServesMerchantSubtype(
+				world,
+				purchase.PoiId,
+				purchase.FacilityId,
+				purchase.OperatorName,
+				EMerchantSubtype.Weapons),
+			EMerchantCatalog.ShipSupport => MerchantPurchaseValidation.OperatorServesMerchantSubtype(
+				world,
+				purchase.PoiId,
+				purchase.FacilityId,
+				purchase.OperatorName,
+				EMerchantSubtype.ShipSupport),
+			EMerchantCatalog.Healing => MerchantPurchaseValidation.OperatorServesHealingStation(
+				world,
+				purchase.PoiId,
+				purchase.FacilityId,
+				purchase.OperatorName),
+			_ => false,
+		};
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,

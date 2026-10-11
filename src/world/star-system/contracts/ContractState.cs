@@ -7,6 +7,11 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
+public interface IContractDeadlineState
+{
+	int? DeadlineTick { get; }
+}
+
 public record ContractState(
 	string ContractId,
 	EContractStatus Status,
@@ -145,8 +150,10 @@ public sealed record DeliveryContractState(
 	int? AcceptedAtTick,
 	string? HolderUnitId,
 	DeliveryProgress Progress)
-	: ContractState(ContractId, Status, AcceptedAtTick, HolderUnitId)
+	: ContractState(ContractId, Status, AcceptedAtTick, HolderUnitId), IContractDeadlineState
 {
+	public int? DeadlineTick => Progress.DeadlineTick;
+
 	public DeliveryContractState(
 		string contractId,
 		EContractStatus status,

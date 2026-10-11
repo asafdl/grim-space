@@ -33,12 +33,12 @@ public sealed class RecruitShipActionDef
 	{
 		if (action is not RecruitShipAction recruit)
 			return false;
-		if (!MerchantPurchaseValidation.OperatorServesCatalog(
+		if (!MerchantPurchaseValidation.OperatorServesMerchantSubtype(
 				world,
 				recruit.PoiId,
 				recruit.FacilityId,
 				recruit.OperatorName,
-				EMerchantCatalog.Ships))
+				EMerchantSubtype.Ships))
 			return false;
 		if (!ShipRecruitmentCatalog.TryFind(
 				recruit.Declaration.Chassis,

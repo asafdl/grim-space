@@ -23,7 +23,8 @@ public static class ContractObjectiveProjection
 			title,
 			summary,
 			contract.Terms.Payment,
-			EObjectiveSource.Contract,
+			SourceFor(contract),
+			KindFor(contract),
 			DeadlineFor(map, state));
 	}
 
@@ -43,21 +44,47 @@ public static class ContractObjectiveProjection
 			FormatTitle(contract),
 			BuildSummary(map, contract, state),
 			contract.Terms.Payment,
-			EObjectiveSource.Contract,
+			SourceFor(contract),
+			KindFor(contract),
 			DeadlineFor(map, state));
 	}
 
 	private static ObjectiveDeadline? DeadlineFor(StarMap map, ContractState? state)
 	{
-		if (state is not DeliveryContractState
-			{
-				Progress.DeadlineTick: int deadlineTick,
-			})
+		if (state is not IContractDeadlineState { DeadlineTick: int deadlineTick })
 			return null;
 
 		return new ObjectiveDeadline(
 			deadlineTick,
 			System.Math.Max(0, deadlineTick - map.Timeline.Clock.Current));
+	}
+
+	private static EObjectiveSource SourceFor(Contract contract) =>
+		contract.Category switch
+		{
+			EContractCategory.Standard => EObjectiveSource.Contract,
+			EContractCategory.BlackMarketLead => EObjectiveSource.BlackMarketLead,
+			_ => throw new ArgumentOutOfRangeException(
+				nameof(contract),
+				contract.Category,
+				null),
+		};
+
+	private static EObjectiveKind KindFor(Contract contract)
+	{
+		if (contract.Category == EContractCategory.BlackMarketLead)
+			return EObjectiveKind.BlackMarketLead;
+
+		return contract.Objective switch
+		{
+			HuntObjective => EObjectiveKind.Hunt,
+			WreckageObjective => EObjectiveKind.Wreckage,
+			DeliveryObjective => EObjectiveKind.Delivery,
+			_ => throw new ArgumentOutOfRangeException(
+				nameof(contract),
+				contract.Objective,
+				$"Unsupported contract objective '{contract.Objective.GetType().Name}'."),
+		};
 	}
 
 	private static string FormatTitle(Contract contract)

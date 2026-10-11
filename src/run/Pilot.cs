@@ -28,17 +28,20 @@ public sealed class Pilot
 	public string Name { get; }
 	public string PortraitId { get; }
 	public string AssignedShipId { get; }
+	public int ExperiencePoints { get; }
 
-	private Pilot(string id, string name, string portraitId, string assignedShipId)
+	private Pilot(string id, string name, string portraitId, string assignedShipId, int experiencePoints)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		ArgumentException.ThrowIfNullOrEmpty(name);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
+		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		Id = id;
 		Name = name;
 		PortraitId = portraitId;
 		AssignedShipId = assignedShipId;
+		ExperiencePoints = experiencePoints;
 	}
 
 	public static Pilot CreateForShip(string assignedShipId, Random? rng = null)
@@ -49,13 +52,18 @@ public sealed class Pilot
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
-			assignedShipId);
+			assignedShipId,
+			0);
 	}
 
-	internal Pilot Clone() => new(Id, Name, PortraitId, AssignedShipId);
+	internal Pilot WithExperience(int experiencePoints) =>
+		new(Id, Name, PortraitId, AssignedShipId, experiencePoints);
+
+	internal Pilot Clone() => new(Id, Name, PortraitId, AssignedShipId, ExperiencePoints);
 
 	internal static Pilot FromPersistence(PilotPersistenceDto dto) =>
-		new(dto.Id, dto.Name, dto.PortraitId, dto.AssignedShipId);
+		new(dto.Id, dto.Name, dto.PortraitId, dto.AssignedShipId, dto.ExperiencePoints);
 
-	internal PilotPersistenceDto ToPersistence() => new(Id, Name, PortraitId, AssignedShipId);
+	internal PilotPersistenceDto ToPersistence() =>
+		new(Id, Name, PortraitId, AssignedShipId, ExperiencePoints);
 }

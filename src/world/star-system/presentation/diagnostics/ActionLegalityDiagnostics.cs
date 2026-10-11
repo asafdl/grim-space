@@ -192,12 +192,7 @@ internal static class ActionLegalityDiagnostics
 				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
 			return "ship_not_in_fleet";
 
-		if (!MerchantPurchaseValidation.OperatorServesCatalog(
-				world,
-				purchase.PoiId,
-				purchase.FacilityId,
-				purchase.OperatorName,
-				purchase.Catalog))
+		if (!PurchaseActionDef.OperatorServesPurchaseProvider(purchase, world))
 			return $"operator_catalog_mismatch catalog={purchase.Catalog}";
 
 		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)

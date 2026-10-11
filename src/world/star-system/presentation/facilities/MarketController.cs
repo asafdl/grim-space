@@ -9,8 +9,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 public partial class MarketController : Control
 {
 	private FacilitySceneBinding _binding = null!;
-	private CanvasLayer _merchantHudLayer = null!;
-	private ShipRecruitmentHudOverlay _shipRecruitmentHud = null!;
+	private MerchantPresenter _merchant = null!;
 	private HealingStationPresenter _healingStation = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private Button _backButton = null!;
@@ -26,12 +25,7 @@ public partial class MarketController : Control
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 
-		_merchantHudLayer = new CanvasLayer { Layer = 5 };
-		AddChild(_merchantHudLayer);
-		_shipRecruitmentHud = new ShipRecruitmentHudOverlay();
-		_shipRecruitmentHud.RecruitmentRequested += OnRecruitmentRequested;
-		_shipRecruitmentHud.Closed += UpdateBackButton;
-		_merchantHudLayer.AddChild(_shipRecruitmentHud);
+		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
 		_healingStation = new HealingStationPresenter(
 			this,
 			_binding,
@@ -73,7 +67,7 @@ public partial class MarketController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_shipRecruitmentHud.IsOpen
+		if (_merchant.IsOpen
 			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
@@ -84,16 +78,15 @@ public partial class MarketController : Control
 		ReturnToMap();
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
+	private void OnFacilityOperatorActivated(
+		FacilityOperator facilityOperator,
+		OperatorInteraction interaction)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (role)
+		switch (interaction.Role)
 		{
-			case EFacilityOperatorRole.Merchant when facilityOperator.MerchantCatalog == EMerchantCatalog.Ships:
-				_shipRecruitmentHud.Open(
-					_binding.Run,
-					OperatorDisplayLabels.Title(facilityOperator));
-				UpdateBackButton();
+			case EFacilityOperatorRole.Merchant:
+				_merchant.Open(facilityOperator, interaction);
 				break;
 			case EFacilityOperatorRole.HealingStation:
 				_healingStation.Open(facilityOperator);
@@ -110,38 +103,13 @@ public partial class MarketController : Control
 				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{role}' in market facility.");
+					$"Unexpected operator role '{interaction.Role}' in market facility.");
 		}
 	}
 
 	private void OnWorldUpdated()
 	{
-		_shipRecruitmentHud.Sync(_binding.Run);
 		_contractHud.SyncMap();
-	}
-
-	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
-	{
-		var committed = _binding.Intents.TryRecruitShip(
-			_binding.PoiId,
-			_binding.FacilityId,
-			RequireActiveOperatorName(),
-			offer);
-		if (!committed)
-		{
-			var run = _binding.Run;
-			if (run.PlayerParty.ShipIds.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
-				_shipRecruitmentHud.ShowError("Your fleet roster is full.");
-			else if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
-				_shipRecruitmentHud.ShowError("You do not have the required resources.");
-			else
-				_shipRecruitmentHud.ShowError("Unable to hire this ship.");
-			UpdateBackButton();
-			return;
-		}
-
-		_shipRecruitmentHud.ShowConfirmation("Ship hired.");
-		UpdateBackButton();
 	}
 
 	private void ReturnToMap()
@@ -150,12 +118,8 @@ public partial class MarketController : Control
 		GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath);
 	}
 
-	private static string RequireActiveOperatorName() =>
-		MapNavigationContext.ActiveOperatorName
-		?? throw new InvalidOperationException("Ship recruitment requires an active facility operator.");
-
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _shipRecruitmentHud.IsOpen
+		_backButton.Disabled = _merchant.IsOpen
 			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen

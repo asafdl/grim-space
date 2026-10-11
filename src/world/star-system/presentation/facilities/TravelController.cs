@@ -10,6 +10,7 @@ public partial class TravelController : Control
 	private FacilitySceneBinding _binding = null!;
 	private Button _backButton = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
+	private MerchantPresenter _merchant = null!;
 	private HealingStationPresenter _healingStation = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -28,6 +29,7 @@ public partial class TravelController : Control
 		_backButton = GetNode<Button>("Back");
 		_backButton.Pressed += ReturnToMap;
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
+		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
 		_healingStation = new HealingStationPresenter(
 			this,
 			_binding,
@@ -60,7 +62,8 @@ public partial class TravelController : Control
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return;
 
-		if (_healingStation.IsOpen
+		if (_merchant.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -70,11 +73,16 @@ public partial class TravelController : Control
 		ReturnToMap();
 	}
 
-	private void OnFacilityOperatorActivated(FacilityOperator facilityOperator, EFacilityOperatorRole role)
+	private void OnFacilityOperatorActivated(
+		FacilityOperator facilityOperator,
+		OperatorInteraction interaction)
 	{
 		MapNavigationContext.ActivateOperator(facilityOperator.Name);
-		switch (role)
+		switch (interaction.Role)
 		{
+			case EFacilityOperatorRole.Merchant:
+				_merchant.Open(facilityOperator, interaction);
+				break;
 			case EFacilityOperatorRole.HealingStation:
 				_healingStation.Open(facilityOperator);
 				break;
@@ -90,7 +98,7 @@ public partial class TravelController : Control
 				break;
 			default:
 				throw new InvalidOperationException(
-					$"Unexpected operator role '{role}' in travel facility.");
+					$"Unexpected operator role '{interaction.Role}' in travel facility.");
 		}
 	}
 
@@ -101,7 +109,8 @@ public partial class TravelController : Control
 	}
 
 	private void UpdateBackButton() =>
-		_backButton.Disabled = _healingStation.IsOpen
+		_backButton.Disabled = _merchant.IsOpen
+			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;

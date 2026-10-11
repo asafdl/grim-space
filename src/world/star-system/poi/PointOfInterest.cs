@@ -53,8 +53,8 @@ public abstract class PointOfInterest
 		string facilityId,
 		string operatorName,
 		OperatorInteraction baseInteraction) =>
-		OperatorTemporaryRoles.TryGetRole(facilityId, operatorName, out var overlayRole)
-			? new OperatorInteraction(overlayRole)
+		OperatorTemporaryRoles.TryGetInteraction(facilityId, operatorName, out var interaction)
+			? interaction
 			: baseInteraction;
 
 	public virtual int RouteExclusionRadius => Radius + 6;
@@ -105,6 +105,6 @@ public abstract class PointOfInterest
 		clone.OperatorTemporaryRoles = OperatorTemporaryRoles.CloneForFork();
 
 	internal void RestoreOperatorTemporaryRoles(
-		IEnumerable<(string FacilityId, string OperatorName, EFacilityOperatorRole Role, string SourceId)> entries) =>
+		IEnumerable<FacilityOperatorTemporaryRoles.SnapshotEntry> entries) =>
 		OperatorTemporaryRoles = FacilityOperatorTemporaryRoles.FromSnapshot(entries);
 }

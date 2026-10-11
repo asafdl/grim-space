@@ -5,6 +5,16 @@ namespace GrimSpace.World.StarSystem.Objectives;
 public enum EObjectiveSource
 {
 	Contract,
+	BlackMarketLead,
+	Story,
+}
+
+public enum EObjectiveKind
+{
+	Hunt,
+	Wreckage,
+	Delivery,
+	BlackMarketLead,
 	Story,
 }
 
@@ -16,4 +26,5 @@ public readonly record struct ActiveObjective(
 	ObjectiveSummaryContent Summary,
 	ResourceBundle Reward,
 	EObjectiveSource Source,
+	EObjectiveKind Kind,
 	ObjectiveDeadline? Deadline = null);

@@ -4,13 +4,46 @@ namespace GrimSpace.World.StarSystem.Poi;
 
 public static class MerchantPurchaseValidation
 {
-	public static bool OperatorServesCatalog(
+	public static bool OperatorServesMerchantSubtype(
 		StarMap map,
 		string poiId,
 		string facilityId,
 		string operatorName,
-		EMerchantCatalog catalog)
+		EMerchantSubtype subtype)
 	{
+		if (!TryResolveInteraction(
+			    map,
+			    poiId,
+			    facilityId,
+			    operatorName,
+			    out var interaction))
+			return false;
+
+		return interaction.Role == EFacilityOperatorRole.Merchant
+			&& interaction.MerchantSubtype == subtype;
+	}
+
+	public static bool OperatorServesHealingStation(
+		StarMap map,
+		string poiId,
+		string facilityId,
+		string operatorName) =>
+		TryResolveInteraction(
+			map,
+			poiId,
+			facilityId,
+			operatorName,
+			out var interaction)
+		&& interaction.Role == EFacilityOperatorRole.HealingStation;
+
+	private static bool TryResolveInteraction(
+		StarMap map,
+		string poiId,
+		string facilityId,
+		string operatorName,
+		out OperatorInteraction interaction)
+	{
+		interaction = null!;
 		if (!map.TryGetPointOfInterest(poiId, out var poi))
 			return false;
 
@@ -29,8 +62,10 @@ public static class MerchantPurchaseValidation
 		if (facilityOperator is null)
 			return false;
 
-		return facilityOperator.Role is EFacilityOperatorRole.Merchant
-				or EFacilityOperatorRole.HealingStation
-			&& facilityOperator.MerchantCatalog == catalog;
+		interaction = poi.ResolveInteraction(
+			facilityId,
+			facilityOperator.Name,
+			facilityOperator.Interaction);
+		return true;
 	}
 }

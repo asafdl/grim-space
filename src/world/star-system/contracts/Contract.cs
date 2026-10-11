@@ -4,6 +4,12 @@ using GrimSpace.World.StarSystem.Encounter;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
+public enum EContractCategory
+{
+	Standard,
+	BlackMarketLead,
+}
+
 public sealed record Contract(
 	string Id,
 	IContractObjective Objective,
@@ -11,7 +17,8 @@ public sealed record Contract(
 	EFaction IssuerFaction,
 	ContractTerms Terms,
 	ContractNarrative Narrative,
-	bool IsStoryObjective = false)
+	bool IsStoryObjective = false,
+	EContractCategory Category = EContractCategory.Standard)
 {
 	public bool AllowsDecline => !IsStoryObjective;
 }

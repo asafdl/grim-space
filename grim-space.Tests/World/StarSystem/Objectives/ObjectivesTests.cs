@@ -182,6 +182,7 @@ public sealed class ObjectivesCollectorTests(StarMapFixture maps)
 		var objective = Assert.Single(ObjectivesCollector.Collect(map, holderUnitId));
 
 		Assert.Equal(EObjectiveSource.Story, objective.Source);
+		Assert.Equal(EObjectiveKind.Story, objective.Kind);
 		var plain = Assert.IsType<ObjectiveSummaryContent.Plain>(objective.Summary);
 		Assert.Equal("Survey the supply chain.", plain.Text);
 		Assert.True(objective.Reward.IsEmpty);

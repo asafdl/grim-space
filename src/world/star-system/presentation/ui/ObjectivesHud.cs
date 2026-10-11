@@ -215,6 +215,14 @@ public partial class ObjectivesHud : MarginContainer
 			ThemeTypeVariation = HudStyles.InformativeListItemHBoxType,
 		};
 
+		row.AddChild(new ColorRect
+		{
+			Color = Color.FromHtml(ObjectivePresentationPolicy.AccentHex(objective.Kind)),
+			CustomMinimumSize = new Vector2(5, 0),
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+		});
+
 		row.AddChild(new Label
 		{
 			Text = $"{index:D2}",
@@ -264,15 +272,16 @@ public partial class ObjectivesHud : MarginContainer
 		}
 		row.AddChild(details);
 
-		if (objective.Source == EObjectiveSource.Contract && !objective.Reward.IsEmpty)
+		if (ObjectivePresentationPolicy.ShowsReward(objective.Source)
+			&& !objective.Reward.IsEmpty)
 			row.AddChild(ResourceRewardDisplay.CreateCompact(objective.Reward));
 
-		if (objective.Source == EObjectiveSource.Contract)
+		if (ObjectivePresentationPolicy.CanDismiss(objective.Source))
 		{
 			var dismissButton = new Button
 			{
 				Text = "×",
-				TooltipText = "Dismiss contract",
+				TooltipText = ObjectivePresentationPolicy.DismissTooltip(objective.Source),
 				CustomMinimumSize = new Vector2(36, 36),
 				FocusMode = Control.FocusModeEnum.All,
 			};
@@ -488,7 +497,7 @@ public partial class ObjectivesHud : MarginContainer
 		var deadlineSignature = objective.Deadline is { } deadline
 			? $"{deadline.Tick}"
 			: "none";
-		return $"{objective.Source}:{objective.Id}:{objective.Title}:{summarySignature}:" +
+		return $"{objective.Source}:{objective.Kind}:{objective.Id}:{objective.Title}:{summarySignature}:" +
 			$"{rewardSignature}:{deadlineSignature}";
 	}
 }

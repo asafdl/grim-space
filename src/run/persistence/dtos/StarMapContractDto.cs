@@ -16,7 +16,8 @@ public sealed record StarMapContractDto(
 	bool IsStoryObjective,
 	string? StateType,
 	JsonElement State,
-	int? ExpiresAtTick);
+	int? ExpiresAtTick,
+	EContractCategory Category = EContractCategory.Standard);
 
 internal sealed record MaintainContractBoardDto(
 	string ActorId,

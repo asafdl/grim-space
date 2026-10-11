@@ -1,3 +1,4 @@
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
@@ -35,13 +36,122 @@ public sealed class FacilityOperatorTemporaryRolesTests
 	}
 
 	[Fact]
-	public void Grant_DifferentRoleFromDifferentSource_Throws()
+	public void Grant_DifferentPriority_PreservesLowerPriorityAssignment()
 	{
 		var roles = new FacilityOperatorTemporaryRoles();
 		roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.DeliveryTurnIn, "contract-1");
 
+		roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.Contracts, "contract-2");
+
+		Assert.True(roles.TryGetRole("poi-a.facility", "Operator", out var role));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, role);
+		Assert.Single(roles.AssignmentsIncludingSuspended(EFacilityOperatorRole.Contracts));
+	}
+
+	[Fact]
+	public void Grant_ConflictingMerchantSubtypeAtSamePriority_Throws()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			new OperatorInteraction(
+				EFacilityOperatorRole.Merchant,
+				EMerchantSubtype.Weapons),
+			EOperatorAssignmentPriority.Merchant,
+			"merchant-1");
+
 		Assert.Throws<InvalidOperationException>(() =>
-			roles.Grant("poi-a.facility", "Operator", EFacilityOperatorRole.Contracts, "contract-2"));
+			roles.Grant(
+				"poi-a.facility",
+				"Operator",
+				new OperatorInteraction(
+					EFacilityOperatorRole.Merchant,
+					EMerchantSubtype.ShipSupport),
+				EOperatorAssignmentPriority.Merchant,
+				"merchant-2"));
+	}
+
+	[Fact]
+	public void HigherPriorityInteraction_SuspendsAndRestoresMerchant()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			new OperatorInteraction(
+				EFacilityOperatorRole.Merchant,
+				EMerchantSubtype.Weapons),
+			EOperatorAssignmentPriority.Merchant,
+			"merchant-1",
+			acceptsSourcesUntilTick: 300);
+		roles.GrantPrimary(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"delivery-1");
+
+		Assert.True(roles.TryGetRole("poi-a.facility", "Operator", out var activeRole));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, activeRole);
+		var suspended = Assert.Single(
+			roles.AssignmentsIncludingSuspended(EFacilityOperatorRole.Merchant));
+		Assert.Equal(EMerchantSubtype.Weapons, suspended.MerchantSubtype);
+
+		roles.RevokeBySource("delivery-1");
+
+		Assert.True(roles.TryGetAssignment("poi-a.facility", "Operator", out var restored));
+		Assert.Equal(EFacilityOperatorRole.Merchant, restored.Role);
+		Assert.Equal(EMerchantSubtype.Weapons, restored.MerchantSubtype);
+		Assert.Equal(300, restored.AcceptsSourcesUntilTick);
+	}
+
+	[Fact]
+	public void SnapshotRestore_PreservesSuspendedMerchant()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			new OperatorInteraction(
+				EFacilityOperatorRole.Merchant,
+				EMerchantSubtype.Ships),
+			EOperatorAssignmentPriority.Merchant,
+			"merchant-1",
+			acceptsSourcesUntilTick: 300);
+		roles.GrantPrimary(
+			"poi-a.facility",
+			"Operator",
+			EFacilityOperatorRole.DeliveryTurnIn,
+			"delivery-1");
+
+		var restored = FacilityOperatorTemporaryRoles.FromSnapshot(roles.Snapshot());
+		restored.RevokeBySource("delivery-1");
+
+		Assert.True(restored.TryGetAssignment("poi-a.facility", "Operator", out var merchant));
+		Assert.Equal(EMerchantSubtype.Ships, merchant.MerchantSubtype);
+		Assert.Equal(EOperatorAssignmentPriority.Merchant, merchant.Priority);
+		Assert.Equal(300, merchant.AcceptsSourcesUntilTick);
+	}
+
+	[Fact]
+	public void CloneForFork_MerchantMutationIsIndependent()
+	{
+		var roles = new FacilityOperatorTemporaryRoles();
+		roles.Grant(
+			"poi-a.facility",
+			"Operator",
+			new OperatorInteraction(
+				EFacilityOperatorRole.Merchant,
+				EMerchantSubtype.Weapons),
+			EOperatorAssignmentPriority.Merchant,
+			"merchant-1");
+
+		var clone = roles.CloneForFork();
+		clone.RevokeBySource("merchant-1");
+
+		Assert.False(clone.TryGetInteraction("poi-a.facility", "Operator", out _));
+		Assert.True(roles.TryGetInteraction("poi-a.facility", "Operator", out var original));
+		Assert.Equal(EMerchantSubtype.Weapons, original.MerchantSubtype);
 	}
 
 	[Fact]

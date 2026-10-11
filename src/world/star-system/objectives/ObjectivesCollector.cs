@@ -21,7 +21,8 @@ public static class ObjectivesCollector
 				story.Title,
 				new ObjectiveSummaryContent.Plain(story.Summary),
 				ResourceBundle.Empty,
-				EObjectiveSource.Story));
+				EObjectiveSource.Story,
+				EObjectiveKind.Story));
 
 		return objectives;
 	}
