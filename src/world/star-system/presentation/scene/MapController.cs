@@ -44,6 +44,8 @@ public partial class MapController : Node3D
 	private StrategicHud _strategicHud = null!;
 	private EngagementController _engagement = null!;
 	private DeliveryTurnInDialogPresenter _deliveryMeetingDialog = null!;
+	private MapSceneBinding _mapBinding = null!;
+	private LeadSaleMapMerchantPresenter _leadSaleMerchant = null!;
 	private WreckController _wreck = null!;
 	private IDisposable _deliveryMeetingSubscription = null!;
 	private IDisposable _pursuitChangedSubscription = null!;
@@ -121,6 +123,11 @@ public partial class MapController : Node3D
 				[new FleeAction(State.PlayerFleetUnitId)]),
 			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()));
 		_deliveryMeetingDialog = new DeliveryTurnInDialogPresenter(_uiLayer, _orchestrator);
+		_mapBinding = new MapSceneBinding(_orchestrator);
+		_leadSaleMerchant = new LeadSaleMapMerchantPresenter(
+			_uiLayer,
+			_mapBinding,
+			() => { });
 		_deliveryMeetingSubscription = _orchestrator.Subscribe<ReachContactAction>(OnReachContact);
 
 		var wreckHud = new WreckHudOverlay();
@@ -362,6 +369,7 @@ public partial class MapController : Node3D
 		if (_orchestrator.PlayerAgent is not null)
 			_orchestrator.PlayerAgent.PlanningChanged -= OnPlayerPlanningChanged;
 		_engagement.Dispose();
+		_mapBinding.Dispose();
 		_deliveryMeetingSubscription.Dispose();
 		_pursuitChangedSubscription.Dispose();
 		_wreck.Dispose();
@@ -389,6 +397,7 @@ public partial class MapController : Node3D
 
 		if (_narrative.TryHandleInput(@event)
 			|| _deliveryMeetingDialog.TryHandleInput(@event)
+			|| _leadSaleMerchant.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event)
 			|| _wreck.TryHandleInput(@event))
 		{
@@ -515,6 +524,7 @@ public partial class MapController : Node3D
 		|| _pauseMenu.IsReportDialogOpen
 		|| (_narrative?.IsOpen ?? false)
 		|| (_deliveryMeetingDialog?.IsOpen ?? false)
+		|| (_leadSaleMerchant?.IsOpen ?? false)
 		|| (_engagement?.IsOpen ?? false)
 		|| (_wreck?.IsOpen ?? false);
 
@@ -563,7 +573,7 @@ public partial class MapController : Node3D
 		if (stale && !_staleWaitingForPlayerInputReported)
 		{
 			GD.PushWarning(
-				"StarMap.WaitingForPlayerInput is true but no narrative, engagement, or wreck modal is open.");
+				"StarMap.WaitingForPlayerInput is true but no blocking modal is open.");
 			_staleWaitingForPlayerInputReported = true;
 		}
 		else if (!stale)
@@ -636,9 +646,18 @@ public partial class MapController : Node3D
 
 	private void OnReachContact(ReachContactAction action)
 	{
-		if (action.InitiatorId == State.PlayerFleetUnitId
-			&& action.Intent == EContactIntent.DeliveryMeeting)
-			_deliveryMeetingDialog.OpenMeeting(action.TargetId);
+		if (action.InitiatorId != State.PlayerFleetUnitId)
+			return;
+
+		switch (action.Intent)
+		{
+			case EContactIntent.DeliveryMeeting:
+				_deliveryMeetingDialog.OpenMeeting(action.TargetId);
+				break;
+			case EContactIntent.BlackMarketMeeting:
+				_leadSaleMerchant.OpenMeeting(action.TargetId);
+				break;
+		}
 	}
 
 	private void HandlePauseRequest()

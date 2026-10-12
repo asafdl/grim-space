@@ -4,6 +4,8 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Landmarks;
+using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem;
@@ -70,6 +72,76 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 
 		Assert.Throws<ArgumentException>(() =>
 			ContractFactory.Create(map, EContractKind.Hunt, deliveryArgs));
+	}
+
+	[Fact]
+	public void Build_BlackMarketLead_SelectsDeterministicEligibleDestination()
+	{
+		var map = maps.Fresh(42);
+		var args = new LeadCreateArgs(
+			ELeadKind.BlackMarketSale,
+			new ContractNarrative("Quiet Opportunity", "A seller is available."),
+			300,
+			SpaceMeetingChance: 0);
+
+		var first = ContractFactory.Build(map, "lead-deterministic", EContractKind.Lead, args);
+		var second = ContractFactory.Build(map, "lead-deterministic", EContractKind.Lead, args);
+
+		Assert.Equal(EContractCategory.Lead, first.Category);
+		Assert.True(first.Terms.Payment.IsEmpty);
+		var objective = Assert.IsType<BlackMarketSaleObjective>(first.Objective);
+		var repeated = Assert.IsType<BlackMarketSaleObjective>(second.Objective);
+		Assert.Equal(objective, repeated);
+		Assert.True(Enum.IsDefined(objective.MerchantSubtype));
+		var destination = Assert.IsType<BlackMarketFacilityDestination>(objective.Destination);
+		var facility = map.GetPointOfInterest(destination.PoiId)
+			.GetFacility(destination.FacilityId);
+		Assert.Contains(
+			facility.Operators,
+			facilityOperator => facilityOperator.Role == EFacilityOperatorRole.Dialog);
+	}
+
+	[Fact]
+	public void Build_BlackMarketLead_RejectsDestinationWithoutDialogOperator()
+	{
+		var map = maps.Fresh(42);
+		var poi = map.PointsOfInterest.First();
+		var args = new LeadCreateArgs(
+			ELeadKind.BlackMarketSale,
+			new ContractNarrative("Quiet Opportunity", "A seller is available."),
+			300,
+			SpaceMeetingChance: 0,
+			Destination: new BlackMarketFacilityDestination(
+				poi.Id,
+				"missing-facility"),
+			MerchantSubtype: EMerchantSubtype.Weapons);
+
+		Assert.Throws<ArgumentException>(() =>
+			ContractFactory.Build(map, "lead-invalid-destination", EContractKind.Lead, args));
+	}
+
+	[Fact]
+	public void Build_BlackMarketLead_SpaceMeetingIsDeterministic()
+	{
+		var map = maps.Fresh(42);
+		var args = new LeadCreateArgs(
+			ELeadKind.BlackMarketSale,
+			new ContractNarrative("Quiet Opportunity", "A seller is available."),
+			300,
+			SpaceMeetingChance: 1);
+
+		var first = ContractFactory.Build(map, "lead-space", EContractKind.Lead, args);
+		var second = ContractFactory.Build(map, "lead-space", EContractKind.Lead, args);
+
+		var firstMeeting = Assert.IsType<BlackMarketSpaceMeetingDestination>(
+			Assert.IsType<BlackMarketSaleObjective>(first.Objective).Destination);
+		var secondMeeting = Assert.IsType<BlackMarketSpaceMeetingDestination>(
+			Assert.IsType<BlackMarketSaleObjective>(second.Objective).Destination);
+		Assert.Equal("lead-space.meeting", firstMeeting.MeetingId);
+		Assert.Equal(firstMeeting.ContactName, secondMeeting.ContactName);
+		Assert.Equal(firstMeeting.SearchArea.Intel, secondMeeting.SearchArea.Intel);
+		Assert.Equal(firstMeeting.SearchArea.SpawnPoints, secondMeeting.SearchArea.SpawnPoints);
+		Assert.False(map.FleetRegistry.Contains(firstMeeting.MeetingId));
 	}
 
 	private static HuntCreateArgs CreateGeneratedHuntArgs(StarMap map)

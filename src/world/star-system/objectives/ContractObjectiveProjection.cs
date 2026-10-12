@@ -63,7 +63,7 @@ public static class ContractObjectiveProjection
 		contract.Category switch
 		{
 			EContractCategory.Standard => EObjectiveSource.Contract,
-			EContractCategory.BlackMarketLead => EObjectiveSource.BlackMarketLead,
+			EContractCategory.Lead => EObjectiveSource.Lead,
 			_ => throw new ArgumentOutOfRangeException(
 				nameof(contract),
 				contract.Category,
@@ -72,8 +72,8 @@ public static class ContractObjectiveProjection
 
 	private static EObjectiveKind KindFor(Contract contract)
 	{
-		if (contract.Category == EContractCategory.BlackMarketLead)
-			return EObjectiveKind.BlackMarketLead;
+		if (contract.Category == EContractCategory.Lead)
+			return EObjectiveKind.Lead;
 
 		return contract.Objective switch
 		{
@@ -89,6 +89,9 @@ public static class ContractObjectiveProjection
 
 	private static string FormatTitle(Contract contract)
 	{
+		if (contract.Category == EContractCategory.Lead)
+			return ContractDisplay.Title(contract);
+
 		var difficulty = ContractDisplay.Difficulty(contract);
 		if (difficulty == 0)
 			return ContractDisplay.Title(contract);
@@ -106,6 +109,17 @@ public static class ContractObjectiveProjection
 			var leg = CurrentDeliveryLeg(delivery, state);
 			if (leg is FacilityDeliveryLeg facility)
 				return BuildFacilityDeliverySummary(map, facility);
+		}
+
+		if (contract.Objective is BlackMarketSaleObjective sale)
+		{
+			switch (sale.Destination)
+			{
+				case BlackMarketFacilityDestination facility:
+					return BuildFacilityLeadSummary(map, facility);
+				case BlackMarketSpaceMeetingDestination meeting:
+					return BuildSearchAreaSummary(map, meeting.SearchArea.Intel);
+			}
 		}
 
 		if (TryGetAreaIntel(contract, state, out var intel))
@@ -225,6 +239,18 @@ public static class ContractObjectiveProjection
 			$"Deliver cargo to \"{facility.OperatorName}\" at {dropoff.GetFacility(facility.FacilityId).DisplayName} in ",
 			facility.PoiId,
 			dropoff.DisplayName,
+			".");
+	}
+
+	private static ObjectiveSummaryContent BuildFacilityLeadSummary(
+		StarMap map,
+		BlackMarketFacilityDestination facility)
+	{
+		var poi = map.GetPointOfInterest(facility.PoiId);
+		return new ObjectiveSummaryContent.NearLandmark(
+			$"Black-market sale at {poi.GetFacility(facility.FacilityId).DisplayName} in ",
+			facility.PoiId,
+			poi.DisplayName,
 			".");
 	}
 

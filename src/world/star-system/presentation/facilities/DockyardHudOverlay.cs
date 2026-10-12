@@ -36,6 +36,8 @@ public sealed partial class DockyardHudOverlay : Control
 
 	public bool IsOpen => _shell.IsOpen;
 
+	public bool TryHandleInput(InputEvent @event) => _shell.TryHandleInput(@event);
+
 	public void Open(
 		State run,
 		StarMap map,

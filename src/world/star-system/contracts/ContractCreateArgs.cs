@@ -1,5 +1,7 @@
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Merchants;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
@@ -26,3 +28,11 @@ public sealed record WreckageCreateArgs(
 	EDangerLevel Danger,
 	ContractNarrative Narrative,
 	bool IsStoryObjective = false) : ContractCreateArgs;
+
+public sealed record LeadCreateArgs(
+	ELeadKind Kind,
+	ContractNarrative Narrative,
+	int DurationTicks,
+	double SpaceMeetingChance = 0.2,
+	BlackMarketSaleDestination? Destination = null,
+	EMerchantSubtype? MerchantSubtype = null) : ContractCreateArgs;

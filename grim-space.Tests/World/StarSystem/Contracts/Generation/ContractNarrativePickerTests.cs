@@ -55,4 +55,21 @@ public sealed class ContractNarrativePickerTests(StarMapFixture maps)
 
 		Assert.Equal("Supply Run", narrative.Title);
 	}
+
+	[Fact]
+	public void Pick_DefaultLeadPool_ProvidesStarterRumorTemplate()
+	{
+		var map = maps.Fresh(42);
+		var picker = new ContractNarrativePicker();
+
+		var narrative = picker.Pick(
+			map,
+			EContractKind.Lead,
+			tick: 0,
+			slotIndex: 0);
+
+		Assert.Equal("Quiet Opportunity", narrative.Title);
+		Assert.Contains("{destination}", narrative.Briefing);
+		Assert.Contains("{merchant}", narrative.Briefing);
+	}
 }

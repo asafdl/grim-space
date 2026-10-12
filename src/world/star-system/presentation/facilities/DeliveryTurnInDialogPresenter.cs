@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Poi;
@@ -191,8 +192,18 @@ public sealed class DeliveryTurnInDialogPresenter
 
 	private void OnHudClosed()
 	{
+		var meetingId = _meetingId;
 		_operator = null;
 		_meetingId = null;
+		if (_orchestrator is not null
+			&& meetingId is not null
+			&& _map.WaitingForPlayerInput
+			&& !_orchestrator.TryCommitPlayerInput(new LeaveContactAction(
+				State.PlayerFleetUnitId,
+				meetingId,
+				EContactIntent.DeliveryMeeting)))
+			GD.PushError($"Failed to leave delivery meeting '{meetingId}'.");
+
 		MapNavigationContext.ClearActiveOperator();
 		UpdateBackButton();
 	}

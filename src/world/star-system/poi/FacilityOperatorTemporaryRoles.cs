@@ -187,6 +187,16 @@ public sealed class FacilityOperatorTemporaryRoles
 		return false;
 	}
 
+	public bool HasAssignment(string facilityId, string operatorName) =>
+		_assignments.ContainsKey((facilityId, operatorName));
+
+	internal bool HasAssignment(
+		string facilityId,
+		string operatorName,
+		EFacilityOperatorRole role) =>
+		_assignments.TryGetValue((facilityId, operatorName), out var entries)
+		&& entries.Any(entry => entry.Interaction.Role == role);
+
 	public bool IsAcceptingSources(
 		string facilityId,
 		string operatorName,
@@ -283,7 +293,9 @@ public sealed class FacilityOperatorTemporaryRoles
 	internal IReadOnlyList<SnapshotEntry> Snapshot() =>
 		_assignments
 			.SelectMany(pair => pair.Value
-				.Where(entry => entry.Interaction.Role != EFacilityOperatorRole.Contracts)
+				.Where(entry => entry.Interaction.Role is not (
+					EFacilityOperatorRole.Contracts
+						or EFacilityOperatorRole.LeadContact))
 				.SelectMany(entry => entry.SourceIds.Select(sourceId => new SnapshotEntry(
 					pair.Key.FacilityId,
 					pair.Key.OperatorName,
@@ -300,7 +312,8 @@ public sealed class FacilityOperatorTemporaryRoles
 		var assignments = new FacilityOperatorTemporaryRoles();
 		foreach (var entry in entries)
 		{
-			if (entry.Role == EFacilityOperatorRole.Contracts)
+			if (entry.Role is EFacilityOperatorRole.Contracts
+				or EFacilityOperatorRole.LeadContact)
 				continue;
 			assignments.Grant(
 				entry.FacilityId,
@@ -328,7 +341,9 @@ public sealed class FacilityOperatorTemporaryRoles
 		role switch
 		{
 			EFacilityOperatorRole.Merchant => EOperatorAssignmentPriority.Merchant,
-			EFacilityOperatorRole.Contracts or EFacilityOperatorRole.StoryContact =>
+			EFacilityOperatorRole.Contracts
+				or EFacilityOperatorRole.StoryContact
+				or EFacilityOperatorRole.LeadContact =>
 				EOperatorAssignmentPriority.Presentation,
 			EFacilityOperatorRole.DeliveryTurnIn => EOperatorAssignmentPriority.Critical,
 			_ => throw new ArgumentException(

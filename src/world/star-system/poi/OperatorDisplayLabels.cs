@@ -2,18 +2,35 @@ using GrimSpace.World.StarSystem.Merchants;
 
 namespace GrimSpace.World.StarSystem.Poi;
 
+public enum EOperatorRoleIndicator
+{
+	None,
+	Contract,
+	Lead,
+}
+
 public static class OperatorDisplayLabels
 {
 	public static string Role(EFacilityOperatorRole role) => role switch
 	{
 		EFacilityOperatorRole.Contracts => "Contracts",
 		EFacilityOperatorRole.StoryContact => "Story Contract",
+		EFacilityOperatorRole.LeadContact => "Lead",
 		EFacilityOperatorRole.Merchant => "",
 		EFacilityOperatorRole.Dialog => "",
 		EFacilityOperatorRole.DeliveryTurnIn => "Delivery",
 		EFacilityOperatorRole.HealingStation => "Healing Station",
 		_ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
 	};
+
+	public static EOperatorRoleIndicator Indicator(EFacilityOperatorRole role) =>
+		role switch
+		{
+			EFacilityOperatorRole.Contracts or EFacilityOperatorRole.StoryContact =>
+				EOperatorRoleIndicator.Contract,
+			EFacilityOperatorRole.LeadContact => EOperatorRoleIndicator.Lead,
+			_ => EOperatorRoleIndicator.None,
+		};
 
 	public static string MerchantRole(EMerchantCatalog catalog) => catalog switch
 	{

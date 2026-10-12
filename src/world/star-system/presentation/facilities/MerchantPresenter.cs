@@ -14,6 +14,7 @@ public sealed class MerchantPresenter
 	private readonly ShipRecruitmentHudOverlay _recruitmentHud;
 	private readonly Action _onStateChanged;
 	private EMerchantSubtype? _activeSubtype;
+	private MerchantEndpoint _endpoint = null!;
 
 	public MerchantPresenter(
 		Control host,
@@ -55,6 +56,11 @@ public sealed class MerchantPresenter
 		}
 
 		_activeSubtype = subtype;
+		_endpoint = MerchantEndpointResolver.ForFacilityOperator(
+			_binding.Map,
+			_binding.PoiId,
+			_binding.FacilityId,
+			facilityOperator.Name);
 		var title = OperatorDisplayLabels.Title(facilityOperator, interaction);
 		switch (MerchantSubtypeRouting.PresentationFor(subtype))
 		{
@@ -86,9 +92,7 @@ public sealed class MerchantPresenter
 				"Merchant purchases require an active merchant subtype.");
 		var before = _binding.Run.ShipRegistry.Get(shipId).Clone();
 		if (!_binding.Intents.TryPurchase(
-			    _binding.PoiId,
-			    _binding.FacilityId,
-			    RequireActiveOperatorName(),
+			    _endpoint,
 			    MerchantSubtypeRouting.CatalogFor(subtype),
 			    offering,
 			    target,
@@ -109,11 +113,7 @@ public sealed class MerchantPresenter
 
 	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
 	{
-		var committed = _binding.Intents.TryRecruitShip(
-			_binding.PoiId,
-			_binding.FacilityId,
-			RequireActiveOperatorName(),
-			offer);
+		var committed = _binding.Intents.TryRecruitShip(_endpoint, offer);
 		if (!committed)
 		{
 			var run = _binding.Run;
@@ -130,9 +130,4 @@ public sealed class MerchantPresenter
 		_recruitmentHud.ShowConfirmation("Ship hired.");
 		_onStateChanged();
 	}
-
-	private static string RequireActiveOperatorName() =>
-		MapNavigationContext.ActiveOperatorName
-		?? throw new InvalidOperationException(
-			"Merchant interaction requires an active facility operator.");
 }

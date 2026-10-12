@@ -8,9 +8,11 @@ public partial class FacilityOperatorButtonView : TextureButton
 {
 	private const string HaloShaderPath = "res://assets/shaders/service_button_halo.gdshader";
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
+	private const string LeadIndicatorPath = "res://assets/ui/map/lead-contact-icon.svg";
 	private const int IndicatorPx = 48;
 	private ShaderMaterial _haloMaterial = null!;
 	private Texture2D _contractIndicatorTexture = null!;
+	private Texture2D _leadIndicatorTexture = null!;
 	private TextureRect _roleIndicator = null!;
 	private Func<EFacilityOperatorRole>? _roleResolver;
 	private Func<EFacilityOperatorRole, string>? _titleResolver;
@@ -39,6 +41,7 @@ public partial class FacilityOperatorButtonView : TextureButton
 		};
 		Material = _haloMaterial;
 		_contractIndicatorTexture = SvgIconLoader.LoadRaw(ContractIndicatorPath, IndicatorPx);
+		_leadIndicatorTexture = SvgIconLoader.LoadRaw(LeadIndicatorPath, IndicatorPx);
 		_roleIndicator = new TextureRect
 		{
 			Texture = _contractIndicatorTexture,
@@ -86,8 +89,14 @@ public partial class FacilityOperatorButtonView : TextureButton
 			return;
 
 		_displayedRole = role;
-		_roleIndicator.Visible = role is EFacilityOperatorRole.Contracts
-			or EFacilityOperatorRole.StoryContact;
+		var indicator = OperatorDisplayLabels.Indicator(role);
+		_roleIndicator.Texture = indicator switch
+		{
+			EOperatorRoleIndicator.Contract => _contractIndicatorTexture,
+			EOperatorRoleIndicator.Lead => _leadIndicatorTexture,
+			_ => null,
+		};
+		_roleIndicator.Visible = indicator != EOperatorRoleIndicator.None;
 		if (_titleResolver is not null)
 			TooltipText = _titleResolver(role);
 	}

@@ -33,9 +33,12 @@ public static class ContractDisplay
 		if (reward != "—")
 			parts.Add($"Compensation is {reward}.");
 
-		var danger = Danger(contract);
-		if (danger != "—")
-			parts.Add($"Threat assessment: {danger}.");
+		if (contract.Category == EContractCategory.Standard)
+		{
+			var danger = Danger(contract);
+			if (danger != "—")
+				parts.Add($"Threat assessment: {danger}.");
+		}
 
 		return parts.Count == 0 ? "—" : string.Join("\n\n", parts);
 	}
@@ -46,6 +49,7 @@ public static class ContractDisplay
 			HuntObjective hunt => FormatHuntObjective(hunt),
 			DeliveryObjective delivery => FormatDeliveryObjective(delivery, map),
 			WreckageObjective => "Locate the derelict and investigate it.",
+			BlackMarketSaleObjective sale => FormatBlackMarketDestination(sale.Destination, map),
 			_ => "—",
 		};
 
@@ -57,6 +61,7 @@ public static class ContractDisplay
 			WreckageObjective wreckage =>
 				FormatSearchAreaIntel(wreckage.SearchArea.Intel, map),
 			DeliveryObjective delivery => FormatDeliveryRoute(delivery, map),
+			BlackMarketSaleObjective sale => FormatBlackMarketDestination(sale.Destination, map),
 			_ => "—",
 		};
 
@@ -120,14 +125,38 @@ public static class ContractDisplay
 		};
 
 	private static string FacilityDestination(StarMap map, FacilityDeliveryLeg facility)
+		=> FacilityDestination(map, facility.PoiId, facility.FacilityId);
+
+	private static string FacilityDestination(
+		StarMap map,
+		string poiId,
+		string facilityId)
 	{
-		var poi = map.PointsOfInterest.FirstOrDefault(candidate => candidate.Id == facility.PoiId);
+		var poi = map.PointsOfInterest.FirstOrDefault(candidate => candidate.Id == poiId);
 		return poi is null
-			? facility.PoiId
-			: $"{poi.GetFacility(facility.FacilityId).DisplayName} at {poi.DisplayName}";
+			? poiId
+			: $"{poi.GetFacility(facilityId).DisplayName} at {poi.DisplayName}";
 	}
 
-	private static string ResolvePoiDisplayName(StarMap map, string poiId) =>
+	private static string FormatBlackMarketDestination(
+		BlackMarketSaleDestination destination,
+		StarMap map) =>
+		destination switch
+		{
+			BlackMarketFacilityDestination facility =>
+				$"Meet the seller at {FacilityDestination(
+					map,
+					facility.PoiId,
+					facility.FacilityId)}.",
+			BlackMarketSpaceMeetingDestination meeting =>
+				$"Meet {meeting.ContactName}. {FormatSearchAreaIntel(meeting.SearchArea.Intel, map)}",
+			_ => throw new ArgumentOutOfRangeException(
+				nameof(destination),
+				destination,
+				null),
+		};
+
+	internal static string ResolvePoiDisplayName(StarMap map, string poiId) =>
 		map.PointsOfInterest.FirstOrDefault(poi => poi.Id == poiId)?.DisplayName ?? poiId;
 
 	private static string FormatHuntObjective(HuntObjective hunt)
@@ -186,6 +215,7 @@ public static class ContractDisplay
 			HuntObjective => EContractKind.Hunt,
 			DeliveryObjective => EContractKind.Delivery,
 			WreckageObjective => EContractKind.Wreckage,
+			ILeadObjective => EContractKind.Lead,
 			_ => throw new ArgumentOutOfRangeException(nameof(contract), contract.Objective, null),
 		};
 
@@ -195,6 +225,7 @@ public static class ContractDisplay
 			EContractKind.Hunt => "Hunt",
 			EContractKind.Delivery => "Delivery",
 			EContractKind.Wreckage => "Wreckage",
+			EContractKind.Lead => "Lead",
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 }

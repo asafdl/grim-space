@@ -14,6 +14,8 @@ public static class FacilityNpcDialogs
 	public const string LeaveChoiceId = "leave";
 	public const string MoreChoiceId = "more";
 	public const string TurnInChoiceId = "turn-in";
+	public const string AcceptLeadChoiceId = "accept-lead";
+	public const string RejectLeadChoiceId = "reject-lead";
 
 	public static NpcDialogDefinition DeliveryTurnIn(
 		FacilityOperator facilityOperator,
@@ -30,6 +32,27 @@ public static class FacilityNpcDialogs
 			turnInDialog,
 			[
 				new NpcDialogChoice(TurnInChoiceId, isFinal ? "Deliver" : "Go To Next Point"),
+			]);
+
+	public static NpcDialogDefinition BlackMarketLead(
+		string speakerName,
+		string line) =>
+		new(
+			speakerName,
+			line,
+			[
+				new NpcDialogChoice(AcceptLeadChoiceId, "Interested"),
+				new NpcDialogChoice(RejectLeadChoiceId, "Decline"),
+			]);
+
+	public static NpcDialogDefinition LeadResponse(
+		string speakerName,
+		string line) =>
+		new(
+			speakerName,
+			line,
+			[
+				new NpcDialogChoice(LeaveChoiceId, "Walk away"),
 			]);
 
 	public static NpcDialogDefinition Idle(

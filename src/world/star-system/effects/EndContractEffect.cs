@@ -122,6 +122,7 @@ public sealed class EndContractEffect(
 		}
 
 		ContractDeliveryRoleSupport.OnContractEnded(world, contractId);
+		ContractLeadRoleSupport.OnContractEnded(world, contractId);
 		if (_previous.HolderUnitId is { } endedHolderUnitId)
 			records.Add(new Record<ContractStateChanged>(new ContractStateChanged(
 				contractId,

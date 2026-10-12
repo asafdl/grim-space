@@ -180,6 +180,7 @@ internal sealed class ContactMonitor
 					actorState.CurrentEngagement?.Phase != EEngagementPhase.Pursuing
 					|| actorState.CurrentEngagement?.Hunting != fleetTargetId,
 				EContactIntent.DeliveryMeeting => false,
+				EContactIntent.BlackMarketMeeting => false,
 				_ => true,
 			}
 				|| !Map.FleetRegistry.TryGet(fleetTargetId, out _);

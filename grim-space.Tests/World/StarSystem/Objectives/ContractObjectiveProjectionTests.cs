@@ -101,22 +101,41 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Project_BlackMarketContract_UsesLeadSource()
+	public void Project_LeadContract_OmitsDifficultyStars()
+	{
+		var map = maps.Fresh(42);
+		var contract = ContractFactory.Build(
+			map,
+			"lead-title",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Quiet Opportunity", "A seller is available."),
+				300,
+				SpaceMeetingChance: 0));
+
+		var objective = ContractObjectiveProjection.Project(map, contract);
+
+		Assert.DoesNotContain("★", objective.Title);
+	}
+
+	[Fact]
+	public void Project_LeadContract_UsesLeadSource()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
 		var contract = map.ContractRegistry.Pending.Single() with
 		{
-			Category = EContractCategory.BlackMarketLead,
+			Category = EContractCategory.Lead,
 		};
 
 		var objective = ContractObjectiveProjection.Project(map, contract);
 
-		Assert.Equal(EObjectiveSource.BlackMarketLead, objective.Source);
-		Assert.Equal(EObjectiveKind.BlackMarketLead, objective.Kind);
+		Assert.Equal(EObjectiveSource.Lead, objective.Source);
+		Assert.Equal(EObjectiveKind.Lead, objective.Kind);
 		Assert.False(ObjectivePresentationPolicy.ShowsReward(objective.Source));
 		Assert.True(ObjectivePresentationPolicy.CanDismiss(objective.Source));
 		Assert.Equal(
-			"Abandon black market lead",
+			"Abandon lead",
 			ObjectivePresentationPolicy.DismissTooltip(objective.Source));
 	}
 
@@ -124,7 +143,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	[InlineData(EObjectiveKind.Hunt, "#F05F5F")]
 	[InlineData(EObjectiveKind.Wreckage, "#D7A93B")]
 	[InlineData(EObjectiveKind.Delivery, "#72D17C")]
-	[InlineData(EObjectiveKind.BlackMarketLead, "#8A9199")]
+	[InlineData(EObjectiveKind.Lead, "#8A9199")]
 	[InlineData(EObjectiveKind.Story, "#5794E6")]
 	public void AccentHex_MapsObjectiveKindToSemanticColor(
 		EObjectiveKind kind,
@@ -134,12 +153,12 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Persistence_PreservesBlackMarketContractCategory()
+	public void Persistence_PreservesLeadContractCategory()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
 		var contract = map.ContractRegistry.Pending.Single() with
 		{
-			Category = EContractCategory.BlackMarketLead,
+			Category = EContractCategory.Lead,
 		};
 		var registry = PersistenceRegistry.CreateDefault();
 
@@ -148,7 +167,7 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 			registry);
 		var restored = SaveDtoMapper.RestoreContract(dto, registry).Contract;
 
-		Assert.Equal(EContractCategory.BlackMarketLead, restored.Category);
+		Assert.Equal(EContractCategory.Lead, restored.Category);
 	}
 
 	private static void AssertIntelLandmarksOrderedByProximity(StarMap map, AreaPick searchArea)

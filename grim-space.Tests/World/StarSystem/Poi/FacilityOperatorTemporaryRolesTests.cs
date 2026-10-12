@@ -381,7 +381,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 	}
 
 	[Fact]
-	public void Snapshot_OmitsContractAssignmentsButKeepsDeliveryRoles()
+	public void Snapshot_OmitsReconciledPresentationAssignmentsButKeepsDeliveryRoles()
 	{
 		var roles = new FacilityOperatorTemporaryRoles();
 		roles.Grant(
@@ -390,6 +390,11 @@ public sealed class FacilityOperatorTemporaryRolesTests
 			EFacilityOperatorRole.Contracts,
 			"contract-1",
 			acceptsSourcesUntilTick: 10);
+		roles.Grant(
+			"poi-a.lead",
+			"Lead Contact",
+			EFacilityOperatorRole.LeadContact,
+			"lead-1");
 		roles.Grant(
 			"poi-a.delivery",
 			"Delivery Operator",
@@ -410,10 +415,12 @@ public sealed class FacilityOperatorTemporaryRolesTests
 		var roles = FacilityOperatorTemporaryRoles.FromSnapshot(
 		[
 			("poi-a.contracts", "Contract Operator", EFacilityOperatorRole.Contracts, "contract-1"),
+			("poi-a.lead", "Lead Contact", EFacilityOperatorRole.LeadContact, "lead-1"),
 			("poi-a.story", "Story Contact", EFacilityOperatorRole.StoryContact, "story-1"),
 		]);
 
 		Assert.Empty(roles.Assignments(EFacilityOperatorRole.Contracts));
+		Assert.Empty(roles.Assignments(EFacilityOperatorRole.LeadContact));
 		Assert.Equal(
 			["story-1"],
 			Assert.Single(roles.Assignments(EFacilityOperatorRole.StoryContact)).SourceIds);

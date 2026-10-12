@@ -57,29 +57,59 @@ public sealed class AcceptContractDef
 		}
 
 		var acceptedAtTick = world.Timeline.Clock.Current;
-		ContractState state = contract.Objective is DeliveryObjective delivery
-			? DeliveryContractState.CreateActiveOnAccept(
+		var state = CreateAcceptedState(
+			world,
+			contract,
+			accept.ActorId,
+			acceptedAtTick,
+			spawns.Fleets.Select(fleet => fleet.State.Id).ToArray());
+		effects.Add(new ActivateContractEffect(state));
+		switch (state)
+		{
+			case DeliveryContractState deliveryState:
+				effects.Add(new ScheduleDeliveryContractTimelineEffect(
+					deliveryState.ContractId,
+					accept.ActorId,
+					acceptedAtTick,
+					deliveryState.Progress,
+					((DeliveryObjective)contract.Objective).Config));
+				break;
+			case LeadContractState leadState:
+				effects.Add(new ScheduleLeadSaleTimelineEffect(
+					leadState.ContractId,
+					acceptedAtTick,
+					leadState.DeadlineTick));
+				break;
+		}
+
+		return effects;
+	}
+
+	private static ContractState CreateAcceptedState(
+		StarMap world,
+		Contract contract,
+		string holderUnitId,
+		int acceptedAtTick,
+		IReadOnlyList<string> spawnedFleetIds) =>
+		contract.Objective switch
+		{
+			DeliveryObjective delivery => DeliveryContractState.CreateActiveOnAccept(
 				world,
 				contract,
 				delivery,
-				accept.ActorId,
-				acceptedAtTick)
-			: ContractState.CreateFor(
+				holderUnitId,
+				acceptedAtTick),
+			BlackMarketSaleObjective when contract.Category == EContractCategory.Lead =>
+				LeadContractActivation.RequireActiveStateOnAccept(
+					world,
+					contract,
+					holderUnitId,
+					acceptedAtTick),
+			_ => ContractState.CreateFor(
 				contract,
 				EContractStatus.Active,
 				acceptedAtTick,
-				accept.ActorId,
-				spawns.Fleets.Select(fleet => fleet.State.Id).ToArray());
-		effects.Add(new ActivateContractEffect(state));
-		if (state is DeliveryContractState deliveryState)
-		{
-			effects.Add(new ScheduleDeliveryContractTimelineEffect(
-				deliveryState.ContractId,
-				accept.ActorId,
-				acceptedAtTick,
-				deliveryState.Progress,
-				((DeliveryObjective)contract.Objective).Config));
-		}
-		return effects;
-	}
+				holderUnitId,
+				spawnedFleetIds),
+		};
 }

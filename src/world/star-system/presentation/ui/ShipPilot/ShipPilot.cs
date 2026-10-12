@@ -97,7 +97,7 @@ public partial class ShipPilot : PanelContainer
 		column.AddChild(_portrait);
 		_hullBar = CreateBar(new Color(0.85f, 0.15f, 0.18f));
 		_shieldBar = CreateBar(new Color(0.25f, 0.62f, 0.95f));
-		_xpBar = CreateBar(new Color(0.45f, 0.78f, 0.35f));
+		_xpBar = CreateBar(new Color(0.62f, 0.38f, 0.92f));
 		column.AddChild(_hullBar);
 		column.AddChild(_shieldBar);
 		column.AddChild(_xpBar);

@@ -14,11 +14,12 @@ internal static class PoiRestore
 		ArgumentNullException.ThrowIfNull(dto);
 		ArgumentNullException.ThrowIfNull(plan);
 
+		var graceMerchants = new List<LegacyTradeHubGraceMerchant>();
 		var facilities = dto.Facilities
-			.Select(facility => RestoreFacility(facility, plan))
+			.Select(facility => RestoreFacility(facility, plan, graceMerchants))
 			.ToArray();
 
-		return dto.Kind switch
+		PointOfInterest poi = dto.Kind switch
 		{
 			nameof(Star) => Star.FromPersistence(dto.Center),
 			nameof(OreMine) => OreMine.FromPersistence(plan, dto.Center, facilities),
@@ -36,21 +37,36 @@ internal static class PoiRestore
 			_ => throw new InvalidDataException(
 				$"Unknown saved POI kind '{dto.Kind}'."),
 		};
+
+		if (poi is TradeHub tradeHub)
+			ApplyLegacyTradeHubGraceMerchants(tradeHub, graceMerchants);
+
+		return poi;
 	}
 
-	private static Facility RestoreFacility(FacilitySaveDto facility, SupplySystemPlan plan)
+	private static Facility RestoreFacility(
+		FacilitySaveDto facility,
+		SupplySystemPlan plan,
+		List<LegacyTradeHubGraceMerchant> graceMerchants)
 	{
 		var healingStationSlot = HealingStationSlot(facility.Id, plan);
-		var shipSupportMerchantSlot = ShipSupportMerchantSlot(facility.Id, plan);
 		var operators = facility.Operators
 			.Select(facilityOperator =>
 			{
-				if (facilityOperator.SceneSlotId == shipSupportMerchantSlot)
+				if (TryCreateLegacyTradeHubGraceMerchant(
+					    facility.Id,
+					    facilityOperator,
+					    plan,
+					    out var grace))
+				{
+					graceMerchants.Add(grace);
 					return facilityOperator with
 					{
-						Role = EFacilityOperatorRole.Merchant,
-						MerchantCatalog = EMerchantCatalog.ShipSupport,
+						Role = EFacilityOperatorRole.Dialog,
+						MerchantCatalog = null,
 					};
+				}
+
 				if (facilityOperator.SceneSlotId == healingStationSlot)
 				return facilityOperator with
 				{
@@ -119,10 +135,71 @@ internal static class PoiRestore
 		return null;
 	}
 
-	private static string? ShipSupportMerchantSlot(string facilityId, SupplySystemPlan plan) =>
-		facilityId == Facility.ScopedId(
-			plan.TradeHubPoiId,
-			TradeHub.DockyardFacilitySlug)
-			? TradeHub.ShieldOperatorSceneSlotId
-			: null;
+	private static void ApplyLegacyTradeHubGraceMerchants(
+		TradeHub tradeHub,
+		IEnumerable<LegacyTradeHubGraceMerchant> graceMerchants)
+	{
+		foreach (var grace in graceMerchants)
+		{
+			tradeHub.OperatorTemporaryRoles.Grant(
+				grace.FacilityId,
+				grace.OperatorName,
+				new OperatorInteraction(EFacilityOperatorRole.Merchant, grace.Subtype),
+				EOperatorAssignmentPriority.Merchant,
+				LegacyTradeHubGraceMerchant.SourceId);
+		}
+	}
+
+	private static bool TryCreateLegacyTradeHubGraceMerchant(
+		string facilityId,
+		FacilityOperator facilityOperator,
+		SupplySystemPlan plan,
+		out LegacyTradeHubGraceMerchant grace)
+	{
+		grace = null!;
+		if (facilityId == Facility.ScopedId(plan.TradeHubPoiId, TradeHub.DockyardFacilitySlug))
+		{
+			if (facilityOperator.SceneSlotId == TradeHub.ShopOperatorSceneSlotId
+				&& facilityOperator.Role == EFacilityOperatorRole.Merchant)
+			{
+				grace = new LegacyTradeHubGraceMerchant(
+					facilityId,
+					facilityOperator.Name,
+					EMerchantSubtype.Weapons);
+				return true;
+			}
+
+			if (facilityOperator.SceneSlotId == TradeHub.ShieldOperatorSceneSlotId
+				&& (facilityOperator.Role == EFacilityOperatorRole.Merchant
+					|| facilityOperator.MerchantCatalog == EMerchantCatalog.ShipSupport))
+			{
+				grace = new LegacyTradeHubGraceMerchant(
+					facilityId,
+					facilityOperator.Name,
+					EMerchantSubtype.ShipSupport);
+				return true;
+			}
+		}
+
+		if (facilityId == Facility.ScopedId(plan.TradeHubPoiId, TradeHub.MarketFacilitySlug)
+			&& facilityOperator.SceneSlotId == TradeHub.ShipMerchantSceneSlotId
+			&& facilityOperator.Role == EFacilityOperatorRole.Merchant)
+		{
+			grace = new LegacyTradeHubGraceMerchant(
+				facilityId,
+				facilityOperator.Name,
+				EMerchantSubtype.Ships);
+			return true;
+		}
+
+		return false;
+	}
+
+	private sealed record LegacyTradeHubGraceMerchant(
+		string FacilityId,
+		string OperatorName,
+		EMerchantSubtype Subtype)
+	{
+		public const string SourceId = "legacy-trade-hub-merchant";
+	}
 }

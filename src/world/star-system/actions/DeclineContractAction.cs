@@ -38,13 +38,13 @@ public sealed class DeclineContractDef
 		var decline = (DeclineContractAction)action;
 		var contract = world.ContractRegistry.All
 			.Single(contract => contract.Id == decline.ContractId);
-		return
-		[
-			new ActivateContractEffect(ContractState.CreateFor(
+		ContractState state = contract.Category == EContractCategory.Lead
+			? LeadContractActivation.BuildRejectedState(contract.Id)
+			: ContractState.CreateFor(
 				contract,
 				EContractStatus.Rejected,
 				acceptedAtTick: null,
-				holderUnitId: null)),
-		];
+				holderUnitId: null);
+		return [new ActivateContractEffect(state)];
 	}
 }

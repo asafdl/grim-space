@@ -8,7 +8,8 @@ public sealed class ContractRegistry
 	private readonly Dictionary<string, ContractState> _states = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, int?> _expirations = new(StringComparer.Ordinal);
 	private int _pendingCount;
-	private int _pendingGeneratedCount;
+	private int _pendingStandardCount;
+	private int _pendingGeneratedStandardCount;
 
 	public int MaxPending { get; set; } = int.MaxValue;
 
@@ -19,13 +20,39 @@ public sealed class ContractRegistry
 
 	public int CountPending() => _pendingCount;
 
-	public int CountPendingGenerated() => _pendingGeneratedCount;
+	public int CountPendingStandard() => _pendingStandardCount;
 
-	public int CountGeneratedBoardOccupancy() =>
-		_pendingGeneratedCount
+	public int CountPendingGeneratedStandard() => _pendingGeneratedStandardCount;
+
+	public int CountStandardBoardOccupancy() =>
+		_pendingGeneratedStandardCount
 		+ _states.Values.Count(state =>
 			state.Status == EContractStatus.Active
-			&& !_contracts[state.ContractId].IsStoryObjective);
+			&& _contracts[state.ContractId] is
+			{
+				Category: EContractCategory.Standard,
+				IsStoryObjective: false,
+			});
+
+	public int CountLeadOccupancy(int currentTick)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(currentTick);
+
+		var pending = Pending.Count(contract => contract.Category == EContractCategory.Lead);
+		var activeSales = _states.Values.Count(state =>
+		{
+			if (_contracts[state.ContractId].Category != EContractCategory.Lead
+				|| state.Status != EContractStatus.Active)
+				return false;
+
+			if (state is not LeadContractState lead)
+				throw new InvalidOperationException(
+					$"Lead contract '{state.ContractId}' has runtime state '{state.GetType().Name}'.");
+
+			return currentTick < lead.DeadlineTick;
+		});
+		return pending + activeSales;
+	}
 
 	public bool Contains(string contractId) => _contracts.ContainsKey(contractId);
 
@@ -92,14 +119,19 @@ public sealed class ContractRegistry
 		if (_contracts.ContainsKey(contract.Id))
 			throw new InvalidOperationException($"Contract '{contract.Id}' is already registered.");
 
-		if (_pendingCount >= MaxPending)
+		if (contract.Category == EContractCategory.Standard
+			&& _pendingStandardCount >= MaxPending)
 			return false;
 
 		_contracts[contract.Id] = contract;
 		_expirations[contract.Id] = expiresAtTick;
 		_pendingCount++;
-		if (!contract.IsStoryObjective)
-			_pendingGeneratedCount++;
+		if (contract.Category == EContractCategory.Standard)
+		{
+			_pendingStandardCount++;
+			if (!contract.IsStoryObjective)
+				_pendingGeneratedStandardCount++;
+		}
 		return true;
 	}
 
@@ -137,8 +169,12 @@ public sealed class ContractRegistry
 			return;
 
 		_pendingCount--;
-		if (!contract.IsStoryObjective)
-			_pendingGeneratedCount--;
+		if (contract.Category == EContractCategory.Standard)
+		{
+			_pendingStandardCount--;
+			if (!contract.IsStoryObjective)
+				_pendingGeneratedStandardCount--;
+		}
 	}
 
 	public bool Activate(ContractState state)
@@ -217,7 +253,8 @@ public sealed class ContractRegistry
 		{
 			MaxPending = MaxPending,
 			_pendingCount = _pendingCount,
-			_pendingGeneratedCount = _pendingGeneratedCount,
+			_pendingStandardCount = _pendingStandardCount,
+			_pendingGeneratedStandardCount = _pendingGeneratedStandardCount,
 		};
 		foreach (var (id, contract) in _contracts)
 			clone._contracts[id] = contract;
@@ -254,14 +291,22 @@ public sealed class ContractRegistry
 	private void OnBecamePending(Contract contract)
 	{
 		_pendingCount++;
-		if (!contract.IsStoryObjective)
-			_pendingGeneratedCount++;
+		if (contract.Category == EContractCategory.Standard)
+		{
+			_pendingStandardCount++;
+			if (!contract.IsStoryObjective)
+				_pendingGeneratedStandardCount++;
+		}
 	}
 
 	private void OnLeftPending(Contract contract)
 	{
 		_pendingCount--;
-		if (!contract.IsStoryObjective)
-			_pendingGeneratedCount--;
+		if (contract.Category == EContractCategory.Standard)
+		{
+			_pendingStandardCount--;
+			if (!contract.IsStoryObjective)
+				_pendingGeneratedStandardCount--;
+		}
 	}
 }

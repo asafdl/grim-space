@@ -324,7 +324,8 @@ public partial class UnitsView : Node3D
 
 	private static Color RingColorForUnit(StarMap world, Units.State state)
 	{
-		if (!TryGetDeliveryMeetingId(world, state, out var meetingId))
+		if (!TryGetDeliveryMeetingId(world, state, out var meetingId)
+			&& !TryGetBlackMarketMeetingId(world, state, out meetingId))
 			return ColorForUnit(state);
 
 		var hull = ToRgb(ColorForUnit(state));
@@ -381,6 +382,29 @@ public partial class UnitsView : Node3D
 			|| contract.Objective is not DeliveryObjective delivery
 			|| delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
 				is not SpaceMeetingDeliveryLeg meeting)
+			return false;
+
+		if (!string.Equals(meeting.MeetingId, state.Id, StringComparison.Ordinal))
+			return false;
+
+		meetingId = meeting.MeetingId;
+		return true;
+	}
+
+	private static bool TryGetBlackMarketMeetingId(
+		StarMap world,
+		Units.State state,
+		out string meetingId)
+	{
+		meetingId = "";
+		if (state.SourceContractId is not { } contractId
+			|| !world.ContractRegistry.TryGet(contractId, out var contract)
+			|| contract.Category != EContractCategory.Lead
+			|| !world.ContractRegistry.TryGetState(contractId, out var contractState)
+			|| contractState is not LeadContractState lead
+			|| lead.Status != EContractStatus.Active
+			|| contract.Objective is not BlackMarketSaleObjective sale
+			|| sale.Destination is not BlackMarketSpaceMeetingDestination meeting)
 			return false;
 
 		if (!string.Equals(meeting.MeetingId, state.Id, StringComparison.Ordinal))

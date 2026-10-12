@@ -11,9 +11,7 @@ namespace GrimSpace.World.StarSystem.Actions;
 
 public sealed record PurchaseAction(
 	string ActorId,
-	string PoiId,
-	string FacilityId,
-	string OperatorName,
+	MerchantEndpoint Endpoint,
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Offering Offering,
 	MerchantCatalog.Target Target,
@@ -41,7 +39,7 @@ public sealed class PurchaseActionDef
 		if (!fleet.Members.Any(member =>
 				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
 			return false;
-		if (!OperatorServesPurchaseProvider(purchase, world))
+		if (!EndpointServesPurchaseProvider(purchase, world))
 			return false;
 		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return false;
@@ -63,26 +61,20 @@ public sealed class PurchaseActionDef
 		return world.PlayerResources.CanApply(offer.Cost.Negate());
 	}
 
-	internal static bool OperatorServesPurchaseProvider(PurchaseAction purchase, StarMap world) =>
+	internal static bool EndpointServesPurchaseProvider(PurchaseAction purchase, StarMap world) =>
 		purchase.Catalog switch
 		{
-			EMerchantCatalog.Weapons => MerchantPurchaseValidation.OperatorServesMerchantSubtype(
+			EMerchantCatalog.Weapons => MerchantPurchaseValidation.EndpointServesMerchantSubtype(
 				world,
-				purchase.PoiId,
-				purchase.FacilityId,
-				purchase.OperatorName,
+				purchase.Endpoint,
 				EMerchantSubtype.Weapons),
-			EMerchantCatalog.ShipSupport => MerchantPurchaseValidation.OperatorServesMerchantSubtype(
+			EMerchantCatalog.ShipSupport => MerchantPurchaseValidation.EndpointServesMerchantSubtype(
 				world,
-				purchase.PoiId,
-				purchase.FacilityId,
-				purchase.OperatorName,
+				purchase.Endpoint,
 				EMerchantSubtype.ShipSupport),
-			EMerchantCatalog.Healing => MerchantPurchaseValidation.OperatorServesHealingStation(
+			EMerchantCatalog.Healing => MerchantPurchaseValidation.EndpointServesHealingStation(
 				world,
-				purchase.PoiId,
-				purchase.FacilityId,
-				purchase.OperatorName),
+				purchase.Endpoint),
 			_ => false,
 		};
 

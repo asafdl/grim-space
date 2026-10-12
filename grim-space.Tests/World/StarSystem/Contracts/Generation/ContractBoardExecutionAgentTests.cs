@@ -49,7 +49,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
 
 		Assert.NotNull(action);
-		Assert.Equal(3, action.Additions.Count);
+		Assert.Equal(3, StandardAdditions(action).Count);
 		Assert.All(action.Additions, addition => Assert.False(addition.Contract.IsStoryObjective));
 		Assert.All(
 			action.Additions,
@@ -89,8 +89,9 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		Assert.Equal(candidate.FacilityId, assignment.FacilityId);
 		Assert.Equal(candidate.OperatorName, assignment.OperatorName);
 		Assert.Equal(10, assignment.AcceptsSourcesUntilTick);
+		var added = Assert.Single(StandardAdditions(action));
 		Assert.Equal(
-			new[] { "existing-generated", Assert.Single(action.Additions).Contract.Id }.Order(),
+			new[] { "existing-generated", added.Contract.Id }.Order(),
 			assignment.SourceIds.Order());
 	}
 
@@ -127,7 +128,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		var existingAssignment = assignments.Single(item =>
 			item.Assignment.SourceIds.Contains(existing.Id));
 		Assert.Equal(candidate.OperatorName, existingAssignment.Assignment.OperatorName);
-		var addedId = Assert.Single(action.Additions).Contract.Id;
+		var addedId = Assert.Single(StandardAdditions(action)).Contract.Id;
 		var newAssignment = assignments.Single(item =>
 			item.Assignment.SourceIds.Contains(addedId));
 		Assert.NotEqual(
@@ -325,7 +326,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		var action = PlanAtTick(map, tick: 1, generationEnabled: true, config);
 
 		Assert.NotNull(action);
-		Assert.Equal(2, action.Additions.Count);
+		Assert.Equal(2, StandardAdditions(action).Count);
 	}
 
 	[Fact]
@@ -353,7 +354,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		var action = PlanAtTick(map, tick: 1, generationEnabled: true, config);
 
 		Assert.NotNull(action);
-		Assert.Equal(2, action.Additions.Count);
+		Assert.Equal(2, StandardAdditions(action).Count);
 	}
 
 	[Fact]
@@ -368,6 +369,254 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		Assert.Equal(
 			first.Additions.Select(addition => addition.Contract.Id),
 			second.Additions.Select(addition => addition.Contract.Id));
+	}
+
+	[Fact]
+	public void Plan_LeadChancePasses_AddsOneLeadWithoutChangingStandardTarget()
+	{
+		var map = maps.Fresh(42);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			TtlTicks = 40,
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 3 },
+			Leads = new LeadGenerationConfig
+			{
+				GenerationChance = 1,
+				SaleDurationTicks = 120,
+				SpaceMeetingChance = 1,
+			},
+		};
+
+		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
+
+		Assert.NotNull(action);
+		Assert.Equal(3, StandardAdditions(action).Count);
+		var lead = Assert.Single(LeadAdditions(action));
+		Assert.Equal(45, lead.ExpiresAtTick);
+		var objective = Assert.IsType<BlackMarketSaleObjective>(lead.Contract.Objective);
+		Assert.Equal(120, objective.DurationTicks);
+		Assert.IsType<BlackMarketSpaceMeetingDestination>(objective.Destination);
+	}
+
+	[Fact]
+	public void Plan_ExistingLeadOccupancy_BlocksAnotherLead()
+	{
+		var map = maps.Fresh(42);
+		var existing = ContractFactory.Build(
+			map,
+			"existing-lead",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Existing lead", "Already offered."),
+				300));
+		Assert.True(map.ContractRegistry.TryAdd(existing, expiresAtTick: 50));
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
+			Leads = new LeadGenerationConfig { GenerationChance = 1 },
+		};
+
+		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
+
+		Assert.NotNull(action);
+		Assert.Empty(action.Additions);
+	}
+
+	[Fact]
+	public void Plan_LeadGeneration_DoesNotPerturbStandardGeneration()
+	{
+		var withoutLead = maps.Fresh(73);
+		var withLead = maps.Fresh(73);
+		var disabledConfig = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Leads = new LeadGenerationConfig { GenerationChance = 0 },
+		};
+		var enabledConfig = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Leads = new LeadGenerationConfig { GenerationChance = 1 },
+		};
+
+		var disabled = PlanAtTick(withoutLead, tick: 10, generationEnabled: true, disabledConfig);
+		var enabled = PlanAtTick(withLead, tick: 10, generationEnabled: true, enabledConfig);
+
+		Assert.NotNull(disabled);
+		Assert.NotNull(enabled);
+		Assert.Equal(
+			StandardAdditions(disabled).Select(StandardSignature),
+			StandardAdditions(enabled).Select(StandardSignature));
+		Assert.Empty(LeadAdditions(disabled));
+		Assert.Single(LeadAdditions(enabled));
+	}
+
+	[Fact]
+	public void Plan_SameSeedAndTick_ProducesSameLeadChanceResult()
+	{
+		var firstMap = maps.Fresh(91);
+		var secondMap = maps.Fresh(91);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
+			Leads = new LeadGenerationConfig { GenerationChance = 0.5 },
+		};
+
+		var first = PlanAtTick(firstMap, tick: 15, generationEnabled: true, config);
+		var second = PlanAtTick(secondMap, tick: 15, generationEnabled: true, config);
+
+		Assert.NotNull(first);
+		Assert.NotNull(second);
+		Assert.Equal(
+			LeadAdditions(first).Select(addition => addition.Contract.Id),
+			LeadAdditions(second).Select(addition => addition.Contract.Id));
+	}
+
+	[Fact]
+	public void Reconcile_PendingLeadGetsDedicatedContactAwayFromSaleDestination()
+	{
+		var map = maps.Fresh(42);
+		var lead = ContractFactory.Build(
+			map,
+			"lead-contact",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Quiet Opportunity", "A seller is available."),
+				300,
+				SpaceMeetingChance: 0));
+		Assert.True(map.ContractRegistry.TryAdd(lead, expiresAtTick: 100));
+
+		ReconcilePresentations(map);
+
+		var (poiId, assignment) = Assert.Single(LeadAssignments(map));
+		Assert.Equal(["lead-contact"], assignment.SourceIds);
+		Assert.Equal(EOperatorAssignmentPriority.Presentation, assignment.Priority);
+		var objective = Assert.IsType<BlackMarketSaleObjective>(lead.Objective);
+		var destination = Assert.IsType<BlackMarketFacilityDestination>(objective.Destination);
+		Assert.NotEqual(destination.PoiId, poiId);
+		var facility = map.GetPointOfInterest(poiId).GetFacility(assignment.FacilityId);
+		var facilityOperator = facility.Operators.Single(candidate =>
+			candidate.Name == assignment.OperatorName);
+		Assert.Equal(EFacilityOperatorRole.Dialog, facilityOperator.Role);
+		Assert.DoesNotContain(
+			ContractAssignments(map),
+			candidate => candidate.Assignment.SourceIds.Contains(lead.Id));
+	}
+
+	[Fact]
+	public void Reconcile_MultiplePendingLeadsNeverShareContact()
+	{
+		var map = maps.Fresh(42);
+		foreach (var contractId in new[] { "lead-a", "lead-b" })
+		{
+			var lead = ContractFactory.Build(
+				map,
+				contractId,
+				EContractKind.Lead,
+				new LeadCreateArgs(
+					ELeadKind.BlackMarketSale,
+					new ContractNarrative("Quiet Opportunity", "A seller is available."),
+					300,
+					SpaceMeetingChance: 0));
+			Assert.True(map.ContractRegistry.TryAdd(lead, expiresAtTick: 100));
+		}
+
+		ReconcilePresentations(map);
+
+		var assignments = LeadAssignments(map);
+		Assert.Equal(2, assignments.Count);
+		Assert.All(assignments, item => Assert.Single(item.Assignment.SourceIds));
+		Assert.Equal(
+			2,
+			assignments
+				.Select(item => (
+					item.PoiId,
+					item.Assignment.FacilityId,
+					item.Assignment.OperatorName))
+				.Distinct()
+				.Count());
+	}
+
+	[Fact]
+	public void Reconcile_LeadContactPlacementIsStable()
+	{
+		var map = maps.Fresh(42);
+		var lead = ContractFactory.Build(
+			map,
+			"lead-stable-contact",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Quiet Opportunity", "A seller is available."),
+				300,
+				SpaceMeetingChance: 0));
+		Assert.True(map.ContractRegistry.TryAdd(lead, expiresAtTick: 100));
+		ReconcilePresentations(map);
+		var first = Assert.Single(LeadAssignments(map));
+
+		ReconcilePresentations(map);
+
+		var second = Assert.Single(LeadAssignments(map));
+		Assert.Equal(first.PoiId, second.PoiId);
+		Assert.Equal(first.Assignment.FacilityId, second.Assignment.FacilityId);
+		Assert.Equal(first.Assignment.OperatorName, second.Assignment.OperatorName);
+		Assert.Equal(first.Assignment.SourceIds, second.Assignment.SourceIds);
+	}
+
+	[Fact]
+	public void Reconcile_AcceptedFacilityLead_RedistributesDisplacedContract()
+	{
+		var map = maps.Fresh(42);
+		var standard = ContractFactory.Build(
+			map,
+			"displaced-contract",
+			EContractKind.Hunt,
+			CreateGeneratedHuntArgs(map));
+		Assert.True(map.ContractRegistry.TryAdd(standard, expiresAtTick: 100));
+		var lead = ContractFactory.Build(
+			map,
+			"merchant-takeover",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Quiet Opportunity", "A seller is available."),
+				300,
+				SpaceMeetingChance: 0));
+		Assert.True(map.ContractRegistry.TryAdd(lead, expiresAtTick: 100));
+		var holderId = map.FleetRegistry.All.First().State.Id;
+		Assert.True(LeadContractActivation.TryBuildActiveStateOnAccept(
+			map,
+			lead,
+			holderId,
+			map.Timeline.Clock.Current,
+			out var preview));
+		var destination = Assert.IsType<BlackMarketFacilityDestination>(
+			Assert.IsType<BlackMarketSaleObjective>(lead.Objective).Destination);
+		var displacedOperator = preview.DestinationOperatorName!;
+		map.GetPointOfInterest(destination.PoiId).OperatorTemporaryRoles.Grant(
+			destination.FacilityId,
+			displacedOperator,
+			EFacilityOperatorRole.Contracts,
+			standard.Id);
+
+		CreateEngine(map).Commit(ContractActionTestContext.Accept(map, holderId, lead.Id));
+		ReconcilePresentations(map);
+
+		var reassigned = Assert.Single(
+			ContractAssignments(map),
+			item => item.Assignment.SourceIds.Contains(standard.Id));
+		Assert.NotEqual(
+			(destination.PoiId, destination.FacilityId, displacedOperator),
+			(reassigned.PoiId, reassigned.Assignment.FacilityId, reassigned.Assignment.OperatorName));
+		Assert.True(map.GetPointOfInterest(destination.PoiId).OperatorTemporaryRoles.TryGetAssignment(
+			destination.FacilityId,
+			displacedOperator,
+			out var merchant));
+		Assert.Equal(EFacilityOperatorRole.Merchant, merchant.Role);
 	}
 
 	[Fact]
@@ -420,7 +669,11 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		engine.Commit(action);
 		ReconcilePresentations(engine.World, config);
 
-		var generated = engine.World.ContractRegistry.Pending.Where(contract => !contract.IsStoryObjective).ToList();
+		var generated = engine.World.ContractRegistry.Pending
+			.Where(contract =>
+				contract.Category == EContractCategory.Standard
+				&& !contract.IsStoryObjective)
+			.ToList();
 		var assignments = ContractAssignments(engine.World);
 		Assert.Equal(6, generated.Count);
 		Assert.Equal(3, assignments.Count);
@@ -506,6 +759,21 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			ContractNarrative.ForHunt("Generated Hunt"));
 	}
 
+	private static IReadOnlyList<ContractAddition> StandardAdditions(
+		MaintainContractBoardAction action) =>
+		action.Additions
+			.Where(addition => addition.Contract.Category == EContractCategory.Standard)
+			.ToArray();
+
+	private static IReadOnlyList<ContractAddition> LeadAdditions(
+		MaintainContractBoardAction action) =>
+		action.Additions
+			.Where(addition => addition.Contract.Category == EContractCategory.Lead)
+			.ToArray();
+
+	private static string StandardSignature(ContractAddition addition) =>
+		$"{addition.Contract.Id}:{addition.Contract.Objective.GetType().Name}:{addition.ExpiresAtTick}";
+
 	private static (string PoiId, string FacilityId, string OperatorName) FirstEligibleOperator(
 		StarMap map) =>
 		EligibleOperators(map).First();
@@ -534,6 +802,15 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		map.PointsOfInterest
 			.SelectMany(poi => poi.OperatorTemporaryRoles
 				.Assignments(EFacilityOperatorRole.Contracts)
+				.Select(assignment => (poi.Id, assignment)))
+			.ToArray();
+
+	private static IReadOnlyList<(
+		string PoiId,
+		FacilityOperatorTemporaryRoles.Assignment Assignment)> LeadAssignments(StarMap map) =>
+		map.PointsOfInterest
+			.SelectMany(poi => poi.OperatorTemporaryRoles
+				.Assignments(EFacilityOperatorRole.LeadContact)
 				.Select(assignment => (poi.Id, assignment)))
 			.ToArray();
 

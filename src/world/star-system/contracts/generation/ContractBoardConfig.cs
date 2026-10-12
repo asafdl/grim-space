@@ -21,4 +21,6 @@ public sealed class ContractBoardConfig
 	public ContractPlacementConfig Placement { get; init; } = new();
 
 	public ContractNarrativePickerConfig Narrative { get; init; } = new();
+
+	public LeadGenerationConfig Leads { get; init; } = new();
 }

@@ -40,6 +40,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_config.ContractGiverLeaseTicks);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_config.ContractOperatorVisitPauseTicks);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_config.PreferredContractsPerGiver);
+		ValidateLeadGenerationConfig(_config.Leads);
 		_placement = new ContractPlacement(_config.Placement);
 		_narrativePicker = new ContractNarrativePicker(_config.Narrative);
 	}
@@ -65,11 +66,19 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		var map = _world();
 		var tick = map.Timeline.Clock.Current;
 		var pendingIds = map.ContractRegistry.Pending
-			.Where(contract => !contract.IsStoryObjective)
+			.Where(contract =>
+				contract.Category == EContractCategory.Standard
+				&& !contract.IsStoryObjective)
 			.Select(contract => contract.Id)
 			.ToHashSet(StringComparer.Ordinal);
 		var pendingStoryIds = map.ContractRegistry.Pending
-			.Where(contract => contract.IsStoryObjective)
+			.Where(contract =>
+				contract.Category == EContractCategory.Standard
+				&& contract.IsStoryObjective)
+			.Select(contract => contract.Id)
+			.ToHashSet(StringComparer.Ordinal);
+		var pendingLeadIds = map.ContractRegistry.Pending
+			.Where(contract => contract.Category == EContractCategory.Lead)
 			.Select(contract => contract.Id)
 			.ToHashSet(StringComparer.Ordinal);
 
@@ -80,10 +89,15 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			poi.OperatorTemporaryRoles.PruneSources(
 				EFacilityOperatorRole.StoryContact,
 				pendingStoryIds);
+			poi.OperatorTemporaryRoles.PruneSources(
+				EFacilityOperatorRole.LeadContact,
+				pendingLeadIds);
 		}
 
 		var assignedIds = new HashSet<string>(StringComparer.Ordinal);
-		foreach (var (location, assignment) in ListContractOperators(map))
+		foreach (var (location, assignment) in ListRoleOperators(
+			map,
+			EFacilityOperatorRole.Contracts))
 		{
 			foreach (var contractId in assignment.SourceIds)
 			{
@@ -138,6 +152,8 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 
 			assignedIds.Add(contractId);
 		}
+
+		ReconcileLeadContacts(map, tick, pendingLeadIds);
 	}
 
 	public bool TryPauseContractPresentation(
@@ -168,11 +184,14 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			facilityId,
 			facilityOperator.Name,
 			out var role);
-		if (hasTemporaryRole && role == EFacilityOperatorRole.StoryContact)
+		if (hasTemporaryRole
+			&& role is EFacilityOperatorRole.StoryContact
+				or EFacilityOperatorRole.LeadContact)
 			return true;
 
 		if ((!hasTemporaryRole || role != EFacilityOperatorRole.Contracts)
-			&& !map.ContractRegistry.Pending.Any())
+			&& !map.ContractRegistry.Pending.Any(contract =>
+				contract.Category == EContractCategory.Standard))
 			return false;
 
 		poi.OperatorTemporaryRoles.PauseContractPlacement(
@@ -187,7 +206,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		int tick,
 		string contractId)
 	{
-		var current = ListContractOperators(map);
+		var current = ListRoleOperators(map, EFacilityOperatorRole.Contracts);
 		var viable = current
 			.Where(item => IsActiveContractOperator(map, item.Location))
 			.Where(item =>
@@ -233,13 +252,94 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		return new ContractOperatorTarget(reused.Location, false, true);
 	}
 
+	private void ReconcileLeadContacts(
+		StarMap map,
+		int tick,
+		IReadOnlySet<string> pendingLeadIds)
+	{
+		var assignedIds = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var (location, assignment) in ListRoleOperators(
+			map,
+			EFacilityOperatorRole.LeadContact))
+		{
+			var locationEligible = IsEligibleLeadContactOperator(map, location);
+			foreach (var contractId in assignment.SourceIds)
+			{
+				if (locationEligible && assignedIds.Add(contractId))
+				{
+					locationEligible = false;
+					continue;
+				}
+
+				map.GetPointOfInterest(location.PoiId).OperatorTemporaryRoles.RevokeSource(
+					location.FacilityId,
+					location.OperatorName,
+					contractId);
+			}
+		}
+
+		foreach (var contractId in pendingLeadIds
+			.Where(contractId => !assignedIds.Contains(contractId))
+			.Order(StringComparer.Ordinal))
+		{
+			if (!map.ContractRegistry.TryGet(contractId, out var contract))
+				continue;
+
+			var target = FindAvailableLeadContact(map, tick, contract);
+			if (target is null)
+			{
+				GameLog.Log(
+					$"[contracts] unable to present pending lead '{contractId}': no available dialog operator.");
+				continue;
+			}
+
+			map.GetPointOfInterest(target.Location.PoiId).OperatorTemporaryRoles.Grant(
+				target.Location.FacilityId,
+				target.Location.OperatorName,
+				EFacilityOperatorRole.LeadContact,
+				contractId);
+			assignedIds.Add(contractId);
+		}
+	}
+
+	private static OperatorCandidate? FindAvailableLeadContact(
+		StarMap map,
+		int tick,
+		Contract contract)
+	{
+		var eligible = ListOperators(map)
+			.Where(candidate => candidate.Operator.Role == EFacilityOperatorRole.Dialog)
+			.Where(candidate => !HasAnyTemporaryAssignment(map, candidate.Location))
+			.Where(candidate => !IsPlacementPaused(map, candidate.Location, tick))
+			.ToArray();
+		if (eligible.Length == 0)
+			return null;
+
+		var destinationPoiId = (contract.Objective as BlackMarketSaleObjective)?.Destination
+			is BlackMarketFacilityDestination facilityDestination
+				? facilityDestination.PoiId
+				: null;
+		var preferred = destinationPoiId is null
+			? eligible
+			: eligible
+				.Where(candidate => !string.Equals(
+					candidate.Location.PoiId,
+					destinationPoiId,
+					StringComparison.Ordinal))
+				.ToArray();
+		var candidates = preferred.Length > 0 ? preferred : eligible;
+		return Pick(candidates, map.Seed, tick, contract.Id, "lead-contact-operator");
+	}
+
 	private static IReadOnlyList<(
 		OperatorLocation Location,
-		FacilityOperatorTemporaryRoles.Assignment Assignment)> ListContractOperators(StarMap map) =>
+		FacilityOperatorTemporaryRoles.Assignment Assignment)> ListRoleOperators(
+			StarMap map,
+			EFacilityOperatorRole role) =>
 		map.PointsOfInterest
 			.OrderBy(poi => poi.Id, StringComparer.Ordinal)
 			.SelectMany(poi => poi.OperatorTemporaryRoles
-				.AssignmentsIncludingSuspended(EFacilityOperatorRole.Contracts)
+				.AssignmentsIncludingSuspended(role)
 				.Select(assignment => (
 					new OperatorLocation(poi.Id, assignment.FacilityId, assignment.OperatorName),
 					assignment)))
@@ -262,6 +362,21 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			location.FacilityId,
 			location.OperatorName,
 			out _);
+
+	private static bool HasAnyTemporaryAssignment(StarMap map, OperatorLocation location) =>
+		map.GetPointOfInterest(location.PoiId).OperatorTemporaryRoles.HasAssignment(
+			location.FacilityId,
+			location.OperatorName);
+
+	private static bool IsEligibleLeadContactOperator(StarMap map, OperatorLocation location)
+	{
+		var poi = map.GetPointOfInterest(location.PoiId);
+		var facility = poi.Facilities.FirstOrDefault(candidate =>
+			string.Equals(candidate.Id, location.FacilityId, StringComparison.Ordinal));
+		return facility?.Operators.Any(candidate =>
+			string.Equals(candidate.Name, location.OperatorName, StringComparison.Ordinal)
+			&& candidate.Role == EFacilityOperatorRole.Dialog) == true;
+	}
 
 	private static bool IsActiveContractOperator(StarMap map, OperatorLocation location) =>
 		map.GetPointOfInterest(location.PoiId).OperatorTemporaryRoles.TryGetRole(
@@ -313,6 +428,9 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				additions.Add(addition);
 				queuedContracts.Add(addition.Contract);
 			}
+
+			if (TryBuildLeadAddition(map, tick, additions, out var leadAddition))
+				additions.Add(leadAddition);
 		}
 
 		return new MaintainContractBoardAction(StarSystemActorIds.Contracts, tick, additions);
@@ -324,7 +442,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 	private int SlotsToFill(StarMap map)
 	{
 		var target = _config.Placement.TargetGeneratedCount;
-		var occupied = map.ContractRegistry.CountGeneratedBoardOccupancy();
+		var occupied = map.ContractRegistry.CountStandardBoardOccupancy();
 		return System.Math.Max(0, target - occupied);
 	}
 
@@ -349,6 +467,44 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		return true;
 	}
 
+	private bool TryBuildLeadAddition(
+		StarMap map,
+		int tick,
+		IReadOnlyList<ContractAddition> queued,
+		out ContractAddition addition)
+	{
+		addition = default!;
+		var queuedLeadCount = queued.Count(candidate =>
+			candidate.Contract.Category == EContractCategory.Lead);
+		if (map.ContractRegistry.CountLeadOccupancy(tick) + queuedLeadCount
+			>= _config.Leads.MaxOccupancy)
+			return false;
+
+		var chanceRandom = new StableRandom(
+			StableSeedMixer.From(map.Seed)
+				.Add(tick)
+				.Add("lead-generation-chance")
+				.Value);
+		if (chanceRandom.NextDouble() >= _config.Leads.GenerationChance)
+			return false;
+
+		var kind = PickLeadKind(map.Seed, tick, _config.Leads.KindWeights);
+		var contractId = LeadContractIdFor(map, tick);
+		if (!ContractFactory.TryBuildLead(
+			map,
+			contractId,
+			new LeadCreateArgs(
+				kind,
+				_narrativePicker.Pick(map, EContractKind.Lead, tick, slotIndex: 0),
+				_config.Leads.SaleDurationTicks,
+				_config.Leads.SpaceMeetingChance),
+			out var contract))
+			return false;
+
+		addition = new ContractAddition(contract, tick + _config.TtlTicks);
+		return true;
+	}
+
 	private static bool CanRegisterAfterPriorAdditions(
 		StarMap map,
 		IReadOnlyList<ContractAddition> queued,
@@ -363,11 +519,82 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				return false;
 		}
 
-		return map.ContractRegistry.CountPending() + queued.Count < map.ContractRegistry.MaxPending;
+		var queuedStandardCount = queued.Count(addition =>
+			addition.Contract.Category == EContractCategory.Standard);
+		return map.ContractRegistry.CountPendingStandard() + queuedStandardCount
+			< map.ContractRegistry.MaxPending;
 	}
 
 	private static string ContractIdFor(StarMap map, int tick, int slot) =>
 		$"contract-gen-{StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("contract-id").Value:x}";
+
+	private static string LeadContractIdFor(StarMap map, int tick) =>
+		$"lead-gen-{StableSeedMixer.From(map.Seed).Add(tick).Add("lead-contract-id").Value:x}";
+
+	private static ELeadKind PickLeadKind(
+		int mapSeed,
+		int tick,
+		IReadOnlyDictionary<ELeadKind, float> weights)
+	{
+		var candidates = Enum.GetValues<ELeadKind>()
+			.Select(kind => (Kind: kind, Weight: weights.GetValueOrDefault(kind)))
+			.Where(candidate => candidate.Weight > 0)
+			.ToArray();
+		var totalWeight = candidates.Sum(candidate => candidate.Weight);
+		var random = new StableRandom(
+			StableSeedMixer.From(mapSeed)
+				.Add(tick)
+				.Add("lead-kind")
+				.Value);
+		var roll = random.NextDouble() * totalWeight;
+		var cumulative = 0.0;
+		foreach (var candidate in candidates)
+		{
+			cumulative += candidate.Weight;
+			if (roll < cumulative)
+				return candidate.Kind;
+		}
+
+		return candidates[^1].Kind;
+	}
+
+	private static void ValidateLeadGenerationConfig(LeadGenerationConfig config)
+	{
+		ArgumentNullException.ThrowIfNull(config);
+		if (!double.IsFinite(config.GenerationChance)
+			|| config.GenerationChance is < 0 or > 1)
+			throw new ArgumentOutOfRangeException(
+				nameof(config),
+				config.GenerationChance,
+				"Lead generation chance must be between zero and one.");
+		if (!double.IsFinite(config.SpaceMeetingChance)
+			|| config.SpaceMeetingChance is < 0 or > 1)
+			throw new ArgumentOutOfRangeException(
+				nameof(config),
+				config.SpaceMeetingChance,
+				"Lead space meeting chance must be between zero and one.");
+		ArgumentOutOfRangeException.ThrowIfNegative(config.MaxOccupancy);
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(config.SaleDurationTicks);
+		ArgumentNullException.ThrowIfNull(config.KindWeights);
+
+		foreach (var (kind, weight) in config.KindWeights)
+		{
+			if (!Enum.IsDefined(kind))
+				throw new ArgumentOutOfRangeException(nameof(config), kind, null);
+			if (!float.IsFinite(weight) || weight < 0)
+				throw new ArgumentOutOfRangeException(
+					nameof(config),
+					weight,
+					"Lead kind weights must be finite and non-negative.");
+		}
+
+		if (config.GenerationChance > 0
+			&& config.MaxOccupancy > 0
+			&& !config.KindWeights.Any(entry => entry.Value > 0))
+			throw new ArgumentException(
+				"At least one lead kind must have a positive generation weight.",
+				nameof(config));
+	}
 
 	private bool TryBuildContract(
 		StarMap map,

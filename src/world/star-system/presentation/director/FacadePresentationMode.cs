@@ -3,6 +3,7 @@ using GrimSpace.World.StarSystem.Presentation.Camera;
 using GrimSpace.Math.Camera;
 using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Presentation.Ui;
@@ -260,6 +261,10 @@ public sealed class FacadePresentationMode : IPresentationMode
 		var pendingContractIds = world.ContractRegistry.Pending
 			.Select(contract => contract.Id)
 			.ToHashSet(StringComparer.Ordinal);
+		var pendingLeadIds = world.ContractRegistry.Pending
+			.Where(contract => contract.Category == EContractCategory.Lead)
+			.Select(contract => contract.Id)
+			.ToHashSet(StringComparer.Ordinal);
 
 		var camera = ctx.Camera;
 		var naturalCenters = new Vector2[count];
@@ -313,10 +318,16 @@ public sealed class FacadePresentationMode : IPresentationMode
 				pendingContractIds,
 				poi,
 				facility);
+			var hasLeads = HasPendingLeadPresenter(
+				pendingLeadIds,
+				poi,
+				facility);
 			_facilityCallouts[i].SetContractIndicatorVisible(hasContracts);
-			_facilityCallouts[i].Button.TooltipText = hasContracts
-				? $"{facility.DisplayName}\nContracts available"
-				: facility.DisplayName;
+			_facilityCallouts[i].SetLeadIndicatorVisible(hasLeads);
+			_facilityCallouts[i].Button.TooltipText = TooltipForFacility(
+				facility.DisplayName,
+				hasContracts,
+				hasLeads);
 			_facilityCallouts[i].UpdateLayout(
 				anchorScreens[i],
 				separatedCenters[i],
@@ -337,6 +348,30 @@ public sealed class FacadePresentationMode : IPresentationMode
 			.Where(assignment => assignment.FacilityId == facility.Id)
 			.SelectMany(assignment => assignment.SourceIds)
 			.Any(pendingContractIds.Contains);
+	}
+
+	private static bool HasPendingLeadPresenter(
+		IReadOnlySet<string> pendingLeadIds,
+		PointOfInterest poi,
+		Facility facility) =>
+		poi.OperatorTemporaryRoles
+			.Assignments(EFacilityOperatorRole.LeadContact)
+			.Where(assignment => assignment.FacilityId == facility.Id)
+			.SelectMany(assignment => assignment.SourceIds)
+			.Any(pendingLeadIds.Contains);
+
+	private static string TooltipForFacility(
+		string displayName,
+		bool hasContracts,
+		bool hasLeads)
+	{
+		if (!hasContracts && !hasLeads)
+			return displayName;
+		if (hasContracts && hasLeads)
+			return $"{displayName}\nContracts and leads available";
+		return hasLeads
+			? $"{displayName}\nLeads available"
+			: $"{displayName}\nContracts available";
 	}
 
 	private void SetFacilityButtonsVisible(bool visible)

@@ -356,3 +356,17 @@ public sealed record WreckageContractState(
 
 	public WreckageContractState MarkAmbushCleared() => this with { AmbushCleared = true };
 }
+
+public sealed record LeadContractState(
+	string ContractId,
+	EContractStatus Status,
+	int? AcceptedAtTick,
+	string? HolderUnitId,
+	string? DestinationOperatorName,
+	int DeadlineTick)
+	: ContractState(ContractId, Status, AcceptedAtTick, HolderUnitId), IContractDeadlineState
+{
+	int? IContractDeadlineState.DeadlineTick => DeadlineTick;
+
+	public override bool IsObjectiveMet() => false;
+}

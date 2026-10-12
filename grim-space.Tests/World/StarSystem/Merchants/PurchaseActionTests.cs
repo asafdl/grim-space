@@ -195,9 +195,10 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var action = new PurchaseAction(
 			unitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			DockyardFacilityId,
-			MapFacilityOperators.ShieldOperatorName(engine.World),
+			new FacilityMerchantEndpoint(
+				SupplySystemPlan.Copper.TradeHubPoiId,
+				DockyardFacilityId,
+				MapFacilityOperators.ShieldOperatorName(engine.World)),
 			EMerchantCatalog.Weapons,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
@@ -230,15 +231,16 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		ShipInstance before) =>
 		new(
 			unitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			DockyardFacilityId,
-			catalog switch
-			{
-				EMerchantCatalog.Weapons => MapFacilityOperators.ShopOperatorName(map),
-				EMerchantCatalog.ShipSupport => MapFacilityOperators.ShieldOperatorName(map),
-				EMerchantCatalog.Healing => FacilityOperator.HealingStationName,
-				_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
-			},
+			new FacilityMerchantEndpoint(
+				SupplySystemPlan.Copper.TradeHubPoiId,
+				DockyardFacilityId,
+				catalog switch
+				{
+					EMerchantCatalog.Weapons => MapFacilityOperators.ShopOperatorName(map),
+					EMerchantCatalog.ShipSupport => MapFacilityOperators.ShieldOperatorName(map),
+					EMerchantCatalog.Healing => FacilityOperator.HealingStationName,
+					_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
+				}),
 			catalog,
 			offering,
 			target,

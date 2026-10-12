@@ -233,6 +233,17 @@ public sealed class StarMapPlayerExecutionAgent
 			&& meeting.MeetingId == target.State.Id)
 			return EContactIntent.DeliveryMeeting;
 
+		if (target.State.SourceContractId is { } leadContractId
+			&& world.ContractRegistry.TryGetState(leadContractId, out var leadState)
+			&& leadState is LeadContractState lead
+			&& lead.Status == EContractStatus.Active
+			&& lead.HolderUnitId == actorId
+			&& world.ContractRegistry.TryGet(leadContractId, out var leadContract)
+			&& leadContract.Objective is BlackMarketSaleObjective sale
+			&& sale.Destination is BlackMarketSpaceMeetingDestination leadMeeting
+			&& leadMeeting.MeetingId == target.State.Id)
+			return EContactIntent.BlackMarketMeeting;
+
 		return EContactIntent.Engagement;
 	}
 

@@ -23,6 +23,8 @@ public static class ContractRewardCalculator
 		EDangerLevel danger)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
+		if (kind == EContractKind.Lead)
+			return new ContractTerms(ResourceBundle.Empty);
 
 		var rng = Rng(mapSeed, contractId, "contract-reward");
 		var scaledCredits = (int)System.Math.Round(

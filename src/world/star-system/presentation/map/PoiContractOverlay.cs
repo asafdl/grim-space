@@ -9,8 +9,10 @@ namespace GrimSpace.World.StarSystem.Presentation.Map;
 
 public sealed partial class PoiContractOverlay : Control
 {
-	private const string BadgePath = "res://assets/ui/map/contract-offer-icon.svg";
+	private const string ContractBadgePath = "res://assets/ui/map/contract-offer-icon.svg";
+	private const string LeadBadgePath = "res://assets/ui/map/lead-contact-icon.svg";
 	private const float BadgePx = 32f;
+	private const float BadgeGap = 4f;
 	private const float VerticalScreenOffsetPx = 10f;
 	private const float WorldClearancePadding = 0.2f;
 
@@ -18,8 +20,10 @@ public sealed partial class PoiContractOverlay : Control
 	private MapView _view = null!;
 	private Func<StarMap> _world = null!;
 	private Func<bool> _isVisible = null!;
-	private Texture2D? _badgeTexture;
-	private readonly Dictionary<string, ContractBadge> _badges = new(StringComparer.Ordinal);
+	private Texture2D? _contractBadgeTexture;
+	private Texture2D? _leadBadgeTexture;
+	private readonly Dictionary<string, RoleBadge> _contractBadges = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, RoleBadge> _leadBadges = new(StringComparer.Ordinal);
 
 	public void Configure(
 		MapCamera camera,
@@ -31,7 +35,8 @@ public sealed partial class PoiContractOverlay : Control
 		_view = view;
 		_world = world;
 		_isVisible = isVisible;
-		_badgeTexture = SvgIconLoader.LoadRaw(BadgePath, (int)BadgePx);
+		_contractBadgeTexture = SvgIconLoader.LoadRaw(ContractBadgePath, (int)BadgePx);
+		_leadBadgeTexture = SvgIconLoader.LoadRaw(LeadBadgePath, (int)BadgePx);
 		MouseFilter = MouseFilterEnum.Ignore;
 		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 	}
@@ -45,28 +50,77 @@ public sealed partial class PoiContractOverlay : Control
 		}
 
 		var map = _world();
-		var counts = ContractMapIndicators.CountPendingByPresenterPoi(map);
-		var activePoiIds = new HashSet<string>(counts.Keys, StringComparer.Ordinal);
+		var contractCounts = ContractMapIndicators.CountPendingByPresenterPoi(map);
+		var leadCounts = LeadMapIndicators.CountPendingByPresenterPoi(map);
+		SyncBadgeLayer(
+			contractCounts,
+			_contractBadges,
+			_contractBadgeTexture!,
+			poiId => ContractMapIndicators.TooltipForPoi(map, poiId));
+		SyncBadgeLayer(
+			leadCounts,
+			_leadBadges,
+			_leadBadgeTexture!,
+			poiId => LeadMapIndicators.TooltipForPoi(map, poiId));
 
-		foreach (var poiId in _badges.Keys.ToArray())
+		var activePoiIds = contractCounts.Keys
+			.Concat(leadCounts.Keys)
+			.ToHashSet(StringComparer.Ordinal);
+		foreach (var poiId in activePoiIds)
 		{
-			if (!activePoiIds.Contains(poiId))
-				RemoveBadge(poiId);
-		}
-
-		foreach (var (poiId, _) in counts)
-		{
-			var badge = GetOrCreateBadge(poiId);
-			badge.TooltipText = ContractMapIndicators.TooltipForPoi(map, poiId);
 			if (!TryProjectBadgePosition(map, poiId, out var screen))
 			{
-				badge.Visible = false;
+				HideBadge(_contractBadges, poiId);
+				HideBadge(_leadBadges, poiId);
 				continue;
 			}
 
-			badge.Position = screen - new Vector2(BadgePx * 0.5f, BadgePx + VerticalScreenOffsetPx);
-			badge.Visible = true;
+			var hasContract = contractCounts.ContainsKey(poiId);
+			var hasLead = leadCounts.ContainsKey(poiId);
+			var centerX = screen.X;
+			var topY = screen.Y - BadgePx - VerticalScreenOffsetPx;
+			if (hasContract && hasLead)
+			{
+				var rowLeft = centerX - (BadgePx * 2f + BadgeGap) * 0.5f;
+				PlaceBadge(_contractBadges[poiId], rowLeft, topY);
+				PlaceBadge(_leadBadges[poiId], rowLeft + BadgePx + BadgeGap, topY);
+			}
+			else if (hasContract)
+				PlaceBadge(_contractBadges[poiId], centerX - BadgePx * 0.5f, topY);
+			else
+				PlaceBadge(_leadBadges[poiId], centerX - BadgePx * 0.5f, topY);
 		}
+	}
+
+	private void SyncBadgeLayer(
+		Dictionary<string, int> counts,
+		Dictionary<string, RoleBadge> badges,
+		Texture2D texture,
+		Func<string, string> tooltip)
+	{
+		foreach (var poiId in badges.Keys.ToArray())
+		{
+			if (!counts.ContainsKey(poiId))
+				RemoveBadge(badges, poiId);
+		}
+
+		foreach (var poiId in counts.Keys)
+		{
+			var badge = GetOrCreateBadge(badges, poiId, texture);
+			badge.TooltipText = tooltip(poiId);
+		}
+	}
+
+	private static void PlaceBadge(RoleBadge badge, float leftX, float topY)
+	{
+		badge.Position = new Vector2(leftX, topY);
+		badge.Visible = true;
+	}
+
+	private static void HideBadge(Dictionary<string, RoleBadge> badges, string poiId)
+	{
+		if (badges.TryGetValue(poiId, out var badge))
+			badge.Visible = false;
 	}
 
 	private bool TryProjectBadgePosition(StarMap map, string poiId, out Vector2 screen)
@@ -77,20 +131,23 @@ public sealed partial class PoiContractOverlay : Control
 		return MapScreenAnchor.TryProject(_camera, worldPos, out screen);
 	}
 
-	private ContractBadge GetOrCreateBadge(string poiId)
+	private RoleBadge GetOrCreateBadge(
+		Dictionary<string, RoleBadge> badges,
+		string poiId,
+		Texture2D texture)
 	{
-		if (_badges.TryGetValue(poiId, out var badge))
+		if (badges.TryGetValue(poiId, out var badge))
 			return badge;
 
-		badge = new ContractBadge(_badgeTexture!);
+		badge = new RoleBadge(texture);
 		AddChild(badge);
-		_badges[poiId] = badge;
+		badges[poiId] = badge;
 		return badge;
 	}
 
-	private void RemoveBadge(string poiId)
+	private static void RemoveBadge(Dictionary<string, RoleBadge> badges, string poiId)
 	{
-		if (!_badges.Remove(poiId, out var badge))
+		if (!badges.Remove(poiId, out var badge))
 			return;
 
 		badge.QueueFree();
@@ -98,13 +155,15 @@ public sealed partial class PoiContractOverlay : Control
 
 	private void HideAllBadges()
 	{
-		foreach (var badge in _badges.Values)
+		foreach (var badge in _contractBadges.Values)
+			badge.Visible = false;
+		foreach (var badge in _leadBadges.Values)
 			badge.Visible = false;
 	}
 
-	private sealed partial class ContractBadge : TextureRect
+	private sealed partial class RoleBadge : TextureRect
 	{
-		public ContractBadge(Texture2D texture)
+		public RoleBadge(Texture2D texture)
 		{
 			Texture = texture;
 			CustomMinimumSize = new Vector2(BadgePx, BadgePx);

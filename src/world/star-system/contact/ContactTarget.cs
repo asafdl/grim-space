@@ -10,6 +10,7 @@ public enum EContactIntent
 {
 	Engagement,
 	DeliveryMeeting,
+	BlackMarketMeeting,
 	WreckInvestigation,
 }
 

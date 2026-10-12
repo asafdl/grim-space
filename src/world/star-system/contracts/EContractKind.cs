@@ -5,4 +5,5 @@ public enum EContractKind
 	Hunt,
 	Delivery,
 	Wreckage,
+	Lead,
 }

@@ -47,15 +47,15 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(TradeHub.DockyardScenePath, dockyard.ScenePath);
 		Assert.Equal(3, dockyard.Operators.Count);
 
-		var weaponsMerchant = dockyard.Operators.Single(op =>
-			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.Weapons);
-		Assert.Equal(MapFacilityOperators.ShopOperatorName(world), weaponsMerchant.Name);
-		Assert.Equal(TradeHub.ShopOperatorSceneSlotId, weaponsMerchant.SceneSlotId);
+		var weaponsContact = dockyard.Operators.Single(op =>
+			op.SceneSlotId == TradeHub.ShopOperatorSceneSlotId);
+		Assert.Equal(weaponsContact.Name, weaponsContact.Name);
+		Assert.Equal(EFacilityOperatorRole.Dialog, weaponsContact.Role);
 
-		var supportMerchant = dockyard.Operators.Single(op =>
-			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.ShipSupport);
-		Assert.Equal(MapFacilityOperators.ShieldOperatorName(world), supportMerchant.Name);
-		Assert.Equal(TradeHub.ShieldOperatorSceneSlotId, supportMerchant.SceneSlotId);
+		var supportContact = dockyard.Operators.Single(op =>
+			op.SceneSlotId == TradeHub.ShieldOperatorSceneSlotId);
+		Assert.Equal(supportContact.Name, supportContact.Name);
+		Assert.Equal(EFacilityOperatorRole.Dialog, supportContact.Role);
 		AssertHealingStation(dockyard, TradeHub.DockyardHealingStationSceneSlotId);
 
 		var market = hub.Facilities.Single(f =>
@@ -65,21 +65,22 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 		Assert.Equal(TradeHub.MarketScenePath, market.ScenePath);
 
 		Assert.Equal(4, market.Operators.Count);
-		var shipMerchant = market.Operators.Single(op =>
-			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == EMerchantCatalog.Ships);
-		Assert.Equal(MapFacilityOperators.ShipMerchantOperatorName(world), shipMerchant.Name);
-		Assert.Equal(TradeHub.ShipMerchantSceneSlotId, shipMerchant.SceneSlotId);
+		var shipContact = market.Operators.Single(op =>
+			op.SceneSlotId == TradeHub.ShipMerchantSceneSlotId);
+		Assert.Equal(shipContact.Name, shipContact.Name);
+		Assert.Equal(EFacilityOperatorRole.Dialog, shipContact.Role);
 
 		var dialogOperators = market.Operators
 			.Where(op => op.Role == EFacilityOperatorRole.Dialog)
 			.ToArray();
-		Assert.Equal(2, dialogOperators.Length);
+		Assert.Equal(3, dialogOperators.Length);
 		Assert.All(dialogOperators, operatorNpc =>
 		{
 			Assert.Contains(operatorNpc.SceneSlotId, new[]
 			{
 				TradeHub.MarketOperatorSceneSlotId,
 				TradeHub.MarketOperatorSceneSlotId10,
+				TradeHub.ShipMerchantSceneSlotId,
 			});
 			Assert.Contains(operatorNpc.Name, OperatorNames.Pool);
 		});

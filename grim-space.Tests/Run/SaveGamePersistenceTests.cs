@@ -307,9 +307,7 @@ public sealed class SaveGamePersistenceTests
 		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
 		var action = new PurchaseAction(
 			"player",
-			"trade-hub",
-			"dockyard",
-			"merchant",
+			new FacilityMerchantEndpoint("trade-hub", "dockyard", "merchant"),
 			EMerchantCatalog.Weapons,
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
 			new MerchantCatalog.Target(
@@ -326,6 +324,27 @@ public sealed class SaveGamePersistenceTests
 			restored.Before.Loadout.InstalledAbilities);
 		Assert.True(action.Before.Loadout.MaxShieldPoints.Matches(
 			restored.Before.Loadout.MaxShieldPoints));
+		Assert.IsType<FacilityMerchantEndpoint>(restored.Endpoint);
+	}
+
+	[Fact]
+	public void DefaultRegistry_RoundTripsLeadSaleMerchantEndpoint()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
+		var action = new PurchaseAction(
+			"player",
+			new LeadSaleMerchantEndpoint("lead-contract-1"),
+			EMerchantCatalog.Weapons,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 1),
+			new MerchantCatalog.Target(
+				new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
+			before);
+
+		var restored = Assert.IsType<PurchaseAction>(registry.Read(registry.Write(action)));
+
+		var endpoint = Assert.IsType<LeadSaleMerchantEndpoint>(restored.Endpoint);
+		Assert.Equal("lead-contract-1", endpoint.ContractId);
 	}
 
 	[Fact]
@@ -335,9 +354,7 @@ public sealed class SaveGamePersistenceTests
 		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
 		var action = new PurchaseAction(
 			"player",
-			"trade-hub",
-			"dockyard",
-			"merchant",
+			new FacilityMerchantEndpoint("trade-hub", "dockyard", "merchant"),
 			EMerchantCatalog.ShipSupport,
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
 			default,

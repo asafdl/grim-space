@@ -36,7 +36,9 @@ public sealed class PursueContactDef
 		&& pursue.Target switch
 		{
 			FleetContactTarget fleet =>
-				pursue.Intent is EContactIntent.Engagement or EContactIntent.DeliveryMeeting
+				pursue.Intent is EContactIntent.Engagement
+					or EContactIntent.DeliveryMeeting
+					or EContactIntent.BlackMarketMeeting
 				&& pursue.ActorId != fleet.UnitId
 				&& world.FleetRegistry.Contains(fleet.UnitId),
 			WreckContactTarget wreck =>

@@ -36,7 +36,7 @@ public sealed partial class ModalShell : Control
 		Visible = false;
 	}
 
-	public bool IsOpen => Visible;
+	public bool IsOpen => GodotObject.IsInstanceValid(this) && Visible;
 
 	public void Open(string title, string subtitle = "")
 	{
@@ -125,17 +125,30 @@ public sealed partial class ModalShell : Control
 			_footer.AddChild(CreateFooterButton(action));
 	}
 
+	public bool TryHandleInput(InputEvent @event)
+	{
+		if (!Visible
+			|| @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+			return false;
+
+		HandleEscape();
+		return true;
+	}
+
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (!Visible || @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+		if (!TryHandleInput(@event))
 			return;
 
+		GetViewport().SetInputAsHandled();
+	}
+
+	private void HandleEscape()
+	{
 		if (_backHandler is not null)
 			_backHandler();
 		else
 			CloseWithHandler();
-
-		GetViewport().SetInputAsHandled();
 	}
 
 	private void Build()

@@ -30,6 +30,7 @@ public static class ContractReevaluation
 			EContractKind.Hunt => contract.Objective is HuntObjective,
 			EContractKind.Delivery => contract.Objective is DeliveryObjective,
 			EContractKind.Wreckage => contract.Objective is WreckageObjective,
+			EContractKind.Lead => contract.Objective is ILeadObjective,
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 }

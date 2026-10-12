@@ -9,6 +9,8 @@ using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Landmarks;
+using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Poi;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
 
 namespace GrimSpace.World.StarSystem.Contracts;
@@ -49,6 +51,11 @@ public static class ContractFactory
 			EContractKind.Wreckage => args switch
 			{
 				WreckageCreateArgs wreckageArgs => BuildWreckage(map, contractId, wreckageArgs),
+				_ => throw Mismatch(kind, args),
+			},
+			EContractKind.Lead => args switch
+			{
+				LeadCreateArgs leadArgs => BuildLead(map, contractId, leadArgs),
 				_ => throw Mismatch(kind, args),
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
@@ -326,6 +333,205 @@ public static class ContractFactory
 		}
 
 		return contract;
+	}
+
+	private static Contract BuildLead(StarMap map, string contractId, LeadCreateArgs args)
+	{
+		if (TryBuildLead(map, contractId, args, out var contract))
+			return contract;
+
+		throw new InvalidOperationException(
+			$"Could not find an eligible lead destination for map seed {map.Seed}.");
+	}
+
+	public static bool TryBuildLead(
+		StarMap map,
+		string contractId,
+		LeadCreateArgs args,
+		out Contract contract)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		ArgumentException.ThrowIfNullOrEmpty(contractId);
+		ArgumentNullException.ThrowIfNull(args);
+		contract = null!;
+
+		if (!Enum.IsDefined(args.Kind))
+			throw new ArgumentOutOfRangeException(nameof(args), args.Kind, null);
+
+		return args.Kind switch
+		{
+			ELeadKind.BlackMarketSale =>
+				TryBuildBlackMarketSale(map, contractId, args, out contract),
+			_ => throw new ArgumentOutOfRangeException(nameof(args), args.Kind, null),
+		};
+	}
+
+	private static bool TryBuildBlackMarketSale(
+		StarMap map,
+		string contractId,
+		LeadCreateArgs args,
+		out Contract contract)
+	{
+		contract = null!;
+		if (!double.IsFinite(args.SpaceMeetingChance)
+			|| args.SpaceMeetingChance is < 0 or > 1)
+			throw new ArgumentOutOfRangeException(
+				nameof(args),
+				args.SpaceMeetingChance,
+				"Space meeting chance must be between zero and one.");
+
+		if (!TryResolveBlackMarketDestination(map, contractId, args, out var destination))
+			return false;
+
+		var subtype = args.MerchantSubtype ?? PickMerchantSubtype(map.Seed, contractId);
+		var objective = new BlackMarketSaleObjective(
+			destination,
+			subtype,
+			args.DurationTicks);
+		contract = new Contract(
+			contractId,
+			objective,
+			EDangerLevel.VeryLow,
+			map.ControllingFaction,
+			new ContractTerms(ResourceBundle.Empty),
+			args.Narrative,
+			Category: EContractCategory.Lead);
+		return true;
+	}
+
+	private static bool TryResolveBlackMarketDestination(
+		StarMap map,
+		string contractId,
+		LeadCreateArgs args,
+		out BlackMarketSaleDestination destination)
+	{
+		if (args.Destination is { } destinationOverride)
+		{
+			ValidateBlackMarketDestination(map, destinationOverride, args);
+			destination = destinationOverride;
+			return true;
+		}
+
+		if (RollBlackMarketSpaceMeeting(map.Seed, contractId, args.SpaceMeetingChance)
+			&& TryCreateBlackMarketSpaceMeeting(map, contractId, out var meeting))
+		{
+			destination = meeting;
+			return true;
+		}
+
+		var candidates = map.PointsOfInterest
+			.OrderBy(poi => poi.Id, StringComparer.Ordinal)
+			.SelectMany(poi => poi.Facilities
+				.OrderBy(facility => facility.Id, StringComparer.Ordinal)
+				.Where(HasEligibleLeadOperator)
+				.Select(facility => new BlackMarketFacilityDestination(poi.Id, facility.Id)))
+			.ToArray();
+		if (candidates.Length == 0)
+		{
+			destination = default!;
+			return false;
+		}
+
+		var random = new StableRandom(
+			StableSeedMixer.From(map.Seed)
+				.Add(contractId)
+				.Add("lead-destination")
+				.Value);
+		destination = candidates[(int)(random.NextDouble() * candidates.Length)];
+		return true;
+	}
+
+	private static void ValidateBlackMarketDestination(
+		StarMap map,
+		BlackMarketSaleDestination destination,
+		LeadCreateArgs args)
+	{
+		switch (destination)
+		{
+			case BlackMarketFacilityDestination facilityDestination:
+				if (!map.TryGetPointOfInterest(facilityDestination.PoiId, out var poi))
+					throw new ArgumentException(
+						$"Lead destination POI '{facilityDestination.PoiId}' does not exist.",
+						nameof(args));
+
+				var facility = poi.Facilities.FirstOrDefault(candidate =>
+					string.Equals(
+						candidate.Id,
+						facilityDestination.FacilityId,
+						StringComparison.Ordinal));
+				if (facility is null || !HasEligibleLeadOperator(facility))
+					throw new ArgumentException(
+						$"Lead destination facility '{facilityDestination.FacilityId}' must contain a dialog operator.",
+						nameof(args));
+				break;
+			case BlackMarketSpaceMeetingDestination meeting:
+				ArgumentException.ThrowIfNullOrEmpty(meeting.MeetingId);
+				ArgumentException.ThrowIfNullOrEmpty(meeting.ContactName);
+				ArgumentNullException.ThrowIfNull(meeting.SearchArea);
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(
+					nameof(destination),
+					destination,
+					$"Unsupported black-market destination '{destination.GetType().Name}'.");
+		}
+	}
+
+	private static bool RollBlackMarketSpaceMeeting(
+		int mapSeed,
+		string contractId,
+		double chance)
+	{
+		if (chance <= 0)
+			return false;
+
+		var random = new StableRandom(
+			StableSeedMixer.From(mapSeed)
+				.Add(contractId)
+				.Add("black-market-space-meeting-roll")
+				.Value);
+		return random.NextDouble() < chance;
+	}
+
+	private static bool TryCreateBlackMarketSpaceMeeting(
+		StarMap map,
+		string contractId,
+		out BlackMarketSpaceMeetingDestination meeting)
+	{
+		var meetingId = $"{contractId}.meeting";
+		var pickerArgs = new AreaPickerArgs(
+			MapLandmarkQueries.AllIds(map),
+			DeterministicPickMix: (long)StableSeedMixer.From(map.Seed)
+				.Add(meetingId)
+				.Add("area")
+				.Value);
+		var seeds = CreateSpawnSeeds(map.Seed, contractId, meetingId, 1);
+		if (!AreaPicker.TryPickWithFallback(map, pickerArgs, seeds, out var searchArea))
+		{
+			meeting = null!;
+			return false;
+		}
+
+		meeting = new BlackMarketSpaceMeetingDestination(
+			meetingId,
+			"Black-market dealer",
+			searchArea);
+		return true;
+	}
+
+	private static bool HasEligibleLeadOperator(Facility facility) =>
+		facility.Operators.Any(facilityOperator =>
+			facilityOperator.Role == EFacilityOperatorRole.Dialog);
+
+	private static EMerchantSubtype PickMerchantSubtype(int mapSeed, string contractId)
+	{
+		var subtypes = Enum.GetValues<EMerchantSubtype>();
+		var random = new StableRandom(
+			StableSeedMixer.From(mapSeed)
+				.Add(contractId)
+				.Add("black-market-merchant-subtype")
+				.Value);
+		return subtypes[(int)(random.NextDouble() * subtypes.Length)];
 	}
 
 	private static WreckageOutcome RollWreckageOutcome(StarMap map, string contractId, WreckageCreateArgs args)

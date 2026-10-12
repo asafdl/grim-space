@@ -58,7 +58,9 @@ public partial class CommandAuthorityController : Control
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (_npcDialog.TryHandleInput(@event) || _deliveryTurnInDialog.TryHandleInput(@event))
+		if (_contractHud.TryHandleInput(@event)
+			|| _npcDialog.TryHandleInput(@event)
+			|| _deliveryTurnInDialog.TryHandleInput(@event))
 			return;
 
 		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -90,7 +92,8 @@ public partial class CommandAuthorityController : Control
 				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
-				_contractHud.Open(facilityOperator);
+			case EFacilityOperatorRole.LeadContact:
+				_contractHud.Open(facilityOperator, interaction);
 				break;
 			case EFacilityOperatorRole.Dialog:
 				_npcDialog.Open(facilityOperator);

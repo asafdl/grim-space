@@ -20,6 +20,7 @@ public sealed class ActivateContractEffect : IEffect<StarMap, ActorRuntime>
 			return [];
 
 		ContractDeliveryRoleSupport.OnContractActivated(world, activated);
+		ContractLeadRoleSupport.OnContractActivated(world, activated);
 		if (activated.Status != EContractStatus.Active
 			|| string.IsNullOrEmpty(activated.HolderUnitId))
 			return [];
@@ -36,6 +37,7 @@ public sealed class ActivateContractEffect : IEffect<StarMap, ActorRuntime>
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId)
 	{
 		ContractDeliveryRoleSupport.OnContractEnded(world, _state.ContractId);
+		ContractLeadRoleSupport.OnContractEnded(world, _state.ContractId);
 		world.ContractRegistry.Deactivate(_state.ContractId);
 	}
 }

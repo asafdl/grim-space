@@ -42,14 +42,12 @@ public sealed class TradeHub : PointOfInterest
 			[
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.Merchant,
-					ShopOperatorSceneSlotId,
-					EMerchantCatalog.Weapons),
+					EFacilityOperatorRole.Dialog,
+					ShopOperatorSceneSlotId),
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.Merchant,
-					ShieldOperatorSceneSlotId,
-					EMerchantCatalog.ShipSupport),
+					EFacilityOperatorRole.Dialog,
+					ShieldOperatorSceneSlotId),
 				new FacilityOperator(
 					FacilityOperator.HealingStationName,
 					EFacilityOperatorRole.HealingStation,
@@ -68,9 +66,8 @@ public sealed class TradeHub : PointOfInterest
 					MarketOperatorSceneSlotId),
 				new FacilityOperator(
 					operatorNames.Take(),
-					EFacilityOperatorRole.Merchant,
-					ShipMerchantSceneSlotId,
-					EMerchantCatalog.Ships),
+					EFacilityOperatorRole.Dialog,
+					ShipMerchantSceneSlotId),
 				new FacilityOperator(
 					operatorNames.Take(),
 					EFacilityOperatorRole.Dialog,

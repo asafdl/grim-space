@@ -36,6 +36,8 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 
 	public bool IsOpen => _shell.IsOpen;
 
+	public bool TryHandleInput(InputEvent @event) => _shell.TryHandleInput(@event);
+
 	public void Open(State run, string facilityTitle)
 	{
 		_run = run;

@@ -5,7 +5,7 @@ namespace GrimSpace.World.StarSystem.Objectives;
 public enum EObjectiveSource
 {
 	Contract,
-	BlackMarketLead,
+	Lead,
 	Story,
 }
 
@@ -14,7 +14,7 @@ public enum EObjectiveKind
 	Hunt,
 	Wreckage,
 	Delivery,
-	BlackMarketLead,
+	Lead,
 	Story,
 }
 

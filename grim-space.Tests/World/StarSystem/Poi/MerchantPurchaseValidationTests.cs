@@ -1,7 +1,13 @@
+using GrimSpace.Core.Engine;
+using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.Tests.World.StarSystem.Contracts;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
 
@@ -9,27 +15,26 @@ namespace GrimSpace.Tests.World.StarSystem.Poi;
 public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 {
 	[Fact]
-	public void StaticMerchant_RequiresExactResolvedSubtype()
+	public void TradeHubGraceMerchant_RequiresExactResolvedSubtype()
 	{
 		var map = maps.Fresh(42);
 		var hub = map.GetPointOfInterest(SupplySystemPlan.Copper.TradeHubPoiId);
 		var dockyard = hub.GetFacility(Facility.ScopedId(
 			hub.Id,
 			TradeHub.DockyardFacilitySlug));
-		var merchant = dockyard.Operators.Single(candidate =>
-			candidate.MerchantCatalog == EMerchantCatalog.Weapons);
+		var merchantName = MapFacilityOperators.ShopOperatorName(map);
 
 		Assert.True(MerchantPurchaseValidation.OperatorServesMerchantSubtype(
 			map,
 			hub.Id,
 			dockyard.Id,
-			merchant.Name,
+			merchantName,
 			EMerchantSubtype.Weapons));
 		Assert.False(MerchantPurchaseValidation.OperatorServesMerchantSubtype(
 			map,
 			hub.Id,
 			dockyard.Id,
-			merchant.Name,
+			merchantName,
 			EMerchantSubtype.ShipSupport));
 	}
 
@@ -68,11 +73,10 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 		var dockyard = hub.GetFacility(Facility.ScopedId(
 			hub.Id,
 			TradeHub.DockyardFacilitySlug));
-		var merchant = dockyard.Operators.Single(candidate =>
-			candidate.MerchantCatalog == EMerchantCatalog.Weapons);
+		var merchantName = MapFacilityOperators.ShopOperatorName(map);
 		hub.OperatorTemporaryRoles.GrantPrimary(
 			dockyard.Id,
-			merchant.Name,
+			merchantName,
 			EFacilityOperatorRole.DeliveryTurnIn,
 			"delivery-1");
 
@@ -80,8 +84,35 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 			map,
 			hub.Id,
 			dockyard.Id,
-			merchant.Name,
+			merchantName,
 			EMerchantSubtype.Weapons));
+	}
+
+	[Fact]
+	public void LeadSaleEndpoint_RequiresActivePresentation()
+	{
+		var map = maps.Fresh(42);
+		var contract = ContractFactory.Build(
+			map,
+			"lead-validation",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Quiet Opportunity", "A seller is available."),
+				300,
+				SpaceMeetingChance: 0));
+		Assert.True(map.ContractRegistry.TryAdd(contract));
+		var unitId = map.FleetRegistry.All.First().State.Id;
+		var runtimes = new ActorRuntimes<GrimSpace.World.StarSystem.Runtime.ActorRuntime>();
+		runtimes.For(unitId);
+		var engine = new Engine<StarMap, GrimSpace.World.StarSystem.Runtime.ActorRuntime>(map, runtimes);
+		engine.Commit(ContractActionTestContext.Accept(engine.World, unitId, contract.Id));
+		var sale = (BlackMarketSaleObjective)contract.Objective;
+
+		Assert.True(MerchantPurchaseValidation.EndpointServesMerchantSubtype(
+			engine.World,
+			new LeadSaleMerchantEndpoint(contract.Id),
+			sale.MerchantSubtype));
 	}
 
 	[Fact]

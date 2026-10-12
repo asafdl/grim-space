@@ -8,33 +8,56 @@ namespace GrimSpace.Tests.World.StarSystem.Poi;
 
 internal static class MapFacilityOperators
 {
-	public static string ShopOperatorName(StarMap map) =>
-		MerchantOperatorName(
+	public const string GraceMerchantSourceId = "legacy-trade-hub-merchant";
+
+	public static string ShopOperatorName(StarMap map)
+	{
+		EnsureTradeHubMerchant(
+			map,
+			TradeHub.DockyardFacilitySlug,
+			TradeHub.ShopOperatorSceneSlotId,
+			EMerchantSubtype.Weapons);
+		return OperatorNameBySceneSlot(
 			map,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			TradeHub.DockyardFacilitySlug,
-			EMerchantCatalog.Weapons);
+			TradeHub.ShopOperatorSceneSlotId);
+	}
 
-	public static string ShieldOperatorName(StarMap map) =>
-		MerchantOperatorName(
+	public static string ShieldOperatorName(StarMap map)
+	{
+		EnsureTradeHubMerchant(
+			map,
+			TradeHub.DockyardFacilitySlug,
+			TradeHub.ShieldOperatorSceneSlotId,
+			EMerchantSubtype.ShipSupport);
+		return OperatorNameBySceneSlot(
 			map,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			TradeHub.DockyardFacilitySlug,
-			EMerchantCatalog.ShipSupport);
+			TradeHub.ShieldOperatorSceneSlotId);
+	}
 
-	public static string ShipMerchantOperatorName(StarMap map) =>
-		MerchantOperatorName(
+	public static string ShipMerchantOperatorName(StarMap map)
+	{
+		EnsureTradeHubMerchant(
+			map,
+			TradeHub.MarketFacilitySlug,
+			TradeHub.ShipMerchantSceneSlotId,
+			EMerchantSubtype.Ships);
+		return OperatorNameBySceneSlot(
 			map,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			TradeHub.MarketFacilitySlug,
-			EMerchantCatalog.Ships);
+			TradeHub.ShipMerchantSceneSlotId);
+	}
 
 	public static string MarketOperatorName(StarMap map) =>
-		OperatorName(
+		OperatorNameBySceneSlot(
 			map,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			TradeHub.MarketFacilitySlug,
-			EFacilityOperatorRole.Dialog);
+			TradeHub.MarketOperatorSceneSlotId);
 
 	public static string ContractOperatorName(StarMap map) =>
 		OperatorName(
@@ -71,17 +94,44 @@ internal static class MapFacilityOperators
 			Wormhole.TravelFacilitySlug,
 			EFacilityOperatorRole.Dialog);
 
-	private static string MerchantOperatorName(
+	private static void EnsureTradeHubMerchant(
+		StarMap map,
+		string facilitySlug,
+		string sceneSlotId,
+		EMerchantSubtype subtype)
+	{
+		var poiId = SupplySystemPlan.Copper.TradeHubPoiId;
+		var facilityId = Facility.ScopedId(poiId, facilitySlug);
+		var poi = map.GetPointOfInterest(poiId);
+		var facilityOperator = poi.GetFacility(facilityId).Operators.First(op =>
+			string.Equals(op.SceneSlotId, sceneSlotId, StringComparison.Ordinal));
+		if (poi.OperatorTemporaryRoles.TryGetInteraction(
+			    facilityId,
+			    facilityOperator.Name,
+			    out var interaction)
+			&& interaction.Role == EFacilityOperatorRole.Merchant
+			&& interaction.MerchantSubtype == subtype)
+			return;
+
+		poi.OperatorTemporaryRoles.Grant(
+			facilityId,
+			facilityOperator.Name,
+			new OperatorInteraction(EFacilityOperatorRole.Merchant, subtype),
+			EOperatorAssignmentPriority.Merchant,
+			GraceMerchantSourceId);
+	}
+
+	private static string OperatorNameBySceneSlot(
 		StarMap map,
 		string poiId,
 		string facilitySlug,
-		EMerchantCatalog catalog)
+		string sceneSlotId)
 	{
 		var facilityId = Facility.ScopedId(poiId, facilitySlug);
 		var poi = map.PointsOfInterest.First(p => p.Id == poiId);
 		var facility = poi.Facilities.First(f => f.Id == facilityId);
 		return facility.Operators.First(op =>
-			op.Role == EFacilityOperatorRole.Merchant && op.MerchantCatalog == catalog).Name;
+			string.Equals(op.SceneSlotId, sceneSlotId, StringComparison.Ordinal)).Name;
 	}
 
 	private static string OperatorName(StarMap map, string poiId, string facilitySlug, EFacilityOperatorRole role)

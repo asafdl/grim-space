@@ -585,6 +585,9 @@ public static class SaveDtoMapper
 			nameof(WreckageObjective) => JsonSerializer.Deserialize<WreckageObjective>(
 				dto.Objective,
 				registry.Options)!,
+			nameof(BlackMarketSaleObjective) => JsonSerializer.Deserialize<BlackMarketSaleObjective>(
+				dto.Objective,
+				registry.Options)!,
 			_ => throw new InvalidDataException($"Unknown contract objective '{dto.ObjectiveType}'."),
 		};
 		var contract = new Contract(
@@ -635,6 +638,9 @@ public static class SaveDtoMapper
 				statePayload,
 				registry.Options),
 			nameof(WreckageContractState) => JsonSerializer.Deserialize<WreckageContractState>(
+				statePayload,
+				registry.Options),
+			nameof(LeadContractState) => JsonSerializer.Deserialize<LeadContractState>(
 				statePayload,
 				registry.Options),
 			_ => JsonSerializer.Deserialize<ContractState>(statePayload, registry.Options),

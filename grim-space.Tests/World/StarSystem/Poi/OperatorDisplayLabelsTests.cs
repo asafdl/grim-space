@@ -18,10 +18,23 @@ public sealed class OperatorDisplayLabelsTests
 	[Theory]
 	[InlineData(EFacilityOperatorRole.Contracts, "Contracts")]
 	[InlineData(EFacilityOperatorRole.StoryContact, "Story Contract")]
+	[InlineData(EFacilityOperatorRole.LeadContact, "Lead")]
 	[InlineData(EFacilityOperatorRole.DeliveryTurnIn, "Delivery")]
 	public void Role_LabelsVisibleTemporaryRoles(EFacilityOperatorRole role, string expected)
 	{
 		Assert.Equal(expected, OperatorDisplayLabels.Role(role));
+	}
+
+	[Theory]
+	[InlineData(EFacilityOperatorRole.Contracts, EOperatorRoleIndicator.Contract)]
+	[InlineData(EFacilityOperatorRole.StoryContact, EOperatorRoleIndicator.Contract)]
+	[InlineData(EFacilityOperatorRole.LeadContact, EOperatorRoleIndicator.Lead)]
+	[InlineData(EFacilityOperatorRole.Dialog, EOperatorRoleIndicator.None)]
+	public void Indicator_MapsRoleToPresentation(
+		EFacilityOperatorRole role,
+		EOperatorRoleIndicator expected)
+	{
+		Assert.Equal(expected, OperatorDisplayLabels.Indicator(role));
 	}
 
 	[Fact]

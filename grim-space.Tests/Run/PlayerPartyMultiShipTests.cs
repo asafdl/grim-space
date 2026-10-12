@@ -118,9 +118,10 @@ public sealed class PlayerPartyMultiShipTests
 		var before = run.ShipRegistry.Get(secondId).Clone();
 		var action = new PurchaseAction(
 			RunState.PlayerFleetUnitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			"poi-trade-dockyard",
-			FacilityOperator.HealingStationName,
+			new FacilityMerchantEndpoint(
+				SupplySystemPlan.Copper.TradeHubPoiId,
+				"poi-trade-dockyard",
+				FacilityOperator.HealingStationName),
 			EMerchantCatalog.Healing,
 			offering,
 			default,
@@ -151,9 +152,10 @@ public sealed class PlayerPartyMultiShipTests
 		var before = restored.ShipRegistry.Get(restored.PlayerParty.ShipIds[0]).Clone();
 		var action = new PurchaseAction(
 			RunState.PlayerFleetUnitId,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			"poi-trade-dockyard",
-			FacilityOperator.HealingStationName,
+			new FacilityMerchantEndpoint(
+				SupplySystemPlan.Copper.TradeHubPoiId,
+				"poi-trade-dockyard",
+				FacilityOperator.HealingStationName),
 			EMerchantCatalog.Healing,
 			MerchantPurchaseTestHarness.RechargeAllShields,
 			default,

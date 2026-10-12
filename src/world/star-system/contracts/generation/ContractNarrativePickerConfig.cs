@@ -241,6 +241,15 @@ public sealed class ContractNarrativePickerConfig
 			"The moment you walked through the door you were flagged.\nLeave before the inventory system gets suspicious.",
 			Subtype: ContractNarrativeSubtype.DeliveryLeg),
 		new(
+			EContractKind.Lead,
+			"Quiet Opportunity",
+			"Hey, if you're interested, I heard there's a sale going at {destination} for {merchant}. Limited time only."),
+		new(
+			EContractKind.Lead,
+			"",
+			"Hey, if you're interested, I heard there's a sale going at {destination} for {merchant}.",
+			Subtype: ContractNarrativeSubtype.LeadContact),
+		new(
 			EContractKind.Wreckage,
 			"Derelict Survey",
 			"Navigation markers triangulate a debris field. Someone wants it catalogued before scavengers strip it."),

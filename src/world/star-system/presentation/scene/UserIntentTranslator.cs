@@ -61,11 +61,22 @@ public sealed class UserIntentTranslator
 		MerchantCatalog.Offering offering,
 		MerchantCatalog.Target target,
 		ShipInstance before) =>
+		TryPurchase(
+			new FacilityMerchantEndpoint(poiId, facilityId, operatorName),
+			catalog,
+			offering,
+			target,
+			before);
+
+	public bool TryPurchase(
+		MerchantEndpoint endpoint,
+		EMerchantCatalog catalog,
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		ShipInstance before) =>
 		TrySubmitImmediately(new PurchaseAction(
 			FacilityActorId(),
-			poiId,
-			facilityId,
-			operatorName,
+			endpoint,
 			catalog,
 			offering,
 			target,
@@ -76,11 +87,14 @@ public sealed class UserIntentTranslator
 		string facilityId,
 		string operatorName,
 		ShipRecruitmentCatalog.Offer offer) =>
+		TryRecruitShip(
+			new FacilityMerchantEndpoint(poiId, facilityId, operatorName),
+			offer);
+
+	public bool TryRecruitShip(MerchantEndpoint endpoint, ShipRecruitmentCatalog.Offer offer) =>
 		TrySubmitImmediately(new RecruitShipAction(
 			FacilityActorId(),
-			poiId,
-			facilityId,
-			operatorName,
+			endpoint,
 			new ShipSpawnDeclaration(
 				TypedIdGenerator.NextId(UnitTypeSlug.For(offer.Chassis)),
 				offer.Chassis,

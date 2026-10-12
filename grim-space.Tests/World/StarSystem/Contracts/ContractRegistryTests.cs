@@ -1,6 +1,10 @@
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
@@ -87,23 +91,23 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void CountPendingGenerated_ExcludesStoryObjectives()
+	public void CountPendingGeneratedStandard_ExcludesStoryObjectives()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
 		var registry = map.ContractRegistry;
 		Assert.Equal(1, registry.CountPending());
-		Assert.Equal(0, registry.CountPendingGenerated());
+		Assert.Equal(0, registry.CountPendingGeneratedStandard());
 
 		var template = registry.Pending.First();
 		var hunt = (HuntObjective)template.Objective;
 		registry.TryAdd(CloneContract(template, "generated", hunt) with { IsStoryObjective = false }, expiresAtTick: 50);
 
 		Assert.Equal(2, registry.CountPending());
-		Assert.Equal(1, registry.CountPendingGenerated());
+		Assert.Equal(1, registry.CountPendingGeneratedStandard());
 	}
 
 	[Fact]
-	public void CountGeneratedBoardOccupancy_IncludesActiveGeneratedContracts()
+	public void CountStandardBoardOccupancy_IncludesActiveGeneratedContracts()
 	{
 		var map = maps.FreshWithBeatAHunt(42);
 		var registry = map.ContractRegistry;
@@ -113,16 +117,88 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 		var generated = CloneContract(template, "generated", hunt) with { IsStoryObjective = false };
 		registry.TryAdd(generated, expiresAtTick: 50);
 
-		Assert.Equal(1, registry.CountGeneratedBoardOccupancy());
+		Assert.Equal(1, registry.CountStandardBoardOccupancy());
 
 		registry.Activate(CreateActiveState(map, generated.Id, holderUnitId, 1));
 
-		Assert.Equal(0, registry.CountPendingGenerated());
-		Assert.Equal(1, registry.CountGeneratedBoardOccupancy());
+		Assert.Equal(0, registry.CountPendingGeneratedStandard());
+		Assert.Equal(1, registry.CountStandardBoardOccupancy());
 
 		registry.Fail(generated.Id);
 
-		Assert.Equal(0, registry.CountGeneratedBoardOccupancy());
+		Assert.Equal(0, registry.CountStandardBoardOccupancy());
+	}
+
+	[Fact]
+	public void LeadOccupancy_IncludesPendingAndActiveSalesBeforeDeadline()
+	{
+		var map = maps.Fresh(42);
+		var registry = map.ContractRegistry;
+		var lead = CreateLead("lead-occupancy");
+		Assert.True(registry.TryAdd(lead, expiresAtTick: 50));
+		Assert.Equal(1, registry.CountLeadOccupancy(currentTick: 10));
+		Assert.Equal(0, registry.CountStandardBoardOccupancy());
+
+		Assert.True(registry.Activate(new LeadContractState(
+			lead.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 20,
+			map.FleetRegistry.Ids.First(),
+			"Quartermaster",
+			DeadlineTick: 100)));
+		Assert.Equal(1, registry.CountLeadOccupancy(currentTick: 99));
+		Assert.Equal(0, registry.CountStandardBoardOccupancy());
+
+		registry.Complete(lead.Id);
+		Assert.Equal(0, registry.CountLeadOccupancy(currentTick: 99));
+		Assert.Equal(0, registry.CountLeadOccupancy(currentTick: 100));
+	}
+
+	[Fact]
+	public void LeadOccupancy_ExcludesRejectedAndFailedLeads()
+	{
+		var map = maps.Fresh(42);
+		var registry = map.ContractRegistry;
+		var holderUnitId = map.FleetRegistry.Ids.First();
+		var rejected = CreateLead("lead-rejected");
+		var failed = CreateLead("lead-failed");
+		Assert.True(registry.TryAdd(rejected));
+		Assert.True(registry.TryAdd(failed));
+		Assert.True(registry.Activate(new LeadContractState(
+			rejected.Id,
+			EContractStatus.Rejected,
+			null,
+			null,
+			"Quartermaster",
+			DeadlineTick: 100)));
+		Assert.True(registry.Activate(new LeadContractState(
+			failed.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 20,
+			holderUnitId,
+			"Quartermaster",
+			DeadlineTick: 100)));
+		registry.Fail(failed.Id);
+
+		Assert.Equal(0, registry.CountLeadOccupancy(currentTick: 30));
+	}
+
+	[Fact]
+	public void StandardPendingCap_DoesNotBlockLeadSlot()
+	{
+		var map = maps.FreshWithBeatAHunt(42);
+		var registry = map.ContractRegistry;
+		registry.MaxPending = 1;
+		var template = registry.Pending.Single();
+		var standard = CloneContract(
+			template,
+			"standard-over-cap",
+			(HuntObjective)template.Objective) with { IsStoryObjective = false };
+
+		Assert.True(registry.TryAdd(CreateLead("lead-outside-standard-cap")));
+		Assert.False(registry.TryAdd(standard));
+		Assert.Equal(1, registry.CountPendingStandard());
+		Assert.Equal(1, registry.CountLeadOccupancy(currentTick: 0));
 	}
 
 	[Fact]
@@ -194,6 +270,19 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 			template.IssuerFaction,
 			template.Terms,
 			template.Narrative);
+
+	private static Contract CreateLead(string contractId) =>
+		new(
+			contractId,
+			new BlackMarketSaleObjective(
+				new BlackMarketFacilityDestination("poi-trade", "market"),
+				EMerchantSubtype.Weapons,
+				300),
+			EDangerLevel.VeryLow,
+			EFaction.TheOptimality,
+			new ContractTerms(ResourceBundle.Empty),
+			new ContractNarrative("Quiet opportunity", "A discreet seller is available."),
+			Category: EContractCategory.Lead);
 
 	private static ContractState CreateRejectedState(string contractId) =>
 		new(contractId, EContractStatus.Rejected, null, null);

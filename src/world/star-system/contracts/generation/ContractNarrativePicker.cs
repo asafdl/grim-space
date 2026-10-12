@@ -45,6 +45,9 @@ public sealed class ContractNarrativePicker
 			EContractKind.Wreckage => new ContractNarrative(
 				"Derelict Survey",
 				"Scanners flagged wreckage in open space. Find it, inspect it, and file whatever report you can justify."),
+			EContractKind.Lead => new ContractNarrative(
+				"Quiet Opportunity",
+				"Hey, if you're interested, I heard there's a sale going at {destination} for {merchant}."),
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 

@@ -15,15 +15,19 @@ public partial class FacilityFacadeCallout : Control
 	private static readonly Color AnchorDiamondColor = new(0.92f, 0.28f, 0.24f, 0.95f);
 
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
-	private const float ContractIndicatorSize = 32f;
-	private const float ContractIndicatorGap = 3f;
+	private const string LeadIndicatorPath = "res://assets/ui/map/lead-contact-icon.svg";
+	private const float RoleIndicatorSize = 32f;
+	private const float RoleIndicatorGap = 3f;
+	private const float RoleIndicatorRowGap = 4f;
 	private const float PinWidth = 2f;
 	private const float AnchorDiamondRadius = 4.5f;
 	private const float ViewportMargin = 8f;
 
 	private readonly Button _button;
 	private readonly TextureRect _contractIndicator;
+	private readonly TextureRect _leadIndicator;
 	private bool _contractIndicatorEnabled;
+	private bool _leadIndicatorEnabled;
 	private Vector2 _pinStart;
 	private Vector2 _pinEnd;
 	private bool _pinVisible;
@@ -42,21 +46,29 @@ public partial class FacilityFacadeCallout : Control
 			CustomMinimumSize = IconSize,
 		};
 		AddChild(_button);
-		_contractIndicator = new TextureRect
+		_contractIndicator = CreateRoleIndicator(ContractIndicatorPath);
+		_leadIndicator = CreateRoleIndicator(LeadIndicatorPath);
+		AddChild(_contractIndicator);
+		AddChild(_leadIndicator);
+	}
+
+	public void SetContractIndicatorVisible(bool visible) =>
+		_contractIndicatorEnabled = visible;
+
+	public void SetLeadIndicatorVisible(bool visible) =>
+		_leadIndicatorEnabled = visible;
+
+	private static TextureRect CreateRoleIndicator(string path) =>
+		new()
 		{
-			Texture = SvgIconLoader.LoadRaw(ContractIndicatorPath, (int)ContractIndicatorSize),
-			CustomMinimumSize = new Vector2(ContractIndicatorSize, ContractIndicatorSize),
-			Size = new Vector2(ContractIndicatorSize, ContractIndicatorSize),
+			Texture = SvgIconLoader.LoadRaw(path, (int)RoleIndicatorSize),
+			CustomMinimumSize = new Vector2(RoleIndicatorSize, RoleIndicatorSize),
+			Size = new Vector2(RoleIndicatorSize, RoleIndicatorSize),
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 			MouseFilter = MouseFilterEnum.Ignore,
 			Visible = false,
 		};
-		AddChild(_contractIndicator);
-	}
-
-	public void SetContractIndicatorVisible(bool visible) =>
-		_contractIndicatorEnabled = visible;
 
 	public void UpdateLayout(
 		Vector2 anchorScreen,
@@ -70,6 +82,7 @@ public partial class FacilityFacadeCallout : Control
 			_pinVisible = false;
 			_button.Visible = false;
 			_contractIndicator.Visible = false;
+			_leadIndicator.Visible = false;
 			QueueRedraw();
 			return;
 		}
@@ -84,10 +97,9 @@ public partial class FacilityFacadeCallout : Control
 			viewportHeight);
 		_button.Position = position;
 		_button.Visible = true;
-		_contractIndicator.Position = position + new Vector2(
-			(size.X - ContractIndicatorSize) * 0.5f,
-			-ContractIndicatorSize - ContractIndicatorGap);
+		LayoutRoleIndicators(position, size);
 		_contractIndicator.Visible = _contractIndicatorEnabled;
+		_leadIndicator.Visible = _leadIndicatorEnabled;
 
 		_pinStart = anchorScreen;
 		_pinEnd = position + new Vector2(size.X * 0.5f, size.Y);
@@ -102,6 +114,25 @@ public partial class FacilityFacadeCallout : Control
 
 		DrawLine(_pinStart, _pinEnd, IconBorderColor, PinWidth);
 		DrawColoredPolygon(DiamondPoints(_pinStart), AnchorDiamondColor);
+	}
+
+	private void LayoutRoleIndicators(Vector2 buttonPosition, Vector2 buttonSize)
+	{
+		var top = buttonPosition.Y - RoleIndicatorSize - RoleIndicatorGap;
+		var centerX = buttonPosition.X + buttonSize.X * 0.5f;
+		if (_contractIndicatorEnabled && _leadIndicatorEnabled)
+		{
+			var rowLeft = centerX - (RoleIndicatorSize * 2f + RoleIndicatorRowGap) * 0.5f;
+			_contractIndicator.Position = new Vector2(rowLeft, top);
+			_leadIndicator.Position = new Vector2(
+				rowLeft + RoleIndicatorSize + RoleIndicatorRowGap,
+				top);
+			return;
+		}
+
+		var single = new Vector2(centerX - RoleIndicatorSize * 0.5f, top);
+		_contractIndicator.Position = single;
+		_leadIndicator.Position = single;
 	}
 
 	private static Vector2[] DiamondPoints(Vector2 center)

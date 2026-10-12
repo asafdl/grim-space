@@ -116,7 +116,8 @@ public sealed class ContractPlacement
 
 	private static IEnumerable<Contract> GeneratedBoardOccupants(StarMap map) =>
 		map.ContractRegistry.All.Where(contract =>
-			!contract.IsStoryObjective
+			contract.Category == EContractCategory.Standard
+			&& !contract.IsStoryObjective
 			&& (map.ContractRegistry.IsPending(contract.Id)
 				|| map.ContractRegistry.TryGetState(contract.Id, out var state)
 				&& state.Status == EContractStatus.Active));

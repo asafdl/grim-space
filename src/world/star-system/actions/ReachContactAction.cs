@@ -43,7 +43,8 @@ public sealed class ReachContactDef
 				&& initiator.State.CurrentEngagement?.Phase == EEngagementPhase.Pursuing
 				&& initiator.State.CurrentEngagement?.Hunting == reach.TargetId
 				&& !EngagementState.IsEngaged(initiator.State),
-			EContactIntent.DeliveryMeeting => IsActiveDeliveryMeeting(world, reach, target),
+			EContactIntent.DeliveryMeeting or EContactIntent.BlackMarketMeeting =>
+				IsActiveMeeting(world, reach.InitiatorId, target, reach.Intent),
 			_ => false,
 		});
 
@@ -53,7 +54,7 @@ public sealed class ReachContactDef
 		ActorRuntime runtime)
 	{
 		var reach = (ReachContactAction)action;
-		if (reach.Intent == EContactIntent.DeliveryMeeting)
+		if (reach.Intent is EContactIntent.DeliveryMeeting or EContactIntent.BlackMarketMeeting)
 			return
 			[
 				new StopAtCurrentLocationEffect(reach.InitiatorId),
@@ -77,9 +78,23 @@ public sealed class ReachContactDef
 		return effects;
 	}
 
+	internal static bool IsActiveMeeting(
+		StarMap world,
+		string initiatorId,
+		Fleet target,
+		EContactIntent intent) =>
+		intent switch
+		{
+			EContactIntent.DeliveryMeeting =>
+				IsActiveDeliveryMeeting(world, initiatorId, target),
+			EContactIntent.BlackMarketMeeting =>
+				IsActiveBlackMarketMeeting(world, initiatorId, target),
+			_ => false,
+		};
+
 	private static bool IsActiveDeliveryMeeting(
 		StarMap world,
-		ReachContactAction reach,
+		string initiatorId,
 		Fleet target)
 	{
 		if (target.State.SourceContractId is not { } contractId
@@ -87,12 +102,31 @@ public sealed class ReachContactDef
 			|| !world.ContractRegistry.TryGetState(contractId, out var state)
 			|| state is not DeliveryContractState deliveryState
 			|| deliveryState.Status != EContractStatus.Active
-			|| deliveryState.HolderUnitId != reach.InitiatorId
+			|| deliveryState.HolderUnitId != initiatorId
 			|| contract.Objective is not DeliveryObjective delivery)
 			return false;
 
 		return delivery.Route.Legs[deliveryState.Progress.CurrentLegIndex]
 			is SpaceMeetingDeliveryLeg meeting
-			&& meeting.MeetingId == reach.TargetId;
+			&& meeting.MeetingId == target.State.Id;
+	}
+
+	private static bool IsActiveBlackMarketMeeting(
+		StarMap world,
+		string initiatorId,
+		Fleet target)
+	{
+		if (target.State.SourceContractId is not { } contractId
+			|| !world.ContractRegistry.TryGet(contractId, out var contract)
+			|| contract.Category != EContractCategory.Lead
+			|| !world.ContractRegistry.TryGetState(contractId, out var state)
+			|| state is not LeadContractState lead
+			|| lead.Status != EContractStatus.Active
+			|| lead.HolderUnitId != initiatorId
+			|| contract.Objective is not BlackMarketSaleObjective sale
+			|| sale.Destination is not BlackMarketSpaceMeetingDestination meeting)
+			return false;
+
+		return meeting.MeetingId == target.State.Id;
 	}
 }

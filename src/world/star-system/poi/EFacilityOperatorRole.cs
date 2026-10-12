@@ -8,4 +8,5 @@ public enum EFacilityOperatorRole
 	Dialog,
 	DeliveryTurnIn,
 	HealingStation,
+	LeadContact,
 }

@@ -11,9 +11,7 @@ namespace GrimSpace.World.StarSystem.Actions;
 
 public sealed record RecruitShipAction(
 	string ActorId,
-	string PoiId,
-	string FacilityId,
-	string OperatorName,
+	MerchantEndpoint Endpoint,
 	ShipSpawnDeclaration Declaration) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
@@ -33,11 +31,9 @@ public sealed class RecruitShipActionDef
 	{
 		if (action is not RecruitShipAction recruit)
 			return false;
-		if (!MerchantPurchaseValidation.OperatorServesMerchantSubtype(
+		if (!MerchantPurchaseValidation.EndpointServesMerchantSubtype(
 				world,
-				recruit.PoiId,
-				recruit.FacilityId,
-				recruit.OperatorName,
+				recruit.Endpoint,
 				EMerchantSubtype.Ships))
 			return false;
 		if (!ShipRecruitmentCatalog.TryFind(

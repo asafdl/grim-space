@@ -7,7 +7,7 @@ namespace GrimSpace.World.StarSystem.Contracts;
 public enum EContractCategory
 {
 	Standard,
-	BlackMarketLead,
+	Lead,
 }
 
 public sealed record Contract(
