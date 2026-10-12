@@ -108,6 +108,7 @@ public sealed class LeadSalePurchaseActionTests
 	{
 		var registry = new RunShipRegistry();
 		var map = StarMap.Create(42, registry);
+		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var contract = ContractFactory.Build(
 			map,
