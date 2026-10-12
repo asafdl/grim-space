@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi.Dialog;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Merchants;
 
 namespace GrimSpace.Tests.World.StarSystem.Presentation;
 
@@ -19,6 +20,7 @@ public sealed class LeadConversationPresentationTests(StarMapFixture maps)
 		string merchandise)
 	{
 		var map = maps.Fresh(42);
+		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		var contract = BuildLead(
 			map,
 			$"lead-{subtype}",
@@ -41,6 +43,7 @@ public sealed class LeadConversationPresentationTests(StarMapFixture maps)
 	public void SpaceLeadConversation_DescribesRendezvous()
 	{
 		var map = maps.Fresh(42);
+		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		var contract = BuildLead(
 			map,
 			"lead-space-conversation",

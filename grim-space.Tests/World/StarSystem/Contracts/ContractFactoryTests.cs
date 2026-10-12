@@ -99,6 +99,25 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 		Assert.Contains(
 			facility.Operators,
 			facilityOperator => facilityOperator.Role == EFacilityOperatorRole.Dialog);
+		Assert.Equal(EMerchantSubtype.ShipSupport, objective.MerchantSubtype);
+	}
+
+	[Fact]
+	public void Build_BlackMarketLead_AtT0_RejectsExplicitMerchantWithoutStock()
+	{
+		var map = maps.Fresh(42);
+		var args = new LeadCreateArgs(
+			ELeadKind.BlackMarketSale,
+			new ContractNarrative("Quiet Opportunity", "A seller is available."),
+			300,
+			SpaceMeetingChance: 0,
+			MerchantSubtype: EMerchantSubtype.Ships);
+
+		Assert.False(ContractFactory.TryBuildLead(
+			map,
+			"lead-no-ships-at-t0",
+			args,
+			out _));
 	}
 
 	[Fact]
