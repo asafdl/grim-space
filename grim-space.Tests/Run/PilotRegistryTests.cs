@@ -22,6 +22,8 @@ public sealed class PilotRegistryTests
 		Assert.False(string.IsNullOrWhiteSpace(pilot.Name));
 		Assert.Contains(pilot.PortraitId, Pilot.PortraitPool);
 		Assert.Equal(shipId, pilot.AssignedShipId);
+		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
+		Assert.Empty(pilot.LearnedSkills);
 	}
 
 	[Fact]
@@ -95,6 +97,8 @@ public sealed class PilotRegistryTests
 			Assert.Equal(original.PortraitId, roundTripped.PortraitId);
 			Assert.Equal(original.AssignedShipId, roundTripped.AssignedShipId);
 			Assert.Equal(original.ExperiencePoints, roundTripped.ExperiencePoints);
+			Assert.Equal(original.ClaimedLevel, roundTripped.ClaimedLevel);
+			Assert.Equal(original.LearnedSkills, roundTripped.LearnedSkills);
 		}
 	}
 

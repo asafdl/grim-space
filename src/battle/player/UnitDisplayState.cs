@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -26,7 +27,9 @@ public sealed record UnitDisplayState(
 	IReadOnlyList<MountDisplayState> Mounts,
 	int FuelRemaining,
 	VoidBombProjectile? Projectile,
-	bool IsAlive)
+	bool IsAlive,
+	IReadOnlyList<EPilotSkillId> PilotSkills,
+	bool ShieldsUpUsedThisTurn)
 {
 	public static UnitDisplayState Capture(State state) =>
 		new(
@@ -50,7 +53,9 @@ public sealed record UnitDisplayState(
 				.ToList(),
 			state.FuelRemaining,
 			state.Projectile,
-			state.IsAlive);
+			state.IsAlive,
+			state.PilotSkills.ToArray(),
+			state.ShieldsUpUsedThisTurn);
 
 	public int MaxActionPoints => Maneuverability.MaxActionPoints;
 	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
@@ -96,6 +101,8 @@ public sealed record UnitDisplayState(
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
 			Maneuverability = Maneuverability,
+			PilotSkills = PilotSkills,
+			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 		};
 		foreach (var mount in Mounts)
 		{

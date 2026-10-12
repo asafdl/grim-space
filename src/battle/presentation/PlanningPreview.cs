@@ -106,7 +106,8 @@ public sealed class PlanningPreview
 		new(
 			Weapons(actions),
 			actions.Any(action => action is SpawnRepurposedMinerAction),
-			actions.Any(action => action is DetonateAction));
+			actions.Any(action => action is DetonateAction),
+			actions.Any(action => action is ShieldsUpAction));
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{

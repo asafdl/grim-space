@@ -395,7 +395,8 @@ public partial class MapController : Node3D
 			return;
 		}
 
-		if (_narrative.TryHandleInput(@event)
+		if (_strategicHud.TryHandleInput(@event)
+			|| _narrative.TryHandleInput(@event)
 			|| _deliveryMeetingDialog.TryHandleInput(@event)
 			|| _leadSaleMerchant.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event)
@@ -522,6 +523,7 @@ public partial class MapController : Node3D
 	private bool IsBlockingModalOpen() =>
 		_pauseMenu.Visible
 		|| _pauseMenu.IsReportDialogOpen
+		|| _strategicHud.IsBlockingModalOpen
 		|| (_narrative?.IsOpen ?? false)
 		|| (_deliveryMeetingDialog?.IsOpen ?? false)
 		|| (_leadSaleMerchant?.IsOpen ?? false)

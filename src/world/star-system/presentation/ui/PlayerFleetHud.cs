@@ -11,6 +11,8 @@ public partial class PlayerFleetHud : MarginContainer
 	private VBoxContainer _pilotColumn = null!;
 	private StarSystemOrchestrator? _orchestrator;
 
+	public event Action<string>? PilotSkillTreeRequested;
+
 	public override void _Ready()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
@@ -47,6 +49,7 @@ public partial class PlayerFleetHud : MarginContainer
 			{
 				card = new ShipPilot();
 				card.Selected += OnPilotSelected;
+				card.LevelUpRequested += OnPilotLevelUpRequested;
 				_pilots[pilot.Id] = card;
 				_pilotColumn.AddChild(card);
 			}
@@ -56,6 +59,8 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot.Name,
 				pilot.PortraitId,
 				pilot.ExperiencePoints,
+				pilot.ClaimedLevel,
+				PilotSkillAvailability.AvailableToLearn(pilot).Count > 0,
 				ship,
 				string.Equals(shipId, selectedShipId, StringComparison.Ordinal));
 		}
@@ -64,6 +69,7 @@ public partial class PlayerFleetHud : MarginContainer
 		{
 			var removed = _pilots[pilotId];
 			removed.Selected -= OnPilotSelected;
+			removed.LevelUpRequested -= OnPilotLevelUpRequested;
 			removed.QueueFree();
 			_pilots.Remove(pilotId);
 		}
@@ -74,4 +80,7 @@ public partial class PlayerFleetHud : MarginContainer
 		_orchestrator?.TryCommitPlayerInput(
 			new SelectActiveFleetShipAction(State.PlayerFleetUnitId, shipId));
 	}
+
+	private void OnPilotLevelUpRequested(string pilotId) =>
+		PilotSkillTreeRequested?.Invoke(pilotId);
 }

@@ -45,11 +45,7 @@ public static class AbilityHudCatalog
 		ForActor(State.FromShipInstance(ShipInstance.FromCatalog("__hud__", type), Coord.Zero));
 
 	public static IReadOnlyList<Spec> ForActor(State state) =>
-		state.Type == EType.VoidBomb
-			? [Resolve(DetonateDef.Instance)]
-			: Capabilities.AbilityDefsForLoadout(state.Loadout.InstalledAbilities)
-				.Select(Resolve)
-				.ToList();
+		Capabilities.AbilityDefsFor(state).Select(Resolve).ToList();
 
 	public static IReadOnlyList<Spec> ForDisplayState(UnitDisplayState unit) =>
 		ForActor(unit.ToState());
@@ -139,6 +135,19 @@ public static class AbilityHudCatalog
 					unit.ReadyMounts(EAbilityKind.MinerBay),
 					unit.MountCount(EAbilityKind.MinerBay)),
 				legality => legality.SpawnRepurposedMiner),
+			ShieldsUpDef => new(
+				EPlayerMode.ShieldsUp,
+				def,
+				new AbilityTargetingSpec(
+					SelfSource<ShieldsUpAction>,
+					AbilitySourceMeshes.CreateDetonation,
+					new Color(0.55f, 0.78f, 1f, 0.5f)),
+				"res://assets/ui/abilities/shields_up.svg",
+				BattleHudCopy.ShieldsUpTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ShieldsUpUsedThisTurn ? 0 : 1,
+					1),
+				legality => legality.ShieldsUp),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};

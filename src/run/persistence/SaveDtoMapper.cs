@@ -5,6 +5,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Pilots;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -98,7 +99,12 @@ public static class SaveDtoMapper
 				ReflectionJson.Map<BattleEncounterSpawnDto>(new
 				{
 					Ship = CaptureShip(spawn.Ship),
-					spawn.PilotId,
+					Pilot = spawn.Pilot is null
+						? null
+						: new PilotBattleSnapshotDto(
+							spawn.Pilot.PilotId,
+							spawn.Pilot.SkillIds),
+					PilotId = (string?)null,
 					spawn.Team,
 					spawn.Position,
 					spawn.Fore,
@@ -122,21 +128,38 @@ public static class SaveDtoMapper
 			Seed = dto.Seed,
 			Id = dto.Id,
 			Objective = dto.Objective,
-			Spawns = dto.Spawns.Select(spawn => new BattleSpawn
-			{
-				Ship = RestoreShip(spawn.Ship),
-				PilotId = spawn.PilotId,
-				Team = spawn.Team,
-				Position = spawn.Position,
-				Fore = spawn.Fore,
-				Dorsal = spawn.Dorsal,
-				ExecutionAgent = BattleAgentFactory.Create(spawn.AgentKind),
-			}).ToArray(),
+			Spawns = dto.Spawns.Select(RestoreBattleSpawn).ToArray(),
 			WorldHazards = dto.Hazards.Select(hazard => new BattleHazardSpawn
 			{
 				Origin = hazard.Origin,
 				Cells = hazard.Cells.ToHashSet(),
 			}).ToArray(),
+		};
+	}
+
+	private static BattleSpawn RestoreBattleSpawn(BattleEncounterSpawnDto spawn)
+	{
+		PilotBattleSnapshot? pilot = null;
+		if (spawn.Pilot is { } snapshot)
+		{
+			pilot = new PilotBattleSnapshot(
+				snapshot.PilotId,
+				snapshot.SkillIds.ToArray());
+		}
+		else if (!string.IsNullOrEmpty(spawn.PilotId))
+		{
+			pilot = new PilotBattleSnapshot(spawn.PilotId, []);
+		}
+
+		return new BattleSpawn
+		{
+			Ship = RestoreShip(spawn.Ship),
+			Pilot = pilot,
+			Team = spawn.Team,
+			Position = spawn.Position,
+			Fore = spawn.Fore,
+			Dorsal = spawn.Dorsal,
+			ExecutionAgent = BattleAgentFactory.Create(spawn.AgentKind),
 		};
 	}
 
@@ -208,6 +231,10 @@ public static class SaveDtoMapper
 			state.FuelRemaining,
 			state.ParentId,
 			state.ApPenaltyNextTurn,
+			state.PendingApPenalty,
+			PendingShieldRestore = CaptureFaces(state.PendingShieldRestore),
+			state.ShieldsUpUsedThisTurn,
+			PilotSkills = state.PilotSkills.ToArray(),
 			MaxAp = state.Maneuverability.MaxActionPoints,
 			MaxMp = state.Maneuverability.MaxManeuverPoints,
 			state.Projectile,
@@ -229,7 +256,8 @@ public static class SaveDtoMapper
 			dto.Position,
 			dto.Fore,
 			dto.Dorsal,
-			dto.ParentId);
+			dto.ParentId,
+			dto.PilotSkills);
 		state.Starboard = dto.Starboard;
 		state.Initiative = dto.Initiative ?? state.Initiative;
 		state.ActionPoints = dto.ActionPoints;
@@ -238,6 +266,11 @@ public static class SaveDtoMapper
 		state.ManeuverPoints = dto.ManeuverPoints ?? maxMp;
 		state.FuelRemaining = dto.FuelRemaining;
 		state.ApPenaltyNextTurn = dto.ApPenaltyNextTurn;
+		state.PendingApPenalty = dto.PendingApPenalty;
+		state.PendingShieldRestore = dto.PendingShieldRestore is null
+			? new GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints()
+			: RestoreFaces(dto.PendingShieldRestore);
+		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
 			dto.MaxAp,
@@ -307,6 +340,10 @@ public static class SaveDtoMapper
 				state.FuelRemaining,
 				state.ParentId,
 				state.ApPenaltyNextTurn,
+				state.PendingApPenalty,
+				PendingShieldRestore = CaptureFaces(state.PendingShieldRestore),
+				state.ShieldsUpUsedThisTurn,
+				PilotSkills = state.PilotSkills.ToArray(),
 				MaxAp = state.Maneuverability.MaxActionPoints,
 				MaxMp = state.Maneuverability.MaxManeuverPoints,
 				state.Projectile,
@@ -758,7 +795,8 @@ public static class SaveDtoMapper
 				unitDto.Position,
 				unitDto.Fore,
 				unitDto.Dorsal,
-				unitDto.ParentId);
+				unitDto.ParentId,
+				unitDto.PilotSkills);
 			state.Starboard = unitDto.Starboard;
 			state.Initiative = unitDto.Initiative ?? state.Initiative;
 			state.ActionPoints = unitDto.ActionPoints;
@@ -767,6 +805,11 @@ public static class SaveDtoMapper
 			state.ManeuverPoints = unitDto.ManeuverPoints ?? maxMp;
 			state.FuelRemaining = unitDto.FuelRemaining;
 			state.ApPenaltyNextTurn = unitDto.ApPenaltyNextTurn;
+			state.PendingApPenalty = unitDto.PendingApPenalty;
+			state.PendingShieldRestore = unitDto.PendingShieldRestore is null
+				? new GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints()
+				: RestoreFaces(unitDto.PendingShieldRestore);
+			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
 				unitDto.MaxAp,

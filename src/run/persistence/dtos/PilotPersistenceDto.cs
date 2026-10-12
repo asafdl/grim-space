@@ -1,3 +1,5 @@
+using GrimSpace.Pilots;
+
 namespace GrimSpace.Run.Persistence;
 
 public sealed record PilotPersistenceDto(
@@ -5,4 +7,6 @@ public sealed record PilotPersistenceDto(
 	string Name,
 	string PortraitId,
 	string AssignedShipId,
-	int ExperiencePoints = 0);
+	int ExperiencePoints = 0,
+	int ClaimedLevel = 0,
+	IReadOnlyList<EPilotSkillId>? LearnedSkills = null);

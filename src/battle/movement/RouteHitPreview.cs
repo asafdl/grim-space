@@ -50,7 +50,7 @@ public sealed class RouteHitPreview
 		var specsByDef = AbilityHudCatalog.ForActor(actor).ToDictionary(spec => spec.Def);
 		var opportunities = new List<PoseHitOpportunity>();
 
-		foreach (var def in Capabilities.AbilityDefsForLoadout(actor.Loadout.InstalledAbilities))
+		foreach (var def in Capabilities.AbilityDefsFor(actor))
 		{
 			var spec = specsByDef[def];
 			var hitTargets = new HashSet<string>(StringComparer.Ordinal);

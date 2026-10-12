@@ -70,7 +70,7 @@ public static class DeploymentPlacement
 		RunShipRegistry registry,
 		int seed,
 		int gridSize,
-		IReadOnlyDictionary<string, string>? shipIdToPilotId = null)
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 		ArgumentNullException.ThrowIfNull(participantFleets);
@@ -104,7 +104,7 @@ public static class DeploymentPlacement
 			gridSize,
 			occupied,
 			registry,
-			shipIdToPilotId,
+			shipIdToPilotSnapshot,
 			spawns);
 		PlaceTeam(
 			enemyMembers,
@@ -115,7 +115,7 @@ public static class DeploymentPlacement
 			gridSize,
 			occupied,
 			registry,
-			shipIdToPilotId: null,
+			shipIdToPilotSnapshot: null,
 			spawns);
 		return spawns;
 	}
@@ -165,7 +165,7 @@ public static class DeploymentPlacement
 		int gridSize,
 		HashSet<Coord> occupied,
 		RunShipRegistry registry,
-		IReadOnlyDictionary<string, string>? shipIdToPilotId,
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot,
 		List<BattleSpawn> spawns)
 	{
 		if (members.Count == 0)
@@ -181,18 +181,18 @@ public static class DeploymentPlacement
 			var position = index == 0 && occupied.Add(anchor)
 				? anchor
 				: PickFormationCell(rng, anchor, basis, occupied, gridSize);
-			string? pilotId = null;
-			if (team == ETeam.Player && shipIdToPilotId is not null)
+			PilotBattleSnapshot? pilot = null;
+			if (team == ETeam.Player && shipIdToPilotSnapshot is not null)
 			{
-				if (!shipIdToPilotId.TryGetValue(member.Id, out pilotId))
+				if (!shipIdToPilotSnapshot.TryGetValue(member.Id, out pilot))
 					throw new InvalidOperationException(
-						$"Player ship '{member.Id}' has no pilot id for deployment.");
+						$"Player ship '{member.Id}' has no pilot snapshot for deployment.");
 			}
 
 			spawns.Add(new BattleSpawn
 			{
 				Ship = registry.Get(member.Id).Clone(),
-				PilotId = pilotId,
+				Pilot = pilot,
 				Team = team,
 				Position = position,
 				Fore = AxisToward(position, faceToward),

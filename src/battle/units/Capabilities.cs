@@ -6,6 +6,7 @@ using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.PilotSkills;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Units;
@@ -45,7 +46,18 @@ public static class Capabilities
 		if (state.Type == EType.VoidBomb)
 			return [VoidBombMoveDef.Instance, DetonateDef.Instance];
 
-		return [..Movement, ..AbilityDefsForLoadout(state.Loadout.InstalledAbilities)];
+		return [..Movement, ..AbilityDefsFor(state)];
+	}
+
+	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsFor(
+		State state)
+	{
+		if (state.Type == EType.VoidBomb)
+			return [DetonateDef.Instance];
+
+		return MergeAbilityDefs(
+			CollectAbilityDefs(state.Loadout.InstalledAbilities),
+			PilotSkillCapabilities.DefsFor(state.PilotSkills));
 	}
 
 	/// <summary>
@@ -117,13 +129,19 @@ public static class Capabilities
 		}
 	}
 
-	private static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsFor(
-		State state)
+	private static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> MergeAbilityDefs(
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> primary,
+		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> additional)
 	{
-		if (state.Type == EType.VoidBomb)
-			return [DetonateDef.Instance];
+		var defs = new List<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>(primary);
+		var seen = new HashSet<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>(defs);
+		foreach (var def in additional)
+		{
+			if (seen.Add(def))
+				defs.Add(def);
+		}
 
-		return AbilityDefsForLoadout(state.Loadout.InstalledAbilities);
+		return defs;
 	}
 
 	private static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> CollectAbilityDefs(

@@ -46,7 +46,7 @@ public sealed class CarrierDomainTests
 		var ready = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false));
+			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false, ShieldsUp: false));
 		var cooling = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],
 			unit with
@@ -60,7 +60,7 @@ public sealed class CarrierDomainTests
 						: mount)
 					.ToList(),
 			},
-			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false));
+			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false, ShieldsUp: false));
 
 		Assert.Equal("1/1", ready.Charges);
 		Assert.Equal("0/1", cooling.Charges);

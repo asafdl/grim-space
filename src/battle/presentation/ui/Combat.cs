@@ -9,4 +9,5 @@ public enum EPlayerMode
 	VoidBomb,
 	SpawnRepurposedMiner,
 	Detonate,
+	ShieldsUp,
 }

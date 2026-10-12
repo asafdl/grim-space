@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
@@ -16,21 +17,27 @@ public partial class StrategicHud : CanvasLayer
 	private ResourceTransactionFeed _resourceFeed = null!;
 	private IDisposable _contractStateSubscription = null!;
 	private PlayerFleetHud _playerFleetHud = null!;
+	private PilotSkillTreeOverlay _pilotSkillTree = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
 
 	public ObjectivesHud Objectives => _objectivesHud;
+	public bool IsBlockingModalOpen => _pilotSkillTree.IsOpen;
 
 	public override void _Ready()
 	{
 		_objectivesHud = GetNode<ObjectivesHud>("ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("ResourceHud");
 		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
+		_pilotSkillTree = new PilotSkillTreeOverlay();
+		AddChild(_pilotSkillTree);
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);
 		_contractStateSubscription =
 			_orchestrator.Subscribe<Record<ContractStateChanged>>(OnContractStateChanged);
 		_objectivesHud.DismissRequested += OnObjectiveDismissRequested;
+		_playerFleetHud.PilotSkillTreeRequested += OnPilotSkillTreeRequested;
+		_pilotSkillTree.SkillLearnRequested += OnPilotSkillLearnRequested;
 		SetProcess(true);
 		SyncObjectives();
 		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator);
@@ -45,6 +52,8 @@ public partial class StrategicHud : CanvasLayer
 	public override void _ExitTree()
 	{
 		_objectivesHud.DismissRequested -= OnObjectiveDismissRequested;
+		_playerFleetHud.PilotSkillTreeRequested -= OnPilotSkillTreeRequested;
+		_pilotSkillTree.SkillLearnRequested -= OnPilotSkillLearnRequested;
 		_contractStateSubscription.Dispose();
 		_resourceFeed.Dispose();
 	}
@@ -70,6 +79,32 @@ public partial class StrategicHud : CanvasLayer
 			return;
 
 		GD.PushWarning($"Unable to dismiss contract '{contractId}'.");
+	}
+
+	public bool TryHandleInput(InputEvent @event) => _pilotSkillTree.TryHandleInput(@event);
+
+	private void OnPilotSkillTreeRequested(string pilotId)
+	{
+		if (!Session.Instance.Run.PilotRegistry.TryGet(pilotId, out var pilot))
+		{
+			GD.PushWarning($"Unable to open skills for unknown pilot '{pilotId}'.");
+			return;
+		}
+
+		_pilotSkillTree.Open(pilot);
+	}
+
+	private void OnPilotSkillLearnRequested(string pilotId, EPilotSkillId skillId)
+	{
+		var run = Session.Instance.Run;
+		if (!run.TryLearnPilotSkill(pilotId, skillId))
+		{
+			GD.PushWarning($"Pilot '{pilotId}' cannot learn skill '{skillId}'.");
+			return;
+		}
+
+		if (run.PilotRegistry.TryGet(pilotId, out var pilot))
+			_pilotSkillTree.Open(pilot);
 	}
 
 	private void SyncObjectives()

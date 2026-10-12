@@ -1,7 +1,11 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Ids;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
+using RunState = GrimSpace.Run.State;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -16,11 +20,11 @@ namespace GrimSpace.Tests.Run;
 public sealed class BattleSpawnPilotTests
 {
 	[Fact]
-	public void Engagement_Create_AssignsPilotIdToPlayerSpawnsOnly()
+	public void Engagement_Create_AssignsPilotSnapshotToPlayerSpawnsOnly()
 	{
-		using var run = State.CreateNewRun(42);
-		var shipToPilotId = BuildShipToPilotIdMap(run);
-		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
+		using var run = RunState.CreateNewRun(42);
+		var shipToPilot = BuildShipToPilotSnapshot(run);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-test",
 			new Coord(4, 0, 0),
@@ -33,68 +37,115 @@ public sealed class BattleSpawnPilotTests
 			run.ShipRegistry,
 			seed: 7,
 			id: "pilot-snapshot-test",
-			shipToPilotId);
+			shipToPilot);
 
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player),
 			spawn =>
 			{
-				Assert.NotNull(spawn.PilotId);
-				Assert.Equal(shipToPilotId[spawn.Ship.Id], spawn.PilotId);
+				Assert.NotNull(spawn.Pilot);
+				Assert.Equal(shipToPilot[spawn.Ship.Id].PilotId, spawn.Pilot!.PilotId);
+				Assert.Equal(
+					shipToPilot[spawn.Ship.Id].SkillIds,
+					spawn.Pilot!.SkillIds);
 			});
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy),
-			spawn => Assert.Null(spawn.PilotId));
+			spawn => Assert.Null(spawn.Pilot));
 	}
 
 	[Fact]
-	public void BattleEncounterSave_RoundTripsPilotId()
+	public void BattleEncounterSave_RoundTripsPilotSnapshot()
 	{
-		using var run = State.CreateNewRun(42);
-		var shipToPilotId = BuildShipToPilotIdMap(run);
-		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
+		using var run = RunState.CreateNewRun(42);
+		var shipToPilot = BuildShipToPilotSnapshot(run);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet],
 			run.ShipRegistry,
 			seed: 3,
 			id: "pilot-save-test",
-			shipToPilotId);
-		var expectedPilotId = Assert.Single(encounter.Spawns).PilotId;
+			shipToPilot);
+		var expectedPilot = Assert.Single(encounter.Spawns).Pilot;
 
 		var dto = SaveDtoMapper.CaptureBattleEncounter(encounter);
 		var restored = SaveDtoMapper.RestoreBattleEncounter(dto);
 
-		Assert.Equal(expectedPilotId, Assert.Single(restored.Spawns).PilotId);
+		Assert.Equal(expectedPilot, Assert.Single(restored.Spawns).Pilot);
 	}
 
 	[Fact]
-	public void MultiShipEngagement_EachPlayerSpawnGetsDistinctPilotId()
+	public void LegacyEncounterSpawnDto_RestoresPilotIdWithEmptySkills()
 	{
-		using var run = State.CreateNewRun(42);
+		var dto = new BattleEncounterSpawnDto(
+			Ship: SaveDtoMapper.CaptureShip(ShipInstance.FromCatalog("fighter-a", EType.Fighter)),
+			Pilot: null,
+			PilotId: "pilot-legacy",
+			Team: ETeam.Player,
+			Position: Coord.Zero,
+			Fore: Coord.Forward,
+			Dorsal: Coord.Up,
+			AgentKind: EBattleAgentKind.Player);
+
+		var spawn = SaveDtoMapper.RestoreBattleEncounter(
+			new BattleEncounterSaveDto(
+				1,
+				"legacy",
+				EObjective.EliminateOpponents,
+				[dto],
+				[])).Spawns[0];
+
+		Assert.Equal(new PilotBattleSnapshot("pilot-legacy", []), spawn.Pilot);
+	}
+
+	[Fact]
+	public void MultiShipEngagement_EachPlayerSpawnGetsDistinctPilotSnapshot()
+	{
+		using var run = RunState.CreateNewRun(42);
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
-		var shipToPilotId = BuildShipToPilotIdMap(run);
+		var shipToPilot = BuildShipToPilotSnapshot(run);
 
-		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(State.PlayerFleetUnitId);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet],
 			run.ShipRegistry,
 			seed: 11,
 			id: "multi-pilot-test",
-			shipToPilotId);
+			shipToPilot);
 
 		var playerSpawns = encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).ToArray();
 		Assert.Equal(2, playerSpawns.Length);
-		Assert.Equal(2, playerSpawns.Select(spawn => spawn.PilotId).Distinct(StringComparer.Ordinal).Count());
+		Assert.Equal(2, playerSpawns.Select(spawn => spawn.Pilot!.PilotId).Distinct(StringComparer.Ordinal).Count());
 	}
 
-	private static Dictionary<string, string> BuildShipToPilotIdMap(State run)
+	[Fact]
+	public void FactoryCreate_AppliesPilotSkillsFromSpawnSnapshot()
 	{
-		var map = new Dictionary<string, string>(StringComparer.Ordinal);
+		var skills = new[] { EPilotSkillId.ShieldsUp };
+		var spawn = new BattleSpawn
+		{
+			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),
+			Pilot = new PilotBattleSnapshot("pilot-1", skills),
+			Team = ETeam.Player,
+			Position = Coord.Zero,
+			ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
+		};
+
+		var unit = Factory.Create(spawn);
+
+		Assert.Equal(skills, unit.State.PilotSkills);
+	}
+
+	private static Dictionary<string, PilotBattleSnapshot> BuildShipToPilotSnapshot(RunState run)
+	{
+		var map = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
 		foreach (var shipId in run.PlayerParty.ShipIds)
 		{
 			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
-			map[shipId] = pilot.Id;
+			map[shipId] = new PilotBattleSnapshot(
+				pilot.Id,
+				PilotSkillAvailability.LearnedBattleAbilities(pilot));
 		}
 
 		return map;

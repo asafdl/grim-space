@@ -63,11 +63,11 @@ public sealed class VoidBombDomainTests
 		var ready = AbilityHudCatalog.BuildState(
 			spec,
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, false, Detonate: true));
+			new AbilityLegality(WeaponPeek.Empty, false, Detonate: true, ShieldsUp: false));
 		var illegal = AbilityHudCatalog.BuildState(
 			spec,
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, false, Detonate: false));
+			new AbilityLegality(WeaponPeek.Empty, false, Detonate: false, ShieldsUp: false));
 
 		Assert.Equal(BattleHudCopy.DetonateTooltipFor(unit), spec.Tooltip(unit));
 		Assert.Equal("res://assets/ui/abilities/detonate.svg", spec.IconPath);

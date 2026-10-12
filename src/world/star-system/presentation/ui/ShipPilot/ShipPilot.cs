@@ -13,15 +13,18 @@ public partial class ShipPilot : PanelContainer
 	private static readonly Color SelectedBorderColor = new(0.55f, 0.78f, 1f, 1f);
 
 	private Label _levelLabel = null!;
+	private Button _levelUpButton = null!;
 	private TextureRect _portrait = null!;
 	private ProgressBar _hullBar = null!;
 	private ProgressBar _shieldBar = null!;
 	private ProgressBar _xpBar = null!;
 	private string? _portraitId;
+	private string? _pilotId;
 	private string? _shipId;
 	private bool _selected;
 
 	public event Action<string>? Selected;
+	public event Action<string>? LevelUpRequested;
 
 	public override void _Ready()
 	{
@@ -33,27 +36,34 @@ public partial class ShipPilot : PanelContainer
 		string pilotName,
 		string portraitId,
 		int experiencePoints,
+		int claimedLevel,
+		bool canLearnSkill,
 		ShipInstance ship,
 		bool selected)
 	{
+		_pilotId = pilotId;
 		_shipId = ship.Id;
 		if (!string.Equals(_portraitId, portraitId, StringComparison.Ordinal))
 		{
 			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
 			_portraitId = portraitId;
 		}
-		var level = PilotProgression.LevelFor(experiencePoints);
-		_levelLabel.Text = $"Lv {level}";
+		_levelLabel.Text = $"Lv {claimedLevel}";
+		_levelUpButton.Visible = canLearnSkill;
 		SetBar(_hullBar, ship.HullPoints, ship.Loadout.MaxHullPoints);
 		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalMaxShieldPoints);
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
-		SetBar(_xpBar, xpInLevel, xpToNext > 0 ? xpToNext : 1);
+		SetBar(
+			_xpBar,
+			canLearnSkill ? 1 : xpInLevel,
+			canLearnSkill ? 1 : xpToNext > 0 ? xpToNext : 1);
 		var xpLine = xpToNext > 0
 			? $"XP {xpInLevel}/{xpToNext}"
 			: "XP max";
 		_portrait.TooltipText =
 			$"{pilotName}\n"
-			+ $"Lv {level} · {xpLine}\n"
+			+ $"Lv {claimedLevel} · {xpLine}\n"
+			+ (canLearnSkill ? "Level up available\n" : "")
 			+ $"{ship.Spec.Chassis}\n"
 			+ $"HP {ship.HullPoints}/{ship.Loadout.MaxHullPoints}\n"
 			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalMaxShieldPoints}";
@@ -77,14 +87,32 @@ public partial class ShipPilot : PanelContainer
 		column.AddThemeConstantOverride("separation", 5);
 		margin.AddChild(column);
 
+		var levelRow = new HBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		column.AddChild(levelRow);
+
 		_levelLabel = new Label
 		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		_levelLabel.AddThemeFontSizeOverride("font_size", 11);
 		_levelLabel.AddThemeColorOverride("font_color", new Color(0.75f, 0.82f, 0.92f));
-		column.AddChild(_levelLabel);
+		levelRow.AddChild(_levelLabel);
+
+		_levelUpButton = new Button
+		{
+			Text = "↑",
+			TooltipText = "Choose a pilot skill",
+			CustomMinimumSize = new Vector2(24, 24),
+			Visible = false,
+		};
+		_levelUpButton.AddThemeFontSizeOverride("font_size", 15);
+		_levelUpButton.Pressed += OnLevelUpPressed;
+		levelRow.AddChild(_levelUpButton);
 
 		_portrait = new TextureRect
 		{
@@ -111,6 +139,12 @@ public partial class ShipPilot : PanelContainer
 			return;
 
 		Selected?.Invoke(_shipId);
+	}
+
+	private void OnLevelUpPressed()
+	{
+		if (_pilotId is not null)
+			LevelUpRequested?.Invoke(_pilotId);
 	}
 
 	private void SetSelected(bool selected)

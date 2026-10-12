@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Pilots;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Run;
 using GrimSpace.Tests;
@@ -149,7 +150,7 @@ public sealed class PilotProgressionTests
 		new()
 		{
 			Ship = ShipInstance.FromCatalog(shipId, EType.Fighter),
-			PilotId = pilotId,
+			Pilot = pilotId is null ? null : new PilotBattleSnapshot(pilotId, []),
 			Team = ETeam.Player,
 		};
 

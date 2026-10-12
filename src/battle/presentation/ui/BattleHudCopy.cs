@@ -1,8 +1,10 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Application;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
@@ -121,6 +123,16 @@ internal static class BattleHudCopy
 		unit.Projectile is { } projectile
 			? DetonateTooltipFor(projectile)
 			: "Detonate";
+
+	public static string ShieldsUpTooltipFor(UnitDisplayState unit)
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.ShieldsUp);
+		return
+			$"{definition.Name}:\n{definition.Description}\n" +
+			$"Costs {ShieldsUpDef.ActionPointCost} AP now.\n" +
+			$"Next upkeep: +{ShieldsUpDef.ShieldRestorePerFace} shield per face (to max) and " +
+			$"-{ShieldsUpDef.NextUpkeepApPenalty} AP.";
+	}
 
 	public static string SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<MinerBaySpec>(unit, EAbilityKind.MinerBay) is { } bay

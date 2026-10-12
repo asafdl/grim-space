@@ -5,6 +5,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
 using GrimSpace.Core.Log;
+using GrimSpace.Pilots;
 using GrimSpace.Tutorials;
 
 using GrimSpace.Units;
@@ -247,6 +248,18 @@ public sealed class State : IDisposable
 		return true;
 	}
 
+	public bool TryLearnPilotSkill(string pilotId, EPilotSkillId skillId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		if (!PilotRegistry.TryGet(pilotId, out var pilot))
+			return false;
+		if (!PilotSkillAvailability.AvailableToLearn(pilot).Contains(skillId))
+			return false;
+
+		PilotRegistry.Update(pilot.LearnPilotSkill(skillId));
+		return true;
+	}
+
 	public void RegenerateMap(int? seed = null)
 	{
 		var nextSeed = seed ?? Random.Shared.Next();
@@ -472,7 +485,7 @@ public sealed class State : IDisposable
 				ShipRegistry,
 				seed,
 				fact.EngagementId,
-				BuildShipIdToPilotIdMap());
+				BuildPilotBattleSnapshots());
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();
 		}
@@ -535,16 +548,18 @@ public sealed class State : IDisposable
 		}
 	}
 
-	private IReadOnlyDictionary<string, string> BuildShipIdToPilotIdMap()
+	private IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotBattleSnapshots()
 	{
-		var map = new Dictionary<string, string>(StringComparer.Ordinal);
+		var map = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
 		foreach (var shipId in PlayerParty.ShipIds)
 		{
 			if (!PilotRegistry.TryGetForShip(shipId, out var pilot))
 				throw new InvalidOperationException(
 					$"Party ship '{shipId}' has no assigned pilot for engagement deployment.");
 
-			map[shipId] = pilot.Id;
+			map[shipId] = new PilotBattleSnapshot(
+				pilot.Id,
+				PilotSkillAvailability.LearnedBattleAbilities(pilot));
 		}
 
 		return map;

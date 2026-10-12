@@ -633,7 +633,7 @@ public partial class BattleController : Node3D
 		_unitPilotIds.Clear();
 		foreach (var spawn in encounter.Spawns)
 		{
-			if (spawn.PilotId is { } pilotId)
+			if (spawn.Pilot?.PilotId is { } pilotId)
 				_unitPilotIds[spawn.Ship.Id] = pilotId;
 		}
 	}

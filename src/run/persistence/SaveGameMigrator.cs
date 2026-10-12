@@ -11,10 +11,14 @@ public static class SaveGameMigrator
 		return document.FormatVersion switch
 		{
 			SaveGameDocument.CurrentFormatVersion => document,
+			4 => MigrateFromV4(document),
 			3 => MigrateFromV3(document),
 			_ => document,
 		};
 	}
+
+	private static SaveGameDocument MigrateFromV4(SaveGameDocument document) =>
+		document with { FormatVersion = SaveGameDocument.CurrentFormatVersion };
 
 	private static SaveGameDocument MigrateFromV3(SaveGameDocument document)
 	{

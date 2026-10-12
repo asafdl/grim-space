@@ -17,7 +17,7 @@ public static class EngagementBattleFactory
 		RunShipRegistry registry,
 		int seed,
 		string id,
-		IReadOnlyDictionary<string, string>? shipIdToPilotId = null)
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 
@@ -28,7 +28,7 @@ public static class EngagementBattleFactory
 			registry,
 			seed,
 			GridSize,
-			shipIdToPilotId);
+			shipIdToPilotSnapshot);
 
 		return new BattleEncounter
 		{
