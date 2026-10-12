@@ -5,11 +5,14 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class LightningCannonEffect : Node3D
 {
-	private const string BoltPath = "res://assets/models/abilities/lightning_cannon_bolts_bold.glb";
+	private const string SquigglePath =
+		"res://assets/vfx/lightning_cannon_squiggle.svg";
 	internal const float StrikeSeconds = 0.065f;
 	private const float LifetimeSeconds = 0.22f;
-	private const float BeamThicknessScale = 1.22f * 1.35f;
-	private static PackedScene? _bolts;
+	private const float SquiggleAspectRatio = 1220.9414f / 690.4336f;
+	private const float ExtrusionDepthCells = 0.12f;
+	private const int ExtrusionLayers = 7;
+	private static Texture2D? _squiggle;
 	private readonly List<MeshInstance3D> _pieces = [];
 	private float _elapsed;
 	private float _strikeSeconds = StrikeSeconds;
@@ -36,9 +39,9 @@ public partial class LightningCannonEffect : Node3D
 		if (fore.LengthSquared() < 0.9f || up.LengthSquared() < 0.9f)
 			throw new ArgumentException("Forward and dorsal must be nonparallel directions.");
 
-		_bolts ??= GD.Load<PackedScene>(BoltPath)
-			?? throw new InvalidOperationException($"Could not load lightning VFX '{BoltPath}'.");
-		var root = _bolts.Instantiate<Node3D>();
+		_squiggle ??= GD.Load<Texture2D>(SquigglePath)
+			?? throw new InvalidOperationException(
+				$"Could not load lightning squiggle '{SquigglePath}'.");
 		var effect = new LightningCannonEffect
 		{
 			Name = "LightningCannonEffect",
@@ -47,76 +50,79 @@ public partial class LightningCannonEffect : Node3D
 			_chargeSoundPosition = origin,
 			_soundParent = parent,
 		};
-		try
-		{
-			var meshes = root.FindChildren("*", "MeshInstance3D", true, false)
-				.OfType<MeshInstance3D>().ToDictionary(mesh => mesh.Name.ToString());
-			var right = up.Cross(fore).Normalized();
-			var orientation = new Basis(fore, right, up);
-			var beamThickness = cellSize * BeamThicknessScale;
-			foreach (var name in new[] { "MainBoltA", "MainBoltB", "MainBoltC" })
-			{
-				effect.AddPiece(FindMesh(name), origin, orientation,
-					new Vector3(lineLength * cellSize, beamThickness, beamThickness), 1f);
-			}
+		var right = up.Cross(fore).Normalized();
+		var reach = (lineLength + pyramidRange) * cellSize;
+		var spread = Mathf.Max(
+			Mathf.Max(pyramidRange * cellSize, reach * 0.2f),
+			cellSize);
+		var launchOffset = fore * (cellSize * 0.25f);
 
-			if (pyramidRange > 0)
-			{
-				// TerminalForks: short +X trunk, branches in local Y/Z — one aligned copy at the beam tip.
-				var rng = new RandomNumberGenerator { Seed = GD.Randi() };
-				const float overlapCells = 0.35f;
-				var roll = rng.RandfRange(-0.22f, 0.22f);
-				var forkOrientation = orientation.Rotated(fore, roll);
-				var junction = origin + fore * ((lineLength - overlapCells) * cellSize);
-				var depthScale = (pyramidRange + overlapCells) * rng.RandfRange(0.96f, 1.04f);
-				var spreadScale = pyramidRange * rng.RandfRange(0.95f, 1.08f);
-				effect.AddPiece(
-					FindMesh("TerminalForks"),
-					junction,
-					forkOrientation,
-					new Vector3(depthScale * cellSize, spreadScale * cellSize, spreadScale * cellSize),
-					rng.RandfRange(0.78f, 0.84f));
-			}
+		effect.AddExtrudedSquiggle(
+			origin + launchOffset,
+			origin + fore * reach + right * spread,
+			right,
+			cellSize,
+			0.82f);
+		effect.AddExtrudedSquiggle(
+			origin + launchOffset - right * (cellSize * 0.12f),
+			origin + fore * (reach * 1.04f) - right * (spread * 0.9f),
+			right,
+			cellSize,
+			0.72f);
+		effect.AddExtrudedSquiggle(
+			origin + launchOffset + right * (cellSize * 0.1f),
+			origin + fore * (reach * 0.94f) + right * (spread * 0.1f),
+			right,
+			cellSize,
+			0.66f);
 
-			parent.AddChild(effect);
-			return effect;
-
-			Mesh FindMesh(string name) =>
-				meshes.TryGetValue(name, out var source) && source.Mesh is { } mesh
-					? mesh
-					: throw new InvalidOperationException($"Lightning VFX '{BoltPath}' has no mesh '{name}'.");
-		}
-		finally
-		{
-			root.Free();
-			if (effect.GetParent() is null)
-				effect.Free();
-		}
+		parent.AddChild(effect);
+		return effect;
 	}
 
-	private void AddPiece(Mesh mesh, Vector3 position, Basis orientation, Vector3 scale, float opacity)
+	private void AddExtrudedSquiggle(
+		Vector3 from,
+		Vector3 to,
+		Vector3 heightDirection,
+		float cellSize,
+		float scale)
 	{
-		var piece = new MeshInstance3D
+		var direction = from.DirectionTo(to);
+		var height = (
+			heightDirection
+			- direction * heightDirection.Dot(direction)
+		).Normalized();
+		var normal = direction.Cross(height).Normalized();
+		var length = from.DistanceTo(to);
+		var size = new Vector2(
+			length,
+			length / SquiggleAspectRatio * scale);
+		var depth = ExtrusionDepthCells * cellSize * scale;
+		var material = new StandardMaterial3D
 		{
-			Mesh = mesh,
-			Position = position,
-			Basis = orientation,
-			Scale = scale,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				BlendMode = BaseMaterial3D.BlendModeEnum.Add,
-				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-				AlbedoColor = new Color(0.62f, 0.72f, 1f, opacity),
-				EmissionEnabled = true,
-				Emission = new Color(0.62f, 0.72f, 1f),
-				EmissionEnergyMultiplier = 2.3f,
-			},
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+			AlbedoTexture = _squiggle,
 		};
-		AddChild(piece);
-		_pieces.Add(piece);
+
+		for (var layer = 0; layer < ExtrusionLayers; layer++)
+		{
+			var depthProgress = layer / (float)(ExtrusionLayers - 1) - 0.5f;
+			var piece = new MeshInstance3D
+			{
+				Name = "LightningSquiggle",
+				Mesh = new QuadMesh { Size = size },
+				Position = from.Lerp(to, 0.5f)
+					+ normal * (depthProgress * depth),
+				Basis = new Basis(direction, height, normal),
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				MaterialOverride = material,
+			};
+			PresentationLayers.MarkWorld(piece);
+			AddChild(piece);
+			_pieces.Add(piece);
+		}
 	}
 
 	public override void _Ready() =>
