@@ -19,7 +19,7 @@ internal static class OneShotParticles
 	private const double BoomAppearDelay = 0.08;
 	private const double BoomFadeInSeconds = 0.06;
 	private const double BoomFadeStart = 0.62;
-	private const double BoomFadeSeconds = 0.2;
+	private const double BoomFadeSeconds = 0.4;
 	private const float BoomWidthScale = 4.43f;
 	private const double WreckageLifetimeSeconds = 8.0;
 	private const double WreckageFadeSeconds = 1.5;
