@@ -9,6 +9,7 @@ using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Specs;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -177,15 +178,18 @@ public sealed class LightningCannonActionTests
 			ShipInstance.FromSpec(PlayerId, FighterSpec.Instance, ShipCatalog.FullFighterLoadout()),
 			ETeam.Player,
 			playerPos,
-			new UserExecutionAgent(),
-			Coord.Forward,
-			Coord.Up,
-			pilotSkills: [EPilotSkillId.IonizedPayload]);
+			new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPos);
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
 		enemy.State.ShieldPoints[hitFace] = 1;
 		var hullBefore = enemy.State.HullPoints;
-		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			pilotsByActorId: new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
+			{
+				[PlayerId] = new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]),
+			});
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
@@ -203,15 +207,18 @@ public sealed class LightningCannonActionTests
 			ShipInstance.FromSpec(PlayerId, FighterSpec.Instance, ShipCatalog.FullFighterLoadout()),
 			ETeam.Player,
 			playerPos,
-			new UserExecutionAgent(),
-			Coord.Forward,
-			Coord.Up,
-			pilotSkills: [EPilotSkillId.IonizedPayload]);
+			new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPos);
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
 		enemy.State.ShieldPoints[hitFace] = 3;
 		var hullBefore = enemy.State.HullPoints;
-		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			pilotsByActorId: new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
+			{
+				[PlayerId] = new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]),
+			});
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 

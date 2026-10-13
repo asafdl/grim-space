@@ -28,7 +28,7 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			try
 			{
 				var start = session.Actions.Count;
-				var capabilities = SearchCapabilities(actor.State);
+				var capabilities = SearchCapabilities(actor.State, session.RuntimeFor(actor.State.Id));
 				var actions = Runner.CalcActions(
 					session,
 					actor,
@@ -50,8 +50,9 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 	}
 
 	internal static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> SearchCapabilities(
-		State actor) =>
-		Capabilities.For(actor)
+		State actor,
+		ActorRuntime runtime) =>
+		Capabilities.For(actor, runtime)
 			.Where(def =>
 				def is not SpawnRepurposedMinerDef
 				&& (actor.Type != EType.IndustrialGooper || def is not RollDef))

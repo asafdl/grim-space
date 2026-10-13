@@ -256,9 +256,11 @@ Movement uses two independently refilled resources. Action points (AP) pay for t
 | Bucket | Holds |
 |--------|--------|
 | **World** (`BattleWorld`) | Durable battlefield snapshot — units, grid occupancy, hazards, timeline |
-| **Runtime** (`ActorRuntimes<ActorRuntime>`) | Per-actor turn scratch — queued path state, yaw tags, weapon-use flags, etc. |
+| **Runtime** (`ActorRuntimes<ActorRuntime>`) | Per-actor battle context — pilot snapshot (`PilotId`, learned battle skills), derived action-effect modifiers, plus turn scratch as needed. Built from encounter spawns (or empty for spawned children / rules actor). |
 
-[`Capabilities`](src/battle/units/Capabilities.cs) maps each actor's installed abilities to action definitions. AI and UI start from that set and ask each definition what is legal or discoverable; they do not maintain separate rule tables. Type-based overloads exist only for previews and tests that do not have live actor state.
+[`Capabilities`](src/battle/units/Capabilities.cs) maps each actor's installed abilities and **pilot runtime** skills to action definitions. AI and UI start from that set and ask each definition what is legal or discoverable; they do not maintain separate rule tables. Type-based overloads exist only for previews and tests that do not have live actor state.
+
+[`IAction`](src/core/actions/IAction.cs) exposes opaque string **`Tags`** for committed timeline entries; the kernel stores and forwards them only. Battle action defs may call [`ActorRuntime.ApplyActionEffectModifiers`](src/battle/runtime/ActorRuntime.cs) after building base effects so pilot passives (e.g. Ionized Payload on tagged lightning attacks) can transform the effect list without skill checks inside `Resolve`.
 
 `BattleOrchestrator` owns phase transitions, activation order, outcome evaluation, and the engine commit boundary. Godot-facing [`BattleController`](src/battle/presentation/scene/BattleController.cs), [`BattleHud`](src/battle/presentation/ui/BattleHud.cs), and [`PresentationFrameBuilder`](src/battle/presentation/PresentationFrameBuilder.cs) consume previews and committed history but do not implement battle rules.
 

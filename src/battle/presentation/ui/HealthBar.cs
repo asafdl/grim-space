@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Components;
 using GrimSpace.Math.Grid;
@@ -54,7 +55,8 @@ public sealed partial class HealthBar : HBoxContainer
 		AddChild(_shieldSection);
 	}
 
-	public void Set(State state) => Set(UnitDisplayState.Capture(state));
+	public void Set(State state) =>
+		Set(UnitDisplayState.Capture(state, ActorRuntime.From(null)));
 
 	public void Set(UnitDisplayState state)
 	{

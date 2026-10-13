@@ -47,10 +47,10 @@ public sealed class RouteHitPreview
 		var actor = fork.StateOf<State>(playerId);
 		var runtime = fork.RuntimeFor(playerId);
 		var world = fork.World;
-		var specsByDef = AbilityHudCatalog.ForActor(actor).ToDictionary(spec => spec.Def);
+		var specsByDef = AbilityHudCatalog.ForActor(actor, runtime).ToDictionary(spec => spec.Def);
 		var opportunities = new List<PoseHitOpportunity>();
 
-		foreach (var def in Capabilities.AbilityDefsFor(actor))
+		foreach (var def in Capabilities.AbilityDefsFor(actor, runtime))
 		{
 			var spec = specsByDef[def];
 			var hitTargets = new HashSet<string>(StringComparer.Ordinal);

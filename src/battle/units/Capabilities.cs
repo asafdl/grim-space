@@ -41,23 +41,25 @@ public static class Capabilities
 		CollectAbilityDefs(installed);
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> For(
-		State state)
+		State state,
+		ActorRuntime runtime)
 	{
 		if (state.Type == EType.VoidBomb)
 			return [VoidBombMoveDef.Instance, DetonateDef.Instance];
 
-		return [..Movement, ..AbilityDefsFor(state)];
+		return [..Movement, ..AbilityDefsFor(state, runtime)];
 	}
 
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> AbilityDefsFor(
-		State state)
+		State state,
+		ActorRuntime runtime)
 	{
 		if (state.Type == EType.VoidBomb)
 			return [DetonateDef.Instance];
 
 		return MergeAbilityDefs(
 			CollectAbilityDefs(state.Loadout.InstalledAbilities),
-			PilotSkillCapabilities.DefsFor(state.PilotSkills));
+			PilotSkillCapabilities.DefsFor(runtime.PilotSkills));
 	}
 
 	/// <summary>
@@ -78,7 +80,7 @@ public static class Capabilities
 		var state = world.StateOf(actorId);
 		var legal = new List<IAction>();
 
-		foreach (var def in AbilityDefsFor(state))
+		foreach (var def in AbilityDefsFor(state, runtime))
 		{
 			var candidates = def switch
 			{

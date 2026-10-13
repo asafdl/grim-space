@@ -1,8 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
-using GrimSpace.Pilots;
-
 namespace GrimSpace.Run.Persistence;
 
 public sealed record BattleUnitStateDto(
@@ -21,5 +19,4 @@ public sealed record BattleUnitStateDto(
 	int? MaxMp = null,
 	int? Initiative = null,
 	IReadOnlyList<TemporaryShieldGrantDto>? TemporaryShieldGrants = null,
-	bool ShieldsUpUsedThisTurn = false,
-	IReadOnlyList<EPilotSkillId>? PilotSkills = null);
+	bool ShieldsUpUsedThisTurn = false);

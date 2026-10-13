@@ -58,7 +58,9 @@ public sealed class VoidBombDomainTests
 			ShipInstance.FromCatalog("void_bomb", EType.VoidBomb),
 			new Coord(5, 5, 5));
 		torpedoState.FuelRemaining = 2;
-		var unit = UnitDisplayState.Capture(torpedoState);
+		var unit = UnitDisplayState.Capture(
+			torpedoState,
+			GrimSpace.Battle.Runtime.ActorRuntime.From(null));
 
 		var ready = AbilityHudCatalog.BuildState(
 			spec,

@@ -11,7 +11,7 @@ namespace GrimSpace.Battle.PilotSkills;
 public static class PilotSkillCapabilities
 {
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> DefsFor(
-		IReadOnlyList<EPilotSkillId> skills)
+		IReadOnlySet<EPilotSkillId> skills)
 	{
 		ArgumentNullException.ThrowIfNull(skills);
 		if (skills.Count == 0)
@@ -19,7 +19,7 @@ public static class PilotSkillCapabilities
 
 		var defs = new List<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>();
 		var seen = new HashSet<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>();
-		foreach (var skillId in skills)
+		foreach (var skillId in skills.OrderBy(skill => skill))
 		{
 			var def = DefFor(skillId);
 			if (def is not null && seen.Add(def))

@@ -1,5 +1,7 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -18,8 +20,9 @@ public sealed class CapabilitiesAbilityDefsTests
 			ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			Coord.Zero);
 
-		var abilityDefs = Capabilities.AbilityDefsFor(state);
-		var hudDefs = AbilityHudCatalog.ForActor(state).Select(spec => spec.Def).ToArray();
+		var runtime = ActorRuntime.From(null);
+		var abilityDefs = Capabilities.AbilityDefsFor(state, runtime);
+		var hudDefs = AbilityHudCatalog.ForActor(state, runtime).Select(spec => spec.Def).ToArray();
 
 		Assert.Equal(abilityDefs, hudDefs);
 	}
@@ -31,8 +34,8 @@ public sealed class CapabilitiesAbilityDefsTests
 			ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			Coord.Zero);
 
-		var all = Capabilities.For(state);
-		var abilities = Capabilities.AbilityDefsFor(state);
+		var all = Capabilities.For(state, ActorRuntime.From(null));
+		var abilities = Capabilities.AbilityDefsFor(state, ActorRuntime.From(null));
 
 		Assert.Equal(Capabilities.Movement, all.Take(Capabilities.Movement.Count).ToArray());
 		Assert.Equal(abilities, all.Skip(Capabilities.Movement.Count).ToArray());
@@ -45,11 +48,10 @@ public sealed class CapabilitiesAbilityDefsTests
 			ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			Coord.Zero,
 			Coord.Forward,
-			Coord.Up,
-			pilotSkills: [EPilotSkillId.ShieldsUp]);
-
-		var abilityDefs = Capabilities.AbilityDefsFor(state);
-		var hudDefs = AbilityHudCatalog.ForActor(state).Select(spec => spec.Def).ToArray();
+			Coord.Up);
+		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.ShieldsUp]));
+		var abilityDefs = Capabilities.AbilityDefsFor(state, runtime);
+		var hudDefs = AbilityHudCatalog.ForActor(state, runtime).Select(spec => spec.Def).ToArray();
 
 		Assert.Contains(ShieldsUpDef.Instance, abilityDefs);
 		Assert.Equal(abilityDefs, hudDefs);

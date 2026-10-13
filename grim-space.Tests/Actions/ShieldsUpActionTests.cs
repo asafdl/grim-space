@@ -1,5 +1,6 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
@@ -19,9 +20,7 @@ public sealed class ShieldsUpActionTests
 	[Fact]
 	public void ShieldsUp_IsLegalWhenEquippedAndNotUsedThisTurn()
 	{
-		var player = PlayerWithShieldsUp();
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var (player, battle) = PlayerWithShieldsUpBattle();
 
 		var legal = Capabilities.LegalCapabilities(battle.PlayerAgent.Sim, PlayerId);
 
@@ -31,11 +30,9 @@ public sealed class ShieldsUpActionTests
 	[Fact]
 	public void ShieldsUp_SchedulesFollowUpsThenAppliesPenaltyOnNextTickAfterUpkeepRefill()
 	{
-		var player = PlayerWithShieldsUp();
+		var (player, battle) = PlayerWithShieldsUpBattle();
 		player.State.ShieldPoints[ESpatialOrientation.Forward] = 0;
 		player.State.ActionPoints = 3;
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 
 		BattleTestApply.TryApplyOne(
 			ShieldsUpDef.Instance.Bind(PlayerId),
@@ -69,11 +66,9 @@ public sealed class ShieldsUpActionTests
 	[Fact]
 	public void ShieldsUp_TemporaryBonusCanExceedLoadoutMax()
 	{
-		var player = PlayerWithShieldsUp();
+		var (player, battle) = PlayerWithShieldsUpBattle();
 		var max = player.State.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
 		player.State.ShieldPoints[ESpatialOrientation.Forward] = max;
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 
 		BattleTestApply.TryApplyOne(
 			ShieldsUpDef.Instance.Bind(PlayerId),
@@ -88,9 +83,7 @@ public sealed class ShieldsUpActionTests
 	[Fact]
 	public void ShieldsUpActivateEffect_UndoRestoresUsedFlag()
 	{
-		var player = PlayerWithShieldsUp();
-		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var (player, battle) = PlayerWithShieldsUpBattle();
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 		var effect = new ShieldsUpActivateEffect();
 
@@ -103,17 +96,19 @@ public sealed class ShieldsUpActionTests
 	[Fact]
 	public void AbilityDefsFor_IncludesShieldsUpWhenEquipped()
 	{
-		var player = PlayerWithShieldsUp();
+		var (player, battle) = PlayerWithShieldsUpBattle();
 
-		var defs = Capabilities.AbilityDefsFor(player.State);
+		var defs = Capabilities.AbilityDefsFor(
+			player.State,
+			battle.Engine.ActorRuntimes.For(player.State.Id));
 
 		Assert.Contains(ShieldsUpDef.Instance, defs);
 	}
 
 	[Fact]
-	public void BattleUnitStateDto_RoundTripsPilotSkillRuntime()
+	public void BattleUnitStateDto_RoundTripsShieldsUpRuntime()
 	{
-		var player = PlayerWithShieldsUp();
+		var (player, _) = PlayerWithShieldsUpBattle();
 		TemporaryShields.GrantPerFace(player.State, "grant", 1);
 		player.State.ShieldsUpUsedThisTurn = true;
 
@@ -122,16 +117,21 @@ public sealed class ShieldsUpActionTests
 
 		Assert.Equal(1, TemporaryShields.TotalOnFace(restored, ESpatialOrientation.Port));
 		Assert.True(restored.ShieldsUpUsedThisTurn);
-		Assert.Equal(player.State.PilotSkills, restored.PilotSkills);
 	}
 
-	private static Unit PlayerWithShieldsUp() =>
-		Factory.Create(
+	private static (Unit Player, BattleOrchestrator Battle) PlayerWithShieldsUpBattle()
+	{
+		var player = Factory.Create(
 			ShipInstance.FromCatalog(PlayerId, EType.Fighter),
 			ETeam.Player,
 			new Coord(5, 5, 5),
-			BattleAgentFactory.Create(EBattleAgentKind.Player),
-			Coord.Forward,
-			Coord.Up,
-			pilotSkills: [EPilotSkillId.ShieldsUp]);
+			BattleAgentFactory.Create(EBattleAgentKind.Player));
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
+		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
+		{
+			[player.State.Id] = new PilotBattleSnapshot("pilot", [EPilotSkillId.ShieldsUp]),
+		};
+		var battle = BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
+		return (player, battle);
+	}
 }

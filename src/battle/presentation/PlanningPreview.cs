@@ -33,7 +33,7 @@ public sealed class PlanningPreview
 	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits(
 		BattleSimulation sim,
 		string playerId) =>
-		CaptureUnits(PreviewWorld(sim, playerId));
+		CaptureUnits(sim, PreviewWorld(sim, playerId));
 
 	public IReadOnlyList<MovePathOption> MoveOptions(
 		BattleSimulation sim,
@@ -47,22 +47,22 @@ public sealed class PlanningPreview
 		EnsureSim(sim);
 		var inspecting = focusId != playerId;
 		var previewWorld = PreviewWorld(sim, playerId);
-		if (inspecting && !CaptureUnits(previewWorld).ContainsKey(focusId))
+		if (inspecting && !CaptureUnits(sim, previewWorld).ContainsKey(focusId))
 			return [];
 
 		if (inspecting)
 		{
 			return MovePathEndpoints.DiscoverExtensions(sim, focusId)
-				.Select(ToMovePathOption)
+				.Select(path => ToMovePathOption(sim, path))
 				.ToList();
 		}
 
 		return _moveCache.GetPaths(sim, playerId)
-			.Select(route => ToMovePathOption(route.Session))
+			.Select(route => ToMovePathOption(sim, route.Session))
 			.ToList();
 	}
 
-	private static MovePathOption ToMovePathOption(MovePathSession path) =>
+	private static MovePathOption ToMovePathOption(BattleSimulation sim, MovePathSession path) =>
 		new(
 			path.Steps,
 			path.Checkpoints,
@@ -72,7 +72,7 @@ public sealed class PlanningPreview
 			path.ExtensionMpCost,
 			path.RemainingAp,
 			path.RemainingMp,
-			UnitDisplayState.Capture(path.ResultState));
+			UnitDisplayState.Capture(path.ResultState, sim.RuntimeFor(path.ResultState.Id)));
 
 	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities(
 		BattleSimulation sim,
@@ -293,9 +293,10 @@ public sealed class PlanningPreview
 		return peek?.World ?? sim.World;
 	}
 
-	private static Dictionary<string, UnitDisplayState> CaptureUnits(BattleWorld world) =>
-		UnitRegistry.For(world).All
-			.ToDictionary(unit => unit.State.Id, unit => UnitDisplayState.Capture(unit.State));
+	private static Dictionary<string, UnitDisplayState> CaptureUnits(BattleSimulation sim, BattleWorld world) =>
+		UnitRegistry.For(world).All.ToDictionary(
+			unit => unit.State.Id,
+			unit => UnitDisplayState.Capture(unit.State, sim.RuntimeFor(unit.State.Id)));
 
 	private static AreaActionPreview AreaPreview(
 		IAction action,

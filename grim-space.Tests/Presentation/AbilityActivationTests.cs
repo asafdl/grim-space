@@ -198,7 +198,9 @@ public sealed class AbilityActivationTests
 	}
 
 	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>
-		AbilityHudCatalog.ForActor(BattleTestFixture.Player(Coord.Zero).State)
+		AbilityHudCatalog.ForActor(
+			BattleTestFixture.Player(Coord.Zero).State,
+			GrimSpace.Battle.Runtime.ActorRuntime.From(null))
 			.Concat(AbilityHudCatalog.ForUnit(EType.Carrier))
 			.First(spec => spec.Mode == mode);
 }

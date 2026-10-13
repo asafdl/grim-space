@@ -25,7 +25,9 @@ public sealed class EnemySearchPerformanceTests
 		var frames = ActionSearch.Run(
 				battle.Engine.CreateSimulation(),
 				gooper.State.Id,
-				AiController.SearchCapabilities(gooper.State),
+				AiController.SearchCapabilities(
+					gooper.State,
+					battle.Engine.ActorRuntimes.For(gooper.State.Id)),
 				new SearchInput<BattleWorld, ActorRuntime>(
 					BattleSearchVisit.ForCapabilities,
 					ShouldExploreAction: EnemySearchInput.ShouldExploreAction))
@@ -42,7 +44,9 @@ public sealed class EnemySearchPerformanceTests
 			.All.Single(unit => unit.State.Type == EType.IndustrialGooper);
 
 		Assert.DoesNotContain(
-			AiController.SearchCapabilities(gooper.State),
+			AiController.SearchCapabilities(
+				gooper.State,
+				battle.Engine.ActorRuntimes.For(gooper.State.Id)),
 			definition => definition is RollDef);
 	}
 }

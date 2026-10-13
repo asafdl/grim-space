@@ -195,7 +195,8 @@ public sealed class State : IDisposable
 		var orchestrator = RestoredBattleWorld is { } savedWorld
 			? BattleOrchestrator.FromSavedWorld(
 				savedWorld,
-				ResolveActiveBattlePlayerId(savedWorld))
+				ResolveActiveBattlePlayerId(savedWorld),
+				ActiveBattle)
 			: BattleOrchestrator.FromEncounter(
 				ActiveBattle,
 				preferredPlayerId: ResolveActiveBattlePlayerId(null));

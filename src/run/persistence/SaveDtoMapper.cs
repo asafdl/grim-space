@@ -232,7 +232,6 @@ public static class SaveDtoMapper
 			state.ParentId,
 			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 			state.ShieldsUpUsedThisTurn,
-			PilotSkills = state.PilotSkills.ToArray(),
 			MaxAp = state.Maneuverability.MaxActionPoints,
 			MaxMp = state.Maneuverability.MaxManeuverPoints,
 			state.Projectile,
@@ -254,8 +253,7 @@ public static class SaveDtoMapper
 			dto.Position,
 			dto.Fore,
 			dto.Dorsal,
-			dto.ParentId,
-			dto.PilotSkills);
+			dto.ParentId);
 		state.Starboard = dto.Starboard;
 		state.Initiative = dto.Initiative ?? state.Initiative;
 		state.ActionPoints = dto.ActionPoints;
@@ -335,7 +333,6 @@ public static class SaveDtoMapper
 				state.ParentId,
 				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 				state.ShieldsUpUsedThisTurn,
-				PilotSkills = state.PilotSkills.ToArray(),
 				MaxAp = state.Maneuverability.MaxActionPoints,
 				MaxMp = state.Maneuverability.MaxManeuverPoints,
 				state.Projectile,
@@ -789,8 +786,7 @@ public static class SaveDtoMapper
 				unitDto.Position,
 				unitDto.Fore,
 				unitDto.Dorsal,
-				unitDto.ParentId,
-				unitDto.PilotSkills);
+				unitDto.ParentId);
 			state.Starboard = unitDto.Starboard;
 			state.Initiative = unitDto.Initiative ?? state.Initiative;
 			state.ActionPoints = unitDto.ActionPoints;

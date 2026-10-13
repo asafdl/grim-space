@@ -6,7 +6,6 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
-using GrimSpace.Pilots;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
@@ -16,6 +15,16 @@ public sealed record LightningCannonAction(
 	ESpatialOrientation MountedOn = ESpatialOrientation.Forward)
 	: IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
+	public static class TagNames
+	{
+		public const string Attack = "attack";
+		public const string Lightning = "lightning";
+	}
+
+	private static readonly string[] ActionTags = [TagNames.Attack, TagNames.Lightning];
+
+	IReadOnlyList<string> IAction.Tags => ActionTags;
+
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		LightningCannonDef.Instance;
 }
@@ -88,19 +97,16 @@ public sealed class LightningCannonDef
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn)
 			?? throw new InvalidOperationException("Lightning cannon ability not installed for actor.");
 		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Lightning cannon spec missing area damage.");
-		var shieldDamageBonus = state.PilotSkills.Contains(EPilotSkillId.IonizedPayload)
-			? IonizedPayloadShieldDamageBonus
-			: 0;
-		return
-		[
+		var effects = new IEffect<BattleWorld, ActorRuntime>[]
+		{
 			new ApplyAreaDamageEffect(
 				EImpactCause.LightningCannonBurst,
 				cells,
 				damage,
-				state.Position,
-				shieldDamageBonus),
+				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
-		];
+		};
+		return runtime.ApplyActionEffectModifiers(action, world, effects);
 	}
 
 	public IReadOnlySet<Coord> AffectedCells(LightningCannonAction action, BattleWorld world)

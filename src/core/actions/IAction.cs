@@ -5,6 +5,8 @@ namespace GrimSpace.Core.Actions;
 public interface IAction : ITimelineEntry
 {
 	string ActorId { get; }
+
+	IReadOnlyList<string> Tags => [];
 }
 
 public interface IAction<TWorld, TRuntime> : IAction

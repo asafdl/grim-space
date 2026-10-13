@@ -8,6 +8,7 @@ using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -42,13 +43,17 @@ public static class AbilityHudCatalog
 
 	/// <summary>Chassis-default HUD rows (tests and type-only previews).</summary>
 	public static IReadOnlyList<Spec> ForUnit(EType type) =>
-		ForActor(State.FromShipInstance(ShipInstance.FromCatalog("__hud__", type), Coord.Zero));
+		ForActor(
+			State.FromShipInstance(ShipInstance.FromCatalog("__hud__", type), Coord.Zero),
+			ActorRuntime.From(null));
 
-	public static IReadOnlyList<Spec> ForActor(State state) =>
-		Capabilities.AbilityDefsFor(state).Select(Resolve).ToList();
+	public static IReadOnlyList<Spec> ForActor(State state, ActorRuntime runtime) =>
+		Capabilities.AbilityDefsFor(state, runtime).Select(Resolve).ToList();
 
 	public static IReadOnlyList<Spec> ForDisplayState(UnitDisplayState unit) =>
-		ForActor(unit.ToState());
+		ForActor(
+			unit.ToState(),
+			ActorRuntime.From(new PilotBattleSnapshot(unit.Id, unit.PilotSkills)));
 
 	public static AbilityBarSlotState BuildState(Spec spec, UnitDisplayState unit, AbilityLegality legality) =>
 		new(spec.Tooltip(unit), spec.Charges(unit, legality), spec.IsLegal(legality));

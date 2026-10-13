@@ -15,6 +15,15 @@ public sealed class ApplyAreaDamageEffect(
 	Coord origin,
 	int shieldDamageBonus = 0) : IEffect<BattleWorld, ActorRuntime>
 {
+	public EImpactCause Cause => cause;
+	public IReadOnlySet<Coord> Cells => cells;
+	public int Damage => damage;
+	public Coord Origin => origin;
+	public int ShieldDamageBonus => shieldDamageBonus;
+
+	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
+		new(cause, cells, damage, origin, shieldDamageBonus + amount);
+
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)

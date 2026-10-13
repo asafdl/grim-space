@@ -56,7 +56,9 @@ public sealed class ManeuverabilityStateTests
 		state.ActionPoints = 2;
 		state.ManeuverPoints = 0;
 
-		var display = UnitDisplayState.Capture(state);
+		var display = UnitDisplayState.Capture(
+			state,
+			GrimSpace.Battle.Runtime.ActorRuntime.From(null));
 		var restored = display.ToState();
 
 		Assert.Same(state.Maneuverability, display.Maneuverability);

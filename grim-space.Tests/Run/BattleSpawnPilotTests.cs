@@ -120,7 +120,7 @@ public sealed class BattleSpawnPilotTests
 	}
 
 	[Fact]
-	public void FactoryCreate_AppliesPilotSkillsFromSpawnSnapshot()
+	public void FromEncounter_AppliesPilotRuntimeFromSpawnSnapshot()
 	{
 		var skills = new[] { EPilotSkillId.ShieldsUp };
 		var spawn = new BattleSpawn
@@ -131,10 +131,28 @@ public sealed class BattleSpawnPilotTests
 			Position = Coord.Zero,
 			ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
 		};
+		var encounter = new BattleEncounter
+		{
+			Seed = 1,
+			Id = "pilot-runtime",
+			Objective = GrimSpace.Battle.Objectives.EObjective.EliminateOpponents,
+			Spawns =
+			[
+				spawn,
+				new BattleSpawn
+				{
+					Ship = ShipInstance.FromCatalog("enemy", EType.Fighter),
+					Team = ETeam.Enemy,
+					Position = new Coord(0, 0, 0),
+					ExecutionAgent = BattleAgentFactory.Create(EBattleAgentKind.Ai),
+				},
+			],
+		};
 
-		var unit = Factory.Create(spawn);
+		using var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 12);
+		var runtime = battle.Engine.ActorRuntimes.For("fighter-a");
 
-		Assert.Equal(skills, unit.State.PilotSkills);
+		Assert.Equal(skills, runtime.PilotSkills.OrderBy(skill => skill).ToArray());
 	}
 
 	private static Dictionary<string, PilotBattleSnapshot> BuildShipToPilotSnapshot(RunState run)

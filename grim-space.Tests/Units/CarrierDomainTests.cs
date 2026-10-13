@@ -41,7 +41,8 @@ public sealed class CarrierDomainTests
 		var unit = UnitDisplayState.Capture(
 			State.FromShipInstance(
 				ShipInstance.FromCatalog("carrier", EType.Carrier),
-				new Coord(5, 5, 5)));
+				new Coord(5, 5, 5)),
+			GrimSpace.Battle.Runtime.ActorRuntime.From(null));
 
 		var ready = AbilityHudCatalog.BuildState(
 			AbilityHudCatalog.ForUnit(EType.Carrier)[1],

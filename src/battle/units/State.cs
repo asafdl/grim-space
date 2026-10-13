@@ -1,4 +1,3 @@
-using GrimSpace.Pilots;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Battle.Ids;
@@ -30,7 +29,6 @@ public sealed class State
 	public List<TemporaryShieldGrant> TemporaryShieldGrants { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
-	public IReadOnlyList<EPilotSkillId> PilotSkills { get; init; } = Array.Empty<EPilotSkillId>();
 
 	public bool IsAlive => HullPoints > 0;
 
@@ -99,7 +97,6 @@ public sealed class State
 			ParentId = ParentId,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 			Maneuverability = Maneuverability,
-			PilotSkills = PilotSkills,
 		};
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
@@ -116,8 +113,7 @@ public sealed class State
 		Coord position,
 		Coord fore,
 		Coord dorsal,
-		string parentId = BattleActorIds.Rules,
-		IReadOnlyList<EPilotSkillId>? pilotSkills = null)
+		string parentId = BattleActorIds.Rules)
 	{
 		var projectile = ship.Spec.Chassis == EType.VoidBomb
 			? VoidBombProjectile.CatalogDefault()
@@ -141,7 +137,6 @@ public sealed class State
 			Projectile = projectile,
 			ParentId = parentId,
 			Maneuverability = maneuverability,
-			PilotSkills = pilotSkills ?? Array.Empty<EPilotSkillId>(),
 		};
 		foreach (var installed in ship.Loadout.InstalledAbilities)
 			state.MountRuntime[installed.Mount] = installed.Spec.CreateInitialRuntime();

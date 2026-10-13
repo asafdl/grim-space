@@ -36,14 +36,21 @@ internal static class BattleTestFixture
 		Unit player,
 		Unit enemy,
 		BoundedGrid? grid = null,
-		IReadOnlySet<Coord>? blocked = null) =>
-		BeginSimulation(player, [enemy], grid, blocked ?? new HashSet<Coord> { enemy.State.Position });
+		IReadOnlySet<Coord>? blocked = null,
+		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null) =>
+		BeginSimulation(
+			player,
+			[enemy],
+			grid,
+			blocked ?? new HashSet<Coord> { enemy.State.Position },
+			pilotsByActorId);
 
 	public static BattleOrchestrator BeginSimulation(
 		Unit player,
 		IReadOnlyList<Unit> enemies,
 		BoundedGrid? grid = null,
-		IReadOnlySet<Coord>? blocked = null)
+		IReadOnlySet<Coord>? blocked = null,
+		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null)
 	{
 		grid ??= Grid();
 		blocked ??= enemies.Select(enemy => enemy.State.Position).ToHashSet();
@@ -66,8 +73,13 @@ internal static class BattleTestFixture
 
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		foreach (var unit in units)
-			actorRuntimes.For(unit.State.Id);
-		actorRuntimes.For(BattleActorIds.Rules);
+		{
+			PilotBattleSnapshot? pilot = null;
+			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
+			actorRuntimes.Register(unit.State.Id, ActorRuntime.From(pilot));
+		}
+
+		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var battle = new BattleOrchestrator(engine, layout, player.State.Id);

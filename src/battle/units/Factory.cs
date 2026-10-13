@@ -6,7 +6,6 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
-using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -16,15 +15,13 @@ public static class Factory
 {
 	public static Unit Create(BattleSpawn spawn)
 	{
-		var unit = Create(
+		return Create(
 			spawn.Ship,
 			spawn.Team,
 			spawn.Position,
 			spawn.ExecutionAgent,
 			spawn.Fore,
-			spawn.Dorsal,
-			pilotSkills: spawn.Pilot?.SkillIds);
-		return unit;
+			spawn.Dorsal);
 	}
 
 	public static Unit Create(
@@ -74,8 +71,7 @@ public static class Factory
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
 		Coord fore,
 		Coord dorsal,
-		string parentId = BattleActorIds.Rules,
-		IReadOnlyList<EPilotSkillId>? pilotSkills = null)
+		string parentId = BattleActorIds.Rules)
 	{
 		var id = ResolveId(ship);
 		var state = State.FromShipInstance(
@@ -83,8 +79,7 @@ public static class Factory
 			position,
 			fore,
 			dorsal,
-			parentId,
-			pilotSkills);
+			parentId);
 		return new Unit(state, executionAgent, team);
 	}
 

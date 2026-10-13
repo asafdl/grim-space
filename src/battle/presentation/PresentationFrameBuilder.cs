@@ -253,5 +253,7 @@ public sealed class PresentationFrameBuilder
 	private static Dictionary<string, UnitDisplayState> CaptureLiveUnits(BattleOrchestrator battle) =>
 		UnitRegistry.For(battle.Engine.World).All.ToDictionary(
 			unit => unit.State.Id,
-			unit => UnitDisplayState.Capture(unit.State));
+			unit => UnitDisplayState.Capture(
+				unit.State,
+				battle.Engine.ActorRuntimes.For(unit.State.Id)));
 }

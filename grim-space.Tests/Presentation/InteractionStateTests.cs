@@ -206,6 +206,8 @@ public sealed class InteractionStateTests
 			ExtensionMpCost: 0,
 			RemainingAp: 0,
 			RemainingMp: 0,
-			ResultState: UnitDisplayState.Capture(BattleTestFixture.Player(destination).State));
+			ResultState: UnitDisplayState.Capture(
+				BattleTestFixture.Player(destination).State,
+				GrimSpace.Battle.Runtime.ActorRuntime.From(null)));
 	}
 }

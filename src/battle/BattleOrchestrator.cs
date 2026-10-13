@@ -107,10 +107,16 @@ public sealed class BattleOrchestrator : IDisposable
 			engagedShipIds,
 			timeline);
 		var layout = BattleLayout.FromEncounter(grid, asteroids, units);
-		return CreateFromWorld(world, layout, player.State.Id, "encounter ready");
+		var pilotsByActorId = encounter.Spawns.ToDictionary(
+			spawn => spawn.Ship.Id,
+			spawn => spawn.Pilot);
+		return CreateFromWorld(world, layout, player.State.Id, "encounter ready", pilotsByActorId);
 	}
 
-	public static BattleOrchestrator FromWorld(BattleWorld world, string playerId)
+	public static BattleOrchestrator FromWorld(
+		BattleWorld world,
+		string playerId,
+		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null)
 	{
 		ArgumentNullException.ThrowIfNull(world);
 		ArgumentException.ThrowIfNullOrEmpty(playerId);
@@ -122,10 +128,13 @@ public sealed class BattleOrchestrator : IDisposable
 			world.Grid,
 			world.Asteroids.ToList(),
 			world.UnitRegistry.All.ToDictionary(unit => unit.State.Id, unit => unit.Team));
-		return CreateFromWorld(world, layout, playerId, "battle world restored");
+		return CreateFromWorld(world, layout, playerId, "battle world restored", pilotsByActorId);
 	}
 
-	public static BattleOrchestrator FromSavedWorld(BattleWorld world, string playerId)
+	public static BattleOrchestrator FromSavedWorld(
+		BattleWorld world,
+		string playerId,
+		BattleEncounter? encounter = null)
 	{
 		ArgumentNullException.ThrowIfNull(world);
 		ArgumentException.ThrowIfNullOrEmpty(playerId);
@@ -139,19 +148,28 @@ public sealed class BattleOrchestrator : IDisposable
 				Factory.Create(savedUnit.State.Clone(), savedUnit.Team, agentKind));
 		}
 
-		return FromWorld(world, playerId);
+		var pilotsByActorId = encounter?.Spawns.ToDictionary(
+			spawn => spawn.Ship.Id,
+			spawn => spawn.Pilot);
+		return FromWorld(world, playerId, pilotsByActorId);
 	}
 
 	private static BattleOrchestrator CreateFromWorld(
 		BattleWorld world,
 		BattleLayout layout,
 		string playerId,
-		string phaseReason)
+		string phaseReason,
+		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
 		foreach (var unit in world.UnitRegistry.All)
-			actorRuntimes.For(unit.State.Id);
-		actorRuntimes.For(BattleActorIds.Rules);
+		{
+			PilotBattleSnapshot? pilot = null;
+			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
+			actorRuntimes.Register(unit.State.Id, ActorRuntime.From(pilot));
+		}
+
+		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));
 
 		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
 		var orchestrator = new BattleOrchestrator(engine, layout, playerId);
