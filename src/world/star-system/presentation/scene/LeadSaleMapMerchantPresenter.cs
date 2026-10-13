@@ -117,7 +117,7 @@ public sealed class LeadSaleMapMerchantPresenter
 		_onStateChanged();
 	}
 
-	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
+	private void OnRecruitmentRequested(RecruitmentOffer offer)
 	{
 		var contractId = _contractId
 			?? throw new InvalidOperationException("Lead sale recruitment requires an active contract.");

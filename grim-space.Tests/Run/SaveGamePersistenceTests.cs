@@ -30,6 +30,7 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.Factions;
+using GrimSpace.Tests.World.StarSystem.Merchants;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using BattleUnitState = GrimSpace.Battle.Units.State;
 using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
@@ -623,6 +624,44 @@ public sealed class SaveGamePersistenceTests
 			ship.Loadout.ShieldUpgradeTiers.Matches(restored.Loadout.ShieldUpgradeTiers));
 		Assert.Equal(ship.Loadout.HullUpgradeTier, restored.Loadout.HullUpgradeTier);
 		Assert.Equal(ship.Loadout.InstalledAbilities, restored.Loadout.InstalledAbilities);
+	}
+
+	[Fact]
+	public void SaveDtoMapper_RoundTripsStarMarketListings()
+	{
+		var map = StarMap.Create(42);
+		var listing = map.Market.MerchantListings.First(candidate =>
+			candidate.Id == "upgrade.weapons.damage.1");
+		listing.SetPricing(MerchantListingPricing.Fixed(
+			ResourceBundle.Of(ResourceId.Credits, 999)));
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var restored = SaveDtoMapper.RestoreStarMap(
+			SaveDtoMapper.CaptureStarMap(map, registry),
+			registry);
+		var restoredListing = restored.Market.MerchantListings.First(candidate =>
+			candidate.Id == "upgrade.weapons.damage.1");
+
+		Assert.True(restoredListing.Pricing.FixedCost.TryGet(ResourceId.Credits, out var credits));
+		Assert.Equal(999, credits);
+	}
+
+	[Fact]
+	public void SaveDtoMapper_LegacySaveWithoutMarket_SeedsMerchants()
+	{
+		var map = StarMap.Create(42);
+		var registry = PersistenceRegistry.CreateDefault();
+		var captured = SaveDtoMapper.CaptureStarMap(map, registry);
+		var legacySave = captured with { Market = null };
+
+		var restored = SaveDtoMapper.RestoreStarMap(legacySave, registry);
+		var ship = ShipInstance.FromCatalog("legacy-merchant", EType.Fighter);
+		MerchantCatalogTestBands.SetBand(restored, EMerchantAvailabilityBand.T1);
+
+		Assert.True(MerchantCatalog.ListFor(
+			EMerchantCatalog.Weapons,
+			ship,
+			restored).Count > 0);
 	}
 
 	[Fact]

@@ -86,12 +86,12 @@ public sealed class UserIntentTranslator
 		string poiId,
 		string facilityId,
 		string operatorName,
-		ShipRecruitmentCatalog.Offer offer) =>
+		RecruitmentOffer offer) =>
 		TryRecruitShip(
 			new FacilityMerchantEndpoint(poiId, facilityId, operatorName),
 			offer);
 
-	public bool TryRecruitShip(MerchantEndpoint endpoint, ShipRecruitmentCatalog.Offer offer) =>
+	public bool TryRecruitShip(MerchantEndpoint endpoint, RecruitmentOffer offer) =>
 		TrySubmitImmediately(new RecruitShipAction(
 			FacilityActorId(),
 			endpoint,

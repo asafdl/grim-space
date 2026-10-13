@@ -8,42 +8,6 @@ namespace GrimSpace.World.StarSystem.Merchants;
 
 public static class MerchantCatalog
 {
-	private static readonly SheetEntry[] TieredInventory =
-	[
-		new(
-			EMerchantAvailabilityBand.T0,
-			EMerchantCatalog.ShipSupport,
-			new Offering(Kind.UpgradeMaxShields, 1)),
-		new(
-			EMerchantAvailabilityBand.T0_5,
-			EMerchantCatalog.Weapons,
-			new Offering(Kind.UpgradeDamage, 1)),
-		new(
-			EMerchantAvailabilityBand.T1,
-			EMerchantCatalog.ShipSupport,
-			new Offering(Kind.UpgradeMaxShields, 2)),
-		new(
-			EMerchantAvailabilityBand.T1,
-			EMerchantCatalog.Weapons,
-			new Offering(Kind.UpgradeRange, 1)),
-		new(
-			EMerchantAvailabilityBand.T1,
-			EMerchantCatalog.Weapons,
-			new Offering(Kind.UpgradeDamage, 2)),
-		new(
-			EMerchantAvailabilityBand.T2,
-			EMerchantCatalog.Weapons,
-			new Offering(Kind.UpgradeRange, 2)),
-		new(
-			EMerchantAvailabilityBand.T2,
-			EMerchantCatalog.Weapons,
-			new Offering(Kind.UpgradeDamage, 3)),
-		new(
-			EMerchantAvailabilityBand.T2,
-			EMerchantCatalog.ShipSupport,
-			new Offering(Kind.UpgradeMaxShields, 3)),
-	];
-
 	public static EMerchantAvailabilityBand Tier(StarMap map) =>
 		MerchantAvailability.CurrentBand(map);
 
@@ -73,20 +37,8 @@ public static class MerchantCatalog
 	public static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
 		ShipInstance ship,
-		EMerchantAvailabilityBand tier)
-	{
-		ArgumentNullException.ThrowIfNull(ship);
-		var offers = TieredInventory
-			.Where(entry => entry.Catalog == catalog && IncludesSheet(tier, entry.Sheet))
-			.Select(entry => TryCreateUpgradeOffer(entry.Offering, ship))
-			.OfType<Offer>()
-			.ToList();
-
-		if (catalog == EMerchantCatalog.Healing)
-			offers.AddRange(HealingServiceCatalog.ListServicesFor(ship));
-
-		return offers;
-	}
+		EMerchantAvailabilityBand tier) =>
+		ListFor(catalog, ship, StarMarketSeed.Create(), tier);
 
 	public static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
@@ -94,7 +46,7 @@ public static class MerchantCatalog
 		StarMap map)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-		return ListFor(catalog, ship, Tier(map))
+		return ListFor(catalog, ship, map.Market, Tier(map))
 			.Select(offer => offer with
 			{
 				Cost = IsUpgrade(offer.Offering.Kind)
@@ -131,26 +83,109 @@ public static class MerchantCatalog
 		return offer is not null;
 	}
 
-	private static Offer? TryCreateUpgradeOffer(Offering offering, ShipInstance ship)
+	internal static IReadOnlyList<Offer> ListFor(
+		EMerchantCatalog catalog,
+		ShipInstance ship,
+		StarMarket market,
+		EMerchantAvailabilityBand tier)
+	{
+		ArgumentNullException.ThrowIfNull(ship);
+		ArgumentNullException.ThrowIfNull(market);
+		var offers = market.MerchantListings
+			.Where(listing => ListingAvailableAtTier(catalog, listing, tier))
+			.Where(listing =>
+				listing.Pricing.Kind != MerchantListingPricingKind.ShieldRechargePerPoint)
+			.Select(listing => TryCreateOffer(listing, ship))
+			.OfType<Offer>()
+			.ToList();
+
+		if (catalog == EMerchantCatalog.Healing)
+		{
+			offers.AddRange(ShieldRechargeOffers(ship, market));
+		}
+
+		return offers;
+	}
+
+	private static bool ListingAvailableAtTier(
+		EMerchantCatalog catalog,
+		MerchantListing listing,
+		EMerchantAvailabilityBand tier) =>
+		listing.Catalog == catalog
+		&& (listing.AlwaysAvailable || IncludesSheet(tier, listing.AvailabilityBand));
+
+	private static Offer? TryCreateOffer(MerchantListing listing, ShipInstance ship)
+	{
+		if (listing.Offering is not { } offering)
+			return null;
+
+		return offering.Kind switch
+		{
+			Kind.UpgradeDamage or Kind.UpgradeRange or Kind.UpgradeMaxShields =>
+				TryCreateUpgradeOffer(offering, ship, listing.Pricing.FixedCost),
+			Kind.RepairHull => TryCreateRepairOffer(offering, ship, listing.Pricing.FixedCost),
+			_ => null,
+		};
+	}
+
+	private static Offer? TryCreateUpgradeOffer(
+		Offering offering,
+		ShipInstance ship,
+		ResourceBundle cost)
 	{
 		var targets = TargetsFor(offering, ship);
 		if (targets.Length == 0)
 			return null;
 
-		var cost = offering.Kind switch
-		{
-			Kind.UpgradeDamage =>
-				MerchantUpgradePricing.WeaponDamageUpgrade(offering.TargetLevel),
-			Kind.UpgradeRange =>
-				MerchantUpgradePricing.WeaponRangeUpgrade(offering.TargetLevel),
-			Kind.UpgradeMaxShields =>
-				MerchantUpgradePricing.ShieldMaxUpgrade(offering.TargetLevel),
-			_ => throw new InvalidOperationException(
-				$"Tiered merchant inventory cannot contain {offering.Kind}."),
-		};
-
 		return new Offer(offering, cost, targets);
 	}
+
+	private static Offer? TryCreateRepairOffer(
+		Offering offering,
+		ShipInstance ship,
+		ResourceBundle cost)
+	{
+		if (!MerchantShipChanges.TryPrepareAfter(offering, default, ship, out _))
+			return null;
+
+		return new Offer(offering, cost, [default]);
+	}
+
+	private static IReadOnlyList<Offer> ShieldRechargeOffers(ShipInstance ship, StarMarket market)
+	{
+		var rate = ShieldRechargeRate(market);
+		var offers = new List<Offer>();
+
+		var rechargeAll = new Offering(Kind.RechargeAllShields);
+		if (MerchantShipChanges.TryPrepareAfter(rechargeAll, default, ship, out _))
+		{
+			offers.Add(new Offer(
+				rechargeAll,
+				ResourceBundle.Of(ResourceId.Credits, ship.MissingShieldPoints * rate),
+				[default]));
+		}
+
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+		{
+			var target = new Target(Face: face);
+			var rechargeFace = new Offering(Kind.RechargeShieldFace);
+			if (!MerchantShipChanges.TryPrepareAfter(rechargeFace, target, ship, out _))
+				continue;
+
+			offers.Add(new Offer(
+				rechargeFace,
+				ResourceBundle.Of(ResourceId.Credits, ship.MissingShieldPointsOnFace(face) * rate),
+				[target]));
+		}
+
+		return offers;
+	}
+
+	private static int ShieldRechargeRate(StarMarket market) =>
+		market.MerchantListings
+			.Single(listing =>
+				listing.Pricing.Kind == MerchantListingPricingKind.ShieldRechargePerPoint)
+			.Pricing.ShieldRechargeCreditsPerPoint;
 
 	private static Target[] TargetsFor(Offering offering, ShipInstance ship)
 	{
@@ -185,9 +220,4 @@ public static class MerchantCatalog
 			EMerchantAvailabilityBand.T2 => sheet == EMerchantAvailabilityBand.T2,
 			_ => throw new ArgumentOutOfRangeException(nameof(current), current, null),
 		};
-
-	private readonly record struct SheetEntry(
-		EMerchantAvailabilityBand Sheet,
-		EMerchantCatalog Catalog,
-		Offering Offering);
 }

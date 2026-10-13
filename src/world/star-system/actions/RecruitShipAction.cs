@@ -36,7 +36,7 @@ public sealed class RecruitShipActionDef
 				recruit.Endpoint,
 				EMerchantSubtype.Ships))
 			return false;
-		if (!ShipRecruitmentCatalog.TryFind(
+		if (!world.Market.TryFindRecruitmentOffer(
 				recruit.Declaration.Chassis,
 				recruit.Declaration.GearTier,
 				MerchantCatalog.Tier(world),
@@ -57,7 +57,7 @@ public sealed class RecruitShipActionDef
 		ActorRuntime runtime)
 	{
 		var recruit = (RecruitShipAction)action;
-		if (!ShipRecruitmentCatalog.TryFind(
+		if (!world.Market.TryFindRecruitmentOffer(
 				recruit.Declaration.Chassis,
 				recruit.Declaration.GearTier,
 				MerchantCatalog.Tier(world),

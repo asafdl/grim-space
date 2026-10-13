@@ -111,7 +111,7 @@ public sealed class MerchantPresenter
 		_onStateChanged();
 	}
 
-	private void OnRecruitmentRequested(ShipRecruitmentCatalog.Offer offer)
+	private void OnRecruitmentRequested(RecruitmentOffer offer)
 	{
 		var committed = _binding.Intents.TryRecruitShip(_endpoint, offer);
 		if (!committed)

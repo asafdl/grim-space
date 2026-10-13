@@ -95,7 +95,7 @@ public sealed class ShipSupportCatalogTests
 		Assert.Equal([default(MerchantCatalog.Target)], recharge.Targets);
 		Assert.True(recharge.Cost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(
-			ship.TotalMaxShieldPoints * HealingServiceCatalog.ShieldRechargeCreditsPerPoint,
+			ship.TotalMaxShieldPoints * StarMarketSeed.ShieldRechargeCreditsPerPoint,
 			credits);
 
 		var faceRecharge = offers.Single(offer =>

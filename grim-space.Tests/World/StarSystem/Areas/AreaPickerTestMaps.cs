@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
@@ -54,6 +55,7 @@ internal static class AreaPickerTestMaps
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
+			StarMarketSeed.Create(),
 			terrain);
 	}
 
@@ -91,6 +93,7 @@ internal static class AreaPickerTestMaps
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
+			StarMarketSeed.Create(),
 			terrain);
 	}
 
@@ -163,6 +166,7 @@ internal static class AreaPickerTestMaps
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
+			StarMarketSeed.Create(),
 			terrain);
 	}
 
@@ -214,6 +218,7 @@ internal static class AreaPickerTestMaps
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
+			StarMarketSeed.Create(),
 			terrain);
 	}
 
@@ -233,6 +238,7 @@ internal static class AreaPickerTestMaps
 			map.ContractRegistry,
 			map.StoryObjectives,
 			map.PlayerResources,
+			map.Market.CloneForFork(),
 			map.PathfindingTerrain);
 
 	private sealed class TestLandmark : PointOfInterest

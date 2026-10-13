@@ -26,6 +26,7 @@ using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.World.StarSystem.Runtime;
@@ -409,6 +410,7 @@ public static class SaveDtoMapper
 			map.WaitingForPlayerInput,
 			map.ActiveNarrativeId,
 			Timeline = CaptureTimeline(map.Timeline.ToSnapshot(), registry),
+			Market = CaptureMarket(map.Market),
 		}, registry.Options);
 	}
 
@@ -492,11 +494,70 @@ public static class SaveDtoMapper
 			contracts,
 			objectives,
 			resources,
+			RestoreMarket(dto.Market),
 			terrain,
 			shipRegistryReader,
 			pilotSkillRosterReader,
 			waitingForPlayerInput: dto.WaitingForPlayerInput,
 			activeNarrativeId: dto.ActiveNarrativeId);
+	}
+
+	private static StarMarketDto CaptureMarket(StarMarket market) =>
+		new(
+			market.MerchantListings.Select(listing => new MerchantListingDto(
+				listing.Id,
+				listing.Catalog,
+				listing.Offering?.Kind,
+				listing.Offering?.TargetLevel ?? 0,
+				listing.AvailabilityBand,
+				listing.AlwaysAvailable,
+				listing.Pricing.Kind,
+				listing.Pricing.FixedCost,
+				listing.Pricing.ShieldRechargeCreditsPerPoint)).ToArray(),
+			market.RecruitmentListings.Select(listing => new RecruitmentListingDto(
+				listing.Id,
+				listing.Chassis,
+				listing.GearTier,
+				listing.AvailabilityBand,
+				listing.Cost)).ToArray());
+
+	private static StarMarket RestoreMarket(StarMarketDto? dto)
+	{
+		if (dto is null)
+			return StarMarketSeed.Create();
+
+		var merchantListings = dto.MerchantListings.Select(saved =>
+		{
+			MerchantCatalog.Offering? offering = saved.OfferingKind is { } kind
+				? new MerchantCatalog.Offering(kind, saved.OfferingTargetLevel)
+				: null;
+			var pricing = saved.PricingKind switch
+			{
+				MerchantListingPricingKind.FixedBundle =>
+					MerchantListingPricing.Fixed(saved.FixedCost),
+				MerchantListingPricingKind.ShieldRechargePerPoint =>
+					MerchantListingPricing.ShieldRecharge(saved.ShieldRechargeCreditsPerPoint),
+				_ => throw new InvalidDataException(
+					$"Unknown merchant listing pricing '{saved.PricingKind}'."),
+			};
+			return new MerchantListing(
+				saved.Id,
+				saved.Catalog,
+				offering,
+				saved.AvailabilityBand,
+				saved.AlwaysAvailable,
+				pricing);
+		}).ToArray();
+
+		var recruitmentListings = dto.RecruitmentListings.Select(saved =>
+			new RecruitmentListing(
+				saved.Id,
+				saved.Chassis,
+				saved.GearTier,
+				saved.AvailabilityBand,
+				saved.Cost)).ToArray();
+
+		return new StarMarket(merchantListings, recruitmentListings);
 	}
 
 	private static StarMapFleetDto CaptureFleet(Fleet fleet) =>

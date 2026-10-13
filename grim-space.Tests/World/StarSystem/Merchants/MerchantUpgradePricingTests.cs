@@ -8,24 +8,37 @@ public sealed class MerchantUpgradePricingTests
 	[Theory]
 	[InlineData(1)]
 	[InlineData(2)]
-	[InlineData(3)]
-	public void UpgradePrices_IncreaseWithTargetTier(int targetTier)
+	public void SeededUpgradeListings_IncreaseWithTargetTier(int targetTier)
 	{
-		var damage = Credits(MerchantUpgradePricing.WeaponDamageUpgrade(targetTier));
-		var range = Credits(MerchantUpgradePricing.WeaponRangeUpgrade(targetTier));
-		var shield = Credits(MerchantUpgradePricing.ShieldMaxUpgrade(targetTier));
+		var market = StarMarketSeed.Create();
+		var damage = Credits(CostFor(market, MerchantCatalog.Kind.UpgradeDamage, targetTier));
+		var range = Credits(CostFor(market, MerchantCatalog.Kind.UpgradeRange, targetTier));
+		var shield = Credits(CostFor(market, MerchantCatalog.Kind.UpgradeMaxShields, targetTier));
 
 		Assert.True(damage > range);
 		Assert.True(range > shield);
 	}
 
-	[Theory]
-	[InlineData(0)]
-	[InlineData(4)]
-	public void UpgradePrices_RejectUnsupportedTargetTier(int targetTier)
+	[Fact]
+	public void Tier3_DamagePackCostsMoreThanShieldPack()
 	{
-		Assert.Throws<ArgumentOutOfRangeException>(() =>
-			MerchantUpgradePricing.WeaponDamageUpgrade(targetTier));
+		var market = StarMarketSeed.Create();
+		var damage = Credits(CostFor(market, MerchantCatalog.Kind.UpgradeDamage, 3));
+		var shield = Credits(CostFor(market, MerchantCatalog.Kind.UpgradeMaxShields, 3));
+
+		Assert.True(damage > shield);
+	}
+
+	private static ResourceBundle CostFor(
+		StarMarket market,
+		MerchantCatalog.Kind kind,
+		int targetLevel)
+	{
+		var listing = market.MerchantListings.Single(candidate =>
+			candidate.Offering is { } offering
+			&& offering.Kind == kind
+			&& offering.TargetLevel == targetLevel);
+		return listing.Pricing.FixedCost;
 	}
 
 	private static int Credits(ResourceBundle bundle)

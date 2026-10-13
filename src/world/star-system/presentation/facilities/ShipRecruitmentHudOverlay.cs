@@ -16,7 +16,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<ShipRecruitmentCatalog.Offer>? RecruitmentRequested;
+	public event Action<RecruitmentOffer>? RecruitmentRequested;
 	public event Action? Closed;
 
 	public ShipRecruitmentHudOverlay()
@@ -98,7 +98,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 			return;
 		}
 
-		var offers = ShipRecruitmentCatalog.ListFor(tier);
+		var offers = _run.StarSystem.Map.Market.ListRecruitmentOffers(tier);
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,

@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
@@ -164,6 +165,7 @@ public static class StarSystemBuilder
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
+			StarMarketSeed.Create(),
 			terrain,
 			shipRegistryReader,
 			pilotSkillRosterReader);

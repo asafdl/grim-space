@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Landmarks;
@@ -48,6 +49,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public ContractRegistry ContractRegistry { get; }
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PlayerResources PlayerResources { get; }
+	public StarMarket Market { get; }
 	public IShipRegistryReader? ShipRegistryReader { get; }
 	public IPilotSkillRosterReader? PilotSkillRosterReader { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
@@ -81,6 +83,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		ContractRegistry contractRegistry,
 		StoryObjectiveRegistry storyObjectives,
 		PlayerResources playerResources,
+		StarMarket market,
 		PathfindingTerrain pathfindingTerrain,
 		IShipRegistryReader? shipRegistryReader = null,
 		IPilotSkillRosterReader? pilotSkillRosterReader = null,
@@ -101,6 +104,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		ContractRegistry = contractRegistry;
 		StoryObjectives = storyObjectives;
 		PlayerResources = playerResources;
+		Market = market;
 		PathfindingTerrain = pathfindingTerrain;
 		ShipRegistryReader = shipRegistryReader;
 		PilotSkillRosterReader = pilotSkillRosterReader;
@@ -145,6 +149,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			ContractRegistry.CloneForFork(),
 			StoryObjectives.CloneForFork(),
 			PlayerResources.CloneForFork(),
+			Market.CloneForFork(),
 			PathfindingTerrain,
 			ShipRegistryReader,
 			PilotSkillRosterReader,

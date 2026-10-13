@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Units;
@@ -61,6 +62,7 @@ internal static class ContractPlacementTestMaps
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
+			StarMarketSeed.Create(),
 			terrain);
 	}
 

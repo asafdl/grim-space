@@ -75,7 +75,6 @@ public sealed partial class HealingStationHudOverlay : Control
 
 	private void ShowMain()
 	{
-		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
 		_shell.SetTitle("Healing station");
 		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
@@ -93,7 +92,7 @@ public sealed partial class HealingStationHudOverlay : Control
 			return;
 		}
 
-		var offers = MerchantCatalog.ListFor(EMerchantCatalog.Healing, ship, tier);
+		var offers = MerchantCatalog.ListFor(EMerchantCatalog.Healing, ship, _run.StarSystem.Map);
 		foreach (var offer in offers)
 		{
 			var captured = offer;
