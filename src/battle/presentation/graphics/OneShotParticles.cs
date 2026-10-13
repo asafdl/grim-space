@@ -20,7 +20,7 @@ internal static class OneShotParticles
 	private const double BoomFadeInSeconds = 0.06;
 	private const double BoomFadeStart = 0.62;
 	private const double BoomFadeSeconds = 0.2;
-	private const float BoomWidthScale = 2.43f;
+	private const float BoomWidthScale = 4.43f;
 	private const double WreckageLifetimeSeconds = 8.0;
 	private const double WreckageFadeSeconds = 1.5;
 	private const string HitSparksPath = "res://assets/vfx/hit_sparks.tscn";
