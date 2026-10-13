@@ -8,13 +8,27 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 /// </summary>
 internal static class OneShotParticles
 {
+	private const double ExplosionGrowSeconds = 0.6;
+	private const double ExplosionSettleSeconds = 0.1;
+	private const double ExplosionHoldSeconds = 0.02;
 	private const double ExplosionFadeSeconds = 0.35;
-	private const double ShockwaveDelaySeconds = 0.14;
-	private const double ShockwaveExpandSeconds = 0.82;
+	private const double ExplosionModelLifetimeSeconds = 1.1;
+	private const double SmokeLifetimeSeconds = 2.0;
+	private const int SmokeCardCount = 7;
+	private const float SmokeSizeMultiplier = 2f;
+	private const double BoomAppearDelay = 0.08;
+	private const double BoomFadeInSeconds = 0.06;
+	private const double BoomFadeStart = 0.62;
+	private const double BoomFadeSeconds = 0.2;
+	private const float BoomWidthScale = 2.43f;
 	private const double WreckageLifetimeSeconds = 8.0;
 	private const double WreckageFadeSeconds = 1.5;
 	private const string HitSparksPath = "res://assets/vfx/hit_sparks.tscn";
 	private const string ExplosionModelPath = "res://assets/vfx/sparksexplosion_clean.glb";
+	private const string SmokeTexturePath =
+		"res://assets/textures/particles/smoke_02.png";
+	private const string BoomTextPath = "res://assets/vfx/boom-godot.glb";
+	private const string BoomTextNodeName = "BoomText";
 	private static readonly string[] WreckageModelPaths =
 	[
 		"res://assets/models/wreck_debris_pack/bent_armor.glb",
@@ -26,6 +40,8 @@ internal static class OneShotParticles
 	];
 	private static PackedScene? _hitSparks;
 	private static PackedScene? _explosionModel;
+	private static Texture2D? _smokeTexture;
+	private static PackedScene? _boomText;
 	private static PackedScene[]? _wreckageModels;
 
 	public static void PlayHitSparks(Node parent, Vector3 localPosition)
@@ -50,14 +66,17 @@ internal static class OneShotParticles
 		if (debrisCount <= 0)
 			throw new ArgumentOutOfRangeException(nameof(debrisCount), debrisCount, "Debris count must be positive.");
 
-		Play(
-			host,
-			worldPosition,
-			new Color(1f, 0.42f, 0.12f, 0.9f),
-			scale,
-			worldSpace: true);
-		PlayExplosionModel(host, worldPosition, scale * 3.3f);
+		PlaySmokeExplosion(host, worldPosition, scale);
 		PlayWreckage(host, worldPosition, scale, debrisCount);
+	}
+
+	public static void PlaySmokeExplosion(
+		Node host,
+		Vector3 worldPosition,
+		float scale)
+	{
+		PlaySmokeCloud(host, worldPosition, scale);
+		PlayBoomText(host, worldPosition, scale * 3.3f);
 	}
 
 	/// <param name="host">Scene node that outlives the dying unit (e.g. battle units root).</param>
@@ -101,46 +120,22 @@ internal static class OneShotParticles
 			mesh.Transparency = 0f;
 		}
 
-		var ringMaterial = new StandardMaterial3D
-		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-			BlendMode = BaseMaterial3D.BlendModeEnum.Add,
-			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-			NoDepthTest = true,
-			AlbedoColor = new Color(1f, 0.92f, 0.72f, 0.85f),
-			EmissionEnabled = true,
-			Emission = new Color(1f, 0.88f, 0.55f),
-			EmissionEnergyMultiplier = 5.5f,
-		};
-		var ringStart = scale * 0.22f;
-		var ringEnd = scale * 3.6f;
-		var ring = new MeshInstance3D
-		{
-			Name = "ExplosionBlastRing",
-			RotationDegrees = new Vector3(90f, randomRoll, 0f),
-			Scale = new Vector3(ringStart, ringStart * 0.12f, ringStart),
-			Mesh = new TorusMesh
-			{
-				InnerRadius = 0.52f,
-				OuterRadius = 0.62f,
-			},
-			MaterialOverride = ringMaterial,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			Transparency = 0f,
-		};
-		PresentationLayers.MarkWorld(ring);
-		effect.AddChild(ring);
-
 		var explosionTween = effect.CreateTween();
-		explosionTween.TweenProperty(pivot, "scale", Vector3.One * scale, 0.6)
+		explosionTween.TweenProperty(
+				pivot,
+				"scale",
+				Vector3.One * scale,
+				ExplosionGrowSeconds)
 			.SetTrans(Tween.TransitionType.Cubic)
 			.SetEase(Tween.EaseType.In);
-		explosionTween.TweenProperty(pivot, "scale", Vector3.One * (scale * 1.06f), 0.1)
+		explosionTween.TweenProperty(
+				pivot,
+				"scale",
+				Vector3.One * (scale * 1.06f),
+				ExplosionSettleSeconds)
 			.SetTrans(Tween.TransitionType.Quad)
 			.SetEase(Tween.EaseType.Out);
-		explosionTween.TweenInterval(0.02);
+		explosionTween.TweenInterval(ExplosionHoldSeconds);
 		if (visualMeshes.Count > 0)
 		{
 			explosionTween.TweenProperty(visualMeshes[0], "transparency", 1f, ExplosionFadeSeconds)
@@ -155,21 +150,198 @@ internal static class OneShotParticles
 			}
 		}
 
-		var shockwaveTween = effect.CreateTween();
-		shockwaveTween.TweenInterval(ShockwaveDelaySeconds);
-		shockwaveTween.TweenProperty(
-				ring,
+		var cleanupTween = effect.CreateTween();
+		cleanupTween.TweenInterval(ExplosionModelLifetimeSeconds);
+		cleanupTween.TweenCallback(Callable.From(effect.QueueFree));
+	}
+
+	private static void PlaySmokeCloud(
+		Node host,
+		Vector3 worldPosition,
+		float scale)
+	{
+		_smokeTexture ??= GD.Load<Texture2D>(SmokeTexturePath)
+			?? throw new InvalidOperationException(
+				$"Could not load ship death smoke '{SmokeTexturePath}'.");
+		var cloud = new Node3D
+		{
+			Name = "ShipDeathSmoke",
+		};
+		host.AddChild(cloud);
+		cloud.TopLevel = true;
+		cloud.GlobalPosition = worldPosition;
+
+		var material = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			BlendMode = BaseMaterial3D.BlendModeEnum.Mix,
+			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
+			CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+			BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+			BillboardKeepScale = true,
+			AlbedoTexture = _smokeTexture,
+			AlbedoColor = new Color(0.34f, 0.35f, 0.37f, 0.72f),
+		};
+		var smokeScale = scale * SmokeSizeMultiplier;
+
+		for (var i = 0; i < SmokeCardCount; i++)
+		{
+			var direction = new Vector3(
+				RandomRange(-1f, 1f),
+				RandomRange(-0.35f, 1f),
+				RandomRange(-1f, 1f)).Normalized();
+			var start = direction * (smokeScale * RandomRange(0.04f, 0.2f));
+			var end = start + direction * (smokeScale * RandomRange(0.35f, 0.8f))
+				+ Vector3.Up * (smokeScale * RandomRange(0.12f, 0.4f));
+			var startSize = smokeScale * RandomRange(0.22f, 0.38f);
+			var endSize = smokeScale * RandomRange(0.7f, 1.15f);
+			var delay = i * 0.025;
+			var card = new MeshInstance3D
+			{
+				Name = $"SmokeCard_{i}",
+				Mesh = new QuadMesh { Size = Vector2.One },
+				MaterialOverride = material,
+				Position = start,
+				RotationDegrees = new Vector3(
+					0f,
+					0f,
+					RandomRange(0f, 360f)),
+				Scale = Vector3.One * startSize,
+				Transparency = 0.18f,
+				CastShadow =
+					GeometryInstance3D.ShadowCastingSetting.Off,
+			};
+			PresentationLayers.MarkWorld(card);
+			cloud.AddChild(card);
+
+			var motion = cloud.CreateTween();
+			motion.TweenInterval(delay);
+			motion.TweenProperty(
+					card,
+					"position",
+					end,
+					SmokeLifetimeSeconds - delay)
+				.SetTrans(Tween.TransitionType.Quad)
+				.SetEase(Tween.EaseType.Out);
+			motion.Parallel().TweenProperty(
+					card,
+					"scale",
+					Vector3.One * endSize,
+					0.5)
+				.SetTrans(Tween.TransitionType.Cubic)
+				.SetEase(Tween.EaseType.Out);
+
+			var fade = cloud.CreateTween();
+			fade.TweenInterval(0.42 + delay);
+			fade.TweenProperty(
+					card,
+					"transparency",
+					1f,
+					SmokeLifetimeSeconds - 0.42 - delay)
+				.SetTrans(Tween.TransitionType.Quad)
+				.SetEase(Tween.EaseType.In);
+		}
+
+		var cleanup = cloud.CreateTween();
+		cleanup.TweenInterval(SmokeLifetimeSeconds);
+		cleanup.TweenCallback(Callable.From(cloud.QueueFree));
+	}
+
+	private static void PlayBoomText(
+		Node host,
+		Vector3 worldPosition,
+		float scale)
+	{
+		var effect = new Node3D
+		{
+			Name = "ShipDeathBoom",
+		};
+		host.AddChild(effect);
+		effect.TopLevel = true;
+		effect.GlobalPosition = worldPosition;
+		var text = AddBoomText(effect, scale);
+		AnimateBoomText(effect, text);
+
+		var cleanup = effect.CreateTween();
+		cleanup.TweenInterval(BoomFadeStart + BoomFadeSeconds);
+		cleanup.TweenCallback(Callable.From(effect.QueueFree));
+	}
+
+	private static MeshInstance3D AddBoomText(Node3D effect, float scale)
+	{
+		_boomText ??= GD.Load<PackedScene>(BoomTextPath)
+			?? throw new InvalidOperationException(
+				$"Could not load ship death text '{BoomTextPath}'.");
+		var root = _boomText.Instantiate<Node3D>();
+		effect.AddChild(root);
+
+		var text = root.FindChild(
+			BoomTextNodeName,
+			recursive: true,
+			owned: false) as MeshInstance3D
+			?? throw new InvalidOperationException(
+				$"Ship death text '{BoomTextPath}' has no '{BoomTextNodeName}' mesh.");
+		var bounds = text.Mesh?.GetAabb()
+			?? throw new InvalidOperationException(
+				$"Ship death text '{BoomTextNodeName}' has no mesh.");
+		if (bounds.Size.X <= 0f)
+			throw new InvalidOperationException(
+				$"Ship death text '{BoomTextNodeName}' has no width.");
+
+		var textScale = scale * BoomWidthScale / bounds.Size.X;
+		text.Position = new Vector3(0f, scale * 0.22f, 0f);
+		text.Scale = Vector3.One * textScale;
+		text.Transparency = 1f;
+		text.CastShadow =
+			GeometryInstance3D.ShadowCastingSetting.Off;
+		PresentationLayers.MarkWorld(text);
+
+		for (var surface = 0; surface < text.Mesh.GetSurfaceCount(); surface++)
+		{
+			var source = text.GetActiveMaterial(surface) as BaseMaterial3D
+				?? throw new InvalidOperationException(
+					$"Ship death text surface {surface} has no 3D material.");
+			var material = (BaseMaterial3D)source.Duplicate();
+			material.BillboardMode =
+				BaseMaterial3D.BillboardModeEnum.Enabled;
+			material.BillboardKeepScale = true;
+			text.SetSurfaceOverrideMaterial(surface, material);
+		}
+
+		return text;
+	}
+
+	private static void AnimateBoomText(
+		Node3D effect,
+		MeshInstance3D text)
+	{
+		var fullScale = text.Scale;
+		text.Scale = fullScale * 0.82f;
+
+		var tween = effect.CreateTween();
+		tween.TweenInterval(BoomAppearDelay);
+		tween.TweenProperty(
+			text,
+			"transparency",
+			0f,
+			BoomFadeInSeconds);
+		tween.Parallel().TweenProperty(
+				text,
 				"scale",
-				new Vector3(ringEnd, ringEnd * 0.1f, ringEnd),
-				ShockwaveExpandSeconds)
-			.SetTrans(Tween.TransitionType.Cubic)
+				fullScale,
+				BoomFadeInSeconds)
+			.SetTrans(Tween.TransitionType.Back)
 			.SetEase(Tween.EaseType.Out);
-		shockwaveTween.Parallel()
-			.TweenProperty(ring, "transparency", 1f, ExplosionFadeSeconds + 0.12)
-			.SetTrans(Tween.TransitionType.Quad)
-			.SetEase(Tween.EaseType.In)
-			.SetDelay(ShockwaveExpandSeconds * 0.35);
-		shockwaveTween.TweenCallback(Callable.From(effect.QueueFree));
+		tween.TweenInterval(
+			BoomFadeStart
+			- BoomAppearDelay
+			- BoomFadeInSeconds);
+		tween.TweenProperty(
+			text,
+			"transparency",
+			1f,
+			BoomFadeSeconds);
 	}
 
 	private static void PlayWreckage(

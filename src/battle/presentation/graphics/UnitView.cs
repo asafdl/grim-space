@@ -324,13 +324,10 @@ public partial class UnitView : Node3D
 		var worldPosition = GlobalPosition;
 		if (_type == EType.VoidBomb)
 		{
-			OneShotParticles.Play(
+			OneShotParticles.PlaySmokeExplosion(
 				host,
 				worldPosition,
-				new Color(1f, 0.42f, 0.12f, 0.9f),
-				scale,
-				worldSpace: true);
-			OneShotParticles.PlayExplosionModel(host, worldPosition, scale * 3.3f);
+				scale);
 			return;
 		}
 
