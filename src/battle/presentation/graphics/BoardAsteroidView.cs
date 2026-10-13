@@ -96,14 +96,16 @@ public partial class BoardAsteroidView : Node3D
 			throw new InvalidOperationException("Battle asteroid mesh has no standard material.");
 
 		var material = (StandardMaterial3D)source.Duplicate();
+		material.DiffuseMode = BaseMaterial3D.DiffuseModeEnum.Toon;
+		material.SpecularMode = BaseMaterial3D.SpecularModeEnum.Toon;
 		material.AlbedoColor *= Colors.White.Lerp(color, metallic ? 0.5f : 0.65f)
 			* rng.RandfRange(0.85f, 1.12f);
 		material.Roughness = metallic
 			? rng.RandfRange(0.28f, 0.4f)
-			: Mathf.Max(material.Roughness, 0.8f);
+			: Mathf.Max(material.Roughness, 0.92f);
 		material.Metallic = metallic
 			? rng.RandfRange(0.65f, 0.8f)
-			: Mathf.Min(material.Metallic, 0.18f);
+			: Mathf.Min(material.Metallic, 0.1f);
 		return material;
 	}
 
