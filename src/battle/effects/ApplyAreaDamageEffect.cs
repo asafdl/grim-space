@@ -45,12 +45,13 @@ public sealed class ApplyAreaDamageEffect(
 	private ImpactFacts? ApplyTo(State unit, string actorId)
 	{
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
-		var shieldBefore = unit.ShieldPoints[face];
+		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
 		if (damage > 0)
 			Defense.ApplyDamage(unit, damage, face);
 
-		var shieldDamage = shieldBefore - unit.ShieldPoints[face];
+		var shieldAfter = Defense.EffectiveShield(unit, face);
+		var shieldDamage = shieldBefore - shieldAfter;
 		var hullDamage = hullBefore - unit.HullPoints;
 		if (shieldDamage == 0 && hullDamage == 0)
 			return null;

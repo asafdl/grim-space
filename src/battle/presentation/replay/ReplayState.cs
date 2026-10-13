@@ -46,8 +46,7 @@ public sealed class ReplayState
 		if (!_states.TryGetValue(impact.TargetId, out var state))
 			return;
 
-		var shield = state.ShieldPoints[impact.Face];
-		state.ShieldPoints[impact.Face] = System.Math.Max(0, shield - impact.ShieldDamage);
+		Defense.AbsorbWithShields(state, impact.Face, impact.ShieldDamage);
 		state.HullPoints = System.Math.Max(0, state.HullPoints - impact.HullDamage);
 	}
 }

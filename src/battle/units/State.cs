@@ -27,9 +27,7 @@ public sealed class State
 	public int FuelRemaining { get; set; }
 	public VoidBombProjectile? Projectile { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
-	public bool ApPenaltyNextTurn { get; set; }
-	public int PendingApPenalty { get; set; }
-	public FaceShieldPoints PendingShieldRestore { get; set; } = new();
+	public List<TemporaryShieldGrant> TemporaryShieldGrants { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public IReadOnlyList<EPilotSkillId> PilotSkills { get; init; } = Array.Empty<EPilotSkillId>();
@@ -99,15 +97,14 @@ public sealed class State
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
 			ParentId = ParentId,
-			ApPenaltyNextTurn = ApPenaltyNextTurn,
-			PendingApPenalty = PendingApPenalty,
-			PendingShieldRestore = PendingShieldRestore.Clone(),
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 			Maneuverability = Maneuverability,
 			PilotSkills = PilotSkills,
 		};
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
+		foreach (var grant in TemporaryShieldGrants)
+			copy.TemporaryShieldGrants.Add(grant.Clone());
 		return copy;
 	}
 

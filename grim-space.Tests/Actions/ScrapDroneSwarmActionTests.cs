@@ -67,7 +67,6 @@ public sealed class ScrapDroneSwarmActionTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
 		Assert.Equal(shieldsBefore - CatalogExpectations.ScrapDroneSwarmDamage(), TotalShieldPoints(enemy.State));
-		Assert.False(enemy.State.ApPenaltyNextTurn);
 	}
 
 	[Fact]

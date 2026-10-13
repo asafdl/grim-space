@@ -492,7 +492,8 @@ public partial class UnitView : Node3D
 			}
 
 			var maxOnFace = maxProfile[face];
-			var points = System.Math.Clamp(state.ShieldPoints[face], 0, maxOnFace);
+			var temporary = TemporaryShields.TotalOnFace(state, face);
+			var points = System.Math.Clamp(state.ShieldPoints[face] + temporary, 0, maxOnFace + temporary);
 			if (_shieldPoints[index] == points)
 				continue;
 

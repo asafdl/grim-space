@@ -13,17 +13,13 @@ public sealed record ShieldsUpAction(string ActorId) : IAction<BattleWorld, Acto
 		ShieldsUpDef.Instance;
 }
 
-/// <summary>
-/// Restores +1 shield per face on the following round upkeep (capped at loadout max).
-/// Costs AP now and applies a stacked AP penalty on that upkeep.
-/// </summary>
 public sealed class ShieldsUpDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IActorActionDef
 {
-	public const int ActionPointCost = 1;
-	public const int NextUpkeepApPenalty = 2;
-	public const int ShieldRestorePerFace = 1;
+	public const int NextTickApPenalty = 2;
+	public const int TemporaryShieldPerFace = 1;
+	public const int FollowUpDelayTicks = 1;
 
 	public static ShieldsUpDef Instance { get; } = new();
 
@@ -60,19 +56,26 @@ public sealed class ShieldsUpDef
 		if (!IsPossible(action, world, runtime))
 			return false;
 
-		var actor = world.StateOf(action.ActorId);
-		return actor.ActionPoints >= ActionPointCost
-			&& !actor.ShieldsUpUsedThisTurn;
+		return !world.StateOf(action.ActorId).ShieldsUpUsedThisTurn;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		ShieldsUpAction action,
 		BattleWorld world,
-		ActorRuntime runtime) =>
-	[
-		new ApChangeEffect(-ActionPointCost),
-		new ShieldsUpActivateEffect(),
-	];
+		ActorRuntime runtime)
+	{
+		var grantId = TemporaryShields.NewGrantId();
+		var actorId = action.ActorId;
+		var delay = FollowUpDelayTicks;
+		return
+		[
+			new GrantTemporaryShieldPerFaceEffect(grantId, TemporaryShieldPerFace),
+			new ShieldsUpActivateEffect(),
+			new ScheduleActionEffect(delay, new ExpireTemporaryShieldGrantAction(actorId, grantId)),
+			new ScheduleActionEffect(delay, new ApDeltaAction(actorId, -NextTickApPenalty)),
+			new ScheduleActionEffect(delay, new ResetShieldsUpUsedThisTurnAction(actorId)),
+		];
+	}
 
 	private static ShieldsUpAction Cast(IAction action) =>
 		action is ShieldsUpAction typed

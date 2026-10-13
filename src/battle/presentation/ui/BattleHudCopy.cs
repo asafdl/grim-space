@@ -129,9 +129,8 @@ internal static class BattleHudCopy
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.ShieldsUp);
 		return
 			$"{definition.Name}:\n{definition.Description}\n" +
-			$"Costs {ShieldsUpDef.ActionPointCost} AP now.\n" +
-			$"Next upkeep: +{ShieldsUpDef.ShieldRestorePerFace} shield per face (to max) and " +
-			$"-{ShieldsUpDef.NextUpkeepApPenalty} AP.";
+			$"+{ShieldsUpDef.TemporaryShieldPerFace} shield per face until the next tick.\n" +
+			$"Next turn: -{ShieldsUpDef.NextTickApPenalty} AP.";
 	}
 
 	public static string SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>

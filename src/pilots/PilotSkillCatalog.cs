@@ -9,7 +9,7 @@ public static class PilotSkillCatalog
 				EPilotSkillId.ShieldsUp,
 				EPilotSkillTag.BattleAbility,
 				"Shields Up",
-				"Restore shield faces and pay upkeep on the following turn.",
+				"Boost shield faces until next upkeep; pay AP on the following turn.",
 				tier: 1,
 				minimumEarnedLevel: 1),
 		};

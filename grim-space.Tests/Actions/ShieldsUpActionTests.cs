@@ -17,7 +17,7 @@ public sealed class ShieldsUpActionTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void ShieldsUp_IsLegalWhenEquippedWithApAndNotUsedThisTurn()
+	public void ShieldsUp_IsLegalWhenEquippedAndNotUsedThisTurn()
 	{
 		var player = PlayerWithShieldsUp();
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
@@ -29,10 +29,11 @@ public sealed class ShieldsUpActionTests
 	}
 
 	[Fact]
-	public void ShieldsUp_SchedulesRestoreAndApPenaltyThenAppliesOnUpkeep()
+	public void ShieldsUp_SchedulesFollowUpsThenAppliesPenaltyOnNextTickAfterUpkeepRefill()
 	{
 		var player = PlayerWithShieldsUp();
 		player.State.ShieldPoints[ESpatialOrientation.Forward] = 0;
+		player.State.ActionPoints = 3;
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 
@@ -42,43 +43,50 @@ public sealed class ShieldsUpActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(0, player.State.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(1, player.State.PendingShieldRestore[ESpatialOrientation.Forward]);
-		Assert.Equal(ShieldsUpDef.NextUpkeepApPenalty, player.State.PendingApPenalty);
+		Assert.Equal(3, player.State.ActionPoints);
+		Assert.Equal(1, TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 		Assert.True(player.State.ShieldsUpUsedThisTurn);
+		Assert.True(battle.Engine.World.Timeline.ContainsPending(
+			action => action is ApDeltaAction ap && ap.ActorId == PlayerId && ap.Delta == -ShieldsUpDef.NextTickApPenalty));
 
 		new RoundUpkeepEffect().Apply(
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(1, player.State.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(0, player.State.PendingShieldRestore[ESpatialOrientation.Forward]);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
+		Assert.True(player.State.ShieldsUpUsedThisTurn);
+
+		battle.Engine.AdvanceTick();
+
 		Assert.Equal(
-			MovementExpectations.FighterApPerTurn - ShieldsUpDef.NextUpkeepApPenalty,
+			MovementExpectations.FighterApPerTurn - ShieldsUpDef.NextTickApPenalty,
 			player.State.ActionPoints);
 		Assert.False(player.State.ShieldsUpUsedThisTurn);
+		Assert.Equal(0, TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 	}
 
 	[Fact]
-	public void ShieldsUp_RestoreIsCappedAtLoadoutMax()
+	public void ShieldsUp_TemporaryBonusCanExceedLoadoutMax()
 	{
 		var player = PlayerWithShieldsUp();
-		player.State.ShieldPoints[ESpatialOrientation.Forward] = 1;
-		player.State.PendingShieldRestore[ESpatialOrientation.Forward] = 3;
+		var max = player.State.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
+		player.State.ShieldPoints[ESpatialOrientation.Forward] = max;
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 
-		new RoundUpkeepEffect().Apply(
+		BattleTestApply.TryApplyOne(
+			ShieldsUpDef.Instance.Bind(PlayerId),
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(1, player.State.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(max, player.State.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(1, TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 	}
 
 	[Fact]
-	public void ShieldsUpActivateEffect_UndoRestoresPendingState()
+	public void ShieldsUpActivateEffect_UndoRestoresUsedFlag()
 	{
 		var player = PlayerWithShieldsUp();
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
@@ -89,7 +97,6 @@ public sealed class ShieldsUpActionTests
 		effect.Apply(battle.Engine.World, runtime, PlayerId);
 		effect.Undo(battle.Engine.World, runtime, PlayerId);
 
-		Assert.Equal(0, player.State.PendingApPenalty);
 		Assert.False(player.State.ShieldsUpUsedThisTurn);
 	}
 
@@ -107,15 +114,13 @@ public sealed class ShieldsUpActionTests
 	public void BattleUnitStateDto_RoundTripsPilotSkillRuntime()
 	{
 		var player = PlayerWithShieldsUp();
-		player.State.PendingApPenalty = 2;
-		player.State.PendingShieldRestore[ESpatialOrientation.Port] = 1;
+		TemporaryShields.GrantPerFace(player.State, "grant", 1);
 		player.State.ShieldsUpUsedThisTurn = true;
 
 		var dto = GrimSpace.Run.Persistence.SaveDtoMapper.CaptureBattleUnitState(player.State);
 		var restored = GrimSpace.Run.Persistence.SaveDtoMapper.RestoreBattleUnitState(dto);
 
-		Assert.Equal(player.State.PendingApPenalty, restored.PendingApPenalty);
-		Assert.Equal(1, restored.PendingShieldRestore[ESpatialOrientation.Port]);
+		Assert.Equal(1, TemporaryShields.TotalOnFace(restored, ESpatialOrientation.Port));
 		Assert.True(restored.ShieldsUpUsedThisTurn);
 		Assert.Equal(player.State.PilotSkills, restored.PilotSkills);
 	}

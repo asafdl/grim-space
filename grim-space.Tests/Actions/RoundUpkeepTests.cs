@@ -36,21 +36,6 @@ public sealed class RoundUpkeepTests
 	}
 
 	[Fact]
-	public void RoundUpkeepActionAppliesScrapDroneSwarmPenaltyThenRefills()
-	{
-		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
-		player.State.ApPenaltyNextTurn = true;
-		player.State.ActionPoints = 0;
-		player.State.ManeuverPoints = 0;
-
-		ApplyRoundUpkeep(player);
-
-		Assert.Equal(MovementExpectations.FighterApPerTurn - 1, player.State.ActionPoints);
-		Assert.Equal(3, player.State.ManeuverPoints);
-		Assert.False(player.State.ApPenaltyNextTurn);
-	}
-
-	[Fact]
 	public void ResolveTurnRunsRoundUpkeepOnTimeline()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
@@ -75,7 +60,6 @@ public sealed class RoundUpkeepTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.ActionPoints = 1;
 		state.ManeuverPoints = 0;
-		state.ApPenaltyNextTurn = true;
 		var effect = new RoundUpkeepEffect();
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
@@ -84,7 +68,6 @@ public sealed class RoundUpkeepTests
 
 		Assert.Equal(1, state.ActionPoints);
 		Assert.Equal(0, state.ManeuverPoints);
-		Assert.True(state.ApPenaltyNextTurn);
 	}
 
 	[Fact]

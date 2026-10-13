@@ -230,9 +230,7 @@ public static class SaveDtoMapper
 			state.ManeuverPoints,
 			state.FuelRemaining,
 			state.ParentId,
-			state.ApPenaltyNextTurn,
-			state.PendingApPenalty,
-			PendingShieldRestore = CaptureFaces(state.PendingShieldRestore),
+			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 			state.ShieldsUpUsedThisTurn,
 			PilotSkills = state.PilotSkills.ToArray(),
 			MaxAp = state.Maneuverability.MaxActionPoints,
@@ -265,11 +263,7 @@ public static class SaveDtoMapper
 		var maxMp = dto.MaxMp ?? maneuverability.MaxManeuverPoints;
 		state.ManeuverPoints = dto.ManeuverPoints ?? maxMp;
 		state.FuelRemaining = dto.FuelRemaining;
-		state.ApPenaltyNextTurn = dto.ApPenaltyNextTurn;
-		state.PendingApPenalty = dto.PendingApPenalty;
-		state.PendingShieldRestore = dto.PendingShieldRestore is null
-			? new GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints()
-			: RestoreFaces(dto.PendingShieldRestore);
+		RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, dto.TemporaryShieldGrants);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
@@ -339,9 +333,7 @@ public static class SaveDtoMapper
 				state.ManeuverPoints,
 				state.FuelRemaining,
 				state.ParentId,
-				state.ApPenaltyNextTurn,
-				state.PendingApPenalty,
-				PendingShieldRestore = CaptureFaces(state.PendingShieldRestore),
+				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 				state.ShieldsUpUsedThisTurn,
 				PilotSkills = state.PilotSkills.ToArray(),
 				MaxAp = state.Maneuverability.MaxActionPoints,
@@ -804,11 +796,7 @@ public static class SaveDtoMapper
 			var maxMp = unitDto.MaxMp ?? maneuverability.MaxManeuverPoints;
 			state.ManeuverPoints = unitDto.ManeuverPoints ?? maxMp;
 			state.FuelRemaining = unitDto.FuelRemaining;
-			state.ApPenaltyNextTurn = unitDto.ApPenaltyNextTurn;
-			state.PendingApPenalty = unitDto.PendingApPenalty;
-			state.PendingShieldRestore = unitDto.PendingShieldRestore is null
-				? new GrimSpace.Units.Loadouts.Defenses.FaceShieldPoints()
-				: RestoreFaces(unitDto.PendingShieldRestore);
+			RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, unitDto.TemporaryShieldGrants);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
@@ -918,6 +906,30 @@ public static class SaveDtoMapper
 		return buckets.ToDictionary(
 			pair => pair.Key,
 			pair => (IReadOnlyList<ITimelineEntry>)pair.Value.ToArray());
+	}
+
+	private static TemporaryShieldGrantDto[] CaptureTemporaryShieldGrants(
+		IReadOnlyList<GrimSpace.Battle.Units.TemporaryShieldGrant> grants) =>
+		grants
+			.Select(grant => new TemporaryShieldGrantDto(grant.GrantId, CaptureFaces(grant.Remaining)))
+			.ToArray();
+
+	private static void RestoreTemporaryShieldGrants(
+		ICollection<GrimSpace.Battle.Units.TemporaryShieldGrant> grants,
+		IReadOnlyList<TemporaryShieldGrantDto>? dtos)
+	{
+		grants.Clear();
+		if (dtos is null)
+			return;
+
+		foreach (var dto in dtos)
+		{
+			grants.Add(new GrimSpace.Battle.Units.TemporaryShieldGrant
+			{
+				GrantId = dto.GrantId,
+				Remaining = RestoreFaces(dto.Remaining),
+			});
+		}
 	}
 
 	private static FaceShieldDto CaptureFaces(FaceShieldPoints points) =>
