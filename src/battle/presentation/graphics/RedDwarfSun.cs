@@ -1,18 +1,20 @@
 using Godot;
+using GrimSpace.Presentation.Graphics;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 public static class RedDwarfSun
 {
 	private const string SurfaceTexturePath = "res://assets/textures/2k_sun.jpg";
+	private const string SurfaceShaderPath =
+		"res://assets/shaders/battle_red_dwarf.gdshader";
 	private const float DistanceScale = 2.4f;
 	private const float RadiusScale = 0.72f;
 
 	public static readonly Vector3 LightDirection = new Vector3(-0.58f, -0.22f, -0.78f).Normalized();
 	public static readonly Color LightColor = new(1f, 0.7f, 0.62f);
 
-	private static readonly Color SurfaceTint = new(1f, 0.3f, 0.22f);
-	private static readonly Color CoronaColor = new(1f, 0.08f, 0.025f);
+	private static readonly Color CoronaColor = new(1f, 0.12f, 0.025f);
 
 	public static Node3D CreateVisual(Vector3 gridCenter, float chamberRadius)
 	{
@@ -41,42 +43,28 @@ public static class RedDwarfSun
 				Rings = 32,
 			},
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				AlbedoColor = SurfaceTint,
-				AlbedoTexture = texture,
-				EmissionEnabled = true,
-				Emission = SurfaceTint,
-				EmissionTexture = texture,
-				EmissionEnergyMultiplier = 1.35f,
-			},
+			MaterialOverride = CreateSurfaceMaterial(texture),
 		};
 
+	private static ShaderMaterial CreateSurfaceMaterial(Texture2D texture)
+	{
+		var shader = GD.Load<Shader>(SurfaceShaderPath)
+			?? throw new InvalidOperationException(
+				$"Could not load battle red dwarf shader '{SurfaceShaderPath}'.");
+		var material = new ShaderMaterial { Shader = shader };
+		material.SetShaderParameter("surface_texture", texture);
+		return material;
+	}
+
 	private static MeshInstance3D CreateCorona(float radius) =>
-		new()
-		{
-			Name = "Corona",
-			Mesh = new SphereMesh
-			{
-				Radius = radius * 1.08f,
-				Height = radius * 2.16f,
-				RadialSegments = 48,
-				Rings = 24,
-			},
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				BlendMode = BaseMaterial3D.BlendModeEnum.Add,
-				AlbedoColor = CoronaColor with { A = 0.1f },
-				EmissionEnabled = true,
-				Emission = CoronaColor,
-				EmissionEnergyMultiplier = 0.75f,
-				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-			},
-		};
+		StarCorona.Create(
+			radius,
+			CoronaColor,
+			brightness: 0.2f,
+			width: 0.18f,
+			speed: 0.025f,
+			seed: 37f,
+			irregularity: 0.82f);
 
 	public static void Configure(DirectionalLight3D light, Vector3 gridCenter, float chamberRadius)
 	{

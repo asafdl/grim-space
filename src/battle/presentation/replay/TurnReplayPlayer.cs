@@ -48,7 +48,7 @@ public partial class TurnReplayPlayer : Node3D
 	private EReplayPlaybackPhase _phase;
 	private double _playerAnimMs;
 	private double _enemyAnimMs;
-	private double _upkeepAnimMs;
+	private double _systemAnimMs;
 	private double _timeToEnemyAnimMs;
 	private bool _loggedEnemyAnimStart;
 	private double _actionWorkMs;
@@ -123,7 +123,7 @@ public partial class TurnReplayPlayer : Node3D
 			view.ConfigureMovementTrail(TrailColorFor(actorId));
 		_playerAnimMs = 0;
 		_enemyAnimMs = 0;
-		_upkeepAnimMs = 0;
+		_systemAnimMs = 0;
 		_timeToEnemyAnimMs = 0;
 		_loggedEnemyAnimStart = false;
 		_actionWorkMs = 0;
@@ -370,8 +370,8 @@ public partial class TurnReplayPlayer : Node3D
 			case EReplayPlaybackPhase.Enemy:
 				_enemyAnimMs += elapsed;
 				break;
-			case EReplayPlaybackPhase.Upkeep:
-				_upkeepAnimMs += elapsed;
+			case EReplayPlaybackPhase.System:
+				_systemAnimMs += elapsed;
 				break;
 		}
 	}
@@ -443,7 +443,7 @@ public partial class TurnReplayPlayer : Node3D
 			$"Turn {_turnNumber} replay: total={totalMs:F1}ms "
 			+ $"playerAnim={_playerAnimMs:F1}ms "
 			+ $"enemyAnim={_enemyAnimMs:F1}ms "
-			+ $"upkeepAnim={_upkeepAnimMs:F1}ms "
+			+ $"systemAnim={_systemAnimMs:F1}ms "
 			+ $"toEnemyAnim={_timeToEnemyAnimMs:F1}ms "
 			+ $"history={_history.Count}");
 		GameLog.Log(

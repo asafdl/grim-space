@@ -124,6 +124,8 @@ public sealed partial class SpaceBackdrop : Node3D
 						vec3 source = texture(surface_texture, UV).rgb;
 						float detail = dot(source, vec3(0.299, 0.587, 0.114));
 						float tone = smoothstep(0.08, 0.95, detail);
+						float posterized = floor(tone * 6.0 + 0.5) / 6.0;
+						tone = mix(tone, posterized, 0.42);
 						ALBEDO = mix(
 							vec3(0.055, 0.018, 0.09),
 							vec3(0.58, 0.23, 0.72),

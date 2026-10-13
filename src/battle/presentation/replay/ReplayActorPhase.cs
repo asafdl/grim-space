@@ -7,7 +7,7 @@ public enum EReplayPlaybackPhase
 {
 	Player,
 	Enemy,
-	Upkeep,
+	System,
 }
 
 public static class ReplayActorPhase
@@ -16,7 +16,7 @@ public static class ReplayActorPhase
 	{
 		if (string.Equals(actorId, BattleActorIds.Rules, StringComparison.Ordinal)
 			|| string.Equals(actorId, BattleActorIds.Terrain, StringComparison.Ordinal))
-			return EReplayPlaybackPhase.Upkeep;
+			return EReplayPlaybackPhase.System;
 
 		if (!participants.TryGetValue(actorId, out var team))
 			throw new KeyNotFoundException($"Replay actor '{actorId}' is not registered.");
