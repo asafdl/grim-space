@@ -145,7 +145,7 @@ public sealed class BattleSpawnPilotTests
 			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 			map[shipId] = new PilotBattleSnapshot(
 				pilot.Id,
-				PilotSkillAvailability.LearnedBattleAbilities(pilot));
+				PilotSkillAvailability.LearnedBattleSkills(pilot));
 		}
 
 		return map;

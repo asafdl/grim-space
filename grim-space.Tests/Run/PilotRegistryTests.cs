@@ -4,6 +4,9 @@ using GrimSpace.Run.Persistence;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.Pilots;
+using GrimSpace.World.StarSystem.PilotSkills;
+using GrimSpace.World.StarSystem.Resources;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.Run;
@@ -64,6 +67,22 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
+	public void LearnedCount_CountsLearnedSkillAcrossPilots()
+	{
+		var registry = new RunPilotRegistry();
+		for (var index = 0; index < 2; index++)
+		{
+			var pilot = PilotProgression
+				.AddExperience(Pilot.CreateForShip($"fighter-{index}"), 100)
+				.LearnPilotSkill(EPilotSkillId.DronesYearnForMines);
+			registry.Register(pilot);
+		}
+
+		Assert.Equal(2, registry.LearnedCount(EPilotSkillId.DronesYearnForMines));
+		Assert.Equal(0, registry.LearnedCount(EPilotSkillId.IKnowABot));
+	}
+
+	[Fact]
 	public void RemoveForShip_DropsPilotAssignedToThatShip()
 	{
 		var registry = new RunPilotRegistry();
@@ -103,6 +122,28 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
+	public void Snapshot_RestoresLiveStrategicSkillReader()
+	{
+		using var run = State.CreateNewRun(42);
+		var pilot = Assert.Single(run.PilotRegistry.All);
+		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 100));
+		Assert.True(run.TryLearnPilotSkill(pilot.Id, EPilotSkillId.DronesYearnForMines));
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var snapshot = run.CaptureSnapshot(registry);
+		using var restored = State.FromSnapshot(snapshot, registry);
+		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(
+			restored.StarSystem.Map,
+			ResourceBundle.Of(ResourceId.ScrapAlloy, 100));
+
+		Assert.Same(
+			restored.PilotRegistry,
+			restored.StarSystem.Map.PilotSkillRosterReader);
+		Assert.True(modified.TryGet(ResourceId.ScrapAlloy, out var scrap));
+		Assert.Equal(115, scrap);
+	}
+
+	[Fact]
 	public void Snapshot_RoundTripsExperiencePoints()
 	{
 		var registry = new RunPilotRegistry();
@@ -133,6 +174,7 @@ public sealed class PilotRegistryTests
 
 		run.RegenerateMap(77);
 
+		Assert.Same(run.PilotRegistry, run.StarSystem.Map.PilotSkillRosterReader);
 		Assert.Equal(pilotsBefore.Length, run.PlayerParty.ShipIds.Count);
 		foreach (var pilot in pilotsBefore)
 		{

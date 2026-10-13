@@ -48,7 +48,7 @@ public sealed class PurchaseActionDef
 				purchase.Offering,
 				purchase.Target,
 				purchase.Before,
-				MerchantCatalog.Tier(world),
+				world,
 				out var offer))
 			return false;
 		if (!MerchantShipChanges.TryPrepareAfter(
@@ -89,7 +89,7 @@ public sealed class PurchaseActionDef
 				purchase.Offering,
 				purchase.Target,
 				purchase.Before,
-				MerchantCatalog.Tier(world),
+				world,
 				out var offer)
 			|| !MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,

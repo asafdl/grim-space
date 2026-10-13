@@ -14,6 +14,7 @@ using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Poi;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
@@ -59,6 +60,57 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.Equal(
 			initialScrap - Amount(quote.Cost, ResourceId.ScrapAlloy),
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+	}
+
+	[Fact]
+	public void Commit_DamagePack_AppliesStackedPilotDiscountToQuoteAndDebit()
+	{
+		var pilots = new RunPilotRegistry();
+		for (var index = 0; index < 2; index++)
+		{
+			var pilot = PilotProgression
+				.AddExperience(Pilot.CreateForShip($"fighter-{index}"), 450)
+				.LearnPilotSkill(EPilotSkillId.DronesYearnForMines)
+				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
+				.LearnPilotSkill(EPilotSkillId.IKnowABot);
+			pilots.Register(pilot);
+		}
+
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
+			maps,
+			pilotSkillRosterReader: pilots);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
+		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
+		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
+		var target = MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget;
+		var before = ship.Clone();
+		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
+		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
+
+		Assert.True(MerchantCatalog.TryFind(
+			EMerchantCatalog.Weapons,
+			offering,
+			target,
+			before,
+			engine.World,
+			out var quote));
+		Assert.Equal(96, Amount(quote.Cost, ResourceId.Credits));
+		Assert.Equal(224, Amount(quote.Cost, ResourceId.ScrapAlloy));
+
+		engine.Commit(CreateAction(
+			unitId,
+			engine.World,
+			EMerchantCatalog.Weapons,
+			offering,
+			target,
+			before));
+
+		Assert.Equal(
+			initialCredits - 96,
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			initialScrap - 224,
 			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 

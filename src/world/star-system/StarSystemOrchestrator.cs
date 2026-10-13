@@ -18,7 +18,9 @@ using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
+using GrimSpace.World.StarSystem.PilotSkills;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.World.StarSystem;
@@ -148,13 +150,14 @@ public sealed class StarSystemOrchestrator : IDisposable
 		string playerFleetUnitId,
 		IReadOnlyList<string> playerShipIds,
 		int seed = 0,
-		IShipRegistryReader? shipRegistryReader = null)
+		IShipRegistryReader? shipRegistryReader = null,
+		IPilotSkillRosterReader? pilotSkillRosterReader = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
 		ArgumentNullException.ThrowIfNull(playerShipIds);
 		if (playerShipIds.Count == 0)
 			throw new ArgumentException("Player fleet must contain at least one ship.", nameof(playerShipIds));
-		var map = StarMap.Create(seed, shipRegistryReader);
+		var map = StarMap.Create(seed, shipRegistryReader, pilotSkillRosterReader);
 		AddPlayerFleet(map, playerFleetUnitId, playerShipIds);
 		return InitializeSession(map, playerFleetUnitId);
 	}
@@ -344,7 +347,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public bool ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
-		var loot = LootCatalog.For(outcome);
+		var loot = StrategicPilotSkillModifiers.ApplySalvageBonus(
+			Map,
+			LootCatalog.For(outcome));
 		var action = new ResolveEngagementAction(
 			playerId,
 			outcome,

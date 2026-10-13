@@ -83,7 +83,11 @@ public sealed class State : IDisposable
 		run.PilotRegistry.RestoreSnapshot(snapshot.Pilots);
 		run.ValidatePartyPilotAlignment();
 
-		var map = SaveDtoMapper.RestoreStarMap(snapshot.StarMap, registry, run.ShipRegistry);
+		var map = SaveDtoMapper.RestoreStarMap(
+			snapshot.StarMap,
+			registry,
+			run.ShipRegistry,
+			run.PilotRegistry);
 		run.BindStarSystem(StarSystemOrchestrator.FromMapForRestore(
 			map,
 			PlayerFleetUnitId));
@@ -270,7 +274,8 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			PlayerParty.ShipIds,
 			nextSeed,
-			ShipRegistry));
+			ShipRegistry,
+			PilotRegistry));
 		SyncContractGenerationFromTutorialState();
 		PlayerFleetSelection.EnsureSelectedMember(
 			StarSystem.Map,
@@ -290,7 +295,8 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			run.PlayerParty.ShipIds,
 			seed,
-			run.ShipRegistry);
+			run.ShipRegistry,
+			run.PilotRegistry);
 		run.BindStarSystem(orchestrator);
 		PlayerFleetSelection.EnsureSelectedMember(
 			run.StarSystem.Map,
@@ -559,7 +565,7 @@ public sealed class State : IDisposable
 
 			map[shipId] = new PilotBattleSnapshot(
 				pilot.Id,
-				PilotSkillAvailability.LearnedBattleAbilities(pilot));
+				PilotSkillAvailability.LearnedBattleSkills(pilot));
 		}
 
 		return map;

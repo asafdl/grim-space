@@ -12,7 +12,8 @@ public sealed class ApplyAreaDamageEffect(
 	EImpactCause cause,
 	IReadOnlySet<Coord> cells,
 	int damage,
-	Coord origin) : IEffect<BattleWorld, ActorRuntime>
+	Coord origin,
+	int shieldDamageBonus = 0) : IEffect<BattleWorld, ActorRuntime>
 {
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -48,7 +49,7 @@ public sealed class ApplyAreaDamageEffect(
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
 		if (damage > 0)
-			Defense.ApplyDamage(unit, damage, face);
+			Defense.ApplyDamage(unit, damage, face, shieldDamageBonus);
 
 		var shieldAfter = Defense.EffectiveShield(unit, face);
 		var shieldDamage = shieldBefore - shieldAfter;

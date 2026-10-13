@@ -71,13 +71,39 @@ public sealed class PilotSkillRulesTests
 	}
 
 	[Fact]
-	public void LearnedBattleAbilities_IncludesOnlyBattleAbilityTag()
+	public void LearnedBattleSkills_IncludesAbilitiesAndPassives()
 	{
 		var pilot = PilotProgression
-			.AddExperience(Pilot.CreateForShip("fighter-a"), 100)
-			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
+			.AddExperience(Pilot.CreateForShip("fighter-a"), 250)
+			.LearnPilotSkill(EPilotSkillId.ShieldsUp)
+			.LearnPilotSkill(EPilotSkillId.IonizedPayload);
 
-		Assert.Equal([EPilotSkillId.ShieldsUp], PilotSkillAvailability.LearnedBattleAbilities(pilot));
+		Assert.Equal(
+			[EPilotSkillId.ShieldsUp, EPilotSkillId.IonizedPayload],
+			PilotSkillAvailability.LearnedBattleSkills(pilot));
+	}
+
+	[Fact]
+	public void StrategicPassives_RespectLevelGatesAndStayOutOfBattleSnapshots()
+	{
+		var pilot = PilotProgression.AddExperience(Pilot.CreateForShip("fighter-a"), 100);
+
+		Assert.Contains(
+			EPilotSkillId.DronesYearnForMines,
+			PilotSkillAvailability.AvailableToLearn(pilot));
+		Assert.DoesNotContain(
+			EPilotSkillId.IKnowABot,
+			PilotSkillAvailability.AvailableToLearn(pilot));
+
+		pilot = pilot.LearnPilotSkill(EPilotSkillId.DronesYearnForMines);
+
+		Assert.Empty(PilotSkillAvailability.LearnedBattleSkills(pilot));
+
+		pilot = PilotProgression.AddExperience(pilot, 350);
+
+		Assert.Contains(
+			EPilotSkillId.IKnowABot,
+			PilotSkillAvailability.AvailableToLearn(pilot));
 	}
 
 	[Fact]

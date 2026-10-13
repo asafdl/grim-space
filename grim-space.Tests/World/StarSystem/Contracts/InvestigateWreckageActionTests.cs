@@ -21,6 +21,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Tests;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -47,6 +48,20 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		Assert.True(engine.World.ContractRegistry.IsCompleted(contractId));
 		Assert.Equal(RewardCredits, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.Equal(SalvageScrap, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+	}
+
+	[Fact]
+	public void InvestigateSalvage_AppliesStackedPilotScrapBonus()
+	{
+		var (engine, unitId, contractId) = CreateEngine(
+			new WreckageOutcome.Salvage(
+				ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)),
+			new SkillRoster(dronesYearnForMines: 2));
+		OpenWreckDecision(engine, unitId, contractId);
+
+		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
+
+		Assert.Equal(5, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]
@@ -103,9 +118,12 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId) CreateEngine(
 		WreckageOutcome outcome,
+		IPilotSkillRosterReader? pilotSkillRosterReader = null,
 		int seed = 42)
 	{
-		var map = maps.Fresh(seed);
+		var map = pilotSkillRosterReader is null
+			? maps.Fresh(seed)
+			: StarMap.Create(seed, pilotSkillRosterReader: pilotSkillRosterReader);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var contract = RegisterWreckageContract(map, "contract-wreckage-test", outcome);
 
@@ -113,6 +131,12 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		runtimes.For(RunState.PlayerFleetUnitId);
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, RunState.PlayerFleetUnitId, contract.Id);
+	}
+
+	private sealed class SkillRoster(int dronesYearnForMines) : IPilotSkillRosterReader
+	{
+		public int LearnedCount(EPilotSkillId skillId) =>
+			skillId == EPilotSkillId.DronesYearnForMines ? dronesYearnForMines : 0;
 	}
 
 	private static void OpenWreckDecision(Engine<StarMap, ActorRuntime> engine, string unitId, string contractId)

@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.World.StarSystem.PilotSkills;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -67,8 +68,9 @@ public sealed class InvestigateWreckageDef
 		switch (wreckage.Outcome)
 		{
 			case WreckageOutcome.Salvage salvage:
-				if (!salvage.Loot.IsEmpty)
-					effects.Add(new ChangeResourceEffect(TransactionSource.WreckageSalvage, salvage.Loot));
+				var loot = StrategicPilotSkillModifiers.ApplySalvageBonus(world, salvage.Loot);
+				if (!loot.IsEmpty)
+					effects.Add(new ChangeResourceEffect(TransactionSource.WreckageSalvage, loot));
 				effects.Add(new PlayerInputEffect(false));
 				break;
 			case WreckageOutcome.Ambush ambush:

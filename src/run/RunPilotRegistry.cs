@@ -1,8 +1,9 @@
+using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
 
 namespace GrimSpace.Run;
 
-public sealed class RunPilotRegistry
+public sealed class RunPilotRegistry : IPilotSkillRosterReader
 {
 	private readonly Dictionary<string, Pilot> _pilotsById = new(StringComparer.Ordinal);
 
@@ -57,6 +58,9 @@ public sealed class RunPilotRegistry
 
 	public bool TryGet(string pilotId, out Pilot pilot) =>
 		_pilotsById.TryGetValue(pilotId, out pilot!);
+
+	public int LearnedCount(EPilotSkillId skillId) =>
+		_pilotsById.Values.Count(pilot => pilot.LearnedSkills.Contains(skillId));
 
 	public bool TryGetForShip(string shipId, out Pilot pilot)
 	{

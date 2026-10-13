@@ -8,6 +8,9 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public sealed partial class PilotSkillTreeOverlay : Control
 {
 	private const string ShieldIconPath = "res://assets/ui/abilities/shields_up.svg";
+	private const string LightningIconPath = "res://assets/ui/abilities/lightning_cannon.svg";
+	private const string SalvageIconPath = "res://assets/ui/abilities/scrap_drone_swarm.svg";
+	private const string BotIconPath = "res://assets/ui/abilities/repurposed-miner.svg";
 	private const int SkillNodeSize = 60;
 
 	private static readonly Color AvailableColor = new(0.55f, 0.78f, 1f);
@@ -127,7 +130,7 @@ public sealed partial class PilotSkillTreeOverlay : Control
 		{
 			CustomMinimumSize = new Vector2(SkillNodeSize, SkillNodeSize),
 			Disabled = !canLearn,
-			Icon = SvgIconLoader.Load(ShieldIconPath, color, 34),
+			Icon = SvgIconLoader.Load(IconPathFor(definition.Id), color, 34),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
@@ -139,6 +142,16 @@ public sealed partial class PilotSkillTreeOverlay : Control
 			button.Pressed += () => SkillLearnRequested?.Invoke(pilot.Id, definition.Id);
 		return button;
 	}
+
+	private static string IconPathFor(EPilotSkillId skillId) =>
+		skillId switch
+		{
+			EPilotSkillId.ShieldsUp => ShieldIconPath,
+			EPilotSkillId.IonizedPayload => LightningIconPath,
+			EPilotSkillId.DronesYearnForMines => SalvageIconPath,
+			EPilotSkillId.IKnowABot => BotIconPath,
+			_ => throw new ArgumentOutOfRangeException(nameof(skillId), skillId, null),
+		};
 
 	private static void ApplyCircleStyle(Button button, Color color, bool learned)
 	{

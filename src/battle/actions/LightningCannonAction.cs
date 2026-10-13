@@ -6,6 +6,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
@@ -24,6 +25,8 @@ public sealed class LightningCannonDef
 		IMountedActionDef,
 		IAreaActionDef
 {
+	public const int IonizedPayloadShieldDamageBonus = 1;
+
 	public static LightningCannonDef Instance { get; } = new();
 
 	public bool IsBlockable => true;
@@ -85,13 +88,17 @@ public sealed class LightningCannonDef
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn)
 			?? throw new InvalidOperationException("Lightning cannon ability not installed for actor.");
 		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Lightning cannon spec missing area damage.");
+		var shieldDamageBonus = state.PilotSkills.Contains(EPilotSkillId.IonizedPayload)
+			? IonizedPayloadShieldDamageBonus
+			: 0;
 		return
 		[
 			new ApplyAreaDamageEffect(
 				EImpactCause.LightningCannonBurst,
 				cells,
 				damage,
-				state.Position),
+				state.Position,
+				shieldDamageBonus),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 	}

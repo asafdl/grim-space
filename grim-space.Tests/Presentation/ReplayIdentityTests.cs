@@ -36,18 +36,18 @@ public sealed class ReplayIdentityTests
 	}
 
 	[Fact]
-	public void Classify_RulesActor_ReturnsUpkeepPhase()
+	public void Classify_RulesActor_ReturnsSystemPhase()
 	{
 		Assert.Equal(
-			EReplayPlaybackPhase.Upkeep,
+			EReplayPlaybackPhase.System,
 			ReplayActorPhase.Classify(BattleActorIds.Rules, new Dictionary<string, ETeam>()));
 	}
 
 	[Fact]
-	public void Classify_TerrainActor_ReturnsUpkeepPhase()
+	public void Classify_TerrainActor_ReturnsSystemPhase()
 	{
 		Assert.Equal(
-			EReplayPlaybackPhase.Upkeep,
+			EReplayPlaybackPhase.System,
 			ReplayActorPhase.Classify(BattleActorIds.Terrain, new Dictionary<string, ETeam>()));
 	}
 

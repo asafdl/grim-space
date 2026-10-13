@@ -10,6 +10,7 @@ using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.World.StarSystem.Generation;
 
@@ -22,7 +23,10 @@ public static class StarSystemBuilder
 	private const int EdgePadding = 32;
 	private const string PlacementTag = "poi-placement";
 
-	public static StarMap Build(StarSystemBlueprint blueprint, IShipRegistryReader? shipRegistryReader = null)
+	public static StarMap Build(
+		StarSystemBlueprint blueprint,
+		IShipRegistryReader? shipRegistryReader = null,
+		IPilotSkillRosterReader? pilotSkillRosterReader = null)
 	{
 		ArgumentNullException.ThrowIfNull(blueprint);
 
@@ -31,7 +35,11 @@ public static class StarSystemBuilder
 		{
 			try
 			{
-				return BuildOnce(blueprint, layoutAttempt, shipRegistryReader);
+				return BuildOnce(
+					blueprint,
+					layoutAttempt,
+					shipRegistryReader,
+					pilotSkillRosterReader);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -47,7 +55,8 @@ public static class StarSystemBuilder
 	private static StarMap BuildOnce(
 		StarSystemBlueprint blueprint,
 		int layoutAttempt,
-		IShipRegistryReader? shipRegistryReader)
+		IShipRegistryReader? shipRegistryReader,
+		IPilotSkillRosterReader? pilotSkillRosterReader)
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
@@ -156,7 +165,8 @@ public static class StarSystemBuilder
 			new StoryObjectiveRegistry(),
 			new PlayerResources(),
 			terrain,
-			shipRegistryReader);
+			shipRegistryReader,
+			pilotSkillRosterReader);
 
 		foreach (var (fleet, poiId, remainingTicks) in spawnedWork)
 			WorkScheduler.ScheduleSpawnedWorker(map, fleet, poiId, remainingTicks);

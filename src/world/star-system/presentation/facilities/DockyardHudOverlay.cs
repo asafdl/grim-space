@@ -110,7 +110,7 @@ public sealed partial class DockyardHudOverlay : Control
 		var offers = MerchantCatalog.ListFor(
 			MerchantSubtypeRouting.CatalogFor(_subtype),
 			ship,
-			tier);
+			_run.StarSystem.Map);
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,

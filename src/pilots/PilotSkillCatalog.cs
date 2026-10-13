@@ -9,9 +9,30 @@ public static class PilotSkillCatalog
 				EPilotSkillId.ShieldsUp,
 				EPilotSkillTag.BattleAbility,
 				"Shields Up",
-				"Boost shield faces until next upkeep; pay AP on the following turn.",
+				"Boost shield faces until your next turn; pay AP when that turn begins.",
 				tier: 1,
 				minimumEarnedLevel: 1),
+			[EPilotSkillId.IonizedPayload] = new(
+				EPilotSkillId.IonizedPayload,
+				EPilotSkillTag.BattlePassive,
+				"Ionized Payload",
+				"Lightning weapons deal 1 additional damage to shields.",
+				tier: 2,
+				minimumEarnedLevel: 3),
+			[EPilotSkillId.DronesYearnForMines] = new(
+				EPilotSkillId.DronesYearnForMines,
+				EPilotSkillTag.StrategicPassive,
+				"The Drones Yearn for the Mines",
+				"Gain 15% more Scrap Alloy from destroyed ships and successful wreckage investigations.",
+				tier: 1,
+				minimumEarnedLevel: 2),
+			[EPilotSkillId.IKnowABot] = new(
+				EPilotSkillId.IKnowABot,
+				EPilotSkillTag.StrategicPassive,
+				"I Know a Bot",
+				"Ship upgrades cost 10% fewer Credits and Scrap Alloy. Industrial Core costs are unchanged.",
+				tier: 3,
+				minimumEarnedLevel: 4),
 		};
 
 	public static PilotSkillDefinition Get(EPilotSkillId id) =>

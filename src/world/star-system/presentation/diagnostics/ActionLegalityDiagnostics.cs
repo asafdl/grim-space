@@ -204,7 +204,7 @@ internal static class ActionLegalityDiagnostics
 				purchase.Offering,
 				purchase.Target,
 				purchase.Before,
-				shopTier,
+				world,
 				out var offer))
 		{
 			var availableAtAnotherTier = Enum.GetValues<EMerchantAvailabilityBand>()

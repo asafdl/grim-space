@@ -39,10 +39,10 @@ public static class PilotSkillAvailability
 		return available;
 	}
 
-	public static IReadOnlyList<EPilotSkillId> LearnedBattleAbilities(Pilot pilot) =>
-		BattleAbilitiesFrom(pilot.LearnedSkills);
+	public static IReadOnlyList<EPilotSkillId> LearnedBattleSkills(Pilot pilot) =>
+		BattleSkillsFrom(pilot.LearnedSkills);
 
-	private static IReadOnlyList<EPilotSkillId> BattleAbilitiesFrom(
+	private static IReadOnlyList<EPilotSkillId> BattleSkillsFrom(
 		IReadOnlyList<EPilotSkillId> skillIds)
 	{
 		if (skillIds.Count == 0)
@@ -51,7 +51,8 @@ public static class PilotSkillAvailability
 		var battleSkills = new List<EPilotSkillId>(skillIds.Count);
 		foreach (var skillId in skillIds)
 		{
-			if (PilotSkillCatalog.Get(skillId).Tag != EPilotSkillTag.BattleAbility)
+			var tag = PilotSkillCatalog.Get(skillId).Tag;
+			if (tag is not EPilotSkillTag.BattleAbility and not EPilotSkillTag.BattlePassive)
 				continue;
 
 			battleSkills.Add(skillId);

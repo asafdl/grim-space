@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
@@ -36,10 +37,11 @@ internal static class MerchantPurchaseTestHarness
 
 	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, RunShipRegistry registry) CreateEngine(
 		StarMapFixture maps,
-		int seed = 42)
+		int seed = 42,
+		IPilotSkillRosterReader? pilotSkillRosterReader = null)
 	{
 		var registry = new RunShipRegistry();
-		var map = StarMap.Create(seed, registry);
+		var map = StarMap.Create(seed, registry, pilotSkillRosterReader);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var unitId = State.PlayerFleetUnitId;
 		var shipId = map.FleetRegistry.FleetOf(unitId).Members[0].Id;

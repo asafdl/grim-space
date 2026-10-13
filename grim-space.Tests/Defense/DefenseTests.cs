@@ -149,4 +149,27 @@ public sealed class ApplyDamageTests
 		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(0, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
 	}
+
+	[Fact]
+	public void ShieldDamageBonus_DamagesShieldsWithoutIncreasingHullOverflow()
+	{
+		var unit = FreshUnit();
+		unit.ShieldPoints[ESpatialOrientation.Forward] = 1;
+
+		Defense.ApplyDamage(unit, 2, ESpatialOrientation.Forward, shieldDamageBonus: 1);
+
+		Assert.Equal(1, unit.HullPoints);
+		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
+	}
+
+	[Fact]
+	public void ShieldDamageBonus_ConsumesAdditionalShield()
+	{
+		var unit = FreshUnit();
+
+		Defense.ApplyDamage(unit, 1, ESpatialOrientation.Forward, shieldDamageBonus: 1);
+
+		Assert.Equal(2, unit.HullPoints);
+		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
+	}
 }

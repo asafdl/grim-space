@@ -5,6 +5,13 @@ using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
+using GrimSpace.Units.Specs;
+using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -161,4 +168,58 @@ public sealed class LightningCannonActionTests
 		Assert.Equal(expected, facts.Cells);
 	}
 
+	[Fact]
+	public void IonizedPayloadAddsShieldDamageWithoutIncreasingHullOverflow()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = EnemyInLightningCannonLine(playerPos);
+		var player = Factory.Create(
+			ShipInstance.FromSpec(PlayerId, FighterSpec.Instance, ShipCatalog.FullFighterLoadout()),
+			ETeam.Player,
+			playerPos,
+			new UserExecutionAgent(),
+			Coord.Forward,
+			Coord.Up,
+			pilotSkills: [EPilotSkillId.IonizedPayload]);
+		var enemy = BattleTestFixture.Enemy(enemyPos);
+		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
+		enemy.State.ShieldPoints[hitFace] = 1;
+		var hullBefore = enemy.State.HullPoints;
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
+
+		var previewEnemy = battle.PlayerAgent.Sim.World.StateOf(enemy.State.Id);
+		Assert.Equal(0, previewEnemy.ShieldPoints[hitFace]);
+		Assert.Equal(hullBefore - 1, previewEnemy.HullPoints);
+	}
+
+	[Fact]
+	public void IonizedPayloadConsumesOneAdditionalShieldPoint()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = EnemyInLightningCannonLine(playerPos);
+		var player = Factory.Create(
+			ShipInstance.FromSpec(PlayerId, FighterSpec.Instance, ShipCatalog.FullFighterLoadout()),
+			ETeam.Player,
+			playerPos,
+			new UserExecutionAgent(),
+			Coord.Forward,
+			Coord.Up,
+			pilotSkills: [EPilotSkillId.IonizedPayload]);
+		var enemy = BattleTestFixture.Enemy(enemyPos);
+		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
+		enemy.State.ShieldPoints[hitFace] = 3;
+		var hullBefore = enemy.State.HullPoints;
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
+
+		var previewEnemy = battle.PlayerAgent.Sim.World.StateOf(enemy.State.Id);
+		Assert.Equal(0, previewEnemy.ShieldPoints[hitFace]);
+		Assert.Equal(hullBefore, previewEnemy.HullPoints);
+	}
+
+	private static Coord EnemyInLightningCannonLine(Coord playerPos) =>
+		playerPos + Coord.Forward * 6;
 }

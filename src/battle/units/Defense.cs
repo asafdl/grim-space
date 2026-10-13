@@ -23,12 +23,19 @@ public static class Defense
 		return amount - remaining;
 	}
 
-	public static void ApplyDamage(State unit, int damage, ESpatialOrientation face)
+	public static void ApplyDamage(
+		State unit,
+		int damage,
+		ESpatialOrientation face,
+		int shieldDamageBonus = 0)
 	{
+		ArgumentOutOfRangeException.ThrowIfNegative(shieldDamageBonus);
 		if (damage <= 0)
 			return;
 
-		var hullDamage = damage - AbsorbWithShields(unit, face, damage);
+		var shieldBefore = EffectiveShield(unit, face);
+		AbsorbWithShields(unit, face, damage + shieldDamageBonus);
+		var hullDamage = System.Math.Max(damage - shieldBefore, 0);
 		unit.HullPoints = System.Math.Max(unit.HullPoints - hullDamage, 0);
 	}
 }
