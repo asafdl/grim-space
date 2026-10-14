@@ -1,11 +1,14 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
@@ -180,5 +183,52 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 		Assert.Equal(EEngagementPhase.None, EngagementAssertions.Phase(map.StateOf(RunState.PlayerFleetUnitId)));
 		Assert.DoesNotContain(pirateId, map.FleetRegistry.Ids);
 		Assert.Contains(RunState.PlayerFleetUnitId, map.FleetRegistry.Ids);
+	}
+
+	[Fact]
+	public void Commit_AppliesSalvagePipelineToLootAward()
+	{
+		var map = maps.Fresh(43);
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var pirateId = "pirate-loot";
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
+			pirateId,
+			new Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.Pirates));
+		new CommitEngagementEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		var outcome = new BattleOutcome(
+			map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id,
+			EBattleResult.Win,
+			[]);
+		var rolls = new[]
+		{
+			new LootRoll(
+				"miner-1",
+				GrimSpace.Units.Enums.EType.RepurposedMiner,
+				ResourceBundle.Of(ResourceId.ScrapAlloy, 4)),
+			new LootRoll(
+				"miner-2",
+				GrimSpace.Units.Enums.EType.RepurposedMiner,
+				ResourceBundle.Create(
+					(ResourceId.ScrapAlloy, 4),
+					(ResourceId.IndustrialCore, 1))),
+		};
+		var runtimes = new ActorRuntimes<ActorRuntime>();
+		runtimes.For(RunState.PlayerFleetUnitId).ReplaceActionEffects(
+			StarMapActionEffectPipelineFactory.Build(
+				[new PilotSkillGrant(EPilotSkillId.DronesYearnForMines, "pilot-1")]));
+		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+
+		engine.Commit(new ResolveEngagementAction(
+			RunState.PlayerFleetUnitId,
+			outcome,
+			rolls,
+			ResourceBundle.Create(
+				(ResourceId.ScrapAlloy, 8),
+				(ResourceId.IndustrialCore, 1))));
+
+		Assert.Equal(10, map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(1, map.PlayerResources.GetBalance(ResourceId.IndustrialCore));
 	}
 }

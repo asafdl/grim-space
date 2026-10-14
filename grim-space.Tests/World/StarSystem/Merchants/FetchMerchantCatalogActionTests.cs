@@ -38,6 +38,7 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		var quote = Assert.Single(records.OfType<Record<MerchantCatalogQuote>>()).Value;
 		Assert.Equal(before.Id, quote.ShipId);
 		Assert.Equal(endpoint, quote.Endpoint);
+		Assert.Equal(EMerchantCatalog.Weapons, quote.Catalog);
 
 		var baseOffers = MerchantCatalog.ListFor(
 			EMerchantCatalog.Weapons,
@@ -61,8 +62,8 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 			pilots.Register(pilot);
 		}
 
-		var grants = StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
-			pilots,
+		var grants = pilots.QueryLearnedForParty(
+			RunPilotRegistry.IsStrategicPassiveTag,
 			pilots.All.Select(pilot => pilot.AssignedShipId).ToArray());
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
@@ -91,6 +92,31 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		Assert.Equal(96, Amount(discounted.Cost, ResourceId.Credits));
 		Assert.Equal(224, Amount(discounted.Cost, ResourceId.ScrapAlloy));
 		Assert.NotEqual(baseOffer.Cost, discounted.Cost);
+	}
+
+	[Fact]
+	public void Commit_AfterStrategicRefresh_UsesRebuiltPipeline()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
+		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Weapons);
+		var before = ship.Clone();
+
+		engine.Commit(new RefreshStrategicPilotSkillsAction(
+			unitId,
+			[new PilotSkillGrant(EPilotSkillId.IKnowABot, "pilot-1")]));
+		var records = engine.Commit(new FetchMerchantCatalogAction(
+			unitId,
+			endpoint,
+			EMerchantCatalog.Weapons,
+			before));
+
+		var quote = Assert.Single(records.OfType<Record<MerchantCatalogQuote>>()).Value;
+		var discounted = quote.Offers.First(offer =>
+			offer.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade
+			&& offer.Targets.Contains(MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget));
+		Assert.Equal(108, Amount(discounted.Cost, ResourceId.Credits));
+		Assert.Equal(252, Amount(discounted.Cost, ResourceId.ScrapAlloy));
 	}
 
 	[Fact]

@@ -76,7 +76,9 @@ public sealed partial class HealingStationHudOverlay : Control
 	{
 		if (_intents is null
 			|| quote.Catalog != EMerchantCatalog.Healing
-			|| !quote.Endpoint.Equals(_endpoint))
+			|| !quote.Endpoint.Equals(_endpoint)
+			|| !TryGetActiveShip(out var ship)
+			|| !string.Equals(quote.ShipId, ship.Id, StringComparison.Ordinal))
 			return;
 
 		_catalogQuote = quote;

@@ -24,11 +24,6 @@ public static class StarMapActionEffectPipelineFactory
 			: new ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>(modifiers);
 	}
 
-	public static IReadOnlyList<PilotSkillGrant> StrategicGrantsFrom(
-		RunPilotRegistry registry,
-		IReadOnlyList<string> partyShipIds) =>
-		registry.QueryLearnedForParty(RunPilotRegistry.IsStrategicPassiveTag, partyShipIds);
-
 	public static void InstallPlayerPipeline(
 		StarSystemOrchestrator orchestrator,
 		RunPilotRegistry registry,
@@ -40,37 +35,9 @@ public static class StarMapActionEffectPipelineFactory
 		if (orchestrator.PlayerId is null)
 			return;
 
-		var grants = StrategicGrantsFrom(registry, partyShipIds);
+		var grants = registry.QueryLearnedForParty(
+			RunPilotRegistry.IsStrategicPassiveTag,
+			partyShipIds);
 		orchestrator.RuntimeFor(orchestrator.PlayerId).ReplaceActionEffects(Build(grants));
-	}
-
-	public static IReadOnlyList<PilotSkillGrant> GrantsFromPipeline(
-		ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> pipeline)
-	{
-		ArgumentNullException.ThrowIfNull(pipeline);
-		var grants = new List<PilotSkillGrant>();
-		foreach (var modifier in pipeline.Modifiers)
-		{
-			switch (modifier)
-			{
-				case IKnowABotModifier bot:
-					AppendStacks(grants, EPilotSkillId.IKnowABot, bot.StackCount);
-					break;
-				case DronesYearnForMinesModifier drones:
-					AppendStacks(grants, EPilotSkillId.DronesYearnForMines, drones.StackCount);
-					break;
-			}
-		}
-
-		return grants;
-	}
-
-	private static void AppendStacks(
-		List<PilotSkillGrant> grants,
-		EPilotSkillId skillId,
-		int stackCount)
-	{
-		for (var index = 0; index < stackCount; index++)
-			grants.Add(new PilotSkillGrant(skillId, string.Empty));
 	}
 }

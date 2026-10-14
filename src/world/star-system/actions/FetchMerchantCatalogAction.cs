@@ -12,7 +12,7 @@ public sealed record FetchMerchantCatalogAction(
 	string ActorId,
 	MerchantEndpoint Endpoint,
 	EMerchantCatalog Catalog,
-	ShipInstance? ShipSnapshot) : IAction<StarMap, ActorRuntime>
+	ShipInstance ShipSnapshot) : IAction<StarMap, ActorRuntime>
 {
 	public static class TagNames
 	{
@@ -45,14 +45,14 @@ public sealed class FetchMerchantCatalogActionDef
 			return false;
 		if (!world.FleetRegistry.TryGet(fetch.ActorId, out var fleet))
 			return false;
-		if (fetch.ShipSnapshot is not { } ship)
-			return false;
 		if (!fleet.Members.Any(member =>
-				string.Equals(member.Id, ship.Id, StringComparison.Ordinal)))
+				string.Equals(member.Id, fetch.ShipSnapshot.Id, StringComparison.Ordinal)))
 			return false;
 		if (!EndpointServesCatalog(fetch.Endpoint, fetch.Catalog, world))
 			return false;
-		if (world.ShipRegistryReader?.Matches(ship.Id, ship) != true)
+		if (world.ShipRegistryReader?.Matches(
+			    fetch.ShipSnapshot.Id,
+			    fetch.ShipSnapshot) != true)
 			return false;
 
 		return true;
@@ -64,7 +64,7 @@ public sealed class FetchMerchantCatalogActionDef
 		ActorRuntime runtime)
 	{
 		var fetch = (FetchMerchantCatalogAction)action;
-		if (fetch.ShipSnapshot is null || !IsLegal(fetch, world, runtime))
+		if (!IsLegal(fetch, world, runtime))
 			return [];
 
 		return [PriceCatalog(fetch, world, runtime)];
@@ -78,14 +78,12 @@ public sealed class FetchMerchantCatalogActionDef
 		ArgumentNullException.ThrowIfNull(action);
 		ArgumentNullException.ThrowIfNull(world);
 		ArgumentNullException.ThrowIfNull(runtime);
-		var ship = action.ShipSnapshot
-			?? throw new ArgumentException("Pricing requires a ship snapshot.", nameof(action));
 
 		var quote = new MerchantCatalogQuote(
 			action.Endpoint,
 			action.Catalog,
-			ship.Id,
-			MerchantCatalog.ListFor(action.Catalog, ship, world));
+			action.ShipSnapshot.Id,
+			MerchantCatalog.ListFor(action.Catalog, action.ShipSnapshot, world));
 		var priced = runtime.ActionEffects.Apply(
 			action,
 			world,

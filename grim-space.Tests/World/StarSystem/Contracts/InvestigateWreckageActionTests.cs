@@ -67,6 +67,42 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void InvestigateSalvage_PreservesUnrelatedResources()
+	{
+		var (engine, unitId, contractId) = CreateEngine(
+			new WreckageOutcome.Salvage(ResourceBundle.Create(
+				(ResourceId.ScrapAlloy, SalvageScrap),
+				(ResourceId.IndustrialCore, 2))),
+			strategicGrants: StackGrants(EPilotSkillId.DronesYearnForMines, 1));
+		OpenWreckDecision(engine, unitId, contractId);
+
+		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
+
+		Assert.Equal(5, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(2, engine.World.PlayerResources.GetBalance(ResourceId.IndustrialCore));
+	}
+
+	[Fact]
+	public void InvestigateSalvage_SimulationMatchesCommitAndDequeueUndoes()
+	{
+		var (engine, unitId, contractId) = CreateEngine(
+			new WreckageOutcome.Salvage(
+				ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)),
+			strategicGrants: StackGrants(EPilotSkillId.DronesYearnForMines, 1));
+		OpenWreckDecision(engine, unitId, contractId);
+		var action = new InvestigateWreckageAction(unitId, contractId);
+		var simulation = engine.CreateSimulation();
+
+		Assert.True(simulation.TryEnqueue(action));
+		Assert.Equal(5, simulation.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		simulation.Dequeue();
+		Assert.Equal(0, simulation.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+
+		engine.Commit(action);
+		Assert.Equal(5, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+	}
+
+	[Fact]
 	public void InvestigateAmbush_SpawnsFleetAndCommitsEngagement()
 	{
 		var ambushSpec = new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 9, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]);

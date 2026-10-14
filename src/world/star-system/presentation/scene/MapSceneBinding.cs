@@ -31,10 +31,6 @@ public sealed class MapSceneBinding : IDisposable
 
 	public StarSystemOrchestrator StarSystem => _orchestrator;
 
-	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
-		where TEntry : ITimelineEntry =>
-		_orchestrator.Subscribe(listener);
-
 	public void Dispose()
 	{
 		if (_disposed)

@@ -56,10 +56,6 @@ public sealed class FacilitySceneBinding : IDisposable
 	public bool TryVisitContractOperator(string operatorName) =>
 		_orchestrator.TryVisitContractOperator(PoiId, FacilityId, operatorName);
 
-	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
-		where TEntry : ITimelineEntry =>
-		_orchestrator.Subscribe(listener);
-
 	public static FacilitySceneBinding Create(string sceneName)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(sceneName);

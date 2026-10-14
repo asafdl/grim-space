@@ -10,9 +10,7 @@ namespace GrimSpace.World.StarSystem.Skills;
 public sealed class IKnowABotModifier(int stackCount)
 	: IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	public const int UpgradeDiscountPercentPerStack = 10;
-
-	public int StackCount { get; } = stackCount;
+	private const int UpgradeDiscountPercentPerStack = 10;
 
 	public IEffect<StarMap, ActorRuntime> Modify(
 		IAction action,
@@ -20,14 +18,14 @@ public sealed class IKnowABotModifier(int stackCount)
 		ActorRuntime runtime,
 		IEffect<StarMap, ActorRuntime> effect)
 	{
-		if (StackCount == 0
+		if (stackCount == 0
 			|| !action.Tags.Contains(FetchMerchantCatalogAction.TagNames.Fetch)
 			|| !action.Tags.Contains(FetchMerchantCatalogAction.TagNames.Merchant)
 			|| effect is not PublishMerchantCatalogEffect publish)
 			return effect;
 
 		var quote = publish.Quote;
-		var discountPercent = UpgradeDiscountPercentPerStack * StackCount;
+		var discountPercent = UpgradeDiscountPercentPerStack * stackCount;
 		var offers = quote.Offers
 			.Select(offer => offer with
 			{

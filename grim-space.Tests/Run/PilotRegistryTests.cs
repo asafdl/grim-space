@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Ids;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
@@ -5,8 +6,10 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.Pilots;
-using GrimSpace.World.StarSystem.PilotSkills;
+using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.Runtime;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
 namespace GrimSpace.Tests.Run;
@@ -133,15 +136,24 @@ public sealed class PilotRegistryTests
 		var snapshot = run.CaptureSnapshot(registry);
 		using var restored = State.FromSnapshot(snapshot, registry);
 		var runtime = restored.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		var grants = GrimSpace.World.StarSystem.Skills.StarMapActionEffectPipelineFactory
-			.GrantsFromPipeline(runtime.ActionEffects);
-		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(
-			restored.StarSystem.Map,
-			ResourceBundle.Of(ResourceId.ScrapAlloy, 100),
-			grants);
+		var action = new ResolveEngagementAction(
+			State.PlayerFleetUnitId,
+			new BattleOutcome("battle", EBattleResult.Win, []),
+			[],
+			ResourceBundle.Empty);
+		var modified = Assert.IsType<AwardEngagementLootEffect>(
+			Assert.Single(runtime.ActionEffects.Apply(
+				action,
+				restored.StarSystem.Map,
+				runtime,
+				[new AwardEngagementLootEffect(
+					[new LootRoll(
+						"miner",
+						BattleUnitType.RepurposedMiner,
+						ResourceBundle.Of(ResourceId.ScrapAlloy, 100))],
+					ResourceBundle.Of(ResourceId.ScrapAlloy, 100))])));
 
-		Assert.Equal(1, StrategicPilotSkillModifiers.Count(grants, EPilotSkillId.DronesYearnForMines));
-		Assert.True(modified.TryGet(ResourceId.ScrapAlloy, out var scrap));
+		Assert.True(modified.Total.TryGet(ResourceId.ScrapAlloy, out var scrap));
 		Assert.Equal(115, scrap);
 	}
 

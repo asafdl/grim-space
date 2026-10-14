@@ -15,7 +15,12 @@ public sealed record ResolveEngagementAction(
 	IReadOnlyList<LootRoll> LootRolls,
 	ResourceBundle LootTotal) : IAction<StarMap, ActorRuntime>
 {
+	private static readonly string[] ActionTags =
+		[StarMapActionTags.Reward, StarMapActionTags.Salvage];
+
 	public string ActorId => InitiatorId;
+
+	IReadOnlyList<string> IAction.Tags => ActionTags;
 
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		ResolveEngagementDef.Instance;
@@ -53,8 +58,10 @@ public sealed class ResolveEngagementDef
 			new ResolveEngagementEffect(resolve.Outcome),
 		};
 		if (!resolve.LootTotal.IsEmpty && resolve.ActorId == Run.State.PlayerFleetUnitId)
-			effects.Add(new ChangeResourceEffect(TransactionSource.BattleLoot, resolve.LootTotal));
+			effects.Add(new AwardEngagementLootEffect(
+				resolve.LootRolls,
+				resolve.LootTotal));
 
-		return effects;
+		return runtime.ActionEffects.Apply(resolve, world, runtime, effects);
 	}
 }

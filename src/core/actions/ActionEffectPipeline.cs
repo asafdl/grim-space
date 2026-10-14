@@ -18,8 +18,6 @@ public sealed class ActionEffectPipeline<TWorld, TRuntime, TEffect>
 		_modifiers = modifiers.ToArray();
 	}
 
-	public IReadOnlyList<IActionEffectModifier<TWorld, TRuntime, TEffect>> Modifiers => _modifiers;
-
 	public bool IsEmpty => _modifiers.Count == 0;
 
 	public IReadOnlyList<TEffect> Apply(

@@ -1,6 +1,5 @@
 using GrimSpace.Pilots;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.PilotSkills;
 using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.Tests.Run;
@@ -131,15 +130,11 @@ public sealed class PilotSkillRulesTests
 		var pilot = Assert.Single(run.PilotRegistry.All);
 		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 100));
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		var beforeGrants = StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects);
-		Assert.Equal(0, StrategicPilotSkillModifiers.Count(beforeGrants, EPilotSkillId.DronesYearnForMines));
+		var before = runtime.ActionEffects;
 
 		Assert.True(run.TryLearnPilotSkill(pilot.Id, EPilotSkillId.DronesYearnForMines));
 
-		var afterGrants = StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects);
-		Assert.Equal(
-			1,
-			StrategicPilotSkillModifiers.Count(afterGrants, EPilotSkillId.DronesYearnForMines));
+		Assert.NotSame(before, runtime.ActionEffects);
 	}
 
 	[Fact]

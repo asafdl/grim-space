@@ -9,19 +9,27 @@ public sealed class ChangeResourceEffect(string source, ResourceBundle change) :
 {
 	private ResourceInventory? _snapshot;
 
+	public ResourceBundle Change { get; } = change;
+
+	public ChangeResourceEffect WithChange(ResourceBundle replacement)
+	{
+		ArgumentNullException.ThrowIfNull(replacement);
+		return new ChangeResourceEffect(source, replacement);
+	}
+
 	public IReadOnlyList<IRecord> Apply(StarMap world, ActorRuntime runtime, string actorId)
 	{
-		if (change.IsEmpty)
+		if (Change.IsEmpty)
 			return [];
 
 		_snapshot = world.PlayerResources.Snapshot();
-		if (!world.PlayerResources.TryApply(change))
+		if (!world.PlayerResources.TryApply(Change))
 		{
 			_snapshot = null;
 			return [];
 		}
 
-		return [new Record<Transaction>(new Transaction(source, change))];
+		return [new Record<Transaction>(new Transaction(source, Change))];
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId)

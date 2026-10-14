@@ -86,8 +86,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
 			maps,
-			strategicGrants: StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
-				pilots,
+			strategicGrants: pilots.QueryLearnedForParty(
+				RunPilotRegistry.IsStrategicPassiveTag,
 				pilots.All.Select(pilot => pilot.AssignedShipId).ToArray()));
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);

@@ -7,8 +7,6 @@ using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
-using GrimSpace.World.StarSystem.PilotSkills;
-using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -17,10 +15,15 @@ public sealed record InvestigateWreckageAction(
 	string ContractId,
 	string AmbushSpawnIdentity) : IAction<StarMap, ActorRuntime>
 {
+	private static readonly string[] ActionTags =
+		[StarMapActionTags.Reward, StarMapActionTags.Salvage];
+
 	public InvestigateWreckageAction(string actorId, string contractId)
 		: this(actorId, contractId, TypedIdGenerator.NextInstanceSlug())
 	{
 	}
+
+	IReadOnlyList<string> IAction.Tags => ActionTags;
 
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		InvestigateWreckageDef.Instance;
@@ -69,11 +72,10 @@ public sealed class InvestigateWreckageDef
 		switch (wreckage.Outcome)
 		{
 			case WreckageOutcome.Salvage salvage:
-				var strategicGrants = StarMapActionEffectPipelineFactory.GrantsFromPipeline(
-					runtime.ActionEffects);
-				var loot = StrategicPilotSkillModifiers.ApplySalvageBonus(world, salvage.Loot, strategicGrants);
-				if (!loot.IsEmpty)
-					effects.Add(new ChangeResourceEffect(TransactionSource.WreckageSalvage, loot));
+				if (!salvage.Loot.IsEmpty)
+					effects.Add(new ChangeResourceEffect(
+						TransactionSource.WreckageSalvage,
+						salvage.Loot));
 				effects.Add(new PlayerInputEffect(false));
 				break;
 			case WreckageOutcome.Ambush ambush:
@@ -94,7 +96,7 @@ public sealed class InvestigateWreckageDef
 					$"Unsupported wreckage outcome '{wreckage.Outcome.GetType().Name}'.");
 		}
 
-		return effects;
+		return runtime.ActionEffects.Apply(investigate, world, runtime, effects);
 	}
 
 	internal static string AmbushUnitIdFor(WreckageObjective wreckage) =>

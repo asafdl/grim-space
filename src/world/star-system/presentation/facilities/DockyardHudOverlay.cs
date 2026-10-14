@@ -90,7 +90,9 @@ public sealed partial class DockyardHudOverlay : Control
 	{
 		if (_intents is null
 			|| quote.Catalog != _catalog
-			|| !quote.Endpoint.Equals(_endpoint))
+			|| !quote.Endpoint.Equals(_endpoint)
+			|| !TryGetActiveShip(out var ship)
+			|| !string.Equals(quote.ShipId, ship.Id, StringComparison.Ordinal))
 			return;
 
 		_catalogQuote = quote;

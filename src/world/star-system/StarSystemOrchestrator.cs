@@ -19,7 +19,6 @@ using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Run.Persistence;
-using GrimSpace.World.StarSystem.PilotSkills;
 using GrimSpace.World.StarSystem.Skills;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 
@@ -346,13 +345,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public bool ResolveEngagement(string playerId, BattleOutcome outcome)
 	{
-		var playerRuntime = RuntimeFor(playerId);
-		var strategicGrants = StarMapActionEffectPipelineFactory.GrantsFromPipeline(
-			playerRuntime.ActionEffects);
-		var loot = StrategicPilotSkillModifiers.ApplySalvageBonus(
-			Map,
-			LootCatalog.For(outcome),
-			strategicGrants);
+		var loot = LootCatalog.For(outcome);
 		var action = new ResolveEngagementAction(
 			playerId,
 			outcome,
