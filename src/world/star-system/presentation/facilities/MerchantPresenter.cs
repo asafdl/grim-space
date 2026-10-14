@@ -107,16 +107,18 @@ public sealed class MerchantPresenter
 			    before,
 			    offer.Cost))
 		{
-			_upgradeHud.ShowError("Unable to purchase upgrade.");
+			if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
+				_binding.PresentInsufficientFunds();
+			else
+				_binding.PresentSystemError(
+					"Purchase failed.",
+					"Merchant purchase was rejected after presenting a valid offer.");
+			_upgradeHud.RefreshCatalog();
 			_onStateChanged();
 			return;
 		}
 
-		_upgradeHud.Sync(_binding.Run, _binding.Map);
-		var message = offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
-			? "Max shields upgraded."
-			: "Upgrade installed.";
-		_upgradeHud.ShowConfirmation(message, HudStatusKind.Success);
+		_upgradeHud.RefreshCatalog();
 		_onStateChanged();
 	}
 
@@ -127,16 +129,21 @@ public sealed class MerchantPresenter
 		{
 			var run = _binding.Run;
 			if (run.PlayerParty.ShipIds.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
-				_recruitmentHud.ShowError("Your fleet roster is full.");
+				_binding.PresentSystemError(
+					"Could not recruit ship.",
+					"Ship recruitment was requested while the fleet roster was full.");
 			else if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
-				_recruitmentHud.ShowError("You do not have the required resources.");
+				_binding.PresentInsufficientFunds();
 			else
-				_recruitmentHud.ShowError("Unable to hire this ship.");
+				_binding.PresentSystemError(
+					"Could not recruit ship.",
+					"Ship recruitment was rejected despite a valid roster and resources.");
+			_recruitmentHud.Sync(_binding.Run);
 			_onStateChanged();
 			return;
 		}
 
-		_recruitmentHud.ShowConfirmation("Ship hired.");
+		_recruitmentHud.Sync(_binding.Run);
 		_onStateChanged();
 	}
 }

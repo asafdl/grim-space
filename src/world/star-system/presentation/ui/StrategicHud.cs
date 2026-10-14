@@ -1,7 +1,9 @@
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Components;
 using GrimSpace.Core.Actions;
 using GrimSpace.Pilots;
+using GrimSpace.Presentation.Support;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
@@ -18,10 +20,18 @@ public partial class StrategicHud : CanvasLayer
 	private IDisposable _contractStateSubscription = null!;
 	private PlayerFleetHud _playerFleetHud = null!;
 	private PilotCharacterSheetOverlay _pilotSheet = null!;
+	private SystemErrorBanner _errorBanner = null!;
+	private ReportIssueDialog _reportIssueDialog = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
 
 	public ObjectivesHud Objectives => _objectivesHud;
 	public bool IsBlockingModalOpen => _pilotSheet.IsOpen;
+	public void PresentInsufficientFunds() => _resourceHud.PresentInsufficientFunds();
+	public void PresentSystemError(string summary, string technicalDetails)
+	{
+		GD.PushError(technicalDetails);
+		_errorBanner.ShowError(summary, technicalDetails);
+	}
 
 	public override void _Ready()
 	{
@@ -30,6 +40,11 @@ public partial class StrategicHud : CanvasLayer
 		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
 		_pilotSheet = new PilotCharacterSheetOverlay();
 		AddChild(_pilotSheet);
+		_errorBanner = new SystemErrorBanner();
+		_errorBanner.ReportRequested += OnErrorReportRequested;
+		AddChild(_errorBanner);
+		_reportIssueDialog = new ReportIssueDialog();
+		AddChild(_reportIssueDialog);
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);
@@ -56,6 +71,7 @@ public partial class StrategicHud : CanvasLayer
 		_playerFleetHud.PilotSheetRequested -= OnPilotSheetRequested;
 		_pilotSheet.SkillLearnRequested -= OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested -= OnPilotCycleRequested;
+		_errorBanner.ReportRequested -= OnErrorReportRequested;
 		_contractStateSubscription.Dispose();
 		_resourceFeed.Dispose();
 	}
@@ -148,6 +164,9 @@ public partial class StrategicHud : CanvasLayer
 
 		TryOpenPilotSheet(pilotId);
 	}
+
+	private void OnErrorReportRequested(string summary, string technicalDetails) =>
+		_reportIssueDialog.Open("star-map", summary, technicalDetails);
 
 	private void SyncObjectives()
 	{

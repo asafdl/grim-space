@@ -75,20 +75,18 @@ public sealed class HealingStationPresenter
 			    before,
 			    offer.Cost))
 		{
-			_hud.ShowError("Unable to complete purchase.");
+			if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
+				_binding.PresentInsufficientFunds();
+			else
+				_binding.PresentSystemError(
+					"Purchase failed.",
+					"Healing purchase was rejected after presenting a valid offer.");
+			_hud.RefreshCatalog();
 			_onStateChanged();
 			return;
 		}
 
-		_hud.Sync(_binding.Run, _binding.Map);
-		var message = offer.Offering.Kind switch
-		{
-			MerchantCatalog.Kind.RepairHull => "Hull repaired.",
-			MerchantCatalog.Kind.RechargeAllShields or MerchantCatalog.Kind.RechargeShieldFace =>
-				"Shields recharged.",
-			_ => "Purchase complete.",
-		};
-		_hud.ShowConfirmation(message, HudStatusKind.Success);
+		_hud.RefreshCatalog();
 		_onStateChanged();
 	}
 }

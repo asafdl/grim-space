@@ -1,10 +1,13 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Units;
+using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Merchants;
@@ -12,7 +15,9 @@ using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Poi;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
@@ -120,6 +125,45 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void ImmediateFetch_WhileWaitingForPlayerInput_CommitsQuoteWithoutAdvancingTick()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
+		var pirateId = AddPirate(engine.World, new Coord(4, 0, 0));
+		new SetEngagementIntentEffect(unitId, pirateId)
+			.Apply(engine.World, new ActorRuntime(), unitId);
+		new SetTravelTargetEffect(unitId, TravelTarget.Fleet(pirateId, EContactIntent.Engagement))
+			.Apply(engine.World, new ActorRuntime(), unitId);
+		engine.Commit([new ReachContactAction(unitId, pirateId)]);
+		Assert.True(engine.World.WaitingForPlayerInput);
+
+		using var orchestrator = StarSystemTestHarness.CreatePlayerOrchestrator(
+			maps,
+			unitId,
+			42,
+			map: engine.World);
+		var sink = Assert.IsAssignableFrom<IImmediateActionSink>(orchestrator.ImmediatePlayerActions);
+		MerchantCatalogQuote? quote = null;
+		using var subscription = orchestrator.Subscribe<Record<MerchantCatalogQuote>>(
+			record => quote = record.Value);
+		var tick = orchestrator.Tick;
+		var endpoint = CreateEndpoint(orchestrator.Map, EMerchantCatalog.Weapons);
+
+		Assert.True(sink.TryEnqueue([
+			new FetchMerchantCatalogAction(
+				unitId,
+				endpoint,
+				EMerchantCatalog.Weapons,
+				ship.Clone()),
+		]));
+		Assert.True(sink.CommitImmediately());
+		Assert.Equal(tick, orchestrator.Tick);
+		Assert.NotNull(quote);
+		Assert.Equal(endpoint, quote.Endpoint);
+		Assert.True(orchestrator.PlayerAgent!.IsPlanning);
+	}
+
+	[Fact]
 	public void TryEnqueue_Purchase_RejectsStaleQuotedCost()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
@@ -140,6 +184,15 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		};
 
 		Assert.False(engine.CreateSimulation().TryEnqueue(stale));
+	}
+
+	private static string AddPirate(StarMap map, Coord coord, string id = "pirate-a")
+	{
+		map.FleetRegistry.Add(StarSystemTestHarness.CreatePirateFleet(
+			id,
+			coord,
+			EFaction.Pirates));
+		return id;
 	}
 
 	private static FacilityMerchantEndpoint CreateEndpoint(StarMap map, EMerchantCatalog catalog) =>

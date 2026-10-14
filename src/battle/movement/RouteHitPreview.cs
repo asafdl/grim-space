@@ -10,13 +10,24 @@ namespace GrimSpace.Battle.Movement;
 
 public sealed class RouteHitPreview
 {
-	public MovePathSession Session { get; }
+	public MovePathSession? Session { get; }
 
+	private readonly IReadOnlyList<IAction> _steps;
 	private IReadOnlyList<PoseHitOpportunity>? _hitOpportunities;
 
 	internal int ComputeCount { get; private set; }
 
-	public RouteHitPreview(MovePathSession session) => Session = session;
+	public RouteHitPreview(MovePathSession session)
+	{
+		Session = session;
+		_steps = session.Steps;
+	}
+
+	public RouteHitPreview(IReadOnlyList<IAction> steps)
+	{
+		ArgumentNullException.ThrowIfNull(steps);
+		_steps = steps;
+	}
 
 	internal IReadOnlyList<PoseHitOpportunity> GetHitOpportunities(
 		BattleSimulation sim,
@@ -35,13 +46,10 @@ public sealed class RouteHitPreview
 		string playerId)
 	{
 		var fork = sim.Fork();
-		foreach (var step in Session.Steps)
+		foreach (var step in _steps)
 		{
 			if (!fork.TryEnqueue(step))
-			{
-				throw new InvalidOperationException(
-					$"Cannot replay move route step {step}.");
-			}
+				return [];
 		}
 
 		var actor = fork.StateOf<State>(playerId);

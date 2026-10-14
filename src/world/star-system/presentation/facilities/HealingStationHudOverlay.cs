@@ -16,8 +16,6 @@ public sealed partial class HealingStationHudOverlay : Control
 	private MerchantEndpoint _endpoint;
 	private string _facilityTitle = "";
 	private MerchantCatalogQuote? _catalogQuote;
-	private HudStatusKind? _statusKind;
-	private string _statusMessage = "";
 
 	public event Action<MerchantCatalog.Offer, MerchantCatalog.Target, string>? HealingPurchaseRequested;
 	public event Action? Closed;
@@ -51,16 +49,12 @@ public sealed partial class HealingStationHudOverlay : Control
 		_endpoint = endpoint;
 		_facilityTitle = facilityTitle;
 		_catalogQuote = null;
-		_statusKind = null;
-		_statusMessage = "";
 		_shell.Open("Healing station", facilityTitle);
 		RequestCatalog();
 	}
 
 	public void Close()
 	{
-		_statusKind = null;
-		_statusMessage = "";
 		_catalogQuote = null;
 		_shell.Close();
 	}
@@ -68,9 +62,11 @@ public sealed partial class HealingStationHudOverlay : Control
 	public void Sync(State run, StarMap map)
 	{
 		_run = run;
-		if (IsOpen)
-			RequestCatalog();
+		if (IsOpen && _catalogQuote is not null)
+			ShowMain();
 	}
+
+	public void RefreshCatalog() => RequestCatalog();
 
 	public void ReceiveCatalogQuote(MerchantCatalogQuote quote)
 	{
@@ -84,20 +80,6 @@ public sealed partial class HealingStationHudOverlay : Control
 		_catalogQuote = quote;
 		if (IsOpen)
 			ShowMain();
-	}
-
-	public void ShowError(string message)
-	{
-		_statusKind = HudStatusKind.Error;
-		_statusMessage = message;
-		ShowMain();
-	}
-
-	public void ShowConfirmation(string message, HudStatusKind kind)
-	{
-		_statusKind = kind;
-		_statusMessage = message;
-		ShowMain();
 	}
 
 	private void RequestCatalog()
@@ -212,8 +194,6 @@ public sealed partial class HealingStationHudOverlay : Control
 
 	private void AddStatus(VBoxContainer body)
 	{
-		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
-			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 	}
 
 	private bool TryGetActiveShip(out ShipInstance ship)

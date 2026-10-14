@@ -66,12 +66,6 @@ public sealed partial class WreckHudOverlay : Control
 
 	public void SetBusy(bool busy) => _busy = busy;
 
-	public void ShowError(string message)
-	{
-		_busy = false;
-		_shell.SetSubtitle(message);
-	}
-
 	public bool TryHandleInput(InputEvent @event)
 	{
 		if (!IsOpen || _busy)

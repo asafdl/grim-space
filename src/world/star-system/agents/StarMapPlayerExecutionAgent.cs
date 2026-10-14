@@ -45,6 +45,9 @@ public sealed class StarMapPlayerExecutionAgent
 
 	public bool HasPendingAction => _pendingAction is not null;
 
+	internal bool PendingActionUsesImmediateLaneOnly() =>
+		_pendingAction is FetchMerchantCatalogAction;
+
 	public MoveAction? PendingMove => _pendingAction as MoveAction;
 
 	public PendingCourse? PendingCourse => _pendingAction switch

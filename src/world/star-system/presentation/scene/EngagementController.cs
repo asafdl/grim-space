@@ -9,6 +9,7 @@ public sealed class EngagementController : IDisposable
 	private readonly Func<PendingEngagement?> _pendingEngagement;
 	private readonly Func<bool> _tryEngage;
 	private readonly Func<bool> _tryFlee;
+	private readonly Action<string, string> _presentSystemError;
 	private readonly IDisposable _contactSubscription;
 
 	public EngagementController(
@@ -16,12 +17,15 @@ public sealed class EngagementController : IDisposable
 		Func<PendingEngagement?> pendingEngagement,
 		Func<bool> tryEngage,
 		Func<bool> tryFlee,
-		Func<Action, IDisposable> subscribeContact)
+		Func<Action, IDisposable> subscribeContact,
+		Action<string, string> presentSystemError)
 	{
+		ArgumentNullException.ThrowIfNull(presentSystemError);
 		_hud = hud;
 		_pendingEngagement = pendingEngagement;
 		_tryEngage = tryEngage;
 		_tryFlee = tryFlee;
+		_presentSystemError = presentSystemError;
 		_hud.EngageRequested += OnEngageRequested;
 		_hud.FleeRequested += OnFleeRequested;
 		_contactSubscription = subscribeContact(Sync);
@@ -49,7 +53,10 @@ public sealed class EngagementController : IDisposable
 			return;
 		}
 
-		_hud.ShowError("Unable to engage.");
+		_hud.Close();
+		_presentSystemError(
+			"Could not start engagement.",
+			"Engage action was rejected while a pending player engagement was displayed.");
 	}
 
 	private void OnFleeRequested()
@@ -61,7 +68,10 @@ public sealed class EngagementController : IDisposable
 			return;
 		}
 
-		_hud.ShowError("Unable to flee.");
+		_hud.Close();
+		_presentSystemError(
+			"Could not leave engagement.",
+			"Flee action was rejected while a pending player engagement was displayed.");
 	}
 
 	public void Dispose()

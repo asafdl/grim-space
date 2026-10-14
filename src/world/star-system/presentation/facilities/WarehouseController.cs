@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -17,7 +18,10 @@ public partial class WarehouseController : Control
 
 	public override void _Ready()
 	{
-		_binding = FacilitySceneBinding.Create("Warehouse");
+		_binding = FacilitySceneBinding.Create(
+			"Warehouse",
+			GetNode<StrategicHud>("StrategicHud").PresentInsufficientFunds,
+			GetNode<StrategicHud>("StrategicHud").PresentSystemError);
 
 		var scene = GetNode<FacilitySceneView>("Scene");
 		FacilityOperatorBinder.Bind(

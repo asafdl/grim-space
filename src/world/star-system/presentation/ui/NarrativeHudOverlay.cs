@@ -9,7 +9,6 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 	private Control _root = null!;
 	private FramedActionBar _bar = null!;
 	private RichTextLabel _body = null!;
-	private Label _feedback = null!;
 	private readonly TypewriterPager _pager = new();
 	private NarrativeDefinition? _narrative;
 
@@ -52,21 +51,10 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 	public void Close()
 	{
 		_narrative = null;
-		_feedback.Visible = false;
 		Visible = false;
 	}
 
 	public void SetBusy(bool busy) => _busy = busy;
-
-	public void ShowError(string message)
-	{
-		_busy = false;
-		ShowWorldLinkError(message);
-		_bar.ActionVisible = true;
-		_bar.ActionDisabled = false;
-		_bar.ActionText = "Next";
-		_bar.FocusAction();
-	}
 
 	public bool TryHandleInput(InputEvent @event)
 	{
@@ -140,25 +128,9 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 				_pager.RevealCurrentPage();
 		};
 		bodyLayout.AddChild(_body);
-		_feedback = new Label
-		{
-			Visible = false,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			ThemeTypeVariation = "MetadataLabel",
-		};
-		bodyLayout.AddChild(_feedback);
-
 		_bar = new FramedActionBar(bodyLayout);
 		_bar.ActionPressed += OnNextPressed;
 		_root.AddChild(_bar);
-	}
-
-	public void ClearWorldLinkError() => _feedback.Visible = false;
-
-	public void ShowWorldLinkError(string message)
-	{
-		_feedback.Text = message;
-		_feedback.Visible = true;
 	}
 
 	private void OnPageBegan(int pageIndex)
@@ -167,7 +139,6 @@ public sealed partial class NarrativeHudOverlay : CanvasLayer
 			?? throw new InvalidOperationException("Cannot begin a narrative page before opening a narrative.");
 		_body.Text = narrative.Pages[pageIndex];
 		_body.VisibleCharacters = 0;
-		_feedback.Visible = false;
 		_bar.ActionVisible = false;
 		PageBegan?.Invoke(pageIndex);
 	}

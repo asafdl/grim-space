@@ -1,1 +1,2 @@
 scrap_drone_mount_murmurs.wav, scrap_drone_mount_chatter.wav (trimmed) — "Murmurs of the deep" by agenta1cr (Freesound 532928), used under the sound's license on freesound.org.
+resource_transaction.wav (modified) — "Cha Ching" by lucish (Freesound 554841).

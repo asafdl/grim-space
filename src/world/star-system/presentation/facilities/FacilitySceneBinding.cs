@@ -12,6 +12,8 @@ public sealed class FacilitySceneBinding : IDisposable
 {
 	private readonly StarSystemOrchestrator _orchestrator;
 	private readonly IDisposable _catalogQuoteSubscription;
+	private readonly Action _presentInsufficientFunds;
+	private readonly Action<string, string> _presentSystemError;
 	private bool _disposed;
 
 	private FacilitySceneBinding(
@@ -21,10 +23,16 @@ public sealed class FacilitySceneBinding : IDisposable
 		string facilityId,
 		PointOfInterest poi,
 		Facility facility,
-		UserIntentTranslator intents)
+		UserIntentTranslator intents,
+		Action presentInsufficientFunds,
+		Action<string, string> presentSystemError)
 	{
+		ArgumentNullException.ThrowIfNull(presentInsufficientFunds);
+		ArgumentNullException.ThrowIfNull(presentSystemError);
 		Run = run;
 		_orchestrator = orchestrator;
+		_presentInsufficientFunds = presentInsufficientFunds;
+		_presentSystemError = presentSystemError;
 		PoiId = poiId;
 		FacilityId = facilityId;
 		Poi = poi;
@@ -53,12 +61,22 @@ public sealed class FacilitySceneBinding : IDisposable
 
 	public UserIntentTranslator Intents { get; }
 
+	public void PresentInsufficientFunds() => _presentInsufficientFunds();
+
+	public void PresentSystemError(string summary, string technicalDetails) =>
+		_presentSystemError(summary, technicalDetails);
+
 	public bool TryVisitContractOperator(string operatorName) =>
 		_orchestrator.TryVisitContractOperator(PoiId, FacilityId, operatorName);
 
-	public static FacilitySceneBinding Create(string sceneName)
+	public static FacilitySceneBinding Create(
+		string sceneName,
+		Action presentInsufficientFunds,
+		Action<string, string> presentSystemError)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(sceneName);
+		ArgumentNullException.ThrowIfNull(presentInsufficientFunds);
+		ArgumentNullException.ThrowIfNull(presentSystemError);
 
 		var run = Session.Instance.Run;
 		var orchestrator = run.StarSystem;
@@ -79,7 +97,9 @@ public sealed class FacilitySceneBinding : IDisposable
 			facilityId,
 			poi,
 			poi.GetFacility(facilityId),
-			new UserIntentTranslator(State.PlayerFleetUnitId, immediateActions));
+			new UserIntentTranslator(State.PlayerFleetUnitId, immediateActions),
+			presentInsufficientFunds,
+			presentSystemError);
 	}
 
 	public void Dispose()

@@ -20,8 +20,6 @@ public sealed partial class ContractHudOverlay : Control
 	private string _facilityTitle = "";
 	private Contract? _selected;
 	private ViewMode _mode = ViewMode.List;
-	private HudStatusKind? _statusKind;
-	private string _statusMessage = "";
 
 	public event Action<string>? AcceptRequested;
 	public event Action<string>? DeclineRequested;
@@ -57,8 +55,6 @@ public sealed partial class ContractHudOverlay : Control
 		_activeOperatorName = activeOperatorName;
 		_facilityTitle = facilityTitle;
 		_selected = null;
-		_statusKind = null;
-		_statusMessage = "";
 		_mode = ViewMode.List;
 		_shell.Open(_facilityTitle, "Select a contract");
 		ShowList();
@@ -67,28 +63,10 @@ public sealed partial class ContractHudOverlay : Control
 	public void Close()
 	{
 		_selected = null;
-		_statusKind = null;
-		_statusMessage = "";
 		_shell.Close();
 	}
 
 	public void SyncMap(StarMap map) => _map = map;
-
-	public void ShowError(string message)
-	{
-		_statusKind = HudStatusKind.Error;
-		_statusMessage = message;
-		_selected = null;
-		ShowList();
-	}
-
-	public void ShowConfirmation(string message, HudStatusKind kind)
-	{
-		_statusKind = kind;
-		_statusMessage = message;
-		_selected = null;
-		ShowList();
-	}
 
 	private void ShowList()
 	{
@@ -108,10 +86,7 @@ public sealed partial class ContractHudOverlay : Control
 
 		var body = HudWidgets.CreateCardList();
 
-		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
-			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
-
-		if (contracts.Length == 0 && _statusKind is null)
+		if (contracts.Length == 0)
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
@@ -137,8 +112,6 @@ public sealed partial class ContractHudOverlay : Control
 			return;
 		}
 
-		_statusKind = null;
-		_statusMessage = "";
 		_mode = ViewMode.Details;
 		_shell.SetTitle(ContractDisplay.Title(_selected));
 		_shell.SetSubtitle($"Issued by {ContractDisplay.Issuer(_selected)}");

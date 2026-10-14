@@ -11,6 +11,7 @@ public sealed class NarrativeController : IDisposable
 	private readonly WorldLinkNavigator _worldLinks;
 	private readonly Func<string, NarrativeDefinition?> _resolveNarrative;
 	private readonly Func<string, bool> _tryComplete;
+	private readonly Action<string, string> _presentSystemError;
 	private readonly IDisposable _beginSubscription;
 	private NarrativeDefinition? _currentNarrative;
 
@@ -21,12 +22,15 @@ public sealed class NarrativeController : IDisposable
 		NarrativeDefinition? initialNarrative,
 		Func<string, NarrativeDefinition?> resolveNarrative,
 		Func<string, bool> tryComplete,
-		Func<Action<string>, IDisposable> subscribeBegin)
+		Func<Action<string>, IDisposable> subscribeBegin,
+		Action<string, string> presentSystemError)
 	{
+		ArgumentNullException.ThrowIfNull(presentSystemError);
 		_hud = hud;
 		_worldLinks = new WorldLinkNavigator(worldFocus, worldIndicator);
 		_resolveNarrative = resolveNarrative;
 		_tryComplete = tryComplete;
+		_presentSystemError = presentSystemError;
 		_hud.Completed += OnCompleted;
 		_hud.PageBegan += OnPageBegan;
 		_hud.Body.MetaClicked += OnMetaClicked;
@@ -66,7 +70,10 @@ public sealed class NarrativeController : IDisposable
 			return;
 		}
 
-		_hud.ShowError("Unable to continue.");
+		Close();
+		_presentSystemError(
+			"Could not continue the event.",
+			$"Complete narrative action was rejected for narrative '{narrative.Id}'.");
 	}
 
 	private void Show(NarrativeDefinition narrative)
@@ -88,8 +95,9 @@ public sealed class NarrativeController : IDisposable
 		ClearIndicator();
 		if (metadata.VariantType != Variant.Type.String)
 		{
-			GD.PushError($"Narrative received unsupported link metadata type '{metadata.VariantType}'.");
-			_hud.ShowWorldLinkError("Target is no longer available.");
+			_presentSystemError(
+				"Event target is unavailable.",
+				$"Narrative received unsupported link metadata type '{metadata.VariantType}'.");
 			return;
 		}
 
@@ -101,14 +109,13 @@ public sealed class NarrativeController : IDisposable
 			return;
 		}
 
-		_hud.ClearWorldLinkError();
 	}
 
 	private void ShowWorldLinkFailure(string objectId, WorldLinkNavigationResult result)
 	{
-		GD.PushWarning(
+		_presentSystemError(
+			"Event target is unavailable.",
 			$"Narrative world link '{objectId}' failed: {result.GetType().Name}.");
-		_hud.ShowWorldLinkError("Target is no longer available.");
 	}
 
 	private void OnPageBegan(int _) => ClearIndicator();

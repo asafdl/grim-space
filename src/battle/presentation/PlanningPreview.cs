@@ -80,13 +80,7 @@ public sealed class PlanningPreview
 		MovePathOption selectedMove)
 	{
 		EnsureSim(sim);
-		var routePreview = _moveCache.GetPaths(sim, playerId).FirstOrDefault(candidate =>
-			candidate.Session.EndPosition == selectedMove.EndPosition
-			&& candidate.Session.EndBasis == selectedMove.EndBasis)
-			?? throw new InvalidOperationException(
-				$"Selected move to {selectedMove.EndPosition} has no cached route.");
-
-		return routePreview.GetHitOpportunities(sim, playerId);
+		return new RouteHitPreview(selectedMove.Steps).GetHitOpportunities(sim, playerId);
 	}
 
 	public IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(BattleSimulation sim, string playerId) =>

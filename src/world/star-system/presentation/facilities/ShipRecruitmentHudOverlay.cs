@@ -13,8 +13,6 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 	private readonly ModalShell _shell;
 	private State _run = null!;
 	private string _facilityTitle = "";
-	private HudStatusKind? _statusKind;
-	private string _statusMessage = "";
 
 	public event Action<RecruitmentOffer>? RecruitmentRequested;
 	public event Action? Closed;
@@ -42,16 +40,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 	{
 		_run = run;
 		_facilityTitle = facilityTitle;
-		_statusKind = null;
-		_statusMessage = "";
 		_shell.Open("Ships for hire", _facilityTitle);
-		ShowMain();
-	}
-
-	public void ShowError(string message)
-	{
-		_statusKind = HudStatusKind.Error;
-		_statusMessage = message;
 		ShowMain();
 	}
 
@@ -60,13 +49,6 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		_run = run;
 		if (IsOpen)
 			ShowMain();
-	}
-
-	public void ShowConfirmation(string message)
-	{
-		_statusKind = HudStatusKind.Success;
-		_statusMessage = message;
-		ShowMain();
 	}
 
 	private void ShowMain()
@@ -81,8 +63,6 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 18);
 
-		if (_statusKind is not null && !string.IsNullOrEmpty(_statusMessage))
-			body.AddChild(HudWidgets.CreateStatusPanel(_statusKind.Value, _statusMessage));
 
 		var shipCount = _run.PlayerParty.ShipIds.Count;
 		body.AddChild(HudWidgets.CreateStatusPanel(

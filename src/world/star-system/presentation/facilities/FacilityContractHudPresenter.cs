@@ -50,9 +50,10 @@ public sealed class FacilityContractHudPresenter
 	{
 		if (!_binding.TryVisitContractOperator(facilityOperator.Name))
 		{
-			GD.PushError(
-				$"Unable to pause contract placement for operator '{facilityOperator.Name}' " +
-				$"at POI '{_binding.PoiId}'.");
+			_binding.PresentSystemError(
+				"Could not open contracts.",
+				$"Unable to pause contract placement for operator '{facilityOperator.Name}' "
+				+ $"at POI '{_binding.PoiId}'.");
 			return;
 		}
 
@@ -74,31 +75,35 @@ public sealed class FacilityContractHudPresenter
 
 	private void OnAcceptRequested(string contractId)
 	{
-		var category = CategoryOf(contractId);
 		if (!_binding.Intents.TryAcceptContract(contractId))
 		{
-			_contractHud.ShowError($"Unable to accept {Noun(category)}.");
+			_contractHud.Close();
+			_binding.PresentSystemError(
+				"Contract action failed.",
+				$"Unable to accept {Noun(CategoryOf(contractId))} '{contractId}'.");
 			_stateChanged();
 			return;
 		}
 
 		_contractHud.SyncMap(_binding.Map);
-		_contractHud.ShowConfirmation("Contract accepted.", HudStatusKind.Success);
+		_contractHud.Close();
 		_stateChanged();
 	}
 
 	private void OnDeclineRequested(string contractId)
 	{
-		var category = CategoryOf(contractId);
 		if (!_binding.Intents.TryDeclineContract(contractId))
 		{
-			_contractHud.ShowError($"Unable to decline {Noun(category)}.");
+			_contractHud.Close();
+			_binding.PresentSystemError(
+				"Contract action failed.",
+				$"Unable to decline {Noun(CategoryOf(contractId))} '{contractId}'.");
 			_stateChanged();
 			return;
 		}
 
 		_contractHud.SyncMap(_binding.Map);
-		_contractHud.ShowConfirmation("Contract declined.", HudStatusKind.Error);
+		_contractHud.Close();
 		_stateChanged();
 	}
 

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -6,6 +7,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public partial class ResourceHud : MarginContainer
 {
+	private const string TransactionSfxPath = "res://assets/sfx/ui/resource_transaction.wav";
 	private const int IconSize = 22;
 	private const int AmountMinimumWidth = 48;
 	private const int DeltaLabelHeight = 18;
@@ -19,9 +21,19 @@ public partial class ResourceHud : MarginContainer
 	private readonly Dictionary<ResourceId, float> _displayedAmounts = new();
 	private readonly Dictionary<ResourceId, int> _targetAmounts = new();
 	private readonly Dictionary<ResourceId, Tween> _deltaTweens = new();
+	private AudioStreamPlayer _transactionSfx = null!;
+	private Label _feedbackLabel = null!;
+	private Tween? _feedbackTween;
 
 	public override void _Ready()
 	{
+		_transactionSfx = new AudioStreamPlayer
+		{
+			Stream = GD.Load<AudioStream>(TransactionSfxPath)
+				?? throw new InvalidOperationException($"Could not load SFX '{TransactionSfxPath}'."),
+			Bus = AudioBuses.Sfx,
+		};
+		AddChild(_transactionSfx);
 		ConfigureChrome();
 		Build();
 		SetProcess(true);
@@ -41,17 +53,40 @@ public partial class ResourceHud : MarginContainer
 
 	public void PresentTransaction(Transaction transaction)
 	{
+		if (transaction.Change.IsEmpty)
+			return;
+
 		foreach (var (id, delta) in transaction.Change)
 		{
-			if (delta == 0)
-				continue;
-
 			_displayedAmounts[id] = _targetAmounts[id];
 			_targetAmounts[id] += delta;
 			ShowDelta(id, delta);
 		}
 
 		UpdateAmountLabels();
+		_transactionSfx.Play();
+	}
+
+	public void PresentInsufficientFunds()
+	{
+		_feedbackTween?.Kill();
+		_feedbackLabel.Text = "INSUFFICIENT FUNDS";
+		_feedbackLabel.Modulate = new Color(0.95f, 0.42f, 0.42f);
+
+		var tween = CreateTween();
+		_feedbackTween = tween;
+		tween.TweenInterval(DeltaHoldDuration);
+		tween.TweenProperty(_feedbackLabel, "modulate:a", 0f, DeltaFadeDuration)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.In);
+		tween.Finished += () =>
+		{
+			if (!ReferenceEquals(_feedbackTween, tween))
+				return;
+
+			_feedbackTween = null;
+			_feedbackLabel.Text = "";
+		};
 	}
 
 	public override void _Process(double delta)
@@ -120,9 +155,16 @@ public partial class ResourceHud : MarginContainer
 
 	private void Build()
 	{
+		var content = new VBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		content.AddThemeConstantOverride("separation", 2);
+		AddChild(content);
+
 		var shell = HudWidgets.CreateInformativePanel("RESOURCES");
 		shell.Root.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-		AddChild(shell.Root);
+		content.AddChild(shell.Root);
 
 		var row = new HBoxContainer
 		{
@@ -133,6 +175,18 @@ public partial class ResourceHud : MarginContainer
 
 		foreach (var id in Enum.GetValues<ResourceId>())
 			row.AddChild(CreateEntry(id));
+
+		_feedbackLabel = new Label
+		{
+			Text = "",
+			CustomMinimumSize = new Vector2(0, DeltaLabelHeight),
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+			Modulate = Colors.Transparent,
+			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
+		};
+		content.AddChild(_feedbackLabel);
 	}
 
 	private Control CreateEntry(ResourceId id)

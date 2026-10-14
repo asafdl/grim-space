@@ -121,9 +121,13 @@ public partial class MapController : Node3D
 				[new EngageAction(State.PlayerFleetUnitId)]),
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new FleeAction(State.PlayerFleetUnitId)]),
-			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()));
+			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()),
+			_strategicHud.PresentSystemError);
 		_deliveryMeetingDialog = new DeliveryTurnInDialogPresenter(_uiLayer, _orchestrator);
-		_mapBinding = new MapSceneBinding(_orchestrator);
+		_mapBinding = new MapSceneBinding(
+			_orchestrator,
+			_strategicHud.PresentInsufficientFunds,
+			_strategicHud.PresentSystemError);
 		_leadSaleMerchant = new LeadSaleMapMerchantPresenter(
 			_uiLayer,
 			_mapBinding,
@@ -149,7 +153,8 @@ public partial class MapController : Node3D
 			},
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new LeaveWreckageAction(State.PlayerFleetUnitId)]),
-			sync => _orchestrator.Subscribe<ReachWreckageAction>(_ => sync()));
+			sync => _orchestrator.Subscribe<ReachWreckageAction>(_ => sync()),
+			_strategicHud.PresentSystemError);
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			ResolveMoveDestination,
@@ -271,7 +276,8 @@ public partial class MapController : Node3D
 			narrativeId => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]),
 			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
-				action => onBegin(action.NarrativeId)));
+				action => onBegin(action.NarrativeId)),
+			_strategicHud.PresentSystemError);
 		if (ShouldInitializeTutorials())
 		{
 			var run = Session.Instance.Run;

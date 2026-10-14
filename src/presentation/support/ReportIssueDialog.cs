@@ -31,15 +31,18 @@ public sealed partial class ReportIssueDialog : Control
 
 	public void ApplyTheme(Theme theme) => Theme = theme;
 
-	public void Open(string context)
+	public void Open(string context, string title = "", string description = "")
 	{
 		_context = context;
-		_titleField.Text = string.Empty;
-		_descriptionField.Text = string.Empty;
+		_titleField.Text = title;
+		_descriptionField.Text = description;
 		_status.Text = string.Empty;
 		SetSending(false);
 		Visible = true;
-		_titleField.GrabFocus();
+		if (title.Length == 0)
+			_titleField.GrabFocus();
+		else
+			_descriptionField.GrabFocus();
 	}
 
 	public void Close()

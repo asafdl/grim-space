@@ -463,6 +463,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (PlayerId is null || !Map.WaitingForPlayerInput)
 			return;
 
+		if (_playerAgent.PendingActionUsesImmediateLaneOnly())
+			return;
+
 		_resolvingInputAction = true;
 		try
 		{
@@ -688,8 +691,8 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	private void NotifyWorldUpdated()
 	{
-		WorldUpdated?.Invoke();
 		_playerAgent?.OnWorldUpdated();
+		WorldUpdated?.Invoke();
 	}
 
 	public void Dispose()

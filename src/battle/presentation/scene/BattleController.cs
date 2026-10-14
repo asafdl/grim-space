@@ -18,7 +18,6 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.NonUnits;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
-using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Components;
@@ -67,7 +66,6 @@ public partial class BattleController : Node3D
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
 	private readonly List<string> _resolvedRoundActivations = [];
 	private readonly Dictionary<string, EType> _unitTypes = new(StringComparer.Ordinal);
-	private readonly Dictionary<string, string> _unitPilotIds = new(StringComparer.Ordinal);
 	private IReadOnlyList<string> _currentTurnActivations = [];
 	private IReadOnlyList<TurnFlowEntry> _turnFlowTimeline = [];
 	private bool _replayCompletesRound;
@@ -88,7 +86,6 @@ public partial class BattleController : Node3D
 		{
 			_battle = Session.Instance.Run.CreateActiveBattleOrchestrator();
 			backdropSeed = Session.Instance.Run.ActiveBattle!.Seed;
-			CachePilotIdsFromEncounter(Session.Instance.Run.ActiveBattle);
 		}
 		else
 		{
@@ -613,10 +610,6 @@ public partial class BattleController : Node3D
 
 	private Texture2D? PortraitForUnit(string unitId)
 	{
-		if (_unitPilotIds.TryGetValue(unitId, out var pilotId)
-			&& Session.Instance.Run.PilotRegistry.TryGet(pilotId, out var pilot))
-			return ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId);
-
 		if (_unitTypes.TryGetValue(unitId, out var knownType))
 			return UnitPortraitCatalog.For(knownType);
 
@@ -626,16 +619,6 @@ public partial class BattleController : Node3D
 
 		_unitTypes[unitId] = unit.State.Type;
 		return UnitPortraitCatalog.For(unit.State.Type);
-	}
-
-	private void CachePilotIdsFromEncounter(BattleEncounter encounter)
-	{
-		_unitPilotIds.Clear();
-		foreach (var spawn in encounter.Spawns)
-		{
-			if (spawn.Pilot?.PilotId is { } pilotId)
-				_unitPilotIds[spawn.Ship.Id] = pilotId;
-		}
 	}
 
 	private void ReturnToPlayer()
