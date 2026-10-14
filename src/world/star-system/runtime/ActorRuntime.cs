@@ -6,6 +6,9 @@ namespace GrimSpace.World.StarSystem.Runtime;
 
 public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 {
+	public ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> ActionEffects { get; private set; } =
+		ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>.Empty;
+
 	public TransitPath? CachedPath { get; set; }
 	public IAction? PendingCompletion { get; set; }
 	public int PendingCompletionTick { get; set; }
@@ -14,6 +17,13 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public string? SelectedMemberShipId { get; set; }
 	public Dictionary<string, int> IgnoreUntilTickByTargetId { get; } =
 		new(StringComparer.Ordinal);
+
+	internal void ReplaceActionEffects(
+		ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> pipeline)
+	{
+		ArgumentNullException.ThrowIfNull(pipeline);
+		ActionEffects = pipeline;
+	}
 
 	public long NextJourneyId() => ++JourneyIdSequence;
 
@@ -80,6 +90,7 @@ public static class ActorRuntimeCopy
 		var clone = new ActorRuntime();
 		Restore(clone, Snapshot(session));
 		clone.SelectedMemberShipId = session.SelectedMemberShipId;
+		clone.ReplaceActionEffects(session.ActionEffects);
 		return clone;
 	}
 }

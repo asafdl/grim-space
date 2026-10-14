@@ -1,5 +1,7 @@
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem.PilotSkills;
+using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.Tests.Run;
 
@@ -120,5 +122,38 @@ public sealed class PilotSkillRulesTests
 		Assert.True(restored.TryGet(pilot.Id, out var roundTripped));
 		Assert.Equal(pilot.LearnedSkills, roundTripped.LearnedSkills);
 		Assert.Equal(pilot.ClaimedLevel, roundTripped.ClaimedLevel);
+	}
+
+	[Fact]
+	public void TryLearnStrategicSkill_RefreshesPlayerRuntimePipeline()
+	{
+		using var run = State.CreateNewRun(42);
+		var pilot = Assert.Single(run.PilotRegistry.All);
+		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 100));
+		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
+		var beforeGrants = StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects);
+		Assert.Equal(0, StrategicPilotSkillModifiers.Count(beforeGrants, EPilotSkillId.DronesYearnForMines));
+
+		Assert.True(run.TryLearnPilotSkill(pilot.Id, EPilotSkillId.DronesYearnForMines));
+
+		var afterGrants = StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects);
+		Assert.Equal(
+			1,
+			StrategicPilotSkillModifiers.Count(afterGrants, EPilotSkillId.DronesYearnForMines));
+	}
+
+	[Fact]
+	public void GrantBattleXpOnly_DoesNotRefreshStrategicPipeline()
+	{
+		using var run = State.CreateNewRun(42);
+		var pilot = Assert.Single(run.PilotRegistry.All);
+		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 100));
+		Assert.True(run.TryLearnPilotSkill(pilot.Id, EPilotSkillId.DronesYearnForMines));
+		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
+		var pipelineBefore = runtime.ActionEffects;
+
+		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 50));
+
+		Assert.Same(pipelineBefore, runtime.ActionEffects);
 	}
 }

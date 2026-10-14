@@ -13,8 +13,6 @@ using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
-using GrimSpace.Pilots;
-
 namespace GrimSpace.World.StarSystem;
 
 public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<State, StarMap>
@@ -51,7 +49,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public PlayerResources PlayerResources { get; }
 	public StarMarket Market { get; }
 	public IShipRegistryReader? ShipRegistryReader { get; }
-	public IPilotSkillRosterReader? PilotSkillRosterReader { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
@@ -86,7 +83,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		StarMarket market,
 		PathfindingTerrain pathfindingTerrain,
 		IShipRegistryReader? shipRegistryReader = null,
-		IPilotSkillRosterReader? pilotSkillRosterReader = null,
 		bool waitingForPlayerInput = false,
 		string? activeNarrativeId = null)
 	{
@@ -107,7 +103,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		Market = market;
 		PathfindingTerrain = pathfindingTerrain;
 		ShipRegistryReader = shipRegistryReader;
-		PilotSkillRosterReader = pilotSkillRosterReader;
 		WaitingForPlayerInput = waitingForPlayerInput;
 		ActiveNarrativeId = activeNarrativeId;
 	}
@@ -152,7 +147,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			Market.CloneForFork(),
 			PathfindingTerrain,
 			ShipRegistryReader,
-			PilotSkillRosterReader,
 			WaitingForPlayerInput,
 			ActiveNarrativeId)
 		{
@@ -170,11 +164,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 
 	public static StarMap Create(
 		int seed = 0,
-		IShipRegistryReader? shipRegistryReader = null,
-		IPilotSkillRosterReader? pilotSkillRosterReader = null) =>
+		IShipRegistryReader? shipRegistryReader = null) =>
 		StarSystemGenerator.Generate(
 			seed,
 			EStarSystemClass.Supply,
-			shipRegistryReader,
-			pilotSkillRosterReader);
+			shipRegistryReader);
 }

@@ -22,9 +22,10 @@ public sealed class ActorRuntimeModifierTests
 		var battle = CreateBattle(runtime);
 		var effects = SampleEffects();
 
-		var modified = runtime.ApplyActionEffectModifiers(
+		var modified = runtime.ActionEffects.Apply(
 			new LightningCannonAction("player"),
 			battle.Engine.World,
+			runtime,
 			effects);
 
 		Assert.Equal(effects, modified);
@@ -37,9 +38,10 @@ public sealed class ActorRuntimeModifierTests
 		var battle = CreateBattle(runtime);
 		var effects = SampleEffects();
 
-		var modified = runtime.ApplyActionEffectModifiers(
+		var modified = runtime.ActionEffects.Apply(
 			new LightningCannonAction("player"),
 			battle.Engine.World,
+			runtime,
 			effects);
 
 		Assert.Equal(1, ((ApplyAreaDamageEffect)modified[0]).ShieldDamageBonus);
@@ -53,9 +55,10 @@ public sealed class ActorRuntimeModifierTests
 		var battle = CreateBattle(runtime);
 		var effects = SampleEffects();
 
-		var modified = runtime.ApplyActionEffectModifiers(
+		var modified = runtime.ActionEffects.Apply(
 			new MoveStepAction("player"),
 			battle.Engine.World,
+			runtime,
 			effects);
 
 		Assert.Equal(0, ((ApplyAreaDamageEffect)modified[0]).ShieldDamageBonus);
@@ -74,9 +77,10 @@ public sealed class ActorRuntimeModifierTests
 			new MountUsesChangeEffect(mount, -1),
 		};
 
-		var modified = runtime.ApplyActionEffectModifiers(
+		var modified = runtime.ActionEffects.Apply(
 			new LightningCannonAction("player"),
 			battle.Engine.World,
+			runtime,
 			effects);
 
 		Assert.IsType<MountUsesChangeEffect>(modified[0]);

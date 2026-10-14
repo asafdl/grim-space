@@ -1,8 +1,8 @@
 using GrimSpace.Pilots;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.PilotSkills;
 using GrimSpace.World.StarSystem.Resources;
-using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.World.StarSystem.PilotSkills;
@@ -12,14 +12,13 @@ public sealed class StrategicPilotSkillModifiersTests
 	[Fact]
 	public void ApplySalvageBonus_StacksWithoutChangingOtherResources()
 	{
-		var map = StarMap.Create(
-			1,
-			pilotSkillRosterReader: new SkillRoster(dronesYearnForMines: 2));
+		var map = StarMap.Create(1);
+		var grants = StackGrants(EPilotSkillId.DronesYearnForMines, 2);
 		var resources = ResourceBundle.Create(
 			(ResourceId.ScrapAlloy, 101),
 			(ResourceId.IndustrialCore, 1));
 
-		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(map, resources);
+		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(map, resources, grants);
 
 		AssertResource(modified, ResourceId.ScrapAlloy, 131);
 		AssertResource(modified, ResourceId.IndustrialCore, 1);
@@ -28,15 +27,14 @@ public sealed class StrategicPilotSkillModifiersTests
 	[Fact]
 	public void ApplyUpgradeDiscount_StacksPastThirtyPercentAndRoundsCostsUp()
 	{
-		var map = StarMap.Create(
-			1,
-			pilotSkillRosterReader: new SkillRoster(iKnowABot: 4));
+		var map = StarMap.Create(1);
+		var grants = StackGrants(EPilotSkillId.IKnowABot, 4);
 		var cost = ResourceBundle.Create(
 			(ResourceId.Credits, 101),
 			(ResourceId.ScrapAlloy, 11),
 			(ResourceId.IndustrialCore, 2));
 
-		var modified = StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, cost);
+		var modified = StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, cost, grants);
 
 		AssertResource(modified, ResourceId.Credits, 61);
 		AssertResource(modified, ResourceId.ScrapAlloy, 7);
@@ -62,9 +60,8 @@ public sealed class StrategicPilotSkillModifiersTests
 	[Fact]
 	public void ApplySalvageBonus_UpdatesEachLootRollAndRebuildsTotal()
 	{
-		var map = StarMap.Create(
-			1,
-			pilotSkillRosterReader: new SkillRoster(dronesYearnForMines: 1));
+		var map = StarMap.Create(1);
+		var grants = StackGrants(EPilotSkillId.DronesYearnForMines, 1);
 		var loot = new LootResult(
 			[
 				new LootRoll(
@@ -78,7 +75,7 @@ public sealed class StrategicPilotSkillModifiersTests
 			],
 			ResourceBundle.Of(ResourceId.ScrapAlloy, 8));
 
-		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(map, loot);
+		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(map, loot, grants);
 
 		Assert.All(
 			modified.Rolls,
@@ -86,22 +83,17 @@ public sealed class StrategicPilotSkillModifiersTests
 		AssertResource(modified.Total, ResourceId.ScrapAlloy, 10);
 	}
 
+	private static IReadOnlyList<PilotSkillGrant> StackGrants(EPilotSkillId skillId, int stacks)
+	{
+		var grants = new PilotSkillGrant[stacks];
+		for (var index = 0; index < stacks; index++)
+			grants[index] = new PilotSkillGrant(skillId, $"pilot-{index}");
+		return grants;
+	}
+
 	private static void AssertResource(ResourceBundle resources, ResourceId id, int expected)
 	{
 		Assert.True(resources.TryGet(id, out var actual));
 		Assert.Equal(expected, actual);
-	}
-
-	private sealed class SkillRoster(
-		int dronesYearnForMines = 0,
-		int iKnowABot = 0) : IPilotSkillRosterReader
-	{
-		public int LearnedCount(EPilotSkillId skillId) =>
-			skillId switch
-			{
-				EPilotSkillId.DronesYearnForMines => dronesYearnForMines,
-				EPilotSkillId.IKnowABot => iKnowABot,
-				_ => 0,
-			};
 	}
 }

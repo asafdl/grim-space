@@ -417,8 +417,7 @@ public static class SaveDtoMapper
 	public static StarMap RestoreStarMap(
 		StarMapSaveDto dto,
 		PersistenceRegistry registry,
-		IShipRegistryReader? shipRegistryReader = null,
-		IPilotSkillRosterReader? pilotSkillRosterReader = null)
+		IShipRegistryReader? shipRegistryReader = null)
 	{
 		ArgumentNullException.ThrowIfNull(dto);
 		ArgumentNullException.ThrowIfNull(registry);
@@ -497,7 +496,6 @@ public static class SaveDtoMapper
 			RestoreMarket(dto.Market),
 			terrain,
 			shipRegistryReader,
-			pilotSkillRosterReader,
 			waitingForPlayerInput: dto.WaitingForPlayerInput,
 			activeNarrativeId: dto.ActiveNarrativeId);
 	}

@@ -1,4 +1,5 @@
 using GrimSpace.Core.Engine;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -8,8 +9,8 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.Tests.World.StarSystem.Traffic;
-using GrimSpace.Pilots;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
@@ -38,10 +39,10 @@ internal static class MerchantPurchaseTestHarness
 	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, RunShipRegistry registry) CreateEngine(
 		StarMapFixture maps,
 		int seed = 42,
-		IPilotSkillRosterReader? pilotSkillRosterReader = null)
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
 		var registry = new RunShipRegistry();
-		var map = StarMap.Create(seed, registry, pilotSkillRosterReader);
+		var map = StarMap.Create(seed, registry);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var unitId = State.PlayerFleetUnitId;
 		var shipId = map.FleetRegistry.FleetOf(unitId).Members[0].Id;
@@ -53,7 +54,9 @@ internal static class MerchantPurchaseTestHarness
 		map = map.Fork();
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		runtimes.For(unitId);
+		var runtime = runtimes.For(unitId);
+		if (strategicGrants is not null)
+			runtime.ReplaceActionEffects(StarMapActionEffectPipelineFactory.Build(strategicGrants));
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, unitId, ship, registry);
 	}

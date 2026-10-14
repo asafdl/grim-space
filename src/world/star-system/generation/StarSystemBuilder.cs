@@ -11,8 +11,6 @@ using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
-using GrimSpace.Pilots;
-
 namespace GrimSpace.World.StarSystem.Generation;
 
 public static class StarSystemBuilder
@@ -26,8 +24,7 @@ public static class StarSystemBuilder
 
 	public static StarMap Build(
 		StarSystemBlueprint blueprint,
-		IShipRegistryReader? shipRegistryReader = null,
-		IPilotSkillRosterReader? pilotSkillRosterReader = null)
+		IShipRegistryReader? shipRegistryReader = null)
 	{
 		ArgumentNullException.ThrowIfNull(blueprint);
 
@@ -39,8 +36,7 @@ public static class StarSystemBuilder
 				return BuildOnce(
 					blueprint,
 					layoutAttempt,
-					shipRegistryReader,
-					pilotSkillRosterReader);
+					shipRegistryReader);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -56,8 +52,7 @@ public static class StarSystemBuilder
 	private static StarMap BuildOnce(
 		StarSystemBlueprint blueprint,
 		int layoutAttempt,
-		IShipRegistryReader? shipRegistryReader,
-		IPilotSkillRosterReader? pilotSkillRosterReader)
+		IShipRegistryReader? shipRegistryReader)
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
@@ -167,8 +162,7 @@ public static class StarSystemBuilder
 			new PlayerResources(),
 			StarMarketSeed.Create(),
 			terrain,
-			shipRegistryReader,
-			pilotSkillRosterReader);
+			shipRegistryReader);
 
 		foreach (var (fleet, poiId, remainingTicks) in spawnedWork)
 			WorkScheduler.ScheduleSpawnedWorker(map, fleet, poiId, remainingTicks);

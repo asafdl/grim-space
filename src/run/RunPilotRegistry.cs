@@ -77,4 +77,57 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		pilot = null!;
 		return false;
 	}
+
+	public IReadOnlyList<PilotSkillGrant> QueryLearned(
+		Func<EPilotSkillTag, bool> tagMatches,
+		Func<Pilot, bool>? pilotMatches = null)
+	{
+		ArgumentNullException.ThrowIfNull(tagMatches);
+		var results = new List<PilotSkillGrant>();
+		foreach (var pilot in _pilotsById.Values)
+		{
+			if (pilotMatches is not null && !pilotMatches(pilot))
+				continue;
+
+			foreach (var skillId in pilot.LearnedSkills)
+			{
+				if (!tagMatches(PilotSkillCatalog.Get(skillId).Tag))
+					continue;
+
+				results.Add(new PilotSkillGrant(skillId, pilot.Id));
+			}
+		}
+
+		return results;
+	}
+
+	public IReadOnlyList<PilotSkillGrant> QueryLearnedForParty(
+		Func<EPilotSkillTag, bool> tagMatches,
+		IReadOnlyList<string> partyShipIds)
+	{
+		ArgumentNullException.ThrowIfNull(partyShipIds);
+		if (partyShipIds.Count == 0)
+			return [];
+
+		var partyShips = partyShipIds.ToHashSet(StringComparer.Ordinal);
+		return QueryLearned(tagMatches, pilot => partyShips.Contains(pilot.AssignedShipId));
+	}
+
+	public IReadOnlyList<PilotSkillGrant> QueryLearnedForShip(
+		string shipId,
+		Func<EPilotSkillTag, bool> tagMatches)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(shipId);
+		ArgumentNullException.ThrowIfNull(tagMatches);
+		if (!TryGetForShip(shipId, out var pilot))
+			return [];
+
+		return QueryLearned(tagMatches, candidate => string.Equals(candidate.Id, pilot.Id, StringComparison.Ordinal));
+	}
+
+	public static bool IsStrategicPassiveTag(EPilotSkillTag tag) =>
+		tag == EPilotSkillTag.StrategicPassive;
+
+	public static bool IsBattleTag(EPilotSkillTag tag) =>
+		tag is EPilotSkillTag.BattleAbility or EPilotSkillTag.BattlePassive;
 }

@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Ui;
@@ -110,7 +111,10 @@ public sealed partial class DockyardHudOverlay : Control
 		var offers = MerchantCatalog.ListFor(
 			MerchantSubtypeRouting.CatalogFor(_subtype),
 			ship,
-			_run.StarSystem.Map);
+			_run.StarSystem.Map,
+			StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
+				_run.PilotRegistry,
+				_run.PlayerParty.ShipIds));
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,

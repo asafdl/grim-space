@@ -16,6 +16,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Run.Persistence;
 
@@ -86,11 +87,11 @@ public sealed class State : IDisposable
 		var map = SaveDtoMapper.RestoreStarMap(
 			snapshot.StarMap,
 			registry,
-			run.ShipRegistry,
-			run.PilotRegistry);
+			run.ShipRegistry);
 		run.BindStarSystem(StarSystemOrchestrator.FromMapForRestore(
 			map,
 			PlayerFleetUnitId));
+		run.SyncStarPlayerPipeline();
 		run.StarSystem.SetContractGenerationEnabled(snapshot.ContractGenerationEnabled);
 		if (snapshot.SimMode == ESimMode.Stepped)
 			run.StarSystem.SetStepped();
@@ -262,6 +263,8 @@ public sealed class State : IDisposable
 			return false;
 
 		PilotRegistry.Update(pilot.LearnPilotSkill(skillId));
+		if (PilotSkillCatalog.Get(skillId).Tag == EPilotSkillTag.StrategicPassive)
+			RefreshStrategicPilotSkills();
 		return true;
 	}
 
@@ -275,8 +278,8 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			PlayerParty.ShipIds,
 			nextSeed,
-			ShipRegistry,
-			PilotRegistry));
+			ShipRegistry));
+		SyncStarPlayerPipeline();
 		SyncContractGenerationFromTutorialState();
 		PlayerFleetSelection.EnsureSelectedMember(
 			StarSystem.Map,
@@ -296,9 +299,9 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			run.PlayerParty.ShipIds,
 			seed,
-			run.ShipRegistry,
-			run.PilotRegistry);
+			run.ShipRegistry);
 		run.BindStarSystem(orchestrator);
+		run.SyncStarPlayerPipeline();
 		PlayerFleetSelection.EnsureSelectedMember(
 			run.StarSystem.Map,
 			run.StarSystem.RuntimeFor(PlayerFleetUnitId),
@@ -545,6 +548,7 @@ public sealed class State : IDisposable
 		foreach (var handoff in outcome.StateHandoffs)
 			ShipRegistry.ApplyHandoff(handoff);
 
+		var removedPilot = false;
 		foreach (var handoff in outcome.StateHandoffs)
 		{
 			if (handoff.HullPoints > 0)
@@ -552,8 +556,25 @@ public sealed class State : IDisposable
 
 			PlayerParty.Remove(handoff.Id);
 			PilotRegistry.RemoveForShip(handoff.Id);
+			removedPilot = true;
 		}
+
+		if (removedPilot)
+			RefreshStrategicPilotSkills();
 	}
+
+	private void RefreshStrategicPilotSkills() =>
+		StarSystem.CommitSetup(new RefreshStrategicPilotSkillsAction(
+			PlayerFleetUnitId,
+			PilotRegistry.QueryLearnedForParty(
+				RunPilotRegistry.IsStrategicPassiveTag,
+				PlayerParty.ShipIds)));
+
+	private void SyncStarPlayerPipeline() =>
+		StarMapActionEffectPipelineFactory.InstallPlayerPipeline(
+			StarSystem,
+			PilotRegistry,
+			PlayerParty.ShipIds);
 
 	private IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotBattleSnapshots()
 	{
@@ -564,9 +585,12 @@ public sealed class State : IDisposable
 				throw new InvalidOperationException(
 					$"Party ship '{shipId}' has no assigned pilot for engagement deployment.");
 
+			var battleGrants = PilotRegistry.QueryLearnedForShip(
+				shipId,
+				RunPilotRegistry.IsBattleTag);
 			map[shipId] = new PilotBattleSnapshot(
 				pilot.Id,
-				PilotSkillAvailability.LearnedBattleSkills(pilot));
+				battleGrants.Select(grant => grant.SkillId).ToArray());
 		}
 
 		return map;

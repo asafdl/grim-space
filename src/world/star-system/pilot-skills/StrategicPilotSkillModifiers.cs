@@ -9,11 +9,14 @@ public static class StrategicPilotSkillModifiers
 	public const int ScrapBonusPercentPerPilot = 15;
 	public const int UpgradeDiscountPercentPerPilot = 10;
 
-	public static ResourceBundle ApplySalvageBonus(StarMap map, ResourceBundle resources)
+	public static ResourceBundle ApplySalvageBonus(
+		StarMap map,
+		ResourceBundle resources,
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentNullException.ThrowIfNull(resources);
-		var stacks = LearnedCount(map, EPilotSkillId.DronesYearnForMines);
+		var stacks = Count(strategicGrants, EPilotSkillId.DronesYearnForMines);
 		if (stacks == 0 || resources.IsEmpty)
 			return resources;
 
@@ -23,7 +26,10 @@ public static class StrategicPilotSkillModifiers
 				: amount);
 	}
 
-	public static LootResult ApplySalvageBonus(StarMap map, LootResult loot)
+	public static LootResult ApplySalvageBonus(
+		StarMap map,
+		LootResult loot,
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentNullException.ThrowIfNull(loot);
@@ -31,7 +37,7 @@ public static class StrategicPilotSkillModifiers
 			return loot;
 
 		var rolls = loot.Rolls
-			.Select(roll => roll with { Awarded = ApplySalvageBonus(map, roll.Awarded) })
+			.Select(roll => roll with { Awarded = ApplySalvageBonus(map, roll.Awarded, strategicGrants) })
 			.ToArray();
 		var totals = new Dictionary<ResourceId, int>();
 		foreach (var roll in rolls)
@@ -43,11 +49,14 @@ public static class StrategicPilotSkillModifiers
 		return new LootResult(rolls, ResourceBundle.Create(totals));
 	}
 
-	public static ResourceBundle ApplyUpgradeDiscount(StarMap map, ResourceBundle cost)
+	public static ResourceBundle ApplyUpgradeDiscount(
+		StarMap map,
+		ResourceBundle cost,
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentNullException.ThrowIfNull(cost);
-		var stacks = LearnedCount(map, EPilotSkillId.IKnowABot);
+		var stacks = Count(strategicGrants, EPilotSkillId.IKnowABot);
 		if (stacks == 0 || cost.IsEmpty)
 			return cost;
 
@@ -57,14 +66,8 @@ public static class StrategicPilotSkillModifiers
 				: amount);
 	}
 
-	private static int LearnedCount(StarMap map, EPilotSkillId skillId)
-	{
-		var count = map.PilotSkillRosterReader?.LearnedCount(skillId) ?? 0;
-		if (count < 0)
-			throw new InvalidOperationException(
-				$"Pilot skill roster returned negative count {count} for '{skillId}'.");
-		return count;
-	}
+	public static int Count(IReadOnlyList<PilotSkillGrant>? grants, EPilotSkillId skillId) =>
+		grants?.Count(grant => grant.SkillId == skillId) ?? 0;
 
 	private static int ScaleReward(int amount, int bonusPercent) =>
 		(int)decimal.Round(

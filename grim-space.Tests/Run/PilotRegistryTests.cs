@@ -122,7 +122,7 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
-	public void Snapshot_RestoresLiveStrategicSkillReader()
+	public void Snapshot_RestoresPlayerStrategicActionPipeline()
 	{
 		using var run = State.CreateNewRun(42);
 		var pilot = Assert.Single(run.PilotRegistry.All);
@@ -132,13 +132,15 @@ public sealed class PilotRegistryTests
 
 		var snapshot = run.CaptureSnapshot(registry);
 		using var restored = State.FromSnapshot(snapshot, registry);
+		var runtime = restored.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
+		var grants = GrimSpace.World.StarSystem.Skills.StarMapActionEffectPipelineFactory
+			.GrantsFromPipeline(runtime.ActionEffects);
 		var modified = StrategicPilotSkillModifiers.ApplySalvageBonus(
 			restored.StarSystem.Map,
-			ResourceBundle.Of(ResourceId.ScrapAlloy, 100));
+			ResourceBundle.Of(ResourceId.ScrapAlloy, 100),
+			grants);
 
-		Assert.Same(
-			restored.PilotRegistry,
-			restored.StarSystem.Map.PilotSkillRosterReader);
+		Assert.Equal(1, StrategicPilotSkillModifiers.Count(grants, EPilotSkillId.DronesYearnForMines));
 		Assert.True(modified.TryGet(ResourceId.ScrapAlloy, out var scrap));
 		Assert.Equal(115, scrap);
 	}
@@ -174,7 +176,6 @@ public sealed class PilotRegistryTests
 
 		run.RegenerateMap(77);
 
-		Assert.Same(run.PilotRegistry, run.StarSystem.Map.PilotSkillRosterReader);
 		Assert.Equal(pilotsBefore.Length, run.PlayerParty.ShipIds.Count);
 		foreach (var pilot in pilotsBefore)
 		{

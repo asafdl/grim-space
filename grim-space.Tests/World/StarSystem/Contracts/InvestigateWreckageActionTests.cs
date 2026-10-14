@@ -22,6 +22,8 @@ using GrimSpace.Tests;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
 using GrimSpace.Pilots;
+using GrimSpace.Run;
+using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -56,7 +58,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId) = CreateEngine(
 			new WreckageOutcome.Salvage(
 				ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)),
-			new SkillRoster(dronesYearnForMines: 2));
+			strategicGrants: StackGrants(EPilotSkillId.DronesYearnForMines, 2));
 		OpenWreckDecision(engine, unitId, contractId);
 
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
@@ -118,25 +120,19 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId) CreateEngine(
 		WreckageOutcome outcome,
-		IPilotSkillRosterReader? pilotSkillRosterReader = null,
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null,
 		int seed = 42)
 	{
-		var map = pilotSkillRosterReader is null
-			? maps.Fresh(seed)
-			: StarMap.Create(seed, pilotSkillRosterReader: pilotSkillRosterReader);
+		var map = maps.Fresh(seed);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var contract = RegisterWreckageContract(map, "contract-wreckage-test", outcome);
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		runtimes.For(RunState.PlayerFleetUnitId);
+		var runtime = runtimes.For(RunState.PlayerFleetUnitId);
+		if (strategicGrants is not null)
+			runtime.ReplaceActionEffects(StarMapActionEffectPipelineFactory.Build(strategicGrants));
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, RunState.PlayerFleetUnitId, contract.Id);
-	}
-
-	private sealed class SkillRoster(int dronesYearnForMines) : IPilotSkillRosterReader
-	{
-		public int LearnedCount(EPilotSkillId skillId) =>
-			skillId == EPilotSkillId.DronesYearnForMines ? dronesYearnForMines : 0;
 	}
 
 	private static void OpenWreckDecision(Engine<StarMap, ActorRuntime> engine, string unitId, string contractId)
@@ -187,5 +183,13 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 			new ContractNarrative("Test Wreck", "Investigate the debris."));
 		Assert.True(map.ContractRegistry.TryAdd(contract));
 		return contract;
+	}
+
+	private static IReadOnlyList<PilotSkillGrant> StackGrants(EPilotSkillId skillId, int stacks)
+	{
+		var grants = new PilotSkillGrant[stacks];
+		for (var index = 0; index < stacks; index++)
+			grants[index] = new PilotSkillGrant(skillId, $"pilot-{index}");
+		return grants;
 	}
 }

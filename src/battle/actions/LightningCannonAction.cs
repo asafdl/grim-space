@@ -106,7 +106,7 @@ public sealed class LightningCannonDef
 				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		};
-		return runtime.ApplyActionEffectModifiers(action, world, effects);
+		return runtime.ActionEffects.Apply(action, world, runtime, effects);
 	}
 
 	public IReadOnlySet<Coord> AffectedCells(LightningCannonAction action, BattleWorld world)

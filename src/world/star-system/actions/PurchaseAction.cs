@@ -6,6 +6,7 @@ using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -49,7 +50,8 @@ public sealed class PurchaseActionDef
 				purchase.Target,
 				purchase.Before,
 				world,
-				out var offer))
+				out var offer,
+				StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects)))
 			return false;
 		if (!MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
@@ -90,7 +92,8 @@ public sealed class PurchaseActionDef
 				purchase.Target,
 				purchase.Before,
 				world,
-				out var offer)
+				out var offer,
+				StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects))
 			|| !MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
 				purchase.Target,

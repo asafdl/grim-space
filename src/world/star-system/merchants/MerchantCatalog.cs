@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.PilotSkills;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -43,14 +44,15 @@ public static class MerchantCatalog
 	public static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
 		ShipInstance ship,
-		StarMap map)
+		StarMap map,
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		return ListFor(catalog, ship, map.Market, Tier(map))
 			.Select(offer => offer with
 			{
 				Cost = IsUpgrade(offer.Offering.Kind)
-					? StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, offer.Cost)
+					? StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, offer.Cost, strategicGrants)
 					: offer.Cost,
 			})
 			.ToArray();
@@ -75,10 +77,11 @@ public static class MerchantCatalog
 		Target target,
 		ShipInstance ship,
 		StarMap map,
-		out Offer offer)
+		out Offer offer,
+		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-		offer = ListFor(catalog, ship, map).FirstOrDefault(candidate =>
+		offer = ListFor(catalog, ship, map, strategicGrants).FirstOrDefault(candidate =>
 			candidate.Offering == key && candidate.Targets.Contains(target))!;
 		return offer is not null;
 	}

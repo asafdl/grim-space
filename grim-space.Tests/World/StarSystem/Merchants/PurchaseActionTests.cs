@@ -13,6 +13,7 @@ using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.Tests.World.StarSystem.Poi;
 using GrimSpace.Pilots;
 
@@ -79,7 +80,9 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
 			maps,
-			pilotSkillRosterReader: pilots);
+			strategicGrants: StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
+				pilots,
+				pilots.All.Select(pilot => pilot.AssignedShipId).ToArray()));
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
@@ -94,7 +97,10 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			target,
 			before,
 			engine.World,
-			out var quote));
+			out var quote,
+			StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
+				pilots,
+				pilots.All.Select(pilot => pilot.AssignedShipId).ToArray())));
 		Assert.Equal(96, Amount(quote.Cost, ResourceId.Credits));
 		Assert.Equal(224, Amount(quote.Cost, ResourceId.ScrapAlloy));
 
