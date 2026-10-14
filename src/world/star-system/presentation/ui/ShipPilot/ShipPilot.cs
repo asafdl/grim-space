@@ -6,8 +6,8 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public partial class ShipPilot : PanelContainer
 {
-	private const int PortraitSize = 88;
-	private const int BarWidth = 88;
+	private const int PortraitSize = 64;
+	private const int BarWidth = 64;
 
 	private static readonly Color DefaultBorderColor = new(0.3f, 0.42f, 0.6f, 0.8f);
 	private static readonly Color SelectedBorderColor = new(0.55f, 0.78f, 1f, 1f);
@@ -16,15 +16,13 @@ public partial class ShipPilot : PanelContainer
 	private Button _levelUpButton = null!;
 	private TextureRect _portrait = null!;
 	private ProgressBar _hullBar = null!;
-	private ProgressBar _shieldBar = null!;
-	private ProgressBar _xpBar = null!;
 	private string? _portraitId;
 	private string? _pilotId;
 	private string? _shipId;
 	private bool _selected;
 
 	public event Action<string>? Selected;
-	public event Action<string>? LevelUpRequested;
+	public event Action<string>? PilotSheetRequested;
 
 	public override void _Ready()
 	{
@@ -48,15 +46,10 @@ public partial class ShipPilot : PanelContainer
 			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
 			_portraitId = portraitId;
 		}
-		_levelLabel.Text = $"Lv {claimedLevel}";
+		_levelLabel.Text = $"LV {claimedLevel}";
 		_levelUpButton.Visible = canLearnSkill;
 		SetBar(_hullBar, ship.HullPoints, ship.Loadout.MaxHullPoints);
-		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalMaxShieldPoints);
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
-		SetBar(
-			_xpBar,
-			canLearnSkill ? 1 : xpInLevel,
-			canLearnSkill ? 1 : xpToNext > 0 ? xpToNext : 1);
 		var xpLine = xpToNext > 0
 			? $"XP {xpInLevel}/{xpToNext}"
 			: "XP max";
@@ -77,74 +70,84 @@ public partial class ShipPilot : PanelContainer
 
 		var margin = new MarginContainer();
 		foreach (var marginName in new[] { "margin_left", "margin_top", "margin_right", "margin_bottom" })
-			margin.AddThemeConstantOverride(marginName, 8);
+			margin.AddThemeConstantOverride(marginName, 4);
 		AddChild(margin);
 
 		var column = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		column.AddThemeConstantOverride("separation", 5);
+		column.AddThemeConstantOverride("separation", 3);
 		margin.AddChild(column);
 
-		var levelRow = new HBoxContainer
+		var portraitFrame = new Control
 		{
+			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		column.AddChild(levelRow);
+		column.AddChild(portraitFrame);
+
+		_portrait = new TextureRect
+		{
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+			MouseFilter = MouseFilterEnum.Stop,
+		};
+		_portrait.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		_portrait.GuiInput += OnPortraitGuiInput;
+		portraitFrame.AddChild(_portrait);
 
 		_levelLabel = new Label
 		{
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			HorizontalAlignment = HorizontalAlignment.Center,
+			OffsetLeft = 1,
+			OffsetTop = PortraitSize - 17,
+			OffsetRight = 29,
+			OffsetBottom = PortraitSize - 1,
+			HorizontalAlignment = HorizontalAlignment.Left,
+			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		_levelLabel.AddThemeFontSizeOverride("font_size", 11);
-		_levelLabel.AddThemeColorOverride("font_color", new Color(0.75f, 0.82f, 0.92f));
-		levelRow.AddChild(_levelLabel);
+		_levelLabel.AddThemeFontSizeOverride("font_size", 10);
+		_levelLabel.AddThemeColorOverride("font_color", Colors.White);
+		portraitFrame.AddChild(_levelLabel);
 
 		_levelUpButton = new Button
 		{
 			Text = "↑",
 			TooltipText = "Choose a pilot skill",
-			CustomMinimumSize = new Vector2(24, 24),
+			OffsetLeft = PortraitSize - 23,
+			OffsetTop = PortraitSize - 23,
+			OffsetRight = PortraitSize - 3,
+			OffsetBottom = PortraitSize - 3,
 			Visible = false,
 		};
-		_levelUpButton.AddThemeFontSizeOverride("font_size", 15);
+		_levelUpButton.AddThemeFontSizeOverride("font_size", 14);
+		_levelUpButton.AddThemeColorOverride("font_color", Colors.White);
+		_levelUpButton.AddThemeStyleboxOverride("normal", BadgeStyle(new Color(0.18f, 0.42f, 0.7f, 0.95f)));
+		_levelUpButton.AddThemeStyleboxOverride("hover", BadgeStyle(new Color(0.3f, 0.58f, 0.9f, 1f)));
+		_levelUpButton.AddThemeStyleboxOverride("pressed", BadgeStyle(new Color(0.12f, 0.32f, 0.58f, 1f)));
 		_levelUpButton.Pressed += OnLevelUpPressed;
-		levelRow.AddChild(_levelUpButton);
+		portraitFrame.AddChild(_levelUpButton);
 
-		_portrait = new TextureRect
-		{
-			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			MouseFilter = MouseFilterEnum.Stop,
-		};
-		_portrait.GuiInput += OnPortraitGuiInput;
-		column.AddChild(_portrait);
 		_hullBar = CreateBar(new Color(0.85f, 0.15f, 0.18f));
-		_shieldBar = CreateBar(new Color(0.25f, 0.62f, 0.95f));
-		_xpBar = CreateBar(new Color(0.62f, 0.38f, 0.92f));
 		column.AddChild(_hullBar);
-		column.AddChild(_shieldBar);
-		column.AddChild(_xpBar);
 	}
 
 	private void OnPortraitGuiInput(InputEvent @event)
 	{
-		if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
-			return;
-		if (_shipId is null)
+		if (@event is not InputEventMouseButton { Pressed: true } mouseButton)
 			return;
 
-		Selected?.Invoke(_shipId);
+		if (mouseButton.ButtonIndex == MouseButton.Left && _shipId is not null)
+			Selected?.Invoke(_shipId);
+		else if (mouseButton.ButtonIndex == MouseButton.Right && _pilotId is not null)
+			PilotSheetRequested?.Invoke(_pilotId);
 	}
 
 	private void OnLevelUpPressed()
 	{
 		if (_pilotId is not null)
-			LevelUpRequested?.Invoke(_pilotId);
+			PilotSheetRequested?.Invoke(_pilotId);
 	}
 
 	private void SetSelected(bool selected)
@@ -206,5 +209,17 @@ public partial class ShipPilot : PanelContainer
 			CornerRadiusTopRight = 2,
 			CornerRadiusBottomLeft = 2,
 			CornerRadiusBottomRight = 2,
+		};
+
+	private static StyleBoxFlat BadgeStyle(Color color) =>
+		new()
+		{
+			BgColor = color,
+			CornerRadiusTopLeft = 3,
+			CornerRadiusTopRight = 3,
+			CornerRadiusBottomLeft = 3,
+			CornerRadiusBottomRight = 3,
+			ContentMarginLeft = 2,
+			ContentMarginRight = 2,
 		};
 }

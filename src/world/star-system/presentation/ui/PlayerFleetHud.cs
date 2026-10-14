@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
@@ -11,7 +12,7 @@ public partial class PlayerFleetHud : MarginContainer
 	private VBoxContainer _pilotColumn = null!;
 	private StarSystemOrchestrator? _orchestrator;
 
-	public event Action<string>? PilotSkillTreeRequested;
+	public event Action<string>? PilotSheetRequested;
 
 	public override void _Ready()
 	{
@@ -22,9 +23,22 @@ public partial class PlayerFleetHud : MarginContainer
 			margin.AddThemeConstantOverride(marginName, 8);
 		AddChild(margin);
 
+		var content = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		content.AddThemeConstantOverride("separation", 6);
+		margin.AddChild(content);
+
+		var title = new Label
+		{
+			Text = "CREW",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		HudStyles.ApplyTextRole(title, HudTextRole.Metadata);
+		content.AddChild(title);
+
 		_pilotColumn = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		_pilotColumn.AddThemeConstantOverride("separation", 8);
-		margin.AddChild(_pilotColumn);
+		content.AddChild(_pilotColumn);
 	}
 
 	public void Sync(State run, StarSystemOrchestrator orchestrator)
@@ -49,7 +63,7 @@ public partial class PlayerFleetHud : MarginContainer
 			{
 				card = new ShipPilot();
 				card.Selected += OnPilotSelected;
-				card.LevelUpRequested += OnPilotLevelUpRequested;
+				card.PilotSheetRequested += OnPilotSheetRequested;
 				_pilots[pilot.Id] = card;
 				_pilotColumn.AddChild(card);
 			}
@@ -69,7 +83,7 @@ public partial class PlayerFleetHud : MarginContainer
 		{
 			var removed = _pilots[pilotId];
 			removed.Selected -= OnPilotSelected;
-			removed.LevelUpRequested -= OnPilotLevelUpRequested;
+			removed.PilotSheetRequested -= OnPilotSheetRequested;
 			removed.QueueFree();
 			_pilots.Remove(pilotId);
 		}
@@ -81,6 +95,6 @@ public partial class PlayerFleetHud : MarginContainer
 			new SelectActiveFleetShipAction(State.PlayerFleetUnitId, shipId));
 	}
 
-	private void OnPilotLevelUpRequested(string pilotId) =>
-		PilotSkillTreeRequested?.Invoke(pilotId);
+	private void OnPilotSheetRequested(string pilotId) =>
+		PilotSheetRequested?.Invoke(pilotId);
 }
