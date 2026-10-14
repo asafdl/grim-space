@@ -76,7 +76,8 @@ public sealed class DetonateDef
 				EImpactCause.VoidBombBlast,
 				cells,
 				body.BlastDamage,
-				actor.Position),
+				actor.Position,
+				destroySource: true),
 		];
 	}
 

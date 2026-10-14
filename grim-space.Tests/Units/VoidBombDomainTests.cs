@@ -73,7 +73,7 @@ public sealed class VoidBombDomainTests
 
 		Assert.Equal(BattleHudCopy.DetonateTooltipFor(unit), spec.Tooltip(unit));
 		Assert.Equal("res://assets/ui/abilities/detonate.svg", spec.IconPath);
-		Assert.Equal("2/3", ready.Charges);
+		Assert.Equal("2/2", ready.Charges);
 		Assert.True(ready.Enabled);
 		Assert.False(illegal.Enabled);
 	}

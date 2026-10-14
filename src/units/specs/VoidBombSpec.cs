@@ -7,12 +7,12 @@ namespace GrimSpace.Units.Specs;
 
 public sealed class VoidBombSpec : ShipSpec
 {
-	internal const int FuelTurns = 3;
+	internal const int FuelTurns = 2;
 	internal const int MovementActionPoints = 4;
 	internal const int ForwardMoveApCost = 1;
 	internal const int LateralMoveApCost = 2;
-	internal const int BlastRadius = 4;
-	internal const int BlastDamage = 3;
+	internal const int BlastRadius = 3;
+	internal const int BlastDamage = 1;
 
 	public static VoidBombSpec Instance { get; } = new();
 

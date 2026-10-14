@@ -36,6 +36,10 @@ public sealed class DeploymentPlacementTests
 		var playerCannon = player.Ship.Loadout.InstalledAbilities.Single(
 			ability => ability.Kind == EAbilityKind.LightningCannon);
 		var effective = Assert.IsType<LightningCannonSpec>(playerCannon.Spec);
+		var voidBombs = player.Ship.Loadout.InstalledAbilities
+			.Where(ability => ability.Kind == EAbilityKind.VoidBombLauncher)
+			.Select(ability => Assert.IsType<VoidBombLauncherSpec>(ability.Spec))
+			.ToArray();
 
 		Assert.Equal(FighterSpec.Instance.Slots.Count, player.Ship.Loadout.InstalledAbilities.Count);
 		Assert.All(
@@ -48,6 +52,14 @@ public sealed class DeploymentPlacementTests
 			ability => Assert.Equal(1, ability.RangeUpgradeTier));
 		Assert.Equal(LightningCannonSpec.Baseline.Damage + 1, effective.Damage);
 		Assert.Equal(LightningCannonSpec.Baseline.LineLength + 1, effective.LineLength);
+		Assert.All(
+			voidBombs,
+			voidBomb =>
+			{
+				Assert.Equal(3, voidBomb.FuelTurns);
+				Assert.Equal(4, voidBomb.BlastRadius);
+				Assert.Equal(3, voidBomb.BlastDamage);
+			});
 		Assert.All(
 			enemy.Ship.Loadout.InstalledAbilities.Where(
 				ability => ability.Spec.MaxDamageUpgrades > 0),

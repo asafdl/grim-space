@@ -183,7 +183,8 @@ public sealed class PlayerPartyMultiShipTests
 			[playerFleet, enemyFleet],
 			run.ShipRegistry,
 			seed: 3,
-			id: "multi-ship-engagement");
+			id: "multi-ship-engagement",
+			initiatorFleetId: playerFleet.State.Id);
 
 		Assert.Equal(
 			run.PlayerParty.ShipIds.OrderBy(id => id, StringComparer.Ordinal),

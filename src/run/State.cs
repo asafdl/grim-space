@@ -495,6 +495,7 @@ public sealed class State : IDisposable
 				ShipRegistry,
 				seed,
 				fact.EngagementId,
+				fact.InitiatorFleetId,
 				BuildPilotBattleSnapshots());
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();

@@ -225,9 +225,21 @@ public sealed record VoidBombLauncherSpec(
 		BlastDamage: VoidBombSpec.BlastDamage);
 
 	public override EAbilityKind Kind => EAbilityKind.VoidBombLauncher;
+	public override int MaxDamageUpgrades => 1;
+	public override int MaxRangeUpgrades => 1;
 	int ICooldownAbility.CooldownTurns => CooldownTurns;
 	ShipSpec ISpawnable.ChildSpec => VoidBombSpec.Instance;
 	int ISpawnable.MaxLivingChildren => 0;
+
+	protected override AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) =>
+		this with
+		{
+			FuelTurns = FuelTurns + rangeUpgradeTier,
+			BlastRadius = BlastRadius + rangeUpgradeTier,
+			BlastDamage = BlastDamage + damageUpgradeTier * 2,
+			DamageUpgradeTier = damageUpgradeTier,
+			RangeUpgradeTier = rangeUpgradeTier,
+		};
 
 	public int? MoveApCost(ESpatialOrientation direction) =>
 		direction switch

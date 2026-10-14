@@ -37,7 +37,8 @@ public sealed class BattleSpawnPilotTests
 			run.ShipRegistry,
 			seed: 7,
 			id: "pilot-snapshot-test",
-			shipToPilot);
+			initiatorFleetId: playerFleet.State.Id,
+			shipIdToPilotSnapshot: shipToPilot);
 
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player),
@@ -65,7 +66,8 @@ public sealed class BattleSpawnPilotTests
 			run.ShipRegistry,
 			seed: 3,
 			id: "pilot-save-test",
-			shipToPilot);
+			initiatorFleetId: playerFleet.State.Id,
+			shipIdToPilotSnapshot: shipToPilot);
 		var expectedPilot = Assert.Single(encounter.Spawns).Pilot;
 
 		var dto = SaveDtoMapper.CaptureBattleEncounter(encounter);
@@ -112,7 +114,8 @@ public sealed class BattleSpawnPilotTests
 			run.ShipRegistry,
 			seed: 11,
 			id: "multi-pilot-test",
-			shipToPilot);
+			initiatorFleetId: playerFleet.State.Id,
+			shipIdToPilotSnapshot: shipToPilot);
 
 		var playerSpawns = encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).ToArray();
 		Assert.Equal(2, playerSpawns.Length);

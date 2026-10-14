@@ -18,6 +18,16 @@ public static class DeploymentPlacement
 	private const int DeploySpreadDivisor = 5;
 	private const int EnemySpreadBand = 4;
 	private const int LaneHalfBand = 8;
+	private const int EngagementSeparation = 16;
+	private static readonly Coord[] CardinalDirections =
+	[
+		new(1, 0, 0),
+		new(-1, 0, 0),
+		new(0, 1, 0),
+		new(0, -1, 0),
+		new(0, 0, 1),
+		new(0, 0, -1),
+	];
 
 	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
 		BattleUnitType playerChassis,
@@ -70,52 +80,61 @@ public static class DeploymentPlacement
 		RunShipRegistry registry,
 		int seed,
 		int gridSize,
+		string initiatorFleetId,
 		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 		ArgumentNullException.ThrowIfNull(participantFleets);
+		ArgumentException.ThrowIfNullOrWhiteSpace(initiatorFleetId);
 		ArgumentOutOfRangeException.ThrowIfLessThan(gridSize, 1);
 
-		var playerMembers = participantFleets
-			.Where(fleet => fleet.State.Faction == EFaction.Player)
+		if (!participantFleets.Any(fleet => fleet.State.Id == initiatorFleetId))
+			throw new ArgumentException(
+				$"Initiator fleet '{initiatorFleetId}' is not an encounter participant.",
+				nameof(initiatorFleetId));
+
+		var attackerMembers = participantFleets
+			.Where(fleet => fleet.State.Id == initiatorFleetId)
 			.SelectMany(fleet => fleet.Members.Select(member => (fleet, member)))
 			.ToList();
-		var enemyMembers = participantFleets
-			.Where(fleet => fleet.State.Faction != EFaction.Player)
+		var interceptedMembers = participantFleets
+			.Where(fleet => fleet.State.Id != initiatorFleetId)
 			.SelectMany(fleet => fleet.Members.Select(member => (fleet, member)))
 			.ToList();
 
 		var center = gridSize / 2;
-		var deploySpread = gridSize / DeploySpreadDivisor;
-		var playerAnchor = new Coord(center - deploySpread, center, center);
-		var enemyAnchor = playerMembers.Count > 0
-			? PickEngagementEnemyPosition(seed, gridSize, playerAnchor)
-			: new Coord(center + deploySpread, center, center);
-
 		var rng = new Random(seed);
+		var approach = CardinalDirections[rng.Next(CardinalDirections.Length)];
+		var halfSeparation = System.Math.Min(EngagementSeparation / 2, System.Math.Max(0, center - Margin));
+		var fieldCenter = new Coord(center, center, center);
+		var attackerAnchor = fieldCenter - approach * halfSeparation;
+		var interceptedAnchor = fieldCenter + approach * halfSeparation;
+		var attackerDorsal = PickPerpendicular(approach, rng);
+		var interceptedFore = CardinalDirections[rng.Next(CardinalDirections.Length)];
+		var interceptedDorsal = PickPerpendicular(interceptedFore, rng);
 		var occupied = new HashSet<Coord>();
 		var spawns = new List<BattleSpawn>();
-		PlaceTeam(
-			playerMembers,
-			ETeam.Player,
-			playerAnchor,
-			enemyAnchor,
+		PlaceFormation(
+			attackerMembers,
+			attackerAnchor,
+			approach,
+			attackerDorsal,
 			rng,
 			gridSize,
 			occupied,
 			registry,
 			shipIdToPilotSnapshot,
 			spawns);
-		PlaceTeam(
-			enemyMembers,
-			ETeam.Enemy,
-			enemyAnchor,
-			playerAnchor,
+		PlaceFormation(
+			interceptedMembers,
+			interceptedAnchor,
+			interceptedFore,
+			interceptedDorsal,
 			rng,
 			gridSize,
 			occupied,
 			registry,
-			shipIdToPilotSnapshot: null,
+			shipIdToPilotSnapshot,
 			spawns);
 		return spawns;
 	}
@@ -156,11 +175,11 @@ public static class DeploymentPlacement
 			});
 	}
 
-	private static void PlaceTeam(
+	private static void PlaceFormation(
 		IReadOnlyList<(Fleet Fleet, FleetMember Member)> members,
-		ETeam team,
 		Coord anchor,
-		Coord faceToward,
+		Coord fore,
+		Coord dorsal,
 		Random rng,
 		int gridSize,
 		HashSet<Coord> occupied,
@@ -171,13 +190,12 @@ public static class DeploymentPlacement
 		if (members.Count == 0)
 			return;
 
-		var dorsal = Coord.Up;
-		var teamFore = AxisToward(anchor, faceToward);
-		var basis = GridBasis.From(teamFore, dorsal, Coord.Cross(dorsal, teamFore));
+		var basis = GridBasis.From(fore, dorsal, Coord.Cross(dorsal, fore));
 
 		for (var index = 0; index < members.Count; index++)
 		{
 			var (fleet, member) = members[index];
+			var team = fleet.State.Faction == EFaction.Player ? ETeam.Player : ETeam.Enemy;
 			var position = index == 0 && occupied.Add(anchor)
 				? anchor
 				: PickFormationCell(rng, anchor, basis, occupied, gridSize);
@@ -195,7 +213,7 @@ public static class DeploymentPlacement
 				Pilot = pilot,
 				Team = team,
 				Position = position,
-				Fore = AxisToward(position, faceToward),
+				Fore = fore,
 				Dorsal = dorsal,
 				ExecutionAgent = fleet.State.Faction == EFaction.Player
 					? new UserExecutionAgent()
@@ -227,30 +245,18 @@ public static class DeploymentPlacement
 		throw new InvalidOperationException("Could not find an open deployment cell.");
 	}
 
+	private static Coord PickPerpendicular(Coord direction, Random rng)
+	{
+		var candidates = CardinalDirections
+			.Where(candidate => Coord.Dot(candidate, direction) == 0)
+			.ToArray();
+		return candidates[rng.Next(candidates.Length)];
+	}
+
 	private static bool IsInBounds(Coord cell, int gridSize) =>
 		cell.X >= 0 && cell.X < gridSize
 		&& cell.Y >= 0 && cell.Y < gridSize
 		&& cell.Z >= 0 && cell.Z < gridSize;
-
-	private static Coord PickEngagementEnemyPosition(int seed, int gridSize, Coord playerPosition)
-	{
-		var rng = new Random(seed);
-		var half = gridSize / 2;
-		var center = gridSize / 2;
-		var deploySpread = gridSize / DeploySpreadDivisor;
-		var enemyCenter = center + deploySpread;
-		var minX = playerPosition.X < half
-			? enemyCenter - EnemySpreadBand
-			: Margin;
-		var maxX = playerPosition.X < half
-			? enemyCenter + EnemySpreadBand
-			: half - Margin - 1;
-
-		return new Coord(
-			NextInBounds(rng, minX, maxX, gridSize),
-			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize),
-			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize));
-	}
 
 	private static Coord PickEnemyPosition(int seed, int gridSize, Coord playerPosition)
 	{

@@ -44,7 +44,8 @@ public sealed class BeginEngagementTests
 			[playerFleet, pirateFleet],
 			run.ShipRegistry,
 			7,
-			committed.EngagementId);
+			committed.EngagementId,
+			committed.InitiatorUnitId);
 		Assert.Equal(playerId, committed.InitiatorUnitId);
 		Assert.Equal(2, encounter.Spawns.Count);
 		Assert.Equal(
@@ -71,7 +72,7 @@ public sealed class BeginEngagementTests
 	}
 
 	[Fact]
-	public void Create_PlacesDuelOpponentsWithinAFewTurnsOfTravel()
+	public void Create_PlacesDuelOpponentsOutsideTurnOneWeaponReachWithAttackerFacingTarget()
 	{
 		var run = RunState.CreateNewRun(42);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -85,13 +86,70 @@ public sealed class BeginEngagementTests
 			[playerFleet, pirateFleet],
 			run.ShipRegistry,
 			231,
-			"test-engagement");
+			"test-engagement",
+			playerFleet.State.Id);
 		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
-		var delta = player.Position - enemy.Position;
-		var separation = System.Math.Abs(delta.X) + System.Math.Abs(delta.Y) + System.Math.Abs(delta.Z);
 
-		Assert.InRange(separation, 20, 52);
+		Assert.Equal(16, player.Position.ManhattanDistanceTo(enemy.Position));
+		Assert.Equal(player.Position + player.Fore * 16, enemy.Position);
+	}
+
+	[Fact]
+	public void Create_UsesInitiatorAsAttacker()
+	{
+		var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-a",
+			new Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.Pirates);
+		EnsureRegistry(run, pirateFleet);
+
+		var encounter = EngagementBattleFactory.Create(
+			[playerFleet, pirateFleet],
+			run.ShipRegistry,
+			seed: 231,
+			id: "test-engagement",
+			initiatorFleetId: pirateFleet.State.Id);
+		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+
+		Assert.Equal(enemy.Position + enemy.Fore * 16, player.Position);
+	}
+
+	[Fact]
+	public void Create_RandomizesThreeDimensionalApproachAndInterceptedHeadingBySeed()
+	{
+		var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-a",
+			new Coord(4, 0, 0),
+			GrimSpace.World.Factions.EFaction.Pirates);
+		EnsureRegistry(run, pirateFleet);
+		var approachAxes = new HashSet<Coord>();
+		var interceptedHeadings = new HashSet<(Coord Fore, Coord Dorsal)>();
+
+		for (var seed = 0; seed < 24; seed++)
+		{
+			var encounter = EngagementBattleFactory.Create(
+				[playerFleet, pirateFleet],
+				run.ShipRegistry,
+				seed,
+				$"test-engagement-{seed}",
+				playerFleet.State.Id);
+			var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+			approachAxes.Add(new Coord(
+				System.Math.Abs(player.Fore.X),
+				System.Math.Abs(player.Fore.Y),
+				System.Math.Abs(player.Fore.Z)));
+			interceptedHeadings.Add((enemy.Fore, enemy.Dorsal));
+		}
+
+		Assert.Equal(3, approachAxes.Count);
+		Assert.True(interceptedHeadings.Count > 1);
 	}
 
 	[Fact]
@@ -115,11 +173,15 @@ public sealed class BeginEngagementTests
 			[playerFleet, pirateFleet],
 			run.ShipRegistry,
 			231,
-			"test-engagement");
+			"test-engagement",
+			playerFleet.State.Id);
 		var positions = encounter.Spawns.Select(spawn => spawn.Position).ToArray();
+		var intercepted = encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy).ToArray();
 
 		Assert.Equal(playerFleet.Members.Count + pirateFleet.Members.Count, positions.Length);
 		Assert.Equal(positions.Length, positions.Distinct().Count());
+		Assert.Single(intercepted.Select(spawn => spawn.Fore).Distinct());
+		Assert.Single(intercepted.Select(spawn => spawn.Dorsal).Distinct());
 	}
 
 	[Fact]
@@ -137,7 +199,8 @@ public sealed class BeginEngagementTests
 			[playerFleet, pirateFleet],
 			run.ShipRegistry,
 			-227155311,
-			"test-engagement");
+			"test-engagement",
+			playerFleet.State.Id);
 
 		Assert.Equal(-227155311, encounter.Seed);
 		Assert.NotEmpty(encounter.Spawns);

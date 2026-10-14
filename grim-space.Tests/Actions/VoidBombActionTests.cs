@@ -14,6 +14,17 @@ public sealed class VoidBombActionTests
 	private const string PlayerId = "player";
 
 	[Fact]
+	public void BaselineLauncherUsesBalancedPayloadAndExistingCooldown()
+	{
+		var launcher = CatalogExpectations.DefaultVoidBombLauncher();
+
+		Assert.Equal(3, launcher.CooldownTurns);
+		Assert.Equal(2, launcher.FuelTurns);
+		Assert.Equal(3, launcher.BlastRadius);
+		Assert.Equal(1, launcher.BlastDamage);
+	}
+
+	[Fact]
 	public void FireSpawnsTorpedoWithFuelAndSetsShipCooldown()
 	{
 		var origin = new Coord(5, 5, 5);

@@ -179,7 +179,8 @@ public sealed class RunStatePersistenceTests
 			[playerFleet, enemyFleet],
 			restored.ShipRegistry,
 			seed: 42,
-			id: "restored-tutorial-hunt");
+			id: "restored-tutorial-hunt",
+			initiatorFleetId: playerFleet.State.Id);
 
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy),

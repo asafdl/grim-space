@@ -245,6 +245,8 @@ The base `ExecutionAgent` may support deterministic producers that read live sta
 
 Combat happens on a 3D cell lattice. Each ship has a facing; movement and weapons are expressed in ship-local directions. Range, arcs, cover, and hazards are all grid-based — positioning is meant to matter.
 
+Strategic engagements deploy as seeded 3D interceptions. The initiating fleet starts outside turn-one direct-fire reach but close enough for contact to develop after one approach turn, and faces the intercepted formation; intercepted ships share one randomized fore/dorsal basis so the fleet reads as traveling together when caught.
+
 Movement uses two independently refilled resources. Action points (AP) pay for translation, while maneuver points (MP) pay for yaw, pitch, and roll. Each chassis owns its AP/MP allotments, supported translations and rotations, and their costs through [`ManeuverabilitySpec`](src/units/maneuvering/ManeuverabilitySpec.cs); battle [`State`](src/battle/units/State.cs) holds the effective profile and current pools. Void bombs derive a zero-MP profile from their launcher snapshot. Path selection ranks exact destination poses by AP cost first, then MP cost.
 
 ### Turn loop

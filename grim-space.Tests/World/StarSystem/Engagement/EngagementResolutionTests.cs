@@ -141,7 +141,8 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 			[playerFleet, pirateFleet],
 			run.ShipRegistry,
 			1,
-			engagementId);
+			engagementId,
+			playerFleet.State.Id);
 		var activeBattle = run.ActiveBattle;
 		var ongoing = new BattleOutcome(engagementId, EBattleResult.Ongoing, []);
 

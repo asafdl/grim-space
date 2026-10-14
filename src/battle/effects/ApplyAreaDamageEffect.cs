@@ -15,7 +15,8 @@ public sealed class ApplyAreaDamageEffect(
 	int damage,
 	Coord origin,
 	int shieldDamageBonus = 0,
-	int adjacentTargetDamageBonus = 0) : IEffect<BattleWorld, ActorRuntime>
+	int adjacentTargetDamageBonus = 0,
+	bool destroySource = false) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> Cells => cells;
@@ -31,7 +32,8 @@ public sealed class ApplyAreaDamageEffect(
 			damage,
 			origin,
 			shieldDamageBonus + amount,
-			adjacentTargetDamageBonus);
+			adjacentTargetDamageBonus,
+			destroySource);
 
 	public ApplyAreaDamageEffect WithAdjacentTargetDamageBonus(int amount) =>
 		new(
@@ -40,7 +42,8 @@ public sealed class ApplyAreaDamageEffect(
 			damage,
 			origin,
 			shieldDamageBonus,
-			adjacentTargetDamageBonus + amount);
+			adjacentTargetDamageBonus + amount,
+			destroySource);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -59,7 +62,11 @@ public sealed class ApplyAreaDamageEffect(
 
 			_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
 			var isAlliedSource = source.RelationTo(unit) == EUnitRelation.Ally;
-			if (ApplyTo(unit.State, actorId, isAlliedSource) is { } impact)
+			if (ApplyTo(
+				unit.State,
+				actorId,
+				isAlliedSource,
+				destroySource && unit.State.Id == actorId) is { } impact)
 				records.Add(new Record<ImpactFacts>(impact));
 		}
 
@@ -72,7 +79,11 @@ public sealed class ApplyAreaDamageEffect(
 			snapshot.Restore(world.StateOf(unitId));
 	}
 
-	private ImpactFacts? ApplyTo(State unit, string actorId, bool isAlliedSource)
+	private ImpactFacts? ApplyTo(
+		State unit,
+		string actorId,
+		bool isAlliedSource,
+		bool forceDestroy)
 	{
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		var shieldBefore = Defense.EffectiveShield(unit, face);
@@ -97,6 +108,8 @@ public sealed class ApplyAreaDamageEffect(
 
 		if (appliedDamage > 0)
 			Defense.ApplyDamage(unit, appliedDamage, face, appliedShieldDamageBonus);
+		if (forceDestroy)
+			unit.HullPoints = 0;
 
 		var shieldAfter = Defense.EffectiveShield(unit, face);
 		var shieldDamage = shieldBefore - shieldAfter;
