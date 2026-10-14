@@ -135,11 +135,11 @@ public sealed class EngagementResolutionTests(StarMapFixture maps)
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(PlayerId);
 		var pirateFleet = run.StarSystem.Map.FleetRegistry.FleetOf(huntTargetId);
 		foreach (var declaration in pirateFleet.Registrations)
-			run.ShipRegistry.Register(declaration);
+			run.ItemInventory.Register(declaration, pirateFleet.State.Id);
 		var engagementId = run.StarSystem.Map.StateOf(PlayerId).CurrentEngagement!.Id;
 		run.ActiveBattle = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			1,
 			engagementId,
 			playerFleet.State.Id);

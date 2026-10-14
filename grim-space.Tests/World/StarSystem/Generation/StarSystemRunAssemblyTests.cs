@@ -36,7 +36,7 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 		var run = RunState.CreateNewRun(42);
 		var worldFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 
-		Assert.Equal(run.PlayerParty.ShipIds, worldFleet.Members.Select(member => member.Id).ToArray());
+		Assert.Equal(run.GetFieldedShipIds(), worldFleet.Members.Select(member => member.Id).ToArray());
 	}
 
 	[Fact]

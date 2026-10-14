@@ -49,13 +49,13 @@ public partial class PlayerFleetHud : MarginContainer
 			orchestrator.Map,
 			runtime,
 			State.PlayerFleetUnitId,
-			run.PlayerParty.ShipIds);
+			run.GetFieldedShipIds());
 
 		var activePilotIds = new HashSet<string>(StringComparer.Ordinal);
-		foreach (var shipId in run.PlayerParty.ShipIds)
+		foreach (var pilot in run.PilotRegistry.Active)
 		{
-			if (!run.ShipRegistry.TryGet(shipId, out var ship)
-				|| !run.PilotRegistry.TryGetForShip(shipId, out var pilot))
+			if (pilot.AssignedShipId is null
+				|| !run.ItemInventory.TryGet(pilot.AssignedShipId, out var ship))
 				continue;
 
 			activePilotIds.Add(pilot.Id);
@@ -76,7 +76,7 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot.ClaimedLevel,
 				PilotSkillAvailability.AvailableToLearn(pilot).Count > 0,
 				ship,
-				string.Equals(shipId, selectedShipId, StringComparison.Ordinal));
+				string.Equals(pilot.AssignedShipId, selectedShipId, StringComparison.Ordinal));
 		}
 
 		foreach (var pilotId in _pilots.Keys.Except(activePilotIds, StringComparer.Ordinal).ToArray())

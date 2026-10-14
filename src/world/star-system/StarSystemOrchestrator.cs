@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Run;
+using GrimSpace.Run.Items;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -149,13 +150,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 		string playerFleetUnitId,
 		IReadOnlyList<string> playerShipIds,
 		int seed = 0,
-		IShipRegistryReader? shipRegistryReader = null)
+		Inventory? itemInventory = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
 		ArgumentNullException.ThrowIfNull(playerShipIds);
 		if (playerShipIds.Count == 0)
 			throw new ArgumentException("Player fleet must contain at least one ship.", nameof(playerShipIds));
-		var map = StarMap.Create(seed, shipRegistryReader);
+		var map = StarMap.Create(seed, itemInventory);
 		AddPlayerFleet(map, playerFleetUnitId, playerShipIds);
 		return InitializeSession(map, playerFleetUnitId);
 	}

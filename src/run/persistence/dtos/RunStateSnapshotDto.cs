@@ -5,7 +5,6 @@ using GrimSpace.World.StarSystem;
 namespace GrimSpace.Run.Persistence;
 
 public sealed record RunStateSnapshotDto(
-	IReadOnlyList<string> PartyShipIds,
 	IReadOnlyList<ShipPersistenceDto> Ships,
 	IReadOnlyList<PilotPersistenceDto> Pilots,
 	TutorialStateDto? Tutorial,
@@ -17,4 +16,5 @@ public sealed record RunStateSnapshotDto(
 	IReadOnlyList<string> ResolvedBattleIds,
 	IReadOnlyList<string> LaunchedEngagementIds,
 	BattleWorldSaveDto? BattleWorld,
-	IReadOnlyList<StarSystemRuntimeDto> StarSystemRuntimes);
+	IReadOnlyList<StarSystemRuntimeDto> StarSystemRuntimes,
+	IReadOnlyList<string>? PartyShipIds = null);

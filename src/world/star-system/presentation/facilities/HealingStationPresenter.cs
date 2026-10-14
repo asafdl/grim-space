@@ -66,7 +66,7 @@ public sealed class HealingStationPresenter
 		MerchantCatalog.Target target,
 		string shipId)
 	{
-		var before = _binding.Run.ShipRegistry.Get(shipId).Clone();
+		var before = _binding.Run.ItemInventory.Get(shipId).Clone();
 		if (!_binding.Intents.TryPurchase(
 			    _endpoint,
 			    EMerchantCatalog.Healing,

@@ -1,5 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Run;
+using GrimSpace.Run.Items;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Units;
 using GrimSpace.Units.Specs;
@@ -26,7 +27,7 @@ public sealed class LeadSaleSavePersistenceTests
 	public void AcceptSaveLoad_KeepsSalePresentationAndPurchases()
 	{
 		var registry = PersistenceRegistry.CreateDefault();
-		var runRegistry = new RunShipRegistry();
+		var runRegistry = new Inventory();
 		var map = StarMap.Create(42, runRegistry);
 		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
@@ -42,10 +43,12 @@ public sealed class LeadSaleSavePersistenceTests
 				MerchantSubtype: EMerchantSubtype.Weapons));
 		Assert.True(map.ContractRegistry.TryAdd(contract));
 		var shipId = map.FleetRegistry.FleetOf(State.PlayerFleetUnitId).Members[0].Id;
-		runRegistry.Register(ShipInstance.FromSpec(
-			shipId,
-			FighterSpec.Instance,
-			ShipCatalog.FullFighterLoadout()));
+		runRegistry.Register(
+			ShipInstance.FromSpec(
+				shipId,
+				FighterSpec.Instance,
+				ShipCatalog.FullFighterLoadout()),
+			State.PlayerFleetUnitId);
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(State.PlayerFleetUnitId);

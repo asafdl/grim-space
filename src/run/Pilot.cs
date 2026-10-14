@@ -32,7 +32,8 @@ public sealed class Pilot
 	public string Id { get; }
 	public string Name { get; }
 	public string PortraitId { get; }
-	public string AssignedShipId { get; }
+	public string? AssignedShipId { get; }
+	public bool IsActive { get; }
 	public int ExperiencePoints { get; }
 	public int ClaimedLevel { get; }
 	public IReadOnlyList<EPilotSkillId> LearnedSkills { get; }
@@ -41,7 +42,8 @@ public sealed class Pilot
 		string id,
 		string name,
 		string portraitId,
-		string assignedShipId,
+		string? assignedShipId,
+		bool isActive,
 		int experiencePoints,
 		int claimedLevel,
 		IReadOnlyList<EPilotSkillId> learnedSkills)
@@ -49,7 +51,6 @@ public sealed class Pilot
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		ArgumentException.ThrowIfNullOrEmpty(name);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
-		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
 		ArgumentNullException.ThrowIfNull(learnedSkills);
@@ -58,6 +59,7 @@ public sealed class Pilot
 		Name = name;
 		PortraitId = portraitId;
 		AssignedShipId = assignedShipId;
+		IsActive = isActive;
 		ExperiencePoints = experiencePoints;
 		ClaimedLevel = claimedLevel;
 		LearnedSkills = learnedSkills;
@@ -72,6 +74,7 @@ public sealed class Pilot
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			assignedShipId,
+			false,
 			0,
 			PilotProgression.LevelFor(0),
 			EmptySkills);
@@ -83,7 +86,30 @@ public sealed class Pilot
 			Name,
 			PortraitId,
 			AssignedShipId,
+			IsActive,
 			experiencePoints,
+			ClaimedLevel,
+			LearnedSkills);
+
+	internal Pilot WithAssignment(string? assignedShipId, bool isActive) =>
+		new(
+			Id,
+			Name,
+			PortraitId,
+			assignedShipId,
+			isActive,
+			ExperiencePoints,
+			ClaimedLevel,
+			LearnedSkills);
+
+	internal Pilot WithActive(bool isActive) =>
+		new(
+			Id,
+			Name,
+			PortraitId,
+			AssignedShipId,
+			isActive,
+			ExperiencePoints,
 			ClaimedLevel,
 			LearnedSkills);
 
@@ -107,6 +133,7 @@ public sealed class Pilot
 			Name,
 			PortraitId,
 			AssignedShipId,
+			IsActive,
 			ExperiencePoints,
 			ClaimedLevel + 1,
 			next);
@@ -118,6 +145,7 @@ public sealed class Pilot
 			Name,
 			PortraitId,
 			AssignedShipId,
+			IsActive,
 			ExperiencePoints,
 			ClaimedLevel,
 			LearnedSkills);
@@ -132,12 +160,13 @@ public sealed class Pilot
 			dto.Name,
 			dto.PortraitId,
 			dto.AssignedShipId,
+			dto.IsActive,
 			dto.ExperiencePoints,
 			claimedLevel,
 			dto.LearnedSkills ?? EmptySkills);
 	}
 
-	internal PilotPersistenceDto ToPersistence() =>
+	internal PilotPersistenceDto ToPersistence(int activeOrder = -1) =>
 		new(
 			Id,
 			Name,
@@ -145,5 +174,7 @@ public sealed class Pilot
 			AssignedShipId,
 			ExperiencePoints,
 			ClaimedLevel,
-			LearnedSkills);
+			LearnedSkills,
+			IsActive,
+			IsActive ? activeOrder : -1);
 }

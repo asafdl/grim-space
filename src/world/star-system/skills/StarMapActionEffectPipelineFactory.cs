@@ -26,18 +26,14 @@ public static class StarMapActionEffectPipelineFactory
 
 	public static void InstallPlayerPipeline(
 		StarSystemOrchestrator orchestrator,
-		RunPilotRegistry registry,
-		IReadOnlyList<string> partyShipIds)
+		RunPilotRegistry registry)
 	{
 		ArgumentNullException.ThrowIfNull(orchestrator);
 		ArgumentNullException.ThrowIfNull(registry);
-		ArgumentNullException.ThrowIfNull(partyShipIds);
 		if (orchestrator.PlayerId is null)
 			return;
 
-		var grants = registry.QueryLearnedForParty(
-			RunPilotRegistry.IsStrategicPassiveTag,
-			partyShipIds);
+		var grants = registry.QueryLearnedForActive(RunPilotRegistry.IsStrategicPassiveTag);
 		orchestrator.RuntimeFor(orchestrator.PlayerId).ReplaceActionEffects(Build(grants));
 	}
 }

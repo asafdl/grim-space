@@ -11,6 +11,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using BattleUnitState = GrimSpace.Battle.Units.State;
+using GrimSpace.Run.Items;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -164,7 +165,7 @@ public static class SaveDtoMapper
 		};
 	}
 
-	public static ShipPersistenceDto CaptureShip(ShipInstance ship)
+	public static ShipPersistenceDto CaptureShip(ShipInstance ship, string? ownerId = null)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
 		var loadout = ship.Loadout;
@@ -185,6 +186,7 @@ public static class SaveDtoMapper
 					installed.DamageUpgradeTier,
 					installed.RangeUpgradeTier))
 				.ToArray(),
+			OwnerId = ownerId,
 		});
 	}
 
@@ -426,7 +428,7 @@ public static class SaveDtoMapper
 	public static StarMap RestoreStarMap(
 		StarMapSaveDto dto,
 		PersistenceRegistry registry,
-		IShipRegistryReader? shipRegistryReader = null)
+		Inventory? itemInventory = null)
 	{
 		ArgumentNullException.ThrowIfNull(dto);
 		ArgumentNullException.ThrowIfNull(registry);
@@ -504,7 +506,7 @@ public static class SaveDtoMapper
 			resources,
 			RestoreMarket(dto.Market),
 			terrain,
-			shipRegistryReader,
+			itemInventory,
 			waitingForPlayerInput: dto.WaitingForPlayerInput,
 			activeNarrativeId: dto.ActiveNarrativeId);
 	}

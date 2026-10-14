@@ -11,4 +11,5 @@ public sealed record ShipPersistenceDto(
 	FaceShieldDto MaxShieldPoints,
 	FaceShieldDto ShieldUpgradeTiers,
 	int HullUpgradeTier,
-	IReadOnlyList<InstalledAbilityDto> InstalledAbilities);
+	IReadOnlyList<InstalledAbilityDto> InstalledAbilities,
+	string? OwnerId = null);

@@ -1,6 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
+using GrimSpace.Run.Items;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Generation;
@@ -48,7 +48,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public StoryObjectiveRegistry StoryObjectives { get; }
 	public PlayerResources PlayerResources { get; }
 	public StarMarket Market { get; }
-	public IShipRegistryReader? ShipRegistryReader { get; }
+	public Inventory? ItemInventory { get; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
@@ -82,7 +82,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		PlayerResources playerResources,
 		StarMarket market,
 		PathfindingTerrain pathfindingTerrain,
-		IShipRegistryReader? shipRegistryReader = null,
+		Inventory? itemInventory = null,
 		bool waitingForPlayerInput = false,
 		string? activeNarrativeId = null)
 	{
@@ -102,7 +102,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		PlayerResources = playerResources;
 		Market = market;
 		PathfindingTerrain = pathfindingTerrain;
-		ShipRegistryReader = shipRegistryReader;
+		ItemInventory = itemInventory;
 		WaitingForPlayerInput = waitingForPlayerInput;
 		ActiveNarrativeId = activeNarrativeId;
 	}
@@ -146,7 +146,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			PlayerResources.CloneForFork(),
 			Market.CloneForFork(),
 			PathfindingTerrain,
-			ShipRegistryReader,
+			ItemInventory,
 			WaitingForPlayerInput,
 			ActiveNarrativeId)
 		{
@@ -164,9 +164,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 
 	public static StarMap Create(
 		int seed = 0,
-		IShipRegistryReader? shipRegistryReader = null) =>
+		Inventory? itemInventory = null) =>
 		StarSystemGenerator.Generate(
 			seed,
 			EStarSystemClass.Supply,
-			shipRegistryReader);
+			itemInventory);
 }

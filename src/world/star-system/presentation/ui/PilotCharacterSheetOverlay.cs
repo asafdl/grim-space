@@ -48,19 +48,18 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 	public bool TryHandleInput(InputEvent @event) => _shell.TryHandleInput(@event);
 
-	public void Open(Pilot pilot, ShipInstance ship, bool canCyclePilots)
+	public void Open(Pilot pilot, bool canCyclePilots, ShipInstance? assignedShip = null)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
-		ArgumentNullException.ThrowIfNull(ship);
 		_pilotId = pilot.Id;
 		_shell.Open("");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
-		_shell.SetBody(BuildBody(pilot, ship, canCyclePilots));
+		_shell.SetBody(BuildBody(pilot, canCyclePilots, assignedShip));
 	}
 
-	private Control BuildBody(Pilot pilot, ShipInstance ship, bool canCyclePilots)
+	private Control BuildBody(Pilot pilot, bool canCyclePilots, ShipInstance? assignedShip)
 	{
 		var body = new HBoxContainer
 		{
@@ -68,7 +67,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
 		body.AddThemeConstantOverride("separation", 18);
-		body.AddChild(BuildIdentityRail(pilot, ship, canCyclePilots));
+		body.AddChild(BuildIdentityRail(pilot, canCyclePilots, assignedShip));
 		body.AddChild(new VSeparator());
 		var skills = BuildTree(pilot);
 		skills.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -76,7 +75,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		return body;
 	}
 
-	private Control BuildIdentityRail(Pilot pilot, ShipInstance ship, bool canCyclePilots)
+	private Control BuildIdentityRail(Pilot pilot, bool canCyclePilots, ShipInstance? assignedShip)
 	{
 		var rail = new VBoxContainer
 		{
@@ -123,13 +122,16 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		HudStyles.ApplyTextRole(level, HudTextRole.Metadata);
 		rail.AddChild(level);
 
-		var spacer = new Control { CustomMinimumSize = new Vector2(0, 8) };
-		rail.AddChild(spacer);
-		rail.AddChild(BuildMeter(
-			"SHIELD",
-			ship.TotalCurrentShieldPoints,
-			ship.TotalMaxShieldPoints,
-			new Color(0.25f, 0.62f, 0.95f)));
+		if (assignedShip is not null)
+		{
+			var spacer = new Control { CustomMinimumSize = new Vector2(0, 8) };
+			rail.AddChild(spacer);
+			rail.AddChild(BuildMeter(
+				"SHIELD",
+				assignedShip.TotalCurrentShieldPoints,
+				assignedShip.TotalMaxShieldPoints,
+				new Color(0.25f, 0.62f, 0.95f)));
+		}
 
 		var (currentXp, requiredXp) = PilotProgression.ProgressWithinLevel(pilot.ExperiencePoints);
 		rail.AddChild(BuildMeter(

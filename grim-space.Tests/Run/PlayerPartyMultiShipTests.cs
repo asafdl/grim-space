@@ -55,7 +55,7 @@ public sealed class PlayerPartyMultiShipTests
 	public void CreateActiveBattleOrchestrator_PrefersSelectedPlayerWhenBattleWorldIsRestoredOver()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var first = run.PlayerParty.ShipIds[0];
+		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
 		Assert.True(run.StarSystem.TryCommitPlayerInput(
@@ -69,12 +69,12 @@ public sealed class PlayerPartyMultiShipTests
 			Spawns =
 			[
 				BattleSpawnTestKit.Create(
-					run.ShipRegistry.Get(first).Clone(),
+					run.ItemInventory.Get(first).Clone(),
 					ETeam.Player,
 					new Coord(3, 1, 1),
 					new UserExecutionAgent()),
 				BattleSpawnTestKit.Create(
-					run.ShipRegistry.Get(secondId).Clone(),
+					run.ItemInventory.Get(secondId).Clone(),
 					ETeam.Player,
 					new Coord(5, 1, 1),
 					new UserExecutionAgent()),
@@ -104,18 +104,18 @@ public sealed class PlayerPartyMultiShipTests
 	public void CreateNewRun_MerchantPurchaseAppliesToSelectedShip()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var first = run.PlayerParty.ShipIds[0];
+		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
 		Assert.True(run.StarSystem.TryCommitPlayerInput(
 			new SelectActiveFleetShipAction(RunState.PlayerFleetUnitId, secondId)));
 
-		var selected = run.ShipRegistry.Get(secondId);
+		var selected = run.ItemInventory.Get(secondId);
 		selected.HullPoints = 1;
-		run.ShipRegistry.Update(selected);
+		run.ItemInventory.Update(selected);
 		var offering = MerchantPurchaseTestHarness.RepairHull;
 		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
-		var before = run.ShipRegistry.Get(secondId).Clone();
+		var before = run.ItemInventory.Get(secondId).Clone();
 		var runtime = run.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
 			run.StarSystem.Map,
@@ -133,8 +133,8 @@ public sealed class PlayerPartyMultiShipTests
 
 		run.StarSystem.CommitSetup(action);
 
-		var repaired = run.ShipRegistry.Get(secondId);
-		var untouched = run.ShipRegistry.Get(first);
+		var repaired = run.ItemInventory.Get(secondId);
+		var untouched = run.ItemInventory.Get(first);
 		Assert.Equal(repaired.Loadout.MaxHullPoints, repaired.HullPoints);
 		Assert.Equal(untouched.Loadout.MaxHullPoints, untouched.HullPoints);
 	}
@@ -143,15 +143,15 @@ public sealed class PlayerPartyMultiShipTests
 	public void FromSnapshot_RestoredMap_AcceptsShieldRechargePurchase()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var ship = run.ShipRegistry.Get(run.PlayerParty.ShipIds[0]);
+		var ship = run.ItemInventory.Get(run.GetFieldedShipIds()[0]);
 		ship.ShieldPoints.Fill(0);
-		run.ShipRegistry.Update(ship);
+		run.ItemInventory.Update(ship);
 
 		var registry = PersistenceRegistry.CreateDefault();
 		using var restored = RunState.FromSnapshot(run.CaptureSnapshot(registry), registry);
 		SeedResources(restored.StarSystem.Map, credits: 5_000, scrap: 0);
 
-		var before = restored.ShipRegistry.Get(restored.PlayerParty.ShipIds[0]).Clone();
+		var before = restored.ItemInventory.Get(restored.GetFieldedShipIds()[0]).Clone();
 		var runtime = restored.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
 			restored.StarSystem.Map,
@@ -166,7 +166,7 @@ public sealed class PlayerPartyMultiShipTests
 			default,
 			before);
 
-		Assert.NotNull(restored.StarSystem.Map.ShipRegistryReader);
+		Assert.NotNull(restored.StarSystem.Map.ItemInventory);
 		Assert.True(PurchaseActionDef.Instance.IsLegal(action, restored.StarSystem.Map, runtime));
 	}
 
@@ -181,13 +181,13 @@ public sealed class PlayerPartyMultiShipTests
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, enemyFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			seed: 3,
 			id: "multi-ship-engagement",
 			initiatorFleetId: playerFleet.State.Id);
 
 		Assert.Equal(
-			run.PlayerParty.ShipIds.OrderBy(id => id, StringComparer.Ordinal),
+			run.GetFieldedShipIds().OrderBy(id => id, StringComparer.Ordinal),
 			encounter.Spawns
 				.Where(spawn => spawn.Team == ETeam.Player)
 				.Select(spawn => spawn.Ship.Id)
@@ -208,7 +208,7 @@ public sealed class PlayerPartyMultiShipTests
 			"test");
 		map.FleetRegistry.Add(pirate);
 		foreach (var declaration in pirate.Registrations)
-			run.ShipRegistry.Register(declaration);
+			run.ItemInventory.Register(declaration, pirate.State.Id);
 		return pirate;
 	}
 

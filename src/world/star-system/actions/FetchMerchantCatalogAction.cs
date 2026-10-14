@@ -50,7 +50,7 @@ public sealed class FetchMerchantCatalogActionDef
 			return false;
 		if (!EndpointServesCatalog(fetch.Endpoint, fetch.Catalog, world))
 			return false;
-		if (world.ShipRegistryReader?.Matches(
+		if (world.ItemInventory?.Matches(
 			    fetch.ShipSnapshot.Id,
 			    fetch.ShipSnapshot) != true)
 			return false;

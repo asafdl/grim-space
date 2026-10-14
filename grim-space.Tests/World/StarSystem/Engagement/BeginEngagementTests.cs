@@ -42,7 +42,7 @@ public sealed class BeginEngagementTests
 		Assert.True(EngagementQueries.TryGetCommittedPlayerEngagement(run.StarSystem.Map, playerId, out var committed));
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			7,
 			committed.EngagementId,
 			committed.InitiatorUnitId);
@@ -84,7 +84,7 @@ public sealed class BeginEngagementTests
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			231,
 			"test-engagement",
 			playerFleet.State.Id);
@@ -108,7 +108,7 @@ public sealed class BeginEngagementTests
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			seed: 231,
 			id: "test-engagement",
 			initiatorFleetId: pirateFleet.State.Id);
@@ -135,7 +135,7 @@ public sealed class BeginEngagementTests
 		{
 			var encounter = EngagementBattleFactory.Create(
 				[playerFleet, pirateFleet],
-				run.ShipRegistry,
+				run.ItemInventory,
 				seed,
 				$"test-engagement-{seed}",
 				playerFleet.State.Id);
@@ -167,11 +167,13 @@ public sealed class BeginEngagementTests
 				.Select(index => new FleetMember($"repurposed-miner-{index}"))
 				.ToArray());
 		foreach (var member in pirateFleet.Members)
-			run.ShipRegistry.Register(ShipInstance.FromCatalog(member.Id, GrimSpace.Units.Enums.EType.RepurposedMiner));
+			run.ItemInventory.Register(
+				ShipInstance.FromCatalog(member.Id, GrimSpace.Units.Enums.EType.RepurposedMiner),
+				pirateFleet.State.Id);
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			231,
 			"test-engagement",
 			playerFleet.State.Id);
@@ -197,7 +199,7 @@ public sealed class BeginEngagementTests
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			-227155311,
 			"test-engagement",
 			playerFleet.State.Id);
@@ -211,13 +213,15 @@ public sealed class BeginEngagementTests
 		if (fleet.Registrations.Count > 0)
 		{
 			foreach (var declaration in fleet.Registrations)
-				run.ShipRegistry.Register(declaration);
+				run.ItemInventory.Register(declaration, fleet.State.Id);
 			return;
 		}
 
 		foreach (var member in fleet.Members)
-			run.ShipRegistry.Register(ShipInstance.FromCatalog(
-				member.Id,
-				OutcomeTestKit.ChassisFromShipId(member.Id)));
+			run.ItemInventory.Register(
+				ShipInstance.FromCatalog(
+					member.Id,
+					OutcomeTestKit.ChassisFromShipId(member.Id)),
+				fleet.State.Id);
 	}
 }

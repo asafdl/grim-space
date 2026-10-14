@@ -86,9 +86,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
 			maps,
-			strategicGrants: pilots.QueryLearnedForParty(
-				RunPilotRegistry.IsStrategicPassiveTag,
-				pilots.All.Select(pilot => pilot.AssignedShipId).ToArray()));
+			strategicGrants: pilots.QueryLearned(RunPilotRegistry.IsStrategicPassiveTag));
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;

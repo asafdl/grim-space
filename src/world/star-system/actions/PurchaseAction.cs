@@ -94,7 +94,7 @@ public sealed class PurchaseActionDef
 			return false;
 		if (!EndpointServesPurchaseProvider(purchase, world))
 			return false;
-		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
+		if (world.ItemInventory?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return false;
 		var pricingAction = FetchMerchantCatalogActionDef.CreatePricingProbe(
 			purchase.ActorId,

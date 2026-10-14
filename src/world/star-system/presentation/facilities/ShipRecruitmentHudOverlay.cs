@@ -64,7 +64,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		body.AddThemeConstantOverride("separation", 18);
 
 
-		var shipCount = _run.PlayerParty.ShipIds.Count;
+		var shipCount = _run.PilotRegistry.Active.Count;
 		body.AddChild(HudWidgets.CreateStatusPanel(
 			HudStatusKind.Neutral,
 			$"Fleet roster: {shipCount}/{EnlistPlayerShipActionDef.MaxPlayerShips} ships"));

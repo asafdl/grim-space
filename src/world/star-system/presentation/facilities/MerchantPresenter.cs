@@ -98,7 +98,7 @@ public sealed class MerchantPresenter
 		var subtype = _activeSubtype
 			?? throw new InvalidOperationException(
 				"Merchant purchases require an active merchant subtype.");
-		var before = _binding.Run.ShipRegistry.Get(shipId).Clone();
+		var before = _binding.Run.ItemInventory.Get(shipId).Clone();
 		if (!_binding.Intents.TryPurchase(
 			    _endpoint,
 			    MerchantSubtypeRouting.CatalogFor(subtype),
@@ -122,13 +122,14 @@ public sealed class MerchantPresenter
 		_onStateChanged();
 	}
 
+	// TODO: we need to rework this when we decouple pilots from ships
 	private void OnRecruitmentRequested(RecruitmentOffer offer)
 	{
 		var committed = _binding.Intents.TryRecruitShip(_endpoint, offer);
 		if (!committed)
 		{
 			var run = _binding.Run;
-			if (run.PlayerParty.ShipIds.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
+			if (run.PilotRegistry.Active.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
 				_binding.PresentSystemError(
 					"Could not recruit ship.",
 					"Ship recruitment was requested while the fleet roster was full.");

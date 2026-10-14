@@ -2,7 +2,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Run.Items;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -77,7 +77,7 @@ public static class DeploymentPlacement
 
 	public static List<BattleSpawn> ForEngagement(
 		IReadOnlyList<Fleet> participantFleets,
-		RunShipRegistry registry,
+		Inventory registry,
 		int seed,
 		int gridSize,
 		string initiatorFleetId,
@@ -183,7 +183,7 @@ public static class DeploymentPlacement
 		Random rng,
 		int gridSize,
 		HashSet<Coord> occupied,
-		RunShipRegistry registry,
+		Inventory registry,
 		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot,
 		List<BattleSpawn> spawns)
 	{

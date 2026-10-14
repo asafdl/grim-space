@@ -14,7 +14,7 @@ public sealed class PlayerFleetSelectionTests
 	public void TryCommitPlayerInput_UpdatesRuntimeSelectedMember()
 	{
 		using var run = State.CreateNewRun(42);
-		var first = run.PlayerParty.ShipIds[0];
+		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, EType.Gunship)));
 
@@ -37,10 +37,10 @@ public sealed class PlayerFleetSelectionTests
 			run.StarSystem.Map,
 			runtime,
 			State.PlayerFleetUnitId,
-			run.PlayerParty.ShipIds);
+			run.GetFieldedShipIds());
 
-		Assert.Equal(run.PlayerParty.ShipIds[0], resolved);
-		Assert.Equal(run.PlayerParty.ShipIds[0], runtime.SelectedMemberShipId);
+		Assert.Equal(run.GetFieldedShipIds()[0], resolved);
+		Assert.Equal(run.GetFieldedShipIds()[0], runtime.SelectedMemberShipId);
 	}
 
 	[Fact]

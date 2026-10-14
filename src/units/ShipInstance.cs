@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.Run.Items;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
@@ -6,7 +7,7 @@ using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Units;
 
-public sealed class ShipInstance
+public sealed class ShipInstance : IItem
 {
 	public string Id { get; }
 	public ShipSpec Spec { get; }

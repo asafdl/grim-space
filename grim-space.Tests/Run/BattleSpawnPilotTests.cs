@@ -30,11 +30,11 @@ public sealed class BattleSpawnPilotTests
 			new Coord(4, 0, 0),
 			EFaction.Pirates);
 		foreach (var declaration in enemyFleet.Registrations)
-			run.ShipRegistry.Register(declaration);
+			run.ItemInventory.Register(declaration, enemyFleet.State.Id);
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, enemyFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			seed: 7,
 			id: "pilot-snapshot-test",
 			initiatorFleetId: playerFleet.State.Id,
@@ -63,7 +63,7 @@ public sealed class BattleSpawnPilotTests
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			seed: 3,
 			id: "pilot-save-test",
 			initiatorFleetId: playerFleet.State.Id,
@@ -111,7 +111,7 @@ public sealed class BattleSpawnPilotTests
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet],
-			run.ShipRegistry,
+			run.ItemInventory,
 			seed: 11,
 			id: "multi-pilot-test",
 			initiatorFleetId: playerFleet.State.Id,
@@ -161,7 +161,7 @@ public sealed class BattleSpawnPilotTests
 	private static Dictionary<string, PilotBattleSnapshot> BuildShipToPilotSnapshot(RunState run)
 	{
 		var map = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
-		foreach (var shipId in run.PlayerParty.ShipIds)
+		foreach (var shipId in run.GetFieldedShipIds())
 		{
 			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 			map[shipId] = new PilotBattleSnapshot(

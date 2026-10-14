@@ -1,6 +1,7 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.Run.Items;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.Units;
@@ -38,12 +39,12 @@ internal static class MerchantPurchaseTestHarness
 	public static MerchantCatalog.Offering RechargeAllShields =>
 		new(MerchantCatalog.Kind.RechargeAllShields);
 
-	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, RunShipRegistry registry) CreateEngine(
+	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, Inventory registry) CreateEngine(
 		StarMapFixture maps,
 		int seed = 42,
 		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
 	{
-		var registry = new RunShipRegistry();
+		var registry = new Inventory();
 		var map = StarMap.Create(seed, registry);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var unitId = State.PlayerFleetUnitId;
@@ -52,7 +53,7 @@ internal static class MerchantPurchaseTestHarness
 			shipId,
 			FighterSpec.Instance,
 			ShipCatalog.FullFighterLoadout());
-		registry.Register(ship);
+		registry.Register(ship, State.PlayerFleetUnitId);
 		map = map.Fork();
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();

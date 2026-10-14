@@ -1,4 +1,4 @@
-using GrimSpace.Units;
+using GrimSpace.Run.Items;
 using GrimSpace.World.StarSystem.Generation;
 namespace GrimSpace.World.StarSystem;
 
@@ -7,12 +7,12 @@ public static class StarSystemGenerator
 	public static StarMap Generate(
 		int seed,
 		EStarSystemClass systemClass,
-		IShipRegistryReader? shipRegistryReader = null) =>
+		Inventory? itemInventory = null) =>
 		systemClass switch
 		{
 			EStarSystemClass.Supply => StarSystemBuilder.Build(
 				SupplySystemGenerator.CreateBlueprint(seed),
-				shipRegistryReader),
+				itemInventory),
 			_ => throw new ArgumentOutOfRangeException(nameof(systemClass), systemClass, null),
 		};
 }

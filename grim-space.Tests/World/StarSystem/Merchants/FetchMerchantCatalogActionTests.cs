@@ -67,9 +67,7 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 			pilots.Register(pilot);
 		}
 
-		var grants = pilots.QueryLearnedForParty(
-			RunPilotRegistry.IsStrategicPassiveTag,
-			pilots.All.Select(pilot => pilot.AssignedShipId).ToArray());
+		var grants = pilots.QueryLearned(RunPilotRegistry.IsStrategicPassiveTag);
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
 			maps,

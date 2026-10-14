@@ -1,7 +1,7 @@
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Math.Grid;
-using GrimSpace.Run;
+using GrimSpace.Run.Items;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.Battle.Encounter;
@@ -14,7 +14,7 @@ public static class EngagementBattleFactory
 
 	public static BattleEncounter Create(
 		Fleet[] participantFleets,
-		RunShipRegistry registry,
+		Inventory registry,
 		int seed,
 		string id,
 		string initiatorFleetId,

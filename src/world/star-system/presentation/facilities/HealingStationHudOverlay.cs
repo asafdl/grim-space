@@ -204,11 +204,11 @@ public sealed partial class HealingStationHudOverlay : Control
 			_run.StarSystem.Map,
 			runtime,
 			State.PlayerFleetUnitId,
-			_run.PlayerParty.ShipIds);
+			_run.GetFieldedShipIds());
 		if (shipId is null)
 			return false;
 
-		ship = _run.ShipRegistry.Get(shipId);
+		ship = _run.ItemInventory.Get(shipId);
 		return true;
 	}
 }

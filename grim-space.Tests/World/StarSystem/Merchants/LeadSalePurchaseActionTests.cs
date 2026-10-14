@@ -1,5 +1,6 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Run;
+using GrimSpace.Run.Items;
 using GrimSpace.Units;
 using GrimSpace.Units.Specs;
 using GrimSpace.World.StarSystem;
@@ -112,7 +113,7 @@ public sealed class LeadSalePurchaseActionTests
 	private static (Engine<StarMap, ActorRuntime> Engine, string UnitId, Contract Contract, ShipInstance Ship)
 		CreateAcceptedLead(string contractId, double spaceMeetingChance)
 	{
-		var registry = new RunShipRegistry();
+		var registry = new Inventory();
 		var map = StarMap.Create(42, registry);
 		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
@@ -133,7 +134,7 @@ public sealed class LeadSalePurchaseActionTests
 			shipId,
 			FighterSpec.Instance,
 			ShipCatalog.FullFighterLoadout());
-		registry.Register(ship);
+		registry.Register(ship, State.PlayerFleetUnitId);
 		map = map.Fork();
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();

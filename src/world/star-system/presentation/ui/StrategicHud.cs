@@ -5,6 +5,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Pilots;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Run;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Objectives;
@@ -112,15 +113,15 @@ public partial class StrategicHud : CanvasLayer
 			return;
 		}
 
-		if (!run.ShipRegistry.TryGet(pilot.AssignedShipId, out var ship))
-		{
+		ShipInstance? assignedShip = null;
+		if (pilot.AssignedShipId is not null
+			&& run.ItemInventory.TryGet(pilot.AssignedShipId, out var ship))
+			assignedShip = ship;
+		else if (pilot.AssignedShipId is not null)
 			GD.PushWarning(
-				$"Unable to open character sheet for pilot '{pilotId}': "
-				+ $"assigned ship '{pilot.AssignedShipId}' was not found.");
-			return;
-		}
+				$"Character sheet for pilot '{pilotId}': assigned ship '{pilot.AssignedShipId}' was not found.");
 
-		_pilotSheet.Open(pilot, ship, run.PlayerParty.ShipIds.Count > 1);
+		_pilotSheet.Open(pilot, run.GetFieldedShipIds().Count > 1, assignedShip);
 	}
 
 	private void OnPilotCycleRequested(string pilotId, int direction)
@@ -129,7 +130,7 @@ public partial class StrategicHud : CanvasLayer
 		if (!run.PilotRegistry.TryGet(pilotId, out var pilot))
 			return;
 
-		var shipIds = run.PlayerParty.ShipIds;
+		var shipIds = run.GetFieldedShipIds();
 		var currentIndex = -1;
 		for (var index = 0; index < shipIds.Count; index++)
 		{

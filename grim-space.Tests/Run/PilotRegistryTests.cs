@@ -21,13 +21,15 @@ public sealed class PilotRegistryTests
 	public void CreateNewRun_RegistersPilotForStarterShip()
 	{
 		using var run = State.CreateNewRun(42);
-		var shipId = Assert.Single(run.PlayerParty.ShipIds);
+		var shipId = Assert.Single(run.GetFieldedShipIds());
 
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		Assert.StartsWith("pilot-", pilot.Id, StringComparison.Ordinal);
 		Assert.False(string.IsNullOrWhiteSpace(pilot.Name));
 		Assert.Contains(pilot.PortraitId, Pilot.PortraitPool);
 		Assert.Equal(shipId, pilot.AssignedShipId);
+		Assert.True(pilot.IsActive);
+		Assert.Equal(pilot, Assert.Single(run.PilotRegistry.Active));
 		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
 		Assert.Empty(pilot.LearnedSkills);
 	}
@@ -36,11 +38,11 @@ public sealed class PilotRegistryTests
 	public void Enlist_AddsSecondPilotWhilePartyOrderStaysShipOrdered()
 	{
 		using var run = State.CreateNewRun(42);
-		var firstShipId = run.PlayerParty.ShipIds[0];
+		var firstShipId = run.GetFieldedShipIds()[0];
 		var secondShipId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
 
-		Assert.Equal([firstShipId, secondShipId], run.PlayerParty.ShipIds);
+		Assert.Equal([firstShipId, secondShipId], run.GetFieldedShipIds());
 		Assert.True(run.PilotRegistry.TryGetForShip(firstShipId, out var firstPilot));
 		Assert.True(run.PilotRegistry.TryGetForShip(secondShipId, out var secondPilot));
 		Assert.NotEqual(firstPilot.Id, secondPilot.Id);
@@ -109,8 +111,8 @@ public sealed class PilotRegistryTests
 		var snapshot = run.CaptureSnapshot(registry);
 		using var restored = State.FromSnapshot(snapshot, registry);
 
-		Assert.Equal(run.PlayerParty.ShipIds, restored.PlayerParty.ShipIds);
-		foreach (var shipId in run.PlayerParty.ShipIds)
+		Assert.Equal(run.GetFieldedShipIds(), restored.GetFieldedShipIds());
+		foreach (var shipId in run.GetFieldedShipIds())
 		{
 			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var original));
 			Assert.True(restored.PilotRegistry.TryGetForShip(shipId, out var roundTripped));
@@ -178,7 +180,7 @@ public sealed class PilotRegistryTests
 		using var run = State.CreateNewRun(42);
 		var secondShipId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
-		var pilotsBefore = run.PlayerParty.ShipIds
+		var pilotsBefore = run.GetFieldedShipIds()
 			.Select(shipId =>
 			{
 				Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
@@ -188,10 +190,10 @@ public sealed class PilotRegistryTests
 
 		run.RegenerateMap(77);
 
-		Assert.Equal(pilotsBefore.Length, run.PlayerParty.ShipIds.Count);
+		Assert.Equal(pilotsBefore.Length, run.GetFieldedShipIds().Count);
 		foreach (var pilot in pilotsBefore)
 		{
-			Assert.Contains(pilot.AssignedShipId, run.PlayerParty.ShipIds);
+			Assert.Contains(pilot.AssignedShipId, run.GetFieldedShipIds());
 			Assert.True(run.PilotRegistry.TryGet(pilot.Id, out var restored));
 			Assert.Equal(pilot.Name, restored.Name);
 			Assert.Equal(pilot.PortraitId, restored.PortraitId);
@@ -203,8 +205,35 @@ public sealed class PilotRegistryTests
 	{
 		using var run = State.CreateNewRun(42);
 		var registry = PersistenceRegistry.CreateDefault();
-		var snapshot = run.CaptureSnapshot(registry) with { Pilots = [] };
+		var snapshot = run.CaptureSnapshot(registry) with
+		{
+			Pilots = [],
+			PartyShipIds = run.GetFieldedShipIds(),
+		};
 
 		Assert.Throws<InvalidDataException>(() => State.FromSnapshot(snapshot, registry));
+	}
+
+	[Fact]
+	public void Activate_RespectsMaxActivePilotCap()
+	{
+		var registry = new RunPilotRegistry();
+		var inventory = new GrimSpace.Run.Items.Inventory();
+		const string playerFleet = State.PlayerFleetUnitId;
+		var pilots = new List<Pilot>();
+		for (var index = 0; index < RunPilotRegistry.MaxActivePilots + 1; index++)
+		{
+			var shipId = $"fighter-{index}";
+			inventory.Register(ShipInstance.FromCatalog(shipId, EType.Fighter), playerFleet);
+			var pilot = Pilot.CreateForShip(shipId);
+			registry.Register(pilot);
+			pilots.Add(pilot);
+		}
+
+		for (var index = 0; index < RunPilotRegistry.MaxActivePilots; index++)
+			registry.Activate(pilots[index].Id, inventory, playerFleet);
+
+		Assert.Throws<InvalidOperationException>(() =>
+			registry.Activate(pilots[^1].Id, inventory, playerFleet));
 	}
 }

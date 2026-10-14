@@ -1,7 +1,7 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
+using GrimSpace.Run.Items;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
@@ -24,7 +24,7 @@ public static class StarSystemBuilder
 
 	public static StarMap Build(
 		StarSystemBlueprint blueprint,
-		IShipRegistryReader? shipRegistryReader = null)
+		Inventory? itemInventory = null)
 	{
 		ArgumentNullException.ThrowIfNull(blueprint);
 
@@ -36,7 +36,7 @@ public static class StarSystemBuilder
 				return BuildOnce(
 					blueprint,
 					layoutAttempt,
-					shipRegistryReader);
+					itemInventory);
 			}
 			catch (InvalidOperationException ex)
 			{
@@ -52,7 +52,7 @@ public static class StarSystemBuilder
 	private static StarMap BuildOnce(
 		StarSystemBlueprint blueprint,
 		int layoutAttempt,
-		IShipRegistryReader? shipRegistryReader)
+		Inventory? itemInventory)
 	{
 		var placed = PlacePois(blueprint, layoutAttempt);
 		var pois = placed.Values.OrderBy(poi => poi.Id, StringComparer.Ordinal).ToArray();
@@ -162,7 +162,7 @@ public static class StarSystemBuilder
 			new PlayerResources(),
 			StarMarketSeed.Create(),
 			terrain,
-			shipRegistryReader);
+			itemInventory);
 
 		foreach (var (fleet, poiId, remainingTicks) in spawnedWork)
 			WorkScheduler.ScheduleSpawnedWorker(map, fleet, poiId, remainingTicks);

@@ -103,7 +103,7 @@ public sealed class LeadSaleMapMerchantPresenter
 		var subtype = _activeSubtype
 			?? throw new InvalidOperationException("Lead sale purchases require an active merchant subtype.");
 		var run = _binding.Run;
-		var before = run.ShipRegistry.Get(shipId).Clone();
+		var before = run.ItemInventory.Get(shipId).Clone();
 		if (!_binding.TryCommitPlayerInput(new PurchaseAction(
 			    State.PlayerFleetUnitId,
 			    new LeadSaleMerchantEndpoint(contractId),
@@ -148,7 +148,7 @@ public sealed class LeadSaleMapMerchantPresenter
 				    offer.GearTier))))
 		{
 			var run = _binding.Run;
-			if (run.PlayerParty.ShipIds.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
+			if (run.PilotRegistry.Active.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
 				_binding.PresentSystemError(
 					"Could not recruit ship.",
 					"Lead-sale recruitment was requested while the fleet roster was full.");

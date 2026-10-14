@@ -24,7 +24,7 @@ public sealed class RunStatePersistenceTests
 	public void RegenerateMap_PreservesRunOwnedState()
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
-		var shipId = Assert.Single(run.PlayerParty.ShipIds);
+		var shipId = Assert.Single(run.GetFieldedShipIds());
 		var ship = ShipInstance.FromSpec(
 			shipId,
 			FighterSpec.Instance,
@@ -38,7 +38,7 @@ public sealed class RunStatePersistenceTests
 			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
 			out ship));
 		ship.HullPoints = 3;
-		run.ShipRegistry.Update(ship);
+		run.ItemInventory.Update(ship);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		var portraitId = pilot.PortraitId;
 		run.TutorialState!.ActiveStepIndex = 2;
@@ -49,22 +49,22 @@ public sealed class RunStatePersistenceTests
 
 		Assert.NotSame(previousMap, run.StarSystem.Map);
 		Assert.Equal(99, run.StarSystem.Map.Seed);
-		Assert.Equal([shipId], run.PlayerParty.ShipIds);
-		Assert.Same(ship, run.ShipRegistry.Get(shipId));
-		Assert.Equal(3, run.ShipRegistry.Get(shipId).HullPoints);
-		Assert.Equal(ship.Loadout.MaxHullPoints, run.ShipRegistry.Get(shipId).Loadout.MaxHullPoints);
+		Assert.Equal([shipId], run.GetFieldedShipIds());
+		Assert.Same(ship, run.ItemInventory.Get(shipId));
+		Assert.Equal(3, run.ItemInventory.Get(shipId).HullPoints);
+		Assert.Equal(ship.Loadout.MaxHullPoints, run.ItemInventory.Get(shipId).Loadout.MaxHullPoints);
 		Assert.Equal(
 			ship.Loadout.HullUpgradeTier,
-			run.ShipRegistry.Get(shipId).Loadout.HullUpgradeTier);
+			run.ItemInventory.Get(shipId).Loadout.HullUpgradeTier);
 		Assert.True(
-			run.ShipRegistry.Get(shipId).Loadout.MaxShieldPoints.Matches(
+			run.ItemInventory.Get(shipId).Loadout.MaxShieldPoints.Matches(
 				ship.Loadout.MaxShieldPoints));
 		Assert.True(
-			run.ShipRegistry.Get(shipId).Loadout.ShieldUpgradeTiers.Matches(
+			run.ItemInventory.Get(shipId).Loadout.ShieldUpgradeTiers.Matches(
 				ship.Loadout.ShieldUpgradeTiers));
 		Assert.Equal(
 			ship.Loadout.InstalledAbilities,
-			run.ShipRegistry.Get(shipId).Loadout.InstalledAbilities);
+			run.ItemInventory.Get(shipId).Loadout.InstalledAbilities);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilotAfterRegen));
 		Assert.Equal(portraitId, pilotAfterRegen.PortraitId);
 		Assert.NotNull(run.Tutorials);
@@ -95,7 +95,7 @@ public sealed class RunStatePersistenceTests
 	public void Snapshot_RestoresRunOwnedStateAndBindings()
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
-		var shipId = Assert.Single(run.PlayerParty.ShipIds);
+		var shipId = Assert.Single(run.GetFieldedShipIds());
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		run.TutorialState!.ActiveStepIndex = 2;
 		run.TutorialState!.PendingTutorialGraduation = true;
@@ -106,8 +106,8 @@ public sealed class RunStatePersistenceTests
 		var snapshot = run.CaptureSnapshot(registry);
 		using var restored = State.FromSnapshot(snapshot, registry);
 
-		Assert.Equal(run.PlayerParty.ShipIds, restored.PlayerParty.ShipIds);
-		Assert.Equal(run.ShipRegistry.Get(shipId).HullPoints, restored.ShipRegistry.Get(shipId).HullPoints);
+		Assert.Equal(run.GetFieldedShipIds(), restored.GetFieldedShipIds());
+		Assert.Equal(run.ItemInventory.Get(shipId).HullPoints, restored.ItemInventory.Get(shipId).HullPoints);
 		Assert.True(restored.PilotRegistry.TryGetForShip(shipId, out var restoredPilot));
 		Assert.Equal(pilot.Id, restoredPilot.Id);
 		Assert.Equal(pilot.PortraitId, restoredPilot.PortraitId);
@@ -171,13 +171,13 @@ public sealed class RunStatePersistenceTests
 			"test-member");
 		var enemyFleet = Assert.Single(spawned.Fleets);
 		foreach (var declaration in enemyFleet.Registrations)
-			restored.ShipRegistry.Register(declaration);
+			restored.ItemInventory.Register(declaration, enemyFleet.State.Id);
 
 		var playerFleet = restored.StarSystem.Map.FleetRegistry.FleetOf(
 			State.PlayerFleetUnitId);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, enemyFleet],
-			restored.ShipRegistry,
+			restored.ItemInventory,
 			seed: 42,
 			id: "restored-tutorial-hunt",
 			initiatorFleetId: playerFleet.State.Id);

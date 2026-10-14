@@ -198,7 +198,7 @@ internal static class ActionLegalityDiagnostics
 		if (!PurchaseActionDef.EndpointServesPurchaseProvider(purchase, world))
 			return $"operator_catalog_mismatch catalog={purchase.Catalog}";
 
-		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
+		if (world.ItemInventory?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return "ship_snapshot_stale";
 
 		if (!PurchaseActionDef.TryResolveQuotedOffer(purchase, world, runtime, out var offer))
