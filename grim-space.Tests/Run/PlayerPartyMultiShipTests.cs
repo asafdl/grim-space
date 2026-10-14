@@ -116,7 +116,10 @@ public sealed class PlayerPartyMultiShipTests
 		var offering = MerchantPurchaseTestHarness.RepairHull;
 		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
 		var before = run.ShipRegistry.Get(secondId).Clone();
-		var action = new PurchaseAction(
+		var runtime = run.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
+		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
+			run.StarSystem.Map,
+			runtime,
 			RunState.PlayerFleetUnitId,
 			new FacilityMerchantEndpoint(
 				SupplySystemPlan.Copper.TradeHubPoiId,
@@ -126,7 +129,6 @@ public sealed class PlayerPartyMultiShipTests
 			offering,
 			default,
 			before);
-		var runtime = run.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 		Assert.True(PurchaseActionDef.Instance.IsLegal(action, run.StarSystem.Map, runtime));
 
 		run.StarSystem.CommitSetup(action);
@@ -150,7 +152,10 @@ public sealed class PlayerPartyMultiShipTests
 		SeedResources(restored.StarSystem.Map, credits: 5_000, scrap: 0);
 
 		var before = restored.ShipRegistry.Get(restored.PlayerParty.ShipIds[0]).Clone();
-		var action = new PurchaseAction(
+		var runtime = restored.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
+		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
+			restored.StarSystem.Map,
+			runtime,
 			RunState.PlayerFleetUnitId,
 			new FacilityMerchantEndpoint(
 				SupplySystemPlan.Copper.TradeHubPoiId,
@@ -160,7 +165,6 @@ public sealed class PlayerPartyMultiShipTests
 			MerchantPurchaseTestHarness.RechargeAllShields,
 			default,
 			before);
-		var runtime = restored.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 
 		Assert.NotNull(restored.StarSystem.Map.ShipRegistryReader);
 		Assert.True(PurchaseActionDef.Instance.IsLegal(action, restored.StarSystem.Map, runtime));

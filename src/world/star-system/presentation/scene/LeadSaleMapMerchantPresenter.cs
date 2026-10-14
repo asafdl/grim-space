@@ -45,6 +45,7 @@ public sealed class LeadSaleMapMerchantPresenter
 		_recruitmentHud.Closed += OnHudClosed;
 		layer.AddChild(_recruitmentHud);
 		_binding.WorldUpdated += Sync;
+		_binding.MerchantCatalogQuoted += _upgradeHud.ReceiveCatalogQuote;
 	}
 
 	public bool IsOpen => _upgradeHud.IsOpen || _recruitmentHud.IsOpen;
@@ -64,7 +65,14 @@ public sealed class LeadSaleMapMerchantPresenter
 		switch (MerchantSubtypeRouting.PresentationFor(sale.MerchantSubtype))
 		{
 			case EMerchantPresentation.Upgrades:
-				_upgradeHud.Open(_binding.Run, _binding.Map, title, sale.MerchantSubtype);
+				_upgradeHud.Open(
+					_binding.Run,
+					_binding.Map,
+					title,
+					sale.MerchantSubtype,
+					CreateCatalogIntents(),
+					new LeadSaleMerchantEndpoint(contract.Id),
+					MerchantSubtypeRouting.CatalogFor(sale.MerchantSubtype));
 				break;
 			case EMerchantPresentation.Recruitment:
 				_recruitmentHud.Open(_binding.Run, title);
@@ -86,7 +94,7 @@ public sealed class LeadSaleMapMerchantPresenter
 	}
 
 	private void OnPurchaseRequested(
-		MerchantCatalog.Offering offering,
+		MerchantCatalog.Offer offer,
 		MerchantCatalog.Target target,
 		string shipId)
 	{
@@ -100,9 +108,10 @@ public sealed class LeadSaleMapMerchantPresenter
 			    State.PlayerFleetUnitId,
 			    new LeadSaleMerchantEndpoint(contractId),
 			    MerchantSubtypeRouting.CatalogFor(subtype),
-			    offering,
+			    offer.Offering,
 			    target,
-			    before)))
+			    before,
+			    offer.Cost)))
 		{
 			_upgradeHud.ShowError("Unable to purchase upgrade.");
 			_onStateChanged();
@@ -110,12 +119,19 @@ public sealed class LeadSaleMapMerchantPresenter
 		}
 
 		_upgradeHud.Sync(run, _binding.Map);
-		var message = offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
+		var message = offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
 			? "Max shields upgraded."
 			: "Upgrade installed.";
 		_upgradeHud.ShowConfirmation(message, HudStatusKind.Success);
 		_onStateChanged();
 	}
+
+	private UserIntentTranslator CreateCatalogIntents() =>
+		new(
+			State.PlayerFleetUnitId,
+			_binding.StarSystem.ImmediatePlayerActions
+			?? throw new InvalidOperationException(
+				"Lead sale merchants require immediate player actions."));
 
 	private void OnRecruitmentRequested(RecruitmentOffer offer)
 	{

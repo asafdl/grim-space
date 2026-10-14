@@ -29,13 +29,15 @@ public sealed class LeadSalePurchaseActionTests
 		var before = ship.Clone();
 		var (catalog, offering, target) = FirstPurchasableOffer(sale.MerchantSubtype, before);
 
-		Assert.True(engine.CreateSimulation().TryEnqueue(new PurchaseAction(
-			unitId,
-			new LeadSaleMerchantEndpoint(contract.Id),
-			catalog,
-			offering,
-			target,
-			before)));
+		Assert.True(engine.CreateSimulation().TryEnqueue(
+			MerchantPurchaseTestHarness.CreateQuotedPurchase(
+				engine,
+				unitId,
+				new LeadSaleMerchantEndpoint(contract.Id),
+				catalog,
+				offering,
+				target,
+				before)));
 	}
 
 	[Fact]
@@ -48,13 +50,15 @@ public sealed class LeadSalePurchaseActionTests
 		var before = ship.Clone();
 		var (catalog, offering, target) = FirstPurchasableOffer(sale.MerchantSubtype, before);
 
-		Assert.True(engine.CreateSimulation().TryEnqueue(new PurchaseAction(
-			unitId,
-			new LeadSaleMerchantEndpoint(contract.Id),
-			catalog,
-			offering,
-			target,
-			before)));
+		Assert.True(engine.CreateSimulation().TryEnqueue(
+			MerchantPurchaseTestHarness.CreateQuotedPurchase(
+				engine,
+				unitId,
+				new LeadSaleMerchantEndpoint(contract.Id),
+				catalog,
+				offering,
+				target,
+				before)));
 	}
 
 	[Fact]
@@ -66,13 +70,15 @@ public sealed class LeadSalePurchaseActionTests
 		var sale = (BlackMarketSaleObjective)contract.Objective;
 		var (catalog, offering, target) = FirstPurchasableOffer(sale.MerchantSubtype, ship);
 
-		Assert.False(engine.CreateSimulation().TryEnqueue(new PurchaseAction(
-			unitId,
-			new LeadSaleMerchantEndpoint(contract.Id),
-			catalog,
-			offering,
-			target,
-			ship.Clone())));
+		Assert.False(engine.CreateSimulation().TryEnqueue(
+			MerchantPurchaseTestHarness.CreateQuotedPurchase(
+				engine,
+				unitId,
+				new LeadSaleMerchantEndpoint(contract.Id),
+				catalog,
+				offering,
+				target,
+				ship.Clone())));
 	}
 
 	private static (EMerchantCatalog Catalog, MerchantCatalog.Offering Offering, MerchantCatalog.Target Target)

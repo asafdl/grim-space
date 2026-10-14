@@ -11,6 +11,7 @@ public sealed class HealingStationPresenter
 	private readonly FacilitySceneBinding _binding;
 	private readonly HealingStationHudOverlay _hud;
 	private readonly Action _onStateChanged;
+	private MerchantEndpoint _endpoint = null!;
 
 	public HealingStationPresenter(
 		Control host,
@@ -31,6 +32,7 @@ public sealed class HealingStationPresenter
 		_hud.Closed += _onStateChanged;
 		layer.AddChild(_hud);
 		_binding.WorldUpdated += Sync;
+		_binding.MerchantCatalogQuoted += _hud.ReceiveCatalogQuote;
 	}
 
 	public bool IsOpen => _hud.IsOpen;
@@ -43,32 +45,35 @@ public sealed class HealingStationPresenter
 				$"Operator '{facilityOperator.Name}' is not a healing station.",
 				nameof(facilityOperator));
 
+		_endpoint = MerchantEndpointResolver.ForFacilityOperator(
+			_binding.Map,
+			_binding.PoiId,
+			_binding.FacilityId,
+			facilityOperator.Name);
 		_hud.Open(
 			_binding.Run,
 			_binding.Map,
-			OperatorDisplayLabels.Title(facilityOperator));
+			OperatorDisplayLabels.Title(facilityOperator),
+			_binding.Intents,
+			_endpoint);
 		_onStateChanged();
 	}
 
 	private void Sync() => _hud.Sync(_binding.Run, _binding.Map);
 
 	private void OnPurchaseRequested(
-		MerchantCatalog.Offering offering,
+		MerchantCatalog.Offer offer,
 		MerchantCatalog.Target target,
 		string shipId)
 	{
-		var operatorName = MapNavigationContext.ActiveOperatorName
-			?? throw new InvalidOperationException(
-				"Healing purchases require an active facility operator.");
 		var before = _binding.Run.ShipRegistry.Get(shipId).Clone();
 		if (!_binding.Intents.TryPurchase(
-			    _binding.PoiId,
-			    _binding.FacilityId,
-			    operatorName,
+			    _endpoint,
 			    EMerchantCatalog.Healing,
-			    offering,
+			    offer.Offering,
 			    target,
-			    before))
+			    before,
+			    offer.Cost))
 		{
 			_hud.ShowError("Unable to complete purchase.");
 			_onStateChanged();
@@ -76,7 +81,7 @@ public sealed class HealingStationPresenter
 		}
 
 		_hud.Sync(_binding.Run, _binding.Map);
-		var message = offering.Kind switch
+		var message = offer.Offering.Kind switch
 		{
 			MerchantCatalog.Kind.RepairHull => "Hull repaired.",
 			MerchantCatalog.Kind.RechargeAllShields or MerchantCatalog.Kind.RechargeShieldFace =>

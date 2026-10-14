@@ -6,7 +6,6 @@ using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -16,7 +15,8 @@ public sealed record PurchaseAction(
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Offering Offering,
 	MerchantCatalog.Target Target,
-	ShipInstance Before) : IAction<StarMap, ActorRuntime>
+	ShipInstance Before,
+	ResourceBundle QuotedCost) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		PurchaseActionDef.Instance;
@@ -35,23 +35,7 @@ public sealed class PurchaseActionDef
 	{
 		if (action is not PurchaseAction purchase)
 			return false;
-		if (!world.FleetRegistry.TryGet(purchase.ActorId, out var fleet))
-			return false;
-		if (!fleet.Members.Any(member =>
-				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
-			return false;
-		if (!EndpointServesPurchaseProvider(purchase, world))
-			return false;
-		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
-			return false;
-		if (!MerchantCatalog.TryFind(
-				purchase.Catalog,
-				purchase.Offering,
-				purchase.Target,
-				purchase.Before,
-				world,
-				out var offer,
-				StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects)))
+		if (!TryResolveQuotedOffer(purchase, world, runtime, out var offer))
 			return false;
 		if (!MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
@@ -64,21 +48,10 @@ public sealed class PurchaseActionDef
 	}
 
 	internal static bool EndpointServesPurchaseProvider(PurchaseAction purchase, StarMap world) =>
-		purchase.Catalog switch
-		{
-			EMerchantCatalog.Weapons => MerchantPurchaseValidation.EndpointServesMerchantSubtype(
-				world,
-				purchase.Endpoint,
-				EMerchantSubtype.Weapons),
-			EMerchantCatalog.ShipSupport => MerchantPurchaseValidation.EndpointServesMerchantSubtype(
-				world,
-				purchase.Endpoint,
-				EMerchantSubtype.ShipSupport),
-			EMerchantCatalog.Healing => MerchantPurchaseValidation.EndpointServesHealingStation(
-				world,
-				purchase.Endpoint),
-			_ => false,
-		};
+		FetchMerchantCatalogActionDef.EndpointServesCatalog(
+			purchase.Endpoint,
+			purchase.Catalog,
+			world);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -86,14 +59,7 @@ public sealed class PurchaseActionDef
 		ActorRuntime runtime)
 	{
 		var purchase = (PurchaseAction)action;
-		if (!MerchantCatalog.TryFind(
-				purchase.Catalog,
-				purchase.Offering,
-				purchase.Target,
-				purchase.Before,
-				world,
-				out var offer,
-				StarMapActionEffectPipelineFactory.GrantsFromPipeline(runtime.ActionEffects))
+		if (!TryResolveQuotedOffer(purchase, world, runtime, out var offer)
 			|| !MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
 				purchase.Target,
@@ -112,5 +78,41 @@ public sealed class PurchaseActionDef
 			new ChangeResourceEffect(TransactionSource.MerchantPurchase, offer.Cost.Negate()),
 			new RecordMerchantShipPurchaseEffect(fact),
 		];
+	}
+
+	internal static bool TryResolveQuotedOffer(
+		PurchaseAction purchase,
+		StarMap world,
+		ActorRuntime runtime,
+		out MerchantCatalog.Offer offer)
+	{
+		offer = default!;
+		if (!world.FleetRegistry.TryGet(purchase.ActorId, out var fleet))
+			return false;
+		if (!fleet.Members.Any(member =>
+				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
+			return false;
+		if (!EndpointServesPurchaseProvider(purchase, world))
+			return false;
+		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
+			return false;
+		var pricingAction = FetchMerchantCatalogActionDef.CreatePricingProbe(
+			purchase.ActorId,
+			purchase.Endpoint,
+			purchase.Catalog,
+			purchase.Before);
+		offer = FetchMerchantCatalogActionDef.PriceCatalog(
+				pricingAction,
+				world,
+				runtime)
+			.Quote
+			.Offers
+			.FirstOrDefault(candidate =>
+				candidate.Offering == purchase.Offering
+				&& candidate.Targets.Contains(purchase.Target))!;
+		if (offer is null)
+			return false;
+
+		return offer.Cost.Equals(purchase.QuotedCost);
 	}
 }

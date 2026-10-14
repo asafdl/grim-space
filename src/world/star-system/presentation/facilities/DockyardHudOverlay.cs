@@ -1,9 +1,9 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -12,12 +12,16 @@ public sealed partial class DockyardHudOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private State _run = null!;
+	private UserIntentTranslator? _intents;
+	private MerchantEndpoint _endpoint;
+	private EMerchantCatalog _catalog;
 	private string _facilityTitle = "";
 	private EMerchantSubtype _subtype;
+	private MerchantCatalogQuote? _catalogQuote;
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<MerchantCatalog.Offering, MerchantCatalog.Target, string>? PurchaseRequested;
+	public event Action<MerchantCatalog.Offer, MerchantCatalog.Target, string>? PurchaseRequested;
 	public event Action? Closed;
 
 	public DockyardHudOverlay()
@@ -43,7 +47,10 @@ public sealed partial class DockyardHudOverlay : Control
 		State run,
 		StarMap map,
 		string facilityTitle,
-		EMerchantSubtype subtype)
+		EMerchantSubtype subtype,
+		UserIntentTranslator intents,
+		MerchantEndpoint endpoint,
+		EMerchantCatalog catalog)
 	{
 		if (subtype is not (EMerchantSubtype.Weapons or EMerchantSubtype.ShipSupport))
 			throw new ArgumentOutOfRangeException(
@@ -52,24 +59,41 @@ public sealed partial class DockyardHudOverlay : Control
 				"Upgrade HUD only supports weapon and ship-support merchants.");
 
 		_run = run;
+		_intents = intents;
+		_endpoint = endpoint;
+		_catalog = catalog;
 		_facilityTitle = facilityTitle;
 		_subtype = subtype;
+		_catalogQuote = null;
 		_statusKind = null;
 		_statusMessage = "";
 		_shell.Open(SheetTitle(), facilityTitle);
-		ShowMain();
+		RequestCatalog();
 	}
 
 	public void Close()
 	{
 		_statusKind = null;
 		_statusMessage = "";
+		_catalogQuote = null;
 		_shell.Close();
 	}
 
 	public void Sync(State run, StarMap map)
 	{
 		_run = run;
+		if (IsOpen)
+			RequestCatalog();
+	}
+
+	public void ReceiveCatalogQuote(MerchantCatalogQuote quote)
+	{
+		if (_intents is null
+			|| quote.Catalog != _catalog
+			|| !quote.Endpoint.Equals(_endpoint))
+			return;
+
+		_catalogQuote = quote;
 		if (IsOpen)
 			ShowMain();
 	}
@@ -86,6 +110,26 @@ public sealed partial class DockyardHudOverlay : Control
 		_statusKind = kind;
 		_statusMessage = message;
 		ShowMain();
+	}
+
+	private void RequestCatalog()
+	{
+		if (_intents is null || !IsOpen)
+			return;
+
+		if (!TryGetActiveShip(out var ship))
+		{
+			_catalogQuote = null;
+			ShowMain();
+			return;
+		}
+
+		_catalogQuote = null;
+		if (!_intents.TryFetchMerchantCatalog(
+			    _endpoint,
+			    _catalog,
+			    ship.Clone()))
+			ShowMain();
 	}
 
 	private void ShowMain()
@@ -108,13 +152,16 @@ public sealed partial class DockyardHudOverlay : Control
 			return;
 		}
 
-		var offers = MerchantCatalog.ListFor(
-			MerchantSubtypeRouting.CatalogFor(_subtype),
-			ship,
-			_run.StarSystem.Map,
-			StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
-				_run.PilotRegistry,
-				_run.PlayerParty.ShipIds));
+		if (_catalogQuote is null)
+		{
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				"Loading shop catalog…"));
+			_shell.SetBody(body);
+			return;
+		}
+
+		var offers = _catalogQuote.Offers;
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
@@ -136,6 +183,9 @@ public sealed partial class DockyardHudOverlay : Control
 
 	private void ShowTargets(MerchantCatalog.Offer offer, ShipInstance ship)
 	{
+		if (_catalogQuote is null)
+			return;
+
 		_shell.SetTitle(MerchantOfferDisplay.PackTitle(offer.Offering));
 		_shell.SetSubtitle("Choose a target");
 		_shell.SetHeader(HudHeaderMode.Back, ShowMain);
@@ -158,7 +208,7 @@ public sealed partial class DockyardHudOverlay : Control
 							installed),
 						offer.Cost)],
 					() => PurchaseRequested?.Invoke(
-						offer.Offering,
+						offer,
 						captured,
 						ship.Id)));
 				continue;
@@ -175,7 +225,7 @@ public sealed partial class DockyardHudOverlay : Control
 							offer.Offering.TargetLevel),
 						offer.Cost)],
 					() => PurchaseRequested?.Invoke(
-						offer.Offering,
+						offer,
 						captured,
 						ship.Id)));
 			}

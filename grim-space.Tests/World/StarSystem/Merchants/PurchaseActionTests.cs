@@ -36,31 +36,37 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
 		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		Assert.True(MerchantCatalog.TryFind(
-			EMerchantCatalog.Weapons,
-			offering,
-			target,
-			before,
-			MerchantCatalog.Tier(engine.World),
-			out var quote));
-
-		var records = engine.Commit(CreateAction(
+		var action = CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
 			offering,
 			target,
-			before));
+			before,
+			engine);
+		var pricedOffer = FetchMerchantCatalogActionDef.PriceCatalog(
+				FetchMerchantCatalogActionDef.CreatePricingProbe(
+				unitId,
+				action.Endpoint,
+				EMerchantCatalog.Weapons,
+				before),
+				engine.World,
+				engine.ActorRuntimes.For(unitId))
+			.Quote
+			.Offers
+			.Single(offer => offer.Offering == offering && offer.Targets.Contains(target));
+
+		var records = engine.Commit(action);
 
 		var purchase = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value;
 		var upgraded = purchase.After.Loadout.InstalledAbilities.Single(
 			ability => ability.Mount == target.Mount);
 		Assert.Equal(1, upgraded.DamageUpgradeTier);
 		Assert.Equal(
-			initialCredits - Amount(quote.Cost, ResourceId.Credits),
+			initialCredits - Amount(pricedOffer.Cost, ResourceId.Credits),
 			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.Equal(
-			initialScrap - Amount(quote.Cost, ResourceId.ScrapAlloy),
+			initialScrap - Amount(pricedOffer.Cost, ResourceId.ScrapAlloy),
 			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
@@ -91,26 +97,18 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
 		var initialScrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		Assert.True(MerchantCatalog.TryFind(
-			EMerchantCatalog.Weapons,
-			offering,
-			target,
-			before,
-			engine.World,
-			out var quote,
-			StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
-				pilots,
-				pilots.All.Select(pilot => pilot.AssignedShipId).ToArray())));
-		Assert.Equal(96, Amount(quote.Cost, ResourceId.Credits));
-		Assert.Equal(224, Amount(quote.Cost, ResourceId.ScrapAlloy));
-
-		engine.Commit(CreateAction(
+		var action = CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
 			offering,
 			target,
-			before));
+			before,
+			engine);
+		Assert.Equal(96, Amount(action.QuotedCost, ResourceId.Credits));
+		Assert.Equal(224, Amount(action.QuotedCost, ResourceId.ScrapAlloy));
+
+		engine.Commit(action);
 
 		Assert.Equal(
 			initialCredits - 96,
@@ -126,7 +124,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 
-		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateSyntheticPurchase(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
@@ -144,7 +142,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var invalidTarget = new MerchantCatalog.Target(
 			new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Forward));
 
-		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateSyntheticPurchase(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
@@ -171,7 +169,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			EMerchantCatalog.ShipSupport,
 			offering,
 			target,
-			before));
+			before,
+			engine));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
 		Assert.Equal(1, after.Loadout.ShieldUpgradeTiers[face]);
@@ -197,7 +196,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			EMerchantCatalog.Healing,
 			MerchantPurchaseTestHarness.RepairHull,
 			default,
-			ship.Clone()));
+			ship.Clone(),
+			engine));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
 		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
@@ -217,7 +217,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			EMerchantCatalog.Healing,
 			MerchantPurchaseTestHarness.RechargeAllShields,
 			default,
-			ship.Clone()));
+			ship.Clone(),
+			engine));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
 		Assert.Equal(after.TotalMaxShieldPoints, after.TotalCurrentShieldPoints);
@@ -227,7 +228,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void TryEnqueue_RejectsStaleShipSnapshot()
 	{
 		var (engine, unitId, ship, registry) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var before = ship.Clone();
 		Assert.True(ship.TryWithDamageUpgradeTier(
@@ -236,31 +237,38 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			out ship));
 		registry.Update(ship);
 
-		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+		var action = CreateAction(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
-			before)));
+			before,
+			engine);
+		Assert.False(engine.CreateSimulation().TryEnqueue(action));
 	}
 
 	[Fact]
 	public void TryEnqueue_RejectsOperatorServingDifferentCatalog()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
-		var action = new PurchaseAction(
+		var action = CreateAction(
 			unitId,
-			new FacilityMerchantEndpoint(
-				SupplySystemPlan.Copper.TradeHubPoiId,
-				DockyardFacilityId,
-				MapFacilityOperators.ShieldOperatorName(engine.World)),
+			engine.World,
 			EMerchantCatalog.Weapons,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
 			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
-			ship.Clone());
+			ship.Clone(),
+			engine);
+		action = action with
+		{
+			Endpoint = new FacilityMerchantEndpoint(
+				SupplySystemPlan.Copper.TradeHubPoiId,
+				DockyardFacilityId,
+				MapFacilityOperators.ShieldOperatorName(engine.World)),
+		};
 
 		Assert.False(engine.CreateSimulation().TryEnqueue(action));
 	}
@@ -271,7 +279,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T1);
 
-		Assert.False(engine.CreateSimulation().TryEnqueue(CreateAction(
+		Assert.False(engine.CreateSimulation().TryEnqueue(CreateSyntheticPurchase(
 			unitId,
 			engine.World,
 			EMerchantCatalog.Weapons,
@@ -280,7 +288,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			ship.Clone())));
 	}
 
-	private static PurchaseAction CreateAction(
+	private static PurchaseAction CreateSyntheticPurchase(
 		string unitId,
 		StarMap map,
 		EMerchantCatalog catalog,
@@ -289,16 +297,37 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		ShipInstance before) =>
 		new(
 			unitId,
-			new FacilityMerchantEndpoint(
-				SupplySystemPlan.Copper.TradeHubPoiId,
-				DockyardFacilityId,
-				catalog switch
-				{
-					EMerchantCatalog.Weapons => MapFacilityOperators.ShopOperatorName(map),
-					EMerchantCatalog.ShipSupport => MapFacilityOperators.ShieldOperatorName(map),
-					EMerchantCatalog.Healing => FacilityOperator.HealingStationName,
-					_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
-				}),
+			CreateEndpoint(map, catalog),
+			catalog,
+			offering,
+			target,
+			before,
+			ResourceBundle.Of(ResourceId.Credits, 1));
+
+	private static FacilityMerchantEndpoint CreateEndpoint(StarMap map, EMerchantCatalog catalog) =>
+		new(
+			SupplySystemPlan.Copper.TradeHubPoiId,
+			DockyardFacilityId,
+			catalog switch
+			{
+				EMerchantCatalog.Weapons => MapFacilityOperators.ShopOperatorName(map),
+				EMerchantCatalog.ShipSupport => MapFacilityOperators.ShieldOperatorName(map),
+				EMerchantCatalog.Healing => FacilityOperator.HealingStationName,
+				_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
+			});
+
+	private static PurchaseAction CreateAction(
+		string unitId,
+		StarMap map,
+		EMerchantCatalog catalog,
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		ShipInstance before,
+		Engine<StarMap, ActorRuntime> engine) =>
+		MerchantPurchaseTestHarness.CreateQuotedPurchase(
+			engine,
+			unitId,
+			CreateEndpoint(map, catalog),
 			catalog,
 			offering,
 			target,

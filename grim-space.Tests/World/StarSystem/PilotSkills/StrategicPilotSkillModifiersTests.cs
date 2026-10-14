@@ -25,23 +25,6 @@ public sealed class StrategicPilotSkillModifiersTests
 	}
 
 	[Fact]
-	public void ApplyUpgradeDiscount_StacksPastThirtyPercentAndRoundsCostsUp()
-	{
-		var map = StarMap.Create(1);
-		var grants = StackGrants(EPilotSkillId.IKnowABot, 4);
-		var cost = ResourceBundle.Create(
-			(ResourceId.Credits, 101),
-			(ResourceId.ScrapAlloy, 11),
-			(ResourceId.IndustrialCore, 2));
-
-		var modified = StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, cost, grants);
-
-		AssertResource(modified, ResourceId.Credits, 61);
-		AssertResource(modified, ResourceId.ScrapAlloy, 7);
-		AssertResource(modified, ResourceId.IndustrialCore, 2);
-	}
-
-	[Fact]
 	public void ModifiersWithoutLearnedSkills_PreserveBundles()
 	{
 		var map = StarMap.Create(1);
@@ -52,9 +35,6 @@ public sealed class StrategicPilotSkillModifiersTests
 		Assert.Same(
 			resources,
 			StrategicPilotSkillModifiers.ApplySalvageBonus(map, resources));
-		Assert.Same(
-			resources,
-			StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, resources));
 	}
 
 	[Fact]

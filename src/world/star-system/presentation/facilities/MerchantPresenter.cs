@@ -39,6 +39,7 @@ public sealed class MerchantPresenter
 		_recruitmentHud.Closed += _onStateChanged;
 		layer.AddChild(_recruitmentHud);
 		_binding.WorldUpdated += Sync;
+		_binding.MerchantCatalogQuoted += _upgradeHud.ReceiveCatalogQuote;
 	}
 
 	public bool IsOpen => _upgradeHud.IsOpen || _recruitmentHud.IsOpen;
@@ -65,7 +66,14 @@ public sealed class MerchantPresenter
 		switch (MerchantSubtypeRouting.PresentationFor(subtype))
 		{
 			case EMerchantPresentation.Upgrades:
-				_upgradeHud.Open(_binding.Run, _binding.Map, title, subtype);
+				_upgradeHud.Open(
+					_binding.Run,
+					_binding.Map,
+					title,
+					subtype,
+					_binding.Intents,
+					_endpoint,
+					MerchantSubtypeRouting.CatalogFor(subtype));
 				break;
 			case EMerchantPresentation.Recruitment:
 				_recruitmentHud.Open(_binding.Run, title);
@@ -83,7 +91,7 @@ public sealed class MerchantPresenter
 	}
 
 	private void OnPurchaseRequested(
-		MerchantCatalog.Offering offering,
+		MerchantCatalog.Offer offer,
 		MerchantCatalog.Target target,
 		string shipId)
 	{
@@ -94,9 +102,10 @@ public sealed class MerchantPresenter
 		if (!_binding.Intents.TryPurchase(
 			    _endpoint,
 			    MerchantSubtypeRouting.CatalogFor(subtype),
-			    offering,
+			    offer.Offering,
 			    target,
-			    before))
+			    before,
+			    offer.Cost))
 		{
 			_upgradeHud.ShowError("Unable to purchase upgrade.");
 			_onStateChanged();
@@ -104,7 +113,7 @@ public sealed class MerchantPresenter
 		}
 
 		_upgradeHud.Sync(_binding.Run, _binding.Map);
-		var message = offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
+		var message = offer.Offering.Kind == MerchantCatalog.Kind.UpgradeMaxShields
 			? "Max shields upgraded."
 			: "Upgrade installed.";
 		_upgradeHud.ShowConfirmation(message, HudStatusKind.Success);

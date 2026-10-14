@@ -1,9 +1,9 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -12,11 +12,14 @@ public sealed partial class HealingStationHudOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private State _run = null!;
+	private UserIntentTranslator? _intents;
+	private MerchantEndpoint _endpoint;
 	private string _facilityTitle = "";
+	private MerchantCatalogQuote? _catalogQuote;
 	private HudStatusKind? _statusKind;
 	private string _statusMessage = "";
 
-	public event Action<MerchantCatalog.Offering, MerchantCatalog.Target, string>? HealingPurchaseRequested;
+	public event Action<MerchantCatalog.Offer, MerchantCatalog.Target, string>? HealingPurchaseRequested;
 	public event Action? Closed;
 
 	public HealingStationHudOverlay()
@@ -36,26 +39,47 @@ public sealed partial class HealingStationHudOverlay : Control
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Open(State run, StarMap map, string facilityTitle)
+	public void Open(
+		State run,
+		StarMap map,
+		string facilityTitle,
+		UserIntentTranslator intents,
+		MerchantEndpoint endpoint)
 	{
 		_run = run;
+		_intents = intents;
+		_endpoint = endpoint;
 		_facilityTitle = facilityTitle;
+		_catalogQuote = null;
 		_statusKind = null;
 		_statusMessage = "";
 		_shell.Open("Healing station", facilityTitle);
-		ShowMain();
+		RequestCatalog();
 	}
 
 	public void Close()
 	{
 		_statusKind = null;
 		_statusMessage = "";
+		_catalogQuote = null;
 		_shell.Close();
 	}
 
 	public void Sync(State run, StarMap map)
 	{
 		_run = run;
+		if (IsOpen)
+			RequestCatalog();
+	}
+
+	public void ReceiveCatalogQuote(MerchantCatalogQuote quote)
+	{
+		if (_intents is null
+			|| quote.Catalog != EMerchantCatalog.Healing
+			|| !quote.Endpoint.Equals(_endpoint))
+			return;
+
+		_catalogQuote = quote;
 		if (IsOpen)
 			ShowMain();
 	}
@@ -72,6 +96,26 @@ public sealed partial class HealingStationHudOverlay : Control
 		_statusKind = kind;
 		_statusMessage = message;
 		ShowMain();
+	}
+
+	private void RequestCatalog()
+	{
+		if (_intents is null || !IsOpen)
+			return;
+
+		if (!TryGetActiveShip(out var ship))
+		{
+			_catalogQuote = null;
+			ShowMain();
+			return;
+		}
+
+		_catalogQuote = null;
+		if (!_intents.TryFetchMerchantCatalog(
+			    _endpoint,
+			    EMerchantCatalog.Healing,
+			    ship.Clone()))
+			ShowMain();
 	}
 
 	private void ShowMain()
@@ -93,13 +137,16 @@ public sealed partial class HealingStationHudOverlay : Control
 			return;
 		}
 
-		var offers = MerchantCatalog.ListFor(
-			EMerchantCatalog.Healing,
-			ship,
-			_run.StarSystem.Map,
-			StarMapActionEffectPipelineFactory.StrategicGrantsFrom(
-				_run.PilotRegistry,
-				_run.PlayerParty.ShipIds));
+		if (_catalogQuote is null)
+		{
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				"Loading services…"));
+			_shell.SetBody(body);
+			return;
+		}
+
+		var offers = _catalogQuote.Offers;
 		foreach (var offer in offers)
 		{
 			var captured = offer;
@@ -110,7 +157,7 @@ public sealed partial class HealingStationHudOverlay : Control
 					ServiceBody(captured, target, ship),
 					captured.Cost)],
 				() => HealingPurchaseRequested?.Invoke(
-					captured.Offering,
+					captured,
 					target,
 					ship.Id)));
 		}

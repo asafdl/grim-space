@@ -206,7 +206,8 @@ public sealed class PersistenceRegistry
 			dto.Catalog,
 			dto.Offering,
 			dto.Target,
-			SaveDtoMapper.RestoreShip(dto.Before));
+			SaveDtoMapper.RestoreShip(dto.Before),
+			dto.QuotedCost ?? ResourceBundle.Empty);
 	}
 
 	private static JsonElement WritePurchase(PurchaseAction value) =>
@@ -219,7 +220,8 @@ public sealed class PersistenceRegistry
 			value.Catalog,
 			value.Offering,
 			value.Target,
-			SaveDtoMapper.CaptureShip(value.Before)));
+			SaveDtoMapper.CaptureShip(value.Before),
+			value.QuotedCost));
 
 	private static MaintainContractBoardAction ReadMaintainContractBoard(
 		JsonElement element,

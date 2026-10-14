@@ -1,5 +1,8 @@
 using GrimSpace.Application;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -8,6 +11,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 public sealed class FacilitySceneBinding : IDisposable
 {
 	private readonly StarSystemOrchestrator _orchestrator;
+	private readonly IDisposable _catalogQuoteSubscription;
 	private bool _disposed;
 
 	private FacilitySceneBinding(
@@ -28,9 +32,12 @@ public sealed class FacilitySceneBinding : IDisposable
 		Intents = intents;
 		Map = orchestrator.Map;
 		_orchestrator.WorldUpdated += OnWorldUpdated;
+		_catalogQuoteSubscription = orchestrator.Subscribe<Record<MerchantCatalogQuote>>(
+			record => MerchantCatalogQuoted?.Invoke(record.Value));
 	}
 
 	public event Action? WorldUpdated;
+	public event Action<MerchantCatalogQuote>? MerchantCatalogQuoted;
 
 	public State Run { get; }
 
@@ -48,6 +55,10 @@ public sealed class FacilitySceneBinding : IDisposable
 
 	public bool TryVisitContractOperator(string operatorName) =>
 		_orchestrator.TryVisitContractOperator(PoiId, FacilityId, operatorName);
+
+	public IDisposable Subscribe<TEntry>(Action<TEntry> listener)
+		where TEntry : ITimelineEntry =>
+		_orchestrator.Subscribe(listener);
 
 	public static FacilitySceneBinding Create(string sceneName)
 	{
@@ -82,8 +93,10 @@ public sealed class FacilitySceneBinding : IDisposable
 
 		_disposed = true;
 		_orchestrator.WorldUpdated -= OnWorldUpdated;
+		_catalogQuoteSubscription.Dispose();
 		_orchestrator.RefreshPlayerAgent();
 		WorldUpdated = null;
+		MerchantCatalogQuoted = null;
 	}
 
 	private void OnWorldUpdated() => WorldUpdated?.Invoke();

@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Presentation.Camera;
 using GrimSpace.World.StarSystem.Presentation.Diagnostics;
 using GrimSpace.World.StarSystem.Presentation.Picking;
@@ -60,27 +61,41 @@ public sealed class UserIntentTranslator
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
 		MerchantCatalog.Target target,
-		ShipInstance before) =>
+		ShipInstance before,
+		ResourceBundle quotedCost) =>
 		TryPurchase(
 			new FacilityMerchantEndpoint(poiId, facilityId, operatorName),
 			catalog,
 			offering,
 			target,
-			before);
+			before,
+			quotedCost);
 
 	public bool TryPurchase(
 		MerchantEndpoint endpoint,
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
 		MerchantCatalog.Target target,
-		ShipInstance before) =>
+		ShipInstance before,
+		ResourceBundle quotedCost) =>
 		TrySubmitImmediately(new PurchaseAction(
 			FacilityActorId(),
 			endpoint,
 			catalog,
 			offering,
 			target,
-			before));
+			before,
+			quotedCost));
+
+	public bool TryFetchMerchantCatalog(
+		MerchantEndpoint endpoint,
+		EMerchantCatalog catalog,
+		ShipInstance shipSnapshot) =>
+		TrySubmitImmediately(new FetchMerchantCatalogAction(
+			FacilityActorId(),
+			endpoint,
+			catalog,
+			shipSnapshot));
 
 	public bool TryRecruitShip(
 		string poiId,

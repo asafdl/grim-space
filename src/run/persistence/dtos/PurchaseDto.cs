@@ -12,4 +12,5 @@ internal sealed record PurchaseDto(
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Offering Offering,
 	MerchantCatalog.Target Target,
-	ShipPersistenceDto Before);
+	ShipPersistenceDto Before,
+	ResourceBundle? QuotedCost = null);

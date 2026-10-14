@@ -45,7 +45,7 @@ internal static class ActionLegalityDiagnostics
 			FleeAction flee => DescribeEngageIllegality(flee, world),
 			AcceptContractAction accept => DescribeAcceptIllegality(accept, world),
 			DeclineContractAction decline => DescribeDeclineIllegality(decline, world),
-			PurchaseAction purchase => DescribePurchaseIllegality(purchase, world),
+			PurchaseAction purchase => DescribePurchaseIllegality(purchase, world, runtime),
 			ReachWreckageAction reach => DescribeReachWreckIllegality(reach, world),
 			LeaveWreckageAction leave => DescribeLeaveWreckIllegality(leave, world),
 			InvestigateWreckageAction investigate => DescribeInvestigateWreckIllegality(investigate, world),
@@ -183,7 +183,10 @@ internal static class ActionLegalityDiagnostics
 		return "illegal";
 	}
 
-	private static string DescribePurchaseIllegality(PurchaseAction purchase, StarMap world)
+	private static string DescribePurchaseIllegality(
+		PurchaseAction purchase,
+		StarMap world,
+		ActorRuntime runtime)
 	{
 		if (!world.FleetRegistry.TryGet(purchase.ActorId, out var fleet))
 			return "actor_missing";
@@ -198,29 +201,8 @@ internal static class ActionLegalityDiagnostics
 		if (world.ShipRegistryReader?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return "ship_snapshot_stale";
 
-		var shopTier = MerchantCatalog.Tier(world);
-		if (!MerchantCatalog.TryFind(
-				purchase.Catalog,
-				purchase.Offering,
-				purchase.Target,
-				purchase.Before,
-				world,
-				out var offer))
-		{
-			var availableAtAnotherTier = Enum.GetValues<EMerchantAvailabilityBand>()
-				.Where(tier => tier != shopTier)
-				.Any(tier => MerchantCatalog.TryFind(
-					purchase.Catalog,
-					purchase.Offering,
-					purchase.Target,
-					purchase.Before,
-					tier,
-					out _));
-			var reason = availableAtAnotherTier ? "offer_locked" : "offer_unavailable";
-			return $"{reason} catalog={purchase.Catalog} shop_tier={shopTier}"
-				+ $" kind={purchase.Offering.Kind} target_level={purchase.Offering.TargetLevel}"
-				+ $" target={FormatTarget(purchase.Target)}";
-		}
+		if (!PurchaseActionDef.TryResolveQuotedOffer(purchase, world, runtime, out var offer))
+			return "quote_stale";
 
 		if (!MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,

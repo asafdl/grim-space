@@ -306,6 +306,9 @@ public sealed class SaveGamePersistenceTests
 	{
 		var registry = PersistenceRegistry.CreateDefault();
 		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
+		var quotedCost = ResourceBundle.Create(
+			(ResourceId.Credits, 120),
+			(ResourceId.ScrapAlloy, 40));
 		var action = new PurchaseAction(
 			"player",
 			new FacilityMerchantEndpoint("trade-hub", "dockyard", "merchant"),
@@ -313,10 +316,12 @@ public sealed class SaveGamePersistenceTests
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
 			new MerchantCatalog.Target(
 				new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
-			before);
+			before,
+			quotedCost);
 
 		var restored = Assert.IsType<PurchaseAction>(registry.Read(registry.Write(action)));
 
+		Assert.Equal(action.QuotedCost, restored.QuotedCost);
 		Assert.Equal(action.Offering, restored.Offering);
 		Assert.Equal(action.Target, restored.Target);
 		Assert.Equal(action.Before.Id, restored.Before.Id);
@@ -340,7 +345,8 @@ public sealed class SaveGamePersistenceTests
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 1),
 			new MerchantCatalog.Target(
 				new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
-			before);
+			before,
+			ResourceBundle.Of(ResourceId.Credits, 50));
 
 		var restored = Assert.IsType<PurchaseAction>(registry.Read(registry.Write(action)));
 
@@ -359,7 +365,8 @@ public sealed class SaveGamePersistenceTests
 			EMerchantCatalog.ShipSupport,
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
 			default,
-			before);
+			before,
+			ResourceBundle.Empty);
 		var payload = JsonNode.Parse(registry.Write(action).GetRawText())!.AsObject();
 		var actionPayload = payload["payload"]!.AsObject();
 		actionPayload.Remove("target");

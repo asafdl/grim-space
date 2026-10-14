@@ -1,6 +1,8 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -59,5 +61,80 @@ internal static class MerchantPurchaseTestHarness
 			runtime.ReplaceActionEffects(StarMapActionEffectPipelineFactory.Build(strategicGrants));
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, unitId, ship, registry);
+	}
+
+	public static PurchaseAction CreateQuotedPurchase(
+		Engine<StarMap, ActorRuntime> engine,
+		string unitId,
+		MerchantEndpoint endpoint,
+		EMerchantCatalog catalog,
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		ShipInstance before) =>
+		CreateQuotedPurchase(
+			engine.World,
+			engine.ActorRuntimes.For(unitId),
+			unitId,
+			endpoint,
+			catalog,
+			offering,
+			target,
+			before);
+
+	public static PurchaseAction CreateQuotedPurchase(
+		StarMap map,
+		ActorRuntime runtime,
+		string unitId,
+		MerchantEndpoint endpoint,
+		EMerchantCatalog catalog,
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		ShipInstance before) =>
+		CreateQuotedPurchase(
+			map,
+			runtime,
+			unitId,
+			endpoint,
+			catalog,
+			offering,
+			target,
+			before,
+			runtime);
+
+	public static PurchaseAction CreateQuotedPurchase(
+		StarMap map,
+		ActorRuntime runtime,
+		string unitId,
+		MerchantEndpoint endpoint,
+		EMerchantCatalog catalog,
+		MerchantCatalog.Offering offering,
+		MerchantCatalog.Target target,
+		ShipInstance before,
+		ActorRuntime pricingRuntime)
+	{
+		var pricing = FetchMerchantCatalogActionDef.CreatePricingProbe(
+			unitId,
+			endpoint,
+			catalog,
+			before);
+		var offer = FetchMerchantCatalogActionDef.PriceCatalog(
+				pricing,
+				map,
+				pricingRuntime)
+			.Quote
+			.Offers
+			.FirstOrDefault(candidate =>
+				candidate.Offering == offering && candidate.Targets.Contains(target));
+		if (offer is null)
+			throw new InvalidOperationException("Merchant offer is not available for quoted purchase.");
+
+		return new PurchaseAction(
+			unitId,
+			endpoint,
+			catalog,
+			offering,
+			target,
+			before,
+			offer.Cost);
 	}
 }

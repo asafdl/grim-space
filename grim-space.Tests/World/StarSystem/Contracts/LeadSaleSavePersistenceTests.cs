@@ -75,13 +75,15 @@ public sealed class LeadSaleSavePersistenceTests
 		var purchaseEngine = new Engine<StarMap, ActorRuntime>(
 			restored,
 			new ActorRuntimes<ActorRuntime>());
-		Assert.True(purchaseEngine.CreateSimulation().TryEnqueue(new PurchaseAction(
-			State.PlayerFleetUnitId,
-			new LeadSaleMerchantEndpoint(contract.Id),
-			catalog,
-			offering,
-			target,
-			ship.Clone())));
+		Assert.True(purchaseEngine.CreateSimulation().TryEnqueue(
+			MerchantPurchaseTestHarness.CreateQuotedPurchase(
+				purchaseEngine,
+				State.PlayerFleetUnitId,
+				new LeadSaleMerchantEndpoint(contract.Id),
+				catalog,
+				offering,
+				target,
+				ship.Clone())));
 	}
 
 	private static LeadContractState GetLeadState(StarMap map, string contractId)

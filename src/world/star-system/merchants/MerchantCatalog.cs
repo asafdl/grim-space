@@ -1,8 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Loadouts.Abilities;
-using GrimSpace.Pilots;
-using GrimSpace.World.StarSystem.PilotSkills;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Merchants;
@@ -44,18 +42,10 @@ public static class MerchantCatalog
 	public static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
 		ShipInstance ship,
-		StarMap map,
-		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
+		StarMap map)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-		return ListFor(catalog, ship, map.Market, Tier(map))
-			.Select(offer => offer with
-			{
-				Cost = IsUpgrade(offer.Offering.Kind)
-					? StrategicPilotSkillModifiers.ApplyUpgradeDiscount(map, offer.Cost, strategicGrants)
-					: offer.Cost,
-			})
-			.ToArray();
+		return ListFor(catalog, ship, map.Market, Tier(map));
 	}
 
 	public static bool TryFind(
@@ -77,11 +67,10 @@ public static class MerchantCatalog
 		Target target,
 		ShipInstance ship,
 		StarMap map,
-		out Offer offer,
-		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
+		out Offer offer)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-		offer = ListFor(catalog, ship, map, strategicGrants).FirstOrDefault(candidate =>
+		offer = ListFor(catalog, ship, map).FirstOrDefault(candidate =>
 			candidate.Offering == key && candidate.Targets.Contains(target))!;
 		return offer is not null;
 	}
@@ -205,9 +194,6 @@ public static class MerchantCatalog
 			.Where(target => MerchantShipChanges.TryPrepareAfter(offering, target, ship, out _))
 			.ToArray();
 	}
-
-	private static bool IsUpgrade(Kind kind) =>
-		kind is Kind.UpgradeDamage or Kind.UpgradeRange or Kind.UpgradeMaxShields;
 
 	public static bool IncludesSheet(
 		EMerchantAvailabilityBand current,
