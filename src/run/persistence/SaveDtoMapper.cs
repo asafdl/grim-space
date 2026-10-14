@@ -233,6 +233,8 @@ public static class SaveDtoMapper
 			state.ParentId,
 			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 			state.ShieldsUpUsedThisTurn,
+			state.DefensiveManeuversMpSpentLastTurn,
+			state.DefensiveManeuversRollIndex,
 			MaxAp = state.Maneuverability.MaxActionPoints,
 			MaxMp = state.Maneuverability.MaxManeuverPoints,
 			state.Projectile,
@@ -264,6 +266,8 @@ public static class SaveDtoMapper
 		state.FuelRemaining = dto.FuelRemaining;
 		RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, dto.TemporaryShieldGrants);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
+		state.DefensiveManeuversMpSpentLastTurn = dto.DefensiveManeuversMpSpentLastTurn;
+		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
 			dto.MaxAp,
@@ -334,6 +338,8 @@ public static class SaveDtoMapper
 				state.ParentId,
 				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 				state.ShieldsUpUsedThisTurn,
+				state.DefensiveManeuversMpSpentLastTurn,
+				state.DefensiveManeuversRollIndex,
 				MaxAp = state.Maneuverability.MaxActionPoints,
 				MaxMp = state.Maneuverability.MaxManeuverPoints,
 				state.Projectile,
@@ -855,6 +861,8 @@ public static class SaveDtoMapper
 			state.FuelRemaining = unitDto.FuelRemaining;
 			RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, unitDto.TemporaryShieldGrants);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
+			state.DefensiveManeuversMpSpentLastTurn = unitDto.DefensiveManeuversMpSpentLastTurn;
+			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
 				unitDto.MaxAp,

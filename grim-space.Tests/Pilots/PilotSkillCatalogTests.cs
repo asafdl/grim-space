@@ -32,8 +32,24 @@ public sealed class PilotSkillCatalogTests
 	{
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.ShieldsUp);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.IonizedPayload);
+		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DefensiveManeuvers);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DronesYearnForMines);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.IKnowABot);
+	}
+
+	[Fact]
+	public void Get_ReturnsDefensiveManeuversMetadata()
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.DefensiveManeuvers);
+
+		Assert.Equal(EPilotSkillTag.BattlePassive, definition.Tag);
+		Assert.Equal("Defensive Maneuvers", definition.Name);
+		Assert.Equal(
+			"If you spend no maneuver points during your turn, gain a 25% chance to deflect 1 damage from each hit until your next turn ends.",
+			definition.Description);
+		Assert.Equal(2, definition.Tier);
+		Assert.Empty(definition.Prerequisites);
+		Assert.Equal(3, definition.MinimumEarnedLevel);
 	}
 
 	[Fact]

@@ -262,6 +262,8 @@ Movement uses two independently refilled resources. Action points (AP) pay for t
 
 [`IAction`](src/core/actions/IAction.cs) exposes opaque string **`Tags`** for committed timeline entries; the kernel stores and forwards them only. Battle action definitions pass base effects through the actor runtime's action-effect pipeline so pilot passives (for example, Ionized Payload on tagged lightning attacks) can replace effects without skill checks inside `Resolve`. Encounter creation installs the battle pipeline from the deployed pilots' frozen skill snapshots.
 
+Target-side passives publish their current combat condition from the owning actor runtime into cloneable battle unit state when the condition is evaluated. Damage effects read that state directly because effects receive the acting runtime only; they must not reach through the world to the engine's peer-runtime registry.
+
 `BattleOrchestrator` owns phase transitions, activation order, outcome evaluation, and the engine commit boundary. Godot-facing [`BattleController`](src/battle/presentation/scene/BattleController.cs), [`BattleHud`](src/battle/presentation/ui/BattleHud.cs), and [`PresentationFrameBuilder`](src/battle/presentation/PresentationFrameBuilder.cs) consume previews and committed history but do not implement battle rules.
 
 ### Ship spec, loadout, and ability spec (`src/units/`)

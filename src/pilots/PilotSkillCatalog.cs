@@ -19,6 +19,13 @@ public static class PilotSkillCatalog
 				"Lightning weapons deal 1 additional damage to shields.",
 				tier: 2,
 				minimumEarnedLevel: 3),
+			[EPilotSkillId.DefensiveManeuvers] = new(
+				EPilotSkillId.DefensiveManeuvers,
+				EPilotSkillTag.BattlePassive,
+				"Defensive Maneuvers",
+				"If you spend no maneuver points during your turn, gain a 25% chance to deflect 1 damage from each hit until your next turn ends.",
+				tier: 2,
+				minimumEarnedLevel: 3),
 			[EPilotSkillId.DronesYearnForMines] = new(
 				EPilotSkillId.DronesYearnForMines,
 				EPilotSkillTag.StrategicPassive,

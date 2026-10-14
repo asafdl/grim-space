@@ -55,4 +55,95 @@ public sealed class ApplyAreaDamageEffectTests
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
 		Assert.Equal(2, enemy.State.ShieldPoints[hitFace]);
 	}
+
+	[Theory]
+	[InlineData(0, 2)]
+	[InlineData(6, 1)]
+	public void Apply_DefensiveManeuversRollReducesDamageByOne(
+		int rollIndex,
+		int expectedHullDamage)
+	{
+		var (player, enemy, battle, hitFace) = DamageBattle();
+		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.DefensiveManeuversMpSpentLastTurn = 0;
+		enemy.State.DefensiveManeuversRollIndex = rollIndex;
+		var hullBefore = enemy.State.HullPoints;
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord> { enemy.State.Position },
+			2,
+			player.State.Position);
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
+
+		effect.Apply(battle.Engine.World, runtime, player.State.Id);
+
+		Assert.Equal(hullBefore - expectedHullDamage, enemy.State.HullPoints);
+		Assert.Equal(rollIndex + 1, enemy.State.DefensiveManeuversRollIndex);
+
+		effect.Undo(battle.Engine.World, runtime, player.State.Id);
+		Assert.Equal(hullBefore, enemy.State.HullPoints);
+		Assert.Equal(rollIndex, enemy.State.DefensiveManeuversRollIndex);
+	}
+
+	[Fact]
+	public void Apply_DoesNotRollDeflectionWithoutQualifyingTurn()
+	{
+		var (player, enemy, battle, hitFace) = DamageBattle();
+		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.DefensiveManeuversRollIndex = 6;
+		var hullBefore = enemy.State.HullPoints;
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord> { enemy.State.Position },
+			2,
+			player.State.Position);
+
+		effect.Apply(
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(player.State.Id),
+			player.State.Id);
+
+		Assert.Equal(hullBefore - 2, enemy.State.HullPoints);
+		Assert.Equal(6, enemy.State.DefensiveManeuversRollIndex);
+	}
+
+	[Fact]
+	public void Apply_DeflectionCannotReduceDamageBelowZero()
+	{
+		var (player, enemy, battle, hitFace) = DamageBattle();
+		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.DefensiveManeuversMpSpentLastTurn = 0;
+		enemy.State.DefensiveManeuversRollIndex = 6;
+		var hullBefore = enemy.State.HullPoints;
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord> { enemy.State.Position },
+			1,
+			player.State.Position);
+
+		effect.Apply(
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(player.State.Id),
+			player.State.Id);
+
+		Assert.Equal(hullBefore, enemy.State.HullPoints);
+	}
+
+	private static (
+		Unit Player,
+		Unit Enemy,
+		GrimSpace.Battle.BattleOrchestrator Battle,
+		ESpatialOrientation HitFace) DamageBattle()
+	{
+		var player = Factory.Create(
+			ShipInstance.FromCatalog("attacker", EType.Fighter),
+			ETeam.Player,
+			new Coord(5, 5, 5),
+			new GrimSpace.Battle.Player.UserExecutionAgent());
+		var enemy = BattleTestFixture.Enemy(new Coord(6, 5, 5));
+		var battle = BattleTestFixture.BeginSimulation(player, enemy);
+		var hitFace = GrimSpace.Battle.Spatial.BodyFrame.From(enemy.State)
+			.HitFaceFrom(player.State.Position);
+		return (player, enemy, battle, hitFace);
+	}
 }

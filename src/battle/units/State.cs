@@ -28,6 +28,8 @@ public sealed class State
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public List<TemporaryShieldGrant> TemporaryShieldGrants { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
+	public int? DefensiveManeuversMpSpentLastTurn { get; set; }
+	public int DefensiveManeuversRollIndex { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 
 	public bool IsAlive => HullPoints > 0;
@@ -96,6 +98,8 @@ public sealed class State
 			Projectile = Projectile,
 			ParentId = ParentId,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
+			DefensiveManeuversMpSpentLastTurn = DefensiveManeuversMpSpentLastTurn,
+			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			Maneuverability = Maneuverability,
 		};
 		foreach (var (mount, runtime) in MountRuntime)

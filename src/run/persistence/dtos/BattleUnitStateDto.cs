@@ -19,4 +19,6 @@ public sealed record BattleUnitStateDto(
 	int? MaxMp = null,
 	int? Initiative = null,
 	IReadOnlyList<TemporaryShieldGrantDto>? TemporaryShieldGrants = null,
-	bool ShieldsUpUsedThisTurn = false);
+	bool ShieldsUpUsedThisTurn = false,
+	int? DefensiveManeuversMpSpentLastTurn = null,
+	int DefensiveManeuversRollIndex = 0);

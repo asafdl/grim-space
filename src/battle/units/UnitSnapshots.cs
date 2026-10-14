@@ -6,13 +6,15 @@ namespace GrimSpace.Battle.Units;
 public readonly record struct UnitCombatSnapshot(
 	int HullPoints,
 	FaceShieldPoints ShieldPoints,
-	TemporaryShieldGrant[] TemporaryShieldGrants)
+	TemporaryShieldGrant[] TemporaryShieldGrants,
+	int DefensiveManeuversRollIndex)
 {
 	public static UnitCombatSnapshot Capture(State unit) =>
 		new(
 			unit.HullPoints,
 			unit.ShieldPoints.Clone(),
-			unit.TemporaryShieldGrants.Select(grant => grant.Clone()).ToArray());
+			unit.TemporaryShieldGrants.Select(grant => grant.Clone()).ToArray(),
+			unit.DefensiveManeuversRollIndex);
 
 	public void Restore(State unit)
 	{
@@ -21,6 +23,7 @@ public readonly record struct UnitCombatSnapshot(
 		unit.TemporaryShieldGrants.Clear();
 		foreach (var grant in TemporaryShieldGrants)
 			unit.TemporaryShieldGrants.Add(grant.Clone());
+		unit.DefensiveManeuversRollIndex = DefensiveManeuversRollIndex;
 	}
 }
 

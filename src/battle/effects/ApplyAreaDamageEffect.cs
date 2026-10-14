@@ -4,6 +4,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Effects;
@@ -57,8 +58,16 @@ public sealed class ApplyAreaDamageEffect(
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
-		if (damage > 0)
-			Defense.ApplyDamage(unit, damage, face, shieldDamageBonus);
+		var appliedDamage = damage;
+		if (damage > 0
+			&& unit.DefensiveManeuversMpSpentLastTurn == 0
+			&& RollsDeflection(unit))
+		{
+			appliedDamage--;
+		}
+
+		if (appliedDamage > 0)
+			Defense.ApplyDamage(unit, appliedDamage, face, shieldDamageBonus);
 
 		var shieldAfter = Defense.EffectiveShield(unit, face);
 		var shieldDamage = shieldBefore - shieldAfter;
@@ -73,5 +82,17 @@ public sealed class ApplyAreaDamageEffect(
 			Face: face,
 			ShieldDamage: shieldDamage,
 			HullDamage: hullDamage);
+	}
+
+	private bool RollsDeflection(State unit)
+	{
+		var rollIndex = unit.DefensiveManeuversRollIndex++;
+		var random = new StableRandom(
+			new StableSeedMixer()
+				.Add(unit.Id)
+				.Add(rollIndex)
+				.Add((int)cause)
+				.Value);
+		return random.NextDouble() < 0.25;
 	}
 }

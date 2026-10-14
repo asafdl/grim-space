@@ -2,6 +2,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -33,7 +34,10 @@ public sealed class EndOfPhaseDef
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		EndOfPhaseAction action,
 		BattleWorld world,
-		ActorRuntime runtime) => [];
+		ActorRuntime runtime) =>
+		runtime.PilotSkills.Contains(EPilotSkillId.DefensiveManeuvers)
+			? [new RecordDefensiveManeuversTurnEffect()]
+			: [];
 
 	private static EndOfPhaseAction Cast(IAction action) =>
 		action as EndOfPhaseAction ?? throw new ArgumentException($"Expected {nameof(EndOfPhaseAction)}.", nameof(action));

@@ -4,6 +4,7 @@ public enum EPilotSkillId
 {
 	ShieldsUp,
 	IonizedPayload,
+	DefensiveManeuvers,
 	DronesYearnForMines,
 	IKnowABot,
 }
