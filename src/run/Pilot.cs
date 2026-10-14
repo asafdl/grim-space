@@ -17,6 +17,8 @@ public sealed class Pilot
 		"pilot_06",
 		"pilot_07",
 		"pilot_08",
+		"pilot_09",
+		"pilot_10",
 	];
 
 	private static readonly UniqueName DisplayNames = new UniqueName(

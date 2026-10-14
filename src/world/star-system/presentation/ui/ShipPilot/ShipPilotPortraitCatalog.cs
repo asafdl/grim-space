@@ -15,6 +15,8 @@ public static class ShipPilotPortraitCatalog
 			["pilot_06"] = "res://assets/ui/unit_portraits/pilots/pilot_06.png",
 			["pilot_07"] = "res://assets/ui/unit_portraits/pilots/pilot_07.png",
 			["pilot_08"] = "res://assets/ui/unit_portraits/pilots/pilot_08.png",
+			["pilot_09"] = "res://assets/ui/unit_portraits/pilots/robot-1-touched-up.png",
+			["pilot_10"] = "res://assets/ui/unit_portraits/pilots/robot-2-touched-up.png",
 		};
 
 	public static Texture2D TextureFor(string portraitId) =>
