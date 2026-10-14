@@ -73,12 +73,14 @@ public sealed class DefensiveManeuversTests
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
 		state.DefensiveManeuversMpSpentLastTurn = 2;
 		state.DefensiveManeuversRollIndex = 7;
+		state.InTheFrayActive = true;
 
 		var dto = GrimSpace.Run.Persistence.SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = GrimSpace.Run.Persistence.SaveDtoMapper.RestoreBattleUnitState(dto);
 
 		Assert.Equal(2, restored.DefensiveManeuversMpSpentLastTurn);
 		Assert.Equal(7, restored.DefensiveManeuversRollIndex);
+		Assert.True(restored.InTheFrayActive);
 	}
 
 	private static (Unit Player, BattleOrchestrator Battle) PlayerWithDefensiveManeuversBattle()

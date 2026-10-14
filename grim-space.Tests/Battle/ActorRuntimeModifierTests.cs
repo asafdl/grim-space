@@ -49,6 +49,41 @@ public sealed class ActorRuntimeModifierTests
 	}
 
 	[Fact]
+	public void DodgeThis_AddsAdjacentTargetDamageBonus()
+	{
+		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.DodgeThis]));
+		var battle = CreateBattle(runtime);
+
+		var modified = runtime.ActionEffects.Apply(
+			new LightningCannonAction("player"),
+			battle.Engine.World,
+			runtime,
+			SampleEffects());
+
+		Assert.Equal(2, ((ApplyAreaDamageEffect)modified[0]).AdjacentTargetDamageBonus);
+		Assert.IsType<MountUsesChangeEffect>(modified[1]);
+	}
+
+	[Fact]
+	public void DodgeThisAndIonizedPayload_ComposeBothDamageBonuses()
+	{
+		var runtime = ActorRuntime.From(new PilotBattleSnapshot(
+			"pilot",
+			[EPilotSkillId.DodgeThis, EPilotSkillId.IonizedPayload]));
+		var battle = CreateBattle(runtime);
+
+		var modified = runtime.ActionEffects.Apply(
+			new LightningCannonAction("player"),
+			battle.Engine.World,
+			runtime,
+			SampleEffects());
+
+		var damage = Assert.IsType<ApplyAreaDamageEffect>(modified[0]);
+		Assert.Equal(2, damage.AdjacentTargetDamageBonus);
+		Assert.Equal(1, damage.ShieldDamageBonus);
+	}
+
+	[Fact]
 	public void MissingLightningTag_SkipsIonizedModifier()
 	{
 		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]));

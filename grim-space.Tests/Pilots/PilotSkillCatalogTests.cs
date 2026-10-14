@@ -31,10 +31,42 @@ public sealed class PilotSkillCatalogTests
 	public void All_EnumeratesRegisteredSkills()
 	{
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.ShieldsUp);
+		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DodgeThis);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.IonizedPayload);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DefensiveManeuvers);
+		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.InTheFray);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DronesYearnForMines);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.IKnowABot);
+	}
+
+	[Fact]
+	public void Get_ReturnsInTheFrayMetadata()
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.InTheFray);
+
+		Assert.Equal(EPilotSkillTag.BattlePassive, definition.Tag);
+		Assert.Equal("In The Fray", definition.Name);
+		Assert.Equal(
+			"Take 50% less damage from allied units, rounded up. Self-damage is unaffected.",
+			definition.Description);
+		Assert.Equal(3, definition.Tier);
+		Assert.Empty(definition.Prerequisites);
+		Assert.Equal(4, definition.MinimumEarnedLevel);
+	}
+
+	[Fact]
+	public void Get_ReturnsDodgeThisMetadata()
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.DodgeThis);
+
+		Assert.Equal(EPilotSkillTag.BattlePassive, definition.Tag);
+		Assert.Equal("Dodge This", definition.Name);
+		Assert.Equal(
+			"Deal 2 additional damage when hitting an adjacent target.",
+			definition.Description);
+		Assert.Equal(1, definition.Tier);
+		Assert.Empty(definition.Prerequisites);
+		Assert.Equal(2, definition.MinimumEarnedLevel);
 	}
 
 	[Fact]

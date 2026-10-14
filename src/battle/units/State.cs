@@ -30,6 +30,7 @@ public sealed class State
 	public bool ShieldsUpUsedThisTurn { get; set; }
 	public int? DefensiveManeuversMpSpentLastTurn { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
+	public bool InTheFrayActive { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 
 	public bool IsAlive => HullPoints > 0;
@@ -100,6 +101,7 @@ public sealed class State
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 			DefensiveManeuversMpSpentLastTurn = DefensiveManeuversMpSpentLastTurn,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
+			InTheFrayActive = InTheFrayActive,
 			Maneuverability = Maneuverability,
 		};
 		foreach (var (mount, runtime) in MountRuntime)

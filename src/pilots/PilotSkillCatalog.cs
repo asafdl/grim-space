@@ -12,6 +12,13 @@ public static class PilotSkillCatalog
 				"Boost shield faces until your next turn; pay AP when that turn begins.",
 				tier: 1,
 				minimumEarnedLevel: 1),
+			[EPilotSkillId.DodgeThis] = new(
+				EPilotSkillId.DodgeThis,
+				EPilotSkillTag.BattlePassive,
+				"Dodge This",
+				"Deal 2 additional damage when hitting an adjacent target.",
+				tier: 1,
+				minimumEarnedLevel: 2),
 			[EPilotSkillId.IonizedPayload] = new(
 				EPilotSkillId.IonizedPayload,
 				EPilotSkillTag.BattlePassive,
@@ -26,6 +33,13 @@ public static class PilotSkillCatalog
 				"If you spend no maneuver points during your turn, gain a 25% chance to deflect 1 damage from each hit until your next turn ends.",
 				tier: 2,
 				minimumEarnedLevel: 3),
+			[EPilotSkillId.InTheFray] = new(
+				EPilotSkillId.InTheFray,
+				EPilotSkillTag.BattlePassive,
+				"In The Fray",
+				"Take 50% less damage from allied units, rounded up. Self-damage is unaffected.",
+				tier: 3,
+				minimumEarnedLevel: 4),
 			[EPilotSkillId.DronesYearnForMines] = new(
 				EPilotSkillId.DronesYearnForMines,
 				EPilotSkillTag.StrategicPassive,

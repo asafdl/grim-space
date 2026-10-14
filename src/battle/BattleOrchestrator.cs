@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
+using GrimSpace.Pilots;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Objectives;
@@ -166,7 +167,10 @@ public sealed class BattleOrchestrator : IDisposable
 		{
 			PilotBattleSnapshot? pilot = null;
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
-			actorRuntimes.Register(unit.State.Id, ActorRuntime.From(pilot));
+			var runtime = ActorRuntime.From(pilot);
+			if (pilotsByActorId is not null)
+				unit.State.InTheFrayActive = runtime.PilotSkills.Contains(EPilotSkillId.InTheFray);
+			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 
 		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));

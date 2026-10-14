@@ -83,7 +83,7 @@ public sealed class ScrapDroneSwarmDef
 		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn)
 			?? throw new InvalidOperationException("Scrap drone swarm ability not installed for actor.");
 		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Scrap drone swarm spec missing area damage.");
-		return
+		IEffect<BattleWorld, ActorRuntime>[] effects =
 		[
 			new ApplyAreaDamageEffect(
 				EImpactCause.ScrapDroneSwarmBurst,
@@ -92,6 +92,7 @@ public sealed class ScrapDroneSwarmDef
 				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
+		return runtime.ActionEffects.Apply(action, world, runtime, effects);
 	}
 
 	public IReadOnlySet<Coord> AffectedCells(ScrapDroneSwarmAction action, BattleWorld world)

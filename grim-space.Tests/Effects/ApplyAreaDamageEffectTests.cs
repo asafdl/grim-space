@@ -27,6 +27,23 @@ public sealed class ApplyAreaDamageEffectTests
 	}
 
 	[Fact]
+	public void WithAdjacentTargetDamageBonus_AddsOnlyToAdjacentBonus()
+	{
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord>(),
+			3,
+			Coord.Zero,
+			1);
+
+		var adjusted = effect.WithAdjacentTargetDamageBonus(2);
+
+		Assert.Equal(3, adjusted.Damage);
+		Assert.Equal(1, adjusted.ShieldDamageBonus);
+		Assert.Equal(2, adjusted.AdjacentTargetDamageBonus);
+	}
+
+	[Fact]
 	public void Apply_UsesShieldDamageBonusOnlyAgainstShields()
 	{
 		var player = Factory.Create(
@@ -127,6 +144,51 @@ public sealed class ApplyAreaDamageEffectTests
 			player.State.Id);
 
 		Assert.Equal(hullBefore, enemy.State.HullPoints);
+	}
+
+	[Fact]
+	public void Apply_AdjacentDamageBonusAppliesPerTargetAndUndoRestoresBoth()
+	{
+		var player = Factory.Create(
+			ShipInstance.FromCatalog("attacker", EType.Fighter),
+			ETeam.Player,
+			new Coord(5, 5, 5),
+			new GrimSpace.Battle.Player.UserExecutionAgent());
+		var adjacent = BattleTestFixture.Enemy(new Coord(6, 5, 5));
+		var distant = Factory.Create(
+			ShipInstance.FromCatalog("distant", EType.Fighter),
+			ETeam.Enemy,
+			new Coord(7, 5, 5),
+			BattleAgentFactory.Create(EBattleAgentKind.Ai));
+		var adjacentFace = GrimSpace.Battle.Spatial.BodyFrame.From(adjacent.State)
+			.HitFaceFrom(player.State.Position);
+		var distantFace = GrimSpace.Battle.Spatial.BodyFrame.From(distant.State)
+			.HitFaceFrom(player.State.Position);
+		adjacent.State.ShieldPoints[adjacentFace] = 6;
+		distant.State.ShieldPoints[distantFace] = 6;
+		var adjacentHullBefore = adjacent.State.HullPoints;
+		var distantHullBefore = distant.State.HullPoints;
+		var battle = BattleTestFixture.BeginSimulation(player, [adjacent, distant]);
+		var effect = new ApplyAreaDamageEffect(
+				EImpactCause.LightningCannonBurst,
+				new HashSet<Coord> { adjacent.State.Position, distant.State.Position },
+				2,
+				player.State.Position)
+			.WithAdjacentTargetDamageBonus(2);
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
+
+		effect.Apply(battle.Engine.World, runtime, player.State.Id);
+
+		Assert.Equal(2, adjacent.State.ShieldPoints[adjacentFace]);
+		Assert.Equal(4, distant.State.ShieldPoints[distantFace]);
+		Assert.Equal(adjacentHullBefore, adjacent.State.HullPoints);
+		Assert.Equal(distantHullBefore, distant.State.HullPoints);
+
+		effect.Undo(battle.Engine.World, runtime, player.State.Id);
+		Assert.Equal(6, adjacent.State.ShieldPoints[adjacentFace]);
+		Assert.Equal(6, distant.State.ShieldPoints[distantFace]);
+		Assert.Equal(adjacentHullBefore, adjacent.State.HullPoints);
+		Assert.Equal(distantHullBefore, distant.State.HullPoints);
 	}
 
 	private static (

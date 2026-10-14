@@ -21,4 +21,5 @@ public sealed record BattleUnitStateDto(
 	IReadOnlyList<TemporaryShieldGrantDto>? TemporaryShieldGrants = null,
 	bool ShieldsUpUsedThisTurn = false,
 	int? DefensiveManeuversMpSpentLastTurn = null,
-	int DefensiveManeuversRollIndex = 0);
+	int DefensiveManeuversRollIndex = 0,
+	bool InTheFrayActive = false);

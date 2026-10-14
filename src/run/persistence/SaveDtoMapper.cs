@@ -235,6 +235,7 @@ public static class SaveDtoMapper
 			state.ShieldsUpUsedThisTurn,
 			state.DefensiveManeuversMpSpentLastTurn,
 			state.DefensiveManeuversRollIndex,
+			state.InTheFrayActive,
 			MaxAp = state.Maneuverability.MaxActionPoints,
 			MaxMp = state.Maneuverability.MaxManeuverPoints,
 			state.Projectile,
@@ -268,6 +269,7 @@ public static class SaveDtoMapper
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.DefensiveManeuversMpSpentLastTurn = dto.DefensiveManeuversMpSpentLastTurn;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
+		state.InTheFrayActive = dto.InTheFrayActive;
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
 			dto.MaxAp,
@@ -340,6 +342,7 @@ public static class SaveDtoMapper
 				state.ShieldsUpUsedThisTurn,
 				state.DefensiveManeuversMpSpentLastTurn,
 				state.DefensiveManeuversRollIndex,
+				state.InTheFrayActive,
 				MaxAp = state.Maneuverability.MaxActionPoints,
 				MaxMp = state.Maneuverability.MaxManeuverPoints,
 				state.Projectile,
@@ -863,6 +866,7 @@ public static class SaveDtoMapper
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.DefensiveManeuversMpSpentLastTurn = unitDto.DefensiveManeuversMpSpentLastTurn;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
+			state.InTheFrayActive = unitDto.InTheFrayActive;
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
 				unitDto.MaxAp,
