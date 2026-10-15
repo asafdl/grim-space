@@ -16,5 +16,4 @@ public sealed record RunStateSnapshotDto(
 	IReadOnlyList<string> ResolvedBattleIds,
 	IReadOnlyList<string> LaunchedEngagementIds,
 	BattleWorldSaveDto? BattleWorld,
-	IReadOnlyList<StarSystemRuntimeDto> StarSystemRuntimes,
-	IReadOnlyList<string>? PartyShipIds = null);
+	IReadOnlyList<StarSystemRuntimeDto> StarSystemRuntimes);

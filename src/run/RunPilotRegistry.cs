@@ -48,24 +48,6 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		}
 	}
 
-	internal void RestoreActiveFromLegacyPartyShipIds(IReadOnlyList<string> partyShipIds)
-	{
-		if (_activePilotIds.Count > 0 || partyShipIds.Count == 0)
-			return;
-
-		foreach (var shipId in partyShipIds)
-		{
-			if (!TryGetForShip(shipId, out var pilot))
-				throw new InvalidDataException($"Party ship '{shipId}' has no assigned pilot.");
-
-			if (_activePilotIds.Count >= MaxActivePilots)
-				break;
-
-			Update(pilot.WithActive(true));
-			_activePilotIds.Add(pilot.Id);
-		}
-	}
-
 	public void Register(Pilot pilot)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);

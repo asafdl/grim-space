@@ -76,16 +76,6 @@ public sealed class Inventory
 			throw new KeyNotFoundException($"Ship '{itemId}' is not registered.");
 	}
 
-	internal void ReassignOwner(string itemId, string ownerId)
-	{
-		ArgumentException.ThrowIfNullOrEmpty(itemId);
-		ArgumentException.ThrowIfNullOrEmpty(ownerId);
-		if (!_entries.TryGetValue(itemId, out var entry))
-			throw new KeyNotFoundException($"Ship '{itemId}' is not registered.");
-
-		_entries[itemId] = new ItemEntry(AsShip(entry.Item), ownerId);
-	}
-
 	public void Register(ShipSpawnDeclaration declaration, string ownerId) =>
 		Register(ShipInstance.FromSpec(
 			declaration.ShipId,

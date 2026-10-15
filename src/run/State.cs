@@ -82,22 +82,18 @@ public sealed class State : IDisposable
 		var run = new State();
 		run.ItemInventory.RestoreSnapshot(snapshot.Ships.Select(dto =>
 		{
-			var ownerId = string.IsNullOrEmpty(dto.OwnerId) ? PlayerFleetUnitId : dto.OwnerId;
-			return new InventorySnapshotEntry(SaveDtoMapper.RestoreShip(dto), ownerId);
+			if (string.IsNullOrEmpty(dto.OwnerId))
+				throw new InvalidDataException($"Ship '{dto.Id}' is missing OwnerId.");
+
+			return new InventorySnapshotEntry(SaveDtoMapper.RestoreShip(dto), dto.OwnerId);
 		}));
 		run.PilotRegistry.RestoreSnapshot(snapshot.Pilots);
-		if (snapshot.PartyShipIds is { Count: > 0 })
-			run.PilotRegistry.RestoreActiveFromLegacyPartyShipIds(snapshot.PartyShipIds);
+		run.ValidateActivePilotAlignment();
 
 		var map = SaveDtoMapper.RestoreStarMap(
 			snapshot.StarMap,
 			registry,
 			run.ItemInventory);
-		RunPersistenceMigration.ApplyLegacyShipOwners(
-			run.ItemInventory,
-			map,
-			run.PilotRegistry);
-		run.ValidateActivePilotAlignment();
 
 		run.BindStarSystem(StarSystemOrchestrator.FromMapForRestore(
 			map,

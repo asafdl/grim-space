@@ -201,14 +201,21 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
-	public void FromSnapshot_ThrowsWhenPartyShipHasNoPilot()
+	public void FromSnapshot_ThrowsWhenActivePilotHasNoAssignedShip()
 	{
 		using var run = State.CreateNewRun(42);
 		var registry = PersistenceRegistry.CreateDefault();
 		var snapshot = run.CaptureSnapshot(registry) with
 		{
-			Pilots = [],
-			PartyShipIds = run.GetFieldedShipIds(),
+			Pilots =
+			[
+				run.PilotRegistry.CaptureSnapshot()[0] with
+				{
+					IsActive = true,
+					ActiveOrder = 0,
+					AssignedShipId = null,
+				},
+			],
 		};
 
 		Assert.Throws<InvalidDataException>(() => State.FromSnapshot(snapshot, registry));
