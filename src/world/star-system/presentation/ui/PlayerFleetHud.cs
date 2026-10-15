@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
@@ -9,9 +10,11 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public partial class PlayerFleetHud : MarginContainer
 {
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
+	private Button _fleetButton = null!;
 	private VBoxContainer _pilotColumn = null!;
 	private StarSystemOrchestrator? _orchestrator;
 
+	public event Action? FleetManagementRequested;
 	public event Action<string>? PilotSheetRequested;
 
 	public override void _Ready()
@@ -27,14 +30,14 @@ public partial class PlayerFleetHud : MarginContainer
 		content.AddThemeConstantOverride("separation", 6);
 		margin.AddChild(content);
 
-		var title = new Label
+		_fleetButton = new Button
 		{
-			Text = "CREW",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			MouseFilter = MouseFilterEnum.Ignore,
+			TooltipText = "Manage owned ships and pilot assignments",
+			FocusMode = FocusModeEnum.All,
 		};
-		HudStyles.ApplyTextRole(title, HudTextRole.Metadata);
-		content.AddChild(title);
+		HudStyles.StyleButton(_fleetButton, HudActionKind.Secondary);
+		_fleetButton.Pressed += () => FleetManagementRequested?.Invoke();
+		content.AddChild(_fleetButton);
 
 		_pilotColumn = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		_pilotColumn.AddThemeConstantOverride("separation", 8);
@@ -44,6 +47,9 @@ public partial class PlayerFleetHud : MarginContainer
 	public void Sync(State run, StarSystemOrchestrator orchestrator)
 	{
 		_orchestrator = orchestrator;
+		_fleetButton.Text =
+			$"FLEET · {run.GetFieldedShipIds().Count}/{RunPilotRegistry.MaxActivePilots}  "
+			+ $"[{GameInputBindings.Label("map_fleet_management")}]";
 		var runtime = orchestrator.RuntimeFor(State.PlayerFleetUnitId);
 		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
 			orchestrator.Map,

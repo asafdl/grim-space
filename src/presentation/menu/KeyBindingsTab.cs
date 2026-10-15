@@ -59,6 +59,9 @@ public partial class KeyBindingsTab : Control
 		new(
 			"Time",
 			["map_pause", "map_speed_up", "map_speed_down"]),
+		new(
+			"Interface",
+			["map_fleet_management"]),
 	];
 
 	private const float ActionColumnMinWidth = 200f;

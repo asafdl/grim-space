@@ -29,6 +29,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 	public event Action<string, EPilotSkillId>? SkillLearnRequested;
 	public event Action<string, int>? PilotCycleRequested;
+	public event Action<string>? FleetManagementRequested;
+	public event Action? Closed;
 
 	public PilotCharacterSheetOverlay()
 	{
@@ -41,10 +43,13 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
 		_shell.SetDismissVisible(true);
+		_shell.Closed += () => Closed?.Invoke();
 		AddChild(_shell);
 	}
 
 	public bool IsOpen => _shell.IsOpen;
+
+	public void Close() => _shell.Close();
 
 	public bool TryHandleInput(InputEvent @event) => _shell.TryHandleInput(@event);
 
@@ -53,7 +58,10 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		ArgumentNullException.ThrowIfNull(pilot);
 		_pilotId = pilot.Id;
 		_shell.Open("");
-		_shell.SetHeader(HudHeaderMode.Close);
+		_shell.SetHeader(
+			HudHeaderMode.Back,
+			() => FleetManagementRequested?.Invoke(pilot.Id),
+			"← Fleet");
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 		_shell.SetBody(BuildBody(pilot, canCyclePilots, assignedShip));

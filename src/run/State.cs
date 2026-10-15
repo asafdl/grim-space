@@ -325,6 +325,28 @@ public sealed class State : IDisposable
 		return true;
 	}
 
+	public bool TryAssignPilotToShip(string pilotId, string shipId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		ArgumentException.ThrowIfNullOrEmpty(shipId);
+		if (ActiveBattle is not null
+			|| !PilotRegistry.TryGet(pilotId, out var pilot)
+			|| !ItemInventory.IsOwnedBy(shipId, PlayerFleetUnitId))
+			return false;
+		if (string.Equals(pilot.AssignedShipId, shipId, StringComparison.Ordinal))
+			return true;
+
+		PilotRegistry.AssignPilotToShip(pilotId, shipId);
+		RefreshStrategicFleetProjection();
+		RefreshStrategicPilotSkills();
+		PlayerFleetSelection.EnsureSelectedMember(
+			StarSystem.Map,
+			StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			GetFieldedShipIds());
+		return true;
+	}
+
 	public void RegenerateMap(int? seed = null)
 	{
 		var nextSeed = seed ?? Random.Shared.Next();

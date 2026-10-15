@@ -141,6 +141,35 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		Update(pilotB.WithAssignment(shipA, pilotB.IsActive));
 	}
 
+	internal void AssignPilotToShip(string pilotId, string shipId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		ArgumentException.ThrowIfNullOrEmpty(shipId);
+		var pilot = GetRequired(pilotId);
+		if (string.Equals(pilot.AssignedShipId, shipId, StringComparison.Ordinal))
+			return;
+
+		var hasOccupant = TryGetForShip(shipId, out var occupant);
+		var pilotActiveIndex = _activePilotIds.IndexOf(pilot.Id);
+		var occupantActiveIndex = hasOccupant ? _activePilotIds.IndexOf(occupant.Id) : -1;
+		var pilotShipId = pilot.AssignedShipId;
+
+		Update(pilot.WithAssignment(shipId, occupantActiveIndex >= 0));
+		if (hasOccupant)
+			Update(occupant.WithAssignment(pilotShipId, pilotActiveIndex >= 0));
+
+		if (pilotActiveIndex >= 0)
+		{
+			if (hasOccupant)
+				_activePilotIds[pilotActiveIndex] = occupant.Id;
+			else
+				_activePilotIds.RemoveAt(pilotActiveIndex);
+		}
+
+		if (occupantActiveIndex >= 0)
+			_activePilotIds[occupantActiveIndex] = pilot.Id;
+	}
+
 	public void Remove(string pilotId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);

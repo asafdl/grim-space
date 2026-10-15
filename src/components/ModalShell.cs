@@ -68,11 +68,14 @@ public sealed partial class ModalShell : Control
 		_subtitle.Visible = !string.IsNullOrEmpty(subtitle);
 	}
 
-	public void SetHeader(HudHeaderMode mode, Action? onHeaderPressed = null)
+	public void SetHeader(
+		HudHeaderMode mode,
+		Action? onHeaderPressed = null,
+		string? buttonLabel = null)
 	{
 		_headerMode = mode;
 		_headerAction = onHeaderPressed;
-		_headerButton.Text = mode == HudHeaderMode.Close ? "×" : "←";
+		_headerButton.Text = buttonLabel ?? (mode == HudHeaderMode.Close ? "×" : "←");
 		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissButton.Visible;
 	}
 

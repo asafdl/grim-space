@@ -275,9 +275,10 @@ public partial class StartMenu : Control
 				ResetVideoUiToDefaults();
 				break;
 			case SettingsTab.Audio:
-				_masterVolume.Value = 100f;
-				_musicVolume.Value = 100f;
-				_sfxVolume.Value = 100f;
+				var audioDefaults = GameSettings.DefaultAudioConfig;
+				_masterVolume.Value = audioDefaults.MasterVolume * 100f;
+				_musicVolume.Value = audioDefaults.MusicVolume * 100f;
+				_sfxVolume.Value = audioDefaults.SfxVolume * 100f;
 				break;
 			case SettingsTab.Gameplay:
 				_showTutorials.ButtonPressed = true;

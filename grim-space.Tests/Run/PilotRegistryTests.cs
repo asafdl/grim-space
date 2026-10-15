@@ -49,6 +49,64 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
+	public void TryAssignPilotToShip_SwapsActivePilotsWhilePreservingFieldedShipOrder()
+	{
+		using var run = State.CreateNewRun(42);
+		var firstShipId = run.GetFieldedShipIds()[0];
+		var secondShipId = TypedIdGenerator.NextId("gunship");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
+		Assert.True(run.PilotRegistry.TryGetForShip(firstShipId, out var firstPilot));
+		Assert.True(run.PilotRegistry.TryGetForShip(secondShipId, out var secondPilot));
+
+		Assert.True(run.TryAssignPilotToShip(secondPilot.Id, firstShipId));
+
+		Assert.Equal([firstShipId, secondShipId], run.GetFieldedShipIds());
+		Assert.True(run.PilotRegistry.TryGetForShip(firstShipId, out var reassignedFirst));
+		Assert.True(run.PilotRegistry.TryGetForShip(secondShipId, out var reassignedSecond));
+		Assert.Equal(secondPilot.Id, reassignedFirst.Id);
+		Assert.Equal(firstPilot.Id, reassignedSecond.Id);
+		Assert.Equal(
+			run.GetFieldedShipIds(),
+			run.StarSystem.Map.FleetRegistry
+				.FleetOf(State.PlayerFleetUnitId)
+				.Members
+				.Select(member => member.Id)
+				.ToArray());
+	}
+
+	[Fact]
+	public void TryAssignPilotToShip_ReplacesActivePilotWithUnassignedPilot()
+	{
+		using var run = State.CreateNewRun(42);
+		var shipId = Assert.Single(run.GetFieldedShipIds());
+		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var originalPilot));
+		var replacement = Pilot.CreateForShip("reserve-ship");
+		run.PilotRegistry.Register(replacement);
+		run.PilotRegistry.Unassign(replacement.Id);
+
+		Assert.True(run.TryAssignPilotToShip(replacement.Id, shipId));
+
+		Assert.Equal(replacement.Id, Assert.Single(run.PilotRegistry.Active).Id);
+		Assert.Equal(shipId, Assert.Single(run.GetFieldedShipIds()));
+		Assert.True(run.PilotRegistry.TryGet(replacement.Id, out var assignedReplacement));
+		Assert.Equal(shipId, assignedReplacement.AssignedShipId);
+		Assert.True(assignedReplacement.IsActive);
+		Assert.True(run.PilotRegistry.TryGet(originalPilot.Id, out var replacedPilot));
+		Assert.Null(replacedPilot.AssignedShipId);
+		Assert.False(replacedPilot.IsActive);
+	}
+
+	[Fact]
+	public void TryAssignPilotToShip_RejectsUnknownPilotOrUnownedShip()
+	{
+		using var run = State.CreateNewRun(42);
+		var pilot = Assert.Single(run.PilotRegistry.Active);
+
+		Assert.False(run.TryAssignPilotToShip("missing-pilot", pilot.AssignedShipId!));
+		Assert.False(run.TryAssignPilotToShip(pilot.Id, "missing-ship"));
+	}
+
+	[Fact]
 	public void Update_ReplacesRegisteredPilot()
 	{
 		var registry = new RunPilotRegistry();

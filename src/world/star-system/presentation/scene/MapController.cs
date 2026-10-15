@@ -343,11 +343,11 @@ public partial class MapController : Node3D
 		SyncDockedFacadePresentation();
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, _hidePlayerBeacon);
 
-		if (!_director.EffectiveInputPolicy.AllowsStrategicHover)
+		if (!_director.EffectiveInputPolicy.AllowsStrategicHover
+			|| IsBlockingModalOpen()
+			|| GetViewport().GuiGetHoveredControl() is not null)
 		{
-			_units.SetHovered(null);
-			Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
-			_tooltip.Visible = false;
+			ClearStrategicHover();
 			return;
 		}
 
@@ -365,6 +365,16 @@ public partial class MapController : Node3D
 		_landmarks.SetHovered(landmarkId);
 		_view.SetHovered(poiId);
 		UpdateTooltip(world, poiId, landmarkId, dockHover, unitHover, wreckContractId, screen);
+	}
+
+	private void ClearStrategicHover()
+	{
+		_units.SetHovered(null);
+		_wreckage.SetHovered(null);
+		_landmarks.SetHovered(null);
+		_view.SetHovered(null);
+		Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
+		_tooltip.Visible = false;
 	}
 
 	public override void _ExitTree()

@@ -391,6 +391,7 @@ public static class GameInputBindings
 		Map("map_pause", "Pause / resume", Log(Key.Space)),
 		Map("map_speed_up", "Speed up", Log(Key.Bracketright)),
 		Map("map_speed_down", "Speed down", Log(Key.Bracketleft)),
+		Map("map_fleet_management", "Fleet management", Log(Key.Tab)),
 		MapAny(
 			"map_zoom_in",
 			"Zoom in",

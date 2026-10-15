@@ -26,6 +26,27 @@ public static class AbilityHudCatalog
 	private static readonly Color VoidBombAccent = new(0.68f, 0.32f, 0.98f, 0.52f);
 	private static readonly Color GoopGunAccent = new(0.42f, 0.88f, 0.38f, 0.48f);
 
+	public sealed record Visual(string IconPath, Color Tint);
+
+	public static Visual VisualFor(EAbilityKind kind)
+	{
+		var (path, accent) = kind switch
+		{
+			EAbilityKind.ScrapDroneSwarm =>
+				("res://assets/ui/abilities/scrap_drone_swarm.svg", ScrapDroneAccent),
+			EAbilityKind.LightningCannon =>
+				("res://assets/ui/abilities/lightning_cannon.svg", LightningAccent),
+			EAbilityKind.GoopGun =>
+				("res://assets/ui/abilities/goop_gun.svg", GoopGunAccent),
+			EAbilityKind.VoidBombLauncher =>
+				("res://assets/ui/abilities/void_bomb.svg", VoidBombAccent),
+			EAbilityKind.MinerBay =>
+				("res://assets/ui/abilities/repurposed-miner.svg", new Color(0.4f, 0.9f, 0.58f, 0.48f)),
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+		};
+		return new Visual(path, OpaqueTint(accent));
+	}
+
 	public sealed record Spec(
 		EPlayerMode Mode,
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Def,

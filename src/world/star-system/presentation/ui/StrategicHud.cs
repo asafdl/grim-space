@@ -20,13 +20,16 @@ public partial class StrategicHud : CanvasLayer
 	private ResourceTransactionFeed _resourceFeed = null!;
 	private IDisposable _contractStateSubscription = null!;
 	private PlayerFleetHud _playerFleetHud = null!;
+	private FleetManagementOverlay _fleetManagement = null!;
 	private PilotCharacterSheetOverlay _pilotSheet = null!;
 	private SystemErrorBanner _errorBanner = null!;
 	private ReportIssueDialog _reportIssueDialog = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
+	private string? _fleetReturnShipId;
+	private bool _returnToFleetAfterPilotSheet;
 
 	public ObjectivesHud Objectives => _objectivesHud;
-	public bool IsBlockingModalOpen => _pilotSheet.IsOpen;
+	public bool IsBlockingModalOpen => _fleetManagement.IsOpen || _pilotSheet.IsOpen;
 	public void PresentInsufficientFunds() => _resourceHud.PresentInsufficientFunds();
 	public void PresentSystemError(string summary, string technicalDetails)
 	{
@@ -39,7 +42,13 @@ public partial class StrategicHud : CanvasLayer
 		_objectivesHud = GetNode<ObjectivesHud>("ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("ResourceHud");
 		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
+		_fleetManagement = new FleetManagementOverlay();
+		_fleetManagement.PilotSheetRequested += OnFleetPilotSheetRequested;
+		_fleetManagement.PilotAssignmentRequested += OnPilotAssignmentRequested;
+		AddChild(_fleetManagement);
 		_pilotSheet = new PilotCharacterSheetOverlay();
+		_pilotSheet.Closed += OnPilotSheetClosed;
+		_pilotSheet.FleetManagementRequested += OnPilotFleetManagementRequested;
 		AddChild(_pilotSheet);
 		_errorBanner = new SystemErrorBanner();
 		_errorBanner.ReportRequested += OnErrorReportRequested;
@@ -52,6 +61,7 @@ public partial class StrategicHud : CanvasLayer
 		_contractStateSubscription =
 			_orchestrator.Subscribe<Record<ContractStateChanged>>(OnContractStateChanged);
 		_objectivesHud.DismissRequested += OnObjectiveDismissRequested;
+		_playerFleetHud.FleetManagementRequested += OnFleetManagementRequested;
 		_playerFleetHud.PilotSheetRequested += OnPilotSheetRequested;
 		_pilotSheet.SkillLearnRequested += OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested += OnPilotCycleRequested;
@@ -69,7 +79,12 @@ public partial class StrategicHud : CanvasLayer
 	public override void _ExitTree()
 	{
 		_objectivesHud.DismissRequested -= OnObjectiveDismissRequested;
+		_playerFleetHud.FleetManagementRequested -= OnFleetManagementRequested;
 		_playerFleetHud.PilotSheetRequested -= OnPilotSheetRequested;
+		_fleetManagement.PilotSheetRequested -= OnFleetPilotSheetRequested;
+		_fleetManagement.PilotAssignmentRequested -= OnPilotAssignmentRequested;
+		_pilotSheet.Closed -= OnPilotSheetClosed;
+		_pilotSheet.FleetManagementRequested -= OnPilotFleetManagementRequested;
 		_pilotSheet.SkillLearnRequested -= OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested -= OnPilotCycleRequested;
 		_errorBanner.ReportRequested -= OnErrorReportRequested;
@@ -100,17 +115,90 @@ public partial class StrategicHud : CanvasLayer
 		GD.PushWarning($"Unable to dismiss contract '{contractId}'.");
 	}
 
-	public bool TryHandleInput(InputEvent @event) => _pilotSheet.TryHandleInput(@event);
+	public bool TryHandleInput(InputEvent @event)
+	{
+		if (@event.IsActionPressed("map_fleet_management", false, true))
+		{
+			if (_pilotSheet.IsOpen)
+				return false;
 
-	private void OnPilotSheetRequested(string pilotId) => TryOpenPilotSheet(pilotId);
+			if (_fleetManagement.IsOpen)
+				_fleetManagement.Close();
+			else
+				OnFleetManagementRequested();
+			return true;
+		}
 
-	private void TryOpenPilotSheet(string pilotId)
+		return _pilotSheet.TryHandleInput(@event) || _fleetManagement.TryHandleInput(@event);
+	}
+
+	private void OnFleetManagementRequested()
+	{
+		_returnToFleetAfterPilotSheet = false;
+		var run = Session.Instance.Run;
+		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
+			_orchestrator.Map,
+			_orchestrator.RuntimeFor(State.PlayerFleetUnitId),
+			State.PlayerFleetUnitId,
+			run.GetFieldedShipIds());
+		_fleetManagement.Open(run, selectedShipId);
+	}
+
+	private void OnPilotSheetRequested(string pilotId)
+	{
+		_returnToFleetAfterPilotSheet = false;
+		TryOpenPilotSheet(pilotId);
+	}
+
+	private void OnFleetPilotSheetRequested(string pilotId)
+	{
+		_fleetReturnShipId = _fleetManagement.SelectedShipId;
+		_returnToFleetAfterPilotSheet = true;
+		_fleetManagement.Close();
+		if (TryOpenPilotSheet(pilotId))
+			return;
+
+		_returnToFleetAfterPilotSheet = false;
+		_fleetManagement.Open(Session.Instance.Run, _fleetReturnShipId);
+	}
+
+	private void OnPilotSheetClosed()
+	{
+		if (!_returnToFleetAfterPilotSheet)
+			return;
+
+		_returnToFleetAfterPilotSheet = false;
+		_fleetManagement.Open(Session.Instance.Run, _fleetReturnShipId);
+	}
+
+	private void OnPilotFleetManagementRequested(string pilotId)
+	{
+		var run = Session.Instance.Run;
+		var shipId = run.PilotRegistry.TryGet(pilotId, out var pilot)
+			&& pilot.AssignedShipId is not null
+			&& run.ItemInventory.IsPlayerOwned(pilot.AssignedShipId)
+				? pilot.AssignedShipId
+				: null;
+		_returnToFleetAfterPilotSheet = false;
+		_pilotSheet.Close();
+		_fleetManagement.Open(run, shipId);
+	}
+
+	private void OnPilotAssignmentRequested(string pilotId, string shipId)
+	{
+		if (Session.Instance.Run.TryAssignPilotToShip(pilotId, shipId))
+			return;
+
+		GD.PushWarning($"Unable to assign pilot '{pilotId}' to ship '{shipId}'.");
+	}
+
+	private bool TryOpenPilotSheet(string pilotId)
 	{
 		var run = Session.Instance.Run;
 		if (!run.PilotRegistry.TryGet(pilotId, out var pilot))
 		{
 			GD.PushWarning($"Unable to open character sheet for unknown pilot '{pilotId}'.");
-			return;
+			return false;
 		}
 
 		ShipInstance? assignedShip = null;
@@ -122,6 +210,7 @@ public partial class StrategicHud : CanvasLayer
 				$"Character sheet for pilot '{pilotId}': assigned ship '{pilot.AssignedShipId}' was not found.");
 
 		_pilotSheet.Open(pilot, run.GetFieldedShipIds().Count > 1, assignedShip);
+		return true;
 	}
 
 	private void OnPilotCycleRequested(string pilotId, int direction)

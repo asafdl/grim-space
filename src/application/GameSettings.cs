@@ -81,15 +81,18 @@ public static class GameSettings
 		float MusicVolume,
 		float SfxVolume);
 
+	public static AudioConfig DefaultAudioConfig => new(1f, 0.5f, 0.5f);
+
 	public static AudioConfig ReadAudioConfig()
 	{
 		if (!TryLoad(out var config))
-			return new(1f, 1f, 1f);
+			return DefaultAudioConfig;
 
+		var defaults = DefaultAudioConfig;
 		return new(
-			ReadVolume(config!, "master_volume"),
-			ReadVolume(config!, "music_volume"),
-			ReadVolume(config!, "sfx_volume"));
+			ReadVolume(config!, "master_volume", defaults.MasterVolume),
+			ReadVolume(config!, "music_volume", defaults.MusicVolume),
+			ReadVolume(config!, "sfx_volume", defaults.SfxVolume));
 	}
 
 	public static void SaveAudioConfig(AudioConfig audio)
@@ -167,8 +170,8 @@ public static class GameSettings
 		config.Save(SettingsPath);
 	}
 
-	private static float ReadVolume(ConfigFile config, string key) =>
-		Mathf.Clamp(config.GetValue("audio", key, 1f).AsSingle(), 0f, 1f);
+	private static float ReadVolume(ConfigFile config, string key, float defaultValue) =>
+		Mathf.Clamp(config.GetValue("audio", key, defaultValue).AsSingle(), 0f, 1f);
 
 	private static void WriteVolume(ConfigFile config, string key, float linear) =>
 		config.SetValue("audio", key, Mathf.Clamp(linear, 0f, 1f));
