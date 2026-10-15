@@ -21,17 +21,6 @@ public static class TurnFlowTimeline
 		return timeline;
 	}
 
-	public static int ClampIndex(int index, int count) =>
-		count == 0 ? 0 : System.Math.Clamp(index, 0, count - 1);
-
-	public static int ActivationIndexForSlot(int centerIndex, int slot, int centerSlot = 2) =>
-		centerIndex + (slot - centerSlot);
-
-	public static string? UnitAt(IReadOnlyList<TurnFlowEntry> timeline, int activationIndex) =>
-		activationIndex < 0 || activationIndex >= timeline.Count
-			? null
-			: timeline[activationIndex].UnitId;
-
 	public static bool HasDividerAfter(
 		IReadOnlyList<TurnFlowEntry> timeline,
 		int activationIndex) =>

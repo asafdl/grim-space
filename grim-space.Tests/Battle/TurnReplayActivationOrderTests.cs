@@ -2,6 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Components;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Tests;
@@ -47,21 +48,22 @@ public sealed class TurnReplayActivationOrderTests
 	}
 
 	[Fact]
-	public void TurnFlowTimeline_SlotMapping_ClampsAndMapsVisibleActivations()
+	public void CenteredCarouselWindow_ClampsAndMapsVisibleItems()
 	{
 		var timeline = TurnFlowTimeline.Build([], ["A", "B", "C", "D", "E", "F", "G"]);
+		var items = timeline.Select(entry => entry.UnitId).ToArray();
 
-		Assert.Equal(0, TurnFlowTimeline.ClampIndex(-1, timeline.Count));
-		Assert.Equal(timeline.Count - 1, TurnFlowTimeline.ClampIndex(99, timeline.Count));
-		Assert.Null(TurnFlowTimeline.UnitAt(timeline, -1));
-		Assert.Null(TurnFlowTimeline.UnitAt(timeline, timeline.Count));
+		Assert.Equal(0, CenteredCarouselWindow.ClampIndex(-1, items.Length));
+		Assert.Equal(items.Length - 1, CenteredCarouselWindow.ClampIndex(99, items.Length));
+		Assert.Null(CenteredCarouselWindow.ItemAt<string>(items, -1));
+		Assert.Null(CenteredCarouselWindow.ItemAt<string>(items, items.Length));
 
 		var centerIndex = 3;
 		Assert.Equal(
 			["B", "C", "D", "E", "F"],
 			Enumerable.Range(0, 5)
-				.Select(slot => TurnFlowTimeline.UnitAt(
-					timeline,
-					TurnFlowTimeline.ActivationIndexForSlot(centerIndex, slot))));
+				.Select(slot => CenteredCarouselWindow.ItemAt<string>(
+					items,
+					CenteredCarouselWindow.ItemIndexForSlot(centerIndex, slot, centerSlot: 2))));
 	}
 }

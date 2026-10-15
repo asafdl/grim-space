@@ -1,73 +1,76 @@
 using Godot;
 
-namespace GrimSpace.Battle.Presentation.Ui;
+namespace GrimSpace.Components;
 
-public sealed partial class TurnFlowSlot : Button
+internal sealed partial class CenteredCarouselSlot : Button
 {
-	private const int BoxSize = 64;
 	private const int CursorWidth = 20;
 	private const int CursorHeight = 16;
-	private const string ActiveCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
+	private const string HighlightCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 
-	private string? _unitId;
-	private readonly TextureRect _activeCursor;
+	private string? _itemId;
+	private readonly TextureRect _highlightCursor;
 
-	public event Action<string>? UnitClicked;
+	public event Action<string>? ItemClicked;
 
-	public TurnFlowSlot()
+	public CenteredCarouselSlot(int size)
 	{
-		CustomMinimumSize = new Vector2(BoxSize, BoxSize);
+		CustomMinimumSize = new Vector2(size, size);
 		FocusMode = FocusModeEnum.None;
 		MouseFilter = MouseFilterEnum.Stop;
 		TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-		AddThemeStyleboxOverride("normal", MakeBoxStyle(active: false));
-		AddThemeStyleboxOverride("hover", MakeBoxStyle(active: false, hover: true));
-		AddThemeStyleboxOverride("disabled", MakeBoxStyle(active: false, dim: true));
-		_activeCursor = new TextureRect
+		AddThemeStyleboxOverride("normal", MakeBoxStyle(highlighted: false));
+		AddThemeStyleboxOverride("hover", MakeBoxStyle(highlighted: false, hover: true));
+		AddThemeStyleboxOverride("disabled", MakeBoxStyle(highlighted: false, dim: true));
+		_highlightCursor = new TextureRect
 		{
-			Texture = ResourceLoader.Load<Texture2D>(ActiveCursorPath),
+			Texture = ResourceLoader.Load<Texture2D>(HighlightCursorPath),
 			CustomMinimumSize = new Vector2(CursorWidth, CursorHeight),
 			Size = new Vector2(CursorWidth, CursorHeight),
-			Position = new Vector2((BoxSize - CursorWidth) * 0.5f, BoxSize - 2),
+			Position = new Vector2((size - CursorWidth) * 0.5f, size - 2),
 			MouseFilter = MouseFilterEnum.Ignore,
 			MouseDefaultCursorShape = CursorShape.Arrow,
 			Visible = false,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 		};
-		AddChild(_activeCursor);
+		AddChild(_highlightCursor);
 		Pressed += OnPressed;
 	}
 
-	public void ShowUnit(string unitId, Texture2D? portrait, bool active, float opacity)
+	public void ShowItem(
+		CenteredCarouselEntry item,
+		Texture2D? icon,
+		bool highlighted,
+		float opacity)
 	{
-		_unitId = unitId;
-		Icon = portrait;
-		Text = portrait is null ? unitId : string.Empty;
+		_itemId = item.Id;
+		Icon = icon;
+		Text = icon is null ? item.Label : string.Empty;
 		Disabled = false;
-		AddThemeStyleboxOverride("normal", MakeBoxStyle(active));
-		_activeCursor.Visible = active;
-		Modulate = active ? Colors.White : new Color(1f, 1f, 1f, opacity);
+		AddThemeStyleboxOverride("normal", MakeBoxStyle(highlighted));
+		_highlightCursor.Visible = highlighted;
+		Modulate = highlighted ? Colors.White : new Color(1f, 1f, 1f, opacity);
 	}
 
 	public void ShowEmpty()
 	{
-		_unitId = null;
+		_itemId = null;
 		Icon = null;
 		Text = string.Empty;
 		Disabled = true;
-		AddThemeStyleboxOverride("normal", MakeBoxStyle(active: false, dim: true));
-		_activeCursor.Visible = false;
+		AddThemeStyleboxOverride("normal", MakeBoxStyle(highlighted: false, dim: true));
+		_highlightCursor.Visible = false;
 		Modulate = Colors.White;
 	}
 
 	private void OnPressed()
 	{
-		if (_unitId is not null)
-			UnitClicked?.Invoke(_unitId);
+		if (_itemId is not null)
+			ItemClicked?.Invoke(_itemId);
 	}
 
-	private static StyleBoxFlat MakeBoxStyle(bool active, bool hover = false, bool dim = false)
+	private static StyleBoxFlat MakeBoxStyle(bool highlighted, bool hover = false, bool dim = false)
 	{
 		if (dim)
 			return MakeStyle(
@@ -75,7 +78,7 @@ public sealed partial class TurnFlowSlot : Button
 				new Color(0.25f, 0.32f, 0.45f, 0.35f),
 				1);
 
-		if (active)
+		if (highlighted)
 			return MakeStyle(
 				new Color(0.18f, 0.12f, 0.2f, 0f),
 				new Color(0.35f, 0.48f, 0.68f, 0.8f),
