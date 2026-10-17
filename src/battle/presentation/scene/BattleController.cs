@@ -44,6 +44,7 @@ public partial class BattleController : Node3D
 	private ReplayDirector _replayDirector = null!;
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
+	private BoardAsteroidView _asteroidView = null!;
 	private GoopHazardView _goopHazardView = null!;
 	private BattleHud _battleHud = null!;
 	private BattleTutorialAdapter? _battleTutorial;
@@ -151,9 +152,9 @@ public partial class BattleController : Node3D
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);
-		var asteroidView = new BoardAsteroidView();
-		asteroidView.Build(layout.Asteroids);
-		hazardsRoot.AddChild(asteroidView);
+		_asteroidView = new BoardAsteroidView();
+		_asteroidView.Build(_camera, layout.Asteroids);
+		hazardsRoot.AddChild(_asteroidView);
 		_goopHazardView = new GoopHazardView { Name = "GoopHazards" };
 		hazardsRoot.AddChild(_goopHazardView);
 		SyncAuthoritativeHazardViews();
@@ -284,6 +285,7 @@ public partial class BattleController : Node3D
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
 
+		UpdateAsteroidOcclusionTargets(_currentFrame);
 		var meshUpdates = _cellVolumeMeshes.Pump(_currentFrame.SimulationTick);
 		foreach (var failure in meshUpdates.Failures)
 			GD.PushError($"Cell-volume mesh generation failed for {failure.Key}: {failure.Error}");
@@ -661,6 +663,27 @@ public partial class BattleController : Node3D
 		_battleHud.Apply(frame, allowEndTurn: CanEndTurn);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
+	}
+
+	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)
+	{
+		var targets = new List<Vector3> { GetPlayerRenderedPosition() };
+
+		if (frame.MoveGhostState is { } moveGhost)
+			targets.Add(WorldMapping.ToWorld(moveGhost.Position));
+
+		if (frame.HoveredAbilityChoice is { } ability)
+			targets.Add(WorldMapping.ToWorld(ability.Position));
+
+		foreach (var targetId in frame.ThreatenedUnitIds)
+		{
+			if (_battleView.UnitViews.TryGetValue(targetId, out var view))
+				targets.Add(view.GlobalPosition);
+			else if (frame.PreviewUnits.TryGetValue(targetId, out var state))
+				targets.Add(WorldMapping.ToWorld(state.Position));
+		}
+
+		_asteroidView.SetOcclusionTargets(targets.Distinct().ToArray());
 	}
 
 	private void OnTutorialFlowCompleted(TutorialFlow _) => RefreshPresentation();

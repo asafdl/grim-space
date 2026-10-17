@@ -31,12 +31,12 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	private static DirectionStyle StyleFor(Coord heading) =>
 		heading switch
 		{
-			{ X: 1, Y: 0, Z: 0 } => new(new Color(1f, 0.34f, 0.28f)),
-			{ X: -1, Y: 0, Z: 0 } => new(new Color(1f, 0.56f, 0.18f)),
-			{ X: 0, Y: 1, Z: 0 } => new(new Color(0.28f, 1f, 0.38f)),
-			{ X: 0, Y: -1, Z: 0 } => new(new Color(0.78f, 0.94f, 0.2f)),
-			{ X: 0, Y: 0, Z: 1 } => new(new Color(0.2f, 0.72f, 1f)),
-			{ X: 0, Y: 0, Z: -1 } => new(new Color(0.58f, 0.38f, 1f)),
+			{ X: 1, Y: 0, Z: 0 } => new(new Color(0.78f, 0.28f, 0.25f)),
+			{ X: -1, Y: 0, Z: 0 } => new(new Color(0.76f, 0.46f, 0.18f)),
+			{ X: 0, Y: 1, Z: 0 } => new(new Color(0.24f, 0.61f, 0.32f)),
+			{ X: 0, Y: -1, Z: 0 } => new(new Color(0.58f, 0.62f, 0.18f)),
+			{ X: 0, Y: 0, Z: 1 } => new(new Color(0.23f, 0.52f, 0.7f)),
+			{ X: 0, Y: 0, Z: -1 } => new(new Color(0.43f, 0.3f, 0.68f)),
 			_ => throw new ArgumentOutOfRangeException(nameof(heading), heading, null),
 		};
 
@@ -92,17 +92,9 @@ public sealed partial class MoveOrientationOverlay : Node2D
 
 	private sealed partial class ArrowView : Node2D
 	{
-		private static readonly Vector2[] Shape =
-		[
-			new(-30f, -8f),
-			new(8f, -8f),
-			new(8f, -18f),
-			new(34f, 0f),
-			new(8f, 18f),
-			new(8f, 8f),
-			new(-30f, 8f),
-		];
-		private static readonly Vector2[] Outline = [.. Shape, Shape[0]];
+		private static readonly Texture2D HandDrawnArrow = GD.Load<Texture2D>(
+			"res://assets/ui/battle/heading_arrow_handdrawn.svg");
+		private static readonly Rect2 HandDrawnRect = new(-36f, -22.5f, 72f, 45f);
 
 		private MovementSelection.HeadingHandleKind _kind;
 		private bool _selected;
@@ -112,7 +104,7 @@ public sealed partial class MoveOrientationOverlay : Node2D
 
 		public void Configure(Color color)
 		{
-			_bodyColor = new Color(color.R, color.G, color.B, 0.72f);
+			_bodyColor = new Color(color.R, color.G, color.B, 0.9f);
 			var fill = color.Lerp(Colors.White, 0.35f);
 			_fillColor = new Color(fill.R, fill.G, fill.B, 0.96f);
 		}
@@ -133,11 +125,28 @@ public sealed partial class MoveOrientationOverlay : Node2D
 
 			if (_kind == MovementSelection.HeadingHandleKind.Arrow)
 			{
-				DrawColoredPolygon(Shape.Select(point => point + new Vector2(3f, 3f)).ToArray(), new Color(0f, 0f, 0f, 0.55f));
-				DrawColoredPolygon(Shape, _bodyColor);
+				if (_selected)
+				{
+					DrawTextureRect(
+						HandDrawnArrow,
+						HandDrawnRect.Grow(3f),
+						tile: false,
+						new Color(0.95f, 0.97f, 1f, 0.6f));
+				}
+
+				DrawTextureRect(
+					HandDrawnArrow,
+					new Rect2(HandDrawnRect.Position + new Vector2(3f, 3f), HandDrawnRect.Size),
+					tile: false,
+					new Color(0f, 0f, 0f, 0.45f));
+				DrawTextureRect(HandDrawnArrow, HandDrawnRect, tile: false, _bodyColor);
+
 				if (_progress > 0f)
-					DrawColoredPolygon(ClipAt(Shape, -30f + 64f * _progress), _fillColor);
-				DrawPolyline(Outline, outlineColor, 2f, antialiased: true);
+				{
+					var end = new Vector2(Mathf.Lerp(-24f, 25f, _progress), 0f);
+					DrawLine(new Vector2(-24f, 0f), end, new Color(0f, 0f, 0f, 0.7f), 7f, antialiased: true);
+					DrawLine(new Vector2(-24f, 0f), end, _fillColor, 4f, antialiased: true);
+				}
 				return;
 			}
 
@@ -166,28 +175,5 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			}
 		}
 
-		private static Vector2[] ClipAt(IReadOnlyList<Vector2> polygon, float maxX)
-		{
-			var output = new List<Vector2>();
-			var previous = polygon[^1];
-			var previousInside = previous.X <= maxX;
-
-			foreach (var current in polygon)
-			{
-				var currentInside = current.X <= maxX;
-				if (currentInside != previousInside)
-				{
-					var amount = (maxX - previous.X) / (current.X - previous.X);
-					output.Add(previous.Lerp(current, amount));
-				}
-				if (currentInside)
-					output.Add(current);
-
-				previous = current;
-				previousInside = currentInside;
-			}
-
-			return output.ToArray();
-		}
 	}
 }

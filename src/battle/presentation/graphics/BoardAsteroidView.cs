@@ -9,8 +9,13 @@ public partial class BoardAsteroidView : Node3D
 	private const string PackPath = "res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
 	private const string MetallicPackPath = "res://assets/models/asteroids/wandering_asteroids_of_andromeda.glb";
 	private const float CellFit = 0.96f;
+	private const float OccludedTransparency = 0.72f;
+	private const float TransparencyChangePerSecond = 4f;
 	private static RockVariant[]? _rocks;
 	private static RockVariant[]? _metallicRocks;
+	private readonly List<MeshInstance3D> _asteroidVisuals = [];
+	private IReadOnlyList<Vector3> _occlusionTargets = [];
+	private Camera3D _camera = null!;
 
 	private static readonly Color[] RockBases =
 	[
@@ -28,13 +33,39 @@ public partial class BoardAsteroidView : Node3D
 		new(0.58f, 0.74f, 0.76f),
 	];
 
-	public void Build(IReadOnlyList<Asteroid> asteroids)
+	public void Build(Camera3D camera, IReadOnlyList<Asteroid> asteroids)
 	{
+		_camera = camera;
 		if (asteroids.Count > 0)
 			EnsureLoaded();
 
 		foreach (var asteroid in asteroids)
-			AddChild(CreateAsteroid(asteroid));
+		{
+			var visual = CreateAsteroid(asteroid);
+			_asteroidVisuals.Add(visual);
+			AddChild(visual);
+		}
+	}
+
+	public void SetOcclusionTargets(IReadOnlyList<Vector3> targets) =>
+		_occlusionTargets = targets;
+
+	public override void _Process(double delta)
+	{
+		if (!IsInstanceValid(_camera))
+			return;
+
+		var cameraPosition = _camera.GlobalPosition;
+		var change = TransparencyChangePerSecond * (float)delta;
+		foreach (var visual in _asteroidVisuals)
+		{
+			var occluded = _occlusionTargets.Any(target =>
+				IntersectsVisual(visual, cameraPosition, target));
+			visual.Transparency = Mathf.MoveToward(
+				visual.Transparency,
+				occluded ? OccludedTransparency : 0f,
+				change);
+		}
 	}
 
 	private static MeshInstance3D CreateAsteroid(Asteroid asteroid)
@@ -107,6 +138,50 @@ public partial class BoardAsteroidView : Node3D
 			? rng.RandfRange(0.65f, 0.8f)
 			: Mathf.Min(material.Metallic, 0.1f);
 		return material;
+	}
+
+	private static bool IntersectsVisual(
+		MeshInstance3D visual,
+		Vector3 segmentStart,
+		Vector3 segmentEnd)
+	{
+		var toLocal = visual.GlobalTransform.AffineInverse();
+		return SegmentIntersectsBounds(
+			toLocal * segmentStart,
+			toLocal * segmentEnd,
+			visual.Mesh.GetAabb());
+	}
+
+	internal static bool SegmentIntersectsBounds(Vector3 start, Vector3 end, Aabb bounds)
+	{
+		var direction = end - start;
+		var minimum = bounds.Position;
+		var maximum = bounds.End;
+		var enter = 0f;
+		var exit = 1f;
+
+		for (var axis = 0; axis < 3; axis++)
+		{
+			var origin = start[axis];
+			var delta = direction[axis];
+			if (Mathf.IsZeroApprox(delta))
+			{
+				if (origin < minimum[axis] || origin > maximum[axis])
+					return false;
+				continue;
+			}
+
+			var near = (minimum[axis] - origin) / delta;
+			var far = (maximum[axis] - origin) / delta;
+			if (near > far)
+				(near, far) = (far, near);
+			enter = Mathf.Max(enter, near);
+			exit = Mathf.Min(exit, far);
+			if (enter > exit)
+				return false;
+		}
+
+		return true;
 	}
 
 	private static void EnsureLoaded()
