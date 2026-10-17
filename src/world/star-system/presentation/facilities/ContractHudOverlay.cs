@@ -5,21 +5,14 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class ContractHudOverlay : Control
 {
-	private enum ViewMode
-	{
-		List,
-		Details,
-		DeclineConfirm,
-	}
-
 	private readonly ModalShell _shell;
+	private readonly CompactConfirmationPopup _declinePopup;
 	private StarMap _map = null!;
 	private string _activePoiId = "";
 	private string _activeFacilityId = "";
 	private string _activeOperatorName = "";
 	private string _facilityTitle = "";
 	private Contract? _selected;
-	private ViewMode _mode = ViewMode.List;
 
 	public event Action<string>? AcceptRequested;
 	public event Action<string>? DeclineRequested;
@@ -36,6 +29,8 @@ public sealed partial class ContractHudOverlay : Control
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
 		AddChild(_shell);
+		_declinePopup = new CompactConfirmationPopup();
+		_shell.AddChild(_declinePopup);
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
 	}
@@ -55,13 +50,13 @@ public sealed partial class ContractHudOverlay : Control
 		_activeOperatorName = activeOperatorName;
 		_facilityTitle = facilityTitle;
 		_selected = null;
-		_mode = ViewMode.List;
 		_shell.Open(_facilityTitle, "Select a contract");
 		ShowList();
 	}
 
 	public void Close()
 	{
+		_declinePopup.Hide();
 		_selected = null;
 		_shell.Close();
 	}
@@ -70,7 +65,7 @@ public sealed partial class ContractHudOverlay : Control
 
 	private void ShowList()
 	{
-		_mode = ViewMode.List;
+		_declinePopup.Hide();
 		var contracts = PresentedContracts();
 		_shell.SetTitle(_facilityTitle);
 		_shell.SetSubtitle(contracts.Length == 0
@@ -112,9 +107,10 @@ public sealed partial class ContractHudOverlay : Control
 			return;
 		}
 
-		_mode = ViewMode.Details;
-		_shell.SetTitle(ContractDisplay.Title(_selected));
-		_shell.SetSubtitle($"Issued by {ContractDisplay.Issuer(_selected)}");
+		_declinePopup.Hide();
+		_shell.SetTitle(ContractDisplay.TypeDisplayName(_selected));
+		_shell.SetSubtitle(
+			$"{ContractDisplay.Title(_selected)} · Issued by {ContractDisplay.Issuer(_selected)}");
 		_shell.SetHeader(HudHeaderMode.Back, ShowList);
 		_shell.SetBackHandler(ShowList);
 
@@ -129,17 +125,14 @@ public sealed partial class ContractHudOverlay : Control
 		body.AddChild(details);
 
 		_shell.SetBody(body);
-		var footer = new List<HudAction>
-		{
-			new("Back", HudActionKind.Secondary, ShowList),
-		};
+		var footer = new List<HudAction>();
 		if (_selected.AllowsDecline)
 			footer.Add(new HudAction("Decline", HudActionKind.Destructive, ShowDeclineConfirm));
 		footer.Add(new HudAction("Accept", HudActionKind.Primary, OnAcceptPressed));
 		_shell.SetFooter(footer);
 	}
 
-	private void ShowDeclineConfirm()
+	private void ShowDeclineConfirm(Button anchor)
 	{
 		if (_selected is null || !TryRefreshSelected())
 		{
@@ -147,22 +140,8 @@ public sealed partial class ContractHudOverlay : Control
 			return;
 		}
 
-		_mode = ViewMode.DeclineConfirm;
-		_shell.SetTitle(ContractDisplay.Title(_selected));
-		_shell.SetSubtitle("Confirm decline");
-		_shell.SetHeader(HudHeaderMode.Back, ShowDetails);
-		_shell.SetBackHandler(ShowDetails);
-
-		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		body.AddChild(HudWidgets.CreateWarningPanel(
-			$"Permanently decline \"{ContractDisplay.Title(_selected)}\" for this run?"));
-
-		_shell.SetBody(body);
-		_shell.SetFooter(
-		[
-			new HudAction("Cancel", HudActionKind.Secondary, ShowDetails),
-			new HudAction("Confirm decline", HudActionKind.Destructive, OnConfirmDeclinePressed),
-		]);
+		var contractId = _selected.Id;
+		_declinePopup.Request(anchor, () => ConfirmDecline(contractId));
 	}
 
 	private Control CreateContractCard(Contract contract)
@@ -260,11 +239,11 @@ public sealed partial class ContractHudOverlay : Control
 		AcceptRequested?.Invoke(_selected.Id);
 	}
 
-	private void OnConfirmDeclinePressed()
+	private void ConfirmDecline(string contractId)
 	{
-		if (_selected is null)
+		if (_selected?.Id != contractId || !TryRefreshSelected())
 			return;
 
-		DeclineRequested?.Invoke(_selected.Id);
+		DeclineRequested?.Invoke(contractId);
 	}
 }

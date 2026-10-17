@@ -66,6 +66,8 @@ public partial class ShipPilot : PanelContainer
 	private void Build()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
+		CustomMinimumSize = new Vector2(PortraitSize + 8, 0);
+		SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
 		ApplyPanelStyle(selected: false);
 
 		var margin = new MarginContainer();
@@ -83,6 +85,7 @@ public partial class ShipPilot : PanelContainer
 		var portraitFrame = new Control
 		{
 			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		column.AddChild(portraitFrame);

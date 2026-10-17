@@ -35,11 +35,26 @@ public enum HudTextRole
 
 public sealed record HudTextLine(string Text, HudTextRole Role = HudTextRole.Body, Color? ColorOverride = null);
 
-public sealed record HudAction(
-	string Label,
-	HudActionKind Kind,
-	Action OnPressed,
-	bool Enabled = true);
+public sealed record HudAction
+{
+	public HudAction(string label, HudActionKind kind, Action onPressed, bool enabled = true)
+		: this(label, kind, _ => onPressed(), enabled)
+	{
+	}
+
+	public HudAction(string label, HudActionKind kind, Action<Button> onPressed, bool enabled = true)
+	{
+		Label = label;
+		Kind = kind;
+		OnPressed = onPressed;
+		Enabled = enabled;
+	}
+
+	public string Label { get; }
+	public HudActionKind Kind { get; }
+	public Action<Button> OnPressed { get; }
+	public bool Enabled { get; }
+}
 
 public readonly record struct HudBannerView(Control Root, Label Title, Label Subtitle);
 

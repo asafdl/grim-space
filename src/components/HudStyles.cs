@@ -37,6 +37,9 @@ public static class HudStyles
 	public const string NarrativePanelType = "NarrativePanelContainer";
 	public const string FramedActionBarPanelType = "FramedActionBarPanelContainer";
 	public const string FramedActionBarFramePanelType = "FramedActionBarFramePanelContainer";
+	public const string FleetSectionPanelType = "FleetSectionPanelContainer";
+	public const string HeaderBackButtonType = "HeaderBackButton";
+	public const string HeaderCloseButtonType = "HeaderCloseButton";
 	public const int SectionAccentWidth = 3;
 
 	public static readonly Color ModalBackdrop = new(0f, 0f, 0f, 0.55f);

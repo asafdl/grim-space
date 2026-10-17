@@ -228,4 +228,14 @@ public static class ContractDisplay
 			EContractKind.Lead => "Lead",
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
+
+	public static string TypeDisplayName(Contract contract) =>
+		Kind(contract) switch
+		{
+			EContractKind.Hunt => "Target Elimination",
+			EContractKind.Delivery => "Cargo Delivery",
+			EContractKind.Wreckage => "Wreckage Investigation",
+			EContractKind.Lead => "Lead Investigation",
+			_ => throw new ArgumentOutOfRangeException(nameof(contract), contract.Objective, null),
+		};
 }

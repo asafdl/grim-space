@@ -19,8 +19,7 @@ public partial class ObjectivesHud : MarginContainer
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
 	private Label _headerCountLabel = null!;
-	private PanelContainer _dismissPopup = null!;
-	private Label _dismissPopupLabel = null!;
+	private CompactConfirmationPopup _dismissPopup = null!;
 	private readonly Dictionary<string, PanelContainer> _entries = new(StringComparer.Ordinal);
 	private readonly HashSet<string> _lingeringObjectiveIds = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, DeadlineBadge> _deadlineBadges = new(StringComparer.Ordinal);
@@ -167,7 +166,8 @@ public partial class ObjectivesHud : MarginContainer
 		};
 		shell.Body.AddChild(_entriesHost);
 
-		_dismissPopup = BuildDismissPopup();
+		_dismissPopup = new CompactConfirmationPopup();
+		_dismissPopup.PopupHide += () => _dismissContractId = null;
 		AddChild(_dismissPopup);
 	}
 
@@ -284,9 +284,9 @@ public partial class ObjectivesHud : MarginContainer
 				TooltipText = ObjectivePresentationPolicy.DismissTooltip(objective.Source),
 				CustomMinimumSize = new Vector2(36, 36),
 				FocusMode = Control.FocusModeEnum.All,
+				ThemeTypeVariation = "MapIconButton",
 			};
-			HudStyles.StyleButton(dismissButton, HudActionKind.Secondary);
-			dismissButton.Pressed += () => RequestDismissConfirmation(objective.Id, objective.Title);
+			dismissButton.Pressed += () => RequestDismissConfirmation(objective.Id, dismissButton);
 			row.AddChild(dismissButton);
 		}
 
@@ -360,89 +360,22 @@ public partial class ObjectivesHud : MarginContainer
 		}
 	}
 
-	private PanelContainer BuildDismissPopup()
-	{
-		var panel = new PanelContainer
-		{
-			Visible = false,
-			MouseFilter = Control.MouseFilterEnum.Stop,
-			CustomMinimumSize = new Vector2(300, 0),
-			ZIndex = 10,
-		};
-		HudStyles.SetPanelVariation(panel, "Shell");
-
-		var content = new VBoxContainer
-		{
-			MouseFilter = Control.MouseFilterEnum.Stop,
-		};
-		content.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		panel.AddChild(content);
-
-		_dismissPopupLabel = new Label
-		{
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		content.AddChild(_dismissPopupLabel);
-
-		var actions = new HBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.End,
-			MouseFilter = Control.MouseFilterEnum.Stop,
-		};
-		var cancel = new Button { Text = "Cancel" };
-		HudStyles.StyleButton(cancel, HudActionKind.Secondary);
-		cancel.Pressed += CloseDismissConfirmation;
-		actions.AddChild(cancel);
-		var confirm = new Button { Text = "Dismiss" };
-		HudStyles.StyleButton(confirm, HudActionKind.Primary);
-		confirm.Pressed += ConfirmDismiss;
-		actions.AddChild(confirm);
-		content.AddChild(actions);
-		return panel;
-	}
-
-	private void RequestDismissConfirmation(string contractId, string title)
+	private void RequestDismissConfirmation(string contractId, Control anchor)
 	{
 		_dismissContractId = contractId;
-		_dismissPopupLabel.Text = $"Dismiss \"{title}\"?";
-		CallDeferred(MethodName.ShowDismissConfirmation);
-	}
-
-	private void ShowDismissConfirmation()
-	{
-		if (_dismissContractId is null)
-			return;
-
-		_dismissPopup.Position = new Vector2(-310, 54);
-		_dismissPopup.Visible = true;
-	}
-
-	private void ConfirmDismiss()
-	{
-		if (_dismissContractId is not { } contractId)
-			return;
-
-		CloseDismissConfirmation();
-		DismissRequested?.Invoke(contractId);
+		_dismissPopup.Request(
+			anchor,
+			() =>
+			{
+				_dismissContractId = null;
+				DismissRequested?.Invoke(contractId);
+			});
 	}
 
 	private void CloseDismissConfirmation()
 	{
 		_dismissContractId = null;
-		_dismissPopup.Visible = false;
-	}
-
-	public override void _UnhandledInput(InputEvent @event)
-	{
-		if (_dismissContractId is null
-			|| @event is not InputEventMouseButton { Pressed: true } mouse
-			|| _dismissPopup.GetGlobalRect().HasPoint(mouse.Position))
-			return;
-
-		CloseDismissConfirmation();
-		GetViewport().SetInputAsHandled();
+		_dismissPopup.Hide();
 	}
 
 	private void OnSummaryMetaClicked(Variant metadata)

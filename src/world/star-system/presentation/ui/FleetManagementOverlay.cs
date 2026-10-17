@@ -267,7 +267,7 @@ public sealed partial class FleetManagementOverlay : Control
 	private static Control BuildStatsPanel(FleetShipView ship)
 	{
 		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, "Section");
+		HudStyles.SetPanelVariation(panel, HudStyles.FleetSectionPanelType);
 		var margin = CreateMargin();
 		panel.AddChild(margin);
 		var rows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -285,7 +285,7 @@ public sealed partial class FleetManagementOverlay : Control
 	private Control BuildAbilityWorkspace(FleetShipView ship, FleetAbilityView selectedAbility)
 	{
 		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, "Section");
+		HudStyles.SetPanelVariation(panel, HudStyles.FleetSectionPanelType);
 		var margin = CreateMargin();
 		panel.AddChild(margin);
 		var workspace = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };

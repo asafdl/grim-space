@@ -76,6 +76,12 @@ public sealed partial class ModalShell : Control
 		_headerMode = mode;
 		_headerAction = onHeaderPressed;
 		_headerButton.Text = buttonLabel ?? (mode == HudHeaderMode.Close ? "×" : "←");
+		_headerButton.CustomMinimumSize = mode == HudHeaderMode.Close
+			? new Vector2(32, 32)
+			: Vector2.Zero;
+		_headerButton.ThemeTypeVariation = mode == HudHeaderMode.Close
+			? HudStyles.HeaderCloseButtonType
+			: HudStyles.HeaderBackButtonType;
 		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissButton.Visible;
 	}
 
@@ -249,10 +255,10 @@ public sealed partial class ModalShell : Control
 		_headerButton = new Button
 		{
 			Text = "×",
-			Flat = true,
 			FocusMode = FocusModeEnum.All,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			ThemeTypeVariation = HudStyles.HeaderCloseButtonType,
 		};
-		HudStyles.StyleButton(_headerButton, HudActionKind.Secondary);
 		_headerButton.Pressed += OnHeaderPressed;
 		row.AddChild(_headerButton);
 
@@ -278,11 +284,13 @@ public sealed partial class ModalShell : Control
 		row.AddChild(titles);
 		_dismissButton = new Button
 		{
-			Text = "Close",
+			Text = "×",
 			Visible = false,
 			FocusMode = FocusModeEnum.All,
+			CustomMinimumSize = new Vector2(32, 32),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			ThemeTypeVariation = HudStyles.HeaderCloseButtonType,
 		};
-		HudStyles.StyleButton(_dismissButton, HudActionKind.Secondary);
 		_dismissButton.Pressed += CloseWithHandler;
 		row.AddChild(_dismissButton);
 		return row;
@@ -311,7 +319,7 @@ public sealed partial class ModalShell : Control
 			FocusMode = FocusModeEnum.All,
 		};
 		HudStyles.StyleButton(button, action.Kind);
-		button.Pressed += action.OnPressed;
+		button.Pressed += () => action.OnPressed(button);
 		return button;
 	}
 
