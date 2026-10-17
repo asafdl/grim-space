@@ -18,20 +18,27 @@
 
 See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior sessions.
 
+## Git status
+
+**Branch:** `teaser-recording-fix` (created from `master` after local commit `479f5eb3`)
+**Commit:** `479f5eb3` — "fix: battle presentation null guards + teaser viewport display + replay refresh" (23 files, 1621 insertions, 49 deletions)
+**Remote:** NOT pushed to origin/master (`origin/master` still at `3693dece`)
+
 ## Current state (summary)
 
 | Area | Status |
 |------|--------|
 | Build (`dotnet build`) | ✅ 0 errors, warnings only |
 | Story phase video (`teaser_story.avi`) | ✅ 10s recorded, artwork renders, text visible |
-| Combat phase video (`teaser_combat10s.avi`) | ✅ 10s recorded, UI renders (Turn 1, HP/Shields, Action Log, AP/MP, ability slots, End Turn, TACTICAL COMBAT text, space background). ❌ No ships/units visible — 10s captures AI thinking phase only (Turn 1 AI resolve takes ~67s, units animate during replay after ~110s). Need longer recording (~120s) to capture combat replay. |
+| Combat phase video (`teaser_combat10s.avi`) | ✅ 10s recorded, UI renders (Turn 1, HP/Shields, Action Log, AP/MP, ability slots, End Turn, TACTICAL COMBAT text, space background). ❌ No ships/units visible — 10s captures AI thinking phase only. |
+| Combat units during replay | ❌ Still not visible during replay phase — `RefreshPresentation()` added to replay loop but units still not rendering in sampled frames. Need to record new video with this fix and re-analyze. |
 
-## Key code fixes applied
+## Key code fixes applied (committed to `teaser-recording-fix`, NOT pushed)
 
 - `BattleController._agent` → `as UserExecutionAgent` (nullable), null guards in `BattleController` and `GridView`
 - `PresentationFrameBuilder.BuildFrame` → nullable `UserExecutionAgent?` agent with `CaptureLiveUnits` fallback when null, null guard for `sim.Actions`
-- `RefreshPresentation()` — removed early return on null `_agent`
-- `RunAiVsAiAsync()` — calls `RefreshPresentation()` after each AI turn, removed premature `NotifyReplayComplete()`
+- `RefreshPresentation()` — removed early return on null `_agent`; **added `RefreshPresentation()` call inside replay loop** (`while (Resolving || Replaying)`)
+- `RunAiVsAiAsync()` — removed premature `NotifyReplayComplete()` that was cutting replay short
 - `TeaserController._Ready()` — calls `Session.Instance.StartNewRun()` if run is null, added `_viewportDisplay` TextureRect to show SubViewport texture
 - `TeaserController.StartPhase()` — calls `GetTree().Quit()` when `TeaserPhase.Complete` reached
 
@@ -41,10 +48,14 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 
 ```powershell
 # Record to D: drive
-& 'C:\...\Godot_v4.7.2-stable_mono_win64_console.exe' --path 'C:\Users\User\dev\repos\grim-space-teaser' --scene 'res://scenes/teaser.tscn' --write-movie 'D:\grim-space-recordings\teaser_combat.avi' --quit-after 7800
+& 'C:\Users\User\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe' --path 'C:\Users\User\dev\repos\grim-space-teaser' --scene 'res://scenes/teaser.tscn' --write-movie 'D:\grim-space-recordings\teaser_combat.avi' --quit-after 7800
 ```
 
-Old C: drive videos were deleted to free space (~1.8 GB recovered).
+Old C: drive videos deleted to free space (~1.8 GB recovered).
+
+## Running long commands
+
+**Always use `background: true`** for commands >30 seconds (Godot recording, Nemotron analysis loops, dotnet build):
 
 ```json
 {
@@ -53,6 +64,11 @@ Old C: drive videos were deleted to free space (~1.8 GB recovered).
 }
 ```
 
+Completion is signaled via a shell notification; read the `.out` file from `C:\Users\User\.local\share\opencode\shell/...` to get results.
+
 ## Next steps
-1. Analyze `teaser_combat10s.avi` frames with Nemotron → confirm units visible in tactical combat phase
-2. Append conclusion to `TEASER_NOTES.md` when user sends `#` marker
+
+1. Record new combat video to D:\grim-space-recordings\ with `RefreshPresentation()` replay-loop fix applied
+2. Extract frames from combat replay window (~67-74s where Turn 1 replay runs)
+3. Analyze frames with Nemotron (`opencode run -f frame.jpg "prompt"`) → confirm units visible
+4. Append conclusion to `TEASER_NOTES.md` when user sends `#` marker
