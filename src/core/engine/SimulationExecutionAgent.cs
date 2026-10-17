@@ -13,6 +13,10 @@ public abstract class SimulationExecutionAgent<TWorld, TRuntime>
 
 	public Simulation<TWorld, TRuntime> Sim { get; private set; } = null!;
 
+	public virtual bool IsPlanning => false;
+	public virtual bool CanUndo => false;
+	public virtual bool Undo() => false;
+
 	public void Init(
 		string actorId,
 		Func<Simulation<TWorld, TRuntime>> createSimulation,

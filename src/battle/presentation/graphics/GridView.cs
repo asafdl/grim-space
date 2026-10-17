@@ -55,9 +55,9 @@ public partial class GridView : Node3D
 
 	public override void _Process(double delta)
 	{
-		if (_localGrid.Visible)
+		if (_localGrid is not null && _localGrid.Visible)
 			RefreshLocalGridMesh();
-		if (_centralOutline.Visible)
+		if (_centralOutline is not null && _centralOutline.Visible)
 			RefreshCentralOutlineMesh();
 	}
 

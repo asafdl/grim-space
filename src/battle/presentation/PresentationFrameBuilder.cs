@@ -1,11 +1,12 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Move;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Movement;
-using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -49,16 +50,19 @@ public sealed class PresentationFrameBuilder
 
 	public PresentationFrame BuildFrame(
 		BattleOrchestrator battle,
-		UserExecutionAgent agent,
+		UserExecutionAgent? agent,
 		bool acceptsCommands)
 	{
 		var state = Interaction;
 		var playerId = battle.PlayerId;
-		var sim = agent.Sim;
-		var isPlanning = agent.IsPlanning;
-		var unitSnapshot = battle.Phase == EBattlePhase.BattleOver
+		// The agent is null when the battle is driven by AI on both sides (the
+		// teaser runs that way): there is no planning sim to preview, so the live
+		// world state is captured instead.
+		var sim = agent?.Sim;
+		var isPlanning = agent?.IsPlanning ?? false;
+		var unitSnapshot = agent is null || battle.Phase == EBattlePhase.BattleOver
 			? CaptureLiveUnitSnapshot(battle)
-			: _preview.PreviewUnitSnapshot(sim, playerId);
+			: _preview.PreviewUnitSnapshot(sim!, playerId);
 		var previewUnits = unitSnapshot.Units;
 		var previewUnitTeams = unitSnapshot.Teams;
 		var focusId = state.FocusId ?? playerId;
@@ -66,18 +70,32 @@ public sealed class PresentationFrameBuilder
 		{
 			state.ClearFocus();
 			focusId = playerId;
-			focusUnit = previewUnits[playerId];
+			// The player hull can be gone by the time the frame is built (an AI
+			// driven battle has no player to fall back on), so the frame falls back
+			// to any living hull rather than throwing.
+			if (!previewUnits.TryGetValue(focusId, out focusUnit) || !focusUnit.IsAlive)
+			{
+				focusUnit = previewUnits.Values.FirstOrDefault(unit => unit.IsAlive)
+					?? previewUnits.Values.FirstOrDefault();
+				if (focusUnit is null)
+					throw new InvalidOperationException("Battle frame has no units to show.");
+				focusId = focusUnit.Id;
+			}
 		}
 
 		var isInspecting = focusId != playerId;
 		if (state.RangeEnemyId is { } rangeEnemyId
 			&& !IsLivingEnemy(previewUnits, previewUnitTeams, rangeEnemyId))
 			state.ClearRangeEnemy();
-		var canControl = acceptsCommands && isPlanning && !isInspecting;
-		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
-		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
+		var canControl = agent is not null && acceptsCommands && isPlanning && !isInspecting;
+		var moveOptions = sim is not null
+			? _preview.MoveOptions(sim, playerId, focusId, isPlanning)
+			: [];
+		var committedMoveCheckpoints = sim is not null
+			? _preview.CommittedMoveCheckpoints(sim, playerId)
+			: [];
 		var abilityActorId = canControl || isInspecting ? focusId : playerId;
-		var legalCapabilities = canControl || isInspecting
+		var legalCapabilities = sim is not null && (canControl || isInspecting)
 			? Capabilities.LegalCapabilities(sim, abilityActorId)
 			: [];
 		var weapons = canControl || isInspecting
@@ -98,7 +116,7 @@ public sealed class PresentationFrameBuilder
 		var hoveredAbilityChoice = state.AbilityHoveredIndex is int abilityHoverIndex
 			? abilityChoices[abilityHoverIndex]
 			: null;
-		var weaponQueued = sim.Actions.Any(action =>
+		var weaponQueued = sim is not null && sim.Actions.Any(action =>
 			action.ActorId == playerId && !MovePathIndex.IsMovementAction(action));
 		var selectedMove = state.MoveDestination is { } destination
 			&& state.RequestedMoveBasis is { } requestedBasis
@@ -142,19 +160,19 @@ public sealed class PresentationFrameBuilder
 			moveTarget = null;
 		}
 
-		var showWeaponPreviews = acceptsCommands && !battle.IsBattleOver && !isInspecting;
+		var showWeaponPreviews = sim is not null && acceptsCommands && !battle.IsBattleOver && !isInspecting;
 		var areaActions = showWeaponPreviews
-			? _preview.AreaPreviews(sim, playerId, legalCapabilities)
+			? _preview.AreaPreviews(sim!, playerId, legalCapabilities)
 			: AreaActionPreviews.Empty;
 		var threatenedUnitIds = showWeaponPreviews
 			? _preview.ThreatenedUnitIds(
-				sim,
+				sim!,
 				playerId,
 				hoveredAbilityChoice?.Action)
 			: new HashSet<string>();
 		var torpedoPreviews = showWeaponPreviews
 			? _preview.VoidBombPreviews(
-				sim,
+				sim!,
 				playerId,
 				hoveredAbilityChoice?.Action)
 			: TurnVolumePreviews.Empty;
@@ -175,7 +193,7 @@ public sealed class PresentationFrameBuilder
 		}
 
 		PresentationDiagnostics.LogMovePreview(
-			sim.AnchorTick,
+			sim?.AnchorTick ?? 0,
 			source: "build_frame",
 			isInspecting ? EPlayerMode.Move : state.Mode,
 			acceptsCommands,
@@ -183,7 +201,7 @@ public sealed class PresentationFrameBuilder
 			isPlanning,
 			weaponQueued,
 			focusUnit.Position,
-			agent.CanUndo ? 1 : 0,
+			agent?.CanUndo ?? false ? 1 : 0,
 			moveOptions);
 
 		var activeMovePreview = canControl

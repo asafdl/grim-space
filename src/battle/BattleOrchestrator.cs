@@ -9,8 +9,8 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
-using GrimSpace.Core;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Battle.Encounter;
@@ -57,8 +57,11 @@ public sealed class BattleOrchestrator : IDisposable
 	public event Action<EBattlePhase>? PhaseChanged;
 	public event Action<TurnReplay, int>? TurnResolved;
 
-	public UserExecutionAgent PlayerAgent =>
-		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(ActivePlayerId).ExecutionAgent;
+	public ExecutionAgent<BattleWorld, ActorRuntime> ActiveAgent =>
+		UnitRegistry.For(_engine.World).UnitOf(ActivePlayerId).ExecutionAgent;
+
+	public UserExecutionAgent? PlayerAgent =>
+		ActiveAgent as UserExecutionAgent;
 
 	public static BattleOrchestrator FromEncounter(
 		BattleEncounter encounter,
@@ -279,13 +282,31 @@ public sealed class BattleOrchestrator : IDisposable
 
 		var completedTurn = TurnNumber;
 		var playerActorId = ActivePlayerId;
-		if (!PlayerAgent.Commit())
+		var agent = ActiveAgent;
+		bool committed = false;
+		InvariantStatus invariantStatus = InvariantStatus.Ok;
+		int actionCount = 0;
+
+		if (agent is UserExecutionAgent uea)
+		{
+			committed = uea.Commit();
+			invariantStatus = uea.Sim.InvariantStatus;
+			actionCount = uea.Sim.Actions.Count;
+		}
+		else if (agent is AiExecutionAgent aea)
+		{
+			committed = aea.Commit();
+			invariantStatus = aea.Sim.InvariantStatus;
+			actionCount = aea.Sim.Actions.Count;
+		}
+
+		if (!committed)
 		{
 			BattleDiagnostics.LogCommitFailed(
 				IsBattleOver,
-				PlayerAgent.Sim.InvariantStatus,
+				invariantStatus,
 				TurnNumber,
-				PlayerAgent.Sim.Actions.Count);
+				actionCount);
 			return;
 		}
 

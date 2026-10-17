@@ -1,0 +1,117 @@
+[gd_scene format=3 uid="uid://bqx8teaser001"]
+
+[ext_resource type="Script" path="res://src/presentation/teaser/TeaserController.cs" id="1_teaser"]
+[ext_resource type="PackedScene" path="res://scenes/intro.tscn" id="2_intro"]
+[ext_resource type="PackedScene" path="res://scenes/battle.tscn" id="3_battle"]
+[ext_resource type="PackedScene" path="res://scenes/travel.tscn" id="4_travel"]
+[ext_resource type="PackedScene" path="res://scenes/map.tscn" id="5_map"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/intro-screen.png" id="6_title_bg"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/war-and-ruin2.png" id="7_lore1"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/total-war.png" id="8_lore2"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/last-stand.png" id="9_lore3"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/syndicate-attacks.png" id="10_lore4"]
+[ext_resource type="Texture2D" path="res://assets/story/pages/humanity-controls-galaxy.png" id="11_lore5"]
+[ext_resource type="Texture2D" path="res://assets/ui/unit_portraits/fighter.png" id="12_fighter"]
+[ext_resource type="Texture2D" path="res://assets/ui/unit_portraits/carrier.png" id="13_carrier"]
+[ext_resource type="Texture2D" path="res://assets/ui/unit_portraits/void_bomb.png" id="14_voidbomb"]
+[ext_resource type="Texture2D" path="res://assets/ui/unit_portraits/repurposed-miner.png" id="15_miner"]
+[ext_resource type="Theme" path="res://assets/ui/themes/theatrical_theme.tres" id="16_theme"]
+
+[node name="Teaser" type="Node"]
+script = ExtResource("1_teaser")
+
+[node name="ViewPort" type="SubViewport" parent="."]
+size = Vector2(1920, 1080)
+render_target_clear_mode = 2
+render_target_update_mode = 2
+use_32_bit_depth = true
+
+[node name="CurrentScene" type="Node" parent="ViewPort"]
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Transition" type="ColorRect" parent="Overlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+visible = false
+z_index = 100
+
+[node name="TitleText" type="Label" parent="Overlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 200
+offset_top = 350
+offset_right = 200
+offset_bottom = 500
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+visible = false
+z_index = 101
+theme = ExtResource("16_theme")
+theme_type_variation = "TitleLabel"
+text = "GRIM\nSPACE"
+
+[node name="SubtitleText" type="Label" parent="Overlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 200
+offset_top = 550
+offset_right = 200
+offset_bottom = 620
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+visible = false
+z_index = 101
+theme = ExtResource("16_theme")
+theme_type_variation = "SubtitleLabel"
+text = "A Tactical Roguelike in the Void"
+
+[node name="PhaseLabel" type="Label" parent="Overlay"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -300
+offset_top = -100
+offset_right = 300
+offset_bottom = -30
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+visible = false
+z_index = 101
+theme = ExtResource("16_theme")
+theme_type_variation = "SectionHeadingLabel"
+text = ""
+
+[node name="UnitPortrait" type="TextureRect" parent="Overlay"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200
+offset_top = -200
+offset_right = 200
+offset_bottom = 200
+grow_horizontal = 0
+grow_vertical = 0
+stretch_mode = 1
+expand_mode = 1
+visible = false
+z_index = 102

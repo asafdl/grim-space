@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
@@ -5,6 +6,7 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
@@ -14,6 +16,7 @@ using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.NonUnits;
 using GrimSpace.Run;
@@ -36,10 +39,12 @@ namespace GrimSpace.Battle.Presentation.Scene;
 /// TODO: _battle and _agents are signs of leaks, shouldn't be here
 public partial class BattleController : Node3D
 {
+	public static BattleEncounter? NextEncounterOverride { get; set; }
+	public BattleOrchestrator Battle => _battle;
 	private const double OpeningCameraHoldSeconds = 1.0;
 
 	private BattleOrchestrator _battle = null!;
-	private UserExecutionAgent _agent = null!;
+	private UserExecutionAgent? _agent = null;
 	private PresentationFrameBuilder _frames = null!;
 	private UserIntentTranslator _translator = null!;
 	private ReplayDirector _replayDirector = null!;
@@ -83,9 +88,17 @@ public partial class BattleController : Node3D
 
 	public override void _Ready()
 	{
-		_strategicBattle = Session.Instance.Run.ActiveBattle is not null;
+		_strategicBattle = Session.Instance.Run?.ActiveBattle is not null;
 		int backdropSeed;
-		if (_strategicBattle)
+		if (NextEncounterOverride is { } encounterOverride)
+		{
+			NextEncounterOverride = null;
+			_strategicBattle = false;
+			_battle = BattleOrchestrator.FromEncounter(encounterOverride);
+			backdropSeed = encounterOverride.Seed;
+			CachePilotIdsFromEncounter(encounterOverride);
+		}
+		else if (_strategicBattle)
 		{
 			try
 			{
@@ -123,7 +136,7 @@ public partial class BattleController : Node3D
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),
 			() => ForceOutcome(EBattleResult.Lose));
-		_agent = _battle.PlayerAgent;
+		_agent = _battle.PlayerAgent as UserExecutionAgent;
 		_frames = new PresentationFrameBuilder();
 		var layout = _battle.Layout;
 
@@ -201,7 +214,7 @@ public partial class BattleController : Node3D
 
 		_translator = new UserIntentTranslator(
 			_battle.PlayerId,
-			_agent,
+			_agent as IActionSink,
 			_camera,
 			_battleHud,
 			_abilitySourcePicker,
@@ -237,7 +250,8 @@ public partial class BattleController : Node3D
 			ColorForActor);
 		AddChild(_replayDirector);
 
-		_agent.PlanningChanged += RefreshPresentation;
+		var ue = _agent as UserExecutionAgent;
+		ue?.PlanningChanged += RefreshPresentation;
 		_battle.PhaseChanged += OnPhaseChanged;
 		_battle.TurnResolved += OnTurnResolved;
 
@@ -251,6 +265,8 @@ public partial class BattleController : Node3D
 	private void ConfigureTutorial()
 	{
 		if (!IsInsideTree())
+			return;
+		if (_agent == null)
 			return;
 
 		var run = Session.Instance.Run;
@@ -278,8 +294,10 @@ public partial class BattleController : Node3D
 				_camera,
 				_battle.Layout,
 				_battleView,
-				() => _agent.Sim.StateOf<ActorState>(_battle.PlayerId)),
-			worldIndicators);
+				() => _agent?.Sim.StateOf<ActorState>(_battle.PlayerId) ?? default
+			),
+			worldIndicators
+		);
 		tutorials.FlowCompleted += OnTutorialFlowCompleted;
 		RefreshPresentation();
 	}
@@ -409,10 +427,12 @@ public partial class BattleController : Node3D
 		if (ReferenceEquals(_agent, activeAgent))
 			return;
 
-		_agent.PlanningChanged -= RefreshPresentation;
-		_agent = activeAgent;
-		_translator.Bind(_battle.ActivePlayerId, _agent);
-		_agent.PlanningChanged += RefreshPresentation;
+		var uePrev = _agent as UserExecutionAgent;
+		uePrev?.PlanningChanged -= RefreshPresentation;
+		_agent = activeAgent as UserExecutionAgent;
+		_translator.Bind(_battle.ActivePlayerId, _agent as IActionSink);
+		var ueNext = _agent as UserExecutionAgent;
+		ueNext?.PlanningChanged += RefreshPresentation;
 		_frames.Interaction.ResetAfterTurn();
 	}
 
@@ -485,6 +505,7 @@ public partial class BattleController : Node3D
 
 	private void OnMoveReopenRequested(Coord clickedCell)
 	{
+		if (_agent == null) return;
 		var freshFrame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		if (freshFrame.ReopenMoveCell != clickedCell)
 			return;
@@ -529,7 +550,7 @@ public partial class BattleController : Node3D
 	{
 		_frames.Interaction.ClearHovers();
 		_frames.Interaction.ClearPoseHitOpportunities();
-		var undone = _agent.Undo();
+		var undone = (_agent as UserExecutionAgent)?.Undo() ?? false;
 		if (!undone)
 			RefreshPresentation();
 		return undone;
@@ -583,6 +604,7 @@ public partial class BattleController : Node3D
 	{
 		if (!_battle.AcceptsPlayerInput)
 			return;
+		if (_agent == null) return;
 
 		var previewUnits = _frames.BuildFrame(_battle, _agent, acceptsCommands: false).PreviewUnits;
 		if (!previewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
@@ -816,6 +838,7 @@ public partial class BattleController : Node3D
 		if (_battleView.UnitViews.TryGetValue(playerId, out var view))
 			return view.GlobalPosition;
 
+		if (_agent == null) return Vector3.Zero;
 		return WorldMapping.ToWorld(_agent.Sim.StateOf<ActorState>(playerId).Position);
 	}
 
@@ -902,12 +925,64 @@ public partial class BattleController : Node3D
 		GetTree().ReloadCurrentScene();
 	}
 
-	private void GoToMainMenu()
+private void GoToMainMenu()
+		{
+			var result = Session.Instance.TrySaveBeforeLeavingRun(_battle.Engine.World);
+			if (result != GrimSpace.Run.Persistence.SaveStorageResult.Success)
+				GD.PrintErr($"Failed to save game before returning to main menu: {result}");
+			GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+		}
+
+	public async Task RunAiVsAiAsync(int maxTurns = 8, Action<int, string>? onTurnLog = null)
 	{
-		var result = Session.Instance.TrySaveBeforeLeavingRun(_battle.Engine.World);
-		if (result != GrimSpace.Run.Persistence.SaveStorageResult.Success)
-			GD.PrintErr($"Failed to save game before returning to main menu: {result}");
-		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+		var sw = Stopwatch.StartNew();
+		var phaseTcs = new TaskCompletionSource<EBattlePhase>();
+		_battle.PhaseChanged += phase =>
+		{
+			phaseTcs.TrySetResult(phase);
+			phaseTcs = new TaskCompletionSource<EBattlePhase>();
+		};
+
+		for (var turn = 0; turn < maxTurns && !_battle.IsBattleOver; turn++)
+		{
+			if (_battle.Phase == EBattlePhase.PlayerTurn)
+			{
+				var activeUnit = UnitRegistry.For(_battle.Engine.World).UnitOf(_battle.ActivePlayerId);
+				if (activeUnit.ExecutionAgent is AiExecutionAgent aiAgent)
+				{
+					await WaitForAgentAsync(aiAgent);
+					aiAgent.Commit();
+					_battle.EndTurn();
+				}
+			}
+
+			while (_battle.Phase == EBattlePhase.Resolving || _battle.Phase == EBattlePhase.Replaying)
+			{
+				await Task.WhenAny(phaseTcs.Task, Task.Delay(100));
+				
+				RefreshPresentation();
+				
+				if (sw.ElapsedMilliseconds > 300000)
+					throw new TimeoutException("Battle resolution timeout");
+			}
+
+			RefreshPresentation();
+
+			onTurnLog?.Invoke(turn, $"Turn {turn}: Phase={_battle.Phase}, Result={_battle.Engine.World.battleResult}");
+		}
+
+		sw.Stop();
+	}
+
+	private static async Task WaitForAgentAsync(AiExecutionAgent agent, int timeoutMs = 5000)
+	{
+		var sw = Stopwatch.StartNew();
+		while (agent.IsPlanning && sw.ElapsedMilliseconds < timeoutMs)
+		{
+			await Task.Delay(16);
+		}
+		if (agent.IsPlanning)
+			throw new TimeoutException("AI agent planning timeout");
 	}
 
 	private static Color ColorFor(ETeam team) =>
@@ -924,7 +999,7 @@ public partial class BattleController : Node3D
 		_camera.ManualInputStarted -= _cameraDirector.OnManualInputStarted;
 		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;
 		_replayPlayer.TurnFlowIndexChanged -= OnTurnFlowIndexChanged;
-		_agent.PlanningChanged -= RefreshPresentation;
+		(_agent as UserExecutionAgent)?.PlanningChanged -= RefreshPresentation;
 		_battle.PhaseChanged -= OnPhaseChanged;
 		_battle.TurnResolved -= OnTurnResolved;
 		if (Session.Instance.Run.Tutorials is { } tutorials)

@@ -12,6 +12,7 @@ public static class BattleAgentFactory
 		agent switch
 		{
 			UserExecutionAgent => EBattleAgentKind.Player,
+			AiExecutionAgent => EBattleAgentKind.PlayerAi,
 			VoidBombExecutionAgent => EBattleAgentKind.VoidBomb,
 			AiController => EBattleAgentKind.Ai,
 			_ => throw new ArgumentOutOfRangeException(
@@ -24,6 +25,7 @@ public static class BattleAgentFactory
 		kind switch
 		{
 			EBattleAgentKind.Player => new UserExecutionAgent(),
+			EBattleAgentKind.PlayerAi => new AiExecutionAgent(),
 			EBattleAgentKind.Ai => new AiController(),
 			EBattleAgentKind.VoidBomb => new VoidBombExecutionAgent(),
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown battle agent kind."),

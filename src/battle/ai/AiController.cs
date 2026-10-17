@@ -13,8 +13,8 @@ namespace GrimSpace.Battle.Ai;
 
 public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRuntime>
 {
-	private const int TimelineRefinementLimit = 8;
-	private const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
+	internal const int TimelineRefinementLimit = 8;
+	internal const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
 
 	protected override bool PublishOnActivate => false;
 

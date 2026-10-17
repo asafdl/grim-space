@@ -37,10 +37,11 @@ public sealed class BattleTutorialAdapter : IDisposable
 	{
 		_controller = controller;
 		_battle = battle;
-		_battleAgent = battle.PlayerAgent;
+		_battleAgent = battle.PlayerAgent as UserExecutionAgent;
 		_ghostView = battleGhost;
 		_refocusCamera = refocusCamera;
-		_battleAgent.PlanningChanged += OnBattlePlanningChanged;
+		if (_battleAgent != null)
+			_battleAgent.PlanningChanged += OnBattlePlanningChanged;
 		_controller.AssistanceRequested += OnAssistanceRequested;
 		_controller.StepPresented += OnStepPresented;
 		_controller.StepAccepted += OnStepAccepted;

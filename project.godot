@@ -34,8 +34,8 @@ project/assembly_name="grim-space"
 
 [editor]
 
-movie_writer/movie_file="/Users/asafdulberg/git/grim-space/dist/demo.avi"
-movie_writer/fps=24
+movie_writer/movie_file="user://teaser.avi"
+movie_writer/fps=30
 
 [gui]
 
