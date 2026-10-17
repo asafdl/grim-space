@@ -31,7 +31,7 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 | Build (`dotnet build`) | ✅ 0 errors, warnings only |
 | Story phase video (`teaser_story.avi`) | ✅ 10s recorded, artwork renders, text visible |
 | Combat phase video (`teaser_combat10s.avi`) | ✅ 10s recorded, UI renders (Turn 1, HP/Shields, Action Log, AP/MP, ability slots, End Turn, TACTICAL COMBAT text, space background). ❌ No ships/units visible — 10s captures AI thinking phase only. |
-| Combat units during replay | ❌ Still not visible during replay phase — `RefreshPresentation()` added to replay loop but units still not rendering in sampled frames. Need to record new video with this fix and re-analyze. |
+| Combat units during replay | ⏳ Recording — `teaser_combat_units.avi` (130s) recording to D:\grim-space-recordings\. Root cause FOUND: `SyncAuthoritativeUnitViewsFromWorld()` was only called during PlayerTurn phase, so for AI vs AI battles unit views were NEVER created — units exist in world but no UnitView nodes exist to render them. Fix: `SyncAuthoritativeUnitViewsFromWorld()` now called unconditionally in `_Ready()`. Waiting for recording to complete. |
 
 ## Key code fixes applied (committed to `teaser-recording-fix`, NOT pushed)
 
@@ -41,6 +41,7 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 - `RunAiVsAiAsync()` — removed premature `NotifyReplayComplete()` that was cutting replay short
 - `TeaserController._Ready()` — calls `Session.Instance.StartNewRun()` if run is null, added `_viewportDisplay` TextureRect to show SubViewport texture
 - `TeaserController.StartPhase()` — calls `GetTree().Quit()` when `TeaserPhase.Complete` reached
+- `BattleController._Ready()` — **`SyncAuthoritativeUnitViewsFromWorld()` now called unconditionally** (was guarded by `if (_battle.Phase == EBattlePhase.PlayerTurn)`), so unit views are created even during AI vs AI battles when `_agent` is null
 
 ## Disk management
 

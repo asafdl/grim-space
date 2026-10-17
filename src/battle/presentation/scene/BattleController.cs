@@ -256,8 +256,7 @@ public partial class BattleController : Node3D
 		_battle.TurnResolved += OnTurnResolved;
 
 		_cameraDirector.EnterManual();
-		if (_battle.Phase == EBattlePhase.PlayerTurn)
-			SyncAuthoritativeUnitViewsFromWorld();
+		SyncAuthoritativeUnitViewsFromWorld();
 		RefreshPresentation();
 		GetTree().CreateTimer(OpeningCameraHoldSeconds).Timeout += ConfigureTutorial;
 	}
