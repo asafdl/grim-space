@@ -84,6 +84,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? MoveSelectionCompleted;
 	public event Action<int?, int>? AbilityHoverChanged;
 	public event Action<string>? FocusUnitRequested;
+	public event Action? CycleEnemyRequested;
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
 	public event Action? UndoRequested;
@@ -206,6 +207,15 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		if (!_enabled)
 			return;
+
+		if (!_hud.IsPauseMenuOpen
+			&& @event is InputEventKey { Pressed: true, Echo: false } cycleEnemy
+			&& cycleEnemy.IsActionPressed("battle_cycle_enemy", false, true))
+		{
+			CycleEnemyRequested?.Invoke();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 
 		if (_moveInput.IsDragging)
 		{

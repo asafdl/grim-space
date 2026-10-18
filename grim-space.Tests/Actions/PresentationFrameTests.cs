@@ -485,6 +485,65 @@ public sealed class PresentationFrameTests
 		Assert.Null(BattleTestFixture.FrameBuilder(battle).Interaction.FocusId);
 	}
 
+	[Fact]
+	public void RangeTargetUsesMinimumAxisAlignedSteps()
+	{
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(new Coord(1, 1, 1)),
+			BattleTestFixture.Enemy(new Coord(4, 5, 7)));
+
+		var target = BattleTestCommands.Frame(battle).RangeEnemy;
+
+		Assert.True(target.HasValue);
+		Assert.Equal(13, target.Value.MinimumCellSteps);
+	}
+
+	[Fact]
+	public void RequestedRangeTargetOverridesClosestEnemy()
+	{
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(new Coord(1, 1, 1)),
+			[
+				BattleTestFixture.Enemy(new Coord(2, 1, 1)),
+				BattleTestFixture.RepurposedMiner(new Coord(8, 8, 8), "far-enemy"),
+			]);
+		BattleTestFixture.FrameBuilder(battle).Interaction.SetRangeEnemy("far-enemy");
+
+		var target = BattleTestCommands.Frame(battle).RangeEnemy;
+
+		Assert.True(target.HasValue);
+		Assert.Equal("far-enemy", target.Value.EnemyId);
+	}
+
+	[Fact]
+	public void DeadRequestedRangeTargetFallsBackToClosestLivingEnemy()
+	{
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(new Coord(1, 1, 1)),
+			[
+				BattleTestFixture.Enemy(new Coord(2, 1, 1)),
+				BattleTestFixture.RepurposedMiner(new Coord(8, 8, 8), "far-enemy"),
+			]);
+		BattleTestFixture.FrameBuilder(battle).Interaction.SetRangeEnemy("far-enemy");
+		battle.PlayerAgent.Sim.StateOf<ActorState>("far-enemy").HullPoints = 0;
+
+		var target = BattleTestCommands.Frame(battle).RangeEnemy;
+
+		Assert.True(target.HasValue);
+		Assert.Equal("enemy", target.Value.EnemyId);
+		Assert.Null(BattleTestFixture.FrameBuilder(battle).Interaction.RangeEnemyId);
+	}
+
+	[Fact]
+	public void BattleOverFrameHidesRangeTarget()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(1, 1, 1));
+
+		battle.ForceOutcome(EBattleResult.Win);
+
+		Assert.Null(BattleTestCommands.Frame(battle).RangeEnemy);
+	}
+
 	private static BattleOrchestrator CreateOrchestrator(Coord playerPos, Coord enemyPos)
 	{
 		var encounter = new BattleEncounter

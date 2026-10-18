@@ -12,6 +12,7 @@ public sealed class InteractionState
 	private readonly List<PoseHitOpportunity> _poseHitOpportunities = [];
 
 	public string? FocusId { get; private set; }
+	public string? RangeEnemyId { get; private set; }
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities => _poseHitOpportunities;
@@ -36,6 +37,12 @@ public sealed class InteractionState
 		SetMode(EPlayerMode.Move);
 	}
 
+	public void SetRangeEnemy(string unitId) =>
+		RangeEnemyId = unitId;
+
+	public void ClearRangeEnemy() =>
+		RangeEnemyId = null;
+
 	public void SetMode(EPlayerMode mode, AbilityHudCatalog.Spec? abilitySpec = null)
 	{
 		Mode = mode;
@@ -48,6 +55,7 @@ public sealed class InteractionState
 	public void ResetAfterTurn()
 	{
 		FocusId = null;
+		RangeEnemyId = null;
 		SetMode(EPlayerMode.Move);
 	}
 

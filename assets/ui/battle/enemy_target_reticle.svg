@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <g fill="none" stroke-linecap="round">
+    <circle
+      cx="128"
+      cy="128"
+      r="91"
+      stroke="#586d7e"
+      stroke-width="2"
+      opacity="0.72"
+    />
+    <path
+      d="M129 28 A100 100 0 0 1 226 112"
+      stroke="#91a9bc"
+      stroke-width="7"
+      opacity="0.92"
+    />
+    <path
+      d="M127 228 A100 100 0 0 1 30 145"
+      stroke="#91a9bc"
+      stroke-width="7"
+      opacity="0.92"
+    />
+    <path d="M129 20 L129 31" stroke="#91a9bc" stroke-width="5" opacity="0.92"/>
+    <path d="M127 225 L127 236" stroke="#91a9bc" stroke-width="5" opacity="0.92"/>
+  </g>
+</svg>

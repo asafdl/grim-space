@@ -12,6 +12,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -64,6 +65,21 @@ public sealed class SpawnRepurposedMinerActionTests
 
 		Assert.DoesNotContain(UnitRegistry.For(sim.World).All, unit => unit.State.Type == EType.RepurposedMiner);
 		Assert.Equal(0, StateMountTestKit.CooldownRemaining(sim.StateOf<ActorState>(carrierId), EAbilityKind.MinerBay));
+	}
+
+	[Fact]
+	public void PreviewSnapshotIncludesSpawnedUnitTeam()
+	{
+		var battle = CarrierBattle(new Coord(5, 5, 5));
+		var carrierId = BattleTestFixture.FirstEnemyId(battle);
+		var sim = battle.Engine.CreateSimulation();
+		var action = SpawnRepurposedMinerDef.Instance.Bind(carrierId, ESpatialOrientation.Ventral);
+
+		Assert.True(sim.TryEnqueue(action));
+
+		var snapshot = new PlanningPreview().PreviewUnitSnapshot(sim, battle.PlayerId);
+		Assert.Contains(action.SpawnedUnitId, snapshot.Units);
+		Assert.Equal(ETeam.Enemy, snapshot.Teams[action.SpawnedUnitId]);
 	}
 
 	[Fact]

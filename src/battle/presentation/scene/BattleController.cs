@@ -45,6 +45,7 @@ public partial class BattleController : Node3D
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BoardAsteroidView _asteroidView = null!;
+	private EnemyRangeTetherView _enemyRangeTether = null!;
 	private GoopHazardView _goopHazardView = null!;
 	private BattleHud _battleHud = null!;
 	private BattleTutorialAdapter? _battleTutorial;
@@ -164,6 +165,9 @@ public partial class BattleController : Node3D
 		_unitsRoot.AddChild(_battleView);
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, _battle.Engine.World.StateOf(pair.Key), ColorFor(pair.Value))));
+		_enemyRangeTether = new EnemyRangeTetherView { Name = "EnemyRangeTether" };
+		_enemyRangeTether.Configure(layout.Grid);
+		_unitsRoot.AddChild(_enemyRangeTether);
 		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
 		_moveGhost.Configure(_camera);
 		_unitsRoot.AddChild(_moveGhost);
@@ -345,6 +349,7 @@ public partial class BattleController : Node3D
 		};
 		_translator.AbilityHoverChanged += OnAbilityHoverChanged;
 		_translator.FocusUnitRequested += FocusUnit;
+		_translator.CycleEnemyRequested += CycleEnemyFocus;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
@@ -569,6 +574,37 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
+	private void CycleEnemyFocus()
+	{
+		if (!_battle.AcceptsPlayerInput)
+			return;
+
+		var playerPosition = _currentFrame.PreviewUnits[_battle.PlayerId].Position;
+		var enemies = _currentFrame.PreviewUnits
+			.Where(pair =>
+				pair.Value.IsAlive
+				&& _currentFrame.PreviewUnitTeams.TryGetValue(pair.Key, out var team)
+				&& team == ETeam.Enemy)
+			.OrderBy(pair =>
+			{
+				var offset = pair.Value.Position - playerPosition;
+				return offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z;
+			})
+			.ThenBy(pair => pair.Key, StringComparer.Ordinal)
+			.Select(pair => pair.Key)
+			.ToArray();
+		if (enemies.Length == 0)
+			return;
+
+		var currentEnemyId = _frames.Interaction.RangeEnemyId
+			?? _currentFrame.RangeEnemy?.EnemyId;
+		var current = currentEnemyId is { } enemyId
+			? Array.IndexOf(enemies, enemyId)
+			: -1;
+		_frames.Interaction.SetRangeEnemy(enemies[(current + 1) % enemies.Length]);
+		RefreshPresentation();
+	}
+
 	private void FocusUnitFromTopBar(string unitId)
 	{
 		if (_battle.Phase == EBattlePhase.Replaying)
@@ -648,13 +684,14 @@ public partial class BattleController : Node3D
 	{
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
+		ApplyEnemyRangeTether(frame);
 		_gridView.ApplyFrame(frame);
 		_moveGhost.Apply(
 			frame.MoveGhostState,
 			frame.MoveCheckpoints,
 			frame.FocusState,
 			frame.ReachableMoveHeadings,
-			ColorForActor(frame.FocusId),
+			ColorForFrameActor(frame, frame.FocusId),
 			selected: frame.SelectedMove is not null);
 		_targetOpportunityOverlay.Apply(frame.PreviewUnits, frame.PoseHitOpportunities);
 		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
@@ -663,6 +700,19 @@ public partial class BattleController : Node3D
 		_battleHud.Apply(frame, allowEndTurn: CanEndTurn);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
+	}
+
+	private void ApplyEnemyRangeTether(PresentationFrame frame)
+	{
+		if (frame.RangeEnemy is not { } closest
+			|| !_battleView.UnitViews.TryGetValue(_battle.PlayerId, out var player)
+			|| !_battleView.UnitViews.TryGetValue(closest.EnemyId, out var enemy))
+		{
+			_enemyRangeTether.Apply(null, null, 0);
+			return;
+		}
+
+		_enemyRangeTether.Apply(player, enemy, closest.MinimumCellSteps);
 	}
 
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)
@@ -702,12 +752,18 @@ public partial class BattleController : Node3D
 		var states = frame.PreviewUnits.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.ToState());
+		Color FrameColor(string actorId) => ColorForFrameActor(frame, actorId);
 		if (UsesPlanningPreviewForFrameUnitStates(_battle.Phase))
-			_battleView.ApplyPlanningPreview(states, ColorForActor);
+			_battleView.ApplyPlanningPreview(states, FrameColor);
 		else
-			_battleView.ApplyUnitStates(states, ColorForActor);
+			_battleView.ApplyUnitStates(states, FrameColor);
 		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
+
+	private Color ColorForFrameActor(PresentationFrame frame, string actorId) =>
+		frame.PreviewUnitTeams.TryGetValue(actorId, out var team)
+			? ColorFor(team)
+			: ColorForActor(actorId);
 
 	private void SyncAuthoritativeUnitViewsFromWorld()
 	{

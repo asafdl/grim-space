@@ -5,6 +5,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -17,6 +18,8 @@ public sealed class PresentationFrame
 	public bool ShowMovePreview { get; init; }
 	public required IReadOnlyList<MovePathOption> MovePaths { get; init; }
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
+	public required IReadOnlyDictionary<string, ETeam> PreviewUnitTeams { get; init; }
+	public EnemyRangeTarget? RangeEnemy { get; init; }
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }
@@ -46,3 +49,5 @@ public sealed class PresentationFrame
 	public required IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities { get; init; }
 	public Coord? ReopenMoveCell { get; init; }
 }
+
+public readonly record struct EnemyRangeTarget(string EnemyId, int MinimumCellSteps);

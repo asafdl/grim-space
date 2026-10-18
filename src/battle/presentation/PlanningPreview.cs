@@ -33,7 +33,17 @@ public sealed class PlanningPreview
 	public IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits(
 		BattleSimulation sim,
 		string playerId) =>
-		CaptureUnits(sim, PreviewWorld(sim, playerId));
+		PreviewUnitSnapshot(sim, playerId).Units;
+
+	public UnitPreviewSnapshot PreviewUnitSnapshot(BattleSimulation sim, string playerId)
+	{
+		var units = UnitRegistry.For(PreviewWorld(sim, playerId)).All.ToArray();
+		return new UnitPreviewSnapshot(
+			units.ToDictionary(
+				unit => unit.State.Id,
+				unit => UnitDisplayState.Capture(unit.State, sim.RuntimeFor(unit.State.Id))),
+			units.ToDictionary(unit => unit.State.Id, unit => unit.Team));
+	}
 
 	public IReadOnlyList<MovePathOption> MoveOptions(
 		BattleSimulation sim,

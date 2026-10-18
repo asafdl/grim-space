@@ -9,6 +9,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation;
 
@@ -55,21 +56,23 @@ public sealed class PresentationFrameBuilder
 		var playerId = battle.PlayerId;
 		var sim = agent.Sim;
 		var isPlanning = agent.IsPlanning;
-		var previewUnits = battle.Phase == EBattlePhase.BattleOver
-			? CaptureLiveUnits(battle)
-			: _preview.PreviewUnits(sim, playerId);
+		var unitSnapshot = battle.Phase == EBattlePhase.BattleOver
+			? CaptureLiveUnitSnapshot(battle)
+			: _preview.PreviewUnitSnapshot(sim, playerId);
+		var previewUnits = unitSnapshot.Units;
+		var previewUnitTeams = unitSnapshot.Teams;
 		var focusId = state.FocusId ?? playerId;
 		if (!previewUnits.TryGetValue(focusId, out var focusUnit) || !focusUnit.IsAlive)
 		{
 			state.ClearFocus();
 			focusId = playerId;
-			previewUnits = battle.Phase == EBattlePhase.BattleOver
-				? CaptureLiveUnits(battle)
-				: _preview.PreviewUnits(sim, playerId);
 			focusUnit = previewUnits[playerId];
 		}
 
 		var isInspecting = focusId != playerId;
+		if (state.RangeEnemyId is { } rangeEnemyId
+			&& !IsLivingEnemy(previewUnits, previewUnitTeams, rangeEnemyId))
+			state.ClearRangeEnemy();
 		var canControl = acceptsCommands && isPlanning && !isInspecting;
 		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
 		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
@@ -217,6 +220,12 @@ public sealed class PresentationFrameBuilder
 				&& (canControl || isInspecting),
 			MovePaths = moveOptions,
 			PreviewUnits = previewUnits,
+			PreviewUnitTeams = previewUnitTeams,
+			RangeEnemy = FindRangeEnemy(
+				battle,
+				previewUnits,
+				previewUnitTeams,
+				state.RangeEnemyId),
 			Weapons = weapons,
 			AreaActions = areaActions,
 			Abilities = abilities,
@@ -250,10 +259,67 @@ public sealed class PresentationFrameBuilder
 		};
 	}
 
-	private static Dictionary<string, UnitDisplayState> CaptureLiveUnits(BattleOrchestrator battle) =>
-		UnitRegistry.For(battle.Engine.World).All.ToDictionary(
-			unit => unit.State.Id,
-			unit => UnitDisplayState.Capture(
-				unit.State,
-				battle.Engine.ActorRuntimes.For(unit.State.Id)));
+	private static UnitPreviewSnapshot CaptureLiveUnitSnapshot(BattleOrchestrator battle)
+	{
+		var units = UnitRegistry.For(battle.Engine.World).All.ToArray();
+		return new UnitPreviewSnapshot(
+			units.ToDictionary(
+				unit => unit.State.Id,
+				unit => UnitDisplayState.Capture(
+					unit.State,
+					battle.Engine.ActorRuntimes.For(unit.State.Id))),
+			units.ToDictionary(unit => unit.State.Id, unit => unit.Team));
+	}
+
+	private static EnemyRangeTarget? FindRangeEnemy(
+		BattleOrchestrator battle,
+		IReadOnlyDictionary<string, UnitDisplayState> units,
+		IReadOnlyDictionary<string, ETeam> teams,
+		string? requestedEnemyId)
+	{
+		if (battle.Phase is not (EBattlePhase.PlayerTurn or EBattlePhase.Resolving))
+			return null;
+		if (!units.TryGetValue(battle.PlayerId, out var player))
+			return null;
+
+		if (requestedEnemyId is { } enemyId && IsLivingEnemy(units, teams, enemyId))
+			return RangeTarget(enemyId, player.Position, units[enemyId].Position);
+
+		EnemyRangeTarget? closest = null;
+		foreach (var (id, team) in teams)
+		{
+			if (team != ETeam.Enemy
+				|| !units.TryGetValue(id, out var enemy)
+				|| !enemy.IsAlive)
+				continue;
+
+			var candidate = RangeTarget(id, player.Position, enemy.Position);
+			var distance = candidate.MinimumCellSteps;
+			if (closest is null
+				|| distance < closest.Value.MinimumCellSteps
+				|| (distance == closest.Value.MinimumCellSteps
+					&& string.CompareOrdinal(id, closest.Value.EnemyId) < 0))
+				closest = candidate;
+		}
+
+		return closest;
+	}
+
+	private static bool IsLivingEnemy(
+		IReadOnlyDictionary<string, UnitDisplayState> units,
+		IReadOnlyDictionary<string, ETeam> teams,
+		string unitId) =>
+		teams.TryGetValue(unitId, out var team)
+		&& team == ETeam.Enemy
+		&& units.TryGetValue(unitId, out var unit)
+		&& unit.IsAlive;
+
+	private static EnemyRangeTarget RangeTarget(string enemyId, Coord source, Coord target)
+	{
+		var offset = target - source;
+		var minimumSteps = System.Math.Abs(offset.X)
+			+ System.Math.Abs(offset.Y)
+			+ System.Math.Abs(offset.Z);
+		return new EnemyRangeTarget(enemyId, minimumSteps);
+	}
 }

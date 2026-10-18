@@ -417,6 +417,7 @@ public static class GameInputBindings
 		BattleKey("battle_ability_4", "Ability slot 4", Phy(Key.Key4)),
 		BattleKey("battle_end_turn", "End turn", Log(Key.Space)),
 		BattleKey("battle_focus", "Focus camera", Log(Key.F)),
+		BattleKey("battle_cycle_enemy", "Cycle enemy", Log(Key.Tab)),
 		BattleKey("battle_undo", "Undo", new(KeyKind.Logical, Key.Z, ModifierKind.Primary)),
 
 		BattleAny(
