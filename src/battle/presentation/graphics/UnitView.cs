@@ -417,36 +417,42 @@ public partial class UnitView : Node3D
 	{
 		_hull = ShipMesh.CreateFighterHull();
 		AddChild(_hull);
+		PresentationLayers.MarkWorld(_hull);
 	}
 
 	private void BindCarrier()
 	{
 		_hull = CarrierMesh.CreateHullInstance();
 		AddChild(_hull);
+		PresentationLayers.MarkWorld(_hull);
 	}
 
 	private void BindGunship()
 	{
 		_hull = GunshipMesh.CreateHullInstance();
 		AddChild(_hull);
+		PresentationLayers.MarkWorld(_hull);
 	}
 
 	private void BindIndustrialGooper()
 	{
 		_hull = IndustrialGooperMesh.CreateHullInstance();
 		AddChild(_hull);
+		PresentationLayers.MarkWorld(_hull);
 	}
 
 	private void BindRepurposedMiner()
 	{
 		_hull = RepurposedMinerMesh.CreateHullInstance();
 		AddChild(_hull);
+		PresentationLayers.MarkWorld(_hull);
 	}
 
 	private void BindVoidBomb()
 	{
 		_hull = VoidBombMesh.CreateHullInstance();
 		AddChild(_hull);
+		PresentationLayers.MarkWorld(_hull);
 	}
 
 	private void BindShieldBubble(State state)

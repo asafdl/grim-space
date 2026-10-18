@@ -992,6 +992,66 @@ private void GoToMainMenu()
 			_ => Colors.White,
 		};
 
+	/// <summary>
+	/// Sets up an overview camera that frames all units in the battle.
+	/// Useful for teaser/demo scenarios where player-following camera isn't desired.
+	/// </summary>
+	public void SetupOverviewCamera()
+	{
+		var unitViews = _battleView.UnitViews;
+		GD.Print($"[Teaser] SetupOverviewCamera: unitViews.Count = {unitViews.Count}");
+		if (unitViews.Count == 0)
+		{
+			GD.Print("[Teaser] No unit views found");
+			return;
+		}
+
+		var positions = new List<Vector3>();
+		foreach (var kvp in unitViews)
+		{
+			var view = kvp.Value;
+			GD.Print($"[Teaser] Unit {kvp.Key}: Visible={view.Visible}, GlobalPosition={view.GlobalPosition}, VisualState={view.VisualState}");
+			if (view.Visible)
+				positions.Add(view.GlobalPosition);
+		}
+
+		if (positions.Count == 0)
+		{
+			GD.Print("[Teaser] No visible unit positions found");
+			return;
+		}
+
+		var center = Vector3.Zero;
+		foreach (var p in positions)
+			center += p;
+		center /= positions.Count;
+
+		float maxDist = 0f;
+		foreach (var p in positions)
+		{
+			var dist = (p - center).Length();
+			if (dist > maxDist) maxDist = dist;
+		}
+
+		// Add padding and set camera distance
+		float padding = 1.5f;
+		float distance = (maxDist + 5f) * 1.5f; // 5f = unit visual radius estimate
+
+		// Clamp to camera limits
+		distance = Mathf.Clamp(distance, 8f, 280f);
+
+		// Use a top-down-ish overview angle
+		float yaw = 0f; // Looking from positive X
+		float pitch = -0.6f; // ~34 degrees down
+
+		// Pull back further to see all units
+		distance *= 2.5f;
+
+		_camera.SetFocus(center, distance, yaw, pitch);
+
+		GD.Print($"[Teaser] Overview camera set - Center={center}, Distance={distance}, Yaw=0, Pitch=-0.6, UnitCount={positions.Count}");
+	}
+
 	public override void _ExitTree()
 	{
 		Session.Instance.ClearAutosaveContext();

@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Camera;
@@ -14,7 +15,19 @@ internal static class BattleCameraPoses
 	{
 		var fore = ToVector(state.Fore);
 		var dorsal = ToVector(state.Dorsal);
-		var direction = (-fore + dorsal * PlayerAftDorsalOffset).Normalized();
+		
+		// Camera direction: primarily behind the ship (-fore), slightly above
+		// If dorsal is parallel/anti-parallel to fore (invalid orientation), use world up
+		var foreDorsalDot = System.Math.Abs(fore.X * dorsal.X + fore.Y * dorsal.Y + fore.Z * dorsal.Z);
+		var upOffset = foreDorsalDot > 0.99f ? Vector3.Up : dorsal;
+		
+		// Ensure the offset is perpendicular to fore
+		var upOffsetPerp = (upOffset - fore * (fore.X * upOffset.X + fore.Y * upOffset.Y + fore.Z * upOffset.Z)).Normalized();
+		if (upOffsetPerp.LengthSquared() < 0.01f)
+			upOffsetPerp = Vector3.Up;
+		
+		var direction = (-fore + upOffsetPerp * PlayerAftDorsalOffset).Normalized();
+		
 		var (yaw, pitch) = Controller.OrbitAnglesForDirection(direction);
 		return new OrbitPose
 		{

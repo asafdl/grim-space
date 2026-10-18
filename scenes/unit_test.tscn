@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://unit_test_scene"]
+
+[ext_resource type="Script" path="res://src/battle/presentation/camera/Controller.cs" id="1_camera"]
+[ext_resource type="Script" path="res://src/presentation/test/UnitTest.cs" id="2_test"]
+
+[node name="UnitTest" type="Node3D"]
+script = ExtResource("2_test")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -20)
+current = true
+fov = 55
+script = ExtResource("1_camera")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.433, 0.25, 0, 0.5, 0.866, -0.5, -0.75, 0.433, 0, 12, 0)
+light_color = Color(0.75, 0.82, 1, 1)
+light_energy = 0.9
+shadow_enabled = true
+
+[node name="UnitRoot" type="Node3D" parent="."]

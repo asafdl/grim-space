@@ -181,6 +181,10 @@ public partial class TeaserController : Node
 
 		var battleController = battleInstance.GetNode<BattleController>(".");
 		
+		// Wait one frame for BattleController._Ready() to create unit views, then set overview camera
+		await ToSignal(GetTree(), "process_frame");
+		battleController.SetupOverviewCamera();
+		
 		await battleController.RunAiVsAiAsync(maxTurns: 8, onTurnLog: (turn, msg) =>
 		{
 			GD.Print($"[Teaser Battle] Turn {turn}: {msg}");

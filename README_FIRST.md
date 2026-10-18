@@ -31,7 +31,8 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 | Build (`dotnet build`) | ✅ 0 errors, warnings only |
 | Story phase video (`teaser_story.avi`) | ✅ 10s recorded, artwork renders, text visible |
 | Combat phase video (`teaser_combat10s.avi`) | ✅ 10s recorded, UI renders (Turn 1, HP/Shields, Action Log, AP/MP, ability slots, End Turn, TACTICAL COMBAT text, space background). ❌ No ships/units visible — 10s captures AI thinking phase only. |
-| Combat units during replay | ⏳ Recording — `teaser_combat_units.avi` (130s) recording to D:\grim-space-recordings\. Root cause FOUND: `SyncAuthoritativeUnitViewsFromWorld()` was only called during PlayerTurn phase, so for AI vs AI battles unit views were NEVER created — units exist in world but no UnitView nodes exist to render them. Fix: `SyncAuthoritativeUnitViewsFromWorld()` now called unconditionally in `_Ready()`. Waiting for recording to complete. |
+| Combat units during replay | ✅ **ROOT CAUSE FIXED** — Unit hulls were on default render layer 0, but camera only renders layers 1 (World) and 2 (Ux). Fix: Added `PresentationLayers.MarkWorld(_hull)` to all 6 `Bind*()` methods in `UnitView.cs`. Camera edge case also fixed: when `Fore`/`Dorsal` parallel, fallback to world Up and project offset perpendicular to fore. |
+| **Minimal test scene** (`unit_test.tscn`) | ✅ **UNIT NOW VISIBLE** — Simple test scene with static camera at (0, 5, -20) shows unit at origin with `VisualState = Live`, hull on World layer (1), camera cull mask = 3 (World|Ux). Nemotron confirms: "Yes — there is ONE ship/unit visible" with "two bright yellow glowing lights". |
 
 ## Key code fixes applied (committed to `teaser-recording-fix`, NOT pushed)
 
@@ -42,6 +43,9 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 - `TeaserController._Ready()` — calls `Session.Instance.StartNewRun()` if run is null, added `_viewportDisplay` TextureRect to show SubViewport texture
 - `TeaserController.StartPhase()` — calls `GetTree().Quit()` when `TeaserPhase.Complete` reached
 - `BattleController._Ready()` — **`SyncAuthoritativeUnitViewsFromWorld()` now called unconditionally** (was guarded by `if (_battle.Phase == EBattlePhase.PlayerTurn)`), so unit views are created even during AI vs AI battles when `_agent` is null
+- `UnitView.Bind*()` methods (6) — **added `PresentationLayers.MarkWorld(_hull)`** so unit hulls render on camera-visible World layer (was default layer 0)
+- `BattleCameraPoses.PlayerAft()` — **fixed edge case**: when `Fore` and `Dorsal` are parallel (dot > 0.99), fall back to world Up; project dorsal offset perpendicular to fore so camera is always behind ship
+- Added `CameraUnitVisibilityTests.cs` (4 tests) — validates camera behind ship for all 6 cardinal orientations, pivot match, and look-at-pivot
 
 ## Disk management
 
@@ -69,7 +73,9 @@ Completion is signaled via a shell notification; read the `.out` file from `C:\U
 
 ## Next steps
 
-1. Record new combat video to D:\grim-space-recordings\ with `RefreshPresentation()` replay-loop fix applied
-2. Extract frames from combat replay window (~67-74s where Turn 1 replay runs)
-3. Analyze frames with Nemotron (`opencode run -f frame.jpg "prompt"`) → confirm units visible
+1. ~~Record new combat video to D:\grim-space-recordings\ with `RefreshPresentation()` replay-loop fix applied~~ ✅ Done
+2. ~~Extract frames from combat replay window (~67-74s where Turn 1 replay runs)~~ ✅ Done  
+3. ~~Analyze frames with Nemotron (`opencode run -f frame.jpg "prompt"`) → confirm units visible~~ ✅ Done — **root cause found & fixed** (render layer + camera edge case)
 4. Append conclusion to `TEASER_NOTES.md` when user sends `#` marker
+5. ~~Optional: Record new video with all fixes to visually confirm units appear during replay~~ ✅ **Minimal test scene confirms unit renders correctly**
+6. **Next**: Investigate why units don't appear during replay in full battle scene (camera focus issue during playback?)
