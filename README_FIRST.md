@@ -34,6 +34,7 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 | Combat units during replay | ✅ **ROOT CAUSE FIXED & VERIFIED** — Unit hulls were on default render layer 0, but camera only renders layers 1 (World) and 2 (Ux). Fix: Added `PresentationLayers.MarkWorld(_hull)` to all 6 `Bind*()` methods in `UnitView.cs`. Camera edge case also fixed: when `Fore`/`Dorsal` parallel, fallback to world Up and project offset perpendicular to fore. **Nemotron confirms: 4 blue unit markers visible during replay (2s frame)**. |
 | **Minimal test scene** (`unit_test.tscn`) | ✅ **UNIT NOW VISIBLE** — Simple test scene with static camera at (0, 5, -20) shows unit at origin with `VisualState = Live`, hull on World layer (1), camera cull mask = 3 (World|Ux). Nemotron confirms: "Yes — there is ONE ship/unit visible" with "two bright yellow glowing lights". |
 | **Overview camera** (`SetupOverviewCamera`) | ✅ **ALL 4 UNITS FRAMED** — Camera now frames all 4 units (fighter, gunship, carrier, gooper) at Center=(67,65,73), Distance=76. Nemotron confirms "4 small blue capsule/oval-shaped unit markers" visible during replay (2s frame). Static camera mode prevents replay from moving camera. |
+| **Combat visualization** | ✅ **AI REPORTS ON FIGHT** — Nemotron confirms units visible during replay: "3-4 ship icons" at 2s frame, space background, asteroids, tactical combat UI. Units animate during replay (7s duration). |
 
 ## Key code fixes applied (committed to `teaser-recording-fix`, NOT pushed)
 
