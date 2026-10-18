@@ -300,12 +300,12 @@ public partial class BattleController : Node3D
 	private void WireHudToTranslator()
 	{
 		_battleHud.TurnFlowBar.UnitClicked += FocusUnitFromTopBar;
-		_battleHud.ManeuverBar.MoveModeRequested += _translator.OnMoveMode;
-		_battleHud.ActionBar.AbilityModeRequested += OnAbilityModeRequested;
-		_battleHud.ActionBar.EndTurnRequested += _translator.OnEndTurn;
-		_battleHud.UtilityBar.UndoRequested += _translator.OnUndo;
-		_battleHud.UtilityBar.FocusRequested += _translator.OnFocusCamera;
-		_battleHud.UtilityBar.BackToPlayerRequested += _translator.OnReturnToPlayer;
+		_battleHud.CommandHud.MoveModeRequested += _translator.OnMoveMode;
+		_battleHud.CommandHud.AbilityModeRequested += OnAbilityModeRequested;
+		_battleHud.CommandHud.ExecuteRequested += _translator.OnEndTurn;
+		_battleHud.CommandHud.UndoRequested += _translator.OnUndo;
+		_battleHud.CommandHud.FocusRequested += _translator.OnFocusCamera;
+		_battleHud.CommandHud.ReturnToPlayerRequested += _translator.OnReturnToPlayer;
 		_battleHud.OutcomeOverlay.ResetRequested += OnOutcomeOverlayAction;
 		_battleHud.RestartRequested += _translator.OnRestart;
 		_battleHud.RetireRequested += _translator.OnRetire;

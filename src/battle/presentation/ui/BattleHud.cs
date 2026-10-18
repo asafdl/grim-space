@@ -17,10 +17,8 @@ public partial class BattleHud : Node
 	public event Action? RestartRequested;
 	public event Action? MainMenuRequested;
 
-	public ActionBar ActionBar { get; private set; } = null!;
+	public BattleCommandHud CommandHud { get; private set; } = null!;
 	public HealthBar HealthBar { get; private set; } = null!;
-	public ManeuverBar ManeuverBar { get; private set; } = null!;
-	public UtilityBar UtilityBar { get; private set; } = null!;
 	public TurnFlowBar TurnFlowBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
@@ -133,51 +131,16 @@ public partial class BattleHud : Node
 
 		_bottomHud = new CanvasLayer { Layer = 10 };
 
-		var margin = new MarginContainer
+		CommandHud = new BattleCommandHud
 		{
-			AnchorsPreset = (int)Control.LayoutPreset.BottomWide,
+			AnchorLeft = 0.5f,
 			AnchorTop = 1f,
-			AnchorRight = 1f,
+			AnchorRight = 0.5f,
 			AnchorBottom = 1f,
-			OffsetTop = -250f,
 			GrowHorizontal = Control.GrowDirection.Both,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
+			GrowVertical = Control.GrowDirection.Begin,
 		};
-		margin.AddThemeConstantOverride("margin_left", 16);
-		margin.AddThemeConstantOverride("margin_right", 16);
-		margin.AddThemeConstantOverride("margin_bottom", 14);
-		_bottomHud.AddChild(margin);
-
-		var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-		margin.AddChild(center);
-
-		var row = new HBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.Begin,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		row.AddThemeConstantOverride("separation", 14);
-		center.AddChild(row);
-
-		var modeGroup = new ButtonGroup();
-
-		ManeuverBar = new ManeuverBar(modeGroup)
-		{
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-		};
-		row.AddChild(ManeuverBar);
-
-		ActionBar = new ActionBar(modeGroup)
-		{
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-		};
-		row.AddChild(ActionBar);
-
-		UtilityBar = new UtilityBar
-		{
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-		};
-		row.AddChild(UtilityBar);
+		_bottomHud.AddChild(CommandHud);
 
 		AddChild(_bottomHud);
 
@@ -217,11 +180,11 @@ public partial class BattleHud : Node
 
 		var battleTheme = HudThemes.Load(HudThemeFamily.Battle);
 		topMargin.Theme = battleTheme;
-		margin.Theme = battleTheme;
 		_actionLogHost.Theme = battleTheme;
 		OutcomeOverlay.ApplyTheme(battleTheme);
 		PauseMenu.ApplyTheme(battleTheme);
 		_simulationPhaseBanner.Theme = battleTheme;
+		CommandHud.Theme = battleTheme;
 	}
 
 	private void BuildPhaseOverlay()
@@ -332,26 +295,18 @@ public partial class BattleHud : Node
 		if (hideHud)
 			return;
 
-		ManeuverBar.SetMode(frame.Mode);
-		ManeuverBar.Configure(
-			frame.CanAct,
+		CommandHud.ApplyResources(
 			focusState.ActionPoints,
 			focusState.MaxActionPoints,
 			focusState.ManeuverPoints,
 			focusState.MaxManeuverPoints);
-
-		var abilitySpecs = AbilityHudCatalog.ForDisplayState(focusState);
-		var abilitySlots = abilitySpecs
-			.Select(spec => AbilityHudCatalog.BuildState(spec, focusState, frame.Abilities))
-			.ToList();
-		ActionBar.ApplyLayout(abilitySpecs);
-		ActionBar.SetMode(frame.Mode);
-		ActionBar.Configure(frame.CanAct, frame.IsInspecting, abilitySlots, allowEndTurn);
-		ManeuverBar.RefreshBindingLabels();
-		ActionBar.RefreshBindingLabels();
-		UtilityBar.RefreshBindingLabels();
-		ActionBar.InstructionBar.Apply(frame.Instruction);
-		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
+		CommandHud.ApplyMainActions(frame.Mode, frame.CanAct, focusState, frame.Abilities);
+		CommandHud.ApplyCommands(
+			frame.IsInspecting,
+			frame.CanAct,
+			frame.CanFocusCamera,
+			frame.CanUndo,
+			allowEndTurn);
 	}
 
 	private Tween? FadePhaseVisual(

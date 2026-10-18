@@ -3,7 +3,6 @@
 [ext_resource type="FontFile" path="res://assets/ui/fonts/VT323-Regular.ttf" id="1_font"]
 [ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-Medium.ttf" id="2_inter_medium"]
 [ext_resource type="FontFile" path="res://assets/ui/fonts/Inter-SemiBold.ttf" id="3_inter_semibold"]
-
 [sub_resource type="StyleBoxFlat" id="StyleBox_shell"]
 bg_color = Color(0.02, 0.04, 0.07, 0.95)
 border_width_left = 1

@@ -275,7 +275,7 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
-		if (@event.IsActionPressed("battle_undo", false, true) && _hud.UtilityBar.CanUndo)
+		if (@event.IsActionPressed("battle_undo", false, true) && _hud.CommandHud.CanUndo)
 		{
 			UndoShortcutRequested?.Invoke();
 			GetViewport().SetInputAsHandled();
@@ -319,7 +319,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnEndTurn()
 	{
-		if (_moveInput.Destination is null && _hud.ActionBar.CanEndTurn)
+		if (_moveInput.Destination is null && _hud.CommandHud.CanExecute)
 			EndTurnRequested?.Invoke();
 	}
 
@@ -359,13 +359,15 @@ public sealed partial class UserIntentTranslator : Node
 		}
 
 		if (key.IsActionPressed("battle_move_mode", false, true))
-			return _hud.ManeuverBar.TryActivateMove();
+			return _hud.CommandHud.TryActivateMove();
 		if (key.IsActionPressed("battle_ability_2", false, true))
-			return _hud.ActionBar.TryActivateHotkey(2);
+			return _hud.CommandHud.TryActivateAbilityHotkey(2);
 		if (key.IsActionPressed("battle_ability_3", false, true))
-			return _hud.ActionBar.TryActivateHotkey(3);
+			return _hud.CommandHud.TryActivateAbilityHotkey(3);
 		if (key.IsActionPressed("battle_ability_4", false, true))
-			return _hud.ActionBar.TryActivateHotkey(4);
+			return _hud.CommandHud.TryActivateAbilityHotkey(4);
+		if (key.IsActionPressed("battle_ability_5", false, true))
+			return _hud.CommandHud.TryActivateAbilityHotkey(5);
 		if (key.IsActionPressed("battle_end_turn", false, true))
 		{
 			OnEndTurn();
@@ -373,7 +375,7 @@ public sealed partial class UserIntentTranslator : Node
 		}
 
 		if (key.IsActionPressed("battle_focus", false, true))
-			return _hud.UtilityBar.TryFocus();
+			return _hud.CommandHud.TryFocus();
 
 		return false;
 	}

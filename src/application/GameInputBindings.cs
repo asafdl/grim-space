@@ -122,6 +122,11 @@ public static class GameInputBindings
 			: primary;
 	}
 
+	public static string PrimaryLabel(StringName action) =>
+		_current.TryGetValue(action, out var pair)
+			? LabelForBinding(pair.Primary)
+			: "?";
+
 	public static string LabelForBinding(KeyBinding binding) => FormatBinding(binding);
 
 	public static bool TryFindSpec(StringName action, out BindingSpec spec)
@@ -415,6 +420,7 @@ public static class GameInputBindings
 		BattleKey("battle_ability_2", "Ability slot 2", Phy(Key.Key2)),
 		BattleKey("battle_ability_3", "Ability slot 3", Phy(Key.Key3)),
 		BattleKey("battle_ability_4", "Ability slot 4", Phy(Key.Key4)),
+		BattleKey("battle_ability_5", "Ability slot 5", Phy(Key.Key5)),
 		BattleKey("battle_end_turn", "End turn", Log(Key.Space)),
 		BattleKey("battle_focus", "Focus camera", Log(Key.F)),
 		BattleKey("battle_cycle_enemy", "Cycle enemy", Log(Key.Tab)),

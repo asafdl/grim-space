@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1825"/>
+      <stop offset="1" stop-color="#282034"/>
+    </linearGradient>
+    <linearGradient id="key" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#201a2b"/>
+      <stop offset="1" stop-color="#3b2b48"/>
+    </linearGradient>
+    <pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M8 0H0V8" fill="none" stroke="#aa91bb" stroke-opacity=".12" stroke-width=".5"/>
+    </pattern>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6"/>
+    </filter>
+    <clipPath id="panel-clip">
+      <path d="M10 5H52L59 12V45L55 49H47L41 55H10L5 50V10Z"/>
+    </clipPath>
+  </defs>
+
+  <path d="M10 5H52L59 12V45L55 49H47L41 55H10L5 50V10Z"
+        fill="url(#panel)" stroke="#bfb4c5" stroke-width="1.25"/>
+  <rect x="5" y="5" width="54" height="50" fill="url(#grid)" clip-path="url(#panel-clip)"/>
+  <path d="M11 8L8 11V45M8 49V52H32"
+        fill="none" stroke="#d7e8ef" stroke-opacity=".75" stroke-width=".8"/>
+
+  <g fill="none" stroke="#aa9cb2" stroke-width=".75" stroke-linecap="round">
+    <path d="M57 8l4 4M57 14l4 4M57 20l4 4M57 26l4 4M57 32l4 4"/>
+    <path d="M3 39v3M3 45v3"/>
+  </g>
+
+  <g stroke="#e8f5fb" stroke-linecap="round">
+    <path d="M14 2H49" stroke-opacity=".3" stroke-width="3.2" filter="url(#glow)"/>
+    <path d="M14 2H49" stroke-width=".9"/>
+    <path d="M9 54H31" stroke-opacity=".3" stroke-width="3.2" filter="url(#glow)"/>
+    <path d="M9 54H31" stroke-width=".9"/>
+  </g>
+
+  <path d="M44 38H56L63 45V57L56 64H44L37 57V45Z"
+        fill="url(#key)" stroke="#d0c5d5" stroke-width="1.1"/>
+  <path d="M45 40H55L61 46V56L55 62H45L39 56V46Z"
+        fill="none" stroke="#9276a0" stroke-opacity=".85" stroke-width=".7"/>
+</svg>

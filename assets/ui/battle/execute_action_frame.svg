@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="136" height="34" viewBox="0 0 136 34">
+  <defs>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b111b"/>
+      <stop offset=".55" stop-color="#260b13"/>
+      <stop offset="1" stop-color="#12070b"/>
+    </linearGradient>
+    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M10 0H0V10" fill="none" stroke="#e95b70" stroke-opacity=".1" stroke-width=".5"/>
+    </pattern>
+    <filter id="glow" x="-20%" y="-80%" width="140%" height="260%">
+      <feGaussianBlur stdDeviation="1.4"/>
+    </filter>
+  </defs>
+
+  <path d="M7 1H127L135 9V27L128 33H7L1 27V7Z"
+        fill="url(#fill)" stroke="#d94359" stroke-width="1.2"/>
+  <path d="M7 1H127L135 9V27L128 33H7L1 27V7Z" fill="url(#grid)"/>
+  <path d="M9 4H124L131 10V25L126 30H9L4 25V9Z"
+        fill="none" stroke="#84293a" stroke-opacity=".85" stroke-width=".7"/>
+
+  <path d="M12 2H121" stroke="#ff7186" stroke-opacity=".25" stroke-width="4" filter="url(#glow)"/>
+  <path d="M12 2H121" stroke="#ff8b9c" stroke-opacity=".88" stroke-width=".8"/>
+
+  <path d="M107 5L114 12V27L110 31"
+        fill="none" stroke="#b5384c" stroke-opacity=".75" stroke-width=".8"/>
+  <g fill="none" stroke="#ff8b9c" stroke-width="1.2" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M72 24l4 3-4 3" stroke-opacity=".38"/>
+    <path d="M81 24l4 3-4 3" stroke-opacity=".62"/>
+    <path d="M90 24l4 3-4 3" stroke-opacity=".9"/>
+  </g>
+  <g fill="none" stroke="#ca465a" stroke-opacity=".58" stroke-width=".7" stroke-linecap="round">
+    <path d="M129 8l4 4M129 14l4 4M129 20l4 4"/>
+    <path d="M4 12v4M4 20v3"/>
+  </g>
+</svg>

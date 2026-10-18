@@ -40,6 +40,7 @@ public partial class KeyBindingsTab : Control
 				"battle_ability_2",
 				"battle_ability_3",
 				"battle_ability_4",
+				"battle_ability_5",
 			]),
 		new("Turn", ["battle_end_turn", "battle_undo"]),
 	];
