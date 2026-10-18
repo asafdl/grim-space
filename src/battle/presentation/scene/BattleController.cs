@@ -1042,17 +1042,17 @@ private void GoToMainMenu()
 
 		// Use a top-down-ish overview angle
 		float yaw = 0f; // Looking from positive X
-		float pitch = -0.3f; // ~17 degrees down (less steep to see units better)
+		float pitch = -0.4f; // ~23 degrees down
 
 		// Pull back further to see all units, but not too far
-		distance *= 1.2f;
+		distance *= 1.5f;
 
 		// Clamp again after scaling
 		distance = Mathf.Clamp(distance, 8f, 280f);
 
 		_camera.SetFocus(center, distance, yaw, pitch);
 
-		GD.Print($"[Teaser] Overview camera set - Center={center}, Distance={distance}, Yaw=0, Pitch=-0.3, UnitCount={positions.Count}");
+		GD.Print($"[Teaser] Overview camera set - Center={center}, Distance={distance}, Yaw=0, Pitch=-0.4, UnitCount={positions.Count}");
 	}
 
 	/// <summary>
