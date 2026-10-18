@@ -697,7 +697,7 @@ public partial class BattleController : Node3D
 		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
 		_areaActionPreview.ApplyFrame(frame);
 		_voidBombPreview.ApplyFrame(frame);
-		_battleHud.Apply(frame, allowEndTurn: CanEndTurn);
+		_battleHud.Apply(frame, _battle.Phase, allowEndTurn: CanEndTurn);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
 	}

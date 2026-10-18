@@ -10,6 +10,9 @@ namespace GrimSpace.Battle.Presentation.Ui;
 /// </summary>
 public partial class BattleHud : Node
 {
+	private const double PhaseFadeInSeconds = 0.8;
+	private const double PhaseFadeOutSeconds = 0.3;
+
 	public event Action? RetireRequested;
 	public event Action? RestartRequested;
 	public event Action? MainMenuRequested;
@@ -28,6 +31,14 @@ public partial class BattleHud : Node
 
 	private PanelContainer _turnBadge = null!;
 	private Label _turnLabel = null!;
+	private CanvasLayer _phaseLayer = null!;
+	private ColorRect _planningVignette = null!;
+	private CenterContainer _simulationPhaseHost = null!;
+	private Label _simulationPhaseBanner = null!;
+	private Tween? _planningVignetteTween;
+	private Tween? _simulationPhaseBannerTween;
+	private bool _planningVignetteTargetVisible;
+	private bool _simulationPhaseBannerTargetVisible;
 	private CanvasLayer _topHud = null!;
 	private CanvasLayer _bottomHud = null!;
 	private CanvasLayer _actionLogLayer = null!;
@@ -36,6 +47,8 @@ public partial class BattleHud : Node
 
 	public void Build()
 	{
+		BuildPhaseOverlay();
+
 		_topHud = new CanvasLayer { Layer = 10 };
 		var topMargin = new MarginContainer
 		{
@@ -115,6 +128,7 @@ public partial class BattleHud : Node
 		TurnFlowBar = new TurnFlowBar();
 		flowCenter.AddChild(TurnFlowBar);
 		_topHud.AddChild(flowCenter);
+		_topHud.AddChild(_simulationPhaseHost);
 		AddChild(_topHud);
 
 		_bottomHud = new CanvasLayer { Layer = 10 };
@@ -207,6 +221,72 @@ public partial class BattleHud : Node
 		_actionLogHost.Theme = battleTheme;
 		OutcomeOverlay.ApplyTheme(battleTheme);
 		PauseMenu.ApplyTheme(battleTheme);
+		_simulationPhaseBanner.Theme = battleTheme;
+	}
+
+	private void BuildPhaseOverlay()
+	{
+		_phaseLayer = new CanvasLayer { Layer = 9 };
+		_planningVignette = new ColorRect
+		{
+			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			GrowVertical = Control.GrowDirection.Both,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Material = new ShaderMaterial
+			{
+				Shader = new Shader
+				{
+					Code =
+						"""
+						shader_type canvas_item;
+
+						void fragment() {
+							vec2 edge_distance = min(UV, vec2(1.0) - UV);
+							float nearest_edge = min(edge_distance.x, edge_distance.y);
+							float strength = 1.0 - smoothstep(0.0, 0.14, nearest_edge);
+							COLOR *= vec4(0.08, 0.42, 0.9, 0.24 * strength);
+						}
+						""",
+				},
+			},
+			Modulate = new Color(1f, 1f, 1f, 0f),
+			Visible = false,
+		};
+		_phaseLayer.AddChild(_planningVignette);
+
+		_simulationPhaseHost = new CenterContainer
+		{
+			AnchorsPreset = (int)Control.LayoutPreset.TopWide,
+			AnchorRight = 1f,
+			OffsetTop = 104f,
+			OffsetBottom = 146f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		_simulationPhaseBanner = new Label
+		{
+			Text = BattleHudCopy.SimulationPhase,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+			Modulate = new Color(1f, 1f, 1f, 0f),
+			Visible = false,
+		};
+		_simulationPhaseBanner.AddThemeFontSizeOverride("font_size", 18);
+		_simulationPhaseBanner.AddThemeConstantOverride("outline_size", 4);
+		_simulationPhaseBanner.AddThemeColorOverride(
+			"font_color",
+			new Color(0.48f, 0.82f, 0.82f, 0.86f));
+		_simulationPhaseBanner.AddThemeColorOverride(
+			"font_outline_color",
+			new Color(0.02f, 0.05f, 0.07f, 0.9f));
+		_simulationPhaseHost.AddChild(_simulationPhaseBanner);
+		AddChild(_phaseLayer);
 	}
 
 	public void TogglePauseMenu() => PauseMenu.Visible = !PauseMenu.Visible;
@@ -219,12 +299,22 @@ public partial class BattleHud : Node
 		PauseMenu.SetRestartEnabled(!strategic);
 	}
 
-	public void Apply(PresentationFrame frame, bool allowEndTurn)
+	public void Apply(PresentationFrame frame, EBattlePhase phase, bool allowEndTurn)
 	{
 		var hideHud = frame.ShowOutcomeOverlay;
 		if (hideHud)
 			ClosePauseMenu();
 
+		FadePhaseVisual(
+			_planningVignette,
+			!hideHud && phase == EBattlePhase.PlayerTurn,
+			ref _planningVignetteTargetVisible,
+			ref _planningVignetteTween);
+		FadePhaseVisual(
+			_simulationPhaseBanner,
+			!hideHud && phase == EBattlePhase.PlayerTurn,
+			ref _simulationPhaseBannerTargetVisible,
+			ref _simulationPhaseBannerTween);
 		_topHud.Visible = !hideHud;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
@@ -262,6 +352,31 @@ public partial class BattleHud : Node
 		UtilityBar.RefreshBindingLabels();
 		ActionBar.InstructionBar.Apply(frame.Instruction);
 		UtilityBar.Configure(frame.IsInspecting, frame.CanFocusCamera, frame.CanUndo);
+	}
+
+	private Tween? FadePhaseVisual(
+		Control visual,
+		bool visible,
+		ref bool targetVisible,
+		ref Tween? tween)
+	{
+		if (targetVisible == visible)
+			return tween;
+
+		targetVisible = visible;
+		tween?.Kill();
+		visual.Visible = true;
+		tween = CreateTween();
+		tween.SetEase(Tween.EaseType.InOut);
+		tween.SetTrans(Tween.TransitionType.Sine);
+		tween.TweenProperty(
+			visual,
+			"modulate:a",
+			visible ? 1f : 0f,
+			visible ? PhaseFadeInSeconds : PhaseFadeOutSeconds);
+		if (!visible)
+			tween.TweenCallback(Callable.From(() => visual.Visible = false));
+		return tween;
 	}
 
 	public void SetTurnFlowTimeline(IReadOnlyList<TurnFlowEntry> timeline) =>
