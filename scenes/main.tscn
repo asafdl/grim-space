@@ -409,6 +409,22 @@ custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 button_pressed = true
 
+[node name="ShowActionLogRow" type="HBoxContainer" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ShowActionLogLabel" type="Label" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowActionLogRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Show action log"
+
+[node name="ShowActionLog" type="CheckBox" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowActionLogRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+button_pressed = true
+
 [node name="Keys" type="Control" parent="SettingsOverlay/Panel/Margin/SettingsPanel/SettingsTabs" unique_id=1876460814]
 unique_name_in_owner = true
 visible = false

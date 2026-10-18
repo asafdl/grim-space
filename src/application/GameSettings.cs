@@ -10,6 +10,7 @@ public static class GameSettings
 
 	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
 	public static bool MouseCameraPanEnabled { get; private set; } = true;
+	public static bool ShowActionLog { get; private set; } = true;
 
 	public static readonly Vector2I[] SupportedResolutions =
 	[
@@ -123,6 +124,7 @@ public static class GameSettings
 		AudioConfig audio,
 		bool showTutorials,
 		bool mouseCameraPanEnabled,
+		bool showActionLog,
 		IReadOnlyDictionary<StringName, BindingPair> bindings)
 	{
 		var config = LoadOrCreate();
@@ -130,6 +132,7 @@ public static class GameSettings
 		WriteAudioConfig(config, audio);
 		config.SetValue("gameplay", "show_tutorials", showTutorials);
 		config.SetValue("gameplay", "mouse_camera_pan", mouseCameraPanEnabled);
+		config.SetValue("gameplay", "show_action_log", showActionLog);
 		GameInputBindings.WriteBindingsSection(config, bindings);
 		return config.Save(SettingsPath);
 	}
@@ -160,8 +163,19 @@ public static class GameSettings
 		return config!.GetValue("gameplay", "mouse_camera_pan", true).AsBool();
 	}
 
+	public static bool ReadShowActionLog()
+	{
+		if (!TryLoad(out var config))
+			return true;
+
+		return config!.GetValue("gameplay", "show_action_log", true).AsBool();
+	}
+
 	public static void ApplyMouseCameraPan(bool enabled) =>
 		MouseCameraPanEnabled = enabled;
+
+	public static void ApplyShowActionLog(bool show) =>
+		ShowActionLog = show;
 
 	public static void SaveShowTutorials(bool enabled)
 	{

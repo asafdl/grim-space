@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Components;
 
@@ -231,7 +232,7 @@ public partial class BattleHud : Node
 		HealthBar.Set(focusState);
 
 		_actionLogPanel.SetEntries(frame.ActionLogEntries);
-		_actionLogLayer.Visible = !hideHud;
+		_actionLogLayer.Visible = !hideHud && GameSettings.ShowActionLog;
 
 		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
 		if (frame.ShowOutcomeOverlay)
