@@ -183,7 +183,11 @@ public partial class TeaserController : Node
 		
 		// Wait one frame for BattleController._Ready() to create unit views, then set overview camera
 		await ToSignal(GetTree(), "process_frame");
+		GD.Print("[Teaser] About to call SetupOverviewCamera");
 		battleController.SetupOverviewCamera();
+		GD.Print("[Teaser] About to call EnableStaticCameraMode");
+		battleController.EnableStaticCameraMode();
+		GD.Print("[Teaser] Both calls completed");
 		
 		await battleController.RunAiVsAiAsync(maxTurns: 8, onTurnLog: (turn, msg) =>
 		{

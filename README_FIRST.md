@@ -31,8 +31,9 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 | Build (`dotnet build`) | ✅ 0 errors, warnings only |
 | Story phase video (`teaser_story.avi`) | ✅ 10s recorded, artwork renders, text visible |
 | Combat phase video (`teaser_combat10s.avi`) | ✅ 10s recorded, UI renders (Turn 1, HP/Shields, Action Log, AP/MP, ability slots, End Turn, TACTICAL COMBAT text, space background). ❌ No ships/units visible — 10s captures AI thinking phase only. |
-| Combat units during replay | ✅ **ROOT CAUSE FIXED** — Unit hulls were on default render layer 0, but camera only renders layers 1 (World) and 2 (Ux). Fix: Added `PresentationLayers.MarkWorld(_hull)` to all 6 `Bind*()` methods in `UnitView.cs`. Camera edge case also fixed: when `Fore`/`Dorsal` parallel, fallback to world Up and project offset perpendicular to fore. |
+| Combat units during replay | ✅ **ROOT CAUSE FIXED & VERIFIED** — Unit hulls were on default render layer 0, but camera only renders layers 1 (World) and 2 (Ux). Fix: Added `PresentationLayers.MarkWorld(_hull)` to all 6 `Bind*()` methods in `UnitView.cs`. Camera edge case also fixed: when `Fore`/`Dorsal` parallel, fallback to world Up and project offset perpendicular to fore. **Nemotron confirms: 4 blue unit markers visible during replay (2s frame)**. |
 | **Minimal test scene** (`unit_test.tscn`) | ✅ **UNIT NOW VISIBLE** — Simple test scene with static camera at (0, 5, -20) shows unit at origin with `VisualState = Live`, hull on World layer (1), camera cull mask = 3 (World|Ux). Nemotron confirms: "Yes — there is ONE ship/unit visible" with "two bright yellow glowing lights". |
+| **Overview camera** (`SetupOverviewCamera`) | ✅ **ALL 4 UNITS FRAMED** — Camera now frames all 4 units (fighter, gunship, carrier, gooper) at Center=(67,65,73), Distance=76. Nemotron confirms "4 small blue capsule/oval-shaped unit markers" visible during replay (2s frame). Static camera mode prevents replay from moving camera. |
 
 ## Key code fixes applied (committed to `teaser-recording-fix`, NOT pushed)
 
@@ -77,5 +78,6 @@ Completion is signaled via a shell notification; read the `.out` file from `C:\U
 2. ~~Extract frames from combat replay window (~67-74s where Turn 1 replay runs)~~ ✅ Done  
 3. ~~Analyze frames with Nemotron (`opencode run -f frame.jpg "prompt"`) → confirm units visible~~ ✅ Done — **root cause found & fixed** (render layer + camera edge case)
 4. Append conclusion to `TEASER_NOTES.md` when user sends `#` marker
-5. ~~Optional: Record new video with all fixes to visually confirm units appear during replay~~ ✅ **Minimal test scene confirms unit renders correctly**
-6. **Next**: Investigate why units don't appear during replay in full battle scene (camera focus issue during playback?)
+5. ~~Optional: Record new video with all fixes to visually confirm units appear during replay~~ ✅ **Confirmed: 4 units visible during replay (2s frame)**
+6. ~~Investigate why units don't appear during replay in full battle scene~~ ✅ **Fixed**: Overview camera + static mode shows all 4 units during replay
+7. **Optional**: Add cinematic camera transitions (pan between units, zoom on actions)

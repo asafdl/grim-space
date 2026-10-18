@@ -17,6 +17,7 @@ public sealed class BattleCameraDirector
 
 	private CameraMode _mode = CameraMode.Manual;
 	private float _manualInputGraceRemaining;
+	private bool _staticMode = false;
 
 	public BattleCameraDirector(ICameraRig rig) => _rig = rig;
 
@@ -30,8 +31,20 @@ public sealed class BattleCameraDirector
 		_rig.CancelAutomation();
 	}
 
+	public void EnableStaticMode()
+	{
+		_staticMode = true;
+		_rig.CancelAutomation();
+	}
+
+	public void DisableStaticMode()
+	{
+		_staticMode = false;
+	}
+
 	public void BeginPlayback()
 	{
+		if (_staticMode) return; // Don't track camera during replay in static mode
 		_mode = CameraMode.Playback;
 		_manualInputGraceRemaining = 0f;
 	}
@@ -50,6 +63,7 @@ public sealed class BattleCameraDirector
 
 	public void ReportInterest(CameraInterest interest)
 	{
+		if (_staticMode) return; // Don't move camera during replay in static mode
 		if (_mode != CameraMode.Playback)
 			return;
 
@@ -68,6 +82,7 @@ public sealed class BattleCameraDirector
 
 	public void Tick(float delta, Vector3 playerRenderedPos)
 	{
+		if (_staticMode) return; // Don't move camera during replay in static mode
 		if (_mode == CameraMode.Returning && !_rig.IsAutomationActive)
 			_mode = CameraMode.Manual;
 
