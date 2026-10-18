@@ -185,8 +185,8 @@ public partial class TeaserController : Node
 		await ToSignal(GetTree(), "process_frame");
 		GD.Print("[Teaser] About to call SetupOverviewCamera");
 		battleController.SetupOverviewCamera();
-		battleController.EnableStaticCameraMode();
-		GD.Print("[Teaser] Static camera mode enabled - camera will not move during replay");
+		// Disable static mode - let camera track during replay for combat visibility
+		GD.Print("[Teaser] Camera will track during replay for combat visibility");
 		GD.Print("[Teaser] Both calls completed");
 		
 		await battleController.RunAiVsAiAsync(maxTurns: 8, onTurnLog: (turn, msg) =>

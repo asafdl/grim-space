@@ -418,6 +418,8 @@ public partial class UnitView : Node3D
 		_hull = ShipMesh.CreateFighterHull();
 		AddChild(_hull);
 		PresentationLayers.MarkWorld(_hull);
+		// Scale up units for better visibility in teaser
+		_hull.Scale = Vector3.One * 3.0f;
 	}
 
 	private void BindCarrier()
@@ -425,6 +427,7 @@ public partial class UnitView : Node3D
 		_hull = CarrierMesh.CreateHullInstance();
 		AddChild(_hull);
 		PresentationLayers.MarkWorld(_hull);
+		_hull.Scale = Vector3.One * 3.0f;
 	}
 
 	private void BindGunship()
@@ -432,6 +435,7 @@ public partial class UnitView : Node3D
 		_hull = GunshipMesh.CreateHullInstance();
 		AddChild(_hull);
 		PresentationLayers.MarkWorld(_hull);
+		_hull.Scale = Vector3.One * 3.0f;
 	}
 
 	private void BindIndustrialGooper()
@@ -439,6 +443,7 @@ public partial class UnitView : Node3D
 		_hull = IndustrialGooperMesh.CreateHullInstance();
 		AddChild(_hull);
 		PresentationLayers.MarkWorld(_hull);
+		_hull.Scale = Vector3.One * 3.0f;
 	}
 
 	private void BindRepurposedMiner()
@@ -446,6 +451,7 @@ public partial class UnitView : Node3D
 		_hull = RepurposedMinerMesh.CreateHullInstance();
 		AddChild(_hull);
 		PresentationLayers.MarkWorld(_hull);
+		_hull.Scale = Vector3.One * 3.0f;
 	}
 
 	private void BindVoidBomb()
@@ -453,6 +459,7 @@ public partial class UnitView : Node3D
 		_hull = VoidBombMesh.CreateHullInstance();
 		AddChild(_hull);
 		PresentationLayers.MarkWorld(_hull);
+		_hull.Scale = Vector3.One * 3.0f;
 	}
 
 	private void BindShieldBubble(State state)
