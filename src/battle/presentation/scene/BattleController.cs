@@ -1033,26 +1033,19 @@ private void GoToMainMenu()
 			if (dist > maxDist) maxDist = dist;
 		}
 
-		// Add padding and set camera distance
-		float padding = 1.5f;
-		float distance = (maxDist + 5f) * 1.5f; // 5f = unit visual radius estimate
+		// Use a closer distance to make units more visible
+		float yaw = 0f; // Looking from positive X
+		float pitch = -0.3f; // ~17 degrees down
+
+		// Use a fixed closer distance to see units better
+		float distance = 30f;
 
 		// Clamp to camera limits
 		distance = Mathf.Clamp(distance, 8f, 280f);
 
-		// Use a top-down-ish overview angle
-		float yaw = 0f; // Looking from positive X
-		float pitch = -0.4f; // ~23 degrees down
-
-		// Pull back further to see all units, but not too far
-		distance *= 1.5f;
-
-		// Clamp again after scaling
-		distance = Mathf.Clamp(distance, 8f, 280f);
-
 		_camera.SetFocus(center, distance, yaw, pitch);
 
-		GD.Print($"[Teaser] Overview camera set - Center={center}, Distance={distance}, Yaw=0, Pitch=-0.4, UnitCount={positions.Count}");
+		GD.Print($"[Teaser] Overview camera set - Center={center}, Distance={distance}, Yaw=0, Pitch=-0.3, UnitCount={positions.Count}");
 	}
 
 	/// <summary>
