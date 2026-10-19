@@ -4,4 +4,5 @@ namespace GrimSpace.Run.Persistence;
 
 public sealed record PilotBattleSnapshotDto(
 	string PilotId,
-	IReadOnlyList<EPilotSkillId> SkillIds);
+	IReadOnlyList<EPilotSkillId> SkillIds,
+	string? PortraitId = null);

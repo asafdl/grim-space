@@ -718,7 +718,8 @@ public sealed class State : IDisposable
 				RunPilotRegistry.IsBattleTag);
 			map[shipId] = new PilotBattleSnapshot(
 				pilot.Id,
-				battleGrants.Select(grant => grant.SkillId).ToArray());
+				battleGrants.Select(grant => grant.SkillId).ToArray(),
+				pilot.PortraitId);
 		}
 
 		return map;

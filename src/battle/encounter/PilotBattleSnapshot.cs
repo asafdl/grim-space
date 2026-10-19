@@ -4,4 +4,5 @@ namespace GrimSpace.Battle.Encounter;
 
 public sealed record PilotBattleSnapshot(
 	string PilotId,
-	IReadOnlyList<EPilotSkillId> SkillIds);
+	IReadOnlyList<EPilotSkillId> SkillIds,
+	string? PortraitId = null);

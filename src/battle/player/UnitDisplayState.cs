@@ -30,6 +30,7 @@ public sealed record UnitDisplayState(
 	VoidBombProjectile? Projectile,
 	bool IsAlive,
 	IReadOnlyList<EPilotSkillId> PilotSkills,
+	string? PilotPortraitId,
 	bool ShieldsUpUsedThisTurn)
 {
 	public static UnitDisplayState Capture(State state, ActorRuntime runtime) =>
@@ -56,6 +57,7 @@ public sealed record UnitDisplayState(
 			state.Projectile,
 			state.IsAlive,
 			runtime.PilotSkills.OrderBy(skill => skill).ToArray(),
+			runtime.PortraitId,
 			state.ShieldsUpUsedThisTurn);
 
 	public int MaxActionPoints => Maneuverability.MaxActionPoints;

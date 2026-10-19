@@ -9,7 +9,7 @@ internal static class TutorialCopy
 		$"Press {GameInputBindings.Label("battle_end_turn")} to end your turn or click the Ability Bar on bottom of screen.";
 
 	public static string MoveToGhostShip =>
-		$"Pilot, lets go get the enemies — You have 4 Action points per turn, advance to the marked location use {GameInputBindings.Label("battle_primary_click")}, adjust heading to match the red arrow.";
+		$"Pilot, lets go get the enemies — You have 4 Action points per turn, advance to the marked location use {GameInputBindings.Label("battle_primary_click")}, adjust heading to match.";
 
 	public static string CameraControls =>
 		$"3 Dimensional space is hard to navigate, make full use of the camera controls:\n- HOLD {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit.\n" +
@@ -22,20 +22,20 @@ internal static class TutorialCopy
 	public static string Turn2MovePrompt =>
 		$"Enemies closing in, using weapons forces you to reposition your ship, head to the marked location and align your ship.\n" +
 		$"Click {GameInputBindings.Label("battle_primary_click")} then {GameInputBindings.Label("battle_roll_clockwise")} / " +
-		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll, then click {GameInputBindings.Label("battle_primary_click")} on the green heading arrow to match heading.";
+		$"{GameInputBindings.Label("battle_roll_counterclockwise")} to roll, then click {GameInputBindings.Label("battle_primary_click")} to match heading.";
 
 	public static string LaunchVentralVoidBomb =>
-		$"Weapons have launch mounts, select void bomb from Ability Bar and click the highlighted underside (ventral) mount—the side opposite the gold topside shown in the movement preview.\n" +
+		$"Weapons have launch mounts, select void bomb from Ability Bar or use hotkey {GameInputBindings.Label("battle_ability_2")}.\n" +
 		$"Some weapons will shoot instantly, others, like void bombs, will launch a homing projectile at enemy.\nHover over the ability icon for more information.";
 
 	public const string MoveToMarkedGhostAssistance = "Move to the marked location.";
 
 	public static string MatchGhostPoseAssistance =>
 		$"Match the preview: click {GameInputBindings.Label("battle_primary_click")}, then roll ({GameInputBindings.Label("battle_roll_clockwise")} / " +
-		$"{GameInputBindings.Label("battle_roll_counterclockwise")}) and match heading to green arrow.";
+		$"{GameInputBindings.Label("battle_roll_counterclockwise")}) and match heading.";
 
 	public const string QueueVentralVoidBombAssistance =
-		"Queue a void bomb from the ventral (yellow) mount.";
+		"Queue a void bomb.";
 
 	public static string UndoAndRetryAssistance =>
 		$"Press {GameInputBindings.Label("battle_undo")} to undo and try again.";
