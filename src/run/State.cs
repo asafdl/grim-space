@@ -402,6 +402,7 @@ public sealed class State : IDisposable
 			return;
 		}
 
+		StarSystem.Map.ContractRegistry.ClearPending();
 		_tutorialState = new TutorialState();
 		Tutorials = new TutorialController(StarSystem, _tutorialState);
 		Tutorials.InitializeBeatProgression();

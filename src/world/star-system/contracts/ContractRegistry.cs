@@ -138,6 +138,12 @@ public sealed class ContractRegistry
 	public bool TryGetExpiration(string contractId, out int? expiresAtTick) =>
 		_expirations.TryGetValue(contractId, out expiresAtTick);
 
+	public void ClearPending()
+	{
+		foreach (var contractId in Pending.Select(contract => contract.Id).ToList())
+			Remove(contractId);
+	}
+
 	public IReadOnlyList<string> RemoveExpired(int currentTick)
 	{
 		var removed = new List<string>();

@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.Tutorials;
@@ -29,6 +30,22 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 			.SelectMany(poi => poi.OperatorTemporaryRoles
 				.Assignments(EFacilityOperatorRole.StoryContact)));
 		Assert.Equal([run.TutorialState.BeatAContractId], contact.SourceIds);
+	}
+
+	[Fact]
+	public void ConfigureTutorials_On_AfterGeneratedContracts_ClearsPendingBoard()
+	{
+		using var run = State.CreateNewRun(42, tutorialsEnabled: false);
+		run.StarSystem.AdvanceTicks(ContractBoardConfig.DefaultCadenceTicks);
+		Assert.True(run.StarSystem.Map.ContractRegistry.CountPendingGeneratedStandard() > 0);
+
+		run.ConfigureTutorials(true);
+
+		var pending = run.StarSystem.Map.ContractRegistry.Pending.ToList();
+		Assert.Single(pending);
+		Assert.True(pending[0].IsStoryObjective);
+		Assert.NotNull(run.TutorialState!.BeatAContractId);
+		Assert.Equal(run.TutorialState.BeatAContractId, pending[0].Id);
 	}
 
 	[Fact]
