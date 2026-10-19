@@ -48,7 +48,12 @@ void fragment() {
     float fine = noise2(direction * 15.0 + offset + vec2(-t * 1.3, t * 0.8));
     float extension = width * mix(1.0, 0.45 + broad * 1.3, irregularity);
     float distance_from_edge = max(radius - 1.0, 0.0);
-    float halo = exp(-distance_from_edge / max(extension, 0.001) * 3.0);
+    // One profile, maximal at the limb and decaying monotonically outward: a
+    // tight core plus a long, gentle tail.  Without the tail the corona dies
+    // within a fraction of a radius and leaves a dark band between it and
+    // whatever glow sits further out.
+    float halo = exp(-distance_from_edge / max(extension, 0.001) * 3.0)
+        + 0.30 * exp(-distance_from_edge / max(extension * 7.0, 0.001));
     float wisps = mix(1.0, 0.35 + fine * 0.95, irregularity);
     // Overlap the opaque sphere slightly; do not cut a visible gap at its rim.
     float inner_fade = smoothstep(0.85, 1.0, radius);

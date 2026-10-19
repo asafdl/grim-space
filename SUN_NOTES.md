@@ -382,10 +382,18 @@ Monotonically non-increasing from the limb outward: no dip, no abrupt ignition.
 
 **The master branch's own implementation was checked with the same camera**
 (`--master` renders the 2k_sun.jpg texture through `battle_red_dwarf.gdshader`
-plus the billboard corona).  Its profile is 0.344 at the limb → 0.205 → 0.126 →
-0.091 → 0.011: monotonic from the limb, so **it does not have the dark band** -
-its corona is simply much tighter and weaker, dying within about 0.1 R.  No
-change was needed there, and neither implementation was wired or unwired.
+plus the billboard corona).  Its profile was 0.306 at the limb -> 0.205 ->
+0.105 -> 0.122 -> 0.091 -> 0.033 -> 0.002: it does **not** have the near-black
+moat, because its surface has no limb darkening and its texture's edge is
+bright, but its corona is a tight ring whose tail died within about 0.1 R, so
+the glow was disconnected from the surface.  The same treatment was applied
+there: `star_corona.gdshader`'s halo now has a long, gentle tail on top of the
+tight core, so the corona is one profile that decays monotonically from the
+limb.  Its profile is now 0.323 -> 0.227 -> 0.139 -> 0.154 -> 0.146 -> 0.117
+-> 0.074 -> 0.055, i.e. the tail reaches 0.055 where it used to be 0.002 and
+the corona is continuous with the surface.  (The small rise from 0.139 to
+0.154 is the corona's own streamer structure, which is intended.)  Neither
+implementation was wired or unwired.
 
 **Artefacts:** `refs/comparison/closeup_fix_before_after.png` (before / after /
 master, same camera), the refreshed `refs/comparison/closeup_frame.png`, and
