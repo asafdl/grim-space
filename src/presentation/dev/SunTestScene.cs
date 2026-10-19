@@ -7,13 +7,12 @@ using GrimSpace.Presentation.Graphics;
 namespace GrimSpace.Presentation.Dev;
 
 /// <summary>
-/// Development scene that renders the sun shader on its own against a black
-/// background, so the result can be recorded and compared frame by frame with
-/// the NASA/SDO reference frames in <c>refs/</c>.
+/// Development scene used to render and compare the sun shader, and to check
+/// that the star behaves like a light source rather than a sprite.
 ///
 /// Run it with:
 /// <code>
-/// godot --path &lt;repo&gt; --write-movie sun_test.avi --quit-after 300 -s res://scenes/sun_test.tscn
+/// godot --path &lt;repo&gt; --write-movie sun_test.avi --quit-after 300 --scene res://scenes/sun_test.tscn
 /// </code>
 /// </summary>
 public sealed partial class SunTestScene : Node3D
@@ -41,17 +40,25 @@ public sealed partial class SunTestScene : Node3D
 	/// <summary>Set false to render the 304 A style red disk instead of visible light.</summary>
 	[Export] public bool VisibleLightPalette { get; set; } = true;
 
-	/// <summary>Bloom is on by default; the NASA reference frames have none.</summary>
-	[Export] public bool Glow { get; set; } = true;
-
-	/// <summary>Debug helper passed through to the prominence shader.</summary>
-	[Export] public int ProminenceDebug { get; set; }
-
-	/// <summary>Scales the prominence and corona billboards.</summary>
-	[Export] public float QuadScale { get; set; } = 1f;
+	/// <summary>
+	/// The post process bloom.  It is off by default: Godot's glow is computed
+	/// on a low precision mip chain and it draws a visible dark annulus around
+	/// a very bright small source.  The screen space glare pass does the job
+	/// instead, and it has no banding.
+	/// </summary>
+	[Export] public bool Glow { get; set; } = false;
 
 	/// <summary>Debug helper for the surface shader: 1..8 outputs flat grey steps.</summary>
 	[Export] public int SurfaceDebug { get; set; }
+
+	/// <summary>Debug helper for the prominence shader.</summary>
+	[Export] public int ProminenceDebug { get; set; }
+
+	/// <summary>A close range shot of the prominence loops.</summary>
+	[Export] public bool Closeup { get; set; }
+
+	/// <summary>Scales the prominence and corona billboards.</summary>
+	[Export] public float QuadScale { get; set; } = 1f;
 
 	/// <summary>
 	/// Renders the real battle backdrop instead of a bare star, so the red dwarf
@@ -59,76 +66,34 @@ public sealed partial class SunTestScene : Node3D
 	/// </summary>
 	[Export] public bool BattleBackdrop { get; set; }
 
+	/// <summary>
+	/// The presence test: the star drifts across a rock at close range, with the
+	/// rock lit by the star's own light.
+	/// </summary>
+	[Export] public bool PresenceTest { get; set; }
+
+	/// <summary>Turns the screen space glare and the point light off (the "before").</summary>
+	[Export] public bool Legacy { get; set; }
+
 	private Node3D? _star;
+	private SunGlareOverlay? _glare;
+	private Godot.Collections.Array _events = [];
+	private Godot.Collections.Array _spots = [];
+	private readonly SunPhenomena _phenomena = new();
+	private ulong _timelineOrigin;
 
 	public override void _Ready()
 	{
 		ApplyCommandLineOverrides();
 
+		// The phenomena timeline is clip relative, so it lines up with the
+		// soundtrack's event list.
+		_timelineOrigin = Time.GetTicksMsec();
 		RenderingServer.SetDefaultClearColor(new Color(0f, 0f, 0f, 1f));
+		AddChild(BuildEnvironment());
+		LoadPhenomenaTimeline();
 
-		var environment = new WorldEnvironment
-		{
-			Name = "Environment",
-			Environment = new Godot.Environment
-			{
-				BackgroundMode = Godot.Environment.BGMode.Color,
-				BackgroundColor = new Color(0f, 0f, 0f, 1f),
-				AmbientLightSource = Godot.Environment.AmbientSource.Color,
-				AmbientLightColor = new Color(0.05f, 0.05f, 0.07f),
-				AmbientLightEnergy = 0.1f,
-				ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled,
-				TonemapMode = Godot.Environment.ToneMapper.Linear,
-				TonemapExposure = 1.0f,
-				GlowEnabled = Glow,
-				GlowIntensity = 0.45f,
-				GlowBloom = 0.10f,
-				GlowBlendMode = Godot.Environment.GlowBlendModeEnum.Additive,
-				GlowStrength = 1.0f,
-			},
-		};
-		AddChild(environment);
-
-		var palette = VisibleLightPalette
-			? new SunPalette
-			{
-				Seed = Seed,
-				ProminenceDebug = ProminenceDebug, SurfaceDebug = SurfaceDebug,
-				ProminenceQuadWidth = 4f * QuadScale,
-				CoronaQuadWidth = 6f * QuadScale,
-			}
-			: new SunPalette
-			{
-				// Colours sampled from the AIA 304 reference frame:
-				// centre rgb(0.718, 0.061, 0.003), 0.90R rgb(0.563, 0.040, 0.005).
-				CoreColor = new Color(0.75f, 0.17f, 0.03f),
-				MidColor = new Color(0.70f, 0.06f, 0.015f),
-				LimbColor = new Color(0.30f, 0.006f, 0.002f),
-				ProminenceColor = new Color(0.55f, 0.10f, 0.09f),
-				FootpointColor = new Color(0.75f, 0.22f, 0.10f),
-				LimbRingColor = new Color(0.80f, 0.16f, 0.05f),
-				CoronaColor = new Color(1.00f, 0.30f, 0.10f),
-				EmissionStrength = 0.30f,
-				GranulationCells = 176f,
-				GranulationStrength = 0.85f,
-				PlageCells = 13f,
-				SupergranulationCells = 40f,
-				SupergranulationStrength = 0.18f,
-				LimbRingStrength = 0.03f,
-				SpiculeHaze = 0.05f,
-				PlageStrength = 0.60f,
-				RimColor = new Color(1.00f, 0.16f, 0.05f),
-				RimStrength = 0.42f,
-				LimbEdgeStrength = 1.0f,
-				LimbDarkening = 0.15f,
-				LimbDarkeningSquared = 0.05f,
-				ProminenceStrength = 0.28f,
-				CoronaStrength = 0.006f,
-				Seed = Seed,
-				ProminenceDebug = ProminenceDebug, SurfaceDebug = SurfaceDebug,
-				ProminenceQuadWidth = 4f * QuadScale,
-				CoronaQuadWidth = 6f * QuadScale,
-			};
+		var palette = BuildPalette();
 
 		_star = SunVisual.Create(StarRadius, palette);
 		AddChild(_star);
@@ -139,6 +104,123 @@ public sealed partial class SunTestScene : Node3D
 			return;
 		}
 
+		if (PresenceTest)
+		{
+			BuildPresenceScene();
+			return;
+		}
+
+		if (Closeup)
+		{
+			BuildCloseupScene();
+			return;
+		}
+
+		BuildShowcaseScene();
+	}
+
+	private void LoadPhenomenaTimeline()
+	{
+		const string path = "res://assets/data/sun_events.json";
+		if (!Godot.FileAccess.FileExists(path))
+			return;
+		var parsed = Json.ParseString(Godot.FileAccess.GetFileAsString(path));
+		if (parsed.VariantType != Variant.Type.Dictionary)
+			return;
+		var dictionary = parsed.AsGodotDictionary();
+		if (dictionary.ContainsKey("events"))
+			_events = dictionary["events"].AsGodotArray();
+		if (dictionary.ContainsKey("spots"))
+			_spots = dictionary["spots"].AsGodotArray();
+		GD.Print($"[SunTest] phenomena timeline: {_events.Count} events, {_spots.Count} spots");
+	}
+
+	private SunPalette BuildPalette()
+	{
+		if (VisibleLightPalette)
+		{
+			return new SunPalette
+			{
+				Seed = Seed,
+				SurfaceDebug = SurfaceDebug,
+				ProminenceDebug = ProminenceDebug,
+				ProminenceQuadWidth = 10f * QuadScale,
+			};
+		}
+
+		return new SunPalette
+		{
+			// Colours sampled from the AIA 304 reference frame:
+			// centre rgb(0.718, 0.061, 0.003), 0.90R rgb(0.563, 0.040, 0.005).
+			CoreColor = new Color(0.75f, 0.17f, 0.03f),
+			MidColor = new Color(0.70f, 0.06f, 0.015f),
+			LimbColor = new Color(0.30f, 0.006f, 0.002f),
+			ProminenceColor = new Color(0.55f, 0.10f, 0.09f),
+			FootpointColor = new Color(0.75f, 0.22f, 0.10f),
+			LimbRingColor = new Color(0.80f, 0.16f, 0.05f),
+			CoronaColor = new Color(1.00f, 0.30f, 0.10f),
+			EmissionStrength = 0.17f,
+			GranulationCells = 176f,
+			GranulationStrength = 0.85f,
+			PlageCells = 13f,
+			PlageStrength = 0.60f,
+			SupergranulationCells = 40f,
+			SupergranulationStrength = 0.18f,
+			RimColor = new Color(1.00f, 0.16f, 0.05f),
+			RimStrength = 0.42f,
+			LimbEdgeStrength = 1.0f,
+			LimbDarkening = 0.15f,
+			LimbDarkeningSquared = 0.05f,
+			ProminenceStrength = 0.28f,
+			CoronaStrength = 0.006f,
+			InnerCoronaStrength = 0.05f,
+			LimbRingStrength = 0.03f,
+			SpiculeHaze = 0.05f,
+			CoreBurn = 0.0f,
+			TextureBlend = 0.0f,
+			LightEnergy = 0f,
+			Seed = Seed,
+			SurfaceDebug = SurfaceDebug,
+			ProminenceDebug = ProminenceDebug,
+			ProminenceQuadWidth = 10f * QuadScale,
+		};
+	}
+
+	private WorldEnvironment BuildEnvironment()
+	{
+		var stars = GD.Load<Texture2D>("res://assets/textures/8k_stars.jpg");
+		return new WorldEnvironment
+		{
+			Name = "Environment",
+			Environment = new Godot.Environment
+			{
+				BackgroundMode = Godot.Environment.BGMode.Sky,
+				Sky = new Sky
+				{
+					SkyMaterial = new PanoramaSkyMaterial
+					{
+						Panorama = stars,
+						EnergyMultiplier = 0.35f,
+					},
+				},
+				AmbientLightSource = Godot.Environment.AmbientSource.Color,
+				AmbientLightColor = new Color(0.05f, 0.05f, 0.07f),
+				AmbientLightEnergy = 0.1f,
+				ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled,
+				TonemapMode = Godot.Environment.ToneMapper.Linear,
+				TonemapExposure = 1.0f,
+				GlowEnabled = Glow,
+				GlowIntensity = 0.30f,
+				GlowBloom = 0.0f,
+				GlowBlendMode = Godot.Environment.GlowBlendModeEnum.Additive,
+				GlowStrength = 1.0f,
+				GlowHdrThreshold = 1.0f,
+			},
+		};
+	}
+
+	private void BuildShowcaseScene()
+	{
 		var angularRadius = Mathf.Asin(Mathf.Min(1f / Mathf.Max(CameraDistance, 1.001f), 0.999f));
 		var camera = new Camera3D
 		{
@@ -148,14 +230,83 @@ public sealed partial class SunTestScene : Node3D
 			Current = true,
 		};
 		AddChild(camera);
-
-		GD.Print($"[SunTest] radius={StarRadius} camera_distance={CameraDistance} fov={camera.Fov:0.00} spin={Spin}");
+		AddGlare();
+		GD.Print($"[SunTest] showcase: distance={CameraDistance} fov={camera.Fov:0.00} spin={Spin}");
 	}
 
 	/// <summary>
-	/// Builds the same backdrop the battle scene builds, so the red dwarf sun
-	/// is verified in the scene that actually uses it.
+	/// The presence test.  A rock sits between the camera and the star while
+	/// the star drifts across the frame.  The rock is lit by the star's own
+	/// point light, so the falloff across it is visible.
 	/// </summary>
+	private void BuildPresenceScene()
+	{
+		// The star sits off to the side, so its light falls across the objects
+		// instead of silhouetting them.
+		_star!.Position = new Vector3(-3.1f, 0.35f, -4.6f);
+
+		// A rock close to the star, so the falloff of the star's light across
+		// it is visible, and a hull further out that catches only the rim.
+		var rock = new MeshInstance3D
+		{
+			Name = "Rock",
+			Mesh = new SphereMesh { Radius = 0.30f, Height = 0.60f, RadialSegments = 24, Rings = 12 },
+			Position = new Vector3(-0.15f, -0.42f, -3.30f),
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0.46f, 0.43f, 0.40f),
+				Roughness = 0.95f,
+			},
+		};
+		AddChild(rock);
+
+		var hull = new MeshInstance3D
+		{
+			Name = "Hull",
+			Mesh = new BoxMesh { Size = new Vector3(0.34f, 0.22f, 0.85f) },
+			Position = new Vector3(0.70f, 0.30f, -3.70f),
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0.40f, 0.42f, 0.46f),
+				Roughness = 0.55f,
+				Metallic = 0.6f,
+			},
+		};
+		AddChild(hull);
+
+		var camera = new Camera3D
+		{
+			Name = "Camera",
+			Position = Vector3.Zero,
+			Fov = 55f,
+			Current = true,
+		};
+		AddChild(camera);
+		AddGlare();
+		GD.Print("[SunTest] presence test: star drifting across a lit rock");
+	}
+
+	/// <summary>
+	/// A close range shot: the camera sits just outside the photosphere so the
+	/// prominence loops fill the frame and their thread structure can be judged.
+	/// </summary>
+	private void BuildCloseupScene()
+	{
+		// Sit just outside the photosphere and look along the limb, so the
+		// prominence loops fill the frame.
+		var camera = new Camera3D
+		{
+			Name = "Camera",
+			Position = new Vector3(-0.55f, 0f, 2.45f) * StarRadius,
+			Fov = 50f,
+			Current = true,
+		};
+		AddChild(camera);
+		camera.LookAt(new Vector3(0.85f, 0.12f, 0.62f) * StarRadius, Vector3.Up);
+		AddGlare();
+		GD.Print("[SunTest] closeup: camera along the limb");
+	}
+
 	private void BuildBattleBackdrop()
 	{
 		var grid = new Grid(9, 9, 9);
@@ -187,11 +338,42 @@ public sealed partial class SunTestScene : Node3D
 		GD.Print($"[SunTest] battle backdrop built, chamber radius {chamberRadius:0.0}");
 	}
 
+	private void AddGlare()
+	{
+		// The reference frames are spacecraft images: no lens flare, no
+		// exposure dip.  The diagnostic palette therefore renders without them.
+		if (Legacy || _star is null || !VisibleLightPalette)
+			return;
+		_glare = SunVisual.CreateGlareOverlay(_star, StarRadius);
+		_glare.Intensity = 0.85f;
+		_glare.VignetteStrength = 0.16f;
+		_glare.StreakAmount = 0.20f;
+		_glare.Chromatic = 0.35f;
+		_glare.Breathe = 0.10f;
+		AddChild(_glare);
+	}
+
 	public override void _Process(double delta)
 	{
-		if (!Spin || _star is null)
-			return;
-		_star.RotateY((float)delta * SpinSpeed);
+		if (_events.Count > 0 || _spots.Count > 0)
+		{
+			var time = (Time.GetTicksMsec() - _timelineOrigin) / 1000f;
+			SunPhenomena.Evaluate(_events, _spots, time, _phenomena);
+			SunVisual.UpdatePhenomena(_phenomena);
+		}
+
+		if (Spin && _star is not null)
+			_star.RotateY((float)delta * SpinSpeed);
+
+		if (PresenceTest && _star is not null)
+		{
+			// The star drifts across the frame, passing behind the rock.
+			var t = (float)Time.GetTicksMsec() / 1000f;
+			_star.Position = new Vector3(
+				-3.1f + Mathf.Sin(t * 0.42f) * 1.5f,
+				0.35f + Mathf.Cos(t * 0.27f) * 0.30f,
+				-4.6f);
+		}
 	}
 
 	/// <summary>
@@ -210,6 +392,26 @@ public sealed partial class SunTestScene : Node3D
 			else if (argument == "--noglow")
 			{
 				Glow = false;
+			}
+			else if (argument == "--304")
+			{
+				VisibleLightPalette = false;
+			}
+			else if (argument == "--battle")
+			{
+				BattleBackdrop = true;
+			}
+			else if (argument == "--presence")
+			{
+				PresenceTest = true;
+			}
+			else if (argument == "--closeup")
+			{
+				Closeup = true;
+			}
+			else if (argument == "--legacy")
+			{
+				Legacy = true;
 			}
 			else if (argument.StartsWith("--spin=", StringComparison.Ordinal))
 			{
@@ -232,17 +434,9 @@ public sealed partial class SunTestScene : Node3D
 			{
 				QuadScale = ParseFloat(argument[12..], 1f);
 			}
-			else if (argument == "--304")
-			{
-				VisibleLightPalette = false;
-			}
 			else if (argument.StartsWith("--surfacedebug=", StringComparison.Ordinal))
 			{
 				SurfaceDebug = Mathf.RoundToInt(ParseFloat(argument[15..], 0f));
-			}
-			else if (argument == "--battle")
-			{
-				BattleBackdrop = true;
 			}
 		}
 	}

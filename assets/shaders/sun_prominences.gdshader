@@ -36,6 +36,13 @@ uniform float sun_radius = 1.0;
 uniform float quad_half_width = 2.0;
 uniform int debug_term = 0;
 
+// Coronal rain: condensation blobs sliding back down the legs of a loop.
+uniform float rain_amount : hint_range(0.0, 2.0) = 0.0;
+
+// A coronal mass ejection: a shock front lifting off the limb.
+// xy = the angle and the progress (0..1), z = the strength, w = the radius.
+uniform vec4 cme_data = vec4(0.0, 0.0, 0.0, 0.35);
+
 varying vec2 v_quad;
 varying float v_limb;
 
@@ -169,15 +176,32 @@ void fragment() {
 		// window below is what takes it to zero.
 		float end_fade = 1.0 - smoothstep(0.95, 1.18, abs(uw));
 
-		// Bright filament: the shell of the loop.  A real prominence is a thin
-		// hot core inside a soft diffuse envelope, so the core is narrow and
-		// the envelope is wide and faint.  A gentle noise breakup keeps it
-		// wispy, but not so deep that the loop falls apart.
+		// The filament is a bundle of thin threads, not a solid tube.  The
+		// noise is stretched ALONG the loop (low frequency in the along
+		// direction, high frequency across it) so the plasma breaks into
+		// parallel fibrils, and a slow braid slides them across each other.
 		float w = filament_width * (0.55 + 0.9 * (1.0 - s));
-		float core = exp(-(dr * dr) / max(w * w, 1e-6));
-		float halo = exp(-abs(dr) / max(w * 1.8, 1e-6)) * 0.45;
-		float shred = 0.65 + 0.50 * vnoise(vec3(uw * 5.0, r * 4.0, TIME * 0.35 + fi * 5.1));
-		float filament = (core + halo) * env * end_fade * window * shred;
+		float tube = exp(-(dr * dr) / max(w * w, 1e-6));
+		float braid = sin(uw * 5.3 + TIME * 0.7 + fi * 2.1) * 0.32;
+		float across = (dr + braid * w) / max(w, 1e-6);
+		float fibre = vnoise(vec3(uw * 1.7, across * 2.7, TIME * 0.55 + fi * 5.1));
+		float fibres = 0.18 + 1.10 * smoothstep(0.28, 0.72, fibre);
+		float halo = exp(-abs(dr) / max(w * 2.0, 1e-6)) * 0.32;
+		float filament = (tube * fibres + halo) * env * end_fade * window;
+
+		// Coronal rain: bright condensation blobs running back down the legs
+		// of the loop while the eruption is collapsing.
+		if (rain_amount > 0.0) {
+			float arc_len = span * 1.25;
+			float rain_phase = fract(TIME * 0.55 + fi * 0.37);
+			float along = uw * arc_len;
+			float rain_along = sign(uw) * (1.0 - rain_phase) * arc_len;
+			float rain_u = rain_along / max(arc_len, 0.001);
+			float rain_r = 1.0 + h * sqrt(max(0.0, 1.0 - min(rain_u * rain_u, 1.0)));
+			float rain_d = length(vec2(along - rain_along, (r - rain_r) * 3.4));
+			float rain = exp(-rain_d * rain_d * 70.0) * rain_amount;
+			filament += rain * 1.6;
+		}
 
 		// The curtain hangs under the arch and must not extend past its feet.
 		float inside = smoothstep(0.995, 1.02, r) * (1.0 - smoothstep(r_arc - 0.015, r_arc, r));

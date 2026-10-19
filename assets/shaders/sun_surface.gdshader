@@ -36,6 +36,24 @@ uniform vec3 rim_color : source_color = vec3(1.00, 0.34, 0.10);
 uniform float rim_strength : hint_range(0.0, 2.0) = 0.22;
 uniform float seed = 0.0;
 
+// The real NASA/SDO photosphere, mapped equirectangularly.  It carries the
+// actual granulation and the white-hot blisters; the procedural field below
+// drifts on top of it so the surface never looks like a still image.
+uniform sampler2D photosphere : source_color;
+uniform float texture_blend : hint_range(0.0, 1.0) = 0.72;
+uniform float texture_tiling : hint_range(0.25, 8.0) = 2.0;
+uniform float drift_strength : hint_range(0.0, 1.0) = 0.45;
+
+// How hard the disc centre burns out into the glare.
+uniform float core_burn : hint_range(0.0, 8.0) = 2.4;
+
+// Sunspots.  Each entry is (direction x, direction y, radius, strength) in the
+// surface's own frame, so they migrate and turn with the disc.
+uniform vec4 spots[4];
+
+// A flare: (direction x, direction y, strength, size).
+uniform vec4 flare_data = vec4(0.0, 0.0, 0.0, 0.16);
+
 // Debug helper: 0 = normal, 1..8 = flat grey steps, 2 = image radius,
 // 3 = mu, 4 = the limb edge term, 5 = the limb darkening term.
 uniform int debug_term = 0;
@@ -84,6 +102,12 @@ float fbm(vec3 p, int octaves) {
 		amp *= 0.5;
 	}
 	return sum / max(norm, 0.0001);
+}
+
+// A direction on the sphere from a longitude and a sine of latitude.
+vec3 sphere_direction(vec2 ll) {
+	float cb = sqrt(max(0.0, 1.0 - ll.y * ll.y));
+	return vec3(cos(ll.x) * cb, ll.y, sin(ll.x) * cb);
 }
 
 // Cool limb (0) -> hot core (1).  The real Sun cools towards the limb, so the
@@ -155,6 +179,25 @@ void fragment() {
 	float g = smoothstep(0.26, 0.74, g1 * 0.68 + g2 * 0.32);
 	g = mix(0.5, g, granulation_strength);
 
+	// The real photosphere as the base layer.  Equirectangular mapping, and the
+	// texture's first and last columns match to ~0.9% so the wrap is
+	// invisible; fract() keeps the sampling continuous either way.
+	// The map is tiled so its structures land at granulation scale rather than
+	// at the supergranulation scale they have in the original.
+	float photo_u = (atan(sphere_dir.z, sphere_dir.x) * 0.15915494 + 0.5) * texture_tiling;
+	float photo_v = acos(clamp(sphere_dir.y, -1.0, 1.0)) * 0.31830989 * texture_tiling;
+	vec3 photo = texture(photosphere, vec2(fract(photo_u), photo_v)).rgb;
+	float photo_lum = dot(photo, vec3(0.299, 0.587, 0.114));
+	// The NASA map is a contrast stretched visualisation, not a true colour
+	// image, so its full range is far too strong for a disc.  It is
+	// compressed around its own mean and then re-expanded by the granulation
+	// term, which keeps the real blisters without the posterised look.
+	float g_photo = clamp(0.5 + (photo_lum - 0.60) * 0.42, 0.0, 1.0);
+
+	// The texture carries the structure, the procedural field drifts over it.
+	g = mix(g_photo, g, 1.0 - texture_blend);
+	g = clamp(g + (g - 0.5) * drift_strength, 0.0, 1.0);
+
 	// Supergranulation: the large scale network that organises the granulation
 	// into bright regions and dark lanes.  The reference frames have their
 	// dominant structure at roughly a quarter of the granulation wavelength.
@@ -169,18 +212,47 @@ void fragment() {
 	float pl = smoothstep(0.36, 0.76,
 		fbm(sphere_dir * pk + vec3(9.1, 4.7, seed * 3.1), 3));
 
+	// Sunspots: a dark umbra inside a lighter penumbra.
+	float spot_dark = 0.0;
+	float spot_heat = 0.0;
+	for (int i = 0; i < 4; i++) {
+		vec4 sp = spots[i];
+		if (sp.w <= 0.0) {
+			continue;
+		}
+		float ang = acos(clamp(dot(sphere_dir, sphere_direction(sp.xy)), -1.0, 1.0));
+		float penumbra = exp(-pow(ang / (sp.z * 2.8), 2.0));
+		float umbra = exp(-pow(ang / max(sp.z, 0.001), 2.0));
+		float d = sp.w * (penumbra * 0.40 + umbra * 0.90);
+		spot_dark = max(spot_dark, d);
+		spot_heat = min(spot_heat, -d * 0.5);
+	}
+
+	// A flare: a fast, local brightening at an active region.
+	float flare_ang = acos(clamp(dot(sphere_dir, sphere_direction(flare_data.xy)), -1.0, 1.0));
+	float flare = exp(-pow(flare_ang / max(flare_data.w, 0.01), 2.0)) * flare_data.z;
+
 	float heat = clamp(
 		0.80 * (1.0 - t)
 		+ (g - 0.5) * 0.55
 		+ (sg - 0.5) * 0.18
-		+ pl * plage_strength * 1.00,
+		+ pl * plage_strength * 1.00
+		+ spot_heat
+		+ flare * 0.45,
 		0.0,
 		1.0);
 
 	// The real photosphere mottles by a factor of about two, so the granulation
 	// has to move the brightness a long way, not just tint it.  The
 	// supergranulation contributes the large scale bright and dark regions.
-	float bright = ld * (0.52 + 0.80 * g + 0.90 * sg + 2.40 * pl) * emission_strength;
+	float bright = ld * (0.66 + 0.62 * g + 0.70 * sg + 1.90 * pl) * emission_strength;
+	bright *= 1.0 - 0.88 * spot_dark;
+	bright += flare * 3.2 * emission_strength;
+
+	// The disc centre burns out: staring at the Sun should hurt.  The burn is
+	// driven by the viewing angle, so it only happens when you look at it.
+	float burn = pow(mu, 4.0) * core_burn * (0.55 + 0.65 * g);
+	bright += burn * emission_strength;
 	vec3 col = heat_ramp(heat);
 	ALBEDO = col * bright;
 

@@ -1,22 +1,29 @@
 shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_front, shadows_disabled, fog_disabled;
 
 // ---------------------------------------------------------------------------
-// Corona: the streamer halo above the photosphere.
+// Corona and glare, drawn on a CONCENTRIC SPHERE around the photosphere.
 //
-// Reference: SOHO/LASCO C2 (2 - 4 R_sun field of view) shows the corona as
-// narrow radial rays separated by darker inter-streamer lanes, with a few broad
-// "helmet" streamers.  SDO AIA 171/193 show the inner corona reaching ~0.24
-// (171) and ~0.12 (193) of the disk brightness right at the limb, gone by
-// ~1.15 R.
+// This used to be a camera-facing quad.  A quad has edges, and an edge that
+// happens to fall inside the frame reads as a straight cut through the glow.
+// A concentric sphere cannot have that problem: the profile is a function of
+// where the fragment lands on screen relative to the star's centre, so it is
+// continuous all the way round and reaches zero long before the shell's own
+// silhouette.
 //
-// The streamers are sampled as high angular frequency / low radial frequency
-// noise, which is what makes them read as radially elongated rays rather than
-// as blobs.
+// The radius is measured in SCREEN space against the star's projected disc
+// radius, so the corona sits on the limb exactly at any camera distance.
+//
+// Reference: SOHO/LASCO C2 shows the corona as narrow radial rays separated
+// by darker lanes, with a few broad "helmet" streamers.  SDO AIA 171/193 show
+// the inner corona reaching ~0.24 of the disc brightness right at the limb and
+// gone by ~1.15 R, with an exponential falloff of ~0.065 R.
 // ---------------------------------------------------------------------------
 
 uniform vec3 corona_color : source_color = vec3(1.00, 0.47, 0.18);
-uniform float brightness : hint_range(0.0, 3.0) = 0.05;
+uniform vec3 inner_color : source_color = vec3(1.00, 0.62, 0.30);
+uniform float brightness : hint_range(0.0, 3.0) = 0.08;
+uniform float inner_brightness : hint_range(0.0, 3.0) = 0.20;
 uniform float falloff : hint_range(0.01, 1.0) = 0.065;
 uniform float streamer_density : hint_range(1.0, 80.0) = 24.0;
 uniform float streamer_strength : hint_range(0.0, 2.0) = 0.85;
@@ -25,10 +32,10 @@ uniform float helmet_density : hint_range(0.5, 20.0) = 4.0;
 uniform float speed : hint_range(0.0, 0.5) = 0.02;
 uniform float seed = 0.0;
 uniform float sun_radius = 1.0;
-uniform float quad_half_width = 3.0;
+uniform float shell_radius = 3.0;
 
-varying vec2 v_quad;
-varying float v_limb;
+varying vec2 v_center_ndc;
+varying vec2 v_limb_ndc;
 
 float hash31(vec3 p) {
 	p = fract(p * 0.3183099 + 0.1);
@@ -65,37 +72,33 @@ float fbm(vec3 p, int octaves) {
 }
 
 void vertex() {
-	vec3 center = MODEL_MATRIX[3].xyz;
+	vec3 center = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 	vec3 facing = normalize(CAMERA_POSITION_WORLD - center);
-	vec3 up_hint = INV_VIEW_MATRIX[1].xyz;
-	vec3 right = normalize(cross(up_hint, facing));
-	vec3 up = cross(facing, right);
-	float scale = length(MODEL_MATRIX[0].xyz);
-	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(
-		vec4(right * scale, 0.0), vec4(up * scale, 0.0),
-		vec4(facing * scale, 0.0), vec4(center, 1.0));
+	vec3 side = normalize(cross(facing, vec3(0.0, 1.0, 0.0)));
+	vec3 limb = center + side * sun_radius;
 
-	float d = max(distance(CAMERA_POSITION_WORLD, center), sun_radius * 1.0001);
-	v_limb = d / sqrt(max(d * d - sun_radius * sun_radius, 1e-6));
-
-	// v_quad is measured in solar radii so the same radius arithmetic works
-	// whatever size the quad was given.  The quad half width is a mesh
-	// property, not part of the node transform, so it arrives as a uniform.
-	v_quad = (UV * 2.0 - 1.0) * (quad_half_width / max(sun_radius, 1e-6));
+	vec4 center_clip = PROJECTION_MATRIX * VIEW_MATRIX * vec4(center, 1.0);
+	vec4 limb_clip = PROJECTION_MATRIX * VIEW_MATRIX * vec4(limb, 1.0);
+	v_center_ndc = center_clip.xy / center_clip.w;
+	v_limb_ndc = limb_clip.xy / limb_clip.w;
 }
 
 void fragment() {
-	float r = length(v_quad) / v_limb;
-	float theta = atan(v_quad.y, v_quad.x);
-	float d = max(r - 1.0, 0.0);
-
-	// Inner corona: exponential decay away from the limb.
-	float radial = exp(-d / max(falloff, 0.001));
+	vec2 ndc = SCREEN_UV * 2.0 - 1.0;
+	float aspect = VIEWPORT_SIZE.x / max(VIEWPORT_SIZE.y, 1.0);
+	vec2 scale = vec2(aspect, 1.0);
+	vec2 d = (ndc - v_center_ndc) * scale;
+	float limb = max(length((v_limb_ndc - v_center_ndc) * scale), 1e-5);
+	float r = length(d) / limb;
+	float dist = r - 1.0;
+	// Everything is masked off inside the disc rather than branching out.
+	float outside = step(1.0, r);
+	float theta = atan(d.y, d.x);
 
 	// Narrow radial streamers: high angular frequency, low radial frequency.
 	float a = theta / 6.283185307179586;
 	float streak = smoothstep(0.32, 0.68,
-		fbm(vec3(a * streamer_density, d * 1.5, TIME * speed + seed), 3));
+		fbm(vec3(a * streamer_density, dist * 1.5, TIME * speed + seed), 3));
 
 	// Broad helmet streamers.
 	float helmet = smoothstep(0.36, 0.64,
@@ -104,11 +107,16 @@ void fragment() {
 	float shell = mix(1.0, 0.15 + 1.70 * streak, streamer_strength);
 	shell *= mix(1.0, 0.30 + 1.50 * helmet, helmet_strength);
 
-	float intensity = radial * shell * brightness;
-	// Nothing left once we are well outside the streamer region.
-	intensity *= 1.0 - smoothstep(1.35, 2.10, r);
-	intensity *= smoothstep(0.985, 1.03, r);
+	// Inner corona: exponential decay away from the limb.
+	float radial = exp(-dist / max(falloff, 0.001));
+	float inner = radial * shell * inner_brightness;
 
-	ALBEDO = corona_color;
-	ALPHA = clamp(intensity, 0.0, 1.0);
+	// A long, very gentle lift of the space around the star.  It reaches zero
+	// before the shell's own silhouette, so there is no boundary anywhere.
+	float lift = pow(clamp(1.0 - dist / max(shell_radius - 1.0, 0.001), 0.0, 1.0), 3.0);
+	float outer = lift * brightness;
+
+	vec3 col = (inner_color * inner + corona_color * outer) * outside;
+	ALBEDO = col;
+	ALPHA = clamp(max(max(col.r, col.g), col.b), 0.0, 1.0);
 }
