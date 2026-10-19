@@ -1,19 +1,26 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-19 (polish pass).** The teaser has been re-shot, re-mixed and
-> re-verified. The current deliverable is `teaser.mp4` — **41.5 s, 1080p60, with a
-> stereo audio track (-14.0 LUFS)**. The previous 85.6 s cut is superseded.
+> **Updated 2026-10-19 (story pass).** The teaser has been re-cut around a
+> **story**, not a feature list. The current deliverable is `teaser.mp4` —
+> **~32 s, 1080p60, with a stereo audio track (-14.0 LUFS)**.
 >
-> The old cut "flickered" because every transition faded the picture out to **full
-> black** and back to the *same* frame before hard-cutting to the next shot — 12
-> black-outs in 85 s. That is fixed at source (real cross-dissolves in
-> `TeaserController`), not masked in post. The shot list was also re-planned against
-> a researched 15-point sell checklist, the dead air was cut, and a full music + SFX
-> mix was added (the old file was silent).
+> The cut now runs: a live fight (hook) → the sector and the pilot's own line →
+> the station and the contract that caused the fight → **the fight, joined in
+> the middle, with a camera that retreats because a hull was lost** → the fleet
+> report (what it cost) → the burning galaxy → the name card. Captions are the
+> game's own words; the system is named by a small corner tag.
 >
-> Full write-up, including the flicker root-cause, the checklist with sources, the
-> honest before/after scores and the sound plan, is in
-> [TEASER_NOTES.md](TEASER_NOTES.md#2026-10-19--polish-pass-flicker-root-cause-sell-checklist-engagement-re-edit).
+> The camera work answers the feedback directly: **four Dutch-angle shots**, and
+> the pull-back after the fight is now an **event-driven reveal** instead of a
+> passive drift (the old code had a real bug in it — the camera froze on a
+> wreck). Three world shots, movement on every held shot, and the new sun
+> shader from `../grim-space` ported into the game's map star and battle sun.
+>
+> Full write-up: the official answer to the "is the drifting camera on
+> purpose?" question, the research (12 genre trailers, watched frame by frame),
+> the story-legibility rubric, the honest what-changed/what-skipped log and all
+> the measurements are in
+> [TEASER_NOTES.md](TEASER_NOTES.md#story-pass-feedback-driven).
 >
 > Earlier notes:
 > The teaser **has been recorded successfully in this environment**.

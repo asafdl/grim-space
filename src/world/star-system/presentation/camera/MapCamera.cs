@@ -64,6 +64,12 @@ public partial class MapCamera : Camera3D
 	public bool IsFacadeActive => _facadeActive;
 	public bool ManualInputEnabled => !_domainBlocked;
 
+	/// <summary>
+	/// Dutch angle: how far the horizon is tipped, in radians. Zero is the gameplay
+	/// default; the teaser uses it to give the strategic establishing shot a tilt.
+	/// </summary>
+	public float Roll { get; set; }
+
 	public override void _Ready()
 	{
 		_springArm = GetParent() as SpringArm3D
@@ -485,7 +491,9 @@ public partial class MapCamera : Camera3D
 	private void ApplyTransform()
 	{
 		_pivot.GlobalPosition = _pose.Pivot;
-		_springArm.Rotation = new Vector3(-_pose.Pitch, _pose.Yaw, 0f);
+		// Godot's default node rotation order is YXZ, so the Z component is applied
+		// first in the camera's own frame: a roll, not a second yaw.
+		_springArm.Rotation = new Vector3(-_pose.Pitch, _pose.Yaw, Roll);
 		_springArm.SpringLength = _pose.Distance;
 	}
 }

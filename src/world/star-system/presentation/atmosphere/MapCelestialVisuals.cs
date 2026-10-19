@@ -9,7 +9,6 @@ namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 
 public static class MapCelestialVisuals
 {
-	private const string SunTexturePath = "res://assets/textures/8k_sun.jpg";
 	private const string PlanetPackPath = "res://assets/models/planets/various_planets.glb";
 	private static readonly (string Body, string[] Clouds)[] PlanetNodes =
 	[
@@ -40,24 +39,26 @@ public static class MapCelestialVisuals
 		MapAtmosphereSettings settings)
 	{
 		var visualRadius = gridRadius * MapMapping.WorldUnitsPerPoint;
-		var surfaceTexture = GD.Load<Texture2D>(SunTexturePath);
-		root.AddChild(new MeshInstance3D
+		var palette = new SunPalette
 		{
-			Name = "Surface",
-			Mesh = CreateSphere(visualRadius, 48, 24),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateStarSurfaceMaterial(
-				surfaceTexture,
-				settings.SunGlowEnergy),
-		});
-		root.AddChild(StarCorona.Create(
-			sunRadius: visualRadius,
-			color: new Color(1f, 0.50f, 0.26f, 0.72f),
-			brightness: 0.10f + settings.SunGlowEnergy * 0.12f,
-			width: 0.13f,
-			speed: 0f,
-			seed: StableSeedMixer.From(seed).Add("map-star-corona").Value % 997f,
-			irregularity: 0.22f));
+			// The strategic map star is a background element that is usually
+			// only a few dozen pixels across, so the granulation is kept coarse
+			// enough not to alias and the prominences are dialled down.
+			GranulationCells = 34f,
+			GranulationStrength = 0.55f,
+			PlageCells = 6f,
+			PlageStrength = 0.45f,
+			ProminenceCount = 3f,
+			ProminenceHeight = 0.18f,
+			ProminenceStrength = 0.35f,
+			CoronaStrength = 0.10f,
+			EmissionStrength = 0.5f + settings.SunGlowEnergy * 0.25f,
+			// The map lights its own star through MapStarLighting; the star does
+			// not need to light the map back.
+			LightEnergy = 0f,
+			Seed = StableSeedMixer.From(seed).Add("map-star").Value % 997f,
+		};
+		root.AddChild(SunVisual.Create(visualRadius, palette));
 		MapCameraOcclusion.AddSphere(root, visualRadius);
 	}
 
@@ -189,48 +190,6 @@ public static class MapCelestialVisuals
 			RadialSegments = radialSegments,
 			Rings = rings,
 		};
-
-	private static ShaderMaterial CreateStarSurfaceMaterial(Texture2D texture, float glowEnergy)
-	{
-		var material = new ShaderMaterial
-		{
-			Shader = new Shader
-			{
-				Code =
-					"""
-					shader_type spatial;
-
-					render_mode unshaded;
-
-					uniform sampler2D surface_texture : source_color;
-					uniform float emission_strength : hint_range(0.0, 4.0) = 1.2;
-					uniform float limb_boost : hint_range(0.0, 1.0) = 0.35;
-
-					void fragment()
-					{
-						vec3 source = texture(surface_texture, UV).rgb;
-						float luma = dot(source, vec3(0.299, 0.587, 0.114));
-						// Incandescent remap: dark granules stay orange, bright spots go yellow-white.
-						vec3 granule = vec3(1.05, 0.42, 0.10);
-						vec3 flare = vec3(1.25, 0.98, 0.62);
-						vec3 core = mix(granule, flare, smoothstep(0.18, 0.82, luma));
-						float rim = pow(
-							1.0 - max(dot(normalize(NORMAL), normalize(VIEW)), 0.0),
-							2.6);
-						vec3 limb = vec3(1.18, 0.72, 0.22);
-						vec3 color = mix(core, limb, rim * 0.5) * emission_strength;
-						color *= 1.0 + rim * limb_boost;
-						ALBEDO = color * 0.72;
-						EMISSION = color;
-					}
-					""",
-			},
-		};
-		material.SetShaderParameter("surface_texture", texture);
-		material.SetShaderParameter("emission_strength", 0.82f + glowEnergy * 0.62f);
-		material.SetShaderParameter("limb_boost", 0.08f + glowEnergy * 0.10f);
-		return material;
-	}
 
 	private static ShaderMaterial CreateAtmosphereMaterial(Color tint, float emissionEnergy)
 	{

@@ -28,6 +28,14 @@ use_32_bit_depth = true
 
 [node name="CurrentScene" type="Node" parent="ViewPort"]
 
+[node name="BattleViewPort" type="SubViewport" parent="."]
+size = Vector2(1920, 1080)
+render_target_clear_mode = 2
+render_target_update_mode = 2
+use_32_bit_depth = true
+
+[node name="CurrentScene" type="Node" parent="BattleViewPort"]
+
 [node name="Overlay" type="CanvasLayer" parent="."]
 layer = 10
 

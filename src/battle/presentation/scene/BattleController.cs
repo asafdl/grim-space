@@ -56,6 +56,7 @@ public partial class BattleController : Node3D
 	private const float OverviewOrbitSpeed = 0.22f;
 	private const float OverviewOrbitAmplitude = 0.30f;
 	private const float OverviewPitchBob = 0.06f;
+	private const float OverviewMaxDistance = 280f;
 
 	// Teaser close follow: tight, slow, and deliberately laggy so the ship drifts
 	// inside the frame instead of being nailed to the centre.
@@ -93,6 +94,10 @@ public partial class BattleController : Node3D
 	private float _overviewDollySeconds = OverviewDollySeconds;
 	private float _overviewYaw;
 	private float _overviewPitch;
+	private Vector3 _overviewStartPivot;
+	private float _overviewStartYaw;
+	private float _overviewStartPitch;
+	private float _overviewOrbitAmplitude = OverviewOrbitAmplitude;
 	private string? _followUnitId;
 	private float _followDistance;
 	private float _followYaw;
@@ -381,16 +386,47 @@ public partial class BattleController : Node3D
 	{
 		_overviewElapsed += delta;
 
-		var dollyT = Mathf.Clamp(_overviewElapsed / _overviewDollySeconds, 0f, 1f);
+		var dollyT = Mathf.Clamp(
+			_overviewElapsed / Mathf.Max(_overviewDollySeconds, 0.0001f),
+			0f,
+			1f);
 		var eased = 1f - Mathf.Pow(1f - dollyT, 3f);
+
+		// Distance, pivot and angles all ease out of the pose the camera was holding,
+		// so the move is one continuous gesture rather than a jump plus a drift.
 		var distance = Mathf.Lerp(_overviewStartDistance, _overviewDistance, eased);
+		var target = LiveUnitCenter() ?? _overviewCenter;
+		var pivot = _overviewStartPivot.Lerp(target, eased);
+		var yaw = Mathf.LerpAngle(_overviewStartYaw, _overviewYaw, eased);
+		var pitch = Mathf.Lerp(_overviewStartPitch, _overviewPitch, eased);
 
-		var yaw = _overviewYaw
-			+ Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed) * OverviewOrbitAmplitude;
-		var pitch = _overviewPitch
-			+ Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed * 0.7f) * OverviewPitchBob;
+		// The drift only opens up as the move settles, so the retreat reads as a
+		// deliberate pull-back and not as a wobble on the way out.
+		var drift = eased * _overviewOrbitAmplitude;
+		yaw += Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed) * drift;
+		pitch += Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed * 0.7f) * OverviewPitchBob * eased;
 
-		_camera.SetFocus(_overviewCenter, distance, yaw, pitch);
+		_camera.SetFocus(pivot, distance, yaw, pitch);
+	}
+
+	/// <summary>
+	/// The centre of the units still on the field. The pull-back keeps this in
+	/// frame, so retreating reveals the fight instead of the empty space the
+	/// ships have left behind.
+	/// </summary>
+	private Vector3? LiveUnitCenter()
+	{
+		Vector3 sum = Vector3.Zero;
+		var count = 0;
+		foreach (var view in _battleView.UnitViews.Values)
+		{
+			if (!view.Visible)
+				continue;
+			sum += view.GlobalPosition;
+			count++;
+		}
+
+		return count == 0 ? null : sum / count;
 	}
 
 	/// <summary>
@@ -404,7 +440,16 @@ public partial class BattleController : Node3D
 			return;
 
 		if (!_battleView.UnitViews.TryGetValue(_followUnitId, out var view) || !view.Visible)
+		{
+			// The subject is gone. Holding the camera on the space it died in would
+			// freeze the shot on empty space, so pull back and reveal the field.
+			SetupOverviewCamera(
+				startDistance: _followDistance,
+				dollySeconds: OverviewDollySeconds,
+				roll: _camera.Roll,
+				distance: _followDistance * 2.2f);
 			return;
+		}
 
 		_followElapsed += delta;
 
@@ -1122,9 +1167,21 @@ private void GoToMainMenu()
 	/// pass the camera's current distance to pull back out of a close shot instead.
 	/// </param>
 	/// <param name="dollySeconds">How long the establishing move takes.</param>
+	/// <param name="roll">Dutch angle in radians; 0 is the gameplay default.</param>
+	/// <param name="orbitAmplitude">How far the shot drifts around the engagement, in radians.</param>
+	/// <param name="maxDistance">Clamp on the revealed distance, so the ships stay legible.</param>
+	/// <param name="distance">
+	/// The distance to reveal to. Left null, the spread of the units decides it; set
+	/// it when the shot has to pull back by a known amount rather than by whatever
+	/// happens to be on the field.
+	/// </param>
 	public void SetupOverviewCamera(
 		float startDistance = OverviewStartDistance,
-		float dollySeconds = OverviewDollySeconds)
+		float dollySeconds = OverviewDollySeconds,
+		float roll = 0f,
+		float orbitAmplitude = OverviewOrbitAmplitude,
+		float maxDistance = OverviewMaxDistance,
+		float? distance = null)
 	{
 		var unitViews = _battleView.UnitViews;
 		if (unitViews.Count == 0)
@@ -1166,21 +1223,36 @@ private void GoToMainMenu()
 		const float pitch = 0.42f;
 
 		// Frame the whole spread, with headroom so ships do not touch the frame edge.
-		var distance = Mathf.Clamp(maxDist * 1.75f + 4f, 12f, 280f);
+		var spread = Mathf.Clamp(maxDist * 1.75f + 4f, 12f, maxDistance);
+		var resolved = distance.HasValue
+			? Mathf.Clamp(distance.Value, 12f, maxDistance)
+			: spread;
 
-		_camera.SetFocus(center, distance, yaw, pitch);
+		_camera.SetFocus(center, resolved, yaw, pitch);
 
 		_overviewCenter = center;
-		_overviewDistance = distance;
+		_overviewDistance = resolved;
 		_overviewStartDistance = startDistance;
 		_overviewDollySeconds = dollySeconds;
 		_overviewYaw = yaw;
 		_overviewPitch = pitch;
+		_overviewOrbitAmplitude = orbitAmplitude;
+
+		// The move starts from wherever the camera is now, so a pull-back out of a
+		// close shot is continuous instead of a cut to a different pose.
+		_overviewStartPivot = _camera.Pivot;
+		_overviewStartYaw = _camera.Yaw;
+		_overviewStartPitch = _camera.Pitch;
+
 		_overviewElapsed = 0f;
 		_overviewCameraSet = true;
+		// The follow camera owns the pivot while it is set. Leaving it running would
+		// keep the overview from ever being applied.
+		_followUnitId = null;
+		_camera.Roll = roll;
 
 		GD.Print(
-			$"[Teaser] Overview camera set - Center={center}, Distance={distance:F1}, " +
+			$"[Teaser] Overview camera set - Center={center}, Distance={resolved:F1}, " +
 			$"Yaw={yaw}, Pitch={pitch}, UnitCount={positions.Count}");
 	}
 
@@ -1193,7 +1265,13 @@ private void GoToMainMenu()
 	/// <param name="distance">Orbit distance from the unit.</param>
 	/// <param name="yaw">Orbit yaw in radians.</param>
 	/// <param name="pitch">Orbit pitch in radians; positive looks down at the unit.</param>
-	public void FocusUnitCamera(string unitId, float distance, float yaw, float pitch)
+	/// <param name="roll">Dutch angle in radians; 0 is the gameplay default.</param>
+	public void FocusUnitCamera(
+		string unitId,
+		float distance,
+		float yaw,
+		float pitch,
+		float roll = 0f)
 	{
 		if (!_battleView.UnitViews.ContainsKey(unitId))
 		{
@@ -1207,6 +1285,7 @@ private void GoToMainMenu()
 		_followYaw = yaw;
 		_followPitch = pitch;
 		_followElapsed = 0f;
+		_camera.Roll = roll;
 
 		// Frame the subject on the very first rendered frame: waiting for the first
 		// follow tick would open the shot on the default camera pose instead.

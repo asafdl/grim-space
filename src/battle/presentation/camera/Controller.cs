@@ -31,6 +31,13 @@ public partial class Controller : Camera3D, ICameraRig
 	public float Distance => _pose.Distance;
 	public float Yaw => _pose.Yaw;
 	public float Pitch => _pose.Pitch;
+
+	/// <summary>
+	/// Dutch angle: how far the horizon is tilted, in radians. Applied as a roll about
+	/// the view axis after the look-at, so it composes with the orbit pose instead of
+	/// replacing it. Zero is the gameplay default.
+	/// </summary>
+	public float Roll { get; set; }
 	public bool IsAutomationActive => _pivotTween is not null;
 	public bool IsManualGestureActive => _orbiting || _panning;
 	public Vector3? AutomationTarget => _automationTarget;
@@ -455,5 +462,10 @@ public partial class Controller : Camera3D, ICameraRig
 	{
 		GlobalPosition = _pose.CameraPosition();
 		LookAt(_pose.Pivot, Vector3.Up);
+
+		// The roll is applied about the view axis, so the shot keeps its subject in
+		// frame and only the horizon tips.
+		if (!Mathf.IsZeroApprox(Roll))
+			RotateObjectLocal(Vector3.Forward, Roll);
 	}
 }
