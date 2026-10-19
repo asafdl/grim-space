@@ -18,7 +18,7 @@ internal static class PauseMenuReportFooter
 			CustomMinimumSize = new Vector2(220, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};
-		HudStyles.StyleButton(reportButton, HudActionKind.Secondary);
+		HudStyles.StyleMenuNavButton(reportButton);
 		reportButton.Pressed += onPressed;
 		menu.AddChild(reportButton);
 	}

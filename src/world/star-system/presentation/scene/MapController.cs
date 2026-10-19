@@ -169,7 +169,7 @@ public partial class MapController : Node3D
 		_pauseMenu.ContinueRequested += ClosePauseMenu;
 		_pauseMenu.SaveRequested += SaveGame;
 		_pauseMenu.MainMenuRequested += ReturnToMainMenu;
-		_pauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.Battle));
+		_pauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.MainMenu));
 		_uiLayer.AddChild(_pauseMenu);
 
 		var world = _orchestrator.Map;

@@ -10,5 +10,6 @@ public enum HudThemeFamily
 	Informative,
 	Tutorial,
 	Battle,
+	MainMenu,
 	Debug,
 }

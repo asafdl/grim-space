@@ -115,7 +115,7 @@ public sealed partial class ReportIssueDialog : Control
 		content.AddChild(new Label
 		{
 			Text = ReportIssueCopy.TitleField,
-			ThemeTypeVariation = "EntryTitleLabel",
+			ThemeTypeVariation = "EntryTitle",
 		});
 		_titleField = new LineEdit
 		{
@@ -128,7 +128,7 @@ public sealed partial class ReportIssueDialog : Control
 		content.AddChild(new Label
 		{
 			Text = ReportIssueCopy.DescriptionField,
-			ThemeTypeVariation = "EntryTitleLabel",
+			ThemeTypeVariation = "EntryTitle",
 		});
 		_descriptionField = new TextEdit
 		{
@@ -141,7 +141,7 @@ public sealed partial class ReportIssueDialog : Control
 		_status = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			ThemeTypeVariation = "EntryBodyLabel",
+			ThemeTypeVariation = "EntryBody",
 		};
 		content.AddChild(_status);
 

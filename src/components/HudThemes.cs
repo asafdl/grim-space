@@ -8,6 +8,7 @@ public static class HudThemes
 	public const string InformativePath = "res://assets/ui/themes/informative_theme.tres";
 	public const string TutorialPath = "res://assets/ui/themes/tutorial_theme.tres";
 	public const string BattlePath = "res://assets/ui/themes/battle_hud_theme.tres";
+	public const string MainMenuPath = "res://assets/ui/themes/main_menu_theme.tres";
 	public const string DebugPath = "res://assets/ui/themes/debug_theme.tres";
 
 	public static Theme Load(HudThemeFamily family) =>
@@ -17,6 +18,7 @@ public static class HudThemes
 			HudThemeFamily.Informative => InformativePath,
 			HudThemeFamily.Tutorial => TutorialPath,
 			HudThemeFamily.Battle => BattlePath,
+			HudThemeFamily.MainMenu => MainMenuPath,
 			HudThemeFamily.Debug => DebugPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(family)),
 		});

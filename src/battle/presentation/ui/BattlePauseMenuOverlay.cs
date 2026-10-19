@@ -160,7 +160,7 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 			CustomMinimumSize = new Vector2(220, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};
-		HudStyles.StyleButton(button, HudActionKind.Secondary);
+		HudStyles.StyleMenuNavButton(button);
 		button.Pressed += onPressed;
 		return button;
 	}

@@ -40,6 +40,7 @@ public static class HudStyles
 	public const string FleetSectionPanelType = "FleetSectionPanelContainer";
 	public const string HeaderBackButtonType = "HeaderBackButton";
 	public const string HeaderCloseButtonType = "HeaderCloseButton";
+	public const string MenuNavButtonType = "MenuNavButton";
 	public const int SectionAccentWidth = 3;
 
 	public static readonly Color ModalBackdrop = new(0f, 0f, 0f, 0.55f);
@@ -83,6 +84,9 @@ public static class HudStyles
 			HudActionKind.Destructive => "DestructiveButton",
 			_ => "SecondaryButton",
 		};
+
+	public static void StyleMenuNavButton(Button button) =>
+		button.ThemeTypeVariation = MenuNavButtonType;
 
 	public static void SetPanelVariation(PanelContainer panel, string variation) =>
 		panel.ThemeTypeVariation = variation;

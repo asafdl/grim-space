@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Components;
 
 namespace GrimSpace.Presentation.Menu;
 
@@ -288,7 +289,7 @@ public partial class KeyBindingsTab : Control
 			Text = text,
 			ClipText = true,
 			CustomMinimumSize = new Vector2(KeyColumnWidth, 32),
-			ThemeTypeVariation = secondary ? "SecondaryButton" : "PrimaryButton",
+			ThemeTypeVariation = HudStyles.MenuNavButtonType,
 		};
 		button.Pressed += () => BeginCapture(action, secondary, button);
 		return button;
