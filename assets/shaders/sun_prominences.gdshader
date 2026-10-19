@@ -22,8 +22,8 @@ uniform vec3 prominence_color : source_color = vec3(1.00, 0.16, 0.05);
 uniform vec3 footpoint_color : source_color = vec3(1.00, 0.35, 0.10);
 uniform vec3 limb_ring_color : source_color = vec3(1.00, 0.20, 0.06);
 uniform float brightness : hint_range(0.0, 3.0) = 0.16;
-uniform float limb_ring_strength : hint_range(0.0, 2.0) = 0.06;
-uniform float spicule_haze : hint_range(0.0, 2.0) = 0.10;
+uniform float limb_ring_strength : hint_range(0.0, 2.0) = 0.12;
+uniform float spicule_haze : hint_range(0.0, 2.0) = 0.16;
 uniform int site_count : hint_range(0, 8) = 5;
 uniform float erupt_period : hint_range(1.0, 120.0) = 13.0;
 uniform float loop_height : hint_range(0.02, 0.70) = 0.20;
@@ -164,22 +164,24 @@ void fragment() {
 		dr += flow.x * curl_strength * 0.022;
 		float uw = u + flow.y * curl_strength * 0.10;
 
-		// The arch must taper away at both ends, otherwise the filament keeps
-		// hugging the limb and the loop ends in a hard straight edge.
-		float end_fade = 1.0 - smoothstep(0.62, 1.0, abs(uw));
+		// The arch must reach the limb, otherwise the loop reads as a wire
+		// floating in the halo.  It therefore survives almost to the feet; the
+		// window below is what takes it to zero.
+		float end_fade = 1.0 - smoothstep(0.95, 1.18, abs(uw));
 
-		// Bright filament: the shell of the loop.  A noise breakup keeps it
-		// wispy instead of a clean drawn arc.
+		// Bright filament: the shell of the loop.  A real prominence is a thin
+		// hot core inside a soft diffuse envelope, so the core is narrow and
+		// the envelope is wide and faint.  A gentle noise breakup keeps it
+		// wispy, but not so deep that the loop falls apart.
 		float w = filament_width * (0.55 + 0.9 * (1.0 - s));
 		float core = exp(-(dr * dr) / max(w * w, 1e-6));
-		float halo = exp(-abs(dr) / max(w * 4.0, 1e-6)) * 0.30;
-		float shred = 0.45 + 0.85 * vnoise(vec3(uw * 9.0, r * 6.0, TIME * 0.35 + fi * 5.1));
+		float halo = exp(-abs(dr) / max(w * 1.8, 1e-6)) * 0.45;
+		float shred = 0.65 + 0.50 * vnoise(vec3(uw * 5.0, r * 4.0, TIME * 0.35 + fi * 5.1));
 		float filament = (core + halo) * env * end_fade * window * shred;
 
-		// Fainter curtain of plasma hanging under the arch.  Every edge has to
-		// be soft, otherwise the curtain shows up as a flat polygon.
+		// The curtain hangs under the arch and must not extend past its feet.
 		float inside = smoothstep(0.995, 1.02, r) * (1.0 - smoothstep(r_arc - 0.015, r_arc, r));
-		inside *= 1.0 - smoothstep(0.50, 1.0, abs(uw));
+		inside *= 1.0 - smoothstep(0.62, 1.05, abs(uw));
 		float striation = vnoise(vec3(uw * 15.0, r * 2.4, TIME * 0.21 + fi * 3.7));
 		float curtain = inside * curtain_strength * env * window
 			* smoothstep(0.45, 0.95, striation) * (0.20 + 0.80 * s);

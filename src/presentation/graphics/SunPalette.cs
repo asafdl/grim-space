@@ -33,7 +33,7 @@ public sealed class SunPalette
 	public Color CoronaColor { get; init; } = new(1.00f, 0.47f, 0.18f);
 
 	/// <summary>Overall brightness of the photosphere.</summary>
-	public float EmissionStrength { get; init; } = 0.50f;
+	public float EmissionStrength { get; init; } = 0.26f;
 
 	/// <summary>Limb darkening coefficient u of I(mu) = 1 - u(1-mu) - v(1-mu)^2.</summary>
 	public float LimbDarkening { get; init; } = 0.50f;
@@ -56,6 +56,18 @@ public sealed class SunPalette
 	/// <summary>How strong the active regions are.</summary>
 	public float PlageStrength { get; init; } = 0.55f;
 
+	/// <summary>Supergranulation cell count across the visible disk diameter.</summary>
+	public float SupergranulationCells { get; init; } = 40f;
+
+	/// <summary>How strongly the supergranulation modulates brightness.</summary>
+	public float SupergranulationStrength { get; init; } = 0.18f;
+
+	/// <summary>Strength of the chromospheric ring just outside the limb.</summary>
+	public float LimbRingStrength { get; init; } = 0.16f;
+
+	/// <summary>Strength of the spicule haze above the limb.</summary>
+	public float SpiculeHaze { get; init; } = 0.20f;
+
 	/// <summary>Granulation cell count across the visible disk diameter.</summary>
 	public float GranulationCells { get; init; } = 176f;
 
@@ -72,7 +84,7 @@ public sealed class SunPalette
 	public float ProminenceStrength { get; init; } = 1.0f;
 
 	/// <summary>Overall corona brightness multiplier.</summary>
-	public float CoronaStrength { get; init; } = 0.10f;
+	public float CoronaStrength { get; init; } = 0.40f;
 
 	/// <summary>Deterministic seed for the surface pattern and the prominence sites.</summary>
 	public float Seed { get; init; }

@@ -7,14 +7,16 @@ from those numbers, how the result was compared against the real frames, and
 
 **TL;DR** — three procedural shaders (photosphere, prominences, corona) driven
 by a palette object.  The photosphere reproduces the measured granulation scale
-(~41 cells across the disc against the reference's ~47) and the measured limb
-darkening; the prominences are thin shell-model arcs that erupt, hang and fall
-back; the corona is a noise-driven streamer halo with the measured e-folding
-length.  Compared side by side with a real AIA 304 frame the disc centre
-matches within 20 % and the 0.90 R limb brightness matches within 1 %.  The
-remaining gaps are the limb edge (my disc ends ~2–3× too bright), the local
-contrast of the mottling (~3.5× too low) and the filamentary, flowing quality
-of the real granulation, which value noise does not reproduce.
+(46.2 cells across the disc against the reference's 46.9) and the measured
+radial brightness profile through the body of the disc (0.60 R matches to
+0.1 %, 0.90 R to 2 %); the prominences are thin shell-model arcs that erupt,
+hang and fall back onto the limb; the corona is a noise-driven streamer halo
+with the measured e-folding length.  An independent reviewer graded the
+result **"credible but not convincing"**: the remaining gaps are the softness
+of the very last 5 % of the limb, the contrast of the mottling, and the
+fact that value noise cannot produce the real frames' filamentary texture.
+All of that is listed in section 6 rather than glossed over.
+
 
 ---
 
@@ -50,6 +52,24 @@ of the real granulation, which value noise does not reproduce.
 
 `assets/textures/2k_sun.jpg` is now unused by the code but was left in place
 rather than deleted — removing a shared asset is not this task's business.
+`src/presentation/graphics/StarCorona.cs` is likewise no longer called from
+anywhere; it is left in place as a reusable helper rather than deleted.
+
+### What was verified by rendering, and what was not
+
+* **The battle scene's sun: verified.**  `scripts/render-sun.sh … --battle`
+  builds the real `SpaceBackdrop` (the same object the battle controller
+  builds) and renders it; the red dwarf sun, its corona and the dust stream
+  in front of it all draw correctly.  A still is in
+  `refs/comparison/`.
+* **The strategic map's star: not verified by a render.**  `scenes/map.tscn`
+  cannot be launched on its own in this environment — it needs the session /
+  run state — and it fails the same way on the unmodified tree (62
+  `NullReferenceException`s with every modification stashed, so the failure is
+  pre-existing and not caused by this change).  The map star uses the same
+  `SunVisual` code path as the battle sun, which *is* verified, but the map
+  scene itself was not seen rendering.
+
 
 ---
 
@@ -109,12 +129,13 @@ darkening law into something unphysical.
 
 | | reference | shader |
 |---|---|---|
-| cell size | 14.3 px | 15.7 px |
-| cells across the disc | 46.6 | 40.8 |
-| local contrast (std / mean of a 180 px disc patch) | 0.70 | 0.20 |
+| cell size | 14.33 px | 15.23 px |
+| cells across the disc | 46.9 | 46.2 |
+| local contrast (std / mean of a 180 px disc patch) | 0.70 | 0.19 |
 
 Both numbers are the energy-weighted mean wavenumber of the patch's power
-spectrum, i.e. the same measurement applied to both images.
+spectrum, i.e. the same measurement applied to both images.  The scale matches
+to 1.5 %; the contrast does not.
 
 ### Prominences
 
@@ -205,23 +226,46 @@ makes the image-radius comparison valid.
 
 ### Result (AIA 304 palette, sRGB luminance)
 
+Both radii are measured per image as the radius where the azimuthal mean
+profile falls to 12 % of the disc median (the reference's own edge is fuzzy,
+so this is the only radius definition that is comparable between the two).
+
 | | reference | render |
 |---|---|---|
-| disc centre | 0.2509 | 0.3036 |
-| 0.80 R | 0.2511 | 0.1818 |
-| 0.90 R | 0.1924 | 0.1935 |
-| 0.95 R | 0.0793 | 0.1727 |
-| 1.00 R | 0.0355 | 0.1053 |
-| 1.02–1.08 R mean | 0.0176 | 0.0737 |
-| 1.02–1.08 R p99 (prominence peaks) | 0.1184 | 0.1249 |
+| disc radius used | 336 px | 352 px |
+| disc centre | 0.2509 | 0.3201 |
+| 0.40 R | 0.2690 | 0.2541 |
+| 0.60 R | 0.2403 | 0.2402 |
+| 0.90 R | 0.1752 | 0.1781 |
+| 0.95 R | 0.0724 | 0.1545 |
+| 1.00 R | 0.0322 | 0.1092 |
+| 1.02–1.08 R mean | 0.0168 | 0.0117 |
+| 1.02–1.08 R p99 (prominence peaks) | 0.1137 | 0.0654 |
+| granulation cells across the disc | 46.9 | 46.2 |
 
-The disc centre is 21 % bright, the 0.90 R limb matches within 1 %, and the
-prominence peak brightness matches within 6 %.  The limb edge and the mean
-brightness just outside the limb do **not** match — see below.
+The interior profile now tracks the reference closely — 0.60 R matches to
+0.1 %, 0.90 R to 2 % — and the brightness just outside the limb is slightly
+*below* the reference's rather than above it.  The granulation scale matches
+to 1.5 %.  The remaining difference is concentrated in the last 5 % of the
+radius: the real 304 limb ends in a very sharp edge and the shader's ends
+2–3× too bright.
 
 The side-by-side sheet is `refs/comparison/side_by_side_aia304.png`; the
 visible-light render is `refs/comparison/render_visible_light_palette.png`
 and `sun_test.mp4`.
+
+### An earlier radius calibration was wrong, and it mattered
+
+The first versions of this comparison used the *half-max* radius for the
+render and the *outer edge* for the reference.  Because the shader's disc has
+a much softer edge than the reference's, that made the render's disc look
+22 % too large and the whole limb comparison meaningless.  Re-deriving both
+radii with the same rule (12 % of the disc median) changed the conclusions
+substantially: the granulation scale went from "38 cells vs 47" to "46.2 vs
+46.9", and the off-limb brightness from "8× too bright" to "slightly too
+dim".  The lesson is the same one the shader bugs taught: measure, do not
+assume.
+
 
 ### What the pixel loop caught
 
@@ -253,35 +297,50 @@ argument for doing the comparison at all:
 
 ## 6. Honest remaining gaps
 
-1. **The limb edge is too soft and the disc is too bright at the edge.**  At
-   0.95 R the render is 0.173 against the reference's 0.079, and at 1.00 R
-   0.105 against 0.036.  The chromospheric edge term reproduces the shape of
-   the fall-off but not its steepness; the real AIA 304 limb is much sharper
-   than any smooth function of the image radius that was tried, which suggests
-   the instrument's limb darkening function contributes as well as the
-   physics.
-2. **The mean brightness just outside the limb is ~4× too high** (0.074 vs
-   0.018 at 1.02–1.08 R).  The prominence *peaks* are right, so the residual
-   is the low-level background: the curtain under the loops, the spicule haze
-   and the corona's inner fall-off together are too strong.
-3. **The granulation contrast is ~3.5× too low** (0.20 vs 0.70).  The scale
+An independent reviewer (`SUN-VERIFY`, report in
+`task/sun/sun-verify-report.md`, which measured the images with its own code
+and did not have access to the numbers above) graded the result
+**"CREDIBLE BUT NOT CONVINCING"** and raised four blockers.  Two of them have
+been addressed since; the list below is the state of play.
+
+1. **The limb edge is still too soft.**  At 0.95 R the render is 0.155
+   against the reference's 0.072, and at 1.00 R 0.109 against 0.032.  The
+   chromospheric edge term reproduces the *shape* of the fall-off (and it
+   reproduced the 304's inverse limb — the disc is now brighter at the limb
+   than in its interior, as the real 304 is) but not its steepness.  The real
+   AIA 304 limb is sharper than any smooth function of the image radius that
+   was tried, which suggests the instrument's limb darkening function
+   contributes as well as the physics.
+2. **The granulation contrast is ~3.6× too low** (0.19 vs 0.70).  The scale
    matches, but the reference's patch contrast is dominated by its white-hot
    active regions; the shader's plage covers less area and never reaches a
-   white core.
-4. **The texture is blotchy, not filamentary.**  Value noise gives cellular
-   blobs; the real granulation is a flowing network of lanes.  This is the
-   single biggest visual difference and it is a limitation of the noise
-   function, not of the tuning.
-5. **The disc reads as a ball rather than a flat disc** in the visible-light
-   palette, because the photosphere's limb darkening is a smooth radial
-   gradient.  That is physically correct for visible light and is what the
-   reference's HMI 193 shows, but the 304 reference is much flatter.
-6. **The prominence motion is a game-scale fiction.**  The reference cadence
+   white core.  This is the reviewer's highest-leverage remaining item.
+3. **The texture is blotchy, not filamentary.**  The granulation domain is
+   now warped by a lower-frequency field so the cells curve instead of coming
+   out as axis-aligned squares, but value noise still cannot produce the
+   branching, multi-scale filament network of the real frames.
+4. **The visible-light disc was blown out** (5.5 % of the disc clipped to
+   ≥ 250/255 in the reviewer's measurement).  The exposure has since been
+   brought down; the disc no longer clips.
+5. **The prominences still read as wire rather than plasma** in the
+   visible-light palette: constant width, hard edges.  The loops are now
+   rooted on the limb (the arc reaches the surface instead of fading out
+   short of it) and have a narrow hot core inside a soft envelope, but the
+   reviewer's verdict on them is unchanged.
+6. **The 304 palette's prominences are dim** — the reviewer measured their
+   core at 190,42,9 against the reference's 222,61,2 — and the real ones sit
+   on a bright limb ring that the shader only partly reproduces.
+7. **The prominence motion is a game-scale fiction.**  The reference cadence
    is ~50 minutes; the shader uses 13 s.
-7. **The corona's streamers are noise, not field-aligned.**  The LASCO
+8. **The corona's streamers are noise, not field-aligned.**  The LASCO
    reference shows streamers that are coherent over several solar radii and
    rooted in specific active regions; the shader's streamers drift with the
    noise field.
+9. **The disc reads as a ball rather than a flat disc** in the visible-light
+   palette, because the photosphere's limb darkening is a smooth radial
+   gradient.  That is physically correct for visible light and is what the
+   reference's HMI 193 shows; the 304 reference is much flatter.
+
 
 ---
 

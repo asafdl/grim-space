@@ -46,6 +46,8 @@ public static class SunVisual
 		material.SetShaderParameter("granulation_strength", palette.GranulationStrength);
 		material.SetShaderParameter("plage_cells", palette.PlageCells);
 		material.SetShaderParameter("plage_strength", palette.PlageStrength);
+		material.SetShaderParameter("supergranulation_cells", palette.SupergranulationCells);
+		material.SetShaderParameter("supergranulation_strength", palette.SupergranulationStrength);
 		material.SetShaderParameter("rim_color", palette.RimColor);
 		material.SetShaderParameter("rim_strength", palette.RimStrength);
 		material.SetShaderParameter("sun_radius", radius);
@@ -83,6 +85,8 @@ public static class SunVisual
 		material.SetShaderParameter("sun_radius", radius);
 		material.SetShaderParameter("quad_half_width", radius * palette.ProminenceQuadWidth * 0.5f);
 		material.SetShaderParameter("debug_term", palette.ProminenceDebug);
+		material.SetShaderParameter("limb_ring_strength", palette.LimbRingStrength);
+		material.SetShaderParameter("spicule_haze", palette.SpiculeHaze);
 
 		return CreateBillboardQuad(
 			"Prominences",

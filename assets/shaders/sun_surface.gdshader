@@ -27,14 +27,17 @@ uniform float limb_darkening_sq : hint_range(0.0, 1.0) = 0.14;
 uniform float limb_edge_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float granulation_cells : hint_range(6.0, 260.0) = 176.0;
 uniform float granulation_strength : hint_range(0.0, 1.0) = 0.85;
-uniform float supergranulation_cells : hint_range(1.0, 40.0) = 14.0;
-uniform float supergranulation_strength : hint_range(0.0, 1.0) = 0.06;
+uniform float supergranulation_cells : hint_range(1.0, 80.0) = 40.0;
+uniform float supergranulation_strength : hint_range(0.0, 1.0) = 0.30;
 uniform float flow_speed : hint_range(0.0, 0.5) = 0.035;
 uniform float plage_cells : hint_range(1.0, 40.0) = 10.0;
 uniform float plage_strength : hint_range(0.0, 1.0) = 0.55;
 uniform vec3 rim_color : source_color = vec3(1.00, 0.34, 0.10);
 uniform float rim_strength : hint_range(0.0, 2.0) = 0.22;
 uniform float seed = 0.0;
+
+// Debug helper: 0 = normal, 1..8 = flat grey steps, 2 = image radius,
+// 3 = mu, 4 = the limb edge term, 5 = the limb darkening term.
 uniform int debug_term = 0;
 uniform float sun_radius = 1.0;
 
@@ -107,6 +110,7 @@ void vertex() {
 	v_distance = d;
 	v_tangent = sqrt(max(d * d - sun_radius * sun_radius, 1e-6));
 }
+
 void fragment() {
 	vec3 view_dir = normalize(CAMERA_POSITION_WORLD - sphere_world);
 	float mu = clamp(dot(sphere_normal_world, view_dir), 0.0, 1.0);
@@ -133,19 +137,27 @@ void fragment() {
 	// Granulation: two octaves of value noise remapped to a cellular profile.
 	// A summed fbm has a narrow distribution around 0.5, which reads as soft
 	// cloud rather than as granules, so the noise is remapped instead.  The
-	// reference granulation is very high contrast: the measured standard
-	// deviation of a disc patch is 0.16 against a mean of 0.23, i.e. the
-	// texture swings by a factor of two.
+	// domain is warped by a much lower frequency field first: without the warp
+	// the cells come out as axis aligned squares, which is the single most
+	// obvious difference from the real filamentary network.
 	float gk = granulation_cells / SUN_PI;
 	vec3 gp = sphere_dir * gk;
 	gp += vec3(TIME * flow_speed * 0.31, TIME * flow_speed * -0.19, TIME * flow_speed * 0.24);
 	gp += vec3(seed * 1.7, seed * 0.9, seed * 2.3);
-	float g1 = vnoise(gp);
-	float g2 = vnoise(gp * 2.1 + vec3(5.1, 1.7, 9.3));
+	float wk = gk * 0.16;
+	vec3 warp = vec3(
+		vnoise(sphere_dir * wk + vec3(11.3, 2.7, 5.1)),
+		vnoise(sphere_dir * wk + vec3(27.7, 19.4, 3.3)),
+		vnoise(sphere_dir * wk + vec3(41.1, 8.8, 23.6))) - 0.5;
+	vec3 wgp = gp + warp * 0.35;
+	float g1 = vnoise(wgp);
+	float g2 = vnoise(wgp * 2.1 + vec3(5.1, 1.7, 9.3));
 	float g = smoothstep(0.26, 0.74, g1 * 0.68 + g2 * 0.32);
 	g = mix(0.5, g, granulation_strength);
 
-	// Supergranulation organises the granulation into larger cells.
+	// Supergranulation: the large scale network that organises the granulation
+	// into bright regions and dark lanes.  The reference frames have their
+	// dominant structure at roughly a quarter of the granulation wavelength.
 	float sk = supergranulation_cells / SUN_PI;
 	float sg = fbm(sphere_dir * sk + vec3(seed * 0.7, TIME * flow_speed * 0.08, 0.0), 2);
 	sg = clamp(0.5 + (sg - 0.5) * 1.6, 0.0, 1.0);
@@ -161,19 +173,21 @@ void fragment() {
 		0.80 * (1.0 - t)
 		+ (g - 0.5) * 0.55
 		+ (sg - 0.5) * 0.18
-		+ pl * plage_strength * 0.90,
+		+ pl * plage_strength * 1.00,
 		0.0,
 		1.0);
 
 	// The real photosphere mottles by a factor of about two, so the granulation
-	// has to move the brightness a long way, not just tint it.
-	float bright = ld * (0.72 + 0.56 * g + 2.20 * pl) * emission_strength;
+	// has to move the brightness a long way, not just tint it.  The
+	// supergranulation contributes the large scale bright and dark regions.
+	float bright = ld * (0.52 + 0.80 * g + 0.90 * sg + 2.40 * pl) * emission_strength;
 	vec3 col = heat_ramp(heat);
 	ALBEDO = col * bright;
 
-	// Chromospheric rim: a very thin, very bright edge where the chromosphere
-	// is seen end on.  It is what makes the AIA 304 limb glow instead of fade.
-	float rim_axis = (image_radius - 0.985) / 0.020;
+	// Chromospheric rim: the chromosphere is optically thick and is seen end on
+	// near the limb, so the disc gets *brighter* towards the edge in the EUV.
+	// Measured on AIA 304 the limb is brighter than the disc interior.
+	float rim_axis = (image_radius - 0.950) / 0.055;
 	float rim = exp(-rim_axis * rim_axis) * rim_strength;
 	ALBEDO += rim_color * rim * emission_strength;
 
