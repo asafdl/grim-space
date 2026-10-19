@@ -1,8 +1,10 @@
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Core.Log;
 
 namespace GrimSpace.Presentation.Support;
 
@@ -40,7 +42,7 @@ internal static class ReportIssueSender
 		if (string.IsNullOrWhiteSpace(webhookUrl))
 			return false;
 
-		var payload = JsonSerializer.Serialize(new
+		var payloadJson = JsonSerializer.Serialize(new
 		{
 			content = TrimToDiscordLimit(FormatMessage(context, title, description)),
 			thread_name = TrimToDiscordThreadName(title),
@@ -48,9 +50,10 @@ internal static class ReportIssueSender
 
 		using var client = new System.Net.Http.HttpClient();
 		client.DefaultRequestHeaders.UserAgent.ParseAdd("grim-space/1.0");
+		using var requestContent = BuildRequestContent(payloadJson);
 		using var response = await client.PostAsync(
 			webhookUrl,
-			new StringContent(payload, Encoding.UTF8, "application/json"),
+			requestContent,
 			cancellationToken);
 		if (response.IsSuccessStatusCode)
 			return true;
@@ -59,6 +62,28 @@ internal static class ReportIssueSender
 		GD.PushError(
 			$"Issue report failed with HTTP {(int)response.StatusCode} {response.StatusCode}: {responseBody}");
 		return false;
+	}
+
+	private static HttpContent BuildRequestContent(string payloadJson)
+	{
+		if (!IssueReportLogTail.TryReadMinifiedTail(
+				GameLogPaths.GodotLogFilePath(),
+				out var logTail))
+			return new StringContent(payloadJson, Encoding.UTF8, "application/json");
+
+		var form = new MultipartFormDataContent();
+		form.Add(
+			new StringContent(payloadJson, Encoding.UTF8, "application/json"),
+			"payload_json");
+
+		var fileBytes = Encoding.UTF8.GetBytes(logTail);
+		var fileContent = new ByteArrayContent(fileBytes);
+		fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+		form.Add(
+			fileContent,
+			"file",
+			$"godot-log-{DateTime.UtcNow:yyyyMMdd-HHmmss}Z.txt");
+		return form;
 	}
 
 	private static string TrimToDiscordLimit(string message) =>

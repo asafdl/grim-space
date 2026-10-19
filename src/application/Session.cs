@@ -265,7 +265,7 @@ public partial class Session : Node
 
 	private static void ConfigureLogging()
 	{
-		var godotLog = Path.Combine(OS.GetUserDataDir(), "logs", "godot.log");
+		var godotLog = GameLogPaths.GodotLogFilePath();
 
 		GameLog.Configure(GD.Print, GD.PrintErr);
 
