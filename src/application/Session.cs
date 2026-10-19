@@ -169,9 +169,27 @@ public partial class Session : Node
 		};
 		performanceLayer.AddChild(_fpsLabel);
 		_fpsLabel.ProcessMode = Node.ProcessModeEnum.Always;
+		// The capture path (the dev scene used for reference renders and
+		// screenshots) must not have the performance overlay in the frame.
+		_fpsLabel.Visible = !IsCaptureRun();
 
 		_tutorialDialogHost = new TutorialDialogHost();
 		AddChild(_tutorialDialogHost);
+	}
+
+	/// <summary>
+	/// True when the process was started as a capture run, that is with the
+	/// <c>--capture</c> user argument.  Captures must not carry the debug
+	/// overlay into the image.
+	/// </summary>
+	private static bool IsCaptureRun()
+	{
+		foreach (var argument in OS.GetCmdlineUserArgs())
+		{
+			if (argument == "--capture")
+				return true;
+		}
+		return false;
 	}
 
 	public override void _Process(double delta)

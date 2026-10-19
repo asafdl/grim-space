@@ -400,6 +400,44 @@ master, same camera), the refreshed `refs/comparison/closeup_frame.png`, and
 `refs/comparison/closeup_frame_master_implementation.png`.
 
 
+### 6b addendum: the corona's radial banding, and the debug overlay
+
+Two more defects were caught by eye in the refreshed close-up frame.
+
+**1. Radial banding in the corona.**  Faint spoke shaped streaks fanned out of
+the limb, most visible in the upper right quadrant.  The cause was the corona's
+noise being sampled in (angle, radius): the radius coordinate changed slowly,
+so the noise stayed coherent along a radius and drew rays.
+
+The first attempt - dithering the angular coordinate with a low frequency field
+- made it *worse*: the dither's own isosurfaces turned the spokes into
+concentric contour rings.  The fix is to stop sampling in (angle, radius) at
+all: the corona's structure is now sampled on the shell's own direction
+(`fbm(offset * 7.0 ...)`), which is isotropic by construction, and the
+structure's contrast was cut so it reads as a soft mottle rather than a
+pattern.  A sub-quantisation dither was added on top so the smooth parts of
+the corona do not band on an 8 bit target.
+
+Verified on the crop `refs/comparison/closeup_band_before_after.png`: the
+spokes are gone and the corona is a smooth haze.  A multi-angle radial profile
+check (72 rays, the limb found per ray, the profile sampled outward) gives an
+angular spread in the corona region of 0.0704 before and 0.0642 after the
+isotropic change; the residual is the prominence loops and the disc's own
+mottling, which are features, not banding.  The smooth final version's spread
+is indistinguishable from the pre-fix one on that metric because the
+structure's contrast was cut until the banding was below the metric's noise
+floor - the visual check is what settles it.
+
+**2. The debug overlay was in the captures.**  The "FPS: 30" label is the
+project's own performance readout, drawn by `Session` (an autoload) in a
+`CanvasLayer`.  `Session` now reads the `--capture` user argument and hides
+that label, and `scripts/render-sun.sh` passes `--capture` on every render.
+The overlay is only hidden for captures; the game is unaffected.
+
+`refs/comparison/closeup_frame.png` was re-captured clean, and
+`refs/comparison/closeup_band_before_after.png` shows the banding before and
+after.
+
 ---
 
 ## 7. An earlier radius calibration was wrong, and it mattered

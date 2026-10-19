@@ -98,17 +98,20 @@ void fragment() {
 		/ max(silhouette_perp / max(silhouette_depth, 1e-5), 1e-5);
 	float dist = max(r - 1.0, 0.0);
 
-	// Narrow radial streamers: high angular frequency, low radial frequency.
-	float a = atan(offset.x, offset.z) / 6.283185307179586;
-	float streak = smoothstep(0.32, 0.68,
-		fbm(vec3(a * streamer_density, dist * 1.5, TIME * speed + seed), 3));
+	// The corona's structure is sampled on the shell's own direction, so it is
+	// isotropic.  Sampling it in (angle, radius) keeps the noise coherent along
+	// a radius, and that draws spokes fanning out of the limb; dithering the
+	// angular coordinate instead just turns the spokes into contour rings.
+	float streak = smoothstep(0.30, 0.70,
+		fbm(offset * 7.0 + vec3(TIME * speed + seed), 3));
 
 	// Broad helmet streamers.
 	float helmet = smoothstep(0.36, 0.64,
-		fbm(vec3(a * helmet_density, 1.7, TIME * speed * 0.5 + seed), 2));
+		fbm(offset * 2.6 + vec3(3.1, 1.7, TIME * speed * 0.5 + seed), 2));
 
-	float shell = mix(1.0, 0.15 + 1.70 * streak, streamer_strength);
-	shell *= mix(1.0, 0.30 + 1.50 * helmet, helmet_strength);
+	// The structure is a gentle mottling, not a pattern of rays.
+	float shell = mix(1.0, 0.45 + 1.10 * streak, streamer_strength * 0.32);
+	shell *= mix(1.0, 0.55 + 0.90 * helmet, helmet_strength * 0.30);
 
 	// One profile, maximal AT the limb and decaying monotonically outward.
 	// Both terms are at their maximum at dist = 0, so there is no dip between
@@ -117,8 +120,12 @@ void fragment() {
 	float halo = pow(clamp(1.0 - dist / max(shell_radius - 1.0, 0.001), 0.0, 1.0), 2.0);
 	float outside = step(1.0, r);
 
+	// A last, sub-quantisation dither so the smooth parts of the corona do not
+	// band on an 8 bit target.
+	float quantisation = (vnoise(vec3(SCREEN_UV * VIEWPORT_SIZE * 0.5, 0.0)) - 0.5) * 0.006;
+
 	vec3 col = (inner_color * (core * inner_brightness)
-		+ corona_color * (halo * brightness)) * shell * outside;
+		+ corona_color * (halo * brightness)) * shell * outside + quantisation;
 
 	ALBEDO = col;
 	ALPHA = clamp(max(max(col.r, col.g), col.b), 0.0, 1.0);

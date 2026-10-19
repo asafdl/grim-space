@@ -19,6 +19,6 @@ shift 2 || true
 	--quit-after "$FRAMES" \
 	--fixed-fps 30 \
 	--scene "res://scenes/sun_test.tscn" \
-	-- "$@" 2>&1 | grep -E "Done recording|SHADER ERROR|ERROR:" || true
+	-- "$@" --capture 2>&1 | grep -E "Done recording|SHADER ERROR|ERROR:" || true
 
 echo "wrote $OUT"
