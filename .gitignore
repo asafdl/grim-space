@@ -6,4 +6,4 @@
 grim-space.Tests/bin
 grim-space.Tests/obj
 grim-space.Tests/TestResults/
-dist/
+dist/runlog.txt

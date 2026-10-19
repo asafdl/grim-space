@@ -33,8 +33,11 @@ public sealed class BattleCameraDirector
 
 	public void EnableStaticMode()
 	{
+		GD.Print($"[CameraDirector] EnableStaticMode called, static was={_staticMode}, mode was={_mode}");
 		_staticMode = true;
+		_mode = CameraMode.Manual;
 		_rig.CancelAutomation();
+		GD.Print($"[CameraDirector] After: static={_staticMode}, mode={_mode}");
 	}
 
 	public void DisableStaticMode()
@@ -119,6 +122,7 @@ public sealed class BattleCameraDirector
 
 	public void FocusPlayer(Vector3 playerWorldPos)
 	{
+		if (_staticMode) return;
 		_rig.CancelAutomation();
 		_rig.TweenPivotTo(playerWorldPos);
 	}

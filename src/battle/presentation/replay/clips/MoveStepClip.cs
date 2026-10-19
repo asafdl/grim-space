@@ -15,7 +15,12 @@ public sealed class MoveStepClip : IReplayClip
 		context.ReplayState.ApplyMove(move);
 		var state = context.ReplayState.StateOf(move.ActorId);
 
-		context.UnitViews[move.ActorId].AnimatePoseTo(
+		if (!context.UnitViews.TryGetValue(move.ActorId, out var view) || view is null)
+		{
+			return ClipPlayback.Pause(ReplayTiming.MoveStepSeconds);
+		}
+
+		view.AnimatePoseTo(
 			state,
 			ReplayTiming.MoveStepSeconds,
 			context.NextMovePosition(move.ActorId));

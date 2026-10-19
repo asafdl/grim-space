@@ -40,8 +40,16 @@ namespace GrimSpace.Battle.Presentation.Scene;
 public partial class BattleController : Node3D
 {
 	public static BattleEncounter? NextEncounterOverride { get; set; }
+	public static bool StaticCameraOverride { get; set; } = false;
 	public BattleOrchestrator Battle => _battle;
 	private const double OpeningCameraHoldSeconds = 1.0;
+
+	// Teaser overview camera: establishing dolly-in, then a slow orbital drift.
+	private const float OverviewStartDistance = 34f;
+	private const float OverviewDollySeconds = 4.5f;
+	private const float OverviewOrbitSpeed = 0.22f;
+	private const float OverviewOrbitAmplitude = 0.30f;
+	private const float OverviewPitchBob = 0.06f;
 
 	private BattleOrchestrator _battle = null!;
 	private UserExecutionAgent? _agent = null;
@@ -64,6 +72,13 @@ public partial class BattleController : Node3D
 	private CellVolumeMeshStore _cellVolumeMeshes = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
+	private bool _staticCameraMode = false;
+	private bool _overviewCameraSet = false;
+	private float _overviewElapsed;
+	private Vector3 _overviewCenter;
+	private float _overviewDistance;
+	private float _overviewYaw;
+	private float _overviewPitch;
 	private MoveGhostView _moveGhost = null!;
 	private TargetOpportunityOverlay _targetOpportunityOverlay = null!;
 
@@ -146,8 +161,13 @@ public partial class BattleController : Node3D
 		MoveChild(backdrop, 0);
 
 		_camera = GetNode<Controller>("Camera3D");
+		// Disable camera director entirely for teaser
 		_cameraDirector = new BattleCameraDirector(_camera);
-		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
+		if (StaticCameraOverride)
+		{
+			_staticCameraMode = true;
+			_cameraDirector.EnableStaticMode();
+		}
 		_cellVolumeMeshes = new CellVolumeMeshStore();
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(_camera, _cellVolumeMeshes);
@@ -165,13 +185,7 @@ public partial class BattleController : Node3D
 		AddChild(_abilitySourcePicker);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
-		var openingPose = BattleCameraPoses.PlayerAft(
-			_battle.Engine.World.StateOf(_battle.PlayerId));
-		_camera.SetFocus(
-			openingPose.Pivot,
-			openingPose.Distance,
-			openingPose.Yaw,
-			openingPose.Pitch);
+		// Skip opening pose - use overview camera instead (set later in SetupOverviewCamera)
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
@@ -311,11 +325,19 @@ public partial class BattleController : Node3D
 
 	public override void _Process(double delta)
 	{
-		if (_cellVolumeMeshes is null || _currentFrame is null)
-			return;
-
-		if (_cameraDirector.NeedsTick)
+		if (_overviewCameraSet)
+		{
+			ApplyOverviewCamera((float)delta);
+		}
+		else if (_cameraDirector.NeedsTick)
+		{
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
+		}
+
+		if (_cellVolumeMeshes is null || _currentFrame is null)
+		{
+			return;
+		}
 
 		if (_battleHud.IsMountSelectorOpen)
 			ApplyMountSelector(_currentFrame);
@@ -325,6 +347,27 @@ public partial class BattleController : Node3D
 			GD.PushError($"Cell-volume mesh generation failed for {failure.Key}: {failure.Error}");
 		if (meshUpdates.ProcessedCount > 0)
 			ApplyFrame(_currentFrame);
+	}
+
+	/// <summary>
+	/// Drives the teaser overview camera: an establishing dolly-in that settles on the
+	/// whole engagement, plus a slow orbital drift so the shot never reads as a still frame.
+	/// Uses the shared camera rig so framing, clamping and look-at stay consistent with gameplay.
+	/// </summary>
+	private void ApplyOverviewCamera(float delta)
+	{
+		_overviewElapsed += delta;
+
+		var dollyT = Mathf.Clamp(_overviewElapsed / OverviewDollySeconds, 0f, 1f);
+		var eased = 1f - Mathf.Pow(1f - dollyT, 3f);
+		var distance = Mathf.Lerp(OverviewStartDistance, _overviewDistance, eased);
+
+		var yaw = _overviewYaw
+			+ Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed) * OverviewOrbitAmplitude;
+		var pitch = _overviewPitch
+			+ Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed * 0.7f) * OverviewPitchBob;
+
+		_camera.SetFocus(_overviewCenter, distance, yaw, pitch);
 	}
 
 	private void WireHudToTranslator()
@@ -567,6 +610,9 @@ public partial class BattleController : Node3D
 
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		_currentFrame = frame;
+
+		// Camera position is managed in _Process
+		// (no debug print)
 		_translator.SetPresentation(
 			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
 			canIssueActions: frame.CanAct,
@@ -932,18 +978,26 @@ private void GoToMainMenu()
 			GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 		}
 
-	public async Task RunAiVsAiAsync(int maxTurns = 8, Action<int, string>? onTurnLog = null)
+	public async Task RunAiVsAiAsync(
+		int maxTurns = 8,
+		Action<int, string>? onTurnLog = null,
+		CancellationToken cancellationToken = default)
 	{
 		var sw = Stopwatch.StartNew();
 		var phaseTcs = new TaskCompletionSource<EBattlePhase>();
+		var replayCount = 0;
 		_battle.PhaseChanged += phase =>
 		{
+			if (phase == EBattlePhase.Replaying)
+				replayCount++; // track replays starting
 			phaseTcs.TrySetResult(phase);
 			phaseTcs = new TaskCompletionSource<EBattlePhase>();
 		};
 
 		for (var turn = 0; turn < maxTurns && !_battle.IsBattleOver; turn++)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
+
 			if (_battle.Phase == EBattlePhase.PlayerTurn)
 			{
 				var activeUnit = UnitRegistry.For(_battle.Engine.World).UnitOf(_battle.ActivePlayerId);
@@ -955,12 +1009,14 @@ private void GoToMainMenu()
 				}
 			}
 
-			while (_battle.Phase == EBattlePhase.Resolving || _battle.Phase == EBattlePhase.Replaying)
+			var turnReplayTarget = replayCount + 1;
+			while (replayCount < turnReplayTarget && !_battle.IsBattleOver)
 			{
+				cancellationToken.ThrowIfCancellationRequested();
 				await Task.WhenAny(phaseTcs.Task, Task.Delay(100));
-				
+
 				RefreshPresentation();
-				
+
 				if (sw.ElapsedMilliseconds > 300000)
 					throw new TimeoutException("Battle resolution timeout");
 			}
@@ -970,8 +1026,28 @@ private void GoToMainMenu()
 			onTurnLog?.Invoke(turn, $"Turn {turn}: Phase={_battle.Phase}, Result={_battle.Engine.World.battleResult}");
 		}
 
+		// The battle is decided before its last replay has played out. Keep the
+		// presentation live until the replay finishes, so a caller that awaits this
+		// method sees the whole engagement rather than a half-played turn.
+		var settle = Stopwatch.StartNew();
+		while (settle.ElapsedMilliseconds < 1500 && !_replayPlayer.IsPlaying)
+			await Task.Delay(20);
+
+		while (_replayPlayer.IsPlaying)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			await Task.Delay(50);
+			RefreshPresentation();
+		}
+
 		sw.Stop();
 	}
+
+	/// <summary>
+	/// Halts turn replay playback. Used to end a teaser combat beat on a chosen frame
+	/// instead of running the battle to its (spoiler) outcome.
+	/// </summary>
+	public void StopReplay() => _replayPlayer.Stop();
 
 	private static async Task WaitForAgentAsync(AiExecutionAgent agent, int timeoutMs = 5000)
 	{
@@ -999,10 +1075,9 @@ private void GoToMainMenu()
 	public void SetupOverviewCamera()
 	{
 		var unitViews = _battleView.UnitViews;
-		GD.Print($"[Teaser] SetupOverviewCamera: unitViews.Count = {unitViews.Count}");
 		if (unitViews.Count == 0)
 		{
-			GD.Print("[Teaser] No unit views found");
+			GD.Print("[Teaser] SetupOverviewCamera: no unit views found");
 			return;
 		}
 
@@ -1010,14 +1085,13 @@ private void GoToMainMenu()
 		foreach (var kvp in unitViews)
 		{
 			var view = kvp.Value;
-			GD.Print($"[Teaser] Unit {kvp.Key}: Visible={view.Visible}, GlobalPosition={view.GlobalPosition}, VisualState={view.VisualState}");
 			if (view.Visible)
 				positions.Add(view.GlobalPosition);
 		}
 
 		if (positions.Count == 0)
 		{
-			GD.Print("[Teaser] No visible unit positions found");
+			GD.Print("[Teaser] SetupOverviewCamera: no visible unit positions found");
 			return;
 		}
 
@@ -1033,19 +1107,27 @@ private void GoToMainMenu()
 			if (dist > maxDist) maxDist = dist;
 		}
 
-		// Use a closer distance to make units more visible
-		float yaw = 0f; // Looking from positive X
-		float pitch = -0.3f; // ~17 degrees down
+		// Units are spread along the grid X axis, so a yaw of 0 puts them left/right
+		// on screen and the two sides face each other across the frame.
+		const float yaw = 0f;
+		// Positive pitch places the camera above the pivot looking down (see OrbitPose).
+		const float pitch = 0.42f;
 
-		// Use a fixed closer distance to see units better
-		float distance = 30f;
-
-		// Clamp to camera limits
-		distance = Mathf.Clamp(distance, 8f, 280f);
+		// Frame the whole spread, with headroom so ships do not touch the frame edge.
+		var distance = Mathf.Clamp(maxDist * 1.75f + 4f, 12f, 280f);
 
 		_camera.SetFocus(center, distance, yaw, pitch);
 
-		GD.Print($"[Teaser] Overview camera set - Center={center}, Distance={distance}, Yaw=0, Pitch=-0.3, UnitCount={positions.Count}");
+		_overviewCenter = center;
+		_overviewDistance = distance;
+		_overviewYaw = yaw;
+		_overviewPitch = pitch;
+		_overviewElapsed = 0f;
+		_overviewCameraSet = true;
+
+		GD.Print(
+			$"[Teaser] Overview camera set - Center={center}, Distance={distance:F1}, " +
+			$"Yaw={yaw}, Pitch={pitch}, UnitCount={positions.Count}");
 	}
 
 	/// <summary>
@@ -1054,8 +1136,10 @@ private void GoToMainMenu()
 	/// </summary>
 	public void EnableStaticCameraMode()
 	{
+		GD.Print($"[BattleController] EnableStaticCameraMode called on instance {GetInstanceId()}");
+		_staticCameraMode = true;
 		_cameraDirector.EnableStaticMode();
-		GD.Print("[Teaser] Static camera mode enabled - camera will not move during replay");
+		GD.Print($"[BattleController] After: _staticCameraMode={_staticCameraMode}");
 	}
 
 	public override void _ExitTree()

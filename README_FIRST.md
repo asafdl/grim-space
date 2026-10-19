@@ -1,5 +1,20 @@
 # README FIRST — Grim Space Teaser Context
 
+> **Updated 2026-10-19.** The teaser **has been recorded successfully in this environment**.
+> The "Godot 4.7.2 / .NET 10 compatibility issue" described below is **not** real: the
+> blocker was the CLI flag. Godot's `--script/-s` cannot run a `PackedScene`; pass the scene
+> as a **positional argument** instead:
+>
+> ```
+> godot --path <repo> --write-movie <out.avi> --quit-after <frames> "res://scenes/teaser.tscn"
+> ```
+>
+> The empty-gray-grid combat phase is **fixed** (root cause: the teaser camera used a
+> negative pitch and overrode the shared camera rig, so it aimed at empty space).
+> New deliverable: `teaser.mp4` (85.6 s, 1080p60). Full write-up, including the HARVEST
+> LOG, is in [TEASER_NOTES.md](TEASER_NOTES.md#2026-10-19--teaser-production-pass-new-engagement-recording).
+> The sections below are the **older** Oct 14-19 notes and are kept for history.
+
 ## What this project is
 **grim-space** is a 3D roguelike space game with tactical turn-based combat. This repo (`grim-space-teaser`) is focused on recording a teaser video via Godot Movie Maker and analyzing it with local vision models.
 

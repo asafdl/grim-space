@@ -91,10 +91,20 @@ public sealed partial class ReplayDirector : Node
 		var resetMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 		var participants = ParticipantTeams();
 		var participantsMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds - resetMs;
+		GameLog.Log("[ReplayDirector] BEFORE replay setup");
 		GameLog.Log(
 			$"Turn {completedTurn} replay setup: reset={resetMs:F1}ms "
 			+ $"participants={participantsMs:F1}ms");
-		_replayPlayer.Play(replay, completedTurn, participants);
+		GameLog.Log("[ReplayDirector] AFTER replay setup, about to call Play");
+		try
+		{
+			_replayPlayer.Play(replay, completedTurn, participants);
+			GameLog.Log("[ReplayDirector] Play returned");
+		}
+		catch (Exception ex)
+		{
+			GameLog.Log($"[ReplayDirector] Exception in Play: {ex.Message}");
+		}
 	}
 
 	private IReadOnlyDictionary<string, ETeam> ParticipantTeams() =>

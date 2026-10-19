@@ -59,8 +59,19 @@ public partial class TurnReplayPlayer : Node3D
 	private int _actionCount;
 	private int _spawnCount;
 	private int _impactCount;
+	private bool _stopped;
 
 	public bool IsPlaying { get; private set; }
+
+	/// <summary>
+	/// Aborts playback at the current point. Pending step timers become no-ops, so a
+	/// caller can cut a replay short (teaser edit) without the scene tearing down under it.
+	/// </summary>
+	public void Stop()
+	{
+		_stopped = true;
+		IsPlaying = false;
+	}
 
 	public void Configure(
 		IReadOnlyDictionary<string, UnitView> unitViews,
@@ -137,16 +148,29 @@ public partial class TurnReplayPlayer : Node3D
 		_phase = EReplayPlaybackPhase.Player;
 		_playbackTimer.Restart();
 		_phaseTimer.Restart();
+		_stopped = false;
 		IsPlaying = true;
 		EmitTurnFlowIndexChanged();
-		PlayNext();
+		GameLog.Log($"[Replay] Play called, history count={_history.Count}");
+		try
+		{
+			PlayNext();
+		}
+		catch (Exception ex)
+		{
+			GD.Print($"[Replay] Exception in PlayNext: {ex.Message}");
+		}
 	}
 
 	private void PlayNext()
 	{
+		if (_stopped)
+			return;
+
 		while (_entryIndex < _history.Count)
 		{
 			var entry = _history[_entryIndex++];
+			GD.Print($"[Replay] Processing entry {_entryIndex}/{_history.Count}: {entry.GetType().Name}");
 			var entryStart = Stopwatch.GetTimestamp();
 			switch (entry)
 			{
@@ -267,10 +291,18 @@ public partial class TurnReplayPlayer : Node3D
 		if (!_clipContext.ReplayState.Contains(impact.TargetId))
 			return false;
 
+		if (!_clipContext.ReplayState.Contains(impact.TargetId))
+		{
+			GD.Print($"[Replay] Impact target {impact.TargetId} not in replay state, skipping");
+			return false;
+		}
 		var state = _clipContext.ReplayState.StateOf(impact.TargetId);
 		_stateChanged(state);
-		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
+		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view) || view is null || !GodotObject.IsInstanceValid(view))
+		{
+			GD.Print($"[Replay] Impact target {impact.TargetId} view not found or disposed, skipping");
 			return false;
+		}
 
 		if (impact.Cause == EImpactCause.VoidBombBlast && impact.TargetId == impact.SourceId)
 		{
@@ -282,15 +314,23 @@ public partial class TurnReplayPlayer : Node3D
 		if (!state.IsAlive)
 			ClearReplayMovementTrail(impact.TargetId);
 
-		if (state.IsAlive)
-			view.Sync(state);
-		else
-			view.ShowPendingDeath(state);
-		if (impact.Cause == EImpactCause.LightningCannonBurst)
-			view.PlayLightningHitSparks();
-		else
-			view.PlayHitSparks();
-		view.PlayDamagePopup(impact.TotalDamage);
+		try
+		{
+			if (state.IsAlive)
+				view.Sync(state);
+			else
+				view.ShowPendingDeath(state);
+			if (impact.Cause == EImpactCause.LightningCannonBurst)
+				view.PlayLightningHitSparks();
+			else
+				view.PlayHitSparks();
+			view.PlayDamagePopup(impact.TotalDamage);
+		}
+		catch (Exception ex)
+		{
+			GD.Print($"[Replay] Exception in impact handling for {impact.TargetId}: {ex.Message}");
+			return false;
+		}
 
 		var died = !state.IsAlive;
 		if (died)

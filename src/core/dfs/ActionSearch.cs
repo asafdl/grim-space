@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 
@@ -25,6 +26,17 @@ public static class ActionSearch
 		SearchInput<TWorld, TRuntime> input)
 		where TEffect : IEffect<TWorld, TRuntime>
 		where TWorld : IWorld<TWorld>
+		where TRuntime : IRuntimeContext<TRuntime>, new() =>
+		Run(sim, actorId, actionDefs, input, 2000);
+
+	public static IEnumerable<SearchFrame<TWorld, TRuntime>> Run<TEffect, TWorld, TRuntime>(
+		Simulation<TWorld, TRuntime> sim,
+		string actorId,
+		IReadOnlyList<IActionDef<IAction, TWorld, TRuntime, TEffect>> actionDefs,
+		SearchInput<TWorld, TRuntime> input,
+		int timeBudgetMs)
+		where TEffect : IEffect<TWorld, TRuntime>
+		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>, new()
 	{
 		var fork = sim.Fork();
@@ -33,6 +45,7 @@ public static class ActionSearch
 		var isPrioritySearch = input.IsPriorityBranch?.Invoke(fork.Actions) ?? false;
 		Queue<(Simulation<TWorld, TRuntime> Sim, int Depth)>? deferred =
 			isPrioritySearch ? new() : null;
+		var sw = Stopwatch.StartNew();
 
 		foreach (var frame in SearchDfs(
 			fork,
@@ -43,7 +56,9 @@ public static class ActionSearch
 			visited,
 			input,
 			isPrioritySearch ? SearchFramePhase.Priority : SearchFramePhase.Remaining,
-			deferred))
+			deferred,
+			sw,
+			timeBudgetMs))
 			yield return frame;
 
 		if (deferred is null)
@@ -51,6 +66,9 @@ public static class ActionSearch
 
 		while (deferred.TryDequeue(out var branch))
 		{
+			if (sw.ElapsedMilliseconds >= timeBudgetMs)
+				yield break;
+
 			foreach (var frame in SearchDfs(
 				branch.Sim,
 				actorId,
@@ -59,7 +77,10 @@ public static class ActionSearch
 				branch.Depth,
 				visited,
 				input,
-				SearchFramePhase.Remaining))
+				SearchFramePhase.Remaining,
+				null,
+				sw,
+				timeBudgetMs))
 				yield return frame;
 		}
 	}
@@ -73,11 +94,16 @@ public static class ActionSearch
 		Dictionary<object, List<int[]>> visited,
 		SearchInput<TWorld, TRuntime> input,
 		SearchFramePhase phase,
-		Queue<(Simulation<TWorld, TRuntime> Sim, int Depth)>? deferred = null)
+		Queue<(Simulation<TWorld, TRuntime> Sim, int Depth)>? deferred = null,
+		Stopwatch? sw = null,
+		int timeBudgetMs = int.MaxValue)
 		where TEffect : IEffect<TWorld, TRuntime>
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>, new()
 	{
+		if (sw is not null && sw.ElapsedMilliseconds >= timeBudgetMs)
+			yield break;
+
 		if (depth > MaxSearchDepth || depth >= HardAbortSearchDepth)
 			yield break;
 
@@ -129,6 +155,9 @@ public static class ActionSearch
 					continue;
 				}
 
+				if (sw is not null && sw.ElapsedMilliseconds >= timeBudgetMs)
+					yield break;
+
 				foreach (var child in SearchDfs(
 					fork,
 					actorId,
@@ -138,7 +167,9 @@ public static class ActionSearch
 					visited,
 					input,
 					phase,
-					deferred))
+					deferred,
+					sw,
+					timeBudgetMs))
 					yield return child;
 
 				fork.Dequeue(checkpoint);

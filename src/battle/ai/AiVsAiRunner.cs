@@ -102,14 +102,20 @@ public static async Task<BattleResult> RunAsync(
 			$"fighter-ai-{seed}",
 			$"carrier-ai-{seed}");
 
+		// Override positions to be within weapon range (LightningCannon effective=9)
+		// Place at ~6 cells apart (60-70% of effective range)
+		var center = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
+		var playerPos = center - new Coord(3, 0, 0);
+		var enemyPos = center + new Coord(3, 0, 0);
+
 		playerSpawn = new BattleSpawn
 		{
 			Ship = playerSpawn.Ship,
 			PilotId = playerSpawn.PilotId,
 			Team = playerSpawn.Team,
-			Position = playerSpawn.Position,
-			Fore = playerSpawn.Fore,
-			Dorsal = playerSpawn.Dorsal,
+			Position = playerPos,
+			Fore = new Coord(1, 0, 0),
+			Dorsal = Coord.Up,
 			ExecutionAgent = new AiExecutionAgent()
 		};
 
@@ -118,9 +124,9 @@ public static async Task<BattleResult> RunAsync(
 			Ship = enemySpawn.Ship,
 			PilotId = enemySpawn.PilotId,
 			Team = enemySpawn.Team,
-			Position = enemySpawn.Position,
-			Fore = enemySpawn.Fore,
-			Dorsal = enemySpawn.Dorsal,
+			Position = enemyPos,
+			Fore = new Coord(-1, 0, 0),
+			Dorsal = Coord.Up,
 			ExecutionAgent = new AiController()
 		};
 
@@ -129,9 +135,9 @@ public static async Task<BattleResult> RunAsync(
 			Ship = DeploymentPlacement.UpgradeDevShip(
 				ShipInstance.FromCatalog($"gunship-ai-{seed}", EType.Gunship)),
 			Team = ETeam.Player,
-			Position = playerSpawn.Position + new Coord(0, 4, 0),
-			Fore = playerSpawn.Fore,
-			Dorsal = playerSpawn.Dorsal,
+			Position = playerPos + new Coord(0, 0, 2),
+			Fore = new Coord(1, 0, 0),
+			Dorsal = Coord.Up,
 			ExecutionAgent = new AiExecutionAgent(),
 		};
 
@@ -140,9 +146,9 @@ public static async Task<BattleResult> RunAsync(
 			Ship = DeploymentPlacement.UpgradeDevShip(
 				ShipInstance.FromCatalog($"industrial-gooper-ai-{seed}", EType.IndustrialGooper)),
 			Team = ETeam.Enemy,
-			Position = FlankPosition(enemySpawn, gridSize),
-			Fore = enemySpawn.Fore,
-			Dorsal = enemySpawn.Dorsal,
+			Position = enemyPos + new Coord(0, 0, 2),
+			Fore = new Coord(-1, 0, 0),
+			Dorsal = Coord.Up,
 			ExecutionAgent = new AiController(),
 		};
 

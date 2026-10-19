@@ -367,16 +367,21 @@ public sealed class BattleOrchestrator : IDisposable
 		if (_actionSink.TryTakeBatch(actorId, out var batch))
 			return batch;
 
+		var sw = Stopwatch.StartNew();
 		SetAgentCanWork(actorId, true);
 		try
 		{
 			if (_actionSink.TryTakeBatch(actorId, out batch))
+			{
+				System.Diagnostics.Debug.WriteLine($"[Battle] TakeActorBatchAsync({actorId}): immediate, {sw.ElapsedMilliseconds}ms");
 				return batch;
+			}
 
 			var result = await _actionSink.WaitForBatchAsync(actorId);
 			if (!result.IsSuccess)
 				throw result.Failure!;
 
+			System.Diagnostics.Debug.WriteLine($"[Battle] TakeActorBatchAsync({actorId}): waited {sw.ElapsedMilliseconds}ms");
 			return result.Batch!;
 		}
 		finally
