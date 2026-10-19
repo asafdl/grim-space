@@ -40,24 +40,23 @@ public static class MapCelestialVisuals
 		MapAtmosphereSettings settings)
 	{
 		var visualRadius = gridRadius * MapMapping.WorldUnitsPerPoint;
-		var surfaceTexture = GD.Load<Texture2D>(SunTexturePath);
-		root.AddChild(new MeshInstance3D
+		var palette = new SunPalette
 		{
-			Name = "Surface",
-			Mesh = CreateSphere(visualRadius, 48, 24),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			MaterialOverride = CreateStarSurfaceMaterial(
-				surfaceTexture,
-				settings.SunGlowEnergy),
-		});
-		root.AddChild(StarCorona.Create(
-			sunRadius: visualRadius,
-			color: new Color(1f, 0.50f, 0.26f, 0.72f),
-			brightness: 0.10f + settings.SunGlowEnergy * 0.12f,
-			width: 0.13f,
-			speed: 0f,
-			seed: StableSeedMixer.From(seed).Add("map-star-corona").Value % 997f,
-			irregularity: 0.22f));
+			// The strategic map star is a background element that is usually
+			// only a few dozen pixels across, so the granulation is kept coarse
+			// enough not to alias and the prominences are dialled down.
+			GranulationCells = 34f,
+			GranulationStrength = 0.55f,
+			PlageCells = 6f,
+			PlageStrength = 0.45f,
+			ProminenceCount = 3f,
+			ProminenceHeight = 0.18f,
+			ProminenceStrength = 0.35f,
+			CoronaStrength = 0.10f,
+			EmissionStrength = 0.5f + settings.SunGlowEnergy * 0.25f,
+			Seed = StableSeedMixer.From(seed).Add("map-star").Value % 997f,
+		};
+		root.AddChild(SunVisual.Create(visualRadius, palette));
 		MapCameraOcclusion.AddSphere(root, visualRadius);
 	}
 

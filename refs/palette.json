@@ -1,0 +1,171 @@
+{
+  "disk": {
+    "center_rgb": [
+      130,
+      130,
+      130
+    ],
+    "mid_rgb": [
+      115,
+      115,
+      115
+    ],
+    "limb_rgb": [
+      46,
+      46,
+      46
+    ]
+  },
+  "disk_0304": {
+    "center_rgb": [
+      168,
+      4,
+      0
+    ],
+    "limb_rgb": [
+      201,
+      34,
+      4
+    ]
+  },
+  "limb_darkening": {
+    "samples": [
+      {
+        "radius_frac": 0.0,
+        "intensity": 1.0
+      },
+      {
+        "radius_frac": 0.05,
+        "intensity": 0.9923
+      },
+      {
+        "radius_frac": 0.1,
+        "intensity": 0.9923
+      },
+      {
+        "radius_frac": 0.15,
+        "intensity": 0.9846
+      },
+      {
+        "radius_frac": 0.2,
+        "intensity": 0.9769
+      },
+      {
+        "radius_frac": 0.25,
+        "intensity": 0.9692
+      },
+      {
+        "radius_frac": 0.3,
+        "intensity": 0.9538
+      },
+      {
+        "radius_frac": 0.35,
+        "intensity": 0.9385
+      },
+      {
+        "radius_frac": 0.4,
+        "intensity": 0.9231
+      },
+      {
+        "radius_frac": 0.45,
+        "intensity": 0.9
+      },
+      {
+        "radius_frac": 0.5,
+        "intensity": 0.8846
+      },
+      {
+        "radius_frac": 0.55,
+        "intensity": 0.8538
+      },
+      {
+        "radius_frac": 0.6,
+        "intensity": 0.8308
+      },
+      {
+        "radius_frac": 0.65,
+        "intensity": 0.7923
+      },
+      {
+        "radius_frac": 0.7,
+        "intensity": 0.7538
+      },
+      {
+        "radius_frac": 0.75,
+        "intensity": 0.7077
+      },
+      {
+        "radius_frac": 0.8,
+        "intensity": 0.6462
+      },
+      {
+        "radius_frac": 0.85,
+        "intensity": 0.5692
+      },
+      {
+        "radius_frac": 0.9,
+        "intensity": 0.4692
+      },
+      {
+        "radius_frac": 0.95,
+        "intensity": 0.3154
+      }
+    ],
+    "curve": "clamp"
+  },
+  "granulation": {
+    "cell_count_across_disk": 51.01,
+    "cell_size_px": 31.37,
+    "contrast_std": 9.93,
+    "dominant_scale": "27291 km feature (31.4 px, 870 km/px)"
+  },
+  "prominence": {
+    "core_rgb": [
+      212,
+      62,
+      1
+    ],
+    "edge_rgb": [
+      105,
+      11,
+      0
+    ],
+    "loop_height_over_radius": 0.068,
+    "filament_width_px": 28.4,
+    "count_on_limb": 4
+  },
+  "corona": {
+    "falloff_exponent": 19.575,
+    "rgb_at_1_05_r": [
+      175,
+      121,
+      57
+    ],
+    "rgb_at_1_15_r": [
+      97,
+      37,
+      6
+    ],
+    "rgb_at_1_30_r": [
+      0,
+      0,
+      0
+    ]
+  },
+  "notes": [
+    "disk.* = HMI continuum, SDO latest_2048_HMII.jpg (grayscale, unsaturated). HMI is 0.5 arcsec/px -> 1 R_sun = 960px in the 2048 web frame (725 km/px), frame centre used; measured limb edge 862px. AIA is 0.6 arcsec/px -> 1 R_sun = 800px at 2048 and 400px at 1024.",
+    "limb_darkening: median continuum luminance per 0.1-wide annulus, normalised to the centre. Classic law I(mu)/I(0)=1-u1(1-mu)-u2(1-mu)^2 fitted over r<0.85R -> u1=8.84, u2=-17.78. RECOMMENDED shader curve (matches the measured samples, clamped at the limb): I = clamp((1-(r/R)^2)^0.45, 0, 1). limb(0.95R)/centre=0.32.",
+    "disk_0304 = AIA 304, SDO latest_2048_0304.jpg (870 km/px). limb_rgb is the BRIGHT LIMB RING (top 15% of the 0.94-1.00 R annulus, 35148 px); the plain annulus median is [159, 2, 0]. limb/centre per channel = [1.2, 8.5, 4.0].",
+    "AIA 193 (SDO latest_2048_0193.jpg - NOTE: the latest_1024_0193.jpg asset is AIA 193, NOT HMI continuum): centre [140, 78, 23], limb [160, 100, 39], ratio [1.14, 1.28, 1.7] -> strong INVERSE limb darkening in EUV.",
+    "granulation: dominant scale 27291 km feature (31.4 px, 870 km/px) in AIA 304 (contrast_std 9.93 DN of 255); HMI continuum 13939 km feature (19.2 px, 725 km/px) (contrast_std 5.46 DN). True photospheric granulation (~1000 km) is UNRESOLVED at 2048 px; the measured texture is supergranulation/network scale.",
+    "prominence: AIA 304 frame 2026-02-02 12:11:41 UT (1024 px, 1740 km/px). Off-limb blobs detected with a per-radius local background + 6 sigma, excluding the bright limb ring (start 1.02 R) and the burned-in timestamp strip. core/edge = median RGB of the top 10% / boundary pixels of the largest prominence. loop_height_over_radius uses the BRIGHT material (lum>120); the diffuse extent reaches 0.206 R.",
+    "corona.rgb_* : median pixels of the AIA 193 off-limb corona at 1.05/1.15/1.30 R_sun (colour-TABLE rendering, not true colour; true white-light corona is achromatic).",
+    "white-light corona truth, SOHO LASCO C2 (512 px): drawn 1 R_sun circle = nan px, the flat occulting disc hides the corona inside ~nan R_sun, radial falloff I ~ r^-nan out to nan R_sun, bright streamer colour rgb=[0, 0, 0].",
+    "true-colour white-light corona (ground-based total eclipse, NASA SVS 2017 composite, achromatic pixels): rgb=[135, 129, 123] - white/neutral, NOT orange.",
+    "prominence motion: real AIA 304 movie at 12 s/frame (cadence verified from the burned-in timestamps: 18 min between the 18-min-spaced extracted frames). 302 samples over 3.0 h of real time.",
+    "corona source: AIA 193 EUV off-limb, the only 1.05-1.30 R_sun corona measurable at this resolution. falloff_exponent=19.575 (I ~ r^-19.6 over 1.03-1.42 R_sun); rgb_at_1_05/1_15/1_30_r = [175,121,57]/[97,37,6]/[0,0,0]. AIA 171 gives the same limb-edge falloff (r^-18.8).",
+    "IMPORTANT: the exponent above is the falloff of the EUV LIMB EDGE (zero by 1.30 R_sun), not the physical K-corona falloff, which is far gentler. Do not use it as a visual corona profile.",
+    "the true white-light corona is achromatic (grey/white). The 2017 eclipse composite's achromatic pixels measure rgb=[135, 129, 123]. All EUV/coronagraph RGB values here are colour-TABLE renderings, not solar colour.",
+    "SOHO LASCO C2 (512 px): drawn 1 R_sun circle = 38.5 px; the flat occulting disc hides the corona inside 2.75 R_sun; the outer corona fits I ~ r^-0.17 in DISPLAY space (the C2 image is log-stretched, so this is not the physical falloff); bright streamer colour rgb=[188, 18, 0]."
+  ]
+}

@@ -1,0 +1,97 @@
+==============================================================================
+SUN-REF pixel measurement
+==============================================================================
+[0] geometry: SDO full frames are 0.6"/px -> 1 R_sun = 1600 px (4096) = 800 (2048) = 400 (1024)
+  HMI 2048: nominal R_sun=960px (0.5 arcsec/px)  measured edge=862px  plateau=126  plate scale=725 km/px
+  HMI 1024: measured edge=430px (nominal 480) -> framing ratio 2.00 (2.00 = same framing)
+  HMI radial profile (median lum vs radius): 0:119 100:130 200:127 300:124 400:119 500:114 600:106 700:95 800:78 900:48 1000:0
+[1] HMI continuum 2048 (grayscale) - disk palette + limb darkening
+  disk center_rgb=[130, 130, 130] mid_rgb=[115, 115, 115] limb_rgb=[46, 46, 46]
+  [HMI continuum] centre lum=130.0  classic fit (rf<=0.85): u1=8.837 u2=-17.780 rms=0.5736  clamped power law I=clip((1-r^2)^a,0,1): alpha=0.448 rms=0.0114  limb(0.95)=0.315
+  limb/center = 0.354
+[2] AIA 304 2048 - disk palette + bright-limb test
+  304 2048: nominal R_sun=800px measured edge=831px plateau=49 plate scale=870 km/px
+  304 center_rgb=[168, 4, 0] limb(plain median)=[159, 2, 0] limb(bright ring, 35148px)=[201, 34, 4] ratio(limb/center)=[1.2, 8.5, 4.0]
+[3] AIA 193 2048 - disk palette + inverse limb darkening
+  193 2048: nominal R_sun=800px (0.6 arcsec/px) measured edge=933px plateau=80 plate scale=870 km/px
+  AIA 193 1024: measured edge=465px (nominal 400) -> framing ratio 2.01 (2.00 = same framing)
+  193 center_rgb=[140, 78, 23] limb_rgb=[160, 100, 39] ratio=[1.14, 1.28, 1.7]
+[4] granulation scale
+  [AIA 304 (2048)] dominant wavelength=31.4 px  cells_across_disk=51.0  contrast_std=9.93 DN  (27291 km/cell)
+  [HMI continuum (2048)] dominant wavelength=19.2 px  cells_across_disk=99.9  contrast_std=5.46 DN  (13939 km/cell)
+[5] prominences, AIA 304 movie frame 2026-02-02 12:11:41 UT (1024)
+  5649 f001: nominal R_sun=400px measured edge=416px plateau=85 plate scale=1740 km/px
+  [5649 f001] 4 prominence blobs (area>=100px)
+     area=  4214px height_above_limb=0.206R (82px = 143476 km) radial_extent=59.7px centre=(945,640)
+     area=   229px height_above_limb=0.128R (51px = 89203 km) radial_extent=27.8px centre=(99,649)
+     area=   111px height_above_limb=0.133R (53px = 92725 km) radial_extent=14.7px centre=(82,631)
+     area=   105px height_above_limb=0.107R (43px = 74142 km) radial_extent=11.4px centre=(78,463)
+  [5649 f001] core_rgb=[212, 62, 1] edge_rgb=[105, 11, 0] diffuse_height=0.206R bright_height=0.068R mean_radial_width=28.4px count_on_limb=4
+  [5649 f001] overlay -> frames/ref_sdo5649_prominence_overlay_001.png
+[6] prominence motion from the real 12 s/frame AIA 304 movie
+  904 movie frames (3.01 h of real time at 12 s/frame), 302 samples every 36 s
+   frame    0 t=   0.0 min  prominence_px=  4110  max_height=0.076 R
+   frame   18 t=   3.6 min  prominence_px=  4005  max_height=0.084 R
+   frame   36 t=   7.2 min  prominence_px=  4032  max_height=0.080 R
+   frame   54 t=  10.8 min  prominence_px=  4017  max_height=0.072 R
+   frame   72 t=  14.4 min  prominence_px=  4069  max_height=0.083 R
+   frame   90 t=  18.0 min  prominence_px=  4127  max_height=0.078 R
+   frame  108 t=  21.6 min  prominence_px=  4074  max_height=0.070 R
+   frame  126 t=  25.2 min  prominence_px=  4099  max_height=0.074 R
+   frame  144 t=  28.8 min  prominence_px=  4052  max_height=0.078 R
+   frame  162 t=  32.4 min  prominence_px=  4192  max_height=0.077 R
+   frame  180 t=  36.0 min  prominence_px=  4202  max_height=0.075 R
+   frame  198 t=  39.6 min  prominence_px=  4181  max_height=0.072 R
+   frame  216 t=  43.2 min  prominence_px=  4250  max_height=0.079 R
+   frame  234 t=  46.8 min  prominence_px=  4240  max_height=0.080 R
+   frame  252 t=  50.4 min  prominence_px=  4265  max_height=0.077 R
+   frame  270 t=  54.0 min  prominence_px=  4316  max_height=0.077 R
+   frame  288 t=  57.6 min  prominence_px=  4226  max_height=0.078 R
+   frame  306 t=  61.2 min  prominence_px=  4189  max_height=0.078 R
+   frame  324 t=  64.8 min  prominence_px=  4099  max_height=0.078 R
+   frame  342 t=  68.4 min  prominence_px=  4127  max_height=0.072 R
+   frame  360 t=  72.0 min  prominence_px=  4128  max_height=0.070 R
+   frame  378 t=  75.6 min  prominence_px=  4109  max_height=0.070 R
+   frame  396 t=  79.2 min  prominence_px=  4188  max_height=0.083 R
+   frame  414 t=  82.8 min  prominence_px=  4138  max_height=0.083 R
+   frame  432 t=  86.4 min  prominence_px=  4209  max_height=0.079 R
+   frame  450 t=  90.0 min  prominence_px=  4291  max_height=0.071 R
+   frame  468 t=  93.6 min  prominence_px=  4226  max_height=0.081 R
+   frame  486 t=  97.2 min  prominence_px=  4251  max_height=0.077 R
+   frame  504 t= 100.8 min  prominence_px=  4214  max_height=0.080 R
+   frame  522 t= 104.4 min  prominence_px=  4280  max_height=0.077 R
+   frame  540 t= 108.0 min  prominence_px=  4248  max_height=0.073 R
+   frame  558 t= 111.6 min  prominence_px=  4310  max_height=0.077 R
+   frame  576 t= 115.2 min  prominence_px=  4290  max_height=0.077 R
+   frame  594 t= 118.8 min  prominence_px=  4289  max_height=0.075 R
+   frame  612 t= 122.4 min  prominence_px=  4307  max_height=0.070 R
+   frame  630 t= 126.0 min  prominence_px=  4411  max_height=0.071 R
+   frame  648 t= 129.6 min  prominence_px=  4362  max_height=0.072 R
+   frame  666 t= 133.2 min  prominence_px=  4334  max_height=0.072 R
+   frame  684 t= 136.8 min  prominence_px=  4319  max_height=0.072 R
+   frame  702 t= 140.4 min  prominence_px=  4267  max_height=0.071 R
+   frame  720 t= 144.0 min  prominence_px=  4406  max_height=0.073 R
+   frame  738 t= 147.6 min  prominence_px=  4414  max_height=0.079 R
+   frame  756 t= 151.2 min  prominence_px=  4345  max_height=0.084 R
+   frame  774 t= 154.8 min  prominence_px=  4261  max_height=0.081 R
+   frame  792 t= 158.4 min  prominence_px=  4312  max_height=0.075 R
+   frame  810 t= 162.0 min  prominence_px=  4207  max_height=0.073 R
+   frame  828 t= 165.6 min  prominence_px=  4221  max_height=0.075 R
+   frame  846 t= 169.2 min  prominence_px=  4169  max_height=0.072 R
+   frame  864 t= 172.8 min  prominence_px=  4144  max_height=0.070 R
+   frame  882 t= 176.4 min  prominence_px=  4181  max_height=0.071 R
+   frame  900 t= 180.0 min  prominence_px=  4224  max_height=0.072 R
+  prominence area over 3 h: min=3965 max=4431 px  peak height 0.068..0.089 R
+[7] corona
+  [AIA 193 off-limb] r=1.05R rgb=[175, 121, 57] lum=130.03 bg=0.00 n=168868
+  [AIA 193 off-limb] r=1.15R rgb=[97, 37, 6] lum=51.06 bg=0.00 n=184872
+  [AIA 193 off-limb] r=1.30R rgb=[0, 0, 0] lum=0.00 bg=0.00 n=165062
+  [AIA 193 off-limb] falloff I ~ r^-19.57 over 1.03-1.42R (n=10 annuli, bg=0.00)
+  [AIA 171 off-limb] r=1.05R rgb=[129, 89, 0] lum=90.93 bg=0.00 n=168868
+  [AIA 171 off-limb] r=1.15R rgb=[51, 36, 0] lum=36.68 bg=0.00 n=184872
+  [AIA 171 off-limb] r=1.30R rgb=[1, 1, 0] lum=1.00 bg=0.00 n=165062
+  [AIA 171 off-limb] falloff I ~ r^-18.77 over 1.03-1.42R (n=14 annuli, bg=0.00)
+  WARNING: LASCO analysis failed: cannot convert float NaN to integer
+  white-light corona (achromatic pixels of eclipse_composite_2017_nasa_svs.jpg): rgb=[135, 129, 123] n=112027
+wrote refs/palette.json
+wrote refs/measure_extra.json

@@ -1,0 +1,193 @@
+shader_type spatial;
+render_mode unshaded, cull_back, depth_draw_opaque, shadows_disabled, fog_disabled;
+
+// ---------------------------------------------------------------------------
+// Photosphere of a star.
+//
+// Every constant here was measured from NASA/SDO reference frames, not from
+// memory.  See SUN_NOTES.md -> "Reference analysis" for the numbers and the
+// frame grabs they came from.
+//
+//   * palette         AIA 304 disk centre  rgb(0.68, 0.04, 0.01)  (saturated red)
+//                     HMI 193 disk centre  rgb(0.54, 0.30, 0.10)  (warm tan)
+//                     visible-light look    white-yellow core -> orange -> red limb
+//   * limb darkening  HMI 193 radial profile: I(0.90R)/I(centre) = 0.72,
+//                     I(0.95R)/I(centre) = 0.33 -> u = 0.62, v = 0.18
+//   * granulation     AIA 304 autocorrelation: cell ~13 px in a 1024 px frame
+//                     whose disk diameter is ~854 px  ->  ~60 cells across the
+//                     disk.  HMI 193 gives ~45.
+// ---------------------------------------------------------------------------
+
+uniform vec3 core_color : source_color = vec3(1.00, 0.93, 0.74);
+uniform vec3 mid_color : source_color = vec3(1.00, 0.48, 0.13);
+uniform vec3 limb_color : source_color = vec3(0.72, 0.12, 0.03);
+uniform float emission_strength : hint_range(0.0, 4.0) = 0.62;
+uniform float limb_darkening : hint_range(0.0, 1.2) = 0.50;
+uniform float limb_darkening_sq : hint_range(0.0, 1.0) = 0.14;
+uniform float limb_edge_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float granulation_cells : hint_range(6.0, 260.0) = 176.0;
+uniform float granulation_strength : hint_range(0.0, 1.0) = 0.85;
+uniform float supergranulation_cells : hint_range(1.0, 40.0) = 14.0;
+uniform float supergranulation_strength : hint_range(0.0, 1.0) = 0.06;
+uniform float flow_speed : hint_range(0.0, 0.5) = 0.035;
+uniform float plage_cells : hint_range(1.0, 40.0) = 10.0;
+uniform float plage_strength : hint_range(0.0, 1.0) = 0.55;
+uniform vec3 rim_color : source_color = vec3(1.00, 0.34, 0.10);
+uniform float rim_strength : hint_range(0.0, 2.0) = 0.22;
+uniform float seed = 0.0;
+uniform int debug_term = 0;
+uniform float sun_radius = 1.0;
+
+varying vec3 sphere_dir;
+varying vec3 sphere_world;
+varying vec3 sphere_normal_world;
+varying float v_distance;
+varying float v_tangent;
+
+const float SUN_PI = 3.141592653589793;
+
+// iq's integer-lattice hash, stable on every GPU.
+float hash31(vec3 p) {
+	p = fract(p * 0.3183099 + 0.1);
+	p *= 17.0;
+	return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+// 3D value noise in [0,1].  Sampling it on a direction vector (rather than on
+// screen UVs) keeps the pattern locked to the surface while the camera moves.
+float vnoise(vec3 p) {
+	vec3 i = floor(p);
+	vec3 f = fract(p);
+	f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+	return mix(
+		mix(mix(hash31(i), hash31(i + vec3(1.0, 0.0, 0.0)), f.x),
+			mix(hash31(i + vec3(0.0, 1.0, 0.0)), hash31(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+		mix(mix(hash31(i + vec3(0.0, 0.0, 1.0)), hash31(i + vec3(1.0, 0.0, 1.0)), f.x),
+			mix(hash31(i + vec3(0.0, 1.0, 1.0)), hash31(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
+		f.z);
+}
+
+float fbm(vec3 p, int octaves) {
+	float sum = 0.0;
+	float amp = 0.5;
+	float norm = 0.0;
+	for (int i = 0; i < 6; i++) {
+		if (i >= octaves) {
+			break;
+		}
+		sum += vnoise(p) * amp;
+		norm += amp;
+		p *= 2.03;
+		amp *= 0.5;
+	}
+	return sum / max(norm, 0.0001);
+}
+
+// Cool limb (0) -> hot core (1).  The real Sun cools towards the limb, so the
+// hue ramp and the intensity ramp follow the same variable.
+vec3 heat_ramp(float h) {
+	vec3 c = mix(limb_color, mid_color, smoothstep(0.0, 0.55, h));
+	return mix(c, core_color, smoothstep(0.60, 1.0, h));
+}
+
+void vertex() {
+	// SphereMesh is centred on the local origin, so the normalized position is
+	// a stable direction on the surface.  NOTE: VERTEX is model space in the
+	// vertex stage but view space in the fragment stage, so the world position
+	// and the world normal are captured here instead of being recomputed later.
+	sphere_dir = normalize(VERTEX);
+	sphere_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	sphere_normal_world = normalize((MODEL_MATRIX * vec4(VERTEX, 0.0)).xyz);
+
+	// Camera geometry for the image radius.  A sphere of radius R seen from
+	// distance D covers an apparent radius of R*D/sqrt(D^2-R^2), which lets the
+	// fragment stage work in true image radius fractions at any camera range.
+	float d = max(distance(CAMERA_POSITION_WORLD, (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz),
+		sun_radius * 1.0001);
+	v_distance = d;
+	v_tangent = sqrt(max(d * d - sun_radius * sun_radius, 1e-6));
+}
+void fragment() {
+	vec3 view_dir = normalize(CAMERA_POSITION_WORLD - sphere_world);
+	float mu = clamp(dot(sphere_normal_world, view_dir), 0.0, 1.0);
+	float t = 1.0 - mu;
+
+	// True image radius as a fraction of the disc's apparent radius.  sin(beta)
+	// alone is not enough: perspective makes the mapping non-linear, and the
+	// reference frames are matched in image radius.
+	float projected = sqrt(max(0.0, 1.0 - mu * mu));
+	float image_radius = projected * v_tangent
+		/ max(sun_radius * (v_distance - sun_radius * mu), 1e-6);
+
+	// I(mu)/I(1) = 1 - u(1-mu) - v(1-mu)^2
+	float ld = max(1.0 - limb_darkening * t - limb_darkening_sq * t * t, 0.0);
+
+	// The solar limb is not a smooth sphere.  Measured on AIA 304 the linear
+	// brightness falls to 0.41 of the centre at 0.90R, 0.095 at 0.95R and
+	// 0.037 at 1.00R - far steeper than photosphere limb darkening alone,
+	// because the chromosphere has a finite thickness and the line of sight
+	// leaves it near the edge.
+	float edge = 0.115 + 0.885 * pow(1.0 - smoothstep(0.86, 1.0, image_radius), 2.2);
+	ld *= mix(1.0, edge, limb_edge_strength);
+
+	// Granulation: two octaves of value noise remapped to a cellular profile.
+	// A summed fbm has a narrow distribution around 0.5, which reads as soft
+	// cloud rather than as granules, so the noise is remapped instead.  The
+	// reference granulation is very high contrast: the measured standard
+	// deviation of a disc patch is 0.16 against a mean of 0.23, i.e. the
+	// texture swings by a factor of two.
+	float gk = granulation_cells / SUN_PI;
+	vec3 gp = sphere_dir * gk;
+	gp += vec3(TIME * flow_speed * 0.31, TIME * flow_speed * -0.19, TIME * flow_speed * 0.24);
+	gp += vec3(seed * 1.7, seed * 0.9, seed * 2.3);
+	float g1 = vnoise(gp);
+	float g2 = vnoise(gp * 2.1 + vec3(5.1, 1.7, 9.3));
+	float g = smoothstep(0.26, 0.74, g1 * 0.68 + g2 * 0.32);
+	g = mix(0.5, g, granulation_strength);
+
+	// Supergranulation organises the granulation into larger cells.
+	float sk = supergranulation_cells / SUN_PI;
+	float sg = fbm(sphere_dir * sk + vec3(seed * 0.7, TIME * flow_speed * 0.08, 0.0), 2);
+	sg = clamp(0.5 + (sg - 0.5) * 1.6, 0.0, 1.0);
+	sg = mix(0.5, sg, supergranulation_strength);
+
+	// Plage: the large bright active regions with white-hot cores.  They are
+	// roughly 0.1 - 0.2 solar radii across, so they get their own cell count.
+	float pk = plage_cells / SUN_PI;
+	float pl = smoothstep(0.36, 0.76,
+		fbm(sphere_dir * pk + vec3(9.1, 4.7, seed * 3.1), 3));
+
+	float heat = clamp(
+		0.80 * (1.0 - t)
+		+ (g - 0.5) * 0.55
+		+ (sg - 0.5) * 0.18
+		+ pl * plage_strength * 0.90,
+		0.0,
+		1.0);
+
+	// The real photosphere mottles by a factor of about two, so the granulation
+	// has to move the brightness a long way, not just tint it.
+	float bright = ld * (0.72 + 0.56 * g + 2.20 * pl) * emission_strength;
+	vec3 col = heat_ramp(heat);
+	ALBEDO = col * bright;
+
+	// Chromospheric rim: a very thin, very bright edge where the chromosphere
+	// is seen end on.  It is what makes the AIA 304 limb glow instead of fade.
+	float rim_axis = (image_radius - 0.985) / 0.020;
+	float rim = exp(-rim_axis * rim_axis) * rim_strength;
+	ALBEDO += rim_color * rim * emission_strength;
+
+	if (debug_term > 0) {
+		if (debug_term == 2) {
+			ALBEDO = vec3(image_radius);
+		} else if (debug_term == 3) {
+			ALBEDO = vec3(mu);
+		} else if (debug_term == 4) {
+			ALBEDO = vec3(edge);
+		} else if (debug_term == 5) {
+			ALBEDO = vec3(ld);
+		} else {
+			ALBEDO = vec3(0.125) * float(debug_term);
+		}
+	}
+}

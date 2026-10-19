@@ -25,9 +25,7 @@ public static class RedDwarfSun
 			Position = gridCenter - LightDirection * chamberRadius * DistanceScale,
 		};
 
-		var surfaceTexture = GD.Load<Texture2D>(SurfaceTexturePath);
-		root.AddChild(CreateSurface(radius, surfaceTexture));
-		root.AddChild(CreateCorona(radius));
+		root.AddChild(SunVisual.Create(radius, CreatePalette()));
 		return root;
 	}
 
