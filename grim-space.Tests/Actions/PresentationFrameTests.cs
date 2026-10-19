@@ -486,7 +486,7 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
-	public void RangeTargetUsesMinimumAxisAlignedSteps()
+	public void RangeTargetUsesEuclideanMeterSeparation()
 	{
 		var battle = BattleTestFixture.BeginSimulation(
 			BattleTestFixture.Player(new Coord(1, 1, 1)),
@@ -495,7 +495,10 @@ public sealed class PresentationFrameTests
 		var target = BattleTestCommands.Frame(battle).RangeEnemy;
 
 		Assert.True(target.HasValue);
-		Assert.Equal(13, target.Value.MinimumCellSteps);
+		Assert.Equal(
+			MathF.Sqrt(61f) * BattleDistance.MetersPerCell,
+			target.Value.SeparationMeters,
+			3);
 	}
 
 	[Fact]

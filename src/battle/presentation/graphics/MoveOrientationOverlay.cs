@@ -21,26 +21,11 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		foreach (var heading in MovePose.Headings)
 		{
 			var arrow = new ArrowView();
-			var style = StyleFor(heading);
-			arrow.Configure(style.Color);
+			arrow.Configure(HeadingDirectionColors.For(heading));
 			AddChild(arrow);
 			_arrows[heading] = arrow;
 		}
 	}
-
-	private static DirectionStyle StyleFor(Coord heading) =>
-		heading switch
-		{
-			{ X: 1, Y: 0, Z: 0 } => new(new Color(0.78f, 0.28f, 0.25f)),
-			{ X: -1, Y: 0, Z: 0 } => new(new Color(0.76f, 0.46f, 0.18f)),
-			{ X: 0, Y: 1, Z: 0 } => new(new Color(0.24f, 0.61f, 0.32f)),
-			{ X: 0, Y: -1, Z: 0 } => new(new Color(0.58f, 0.62f, 0.18f)),
-			{ X: 0, Y: 0, Z: 1 } => new(new Color(0.23f, 0.52f, 0.7f)),
-			{ X: 0, Y: 0, Z: -1 } => new(new Color(0.43f, 0.3f, 0.68f)),
-			_ => throw new ArgumentOutOfRangeException(nameof(heading), heading, null),
-		};
-
-	private readonly record struct DirectionStyle(Color Color);
 
 	public void Apply(Coord? destination, IReadOnlySet<Coord> reachableHeadings, Coord? selectedHeading)
 	{

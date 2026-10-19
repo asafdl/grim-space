@@ -50,4 +50,4 @@ public sealed class PresentationFrame
 	public Coord? ReopenMoveCell { get; init; }
 }
 
-public readonly record struct EnemyRangeTarget(string EnemyId, int MinimumCellSteps);
+public readonly record struct EnemyRangeTarget(string EnemyId, float SeparationMeters);

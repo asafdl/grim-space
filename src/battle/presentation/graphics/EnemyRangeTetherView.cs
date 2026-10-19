@@ -90,7 +90,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		Hide();
 	}
 
-	public void Apply(Node3D? source, Node3D? target, int minimumCellSteps)
+	public void Apply(Node3D? source, Node3D? target, float separationMeters)
 	{
 		_source = source;
 		_target = target;
@@ -100,7 +100,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			return;
 		}
 
-		_distanceLabel.Text = $"{minimumCellSteps} grid steps";
+		_distanceLabel.Text = BattleDistance.Format(separationMeters);
 		Show();
 		UpdateVisual();
 	}

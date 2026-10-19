@@ -289,6 +289,8 @@ public partial class BattleController : Node3D
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
 
+		if (_battleHud.IsMountSelectorOpen)
+			_battleHud.MoveMountSelector(_camera.UnprojectPosition(GetPlayerRenderedPosition()));
 		UpdateAsteroidOcclusionTargets(_currentFrame);
 		var meshUpdates = _cellVolumeMeshes.Pump(_currentFrame.SimulationTick);
 		foreach (var failure in meshUpdates.Failures)
@@ -300,8 +302,10 @@ public partial class BattleController : Node3D
 	private void WireHudToTranslator()
 	{
 		_battleHud.TurnFlowBar.UnitClicked += FocusUnitFromTopBar;
-		_battleHud.CommandHud.MoveModeRequested += _translator.OnMoveMode;
 		_battleHud.CommandHud.AbilityModeRequested += OnAbilityModeRequested;
+		_battleHud.MountFaceHovered += _translator.OnMountFaceHovered;
+		_battleHud.MountFaceSelected += _translator.OnMountFaceSelected;
+		_battleHud.MountSelectionCanceled += _translator.OnMountSelectionCanceled;
 		_battleHud.CommandHud.ExecuteRequested += _translator.OnEndTurn;
 		_battleHud.CommandHud.UndoRequested += _translator.OnUndo;
 		_battleHud.CommandHud.FocusRequested += _translator.OnFocusCamera;
@@ -430,6 +434,8 @@ public partial class BattleController : Node3D
 
 		_frames.Interaction.SetMode(spec.Mode, spec);
 		RefreshPresentation();
+		if (AbilityActivation.ImmediateChoice(_currentFrame.AbilityChoices) is { } immediate)
+			_translator.OnAbilityChoiceSelected(immediate);
 	}
 
 	private void OnAbilityConfirmed(AbilityActivationChoice choice)
@@ -694,12 +700,41 @@ public partial class BattleController : Node3D
 			ColorForFrameActor(frame, frame.FocusId),
 			selected: frame.SelectedMove is not null);
 		_targetOpportunityOverlay.Apply(frame.PreviewUnits, frame.PoseHitOpportunities);
-		_abilitySourcePicker.Apply(frame.AbilityChoices, frame.AbilityHoveredIndex);
+		_abilitySourcePicker.Apply(
+			frame.AbilityChoices.Count > 1 ? [] : frame.AbilityChoices,
+			frame.AbilityHoveredIndex);
 		_areaActionPreview.ApplyFrame(frame);
 		_voidBombPreview.ApplyFrame(frame);
 		_battleHud.Apply(frame, _battle.Phase, allowEndTurn: CanEndTurn);
+		ApplyMountSelector(frame);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
+	}
+
+	private void ApplyMountSelector(PresentationFrame frame)
+	{
+		if (frame.AbilityChoices.Count <= 1)
+		{
+			_battleHud.HideMountSelector();
+			return;
+		}
+
+		if (frame.AbilityChoices.Any(choice => choice.MountedOn is null))
+			throw new InvalidOperationException(
+				"Multiple ability choices require mounted spatial orientations.");
+
+		var legalFaces = frame.AbilityChoices
+			.Select(choice => choice.MountedOn!.Value)
+			.ToHashSet();
+		var bodyFrame = frame.FocusState.ToBodyFrame();
+		var options = Enum.GetValues<ESpatialOrientation>()
+			.Select(face => new MountFaceSelectorOption(
+				face,
+				HeadingDirectionColors.For(bodyFrame.Step(face)),
+				legalFaces.Contains(face)));
+		var unitScreenPosition = _camera.UnprojectPosition(
+			WorldMapping.ToWorld(frame.FocusState.Position));
+		_battleHud.ShowMountSelector(unitScreenPosition, options);
 	}
 
 	private void ApplyEnemyRangeTether(PresentationFrame frame)
@@ -712,7 +747,7 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		_enemyRangeTether.Apply(player, enemy, closest.MinimumCellSteps);
+		_enemyRangeTether.Apply(player, enemy, closest.SeparationMeters);
 	}
 
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)
@@ -782,7 +817,11 @@ public partial class BattleController : Node3D
 	private void ApplyReplayState(ActorState state)
 	{
 		if (_currentFrame.FocusState.Id == state.Id)
-			_battleHud.HealthBar.Set(state);
+			_battleHud.CommandHud.ApplyDefenses(
+				state.HullPoints,
+				state.Loadout.MaxHullPoints,
+				state.ShieldPoints,
+				state.Loadout.MaxShieldPoints);
 	}
 
 	internal static bool ShouldApplyFrameUnitStates(EBattlePhase phase) =>

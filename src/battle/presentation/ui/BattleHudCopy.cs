@@ -36,23 +36,22 @@ internal static class BattleHudCopy
 	public const string FaceShieldPoolLine = "Each face has its own shield pool.";
 
 	public const string MoveTooltip =
-		"Move:\nAP pays for translation. MP pays for yaw, pitch, and roll.";
+		"Move your ship within the movement bubble.";
 	public const string ActionPointsTooltip =
-		"Action Points (AP)\nPays for translation between cells.\nAllotment and movement costs depend on the chassis.";
+		"Moves cost Action Points";
 	public const string ManeuverPointsTooltip =
-		"Maneuver Points (MP)\nPays for yaw, pitch, and roll.\nAllotment and rotation costs depend on the chassis.";
+		"Yaw, pitch, and roll maneuvers cost Maneuver Points";
 
-	public const string EndTurn = "End Turn";
-	public const string EndTurnTooltip = "End your turn and resolve the round.\nAP and cooldowns refresh.";
-
+	public const string EndTurn = "Execute Turn";
+	public const string EndTurnTooltip = "Execute your queued actions and end your turn.";
 	public const string PickFiringMount = "Pick firing mount";
 	public const string PickLaunchBay = "Pick launch bay";
 	public const string PickVoidBomb = "Pick void bomb";
 	public const string ActionUnavailable = "Action is no longer available";
 
-	public const string FocusTooltip = "Snap the camera to your active ship.";
+	public const string FocusTooltip = "Refocus camera on your active unit.";
 	public static string UndoTooltip =>
-		$"Undo your last action this turn.\n({GameInputBindings.Label("battle_undo")})";
+		$"Undo your last action this turn.";
 	public const string BackToPlayer = "Back";
 	public const string BackToPlayerTooltip = "Return to your ship and resume planning.";
 
@@ -140,16 +139,12 @@ internal static class BattleHudCopy
 			: "Deploy Repurposed Miner";
 
 	public static string ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
-		$"Scrap Drone Swarm:\nSend a drone swarm to dismantle your foes.\n" +
-		$"Range: {AbilityReach.MaxManhattanFromFirer(swarm)} cells.\n" +
-		$"Deals {swarm.Damage} damage.\n" +
-		$"Cooldown: {swarm.UsesPerTurn} use per turn.";
+		$"Scrap Drone Swarm:\nShort-range {BattleDistance.ApproximateCells(swarm.BurstRange + 1)} homing drones.\n" +
+		$"Deals {swarm.Damage} damage.";
 
 	public static string LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
-		$"Lightning Cannon:\nFry anything in front.\n" +
-		$"Range: {AbilityReach.MaxManhattanFromFirer(lightningCannon)} cells.\n" +
-		$"Deals {lightningCannon.Damage} damage.\n" +
-		$"Cooldown: {lightningCannon.UsesPerTurn} use per turn.";
+		$"Lightning Cannon:\nLong-range {BattleDistance.ApproximateCells(lightningCannon.LineLength + lightningCannon.PyramidRange)} blast along its firing face.\n" +
+		$"Deals {lightningCannon.Damage} damage.";
 
 	public static string GoopGunTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<GoopGunSpec>(unit, EAbilityKind.GoopGun) is { } goop
@@ -157,19 +152,17 @@ internal static class BattleHudCopy
 			: "Goop Gun";
 
 	public static string GoopGunTooltipFor(GoopGunSpec goop) =>
-		$"Goop Gun:\nCoats a forward area in blocking goop.\n" +
-		$"Placement range: {goop.Range} cells.\n" +
+		$"Goop Gun:\nCoats an area ahead in blocking goop.\n" +
+		$"Placement reach: {BattleDistance.ApproximateCells(goop.Range)}.\n" +
 		$"Cooldown: {goop.UnavailableTurns} turns after use.";
 
 	public static string VoidBombTooltipFor(VoidBombLauncherSpec launcher) =>
-		$"Void bomb:\nFires in a set direction.\n" +
-		$"Travels for {launcher.FuelTurns} turns with {launcher.MovementActionPoints} AP per turn.\n" +
-		$"Forward movement costs {launcher.ForwardMoveApCost} AP; lateral movement costs {launcher.LateralMoveApCost} AP.\n" +
-		$"Blast radius: {launcher.BlastRadius} cells, {launcher.BlastDamage} damage.\n" +
-		$"Cooldown: {launcher.CooldownTurns} turns after launch.";
+		$"Void bomb:\nFires a homing bomb for {launcher.BlastDamage} damage, which travels for {launcher.FuelTurns} turns. Beware of hitting yourself!\n" +
+		$"Detonation radius: {BattleDistance.ApproximateCells(launcher.BlastRadius)}" +
+		$"Cooldown: {launcher.CooldownTurns}.";
 
 	public static string DetonateTooltipFor(VoidBombProjectile projectile) =>
-		$"Detonate:\nExplodes for {projectile.BlastDamage} damage in a {projectile.BlastRadius}-cell radius.\n" +
+		$"Detonate:\nBlast radius: {BattleDistance.ApproximateCells(projectile.BlastRadius)}; {projectile.BlastDamage} damage.\n" +
 		$"Triggers when an enemy is in range, or automatically when fuel runs out.\n" +
 		$"Fuel: {projectile.FuelTurns} turns after launch.";
 

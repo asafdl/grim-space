@@ -6,20 +6,39 @@ internal static class TacticalActionButtonStyle
 {
 	private const string FramePath = "res://assets/ui/battle/tactical_action_frame.svg";
 	private static Texture2D? _frame;
+	private static readonly Color NormalModulate = new(0.72f, 0.74f, 0.8f);
+	private static readonly Color HoverModulate = new(1.12f, 1.12f, 1.12f);
+	private static readonly Color PressedModulate = new(0.62f, 0.66f, 0.74f);
+	private static readonly Color DisabledModulate = new(0.4f, 0.42f, 0.46f, 0.55f);
 
-	public static void Apply(Button button, Color accent)
+	public static void Apply(Button button)
 	{
 		var frame = _frame ??= GD.Load<Texture2D>(FramePath)
 			?? throw new InvalidOperationException($"Could not load tactical action frame '{FramePath}'.");
 
-		button.AddThemeStyleboxOverride("normal", Frame(frame, Colors.White));
-		button.AddThemeStyleboxOverride("hover", Frame(frame, accent.Lightened(0.22f)));
-		button.AddThemeStyleboxOverride("pressed", Frame(frame, accent));
-		button.AddThemeStyleboxOverride(
-			"disabled",
-			Frame(frame, new Color(0.42f, 0.46f, 0.52f, 0.58f)));
+		ApplyInteractionStates(button, color => Frame(frame, color));
+	}
+
+	public static void ApplyInteractionStates(
+		Button button,
+		Func<Color, StyleBox> styleFor)
+	{
+		button.AddThemeStyleboxOverride("normal", styleFor(NormalModulate));
+		button.AddThemeStyleboxOverride("hover", styleFor(HoverModulate));
+		button.AddThemeStyleboxOverride("pressed", styleFor(PressedModulate));
+		button.AddThemeStyleboxOverride("disabled", styleFor(DisabledModulate));
 		button.AddThemeStyleboxOverride("focus", StyleBoxEmpty());
-		button.AddThemeColorOverride("icon_disabled_color", new Color(0.55f, 0.58f, 0.62f, 0.55f));
+
+		button.AddThemeColorOverride("icon_normal_color", new Color(0.9f, 0.9f, 0.94f));
+		button.AddThemeColorOverride("icon_hover_color", Colors.White);
+		button.AddThemeColorOverride("icon_pressed_color", new Color(0.82f, 0.84f, 0.9f));
+		button.AddThemeColorOverride("icon_disabled_color", new Color(0.5f, 0.52f, 0.56f, 0.5f));
+		button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.94f));
+		button.AddThemeColorOverride("font_hover_color", Colors.White);
+		button.AddThemeColorOverride("font_pressed_color", new Color(0.82f, 0.84f, 0.9f));
+		button.AddThemeColorOverride("font_disabled_color", new Color(0.5f, 0.52f, 0.56f, 0.5f));
+
+		ApplyMotion(button);
 	}
 
 	public static Label AddHotkey(Button button, string text)
@@ -82,4 +101,50 @@ internal static class TacticalActionButtonStyle
 			ContentMarginRight = 5,
 			ContentMarginBottom = 5,
 		};
+
+	private static void ApplyMotion(Button button)
+	{
+		Tween? scaleTween = null;
+		button.Resized += () => button.PivotOffset = button.Size * 0.5f;
+		button.MouseEntered += () =>
+		{
+			if (button.Disabled)
+				return;
+			button.ZIndex = 2;
+			scaleTween = AnimateScale(button, scaleTween, 1.06f, 0.07);
+		};
+		button.MouseExited += () =>
+		{
+			button.ZIndex = 0;
+			scaleTween = AnimateScale(button, scaleTween, 1f, 0.09);
+		};
+		button.ButtonDown += () =>
+		{
+			if (!button.Disabled)
+				scaleTween = AnimateScale(button, scaleTween, 0.97f, 0.045);
+		};
+		button.ButtonUp += () =>
+		{
+			if (!button.Disabled)
+				scaleTween = AnimateScale(button, scaleTween, 1.06f, 0.06);
+		};
+	}
+
+	private static Tween AnimateScale(
+		Button button,
+		Tween? current,
+		float scale,
+		double duration)
+	{
+		current?.Kill();
+		var tween = button.CreateTween();
+		tween.SetTrans(Tween.TransitionType.Quad);
+		tween.SetEase(Tween.EaseType.Out);
+		tween.TweenProperty(
+			button,
+			new NodePath("scale"),
+			Vector2.One * scale,
+			duration);
+		return tween;
+	}
 }

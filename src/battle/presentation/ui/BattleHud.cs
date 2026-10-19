@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Components;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -16,14 +17,17 @@ public partial class BattleHud : Node
 	public event Action? RetireRequested;
 	public event Action? RestartRequested;
 	public event Action? MainMenuRequested;
+	public event Action<ESpatialOrientation?>? MountFaceHovered;
+	public event Action<ESpatialOrientation>? MountFaceSelected;
+	public event Action? MountSelectionCanceled;
 
 	public BattleCommandHud CommandHud { get; private set; } = null!;
-	public HealthBar HealthBar { get; private set; } = null!;
 	public TurnFlowBar TurnFlowBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
 	public bool IsPauseMenuOpen => PauseMenu.Visible || PauseMenu.IsReportDialogOpen;
+	public bool IsMountSelectorOpen => _mountSelectorLayer.Visible;
 
 	private bool _strategicBattle;
 
@@ -42,6 +46,9 @@ public partial class BattleHud : Node
 	private CanvasLayer _actionLogLayer = null!;
 	private MarginContainer _actionLogHost = null!;
 	private ActionLogPanel _actionLogPanel = null!;
+	private CanvasLayer _mountSelectorLayer = null!;
+	private Control _mountSelectorBackdrop = null!;
+	private MountFaceSelector _mountFaceSelector = null!;
 
 	public void Build()
 	{
@@ -59,20 +66,13 @@ public partial class BattleHud : Node
 		topMargin.AddThemeConstantOverride("margin_top", 16);
 		_topHud.AddChild(topMargin);
 
-		var topColumn = new VBoxContainer
-		{
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		topColumn.AddThemeConstantOverride("separation", 16);
-		topMargin.AddChild(topColumn);
-
 		var turnRow = new HBoxContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
 		};
 		turnRow.AddThemeConstantOverride("separation", 8);
-		topColumn.AddChild(turnRow);
+		topMargin.AddChild(turnRow);
 
 		_turnBadge = new PanelContainer
 		{
@@ -108,12 +108,6 @@ public partial class BattleHud : Node
 		_turnBadge.AddChild(_turnLabel);
 		turnRow.AddChild(_turnBadge);
 
-		HealthBar = new HealthBar
-		{
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
-		};
-		topColumn.AddChild(HealthBar);
-
 		var flowCenter = new CenterContainer
 		{
 			AnchorsPreset = (int)Control.LayoutPreset.TopWide,
@@ -143,6 +137,7 @@ public partial class BattleHud : Node
 		_bottomHud.AddChild(CommandHud);
 
 		AddChild(_bottomHud);
+		BuildMountSelector();
 
 		_actionLogLayer = new CanvasLayer { Layer = 5 };
 		_actionLogHost = new MarginContainer
@@ -185,6 +180,32 @@ public partial class BattleHud : Node
 		PauseMenu.ApplyTheme(battleTheme);
 		_simulationPhaseBanner.Theme = battleTheme;
 		CommandHud.Theme = battleTheme;
+	}
+
+	private void BuildMountSelector()
+	{
+		_mountSelectorLayer = new CanvasLayer
+		{
+			Layer = 20,
+			Visible = false,
+		};
+		_mountSelectorBackdrop = new Control
+		{
+			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			GrowVertical = Control.GrowDirection.Both,
+			MouseFilter = Control.MouseFilterEnum.Stop,
+		};
+		_mountSelectorBackdrop.GuiInput += OnMountSelectorBackdropInput;
+		_mountSelectorLayer.AddChild(_mountSelectorBackdrop);
+
+		_mountFaceSelector = new MountFaceSelector { Name = "MountFaceSelector" };
+		_mountFaceSelector.FaceHovered += face => MountFaceHovered?.Invoke(face);
+		_mountFaceSelector.FaceSelected += face => MountFaceSelected?.Invoke(face);
+		_mountSelectorBackdrop.AddChild(_mountFaceSelector);
+		AddChild(_mountSelectorLayer);
 	}
 
 	private void BuildPhaseOverlay()
@@ -256,10 +277,50 @@ public partial class BattleHud : Node
 
 	public void ClosePauseMenu() => PauseMenu.Visible = false;
 
+	public void ShowMountSelector(
+		Vector2 screenPosition,
+		IEnumerable<MountFaceSelectorOption> options)
+	{
+		_mountFaceSelector.SetOptions(options);
+		_mountSelectorLayer.Visible = true;
+		_mountFaceSelector.ShowAt(
+			screenPosition,
+			new Rect2(Vector2.Zero, GetViewport().GetVisibleRect().Size));
+	}
+
+	public void HideMountSelector()
+	{
+		_mountSelectorLayer.Visible = false;
+		_mountFaceSelector.Dismiss();
+	}
+
+	public void MoveMountSelector(Vector2 screenPosition)
+	{
+		if (!IsMountSelectorOpen)
+			return;
+
+		_mountFaceSelector.MoveTo(
+			screenPosition,
+			new Rect2(Vector2.Zero, GetViewport().GetVisibleRect().Size));
+	}
+
 	public void SetStrategicBattle(bool strategic)
 	{
 		_strategicBattle = strategic;
 		PauseMenu.SetRestartEnabled(!strategic);
+	}
+
+	private void OnMountSelectorBackdropInput(InputEvent @event)
+	{
+		if (@event is not InputEventMouseButton
+			{
+				Pressed: true,
+				ButtonIndex: MouseButton.Left,
+			})
+			return;
+
+		MountSelectionCanceled?.Invoke();
+		_mountSelectorBackdrop.AcceptEvent();
 	}
 
 	public void Apply(PresentationFrame frame, EBattlePhase phase, bool allowEndTurn)
@@ -282,7 +343,6 @@ public partial class BattleHud : Node
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
 		var focusState = frame.FocusState;
-		HealthBar.Set(focusState);
 
 		_actionLogPanel.SetEntries(frame.ActionLogEntries);
 		_actionLogLayer.Visible = !hideHud && GameSettings.ShowActionLog;
@@ -300,6 +360,11 @@ public partial class BattleHud : Node
 			focusState.MaxActionPoints,
 			focusState.ManeuverPoints,
 			focusState.MaxManeuverPoints);
+		CommandHud.ApplyDefenses(
+			focusState.HullPoints,
+			focusState.MaxHullPoints,
+			focusState.ShieldPoints,
+			focusState.Loadout.MaxShieldPoints);
 		CommandHud.ApplyMainActions(frame.Mode, frame.CanAct, focusState, frame.Abilities);
 		CommandHud.ApplyCommands(
 			frame.IsInspecting,

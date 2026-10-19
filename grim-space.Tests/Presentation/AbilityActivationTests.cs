@@ -197,6 +197,54 @@ public sealed class AbilityActivationTests
 		Assert.Equal(previewRepurposedMiner.MountedOn, repurposedMiner.MountedOn);
 	}
 
+	[Fact]
+	public void SingleChoiceActivatesImmediately()
+	{
+		var choice = new AbilityActivationChoice(
+			new LightningCannonAction("player", ESpatialOrientation.Port),
+			Coord.Zero,
+			Coord.Forward,
+			Coord.Up,
+			Spec(EPlayerMode.LightningCannon).Targeting,
+			ESpatialOrientation.Port);
+
+		Assert.Same(choice, AbilityActivation.ImmediateChoice([choice]));
+		Assert.Null(AbilityActivation.ImmediateChoice([]));
+		Assert.Null(AbilityActivation.ImmediateChoice([choice, choice]));
+	}
+
+	[Fact]
+	public void MountedChoiceLookupFindsOnlyAvailableFace()
+	{
+		var targeting = Spec(EPlayerMode.LightningCannon).Targeting;
+		AbilityActivationChoice[] choices =
+		[
+			new(
+				new LightningCannonAction("player", ESpatialOrientation.Port),
+				Coord.Zero,
+				Coord.Forward,
+				Coord.Up,
+				targeting,
+				ESpatialOrientation.Port),
+			new(
+				new LightningCannonAction("player", ESpatialOrientation.Starboard),
+				Coord.Zero,
+				Coord.Forward,
+				Coord.Up,
+				targeting,
+				ESpatialOrientation.Starboard),
+		];
+
+		Assert.Equal(
+			0,
+			AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Port));
+		Assert.Equal(
+			1,
+			AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Starboard));
+		Assert.Null(
+			AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Dorsal));
+	}
+
 	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>
 		AbilityHudCatalog.ForActor(
 			BattleTestFixture.Player(Coord.Zero).State,

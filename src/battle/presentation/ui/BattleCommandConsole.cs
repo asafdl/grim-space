@@ -14,7 +14,7 @@ public sealed partial class BattleCommandConsole : MarginContainer
 
 	public BattleCommandConsole()
 	{
-		CustomMinimumSize = new Vector2(0f, 120f);
+		CustomMinimumSize = new Vector2(0f, 160f);
 		MouseFilter = MouseFilterEnum.Ignore;
 		AddThemeConstantOverride("margin_left", 18);
 		AddThemeConstantOverride("margin_top", 24);
@@ -29,36 +29,41 @@ public sealed partial class BattleCommandConsole : MarginContainer
 		var wingLeft = width - 190f;
 		var mainTop = 22f;
 		var wingTop = 4f;
+		var sideSlope = 18f;
+		const float leftArcWidth = 120f;
+		const int arcPointCount = 16;
+		var leftArcCenter = new Vector2(-leftArcWidth, mainTop);
+		var leftArcHeight = height - mainTop;
 
-		Vector2[] shell =
-		[
-			new(0f, height),
-			new(0f, mainTop + 12f),
-			new(12f, mainTop),
-			new(wingLeft - 16f, mainTop),
-			new(wingLeft, wingTop),
-			new(width - 10f, wingTop),
-			new(width, wingTop + 10f),
-			new(width, height),
-		];
-		Color[] shellColors =
-		[
-			DeepFill,
-			MainFill,
-			MainFill,
-			MainFill,
-			MainFill.Lightened(0.08f),
-			MainFill.Lightened(0.08f),
-			MainFill,
-			DeepFill,
-		];
-		DrawPolygon(shell, shellColors);
+		var shell = new List<Vector2>
+		{
+			EllipseArcPoint(0f, leftArcCenter, leftArcWidth, leftArcHeight),
+		};
+		var shellColors = new List<Color> { DeepFill };
+		for (var i = 1; i <= arcPointCount; i++)
+		{
+			var progress = i / (float)arcPointCount;
+			shell.Add(EllipseArcPoint(
+				progress,
+				leftArcCenter,
+				leftArcWidth,
+				leftArcHeight));
+			shellColors.Add(DeepFill.Lerp(MainFill, progress));
+		}
+		shell.Add(new Vector2(wingLeft - 16f, mainTop));
+		shell.Add(new Vector2(wingLeft, wingTop));
+		shell.Add(new Vector2(width - sideSlope, wingTop));
+		shell.Add(new Vector2(width, height));
+		shellColors.Add(MainFill);
+		shellColors.Add(MainFill.Lightened(0.08f));
+		shellColors.Add(MainFill.Lightened(0.08f));
+		shellColors.Add(DeepFill);
+		DrawPolygon(shell.ToArray(), shellColors.ToArray());
 
 		Vector2[] wing =
 		[
 			new(wingLeft, wingTop),
-			new(width - 10f, wingTop),
-			new(width, wingTop + 10f),
+			new(width - sideSlope, wingTop),
 			new(width, height),
 			new(wingLeft, height),
 		];
@@ -68,23 +73,47 @@ public sealed partial class BattleCommandConsole : MarginContainer
 			WingFill.Lightened(0.08f),
 			WingFill,
 			WingFill.Darkened(0.55f),
-			WingFill.Darkened(0.55f),
 		];
 		DrawPolygon(wing, wingColors);
 
-		DrawPolyline(shell, EdgeColor, 1.5f, true);
-		Vector2[] innerEdge =
-		[
-			new(5f, height),
-			new(5f, mainTop + 15f),
-			new(14f, mainTop + 5f),
-			new(wingLeft - 13f, mainTop + 5f),
-			new(wingLeft + 3f, wingTop + 5f),
-			new(width - 12f, wingTop + 5f),
-			new(width - 5f, wingTop + 12f),
-			new(width - 5f, height),
-		];
-		DrawPolyline(innerEdge, InnerEdgeColor, 1f, true);
+		const float innerInset = 5f;
+		var outerEdge = shell
+			.Skip(arcPointCount)
+			.Append(shell[0])
+			.ToArray();
+		DrawPolyline(outerEdge, EdgeColor, 1.5f, false);
+		DrawEllipseArc(
+			leftArcCenter,
+			leftArcWidth,
+			leftArcHeight,
+			0f,
+			Mathf.Pi / 2f,
+			arcPointCount,
+			EdgeColor,
+			1.5f,
+			true);
+
+		var innerArcCenter = new Vector2(
+			-leftArcWidth + innerInset,
+			mainTop + innerInset);
+		var innerArcHeight = height - mainTop - innerInset * 2f;
+		var innerEdge = new List<Vector2>
+		{
+			EllipseArcPoint(0f, innerArcCenter, leftArcWidth, innerArcHeight),
+		};
+		for (var i = 1; i <= arcPointCount; i++)
+		{
+			innerEdge.Add(EllipseArcPoint(
+				i / (float)arcPointCount,
+				innerArcCenter,
+				leftArcWidth,
+				innerArcHeight));
+		}
+		innerEdge.Add(new Vector2(wingLeft - 13f, mainTop + 5f));
+		innerEdge.Add(new Vector2(wingLeft + 3f, wingTop + 5f));
+		innerEdge.Add(new Vector2(width - sideSlope - 2f, wingTop + 5f));
+		innerEdge.Add(new Vector2(width - 5f, height));
+		DrawPolyline(innerEdge.ToArray(), InnerEdgeColor, 1f, true);
 		DrawLine(
 			new Vector2(wingLeft, wingTop),
 			new Vector2(wingLeft, height),
@@ -98,45 +127,53 @@ public sealed partial class BattleCommandConsole : MarginContainer
 			1f,
 			true);
 		DrawLine(
-			new Vector2(14f, mainTop),
+			new Vector2(0f, mainTop),
 			new Vector2(wingLeft - 18f, mainTop),
 			RailGlowColor,
 			6f,
 			true);
 		DrawLine(
-			new Vector2(14f, mainTop),
+			new Vector2(0f, mainTop),
 			new Vector2(wingLeft - 18f, mainTop),
 			HighlightColor,
 			1f,
 			true);
 		DrawLine(
 			new Vector2(wingLeft + 3f, wingTop),
-			new Vector2(width - 12f, wingTop),
+			new Vector2(width - sideSlope, wingTop),
 			RailGlowColor,
 			6f,
 			true);
 		DrawLine(
 			new Vector2(wingLeft + 3f, wingTop),
-			new Vector2(width - 12f, wingTop),
+			new Vector2(width - sideSlope, wingTop),
 			HighlightColor,
 			1f,
 			true);
 
 		for (var y = wingTop + 18f; y < height - 8f; y += 9f)
+		{
+			var edgeX = width - sideSlope + sideSlope * ((y - wingTop) / (height - wingTop));
 			DrawLine(
-				new Vector2(width - 18f, y),
-				new Vector2(width - 8f, y + 10f),
+				new Vector2(edgeX - 13f, y),
+				new Vector2(edgeX - 5f, y + 8f),
 				InnerEdgeColor,
 				1f,
 				true);
+		}
 
-		for (var y = mainTop + 22f; y < height - 8f; y += 10f)
-			DrawLine(
-				new Vector2(1f, y),
-				new Vector2(5f, y),
-				HighlightColor,
-				1f,
-				true);
+	}
+
+	private static Vector2 EllipseArcPoint(
+		float progress,
+		Vector2 center,
+		float radiusX,
+		float radiusY)
+	{
+		var angle = Mathf.Lerp(Mathf.Pi / 2f, 0f, progress);
+		return center + new Vector2(
+			radiusX * Mathf.Cos(angle),
+			radiusY * Mathf.Sin(angle));
 	}
 
 	public override void _Notification(int what)

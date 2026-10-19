@@ -4,6 +4,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Player;
 using GrimSpace.Components;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -15,17 +16,15 @@ public sealed partial class BattleCommandHud : Control
 	private const float ResourceHeight = 48f;
 	private const float ResourceWidth = 154f;
 	private const float ResourceGap = 6f;
+	private const float PortraitSize = 104f;
 	private const float CommandWingWidth = 172f;
 	private const float ConsoleHorizontalMargins = 36f;
 	private const float ConsoleRegionSeparation = 18f;
 	private const string ExecuteFramePath = "res://assets/ui/battle/execute_action_frame.svg";
-	private static readonly Color MoveAccent = new(0.55f, 0.78f, 1f);
 	private static readonly Color CommandAccent = new(0.88f, 0.32f, 0.42f, 0.78f);
 
 	private readonly ButtonGroup _modeGroup = new();
 	private readonly List<AbilityCard> _abilityCards = [];
-	private readonly Button _moveButton;
-	private readonly Label _moveHotkey;
 	private readonly Button _focusButton;
 	private readonly Label _focusHotkey;
 	private readonly Button _undoButton;
@@ -34,10 +33,11 @@ public sealed partial class BattleCommandHud : Control
 	private readonly Label _executeHotkey;
 	private readonly BattleResourceBar _apBar;
 	private readonly BattleResourceBar _mpBar;
+	private readonly BattlePortraitHealthBar _healthBar;
+	private readonly BattlePortraitShieldBar _shieldBar;
 	private string? _abilityLayoutKey;
 	private bool _isInspecting;
 
-	public event Action? MoveModeRequested;
 	public event Action<AbilityHudCatalog.Spec>? AbilityModeRequested;
 	public event Action? FocusRequested;
 	public event Action? ReturnToPlayerRequested;
@@ -70,6 +70,37 @@ public sealed partial class BattleCommandHud : Control
 			GrowVertical = GrowDirection.Begin,
 		};
 		AddChild(console);
+		_shieldBar = new BattlePortraitShieldBar
+		{
+			Name = "PortraitShieldBar",
+			AnchorLeft = 0f,
+			AnchorTop = 1f,
+			AnchorRight = 0f,
+			AnchorBottom = 1f,
+			OffsetLeft = -117f,
+			OffsetTop = -143f,
+			OffsetRight = 49f,
+			OffsetBottom = 23f,
+			GrowHorizontal = GrowDirection.Begin,
+			GrowVertical = GrowDirection.Begin,
+		};
+		AddChild(_shieldBar);
+		_healthBar = new BattlePortraitHealthBar
+		{
+			Name = "PortraitHealthBar",
+			AnchorLeft = 0f,
+			AnchorTop = 1f,
+			AnchorRight = 0f,
+			AnchorBottom = 1f,
+			OffsetLeft = -96f,
+			OffsetTop = -122f,
+			OffsetRight = 28f,
+			OffsetBottom = 2f,
+			GrowHorizontal = GrowDirection.Begin,
+			GrowVertical = GrowDirection.Begin,
+		};
+		AddChild(_healthBar);
+		AddChild(CreatePilotPortrait());
 
 		var consoleLayout = new HBoxContainer
 		{
@@ -156,23 +187,6 @@ public sealed partial class BattleCommandHud : Control
 			BattleHudCopy.ManeuverPointsTooltip);
 		ResourceMeters.AddChild(_mpBar);
 
-		_moveButton = CreateActionButton(
-			"res://assets/ui/abilities/move.svg",
-			MoveAccent,
-			BattleHudCopy.MoveTooltip,
-			toggleMode: true);
-		_moveButton.ButtonGroup = _modeGroup;
-		_moveButton.ButtonPressed = true;
-		_moveButton.Toggled += pressed =>
-		{
-			if (pressed)
-				MoveModeRequested?.Invoke();
-		};
-		_moveHotkey = TacticalActionButtonStyle.AddHotkey(
-			_moveButton,
-			GameInputBindings.PrimaryLabel("battle_move_mode"));
-		MainActions.AddChild(_moveButton);
-
 		_focusButton = CreateActionButton(
 			"res://assets/ui/abilities/focus.svg",
 			CommandAccent,
@@ -229,6 +243,16 @@ public sealed partial class BattleCommandHud : Control
 		_mpBar.Apply(maneuverPoints, maxManeuverPoints);
 	}
 
+	public void ApplyDefenses(
+		int hullPoints,
+		int maxHullPoints,
+		FaceShieldPoints shieldPoints,
+		FaceShieldPoints maxShieldPoints)
+	{
+		_healthBar.Set(hullPoints, maxHullPoints);
+		_shieldBar.Set(shieldPoints, maxShieldPoints);
+	}
+
 	public void ApplyMainActions(
 		EPlayerMode mode,
 		bool canAct,
@@ -239,9 +263,6 @@ public sealed partial class BattleCommandHud : Control
 		var layoutKey = string.Join('\0', specs.Select(spec => spec.Mode.ToString()));
 		if (_abilityLayoutKey != layoutKey || _abilityCards.Count != specs.Count)
 			RebuildAbilityCards(specs);
-
-		_moveButton.Disabled = !canAct;
-		SetPressed(_moveButton, mode == EPlayerMode.Move);
 
 		for (var i = 0; i < _abilityCards.Count; i++)
 		{
@@ -276,9 +297,6 @@ public sealed partial class BattleCommandHud : Control
 	public void RefreshBindingLabels()
 	{
 		TacticalActionButtonStyle.SetHotkey(
-			_moveHotkey,
-			GameInputBindings.PrimaryLabel("battle_move_mode"));
-		TacticalActionButtonStyle.SetHotkey(
 			_focusHotkey,
 			GameInputBindings.PrimaryLabel("battle_focus"));
 		TacticalActionButtonStyle.SetHotkey(
@@ -290,15 +308,7 @@ public sealed partial class BattleCommandHud : Control
 		for (var i = 0; i < _abilityCards.Count; i++)
 			TacticalActionButtonStyle.SetHotkey(
 				_abilityCards[i].Hotkey,
-				GameInputBindings.PrimaryLabel($"battle_ability_{i + 2}"));
-	}
-
-	public bool TryActivateMove()
-	{
-		if (_moveButton.Disabled)
-			return false;
-		_moveButton.ButtonPressed = true;
-		return true;
+				GameInputBindings.PrimaryLabel(GameInputBindings.AbilityAction(i + 1)));
 	}
 
 	public bool TryFocus()
@@ -327,7 +337,7 @@ public sealed partial class BattleCommandHud : Control
 
 	public bool TryActivateAbilityHotkey(int slot)
 	{
-		var index = slot - 2;
+		var index = slot - 1;
 		if (index < 0 || index >= _abilityCards.Count)
 			return false;
 
@@ -357,7 +367,7 @@ public sealed partial class BattleCommandHud : Control
 			button.ButtonGroup = _modeGroup;
 			var hotkey = TacticalActionButtonStyle.AddHotkey(
 				button,
-				GameInputBindings.PrimaryLabel($"battle_ability_{i + 2}"));
+				GameInputBindings.PrimaryLabel(GameInputBindings.AbilityAction(i + 1)));
 			button.Toggled += pressed =>
 			{
 				if (pressed)
@@ -396,9 +406,85 @@ public sealed partial class BattleCommandHud : Control
 			ClipContents = false,
 		};
 		button.AddThemeConstantOverride("h_separation", 0);
-		TacticalActionButtonStyle.Apply(button, accent);
+		TacticalActionButtonStyle.Apply(button);
 		return button;
 	}
+
+	private static Control CreatePilotPortrait()
+	{
+		var portrait = new PanelContainer
+		{
+			Name = "PilotPortrait",
+			AnchorLeft = 0f,
+			AnchorTop = 1f,
+			AnchorRight = 0f,
+			AnchorBottom = 1f,
+			OffsetLeft = -PortraitSize + 18f,
+			OffsetTop = -PortraitSize - 8f,
+			OffsetRight = 18f,
+			OffsetBottom = -8f,
+			GrowHorizontal = GrowDirection.Begin,
+			GrowVertical = GrowDirection.Begin,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		portrait.AddThemeStyleboxOverride(
+			"panel",
+			CircleStyle(
+				new Color(0.11f, 0.08f, 0.14f, 0.98f),
+				new Color(0.72f, 0.63f, 0.76f, 0.95f),
+				3,
+				7f));
+
+		var inner = new PanelContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		inner.AddThemeStyleboxOverride(
+			"panel",
+			CircleStyle(
+				new Color(0.025f, 0.025f, 0.045f, 1f),
+				new Color(0.38f, 0.29f, 0.44f, 0.9f),
+				2));
+		portrait.AddChild(inner);
+
+		var placeholder = new Label
+		{
+			Text = "PILOT",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		placeholder.AddThemeColorOverride("font_color", new Color(0.68f, 0.62f, 0.72f, 0.72f));
+		placeholder.AddThemeColorOverride("font_outline_color", new Color(0.02f, 0.015f, 0.03f));
+		placeholder.AddThemeConstantOverride("outline_size", 2);
+		placeholder.AddThemeFontSizeOverride("font_size", 12);
+		inner.AddChild(placeholder);
+		return portrait;
+	}
+
+	private static StyleBoxFlat CircleStyle(
+		Color fill,
+		Color border,
+		int borderWidth,
+		float contentMargin = 0f) =>
+		new()
+		{
+			BgColor = fill,
+			BorderColor = border,
+			BorderWidthLeft = borderWidth,
+			BorderWidthTop = borderWidth,
+			BorderWidthRight = borderWidth,
+			BorderWidthBottom = borderWidth,
+			CornerRadiusTopLeft = 999,
+			CornerRadiusTopRight = 999,
+			CornerRadiusBottomRight = 999,
+			CornerRadiusBottomLeft = 999,
+			AntiAliasing = true,
+			ContentMarginLeft = contentMargin,
+			ContentMarginTop = contentMargin,
+			ContentMarginRight = contentMargin,
+			ContentMarginBottom = contentMargin,
+		};
 
 	private static void SetPressed(Button button, bool pressed)
 	{
@@ -409,7 +495,7 @@ public sealed partial class BattleCommandHud : Control
 
 	private void UpdateConsoleWidth(int abilityCount)
 	{
-		var cardCount = abilityCount + 1;
+		var cardCount = abilityCount;
 		var mainWidth = cardCount * SlotSize + System.Math.Max(0, cardCount - 1) * 8f;
 		var width =
 			ConsoleHorizontalMargins
@@ -427,21 +513,9 @@ public sealed partial class BattleCommandHud : Control
 	{
 		var texture = GD.Load<Texture2D>(ExecuteFramePath)
 			?? throw new InvalidOperationException($"Could not load execute frame '{ExecuteFramePath}'.");
-		button.AddThemeStyleboxOverride("normal", ExecuteStyle(texture, Colors.White));
-		button.AddThemeStyleboxOverride(
-			"hover",
-			ExecuteStyle(texture, new Color(1f, 0.9f, 0.92f)));
-		button.AddThemeStyleboxOverride(
-			"pressed",
-			ExecuteStyle(texture, new Color(1f, 0.62f, 0.68f)));
-		button.AddThemeStyleboxOverride(
-			"disabled",
-			ExecuteStyle(texture, new Color(0.48f, 0.45f, 0.42f, 0.62f)));
-		button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
-		button.AddThemeColorOverride("font_color", new Color(0.98f, 0.9f, 0.92f));
-		button.AddThemeColorOverride("font_hover_color", Colors.White);
-		button.AddThemeColorOverride("font_pressed_color", Colors.White);
-		button.AddThemeColorOverride("font_disabled_color", new Color(0.5f, 0.47f, 0.42f));
+		TacticalActionButtonStyle.ApplyInteractionStates(
+			button,
+			color => ExecuteStyle(texture, color));
 		button.AddThemeColorOverride("font_outline_color", new Color(0.08f, 0.015f, 0.025f, 0.95f));
 		button.AddThemeConstantOverride("outline_size", 1);
 		button.AddThemeFontSizeOverride("font_size", 13);

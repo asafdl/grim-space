@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Interaction;
@@ -315,8 +316,6 @@ public sealed partial class UserIntentTranslator : Node
 			HandleClick(click.Position);
 	}
 
-	public void OnMoveMode() => ModeRequested?.Invoke(EPlayerMode.Move);
-
 	public void OnEndTurn()
 	{
 		if (_moveInput.Destination is null && _hud.CommandHud.CanExecute)
@@ -338,6 +337,32 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnRetire() => RetireRequested?.Invoke();
 
+	public void OnMountFaceHovered(ESpatialOrientation? face)
+	{
+		var index = face is { } mountedOn
+			? IndexOfAbilityChoice(mountedOn)
+			: null;
+		if (index == _abilityHoveredIndex)
+			return;
+
+		_abilityHoveredIndex = index;
+		AbilityHoverChanged?.Invoke(index, _abilityChoices.Count);
+	}
+
+	public void OnMountFaceSelected(ESpatialOrientation face)
+	{
+		if (IndexOfAbilityChoice(face) is { } index)
+			TryConfirmAbilityChoice(index);
+	}
+
+	public void OnMountSelectionCanceled() => TryCancelAbilityMode();
+
+	public void OnAbilityChoiceSelected(AbilityActivationChoice choice)
+	{
+		if (IndexOfAbilityChoice(choice) is { } index)
+			TryConfirmAbilityChoice(index);
+	}
+
 	private bool HandleKey(InputEventKey key)
 	{
 		switch (key.Keycode)
@@ -358,16 +383,11 @@ public sealed partial class UserIntentTranslator : Node
 				break;
 		}
 
-		if (key.IsActionPressed("battle_move_mode", false, true))
-			return _hud.CommandHud.TryActivateMove();
-		if (key.IsActionPressed("battle_ability_2", false, true))
-			return _hud.CommandHud.TryActivateAbilityHotkey(2);
-		if (key.IsActionPressed("battle_ability_3", false, true))
-			return _hud.CommandHud.TryActivateAbilityHotkey(3);
-		if (key.IsActionPressed("battle_ability_4", false, true))
-			return _hud.CommandHud.TryActivateAbilityHotkey(4);
-		if (key.IsActionPressed("battle_ability_5", false, true))
-			return _hud.CommandHud.TryActivateAbilityHotkey(5);
+		for (var slot = 1; slot <= GameInputBindings.AbilitySlotCount; slot++)
+		{
+			if (key.IsActionPressed(GameInputBindings.AbilityAction(slot), false, true))
+				return _hud.CommandHud.TryActivateAbilityHotkey(slot);
+		}
 		if (key.IsActionPressed("battle_end_turn", false, true))
 		{
 			OnEndTurn();
@@ -391,6 +411,9 @@ public sealed partial class UserIntentTranslator : Node
 
 	private void UpdateAbilityHover()
 	{
+		if (_hud.IsMountSelectorOpen)
+			return;
+
 		var abilityHoveredIndex = _hud.IsPauseMenuOpen
 			|| _camera.IsManualGestureActive
 			|| IsPointerOverHud()
@@ -422,6 +445,16 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
+		TryConfirmAbilityChoice(choiceIndex);
+	}
+
+	private void TryConfirmAbilityChoice(int choiceIndex)
+	{
+		if (!_canIssueActions
+			|| choiceIndex < 0
+			|| choiceIndex >= _abilityChoices.Count)
+			return;
+
 		var choice = _abilityChoices[choiceIndex];
 		var action = AbilityActivation.CreateExecutionAction(choice);
 		if (!Enqueue(action))
@@ -432,6 +465,20 @@ public sealed partial class UserIntentTranslator : Node
 
 		AbilityConfirmed?.Invoke(choice);
 		ModeRequested?.Invoke(EPlayerMode.Move);
+	}
+
+	private int? IndexOfAbilityChoice(ESpatialOrientation face)
+		=> AbilityActivation.IndexOfMountedChoice(_abilityChoices, face);
+
+	private int? IndexOfAbilityChoice(AbilityActivationChoice choice)
+	{
+		for (var i = 0; i < _abilityChoices.Count; i++)
+		{
+			if (ReferenceEquals(_abilityChoices[i], choice))
+				return i;
+		}
+
+		return null;
 	}
 
 	private void HandleMoveClick(Vector2 screenPosition)

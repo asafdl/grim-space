@@ -36,11 +36,8 @@ public partial class KeyBindingsTab : Control
 			"Pointer & shortcuts",
 			[
 				"battle_primary_click",
-				"battle_move_mode",
-				"battle_ability_2",
-				"battle_ability_3",
-				"battle_ability_4",
-				"battle_ability_5",
+				.. Enumerable.Range(1, GameInputBindings.AbilitySlotCount)
+					.Select(GameInputBindings.AbilityAction),
 			]),
 		new("Turn", ["battle_end_turn", "battle_undo"]),
 	];

@@ -38,6 +38,23 @@ public static class AbilityActivation
 			})
 			.ToList();
 
+	public static AbilityActivationChoice? ImmediateChoice(
+		IReadOnlyList<AbilityActivationChoice> choices) =>
+		choices.Count == 1 ? choices[0] : null;
+
+	public static int? IndexOfMountedChoice(
+		IReadOnlyList<AbilityActivationChoice> choices,
+		ESpatialOrientation face)
+	{
+		for (var i = 0; i < choices.Count; i++)
+		{
+			if (choices[i].MountedOn == face)
+				return i;
+		}
+
+		return null;
+	}
+
 	public static IAction CreateExecutionAction(AbilityActivationChoice choice) =>
 		choice.Action switch
 		{

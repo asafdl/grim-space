@@ -294,10 +294,10 @@ public sealed class PresentationFrameBuilder
 				continue;
 
 			var candidate = RangeTarget(id, player.Position, enemy.Position);
-			var distance = candidate.MinimumCellSteps;
+			var distance = candidate.SeparationMeters;
 			if (closest is null
-				|| distance < closest.Value.MinimumCellSteps
-				|| (distance == closest.Value.MinimumCellSteps
+				|| distance < closest.Value.SeparationMeters
+				|| (distance == closest.Value.SeparationMeters
 					&& string.CompareOrdinal(id, closest.Value.EnemyId) < 0))
 				closest = candidate;
 		}
@@ -315,11 +315,5 @@ public sealed class PresentationFrameBuilder
 		&& unit.IsAlive;
 
 	private static EnemyRangeTarget RangeTarget(string enemyId, Coord source, Coord target)
-	{
-		var offset = target - source;
-		var minimumSteps = System.Math.Abs(offset.X)
-			+ System.Math.Abs(offset.Y)
-			+ System.Math.Abs(offset.Z);
-		return new EnemyRangeTarget(enemyId, minimumSteps);
-	}
+		=> new(enemyId, BattleDistance.SeparationMeters(source, target));
 }

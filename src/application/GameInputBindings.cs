@@ -75,8 +75,21 @@ public readonly record struct BindingPair(
 public static class GameInputBindings
 {
 	private const int BindingsVersion = 2;
+	private static readonly Key[] AbilitySlotKeys =
+	[
+		Key.Key1,
+		Key.Key2,
+		Key.Key3,
+		Key.Key4,
+		Key.Key5,
+		Key.Key6,
+		Key.Key7,
+		Key.Key8,
+		Key.Key9,
+	];
 
 	public static IReadOnlyList<BindingSpec> Specs { get; } = BuildSpecs();
+	public static int AbilitySlotCount => AbilitySlotKeys.Length;
 
 	private static IReadOnlyDictionary<StringName, BindingPair> _current =
 		DefaultBindings();
@@ -126,6 +139,13 @@ public static class GameInputBindings
 		_current.TryGetValue(action, out var pair)
 			? LabelForBinding(pair.Primary)
 			: "?";
+
+	public static string AbilityAction(int slot)
+	{
+		if (slot < 1 || slot > AbilitySlotCount)
+			throw new ArgumentOutOfRangeException(nameof(slot), slot, "Ability slot is out of range.");
+		return $"battle_ability_{slot}";
+	}
 
 	public static string LabelForBinding(KeyBinding binding) => FormatBinding(binding);
 
@@ -416,11 +436,11 @@ public static class GameInputBindings
 		BattleKey("battle_pan_right", "Pan right", Phy(Key.D)),
 		BattleKey("battle_pan_vertical_up", "Pan up (height)", Phy(Key.T)),
 		BattleKey("battle_pan_vertical_down", "Pan down (height)", Phy(Key.G)),
-		BattleKey("battle_move_mode", "Move mode", Phy(Key.Key1)),
-		BattleKey("battle_ability_2", "Ability slot 2", Phy(Key.Key2)),
-		BattleKey("battle_ability_3", "Ability slot 3", Phy(Key.Key3)),
-		BattleKey("battle_ability_4", "Ability slot 4", Phy(Key.Key4)),
-		BattleKey("battle_ability_5", "Ability slot 5", Phy(Key.Key5)),
+		.. Enumerable.Range(1, AbilitySlotCount)
+			.Select(slot => BattleKey(
+				AbilityAction(slot),
+				$"Ability slot {slot}",
+				Phy(AbilitySlotKeys[slot - 1]))),
 		BattleKey("battle_end_turn", "End turn", Log(Key.Space)),
 		BattleKey("battle_focus", "Focus camera", Log(Key.F)),
 		BattleKey("battle_cycle_enemy", "Cycle enemy", Log(Key.Tab)),
