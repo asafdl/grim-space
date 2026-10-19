@@ -1,3 +1,5 @@
+using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Movement;
@@ -11,10 +13,12 @@ public sealed class MovePreviewCache
 	public IReadOnlyList<RouteHitPreview> GetPaths(BattleSimulation sim, string actorId)
 	{
 		var movementPrefix = MovementPrefix(sim.Actions, actorId);
+		var occupancyFingerprint = OccupancyFingerprint(sim.World);
 		var cached = _entries.FirstOrDefault(entry =>
 			ReferenceEquals(entry.Sim, sim)
 			&& entry.ActorId == actorId
-			&& entry.MovementPrefix.SequenceEqual(movementPrefix));
+			&& entry.MovementPrefix.SequenceEqual(movementPrefix)
+			&& entry.OccupancyFingerprint == occupancyFingerprint);
 		if (cached is not null)
 			return cached.Paths;
 
@@ -25,6 +29,7 @@ public sealed class MovePreviewCache
 			sim,
 			actorId,
 			movementPrefix,
+			occupancyFingerprint,
 			paths));
 		BuildCount++;
 		return paths;
@@ -41,9 +46,18 @@ public sealed class MovePreviewCache
 			.Where(action => action.ActorId == actorId && MovePathIndex.IsMovementAction(action))
 			.ToArray();
 
+	internal static string OccupancyFingerprint(BattleWorld world) =>
+		string.Join(
+			';',
+			UnitRegistry.For(world).All
+				.Where(unit => unit.State.IsAlive)
+				.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
+				.Select(unit => $"{unit.State.Id}@{unit.State.Position}"));
+
 	private sealed record Entry(
 		BattleSimulation Sim,
 		string ActorId,
 		IReadOnlyList<IAction> MovementPrefix,
+		string OccupancyFingerprint,
 		IReadOnlyList<RouteHitPreview> Paths);
 }

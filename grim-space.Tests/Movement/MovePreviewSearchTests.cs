@@ -1,6 +1,9 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Movement;
 
@@ -120,7 +123,10 @@ public sealed class MovePreviewSearchTests
 	public void CacheReusesPathsWhenNonMovementQueueChanges()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(origin + new Coord(20, 0, 0)),
+			BattleTestFixture.Grid(40));
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
 		var firstMove = cache.GetPaths(sim, PlayerId)
@@ -128,7 +134,7 @@ public sealed class MovePreviewSearchTests
 		Assert.True(sim.TryEnqueue(firstMove.Session.Steps.Cast<IAction>().ToArray()));
 		var afterMove = cache.GetPaths(sim, PlayerId);
 
-		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.LightningCannonAction(PlayerId)));
+		Assert.True(sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 		var afterWeapon = cache.GetPaths(sim, PlayerId);
 
 		Assert.Same(afterMove, afterWeapon);
@@ -139,15 +145,45 @@ public sealed class MovePreviewSearchTests
 	}
 
 	[Fact]
-	public void CacheReusesPathsWhenOnlyWeaponQueued()
+	public void CacheInvalidatesWhenQueuedSpawnBlocksCells()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var sim = battle.PlayerAgent.Sim;
 		var cache = new MovePreviewCache();
 		var initial = cache.GetPaths(sim, PlayerId);
+		var (launchCell, _, _) = VoidBombMount.LaunchPose(
+			sim.World.StateOf(PlayerId),
+			ESpatialOrientation.Retro);
+		Assert.Contains(
+			initial,
+			route => route.Session.EndPosition == launchCell);
 
-		Assert.True(sim.TryEnqueue(new GrimSpace.Battle.Actions.LightningCannonAction(PlayerId)));
+		Assert.True(sim.TryEnqueue(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro)));
+		var afterSpawn = cache.GetPaths(sim, PlayerId);
+		var fresh = MovePathEndpoints.DiscoverExtensions(sim, PlayerId);
+
+		Assert.Equal(2, cache.BuildCount);
+		Assert.NotSame(initial, afterSpawn);
+		Assert.Equal(fresh.Select(PathKey), afterSpawn.Select(route => PathKey(route.Session)));
+		Assert.DoesNotContain(
+			afterSpawn,
+			route => route.Session.EndPosition == launchCell);
+	}
+
+	[Fact]
+	public void CacheReusesPathsWhenOnlyWeaponQueued()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(origin),
+			BattleTestFixture.Enemy(origin + new Coord(20, 0, 0)),
+			BattleTestFixture.Grid(40));
+		var sim = battle.PlayerAgent.Sim;
+		var cache = new MovePreviewCache();
+		var initial = cache.GetPaths(sim, PlayerId);
+
+		Assert.True(sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 		var afterWeapon = cache.GetPaths(sim, PlayerId);
 
 		Assert.Same(initial, afterWeapon);
