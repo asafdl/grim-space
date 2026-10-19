@@ -242,24 +242,33 @@ the spacecraft cameras used.
 
 ### Result (AIA 304 palette, sRGB luminance)
 
-Both radii are measured per image as the radius where the azimuthal mean
-profile falls to 12 % of the disc median.
+Both radii are the **geometric** disc radius: for the reference 1 R_sun is
+400 px in the AIA 1024 frame, which is 297 px in the 760 px comparison crop;
+the render's disc is 322 px in the same crop.  (Using a profile-derived radius
+instead - the radius where the azimuthal mean falls to 12 % of the disc median
+- is not comparable between the two images, because the reference's disc edge
+is sharp and the shader's is soft.  That mistake invalidated an earlier
+version of this table; see section 7.)
 
 | | reference | render |
 |---|---|---|
-| disc radius used | 336 px | 352 px |
-| disc centre | 0.2509 | 0.2236 |
-| 0.60 R | 0.2403 | 0.1686 |
-| 0.90 R | 0.1752 | 0.1256 |
-| 1.00 R | 0.0322 | 0.0780 |
-| 1.02–1.08 R mean | 0.0168 | 0.0080 |
-| 1.02–1.08 R p99 (prominence peaks) | 0.1137 | 0.0670 |
+| disc radius used | 297 px | 322 px |
+| disc centre | 0.2509 | 0.2243 |
+| 0.60 R | 0.2269 | 0.1679 |
+| 0.90 R | 0.2511 | 0.1333 |
+| 0.98 R | 0.2499 | 0.0950 |
+| 1.00 R | 0.2524 | 0.0601 |
+| 1.02–1.08 R mean | 0.1099 | 0.0040 |
+| 1.02–1.08 R p99 (prominence peaks) | 0.3750 | 0.0525 |
 | granulation cells across the disc | 46.9 | 46.2 |
 
-The granulation scale still matches to 1.5 %.  The mid-disc is now ~30 % dim
-than the reference (the palette was retuned for the visible light look and the
-304 diagnostic inherited it) and the limb is still 2.4× too bright.  The
-side-by-side sheet is `refs/comparison/side_by_side_aia304.png`.
+The granulation scale still matches to 1.5 %.  The disc edge now behaves the
+way the real AIA 304 does - bright right up to 1.00 R and then falling off a
+cliff, with essentially no off-limb corona (which is correct: the 304 channel
+has none, `refs/SOURCES.md` says so explicitly).  What is still off is the
+prominences: in the 304 palette they are far too dim (p99 0.053 against the
+reference's 0.375) and the mid-disc is ~25 % dim.  The side-by-side sheet is
+`refs/comparison/side_by_side_aia304.png`.
 
 ### The glow boundary
 
@@ -316,6 +325,72 @@ objects changes with it.
   zero sized rect at the origin and the glare pass draws nothing at all.
 * **A `canvas_item` shader's blend mode is per shader, not per material**, so
   the additive glare and the darkening dip need separate shaders.
+
+---
+
+## 6b. THE DARK BAND (a user caught defect)
+
+**What was reported:** in the close-up shot there was a near-black *moat* between
+the photosphere's limb and the corona glow, and then the glow ignited abruptly
+further out.  The fall-off geometry was wrong.
+
+**Measured, on the row through the frame centre of the old build**
+(`refs/comparison/closeup_frame.png` before the fix):
+
+| x | 900 | 940 | 1020 | 1100 | 1140 | 1180 |
+|---|-----|-----|------|------|------|------|
+| luminance | 0.338 (surface) | 0.060 | 0.048 | 0.034 (the moat) | 0.353 (the glow ignites) | 0.256 |
+
+The surface's limb fell to 0.034 and the corona did not start until 310 px
+further out.  Three causes, all of them mine:
+
+1. **The corona measured its radius in the wrong space.**  It compared the
+   fragment's screen position against a point on the photosphere at the
+   *centre's* depth, not against the photosphere's true silhouette (the tangent
+   point of the view ray).  At the close-up's camera distance - 2.5 star radii -
+   that put the corona's inner edge well outside the limb.
+2. **The corona's profile was not one curve.**  It was a fast inner corona
+   (e-folding length 0.065 R) plus a slow outer lift, so the two terms did not
+   add up to a single monotonic decay.
+3. **The surface's limb went to near black.**  The physical limb darkening, a
+   deep red limb colour and a chromosphere edge term with a floor of 0.115
+   multiplied together into a black ring.
+
+**The fix**
+
+1. The corona now measures every fragment against the photosphere's silhouette
+   in **world space** - the tangent point of the view ray - so its inner edge
+   is exactly the limb at any camera distance, and the measurement no longer
+   depends on how the viewport maps to normalised device coordinates.
+2. The corona has **one profile, maximal at the limb and decaying monotonically
+   outward**: `core * inner_brightness + halo * brightness`, both terms at their
+   maximum at `dist = 0`.
+3. **The limb is bounded.**  `limb_edge_floor` is a per-palette parameter
+   (0.42 for the visible light and red dwarf palettes, 0.30 for the 304
+   diagnostic), the visible light palette's limb colour was lifted from a deep
+   red to a deep orange, and the physical limb darkening was reduced from
+   u = 0.50, v = 0.14 to u = 0.30, v = 0.08.  A star's limb is a little
+   darker, never a black ring.
+
+**Verified** on the same row after the fix:
+
+| x | 900 | 940 | 980 | 1020 | 1100 | 1180 | 1220 | 1300 | 1460 |
+|---|-----|-----|-----|------|------|------|------|------|------|
+| luminance | 0.410 | 0.305 | 0.190 | 0.124 | 0.107 | 0.036 | 0.030 | 0.025 | 0.020 |
+
+Monotonically non-increasing from the limb outward: no dip, no abrupt ignition.
+
+**The master branch's own implementation was checked with the same camera**
+(`--master` renders the 2k_sun.jpg texture through `battle_red_dwarf.gdshader`
+plus the billboard corona).  Its profile is 0.344 at the limb → 0.205 → 0.126 →
+0.091 → 0.011: monotonic from the limb, so **it does not have the dark band** -
+its corona is simply much tighter and weaker, dying within about 0.1 R.  No
+change was needed there, and neither implementation was wired or unwired.
+
+**Artefacts:** `refs/comparison/closeup_fix_before_after.png` (before / after /
+master, same camera), the refreshed `refs/comparison/closeup_frame.png`, and
+`refs/comparison/closeup_frame_master_implementation.png`.
+
 
 ---
 
@@ -408,16 +483,33 @@ Useful flags: `--304`, `--noglow`, `--noglow`+`--legacy` (the "before"),
 
 ## 10. Tests
 
-`grim-space.Tests` runs 770 tests, all passing, through the xunit v3
-in-process runner:
+The branch was rebased onto `master` (65e38b93) by the harness, which brought
+master's test suite with it: **1603 tests, 1601 passing, 2 failing.**
+
+The two failures are in `Run/BattleSpawnPilotTests`
+(`BattleEncounterSave_RoundTripsPilotSnapshot` and
+`MultiShipEngagement_EachPlayerSpawnGetsDistinctPilotSnapshot`), both failing
+in `BattleEngagementComposition.EnsurePlayableCounts` with *"needs at least
+one player and one enemy unit"*.  They are **pre-existing on the rebased
+branch and unrelated to the sun work**: they were reproduced by stashing every
+modification of this branch, applying only the build repair described below,
+and running the suite again - the same two tests fail, 1601 pass.
+
+The rebase also left the tree **not compiling**: the merge of `RedDwarfSun.cs`
+dropped the `CreatePalette()` method that its own `CreateVisual` call
+references, so `dotnet build` failed with two errors.  Restoring that method
+was necessary to build the branch at all; it is the only change made to the
+wiring of either sun implementation, and no implementation was wired or
+unwired as part of this work.
+
+Run the suite with:
 
 ```
 grim-space.Tests/bin/Debug/net10.0/grim-space.Tests.exe
-  Total: 770, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0
 ```
 
 `dotnet test` reports "Zero tests ran" in this environment.  That is
-**pre-existing and unrelated to this change** — it was verified by stashing
+**pre-existing and unrelated to this change** - it was verified by stashing
 every modification and running the same command on the unmodified tree, which
 fails identically.  The test project is an xunit v3 executable with
 `Microsoft.Testing.Platform` selected in `global.json`; the direct runner is

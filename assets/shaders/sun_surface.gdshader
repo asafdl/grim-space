@@ -25,6 +25,7 @@ uniform float emission_strength : hint_range(0.0, 4.0) = 0.62;
 uniform float limb_darkening : hint_range(0.0, 1.2) = 0.50;
 uniform float limb_darkening_sq : hint_range(0.0, 1.0) = 0.14;
 uniform float limb_edge_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float limb_edge_floor : hint_range(0.0, 1.0) = 0.42;
 uniform float granulation_cells : hint_range(6.0, 260.0) = 176.0;
 uniform float granulation_strength : hint_range(0.0, 1.0) = 0.85;
 uniform float supergranulation_cells : hint_range(1.0, 80.0) = 40.0;
@@ -155,7 +156,10 @@ void fragment() {
 	// 0.037 at 1.00R - far steeper than photosphere limb darkening alone,
 	// because the chromosphere has a finite thickness and the line of sight
 	// leaves it near the edge.
-	float edge = 0.115 + 0.885 * pow(1.0 - smoothstep(0.86, 1.0, image_radius), 2.2);
+	// The limb is a little darker, never a black ring: the floor is what stops
+	// a dark moat from opening up between the surface and the corona.
+	float edge = limb_edge_floor
+		+ (1.0 - limb_edge_floor) * pow(1.0 - smoothstep(0.86, 1.0, image_radius), 2.2);
 	ld *= mix(1.0, edge, limb_edge_strength);
 
 	// Granulation: two octaves of value noise remapped to a cellular profile.

@@ -6,13 +6,16 @@ render_mode unshaded, blend_add, depth_draw_never, cull_front, shadows_disabled,
 //
 // This used to be a camera-facing quad.  A quad has edges, and an edge that
 // happens to fall inside the frame reads as a straight cut through the glow.
-// A concentric sphere cannot have that problem: the profile is a function of
-// where the fragment lands on screen relative to the star's centre, so it is
-// continuous all the way round and reaches zero long before the shell's own
-// silhouette.
+// A concentric shell cannot have that problem.
 //
-// The radius is measured in SCREEN space against the star's projected disc
-// radius, so the corona sits on the limb exactly at any camera distance.
+// The radius of every fragment is measured against the photosphere's
+// silhouette in WORLD space - the tangent point of the view ray on the
+// photosphere.  Measured in normalised device coordinates the same thing was
+// off by a wide margin at close range, which opened a dark "moat" between the
+// surface and the corona.
+//
+// The profile is maximal AT the limb and decays monotonically outward, so
+// there is never a dip between the surface and the glow.
 //
 // Reference: SOHO/LASCO C2 shows the corona as narrow radial rays separated
 // by darker lanes, with a few broad "helmet" streamers.  SDO AIA 171/193 show
@@ -22,9 +25,9 @@ render_mode unshaded, blend_add, depth_draw_never, cull_front, shadows_disabled,
 
 uniform vec3 corona_color : source_color = vec3(1.00, 0.47, 0.18);
 uniform vec3 inner_color : source_color = vec3(1.00, 0.62, 0.30);
-uniform float brightness : hint_range(0.0, 3.0) = 0.08;
+uniform float brightness : hint_range(0.0, 3.0) = 0.40;
 uniform float inner_brightness : hint_range(0.0, 3.0) = 0.20;
-uniform float falloff : hint_range(0.01, 1.0) = 0.065;
+uniform float falloff : hint_range(0.01, 1.0) = 0.18;
 uniform float streamer_density : hint_range(1.0, 80.0) = 24.0;
 uniform float streamer_strength : hint_range(0.0, 2.0) = 0.85;
 uniform float helmet_strength : hint_range(0.0, 2.0) = 0.65;
@@ -32,10 +35,10 @@ uniform float helmet_density : hint_range(0.5, 20.0) = 4.0;
 uniform float speed : hint_range(0.0, 0.5) = 0.02;
 uniform float seed = 0.0;
 uniform float sun_radius = 1.0;
-uniform float shell_radius = 3.0;
+uniform float shell_radius = 2.2;
 
-varying vec2 v_center_ndc;
-varying vec2 v_limb_ndc;
+varying vec3 v_centre;
+varying vec3 v_shell_world;
 
 float hash31(vec3 p) {
 	p = fract(p * 0.3183099 + 0.1);
@@ -72,31 +75,31 @@ float fbm(vec3 p, int octaves) {
 }
 
 void vertex() {
-	vec3 center = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-	vec3 facing = normalize(CAMERA_POSITION_WORLD - center);
-	vec3 side = normalize(cross(facing, vec3(0.0, 1.0, 0.0)));
-	vec3 limb = center + side * sun_radius;
-
-	vec4 center_clip = PROJECTION_MATRIX * VIEW_MATRIX * vec4(center, 1.0);
-	vec4 limb_clip = PROJECTION_MATRIX * VIEW_MATRIX * vec4(limb, 1.0);
-	v_center_ndc = center_clip.xy / center_clip.w;
-	v_limb_ndc = limb_clip.xy / limb_clip.w;
+	v_centre = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	v_shell_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
-	vec2 ndc = SCREEN_UV * 2.0 - 1.0;
-	float aspect = VIEWPORT_SIZE.x / max(VIEWPORT_SIZE.y, 1.0);
-	vec2 scale = vec2(aspect, 1.0);
-	vec2 d = (ndc - v_center_ndc) * scale;
-	float limb = max(length((v_limb_ndc - v_center_ndc) * scale), 1e-5);
-	float r = length(d) / limb;
-	float dist = r - 1.0;
-	// Everything is masked off inside the disc rather than branching out.
-	float outside = step(1.0, r);
-	float theta = atan(d.y, d.x);
+	// The radius of this fragment against the photosphere's silhouette, in the
+	// same projected space.  The silhouette is the tangent point of the view
+	// ray on the photosphere.
+	vec3 to_camera = CAMERA_POSITION_WORLD - v_centre;
+	float axis_len = max(length(to_camera), sun_radius * 1.0001);
+	vec3 axis = to_camera / axis_len;
+	vec3 offset = v_shell_world - v_centre;
+	float along = dot(offset, axis);
+	float perp = length(offset - axis * along);
+
+	float alpha = asin(clamp(sun_radius / axis_len, 0.0, 0.999));
+	float silhouette_perp = sun_radius * cos(alpha);
+	float silhouette_depth = axis_len - sun_radius * sin(alpha);
+
+	float r = (perp / max(axis_len - along, 1e-5))
+		/ max(silhouette_perp / max(silhouette_depth, 1e-5), 1e-5);
+	float dist = max(r - 1.0, 0.0);
 
 	// Narrow radial streamers: high angular frequency, low radial frequency.
-	float a = theta / 6.283185307179586;
+	float a = atan(offset.x, offset.z) / 6.283185307179586;
 	float streak = smoothstep(0.32, 0.68,
 		fbm(vec3(a * streamer_density, dist * 1.5, TIME * speed + seed), 3));
 
@@ -107,16 +110,16 @@ void fragment() {
 	float shell = mix(1.0, 0.15 + 1.70 * streak, streamer_strength);
 	shell *= mix(1.0, 0.30 + 1.50 * helmet, helmet_strength);
 
-	// Inner corona: exponential decay away from the limb.
-	float radial = exp(-dist / max(falloff, 0.001));
-	float inner = radial * shell * inner_brightness;
+	// One profile, maximal AT the limb and decaying monotonically outward.
+	// Both terms are at their maximum at dist = 0, so there is no dip between
+	// the surface and the corona and no interior ring.
+	float core = exp(-dist / max(falloff, 0.001));
+	float halo = pow(clamp(1.0 - dist / max(shell_radius - 1.0, 0.001), 0.0, 1.0), 2.0);
+	float outside = step(1.0, r);
 
-	// A long, very gentle lift of the space around the star.  It reaches zero
-	// before the shell's own silhouette, so there is no boundary anywhere.
-	float lift = pow(clamp(1.0 - dist / max(shell_radius - 1.0, 0.001), 0.0, 1.0), 3.0);
-	float outer = lift * brightness;
+	vec3 col = (inner_color * (core * inner_brightness)
+		+ corona_color * (halo * brightness)) * shell * outside;
 
-	vec3 col = (inner_color * inner + corona_color * outer) * outside;
 	ALBEDO = col;
 	ALPHA = clamp(max(max(col.r, col.g), col.b), 0.0, 1.0);
 }

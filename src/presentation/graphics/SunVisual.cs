@@ -87,6 +87,7 @@ public static class SunVisual
 		material.SetShaderParameter("limb_darkening", palette.LimbDarkening);
 		material.SetShaderParameter("limb_darkening_sq", palette.LimbDarkeningSquared);
 		material.SetShaderParameter("limb_edge_strength", palette.LimbEdgeStrength);
+		material.SetShaderParameter("limb_edge_floor", palette.LimbEdgeFloor);
 		material.SetShaderParameter("granulation_cells", palette.GranulationCells);
 		material.SetShaderParameter("granulation_strength", palette.GranulationStrength);
 		material.SetShaderParameter("plage_cells", palette.PlageCells);

@@ -18,7 +18,7 @@ public sealed class SunPalette
 	public Color MidColor { get; init; } = new(1.00f, 0.46f, 0.11f);
 
 	/// <summary>The limb, where the photosphere cools and reddens.</summary>
-	public Color LimbColor { get; init; } = new(0.88f, 0.17f, 0.03f);
+	public Color LimbColor { get; init; } = new(0.95f, 0.35f, 0.08f);
 
 	/// <summary>Prominence plasma above the limb.</summary>
 	public Color ProminenceColor { get; init; } = new(1.00f, 0.22f, 0.08f);
@@ -66,13 +66,20 @@ public sealed class SunPalette
 	public float EmissionStrength { get; init; } = 0.26f;
 
 	/// <summary>Limb darkening coefficient u of I(mu) = 1 - u(1-mu) - v(1-mu)^2.</summary>
-	public float LimbDarkening { get; init; } = 0.50f;
+	public float LimbDarkening { get; init; } = 0.30f;
 
 	/// <summary>Limb darkening coefficient v.</summary>
-	public float LimbDarkeningSquared { get; init; } = 0.14f;
+	public float LimbDarkeningSquared { get; init; } = 0.08f;
 
 	/// <summary>How strongly the chromospheric edge steepens the limb.</summary>
 	public float LimbEdgeStrength { get; init; } = 0.45f;
+
+	/// <summary>
+	/// How dark the limb is allowed to get.  A star's limb is a little darker,
+	/// never a black ring: a low floor here is what opens the "moat" between
+	/// the surface and the corona.
+	/// </summary>
+	public float LimbEdgeFloor { get; init; } = 0.42f;
 
 	/// <summary>Bright chromospheric rim right at the limb.</summary>
 	public Color RimColor { get; init; } = new(1.00f, 0.34f, 0.10f);

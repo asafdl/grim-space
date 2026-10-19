@@ -57,6 +57,12 @@ public sealed partial class SunTestScene : Node3D
 	/// <summary>A close range shot of the prominence loops.</summary>
 	[Export] public bool Closeup { get; set; }
 
+	/// <summary>
+	/// Renders the master branch's red dwarf implementation (the texture
+	/// surface plus the billboard corona) so the two can be compared.
+	/// </summary>
+	[Export] public bool MasterImplementation { get; set; }
+
 	/// <summary>Scales the prominence and corona billboards.</summary>
 	[Export] public float QuadScale { get; set; } = 1f;
 
@@ -116,6 +122,12 @@ public sealed partial class SunTestScene : Node3D
 			return;
 		}
 
+		if (MasterImplementation)
+		{
+			BuildMasterSun();
+			return;
+		}
+
 		BuildShowcaseScene();
 	}
 
@@ -169,6 +181,7 @@ public sealed partial class SunTestScene : Node3D
 			RimColor = new Color(1.00f, 0.16f, 0.05f),
 			RimStrength = 0.42f,
 			LimbEdgeStrength = 1.0f,
+			LimbEdgeFloor = 0.30f,
 			LimbDarkening = 0.15f,
 			LimbDarkeningSquared = 0.05f,
 			ProminenceStrength = 0.28f,
@@ -232,6 +245,57 @@ public sealed partial class SunTestScene : Node3D
 		AddChild(camera);
 		AddGlare();
 		GD.Print($"[SunTest] showcase: distance={CameraDistance} fov={camera.Fov:0.00} spin={Spin}");
+	}
+
+	/// <summary>
+	/// The master branch's own sun: the 2k_sun.jpg texture through
+	/// battle_red_dwarf.gdshader, plus the billboard corona.  Used to check
+	/// whether it has the same dark band between the surface and the glow.
+	/// </summary>
+	private void BuildMasterSun()
+	{
+		var surfaceMaterial = new ShaderMaterial
+		{
+			Shader = GD.Load<Shader>("res://assets/shaders/battle_red_dwarf.gdshader"),
+		};
+		surfaceMaterial.SetShaderParameter(
+			"surface_texture",
+			GD.Load<Texture2D>("res://assets/textures/2k_sun.jpg"));
+		var root = new Node3D { Name = "MasterSun" };
+		root.AddChild(new MeshInstance3D
+		{
+			Name = "Surface",
+			Mesh = new SphereMesh
+			{
+				Radius = StarRadius,
+				Height = StarRadius * 2f,
+				RadialSegments = 64,
+				Rings = 32,
+			},
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = surfaceMaterial,
+		});
+		root.AddChild(StarCorona.Create(
+			StarRadius,
+			new Color(1f, 0.12f, 0.025f),
+			brightness: 0.2f,
+			width: 0.18f,
+			speed: 0.025f,
+			seed: 37f,
+			irregularity: 0.82f));
+		AddChild(root);
+		_star = root;
+
+		var camera = new Camera3D
+		{
+			Name = "Camera",
+			Position = new Vector3(-0.55f, 0f, 2.45f) * StarRadius,
+			Fov = 50f,
+			Current = true,
+		};
+		AddChild(camera);
+		camera.LookAt(new Vector3(0.85f, 0.12f, 0.62f) * StarRadius, Vector3.Up);
+		GD.Print("[SunTest] master implementation");
 	}
 
 	/// <summary>
@@ -408,6 +472,10 @@ public sealed partial class SunTestScene : Node3D
 			else if (argument == "--closeup")
 			{
 				Closeup = true;
+			}
+			else if (argument == "--master")
+			{
+				MasterImplementation = true;
 			}
 			else if (argument == "--legacy")
 			{
