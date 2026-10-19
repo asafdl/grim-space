@@ -8,6 +8,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public partial class GridView : Node3D
 {
 	private const float LocalGridViewDotThreshold = 0.9995f;
+	private static readonly Color PlayerMoveRangeShellColor = new(0.32f, 0.78f, 0.56f, 0.03f);
+	private static readonly Color EnemyInspectMoveRangeShellColor = new(0.86f, 0.08f, 0.24f, 0.03f);
 
 	private Camera3D _camera = null!;
 	private MeshInstance3D _rangeShell = null!;
@@ -19,6 +21,7 @@ public partial class GridView : Node3D
 	private Vector3? _ghostWorld;
 	private Vector3? _localGridViewDirection;
 	private Vector3? _centralOutlineViewDirection;
+	private bool _enemyInspectMoveRange;
 
 	internal void Build(Camera3D camera, CellVolumeMeshStore meshes)
 	{
@@ -74,6 +77,7 @@ public partial class GridView : Node3D
 
 	private void ApplyMoveVisuals(PresentationFrame frame)
 	{
+		ApplyMoveRangeShellTint(frame.IsInspecting);
 		var source = frame.FocusState.Position;
 		RefreshRange(source, frame.MovePaths, frame.SimulationTick);
 
@@ -108,6 +112,17 @@ public partial class GridView : Node3D
 				: null,
 			tick);
 		PresentationDiagnostics.LogMoveRange(paths.Count, endpoints.Count);
+	}
+
+	private void ApplyMoveRangeShellTint(bool enemyInspect)
+	{
+		if (_enemyInspectMoveRange == enemyInspect)
+			return;
+
+		_enemyInspectMoveRange = enemyInspect;
+		_rangeShellMaterial.AlbedoColor = enemyInspect
+			? EnemyInspectMoveRangeShellColor
+			: PlayerMoveRangeShellColor;
 	}
 
 	private void HideMoveVisuals()
@@ -179,7 +194,7 @@ public partial class GridView : Node3D
 		new()
 		{
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			AlbedoColor = new Color(0.32f, 0.78f, 0.56f, 0.03f),
+			AlbedoColor = PlayerMoveRangeShellColor,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
 			NoDepthTest = false,
