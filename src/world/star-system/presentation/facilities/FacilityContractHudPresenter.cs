@@ -85,8 +85,8 @@ public sealed class FacilityContractHudPresenter
 			return;
 		}
 
-		_contractHud.SyncMap(_binding.Map);
-		_contractHud.Close();
+		if (!_contractHud.RefreshList(_binding.Map))
+			_contractHud.Close();
 		_stateChanged();
 	}
 
@@ -102,8 +102,8 @@ public sealed class FacilityContractHudPresenter
 			return;
 		}
 
-		_contractHud.SyncMap(_binding.Map);
-		_contractHud.Close();
+		if (!_contractHud.RefreshList(_binding.Map))
+			_contractHud.Close();
 		_stateChanged();
 	}
 

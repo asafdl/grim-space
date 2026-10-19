@@ -63,6 +63,17 @@ public sealed partial class ContractHudOverlay : Control
 
 	public void SyncMap(StarMap map) => _map = map;
 
+	/// <summary>Updates from latest map state and returns to the list. False when nothing left to show.</summary>
+	public bool RefreshList(StarMap map)
+	{
+		_map = map;
+		if (!IsOpen)
+			return false;
+
+		ShowList();
+		return PresentedContracts().Length > 0;
+	}
+
 	private void ShowList()
 	{
 		_declinePopup.Hide();
