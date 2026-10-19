@@ -44,8 +44,9 @@ public static class HudStyles
 	public const int SectionAccentWidth = 3;
 
 	public static readonly Color ModalBackdrop = new(0f, 0f, 0f, 0.55f);
-	public static readonly Color AccentCyan = new(0.55f, 0.78f, 1f);
-	public static readonly Color InformativeHairline = new(0.22f, 0.32f, 0.42f, 0.45f);
+	public static readonly Color AccentCyan = HudPalettes.BlueCyan.Primary;
+	public static readonly Color InformativeHairline =
+		HudPalettes.WithAlpha(HudPalettes.BlueCyan.Border, 0.45f);
 
 	public static string PanelVariation(HudThemeFamily family) =>
 		family switch

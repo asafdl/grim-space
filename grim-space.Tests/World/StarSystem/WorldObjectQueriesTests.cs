@@ -1,6 +1,7 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Units;
@@ -72,6 +73,18 @@ public sealed class WorldObjectQueriesTests(StarMapFixture maps)
 			_ => throw new InvalidOperationException("Unit position should not be requested."));
 
 		Assert.Equal(new WorldObjectResolution.Found(landmark.Position), result);
+	}
+
+	[Fact]
+	public void ResolveFocusable_BorderAnchor_ReturnsBorderPoint()
+	{
+		var border = new Coord(42, 0, 17);
+		var result = WorldObjectQueries.ResolveFocusable(
+			maps.Template(42),
+			AreaBorderAnchor.Id(border),
+			_ => throw new InvalidOperationException("Unit position should not be requested."));
+
+		Assert.Equal(new WorldObjectResolution.Found(border), result);
 	}
 
 	[Fact]

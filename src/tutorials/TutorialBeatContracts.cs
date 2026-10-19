@@ -195,6 +195,40 @@ public static class TutorialBeatContracts
 			contractId);
 	}
 
+	public static bool RequiresCanonicalFirstBattleLayout(
+		TutorialState? tutorialState,
+		StarMap map,
+		IReadOnlyList<string> participantFleetIds)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		ArgumentNullException.ThrowIfNull(participantFleetIds);
+
+		if (tutorialState?.BeatAContractId is not { } beatAId)
+			return false;
+		if (tutorialState.IsFlowCompleted(FirstBattleTutorial.Id))
+			return false;
+		if (map.ContractRegistry.IsCompleted(beatAId))
+			return false;
+
+		var huntTargetId = PrimaryBeatAHuntFleetId(map, beatAId);
+		return huntTargetId is not null
+			&& participantFleetIds.Contains(huntTargetId, StringComparer.Ordinal);
+	}
+
+	public static string? PrimaryBeatAHuntFleetId(StarMap map, string beatAContractId)
+	{
+		ArgumentNullException.ThrowIfNull(map);
+		ArgumentException.ThrowIfNullOrWhiteSpace(beatAContractId);
+
+		if (!map.ContractRegistry.TryGet(beatAContractId, out var contract))
+			return null;
+		if (contract.Objective is not HuntObjective hunt || hunt.SpawnGroups.Count == 0)
+			return null;
+
+		var group = hunt.SpawnGroups[0];
+		return $"{beatAContractId}.{group.GroupId}.0";
+	}
+
 	private static string BeatAContractId(int mapSeed) => $"tutorial-beat-a-hunt-{mapSeed}";
 
 	private static string BeatBContractId(int mapSeed) => $"tutorial-beat-b-delivery-{mapSeed}";

@@ -1,17 +1,25 @@
 using Godot;
+using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class BattleCommandConsole : MarginContainer
 {
 	private const float DefaultWingContentWidth = 172f;
-	private static readonly Color MainFill = new(0.055f, 0.045f, 0.07f, 0.98f);
-	private static readonly Color DeepFill = new(0.02f, 0.02f, 0.035f, 0.99f);
-	private static readonly Color WingFill = new(0.105f, 0.075f, 0.13f, 0.98f);
-	private static readonly Color EdgeColor = new(0.63f, 0.57f, 0.66f, 0.92f);
-	private static readonly Color HighlightColor = new(0.84f, 0.79f, 0.86f, 0.62f);
-	private static readonly Color InnerEdgeColor = new(0.37f, 0.3f, 0.42f, 0.72f);
-	private static readonly Color RailGlowColor = new(0.72f, 0.58f, 0.78f, 0.13f);
+	private static readonly Color MainFill =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Surface, 0.98f);
+	private static readonly Color DeepFill =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.DeepSurface, 0.99f);
+	private static readonly Color WingFill =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Surface.Lightened(0.05f), 0.98f);
+	private static readonly Color EdgeColor =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary, 0.92f);
+	private static readonly Color HighlightColor =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary.Lightened(0.18f), 0.62f);
+	private static readonly Color InnerEdgeColor =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Border, 0.72f);
+	private static readonly Color RailGlowColor =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary, 0.13f);
 	private float _wingContentWidth = DefaultWingContentWidth;
 
 	public float HorizontalContentMargins =>

@@ -11,9 +11,9 @@ public sealed partial class FleetManagementOverlay : Control
 {
 	private static readonly Color HullColor = new(0.94f, 0.34f, 0.32f);
 	private static readonly Color ShieldColor = new(0.3f, 0.66f, 1f);
-	private static readonly Color ActionPointColor = new(0.42f, 0.8f, 1f);
-	private static readonly Color ManeuverPointColor = new(0.48f, 0.88f, 0.56f);
-	private static readonly Color InitiativeColor = new(1f, 0.78f, 0.3f);
+	private static readonly Color ActionPointColor = HudPalettes.PurpleRed.Primary;
+	private static readonly Color ManeuverPointColor = HudPalettes.PurpleRed.Secondary;
+	private static readonly Color InitiativeColor = HudPalettes.Gold.Secondary;
 	private const int PilotPortraitSize = CenteredCarousel.SlotSize;
 	private const int PilotGridPortraitSize = 36;
 	private const int PilotPopupColumns = 4;

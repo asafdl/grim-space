@@ -1,9 +1,18 @@
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
+using GrimSpace.Run;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
+using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
+using FleetType = GrimSpace.World.StarSystem.Units.EType;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
+using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.Run;
 
@@ -14,8 +23,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_PlacesPlayerOnLowXAndEnemyOnHighX()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
-			EType.Fighter,
-			EType.Carrier,
+			BattleUnitType.Fighter,
+			BattleUnitType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -28,8 +37,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_ExpandsMountsAndUpgradesEverySupportedWeapon()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
-			EType.Fighter,
-			EType.Carrier,
+			BattleUnitType.Fighter,
+			BattleUnitType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -74,8 +83,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_PlayerNotAtGridCenter()
 	{
 		var (player, _) = DeploymentPlacement.DevDuel(
-			EType.Fighter,
-			EType.Carrier,
+			BattleUnitType.Fighter,
+			BattleUnitType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -86,8 +95,8 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_UnitsFaceEachOther()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
-			EType.Fighter,
-			EType.Carrier,
+			BattleUnitType.Fighter,
+			BattleUnitType.Carrier,
 			seed: 42,
 			gridSize: 64);
 
@@ -100,9 +109,9 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_EnemyPositionVariesBySeed()
 	{
 		var (_, enemyA) = DeploymentPlacement.DevDuel(
-			EType.Fighter, EType.Carrier, seed: 1, gridSize: 64);
+			BattleUnitType.Fighter, BattleUnitType.Carrier, seed: 1, gridSize: 64);
 		var (_, enemyB) = DeploymentPlacement.DevDuel(
-			EType.Fighter, EType.Carrier, seed: 2, gridSize: 64);
+			BattleUnitType.Fighter, BattleUnitType.Carrier, seed: 2, gridSize: 64);
 
 		Assert.NotEqual(enemyA.Position, enemyB.Position);
 	}
@@ -111,11 +120,97 @@ public sealed class DeploymentPlacementTests
 	public void DevDuel_KeepsEnemyInsideSmallGrid()
 	{
 		var (_, enemy) = DeploymentPlacement.DevDuel(
-			EType.Fighter, EType.Carrier, seed: 8, gridSize: 16);
+			BattleUnitType.Fighter, BattleUnitType.Carrier, seed: 8, gridSize: 16);
 
 		Assert.InRange(enemy.Position.X, 0, 15);
 		Assert.InRange(enemy.Position.Y, 0, 15);
 		Assert.InRange(enemy.Position.Z, 0, 15);
+	}
+
+	[Fact]
+	public void ForEngagement_VariedLayout_KeepsSixteenCellSeparation()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-separation");
+
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var spawns = DeploymentPlacement.ForEngagement(
+				[playerFleet, enemyFleet],
+				run.ItemInventory,
+				seed,
+				gridSize: 64,
+				playerFleet.State.Id);
+			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+
+			Assert.InRange(
+				BattleDistance.SeparationMeters(player.Position, enemy.Position),
+				16_000f,
+				20_000f);
+		}
+	}
+
+	[Fact]
+	public void ForEngagement_VariedLayout_ProducesDiagonalEngagementsAcrossSeeds()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-angle");
+
+		var deltas = new HashSet<Coord>();
+		for (var seed = 0; seed < 48; seed++)
+		{
+			var spawns = DeploymentPlacement.ForEngagement(
+				[playerFleet, enemyFleet],
+				run.ItemInventory,
+				seed,
+				gridSize: 64,
+				playerFleet.State.Id);
+			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+			deltas.Add(enemy.Position - player.Position);
+		}
+
+		Assert.True(deltas.Count > 6);
+		Assert.Contains(deltas, delta => delta.X != 0 && delta.Y != 0);
+		Assert.Contains(deltas, delta => delta.X != 0 && delta.Z != 0);
+	}
+
+	[Fact]
+	public void ForEngagement_CanonicalLayout_AlignsThroughGridCenter()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-canonical");
+		var center = new Coord(32, 32, 32);
+
+		for (var seed = 0; seed < 16; seed++)
+		{
+			var spawns = DeploymentPlacement.ForEngagement(
+				[playerFleet, enemyFleet],
+				run.ItemInventory,
+				seed,
+				gridSize: 64,
+				playerFleet.State.Id,
+				canonicalLayout: true);
+			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+			var delta = enemy.Position - player.Position;
+			var axisComponents = (delta.X != 0 ? 1 : 0)
+				+ (delta.Y != 0 ? 1 : 0)
+				+ (delta.Z != 0 ? 1 : 0);
+
+			Assert.Equal(1, axisComponents);
+			Assert.Equal(
+				center,
+				new Coord(
+					(player.Position.X + enemy.Position.X) / 2,
+					(player.Position.Y + enemy.Position.Y) / 2,
+					(player.Position.Z + enemy.Position.Z) / 2));
+			Assert.Equal(16_000f, BattleDistance.SeparationMeters(player.Position, enemy.Position));
+		}
 	}
 
 	[Fact]
@@ -134,8 +229,8 @@ public sealed class DeploymentPlacementTests
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
 		var ships = encounter.Spawns.Select(spawn => spawn.Ship).ToArray();
-		var gunship = ships.Single(ship => ship.Spec.Chassis == EType.Gunship);
-		var gooper = ships.Single(ship => ship.Spec.Chassis == EType.IndustrialGooper);
+		var gunship = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.Gunship);
+		var gooper = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
 
 		Assert.All(
 			gunship.Loadout.InstalledAbilities,
@@ -156,8 +251,8 @@ public sealed class DeploymentPlacementTests
 		for (var seed = 0; seed < 32; seed++)
 		{
 			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
-			var carrier = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == EType.Carrier);
-			var gooper = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == EType.IndustrialGooper);
+			var carrier = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == BattleUnitType.Carrier);
+			var gooper = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
 
 			Assert.Equal(ETeam.Enemy, gooper.Team);
 			Assert.Equal(4, carrier.Position.ManhattanDistanceTo(gooper.Position));
@@ -175,6 +270,23 @@ public sealed class DeploymentPlacementTests
 
 		Assert.Equal("fighter-dev-7", battle.PlayerId);
 		Assert.Equal("carrier-dev-7", BattleTestFixture.FirstEnemyId(battle));
+	}
+
+	private static GrimSpace.World.StarSystem.Units.Fleet CreateEnemyFleet(RunState run, string fleetId)
+	{
+		var pirate = ContractEnemySpawner.CreateAmbushFleet(
+			new FleetSpawnSpec(
+				FleetType.PirateFleet,
+				EFaction.Pirates,
+				42,
+				[(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]),
+			new Coord(20, 0, 20),
+			fleetId,
+			"deployment-placement-test");
+		run.StarSystem.Map.FleetRegistry.Add(pirate);
+		foreach (var declaration in pirate.Registrations)
+			run.ItemInventory.Register(declaration, pirate.State.Id);
+		return pirate;
 	}
 
 }

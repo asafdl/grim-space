@@ -605,13 +605,18 @@ public sealed class State : IDisposable
 				.ToArray();
 			EnsureRegistryForFleets(fleets);
 			var seed = Random.Shared.Next();
+			var canonicalLayout = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
+				_tutorialState,
+				StarSystem.Map,
+				fact.ParticipantFleetIds);
 			ActiveBattle = EngagementBattleFactory.Create(
 				fleets,
 				ItemInventory,
 				seed,
 				fact.EngagementId,
 				fact.InitiatorFleetId,
-				BuildPilotBattleSnapshots());
+				BuildPilotBattleSnapshots(),
+				canonicalLayout);
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();
 		}

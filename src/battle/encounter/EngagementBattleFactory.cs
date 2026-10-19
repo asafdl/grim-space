@@ -18,7 +18,8 @@ public static class EngagementBattleFactory
 		int seed,
 		string id,
 		string initiatorFleetId,
-		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null)
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null,
+		bool canonicalLayout = false)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 
@@ -30,7 +31,8 @@ public static class EngagementBattleFactory
 			seed,
 			GridSize,
 			initiatorFleetId,
-			shipIdToPilotSnapshot);
+			shipIdToPilotSnapshot,
+			canonicalLayout);
 
 		return new BattleEncounter
 		{

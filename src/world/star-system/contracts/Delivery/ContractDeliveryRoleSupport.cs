@@ -16,6 +16,7 @@ internal static class ContractDeliveryRoleSupport
 			|| state is not DeliveryContractState deliveryState)
 			return;
 
+		RevokeDeliveryPresentation(world, state.ContractId);
 		GrantCurrentFacilityRole(world, delivery, deliveryState);
 		EnsureCurrentMeetingFleet(world, delivery, deliveryState);
 		RestoreInterceptorDirective(world, deliveryState);
@@ -72,6 +73,12 @@ internal static class ContractDeliveryRoleSupport
 				holder.State.TravelTarget.TargetId,
 				StringComparer.Ordinal))
 			holder.State.TravelTarget = TravelTarget.None;
+	}
+
+	private static void RevokeDeliveryPresentation(StarMap world, string contractId)
+	{
+		foreach (var poi in world.PointsOfInterest)
+			poi.OperatorTemporaryRoles.RevokeBySource(contractId);
 	}
 
 	private static void GrantCurrentFacilityRole(

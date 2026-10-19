@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -14,7 +15,7 @@ public sealed partial class TurnFlowDivider : Control
 		MouseFilter = MouseFilterEnum.Ignore;
 		_rule = new ColorRect
 		{
-			Color = new Color(0.55f, 0.62f, 0.75f, 0.85f),
+			Color = HudPalettes.WithAlpha(HudPalettes.BlueCyan.Border.Lightened(0.25f), 0.85f),
 			MouseFilter = MouseFilterEnum.Ignore,
 			Size = new Vector2(2, BoxSize + 8),
 		};
@@ -25,7 +26,9 @@ public sealed partial class TurnFlowDivider : Control
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		_label.AddThemeFontSizeOverride("font_size", 11);
-		_label.AddThemeColorOverride("font_color", new Color(0.65f, 0.72f, 0.82f, 0.9f));
+		_label.AddThemeColorOverride(
+			"font_color",
+			HudPalettes.WithAlpha(HudPalettes.BlueCyan.Primary, 0.9f));
 		AddChild(_rule);
 		AddChild(_label);
 	}

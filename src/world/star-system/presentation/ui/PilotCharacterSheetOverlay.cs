@@ -20,7 +20,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const int PortraitSize = 144;
 	private const int IdentityRailWidth = 204;
 
-	private static readonly Color AvailableColor = new(0.55f, 0.78f, 1f);
+	private static readonly Color AvailableColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
 	private static readonly Color LockedColor = new(0.32f, 0.38f, 0.46f);
 
@@ -146,7 +146,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			"XP",
 			requiredXp > 0 ? currentXp : 1,
 			requiredXp > 0 ? requiredXp : 1,
-			new Color(0.62f, 0.38f, 0.92f),
+			HudPalettes.PurpleRed.Secondary,
 			requiredXp > 0 ? $"{currentXp} / {requiredXp}" : "MAX"));
 		return rail;
 	}
@@ -213,7 +213,9 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		bar.AddThemeStyleboxOverride("fill", BarStyle(color));
-		bar.AddThemeStyleboxOverride("background", BarStyle(new Color(0.08f, 0.1f, 0.14f, 0.95f)));
+		bar.AddThemeStyleboxOverride(
+			"background",
+			BarStyle(HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.95f)));
 		meter.AddChild(bar);
 		return meter;
 	}
@@ -288,7 +290,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private static ColorRect CreateLevelLine(bool expand) =>
 		new()
 		{
-			Color = new Color(0.22f, 0.32f, 0.42f, 0.7f),
+			Color = HudPalettes.WithAlpha(HudPalettes.BlueCyan.Border, 0.7f),
 			CustomMinimumSize = new Vector2(expand ? 0 : 28, 2),
 			SizeFlagsHorizontal = expand ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,

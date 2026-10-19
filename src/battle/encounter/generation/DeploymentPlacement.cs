@@ -19,6 +19,11 @@ public static class DeploymentPlacement
 	private const int EnemySpreadBand = 4;
 	private const int LaneHalfBand = 8;
 	private const int EngagementSeparation = 16;
+	private const int MinEngagementSeparation = EngagementSeparation;
+	private const int MaxEngagementSeparation = 20;
+	private const int MinEngagementSeparationSquared = MinEngagementSeparation * MinEngagementSeparation;
+	private const int MaxEngagementSeparationSquared = MaxEngagementSeparation * MaxEngagementSeparation;
+	private static readonly Coord[] EngagementSeparationOffsets = BuildEngagementSeparationOffsets();
 	private static readonly Coord[] CardinalDirections =
 	[
 		new(1, 0, 0),
@@ -81,7 +86,8 @@ public static class DeploymentPlacement
 		int seed,
 		int gridSize,
 		string initiatorFleetId,
-		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null)
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null,
+		bool canonicalLayout = false)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 		ArgumentNullException.ThrowIfNull(participantFleets);
@@ -102,22 +108,39 @@ public static class DeploymentPlacement
 			.SelectMany(fleet => fleet.Members.Select(member => (fleet, member)))
 			.ToList();
 
-		var center = gridSize / 2;
 		var rng = new Random(seed);
-		var approach = CardinalDirections[rng.Next(CardinalDirections.Length)];
-		var halfSeparation = System.Math.Min(EngagementSeparation / 2, System.Math.Max(0, center - Margin));
-		var fieldCenter = new Coord(center, center, center);
-		var attackerAnchor = fieldCenter - approach * halfSeparation;
-		var interceptedAnchor = fieldCenter + approach * halfSeparation;
-		var attackerDorsal = PickPerpendicular(approach, rng);
-		var interceptedFore = CardinalDirections[rng.Next(CardinalDirections.Length)];
-		var interceptedDorsal = PickPerpendicular(interceptedFore, rng);
+		Coord attackerAnchor;
+		Coord interceptedAnchor;
+		Coord attackerFore;
+		Coord attackerDorsal;
+		Coord interceptedFore;
+		Coord interceptedDorsal;
+		if (canonicalLayout || !TryPickVariedEngagementAnchors(rng, gridSize, out attackerAnchor, out interceptedAnchor))
+		{
+			var center = gridSize / 2;
+			var approach = CardinalDirections[rng.Next(CardinalDirections.Length)];
+			var halfSeparation = System.Math.Min(EngagementSeparation / 2, System.Math.Max(0, center - Margin));
+			var fieldCenter = new Coord(center, center, center);
+			attackerAnchor = fieldCenter - approach * halfSeparation;
+			interceptedAnchor = fieldCenter + approach * halfSeparation;
+			attackerFore = approach;
+			attackerDorsal = PickPerpendicular(approach, rng);
+			interceptedFore = CardinalDirections[rng.Next(CardinalDirections.Length)];
+			interceptedDorsal = PickPerpendicular(interceptedFore, rng);
+		}
+		else
+		{
+			attackerFore = AxisToward(attackerAnchor, interceptedAnchor);
+			interceptedFore = AxisToward(interceptedAnchor, attackerAnchor);
+			attackerDorsal = PickPerpendicular(attackerFore, rng);
+			interceptedDorsal = PickPerpendicular(interceptedFore, rng);
+		}
 		var occupied = new HashSet<Coord>();
 		var spawns = new List<BattleSpawn>();
 		PlaceFormation(
 			attackerMembers,
 			attackerAnchor,
-			approach,
+			attackerFore,
 			attackerDorsal,
 			rng,
 			gridSize,
@@ -243,6 +266,59 @@ public static class DeploymentPlacement
 		}
 
 		throw new InvalidOperationException("Could not find an open deployment cell.");
+	}
+
+	private static Coord[] BuildEngagementSeparationOffsets()
+	{
+		var offsets = new List<Coord>();
+		for (var x = -MaxEngagementSeparation; x <= MaxEngagementSeparation; x++)
+		{
+			for (var y = -MaxEngagementSeparation; y <= MaxEngagementSeparation; y++)
+			{
+				for (var z = -MaxEngagementSeparation; z <= MaxEngagementSeparation; z++)
+				{
+					var lengthSquared = x * x + y * y + z * z;
+					if (lengthSquared < MinEngagementSeparationSquared
+						|| lengthSquared > MaxEngagementSeparationSquared)
+						continue;
+
+					offsets.Add(new Coord(x, y, z));
+				}
+			}
+		}
+
+		return offsets.ToArray();
+	}
+
+	private static bool TryPickVariedEngagementAnchors(
+		Random rng,
+		int gridSize,
+		out Coord attackerAnchor,
+		out Coord interceptedAnchor)
+	{
+		attackerAnchor = default;
+		interceptedAnchor = default;
+		if (EngagementSeparationOffsets.Length == 0)
+			return false;
+
+		var anchorMin = Margin + MaxEngagementSeparation;
+		var anchorMax = gridSize - Margin - MaxEngagementSeparation - 1;
+		if (anchorMin > anchorMax)
+			return false;
+
+		for (var attempt = 0; attempt < 128; attempt++)
+		{
+			attackerAnchor = new Coord(
+				rng.Next(anchorMin, anchorMax + 1),
+				rng.Next(anchorMin, anchorMax + 1),
+				rng.Next(anchorMin, anchorMax + 1));
+			var offset = EngagementSeparationOffsets[rng.Next(EngagementSeparationOffsets.Length)];
+			interceptedAnchor = attackerAnchor + offset;
+			if (IsInBounds(interceptedAnchor, gridSize))
+				return true;
+		}
+
+		return false;
 	}
 
 	private static Coord PickPerpendicular(Coord direction, Random rng)

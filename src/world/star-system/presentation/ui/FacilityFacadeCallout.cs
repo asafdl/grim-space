@@ -8,11 +8,13 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 /// </summary>
 public partial class FacilityFacadeCallout : Control
 {
-	public static readonly Color IconBorderColor = new(0.94f, 0.91f, 0.84f, 0.85f);
+	public static readonly Color IconBorderColor =
+		HudPalettes.WithAlpha(HudPalettes.Gold.Highlight, 0.85f);
 	public static readonly Vector2 IconSize = new(48f, 48f);
 	public const float IconFloatPixels = 180f;
 
-	private static readonly Color AnchorDiamondColor = new(0.92f, 0.28f, 0.24f, 0.95f);
+	private static readonly Color AnchorDiamondColor =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight, 0.95f);
 
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
 	private const string LeadIndicatorPath = "res://assets/ui/map/lead-contact-icon.svg";

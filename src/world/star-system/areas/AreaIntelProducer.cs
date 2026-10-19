@@ -42,6 +42,9 @@ public static class AreaIntelProducer
 		if (referenceIds.Count == 0)
 			throw new ArgumentException("At least one reference is required.", nameof(referenceIds));
 
+		if (TryProduceBorderWedgeIntel(context, out var borderWedgeIntel))
+			return borderWedgeIntel;
+
 		var references = referenceIds
 			.Select(id => (Id: id, Position: resolvePosition(id)))
 			.OrderBy(reference => RouteGeometry.Distance(searchPoint, reference.Position))
@@ -81,8 +84,6 @@ public static class AreaIntelProducer
 		var landmarkIds = new List<string>();
 		foreach (var id in new[] { context.LandmarkAId, context.LandmarkBId, context.LandmarkCId })
 		{
-			if (AreaBorderAnchor.TryParseId(id, out _))
-				continue;
 			if (!landmarkIds.Contains(id, StringComparer.Ordinal))
 				landmarkIds.Add(id);
 		}
@@ -118,5 +119,29 @@ public static class AreaIntelProducer
 			landmarkIds[0],
 			context.LandmarkBId,
 			context.LandmarkCId);
+	}
+
+	private static bool TryProduceBorderWedgeIntel(AreaIntelContext context, out AreaIntel intel)
+	{
+		var cornerIds = new[] { context.LandmarkAId, context.LandmarkBId, context.LandmarkCId };
+		var navigationLandmarkIds = cornerIds
+			.Where(id => !AreaBorderAnchor.TryParseId(id, out _))
+			.Distinct(StringComparer.Ordinal)
+			.ToArray();
+		var borderCornerCount = cornerIds.Count(id => AreaBorderAnchor.TryParseId(id, out _));
+
+		if (borderCornerCount < 2 || navigationLandmarkIds.Length != 1)
+		{
+			intel = null!;
+			return false;
+		}
+
+		var anchorId = navigationLandmarkIds[0];
+		intel = new AreaIntel(
+			"Along the sector edge near {A}.",
+			anchorId,
+			context.LandmarkBId,
+			context.LandmarkCId);
+		return true;
 	}
 }

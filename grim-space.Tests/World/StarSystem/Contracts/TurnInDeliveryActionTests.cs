@@ -72,6 +72,30 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void AcceptDelivery_WhenBoardSourceMatchesContractId_GrantsTurnInRole()
+	{
+		var (engine, unitId, contractId, delivery) = CreateDeliveryEngine();
+		var turnInRoles = engine.World
+			.GetPointOfInterest(delivery.TurnInPoiId)
+			.OperatorTemporaryRoles;
+		turnInRoles.Grant(
+			delivery.TurnInFacilityId,
+			delivery.TurnInOperatorName,
+			EFacilityOperatorRole.Contracts,
+			contractId,
+			acceptsSourcesUntilTick: 100);
+
+		engine.Commit(ContractActionTestContext.AcceptDelivery(engine.World, unitId, contractId));
+
+		Assert.True(turnInRoles.TryGetRole(
+			delivery.TurnInFacilityId,
+			delivery.TurnInOperatorName,
+			out var activeRole));
+		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, activeRole);
+		Assert.Empty(turnInRoles.Assignments(EFacilityOperatorRole.Contracts));
+	}
+
+	[Fact]
 	public void DeliveryRole_PreemptsAndRestoresContractOperatorRole()
 	{
 		var (engine, unitId, contractId, delivery) = CreateDeliveryEngine();

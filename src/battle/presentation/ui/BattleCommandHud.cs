@@ -18,7 +18,8 @@ public sealed partial class BattleCommandHud : Control
 	private const float ResourceGap = 6f;
 	private const float PortraitSize = 104f;
 	private const string ExecuteFramePath = "res://assets/ui/battle/execute_action_frame.svg";
-	private static readonly Color CommandAccent = new(0.88f, 0.32f, 0.42f, 0.78f);
+	private static readonly Color CommandAccent =
+		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight, 0.78f);
 
 	private readonly ButtonGroup _modeGroup = new();
 	private readonly List<AbilityCard> _abilityCards = [];
@@ -220,12 +221,12 @@ public sealed partial class BattleCommandHud : Control
 		resourceHost.AddChild(ResourceMeters);
 		_apBar = new BattleResourceBar(
 			"AP",
-			new Color(0.79f, 0.48f, 0.61f),
+			HudPalettes.PurpleRed.Primary,
 			BattleHudCopy.ActionPointsTooltip);
 		ResourceMeters.AddChild(_apBar);
 		_mpBar = new BattleResourceBar(
 			"MP",
-			new Color(0.52f, 0.45f, 0.7f),
+			HudPalettes.PurpleRed.Secondary,
 			BattleHudCopy.ManeuverPointsTooltip);
 		ResourceMeters.AddChild(_mpBar);
 
@@ -489,8 +490,8 @@ public sealed partial class BattleCommandHud : Control
 		portrait.AddThemeStyleboxOverride(
 			"panel",
 			CircleStyle(
-				new Color(0.11f, 0.08f, 0.14f, 0.98f),
-				new Color(0.72f, 0.63f, 0.76f, 0.95f),
+				HudPalettes.WithAlpha(HudPalettes.PurpleRed.Surface, 0.98f),
+				HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary, 0.95f),
 				3,
 				7f));
 
@@ -501,8 +502,8 @@ public sealed partial class BattleCommandHud : Control
 		inner.AddThemeStyleboxOverride(
 			"panel",
 			CircleStyle(
-				new Color(0.025f, 0.025f, 0.045f, 1f),
-				new Color(0.38f, 0.29f, 0.44f, 0.9f),
+				HudPalettes.PurpleRed.DeepSurface,
+				HudPalettes.WithAlpha(HudPalettes.PurpleRed.Border, 0.9f),
 				2));
 		portrait.AddChild(inner);
 
@@ -513,8 +514,12 @@ public sealed partial class BattleCommandHud : Control
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		placeholder.AddThemeColorOverride("font_color", new Color(0.68f, 0.62f, 0.72f, 0.72f));
-		placeholder.AddThemeColorOverride("font_outline_color", new Color(0.02f, 0.015f, 0.03f));
+		placeholder.AddThemeColorOverride(
+			"font_color",
+			HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary, 0.72f));
+		placeholder.AddThemeColorOverride(
+			"font_outline_color",
+			HudPalettes.PurpleRed.DeepSurface);
 		placeholder.AddThemeConstantOverride("outline_size", 2);
 		placeholder.AddThemeFontSizeOverride("font_size", 12);
 		inner.AddChild(placeholder);
@@ -620,7 +625,9 @@ public sealed partial class BattleCommandHud : Control
 		TacticalActionButtonStyle.ApplyInteractionStates(
 			button,
 			color => ExecuteStyle(texture, color));
-		button.AddThemeColorOverride("font_outline_color", new Color(0.08f, 0.015f, 0.025f, 0.95f));
+		button.AddThemeColorOverride(
+			"font_outline_color",
+			HudPalettes.WithAlpha(HudPalettes.PurpleRed.DeepSurface, 0.95f));
 		button.AddThemeConstantOverride("outline_size", 1);
 		button.AddThemeFontSizeOverride("font_size", 13);
 	}

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units;
 
@@ -9,11 +10,12 @@ public partial class ShipPilot : PanelContainer
 	private const int PortraitSize = 64;
 	private const int BarWidth = 64;
 
-	private static readonly Color DefaultBorderColor = new(0.3f, 0.42f, 0.6f, 0.8f);
-	private static readonly Color SelectedBorderColor = new(0.55f, 0.78f, 1f, 1f);
+	private static readonly Color DefaultBorderColor =
+		HudPalettes.WithAlpha(HudPalettes.BlueCyan.Border, 0.8f);
+	private static readonly Color SelectedBorderColor = HudPalettes.BlueCyan.Primary;
 
 	private Label _levelLabel = null!;
-	private Button _levelUpButton = null!;
+	private LevelUpButton _levelUpButton = null!;
 	private TextureRect _portrait = null!;
 	private ProgressBar _hullBar = null!;
 	private string? _portraitId;
@@ -114,21 +116,15 @@ public partial class ShipPilot : PanelContainer
 		_levelLabel.AddThemeColorOverride("font_color", Colors.White);
 		portraitFrame.AddChild(_levelLabel);
 
-		_levelUpButton = new Button
+		_levelUpButton = new LevelUpButton
 		{
-			Text = "↑",
 			TooltipText = "Choose a pilot skill",
-			OffsetLeft = PortraitSize - 23,
-			OffsetTop = PortraitSize - 23,
-			OffsetRight = PortraitSize - 3,
-			OffsetBottom = PortraitSize - 3,
+			OffsetLeft = PortraitSize - 29,
+			OffsetTop = PortraitSize - 31,
+			OffsetRight = PortraitSize - 1,
+			OffsetBottom = PortraitSize - 1,
 			Visible = false,
 		};
-		_levelUpButton.AddThemeFontSizeOverride("font_size", 14);
-		_levelUpButton.AddThemeColorOverride("font_color", Colors.White);
-		_levelUpButton.AddThemeStyleboxOverride("normal", BadgeStyle(new Color(0.18f, 0.42f, 0.7f, 0.95f)));
-		_levelUpButton.AddThemeStyleboxOverride("hover", BadgeStyle(new Color(0.3f, 0.58f, 0.9f, 1f)));
-		_levelUpButton.AddThemeStyleboxOverride("pressed", BadgeStyle(new Color(0.12f, 0.32f, 0.58f, 1f)));
 		_levelUpButton.Pressed += OnLevelUpPressed;
 		portraitFrame.AddChild(_levelUpButton);
 
@@ -170,7 +166,7 @@ public partial class ShipPilot : PanelContainer
 			"panel",
 			new StyleBoxFlat
 			{
-				BgColor = new Color(0.035f, 0.05f, 0.08f, 0.9f),
+				BgColor = HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.9f),
 				BorderColor = borderColor,
 				BorderWidthLeft = borderWidth,
 				BorderWidthTop = borderWidth,
@@ -192,7 +188,9 @@ public partial class ShipPilot : PanelContainer
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		bar.AddThemeStyleboxOverride("fill", MakeBarStyle(color));
-		bar.AddThemeStyleboxOverride("background", MakeBarStyle(new Color(0.08f, 0.1f, 0.14f, 0.95f)));
+		bar.AddThemeStyleboxOverride(
+			"background",
+			MakeBarStyle(HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.95f)));
 		return bar;
 	}
 
@@ -214,15 +212,73 @@ public partial class ShipPilot : PanelContainer
 			CornerRadiusBottomRight = 2,
 		};
 
-	private static StyleBoxFlat BadgeStyle(Color color) =>
-		new()
+	private sealed partial class LevelUpButton : Button
+	{
+		private static readonly Color Shadow =
+			HudPalettes.WithAlpha(HudPalettes.PurpleRed.DeepSurface, 0.9f);
+		private static readonly Color Lavender = HudPalettes.PurpleRed.Primary;
+		private static readonly Color Purple = HudPalettes.PurpleRed.Secondary;
+		private static readonly Color Crimson = HudPalettes.PurpleRed.Highlight;
+
+		private float _pulseTime;
+
+		public LevelUpButton()
 		{
-			BgColor = color,
-			CornerRadiusTopLeft = 3,
-			CornerRadiusTopRight = 3,
-			CornerRadiusBottomLeft = 3,
-			CornerRadiusBottomRight = 3,
-			ContentMarginLeft = 2,
-			ContentMarginRight = 2,
-		};
+			FocusMode = FocusModeEnum.None;
+			MouseDefaultCursorShape = CursorShape.PointingHand;
+			foreach (var state in new[] { "normal", "hover", "pressed", "focus" })
+				AddThemeStyleboxOverride(state, new StyleBoxEmpty());
+		}
+
+		public override void _Process(double delta)
+		{
+			_pulseTime += (float)delta;
+			var pulse = (Mathf.Sin(_pulseTime * Mathf.Tau / 1.35f) + 1f) * 0.5f;
+			var scale = Mathf.Lerp(0.94f, 1.08f, pulse);
+			PivotOffset = Size * 0.5f;
+			Scale = Vector2.One * scale;
+			Modulate = new Color(1f, 1f, 1f, Mathf.Lerp(0.78f, 1f, pulse));
+		}
+
+		public override void _Draw()
+		{
+			var top = new[] { new Vector2(4f, 9f), new Vector2(14f, 2f), new Vector2(24f, 9f) };
+			var middle = new[] { new Vector2(4f, 16f), new Vector2(14f, 9f), new Vector2(24f, 16f) };
+			var arrow = new[]
+			{
+				new Vector2(14f, 13f),
+				new Vector2(26f, 22f),
+				new Vector2(20f, 22f),
+				new Vector2(20f, 29f),
+				new Vector2(8f, 29f),
+				new Vector2(8f, 22f),
+				new Vector2(2f, 22f),
+			};
+
+			DrawChevron(top, Shadow, 7f);
+			DrawChevron(top, Lavender, 4f);
+			DrawChevron(middle, Shadow, 7f);
+			DrawChevron(middle, Purple, 4f);
+			DrawPolygon(arrow, Enumerable.Repeat(Shadow, arrow.Length).ToArray());
+			DrawPolyline([.. arrow, arrow[0]], Shadow, 3f, true);
+
+			var insetArrow = new[]
+			{
+				new Vector2(14f, 15.5f),
+				new Vector2(23f, 21.5f),
+				new Vector2(18f, 21.5f),
+				new Vector2(18f, 27f),
+				new Vector2(10f, 27f),
+				new Vector2(10f, 21.5f),
+				new Vector2(5f, 21.5f),
+			};
+			DrawPolygon(insetArrow, Enumerable.Repeat(Crimson, insetArrow.Length).ToArray());
+		}
+
+		private void DrawChevron(Vector2[] points, Color color, float width)
+		{
+			DrawLine(points[0], points[1], color, width, true);
+			DrawLine(points[1], points[2], color, width, true);
+		}
+	}
 }

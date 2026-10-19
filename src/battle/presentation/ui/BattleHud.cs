@@ -82,8 +82,8 @@ public partial class BattleHud : Node
 		};
 		_turnBadge.AddThemeStyleboxOverride("panel", new StyleBoxFlat
 		{
-			BgColor = new Color(0.55f, 0.08f, 0.14f, 0.92f),
-			BorderColor = new Color(0.9f, 0.25f, 0.35f, 0.95f),
+			BgColor = HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight.Darkened(0.4f), 0.92f),
+			BorderColor = HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight, 0.95f),
 			BorderWidthLeft = 2,
 			BorderWidthTop = 2,
 			BorderWidthRight = 2,
@@ -273,10 +273,10 @@ public partial class BattleHud : Node
 		_simulationPhaseBanner.AddThemeConstantOverride("outline_size", 4);
 		_simulationPhaseBanner.AddThemeColorOverride(
 			"font_color",
-			new Color(0.48f, 0.82f, 0.82f, 0.86f));
+			HudPalettes.WithAlpha(HudPalettes.BlueCyan.Secondary, 0.86f));
 		_simulationPhaseBanner.AddThemeColorOverride(
 			"font_outline_color",
-			new Color(0.02f, 0.05f, 0.07f, 0.9f));
+			HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.9f));
 		_simulationPhaseHost.AddChild(_simulationPhaseBanner);
 		AddChild(_phaseLayer);
 	}

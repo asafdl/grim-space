@@ -1,4 +1,5 @@
 using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Areas;
 using GrimSpace.World.StarSystem.Landmarks;
 
 namespace GrimSpace.World.StarSystem;
@@ -14,6 +15,9 @@ public static class WorldObjectQueries
 		ArgumentNullException.ThrowIfNull(world);
 		ArgumentException.ThrowIfNullOrWhiteSpace(objectId);
 		ArgumentNullException.ThrowIfNull(committedPositionOf);
+
+		if (AreaBorderAnchor.TryParseId(objectId, out var borderPoint))
+			return new WorldObjectResolution.Found(borderPoint);
 
 		var pois = world.PointsOfInterest.Where(poi => poi.Id == objectId).Take(2).ToArray();
 		var landmarks = world.NavigationLandmarks.Where(landmark => landmark.Id == objectId).Take(2).ToArray();
