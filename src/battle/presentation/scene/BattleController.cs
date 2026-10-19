@@ -309,6 +309,7 @@ public partial class BattleController : Node3D
 		_battleHud.CommandHud.ExecuteRequested += _translator.OnEndTurn;
 		_battleHud.CommandHud.UndoRequested += _translator.OnUndo;
 		_battleHud.CommandHud.FocusRequested += _translator.OnFocusCamera;
+		_battleHud.CommandHud.CycleTargetRequested += CycleEnemyFocus;
 		_battleHud.CommandHud.ReturnToPlayerRequested += _translator.OnReturnToPlayer;
 		_battleHud.OutcomeOverlay.ResetRequested += OnOutcomeOverlayAction;
 		_battleHud.RestartRequested += _translator.OnRestart;
@@ -726,11 +727,10 @@ public partial class BattleController : Node3D
 		var legalFaces = frame.AbilityChoices
 			.Select(choice => choice.MountedOn!.Value)
 			.ToHashSet();
-		var bodyFrame = frame.FocusState.ToBodyFrame();
 		var options = Enum.GetValues<ESpatialOrientation>()
 			.Select(face => new MountFaceSelectorOption(
 				face,
-				HeadingDirectionColors.For(bodyFrame.Step(face)),
+				HeadingDirectionColors.ForFace(face),
 				legalFaces.Contains(face)));
 		var unitScreenPosition = _camera.UnprojectPosition(
 			WorldMapping.ToWorld(frame.FocusState.Position));
@@ -747,7 +747,12 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		_enemyRangeTether.Apply(player, enemy, closest.SeparationMeters);
+		_enemyRangeTether.Apply(
+			player,
+			enemy,
+			closest.SeparationMeters,
+			frame.PreviewUnits[_battle.PlayerId],
+			frame.PreviewUnits[closest.EnemyId]);
 	}
 
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)

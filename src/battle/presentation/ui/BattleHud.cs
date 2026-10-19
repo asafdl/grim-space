@@ -370,6 +370,7 @@ public partial class BattleHud : Node
 			frame.IsInspecting,
 			frame.CanAct,
 			frame.CanFocusCamera,
+			frame.RangeEnemy is not null,
 			frame.CanUndo,
 			allowEndTurn);
 	}

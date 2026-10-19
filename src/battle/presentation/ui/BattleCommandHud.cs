@@ -17,9 +17,6 @@ public sealed partial class BattleCommandHud : Control
 	private const float ResourceWidth = 154f;
 	private const float ResourceGap = 6f;
 	private const float PortraitSize = 104f;
-	private const float CommandWingWidth = 172f;
-	private const float ConsoleHorizontalMargins = 36f;
-	private const float ConsoleRegionSeparation = 18f;
 	private const string ExecuteFramePath = "res://assets/ui/battle/execute_action_frame.svg";
 	private static readonly Color CommandAccent = new(0.88f, 0.32f, 0.42f, 0.78f);
 
@@ -27,6 +24,8 @@ public sealed partial class BattleCommandHud : Control
 	private readonly List<AbilityCard> _abilityCards = [];
 	private readonly Button _focusButton;
 	private readonly Label _focusHotkey;
+	private readonly Button _cycleTargetButton;
+	private readonly Label _cycleTargetHotkey;
 	private readonly Button _undoButton;
 	private readonly Label _undoHotkey;
 	private readonly Button _executeButton;
@@ -35,11 +34,16 @@ public sealed partial class BattleCommandHud : Control
 	private readonly BattleResourceBar _mpBar;
 	private readonly BattlePortraitHealthBar _healthBar;
 	private readonly BattlePortraitShieldBar _shieldBar;
+	private readonly BattleCommandConsole _console;
+	private readonly HBoxContainer _consoleLayout;
+	private readonly VBoxContainer _commandWing;
+	private readonly MarginContainer _utilityHost;
 	private string? _abilityLayoutKey;
 	private bool _isInspecting;
 
 	public event Action<AbilityHudCatalog.Spec>? AbilityModeRequested;
 	public event Action? FocusRequested;
+	public event Action? CycleTargetRequested;
 	public event Action? ReturnToPlayerRequested;
 	public event Action? UndoRequested;
 	public event Action? ExecuteRequested;
@@ -56,7 +60,7 @@ public sealed partial class BattleCommandHud : Control
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		var console = new BattleCommandConsole
+		_console = new BattleCommandConsole
 		{
 			AnchorLeft = 0f,
 			AnchorTop = 1f,
@@ -69,7 +73,7 @@ public sealed partial class BattleCommandHud : Control
 			GrowHorizontal = GrowDirection.Both,
 			GrowVertical = GrowDirection.Begin,
 		};
-		AddChild(console);
+		AddChild(_console);
 		_shieldBar = new BattlePortraitShieldBar
 		{
 			Name = "PortraitShieldBar",
@@ -102,12 +106,12 @@ public sealed partial class BattleCommandHud : Control
 		AddChild(_healthBar);
 		AddChild(CreatePilotPortrait());
 
-		var consoleLayout = new HBoxContainer
+		_consoleLayout = new HBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		consoleLayout.AddThemeConstantOverride("separation", 18);
-		console.AddChild(consoleLayout);
+		_consoleLayout.AddThemeConstantOverride("separation", 18);
+		_console.AddChild(_consoleLayout);
 
 		MainActions = new HBoxContainer
 		{
@@ -118,19 +122,18 @@ public sealed partial class BattleCommandHud : Control
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 		};
 		MainActions.AddThemeConstantOverride("separation", 8);
-		consoleLayout.AddChild(MainActions);
+		_consoleLayout.AddChild(MainActions);
 
-		var commandWing = new VBoxContainer
+		_commandWing = new VBoxContainer
 		{
 			Name = "CommandWing",
-			CustomMinimumSize = new Vector2(CommandWingWidth, 0f),
 			Alignment = BoxContainer.AlignmentMode.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
-		commandWing.AddThemeConstantOverride("separation", 8);
-		consoleLayout.AddChild(commandWing);
+		_commandWing.AddThemeConstantOverride("separation", 8);
+		_consoleLayout.AddChild(_commandWing);
 
 		UtilityActions = new HBoxContainer
 		{
@@ -140,7 +143,15 @@ public sealed partial class BattleCommandHud : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		UtilityActions.AddThemeConstantOverride("separation", 8);
-		commandWing.AddChild(UtilityActions);
+		_utilityHost = new MarginContainer
+		{
+			Name = "UtilityHost",
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		_utilityHost.AddThemeConstantOverride("margin_left", 10);
+		_utilityHost.AddChild(UtilityActions);
+		_commandWing.AddChild(_utilityHost);
 
 		ExecuteAction = new CenterContainer
 		{
@@ -149,7 +160,7 @@ public sealed partial class BattleCommandHud : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
-		commandWing.AddChild(ExecuteAction);
+		_commandWing.AddChild(ExecuteAction);
 
 		var resourceHost = new MarginContainer
 		{
@@ -196,7 +207,18 @@ public sealed partial class BattleCommandHud : Control
 		_focusHotkey = TacticalActionButtonStyle.AddHotkey(
 			_focusButton,
 			GameInputBindings.PrimaryLabel("battle_focus"));
-		UtilityActions.AddChild(_focusButton);
+		AddUtilityAction(_focusButton);
+
+		_cycleTargetButton = CreateActionButton(
+			"res://assets/ui/battle/enemy_target_reticle.svg",
+			CommandAccent,
+			BattleHudCopy.CycleTargetTooltip,
+			toggleMode: false);
+		_cycleTargetButton.Pressed += () => CycleTargetRequested?.Invoke();
+		_cycleTargetHotkey = TacticalActionButtonStyle.AddHotkey(
+			_cycleTargetButton,
+			GameInputBindings.PrimaryLabel("battle_cycle_enemy"));
+		AddUtilityAction(_cycleTargetButton);
 
 		_undoButton = CreateActionButton(
 			"res://assets/ui/abilities/undo.svg",
@@ -207,7 +229,7 @@ public sealed partial class BattleCommandHud : Control
 		_undoHotkey = TacticalActionButtonStyle.AddHotkey(
 			_undoButton,
 			GameInputBindings.PrimaryLabel("battle_undo"));
-		UtilityActions.AddChild(_undoButton);
+		AddUtilityAction(_undoButton);
 
 		_executeButton = new Button
 		{
@@ -230,7 +252,7 @@ public sealed partial class BattleCommandHud : Control
 		_executeHotkey.OffsetBottom = -1f;
 		_executeHotkey.VerticalAlignment = VerticalAlignment.Bottom;
 		ExecuteAction.AddChild(_executeButton);
-		UpdateConsoleWidth(abilityCount: 0);
+		RefreshCommandWingWidth();
 	}
 
 	public void ApplyResources(
@@ -280,6 +302,7 @@ public sealed partial class BattleCommandHud : Control
 		bool isInspecting,
 		bool canAct,
 		bool cameraFocusAvailable,
+		bool canCycleTarget,
 		bool undoAvailable,
 		bool allowExecute)
 	{
@@ -290,6 +313,7 @@ public sealed partial class BattleCommandHud : Control
 		_focusButton.TooltipText = isInspecting
 			? BattleHudCopy.BackToPlayerTooltip
 			: BattleHudCopy.FocusTooltip;
+		_cycleTargetButton.Disabled = !canCycleTarget;
 		_undoButton.Disabled = isInspecting || !undoAvailable;
 		_executeButton.Disabled = isInspecting || !canAct || !allowExecute;
 	}
@@ -299,6 +323,9 @@ public sealed partial class BattleCommandHud : Control
 		TacticalActionButtonStyle.SetHotkey(
 			_focusHotkey,
 			GameInputBindings.PrimaryLabel("battle_focus"));
+		TacticalActionButtonStyle.SetHotkey(
+			_cycleTargetHotkey,
+			GameInputBindings.PrimaryLabel("battle_cycle_enemy"));
 		TacticalActionButtonStyle.SetHotkey(
 			_undoHotkey,
 			GameInputBindings.PrimaryLabel("battle_undo"));
@@ -493,15 +520,56 @@ public sealed partial class BattleCommandHud : Control
 		button.SetBlockSignals(false);
 	}
 
+	private void AddUtilityAction(Button button)
+	{
+		UtilityActions.AddChild(button);
+		RefreshCommandWingWidth();
+	}
+
+	private void RefreshCommandWingWidth()
+	{
+		var utilityWidth =
+			_utilityHost.GetThemeConstant("margin_left")
+			+ ChildControlsWidth(
+				UtilityActions,
+				UtilityActions.GetThemeConstant("separation"))
+			+ _utilityHost.GetThemeConstant("margin_right");
+		var width = Mathf.Max(
+			utilityWidth,
+			ChildControlsWidth(ExecuteAction, separation: 0));
+		if (width <= 0f)
+			return;
+
+		_commandWing.CustomMinimumSize = new Vector2(width, 0f);
+		_console.SetWingContentWidth(width);
+		UpdateConsoleWidth(_abilityCards.Count);
+	}
+
+	private static float ChildControlsWidth(Node parent, int separation)
+	{
+		var width = 0f;
+		var count = 0;
+		foreach (var child in parent.GetChildren())
+		{
+			if (child is not Control { Visible: true } control)
+				continue;
+
+			width += control.GetCombinedMinimumSize().X;
+			count++;
+		}
+
+		return width + System.Math.Max(0, count - 1) * separation;
+	}
+
 	private void UpdateConsoleWidth(int abilityCount)
 	{
 		var cardCount = abilityCount;
 		var mainWidth = cardCount * SlotSize + System.Math.Max(0, cardCount - 1) * 8f;
 		var width =
-			ConsoleHorizontalMargins
+			_console.HorizontalContentMargins
 			+ mainWidth
-			+ ConsoleRegionSeparation
-			+ CommandWingWidth;
+			+ _consoleLayout.GetThemeConstant("separation")
+			+ _commandWing.CustomMinimumSize.X;
 		CustomMinimumSize = new Vector2(width, ConsoleHeight + ResourceGap + ResourceHeight);
 		OffsetLeft = -width * 0.5f;
 		OffsetRight = width * 0.5f;

@@ -50,6 +50,7 @@ internal static class BattleHudCopy
 	public const string ActionUnavailable = "Action is no longer available";
 
 	public const string FocusTooltip = "Refocus camera on your active unit.";
+	public const string CycleTargetTooltip = "Cycle targeting reticle.";
 	public static string UndoTooltip =>
 		$"Undo your last action this turn.";
 	public const string BackToPlayer = "Back";

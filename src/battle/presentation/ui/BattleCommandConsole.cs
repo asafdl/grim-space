@@ -4,6 +4,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class BattleCommandConsole : MarginContainer
 {
+	private const float DefaultWingContentWidth = 172f;
 	private static readonly Color MainFill = new(0.055f, 0.045f, 0.07f, 0.98f);
 	private static readonly Color DeepFill = new(0.02f, 0.02f, 0.035f, 0.99f);
 	private static readonly Color WingFill = new(0.105f, 0.075f, 0.13f, 0.98f);
@@ -11,6 +12,10 @@ public sealed partial class BattleCommandConsole : MarginContainer
 	private static readonly Color HighlightColor = new(0.84f, 0.79f, 0.86f, 0.62f);
 	private static readonly Color InnerEdgeColor = new(0.37f, 0.3f, 0.42f, 0.72f);
 	private static readonly Color RailGlowColor = new(0.72f, 0.58f, 0.78f, 0.13f);
+	private float _wingContentWidth = DefaultWingContentWidth;
+
+	public float HorizontalContentMargins =>
+		GetThemeConstant("margin_left") + GetThemeConstant("margin_right");
 
 	public BattleCommandConsole()
 	{
@@ -22,11 +27,22 @@ public sealed partial class BattleCommandConsole : MarginContainer
 		AddThemeConstantOverride("margin_bottom", 12);
 	}
 
+	public void SetWingContentWidth(float width)
+	{
+		if (width <= 0f)
+			throw new ArgumentOutOfRangeException(nameof(width));
+		if (Mathf.IsEqualApprox(_wingContentWidth, width))
+			return;
+
+		_wingContentWidth = width;
+		QueueRedraw();
+	}
+
 	public override void _Draw()
 	{
 		var width = Size.X;
 		var height = Size.Y;
-		var wingLeft = width - 190f;
+		var wingLeft = width - GetThemeConstant("margin_right") - _wingContentWidth;
 		var mainTop = 22f;
 		var wingTop = 4f;
 		var sideSlope = 18f;

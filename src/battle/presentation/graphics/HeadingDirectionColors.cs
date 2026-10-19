@@ -5,6 +5,18 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 internal static class HeadingDirectionColors
 {
+	public static Color ForFace(ESpatialOrientation face) =>
+		For(face switch
+		{
+			ESpatialOrientation.Forward => Coord.Forward,
+			ESpatialOrientation.Retro => -Coord.Forward,
+			ESpatialOrientation.Dorsal => Coord.Up,
+			ESpatialOrientation.Ventral => -Coord.Up,
+			ESpatialOrientation.Port => new Coord(-1, 0, 0),
+			ESpatialOrientation.Starboard => new Coord(1, 0, 0),
+			_ => throw new ArgumentOutOfRangeException(nameof(face), face, null),
+		});
+
 	public static Color For(Coord heading) =>
 		heading switch
 		{

@@ -5,22 +5,10 @@
       cy="128"
       r="91"
       stroke="#586d7e"
-      stroke-width="2"
-      opacity="0.72"
+      stroke-width="4"
+      opacity="0.95"
     />
-    <path
-      d="M129 28 A100 100 0 0 1 226 112"
-      stroke="#91a9bc"
-      stroke-width="7"
-      opacity="0.92"
-    />
-    <path
-      d="M127 228 A100 100 0 0 1 30 145"
-      stroke="#91a9bc"
-      stroke-width="7"
-      opacity="0.92"
-    />
-    <path d="M129 20 L129 31" stroke="#91a9bc" stroke-width="5" opacity="0.92"/>
-    <path d="M127 225 L127 236" stroke="#91a9bc" stroke-width="5" opacity="0.92"/>
+    <path d="M129 20 L129 31" stroke="#91a9bc" stroke-width="7" opacity="1"/>
+    <path d="M127 225 L127 236" stroke="#91a9bc" stroke-width="7" opacity="1"/>
   </g>
 </svg>

@@ -1,4 +1,7 @@
 using Godot;
+using GrimSpace.Battle.Player;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -9,8 +12,6 @@ public sealed partial class EnemyRangeTetherView : Node3D
 	private const float TetherMarkLength = 0.22f;
 	private const float TetherMarkSpacing = 0.72f;
 	private const float EndpointChangeThresholdSquared = 0.000001f;
-	private const float ReticleRotationRadiansPerSecond = 0.08f;
-	private const string ReticleTexturePath = "res://assets/ui/battle/enemy_target_reticle.svg";
 
 	private readonly ImmediateMesh _lineMesh = new();
 	private readonly ArrayMesh _gridMesh = new();
@@ -19,7 +20,8 @@ public sealed partial class EnemyRangeTetherView : Node3D
 	private MeshInstance3D _gridVisual = null!;
 	private MeshInstance3D _line = null!;
 	private Label3D _distanceLabel = null!;
-	private Sprite3D _targetReticle = null!;
+	private EnemyTargetInfoOverlay _targetInfo = null!;
+	private Sprite3D _targetInfoVisual = null!;
 	private Node3D? _source;
 	private Node3D? _target;
 	private Vector3? _lastWorldFrom;
@@ -74,33 +76,59 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		};
 		AddChild(_distanceLabel);
 
-		_targetReticle = new Sprite3D
+		var targetInfoViewport = new SubViewport
 		{
-			Name = "TargetReticle",
-			Texture = GD.Load<Texture2D>(ReticleTexturePath)
-				?? throw new InvalidOperationException(
-					$"Could not load enemy target reticle '{ReticleTexturePath}'."),
+			Name = "TargetInfoViewport",
+			Size = new Vector2I(240, 160),
+			TransparentBg = true,
+			Disable3D = true,
+			RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+		};
+		_targetInfo = new EnemyTargetInfoOverlay { Name = "TargetInfo" };
+		targetInfoViewport.AddChild(_targetInfo);
+		AddChild(targetInfoViewport);
+
+		_targetInfoVisual = new Sprite3D
+		{
+			Name = "TargetInfoVisual",
+			Texture = targetInfoViewport.GetTexture(),
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
 			FixedSize = false,
-			PixelSize = 0.014f,
+			PixelSize = 0.023f,
+			TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
 			Shaded = false,
-			Modulate = new Color(0.78f, 0.86f, 0.92f, 0.82f),
 		};
-		AddChild(_targetReticle);
+		AddChild(_targetInfoVisual);
 		Hide();
 	}
 
-	public void Apply(Node3D? source, Node3D? target, float separationMeters)
+	public void Apply(
+		Node3D? source,
+		Node3D? target,
+		float separationMeters,
+		UnitDisplayState? sourceState = null,
+		UnitDisplayState? targetState = null)
 	{
 		_source = source;
 		_target = target;
-		if (source is null || target is null)
+		if (source is null || target is null || sourceState is null || targetState is null)
 		{
 			Hide();
 			return;
 		}
 
 		_distanceLabel.Text = BattleDistance.Format(separationMeters);
+		var shieldFace = targetState.ToBodyFrame().HitFaceFrom(sourceState.Position);
+		var maxShield = targetState.Loadout.MaxShieldPoints[shieldFace];
+		_targetInfo.Set(
+			$"{DisplayName(targetState.Type).ToUpperInvariant()} "
+				+ $"({ShipLoadoutGearTier.FromLoadout(targetState.Loadout, targetState.Type)})",
+			targetState.MaxHullPoints > 0
+				? targetState.HullPoints / (float)targetState.MaxHullPoints
+				: 0f,
+			maxShield > 0
+				? targetState.ShieldPoints[shieldFace] / (float)maxShield
+				: 0f);
 		Show();
 		UpdateVisual();
 	}
@@ -114,9 +142,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			Hide();
 			return;
 		}
-
 		UpdateVisual();
-		_targetReticle.RotateZ(ReticleRotationRadiansPerSecond * (float)delta);
 	}
 
 	private void UpdateVisual()
@@ -146,7 +172,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		}
 		_lineMesh.SurfaceEnd();
 		_distanceLabel.Position = from.Lerp(to, 0.5f);
-		_targetReticle.Position = to;
+		_targetInfoVisual.Position = to;
 
 		_gridMaterial.SetShaderParameter("tether_from", worldFrom);
 		_gridMaterial.SetShaderParameter("tether_to", worldTo);
@@ -251,6 +277,15 @@ public sealed partial class EnemyRangeTetherView : Node3D
 					}
 					""",
 			},
+		};
+
+	private static string DisplayName(EType type) =>
+		type switch
+		{
+			EType.IndustrialGooper => "Industrial Gooper",
+			EType.RepurposedMiner => "Repurposed Miner",
+			EType.VoidBomb => "Void Bomb",
+			_ => type.ToString(),
 		};
 
 	private readonly record struct LatticeBounds(
