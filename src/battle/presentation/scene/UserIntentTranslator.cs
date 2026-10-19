@@ -358,6 +358,9 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		switch (key.Keycode)
 		{
+			case Key.Escape when _isInspecting:
+				OnReturnToPlayer();
+				return true;
 			case Key.Escape when _mode != EPlayerMode.Move:
 				return TryCancelAbilityMode();
 			case Key.Escape when _moveInput.Destination is not null:

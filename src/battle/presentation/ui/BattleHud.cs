@@ -176,7 +176,7 @@ public partial class BattleHud : Node
 		var battleTheme = HudThemes.Load(HudThemeFamily.Battle);
 		topMargin.Theme = battleTheme;
 		_actionLogHost.Theme = battleTheme;
-		OutcomeOverlay.ApplyTheme(battleTheme);
+		OutcomeOverlay.ApplyTheme(HudThemes.Load(HudThemeFamily.MainMenu));
 		PauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.MainMenu));
 		_simulationPhaseBanner.Theme = battleTheme;
 		CommandHud.Theme = battleTheme;

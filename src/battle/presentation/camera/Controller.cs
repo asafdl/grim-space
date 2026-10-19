@@ -12,8 +12,8 @@ public partial class Controller : Camera3D, ICameraRig
 	private static readonly OrbitLimits Limits = new(
 		MinDistance: 8f,
 		MaxDistance: 280f,
-		MinPitch: -0.3f,
-		MaxPitch: 1.25f);
+		MinPitch: Mathf.DegToRad(-89f),
+		MaxPitch: Mathf.DegToRad(89f));
 
 	private const float DefaultDistance = 22f;
 	private const float PivotEpsilon = 0.01f;

@@ -95,7 +95,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 		{
 			Text = BattleHudCopy.OutcomeWin,
 			HorizontalAlignment = HorizontalAlignment.Center,
-			ThemeTypeVariation = "OutcomeTitle",
+			ThemeTypeVariation = "OverlayTitle",
 		};
 		content.AddChild(_title);
 
@@ -112,7 +112,7 @@ public sealed partial class BattleOutcomeOverlay : CanvasLayer
 			CustomMinimumSize = new Vector2(140, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};
-		HudStyles.StyleButton(resetButton, HudActionKind.Primary);
+		HudStyles.StyleMenuNavButton(resetButton);
 		resetButton.Pressed += () => ResetRequested?.Invoke();
 		_actionButton = resetButton;
 		content.AddChild(resetButton);

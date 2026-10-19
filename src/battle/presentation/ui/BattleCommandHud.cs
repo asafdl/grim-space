@@ -38,8 +38,10 @@ public sealed partial class BattleCommandHud : Control
 	private readonly HBoxContainer _consoleLayout;
 	private readonly VBoxContainer _commandWing;
 	private readonly MarginContainer _utilityHost;
+	private readonly MarginContainer _inspectHost;
+	private readonly Button _inspectBackButton;
+	private readonly Label _inspectBackHotkey;
 	private string? _abilityLayoutKey;
-	private bool _isInspecting;
 
 	public event Action<AbilityHudCatalog.Spec>? AbilityModeRequested;
 	public event Action? FocusRequested;
@@ -161,6 +163,35 @@ public sealed partial class BattleCommandHud : Control
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
 		_commandWing.AddChild(ExecuteAction);
+
+		_inspectBackButton = new Button
+		{
+			Text = BattleHudCopy.BackToPlayer.ToUpperInvariant(),
+			CustomMinimumSize = new Vector2(136f, 34f),
+			TooltipText = BattleHudCopy.BackToPlayerTooltip,
+			FocusMode = FocusModeEnum.None,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Alignment = HorizontalAlignment.Center,
+			ClipContents = false,
+		};
+		ApplyExecuteStyles(_inspectBackButton);
+		_inspectBackButton.Pressed += () => ReturnToPlayerRequested?.Invoke();
+		_inspectBackHotkey = TacticalActionButtonStyle.AddHotkey(_inspectBackButton, EscapeHotkeyLabel());
+		_inspectBackHotkey.OffsetLeft = -28f;
+		_inspectBackHotkey.OffsetTop = -12f;
+		_inspectBackHotkey.OffsetRight = -2f;
+		_inspectBackHotkey.OffsetBottom = -1f;
+		_inspectBackHotkey.VerticalAlignment = VerticalAlignment.Bottom;
+		_inspectHost = new MarginContainer
+		{
+			Name = "InspectHost",
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Visible = false,
+		};
+		_inspectHost.AddThemeConstantOverride("margin_left", 10);
+		_inspectHost.AddChild(_inspectBackButton);
+		_commandWing.AddChild(_inspectHost);
 
 		var resourceHost = new MarginContainer
 		{
@@ -306,16 +337,16 @@ public sealed partial class BattleCommandHud : Control
 		bool undoAvailable,
 		bool allowExecute)
 	{
-		_isInspecting = isInspecting;
-		_focusButton.Disabled = isInspecting || !cameraFocusAvailable;
-		if (isInspecting)
-			_focusButton.Disabled = false;
-		_focusButton.TooltipText = isInspecting
-			? BattleHudCopy.BackToPlayerTooltip
-			: BattleHudCopy.FocusTooltip;
+		_utilityHost.Visible = !isInspecting;
+		ExecuteAction.Visible = !isInspecting;
+		_inspectHost.Visible = isInspecting;
+		_focusButton.Disabled = !cameraFocusAvailable;
+		_focusButton.TooltipText = BattleHudCopy.FocusTooltip;
 		_cycleTargetButton.Disabled = !canCycleTarget;
-		_undoButton.Disabled = isInspecting || !undoAvailable;
-		_executeButton.Disabled = isInspecting || !canAct || !allowExecute;
+		_undoButton.Disabled = !undoAvailable;
+		_executeButton.Disabled = !canAct || !allowExecute;
+		_inspectBackButton.Disabled = !isInspecting;
+		RefreshCommandWingWidth();
 	}
 
 	public void RefreshBindingLabels()
@@ -332,6 +363,7 @@ public sealed partial class BattleCommandHud : Control
 		TacticalActionButtonStyle.SetHotkey(
 			_executeHotkey,
 			GameInputBindings.PrimaryLabel("battle_end_turn"));
+		TacticalActionButtonStyle.SetHotkey(_inspectBackHotkey, EscapeHotkeyLabel());
 		for (var i = 0; i < _abilityCards.Count; i++)
 			TacticalActionButtonStyle.SetHotkey(
 				_abilityCards[i].Hotkey,
@@ -405,12 +437,12 @@ public sealed partial class BattleCommandHud : Control
 		}
 	}
 
-	private void OnFocusPressed()
+	private void OnFocusPressed() => FocusRequested?.Invoke();
+
+	private static string EscapeHotkeyLabel()
 	{
-		if (_isInspecting)
-			ReturnToPlayerRequested?.Invoke();
-		else
-			FocusRequested?.Invoke();
+		var label = OS.GetKeycodeString(Key.Escape);
+		return string.IsNullOrEmpty(label) ? "Esc" : label;
 	}
 
 	private static Button CreateActionButton(
@@ -534,8 +566,12 @@ public sealed partial class BattleCommandHud : Control
 				UtilityActions,
 				UtilityActions.GetThemeConstant("separation"))
 			+ _utilityHost.GetThemeConstant("margin_right");
+		var inspectWidth =
+			_inspectHost.GetThemeConstant("margin_left")
+			+ ChildControlsWidth(_inspectHost, separation: 0)
+			+ _inspectHost.GetThemeConstant("margin_right");
 		var width = Mathf.Max(
-			utilityWidth,
+			Mathf.Max(utilityWidth, inspectWidth),
 			ChildControlsWidth(ExecuteAction, separation: 0));
 		if (width <= 0f)
 			return;
