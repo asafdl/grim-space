@@ -29,6 +29,7 @@ using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Scene;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.Battle.Presentation.Scene;
 
@@ -135,7 +136,6 @@ public partial class BattleController : Node3D
 			_strategicBattle = false;
 			_battle = BattleOrchestrator.FromEncounter(encounterOverride);
 			backdropSeed = encounterOverride.Seed;
-			CachePilotIdsFromEncounter(encounterOverride);
 		}
 		else if (_strategicBattle)
 		{
@@ -821,14 +821,33 @@ public partial class BattleController : Node3D
 			.ToList();
 	}
 
+	/// <summary>
+	/// The face shown in the turn order bar. A pilot's own face wins over the
+	/// chassis portrait, so the two sides read as people rather than as
+	/// silhouettes of hull types.
+	/// </summary>
 	private Texture2D? PortraitForUnit(string unitId)
 	{
-		if (_unitTypes.TryGetValue(unitId, out var knownType))
-			return UnitPortraitCatalog.For(knownType);
-
 		var registry = UnitRegistry.For(_battle.Engine.World);
 		if (!registry.TryGet(unitId, out var unit))
-			return null;
+			return _unitTypes.TryGetValue(unitId, out var knownType)
+				? UnitPortraitCatalog.For(knownType)
+				: null;
+
+		var portraitId = _battle.Engine.ActorRuntimes.For(unitId).PortraitId;
+		if (portraitId is not null)
+		{
+			try
+			{
+				var pilotPortrait = ShipPilotPortraitCatalog.TextureFor(portraitId);
+				if (pilotPortrait is not null)
+					return pilotPortrait;
+			}
+			catch (ArgumentException)
+			{
+				// An unknown portrait id falls back to the chassis portrait.
+			}
+		}
 
 		_unitTypes[unitId] = unit.State.Type;
 		return UnitPortraitCatalog.For(unit.State.Type);

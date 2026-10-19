@@ -61,19 +61,30 @@ public sealed class BattleSpawnPilotTests
 		using var run = RunState.CreateNewRun(42);
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		// An engagement needs both sides: the composition check rejects a
+		// player-only fleet, so the test fields a pirate fleet as the opponent.
+		var enemyFleet = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-save-test",
+			new Coord(4, 0, 0),
+			EFaction.Pirates);
+		foreach (var declaration in enemyFleet.Registrations)
+			run.ItemInventory.Register(declaration, enemyFleet.State.Id);
 		var encounter = EngagementBattleFactory.Create(
-			[playerFleet],
+			[playerFleet, enemyFleet],
 			run.ItemInventory,
 			seed: 3,
 			id: "pilot-save-test",
 			initiatorFleetId: playerFleet.State.Id,
 			shipIdToPilotSnapshot: shipToPilot);
-		var expectedPilot = Assert.Single(encounter.Spawns).Pilot;
+		var expectedPilot = Assert.Single(
+			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player)).Pilot;
 
 		var dto = SaveDtoMapper.CaptureBattleEncounter(encounter);
 		var restored = SaveDtoMapper.RestoreBattleEncounter(dto);
 
-		Assert.Equal(expectedPilot, Assert.Single(restored.Spawns).Pilot);
+		Assert.Equal(
+			expectedPilot,
+			Assert.Single(restored.Spawns.Where(spawn => spawn.Team == ETeam.Player)).Pilot);
 	}
 
 	[Fact]
@@ -109,8 +120,16 @@ public sealed class BattleSpawnPilotTests
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		// An engagement needs both sides: the composition check rejects a
+		// player-only fleet, so the test fields a pirate fleet as the opponent.
+		var enemyFleet = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-multi-test",
+			new Coord(4, 0, 0),
+			EFaction.Pirates);
+		foreach (var declaration in enemyFleet.Registrations)
+			run.ItemInventory.Register(declaration, enemyFleet.State.Id);
 		var encounter = EngagementBattleFactory.Create(
-			[playerFleet],
+			[playerFleet, enemyFleet],
 			run.ItemInventory,
 			seed: 11,
 			id: "multi-pilot-test",

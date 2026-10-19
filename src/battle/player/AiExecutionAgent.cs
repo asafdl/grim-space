@@ -34,7 +34,9 @@ public sealed class AiExecutionAgent
 			try
 			{
 				var actor = UnitRegistry.For(Sim.World).UnitOf(_actorId!);
-				var capabilities = AiController.SearchCapabilities(actor.State);
+				var capabilities = AiController.SearchCapabilities(
+					actor.State,
+					Sim.RuntimeFor(actor.State.Id));
 				var actions = Runner.CalcActions(
 					Sim,
 					actor,

@@ -111,7 +111,7 @@ public static async Task<BattleResult> RunAsync(
 		playerSpawn = new BattleSpawn
 		{
 			Ship = playerSpawn.Ship,
-			PilotId = playerSpawn.PilotId,
+			Pilot = playerSpawn.Pilot,
 			Team = playerSpawn.Team,
 			Position = playerPos,
 			Fore = new Coord(1, 0, 0),
@@ -122,7 +122,7 @@ public static async Task<BattleResult> RunAsync(
 		enemySpawn = new BattleSpawn
 		{
 			Ship = enemySpawn.Ship,
-			PilotId = enemySpawn.PilotId,
+			Pilot = enemySpawn.Pilot,
 			Team = enemySpawn.Team,
 			Position = enemyPos,
 			Fore = new Coord(-1, 0, 0),

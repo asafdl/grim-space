@@ -91,7 +91,7 @@ public partial class UnitTest : Node3D
 		}
 		
 		var asteroidViewInstance = new BoardAsteroidView();
-		asteroidViewInstance.Build(asteroids);
+		asteroidViewInstance.Build(mainCamera, asteroids);
 		hazardsRoot.AddChild(asteroidViewInstance);
 		GD.Print("UnitTest: BoardAsteroidView added");
 		
