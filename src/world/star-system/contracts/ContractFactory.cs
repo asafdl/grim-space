@@ -167,13 +167,9 @@ public static class ContractFactory
 
 	private static Contract BuildDelivery(StarMap map, string contractId, DeliveryCreateArgs args)
 	{
-		ArgumentException.ThrowIfNullOrEmpty(args.PickupPoiId);
-
 		var config = args.Generation ?? DeliveryGenerationConfig.Default;
-		var objective = new DeliveryObjective(
-			args.PickupPoiId,
-			ResolveDeliveryRoute(map, args, contractId),
-			config);
+		var (pickupPoiId, route) = ResolveDelivery(map, args, contractId);
+		var objective = new DeliveryObjective(pickupPoiId, route, config);
 
 		return new Contract(
 			contractId,
@@ -189,7 +185,7 @@ public static class ContractFactory
 			args.IsStoryObjective);
 	}
 
-	private static DeliveryRoute ResolveDeliveryRoute(
+	private static (string PickupPoiId, DeliveryRoute Route) ResolveDelivery(
 		StarMap map,
 		DeliveryCreateArgs args,
 		string contractId)
@@ -202,6 +198,9 @@ public static class ContractFactory
 			var legCount = args.Generation?.FacilityLegCount ?? 1;
 			var legs = new List<DeliveryLeg>(legCount);
 			var excludedPoiIds = new HashSet<string>(StringComparer.Ordinal);
+			if (!string.IsNullOrEmpty(args.PickupPoiId))
+				excludedPoiIds.Add(args.PickupPoiId);
+
 			for (var legIndex = 0; legIndex < legCount; legIndex++)
 			{
 				if (legIndex < legCount - 1
@@ -218,7 +217,6 @@ public static class ContractFactory
 
 				var dropoff = DeliveryDropoffPicker.Pick(
 					map,
-					args.PickupPoiId,
 					contractId,
 					$"delivery-route-leg-{legIndex}",
 					excludedPoiIds);
@@ -229,7 +227,11 @@ public static class ContractFactory
 				excludedPoiIds.Add(dropoff.PoiId);
 			}
 
-			return new DeliveryRoute(legs);
+			var route = new DeliveryRoute(legs);
+			var pickupPoiId = !string.IsNullOrEmpty(args.PickupPoiId)
+				? args.PickupPoiId
+				: PickDeliveryPickupPoiId(map, contractId, excludedPoiIds);
+			return (pickupPoiId, route);
 		}
 
 		if (args.Generation?.FacilityLegCount > 1)
@@ -244,11 +246,32 @@ public static class ContractFactory
 				"Delivery dropoff override requires PoiId, FacilityId, and OperatorName.",
 				nameof(args));
 
-		return new DeliveryRoute(
+		var overrideRoute = new DeliveryRoute(
 			[new FacilityDeliveryLeg(
 				args.DropoffPoiId,
 				args.DropoffFacilityId,
 				args.DropoffOperatorName)]);
+		return (args.PickupPoiId!, overrideRoute);
+	}
+
+	private static string PickDeliveryPickupPoiId(
+		StarMap map,
+		string contractId,
+		IReadOnlySet<string> excludedPoiIds)
+	{
+		var candidates = map.PointsOfInterest
+			.Where(poi => poi.HasDock && poi.Facilities.Count > 0)
+			.Where(poi => !excludedPoiIds.Contains(poi.Id))
+			.Select(poi => poi.Id)
+			.Order(StringComparer.Ordinal)
+			.ToArray();
+		if (candidates.Length == 0)
+			throw new InvalidOperationException(
+				$"No delivery pickup candidates for map seed {map.Seed} with {excludedPoiIds.Count} excluded POI(s).");
+
+		var random = new StableRandom(
+			StableSeedMixer.From(map.Seed).Add("delivery-pickup").Add(contractId).Value);
+		return candidates[(int)(random.NextDouble() * candidates.Length)];
 	}
 
 	private static bool ShouldGenerateSpaceMeeting(

@@ -26,9 +26,9 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 		var dropoffFacilityId = Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug);
 		var dropoffOperatorName = MapFacilityOperators.TravelOperatorName(map);
 		var args = new DeliveryCreateArgs(
-			plan.StoragePoiId,
 			EDangerLevel.VeryLow,
 			ContractNarrative.ForDelivery("Test Delivery", "Pick up here.", "Drop off there."),
+			PickupPoiId: plan.StoragePoiId,
 			DropoffPoiId: dropoffPoiId,
 			DropoffFacilityId: dropoffFacilityId,
 			DropoffOperatorName: dropoffOperatorName);
@@ -65,7 +65,6 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var args = new DeliveryCreateArgs(
-			map.Blueprint.SupplyPlan.StoragePoiId,
 			EDangerLevel.VeryLow,
 			ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
 			Generation: new DeliveryGenerationConfig(2));
@@ -95,6 +94,7 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 		var finalFacility = finalPoi.GetFacility(finalLeg.FacilityId);
 		Assert.Contains(firstFacility.DisplayName, ContractDisplay.SearchArea(firstContract, map));
 		Assert.DoesNotContain(finalFacility.DisplayName, ContractDisplay.SearchArea(firstContract, map));
+		Assert.DoesNotContain(first.PickupPoiId, first.Route.Legs.OfType<FacilityDeliveryLeg>().Select(leg => leg.PoiId));
 	}
 
 	[Fact]
@@ -102,9 +102,9 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 		var args = new DeliveryCreateArgs(
-			map.Blueprint.SupplyPlan.StoragePoiId,
 			EDangerLevel.Moderate,
 			ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+			PickupPoiId: map.Blueprint.SupplyPlan.StoragePoiId,
 			Generation: new DeliveryGenerationConfig(3, spaceMeetingChance: 1.0));
 
 		var first = Assert.IsType<DeliveryObjective>(
@@ -151,9 +151,9 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 			"delivery-display",
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				plan.StoragePoiId,
 				EDangerLevel.VeryLow,
 				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				PickupPoiId: plan.StoragePoiId,
 				DropoffPoiId: dropoff.Id,
 				DropoffFacilityId: facility.Id,
 				DropoffOperatorName: facility.Operators[0].Name));

@@ -14,9 +14,9 @@ public sealed record HuntCreateArgs(
 	bool IsStoryObjective = false) : ContractCreateArgs;
 
 public sealed record DeliveryCreateArgs(
-	string PickupPoiId,
 	EDangerLevel Danger,
 	ContractNarrative Narrative,
+	string? PickupPoiId = null,
 	bool IsStoryObjective = false,
 	string? DropoffPoiId = null,
 	string? DropoffFacilityId = null,

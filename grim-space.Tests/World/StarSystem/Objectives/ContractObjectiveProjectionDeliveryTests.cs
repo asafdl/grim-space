@@ -40,9 +40,9 @@ public sealed class ContractObjectiveProjectionDeliveryTests(StarMapFixture maps
 			"delivery-meeting-objective",
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				map.Blueprint.SupplyPlan.StoragePoiId,
 				EDangerLevel.Moderate,
 				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				PickupPoiId: map.Blueprint.SupplyPlan.StoragePoiId,
 				Generation: new DeliveryGenerationConfig(2, spaceMeetingChance: 1.0)));
 
 		var meeting = Assert.IsType<SpaceMeetingDeliveryLeg>(

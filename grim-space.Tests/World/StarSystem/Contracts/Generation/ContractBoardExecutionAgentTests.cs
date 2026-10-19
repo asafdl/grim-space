@@ -620,6 +620,37 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Reconcile_DeliveryContract_DoesNotAssignTurnInPoiAsGiver()
+	{
+		var map = maps.Fresh(42);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig
+			{
+				TargetGeneratedCount = 6,
+				HuntKindWeight = 0f,
+				DeliveryKindWeight = 1f,
+				WreckageKindWeight = 0f,
+			},
+		};
+		var action = PlanAtTick(map, tick: 1, generationEnabled: true, config);
+		Assert.NotNull(action);
+		CreateEngine(map).Commit(action);
+		ReconcilePresentations(map, config);
+
+		foreach (var contract in map.ContractRegistry.Pending.Where(contract =>
+			contract.Objective is DeliveryObjective))
+		{
+			var delivery = (DeliveryObjective)contract.Objective;
+			var assignment = Assert.Single(
+				ContractAssignments(map),
+				item => item.Assignment.SourceIds.Contains(contract.Id));
+			Assert.NotEqual(delivery.TurnInPoiId, assignment.PoiId);
+		}
+	}
+
+	[Fact]
 	public void Plan_WreckageOnlyWeight_CanProduceWreckageContracts()
 	{
 		var map = maps.Fresh(55);

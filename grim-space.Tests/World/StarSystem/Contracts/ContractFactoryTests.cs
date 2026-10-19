@@ -65,9 +65,9 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		var (_, _, _, operatorName) = TutorialBeatContracts.BeatBDropoff(map);
 		var deliveryArgs = new DeliveryCreateArgs(
-			map.Blueprint.SupplyPlan.StoragePoiId,
 			EDangerLevel.VeryLow,
 			ContractNarrative.ForDelivery("x", "y", "z"),
+			PickupPoiId: map.Blueprint.SupplyPlan.StoragePoiId,
 			DropoffOperatorName: operatorName);
 
 		Assert.Throws<ArgumentException>(() =>

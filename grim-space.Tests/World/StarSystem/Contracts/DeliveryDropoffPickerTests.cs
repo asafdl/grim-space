@@ -15,8 +15,9 @@ public sealed class DeliveryDropoffPickerTests(StarMapFixture maps)
 		var plan = map.Blueprint.SupplyPlan;
 		const string contractId = "contract-test-dropoff";
 
-		var first = DeliveryDropoffPicker.Pick(map, plan.StoragePoiId, contractId);
-		var second = DeliveryDropoffPicker.Pick(map, plan.StoragePoiId, contractId);
+		var excluded = new HashSet<string>(StringComparer.Ordinal) { plan.StoragePoiId };
+		var first = DeliveryDropoffPicker.Pick(map, contractId, "delivery-dropoff", excluded);
+		var second = DeliveryDropoffPicker.Pick(map, contractId, "delivery-dropoff", excluded);
 
 		Assert.Equal(first, second);
 	}
@@ -29,7 +30,8 @@ public sealed class DeliveryDropoffPickerTests(StarMapFixture maps)
 
 		for (var index = 0; index < 8; index++)
 		{
-			var dropoff = DeliveryDropoffPicker.Pick(map, plan.StoragePoiId, $"contract-{index}");
+			var excluded = new HashSet<string>(StringComparer.Ordinal) { plan.StoragePoiId };
+			var dropoff = DeliveryDropoffPicker.Pick(map, $"contract-{index}", "delivery-dropoff", excluded);
 			Assert.NotEqual(plan.StoragePoiId, dropoff.PoiId);
 		}
 	}

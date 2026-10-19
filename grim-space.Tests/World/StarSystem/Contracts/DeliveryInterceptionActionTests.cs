@@ -503,9 +503,9 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 			contractId,
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				plan.StoragePoiId,
 				EDangerLevel.Moderate,
 				ContractNarrative.ForDelivery("Delivery", "Pickup.", "Dropoff."),
+				PickupPoiId: plan.StoragePoiId,
 				DropoffPoiId: plan.ExitPoiId,
 				DropoffFacilityId: Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
 				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map)));

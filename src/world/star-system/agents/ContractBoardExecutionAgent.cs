@@ -206,6 +206,13 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		int tick,
 		string contractId)
 	{
+		if (!map.ContractRegistry.TryGet(contractId, out var contract))
+			return null;
+
+		var deliveryTurnInPoiId = contract.Objective is DeliveryObjective delivery
+			? delivery.TurnInPoiId
+			: null;
+
 		var current = ListRoleOperators(map, EFacilityOperatorRole.Contracts);
 		var viable = current
 			.Where(item => IsActiveContractOperator(map, item.Location))
@@ -214,6 +221,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				|| tick < item.Assignment.AcceptsSourcesUntilTick)
 			.Where(item => !IsPlacementPaused(map, item.Location, tick))
 			.Where(item => item.Assignment.SourceIds.Count < _config.PreferredContractsPerGiver)
+			.Where(item => !IsDeliveryTurnInPoi(deliveryTurnInPoiId, item.Location))
 			.ToArray();
 		if (viable.Length > 0)
 		{
@@ -227,6 +235,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				or EFacilityOperatorRole.HealingStation))
 			.Where(candidate => !HasTemporaryRole(map, candidate.Location))
 			.Where(candidate => !IsPlacementPaused(map, candidate.Location, tick))
+			.Where(candidate => !IsDeliveryTurnInPoi(deliveryTurnInPoiId, candidate.Location))
 			.ToArray();
 		if (eligible.Length > 0)
 		{
@@ -237,6 +246,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		var fallback = current
 			.Where(item => IsActiveContractOperator(map, item.Location))
 			.Where(item => !IsPlacementPaused(map, item.Location, tick))
+			.Where(item => !IsDeliveryTurnInPoi(deliveryTurnInPoiId, item.Location))
 			.ToArray();
 		if (fallback.Length == 0)
 			return null;
@@ -393,6 +403,10 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			location.FacilityId,
 			location.OperatorName,
 			tick);
+
+	private static bool IsDeliveryTurnInPoi(string? turnInPoiId, OperatorLocation location) =>
+		turnInPoiId is not null
+		&& string.Equals(turnInPoiId, location.PoiId, StringComparison.Ordinal);
 
 	private static T Pick<T>(
 		IReadOnlyList<T> candidates,
@@ -657,7 +671,6 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 	{
 		var narrative = _narrativePicker.Pick(map, EContractKind.Delivery, tick, slot);
 		return new DeliveryCreateArgs(
-			PickDeliveryPickupPoiId(map, tick, slot),
 			danger,
 			narrative,
 			Generation: new DeliveryGenerationConfig(
@@ -691,21 +704,6 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				BorderReferenceConfig: new AreaBorderReferenceConfig()),
 			danger,
 			narrative);
-	}
-
-	private static string PickDeliveryPickupPoiId(StarMap map, int tick, int slot)
-	{
-		var candidates = map.PointsOfInterest
-			.Where(poi => poi.HasDock && poi.Facilities.Count > 0)
-			.Select(poi => poi.Id)
-			.Order(StringComparer.Ordinal)
-			.ToArray();
-		if (candidates.Length == 0)
-			throw new InvalidOperationException("Delivery generation requires at least one facility POI.");
-
-		var random = new StableRandom(
-			StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("delivery-pickup").Value);
-		return candidates[(int)(random.NextDouble() * candidates.Length)];
 	}
 
 	private sealed record OperatorLocation(

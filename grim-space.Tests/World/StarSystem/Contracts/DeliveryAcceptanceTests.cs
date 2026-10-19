@@ -104,9 +104,9 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 			"delivery-accept-timeline",
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				plan.StoragePoiId,
 				EDangerLevel.Moderate,
 				ContractNarrative.ForDelivery("Delivery", "Pickup.", "Dropoff."),
+				PickupPoiId: plan.StoragePoiId,
 				DropoffPoiId: plan.ExitPoiId,
 				DropoffFacilityId: Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
 				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map),
@@ -194,9 +194,9 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 			"delivery-deadline",
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				plan.StoragePoiId,
 				EDangerLevel.Moderate,
 				ContractNarrative.ForDelivery("Delivery", "Pickup.", "Dropoff."),
+				PickupPoiId: plan.StoragePoiId,
 				DropoffPoiId: plan.ExitPoiId,
 				DropoffFacilityId: Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
 				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map),

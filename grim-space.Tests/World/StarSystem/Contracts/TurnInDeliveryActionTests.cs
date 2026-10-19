@@ -157,9 +157,9 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 			map,
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				map.Blueprint.SupplyPlan.StoragePoiId,
 				EDangerLevel.Moderate,
 				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				PickupPoiId: map.Blueprint.SupplyPlan.StoragePoiId,
 				Generation: new DeliveryGenerationConfig(2, spaceMeetingChance: 1.0)));
 		var meeting = Assert.IsType<SpaceMeetingDeliveryLeg>(
 			((DeliveryObjective)contract.Objective).Route.Legs[0]);
@@ -196,9 +196,9 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 			map,
 			EContractKind.Delivery,
 			new DeliveryCreateArgs(
-				map.Blueprint.SupplyPlan.StoragePoiId,
 				EDangerLevel.Moderate,
 				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				PickupPoiId: map.Blueprint.SupplyPlan.StoragePoiId,
 				Generation: new DeliveryGenerationConfig(
 					facilityLegCount: 2,
 					spaceMeetingChance: 0,
