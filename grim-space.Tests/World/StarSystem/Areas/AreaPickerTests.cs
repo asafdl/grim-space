@@ -188,6 +188,31 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 				ResolveIntelReferencePosition(map, intel.LandmarkAId),
 				ResolveIntelReferencePosition(map, intel.LandmarkBId)) <= mapSize * 0.15);
 		}
+		else if (intel.Template == "Along the sector edge near {A}.")
+		{
+			Assert.True(MapLandmarkQueries.TryGet(map, intel.LandmarkAId, out _));
+			Assert.True(
+				AreaBorderAnchor.TryParseId(intel.LandmarkBId, out _)
+				|| AreaBorderAnchor.TryParseId(intel.LandmarkCId, out _));
+			var anchor = ResolveIntelReferencePosition(map, intel.LandmarkAId);
+			var borderPositions = new[] { intel.LandmarkAId, intel.LandmarkBId, intel.LandmarkCId }
+				.Where(id => AreaBorderAnchor.TryParseId(id, out _))
+				.Select(id =>
+				{
+					AreaBorderAnchor.TryParseId(id, out var border);
+					return border;
+				})
+				.Distinct()
+				.ToArray();
+			if (borderPositions.Length >= 2)
+			{
+				Assert.True(IsInsideTriangle(point, anchor, borderPositions[0], borderPositions[1]));
+			}
+			else
+			{
+				Assert.True(RouteGeometry.Distance(point, anchor) <= mapSize * 0.55);
+			}
+		}
 		else
 		{
 			Assert.StartsWith("Somewhere in the general area between ", intel.Template, StringComparison.Ordinal);
@@ -201,5 +226,18 @@ public sealed class AreaPickerTests(StarMapFixture maps)
 		if (AreaBorderAnchor.TryParseId(id, out var border))
 			return border;
 		throw new InvalidOperationException($"Unknown intel reference '{id}'.");
+	}
+
+	private static bool IsInsideTriangle(Coord point, Coord a, Coord b, Coord c)
+	{
+		static double Sign(Coord p1, Coord p2, Coord p3) =>
+			(p1.X - p3.X) * (p2.Z - p3.Z) - (p2.X - p3.X) * (p1.Z - p3.Z);
+
+		var d1 = Sign(point, a, b);
+		var d2 = Sign(point, b, c);
+		var d3 = Sign(point, c, a);
+		var hasNegative = d1 < 0 || d2 < 0 || d3 < 0;
+		var hasPositive = d1 > 0 || d2 > 0 || d3 > 0;
+		return !(hasNegative && hasPositive);
 	}
 }

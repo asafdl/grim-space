@@ -87,7 +87,8 @@ public sealed class BeginEngagementTests
 			run.ItemInventory,
 			231,
 			"test-engagement",
-			playerFleet.State.Id);
+			playerFleet.State.Id,
+			canonicalLayout: true);
 		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
@@ -111,7 +112,8 @@ public sealed class BeginEngagementTests
 			run.ItemInventory,
 			seed: 231,
 			id: "test-engagement",
-			initiatorFleetId: pirateFleet.State.Id);
+			initiatorFleetId: pirateFleet.State.Id,
+			canonicalLayout: true);
 		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
