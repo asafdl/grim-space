@@ -27,8 +27,6 @@ public partial class KeyBindingsTab : Control
 		new(
 			"Move placement",
 			[
-				"battle_move_confirm",
-				"battle_move_cancel",
 				"battle_roll_clockwise",
 				"battle_roll_counterclockwise",
 			]),

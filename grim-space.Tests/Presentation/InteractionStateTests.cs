@@ -144,7 +144,7 @@ public sealed class InteractionStateTests
 	}
 
 	[Fact]
-	public void CompleteMoveSelectionEndsDragWithoutClearingPoseHits()
+	public void CompleteMoveSelectionEndsPoseSelectionWithoutClearingPoseHits()
 	{
 		var state = new InteractionState();
 		state.RefreshPoseHitOpportunities(
@@ -153,7 +153,7 @@ public sealed class InteractionStateTests
 
 		state.CompleteMoveSelection();
 
-		Assert.False(state.IsMoveDragging);
+		Assert.False(state.IsMovePoseSelectionActive);
 		Assert.Null(state.MoveDestination);
 		Assert.Single(state.PoseHitOpportunities);
 	}

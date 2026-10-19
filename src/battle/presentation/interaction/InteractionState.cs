@@ -22,7 +22,7 @@ public sealed class InteractionState
 	public Coord? MoveDestination { get; private set; }
 	public GridBasis? RequestedMoveBasis { get; private set; }
 	public int MoveRollQuarters { get; private set; }
-	public bool IsMoveDragging { get; private set; }
+	public bool IsMovePoseSelectionActive { get; private set; }
 	public string? ActionError { get; private set; }
 
 	public void FocusUnit(string unitId)
@@ -71,7 +71,7 @@ public sealed class InteractionState
 		MoveDestination = destination;
 		RequestedMoveBasis = basis;
 		MoveRollQuarters = MovePose.RollQuarters(basis);
-		IsMoveDragging = true;
+		IsMovePoseSelectionActive = true;
 		ActionError = null;
 	}
 
@@ -90,7 +90,7 @@ public sealed class InteractionState
 		MoveDestination = null;
 		RequestedMoveBasis = null;
 		MoveRollQuarters = 0;
-		IsMoveDragging = false;
+		IsMovePoseSelectionActive = false;
 		ActionError = null;
 	}
 
@@ -110,7 +110,7 @@ public sealed class InteractionState
 
 	public void ReportActionFailure()
 	{
-		IsMoveDragging = false;
+		IsMovePoseSelectionActive = false;
 		ActionError = BattleHudCopy.ActionUnavailable;
 	}
 

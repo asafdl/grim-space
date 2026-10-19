@@ -32,6 +32,7 @@ public sealed class MoveUiTests
 		Assert.Equal(option.ResultState.Fore, frame.MoveGhostState.Fore);
 		Assert.Equal(option.ResultState.Dorsal, frame.MoveGhostState.Dorsal);
 		Assert.Equal(option.ResultState.ActionPoints, frame.MoveGhostState.ActionPoints);
+		Assert.True(frame.CanUndo);
 		Assert.False(frame.Instruction.Visible);
 	}
 
@@ -127,7 +128,7 @@ public sealed class MoveUiTests
 	}
 
 	[Fact]
-	public void FailedMoveQueueKeepsStagedPoseAndEndsDrag()
+	public void FailedMoveQueueKeepsStagedPoseAndEndsPoseSelection()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
@@ -141,7 +142,7 @@ public sealed class MoveUiTests
 
 		Assert.Equal(option.EndPosition, frame.MoveDestination);
 		Assert.Equal(option.EndBasis, frame.SelectedMove?.EndBasis);
-		Assert.False(frame.IsMoveDragging);
+		Assert.False(frame.IsMovePoseSelectionActive);
 		Assert.True(frame.Instruction.Visible);
 		Assert.Equal(BattleHudCopy.ActionUnavailable, frame.Instruction.Label);
 	}
@@ -185,7 +186,7 @@ public sealed class MoveUiTests
 
 		Assert.Null(state.MoveDestination);
 		Assert.Null(state.RequestedMoveBasis);
-		Assert.False(state.IsMoveDragging);
+		Assert.False(state.IsMovePoseSelectionActive);
 	}
 
 	[Fact]
@@ -306,7 +307,7 @@ public sealed class MoveUiTests
 		var frame = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
 		Assert.NotEmpty(frame.PoseHitOpportunities);
-		Assert.False(frame.IsMoveDragging);
+		Assert.False(frame.IsMovePoseSelectionActive);
 	}
 
 	[Fact]

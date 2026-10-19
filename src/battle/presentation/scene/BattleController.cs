@@ -290,7 +290,7 @@ public partial class BattleController : Node3D
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
 
 		if (_battleHud.IsMountSelectorOpen)
-			_battleHud.MoveMountSelector(_camera.UnprojectPosition(GetPlayerRenderedPosition()));
+			ApplyMountSelector(_currentFrame);
 		UpdateAsteroidOcclusionTargets(_currentFrame);
 		var meshUpdates = _cellVolumeMeshes.Pump(_currentFrame.SimulationTick);
 		foreach (var failure in meshUpdates.Failures)
@@ -546,7 +546,7 @@ public partial class BattleController : Node3D
 			moveHoveredCell: _frames.Interaction.MoveHoveredCell,
 			selectedMove: frame.SelectedMove,
 			moveDestination: frame.MoveDestination,
-			moveDragging: frame.IsMoveDragging,
+			movePoseSelectionActive: frame.IsMovePoseSelectionActive,
 			abilityChoices: frame.AbilityChoices,
 			abilityHoveredIndex: frame.AbilityHoveredIndex,
 			reopenMoveCell: frame.ReopenMoveCell);
@@ -727,11 +727,32 @@ public partial class BattleController : Node3D
 		var legalFaces = frame.AbilityChoices
 			.Select(choice => choice.MountedOn!.Value)
 			.ToHashSet();
+		var bodyFrame = frame.FocusState.ToBodyFrame();
+		var faceDirections = Enum.GetValues<ESpatialOrientation>()
+			.ToDictionary(face => face, bodyFrame.Step);
+		var handles = MovementSelection.ProjectHeadingHandles(
+			_camera,
+			frame.FocusState.Position,
+			faceDirections.Values.ToArray());
+		if (handles.Count != faceDirections.Count)
+		{
+			_battleHud.HideMountSelector();
+			return;
+		}
+
+		var handlesByDirection = handles.ToDictionary(handle => handle.Heading);
 		var options = Enum.GetValues<ESpatialOrientation>()
-			.Select(face => new MountFaceSelectorOption(
-				face,
-				HeadingDirectionColors.ForFace(face),
-				legalFaces.Contains(face)));
+			.Select(face =>
+			{
+				var handle = handlesByDirection[faceDirections[face]];
+				return new MountFaceSelectorOption(
+					face,
+					HeadingDirectionColors.ForFace(face),
+					legalFaces.Contains(face),
+					handle.Position,
+					handle.Rotation,
+					handle.Kind);
+			});
 		var unitScreenPosition = _camera.UnprojectPosition(
 			WorldMapping.ToWorld(frame.FocusState.Position));
 		_battleHud.ShowMountSelector(unitScreenPosition, options);

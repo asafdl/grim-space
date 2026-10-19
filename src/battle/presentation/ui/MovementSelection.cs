@@ -49,34 +49,49 @@ public static class MovementSelection
 		return null;
 	}
 
-	public static Coord? PickHeading(
+	public static Coord? PickHeadingHandle(
 		Camera3D camera,
 		Vector2 screenPos,
 		Coord destination,
-		IReadOnlyList<Coord> reachableHeadings)
+		IReadOnlyCollection<Coord> reachableHeadings)
+	{
+		Coord? closest = null;
+		var closestDistanceSquared =
+			ProjectedDirectionHandleRenderer.HitRadius
+			* ProjectedDirectionHandleRenderer.HitRadius;
+		foreach (var handle in ProjectHeadingHandles(
+			camera,
+			destination,
+			reachableHeadings))
+		{
+			var distanceSquared = screenPos.DistanceSquaredTo(handle.Position);
+			if (distanceSquared > closestDistanceSquared)
+				continue;
+
+			closest = handle.Heading;
+			closestDistanceSquared = distanceSquared;
+		}
+
+		return closest;
+	}
+
+	public static bool IsOutsideHeadingPicker(
+		Camera3D camera,
+		Vector2 screenPos,
+		Coord destination,
+		IReadOnlyCollection<Coord> reachableHeadings)
 	{
 		var centerWorld = WorldMapping.ToWorld(destination);
 		if (camera.IsPositionBehind(centerWorld))
-			return null;
+			return true;
 
 		var center = camera.UnprojectPosition(centerWorld);
-		var drag = screenPos - center;
-		if (drag.LengthSquared() < 16f)
-			return null;
-
-		Coord? best = null;
-		var bestDot = float.NegativeInfinity;
-		foreach (var handle in ProjectHeadingHandles(camera, destination, reachableHeadings))
-		{
-			var axis = handle.Position - center;
-			var dot = drag.Normalized().Dot(axis.Normalized());
-			if (dot <= bestDot)
-				continue;
-			bestDot = dot;
-			best = handle.Heading;
-		}
-
-		return best;
+		var handles = ProjectHeadingHandles(camera, destination, reachableHeadings);
+		var pickerRadius = handles.Count == 0
+			? ProjectedDirectionHandleRenderer.HitRadius
+			: handles.Max(handle => handle.Position.DistanceTo(center))
+				+ ProjectedDirectionHandleRenderer.HitRadius * 1.5f;
+		return screenPos.DistanceSquaredTo(center) > pickerRadius * pickerRadius;
 	}
 
 	public static IReadOnlyList<HeadingHandle> ProjectHeadingHandles(

@@ -30,6 +30,7 @@ public sealed class AbilityInstructionFrameTests
 
 		Assert.True(frame.Instruction.Visible);
 		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
+		Assert.True(frame.CanUndo);
 	}
 
 	[Fact]

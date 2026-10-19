@@ -473,16 +473,6 @@ public static class GameInputBindings
 			"Select / activate",
 			KeyBinding.Mouse(MouseButton.Left),
 			conflictGroup: "battle_lmb_press"),
-		BattleMouse(
-			"battle_move_confirm",
-			"Confirm move (release)",
-			KeyBinding.Mouse(MouseButton.Left),
-			conflictGroup: "battle_lmb_release"),
-		BattleMouse(
-			"battle_move_cancel",
-			"Cancel move",
-			KeyBinding.Mouse(MouseButton.Right),
-			conflictGroup: "battle_move_cancel"),
 		BattleAny(
 			"battle_roll_clockwise",
 			"Roll clockwise",

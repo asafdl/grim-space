@@ -242,14 +242,17 @@ public sealed class PresentationFrameBuilder
 			MoveDestination = state.MoveDestination,
 			MoveGhostState = activeMovePreview?.ResultState,
 			ReachableMoveHeadings = reachableMoveHeadings,
-			IsMoveDragging = state.IsMoveDragging,
+			IsMovePoseSelectionActive = state.IsMovePoseSelectionActive,
 			SimulationTick = battle.TurnNumber,
 			TurnNumber = battle.Phase == EBattlePhase.Replaying
 				? battle.TurnNumber - 1
 				: battle.TurnNumber,
 			CanAct = canControl,
 			CanFocusCamera = canControl && isPlanning,
-			CanUndo = canControl && agent.CanUndo,
+			CanUndo = canControl
+				&& (state.Mode != EPlayerMode.Move
+					|| state.IsMovePoseSelectionActive
+					|| agent.CanUndo),
 			ShowOutcomeOverlay = battle.Phase == EBattlePhase.BattleOver,
 			ShowWeaponPreviews = showWeaponPreviews,
 			ActionLogEntries = ActionLogEntries,

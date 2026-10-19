@@ -50,7 +50,7 @@ public sealed partial class UserIntentTranslator : Node
 		Coord? Destination,
 		IReadOnlyList<GridBasis> ReachableBases,
 		IReadOnlyList<Coord> ReachableHeadings,
-		bool IsDragging);
+		bool IsPoseSelectionActive);
 
 	public UserIntentTranslator(
 		string actorId,
@@ -107,7 +107,7 @@ public sealed partial class UserIntentTranslator : Node
 		Coord? moveHoveredCell,
 		MovePathOption? selectedMove,
 		Coord? moveDestination,
-		bool moveDragging,
+		bool movePoseSelectionActive,
 		IReadOnlyList<AbilityActivationChoice> abilityChoices,
 		int? abilityHoveredIndex,
 		Coord? reopenMoveCell)
@@ -137,7 +137,7 @@ public sealed partial class UserIntentTranslator : Node
 			.Select(basis => basis.Forward)
 			.Distinct()
 			.ToList(),
-			moveDragging);
+			movePoseSelectionActive);
 
 		if (!enabled || mode != EPlayerMode.Move)
 			_moveHoveredCell = null;
@@ -149,7 +149,7 @@ public sealed partial class UserIntentTranslator : Node
 			_reopenHold.Cancel();
 
 		UpdateDisplayedHoverSnapshot();
-		_camera.SetGestureInputBlocked(enabled && mode == EPlayerMode.Move && moveDragging);
+		_camera.SetGestureInputBlocked(false);
 	}
 
 	public void OnCameraManualInputStarted()
@@ -174,7 +174,7 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (!_enabled
 			|| !_canIssueActions
-			|| _moveInput.IsDragging)
+			|| _moveInput.IsPoseSelectionActive)
 			return;
 
 		if (_mode != EPlayerMode.Move)
@@ -218,21 +218,15 @@ public sealed partial class UserIntentTranslator : Node
 			return;
 		}
 
-		if (_moveInput.IsDragging)
+		if (_moveInput.IsPoseSelectionActive)
 		{
 			switch (@event)
 			{
 				case InputEventMouseMotion motion:
-					if (_moveInput.Destination is { } destination
-						&& _moveInput.Selected is { } selected
-						&& MovementSelection.PickHeading(
-							_camera,
-							motion.Position,
-							destination,
-							_moveInput.ReachableHeadings) is { } heading
-						&& MovePose.SelectHeading(_moveInput.ReachableBases, selected.EndBasis, heading) is { } basis
-						&& basis != selected.EndBasis)
-						MovePoseRequested?.Invoke(basis);
+					if (_camera.IsManualGestureActive)
+						return;
+
+					TryRequestMoveHeading(motion.Position);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEvent rollCw
@@ -245,14 +239,12 @@ public sealed partial class UserIntentTranslator : Node
 					WithCooldown(() => RequestRoll(-1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
-				case InputEvent confirm
-					when !confirm.IsPressed() && confirm.IsActionReleased("battle_move_confirm", true):
-					QueueMoveSelection();
-					GetViewport().SetInputAsHandled();
-					return;
-				case InputEvent cancel
-					when cancel.IsPressed() && cancel.IsActionPressed("battle_move_cancel", false, true):
-					CancelMoveSelection();
+				case InputEventMouseButton { Pressed: true } confirm
+					when confirm.IsActionPressed("battle_primary_click", false, true):
+					if (TryRequestMoveHeading(confirm.Position))
+						QueueMoveSelection();
+					else if (IsOutsideMoveHeadingPicker(confirm.Position))
+						CancelMoveSelection();
 					GetViewport().SetInputAsHandled();
 					return;
 			}
@@ -278,7 +270,12 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (@event.IsActionPressed("battle_undo", false, true) && _hud.CommandHud.CanUndo)
 		{
-			UndoShortcutRequested?.Invoke();
+			if (_mode != EPlayerMode.Move)
+				TryCancelAbilityMode();
+			else if (_moveInput.IsPoseSelectionActive)
+				CancelMoveSelection();
+			else
+				UndoShortcutRequested?.Invoke();
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -287,24 +284,6 @@ public sealed partial class UserIntentTranslator : Node
 		{
 			if (HandleKey(key))
 				GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event.IsActionPressed("battle_move_cancel", false, true))
-		{
-			if (_reopenHold.IsPending)
-			{
-				_reopenHold.Cancel();
-				GetViewport().SetInputAsHandled();
-				return;
-			}
-
-			if (_moveInput.Destination is not null)
-			{
-				CancelMoveSelection();
-				GetViewport().SetInputAsHandled();
-			}
-
 			return;
 		}
 
@@ -324,6 +303,18 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnUndo()
 	{
+		if (_mode != EPlayerMode.Move)
+		{
+			TryCancelAbilityMode();
+			return;
+		}
+
+		if (_moveInput.IsPoseSelectionActive)
+		{
+			CancelMoveSelection();
+			return;
+		}
+
 		_moveHoveredCell = null;
 		_displayedHoverSnapshot = null;
 		UndoRequested?.Invoke();
@@ -593,6 +584,34 @@ public sealed partial class UserIntentTranslator : Node
 		MovePoseRequested?.Invoke(basis);
 
 	}
+
+	private bool TryRequestMoveHeading(Vector2 screenPosition)
+	{
+		if (_moveInput.Destination is not { } destination
+			|| _moveInput.Selected is not { } selected
+			|| MovementSelection.PickHeadingHandle(
+				_camera,
+				screenPosition,
+				destination,
+				_moveInput.ReachableHeadings) is not { } heading
+			|| MovePose.SelectHeading(
+				_moveInput.ReachableBases,
+				selected.EndBasis,
+				heading) is not { } basis)
+			return false;
+
+		if (basis != selected.EndBasis)
+			MovePoseRequested?.Invoke(basis);
+		return true;
+	}
+
+	private bool IsOutsideMoveHeadingPicker(Vector2 screenPosition) =>
+		_moveInput.Destination is { } destination
+		&& MovementSelection.IsOutsideHeadingPicker(
+			_camera,
+			screenPosition,
+			destination,
+			_moveInput.ReachableHeadings);
 
 	private bool Enqueue(params IAction[] actions) =>
 		_canIssueActions && _actions.TryEnqueue(actions);

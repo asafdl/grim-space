@@ -12,6 +12,7 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	private IReadOnlySet<Coord> _reachableHeadings = new HashSet<Coord>();
 	private Coord? _selectedHeading;
 	private Coord? _heldHeading;
+	private Vector2? _shellCenter;
 	private float _holdProgress;
 	private readonly Dictionary<Coord, ArrowView> _arrows = [];
 
@@ -55,7 +56,17 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			arrow.Visible = false;
 
 		if (_destination is not { } destination || !IsInstanceValid(_camera))
+		{
+			_shellCenter = null;
+			QueueRedraw();
 			return;
+		}
+
+		var centerWorld = WorldMapping.ToWorld(destination);
+		_shellCenter = _camera.IsPositionBehind(centerWorld)
+			? null
+			: _camera.UnprojectPosition(centerWorld);
+		QueueRedraw();
 
 		foreach (var handle in MovementSelection.ProjectHeadingHandles(
 			_camera,
@@ -64,101 +75,54 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		{
 			var arrow = _arrows[handle.Heading];
 			arrow.Position = handle.Position;
-			arrow.Rotation = handle.Kind == MovementSelection.HeadingHandleKind.Arrow
-				? handle.Rotation
-				: 0f;
 			arrow.Visible = true;
 			arrow.Apply(
 				handle.Kind,
+				handle.Rotation,
 				selected: handle.Heading == _selectedHeading,
 				progress: handle.Heading == _heldHeading ? _holdProgress : 0f);
 		}
 	}
 
+	public override void _Draw()
+	{
+		if (_shellCenter is { } center)
+			ProjectedDirectionHandleRenderer.DrawShell(this, center);
+	}
+
 	private sealed partial class ArrowView : Node2D
 	{
-		private static readonly Texture2D HandDrawnArrow = GD.Load<Texture2D>(
-			"res://assets/ui/battle/heading_arrow_handdrawn.svg");
-		private static readonly Rect2 HandDrawnRect = new(-36f, -22.5f, 72f, 45f);
-
 		private MovementSelection.HeadingHandleKind _kind;
+		private float _rotation;
 		private bool _selected;
 		private float _progress;
-		private Color _bodyColor;
-		private Color _fillColor;
+		private Color _color;
 
-		public void Configure(Color color)
-		{
-			_bodyColor = new Color(color.R, color.G, color.B, 0.9f);
-			var fill = color.Lerp(Colors.White, 0.35f);
-			_fillColor = new Color(fill.R, fill.G, fill.B, 0.96f);
-		}
+		public void Configure(Color color) => _color = color;
 
-		public void Apply(MovementSelection.HeadingHandleKind kind, bool selected, float progress)
+		public void Apply(
+			MovementSelection.HeadingHandleKind kind,
+			float rotation,
+			bool selected,
+			float progress)
 		{
 			_kind = kind;
+			_rotation = rotation;
 			_selected = selected;
 			_progress = progress;
 			QueueRedraw();
 		}
 
 		public override void _Draw()
-		{
-			var outlineColor = _selected
-				? new Color(0.92f, 0.95f, 1f, 0.95f)
-				: new Color(0.72f, 0.75f, 0.8f, 0.72f);
-
-			if (_kind == MovementSelection.HeadingHandleKind.Arrow)
-			{
-				if (_selected)
-				{
-					DrawTextureRect(
-						HandDrawnArrow,
-						HandDrawnRect.Grow(3f),
-						tile: false,
-						new Color(0.95f, 0.97f, 1f, 0.6f));
-				}
-
-				DrawTextureRect(
-					HandDrawnArrow,
-					new Rect2(HandDrawnRect.Position + new Vector2(3f, 3f), HandDrawnRect.Size),
-					tile: false,
-					new Color(0f, 0f, 0f, 0.45f));
-				DrawTextureRect(HandDrawnArrow, HandDrawnRect, tile: false, _bodyColor);
-
-				if (_progress > 0f)
-				{
-					var end = new Vector2(Mathf.Lerp(-24f, 25f, _progress), 0f);
-					DrawLine(new Vector2(-24f, 0f), end, new Color(0f, 0f, 0f, 0.7f), 7f, antialiased: true);
-					DrawLine(new Vector2(-24f, 0f), end, _fillColor, 4f, antialiased: true);
-				}
-				return;
-			}
-
-			DrawCircle(new Vector2(3f, 3f), 18f, new Color(0f, 0f, 0f, 0.55f));
-			DrawCircle(Vector2.Zero, 18f, _bodyColor);
-			DrawArc(Vector2.Zero, 18f, 0f, Mathf.Tau, 32, outlineColor, 2f, antialiased: true);
-			if (_progress > 0f)
-			{
-				DrawArc(
-					Vector2.Zero,
-					15f,
-					-Mathf.Pi / 2f,
-					-Mathf.Pi / 2f + Mathf.Tau * _progress,
-					32,
-					_fillColor,
-					5f,
-					antialiased: true);
-			}
-
-			if (_kind == MovementSelection.HeadingHandleKind.TowardCamera)
-				DrawCircle(Vector2.Zero, 5f, outlineColor);
-			else
-			{
-				DrawLine(new Vector2(-7f, -7f), new Vector2(7f, 7f), outlineColor, 3f, antialiased: true);
-				DrawLine(new Vector2(-7f, 7f), new Vector2(7f, -7f), outlineColor, 3f, antialiased: true);
-			}
-		}
+			=> ProjectedDirectionHandleRenderer.Draw(
+				this,
+				Vector2.Zero,
+				_rotation,
+				_kind,
+				_color,
+				enabled: true,
+				emphasized: _selected,
+				_progress);
 
 	}
 }

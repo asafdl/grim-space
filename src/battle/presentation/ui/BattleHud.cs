@@ -201,7 +201,15 @@ public partial class BattleHud : Node
 		_mountSelectorBackdrop.GuiInput += OnMountSelectorBackdropInput;
 		_mountSelectorLayer.AddChild(_mountSelectorBackdrop);
 
-		_mountFaceSelector = new MountFaceSelector { Name = "MountFaceSelector" };
+		_mountFaceSelector = new MountFaceSelector
+		{
+			Name = "MountFaceSelector",
+			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			GrowVertical = Control.GrowDirection.Both,
+		};
 		_mountFaceSelector.FaceHovered += face => MountFaceHovered?.Invoke(face);
 		_mountFaceSelector.FaceSelected += face => MountFaceSelected?.Invoke(face);
 		_mountSelectorBackdrop.AddChild(_mountFaceSelector);
@@ -278,30 +286,17 @@ public partial class BattleHud : Node
 	public void ClosePauseMenu() => PauseMenu.Visible = false;
 
 	public void ShowMountSelector(
-		Vector2 screenPosition,
+		Vector2 center,
 		IEnumerable<MountFaceSelectorOption> options)
 	{
-		_mountFaceSelector.SetOptions(options);
 		_mountSelectorLayer.Visible = true;
-		_mountFaceSelector.ShowAt(
-			screenPosition,
-			new Rect2(Vector2.Zero, GetViewport().GetVisibleRect().Size));
+		_mountFaceSelector.ShowProjected(center, options);
 	}
 
 	public void HideMountSelector()
 	{
 		_mountSelectorLayer.Visible = false;
 		_mountFaceSelector.Dismiss();
-	}
-
-	public void MoveMountSelector(Vector2 screenPosition)
-	{
-		if (!IsMountSelectorOpen)
-			return;
-
-		_mountFaceSelector.MoveTo(
-			screenPosition,
-			new Rect2(Vector2.Zero, GetViewport().GetVisibleRect().Size));
 	}
 
 	public void SetStrategicBattle(bool strategic)
