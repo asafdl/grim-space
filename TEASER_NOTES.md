@@ -235,7 +235,7 @@ Fix (`BattleController.SetupOverviewCamera` / `ApplyOverviewCamera`): use the sh
 
 ### Other real bugs found and fixed while producing this
 
-1. **Combat shot was 3.5 s long.** `RunAiVsAiAsync` returned as soon as the battle was *decided*, while the turn's replay was still playing, so the teaser cut away mid-replay and the freed battle scene threw `ObjectDisposedException` in `TurnReplayPlayer`. The method now keeps the presentation live until the in-flight replay has finished; the teaser additionally cuts on a 26 s budget via `CancellationToken` + a new `TurnReplayPlayer.Stop()`.
+1. **Combat shot was 3.5 s long.** `RunAiVsAiAsync` returned as soon as the battle was *decided*, while the turn's replay was still playing, so the teaser cut away mid-replay and the freed battle scene threw `ObjectDisposedException` in `TurnReplayPlayer`. The method now keeps the presentation live until the in-flight replay has finished; the teaser additionally cuts on a 26 s budget via `CancellationToken` + a new `TurnReplayPlayer.Stop()`. The resulting combat beat is ~16.7 s (the replay ends before the budget expires).
 2. **`travel.tscn` needs a live POI.** The facility binding threw `Travel requires an active POI` / `expects scene slot 'Manager'`. The teaser now calls `MapNavigationContext.EnterFacility` with the facility whose `ScenePath` is `travel.tscn` (the wormhole's travel facility). The v9 run logs **zero** runtime errors.
 3. **Old scenes were never actually removed.** `ClearCurrentScene()` only called `QueueFree()`, so the travel corridor still showed through the roster cards and the map's narrative dialogue box overlapped the closing title card. It now detaches every child of the viewport's `CurrentScene` node before freeing it.
 4. **Full-screen art did not cover the frame.** `AnchorsPreset` on a freshly constructed `Control` preserves its 0x0 rect, so the stills rendered at a fraction of the viewport. Art is now staged with an explicit `Position`/`Size` and `KeepAspectCovered`.
@@ -246,8 +246,8 @@ Fix (`BattleController.SetupOverviewCamera` / `ApplyOverviewCamera`): use the sh
 
 | | Old (`teaser.mp4`, Oct 11) | New (`teaser.mp4`, Oct 19) |
 |---|---|---|
-| Combat phase | empty gray grid, no units | live AI-vs-AI battle: 4 ships, shields, laser tracers, void-bomb detonation blast, asteroid field, planet, full HUD + action log |
-| Combat duration | ~3 s of a dead frame | ~26 s, cut on a time budget while the fight is live |
+| Combat phase | empty gray grid, no units (the old raw capture was deleted to free disk, so its length cannot be re-measured now) | live AI-vs-AI battle: 4 ships, shields, laser tracers, void-bomb detonation blast, asteroid field, planet, full HUD + action log |
+| Combat duration | unknown (file gone) | **~16.7 s of live combat**, measured frame-precisely on the caption band (frames 1900→2900 of 5138); the cut budget is 26 s and the turn's replay simply finished sooner |
 | Story beat | 13 pages, 3 s each, no title card | 6 curated pages (hope → escalation → new world → the threat → the fall) with cross-fades, 2.4 s each |
 | Other phases | travel / roster / map / title | travel (real facility interior, live binding), 4 unit cards on a clean backdrop, strategic map with the live narrative box, closing wordmark over the action art with a legibility scrim |
 | Length / size | — | 85.6 s, 31.5 MB, 1080p60 |
