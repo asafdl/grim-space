@@ -1,18 +1,32 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-19.** The teaser **has been recorded successfully in this environment**.
+> **Updated 2026-10-19 (polish pass).** The teaser has been re-shot, re-mixed and
+> re-verified. The current deliverable is `teaser.mp4` — **41.5 s, 1080p60, with a
+> stereo audio track (-14.0 LUFS)**. The previous 85.6 s cut is superseded.
+>
+> The old cut "flickered" because every transition faded the picture out to **full
+> black** and back to the *same* frame before hard-cutting to the next shot — 12
+> black-outs in 85 s. That is fixed at source (real cross-dissolves in
+> `TeaserController`), not masked in post. The shot list was also re-planned against
+> a researched 15-point sell checklist, the dead air was cut, and a full music + SFX
+> mix was added (the old file was silent).
+>
+> Full write-up, including the flicker root-cause, the checklist with sources, the
+> honest before/after scores and the sound plan, is in
+> [TEASER_NOTES.md](TEASER_NOTES.md#2026-10-19--polish-pass-flicker-root-cause-sell-checklist-engagement-re-edit).
+>
+> Earlier notes:
+> The teaser **has been recorded successfully in this environment**.
 > The "Godot 4.7.2 / .NET 10 compatibility issue" described below is **not** real: the
 > blocker was the CLI flag. Godot's `--script/-s` cannot run a `PackedScene`; pass the scene
 > as a **positional argument** instead:
 >
 > ```
-> godot --path <repo> --write-movie <out.avi> --quit-after <frames> "res://scenes/teaser.tscn"
+> godot --path <repo> --write-movie <out.avi> --fixed-fps 60 --quit-after <frames> "res://scenes/teaser.tscn"
 > ```
 >
 > The empty-gray-grid combat phase is **fixed** (root cause: the teaser camera used a
 > negative pitch and overrode the shared camera rig, so it aimed at empty space).
-> New deliverable: `teaser.mp4` (85.6 s, 1080p60). Full write-up, including the HARVEST
-> LOG, is in [TEASER_NOTES.md](TEASER_NOTES.md#2026-10-19--teaser-production-pass-new-engagement-recording).
 > The sections below are the **older** Oct 14-19 notes and are kept for history.
 
 ## What this project is

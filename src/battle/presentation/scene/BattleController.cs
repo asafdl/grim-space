@@ -42,6 +42,12 @@ public partial class BattleController : Node3D
 	public static BattleEncounter? NextEncounterOverride { get; set; }
 	public static bool StaticCameraOverride { get; set; } = false;
 	public BattleOrchestrator Battle => _battle;
+
+	/// <summary>
+	/// The live unit views of this battle. Exposed so cinematic callers (the teaser)
+	/// can pick a subject and frame it without reaching into private state.
+	/// </summary>
+	public BattleView BattleView => _battleView;
 	private const double OpeningCameraHoldSeconds = 1.0;
 
 	// Teaser overview camera: establishing dolly-in, then a slow orbital drift.
@@ -50,6 +56,12 @@ public partial class BattleController : Node3D
 	private const float OverviewOrbitSpeed = 0.22f;
 	private const float OverviewOrbitAmplitude = 0.30f;
 	private const float OverviewPitchBob = 0.06f;
+
+	// Teaser close follow: tight, slow, and deliberately laggy so the ship drifts
+	// inside the frame instead of being nailed to the centre.
+	private const float FollowOrbitSpeed = 0.45f;
+	private const float FollowOrbitAmplitude = 0.14f;
+	private const float FollowResponseSeconds = 0.12f;
 
 	private BattleOrchestrator _battle = null!;
 	private UserExecutionAgent? _agent = null;
@@ -77,8 +89,15 @@ public partial class BattleController : Node3D
 	private float _overviewElapsed;
 	private Vector3 _overviewCenter;
 	private float _overviewDistance;
+	private float _overviewStartDistance = OverviewStartDistance;
+	private float _overviewDollySeconds = OverviewDollySeconds;
 	private float _overviewYaw;
 	private float _overviewPitch;
+	private string? _followUnitId;
+	private float _followDistance;
+	private float _followYaw;
+	private float _followPitch;
+	private float _followElapsed;
 	private MoveGhostView _moveGhost = null!;
 	private TargetOpportunityOverlay _targetOpportunityOverlay = null!;
 
@@ -325,7 +344,11 @@ public partial class BattleController : Node3D
 
 	public override void _Process(double delta)
 	{
-		if (_overviewCameraSet)
+		if (_followUnitId is not null)
+		{
+			ApplyFollowCamera((float)delta);
+		}
+		else if (_overviewCameraSet)
 		{
 			ApplyOverviewCamera((float)delta);
 		}
@@ -358,9 +381,9 @@ public partial class BattleController : Node3D
 	{
 		_overviewElapsed += delta;
 
-		var dollyT = Mathf.Clamp(_overviewElapsed / OverviewDollySeconds, 0f, 1f);
+		var dollyT = Mathf.Clamp(_overviewElapsed / _overviewDollySeconds, 0f, 1f);
 		var eased = 1f - Mathf.Pow(1f - dollyT, 3f);
-		var distance = Mathf.Lerp(OverviewStartDistance, _overviewDistance, eased);
+		var distance = Mathf.Lerp(_overviewStartDistance, _overviewDistance, eased);
 
 		var yaw = _overviewYaw
 			+ Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed) * OverviewOrbitAmplitude;
@@ -368,6 +391,28 @@ public partial class BattleController : Node3D
 			+ Mathf.Sin(_overviewElapsed * OverviewOrbitSpeed * 0.7f) * OverviewPitchBob;
 
 		_camera.SetFocus(_overviewCenter, distance, yaw, pitch);
+	}
+
+	/// <summary>
+	/// Keeps a close shot locked on one unit while it moves. A cinematic follow is
+	/// slower and tighter than the gameplay camera, and drifts slowly so the frame is
+	/// never frozen.
+	/// </summary>
+	private void ApplyFollowCamera(float delta)
+	{
+		if (_followUnitId is null)
+			return;
+
+		if (!_battleView.UnitViews.TryGetValue(_followUnitId, out var view) || !view.Visible)
+			return;
+
+		_followElapsed += delta;
+
+		// Aim the orbit first, then catch the pivot up: the ship stays framed while the
+		// camera swings around it.
+		var yaw = _followYaw + Mathf.Sin(_followElapsed * FollowOrbitSpeed) * FollowOrbitAmplitude;
+		_camera.SetOrbit(_followDistance, yaw, _followPitch);
+		_camera.MovePivotToward(view.GlobalPosition, delta, FollowResponseSeconds);
 	}
 
 	private void WireHudToTranslator()
@@ -1072,7 +1117,14 @@ private void GoToMainMenu()
 	/// Sets up an overview camera that frames all units in the battle.
 	/// Useful for teaser/demo scenarios where player-following camera isn't desired.
 	/// </summary>
-	public void SetupOverviewCamera()
+	/// <param name="startDistance">
+	/// Distance the establishing move starts from. The default is a wide dolly-in;
+	/// pass the camera's current distance to pull back out of a close shot instead.
+	/// </param>
+	/// <param name="dollySeconds">How long the establishing move takes.</param>
+	public void SetupOverviewCamera(
+		float startDistance = OverviewStartDistance,
+		float dollySeconds = OverviewDollySeconds)
 	{
 		var unitViews = _battleView.UnitViews;
 		if (unitViews.Count == 0)
@@ -1120,6 +1172,8 @@ private void GoToMainMenu()
 
 		_overviewCenter = center;
 		_overviewDistance = distance;
+		_overviewStartDistance = startDistance;
+		_overviewDollySeconds = dollySeconds;
 		_overviewYaw = yaw;
 		_overviewPitch = pitch;
 		_overviewElapsed = 0f;
@@ -1128,6 +1182,40 @@ private void GoToMainMenu()
 		GD.Print(
 			$"[Teaser] Overview camera set - Center={center}, Distance={distance:F1}, " +
 			$"Yaw={yaw}, Pitch={pitch}, UnitCount={positions.Count}");
+	}
+
+	/// <summary>
+	/// Points the battle camera at a single unit for a close shot and keeps the framing
+	/// on it while the unit moves. Used by the teaser to open on hull-level action
+	/// instead of a board view.
+	/// </summary>
+	/// <param name="unitId">Id of the unit to follow.</param>
+	/// <param name="distance">Orbit distance from the unit.</param>
+	/// <param name="yaw">Orbit yaw in radians.</param>
+	/// <param name="pitch">Orbit pitch in radians; positive looks down at the unit.</param>
+	public void FocusUnitCamera(string unitId, float distance, float yaw, float pitch)
+	{
+		if (!_battleView.UnitViews.ContainsKey(unitId))
+		{
+			GD.Print($"[Teaser] FocusUnitCamera: unknown unit '{unitId}'");
+			return;
+		}
+
+		_overviewCameraSet = false;
+		_followUnitId = unitId;
+		_followDistance = distance;
+		_followYaw = yaw;
+		_followPitch = pitch;
+		_followElapsed = 0f;
+
+		// Frame the subject on the very first rendered frame: waiting for the first
+		// follow tick would open the shot on the default camera pose instead.
+		if (_battleView.UnitViews.TryGetValue(unitId, out var view))
+			_camera.SetFocus(view.GlobalPosition, distance, yaw, pitch);
+
+		GD.Print(
+			$"[Teaser] Follow camera on '{unitId}' - Distance={distance:F1}, " +
+			$"Yaw={yaw:F2}, Pitch={pitch:F2}");
 	}
 
 	/// <summary>

@@ -50,6 +50,20 @@ public partial class Controller : Camera3D, ICameraRig
 		ApplyTransform();
 	}
 
+	/// <summary>
+	/// Sets the orbit distance and angles while leaving the pivot alone. Cinematic
+	/// cameras use this to track a moving subject: the pivot is moved separately with
+	/// <see cref="MovePivotToward"/>, so re-aiming must not reset it.
+	/// </summary>
+	public void SetOrbit(float distance, float yaw, float pitch)
+	{
+		CancelAutomation();
+		_pose.Distance = Mathf.Clamp(distance, Limits.MinDistance, Limits.MaxDistance);
+		_pose.Yaw = yaw;
+		_pose.Pitch = Mathf.Clamp(pitch, Limits.MinPitch, Limits.MaxPitch);
+		ApplyTransform();
+	}
+
 	public bool AreVisible(IReadOnlyList<Vector3> points, float margin) =>
 		AreVisibleWithCurrentTransform(points, margin);
 

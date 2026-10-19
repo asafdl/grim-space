@@ -19,6 +19,12 @@ public partial class Session : Node
 	private const string BattleScenePath = "res://scenes/battle.tscn";
 	private const string MapScenePath = "res://scenes/map.tscn";
 
+	/// <summary>
+	/// The frame-rate readout is a development overlay. Recorded material turns it
+	/// off so the video does not ship a performance counter in the corner.
+	/// </summary>
+	public static bool ShowPerformanceOverlay { get; set; } = true;
+
 	private static Session? _instance;
 	private AutosaveScheduler _autosaveScheduler = null!;
 	private DevMenuOverlay _devMenu = null!;
@@ -169,6 +175,7 @@ public partial class Session : Node
 		};
 		performanceLayer.AddChild(_fpsLabel);
 		_fpsLabel.ProcessMode = Node.ProcessModeEnum.Always;
+		_fpsLabel.Visible = ShowPerformanceOverlay;
 
 		_tutorialDialogHost = new TutorialDialogHost();
 		AddChild(_tutorialDialogHost);
@@ -176,7 +183,10 @@ public partial class Session : Node
 
 	public override void _Process(double delta)
 	{
-		_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
+		if (ShowPerformanceOverlay)
+		{
+			_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
+		}
 		if (_autosaveScheduler.Advance(delta)
 			&& _autosaveGateProvider is not null
 			&& SaveLoadPolicy.CanSave(_autosaveGateProvider()) == SaveBlockReason.None)
