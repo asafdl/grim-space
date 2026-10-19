@@ -25,6 +25,7 @@ using GrimSpace.Education;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 
 namespace GrimSpace.Battle.Presentation.Scene;
 
@@ -86,8 +87,18 @@ public partial class BattleController : Node3D
 		int backdropSeed;
 		if (_strategicBattle)
 		{
-			_battle = Session.Instance.Run.CreateActiveBattleOrchestrator();
-			backdropSeed = Session.Instance.Run.ActiveBattle!.Seed;
+			try
+			{
+				_battle = Session.Instance.Run.CreateActiveBattleOrchestrator();
+				backdropSeed = Session.Instance.Run.ActiveBattle!.Seed;
+			}
+			catch (InvalidOperationException)
+			{
+				Session.Instance.Run.AbandonUnplayableActiveBattle();
+				Callable.From(() =>
+					GetTree().ChangeSceneToFile(MapNavigationContext.MapScenePath)).CallDeferred();
+				return;
+			}
 		}
 		else
 		{

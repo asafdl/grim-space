@@ -65,6 +65,9 @@ public sealed class BattleOrchestrator : IDisposable
 		int gridSize = 64,
 		string? preferredPlayerId = null)
 	{
+		ArgumentNullException.ThrowIfNull(encounter);
+		BattleEngagementComposition.EnsurePlayable(encounter.Spawns, encounter.Id);
+
 		var grid = new BoundedGrid(gridSize, gridSize, gridSize);
 		var timeline = new Timeline();
 		var nonUnits = new Dictionary<string, NonUnit>();
@@ -124,6 +127,10 @@ public sealed class BattleOrchestrator : IDisposable
 
 		if (!world.UnitRegistry.TryGet(playerId, out var player) || player.Team != ETeam.Player)
 			throw new InvalidOperationException($"Battle world has no player unit '{playerId}'.");
+
+		BattleEngagementComposition.EnsurePlayableUnits(
+			world.UnitRegistry.All,
+			world.BattleId);
 
 		var layout = new BattleLayout(
 			world.Grid,

@@ -213,6 +213,13 @@ public sealed class State : IDisposable
 		if (ActiveBattle is null)
 			throw new InvalidOperationException("No active strategic battle.");
 
+		if (RestoredBattleWorld is { } worldToValidate)
+			BattleEngagementComposition.EnsurePlayableUnits(
+				worldToValidate.UnitRegistry.All,
+				ActiveBattle.Id);
+		else
+			BattleEngagementComposition.EnsurePlayable(ActiveBattle.Spawns, ActiveBattle.Id);
+
 		ReleaseBattleOutcomeSubscription();
 		var orchestrator = RestoredBattleWorld is { } savedWorld
 			? BattleOrchestrator.FromSavedWorld(
@@ -225,6 +232,13 @@ public sealed class State : IDisposable
 		RestoredBattleWorld = null;
 		_battleOutcomeSubscription = orchestrator.Subscribe<Record<BattleOutcome>>(OnCommittedBattleOutcome);
 		return orchestrator;
+	}
+
+	internal void AbandonUnplayableActiveBattle()
+	{
+		ReleaseBattleOutcomeSubscription();
+		RestoredBattleWorld = null;
+		ActiveBattle = null;
 	}
 
 	private string ResolveActiveBattlePlayerId(BattleWorld? savedWorld)

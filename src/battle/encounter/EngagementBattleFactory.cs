@@ -34,6 +34,8 @@ public static class EngagementBattleFactory
 			shipIdToPilotSnapshot,
 			canonicalLayout);
 
+		BattleEngagementComposition.EnsurePlayable(spawns, id);
+
 		return new BattleEncounter
 		{
 			Id = id,
