@@ -26,9 +26,9 @@ count 37: [(0.02, 0.0135), (0.05, 0.0202), (0.07, 0.0128), (0.08, 0.0147), (0.1,
    30.68s void_bomb_explosion.wav            nearest transient 30.68  delta 0.00s OK
 
 == AUDIO ==
-integrated -14.1 LUFS  true peak -3.1 dBFS  LRA 10.0 LU
-loudest second 31s (-7.0 dB RMS); the last 3 s start at 31s
-silence: [Parsed_silencedetect_0 @ 00000286d46efb40] silence_start: 28.309958 | [Parsed_silencedetect_0 @ 00000286d46efb40] silence_end: 30.209958 | silence_duration: 1.9
+integrated -14.0 LUFS  true peak -3.4 dBFS  LRA 10.2 LU
+loudest second 31s (-8.1 dB RMS); the last 3 s start at 31s
+silence: [Parsed_silencedetect_0 @ 000001fbd26aa240] silence_start: 0 | [Parsed_silencedetect_0 @ 000001fbd26aa240] silence_end: 0.374375 | silence_duration: 0.374375 | [Parsed_silencedetect_0 @ 000001fbd26aa240] silence_start: 0.465542 | [Parsed_silencedetect_0 @ 000001fbd26aa240] silence_end: 0.870083 | silence_duration: 0.404542
 
 == MICROTRAILER (six 1s samples, 232x130) ==
    0.70s  mean luma 0.0699  max 230

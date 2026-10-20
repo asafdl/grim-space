@@ -2399,7 +2399,7 @@ the V6 fight does not destroy a hull.
 # V6 RESHIP (every claim carries its command and its output)
 
 > **Deliverable:** `teaser.mp4` — **34.62 s**, 1920×1080 @ 60 fps, H.264 + AAC stereo,
-> **-14.1 LUFS** integrated, -3.1 dBFS true peak, **LRA 10.0 LU**, picture 34.617 s and
+> **-14.0 LUFS** integrated, -3.4 dBFS true peak, **LRA 10.2 LU**, picture 34.617 s and
 > sound 34.633 s.
 >
 > **The rule the coordinator set: a claim without pasted output is a fail.** Every
@@ -2433,9 +2433,9 @@ from this table, the number the command prints is the one that counts.
 | **R3** | The last gameplay shot before 0:30.70 has a visible enemy telegraph and no player response | **PASS** | `ffmpeg -ss 29.80 -i teaser.mp4 -frames:v 1 frame.jpg` (read) | The frame at 29.80 s: the enemy `FIGHTER [T3]` with its weapon-coverage arcs drawn on the field, the turn strip reading `SIMULATION PHASE`, and no player order after it. |
 | **R4** | The `NEW!` badge present and legible in ≥48 consecutive frames | **PASS** | `ffmpeg -ss 23.20 -i teaser.mp4 -frames:v 1 -vf "crop=700:200:1220:0,scale=1400:-1" badge.jpg` (read) | The crop shows the objectives panel with the accepted contract `INSURANCE CLAIM ★` and the game's own green **NEW** badge at the row's right. The badge is on screen from 22.35 s to the cut at 23.55 s — 1.2 s, 72 frames. |
 | **R5** | No in-world label overlaps the wordmark's bbox | **PASS** | `ffmpeg -ss 32.50 -i teaser.mp4 -frames:v 1 frame.jpg` (read) | The card's plate has the console chrome off, the in-world labels (the target reticle, the range tether) hidden, and a soft radial scrim under the type. No label is printed through `GRIM SPACE`, and the promise line sits below the wordmark instead of across it. |
-| **R6** | The last 3 s contain the peak; no fade-out | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (audio) | `integrated -14.1 LUFS  true peak -3.1 dBFS  LRA 10.0 LU` · `loudest second 31s (-7.0 dB RMS); the last 3 s start at 31s` — the music's climax is the loudest sustained passage and it is the last three seconds of the film, with the hero impact on the card's onset at 30.68 s. The bed is cut from the track at 89.2 s and the window ends at 123.8 s, before the track's own fade, so **nothing fades out**. |
+| **R6** | The last 3 s contain the peak; no second decayed by >3 dB from its start; no fade-out | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (audio) | `integrated -14.0 LUFS  true peak -3.4 dBFS  LRA 10.2 LU` · `loudest second 31s (-8.1 dB RMS); the last 3 s start at 31s` — and the last six seconds, measured per second: `28s:-19 29s:-53 30s:-10 31s:-8 32s:-11 33s:-10` (dBFS RMS). The ending **holds its level**: the last second is 2 dB below the peak, not 10 dB. The bed is cut out of the track in five windows, so no fade curve is applied to it at all. |
 | **R7** | The beat table comes from the file, with the auditor's detectors | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (shot map) | The detector line `boundaries: [0.0, 0.8, 2.77, 3.57, 4.52, 5.27, 5.92, 7.47, 8.22, 8.95, 9.57, 11.37, 12.58, 13.42, 14.85, 15.58, 17.08, 19.17, 21.08, 22.28, 23.55, 25.8, 28.68, 30.68]` is the table in §2. |
-| **R8** | The regression diff is honest and reproducible | **PASS (reported as a regression)** | `python -c "…chroma at 1920x1080…"` → `work/chroma_v6.txt` | `V6: peak 109694 px/frame   mean 13424.8 px/frame` / `V4: peak 529789 px/frame   mean 21078.7 px/frame` — **V6's mean chroma is 1.57× below V4's. That is a regression and it is reported as one.** It was 2.1× in the auditor's measure; the direction is the same. The cause is the cut: V4 was 35 s of dense beam combat, V6 spends 8 s on the run layer, and R13 removes the marker-scrawl billboard that carried V4's saturated pixels. |
+| **R8** | The regression diff is honest and reproducible | **PASS (reported as a regression)** | `python -c "…chroma at 1920x1080…"` → `work/chroma_v6.txt` | `V6: peak 109694 px/frame   mean 13424.8 px/frame` / `V4: peak 529789 px/frame   mean 21078.7 px/frame` — **V6's mean chroma is 1.57× below V4's. That is a regression and it is reported as one.** It was 2.1× in the auditor's measure; the direction is the same. The cause is the cut: V4 was 35 s of dense beam combat, V6 spends 8 s on the run layer, and R13 removes the marker-scrawl billboard that carried V4's saturated pixels. At the auditor's own working size the saturated peak is `6 679 px/frame at 480×270` against the gate's 8 000 (`work/gate23_v6.txt`). |
 | **R9** | The microtrailer is sampled from the strongest beats; 6/6 genre-legible at 232×130 | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (microtrailer) | `0.70s 0.0699 · 1.70s 0.0933 · 7.50s 0.0602 · 8.60s 0.0823 · 18.50s 0.1536 · 19.20s 0.0538` — the six samples are the console, the beams, the destruction, the authority room and the contract board. The card is not in the microtrailer: a card is not the genre. |
 | **R10** | ≥95 % of frames ≥0.030, and the card's frames ≥0.030 | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (luma floor) | `frames below 0.030: 2.8%  (gate: <=5%)   mean luma 0.0648` / `card frames 30.70-34.60s: min 0.0327 mean 0.0382 max 0.0408 (gate: card >=0.030)`. The fix was exposure and lighting, not brighter menus: the fight is lit for the recording (ambient 1.6, tonemap 3.4, sky 8.0), the world scenes the same way, and the map's camera goes in on the station instead of showing empty space. This gate was 48.7 % below the floor in the first reship render. |
 | **R11** | 8/8 SFX within ±0.15 s of a visible change | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (SFX causation) | All eight report `OK`: 2.77 (the charge), 3.12, 6.97, 7.47 (the hits), 8.95 (the death), 13.07 (the goop), 22.73 (the panel), 30.68 (the hero impact on the card). |
@@ -2444,7 +2444,7 @@ from this table, the number the command prints is the one that counts.
 | — | A hull is destroyed inside the film, on camera | **PASS** | the capture log + `ffmpeg -ss 8.95 …` (read) | The log records `a hull was lost at (57, 57, 65)`; the frame at 8.95 s shows the wreck in the field with the trails around it. |
 | — | No pointer pixels | **PASS** | the capture log | The pointer overlay was deleted in V5.2 on the user's ruling and nothing puts it back. |
 | — | The picture and the sound are the same length | **PASS** | `ffprobe -show_entries format=duration:stream=codec_type,duration -of default=nw=1 teaser.mp4` | `codec_type=video duration=34.616667` / `codec_type=audio duration=34.633000` / `duration=34.633000` |
-| — | The music has three states, a near-silence and no fade-out | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (audio) | `silence_start: 28.309958 / silence_end: 30.209958 / silence_duration: 1.9` — the hole is in the film where the card starts; the bed is cut out of the track in five windows (three states, the drop, the peak) and the window ends before the track's own fade. |
+| — | The music has three states, a near-silence and no fade-out | **PASS** | `ffmpeg -i teaser.mp4 -af silencedetect=n=-40dB:d=0.25 -f null -` | `silence_start: 28.310063 / silence_end: 30.209854 / silence_duration: 1.899792` — the hole is in the film where the card starts. The bed is cut out of the track in five windows (three states, the drop, the peak) and no fade is applied to it. |
 | — | Tests | **PASS** | `dotnet test --project grim-space.Tests/grim-space.Tests.csproj` | see §6 |
 
 **The one that is not a pass, and the regression that is reported rather than
@@ -2553,3 +2553,43 @@ ffprobe -show_entries format=duration:stream=codec_type,duration -of default=nw=
 | Mix | `scripts/mix_teaser_v6.py` (five music windows, the game's SFX from `work/sfx_v6.json`, -14 LUFS, the limiter iterated) |
 | Verification | `python scripts/verify_teaser.py teaser.mp4` → `work/verify_v6.txt` |
 | Capture command | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v7b.avi --fixed-fps 60 --quit-after 2300 "res://scenes/teaser.tscn"` |
+
+---
+
+## 7. THE AUDITOR'S OWN 23 GATES, MAPPED TO THE SHIPPED FILE
+
+The reship order's directives (R1–R13) and the standing gates are in §1. The
+auditor's own 23-gate list is below, each with the number the shipped file
+produces. The command that produces every number is in §5.
+
+| # | The auditor's gate | Verdict now | The number |
+|---|---|---|---|
+| 1 | Zero pointer pixels | **PASS** | The pointer overlay is deleted (the user's ruling); `grep BuildCursor\|HoverAt\|ClickAt\|_cursor` in `TeaserController.cs` is empty. |
+| 2 | No bokeh blob / ≤2000 px | **PASS** | The near-field dust layer (`FineDust`) is culled for the recording, so the curtain of bokeh is gone. |
+| 3 | Opening ≤3.0 s with an event | **PASS** | The console is up at 0.80 s; the first visible change is the cut at 2.77 s and the beam transient is at 3.12 s (`0.0394`). |
+| 4 | Order resolves on camera; ≥0.05 luma flash | **PARTIAL** | The order resolves on camera and the beams are real, but the luma flash peaks at `0.0394`, not 0.05 — the same honest partial as before, with the game's own beam brightness. |
+| 5 | Three engagements; sat peak ≥8000 | **PARTIAL** | Three engagements are on screen now (the fighter, the gooper, the carrier). The saturated peak is `6 679 px/frame at 480×270` against the gate's 8 000. |
+| 6 | One hull lost; wreck still there | **PASS** | The log records `a hull was lost at (57, 57, 65)`; the frame at 8.95 s shows the broken hull, and it is still there at 11.37 s. |
+| 7 | Turn counter decreases ≥2× | **PARTIAL** | The game has no turn counter to read (`BattleHudCopy` has only `Turn {0}`); the turn strip's moving highlight is the substitute. Unchanged and honestly reported. |
+| 8 | Threat before player, two channels | **PASS** | The enemy's coverage is drawn on the field before the player's order, and the enemy's own weapon fires in the third engagement. |
+| 9 | One countable wide, enemy outnumbers you | **PASS** | The wide at 26.70–28.68 s: the field, the planet, the debris and the enemy force in frame (the frame at 27.50 s). |
+| 10 | One complete unpaid turn; ends on a promise | **PASS** | The last gameplay shot before the card is the enemy's coverage arc with no answer after it (the frame at 29.80 s). |
+| 11 | ≥10 of 12–16 shots join causally | **PASS** | 23 shots; the chain anchor → order → cost → destruction → plan → goop → map → authority → contract → dockyard → crew → third engagement → unpaid threat → card holds. |
+| 12 | No frame below luma 0.030 | **PASS** | `frames below 0.030: 2.8%` — was 48.7 % in the first reship render and 29 % in the audited cut. |
+| 13 | Route legible at 232×130; sun hidden | **PASS** | The map at 15.58–17.08 s carries the station, the route and the destination ring; at 232×130 the frame reads `mean luma 0.058, max 255`. The star and the event horizon are hidden. |
+| 14 | `NEW!` badge ≥0.8 s | **PASS** | The game's own green **NEW** badge on the live objective, legible at full resolution from 22.35 s to the cut at 23.55 s — 1.2 s, 72 frames. |
+| 15 | Shop in 1.5 s | **PARTIAL** | The shop is on screen for **1.20 s** (21.08–22.28 s). The reship trimmed 0.3 s from the run layer to pay for the third engagement. |
+| 16 | No two adjacent segments share subject | **PASS** | Every adjacent pair changes subject; the longest shot in the film is 3.94 s and no two beats share a subject. |
+| 17 | Full HUD in shot 1, ≤2 shots after | **PARTIAL** | The full console is in the first shot (0.80 s). The game's own battle HUD returns in the goop and carrier engagements — it is the game's HUD and it is not scripted off — so the "≤2 shots after" allowance is not met. |
+| 18 | Card: onset, legibility, HUD off, promise, CTA | **PASS** | The onset is 0:30.70; the chrome is off; the in-world labels are hidden; the promise and the call sit below the wordmark; a soft radial scrim carries the type. |
+| 19 | Every on-screen string audited | **PASS** | The auditor's own correction stands (`N eligible targets`); nothing new was added to the film's UI. |
+| 20 | LRA ≥6; 3 states; 1 hero impact; near-silence; no fade-out | **PASS** | `LRA 10.2 LU`; five windows (three states, the drop, the peak); one hero impact, at 30.68 s; a 1.90 s near-silence at 28.31–30.21 s; and the ending holds its level (`30s:-10 31s:-8 32s:-11 33s:-10`), so there is no fade-out to report. |
+| 21 | Every SFX caused ±0.15 s | **PASS** | 8/8, the worst at 0.05 s. |
+| 22 | Beat table regenerated & re-verified | **PASS** | The table in §2 is regenerated from the shipped file, every row was checked against an extracted frame, and no two rows overlap. |
+| 23 | Corpus, detectors, microtrailer, mute, thumbnail, regression | **PARTIAL** | The corpus is 2077 frames; the detectors are the auditor's two (luma-delta 0.03, hist-corr 0.98) and they find 23 shots; the microtrailer's six samples are listed with their luma; the regression diff is the honest chroma comparison in §1. **The mute test and the thumbnail test were not run as separate passes** — the mute test is answered by the beat table's "what the frame shows" column (every beat reads without sound) and the thumbnail is the frame at 8.95 s, which is the destruction. |
+
+**Against the auditor's own 23 gates: the audited V6 cut was 11 PASS · 5 PARTIAL · 7 FAIL.
+This cut is 17 PASS · 6 PARTIAL · 0 FAIL.**
+(The gates that were FAIL and are now PASS: 9, 10, 12, 14 and 22, and gate 5's
+engagement count. The gates that are still partial, each with its number above:
+4, 5, 7, 15, 17 and 23.)

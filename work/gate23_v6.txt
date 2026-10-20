@@ -1,0 +1,2 @@
+G5  sat>90 px/frame at 480x270: peak 6679  mean 677.9  (gate: peak >= 8000)
+G5  frames with sat peak: 2058 of 2077
