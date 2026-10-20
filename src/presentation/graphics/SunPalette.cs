@@ -36,10 +36,19 @@ public sealed class SunPalette
 	public Color InnerCoronaColor { get; init; } = new(1.00f, 0.62f, 0.30f);
 
 	/// <summary>How much of the real NASA photosphere is blended in.</summary>
-	public float TextureBlend { get; init; } = 0.72f;
+	public float TextureBlend { get; init; } = 0.45f;
 
 	/// <summary>How many times the photosphere map is wrapped around the disc.</summary>
 	public float TextureTiling { get; init; } = 2f;
+
+	/// <summary>Cellular granulation: cell count across the visible disk diameter.</summary>
+	public float CellularCells { get; init; } = 118f;
+
+	/// <summary>How strongly the cellular granulation modulates the surface.</summary>
+	public float CellularStrength { get; init; } = 0.85f;
+
+	/// <summary>Width of the dark lanes between the granulation cells.</summary>
+	public float LaneWidth { get; init; } = 0.16f;
 
 	/// <summary>How strongly the procedural field drifts over the photo texture.</summary>
 	public float DriftStrength { get; init; } = 0.45f;

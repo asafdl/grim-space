@@ -98,20 +98,34 @@ void fragment() {
 		/ max(silhouette_perp / max(silhouette_depth, 1e-5), 1e-5);
 	float dist = max(r - 1.0, 0.0);
 
-	// The corona's structure is sampled on the shell's own direction, so it is
-	// isotropic.  Sampling it in (angle, radius) keeps the noise coherent along
-	// a radius, and that draws spokes fanning out of the limb; dithering the
-	// angular coordinate instead just turns the spokes into contour rings.
-	float streak = smoothstep(0.30, 0.70,
-		fbm(offset * 7.0 + vec3(TIME * speed + seed), 3));
+	// Eclipse style corona: a starburst of fine radial hairs gathered into a
+	// few broad arcs.  The arcs and the hairs are built from incommensurate
+	// sines over the angle, so they are smooth curves that can never line up
+	// with a noise lattice the way a polar noise sample does.
+	float ang = atan(offset.x, offset.z);
+	// The radial phase of the hairs drifts only slowly with the radius, so the
+	// strands stay radial and wander instead of sweeping into rings.
+	// No radial phase anywhere: a high angular frequency combined with any
+	// radial term beats into visible concentric rings.  Purely radial strands
+	// are what the eclipse reference shows.
+	float arc = sin(ang * 6.0 + seed)
+		+ 0.72 * sin(ang * 11.0 - seed * 1.7)
+		+ 0.45 * sin(ang * 19.0 + seed * 2.3);
+	float arc_mask = smoothstep(-0.45, 0.95, arc);
+	// The fine strands are kept at a low enough angular frequency that they
+	// cannot alias against the pixel grid near the limb, which would beat
+	// into visible concentric rings.
+	float hair = 0.5 + 0.5 * sin(ang * 34.0 + 4.0 * sin(ang * 6.0 + seed));
+	// The strands fade out with the radius, so they never become a hard ring.
+	float strand_fade = exp(-dist * 2.6);
+	float streamer = arc_mask * (0.34 + 0.66 * hair) * strand_fade;
 
-	// Broad helmet streamers.
+	// A little broad variation so the arcs are not perfectly periodic.
 	float helmet = smoothstep(0.36, 0.64,
 		fbm(offset * 2.6 + vec3(3.1, 1.7, TIME * speed * 0.5 + seed), 2));
 
-	// The structure is a gentle mottling, not a pattern of rays.
-	float shell = mix(1.0, 0.45 + 1.10 * streak, streamer_strength * 0.32);
-	shell *= mix(1.0, 0.55 + 0.90 * helmet, helmet_strength * 0.30);
+	float shell = mix(1.0, 0.25 + 1.55 * streamer, streamer_strength);
+	shell *= mix(1.0, 0.60 + 0.80 * helmet, helmet_strength * 0.30);
 
 	// One profile, maximal AT the limb and decaying monotonically outward.
 	// Both terms are at their maximum at dist = 0, so there is no dip between

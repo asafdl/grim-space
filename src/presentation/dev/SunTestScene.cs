@@ -58,6 +58,12 @@ public sealed partial class SunTestScene : Node3D
 	[Export] public bool Closeup { get; set; }
 
 	/// <summary>
+	/// The lit-by axis: an asteroid close to the star, lit by the star's own
+	/// point light, so the terminator and the crescent read on its surface.
+	/// </summary>
+	[Export] public bool AsteroidPresence { get; set; }
+
+	/// <summary>
 	/// Renders the master branch's red dwarf implementation (the texture
 	/// surface plus the billboard corona) so the two can be compared.
 	/// </summary>
@@ -125,6 +131,12 @@ public sealed partial class SunTestScene : Node3D
 		if (MasterImplementation)
 		{
 			BuildMasterSun();
+			return;
+		}
+
+		if (AsteroidPresence)
+		{
+			BuildAsteroidScene();
 			return;
 		}
 
@@ -296,6 +308,78 @@ public sealed partial class SunTestScene : Node3D
 		AddChild(camera);
 		camera.LookAt(new Vector3(0.85f, 0.12f, 0.62f) * StarRadius, Vector3.Up);
 		GD.Print("[SunTest] master implementation");
+	}
+
+	/// <summary>
+	/// The shipped asteroid pack is a metallic variant, and a metal only shows
+	/// a specular highlight, so the rock would read as a black silhouette
+	/// instead of a lit body.  The material is replaced with a rough
+	/// dielectric so the star's light falls on it and the terminator reads.
+	/// </summary>
+	private static void MakeRockLit(Node root)
+	{
+		var material = new StandardMaterial3D
+		{
+			AlbedoColor = new Color(0.52f, 0.46f, 0.40f),
+			Roughness = 0.88f,
+			Metallic = 0.0f,
+		};
+		foreach (var child in root.GetChildren())
+		{
+			if (child is MeshInstance3D mesh)
+			{
+				mesh.MaterialOverride = material;
+			}
+			MakeRockLit(child);
+		}
+	}
+
+	/// <summary>
+	/// Axis B: the star, an asteroid beside it, and the light the star throws
+	/// on the asteroid's surface.
+	/// </summary>
+	private void BuildAsteroidScene()
+	{
+		_star!.Position = Vector3.Zero;
+
+		var camera = new Camera3D
+		{
+			Name = "Camera",
+			Position = new Vector3(0f, 0.15f, 5.4f) * StarRadius,
+			Fov = 52f,
+			Current = true,
+		};
+		AddChild(camera);
+		camera.LookAt(new Vector3(0.62f, -0.16f, 0f) * StarRadius, Vector3.Up);
+
+		const string packPath =
+			"res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
+		var pack = GD.Load<PackedScene>(packPath);
+		if (pack is not null)
+		{
+			var asteroid = pack.Instantiate<Node3D>();
+			asteroid.Name = "Asteroid";
+			asteroid.Scale = Vector3.One * 0.085f;
+			asteroid.Position = new Vector3(1.30f, -0.30f, 0.35f) * StarRadius;
+			AddChild(asteroid);
+			MakeRockLit(asteroid);
+		}
+		else
+		{
+			var rock = GD.Load<PackedScene>("res://assets/models/asteroids/rock.glb");
+			if (rock is not null)
+			{
+				var asteroid = rock.Instantiate<Node3D>();
+				asteroid.Name = "Asteroid";
+				asteroid.Scale = Vector3.One * 0.45f;
+				asteroid.Position = new Vector3(1.62f, -0.42f, 0.15f) * StarRadius;
+				AddChild(asteroid);
+				MakeRockLit(asteroid);
+			}
+		}
+
+		AddGlare();
+		GD.Print("[SunTest] asteroid presence scene");
 	}
 
 	/// <summary>
@@ -476,6 +560,10 @@ public sealed partial class SunTestScene : Node3D
 			else if (argument == "--master")
 			{
 				MasterImplementation = true;
+			}
+			else if (argument == "--asteroid")
+			{
+				AsteroidPresence = true;
 			}
 			else if (argument == "--legacy")
 			{

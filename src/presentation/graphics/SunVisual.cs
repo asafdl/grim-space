@@ -99,6 +99,9 @@ public static class SunVisual
 		material.SetShaderParameter("core_burn", palette.CoreBurn);
 		material.SetShaderParameter("texture_blend", palette.TextureBlend);
 		material.SetShaderParameter("texture_tiling", palette.TextureTiling);
+		material.SetShaderParameter("cellular_cells", palette.CellularCells);
+		material.SetShaderParameter("cellular_strength", palette.CellularStrength);
+		material.SetShaderParameter("lane_width", palette.LaneWidth);
 		material.SetShaderParameter("drift_strength", palette.DriftStrength);
 		material.SetShaderParameter("sun_radius", radius);
 		material.SetShaderParameter("seed", palette.Seed);

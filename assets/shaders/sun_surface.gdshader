@@ -43,6 +43,12 @@ uniform float seed = 0.0;
 uniform sampler2D photosphere : source_color;
 uniform float texture_blend : hint_range(0.0, 1.0) = 0.72;
 uniform float texture_tiling : hint_range(0.25, 8.0) = 2.0;
+
+// The cellular granulation: bright cell cores separated by dark, narrow
+// lanes.  Cell count across the visible disc diameter.
+uniform float cellular_cells : hint_range(4.0, 260.0) = 118.0;
+uniform float cellular_strength : hint_range(0.0, 1.0) = 0.85;
+uniform float lane_width : hint_range(0.02, 0.6, 0.0) = 0.16;
 uniform float drift_strength : hint_range(0.0, 1.0) = 0.45;
 
 // How hard the disc centre burns out into the glare.
@@ -103,6 +109,40 @@ float fbm(vec3 p, int octaves) {
 		amp *= 0.5;
 	}
 	return sum / max(norm, 0.0001);
+}
+
+// Three random feature points per lattice cell.
+vec3 hash33(vec3 p) {
+	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+	p += dot(p, p.yxz + 33.33);
+	return fract((p.xxy + p.yxx) * p.zyx);
+}
+
+// The two closest feature distances: F1 measures the distance to the cell
+// centre, F2 - F1 the distance to the cell border.  A bright core with a dark
+// lane around it is exactly the granulation of the DKIST reference frame.
+vec2 cellular(vec3 p) {
+	vec3 i = floor(p);
+	vec3 f = fract(p);
+	float f1 = 9.0;
+	float f2 = 9.0;
+	for (int z = -1; z <= 1; z++) {
+		for (int y = -1; y <= 1; y++) {
+			for (int x = -1; x <= 1; x++) {
+				vec3 g = vec3(float(x), float(y), float(z));
+				vec3 o = hash33(i + g);
+				vec3 r = g + o - f;
+				float d = dot(r, r);
+				if (d < f1) {
+					f2 = f1;
+					f1 = d;
+				} else if (d < f2) {
+					f2 = d;
+				}
+			}
+		}
+	}
+	return vec2(sqrt(f1), sqrt(f2) - sqrt(f1));
 }
 
 // A direction on the sphere from a longitude and a sine of latitude.
@@ -201,6 +241,18 @@ void fragment() {
 	// The texture carries the structure, the procedural field drifts over it.
 	g = mix(g_photo, g, 1.0 - texture_blend);
 	g = clamp(g + (g - 0.5) * drift_strength, 0.0, 1.0);
+
+	// Cellular granulation: the DKIST reference frame is bright white-hot cell
+	// cores separated by dark, narrow lanes, and the contrast is very high.
+	vec3 cell_p = sphere_dir * (cellular_cells / SUN_PI);
+	cell_p += vec3(TIME * flow_speed * 0.12, 0.0, TIME * flow_speed * 0.08);
+	cell_p += vec3(seed * 0.9, seed * 1.7, seed * 0.4);
+	vec2 cell = cellular(cell_p);
+	float core = 1.0 - smoothstep(0.02, 0.34, cell.x);
+	float lane = smoothstep(0.0, lane_width, cell.y);
+	float cells = core * lane;
+	cells = mix(0.5, cells, cellular_strength);
+	g = mix(g, cells, 0.62);
 
 	// Supergranulation: the large scale network that organises the granulation
 	// into bright regions and dark lanes.  The reference frames have their

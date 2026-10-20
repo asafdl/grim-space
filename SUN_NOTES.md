@@ -492,6 +492,64 @@ frame - the flare beat with the loop crossing the limb - is
 
 ---
 
+## 6b addendum 3: ROUND 5 - REFERENCE REGIME
+
+The reference library is now pinned: `refs/sun_reference_library/` is a verbatim
+copy of the user's picks, with `SOURCES.md` naming every file and `WEIGHTS.md`
+carrying the weights and the per-element deltas.
+
+### VERDICT AXES
+
+The round 5 standard is two axes, because looking *at* the Sun and looking at
+*things the Sun lights* are different questions.
+
+| Axis | Image | Verdict | One sentence |
+|------|-------|---------|--------------|
+| **A - THE VIEW** (looking at the Sun: surface granulation to DKIST, corona to eclipse streamers, prominence to graceful-eruption choreography) | `refs/comparison/round5_closeup.png` | **PARTIAL** | The corona now carries the eclipse's radial streamer arcs and the surface carries DKIST-style bright cell cores on dark lanes, but the prominence still reads as a thin drawn arc rather than the graceful rising plume of `dr_graceful_eruption.jpg`, and the NASA map's large white patches still blow out where DKIST is uniformly cellular. |
+| **B - THE LIT-BY VERDICT** (looking at things the Sun lights: crescent limb, terminator, the Sun as the scene's light source) | `refs/comparison/round5_asteroid_presence.png`, `refs/comparison/round5_battle_wide.png` | **PASS** | The asteroid field is lit by the Sun's own point light with a readable terminator and a warm colour temperature on the surfaces, the rock in front of the disc silhouettes correctly, and the wide battle frame shows the red dwarf as the light the whole scene is lit by. |
+
+### What changed in the shader
+
+* **Surface granulation -> DKIST.**  A cellular field was added: a 27-cell
+  Worley lookup gives the distance to the cell centre and the distance to the
+  cell border, and the granulation is a bright core with a dark, narrow lane
+  around it - 118 cells across the disc.  The NASA map's blend was cut from
+  0.72 to 0.45 so the cells, not the map's large white patches, dominate.
+* **Corona -> eclipse streamers.**  The corona's structure is no longer a polar
+  noise sample (that drew spokes) nor an isotropic mottle (that drew no
+  structure).  It is a starburst of radial strands: broad arcs from
+  incommensurate angular sines, fine strands inside them, fading with the
+  radius, and **no radial phase anywhere** - a high angular frequency with any
+  radial term beats into concentric rings, which is what the first attempt did.
+* **Prominence material -> braid, knots, feathers, flow.**  The noise phase is
+  advected along the loop so the plasma visibly travels along the arc; the
+  braid has a second harmonic so the threads cross and **knot**; the filament's
+  width is modulated by a hair field so the edge **feathers** instead of ending
+  in a clean line; and the knots brighten.
+* **The asteroid is lit.**  The shipped pack is a *metallic* variant, and a
+  metal only shows a specular highlight, so the rock read as a black
+  silhouette.  The material is replaced with a rough dielectric, and the Sun's
+  point light now falls on the rock's surface with a terminator.
+
+### Frame reads and profile checks
+
+* `round5_closeup.png`: read.  No moat, no concentric rings, the corona's
+  strands are radial, the granulation shows bright cores on dark lanes, a
+  prominence loop crosses the limb at the top, no debug HUD.
+* `round5_asteroid_presence.png`: read.  The debris field to the right of the
+  disc is lit (warm tan, shaded, terminator visible), the rock in front of the
+  disc is a correct silhouette, the corona's arcs read against the sky.
+* `round5_battle_wide.png`: read.  The red dwarf is the light of the battle
+  scene; the dust stream crosses in front of it and catches the light.
+* Radial profile, 72 rays with the limb found per ray:
+  `round5_closeup` 0.250, 0.086, 0.079, 0.070, 0.062, 0.059, 0.054, 0.049,
+  0.043, 0.040, 0.038, 0.033, 0.030 - monotonically decreasing, **0 outward
+  rises**.  `round5_asteroid_presence` 0.209, 0.131, 0.113, 0.107, 0.095,
+  0.087, 0.079, 0.077, 0.071, 0.067, 0.063, 0.062, 0.059 - also monotonic,
+  **0 outward rises**.
+
+---
+
 ## 7. An earlier radius calibration was wrong, and it mattered
 
 The first versions of the comparison used the *half-max* radius for the render
