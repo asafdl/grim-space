@@ -9,10 +9,13 @@ public partial class FacilityOperatorButtonView : TextureButton
 	private const string HaloShaderPath = "res://assets/shaders/service_button_halo.gdshader";
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
 	private const string LeadIndicatorPath = "res://assets/ui/map/lead-contact-icon.svg";
+	private const string HealingStationIndicatorPath = "res://assets/ui/map/healing-station-icon.svg";
 	private const int IndicatorPx = 48;
+	private const int IndicatorGapPx = 4;
 	private ShaderMaterial _haloMaterial = null!;
 	private Texture2D _contractIndicatorTexture = null!;
 	private Texture2D _leadIndicatorTexture = null!;
+	private Texture2D _healingStationIndicatorTexture = null!;
 	private TextureRect _roleIndicator = null!;
 	private Func<EFacilityOperatorRole>? _roleResolver;
 	private Func<EFacilityOperatorRole, string>? _titleResolver;
@@ -42,6 +45,9 @@ public partial class FacilityOperatorButtonView : TextureButton
 		Material = _haloMaterial;
 		_contractIndicatorTexture = SvgIconLoader.LoadRaw(ContractIndicatorPath, IndicatorPx);
 		_leadIndicatorTexture = SvgIconLoader.LoadRaw(LeadIndicatorPath, IndicatorPx);
+		_healingStationIndicatorTexture = SvgIconLoader.LoadRaw(
+			HealingStationIndicatorPath,
+			IndicatorPx);
 		_roleIndicator = new TextureRect
 		{
 			Texture = _contractIndicatorTexture,
@@ -80,7 +86,9 @@ public partial class FacilityOperatorButtonView : TextureButton
 	public override void _Process(double delta)
 	{
 		base._Process(delta);
-		_roleIndicator.Position = new Vector2((Size.X - IndicatorPx) * 0.5f, -IndicatorPx * 0.5f);
+		_roleIndicator.Position = new Vector2(
+			(Size.X - IndicatorPx) * 0.5f,
+			-IndicatorPx - IndicatorGapPx);
 		if (_roleResolver is null)
 			return;
 
@@ -94,6 +102,7 @@ public partial class FacilityOperatorButtonView : TextureButton
 		{
 			EOperatorRoleIndicator.Contract => _contractIndicatorTexture,
 			EOperatorRoleIndicator.Lead => _leadIndicatorTexture,
+			EOperatorRoleIndicator.HealingStation => _healingStationIndicatorTexture,
 			_ => null,
 		};
 		_roleIndicator.Visible = indicator != EOperatorRoleIndicator.None;

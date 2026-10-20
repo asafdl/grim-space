@@ -29,6 +29,7 @@ public sealed class OperatorDisplayLabelsTests
 	[InlineData(EFacilityOperatorRole.Contracts, EOperatorRoleIndicator.Contract)]
 	[InlineData(EFacilityOperatorRole.StoryContact, EOperatorRoleIndicator.Contract)]
 	[InlineData(EFacilityOperatorRole.LeadContact, EOperatorRoleIndicator.Lead)]
+	[InlineData(EFacilityOperatorRole.HealingStation, EOperatorRoleIndicator.HealingStation)]
 	[InlineData(EFacilityOperatorRole.Dialog, EOperatorRoleIndicator.None)]
 	public void Indicator_MapsRoleToPresentation(
 		EFacilityOperatorRole role,
