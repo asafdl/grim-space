@@ -25,12 +25,7 @@ public sealed class BattleSpawnPilotTests
 		using var run = RunState.CreateNewRun(42);
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		var enemyFleet = StarSystemTestHarness.CreatePirateFleet(
-			"pirate-test",
-			new Coord(4, 0, 0),
-			EFaction.Pirates);
-		foreach (var declaration in enemyFleet.Registrations)
-			run.ItemInventory.Register(declaration, enemyFleet.State.Id);
+		var enemyFleet = RegisterEnemyFleet(run, "pirate-test", new Coord(4, 0, 0));
 
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, enemyFleet],
@@ -61,19 +56,22 @@ public sealed class BattleSpawnPilotTests
 		using var run = RunState.CreateNewRun(42);
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = RegisterEnemyFleet(run, "pirate-save-test", new Coord(4, 0, 0));
 		var encounter = EngagementBattleFactory.Create(
-			[playerFleet],
+			[playerFleet, enemyFleet],
 			run.ItemInventory,
 			seed: 3,
 			id: "pilot-save-test",
 			initiatorFleetId: playerFleet.State.Id,
 			shipIdToPilotSnapshot: shipToPilot);
-		var expectedPilot = Assert.Single(encounter.Spawns).Pilot;
+		var expectedPilot = Assert.Single(encounter.Spawns, spawn => spawn.Team == ETeam.Player).Pilot;
 
 		var dto = SaveDtoMapper.CaptureBattleEncounter(encounter);
 		var restored = SaveDtoMapper.RestoreBattleEncounter(dto);
 
-		Assert.Equal(expectedPilot, Assert.Single(restored.Spawns).Pilot);
+		Assert.Equal(
+			expectedPilot,
+			Assert.Single(restored.Spawns, spawn => spawn.Team == ETeam.Player).Pilot);
 	}
 
 	[Fact]
@@ -109,8 +107,9 @@ public sealed class BattleSpawnPilotTests
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = RegisterEnemyFleet(run, "pirate-multi-pilot", new Coord(4, 0, 0));
 		var encounter = EngagementBattleFactory.Create(
-			[playerFleet],
+			[playerFleet, enemyFleet],
 			run.ItemInventory,
 			seed: 11,
 			id: "multi-pilot-test",
@@ -156,6 +155,17 @@ public sealed class BattleSpawnPilotTests
 		var runtime = battle.Engine.ActorRuntimes.For("fighter-a");
 
 		Assert.Equal(skills, runtime.PilotSkills.OrderBy(skill => skill).ToArray());
+	}
+
+	private static GrimSpace.World.StarSystem.Units.Fleet RegisterEnemyFleet(
+		RunState run,
+		string fleetId,
+		Coord position)
+	{
+		var enemyFleet = StarSystemTestHarness.CreatePirateFleet(fleetId, position, EFaction.Pirates);
+		foreach (var declaration in enemyFleet.Registrations)
+			run.ItemInventory.Register(declaration, enemyFleet.State.Id);
+		return enemyFleet;
 	}
 
 	private static Dictionary<string, PilotBattleSnapshot> BuildShipToPilotSnapshot(RunState run)
