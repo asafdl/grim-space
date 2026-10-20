@@ -318,6 +318,22 @@ public partial class BattleHud : Node
 		_mountSelectorBackdrop.AcceptEvent();
 	}
 
+	/// <summary>
+	/// Shows or hides the console chrome. A recording keeps the full console in
+	/// its anchor shot and cleans the picture afterwards: the HUD belongs in the
+	/// shot that tells the viewer what the game is, and it competes with the
+	/// game everywhere else.
+	/// </summary>
+	public void SetChromeVisible(bool visible)
+	{
+		_chromeVisible = visible;
+		_topHud.Visible = visible;
+		_bottomHud.Visible = visible;
+		_phaseLayer.Visible = visible;
+	}
+
+	private bool _chromeVisible = true;
+
 	public void Apply(PresentationFrame frame, EBattlePhase phase, bool allowEndTurn)
 	{
 		var hideHud = frame.ShowOutcomeOverlay;
@@ -334,7 +350,7 @@ public partial class BattleHud : Node
 			!hideHud && phase == EBattlePhase.PlayerTurn,
 			ref _simulationPhaseBannerTargetVisible,
 			ref _simulationPhaseBannerTween);
-		_topHud.Visible = !hideHud;
+		_topHud.Visible = !hideHud && _chromeVisible;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
 		var focusState = frame.FocusState;
@@ -346,7 +362,7 @@ public partial class BattleHud : Node
 		if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogEntries, _strategicBattle);
 
-		_bottomHud.Visible = !hideHud;
+		_bottomHud.Visible = !hideHud && _chromeVisible;
 		if (hideHud)
 			return;
 

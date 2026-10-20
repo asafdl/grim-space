@@ -1,35 +1,30 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-20 (V5 pass: the turn loop is the spine).** The teaser has been
-> re-cut after the branch was **rebased onto `origin/master`** (65e38b93, 52 commits).
-> The current deliverable is `teaser.mp4` — **35.15 s, 1080p60, stereo audio at
-> -14.1 LUFS**.
+> **Updated 2026-10-20 (V6 rebuild: events first, the turn loop visible).** The
+> teaser was re-cut after the film-geek audit of the V5 cut (22 violations) and
+> the user's three notes. The deliverable is `teaser.mp4` — **35.20 s, 1080p60,
+> stereo at -14.1 LUFS**.
 >
-> The cut now runs as a **turn loop, not a fight**: the command console with the
-> cursor on the weapon card → the card clicked → `EXECUTE TURN` clicked → the
-> order resolving (the hull accelerates away, the bomb flies) → the enemy's turn
-> (the console goes dark, the enemy's red threat telegraph, the enemy acts) →
-> your turn again (`Turn 2`, the turn strip fuller) → the exchange that kills a
-> hull → the star map with the fleet travelling a route → the contract board →
-> the dockyard's upgrade shop → the fleet screen → the name card over the live
-> fight.
+> The cut now runs as a chain of consequences: the anchor (the full console, the
+> enemy outnumbering you, the enemy's plan already drawn on the field) → your
+> order resolving on camera → the cost → the next plan → a goop gun turning the
+> space into a green hazard field → the lit star map with the route drawn on it →
+> the authority and the contract it offers → the shop's price rows → the crew
+> and the live objective → a third engagement → the enemy's plan left unpaid →
+> the card.
 >
-> **The battle is the run's own engagement**: the contract board offers it, the
-> film accepts it, the contract spawns the enemy fleet, the fleets make contact,
-> the film presses the game's own Engage, and the run builds the encounter with
-> the game's own engagement factory. Every frame is pixels from the real
-> `.tscn` scenes (`battle.tscn`, `map.tscn`, `command_authority.tscn`,
-> `dockyard.tscn`). The only text the film adds is `GRIM SPACE`.
+> **The pointer is gone** (the user's ruling). The interaction is shown by its
+> response. **Every battle is the real `battle.tscn`**, built by the game's own
+> engagement factory from fleets registered in the run's own inventory — the
+> roster and the order are staged, the scene and the rules are not. The new sun
+> shader stays in the repo and out of the film. The card lands at 0:30.70 with
+> the game's own typography, one promise line and one call.
 >
-> The pointer the viewer sees is **drawn by the film** (a recorder cannot capture
-> the OS cursor) but every move and click is a **real input event** delivered to
-> the game, so the hover states and the presses are the game's own.
->
-> Full write-up — the per-point fix log, the **research** (18 rules from 6+
-> verified sources, with the documented trailer failures), the **provenance
-> table** (shot → .tscn → cursor → capture) and the honest what-still-falls-
-> short log — is in
-> [TEASER_NOTES.md](TEASER_NOTES.md#v5-pass-the-turn-loop-is-the-spine).
+> Full write-up — the gate-by-gate pass/fail table measured from the shipped
+> file, the regenerated beat table, the verifier's own tests and the honest
+> residuals (including the one gate that failed: no hull is destroyed inside the
+> film) — is in
+> [TEASER_NOTES.md](TEASER_NOTES.md#v6-rebuild-events-first-the-turn-loop-visible-real-scenes).
 >
 > Earlier notes:
 > The teaser **has been recorded successfully in this environment**.

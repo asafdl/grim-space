@@ -1,0 +1,11 @@
+[
+  {"path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav", "time": 2.55, "gain_db": -4.0},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 2.77},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 5.07, "gain_db": -3.0},
+  {"path": "assets/sfx/abilities/robot_beeps_300ms.wav", "time": 10.20, "gain_db": -2.0},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 13.18},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 14.08, "gain_db": -4.0},
+  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 22.58},
+  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 24.10},
+  {"path": "assets/sfx/abilities/void_bomb_explosion.wav", "time": 30.70}
+]

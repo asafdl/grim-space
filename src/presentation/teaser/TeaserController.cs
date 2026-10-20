@@ -8,6 +8,7 @@ using GrimSpace.Application;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Scene;
@@ -16,11 +17,15 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
+using GrimSpace.Run;
 using GrimSpace.Units;
+using GrimSpace.Battle.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Maneuvering;
+using BattleType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
@@ -28,80 +33,84 @@ using GrimSpace.World.StarSystem.Presentation.Camera;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Resources;
+using GrimSpace.World.StarSystem.Units;
 using RunState = GrimSpace.Run.State;
 using MapType = GrimSpace.World.StarSystem.Units.EType;
+using BattleUnitType = GrimSpace.Units.Enums.EType;
+using MapFactory = GrimSpace.World.StarSystem.Units.Factory;
 
 namespace GrimSpace.Presentation.Teaser;
 
 /// <summary>
-/// Directs the teaser video (V5 pass: the turn loop is the spine).
+/// Directs the teaser video (V6 rebuild: events first, the turn loop visible,
+/// the run layer paid off).
 ///
-/// The film is one idea: **a turn-based game, played in front of you.** The
-/// battle is not an action scene that happens to have a HUD; it is a loop, and
-/// the loop is the story:
+/// The film is a chain of consequences, not a list of screens:
 ///
-///   YOUR TURN   the command console is live and lit: the turn order, the
-///               action cards, the AP/MP meters, the pilot's face and shields
-///   YOU ACT    the weapon is chosen on the console, the order is committed
-///               with the game's own EXECUTE control, the hull accelerates away
-///               and the shot lands
-///   THE BOOM   a hull is lost; the camera retreats because a hull was lost
-///   THEIR TURN the console goes dark, the turn order hands over, the enemy
-///               acts on the field
-///   YOUR TURN  the console comes back on, the round counter has moved, the
-///               order strip is full and the cursor is back on you
-///   THE RUN    the star map, the contract board, the dockyard, the fleet
-///   THE NAME   the name, over a game that is still waiting for you
+///   1  ANCHOR     the whole console, the enemy outnumbering you, and the
+///                 enemy's plan already drawn on the field
+///   2  COMMIT     your order resolves on camera: the hull accelerates away and
+///                 the beam crosses the frame
+///   3  THE LOSS   a hull is destroyed, and the wreck is still there after
+///   4  THE PLAN   the next turn's threat is drawn again, and the round moves on
+///   5  THE GOOP   a different enemy, a different weapon, a green field of
+///                 hazard
+///   6  THE MAP   the route the fleet is travelling, drawn on the map
+///   7  THE BOARD  the authority, and the contract that will pay for it
+///   8  THE SHOP  what the money buys
+///   9  THE CREW   the ship and the pilot, and the objective that is live
+///  10  THE CARRIER another fight, a bigger ship, the beams again
+///   11  THE DEBT  the enemy plan, unanswered: the promise the film ends on
+///   12  THE CARD  the name, a promise and a call
 ///
-/// Nothing in the film is a still, a mock-up or a staged scene: the battle is
-/// the run's own engagement, built by the game's own engagement factory from
-/// the run's own fleets, and the world beats are the real map and the real
-/// facility scenes.
+/// Every frame is pixels from a real `.tscn` scene. The three engagements are
+/// built by the game's own engagement factory from fleets registered in the
+/// run's own inventory; what the film stages is the roster and the order, not
+/// the look.
 ///
-/// Transitions follow one rule: **inside a place the camera flows to whatever
-/// is acting; between places it is a clean cut on the event.** No dissolves,
-/// no fades to black in the middle of the film, no black frames.
+/// There is no pointer in this film. The interaction is shown by its
+/// response: the card lights, the order resolves, the hull moves, the impact
+/// lands.
 /// </summary>
 public partial class TeaserController : Node
 {
 	// ---- the cut ------------------------------------------------------------
-	private const float PlanSeconds = 3.0f;
-	private const float YouActSeconds = 1.8f;
-	private const float BoomSeconds = 1.4f;
-	private const float TheirTurnSeconds = 1.8f;
-	private const float YourTurnAgainSeconds = 1.4f;
-	private const float StarSeconds = 3.4f;
-	private const float ContractSeconds = 3.2f;
-	private const float DockSeconds = 3.2f;
-	private const float FleetSeconds = 2.8f;
-	private const float TitleSeconds = 3.4f;
-	private const float DissolveSeconds = 0.4f;
-	private const float OpeningFadeSeconds = 0.35f;
+	// The schedule. Every beat ends on its mark, so the card lands where the
+	// end-card window says it should: 0:30.70.
+	private const float OpeningFadeSeconds = 0.33f;
+	private const float AnchorEnd = 2.80f;
+	private const float CommitEnd = 5.10f;
+	private const float LossEnd = 9.10f;
+	private const float PlanEnd = 10.90f;
+	private const float GoopEnd = 13.20f;
+	private const float GoopFieldEnd = 15.50f;
+	private const float MapEnd = 18.20f;
+	private const float BoardEnd = 20.40f;
+	private const float ContractEnd = 22.60f;
+	private const float ShopEnd = 24.10f;
+	private const float CrewEnd = 26.10f;
+	private const float CarrierEnd = 28.70f;
+	private const float DebtEnd = 30.70f;
+	private const float TitleEnd = 35.15f;
 
-	/// <summary>How long the pointer rests on a control before it clicks.</summary>
-	private const float HoverDwellSeconds = 0.7f;
+	// The card has to land inside the industry end-card window and hold.
+	private const float TitleOnset = 30.70f;
 
-	/// <summary>How long the battle may take before the film moves on.</summary>
-	private const float BattleBudgetSeconds = 15f;
-	private const float EndFadeSeconds = 1.0f;
-
-	// The player's ship, close enough to be the subject.
-	private const float PlayerDistance = 9f;
+	// ---- camera -------------------------------------------------------------
+	private const float PlayerDistance = 9.5f;
 	private const float PlayerYaw = 0.20f;
-	private const float PlayerPitch = 0.18f;
-	private const float PlayerRoll = -0.12f;
+	private const float PlayerPitch = 0.20f;
+	private const float PlayerRoll = -0.10f;
 
-	// The enemy, framed from the other side and a little further out.
 	private const float EnemyDistance = 12f;
-	private const float EnemyYaw = -0.65f;
-	private const float EnemyPitch = 0.26f;
+	private const float EnemyYaw = -0.55f;
+	private const float EnemyPitch = 0.24f;
 	private const float EnemyRoll = 0.10f;
 
-	// The closing card.
-	private const float TitleDistance = 15f;
-	private const float TitleYaw = 0.42f;
-	private const float TitlePitch = 0.26f;
-	private const float TitleRoll = 0.04f;
+	private const float WideDistance = 30f;
+	private const float WideYaw = 0.42f;
+	private const float WidePitch = 0.46f;
+	private const float WideRoll = 0.04f;
 
 	private const string CommandAuthorityScene = "res://scenes/command_authority.tscn";
 	private const string DockyardScene = "res://scenes/dockyard.tscn";
@@ -113,11 +122,9 @@ public partial class TeaserController : Node
 	private TextureRect _battleDisplay = null!;
 	private ColorRect _transition = null!;
 	private Label _titleText = null!;
+	private Label _promiseText = null!;
+	private Label _callText = null!;
 
-	/// <summary>
-	/// The content currently on screen in the world viewport. Only one piece is
-	/// live at a time: the map or a facility.
-	/// </summary>
 	private Node? _current;
 
 	private BattleController? _battle;
@@ -125,32 +132,16 @@ public partial class TeaserController : Node
 	private readonly List<BattleController> _retiredBattles = [];
 	private CancellationTokenSource? _battleCancel;
 
-	/// <summary>True while the turn order says the enemy is acting.</summary>
-	private bool _enemyActing;
-
-	/// <summary>The hulls that were on the field the last time it was checked.</summary>
 	private readonly HashSet<string> _knownUnits = new(StringComparer.Ordinal);
-
-	/// <summary>Where each hull was, the last time it was checked.</summary>
 	private readonly Dictionary<string, Vector3> _lastPositions = new(StringComparer.Ordinal);
-
-	/// <summary>
-	/// The cursor the viewer sees. The recording cannot capture the operating
-	/// system's pointer, so the film draws one - and every move and click it
-	/// makes is a real input event pushed into the game's own viewport, so the
-	/// hover states, the tooltips and the presses the viewer sees are the
-	/// game's own response to a real interaction.
-	/// </summary>
-	private Node2D? _cursor;
-
-	/// <summary>Arms the pull-back that follows a lost hull.</summary>
 	private bool _revealArmed;
-
-	/// <summary>The clock the film runs on.</summary>
+	private double _revealAt;
 	private double _elapsed;
 
-	/// <summary>When the pull-back happens, after the blast has been seen.</summary>
-	private double _revealAt;
+	/// <summary>The engagement ids the film stages, one per battle.</summary>
+	private const int AnchorSeed = 9110;
+	private const int GoopSeed = 4470;
+	private const int CarrierSeed = 7730;
 
 	public override void _Ready()
 	{
@@ -167,8 +158,6 @@ public partial class TeaserController : Node
 		_viewport.SetDisableInput(true);
 		_battleViewport.SetDisableInput(true);
 
-		// The battle is the bottom layer and the world is painted over it, so a
-		// cut between the two reveals one over the other.
 		_battleDisplay = new TextureRect
 		{
 			Texture = _battleViewport.GetTexture(),
@@ -189,16 +178,13 @@ public partial class TeaserController : Node
 		AddChild(_viewportDisplay);
 		MoveChild(_viewportDisplay, 1);
 
-		// The film opens on the fight, so the world layer starts hidden.
 		_viewportDisplay.Modulate = new Color(1, 1, 1, 0);
 
 		_transition = GetNode<ColorRect>("Overlay/Transition");
 		_titleText = GetNode<Label>("Overlay/TitleText");
+		BuildTitleCard();
 
-		// The recording must not carry the game's own tutorials or the text log:
-		// the teaser is a systems film, and the teaching overlays are words. The
-		// setting is written before the run is created, so the run itself is
-		// born without the tutorial flow.
+		// The recording must not carry the game's own tutorials or the text log.
 		DisableTeachingOverlays();
 
 		if (Session.Instance.Run is null)
@@ -206,20 +192,12 @@ public partial class TeaserController : Node
 			Session.Instance.StartNewRun();
 		}
 
-		// The run is created with tutorials on; the film turns them off.
 		Session.Instance.Run?.ConfigureTutorials(false);
-
-		// The frame-rate readout is a development overlay; it does not belong in a
-		// recorded video.
 		Session.ShowPerformanceOverlay = false;
 
-		// The film runs the game inside its own viewport, so the session must
-		// not take the scene away when the run's battle becomes ready.
+		// The film runs the game inside its own viewport, so the session must not
+		// take the scene away when the run's battle becomes ready.
 		Session.Instance.SuppressSceneChanges = true;
-
-		// The pointer the viewer sees. Every move and click it makes is a real
-		// input event for the game.
-		BuildCursor();
 
 		RunTeaser();
 	}
@@ -230,18 +208,21 @@ public partial class TeaserController : Node
 	{
 		try
 		{
-			// The run has to be set up before the film starts: the battle in the
-			// film is the run's own engagement, produced by the game's own
-			// engagement factory from the run's own fleets.
-			var engagement = await PrepareRealEngagement();
-
 			await FadeIn(OpeningFadeSeconds);
 
-			await RunTurnLoopBeat(engagement);
-			await RunStarBeat();
+			await RunAnchorBeat();
+			await RunCommitBeat();
+			await RunLossBeat();
+			await RunPlanBeat();
+			await RunGoopBeat();
+			await RunGoopFieldBeat();
+			await RunMapBeat();
+			await RunBoardBeat();
 			await RunContractBeat();
-			await RunDockBeat();
-			await RunFleetBeat();
+			await RunShopBeat();
+			await RunCrewBeat();
+			await RunCarrierBeat();
+			await RunDebtBeat();
 			await RunTitleBeat();
 		}
 		catch (Exception error)
@@ -250,91 +231,134 @@ public partial class TeaserController : Node
 		}
 
 		StopBattle();
-		await ReleaseRetiredBattles();
-
-		// One single fade to black at the very end.
-		await FadeOut(EndFadeSeconds);
+		await ToSignal(GetTree(), "process_frame");
+		await ToSignal(GetTree(), "process_frame");
 		GetTree().Quit();
 	}
 
 	/// <summary>
-	/// The turn loop, in five beats, inside one battle. The console lights up
-	/// (your turn), the order is committed with the game's own EXECUTE control,
-	/// the console goes dark (their turn), it comes back on (your turn again,
-	/// one round later) and the second order kills a hull.
-	///
-	/// The rhythm follows the research: the planning shot is held long enough to
-	/// read the board, the payoff is cut fast, and the player's and the
-	/// enemy's turns are interleaved rather than blocked together.
+	/// The anchor: the whole console, the enemy outnumbering you, and the
+	/// enemy's plan already drawn on the field. The HUD is at full size here
+	/// and nowhere else.
 	/// </summary>
-	private async Task RunTurnLoopBeat(BattleEncounter? engagement)
+	private async Task RunAnchorBeat()
 	{
-		await StartBattle(engagement);
-		var beatStart = _elapsed;
+		await StartBattle(BuildStagedEncounter(
+			AnchorSeed,
+			"teaser-anchor",
+			[BattleType.Carrier]));
 
-		// 1. YOUR TURN. The console is lit and the plan is live. This is the
-		// longest shot in the film: the board has to be readable.
-		await WaitForPlayerTurnAsync(8.0f);
-		FrameActingShip(PlayerDistance, PlayerYaw, PlayerPitch, PlayerRoll);
-		await WaitSeconds(1.2f);
+		// The wide: the enemy force is visibly larger than yours.
+		_battle?.SetupOverviewCamera(
+			startDistance: WideDistance + 12f,
+			dollySeconds: 1.6f,
+			roll: WideRoll,
+			orbitAmplitude: 0.12f,
+			distance: WideDistance);
 
-		// The player picks a weapon on the console. The cursor goes to the card,
-		// the card lights up under it, the pointer dwells so the viewer can
-		// read what is about to happen, and then the card is clicked. The
-		// click is a real button event, so the weapon is queued exactly as a
-		// player's click queues it.
-		await WaitSeconds(0.4f);
-		await ChooseWeaponWithCursor();
-		await WaitSeconds(PlanSeconds - 1.7f);
+		await HoldUntil(AnchorEnd);
 
-		// 2. YOU ACT. The order is committed by pressing the game's own EXECUTE
-		// control, and the hull accelerates away with its trail. The payoff is
-		// cut fast.
-		await CommitOrderWithCursor();
-		_revealArmed = true;
-		await WaitSeconds(YouActSeconds);
-
-		// 3. THEIR TURN. The camera goes to the enemy: the turn order has handed
-		// over and the console is dark while the enemy acts.
-		await WaitSeconds(1.6f);
-		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
-		await WaitSeconds(TheirTurnSeconds);
-
-		// 4. YOUR TURN AGAIN. The console comes back on, the round counter has
-		// moved, and the turn strip is full.
-		await WaitForPlayerTurnAsync(3.0f);
-		FrameUnit(_battle?.Battle.PlayerId, PlayerDistance, PlayerYaw, PlayerPitch, PlayerRoll);
-		await WaitSeconds(YourTurnAgainSeconds);
-
-		// 5. YOU ACT AGAIN, and the order that kills a hull: the boom. The camera
-		// is on the hull that is about to die, so the loss happens at the camera.
-		// The fight is real, so the film plays the exchange again if the first
-		// one did not kill anything.
-		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
-
-		// The fight is real, so the film plays the exchange again if the first
-		// one did not kill anything - but the beat has a budget, because the
-		// run layer still has to happen.
-		var budget = beatStart + BattleBudgetSeconds;
-		for (var exchange = 0;
-			exchange < 3 && !HullLost && _elapsed < budget;
-			exchange++)
-		{
-			await ChooseWeaponWithCursor();
-			await WaitSeconds(0.3f);
-			await CommitOrderWithCursor();
-			await WaitForHullLostAsync(2.5f);
-		}
-
-		await WaitSeconds(BoomSeconds);
+		// The console belongs in the shot that tells the viewer what the game
+		// is. Everywhere after it, the picture is the game.
+		_battle?.Hud.SetChromeVisible(false);
 	}
 
-	/// <summary>The star map: the fleet, its route, and the run's objectives.</summary>
-	private async Task RunStarBeat()
+	/// <summary>
+	/// Your order resolves on camera: the hull accelerates away and the beam
+	/// crosses the frame. The card lights before the order is committed, so the
+	/// selection is visible without a pointer.
+	/// </summary>
+	private async Task RunCommitBeat()
 	{
-		// The run's engagement is over for the film. The map scene hands the
-		// fight over by changing the scene, and the film runs the map inside a
-		// viewport of its own, so the run puts the engagement down first.
+		FrameActingShip(PlayerDistance, PlayerYaw, PlayerPitch, PlayerRoll);
+		await WaitSeconds(0.35f);
+
+		// The selection state: the card lights and the weapon's coverage is
+		// drawn on the field.
+		_battle?.RequestAbilityMode(EPlayerMode.LightningCannon, fireImmediately: false);
+		await WaitSeconds(0.45f);
+
+		// The order goes in, through the game's own agent.
+		CommitOrder();
+		await HoldUntil(CommitEnd);
+	}
+
+	/// <summary>
+	/// A hull is destroyed. The camera goes to where the loss happened, and the
+	/// wreck is still on screen when the film leaves the battle.
+	/// </summary>
+	private async Task RunLossBeat()
+	{
+		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		_revealArmed = true;
+
+		// The fight is real, so the film plays the exchange again if the first
+		// one did not kill anything.
+		var deadline = _elapsed + 4.2;
+		while (!HullLost && _elapsed < deadline)
+		{
+			await WaitForHullLostAsync(0.5f);
+			if (HullLost)
+				break;
+
+			_battle?.RequestAbilityMode(EPlayerMode.LightningCannon, fireImmediately: false);
+			CommitOrder();
+		}
+
+		await HoldUntil(LossEnd);
+	}
+
+	/// <summary>
+	/// The next turn: the enemy plan is drawn again on the field, and the round
+	/// counter moves on. The telegraph is a red arc and a rising tone.
+	/// </summary>
+	private async Task RunPlanBeat()
+	{
+		await WaitForPlayerTurnAsync(1.2f);
+		FrameActingShip(EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		await HoldUntil(PlanEnd);
+	}
+
+	/// <summary>
+	/// A different engagement: a goop gun turns the space into a green field of
+	/// hazard, and the enemy that is shooting at you is a different chassis.
+	/// </summary>
+	private async Task RunGoopBeat()
+	{
+		await StartBattle(BuildStagedEncounter(
+			GoopSeed,
+			"teaser-goop",
+			[BattleType.IndustrialGooper, BattleType.Fighter]));
+
+		FrameActingShip(EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		await WaitForPlayerTurnAsync(1.2f);
+
+		_battle?.RequestAbilityMode(EPlayerMode.GoopGun, fireImmediately: false);
+		await WaitSeconds(0.35f);
+		CommitOrder(EPlayerMode.GoopGun);
+
+		await HoldUntil(GoopEnd);
+	}
+
+	/// <summary>
+	/// The goop field: the hazard spreads through the space the ships fight in,
+	/// and the fighter has to fight inside it.
+	/// </summary>
+	private async Task RunGoopFieldBeat()
+	{
+		FrameUnit(FindEnemyUnitId(), WideDistance, WideYaw, WidePitch, WideRoll);
+		await HoldUntil(GoopFieldEnd);
+	}
+
+	/// <summary>
+	/// The run layer: the map, with the route the fleet is travelling drawn on
+	/// it. The map is lit for the film; the new sun stays out of it.
+	/// </summary>
+	private async Task RunMapBeat()
+	{
+		// The engagement is over for the film; the map scene hands the fight
+		// over by changing the scene, and the film runs the map inside a
+		// viewport of its own.
 		Session.Instance.Run!.ActiveBattle = null;
 
 		MapNavigationContext.ClearReturnToFacade();
@@ -344,20 +368,35 @@ public partial class TeaserController : Node
 
 		await ToSignal(GetTree(), "process_frame");
 
-		// The new star shader stays in the game; it is not in this film.
 		HideMapStar(mapInstance);
 		HideMapEventHorizon(mapInstance);
-		// The opening narrative is a page of text. This film has no text.
 		DismissMapNarrative(mapInstance);
-
+		LightMapForFilm(mapInstance);
 		PushInOnMap(mapInstance);
 		StartFleetTravel();
 
-		await WaitSeconds(StarSeconds);
+		await HoldUntil(MapEnd);
 	}
 
 	/// <summary>
-	/// The contract board: the authority's offer list, then the acceptance.
+	/// The authority: the room the contracts come from, and the operator that
+	/// gives them.
+	/// </summary>
+	private async Task RunBoardBeat()
+	{
+		var (poiId, facilityId) = FindFacility(CommandAuthorityScene);
+		MapNavigationContext.EnterFacility(poiId, facilityId);
+
+		var authority = GD.Load<PackedScene>(CommandAuthorityScene).Instantiate();
+		await CutToWorld(authority);
+
+		await ToSignal(GetTree(), "process_frame");
+		await HoldUntil(BoardEnd);
+	}
+
+	/// <summary>
+	/// The contract board: the offer, and the acceptance that puts a live
+	/// objective on the map.
 	/// </summary>
 	private async Task RunContractBeat()
 	{
@@ -377,36 +416,30 @@ public partial class TeaserController : Node
 
 		await ToSignal(GetTree(), "process_frame");
 
-		// The operator button is the real entry point into the contract list.
 		if (authority.GetNodeOrNull<BaseButton>("Scene/Manager") is { } manager)
 		{
 			manager.EmitSignal(BaseButton.SignalName.Pressed);
 		}
-		else
-		{
-			GD.Print("[Teaser] command authority has no Manager button");
-		}
 
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 
-		// Accept the contract through the run's own action lane, so the game
-		// reacts exactly as it does when the player presses Accept.
+		// Accept it through the run's own action lane, so the game reacts
+		// exactly as it does when the player accepts.
 		AcceptContract(contractId);
 
-		await WaitSeconds(ContractSeconds);
+		await HoldUntil(ContractEnd);
 	}
 
 	/// <summary>
-	/// The dockyard: a hull upgrade on offer, with real prices.
+	/// The shop: what the money buys. The price rows, for as long as they can
+	/// be read.
 	/// </summary>
-	private async Task RunDockBeat()
+	private async Task RunShopBeat()
 	{
 		GrantDockyardMerchantRole();
 		GrantResources();
 
-		// The shop only sells upgrade packages once the run has moved up a tier,
-		// so the run is moved up a tier before the shop is opened.
 		var orchestrator = Session.Instance.Run?.StarSystem;
 		for (var i = 0; i < 3; i++)
 		{
@@ -425,21 +458,18 @@ public partial class TeaserController : Node
 		{
 			salesman.EmitSignal(BaseButton.SignalName.Pressed);
 		}
-		else
-		{
-			GD.Print("[Teaser] dockyard has no Salesman button");
-		}
 
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 
-		await WaitSeconds(DockSeconds);
+		await HoldUntil(ShopEnd);
 	}
 
 	/// <summary>
-	/// The fleet and its pilot: the screens the player lives in between fights.
+	/// The crew: the ship, the pilot, the abilities, and the objective that is
+	/// now live with its badge.
 	/// </summary>
-	private async Task RunFleetBeat()
+	private async Task RunCrewBeat()
 	{
 		MapNavigationContext.ClearReturnToFacade();
 
@@ -452,171 +482,173 @@ public partial class TeaserController : Node
 		HideMapStar(mapInstance);
 		HideMapEventHorizon(mapInstance);
 		DismissMapNarrative(mapInstance);
-		PushInOnMap(mapInstance);
+		LightMapForFilm(mapInstance);
 
 		if (mapInstance.GetNodeOrNull<StrategicHud>("StrategicHud") is { } hud)
 		{
 			hud.OpenFleetManagement();
 		}
-		else
-		{
-			GD.Print("[Teaser] map has no StrategicHud");
-		}
 
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 
-		await WaitSeconds(FleetSeconds);
+		await HoldUntil(CrewEnd);
 	}
 
-	/// <summary>The closing wordmark, over the battle that is still waiting.</summary>
+	/// <summary>
+	/// The carrier: a bigger ship, the beams again, and a third palette.
+	/// </summary>
+	private async Task RunCarrierBeat()
+	{
+		await StartBattle(BuildStagedEncounter(
+			CarrierSeed,
+			"teaser-carrier",
+			[BattleType.Carrier, BattleType.Fighter, BattleType.IndustrialGooper]));
+
+		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		await WaitForPlayerTurnAsync(1.2f);
+
+		_battle?.RequestAbilityMode(EPlayerMode.LightningCannon, fireImmediately: false);
+		await WaitSeconds(0.35f);
+		CommitOrder();
+
+		await HoldUntil(CarrierEnd);
+	}
+
+	/// <summary>
+	/// The debt: the enemy's plan, drawn across the field and left unanswered.
+	/// This is the promise the film ends on.
+	/// </summary>
+	private async Task RunDebtBeat()
+	{
+		FrameUnit(FindEnemyUnitId(), WideDistance, WideYaw, WidePitch, WideRoll);
+
+		await HoldUntil(DebtEnd);
+	}
+
+	/// <summary>
+	/// The card: the name, a promise and a call, on a clean plate over the live
+	/// fight.
+	/// </summary>
 	private async Task RunTitleBeat()
 	{
+		// The fight keeps running behind the card.
+		_battle?.Hud.SetChromeVisible(false);
+
 		await CutToBattle();
 
-		LayoutTitleText();
+		LayoutTitleCard();
 		_titleText.Visible = true;
+		_promiseText.Visible = true;
+		_callText.Visible = true;
 
 		await ToSignal(GetTree(), "process_frame");
-		await WaitSeconds(TitleSeconds);
-	}
-
-	// ---- the real engagement ------------------------------------------------
-
-	/// <summary>
-	/// Produces the battle the film fights in, the way the game produces it:
-	/// a contract is offered by the real board, the contract is accepted, the
-	/// enemy fleet it spawned hunts the player, the fleets make contact, the
-	/// player engages, and the run builds the encounter with the game's own
-	/// engagement factory. Nothing about the fight is made up.
-	/// </summary>
-	/// <returns>The run's active engagement, or null if the run produced none.</returns>
-	private async Task<BattleEncounter?> PrepareRealEngagement()
-	{
-		var run = Session.Instance.Run;
-		var orchestrator = run?.StarSystem;
-		if (run is null || orchestrator is null)
-			return null;
-
-		orchestrator.SetRunning();
-
-		// A contract from the real board.
-		var contractId = PrepareContractOffer();
-		if (contractId is null)
-		{
-			GD.Print("[Teaser] the contract board produced no offer");
-			return null;
-		}
-
-		// Accepting it spawns the enemy fleet and starts the hunt.
-		AcceptContract(contractId);
-
-		// The fleet the contract spawned is the one the player has to go and meet.
-		// This is the game's own order for it.
-		var target = FindContractEnemyFleet(orchestrator);
-		if (target is not null)
-		{
-			var queued = orchestrator.PlayerAgent?.TryQueuePursueFleet(target);
-			GD.Print($"[Teaser] the fleet pursues {target}: {queued?.GetType().Name ?? "none"}");
-		}
-
-		// Let the map run until the fleets make contact.
-		var ticks = 0;
-		while (ticks < 4000
-			&& !EngagementQueries.TryGetPendingPlayerEngagement(
-				orchestrator.Map,
-				RunState.PlayerFleetUnitId,
-				out _))
-		{
-			orchestrator.AdvanceTicks(5);
-			ticks += 5;
-		}
-
-		GD.Print($"[Teaser] contact after {ticks} ticks");
-
-		// The contact prompt is the game's; the player presses Engage.
-		if (EngagementQueries.TryGetPendingPlayerEngagement(
-				orchestrator.Map,
-				RunState.PlayerFleetUnitId,
-				out _))
-		{
-			orchestrator.PlayerAgent?.TryEnqueue(
-				[new EngageAction(RunState.PlayerFleetUnitId)]);
-			orchestrator.AdvanceTicks(4);
-		}
-
-		var engagement = run.ActiveBattle;
-		GD.Print(
-			$"[Teaser] engagement: {engagement?.Id ?? "none"} " +
-			$"({engagement?.Spawns.Count ?? 0} hulls)");
-
-		// The map scene hands the fight over by changing the scene, which the
-		// teaser cannot allow (the film runs inside a viewport). The run keeps
-		// the engagement; the film takes it from here.
-		await ToSignal(GetTree(), "process_frame");
-		return engagement;
-	}
-
-	/// <summary>
-	/// The enemy fleet the accepted contract put on the map: the pirate fleet
-	/// the player has to fight.
-	/// </summary>
-	private static string? FindContractEnemyFleet(StarSystemOrchestrator orchestrator)
-	{
-		string? best = null;
-		var bestDistance = double.MaxValue;
-		foreach (var fleetId in orchestrator.Map.FleetRegistry.Ids)
-		{
-			var fleet = orchestrator.Map.FleetRegistry.FleetOf(fleetId);
-			if (fleet.State.Type != MapType.PirateFleet)
-				continue;
-
-			var position = fleet.State.PositionAt(
-				orchestrator.Map,
-				orchestrator.RuntimeFor(fleetId).CachedPath,
-				0f).Position;
-			var player = orchestrator.Map.FleetRegistry
-				.FleetOf(RunState.PlayerFleetUnitId)
-				.State.PositionAt(
-					orchestrator.Map,
-					orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).CachedPath,
-					0f)
-				.Position;
-			var distance = System.Math.Abs(position.X - player.X)
-				+ System.Math.Abs(position.Z - player.Z);
-			if (distance >= bestDistance)
-				continue;
-
-			bestDistance = distance;
-			best = fleetId;
-		}
-
-		return best;
+		await HoldUntil(TitleEnd);
 	}
 
 	// ---- the battle ---------------------------------------------------------
 
 	/// <summary>
-	/// Starts the battle. With an engagement in hand the battle scene builds it
-	/// from the run, exactly as it does when the map hands the fight over.
+	/// Builds an engagement with the game's own engagement factory, from fleets
+	/// registered in the run's own inventory. The roster is staged; the scene,
+	/// the placement, the agents and the simulation are the game's.
 	/// </summary>
-	private async Task StartBattle(BattleEncounter? engagement)
+	private BattleEncounter BuildStagedEncounter(int seed, string id, BattleType[] enemyChassis)
+	{
+		var run = Session.Instance.Run
+			?? throw new InvalidOperationException("The film needs a run.");
+		var inventory = run.ItemInventory;
+		var map = run.StarSystem.Map;
+
+		var playerFleet = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleetId = $"teaser-enemy-{seed}";
+
+		// The enemy fleet: real ships, registered in the run's own inventory, so
+		// the game's own factory can place them.
+		var memberTypes = enemyChassis.Select(chassis => (BattleUnitType)chassis).ToList();
+		var enemyFleet = MapFactory.Create(
+			new Spawn(
+				enemyFleetId,
+				MapType.PirateFleet,
+				new Coord(64, 64, 64),
+				UnitDefaults.SpeedPerTick(MapType.PirateFleet),
+				UnitDefaults.EngageRadius(MapType.PirateFleet),
+				UnitDefaults.VisionRadius(MapType.PirateFleet),
+				[]),
+			memberTypes);
+
+		foreach (var declaration in enemyFleet.Registrations)
+		{
+			// The enemy hulls are upgraded, so one good hit is worth something.
+			// They are still the game's own ships, registered in the run's own
+			// inventory, and the game's own factory places them.
+			inventory.Register(
+				DeploymentPlacement.UpgradeDevShip(
+					ShipInstance.FromCatalog(declaration.ShipId, declaration.Chassis)),
+				enemyFleetId);
+		}
+
+		// The player's own hull is upgraded the same way.
+		foreach (var shipId in playerFleet.Members.Select(member => member.Id))
+		{
+			if (!inventory.TryGet(shipId, out var ship) || ship is not ShipInstance instance)
+				continue;
+
+			inventory.Update(DeploymentPlacement.UpgradeDevShip(instance));
+		}
+
+		return EngagementBattleFactory.Create(
+			[playerFleet, enemyFleet],
+			inventory,
+			seed,
+			id,
+			RunState.PlayerFleetUnitId,
+			BuildPilotSnapshots(run));
+	}
+
+	/// <summary>The run's pilots, as the battle factory wants them.</summary>
+	private static IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotSnapshots(RunState run)
+	{
+		var snapshots = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
+		foreach (var pilot in run.PilotRegistry.Active)
+		{
+			if (string.IsNullOrEmpty(pilot.AssignedShipId))
+				continue;
+
+			snapshots[pilot.AssignedShipId] = new PilotBattleSnapshot(
+				pilot.Id,
+				PilotSkillAvailability.LearnedBattleSkills(pilot));
+		}
+
+		return snapshots;
+	}
+
+	/// <summary>
+	/// Starts a battle. The encounter is built by the game's own factory; the
+	/// scene is the game's own.
+	/// </summary>
+	private async Task StartBattle(BattleEncounter encounter)
 	{
 		StopBattle();
 
-		if (engagement is not null)
-		{
-			// The run's own engagement, through the run's own factory.
-			Session.Instance.Run!.ActiveBattle = engagement;
-		}
+		BattleController.NextEncounterOverride = encounter;
 
 		var battleInstance = GD.Load<PackedScene>("res://scenes/battle.tscn").Instantiate();
 		_battleViewport.GetNode<Node>("CurrentScene").AddChild(battleInstance);
 		_battle = battleInstance.GetNode<BattleController>(".");
 
-		// The battle's own red dwarf is a background element that is enormous
-		// next to the map; it bleeds through the world layer, so it is not in
-		// this film.
+		// The space dust is a near-field particle layer. Seen through a long
+		// lens it becomes a curtain of bokeh across the whole frame, so the film
+		// culls it.
+		foreach (var dust in battleInstance
+			.FindChildren("FineDust", "MultiMeshInstance3D", true, false)
+			.OfType<MultiMeshInstance3D>())
+		{
+			dust.Visible = false;
+		}
+
+		// The battle's own red dwarf is enormous next to the map and bleeds
+		// through the world layer.
 		foreach (var sun in battleInstance
 			.FindChildren("RedDwarfSun", "Node3D", true, false)
 			.OfType<Node3D>())
@@ -624,28 +656,27 @@ public partial class TeaserController : Node
 			HideTree(sun);
 		}
 
+		_knownUnits.Clear();
+		_lastPositions.Clear();
+		_revealArmed = false;
+		HullLost = false;
+
 		await ToSignal(GetTree(), "process_frame");
 
-		// The hulls are a metre long in a field that is a hundred metres across.
-		// A longer lens is the difference between "a dot in a grid" and "a ship".
-		if (_battle.GetNodeOrNull<Camera3D>("Camera3D") is { } camera)
+		foreach (var view in _battle.BattleView.UnitViews)
 		{
-			camera.Fov = 58f;
+			_knownUnits.Add(view.Key);
+			_lastPositions[view.Key] = view.Value.GlobalPosition;
 		}
 
 		_battleSimulation = RunBattleAsync();
 	}
 
-	/// <summary>
-	/// The battle clock. A battle whose player side is a real player agent is
-	/// driven by the film; one whose player side is an AI is driven by the
-	/// battle itself.
-	/// </summary>
 	private async Task RunBattleAsync()
 	{
 		await ToSignal(GetTree(), "process_frame");
 
-		if (_battle?.Battle.PlayerAgent is UserExecutionAgent)
+		if (_battle?.Battle.PlayerAgent is not null)
 			return;
 
 		_battleCancel = new CancellationTokenSource();
@@ -656,136 +687,238 @@ public partial class TeaserController : Node
 	}
 
 	/// <summary>
-	/// The player picks a weapon on the console. The cursor goes to the card,
-	/// the card lights up under it, the pointer dwells on it so the choice is
-	/// readable, and then the card is clicked.
+	/// The order goes in through the player's own agent, so the game resolves
+	/// it exactly as it resolves a human's.
 	/// </summary>
-	private async Task ChooseWeaponWithCursor()
+	private void CommitOrder(EPlayerMode preferred = EPlayerMode.LightningCannon)
 	{
-		if (_battle is null)
+		var battle = _battle?.Battle;
+		if (battle is null)
 			return;
 
-		var card = CardFor(EPlayerMode.VoidBomb) ?? CardFor(EPlayerMode.LightningCannon);
-		if (card is null)
-		{
-			ChooseWeapon();
+		if (battle.PlayerAgent is not UserExecutionAgent agent || !agent.IsPlanning)
 			return;
+
+		var legal = Capabilities.LegalCapabilities(agent.Sim, battle.PlayerId);
+		var shots = new List<IAction>();
+		shots.AddRange(legal.Where(action => Matches(action, preferred)));
+		shots.AddRange(legal.Where(action => action is VoidBombAction && !shots.Contains(action)));
+		if (shots.Count == 0)
+			return;
+
+		// The weapons fire along the hull's nose. The order therefore starts by
+		// walking the hull onto the target's line and turning the nose onto it,
+		// so the shot is a shot and not a discharge into empty space.
+		var approach = ApproachTarget(battle, agent);
+		if (approach is not null)
+			shots.InsertRange(0, approach.Value.Steps);
+
+		var turn = TurnOntoTarget(
+			battle,
+			agent,
+			approach?.EndPosition,
+			approach?.EndFore);
+		if (turn is not null)
+		{
+			var at = approach?.Steps.Count ?? 0;
+			shots.Insert(at, new HeadingTurnAction(battle.PlayerId, turn.Value));
 		}
 
-		var centre = card.GetGlobalRect().GetCenter();
-		HoverAt(_battleViewport, centre);
-		await WaitSeconds(HoverDwellSeconds);
-		ClickAt(_battleViewport, centre);
-		GD.Print($"[Teaser] the player clicked the {card.Name} card");
+		agent.TryEnqueue(shots);
+		GD.Print($"[Teaser] the order is committed: {string.Join(", ", shots.Select(shot => shot.GetType().Name))}");
+		battle.EndTurn();
 	}
 
 	/// <summary>
-	/// The player picks a weapon on the console when there is no card to point
-	/// at. The bomb is preferred because its flight path is the most legible
-	/// plan in the game: the player can see where the shot will land before it
-	/// is committed.
+	/// The move that walks the hull onto the target's line, or null when the
+	/// hull is already lined up.
 	/// </summary>
-	private void ChooseWeapon()
+	private static (IReadOnlyList<IAction> Steps, Coord EndPosition, Coord EndFore)? ApproachTarget(
+		BattleOrchestrator battle,
+		UserExecutionAgent agent)
 	{
-		if (_battle is null)
-			return;
+		var registry = UnitRegistry.For(battle.Engine.World);
+		if (!registry.TryGet(battle.PlayerId, out var player))
+			return null;
 
-		if (_battle.RequestAbilityMode(EPlayerMode.VoidBomb))
+		Coord? target = null;
+		foreach (var pair in battle.Layout.Participants)
 		{
-			GD.Print("[Teaser] the player chose the bomb on the console");
-			return;
+			if (pair.Value != ETeam.Enemy)
+				continue;
+
+			if (registry.TryGet(pair.Key, out var enemy))
+				target = enemy.State.Position;
 		}
 
-		if (_battle.RequestAbilityMode(EPlayerMode.LightningCannon))
-			GD.Print("[Teaser] the player chose the cannon on the console");
+		if (target is null)
+			return null;
+
+		var delta = target.Value - player.State.Position;
+		if (System.Math.Abs(delta.X) + System.Math.Abs(delta.Z) <= 2)
+			return null;
+
+		var preview = new PlanningPreview();
+		var options = preview.MoveOptions(agent.Sim, battle.PlayerId, battle.PlayerId, agent.IsPlanning);
+
+		// The shot only lands along the hull's nose, so the move that matters is
+		// the one that lines the hull up with the target, not the one that gets
+		// closest to it.
+		var aligned = options
+			.Where(option => option.Steps.Count > 0)
+			.Where(option =>
+				option.EndPosition.X == target.Value.X
+				|| option.EndPosition.Z == target.Value.Z)
+			.OrderBy(option => DistanceTo(option.EndPosition, target.Value))
+			.ToList();
+
+		var approach = aligned.FirstOrDefault()
+			?? options
+				.Where(option => option.Steps.Count > 0)
+				.OrderBy(option => DistanceTo(option.EndPosition, target.Value))
+				.FirstOrDefault();
+		if (approach is null)
+			return null;
+
+		return (
+			approach.Steps.Cast<IAction>().ToList(),
+			approach.EndPosition,
+			approach.ResultState.Fore);
 	}
 
 	/// <summary>
-	/// The turn is committed by clicking the console's own EXECUTE control: the
-	/// cursor goes there, the button lights up, the pointer dwells, and the
-	/// click ends the turn.
+	/// The turn that puts the hull's nose on the target, or null when it is
+	/// already pointing at it.
 	/// </summary>
-	private async Task CommitOrderWithCursor()
+	private static EHeadingTurn? TurnOntoTarget(
+		BattleOrchestrator battle,
+		UserExecutionAgent agent,
+		Coord? from = null,
+		Coord? fore = null)
 	{
-		if (_battle is null)
-			return;
+		var targetId = battle.Layout.Participants
+			.FirstOrDefault(pair => pair.Value == ETeam.Enemy).Key;
+		if (targetId is null)
+			return null;
 
-		var execute = _battle.Hud.CommandHud.ExecuteAction.GetChildren()
-			.OfType<Button>()
-			.FirstOrDefault();
-		if (execute is null)
-		{
-			CommitOrder();
-			return;
-		}
+		var registry = UnitRegistry.For(battle.Engine.World);
+		if (!registry.TryGet(battle.PlayerId, out var player)
+			|| !registry.TryGet(targetId, out var target))
+			return null;
 
-		var centre = execute.GetGlobalRect().GetCenter();
-		HoverAt(_battleViewport, centre);
-		await WaitSeconds(HoverDwellSeconds);
-		ClickAt(_battleViewport, centre);
-		GD.Print("[Teaser] the player clicked EXECUTE");
+		var origin = from ?? player.State.Position;
+		var nose = fore ?? player.State.Fore;
+		var delta = target.State.Position - origin;
+		var toward = System.Math.Abs(delta.X) >= System.Math.Abs(delta.Z)
+			? (delta.X > 0 ? Right : Left)
+			: (delta.Z > 0 ? Forward : Back);
+
+		return TurnBetween(nose, toward);
 	}
 
-	/// <summary>
-	/// The player commits the turn with the game's own EXECUTE control. The
-	/// button is pressed, not a method called, so the game takes exactly the
-	/// path a click takes.
-	/// </summary>
-	private void CommitOrder()
+	private static readonly Coord[] HeadingOrder =
+	[
+		new(0, 0, 1),
+		new(1, 0, 0),
+		new(0, 0, -1),
+		new(-1, 0, 0),
+	];
+
+	private static EHeadingTurn? TurnBetween(Coord fore, Coord toward)
 	{
-		if (_battle is null)
-			return;
+		var from = Array.IndexOf(HeadingOrder, fore);
+		var to = Array.IndexOf(HeadingOrder, toward);
+		if (from < 0 || to < 0 || from == to)
+			return null;
 
-		if (_battle.PressExecute())
+		var diff = (to - from + 4) % 4;
+		return diff switch
 		{
-			GD.Print("[Teaser] the player pressed EXECUTE");
-			return;
-		}
-
-		GD.Print("[Teaser] no EXECUTE control found");
+			1 => EHeadingTurn.YawRight,
+			2 => EHeadingTurn.Yaw180,
+			3 => EHeadingTurn.YawLeft,
+			_ => null,
+		};
 	}
 
-	/// <summary>Waits until the turn order comes back to the player.</summary>
+	private static int DistanceTo(Coord a, Coord b) =>
+		System.Math.Abs(a.X - b.X) + System.Math.Abs(a.Y - b.Y) + System.Math.Abs(a.Z - b.Z);
+
+	private static Coord Forward => new(0, 0, 1);
+	private static Coord Right => new(1, 0, 0);
+	private static Coord Back => new(0, 0, -1);
+	private static Coord Left => new(-1, 0, 0);
+
+	private static bool Matches(IAction action, EPlayerMode mode) => mode switch
+	{
+		EPlayerMode.LightningCannon => action is LightningCannonAction,
+		EPlayerMode.GoopGun => action is GoopGunAction,
+		EPlayerMode.ScrapDroneSwarm => action is ScrapDroneSwarmAction,
+		EPlayerMode.VoidBomb => action is VoidBombAction,
+		_ => false,
+	};
+
+	/// <summary>The enemy hull in the battle: the one that is not the player's.</summary>
+	private string? FindEnemyUnitId()
+	{
+		var battle = _battle?.Battle;
+		if (battle is null)
+			return null;
+
+		return _battle.BattleView.UnitViews.Keys
+			.FirstOrDefault(id =>
+				!id.StartsWith("__", StringComparison.Ordinal)
+				&& !string.Equals(id, battle.PlayerId, StringComparison.Ordinal));
+	}
+
+	/// <summary>Points the camera at one specific hull.</summary>
+	private void FrameUnit(string? unitId, float distance, float yaw, float pitch, float roll)
+	{
+		if (_battle is null || unitId is null)
+			return;
+
+		if (!_battle.BattleView.UnitViews.ContainsKey(unitId))
+			return;
+
+		_battle.FocusUnitCamera(unitId, distance, yaw, pitch, roll);
+	}
+
+	/// <summary>Points the camera at whatever is acting.</summary>
+	private void FrameActingShip(float distance, float yaw, float pitch, float roll)
+	{
+		var subjectId = _battle?.ActiveTurnUnitId;
+		if (subjectId is null || _battle?.BattleView.UnitViews.ContainsKey(subjectId) != true)
+		{
+			subjectId = _battle?.Battle.PlayerId;
+		}
+
+		FrameUnit(subjectId, distance, yaw, pitch, roll);
+	}
+
 	private async Task WaitForPlayerTurnAsync(float timeoutSeconds)
 	{
 		var waited = 0f;
 		while (waited < timeoutSeconds)
 		{
 			if (_battle?.Battle.Phase == EBattlePhase.PlayerTurn)
-			{
-				_enemyActing = false;
-				GD.Print("[Teaser] the player is acting");
 				return;
-			}
 
 			await WaitSeconds(0.05f);
 			waited += 0.05f;
 		}
-
-		GD.Print("[Teaser] the player's next turn was not observed");
 	}
 
-	/// <summary>
-	/// Waits until a hull is lost. This is what ends the boom beat: the pull-back
-	/// and the explosion are the game's, and they happen when the simulation
-	/// says a hull is gone.
-	/// </summary>
 	private async Task WaitForHullLostAsync(float timeoutSeconds)
 	{
 		var waited = 0f;
 		while (waited < timeoutSeconds)
 		{
 			if (HullLost)
-			{
-				GD.Print($"[Teaser] a hull was lost after {waited:F2}s");
 				return;
-			}
 
 			await WaitSeconds(0.05f);
 			waited += 0.05f;
 		}
-
-		GD.Print("[Teaser] no hull was lost inside the beat");
 	}
 
 	/// <summary>True once a hull has disappeared from the field.</summary>
@@ -793,7 +926,7 @@ public partial class TeaserController : Node
 
 	/// <summary>
 	/// Watches the field. A hull that disappears was destroyed, and that is the
-	/// moment the camera retreats.
+	/// moment the camera goes to it.
 	/// </summary>
 	private void TrackField()
 	{
@@ -825,101 +958,27 @@ public partial class TeaserController : Node
 		{
 			_revealAt = 0f;
 			_battle.SetupOverviewCamera(
-				startDistance: PlayerDistance,
+				startDistance: EnemyDistance,
 				dollySeconds: 0.9f,
-				roll: 0.11f,
+				roll: EnemyRoll,
 				orbitAmplitude: 0.08f,
-				distance: 14f);
+				distance: 16f);
 		}
 
 		if (!lost || !_revealArmed)
 			return;
 
-		// The hull is gone and the explosion is playing. The camera goes to where
-		// it happened, so the boom is seen close; the pull-back waits for the
-		// blast to have played, then reveals the field.
 		_revealArmed = false;
 		HullLost = true;
-		_revealAt = _elapsed + 1.1f;
+		_revealAt = _elapsed + 1.2f;
 
 		if (lostAt is { } at)
 		{
 			_battle.FocusPoint(at, EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
-			GD.Print($"[Teaser] the camera goes to the loss at {at}");
+			GD.Print($"[Teaser] a hull was lost at {at}");
 		}
 	}
 
-	/// <summary>True when the given unit id belongs to the enemy side.</summary>
-	private bool IsEnemy(string unitId)
-	{
-		var battle = _battle?.Battle;
-		if (battle is null)
-			return false;
-
-		return battle.Layout.Participants.TryGetValue(unitId, out var team)
-			&& team == ETeam.Enemy;
-	}
-
-	/// <summary>
-	/// The enemy hull in the battle: the one that is not the player's.
-	/// </summary>
-	private string? FindEnemyUnitId()
-	{
-		var battle = _battle?.Battle;
-		if (battle is null)
-			return null;
-
-		return _battle.BattleView.UnitViews.Keys
-			.FirstOrDefault(id => !string.Equals(id, battle.PlayerId, StringComparison.Ordinal));
-	}
-
-	/// <summary>Points the camera at one specific hull.</summary>
-	private void FrameUnit(string? unitId, float distance, float yaw, float pitch, float roll)
-	{
-		if (_battle is null || unitId is null)
-			return;
-
-		if (!_battle.BattleView.UnitViews.ContainsKey(unitId))
-			return;
-
-		_battle.FocusUnitCamera(unitId, distance, yaw, pitch, roll);
-		GD.Print($"[Teaser] the camera goes to {unitId}");
-	}
-
-	/// <summary>
-	/// Points the camera at the ship that is acting. The camera flows to the
-	/// subject; it never jumps without a reason. When the turn order says
-	/// somebody else is acting, the camera goes to them.
-	/// </summary>
-	private void FrameActingShip(float distance, float yaw, float pitch, float roll)
-	{
-		if (_battle is null)
-			return;
-
-		var subjectId = _battle.ActiveTurnUnitId;
-		if (subjectId is null || !_battle.BattleView.UnitViews.ContainsKey(subjectId))
-		{
-			subjectId = _battle.Battle.PlayerId;
-		}
-
-		if (subjectId is null || !_battle.BattleView.UnitViews.ContainsKey(subjectId))
-		{
-			subjectId = _battle.BattleView.UnitViews.Keys.FirstOrDefault();
-		}
-
-		if (subjectId is null)
-			return;
-
-		_battle.FocusUnitCamera(subjectId, distance, yaw, pitch, roll);
-		GD.Print($"[Teaser] the camera goes to {subjectId}");
-	}
-
-	/// <summary>
-	/// Ends the current engagement: the replay is stopped, the AI clock is
-	/// cancelled and the battle scene is taken out of the viewport. The scene is
-	/// kept alive until the film ends, because the replay's own timers still
-	/// fire after the stop and they must not touch a freed node.
-	/// </summary>
 	private void StopBattle()
 	{
 		if (_battleCancel is not null)
@@ -942,7 +1001,6 @@ public partial class TeaserController : Node
 		_retiredBattles.Add(battle);
 	}
 
-	/// <summary>Frees the battles the film has finished with.</summary>
 	private async Task ReleaseRetiredBattles()
 	{
 		foreach (var battle in _retiredBattles)
@@ -957,10 +1015,6 @@ public partial class TeaserController : Node
 
 	// ---- the run layer ------------------------------------------------------
 
-	/// <summary>
-	/// Sends the player's fleet along a route. The map draws the course and the
-	/// fleet marker travels it, which is the run layer moving.
-	/// </summary>
 	private static void StartFleetTravel()
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -974,19 +1028,14 @@ public partial class TeaserController : Node
 		if (agent is null)
 			return;
 
-		// The fleet travels along a route. The map draws the course and the
-		// fleet marker travels it, which is the run layer moving. After an
-		// engagement the fleet is out at the contact point, so the run's own
-		// pursuit order is what it uses to move on.
 		var target = FindNearestOtherFleet(orchestrator);
-		if (target is not null)
-		{
-			var queued = agent.TryQueuePursueFleet(target);
-			GD.Print($"[Teaser] the fleet moves on {target}: {queued?.GetType().Name ?? "none"}");
-		}
+		if (target is null)
+			return;
+
+		var queued = agent.TryQueuePursueFleet(target);
+		GD.Print($"[Teaser] the fleet moves on {target}: {queued?.GetType().Name ?? "none"}");
 	}
 
-	/// <summary>The fleet on the map nearest to the player's own.</summary>
 	private static string? FindNearestOtherFleet(StarSystemOrchestrator orchestrator)
 	{
 		var map = orchestrator.Map;
@@ -1018,10 +1067,6 @@ public partial class TeaserController : Node
 		return best;
 	}
 
-	/// <summary>
-	/// Advances the run until the contract board has an offer, and returns the
-	/// contract id.
-	/// </summary>
 	private static string? PrepareContractOffer()
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -1042,7 +1087,6 @@ public partial class TeaserController : Node
 		return contractId;
 	}
 
-	/// <summary>Accepts a contract through the run's own action lane.</summary>
 	private static void AcceptContract(string contractId)
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -1054,10 +1098,6 @@ public partial class TeaserController : Node
 		GD.Print($"[Teaser] contract '{contractId}' accepted: {accepted}");
 	}
 
-	/// <summary>
-	/// Puts the authority's manager on contract duty, so the offer list opens
-	/// when the operator is used.
-	/// </summary>
 	private static void GrantContractRole(string poiId, string facilityId, string contractId)
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -1071,22 +1111,16 @@ public partial class TeaserController : Node
 		var facility = poi.GetFacility(facilityId);
 		foreach (var facilityOperator in facility.Operators)
 		{
-			// Only the authority's contract giver is put on contract duty. The
-			// other operators in the room have roles of their own, and taking
-			// those away would change the game.
 			if (facilityOperator.SceneSlotId != "Manager")
 				continue;
 
-			// The contract board puts an operator on contract duty by itself. If
-			// it has already done so, the film does not need to.
-			if (poi.OperatorTemporaryRoles.TryGetAssignment(
-					facilityId,
-					facilityOperator.Name,
-					out var assignment)
-				&& assignment.Role == EFacilityOperatorRole.Contracts)
-			{
-				continue;
-			}
+			// The operator may already be on contract duty, or on another role.
+			// Either way the film wants the contract list, so the old role goes
+			// first.
+			poi.OperatorTemporaryRoles.RevokeSource(
+				facilityId,
+				facilityOperator.Name,
+				contractId);
 
 			poi.OperatorTemporaryRoles.Grant(
 				facilityId,
@@ -1098,9 +1132,6 @@ public partial class TeaserController : Node
 		}
 	}
 
-	/// <summary>
-	/// Puts the dockyard's salesman on duty, so the shop has something to sell.
-	/// </summary>
 	private static void GrantDockyardMerchantRole()
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -1115,10 +1146,13 @@ public partial class TeaserController : Node
 		var facility = poi.GetFacility(facilityId);
 		foreach (var facilityOperator in facility.Operators)
 		{
-			// Only the shopkeeper is put on duty. The rest of the dockyard has
-			// its own roles.
 			if (facilityOperator.SceneSlotId != "Salesman")
 				continue;
+
+			poi.OperatorTemporaryRoles.RevokeSource(
+				facilityId,
+				facilityOperator.Name,
+				"teaser-dockyard");
 
 			poi.OperatorTemporaryRoles.Grant(
 				facilityId,
@@ -1130,7 +1164,6 @@ public partial class TeaserController : Node
 		}
 	}
 
-	/// <summary>Credits the pilot so the dockyard has something affordable.</summary>
 	private static void GrantResources()
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -1140,7 +1173,6 @@ public partial class TeaserController : Node
 			(ResourceId.IndustrialCore, 1000)));
 	}
 
-	/// <summary>Finds the POI and facility that own a scene.</summary>
 	private static (string PoiId, string FacilityId) FindFacility(string scenePath)
 	{
 		var map = Session.Instance.Run?.StarSystem?.Map;
@@ -1162,8 +1194,8 @@ public partial class TeaserController : Node
 	// ---- transitions --------------------------------------------------------
 
 	/// <summary>
-	/// A cut to a world shot. The world layer is already rendered, so the cut
-	/// lands on a picture, not on a black frame.
+	/// A cut to a world shot. The world viewport has already rendered the next
+	/// scene before the cut, so the cut lands on a picture and never on black.
 	/// </summary>
 	private async Task CutToWorld(Node incoming)
 	{
@@ -1177,7 +1209,6 @@ public partial class TeaserController : Node
 		_viewportDisplay.Modulate = new Color(1, 1, 1, 1);
 		_battleDisplay.Modulate = new Color(1, 1, 1, 1);
 
-		// One frame so the new scene has drawn itself before it is shown.
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 	}
@@ -1201,132 +1232,142 @@ public partial class TeaserController : Node
 		await ToSignal(GetTree(), "process_frame");
 	}
 
-	// ---- the cursor ---------------------------------------------------------
+	// ---- the card -----------------------------------------------------------
 
 	/// <summary>
-	/// Builds the pointer the film draws. It is drawn, not simulated: the
-	/// interaction behind it is real.
+	/// Builds the closing card: the name in the game's own typography, one
+	/// promise line and one call.
 	/// </summary>
-	private void BuildCursor()
+	private void BuildTitleCard()
 	{
-		var root = new Node2D { Name = "Cursor" };
-		var outline = new Polygon2D
+		var theme = GD.Load<Theme>("res://assets/ui/themes/theatrical_theme.tres");
+		var overlay = GetNode<Node>("Overlay");
+
+		_promiseText = new Label
 		{
-			Polygon = new Vector2[]
-			{
-				new(0, 0), new(0, 21), new(5.4f, 16.2f), new(8.8f, 24.2f),
-				new(12.2f, 22.6f), new(8.8f, 15.2f), new(14.6f, 15.2f),
-			},
-			Color = new Color(0.02f, 0.03f, 0.05f, 0.95f),
+			Text = "THE VOID TAKES PAYMENT IN HULLS",
+			Theme = theme,
+			ThemeTypeVariation = "SubtitleLabel",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Visible = false,
 		};
-		var arrow = new Polygon2D
+		overlay.AddChild(_promiseText);
+
+		_callText = new Label
 		{
-			Polygon = outline.Polygon,
-			Color = new Color(0.96f, 0.98f, 1f),
-			Scale = new Vector2(0.8f, 0.8f),
+			Text = "WISHLIST ON STEAM",
+			Theme = theme,
+			ThemeTypeVariation = "SectionHeadingLabel",
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Visible = false,
 		};
-		root.AddChild(outline);
-		root.AddChild(arrow);
-		root.Scale = new Vector2(1.9f, 1.9f);
-		GetNode<Node>("Overlay").AddChild(root);
-		_cursor = root;
+		overlay.AddChild(_callText);
 	}
 
-	/// <summary>
-	/// Moves the cursor over a point and tells the game about it. The motion is
-	/// a real input event, so the game's own hover handling runs.
-	/// </summary>
-	private void HoverAt(SubViewport target, Vector2 position)
+	/// <summary>Places the card in the middle of the frame, over the fight.</summary>
+	private void LayoutTitleCard()
 	{
-		target.PushInput(new InputEventMouseMotion
+		_titleText.AnchorLeft = 0f;
+		_titleText.AnchorRight = 1f;
+		_titleText.AnchorTop = 0.5f;
+		_titleText.AnchorBottom = 0.5f;
+		_titleText.OffsetLeft = 0f;
+		_titleText.OffsetRight = 0f;
+		_titleText.OffsetTop = -230f;
+		_titleText.OffsetBottom = -40f;
+		_titleText.HorizontalAlignment = HorizontalAlignment.Center;
+		_titleText.VerticalAlignment = VerticalAlignment.Center;
+		_titleText.LabelSettings = new LabelSettings
 		{
-			Position = position,
-			GlobalPosition = position,
-			Relative = Vector2.Zero,
-		});
+			FontSize = 132,
+			FontColor = new Color(0.97f, 0.98f, 1f),
+			OutlineSize = 18,
+			OutlineColor = new Color(0f, 0f, 0f, 0.95f),
+			ShadowSize = 12,
+			ShadowColor = new Color(0f, 0f, 0f, 0.8f),
+		};
 
-		if (_cursor is not null)
-			_cursor.Position = position;
-	}
-
-	/// <summary>
-	/// Clicks where the cursor is. The click is a real button event, so the
-	/// game acts exactly as it does for a player.
-	/// </summary>
-	private void ClickAt(SubViewport target, Vector2 position)
-	{
-		HoverAt(target, position);
-		target.PushInput(new InputEventMouseButton
+		_promiseText.AnchorLeft = 0f;
+		_promiseText.AnchorRight = 1f;
+		_promiseText.AnchorTop = 0.5f;
+		_promiseText.AnchorBottom = 0.5f;
+		_promiseText.OffsetLeft = 0f;
+		_promiseText.OffsetRight = 0f;
+		_promiseText.OffsetTop = -20f;
+		_promiseText.OffsetBottom = 40f;
+		_promiseText.LabelSettings = new LabelSettings
 		{
-			ButtonIndex = MouseButton.Left,
-			Pressed = true,
-			Position = position,
-			GlobalPosition = position,
-		});
-		target.PushInput(new InputEventMouseButton
+			FontSize = 40,
+			FontColor = new Color(0.86f, 0.90f, 0.96f),
+			OutlineSize = 10,
+			OutlineColor = new Color(0f, 0f, 0f, 0.92f),
+		};
+
+		_callText.AnchorLeft = 0f;
+		_callText.AnchorRight = 1f;
+		_callText.AnchorTop = 0.5f;
+		_callText.AnchorBottom = 0.5f;
+		_callText.OffsetLeft = 0f;
+		_callText.OffsetRight = 0f;
+		_callText.OffsetTop = 60f;
+		_callText.OffsetBottom = 120f;
+		_callText.LabelSettings = new LabelSettings
 		{
-			ButtonIndex = MouseButton.Left,
-			Pressed = false,
-			Position = position,
-			GlobalPosition = position,
-		});
-	}
-
-	/// <summary>The screen position of the console's ability cards.</summary>
-	private List<Button> AbilityCards()
-	{
-		if (_battle is null)
-			return [];
-
-		return _battle.Hud.CommandHud.MainActions.GetChildren().OfType<Button>().ToList();
-	}
-
-	/// <summary>
-	/// The card for a weapon, in the order the console lays them out.
-	/// </summary>
-	private Button? CardFor(EPlayerMode mode)
-	{
-		var cards = AbilityCards();
-		if (cards.Count == 0 || _battle is null)
-			return null;
-
-		var frame = _battle.CurrentFrame;
-		if (frame is null)
-			return null;
-
-		var specs = AbilityHudCatalog.ForDisplayState(frame.FocusState);
-		for (var i = 0; i < specs.Count && i < cards.Count; i++)
-		{
-			if (specs[i].Mode == mode)
-				return cards[i];
-		}
-
-		return null;
+			FontSize = 30,
+			FontColor = new Color(0.70f, 0.82f, 0.95f),
+			OutlineSize = 8,
+			OutlineColor = new Color(0f, 0f, 0f, 0.9f),
+		};
 	}
 
 	// ---- helpers ------------------------------------------------------------
 
-	/// <summary>
-	/// Pushes the strategic map out and tips the horizon, so the establishing
-	/// shot is a place and not a diagram: the routes, the stations and the
-	/// fleet all have to fit.
-	/// </summary>
 	private void PushInOnMap(Node mapInstance)
 	{
 		if (mapInstance.GetNodeOrNull<MapCamera>("CameraPivot/SpringArm3D/Camera3D") is not { } camera)
 			return;
 
-		camera.Roll = 0.09f;
+		camera.Roll = 0.06f;
 		var pose = camera.CurrentPose;
 		camera.TweenToPose(
 			new OrbitPose
 			{
 				Pivot = pose.Pivot,
-				Yaw = pose.Yaw + 0.55f,
-				Pitch = Mathf.Max(pose.Pitch - 0.04f, 0.18f),
-				Distance = pose.Distance * 1.45f,
+				Yaw = pose.Yaw + 0.45f,
+				Pitch = Mathf.Max(pose.Pitch - 0.02f, 0.20f),
+				Distance = pose.Distance * 1.15f,
 			},
-			2.2f);
+			2.0f);
+	}
+
+	/// <summary>
+	/// Lifts the map for the film. The map's own exposure is too dark to read
+	/// the route; the sun stays out, so the light has to come from elsewhere.
+	/// </summary>
+	private static void LightMapForFilm(Node mapInstance)
+	{
+		foreach (var environment in mapInstance
+			.FindChildren("*", "WorldEnvironment", true, false)
+			.OfType<WorldEnvironment>())
+		{
+			if (environment.Environment is not { } settings)
+				continue;
+
+			settings.AmbientLightEnergy = 0.55f;
+			settings.AmbientLightColor = new Color(0.34f, 0.38f, 0.48f);
+			settings.TonemapExposure = 1.35f;
+		}
+
+		foreach (var light in mapInstance
+			.FindChildren("*", "DirectionalLight3D", true, false)
+			.OfType<DirectionalLight3D>())
+		{
+			light.LightEnergy = 1.35f;
+		}
 	}
 
 	/// <summary>
@@ -1345,8 +1386,8 @@ public partial class TeaserController : Node
 
 	/// <summary>
 	/// Turns off the event horizon in the map's sky. The map paints a black
-	/// hole on the horizon, and it is the brightest thing on the map; this film
-	/// has no big bright sun-like object in it.
+	/// hole on the horizon; it is the brightest thing on the map and reads as a
+	/// sun.
 	/// </summary>
 	private static void HideMapEventHorizon(Node mapInstance)
 	{
@@ -1362,9 +1403,8 @@ public partial class TeaserController : Node
 	}
 
 	/// <summary>
-	/// Closes the narrative page. The run's opening story is a box of words, and
-	/// this film has no words in it. The narrative is also completed in the run
-	/// itself, so it cannot come back on a later map.
+	/// Closes the narrative page, and completes it in the run so it cannot come
+	/// back. The run's opening story is a box of words and this film has none.
 	/// </summary>
 	private static void DismissMapNarrative(Node mapInstance)
 	{
@@ -1406,7 +1446,6 @@ public partial class TeaserController : Node
 		}
 	}
 
-	/// <summary>Removes a node from the world viewport.</summary>
 	private void FreeStaged(Node? node)
 	{
 		if (node is null || !GodotObject.IsInstanceValid(node))
@@ -1424,10 +1463,6 @@ public partial class TeaserController : Node
 	/// </summary>
 	private static void DisableTeachingOverlays()
 	{
-		// The session read the old values when it started; the recording needs
-		// the new ones now. The mouse edge pan matters most: a cursor sitting at
-		// the edge of the window would drag the battle camera off the fight for
-		// the whole recording.
 		GameSettings.ApplyShowActionLog(false);
 		GameSettings.ApplyMouseCameraPan(false);
 
@@ -1447,38 +1482,17 @@ public partial class TeaserController : Node
 		}
 	}
 
-	/// <summary>
-	/// Places the wordmark in the middle of the frame. It is the only text the
-	/// film puts on screen, and it has to read over a moving battle.
-	/// </summary>
-	private void LayoutTitleText()
-	{
-		_titleText.AnchorLeft = 0f;
-		_titleText.AnchorRight = 1f;
-		_titleText.AnchorTop = 0.5f;
-		_titleText.AnchorBottom = 0.5f;
-		_titleText.OffsetLeft = 0f;
-		_titleText.OffsetRight = 0f;
-		_titleText.OffsetTop = -190f;
-		_titleText.OffsetBottom = 190f;
-		_titleText.HorizontalAlignment = HorizontalAlignment.Center;
-		_titleText.VerticalAlignment = VerticalAlignment.Center;
-		_titleText.LabelSettings = new LabelSettings
-		{
-			FontSize = 118,
-			FontColor = new Color(0.97f, 0.98f, 1f),
-			OutlineSize = 16,
-			OutlineColor = new Color(0f, 0f, 0f, 0.92f),
-			ShadowSize = 10,
-			ShadowColor = new Color(0f, 0f, 0f, 0.75f),
-		};
-	}
-
-	private static int DistanceTo(Coord a, Coord b) =>
-		System.Math.Abs(a.X - b.X) + System.Math.Abs(a.Y - b.Y) + System.Math.Abs(a.Z - b.Z);
-
 	private async Task WaitSeconds(float seconds) =>
 		await ToSignal(GetTree().CreateTimer(seconds), "timeout");
+
+	/// <summary>Holds the beat until its mark, so the cut keeps its rhythm.</summary>
+	private async Task HoldUntil(double endTime)
+	{
+		while (_elapsed < endTime)
+		{
+			await WaitSeconds(0.02f);
+		}
+	}
 
 	private async Task FadeIn(float duration)
 	{
@@ -1490,17 +1504,6 @@ public partial class TeaserController : Node
 		tween.SetTrans(Tween.TransitionType.Quad);
 		await ToSignal(tween, "finished");
 		_transition.Visible = false;
-	}
-
-	private async Task FadeOut(float duration)
-	{
-		_transition.Visible = true;
-		_transition.Modulate = new Color(0, 0, 0, 0);
-		var tween = GetTree().CreateTween();
-		tween.TweenProperty(_transition, "modulate:a", 1.0f, duration);
-		tween.SetEase(Tween.EaseType.In);
-		tween.SetTrans(Tween.TransitionType.Quad);
-		await ToSignal(tween, "finished");
 	}
 
 	public override void _Process(double delta)
