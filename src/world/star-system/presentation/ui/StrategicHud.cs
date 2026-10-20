@@ -30,6 +30,14 @@ public partial class StrategicHud : CanvasLayer
 
 	public ObjectivesHud Objectives => _objectivesHud;
 	public bool IsBlockingModalOpen => _fleetManagement.IsOpen || _pilotSheet.IsOpen;
+
+	/// <summary>
+	/// Opens the fleet screen. The map HUD opens it from its own button; a
+	/// recording opens it the same way, so the teaser shows the real screen and
+	/// not a copy of it.
+	/// </summary>
+	public void OpenFleetManagement() => OnFleetManagementRequested();
+
 	public void PresentInsufficientFunds() => _resourceHud.PresentInsufficientFunds();
 	public void PresentSystemError(string summary, string technicalDetails)
 	{

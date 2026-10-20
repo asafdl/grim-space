@@ -55,14 +55,14 @@ public sealed class PresentationFrameBuilder
 	{
 		var state = Interaction;
 		var playerId = battle.PlayerId;
-		// The agent is null when the battle is driven by AI on both sides (the
-		// teaser runs that way): there is no planning sim to preview, so the live
-		// world state is captured instead.
+		// There is no planning sim to preview when the battle is driven by AI on
+		// both sides, or before the player agent has been initialised. In that
+		// case the live world state is captured instead.
 		var sim = agent?.Sim;
 		var isPlanning = agent?.IsPlanning ?? false;
-		var unitSnapshot = agent is null || battle.Phase == EBattlePhase.BattleOver
+		var unitSnapshot = sim is null || battle.Phase == EBattlePhase.BattleOver
 			? CaptureLiveUnitSnapshot(battle)
-			: _preview.PreviewUnitSnapshot(sim!, playerId);
+			: _preview.PreviewUnitSnapshot(sim, playerId);
 		var previewUnits = unitSnapshot.Units;
 		var previewUnitTeams = unitSnapshot.Teams;
 		var focusId = state.FocusId ?? playerId;

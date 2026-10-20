@@ -68,45 +68,6 @@ theme = ExtResource("16_theme")
 theme_type_variation = "TitleLabel"
 text = "GRIM\nSPACE"
 
-[node name="SubtitleText" type="Label" parent="Overlay"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 200
-offset_top = 550
-offset_right = 200
-offset_bottom = 620
-grow_horizontal = 2
-grow_vertical = 2
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
-visible = false
-z_index = 101
-theme = ExtResource("16_theme")
-theme_type_variation = "SubtitleLabel"
-text = "A Tactical Roguelike in the Void"
-
-[node name="PhaseLabel" type="Label" parent="Overlay"]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -300
-offset_top = -100
-offset_right = 300
-offset_bottom = -30
-grow_horizontal = 2
-grow_vertical = 0
-horizontal_alignment = 1
-vertical_alignment = 1
-visible = false
-z_index = 101
-theme = ExtResource("16_theme")
-theme_type_variation = "SectionHeadingLabel"
-text = ""
-
 [node name="UnitPortrait" type="TextureRect" parent="Overlay"]
 anchors_preset = 8
 anchor_left = 0.5

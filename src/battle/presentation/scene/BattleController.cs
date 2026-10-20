@@ -602,6 +602,38 @@ public partial class BattleController : Node3D
 			_translator.OnAbilityChoiceSelected(immediate);
 	}
 
+	/// <summary>
+	/// Puts the command console into one of the focused unit's ability modes,
+	/// exactly as pressing that ability card does.
+	/// </summary>
+	/// <param name="mode">The ability mode to enter.</param>
+	/// <param name="fireImmediately">
+	/// When false the console enters the mode and stops there: the weapon's
+	/// coverage is drawn on the field, but the shot is not queued. A recording
+	/// uses this to hold the frame on the planning state.
+	/// </param>
+	/// <returns>True when the console is in that mode now.</returns>
+	public bool RequestAbilityMode(EPlayerMode mode, bool fireImmediately = true)
+	{
+		if (!AcceptsCommands || _currentFrame is null)
+			return false;
+
+		var spec = AbilityHudCatalog.ForDisplayState(_currentFrame.FocusState)
+			.FirstOrDefault(candidate => candidate.Mode == mode);
+		if (spec is null)
+			return false;
+
+		if (!fireImmediately)
+		{
+			_frames.Interaction.SetMode(spec.Mode, spec);
+			RefreshPresentation();
+			return true;
+		}
+
+		OnAbilityModeRequested(spec);
+		return true;
+	}
+
 	private void OnAbilityConfirmed(AbilityActivationChoice choice)
 	{
 		var position = WorldMapping.ToWorld(choice.Position);
@@ -1326,6 +1358,27 @@ private void GoToMainMenu()
 		_staticCameraMode = true;
 		_cameraDirector.EnableStaticMode();
 		GD.Print($"[BattleController] After: _staticCameraMode={_staticCameraMode}");
+	}
+
+	/// <summary>
+	/// Puts the command console into one of the focused unit's ability modes,
+	/// exactly as pressing that ability card does. A recording uses it to hold
+	/// the frame on the weapon's coverage instead of on the move range.
+	/// </summary>
+	/// <param name="mode">The ability mode to enter.</param>
+	/// <returns>True when the console is in that mode now.</returns>
+	public bool RequestAbilityMode(EPlayerMode mode)
+	{
+		if (!AcceptsCommands || _currentFrame is null)
+			return false;
+
+		var spec = AbilityHudCatalog.ForDisplayState(_currentFrame.FocusState)
+			.FirstOrDefault(candidate => candidate.Mode == mode);
+		if (spec is null)
+			return false;
+
+		OnAbilityModeRequested(spec);
+		return true;
 	}
 
 	public override void _ExitTree()
