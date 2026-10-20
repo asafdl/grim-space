@@ -1,26 +1,28 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-19 (story pass).** The teaser has been re-cut around a
-> **story**, not a feature list. The current deliverable is `teaser.mp4` —
-> **~32 s, 1080p60, with a stereo audio track (-14.0 LUFS)**.
+> **Updated 2026-10-20 (V4 pass: no text, systems-first).** The teaser has been
+> re-cut from the ground up after the branch was **rebased onto `origin/master`**
+> (65e38b93, 52 commits). The current deliverable is `teaser.mp4` —
+> **37.25 s, 1080p60, stereo audio at -14.0 LUFS**.
 >
-> The cut now runs: a live fight (hook) → the sector and the pilot's own line →
-> the station and the contract that caused the fight → **the fight, joined in
-> the middle, with a camera that retreats because a hull was lost** → the fleet
-> report (what it cost) → the burning galaxy → the name card. Captions are the
-> game's own words; the system is named by a small corner tag.
+> The cut now runs, with **no captions, no tags, no callouts and no subtitle**:
+> the live tactical console (turn order, action cards, `EXECUTE TURN`, the
+> pilot's portrait and shields) → the order resolving (**movement trail, a
+> lightning strike, the `BOOM` billboard** as a hull is lost) → a **different
+> engagement** (the gooper and its green goop field) → the **star map** with the
+> fleet travelling a route and a contract being accepted → the **contract
+> board** → the **dockyard's upgrade shop** → the **fleet screen** → the name
+> card over a live fight. The only text the film adds is `GRIM SPACE`; every
+> other word on screen is the game's own interface.
 >
-> The camera work answers the feedback directly: **four Dutch-angle shots**, and
-> the pull-back after the fight is now an **event-driven reveal** instead of a
-> passive drift (the old code had a real bug in it — the camera froze on a
-> wreck). Three world shots, movement on every held shot, and the new sun
-> shader from `../grim-space` ported into the game's map star and battle sun.
+> The new sun shader from `../grim-space` is **not in the film** (it stays in the
+> repo and in the game, untouched). The `boom` and the movement trail that came
+> in with the rebase are both featured.
 >
-> Full write-up: the official answer to the "is the drifting camera on
-> purpose?" question, the research (12 genre trailers, watched frame by frame),
-> the story-legibility rubric, the honest what-changed/what-skipped log and all
-> the measurements are in
-> [TEASER_NOTES.md](TEASER_NOTES.md#story-pass-feedback-driven).
+> Full write-up — the rebase log, the **provenance table** (shot → capture),
+> the **research** (11 measured genre trailers with citations), the **no-text
+> audit**, the iteration log and the honest what-changed/what-skipped log — is in
+> [TEASER_NOTES.md](TEASER_NOTES.md#v4-pass-no-text-systems-first).
 >
 > Earlier notes:
 > The teaser **has been recorded successfully in this environment**.
@@ -56,9 +58,10 @@ See `C:\Users\User\stupidity.log` — recorded agent mistakes from prior session
 
 ## Git status
 
-**Branch:** `teaser-recording-fix` (created from `master` after local commit `479f5eb3`)
-**Commit:** `479f5eb3` — "fix: battle presentation null guards + teaser viewport display + replay refresh" (23 files, 1621 insertions, 49 deletions)
-**Remote:** NOT pushed to origin/master (`origin/master` still at `3693dece`)
+**Branch:** `teaser-recording-fix`, **rebased onto `origin/master` (65e38b93)**
+**Commit:** the 16 teaser commits were replayed onto master and rewritten
+(`16a831f3..9ca443ed`); the V4 pass is the commits on top of that.
+**Remote:** NOT pushed to origin/master (`origin/master` still at `65e38b93`)
 
 ## Current state (summary)
 

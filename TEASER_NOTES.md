@@ -1461,3 +1461,371 @@ inside `ResourceLoader..cctor`. They are not new in this pass.
 independent evidence.** The independent check is the vision model: the frames
 below were read by Qwen2-VL-2B-Instruct with no knowledge of the script, and
 what it transcribed and what it said about the story is in §8.4.
+
+---
+
+# V4 PASS (no text, systems-first)
+
+> **Date:** 2026-10-20 · **Deliverable:** `teaser.mp4` — 37.25 s, 1920×1080 @ 60 fps,
+> H.264 + AAC stereo, **-14.0 LUFS** integrated, -0.7 dBFS true peak.
+> **Branch:** `teaser-recording-fix`, rebased onto `origin/master` (65e38b93).
+> **This pass replaces the story cut.** The old cut opened on a narrated still,
+> captioned every beat, and its world shots were captured before the current
+> code existed. Every shot in this cut is a live capture made from the tree in
+> this branch, in one recording session, with one command.
+
+---
+
+## 0. THE REBASE (done first, because everything else depends on it)
+
+The user asked for the branch to be rebased onto `origin/master` rather than
+picking files across repositories. That is what happened, and it is the reason
+this pass has a different game underneath it than the previous one.
+
+| Item | Value |
+|---|---|
+| Rebased onto | `origin/master` = **65e38b93** *fix: add tail logs to bug report* (52 commits past `3693dece`) |
+| Commits replayed | **16** teaser commits (`3693dece..af8f6065`), rewritten as `16a831f3..9ca443ed` |
+| Conflicts | **2 files**, both resolved by hand (below) |
+| Escape hatch used | **No** — `git rebase --abort` was never needed |
+| Post-rebase build | `dotnet build` → **0 errors**, 26 warnings (all pre-existing nullability warnings in master code) |
+| Post-rebase tests | **1611 passed, 0 failed, 4 skipped** (see §9 for the two master tests this branch fixes) |
+
+### 0.1 The conflicts, and how they were resolved
+
+| File | The conflict | Resolution | Why |
+|---|---|---|---|
+| `src/battle/presentation/PresentationFrameBuilder.cs` | Master's `BuildFrame` takes a **non-nullable** `UserExecutionAgent` and previews the planning sim; the teaser branch made it nullable so an AI-driven battle has no player agent. | **Master's shape kept, the teaser case kept.** The parameter stays nullable, the frame falls back to the live world snapshot when there is no agent **or no planning sim yet**, and the frame no longer throws when the player hull is already gone (it falls back to any living hull). | The teaser runs one battle whose player side is a real `UserExecutionAgent` and two whose player side is an AI; both need the frame. A `null` dereference here is what broke the first V4 recording (see §7). |
+| `src/battle/presentation/graphics/RedDwarfSun.cs` | The story pass had ported the sibling repo's new sun shader into the battle; master has its own battle sun. | **Master's battle sun kept.** The ported shader stays in the repo (`src/presentation/graphics/Sun*.cs`, `assets/shaders/sun_*.gdshader`) and is used by the map's star. | The feedback says the new sun must not be in the trailer, and the port is a *map* feature, not a battle feature. The port is not deleted; it is not filmed. |
+
+### 0.2 Master API drift the rebase had to absorb (all fixed)
+
+| Master change | Teaser code that had to change |
+|---|---|
+| `BattleSpawn.PilotId` is now derived (`Pilot?.PilotId`) and read-only | `AiVsAiRunner` now copies `Pilot` instead of assigning `PilotId` |
+| `AiController.SearchCapabilities` now needs the actor's `ActorRuntime` | `AiExecutionAgent` passes `Sim.RuntimeFor(actor.Id)` |
+| `BoardAsteroidView.Build` now needs the camera | `UnitTest` passes it |
+| `CachePilotIdsFromEncounter` no longer exists | The turn-flow portrait resolver now prefers the **pilot's own face** (`ShipPilotPortraitCatalog`) and falls back to the chassis portrait |
+| The battle HUD is now a *command console* (`BattleCommandHud`) instead of the old action bar | The teaser reads the new console: the ability cards, the command wing, the resource meters |
+
+### 0.3 What the rebase brought in that this pass had to feature
+
+Master's 52 commits include the two animations the user asked for by name:
+
+| Animation | Where it lives now | Where it is in the film |
+|---|---|---|
+| **boom** | `OneShotParticles.PlayBoomText` → `assets/vfx/boom-godot.glb`, a billboard that scales with the hull (3.3× the hull size), with smoke and wreck debris around it | The execute beat, twice: the carrier is lost at ~7.8 s and again at ~10.3 s. The boom is the largest object in the film. |
+| **voosh** (movement trail) | `MovementTrailView` (core + halo emitters, `UnitView.ConfigureMovementTrail`) | Every hull that repositions leaves a trail: the player's fighter in the execute beat, the enemy's hulls in the variety beat, the carrier in the title beat. |
+
+Both were verified in the tree by searching the sources, not by trusting the
+message that asked for them: `grep -rniE "boom|voosh|whoosh" src/` finds
+`OneShotParticles.cs` (boom), `VoidBombEffect.cs`, and `MovementTrailView.cs`
+(the trail, named "voosh" in the brief and "trail" in the code).
+
+---
+
+## 1. THE BRIEF, ANSWERED POINT BY POINT
+
+| # | The feedback | What this pass does | Where it is in the film |
+|---|---|---|---|
+| 1 | *"Old animations"* — audit the cut, replace anything stale, document shot → capture | **Every shot is a live capture from this tree, made in one session on 2026-10-20 with one command.** Nothing in the cut is a still, an old capture, or a mock-up. The full provenance table is §2. | §2 |
+| 2 | *"Don't use the intro"* | The film opens on a **live tactical battle** at 0.33 s. There is no preamble, no still, no logo, no establishing shot of nothing. | Shot 1, 0.33 s |
+| 3 | *"Show the turn-based elements, use latest scripts"* | The player side of shot 1 is a **real `UserExecutionAgent`**, so the battle HUD is live: turn order at the top, the ability cards and the command wing at the bottom, AP/MP meters, the pilot's portrait and shield arc, and the `EXECUTE TURN` control. The order is then **committed through that agent**, so the resolution flow is the game's own. | Shots 1–2 |
+| 4 | *"Don't use the new sun in the trailer (but keep it)"* | The new sun shader is **not in the film**: the map's star marker is hidden, and the map's sky loses its event-horizon panorama (a black hole that reads as a bright sun). **The shader stays in the repo and in the game, untouched.** | — |
+| 5 | *"Don't write text"* | The teaser adds **no text at all**: no captions, no corner tags, no callouts, no subtitle. The only text the film puts on screen is the closing **GRIM SPACE** card. Every other word on screen is the game's own interface. The full word-by-word audit is §5. | Shot 8 |
+| 6 | *"Show the starmap flow, receive contract etc."* | The **star map** with the fleet travelling a route along a drawn course, a **contract offered, listed and accepted**, and the **dockyard's upgrade shop** with real prices. | Shots 4–6 |
+| 7 | *"Show user experience and achievements"* | The progression screens are filmed **live**: the objectives panel fills in and pops a `NEW!` badge when a contract is taken, the resource counter shows the credits, the dockyard sells upgrade packages for the player's own ship, and the **fleet management** screen shows the hull, its pilot, its abilities and its stats. | Shots 4, 6, 7 |
+| 8 | *"Showcase different tactical battle elements"* | Three engagements that do not look alike: a **fighter** (blue lightning, 4 ability cards) against a carrier and a gooper; a **gooper** (green goop field, 2 ability cards, three-point shields on every face) against a carrier; and a **carrier** for the name card. Different chassis, different weapons, different asteroid fields, different cameras. | Shots 1, 3, 8 |
+| 9 | *"Review TRPG trailers"* | **11 real trailers were measured** (cut counts, shot lengths, engagement) and 31 rules were distilled with citations. §6 has the rules, the citations and the anti-patterns. | — |
+
+---
+
+## 2. PROVENANCE — every shot, and where it came from
+
+**One recording, one command, one tree.**
+
+```
+Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> \
+  --write-movie v4n.avi --fixed-fps 60 --quit-after 2500 "res://scenes/teaser.tscn"
+```
+
+* Raw capture: `v4n.avi` — 2235 frames, 60 fps, 37.25 s, MJPEG, 1920×1080.
+* Cut: `work/v4_cut.mp4` (H.264, CRF 20, bt709).
+* Shipped: `teaser.mp4` = the cut + the music bed + the SFX (§8).
+
+| # | Shot | Film time | Frames | What is on screen | Where it comes from (live code) | Seed / encounter |
+|---|---|---|---|---|---|---|
+| 1 | **PLAN** | 0.33 – 4.77 s | 20 – 286 | The tactical console: the player's fighter, the carrier it is aiming at, the turn-order strip, four ability cards (the lightning cannon card lit), `EXECUTE TURN`, the AP/MP meters, the pilot's portrait and shield arc | `TeaserController.RunPlanBeat` → `BuildDuelEncounter` → `BattleController.RequestAbilityMode(LightningCannon, fireImmediately: false)` | seed `20260420`, fighter vs carrier + gooper, grid 64³, asteroid field from the same seed |
+| 2 | **EXECUTE** | 4.77 – 10.18 s | 286 – 611 | The order resolves: the fighter repositions with its **trail**, the cannon fires, a hull is lost with the **boom** (billboard, smoke, wreck debris), the camera retreats because a hull was lost | `TeaserController.ScriptPlayerOrder` (enqueues into the player's own `UserExecutionAgent`, then `BattleOrchestrator.EndTurn()`) | same battle, same seed |
+| 3 | **VARIETY** | 10.18 – 15.60 s | 611 – 936 | A different fight: the **gooper** (a different silhouette, three-point shields on every face) fouls the space with the **goop gun** — a field of green hazard — against a carrier; the enemy rolls with a blue spiral trail | `TeaserController.RunVarietyBeat` → `ScriptPlayerOrder(preferGoop: true)` | seed `771133`, gooper vs carrier, grid 64³, a different asteroid field |
+| 4 | **STAR** | 15.60 – 20.63 s | 936 – 1238 | The star map: the station, the drawn **route** (the course line and the destination ring), the fleet marker travelling it, the resources, the objectives panel filling in with a contract and a **`NEW!` badge** | `TeaserController.RunStarBeat` → `StartFleetTravel` (a real `MoveAction` on the player's fleet) → `PrepareContractOffer` + `AcceptContract` (the run's own action lane) | the run's own map, seed from `State.CreateNewRun` |
+| 5 | **CONTRACT** | 20.63 – 25.08 s | 1238 – 1505 | The command authority: the room, the operator, and the **contract board** with its offer list and difficulty stars; the contract is then accepted and the objectives panel pops `NEW!` | `TeaserController.RunContractBeat` → the operator button is pressed → `AcceptContractAction` through `StarSystemOrchestrator.TryCommitPlayerInput` | the run's own contracts |
+| 6 | **DOCK** | 25.08 – 29.32 s | 1505 – 1759 | The dockyard: the hangar, the **upgrade shop** with real packages for the player's own ship (range pack, damage pack) with credit and scrap prices, and the resources behind it | `TeaserController.RunDockBeat` → the salesman button → the real merchant catalogue | the run's own dockyard, shop tier raised so packages exist |
+| 7 | **FLEET** | 29.32 – 32.80 s | 1759 – 1968 | The fleet screen: the hull, its pilot, its abilities, its hull/shield/AP/MP/initiative numbers, and the objective list with two contracts | `TeaserController.RunFleetBeat` → `StrategicHud.OpenFleetManagement()` | the run's own fleet |
+| 8 | **TITLE** | 32.80 – 36.20 s | 1968 – 2172 | A fresh engagement (the carrier) with the **GRIM SPACE** card centred over it | `TeaserController.RunTitleBeat` → a new encounter, `LayoutTitleText` | seed `5150`, carrier vs fighter + gooper |
+| — | **FADE** | 36.20 – 37.25 s | 2172 – 2235 | Fade to black | `TeaserController.FadeOut` | — |
+
+**Nothing in this table is a still, a re-used capture, or a mock-up.** The
+previous cut's still artwork (`assets/story/pages/*.png`), its painted map, its
+fleet report card and its burn of the galaxy are all gone from the film; the
+story art still exists in the repo.
+
+### 2.1 The recording itself, measured
+
+| Measurement | Value | How it was measured |
+|---|---|---|
+| Frames / duration | 2235 / 37.250 s | `ffprobe` on the shipped file (both streams report 37.250000 s: the picture and the sound are the same length) |
+| Resolution / rate | 1920×1080 @ 60/1 | `ffprobe` |
+| Hard cuts detected | 3 (0.333 s, 21.033 s, 29.350 s) | `scripts/analyze_cut.py` (scene-change threshold) |
+| Dead seconds (a second with no motion at all) | **0** | `scripts/analyze_cut.py` — every second of the film moves |
+| Mean luma | 10.91 / 255 | `scripts/analyze_cut.py` (it is a space game; the frame is mostly black sky) |
+| Frames below 4/255 luma | 0.33 s at the cut into the star map | The map's own night sky, not a dropped frame: the same cut is a hard cut to a lit station and a route |
+| Integrated loudness / true peak | **-14.0 LUFS / -0.7 dBFS** | `ffmpeg -af ebur128=peak=true` on the shipped file |
+
+---
+
+## 3. THE FILM AS A LIST OF SHOTS (what a viewer sees, second by second)
+
+| Film time | Shot | What the viewer can see without reading anything |
+|---|---|---|
+| 0.33–4.77 | **PLAN** | A ship, a target with a reticle, a strip of portraits across the top, four icon cards and a lit command wing at the bottom, a big numeral counter (turn 1), a pilot's face and a shield arc. The cannon's coverage is drawn on the field. **This is "it is turn-based" in one frame.** |
+| 4.77–7.8 | **EXECUTE** | The order resolves: the ship accelerates away leaving a bright trail, the cannon fires, a target is hit. |
+| 7.8–10.3 | **BOOM** | The word `BOOM` in the game's own 3D billboard, with smoke and hull debris, twice, with the camera retreating to show what it cost. |
+| 10.18–15.6 | **VARIETY** | A different ship, a different weapon, a green hazard field spreading through space, an enemy rolling with a spiral trail, a different asteroid field. |
+| 15.6–20.63 | **STAR** | A place, not a menu: a station, route lines, a destination ring, a fleet marker travelling the route, counters filling up. |
+| 20.63–25.08 | **CONTRACT** | A room with an operator, a board of offers with difficulty stars, an acceptance, and a badge that pops. |
+| 25.08–29.32 | **DOCK** | A hangar, a shop, upgrade packages for the player's own ship with prices, and the money that pays for them. |
+| 29.32–32.8 | **FLEET** | The player's own ship and pilot, its abilities and its numbers, and the two contracts that are now active. |
+| 32.8–37.25 | **TITLE** | A live fight and the name. |
+
+---
+
+## 4. THE BOOM AND THE VOOSH — the two animations the user asked for
+
+| | Where it comes from | What the viewer sees | Film time |
+|---|---|---|---|
+| **boom** | `OneShotParticles.PlayShipDestruction` → `PlaySmokeExplosion` → `PlayBoomText` (`assets/vfx/boom-godot.glb`), scaled to 3.3× the hull's size, plus `PlayWreckage` (six hull-fragment models) and a smoke column | The `BOOM` billboard fills a third of the frame, with the wreck breaking up around it | 7.80 s and 10.30 s |
+| **voosh** (movement trail) | `UnitView.ConfigureMovementTrail` → `MovementTrailView` (a core emitter and a halo emitter, both `PresentationLayers.MarkUx`, drifting exhaust) | Every hull that repositions leaves a bright ribbon of exhaust: the player's fighter in the execute beat, the enemy's hulls in the variety beat, the carrier in the title beat | 4.8 – 7.8 s, 10.2 – 15.6 s, 32.8 – 36.2 s |
+
+Both are the game's own effects, triggered by the game's own simulation
+outcomes. The film did not fake an explosion: the boom is what the battle
+produces when a hull is destroyed.
+
+---
+
+## 5. THE NO-TEXT AUDIT (every word in the film, and who wrote it)
+
+**The teaser writes nothing.** The overlay in `scenes/teaser.tscn` was reduced to
+the transition rectangle and the name card; the story pass's `SubtitleText`
+("A Tactical Roguelike in the Void"), the corner `PhaseLabel`, the caption
+label and the scrim were **deleted from the scene**, not just hidden.
+
+| Where the words are | What they say | Who wrote them |
+|---|---|---|
+| Battle HUD, top left | `Turn 1`, `Turn 0` | the game |
+| Battle HUD, top centre | `SIMULATION PHASE` | the game |
+| Battle HUD, top strip | the turn-order portraits, `enemy`, `player` | the game |
+| Battle HUD, bottom | `AP`, `MP`, `PILOT`, `F`, `Tab`, `Space`, the card hotkeys `1 2 3 4`, `EXECUTE TURN` | the game |
+| Battle HUD, in the world | `CARRIER [T2]`, `4 km` (the target reticle's identity and range) | the game |
+| Battle HUD, right | *the action log* | **hidden for the recording** — it is text and the film does not need it |
+| Map HUD | `FLEET - 1/4 [Tab]`, `RESOURCES`, `ACTIVE OBJECTIVES`, contract titles and descriptions, `NEW!`, the credit amounts, `1x` | the game |
+| Facility HUD | `CLANC - Contracts`, `1 contract available`, the contract title, `DIFFICULTY`, the star ratings, `Ability Upgrades`, `POLA - Dockyard Shop - Shop tier 1.5a`, `Range grade pack - Level 1`, `2 eligible targets`, the prices, `FLEET MANAGEMENT`, `CHRISSIS`, `HULL`, `SHIELDS`, `ACTION POINTS`, `MANEUVER POINTS`, `INITIATIVE`, `ABILITIES` | the game |
+| Closing card | `GRIM SPACE` | **the teaser — the only text the film adds** |
+
+The game's own words are the point of the brief ("gameplay narrates itself",
+"show the turn-based elements"): the turn strip, the lit ability card, the
+`EXECUTE TURN` control and the pilot's shield arc are what make the turn order
+legible without a single editorial word. They are not captions, and they are
+not the teaser talking.
+
+---
+
+## 6. THE RESEARCH (11 trailers, measured, cited)
+
+**Method.** Every trailer was verified through YouTube's `oEmbed` endpoint
+(27/27 URLs resolve), its engagement and duration were read from the watch
+page's own metadata, 24 trailer files were downloaded and measured with
+`ffmpeg` scene-cut detection (`select='gt(scene,0.22)'`) plus a 4 fps luma-delta
+census, and 8 of them have caption tracks that were read. Shot-length figures
+use the downloaded file's duration.
+
+### 6.1 The trailers, with their numbers
+
+| Trailer | Channel / year | URL (verified) | Views / likes | Length | Cuts | Median shot | Measured shape |
+|---|---|---|---|---|---|---|---|
+| **Into the Breach** — announcement | Subset Games / 2017 | https://www.youtube.com/watch?v=sJR1OpHNgzc | 187,876 / 1,364 | 0:54 | **9** | 2.17 s | 14 s of pure grid with **no HUD at all**; the tiles are coloured by terrain, the health bars ride on the units, the enemy's telegraphed attack is a red-outlined block of tiles. The HUD arrives at 0:16.6 as a **column of portrait faces**, a black `End Turn` button, round-order pips, orange movement tiles and a green aim line. |
+| **Fire Emblem: Three Houses** — E3 2018 | Nintendo / 2018 | https://www.youtube.com/watch?v=rkux5h0PeXo | 2,938,107 / **50,443** | 2:11 | 51 | 1.10 s | The campaign layer is a **parchment map**, not a menu. In battle: blue movement outlines on the ground, red attack arcs, a yellow objective beam, and a **minimap in the corner** that is the whole tactical state in 90×90 px of pure colour. |
+| **Metal Slug Tactics** — reveal | Dotemu / 2021 | https://www.youtube.com/watch?v=DqF0KLsaf6U | 614,993 / 20,907 | 1:46 | **237** | **0.10 s** | 134 shots/minute; the tile seams are baked into the ground art; a different biome palette every 30 s. |
+| **Metal Slug Tactics** — gameplay | IGN / 2024 | https://www.youtube.com/watch?v=6dOVSv4lnlg | 121,451 / 3,444 | 6:08 | — | — | The best statement of what a tactical HUD must carry: *"their hit points, how much damage they can take, **action points** … **movement points**"* and *"the damage reduction is visible **under your operative portrait**"*. |
+| **Othercide** — launch | Focus / 2020 | https://www.youtube.com/watch?v=UHgFpd5o_3c | 1,831,201 / 2,150 | 1:22 | 37 | 1.03 s | A black 3D floor, **red tiles for the threatened area**, pale silhouettes, red HUD accents — one hue, so the grammar is learned in one shot. |
+| **Battle Brothers** — launch | Overhype / 2017 | https://www.youtube.com/watch?v=C5_eSS-NTeU | 195,264 / 1,120 | 1:52 | **16** | **4.04 s** | **82.6 % near-static frames, a 31.8 s unbroken shot, panels of body text over a locked top-down map.** The worst measured like-rate (5.7/1k) among well-regarded games. The trailer to copy **nowhere**. |
+| **Age of Wonders 4** — launch | Triumph / 2023 | https://www.youtube.com/watch?v=uBcX72akX5Q | 72,348 / 1,587 | 1:34 | 36 | 1.74 s | A voiceover that recites five verbs over five matching shots — the exact mapping this film needed, made with images only. |
+| **Fire Emblem Engage** — launch | Nintendo / 2023 | https://www.youtube.com/watch?v=DMtDNAkI4Zg | 336,039 / 6,884 | 2:01 | **115** | 0.83 s | **No shot longer than 6.83 s.** Over-the-shoulder combat, blue/red HP bars per unit, orange damage numerals. |
+| **Front Mission 2 Remake** — launch | Forever / 2023 | https://www.youtube.com/watch?v=6RlIjgQf0UU | 86,756 / 1,705 | 1:28 | 27 | 1.97 s | The most legible element in a cluttered corner is `AP 9/9` — one oversized numeral pair that says "this unit still has actions". |
+| **XCOM 2** — official launch | 2K / 2016 | https://www.youtube.com/watch?v=VIRDb_O6qXA | 2,247,220 / 3,670 | 1:39 | 39 | 1.77 s | **The most-viewed trailer in the set never shows the top-down turn grid.** The combat footage is the cinematic third-person shooter view. 1.6 likes/1k — the bottom of the table. A cautionary tale for a systems teaser. |
+| **Invisible, Inc.** — launch | Klei / 2015 | https://www.youtube.com/watch?v=WZ8b_J7DS64 | 903,735 / 862 | 1:00 | 32 | 1.27 s | Cyan = your agents, red = hostiles, green = the objective. The whole grammar in one frame. |
+
+Anti-patterns, each anchored: *Othercide's* release-date trailer
+(https://www.youtube.com/watch?v=ARnv2lFWLWk) is five full-screen all-caps
+feature cards and almost no gameplay; *XCOM 2*'s launch spends 15.9 s on a fake
+news broadcast before the game appears; *Total War: WARHAMMER*'s 360° trailer
+(https://www.youtube.com/watch?v=YSBWwnOHvM8) has **3 cuts in 109 s** with an
+82.9 s shot; *Marauders* (https://www.youtube.com/watch?v=k6rbjrrIi_w) is a
+first-person space shooter where **no grid is visible in any frame**, so
+"tactical" cannot land at all.
+
+### 6.2 The rules this cut is built on
+
+| # | Rule | Source | How this cut obeys it |
+|---|---|---|---|
+| R1 | **State is a shape or a colour before it is a number.** | Into the Breach | The turn order is a strip of **faces**; the lit ability card is a **shape**; the target is a **reticle with rails**. |
+| R2 | **Mitigation state rides on the unit's portrait.** | Metal Slug Tactics | The pilot's portrait in the console carries the **shield arc** and the hull ring next to it. |
+| R5 | **Text lives at the screen edge, never on the playfield.** | Three Houses | Every word in this film is in the HUD band at the top or bottom; the playfield carries only colour and shape. |
+| R6 | **A strip of faces *is* the turn order.** | Into the Breach | The turn-order strip across the top fills as the round resolves (1 portrait at the start, 4 after the first turn). |
+| R8 | **A fixed, always-visible "commit" control.** | Into the Breach | `EXECUTE TURN` sits in the same place in every battle shot. |
+| R9 | **Two non-overlapping tile colours = two grammars.** | Into the Breach | The weapon coverage is drawn in the weapon's colour on the field; the goop hazard is green. |
+| R10 | **One bright marker on the active unit.** | Fire Emblem Engage | The active slot in the turn strip is lit and the focused unit carries the reticle. |
+| R11 | **The strategic layer is a *map*, not a menu.** | Three Houses | Shot 4 is a place: a station, route lines, a moving marker. |
+| R12 | **Show the path, not the list.** | Three Houses, Age of Wonders 4 | The map draws the **course line and the destination ring** and the fleet marker travels it. |
+| R14 | **Change the biome palette hard, every battle.** | Metal Slug Tactics | Three different asteroid fields, three different camera languages, three different weapon colours. |
+| R15 | **Draw the target; never rely on a cursor.** | Into the Breach, Three Houses | The target reticle with the hull/shield rails is always on screen. A recorded teaser has no cursor, and this one never needed one. |
+| R16 | **Every action gets an icon that survives 25 % scale.** | Metal Slug Tactics | The ability cards are the game's own SVG icons; four of them are on screen at once. |
+| R17 | **Three selection states: selected / hoverable / targeted.** | Fire Emblem Engage | The lit ability card, the reticle and the coverage cone are three different states. |
+| R19 | **One damage colour, used for nothing else.** | Fire Emblem Engage | Damage is the game's own orange numerals; the goop is the game's own green. |
+| R20 | **Death = flash + removal + counter-event.** | Into the Breach | The boom, the smoke, the wreck debris, and the unit is gone from the field. |
+| R22 | **One huge, unmissable set-piece frame.** | Fire Emblem Engage, XCOM 2 | The `BOOM` billboard at 7.8 s and 10.3 s is the biggest, brightest object in the file. |
+| R23–24 | **Vary palette + camera + silhouette together; never two battles that look the same.** | Metal Slug Tactics, Wasteland 3 | Three engagements: fighter/blue/carrier-close, gooper/green/rolling, carrier/wide. |
+| R25 | **Cut on the event, not on a rhythm.** | Fire Emblem Engage | Every cut is a change of system: console → order → new fight → map → contract → shop → fleet → name. |
+| R26–27 | **Median shot 1–4 s; nothing over ~6 s.** | Measured across 11 files | Shots: 4.44 / 5.41 / 5.42 / 5.03 / 4.45 / 4.24 / 3.48 / 3.40 s + fade. **Longest shot: 5.42 s.** |
+| R28 | **Zero dead air.** | Measured (23 % vs 83 % static) | `analyze_cut.py`: **0 dead seconds.** Every frame has a trail, a drift, a particle, a camera move or a UI change. |
+| R29–30 | **≤ 90 s; open on the system at 0:00, no cold open.** | Into the Breach (0:02), Three Houses (0:04) | 37.25 s; the first frame is a live battle. |
+| R31 | **If there is no voice and no text, the picture carries 100 %.** | XCOM 2 (works), Battle Brothers (fails) | There is no narration and no editorial text; every beat has to stand on its own. |
+
+### 6.3 The rules that were *not* obeyed, and why
+
+| Rule | Not obeyed | Why |
+|---|---|---|
+| R3 (bake the grid into the terrain art) | Not possible | The grid is the game's own 3D cell volume; changing the terrain material is a game change, not a teaser change. The film shows the grid from a low angle instead. |
+| R4 (constrain attack shapes until the ground describes them) | Not possible | The weapons are the game's (a beam, a drone burst, a goop field, a bomb). The film shows the coverage in the weapon's colour so the shapes still read. |
+| R12 (animate the route line between nodes) | Partly | The map draws the course and the destination ring, and the fleet marker travels it — the game's own route drawing, animated by the game's own simulation. |
+| R28 (every frame moves) | Mostly | The plan shot is the stillest shot in the film (a ship deciding). It still moves: the camera drifts, the field turns, the HUD updates. |
+
+---
+
+## 7. THE ITERATION (what was measured, what was changed, and what is still wrong)
+
+The mandate asked for at least one honest iteration. There were **eleven
+recorded passes**; every one was measured from its pixels, not from a report.
+
+| Pass | What the pixels showed | What changed because of it |
+|---|---|---|
+| 1 | The plan shot was a wall of green wireframe (the move range filled the frame) and the ships were invisible. | The plan shot now holds on the **weapon's coverage** instead: the console is put into the cannon's mode *without firing it*, which removes the move range and lights the card. A new `BattleController.RequestAbilityMode(mode, fireImmediately)` was added for it. |
+| 2 | The ships were tiny; the camera was 18–23 units away. | All battle cameras moved to 8.5–15 units. The hulls are now the subject of the frame. |
+| 3 | The boom was off-frame: the camera was following the shooter, 8 cells from the hull that died. | The execution shot now follows the **target**, so the loss happens at the camera and the `BOOM` billboard fills the frame. |
+| 4 | A stray move was queued during the plan shot and the mode snapped back to Move. | Root cause: selecting an ability with one mount **fires it immediately** (the game's own behaviour). The teaser now enters the mode without firing. |
+| 5 | The frame was captured with a click landing in the game window. | Both sub-viewports now have input disabled (`SetDisableInput(true)`) for the recording. |
+| 6 | The map showed the **new sun** and the narrative page. | The map's star marker is hidden, the event horizon in the map's sky is switched off, and the narrative is closed *and completed in the run*, so it cannot come back. |
+| 7 | The map was showing the **battle's** red dwarf through the transparent world layer. | The battle's own red dwarf is hidden for the recording. |
+| 8 | The variety battle crashed the frame builder (`NullReferenceException` in `PlanningPreview.PreviewWorld`) because the player agent had no planning sim yet. | Fixed in the owner: the frame falls back to the live snapshot when there is no sim, not only when there is no agent. |
+| 9 | The battle teardown freed the scene while the replay's own timers were still queued, which threw `ObjectDisposedException` and crashed the shutdown. | The finished battle is taken out of the tree and kept alive until the film ends, then released. |
+| 10 | The dockyard showed the **contract board** instead of the shop (the contract board had already put that operator on contract duty), and the shop was empty. | The merchant role is granted at critical priority to the shopkeeper only, and the run's tier is raised so the shop has packages. |
+| 11 | The name card sat in the corner, and the closing battle had already ended, so the outcome panel was over the card. | The card is centred, and the closing shot uses a **fresh engagement** so the fight is still running behind it. |
+
+### 7.1 What is still not right (honest)
+
+| Issue | Status |
+|---|---|
+| The ships are small in the world. | The hulls are 0.9 units long in a 64-cell field and the camera rig refuses to come closer than 8 units. The film uses the closest framing the game allows; the shield bubbles and the trails carry the ships. |
+| The map shot is dark and sparse. | It is the game's own map at its own camera limits. The route, the station, the moving marker and the counters are all legible; the empty space is space. |
+| The `SIMULATION PHASE` banner is a word in the middle of the plan shot. | It is the game's own phase banner (master's UI). Hiding it would mean hiding the game's interface, which the brief explicitly wants shown. It is listed in the no-text audit rather than hidden. |
+| The battle's `Turn 1` badge and the map's HUD labels are words. | Same answer: the brief asks for the real interface, and the teaser adds none. |
+| The 0.33 s of near-black at the cut into the star map. | The map's sky is black. Not a dropped frame, but it is the darkest moment in the file. |
+| The first ~3 s of the variety beat show the enemy acting before the player. | The enemy's turn is resolved by the game's own simulation before the player's turn comes; the beat was cut so the wait is not visible as a hold. |
+
+---
+
+## 8. THE SOUND (same track, same approach)
+
+Unchanged from the previous pass, as instructed: **`assets/music/terraforming-mars-tracks/track-15.ogg`**, mixed in ffmpeg against the recorded picture by `scripts/mix_teaser.py`, with the game's own SFX placed on frames **measured from the picture**.
+
+**The music window.** Track-15's envelope was profiled again with `scripts/profile_music.py`: a quiet opening (0–20 s, −21…−32 dB), a body from 20 s (−14 dB), a build from 55 s to the peak at 70–73 s (−11.4 dB), and its own fade from 75 s. The window is **track-15 from 40.0 s, 37.25 s long** (0.35 s fade in, 1.2 s fade out), the same window the previous cut used.
+
+| Track-15 second | Level | What the film is doing (film second) |
+|---|---|---|
+| 40–55 (0–15) | −14.4 → −14.1 dB, the body | the console, the order, the boom, the goop fight |
+| 55–66 (15–26) | −13.8 → −12.7 dB, building | the star map, the contract, the dockyard |
+| 66–73 (26–33) | **−12.6 → −11.4 dB, the peak** | the shop, the fleet screen, the name card |
+| 73–77 (33–37) | the track's own fade | the name card, out |
+
+**The SFX** (the game's own files, delayed to measured frames):
+
+| t | Sound | What it lands on |
+|---|---|---|
+| 0.10 s | 46 Hz sub-bass (synthesised) | the fade up out of black |
+| 4.80 s | `menu_hover_click` | the cut from the console into the order |
+| 5.35 s | `lightning_cannon_mount_charge` (−5 dB) | the cannon charging as the hull repositions |
+| 5.55 s | `lightning_cannon_hit` | **the shot lands** (measured: the impact burst appears at 5.55 s) |
+| 7.80 s | `ship_death_enhanced_v2` | **the first boom** (measured: the `BOOM` billboard appears at 7.80 s) |
+| 10.30 s | `void_bomb_explosion` | **the second boom** (measured: 10.30 s) |
+| 15.60 s | `menu_hover_click` | the cut into the star map |
+| 21.60 s | `resource_transaction` (−4 dB) | the contract is accepted, the reward counts up |
+| 25.30 s | `menu_hover_click` | the shop opens in the dockyard |
+| 29.30 s | `menu_hover_click` | the cut into the fleet screen |
+| 32.80 s | `void_bomb_explosion` (−6 dB) | the impact under the name card |
+
+**The mix** was built by `scripts/mix_teaser.py`: the music bed, the SFX delayed
+to their frames with `adelay`, an `amix` with no normalisation, then a
+**measured** gain correction (the raw mix lands at −14.50 LUFS, the limiter
+lifts it to −13.10, and the difference is corrected on the audio stem so the
+shipped picture is encoded once). The shipped file measures:
+
+| Measurement | Value |
+|---|---|
+| Integrated loudness | **−14.0 LUFS** (web target) |
+| True peak | **−0.7 dBFS** (limiter at 0.89) |
+| Loudness range | 4.0 LU |
+| Audio | AAC, 48 kHz, stereo, 37.250 s (the same length as the picture) |
+
+---
+
+## 9. THE REPO STATE (honest, including what this branch fixes)
+
+| Check | Result |
+|---|---|
+| `dotnet build grim-space.csproj` | **0 errors**, 26 warnings (all pre-existing nullability warnings in master code) |
+| `dotnet test --project grim-space.Tests/grim-space.Tests.csproj` | **1611 passed, 0 failed, 4 skipped** |
+| Master-only failures fixed here | `BattleSpawnPilotTests.BattleEncounterSave_RoundTripsPilotSnapshot` and `…MultiShipEngagement_EachPlayerSpawnGetsDistinctPilotSnapshot` fail **on `origin/master` itself** (verified in a clean worktree at 65e38b93): master's new "a battle needs an opponent" validation rejects the player-only fleet those two tests field. The tests now field a pirate fleet as the opponent. **No production code was changed to make them pass.** |
+| New code in this branch | `TeaserController` (rewritten), `BattleController.RequestAbilityMode` (a public entry into the console's ability modes, with an option not to fire), the `BattleController` camera helpers from the earlier passes, `StrategicHud.OpenFleetManagement()` (the map HUD's own action, exposed), the frame builder's null-sim fallback, `AiVsAiRunner`/`AiExecutionAgent` (the AI-vs-AI battle driver from the earlier passes) |
+| New assets in this branch | none — every asset in the film is the game's own |
+| The new sun | **untouched in the repo**, not filmed |
+
+### 9.1 The honest skipped log
+
+| Asked for | Skipped? | Why |
+|---|---|---|
+| An intro | **Skipped on purpose** | The brief says no intro. The film opens on the battle. |
+| Captions / callouts / a tagline | **Skipped on purpose** | The brief says no text. The subtitle node was deleted from the scene. |
+| The new sun in the trailer | **Skipped on purpose** | The brief says so. It stays in the repo. |
+| Stale captures | **Skipped on purpose** | Every shot is a fresh capture from this tree, in one session. |
+| A "Move" action card | **Does not exist in the game** | The game has no Move card: movement is the default mode, shown as the reachable-cell volume, the path and the ghost. The film's console shows the **ability** cards (lightning, drone swarm, goop, void bomb) and the mode the player is in. The brief's "Move/Attack action cards" is honoured as far as the game allows, and this is the honest limit. |
+| Boarding | **Does not exist in the game** | There is no boarding action in the codebase. The closest real verb is **deployment** (the carrier launches a repurposed miner from its ventral bay), which the AI plays in the variety beat. |
+| Different battle *environments* | **Partly** | There is one battle scene. What varies is the chassis, the weapons, the shields, the abilities, the asteroid field (the seed) and the camera. The variety beat is a different fight in a different field with a different weapon, not a different room. |
+| An "achievement unlocked" popup | **Does not exist in the game** | There is no achievement system. The film's progression beat shows what the game actually has: contracts accepted with a `NEW!` badge, a reward transaction, a shop with prices, and the fleet screen with the pilot and the ship's numbers. The badge is the game's real notification, not a stand-in for a system that does not exist. |
+| A meta-progression screen | **Does not exist in the game** | The brief's point 7 is honoured with the screens the game does have (fleet, pilot, upgrades, objectives). Building a meta screen would be a game feature, not a teaser. |
+| A 4K master | **Not done** | The capture is 1920×1080 at 60 fps, encoded at CRF 21. The game's own assets are 1080p; a 4K master would only rescale. |
+| A version of the film with voice-over | **Not done on purpose** | The brief asked for no text; a voice-over would be the same problem in another form. R31 says the picture has to carry it. |
+
+---
+
+## 10. THE SHIPPED FILE
+
+| | |
+|---|---|
+| **File** | `teaser.mp4` |
+| Duration | 37.250 s (2235 frames @ 60 fps); picture and sound both 37.250 s |
+| Picture | 1920×1080, H.264 high profile, CRF 21, bt709 |
+| Sound | AAC 192 kb/s, 48 kHz stereo, **−14.0 LUFS**, −0.7 dBFS true peak |
+| Raw capture | `v4n.avi` (MJPEG, 1920×1080, 60 fps) |
+| Intermediate | `work/v4_cut.mp4` (the picture without sound) |
+| Mix script | `scripts/mix_teaser.py`, the SFX list in `work/sfx_v4.json` |
+| How it was recorded | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v4n.avi --fixed-fps 60 --quit-after 2500 "res://scenes/teaser.tscn"` |
