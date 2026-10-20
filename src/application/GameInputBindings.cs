@@ -104,6 +104,47 @@ public static class GameInputBindings
 		return result;
 	}
 
+	public static bool BindingsEqual(
+		IReadOnlyDictionary<StringName, BindingPair> left,
+		IReadOnlyDictionary<StringName, BindingPair> right)
+	{
+		if (left.Count != right.Count)
+			return false;
+
+		foreach (var (action, leftPair) in left)
+		{
+			if (!right.TryGetValue(action, out var rightPair))
+				return false;
+
+			if (!leftPair.Primary.Equals(rightPair.Primary))
+				return false;
+
+			var leftSecondary = leftPair.Secondary ?? KeyBinding.Empty;
+			var rightSecondary = rightPair.Secondary ?? KeyBinding.Empty;
+			if (!leftSecondary.Equals(rightSecondary))
+				return false;
+		}
+
+		return true;
+	}
+
+	public static bool TryValidateCommitted(
+		IReadOnlyDictionary<StringName, BindingPair> bindings,
+		out string? error)
+	{
+		foreach (var spec in Specs)
+		{
+			if (!bindings.TryGetValue(spec.Action, out var pair) || pair.Primary.IsEmpty)
+			{
+				error = $"{spec.Label} needs a primary binding.";
+				return false;
+			}
+		}
+
+		error = null;
+		return true;
+	}
+
 	public static void Apply(IReadOnlyDictionary<StringName, BindingPair> bindings)
 	{
 		foreach (var spec in Specs)

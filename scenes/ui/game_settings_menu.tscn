@@ -1,0 +1,285 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/presentation/menu/GameSettingsMenu.cs" id="1_settings"]
+[ext_resource type="Script" uid="uid://ch72aurvcae88" path="res://src/presentation/menu/KeyBindingsTab.cs" id="2_keybindings"]
+[ext_resource type="Theme" uid="uid://07gapjjretw0" path="res://assets/ui/themes/main_menu_theme.tres" id="3_theme"]
+
+[node name="SettingsOverlay" type="Control"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_settings")
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center" unique_id=711205938]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(840, 560)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel" unique_id=704878523]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 28
+
+[node name="SettingsPanel" type="VBoxContainer" parent="Center/Panel/Margin" unique_id=678690386]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Breadcrumb" type="Label" parent="Center/Panel/Margin/SettingsPanel" unique_id=632842195]
+layout_mode = 2
+theme_type_variation = &"SubtitleLabel"
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="SettingsTabs" type="TabContainer" parent="Center/Panel/Margin/SettingsPanel" unique_id=1938445493]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(760, 420)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Video" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs" unique_id=1414277337]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+metadata/_tab_index = 0
+
+[node name="VideoSection" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video" unique_id=1727980572]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="VideoLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=1697330380]
+layout_mode = 2
+theme_type_variation = &"SectionHeadingLabel"
+text = "Video"
+
+[node name="DisplayModeRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=493878421]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DisplayModeLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/DisplayModeRow" unique_id=1324513783]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Display mode"
+
+[node name="DisplayMode" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/DisplayModeRow" unique_id=14600198]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+item_count = 2
+popup/item_0/text = "Borderless Fullscreen"
+popup/item_0/id = 0
+popup/item_1/text = "Windowed"
+popup/item_1/id = 1
+
+[node name="ResolutionRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=174775208]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ResolutionLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/ResolutionRow" unique_id=271919803]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Resolution"
+
+[node name="Resolution" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/ResolutionRow" unique_id=21458426]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UiScaleRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection" unique_id=21458427]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="UiScaleLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/UiScaleRow" unique_id=977822661]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "UI scale"
+
+[node name="UiScale" type="OptionButton" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Video/VideoSection/UiScaleRow" unique_id=21458428]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Audio" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs" unique_id=1722276506]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+metadata/_tab_index = 1
+
+[node name="AudioSection" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio" unique_id=1123804421]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AudioLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection" unique_id=1227494543]
+layout_mode = 2
+theme_type_variation = &"SectionHeadingLabel"
+text = "Audio"
+
+[node name="MasterVolumeRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection" unique_id=919495037]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MasterVolumeLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MasterVolumeRow" unique_id=2034665758]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Master volume"
+
+[node name="MasterVolume" type="HSlider" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MasterVolumeRow" unique_id=955614216]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="MusicVolumeRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection" unique_id=1300504855]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicVolumeLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MusicVolumeRow" unique_id=1758245191]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Music volume"
+
+[node name="MusicVolume" type="HSlider" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/MusicVolumeRow" unique_id=1124297137]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="SfxVolumeRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection" unique_id=1345722731]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SfxVolumeLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/SfxVolumeRow" unique_id=469388865]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "SFX volume"
+
+[node name="SfxVolume" type="HSlider" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Audio/AudioSection/SfxVolumeRow" unique_id=576534893]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="Gameplay" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs" unique_id=727957848]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+metadata/_tab_index = 2
+
+[node name="GameplaySection" type="VBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay" unique_id=1740375782]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GameplayLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection" unique_id=1566168939]
+layout_mode = 2
+theme_type_variation = &"SectionHeadingLabel"
+text = "Gameplay"
+
+[node name="ShowTutorialsRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection" unique_id=1183430789]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ShowTutorialsLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowTutorialsRow" unique_id=821356331]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Show tutorials"
+
+[node name="ShowTutorials" type="CheckBox" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowTutorialsRow" unique_id=2033475851]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+button_pressed = true
+
+[node name="MouseCameraPanRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection" unique_id=1646675984]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MouseCameraPanLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/MouseCameraPanRow" unique_id=1756697917]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Pan camera with mouse"
+
+[node name="MouseCameraPan" type="CheckBox" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/MouseCameraPanRow" unique_id=1593412736]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+button_pressed = true
+
+[node name="ShowActionLogRow" type="HBoxContainer" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ShowActionLogLabel" type="Label" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowActionLogRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyLabel"
+text = "Show action log"
+
+[node name="ShowActionLog" type="CheckBox" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs/Gameplay/GameplaySection/ShowActionLogRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+button_pressed = true
+
+[node name="Keys" type="Control" parent="Center/Panel/Margin/SettingsPanel/SettingsTabs" unique_id=1876460814]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("2_keybindings")
+metadata/_tab_index = 3
+
+[node name="Apply" type="Button" parent="Center/Panel/Margin/SettingsPanel" unique_id=432609691]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"MenuNavButton"
+text = "Apply"
+
+[node name="Back" type="Button" parent="Center/Panel/Margin/SettingsPanel" unique_id=664489649]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"MenuNavButton"
+text = "Back"
+
+[node name="Reset" type="Button" parent="Center/Panel/Margin/SettingsPanel" unique_id=1808329033]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"MenuNavButton"
+text = "Reset"
+

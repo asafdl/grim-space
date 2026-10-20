@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Components;
+using GrimSpace.Presentation.Menu;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -26,7 +27,8 @@ public partial class BattleHud : Node
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
-	public bool IsPauseMenuOpen => PauseMenu.Visible || PauseMenu.IsReportDialogOpen;
+	public bool IsPauseMenuOpen =>
+		PauseMenu.Visible || PauseMenu.IsReportDialogOpen || PauseMenu.IsSettingsOpen;
 	public bool IsMountSelectorOpen => _mountSelectorLayer.Visible;
 
 	private bool _strategicBattle;
@@ -176,8 +178,8 @@ public partial class BattleHud : Node
 		var battleTheme = HudThemes.Load(HudThemeFamily.Battle);
 		topMargin.Theme = battleTheme;
 		_actionLogHost.Theme = battleTheme;
-		OutcomeOverlay.ApplyTheme(HudThemes.Load(HudThemeFamily.MainMenu));
-		PauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.MainMenu));
+		OutcomeOverlay.ApplyTheme(MenuUi.Theme);
+		PauseMenu.ApplyTheme(MenuUi.Theme);
 		_simulationPhaseBanner.Theme = battleTheme;
 		CommandHud.Theme = battleTheme;
 	}

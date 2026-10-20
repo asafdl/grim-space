@@ -4,7 +4,8 @@ namespace GrimSpace.Application;
 
 public static class GameSettings
 {
-	private const string SettingsPath = "user://settings.cfg";
+	internal const string SettingsFilePath = "user://settings.cfg";
+	private const string SettingsPath = SettingsFilePath;
 	private const string BorderlessFullscreenMode = "borderless_fullscreen";
 	private const string WindowedMode = "windowed";
 
@@ -183,6 +184,20 @@ public static class GameSettings
 		config.SetValue("gameplay", "show_tutorials", enabled);
 		config.Save(SettingsPath);
 	}
+
+	public static Error SaveGameplayPreferences(
+		bool showTutorials,
+		bool mouseCameraPan,
+		bool showActionLog)
+	{
+		var config = LoadOrCreate();
+		config.SetValue("gameplay", "show_tutorials", showTutorials);
+		config.SetValue("gameplay", "mouse_camera_pan", mouseCameraPan);
+		config.SetValue("gameplay", "show_action_log", showActionLog);
+		return config.Save(SettingsPath);
+	}
+
+	internal static ConfigFile LoadOrCreateConfig() => LoadOrCreate();
 
 	private static float ReadVolume(ConfigFile config, string key, float defaultValue) =>
 		Mathf.Clamp(config.GetValue("audio", key, defaultValue).AsSingle(), 0f, 1f);

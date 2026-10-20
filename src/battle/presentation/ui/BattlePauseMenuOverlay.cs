@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Presentation.Menu;
 using GrimSpace.Presentation.Support;
 
 namespace GrimSpace.Battle.Presentation.Ui;
@@ -16,6 +17,9 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 	private Button _saveButton = null!;
 	private Button _restartButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
+	private readonly PauseMenuSettingsHost _settings = new();
+
+	public bool IsSettingsOpen => _settings.IsOpen;
 
 	public BattlePauseMenuOverlay()
 	{
@@ -54,7 +58,7 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 			AnchorBottom = 1f,
 			GrowHorizontal = Control.GrowDirection.Both,
 			GrowVertical = Control.GrowDirection.Both,
-			Color = HudStyles.ModalBackdrop,
+			Color = MenuUi.ModalBackdropColor,
 		};
 		_root.AddChild(backdrop);
 
@@ -98,29 +102,26 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 
 		content.AddChild(CreateMenuButton(
 			BattleHudCopy.Continue,
-			BattleHudCopy.ContinueTooltip,
 			() => ContinueRequested?.Invoke()));
 		_saveButton = CreateMenuButton(
 			"Save",
-			"Save the current battle",
 			() => SaveRequested?.Invoke());
 		content.AddChild(_saveButton);
+		content.AddChild(CreateMenuButton("Settings", () => _settings.Open()));
 		content.AddChild(CreateMenuButton(
 			BattleHudCopy.Retire,
-			BattleHudCopy.RetireTooltip,
 			() => RetireRequested?.Invoke()));
 		content.AddChild(CreateMenuButton(
 			BattleHudCopy.Restart,
-			BattleHudCopy.RestartTooltip,
 			() => RestartRequested?.Invoke(),
 			out _restartButton));
 		content.AddChild(CreateMenuButton(
 			"Save and Quit",
-			"Save the battle and return to the title screen",
 			() => MainMenuRequested?.Invoke()));
 
 		_reportDialog = new ReportIssueDialog();
 		_root.AddChild(_reportDialog);
+		_settings.Attach(_root);
 
 		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("battle"));
 	}
@@ -133,6 +134,15 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		if (_reportDialog.IsOpen)
 			return;
 
+		if (_settings.TryCloseOnEscape(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (_settings.IsOpen)
+			return;
+
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
 			ContinueRequested?.Invoke();
@@ -142,21 +152,19 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 
 	public void ShowSaveConfirmation() => _saveButton.Text = "✓ Saved";
 
-	private static Button CreateMenuButton(string text, string tooltip, Action onPressed)
+	private static Button CreateMenuButton(string text, Action onPressed)
 	{
-		return CreateMenuButton(text, tooltip, onPressed, out _);
+		return CreateMenuButton(text, onPressed, out _);
 	}
 
 	private static Button CreateMenuButton(
 		string text,
-		string tooltip,
 		Action onPressed,
 		out Button button)
 	{
 		button = new Button
 		{
 			Text = text,
-			TooltipText = tooltip,
 			CustomMinimumSize = new Vector2(220, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};

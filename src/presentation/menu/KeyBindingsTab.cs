@@ -74,6 +74,10 @@ public partial class KeyBindingsTab : Control
 
 	private Dictionary<StringName, BindingPair> _draft = [];
 
+	public IReadOnlyDictionary<StringName, BindingPair> CurrentDraft => _draft;
+
+	public event Action<IReadOnlyDictionary<StringName, BindingPair>>? DraftBindingsChanged;
+
 	public override void _Ready()
 	{
 		SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -96,24 +100,15 @@ public partial class KeyBindingsTab : Control
 	public void ResetToDefaults()
 	{
 		_draft = CopyDraft(GameInputBindings.DefaultBindings());
-		ShowStatus("Reset to defaults (Apply to save).");
+		ShowStatus(string.Empty);
 		RebuildRows();
+		NotifyDraftChanged();
 	}
 
 	public bool TryGetCommittedBindings(out IReadOnlyDictionary<StringName, BindingPair> bindings, out string? error)
 	{
 		bindings = _draft;
-		error = null;
-		foreach (var spec in GameInputBindings.Specs)
-		{
-			if (_draft[spec.Action].Primary.IsEmpty)
-			{
-				error = $"{spec.Label} needs a primary binding.";
-				return false;
-			}
-		}
-
-		return true;
+		return GameInputBindings.TryValidateCommitted(_draft, out error);
 	}
 
 	private void BuildChrome()
@@ -333,7 +328,10 @@ public partial class KeyBindingsTab : Control
 		_draft = CopyDraft(GameInputBindings.WithAssignment(_draft, action, secondarySlot, binding));
 		_statusLabel.Text = string.Empty;
 		RebuildRows();
+		NotifyDraftChanged();
 	}
+
+	private void NotifyDraftChanged() => DraftBindingsChanged?.Invoke(_draft);
 
 	private void OnCaptureCancelled() =>
 		_statusLabel.Text = string.Empty;

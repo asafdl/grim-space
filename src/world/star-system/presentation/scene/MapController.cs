@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Components;
+using GrimSpace.Presentation.Menu;
 using GrimSpace.Core.Actions;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
@@ -169,7 +170,7 @@ public partial class MapController : Node3D
 		_pauseMenu.ContinueRequested += ClosePauseMenu;
 		_pauseMenu.SaveRequested += SaveGame;
 		_pauseMenu.MainMenuRequested += ReturnToMainMenu;
-		_pauseMenu.ApplyTheme(HudThemes.Load(HudThemeFamily.MainMenu));
+		_pauseMenu.ApplyTheme(MenuUi.Theme);
 		_uiLayer.AddChild(_pauseMenu);
 
 		var world = _orchestrator.Map;
@@ -539,6 +540,7 @@ public partial class MapController : Node3D
 	private bool IsBlockingModalOpen() =>
 		_pauseMenu.Visible
 		|| _pauseMenu.IsReportDialogOpen
+		|| _pauseMenu.IsSettingsOpen
 		|| _strategicHud.IsBlockingModalOpen
 		|| (_narrative?.IsOpen ?? false)
 		|| (_deliveryMeetingDialog?.IsOpen ?? false)

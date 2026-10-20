@@ -14,7 +14,6 @@ internal static class PauseMenuReportFooter
 		var reportButton = new Button
 		{
 			Text = ReportIssueCopy.ReportIssue,
-			TooltipText = "Describe a bug and send it to the team",
 			CustomMinimumSize = new Vector2(220, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};

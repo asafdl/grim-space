@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Presentation.Menu;
 using GrimSpace.Presentation.Support;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -13,6 +14,9 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 	private Control _root = null!;
 	private Button _saveButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
+	private readonly PauseMenuSettingsHost _settings = new();
+
+	public bool IsSettingsOpen => _settings.IsOpen;
 
 	public StarMapPauseMenuOverlay()
 	{
@@ -49,7 +53,7 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 			AnchorBottom = 1f,
 			GrowHorizontal = Control.GrowDirection.Both,
 			GrowVertical = Control.GrowDirection.Both,
-			Color = HudStyles.ModalBackdrop,
+			Color = MenuUi.ModalBackdropColor,
 		};
 		_root.AddChild(backdrop);
 
@@ -90,16 +94,15 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 			ThemeTypeVariation = "OverlayTitle",
 		});
 
-		content.AddChild(CreateMenuButton("Continue", "Resume star map", () => ContinueRequested?.Invoke()));
-		_saveButton = CreateMenuButton("Save", "Save the current run", () => SaveRequested?.Invoke());
+		content.AddChild(CreateMenuButton("Continue", () => ContinueRequested?.Invoke()));
+		_saveButton = CreateMenuButton("Save", () => SaveRequested?.Invoke());
 		content.AddChild(_saveButton);
-		content.AddChild(CreateMenuButton(
-			"Save and Quit",
-			"Save the run and return to the title screen",
-			() => MainMenuRequested?.Invoke()));
+		content.AddChild(CreateMenuButton("Settings", () => _settings.Open()));
+		content.AddChild(CreateMenuButton("Save and Quit", () => MainMenuRequested?.Invoke()));
 
 		_reportDialog = new ReportIssueDialog();
 		_root.AddChild(_reportDialog);
+		_settings.Attach(_root);
 
 		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("star-map"));
 	}
@@ -108,10 +111,16 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 
 	public bool TryHandleInput(InputEvent @event)
 	{
-		if (!Visible && !_reportDialog.IsOpen)
+		if (!Visible && !_reportDialog.IsOpen && !_settings.IsOpen)
 			return false;
 
 		if (_reportDialog.IsOpen)
+			return true;
+
+		if (_settings.TryCloseOnEscape(@event))
+			return true;
+
+		if (_settings.IsOpen)
 			return true;
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -125,12 +134,11 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 		return true;
 	}
 
-	private static Button CreateMenuButton(string text, string tooltip, Action onPressed)
+	private static Button CreateMenuButton(string text, Action onPressed)
 	{
 		var button = new Button
 		{
 			Text = text,
-			TooltipText = tooltip,
 			CustomMinimumSize = new Vector2(220, 44),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 		};
