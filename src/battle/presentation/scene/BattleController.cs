@@ -347,6 +347,69 @@ public partial class BattleController : Node3D
 		return ghost;
 	}
 
+	/// <summary>
+	/// The last frame the console was given. A recording reads it to find the
+	/// control that belongs to a weapon.
+	/// </summary>
+	public PresentationFrame? CurrentFrame => _currentFrame;
+
+	/// <summary>
+	/// The battle's own console. A recording uses it to put the cursor on the
+	/// real controls, so what the viewer sees light up is the game's own
+	/// hover and press feedback.
+	/// </summary>
+	public BattleHud Hud => _battleHud;
+
+	/// <summary>
+	/// The index of the unit that is acting in the turn-order strip, or -1 before
+	/// the first activation. A recording watches it to know when the turn has
+	/// changed hands.
+	/// </summary>
+	public int TurnFlowIndex { get; private set; } = -1;
+
+	/// <summary>The turn order as the strip shows it.</summary>
+	public IReadOnlyList<TurnFlowEntry> TurnFlow => _turnFlowTimeline;
+
+	/// <summary>
+	/// The id of the unit that is acting right now, or null when the turn order
+	/// is not showing an actor.
+	/// </summary>
+	public string? ActiveTurnUnitId =>
+		TurnFlowIndex >= 0 && TurnFlowIndex < TurnFlow.Count
+			? TurnFlow[TurnFlowIndex].UnitId
+			: null;
+
+	/// <summary>
+	/// Points the camera at a place and keeps it there. A recording uses it to
+	/// hold the frame on where a hull was lost, so the loss happens at the
+	/// camera.
+	/// </summary>
+	public void FocusPoint(Vector3 point, float distance, float yaw, float pitch, float roll = 0f)
+	{
+		_overviewCameraSet = false;
+		_followUnitId = null;
+		_camera.SetFocus(point, distance, yaw, pitch);
+		_camera.Roll = roll;
+	}
+
+	/// <summary>
+	/// Presses the command console's EXECUTE control, the way a click does. A
+	/// recording uses it so that the turn is ended by the game's own control
+	/// rather than by a call behind its back.
+	/// </summary>
+	/// <returns>True when the control was pressed.</returns>
+	public bool PressExecute()
+	{
+		if (_battleHud.CommandHud.ExecuteAction.GetChildren().OfType<Button>().FirstOrDefault()
+			is not { } execute)
+		{
+			return false;
+		}
+
+		execute.EmitSignal(BaseButton.SignalName.Pressed);
+		return true;
+	}
+
 	public override void _Process(double delta)
 	{
 		if (_followUnitId is not null)
@@ -839,6 +902,7 @@ public partial class BattleController : Node3D
 	private void OnTurnFlowIndexChanged(int indexInTurn)
 	{
 		var globalIndex = TurnFlowTimeline.StartOfCurrentSegment(_turnFlowTimeline) + indexInTurn;
+		TurnFlowIndex = globalIndex;
 		_battleHud.SetTurnFlowIndex(globalIndex);
 	}
 

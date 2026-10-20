@@ -251,6 +251,9 @@ public partial class Session : Node
 
 		Run.ActiveBattle = null;
 		_devMenu.Close();
+		if (SuppressSceneChanges)
+			return;
+
 		GetTree().ChangeSceneToFile(BattleScenePath);
 	}
 
@@ -360,8 +363,18 @@ public partial class Session : Node
 
 	private void OnBattleReady()
 	{
+		if (SuppressSceneChanges)
+			return;
+
 		Callable.From(() => GetTree().ChangeSceneToFile(BattleScenePath)).CallDeferred();
 	}
+
+	/// <summary>
+	/// Stops the session from swapping the current scene. A recording runs the
+	/// game inside a viewport of its own scene, so the session must not take
+	/// the scene away when the run's battle becomes ready.
+	/// </summary>
+	public bool SuppressSceneChanges { get; set; }
 
 	private void BeginMapScenePreload()
 	{
@@ -453,7 +466,8 @@ public partial class Session : Node
 	{
 		if (Run.ActiveBattle is not null)
 		{
-			GetTree().ChangeSceneToFile(BattleScenePath);
+			if (!SuppressSceneChanges)
+				GetTree().ChangeSceneToFile(BattleScenePath);
 			return;
 		}
 
@@ -462,6 +476,9 @@ public partial class Session : Node
 
 	private void ChangeToMapScene()
 	{
+		if (SuppressSceneChanges)
+			return;
+
 		var scene = TakePreloadedMapScene();
 		if (scene is not null)
 			GetTree().ChangeSceneToPacked(scene);

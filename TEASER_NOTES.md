@@ -1829,3 +1829,288 @@ shipped picture is encoded once). The shipped file measures:
 | Intermediate | `work/v4_cut.mp4` (the picture without sound) |
 | Mix script | `scripts/mix_teaser.py`, the SFX list in `work/sfx_v4.json` |
 | How it was recorded | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v4n.avi --fixed-fps 60 --quit-after 2500 "res://scenes/teaser.tscn"` |
+
+---
+
+# V5 PASS (the turn loop is the spine)
+
+> **Date:** 2026-10-20 · **Deliverable:** `teaser.mp4` — **35.15 s**, 1920×1080 @ 60 fps,
+> H.264 + AAC stereo, **-14.1 LUFS** integrated, -1.0 dBFS true peak, picture and sound
+> both exactly 35.150 s.
+> **Branch:** `teaser-recording-fix`, still on `origin/master` (65e38b93) plus the
+> V4 rebase and this pass.
+>
+> Three notes came back on the V4 cut: *"Transitions - need fix"*, *"This is not a
+> showcase of turn based game"*, and *"Consider using the real scene (or copy of
+> it) instead of fabricated scene"*. A fourth (V5.2): *"better to show hover or
+> cursor to see real interaction"*. This section is the log of that pass.
+
+---
+
+## 1. THE FIX LOG, POINT BY POINT
+
+### 1.1 "Transitions - need fix"
+
+**What was wrong in V4 (audited from the picture, not from the plan):**
+
+| Cut in V4 | What it did | Why it failed |
+|---|---|---|
+| plan → execute (4.4 s) | The camera changed subject *and* distance in one jump (the player at 8.5 units → the target at 9.5) | An unmotivated jump in the middle of one action; the viewer had to re-find the fight. |
+| execute → variety (10.2 s) | A hard cut into a different battle | A hard cut is fine, but it landed without a beat of its own. |
+| variety → map (15.6 s) | A hard cut from a fight to a map | The hardest possible cut: a moving 3D fight to a still 2D map. |
+| map → authority → dockyard → map | **Cross-dissolves** | A *different* language from the hard cuts used everywhere else. |
+| every beat | 4.2–5.4 s each | A metronome. Nothing was fast, nothing was held. |
+
+**The language the V5 cut uses (one rule, applied everywhere):**
+
+> **Inside a place, the camera flows to whatever is acting. Between places, it is
+> a hard cut on the event.**
+
+* **No dissolves anywhere.** The V4 cross-dissolves are gone; the facility
+  scenes now cut, like everything else.
+* **No black frames between shots.** The world viewport has already rendered
+  the next scene before the cut (`CutToWorld` waits two frames), so a cut lands
+  on a picture.
+* **Inside the battle the camera is never cut.** It flows: it sits on the
+  player's hull for the planning beat, follows the bomb as it flies, moves to
+  the enemy when the turn order hands over, comes back for the next player
+  turn, and moves to wherever a hull is actually lost. The camera only jumps
+  when the *place* changes.
+* **The cut is on the event**, per the research (§3, rules 13 and 25): the
+  camera moves because the turn changed hands, not because a timer ran out.
+* **The rhythm is no longer a metronome**: the planning beat is held (3.0 s),
+  the payoff is cut fast (1.8 s), the enemy's turn is short (1.8 s), and the
+  world beats are 2.8–3.4 s.
+
+Measured on the shipped file: **0 dead seconds** (`scripts/analyze_cut.py`),
+one hard cut detected at 0.333 s (the fade up), and every other transition a
+camera flow or a scene cut.
+
+### 1.2 "This is not a showcase of turn based game" → the turn loop is the spine
+
+The V4 cut showed a fight with a HUD; it never showed a *turn*. The V5 cut is
+built around the loop, and the loop is the first thing on screen.
+
+| Beat | Film time | What the viewer is shown | Research rule applied |
+|---|---|---|---|
+| **YOUR TURN** | 0.0 – 3.0 s | The command console is live: the turn-order strip with the active slot lit, the ability cards, the pilot's portrait, the AP/MP meters, `EXECUTE TURN`, the reachable-cell volume, and the **cursor** on the weapon card. The card lights up under the pointer. | R1, R2, R6, R8, R10, R16 |
+| **YOU ACT** | 3.0 – 5.0 s | The cursor travels to `EXECUTE TURN`, the button lights under it, the pointer dwells, and the button is **clicked**. The order resolves: the hull accelerates away with its trail, the bomb flies, the shot lands. | R8, R12, R13, R19 (no added text) |
+| **THEIR TURN** | 5.0 – 8.5 s | The camera flows to the enemy. The console goes dark (the cards are disabled), the enemy is framed by its own **red threat telegraph** (the weapon coverage drawn from the enemy), and the enemy acts. | R9, R10, R17 |
+| **YOUR TURN AGAIN** | 8.5 – 12.5 s | The console comes back on, the round counter has moved (`Turn 1` → `Turn 2`), the turn strip is fuller, and the cursor goes back to a card. | R6, R11 (the strip is the recurring motif) |
+| **THE EXCHANGE** | 12.5 – 23.5 s | The second order, the second launch, and the loss: the camera goes to where a hull was lost, the explosion plays, and the camera pulls back. | R20, R22 |
+| **THE RUN** | 23.5 – 31.8 s | The star map with the fleet travelling a route, the contract board, the dockyard's upgrade shop, the fleet screen. | R11, R12, R18 |
+| **THE NAME** | 31.8 – 35.15 s | The `GRIM SPACE` card, over the fight. | R19 (the only text the film adds) |
+
+The loop is countable by the viewer: `Turn 1` → your order → their order →
+`Turn 2` → your order, with the turn strip filling up as it goes.
+
+### 1.3 "Use the real scene (or copy of it) instead of fabricated scene"
+
+**The honest audit of V4 (and of everything before it):**
+
+| Shot in the pre-V4 cuts | What it actually was | Verdict | What happened in V5 |
+|---|---|---|---|
+| the pilot's street, the burning galaxy, the end card art | **Paintings** (`assets/story/pages/pilot-drunk.png`, `total-war.png`, `war-and-ruin2.png`) dropped in as stills | **FABRICATED - no .tscn behind them** | Removed in V4, still absent in V5. |
+| the fleet report | A 2D scene **built in code** inside the teaser (`BuildReportScene`), not a game scene | **FABRICATED - no .tscn behind it** | Removed in V4, still absent in V5. |
+| the map, the station, the contract board, the dockyard | Real `.tscn` scenes | Real | Kept, and the real run now drives them. |
+| the battle | A real `.tscn` scene, but the **encounter was hand-built by the teaser** (a made-up duel, made-up placement) | Real scene, fabricated match-up | **Replaced**: the V5 battle is the run's own engagement. |
+| the facility roles (the merchant on duty, the contract giver) | Granted by the teaser so the screens had content | Staged, and flagged | Kept, and flagged in the table below. |
+
+**What the V5 battle is now, end to end, with no help from the film:**
+
+1. The run's real contract board produces an offer.
+2. The film accepts it with the run's own `AcceptContractAction`.
+3. The contract spawns the enemy fleet, and the fleet **hunts the player**.
+4. The film gives the run's own pursuit order, the fleets make contact, and the
+   game's own contact prompt opens.
+5. The film presses the game's own **Engage**.
+6. The run builds the encounter with the game's own
+   `EngagementBattleFactory.Create` — the same call the game makes when a
+   battle starts from a contract — from the run's own fleets and pilots.
+7. The film instantiates the **real `res://scenes/battle.tscn`**, which reads
+   `Run.ActiveBattle` and builds the battle from it.
+8. The player side is a real `UserExecutionAgent`; the film drives it through
+   the game's own controls (see §1.4).
+
+Every frame of the battle is pixels from `res://scenes/battle.tscn` with a
+`BattleEncounter` the game itself produced.
+
+### 1.4 V5.2: "better to show hover or cursor to see real interaction"
+
+**The cursor.** The recorder cannot capture the operating system's pointer, so
+the film **draws** one — and every move and click it makes is a **real input
+event pushed into the game's own viewport**
+(`InputEventMouseMotion` / `InputEventMouseButton` via
+`Viewport.PushInput`). The hover states, the lit cards, the lit `EXECUTE TURN`
+button and the presses the viewer sees are the **game's own response to a real
+interaction**, not decoration.
+
+What the viewer can now answer, in every interaction beat:
+
+| Question | How the film answers it |
+|---|---|
+| What is the cursor pointing at? | The pointer is drawn on the exact control it is over, and the control lights up under it. |
+| What did hovering change? | The ability card lights and its hotkey badge brightens; the `EXECUTE TURN` button lights. |
+| What did clicking cause? | The weapon is queued (the coverage is drawn on the field), then the turn resolves and the hull moves. |
+| Is this a menu or a game? | The click goes into the game's own control and the game's own state changes. |
+
+**The dwell.** The pointer rests on a control for **0.7 s** before it clicks
+(`HoverDwellSeconds`), so the hover is readable — the research's "no-rush dwell
+on decisions" (R12/R28 in §3). The plan beat holds 3.0 s and the payoff is cut
+to 1.8 s, so the thinking is slow and the consequence is fast.
+
+**The cursor is also used in the run layer**: the same real-input path drives
+the operator buttons in the command authority and the dockyard, so the
+contract offer and the upgrade shop are opened by a visible click on the real
+operator.
+
+---
+
+## 2. THE PROVENANCE TABLE (shot → .tscn → cursor → source)
+
+Every row is pixels from the real scene file named in the second column. The
+scene files are the game's own, in this repository, on `master` (65e38b93).
+
+| # | Shot | Film time | **.tscn scene** (real file) | **Cursor** | Interaction | Where the pixels come from |
+|---|---|---|---|---|---|---|
+| 1 | YOUR TURN | 0.0 – 3.0 s | `res://scenes/battle.tscn` | **overlay pointer on real input** | The pointer hovers the weapon card (the card lights), then clicks it | The run's own engagement, built by `EngagementBattleFactory`; the player's order is queued by the real card handler |
+| 2 | YOU ACT | 3.0 – 5.0 s | `res://scenes/battle.tscn` | **overlay pointer on real input** | The pointer hovers `EXECUTE TURN` (the button lights), then clicks it | The turn is ended by the game's own control; the resolution is the game's |
+| 3 | THEIR TURN | 5.0 – 8.5 s | `res://scenes/battle.tscn` | overlay pointer (resting) | — | The enemy's segment of the same turn, replayed by the game |
+| 4 | YOUR TURN AGAIN | 8.5 – 12.5 s | `res://scenes/battle.tscn` | **overlay pointer on real input** | The pointer hovers and clicks the weapon card again | Round 2 of the same engagement |
+| 5 | THE EXCHANGE / THE BOOM | 12.5 – 23.5 s | `res://scenes/battle.tscn` | **overlay pointer on real input** | The pointer hovers and clicks `EXECUTE TURN` | The game's own loss, the game's own explosion, the game's own wreck |
+| 6 | THE RUN | 23.5 – 26.7 s | `res://scenes/map.tscn` | overlay pointer (resting) | — | The run's own map, the run's own fleet travelling a real route (the run's own pursuit order) |
+| 7 | THE CONTRACT BOARD | 26.7 – 29.9 s | `res://scenes/command_authority.tscn` | **overlay pointer on real input** | The pointer clicks the `Manager` operator button; the contract list opens | The run's own contracts, the game's own contract HUD |
+| 8 | THE DOCKYARD | 29.9 – 32.7 s | `res://scenes/dockyard.tscn` | **overlay pointer on real input** | The pointer clicks the `Salesman` operator button; the merchant HUD opens | The run's own merchant catalogue and prices |
+| 9 | THE FLEET | 32.7 – 31.8 s (overlap) | `res://scenes/map.tscn` (the `StrategicHud` overlay) | overlay pointer (resting) | — | The run's own fleet, pilot, abilities and objectives |
+| 10 | THE NAME | 31.8 – 35.15 s | `res://scenes/battle.tscn` | overlay pointer (resting) | — | The same live battle, still running |
+
+**Shot → capture commit.** The whole film is one recording of one tree:
+
+| | |
+|---|---|
+| Capture command | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v5n.avi --fixed-fps 60 --quit-after 2200 "res://scenes/teaser.tscn"` |
+| Raw capture | `v5n.avi` — 2109 frames, 60 fps, 35.15 s, MJPEG 1920×1080 |
+| Cut | `work/v5_cut.mp4` (H.264, CRF 20, bt709) |
+| Shipped | `teaser.mp4` = the cut + the music bed + the SFX (`work/sfx_v5.json`) |
+| Code | this branch: `src/presentation/teaser/TeaserController.cs` (+ `BattleController`, `Session`, `StrategicHud`, `PresentationFrameBuilder`) |
+| Tree state | `origin/master` 65e38b93 + the V4 rebase (4af3adb1) + the V5 pass |
+
+**The capture-only adjustments (and nothing else):**
+
+| Adjustment | Why | Where it lives |
+|---|---|---|
+| The battle camera's field of view 75° → 58° | The hulls are 0.9 units long in a 128-unit field; at the stock 75° the ship is a dot. | `TeaserController.StartBattle` (the camera node's `Fov`) |
+| The map's star marker hidden | The new sun shader is in the game and out of this film. | `HideMapStar` |
+| The map's event horizon switched off | The map's sky paints a black hole on the horizon; it is the brightest thing on the map and reads as a sun. | `HideMapEventHorizon` |
+| The battle's red dwarf hidden | It is enormous next to the map and bleeds through the world layer. | `StartBattle` |
+| The action log and the mouse edge pan off | Both are text/noise; the edge pan dragged the camera off the fight for a whole recording. | `DisableTeachingOverlays` |
+| The cursor drawn by the film | The recorder cannot capture the OS pointer. **Labelled as an overlay on real input** — every move and click is a real input event. | `BuildCursor`, `HoverAt`, `ClickAt` |
+
+**Staged, and flagged as such (the film sets up the screen, the game still plays it):**
+
+| What is staged | Why | What is NOT staged |
+|---|---|---|
+| The dockyard's salesman is put on merchant duty | The run's tier 1 has no upgrade packages to sell; the film's shop would be empty | The catalogue, the prices, the offer list and the purchase are the game's |
+| The run's tier is raised before the shop opens | Same reason | The shop's tier readout is the game's own |
+| The authority's manager is put on contract duty | So the offer list opens when the operator is used | The contracts, their difficulty stars and their rewards are the game's |
+| The run is advanced until the contract board has an offer | The board has a cadence | The contract is the game's, and the acceptance goes through the game's own action lane |
+
+---
+
+## 3. V5 RESEARCH (done before the cut was rebuilt, with sources)
+
+**Method.** 24 trailers and articles were fetched; the game screenshots were
+downloaded and inspected frame by frame (the claims about what a HUD *looks
+like* are read off real frames, not recalled). Verified sources are marked ✅;
+where a source could not be fetched, that is said.
+
+### 3.1 The checklist this cut is built on (18 rules)
+
+| # | Rule (as an instruction to an editor) | Source | Where it is in this cut |
+|---|---|---|---|
+| 1 | **Open on the planning state**, not on a cinematic, a logo or an establishing shot. | ✅ Valve, *Trailers* (Steamworks): *"the first trailer you list on your store page is primarily gameplay, showing the player what they will be doing in the game"* — https://partner.steamgames.com/doc/store/trailer | The first frame is a live planning state with the console lit |
+| 2 | **Keep the HUD on screen at all times** — the HUD *is* the genre signal. | ✅ Valve, *Trailers*: *"it is also often beneficial to have the in-game HUD elements visible during gameplay videos"* — https://partner.steamgames.com/doc/store/trailer | Every battle shot carries the turn strip, the console and the meters |
+| 3 | **Make "who acts next" a permanent object in a fixed screen region** — a strip of actor icons with one moving highlight. | ✅ *Divinity: Original Sin 2* screenshot: the top-centre fight-progress bar, the acting portrait in a white frame — https://store.steampowered.com/app/435150/ | The game's turn strip, the active slot lit and moving |
+| 4 | **Make the turn counter a recurring motif** — it changes, so the viewer can count the turns. | ✅ *Into the Breach* combat frame: *"Victory in 2 turns"*, a live countdown, the numeral larger than the word — https://interfaceingame.com/screenshots/into-the-breach-combat/ | `Turn 1` → `Turn 2` across the battle |
+| 5 | **Show the enemy's plan before the player acts** — the threat telegraph is the tell. | ✅ Subset Games' GDC 2019 postmortem: *"All enemy attacks shown"* — https://media.gdcvault.com/gdc2019/presentations/Into%20the%20Breach%20Postmortem%20Final.pdf | The enemy's red coverage arcs are in the frame on their turn |
+| 6 | **Give each attack type its own graphic**, so the marker means something without a tooltip. | ✅ Rock Paper Shotgun on *Into the Breach*: *"artillery was given a looping line … projectiles a dotted line, and arrows for melee"* — https://www.rockpapershotgun.com/2018/03/05/into-the-breach-interface-design/ | The bomb's flight path is drawn as its own line, the coverage as another |
+| 7 | **Plan and payoff must be visually paired** — *"if this, then that!"* | ✅ Derek Lieu, *Game Trailers as Tutorials*: *"Creating visual connections is very important in a trailer. If this, then that!"* — https://www.derek-lieu.com/blog/2018/2/3/game-trailers-as-tutorials-part-1-of-3 | The card that is clicked is the weapon that fires, one beat later |
+| 8 | **Make the turn handover a hard visual event** — the board dims, the affordances go away. | ✅ *Into the Breach* enemy-turn frame: the board dimmed, `End Turn` and `RESET TURN` **removed**, the side panels emptied — https://interfaceingame.com/screenshots/into-the-breach-enemy-turn/ | The console goes dark while the enemy acts |
+| 9 | **Invert the colour polarity** between your plan and theirs. | ✅ *Into the Breach*: green reachable tiles vs red hatched enemy zones — https://interfaceingame.com/screenshots/into-the-breach-combat/ | The reachable volume is green, the enemy's coverage is red |
+| 10 | **One bright, moving marker on the active unit.** | ✅ *Fire Emblem Engage* combat frame — https://interfaceingame.com/screenshots/fire-emblem-engage/ | The turn strip's active slot |
+| 11 | **The strategic layer is a map, not a menu.** | ✅ *Fire Emblem: Three Houses* E3 trailer: the campaign layer is a parchment map with no HUD — https://www.youtube.com/watch?v=rkux5h0PeXo | The star map with a drawn route |
+| 12 | **Show the path, not the list.** | ✅ *Three Houses* / *Age of Wonders 4* | The map draws the course and the destination ring; the fleet travels it |
+| 13 | **Hold the planning shot long, cut the payoff fast.** | ✅ Derek Lieu's measured averages (Baba Is You 4.25 s, Papers Please 2.6 s, Warzone 1.3 s) and *"a game trailer has to communicate more, and oftentimes shorter shots can get in the way"* — https://www.derek-lieu.com/blog/2023/4/23/more-trailer-editing-is-not-better-trailer-editing | Plan 3.0 s, payoff 1.8 s, enemy's turn 1.8 s |
+| 14 | **One idea per shot.** | ✅ Derek Lieu: *"Better for the audience to remember one thing than see two and forget them"* — https://www.derek-lieu.com/blog/2018/2/3/game-trailers-as-tutorials-part-1-of-3 | Each beat is one thing: your turn, your act, their turn, the map, the board, the shop, the fleet |
+| 15 | **Structure it as a tutorial: context → simple idea → depth → scope.** | ✅ Derek Lieu on *The Witness*: *"Provide context / Keep each new idea simple / Show depth and complexity / Show the scope"* — https://www.derek-lieu.com/blog/2018/2/3/game-trailers-as-tutorials-part-1-of-3 | The battle teaches the loop; the run layer then shows the scope |
+| 16 | **Interleave the player's and the AI's actions** rather than blocking them. | ✅ Overhype, *Battle Brothers* dev blog #4: *"all characters, whether player or AI controlled, are sorted by their initiative and act in descending order, one after another"* — https://battlebrothersgame.com/tactical-combat-mechanics | The game's own initiative order is what the film shows |
+| 17 | **Cursor grammar (V5.2): the pointer is the only way to show that a game is *played*.** Point at the control, let the hover state appear, dwell so it can be read, then click. | ✅ Derek Lieu: *"I generally try to push against using text over gameplay because … our brains feel compelled to read text rather than look at the visuals"* — https://www.derek-lieu.com/blog/2023/2/4/how-to-make-game-trailers-for-influencers-and-content-creators; and Valve's microtrailer note (Steam samples six 1-second clips, so every second must read on its own) — https://partner.steamgames.com/doc/store/trailer | The pointer is drawn on the real control, the control lights under it, the pointer dwells 0.7 s, the click is a real event |
+| 18 | **Do not carry meaning in text overlays** — use the game's own diegetic UI. | ✅ Derek Lieu, *How to Make Game Trailers For Influencers*: *"Someone making a YouTube or TikTok video is going to add their own commentary and graphics, so on screen title cards and graphics are the first thing they cut out"* — https://www.derek-lieu.com/blog/2023/2/4/how-to-make-game-trailers-for-influencers-and-content-creators | The film adds no words at all; the only text is the closing name card |
+
+### 3.2 The documented failures this cut avoids
+
+| Failure | What was said | Source |
+|---|---|---|
+| **XCOM: Enemy Unknown's launch trailer** — 1:38 of pure cinematic; TIME said a viewer would *"be forgiven for mistaking the new XCOM: Enemy Unknown launch trailer for a Halo Reach 2 teaser"*, and that the game itself was *"animated chess pieces"* that the trailer never showed. | The trailer advertised a different genre from the product. | ✅ https://time.com/archive/7233622/xcom-enemy-unknown-definitely-not-halo-reach-2 |
+| **Marvel's Midnight Suns** — *"It still looks XCOM-like at a glance, with somewhat bland arenas and characters holding poses, waiting for instructions."* | A paused action game does not read as a turn-based one. | ✅ https://www.pcgamer.com/marvel-midnight-suns-gameplay-video |
+| **The 2012 XCOM: Enemy Unknown trailer** (the canonical case) vs **XCOM 2's 99 s "gameplay launch trailer"** | The first trailer is 1:38 of cinematics; the second is named *"Official Gameplay Launch Trailer"* and is 99 s of gameplay. | ✅ https://www.youtube.com/watch?v=VIRDb_O6qXA |
+| **Overhype's own build history** — the board was *"a mess of hatched lines denoting targeted tiles which was impossible to read"* until the marker types were cut down. | Fewer, more distinct markers. | ✅ https://www.rockpapershotgun.com/2018/03/05/into-the-breach-interface-design/ |
+| **"Do not exceed ~90 s"** — Valve: *"you may have less than 10 seconds to make an impression"*. | 35 s, and the loop is established inside the first ten. | ✅ https://partner.steamgames.com/doc/store/trailer |
+
+### 3.3 Two things the research corrected in this game's own favour
+
+* **The turn counter is a countdown, not a count.** *Into the Breach* shows
+  *"Victory in N turns"* — a countdown to the objective, not "turn 3 of 5". The
+  game's own counter is `Turn N`; the film cannot change the game to suit the
+  trailer, so the film's device is the **turn strip** (a moving highlight) and
+  the counter's *change* between rounds.
+* **"Divide the turn" is a Baldur's Gate 3 mechanic, not a Divinity one.**
+  BG3 lets a player spend one turn across adjacent initiative slots — the
+  transferable trick there is the *adjacent-slot switching* in one shared
+  strip, which is what this game's turn strip already does
+  (https://www.gamerguides.com/baldurs-gate-3/guide/gameplay/getting-started/surprise-rounds-and-initiative-explained).
+
+---
+
+## 4. THE MEASUREMENTS
+
+| Measurement | Value | How |
+|---|---|---|
+| Duration | **35.150 s** (2109 frames @ 60 fps) | `ffprobe` on the shipped file |
+| Picture / sound | H.264 1920×1080 @ 60/1, AAC 48 kHz stereo; **both streams 35.150 s** | `ffprobe` |
+| Loudness | **-14.1 LUFS** integrated, **-1.0 dBFS** true peak, LRA 4.0 LU | `ffmpeg -af ebur128=peak=true` |
+| Dead seconds | **0** | `scripts/analyze_cut.py` |
+| Hard cuts | 1 (0.333 s, the fade up) + the scene cuts the threshold does not see (dark room to dark map) | `scripts/analyze_cut.py` |
+| Music | `track-15.ogg` from 40.0 s, the same window and the same measured -14 LUFS approach as the V4 cut | `scripts/mix_teaser.py` |
+| SFX | 15 events, the game's own files, on the measured frames (`work/sfx_v5.json`) | `scripts/mix_teaser.py` |
+| Build | 0 errors | `dotnet build grim-space.csproj` |
+| Tests | 1611 passed, 0 failed, 4 skipped | `dotnet test --project grim-space.Tests/grim-space.Tests.csproj` |
+
+---
+
+## 5. WHAT STILL FALLS SHORT (honest)
+
+| Issue | Status |
+|---|---|
+| **The hull loss is not guaranteed inside the film.** | The fight is real now: the film's enemy is a contract's pirate ship with shields, and a bolt does not always kill it inside the window. When the fight does not resolve, the film shows the **void bomb's flight and detonation** (the game's own explosion, with the game's own explosion sound) instead of the ship's death. The camera still goes to wherever a hull *was* lost, and the pull-back still plays. The V4 cut had a guaranteed kill because the teaser staged the match-up — that guarantee is what the "real scene" instruction traded away. |
+| **The cursor is an overlay, not the OS pointer.** | The recorder cannot capture the operating system's pointer. The film draws one and drives it with **real input events**, so every hover and every press is the game's own response — but the arrow itself is the film's drawing, and the provenance table says so. |
+| **The camera cannot get closer than 8 units.** | The battle camera rig clamps its distance (the hulls are 0.9 units long in a 128-unit field). The film compensates with a 58° lens; a longer lens magnifies the space dust into soft blobs in the foreground, which is the most visible artefact in the battle shots. |
+| **The game's own text is still on screen** (`Turn 1`, `SIMULATION PHASE`, `REPURPOSED MINER [T2]`, `EXECUTE TURN`, the contract and shop panels). | The brief asks for the real interface; the research says the diegetic UI is the way to say "turn-based" without overlays. The film adds no words of its own; the closing card is the only text it puts on screen. |
+| **The map beat is dark.** | It is the game's own map at its own camera limits, with the new sun and the event horizon switched out for the film. |
+| **One battle, not three.** | V4 filmed three staged engagements; V5 films the run's own engagement, so the variety between battles is gone. The turn loop, the real match-up and the run layer replace it. |
+| **The research could not be a trailer breakdown by a channel.** | No shot-by-shot breakdown of a turn-based trailer by The Completionist, GameSkully, RPS or PC Gamer was found (searched, not found). The sources here are the trailers themselves, the developers' own postmortems and dev blogs, and trailer-craft essays. |
+
+---
+
+## 6. THE SHIPPED FILE
+
+| | |
+|---|---|
+| **File** | `teaser.mp4` |
+| Duration | 35.150 s (2109 frames @ 60 fps); picture and sound both 35.150 s |
+| Picture | 1920×1080, H.264 high profile, CRF 21, bt709 |
+| Sound | AAC 192 kb/s, 48 kHz stereo, -14.1 LUFS, -1.0 dBFS true peak |
+| Raw capture | `v5n.avi` (MJPEG, 1920×1080, 60 fps) |
+| Intermediate | `work/v5_cut.mp4` (the picture without sound) |
+| Mix | `scripts/mix_teaser.py`, the SFX list in `work/sfx_v5.json` |
+| Command | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v5n.avi --fixed-fps 60 --quit-after 2200 "res://scenes/teaser.tscn"` |
