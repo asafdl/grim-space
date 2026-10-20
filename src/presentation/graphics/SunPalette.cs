@@ -127,7 +127,7 @@ public sealed class SunPalette
 	public float ProminenceHeight { get; init; } = 0.20f;
 
 	/// <summary>Overall prominence brightness multiplier.</summary>
-	public float ProminenceStrength { get; init; } = 1.0f;
+	public float ProminenceStrength { get; init; } = 1.6f;
 
 	/// <summary>Overall corona brightness multiplier.</summary>
 	public float CoronaStrength { get; init; } = 0.40f;

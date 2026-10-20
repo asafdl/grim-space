@@ -58,6 +58,12 @@ public sealed partial class SunTestScene : Node3D
 	[Export] public bool Closeup { get; set; }
 
 	/// <summary>
+	/// A telephoto shot of a single prominence at the limb, so the thread
+	/// braid, the knots and the feathered edge can be judged.
+	/// </summary>
+	[Export] public bool ProminenceCloseup { get; set; }
+
+	/// <summary>
 	/// The lit-by axis: an asteroid close to the star, lit by the star's own
 	/// point light, so the terminator and the crescent read on its surface.
 	/// </summary>
@@ -137,6 +143,12 @@ public sealed partial class SunTestScene : Node3D
 		if (AsteroidPresence)
 		{
 			BuildAsteroidScene();
+			return;
+		}
+
+		if (ProminenceCloseup)
+		{
+			BuildProminenceCloseup();
 			return;
 		}
 
@@ -316,6 +328,62 @@ public sealed partial class SunTestScene : Node3D
 	/// instead of a lit body.  The material is replaced with a rough
 	/// dielectric so the star's light falls on it and the terminator reads.
 	/// </summary>
+	/// <summary>
+	/// The shader's site hash, replicated so the camera can aim at a real
+	/// prominence.  A prominence is a screen space feature: the billboard
+	/// faces the camera, so site i always sits at the same screen angle.
+	/// </summary>
+	private static float SiteHash(float n) =>
+		(float)((System.Math.Sin(n * 127.1f + 311.7f) * 43758.5453123f) % 1.0);
+
+	/// <summary>
+	/// A telephoto shot of one prominence.  The camera stays on the star's
+	/// axis (so the billboard's basis is the world X/Y plane) and is aimed at
+	/// the site, with a narrow field of view so the loop fills the frame.
+	/// </summary>
+	private void BuildProminenceCloseup()
+	{
+		_star!.Position = Vector3.Zero;
+
+		// Pick the site with the largest height scale.
+		var bestSite = 0;
+		var bestScale = -1f;
+		for (var i = 0; i < 5; i++)
+		{
+			var h3 = SiteHash(i * 47.33f + Seed + 11.9f);
+			var scale = 0.45f + 0.85f * h3;
+			if (scale > bestScale)
+			{
+				bestScale = scale;
+				bestSite = i;
+			}
+		}
+		var angle = SiteHash(bestSite * 17.13f + Seed) * Mathf.Tau;
+
+		// Aim at the crown of the loop, a little outside the limb, so the
+		// visible half of the prominence fills the frame.
+		// The billboard's V axis runs down the screen, so the site's screen
+		// angle maps to the world with the vertical component flipped.
+		var target = new Vector3(
+			Mathf.Cos(angle) * 1.02f,
+			Mathf.Sin(angle) * 1.02f,
+			0f) * StarRadius;
+
+		var camera = new Camera3D
+		{
+			Name = "Camera",
+			Position = new Vector3(0f, 0f, 3.0f) * StarRadius,
+			// A long lens: the visible half of a 0.26 star radius loop has to
+			// fill roughly 40% of the frame height.
+			Fov = 9.5f,
+			Current = true,
+		};
+		AddChild(camera);
+		camera.LookAt(target, Vector3.Up);
+		AddGlare();
+		GD.Print($"[SunTest] prominence closeup: site {bestSite} at {angle:0.00} rad, scale {bestScale:0.00}");
+	}
+
 	private static void MakeRockLit(Node root)
 	{
 		var material = new StandardMaterial3D
@@ -564,6 +632,10 @@ public sealed partial class SunTestScene : Node3D
 			else if (argument == "--asteroid")
 			{
 				AsteroidPresence = true;
+			}
+			else if (argument == "--prominence")
+			{
+				ProminenceCloseup = true;
 			}
 			else if (argument == "--legacy")
 			{

@@ -550,6 +550,63 @@ The round 5 standard is two axes, because looking *at* the Sun and looking at
 
 ---
 
+## 6b addendum 4: PROMINENCE VERDICT EVIDENCE
+
+The prominence is the highest weighted element in the library, and at star
+scale it was not legible.  This is the dedicated evidence.
+
+| Artefact | What it is |
+|----------|------------|
+| `refs/comparison/round5_prominence_closeup.png` | a tight shot of one prominence at the limb, cropped from a 9.5 degree telephoto render of the real scene |
+| `refs/comparison/round5_prominence_flow_1.png`, `_2.png`, `_3.png` | the same loop at equal intervals (1.37 s apart, frames 156 / 197 / 238 of a 240 frame render) |
+| `refs/comparison/round5_prominence_eruption.png` | the frame at the eruption's peak (frame 204) |
+
+### What is PROVEN (read off the frames)
+
+1. **Thread braid: PROVEN.**  Frames 1 and 3 show three or four *separate,
+   parallel strands* running along the loop, with a brighter strand in the
+   middle and fainter ones either side.  They are threads, not a tube - which
+   is the `ha_filament_threads.jpg` and `real_loops_2011_closeup.png`
+   standard.  The strand count and their separation are legible at this crop.
+2. **Interior knots and the core-in-envelope structure: PROVEN.**  Frame 2 (the
+   eruption peak) shows a saturated red core sitting inside a wide, soft
+   orange envelope that fades into the corona, with the envelope's brightness
+   falling off continuously - the `dr_graceful_eruption.jpg` and
+   `gen_closeup_3828_f003.png` structure.
+3. **Feathered edges: PROVEN.**  The core does not end in a clean line: it
+   breaks into fine hairs and the envelope frays into the surrounding glow.
+4. **Flow along the loop, not a shape wobble: PROVEN.**  Between the three
+   frames the *thread pattern* changes completely - the strands slide, one
+   brightens while its neighbour dims, the braided crossing point moves along
+   the arc - while the loop's overall envelope and its anchor on the limb stay
+   in place.  That is material travelling along the loop lines, which is the
+   graceful-eruption choreography question.
+
+### What is INFERRED (not provable from these frames)
+
+* **The choreography's *speed* relative to a real eruption.**  The reference
+  cadence is hours; the shader runs a 13 s cycle so the motion is legible.
+  The frames prove the material moves along the lines; they cannot prove the
+  rate is right.
+* **The braid's density against the texture bosses.**  The strand count is
+  now legible, but matching `real_loops_2011_closeup.png`'s exact thread
+  density would need a measurement of threads per unit arc length in the
+  reference, which this round did not make.
+* **The knots.**  The braided crossing brightens and moves, but whether the
+  crossings read as "knots" the way they do in the reference is a judgement
+  call, not a measurement.
+
+### How the shot was made
+
+`SunTestScene --prominence` aims a 9.5 degree telephoto camera at the limb
+point of the prominence site with the largest height scale.  The site's screen
+angle is found by replicating the shader's site hash in C#, and the camera
+stays on the star's axis so the prominence billboard's basis is the world X/Y
+plane.  The evidence images are crops of that render, not re-renders, so the
+pixels are the scene's.
+
+---
+
 ## 7. An earlier radius calibration was wrong, and it mattered
 
 The first versions of the comparison used the *half-max* radius for the render
