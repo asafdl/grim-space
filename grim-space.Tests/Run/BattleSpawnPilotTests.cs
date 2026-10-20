@@ -42,8 +42,8 @@ public sealed class BattleSpawnPilotTests
 				Assert.NotNull(spawn.Pilot);
 				Assert.Equal(shipToPilot[spawn.Ship.Id].PilotId, spawn.Pilot!.PilotId);
 				Assert.Equal(
-					shipToPilot[spawn.Ship.Id].SkillIds,
-					spawn.Pilot!.SkillIds);
+					shipToPilot[spawn.Ship.Id].CapabilityGrants,
+					spawn.Pilot!.CapabilityGrants);
 			});
 		Assert.All(
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy),
@@ -69,33 +69,14 @@ public sealed class BattleSpawnPilotTests
 		var dto = SaveDtoMapper.CaptureBattleEncounter(encounter);
 		var restored = SaveDtoMapper.RestoreBattleEncounter(dto);
 
-		Assert.Equal(
-			expectedPilot,
-			Assert.Single(restored.Spawns, spawn => spawn.Team == ETeam.Player).Pilot);
-	}
-
-	[Fact]
-	public void LegacyEncounterSpawnDto_RestoresPilotIdWithEmptySkills()
-	{
-		var dto = new BattleEncounterSpawnDto(
-			Ship: SaveDtoMapper.CaptureShip(ShipInstance.FromCatalog("fighter-a", EType.Fighter)),
-			Pilot: null,
-			PilotId: "pilot-legacy",
-			Team: ETeam.Player,
-			Position: Coord.Zero,
-			Fore: Coord.Forward,
-			Dorsal: Coord.Up,
-			AgentKind: EBattleAgentKind.Player);
-
-		var spawn = SaveDtoMapper.RestoreBattleEncounter(
-			new BattleEncounterSaveDto(
-				1,
-				"legacy",
-				EObjective.EliminateOpponents,
-				[dto],
-				[])).Spawns[0];
-
-		Assert.Equal(new PilotBattleSnapshot("pilot-legacy", []), spawn.Pilot);
+		var restoredPilot = Assert.Single(
+			restored.Spawns,
+			spawn => spawn.Team == ETeam.Player).Pilot;
+		Assert.NotNull(expectedPilot);
+		Assert.NotNull(restoredPilot);
+		Assert.Equal(expectedPilot.PilotId, restoredPilot.PilotId);
+		Assert.Equal(expectedPilot.PortraitId, restoredPilot.PortraitId);
+		Assert.Equal(expectedPilot.CapabilityGrants, restoredPilot.CapabilityGrants);
 	}
 
 	[Fact]
@@ -128,7 +109,7 @@ public sealed class BattleSpawnPilotTests
 		var spawn = new BattleSpawn
 		{
 			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),
-			Pilot = new PilotBattleSnapshot("pilot-1", skills),
+			Pilot = PilotBattleSnapshot.FromSkills("pilot-1", skills),
 			Team = ETeam.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
@@ -154,7 +135,9 @@ public sealed class BattleSpawnPilotTests
 		using var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 12);
 		var runtime = battle.Engine.ActorRuntimes.For("fighter-a");
 
-		Assert.Equal(skills, runtime.PilotSkills.OrderBy(skill => skill).ToArray());
+		Assert.Equal(
+			[EPilotCapabilityId.ShieldBoost],
+			runtime.PilotCapabilities.OrderBy(capability => capability).ToArray());
 	}
 
 	private static GrimSpace.World.StarSystem.Units.Fleet RegisterEnemyFleet(
@@ -174,9 +157,9 @@ public sealed class BattleSpawnPilotTests
 		foreach (var shipId in run.GetFieldedShipIds())
 		{
 			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
-			map[shipId] = new PilotBattleSnapshot(
+			map[shipId] = PilotBattleSnapshot.FromSkills(
 				pilot.Id,
-				PilotSkillAvailability.LearnedBattleSkills(pilot));
+				pilot.LearnedSkills);
 		}
 
 		return map;

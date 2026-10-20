@@ -35,7 +35,7 @@ public sealed class EndOfPhaseDef
 		EndOfPhaseAction action,
 		BattleWorld world,
 		ActorRuntime runtime) =>
-		runtime.PilotSkills.Contains(EPilotSkillId.DefensiveManeuvers)
+		runtime.PilotCapabilities.Contains(EPilotCapabilityId.StationaryDamageDeflection)
 			? [new RecordDefensiveManeuversTurnEffect()]
 			: [];
 

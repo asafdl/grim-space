@@ -188,7 +188,7 @@ public sealed class LightningCannonActionTests
 			enemy,
 			pilotsByActorId: new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 			{
-				[PlayerId] = new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]),
+				[PlayerId] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]),
 			});
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
@@ -217,7 +217,7 @@ public sealed class LightningCannonActionTests
 			enemy,
 			pilotsByActorId: new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 			{
-				[PlayerId] = new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]),
+				[PlayerId] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]),
 			});
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));

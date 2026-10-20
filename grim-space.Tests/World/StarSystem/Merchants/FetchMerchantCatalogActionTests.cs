@@ -14,7 +14,7 @@ using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Poi;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -67,7 +67,7 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 			pilots.Register(pilot);
 		}
 
-		var grants = pilots.QueryLearned(RunPilotRegistry.IsStrategicPassiveTag);
+		var grants = pilots.QueryCapabilities(StarMapPilotCapabilityPipelineFactory.Supports);
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
 			maps,
@@ -105,9 +105,14 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Weapons);
 		var before = ship.Clone();
 
-		engine.Commit(new RefreshStrategicPilotSkillsAction(
+		engine.Commit(new RefreshStrategicPilotCapabilitiesAction(
 			unitId,
-			[new PilotSkillGrant(EPilotSkillId.IKnowABot, "pilot-1")]));
+			[new PilotCapabilityGrant(
+				EPilotCapabilityId.ShipUpgradeDiscount,
+				"pilot-1",
+				new PilotCapabilitySource(
+					EPilotCapabilitySourceKind.Skill,
+					EPilotSkillId.IKnowABot.ToString()))]));
 		var records = engine.Commit(new FetchMerchantCatalogAction(
 			unitId,
 			endpoint,

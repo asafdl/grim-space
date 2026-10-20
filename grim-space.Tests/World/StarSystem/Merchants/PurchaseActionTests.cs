@@ -11,9 +11,9 @@ using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Skills;
 using GrimSpace.Tests.World.StarSystem.Poi;
 using GrimSpace.Pilots;
 
@@ -86,7 +86,8 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
 			maps,
-			strategicGrants: pilots.QueryLearned(RunPilotRegistry.IsStrategicPassiveTag));
+			strategicGrants: pilots.QueryCapabilities(
+				StarMapPilotCapabilityPipelineFactory.Supports));
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;

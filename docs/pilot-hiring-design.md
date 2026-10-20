@@ -137,6 +137,8 @@ Skills remain deliberate level-up choices and the main form of pilot power progr
 
 Pilot background gating belongs in the existing pilot skill availability rules. Battle, strategic, and presentation code must not reproduce background checks.
 
+Skills and quirks are separate pilot-owned sources, but both grant pilot capabilities. Battle and strategic subsystems register the capability IDs they support. Passive capability registrations declare required action tags, and the generic action-effect pipeline performs the match before invoking effect-specific transformation logic. Runtime code therefore does not depend on whether a capability originated from a skill, quirk, or future background rule, and concrete modifiers do not name the actions they affect.
+
 ## Quirks
 
 Quirks provide candidate-level variation and immediate hiring tradeoffs.

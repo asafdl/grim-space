@@ -6,22 +6,22 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Pilots;
 
-namespace GrimSpace.Battle.PilotSkills;
+namespace GrimSpace.Battle.PilotCapabilities;
 
-public static class PilotSkillCapabilities
+public static class PilotCapabilityActionDefs
 {
 	public static IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> DefsFor(
-		IReadOnlySet<EPilotSkillId> skills)
+		IReadOnlySet<EPilotCapabilityId> capabilities)
 	{
-		ArgumentNullException.ThrowIfNull(skills);
-		if (skills.Count == 0)
+		ArgumentNullException.ThrowIfNull(capabilities);
+		if (capabilities.Count == 0)
 			return Array.Empty<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>();
 
 		var defs = new List<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>();
 		var seen = new HashSet<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>();
-		foreach (var skillId in skills.OrderBy(skill => skill))
+		foreach (var capabilityId in capabilities.OrderBy(capability => capability))
 		{
-			var def = DefFor(skillId);
+			var def = DefFor(capabilityId);
 			if (def is not null && seen.Add(def))
 				defs.Add(def);
 		}
@@ -30,10 +30,10 @@ public static class PilotSkillCapabilities
 	}
 
 	private static IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>? DefFor(
-		EPilotSkillId skillId) =>
-		skillId switch
+		EPilotCapabilityId capabilityId) =>
+		capabilityId switch
 		{
-			EPilotSkillId.ShieldsUp => ShieldsUpDef.Instance,
+			EPilotCapabilityId.ShieldBoost => ShieldsUpDef.Instance,
 			_ => null,
 		};
 }

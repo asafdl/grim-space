@@ -12,7 +12,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
@@ -42,7 +42,7 @@ internal static class MerchantPurchaseTestHarness
 	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, Inventory registry) CreateEngine(
 		StarMapFixture maps,
 		int seed = 42,
-		IReadOnlyList<PilotSkillGrant>? strategicGrants = null)
+		IReadOnlyList<PilotCapabilityGrant>? strategicGrants = null)
 	{
 		var registry = new Inventory();
 		var map = StarMap.Create(seed, registry);
@@ -59,7 +59,8 @@ internal static class MerchantPurchaseTestHarness
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		var runtime = runtimes.For(unitId);
 		if (strategicGrants is not null)
-			runtime.ReplaceActionEffects(StarMapActionEffectPipelineFactory.Build(strategicGrants));
+			runtime.ReplaceActionEffects(
+				StarMapPilotCapabilityPipelineFactory.Build(strategicGrants));
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, unitId, ship, registry);
 	}

@@ -1,6 +1,6 @@
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Skills;
 
 namespace GrimSpace.Tests.Run;
 
@@ -72,16 +72,17 @@ public sealed class PilotSkillRulesTests
 	}
 
 	[Fact]
-	public void LearnedBattleSkills_IncludesAbilitiesAndPassives()
+	public void BattleSnapshot_ResolvesLearnedBattleCapabilities()
 	{
 		var pilot = PilotProgression
 			.AddExperience(Pilot.CreateForShip("fighter-a"), 250)
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp)
 			.LearnPilotSkill(EPilotSkillId.IonizedPayload);
 
+		var snapshot = PilotBattleSnapshot.FromSkills(pilot.Id, pilot.LearnedSkills);
 		Assert.Equal(
-			[EPilotSkillId.ShieldsUp, EPilotSkillId.IonizedPayload],
-			PilotSkillAvailability.LearnedBattleSkills(pilot));
+			[EPilotCapabilityId.ShieldBoost, EPilotCapabilityId.LightningShieldDamageBonus],
+			snapshot.CapabilityGrants.Select(grant => grant.CapabilityId).ToArray());
 	}
 
 	[Fact]
@@ -98,7 +99,9 @@ public sealed class PilotSkillRulesTests
 
 		pilot = pilot.LearnPilotSkill(EPilotSkillId.DronesYearnForMines);
 
-		Assert.Empty(PilotSkillAvailability.LearnedBattleSkills(pilot));
+		Assert.Empty(PilotBattleSnapshot
+			.FromSkills(pilot.Id, pilot.LearnedSkills)
+			.CapabilityGrants);
 
 		pilot = PilotProgression.AddExperience(pilot, 350);
 

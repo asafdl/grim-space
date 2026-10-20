@@ -43,7 +43,7 @@ public sealed class InTheFrayTests
 		var bystander = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{
-			[source.State.Id] = new PilotBattleSnapshot("pilot", [EPilotSkillId.InTheFray]),
+			[source.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.InTheFray]),
 		};
 		var battle = BattleTestFixture.BeginSimulation(
 			source,
@@ -146,7 +146,7 @@ public sealed class InTheFrayTests
 			BattleAgentFactory.Create(EBattleAgentKind.Ai));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{
-			[target.State.Id] = new PilotBattleSnapshot("pilot", [EPilotSkillId.InTheFray]),
+			[target.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.InTheFray]),
 		};
 		var battle = BattleTestFixture.BeginSimulation(
 			source,

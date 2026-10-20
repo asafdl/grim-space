@@ -1,13 +1,12 @@
 using GrimSpace.Core.Actions;
-using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 
-namespace GrimSpace.World.StarSystem.Skills;
+namespace GrimSpace.World.StarSystem.PilotCapabilities;
 
-public sealed class IKnowABotModifier(int stackCount)
+public sealed class ShipUpgradeDiscountModifier(int stackCount)
 	: IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
 	private const int UpgradeDiscountPercentPerStack = 10;
@@ -19,8 +18,6 @@ public sealed class IKnowABotModifier(int stackCount)
 		IEffect<StarMap, ActorRuntime> effect)
 	{
 		if (stackCount == 0
-			|| !action.Tags.Contains(FetchMerchantCatalogAction.TagNames.Fetch)
-			|| !action.Tags.Contains(FetchMerchantCatalogAction.TagNames.Merchant)
 			|| effect is not PublishMerchantCatalogEffect publish)
 			return effect;
 

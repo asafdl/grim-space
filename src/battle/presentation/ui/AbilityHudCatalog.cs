@@ -74,7 +74,7 @@ public static class AbilityHudCatalog
 	public static IReadOnlyList<Spec> ForDisplayState(UnitDisplayState unit) =>
 		ForActor(
 			unit.ToState(),
-			ActorRuntime.From(new PilotBattleSnapshot(unit.Id, unit.PilotSkills)));
+			ActorRuntime.From(new PilotBattleSnapshot(unit.Id, unit.PilotCapabilities)));
 
 	public static AbilityBarSlotState BuildState(Spec spec, UnitDisplayState unit, AbilityLegality legality) =>
 		new(spec.Tooltip(unit), spec.Charges(unit, legality), spec.IsLegal(legality));

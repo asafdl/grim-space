@@ -1,6 +1,6 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.Skills;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
@@ -10,19 +10,24 @@ namespace GrimSpace.Battle.Runtime;
 
 public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 {
-	private static readonly FrozenSet<EPilotSkillId> EmptySkills = FrozenSet<EPilotSkillId>.Empty;
+	private static readonly FrozenSet<EPilotCapabilityId> EmptyCapabilities =
+		FrozenSet<EPilotCapabilityId>.Empty;
+	private static readonly IReadOnlyList<PilotCapabilityGrant> EmptyGrants =
+		Array.Empty<PilotCapabilityGrant>();
 
-	public ActorRuntime() : this(null, null, EmptySkills, ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty) { }
+	public ActorRuntime() : this(null, null, EmptyGrants, EmptyCapabilities, ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty) { }
 
 	private ActorRuntime(
 		string? pilotId,
 		string? portraitId,
-		IReadOnlySet<EPilotSkillId> pilotSkills,
+		IReadOnlyList<PilotCapabilityGrant> pilotCapabilityGrants,
+		IReadOnlySet<EPilotCapabilityId> pilotCapabilities,
 		ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> actionEffects)
 	{
 		PilotId = pilotId;
 		PortraitId = portraitId;
-		PilotSkills = pilotSkills;
+		PilotCapabilityGrants = pilotCapabilityGrants;
+		PilotCapabilities = pilotCapabilities;
 		ActionEffects = actionEffects;
 	}
 
@@ -30,23 +35,31 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 
 	public string? PortraitId { get; }
 
-	public IReadOnlySet<EPilotSkillId> PilotSkills { get; }
+	public IReadOnlyList<PilotCapabilityGrant> PilotCapabilityGrants { get; }
+
+	public IReadOnlySet<EPilotCapabilityId> PilotCapabilities { get; }
 
 	public ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> ActionEffects { get; }
 
 	public static ActorRuntime From(PilotBattleSnapshot? snapshot)
 	{
 		if (snapshot is null)
-			return new ActorRuntime(null, null, EmptySkills, ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty);
+			return new ActorRuntime(null, null, EmptyGrants, EmptyCapabilities, ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty);
 
-		var skills = snapshot.SkillIds.Count == 0
-			? EmptySkills
-			: snapshot.SkillIds.ToFrozenSet();
+		var grants = snapshot.CapabilityGrants.Count == 0
+			? EmptyGrants
+			: snapshot.CapabilityGrants.ToArray();
+		var capabilities = grants.Count == 0
+			? EmptyCapabilities
+			: grants
+				.Select(grant => grant.CapabilityId)
+				.ToFrozenSet();
 		return new ActorRuntime(
 			snapshot.PilotId,
 			snapshot.PortraitId,
-			skills,
-			BattleActionEffectPipelineFactory.Build(skills));
+			grants,
+			capabilities,
+			BattlePilotCapabilityPipelineFactory.Build(capabilities));
 	}
 
 	public void Reset() { }

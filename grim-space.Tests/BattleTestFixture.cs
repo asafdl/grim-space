@@ -78,7 +78,8 @@ internal static class BattleTestFixture
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
 			if (pilotsByActorId is not null)
-				unit.State.InTheFrayActive = runtime.PilotSkills.Contains(GrimSpace.Pilots.EPilotSkillId.InTheFray);
+				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
+					GrimSpace.Pilots.EPilotCapabilityId.AlliedDamageReduction);
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 

@@ -88,7 +88,7 @@ public sealed class DefensiveManeuversTests
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{
-			[player.State.Id] = new PilotBattleSnapshot(
+			[player.State.Id] = PilotBattleSnapshot.FromSkills(
 				"pilot",
 				[EPilotSkillId.DefensiveManeuvers]),
 		};

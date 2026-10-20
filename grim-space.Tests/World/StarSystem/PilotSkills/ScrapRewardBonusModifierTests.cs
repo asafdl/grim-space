@@ -7,11 +7,11 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 
 namespace GrimSpace.Tests.World.StarSystem.PilotSkills;
 
-public sealed class DronesYearnForMinesModifierTests
+public sealed class ScrapRewardBonusModifierTests
 {
 	[Fact]
 	public void Modify_EngagementLoot_UpdatesRollsAndRebuildsTotal()
@@ -39,7 +39,7 @@ public sealed class DronesYearnForMinesModifierTests
 				(ResourceId.IndustrialCore, 1)));
 
 		var modified = Assert.IsType<AwardEngagementLootEffect>(
-			new DronesYearnForMinesModifier(1).Modify(
+			new ScrapRewardBonusModifier(1).Modify(
 				action,
 				StarMap.Create(1),
 				new ActorRuntime(),

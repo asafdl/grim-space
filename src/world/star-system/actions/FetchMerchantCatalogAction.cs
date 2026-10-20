@@ -14,15 +14,8 @@ public sealed record FetchMerchantCatalogAction(
 	EMerchantCatalog Catalog,
 	ShipInstance ShipSnapshot) : IAction<StarMap, ActorRuntime>
 {
-	public static class TagNames
-	{
-		public const string Fetch = "fetch";
-		public const string Merchant = "merchant";
-		public const string Catalog = "catalog";
-	}
-
 	private static readonly string[] ActionTags =
-		[TagNames.Fetch, TagNames.Merchant, TagNames.Catalog];
+		[StarMapActionTags.Fetch, StarMapActionTags.Merchant, StarMapActionTags.Catalog];
 
 	IReadOnlyList<string> IAction.Tags => ActionTags;
 

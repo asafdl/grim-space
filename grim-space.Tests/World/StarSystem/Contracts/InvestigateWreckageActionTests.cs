@@ -23,7 +23,7 @@ using BattleUnitType = GrimSpace.Units.Enums.EType;
 using FleetType = GrimSpace.World.StarSystem.Units.EType;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -58,7 +58,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId) = CreateEngine(
 			new WreckageOutcome.Salvage(
 				ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)),
-			strategicGrants: StackGrants(EPilotSkillId.DronesYearnForMines, 2));
+			strategicGrants: StackGrants(EPilotCapabilityId.ScrapRewardBonus, 2));
 		OpenWreckDecision(engine, unitId, contractId);
 
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
@@ -73,7 +73,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 			new WreckageOutcome.Salvage(ResourceBundle.Create(
 				(ResourceId.ScrapAlloy, SalvageScrap),
 				(ResourceId.IndustrialCore, 2))),
-			strategicGrants: StackGrants(EPilotSkillId.DronesYearnForMines, 1));
+			strategicGrants: StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
 		OpenWreckDecision(engine, unitId, contractId);
 
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
@@ -88,7 +88,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		var (engine, unitId, contractId) = CreateEngine(
 			new WreckageOutcome.Salvage(
 				ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)),
-			strategicGrants: StackGrants(EPilotSkillId.DronesYearnForMines, 1));
+			strategicGrants: StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
 		OpenWreckDecision(engine, unitId, contractId);
 		var action = new InvestigateWreckageAction(unitId, contractId);
 		var simulation = engine.CreateSimulation();
@@ -156,7 +156,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId) CreateEngine(
 		WreckageOutcome outcome,
-		IReadOnlyList<PilotSkillGrant>? strategicGrants = null,
+		IReadOnlyList<PilotCapabilityGrant>? strategicGrants = null,
 		int seed = 42)
 	{
 		var map = maps.Fresh(seed);
@@ -166,7 +166,8 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		var runtime = runtimes.For(RunState.PlayerFleetUnitId);
 		if (strategicGrants is not null)
-			runtime.ReplaceActionEffects(StarMapActionEffectPipelineFactory.Build(strategicGrants));
+			runtime.ReplaceActionEffects(
+				StarMapPilotCapabilityPipelineFactory.Build(strategicGrants));
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 		return (engine, RunState.PlayerFleetUnitId, contract.Id);
 	}
@@ -221,11 +222,18 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		return contract;
 	}
 
-	private static IReadOnlyList<PilotSkillGrant> StackGrants(EPilotSkillId skillId, int stacks)
+	private static IReadOnlyList<PilotCapabilityGrant> StackGrants(
+		EPilotCapabilityId capabilityId,
+		int stacks)
 	{
-		var grants = new PilotSkillGrant[stacks];
+		var grants = new PilotCapabilityGrant[stacks];
 		for (var index = 0; index < stacks; index++)
-			grants[index] = new PilotSkillGrant(skillId, $"pilot-{index}");
+		{
+			grants[index] = new PilotCapabilityGrant(
+				capabilityId,
+				$"pilot-{index}",
+				new PilotCapabilitySource(EPilotCapabilitySourceKind.Skill, "test-skill"));
+		}
 		return grants;
 	}
 }

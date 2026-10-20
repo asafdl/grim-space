@@ -29,7 +29,7 @@ public sealed record UnitDisplayState(
 	int FuelRemaining,
 	VoidBombProjectile? Projectile,
 	bool IsAlive,
-	IReadOnlyList<EPilotSkillId> PilotSkills,
+	IReadOnlyList<PilotCapabilityGrant> PilotCapabilities,
 	string? PilotPortraitId,
 	bool ShieldsUpUsedThisTurn)
 {
@@ -56,7 +56,7 @@ public sealed record UnitDisplayState(
 			state.FuelRemaining,
 			state.Projectile,
 			state.IsAlive,
-			runtime.PilotSkills.OrderBy(skill => skill).ToArray(),
+			runtime.PilotCapabilityGrants.ToArray(),
 			runtime.PortraitId,
 			state.ShieldsUpUsedThisTurn);
 

@@ -213,50 +213,43 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		return false;
 	}
 
-	public IReadOnlyList<PilotSkillGrant> QueryLearned(
-		Func<EPilotSkillTag, bool> tagMatches,
+	public IReadOnlyList<PilotCapabilityGrant> QueryCapabilities(
+		Func<EPilotCapabilityId, bool> capabilityMatches,
 		Func<Pilot, bool>? pilotMatches = null)
 	{
-		ArgumentNullException.ThrowIfNull(tagMatches);
-		var results = new List<PilotSkillGrant>();
+		ArgumentNullException.ThrowIfNull(capabilityMatches);
+		var results = new List<PilotCapabilityGrant>();
 		foreach (var pilot in _pilotsById.Values)
 		{
 			if (pilotMatches is not null && !pilotMatches(pilot))
 				continue;
 
-			foreach (var skillId in pilot.LearnedSkills)
-			{
-				if (!tagMatches(PilotSkillCatalog.Get(skillId).Tag))
-					continue;
-
-				results.Add(new PilotSkillGrant(skillId, pilot.Id));
-			}
+			results.AddRange(PilotCapabilityGrant.FromSkills(
+				pilot.Id,
+				pilot.LearnedSkills,
+				capabilityMatches));
 		}
 
 		return results;
 	}
 
-	public IReadOnlyList<PilotSkillGrant> QueryLearnedForActive(
-		Func<EPilotSkillTag, bool> tagMatches) =>
-		QueryLearned(tagMatches, pilot => pilot.IsActive);
+	public IReadOnlyList<PilotCapabilityGrant> QueryCapabilitiesForActive(
+		Func<EPilotCapabilityId, bool> capabilityMatches) =>
+		QueryCapabilities(capabilityMatches, pilot => pilot.IsActive);
 
-	public IReadOnlyList<PilotSkillGrant> QueryLearnedForShip(
+	public IReadOnlyList<PilotCapabilityGrant> QueryCapabilitiesForShip(
 		string shipId,
-		Func<EPilotSkillTag, bool> tagMatches)
+		Func<EPilotCapabilityId, bool> capabilityMatches)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(shipId);
-		ArgumentNullException.ThrowIfNull(tagMatches);
+		ArgumentNullException.ThrowIfNull(capabilityMatches);
 		if (!TryGetForShip(shipId, out var pilot))
 			return [];
 
-		return QueryLearned(tagMatches, candidate => string.Equals(candidate.Id, pilot.Id, StringComparison.Ordinal));
+		return QueryCapabilities(
+			capabilityMatches,
+			candidate => string.Equals(candidate.Id, pilot.Id, StringComparison.Ordinal));
 	}
-
-	public static bool IsStrategicPassiveTag(EPilotSkillTag tag) =>
-		tag == EPilotSkillTag.StrategicPassive;
-
-	public static bool IsBattleTag(EPilotSkillTag tag) =>
-		tag is EPilotSkillTag.BattleAbility or EPilotSkillTag.BattlePassive;
 
 	private Pilot GetRequired(string pilotId) =>
 		TryGet(pilotId, out var pilot)

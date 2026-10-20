@@ -104,10 +104,9 @@ public static class SaveDtoMapper
 					Pilot = spawn.Pilot is null
 						? null
 						: new PilotBattleSnapshotDto(
-							spawn.Pilot.PilotId,
-							spawn.Pilot.SkillIds,
-							spawn.Pilot.PortraitId),
-					PilotId = (string?)null,
+							PilotId: spawn.Pilot.PilotId,
+							CapabilityGrants: spawn.Pilot.CapabilityGrants,
+							PortraitId: spawn.Pilot.PortraitId),
 					spawn.Team,
 					spawn.Position,
 					spawn.Fore,
@@ -147,12 +146,8 @@ public static class SaveDtoMapper
 		{
 			pilot = new PilotBattleSnapshot(
 				snapshot.PilotId,
-				snapshot.SkillIds.ToArray(),
+				snapshot.CapabilityGrants.ToArray(),
 				snapshot.PortraitId);
-		}
-		else if (!string.IsNullOrEmpty(spawn.PilotId))
-		{
-			pilot = new PilotBattleSnapshot(spawn.PilotId, [], null);
 		}
 
 		return new BattleSpawn

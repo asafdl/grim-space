@@ -1,13 +1,12 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Run;
-using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 
-namespace GrimSpace.World.StarSystem.Skills;
+namespace GrimSpace.World.StarSystem.PilotCapabilities;
 
-public sealed class DronesYearnForMinesModifier(int stackCount)
+public sealed class ScrapRewardBonusModifier(int stackCount)
 	: IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
 	private const int ScrapBonusPercentPerStack = 15;
@@ -18,9 +17,7 @@ public sealed class DronesYearnForMinesModifier(int stackCount)
 		ActorRuntime runtime,
 		IEffect<StarMap, ActorRuntime> effect)
 	{
-		if (stackCount == 0
-			|| !action.Tags.Contains(StarMapActionTags.Reward)
-			|| !action.Tags.Contains(StarMapActionTags.Salvage))
+		if (stackCount == 0)
 			return effect;
 
 		return effect switch

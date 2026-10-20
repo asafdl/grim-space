@@ -20,7 +20,7 @@ public sealed class ActorRuntimeAssemblyTests
 		var runtime = ActorRuntime.From(null);
 
 		Assert.Null(runtime.PilotId);
-		Assert.Empty(runtime.PilotSkills);
+		Assert.Empty(runtime.PilotCapabilities);
 	}
 
 	[Fact]
@@ -34,7 +34,9 @@ public sealed class ActorRuntimeAssemblyTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{
-			[player.State.Id] = new PilotBattleSnapshot("pilot-1", [EPilotSkillId.IonizedPayload]),
+			[player.State.Id] = PilotBattleSnapshot.FromSkills(
+				"pilot-1",
+				[EPilotSkillId.IonizedPayload]),
 		};
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
@@ -49,7 +51,9 @@ public sealed class ActorRuntimeAssemblyTests
 	[Fact]
 	public void FromEncounterAndFromSavedWorld_MatchPilotRuntime()
 	{
-		var snapshot = new PilotBattleSnapshot("pilot-1", [EPilotSkillId.IonizedPayload]);
+		var snapshot = PilotBattleSnapshot.FromSkills(
+			"pilot-1",
+			[EPilotSkillId.IonizedPayload]);
 		var encounter = new BattleEncounter
 		{
 			Seed = 1,
@@ -83,7 +87,7 @@ public sealed class ActorRuntimeAssemblyTests
 		var savedRuntime = fromSaved.Engine.ActorRuntimes.For("player");
 
 		Assert.Equal(encounterRuntime.PilotId, savedRuntime.PilotId);
-		Assert.Equal(encounterRuntime.PilotSkills, savedRuntime.PilotSkills);
+		Assert.Equal(encounterRuntime.PilotCapabilities, savedRuntime.PilotCapabilities);
 	}
 
 	[Fact]
@@ -94,6 +98,6 @@ public sealed class ActorRuntimeAssemblyTests
 			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 
 		var childRuntime = battle.Engine.ActorRuntimes.For("spawn-child");
-		Assert.Empty(childRuntime.PilotSkills);
+		Assert.Empty(childRuntime.PilotCapabilities);
 	}
 }

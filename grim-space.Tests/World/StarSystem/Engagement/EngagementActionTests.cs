@@ -8,7 +8,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Resources;
-using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using RunState = GrimSpace.Run.State;
@@ -216,8 +216,13 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 		};
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(RunState.PlayerFleetUnitId).ReplaceActionEffects(
-			StarMapActionEffectPipelineFactory.Build(
-				[new PilotSkillGrant(EPilotSkillId.DronesYearnForMines, "pilot-1")]));
+			StarMapPilotCapabilityPipelineFactory.Build(
+				[new PilotCapabilityGrant(
+					EPilotCapabilityId.ScrapRewardBonus,
+					"pilot-1",
+					new PilotCapabilitySource(
+						EPilotCapabilitySourceKind.Skill,
+						EPilotSkillId.DronesYearnForMines.ToString()))]));
 		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
 
 		engine.Commit(new ResolveEngagementAction(

@@ -34,7 +34,8 @@ public sealed class ActorRuntimeModifierTests
 	[Fact]
 	public void LightningTag_AppliesIonizedShieldBonus()
 	{
-		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]));
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
 		var effects = SampleEffects();
 
@@ -51,7 +52,8 @@ public sealed class ActorRuntimeModifierTests
 	[Fact]
 	public void DodgeThis_AddsAdjacentTargetDamageBonus()
 	{
-		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.DodgeThis]));
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis]));
 		var battle = CreateBattle(runtime);
 
 		var modified = runtime.ActionEffects.Apply(
@@ -67,7 +69,7 @@ public sealed class ActorRuntimeModifierTests
 	[Fact]
 	public void DodgeThisAndIonizedPayload_ComposeBothDamageBonuses()
 	{
-		var runtime = ActorRuntime.From(new PilotBattleSnapshot(
+		var runtime = ActorRuntime.From(PilotBattleSnapshot.FromSkills(
 			"pilot",
 			[EPilotSkillId.DodgeThis, EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
@@ -86,7 +88,8 @@ public sealed class ActorRuntimeModifierTests
 	[Fact]
 	public void MissingLightningTag_SkipsIonizedModifier()
 	{
-		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]));
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
 		var effects = SampleEffects();
 
@@ -102,7 +105,8 @@ public sealed class ActorRuntimeModifierTests
 	[Fact]
 	public void NonAreaEffect_UnchangedByIonizedModifier()
 	{
-		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.IonizedPayload]));
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
 		var mount = new GrimSpace.Units.Loadouts.Abilities.AbilityMount(
 			EAbilityKind.LightningCannon,
@@ -131,7 +135,9 @@ public sealed class ActorRuntimeModifierTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{
-			[player.State.Id] = new PilotBattleSnapshot("pilot", playerRuntime.PilotSkills.ToArray()),
+			[player.State.Id] = new PilotBattleSnapshot(
+				"pilot",
+				playerRuntime.PilotCapabilityGrants),
 		};
 		return BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
 	}

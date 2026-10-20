@@ -49,7 +49,7 @@ public sealed class ShieldsUpDef
 		Resolve(Cast(action), world, runtime);
 
 	public bool IsPossible(ShieldsUpAction action, BattleWorld world, ActorRuntime runtime) =>
-		runtime.PilotSkills.Contains(EPilotSkillId.ShieldsUp);
+		runtime.PilotCapabilities.Contains(EPilotCapabilityId.ShieldBoost);
 
 	public bool IsLegal(ShieldsUpAction action, BattleWorld world, ActorRuntime runtime)
 	{

@@ -6,7 +6,7 @@ using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.PilotSkills;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Units;
@@ -59,7 +59,7 @@ public static class Capabilities
 
 		return MergeAbilityDefs(
 			CollectAbilityDefs(state.Loadout.InstalledAbilities),
-			PilotSkillCapabilities.DefsFor(runtime.PilotSkills));
+			PilotCapabilityActionDefs.DefsFor(runtime.PilotCapabilities));
 	}
 
 	/// <summary>

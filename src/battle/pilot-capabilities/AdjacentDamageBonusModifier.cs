@@ -3,14 +3,14 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
-namespace GrimSpace.Battle.Skills;
+namespace GrimSpace.Battle.PilotCapabilities;
 
-public sealed class DodgeThisModifier
+public sealed class AdjacentDamageBonusModifier
 	: IActionEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
 	public const int AdjacentTargetDamageBonus = 2;
 
-	public static DodgeThisModifier Instance { get; } = new();
+	public static AdjacentDamageBonusModifier Instance { get; } = new();
 
 	public IEffect<BattleWorld, ActorRuntime> Modify(
 		IAction action,

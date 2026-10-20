@@ -49,7 +49,8 @@ public sealed class CapabilitiesAbilityDefsTests
 			Coord.Zero,
 			Coord.Forward,
 			Coord.Up);
-		var runtime = ActorRuntime.From(new PilotBattleSnapshot("pilot", [EPilotSkillId.ShieldsUp]));
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ShieldsUp]));
 		var abilityDefs = Capabilities.AbilityDefsFor(state, runtime);
 		var hudDefs = AbilityHudCatalog.ForActor(state, runtime).Select(spec => spec.Def).ToArray();
 

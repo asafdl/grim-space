@@ -129,7 +129,7 @@ public sealed class ShieldsUpActionTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{
-			[player.State.Id] = new PilotBattleSnapshot("pilot", [EPilotSkillId.ShieldsUp]),
+			[player.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ShieldsUp]),
 		};
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
 		return (player, battle);

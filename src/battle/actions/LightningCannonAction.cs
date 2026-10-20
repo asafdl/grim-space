@@ -15,13 +15,8 @@ public sealed record LightningCannonAction(
 	ESpatialOrientation MountedOn = ESpatialOrientation.Forward)
 	: IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
-	public static class TagNames
-	{
-		public const string Attack = "attack";
-		public const string Lightning = "lightning";
-	}
-
-	private static readonly string[] ActionTags = [TagNames.Attack, TagNames.Lightning];
+	private static readonly string[] ActionTags =
+		[BattleActionTags.Attack, BattleActionTags.Lightning];
 
 	IReadOnlyList<string> IAction.Tags => ActionTags;
 
@@ -34,8 +29,6 @@ public sealed class LightningCannonDef
 		IMountedActionDef,
 		IAreaActionDef
 {
-	public const int IonizedPayloadShieldDamageBonus = 1;
-
 	public static LightningCannonDef Instance { get; } = new();
 
 	public bool IsBlockable => true;

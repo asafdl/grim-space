@@ -6,25 +6,25 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record RefreshStrategicPilotSkillsAction(
+public sealed record RefreshStrategicPilotCapabilitiesAction(
 	string ActorId,
-	IReadOnlyList<PilotSkillGrant> StrategicGrants) : IAction<StarMap, ActorRuntime>
+	IReadOnlyList<PilotCapabilityGrant> StrategicGrants) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
-		RefreshStrategicPilotSkillsDef.Instance;
+		RefreshStrategicPilotCapabilitiesDef.Instance;
 }
 
-public sealed class RefreshStrategicPilotSkillsDef
+public sealed class RefreshStrategicPilotCapabilitiesDef
 	: IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	public static RefreshStrategicPilotSkillsDef Instance { get; } = new();
+	public static RefreshStrategicPilotCapabilitiesDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(StarMap world, ActorRuntime runtime, string actorId) => [];
 
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
-		action is RefreshStrategicPilotSkillsAction refresh
+		action is RefreshStrategicPilotCapabilitiesAction refresh
 		&& world.FleetRegistry.Contains(refresh.ActorId);
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
@@ -32,7 +32,7 @@ public sealed class RefreshStrategicPilotSkillsDef
 		StarMap world,
 		ActorRuntime runtime)
 	{
-		var refresh = (RefreshStrategicPilotSkillsAction)action;
+		var refresh = (RefreshStrategicPilotCapabilitiesAction)action;
 		return [new ReplaceStrategicActionEffectPipelineEffect(refresh.StrategicGrants)];
 	}
 }

@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
@@ -16,7 +17,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Merchants;
-using GrimSpace.World.StarSystem.Skills;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Run.Items;
 using GrimSpace.Run.Persistence;
@@ -334,8 +335,9 @@ public sealed class State : IDisposable
 			return false;
 
 		PilotRegistry.Update(pilot.LearnPilotSkill(skillId));
-		if (PilotSkillCatalog.Get(skillId).Tag == EPilotSkillTag.StrategicPassive)
-			RefreshStrategicPilotSkills();
+		if (PilotSkillCatalog.Get(skillId).CapabilityIds.Any(capabilityId =>
+			StarMapPilotCapabilityPipelineFactory.Supports(capabilityId)))
+			RefreshStrategicPilotCapabilities();
 		return true;
 	}
 
@@ -352,7 +354,7 @@ public sealed class State : IDisposable
 
 		PilotRegistry.AssignPilotToShip(pilotId, shipId);
 		RefreshStrategicFleetProjection();
-		RefreshStrategicPilotSkills();
+		RefreshStrategicPilotCapabilities();
 		PlayerFleetSelection.EnsureSelectedMember(
 			StarSystem.Map,
 			StarSystem.RuntimeFor(PlayerFleetUnitId),
@@ -702,7 +704,7 @@ public sealed class State : IDisposable
 			return;
 
 		RefreshStrategicFleetProjection();
-		RefreshStrategicPilotSkills();
+		RefreshStrategicPilotCapabilities();
 		PlayerFleetSelection.EnsureSelectedMember(
 			StarSystem.Map,
 			StarSystem.RuntimeFor(PlayerFleetUnitId),
@@ -710,13 +712,14 @@ public sealed class State : IDisposable
 			GetFieldedShipIds());
 	}
 
-	private void RefreshStrategicPilotSkills() =>
-		StarSystem.CommitSetup(new RefreshStrategicPilotSkillsAction(
+	private void RefreshStrategicPilotCapabilities() =>
+		StarSystem.CommitSetup(new RefreshStrategicPilotCapabilitiesAction(
 			PlayerFleetUnitId,
-			PilotRegistry.QueryLearnedForActive(RunPilotRegistry.IsStrategicPassiveTag)));
+			PilotRegistry.QueryCapabilitiesForActive(
+				StarMapPilotCapabilityPipelineFactory.Supports)));
 
 	private void SyncStarPlayerPipeline() =>
-		StarMapActionEffectPipelineFactory.InstallPlayerPipeline(StarSystem, PilotRegistry);
+		StarMapPilotCapabilityPipelineFactory.InstallPlayerPipeline(StarSystem, PilotRegistry);
 
 	private IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotBattleSnapshots()
 	{
@@ -727,12 +730,12 @@ public sealed class State : IDisposable
 				continue;
 
 			var shipId = pilot.AssignedShipId;
-			var battleGrants = PilotRegistry.QueryLearnedForShip(
+			var battleGrants = PilotRegistry.QueryCapabilitiesForShip(
 				shipId,
-				RunPilotRegistry.IsBattleTag);
+				BattlePilotCapabilityPipelineFactory.Supports);
 			map[shipId] = new PilotBattleSnapshot(
 				pilot.Id,
-				battleGrants.Select(grant => grant.SkillId).ToArray(),
+				battleGrants,
 				pilot.PortraitId);
 		}
 
