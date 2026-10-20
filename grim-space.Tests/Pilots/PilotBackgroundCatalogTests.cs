@@ -29,7 +29,22 @@ public sealed class PilotBackgroundCatalogTests
 	{
 		var backgrounds = PilotBackgroundCatalog.All.ToArray();
 
-		Assert.Single(backgrounds);
+		Assert.Equal(2, backgrounds.Length);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.Unspecified);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.ScrapDrone);
+	}
+
+	[Fact]
+	public void ScrapDrone_GrantsBattleAndStrategicCapabilities()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.ScrapDrone);
+
+		Assert.Equal("Scrap Drone", definition.Name);
+		Assert.Equal(
+			[
+				EPilotCapabilityId.ScrapDroneSwarmDamageBonus,
+				EPilotCapabilityId.MinorScrapRewardBonus,
+			],
+			definition.CapabilityIds);
 	}
 }

@@ -387,7 +387,9 @@ public sealed class State : IDisposable
 	{
 		var run = new State();
 		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
-		run.ApplyPlayerShipAcquire(new ShipSpawnDeclaration(playerShipId, BattleUnitType.Fighter));
+		run.ApplyPlayerShipAcquire(
+			new ShipSpawnDeclaration(playerShipId, BattleUnitType.Fighter),
+			createStarterPilot: true);
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			run.GetFieldedShipIds(),
@@ -524,10 +526,14 @@ public sealed class State : IDisposable
 		}
 	}
 
-	private void ApplyPlayerShipAcquire(ShipSpawnDeclaration declaration)
+	private void ApplyPlayerShipAcquire(
+		ShipSpawnDeclaration declaration,
+		bool createStarterPilot = false)
 	{
 		ItemInventory.Register(declaration, PlayerFleetUnitId);
-		var pilot = Pilot.CreateForShip(declaration.ShipId);
+		var pilot = createStarterPilot
+			? Pilot.CreateStarterForShip(declaration.ShipId)
+			: Pilot.CreateForShip(declaration.ShipId);
 		PilotRegistry.Register(pilot);
 		if (PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
 			PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);

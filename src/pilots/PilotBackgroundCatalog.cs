@@ -7,8 +7,18 @@ public static class PilotBackgroundCatalog
 		{
 			[EPilotBackgroundId.Unspecified] = new(
 				EPilotBackgroundId.Unspecified,
+				[],
 				"Unspecified Background",
 				"Temporary infrastructure placeholder. Real pilot backgrounds are not defined yet."),
+			[EPilotBackgroundId.ScrapDrone] = new(
+				EPilotBackgroundId.ScrapDrone,
+				[
+					EPilotCapabilityId.ScrapDroneSwarmDamageBonus,
+					EPilotCapabilityId.MinorScrapRewardBonus,
+				],
+				"Scrap Drone",
+				"It's a hard bot life, for us. "
+				+ "Scrap Drone Swarm deals 1 additional damage and Scrap Alloy gathered is increased by 5%."),
 		};
 
 	public static PilotBackgroundDefinition Get(EPilotBackgroundId id) =>

@@ -12,6 +12,7 @@ public static class BattlePilotCapabilityPipelineFactory
 		capabilityId is EPilotCapabilityId.ShieldBoost
 			or EPilotCapabilityId.AdjacentDamageBonus
 			or EPilotCapabilityId.LightningShieldDamageBonus
+			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus
 			or EPilotCapabilityId.StationaryDamageDeflection
 			or EPilotCapabilityId.AlliedDamageReduction;
 
@@ -31,6 +32,12 @@ public static class BattlePilotCapabilityPipelineFactory
 			modifiers.Add(new ActionTagEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>(
 				[BattleActionTags.Attack, BattleActionTags.Lightning],
 				LightningShieldDamageBonusModifier.Instance));
+		}
+		if (capabilities.Contains(EPilotCapabilityId.ScrapDroneSwarmDamageBonus))
+		{
+			modifiers.Add(new ActionTagEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>(
+				[BattleActionTags.Attack, BattleActionTags.ScrapDrone],
+				ScrapDroneSwarmDamageBonusModifier.Instance));
 		}
 
 		if (modifiers.Count == 0)

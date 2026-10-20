@@ -25,6 +25,16 @@ public sealed class ApplyAreaDamageEffect(
 	public int ShieldDamageBonus => shieldDamageBonus;
 	public int AdjacentTargetDamageBonus => adjacentTargetDamageBonus;
 
+	public ApplyAreaDamageEffect WithAdditionalDamage(int amount) =>
+		new(
+			cause,
+			cells,
+			damage + amount,
+			origin,
+			shieldDamageBonus,
+			adjacentTargetDamageBonus,
+			destroySource);
+
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
 			cause,

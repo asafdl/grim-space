@@ -18,6 +18,16 @@ public sealed class PilotIdentityTests
 	}
 
 	[Fact]
+	public void CreateStarterForShip_AssignsScriptedIdentity()
+	{
+		var pilot = Pilot.CreateStarterForShip("fighter-a");
+
+		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilot.BackgroundId);
+		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
+	}
+
+	[Fact]
 	public void AddExperience_PreservesIdentity()
 	{
 		var pilot = PilotProgression.AddExperience(Pilot.CreateForShip("fighter-a"), 250);
@@ -109,6 +119,9 @@ public sealed class PilotIdentityTests
 	{
 		using var run = State.CreateNewRun(42);
 		var pilotBefore = Assert.Single(run.PilotRegistry.All);
+		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilotBefore.BackgroundId);
+		Assert.Equal(EPilotQuirkId.Charismatic, pilotBefore.PositiveQuirkId);
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilotBefore.NegativeQuirkId);
 
 		run.RegenerateMap(77);
 

@@ -93,6 +93,24 @@ public sealed class Pilot
 			EmptySkills);
 	}
 
+	public static Pilot CreateStarterForShip(string assignedShipId, Random? rng = null)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
+		rng ??= Random.Shared;
+		return new Pilot(
+			TypedIdGenerator.NextId("pilot"),
+			DisplayNames.Generate(),
+			PortraitPool[rng.Next(PortraitPool.Length)],
+			EPilotBackgroundId.ScrapDrone,
+			EPilotQuirkId.Charismatic,
+			EPilotQuirkId.NeuroDrugAddict,
+			assignedShipId,
+			false,
+			0,
+			PilotProgression.LevelFor(0),
+			EmptySkills);
+	}
+
 	internal Pilot WithExperience(int experiencePoints) =>
 		new(
 			Id,

@@ -4,4 +4,5 @@ public static class BattleActionTags
 {
 	public const string Attack = "attack";
 	public const string Lightning = "lightning";
+	public const string ScrapDrone = "scrap-drone";
 }

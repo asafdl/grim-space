@@ -14,6 +14,11 @@ public sealed record ScrapDroneSwarmAction(
 	string ActorId,
 	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
+	private static readonly string[] ActionTags =
+	[BattleActionTags.Attack, BattleActionTags.ScrapDrone];
+
+	IReadOnlyList<string> IAction.Tags => ActionTags;
+
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		ScrapDroneSwarmDef.Instance;
 }

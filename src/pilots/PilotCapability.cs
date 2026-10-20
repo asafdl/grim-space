@@ -5,8 +5,10 @@ public enum EPilotCapabilityId
 	ShieldBoost,
 	AdjacentDamageBonus,
 	LightningShieldDamageBonus,
+	ScrapDroneSwarmDamageBonus,
 	StationaryDamageDeflection,
 	AlliedDamageReduction,
+	MinorScrapRewardBonus,
 	ScrapRewardBonus,
 	ShipUpgradeDiscount,
 }
@@ -27,6 +29,20 @@ public readonly record struct PilotCapabilityGrant(
 	string PilotId,
 	PilotCapabilitySource Source)
 {
+	public static IReadOnlyList<PilotCapabilityGrant> FromBackground(
+		string pilotId,
+		EPilotBackgroundId backgroundId,
+		Func<EPilotCapabilityId, bool>? capabilityMatches = null)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		return Project(
+			pilotId,
+			PilotBackgroundCatalog.Get(backgroundId).CapabilityIds,
+			EPilotCapabilitySourceKind.Background,
+			backgroundId.ToString(),
+			capabilityMatches);
+	}
+
 	public static IReadOnlyList<PilotCapabilityGrant> FromSkills(
 		string pilotId,
 		IEnumerable<EPilotSkillId> skillIds,
@@ -76,6 +92,28 @@ public readonly record struct PilotCapabilityGrant(
 						EPilotCapabilitySourceKind.Quirk,
 						quirkId.ToString())));
 			}
+		}
+
+		return grants;
+	}
+
+	private static IReadOnlyList<PilotCapabilityGrant> Project(
+		string pilotId,
+		IEnumerable<EPilotCapabilityId> capabilityIds,
+		EPilotCapabilitySourceKind sourceKind,
+		string sourceId,
+		Func<EPilotCapabilityId, bool>? capabilityMatches)
+	{
+		var grants = new List<PilotCapabilityGrant>();
+		foreach (var capabilityId in capabilityIds)
+		{
+			if (capabilityMatches is not null && !capabilityMatches(capabilityId))
+				continue;
+
+			grants.Add(new PilotCapabilityGrant(
+				capabilityId,
+				pilotId,
+				new PilotCapabilitySource(sourceKind, sourceId)));
 		}
 
 		return grants;

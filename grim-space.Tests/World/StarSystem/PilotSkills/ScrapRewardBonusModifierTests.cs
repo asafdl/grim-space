@@ -39,7 +39,7 @@ public sealed class ScrapRewardBonusModifierTests
 				(ResourceId.IndustrialCore, 1)));
 
 		var modified = Assert.IsType<AwardEngagementLootEffect>(
-			new ScrapRewardBonusModifier(1).Modify(
+			new ScrapRewardBonusModifier(ScrapRewardBonusModifier.StandardBonusPercent).Modify(
 				action,
 				StarMap.Create(1),
 				new ActorRuntime(),
@@ -48,6 +48,23 @@ public sealed class ScrapRewardBonusModifierTests
 		Assert.All(modified.Rolls, roll => AssertResource(roll.Awarded, ResourceId.ScrapAlloy, 5));
 		AssertResource(modified.Total, ResourceId.ScrapAlloy, 10);
 		AssertResource(modified.Total, ResourceId.IndustrialCore, 1);
+	}
+
+	[Fact]
+	public void Modify_MinorBonus_IncreasesScrapByFivePercent()
+	{
+		var effect = new ChangeResourceEffect(
+			"test",
+			ResourceBundle.Of(ResourceId.ScrapAlloy, 100));
+
+		var modified = Assert.IsType<ChangeResourceEffect>(
+			new ScrapRewardBonusModifier(ScrapRewardBonusModifier.MinorBonusPercent).Modify(
+				new InvestigateWreckageAction("player", "contract", "ambush"),
+				StarMap.Create(1),
+				new ActorRuntime(),
+				effect));
+
+		AssertResource(modified.Change, ResourceId.ScrapAlloy, 105);
 	}
 
 	[Fact]

@@ -17,6 +17,18 @@ public static class PilotQuirkCatalog
 				[],
 				"[Dev] No negative quirk",
 				"Placeholder until negative quirks are designed."),
+			[EPilotQuirkId.Charismatic] = new(
+				EPilotQuirkId.Charismatic,
+				EPilotQuirkPolarity.Positive,
+				[],
+				"Charismatic",
+				"Pilot hires cost 5% less. Effect is not implemented yet."),
+			[EPilotQuirkId.NeuroDrugAddict] = new(
+				EPilotQuirkId.NeuroDrugAddict,
+				EPilotQuirkPolarity.Negative,
+				[],
+				"Neuro-drug Addict",
+				"Prone to accidents and may steal credits. Effects are not implemented yet."),
 			[EPilotQuirkId.GrantProbePositive] = new(
 				EPilotQuirkId.GrantProbePositive,
 				EPilotQuirkPolarity.Positive,

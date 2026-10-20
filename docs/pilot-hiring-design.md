@@ -154,9 +154,9 @@ Quirk acquisition, mutation, treatment, replacement, and locking are deferred. A
 
 ## Pilot identity presentation
 
-Backgrounds, positive quirks, and negative quirks are represented by compact SVG icons wherever pilot identity is summarized. Hovering an icon explains its category, display name, description, and, for quirks, exact mechanical effect. This keeps roster and character-sheet views scannable without hiding the information needed to compare hires.
+Backgrounds, positive quirks, and negative quirks are represented by compact icons wherever pilot identity is summarized. Hovering an icon explains its category, display name, description, and, for quirks, exact mechanical effect. This keeps roster and character-sheet views scannable without hiding the information needed to compare hires.
 
-Each real background and quirk has distinct icon artwork. Positive and negative quirk slots also use consistent positive/negative framing or tint, but polarity must not depend on color alone; slot placement and tooltip category remain explicit. SVG resource mapping belongs to Godot presentation code rather than the domain catalogs, which remain engine-independent.
+Each real background and quirk has its own distinct icon artwork; generic category or polarity icons are reserved for development sentinels. Positive and negative quirk slots also use consistent positive/negative framing or tint, but polarity must not depend on color alone; slot placement and tooltip category remain explicit. Icon resource mapping belongs to Godot presentation code rather than the domain catalogs, which remain engine-independent.
 
 ## No pilot base stats
 

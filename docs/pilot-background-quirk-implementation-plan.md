@@ -366,11 +366,11 @@ Do this only after domain state and persistence are complete.
 
 Update `PilotCharacterSheetOverlay` identity rail to display:
 
-- one SVG icon for the pilot's background;
-- one SVG icon for the positive quirk;
-- one SVG icon for the negative quirk.
+- one icon for the pilot's background;
+- one icon for the positive quirk;
+- one icon for the negative quirk.
 
-Follow the existing skill-icon pattern in `PilotCharacterSheetOverlay`: presentation owns the ID-to-SVG-path mapping and loads tinted textures through `SvgIconLoader`. Do not place Godot resource paths or texture types in pilot domain definitions.
+Follow the existing skill-icon pattern in `PilotCharacterSheetOverlay`: presentation owns the ID-to-resource-path mapping and loads tinted textures through `SvgIconLoader`. Despite its legacy name, the loader supports both SVG and PNG resources. Do not place Godot resource paths or texture types in pilot domain definitions.
 
 Each icon's hover tooltip must include:
 
@@ -382,7 +382,7 @@ Use existing HUD styling. Give positive and negative quirk slots distinct positi
 
 Because project guidance forbids testing Godot framework behavior, do not instantiate Godot UI in unit tests. Test catalog/formatting projection helpers if a non-Godot projection is introduced; otherwise validate by build and manual scene inspection later.
 
-Add three explicit placeholder SVGs for the infrastructure sentinels: background, positive quirk, and negative quirk. Their artwork and tooltips should make unfinished content obvious in development builds. Do not reuse them for final content or include them in generated candidates.
+Add three explicit placeholder icons for the infrastructure sentinels: background, positive quirk, and negative quirk. Their artwork and tooltips should make unfinished content obvious in development builds. Every real background and quirk must map to its own semantic artwork; never reuse the category/polarity placeholders for real content or generated candidates.
 
 ## Phase 8: Replace sentinels with real content
 
@@ -391,14 +391,14 @@ This phase is blocked on designer input.
 For each supplied background:
 
 1. add ID and catalog definition;
-2. add a unique SVG icon and presentation mapping;
+2. add a unique icon and presentation mapping;
 3. do not add skill restrictions until the skill-tree design is approved;
 4. add it to future generation eligibility separately from catalog registration.
 
 For each supplied quirk:
 
 1. add ID, polarity, name, and exact description;
-2. add a unique SVG icon and presentation mapping;
+2. add a unique icon and presentation mapping;
 3. identify or add an effect-oriented capability ID;
 4. register that capability in exactly the subsystem(s) that implement it;
 5. for passive pipeline effects, declare required shared action tags in the subsystem pipeline factory;
@@ -463,7 +463,7 @@ The baseline at handoff is 1,607 passing tests. Existing nullable/analyzer warni
 - [ ] Positive and negative slots validate catalog polarity.
 - [ ] Registry capability queries aggregate skill and quirk grants.
 - [ ] Battle and strategic runtimes remain source-agnostic.
-- [ ] Background and both quirks render as SVG icons with explanatory hover tooltips.
+- [ ] Background and both quirks render as unique icons with explanatory hover tooltips.
 - [ ] Positive and negative quirk polarity remains distinguishable without relying only on color.
 - [ ] No capability metadata tags were added.
 - [ ] Concrete modifiers do not name actions or check action tags.

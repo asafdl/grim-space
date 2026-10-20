@@ -8,7 +8,8 @@ namespace GrimSpace.World.StarSystem.PilotCapabilities;
 public static class StarMapPilotCapabilityPipelineFactory
 {
 	public static bool Supports(EPilotCapabilityId capabilityId) =>
-		capabilityId is EPilotCapabilityId.ScrapRewardBonus
+		capabilityId is EPilotCapabilityId.MinorScrapRewardBonus
+			or EPilotCapabilityId.ScrapRewardBonus
 			or EPilotCapabilityId.ShipUpgradeDiscount;
 
 	public static ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Build(
@@ -18,19 +19,24 @@ public static class StarMapPilotCapabilityPipelineFactory
 		var modifiers = new List<IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>>();
 		var shipUpgradeDiscountStacks = strategicGrants.Count(grant =>
 			grant.CapabilityId == EPilotCapabilityId.ShipUpgradeDiscount);
-		var scrapRewardBonusStacks = strategicGrants.Count(grant =>
-			grant.CapabilityId == EPilotCapabilityId.ScrapRewardBonus);
+		var scrapRewardBonusPercent =
+			strategicGrants.Count(grant =>
+				grant.CapabilityId == EPilotCapabilityId.MinorScrapRewardBonus)
+			* ScrapRewardBonusModifier.MinorBonusPercent
+			+ strategicGrants.Count(grant =>
+				grant.CapabilityId == EPilotCapabilityId.ScrapRewardBonus)
+			* ScrapRewardBonusModifier.StandardBonusPercent;
 		if (shipUpgradeDiscountStacks > 0)
 		{
 			modifiers.Add(new ActionTagEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>(
 				[StarMapActionTags.Fetch, StarMapActionTags.Merchant, StarMapActionTags.Catalog],
 				new ShipUpgradeDiscountModifier(shipUpgradeDiscountStacks)));
 		}
-		if (scrapRewardBonusStacks > 0)
+		if (scrapRewardBonusPercent > 0)
 		{
 			modifiers.Add(new ActionTagEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>(
 				[StarMapActionTags.Reward, StarMapActionTags.Salvage],
-				new ScrapRewardBonusModifier(scrapRewardBonusStacks)));
+				new ScrapRewardBonusModifier(scrapRewardBonusPercent)));
 		}
 
 		return modifiers.Count == 0

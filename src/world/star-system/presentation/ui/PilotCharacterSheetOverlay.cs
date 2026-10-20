@@ -16,8 +16,11 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
 	private const string BackgroundIconPath = "res://assets/ui/pilots/background-placeholder.svg";
+	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
 	private const string PositiveQuirkIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
 	private const string NegativeQuirkIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string CharismaticIconPath = "res://assets/ui/pilots/charismatic.png";
+	private const string NeuroDrugAddictIconPath = "res://assets/ui/pilots/neuro-drug-addict.png";
 	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 	private const int SkillNodeSize = 60;
 	private const int IdentityIconSize = 48;
@@ -27,7 +30,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private static readonly Color AvailableColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
 	private static readonly Color LockedColor = new(0.32f, 0.38f, 0.46f);
-	private static readonly Color BackgroundColor = HudPalettes.BlueCyan.Primary;
+	private static readonly Color IdentityIconColor = HudStyles.TextColor(HudTextRole.Body);
+	private static readonly Color BackgroundBorderColor = LockedColor;
 	private static readonly Color PositiveQuirkColor = HudPalettes.Gold.Primary;
 	private static readonly Color NegativeQuirkColor = HudStyles.TextColor(HudTextRole.Danger);
 
@@ -142,13 +146,13 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		var negativeQuirk = PilotQuirkCatalog.Get(pilot.NegativeQuirkId);
 		var identityIcons = new HBoxContainer
 		{
-			Alignment = BoxContainer.AlignmentMode.Center,
+			Alignment = BoxContainer.AlignmentMode.Begin,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		identityIcons.AddThemeConstantOverride("separation", 10);
 		identityIcons.AddChild(BuildIdentityIcon(
 			BackgroundIconPathFor(background.Id),
-			BackgroundColor,
+			BackgroundBorderColor,
 			$"Background: {background.Name}\n{background.Description}"));
 		identityIcons.AddChild(BuildIdentityIcon(
 			QuirkIconPathFor(positiveQuirk.Id),
@@ -181,12 +185,12 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		return rail;
 	}
 
-	private static Button BuildIdentityIcon(string iconPath, Color color, string tooltip)
+	private static Button BuildIdentityIcon(string iconPath, Color borderColor, string tooltip)
 	{
 		var button = new Button
 		{
 			CustomMinimumSize = new Vector2(IdentityIconSize, IdentityIconSize),
-			Icon = SvgIconLoader.Load(iconPath, color, 28),
+			Icon = SvgIconLoader.Load(iconPath, IdentityIconColor, 28),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
@@ -194,9 +198,9 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			MouseDefaultCursorShape = CursorShape.Help,
 			TooltipText = tooltip,
 		};
-		button.AddThemeStyleboxOverride("normal", IdentityIconStyle(color, 0.1f, 2));
-		button.AddThemeStyleboxOverride("hover", IdentityIconStyle(color, 0.2f, 3));
-		button.AddThemeStyleboxOverride("pressed", IdentityIconStyle(color, 0.1f, 2));
+		button.AddThemeStyleboxOverride("normal", IdentityIconStyle(borderColor, 0.08f, 2));
+		button.AddThemeStyleboxOverride("hover", IdentityIconStyle(borderColor, 0.16f, 3));
+		button.AddThemeStyleboxOverride("pressed", IdentityIconStyle(borderColor, 0.08f, 2));
 		return button;
 	}
 
@@ -209,10 +213,10 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			BorderWidthTop = borderWidth,
 			BorderWidthRight = borderWidth,
 			BorderWidthBottom = borderWidth,
-			CornerRadiusTopLeft = 8,
-			CornerRadiusTopRight = 8,
-			CornerRadiusBottomLeft = 8,
-			CornerRadiusBottomRight = 8,
+			CornerRadiusTopLeft = IdentityIconSize / 2,
+			CornerRadiusTopRight = IdentityIconSize / 2,
+			CornerRadiusBottomLeft = IdentityIconSize / 2,
+			CornerRadiusBottomRight = IdentityIconSize / 2,
 		};
 
 	private Control BuildPilotCursor(int direction, bool visible)
@@ -405,6 +409,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		backgroundId switch
 		{
 			EPilotBackgroundId.Unspecified => BackgroundIconPath,
+			EPilotBackgroundId.ScrapDrone => ScrapDroneBackgroundIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
 		};
 
@@ -415,6 +420,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 				PositiveQuirkIconPath,
 			EPilotQuirkId.PlaceholderNegative or EPilotQuirkId.GrantProbeNegative =>
 				NegativeQuirkIconPath,
+			EPilotQuirkId.Charismatic => CharismaticIconPath,
+			EPilotQuirkId.NeuroDrugAddict => NeuroDrugAddictIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(quirkId), quirkId, null),
 		};
 

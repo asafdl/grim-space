@@ -6,10 +6,11 @@ using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.PilotCapabilities;
 
-public sealed class ScrapRewardBonusModifier(int stackCount)
+public sealed class ScrapRewardBonusModifier(int bonusPercent)
 	: IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	private const int ScrapBonusPercentPerStack = 15;
+	public const int MinorBonusPercent = 5;
+	public const int StandardBonusPercent = 15;
 
 	public IEffect<StarMap, ActorRuntime> Modify(
 		IAction action,
@@ -17,7 +18,7 @@ public sealed class ScrapRewardBonusModifier(int stackCount)
 		ActorRuntime runtime,
 		IEffect<StarMap, ActorRuntime> effect)
 	{
-		if (stackCount == 0)
+		if (bonusPercent == 0)
 			return effect;
 
 		return effect switch
@@ -65,7 +66,6 @@ public sealed class ScrapRewardBonusModifier(int stackCount)
 		if (!resources.TryGet(ResourceId.ScrapAlloy, out var scrap) || scrap <= 0)
 			return resources;
 
-		var bonusPercent = ScrapBonusPercentPerStack * stackCount;
 		return ResourceBundle.Create(resources.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Key == ResourceId.ScrapAlloy

@@ -228,6 +228,10 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 				pilot.Id,
 				pilot.LearnedSkills,
 				capabilityMatches));
+			results.AddRange(PilotCapabilityGrant.FromBackground(
+				pilot.Id,
+				pilot.BackgroundId,
+				capabilityMatches));
 			results.AddRange(PilotCapabilityGrant.FromQuirks(
 				pilot.Id,
 				[pilot.PositiveQuirkId],

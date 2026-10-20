@@ -41,9 +41,31 @@ public sealed class PilotQuirkCatalogTests
 	{
 		var quirks = PilotQuirkCatalog.All.ToArray();
 
-		Assert.Equal(4, quirks.Length);
+		Assert.Equal(6, quirks.Length);
 		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.PlaceholderPositive);
 		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.PlaceholderNegative);
+		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.Charismatic);
+		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.NeuroDrugAddict);
+	}
+
+	[Fact]
+	public void Charismatic_IsDeferredPositiveQuirk()
+	{
+		var definition = PilotQuirkCatalog.Get(EPilotQuirkId.Charismatic);
+
+		Assert.Equal(EPilotQuirkPolarity.Positive, definition.Polarity);
+		Assert.Empty(definition.CapabilityIds);
+		Assert.Equal("Charismatic", definition.Name);
+	}
+
+	[Fact]
+	public void NeuroDrugAddict_IsDeferredNegativeQuirk()
+	{
+		var definition = PilotQuirkCatalog.Get(EPilotQuirkId.NeuroDrugAddict);
+
+		Assert.Equal(EPilotQuirkPolarity.Negative, definition.Polarity);
+		Assert.Empty(definition.CapabilityIds);
+		Assert.Equal("Neuro-drug Addict", definition.Name);
 	}
 
 	[Fact]
