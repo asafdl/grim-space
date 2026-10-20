@@ -1,32 +1,42 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-20 (V6 rebuild: events first, the turn loop visible).** The
-> teaser was re-cut after the film-geek audit of the V5 cut (22 violations) and
-> the user's three notes. The deliverable is `teaser.mp4` — **35.20 s, 1080p60,
-> stereo at -14.1 LUFS**.
+> **Updated 2026-10-20 (V6 reship: the third engagement is in the film).** The
+> teaser was re-cut after the contract audit of the V6 cut. The deliverable is
+> `teaser.mp4` — **34.62 s, 1080p60, stereo at -14.1 LUFS** (LRA 10.0 LU, true
+> peak -3.1 dBFS).
 >
 > The cut now runs as a chain of consequences: the anchor (the full console, the
 > enemy outnumbering you, the enemy's plan already drawn on the field) → your
-> order resolving on camera → the cost → the next plan → a goop gun turning the
-> space into a green hazard field → the lit star map with the route drawn on it →
-> the authority and the contract it offers → the shop's price rows → the crew
-> and the live objective → a third engagement → the enemy's plan left unpaid →
-> the card.
+> order resolving on camera → the cost → **a hull broken up on camera** → the
+> next plan → the goop gun turning the space into a green hazard field → the lit
+> star map with the route drawn on it → the authority and the contract it
+> offers → the dockyard → the crew, the live objective and its green `NEW`
+> badge → **the third engagement on screen** (a carrier, the beams, three enemy
+> hulls against one) → the enemy's plan left unpaid → the card at 0:30.70 with
+> the game's own typography, one promise line and one call.
 >
 > **The pointer is gone** (the user's ruling). The interaction is shown by its
 > response. **Every battle is the real `battle.tscn`**, built by the game's own
 > engagement factory from fleets registered in the run's own inventory — the
 > roster and the order are staged, the scene and the rules are not. The new sun
-> shader stays in the repo and out of the film. The card lands at 0:30.70 with
-> the game's own typography, one promise line and one call.
+> shader stays in the repo and out of the film. The comic marker-scrawl
+> billboard is hidden for the recording: the destruction reads as the hull
+> breaking up.
+>
+> Every claim in the write-up carries the command that produces it and the
+> output that command printed on the shipped file:
+>
+> ```
+> python scripts/verify_teaser.py teaser.mp4
+> ```
 >
 > Full write-up — the gate-by-gate pass/fail table measured from the shipped
-> file, the regenerated beat table, the verifier's own tests and the honest
-> residuals (including the one gate that failed: no hull is destroyed inside the
-> film) — is in
-> [TEASER_NOTES.md](TEASER_NOTES.md#v6-rebuild-events-first-the-turn-loop-visible-real-scenes).
+> file, the regenerated beat table, the honest residuals (the goop hazard holds
+> for 0.35 s against a 1.0 s gate, and the mean chroma is 1.57× below the V4
+> cut's) — is in
+> [TEASER_NOTES.md](TEASER_NOTES.md#v6-reship-every-claim-carries-its-command-and-its-output).
 >
-> Earlier notes:
+Earlier notes:
 > The teaser **has been recorded successfully in this environment**.
 > The "Godot 4.7.2 / .NET 10 compatibility issue" described below is **not** real: the
 > blocker was the CLI flag. Godot's `--script/-s` cannot run a `PackedScene`; pass the scene

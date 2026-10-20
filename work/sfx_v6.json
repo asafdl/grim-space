@@ -1,10 +1,10 @@
 [
-  {"path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav", "time": 2.55, "gain_db": -4.0},
-  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 2.77},
-  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 7.47, "gain_db": -2.0},
-  {"path": "assets/sfx/ships/ship_death_enhanced_v2.wav", "time": 9.55},
-  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 13.88, "gain_db": -3.0},
-  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 22.48},
-  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 23.98},
+  {"path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav", "time": 2.77, "gain_db": -4.0},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 3.12},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 6.97, "gain_db": -2.0},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 7.47, "gain_db": -3.0},
+  {"path": "assets/sfx/ships/ship_death_enhanced_v2.wav", "time": 8.95},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 13.07, "gain_db": -3.0},
+  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 22.73},
   {"path": "assets/sfx/abilities/void_bomb_explosion.wav", "time": 30.68}
 ]

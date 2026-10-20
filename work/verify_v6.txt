@@ -1,0 +1,39 @@
+== SHOT MAP (luma-delta 0.03 + hist-corr 0.90) ==
+frames 2077  duration 34.62s  shots 23  ASL 1.51s  longest 3.94s
+boundaries: [0.0, 0.8, 2.77, 3.57, 4.52, 5.27, 5.92, 7.47, 8.22, 8.95, 9.57, 11.37, 12.58, 13.42, 14.85, 15.58, 17.08, 19.17, 21.08, 22.28, 23.55, 25.8, 28.68, 30.68]
+
+== LUMA FLOOR ==
+frames below 0.030: 2.8%  (gate: <=5%)   mean luma 0.0648
+card frames 30.70-34.60s: min 0.0327 mean 0.0382 max 0.0408 (gate: card >=0.030)
+
+== GOOP FIELD ==
+green px in 10.90-15.50s: peak 52 (= 7488 at 1920x1080)  longest run >=300px: 0.35s (gate: >=1.0s)
+
+== CHROMA (saturation > 90) ==
+at 160x90 (scale to 1920x1080: x144): peak 735 px/frame   mean 38.7 px/frame   (V4 reference, full res: peak 32554, mean 1155)
+
+== IN-SHOT EVENTS (luma transient > 0.012 inside a shot) ==
+count 37: [(0.02, 0.0135), (0.05, 0.0202), (0.07, 0.0128), (0.08, 0.0147), (0.1, 0.0143), (0.12, 0.0152), (0.13, 0.012), (0.15, 0.018), (0.17, 0.0122), (0.18, 0.0145), (0.2, 0.0176), (0.22, 0.0121), (0.23, 0.0152), (0.27, 0.0152), (0.28, 0.0146), (0.3, 0.2262), (0.32, 0.0381), (3.12, 0.0394), (6.92, 0.0412), (7.47, 0.0445), (12.58, 0.0132), (13.07, 0.0328), (15.58, 0.0125), (15.6, 0.0904), (15.63, 0.0818), (17.08, 0.0935), (19.17, 0.0992), (21.08, 0.0177), (22.28, 0.0397), (22.3, 0.0658), (22.32, 0.0178), (22.33, 0.0124), (22.73, 0.0293), (26.2, 0.0287), (26.23, 0.0137), (28.68, 0.0179), (30.68, 0.0316)]
+
+== SFX CAUSATION (work/sfx_v6.json vs the nearest visible change) ==
+    2.77s lightning_cannon_mount_charge.wav  nearest transient 2.77  delta 0.00s OK
+    3.12s lightning_cannon_hit.wav           nearest transient 3.12  delta 0.00s OK
+    6.97s lightning_cannon_hit.wav           nearest transient 6.92  delta 0.05s OK
+    7.47s lightning_cannon_hit.wav           nearest transient 7.47  delta 0.00s OK
+    8.95s ship_death_enhanced_v2.wav         nearest transient 8.95  delta 0.00s OK
+   13.07s lightning_cannon_hit.wav           nearest transient 13.07  delta 0.00s OK
+   22.73s menu_hover_click.wav               nearest transient 22.73  delta 0.00s OK
+   30.68s void_bomb_explosion.wav            nearest transient 30.68  delta 0.00s OK
+
+== AUDIO ==
+integrated -14.1 LUFS  true peak -3.1 dBFS  LRA 10.0 LU
+loudest second 31s (-7.0 dB RMS); the last 3 s start at 31s
+silence: [Parsed_silencedetect_0 @ 00000286d46efb40] silence_start: 28.309958 | [Parsed_silencedetect_0 @ 00000286d46efb40] silence_end: 30.209958 | silence_duration: 1.9
+
+== MICROTRAILER (six 1s samples, 232x130) ==
+   0.70s  mean luma 0.0699  max 230
+   1.70s  mean luma 0.0933  max 230
+   7.50s  mean luma 0.0602  max 189
+   8.60s  mean luma 0.0823  max 255
+  18.50s  mean luma 0.1536  max 240
+  19.20s  mean luma 0.0538  max 105

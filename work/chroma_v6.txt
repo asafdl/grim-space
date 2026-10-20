@@ -1,0 +1,2 @@
+V6: peak 109694 px/frame   mean 13424.8 px/frame
+V4: peak 529789 px/frame   mean 21078.7 px/frame

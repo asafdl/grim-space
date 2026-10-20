@@ -12,6 +12,7 @@ using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Scene;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
@@ -81,23 +82,27 @@ public partial class TeaserController : Node
 	private const float AnchorEnd = 2.80f;
 	private const float CommitEnd = 5.10f;
 	private const float LossEnd = 10.60f;
-	private const float PlanEnd = 11.90f;
-	private const float GoopEnd = 13.90f;
-	private const float GoopFieldEnd = 15.50f;
-	private const float MapEnd = 18.50f;
-	private const float BoardEnd = 20.50f;
-	private const float ContractEnd = 22.50f;
-	private const float ShopEnd = 24.00f;
-	private const float CrewEnd = 26.00f;
-	private const float CarrierEnd = 28.70f;
+	private const float PlanEnd = 12.00f;
+	private const float GoopEnd = 13.60f;
+	private const float GoopFieldEnd = 15.60f;
+	private const float MapEnd = 17.10f;
+	private const float BoardEnd = 19.15f;
+	private const float ContractEnd = 21.10f;
+	private const float ShopEnd = 22.30f;
+	private const float CrewEnd = 23.54f;
+	private const float CarrierEnd = 26.20f;
+	private const float CarrierWideEnd = 28.70f;
 	private const float DebtEnd = 30.70f;
-	private const float TitleEnd = 35.15f;
+	private const float TitleEnd = 34.60f;
 
 	// The card has to land inside the industry end-card window and hold.
 	private const float TitleOnset = 30.70f;
 
 	// ---- camera -------------------------------------------------------------
 	private const float PlayerDistance = 9.5f;
+
+	/// <summary>The goop beat is filmed close: the hazard is a small patch.</summary>
+	private const float GoopDistance = 7f;
 	private const float PlayerYaw = 0.20f;
 	private const float PlayerPitch = 0.20f;
 	private const float PlayerRoll = -0.10f;
@@ -130,6 +135,8 @@ public partial class TeaserController : Node
 	private BattleController? _battle;
 	private Task? _battleSimulation;
 	private readonly List<BattleController> _retiredBattles = [];
+	private readonly List<CancellationTokenSource> _retiredCancels = [];
+	private string? _acceptedContractId;
 	private CancellationTokenSource? _battleCancel;
 
 	private readonly HashSet<string> _knownUnits = new(StringComparer.Ordinal);
@@ -222,7 +229,6 @@ public partial class TeaserController : Node
 			await RunShopBeat();
 			await RunCrewBeat();
 			await RunCarrierBeat();
-			await RunDebtBeat();
 			await RunTitleBeat();
 		}
 		catch (Exception error)
@@ -334,7 +340,7 @@ public partial class TeaserController : Node
 			"teaser-goop",
 			[BattleType.IndustrialGooper, BattleType.Fighter]));
 
-		FrameActingShip(EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		FrameUnit(_battle?.Battle.PlayerId, GoopDistance, PlayerYaw, PlayerPitch, PlayerRoll);
 		await WaitForPlayerTurnAsync(1.2f);
 
 		_battle?.RequestAbilityMode(EPlayerMode.GoopGun, fireImmediately: false);
@@ -350,7 +356,9 @@ public partial class TeaserController : Node
 	/// </summary>
 	private async Task RunGoopFieldBeat()
 	{
-		FrameUnit(FindEnemyUnitId(), WideDistance, WideYaw, WidePitch, WideRoll);
+		// The field is in front of the hull that fired it, so the camera stays
+		// on the shooter and the hazard fills the frame.
+		FrameUnit(_battle?.Battle.PlayerId, GoopDistance, PlayerYaw, PlayerPitch, PlayerRoll);
 		await HoldUntil(GoopFieldEnd);
 	}
 
@@ -431,6 +439,7 @@ public partial class TeaserController : Node
 		// Accept it through the run's own action lane, so the game reacts
 		// exactly as it does when the player accepts.
 		AcceptContract(contractId);
+		_acceptedContractId = contractId;
 
 		await HoldUntil(ContractEnd);
 	}
@@ -445,7 +454,7 @@ public partial class TeaserController : Node
 		GrantResources();
 
 		var orchestrator = Session.Instance.Run?.StarSystem;
-		for (var i = 0; i < 3; i++)
+		for (var i = 0; i < 8; i++)
 		{
 			orchestrator?.TryBumpDebugDangerProgression();
 		}
@@ -458,10 +467,7 @@ public partial class TeaserController : Node
 
 		await ToSignal(GetTree(), "process_frame");
 
-		if (dockyard.GetNodeOrNull<BaseButton>("Scene/Salesman") is { } salesman)
-		{
-			salesman.EmitSignal(BaseButton.SignalName.Pressed);
-		}
+		LightWorldForFilm(dockyard);
 
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
@@ -487,6 +493,20 @@ public partial class TeaserController : Node
 		HideMapEventHorizon(mapInstance);
 		DismissMapNarrative(mapInstance);
 		LightMapForFilm(mapInstance);
+		PushInOnMap(mapInstance, 0.8f);
+
+		// The contract became live while the authority room was on screen, so
+		// the objectives panel never saw it. The panel is the game's own: it is
+		// told about the change it missed, and it shows its own badge.
+		if (_acceptedContractId is { } contractId
+			&& mapInstance.GetNodeOrNull<StrategicHud>("StrategicHud") is { } strategicHud)
+		{
+			strategicHud.Objectives.NotifyContractStateChanged(contractId, EContractStatus.Active);
+		}
+
+		// The objectives panel and its badge are on screen first; the fleet
+		// panel only goes over them after the badge has had its time.
+		await HoldUntil(CrewEnd - 0.8f);
 
 		if (mapInstance.GetNodeOrNull<StrategicHud>("StrategicHud") is { } hud)
 		{
@@ -494,8 +514,6 @@ public partial class TeaserController : Node
 		}
 
 		await ToSignal(GetTree(), "process_frame");
-		await ToSignal(GetTree(), "process_frame");
-
 		await HoldUntil(CrewEnd);
 	}
 
@@ -504,10 +522,16 @@ public partial class TeaserController : Node
 	/// </summary>
 	private async Task RunCarrierBeat()
 	{
+		// The third engagement: a bigger hull, the beams, three enemy hulls
+		// against one. The first shot is the shot the player gives.
 		await StartBattle(BuildStagedEncounter(
 			CarrierSeed,
-			"teaser-carrier",
+			"teaser-carrier-a",
 			[BattleType.Carrier, BattleType.Fighter, BattleType.IndustrialGooper]));
+
+		// The world layer (the map, the panels) is dropped: from here to the
+		// card the film is the fight and nothing else.
+		await CutToBattle();
 
 		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
 		await WaitForPlayerTurnAsync(1.2f);
@@ -517,16 +541,22 @@ public partial class TeaserController : Node
 		CommitOrder();
 
 		await HoldUntil(CarrierEnd);
-	}
 
-	/// <summary>
-	/// The debt: the enemy's plan, drawn across the field and left unanswered.
-	/// This is the promise the film ends on.
-	/// </summary>
-	private async Task RunDebtBeat()
-	{
+		// The second shot: a fresh field, the enemy force counted, and the
+		// enemy's plan drawn and left unanswered.
+		await StartBattle(BuildStagedEncounter(
+			CarrierSeed + 1,
+			"teaser-carrier-b",
+			[BattleType.Carrier, BattleType.Fighter, BattleType.IndustrialGooper]));
+
+		await CutToBattle();
+
 		FrameUnit(FindEnemyUnitId(), WideDistance, WideYaw, WidePitch, WideRoll);
+		await WaitForPlayerTurnAsync(1.2f);
+		await HoldUntil(CarrierWideEnd);
 
+		// The debt: the enemy's plan, drawn across the field, unanswered.
+		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
 		await HoldUntil(DebtEnd);
 	}
 
@@ -536,8 +566,10 @@ public partial class TeaserController : Node
 	/// </summary>
 	private async Task RunTitleBeat()
 	{
-		// The fight keeps running behind the card.
+		// The fight keeps running behind the card, with the world labels off:
+		// nothing may print through the wordmark.
 		_battle?.Hud.SetChromeVisible(false);
+		HideWorldLabels();
 
 		await CutToBattle();
 
@@ -665,6 +697,27 @@ public partial class TeaserController : Node
 			HideTree(sun);
 		}
 
+		// The battle is lit for the recording: the stock exposure leaves most
+		// of the frame under the luma floor, and the film's events are the
+		// things that should carry the brightness.
+		foreach (var environment in battleInstance
+			.FindChildren("*", "WorldEnvironment", true, false)
+			.OfType<WorldEnvironment>())
+		{
+			if (environment.Environment is not { } settings)
+				continue;
+
+			settings.AmbientLightEnergy = 1.60f;
+			settings.AmbientLightColor = new Color(0.38f, 0.42f, 0.54f);
+			settings.TonemapExposure = 3.40f;
+
+			// The sky is most of the frame. Lifted, the field reads as space
+			// instead of as a black rectangle, and the events have something to
+			// happen against.
+			if (settings.Sky?.SkyMaterial is PanoramaSkyMaterial sky)
+				sky.EnergyMultiplier = 8.0f;
+		}
+
 		_knownUnits.Clear();
 		_lastPositions.Clear();
 		_revealArmed = false;
@@ -689,10 +742,18 @@ public partial class TeaserController : Node
 			return;
 
 		_battleCancel = new CancellationTokenSource();
-		await _battle!.RunAiVsAiAsync(
-			maxTurns: 8,
-			onTurnLog: (turn, msg) => GD.Print($"[Teaser Battle] Turn {turn}: {msg}"),
-			cancellationToken: _battleCancel.Token);
+		try
+		{
+			await _battle!.RunAiVsAiAsync(
+				maxTurns: 8,
+				onTurnLog: (turn, msg) => GD.Print($"[Teaser Battle] Turn {turn}: {msg}"),
+				cancellationToken: _battleCancel.Token);
+		}
+		catch (ObjectDisposedException)
+		{
+			// The battle was retired mid-turn: its node is gone and the
+			// simulation it was running on has been disposed with it.
+		}
 	}
 
 	/// <summary>
@@ -1022,8 +1083,10 @@ public partial class TeaserController : Node
 	{
 		if (_battleCancel is not null)
 		{
+			// Cancelled, not disposed: the retired battle is still awaiting on
+			// this token, and disposing it under that await throws.
 			_battleCancel.Cancel();
-			_battleCancel.Dispose();
+			_retiredCancels.Add(_battleCancel);
 			_battleCancel = null;
 		}
 
@@ -1042,6 +1105,13 @@ public partial class TeaserController : Node
 
 	private async Task ReleaseRetiredBattles()
 	{
+		foreach (var cancel in _retiredCancels)
+		{
+			cancel.Dispose();
+		}
+
+		_retiredCancels.Clear();
+
 		foreach (var battle in _retiredBattles)
 		{
 			if (GodotObject.IsInstanceValid(battle))
@@ -1282,6 +1352,46 @@ public partial class TeaserController : Node
 		var theme = GD.Load<Theme>("res://assets/ui/themes/theatrical_theme.tres");
 		var overlay = GetNode<Node>("Overlay");
 
+		// The scrim: the world behind the card is the live field, and the name
+		// has to be read over whatever happens to be in frame. It is a soft
+		// radial falloff, so it darkens the type without drawing a box.
+		var falloff = new Gradient
+		{
+			Offsets = new[] { 0.0f, 0.55f, 1.0f },
+			Colors = new[]
+			{
+				new Color(0.02f, 0.03f, 0.05f, 0.34f),
+				new Color(0.02f, 0.03f, 0.05f, 0.20f),
+				new Color(0.02f, 0.03f, 0.05f, 0.0f),
+			},
+		};
+
+		var scrim = new TextureRect
+		{
+			Texture = new GradientTexture2D
+			{
+				Gradient = falloff,
+				Fill = GradientTexture2D.FillEnum.Radial,
+				FillFrom = new Vector2(0.5f, 0.5f),
+				FillTo = new Vector2(1.0f, 0.5f),
+				Width = 256,
+				Height = 256,
+			},
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.Scale,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			AnchorLeft = 0.5f,
+			AnchorRight = 0.5f,
+			AnchorTop = 0.5f,
+			AnchorBottom = 0.5f,
+			OffsetLeft = -700f,
+			OffsetRight = 700f,
+			OffsetTop = -390f,
+			OffsetBottom = 240f,
+		};
+		overlay.AddChild(scrim);
+		overlay.MoveChild(scrim, 0);
+
 		_promiseText = new Label
 		{
 			Text = "THE VOID TAKES PAYMENT IN HULLS",
@@ -1316,13 +1426,13 @@ public partial class TeaserController : Node
 		_titleText.AnchorBottom = 0.5f;
 		_titleText.OffsetLeft = 0f;
 		_titleText.OffsetRight = 0f;
-		_titleText.OffsetTop = -230f;
-		_titleText.OffsetBottom = -40f;
+		_titleText.OffsetTop = -300f;
+		_titleText.OffsetBottom = -30f;
 		_titleText.HorizontalAlignment = HorizontalAlignment.Center;
 		_titleText.VerticalAlignment = VerticalAlignment.Center;
 		_titleText.LabelSettings = new LabelSettings
 		{
-			FontSize = 132,
+			FontSize = 112,
 			FontColor = new Color(0.97f, 0.98f, 1f),
 			OutlineSize = 18,
 			OutlineColor = new Color(0f, 0f, 0f, 0.95f),
@@ -1336,11 +1446,11 @@ public partial class TeaserController : Node
 		_promiseText.AnchorBottom = 0.5f;
 		_promiseText.OffsetLeft = 0f;
 		_promiseText.OffsetRight = 0f;
-		_promiseText.OffsetTop = -20f;
-		_promiseText.OffsetBottom = 40f;
+		_promiseText.OffsetTop = -10f;
+		_promiseText.OffsetBottom = 50f;
 		_promiseText.LabelSettings = new LabelSettings
 		{
-			FontSize = 40,
+			FontSize = 36,
 			FontColor = new Color(0.86f, 0.90f, 0.96f),
 			OutlineSize = 10,
 			OutlineColor = new Color(0f, 0f, 0f, 0.92f),
@@ -1352,12 +1462,12 @@ public partial class TeaserController : Node
 		_callText.AnchorBottom = 0.5f;
 		_callText.OffsetLeft = 0f;
 		_callText.OffsetRight = 0f;
-		_callText.OffsetTop = 60f;
-		_callText.OffsetBottom = 120f;
+		_callText.OffsetTop = 70f;
+		_callText.OffsetBottom = 130f;
 		_callText.LabelSettings = new LabelSettings
 		{
-			FontSize = 30,
-			FontColor = new Color(0.70f, 0.82f, 0.95f),
+			FontSize = 34,
+			FontColor = new Color(0.92f, 0.95f, 1.00f),
 			OutlineSize = 8,
 			OutlineColor = new Color(0f, 0f, 0f, 0.9f),
 		};
@@ -1365,7 +1475,7 @@ public partial class TeaserController : Node
 
 	// ---- helpers ------------------------------------------------------------
 
-	private void PushInOnMap(Node mapInstance)
+	private void PushInOnMap(Node mapInstance, float seconds = 2.0f)
 	{
 		if (mapInstance.GetNodeOrNull<MapCamera>("CameraPivot/SpringArm3D/Camera3D") is not { } camera)
 			return;
@@ -1378,9 +1488,9 @@ public partial class TeaserController : Node
 				Pivot = pose.Pivot,
 				Yaw = pose.Yaw + 0.45f,
 				Pitch = Mathf.Max(pose.Pitch - 0.02f, 0.20f),
-				Distance = pose.Distance * 1.15f,
+				Distance = pose.Distance * 0.35f,
 			},
-			2.0f);
+			seconds);
 	}
 
 	/// <summary>
@@ -1396,16 +1506,62 @@ public partial class TeaserController : Node
 			if (environment.Environment is not { } settings)
 				continue;
 
-			settings.AmbientLightEnergy = 0.55f;
-			settings.AmbientLightColor = new Color(0.34f, 0.38f, 0.48f);
-			settings.TonemapExposure = 1.35f;
+			settings.AmbientLightEnergy = 1.80f;
+			settings.AmbientLightColor = new Color(0.38f, 0.42f, 0.54f);
+			settings.TonemapExposure = 3.60f;
+
+			if (settings.Sky?.SkyMaterial is PanoramaSkyMaterial sky)
+				sky.EnergyMultiplier = 8.0f;
 		}
 
 		foreach (var light in mapInstance
 			.FindChildren("*", "DirectionalLight3D", true, false)
 			.OfType<DirectionalLight3D>())
 		{
-			light.LightEnergy = 1.35f;
+			light.LightEnergy = 2.2f;
+		}
+	}
+
+	/// <summary>
+	/// Lifts a world scene for the recording: the film's frames have to sit
+	/// above the luma floor, and the stock lighting leaves them under it.
+	/// </summary>
+	private static void LightWorldForFilm(Node worldInstance)
+	{
+		foreach (var environment in worldInstance
+			.FindChildren("*", "WorldEnvironment", true, false)
+			.OfType<WorldEnvironment>())
+		{
+			if (environment.Environment is not { } settings)
+				continue;
+
+			settings.AmbientLightEnergy = 1.80f;
+			settings.AmbientLightColor = new Color(0.38f, 0.42f, 0.54f);
+			settings.TonemapExposure = 3.60f;
+
+			if (settings.Sky?.SkyMaterial is PanoramaSkyMaterial sky)
+				sky.EnergyMultiplier = 8.0f;
+		}
+
+		foreach (var light in worldInstance
+			.FindChildren("*", "DirectionalLight3D", true, false)
+			.OfType<DirectionalLight3D>())
+		{
+			light.LightEnergy = 3.2f;
+		}
+
+		foreach (var light in worldInstance
+			.FindChildren("*", "OmniLight3D", true, false)
+			.OfType<OmniLight3D>())
+		{
+			light.LightEnergy *= 4.0f;
+		}
+
+		foreach (var light in worldInstance
+			.FindChildren("*", "SpotLight3D", true, false)
+			.OfType<SpotLight3D>())
+		{
+			light.LightEnergy *= 4.0f;
 		}
 	}
 
@@ -1461,6 +1617,25 @@ public partial class TeaserController : Node
 
 		orchestrator.PlayerAgent?.TryEnqueue(
 			[new CompleteNarrativeAction(RunState.PlayerFleetUnitId, narrativeId)]);
+	}
+
+	/// <summary>
+	/// Hides the in-world labels (the target reticle and the range tether) so
+	/// nothing prints through the closing wordmark.
+	/// </summary>
+	private void HideWorldLabels()
+	{
+		if (_battle is null)
+			return;
+
+		foreach (var label in _battle.GetNode<Node>(".").FindChildren("*", "CanvasItem", true, false)
+			.OfType<CanvasItem>())
+		{
+			if (label is EnemyTargetInfoOverlay)
+				label.Visible = false;
+			else if (label.GetType().Name == "EnemyRangeTetherView")
+				label.Visible = false;
+		}
 	}
 
 	/// <summary>Hides a node and everything under it.</summary>
@@ -1549,5 +1724,23 @@ public partial class TeaserController : Node
 	{
 		_elapsed += delta;
 		TrackField();
+		HideMarkerScrawl();
+	}
+
+	/// <summary>
+	/// The destruction in this film is the hull breaking up, not a hand-drawn
+	/// word on the screen. The game's marker billboard is hidden for the
+	/// recording so the wreck reads as the wreck.
+	/// </summary>
+	private void HideMarkerScrawl()
+	{
+		if (_battle is null)
+			return;
+
+		foreach (var node in _battle.GetNode<Node>(".").FindChildren("ShipDeathBoom", "Node3D", true, false)
+			.OfType<Node3D>())
+		{
+			node.Visible = false;
+		}
 	}
 }

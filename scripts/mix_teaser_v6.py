@@ -1,13 +1,13 @@
 """Mix the V6 teaser: three music states, the game's SFX on measured frames, -14 LUFS.
 
-The music bed is the same track the previous cuts used, but it is cut into
-three states with a deliberate drop before the ending, so the film has an arc:
+The music bed is cut into three states with a deliberate drop before the
+ending, so the film has an arc:
 
     state A  0.00 - 14.0   a low bed, under the battle
     state B  14.0 - 26.0   the bed opens up, under the run layer
     state C  26.0 - 28.3   the peak
     the drop 28.3 - 30.2   near-silence, the inhale before the card
-    state C  30.2 - 35.15  the peak, and the card
+    state C  30.2 - end    the peak, and the card
 
 Every SFX is the game's own file and is placed on a frame where the picture
 actually changes, so no sound sits over a frozen frame.
@@ -41,15 +41,47 @@ def measure_lufs(path: Path) -> tuple[float, float]:
     return integrated, peak
 
 
+# The music states, in film time: the window, the level in dB.
+MUSIC_STATES = [
+    (0.0, 14.0, -8.0),
+    (14.0, 26.0, -3.0),
+    (26.0, 28.3, 0.0),
+    (28.3, 30.2, -40.0),
+    (30.2, None, 2.0),
+]
+
+
 def build_music(track: str, start: float, duration: float, out: Path) -> None:
-    states = (
-        "if(lt(t,14),-8,if(lt(t,26),-3,if(lt(t,28.3),0,if(lt(t,30.2),-26,2))))"
+    """Cuts the track into the film's states.
+
+    The states are built by trimming each window out of the track and
+    concatenating the windows, not by evaluating a volume expression over
+    the timeline: a seek leaves the timestamps at the track's own time, and
+    an expression would read the whole bed as "after the end".
+    """
+    chains = []
+    labels = []
+    for index, (from_s, to_s, gain) in enumerate(MUSIC_STATES):
+        window_start = start + from_s
+        window_end = start + (to_s if to_s is not None else duration)
+        chains.append(
+            f"[0:a]atrim=start={window_start:.3f}:end={window_end:.3f},"
+            f"asetpts=PTS-STARTPTS,volume={gain:.1f}dB[a{index}]"
+        )
+        labels.append(f"[a{index}]")
+
+    filter_complex = (
+        ";".join(chains)
+        + ";"
+        + "".join(labels)
+        + f"concat=n={len(MUSIC_STATES)}:v=0:a=1,afade=t=in:st=0:d=0.4[out]"
     )
+
     run([
         "ffmpeg", "-y", "-v", "error",
-        "-ss", f"{start:.3f}", "-t", f"{duration:.3f}",
         "-i", str(MUSIC / track),
-        "-af", f"volume=volume='{states}':eval=frame,afade=t=in:st=0:d=0.4",
+        "-filter_complex", filter_complex,
+        "-map", "[out]",
         "-ar", "48000", "-ac", "2", str(out),
     ])
 
@@ -134,23 +166,33 @@ def main() -> None:
     gain = TARGET_LUFS - integrated
     print(f"raw mix measured {integrated:.2f} LUFS -> applying {gain:+.2f} dB")
 
+    # The correction and the limiter are iterated from the raw mix: the
+    # limiter takes the level back down, so one pass is not enough to land on
+    # the target. The limiter does not auto-level, so the ceiling holds.
     limited = work / "limited.wav"
-    run([
-        "ffmpeg", "-y", "-v", "error",
-        "-i", str(raw),
-        "-af", f"volume={gain:.2f}dB,alimiter=limit=0.89",
-        "-ar", "48000", "-ac", "2", str(limited),
-    ])
+    total_gain = gain
+    for attempt in range(5):
+        run([
+            "ffmpeg", "-y", "-v", "error",
+            "-i", str(raw),
+            "-af", f"volume={total_gain:.2f}dB,alimiter=limit=0.62:level=disabled",
+            "-ar", "48000", "-ac", "2", str(limited),
+        ])
 
-    limited_i, limited_p = measure_lufs(limited)
-    correction = TARGET_LUFS - limited_i
-    print(f"limited mix measured {limited_i:.2f} LUFS -> correcting {correction:+.2f} dB")
+        limited_i, limited_p = measure_lufs(limited)
+        correction = TARGET_LUFS - limited_i
+        print(f"pass {attempt}: {limited_i:.2f} LUFS, peak {limited_p:.1f} dBFS -> "
+              f"correcting {correction:+.2f} dB")
+        if abs(correction) < 0.05:
+            break
+
+        total_gain += correction
 
     run([
         "ffmpeg", "-y", "-v", "error",
         "-i", str(video), "-i", str(limited),
         "-filter_complex",
-        f"[1:a]volume={correction:.2f}dB[a]",
+        f"[1:a]alimiter=limit=0.62:level=disabled[a]",
         "-map", "0:v", "-map", "[a]",
         "-c:v", "libx264", "-preset", "medium", "-crf", "21",
         "-pix_fmt", "yuv420p", "-profile:v", "high",
