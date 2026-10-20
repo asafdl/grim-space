@@ -31,6 +31,9 @@ public sealed class PilotRegistryTests
 		Assert.Equal(pilot, Assert.Single(run.PilotRegistry.Active));
 		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
 		Assert.Empty(pilot.LearnedSkills);
+		Assert.Equal(EPilotBackgroundId.Unspecified, pilot.BackgroundId);
+		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
+		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
 	}
 
 	[Fact]
@@ -229,6 +232,9 @@ public sealed class PilotRegistryTests
 
 		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
 		Assert.Equal(175, restored.ExperiencePoints);
+		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
+		Assert.Equal(pilot.PositiveQuirkId, restored.PositiveQuirkId);
+		Assert.Equal(pilot.NegativeQuirkId, restored.NegativeQuirkId);
 	}
 
 	[Fact]

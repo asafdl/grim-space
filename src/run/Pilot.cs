@@ -32,6 +32,9 @@ public sealed class Pilot
 	public string Id { get; }
 	public string Name { get; }
 	public string PortraitId { get; }
+	public EPilotBackgroundId BackgroundId { get; }
+	public EPilotQuirkId PositiveQuirkId { get; }
+	public EPilotQuirkId NegativeQuirkId { get; }
 	public string? AssignedShipId { get; }
 	public bool IsActive { get; }
 	public int ExperiencePoints { get; }
@@ -42,6 +45,9 @@ public sealed class Pilot
 		string id,
 		string name,
 		string portraitId,
+		EPilotBackgroundId backgroundId,
+		EPilotQuirkId positiveQuirkId,
+		EPilotQuirkId negativeQuirkId,
 		string? assignedShipId,
 		bool isActive,
 		int experiencePoints,
@@ -54,10 +60,14 @@ public sealed class Pilot
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
 		ArgumentNullException.ThrowIfNull(learnedSkills);
+		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
 
 		Id = id;
 		Name = name;
 		PortraitId = portraitId;
+		BackgroundId = backgroundId;
+		PositiveQuirkId = positiveQuirkId;
+		NegativeQuirkId = negativeQuirkId;
 		AssignedShipId = assignedShipId;
 		IsActive = isActive;
 		ExperiencePoints = experiencePoints;
@@ -73,6 +83,9 @@ public sealed class Pilot
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
+			EPilotBackgroundId.Unspecified,
+			EPilotQuirkId.PlaceholderPositive,
+			EPilotQuirkId.PlaceholderNegative,
 			assignedShipId,
 			false,
 			0,
@@ -85,6 +98,9 @@ public sealed class Pilot
 			Id,
 			Name,
 			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
 			AssignedShipId,
 			IsActive,
 			experiencePoints,
@@ -96,6 +112,9 @@ public sealed class Pilot
 			Id,
 			Name,
 			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
 			assignedShipId,
 			isActive,
 			ExperiencePoints,
@@ -107,6 +126,9 @@ public sealed class Pilot
 			Id,
 			Name,
 			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
 			AssignedShipId,
 			isActive,
 			ExperiencePoints,
@@ -132,6 +154,9 @@ public sealed class Pilot
 			Id,
 			Name,
 			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
 			AssignedShipId,
 			IsActive,
 			ExperiencePoints,
@@ -144,6 +169,9 @@ public sealed class Pilot
 			Id,
 			Name,
 			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
 			AssignedShipId,
 			IsActive,
 			ExperiencePoints,
@@ -159,6 +187,9 @@ public sealed class Pilot
 			dto.Id,
 			dto.Name,
 			dto.PortraitId,
+			dto.BackgroundId,
+			dto.PositiveQuirkId,
+			dto.NegativeQuirkId,
 			dto.AssignedShipId,
 			dto.IsActive,
 			dto.ExperiencePoints,
@@ -171,10 +202,33 @@ public sealed class Pilot
 			Id,
 			Name,
 			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
 			AssignedShipId,
 			ExperiencePoints,
 			ClaimedLevel,
 			LearnedSkills,
 			IsActive,
 			IsActive ? activeOrder : -1);
+
+	private static void ValidateIdentity(
+		EPilotBackgroundId backgroundId,
+		EPilotQuirkId positiveQuirkId,
+		EPilotQuirkId negativeQuirkId)
+	{
+		PilotBackgroundCatalog.Get(backgroundId);
+
+		var positiveQuirk = PilotQuirkCatalog.Get(positiveQuirkId);
+		if (positiveQuirk.Polarity != EPilotQuirkPolarity.Positive)
+			throw new ArgumentException(
+				$"Pilot positive quirk '{positiveQuirkId}' has polarity '{positiveQuirk.Polarity}'.",
+				nameof(positiveQuirkId));
+
+		var negativeQuirk = PilotQuirkCatalog.Get(negativeQuirkId);
+		if (negativeQuirk.Polarity != EPilotQuirkPolarity.Negative)
+			throw new ArgumentException(
+				$"Pilot negative quirk '{negativeQuirkId}' has polarity '{negativeQuirk.Polarity}'.",
+				nameof(negativeQuirkId));
+	}
 }

@@ -53,4 +53,31 @@ public readonly record struct PilotCapabilityGrant(
 
 		return grants;
 	}
+
+	public static IReadOnlyList<PilotCapabilityGrant> FromQuirks(
+		string pilotId,
+		IEnumerable<EPilotQuirkId> quirkIds,
+		Func<EPilotCapabilityId, bool>? capabilityMatches = null)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		ArgumentNullException.ThrowIfNull(quirkIds);
+		var grants = new List<PilotCapabilityGrant>();
+		foreach (var quirkId in quirkIds)
+		{
+			foreach (var capabilityId in PilotQuirkCatalog.Get(quirkId).CapabilityIds)
+			{
+				if (capabilityMatches is not null && !capabilityMatches(capabilityId))
+					continue;
+
+				grants.Add(new PilotCapabilityGrant(
+					capabilityId,
+					pilotId,
+					new PilotCapabilitySource(
+						EPilotCapabilitySourceKind.Quirk,
+						quirkId.ToString())));
+			}
+		}
+
+		return grants;
+	}
 }

@@ -4,6 +4,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
@@ -15,6 +16,21 @@ namespace GrimSpace.Tests.BattleRuntime;
 [BattleTestSuite]
 public sealed class ActorRuntimeModifierTests
 {
+	private sealed record TaggedLightningAttackAction(string ActorId) : IAction
+	{
+		private static readonly string[] ActionTags =
+			[BattleActionTags.Attack, BattleActionTags.Lightning];
+
+		IReadOnlyList<string> IAction.Tags => ActionTags;
+	}
+
+	private sealed record AttackOnlyTaggedAction(string ActorId) : IAction
+	{
+		private static readonly string[] ActionTags = [BattleActionTags.Attack];
+
+		IReadOnlyList<string> IAction.Tags => ActionTags;
+	}
+
 	[Fact]
 	public void NoModifiers_PassThroughEffects()
 	{
@@ -100,6 +116,48 @@ public sealed class ActorRuntimeModifierTests
 			effects);
 
 		Assert.Equal(0, ((ApplyAreaDamageEffect)modified[0]).ShieldDamageBonus);
+	}
+
+	[Fact]
+	public void TaggedLightningAttack_AppliesIonizedShieldBonusWithoutLightningCannonAction()
+	{
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
+		var battle = CreateBattle(runtime);
+		var areaDamage = new ApplyAreaDamageEffect(
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord>(),
+			2,
+			Coord.Zero);
+
+		var modified = runtime.ActionEffects.Apply(
+			new TaggedLightningAttackAction("player"),
+			battle.Engine.World,
+			runtime,
+			[areaDamage]);
+
+		Assert.Equal(1, Assert.IsType<ApplyAreaDamageEffect>(modified[0]).ShieldDamageBonus);
+	}
+
+	[Fact]
+	public void AttackOnlyTaggedAction_SkipsIonizedShieldBonusOnAreaDamage()
+	{
+		var runtime = ActorRuntime.From(
+			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
+		var battle = CreateBattle(runtime);
+		var areaDamage = new ApplyAreaDamageEffect(
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord>(),
+			2,
+			Coord.Zero);
+
+		var modified = runtime.ActionEffects.Apply(
+			new AttackOnlyTaggedAction("player"),
+			battle.Engine.World,
+			runtime,
+			[areaDamage]);
+
+		Assert.Equal(0, Assert.IsType<ApplyAreaDamageEffect>(modified[0]).ShieldDamageBonus);
 	}
 
 	[Fact]

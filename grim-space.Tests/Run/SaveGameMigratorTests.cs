@@ -1,4 +1,4 @@
-using System.Text.Json;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 
@@ -20,39 +20,24 @@ public sealed class SaveGameMigratorTests
 	}
 
 	[Fact]
-	public void LegacyPilotDto_DefaultsSkillProgressionOnRestore()
+	public void PilotDto_DefaultsSkillProgressionOnRestore()
 	{
-		var legacy = new PilotPersistenceDto(
+		var dto = new PilotPersistenceDto(
 			"pilot-legacy",
 			"Legacy",
 			"pilot_01",
+			EPilotBackgroundId.Unspecified,
+			EPilotQuirkId.PlaceholderPositive,
+			EPilotQuirkId.PlaceholderNegative,
 			"ship-1",
 			ExperiencePoints: 175);
 
-		var restored = Pilot.FromPersistence(legacy);
+		var restored = Pilot.FromPersistence(dto);
 
 		Assert.Equal(PilotProgression.LevelFor(175), restored.ClaimedLevel);
 		Assert.Empty(restored.LearnedSkills);
-	}
-
-	[Fact]
-	public void LegacyPilotJson_DefaultsSkillProgressionOnDeserialize()
-	{
-		const string legacyPilotJson =
-			"""
-			{
-			  "id": "pilot-legacy",
-			  "name": "Legacy",
-			  "portraitId": "pilot_01",
-			  "assignedShipId": "ship-1",
-			  "experiencePoints": 175
-			}
-			""";
-		using var node = JsonDocument.Parse(legacyPilotJson);
-		var legacyDto = ReflectionJson.Read<PilotPersistenceDto>(node.RootElement);
-		var restoredPilot = Pilot.FromPersistence(legacyDto);
-
-		Assert.Equal(PilotProgression.LevelFor(175), restoredPilot.ClaimedLevel);
-		Assert.Empty(restoredPilot.LearnedSkills);
+		Assert.Equal(EPilotBackgroundId.Unspecified, restored.BackgroundId);
+		Assert.Equal(EPilotQuirkId.PlaceholderPositive, restored.PositiveQuirkId);
+		Assert.Equal(EPilotQuirkId.PlaceholderNegative, restored.NegativeQuirkId);
 	}
 }

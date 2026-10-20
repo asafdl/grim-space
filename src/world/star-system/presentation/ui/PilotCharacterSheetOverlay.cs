@@ -15,14 +15,21 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string DodgeIconPath = "res://assets/ui/abilities/spin.svg";
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
+	private const string BackgroundIconPath = "res://assets/ui/pilots/background-placeholder.svg";
+	private const string PositiveQuirkIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string NegativeQuirkIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
 	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 	private const int SkillNodeSize = 60;
+	private const int IdentityIconSize = 48;
 	private const int PortraitSize = 144;
 	private const int IdentityRailWidth = 204;
 
 	private static readonly Color AvailableColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
 	private static readonly Color LockedColor = new(0.32f, 0.38f, 0.46f);
+	private static readonly Color BackgroundColor = HudPalettes.BlueCyan.Primary;
+	private static readonly Color PositiveQuirkColor = HudPalettes.Gold.Primary;
+	private static readonly Color NegativeQuirkColor = HudStyles.TextColor(HudTextRole.Danger);
 
 	private readonly ModalShell _shell;
 	private string? _pilotId;
@@ -61,7 +68,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		_shell.SetHeader(
 			HudHeaderMode.Back,
 			() => FleetManagementRequested?.Invoke(pilot.Id),
-			"← Fleet");
+			"Fleet Management");
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 		_shell.SetBody(BuildBody(pilot, canCyclePilots, assignedShip));
@@ -130,6 +137,29 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		HudStyles.ApplyTextRole(level, HudTextRole.Metadata);
 		rail.AddChild(level);
 
+		var background = PilotBackgroundCatalog.Get(pilot.BackgroundId);
+		var positiveQuirk = PilotQuirkCatalog.Get(pilot.PositiveQuirkId);
+		var negativeQuirk = PilotQuirkCatalog.Get(pilot.NegativeQuirkId);
+		var identityIcons = new HBoxContainer
+		{
+			Alignment = BoxContainer.AlignmentMode.Center,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		identityIcons.AddThemeConstantOverride("separation", 10);
+		identityIcons.AddChild(BuildIdentityIcon(
+			BackgroundIconPathFor(background.Id),
+			BackgroundColor,
+			$"Background: {background.Name}\n{background.Description}"));
+		identityIcons.AddChild(BuildIdentityIcon(
+			QuirkIconPathFor(positiveQuirk.Id),
+			PositiveQuirkColor,
+			$"Positive Quirk: {positiveQuirk.Name}\n{positiveQuirk.Description}"));
+		identityIcons.AddChild(BuildIdentityIcon(
+			QuirkIconPathFor(negativeQuirk.Id),
+			NegativeQuirkColor,
+			$"Negative Quirk: {negativeQuirk.Name}\n{negativeQuirk.Description}"));
+		rail.AddChild(identityIcons);
+
 		if (assignedShip is not null)
 		{
 			var spacer = new Control { CustomMinimumSize = new Vector2(0, 8) };
@@ -150,6 +180,40 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			requiredXp > 0 ? $"{currentXp} / {requiredXp}" : "MAX"));
 		return rail;
 	}
+
+	private static Button BuildIdentityIcon(string iconPath, Color color, string tooltip)
+	{
+		var button = new Button
+		{
+			CustomMinimumSize = new Vector2(IdentityIconSize, IdentityIconSize),
+			Icon = SvgIconLoader.Load(iconPath, color, 28),
+			ExpandIcon = false,
+			IconAlignment = HorizontalAlignment.Center,
+			VerticalIconAlignment = VerticalAlignment.Center,
+			FocusMode = FocusModeEnum.None,
+			MouseDefaultCursorShape = CursorShape.Help,
+			TooltipText = tooltip,
+		};
+		button.AddThemeStyleboxOverride("normal", IdentityIconStyle(color, 0.1f, 2));
+		button.AddThemeStyleboxOverride("hover", IdentityIconStyle(color, 0.2f, 3));
+		button.AddThemeStyleboxOverride("pressed", IdentityIconStyle(color, 0.1f, 2));
+		return button;
+	}
+
+	private static StyleBoxFlat IdentityIconStyle(Color color, float backgroundAlpha, int borderWidth) =>
+		new()
+		{
+			BgColor = new Color(color.R, color.G, color.B, backgroundAlpha),
+			BorderColor = color,
+			BorderWidthLeft = borderWidth,
+			BorderWidthTop = borderWidth,
+			BorderWidthRight = borderWidth,
+			BorderWidthBottom = borderWidth,
+			CornerRadiusTopLeft = 8,
+			CornerRadiusTopRight = 8,
+			CornerRadiusBottomLeft = 8,
+			CornerRadiusBottomRight = 8,
+		};
 
 	private Control BuildPilotCursor(int direction, bool visible)
 	{
@@ -335,6 +399,23 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotSkillId.DronesYearnForMines => SalvageIconPath,
 			EPilotSkillId.IKnowABot => BotIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(skillId), skillId, null),
+		};
+
+	private static string BackgroundIconPathFor(EPilotBackgroundId backgroundId) =>
+		backgroundId switch
+		{
+			EPilotBackgroundId.Unspecified => BackgroundIconPath,
+			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
+		};
+
+	private static string QuirkIconPathFor(EPilotQuirkId quirkId) =>
+		quirkId switch
+		{
+			EPilotQuirkId.PlaceholderPositive or EPilotQuirkId.GrantProbePositive =>
+				PositiveQuirkIconPath,
+			EPilotQuirkId.PlaceholderNegative or EPilotQuirkId.GrantProbeNegative =>
+				NegativeQuirkIconPath,
+			_ => throw new ArgumentOutOfRangeException(nameof(quirkId), quirkId, null),
 		};
 
 	private static void ApplyCircleStyle(Button button, Color color, bool learned)

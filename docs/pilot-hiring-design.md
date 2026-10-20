@@ -152,6 +152,12 @@ Good quirk space includes conditional behavior tied to positioning, damage state
 
 Quirk acquisition, mutation, treatment, replacement, and locking are deferred. A future mutable-quirk system may add those mechanics, but the first slice must not require their state or UI.
 
+## Pilot identity presentation
+
+Backgrounds, positive quirks, and negative quirks are represented by compact SVG icons wherever pilot identity is summarized. Hovering an icon explains its category, display name, description, and, for quirks, exact mechanical effect. This keeps roster and character-sheet views scannable without hiding the information needed to compare hires.
+
+Each real background and quirk has distinct icon artwork. Positive and negative quirk slots also use consistent positive/negative framing or tint, but polarity must not depend on color alone; slot placement and tooltip category remain explicit. SVG resource mapping belongs to Godot presentation code rather than the domain catalogs, which remain engine-independent.
+
 ## No pilot base stats
 
 Pilots will not initially have accuracy, defence, speed, initiative, or other upgradeable base stats.
@@ -285,10 +291,11 @@ Implementation should proceed in dependency order:
 1. Decouple owned pilots and ships from the four-pilot active deployment cap.
 2. Add immutable pilot background state and background-aware skill availability.
 3. Add exactly one persisted positive and one persisted negative quirk per pilot, without treatment or mutation mechanics.
-4. Add proposal-scoped pilot offers and the `Pilots` merchant subtype.
-5. Implement atomic pilot-plus-ship hiring and remove implicit pilot creation from ship purchasing.
-6. Split ship destruction from pilot casualty resolution.
-7. Add injuries, treatment, quirk mutation, and roster-cycling mechanics only after their rules are designed.
+4. Add SVG identity presentation and explanatory hover tooltips for backgrounds and both quirks.
+5. Add proposal-scoped pilot offers and the `Pilots` merchant subtype.
+6. Implement atomic pilot-plus-ship hiring and remove implicit pilot creation from ship purchasing.
+7. Split ship destruction from pilot casualty resolution.
+8. Add injuries, treatment, quirk mutation, and roster-cycling mechanics only after their rules are designed.
 
 Each step should preserve save/load, simulation fork behavior, action legality, and the existing authoritative ownership boundaries.
 
@@ -297,6 +304,7 @@ Each step should preserve save/load, simulation fork behavior, action legality, 
 - Initial background roster and exclusive skills.
 - Which existing skills remain shared and which backgrounds restrict them.
 - Initial positive and negative quirk catalogs.
+- Final SVG artwork for each background and quirk.
 - Number of candidates in one pilot proposal.
 - Candidate generation ranges by market tier or run progression.
 - Pilot, ship, and combined price calculation.
