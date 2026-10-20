@@ -159,10 +159,19 @@ def synth():
 
 
 def main():
+    duration = DURATION
+    out_name = 'sun_rumble.wav'
+    args = sys.argv[1:]
+    for i, arg in enumerate(args):
+        if arg == '--duration' and i + 1 < len(args):
+            duration = float(args[i + 1])
+        elif arg == '--out' and i + 1 < len(args):
+            out_name = args[i + 1]
+    globals()['DURATION'] = duration
     write_timeline()
     os.makedirs(os.path.join(ROOT, 'dist'), exist_ok=True)
     raw = os.path.join(ROOT, 'dist', 'sun_rumble_raw.wav')
-    out = os.path.join(ROOT, 'dist', 'sun_rumble.wav')
+    out = os.path.join(ROOT, 'dist', out_name)
     mix = synth()
     import wave
     with wave.open(raw, 'wb') as handle:

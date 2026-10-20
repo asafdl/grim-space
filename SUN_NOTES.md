@@ -438,6 +438,58 @@ The overlay is only hidden for captures; the game is unaffected.
 `refs/comparison/closeup_band_before_after.png` shows the banding before and
 after.
 
+### 6b addendum 2: the v3 recording
+
+The close-up clip was re-recorded from scratch after the moat, banding and
+overlay fixes.  The files in `D:\grim-space-recordings\sun_test*.mp4` from
+before that are fossils and are not the shipped look.
+
+**Provenance**
+
+| | |
+|---|---|
+| Branch state | `feature/sun-shader` at `a0acfddb` (post moat fix, post banding fix, post overlay fix) |
+| Camera | `SunTestScene` close-up mode: 2.45 star radii out, 50 deg FOV, looking along the limb |
+| Render | `./scripts/render-sun.sh "D:/grim-space-recordings/sun_v3_silent.avi" 420 --spin=0.05 --closeup` - 420 frames at 30 fps, 1920x1080, 14.000 s |
+| Audio | `python scripts/make-sun-audio.py --duration 14 --out sun_rumble_v3.wav` - the same timeline the renderer reads, so the events line up |
+| Mux | `ffmpeg -i v3_silent.mp4 -i sun_rumble_v3.wav -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -ar 48000 -af "atrim=0:14,asetpts=N/SR/TB" -shortest -movflags +faststart sun_test_v3.mp4` |
+| Output | `D:\grim-space-recordings\sun_test_v3.mp4` |
+
+The audio script is now parameterised (`--duration`, `--out`); its default is
+still 12 s, so the 12 s `sun_test.mp4` at the repository root stays
+reproducible.
+
+**Verification of the shipped file**
+
+`ffprobe` on `sun_test_v3.mp4`:
+
+| stream | codec | format | start | duration |
+|--------|-------|--------|-------|----------|
+| video | h264 | 1920x1080, 30 fps | 0.000000 | **14.000000** |
+| audio | aac | 48 kHz, mono | 0.000000 | **14.000000** |
+| container | mp4 | | | **14.000000** |
+
+Levels: **-15.9 LUFS integrated, LRA 2.2 LU, true peak -2.9 dBFS** - the
+documented target was -16 LUFS, so the soundtrack is where it says it is.
+(The decoded audio is 672000 samples = 14.000 s, peak 0.7054, rms 0.1157.
+`ffmpeg -af volumedetect` reports -91 dB for this file, which is wrong - the
+decoded samples are the truth and they match the source wav exactly.)
+
+Three evenly spaced frames were extracted from the shipped file and read:
+t = 2.33 s, 7.0 s and 11.67 s.  All three show
+
+* **no moat** - the photosphere's limb runs straight into the corona,
+* **no radial banding** - the corona is a soft isotropic mottle, no spokes,
+* **no debug HUD** - the performance label is gone (the `--capture` switch),
+* the prominence loop crossing the limb, changing shape between the frames,
+  and the photospheric texture drifting.
+
+The phenomenon beats were read separately at their event times: the flare
+pulse at **t = 1.33 s**, the CME at **t = 4.1 s** and the second flare at
+**t = 9.2 s**, each with its audio sting at the same timestamp.  The best
+frame - the flare beat with the loop crossing the limb - is
+`refs/comparison/sun_showcase_v3.png`.
+
 ---
 
 ## 7. An earlier radius calibration was wrong, and it mattered
