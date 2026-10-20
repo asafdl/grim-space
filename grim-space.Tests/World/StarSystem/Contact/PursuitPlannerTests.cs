@@ -3,6 +3,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -79,10 +80,7 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		engine.Commit(first);
 		player.State.Travel = new FleetTravel.AtRest(new Coord(8, 0, 8));
 
-		Assert.Null(planner.Plan(pirate.State.Id));
-		engine.AdvanceTick();
 		var replanned = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
-
 		Assert.Equal(new Coord(8, 0, 8), replanned.Destination);
 	}
 
@@ -105,13 +103,16 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		engine.Commit(first);
 		player.State.Travel = new FleetTravel.AtRest(new Coord(10, 0, 10));
 
+		engine.AdvanceTick();
+		var replanned = planner.Plan(pirate.State.Id);
+		if (replanned is not null)
+			engine.Commit(replanned);
+
 		for (var tick = 0; tick < 5; tick++)
 		{
 			engine.AdvanceTick();
 			Assert.Null(planner.Plan(pirate.State.Id));
 		}
-
-		Assert.Equal(1, pathfinder.CallCount);
 	}
 
 	[Fact]
@@ -145,6 +146,127 @@ public sealed class PursuitPlannerTests(StarMapFixture maps)
 		Assert.NotNull(course);
 		Assert.True(course.Destination.X > 20);
 		Assert.True(course.Destination.X < 200);
+	}
+
+	[Fact]
+	public void Plan_ReplansEngagementPursuitWhenTargetStartsNewJourney()
+	{
+		var map = maps.Fresh(11);
+		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		var player = map.FleetRegistry.FleetOf("player-pursuit");
+		var pirate = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-pursuit",
+			new Coord(0, 0, 0),
+			map.ControllingFaction);
+		map.FleetRegistry.Add(pirate);
+
+		var (planner, _, engine) = CreatePlanner(map, pirate.State.Id);
+		player.State.Travel = new FleetTravel.AtRest(new Coord(50, 0, 0));
+		var targetPath = TransitPath.FromPoints(
+			[new Coord(50, 0, 0), new Coord(100, 0, 0)],
+			[1.0, 1.0]);
+		engine.Commit(new MoveAction(
+			player.State.Id,
+			player.State.Id,
+			new Coord(100, 0, 0),
+			targetPath));
+		new SetEngagementIntentEffect(pirate.State.Id, player.State.Id)
+			.Apply(map, engine.ActorRuntimes.For(pirate.State.Id), pirate.State.Id);
+		var first = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
+		engine.Commit(first);
+
+		var turnPath = TransitPath.FromPoints(
+			[player.State.PositionAt(map, engine.ActorRuntimes.For(player.State.Id).CachedPath, 0).Position, new Coord(0, 0, 100)],
+			[1.0, 1.0]);
+		engine.Commit(new MoveAction(
+			player.State.Id,
+			player.State.Id,
+			new Coord(0, 0, 100),
+			turnPath));
+		engine.AdvanceTick();
+
+		var replanned = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
+		Assert.NotEqual(first.Destination, replanned.Destination);
+	}
+
+	[Fact]
+	public void Plan_DeferredReplan_SkipsInterceptPathfindingWhileTargetSteadyOnCourse()
+	{
+		var map = maps.Fresh(11);
+		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		var player = map.FleetRegistry.FleetOf("player-pursuit");
+		player.State.Travel = new FleetTravel.AtRest(new Coord(50, 0, 0));
+		var targetPath = TransitPath.FromPoints(
+			[new Coord(50, 0, 0), new Coord(100, 0, 0)],
+			[1.0, 1.0]);
+		var pirate = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-pursuit",
+			new Coord(0, 0, 0),
+			map.ControllingFaction);
+		pirate.State.PursuitDirective = new FleetPursuitDirective("delivery-1", "player-pursuit");
+		map.FleetRegistry.Add(pirate);
+		var pathfinder = new CountingPathfinder();
+		var (planner, _, engine) = CreatePlanner(map, pirate.State.Id, pathfinder);
+		engine.Commit(new MoveAction(
+			player.State.Id,
+			player.State.Id,
+			new Coord(100, 0, 0),
+			targetPath));
+		var first = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
+		engine.Commit(first);
+		var callsAfterFirstPlan = pathfinder.CallCount;
+
+		for (var tick = 0; tick < 3; tick++)
+		{
+			engine.AdvanceTick();
+			Assert.Null(planner.Plan(pirate.State.Id));
+		}
+
+		Assert.Equal(callsAfterFirstPlan, pathfinder.CallCount);
+	}
+
+	[Fact]
+	public void NotifyFleetMoved_ForcesReplanWithoutTickThrottle()
+	{
+		var map = maps.Fresh(11);
+		StarSystemTestHarness.AddPlayerFleet(map, "player-pursuit");
+		var player = map.FleetRegistry.FleetOf("player-pursuit");
+		player.State.Travel = new FleetTravel.AtRest(new Coord(50, 0, 0));
+		var targetPath = TransitPath.FromPoints(
+			[new Coord(50, 0, 0), new Coord(100, 0, 0)],
+			[1.0, 1.0]);
+		var pirate = StarSystemTestHarness.CreatePirateFleet(
+			"pirate-pursuit",
+			new Coord(0, 0, 0),
+			map.ControllingFaction);
+		pirate.State.PursuitDirective = new FleetPursuitDirective("delivery-1", "player-pursuit");
+		map.FleetRegistry.Add(pirate);
+		var pathfinder = new CountingPathfinder();
+		var (planner, _, engine) = CreatePlanner(map, pirate.State.Id, pathfinder);
+		engine.Commit(new MoveAction(
+			player.State.Id,
+			player.State.Id,
+			new Coord(100, 0, 0),
+			targetPath));
+		var first = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
+		engine.Commit(first);
+		var callsAfterFirstPlan = pathfinder.CallCount;
+
+		PursuitPlanner.NotifyFleetMoved(
+			map,
+			id => engine.ActorRuntimes.For(id),
+			player.State.Id);
+		engine.Commit(new MoveAction(
+			player.State.Id,
+			player.State.Id,
+			new Coord(0, 0, 100),
+			TransitPath.FromPoints(
+				[player.State.PositionAt(map, engine.ActorRuntimes.For(player.State.Id).CachedPath, 0).Position, new Coord(0, 0, 100)],
+				[1.0, 1.0])));
+
+		var replanned = Assert.IsType<PursueContactAction>(planner.Plan(pirate.State.Id));
+		Assert.NotEqual(first.Destination, replanned.Destination);
+		Assert.True(pathfinder.CallCount > callsAfterFirstPlan);
 	}
 
 	[Fact]

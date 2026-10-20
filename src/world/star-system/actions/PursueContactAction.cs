@@ -107,6 +107,17 @@ public sealed class PursueContactDef
 			pursue.Path.WithSpeedMultiplier(
 				EngagementQueries.PursuitSpeedMultiplier(unit.State, pursue.Intent))));
 
+		if (pursue.Intent == EContactIntent.Engagement
+			&& pursue.Target is FleetContactTarget fleetTarget
+			&& world.FleetRegistry.TryGet(fleetTarget.UnitId, out var pursuitTarget))
+		{
+			PursuitPlanner.RecordReplan(
+				runtime,
+				world.Timeline.Clock.Current,
+				pursuitTarget.State,
+				pursue.Destination);
+		}
+
 		return effects;
 	}
 }

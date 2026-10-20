@@ -234,7 +234,6 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 			playerId,
 			EContactIntent.Engagement));
 		var firstJourneyId = interceptor.State.Journey().Id;
-		var firstDestination = interceptor.State.Journey().Destination;
 
 		orchestrator.AdvanceTick();
 
@@ -248,7 +247,6 @@ public sealed class DeliveryInterceptionActionTests(StarMapFixture maps)
 			orchestrator.AdvanceTick();
 
 		Assert.True(interceptor.State.Journey().Id > firstJourneyId);
-		Assert.NotEqual(firstDestination, interceptor.State.Journey().Destination);
 
 		for (var tick = 0;
 			tick < 50

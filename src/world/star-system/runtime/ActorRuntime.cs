@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Pathfinding;
 
 namespace GrimSpace.World.StarSystem.Runtime;
@@ -14,6 +15,11 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public int PendingCompletionTick { get; set; }
 	public long JourneyIdSequence { get; set; }
 	public int ActionCooldownUntilTick { get; set; }
+	public int PursuitLastReplanTick { get; set; }
+	public long PursuitTrackedTargetJourneyId { get; set; } = -1;
+	public Coord PursuitTrackedTargetJourneyDestination { get; set; }
+	public Coord PursuitPlannedInterceptDestination { get; set; }
+	public bool PursuitForceReplan { get; set; }
 	public string? SelectedMemberShipId { get; set; }
 	public Dictionary<string, int> IgnoreUntilTickByTargetId { get; } =
 		new(StringComparer.Ordinal);
@@ -45,6 +51,11 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 		ClearPendingCompletion();
 		JourneyIdSequence = 0;
 		ActionCooldownUntilTick = 0;
+		PursuitLastReplanTick = 0;
+		PursuitTrackedTargetJourneyId = -1;
+		PursuitTrackedTargetJourneyDestination = default;
+		PursuitPlannedInterceptDestination = default;
+		PursuitForceReplan = false;
 		SelectedMemberShipId = null;
 		IgnoreUntilTickByTargetId.Clear();
 	}

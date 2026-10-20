@@ -22,7 +22,7 @@ public sealed class AutonomousFleetExecutionAgent : ExecutionAgent<StarMap, Acto
 		_world = world;
 		_runtimeFor = runtimeFor;
 		_pursuitPlanner = new PursuitPlanner(world, runtimeFor, pathfinder);
-		_hostileContactPlanner = new HostileContactPlanner(world, runtimeFor, pathfinder);
+		_hostileContactPlanner = new HostileContactPlanner(world, runtimeFor, _pursuitPlanner);
 		_patrolPlanner = new PatrolPlanner(world, runtimeFor, pathfinder);
 	}
 

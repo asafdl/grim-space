@@ -44,6 +44,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly IDisposable _deliveryTurnInSubscription;
 	private readonly IDisposable _wreckageInvestigationSubscription;
 	private readonly IDisposable _resourceTransactionSubscription;
+	private readonly IDisposable _fleetMoveSubscription;
 	private ESimMode _simMode = (ESimMode)(-1);
 	private bool _resolvingInputAction;
 
@@ -73,6 +74,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_wreckageInvestigationSubscription = _engine.Subscribe<InvestigateWreckageAction>(OnWreckageInvestigated);
 		_resourceTransactionSubscription =
 			_engine.Subscribe<Record<Transaction>>(record => ResourceTransactionCommitted?.Invoke(record.Value));
+		_fleetMoveSubscription = _engine.Subscribe<MoveAction>(OnFleetMoved);
 		_contractBoardAgent.ReconcilePresentations();
 	}
 
@@ -649,6 +651,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		EnqueueContractCompletions(resolved.InitiatorId, EContractKind.Wreckage);
 	}
 
+	private void OnFleetMoved(MoveAction move) =>
+		PursuitPlanner.NotifyFleetMoved(Map, RuntimeFor, move.UnitId);
+
 	private void OnDeliveryRouteCompleted(Record<DeliveryRouteCompleted> completed)
 	{
 		if (!Map.ContractRegistry.TryGetState(completed.Value.ContractId, out var state)
@@ -704,6 +709,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_deliveryTurnInSubscription.Dispose();
 		_wreckageInvestigationSubscription.Dispose();
 		_resourceTransactionSubscription.Dispose();
+		_fleetMoveSubscription.Dispose();
 		_engine.Dispose();
 	}
 

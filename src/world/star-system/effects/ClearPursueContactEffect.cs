@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Effects;
@@ -14,6 +15,8 @@ public sealed class ClearPursueContactEffect : IEffect<StarMap, Runtime.ActorRun
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
 	{
 		var change = ClearPursuit(world, _actorId);
+		if (change is not null)
+			PursuitPlanner.ClearReplan(runtime);
 		return change is null ? [] : [new Record<FleetPursuitChanged>(change)];
 	}
 

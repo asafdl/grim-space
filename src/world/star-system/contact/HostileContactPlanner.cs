@@ -1,10 +1,7 @@
-using GrimSpace.Math.Grid;
 using GrimSpace.Core.Log;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
-using GrimSpace.World.StarSystem.Vision;
 
 namespace GrimSpace.World.StarSystem.Contact;
 
@@ -12,16 +9,16 @@ public sealed class HostileContactPlanner
 {
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, ActorRuntime> _runtimeFor;
-	private readonly IPathfinder _pathfinder;
+	private readonly PursuitPlanner _pursuitPlanner;
 
 	public HostileContactPlanner(
 		Func<StarMap> world,
 		Func<string, ActorRuntime> runtimeFor,
-		IPathfinder pathfinder)
+		PursuitPlanner pursuitPlanner)
 	{
 		_world = world;
 		_runtimeFor = runtimeFor;
-		_pathfinder = pathfinder;
+		_pursuitPlanner = pursuitPlanner;
 	}
 
 	public ReactToHostileContactAction? Plan(string actorId)
@@ -41,21 +38,14 @@ public sealed class HostileContactPlanner
 			_runtimeFor,
 			0f,
 			world.Timeline.Clock.Current);
-		var origin = actor.State.PositionAt(world, runtime.CachedPath, 0).Position;
 
 		foreach (var target in candidates)
 		{
-			var targetSample = FleetPositionSampler.Sample(
-				world,
-				target.State,
-				_runtimeFor(target.State.Id),
-				0f);
-			var destination = new Coord(
-				(int)System.Math.Round(targetSample.X),
-				0,
-				(int)System.Math.Round(targetSample.Z));
-			if (_pathfinder.FindPath(origin, destination)
-				is not PathfindingResult.Found found)
+			var course = _pursuitPlanner.PlanInterceptCourse(
+				actorId,
+				target.State.Id,
+				EContactIntent.Engagement);
+			if (course is null)
 				GameLog.Log(
 					$"[star-map] hostile skip actor={actorId} target={target.State.Id} reason=no_path");
 			else
@@ -63,13 +53,13 @@ public sealed class HostileContactPlanner
 				var reaction = new ReactToHostileContactAction(
 					actorId,
 					new FleetContactTarget(target.State.Id),
-					destination,
-					found.Path);
+					course.Destination,
+					course.Path);
 				if (ReactToHostileContactDef.Instance.IsLegal(reaction, world, runtime))
 				{
 					GameLog.Log(
 						$"[star-map] hostile found actor={actorId} target={target.State.Id} " +
-						$"aggression={actor.State.AggressionRating} destination={destination}");
+						$"aggression={actor.State.AggressionRating} destination={course.Destination}");
 					return reaction;
 				}
 			}
