@@ -23,6 +23,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Battle.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.Units.Maneuvering;
 using BattleType = GrimSpace.Units.Enums.EType;
 using GrimSpace.World.StarSystem;
@@ -79,19 +80,19 @@ public partial class TeaserController : Node
 	// The schedule. Every beat ends on its mark, so the card lands where the
 	// end-card window says it should: 0:30.70.
 	private const float OpeningFadeSeconds = 0.33f;
-	private const float AnchorEnd = 2.80f;
-	private const float CommitEnd = 5.10f;
-	private const float LossEnd = 10.60f;
-	private const float PlanEnd = 12.00f;
-	private const float GoopEnd = 13.60f;
+	private const float OfferEnd = 1.60f;
+	private const float RouteEnd = 3.00f;
+	private const float AnchorEnd = 4.90f;
+	private const float CommitEnd = 6.20f;
+	private const float LossEnd = 11.60f;
+	private const float PlanEnd = 13.00f;
+	private const float GoopEnd = 14.20f;
 	private const float GoopFieldEnd = 15.60f;
-	private const float MapEnd = 17.10f;
-	private const float BoardEnd = 19.15f;
-	private const float ContractEnd = 21.10f;
-	private const float ShopEnd = 22.30f;
-	private const float CrewEnd = 23.54f;
-	private const float CarrierEnd = 26.20f;
-	private const float CarrierWideEnd = 28.70f;
+	private const float MapEnd = 17.00f;
+	private const float ShopEnd = 18.40f;
+	private const float CarrierEnd = 21.80f;
+	private const float CarrierWideEnd = 24.60f;
+	private const float ReachEnd = 27.40f;
 	private const float DebtEnd = 30.70f;
 	private const float TitleEnd = 34.60f;
 
@@ -217,6 +218,12 @@ public partial class TeaserController : Node
 		{
 			await FadeIn(OpeningFadeSeconds);
 
+			// The goal, in the first twelve per cent: the offer, the route it
+			// names, and the ship committing to it.
+			await RunOfferBeat();
+			await RunRouteBeat();
+
+			// The pursuit, and what it costs.
 			await RunAnchorBeat();
 			await RunCommitBeat();
 			await RunLossBeat();
@@ -224,11 +231,12 @@ public partial class TeaserController : Node
 			await RunGoopBeat();
 			await RunGoopFieldBeat();
 			await RunMapBeat();
-			await RunBoardBeat();
-			await RunContractBeat();
 			await RunShopBeat();
-			await RunCrewBeat();
+
+			// The last run of it, and the promise.
 			await RunCarrierBeat();
+			await RunReachBeat();
+			await RunThreatBeat();
 			await RunTitleBeat();
 		}
 		catch (Exception error)
@@ -254,6 +262,9 @@ public partial class TeaserController : Node
 			"teaser-anchor",
 			[BattleType.Fighter],
 			canonicalLayout: true));
+
+		// The run layer is dropped: the fight takes the screen.
+		await CutToBattle();
 
 		// The wide: the enemy force is visibly larger than yours.
 		_battle?.SetupOverviewCamera(
@@ -340,6 +351,8 @@ public partial class TeaserController : Node
 			"teaser-goop",
 			[BattleType.IndustrialGooper, BattleType.Fighter]));
 
+		await CutToBattle();
+
 		FrameUnit(_battle?.Battle.PlayerId, GoopDistance, PlayerYaw, PlayerPitch, PlayerRoll);
 		await WaitForPlayerTurnAsync(1.2f);
 
@@ -385,32 +398,17 @@ public partial class TeaserController : Node
 		DismissMapNarrative(mapInstance);
 		LightMapForFilm(mapInstance);
 		PushInOnMap(mapInstance);
-		StartFleetTravel();
 
 		await HoldUntil(MapEnd);
 	}
 
 	/// <summary>
-	/// The authority: the room the contracts come from, and the operator that
-	/// gives them.
+	/// The offer: the contract board with the one claim that is on it, and the
+	/// acceptance that puts a live objective on the map. This is the film's
+	/// first beat, because the film has to say what it is about before it
+	/// shows anything else.
 	/// </summary>
-	private async Task RunBoardBeat()
-	{
-		var (poiId, facilityId) = FindFacility(CommandAuthorityScene);
-		MapNavigationContext.EnterFacility(poiId, facilityId);
-
-		var authority = GD.Load<PackedScene>(CommandAuthorityScene).Instantiate();
-		await CutToWorld(authority);
-
-		await ToSignal(GetTree(), "process_frame");
-		await HoldUntil(BoardEnd);
-	}
-
-	/// <summary>
-	/// The contract board: the offer, and the acceptance that puts a live
-	/// objective on the map.
-	/// </summary>
-	private async Task RunContractBeat()
+	private async Task RunOfferBeat()
 	{
 		var contractId = PrepareContractOffer();
 		if (contractId is null)
@@ -441,7 +439,43 @@ public partial class TeaserController : Node
 		AcceptContract(contractId);
 		_acceptedContractId = contractId;
 
-		await HoldUntil(ContractEnd);
+		await HoldUntil(OfferEnd);
+	}
+
+	/// <summary>
+	/// The goal in reach: the map, the route the ship has run, and the wreck at
+	/// the end of it.
+	/// </summary>
+	private async Task RunReachBeat()
+	{
+		Session.Instance.Run!.ActiveBattle = null;
+
+		MapNavigationContext.ClearReturnToFacade();
+
+		var mapInstance = GD.Load<PackedScene>(MapScene).Instantiate();
+		await CutToWorld(mapInstance);
+
+		await ToSignal(GetTree(), "process_frame");
+
+		HideMapStar(mapInstance);
+		HideMapEventHorizon(mapInstance);
+		DismissMapNarrative(mapInstance);
+		LightMapForFilm(mapInstance);
+		PushInOnMap(mapInstance, 1.2f);
+
+		await HoldUntil(ReachEnd);
+	}
+
+	/// <summary>
+	/// The unpaid threat: the enemy's plan drawn across the field, and no
+	/// answer to it. The film ends here, and the card lands on the tension.
+	/// </summary>
+	private async Task RunThreatBeat()
+	{
+		await CutToBattle();
+
+		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		await HoldUntil(DebtEnd);
 	}
 
 	/// <summary>
@@ -476,10 +510,11 @@ public partial class TeaserController : Node
 	}
 
 	/// <summary>
-	/// The crew: the ship, the pilot, the abilities, and the objective that is
-	/// now live with its badge.
+	/// The route: the map with the run drawn on it, the objective that is now
+	/// live with its badge, and the ship already moving toward the wreck. The
+	/// goal is on screen by the third second of the film.
 	/// </summary>
-	private async Task RunCrewBeat()
+	private async Task RunRouteBeat()
 	{
 		MapNavigationContext.ClearReturnToFacade();
 
@@ -504,17 +539,10 @@ public partial class TeaserController : Node
 			strategicHud.Objectives.NotifyContractStateChanged(contractId, EContractStatus.Active);
 		}
 
-		// The objectives panel and its badge are on screen first; the fleet
-		// panel only goes over them after the badge has had its time.
-		await HoldUntil(CrewEnd - 0.8f);
-
-		if (mapInstance.GetNodeOrNull<StrategicHud>("StrategicHud") is { } hud)
-		{
-			hud.OpenFleetManagement();
-		}
+		StartRouteToGoal();
 
 		await ToSignal(GetTree(), "process_frame");
-		await HoldUntil(CrewEnd);
+		await HoldUntil(RouteEnd);
 	}
 
 	/// <summary>
@@ -554,10 +582,6 @@ public partial class TeaserController : Node
 		FrameUnit(FindEnemyUnitId(), WideDistance, WideYaw, WidePitch, WideRoll);
 		await WaitForPlayerTurnAsync(1.2f);
 		await HoldUntil(CarrierWideEnd);
-
-		// The debt: the enemy's plan, drawn across the field, unanswered.
-		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
-		await HoldUntil(DebtEnd);
 	}
 
 	/// <summary>
@@ -1124,6 +1148,36 @@ public partial class TeaserController : Node
 
 	// ---- the run layer ------------------------------------------------------
 
+	/// <summary>
+	/// The route the film is about: the ship runs for the wreck the claim
+	/// names. If the claim has no wreck on the map, the ship runs for the
+	/// nearest fleet instead, so the map always has a route drawn on it.
+	/// </summary>
+	private void StartRouteToGoal()
+	{
+		if (_acceptedContractId is { } contractId)
+		{
+			var orchestrator = Session.Instance.Run?.StarSystem;
+			if (orchestrator is not null)
+			{
+				orchestrator.SetRunning();
+				orchestrator.RefreshPlayerAgent();
+
+				var agent = orchestrator.PlayerAgent;
+				if (agent is not null)
+				{
+					var result = agent.TryQueueWreckContact(contractId);
+					GD.Print($"[Teaser] the ship runs for the wreck on {contractId}: "
+						+ $"{result.GetType().Name}");
+					if (result is CourseCommandResult.Queued)
+						return;
+				}
+			}
+		}
+
+		StartFleetTravel();
+	}
+
 	private static void StartFleetTravel()
 	{
 		var orchestrator = Session.Instance.Run?.StarSystem;
@@ -1188,9 +1242,14 @@ public partial class TeaserController : Node
 			orchestrator.AdvanceTicks(2);
 		}
 
+		// The film needs a claim with a wreck on the map: that is the goal the
+		// ship can run for, and the thing the card promises.
 		var contractId = orchestrator.Map.ContractRegistry.Pending
-			.FirstOrDefault(contract => contract.Category == EContractCategory.Standard)
-			?.Id;
+			.FirstOrDefault(contract => contract.Objective is WreckageObjective)
+			?.Id
+			?? orchestrator.Map.ContractRegistry.Pending
+				.FirstOrDefault(contract => contract.Category == EContractCategory.Standard)
+				?.Id;
 
 		GD.Print($"[Teaser] contract offer: {contractId ?? "none"}");
 		return contractId;
@@ -1394,7 +1453,7 @@ public partial class TeaserController : Node
 
 		_promiseText = new Label
 		{
-			Text = "THE VOID TAKES PAYMENT IN HULLS",
+			Text = "RECOVER WHAT WAS LOST. PAY IN HULLS.",
 			Theme = theme,
 			ThemeTypeVariation = "SubtitleLabel",
 			HorizontalAlignment = HorizontalAlignment.Center,

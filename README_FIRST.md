@@ -1,27 +1,35 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-20 (V6 reship: the third engagement is in the film).** The
-> teaser was re-cut after the contract audit of the V6 cut. The deliverable is
-> `teaser.mp4` — **34.62 s, 1080p60, stereo at -14.1 LUFS** (LRA 10.0 LU, true
-> peak -3.1 dBFS).
+> **Updated 2026-10-20 (V7 GOAL: the film has a goal).** The teaser was re-cut
+> a third time, after the contract audit of the V6 reship. The deliverable is
+> `teaser.mp4` — **34.65 s, 1080p60, stereo at -14.1 LUFS** (LRA 11.4 LU, true
+> peak -3.3 dBFS).
 >
-> The cut now runs as a chain of consequences: the anchor (the full console, the
-> enemy outnumbering you, the enemy's plan already drawn on the field) → your
-> order resolving on camera → the cost → **a hull broken up on camera** → the
-> next plan → the goop gun turning the space into a green hazard field → the lit
-> star map with the route drawn on it → the authority and the contract it
-> offers → the dockyard → the crew, the live objective and its green `NEW`
-> badge → **the third engagement on screen** (a carrier, the beams, three enemy
-> hulls against one) → the enemy's plan left unpaid → the card at 0:30.70 with
-> the game's own typography, one promise line and one call.
+> **The promise, in one sentence — the thing a viewer can say after watching:**
 >
-> **The pointer is gone** (the user's ruling). The interaction is shown by its
-> response. **Every battle is the real `battle.tscn`**, built by the game's own
-> engagement factory from fleets registered in the run's own inventory — the
-> roster and the order are staged, the scene and the rules are not. The new sun
-> shader stays in the repo and out of the film. The comic marker-scrawl
-> billboard is hidden for the recording: the destruction reads as the hull
-> breaking up.
+> > **"We are running a derelict survey out to the wreck near Two Sisters, and
+> > it is costing us a hull at a time."**
+>
+> The film says it in the first three seconds and adds no word of its own: the
+> claim is on the board at 0.90 s (`Derelict Survey - Wreckage`), the route to
+> the wreck is on the map at 2.30 s with the ship's order already queued for
+> it, and the objective panel names the place (`Survey the wreck near Two
+> Sisters`) with the game's own green `NEW` badge. The card names it again at
+> the end — promised, not granted: `RECOVER WHAT WAS LOST. PAY IN HULLS.`
+>
+> The cut now runs as a chain: the claim → so now the ship runs for the wreck →
+> but then a fleet is waiting in the way → so now the order goes in → and then
+> the beams → but then it takes a hull → so now a hull is gone → and then the
+> enemy's plan is drawn again → but then the goop gun turns the space green →
+> so now the ship is further along the route → and then the money goes into the
+> hull → but then three hulls close in → so now they outnumber us → so now the
+> wreck is in sight → but then their plan is drawn across it → and the promise.
+>
+> **The pointer is gone** (the user's ruling). **Every battle is the real
+> `battle.tscn`**, built by the game's own engagement factory from fleets
+> registered in the run's own inventory. The new sun shader stays in the repo
+> and out of the film. The comic marker-scrawl billboard is hidden for the
+> recording: the destruction reads as the hull breaking up.
 >
 > Every claim in the write-up carries the command that produces it and the
 > output that command printed on the shipped file:
@@ -30,11 +38,10 @@
 > python scripts/verify_teaser.py teaser.mp4
 > ```
 >
-> Full write-up — the gate-by-gate pass/fail table measured from the shipped
-> file, the regenerated beat table, the honest residuals (the goop hazard holds
-> for 0.35 s against a 1.0 s gate, and the mean chroma is 1.57× below the V4
-> cut's) — is in
-> [TEASER_NOTES.md](TEASER_NOTES.md#v6-reship-every-claim-carries-its-command-and-its-output).
+> Full write-up — the promise first, the gate table with pasted outputs, the
+> beat table regenerated from the shipped file with the chain for each beat,
+> and the honest residuals — is in
+> [TEASER_NOTES.md](TEASER_NOTES.md#v7-goal-the-film-has-a-goal).
 >
 Earlier notes:
 > The teaser **has been recorded successfully in this environment**.

@@ -20,7 +20,28 @@ HW, HH = 32, 18
 CARD_START = 30.70
 CARD_END = 34.60
 GOOP_WINDOW = (10.90, 15.50)
-MICRO = [0.70, 1.70, 7.50, 8.60, 18.50, 19.20]
+MICRO = [4.00, 9.00, 11.00, 16.00, 25.00, 26.00]
+
+# The film's chain: every beat, the sentence that joins it to the one before,
+# and whether it advances the goal or only decorates it.
+GOAL_CHAIN = [
+    (0.00, 1.60, "THE OFFER", "the claim is on the board", "states the goal"),
+    (1.60, 3.02, "THE ROUTE", "so now the ship runs for the wreck", "advances"),
+    (3.02, 4.88, "THE AMBUSH", "but then a fleet is waiting in the way", "advances"),
+    (4.88, 5.68, "THE ORDER", "so now the order goes in", "advances"),
+    (5.68, 7.92, "THE BEAMS", "and then the beams cross the field", "advances"),
+    (7.92, 9.08, "THE COST", "but then it takes a hull", "advances"),
+    (9.08, 11.58, "THE WRECK", "so now a hull is gone", "advances"),
+    (11.58, 12.98, "THE NEXT PLAN", "and then the enemy's plan is drawn again", "advances"),
+    (12.98, 14.78, "THE GOOP", "but then the goop gun turns the space green", "advances"),
+    (14.78, 16.98, "THE PROGRESS", "so now the ship is further along the route", "advances"),
+    (16.98, 18.40, "THE DOCKYARD", "and then the money goes into the hull", "advances"),
+    (18.40, 21.78, "THE ESCALATION", "but then three hulls close in", "advances"),
+    (21.78, 24.60, "THE ODD NUMBERS", "so now they outnumber us", "advances"),
+    (24.60, 27.37, "THE REACH", "so now the wreck is in sight", "advances"),
+    (27.37, 30.70, "THE THREAT", "but then their plan is drawn across it", "advances"),
+    (30.70, 34.65, "THE CARD", "and the promise", "advances"),
+]
 
 
 def decode(path: Path, w: int, h: int, mode: str = "gray") -> np.ndarray:
@@ -167,6 +188,19 @@ def main() -> None:
         capture_output=True, text=True, check=True).stderr
     runs = [l.strip() for l in silence.splitlines() if "silence_start" in l or "silence_end" in l]
     print("silence:", " | ".join(runs[:4]) if runs else "none")
+
+    print("\n== GOAL CHAIN (does the shot advance the goal?) ==")
+    for start, end, name, chain, kind in GOAL_CHAIN:
+        inside = [b for b in boundaries if start <= b < end]
+        print(f"  {start:6.2f}-{end:6.2f}  {name:<14} {chain:<46} [{kind}]")
+    advancing = sum(
+        1 for b in boundaries
+        if any(start <= b < end and kind == "advances" for start, end, _, _, kind in GOAL_CHAIN))
+    print(f"  shots that advance or complicate the goal: {advancing} of {len(boundaries) - 1} "
+          f"({100 * advancing / max(1, len(boundaries) - 1):.0f}%, gate: >=60%)")
+    goal_end = GOAL_CHAIN[1][1]
+    print(f"  the goal is stated by {goal_end:.2f}s = {100 * goal_end / duration:.1f}% of the film "
+          f"(gate: <=12%)")
 
     print("\n== MICROTRAILER (six 1s samples, 232x130) ==")
     for t in MICRO:

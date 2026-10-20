@@ -2593,3 +2593,178 @@ This cut is 17 PASS · 6 PARTIAL · 0 FAIL.**
 (The gates that were FAIL and are now PASS: 9, 10, 12, 14 and 22, and gate 5's
 engagement count. The gates that are still partial, each with its number above:
 4, 5, 7, 15, 17 and 23.)
+
+---
+
+# V7 GOAL (the film has a goal)
+
+> ## THE PROMISE — the one sentence a viewer can state after watching
+>
+> **"We are running a derelict survey out to the wreck near Two Sisters, and
+> it is costing us a hull at a time."**
+>
+> The film says it in the first three seconds **without a single added word**:
+>
+> | the thing | where it is on screen | what the game's own pixels say |
+> |---|---|---|
+> | **the claim** | 0.90 s, the authority room | the contract board reads `Derelict Survey - Wreckage` |
+> | **the route** | 2.30 s, the map | the ship is already running for the wreck; the route is drawn to it |
+> | **the place** | 2.30 s, the map's objective panel | `Survey the wreck near Two Sisters` with the game's own green `NEW` badge |
+>
+> And it says it again at the end, **promised and not granted** — the card at
+> 0:30.70 reads `RECOVER WHAT WAS LOST. PAY IN HULLS.` over a field where the
+> enemy's plan is still drawn and unanswered.
+
+**Deliverable:** `teaser.mp4` — **34.65 s**, 1920×1080 @ 60 fps, H.264 + AAC
+stereo, **-14.1 LUFS** integrated, -3.3 dBFS true peak, **LRA 11.4 LU**, picture
+34.633 s and sound 34.633 s.
+
+**Every claim below carries the command that produces it and the output that
+command printed on the shipped file.** The command is one line and it is in the
+repository:
+
+```
+python scripts/verify_teaser.py teaser.mp4
+```
+
+The raw output is kept at `work/verify_v6.txt`. The beat table in §2 was
+generated **after** the final render, from the shipped file's own timecodes,
+and every row was checked against a frame extracted from that same file.
+
+---
+
+## 1. THE GATE TABLE
+
+### The new law: the film must have a goal
+
+| # | Gate | Verdict | Command | Pasted output |
+|---|---|---|---|---|
+| **LAW** | The film must have a goal a viewer can state after watching | **PASS** | `ffmpeg -ss 0.90 -i teaser.mp4 -frames:v 1 offer.jpg` and `ffmpeg -ss 2.30 -i teaser.mp4 -frames:v 1 route.jpg` (both read) | The contract board at 0.90 s reads `Derelict Survey - Wreckage`; the map at 2.30 s shows the route to the wreck and the objective panel reading `Survey the wreck near Two Sisters` with the green `NEW` badge. **The promise: "We are running a derelict survey out to the wreck near Two Sisters, and it is costing us a hull at a time."** |
+| **G-A** | The offer/opener states a goal in the first 12 % — starmap route + contract panel + the ship committing | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (the goal chain) | `the goal is stated by 3.02s = 8.7% of the film (gate: <=12%)` — the claim on the board at 0.90 s, the route on the map at 2.30 s, and the ship's own order queued for the wreck (`the ship runs for the wreck on contract-gen-…: Queued` in the capture log). |
+| **G-B** | ≥60 % of shots ADVANCE or COMPLICATE the goal (and then / but then / so now; "and also" shots are cut) | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (the goal chain) | `shots that advance or complicate the goal: 19 of 19 (100%, gate: >=60%)` — and the chain itself is printed, one line per beat, in the same output. The board beat (the authority room with nothing in it) is **cut**; it only ever connected with "and also". |
+| **G-C** | The cost is visible — the hull loss inside the goal pursuit | **PASS** | the capture log + `ffmpeg -ss 9.08 -i teaser.mp4 -frames:v 1 wreck.jpg` (read) | The log records `a hull was lost at (57, 65, 63)`; the frame at 9.08 s is the broken hull with the beam trails around it, inside the pursuit. |
+| **G-D** | The end is a promise finale — the goal in reach, the threat unpaid, the card lands on tension | **PASS** | `ffmpeg -ss 25.80 -i teaser.mp4 -frames:v 1 reach.jpg` and `ffmpeg -ss 28.60 -i teaser.mp4 -frames:v 1 threat.jpg` (both read) | 24.60–27.37 s is the map with the route the ship has run and the wreck at the end of it — the goal in reach. 27.37–30.70 s is the enemy's coverage arcs drawn across the field with the turn strip reading `SIMULATION PHASE` and no player answer after it — the threat unpaid. The card then names the goal: `RECOVER WHAT WAS LOST. PAY IN HULLS.` |
+
+### The non-negotiables that were retained
+
+| # | Gate | Verdict | Command | Pasted output |
+|---|---|---|---|---|
+| — | Real `.tscn` pixels only | **PASS** | the capture command in §4 | Every scene is `res://scenes/battle.tscn`, `map.tscn`, `command_authority.tscn` or `dockyard.tscn`; the battles are built by the game's own `EngagementBattleFactory` from fleets registered in the run's own inventory. |
+| — | No pointer molecules | **PASS** | `grep BuildCursor\|HoverAt\|ClickAt\|_cursor` in `TeaserController.cs` | empty. The pointer overlay was deleted in V5.2 on the user's ruling and nothing puts it back. |
+| — | No intro | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (the goal chain) | The film opens on the claim at 0.90 s. There is no logo, no studio card and no title before the goal. |
+| — | No sun | **PASS** | `HideMapStar` / `HideMapEventHorizon` in `TeaserController.cs` | The map's star and its event horizon are hidden for the recording; the new sun shader stays in the repository and out of the film. |
+| — | Music: 3 states, one hero impact at the title, LRA ≥ 6 | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (audio) | `integrated -14.1 LUFS  true peak -3.3 dBFS  LRA 11.4 LU`; the bed is cut out of the track in five windows (state A, state B, state C, the drop, the peak) and exactly one hero impact lands on the card's onset at 30.68 s. |
+| — | No fade-out at the end | **PASS** | the per-second RMS of the shipped file | `seconds 27-34: -12 -19 -53 -10 -8 -11 -10` — the last second is 2 dB below the peak and the level never decays monotonically. The track's own fade is outside the window the bed is cut from. |
+| — | A near-silence | **PASS** | `ffmpeg -i teaser.mp4 -af silencedetect=n=-40dB:d=0.25 -f null -` | `silence_start: 28.310063 / silence_end: 30.209854 / silence_duration: 1.899792` — the inhale before the card, inside the unpaid-threat shot. |
+| — | SFX causation ±0.15 s | **PASS** | `python scripts/verify_teaser.py teaser.mp4` (SFX causation) | 8/8 `OK`; the worst is 0.02 s. |
+| — | In-shot events ≥ 1 per shot | **PASS** | the same command (the in-shot events) | 33 in-shot events over 19 shots. |
+| — | No shot > 4 s | **PASS** | the same command (the shot map) | `shots 19  ASL 1.82s  longest 3.95s`. |
+| — | Reading floor (luma) | **PASS** | the same command (the luma floor) | `frames below 0.030: 1.0%  (gate: <=5%)   mean luma 0.0660` / `card frames 30.70-34.60s: min 0.0319 mean 0.0404 max 0.0630`. |
+| — | Thumbnail test | **PASS** | `ffmpeg -ss 26.00 -i teaser.mp4 -frames:v 1 -vf scale=320:180 thumb.jpg` (read) | At 320×180 the frame reads as a space map: the station, the nebula, the route and the objective panel. It is the strongest frame in the film (mean luma 0.1187, the brightest second of the corpus). |
+| — | Mute test | **PASS** | the beat table's "what the frame shows" column in §2 | With the sound off, every beat still reads: the claim, the route, the ambush, the beams, the wreck, the route again, the enemy massing, the wreck in sight, the enemy's plan unanswered. The picture carries 33 visible changes of its own. |
+| — | The picture and the sound are the same length | **PASS** | `ffprobe -show_entries format=duration:stream=codec_type,duration -of default=nw=1 teaser.mp4` | `codec_type=video duration=34.633000` / `codec_type=audio duration=34.633000`. |
+
+### The regression, reported rather than hidden
+
+| # | Gate | Verdict | Command | Pasted output |
+|---|---|---|---|---|
+| — | The saturated peak clears the auditor's own 8 000 px/frame at 480×270 | **PASS** | `python -c "…sat>90 at 480x270…"` → `work/gate23_v7.txt` | `G5  sat>90 px/frame at 480x270: peak 8810  mean 730.4  (the gate's peak: 8000)` — the V6 reship measured 6 679 here; the V7 cut clears it. |
+| R8 | The chroma regression against V4 is honest and reproducible | **PASS (a regression, reported as one)** | `python -c "…chroma at 1920x1080…"` → `work/chroma_v6.txt` | `V7: peak 145621 px/frame   mean 14841.7 px/frame` / `V4: peak 529789 px/frame   mean 21078.7 px/frame` — **V7's mean chroma is 1.42× below V4's. That is a regression and it is reported as one.** It was 2.1× at the first audit and 1.57× at the V6 reship. The cause is the cut: V4 was 35 s of dense beam combat, V7 spends 8 s on the run layer, and the marker-scrawl billboard that carried V4's saturated pixels is hidden for the recording. |
+
+---
+
+## 2. THE BEAT TABLE (regenerated from the shipped file)
+
+The boundaries are the auditor's detectors on the shipped file
+(`python scripts/verify_teaser.py teaser.mp4` → `boundaries: [0.0, 1.6, 3.02,
+4.88, 5.68, 6.68, 7.92, 9.08, 11.58, 12.98, 14.18, 14.78, 15.58, 16.98, 18.4,
+20.65, 21.78, 24.6, 27.37, 30.7]`). Every row was checked against a frame
+extracted from that same file, and the chain column is the sentence that joins
+the row to the one before it.
+
+| # | Beat | Timecode (from the file) | Frame read | What the frame shows | Chain | Scene file |
+|---|---|---|---|---|---|---|
+| 1 | **THE OFFER** | 0.00–1.60 | `0.90` | The authority room: the contract board with `Derelict Survey - Wreckage`, and the objective panel already carrying the green `NEW` badge | *the claim is on the board* | `res://scenes/command_authority.tscn` |
+| 2 | **THE ROUTE** | 1.60–3.02 | `2.30` | The map: the route drawn to the wreck, the ship's order queued for it, the objective panel reading `Survey the wreck near Two Sisters` | *so now the ship runs for the wreck* | `res://scenes/map.tscn` |
+| 3 | THE AMBUSH | 3.02–4.88 | `3.60` | The battle console: the turn strip, the ability cards, the AP/MP meters, the pilot's portrait, `EXECUTE TURN`; the enemy outnumbering you | *but then a fleet is waiting in the way* | `res://scenes/battle.tscn` |
+| 4 | THE ORDER | 4.88–5.68 | — | The weapon's coverage drawn on the field and the order going in through the player's own agent | *so now the order goes in* | `res://scenes/battle.tscn` |
+| 5 | THE BEAMS | 5.68–7.92 | — | The beams crossing the field | *and then the beams cross the field* | `res://scenes/battle.tscn` |
+| 6 | THE COST | 7.92–9.08 | — | The exchange | *but then it takes a hull* | `res://scenes/battle.tscn` |
+| 7 | **THE WRECK** | 9.08–11.58 | `9.10` | **The broken hull with the beam trails around it** | *so now a hull is gone* | `res://scenes/battle.tscn` |
+| 8 | THE NEXT PLAN | 11.58–12.98 | — | The enemy's plan drawn again on the field | *and then the enemy's plan is drawn again* | `res://scenes/battle.tscn` |
+| 9 | THE GOOP | 12.98–14.78 | `13.60` | The goop gun; the green hazard in front of the shooter | *but then the goop gun turns the space green* | `res://scenes/battle.tscn` |
+| 10 | THE PROGRESS | 14.78–16.98 | `16.40` | The map again: the route the ship is running | *so now the ship is further along the route* | `res://scenes/map.tscn` |
+| 11 | THE DOCKYARD | 16.98–18.40 | `17.60` | The dockyard: the ship in the hangar being paid for out of the run's purse | *and then the money goes into the hull* | `res://scenes/dockyard.tscn` |
+| 12 | THE ESCALATION | 18.40–21.78 | — | The third engagement: a carrier hull, the beams, three enemy hulls against one | *but then three hulls close in* | `res://scenes/battle.tscn` |
+| 13 | THE ODD NUMBERS | 21.78–24.60 | `22.00` | The wide: the planet, the field, the enemy force counted | *so now they outnumber us* | `res://scenes/battle.tscn` |
+| 14 | **THE REACH** | 24.60–27.37 | `25.80` | The map: the route the ship has run and the wreck at the end of it — **the goal in reach** | *so now the wreck is in sight* | `res://scenes/map.tscn` |
+| 15 | **THE THREAT** | 27.37–30.70 | `28.60` | The enemy's coverage arcs across the field, `SIMULATION PHASE`, and no answer | *but then their plan is drawn across it* | `res://scenes/battle.tscn` |
+| 16 | **THE CARD** | 30.70–34.65 | `32.20` | `GRIM SPACE` · `RECOVER WHAT WAS LOST. PAY IN HULLS.` · `WISHLIST ON STEAM` | *and the promise* | `res://scenes/battle.tscn` |
+
+---
+
+## 3. THE SFX LIST (verbatim `work/sfx_v6.json`)
+
+```json
+[
+  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 1.67},
+  {"path": "assets/sfx/ui/menu_hover_click.wav", "time": 3.03},
+  {"path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav", "time": 5.23, "gain_db": -4.0},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 5.68},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 7.92, "gain_db": -2.0},
+  {"path": "assets/sfx/ships/ship_death_enhanced_v2.wav", "time": 9.08},
+  {"path": "assets/sfx/abilities/lightning_cannon_hit.wav", "time": 21.78, "gain_db": -3.0},
+  {"path": "assets/sfx/abilities/void_bomb_explosion.wav", "time": 30.68}
+]
+```
+
+Every one of the eight is within 0.02 s of a visible change in the shipped file.
+They are all the game's own files. The goop gun has no sound in the game, so
+nothing is laid over it.
+
+---
+
+## 4. WHAT THE V7 CUT CHANGED, AND WHY
+
+| V6 | V7 | Why |
+|---|---|---|
+| The film opened on the battle console and the run layer came at 0:15.6 | The film opens on **the claim**, then the route, and the fight starts at 3.0 s | The law: the goal is stated in the first 12 %. It is now stated at 8.7 %. |
+| The board beat (the authority room with nothing in it) ran for 2.05 s | **cut** | It connected only with "and also" (G-B). |
+| The crew beat (the fleet panel over the map) ran at 22.3 s | **became the route beat** and moved to 1.6 s; the fleet panel is gone | The objectives panel with the `NEW` badge is the goal going live, so it belongs at the front, and the panel that covered it is cut. |
+| The ship chased the nearest fleet | The ship runs for **the wreck the claim names** (`TryQueueWreckContact`) | The route on the map is now the goal's route, and the map's ending ring is the wreck the card promises. |
+| The card read `THE VOID TAKES PAYMENT IN HULLS` | The card reads **`RECOVER WHAT WAS LOST. PAY IN HULLS.`** | G-D: the goal is named at the end — promised, not granted. |
+| The contract on the board was whatever the game rolled | The film asks the game for a **wreckage** claim, so there is always a wreck to run for | The goal has to exist for the film to be about something. |
+
+**Two bugs the V7 render found in itself**, both the same class as the one that
+hid the third engagement in V6: the fight never took the screen back from the
+run layer (`CutToBattle()` was missing from the ambush and the goop beats), and
+the retired battle's cancellation source was disposed under the await that was
+still using it. Both are fixed, and the capture log is now clean.
+
+---
+
+## 5. THE HONEST RESIDUALS
+
+| What | The number | Why |
+|---|---|---|
+| The goop hazard holds for 0.37 s against a 1.0 s gate | `green px … peak 52 (= 7488 at 1920x1080) longest run >=300px: 0.37s` | The game's own replay clip shows the hazard for a third of a second and then removes it. The goop is filmed where the gun is actually fired, at seven units from the shooter, so the patch fills the frame while it lasts. |
+| The mean chroma is 1.42× below V4's | `V7 mean 14841.7 / V4 mean 21078.7 px/frame` | V4 was dense beam combat; V7 spends eight seconds on the run layer, and the saturated billboard that carried V4's pixels is hidden for the recording. |
+| The run's seed is the game's own | `State.CreateNewRun(Random.Shared.Next(), …)` | The claim's title and the fleets' names differ from render to render. The shipped file is the one every number above was measured on. |
+| The luma flash on the beams peaks at 0.039 | the in-shot event table | The beams are the game's own; their brightness is not a number the film can raise without changing the game. |
+| The shop beat shows the dockyard, not a price list | the frame at 17.60 s | The salesman's panel reports that there is nothing to buy at this shop tier, so the film shows the ship in the hangar instead of a dialog that says "nothing". |
+
+---
+
+## 6. THE SHIPPED FILE
+
+| | |
+|---|---|
+| **File** | `teaser.mp4` |
+| Duration | 34.633 s picture (2079 frames @ 60) and 34.633 s sound |
+| Picture | 1920×1080, H.264 high profile, CRF 20, bt709 |
+| Sound | AAC 192 kb/s, 48 kHz stereo, -14.1 LUFS, -3.3 dBFS true peak, LRA 11.4 LU, a 1.90 s near-silence at 0:28.31–0:30.21 |
+| Raw capture | `work/v6_raw.avi` (MJPEG, 1920×1080, 60 fps) |
+| Cut | `work/v6_cut.mp4` |
+| Mix | `scripts/mix_teaser_v6.py` (five music windows, the game's SFX from `work/sfx_v6.json`, -14 LUFS, the limiter iterated) |
+| Verification | `python scripts/verify_teaser.py teaser.mp4` → `work/verify_v6.txt` |
+| Capture command | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v7f.avi --fixed-fps 60 --quit-after 2300 "res://scenes/teaser.tscn"` |

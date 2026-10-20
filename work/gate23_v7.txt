@@ -1,0 +1,1 @@
+G5  sat>90 px/frame at 480x270: peak 8810  mean 730.4  (the gate's peak: 8000)
