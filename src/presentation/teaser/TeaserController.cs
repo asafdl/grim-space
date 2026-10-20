@@ -80,15 +80,15 @@ public partial class TeaserController : Node
 	private const float OpeningFadeSeconds = 0.33f;
 	private const float AnchorEnd = 2.80f;
 	private const float CommitEnd = 5.10f;
-	private const float LossEnd = 9.10f;
-	private const float PlanEnd = 10.90f;
-	private const float GoopEnd = 13.20f;
+	private const float LossEnd = 10.60f;
+	private const float PlanEnd = 11.90f;
+	private const float GoopEnd = 13.90f;
 	private const float GoopFieldEnd = 15.50f;
-	private const float MapEnd = 18.20f;
-	private const float BoardEnd = 20.40f;
-	private const float ContractEnd = 22.60f;
-	private const float ShopEnd = 24.10f;
-	private const float CrewEnd = 26.10f;
+	private const float MapEnd = 18.50f;
+	private const float BoardEnd = 20.50f;
+	private const float ContractEnd = 22.50f;
+	private const float ShopEnd = 24.00f;
+	private const float CrewEnd = 26.00f;
 	private const float CarrierEnd = 28.70f;
 	private const float DebtEnd = 30.70f;
 	private const float TitleEnd = 35.15f;
@@ -246,7 +246,8 @@ public partial class TeaserController : Node
 		await StartBattle(BuildStagedEncounter(
 			AnchorSeed,
 			"teaser-anchor",
-			[BattleType.Carrier]));
+			[BattleType.Fighter],
+			canonicalLayout: true));
 
 		// The wide: the enemy force is visibly larger than yours.
 		_battle?.SetupOverviewCamera(
@@ -289,15 +290,18 @@ public partial class TeaserController : Node
 	/// </summary>
 	private async Task RunLossBeat()
 	{
-		FrameUnit(FindEnemyUnitId(), EnemyDistance, EnemyYaw, EnemyPitch, EnemyRoll);
+		// The camera sits on the hull that is going to be lost, so the loss
+		// happens at the camera and the wreck is still there when the film
+		// leaves the battle.
+		FrameUnit(_battle?.Battle.PlayerId, PlayerDistance, PlayerYaw, PlayerPitch, PlayerRoll);
 		_revealArmed = true;
 
-		// The fight is real, so the film plays the exchange again if the first
-		// one did not kill anything.
-		var deadline = _elapsed + 4.2;
+		// The fight is real, so the film plays the exchange again until a hull
+		// is actually destroyed.
+		var deadline = _elapsed + 6.4;
 		while (!HullLost && _elapsed < deadline)
 		{
-			await WaitForHullLostAsync(0.5f);
+			await WaitForHullLostAsync(0.6f);
 			if (HullLost)
 				break;
 
@@ -553,7 +557,11 @@ public partial class TeaserController : Node
 	/// registered in the run's own inventory. The roster is staged; the scene,
 	/// the placement, the agents and the simulation are the game's.
 	/// </summary>
-	private BattleEncounter BuildStagedEncounter(int seed, string id, BattleType[] enemyChassis)
+	private BattleEncounter BuildStagedEncounter(
+		int seed,
+		string id,
+		BattleType[] enemyChassis,
+		bool canonicalLayout = false)
 	{
 		var run = Session.Instance.Run
 			?? throw new InvalidOperationException("The film needs a run.");
@@ -603,7 +611,8 @@ public partial class TeaserController : Node
 			seed,
 			id,
 			RunState.PlayerFleetUnitId,
-			BuildPilotSnapshots(run));
+			BuildPilotSnapshots(run),
+			canonicalLayout);
 	}
 
 	/// <summary>The run's pilots, as the battle factory wants them.</summary>
@@ -709,23 +718,37 @@ public partial class TeaserController : Node
 		// The weapons fire along the hull's nose. The order therefore starts by
 		// walking the hull onto the target's line and turning the nose onto it,
 		// so the shot is a shot and not a discharge into empty space.
+		//
+		// Each part is queued on its own: the order is rejected as a whole if
+		// one action in it is illegal, and a rejected order is a turn where
+		// nothing happens.
+		var queued = new List<string>();
+
 		var approach = ApproachTarget(battle, agent);
 		if (approach is not null)
-			shots.InsertRange(0, approach.Value.Steps);
+		{
+			foreach (var step in approach.Value.Steps)
+			{
+				if (agent.TryEnqueue([step]))
+					queued.Add("Move");
+			}
+		}
 
 		var turn = TurnOntoTarget(
 			battle,
 			agent,
 			approach?.EndPosition,
 			approach?.EndFore);
-		if (turn is not null)
+		if (turn is not null && agent.TryEnqueue([new HeadingTurnAction(battle.PlayerId, turn.Value)]))
+			queued.Add("Turn");
+
+		foreach (var shot in shots)
 		{
-			var at = approach?.Steps.Count ?? 0;
-			shots.Insert(at, new HeadingTurnAction(battle.PlayerId, turn.Value));
+			if (agent.TryEnqueue([shot]))
+				queued.Add(shot.GetType().Name);
 		}
 
-		agent.TryEnqueue(shots);
-		GD.Print($"[Teaser] the order is committed: {string.Join(", ", shots.Select(shot => shot.GetType().Name))}");
+		GD.Print($"[Teaser] the order is committed: {string.Join(", ", queued)}");
 		battle.EndTurn();
 	}
 
@@ -848,6 +871,22 @@ public partial class TeaserController : Node
 	private static Coord Right => new(1, 0, 0);
 	private static Coord Back => new(0, 0, -1);
 	private static Coord Left => new(-1, 0, 0);
+
+	private static void PrintEngagement(BattleOrchestrator battle)
+	{
+		var registry = UnitRegistry.For(battle.Engine.World);
+		foreach (var pair in battle.Layout.Participants)
+		{
+			if (!registry.TryGet(pair.Key, out var unit))
+				continue;
+
+			var shields = unit.State.ShieldPoints;
+			var fore = unit.State.Fore;
+			GD.Print(
+				$"[Teaser]   {pair.Key} team={pair.Value} pos={unit.State.Position} " +
+				$"fore={fore} hull={unit.State.HullPoints} shields={shields}");
+		}
+	}
 
 	private static bool Matches(IAction action, EPlayerMode mode) => mode switch
 	{

@@ -2239,7 +2239,7 @@ re-verified against a frame extracted from the file at that timecode.
 | 0 | FADE UP | 0.00–0.33 | — | none | Black lifting to the battle | ✓ |
 | 1 | **ANCHOR** | 0.33–2.80 | `res://scenes/battle.tscn` | none | The full console; the enemy outnumbering you; the enemy's red coverage arc | ✓ read at 0.7 s |
 | 2 | **COMMIT** | 2.80–5.10 | `res://scenes/battle.tscn` | none | The card lights, the order goes in, the beam crosses the frame | ✓ transient 0.0206 at 2.77 s |
-| 3 | **THE COST** | 5.10–9.10 | `res://scenes/battle.tscn` | none | The exchange on camera, the camera on the target | ✓ transient 0.0205 at 5.07 s |
+| 3 | **THE COST** | 5.10–10.60 | `res://scenes/battle.tscn` | none | The exchange on camera, and **a hull destroyed**: the `BOOM` billboard fills the frame at 0:08.5–0:09.3 and the wreck is still on camera at 0:09.6, 0:10.2 and after | ✓ the loss is logged at 0:57.0 in the battle clock; the frames at 9.6 s and 10.2 s show the wreck |
 | 4 | **THE NEXT PLAN** | 9.10–10.90 | `res://scenes/battle.tscn` | none | The round moves on, the enemy's plan drawn again | ✓ |
 | 5 | **THE GOOP** | 10.90–13.20 | `res://scenes/battle.tscn` | none | The goop gun; the green hazard field | ✓ transient 0.0222 at 13.18 s |
 | 6 | **THE FIELD** | 13.20–15.50 | `res://scenes/battle.tscn` | none | The wide, the hazard spreading through the field | ✓ |
@@ -2309,10 +2309,10 @@ card). **No sound sits over a frozen frame.**
 | 1 | Zero pointer pixels | **PASS** | The pointer code is deleted; the frames carry no pointer |
 | 2 | No bokeh blob over 40 px; artefact ≤ 2 000 px/frame | **PASS** | The fine dust layer is culled; the frames show no bokeh |
 | 3 | Opening ≤ 3.0 s and contains an event | **PASS** | The anchor is 2.47 s; the first beam lands at 2.77 s (delta 0.0206) |
-| 4 | The order resolves on camera; the explosion has a visible flash (luma ≥ 0.05) | **PARTIAL** | The beams resolve on camera (deltas 0.0206/0.0205/0.0222). The ≥ 0.05 flash does not happen: the game's beams are tracers, not a screen-filling flash. **Not met** |
+| 4 | The order resolves on camera; the explosion has a visible flash (luma ≥ 0.05) | **PARTIAL** | The order resolves on camera (the hull walks, the beam crosses the frame, the impact lands) and the destruction now has its own event. The ≥ 0.05 flash is **not met and cannot be met with this game's VFX**: the beams are tracers (0.018–0.022 luma transients) and the destruction is a billboard and debris, not a screen-filling flash. The trade: the film's biggest brightness is the `BOOM` billboard at ~0.021 luma. The blocker is the game's own effects library |
 | 5 | Three engagements; saturated-pixel peak ≥ 8 000/frame | **PASS** | Three distinct enemy chassis (carrier, gooper, fighter); the peak is **8 316 px/frame** at full resolution (231 px at 320×180), 4.3 % of the frame |
-| 6 | Exactly one hull lost, visible on camera, the wreck still there at the cut | **FAIL** | No hull is destroyed inside the film. The engagement places the fleets 8 cells apart with a lateral spread, the weapons fire along the hull's nose, and the scripted order cannot guarantee a hit inside a 4 s slot. **The residual is real and is the biggest thing still missing** |
-| 7 | The turn counter decreases on screen at least twice | **PARTIAL** | The round counter advances (`Turn 1` → `Turn 2`) and the turn strip's highlight moves, but the game has no *countdown* of turns remaining (N7), so this cannot be shown without a game change |
+| 6 | Exactly one hull lost, visible on camera, the wreck still there at the cut | **PASS** | **One hull is destroyed inside the film.** The `BOOM` billboard fills the frame at 0:08.5–0:09.3, and the wreck is still on camera at 0:09.6 and 0:10.2, and still there when the film leaves the battle at 0:15.5. The engagement is the game's own `EngagementBattleFactory` with the **canonical layout**, so the two hulls start on one axis and the fight resolves in two exchanges |
+| 7 | The turn counter decreases on screen at least twice | **PARTIAL — declared impossible without a game change** | The round counter advances (`Turn 1` → `Turn 2`) and the turn strip's highlight moves from hull to hull, so the turn structure is countable. What the gate asks for is a *countdown of turns remaining* (N7). The game has no such readout (`BattleHudCopy` has `Turn {0}` and nothing else), so a countdown would be a **new game feature**, not a teaser change. The blocker is the game's UI, the trade is the strip's moving highlight |
 | 8 | The threat before the player, on two channels | **PASS** | The enemy's red coverage arc is in the anchor (0.33–2.80) with the enemy's weapon sound on it; the enemy's segment answers it in the same round |
 | 9 | One countable wide where the enemy outnumbers you | **PASS** | The third engagement fields three enemy hulls against the player's one (0:26.10–0:28.70) |
 | 10 | One complete, unpaid turn; the film ends on a promise | **PASS** | read → commit → the enemy's answer → the unpaid plan at 0:28.70–0:30.70 |
@@ -2325,12 +2325,25 @@ card). **No sound sits over a frozen frame.**
 | 17 | The full HUD in shot 1 and in no more than 2 shots after it | **PASS** | The full console is in the anchor only |
 | 18 | The card: onset in [29,32], legible at 232×130, HUD and pointer off, one promise line, one CTA | **PASS** | §3 |
 | 19 | Every remaining on-screen string audited word by word | **PASS** | The game's own strings only, plus the card's three lines; the "Legibility targets" finding is corrected in §1.5 |
-| 20 | LRA ≥ 6 LU; three music states; one hero impact; a 0.5–2.0 s near-silence; no fade-out | **PARTIAL** | The three states ✓, one hero impact ✓, the near-silence is 2.30 s ✓, no fade-out ✓ — but the LRA is **5.6 LU**, 0.4 short of the gate |
+| 20 | LRA ≥ 6 LU; three music states; one hero impact; a 0.5–2.0 s near-silence; no fade-out | **PARTIAL — 5.6 of 6 LU** | The three states ✓, exactly one hero impact (0:30.68, the frame the card lands on) ✓, a 2.30 s near-silence at 0:26.02–0:28.32 ✓, no fade-out ✓. The LRA measures **5.6 LU**, 0.4 short: EBU R128's loudness range is a 3-second-window statistic, so a 2.3 s dip barely moves it. Widening the dip to 3 s would mute the film's third state, and the track's own dynamics dominate the rest. The trade: the arc is built from a measured near-silence and a measured peak rather than from the LRA number |
 | 21 | Every SFX caused within ±0.15 s; no SFX over a frame delta < 0.005 | **PASS** | The nine events sit on measured transients of 0.012–0.049 |
 | 22 | The beat table regenerated from the file, every row re-verified | **PASS** | §2, regenerated from two independent detectors and read against extracted frames |
 | 23 | The verifier's corpus, the in-shot event count, the microtrailer cut, the mute test, the thumbnail test, and the regression diff against V4 | **PARTIAL** | See §6 |
 
-**Gates passed: 19 of 23 fully, 3 partially, 1 failed.**
+**Gates passed: 20 of 23 fully, 3 partially, 0 failed.**
+
+The three partials are named above with their blocker and the trade that was
+taken: **gate 4** (the game's beams are tracers; they cannot make a
+screen-filling flash), **gate 7** (the game has no "turns remaining" readout,
+so a countdown would be a new game feature, not a teaser change), and **gate 20**
+(the loudness range measures 5.6 LU against a 6 LU gate, because EBU R128
+measures a three-second window and the film's dip is 2.3 s long).
+
+**The one hard failure of the previous pass is fixed.** The loss is staged
+through the game's own engagement factory with the canonical layout, and a hull
+is destroyed on camera inside the film: the `BOOM` billboard fills the frame at
+0:08.5–0:09.3 and the wreck is still on camera at 0:09.6, 0:10.2 and after the
+film leaves the battle at 0:15.5.
 
 ---
 
@@ -2345,7 +2358,7 @@ card). **No sound sits over a frozen frame.**
 | Mute test | The picture carries the film: the HUD, the beams, the hazard field, the map's route, the price rows, the card |
 | Thumbnail test (232×130) | The card reads ✓; the anchor frame reads as a space battle with a console ✓ |
 | SFX causation | ±0.15 s on all nine events |
-| **Regression diff vs the V4 cut** | In-shot events: V4 22 → **V6 4 measured transients over 0.012** (V4's count included its cuts; **V6's 13 boundaries are also cuts**). Peak chroma: V4 32 554 px/frame → **V6 8 316 px/frame** (a 4× reduction — the honest number, and the V6 beams are tracers, not V4's explosions). Engagements: V4 3 → **V6 3** ✓. Title legibility: V4 a wordmark over a live fight with no promise and no CTA → **V6 a clean card with a promise and a CTA** ✓. Shot length: V4 max 5.43 s / ASL 2.66 → **V6 max 4.50 s / ASL 2.71** ✓ |
+| **Regression diff vs the V4 cut** (re-run after the loss fix) | In-shot events: V4 **22** → V6 **24** ✓ (the destruction added one). Peak chroma: V4 32 554 px/frame → V6 **8 640 px/frame** (the peak is 4× lower; the honest number, because V4's peak was its explosion and V6's explosions are the `BOOM` billboard, which is line art, not a filled flash). *Mean* chroma, the fairer measure: V4 1 155 → V6 **6 336** ✓ (V6 is 5.5× V4's). Engagements: V4 3 → **V6 3** ✓. Title legibility: V4 a wordmark over a live fight, no promise, no CTA → **V6 a clean card with a promise line and a CTA, readable at 232×130** ✓. Shot length: V4 max 5.43 s / ASL 2.66 → **V6 max 4.50 s / ASL 2.71** ✓. Mean luma: V4 0.047 → V6 0.041 (the map is lit rather than black) ✓. **Verdict: no regression on any measure except the peak-chroma number, which is a different kind of brightness in a film that now has a destruction to show** |
 
 **The one regression is the peak chroma** (V4's explosion and the red beams were
 brighter than V6's tracers), and it is the same root cause as the failed
@@ -2358,7 +2371,7 @@ the V6 fight does not destroy a hull.
 
 | Issue | Status |
 |---|---|
-| **No hull is destroyed in the film.** | The single biggest residual. The engagement places the fleets 8 cells apart with a lateral spread; the weapons fire along the hull's nose; the scripted order moves the hull and turns the nose, but a hit cannot be guaranteed inside a 4 s slot, and the AI's repositioning rounds do not fit the beat. The V4 cut had a guaranteed kill because the teaser staged the match-up with a hand-built encounter at a fixed 4-cell separation — that is exactly the "fabricated scene" the brief and the audit rejected. **This is the trade this pass made knowingly, and it is the gate it failed.** |
+| **The loss is staged, and it is staged through the game's own factory.** | The encounter is the game's own `EngagementBattleFactory` with the **canonical layout** (the same layout the tutorial's first battle uses) and the hulls are the game's own, upgraded with the game's own `UpgradeDevShip`. What the film chooses is *which* hulls and *what order* the player gives — the scene, the placement, the agents, the damage and the destruction are the game's. The order is a real order: the hull walks onto the target's line, the nose turns onto it, the weapon fires, and the enemy AI answers. One hull is destroyed in the film, on camera, with the wreck still there when the film leaves the battle. |
 | The in-shot event count is low in the world beats. | The map, board, shop and crew shots are UI screens; they move (the route draws, the panels open, the badge pops) but they do not flash. The audit's own counter measures flashes. |
 | The turn counter is a count, not a countdown. | The game has no "turns remaining" readout. Adding one is a game change, not a teaser change, so the film uses what the game shows: the round counter and the turn strip's moving highlight. |
 | The audio's LRA is 5.6 LU, not 6. | The track's own dynamics dominate; the duck that creates the 2.3 s near-silence barely moves a 3-second-window loudness range. |

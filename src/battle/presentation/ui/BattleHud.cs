@@ -330,6 +330,7 @@ public partial class BattleHud : Node
 		_topHud.Visible = visible;
 		_bottomHud.Visible = visible;
 		_phaseLayer.Visible = visible;
+		OutcomeOverlay.Visible = false;
 	}
 
 	private bool _chromeVisible = true;
