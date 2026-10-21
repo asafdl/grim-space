@@ -130,6 +130,47 @@ public sealed class LeadContractDomainTests
 	}
 
 	[Fact]
+	public void Persistence_RoundTripsPurchasedPilotHireSlots()
+	{
+		var contract = CreateLead();
+		var state = new LeadContractState(
+			contract.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 20,
+			"player",
+			"Quartermaster",
+			DeadlineTick: 320)
+		{
+			PurchasedPilotHireSlots = [0, 2],
+		};
+		var registry = PersistenceRegistry.CreateDefault();
+
+		var dto = SaveDtoMapper.CaptureContract((contract, state, null), registry);
+		var restored = SaveDtoMapper.RestoreContract(dto, registry);
+
+		var leadState = Assert.IsType<LeadContractState>(restored.State);
+		Assert.Equal([0, 2], leadState.PurchasedPilotHireSlots);
+	}
+
+	[Fact]
+	public void MarkPilotHireSlotPurchased_TracksSlotsWithoutDuplicates()
+	{
+		var state = new LeadContractState(
+			"lead-1",
+			EContractStatus.Active,
+			AcceptedAtTick: 1,
+			"player",
+			"Quartermaster",
+			DeadlineTick: 100);
+
+		var once = state.MarkPilotHireSlotPurchased(1);
+		var twice = once.MarkPilotHireSlotPurchased(1);
+
+		Assert.Equal([1], once.PurchasedPilotHireSlots);
+		Assert.Same(once, twice);
+	}
+
+	[Fact]
 	public void Fork_LeadStateMutatesIndependently()
 	{
 		var map = new StarMapFixture().FreshWithBeatAHunt(42);

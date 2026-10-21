@@ -27,8 +27,8 @@ public sealed class SaveGameMigratorTests
 			"Legacy",
 			"pilot_01",
 			EPilotBackgroundId.ScrapDrone,
-			EPilotQuirkId.PlaceholderPositive,
-			EPilotQuirkId.PlaceholderNegative,
+			EPilotQuirkId.Charismatic,
+			EPilotQuirkId.NeuroDrugAddict,
 			"ship-1",
 			ExperiencePoints: 175);
 
@@ -37,7 +37,7 @@ public sealed class SaveGameMigratorTests
 		Assert.Equal(PilotProgression.LevelFor(175), restored.ClaimedLevel);
 		Assert.Empty(restored.LearnedSkills);
 		Assert.Equal(EPilotBackgroundId.ScrapDrone, restored.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, restored.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, restored.NegativeQuirkId);
+		Assert.Equal(EPilotQuirkId.Charismatic, restored.PositiveQuirkId);
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, restored.NegativeQuirkId);
 	}
 }

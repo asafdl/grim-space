@@ -235,8 +235,10 @@ public partial class MapController : Node3D
 		_director.RegisterMode(new OverviewPresentationMode());
 		_director.RegisterMode(_facadeMode);
 		Session.Instance.DevMenu.SetMapActions(
-			() => !_director.IsTransitioning && !(_director.CurrentMode?.IsBusy ?? false),
-			RevealAllUnits);
+			CanUseMapDevMenu,
+			RevealAllUnits,
+			CanUseMapDevMenu,
+			SpawnDevPilotRecruitmentLead);
 
 		_poiContractOverlay = new PoiContractOverlay();
 		_poiContractOverlay.Configure(
@@ -621,6 +623,9 @@ public partial class MapController : Node3D
 	private bool IsPlayerFleetVisible(string fleetId) =>
 		_revealAllUnits || _playerVisibleFleetIds.Contains(fleetId);
 
+	private bool CanUseMapDevMenu() =>
+		!_director.IsTransitioning && !(_director.CurrentMode?.IsBusy ?? false);
+
 	private void RevealAllUnits()
 	{
 		_revealAllUnits = true;
@@ -629,6 +634,16 @@ public partial class MapController : Node3D
 			_tickAccumulator / SecondsPerTick,
 			IsPlayerFleetVisible,
 			_hidePlayerBeacon);
+	}
+
+	private void SpawnDevPilotRecruitmentLead()
+	{
+		if (_orchestrator.TrySpawnDevPilotRecruitmentLead(out var failureReason))
+			return;
+
+		_strategicHud.PresentSystemError(
+			"Could not spawn pilot lead.",
+			failureReason ?? "Unknown error.");
 	}
 
 	private void SetPlayerBeaconHidden(bool hidden)

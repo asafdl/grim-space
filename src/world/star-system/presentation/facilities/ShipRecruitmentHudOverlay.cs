@@ -2,7 +2,6 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
-using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -40,7 +39,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 	{
 		_run = run;
 		_facilityTitle = facilityTitle;
-		_shell.Open("Ships for hire", _facilityTitle);
+		_shell.Open("Ship broker", _facilityTitle);
 		ShowMain();
 	}
 
@@ -54,7 +53,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 	private void ShowMain()
 	{
 		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
-		_shell.SetTitle("Ships for hire");
+		_shell.SetTitle("Ship broker");
 		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
@@ -64,19 +63,10 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		body.AddThemeConstantOverride("separation", 18);
 
 
-		var shipCount = _run.PilotRegistry.Active.Count;
+		var ownedShipCount = _run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId).Count();
 		body.AddChild(HudWidgets.CreateStatusPanel(
 			HudStatusKind.Neutral,
-			$"Fleet roster: {shipCount}/{EnlistPlayerShipActionDef.MaxPlayerShips} ships"));
-
-		if (shipCount >= EnlistPlayerShipActionDef.MaxPlayerShips)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Warning,
-				"Your fleet roster is full."));
-			_shell.SetBody(body);
-			return;
-		}
+			$"Owned ships: {ownedShipCount}. Purchased hulls join your reserve until a pilot is assigned."));
 
 		var offers = _run.StarSystem.Map.Market.ListRecruitmentOffers(tier);
 		if (offers.Count == 0)
@@ -89,7 +79,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 			var captured = offer;
 			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
 			var availability = canAfford
-				? "Ready to join your fleet."
+				? "Adds to your owned reserve (no pilot included)."
 				: "You do not have the required resources.";
 			body.AddChild(HudWidgets.CreateCard(
 				DisplayName(captured.Chassis),

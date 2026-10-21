@@ -17,6 +17,7 @@ public sealed class LeadSaleMapMerchantPresenter
 	private readonly MapSceneBinding _binding;
 	private readonly DockyardHudOverlay _upgradeHud;
 	private readonly ShipRecruitmentHudOverlay _recruitmentHud;
+	private readonly PilotHiringHudOverlay _pilotHiringHud;
 	private readonly Action _onStateChanged;
 	private string? _contractId;
 	private string? _meetingFleetId;
@@ -44,14 +45,20 @@ public sealed class LeadSaleMapMerchantPresenter
 		_recruitmentHud.RecruitmentRequested += OnRecruitmentRequested;
 		_recruitmentHud.Closed += OnHudClosed;
 		layer.AddChild(_recruitmentHud);
+		_pilotHiringHud = new PilotHiringHudOverlay();
+		_pilotHiringHud.HireRequested += OnPilotHireRequested;
+		_pilotHiringHud.Closed += OnHudClosed;
+		layer.AddChild(_pilotHiringHud);
 		_binding.WorldUpdated += Sync;
 		_binding.MerchantCatalogQuoted += _upgradeHud.ReceiveCatalogQuote;
 	}
 
-	public bool IsOpen => _upgradeHud.IsOpen || _recruitmentHud.IsOpen;
+	public bool IsOpen => _upgradeHud.IsOpen || _recruitmentHud.IsOpen || _pilotHiringHud.IsOpen;
 
 	public bool TryHandleInput(InputEvent @event) =>
-		_upgradeHud.TryHandleInput(@event) || _recruitmentHud.TryHandleInput(@event);
+		_upgradeHud.TryHandleInput(@event)
+		|| _recruitmentHud.TryHandleInput(@event)
+		|| _pilotHiringHud.TryHandleInput(@event);
 
 	public void OpenMeeting(string meetingFleetId)
 	{
@@ -77,6 +84,9 @@ public sealed class LeadSaleMapMerchantPresenter
 			case EMerchantPresentation.Recruitment:
 				_recruitmentHud.Open(_binding.Run, title);
 				break;
+			case EMerchantPresentation.PilotHiring:
+				_pilotHiringHud.Open(_binding.Run, title, contract.Id);
+				break;
 			default:
 				throw new ArgumentOutOfRangeException(
 					nameof(sale.MerchantSubtype),
@@ -91,6 +101,8 @@ public sealed class LeadSaleMapMerchantPresenter
 	{
 		_upgradeHud.Sync(_binding.Run, _binding.Map);
 		_recruitmentHud.Sync(_binding.Run);
+		if (_contractId is not null)
+			_pilotHiringHud.Sync(_binding.Run, _contractId);
 	}
 
 	private void OnPurchaseRequested(
@@ -139,7 +151,7 @@ public sealed class LeadSaleMapMerchantPresenter
 	{
 		var contractId = _contractId
 			?? throw new InvalidOperationException("Lead sale recruitment requires an active contract.");
-		if (!_binding.TryCommitPlayerInput(new RecruitShipAction(
+		if (!_binding.TryCommitPlayerInput(new PurchaseShipAction(
 			    State.PlayerFleetUnitId,
 			    new LeadSaleMerchantEndpoint(contractId),
 			    new ShipSpawnDeclaration(
@@ -147,23 +159,44 @@ public sealed class LeadSaleMapMerchantPresenter
 				    offer.Chassis,
 				    offer.GearTier))))
 		{
-			var run = _binding.Run;
-			if (run.PilotRegistry.Active.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
-				_binding.PresentSystemError(
-					"Could not recruit ship.",
-					"Lead-sale recruitment was requested while the fleet roster was full.");
-			else if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
+			if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
 				_binding.PresentInsufficientFunds();
 			else
 				_binding.PresentSystemError(
-					"Could not recruit ship.",
-					"Lead-sale recruitment was rejected despite a valid roster and resources.");
-			_recruitmentHud.Sync(run);
+					"Could not purchase ship.",
+					"Lead-sale ship purchase was rejected despite sufficient resources.");
+			_recruitmentHud.Sync(_binding.Run);
 			_onStateChanged();
 			return;
 		}
 
 		_recruitmentHud.Sync(_binding.Run);
+		_onStateChanged();
+	}
+
+	private void OnPilotHireRequested(int slot)
+	{
+		var contractId = _contractId
+			?? throw new InvalidOperationException("Lead sale pilot hire requires an active contract.");
+		if (!_binding.TryCommitPlayerInput(new HirePilotAction(
+			    State.PlayerFleetUnitId,
+			    new LeadSaleMerchantEndpoint(contractId),
+			    slot)))
+		{
+			if (PilotRecruitment.TryGetHireCandidate(_binding.Map, contractId, slot, out var candidate)
+				&& !_binding.Map.PlayerResources.CanApply(
+					PilotRecruitment.Price(_binding.Map, candidate).Negate()))
+				_binding.PresentInsufficientFunds();
+			else
+				_binding.PresentSystemError(
+					"Could not hire pilot.",
+					"Lead-sale pilot hire was rejected despite sufficient resources.");
+			_pilotHiringHud.Sync(_binding.Run, contractId);
+			_onStateChanged();
+			return;
+		}
+
+		_pilotHiringHud.Sync(_binding.Run, contractId);
 		_onStateChanged();
 	}
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrimSpace.Core.Ids;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
@@ -33,8 +34,8 @@ public sealed class Pilot
 	public string Name { get; }
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
-	public EPilotQuirkId PositiveQuirkId { get; }
-	public EPilotQuirkId NegativeQuirkId { get; }
+	public EPilotQuirkId? PositiveQuirkId { get; }
+	public EPilotQuirkId? NegativeQuirkId { get; }
 	public string? AssignedShipId { get; }
 	public bool IsActive { get; }
 	public int ExperiencePoints { get; }
@@ -46,8 +47,8 @@ public sealed class Pilot
 		string name,
 		string portraitId,
 		EPilotBackgroundId backgroundId,
-		EPilotQuirkId positiveQuirkId,
-		EPilotQuirkId negativeQuirkId,
+		EPilotQuirkId? positiveQuirkId,
+		EPilotQuirkId? negativeQuirkId,
 		string? assignedShipId,
 		bool isActive,
 		int experiencePoints,
@@ -75,6 +76,22 @@ public sealed class Pilot
 		LearnedSkills = learnedSkills;
 	}
 
+	internal static string RollRecruitDisplayName(Random rng)
+	{
+		ArgumentNullException.ThrowIfNull(rng);
+		var adjective = Adjectives.WordList.GetWord(rng);
+		var noun = rng.Next(2) == 0
+			? Animals.WordList.GetWord(rng)
+			: Colors.WordList.GetWord(rng);
+		return CultureInfo.InvariantCulture.TextInfo.ToTitleCase($"{adjective} {noun}");
+	}
+
+	internal static string RollRecruitPortraitId(Random rng)
+	{
+		ArgumentNullException.ThrowIfNull(rng);
+		return PortraitPool[rng.Next(PortraitPool.Length)];
+	}
+
 	public static Pilot CreateForShip(string assignedShipId, Random? rng = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
@@ -84,13 +101,32 @@ public sealed class Pilot
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			PilotBackgroundCatalog.Roll(rng).Id,
-			EPilotQuirkId.PlaceholderPositive,
-			EPilotQuirkId.PlaceholderNegative,
+			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng),
+			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng),
 			assignedShipId,
 			false,
 			0,
 			PilotProgression.LevelFor(0),
 			EmptySkills);
+	}
+
+	public static Pilot FromRecruitProfile(string assignedShipId, PilotRecruitProfile profile)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
+		ArgumentNullException.ThrowIfNull(profile);
+
+		return new Pilot(
+			TypedIdGenerator.NextId("pilot"),
+			profile.Name,
+			profile.PortraitId,
+			profile.BackgroundId,
+			profile.PositiveQuirkId,
+			profile.NegativeQuirkId,
+			assignedShipId,
+			false,
+			profile.ExperiencePoints,
+			profile.ClaimedLevel,
+			profile.LearnedSkills);
 	}
 
 	public static Pilot CreateStarterForShip(string assignedShipId, Random? rng = null)
@@ -232,21 +268,27 @@ public sealed class Pilot
 
 	private static void ValidateIdentity(
 		EPilotBackgroundId backgroundId,
-		EPilotQuirkId positiveQuirkId,
-		EPilotQuirkId negativeQuirkId)
+		EPilotQuirkId? positiveQuirkId,
+		EPilotQuirkId? negativeQuirkId)
 	{
 		PilotBackgroundCatalog.Get(backgroundId);
 
-		var positiveQuirk = PilotQuirkCatalog.Get(positiveQuirkId);
-		if (positiveQuirk.Polarity != EPilotQuirkPolarity.Positive)
-			throw new ArgumentException(
-				$"Pilot positive quirk '{positiveQuirkId}' has polarity '{positiveQuirk.Polarity}'.",
-				nameof(positiveQuirkId));
+		if (positiveQuirkId is { } positive)
+		{
+			var positiveQuirk = PilotQuirkCatalog.Get(positive);
+			if (positiveQuirk.Polarity != EPilotQuirkPolarity.Positive)
+				throw new ArgumentException(
+					$"Pilot positive quirk '{positive}' has polarity '{positiveQuirk.Polarity}'.",
+					nameof(positiveQuirkId));
+		}
 
-		var negativeQuirk = PilotQuirkCatalog.Get(negativeQuirkId);
-		if (negativeQuirk.Polarity != EPilotQuirkPolarity.Negative)
-			throw new ArgumentException(
-				$"Pilot negative quirk '{negativeQuirkId}' has polarity '{negativeQuirk.Polarity}'.",
-				nameof(negativeQuirkId));
+		if (negativeQuirkId is { } negative)
+		{
+			var negativeQuirk = PilotQuirkCatalog.Get(negative);
+			if (negativeQuirk.Polarity != EPilotQuirkPolarity.Negative)
+				throw new ArgumentException(
+					$"Pilot negative quirk '{negative}' has polarity '{negativeQuirk.Polarity}'.",
+					nameof(negativeQuirkId));
+		}
 	}
 }

@@ -6,22 +6,23 @@ using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record RecruitShipAction(
+public sealed record PurchaseShipAction(
 	string ActorId,
 	MerchantEndpoint Endpoint,
 	ShipSpawnDeclaration Declaration) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
-		RecruitShipActionDef.Instance;
+		PurchaseShipActionDef.Instance;
 }
 
-public sealed class RecruitShipActionDef
+public sealed class PurchaseShipActionDef
 	: IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	public static RecruitShipActionDef Instance { get; } = new();
+	public static PurchaseShipActionDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(StarMap world, ActorRuntime runtime, string actorId) => [];
 
@@ -29,23 +30,28 @@ public sealed class RecruitShipActionDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime)
 	{
-		if (action is not RecruitShipAction recruit)
+		if (action is not PurchaseShipAction purchase)
 			return false;
 		if (!MerchantPurchaseValidation.EndpointServesMerchantSubtype(
 				world,
-				recruit.Endpoint,
+				purchase.Endpoint,
 				EMerchantSubtype.Ships))
 			return false;
 		if (!world.Market.TryFindRecruitmentOffer(
-				recruit.Declaration.Chassis,
-				recruit.Declaration.GearTier,
+				purchase.Declaration.Chassis,
+				purchase.Declaration.GearTier,
 				MerchantCatalog.Tier(world),
 				out var offer))
 			return false;
-		if (!EnlistPlayerShipActionDef.Instance.IsLegal(
-				new EnlistPlayerShipAction(recruit.ActorId, recruit.Declaration),
-				world,
-				runtime))
+
+		var shipId = purchase.Declaration.ShipId;
+		if (string.IsNullOrWhiteSpace(shipId))
+			return false;
+		if (world.ItemInventory?.TryGet(shipId, out _) == true)
+			return false;
+		if (!world.FleetRegistry.TryGet(purchase.ActorId, out var fleet))
+			return false;
+		if (fleet.State.CurrentEngagement?.Phase == EEngagementPhase.Engaged)
 			return false;
 
 		return world.PlayerResources.CanApply(offer.Cost.Negate());
@@ -56,10 +62,10 @@ public sealed class RecruitShipActionDef
 		StarMap world,
 		ActorRuntime runtime)
 	{
-		var recruit = (RecruitShipAction)action;
+		var purchase = (PurchaseShipAction)action;
 		if (!world.Market.TryFindRecruitmentOffer(
-				recruit.Declaration.Chassis,
-				recruit.Declaration.GearTier,
+				purchase.Declaration.Chassis,
+				purchase.Declaration.GearTier,
 				MerchantCatalog.Tier(world),
 				out var offer))
 			return [];
@@ -67,7 +73,7 @@ public sealed class RecruitShipActionDef
 		return
 		[
 			new ChangeResourceEffect(TransactionSource.MerchantPurchase, offer.Cost.Negate()),
-			new EnlistPlayerShipEffect(recruit.Declaration),
+			new OwnedShipPurchasedEffect(purchase.Declaration),
 		];
 	}
 }

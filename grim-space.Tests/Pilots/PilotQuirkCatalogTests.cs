@@ -6,30 +6,6 @@ namespace GrimSpace.Tests.Pilots;
 public sealed class PilotQuirkCatalogTests
 {
 	[Fact]
-	public void Get_ReturnsPlaceholderPositiveMetadata()
-	{
-		var definition = PilotQuirkCatalog.Get(EPilotQuirkId.PlaceholderPositive);
-
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, definition.Id);
-		Assert.Equal(EPilotQuirkPolarity.Positive, definition.Polarity);
-		Assert.Empty(definition.CapabilityIds);
-		Assert.Equal("[Dev] No positive quirk", definition.Name);
-		Assert.Equal("Placeholder until positive quirks are designed.", definition.Description);
-	}
-
-	[Fact]
-	public void Get_ReturnsPlaceholderNegativeMetadata()
-	{
-		var definition = PilotQuirkCatalog.Get(EPilotQuirkId.PlaceholderNegative);
-
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, definition.Id);
-		Assert.Equal(EPilotQuirkPolarity.Negative, definition.Polarity);
-		Assert.Empty(definition.CapabilityIds);
-		Assert.Equal("[Dev] No negative quirk", definition.Name);
-		Assert.Equal("Placeholder until negative quirks are designed.", definition.Description);
-	}
-
-	[Fact]
 	public void Get_ThrowsForUnknownQuirk()
 	{
 		Assert.Throws<KeyNotFoundException>(() =>
@@ -37,13 +13,18 @@ public sealed class PilotQuirkCatalogTests
 	}
 
 	[Fact]
+	public void RecruitablePools_AreEmpty()
+	{
+		Assert.Empty(PilotQuirkCatalog.RecruitablePositive);
+		Assert.Empty(PilotQuirkCatalog.RecruitableNegative);
+	}
+
+	[Fact]
 	public void All_EnumeratesRegisteredQuirks()
 	{
 		var quirks = PilotQuirkCatalog.All.ToArray();
 
-		Assert.Equal(6, quirks.Length);
-		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.PlaceholderPositive);
-		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.PlaceholderNegative);
+		Assert.Equal(2, quirks.Length);
 		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.Charismatic);
 		Assert.Contains(quirks, quirk => quirk.Id == EPilotQuirkId.NeuroDrugAddict);
 	}
@@ -69,10 +50,31 @@ public sealed class PilotQuirkCatalogTests
 	}
 
 	[Fact]
+	public void RollRecruitableQuirk_ReturnsNullWhilePoolsAreEmpty()
+	{
+		Assert.Null(PilotQuirkCatalog.RollRecruitableQuirk(
+			EPilotQuirkPolarity.Positive,
+			new Random(42)));
+		Assert.Null(PilotQuirkCatalog.RollRecruitableQuirk(
+			EPilotQuirkPolarity.Negative,
+			new Random(42)));
+	}
+
+	[Fact]
+	public void Roll_ReturnsRegisteredQuirksByPolarity()
+	{
+		var positive = PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, new Random(42));
+		var negative = PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, new Random(42));
+
+		Assert.Equal(EPilotQuirkId.Charismatic, positive);
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, negative);
+	}
+
+	[Fact]
 	public void CapabilityIds_PreserveDeclaredOrder()
 	{
 		var definition = new PilotQuirkDefinition(
-			EPilotQuirkId.PlaceholderPositive,
+			EPilotQuirkId.Charismatic,
 			EPilotQuirkPolarity.Positive,
 			[
 				EPilotCapabilityId.ShieldBoost,

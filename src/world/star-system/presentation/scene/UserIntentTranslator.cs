@@ -97,17 +97,17 @@ public sealed class UserIntentTranslator
 			catalog,
 			shipSnapshot));
 
-	public bool TryRecruitShip(
+	public bool TryPurchaseShip(
 		string poiId,
 		string facilityId,
 		string operatorName,
 		RecruitmentOffer offer) =>
-		TryRecruitShip(
+		TryPurchaseShip(
 			new FacilityMerchantEndpoint(poiId, facilityId, operatorName),
 			offer);
 
-	public bool TryRecruitShip(MerchantEndpoint endpoint, RecruitmentOffer offer) =>
-		TrySubmitImmediately(new RecruitShipAction(
+	public bool TryPurchaseShip(MerchantEndpoint endpoint, RecruitmentOffer offer) =>
+		TrySubmitImmediately(new PurchaseShipAction(
 			FacilityActorId(),
 			endpoint,
 			new ShipSpawnDeclaration(

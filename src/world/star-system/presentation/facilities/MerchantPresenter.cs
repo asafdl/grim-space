@@ -78,6 +78,9 @@ public sealed class MerchantPresenter
 			case EMerchantPresentation.Recruitment:
 				_recruitmentHud.Open(_binding.Run, title);
 				break;
+			case EMerchantPresentation.PilotHiring:
+				throw new InvalidOperationException(
+					"Pilot hiring is only available on black-market lead meetings.");
 			default:
 				throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null);
 		}
@@ -122,23 +125,17 @@ public sealed class MerchantPresenter
 		_onStateChanged();
 	}
 
-	// TODO: we need to rework this when we decouple pilots from ships
 	private void OnRecruitmentRequested(RecruitmentOffer offer)
 	{
-		var committed = _binding.Intents.TryRecruitShip(_endpoint, offer);
+		var committed = _binding.Intents.TryPurchaseShip(_endpoint, offer);
 		if (!committed)
 		{
-			var run = _binding.Run;
-			if (run.PilotRegistry.Active.Count >= EnlistPlayerShipActionDef.MaxPlayerShips)
-				_binding.PresentSystemError(
-					"Could not recruit ship.",
-					"Ship recruitment was requested while the fleet roster was full.");
-			else if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
+			if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
 				_binding.PresentInsufficientFunds();
 			else
 				_binding.PresentSystemError(
-					"Could not recruit ship.",
-					"Ship recruitment was rejected despite a valid roster and resources.");
+					"Could not purchase ship.",
+					"Ship purchase was rejected despite sufficient resources.");
 			_recruitmentHud.Sync(_binding.Run);
 			_onStateChanged();
 			return;

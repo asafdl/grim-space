@@ -388,6 +388,21 @@ public sealed class StarSystemOrchestrator : IDisposable
 		return true;
 	}
 
+	public bool TrySpawnDevPilotRecruitmentLead(out string? failureReason)
+	{
+		if (PlayerId is null)
+		{
+			failureReason = "No active player.";
+			return false;
+		}
+
+		if (!DevPilotRecruitmentLeadSpawner.TrySpawn(Map, out failureReason))
+			return false;
+
+		NotifyWorldUpdated();
+		return true;
+	}
+
 	public void RefreshPlayerAgent() => _playerAgent?.OnWorldUpdated();
 
 	public bool TryCommitPlayerInput(IAction action)

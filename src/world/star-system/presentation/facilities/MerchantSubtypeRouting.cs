@@ -6,6 +6,7 @@ internal enum EMerchantPresentation
 {
 	Upgrades,
 	Recruitment,
+	PilotHiring,
 }
 
 internal static class MerchantSubtypeRouting
@@ -16,6 +17,7 @@ internal static class MerchantSubtypeRouting
 			EMerchantSubtype.Weapons or EMerchantSubtype.ShipSupport =>
 				EMerchantPresentation.Upgrades,
 			EMerchantSubtype.Ships => EMerchantPresentation.Recruitment,
+			EMerchantSubtype.Pilots => EMerchantPresentation.PilotHiring,
 			_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
 		};
 
@@ -25,6 +27,8 @@ internal static class MerchantSubtypeRouting
 			EMerchantSubtype.Weapons => EMerchantCatalog.Weapons,
 			EMerchantSubtype.ShipSupport => EMerchantCatalog.ShipSupport,
 			EMerchantSubtype.Ships => EMerchantCatalog.Ships,
+			EMerchantSubtype.Pilots => throw new InvalidOperationException(
+				"Pilot hiring leads do not use merchant catalog quotes."),
 			_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
 		};
 }

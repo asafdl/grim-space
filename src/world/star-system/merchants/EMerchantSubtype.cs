@@ -5,4 +5,5 @@ public enum EMerchantSubtype
 	Weapons,
 	ShipSupport,
 	Ships,
+	Pilots,
 }

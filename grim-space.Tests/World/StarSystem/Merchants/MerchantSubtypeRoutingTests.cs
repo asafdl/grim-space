@@ -18,6 +18,16 @@ public sealed class MerchantSubtypeRoutingTests
 		Assert.Equal(
 			EMerchantPresentation.Recruitment,
 			MerchantSubtypeRouting.PresentationFor(EMerchantSubtype.Ships));
+		Assert.Equal(
+			EMerchantPresentation.PilotHiring,
+			MerchantSubtypeRouting.PresentationFor(EMerchantSubtype.Pilots));
+	}
+
+	[Fact]
+	public void CatalogFor_Pilots_Throws()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+			MerchantSubtypeRouting.CatalogFor(EMerchantSubtype.Pilots));
 	}
 
 	[Theory]

@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem;
+using GrimSpace.Tests.World.StarSystem.Merchants;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts;
 
@@ -161,6 +162,22 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 		Assert.Equal(firstMeeting.SearchArea.Intel, secondMeeting.SearchArea.Intel);
 		Assert.Equal(firstMeeting.SearchArea.SpawnPoints, secondMeeting.SearchArea.SpawnPoints);
 		Assert.False(map.FleetRegistry.Contains(firstMeeting.MeetingId));
+	}
+
+	[Fact]
+	public void Build_BlackMarketLead_WithPilotStock_AllowsExplicitPilotsSubtype()
+	{
+		var map = maps.Fresh(42);
+		var args = new LeadCreateArgs(
+			ELeadKind.BlackMarketSale,
+			new ContractNarrative("Quiet Opportunity", "A seller is available."),
+			300,
+			SpaceMeetingChance: 0,
+			MerchantSubtype: EMerchantSubtype.Pilots);
+
+		Assert.True(ContractFactory.TryBuildLead(map, "lead-pilots", args, out var contract));
+		var objective = Assert.IsType<BlackMarketSaleObjective>(contract.Objective);
+		Assert.Equal(EMerchantSubtype.Pilots, objective.MerchantSubtype);
 	}
 
 	private static HuntCreateArgs CreateGeneratedHuntArgs(StarMap map)

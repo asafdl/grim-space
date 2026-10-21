@@ -232,14 +232,16 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 				pilot.Id,
 				pilot.BackgroundId,
 				capabilityMatches));
-			results.AddRange(PilotCapabilityGrant.FromQuirks(
-				pilot.Id,
-				[pilot.PositiveQuirkId],
-				capabilityMatches));
-			results.AddRange(PilotCapabilityGrant.FromQuirks(
-				pilot.Id,
-				[pilot.NegativeQuirkId],
-				capabilityMatches));
+			var quirkIds = new List<EPilotQuirkId>(2);
+			if (pilot.PositiveQuirkId is { } positiveQuirkId)
+				quirkIds.Add(positiveQuirkId);
+			if (pilot.NegativeQuirkId is { } negativeQuirkId)
+				quirkIds.Add(negativeQuirkId);
+			if (quirkIds.Count > 0)
+				results.AddRange(PilotCapabilityGrant.FromQuirks(
+					pilot.Id,
+					quirkIds,
+					capabilityMatches));
 		}
 
 		return results;

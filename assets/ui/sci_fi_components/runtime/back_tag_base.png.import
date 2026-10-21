@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bixw60kbva32p"
-path="res://.godot/imported/background-placeholder.svg-04df3ecfcf4fea493be844a2589cc942.ctex"
+uid="uid://jo32smisyqqe"
+path="res://.godot/imported/back_tag_base.png-01fc71898dc3e1506b1f1b7e1f8e3b27.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/pilots/background-placeholder.svg"
-dest_files=["res://.godot/imported/background-placeholder.svg-04df3ecfcf4fea493be844a2589cc942.ctex"]
+source_file="res://assets/ui/sci_fi_components/runtime/back_tag_base.png"
+dest_files=["res://.godot/imported/back_tag_base.png-01fc71898dc3e1506b1f1b7e1f8e3b27.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

@@ -50,6 +50,7 @@ public static class OperatorDisplayLabels
 		EMerchantSubtype.Weapons => "Dockyard Shop",
 		EMerchantSubtype.ShipSupport => "Ship Support",
 		EMerchantSubtype.Ships => "Ship Broker",
+		EMerchantSubtype.Pilots => "Pilot Broker",
 		_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
 	};
 

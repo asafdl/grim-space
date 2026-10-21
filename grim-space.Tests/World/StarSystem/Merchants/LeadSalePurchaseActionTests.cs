@@ -86,7 +86,7 @@ public sealed class LeadSalePurchaseActionTests
 		FirstPurchasableOffer(EMerchantSubtype subtype, ShipInstance ship)
 	{
 		if (subtype == EMerchantSubtype.Ships)
-			throw new InvalidOperationException("Ship recruitment uses RecruitShipAction.");
+			throw new InvalidOperationException("Ship purchases use PurchaseShipAction.");
 
 		var catalog = MerchantSubtypeRouting.CatalogFor(subtype);
 		var offer = MerchantCatalog.ListFor(catalog, ship, EMerchantAvailabilityBand.T1).First();

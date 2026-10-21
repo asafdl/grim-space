@@ -2,21 +2,13 @@ namespace GrimSpace.Pilots;
 
 public static class PilotQuirkCatalog
 {
+	public static IReadOnlyList<EPilotQuirkId> RecruitablePositive { get; } = Array.Empty<EPilotQuirkId>();
+
+	public static IReadOnlyList<EPilotQuirkId> RecruitableNegative { get; } = Array.Empty<EPilotQuirkId>();
+
 	private static readonly IReadOnlyDictionary<EPilotQuirkId, PilotQuirkDefinition> Definitions =
 		new Dictionary<EPilotQuirkId, PilotQuirkDefinition>
 		{
-			[EPilotQuirkId.PlaceholderPositive] = new(
-				EPilotQuirkId.PlaceholderPositive,
-				EPilotQuirkPolarity.Positive,
-				[],
-				"[Dev] No positive quirk",
-				"Placeholder until positive quirks are designed."),
-			[EPilotQuirkId.PlaceholderNegative] = new(
-				EPilotQuirkId.PlaceholderNegative,
-				EPilotQuirkPolarity.Negative,
-				[],
-				"[Dev] No negative quirk",
-				"Placeholder until negative quirks are designed."),
 			[EPilotQuirkId.Charismatic] = new(
 				EPilotQuirkId.Charismatic,
 				EPilotQuirkPolarity.Positive,
@@ -29,18 +21,6 @@ public static class PilotQuirkCatalog
 				[],
 				"Neuro-drug Addict",
 				"Prone to accidents and may steal credits. Effects are not implemented yet."),
-			[EPilotQuirkId.GrantProbePositive] = new(
-				EPilotQuirkId.GrantProbePositive,
-				EPilotQuirkPolarity.Positive,
-				[EPilotCapabilityId.LightningShieldDamageBonus],
-				"Grant Probe Positive",
-				"Test fixture quirk granting a battle capability."),
-			[EPilotQuirkId.GrantProbeNegative] = new(
-				EPilotQuirkId.GrantProbeNegative,
-				EPilotQuirkPolarity.Negative,
-				[EPilotCapabilityId.ScrapRewardBonus],
-				"Grant Probe Negative",
-				"Test fixture quirk granting a strategic capability."),
 		};
 
 	public static PilotQuirkDefinition Get(EPilotQuirkId id) =>
@@ -52,4 +32,29 @@ public static class PilotQuirkCatalog
 		Definitions.TryGetValue(id, out definition!);
 
 	public static IEnumerable<PilotQuirkDefinition> All => Definitions.Values;
+
+	public static EPilotQuirkId Roll(EPilotQuirkPolarity polarity, Random rng)
+	{
+		ArgumentNullException.ThrowIfNull(rng);
+		var options = Definitions.Values
+			.Where(definition => definition.Polarity == polarity)
+			.Select(definition => definition.Id)
+			.ToArray();
+		if (options.Length == 0)
+			throw new InvalidOperationException($"No {polarity} quirks are registered.");
+
+		return options[rng.Next(options.Length)];
+	}
+
+	public static EPilotQuirkId? RollRecruitableQuirk(EPilotQuirkPolarity polarity, Random rng)
+	{
+		ArgumentNullException.ThrowIfNull(rng);
+		var pool = polarity == EPilotQuirkPolarity.Positive
+			? RecruitablePositive
+			: RecruitableNegative;
+		if (pool.Count == 0)
+			return null;
+
+		return pool[rng.Next(pool.Count)];
+	}
 }

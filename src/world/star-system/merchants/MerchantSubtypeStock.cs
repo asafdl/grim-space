@@ -10,6 +10,7 @@ public static class MerchantSubtypeStock
 		ArgumentNullException.ThrowIfNull(map);
 		return subtype switch
 		{
+			EMerchantSubtype.Pilots => HasPilotRecruitmentStock(map),
 			EMerchantSubtype.Ships => map.Market
 				.ListRecruitmentOffers(MerchantCatalog.Tier(map))
 				.Count > 0,
@@ -27,4 +28,10 @@ public static class MerchantSubtypeStock
 
 	private static ShipInstance QuoteShip() =>
 		ShipInstance.FromCatalog("merchant-subtype-stock-quote", EType.Fighter);
+
+	private static bool HasPilotRecruitmentStock(StarMap map)
+	{
+		var tier = MerchantCatalog.Tier(map);
+		return PilotRecruitment.ListUnlockedBackgrounds(tier).Count > 0;
+	}
 }

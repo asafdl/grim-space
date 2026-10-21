@@ -8,13 +8,41 @@ namespace GrimSpace.Tests.Run;
 public sealed class PilotIdentityTests
 {
 	[Fact]
-	public void CreateForShip_RollsRealBackgroundAndAssignsPlaceholderQuirks()
+	public void CreateForShip_RollsBackgroundAndQuirksFromCatalog()
 	{
 		var pilot = Pilot.CreateForShip("fighter-a", new Random(42));
 
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
+		Assert.Equal(
+			EPilotQuirkPolarity.Positive,
+			PilotQuirkCatalog.Get(pilot.PositiveQuirkId ?? throw new InvalidOperationException()).Polarity);
+		Assert.Equal(
+			EPilotQuirkPolarity.Negative,
+			PilotQuirkCatalog.Get(pilot.NegativeQuirkId ?? throw new InvalidOperationException()).Polarity);
+	}
+
+	[Fact]
+	public void FromRecruitProfile_CopiesFrozenIdentityAndStartsInactive()
+	{
+		var profile = new PilotRecruitProfile(
+			"Frozen Hire",
+			"pilot_05",
+			EPilotBackgroundId.AsteroidSurfer,
+			EPilotQuirkId.Charismatic,
+			EPilotQuirkId.NeuroDrugAddict,
+			experiencePoints: 0,
+			claimedLevel: 1);
+		var pilot = Pilot.FromRecruitProfile("gunship-1", profile);
+
+		Assert.False(pilot.IsActive);
+		Assert.Equal("gunship-1", pilot.AssignedShipId);
+		Assert.Equal(profile.Name, pilot.Name);
+		Assert.Equal(profile.PortraitId, pilot.PortraitId);
+		Assert.Equal(profile.BackgroundId, pilot.BackgroundId);
+		Assert.Equal(profile.PositiveQuirkId, pilot.PositiveQuirkId);
+		Assert.Equal(profile.NegativeQuirkId, pilot.NegativeQuirkId);
+		Assert.Equal(profile.ExperiencePoints, pilot.ExperiencePoints);
+		Assert.Equal(profile.ClaimedLevel, pilot.ClaimedLevel);
 	}
 
 	[Fact]
@@ -33,9 +61,8 @@ public sealed class PilotIdentityTests
 		var original = Pilot.CreateForShip("fighter-a");
 		var pilot = PilotProgression.AddExperience(original, 250);
 
-		Assert.Equal(original.BackgroundId, pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
+		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);
+		Assert.Equal(original.NegativeQuirkId, pilot.NegativeQuirkId);
 	}
 
 	[Fact]
@@ -44,9 +71,8 @@ public sealed class PilotIdentityTests
 		var original = Pilot.CreateForShip("fighter-a");
 		var pilot = original.WithAssignment("fighter-b", true);
 
-		Assert.Equal(original.BackgroundId, pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
+		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);
+		Assert.Equal(original.NegativeQuirkId, pilot.NegativeQuirkId);
 	}
 
 	[Fact]
@@ -57,9 +83,8 @@ public sealed class PilotIdentityTests
 			.AddExperience(original, 100)
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
 
-		Assert.Equal(original.BackgroundId, pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
+		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);
+		Assert.Equal(original.NegativeQuirkId, pilot.NegativeQuirkId);
 	}
 
 	[Fact]
@@ -98,8 +123,8 @@ public sealed class PilotIdentityTests
 
 		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
 		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, restored.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, restored.NegativeQuirkId);
+		Assert.Equal(pilot.PositiveQuirkId, restored.PositiveQuirkId);
+		Assert.Equal(pilot.NegativeQuirkId, restored.NegativeQuirkId);
 	}
 
 	[Fact]
@@ -110,8 +135,8 @@ public sealed class PilotIdentityTests
 			"Test",
 			"pilot_01",
 			EPilotBackgroundId.ScrapDrone,
-			EPilotQuirkId.PlaceholderNegative,
-			EPilotQuirkId.PlaceholderNegative,
+			EPilotQuirkId.NeuroDrugAddict,
+			EPilotQuirkId.NeuroDrugAddict,
 			"ship-1");
 
 		Assert.Throws<ArgumentException>(() => Pilot.FromPersistence(dto));

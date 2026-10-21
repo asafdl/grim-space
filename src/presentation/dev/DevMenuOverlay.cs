@@ -15,6 +15,8 @@ public sealed partial class DevMenuOverlay : Control
 	private Action? _bumpDanger;
 	private Func<bool>? _canRevealAllUnits;
 	private Action? _revealAllUnits;
+	private Func<bool>? _canSpawnPilotRecruitmentLead;
+	private Action? _spawnPilotRecruitmentLead;
 
 	public event Action? StartBattleRequested;
 
@@ -67,6 +69,12 @@ public sealed partial class DevMenuOverlay : Control
 				_canRevealAllUnits(),
 				OnRevealAllUnits));
 
+		if (_spawnPilotRecruitmentLead is not null)
+			items.AddChild(CreateMenuItem(
+				"Spawn Pilot Recruitment Lead",
+				_canSpawnPilotRecruitmentLead?.Invoke() == true,
+				OnSpawnPilotRecruitmentLead));
+
 		_shell.SetBody(items);
 		_shell.SetFooter([]);
 	}
@@ -105,16 +113,24 @@ public sealed partial class DevMenuOverlay : Control
 		_grantResources = null;
 	}
 
-	public void SetMapActions(Func<bool> canRevealAllUnits, Action revealAllUnits)
+	public void SetMapActions(
+		Func<bool> canRevealAllUnits,
+		Action revealAllUnits,
+		Func<bool>? canSpawnPilotRecruitmentLead = null,
+		Action? spawnPilotRecruitmentLead = null)
 	{
 		_canRevealAllUnits = canRevealAllUnits;
 		_revealAllUnits = revealAllUnits;
+		_canSpawnPilotRecruitmentLead = canSpawnPilotRecruitmentLead;
+		_spawnPilotRecruitmentLead = spawnPilotRecruitmentLead;
 	}
 
 	public void ClearMapActions()
 	{
 		_canRevealAllUnits = null;
 		_revealAllUnits = null;
+		_canSpawnPilotRecruitmentLead = null;
+		_spawnPilotRecruitmentLead = null;
 	}
 
 	private void OnStartBattle() => StartBattleRequested?.Invoke();
@@ -147,6 +163,12 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		Close();
 		_revealAllUnits?.Invoke();
+	}
+
+	private void OnSpawnPilotRecruitmentLead()
+	{
+		Close();
+		_spawnPilotRecruitmentLead?.Invoke();
 	}
 
 	private static Button CreateMenuItem(string text, bool enabled, Action onPressed)

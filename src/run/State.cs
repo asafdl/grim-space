@@ -165,6 +165,8 @@ public sealed class State : IDisposable
 	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _merchantShipPurchaseSubscription;
 	private IDisposable? _playerShipEnlistedSubscription;
+	private IDisposable? _ownedShipPurchasedSubscription;
+	private IDisposable? _pilotHireCommittedSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -470,6 +472,10 @@ public sealed class State : IDisposable
 			StarSystem.Subscribe<Record<MerchantShipPurchase>>(OnMerchantShipPurchase);
 		_playerShipEnlistedSubscription =
 			StarSystem.Subscribe<Record<PlayerShipEnlisted>>(OnPlayerShipEnlisted);
+		_ownedShipPurchasedSubscription =
+			StarSystem.Subscribe<Record<OwnedShipPurchased>>(OnOwnedShipPurchased);
+		_pilotHireCommittedSubscription =
+			StarSystem.Subscribe<Record<PilotHireCommitted>>(OnPilotHireCommitted);
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -482,6 +488,10 @@ public sealed class State : IDisposable
 		_merchantShipPurchaseSubscription = null;
 		_playerShipEnlistedSubscription?.Dispose();
 		_playerShipEnlistedSubscription = null;
+		_ownedShipPurchasedSubscription?.Dispose();
+		_ownedShipPurchasedSubscription = null;
+		_pilotHireCommittedSubscription?.Dispose();
+		_pilotHireCommittedSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -526,9 +536,71 @@ public sealed class State : IDisposable
 		}
 	}
 
+	private void OnOwnedShipPurchased(Record<OwnedShipPurchased> record)
+	{
+		if (!TryAcquireOwnedShip(record.Value.Declaration))
+		{
+			GameLog.Log(
+				$"Ignoring owned ship purchase for '{record.Value.Declaration.ShipId}'; "
+				+ "run acquire validation failed after merchant purchase committed.");
+		}
+	}
+
+	private void OnPilotHireCommitted(Record<PilotHireCommitted> record)
+	{
+		if (!TryAcquirePilotHire(record.Value))
+		{
+			GameLog.Log(
+				$"Ignoring pilot hire for ship '{record.Value.Ship.ShipId}'; "
+				+ "run acquire validation failed after hire committed.");
+		}
+	}
+
+	internal bool TryAcquireOwnedShip(ShipSpawnDeclaration declaration)
+	{
+		ArgumentNullException.ThrowIfNull(declaration);
+		if (!CanCompletePlayerShipAcquire(declaration))
+			return false;
+
+		ItemInventory.Register(declaration, PlayerFleetUnitId);
+		return true;
+	}
+
+	internal bool TryAcquirePilotHire(PilotHireCommitted hire)
+	{
+		ArgumentNullException.ThrowIfNull(hire);
+		var declaration = hire.Ship;
+		if (!CanCompletePlayerShipAcquire(declaration))
+			return false;
+
+		ItemInventory.Register(declaration, PlayerFleetUnitId);
+		var pilot = Pilot.FromRecruitProfile(declaration.ShipId, hire.Profile);
+		PilotRegistry.Register(pilot);
+		if (PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
+		{
+			PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
+			RefreshStrategicFleetProjection();
+			RefreshStrategicPilotCapabilities();
+			PlayerFleetSelection.EnsureSelectedMember(
+				StarSystem.Map,
+				StarSystem.RuntimeFor(PlayerFleetUnitId),
+				PlayerFleetUnitId,
+				GetFieldedShipIds());
+		}
+
+		return true;
+	}
+
 	private void ApplyPlayerShipAcquire(
 		ShipSpawnDeclaration declaration,
 		bool createStarterPilot = false)
+	{
+		ApplyPlayerShipAcquireWithPilot(declaration, createStarterPilot);
+	}
+
+	private void ApplyPlayerShipAcquireWithPilot(
+		ShipSpawnDeclaration declaration,
+		bool createStarterPilot)
 	{
 		ItemInventory.Register(declaration, PlayerFleetUnitId);
 		var pilot = createStarterPilot

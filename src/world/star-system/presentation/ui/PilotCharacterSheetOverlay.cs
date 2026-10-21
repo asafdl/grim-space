@@ -146,8 +146,6 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		rail.AddChild(level);
 
 		var background = PilotBackgroundCatalog.Get(pilot.BackgroundId);
-		var positiveQuirk = PilotQuirkCatalog.Get(pilot.PositiveQuirkId);
-		var negativeQuirk = PilotQuirkCatalog.Get(pilot.NegativeQuirkId);
 		var identityIcons = new HBoxContainer
 		{
 			Alignment = BoxContainer.AlignmentMode.Begin,
@@ -158,14 +156,24 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			BackgroundIconPathFor(background.Id),
 			BackgroundBorderColor,
 			$"Background: {background.Name}\n{background.Description}"));
-		identityIcons.AddChild(BuildIdentityIcon(
-			QuirkIconPathFor(positiveQuirk.Id),
-			PositiveQuirkColor,
-			$"Positive Quirk: {positiveQuirk.Name}\n{positiveQuirk.Description}"));
-		identityIcons.AddChild(BuildIdentityIcon(
-			QuirkIconPathFor(negativeQuirk.Id),
-			NegativeQuirkColor,
-			$"Negative Quirk: {negativeQuirk.Name}\n{negativeQuirk.Description}"));
+		if (pilot.PositiveQuirkId is { } positiveQuirkId)
+		{
+			var positiveQuirk = PilotQuirkCatalog.Get(positiveQuirkId);
+			identityIcons.AddChild(BuildIdentityIcon(
+				QuirkIconPathFor(positiveQuirk.Id),
+				PositiveQuirkColor,
+				$"Positive Quirk: {positiveQuirk.Name}\n{positiveQuirk.Description}"));
+		}
+
+		if (pilot.NegativeQuirkId is { } negativeQuirkId)
+		{
+			var negativeQuirk = PilotQuirkCatalog.Get(negativeQuirkId);
+			identityIcons.AddChild(BuildIdentityIcon(
+				QuirkIconPathFor(negativeQuirk.Id),
+				NegativeQuirkColor,
+				$"Negative Quirk: {negativeQuirk.Name}\n{negativeQuirk.Description}"));
+		}
+
 		rail.AddChild(identityIcons);
 
 		if (assignedShip is not null)
@@ -225,24 +233,35 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 	private Control BuildPilotCursor(int direction, bool visible)
 	{
+		const int cursorWidth = 20;
+		const int cursorHeight = 16;
 		var host = new CenterContainer
 		{
-			CustomMinimumSize = new Vector2(20, PortraitSize),
+			CustomMinimumSize = new Vector2(cursorWidth, PortraitSize),
 			Visible = visible,
 			MouseFilter = MouseFilterEnum.Stop,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
 			TooltipText = direction < 0 ? "Previous pilot" : "Next pilot",
 		};
-		host.AddChild(new TextureRect
+		var iconHost = new Control
+		{
+			CustomMinimumSize = new Vector2(cursorWidth, cursorHeight),
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			MouseFilter = MouseFilterEnum.Ignore,
+			PivotOffset = new Vector2(cursorWidth * 0.5f, cursorHeight * 0.5f),
+			RotationDegrees = direction < 0 ? -90f : 90f,
+		};
+		iconHost.AddChild(new TextureRect
 		{
 			Texture = ResourceLoader.Load<Texture2D>(PilotCursorPath),
-			CustomMinimumSize = new Vector2(20, 16),
+			CustomMinimumSize = new Vector2(cursorWidth, cursorHeight),
+			Size = new Vector2(cursorWidth, cursorHeight),
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			RotationDegrees = direction < 0 ? -90f : 90f,
-			PivotOffset = new Vector2(10, 8),
 			MouseFilter = MouseFilterEnum.Ignore,
 		});
+		host.AddChild(iconHost);
 		host.GuiInput += @event =>
 		{
 			if (@event is InputEventMouseButton
@@ -424,10 +443,6 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private static string QuirkIconPathFor(EPilotQuirkId quirkId) =>
 		quirkId switch
 		{
-			EPilotQuirkId.PlaceholderPositive or EPilotQuirkId.GrantProbePositive =>
-				PositiveQuirkIconPath,
-			EPilotQuirkId.PlaceholderNegative or EPilotQuirkId.GrantProbeNegative =>
-				NegativeQuirkIconPath,
 			EPilotQuirkId.Charismatic => CharismaticIconPath,
 			EPilotQuirkId.NeuroDrugAddict => NeuroDrugAddictIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(quirkId), quirkId, null),

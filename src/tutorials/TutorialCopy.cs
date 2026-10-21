@@ -6,7 +6,7 @@ namespace GrimSpace.Tutorials;
 internal static class TutorialCopy
 {
 	public static string EndTurnPrompt =>
-		$"Press {GameInputBindings.Label("battle_end_turn")} to execute your turn or click the Ability Bar on bottom of screen.";
+		$"You are currently in Simulation Phase, nothing is committed until you press {GameInputBindings.Label("battle_end_turn")} to execute.\nYou can freely undo ({GameInputBindings.Label("battle_undo")}) your actions.";
 
 	public static string MoveToGhostShip =>
 		$"Pilot, lets go get the enemies — You have 4 Action points per turn, advance to the marked location use {GameInputBindings.Label("battle_primary_click")}, adjust heading to match.";

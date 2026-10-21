@@ -2,6 +2,7 @@ using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Units;
 
@@ -368,5 +369,24 @@ public sealed record LeadContractState(
 {
 	int? IContractDeadlineState.DeadlineTick => DeadlineTick;
 
+	public IReadOnlyList<int> PurchasedPilotHireSlots { get; init; } = [];
+
 	public override bool IsObjectiveMet() => false;
+
+	public LeadContractState MarkPilotHireSlotPurchased(int slot)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(slot, 0);
+		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(
+			slot,
+			PilotRecruitment.CandidatesPerLead);
+		if (PurchasedPilotHireSlots.Contains(slot))
+			return this;
+
+		var next = new int[PurchasedPilotHireSlots.Count + 1];
+		for (var index = 0; index < PurchasedPilotHireSlots.Count; index++)
+			next[index] = PurchasedPilotHireSlots[index];
+		next[^1] = slot;
+		Array.Sort(next);
+		return this with { PurchasedPilotHireSlots = next };
+	}
 }
