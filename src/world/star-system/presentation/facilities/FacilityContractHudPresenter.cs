@@ -64,8 +64,7 @@ public sealed class FacilityContractHudPresenter
 				_binding.Map,
 				_binding.PoiId,
 				_binding.FacilityId,
-				facilityOperator.Name,
-				OperatorDisplayLabels.Title(facilityOperator, interaction));
+				facilityOperator.Name);
 		_stateChanged();
 	}
 

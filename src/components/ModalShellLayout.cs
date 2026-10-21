@@ -23,17 +23,18 @@ internal static class ModalShellLayout
 		return FallbackViewportSize;
 	}
 
-	public const float MaxPanelWidth = 800f;
+	public const float PanelScale = 1.2f;
+	public const float MaxPanelWidth = 960f;
 
 	public static LayoutSize ComputePanelMinimumSize(LayoutSize containerSize)
 	{
-		var minWidth = MathF.Min(containerSize.Width * 0.38f, MaxPanelWidth);
-		var maxWidth = MathF.Min(containerSize.Width * 0.58f, MaxPanelWidth);
-		var width = (int)MathF.Round(System.Math.Clamp(720f, minWidth, maxWidth));
+		var minWidth = MathF.Min(containerSize.Width * 0.38f * PanelScale, MaxPanelWidth);
+		var maxWidth = MathF.Min(containerSize.Width * 0.58f * PanelScale, MaxPanelWidth);
+		var width = (int)MathF.Round(System.Math.Clamp(720f * PanelScale, minWidth, maxWidth));
 		var height = (int)MathF.Round(System.Math.Clamp(
-			540f,
-			containerSize.Height * 0.55f,
-			containerSize.Height * 0.85f));
+			540f * PanelScale,
+			containerSize.Height * 0.55f * PanelScale,
+			containerSize.Height * 0.85f * PanelScale));
 
 		return new LayoutSize(width, height);
 	}

@@ -115,6 +115,9 @@ public sealed class UserIntentTranslator
 				offer.Chassis,
 				offer.GearTier)));
 
+	public bool TryHirePilot(LeadSaleMerchantEndpoint endpoint, int slot) =>
+		TrySubmitImmediately(new HirePilotAction(FacilityActorId(), endpoint, slot));
+
 	public bool TryCompleteDeliveryFacilityLeg(
 		string poiId,
 		string facilityId,

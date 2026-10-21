@@ -1,15 +1,16 @@
 using Godot;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Components;
 
 public sealed partial class ModalShell : Control
 {
-	private PanelContainer _panel = null!;
+	private UiContainer _container = null!;
 	private MarginContainer _outer = null!;
 	private Label _title = null!;
 	private Label _subtitle = null!;
-	private Button _headerButton = null!;
-	private Button _dismissButton = null!;
+	private UiButton _headerButton = null!;
+	private UiButton _dismissButton = null!;
 	private ScrollContainer _bodyScroll = null!;
 	private VBoxContainer _bodyHost = null!;
 	private HBoxContainer _footer = null!;
@@ -18,14 +19,24 @@ public sealed partial class ModalShell : Control
 	private Action? _headerAction;
 	private Action? _backHandler;
 	private Action? _closeHandler;
+	private bool _dismissVisible;
 	private IReadOnlyList<HudAction> _footerActions = [];
 	private Control _headerRow = null!;
 	private readonly HudThemeFamily? _themeFamily;
+	private readonly UiContainerVisual _containerVisual;
 
 	public event Action? Closed;
 
 	public ModalShell(HudThemeFamily? themeFamily = null)
+		: this(UiContainerVisual.Modal, themeFamily)
 	{
+	}
+
+	public ModalShell(
+		UiContainerVisual containerVisual,
+		HudThemeFamily? themeFamily = null)
+	{
+		_containerVisual = containerVisual;
 		_themeFamily = themeFamily;
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
@@ -75,19 +86,24 @@ public sealed partial class ModalShell : Control
 	{
 		_headerMode = mode;
 		_headerAction = onHeaderPressed;
-		_headerButton.Text = buttonLabel ?? (mode == HudHeaderMode.Close ? "×" : "←");
-		_headerButton.CustomMinimumSize = mode == HudHeaderMode.Close
-			? new Vector2(32, 32)
-			: Vector2.Zero;
-		_headerButton.ThemeTypeVariation = mode == HudHeaderMode.Close
-			? HudStyles.HeaderCloseButtonType
-			: HudStyles.HeaderBackButtonType;
-		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissButton.Visible;
+		if (mode == HudHeaderMode.Close)
+		{
+			_headerButton.SetVisual(UiButtonVisual.Compact);
+			_headerButton.Text = buttonLabel ?? "×";
+		}
+		else
+		{
+			_headerButton.SetVisual(UiButtonVisual.Back);
+			_headerButton.Text = buttonLabel ?? "Back";
+		}
+
+		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissVisible;
 	}
 
 	public void SetDismissVisible(bool visible)
 	{
-		_dismissButton.Visible = visible;
+		_dismissVisible = visible;
+		_dismissButton.Visible = visible && _headerRow.Visible;
 		_headerButton.Visible = _headerMode == HudHeaderMode.Back || !visible;
 	}
 
@@ -95,7 +111,11 @@ public sealed partial class ModalShell : Control
 
 	public void SetCloseHandler(Action? handler) => _closeHandler = handler;
 
-	public void SetHeaderVisible(bool visible) => _headerRow.Visible = visible;
+	public void SetHeaderVisible(bool visible)
+	{
+		_headerRow.Visible = visible;
+		_dismissButton.Visible = visible && _dismissVisible;
+	}
 
 	public void SetBody(Control content)
 	{
@@ -185,30 +205,29 @@ public sealed partial class ModalShell : Control
 		};
 		AddChild(center);
 
-		_panel = new PanelContainer
+		_container = new UiContainer
 		{
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 			CustomMinimumSize = ToGodotSize(ModalShellLayout.BaselinePanelMinimumSize),
 		};
-		HudStyles.SetPanelVariation(
-			_panel,
-			_themeFamily is { } family ? HudStyles.PanelVariation(family) : "Shell");
-		center.AddChild(_panel);
+		_container.SetVisual(_containerVisual);
+		center.AddChild(_container);
 
 		if (_themeFamily is { } themeFamily)
 			HudThemes.Apply(this, themeFamily);
 
 		_outer = new MarginContainer
 		{
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			SizeFlagsVertical = SizeFlags.ExpandFill,
+			AnchorsPreset = (int)LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
 		};
-		_outer.AddThemeConstantOverride("margin_left", HudStyles.Margin);
-		_outer.AddThemeConstantOverride("margin_right", HudStyles.Margin);
-		_outer.AddThemeConstantOverride("margin_top", HudStyles.Margin);
-		_outer.AddThemeConstantOverride("margin_bottom", HudStyles.Margin);
-		_panel.AddChild(_outer);
+		_outer.AddThemeConstantOverride("margin_left", _container.ContentMarginLeft);
+		_outer.AddThemeConstantOverride("margin_right", _container.ContentMarginRight);
+		_outer.AddThemeConstantOverride("margin_top", _container.ContentMarginTop);
+		_outer.AddThemeConstantOverride("margin_bottom", _container.ContentMarginBottom);
+		_container.AddChild(_outer);
 
 		var layout = new VBoxContainer
 		{
@@ -227,7 +246,14 @@ public sealed partial class ModalShell : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
 		};
-		layout.AddChild(_bodyScroll);
+		var bodyMargin = new MarginContainer
+		{
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		bodyMargin.AddThemeConstantOverride("margin_top", _container.BodyMarginTop);
+		bodyMargin.AddChild(_bodyScroll);
+		layout.AddChild(bodyMargin);
 
 		_bodyHost = new VBoxContainer
 		{
@@ -252,47 +278,74 @@ public sealed partial class ModalShell : Control
 		};
 		row.AddThemeConstantOverride("separation", 12);
 
-		_headerButton = new Button
+		_headerButton = new UiButton("×", HudActionKind.Secondary, HudPalettes.BlueCyan)
 		{
-			Text = "×",
 			FocusMode = FocusModeEnum.All,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-			ThemeTypeVariation = HudStyles.HeaderCloseButtonType,
 		};
+		_headerButton.SetVisual(UiButtonVisual.Compact);
 		_headerButton.Pressed += OnHeaderPressed;
-		row.AddChild(_headerButton);
+		var leadingControls = new CenterContainer
+		{
+			CustomMinimumSize = new Vector2(_container.HeaderSideSlotWidth, 0f),
+		};
+		leadingControls.AddChild(_headerButton);
+		row.AddChild(leadingControls);
 
 		var titles = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		titles.AddThemeConstantOverride("separation", 2);
+		titles.AddThemeConstantOverride(
+			"separation",
+			_container.HeaderTitleSubtitleSeparation);
 
 		_title = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			HorizontalAlignment = HorizontalAlignment.Center,
 			ThemeTypeVariation = "Title",
 		};
-		titles.AddChild(_title);
+		_title.AddThemeFontSizeOverride("font_size", _container.HeaderTitleFontSize);
+		_title.AddThemeColorOverride("font_color", _container.HeaderTitleColor);
+		var titleOffset = new MarginContainer();
+		titleOffset.AddThemeConstantOverride("margin_top", _container.HeaderTitleOffsetY);
+		titleOffset.AddThemeConstantOverride("margin_bottom", -_container.HeaderTitleOffsetY);
+		titleOffset.AddChild(_title);
+		titles.AddChild(titleOffset);
 
 		_subtitle = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			HorizontalAlignment = HorizontalAlignment.Center,
 			ThemeTypeVariation = "Subtitle",
 		};
+		_subtitle.AddThemeFontSizeOverride("font_size", _container.HeaderSubtitleFontSize);
+		_subtitle.AddThemeColorOverride("font_color", _container.HeaderSubtitleColor);
 		titles.AddChild(_subtitle);
 
 		row.AddChild(titles);
-		_dismissButton = new Button
+		var trailingControls = new Control
 		{
-			Text = "×",
-			Visible = false,
-			FocusMode = FocusModeEnum.All,
-			CustomMinimumSize = new Vector2(32, 32),
-			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-			ThemeTypeVariation = HudStyles.HeaderCloseButtonType,
+			CustomMinimumSize = new Vector2(_container.HeaderSideSlotWidth, 0f),
+			MouseFilter = MouseFilterEnum.Ignore,
 		};
+		row.AddChild(trailingControls);
+
+		var dismissOffsets = _container.DismissButtonOffsets;
+		_dismissButton = new UiButton("X", HudActionKind.Secondary, HudPalettes.BlueCyan)
+		{
+			Visible = false,
+			AnchorLeft = 1f,
+			AnchorRight = 1f,
+			OffsetLeft = dismissOffsets.Position.X,
+			OffsetTop = dismissOffsets.Position.Y,
+			OffsetRight = dismissOffsets.End.X,
+			OffsetBottom = dismissOffsets.End.Y,
+		};
+		_dismissButton.SetIntegrated(true);
+		_dismissButton.SetFontSize(23);
 		_dismissButton.Pressed += CloseWithHandler;
-		row.AddChild(_dismissButton);
+		_container.AddChild(_dismissButton);
 		return row;
 	}
 
@@ -310,15 +363,12 @@ public sealed partial class ModalShell : Control
 			_backHandler?.Invoke();
 	}
 
-	private Button CreateFooterButton(HudAction action)
+	private UiButton CreateFooterButton(HudAction action)
 	{
-		var button = new Button
+		var button = new UiButton(action.Label, action.Kind, HudPalettes.BlueCyan)
 		{
-			Text = action.Label,
 			Disabled = !action.Enabled,
-			FocusMode = FocusModeEnum.All,
 		};
-		HudStyles.StyleButton(button, action.Kind);
 		button.Pressed += () => action.OnPressed(button);
 		return button;
 	}
@@ -340,7 +390,7 @@ public sealed partial class ModalShell : Control
 		var containerSize = ModalShellLayout.ResolveContainerSize(
 			ToLayoutSize(Size),
 			ToLayoutSize(viewportSize));
-		_panel.CustomMinimumSize = ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
+		_container.CustomMinimumSize = ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
 		RebuildFooter();
 	}
 

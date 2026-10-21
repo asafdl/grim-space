@@ -1,6 +1,8 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Contracts;
+
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class ContractHudOverlay : Control
@@ -11,7 +13,6 @@ public sealed partial class ContractHudOverlay : Control
 	private string _activePoiId = "";
 	private string _activeFacilityId = "";
 	private string _activeOperatorName = "";
-	private string _facilityTitle = "";
 	private Contract? _selected;
 
 	public event Action<string>? AcceptRequested;
@@ -27,7 +28,9 @@ public sealed partial class ContractHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell(HudThemeFamily.Informative);
+		_shell = new ModalShell(
+			UiContainerVisual.Modal,
+			HudThemeFamily.Informative);
 		AddChild(_shell);
 		_declinePopup = new CompactConfirmationPopup();
 		_shell.AddChild(_declinePopup);
@@ -41,16 +44,14 @@ public sealed partial class ContractHudOverlay : Control
 		StarMap map,
 		string activePoiId,
 		string activeFacilityId,
-		string activeOperatorName,
-		string facilityTitle)
+		string activeOperatorName)
 	{
 		_map = map;
 		_activePoiId = activePoiId;
 		_activeFacilityId = activeFacilityId;
 		_activeOperatorName = activeOperatorName;
-		_facilityTitle = facilityTitle;
 		_selected = null;
-		_shell.Open(_facilityTitle, "Select a contract");
+		_shell.Open("Contracts", "Select a contract");
 		ShowList();
 	}
 
@@ -78,7 +79,7 @@ public sealed partial class ContractHudOverlay : Control
 	{
 		_declinePopup.Hide();
 		var contracts = PresentedContracts();
-		_shell.SetTitle(_facilityTitle);
+		_shell.SetTitle("Contracts");
 		_shell.SetSubtitle(contracts.Length == 0
 			? "No contracts available"
 			: $"{contracts.Length} {Pluralize(contracts.Length, "contract", "contracts")} available");
@@ -125,17 +126,21 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.SetHeader(HudHeaderMode.Back, ShowList);
 		_shell.SetBackHandler(ShowList);
 
-		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		var details = new Label
+		var details = new UiCard(
+			"CONTRACT BRIEFING",
+			ContractDisplay.KindDisplayName(ContractDisplay.Kind(_selected)),
+			ContractDisplay.DetailsBody(_selected, _map, includeThreatAssessment: false),
+			$"THREAT // {ContractDisplay.DifficultyStars(_selected)}")
 		{
-			Text = ContractDisplay.DetailsBody(_selected, _map),
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
-		HudStyles.ApplyTextRole(details, HudTextRole.Body);
-		body.AddChild(details);
+		details.SetVisual(UiCardVisual.Technical);
+		details.SetInteractive(false);
+		details.SetTrailingAlignment(HorizontalAlignment.Left);
+		details.SetTrailingColor(HudPalettes.Gold.Primary);
 
-		_shell.SetBody(body);
+		_shell.SetBody(details);
 		var footer = new List<HudAction>();
 		if (_selected.AllowsDecline)
 			footer.Add(new HudAction("Decline", HudActionKind.Destructive, ShowDeclineConfirm));
@@ -143,7 +148,7 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.SetFooter(footer);
 	}
 
-	private void ShowDeclineConfirm(Button anchor)
+	private void ShowDeclineConfirm(BaseButton anchor)
 	{
 		if (_selected is null || !TryRefreshSelected())
 		{
@@ -157,52 +162,22 @@ public sealed partial class ContractHudOverlay : Control
 
 	private Control CreateContractCard(Contract contract)
 	{
-		var rows = new List<Control>
+		var item = new UiListItem(
+			ContractDisplay.Title(contract),
+			$"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(contract))}"
+				+ $" // Issued by {ContractDisplay.Issuer(contract)}",
+			ContractDisplay.DifficultyStars(contract))
 		{
-			CreateDifficultyRow(contract),
-		};
-
-		return HudWidgets.CreateCard(
-			ContractDisplay.ListTitle(contract),
-			rows,
-			() =>
-			{
-				_selected = contract;
-				ShowDetails();
-			});
-	}
-
-	private static Control CreateDifficultyRow(Contract contract)
-	{
-		var row = new HBoxContainer
-		{
-			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-
-		var label = new Label { Text = "DIFFICULTY" };
-		HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
-		row.AddChild(label);
-
-		var filledStars = new Label
+		item.SetVisual(UiListItemVisual.Technical);
+		item.SetTrailingColor(HudPalettes.Gold.Primary);
+		item.Pressed += () =>
 		{
-			Text = $"  {new string('★', ContractDisplay.Difficulty(contract))}",
-			MouseFilter = Control.MouseFilterEnum.Ignore,
+			_selected = contract;
+			ShowDetails();
 		};
-		HudStyles.ApplyTextRole(filledStars, HudTextRole.Warning);
-		filledStars.AddThemeColorOverride("font_color", Colors.Yellow);
-		filledStars.SelfModulate = Colors.Yellow;
-		row.AddChild(filledStars);
-
-		var emptyStars = new Label
-		{
-			Text = new string('☆', 5 - ContractDisplay.Difficulty(contract)),
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		HudStyles.ApplyTextRole(emptyStars, HudTextRole.Metadata);
-		row.AddChild(emptyStars);
-
-		return row;
+		return item;
 	}
 
 	private static string Pluralize(int count, string singular, string plural) =>

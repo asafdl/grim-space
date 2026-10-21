@@ -12,9 +12,11 @@ public sealed class MerchantPresenter
 	private readonly FacilitySceneBinding _binding;
 	private readonly DockyardHudOverlay _upgradeHud;
 	private readonly ShipRecruitmentHudOverlay _recruitmentHud;
+	private readonly PilotHiringHudOverlay _pilotHiringHud;
 	private readonly Action _onStateChanged;
 	private EMerchantSubtype? _activeSubtype;
 	private MerchantEndpoint _endpoint = null!;
+	private string? _activeLeadContractId;
 
 	public MerchantPresenter(
 		Control host,
@@ -38,11 +40,16 @@ public sealed class MerchantPresenter
 		_recruitmentHud.RecruitmentRequested += OnRecruitmentRequested;
 		_recruitmentHud.Closed += _onStateChanged;
 		layer.AddChild(_recruitmentHud);
+		_pilotHiringHud = new PilotHiringHudOverlay();
+		_pilotHiringHud.HireRequested += OnPilotHireRequested;
+		_pilotHiringHud.Closed += _onStateChanged;
+		layer.AddChild(_pilotHiringHud);
 		_binding.WorldUpdated += Sync;
 		_binding.MerchantCatalogQuoted += _upgradeHud.ReceiveCatalogQuote;
 	}
 
-	public bool IsOpen => _upgradeHud.IsOpen || _recruitmentHud.IsOpen;
+	public bool IsOpen =>
+		_upgradeHud.IsOpen || _recruitmentHud.IsOpen || _pilotHiringHud.IsOpen;
 
 	public void Open(
 		FacilityOperator facilityOperator,
@@ -57,6 +64,7 @@ public sealed class MerchantPresenter
 		}
 
 		_activeSubtype = subtype;
+		_activeLeadContractId = null;
 		_endpoint = MerchantEndpointResolver.ForFacilityOperator(
 			_binding.Map,
 			_binding.PoiId,
@@ -79,8 +87,12 @@ public sealed class MerchantPresenter
 				_recruitmentHud.Open(_binding.Run, title);
 				break;
 			case EMerchantPresentation.PilotHiring:
-				throw new InvalidOperationException(
-					"Pilot hiring is only available on black-market lead meetings.");
+				if (_endpoint is not LeadSaleMerchantEndpoint leadEndpoint)
+					throw new InvalidOperationException(
+						"Pilot hiring requires an active black-market lead sale.");
+				_activeLeadContractId = leadEndpoint.ContractId;
+				_pilotHiringHud.Open(_binding.Run, title, leadEndpoint.ContractId);
+				break;
 			default:
 				throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null);
 		}
@@ -91,6 +103,8 @@ public sealed class MerchantPresenter
 	{
 		_upgradeHud.Sync(_binding.Run, _binding.Map);
 		_recruitmentHud.Sync(_binding.Run);
+		if (_activeLeadContractId is not null)
+			_pilotHiringHud.Sync(_binding.Run, _activeLeadContractId);
 	}
 
 	private void OnPurchaseRequested(
@@ -103,12 +117,12 @@ public sealed class MerchantPresenter
 				"Merchant purchases require an active merchant subtype.");
 		var before = _binding.Run.ItemInventory.Get(shipId).Clone();
 		if (!_binding.Intents.TryPurchase(
-			    _endpoint,
-			    MerchantSubtypeRouting.CatalogFor(subtype),
-			    offer.Offering,
-			    target,
-			    before,
-			    offer.Cost))
+				_endpoint,
+				MerchantSubtypeRouting.CatalogFor(subtype),
+				offer.Offering,
+				target,
+				before,
+				offer.Cost))
 		{
 			if (!_binding.Map.PlayerResources.CanApply(offer.Cost.Negate()))
 				_binding.PresentInsufficientFunds();
@@ -142,6 +156,34 @@ public sealed class MerchantPresenter
 		}
 
 		_recruitmentHud.Sync(_binding.Run);
+		_onStateChanged();
+	}
+
+	private void OnPilotHireRequested(int slot)
+	{
+		if (_endpoint is not LeadSaleMerchantEndpoint endpoint)
+			throw new InvalidOperationException(
+				"Pilot hiring requires an active black-market lead sale.");
+		if (!_binding.Intents.TryHirePilot(endpoint, slot))
+		{
+			if (PilotRecruitment.TryGetHireCandidate(
+					_binding.Map,
+					endpoint.ContractId,
+					slot,
+					out var candidate)
+				&& !_binding.Map.PlayerResources.CanApply(
+					PilotRecruitment.Price(_binding.Map, candidate).Negate()))
+				_binding.PresentInsufficientFunds();
+			else
+				_binding.PresentSystemError(
+					"Could not hire pilot.",
+					"Lead-sale pilot hire was rejected despite sufficient resources.");
+			_pilotHiringHud.Sync(_binding.Run, endpoint.ContractId);
+			_onStateChanged();
+			return;
+		}
+
+		_pilotHiringHud.Sync(_binding.Run, endpoint.ContractId);
 		_onStateChanged();
 	}
 }

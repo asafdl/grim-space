@@ -18,7 +18,7 @@ public static class ContractDisplay
 	public static string Issuer(Contract contract) =>
 		FactionCatalog.DisplayName(contract.IssuerFaction);
 
-	public static string DetailsBody(Contract contract, StarMap map)
+	public static string DetailsBody(Contract contract, StarMap map, bool includeThreatAssessment = true)
 	{
 		var parts = new List<string>();
 		var briefing = Narrative(contract);
@@ -33,7 +33,7 @@ public static class ContractDisplay
 		if (reward != "—")
 			parts.Add($"Compensation is {reward}.");
 
-		if (contract.Category == EContractCategory.Standard)
+		if (includeThreatAssessment && contract.Category == EContractCategory.Standard)
 		{
 			var danger = Danger(contract);
 			if (danger != "—")

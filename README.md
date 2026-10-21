@@ -8,6 +8,8 @@ Early-stage 3D roguelike space game with strategic star-system navigation and ta
 
 Gameplay systems in code come first — placeholder visuals, APIs that change, and design details still being proven out.
 
+Reusable HUD visuals, variants, palettes, and adoption rules are documented in the [UI kit guide](docs/ui-kit.md).
+
 ## Game architecture and boundaries
 
 The game uses one-way command flow into the simulation and derived presentation flow back out:

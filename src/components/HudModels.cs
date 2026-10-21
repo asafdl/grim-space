@@ -42,7 +42,7 @@ public sealed record HudAction
 	{
 	}
 
-	public HudAction(string label, HudActionKind kind, Action<Button> onPressed, bool enabled = true)
+	public HudAction(string label, HudActionKind kind, Action<BaseButton> onPressed, bool enabled = true)
 	{
 		Label = label;
 		Kind = kind;
@@ -52,7 +52,7 @@ public sealed record HudAction
 
 	public string Label { get; }
 	public HudActionKind Kind { get; }
-	public Action<Button> OnPressed { get; }
+	public Action<BaseButton> OnPressed { get; }
 	public bool Enabled { get; }
 }
 

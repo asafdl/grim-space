@@ -32,8 +32,8 @@ public sealed class ModalShellLayoutTests
 		var panelSize = ModalShellLayout.ComputePanelMinimumSize(resolved);
 
 		Assert.Equal(viewportSize, resolved);
-		Assert.True(panelSize.Width >= 720f);
-		Assert.True(panelSize.Height >= 540f);
+		Assert.True(panelSize.Width >= 720f * ModalShellLayout.PanelScale);
+		Assert.True(panelSize.Height >= 540f * ModalShellLayout.PanelScale);
 	}
 
 	[Fact]
@@ -72,7 +72,7 @@ public sealed class ModalShellLayoutTests
 		var panelSize = ModalShellLayout.ComputePanelMinimumSize(resolved);
 
 		Assert.Equal(ModalShellLayout.MaxPanelWidth, panelSize.Width);
-		Assert.True(panelSize.Height >= 540f);
+		Assert.True(panelSize.Height >= 540f * ModalShellLayout.PanelScale);
 	}
 
 	[Fact]
