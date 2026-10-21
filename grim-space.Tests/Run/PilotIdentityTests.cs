@@ -8,11 +8,11 @@ namespace GrimSpace.Tests.Run;
 public sealed class PilotIdentityTests
 {
 	[Fact]
-	public void CreateForShip_AssignsPlaceholderIdentity()
+	public void CreateForShip_RollsRealBackgroundAndAssignsPlaceholderQuirks()
 	{
-		var pilot = Pilot.CreateForShip("fighter-a");
+		var pilot = Pilot.CreateForShip("fighter-a", new Random(42));
 
-		Assert.Equal(EPilotBackgroundId.Unspecified, pilot.BackgroundId);
+		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
 	}
@@ -30,9 +30,10 @@ public sealed class PilotIdentityTests
 	[Fact]
 	public void AddExperience_PreservesIdentity()
 	{
-		var pilot = PilotProgression.AddExperience(Pilot.CreateForShip("fighter-a"), 250);
+		var original = Pilot.CreateForShip("fighter-a");
+		var pilot = PilotProgression.AddExperience(original, 250);
 
-		Assert.Equal(EPilotBackgroundId.Unspecified, pilot.BackgroundId);
+		Assert.Equal(original.BackgroundId, pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
 	}
@@ -40,9 +41,10 @@ public sealed class PilotIdentityTests
 	[Fact]
 	public void WithAssignment_PreservesIdentity()
 	{
-		var pilot = Pilot.CreateForShip("fighter-a").WithAssignment("fighter-b", true);
+		var original = Pilot.CreateForShip("fighter-a");
+		var pilot = original.WithAssignment("fighter-b", true);
 
-		Assert.Equal(EPilotBackgroundId.Unspecified, pilot.BackgroundId);
+		Assert.Equal(original.BackgroundId, pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
 	}
@@ -50,11 +52,12 @@ public sealed class PilotIdentityTests
 	[Fact]
 	public void LearnPilotSkill_PreservesIdentity()
 	{
+		var original = Pilot.CreateForShip("fighter-a");
 		var pilot = PilotProgression
-			.AddExperience(Pilot.CreateForShip("fighter-a"), 100)
+			.AddExperience(original, 100)
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
 
-		Assert.Equal(EPilotBackgroundId.Unspecified, pilot.BackgroundId);
+		Assert.Equal(original.BackgroundId, pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
 	}
@@ -94,7 +97,7 @@ public sealed class PilotIdentityTests
 		restoredRegistry.RestoreSnapshot([dto]);
 
 		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
-		Assert.Equal(EPilotBackgroundId.Unspecified, restored.BackgroundId);
+		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
 		Assert.Equal(EPilotQuirkId.PlaceholderPositive, restored.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.PlaceholderNegative, restored.NegativeQuirkId);
 	}
@@ -106,7 +109,7 @@ public sealed class PilotIdentityTests
 			"pilot-1",
 			"Test",
 			"pilot_01",
-			EPilotBackgroundId.Unspecified,
+			EPilotBackgroundId.ScrapDrone,
 			EPilotQuirkId.PlaceholderNegative,
 			EPilotQuirkId.PlaceholderNegative,
 			"ship-1");

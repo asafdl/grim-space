@@ -15,15 +15,19 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string DodgeIconPath = "res://assets/ui/abilities/spin.svg";
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
-	private const string BackgroundIconPath = "res://assets/ui/pilots/background-placeholder.svg";
 	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
+	private const string OptimalityEnforcerIconPath = "res://assets/ui/pilots/optimality-enforcer.png";
+	private const string CorporateSlaveIconPath = "res://assets/ui/pilots/corporate-slave.png";
+	private const string PodRacerIconPath = "res://assets/ui/pilots/pod-racer.png";
+	private const string AsteroidSurferIconPath = "res://assets/ui/pilots/asteroid-surfer.png";
+	private const string SynthSingerIconPath = "res://assets/ui/pilots/synth-singer.png";
 	private const string PositiveQuirkIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
 	private const string NegativeQuirkIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
 	private const string CharismaticIconPath = "res://assets/ui/pilots/charismatic.png";
 	private const string NeuroDrugAddictIconPath = "res://assets/ui/pilots/neuro-drug-addict.png";
 	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 	private const int SkillNodeSize = 60;
-	private const int IdentityIconSize = 48;
+	private const int IdentityIconSize = 42;
 	private const int PortraitSize = 144;
 	private const int IdentityRailWidth = 204;
 
@@ -149,7 +153,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			Alignment = BoxContainer.AlignmentMode.Begin,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		identityIcons.AddThemeConstantOverride("separation", 10);
+		identityIcons.AddThemeConstantOverride("separation", 8);
 		identityIcons.AddChild(BuildIdentityIcon(
 			BackgroundIconPathFor(background.Id),
 			BackgroundBorderColor,
@@ -190,12 +194,12 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		var button = new Button
 		{
 			CustomMinimumSize = new Vector2(IdentityIconSize, IdentityIconSize),
-			Icon = SvgIconLoader.Load(iconPath, IdentityIconColor, 28),
+			Icon = SvgIconLoader.Load(iconPath, IdentityIconColor, 24),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
 			FocusMode = FocusModeEnum.None,
-			MouseDefaultCursorShape = CursorShape.Help,
+			MouseDefaultCursorShape = CursorShape.Arrow,
 			TooltipText = tooltip,
 		};
 		button.AddThemeStyleboxOverride("normal", IdentityIconStyle(borderColor, 0.08f, 2));
@@ -408,8 +412,12 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private static string BackgroundIconPathFor(EPilotBackgroundId backgroundId) =>
 		backgroundId switch
 		{
-			EPilotBackgroundId.Unspecified => BackgroundIconPath,
 			EPilotBackgroundId.ScrapDrone => ScrapDroneBackgroundIconPath,
+			EPilotBackgroundId.OptimalityEnforcer => OptimalityEnforcerIconPath,
+			EPilotBackgroundId.CorporateSlave => CorporateSlaveIconPath,
+			EPilotBackgroundId.PodRacer => PodRacerIconPath,
+			EPilotBackgroundId.AsteroidSurfer => AsteroidSurferIconPath,
+			EPilotBackgroundId.SynthSinger => SynthSingerIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
 		};
 

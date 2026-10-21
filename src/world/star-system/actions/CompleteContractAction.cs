@@ -4,14 +4,27 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
 public sealed record CompleteContractAction(
 	string ActorId,
 	string ContractId,
+	EFaction IssuerFaction,
 	ResourceBundle Payment) : IAction<StarMap, ActorRuntime>
 {
+	private static readonly string[] ContractRewardTags =
+	[StarMapActionTags.Reward, StarMapActionTags.Contract];
+
+	private static readonly string[] OptimalityContractRewardTags =
+	[StarMapActionTags.Reward, StarMapActionTags.Contract, StarMapActionTags.TheOptimality];
+
+	IReadOnlyList<string> IAction.Tags =>
+		IssuerFaction == EFaction.TheOptimality
+			? OptimalityContractRewardTags
+			: ContractRewardTags;
+
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		CompleteContractDef.Instance;
 }
@@ -31,6 +44,7 @@ public sealed class CompleteContractDef
 		&& world.ContractRegistry.TryGetState(complete.ContractId, out var state)
 		&& state.Status == EContractStatus.Active
 		&& state.HolderUnitId == complete.ActorId
+		&& contract.IssuerFaction == complete.IssuerFaction
 		&& PaymentMatches(contract.Terms.Payment, complete.Payment)
 		&& state.IsObjectiveMet();
 

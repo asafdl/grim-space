@@ -26,7 +26,7 @@ public sealed class SaveGameMigratorTests
 			"pilot-legacy",
 			"Legacy",
 			"pilot_01",
-			EPilotBackgroundId.Unspecified,
+			EPilotBackgroundId.ScrapDrone,
 			EPilotQuirkId.PlaceholderPositive,
 			EPilotQuirkId.PlaceholderNegative,
 			"ship-1",
@@ -36,7 +36,7 @@ public sealed class SaveGameMigratorTests
 
 		Assert.Equal(PilotProgression.LevelFor(175), restored.ClaimedLevel);
 		Assert.Empty(restored.LearnedSkills);
-		Assert.Equal(EPilotBackgroundId.Unspecified, restored.BackgroundId);
+		Assert.Equal(EPilotBackgroundId.ScrapDrone, restored.BackgroundId);
 		Assert.Equal(EPilotQuirkId.PlaceholderPositive, restored.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.PlaceholderNegative, restored.NegativeQuirkId);
 	}

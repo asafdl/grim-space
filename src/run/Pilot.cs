@@ -83,7 +83,7 @@ public sealed class Pilot
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
-			EPilotBackgroundId.Unspecified,
+			PilotBackgroundCatalog.Roll(rng).Id,
 			EPilotQuirkId.PlaceholderPositive,
 			EPilotQuirkId.PlaceholderNegative,
 			assignedShipId,

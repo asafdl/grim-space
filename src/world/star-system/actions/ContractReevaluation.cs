@@ -18,6 +18,7 @@ public static class ContractReevaluation
 			.Select(active => new CompleteContractAction(
 				actorId,
 				active.Definition.Id,
+				active.Definition.IssuerFaction,
 				active.Definition.Terms.Payment))
 			.Where(action => CompleteContractDef.Instance.IsLegal(action, map, runtime))
 			.ToArray();

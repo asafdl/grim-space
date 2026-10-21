@@ -5,6 +5,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -13,15 +14,21 @@ namespace GrimSpace.Battle.Units;
 
 public static class Factory
 {
+	private const int PilotInitiativePenalty = 10;
+
 	public static Unit Create(BattleSpawn spawn)
 	{
-		return Create(
+		var unit = Create(
 			spawn.Ship,
 			spawn.Team,
 			spawn.Position,
 			spawn.ExecutionAgent,
 			spawn.Fore,
 			spawn.Dorsal);
+		if (spawn.Pilot?.CapabilityGrants.Any(grant =>
+				grant.CapabilityId == EPilotCapabilityId.InitiativePenalty) == true)
+			unit.State.Initiative -= PilotInitiativePenalty;
+		return unit;
 	}
 
 	public static Unit Create(

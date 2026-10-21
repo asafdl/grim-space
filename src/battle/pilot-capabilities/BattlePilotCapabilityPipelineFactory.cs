@@ -14,7 +14,8 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.LightningShieldDamageBonus
 			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus
 			or EPilotCapabilityId.StationaryDamageDeflection
-			or EPilotCapabilityId.AlliedDamageReduction;
+			or EPilotCapabilityId.AlliedDamageReduction
+			or EPilotCapabilityId.InitiativePenalty;
 
 	public static ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Build(
 		IReadOnlySet<EPilotCapabilityId> capabilities)

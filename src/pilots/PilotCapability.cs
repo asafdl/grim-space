@@ -11,6 +11,8 @@ public enum EPilotCapabilityId
 	MinorScrapRewardBonus,
 	ScrapRewardBonus,
 	ShipUpgradeDiscount,
+	OptimalityContractCreditBonus,
+	InitiativePenalty,
 }
 
 public enum EPilotCapabilitySourceKind

@@ -31,9 +31,9 @@ public sealed class PilotRegistryTests
 		Assert.Equal(pilot, Assert.Single(run.PilotRegistry.Active));
 		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
 		Assert.Empty(pilot.LearnedSkills);
-		Assert.Equal(EPilotBackgroundId.Unspecified, pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.PlaceholderPositive, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.PlaceholderNegative, pilot.NegativeQuirkId);
+		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilot.BackgroundId);
+		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
 	}
 
 	[Fact]
@@ -216,7 +216,7 @@ public sealed class PilotRegistryTests
 					ResourceBundle.Of(ResourceId.ScrapAlloy, 100))])));
 
 		Assert.True(modified.Total.TryGet(ResourceId.ScrapAlloy, out var scrap));
-		Assert.Equal(115, scrap);
+		Assert.Equal(120, scrap);
 	}
 
 	[Fact]
