@@ -3,7 +3,7 @@ using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Merchants;
-using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -25,7 +25,7 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell(HudThemeFamily.Informative);
+		_shell = new ModalShell(UiContainerVisual.Modal, HudThemeFamily.Informative);
 		AddChild(_shell);
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
@@ -81,9 +81,11 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 			var availability = canAfford
 				? "Adds to your owned reserve (no pilot included)."
 				: "You do not have the required resources.";
-			body.AddChild(HudWidgets.CreateCard(
+			body.AddChild(MerchantUiListItem.Create(
 				DisplayName(captured.Chassis),
-				[ResourceCostDisplay.CreateOfferDetails(availability, captured.Cost)],
+				availability,
+				captured.Cost,
+				canAfford,
 				() => RecruitmentRequested?.Invoke(captured)));
 		}
 

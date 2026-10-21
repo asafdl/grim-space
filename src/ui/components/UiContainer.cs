@@ -28,6 +28,8 @@ public sealed partial class UiContainer : NinePatchRect
 	public int ContentMarginRight { get; private set; }
 	public int ContentMarginBottom { get; private set; }
 	public int BodyMarginTop { get; private set; }
+	/// <summary>Reserved vertical space for the subtitle line in container artwork.</summary>
+	public int HeaderSubtitleBandMinHeight { get; private set; }
 	public int HeaderSideSlotWidth { get; private set; }
 	public int HeaderTitleSubtitleSeparation { get; private set; }
 	public int HeaderTitleOffsetY { get; private set; }
@@ -77,8 +79,13 @@ public sealed partial class UiContainer : NinePatchRect
 			UiContainerVisual.Technical => (48, 42, 44, 40),
 			_ => (70, 48, 70, 48),
 		};
-		BodyMarginTop = visual == UiContainerVisual.Modal ? 6 : 8;
-		HeaderTitleSubtitleSeparation = visual == UiContainerVisual.Modal ? 42 : 2;
+		(BodyMarginTop, HeaderTitleSubtitleSeparation, HeaderSubtitleBandMinHeight) = visual switch
+		{
+			UiContainerVisual.Modal => (14, 42, 28),
+			UiContainerVisual.Framed => (10, 4, 24),
+			UiContainerVisual.Technical => (10, 4, 24),
+			_ => (10, 4, 24),
+		};
 		HeaderTitleOffsetY = visual == UiContainerVisual.Modal ? 4 : 0;
 		HeaderTitleFontSize = visual == UiContainerVisual.Modal ? 30 : 28;
 		HeaderSubtitleFontSize = visual == UiContainerVisual.Modal ? 21 : 19;

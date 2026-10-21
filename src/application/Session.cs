@@ -176,6 +176,9 @@ public partial class Session : Node
 
 	public override void _Process(double delta)
 	{
+		if (!IsNodeReady() || _fpsLabel is null)
+			return;
+
 		_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
 		if (_autosaveScheduler.Advance(delta)
 			&& _autosaveGateProvider is not null

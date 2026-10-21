@@ -8,6 +8,27 @@ public static class ResourceCostDisplay
 {
 	private const int IconSize = 16;
 
+	public static string FormatCompact(ResourceBundle bundle)
+	{
+		if (bundle.IsEmpty)
+			return "FREE";
+
+		return string.Join(
+			" · ",
+			bundle
+				.OrderBy(entry => entry.Key)
+				.Select(entry => $"{entry.Value} {CompactResourceLabel(entry.Key)}"));
+	}
+
+	private static string CompactResourceLabel(ResourceId id) =>
+		id switch
+		{
+			ResourceId.Credits => "CR",
+			ResourceId.ScrapAlloy => "scrap",
+			ResourceId.IndustrialCore => "cores",
+			_ => ResourceIconCatalog.DisplayName(id),
+		};
+
 	public static Control CreateAmountWithIcon(ResourceId id, int amount, HudTextRole role = HudTextRole.Metadata)
 	{
 		var row = new HBoxContainer

@@ -4,7 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Scene;
-using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -31,7 +31,7 @@ public sealed partial class DockyardHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell(HudThemeFamily.Informative);
+		_shell = new ModalShell(UiContainerVisual.Modal, HudThemeFamily.Informative);
 		AddChild(_shell);
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
@@ -154,11 +154,12 @@ public sealed partial class DockyardHudOverlay : Control
 		foreach (var offer in offers)
 		{
 			var captured = offer;
-			body.AddChild(HudWidgets.CreateCard(
+			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
+			body.AddChild(MerchantUiListItem.Create(
 				MerchantOfferDisplay.PackTitle(captured.Offering),
-				[ResourceCostDisplay.CreateOfferDetails(
-					$"{captured.Targets.Count} eligible targets.",
-					captured.Cost)],
+				$"{captured.Targets.Count} eligible targets.",
+				captured.Cost,
+				canAfford,
 				() => ShowTargets(captured, ship)));
 		}
 
@@ -184,34 +185,28 @@ public sealed partial class DockyardHudOverlay : Control
 			{
 				var installed = ship.Loadout.InstalledAbilities.Single(
 					ability => ability.Mount == mount);
-				body.AddChild(HudWidgets.CreateCard(
+				var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(offer.Cost.Negate());
+				body.AddChild(MerchantUiListItem.Create(
 					$"{MerchantOfferDisplay.FaceLabel(mount.Facet)} {MerchantOfferDisplay.KindLabel(mount.Kind)}",
-					[ResourceCostDisplay.CreateOfferDetails(
-						MerchantOfferDisplay.AbilityUpgradeBody(
-							offer.Offering,
-							installed),
-						offer.Cost)],
-					() => PurchaseRequested?.Invoke(
-						offer,
-						captured,
-						ship.Id)));
+					MerchantOfferDisplay.AbilityUpgradeBody(offer.Offering, installed),
+					offer.Cost,
+					canAfford,
+					() => PurchaseRequested?.Invoke(offer, captured, ship.Id)));
 				continue;
 			}
 
 			if (target.Face is { } face)
 			{
-				body.AddChild(HudWidgets.CreateCard(
+				var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(offer.Cost.Negate());
+				body.AddChild(MerchantUiListItem.Create(
 					MerchantOfferDisplay.FaceLabel(face),
-					[ResourceCostDisplay.CreateOfferDetails(
-						MerchantOfferDisplay.ShieldUpgradeBody(
-							ship,
-							face,
-							offer.Offering.TargetLevel),
-						offer.Cost)],
-					() => PurchaseRequested?.Invoke(
-						offer,
-						captured,
-						ship.Id)));
+					MerchantOfferDisplay.ShieldUpgradeBody(
+						ship,
+						face,
+						offer.Offering.TargetLevel),
+					offer.Cost,
+					canAfford,
+					() => PurchaseRequested?.Invoke(offer, captured, ship.Id)));
 			}
 		}
 

@@ -22,8 +22,10 @@ public sealed partial class ModalShell : Control
 	private bool _dismissVisible;
 	private IReadOnlyList<HudAction> _footerActions = [];
 	private Control _headerRow = null!;
+	private MarginContainer _bodyMargin = null!;
 	private readonly HudThemeFamily? _themeFamily;
 	private readonly UiContainerVisual _containerVisual;
+	private UiButtonVisual _footerButtonVisual = UiButtonVisual.Action;
 
 	public event Action? Closed;
 
@@ -73,11 +75,7 @@ public sealed partial class ModalShell : Control
 
 	public void SetTitle(string title) => _title.Text = title;
 
-	public void SetSubtitle(string subtitle)
-	{
-		_subtitle.Text = subtitle;
-		_subtitle.Visible = !string.IsNullOrEmpty(subtitle);
-	}
+	public void SetSubtitle(string subtitle) => _subtitle.Text = subtitle ?? "";
 
 	public void SetHeader(
 		HudHeaderMode mode,
@@ -132,6 +130,12 @@ public sealed partial class ModalShell : Control
 		RebuildFooter();
 	}
 
+	public void SetFooterButtonVisual(UiButtonVisual visual)
+	{
+		_footerButtonVisual = visual;
+		RebuildFooter();
+	}
+
 	private void RebuildFooter()
 	{
 		foreach (var child in _footer.GetChildren())
@@ -141,8 +145,9 @@ public sealed partial class ModalShell : Control
 		if (_footerActions.Count == 0)
 			return;
 
-		var secondary = _footerActions.Where(action => action.Kind == HudActionKind.Secondary).ToArray();
-		var primary = _footerActions.Where(action => action.Kind != HudActionKind.Secondary).ToArray();
+		var secondary = _footerActions.Where(action =>
+			action.Kind is HudActionKind.Secondary or HudActionKind.Destructive).ToArray();
+		var primary = _footerActions.Where(action => action.Kind == HudActionKind.Primary).ToArray();
 
 		foreach (var action in secondary)
 			_footer.AddChild(CreateFooterButton(action));
@@ -223,10 +228,6 @@ public sealed partial class ModalShell : Control
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
 		};
-		_outer.AddThemeConstantOverride("margin_left", _container.ContentMarginLeft);
-		_outer.AddThemeConstantOverride("margin_right", _container.ContentMarginRight);
-		_outer.AddThemeConstantOverride("margin_top", _container.ContentMarginTop);
-		_outer.AddThemeConstantOverride("margin_bottom", _container.ContentMarginBottom);
 		_container.AddChild(_outer);
 
 		var layout = new VBoxContainer
@@ -246,14 +247,13 @@ public sealed partial class ModalShell : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
 		};
-		var bodyMargin = new MarginContainer
+		_bodyMargin = new MarginContainer
 		{
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		bodyMargin.AddThemeConstantOverride("margin_top", _container.BodyMarginTop);
-		bodyMargin.AddChild(_bodyScroll);
-		layout.AddChild(bodyMargin);
+		_bodyMargin.AddChild(_bodyScroll);
+		layout.AddChild(_bodyMargin);
 
 		_bodyHost = new VBoxContainer
 		{
@@ -267,6 +267,7 @@ public sealed partial class ModalShell : Control
 		_footer.Visible = false;
 		layout.AddChild(_footer);
 
+		ApplyContainerLayoutMetrics();
 		Resized += OnResized;
 	}
 
@@ -312,16 +313,28 @@ public sealed partial class ModalShell : Control
 		titleOffset.AddChild(_title);
 		titles.AddChild(titleOffset);
 
+		var subtitleBand = new Control
+		{
+			CustomMinimumSize = new Vector2(0f, _container.HeaderSubtitleBandMinHeight),
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
 		_subtitle = new Label
 		{
+			AnchorsPreset = (int)LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			GrowHorizontal = GrowDirection.Both,
+			GrowVertical = GrowDirection.Both,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
 			ThemeTypeVariation = "Subtitle",
 		};
 		_subtitle.AddThemeFontSizeOverride("font_size", _container.HeaderSubtitleFontSize);
 		_subtitle.AddThemeColorOverride("font_color", _container.HeaderSubtitleColor);
-		titles.AddChild(_subtitle);
+		subtitleBand.AddChild(_subtitle);
+		titles.AddChild(subtitleBand);
 
 		row.AddChild(titles);
 		var trailingControls = new Control
@@ -369,6 +382,7 @@ public sealed partial class ModalShell : Control
 		{
 			Disabled = !action.Enabled,
 		};
+		button.SetVisual(_footerButtonVisual);
 		button.Pressed += () => action.OnPressed(button);
 		return button;
 	}
@@ -391,7 +405,17 @@ public sealed partial class ModalShell : Control
 			ToLayoutSize(Size),
 			ToLayoutSize(viewportSize));
 		_container.CustomMinimumSize = ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
+		ApplyContainerLayoutMetrics();
 		RebuildFooter();
+	}
+
+	private void ApplyContainerLayoutMetrics()
+	{
+		_outer.AddThemeConstantOverride("margin_left", _container.ContentMarginLeft);
+		_outer.AddThemeConstantOverride("margin_right", _container.ContentMarginRight);
+		_outer.AddThemeConstantOverride("margin_top", _container.ContentMarginTop);
+		_outer.AddThemeConstantOverride("margin_bottom", _container.ContentMarginBottom);
+		_bodyMargin.AddThemeConstantOverride("margin_top", _container.BodyMarginTop);
 	}
 
 	private static LayoutSize ToLayoutSize(Vector2 size) => new(size.X, size.Y);

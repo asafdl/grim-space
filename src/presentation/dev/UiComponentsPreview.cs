@@ -236,8 +236,8 @@ public sealed partial class UiComponentsPreview : Control
 	private UiCard CreateCardPreview(string heading, UiCardVisual visual)
 	{
 		var card = new UiCard(
-			heading,
 			"SHIP SYSTEM UPGRADE",
+			heading,
 			"Improves performance while preserving the current component layout.",
 			"800 CR")
 		{

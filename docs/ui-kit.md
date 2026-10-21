@@ -15,6 +15,27 @@ Each component type has its own file. Artwork variants share their component's b
 
 The development gallery is [`ui_components_preview.tscn`](../scenes/dev/ui_components_preview.tscn); run it with F6 to inspect every approved variant and palette.
 
+### HUD screen previews
+
+Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/dev/). Open a scene and press **F6** (Run Current Scene). Each scene uses [`UiHudDevContext`](../src/presentation/dev/hud/UiHudDevContext.cs) to build a seeded run with contracts, merchants, and resources.
+
+| Scene | Overlay |
+|-------|---------|
+| [`contract_hud_preview.tscn`](../scenes/dev/contract_hud_preview.tscn) | Contract board |
+| [`pilot_hiring_hud_preview.tscn`](../scenes/dev/pilot_hiring_hud_preview.tscn) | Pilot broker |
+| [`ship_recruitment_hud_preview.tscn`](../scenes/dev/ship_recruitment_hud_preview.tscn) | Ship broker |
+| [`dockyard_ship_support_hud_preview.tscn`](../scenes/dev/dockyard_ship_support_hud_preview.tscn) | Ship upgrades shop |
+| [`dockyard_weapons_hud_preview.tscn`](../scenes/dev/dockyard_weapons_hud_preview.tscn) | Ability upgrades shop |
+| [`healing_station_hud_preview.tscn`](../scenes/dev/healing_station_hud_preview.tscn) | Healing station |
+| [`engagement_hud_preview.tscn`](../scenes/dev/engagement_hud_preview.tscn) | Engagement (with contract) |
+| [`engagement_hud_plain_preview.tscn`](../scenes/dev/engagement_hud_plain_preview.tscn) | Engagement (no contract) |
+| [`wreck_hud_preview.tscn`](../scenes/dev/wreck_hud_preview.tscn) | Wreck decision (salvage) |
+| [`wreck_ambush_hud_preview.tscn`](../scenes/dev/wreck_ambush_hud_preview.tscn) | Wreck decision (ambush) |
+| [`fleet_management_hud_preview.tscn`](../scenes/dev/fleet_management_hud_preview.tscn) | Fleet management |
+| [`npc_dialog_hud_preview.tscn`](../scenes/dev/npc_dialog_hud_preview.tscn) | NPC dialog |
+| [`narrative_hud_preview.tscn`](../scenes/dev/narrative_hud_preview.tscn) | Narrative pager |
+| [`dev_menu_hud_preview.tscn`](../scenes/dev/dev_menu_hud_preview.tscn) | Dev menu |
+
 ## Palettes
 
 [`HudPalettes`](../src/components/HudPalettes.cs) defines the shared palettes:
@@ -42,7 +63,7 @@ Disabled or hidden UI is explanatory presentation only. Domain actions and execu
 
 - List items are short and wide: `560 x 92` in the current kit.
 - Keep text inside the artwork's usable interior. List-item content uses 60 px left padding and is vertically centered.
-- Container variants own their content margins, header side slots, dismiss-button pocket, and body start offset. Screens must not reposition modal titles independently.
+- Container variants own their content margins, header side slots, dismiss-button pocket, subtitle band height, and body start offset. `ModalShell` always reserves the subtitle band and applies `BodyMarginTop` from the active `UiContainer` visual; screens must not reposition titles or add per-screen body offsets.
 - Component typography derives its colors from the active palette. Screen-specific semantic values may use an explicit override, such as gold contract difficulty stars.
 - Use the component's existing texture mode. Do not nine-slice artwork containing center-line details or decorative cross-center geometry.
 - Keep source sheets under [`SCI-FI Components`](../assets/unused/ui/SCI-FI%20Components) unchanged. [`assets/unused`](../assets/unused) is excluded from Godot imports and exports by `.gdignore`.

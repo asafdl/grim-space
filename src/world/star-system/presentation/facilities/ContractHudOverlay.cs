@@ -127,8 +127,9 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.SetBackHandler(ShowList);
 
 		var details = new UiCard(
-			"CONTRACT BRIEFING",
-			ContractDisplay.KindDisplayName(ContractDisplay.Kind(_selected)),
+			ContractDisplay.Title(_selected),
+			$"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(_selected))}"
+				+ $" · Issued by {ContractDisplay.Issuer(_selected)}",
 			ContractDisplay.DetailsBody(_selected, _map, includeThreatAssessment: false),
 			$"THREAT // {ContractDisplay.DifficultyStars(_selected)}")
 		{

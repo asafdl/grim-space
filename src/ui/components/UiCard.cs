@@ -114,7 +114,8 @@ public sealed partial class UiCard : BaseButton
 			HorizontalAlignment = HorizontalAlignment.Left,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		_titleLabel.AddThemeFontSizeOverride("font_size", 15);
+		_titleLabel.AddThemeFontSizeOverride("font_size", 24);
+		_titleLabel.AddThemeConstantOverride("line_spacing", 2);
 		text.AddChild(_titleLabel);
 
 		_subtitleLabel = new Label
@@ -125,7 +126,7 @@ public sealed partial class UiCard : BaseButton
 			HorizontalAlignment = HorizontalAlignment.Left,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		_subtitleLabel.AddThemeFontSizeOverride("font_size", 15);
+		_subtitleLabel.AddThemeFontSizeOverride("font_size", 16);
 		text.AddChild(_subtitleLabel);
 
 		_descriptionLabel = new Label
@@ -158,7 +159,16 @@ public sealed partial class UiCard : BaseButton
 		FocusExited += RefreshVisualState;
 		ButtonDown += RefreshVisualState;
 		ButtonUp += RefreshVisualState;
+		ApplyTextVisibility();
 		RefreshVisualState();
+	}
+
+	private void ApplyTextVisibility()
+	{
+		_titleLabel.Visible = !string.IsNullOrWhiteSpace(_titleLabel.Text);
+		_subtitleLabel.Visible = !string.IsNullOrWhiteSpace(_subtitleLabel.Text);
+		_descriptionLabel.Visible = !string.IsNullOrWhiteSpace(_descriptionLabel.Text);
+		_trailingLabel.Visible = !string.IsNullOrWhiteSpace(_trailingLabel.Text);
 	}
 
 	public void SetPalette(HudPalette palette)
@@ -236,9 +246,7 @@ public sealed partial class UiCard : BaseButton
 			HudPalettes.WithAlpha(edge, Disabled ? 0.18f : 0.62f));
 		_paletteMaterial.SetShaderParameter("edge_color", edge);
 		_paletteMaterial.SetShaderParameter("glow_strength", glowStrength);
-		_titleLabel.AddThemeColorOverride(
-			"font_color",
-			HudPalettes.WithAlpha(_palette.Secondary, 0.82f));
+		_titleLabel.AddThemeColorOverride("font_color", HudPalettes.Gold.Primary);
 		_subtitleLabel.AddThemeColorOverride(
 			"font_color",
 			HudPalettes.WithAlpha(_palette.Secondary, 0.82f));

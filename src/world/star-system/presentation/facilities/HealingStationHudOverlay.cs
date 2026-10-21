@@ -4,7 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Scene;
-using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -29,7 +29,7 @@ public sealed partial class HealingStationHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell(HudThemeFamily.Informative);
+		_shell = new ModalShell(UiContainerVisual.Modal, HudThemeFamily.Informative);
 		AddChild(_shell);
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
@@ -135,15 +135,13 @@ public sealed partial class HealingStationHudOverlay : Control
 		{
 			var captured = offer;
 			var target = captured.Targets.Single();
-			body.AddChild(HudWidgets.CreateCard(
+			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
+			body.AddChild(MerchantUiListItem.Create(
 				ServiceTitle(captured, target),
-				[ResourceCostDisplay.CreateOfferDetails(
-					ServiceBody(captured, target, ship),
-					captured.Cost)],
-				() => HealingPurchaseRequested?.Invoke(
-					captured,
-					target,
-					ship.Id)));
+				ServiceBody(captured, target, ship),
+				captured.Cost,
+				canAfford,
+				() => HealingPurchaseRequested?.Invoke(captured, target, ship.Id)));
 		}
 
 		if (offers.Count == 0)

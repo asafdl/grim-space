@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contact;
@@ -22,7 +23,8 @@ public sealed partial class EngagementHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell();
+		_shell = new ModalShell(UiContainerVisual.Technical);
+		_shell.SetFooterButtonVisual(UiButtonVisual.Framed);
 		AddChild(_shell);
 	}
 
@@ -31,42 +33,28 @@ public sealed partial class EngagementHudOverlay : Control
 	public void Sync(PendingEngagement pending)
 	{
 		_busy = false;
-		_shell.Open("Contact", "Hostile fleet detected");
+		_shell.Open(
+			"Contact",
+			$"Hostile target · {FormatFaction(pending.CounterpartyFaction)}");
 		_shell.SetHeader(HudHeaderMode.Close, null);
-		_shell.SetHeaderVisible(false);
+		_shell.SetHeaderVisible(true);
+		_shell.SetDismissVisible(true);
 		_shell.SetBackHandler(null);
-		_shell.SetCloseHandler(null);
+		_shell.SetCloseHandler(RequestFlee);
 
-		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		body.AddChild(HudWidgets.CreateSection("Faction", FormatFaction(pending.CounterpartyFaction)));
-		body.AddChild(HudWidgets.CreateSection(
-			"Fleet composition",
-			pending.EncounterIntel,
-			scrollBody: true));
-		body.AddChild(HudWidgets.CreateSection(
-			"Threat assessment",
-			pending.AssignedContract is { } contract
-				? ContractDisplay.Danger(contract)
-				: "Unknown"));
-
+		var body = HudWidgets.CreateCardList();
 		if (pending.AssignedContract is { } assignedContract)
-		{
-			var details = ContractDisplay.Narrative(assignedContract);
-			var assignment = ContractDisplay.Kind(assignedContract) == EContractKind.Hunt
-				? $"You have a bounty on this fleet.\n\n{ContractDisplay.Title(assignedContract)}"
-				: $"This fleet is associated with an active contract.\n\n{ContractDisplay.Title(assignedContract)}";
-			if (!string.IsNullOrWhiteSpace(details))
-				assignment += $"\n\n{details}";
+			body.AddChild(CreateContractCard(assignedContract));
 
-			body.AddChild(HudWidgets.CreateSection("Additional details", assignment));
-		}
+		body.AddChild(CreateFleetCard(pending.EncounterIntel));
 
 		if (pending.FleeFailsDelivery)
 		{
-			body.AddChild(HudWidgets.CreateSection(
-				"Flee consequence",
-				"Fleeing from this interceptor will immediately fail the delivery contract."));
+			body.AddChild(CreateInfoCard(
+				title: "Flee consequence",
+				description: "Fleeing from this interceptor will immediately fail the delivery contract.",
+				visual: UiCardVisual.Technical,
+				minHeight: 148f));
 		}
 
 		_shell.SetBody(body);
@@ -74,7 +62,7 @@ public sealed partial class EngagementHudOverlay : Control
 		[
 			new HudAction(
 				pending.FleeFailsDelivery ? "Abandon delivery and flee" : "Flee",
-				HudActionKind.Secondary,
+				HudActionKind.Destructive,
 				RequestFlee),
 			new HudAction("Engage", HudActionKind.Primary, RequestEngage),
 		]);
@@ -121,4 +109,54 @@ public sealed partial class EngagementHudOverlay : Control
 			EFaction.TheOptimality => "The Optimality",
 			_ => faction.ToString(),
 		};
+
+	private static UiCard CreateInfoCard(
+		string title,
+		string subtitle = "",
+		string description = "",
+		string trailing = "",
+		UiCardVisual visual = UiCardVisual.Angled,
+		float minHeight = 160f)
+	{
+		var card = new UiCard(title, subtitle, description, trailing)
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(580f, minHeight),
+		};
+		card.SetVisual(visual);
+		card.SetInteractive(false);
+		return card;
+	}
+
+	private static UiCard CreateFleetCard(string encounterIntel)
+	{
+		var lines = encounterIntel.Split(
+			'\n',
+			StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		var minHeight = System.Math.Max(132f, 100f + lines.Length * 26f);
+
+		return CreateInfoCard(
+			title: "Contact Intel",
+			description: string.Join('\n', lines),
+			visual: UiCardVisual.Angled,
+			minHeight: minHeight);
+	}
+
+	private static UiCard CreateContractCard(Contract contract)
+	{
+		var subtitle = ContractDisplay.Kind(contract) == EContractKind.Hunt
+			? "Active bounty"
+			: "Linked contract";
+		var description = ContractDisplay.Narrative(contract);
+
+		var card = CreateInfoCard(
+			ContractDisplay.Title(contract),
+			subtitle,
+			description,
+			ContractDisplay.DifficultyStars(contract),
+			UiCardVisual.Angled,
+			200f);
+		card.SetTrailingColor(HudPalettes.Gold.Primary);
+		return card;
+	}
 }
