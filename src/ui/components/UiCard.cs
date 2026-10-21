@@ -246,7 +246,7 @@ public sealed partial class UiCard : BaseButton
 			HudPalettes.WithAlpha(edge, Disabled ? 0.18f : 0.62f));
 		_paletteMaterial.SetShaderParameter("edge_color", edge);
 		_paletteMaterial.SetShaderParameter("glow_strength", glowStrength);
-		_titleLabel.AddThemeColorOverride("font_color", HudPalettes.Gold.Primary);
+		_titleLabel.AddThemeColorOverride("font_color", _palette.Title);
 		_subtitleLabel.AddThemeColorOverride(
 			"font_color",
 			HudPalettes.WithAlpha(_palette.Secondary, 0.82f));

@@ -60,6 +60,9 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	internal void BumpDebugDangerProgression() =>
 		DebugAdditionalCompletedContracts += StarSystemDangerProgression.CompletionsPerTier;
 
+	internal void ResetDebugDangerProgression() =>
+		DebugAdditionalCompletedContracts = 0;
+
 	public State StateOf(string unitId) => FleetRegistry.FleetOf(unitId).State;
 
 	public Dock? DockAt(State state) =>

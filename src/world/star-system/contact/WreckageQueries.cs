@@ -6,8 +6,7 @@ namespace GrimSpace.World.StarSystem.Contact;
 
 public readonly record struct PendingWreckDecision(
 	string ContractId,
-	string Title,
-	string Briefing,
+	Contract Contract,
 	bool IsAmbush);
 
 public static class WreckageQueries
@@ -31,8 +30,7 @@ public static class WreckageQueries
 
 		decision = new PendingWreckDecision(
 			contractId,
-			contract.Narrative.Title,
-			contract.Narrative.Briefing,
+			contract,
 			wreckage.Outcome is WreckageOutcome.Ambush);
 		return true;
 	}

@@ -7,15 +7,22 @@ public sealed partial class PilotHiringHudPreview : Control
 {
 	public override void _Ready()
 	{
+		var dev = UiHudDevContext.Create();
+		var setup = dev.PreparePilotHirePreview();
+
 		UiHudPreviewChrome.Attach(
 			this,
 			"Pilot hiring HUD preview",
-			"Accepted black-market pilot lead · hire cards");
+			setup.PresentationTitle);
 
-		var dev = UiHudDevContext.Create();
-		var contractId = dev.PrepareAcceptedPilotHireLead();
 		var overlay = new PilotHiringHudOverlay();
 		UiHudPreviewChrome.MountOverlay(this, overlay);
-		overlay.Open(dev.Run, "Preview broker", contractId);
+		overlay.Open(dev.Run, setup.PresentationTitle, setup.ContractId);
+		overlay.HireRequested += slot =>
+		{
+			dev.Intents.TryHirePilot(setup.Endpoint, slot);
+			dev.StarSystem.RefreshPlayerAgent();
+			overlay.Sync(dev.Run, setup.ContractId);
+		};
 	}
 }

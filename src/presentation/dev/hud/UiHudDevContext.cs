@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Presentation.Facilities;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -131,18 +132,38 @@ public sealed class UiHudDevContext
 		EMerchantCatalog catalog) =>
 		Intents.TryFetchMerchantCatalog(endpoint, catalog, SelectedShip().Clone());
 
-	public string PrepareAcceptedPilotHireLead()
+	public readonly record struct PilotHirePreviewSetup(
+		string ContractId,
+		string PresentationTitle,
+		LeadSaleMerchantEndpoint Endpoint);
+
+	/// <summary>Accepted pilot lead in the same shape production uses before opening <see cref="PilotHiringHudOverlay"/>.</summary>
+	public PilotHirePreviewSetup PreparePilotHirePreview()
 	{
+		var contractId = AcceptDevPilotRecruitmentLead();
+		return new(
+			contractId,
+			PilotSalePresentationLabels.Title(Map, contractId),
+			new LeadSaleMerchantEndpoint(contractId));
+	}
+
+	private string AcceptDevPilotRecruitmentLead()
+	{
+		// HUD dev context bumps danger for richer merchant tiers; pilot stock only exists at T0/T0.5.
+		Map.ResetDebugDangerProgression();
+
 		if (!DevPilotRecruitmentLeadSpawner.TrySpawn(Map, out var failureReason))
 			throw new InvalidOperationException(failureReason ?? "Pilot lead spawn failed.");
 
 		var contractId = Map.ContractRegistry.Pending
-			.FirstOrDefault(contract =>
-				contract.Objective is BlackMarketSaleObjective sale
+			.LastOrDefault(contract =>
+				contract.Id.StartsWith("dev-pilot-lead", StringComparison.Ordinal)
+				&& contract.Objective is BlackMarketSaleObjective sale
 				&& sale.MerchantSubtype == EMerchantSubtype.Pilots)?.Id
 			?? throw new InvalidOperationException("Pilot lead contract missing after spawn.");
 
-		if (!Intents.TryAcceptContract(contractId))
+		StarSystem.RefreshPlayerAgent();
+		if (!Intents.TryAcceptContract(contractId) && !IsActivePilotLead(contractId))
 			throw new InvalidOperationException($"Could not accept pilot lead '{contractId}'.");
 
 		return contractId;
@@ -151,6 +172,10 @@ public sealed class UiHudDevContext
 	public Contract? SampleHuntContract() =>
 		Map.ContractRegistry.Pending
 			.FirstOrDefault(contract => contract.Objective is HuntObjective);
+
+	private bool IsActivePilotLead(string contractId) =>
+		Map.ContractRegistry.TryGetState(contractId, out var state)
+		&& state is LeadContractState { Status: EContractStatus.Active };
 
 	private static void PopulateContractBoard(StarSystemOrchestrator orchestrator)
 	{

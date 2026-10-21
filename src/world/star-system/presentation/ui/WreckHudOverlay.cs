@@ -1,6 +1,8 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Contracts;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -8,7 +10,6 @@ public sealed partial class WreckHudOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private bool _busy;
-	private bool _isAmbush;
 
 	public event Action? InvestigateRequested;
 	public event Action? LeaveRequested;
@@ -22,7 +23,8 @@ public sealed partial class WreckHudOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell();
+		_shell = new ModalShell(UiContainerVisual.Technical);
+		_shell.SetFooterButtonVisual(UiButtonVisual.Framed);
 		AddChild(_shell);
 	}
 
@@ -31,35 +33,39 @@ public sealed partial class WreckHudOverlay : Control
 	public void Sync(PendingWreckDecision pending)
 	{
 		_busy = false;
-		_isAmbush = pending.IsAmbush;
-		_shell.Open("Wreckage", _isAmbush ? "Hostile fleets spotted" : pending.Title);
+		var contract = pending.Contract;
+		_shell.Open("Wreckage");
 		_shell.SetHeader(HudHeaderMode.Close, null);
-		_shell.SetHeaderVisible(false);
+		_shell.SetHeaderVisible(true);
+		_shell.SetDismissVisible(true);
 		_shell.SetBackHandler(null);
-		_shell.SetCloseHandler(null);
+		_shell.SetCloseHandler(RequestLeave);
 
-		var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		body.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		if (_isAmbush)
-			body.AddChild(HudWidgets.CreateSection("Contract", pending.Title));
-		body.AddChild(HudWidgets.CreateSection("Briefing", pending.Briefing));
-		if (_isAmbush)
-			body.AddChild(HudWidgets.CreateSection(
-				"Warning",
-				"Hostile fleets have been spotted near the wreck. Investigating could lead us into an ambush. Fleeing will fail this contract.",
-				bodyRole: HudTextRole.Danger));
+		var body = HudWidgets.CreateCardList();
+		body.AddChild(CreateContractCard(contract));
+
+		if (pending.IsAmbush)
+		{
+			body.AddChild(CreateInfoCard(
+				title: "Hostile Signatures Detected!",
+				description: "This is likely an ambush, but fleeing won't get us paid.",
+				visual: UiCardVisual.Angled,
+				palette: HudPalettes.PurpleRed,
+				minHeight: 148f));
+		}
 
 		_shell.SetBody(body);
-		IReadOnlyList<HudAction> actions = _isAmbush
-			? [
-				new HudAction("Flee", HudActionKind.Destructive, RequestLeave),
-				new HudAction("Continue to wreck", HudActionKind.Primary, RequestInvestigate),
-			]
-			: [
-				new HudAction("Leave", HudActionKind.Secondary, RequestLeave),
-				new HudAction("Investigate", HudActionKind.Primary, RequestInvestigate),
-			];
-		_shell.SetFooter(actions);
+		_shell.SetFooter(
+		[
+			new HudAction(
+				pending.IsAmbush ? "Flee" : "Leave",
+				HudActionKind.Destructive,
+				RequestLeave),
+			new HudAction(
+				pending.IsAmbush ? "Continue" : "Investigate",
+				HudActionKind.Primary,
+				RequestInvestigate),
+		]);
 	}
 
 	public void Close() => _shell.Close();
@@ -73,8 +79,7 @@ public sealed partial class WreckHudOverlay : Control
 
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
-			if (!_isAmbush)
-				RequestLeave();
+			RequestLeave();
 			return true;
 		}
 
@@ -95,5 +100,39 @@ public sealed partial class WreckHudOverlay : Control
 			return;
 
 		LeaveRequested?.Invoke();
+	}
+
+	private static UiCard CreateInfoCard(
+		string title,
+		string subtitle = "",
+		string description = "",
+		string trailing = "",
+		UiCardVisual visual = UiCardVisual.Angled,
+		HudPalette? palette = null,
+		float minHeight = 160f)
+	{
+		var card = new UiCard(title, subtitle, description, trailing)
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(580f, minHeight),
+		};
+		card.SetVisual(visual);
+		if (palette is { } customPalette)
+			card.SetPalette(customPalette);
+		card.SetInteractive(false);
+		return card;
+	}
+
+	private static UiCard CreateContractCard(Contract contract)
+	{
+		var card = CreateInfoCard(
+			ContractDisplay.Title(contract),
+			ContractDisplay.TypeDisplayName(contract),
+			ContractDisplay.Narrative(contract),
+			ContractDisplay.DifficultyStars(contract),
+			UiCardVisual.Angled,
+			minHeight: 200f);
+		card.SetTrailingColor(HudPalettes.Gold.Primary);
+		return card;
 	}
 }
