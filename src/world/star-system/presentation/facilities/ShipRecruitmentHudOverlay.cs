@@ -1,7 +1,6 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
-using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.Ui.Components;
 
@@ -62,12 +61,6 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 18);
 
-
-		var ownedShipCount = _run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId).Count();
-		body.AddChild(HudWidgets.CreateStatusPanel(
-			HudStatusKind.Neutral,
-			$"Owned ships: {ownedShipCount}. Purchased hulls join your reserve until a pilot is assigned."));
-
 		var offers = _run.StarSystem.Map.Market.ListRecruitmentOffers(tier);
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
@@ -78,12 +71,9 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		{
 			var captured = offer;
 			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
-			var availability = canAfford
-				? "Adds to your owned reserve (no pilot included)."
-				: "You do not have the required resources.";
 			body.AddChild(MerchantUiListItem.Create(
-				DisplayName(captured.Chassis),
-				availability,
+				PilotHireDisplay.ShipChassisLabel(captured.Chassis),
+				ShipRecruitmentDisplay.ListMetadata(captured),
 				captured.Cost,
 				canAfford,
 				() => RecruitmentRequested?.Invoke(captured)));
@@ -91,12 +81,4 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 
 		_shell.SetBody(body);
 	}
-
-	private static string DisplayName(EType chassis) =>
-		chassis switch
-		{
-			EType.RepurposedMiner => "Repurposed Miner",
-			EType.Gunship => "Gunship",
-			_ => chassis.ToString(),
-		};
 }

@@ -24,6 +24,7 @@ internal static class MerchantUiListItem
 		};
 		item.SetVisual(UiListItemVisual.Technical);
 		item.SetAffordable(canAfford);
+		item.SetEnabled(canAfford);
 		item.Pressed += onPressed;
 		return item;
 	}
@@ -41,6 +42,7 @@ internal static class MerchantUiListItem
 		};
 		item.SetVisual(UiListItemVisual.Technical);
 		item.SetAffordable(canAfford);
+		item.SetEnabled(canAfford);
 		item.Pressed += onPressed;
 		return item;
 	}
