@@ -7,8 +7,8 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public partial class ObjectivesHud : MarginContainer
 {
-	private const int ObjectiveTitleFontSize = 18;
-	private const int ObjectiveSummaryFontSize = 16;
+	private const int ObjectiveTitleFontSize = 20;
+	private const int ObjectiveSummaryFontSize = 18;
 	private const float TransientBadgeHoldSeconds = 4f;
 	private const float TransientBadgeFadeSeconds = 1.5f;
 

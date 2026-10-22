@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
+using GrimSpace.Ui.Components;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -14,15 +15,18 @@ public sealed partial class FleetManagementOverlay : Control
 	private static readonly Color ActionPointColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color ManeuverPointColor = HudPalettes.PurpleRed.Secondary;
 	private static readonly Color InitiativeColor = HudPalettes.Gold.Secondary;
-	private const int PilotPortraitSize = CenteredCarousel.SlotSize;
-	private const int PilotGridPortraitSize = 36;
+	private const int CarouselPilotPortraitSize = 88;
+	private const int PopupPilotPortraitSize = 48;
 	private const int PilotPopupColumns = 4;
-	private const int PilotPopupWidth = 184;
+	private const int PilotPopupGridHSeparation = 6;
+	private const int PilotPopupGridVSeparation = 6;
 	private const int AbilityIconSize = 30;
 	private const int AbilitySelectorRows = 4;
+	private const float StatsPanelExtraWidth = 40f;
 	private readonly ModalShell _shell;
 	private readonly CenteredCarousel _carousel;
 	private readonly PopupPanel _pilotPopup;
+	private readonly MarginContainer _pilotPopupMargin;
 	private readonly VBoxContainer _pilotPopupContent;
 	private State? _run;
 	private FleetManagementView _view = new([], []);
@@ -42,6 +46,7 @@ public sealed partial class FleetManagementOverlay : Control
 		MouseFilter = MouseFilterEnum.Ignore;
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
+		_shell.SetPanelMinimumSize(new Vector2(1000f, 820f));
 		_shell.SetDismissVisible(true);
 		_shell.Closed += HidePilotPopup;
 		AddChild(_shell);
@@ -58,14 +63,14 @@ public sealed partial class FleetManagementOverlay : Control
 			Unresizable = true,
 		};
 		AddChild(_pilotPopup);
-		var popupMargin = CreateMargin();
-		_pilotPopup.AddChild(popupMargin);
+		_pilotPopupMargin = CreateMargin();
+		_pilotPopup.AddChild(_pilotPopupMargin);
 		_pilotPopupContent = new VBoxContainer
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_pilotPopupContent.AddThemeConstantOverride("separation", 8);
-		popupMargin.AddChild(_pilotPopupContent);
+		_pilotPopupMargin.AddChild(_pilotPopupContent);
 	}
 
 	public bool IsOpen => _shell.IsOpen;
@@ -101,6 +106,7 @@ public sealed partial class FleetManagementOverlay : Control
 		{
 			_selectedShipId = null;
 			DetachCarousel();
+			SyncShipCountSubtitle();
 			_shell.SetBody(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
 				"No player-owned ships."));
@@ -188,21 +194,15 @@ public sealed partial class FleetManagementOverlay : Control
 		_shell.SetTitle("FLEET MANAGEMENT");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
+		SyncShipCountSubtitle();
 		var ship = _view.Ships[ResolveSelectedIndex()];
-		_shell.SetSubtitle("");
 
 		var body = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 		body.AddThemeConstantOverride("separation", 14);
 		DetachCarousel();
 		body.AddChild(BuildCarouselRow(ship));
 		var selectedAbility = ResolveSelectedAbility(ship);
-		var statsRow = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		var stats = BuildStatsPanel(ship);
-		stats.CustomMinimumSize = new Vector2(230, 0);
-		stats.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-		statsRow.AddChild(stats);
-		statsRow.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-		body.AddChild(statsRow);
+		body.AddChild(BuildStatsCard(ship));
 		if (selectedAbility is not null)
 			body.AddChild(BuildAbilityWorkspace(ship, selectedAbility));
 		_shell.SetBody(body);
@@ -215,7 +215,7 @@ public sealed partial class FleetManagementOverlay : Control
 		var pilotCenter = new CenterContainer
 		{
 			CustomMinimumSize = new Vector2(
-				PilotPortraitSize,
+				CarouselPilotPortraitSize,
 				CenteredCarousel.ViewportHeight + 8),
 		};
 		pilotCenter.AddChild(BuildPilotControl(ship));
@@ -229,7 +229,7 @@ public sealed partial class FleetManagementOverlay : Control
 		row.AddChild(new Control
 		{
 			CustomMinimumSize = new Vector2(
-				PilotPortraitSize,
+				CarouselPilotPortraitSize,
 				CenteredCarousel.ViewportHeight + 8),
 		});
 		return row;
@@ -240,9 +240,8 @@ public sealed partial class FleetManagementOverlay : Control
 		if (ship.Pilot is { } pilot)
 		{
 			Control portrait = null!;
-			portrait = BuildPilotPortrait(
+			portrait = BuildCarouselPilotPortrait(
 				pilot,
-				PilotPortraitSize,
 				"Left-click to change pilot\nRight-click to open character sheet",
 				() => ShowPilotPopup(portrait, ship),
 				() =>
@@ -256,7 +255,7 @@ public sealed partial class FleetManagementOverlay : Control
 		var unassigned = new Button
 		{
 			Text = "Assign Pilot",
-			CustomMinimumSize = new Vector2(PilotPortraitSize, PilotPortraitSize),
+			CustomMinimumSize = new Vector2(CarouselPilotPortraitSize, CarouselPilotPortraitSize),
 			TooltipText = "Choose a pilot",
 		};
 		HudStyles.StyleButton(unassigned, HudActionKind.Secondary);
@@ -264,33 +263,34 @@ public sealed partial class FleetManagementOverlay : Control
 		return unassigned;
 	}
 
-	private static Control BuildStatsPanel(FleetShipView ship)
+	private static UiNestedContainer BuildStatsCard(FleetShipView ship)
 	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, HudStyles.FleetSectionPanelType);
-		var margin = CreateMargin();
-		panel.AddChild(margin);
-		var rows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		var rows = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ShrinkBegin,
+		};
 		rows.AddThemeConstantOverride("separation", 8);
-		margin.AddChild(rows);
 		rows.AddChild(SummaryRow("CHASSIS", ship.Chassis));
 		rows.AddChild(SummaryRow("HULL", $"{ship.Hull} / {ship.MaxHull}", HullColor));
 		rows.AddChild(SummaryRow("SHIELDS", $"{ship.Shields} / {ship.MaxShields}", ShieldColor));
 		rows.AddChild(SummaryRow("ACTION POINTS", ship.ActionPoints.ToString(), ActionPointColor));
 		rows.AddChild(SummaryRow("MANEUVER POINTS", ship.ManeuverPoints.ToString(), ManeuverPointColor));
 		rows.AddChild(SummaryRow("INITIATIVE", ship.Initiative.ToString(), InitiativeColor));
-		return panel;
+		return CreateNestedContainer(
+			rows,
+			SizeFlags.ShrinkBegin,
+			extraMinWidth: StatsPanelExtraWidth);
 	}
 
 	private Control BuildAbilityWorkspace(FleetShipView ship, FleetAbilityView selectedAbility)
 	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, HudStyles.FleetSectionPanelType);
-		var margin = CreateMargin();
-		panel.AddChild(margin);
-		var workspace = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		var workspace = new HBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ShrinkBegin,
+		};
 		workspace.AddThemeConstantOverride("separation", 12);
-		margin.AddChild(workspace);
 
 		var selector = new VBoxContainer
 		{
@@ -336,17 +336,18 @@ public sealed partial class FleetManagementOverlay : Control
 		}
 		workspace.AddChild(selector);
 		workspace.AddChild(new VSeparator());
-		var rows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		rows.AddThemeConstantOverride("separation", 8);
-		workspace.AddChild(rows);
+
 		var selectedVisual = AbilityHudCatalog.VisualFor(selectedAbility.Kind);
+		var detailsRows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		detailsRows.AddThemeConstantOverride("separation", 8);
 		var title = SectionHeading(selectedAbility.Name);
 		title.AddThemeColorOverride("font_color", selectedVisual.Tint);
-		rows.AddChild(title);
+		detailsRows.AddChild(title);
 		foreach (var stat in selectedAbility.Stats)
-			rows.AddChild(SummaryRow(stat.Label, stat.Value));
-		rows.AddChild(SummaryRow("MOUNTS", selectedAbility.Facets));
-		return panel;
+			detailsRows.AddChild(SummaryRow(stat.Label, stat.Value));
+		detailsRows.AddChild(SummaryRow("MOUNTS", selectedAbility.Facets));
+		workspace.AddChild(detailsRows);
+		return CreateNestedContainer(workspace);
 	}
 
 	private FleetAbilityView? ResolveSelectedAbility(FleetShipView ship)
@@ -372,8 +373,14 @@ public sealed partial class FleetManagementOverlay : Control
 			Columns = PilotPopupColumns,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		grid.AddThemeConstantOverride("h_separation", 6);
-		grid.AddThemeConstantOverride("v_separation", 6);
+		grid.AddThemeConstantOverride("h_separation", PilotPopupGridHSeparation);
+		grid.AddThemeConstantOverride("v_separation", PilotPopupGridVSeparation);
+		var rowCount = Mathf.CeilToInt(_view.Pilots.Count / (float)PilotPopupColumns);
+		grid.CustomMinimumSize = new Vector2(
+			PilotPopupColumns * PopupPilotPortraitSize
+				+ (PilotPopupColumns - 1) * PilotPopupGridHSeparation,
+			rowCount * PopupPilotPortraitSize
+				+ Mathf.Max(0, rowCount - 1) * PilotPopupGridVSeparation);
 		_pilotPopupContent.AddChild(grid);
 		foreach (var pilot in _view.Pilots)
 		{
@@ -385,41 +392,63 @@ public sealed partial class FleetManagementOverlay : Control
 					: pilot.IsActive
 						? "ACTIVE"
 						: "ASSIGNED";
-			grid.AddChild(BuildPilotPortrait(
+			grid.AddChild(BuildPopupPilotPortrait(
 				pilot,
-				PilotGridPortraitSize,
 				$"{pilot.Name} · {status}",
 				() => AssignPilot(candidate.Id, ship.Id)));
 		}
 
 		var anchorRect = anchor.GetGlobalRect();
-		var rowCount = Mathf.CeilToInt(_view.Pilots.Count / (float)PilotPopupColumns);
-		var popupSize = new Vector2I(PilotPopupWidth, 16 + rowCount * 48);
+		var popupMin = _pilotPopupMargin.GetCombinedMinimumSize();
+		var popupSize = new Vector2I(
+			Mathf.CeilToInt(popupMin.X),
+			Mathf.CeilToInt(popupMin.Y));
 		var popupPosition = new Vector2I(
 			Mathf.RoundToInt(anchorRect.End.X - popupSize.X),
 			Mathf.RoundToInt(anchorRect.End.Y + 6));
 		_pilotPopup.Popup(new Rect2I(popupPosition, popupSize));
 	}
 
-	private static Control BuildPilotPortrait(
+	private static Control BuildCarouselPilotPortrait(
+		FleetPilotView pilot,
+		string tooltip,
+		Action onLeftClick,
+		Action? onRightClick = null) =>
+		CreateFramedPilotPortrait(
+			pilot,
+			CarouselPilotPortraitSize,
+			tooltip,
+			onLeftClick,
+			onRightClick);
+
+	private static Control BuildPopupPilotPortrait(
+		FleetPilotView pilot,
+		string tooltip,
+		Action onLeftClick) =>
+		WrapPortraitSlot(
+			CreateFramedPilotPortrait(
+				pilot,
+				PopupPilotPortraitSize,
+				tooltip,
+				onLeftClick),
+			PopupPilotPortraitSize);
+
+	private static UiFramedPortrait CreateFramedPilotPortrait(
 		FleetPilotView pilot,
 		int size,
 		string tooltip,
 		Action onLeftClick,
 		Action? onRightClick = null)
 	{
-		var portrait = new TextureRect
+		var portrait = new UiFramedPortrait(ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId))
 		{
-			CustomMinimumSize = new Vector2(size, size),
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkBegin,
 			MouseFilter = MouseFilterEnum.Stop,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
 			TooltipText = tooltip,
-			Texture = ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId),
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
 		};
+		portrait.SetSquareSize(size);
 		portrait.GuiInput += @event =>
 		{
 			if (@event is not InputEventMouseButton { Pressed: true } mouse)
@@ -434,6 +463,23 @@ public sealed partial class FleetManagementOverlay : Control
 			portrait.AcceptEvent();
 		};
 		return portrait;
+	}
+
+	private static Control WrapPortraitSlot(UiFramedPortrait portrait, int size)
+	{
+		var slot = new Control
+		{
+			CustomMinimumSize = Vector2.One * size,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		portrait.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		portrait.AnchorRight = 1f;
+		portrait.AnchorBottom = 1f;
+		portrait.GrowHorizontal = GrowDirection.Both;
+		portrait.GrowVertical = GrowDirection.Both;
+		slot.AddChild(portrait);
+		return slot;
 	}
 
 	private void AssignPilot(string pilotId, string shipId)
@@ -472,6 +518,27 @@ public sealed partial class FleetManagementOverlay : Control
 			ThemeTypeVariation = "SectionHeading",
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
+
+	private void SyncShipCountSubtitle()
+	{
+		var count = _view.Ships.Count;
+		_shell.SetSubtitle($"{count} Ships Available");
+	}
+
+	private static UiNestedContainer CreateNestedContainer(
+		Control content,
+		SizeFlags sizeFlagsHorizontal = SizeFlags.ExpandFill,
+		float extraMinWidth = 0f)
+	{
+		var container = new UiNestedContainer
+		{
+			SizeFlagsHorizontal = sizeFlagsHorizontal,
+			SizeFlagsVertical = SizeFlags.ShrinkBegin,
+		};
+		container.SetContent(content);
+		container.ExtraMinimumWidth = extraMinWidth;
+		return container;
+	}
 
 	private static MarginContainer CreateMargin()
 	{

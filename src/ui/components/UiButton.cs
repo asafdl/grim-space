@@ -67,7 +67,7 @@ public sealed partial class UiButton : BaseButton
 			AnchorBottom = 1f,
 			MouseFilter = MouseFilterEnum.Ignore,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			StretchMode = TextureRect.StretchModeEnum.Scale,
 		};
 		AddChild(_background);
 

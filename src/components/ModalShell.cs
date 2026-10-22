@@ -26,6 +26,7 @@ public sealed partial class ModalShell : Control
 	private readonly HudThemeFamily? _themeFamily;
 	private readonly UiContainerVisual _containerVisual;
 	private UiButtonVisual _footerButtonVisual = UiButtonVisual.Action;
+	private Vector2? _panelMinimumSizeOverride;
 
 	public event Action? Closed;
 
@@ -134,6 +135,13 @@ public sealed partial class ModalShell : Control
 	{
 		_footerButtonVisual = visual;
 		RebuildFooter();
+	}
+
+	public void SetPanelMinimumSize(Vector2 minimumSize)
+	{
+		_panelMinimumSizeOverride = minimumSize;
+		if (IsInsideTree())
+			LayoutPanel();
 	}
 
 	private void RebuildFooter()
@@ -404,7 +412,8 @@ public sealed partial class ModalShell : Control
 		var containerSize = ModalShellLayout.ResolveContainerSize(
 			ToLayoutSize(Size),
 			ToLayoutSize(viewportSize));
-		_container.CustomMinimumSize = ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
+		_container.CustomMinimumSize = _panelMinimumSizeOverride
+			?? ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
 		ApplyContainerLayoutMetrics();
 		RebuildFooter();
 	}

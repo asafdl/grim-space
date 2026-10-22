@@ -7,6 +7,7 @@ public enum UiContainerVisual
 {
 	Modal,
 	Framed,
+	Simple,
 	Technical,
 }
 
@@ -16,6 +17,8 @@ public sealed partial class UiContainer : NinePatchRect
 		"res://assets/ui/components/runtime/modal_panel_neutral.png";
 	private const string FramedTexturePath =
 		"res://assets/ui/components/runtime/surface_framed_neutral.png";
+	private const string SimpleTexturePath =
+		"res://assets/ui/components/runtime/surface_simple_neutral.png";
 	private const string TechnicalTexturePath =
 		"res://assets/ui/components/runtime/card_neutral.png";
 	private const string ShaderPath =
@@ -61,6 +64,7 @@ public sealed partial class UiContainer : NinePatchRect
 		var texturePath = visual switch
 		{
 			UiContainerVisual.Framed => FramedTexturePath,
+			UiContainerVisual.Simple => SimpleTexturePath,
 			UiContainerVisual.Technical => TechnicalTexturePath,
 			_ => ModalTexturePath,
 		};
@@ -70,12 +74,14 @@ public sealed partial class UiContainer : NinePatchRect
 		(PatchMarginLeft, PatchMarginTop, PatchMarginRight, PatchMarginBottom) = visual switch
 		{
 			UiContainerVisual.Framed => (80, 70, 80, 70),
+			UiContainerVisual.Simple => (32, 32, 32, 32),
 			UiContainerVisual.Technical => (150, 100, 150, 100),
 			_ => (170, 130, 170, 110),
 		};
 		(ContentMarginLeft, ContentMarginTop, ContentMarginRight, ContentMarginBottom) = visual switch
 		{
 			UiContainerVisual.Framed => (36, 36, 36, 36),
+			UiContainerVisual.Simple => (32, 32, 32, 32),
 			UiContainerVisual.Technical => (48, 42, 44, 40),
 			_ => (70, 48, 70, 48),
 		};
@@ -83,12 +89,13 @@ public sealed partial class UiContainer : NinePatchRect
 		{
 			UiContainerVisual.Modal => (14, 42, 28),
 			UiContainerVisual.Framed => (10, 4, 24),
+			UiContainerVisual.Simple => (10, 4, 24),
 			UiContainerVisual.Technical => (10, 4, 24),
 			_ => (10, 4, 24),
 		};
 		HeaderTitleOffsetY = visual == UiContainerVisual.Modal ? 4 : 0;
-		HeaderTitleFontSize = visual == UiContainerVisual.Modal ? 30 : 28;
-		HeaderSubtitleFontSize = visual == UiContainerVisual.Modal ? 21 : 19;
+		HeaderTitleFontSize = visual == UiContainerVisual.Modal ? 32 : 30;
+		HeaderSubtitleFontSize = visual == UiContainerVisual.Modal ? 22 : 20;
 		HeaderSideSlotWidth = visual switch
 		{
 			UiContainerVisual.Modal => 120,

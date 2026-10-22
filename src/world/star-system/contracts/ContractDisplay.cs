@@ -29,10 +29,6 @@ public static class ContractDisplay
 		if (searchArea != "—")
 			parts.Add(searchArea.Trim());
 
-		var reward = Reward(contract);
-		if (reward != "—")
-			parts.Add($"Compensation is {reward}.");
-
 		if (includeThreatAssessment && contract.Category == EContractCategory.Standard)
 		{
 			var danger = Danger(contract);

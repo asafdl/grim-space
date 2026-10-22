@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.Ui.Components;
 using GrimSpace.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -72,11 +73,11 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
 		_pilotId = pilot.Id;
-		_shell.Open("");
+		_shell.Open("Character Sheet", pilot.Name);
 		_shell.SetHeader(
 			HudHeaderMode.Back,
 			() => FleetManagementRequested?.Invoke(pilot.Id),
-			"Fleet Management");
+			"Fleet");
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 		_shell.SetBody(BuildBody(pilot, canCyclePilots, assignedShip));
@@ -114,27 +115,14 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		};
 		portraitRow.AddThemeConstantOverride("separation", 6);
 		portraitRow.AddChild(BuildPilotCursor(-1, canCyclePilots));
-		portraitRow.AddChild(new TextureRect
+		portraitRow.AddChild(new UiFramedPortrait(
+			ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId))
 		{
-			Texture = ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId),
 			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-			MouseFilter = MouseFilterEnum.Ignore,
 		});
 		portraitRow.AddChild(BuildPilotCursor(1, canCyclePilots));
 		rail.AddChild(portraitRow);
-
-		var name = new Label
-		{
-			Text = pilot.Name,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		HudStyles.ApplyTextRole(name, HudTextRole.Emphasis);
-		rail.AddChild(name);
 
 		var level = new Label
 		{

@@ -117,12 +117,13 @@ public sealed partial class PilotHiringHudOverlay : Control
 		var item = new UiImageListItem(
 			profile.Name,
 			metadata,
-			ResourceCostDisplay.FormatCompact(cost),
+			"",
 			ShipPilotPortraitCatalog.TextureFor(profile.PortraitId))
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			TooltipText = background.Description,
 		};
+		item.SetTrailingContent(ResourceCostDisplay.CreateBundleInline(cost));
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);
 		if (canAfford)

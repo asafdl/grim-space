@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Presentation.Dev;
 
@@ -29,8 +30,9 @@ public sealed partial class DevMenuOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell(HudThemeFamily.Informative);
+		_shell = new ModalShell(UiContainerVisual.Modal, HudThemeFamily.Informative);
 		AddChild(_shell);
+		_shell.SetDismissVisible(true);
 	}
 
 	public bool IsOpen => _shell.IsOpen;
@@ -40,11 +42,11 @@ public sealed partial class DevMenuOverlay : Control
 		_shell.Open("Dev Menu", "Debug shortcuts");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetHeaderVisible(true);
+		_shell.SetDismissVisible(true);
 		_shell.SetBackHandler(null);
-		_shell.SetCloseHandler(null);
 
 		var items = HudWidgets.CreateCardList();
-		items.MouseFilter = Control.MouseFilterEnum.Ignore;
+		items.AddThemeConstantOverride("separation", 10);
 		items.AddChild(CreateMenuItem("Start Battle", true, OnStartBattle));
 
 		var canForceBattleOutcome = _canForceBattleOutcome?.Invoke() == true;
@@ -171,12 +173,16 @@ public sealed partial class DevMenuOverlay : Control
 		_spawnPilotRecruitmentLead?.Invoke();
 	}
 
-	private static Button CreateMenuItem(string text, bool enabled, Action onPressed)
+	private static UiListItem CreateMenuItem(string text, bool enabled, Action onPressed)
 	{
-		var button = HudWidgets.CreateCompactButton(text, onPressed);
-		button.Disabled = !enabled;
-		button.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-		button.Alignment = HorizontalAlignment.Left;
-		return button;
+		var item = new UiListItem(text, "", "")
+		{
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+		};
+		item.SetVisual(UiListItemVisual.Bracket);
+		item.SetAffordable(enabled);
+		item.SetEnabled(enabled);
+		item.Pressed += onPressed;
+		return item;
 	}
 }

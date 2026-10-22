@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Run;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 
@@ -10,7 +11,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public partial class PlayerFleetHud : MarginContainer
 {
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
-	private Button _fleetButton = null!;
+	private UiButton _fleetButton = null!;
 	private VBoxContainer _pilotColumn = null!;
 	private StarSystemOrchestrator? _orchestrator;
 
@@ -30,12 +31,13 @@ public partial class PlayerFleetHud : MarginContainer
 		content.AddThemeConstantOverride("separation", 6);
 		margin.AddChild(content);
 
-		_fleetButton = new Button
+		_fleetButton = new UiButton("", HudActionKind.Secondary)
 		{
 			TooltipText = "Manage owned ships and pilot assignments",
-			FocusMode = FocusModeEnum.All,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		HudStyles.StyleButton(_fleetButton, HudActionKind.Secondary);
+		_fleetButton.SetVisual(UiButtonVisual.Technical);
+		_fleetButton.CustomMinimumSize = new Vector2(200f, 46f);
 		_fleetButton.Pressed += () => FleetManagementRequested?.Invoke();
 		content.AddChild(_fleetButton);
 

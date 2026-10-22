@@ -15,13 +15,11 @@ internal static class MerchantUiListItem
 		bool canAfford,
 		Action onPressed)
 	{
-		var item = new UiListItem(
-			title,
-			metadata,
-			ResourceCostDisplay.FormatCompact(cost))
+		var item = new UiListItem(title, metadata, "")
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
+		item.SetTrailingContent(ResourceCostDisplay.CreateBundleInline(cost));
 		item.SetVisual(UiListItemVisual.Technical);
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);

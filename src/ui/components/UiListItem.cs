@@ -27,7 +27,9 @@ public partial class UiListItem : BaseButton
 	private readonly Control _content;
 	private readonly Label _titleLabel;
 	private readonly Label _metadataLabel;
+	private readonly Control _trailingHost;
 	private readonly Label _trailingLabel;
+	private Control? _customTrailing;
 	private HudPalette _palette;
 	private bool _selected;
 	private bool _affordable = true;
@@ -101,7 +103,7 @@ public partial class UiListItem : BaseButton
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		_titleLabel.AddThemeFontSizeOverride("font_size", 19);
+		_titleLabel.AddThemeFontSizeOverride("font_size", 20);
 		text.AddChild(_titleLabel);
 
 		_metadataLabel = new Label
@@ -110,8 +112,16 @@ public partial class UiListItem : BaseButton
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		_metadataLabel.AddThemeFontSizeOverride("font_size", 15);
+		_metadataLabel.AddThemeFontSizeOverride("font_size", 17);
 		text.AddChild(_metadataLabel);
+
+		_trailingHost = new Control
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			CustomMinimumSize = new Vector2(104f, 0f),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		_content.AddChild(_trailingHost);
 
 		_trailingLabel = new Label
 		{
@@ -119,10 +129,12 @@ public partial class UiListItem : BaseButton
 			MouseFilter = MouseFilterEnum.Ignore,
 			VerticalAlignment = VerticalAlignment.Center,
 			HorizontalAlignment = HorizontalAlignment.Right,
-			CustomMinimumSize = new Vector2(104f, 0f),
+			AnchorsPreset = (int)LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
 		};
-		_trailingLabel.AddThemeFontSizeOverride("font_size", 19);
-		_content.AddChild(_trailingLabel);
+		_trailingLabel.AddThemeFontSizeOverride("font_size", 20);
+		_trailingHost.AddChild(_trailingLabel);
 
 		SetVisual(UiListItemVisual.Tag);
 
@@ -171,6 +183,16 @@ public partial class UiListItem : BaseButton
 		RefreshVisualState();
 	}
 
+	public void SetTrailingContent(Control content)
+	{
+		ArgumentNullException.ThrowIfNull(content);
+		ClearCustomTrailing();
+		_trailingLabel.Visible = false;
+		_customTrailing = content;
+		content.MouseFilter = MouseFilterEnum.Ignore;
+		_trailingHost.AddChild(content);
+	}
+
 	public void SetEnabled(bool enabled)
 	{
 		Disabled = !enabled;
@@ -216,6 +238,15 @@ public partial class UiListItem : BaseButton
 			: _affordable
 				? Colors.White
 				: new Color(1f, 0.58f, 0.58f);
+	}
+
+	private void ClearCustomTrailing()
+	{
+		if (_customTrailing is null)
+			return;
+
+		_customTrailing.QueueFree();
+		_customTrailing = null;
 	}
 
 	private void ApplyContentMargins()

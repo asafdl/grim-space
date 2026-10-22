@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -131,7 +132,7 @@ public sealed partial class ContractHudOverlay : Control
 			$"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(_selected))}"
 				+ $" · Issued by {ContractDisplay.Issuer(_selected)}",
 			ContractDisplay.DetailsBody(_selected, _map, includeThreatAssessment: false),
-			$"THREAT // {ContractDisplay.DifficultyStars(_selected)}")
+			"")
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
@@ -140,6 +141,7 @@ public sealed partial class ContractHudOverlay : Control
 		details.SetInteractive(false);
 		details.SetTrailingAlignment(HorizontalAlignment.Left);
 		details.SetTrailingColor(HudPalettes.Gold.Primary);
+		details.SetTrailingContent(BuildContractDetailsTrailing(_selected));
 
 		_shell.SetBody(details);
 		var footer = new List<HudAction>();
@@ -163,14 +165,18 @@ public sealed partial class ContractHudOverlay : Control
 
 	private Control CreateContractCard(Contract contract)
 	{
+		var metadata = $"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(contract))}"
+			+ $" // Issued by {ContractDisplay.Issuer(contract)}"
+			+ $" // {ContractDisplay.DifficultyStars(contract)}";
 		var item = new UiListItem(
 			ContractDisplay.Title(contract),
-			$"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(contract))}"
-				+ $" // Issued by {ContractDisplay.Issuer(contract)}",
-			ContractDisplay.DifficultyStars(contract))
+			metadata,
+			"")
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
+		if (!contract.Terms.Payment.IsEmpty)
+			item.SetTrailingContent(ResourceRewardDisplay.CreateCompact(contract.Terms.Payment));
 		item.SetVisual(UiListItemVisual.Technical);
 		item.SetTrailingColor(HudPalettes.Gold.Primary);
 		item.Pressed += () =>
@@ -179,6 +185,32 @@ public sealed partial class ContractHudOverlay : Control
 			ShowDetails();
 		};
 		return item;
+	}
+
+	private static Control BuildContractDetailsTrailing(Contract contract)
+	{
+		var trailing = new VBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		trailing.AddThemeConstantOverride("separation", 8);
+
+		if (!contract.Terms.Payment.IsEmpty)
+		{
+			var reward = ResourceRewardDisplay.CreateCompact(contract.Terms.Payment);
+			reward.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			trailing.AddChild(reward);
+		}
+
+		var threat = new Label
+		{
+			Text = $"THREAT // {ContractDisplay.DifficultyStars(contract)}",
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		HudStyles.ApplyTextRole(threat, HudTextRole.Emphasis);
+		trailing.AddChild(threat);
+		return trailing;
 	}
 
 	private static string Pluralize(int count, string singular, string plural) =>

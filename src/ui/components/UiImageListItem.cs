@@ -5,10 +5,6 @@ namespace GrimSpace.Ui.Components;
 
 public sealed partial class UiImageListItem : UiListItem
 {
-	private const string CircleClipShaderPath =
-		"res://assets/ui/components/runtime/circle_clip.gdshader";
-	private const string FrameTexturePath =
-		"res://assets/ui/components/runtime/list_item_image_frame_base.png";
 	private const string BracketTexturePath =
 		"res://assets/ui/components/runtime/list_item_bracket_base.png";
 	private const float BracketArtWidth = 1120f;
@@ -18,11 +14,9 @@ public sealed partial class UiImageListItem : UiListItem
 	private const float BracketCircleDiameter = 245f;
 	private const float PortraitGap = 0.2f;
 	private const float PortraitOverlap = 18f;
-	private const float ImageDiameterRatio = 0.66f;
 
 	private readonly TextureRect _bracket;
-	private readonly TextureRect _frame;
-	private readonly TextureRect _image;
+	private readonly UiFramedPortrait _portrait;
 
 	public UiImageListItem(
 		string title,
@@ -45,38 +39,14 @@ public sealed partial class UiImageListItem : UiListItem
 		};
 		AddBehindContent(_bracket);
 
-		_frame = new TextureRect
-		{
-			Texture = LoadTexture(FrameTexturePath),
-			Material = PaletteMaterial,
-			MouseFilter = MouseFilterEnum.Ignore,
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.Scale,
-		};
-		AddChild(_frame);
-
-		var circleClip = GD.Load<Shader>(CircleClipShaderPath)
-			?? throw new InvalidOperationException(
-				$"Could not load circle clip shader '{CircleClipShaderPath}'.");
-		_image = new TextureRect
-		{
-			Texture = image,
-			Material = new ShaderMaterial { Shader = circleClip },
-			MouseFilter = MouseFilterEnum.Ignore,
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
-		};
-		AddChild(_image);
+		_portrait = new UiFramedPortrait(image, PaletteMaterial);
+		AddChild(_portrait);
 
 		Resized += LayoutImage;
 		Callable.From(LayoutImage).CallDeferred();
 	}
 
-	public void SetImage(Texture2D image)
-	{
-		ArgumentNullException.ThrowIfNull(image);
-		_image.Texture = image;
-	}
+	public void SetImage(Texture2D image) => _portrait.SetPortrait(image);
 
 	private void LayoutImage()
 	{
@@ -92,15 +62,9 @@ public sealed partial class UiImageListItem : UiListItem
 
 		var portraitLeft = bodyWidth + PortraitGap - PortraitOverlap;
 		var radius = portraitDiameter * 0.5f;
-		var center = new Vector2(
-			portraitLeft + radius,
-			Size.Y * BracketCircleCenterY / BracketArtHeight);
-		_frame.Position = center - Vector2.One * radius;
-		_frame.Size = Vector2.One * radius * 2f;
-
-		var imageRadius = radius * ImageDiameterRatio;
-		_image.Position = center - Vector2.One * imageRadius;
-		_image.Size = Vector2.One * imageRadius * 2f;
+		var centerY = Size.Y * BracketCircleCenterY / BracketArtHeight;
+		_portrait.Position = new Vector2(portraitLeft, centerY - radius);
+		_portrait.Size = Vector2.One * portraitDiameter;
 		var rightMargin = portraitDiameter + PortraitGap + 48f;
 		var leftMargin = Mathf.CeilToInt(
 			BracketTextLeftInsetX / BracketArtWidth * bodyWidth + 8f);
