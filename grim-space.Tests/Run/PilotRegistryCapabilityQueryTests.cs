@@ -84,11 +84,25 @@ public sealed class PilotRegistryCapabilityQueryTests
 	public void QueryCapabilitiesForActive_ExcludesInactivePilotGrants()
 	{
 		var registry = new RunPilotRegistry();
-		var activePilot = PilotProgression
-			.AddExperience(Pilot.CreateForShip("fighter-active"), 100)
-			.LearnPilotSkill(EPilotSkillId.ShieldsUp)
-			.WithActive(true);
-		var inactivePilot = Pilot.CreateForShip("fighter-inactive");
+		var activePilot = Pilot.FromPersistence(
+			PilotProgression
+				.AddExperience(Pilot.CreateForShip("fighter-active"), 100)
+				.LearnPilotSkill(EPilotSkillId.ShieldsUp)
+				.ToPersistence() with
+			{
+				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
+				PositiveQuirkId = null,
+				NegativeQuirkId = null,
+				IsActive = true,
+			});
+		var inactivePilot = Pilot.FromPersistence(
+			Pilot.CreateForShip("fighter-inactive").ToPersistence() with
+			{
+				BackgroundId = EPilotBackgroundId.ScrapDrone,
+				PositiveQuirkId = null,
+				NegativeQuirkId = null,
+				IsActive = false,
+			});
 		registry.Register(activePilot);
 		registry.Register(inactivePilot);
 
