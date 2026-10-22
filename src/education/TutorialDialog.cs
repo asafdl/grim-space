@@ -1,40 +1,45 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Education;
 
 public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 {
+	private static readonly HudPalette Palette = HudPalettes.Gold;
+
 	private Tween? _tutorialPulse;
 	private Tween? _acceptGlint;
+	private readonly UiNestedContainer _panel;
 	private readonly Label _tutorialTitle;
 	private readonly Label _title;
 	private readonly RichTextLabel _message;
 	private readonly VBoxContainer _assistance;
 	private readonly Label _assistanceMessage;
-	private readonly Button _assistanceAction;
-	private readonly Button _accept;
+	private readonly UiButton _assistanceAction;
+	private readonly UiButton _accept;
 
 	public TutorialDialog()
 	{
 		Visible = false;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		var panel = new PanelContainer
+		_panel = new UiNestedContainer(UiContainerVisual.Simple)
 		{
 			MouseFilter = MouseFilterEnum.Stop,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			ThemeTypeVariation = HudStyles.TutorialDialogPanelType,
 		};
-		AddChild(panel);
+		_panel.SetPalette(Palette);
+		_panel.SetContentPadding(20, 14, 20, 14);
+		AddChild(_panel);
 
 		var content = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		content.AddThemeConstantOverride("separation", 10);
-		panel.AddChild(content);
+		content.AddThemeConstantOverride("separation", 8);
+		_panel.SetContent(content);
 
 		_tutorialTitle = new Label
 		{
@@ -42,7 +47,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 			MouseFilter = MouseFilterEnum.Ignore,
 			ThemeTypeVariation = "CardTitle",
 		};
-		_tutorialTitle.AddThemeColorOverride("font_color", new Color(1f, 0.78f, 0.35f));
+		_tutorialTitle.AddThemeColorOverride("font_color", Palette.Title);
 		_tutorialTitle.AddThemeFontSizeOverride("font_size", 18);
 		content.AddChild(_tutorialTitle);
 
@@ -82,28 +87,14 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 			MouseFilter = MouseFilterEnum.Ignore,
 			ThemeTypeVariation = "TutorialRichTextLabel",
 		};
-		_assistanceMessage.AddThemeColorOverride("font_color", new Color(1f, 0.72f, 0.28f));
+		_assistanceMessage.AddThemeColorOverride("font_color", Palette.Secondary);
 		_assistance.AddChild(_assistanceMessage);
 
-		_assistanceAction = new Button
-		{
-			CustomMinimumSize = new Vector2(144, 34),
-			FocusMode = FocusModeEnum.All,
-			SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
-		};
-		HudStyles.StyleButton(_assistanceAction, HudActionKind.Secondary);
-		_assistanceAction.AddThemeFontSizeOverride("font_size", 14);
+		_assistanceAction = CreateTutorialButton();
 		_assistanceAction.Pressed += () => AssistanceRequested?.Invoke();
 		_assistance.AddChild(_assistanceAction);
 
-		_accept = new Button
-		{
-			CustomMinimumSize = new Vector2(104, 34),
-			FocusMode = FocusModeEnum.All,
-			SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
-		};
-		HudStyles.StyleButton(_accept, HudActionKind.Secondary);
-		_accept.AddThemeFontSizeOverride("font_size", 14);
+		_accept = CreateTutorialButton();
 		_accept.Pressed += () => Accepted?.Invoke();
 		content.AddChild(_accept);
 	}
@@ -168,6 +159,19 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		_tutorialPulse = null;
 		StopAcceptGlint();
 		Visible = false;
+	}
+
+	private static UiButton CreateTutorialButton()
+	{
+		var button = new UiButton("", HudActionKind.Secondary, Palette)
+		{
+			CustomMinimumSize = new Vector2(144, 40),
+			FocusMode = FocusModeEnum.All,
+			SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
+		};
+		button.SetVisual(UiButtonVisual.Compact);
+		button.SetFontSize(14);
+		return button;
 	}
 
 	private void StartTutorialPulse()

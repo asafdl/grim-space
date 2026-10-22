@@ -37,6 +37,16 @@ public sealed partial class UiNestedContainer : Container
 
 	public void SetPalette(HudPalette palette) => _background.SetPalette(palette);
 
+	public void SetContentPadding(int left, int top, int right, int bottom)
+	{
+		_margin.AddThemeConstantOverride("margin_left", left);
+		_margin.AddThemeConstantOverride("margin_top", top);
+		_margin.AddThemeConstantOverride("margin_right", right);
+		_margin.AddThemeConstantOverride("margin_bottom", bottom);
+		UpdateMinimumSize();
+		QueueSort();
+	}
+
 	public void SetContent(Control content)
 	{
 		ArgumentNullException.ThrowIfNull(content);
@@ -55,10 +65,13 @@ public sealed partial class UiNestedContainer : Container
 
 	public override Vector2 _GetMinimumSize()
 	{
-		var min = _margin.GetCombinedMinimumSize();
+		var contentMin = _margin.GetCombinedMinimumSize();
 		if (_extraMinWidth > 0f)
-			min.X += _extraMinWidth;
-		return min;
+			contentMin.X += _extraMinWidth;
+
+		return contentMin + new Vector2(
+			_background.PatchMarginLeft + _background.PatchMarginRight,
+			_background.PatchMarginTop + _background.PatchMarginBottom);
 	}
 
 	public override void _Notification(int what)
@@ -68,8 +81,19 @@ public sealed partial class UiNestedContainer : Container
 
 		var rect = new Rect2(Vector2.Zero, Size);
 		FitChildInRect(_background, rect);
-		FitChildInRect(_margin, rect);
+		FitChildInRect(_margin, ContentRect(rect.Size));
 	}
+
+	private Rect2 ContentRect(Vector2 size) =>
+		new(
+			_background.PatchMarginLeft,
+			_background.PatchMarginTop,
+			Mathf.Max(
+				0f,
+				size.X - _background.PatchMarginLeft - _background.PatchMarginRight),
+			Mathf.Max(
+				0f,
+				size.Y - _background.PatchMarginTop - _background.PatchMarginBottom));
 
 	private void ApplyContentPadding()
 	{
