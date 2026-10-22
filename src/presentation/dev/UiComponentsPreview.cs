@@ -64,6 +64,8 @@ public sealed partial class UiComponentsPreview : Control
 			HudPalettes.WithAlpha(Colors.White, 0.56f));
 		gallery.AddChild(description);
 		gallery.AddChild(CreatePaletteToolbar());
+		gallery.AddChild(CreateHeading("RETICLES", 20));
+		gallery.AddChild(CreateReticlePreview());
 		gallery.AddChild(CreateHeading("BUTTONS IN MODAL CONTAINER", 18));
 
 		var frameCenter = new CenterContainer
@@ -134,6 +136,14 @@ public sealed partial class UiComponentsPreview : Control
 			"Purple Red",
 			() => ApplyPalette(HudPalettes.PurpleRed)));
 		return toolbar;
+	}
+
+	private Control CreateReticlePreview()
+	{
+		var row = CreateCenteredRow();
+		foreach (var visual in Enum.GetValues<UiReticleVisual>())
+			row.AddChild(new UiReticle(visual));
+		return row;
 	}
 
 	private Control CreateFramePreview()

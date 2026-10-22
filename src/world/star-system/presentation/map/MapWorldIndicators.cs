@@ -12,7 +12,6 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 	private Func<string, Coord> _committedPositionOf = null!;
 	private Func<bool> _isAvailable = null!;
 	private Func<Node3D> _createVisual = null!;
-	private Func<string, float> _clearanceOf = null!;
 	private Func<string, bool>? _isFleetVisible;
 	private long _nextId;
 	private bool _configured;
@@ -22,14 +21,12 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 		Func<string, Coord> committedPositionOf,
 		Func<bool> isAvailable,
 		Func<Node3D> createVisual,
-		Func<string, float> clearanceOf,
 		Func<string, bool>? isFleetVisible = null)
 	{
 		_world = world;
 		_committedPositionOf = committedPositionOf;
 		_isAvailable = isAvailable;
 		_createVisual = createVisual;
-		_clearanceOf = clearanceOf;
 		_isFleetVisible = isFleetVisible;
 		_configured = true;
 	}
@@ -103,8 +100,6 @@ public sealed partial class MapWorldIndicators : Node3D, IWorldIndicator
 			Visible = _isAvailable(),
 		};
 		var visual = _createVisual();
-		if (visual is WorldArrowIndicator arrow)
-			arrow.TargetClearanceRadius = _clearanceOf(objectId);
 		root.AddChild(visual);
 		AddChild(root);
 

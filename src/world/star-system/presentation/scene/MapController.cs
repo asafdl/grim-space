@@ -261,7 +261,6 @@ public partial class MapController : Node3D
 			() => _director.CurrentModeId is CinematicPresentationMode.ModeId
 				or OverviewPresentationMode.ModeId,
 			() => new WorldArrowIndicator(),
-			ResolveIndicatorClearance,
 			IsPlayerFleetVisible);
 		AddChild(worldIndicators);
 		_worldIndicator = worldIndicators;
@@ -900,15 +899,6 @@ public partial class MapController : Node3D
 	{
 		if (flow.Id == TutorialController.GraduationFlowId)
 			GameSettings.SaveShowTutorials(false);
-	}
-
-	private float ResolveIndicatorClearance(string objectId)
-	{
-		var world = _orchestrator.Map;
-		var landmarkClearance = _landmarks.GetIndicatorClearance(objectId, world);
-		return landmarkClearance > 0f
-			? landmarkClearance
-			: _view.GetIndicatorClearance(objectId, world);
 	}
 
 	private MapInteractiveTarget ResolveInteractiveTarget(Vector2 screen, float? tickFraction = null)

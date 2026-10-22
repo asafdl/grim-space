@@ -1,70 +1,49 @@
 using Godot;
+using GrimSpace.Components;
 
 namespace GrimSpace.Education;
 
 public sealed partial class WorldArrowIndicator : Node3D
 {
 	private const float ReferenceDistance = 22f;
-	private const float OffsetAtReferenceDistance = 1.2f;
-	private const float VisualScale = 0.45f;
-	private const float ArrowExtent = 1.51f;
-	private const float ClearancePadding = 0.12f;
-	private static readonly Color Color = new(0.35f, 0.85f, 0.95f, 0.95f);
-	private Node3D _arrow = null!;
-
-	/// <summary>
-	/// World-space radius of the target visual. Keeps the arrow outside textured meshes and billboards.
-	/// </summary>
-	public float TargetClearanceRadius { get; set; }
+	private const float VisualScale = 1.71f;
+	private const float TurnSpeed = 0.35f;
+	private const string ReticleTexturePath =
+		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
+	private Sprite3D _reticle = null!;
+	private float _turnAngle;
 
 	public override void _Ready()
 	{
-		_arrow = CreateArrow();
-		AddChild(_arrow);
+		_reticle = CreateReticle();
+		AddChild(_reticle);
 		UpdatePose();
 	}
 
-	public override void _Process(double _) => UpdatePose();
-
-	private static Node3D CreateArrow()
+	public override void _Process(double delta)
 	{
-		var arrow = new Node3D { Name = "Arrow" };
-		var material = new StandardMaterial3D
-		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			AlbedoColor = Color,
-			EmissionEnabled = true,
-			Emission = Color with { A = 1f },
-			EmissionEnergyMultiplier = 2.4f,
-			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-		};
+		_turnAngle = Mathf.Wrap(
+			_turnAngle + (float)delta * TurnSpeed,
+			-Mathf.Pi,
+			Mathf.Pi);
+		UpdatePose();
+	}
 
-		arrow.AddChild(new MeshInstance3D
+	private static Sprite3D CreateReticle()
+	{
+		var reticle = new Sprite3D
 		{
-			Mesh = new CylinderMesh
-			{
-				TopRadius = 0.12f,
-				BottomRadius = 0.12f,
-				Height = 0.9f,
-			},
-			Position = new Vector3(0f, 0.45f, 0f),
-			MaterialOverride = material,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		});
-		arrow.AddChild(new MeshInstance3D
-		{
-			Mesh = new CylinderMesh
-			{
-				TopRadius = 0f,
-				BottomRadius = 0.42f,
-				Height = 0.62f,
-			},
-			Position = new Vector3(0f, 1.2f, 0f),
-			MaterialOverride = material,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		});
-		return arrow;
+			Name = "Reticle",
+			Texture = GD.Load<Texture2D>(ReticleTexturePath)
+				?? throw new InvalidOperationException(
+					$"Could not load reticle texture '{ReticleTexturePath}'."),
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			NoDepthTest = true,
+			Shaded = false,
+			PixelSize = 0.0027f,
+			Modulate = HudPalettes.WithAlpha(HudPalettes.BlueCyan.Secondary, 0.8f),
+		};
+		return reticle;
 	}
 
 	private void UpdatePose()
@@ -76,15 +55,10 @@ public sealed partial class WorldArrowIndicator : Node3D
 		var target = GlobalPosition;
 		var cameraDistance = Mathf.Max(camera.GlobalPosition.DistanceTo(target), 1f);
 		var distanceScale = cameraDistance / ReferenceDistance;
-		var arrowScale = VisualScale * distanceScale;
-		var screenOffset = (-camera.GlobalBasis.X + camera.GlobalBasis.Y * 0.8f).Normalized();
-		var screenOffsetDistance = OffsetAtReferenceDistance * distanceScale;
-		var minOffset = TargetClearanceRadius + ArrowExtent * arrowScale + ClearancePadding;
-		var position = target + screenOffset * Mathf.Max(screenOffsetDistance, minOffset);
+		var reticleScale = VisualScale * distanceScale;
 
-		_arrow.GlobalPosition = position;
-		_arrow.LookAt(target, camera.GlobalBasis.Y);
-		_arrow.RotateObjectLocal(Vector3.Right, -Mathf.Pi / 2f);
-		_arrow.Scale = Vector3.One * arrowScale;
+		_reticle.GlobalPosition = target;
+		_reticle.Scale = Vector3.One * reticleScale;
+		_reticle.Rotation = new Vector3(0f, 0f, _turnAngle);
 	}
 }
