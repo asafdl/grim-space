@@ -700,7 +700,7 @@ public sealed class State : IDisposable
 				.ToArray();
 			EnsureRegistryForFleets(fleets);
 			var seed = Random.Shared.Next();
-			var canonicalLayout = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
+			var tutorialScriptedSpawn = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
 				_tutorialState,
 				StarSystem.Map,
 				fact.ParticipantFleetIds);
@@ -711,7 +711,7 @@ public sealed class State : IDisposable
 				fact.EngagementId,
 				fact.InitiatorFleetId,
 				BuildPilotBattleSnapshots(),
-				canonicalLayout);
+				tutorialScriptedSpawn: tutorialScriptedSpawn);
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();
 		}

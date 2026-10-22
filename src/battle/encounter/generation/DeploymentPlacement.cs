@@ -87,7 +87,8 @@ public static class DeploymentPlacement
 		int gridSize,
 		string initiatorFleetId,
 		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null,
-		bool canonicalLayout = false)
+		bool canonicalLayout = false,
+		bool tutorialScriptedSpawn = false)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 		ArgumentNullException.ThrowIfNull(participantFleets);
@@ -115,7 +116,20 @@ public static class DeploymentPlacement
 		Coord attackerDorsal;
 		Coord interceptedFore;
 		Coord interceptedDorsal;
-		if (canonicalLayout || !TryPickVariedEngagementAnchors(rng, gridSize, out attackerAnchor, out interceptedAnchor))
+		if (tutorialScriptedSpawn)
+		{
+			var center = gridSize / 2;
+			var halfSeparation = System.Math.Min(EngagementSeparation / 2, System.Math.Max(0, center - Margin));
+			var fieldCenter = new Coord(center, center, center);
+			var approach = new Coord(1, 0, 0);
+			attackerAnchor = fieldCenter - approach * halfSeparation;
+			interceptedAnchor = fieldCenter + approach * halfSeparation;
+			attackerFore = approach;
+			attackerDorsal = Coord.Up;
+			interceptedFore = new Coord(-1, 0, 0);
+			interceptedDorsal = Coord.Up;
+		}
+		else if (canonicalLayout || !TryPickVariedEngagementAnchors(rng, gridSize, out attackerAnchor, out interceptedAnchor))
 		{
 			var center = gridSize / 2;
 			var approach = CardinalDirections[rng.Next(CardinalDirections.Length)];

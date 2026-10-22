@@ -1,8 +1,10 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Run;
+using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -210,6 +212,60 @@ public sealed class DeploymentPlacementTests
 					(player.Position.Y + enemy.Position.Y) / 2,
 					(player.Position.Z + enemy.Position.Z) / 2));
 			Assert.Equal(16_000f, BattleDistance.SeparationMeters(player.Position, enemy.Position));
+		}
+	}
+
+	[Fact]
+	public void ForEngagement_TutorialScriptedLayout_PlacesEngagementOnXzPlane()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-scripted");
+		var center = 32;
+
+		for (var seed = 0; seed < 16; seed++)
+		{
+			var spawns = DeploymentPlacement.ForEngagement(
+				[playerFleet, enemyFleet],
+				run.ItemInventory,
+				seed,
+				gridSize: 64,
+				playerFleet.State.Id,
+				tutorialScriptedSpawn: true);
+			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+
+			Assert.Equal(new Coord(center - 8, center, center), player.Position);
+			Assert.Equal(new Coord(center + 8, center, center), enemy.Position);
+			Assert.Equal(new Coord(1, 0, 0), player.Fore);
+			Assert.Equal(Coord.Up, player.Dorsal);
+			Assert.Equal(new Coord(-1, 0, 0), enemy.Fore);
+			Assert.Equal(Coord.Up, enemy.Dorsal);
+		}
+	}
+
+	[Fact]
+	public void ForEngagement_TutorialScriptedLayout_SupportsTurnOneTutorialMove()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-turn1");
+
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = EngagementBattleFactory.Create(
+				[playerFleet, enemyFleet],
+				run.ItemInventory,
+				seed,
+				"tutorial-scripted",
+				playerFleet.State.Id,
+				tutorialScriptedSpawn: true);
+			var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
+			var basis = GridBasis.From(player.Fore, player.Dorsal, Coord.Cross(player.Dorsal, player.Fore));
+
+			Assert.IsType<BattleTutorialObjectiveResult.Resolved>(
+				BattleTutorialObjectives.ResolveTurn1(battle, basis));
 		}
 	}
 
