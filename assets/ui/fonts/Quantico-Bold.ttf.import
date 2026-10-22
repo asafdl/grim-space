@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://b2gdv33d2mpfl"
-path="res://.godot/imported/Geo-Regular.ttf-35818db008bcfbc78c894d39657c04b1.fontdata"
+uid="uid://cfagphw1pmyr6"
+path="res://.godot/imported/Quantico-Bold.ttf-92fff8786cb1eb21324b7291f36d9a9b.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/Geo-Regular.ttf"
-dest_files=["res://.godot/imported/Geo-Regular.ttf-35818db008bcfbc78c894d39657c04b1.fontdata"]
+source_file="res://assets/ui/fonts/Quantico-Bold.ttf"
+dest_files=["res://.godot/imported/Quantico-Bold.ttf-92fff8786cb1eb21324b7291f36d9a9b.fontdata"]
 
 [params]
 
