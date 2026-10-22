@@ -165,20 +165,17 @@ public sealed partial class ContractHudOverlay : Control
 
 	private Control CreateContractCard(Contract contract)
 	{
-		var metadata = $"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(contract))}"
-			+ $" // Issued by {ContractDisplay.Issuer(contract)}"
-			+ $" // {ContractDisplay.DifficultyStars(contract)}";
 		var item = new UiListItem(
-			ContractDisplay.Title(contract),
-			metadata,
-			"")
+			$"{ContractDisplay.ListTitle(contract)}",
+			"",
+			ContractDisplay.DifficultyStars(contract))
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		if (!contract.Terms.Payment.IsEmpty)
-			item.SetTrailingContent(ResourceRewardDisplay.CreateCompact(contract.Terms.Payment));
 		item.SetVisual(UiListItemVisual.Technical);
 		item.SetTrailingColor(HudPalettes.Gold.Primary);
+		if (!contract.Terms.Payment.IsEmpty)
+			item.SetDetailBbcode(ResourceRewardDisplay.FormatListDetailBbcode(contract.Terms.Payment));
 		item.Pressed += () =>
 		{
 			_selected = contract;
@@ -192,14 +189,24 @@ public sealed partial class ContractHudOverlay : Control
 		var trailing = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+			SizeFlagsVertical = SizeFlags.ShrinkBegin,
 		};
 		trailing.AddThemeConstantOverride("separation", 8);
 
 		if (!contract.Terms.Payment.IsEmpty)
 		{
-			var reward = ResourceRewardDisplay.CreateCompact(contract.Terms.Payment);
-			reward.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			var reward = new RichTextLabel
+			{
+				BbcodeEnabled = true,
+				FitContent = true,
+				ScrollActive = false,
+				AutowrapMode = TextServer.AutowrapMode.Off,
+				MouseFilter = MouseFilterEnum.Ignore,
+				Text = ResourceRewardDisplay.FormatListDetailBbcode(contract.Terms.Payment),
+				ThemeTypeVariation = HudStyles.InformativeItemDescriptionRichTextLabelType,
+			};
+			reward.AddThemeFontSizeOverride("normal_font_size", 16);
 			trailing.AddChild(reward);
 		}
 

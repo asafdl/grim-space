@@ -28,7 +28,7 @@ public sealed partial class UiCard : BaseButton
 	private readonly Label _titleLabel;
 	private readonly Label _subtitleLabel;
 	private readonly Label _descriptionLabel;
-	private readonly Control _trailingHost;
+	private readonly VBoxContainer _trailingHost;
 	private readonly Label _trailingLabel;
 	private Control? _customTrailing;
 	private readonly MarginContainer _margin;
@@ -144,11 +144,13 @@ public sealed partial class UiCard : BaseButton
 		_descriptionLabel.AddThemeFontSizeOverride("font_size", 20);
 		_textColumn.AddChild(_descriptionLabel);
 
-		_trailingHost = new Control
+		_trailingHost = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ShrinkEnd,
 		};
+		_trailingHost.AddThemeConstantOverride("separation", 8);
 		_textColumn.AddChild(_trailingHost);
 
 		_trailingLabel = new Label
@@ -156,9 +158,7 @@ public sealed partial class UiCard : BaseButton
 			Text = trailingValue,
 			MouseFilter = MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Right,
-			AnchorsPreset = (int)LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_trailingLabel.AddThemeFontSizeOverride("font_size", 20);
 		_trailingHost.AddChild(_trailingLabel);
@@ -213,7 +213,8 @@ public sealed partial class UiCard : BaseButton
 		_trailingLabel.Visible = false;
 		_customTrailing = content;
 		content.MouseFilter = MouseFilterEnum.Ignore;
-		content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		content.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+		content.SizeFlagsVertical = SizeFlags.ShrinkBegin;
 		_trailingHost.AddChild(content);
 		ApplyTextVisibility();
 	}

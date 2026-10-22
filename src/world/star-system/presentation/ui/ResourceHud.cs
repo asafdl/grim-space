@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -12,6 +13,8 @@ public partial class ResourceHud : MarginContainer
 	private const int AmountMinimumWidth = 48;
 	private const int DeltaLabelHeight = 18;
 	private const int EntrySeparation = 16;
+	private const int ResourcePanelMinimumWidth = 408;
+	private const int ResourcePanelMinimumHeight = 94;
 	private const float CountUpSpeed = 140f;
 	private const float DeltaHoldDuration = 4f;
 	private const float DeltaFadeDuration = 1.5f;
@@ -71,7 +74,7 @@ public partial class ResourceHud : MarginContainer
 	{
 		_feedbackTween?.Kill();
 		_feedbackLabel.Text = "INSUFFICIENT FUNDS";
-		_feedbackLabel.Modulate = new Color(0.95f, 0.42f, 0.42f);
+		_feedbackLabel.Modulate = HudStyles.TextColor(HudTextRole.Danger);
 
 		var tween = CreateTween();
 		_feedbackTween = tween;
@@ -121,8 +124,8 @@ public partial class ResourceHud : MarginContainer
 
 		label.Text = delta > 0 ? $"+{delta}" : delta.ToString();
 		label.Modulate = delta > 0
-			? new Color(0.45f, 0.95f, 0.55f)
-			: new Color(0.95f, 0.42f, 0.42f);
+			? HudStyles.TextColor(HudTextRole.Success)
+			: HudStyles.TextColor(HudTextRole.Danger);
 
 		var tween = CreateTween();
 		_deltaTweens[id] = tween;
@@ -162,16 +165,22 @@ public partial class ResourceHud : MarginContainer
 		content.AddThemeConstantOverride("separation", 2);
 		AddChild(content);
 
-		var shell = HudWidgets.CreateInformativePanel("RESOURCES");
-		shell.Root.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-		content.AddChild(shell.Root);
-
 		var row = new HBoxContainer
 		{
+			Alignment = BoxContainer.AlignmentMode.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		row.AddThemeConstantOverride("separation", EntrySeparation);
-		shell.Body.AddChild(row);
+
+		var panel = new UiNestedContainer(UiContainerVisual.SidebarLandscape)
+		{
+			CustomMinimumSize = new Vector2(
+				ResourcePanelMinimumWidth,
+				ResourcePanelMinimumHeight),
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		panel.SetContent(row);
+		content.AddChild(panel);
 
 		foreach (var id in Enum.GetValues<ResourceId>())
 			row.AddChild(CreateEntry(id));
@@ -184,8 +193,8 @@ public partial class ResourceHud : MarginContainer
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 			Modulate = Colors.Transparent,
-			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
 		};
+		HudStyles.ApplyTextRole(_feedbackLabel, HudTextRole.Danger);
 		content.AddChild(_feedbackLabel);
 	}
 
@@ -227,8 +236,8 @@ public partial class ResourceHud : MarginContainer
 			HorizontalAlignment = HorizontalAlignment.Right,
 			MouseFilter = MouseFilterEnum.Ignore,
 			VerticalAlignment = VerticalAlignment.Center,
-			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
 		};
+		HudStyles.ApplyTextRole(amount, HudTextRole.Emphasis);
 		entry.AddChild(amount);
 		_amountLabels[id] = amount;
 		_displayedAmounts[id] = 0f;
@@ -248,8 +257,8 @@ public partial class ResourceHud : MarginContainer
 			HorizontalAlignment = HorizontalAlignment.Right,
 			MouseFilter = MouseFilterEnum.Ignore,
 			Modulate = Colors.Transparent,
-			ThemeTypeVariation = HudStyles.InformativeItemTitleLabelType,
 		};
+		HudStyles.ApplyTextRole(delta, HudTextRole.Metadata);
 		root.AddChild(delta);
 		_deltaLabels[id] = delta;
 

@@ -27,13 +27,17 @@ public partial class UiListItem : BaseButton
 	private readonly Control _content;
 	private readonly Label _titleLabel;
 	private readonly Label _metadataLabel;
+	private readonly Control _detailHost;
+	private readonly RichTextLabel _detailRichText;
 	private readonly Control _trailingHost;
 	private readonly Label _trailingLabel;
+	private Control? _customDetail;
 	private Control? _customTrailing;
 	private HudPalette _palette;
 	private bool _selected;
 	private bool _affordable = true;
 	private Color? _trailingColorOverride;
+	private Color? _detailColorOverride;
 
 	protected ShaderMaterial PaletteMaterial => _paletteMaterial;
 
@@ -113,7 +117,30 @@ public partial class UiListItem : BaseButton
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_metadataLabel.AddThemeFontSizeOverride("font_size", 17);
+		_metadataLabel.Visible = !string.IsNullOrEmpty(metadata);
 		text.AddChild(_metadataLabel);
+
+		_detailHost = new Control
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Visible = false,
+		};
+		text.AddChild(_detailHost);
+
+		_detailRichText = new RichTextLabel
+		{
+			BbcodeEnabled = false,
+			FitContent = true,
+			ScrollActive = false,
+			AutowrapMode = TextServer.AutowrapMode.Off,
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Visible = false,
+			ThemeTypeVariation = HudStyles.InformativeItemDescriptionRichTextLabelType,
+		};
+		_detailRichText.AddThemeFontSizeOverride("normal_font_size", 16);
+		_detailHost.AddChild(_detailRichText);
 
 		_trailingHost = new Control
 		{
@@ -183,6 +210,43 @@ public partial class UiListItem : BaseButton
 		RefreshVisualState();
 	}
 
+	public void SetDetail(string detail)
+	{
+		ClearCustomDetail();
+		_detailRichText.BbcodeEnabled = false;
+		_detailRichText.Text = detail;
+		var visible = !string.IsNullOrEmpty(detail);
+		_detailRichText.Visible = visible;
+		_detailHost.Visible = visible;
+	}
+
+	public void SetDetailBbcode(string bbcode)
+	{
+		ClearCustomDetail();
+		_detailRichText.BbcodeEnabled = true;
+		_detailRichText.Text = bbcode;
+		var visible = !string.IsNullOrEmpty(bbcode);
+		_detailRichText.Visible = visible;
+		_detailHost.Visible = visible;
+	}
+
+	public void SetDetailColor(Color? color)
+	{
+		_detailColorOverride = color;
+		RefreshVisualState();
+	}
+
+	public void SetDetailContent(Control content)
+	{
+		ArgumentNullException.ThrowIfNull(content);
+		ClearCustomDetail();
+		_detailRichText.Visible = false;
+		_customDetail = content;
+		content.MouseFilter = MouseFilterEnum.Ignore;
+		_detailHost.AddChild(content);
+		_detailHost.Visible = true;
+	}
+
 	public void SetTrailingContent(Control content)
 	{
 		ArgumentNullException.ThrowIfNull(content);
@@ -230,6 +294,9 @@ public partial class UiListItem : BaseButton
 		_metadataLabel.AddThemeColorOverride(
 			"font_color",
 			HudPalettes.WithAlpha(_palette.Secondary, 0.82f));
+		_detailRichText.AddThemeColorOverride(
+			"default_color",
+			_detailColorOverride ?? HudPalettes.WithAlpha(_palette.Secondary, 0.72f));
 		_trailingLabel.AddThemeColorOverride(
 			"font_color",
 			_trailingColorOverride ?? _palette.Highlight);
@@ -238,6 +305,15 @@ public partial class UiListItem : BaseButton
 			: _affordable
 				? Colors.White
 				: new Color(1f, 0.58f, 0.58f);
+	}
+
+	private void ClearCustomDetail()
+	{
+		if (_customDetail is null)
+			return;
+
+		_customDetail.QueueFree();
+		_customDetail = null;
 	}
 
 	private void ClearCustomTrailing()

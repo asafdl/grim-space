@@ -80,6 +80,13 @@ public sealed partial class UiComponentsPreview : Control
 		containers.AddChild(CreateContainerPreview("TECHNICAL", UiContainerVisual.Technical));
 		gallery.AddChild(containers);
 
+		gallery.AddChild(CreateHeading("LANDSCAPE SIDEBAR", 20));
+		var sidebar = CreateContainerPreview(
+			"LANDSCAPE",
+			UiContainerVisual.SidebarLandscape);
+		sidebar.CustomMinimumSize = new Vector2(900f, 300f);
+		gallery.AddChild(sidebar);
+
 		gallery.AddChild(CreateHeading("CARD OPTIONS", 20));
 		var cards = CreateComparisonRow();
 		cards.AddChild(CreateCardPreview("ANGLED", UiCardVisual.Angled));

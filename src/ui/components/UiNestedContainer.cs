@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
@@ -33,6 +34,8 @@ public sealed partial class UiNestedContainer : Container
 		AddChild(_margin);
 		ApplyContentPadding();
 	}
+
+	public void SetPalette(HudPalette palette) => _background.SetPalette(palette);
 
 	public void SetContent(Control content)
 	{

@@ -204,6 +204,7 @@ public sealed partial class ModalShell : Control
 			AnchorBottom = 1f,
 			GrowHorizontal = GrowDirection.Both,
 			GrowVertical = GrowDirection.Both,
+			MouseFilter = MouseFilterEnum.Stop,
 			Color = HudStyles.ModalBackdrop,
 		};
 		AddChild(backdrop);

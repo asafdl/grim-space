@@ -9,6 +9,18 @@ public static class ResourceRewardDisplay
 	private const int IconSize = 16;
 	private const int AmountMinimumWidth = 40;
 
+	public static string FormatListDetailBbcode(ResourceBundle reward)
+	{
+		if (reward.IsEmpty)
+			return string.Empty;
+
+		var payouts = reward
+			.OrderBy(entry => entry.Key)
+			.Select(entry =>
+				$"{entry.Value} [img={IconSize}x{IconSize}]{ResourceIconCatalog.IconPath(entry.Key)}[/img]");
+		return $"Payment: {string.Join(", ", payouts)}";
+	}
+
 	public static Control CreateCompact(ResourceBundle reward)
 	{
 		var column = new VBoxContainer

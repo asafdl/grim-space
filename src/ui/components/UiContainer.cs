@@ -9,6 +9,7 @@ public enum UiContainerVisual
 	Framed,
 	Simple,
 	Technical,
+	SidebarLandscape,
 }
 
 public sealed partial class UiContainer : NinePatchRect
@@ -21,6 +22,8 @@ public sealed partial class UiContainer : NinePatchRect
 		"res://assets/ui/components/runtime/surface_simple_neutral.png";
 	private const string TechnicalTexturePath =
 		"res://assets/ui/components/runtime/card_neutral.png";
+	private const string SidebarLandscapeTexturePath =
+		"res://assets/ui/components/runtime/surface_sidebar_landscape_neutral.png";
 	private const string ShaderPath =
 		"res://assets/ui/components/runtime/palette_remap.gdshader";
 
@@ -66,6 +69,7 @@ public sealed partial class UiContainer : NinePatchRect
 			UiContainerVisual.Framed => FramedTexturePath,
 			UiContainerVisual.Simple => SimpleTexturePath,
 			UiContainerVisual.Technical => TechnicalTexturePath,
+			UiContainerVisual.SidebarLandscape => SidebarLandscapeTexturePath,
 			_ => ModalTexturePath,
 		};
 		Texture = GD.Load<Texture2D>(texturePath)
@@ -76,6 +80,7 @@ public sealed partial class UiContainer : NinePatchRect
 			UiContainerVisual.Framed => (80, 70, 80, 70),
 			UiContainerVisual.Simple => (32, 32, 32, 32),
 			UiContainerVisual.Technical => (150, 100, 150, 100),
+			UiContainerVisual.SidebarLandscape => (44, 40, 44, 40),
 			_ => (170, 130, 170, 110),
 		};
 		(ContentMarginLeft, ContentMarginTop, ContentMarginRight, ContentMarginBottom) = visual switch
@@ -83,6 +88,7 @@ public sealed partial class UiContainer : NinePatchRect
 			UiContainerVisual.Framed => (36, 36, 36, 36),
 			UiContainerVisual.Simple => (32, 32, 32, 32),
 			UiContainerVisual.Technical => (48, 42, 44, 40),
+			UiContainerVisual.SidebarLandscape => (28, 28, 28, 28),
 			_ => (70, 48, 70, 48),
 		};
 		(BodyMarginTop, HeaderTitleSubtitleSeparation, HeaderSubtitleBandMinHeight) = visual switch
@@ -121,7 +127,7 @@ public sealed partial class UiContainer : NinePatchRect
 		_paletteMaterial.SetShaderParameter("edge_color", palette.Primary);
 		_paletteMaterial.SetShaderParameter("glow_strength", 0.72f);
 		_paletteMaterial.SetShaderParameter("solid_fill", 1f);
-		HeaderTitleColor = HudPalettes.Gold.Primary;
+		HeaderTitleColor = palette.Title;
 		HeaderSubtitleColor = palette.Secondary;
 	}
 }

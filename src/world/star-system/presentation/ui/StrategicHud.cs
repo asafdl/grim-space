@@ -144,22 +144,24 @@ public partial class StrategicHud : CanvasLayer
 		_fleetManagement.Open(run, selectedShipId);
 	}
 
-	private void OnPilotSheetRequested(string pilotId)
-	{
-		_returnToFleetAfterPilotSheet = false;
-		TryOpenPilotSheet(pilotId);
-	}
+	private void OnPilotSheetRequested(string pilotId) =>
+		OpenPilotSheet(pilotId, returnToFleetAfterClose: _fleetManagement.IsOpen);
 
-	private void OnFleetPilotSheetRequested(string pilotId)
+	private void OnFleetPilotSheetRequested(string pilotId) =>
+		OpenPilotSheet(pilotId, returnToFleetAfterClose: true);
+
+	private void OpenPilotSheet(string pilotId, bool returnToFleetAfterClose)
 	{
-		_fleetReturnShipId = _fleetManagement.SelectedShipId;
-		_returnToFleetAfterPilotSheet = true;
-		_fleetManagement.Close();
+		var fleetWasOpen = _fleetManagement.IsOpen;
+		_fleetReturnShipId = fleetWasOpen ? _fleetManagement.SelectedShipId : null;
+		_returnToFleetAfterPilotSheet = returnToFleetAfterClose && fleetWasOpen;
+
 		if (TryOpenPilotSheet(pilotId))
 			return;
 
 		_returnToFleetAfterPilotSheet = false;
-		_fleetManagement.Open(Session.Instance.Run, _fleetReturnShipId);
+		if (fleetWasOpen && _fleetReturnShipId is not null)
+			_fleetManagement.Open(Session.Instance.Run, _fleetReturnShipId);
 	}
 
 	private void OnPilotSheetClosed()
@@ -194,6 +196,9 @@ public partial class StrategicHud : CanvasLayer
 
 	private bool TryOpenPilotSheet(string pilotId)
 	{
+		if (_fleetManagement.IsOpen)
+			_fleetManagement.Close();
+
 		var run = Session.Instance.Run;
 		if (!run.PilotRegistry.TryGet(pilotId, out var pilot))
 		{
