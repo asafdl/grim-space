@@ -68,7 +68,7 @@ public sealed class LeadSaleMapMerchantPresenter
 		_contractId = contract.Id;
 		_meetingFleetId = meetingFleetId;
 		_activeSubtype = sale.MerchantSubtype;
-		var title = $"Black market — {sale.MerchantSubtype}";
+		var title = $"Black market - {sale.MerchantSubtype}";
 		switch (MerchantSubtypeRouting.PresentationFor(sale.MerchantSubtype))
 		{
 			case EMerchantPresentation.Upgrades:

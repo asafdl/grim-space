@@ -10,7 +10,7 @@ public enum UiListItemVisual
 	Technical,
 }
 
-public sealed partial class UiListItem : BaseButton
+public partial class UiListItem : BaseButton
 {
 	private const string TagTexturePath =
 		"res://assets/ui/components/runtime/list_item_base.png";
@@ -23,6 +23,7 @@ public sealed partial class UiListItem : BaseButton
 
 	private readonly TextureRect _background;
 	private readonly ShaderMaterial _paletteMaterial;
+	private readonly MarginContainer _margin;
 	private readonly Control _content;
 	private readonly Label _titleLabel;
 	private readonly Label _metadataLabel;
@@ -31,6 +32,8 @@ public sealed partial class UiListItem : BaseButton
 	private bool _selected;
 	private bool _affordable = true;
 	private Color? _trailingColorOverride;
+
+	protected ShaderMaterial PaletteMaterial => _paletteMaterial;
 
 	public UiListItem() : this("", "", "", HudPalettes.BlueCyan)
 	{
@@ -64,18 +67,14 @@ public sealed partial class UiListItem : BaseButton
 		};
 		AddChild(_background);
 
-		var margin = new MarginContainer
+		_margin = new MarginContainer
 		{
 			AnchorsPreset = (int)LayoutPreset.FullRect,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		margin.AddThemeConstantOverride("margin_left", 60);
-		margin.AddThemeConstantOverride("margin_right", 48);
-		margin.AddThemeConstantOverride("margin_top", 12);
-		margin.AddThemeConstantOverride("margin_bottom", 12);
-		AddChild(margin);
+		AddChild(_margin);
 
 		_content = new HBoxContainer
 		{
@@ -84,7 +83,7 @@ public sealed partial class UiListItem : BaseButton
 			Alignment = BoxContainer.AlignmentMode.Center,
 		};
 		_content.AddThemeConstantOverride("separation", 20);
-		margin.AddChild(_content);
+		_margin.AddChild(_content);
 
 		var text = new VBoxContainer
 		{
@@ -125,6 +124,8 @@ public sealed partial class UiListItem : BaseButton
 		_trailingLabel.AddThemeFontSizeOverride("font_size", 19);
 		_content.AddChild(_trailingLabel);
 
+		SetVisual(UiListItemVisual.Tag);
+
 		MouseEntered += RefreshVisualState;
 		MouseExited += RefreshVisualState;
 		FocusEntered += RefreshVisualState;
@@ -148,6 +149,7 @@ public sealed partial class UiListItem : BaseButton
 			UiListItemVisual.Technical => TechnicalTexturePath,
 			_ => TagTexturePath,
 		});
+		ApplyContentMargins();
 		RefreshVisualState();
 	}
 
@@ -214,6 +216,27 @@ public sealed partial class UiListItem : BaseButton
 			: _affordable
 				? Colors.White
 				: new Color(1f, 0.58f, 0.58f);
+	}
+
+	private void ApplyContentMargins()
+	{
+		SetContentMargins(60, 48, 12, 12);
+	}
+
+	protected void SetContentMargins(int left, int right, int top, int bottom)
+	{
+		_margin.AddThemeConstantOverride("margin_left", left);
+		_margin.AddThemeConstantOverride("margin_right", right);
+		_margin.AddThemeConstantOverride("margin_top", top);
+		_margin.AddThemeConstantOverride("margin_bottom", bottom);
+	}
+
+	protected void HideBackground() => _background.Hide();
+
+	protected void AddBehindContent(Control control)
+	{
+		AddChild(control);
+		MoveChild(control, _margin.GetIndex());
 	}
 
 	private static Texture2D LoadTexture(string path) =>

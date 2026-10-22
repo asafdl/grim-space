@@ -1,10 +1,13 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -67,7 +70,7 @@ public sealed partial class PilotHiringHudOverlay : Control
 		_shell.SetFooter([]);
 
 		var body = HudWidgets.CreateCardList();
-		body.AddThemeConstantOverride("separation", 18);
+		body.AddThemeConstantOverride("separation", 10);
 
 		IReadOnlyList<PilotRecruitment.PilotHireCandidate> candidates;
 		try
@@ -96,21 +99,36 @@ public sealed partial class PilotHiringHudOverlay : Control
 			var captured = candidate;
 			var cost = PilotRecruitment.Price(map, captured);
 			var canAfford = map.PlayerResources.CanApply(cost.Negate());
-			var profile = captured.Profile;
-			var metadata = $"{PilotHireDisplay.CardSubtitle(profile)}\n"
-				+ PilotHireDisplay.ShipPackageLine(captured.Ship.Chassis, captured.Ship.GearTier);
-			if (!canAfford)
-				metadata += "\nYou do not have the required resources.";
-
-			body.AddChild(MerchantUiListItem.Create(
-				PilotHireDisplay.CardTitle(profile.BackgroundId),
-				metadata,
-				cost,
-				canAfford,
-				() => HireRequested?.Invoke(captured.Slot)));
+			body.AddChild(BuildCandidateCard(captured, cost, canAfford));
 		}
 
 		_shell.SetBody(body);
+	}
+
+	private UiListItem BuildCandidateCard(
+		PilotRecruitment.PilotHireCandidate candidate,
+		ResourceBundle cost,
+		bool canAfford)
+	{
+		var profile = candidate.Profile;
+		var background = PilotBackgroundCatalog.Get(profile.BackgroundId);
+		var metadata = $"{PilotHireDisplay.CardTitle(profile.BackgroundId)}\n"
+			+ PilotHireDisplay.ShipPackageLine(candidate.Ship.Chassis, candidate.Ship.GearTier);
+		var item = new UiImageListItem(
+			profile.Name,
+			metadata,
+			ResourceCostDisplay.FormatCompact(cost),
+			ShipPilotPortraitCatalog.TextureFor(profile.PortraitId))
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			TooltipText = background.Description,
+		};
+		item.SetAffordable(canAfford);
+		item.SetEnabled(canAfford);
+		if (canAfford)
+			item.Pressed += () => HireRequested?.Invoke(candidate.Slot);
+
+		return item;
 	}
 
 	private static IReadOnlyCollection<int> PurchasedSlots(StarMap map, string contractId)
@@ -121,4 +139,5 @@ public sealed partial class PilotHiringHudOverlay : Control
 
 		return lead.PurchasedPilotHireSlots;
 	}
+
 }

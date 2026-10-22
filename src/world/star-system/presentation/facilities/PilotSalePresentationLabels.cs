@@ -22,7 +22,7 @@ public static class PilotSalePresentationLabels
 		}
 
 		if (sale.Destination is BlackMarketSpaceMeetingDestination)
-			return $"Black market — {sale.MerchantSubtype}";
+			return $"Black market - {sale.MerchantSubtype}";
 
 		if (sale.Destination is not BlackMarketFacilityDestination facilityDestination)
 			throw new InvalidOperationException(
