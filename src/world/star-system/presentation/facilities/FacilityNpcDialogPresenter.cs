@@ -9,12 +9,12 @@ public sealed class FacilityNpcDialogPresenter
 {
 	private readonly Facility _facility;
 	private readonly StarMap _map;
-	private readonly Button _backButton;
+	private readonly BaseButton _backButton;
 	private readonly NpcDialogHudOverlay _hud;
 	private FacilityOperator? _operator;
 	private int _rollIndex;
 
-	public FacilityNpcDialogPresenter(Control owner, Button backButton, Facility facility, StarMap map)
+	public FacilityNpcDialogPresenter(Control owner, BaseButton backButton, Facility facility, StarMap map)
 	{
 		_facility = facility;
 		_map = map;

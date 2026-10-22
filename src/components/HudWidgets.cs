@@ -1,10 +1,22 @@
 using System.Linq;
 using Godot;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Components;
 
 public static class HudWidgets
 {
+	public const string LeaveButtonLabel = "Leave";
+
+	public static UiButton CreateLeaveButton()
+	{
+		var button = new UiButton(LeaveButtonLabel, HudActionKind.Secondary, HudPalettes.BlueCyan)
+		{
+			FocusMode = Control.FocusModeEnum.All,
+		};
+		button.SetVisual(UiButtonVisual.Back);
+		return button;
+	}
 	public static VBoxContainer CreateCardList()
 	{
 		var list = new VBoxContainer

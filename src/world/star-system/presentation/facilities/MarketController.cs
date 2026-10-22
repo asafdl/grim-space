@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
@@ -13,7 +14,7 @@ public partial class MarketController : Control
 	private MerchantPresenter _merchant = null!;
 	private HealingStationPresenter _healingStation = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
-	private Button _backButton = null!;
+	private UiButton _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
 
@@ -26,8 +27,7 @@ public partial class MarketController : Control
 
 		var scene = GetNode<FacilitySceneView>("Scene");
 
-		_backButton = GetNode<Button>("Back");
-		_backButton.Pressed += ReturnToMap;
+		_backButton = FacilitySceneControls.InstallLeaveButton(this, ReturnToMap);
 
 		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
 		_healingStation = new HealingStationPresenter(

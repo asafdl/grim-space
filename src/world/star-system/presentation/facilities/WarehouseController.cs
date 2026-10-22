@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Presentation.Scene;
@@ -12,7 +13,7 @@ public partial class WarehouseController : Control
 	private FacilityContractHudPresenter _contractHud = null!;
 	private MerchantPresenter _merchant = null!;
 	private HealingStationPresenter _healingStation = null!;
-	private Button _backButton = null!;
+	private UiButton _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
 
@@ -30,8 +31,7 @@ public partial class WarehouseController : Control
 			_binding.Facility,
 			OnFacilityOperatorActivated);
 
-		_backButton = GetNode<Button>("Back");
-		_backButton.Pressed += ReturnToMap;
+		_backButton = FacilitySceneControls.InstallLeaveButton(this, ReturnToMap);
 
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);

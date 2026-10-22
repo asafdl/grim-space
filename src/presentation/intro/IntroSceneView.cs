@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Presentation.Intro;
 
@@ -8,7 +9,7 @@ public partial class IntroSceneView : Control
 	private TextureRect _background = null!;
 	private Label _artCredit = null!;
 	private RichTextLabel _body = null!;
-	private Button _skipButton = null!;
+	private UiButton _skipButton = null!;
 	private FramedActionBar _bar = null!;
 
 	public event Action? NextPressed;
@@ -22,9 +23,6 @@ public partial class IntroSceneView : Control
 		_background = GetNode<TextureRect>("Background");
 		_artCredit = GetNode<Label>("ArtCredit");
 		_artCredit.OffsetTop = HudStyles.HalfMargin;
-		_skipButton = GetNode<Button>("Skip");
-		_skipButton.Pressed += () => SkipPressed?.Invoke();
-
 		_body = new RichTextLabel
 		{
 			BbcodeEnabled = true,
@@ -48,6 +46,18 @@ public partial class IntroSceneView : Control
 		_bar.ConfigureWidth(900, 1400, 0.72f);
 		_bar.ActionPressed += () => NextPressed?.Invoke();
 		AddChild(_bar);
+
+		_skipButton = new UiButton("Skip Intro", HudActionKind.Secondary, HudPalettes.BlueCyan)
+		{
+			FocusMode = FocusModeEnum.All,
+			Position = new Vector2(16f, 16f),
+			Modulate = new Color(1f, 1f, 1f, 0.9f),
+		};
+		_skipButton.SetVisual(UiButtonVisual.Back);
+		_skipButton.CustomMinimumSize = new Vector2(185f, 60f);
+		_skipButton.SetFontSize(26);
+		_skipButton.Pressed += () => SkipPressed?.Invoke();
+		AddChild(_skipButton);
 	}
 
 	public void SetBackground(Texture2D? texture) =>

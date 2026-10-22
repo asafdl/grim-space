@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Components;
 
@@ -7,13 +8,15 @@ public sealed partial class FramedActionBar : Control
 	private const int DefaultMinWidth = 720;
 	private const int DefaultMaxWidth = 1100;
 	private const float DefaultWidthRatio = 0.58f;
-	private const int ActionWidth = 132;
-	private const int ActionHeight = 52;
+	// Sized to pair with theatrical theme default_font_size (48).
+	private const int ActionWidth = 200;
+	private const int ActionHeight = 64;
+	private const int ActionFontSize = 48;
 
 	private readonly MarginContainer _bottom;
 	private readonly PanelContainer _frame;
 	private readonly Label? _textBody;
-	private readonly Button _action;
+	private readonly UiButton _action;
 
 	private int _minWidth = DefaultMinWidth;
 	private int _maxWidth = DefaultMaxWidth;
@@ -103,16 +106,23 @@ public sealed partial class FramedActionBar : Control
 		};
 		content.AddChild(actionSlot);
 
-		_action = new Button
+		_action = new UiButton("Next", HudActionKind.Primary, HudPalettes.BlueCyan)
 		{
-			Text = "Next",
 			Visible = false,
 			FocusMode = FocusModeEnum.All,
-			CustomMinimumSize = new Vector2(ActionWidth, ActionHeight),
 		};
-		HudStyles.StyleButton(_action, HudActionKind.Secondary);
+		ApplyNarrativeActionStyle(_action);
 		_action.Pressed += () => ActionPressed?.Invoke();
 		actionSlot.AddChild(_action);
+	}
+
+	internal static void ApplyNarrativeActionStyle(UiButton button)
+	{
+		button.SetPalette(HudPalettes.BlueCyan);
+		button.SetActionKind(HudActionKind.Primary);
+		button.SetVisual(UiButtonVisual.Framed);
+		button.CustomMinimumSize = new Vector2(ActionWidth, ActionHeight);
+		button.SetFontSize(ActionFontSize);
 	}
 
 	public event Action? ActionPressed;

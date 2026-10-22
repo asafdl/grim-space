@@ -179,7 +179,7 @@ public sealed partial class UiComponentsPreview : Control
 		var primaryStyles = CreateCenteredRow();
 		primaryStyles.AddChild(CreateStyledButton("Action", UiButtonVisual.Action));
 		primaryStyles.AddChild(CreateStyledButton("Compact", UiButtonVisual.Compact));
-		primaryStyles.AddChild(CreateStyledButton("Back", UiButtonVisual.Back));
+		primaryStyles.AddChild(CreateStyledButton(HudWidgets.LeaveButtonLabel, UiButtonVisual.Back));
 		layout.AddChild(primaryStyles);
 
 		layout.AddChild(CreateHeading("TECHNICAL BUTTONS", 15));

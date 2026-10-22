@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Poi.Dialog;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -161,20 +162,19 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 		ClearChoices();
 		foreach (var choice in dialog.Choices)
 		{
-			var button = new Button
+			var button = new UiButton(choice.Label, HudActionKind.Primary, HudPalettes.BlueCyan)
 			{
-				Text = choice.Label,
 				FocusMode = Control.FocusModeEnum.All,
 			};
-			HudStyles.StyleButton(button, HudActionKind.Secondary);
+			FramedActionBar.ApplyNarrativeActionStyle(button);
 			var choiceId = choice.Id;
 			button.Pressed += () => ChoiceSelected?.Invoke(choiceId);
 			_choices.AddChild(button);
 		}
 
 		_choices.Visible = dialog.Choices.Count > 0;
-		if (dialog.Choices.Count > 0)
-			((Button)_choices.GetChild(0)).GrabFocus();
+		if (dialog.Choices.Count > 0 && _choices.GetChild(0) is BaseButton firstChoice)
+			firstChoice.GrabFocus();
 	}
 
 	private void ClearChoices()

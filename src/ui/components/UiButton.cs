@@ -185,6 +185,7 @@ public sealed partial class UiButton : BaseButton
 		_paletteMaterial.SetShaderParameter(
 			"palette_mix",
 			_visual == UiButtonVisual.Back
+				|| _visual == UiButtonVisual.Framed
 				|| _kind == HudActionKind.Destructive
 				|| _palette != HudPalettes.BlueCyan
 				? 1f

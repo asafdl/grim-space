@@ -63,12 +63,3 @@ ignore_texture_size = true
 stretch_mode = 5
 flip_h = true
 script = ExtResource("3_operator")
-
-[node name="Back" type="Button" parent="." unique_id=1103525098]
-layout_mode = 0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 80.0
-offset_bottom = 47.0
-theme_type_variation = &"SecondaryButton"
-text = "Leave"

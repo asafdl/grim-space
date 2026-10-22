@@ -18,14 +18,14 @@ public sealed class DeliveryTurnInDialogPresenter
 	private readonly UserIntentTranslator? _intentTranslator;
 	private readonly string? _poiId;
 	private readonly string? _facilityId;
-	private readonly Button? _backButton;
+	private readonly BaseButton? _backButton;
 	private readonly NpcDialogHudOverlay _hud;
 	private FacilityOperator? _operator;
 	private string? _meetingId;
 
 	public DeliveryTurnInDialogPresenter(
 		Node owner,
-		Button backButton,
+		BaseButton backButton,
 		StarMap map,
 		UserIntentTranslator intentTranslator,
 		string poiId,
@@ -45,7 +45,7 @@ public sealed class DeliveryTurnInDialogPresenter
 
 	private DeliveryTurnInDialogPresenter(
 		Node owner,
-		Button? backButton,
+		BaseButton? backButton,
 		StarMap map,
 		UserIntentTranslator? intentTranslator,
 		StarSystemOrchestrator? orchestrator)

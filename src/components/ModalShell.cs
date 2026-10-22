@@ -93,7 +93,7 @@ public sealed partial class ModalShell : Control
 		else
 		{
 			_headerButton.SetVisual(UiButtonVisual.Back);
-			_headerButton.Text = buttonLabel ?? "Back";
+			_headerButton.Text = buttonLabel ?? HudWidgets.LeaveButtonLabel;
 		}
 
 		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissVisible;
