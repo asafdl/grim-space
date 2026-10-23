@@ -3,4 +3,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 
 namespace GrimSpace.World.StarSystem;
 
-public sealed record PendingCourse(Coord Destination, TransitPath Path);
+public sealed record PendingCourse(
+	Coord Destination,
+	TransitPath Path,
+	ECourseDestinationKind DestinationKind = ECourseDestinationKind.Move);

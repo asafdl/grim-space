@@ -10,18 +10,24 @@ namespace GrimSpace.World.StarSystem.Presentation.Map;
 
 public partial class CourseView : Node3D
 {
+	private const string InterceptMarkerTexturePath = "res://assets/ui/map/intercept-marker.png";
 	private const float PathYOffset = 0.005f;
 	private const float RingYOffset = 0.008f;
+	private const float MarkerYOffset = 0.009f;
 	private const float DestinationRingRadius = 0.11f;
 	private const float DestinationRingStroke = 0.014f;
 	private const int DestinationRingSegments = 28;
+	private const float InterceptMarkerSize = 0.15f;
 
 	private static readonly Color PathColor = new(0.35f, 0.85f, 0.95f, 0.55f);
+	private static readonly Color InterceptPathColor = new(0.95f, 0.35f, 0.38f, 0.48f);
 	private static readonly Color DestinationRingColor = new(0.35f, 0.85f, 0.95f, 0.78f);
+	private static readonly Color InterceptRingColor = new(1f, 0.15f, 0.22f, 0.95f);
 	private static readonly Color UnreachableRingColor = new(0.95f, 0.35f, 0.30f, 0.88f);
 
 	private MeshInstance3D _pathMesh = null!;
 	private MeshInstance3D _destinationRing = null!;
+	private MeshInstance3D _interceptMarker = null!;
 	private int _width;
 	private int _height;
 	private long _shownJourneyId;
@@ -74,13 +80,35 @@ public partial class CourseView : Node3D
 			},
 		};
 		AddChild(_destinationRing);
+
+		var markerTexture = GD.Load<Texture2D>(InterceptMarkerTexturePath);
+		_interceptMarker = new MeshInstance3D
+		{
+			Name = "InterceptMarker",
+			Visible = false,
+			Mesh = BuildFlatMarkerMesh(InterceptMarkerSize),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			MaterialOverride = new StandardMaterial3D
+			{
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+				AlbedoTexture = markerTexture,
+				CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+			},
+		};
+		AddChild(_interceptMarker);
 	}
 
 	public void Sync(StarSystemOrchestrator orchestrator, bool unreachableFlash, float tickFraction)
 	{
 		if (orchestrator.PlayerAgent?.PendingCourse is { } pendingCourse)
 		{
-			ShowCourse(pendingCourse.Path, pendingCourse.Destination, journeyId: 0, unreachableFlash);
+			ShowCourse(
+				pendingCourse.Path,
+				pendingCourse.Destination,
+				journeyId: 0,
+				unreachableFlash,
+				pendingCourse.DestinationKind);
 			return;
 		}
 
@@ -101,57 +129,84 @@ public partial class CourseView : Node3D
 		var sample = RoundedTransitRoute.For(path)
 			.SampleAtElapsed(elapsed, unit.State.SpeedPerTick);
 
-		ShowActiveCourse(path, sample, journey.Destination, unreachableFlash);
+		var destinationKind = unit.State.TravelTarget.Kind == ETravelTargetKind.Fleet
+			? ECourseDestinationKind.Intercept
+			: ECourseDestinationKind.Move;
+
+		ShowActiveCourse(path, sample, journey.Destination, unreachableFlash, destinationKind);
 	}
 
-	private void ShowCourse(TransitPath path, Coord destination, long journeyId, bool unreachableFlash)
+	private void ShowCourse(
+		TransitPath path,
+		Coord destination,
+		long journeyId,
+		bool unreachableFlash,
+		ECourseDestinationKind destinationKind)
 	{
+		var pathColor = PathColorFor(destinationKind);
 		if (journeyId != 0 && journeyId != _shownJourneyId)
 		{
 			_shownJourneyId = journeyId;
 			_shownPath = path;
-			_pathMesh.Mesh = BuildPathMesh(path);
+			_pathMesh.Mesh = BuildPathMesh(path, pathColor);
 		}
 		else if (journeyId == 0 && !ReferenceEquals(path, _shownPath))
 		{
 			_shownJourneyId = 0;
 			_shownPath = path;
 			_activeRemainingPath = null;
-			_pathMesh.Mesh = BuildPathMesh(path);
+			_pathMesh.Mesh = BuildPathMesh(path, pathColor);
 		}
 
 		_pathMesh.Visible = _pathMesh.Mesh is not null;
-		ShowDestinationRing(destination, unreachableFlash);
+		ShowDestination(destination, unreachableFlash, destinationKind);
 	}
 
 	private void ShowActiveCourse(
 		TransitPath path,
 		RouteSample sample,
 		Coord destination,
-		bool unreachableFlash)
+		bool unreachableFlash,
+		ECourseDestinationKind destinationKind)
 	{
 		_shownJourneyId = 0;
 		_shownPath = path;
+		var pathColor = PathColorFor(destinationKind);
 		if (!ReferenceEquals(path, _activeRemainingPath) || _activeRemainingSample != sample)
 		{
 			_activeRemainingPath = path;
 			_activeRemainingSample = sample;
-			_pathMesh.Mesh = BuildRemainingPathMesh(path, sample);
+			_pathMesh.Mesh = BuildRemainingPathMesh(path, sample, pathColor);
 		}
 
 		_pathMesh.Visible = _pathMesh.Mesh is not null;
-		ShowDestinationRing(destination, unreachableFlash);
+		ShowDestination(destination, unreachableFlash, destinationKind);
 	}
 
-	private void ShowDestinationRing(Coord destination, bool unreachableFlash)
+	private void ShowDestination(
+		Coord destination,
+		bool unreachableFlash,
+		ECourseDestinationKind destinationKind)
 	{
+		var worldPosition = ToWorld(destination) + Vector3.Up * RingYOffset;
+		_destinationRing.Position = worldPosition;
 		_destinationRing.Visible = true;
-		_destinationRing.Position = ToWorld(destination) + Vector3.Up * RingYOffset;
 
-		var ringColor = unreachableFlash ? UnreachableRingColor : DestinationRingColor;
+		var isIntercept = destinationKind == ECourseDestinationKind.Intercept;
+		var ringColor = unreachableFlash && !isIntercept
+			? UnreachableRingColor
+			: isIntercept
+				? InterceptRingColor
+				: DestinationRingColor;
+
 		var material = (StandardMaterial3D)_destinationRing.MaterialOverride!;
 		material.AlbedoColor = ringColor;
 		material.Emission = ringColor;
+		material.EmissionEnergyMultiplier = isIntercept ? 0.65f : 0.45f;
+
+		_interceptMarker.Visible = isIntercept;
+		if (isIntercept)
+			_interceptMarker.Position = ToWorld(destination) + Vector3.Up * MarkerYOffset;
 	}
 
 	private void HideCourse()
@@ -161,9 +216,13 @@ public partial class CourseView : Node3D
 		_activeRemainingPath = null;
 		_pathMesh.Visible = false;
 		_destinationRing.Visible = false;
+		_interceptMarker.Visible = false;
 	}
 
-	private ImmediateMesh? BuildPathMesh(TransitPath path)
+	private static Color PathColorFor(ECourseDestinationKind destinationKind) =>
+		destinationKind == ECourseDestinationKind.Intercept ? InterceptPathColor : PathColor;
+
+	private ImmediateMesh? BuildPathMesh(TransitPath path, Color pathColor)
 	{
 		var route = RoundedTransitRoute.For(path);
 		var points = route.Points;
@@ -172,7 +231,7 @@ public partial class CourseView : Node3D
 
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		mesh.SurfaceSetColor(PathColor);
+		mesh.SurfaceSetColor(pathColor);
 		for (var i = 1; i < points.Count; i++)
 		{
 			mesh.SurfaceAddVertex(ToWorld(points[i - 1].X, points[i - 1].Z));
@@ -183,7 +242,7 @@ public partial class CourseView : Node3D
 		return mesh;
 	}
 
-	private ImmediateMesh? BuildRemainingPathMesh(TransitPath path, RouteSample sample)
+	private ImmediateMesh? BuildRemainingPathMesh(TransitPath path, RouteSample sample, Color pathColor)
 	{
 		var points = RoundedTransitRoute.For(path).RemainingPoints(sample);
 		if (points.Count < 2)
@@ -191,7 +250,7 @@ public partial class CourseView : Node3D
 
 		var mesh = new ImmediateMesh();
 		mesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		mesh.SurfaceSetColor(PathColor);
+		mesh.SurfaceSetColor(pathColor);
 
 		for (var i = 1; i < points.Count; i++)
 		{
@@ -208,6 +267,9 @@ public partial class CourseView : Node3D
 
 	private Vector3 ToWorld(double x, double z) =>
 		MapMapping.ToWorld(x, z, _width, _height) + Vector3.Up * PathYOffset;
+
+	private static PlaneMesh BuildFlatMarkerMesh(float size) =>
+		new() { Size = new Vector2(size, size) };
 
 	private static ArrayMesh BuildRingMesh(float radius, float stroke, int segments)
 	{

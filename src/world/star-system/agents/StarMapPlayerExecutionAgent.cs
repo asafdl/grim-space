@@ -53,7 +53,12 @@ public sealed class StarMapPlayerExecutionAgent
 	public PendingCourse? PendingCourse => _pendingAction switch
 	{
 		MoveAction move => new PendingCourse(move.Destination, move.Path),
-		PursueContactAction pursue => new PendingCourse(pursue.Destination, pursue.Path),
+		PursueContactAction pursue => new PendingCourse(
+			pursue.Destination,
+			pursue.Path,
+			pursue.Target is FleetContactTarget
+				? ECourseDestinationKind.Intercept
+				: ECourseDestinationKind.Move),
 		_ => null,
 	};
 
