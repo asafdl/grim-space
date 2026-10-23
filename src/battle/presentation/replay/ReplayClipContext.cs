@@ -21,6 +21,7 @@ public sealed class ReplayClipContext(
 	Action<State, Color> ensureView,
 	Action<string> dismissUnitPresentation,
 	Action<CameraInterest>? reportInterest = null,
+	Action<ImpactShakeScale>? reportImpactShake = null,
 	Action<GoopSpawnedFacts>? showGoop = null,
 	Action<string>? removeGoop = null)
 {
@@ -38,11 +39,12 @@ public sealed class ReplayClipContext(
 	public Action<string> DismissUnitPresentation { get; } = dismissUnitPresentation;
 
 	public Action<CameraInterest>? ReportInterest { get; } = reportInterest;
+	public Action<ImpactShakeScale>? ReportImpactShake { get; } = reportImpactShake;
 	public Action<GoopSpawnedFacts>? ShowGoop { get; } = showGoop;
 	public Action<string>? RemoveGoop { get; } = removeGoop;
 	public ESpatialOrientation? PendingVoidBombMountedOn { get; set; }
 	public IReadOnlyList<IAction> FollowingActions { private get; set; } = [];
-	public IReadOnlyList<IRecord> FollowingRecords { private get; set; } = [];
+	public IReadOnlyList<IRecord> FollowingRecords { get; set; } = [];
 
 	public AreaDamageFacts? FollowingAreaDamage(string sourceId, EImpactCause cause)
 	{

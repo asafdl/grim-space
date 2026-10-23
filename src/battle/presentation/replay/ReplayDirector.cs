@@ -87,7 +87,8 @@ public sealed partial class ReplayDirector : Node
 		_replayPlayer.ResetToLive(
 			replay.StartStates,
 			replay.EndStates,
-			interest => _cameraDirector.ReportInterest(interest));
+			interest => _cameraDirector.ReportInterest(interest),
+			scale => _cameraDirector.PlayImpactShake(scale));
 		var resetMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 		var participants = ParticipantTeams();
 		var participantsMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds - resetMs;

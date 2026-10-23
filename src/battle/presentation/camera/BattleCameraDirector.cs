@@ -48,6 +48,9 @@ public sealed class BattleCameraDirector
 		_mode = CameraMode.Returning;
 	}
 
+	public void PlayImpactShake(ImpactShakeScale scale) =>
+		_rig.PlayImpactShake(scale);
+
 	public void ReportInterest(CameraInterest interest)
 	{
 		if (_mode != CameraMode.Playback)

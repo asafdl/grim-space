@@ -288,23 +288,31 @@ public partial class UnitView : Node3D
 		PlayHitShake();
 	}
 
-	public void PlayImpactSparks(int shieldDamage, int hullDamage, bool lightning)
+	public void PlayImpactSparks(
+		int shieldDamage,
+		int hullDamage,
+		bool lightning,
+		ESpatialOrientation hitFace)
 	{
 		var hasShieldDamage = shieldDamage > 0;
 		var hasHullDamage = hullDamage > 0;
+		var exitFace = UnitFaceLocalGeometry.SparkExitFace(hitFace);
+		var emitNormal = UnitFaceLocalGeometry.OutwardNormal(exitFace);
+		var emitPoint = UnitFaceLocalGeometry.EmitPointOnFace(_hullBounds, exitFace);
+		var emitBasis = UnitFaceLocalGeometry.BasisWithLocalYAxis(emitNormal);
 		if (shieldDamage > 0)
-			OneShotParticles.PlayHitSparks(this, Vector3.Zero);
+			OneShotParticles.PlayHitSparks(this, emitPoint, emitBasis);
 		if (hullDamage > 0)
-			OneShotParticles.PlayHullHitSparks(this, Vector3.Zero);
+			OneShotParticles.PlayHullHitSparks(this, emitPoint, emitBasis);
 		if (lightning)
-			PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.LightningCannonHitPath);
+			PresentationSfx.PlayWorldOneShot(this, emitPoint, PresentationSfx.LightningCannonHitPath);
 		if (hasShieldDamage || hasHullDamage)
 			PlayHitShake();
 	}
 
-	public void PlayLightningHitSparks()
+	public void PlayLightningHitSparks(ESpatialOrientation hitFace = ESpatialOrientation.Forward)
 	{
-		PlayImpactSparks(1, 0, lightning: true);
+		PlayImpactSparks(1, 0, lightning: true, hitFace);
 	}
 
 	private void PlayHitShake()

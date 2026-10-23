@@ -20,4 +20,5 @@ public interface ICameraRig
 	void TweenPivotTo(Vector3 target, float duration);
 	void MovePivotToward(Vector3 target, float delta, float responseTime);
 	void CancelAutomation();
+	void PlayImpactShake(ImpactShakeScale scale);
 }

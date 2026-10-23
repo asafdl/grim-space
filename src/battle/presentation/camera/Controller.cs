@@ -24,6 +24,8 @@ public partial class Controller : Camera3D, ICameraRig
 	private bool _orbiting;
 	private bool _panning;
 	private Tween? _pivotTween;
+	private Tween? _impactShakeTween;
+	private Vector3 _impactShakeLocalOffset;
 	private Vector3? _automationTarget;
 
 	public Vector3 Pivot => _pose.Pivot;
@@ -199,6 +201,142 @@ public partial class Controller : Camera3D, ICameraRig
 
 		_automationTarget = null;
 	}
+
+	private const float ShakeMagnitude = 18f;
+	private const float HullHitStrengthMultiplier = 1.32f;
+	private const int LethalShakeDamageBonus = 10;
+	private const float ShakeDamageReference = 28f;
+	private const float MinShakeStrength = 0.35f * ShakeMagnitude;
+	private const float MaxShakeStrength = 1f * ShakeMagnitude;
+	private const float MaxShakeStrengthCap = 2.2f * ShakeMagnitude;
+	private const float ShakeOffsetPerStrength = 0.028f;
+	private const float ShakeDurationMagnitude = 2.4f;
+	private const float ShakeDurationAtMinStrength = 0.42f;
+	private const float ShakeDurationAtMaxStrength = 1f;
+	private const float ShakeBeat1Seconds = 0.045f;
+	private const float ShakeBeat2Seconds = 0.055f;
+	private const float ShakeBeat3Seconds = 0.07f;
+	private const float ShakeRecoilPrimaryWeight = 1f;
+	private const float ShakeRecoilReboundWeight = 0.78f;
+	private const float ShakeRecoilSettleWeight = 0.48f;
+	private const float ShakeRecoilCrossWeight = 0.18f;
+
+	public void PlayImpactShake(ImpactShakeScale scale)
+	{
+		if (scale.TotalDamage <= 0)
+			return;
+
+		var effectiveDamage = scale.TotalDamage + (scale.TargetDied ? LethalShakeDamageBonus : 0);
+		var strength = Mathf.Lerp(
+			MinShakeStrength,
+			MaxShakeStrength,
+			Mathf.Clamp(effectiveDamage / ShakeDamageReference, 0f, 1f));
+		if (scale.HullDamage > 0)
+			strength *= HullHitStrengthMultiplier;
+		strength = Mathf.Min(strength, MaxShakeStrengthCap);
+		_impactShakeTween?.Kill();
+		_impactShakeLocalOffset = Vector3.Zero;
+
+		var maxOffset = ShakeOffsetPerStrength * strength;
+		var strengthT = Mathf.InverseLerp(MinShakeStrength, MaxShakeStrengthCap, strength);
+		var durationScale = ShakeDurationMagnitude * Mathf.Lerp(
+			ShakeDurationAtMinStrength,
+			ShakeDurationAtMaxStrength,
+			strengthT);
+		var recoilDirection = ResolveRecoilDirection(scale);
+		var (beat1, beat2, beat3) = BuildShakeBeats(maxOffset, recoilDirection);
+		_impactShakeTween = CreateTween();
+		_impactShakeTween.TweenMethod(
+			Callable.From<Vector3>(offset =>
+			{
+				_impactShakeLocalOffset = offset;
+				ApplyTransform();
+			}),
+			beat1,
+			beat2,
+			ShakeBeat1Seconds * durationScale)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.Out);
+		_impactShakeTween.TweenMethod(
+			Callable.From<Vector3>(offset =>
+			{
+				_impactShakeLocalOffset = offset;
+				ApplyTransform();
+			}),
+			beat2,
+			beat3,
+			ShakeBeat2Seconds * durationScale)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.InOut);
+		_impactShakeTween.TweenMethod(
+			Callable.From<Vector3>(offset =>
+			{
+				_impactShakeLocalOffset = offset;
+				ApplyTransform();
+			}),
+			beat3,
+			Vector3.Zero,
+			ShakeBeat3Seconds * durationScale)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.Out);
+		_impactShakeTween.Finished += () => _impactShakeTween = null;
+	}
+
+	private Vector3 ResolveRecoilDirection(ImpactShakeScale scale)
+	{
+		if (scale.RadialRecoilOriginWorld is { } origin)
+		{
+			ApplyTransform();
+			var awayFromBlast = GlobalPosition - origin;
+			if (awayFromBlast.LengthSquared() > 0.0001f)
+				return awayFromBlast.Normalized();
+		}
+
+		return scale.WorldRecoilDirection;
+	}
+
+	private (Vector3 Beat1, Vector3 Beat2, Vector3 Beat3) BuildShakeBeats(
+		float maxOffset,
+		Vector3 worldRecoilDirection)
+	{
+		if (worldRecoilDirection.LengthSquared() < 0.0001f)
+			return BuildOmnidirectionalShakeBeats(maxOffset);
+
+		ApplyTransform();
+		var basis = GlobalTransform.Basis;
+		var planar = basis.X * worldRecoilDirection.Dot(basis.X)
+			+ basis.Y * worldRecoilDirection.Dot(basis.Y);
+		if (planar.LengthSquared() < 0.0001f)
+			planar = basis.X;
+
+		var primaryWorld = planar.Normalized();
+		var crossWorld = primaryWorld.Cross(-basis.Z);
+		if (crossWorld.LengthSquared() < 0.0001f)
+			crossWorld = basis.Y;
+		crossWorld = crossWorld.Normalized();
+
+		var primary = WorldToCameraLocal(primaryWorld, basis);
+		var cross = WorldToCameraLocal(crossWorld, basis);
+		return (
+			primary * (maxOffset * ShakeRecoilPrimaryWeight),
+			primary * (-maxOffset * ShakeRecoilReboundWeight)
+				+ cross * (maxOffset * ShakeRecoilCrossWeight),
+			primary * (maxOffset * ShakeRecoilSettleWeight)
+				+ cross * (-maxOffset * ShakeRecoilCrossWeight * 0.75f));
+	}
+
+	private static (Vector3 Beat1, Vector3 Beat2, Vector3 Beat3) BuildOmnidirectionalShakeBeats(
+		float maxOffset) =>
+		(
+			new Vector3(maxOffset, 0f, 0f),
+			new Vector3(-maxOffset * 0.72f, maxOffset * 0.38f, 0f),
+			new Vector3(maxOffset * 0.42f, -maxOffset * 0.28f, 0f));
+
+	private static Vector3 WorldToCameraLocal(Vector3 worldDirection, Basis cameraBasis) =>
+		new(
+			worldDirection.Dot(cameraBasis.X),
+			worldDirection.Dot(cameraBasis.Y),
+			worldDirection.Dot(cameraBasis.Z));
 
 	public override void _Ready()
 	{
@@ -441,5 +579,7 @@ public partial class Controller : Camera3D, ICameraRig
 	{
 		GlobalPosition = _pose.CameraPosition();
 		LookAt(_pose.Pivot, Vector3.Up);
+		if (_impactShakeLocalOffset.LengthSquared() > 0.000001f)
+			GlobalPosition += GlobalTransform.Basis * _impactShakeLocalOffset;
 	}
 }

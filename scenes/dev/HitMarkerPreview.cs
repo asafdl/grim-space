@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
@@ -11,6 +12,7 @@ namespace GrimSpace.Dev;
 public partial class HitMarkerPreview : Node3D
 {
 	private static readonly Color PlayerTint = new(0.38f, 0.74f, 1f);
+	private static readonly ESpatialOrientation[] HitFaces = Enum.GetValues<ESpatialOrientation>();
 	private static readonly EType[] ShipTypes =
 	[
 		EType.Fighter,
@@ -24,6 +26,7 @@ public partial class HitMarkerPreview : Node3D
 
 	private UnitView? _view;
 	private int _typeIndex;
+	private int _faceIndex;
 	private int _damage = 12;
 	private bool _shieldDamage = true;
 	private bool _lightningHit;
@@ -93,6 +96,10 @@ public partial class HitMarkerPreview : Node3D
 				_typeIndex = (_typeIndex - 1 + ShipTypes.Length) % ShipTypes.Length;
 				RebuildShip();
 				break;
+			case Key.F:
+				_faceIndex = (_faceIndex + 1) % HitFaces.Length;
+				PlayHit();
+				break;
 			default:
 				return;
 		}
@@ -119,7 +126,8 @@ public partial class HitMarkerPreview : Node3D
 		_view.PlayImpactSparks(
 			_shieldDamage ? _damage : 0,
 			_shieldDamage ? 0 : _damage,
-			lightning: _lightningHit);
+			lightning: _lightningHit,
+			HitFaces[_faceIndex]);
 		_view.PlayDamagePopup(
 			_shieldDamage ? _damage : 0,
 			_shieldDamage ? 0 : _damage);
@@ -150,8 +158,9 @@ public partial class HitMarkerPreview : Node3D
 	private void UpdateStatus()
 	{
 		var type = ShipTypes[_typeIndex];
+		var hitFace = HitFaces[_faceIndex];
 		_status.Text =
-			$"Hit feedback preview  |  {type}  |  Damage: {_damage}  |  Layer: {(_shieldDamage ? "Shield" : "Hull")}  |  {(_lightningHit ? "Lightning" : "Sparks")}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
-			"Space: hit   C: shield/hull layer   L: lightning/sparks   P: freeze loop   Up/Down: damage   Left/Right: ship type";
+			$"Hit feedback preview  |  {type}  |  Hit from: {BattleHudCopy.FaceName(hitFace)}  |  Damage: {_damage}  |  Layer: {(_shieldDamage ? "Shield" : "Hull")}  |  {(_lightningHit ? "Lightning" : "Sparks")}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
+			"Space: hit   F: cycle hit face   C: shield/hull layer   L: lightning/sparks   P: freeze loop   Up/Down: damage   Left/Right: ship type";
 	}
 }

@@ -46,15 +46,16 @@ internal static class OneShotParticles
 	private static PackedScene? _boomText;
 	private static PackedScene[]? _wreckageModels;
 
-	public static void PlayHitSparks(Node parent, Vector3 localPosition)
-		=> PlaySparks(parent, localPosition, ref _hitSparks, HitSparksPath);
+	public static void PlayHitSparks(Node parent, Vector3 localPosition, Basis? localBasis = null)
+		=> PlaySparks(parent, localPosition, localBasis, ref _hitSparks, HitSparksPath);
 
-	public static void PlayHullHitSparks(Node parent, Vector3 localPosition)
-		=> PlaySparks(parent, localPosition, ref _hullHitSparks, HullHitSparksPath);
+	public static void PlayHullHitSparks(Node parent, Vector3 localPosition, Basis? localBasis = null)
+		=> PlaySparks(parent, localPosition, localBasis, ref _hullHitSparks, HullHitSparksPath);
 
 	private static void PlaySparks(
 		Node parent,
 		Vector3 localPosition,
+		Basis? localBasis,
 		ref PackedScene? packedScene,
 		string scenePath)
 	{
@@ -63,6 +64,12 @@ internal static class OneShotParticles
 
 		var particles = packedScene.Instantiate<GpuParticles3D>();
 		particles.Position = localPosition;
+		if (localBasis is { } basis)
+		{
+			particles.LocalCoords = true;
+			particles.Basis = basis;
+		}
+
 		parent.AddChild(particles);
 		particles.Finished += particles.QueueFree;
 		particles.Restart();

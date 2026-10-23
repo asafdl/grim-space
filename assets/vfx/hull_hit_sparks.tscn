@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3]
 
 [sub_resource type="Gradient" id="Gradient_fade"]
-offsets = PackedFloat32Array(0.0, 0.16, 0.62, 1.0)
-colors = PackedColorArray(1, 0.08, 0.015, 0.95, 1, 0.08, 0.015, 1, 1, 0.035, 0.005, 0.7, 1, 0.035, 0.005, 0)
+offsets = PackedFloat32Array(0.0, 0.14, 0.78, 1.0)
+colors = PackedColorArray(1, 0.08, 0.015, 0.95, 1, 0.08, 0.015, 1, 1, 0.035, 0.005, 0.82, 1, 0.035, 0.005, 0)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_fade"]
 gradient = SubResource("Gradient_fade")
@@ -13,8 +13,8 @@ emission_shape = 1
 emission_sphere_radius = 0.15
 direction = Vector3(0, 1, 0)
 spread = 82.0
-initial_velocity_min = 5.0
-initial_velocity_max = 8.5
+initial_velocity_min = 7.5
+initial_velocity_max = 12.0
 gravity = Vector3(0, 0, 0)
 scale_min = 0.7
 scale_max = 1.2
@@ -43,7 +43,7 @@ rings = 4
 layers = 2
 emitting = false
 amount = 24
-lifetime = 0.35
+lifetime = 0.55
 one_shot = true
 explosiveness = 1.0
 local_coords = false

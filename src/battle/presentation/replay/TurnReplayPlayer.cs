@@ -88,7 +88,8 @@ public partial class TurnReplayPlayer : Node3D
 	public void ResetToLive(
 		IReadOnlyDictionary<string, State> turnStart,
 		IReadOnlyDictionary<string, State> endStates,
-		Action<CameraInterest>? reportInterest = null)
+		Action<CameraInterest>? reportInterest = null,
+		Action<ImpactShakeScale>? reportImpactShake = null)
 	{
 		var replayState = new ReplayState(turnStart);
 		_clipContext = new ReplayClipContext(
@@ -100,6 +101,7 @@ public partial class TurnReplayPlayer : Node3D
 			_ensureView,
 			DismissUnitPresentation,
 			reportInterest,
+			reportImpactShake,
 			_showGoop,
 			_removeGoop);
 		foreach (var view in _unitViews.Values)
@@ -268,6 +270,14 @@ public partial class TurnReplayPlayer : Node3D
 			return false;
 
 		var state = _clipContext.ReplayState.StateOf(impact.TargetId);
+		if (impact.TotalDamage > 0 && impact.Cause != EImpactCause.VoidBombBlast)
+		{
+			_clipContext.ReportImpactShake?.Invoke(new ImpactShakeScale(
+				impact.TotalDamage,
+				impact.HullDamage,
+				!state.IsAlive,
+				ImpactRecoil.WorldDirectionFromHit(state, impact.Face)));
+		}
 		_stateChanged(state);
 		if (!_clipContext.UnitViews.TryGetValue(impact.TargetId, out var view))
 			return false;
@@ -289,7 +299,8 @@ public partial class TurnReplayPlayer : Node3D
 		view.PlayImpactSparks(
 			impact.ShieldDamage,
 			impact.HullDamage,
-			lightning: impact.Cause == EImpactCause.LightningCannonBurst);
+			lightning: impact.Cause == EImpactCause.LightningCannonBurst,
+			impact.Face);
 		view.PlayDamagePopup(impact.ShieldDamage, impact.HullDamage);
 
 		var died = !state.IsAlive;
