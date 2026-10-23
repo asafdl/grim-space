@@ -41,7 +41,9 @@ public sealed class ShieldsUpActionTests
 			PlayerId);
 
 		Assert.Equal(3, player.State.ActionPoints);
-		Assert.Equal((1 * 100), TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
+		Assert.Equal(
+			ExpectedTemporaryShieldsOnFace(player.State, ESpatialOrientation.Forward),
+			TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 		Assert.True(player.State.ShieldsUpUsedThisTurn);
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is ApDeltaAction ap && ap.ActorId == PlayerId && ap.Delta == -ShieldsUpDef.NextTickApPenalty));
@@ -77,7 +79,9 @@ public sealed class ShieldsUpActionTests
 			PlayerId);
 
 		Assert.Equal(max, player.State.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal((1 * 100), TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
+		Assert.Equal(
+			ExpectedTemporaryShieldsOnFace(player.State, ESpatialOrientation.Forward),
+			TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 	}
 
 	[Fact]
@@ -117,6 +121,14 @@ public sealed class ShieldsUpActionTests
 
 		Assert.Equal(1, TemporaryShields.TotalOnFace(restored, ESpatialOrientation.Port));
 		Assert.True(restored.ShieldsUpUsedThisTurn);
+	}
+
+	private static int ExpectedTemporaryShieldsOnFace(State state, ESpatialOrientation face)
+	{
+		var max = state.Loadout.MaxShieldPoints[face];
+		return (int)System.Math.Round(
+			max * PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax / 100m,
+			MidpointRounding.AwayFromZero);
 	}
 
 	private static (Unit Player, BattleOrchestrator Battle) PlayerWithShieldsUpBattle()
