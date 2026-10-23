@@ -1,0 +1,3 @@
+V4 ref @240x135: peak 8073  mean 233.0
+V8 cut @240x135: peak 924  mean 155.4   mean ratio V8/V4 = 0.67x
+(same-frame-basis comparison at 240x135; at the 480x270 basis both peaks scale ~x4)

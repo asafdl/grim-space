@@ -1,35 +1,43 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-20 (V7 GOAL: the film has a goal).** The teaser was re-cut
-> a third time, after the contract audit of the V6 reship. The deliverable is
-> `teaser.mp4` — **34.65 s, 1080p60, stereo at -14.1 LUFS** (LRA 11.4 LU, true
-> peak -3.3 dBFS).
+> **Updated 2026-10-23 (V8: the film opens on the loop).** Re-cut per the V8
+> mandate — the four lieu-audit misses as a numbered minimum plus the gates
+> and the sun clause. The deliverable is `teaser.mp4` — **34.65 s, 1080p60,
+> stereo at -14.0 LUFS** (LRA 11.9 LU, true peak -3.4 dBFS), 22 shots, ASL
+> 1.57 s, no shot >3.95 s, luma floor 0.5 % below 0.030 (V7: 1.0 %).
 >
 > **The promise, in one sentence — the thing a viewer can say after watching:**
 >
-> > **"We are running a derelict survey out to the wreck near Two Sisters, and
-> > it is costing us a hull at a time."**
+> > **"We are running a lost-registration survey out to the wreck along the
+> > sector edge, and it is costing us a hull at a time."**
 >
-> The film says it in the first three seconds and adds no word of its own: the
-> claim is on the board at 0.90 s (`Derelict Survey - Wreckage`), the route to
-> the wreck is on the map at 2.30 s with the ship's order already queued for
-> it, and the objective panel names the place (`Survey the wreck near Two
-> Sisters`) with the game's own green `NEW` badge. The card names it again at
-> the end — promised, not granted: `RECOVER WHAT WAS LOST. PAY IN HULLS.`
+> The film now shows *how the game is played* from the first second and *what
+> the run is about* by 2.50 s (7.2 % of the runtime, gate ≤12 %): the fight
+> console — turn strip, ability cards, EXECUTE TURN — is shot 1, the claim
+> board names the wreck run with the game's own `NEW` badge, and the map
+> draws the route to it. The card names it again at the end — promised, not
+> granted: `RECOVER WHAT WAS LOST. PAY IN HULLS.`
 >
-> The cut now runs as a chain: the claim → so now the ship runs for the wreck →
-> but then a fleet is waiting in the way → so now the order goes in → and then
-> the beams → but then it takes a hull → so now a hull is gone → and then the
-> enemy's plan is drawn again → but then the goop gun turns the space green →
-> so now the ship is further along the route → and then the money goes into the
-> hull → but then three hulls close in → so now they outnumber us → so now the
-> wreck is in sight → but then their plan is drawn across it → and the promise.
+> The cut still runs as a chain, loop-first: the fight → so now the claim
+> names it → and then the order goes in → but then it takes a hull → and then
+> the goop gun turns the space green → so now the ship is further along the
+> route → and then three hulls close in → but then the wreck is in sight →
+> and then the money goes into the hull → but then their plan is drawn across
+> it → and the promise.
 >
 > **The pointer is gone** (the user's ruling). **Every battle is the real
 > `battle.tscn`**, built by the game's own engagement factory from fleets
-> registered in the run's own inventory. The new sun shader stays in the repo
-> and out of the film. The comic marker-scrawl billboard is hidden for the
-> recording: the destruction reads as the hull breaking up.
+> registered in the run's own inventory. The sun shader session is
+> mid-repair in the main repo, so per the sun clause the reach slot bakes
+> **no sun** — it is a named placeholder band in the beat plan. The comic
+> marker-scrawl billboard is hidden for the recording: the destruction reads
+> as the hull breaking up.
+>
+> The m-sheet evidence lives in `work/v8_sheet/v8_vs_v7_sheet.png`
+> (before/after, paired with `work/geek_v7/` stills); the verifier output on
+> the shipped file is `work/verify_v8.txt`; the chroma comparison is
+> `work/chroma_v8.txt` (mean saturation 0.67× V4 at a same-frame basis; the
+> peak remains the residual).
 >
 > Every claim in the write-up carries the command that produces it and the
 > output that command printed on the shipped file:
@@ -38,10 +46,9 @@
 > python scripts/verify_teaser.py teaser.mp4
 > ```
 >
-> Full write-up — the promise first, the gate table with pasted outputs, the
-> beat table regenerated from the shipped file with the chain for each beat,
-> and the honest residuals — is in
-> [TEASER_NOTES.md](TEASER_NOTES.md#v7-goal-the-film-has-a-goal).
+> Full write-up — the m-sheet first, the beat table regenerated from the
+> shipped file, the gate table with pasted outputs, and the honest residuals —
+> is in [TEASER_NOTES.md](TEASER_NOTES.md#v8-the-film-opens-on-the-loop).
 >
 Earlier notes:
 > The teaser **has been recorded successfully in this environment**.

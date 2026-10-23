@@ -20,30 +20,10 @@ HW, HH = 32, 18
 CARD_START = 30.70
 CARD_END = 34.60
 GOOP_WINDOW = (10.90, 15.50)
-MICRO = [4.00, 9.00, 11.00, 16.00, 25.00, 26.00]
+MICRO = [2.30, 4.60, 9.00, 12.60, 24.00, 28.00]
 
 # The film's chain: every beat, the sentence that joins it to the one before,
 # and whether it advances the goal or only decorates it.
-GOAL_CHAIN = [
-    (0.00, 1.60, "THE OFFER", "the claim is on the board", "states the goal"),
-    (1.60, 3.02, "THE ROUTE", "so now the ship runs for the wreck", "advances"),
-    (3.02, 4.88, "THE AMBUSH", "but then a fleet is waiting in the way", "advances"),
-    (4.88, 5.68, "THE ORDER", "so now the order goes in", "advances"),
-    (5.68, 7.92, "THE BEAMS", "and then the beams cross the field", "advances"),
-    (7.92, 9.08, "THE COST", "but then it takes a hull", "advances"),
-    (9.08, 11.58, "THE WRECK", "so now a hull is gone", "advances"),
-    (11.58, 12.98, "THE NEXT PLAN", "and then the enemy's plan is drawn again", "advances"),
-    (12.98, 14.78, "THE GOOP", "but then the goop gun turns the space green", "advances"),
-    (14.78, 16.98, "THE PROGRESS", "so now the ship is further along the route", "advances"),
-    (16.98, 18.40, "THE DOCKYARD", "and then the money goes into the hull", "advances"),
-    (18.40, 21.78, "THE ESCALATION", "but then three hulls close in", "advances"),
-    (21.78, 24.60, "THE ODD NUMBERS", "so now they outnumber us", "advances"),
-    (24.60, 27.37, "THE REACH", "so now the wreck is in sight", "advances"),
-    (27.37, 30.70, "THE THREAT", "but then their plan is drawn across it", "advances"),
-    (30.70, 34.65, "THE CARD", "and the promise", "advances"),
-]
-
-
 def decode(path: Path, w: int, h: int, mode: str = "gray") -> np.ndarray:
     args = ["ffmpeg", "-v", "error", "-i", str(path), "-vf", f"scale={w}:{h},format={mode}"]
     args += ["-f", "rawvideo", "-"] if mode == "gray" else ["-pix_fmt", "rgb24", "-f", "rawvideo", "-"]
@@ -53,8 +33,13 @@ def decode(path: Path, w: int, h: int, mode: str = "gray") -> np.ndarray:
     return frames[:, :, :, 0] if mode == "gray" else frames
 
 
-def shots(luma: np.ndarray, hist: np.ndarray) -> list[float]:
-    """The auditor's two detectors: luma delta 0.03 and histogram correlation 0.98."""
+def shots(luma: np.ndarray, hist: np.ndarray, refractory: float = 0.6) -> list[float]:
+    """Luma delta 0.03 and histogram correlation 0.98, with a published refractory.
+
+    The 0.6 s refractory is the settled instrument (it was never disclosed
+    before). ``refractory=0.0`` gives the raw detection so a reviewer can see
+    what the refractory was suppressing.
+    """
     flat = hist.reshape(len(hist), -1).astype(np.float32)
     centred = flat - flat.mean(axis=1, keepdims=True)
     norm = np.sqrt((centred ** 2).sum(axis=1)) + 1e-6
@@ -62,7 +47,7 @@ def shots(luma: np.ndarray, hist: np.ndarray) -> list[float]:
     delta = np.abs(np.diff(flat.mean(axis=1)) / 255.0)
     boundaries = [0.0]
     for i in range(1, len(delta)):
-        if (delta[i] > 0.03 or corr[i] < 0.98) and (i / 60.0 - boundaries[-1]) > 0.6:
+        if (delta[i] > 0.03 or corr[i] < 0.98) and (i / 60.0 - boundaries[-1]) > refractory:
             boundaries.append(round(i / 60.0, 2))
     return boundaries
 
@@ -86,10 +71,15 @@ def main() -> None:
     if boundaries[-1] < duration:
         lengths.append(round(duration - boundaries[-1], 2))
 
-    print("== SHOT MAP (luma-delta 0.03 + hist-corr 0.90) ==")
+    print("== SHOT MAP (thresholds published: luma-delta 0.03 + hist-corr 0.98, "
+          "refractory 0.6 s) ==")
     print(f"frames {n}  duration {duration:.2f}s  shots {len(boundaries) - 1}  "
           f"ASL {duration / (len(boundaries) - 1):.2f}s  longest {max(lengths):.2f}s")
-    print("boundaries:", boundaries)
+    print("boundaries (refractory 0.6 s):", boundaries)
+    raw_map = shots(luma, hist, refractory=0.0)
+    print("boundaries (refractory 0.0 s):", raw_map)
+    suppressed = [b for b in raw_map if b not in boundaries]
+    print(f"cuts the refractory suppressed ({len(suppressed)}):", suppressed)
 
     below = float((luma < 0.030).mean())
     card = luma[int(CARD_START * fps):int(CARD_END * fps)]
@@ -132,7 +122,18 @@ def main() -> None:
             continue
         if float(delta[i]) > 0.012:
             events.append((round(i / fps, 2), round(float(delta[i]), 4)))
+    per_shot = [[] for _ in boundaries[:-1]]
+    for t, d in events:
+        for k in range(len(boundaries) - 1):
+            if boundaries[k] <= t < boundaries[k + 1]:
+                per_shot[k].append(t)
+                break
+        else:
+            per_shot[-1].append(t)
+    bare = [k + 1 for k, evs in enumerate(per_shot) if not evs]
     print(f"count {len(events)}: {events}")
+    print(f"per-shot evidence: {len(per_shot) - len(bare)} of {len(per_shot)} shots carry >=1 "
+          f"in-shot event; the bare shots: {bare}")
 
     print("\n== SFX CAUSATION (work/sfx_v6.json vs the nearest visible change) ==")
     sfx = json.loads(Path("work/sfx_v6.json").read_text())
@@ -189,18 +190,20 @@ def main() -> None:
     runs = [l.strip() for l in silence.splitlines() if "silence_start" in l or "silence_end" in l]
     print("silence:", " | ".join(runs[:4]) if runs else "none")
 
-    print("\n== GOAL CHAIN (does the shot advance the goal?) ==")
-    for start, end, name, chain, kind in GOAL_CHAIN:
-        inside = [b for b in boundaries if start <= b < end]
-        print(f"  {start:6.2f}-{end:6.2f}  {name:<14} {chain:<46} [{kind}]")
-    advancing = sum(
-        1 for b in boundaries
-        if any(start <= b < end and kind == "advances" for start, end, _, _, kind in GOAL_CHAIN))
-    print(f"  shots that advance or complicate the goal: {advancing} of {len(boundaries) - 1} "
-          f"({100 * advancing / max(1, len(boundaries) - 1):.0f}%, gate: >=60%)")
-    goal_end = GOAL_CHAIN[1][1]
-    print(f"  the goal is stated by {goal_end:.2f}s = {100 * goal_end / duration:.1f}% of the film "
-          f"(gate: <=12%)")
+    print("\n== LIEU CHECKS (from this file's pixels only) ==")
+    first_change = events[0][0] if events else None
+    print(f"first in-shot event at {first_change}s (loop-driven clock)  "
+          f"gate: the console legible <= 2.0 s")
+    shot_lengths = [(round(boundaries[k], 2), round(boundaries[k + 1] - boundaries[k], 2))
+                    for k in range(len(boundaries) - 1)]
+    last = round(duration - boundaries[-1], 2)
+    if last > 0:
+        shot_lengths.append((boundaries[-1], last))
+    hairlines = [t for t, ln in shot_lengths if ln < 0.6]
+    print(f"shot lengths: {shot_lengths}")
+    print(f"hairline shots <0.6 s: {len(hairlines)} {hairlines}  "
+          f"min {min(ln for _, ln in shot_lengths):.2f}s  max {max(ln for _, ln in shot_lengths):.2f}s"
+          "  (novelty-dwell band: the loop beats are the long ones, not decor)")
 
     print("\n== MICROTRAILER (six 1s samples, 232x130) ==")
     for t in MICRO:

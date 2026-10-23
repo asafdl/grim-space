@@ -536,6 +536,13 @@ public sealed class BattleOrchestrator : IDisposable
 			SetPhase(EBattlePhase.Replaying, $"turn {completedTurn} resolved");
 			TurnResolved?.Invoke(replay, completedTurn);
 		}
+		catch (ObjectDisposedException) when (_disposed)
+		{
+			// The battle was retired while this job was still waiting on an
+			// actor batch: a disposed world has no turn left to resolve. The
+			// job is retired with the battle, not failed.
+			BattleDiagnostics.LogResolveAborted("resolve_job_retired disposed during commit", Phase);
+		}
 		catch (Exception ex) when (version == _resolveVersion && Phase == EBattlePhase.Resolving)
 		{
 			BattleDiagnostics.LogJobFailed(ex);
@@ -543,5 +550,12 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 	}
 
-	public void Dispose() => _engine.Dispose();
+	/// <summary>True once the orchestrator's world has been disposed.</summary>
+	private bool _disposed;
+
+	public void Dispose()
+	{
+		_disposed = true;
+		_engine.Dispose();
+	}
 }

@@ -80,19 +80,18 @@ public partial class TeaserController : Node
 	// The schedule. Every beat ends on its mark, so the card lands where the
 	// end-card window says it should: 0:30.70.
 	private const float OpeningFadeSeconds = 0.33f;
-	private const float OfferEnd = 1.60f;
-	private const float RouteEnd = 3.00f;
-	private const float AnchorEnd = 4.90f;
-	private const float CommitEnd = 6.20f;
-	private const float LossEnd = 11.60f;
-	private const float PlanEnd = 13.00f;
-	private const float GoopEnd = 14.20f;
-	private const float GoopFieldEnd = 15.60f;
+	private const float ClaimEnd = 3.90f;
+	private const float AnchorEnd = 1.90f;
+	private const float CommitEnd = 7.40f;
+	private const float LossEnd = 9.40f;
+	private const float PlanEnd = 11.20f;
+	private const float GoopEnd = 13.20f;
+	private const float GoopFieldEnd = 14.60f;
 	private const float MapEnd = 17.00f;
-	private const float ShopEnd = 18.40f;
-	private const float CarrierEnd = 21.80f;
-	private const float CarrierWideEnd = 24.60f;
-	private const float ReachEnd = 27.40f;
+	private const float CarrierEnd = 20.50f;
+	private const float CarrierWideEnd = 23.50f;
+	private const float ReachEnd = 26.00f;
+	private const float ShopEnd = 27.40f;
 	private const float DebtEnd = 30.70f;
 	private const float TitleEnd = 34.60f;
 
@@ -218,24 +217,24 @@ public partial class TeaserController : Node
 		{
 			await FadeIn(OpeningFadeSeconds);
 
-			// The goal, in the first twelve per cent: the offer, the route it
-			// names, and the ship committing to it.
-			await RunOfferBeat();
-			await RunRouteBeat();
+			// The fight is the first thing in the film, and the claim follows
+			// it: what is being done is on screen inside the first twelve per
+			// cent, with how it is done already on screen at zero.
+			await RunAnchorBeat();
+			await RunClaimBeat();
 
 			// The pursuit, and what it costs.
-			await RunAnchorBeat();
 			await RunCommitBeat();
 			await RunLossBeat();
 			await RunPlanBeat();
 			await RunGoopBeat();
 			await RunGoopFieldBeat();
 			await RunMapBeat();
-			await RunShopBeat();
 
 			// The last run of it, and the promise.
 			await RunCarrierBeat();
 			await RunReachBeat();
+			await RunShopBeat();
 			await RunThreatBeat();
 			await RunTitleBeat();
 		}
@@ -288,6 +287,10 @@ public partial class TeaserController : Node
 	/// </summary>
 	private async Task RunCommitBeat()
 	{
+		// The claim beat put the map on screen, so the fight has to take the
+		// screen back: the order only counts where the loop is visible.
+		await CutToBattle();
+
 		FrameActingShip(PlayerDistance, PlayerYaw, PlayerPitch, PlayerRoll);
 		await WaitSeconds(0.35f);
 
@@ -314,8 +317,11 @@ public partial class TeaserController : Node
 		_revealArmed = true;
 
 		// The fight is real, so the film plays the exchange again until a hull
-		// is actually destroyed.
-		var deadline = _elapsed + 6.4;
+		// is actually destroyed. The deadline is inside the film's own beat
+		// window: if the enemy's turn runs long, the film keeps its schedule
+		// and the loss lands inside the next beat instead of a stretch that
+		// squeezes the tail beats.
+		var deadline = _elapsed + 4.6;
 		while (!HullLost && _elapsed < deadline)
 		{
 			await WaitForHullLostAsync(0.6f);
@@ -403,46 +409,6 @@ public partial class TeaserController : Node
 	}
 
 	/// <summary>
-	/// The offer: the contract board with the one claim that is on it, and the
-	/// acceptance that puts a live objective on the map. This is the film's
-	/// first beat, because the film has to say what it is about before it
-	/// shows anything else.
-	/// </summary>
-	private async Task RunOfferBeat()
-	{
-		var contractId = PrepareContractOffer();
-		if (contractId is null)
-		{
-			GD.Print("[Teaser] no contract available - skipping the contract beat");
-			return;
-		}
-
-		var (poiId, facilityId) = FindFacility(CommandAuthorityScene);
-		GrantContractRole(poiId, facilityId, contractId);
-		MapNavigationContext.EnterFacility(poiId, facilityId);
-
-		var authority = GD.Load<PackedScene>(CommandAuthorityScene).Instantiate();
-		await CutToWorld(authority);
-
-		await ToSignal(GetTree(), "process_frame");
-
-		if (authority.GetNodeOrNull<BaseButton>("Scene/Manager") is { } manager)
-		{
-			manager.EmitSignal(BaseButton.SignalName.Pressed);
-		}
-
-		await ToSignal(GetTree(), "process_frame");
-		await ToSignal(GetTree(), "process_frame");
-
-		// Accept it through the run's own action lane, so the game reacts
-		// exactly as it does when the player accepts.
-		AcceptContract(contractId);
-		_acceptedContractId = contractId;
-
-		await HoldUntil(OfferEnd);
-	}
-
-	/// <summary>
 	/// The goal in reach: the map, the route the ship has run, and the wreck at
 	/// the end of it.
 	/// </summary>
@@ -457,6 +423,10 @@ public partial class TeaserController : Node
 
 		await ToSignal(GetTree(), "process_frame");
 
+		// The sun clause: the sun session in the main repo is mid-repair, so
+		// the film bakes no footage of it. This slot stays a named placeholder
+		// in the beat plan (THE REACH, 23.50-26.00); the map is shot the way
+		// v7 shot it until the built sun lands.
 		HideMapStar(mapInstance);
 		HideMapEventHorizon(mapInstance);
 		DismissMapNarrative(mapInstance);
@@ -510,12 +480,29 @@ public partial class TeaserController : Node
 	}
 
 	/// <summary>
-	/// The route: the map with the run drawn on it, the objective that is now
-	/// live with its badge, and the ship already moving toward the wreck. The
-	/// goal is on screen by the third second of the film.
+	/// The claim: accepted through the run's own action lane, and then carried
+	/// by the map with the run drawn on it, the live objective with its badge,
+	/// and the ship already moving toward the wreck. The claim is on screen
+	/// inside the first twelve per cent of the film.
 	/// </summary>
-	private async Task RunRouteBeat()
+	private async Task RunClaimBeat()
 	{
+		var contractId = PrepareContractOffer();
+		if (contractId is not null)
+		{
+			var (poiId, facilityId) = FindFacility(CommandAuthorityScene);
+			GrantContractRole(poiId, facilityId, contractId);
+
+			// The acceptance goes through the run's own action lane, so the
+			// game reacts exactly as it does when the player accepts.
+			AcceptContract(contractId);
+			_acceptedContractId = contractId;
+		}
+		else
+		{
+			GD.Print("[Teaser] no contract available - the map carries no badge");
+		}
+
 		MapNavigationContext.ClearReturnToFacade();
 
 		var mapInstance = GD.Load<PackedScene>(MapScene).Instantiate();
@@ -530,19 +517,19 @@ public partial class TeaserController : Node
 		LightMapForFilm(mapInstance);
 		PushInOnMap(mapInstance, 0.8f);
 
-		// The contract became live while the authority room was on screen, so
-		// the objectives panel never saw it. The panel is the game's own: it is
+		// The contract became live inside the claim beat's first frames, so the
+		// objectives panel never saw it. The panel is the game's own: it is
 		// told about the change it missed, and it shows its own badge.
-		if (_acceptedContractId is { } contractId
+		if (_acceptedContractId is { } acceptedId
 			&& mapInstance.GetNodeOrNull<StrategicHud>("StrategicHud") is { } strategicHud)
 		{
-			strategicHud.Objectives.NotifyContractStateChanged(contractId, EContractStatus.Active);
+			strategicHud.Objectives.NotifyContractStateChanged(acceptedId, EContractStatus.Active);
 		}
 
 		StartRouteToGoal();
 
 		await ToSignal(GetTree(), "process_frame");
-		await HoldUntil(RouteEnd);
+		await HoldUntil(ClaimEnd);
 	}
 
 	/// <summary>
@@ -746,6 +733,7 @@ public partial class TeaserController : Node
 		_lastPositions.Clear();
 		_revealArmed = false;
 		HullLost = false;
+
 
 		await ToSignal(GetTree(), "process_frame");
 
@@ -1565,19 +1553,19 @@ public partial class TeaserController : Node
 			if (environment.Environment is not { } settings)
 				continue;
 
-			settings.AmbientLightEnergy = 1.80f;
+			settings.AmbientLightEnergy = 2.30f;
 			settings.AmbientLightColor = new Color(0.38f, 0.42f, 0.54f);
-			settings.TonemapExposure = 3.60f;
+			settings.TonemapExposure = 4.40f;
 
 			if (settings.Sky?.SkyMaterial is PanoramaSkyMaterial sky)
-				sky.EnergyMultiplier = 8.0f;
+				sky.EnergyMultiplier = 10.0f;
 		}
 
 		foreach (var light in mapInstance
 			.FindChildren("*", "DirectionalLight3D", true, false)
 			.OfType<DirectionalLight3D>())
 		{
-			light.LightEnergy = 2.2f;
+			light.LightEnergy = 2.6f;
 		}
 	}
 
