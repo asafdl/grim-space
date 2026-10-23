@@ -1,3 +1,5 @@
+using Godot;
+using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -20,14 +22,15 @@ internal static class ObjectivePresentationPolicy
 				nameof(source)),
 		};
 
-	public static string AccentHex(EObjectiveKind kind) =>
+	public static Color AccentColor(EObjectiveKind kind) =>
 		kind switch
 		{
-			EObjectiveKind.Hunt => "#F05F5F",
-			EObjectiveKind.Wreckage => "#D7A93B",
-			EObjectiveKind.Delivery => "#72D17C",
-			EObjectiveKind.Lead => "#8A9199",
-			EObjectiveKind.Story => "#5794E6",
+			EObjectiveKind.Hunt => HudPalettes.BlueCyan.Highlight,
+			EObjectiveKind.Wreckage => HudPalettes.BlueCyan.Primary,
+			EObjectiveKind.Delivery => HudPalettes.BlueCyan.Secondary,
+			EObjectiveKind.Lead => HudPalettes.BlueCyan.Border,
+			EObjectiveKind.Story => HudPalettes.BlueCyan.Highlight,
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
+
 }

@@ -1,3 +1,4 @@
+using GrimSpace.Components;
 using GrimSpace.Math.Routes;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run.Persistence;
@@ -140,16 +141,24 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	}
 
 	[Theory]
-	[InlineData(EObjectiveKind.Hunt, "#F05F5F")]
-	[InlineData(EObjectiveKind.Wreckage, "#D7A93B")]
-	[InlineData(EObjectiveKind.Delivery, "#72D17C")]
-	[InlineData(EObjectiveKind.Lead, "#8A9199")]
-	[InlineData(EObjectiveKind.Story, "#5794E6")]
-	public void AccentHex_MapsObjectiveKindToSemanticColor(
-		EObjectiveKind kind,
-		string expected)
+	[InlineData(EObjectiveKind.Hunt)]
+	[InlineData(EObjectiveKind.Wreckage)]
+	[InlineData(EObjectiveKind.Delivery)]
+	[InlineData(EObjectiveKind.Lead)]
+	[InlineData(EObjectiveKind.Story)]
+	public void AccentColor_UsesBlueCyanPalette(EObjectiveKind kind)
 	{
-		Assert.Equal(expected, ObjectivePresentationPolicy.AccentHex(kind));
+		var expected = kind switch
+		{
+			EObjectiveKind.Hunt => HudPalettes.BlueCyan.Highlight,
+			EObjectiveKind.Wreckage => HudPalettes.BlueCyan.Primary,
+			EObjectiveKind.Delivery => HudPalettes.BlueCyan.Secondary,
+			EObjectiveKind.Lead => HudPalettes.BlueCyan.Border,
+			EObjectiveKind.Story => HudPalettes.BlueCyan.Highlight,
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+		};
+
+		Assert.Equal(expected, ObjectivePresentationPolicy.AccentColor(kind));
 	}
 
 	[Fact]

@@ -12,9 +12,9 @@ public partial class ObjectivesHud : MarginContainer
 	private const float TransientBadgeHoldSeconds = 4f;
 	private const float TransientBadgeFadeSeconds = 1.5f;
 
-	private static readonly Color NewBadgeColor = new(0.45f, 0.95f, 0.55f);
-	private static readonly Color CompletedBadgeColor = new(0.45f, 0.95f, 0.55f);
-	private static readonly Color FailedBadgeColor = new(0.95f, 0.42f, 0.38f);
+	private static readonly Color NewBadgeColor = HudPalettes.BlueCyan.Secondary;
+	private static readonly Color CompletedBadgeColor = HudPalettes.BlueCyan.Primary;
+	private static readonly Color FailedBadgeColor = HudPalettes.PurpleRed.Highlight;
 
 	private VBoxContainer _entriesHost = null!;
 	private Label _emptyLabel = null!;
@@ -217,7 +217,7 @@ public partial class ObjectivesHud : MarginContainer
 
 		row.AddChild(new ColorRect
 		{
-			Color = Color.FromHtml(ObjectivePresentationPolicy.AccentHex(objective.Kind)),
+			Color = ObjectivePresentationPolicy.AccentColor(objective.Kind),
 			CustomMinimumSize = new Vector2(5, 0),
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
