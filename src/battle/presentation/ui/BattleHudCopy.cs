@@ -154,7 +154,7 @@ internal static class BattleHudCopy
 
 	public static string VoidBombTooltipFor(VoidBombLauncherSpec launcher) =>
 		$"Void bomb:\nFires a homing bomb for {launcher.BlastDamage} damage, which travels for {launcher.FuelTurns} turns. Beware of hitting yourself!\n" +
-		$"Detonation radius: {BattleDistance.ApproximateCells(launcher.BlastRadius)}" +
+		$"Detonation radius: {BattleDistance.ApproximateCells(launcher.BlastRadius)}\n" +
 		$"Cooldown: {launcher.CooldownTurns}.";
 
 	public static string DetonateTooltipFor(VoidBombProjectile projectile) =>
