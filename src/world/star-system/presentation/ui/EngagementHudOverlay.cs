@@ -114,7 +114,7 @@ public sealed partial class EngagementHudOverlay : Control
 		string description = "",
 		string trailing = "",
 		UiCardVisual visual = UiCardVisual.Angled,
-		float minHeight = 160f)
+		float minHeight = 0f)
 	{
 		var card = new UiCard(title, subtitle, description, trailing)
 		{
@@ -128,16 +128,11 @@ public sealed partial class EngagementHudOverlay : Control
 
 	private static UiCard CreateFleetCard(string encounterIntel)
 	{
-		var lines = encounterIntel.Split(
-			'\n',
-			StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-		var minHeight = System.Math.Max(132f, 100f + lines.Length * 26f);
-
 		return CreateInfoCard(
 			title: "Contact Intel",
-			description: string.Join('\n', lines),
+			description: encounterIntel,
 			visual: UiCardVisual.Angled,
-			minHeight: minHeight);
+			minHeight: 140f);
 	}
 
 	private static UiCard CreateContractCard(Contract contract)
@@ -153,7 +148,7 @@ public sealed partial class EngagementHudOverlay : Control
 			description,
 			ContractDisplay.DifficultyStars(contract),
 			UiCardVisual.Angled,
-			200f);
+			minHeight: 200f);
 		card.SetTrailingColor(HudPalettes.Gold.Primary);
 		return card;
 	}

@@ -53,7 +53,6 @@ public sealed partial class UiCard : BaseButton
 			?? throw new InvalidOperationException($"Could not load UI palette shader '{ShaderPath}'.");
 
 		_palette = palette ?? HudPalettes.BlueCyan;
-		CustomMinimumSize = new Vector2(580f, 379f);
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 
@@ -130,6 +129,7 @@ public sealed partial class UiCard : BaseButton
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_subtitleLabel.AddThemeFontSizeOverride("font_size", 18);
+		_subtitleLabel.AddThemeConstantOverride("line_spacing", 2);
 		_textColumn.AddChild(_subtitleLabel);
 
 		_descriptionLabel = new Label
@@ -139,9 +139,9 @@ public sealed partial class UiCard : BaseButton
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			HorizontalAlignment = HorizontalAlignment.Left,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
 		_descriptionLabel.AddThemeFontSizeOverride("font_size", 20);
+		_descriptionLabel.AddThemeConstantOverride("line_spacing", 2);
 		_textColumn.AddChild(_descriptionLabel);
 
 		_trailingHost = new VBoxContainer
@@ -184,7 +184,10 @@ public sealed partial class UiCard : BaseButton
 			|| !string.IsNullOrWhiteSpace(_trailingLabel.Text);
 		_trailingLabel.Visible = _customTrailing is null
 			&& !string.IsNullOrWhiteSpace(_trailingLabel.Text);
+		UpdateMinimumSize();
 	}
+
+	public override Vector2 _GetMinimumSize() => _margin.GetCombinedMinimumSize();
 
 	public void SetPalette(HudPalette palette)
 	{
@@ -310,6 +313,7 @@ public sealed partial class UiCard : BaseButton
 		_margin.AddThemeConstantOverride("margin_top", top);
 		_margin.AddThemeConstantOverride("margin_right", right);
 		_margin.AddThemeConstantOverride("margin_bottom", bottom);
+		UpdateMinimumSize();
 	}
 
 	private static Texture2D LoadTexture(string path) =>

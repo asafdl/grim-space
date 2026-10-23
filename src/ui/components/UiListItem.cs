@@ -25,11 +25,12 @@ public partial class UiListItem : BaseButton
 	private readonly ShaderMaterial _paletteMaterial;
 	private readonly MarginContainer _margin;
 	private readonly Control _content;
+	private readonly VBoxContainer _textColumn;
 	private readonly Label _titleLabel;
 	private readonly Label _metadataLabel;
-	private readonly Control _detailHost;
+	private readonly VBoxContainer _detailHost;
 	private readonly RichTextLabel _detailRichText;
-	private readonly Control _trailingHost;
+	private readonly VBoxContainer _trailingHost;
 	private readonly Label _trailingLabel;
 	private Control? _customDetail;
 	private Control? _customTrailing;
@@ -55,7 +56,6 @@ public partial class UiListItem : BaseButton
 			?? throw new InvalidOperationException($"Could not load sci-fi palette shader '{ShaderPath}'.");
 
 		_palette = palette ?? HudPalettes.BlueCyan;
-		CustomMinimumSize = new Vector2(672f, 110f);
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 
@@ -91,49 +91,52 @@ public partial class UiListItem : BaseButton
 		_content.AddThemeConstantOverride("separation", 20);
 		_margin.AddChild(_content);
 
-		var text = new VBoxContainer
+		_textColumn = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			SizeFlagsVertical = SizeFlags.ExpandFill,
 			Alignment = BoxContainer.AlignmentMode.Center,
 		};
-		text.AddThemeConstantOverride("separation", 4);
-		_content.AddChild(text);
+		_textColumn.AddThemeConstantOverride("separation", 6);
+		_content.AddChild(_textColumn);
 
 		_titleLabel = new Label
 		{
 			Text = title,
 			MouseFilter = MouseFilterEnum.Ignore,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_titleLabel.AddThemeFontSizeOverride("font_size", 20);
-		text.AddChild(_titleLabel);
+		_titleLabel.AddThemeConstantOverride("line_spacing", 2);
+		_textColumn.AddChild(_titleLabel);
 
 		_metadataLabel = new Label
 		{
 			Text = metadata,
 			MouseFilter = MouseFilterEnum.Ignore,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_metadataLabel.AddThemeFontSizeOverride("font_size", 17);
+		_metadataLabel.AddThemeConstantOverride("line_spacing", 2);
 		_metadataLabel.Visible = !string.IsNullOrEmpty(metadata);
-		text.AddChild(_metadataLabel);
+		_textColumn.AddChild(_metadataLabel);
 
-		_detailHost = new Control
+		_detailHost = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			Visible = false,
 		};
-		text.AddChild(_detailHost);
+		_textColumn.AddChild(_detailHost);
 
 		_detailRichText = new RichTextLabel
 		{
 			BbcodeEnabled = false,
 			FitContent = true,
 			ScrollActive = false,
-			AutowrapMode = TextServer.AutowrapMode.Off,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			MouseFilter = MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			Visible = false,
@@ -142,11 +145,12 @@ public partial class UiListItem : BaseButton
 		_detailRichText.AddThemeFontSizeOverride("normal_font_size", 16);
 		_detailHost.AddChild(_detailRichText);
 
-		_trailingHost = new Control
+		_trailingHost = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 			CustomMinimumSize = new Vector2(104f, 0f),
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			Visible = !string.IsNullOrEmpty(trailingValue),
 		};
 		_content.AddChild(_trailingHost);
 
@@ -156,9 +160,8 @@ public partial class UiListItem : BaseButton
 			MouseFilter = MouseFilterEnum.Ignore,
 			VerticalAlignment = VerticalAlignment.Center,
 			HorizontalAlignment = HorizontalAlignment.Right,
-			AnchorsPreset = (int)LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Visible = !string.IsNullOrEmpty(trailingValue),
 		};
 		_trailingLabel.AddThemeFontSizeOverride("font_size", 20);
 		_trailingHost.AddChild(_trailingLabel);
@@ -218,6 +221,7 @@ public partial class UiListItem : BaseButton
 		var visible = !string.IsNullOrEmpty(detail);
 		_detailRichText.Visible = visible;
 		_detailHost.Visible = visible;
+		UpdateMinimumSize();
 	}
 
 	public void SetDetailBbcode(string bbcode)
@@ -228,6 +232,7 @@ public partial class UiListItem : BaseButton
 		var visible = !string.IsNullOrEmpty(bbcode);
 		_detailRichText.Visible = visible;
 		_detailHost.Visible = visible;
+		UpdateMinimumSize();
 	}
 
 	public void SetDetailColor(Color? color)
@@ -245,6 +250,7 @@ public partial class UiListItem : BaseButton
 		content.MouseFilter = MouseFilterEnum.Ignore;
 		_detailHost.AddChild(content);
 		_detailHost.Visible = true;
+		UpdateMinimumSize();
 	}
 
 	public void SetTrailingContent(Control content)
@@ -255,6 +261,8 @@ public partial class UiListItem : BaseButton
 		_customTrailing = content;
 		content.MouseFilter = MouseFilterEnum.Ignore;
 		_trailingHost.AddChild(content);
+		_trailingHost.Visible = true;
+		UpdateMinimumSize();
 	}
 
 	public void SetEnabled(bool enabled)
@@ -336,7 +344,10 @@ public partial class UiListItem : BaseButton
 		_margin.AddThemeConstantOverride("margin_right", right);
 		_margin.AddThemeConstantOverride("margin_top", top);
 		_margin.AddThemeConstantOverride("margin_bottom", bottom);
+		UpdateMinimumSize();
 	}
+
+	public override Vector2 _GetMinimumSize() => _margin.GetCombinedMinimumSize();
 
 	protected void HideBackground() => _background.Hide();
 

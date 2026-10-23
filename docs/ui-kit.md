@@ -62,7 +62,7 @@ Disabled or hidden UI is explanatory presentation only. Domain actions and execu
 
 ## Layout rules
 
-- List items are short and wide: `560 x 92` in the current kit.
+- Cards, list items, and nested/framed content containers derive their minimum size from content and padding. Set `CustomMinimumSize` when a screen needs a larger floor; wrapped text contributes its laid-out height instead of relying on estimated line counts.
 - Keep text inside the artwork's usable interior. List-item content uses 60 px left padding and is vertically centered.
 - Container variants own their content margins, header side slots, dismiss-button pocket, subtitle band height, and body start offset. `ModalShell` always reserves the subtitle band and applies `BodyMarginTop` from the active `UiContainer` visual; screens must not reposition titles or add per-screen body offsets.
 - Component typography derives its colors from the active palette. Screen-specific semantic values may use an explicit override, such as gold contract difficulty stars.

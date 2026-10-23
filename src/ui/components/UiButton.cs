@@ -132,7 +132,7 @@ public sealed partial class UiButton : BaseButton
 			UiButtonVisual.Back => new Vector2(142f, 46f),
 			UiButtonVisual.Compact => new Vector2(128f, 46f),
 			UiButtonVisual.Technical => new Vector2(152f, 46f),
-			UiButtonVisual.Framed => new Vector2(146f, 48f),
+			UiButtonVisual.Framed => new Vector2(146f, 52f),
 			UiButtonVisual.WideBeveled => new Vector2(154f, 54f),
 			_ => new Vector2(140f, 44f),
 		};

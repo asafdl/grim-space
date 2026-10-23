@@ -1,5 +1,4 @@
 using Godot;
-using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -25,12 +24,11 @@ internal static class ObjectivePresentationPolicy
 	public static Color AccentColor(EObjectiveKind kind) =>
 		kind switch
 		{
-			EObjectiveKind.Hunt => HudPalettes.BlueCyan.Highlight,
-			EObjectiveKind.Wreckage => HudPalettes.BlueCyan.Primary,
-			EObjectiveKind.Delivery => HudPalettes.BlueCyan.Secondary,
-			EObjectiveKind.Lead => HudPalettes.BlueCyan.Border,
-			EObjectiveKind.Story => HudPalettes.BlueCyan.Highlight,
+			EObjectiveKind.Hunt => Color.FromHtml("#F05F5F"),
+			EObjectiveKind.Wreckage => Color.FromHtml("#D7A93B"),
+			EObjectiveKind.Delivery => Color.FromHtml("#72D17C"),
+			EObjectiveKind.Lead => Color.FromHtml("#8A9199"),
+			EObjectiveKind.Story => Color.FromHtml("#5794E6"),
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
-
 }

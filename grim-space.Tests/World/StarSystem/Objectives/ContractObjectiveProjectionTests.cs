@@ -1,4 +1,4 @@
-using GrimSpace.Components;
+using Godot;
 using GrimSpace.Math.Routes;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run.Persistence;
@@ -146,19 +146,19 @@ public sealed class ContractObjectiveProjectionTests(StarMapFixture maps)
 	[InlineData(EObjectiveKind.Delivery)]
 	[InlineData(EObjectiveKind.Lead)]
 	[InlineData(EObjectiveKind.Story)]
-	public void AccentColor_UsesBlueCyanPalette(EObjectiveKind kind)
+	public void AccentColor_MapsObjectiveKindToContractAccent(EObjectiveKind kind)
 	{
 		var expected = kind switch
 		{
-			EObjectiveKind.Hunt => HudPalettes.BlueCyan.Highlight,
-			EObjectiveKind.Wreckage => HudPalettes.BlueCyan.Primary,
-			EObjectiveKind.Delivery => HudPalettes.BlueCyan.Secondary,
-			EObjectiveKind.Lead => HudPalettes.BlueCyan.Border,
-			EObjectiveKind.Story => HudPalettes.BlueCyan.Highlight,
+			EObjectiveKind.Hunt => "#F05F5F",
+			EObjectiveKind.Wreckage => "#D7A93B",
+			EObjectiveKind.Delivery => "#72D17C",
+			EObjectiveKind.Lead => "#8A9199",
+			EObjectiveKind.Story => "#5794E6",
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 
-		Assert.Equal(expected, ObjectivePresentationPolicy.AccentColor(kind));
+		Assert.Equal(Color.FromHtml(expected), ObjectivePresentationPolicy.AccentColor(kind));
 	}
 
 	[Fact]
