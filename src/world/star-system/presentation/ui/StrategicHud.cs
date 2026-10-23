@@ -15,6 +15,10 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 /// <summary>Binds resource feed and objectives sync for <c>strategic_hud.tscn</c>.</summary>
 public partial class StrategicHud : CanvasLayer
 {
+	/// <summary>Above map UI (layer 11) facade pins; below pause menu (layer 15).</summary>
+	private const int ModalCanvasLayer = 14;
+
+	private CanvasLayer _modalLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
 	private ResourceHud _resourceHud = null!;
 	private ResourceTransactionFeed _resourceFeed = null!;
@@ -42,19 +46,21 @@ public partial class StrategicHud : CanvasLayer
 		_objectivesHud = GetNode<ObjectivesHud>("ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("ResourceHud");
 		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
+		_modalLayer = new CanvasLayer { Layer = ModalCanvasLayer };
+		AddChild(_modalLayer);
 		_fleetManagement = new FleetManagementOverlay();
 		_fleetManagement.PilotSheetRequested += OnFleetPilotSheetRequested;
 		_fleetManagement.PilotAssignmentRequested += OnPilotAssignmentRequested;
-		AddChild(_fleetManagement);
+		_modalLayer.AddChild(_fleetManagement);
 		_pilotSheet = new PilotCharacterSheetOverlay();
 		_pilotSheet.Closed += OnPilotSheetClosed;
 		_pilotSheet.FleetManagementRequested += OnPilotFleetManagementRequested;
-		AddChild(_pilotSheet);
+		_modalLayer.AddChild(_pilotSheet);
 		_errorBanner = new SystemErrorBanner();
 		_errorBanner.ReportRequested += OnErrorReportRequested;
-		AddChild(_errorBanner);
+		_modalLayer.AddChild(_errorBanner);
 		_reportIssueDialog = new ReportIssueDialog();
-		AddChild(_reportIssueDialog);
+		_modalLayer.AddChild(_reportIssueDialog);
 		_orchestrator = Session.Instance.Run.StarSystem;
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);

@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
@@ -84,18 +85,21 @@ public sealed class LightningCannonDef
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
-		var cells = AffectedCells(action, world);
-
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn)
 			?? throw new InvalidOperationException("Lightning cannon ability not installed for actor.");
-		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Lightning cannon spec missing area damage.");
+		if (installed.Spec is not LightningCannonSpec lightningCannon)
+			throw new InvalidOperationException("Lightning cannon spec missing.");
+
+		var chain = ChainLightning.Resolve(world, action.ActorId, lightningCannon, action.MountedOn);
 		var effects = new IEffect<BattleWorld, ActorRuntime>[]
 		{
-			new ApplyAreaDamageEffect(
+			new ApplyChainLightningDamageEffect(
 				EImpactCause.LightningCannonBurst,
-				cells,
-				damage,
+				chain.BeamCells,
+				chain.Hops,
+				lightningCannon.Damage,
+				lightningCannon.ChainFalloffPercentPerHop,
 				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		};

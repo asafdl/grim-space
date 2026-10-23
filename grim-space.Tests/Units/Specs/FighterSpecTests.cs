@@ -33,8 +33,9 @@ public sealed class FighterSpecTests
 		var lightningCannon = LightningCannonSpec.Baseline;
 
 		Assert.Equal((2 * 100), lightningCannon.Damage);
-		Assert.Equal(5, lightningCannon.LineLength);
-		Assert.Equal(2, lightningCannon.PyramidRange);
+		Assert.Equal(7, lightningCannon.LineLength);
+		Assert.Equal(1, lightningCannon.MaxChains);
+		Assert.Equal(3, lightningCannon.ChainRange);
 	}
 
 	[Fact]

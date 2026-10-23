@@ -1,9 +1,9 @@
 using System.Collections.Frozen;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -303,8 +303,12 @@ internal static class EnemySearchInput
 		string actorId,
 		ESpatialOrientation mountedOn = ESpatialOrientation.Forward)
 	{
-		var cells = LightningCannonDef.Instance.AffectedCells(new LightningCannonAction(actorId, mountedOn), world);
-		return world.AnyOpponentInCells(actorId, cells);
+		var state = world.StateOf(actorId);
+		var installed = state.FindInstalled(EAbilityKind.LightningCannon, mountedOn);
+		if (installed?.Spec is not LightningCannonSpec lightningCannon)
+			return false;
+
+		return ChainLightning.WouldDamageOpponent(world, actorId, lightningCannon, mountedOn);
 	}
 
 	private static bool WouldScrapDroneSwarmDamage(BattleWorld world, string actorId, ESpatialOrientation mountedOn)

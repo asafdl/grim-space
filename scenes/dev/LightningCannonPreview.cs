@@ -7,8 +7,8 @@ namespace GrimSpace.Dev;
 public partial class LightningCannonPreview : Node3D
 {
 	private const float RepeatSeconds = 0.8f;
-	private int _lineLength = 5;
-	private int _pyramidRange = 2;
+	private int _lineLength = 7;
+	private int _maxChains = 1;
 	private float _timeUntilFire;
 	private float _zoom = 1f;
 	private bool _frozen;
@@ -67,10 +67,10 @@ public partial class LightningCannonPreview : Node3D
 				_lineLength = System.Math.Max(_lineLength - 1, 1);
 				break;
 			case Key.Right:
-				_pyramidRange = System.Math.Min(_pyramidRange + 1, 5);
+				_maxChains = System.Math.Min(_maxChains + 1, 5);
 				break;
 			case Key.Left:
-				_pyramidRange = System.Math.Max(_pyramidRange - 1, 0);
+				_maxChains = System.Math.Max(_maxChains - 1, 0);
 				break;
 			case Key.Space:
 				break;
@@ -89,9 +89,12 @@ public partial class LightningCannonPreview : Node3D
 
 	private void Fire()
 	{
-		_effect = LightningCannonEffect.Fire(
-			this, Vector3.Zero, Vector3.Right, Vector3.Up,
-			WorldMapping.CellSize, _lineLength, _pyramidRange);
+		var end = Vector3.Right * _lineLength * WorldMapping.CellSize;
+		_effect = LightningCannonEffect.FireAlongPath(
+			this,
+			[Vector3.Zero, end],
+			Vector3.Up,
+			WorldMapping.CellSize);
 		if (_frozen)
 			_effect.ProcessMode = ProcessModeEnum.Disabled;
 		_timeUntilFire = RepeatSeconds;
@@ -99,12 +102,12 @@ public partial class LightningCannonPreview : Node3D
 
 	private void UpdateStatus()
 	{
-		var extent = (_lineLength + _pyramidRange) * WorldMapping.CellSize;
+		var extent = _lineLength * WorldMapping.CellSize;
 		var camera = GetNode<Camera3D>("Camera3D");
 		camera.Position = new Vector3(extent * 0.5f, extent * 0.35f * _zoom, extent * 0.7f * _zoom);
 		camera.LookAt(new Vector3(extent * 0.5f, 0f, 0f));
 		_status.Text =
-			$"Lightning cannon preview  |  Line: {_lineLength} cells  |  Fork: {_pyramidRange} cells  |  {(_frozen ? "Frozen" : "Looping")}\n" +
-			"Mouse wheel: zoom   P: freeze/resume   Up/Down: line   Left/Right: fork   Space: fire";
+			$"Lightning cannon preview  |  Line: {_lineLength} cells  |  Chains: {_maxChains}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
+			"Mouse wheel: zoom   P: freeze/resume   Up/Down: line   Left/Right: chains   Space: fire";
 	}
 }

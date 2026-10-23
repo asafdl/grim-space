@@ -6,4 +6,5 @@ public readonly record struct AreaDamageFacts(
 	string SourceId,
 	EImpactCause Cause,
 	Coord Origin,
-	IReadOnlySet<Coord> Cells);
+	IReadOnlySet<Coord> Cells,
+	IReadOnlyList<Coord>? ChainHops = null);

@@ -48,7 +48,7 @@ public sealed class ActorRuntimeAssemblyTests
 
 		Assert.Equal(
 			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
-			((GrimSpace.Battle.Effects.ApplyAreaDamageEffect)effects[0]).ShieldDamageBonusPercent);
+			((GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect)effects[0]).ShieldDamageBonusPercent);
 	}
 
 	[Fact]

@@ -36,11 +36,9 @@ public sealed partial class EngagementHudOverlay : Control
 		_shell.Open(
 			"Contact",
 			$"Hostile target · {FormatFaction(pending.CounterpartyFaction)}");
-		_shell.SetHeader(HudHeaderMode.Close, null);
+		_shell.SetRequiresDecision(true);
 		_shell.SetHeaderVisible(true);
-		_shell.SetDismissVisible(true);
 		_shell.SetBackHandler(null);
-		_shell.SetCloseHandler(RequestFlee);
 
 		var body = HudWidgets.CreateCardList();
 		if (pending.AssignedContract is { } assignedContract)

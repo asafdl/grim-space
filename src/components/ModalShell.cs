@@ -20,6 +20,8 @@ public sealed partial class ModalShell : Control
 	private Action? _backHandler;
 	private Action? _closeHandler;
 	private bool _dismissVisible;
+	private bool _requiresDecision;
+	private bool _dismissOnBackdropClick = true;
 	private IReadOnlyList<HudAction> _footerActions = [];
 	private Control _headerRow = null!;
 	private MarginContainer _bodyMargin = null!;
@@ -65,6 +67,8 @@ public sealed partial class ModalShell : Control
 		Visible = false;
 		_backHandler = null;
 		_closeHandler = null;
+		_requiresDecision = false;
+		_dismissOnBackdropClick = true;
 		Closed?.Invoke();
 	}
 
@@ -96,14 +100,31 @@ public sealed partial class ModalShell : Control
 			_headerButton.Text = buttonLabel ?? HudWidgets.LeaveButtonLabel;
 		}
 
-		_headerButton.Visible = mode == HudHeaderMode.Back || !_dismissVisible;
+		RefreshHeaderButtonVisibility();
+	}
+
+	/// <summary>
+	/// Decision modals must be resolved via footer actions (no close chrome or backdrop dismiss).
+	/// </summary>
+	public void SetRequiresDecision(bool requiresDecision)
+	{
+		_requiresDecision = requiresDecision;
+		_dismissOnBackdropClick = !requiresDecision;
+		if (!requiresDecision)
+			return;
+
+		_dismissVisible = false;
+		_headerMode = HudHeaderMode.TitleOnly;
+		_closeHandler = null;
+		_dismissButton.Visible = false;
+		RefreshHeaderButtonVisibility();
 	}
 
 	public void SetDismissVisible(bool visible)
 	{
 		_dismissVisible = visible;
 		_dismissButton.Visible = visible && _headerRow.Visible;
-		_headerButton.Visible = _headerMode == HudHeaderMode.Back || !visible;
+		RefreshHeaderButtonVisibility();
 	}
 
 	public void SetBackHandler(Action? handler) => _backHandler = handler;
@@ -170,6 +191,7 @@ public sealed partial class ModalShell : Control
 	public bool TryHandleInput(InputEvent @event)
 	{
 		if (!Visible
+			|| _requiresDecision
 			|| @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return false;
 
@@ -207,6 +229,7 @@ public sealed partial class ModalShell : Control
 			MouseFilter = MouseFilterEnum.Stop,
 			Color = HudStyles.ModalBackdrop,
 		};
+		backdrop.GuiInput += OnBackdropGuiInput;
 		AddChild(backdrop);
 
 		var center = new CenterContainer
@@ -216,6 +239,7 @@ public sealed partial class ModalShell : Control
 			AnchorBottom = 1f,
 			GrowHorizontal = GrowDirection.Both,
 			GrowVertical = GrowDirection.Both,
+			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		AddChild(center);
 
@@ -369,6 +393,28 @@ public sealed partial class ModalShell : Control
 		_dismissButton.Pressed += CloseWithHandler;
 		_container.AddChild(_dismissButton);
 		return row;
+	}
+
+	private void OnBackdropGuiInput(InputEvent @event)
+	{
+		if (!Visible || !_dismissOnBackdropClick)
+			return;
+
+		if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+			return;
+
+		CloseWithHandler();
+		AcceptEvent();
+	}
+
+	private void RefreshHeaderButtonVisibility()
+	{
+		_headerButton.Visible = _headerMode switch
+		{
+			HudHeaderMode.Back => true,
+			HudHeaderMode.TitleOnly => false,
+			_ => !_dismissVisible,
+		};
 	}
 
 	private void OnHeaderPressed()

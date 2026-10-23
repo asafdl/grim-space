@@ -930,7 +930,7 @@ public static class SaveDtoMapper
 		return kind switch
 		{
 			EAbilityKind.ScrapDroneSwarm => Deserialize<ScrapDroneSwarmSpec>(dto.Data),
-			EAbilityKind.LightningCannon => Deserialize<LightningCannonSpec>(dto.Data),
+			EAbilityKind.LightningCannon => RestoreLightningCannonSpec(dto.Data),
 			EAbilityKind.MinerBay => new MinerBaySpec(
 				dto.Data.GetProperty("CooldownTurns").GetInt32(),
 				RepurposedMinerSpec.Instance,
@@ -1012,6 +1012,39 @@ public static class SaveDtoMapper
 		for (var index = 0; index < faces.Length; index++)
 			points[faces[index]] = dto.Points[index];
 		return points;
+	}
+
+	private static LightningCannonSpec RestoreLightningCannonSpec(JsonElement data)
+	{
+		var spec = Deserialize<LightningCannonSpec>(data);
+		if (data.TryGetProperty("MaxChains", out _))
+		{
+			return spec with
+			{
+				ChainRange = spec.ChainRange > 0
+					? spec.ChainRange
+					: LightningCannonSpec.Baseline.ChainRange,
+				ChainFalloffPercentPerHop = spec.ChainFalloffPercentPerHop > 0
+					? spec.ChainFalloffPercentPerHop
+					: LightningCannonSpec.Baseline.ChainFalloffPercentPerHop,
+			};
+		}
+
+		var pyramidDepth = data.TryGetProperty("PyramidRange", out var pyramid)
+			? pyramid.GetInt32()
+			: 0;
+		var maxChains = pyramidDepth > 0
+			? System.Math.Max(1, pyramidDepth)
+			: LightningCannonSpec.Baseline.MaxChains;
+		var lineLength = spec.LineLength + pyramidDepth;
+
+		return spec with
+		{
+			LineLength = lineLength,
+			MaxChains = maxChains,
+			ChainRange = LightningCannonSpec.Baseline.ChainRange,
+			ChainFalloffPercentPerHop = LightningCannonSpec.Baseline.ChainFalloffPercentPerHop,
+		};
 	}
 
 	private static T Deserialize<T>(JsonElement data) =>

@@ -35,11 +35,9 @@ public sealed partial class WreckHudOverlay : Control
 		_busy = false;
 		var contract = pending.Contract;
 		_shell.Open("Wreckage");
-		_shell.SetHeader(HudHeaderMode.Close, null);
+		_shell.SetRequiresDecision(true);
 		_shell.SetHeaderVisible(true);
-		_shell.SetDismissVisible(true);
 		_shell.SetBackHandler(null);
-		_shell.SetCloseHandler(RequestLeave);
 
 		var body = HudWidgets.CreateCardList();
 		body.AddChild(CreateContractCard(contract));

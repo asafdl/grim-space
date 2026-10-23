@@ -131,15 +131,17 @@ public sealed record LightningCannonSpec(
 	int UsesPerTurn,
 	int Damage,
 	int LineLength,
-	int PyramidRange) : AbilitySpec, IAreaDamage, IPerTurnAbility
+	int MaxChains,
+	int ChainRange = 3,
+	int ChainFalloffPercentPerHop = 25) : AbilitySpec, IAreaDamage, IPerTurnAbility
 {
 	public const int MaxDamageUpgradeTier = 3;
 	public const int MaxRangeUpgradeTier = 3;
 	public static LightningCannonSpec Baseline { get; } = new(
 		UsesPerTurn: 1,
 		Damage: 200,
-		LineLength: 5,
-		PyramidRange: 2);
+		LineLength: 7,
+		MaxChains: 1);
 
 	public override EAbilityKind Kind => EAbilityKind.LightningCannon;
 	public override int MaxDamageUpgrades => MaxDamageUpgradeTier;
@@ -151,40 +153,16 @@ public sealed record LightningCannonSpec(
 		this with
 		{
 			Damage = Baseline.Damage + damageUpgradeTier * 100,
-			LineLength = LineLength + rangeUpgradeTier,
+			LineLength = Baseline.LineLength + rangeUpgradeTier,
 			DamageUpgradeTier = damageUpgradeTier,
 			RangeUpgradeTier = rangeUpgradeTier,
 		};
 
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
 	{
-		var spreadRight = Coord.Cross(dorsal, direction);
-		if (spreadRight == Coord.Zero)
-			spreadRight = Coord.Cross(fore, direction);
-		var spreadUp = Coord.Cross(direction, spreadRight);
-
-		var cells = new List<Coord>();
+		var cells = new List<Coord>(LineLength);
 		for (var along = 1; along <= LineLength; along++)
 			cells.Add(origin + direction * along);
-
-		for (var depth = 0; depth <= PyramidRange; depth++)
-		{
-			var along = LineLength + depth;
-			for (var port = -depth; port <= depth; port++)
-			{
-				for (var dorsalOffset = -depth; dorsalOffset <= depth; dorsalOffset++)
-				{
-					if (System.Math.Abs(port) + System.Math.Abs(dorsalOffset) > depth)
-						continue;
-
-					cells.Add(
-						origin
-						+ direction * along
-						+ spreadRight * (-port)
-						+ spreadUp * dorsalOffset);
-				}
-			}
-		}
 
 		return cells;
 	}

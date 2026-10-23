@@ -16,7 +16,12 @@ public sealed class LightningShieldDamageBonusModifier
 		BattleWorld world,
 		ActorRuntime runtime,
 		IEffect<BattleWorld, ActorRuntime> effect)
-		=> effect is ApplyAreaDamageEffect area
-			? area.WithShieldDamageBonusPercent(PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent)
-			: effect;
+		=> effect switch
+		{
+			ApplyAreaDamageEffect area => area.WithShieldDamageBonusPercent(
+				PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent),
+			ApplyChainLightningDamageEffect chain => chain.WithShieldDamageBonusPercent(
+				PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent),
+			_ => effect,
+		};
 }

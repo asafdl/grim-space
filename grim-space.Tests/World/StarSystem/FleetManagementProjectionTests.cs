@@ -37,7 +37,7 @@ public sealed class FleetManagementProjectionTests
 				Facets: "FORWARD",
 			}
 			&& ability.Stats.Select(stat => (stat.Label, stat.Value)).SequenceEqual(
-				[("DAMAGE", "200"), ("RANGE", "9"), ("USES PER TURN", "1")]));
+				[("DAMAGE", "200"), ("RANGE", "10"), ("USES PER TURN", "1")]));
 		Assert.Contains(
 			ship.Abilities,
 			ability => ability is

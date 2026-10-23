@@ -229,7 +229,7 @@ public sealed class ShipInstanceSupportTests
 
 		Assert.True(baseline.TryWithRangeUpgradeTier(mount, 2, out var fromBaseline));
 		Assert.Equal(2, fromBaseline.Loadout.InstalledAbilities.Single().RangeUpgradeTier);
-		Assert.Equal(7, ((LightningCannonSpec)fromBaseline.Loadout.InstalledAbilities.Single().Spec).LineLength);
+		Assert.Equal(9, ((LightningCannonSpec)fromBaseline.Loadout.InstalledAbilities.Single().Spec).LineLength);
 
 		var atTierOne = LightningCannonFighter("tier-one", rangeUpgradeTier: 1);
 		Assert.True(atTierOne.TryWithRangeUpgradeTier(mount, 2, out var fromTierOne));

@@ -15,28 +15,24 @@ public sealed class WeaponsTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void LightningCannonBurstIsStraightLineThenForePyramid()
+	public void LightningCannonBeamIsStraightLineOnly()
 	{
 		var (world, frame) = CreateWorld();
 		var lightningCannon = CatalogExpectations.DefaultLightningCannonSpec();
 		var cells = LightningCannonDef.Instance.AffectedCells(new LightningCannonAction(PlayerId), world);
 
-		Assert.Equal(23, cells.Count);
+		Assert.Equal(lightningCannon.LineLength, cells.Count);
 		for (var fore = 1; fore <= lightningCannon.LineLength; fore++)
 			Assert.Contains(frame.ToWorld(fore, 0, 0), cells);
 
-		var pyramidApex = frame.ToWorld(lightningCannon.LineLength, 0, 0);
-		Assert.Contains(pyramidApex, cells);
-		Assert.Contains(frame.ToWorld(lightningCannon.LineLength + lightningCannon.PyramidRange, 1, 1), cells);
-		Assert.Contains(frame.ToWorld(lightningCannon.LineLength + lightningCannon.PyramidRange, -1, 1), cells);
 		Assert.DoesNotContain(frame.Origin, cells);
-		Assert.DoesNotContain(frame.ToWorld(lightningCannon.LineLength + lightningCannon.PyramidRange + 1, 0, 0), cells);
+		Assert.DoesNotContain(frame.ToWorld(lightningCannon.LineLength + 1, 0, 0), cells);
 	}
 
 	[Theory]
 	[InlineData(ESpatialOrientation.Port)]
 	[InlineData(ESpatialOrientation.Starboard)]
-	public void LightningCannonGetArea_SideMountsIncludeTerminalSpread(ESpatialOrientation mountedOn)
+	public void LightningCannonGetArea_SideMountsFollowBurstDirection(ESpatialOrientation mountedOn)
 	{
 		var origin = new Coord(10, 10, 10);
 		var frame = BodyFrame.WorldAligned(origin);
@@ -44,8 +40,9 @@ public sealed class WeaponsTests
 		var burst = frame.Step(mountedOn);
 		var cells = spec.GetArea(origin, burst, frame.Fore, frame.Dorsal);
 
-		Assert.True(cells.Count > spec.LineLength + spec.PyramidRange);
-		Assert.Contains(origin + burst * (spec.LineLength + spec.PyramidRange) + frame.Fore + frame.Dorsal, cells);
+		Assert.Equal(spec.LineLength, cells.Count);
+		Assert.Contains(origin + burst * spec.LineLength, cells);
+		Assert.DoesNotContain(origin + burst * (spec.LineLength + 1), cells);
 	}
 
 	[Theory]

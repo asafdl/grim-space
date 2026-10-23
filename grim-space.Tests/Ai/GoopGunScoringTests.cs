@@ -21,7 +21,7 @@ public sealed class GoopGunScoringTests
 	[Fact]
 	public async Task BuildTurnActions_FiresGoopGunWhenItBlocksOpponentLightning()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(
@@ -42,7 +42,7 @@ public sealed class GoopGunScoringTests
 	[Fact]
 	public async Task BuildTurnActions_DoesNotFireGoopGunWhenOpponentCannotThreaten()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
 		var enemy = CreateUnit(
@@ -63,7 +63,7 @@ public sealed class GoopGunScoringTests
 	[Fact]
 	public async Task BuildTurnActions_FiresGoopGunWhenItBlocksLightningThreateningAnAlly()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var allyPos = new Coord(8, 5, 5);
 		var gooperPos = new Coord(8, 6, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);

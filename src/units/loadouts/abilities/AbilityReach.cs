@@ -7,7 +7,8 @@ public static class AbilityReach
 		spec switch
 		{
 			ScrapDroneSwarmSpec swarm => swarm.BurstRange * 3 + 1,
-			LightningCannonSpec lightningCannon => lightningCannon.LineLength + 2 * lightningCannon.PyramidRange,
+			LightningCannonSpec lightningCannon =>
+				lightningCannon.LineLength + lightningCannon.MaxChains * lightningCannon.ChainRange,
 			_ => 0,
 		};
 
@@ -15,5 +16,5 @@ public static class AbilityReach
 		spec.BurstRange + 1.6f;
 
 	public static float LightningCannonReplayShotLength(LightningCannonSpec spec) =>
-		spec.LineLength + spec.PyramidRange + 0.7f;
+		spec.LineLength + spec.MaxChains * spec.ChainRange + 0.7f;
 }

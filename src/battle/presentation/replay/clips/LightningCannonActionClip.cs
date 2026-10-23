@@ -27,16 +27,13 @@ public sealed class LightningCannonActionClip : IReplayClip
 				$"Lightning cannon replay actor '{lightningCannon.ActorId}' has no resolved area facts.");
 		var frame = BodyFrame.From(state);
 		var direction = frame.Step(lightningCannon.MountedOn);
-		var reach = ResolveVisualReach(state.Position, direction, frame, spec, areaFacts.Cells);
+		var path = BuildVisualPath(state.Position, direction, spec, areaFacts);
 
-		LightningCannonEffect.Fire(
+		LightningCannonEffect.FireAlongPath(
 			context.HazardBursts,
-			WorldMapping.ToWorld(state.Position),
-			ToVector3(direction),
+			path,
 			ToVector3(frame.Dorsal),
-			WorldMapping.CellSize,
-			reach.LineLength,
-			reach.PyramidRange);
+			WorldMapping.CellSize);
 
 		return ClipPlayback.Pause(LightningCannonEffect.StrikeSeconds);
 	}
@@ -44,24 +41,53 @@ public sealed class LightningCannonActionClip : IReplayClip
 	private static Vector3 ToVector3(Coord coord) =>
 		new(coord.X, coord.Y, coord.Z);
 
-	private static VisualReach ResolveVisualReach(
+	private static IReadOnlyList<Vector3> BuildVisualPath(
 		Coord origin,
 		Coord direction,
-		BodyFrame frame,
 		LightningCannonSpec spec,
-		IReadOnlySet<Coord> affectedCells)
+		AreaDamageFacts areaFacts)
 	{
-		for (var distance = 1; distance <= spec.LineLength; distance++)
+		var path = new List<Vector3> { WorldMapping.ToWorld(origin) };
+		if (areaFacts.ChainHops is { Count: > 0 } chainHops)
 		{
-			if (!affectedCells.Contains(origin + direction * distance))
-				return new VisualReach(distance - 0.5f, 0);
+			foreach (var hop in chainHops)
+				path.Add(WorldMapping.ToWorld(hop));
+			return path;
 		}
 
-		var fullAreaVisible = spec
-			.GetArea(origin, direction, frame.Fore, frame.Dorsal)
-			.All(affectedCells.Contains);
-		return new VisualReach(spec.LineLength, fullAreaVisible ? spec.PyramidRange : 0);
+		var beamEnd = origin + direction * BeamVisibleLength(origin, direction, spec, areaFacts.Cells);
+		path.Add(WorldMapping.ToWorld(beamEnd));
+		return path;
 	}
 
-	private readonly record struct VisualReach(float LineLength, int PyramidRange);
+	private static int BeamVisibleLength(
+		Coord origin,
+		Coord direction,
+		LightningCannonSpec spec,
+		IReadOnlySet<Coord> beamCells)
+	{
+		if (beamCells.Count == 0)
+			return spec.LineLength;
+
+		var maxDistance = 0;
+		foreach (var cell in beamCells)
+		{
+			var distance = RayDistance(origin, direction, cell);
+			if (distance > maxDistance)
+				maxDistance = distance;
+		}
+
+		return maxDistance;
+	}
+
+	private static int RayDistance(Coord origin, Coord direction, Coord cell)
+	{
+		if (direction.X != 0)
+			return (cell.X - origin.X) / direction.X;
+		if (direction.Y != 0)
+			return (cell.Y - origin.Y) / direction.Y;
+		if (direction.Z != 0)
+			return (cell.Z - origin.Z) / direction.Z;
+		return 0;
+	}
 }

@@ -13,6 +13,7 @@ public enum HudHeaderMode
 {
 	Close,
 	Back,
+	TitleOnly,
 }
 
 public enum HudStatusKind

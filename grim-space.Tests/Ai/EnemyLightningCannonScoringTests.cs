@@ -15,7 +15,7 @@ public sealed class EnemyLightningCannonScoringTests
 	[Fact]
 	public async Task BuildTurnActions_FiresLightningCannonWhenAlignedWithPlayer()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
@@ -30,7 +30,7 @@ public sealed class EnemyLightningCannonScoringTests
 	[Fact]
 	public async Task BuildTurnActions_TurnsAndFiresWhenTranslationApIsExhausted()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, Coord.Forward, Coord.Up);
@@ -46,7 +46,7 @@ public sealed class EnemyLightningCannonScoringTests
 	[Fact]
 	public async Task BuildTurnActions_TurnsTowardPlayerWhenParallelAndCannotShoot()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, Coord.Forward, Coord.Up);
@@ -60,7 +60,7 @@ public sealed class EnemyLightningCannonScoringTests
 	[Fact]
 	public async Task BuildTurnActions_TurnsToFireLightningCannonWhenShotNeedsAlignment()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(
@@ -81,7 +81,7 @@ public sealed class EnemyLightningCannonScoringTests
 	[Fact]
 	public async Task BuildTurnActions_DoesNotFireWhenLineFullyBlocked()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
@@ -100,7 +100,7 @@ public sealed class EnemyLightningCannonScoringTests
 	[Fact]
 	public async Task BuildTurnActions_OffAxisAsteroidDoesNotSuppressAttack()
 	{
-		var playerPos = new Coord(2, 5, 5);
+		var playerPos = new Coord(3, 5, 5);
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);

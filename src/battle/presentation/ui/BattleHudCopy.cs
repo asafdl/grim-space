@@ -139,8 +139,8 @@ internal static class BattleHudCopy
 		$"Deals {swarm.Damage} damage.";
 
 	public static string LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
-		$"Lightning Cannon:\nLong-range {BattleDistance.ApproximateCells(lightningCannon.LineLength + lightningCannon.PyramidRange)} blast along its firing face.\n" +
-		$"Deals {lightningCannon.Damage} damage.";
+		$"Lightning Cannon:\n{BattleDistance.ApproximateCells(lightningCannon.LineLength)} beam; chains up to {lightningCannon.MaxChains} time(s) within {lightningCannon.ChainRange} cells.\n" +
+		$"Deals {lightningCannon.Damage} damage ({lightningCannon.ChainFalloffPercentPerHop}% less per chain hop).";
 
 	public static string GoopGunTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<GoopGunSpec>(unit, EAbilityKind.GoopGun) is { } goop

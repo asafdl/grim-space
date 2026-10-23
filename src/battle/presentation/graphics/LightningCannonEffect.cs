@@ -47,6 +47,51 @@ public partial class LightningCannonEffect : Node3D
 		if (fore.LengthSquared() < 0.9f || up.LengthSquared() < 0.9f)
 			throw new ArgumentException("Forward and dorsal must be nonparallel directions.");
 
+		var reach = (lineLength + pyramidRange) * cellSize;
+		return SpawnBolt(
+			parent,
+			origin + fore * (cellSize * 0.25f),
+			fore,
+			up,
+			reach,
+			strikeSeconds,
+			lifetimeSeconds);
+	}
+
+	public static LightningCannonEffect FireAlongPath(
+		Node3D parent,
+		IReadOnlyList<Vector3> points,
+		Vector3 dorsal,
+		float cellSize,
+		float strikeSeconds = StrikeSeconds,
+		float lifetimeSeconds = LifetimeSeconds)
+	{
+		ArgumentNullException.ThrowIfNull(points);
+		if (points.Count < 2)
+			throw new ArgumentException("Lightning path requires at least two points.", nameof(points));
+		if (cellSize <= 0)
+			throw new ArgumentOutOfRangeException(nameof(cellSize), "Cell size must be positive.");
+
+		var start = points[0];
+		var end = points[^1];
+		var fore = (end - start).Normalized();
+		var up = (dorsal - fore * dorsal.Dot(fore)).Normalized();
+		if (fore.LengthSquared() < 0.9f || up.LengthSquared() < 0.9f)
+			throw new ArgumentException("Path direction and dorsal must be nonparallel.");
+
+		var reach = start.DistanceTo(end);
+		return SpawnBolt(parent, start, fore, up, reach, strikeSeconds, lifetimeSeconds);
+	}
+
+	private static LightningCannonEffect SpawnBolt(
+		Node3D parent,
+		Vector3 origin,
+		Vector3 fore,
+		Vector3 up,
+		float reach,
+		float strikeSeconds,
+		float lifetimeSeconds)
+	{
 		_model ??= GD.Load<PackedScene>(ModelPath)
 			?? throw new InvalidOperationException(
 				$"Could not load lightning model '{ModelPath}'.");
@@ -58,11 +103,8 @@ public partial class LightningCannonEffect : Node3D
 			_chargeSoundPosition = origin,
 			_soundParent = parent,
 		};
-		var reach = (lineLength + pyramidRange) * cellSize;
-		var launchOffset = fore * (cellSize * 0.25f);
 
-		effect.AddModel(origin + launchOffset, fore, up, reach);
-
+		effect.AddModel(origin, fore, up, reach);
 		parent.AddChild(effect);
 		return effect;
 	}

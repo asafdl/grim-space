@@ -153,6 +153,13 @@ public sealed class FacadePresentationMode : IPresentationMode
 			return;
 		}
 
+		if (!ctx.CanAccessFacilities())
+		{
+			SetFacilityButtonsVisible(false);
+			return;
+		}
+
+		SetFacilityButtonsVisible(true);
 		if (_activePoi is not null)
 			PositionFacilityButtons(_activePoi, ctx);
 	}
