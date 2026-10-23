@@ -30,7 +30,7 @@ internal static class MerchantShipChanges
 					return false;
 				if (!next.TryWithMaxShieldPoints(
 						upgradeFace,
-						offering.TargetLevel,
+						offering.TargetLevel * 100,
 						out var upgraded))
 					return false;
 				next = upgraded;

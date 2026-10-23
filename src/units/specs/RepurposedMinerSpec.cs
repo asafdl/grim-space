@@ -16,7 +16,7 @@ public sealed class RepurposedMinerSpec : ShipSpec
 
 	public override EType Chassis => EType.RepurposedMiner;
 	public override int Initiative => 30;
-	public override int DefaultMaxHullPoints => 1;
+	public override int DefaultMaxHullPoints => 100;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 2);
 
@@ -25,7 +25,7 @@ public sealed class RepurposedMinerSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile[ESpatialOrientation.Forward] = 3;
+			profile[ESpatialOrientation.Forward] = 300;
 			return profile;
 		}
 	}

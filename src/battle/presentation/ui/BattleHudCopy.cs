@@ -126,7 +126,6 @@ internal static class BattleHudCopy
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.ShieldsUp);
 		return
 			$"{definition.Name}:\n{definition.Description}\n" +
-			$"+{ShieldsUpDef.TemporaryShieldPerFace} shield per face until the next tick.\n" +
 			$"Next turn: -{ShieldsUpDef.NextTickApPenalty} AP.";
 	}
 

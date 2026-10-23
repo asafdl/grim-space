@@ -8,7 +8,7 @@ namespace GrimSpace.Battle.PilotCapabilities;
 public sealed class ScrapDroneSwarmDamageBonusModifier
 	: IActionEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public const int DamageBonus = 1;
+	public const int DamageBonus = 100;
 
 	public static ScrapDroneSwarmDamageBonusModifier Instance { get; } = new();
 

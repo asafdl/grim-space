@@ -153,7 +153,9 @@ public static class MerchantCatalog
 		{
 			offers.Add(new Offer(
 				rechargeAll,
-				ResourceBundle.Of(ResourceId.Credits, ship.MissingShieldPoints * rate),
+				ResourceBundle.Of(
+					ResourceId.Credits,
+					ship.MissingShieldPoints * rate / 100),
 				[default]));
 		}
 
@@ -166,7 +168,9 @@ public static class MerchantCatalog
 
 			offers.Add(new Offer(
 				rechargeFace,
-				ResourceBundle.Of(ResourceId.Credits, ship.MissingShieldPointsOnFace(face) * rate),
+				ResourceBundle.Of(
+					ResourceId.Credits,
+					ship.MissingShieldPointsOnFace(face) * rate / 100),
 				[target]));
 		}
 

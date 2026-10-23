@@ -1,4 +1,5 @@
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
@@ -9,7 +10,8 @@ namespace GrimSpace.World.StarSystem.PilotCapabilities;
 public sealed class ShipUpgradeDiscountModifier(int stackCount)
 	: IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	private const int UpgradeDiscountPercentPerStack = 10;
+	private static int UpgradeDiscountPercentPerStack =>
+		PilotSkillPercents.IKnowABot.ShipUpgradeDiscountPercent;
 
 	public IEffect<StarMap, ActorRuntime> Modify(
 		IAction action,

@@ -19,12 +19,12 @@ public sealed class VoidBombDomainTests
 
 		var maxShields = configuration.MaxShieldPoints;
 
-		Assert.Equal(1, configuration.MaxHullPoints);
-		Assert.Equal(1, maxShields.MaxOnAnyFace);
+		Assert.Equal((1 * 100), configuration.MaxHullPoints);
+		Assert.Equal((1 * 100), maxShields.MaxOnAnyFace);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
 			Assert.Equal(
-				face == ESpatialOrientation.Retro ? 0 : 1,
+				face == ESpatialOrientation.Retro ? 0 : (1 * 100),
 				maxShields[face]);
 		}
 		Assert.Equal(

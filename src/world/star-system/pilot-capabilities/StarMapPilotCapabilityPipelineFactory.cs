@@ -26,7 +26,7 @@ public static class StarMapPilotCapabilityPipelineFactory
 			* ScrapRewardBonusModifier.MinorBonusPercent
 			+ strategicGrants.Count(grant =>
 				grant.CapabilityId == EPilotCapabilityId.ScrapRewardBonus)
-			* ScrapRewardBonusModifier.StandardBonusPercent;
+			* PilotSkillPercents.DronesYearnForMines.ScrapRewardBonusPercent;
 		var optimalityContractCreditBonusStacks = strategicGrants.Count(grant =>
 			grant.CapabilityId == EPilotCapabilityId.OptimalityContractCreditBonus);
 		if (shipUpgradeDiscountStacks > 0)

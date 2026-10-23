@@ -16,7 +16,7 @@ public sealed class FighterSpec : ShipSpec
 
 	public override EType Chassis => EType.Fighter;
 	public override int Initiative => 40;
-	public override int DefaultMaxHullPoints => 2;
+	public override int DefaultMaxHullPoints => 200;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 3);
 
@@ -25,7 +25,7 @@ public sealed class FighterSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile.Fill(2);
+			profile.Fill(200);
 			return profile;
 		}
 	}
@@ -44,9 +44,9 @@ public sealed class FighterSpec : ShipSpec
 	public override ShipLoadout NewDefaultLoadout()
 	{
 		var shields = new FaceShieldPoints();
-		shields[ESpatialOrientation.Forward] = 1;
-		shields[ESpatialOrientation.Starboard] = 1;
-		shields[ESpatialOrientation.Port] = 1;
+		shields[ESpatialOrientation.Forward] = 100;
+		shields[ESpatialOrientation.Starboard] = 100;
+		shields[ESpatialOrientation.Port] = 100;
 
 		return ShipLoadout.Create(
 			this,

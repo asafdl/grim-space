@@ -83,11 +83,11 @@ public sealed class ApplyDamageTests
 	{
 		var unit = FreshUnit();
 
-		Defense.ApplyDamage(unit, 1, ESpatialOrientation.Forward);
+		Defense.ApplyDamage(unit, 100, ESpatialOrientation.Forward);
 
-		Assert.Equal(2, unit.HullPoints);
-		Assert.Equal(1, unit.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(2, unit.ShieldPoints[ESpatialOrientation.Retro]);
+		Assert.Equal(200, unit.HullPoints);
+		Assert.Equal(100, unit.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(200, unit.ShieldPoints[ESpatialOrientation.Retro]);
 	}
 
 	[Fact]
@@ -95,9 +95,9 @@ public sealed class ApplyDamageTests
 	{
 		var unit = FreshUnit();
 
-		Defense.ApplyDamage(unit, 3, ESpatialOrientation.Forward);
+		Defense.ApplyDamage(unit, 300, ESpatialOrientation.Forward);
 
-		Assert.Equal(1, unit.HullPoints);
+		Assert.Equal(100, unit.HullPoints);
 		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
 	}
 
@@ -107,9 +107,9 @@ public sealed class ApplyDamageTests
 		var unit = FreshUnit();
 		unit.ShieldPoints[ESpatialOrientation.Forward] = 0;
 
-		Defense.ApplyDamage(unit, 1, ESpatialOrientation.Forward);
+		Defense.ApplyDamage(unit, 100, ESpatialOrientation.Forward);
 
-		Assert.Equal(1, unit.HullPoints);
+		Assert.Equal(100, unit.HullPoints);
 		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
 	}
 
@@ -119,7 +119,7 @@ public sealed class ApplyDamageTests
 		var unit = FreshUnit();
 		unit.ShieldPoints.Fill(0);
 
-		Defense.ApplyDamage(unit, 2, ESpatialOrientation.Forward);
+		Defense.ApplyDamage(unit, 200, ESpatialOrientation.Forward);
 
 		Assert.Equal(0, unit.HullPoints);
 		Assert.False(unit.IsAlive);
@@ -132,8 +132,8 @@ public sealed class ApplyDamageTests
 
 		Defense.ApplyDamage(unit, 0, ESpatialOrientation.Forward);
 
-		Assert.Equal(2, unit.HullPoints);
-		Assert.Equal(2, unit.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(200, unit.HullPoints);
+		Assert.Equal(200, unit.ShieldPoints[ESpatialOrientation.Forward]);
 	}
 
 	[Fact]
@@ -141,11 +141,11 @@ public sealed class ApplyDamageTests
 	{
 		var unit = FreshUnit();
 		unit.ShieldPoints[ESpatialOrientation.Forward] = 0;
-		TemporaryShields.GrantPerFace(unit, "temp", 1);
+		TemporaryShields.GrantPerFace(unit, "temp", 100);
 
-		Defense.ApplyDamage(unit, 1, ESpatialOrientation.Forward);
+		Defense.ApplyDamage(unit, 100, ESpatialOrientation.Forward);
 
-		Assert.Equal(2, unit.HullPoints);
+		Assert.Equal(200, unit.HullPoints);
 		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(0, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
 	}
@@ -154,11 +154,11 @@ public sealed class ApplyDamageTests
 	public void ShieldDamageBonus_DamagesShieldsWithoutIncreasingHullOverflow()
 	{
 		var unit = FreshUnit();
-		unit.ShieldPoints[ESpatialOrientation.Forward] = 1;
+		unit.ShieldPoints[ESpatialOrientation.Forward] = 100;
 
-		Defense.ApplyDamage(unit, 2, ESpatialOrientation.Forward, shieldDamageBonus: 1);
+		Defense.ApplyDamage(unit, 200, ESpatialOrientation.Forward, shieldDamageBonus: 100);
 
-		Assert.Equal(1, unit.HullPoints);
+		Assert.Equal(100, unit.HullPoints);
 		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
 	}
 
@@ -167,9 +167,9 @@ public sealed class ApplyDamageTests
 	{
 		var unit = FreshUnit();
 
-		Defense.ApplyDamage(unit, 1, ESpatialOrientation.Forward, shieldDamageBonus: 1);
+		Defense.ApplyDamage(unit, 100, ESpatialOrientation.Forward, shieldDamageBonus: 100);
 
-		Assert.Equal(2, unit.HullPoints);
+		Assert.Equal(200, unit.HullPoints);
 		Assert.Equal(0, unit.ShieldPoints[ESpatialOrientation.Forward]);
 	}
 }

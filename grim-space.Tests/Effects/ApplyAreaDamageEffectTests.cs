@@ -27,7 +27,7 @@ public sealed class ApplyAreaDamageEffectTests
 	}
 
 	[Fact]
-	public void WithAdjacentTargetDamageBonus_AddsOnlyToAdjacentBonus()
+	public void WithAdjacentHitDamagePercent_SetsMultiplierOnly()
 	{
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -36,11 +36,11 @@ public sealed class ApplyAreaDamageEffectTests
 			Coord.Zero,
 			1);
 
-		var adjusted = effect.WithAdjacentTargetDamageBonus(2);
+		var adjusted = effect.WithAdjacentHitDamagePercent(150);
 
 		Assert.Equal(3, adjusted.Damage);
 		Assert.Equal(1, adjusted.ShieldDamageBonus);
-		Assert.Equal(2, adjusted.AdjacentTargetDamageBonus);
+		Assert.Equal(150, adjusted.AdjacentHitDamagePercent);
 	}
 
 	[Fact]
@@ -76,7 +76,7 @@ public sealed class ApplyAreaDamageEffectTests
 	[Theory]
 	[InlineData(0, 2)]
 	[InlineData(6, 1)]
-	public void Apply_DefensiveManeuversRollReducesDamageByOne(
+	public void Apply_DefensiveManeuversRollHalvesDamage(
 		int rollIndex,
 		int expectedHullDamage)
 	{
@@ -125,7 +125,7 @@ public sealed class ApplyAreaDamageEffectTests
 	}
 
 	[Fact]
-	public void Apply_DeflectionCannotReduceDamageBelowZero()
+	public void Apply_DeflectionRetainsConfiguredDamagePercent()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
@@ -135,7 +135,7 @@ public sealed class ApplyAreaDamageEffectTests
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
-			1,
+			200,
 			player.State.Position);
 
 		effect.Apply(
@@ -143,7 +143,7 @@ public sealed class ApplyAreaDamageEffectTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 100, enemy.State.HullPoints);
 	}
 
 	[Fact]
@@ -174,7 +174,7 @@ public sealed class ApplyAreaDamageEffectTests
 				new HashSet<Coord> { adjacent.State.Position, distant.State.Position },
 				2,
 				player.State.Position)
-			.WithAdjacentTargetDamageBonus(2);
+			.WithAdjacentHitDamagePercent(200);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);

@@ -12,7 +12,7 @@ public sealed class VoidBombSpec : ShipSpec
 	internal const int ForwardMoveApCost = 1;
 	internal const int LateralMoveApCost = 2;
 	internal const int BlastRadius = 3;
-	internal const int BlastDamage = 1;
+	internal const int BlastDamage = 100;
 
 	public static VoidBombSpec Instance { get; } = new();
 
@@ -23,7 +23,7 @@ public sealed class VoidBombSpec : ShipSpec
 	public override EType Chassis => EType.VoidBomb;
 	public override int Initiative => 10;
 
-	public override int DefaultMaxHullPoints => 1;
+	public override int DefaultMaxHullPoints => 100;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.VoidBomb(
 			MovementActionPoints,
@@ -35,7 +35,7 @@ public sealed class VoidBombSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile.Fill(1);
+			profile.Fill(100);
 			profile[ESpatialOrientation.Retro] = 0;
 			return profile;
 		}

@@ -79,7 +79,7 @@ public sealed record ShipLoadout(
 			throw new ArgumentOutOfRangeException(nameof(face));
 
 		var max = MaxShieldPoints.Clone();
-		max[face] += 1;
+		max[face] += 100;
 		var tiers = ShieldUpgradeTiers.Clone();
 		tiers[face] += 1;
 
@@ -101,7 +101,7 @@ public sealed record ShipLoadout(
 		var currentTier = ShieldUpgradeTiers[face];
 		var capacityIncrease = targetTier - currentTier;
 		var max = MaxShieldPoints.Clone();
-		max[face] += capacityIncrease;
+		max[face] += capacityIncrease * 100;
 		var tiers = ShieldUpgradeTiers.Clone();
 		tiers[face] = targetTier;
 
@@ -119,7 +119,7 @@ public sealed record ShipLoadout(
 		ArgumentNullException.ThrowIfNull(spec);
 		return Create(
 			spec,
-			MaxHullPoints + 1,
+			MaxHullPoints + 100,
 			MaxShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,
@@ -132,7 +132,7 @@ public sealed record ShipLoadout(
 		var capacityIncrease = targetTier - HullUpgradeTier;
 		return Create(
 			spec,
-			MaxHullPoints + capacityIncrease,
+			MaxHullPoints + capacityIncrease * 100,
 			MaxShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,

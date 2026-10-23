@@ -181,7 +181,7 @@ public sealed class LightningCannonActionTests
 			new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPos);
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
-		enemy.State.ShieldPoints[hitFace] = 1;
+		enemy.State.ShieldPoints[hitFace] = (1 * 100);
 		var hullBefore = enemy.State.HullPoints;
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
@@ -195,7 +195,7 @@ public sealed class LightningCannonActionTests
 
 		var previewEnemy = battle.PlayerAgent.Sim.World.StateOf(enemy.State.Id);
 		Assert.Equal(0, previewEnemy.ShieldPoints[hitFace]);
-		Assert.Equal(hullBefore - 1, previewEnemy.HullPoints);
+		Assert.Equal(hullBefore - 100, previewEnemy.HullPoints);
 	}
 
 	[Fact]
@@ -210,7 +210,7 @@ public sealed class LightningCannonActionTests
 			new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPos);
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
-		enemy.State.ShieldPoints[hitFace] = 3;
+		enemy.State.ShieldPoints[hitFace] = (3 * 100);
 		var hullBefore = enemy.State.HullPoints;
 		var battle = BattleTestFixture.BeginSimulation(
 			player,

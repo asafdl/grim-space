@@ -1,4 +1,5 @@
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
@@ -10,7 +11,7 @@ public sealed class ScrapRewardBonusModifier(int bonusPercent)
 	: IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
 	public const int MinorBonusPercent = 5;
-	public const int StandardBonusPercent = 15;
+	public const int StandardBonusPercent = PilotSkillPercents.DronesYearnForMines.ScrapRewardBonusPercent;
 
 	public IEffect<StarMap, ActorRuntime> Modify(
 		IAction action,

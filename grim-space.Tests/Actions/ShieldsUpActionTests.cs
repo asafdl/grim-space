@@ -41,7 +41,7 @@ public sealed class ShieldsUpActionTests
 			PlayerId);
 
 		Assert.Equal(3, player.State.ActionPoints);
-		Assert.Equal(1, TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
+		Assert.Equal((1 * 100), TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 		Assert.True(player.State.ShieldsUpUsedThisTurn);
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is ApDeltaAction ap && ap.ActorId == PlayerId && ap.Delta == -ShieldsUpDef.NextTickApPenalty));
@@ -77,7 +77,7 @@ public sealed class ShieldsUpActionTests
 			PlayerId);
 
 		Assert.Equal(max, player.State.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(1, TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
+		Assert.Equal((1 * 100), TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 	}
 
 	[Fact]

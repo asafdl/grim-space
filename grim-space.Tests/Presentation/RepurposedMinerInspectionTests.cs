@@ -19,7 +19,7 @@ public sealed class RepurposedMinerInspectionTests
 
 		Assert.Equal("repurposed-miner-a", frame.FocusId);
 		Assert.Equal(EType.RepurposedMiner, frame.FocusState.Type);
-		Assert.Equal(3, frame.FocusState.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal((3 * 100), frame.FocusState.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(0, frame.FocusState.Loadout.MaxShieldPoints[ESpatialOrientation.Retro]);
 		Assert.Contains("repurposed-miner-a", frame.PreviewUnits.Keys);
 	}

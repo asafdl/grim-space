@@ -21,7 +21,7 @@ public sealed class VoidBombActionTests
 		Assert.Equal(3, launcher.CooldownTurns);
 		Assert.Equal(2, launcher.FuelTurns);
 		Assert.Equal(3, launcher.BlastRadius);
-		Assert.Equal(1, launcher.BlastDamage);
+		Assert.Equal((1 * 100), launcher.BlastDamage);
 	}
 
 	[Fact]

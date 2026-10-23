@@ -5,6 +5,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.PilotCapabilities;
@@ -23,13 +24,13 @@ public sealed class ScrapDroneSwarmDamageBonusTests
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
 			new HashSet<Coord> { new(1, 1, 0) },
-			3,
+			(3 * 100),
 			new Coord(0, 0, 0));
 
 		var modified = Assert.IsType<ApplyAreaDamageEffect>(
 			Assert.Single(pipeline.Apply(action, null!, ActorRuntime.From(null), [effect])));
 
-		Assert.Equal(4, modified.Damage);
+		Assert.Equal((4 * 100), modified.Damage);
 		Assert.Contains(BattleActionTags.Attack, action.Tags);
 		Assert.Contains(BattleActionTags.ScrapDrone, action.Tags);
 	}

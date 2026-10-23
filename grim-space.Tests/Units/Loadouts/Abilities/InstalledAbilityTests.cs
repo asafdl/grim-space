@@ -12,7 +12,7 @@ public sealed class InstalledAbilityTests
 	[Fact]
 	public void DuplicateKindOnSameFacet_IsRejected()
 	{
-		var swarm = new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
+		var swarm = ScrapDroneSwarmSpec.Baseline;
 		var installed = new[]
 		{
 			new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Port),
@@ -22,7 +22,7 @@ public sealed class InstalledAbilityTests
 		Assert.Throws<ArgumentException>(() =>
 			ShipLoadout.Create(
 				FighterSpec.Instance,
-				maxHullPoints: 2,
+				maxHullPoints: FighterSpec.Instance.DefaultMaxHullPoints,
 				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
 				installed));
 	}
@@ -30,7 +30,7 @@ public sealed class InstalledAbilityTests
 	[Fact]
 	public void SameKindOnDifferentFacets_IsAllowed()
 	{
-		var swarm = new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
+		var swarm = ScrapDroneSwarmSpec.Baseline;
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			maxHullPoints: 2,

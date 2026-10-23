@@ -269,8 +269,8 @@ public sealed class ShipInstance : IItem
 			return false;
 
 		var currentTier = Loadout.ShieldUpgradeTiers[face];
-		var baselineMaxShieldPoints = Loadout.MaxShieldPoints[face] - currentTier;
-		var targetTier = targetMaxShieldPoints - baselineMaxShieldPoints;
+		var baselineMaxShieldPoints = Loadout.MaxShieldPoints[face] - currentTier * 100;
+		var targetTier = (targetMaxShieldPoints - baselineMaxShieldPoints) / 100;
 		if (targetTier <= currentTier || targetTier > ShipLoadout.MaxShieldUpgradeTier)
 			return false;
 

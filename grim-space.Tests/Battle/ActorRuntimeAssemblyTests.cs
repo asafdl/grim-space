@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Pilots;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
@@ -45,7 +46,9 @@ public sealed class ActorRuntimeAssemblyTests
 			battle.Engine.World,
 			runtime);
 
-		Assert.Equal(1, ((GrimSpace.Battle.Effects.ApplyAreaDamageEffect)effects[0]).ShieldDamageBonus);
+		Assert.Equal(
+			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
+			((GrimSpace.Battle.Effects.ApplyAreaDamageEffect)effects[0]).ShieldDamageBonusPercent);
 	}
 
 	[Fact]

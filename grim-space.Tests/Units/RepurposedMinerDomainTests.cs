@@ -18,8 +18,8 @@ public sealed class RepurposedMinerDomainTests
 		var maxShields = configuration.MaxShieldPoints;
 
 		Assert.Equal(4, maneuverability.MaxActionPoints);
-		Assert.Equal(1, configuration.MaxHullPoints);
-		Assert.Equal(3, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
+		Assert.Equal((1 * 100), configuration.MaxHullPoints);
+		Assert.Equal((3 * 100), maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 		Assert.Equal(0, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Retro]);
 		Assert.Equal(2, CatalogExpectations.UsesPerTurn(EType.RepurposedMiner, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.RepurposedMiner, EAbilityKind.LightningCannon));

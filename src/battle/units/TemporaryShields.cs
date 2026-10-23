@@ -22,6 +22,20 @@ public static class TemporaryShields
 		unit.TemporaryShieldGrants.Add(grant);
 	}
 
+	public static void GrantPerFacePercentOfMax(State unit, string grantId, int percentOfFaceMax)
+	{
+		var grant = new TemporaryShieldGrant { GrantId = grantId };
+		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
+		{
+			var max = unit.Loadout.MaxShieldPoints[face];
+			grant.Remaining[face] = (int)System.Math.Round(
+				max * percentOfFaceMax / 100m,
+				System.MidpointRounding.AwayFromZero);
+		}
+
+		unit.TemporaryShieldGrants.Add(grant);
+	}
+
 	public static bool TryRevokeGrant(State unit, string grantId, out TemporaryShieldGrant? removed)
 	{
 		var index = unit.TemporaryShieldGrants.FindIndex(grant => grant.GrantId == grantId);

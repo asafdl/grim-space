@@ -6,6 +6,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.Battle.Effects;
 
@@ -15,7 +16,8 @@ public sealed class ApplyAreaDamageEffect(
 	int damage,
 	Coord origin,
 	int shieldDamageBonus = 0,
-	int adjacentTargetDamageBonus = 0,
+	int shieldDamageBonusPercent = 0,
+	int adjacentHitDamagePercent = 100,
 	bool destroySource = false) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
@@ -23,7 +25,8 @@ public sealed class ApplyAreaDamageEffect(
 	public int Damage => damage;
 	public Coord Origin => origin;
 	public int ShieldDamageBonus => shieldDamageBonus;
-	public int AdjacentTargetDamageBonus => adjacentTargetDamageBonus;
+	public int ShieldDamageBonusPercent => shieldDamageBonusPercent;
+	public int AdjacentHitDamagePercent => adjacentHitDamagePercent;
 
 	public ApplyAreaDamageEffect WithAdditionalDamage(int amount) =>
 		new(
@@ -32,7 +35,8 @@ public sealed class ApplyAreaDamageEffect(
 			damage + amount,
 			origin,
 			shieldDamageBonus,
-			adjacentTargetDamageBonus,
+			shieldDamageBonusPercent,
+			adjacentHitDamagePercent,
 			destroySource);
 
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
@@ -42,17 +46,30 @@ public sealed class ApplyAreaDamageEffect(
 			damage,
 			origin,
 			shieldDamageBonus + amount,
-			adjacentTargetDamageBonus,
+			shieldDamageBonusPercent,
+			adjacentHitDamagePercent,
 			destroySource);
 
-	public ApplyAreaDamageEffect WithAdjacentTargetDamageBonus(int amount) =>
+	public ApplyAreaDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
 			cause,
 			cells,
 			damage,
 			origin,
 			shieldDamageBonus,
-			adjacentTargetDamageBonus + amount,
+			percent,
+			adjacentHitDamagePercent,
+			destroySource);
+
+	public ApplyAreaDamageEffect WithAdjacentHitDamagePercent(int percent) =>
+		new(
+			cause,
+			cells,
+			damage,
+			origin,
+			shieldDamageBonus,
+			shieldDamageBonusPercent,
+			percent,
 			destroySource);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
@@ -99,13 +116,18 @@ public sealed class ApplyAreaDamageEffect(
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
 		var appliedDamage = damage;
-		if (origin.ManhattanDistanceTo(unit.Position) == 1)
-			appliedDamage += adjacentTargetDamageBonus;
+		if (origin.ManhattanDistanceTo(unit.Position) == 1 && adjacentHitDamagePercent != 100)
+			appliedDamage = ScalePercent(appliedDamage, adjacentHitDamagePercent);
+
 		var appliedShieldDamageBonus = shieldDamageBonus;
+		if (shieldDamageBonusPercent > 0)
+			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);
+
 		if (isAlliedSource && unit.InTheFrayActive)
 		{
-			var reducedShieldDamage = HalfRoundedUp(appliedDamage + appliedShieldDamageBonus);
-			appliedDamage = HalfRoundedUp(appliedDamage);
+			var retained = PilotSkillPercents.InTheFray.AlliedDamageTakenPercent;
+			var reducedShieldDamage = ScalePercent(appliedDamage + appliedShieldDamageBonus, retained);
+			appliedDamage = ScalePercent(appliedDamage, retained);
 			appliedShieldDamageBonus = reducedShieldDamage - appliedDamage;
 		}
 
@@ -113,7 +135,9 @@ public sealed class ApplyAreaDamageEffect(
 			&& unit.DefensiveManeuversMpSpentLastTurn == 0
 			&& RollsDeflection(unit))
 		{
-			appliedDamage--;
+			var retained = PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent;
+			appliedDamage = ScalePercent(appliedDamage, retained);
+			appliedShieldDamageBonus = ScalePercent(appliedShieldDamageBonus, retained);
 		}
 
 		if (appliedDamage > 0)
@@ -136,7 +160,10 @@ public sealed class ApplyAreaDamageEffect(
 			HullDamage: hullDamage);
 	}
 
-	private static int HalfRoundedUp(int amount) => (amount + 1) / 2;
+	private static int ScalePercent(int amount, int percent) =>
+		(int)System.Math.Round(amount * percent / 100m, System.MidpointRounding.AwayFromZero);
+
+	private static int PortionOf(int amount, int percent) => ScalePercent(amount, percent);
 
 	private bool RollsDeflection(State unit)
 	{
@@ -147,6 +174,7 @@ public sealed class ApplyAreaDamageEffect(
 				.Add(rollIndex)
 				.Add((int)cause)
 				.Value);
-		return random.NextDouble() < 0.25;
+		return random.NextDouble()
+			< PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent / 100.0;
 	}
 }

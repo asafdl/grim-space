@@ -85,7 +85,7 @@ public sealed record ScrapDroneSwarmSpec(
 	public const int MaxRangeUpgradeTier = 3;
 	public static ScrapDroneSwarmSpec Baseline { get; } = new(
 		UsesPerTurn: 1,
-		Damage: 1,
+		Damage: 100,
 		BurstRange: 2);
 
 	public override EAbilityKind Kind => EAbilityKind.ScrapDroneSwarm;
@@ -97,7 +97,7 @@ public sealed record ScrapDroneSwarmSpec(
 	protected override AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) =>
 		this with
 		{
-			Damage = Damage + damageUpgradeTier,
+			Damage = Baseline.Damage + damageUpgradeTier * 100,
 			BurstRange = BurstRange + rangeUpgradeTier,
 			DamageUpgradeTier = damageUpgradeTier,
 			RangeUpgradeTier = rangeUpgradeTier,
@@ -137,7 +137,7 @@ public sealed record LightningCannonSpec(
 	public const int MaxRangeUpgradeTier = 3;
 	public static LightningCannonSpec Baseline { get; } = new(
 		UsesPerTurn: 1,
-		Damage: 2,
+		Damage: 200,
 		LineLength: 5,
 		PyramidRange: 2);
 
@@ -150,7 +150,7 @@ public sealed record LightningCannonSpec(
 	protected override AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) =>
 		this with
 		{
-			Damage = Damage + damageUpgradeTier,
+			Damage = Baseline.Damage + damageUpgradeTier * 100,
 			LineLength = LineLength + rangeUpgradeTier,
 			DamageUpgradeTier = damageUpgradeTier,
 			RangeUpgradeTier = rangeUpgradeTier,
@@ -236,7 +236,7 @@ public sealed record VoidBombLauncherSpec(
 		{
 			FuelTurns = FuelTurns + rangeUpgradeTier,
 			BlastRadius = BlastRadius + rangeUpgradeTier,
-			BlastDamage = BlastDamage + damageUpgradeTier * 2,
+			BlastDamage = Baseline.BlastDamage + damageUpgradeTier * 200,
 			DamageUpgradeTier = damageUpgradeTier,
 			RangeUpgradeTier = rangeUpgradeTier,
 		};

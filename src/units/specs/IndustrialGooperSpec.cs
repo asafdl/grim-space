@@ -16,7 +16,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 
 	public override EType Chassis => EType.IndustrialGooper;
 	public override int Initiative => 25;
-	public override int DefaultMaxHullPoints => 3;
+	public override int DefaultMaxHullPoints => 300;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 3);
 
@@ -25,7 +25,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile.Fill(3);
+			profile.Fill(300);
 			return profile;
 		}
 	}

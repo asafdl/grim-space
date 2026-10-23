@@ -74,7 +74,7 @@ public sealed class InTheFrayTests
 		var (source, target, battle, hitFace) = CreateBattle(ETeam.Player, ETeam.Player);
 		target.State.ShieldPoints[hitFace] = 6;
 
-		ApplyDamage(source, target, battle, damage: 2, adjacentTargetDamageBonus: 2);
+		ApplyDamage(source, target, battle, damage: 2, adjacentHitDamagePercent: 200);
 
 		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
 	}
@@ -110,7 +110,8 @@ public sealed class InTheFrayTests
 		BattleOrchestrator battle,
 		int damage,
 		int shieldDamageBonus = 0,
-		int adjacentTargetDamageBonus = 0)
+		int shieldDamageBonusPercent = 0,
+		int adjacentHitDamagePercent = 100)
 	{
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -118,7 +119,8 @@ public sealed class InTheFrayTests
 			damage,
 			source.State.Position,
 			shieldDamageBonus,
-			adjacentTargetDamageBonus);
+			shieldDamageBonusPercent,
+			adjacentHitDamagePercent);
 		effect.Apply(
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(source.State.Id),

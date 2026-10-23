@@ -16,7 +16,7 @@ public sealed class PilotSkillCatalogTests
 		Assert.Equal([EPilotCapabilityId.ShieldBoost], definition.CapabilityIds);
 		Assert.Equal("Shields Up", definition.Name);
 		Assert.Equal(
-			"Boost shield faces until your next turn; pay AP when that turn begins.",
+			$"Boost each shield face by {PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax}% of its maximum until your next turn; pay AP when that turn begins.",
 			definition.Description);
 		Assert.Equal(1, definition.Tier);
 		Assert.Empty(definition.Prerequisites);
@@ -63,7 +63,7 @@ public sealed class PilotSkillCatalogTests
 		Assert.Equal([EPilotCapabilityId.AlliedDamageReduction], definition.CapabilityIds);
 		Assert.Equal("In The Fray", definition.Name);
 		Assert.Equal(
-			"Take 50% less damage from allied units, rounded up. Self-damage is unaffected.",
+			"Take 50% less damage from allied units. Self-damage is unaffected.",
 			definition.Description);
 		Assert.Equal(3, definition.Tier);
 		Assert.Empty(definition.Prerequisites);
@@ -78,7 +78,7 @@ public sealed class PilotSkillCatalogTests
 		Assert.Equal([EPilotCapabilityId.AdjacentDamageBonus], definition.CapabilityIds);
 		Assert.Equal("Dodge This", definition.Name);
 		Assert.Equal(
-			"Deal 2 additional damage when hitting an adjacent target.",
+			"Deal 50% additional damage when hitting an adjacent target (150% total weapon damage).",
 			definition.Description);
 		Assert.Equal(1, definition.Tier);
 		Assert.Empty(definition.Prerequisites);
@@ -95,7 +95,7 @@ public sealed class PilotSkillCatalogTests
 			definition.CapabilityIds);
 		Assert.Equal("Defensive Maneuvers", definition.Name);
 		Assert.Equal(
-			"If you spend no maneuver points during your turn, gain a 25% chance to deflect 1 damage from each hit until your next turn ends.",
+			"If you spend no maneuver points during your turn, gain a 25% chance to deflect 50% damage from each hit until your next turn ends.",
 			definition.Description);
 		Assert.Equal(2, definition.Tier);
 		Assert.Empty(definition.Prerequisites);
@@ -111,7 +111,9 @@ public sealed class PilotSkillCatalogTests
 			[EPilotCapabilityId.LightningShieldDamageBonus],
 			definition.CapabilityIds);
 		Assert.Equal("Ionized Payload", definition.Name);
-		Assert.Equal("Lightning weapons deal 1 additional damage to shields.", definition.Description);
+		Assert.Equal(
+			"Lightning weapons deal 100% additional damage to shields.",
+			definition.Description);
 		Assert.Equal(2, definition.Tier);
 		Assert.Empty(definition.Prerequisites);
 		Assert.Equal(3, definition.MinimumEarnedLevel);

@@ -174,7 +174,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
 		Assert.Equal(1, after.Loadout.ShieldUpgradeTiers[face]);
 		Assert.Equal(
-			before.Loadout.MaxShieldPoints[face] + 1,
+			before.Loadout.MaxShieldPoints[face] + 100,
 			after.Loadout.MaxShieldPoints[face]);
 		Assert.Equal(
 			before.Loadout.MaxShieldPoints[ESpatialOrientation.Forward],

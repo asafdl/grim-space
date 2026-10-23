@@ -16,7 +16,7 @@ public sealed class GunshipSpec : ShipSpec
 
 	public override EType Chassis => EType.Gunship;
 	public override int Initiative => 20;
-	public override int DefaultMaxHullPoints => 2;
+	public override int DefaultMaxHullPoints => 200;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(3, 1);
 
@@ -25,10 +25,10 @@ public sealed class GunshipSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile[ESpatialOrientation.Forward] = 1;
-			profile[ESpatialOrientation.Retro] = 1;
-			profile[ESpatialOrientation.Port] = 2;
-			profile[ESpatialOrientation.Starboard] = 2;
+			profile[ESpatialOrientation.Forward] = 100;
+			profile[ESpatialOrientation.Retro] = 100;
+			profile[ESpatialOrientation.Port] = 200;
+			profile[ESpatialOrientation.Starboard] = 200;
 			return profile;
 		}
 	}

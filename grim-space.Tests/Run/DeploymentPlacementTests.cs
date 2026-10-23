@@ -61,7 +61,7 @@ public sealed class DeploymentPlacementTests
 			player.Ship.Loadout.InstalledAbilities.Where(
 				ability => ability.Spec.MaxRangeUpgrades > 0),
 			ability => Assert.Equal(1, ability.RangeUpgradeTier));
-		Assert.Equal(LightningCannonSpec.Baseline.Damage + 1, effective.Damage);
+		Assert.Equal(LightningCannonSpec.Baseline.Damage + 100, effective.Damage);
 		Assert.Equal(LightningCannonSpec.Baseline.LineLength + 1, effective.LineLength);
 		Assert.All(
 			voidBombs,
@@ -69,7 +69,7 @@ public sealed class DeploymentPlacementTests
 			{
 				Assert.Equal(3, voidBomb.FuelTurns);
 				Assert.Equal(4, voidBomb.BlastRadius);
-				Assert.Equal(3, voidBomb.BlastDamage);
+				Assert.Equal((3 * 100), voidBomb.BlastDamage);
 			});
 		Assert.All(
 			enemy.Ship.Loadout.InstalledAbilities.Where(

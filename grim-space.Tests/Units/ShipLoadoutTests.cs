@@ -11,13 +11,13 @@ public sealed class ShipLoadoutTests
 	[Fact]
 	public void Create_RejectsInstalledMountNotOnChassis()
 	{
-		var swarm = new ScrapDroneSwarmSpec(UsesPerTurn: 1, Damage: 1, BurstRange: 2);
+		var swarm = ScrapDroneSwarmSpec.Baseline;
 		var installed = new[] { new InstalledAbility(swarm, ESpatialOrientation.Forward) };
 
 		Assert.Throws<ArgumentException>(() =>
 			ShipLoadout.Create(
 				FighterSpec.Instance,
-				2,
+				FighterSpec.Instance.DefaultMaxHullPoints,
 				FighterSpec.Instance.DefaultMaxShieldPoints,
 				installed));
 	}

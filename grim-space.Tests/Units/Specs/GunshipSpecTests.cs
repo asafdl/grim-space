@@ -28,11 +28,11 @@ public sealed class GunshipSpecTests
 		var spec = GunshipSpec.Instance;
 		var loadout = spec.NewDefaultLoadout();
 
-		Assert.Equal(2, loadout.MaxHullPoints);
-		Assert.Equal(1, loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(1, loadout.MaxShieldPoints[ESpatialOrientation.Retro]);
-		Assert.Equal(2, loadout.MaxShieldPoints[ESpatialOrientation.Port]);
-		Assert.Equal(2, loadout.MaxShieldPoints[ESpatialOrientation.Starboard]);
+		Assert.Equal((2 * 100), loadout.MaxHullPoints);
+		Assert.Equal((1 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal((1 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Retro]);
+		Assert.Equal((2 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal((2 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Starboard]);
 		Assert.Equal(0, loadout.MaxShieldPoints[ESpatialOrientation.Dorsal]);
 		Assert.Equal(0, loadout.MaxShieldPoints[ESpatialOrientation.Ventral]);
 		Assert.Equal(2, loadout.InstalledAbilities.Count);

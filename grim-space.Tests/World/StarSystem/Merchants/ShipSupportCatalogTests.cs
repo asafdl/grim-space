@@ -63,7 +63,7 @@ public sealed class ShipSupportCatalogTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var face = ESpatialOrientation.Retro;
-		Assert.True(ship.TryWithMaxShieldPoints(face, 1, out ship));
+		Assert.True(ship.TryWithMaxShieldPoints(face, (1 * 100), out ship));
 
 		var offer = MerchantCatalog.ListFor(
 				EMerchantCatalog.ShipSupport,
@@ -78,7 +78,7 @@ public sealed class ShipSupportCatalogTests
 	public void HealingCatalog_ListsRepairAndRechargeServices()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		ship.HullPoints = 1;
+		ship.HullPoints = (1 * 100);
 		ship.ShieldPoints.Fill(0);
 
 		var offers = MerchantCatalog.ListFor(
@@ -95,7 +95,7 @@ public sealed class ShipSupportCatalogTests
 		Assert.Equal([default(MerchantCatalog.Target)], recharge.Targets);
 		Assert.True(recharge.Cost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(
-			ship.TotalMaxShieldPoints * StarMarketSeed.ShieldRechargeCreditsPerPoint,
+			ship.TotalMaxShieldPoints * StarMarketSeed.ShieldRechargeCreditsPerPoint / 100,
 			credits);
 
 		var faceRecharge = offers.Single(offer =>

@@ -16,7 +16,7 @@ public sealed class CarrierSpec : ShipSpec
 
 	public override EType Chassis => EType.Carrier;
 	public override int Initiative => 20;
-	public override int DefaultMaxHullPoints => 2;
+	public override int DefaultMaxHullPoints => 200;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(3, 1);
 
@@ -25,7 +25,7 @@ public sealed class CarrierSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile.Fill(2);
+			profile.Fill(200);
 			return profile;
 		}
 	}

@@ -18,7 +18,6 @@ public sealed class ShieldsUpDef
 		IActorActionDef
 {
 	public const int NextTickApPenalty = 2;
-	public const int TemporaryShieldPerFace = 1;
 	public const int FollowUpDelayTicks = 1;
 
 	public static ShieldsUpDef Instance { get; } = new();
@@ -69,7 +68,9 @@ public sealed class ShieldsUpDef
 		var delay = FollowUpDelayTicks;
 		return
 		[
-			new GrantTemporaryShieldPerFaceEffect(grantId, TemporaryShieldPerFace),
+			new GrantTemporaryShieldPercentOfFaceMaxEffect(
+				grantId,
+				PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax),
 			new ShieldsUpActivateEffect(),
 			new ScheduleActionEffect(delay, new ExpireTemporaryShieldGrantAction(actorId, grantId)),
 			new ScheduleActionEffect(delay, new ApDeltaAction(actorId, -NextTickApPenalty)),
