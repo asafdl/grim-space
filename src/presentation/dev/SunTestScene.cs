@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Math.Grid;
 using GrimSpace.Presentation.Graphics;
+using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 
 namespace GrimSpace.Presentation.Dev;
 
@@ -84,6 +85,10 @@ public sealed partial class SunTestScene : Node3D
 	/// </summary>
 	[Export] public bool BattleBackdrop { get; set; }
 
+	/// <summary>Diagnostic: render the map-star reproduction without the
+	/// glare/dip overlay (the S1b evidence isolation).</summary>
+	[Export] public bool NoGlare { get; set; }
+
 	/// <summary>
 	/// The presence test: the star drifts across a rock at close range, with the
 	/// rock lit by the star's own light.
@@ -92,6 +97,14 @@ public sealed partial class SunTestScene : Node3D
 
 	/// <summary>Turns the screen space glare and the point light off (the "before").</summary>
 	[Export] public bool Legacy { get; set; }
+
+	/// <summary>
+	/// Reproduction mode for the STAR MAP's star: it builds the star exactly
+	/// the way MapCelestialVisuals (the map's palette owner) configures it, at
+	/// the map star's world radius, under the map camera's geometry.  This is
+	/// the harness the map-star defect sheets are rendered from.
+	/// </summary>
+	[Export] public bool MapStar { get; set; }
 
 	private Node3D? _star;
 	private SunGlareOverlay? _glare;
@@ -115,6 +128,12 @@ public sealed partial class SunTestScene : Node3D
 
 		_star = SunVisual.Create(StarRadius, palette);
 		AddChild(_star);
+
+		if (MapStar)
+		{
+			BuildMapStarScene();
+			return;
+		}
 
 		if (BattleBackdrop)
 		{
@@ -168,11 +187,22 @@ public sealed partial class SunTestScene : Node3D
 			_events = dictionary["events"].AsGodotArray();
 		if (dictionary.ContainsKey("spots"))
 			_spots = dictionary["spots"].AsGodotArray();
+		// The casting office (S2': one role at a time) is driven by the same
+		// timeline's roll schedule — one source of truth for picture and sound.
+		SunVisual.SetProminenceSchedule(SunPhenomena.LoadRoles(path));
 		GD.Print($"[SunTest] phenomena timeline: {_events.Count} events, {_spots.Count} spots");
 	}
 
 	private SunPalette BuildPalette()
 	{
+		if (MapStar)
+		{
+			// The reproduction of the map's own star: the palette comes from
+			// the map's palette owner, exactly as the strategic map plays it.
+			StarRadius = 4f; // Star.DefaultRadius 128 grid points * 1/32 world
+			return MapCelestialVisuals.BuildStarPalette(Mathf.RoundToInt(Seed * 7.0f), MapAtmosphereSettings.Default);
+		}
+
 		if (VisibleLightPalette)
 		{
 			return new SunPalette
@@ -345,10 +375,11 @@ public sealed partial class SunTestScene : Node3D
 	{
 		_star!.Position = Vector3.Zero;
 
-		// Pick the site with the largest height scale.
+		// Pick the site with the largest height scale among the casting
+		// office's holder pool (S2': four holders, one role at a time).
 		var bestSite = 0;
 		var bestScale = -1f;
-		for (var i = 0; i < 5; i++)
+		for (var i = 0; i < SunProminenceCasting.HolderCount; i++)
 		{
 			var h3 = SiteHash(i * 47.33f + Seed + 11.9f);
 			var scale = 0.45f + 0.85f * h3;
@@ -554,6 +585,30 @@ public sealed partial class SunTestScene : Node3D
 		GD.Print($"[SunTest] battle backdrop built, chamber radius {chamberRadius:0.0}");
 	}
 
+	private void BuildMapStarScene()
+	{
+		// The star map's opening pose (MapCinematicFraming): behind the focal
+		// point looking out so the frame faces the star — the S3 presence
+		// framing — at the map cinematic distance of 6 world units over a
+		// pivot where the player sits, with a second wide quick check view.
+		var starDistance = CameraDistance * StarRadius;
+		var camera = new Camera3D
+		{
+			Name = "Camera",
+			Position = new Vector3(0f, starDistance * 0.34f, starDistance * 0.98f),
+			Fov = 34f, // the map camera's own field of view
+			Far = 400f,
+			Current = true,
+		};
+		AddChild(camera);
+		camera.LookAt(Vector3.Zero, Vector3.Up);
+		if (!NoGlare)
+		{
+			AddGlare();
+		}
+		GD.Print($"[SunTest] map-star reproduction: radius {StarRadius:0.00} world, camera {starDistance:0.00} out");
+	}
+
 	private void AddGlare()
 	{
 		// The reference frames are spacecraft images: no lens flare, no
@@ -575,7 +630,7 @@ public sealed partial class SunTestScene : Node3D
 		{
 			var time = (Time.GetTicksMsec() - _timelineOrigin) / 1000f;
 			SunPhenomena.Evaluate(_events, _spots, time, _phenomena);
-			SunVisual.UpdatePhenomena(_phenomena);
+			SunVisual.UpdatePhenomena(_phenomena, time);
 		}
 
 		if (Spin && _star is not null)
@@ -620,6 +675,14 @@ public sealed partial class SunTestScene : Node3D
 			else if (argument == "--presence")
 			{
 				PresenceTest = true;
+			}
+			else if (argument == "--mapstar")
+			{
+				MapStar = true;
+			}
+			else if (argument == "--noglare")
+			{
+				NoGlare = true;
 			}
 			else if (argument == "--closeup")
 			{

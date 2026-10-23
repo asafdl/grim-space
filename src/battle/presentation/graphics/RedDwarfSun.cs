@@ -91,7 +91,6 @@ public static class RedDwarfSun
 			PlageStrength = 0.45f,
 			RimColor = new Color(1.00f, 0.32f, 0.10f),
 			RimStrength = 0.18f,
-			ProminenceCount = 4f,
 			ProminenceHeight = 0.16f,
 			ProminenceStrength = 0.20f,
 			CoronaStrength = 0.09f,

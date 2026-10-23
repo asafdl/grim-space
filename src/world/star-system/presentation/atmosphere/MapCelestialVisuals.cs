@@ -33,32 +33,45 @@ public static class MapCelestialVisuals
 		new(0.66f, 0.62f, 0.56f),
 	];
 
-	public static void AddStar(
+	public static Node3D AddStar(
 		Node3D root,
 		int seed,
 		int gridRadius,
 		MapAtmosphereSettings settings)
 	{
 		var visualRadius = gridRadius * MapMapping.WorldUnitsPerPoint;
-		var palette = new SunPalette
+		var star = SunVisual.Create(visualRadius, BuildStarPalette(seed, settings));
+		root.AddChild(star);
+		MapCameraOcclusion.AddSphere(root, visualRadius);
+		return star;
+	}
+
+	/// <summary>
+	/// The strategic map star's palette, the owner of the map's tuning of the
+	/// shared sun shader.  The disc ENERGY is the measured/ratified sun_test
+	/// value — the old in-map overburn (0.5 + 0.25*SunGlow ≈ 0.70, over twice
+	/// the ratified 0.26) made the disc read as an odd blown-out ball.  At map
+	/// viewing distances the granulation is kept coarse enough not to alias,
+	/// and the corona's radial strands are dialled down so their spike
+	/// structure does not read as a fan of fake "light rays".  The prominence
+	/// role is cast by SunProminenceCasting (one loop at a time); the palette
+	/// no longer counts sites.
+	/// </summary>
+	internal static SunPalette BuildStarPalette(int seed, MapAtmosphereSettings settings) =>
+		new()
 		{
-			// The strategic map star is a background element that is usually
-			// only a few dozen pixels across, so the granulation is kept coarse
-			// enough not to alias and the prominences are dialled down.
 			GranulationCells = 34f,
-			GranulationStrength = 0.55f,
+			GranulationStrength = 0.65f,
 			PlageCells = 6f,
 			PlageStrength = 0.45f,
-			ProminenceCount = 3f,
-			ProminenceHeight = 0.18f,
-			ProminenceStrength = 0.35f,
-			CoronaStrength = 0.10f,
-			EmissionStrength = 0.5f + settings.SunGlowEnergy * 0.25f,
+			ProminenceHeight = 0.20f,
+			ProminenceStrength = 1.10f,
+			CoronaStrength = 0.12f,
+			CoronaStreamerStrength = 0.34f,
+			CoronaHaloReach = 0.5f,
+			EmissionStrength = 0.26f + settings.SunGlowEnergy * 0.06f,
 			Seed = StableSeedMixer.From(seed).Add("map-star").Value % 997f,
 		};
-		root.AddChild(SunVisual.Create(visualRadius, palette));
-		MapCameraOcclusion.AddSphere(root, visualRadius);
-	}
 
 	public static void AddPlanet(
 		Node3D root,

@@ -43,6 +43,50 @@ public sealed class SunPhenomena
 	/// <summary>Loads the event timeline.  A missing file simply means no events.</summary>
 	public static Godot.Collections.Array LoadEvents(string path)
 	{
+		return LoadTimeline(path).Events;
+	}
+
+	private static (Godot.Collections.Array Events, Godot.Collections.Array Spots, float Duration) LoadTimeline(string path)
+	{
+		if (!Godot.FileAccess.FileExists(path))
+			return ([], [], 14f);
+		var text = Godot.FileAccess.GetFileAsString(path);
+		var parsed = Json.ParseString(text);
+		if (parsed.VariantType != Variant.Type.Dictionary)
+			return ([], [], 14f);
+		var dictionary = parsed.AsGodotDictionary();
+		return (
+			dictionary.ContainsKey("events") ? dictionary["events"].AsGodotArray() : [],
+			dictionary.ContainsKey("spots") ? dictionary["spots"].AsGodotArray() : [],
+			dictionary.ContainsKey("duration") ? dictionary["duration"].AsSingle() : 14f);
+	}
+
+	/// <summary>
+	/// Loads the persistent sunspot set (the "spots" array of the timeline).
+	/// </summary>
+	public static Godot.Collections.Array LoadSpots(string path)
+	{
+		return LoadTimeline(path).Spots;
+	}
+
+	/// <summary>
+	/// The timeline's full period in seconds — the loop length the star map
+	/// plays (and the rumble soundtrack's length), so the sun's picture and
+	/// sound stay event-synced (the S4 law).
+	/// </summary>
+	public static float ReadTimelineDuration(string path)
+	{
+		return LoadTimeline(path).Duration;
+	}
+
+	/// <summary>
+	/// Loads the timeline's prominence casting schedule — the
+	/// <c>prominence_roles</c> list the pipeline writes (make-sun-audio.py,
+	/// the mirror of the S2' roll law).  One loop at a time; each turn is one
+	/// rolled holder's birth...death window on the casting clock.
+	/// </summary>
+	public static List<(int Holder, float Start, float Death)> LoadRoles(string path)
+	{
 		if (!Godot.FileAccess.FileExists(path))
 			return [];
 		var text = Godot.FileAccess.GetFileAsString(path);
@@ -50,9 +94,21 @@ public sealed class SunPhenomena
 		if (parsed.VariantType != Variant.Type.Dictionary)
 			return [];
 		var dictionary = parsed.AsGodotDictionary();
-		if (!dictionary.ContainsKey("events"))
-			return [];
-		return dictionary["events"].AsGodotArray();
+		var roles = new List<(int Holder, float Start, float Death)>();
+		if (!dictionary.ContainsKey("prominence_roles"))
+			return roles;
+		foreach (var element in dictionary["prominence_roles"].AsGodotArray())
+		{
+			if (element.VariantType != Variant.Type.Dictionary)
+				continue;
+			var entry = element.AsGodotDictionary();
+			roles.Add((
+				entry["holder"].AsInt32(),
+				entry["start"].AsSingle(),
+				entry["death"].AsSingle()));
+		}
+
+		return roles;
 	}
 
 	/// <summary>

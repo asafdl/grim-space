@@ -31,16 +31,42 @@ public static class SunVisual
 	private static ShaderMaterial? _surfaceMaterial;
 	private static ShaderMaterial? _prominenceMaterial;
 
+	private static SunProminenceCasting.ProminenceTurn[]? _prominenceSchedule;
+
+	/// <summary>
+	/// Installs the timeline's prominence casting schedule
+	/// (<c>sun_events.json</c>'s <c>prominence_roles</c>, the pipeline's
+	/// authority).  While set, <see cref="UpdatePhenomena"/> drives the
+	/// shader's one role from it; consumers without a schedule leave the
+	/// material's role uniforms at their defaults, which the shader reads as
+	/// self-drive (the same one-role law, cycle-internal).
+	/// </summary>
+	public static void SetProminenceSchedule(IEnumerable<(int Holder, float Start, float Death)> turns)
+	{
+		_prominenceSchedule = [.. turns
+			.OrderBy(turn => turn.Start)
+			.Select(turn => new SunProminenceCasting.ProminenceTurn(turn.Holder, turn.Start, turn.Death))];
+	}
+
 	/// <summary>
 	/// Pushes the current state of the transient phenomena (sunspots, flare,
-	/// coronal rain, CME) into the star's materials.
+	/// coronal rain, CME) into the star's materials, plus the current
+	/// prominence role from the casting office — one loop at a time, by the
+	/// timeline's seeded roll (<see cref="SunProminenceCasting"/>) — at the
+	/// star's own casting clock <paramref name="promotionTime"/>, in seconds.
 	/// </summary>
-	public static void UpdatePhenomena(SunPhenomena phenomena)
+	public static void UpdatePhenomena(SunPhenomena phenomena, float promotionTime)
 	{
 		if (_surfaceMaterial is not null)
 		{
 			_surfaceMaterial.SetShaderParameter("spots", phenomena.Spots);
 			_surfaceMaterial.SetShaderParameter("flare_data", phenomena.Flare);
+		}
+		if (_prominenceMaterial is not null && _prominenceSchedule is not null)
+		{
+			var (holder, gain) = SunProminenceCasting.Resolve(_prominenceSchedule, promotionTime);
+			_prominenceMaterial.SetShaderParameter("role_site", (float)holder);
+			_prominenceMaterial.SetShaderParameter("role_gain", gain);
 		}
 		if (_prominenceMaterial is not null)
 		{
@@ -141,7 +167,6 @@ public static class SunVisual
 		material.SetShaderParameter("footpoint_color", palette.FootpointColor);
 		material.SetShaderParameter("limb_ring_color", palette.LimbRingColor);
 		material.SetShaderParameter("brightness", palette.ProminenceStrength);
-		material.SetShaderParameter("site_count", Mathf.RoundToInt(palette.ProminenceCount));
 		material.SetShaderParameter("loop_height", palette.ProminenceHeight);
 		material.SetShaderParameter("seed", palette.Seed);
 		material.SetShaderParameter("sun_radius", radius);
@@ -149,6 +174,12 @@ public static class SunVisual
 		material.SetShaderParameter("debug_term", palette.ProminenceDebug);
 		material.SetShaderParameter("limb_ring_strength", palette.LimbRingStrength);
 		material.SetShaderParameter("spicule_haze", palette.SpiculeHaze);
+		// Role defaults: negative = self-drive.  The shader then runs the same
+		// one-role law cycle-internally (a seeded roll of 0..3 done in-shader);
+		// a consumer that installs the timeline's casting schedule drives the
+		// role per frame instead (see SetProminenceSchedule).
+		material.SetShaderParameter("role_site", -1f);
+		material.SetShaderParameter("role_gain", -1f);
 		_prominenceMaterial = material;
 
 		return CreateBillboardQuad(
@@ -168,6 +199,8 @@ public static class SunVisual
 		material.SetShaderParameter("inner_color", palette.InnerCoronaColor);
 		material.SetShaderParameter("brightness", palette.CoronaStrength);
 		material.SetShaderParameter("inner_brightness", palette.InnerCoronaStrength);
+		material.SetShaderParameter("streamer_strength", palette.CoronaStreamerStrength);
+		material.SetShaderParameter("halo_reach", palette.CoronaHaloReach);
 		material.SetShaderParameter("seed", palette.Seed);
 		material.SetShaderParameter("sun_radius", radius);
 		material.SetShaderParameter("shell_radius", radius * palette.CoronaShellRadius);

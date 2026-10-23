@@ -28,6 +28,11 @@ uniform vec3 inner_color : source_color = vec3(1.00, 0.62, 0.30);
 uniform float brightness : hint_range(0.0, 3.0) = 0.40;
 uniform float inner_brightness : hint_range(0.0, 3.0) = 0.20;
 uniform float falloff : hint_range(0.01, 1.0) = 0.18;
+// The halo's reach: how far the polynomial corona tail runs.  The
+// SOHO-designed default spans (shell_radius-1); distant views of a star -
+// like the strategic map - pull it in so the glow hugs the limb instead of
+// reading as a brown ball with an edge.
+uniform float halo_reach : hint_range(0.1, 4.0) = 1.2;
 uniform float streamer_density : hint_range(1.0, 80.0) = 24.0;
 uniform float streamer_strength : hint_range(0.0, 2.0) = 0.85;
 uniform float helmet_strength : hint_range(0.0, 2.0) = 0.65;
@@ -131,15 +136,25 @@ void fragment() {
 	// Both terms are at their maximum at dist = 0, so there is no dip between
 	// the surface and the corona and no interior ring.
 	float core = exp(-dist / max(falloff, 0.001));
-	float halo = pow(clamp(1.0 - dist / max(shell_radius - 1.0, 0.001), 0.0, 1.0), 2.0);
+	float halo = pow(clamp(1.0 - dist / max(halo_reach, 0.001), 0.0, 1.0), 2.0);
 	float outside = step(1.0, r);
+	// The shell must dissolve before its own silhouette: at exponential-tail
+	// brightness the last fraction of the shell sits under the dither noise,
+	// and where the mesh ends the dither abruptly does not — that reads as a
+	// bright hard ring at the shell edge on dark backdrops (the S1b verdict).
+	// A short fade takes the profile to a true 0 well before the silhouette.
+	float edge = clamp((shell_radius - r) / 0.25, 0.0, 1.0);
 
 	// A last, sub-quantisation dither so the smooth parts of the corona do not
 	// band on an 8 bit target.
 	float quantisation = (vnoise(vec3(SCREEN_UV * VIEWPORT_SIZE * 0.5, 0.0)) - 0.5) * 0.006;
 
 	vec3 col = (inner_color * (core * inner_brightness)
-		+ corona_color * (halo * brightness)) * shell * outside + quantisation;
+		+ corona_color * (halo * brightness)) * shell * outside * edge;
+	// The dither fades with the shell too: left whole-field it would stop at
+	// the silhouette, and a quantisation step that abrupt reads as the same
+	// hard edge the fade is there to prevent.
+	col += quantisation * outside * edge;
 
 	ALBEDO = col;
 	ALPHA = clamp(max(max(col.r, col.g), col.b), 0.0, 1.0);

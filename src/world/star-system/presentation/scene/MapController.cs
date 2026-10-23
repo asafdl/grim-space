@@ -4,6 +4,7 @@ using GrimSpace.Components;
 using GrimSpace.Core.Actions;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
+using GrimSpace.Presentation.Graphics;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Tutorials;
@@ -32,6 +33,18 @@ public partial class MapController : Node3D
 	private static readonly float[] SpeedOptions = [1f, 2f, 4f];
 
 	private MapView _view = null!;
+
+	// The sun pipeline (S4): the star's event timeline + soundtrack.  The
+	// clock that drives the shader phenomena is read straight off the audio
+	// player's playback position, so picture and sound cannot drift apart.
+	private const string SunEventsPath = "res://assets/data/sun_events.json";
+	private const string SunRumblePath = "res://dist/sun_rumble_map.wav";
+	private Godot.Collections.Array _sunEvents = [];
+	private Godot.Collections.Array _sunSpots = [];
+	private float _sunDuration = 14f;
+	private SunPhenomena _sunPhenomena = new();
+	private AudioStreamPlayer? _sunAudio;
+	private float _sunClock;
 	private NavigationLandmarksView _landmarks = null!;
 	private WreckageView _wreckage = null!;
 	private RoutesView _routes = null!;
@@ -199,6 +212,48 @@ public partial class MapController : Node3D
 		_course.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
 
+		// S3 presence: the opening mode's bootstrap must face the star, so the
+		// viewer understands he is looking at the sun; and the glare overlay
+		// (the halo, the burn-in and the squint) follows the star every frame.
+		var starVisual = _view.StarVisual;
+		if (starVisual is not null)
+		{
+			var glare = SunVisual.CreateGlareOverlay(starVisual, MapMapping.ToWorldRadius(star.Radius));
+			glare.Intensity = 0.55f;          // modest: the map is a strategic view, not the sun_test closeup
+			glare.StreakAmount = 0.10f;       // a quiet anamorphic line, not a laser
+			glare.Breathe = 0.05f;
+			glare.Chromatic = 0.22f;
+			AddChild(glare);
+		}
+
+		// S4: the star's sound rides its own bus (which sends on to Master,
+		// so the existing mute path governs it), and the clock that drives
+		// the sun's timeline is read from the audio itself — the pipeline's
+		// rumble loop — so picture and sound stay in sync.
+		if (ResourceLoader.Exists(SunRumblePath))
+		{
+			_sunAudio = new AudioStreamPlayer
+			{
+				Bus = AudioBuses.SunAmbience,
+				VolumeDb = -8f, // modest gain
+				Stream = GD.Load<AudioStream>(SunRumblePath),
+			};
+			// The map plays the timeline as one looped piece: when the wav's
+			// end is reached the player restarts and the position the clock
+			// reads from wraps with it — no drift, ever.
+			_sunAudio.Finished += () => _sunAudio!.Play();
+			AddChild(_sunAudio);
+			_sunAudio.Play();
+		}
+		else
+		{
+			GD.PushWarning("[MapController] sun rumble not built yet (scripts/make-sun-audio.py): the timeline falls back to the frame clock.");
+		}
+		_sunEvents = SunPhenomena.LoadEvents(SunEventsPath);
+		_sunSpots = SunPhenomena.LoadSpots(SunEventsPath);
+		_sunDuration = SunPhenomena.ReadTimelineDuration(SunEventsPath);
+		SunVisual.SetProminenceSchedule(SunPhenomena.LoadRoles(SunEventsPath));
+
 		var fadeOverlay = GetNode<ColorRect>("UI/FadeOverlay");
 		var presentationContext = new MapPresentationContext
 		{
@@ -206,6 +261,7 @@ public partial class MapController : Node3D
 			ResolvePlayerTravelSample = ResolvePlayerTravelSample,
 			ResolveDockedPoiId = () => ResolveDockedPoiId(_orchestrator.Map),
 			CanAccessFacilities = () => !IsBlockingModalOpen(),
+			StarWorldPosition = () => MapMapping.ToWorld(star.PlacedCenter, world.Width, world.Height),
 			ViewportSize = () =>
 			{
 				var size = GetViewport().GetVisibleRect().Size;
@@ -324,6 +380,23 @@ public partial class MapController : Node3D
 	public override void _Process(double delta)
 	{
 		_view.SetCameraDistance(_camera.Distance);
+
+		// The sun's phenomena ride the audio clock when the rumble is playing
+		// (the timeline and the soundtrack share the period, so they stay
+		// event-synced with no drift); without the rumble, the frame clock
+		// keeps the timeline alive.
+		float timelineTime;
+		if (_sunAudio is not null)
+		{
+			timelineTime = (float)_sunAudio.GetPlaybackPosition() % Mathf.Max(_sunDuration, 0.01f);
+		}
+		else
+		{
+			_sunClock += (float)delta;
+			timelineTime = _sunClock % Mathf.Max(_sunDuration, 0.01f);
+		}
+		SunPhenomena.Evaluate(_sunEvents, _sunSpots, timelineTime, _sunPhenomena);
+		SunVisual.UpdatePhenomena(_sunPhenomena, timelineTime);
 
 		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);

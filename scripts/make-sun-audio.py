@@ -23,11 +23,25 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DURATION = 12.0
 SAMPLE_RATE = 48000
 SEED = 4.37
-ERUPT_PERIOD = 13.0
-SITE_COUNT = 5
 
-# The shader's site hash and eruption envelope, replicated so the sound
-# breathes with the prominences.
+# THE ONE ROLE (the S2' law): mirrored from SunProminenceCasting.cs so the
+# sound breathes with the same seed roll the renderer draws.  Every birth
+# rolls 0..3 weighted toward 1; the rolled holder owns its start and death
+# times; the envelope dissolves in and, reversed, dies at exactly 0; gaps
+# between turns are legal.  The first turns are written into the timeline
+# (assets/data/sun_events.json, "prominence_roles") for audit.
+ROLL_WEIGHTS = [0.26, 0.44, 0.18, 0.12]
+HOLDERS = [
+    (1.00, 5.0, 7.0),
+    (1.42, 8.0, 11.0),
+    (0.72, 3.8, 5.2),
+    (0.58, 2.8, 4.0),
+]
+MIN_GAP = 0.6
+MAX_GAP = 2.6
+DISSOLVE_FRACTION = 0.14
+
+
 def hash11(n):
     return (math.sin(n * 127.1 + 311.7) * 43758.5453123) % 1.0
 
@@ -37,15 +51,59 @@ def smoothstep(a, b, x):
     return t * t * (3.0 - 2.0 * t)
 
 
-def eruption_envelope(t):
-    total = 0.0
-    for i in range(SITE_COUNT):
-        h1 = hash11(i * 17.13 + SEED)
-        h2 = hash11(i * 31.71 + SEED + 5.3)
-        ph = (t / ERUPT_PERIOD + h2) % 1.0
-        env = smoothstep(0.0, 0.16, ph) * (1.0 - smoothstep(0.42, 0.92, ph))
-        total += env * (0.45 + 0.85 * hash11(i * 47.33 + SEED + 11.9))
-    return min(total / SITE_COUNT, 1.0)
+def roll_holder(turn):
+    roll = hash11(SEED * 13.77 + turn * 7.31 + 91.3)
+    cumulative = 0.0
+    for holder, weight in enumerate(ROLL_WEIGHTS):
+        cumulative += weight
+        if roll < cumulative:
+            return holder
+    return len(ROLL_WEIGHTS) - 1
+
+
+def holder_life(holder, turn):
+    low, high = HOLDERS[holder][1], HOLDERS[holder][2]
+    return low + (high - low) * hash11(SEED * 5.19 + turn * 3.71 + holder * 11.77)
+
+
+def gap_after(turn):
+    return MIN_GAP + (MAX_GAP - MIN_GAP) * hash11(SEED * 8.41 + turn * 2.17)
+
+
+def dissolve(u):
+    u = max(0.0, min(1.0, u))
+    rise = max(0.0, min(1.0, u / DISSOLVE_FRACTION))
+    decay = max(0.0, min(1.0, (1.0 - u) / DISSOLVE_FRACTION))
+    return smoothstep(0, 1, rise) * smoothstep(0, 1, decay)
+
+
+def casting_schedule():
+    start = 0.0
+    turns = []
+    for turn in range(24):
+        holder = roll_holder(turn)
+        life = holder_life(holder, turn)
+        turns.append({"turn": turn, "holder": holder,
+                      "start": round(start, 3), "death": round(start + life, 3)})
+        start += life + gap_after(turn)
+    return turns
+
+
+def role_gain(t):
+    """The live envelope at t seconds — the mirror of SunProminenceCasting.Resolve."""
+    start = 0.0
+    for turn in range(64):
+        holder = roll_holder(turn)
+        life = holder_life(holder, turn)
+        death = start + life
+        if t < death:
+            return HOLDERS[holder][0] * dissolve((t - start) / life)
+        start = death
+        gap = gap_after(turn)
+        if t < start + gap:
+            return 0.0
+        start += gap
+    return 0.0
 
 
 EVENTS = [
@@ -75,8 +133,14 @@ def write_timeline():
     with open(path, 'w', encoding='utf-8') as handle:
         json.dump({
             "duration": DURATION,
-            "erupt_period": ERUPT_PERIOD,
             "seed": SEED,
+            "prominence_roll": {
+                "weights": ROLL_WEIGHTS,
+                "holders": HOLDERS,
+                "gap_range": [MIN_GAP, MAX_GAP],
+                "mirror": "SunProminenceCasting.cs",
+            },
+            "prominence_roles": casting_schedule(),
             "spots": SPOTS,
             "events": EVENTS,
         }, handle, indent=1)
@@ -120,10 +184,11 @@ def synth():
     sparse = noise * (np.abs(noise) > 1.55)
     crackle = bandpass(sparse, 900.0, 7000.0) * 22.0
 
-    # The crackle density follows the prominence activity, so the surface
-    # sounds busier when a loop is up.
-    activity = np.array([eruption_envelope(x) for x in t])
-    activity = 0.35 + 0.85 * activity
+    # The crackle density follows the ONE prominence role's live envelope, so
+    # the surface sounds busier when the rolled loop is up and falls quiet in
+    # the all-quiet gaps.
+    activity = np.array([role_gain(x) for x in t])
+    activity = 0.30 + 0.80 * np.minimum(activity, 1.42)
     crackle *= activity
 
     # --- the event pressure swells ----------------------------------------
@@ -152,6 +217,13 @@ def synth():
             sting += bandpass(drops, 1200.0, 9000.0) * 0.7 * 6.0
 
     mix = hum * 0.55 + crackle * 0.32 + swell * 0.42 + sting * 0.30
+    # No clicks: the map loops this soundtrack, so the seam gets a short
+    # equal fade at both ends (an amplitude step is what clicks — a fade
+    # dips to silence instead).
+    seam = int(0.012 * SAMPLE_RATE)
+    ramp = np.linspace(0.0, 1.0, seam)
+    mix[:seam] *= ramp
+    mix[-seam:] *= ramp[::-1]
     peak = float(np.max(np.abs(mix)))
     if peak > 0:
         mix = mix / peak * 0.85

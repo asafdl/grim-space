@@ -1,7 +1,187 @@
 {
  "duration": 14.0,
- "erupt_period": 13.0,
  "seed": 4.37,
+ "prominence_roll": {
+  "weights": [
+   0.26,
+   0.44,
+   0.18,
+   0.12
+  ],
+  "holders": [
+   [
+    1.0,
+    5.0,
+    7.0
+   ],
+   [
+    1.42,
+    8.0,
+    11.0
+   ],
+   [
+    0.72,
+    3.8,
+    5.2
+   ],
+   [
+    0.58,
+    2.8,
+    4.0
+   ]
+  ],
+  "gap_range": [
+   0.6,
+   2.6
+  ],
+  "mirror": "SunProminenceCasting.cs"
+ },
+ "prominence_roles": [
+  {
+   "turn": 0,
+   "holder": 1,
+   "start": 0.0,
+   "death": 8.846
+  },
+  {
+   "turn": 1,
+   "holder": 1,
+   "start": 10.67,
+   "death": 18.726
+  },
+  {
+   "turn": 2,
+   "holder": 1,
+   "start": 19.447,
+   "death": 29.986
+  },
+  {
+   "turn": 3,
+   "holder": 1,
+   "start": 30.906,
+   "death": 40.982
+  },
+  {
+   "turn": 4,
+   "holder": 0,
+   "start": 42.019,
+   "death": 48.198
+  },
+  {
+   "turn": 5,
+   "holder": 0,
+   "start": 50.416,
+   "death": 57.155
+  },
+  {
+   "turn": 6,
+   "holder": 2,
+   "start": 59.468,
+   "death": 64.133
+  },
+  {
+   "turn": 7,
+   "holder": 3,
+   "start": 66.067,
+   "death": 69.463
+  },
+  {
+   "turn": 8,
+   "holder": 1,
+   "start": 70.996,
+   "death": 79.092
+  },
+  {
+   "turn": 9,
+   "holder": 3,
+   "start": 81.622,
+   "death": 85.142
+  },
+  {
+   "turn": 10,
+   "holder": 0,
+   "start": 86.779,
+   "death": 92.119
+  },
+  {
+   "turn": 11,
+   "holder": 1,
+   "start": 93.408,
+   "death": 103.098
+  },
+  {
+   "turn": 12,
+   "holder": 3,
+   "start": 105.654,
+   "death": 108.708
+  },
+  {
+   "turn": 13,
+   "holder": 2,
+   "start": 110.212,
+   "death": 115.231
+  },
+  {
+   "turn": 14,
+   "holder": 2,
+   "start": 117.362,
+   "death": 122.115
+  },
+  {
+   "turn": 15,
+   "holder": 1,
+   "start": 124.387,
+   "death": 134.886
+  },
+  {
+   "turn": 16,
+   "holder": 1,
+   "start": 136.473,
+   "death": 146.332
+  },
+  {
+   "turn": 17,
+   "holder": 1,
+   "start": 147.624,
+   "death": 156.736
+  },
+  {
+   "turn": 18,
+   "holder": 0,
+   "start": 157.628,
+   "death": 162.832
+  },
+  {
+   "turn": 19,
+   "holder": 3,
+   "start": 164.006,
+   "death": 167.393
+  },
+  {
+   "turn": 20,
+   "holder": 1,
+   "start": 168.576,
+   "death": 178.909
+  },
+  {
+   "turn": 21,
+   "holder": 0,
+   "start": 179.913,
+   "death": 186.499
+  },
+  {
+   "turn": 22,
+   "holder": 1,
+   "start": 188.972,
+   "death": 197.595
+  },
+  {
+   "turn": 23,
+   "holder": 2,
+   "start": 199.667,
+   "death": 203.908
+  }
+ ],
  "spots": [
   {
    "dir": [

@@ -75,7 +75,10 @@ public sealed class CinematicPresentationMode : IPresentationMode
 		}
 
 		if (sourceModeId == string.Empty)
-			return MapCinematicFraming.BootstrapAtPlayer(ctx.ResolvePlayerTravelSample(), ModeLimits);
+			return MapCinematicFraming.OpenTowardStar(
+				ctx.ResolvePlayerTravelSample(),
+				ctx.StarWorldPosition(),
+				ModeLimits);
 
 		if (sourceModeId == FacadePresentationMode.ModeId)
 		{

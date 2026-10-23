@@ -731,3 +731,123 @@ the path that works here.
 No test was added for the shader itself.  Shaders are graphics, not logic;
 `AGENTS.md` is explicit that tests must not exercise the Godot framework, and
 the visual verification in this document is the equivalent coverage.
+
+## 6b addendum 5: THE STAR MAP'S SUN (S1..S4 FIXES, 2026-10-23)
+
+The star map's sun was judged live-broken by the user: "something is weird
+about the sun", "the disc reads off + the light 'rays' read wrong",
+"the prominence reads as threaded threads lit FROM the star" (it did not),
+"ONE prominence role at a time" (it did not obey), "the viewer must SEE that
+he is looking at the sun" (nothing responded), "the sun's sound" (there was
+none).  Root causes, each named after code + render evidence:
+
+| Gate | Root cause (one sentence) |
+|------|---------------------------|
+| S1 | `MapCelestialVisuals.AddStar` drove the ratified shader with a private palette whose disc energy (`0.5 + 0.25*SunGlow ≈ 0.70`) was 2.7x the measured sun_test value, burning the disc into an odd over-hot ball. |
+| S1b | The map star's corona ran at the full streamer/halo balance at map viewing distances, so the strand field aliased into a fan of fake "light rays" and the shell's silhouette cut the from-the-tail into a hard-edged ball; and the glare/dip overlay was never wired into the map at all. |
+| S2 | The prominence's brightness had no limb-proximity envelope and its fibril frequency was too low to read as threads at map scale, so the loop read as a flat wire with an isolated hot foot; the map's own lights could never well into it (all sun shaders are `unshaded` — verified, no regression needed there). |
+| S2' | 3-5 sites erupted on independent shader cycles, so several prominences were frequently alive at once with no quiet gaps; casting is now ONE role at a time. |
+| S3 | The map had no glare/dip overlay and its opening cinematic bootstrap faced the ship's travel direction, so nothing ever told the viewer he was looking at the sun; the overlay's squint law also carried a units defect (it multiplied the fractional radius back into pixels, saturating the squint at any resolution). |
+| S4 | The map had no audio and no timeline: the pipeline's `sun_events.json`/`make-sun-audio.py` rumble never reached an audio bus. |
+
+### S2'' — the ONE ROLE, generated where the pipeline owns it
+
+`scripts/make-sun-audio.py` now mirrors the S2' law: every birth performs one
+seeded roll of 0..3 (weights `[0.26, 0.44, 0.18, 0.12]`, biased toward
+holder 1, the heavyweight), the rolled holder takes the stage with its own
+start/death window (holder 1: gain 1.42, life 8-11 s; holder 0: 1.0,
+5-7 s; holders 2/3: 0.72/0.58, 3.8-5.2/2.8-4.0 s), then a seeded all-quiet
+gap (0.6-2.6 s).  The dissolve runs the same S-ramp in and (reversed) out,
+so every death lands at intensity exactly 0 — a true disappearance; the
+all-quiet gap between turns is legal and the shedule is written into
+`assets/data/sun_events.json` (`prominence_roles`, + `prominence_roll` spec)
+and into the rumble's boiling-crackle density, so the sound breathes with the
+same rolls.
+
+The renderer consumes that schedule data-driven (`SunProminenceCasting.Resolve`
+on `SunPhenomena.LoadRoles`, installed per scene by
+`SunVisual.SetProminenceSchedule`): a star whose casting is not driven
+per-frame (the battle sun) runs the same law cycle-internally in the shader
+(`role_gain < 0` self-drive branch: one roll of 0..3 per birth, weighted the
+same, dying exactly 0 with a quiet tail).  The shader's fixed `site_count`
+sites and its own 13 s erupt cycle are gone; `SunPalette.ProminenceCount` is
+removed everywhere (the law owns casting).
+
+### The disc and the corona (S1, S1b)
+
+Map palette rebased onto the measured/ratified values: `EmissionStrength
+= 0.26 + 0.06*SunGlow` (the disc is no longer over-burned), corona softened
+to map distances: `CoronaStrength 0.12`, `CoronaStreamerStrength 0.34` (new
+palette knob — the shader's own balance 0.85 stays for sun_test), and a new
+`CoronaHaloReach` knob (default 1.2 = the SPF's own polynomial ég; map uses
+0.5) so the glow hugs the limb instead of reading as a brown ball.  Two
+shader-law additions, both additive-only and shown not to regress the
+sun_test regime (check frame at the end of this section):
+
+* `sun_prominences.gdshader`: fibril frequency along the arc raised
+  (1.7 -> 5.0) and a height-facing energy term
+  (`light_facing = mix(0.55, 1.0, exp(-max(r-1,0)/0.075))`) shared by the
+  thread, curtain and feet, so the loop reads as threads lit FROM the star.
+  Rain is gated on a live role (no loop, no rain).
+* `sun_corona.gdshader`: the shell dissolves to a true 0 for the last 0.25 R
+  before its own silhouette (`edge`, applied to colour AND dither) — at
+  tail brightness the last shell ring sits under the dither noise and the
+  abrupt quantisation step read as a hard bright ring on dark backdrops.
+
+### Presence (S3) and sound (S4)
+
+* `MapController` now wires `SunVisual.CreateGlareOverlay(starVisual,
+  worldRadius)` with map-scaled parameters (intensity 0.55, streak 0.10,
+  breathe 0.05, chromatic 0.22) and `MapPresentationContext.StarWorldPosition`
+  feeds `MapCinematicFraming.OpenTowardStar`, which is the fresh
+  cinematic-map bootstrap: the camera sits behind the ship LOOKING toward
+  the star (same pose family and distance limits; the travel-direction
+  bootstrap stays as the degenerate fallback).  The overlay's squint law is
+  now fraction-of-frame based (the units fix), so a distant star squints
+  mildly and a disc-filling star squints hard.
+* The star's sound is the pipeline's own rumble (`dist/sun_rumble_map.wav`,
+  generated by the SAME script at 14 s) routed through the new `Sun` bus
+  (`default_bus_layout.tres`, sends to Master, so the existing mute path
+  governs it), on an `AudioStreamPlayer` in `MapController` at -8 dB.  The
+  timeline clock that drives the shader phenomena is read straight off the
+  player's playback position (looped `Finished -> Play`), so picture and
+  sound stay event-synced with no drift; the timeline wraps at the json's
+  `duration` (14 s) and both clocks wrap together.
+
+### Evidence (commands + sheets, all in refs/comparison/)
+
+Rendered with `scripts/render-sun.sh` (its leading `--import` re-imports the
+shaders — the cache law).  Command families:
+
+```
+bash scripts/render-sun.sh /tmp/opencode/mapstar_before.avi 360 --mapstar
+bash scripts/render-sun.sh /tmp/opencode/final_12r.avi 360 --mapstar
+bash scripts/render-sun.sh /tmp/opencode/final_closeup.avi 60 --mapstar --camdist=2.8
+bash scripts/render-sun.sh /tmp/opencode/final_suntest.avi 90
+```
+
+`SunTestScene` grew a `--mapstar` reproduction mode: it builds the star with
+`MapCelestialVisuals.BuildStarPalette` (the map's palette owner, made static)
+at the map star's world radius under a map-like camera, so the map's own
+tune is rendered, not re-described.  Sheets (frame extracts stacked with
+ffmpeg vstack/hstack):
+
+* `sheet_disc_before_after.png` — S1: disc energy before/after.
+* `sheet_rays_before_after.png` — S1b: the ray fan before/after corona balance.
+* `sheet_prominence_before_after.png` — S2: the loop's light from the limb.
+  (Disclosure for the audit: the before panel keeps the map's own disc/corona
+  values but the fix's prominence scale, so both panels show the loop; the
+  shipped map's prominence at 0.35 rendered the same structure dimmer.)
+* `sheet_casting_one_role_quiet.png` — S2': one loop live (t=5 s) beside the
+  all-quiet frame (t=10.2 s): the rolled holder died at exactly 0.  In the
+  12 s clip the rolls were holder 1 at t=0..8.85 (death exactly 0), gap
+  until 10.67, then holder 1's next turn: never two loops.
+* Audio: `ffprobe dist/sun_rumble_map.wav` -> 14.000 s, mono 48 kHz, pcm s16
+  (the map's loop length and the shader clock share it).
+
+Known unrelated-to-this-work: the direct test runner reports 2 pre-existing
+battle-fixture failures (`pilot-save-test` / `multi-pilot-test` — battles
+with zero enemy units), and the stored `cme_data` uniform is written by the
+timeline but the prominence shader fragment never consumed it even before
+this work (the CME is a schedule entry in the sound only).  Both left as
+they were found.

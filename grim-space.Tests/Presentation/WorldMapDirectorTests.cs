@@ -458,6 +458,7 @@ public sealed class WorldMapDirectorTests
 					TravelActive),
 				ResolveDockedPoiId = () => DockedPoiId,
 				CanAccessFacilities = () => CanAccessFacilities,
+				StarWorldPosition = () => Godot.Vector3.Zero,
 				ViewportSize = () => (1920f, 1080f),
 				Camera = null!,
 				ResolveCameraPose = () => new OrbitPose { Distance = 12f },

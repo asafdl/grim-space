@@ -24,8 +24,6 @@ uniform vec3 limb_ring_color : source_color = vec3(1.00, 0.20, 0.06);
 uniform float brightness : hint_range(0.0, 3.0) = 0.16;
 uniform float limb_ring_strength : hint_range(0.0, 2.0) = 0.12;
 uniform float spicule_haze : hint_range(0.0, 2.0) = 0.16;
-uniform int site_count : hint_range(0, 8) = 5;
-uniform float erupt_period : hint_range(1.0, 120.0) = 13.0;
 uniform float loop_height : hint_range(0.02, 0.70) = 0.20;
 uniform float loop_span : hint_range(0.05, 1.20) = 0.30;
 uniform float filament_width : hint_range(0.002, 0.08) = 0.014;
@@ -35,6 +33,14 @@ uniform float seed = 0.0;
 uniform float sun_radius = 1.0;
 uniform float quad_half_width = 2.0;
 uniform int debug_term = 0;
+
+// THE ONE ROLE (S2' law, user-ordered 2026-10-22): the casting office
+// (SunProminenceCasting.cs / make-sun-audio.py share the law) publishes the
+// seeded roll's holder index and its live envelope every frame.  There is
+// ONE prominence on the star at a time: gain 0 = all quiet; the envelope
+// reaches exactly 0 at each holder's death, so the loop truly disappears.
+uniform float role_site = 0.0;
+uniform float role_gain = 1.0;
 
 // Coronal rain: condensation blobs sliding back down the legs of a loop.
 uniform float rain_amount : hint_range(0.0, 2.0) = 0.0;
@@ -117,110 +123,130 @@ void fragment() {
 	float r = length(v_quad) / v_limb;
 	float theta = atan(v_quad.y, v_quad.x);
 
+	// ONE prominence: the rolled holder index, exactly as before, but pulled
+	// from the casting office's role rather than from a fixed site list.
+	// ONE prominence: the rolled holder index, exactly as before, but pulled
+	// from the casting office's role rather than from a fixed site list.
+	// When the office does not drive this star (role_gain < 0), the same
+	// one-role law runs cycle-internally: one seeded roll of 0..3 per birth
+	// (weighted toward 1), the holder's own envelope rising and hanging, then
+	// collapsing to exactly 0, with a quiet tail as the all-quiet gap.
+	float fi = clamp(role_site, 0.0, 3.0);
+	float env = role_gain;
+	if (role_gain < 0.0) {
+		float cycle = 13.0;
+		float birth = floor(TIME / cycle);
+		float cycle_u = fract(TIME / cycle);
+		env = smoothstep(0.0, 0.16, cycle_u) * (1.0 - smoothstep(0.42, 0.92, cycle_u));
+		float roll = hash11(birth * 13.77 + seed);
+		fi = roll < 0.26 ? 0.0 : (roll < 0.70 ? 1.0 : (roll < 0.88 ? 2.0 : 3.0));
+	}
+
+	float h1 = hash11(fi * 17.13 + seed);
+	float h2 = hash11(fi * 31.71 + seed + 5.3);
+	float h3 = hash11(fi * 47.33 + seed + 11.9);
+
+	float base_angle = h1 * SUN_TAU;
+	float phase = h2;
+	float height_scale = 0.45 + 0.85 * h3;
+	float span_scale = 0.55 + 0.80 * fract(h1 * 13.37 + h2);
+
+	// The life: owned by the casting office — start time, death time, the
+	// dissolve in and out (reversed at the death, ending exactly 0).
+
+	// S2: the loops must read lit FROM the star.  The plasma is brightest
+	// deep in the chromosphere at the limb and dims as the arc rises — a
+	// height-facing energy term shared by the thread, the curtain and the
+	// feet, floored at 0.55 so an erupting crown still glows.
+	float lift = exp(-max(r - 1.0, 0.0) / 0.075);
+	float light_facing = mix(0.55, 1.0, lift);
+
 	vec3 acc_filament = vec3(0.0);
 	vec3 acc_curtain = vec3(0.0);
 	vec3 acc_foot = vec3(0.0);
 
-	for (int i = 0; i < 8; i++) {
-		if (i >= site_count) {
-			break;
-		}
-		float fi = float(i);
-		float h1 = hash11(fi * 17.13 + seed);
-		float h2 = hash11(fi * 31.71 + seed + 5.3);
-		float h3 = hash11(fi * 47.33 + seed + 11.9);
-
-		float base_angle = h1 * SUN_TAU;
-		float phase = h2;
-		float height_scale = 0.45 + 0.85 * h3;
-		float span_scale = 0.55 + 0.80 * fract(h1 * 13.37 + h2);
-
-		// Erupt cycle: the loop rises, hangs, then collapses back onto the limb.
-		float ph = fract(TIME / erupt_period + phase);
-		float env = smoothstep(0.0, 0.16, ph) * (1.0 - smoothstep(0.42, 0.92, ph));
-		if (env <= 0.001) {
-			continue;
-		}
-
+	if (env > 0.001) {
 		float h = loop_height * height_scale * env;
 		float span = loop_span * span_scale;
 		float a = base_angle + sin(TIME * 0.06 + phase * SUN_TAU) * 0.03;
 
 		float dtheta = ang_diff(theta, a);
 		float u = dtheta / max(span, 0.001);
-		if (abs(u) > 1.4) {
-			continue;
-		}
 
-		// Every contribution of this site is windowed to zero well before the
+		// Every contribution of this role is windowed to zero well before the
 		// angular cut-off above.  Without this the cut-off itself shows up as
 		// a hard straight edge in the image.
-		float window = 1.0 - smoothstep(0.95, 1.38, abs(u));
+		if (abs(u) <= 1.4) {
+			float window = 1.0 - smoothstep(0.95, 1.38, abs(u));
 
-		// The loop itself: a semicircular arc whose top reaches h above the limb.
-		float s = sqrt(max(0.0, 1.0 - min(u * u, 1.0)));
-		float r_arc = 1.0 + h * s;
+			// The loop itself: a semicircular arc whose top reaches h above the limb.
+			float s = sqrt(max(0.0, 1.0 - min(u * u, 1.0)));
+			float r_arc = 1.0 + h * s;
 
-		// Loop-local coordinates for the turbulence field.  These stay in a
-		// small numeric range on purpose: a huge coordinate makes the lattice
-		// hash lose precision and the noise degenerates into flat slabs.
-		vec2 q = vec2(clamp(u, -1.4, 1.4) * 1.6, (r - 1.0) * 5.0);
-		vec2 flow = curl2(q * 2.2 + vec2(TIME * 0.13, TIME * 0.07) + fi * 7.31);
+			// Loop-local coordinates for the turbulence field.  These stay in a
+			// small numeric range on purpose: a huge coordinate makes the lattice
+			// hash lose precision and the noise degenerates into flat slabs.
+			vec2 q = vec2(clamp(u, -1.4, 1.4) * 1.6, (r - 1.0) * 5.0);
+			vec2 flow = curl2(q * 2.2 + vec2(TIME * 0.13, TIME * 0.07) + fi * 7.31);
 
-		float dr = r - r_arc;
-		dr += flow.x * curl_strength * 0.022;
-		float uw = u + flow.y * curl_strength * 0.10;
+			float dr = r - r_arc;
+			dr += flow.x * curl_strength * 0.022;
+			float uw = u + flow.y * curl_strength * 0.10;
 
-		// The arch must reach the limb, otherwise the loop reads as a wire
-		// floating in the halo.  It therefore survives almost to the feet; the
-		// window below is what takes it to zero.
-		float end_fade = 1.0 - smoothstep(0.95, 1.18, abs(uw));
+			// The arch must reach the limb, otherwise the loop reads as a wire
+			// floating in the halo.  It therefore survives almost to the feet; the
+			// window below is what takes it to zero.
+			float end_fade = 1.0 - smoothstep(0.95, 1.18, abs(uw));
 
-		// The filament is a bundle of thin threads, not a solid tube.  The
-		// noise is stretched ALONG the loop (low frequency in the along
-		// direction, high frequency across it) so the plasma breaks into
-		// parallel fibrils, and a slow braid slides them across each other.
-		float w = filament_width * (0.55 + 0.9 * (1.0 - s));
-		float tube = exp(-(dr * dr) / max(w * w, 1e-6));
-		float braid = sin(uw * 5.3 + TIME * 0.7 + fi * 2.1) * 0.32;
-		float across = (dr + braid * w) / max(w, 1e-6);
-		float fibre = vnoise(vec3(uw * 1.7, across * 2.7, TIME * 0.55 + fi * 5.1));
-		float fibres = 0.18 + 1.10 * smoothstep(0.28, 0.72, fibre);
-		float halo = exp(-abs(dr) / max(w * 2.0, 1e-6)) * 0.32;
-		float filament = (tube * fibres + halo) * env * end_fade * window;
+			// The filament is a bundle of thin threads, not a solid tube.  The
+			// noise is stretched ALONG the loop (low frequency in the along
+			// direction, high frequency across it) so the plasma breaks into
+			// parallel fibrils, and a slow braid slides them across each other.
+			float w = filament_width * (0.55 + 0.9 * (1.0 - s));
+			float tube = exp(-(dr * dr) / max(w * w, 1e-6));
+			float braid = sin(uw * 5.3 + TIME * 0.7 + fi * 2.1) * 0.32;
+			float across = (dr + braid * w) / max(w, 1e-6);
+			// The fibril frequency along the arc is what makes the bundle READ
+			// as threads instead of one smooth wire (S2).
+			float fibre = vnoise(vec3(uw * 5.0, across * 3.1, TIME * 0.55 + fi * 5.1));
+			float fibres = 0.18 + 1.10 * smoothstep(0.28, 0.72, fibre);
+			float halo = exp(-abs(dr) / max(w * 2.0, 1e-6)) * 0.32;
+			float filament = (tube * fibres + halo) * env * end_fade * window;
 
-		// Coronal rain: bright condensation blobs running back down the legs
-		// of the loop while the eruption is collapsing.
-		if (rain_amount > 0.0) {
-			float arc_len = span * 1.25;
-			float rain_phase = fract(TIME * 0.55 + fi * 0.37);
-			float along = uw * arc_len;
-			float rain_along = sign(uw) * (1.0 - rain_phase) * arc_len;
-			float rain_u = rain_along / max(arc_len, 0.001);
-			float rain_r = 1.0 + h * sqrt(max(0.0, 1.0 - min(rain_u * rain_u, 1.0)));
-			float rain_d = length(vec2(along - rain_along, (r - rain_r) * 3.4));
-			float rain = exp(-rain_d * rain_d * 70.0) * rain_amount;
-			filament += rain * 1.6;
+			// Coronal rain: bright condensation blobs running back down the legs
+			// of the loop while the eruption is collapsing.  Gated on a live
+			// role: rain over an all-quiet limb has no loop to fall from.
+			if (rain_amount > 0.0) {
+				float arc_len = span * 1.25;
+				float rain_phase = fract(TIME * 0.55 + fi * 0.37);
+				float along = uw * arc_len;
+				float rain_along = sign(uw) * (1.0 - rain_phase) * arc_len;
+				float rain_u = rain_along / max(arc_len, 0.001);
+				float rain_r = 1.0 + h * sqrt(max(0.0, 1.0 - min(rain_u * rain_u, 1.0)));
+				float rain_d = length(vec2(along - rain_along, (r - rain_r) * 3.4));
+				float rain = exp(-rain_d * rain_d * 70.0) * rain_amount;
+				filament += rain * 1.6;
+			}
+
+			// The curtain hangs under the arch and must not extend past its feet.
+			float inside = smoothstep(0.995, 1.02, r) * (1.0 - smoothstep(r_arc - 0.015, r_arc, r));
+			inside *= 1.0 - smoothstep(0.62, 1.05, abs(uw));
+			float striation = vnoise(vec3(uw * 15.0, r * 2.4, TIME * 0.21 + fi * 3.7));
+			float curtain = inside * curtain_strength * env * window
+				* smoothstep(0.45, 0.95, striation) * (0.20 + 0.80 * s);
+
+			// Plage: the bright chromospheric footpoints at both ends of the loop.
+			// NOTE: GLSL's pow() is undefined for a negative base, so the squares
+			// are written out explicitly.
+			float feet_axis = (abs(uw) - 1.0) / 0.22;
+			float feet = exp(-feet_axis * feet_axis);
+			float ring_axis = (r - 1.015) / 0.055;
+			float foot = exp(-ring_axis * ring_axis) * feet * env * window;
+
+			acc_filament = prominence_color * filament * brightness * light_facing;
+			acc_curtain = prominence_color * curtain * 0.55 * brightness * light_facing;
+			acc_foot = footpoint_color * foot * brightness * light_facing;
 		}
-
-		// The curtain hangs under the arch and must not extend past its feet.
-		float inside = smoothstep(0.995, 1.02, r) * (1.0 - smoothstep(r_arc - 0.015, r_arc, r));
-		inside *= 1.0 - smoothstep(0.62, 1.05, abs(uw));
-		float striation = vnoise(vec3(uw * 15.0, r * 2.4, TIME * 0.21 + fi * 3.7));
-		float curtain = inside * curtain_strength * env * window
-			* smoothstep(0.45, 0.95, striation) * (0.20 + 0.80 * s);
-
-		// Plage: the bright chromospheric footpoints at both ends of the loop.
-		// NOTE: GLSL's pow() is undefined for a negative base, so the squares
-		// are written out explicitly.
-		float feet_axis = (abs(uw) - 1.0) / 0.22;
-		float feet = exp(-feet_axis * feet_axis);
-		float ring_axis = (r - 1.015) / 0.055;
-		float foot = exp(-ring_axis * ring_axis) * feet * env * window;
-
-		acc_filament += prominence_color * filament * brightness;
-		acc_curtain += prominence_color * curtain * 0.55 * brightness;
-		acc_foot += footpoint_color * foot * brightness;
 	}
 
 	vec3 acc = acc_filament + acc_curtain + acc_foot;

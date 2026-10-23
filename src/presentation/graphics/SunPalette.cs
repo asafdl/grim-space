@@ -92,7 +92,6 @@ public sealed class SunPalette
 
 	/// <summary>Bright chromospheric rim right at the limb.</summary>
 	public Color RimColor { get; init; } = new(1.00f, 0.34f, 0.10f);
-
 	/// <summary>How strong the chromospheric rim is.</summary>
 	public float RimStrength { get; init; } = 0.22f;
 
@@ -120,9 +119,6 @@ public sealed class SunPalette
 	/// <summary>How strongly the granulation modulates brightness and hue.</summary>
 	public float GranulationStrength { get; init; } = 0.85f;
 
-	/// <summary>How many prominence sites are live at once.</summary>
-	public float ProminenceCount { get; init; } = 5f;
-
 	/// <summary>Peak prominence height above the limb, in solar radii.</summary>
 	public float ProminenceHeight { get; init; } = 0.20f;
 
@@ -131,6 +127,21 @@ public sealed class SunPalette
 
 	/// <summary>Overall corona brightness multiplier.</summary>
 	public float CoronaStrength { get; init; } = 0.40f;
+
+	/// <summary>
+	/// How strongly the corona's radial strand structure shows.  The shader's
+	/// own balance is 0.85 (the ratified sun_test look); distant views of a
+	/// star — like the strategic map — dial it down so the strands do not
+	/// alias into spikes that read as fake "light rays".
+	/// </summary>
+	public float CoronaStreamerStrength { get; init; } = 0.85f;
+
+	/// <summary>
+	/// How far the corona's polynomial halo tail runs past the limb, in
+	/// stellar radii (the shader's own balance: 1.2 = the full shell reach).
+	/// Distant views pull it in so the glow hugs the limb.
+	/// </summary>
+	public float CoronaHaloReach { get; init; } = 1.2f;
 
 	/// <summary>Width of the prominence billboard, in star radii.</summary>
 	public float ProminenceQuadWidth { get; init; } = 10f;

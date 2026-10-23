@@ -16,6 +16,13 @@ public sealed class MapPresentationContext
 	public required Func<PlayerTravelSample> ResolvePlayerTravelSample { get; init; }
 	public required Func<string?> ResolveDockedPoiId { get; init; }
 	public required Func<bool> CanAccessFacilities { get; init; }
+
+	/// <summary>
+	/// The star's world position, for the opening pose (S3 presence: the
+	/// star map's first frame faces the star) and anything that needs to
+	/// point at the sun.
+	/// </summary>
+	public required Func<Vector3> StarWorldPosition { get; init; }
 	public required Func<(float Width, float Height)> ViewportSize { get; init; }
 	public required MapCamera Camera { get; init; }
 	public required Func<OrbitPose> ResolveCameraPose { get; init; }

@@ -76,9 +76,12 @@ public sealed partial class SunGlareOverlay : CanvasLayer
 		var radius = radiusPixels / viewport.X;
 
 		// The squint: the more of the frame the star eats, the harder the eye
-		// has to work.
-		var apparent = radius * viewport.X;
-		var squint = Mathf.Clamp((apparent - 0.05f) * 1.1f, 0f, 0.26f);
+		// has to work.  `radius` is the star's apparent radius as a fraction
+		// of the frame width — the threshold law is written in that fraction,
+		// so a distant star squints mildly and a disc-filling star squints
+		// hard, no matter the resolution.
+		var visibleRadius = radius * 0.5f; // radiusPixels is a diameter; the law speaks of the disc's radius
+		var squint = Mathf.Clamp((visibleRadius - 0.05f) * 1.1f, 0f, 0.26f);
 
 		var aspect = viewport.X / Mathf.Max(viewport.Y, 1f);
 		if (_glareMaterial is not null)

@@ -256,6 +256,7 @@ public sealed class WorldMapDirectorZoomTests
 				ResolvePlayerTravelSample = () => new PlayerTravelSample(default, null, false),
 				ResolveDockedPoiId = () => DockedPoiId,
 				CanAccessFacilities = () => CanAccessFacilities,
+				StarWorldPosition = () => Godot.Vector3.Zero,
 				ViewportSize = () => (1920f, 1080f),
 				Camera = null!,
 				ResolveCameraPose = () => new OrbitPose { Distance = CameraDistance },

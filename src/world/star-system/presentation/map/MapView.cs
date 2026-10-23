@@ -42,6 +42,13 @@ public partial class MapView : Node3D
 	private string? _hoveredId;
 	private float _animationTime;
 	private Node3D? _minorGridRoot;
+	/// <summary>
+	/// The node the star's visuals hang from — the target the glare overlay
+	/// (S3 presence) is centred on.  Set as a side effect while building the
+	/// markers, reset to null on every rebuild.
+	/// </summary>
+	public Node3D? StarVisual { get; private set; }
+
 	private MapAtmosphereSettings _atmosphere = MapAtmosphereSettings.Default;
 	private IReadOnlyList<PointOfInterest> _pois = [];
 	private IReadOnlyList<Dock> _docks = [];
@@ -161,6 +168,7 @@ public partial class MapView : Node3D
 		_minorGridRoot = null;
 		_pois = world.PointsOfInterest;
 		_docks = world.DocksById.Values.ToList();
+		StarVisual = null;
 		_docksByPoiId = world.DocksByPoiId;
 		_dockDisplayNames = world.PointsOfInterest.ToDictionary(
 			poi => poi.Id,
@@ -549,7 +557,7 @@ public partial class MapView : Node3D
 		switch (poi)
 		{
 			case Star star:
-				MapCelestialVisuals.AddStar(root, seed, star.Radius, _atmosphere);
+				StarVisual = MapCelestialVisuals.AddStar(root, seed, star.Radius, _atmosphere);
 				ringRadius = MapMapping.ToWorldRadius(star.Radius) * 1.25f;
 				break;
 			case Refinery:

@@ -17,6 +17,29 @@ public static class MapCinematicFraming
 		return BehindShip(sample.WorldPosition, direction, limits);
 	}
 
+	/// <summary>
+	/// The star map's OPENING pose (S3 presence law, "the viewer sees he is
+	/// looking at the sun"): on a fresh map the camera sits behind the ship
+	/// looking out directly toward the star, so the opening frame contains
+	/// the star and its glare reads as being in front of the viewer.  Same
+	/// pose family (BehindShip) and the same distance limits — minimum
+	/// intrusion; the travel-direction bootstrap stays as the fallback when
+	/// the ship sits at the star's centre.
+	/// </summary>
+	public static OrbitPose OpenTowardStar(
+		PlayerTravelSample sample,
+		Vector3 starWorld,
+		in OrbitLimits limits)
+	{
+		var towardStar = new Vector3(
+			starWorld.X - sample.WorldPosition.X,
+			0f,
+			starWorld.Z - sample.WorldPosition.Z);
+		if (towardStar.LengthSquared() < 0.001f)
+			return BootstrapAtPlayer(sample, limits);
+		return BehindShip(sample.WorldPosition, towardStar, limits);
+	}
+
 	public static OrbitPose BehindShip(
 		Vector3 playerWorld,
 		Vector3 travelDirection,
