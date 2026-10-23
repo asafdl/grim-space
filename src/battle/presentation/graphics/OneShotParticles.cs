@@ -24,6 +24,7 @@ internal static class OneShotParticles
 	private const double WreckageLifetimeSeconds = 8.0;
 	private const double WreckageFadeSeconds = 1.5;
 	private const string HitSparksPath = "res://assets/vfx/hit_sparks.tscn";
+	private const string HullHitSparksPath = "res://assets/vfx/hull_hit_sparks.tscn";
 	private const string ExplosionModelPath = "res://assets/vfx/sparksexplosion_clean.glb";
 	private const string SmokeTexturePath =
 		"res://assets/textures/particles/smoke_02.png";
@@ -39,17 +40,28 @@ internal static class OneShotParticles
 		"res://assets/models/wreck_debris_pack/severed_prow.glb",
 	];
 	private static PackedScene? _hitSparks;
+	private static PackedScene? _hullHitSparks;
 	private static PackedScene? _explosionModel;
 	private static Texture2D? _smokeTexture;
 	private static PackedScene? _boomText;
 	private static PackedScene[]? _wreckageModels;
 
 	public static void PlayHitSparks(Node parent, Vector3 localPosition)
-	{
-		_hitSparks ??= GD.Load<PackedScene>(HitSparksPath)
-			?? throw new InvalidOperationException($"Could not load hit sparks VFX '{HitSparksPath}'.");
+		=> PlaySparks(parent, localPosition, ref _hitSparks, HitSparksPath);
 
-		var particles = _hitSparks.Instantiate<GpuParticles3D>();
+	public static void PlayHullHitSparks(Node parent, Vector3 localPosition)
+		=> PlaySparks(parent, localPosition, ref _hullHitSparks, HullHitSparksPath);
+
+	private static void PlaySparks(
+		Node parent,
+		Vector3 localPosition,
+		ref PackedScene? packedScene,
+		string scenePath)
+	{
+		packedScene ??= GD.Load<PackedScene>(scenePath)
+			?? throw new InvalidOperationException($"Could not load hit sparks VFX '{scenePath}'.");
+
+		var particles = packedScene.Instantiate<GpuParticles3D>();
 		particles.Position = localPosition;
 		parent.AddChild(particles);
 		particles.Finished += particles.QueueFree;

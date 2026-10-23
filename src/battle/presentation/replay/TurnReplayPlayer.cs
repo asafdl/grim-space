@@ -286,11 +286,11 @@ public partial class TurnReplayPlayer : Node3D
 			view.Sync(state);
 		else
 			view.ShowPendingDeath(state);
-		if (impact.Cause == EImpactCause.LightningCannonBurst)
-			view.PlayLightningHitSparks();
-		else
-			view.PlayHitSparks();
-		view.PlayDamagePopup(impact.TotalDamage);
+		view.PlayImpactSparks(
+			impact.ShieldDamage,
+			impact.HullDamage,
+			lightning: impact.Cause == EImpactCause.LightningCannonBurst);
+		view.PlayDamagePopup(impact.ShieldDamage, impact.HullDamage);
 
 		var died = !state.IsAlive;
 		if (died)

@@ -829,7 +829,6 @@ public partial class BattleController : Node3D
 			_battleView.ApplyPlanningPreview(states, FrameColor);
 		else
 			_battleView.ApplyUnitStates(states, FrameColor);
-		_battleView.ApplyHitMarks(frame.ThreatenedUnitIds);
 	}
 
 	private Color ColorForFrameActor(PresentationFrame frame, string actorId) =>

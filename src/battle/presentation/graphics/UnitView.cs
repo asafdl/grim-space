@@ -8,16 +8,21 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class UnitView : Node3D
 {
+	private static readonly FontFile DamagePopupFont = GD.Load<FontFile>(
+		"res://assets/ui/fonts/AnakManja.ttf")
+		?? throw new InvalidOperationException("Could not load the damage popup font.");
+	private static readonly Color ShieldDamageColor = new(0.04f, 0.72f, 1f);
+	private static readonly Color HullDamageColor = new(1f, 0.06f, 0.015f);
 	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
 
 	private MeshInstance3D? _hull;
-	private MeshInstance3D? _hitMark;
+	private Node3D _visualRoot = null!;
 	private EType _type;
 	private readonly int[] _shieldPoints = new int[Faces.Length];
 	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
 	private Aabb _hullBounds;
-	private bool _hitMarked;
 	private Tween? _poseTween;
+	private Tween? _shakeTween;
 	private Color _bindColor = Colors.White;
 	private ShaderMaterial? _ghostMaterial;
 	private readonly Dictionary<GeometryInstance3D, ShaderMaterial> _moveGhostMaterials = [];
@@ -30,6 +35,8 @@ public partial class UnitView : Node3D
 	{
 		_poseTween?.Kill();
 		_poseTween = null;
+		_shakeTween?.Kill();
+		_shakeTween = null;
 		base._ExitTree();
 	}
 
@@ -39,6 +46,8 @@ public partial class UnitView : Node3D
 		_type = state.Type;
 		_bindColor = color;
 		Array.Fill(_shieldPoints, -1);
+		_visualRoot = new Node3D { Name = "VisualRoot" };
+		AddChild(_visualRoot);
 
 		if (state.Type == EType.VoidBomb)
 			BindVoidBomb();
@@ -273,36 +282,131 @@ public partial class UnitView : Node3D
 		}));
 	}
 
-	public void PlayHitSparks() =>
+	public void PlayHitSparks()
+	{
 		OneShotParticles.PlayHitSparks(this, Vector3.Zero);
+		PlayHitShake();
+	}
+
+	public void PlayImpactSparks(int shieldDamage, int hullDamage, bool lightning)
+	{
+		var hasShieldDamage = shieldDamage > 0;
+		var hasHullDamage = hullDamage > 0;
+		if (shieldDamage > 0)
+			OneShotParticles.PlayHitSparks(this, Vector3.Zero);
+		if (hullDamage > 0)
+			OneShotParticles.PlayHullHitSparks(this, Vector3.Zero);
+		if (lightning)
+			PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.LightningCannonHitPath);
+		if (hasShieldDamage || hasHullDamage)
+			PlayHitShake();
+	}
 
 	public void PlayLightningHitSparks()
 	{
-		PlayHitSparks();
-		PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.LightningCannonHitPath);
+		PlayImpactSparks(1, 0, lightning: true);
 	}
 
-	public void PlayDamagePopup(int damage)
+	private void PlayHitShake()
 	{
-		if (damage <= 0)
-			return;
+		_shakeTween?.Kill();
+		_visualRoot.Position = Vector3.Zero;
+		var strength = _type == EType.Carrier ? 0.18f : 0.12f;
+		_shakeTween = CreateTween();
+		_shakeTween.TweenProperty(
+			_visualRoot,
+			"position",
+			new Vector3(strength, 0f, 0f),
+			0.045)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.Out);
+		_shakeTween.TweenProperty(
+			_visualRoot,
+			"position",
+			new Vector3(-strength * 0.75f, 0f, 0f),
+			0.07)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.InOut);
+		_shakeTween.TweenProperty(
+			_visualRoot,
+			"position",
+			new Vector3(strength * 0.4f, 0f, 0f),
+			0.065)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.InOut);
+		_shakeTween.TweenProperty(
+			_visualRoot,
+			"position",
+			Vector3.Zero,
+			0.08)
+			.SetTrans(Tween.TransitionType.Sine)
+			.SetEase(Tween.EaseType.Out);
+	}
 
+	public void PlayDamagePopup(int shieldDamage, int hullDamage)
+	{
+		var hasShieldDamage = shieldDamage > 0;
+		var hasHullDamage = hullDamage > 0;
+		var splitPopups = hasShieldDamage && hasHullDamage;
+		if (hasShieldDamage)
+			AddDamagePopup(shieldDamage, ShieldDamageColor, splitPopups ? -0.62f : 0f);
+		if (hasHullDamage)
+			AddDamagePopup(hullDamage, HullDamageColor, splitPopups ? 0.62f : 0f);
+	}
+
+	private void AddDamagePopup(int damage, Color color, float horizontalOffset)
+	{
+		var tiltDirection = damage % 2 == 0 ? -1f : 1f;
+		var popup = new Node3D
+		{
+			Name = "DamagePopup",
+			Position = new Vector3(horizontalOffset, PopupLabelHeight(_type) + 0.45f, 0f),
+		};
 		var label = new Label3D
 		{
 			Text = $"-{damage}",
-			Position = new Vector3(0f, PopupLabelHeight(_type) + 0.45f, 0f),
+			Rotation = new Vector3(0f, 0f, tiltDirection * 0.16f),
+			Scale = Vector3.One * 0.78f,
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			FontSize = _type == EType.VoidBomb ? 44 : 56,
-			OutlineSize = 10,
-			Modulate = new Color(1f, 0.22f, 0.18f),
+			Font = DamagePopupFont,
+			FontSize = _type == EType.VoidBomb ? 104 : 132,
+			OutlineSize = 20,
+			Modulate = color,
+			OutlineModulate = new Color(0.025f, 0.035f, 0.075f),
 		};
-		AddChild(label);
-		PresentationTween.FloatAndFree(
-			this,
-			label,
-			new Vector3(0f, 0.75f, 0f),
-			0.55,
-			fadeDelay: 0.2);
+		AddChild(popup);
+		popup.AddChild(label);
+
+		var floatTween = CreateTween();
+		floatTween.TweenProperty(popup, "position", popup.Position + Vector3.Up * 0.9f, 1.35)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
+		floatTween.TweenCallback(Callable.From(popup.QueueFree));
+
+		var animationTween = CreateTween();
+		animationTween.SetParallel(true);
+		animationTween.TweenProperty(label, "scale", Vector3.One * 1.12f, 0.22)
+			.SetTrans(Tween.TransitionType.Back)
+			.SetEase(Tween.EaseType.Out);
+		animationTween.TweenProperty(label, "modulate", Colors.Transparent, 1.1)
+			.SetDelay(0.2)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.In);
+
+		var wobbleTween = CreateTween();
+		wobbleTween.TweenProperty(label, "position", new Vector3(0.85f, 0f, 0f), 0.05)
+			.SetTrans(Tween.TransitionType.Back)
+			.SetEase(Tween.EaseType.Out);
+		wobbleTween.TweenProperty(label, "position", new Vector3(-0.68f, 0f, 0f), 0.07);
+		wobbleTween.TweenProperty(label, "position", new Vector3(0.48f, 0f, 0f), 0.09);
+		wobbleTween.TweenProperty(label, "position", new Vector3(-0.3f, 0f, 0f), 0.11);
+		wobbleTween.TweenProperty(label, "position", new Vector3(0.15f, 0f, 0f), 0.13);
+		wobbleTween.TweenProperty(label, "position", Vector3.Zero, 0.18)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
+		wobbleTween.Parallel().TweenProperty(label, "rotation", Vector3.Zero, 0.55)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
 	}
 
 	public void PlayDeathExplosion()
@@ -339,39 +443,10 @@ public partial class UnitView : Node3D
 			PresentationSfx.ShipDeathPitchScale);
 	}
 
-	void HideHullForDeath()
-	{
-		foreach (var child in FindChildren("*", "GeometryInstance3D", true, false))
-		{
-			if (child is GeometryInstance3D visual)
-				visual.Visible = false;
-		}
-	}
+	void HideHullForDeath() => _visualRoot.Visible = false;
 
 	/// <summary>Shows a simulation-dead unit only until its replay death animation finishes.</summary>
 	public void ShowPendingDeath(State state) => Present(state, UnitVisualState.PendingDeath);
-
-	public void SetHitMarked(bool marked)
-	{
-		if (_hitMarked == marked && _hitMark is not null)
-			return;
-
-		_hitMarked = marked;
-		ApplyHitMarkVisual();
-	}
-
-	private void ApplyHitMarkVisual()
-	{
-		EnsureHitMark();
-		_hitMark!.Visible = _hitMarked;
-		if (!_hitMarked)
-			return;
-
-		_hitMark.Scale = Vector3.One;
-		var mat = (StandardMaterial3D)_hitMark.MaterialOverride!;
-		mat.EmissionEnergyMultiplier = 0.7f;
-		mat.AlbedoColor = new Color(1f, 0.28f, 0.22f, 0.28f);
-	}
 
 	private void ApplyPose(State state)
 	{
@@ -380,73 +455,40 @@ public partial class UnitView : Node3D
 		ApplyShields(state);
 	}
 
-	private void EnsureHitMark()
-	{
-		if (_hitMark is not null)
-			return;
-
-		var radius = _type switch
-		{
-			EType.VoidBomb => 0.45f,
-			EType.RepurposedMiner => 0.58f,
-			EType.Carrier => 1.15f,
-			_ => 0.95f,
-		};
-		_hitMark = new MeshInstance3D
-		{
-			Name = "HitMark",
-			Mesh = new SphereMesh { Radius = radius, Height = radius * 2f },
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			Visible = false,
-			MaterialOverride = new StandardMaterial3D
-			{
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-				AlbedoColor = new Color(1f, 0.28f, 0.22f, 0.28f),
-				EmissionEnabled = true,
-				Emission = new Color(1f, 0.2f, 0.15f),
-				EmissionEnergyMultiplier = 0.7f,
-				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-				DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-			},
-		};
-		PresentationLayers.MarkUx(_hitMark);
-		AddChild(_hitMark);
-	}
-
 	private void BindShip()
 	{
 		_hull = ShipMesh.CreateFighterHull();
-		AddChild(_hull);
+		_visualRoot.AddChild(_hull);
 	}
 
 	private void BindCarrier()
 	{
 		_hull = CarrierMesh.CreateHullInstance();
-		AddChild(_hull);
+		_visualRoot.AddChild(_hull);
 	}
 
 	private void BindGunship()
 	{
 		_hull = GunshipMesh.CreateHullInstance();
-		AddChild(_hull);
+		_visualRoot.AddChild(_hull);
 	}
 
 	private void BindIndustrialGooper()
 	{
 		_hull = IndustrialGooperMesh.CreateHullInstance();
-		AddChild(_hull);
+		_visualRoot.AddChild(_hull);
 	}
 
 	private void BindRepurposedMiner()
 	{
 		_hull = RepurposedMinerMesh.CreateHullInstance();
-		AddChild(_hull);
+		_visualRoot.AddChild(_hull);
 	}
 
 	private void BindVoidBomb()
 	{
 		_hull = VoidBombMesh.CreateHullInstance();
-		AddChild(_hull);
+		_visualRoot.AddChild(_hull);
 	}
 
 	private void BindShieldBubble(State state)
@@ -466,7 +508,7 @@ public partial class UnitView : Node3D
 			};
 			PresentationLayers.MarkUx(instance);
 			_shieldFaces[(int)face] = instance;
-			AddChild(instance);
+			_visualRoot.AddChild(instance);
 		}
 	}
 

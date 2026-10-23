@@ -59,9 +59,7 @@ public partial class BattleView : Node3D
 				Ensure(state, colorFor?.Invoke(unitId) ?? Colors.White);
 				view = _unitViews[unitId];
 			}
-
 			view.Sync(state);
-			view.SetHitMarked(false);
 		}
 
 		if (keep.Count == _unitViews.Count)
@@ -86,7 +84,6 @@ public partial class BattleView : Node3D
 			if (_unitViews.TryGetValue(unitId, out var view))
 			{
 				view.Present(state, UnitVisualState.Live);
-				view.SetHitMarked(false);
 				continue;
 			}
 
@@ -96,16 +93,9 @@ public partial class BattleView : Node3D
 			Ensure(state, colorFor?.Invoke(unitId) ?? Colors.White);
 			view = _unitViews[unitId];
 			view.Present(state, UnitVisualState.Live);
-			view.SetHitMarked(false);
 		}
 
 		foreach (var id in _unitViews.Keys.Where(id => !keep.Contains(id)).ToList())
 			Remove(id);
-	}
-
-	public void ApplyHitMarks(IReadOnlySet<string> threatenedUnitIds)
-	{
-		foreach (var (unitId, view) in _unitViews)
-			view.SetHitMarked(threatenedUnitIds.Contains(unitId));
 	}
 }
