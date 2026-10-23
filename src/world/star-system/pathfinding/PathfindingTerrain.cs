@@ -22,9 +22,15 @@ public sealed class PathfindingTerrain
 
 	public PathfindingCell CellAt(Coord coord) => this[coord.X, coord.Z];
 
+	public PathfindingCell CellAtIndex(int index) => _cells[index];
+
+	public bool IsTraversable(int x, int z) =>
+		(uint)x < (uint)Width
+		&& (uint)z < (uint)Height
+		&& !_cells[z * Width + x].Blocked;
+
 	public bool IsTraversable(Coord coord) =>
-		GridBounds.IsPointInRectangle(coord, Width, Height)
-		&& !CellAt(coord).Blocked;
+		IsTraversable(coord.X, coord.Z);
 
 	public Coord? NearestTraversable(Coord point)
 	{

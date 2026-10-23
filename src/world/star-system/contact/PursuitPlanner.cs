@@ -11,7 +11,7 @@ public sealed record PursuitCourse(Coord Destination, TransitPath Path);
 
 public sealed class PursuitPlanner
 {
-	private const int MaxInterceptSamples = 32;
+	private const int MaxInterceptSamples = 8;
 
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, ActorRuntime> _runtimeFor;
@@ -101,37 +101,74 @@ public sealed class PursuitPlanner
 		TransitCache.RebuildIfMissing(target, targetRuntime, _pathfinder);
 		if (target.State.Travel is not FleetTravel.Journey targetJourney
 			|| targetRuntime.CachedPath is not { } targetPath)
+		{
 			return FindCourse(origin, PursuitDestination(world, target, _runtimeFor));
+		}
 
 		var elapsed = world.Timeline.Clock.Current - targetJourney.StartTick;
 		var remaining = System.Math.Max(
 			0.0,
 			targetPath.TicksRequired(target.State.SpeedPerTick) - elapsed);
 		if (remaining <= 0.0)
+		{
 			return FindCourse(origin, targetJourney.Destination);
+		}
 
-		PursuitCourse? finalCourse = null;
 		var sampleCount = System.Math.Min(
 			MaxInterceptSamples,
 			System.Math.Max(1, (int)System.Math.Ceiling(remaining)));
 		var pursuitSpeedMultiplier = EngagementQueries.PursuitSpeedMultiplier(actor.State, intent);
+		var sampleCache = new Dictionary<int, (PursuitCourse? Course, double TravelTicks, double FutureTicks)>();
 
-		for (var sampleIndex = 1; sampleIndex <= sampleCount; sampleIndex++)
+		(PursuitCourse? Course, double TravelTicks, double FutureTicks) EvaluateSample(int sampleIndex)
 		{
+			if (sampleCache.TryGetValue(sampleIndex, out var cached))
+				return cached;
+
 			var futureTicks = remaining * sampleIndex / sampleCount;
 			var destination = targetPath
 				.SampleAtElapsed(elapsed + futureTicks, target.State.SpeedPerTick)
 				.Position;
 			var course = FindCourse(origin, destination);
-			if (course is null)
-				continue;
 
-			finalCourse = course;
-			var travelTicks = course.Path
-				.WithSpeedMultiplier(pursuitSpeedMultiplier)
-				.TicksRequired(actor.State.SpeedPerTick);
+			var travelTicks = course is null
+				? double.PositiveInfinity
+				: course.Path
+					.WithSpeedMultiplier(pursuitSpeedMultiplier)
+					.TicksRequired(actor.State.SpeedPerTick);
+			var evaluated = (course, travelTicks, futureTicks);
+			sampleCache[sampleIndex] = evaluated;
+			return evaluated;
+		}
+
+		var lo = 1;
+		var hi = sampleCount;
+		var firstFeasible = -1;
+		while (lo <= hi)
+		{
+			var mid = (lo + hi) / 2;
+			var (_, travelTicks, futureTicks) = EvaluateSample(mid);
 			if (travelTicks <= futureTicks)
-				return course;
+			{
+				firstFeasible = mid;
+				hi = mid - 1;
+			}
+			else
+				lo = mid + 1;
+		}
+
+		if (firstFeasible >= 0)
+			return sampleCache[firstFeasible].Course;
+
+		PursuitCourse? finalCourse = null;
+		for (var sampleIndex = sampleCount; sampleIndex >= 1; sampleIndex--)
+		{
+			var (course, _, _) = EvaluateSample(sampleIndex);
+			if (course is not null)
+			{
+				finalCourse = course;
+				break;
+			}
 		}
 
 		return finalCourse;

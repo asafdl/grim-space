@@ -19,6 +19,7 @@ public sealed class UserIntentTranslator
 	private readonly StarMapPlayerExecutionAgent? _playerAgent;
 	private readonly Func<Coord, Coord>? _resolveDestination;
 	private readonly Func<MapInteractiveTarget>? _resolveTarget;
+	private readonly Func<MapInteractiveTarget>? _resolveClickTarget;
 	private readonly string? _actorId;
 	private readonly IImmediateActionSink? _immediateActions;
 	private Vector2? _lmbPressPosition;
@@ -27,11 +28,13 @@ public sealed class UserIntentTranslator
 	public UserIntentTranslator(
 		StarMapPlayerExecutionAgent playerAgent,
 		Func<Coord, Coord>? resolveDestination,
-		Func<MapInteractiveTarget> resolveTarget)
+		Func<MapInteractiveTarget> resolveTarget,
+		Func<MapInteractiveTarget>? resolveClickTarget = null)
 	{
 		_playerAgent = playerAgent;
 		_resolveDestination = resolveDestination;
 		_resolveTarget = resolveTarget;
+		_resolveClickTarget = resolveClickTarget;
 	}
 
 	public UserIntentTranslator(string actorId, IImmediateActionSink immediateActions)
@@ -158,15 +161,17 @@ public sealed class UserIntentTranslator
 		}
 
 		_lmbPressPosition = null;
-		var target = _lmbPressUnit ?? resolveTarget();
+		var target = _lmbPressUnit
+			?? (_resolveClickTarget ?? resolveTarget)();
 		_lmbPressUnit = null;
 		var result = TryQueueIntent(target);
 		unreachable = result is CourseCommandResult.Unreachable;
 		return result is not CourseCommandResult.Ignored;
 	}
 
-	public CourseCommandResult TryQueueIntent(MapInteractiveTarget target) =>
-		target.Kind switch
+	public CourseCommandResult TryQueueIntent(MapInteractiveTarget target)
+	{
+		return target.Kind switch
 		{
 			MapInteractiveTargetKind.Unit when target.Unit is { } unit =>
 				PlayerAgent().TryQueuePursueFleet(unit.UnitId),
@@ -181,6 +186,7 @@ public sealed class UserIntentTranslator
 				PlayerAgent().TryQueueMove(_resolveDestination?.Invoke(pick) ?? pick),
 			_ => LogMovePickMissAndIgnore(),
 		};
+	}
 
 	private StarMapPlayerExecutionAgent PlayerAgent() =>
 		_playerAgent

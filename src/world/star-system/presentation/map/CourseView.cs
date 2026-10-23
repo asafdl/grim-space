@@ -26,6 +26,8 @@ public partial class CourseView : Node3D
 	private int _height;
 	private long _shownJourneyId;
 	private TransitPath? _shownPath;
+	private TransitPath? _activeRemainingPath;
+	private RouteSample _activeRemainingSample;
 
 	public void Build(StarMap world)
 	{
@@ -114,6 +116,7 @@ public partial class CourseView : Node3D
 		{
 			_shownJourneyId = 0;
 			_shownPath = path;
+			_activeRemainingPath = null;
 			_pathMesh.Mesh = BuildPathMesh(path);
 		}
 
@@ -129,7 +132,13 @@ public partial class CourseView : Node3D
 	{
 		_shownJourneyId = 0;
 		_shownPath = path;
-		_pathMesh.Mesh = BuildRemainingPathMesh(path, sample);
+		if (!ReferenceEquals(path, _activeRemainingPath) || _activeRemainingSample != sample)
+		{
+			_activeRemainingPath = path;
+			_activeRemainingSample = sample;
+			_pathMesh.Mesh = BuildRemainingPathMesh(path, sample);
+		}
+
 		_pathMesh.Visible = _pathMesh.Mesh is not null;
 		ShowDestinationRing(destination, unreachableFlash);
 	}
@@ -149,13 +158,15 @@ public partial class CourseView : Node3D
 	{
 		_shownJourneyId = 0;
 		_shownPath = null;
+		_activeRemainingPath = null;
 		_pathMesh.Visible = false;
 		_destinationRing.Visible = false;
 	}
 
 	private ImmediateMesh? BuildPathMesh(TransitPath path)
 	{
-		var points = RoundedTransitRoute.For(path).Points;
+		var route = RoundedTransitRoute.For(path);
+		var points = route.Points;
 		if (points.Count < 2)
 			return null;
 

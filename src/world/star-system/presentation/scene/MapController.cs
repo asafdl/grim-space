@@ -159,7 +159,8 @@ public partial class MapController : Node3D
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
 			ResolveMoveDestination,
-			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()));
+			() => ResolveInteractiveTarget(GetViewport().GetMousePosition()),
+			() => ResolveInteractiveTargetForClick(GetViewport().GetMousePosition()));
 		_timeControls.PausePressed += HandlePauseRequest;
 		_timeControls.SpeedPressed += CycleSpeed;
 		_pursuitChangedSubscription =
@@ -905,6 +906,23 @@ public partial class MapController : Node3D
 	{
 		var world = _orchestrator.Map;
 		var fraction = tickFraction ?? _tickAccumulator / SecondsPerTick;
+		return MapInteractivePick.Resolve(new MapInteractivePick.Context(
+			_camera,
+			screen,
+			MapPick.PickPoint(_camera, screen, world.Width, world.Height),
+			_orchestrator,
+			fraction,
+			_units,
+			_view,
+			_landmarks,
+			_wreckage,
+			IsPlayerFleetVisible));
+	}
+
+	private MapInteractiveTarget ResolveInteractiveTargetForClick(Vector2 screen)
+	{
+		var world = _orchestrator.Map;
+		var fraction = _tickAccumulator / SecondsPerTick;
 		return MapInteractivePick.Resolve(new MapInteractivePick.Context(
 			_camera,
 			screen,
