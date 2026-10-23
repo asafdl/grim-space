@@ -112,6 +112,9 @@ public sealed partial class SunTestScene : Node3D
 	private Godot.Collections.Array _spots = [];
 	private readonly SunPhenomena _phenomena = new();
 	private ulong _timelineOrigin;
+	private AudioStreamPlayer? _sunAudio;
+	private float _timelineDuration = 14f;
+	private const string SunRumblePath = "res://dist/sun_rumble_map.wav";
 
 	public override void _Ready()
 	{
@@ -187,6 +190,7 @@ public sealed partial class SunTestScene : Node3D
 			_events = dictionary["events"].AsGodotArray();
 		if (dictionary.ContainsKey("spots"))
 			_spots = dictionary["spots"].AsGodotArray();
+		_timelineDuration = SunPhenomena.ReadTimelineDuration(path);
 		// The casting office (S2': one role at a time) is driven by the same
 		// timeline's roll schedule — one source of truth for picture and sound.
 		SunVisual.SetProminenceSchedule(SunPhenomena.LoadRoles(path));
@@ -605,6 +609,27 @@ public sealed partial class SunTestScene : Node3D
 		if (!NoGlare)
 		{
 			AddGlare();
+			_glare!.OpeningSeconds = 1.4f; // the "opening on the sun" beat
+		}
+
+		// S4 evidence path: the map plays the pipeline rumble on the Sun bus,
+		// and the timeline clock is the audio's playback position — so the
+		// rendered AVI carries the mix the map actually plays, synced.
+		if (ResourceLoader.Exists(SunRumblePath))
+		{
+			_sunAudio = new AudioStreamPlayer
+			{
+				Bus = GrimSpace.Application.AudioBuses.SunAmbience,
+				VolumeDb = -8f,
+				Stream = GD.Load<AudioStream>(SunRumblePath),
+			};
+			_sunAudio.Finished += () => _sunAudio!.Play();
+			AddChild(_sunAudio);
+			_sunAudio.Play();
+		}
+		else
+		{
+			GD.PushWarning("[SunTest] map-star: rumble not built (scripts/make-sun-audio.py); silent render.");
 		}
 		GD.Print($"[SunTest] map-star reproduction: radius {StarRadius:0.00} world, camera {starDistance:0.00} out");
 	}
@@ -628,7 +653,14 @@ public sealed partial class SunTestScene : Node3D
 	{
 		if (_events.Count > 0 || _spots.Count > 0)
 		{
-			var time = (Time.GetTicksMsec() - _timelineOrigin) / 1000f;
+			// The timeline clock is the audio's playback position when the
+			// rumble plays (picture and sound share the period); otherwise
+			// the frame clock keeps the timeline alive.
+			float time = _sunAudio is not null
+				? ((float)_sunAudio.GetPlaybackPosition() % Mathf.Max(_timelineDuration, 0.01f))
+				: 0f;
+			if (_sunAudio is null)
+				time = (Time.GetTicksMsec() - _timelineOrigin) / 1000f;
 			SunPhenomena.Evaluate(_events, _spots, time, _phenomena);
 			SunVisual.UpdatePhenomena(_phenomena, time);
 		}
@@ -679,6 +711,11 @@ public sealed partial class SunTestScene : Node3D
 			else if (argument == "--mapstar")
 			{
 				MapStar = true;
+			}
+			else if (argument is "--noglare" or "--no-glare")
+			{
+				// Both spellings: audits type either; an inert flag is a lie.
+				NoGlare = true;
 			}
 			else if (argument == "--noglare")
 			{

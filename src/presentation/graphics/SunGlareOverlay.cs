@@ -37,8 +37,17 @@ public sealed partial class SunGlareOverlay : CanvasLayer
 
 	public float Breathe { get; set; } = 0.10f;
 
+	/// <summary>
+	/// The opening beat: over this many seconds the glare blooms in and the
+	/// squint settles on (0 = always fully on).  A scene's first frames should
+	/// breathe rather than slam — the viewer registers "light source, lens,
+	/// squint" as a beat, not a constant.
+	/// </summary>
+	public float OpeningSeconds { get; set; }
+
 	private ShaderMaterial? _glareMaterial;
 	private ShaderMaterial? _dipMaterial;
+	private double _openClock;
 
 	public override void _Ready()
 	{
@@ -77,11 +86,20 @@ public sealed partial class SunGlareOverlay : CanvasLayer
 
 		// The squint: the more of the frame the star eats, the harder the eye
 		// has to work.  `radius` is the star's apparent radius as a fraction
-		// of the frame width — the threshold law is written in that fraction,
+		// of the frame width (the projected radius arm, not a diameter — the
+		// arm IS one radius) — the threshold law is written in that fraction,
 		// so a distant star squints mildly and a disc-filling star squints
 		// hard, no matter the resolution.
-		var visibleRadius = radius * 0.5f; // radiusPixels is a diameter; the law speaks of the disc's radius
-		var squint = Mathf.Clamp((visibleRadius - 0.05f) * 1.1f, 0f, 0.26f);
+		var squint = Mathf.Clamp((radius - 0.05f) * 1.1f, 0f, 0.26f);
+
+		// The opening beat: the glare and the squint come up over
+		// OpeningSeconds, with a brief swell above the settled value that
+		// relaxes with the lens's response — the "bloom" the viewer reads as
+		// opening on the sun.  t=0 leaves ~15%, settling to 1.
+		_openClock += delta;
+		var open = OpeningSeconds > 0f ? Mathf.Clamp((float)_openClock / OpeningSeconds, 0f, 1f) : 1f;
+		var settled = 0.15f + 0.85f * open * open;
+		var glareScale = settled + 0.25f * open * Mathf.Exp(-(float)_openClock / 0.55f);
 
 		var aspect = viewport.X / Mathf.Max(viewport.Y, 1f);
 		if (_glareMaterial is not null)
@@ -89,7 +107,7 @@ public sealed partial class SunGlareOverlay : CanvasLayer
 			_glareMaterial.SetShaderParameter("sun_screen", screen);
 			_glareMaterial.SetShaderParameter("sun_radius", Mathf.Max(radius, 0.0005f));
 			_glareMaterial.SetShaderParameter("aspect", aspect);
-			_glareMaterial.SetShaderParameter("intensity", Intensity);
+			_glareMaterial.SetShaderParameter("intensity", Intensity * glareScale);
 			_glareMaterial.SetShaderParameter("breathe", Breathe);
 			_glareMaterial.SetShaderParameter("streak_amount", StreakAmount);
 			_glareMaterial.SetShaderParameter("chromatic", Chromatic);
@@ -97,7 +115,7 @@ public sealed partial class SunGlareOverlay : CanvasLayer
 		if (_dipMaterial is not null)
 		{
 			_dipMaterial.SetShaderParameter("aspect", aspect);
-			_dipMaterial.SetShaderParameter("dip_strength", Mathf.Max(squint, DipStrength));
+			_dipMaterial.SetShaderParameter("dip_strength", Mathf.Max(squint, DipStrength) * settled);
 			_dipMaterial.SetShaderParameter("vignette_strength", VignetteStrength);
 		}
 	}

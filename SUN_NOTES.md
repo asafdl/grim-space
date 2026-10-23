@@ -787,8 +787,11 @@ sun_test regime (check frame at the end of this section):
 * `sun_prominences.gdshader`: fibril frequency along the arc raised
   (1.7 -> 5.0) and a height-facing energy term
   (`light_facing = mix(0.55, 1.0, exp(-max(r-1,0)/0.075))`) shared by the
-  thread, curtain and feet, so the loop reads as threads lit FROM the star.
-  Rain is gated on a live role (no loop, no rain).
+  thread, curtain and feet.  Rain is gated on a live role (no loop, no
+  rain).  What the evidence sheet shows: the loop's limb side measures
+  measurably brighter than its apex, and modulation runs visibly along the
+  arc.  Whether the arc READS as "threads" to a viewer at map scale is a
+  judgement this repo's instruments cannot settle (see addendum 6, R3).
 * `sun_corona.gdshader`: the shell dissolves to a true 0 for the last 0.25 R
   before its own silhouette (`edge`, applied to colour AND dither) — at
   tail brightness the last shell ring sits under the dither noise and the
@@ -851,3 +854,109 @@ with zero enemy units), and the stored `cme_data` uniform is written by the
 timeline but the prominence shader fragment never consumed it even before
 this work (the CME is a schedule entry in the sound only).  Both left as
 they were found.
+
+## 6b addendum 6: REPAIR ROUND (independent audit R1/R2/R3, 2026-10-23)
+
+The audit contradicted the first 5/5 on three residuals.  Each is re-diagnosed
+below with pasted commands, frame paths and numbers.
+
+### R1 (S4): the rumble never reached the render path
+
+Root cause, one sentence: the `AudioStreamPlayer` lives in `MapController`,
+but the evidence renders boot `SunTestScene --mapstar` — a scene with no
+audio — so the AVI's audio track was the movie writer's digital silence
+(the wiring, bus and asset were real; the render path carried none of them).
+
+Numbers (band 2-4 kHz, `volumedetect` after `highpass=f=2000,lowpass=f=4000`):
+
+```
+dist/sun_rumble_map.wav : mean -23.9 dB, max -7.2 dB
+final_12r.avi (before)  : mean -91.0 dB, max -91.0 dB   <- digital silence
+r1_audio.avi   (after)  : mean -32.4 dB, max -15.8 dB
+```
+
+The after-delta (-32.4 vs -23.9) is the player's -8 dB bus gain plus the
+seam fades, not an absent band.  Envelope correlation (RMS per 0.5 s window,
+first 12 s, source wav vs the AVI's own audio track, 8 kHz mono):
+
+```
+before: -0.32 (audit) -> after: corr = 1.000, gain ratio = 0.398  (= -8 dB)
+```
+
+Fix: `SunTestScene`'s map-star branch now builds the same player the map
+builds (`AudioBuses.SunAmbience`, -8 dB, looped `Finished -> Play`) and the
+timeline clock is read off the playback position (`frame-clock fallback when
+the wav is unbuilt`), so the render IS the map's mix.  Spectrum of the
+rendered track: `refs/comparison/rumble_spectrum_avi_track.png` (the 2-6 kHz
+ridge is present for the full clip).  Commands:
+
+```
+bash scripts/render-sun.sh /tmp/opencode/r1_audio.avi 360 --mapstar
+ffmpeg -v info -i /tmp/opencode/r1_audio.avi \
+  -af "highpass=f=2000,lowpass=f=4000,volumedetect" -f null -
+```
+
+### R2 (S3): presence strengthened and measured, not asserted
+
+Two real defects surfaced while fixing the evidence path:
+
+1. `SunGlareOverlay` multiplied the star's projected radius by 0.5 because a
+   comment called it a diameter — the projected arm IS one radius, so the
+   squint was ~0 at map distance.  Restored to the fraction law as written.
+2. There was no opening beat: now `SunGlareOverlay.OpeningSeconds` eases the
+   glare and squint in over ~1-1.4 s (settled curve 0.15 -> 1) with a brief
+   swell above settle (`+0.25*open*exp(-t/0.55)`), the "bloom" that reads as
+   opening on the sun; `MapController` sets 1.1 s, the map-star harness 1.4 s.
+
+Numbers (mean of a 60x60 patch at (630,470), ~1.28 stellar radii, 12R
+framing, over the star's halo ring):
+
+```
+no overlay   : rgb (0, 0, 0)
+t = 0.2 s    : rgb (7, 3, 2)      <- bloom onset
+t = 0.7 s    : rgb (14, 8, 4)     <- swell
+t = 2.0 s    : rgb (36, 21, 9)    <- settled glare+halo
+```
+
+On the washed disc face (60x60 at (780,500)): off (79,33,7) -> settled
+(141,69,24).  Sheet, left to right then down: no overlay / onset / swell /
+settled at the same pose: `refs/comparison/sheet_presence_open_beat.png`.
+Commands:
+
+```
+bash scripts/render-sun.sh /tmp/opencode/r2_open_glare.avi   120 --mapstar
+bash scripts/render-sun.sh /tmp/opencode/r2_open_noglare.avi 60  --mapstar --no-glare
+```
+
+The face-the-star half of the beat (`MapCinematicFraming.OpenTowardStar`) is
+wired and builds, but still has no in-map headless render (see tooling
+below): the pose evidence remains the `--mapstar` reproduction, which uses
+the map camera's own FOV and pose family.
+
+### R3 (S2): the "threads" claim downgraded
+
+The auditor could not instrument the thread claim and neither can this repo;
+per the no-ratcheting law the wording in addendum 5 is downgraded to what
+`sheet_prominence_before_after.png` actually shows: a measurably brighter
+limb side and visible along-arc modulation.  "Reads as threads lit FROM the
+star" is no longer claimed anywhere in this document.
+
+### TOOLING: repeatable headless render commands for audits
+
+```
+# the one working evidence render for the MAP's star (with sound):
+bash scripts/render-sun.sh <out.avi> <frames> --mapstar            # 12 R framing
+bash scripts/render-sun.sh <out.avi> <frames> --mapstar --camdist=2.8   # closeup
+# overlay isolation (both spellings now accepted; --no-glare WAS inert -
+# the parser only ever matched --noglare):
+bash scripts/render-sun.sh <out.avi> <frames> --mapstar --no-glare
+# the golden sun_test reference (no map palette):
+bash scripts/render-sun.sh <out.avi> <frames>
+```
+
+`scenes/map.tscn` cannot boot headless without run state (`Session.Run` NRE,
+pre-existing) — audits must use the `--mapstar` reproduction above, which
+builds the star exactly as `MapCelestialVisuals.BuildStarPalette` configures
+it at the map star's world radius and camera FOV.  The rumble is part of the
+render when `dist/sun_rumble_map.wav` exists (it is gitignored; build it
+with `python scripts/make-sun-audio.py --duration 14 --out sun_rumble_map.wav`).

@@ -223,6 +223,7 @@ public partial class MapController : Node3D
 			glare.StreakAmount = 0.10f;       // a quiet anamorphic line, not a laser
 			glare.Breathe = 0.05f;
 			glare.Chromatic = 0.22f;
+			glare.OpeningSeconds = 1.1f;      // the map opens ON the sun: glare blooms in
 			AddChild(glare);
 		}
 
