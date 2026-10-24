@@ -40,9 +40,10 @@ void fragment() {
 	float t = (r - inner_ratio) / max(1.0 - inner_ratio, 0.001);
 	float angle = atan(p.y, p.x);
 
-	// Differential rotation: inner material laps the outer, so the grain
-	// shears into trailing spirals instead of a static photo texture.
-	float spiral = angle * 1.5 - t * 7.5 + TIME * swirl_speed;
+	// Differential ROTATION: the drift rate rises toward the center, so the
+	// inner band laps the outer and the spiral arms wind up instead of the
+	// whole pattern turning as one rigid stencil.
+	float spiral = angle * 1.5 - t * 7.5 + TIME * swirl_speed * (1.45 - 0.95 * t);
 	float grain = noise(vec2(spiral * 1.7, t * 16.0)) * 0.65
 		+ noise(vec2(spiral * 3.3, t * 30.0)) * 0.35;
 

@@ -25,6 +25,21 @@ comparison would be apples-to-oranges), frame 180 = 6.0 s settled.
    `evidence/kit1/item1_alive-energy.png` (left: old shader; middle/right: new
    shader at two times — the middle is the "swell", the right the "trough").
 
+2. **The inner band laps the outer (differential rotation).** The swirl is now
+   driven per-radius: drift rate = `swirl_speed * (1.45 - 0.95*t)`, i.e. the
+   inner edge drifts ~2.9x faster than the outer edge, both on the same TIME
+   clock. Before (old shader) every radius turned as one rigid stencil; after,
+   the arm structure shears (wind-up) as time passes. Evidence:
+   `evidence/kit1/item2_inner-laps-outer.png` — same rig pose, same fixed
+   layout, before/after at t=2s and t=29s. Honest note: tracking a scrolling
+   noise texture with the eye is hard on stills, so the strip mostly
+   shows the late-time grain field is animated and wound deeper at the rim
+   (see `item2_inner-rim.png` for the inner-rim detail strip); the differential
+   shape itself is in the shader line above and its plain-words statement here.
+   (Two numeric probes attempted on the recording — angular correlation and
+   rotation fitting — both hit the noise pattern's too-few-repetitions aliasing
+   at these cell sizes, so the visual strip is the accepted evidence.)
+
 ## What was actually wrong (found by rendering, not guessing)
 
 The "black hole" was **not an object at all**. It was a photo collage:
