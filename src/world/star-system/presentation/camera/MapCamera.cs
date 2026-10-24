@@ -17,6 +17,14 @@ public partial class MapCamera : Camera3D
 		MinPitch: 0.12f,
 		MaxPitch: 1.15f);
 
+	/// <summary>
+	/// The map camera's full zoom band (4..72). Dev-only capture poses snap
+	/// against this instead of the active presentation mode's limits, whose
+	/// cinematic band (max 14) otherwise silently discards the requested
+	/// <c>--mappose</c> distance.
+	/// </summary>
+	public static OrbitLimits CaptureZoomBand => DefaultLimits;
+
 	private static readonly PresentationInputPolicy DefaultInputPolicy = new(
 		AllowsOrbit: true,
 		AllowsPan: true,

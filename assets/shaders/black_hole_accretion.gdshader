@@ -18,6 +18,12 @@ uniform float swirl_speed : hint_range(0.0, 2.0) = 0.30;
 // Rim thickness knob: how fast the hot inner edge falls off across the annulus
 // (higher = thinner, sharper-cut rim; lower = fatter blur).
 uniform float rim_power : hint_range(1.0, 40.0) = 14.0;
+// Distance envelope (item 6): past the hole's own distance from the playfield
+// the additive disk recedes into the dark instead of popping like a sticker.
+// Scene fog was tried and regressed (see FAR-DEPTH-NOTES.md); the envelope
+// lives on the disk alone.
+uniform float envelope_start : hint_range(0.0, 600.0) = 260.0;
+uniform float envelope_span : hint_range(1.0, 300.0) = 120.0;
 uniform float grain_energy : hint_range(0.0, 2.0) = 0.9;
 // Alive read: the disk energy breathes on its own clock (no baked still frame).
 uniform float flicker_amount : hint_range(0.0, 1.0) = 0.65;
@@ -36,6 +42,18 @@ float noise(vec2 point) {
 		mix(hash(cell), hash(cell + vec2(1.0, 0.0)), offset.x),
 		mix(hash(cell + vec2(0.0, 1.0)), hash(cell + vec2(1.0)), offset.x),
 		offset.y);
+}
+
+// World-space geometry terms are derived once in vertex() and passed as
+// varyings: VERTEX/NORMAL are model space here, and (measured on engine
+// 4.7.1) they are model space in fragment() as well, so fragment-side
+// view-space math would have produced phantom near-camera points.
+varying vec3 frag_world_position;
+varying vec3 frag_world_normal;
+
+void vertex() {
+	frag_world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	frag_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 void fragment() {
@@ -65,9 +83,9 @@ void fragment() {
 	// direction comes from the disk plane normal (world NORMAL of the quad) and
 	// the fragment's offset from the disk center (MODEL_MATRIX origin = the
 	// hole center); the camera term is the fragment-to-camera ray.
-	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	vec3 hole_center = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vec3 world_pos = frag_world_position;
+	vec3 world_normal = normalize(frag_world_normal);
+	vec3 hole_center = MODEL_MATRIX[3].xyz;
 	vec3 from_center = world_pos - hole_center;
 	vec3 orbital_dir = normalize(cross(world_normal, from_center));
 	vec3 to_camera = normalize(CAMERA_POSITION_WORLD - world_pos);
@@ -79,5 +97,8 @@ void fragment() {
 	float alive = 1.0 + flicker_amount * (pulse * 2.0 - 1.0) * 0.5;
 	float brightness = annulus * (0.5 + grain * grain_energy) * doppler * energy * alive
 		+ hot_edge * annulus * 0.6 * alive;
-	ALBEDO = col * brightness;
+	// One distance per fragment (world space) drives the envelope.
+	float cam_dist = length(CAMERA_POSITION_WORLD - world_pos);
+	float envelope = 1.0 - smoothstep(envelope_start, envelope_start + envelope_span, cam_dist);
+	ALBEDO = col * brightness * envelope;
 }

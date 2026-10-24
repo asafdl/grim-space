@@ -68,6 +68,39 @@ comparison would be apples-to-oranges), frame 180 = 6.0 s settled.
    zero regression. The additive glow itself can't be pixel-occluded (that's
    what blend_add means), which is a later-round question, not a kit-1 one.
 
+6. **A distance envelope (scene fog refused, the disk got one instead).**
+   First attempt: turn the environment's fog on. Honest result: regression —
+   every transparent surface gets fogged per fragment, so the whole disk quad
+   got a grey slab instead of an envelope (`item6_fog-regression.png`, left).
+   The envelope lives on the disk itself now: the additive disk dims from
+   the hole's own distance (260 world units) away, fully recessed 120 units
+   later, so pulling the camera back recedes it into the dark and zooming in
+   restores it (`item6_env-far-d72.png` vs `item6_env-close-d14.png`).
+   Same-pose disk-crop luma, before -> envelope: close view -1.1%, mid -3.3%,
+   far view -9.8% — monotonic with viewing distance.
+   Two rig facts found by rendering, so future kits don't rediscover them:
+   - In this Godot build, `VERTEX` in a spatial shader's `fragment()` is
+     model-space, not view-space; the world-space geometry terms (and the item
+     4 doppler ray) now come from `vertex()` varyings, which fixed the
+     envelope math (the fragment version computed phantom near-camera points).
+     Item 4's committed strip evidence stands on its own (the bright-band
+     response was filmed, whatever the underlying precision was).
+   - `--mappose` distances were silently clamped to the cinematic mode's
+     distance cap of 14 in every movie render up to now — so all kit-1
+     "same pose" comparisons are still valid side-by-side (both sides shared
+     the applied pose), but pose distance labels above 14 were inert. The
+     dev-only capture path now snaps against the camera's own zoom band
+     (4..72), so pose numbers mean what they say; the final camera-move strip
+     and item 6's distance sweep are the first renders with real distances.
+
+## Final proof: occlusion + depth respond after this round
+
+`final_camera-move_depth-respond.png` — same pose family rendered at true
+camera distances 14 / 42 / 72 while pulling back: the black horizon keeps
+occluding (starlight and disk grain disappear behind it; the asteroid, moon
+and station read in front of the disk), and the far side recedes — the disk
+dims with distance like a thing that is 260 units away, not a sticker.
+
 ## What was actually wrong (found by rendering, not guessing)
 
 The "black hole" was **not an object at all**. It was a photo collage:

@@ -443,7 +443,12 @@ public partial class MapController : Node3D
 		_captureElapsed += (float)delta;
 		var pose = _capturePose;
 		pose.Yaw += Mathf.DegToRad(_captureYawDriftDegreesPerSecond * _captureElapsed);
-		_camera.SnapToPose(pose);
+		// Snap against the camera's own zoom band, not the active mode's
+		// limits: the cinematic boot mode caps distance at 14, which would
+		// silently flatten every --mappose distance to 14. Dev-only.
+		_camera.SnapToPose(pose, MapCamera.CaptureZoomBand);
+		if (_captureElapsed > 5.0f && _captureElapsed < 5.05f)
+			GD.Print($"[probe] campos={_camera.GlobalPosition}");
 	}
 
 	public override void _Process(double delta)
