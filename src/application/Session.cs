@@ -83,7 +83,7 @@ public partial class Session : Node
 		return TrySaveGame(battleWorld ?? _autosaveBattleWorldProvider?.Invoke());
 	}
 
-	public LoadResult TryLoadGame()
+	public LoadResult TryLoadGame(bool navigate = true)
 	{
 		var storageResult = _saveStorage.TryRead(out var document);
 		var result = SaveLoadResult.Classify(storageResult, document);
@@ -101,7 +101,8 @@ public partial class Session : Node
 			restored = State.FromSnapshot(snapshot, _persistenceRegistry);
 			AdoptRun(restored);
 			restored = null;
-			NavigateToRunScene();
+			if (navigate)
+				NavigateToRunScene();
 			return LoadResult.Success;
 		}
 		catch (JsonException)
@@ -175,6 +176,11 @@ public partial class Session : Node
 
 		_tutorialDialogHost = new TutorialDialogHost();
 		AddChild(_tutorialDialogHost);
+
+		// Runless mounts of run scenes must never reach nodes that dereference
+		// Run unchecked; when the command line asks for one, the run is adopted
+		// HERE — autoloads ready before any scene node (the init-order law).
+		BootstrapRunFromCommandLine();
 	}
 
 	/// <summary>
@@ -352,6 +358,33 @@ public partial class Session : Node
 	public void StartNewRun()
 	{
 		AdoptRun(State.CreateNewRun(Random.Shared.Next(), GameSettings.ReadShowTutorials()));
+	}
+
+	/// <summary>
+	/// Runless boots of run scenes — a map scene mounted directly where
+	/// nothing has adopted a run yet — used to crash every node that
+	/// dereferenced <see cref="Run"/> unchecked (once per _Prepare frame).
+	/// The session OWNS run readiness, so runless boots live here:
+	///   --new-run     adopt a fresh run synchronously (deterministic render state)
+	///   --load-save   adopt the stored save file synchronously, read-only
+	/// With no flag, nothing changes: the autoload boots exactly as before and
+	/// the menu-driven entries keep their own asynchronous wait paths.
+	/// </summary>
+	private void BootstrapRunFromCommandLine()
+	{
+		foreach (var argument in OS.GetCmdlineUserArgs())
+		{
+			if (argument == "--new-run")
+			{
+				StartNewRun();
+				return;
+			}
+			if (argument == "--load-save")
+			{
+				TryLoadGame(navigate: false);
+				return;
+			}
+		}
 	}
 
 	private void AdoptRun(State next)

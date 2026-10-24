@@ -960,3 +960,82 @@ builds the star exactly as `MapCelestialVisuals.BuildStarPalette` configures
 it at the map star's world radius and camera FOV.  The rumble is part of the
 render when `dist/sun_rumble_map.wav` exists (it is gitignored; build it
 with `python scripts/make-sun-audio.py --duration 14 --out sun_rumble_map.wav`).
+
+## 6b addendum 7: LIVE SESSION NRE REPAIR (2026-10-24)
+
+The live game spammed two NullReferenceExceptions every frame from the
+5abe7939 build:
+
+* `StrategicHud.SyncObjectives` (StrategicHud.cs:263, via `_Process:75`)
+* `MapController._Process` (MapController.cs:383, `_view.SetCameraDistance`)
+
+### Root cause (named, not guessed)
+
+`git blame`: neither line belongs to the sun commits — MapController.cs:90's
+`if (Session.Instance.Run.ActiveBattle ...)` is `a1fa14c59` (2026-10-09);
+StrategicHud.cs:58's `_orchestrator = Session.Instance.Run.StarSystem` and
+:263 are `09fc215f0` (2026-09-20).  The sun repair only SHIFTED line numbers
+with its added fields.
+
+The actual cause is an unguided run-readiness dependency, exceptions
+reproduced exactly (headless 60-frame boot before the fix: 124 NRE lines):
+
+1. `MapController._Ready` dereferences `Session.Instance.Run` (line 90) and
+   `StrategicHud._Ready` (line 58) — both throw when the map scene is
+   mounted before any run exists ("the map starts before data loads").
+2. Because Godot keeps processing C# nodes after a failing `_Ready`, the
+   half-wired nodes then throw once per frame: `MapController._Process:383`
+   (`_camera` never reached its GetNode) and
+   `StrategicHud._Process:75 -> SyncObjectives:263` (`_orchestrator` never
+   assigned).  Once per frame, forever.
+
+### The fix (at the cause — init order, not try/catch)
+
+* `Session` OWNS run readiness, so runless boots of run scenes are adopted
+  at the autoload: `BootstrapRunFromCommandLine()` recognises `--new-run`
+  (fresh deterministic run) and `--load-save` (the stored save, read-only,
+  `TryLoadGame(navigate: false)`).  Autoloads complete `_Ready` before any
+  scene node, so run scenes can never mount run-less under these flags.
+* The two consumers own their processing gate, mirroring the existing
+  `SetProcess` law in StrategicHud: `SetProcess(false)` is now THE FIRST
+  statement of `MapController._Ready` and `StrategicHud._Ready`; a run-less
+  mount logs one error and halts (no per-frame exceptions, nothing half-wired
+  ever processes); `SetProcess(true)` is the LAST statement after full wiring
+  (`_wired` gates the `_ExitTree` teardown, which previously assumed
+  complete wiring).
+* `TryLoadGame` gained an internal `navigate` parameter so the bootstrap can
+  adopt without navigating — the launched scene IS the run scene; no
+  navigation path is duplicated.
+
+### Proof (commands + log tails)
+
+Before (the live symptom, 60 frames):
+```
+godot --headless --scene res://scenes/map.tscn --quit-after 60
+grep -c NullReferenceException map_before_fix_60f.log    ->  124
+```
+
+After, over >= 300 frames in BOTH modes:
+```
+godot --headless --quit-after 320 --scene res://scenes/map.tscn -- --new-run
+grep -c NullReferenceException  ->  0        (refs/logs/map_headless320.log)
+godot --write-movie /tmp/opencode/map_nrepair.avi --fixed-fps 30 \
+  --quit-after 320 --scene res://scenes/map.tscn -- --new-run
+grep -c NullReferenceException  ->  0        (refs/logs/map_movie_run.log)
+```
+the movie frame (frame 180, refs/comparison/map_movie_frame_180.png) shows
+the live sun pipeline in the real map: the opening pose over the nebula, the
+prominence loop and the anamorphic streak on the sun, and a healthy map HUD
+(objectives, resources, fleet) with the tutorial dialogue up.
+
+### Engine limitation the audit must know (tooling law update)
+
+`--headless --write-movie` on map.tscn crashes INSIDE Godot's dummy renderer
+(`texture_2d_get: Parameter "t" is null`, signal 11) with C# completely clean
+in every mode — the sun test harness renders headless fine, but the map's
+canvas/texture paths hit a Godot 4.7 dummy-renderer edge.  The working
+movie command for map.tscn is therefore the WINDOWED writer above (records
+identically, window closes with `--quit-after`); headless is reserved for
+plain boots of the map and for the `--mapstar` sun harness.  A `--no-sky` user arg (`MapBackdrop.Build`, honored from
+`MapController._Ready`) swaps the sky for a flat colour for headless
+renders; the windowed write above kept the full sky.

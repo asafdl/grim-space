@@ -15,13 +15,19 @@ public sealed partial class MapBackdrop : Node3D
 	private const string NebulaTexturePath = "res://assets/textures/messier_17.jpg";
 	private const string HorizonTexturePath = "res://assets/textures/event-horizon.jpg";
 
-	public void Build(MapAtmosphereSettings? settings = null)
+	/// <summary>
+	/// Builds the backdrop.  <paramref name="noSky"/> renders the sky in
+	/// BGMode.Color instead: headless movie renders crash on the dummy
+	/// renderer's null sky texture (<c>texture_2d_get</c>, Godot 4.7), so the
+	/// audit command passes <c>--no-sky</c>; windowed renders keep the sky.
+	/// </summary>
+	public void Build(MapAtmosphereSettings? settings = null, bool noSky = false)
 	{
 		var atmosphere = settings ?? MapAtmosphereSettings.Default;
-		AddChild(CreateWorldEnvironment(atmosphere));
+		AddChild(CreateWorldEnvironment(atmosphere, noSky));
 	}
 
-	private static WorldEnvironment CreateWorldEnvironment(MapAtmosphereSettings settings)
+	private static WorldEnvironment CreateWorldEnvironment(MapAtmosphereSettings settings, bool noSky)
 	{
 		var skyMaterial = new ShaderMaterial
 		{
@@ -47,10 +53,20 @@ public sealed partial class MapBackdrop : Node3D
 			ProcessMode = Sky.ProcessModeEnum.Quality,
 		};
 
-		return new WorldEnvironment
-		{
-			Name = "MapEnvironment",
-			Environment = new Godot.Environment
+		var environment = noSky
+			? new Godot.Environment
+			{
+				// The headless-audit colour: the horizon falloff of the night
+				// side, close enough that the playfield reads the same.
+				BackgroundMode = Godot.Environment.BGMode.Color,
+				BackgroundColor = new Color(0.03f, 0.04f, 0.06f),
+				AmbientLightSource = Godot.Environment.AmbientSource.Color,
+				AmbientLightColor = new Color(0.17f, 0.20f, 0.26f),
+				AmbientLightEnergy = settings.AmbientEnergy,
+				TonemapMode = Godot.Environment.ToneMapper.Filmic,
+				FogEnabled = false,
+			}
+			: new Godot.Environment
 			{
 				BackgroundMode = Godot.Environment.BGMode.Sky,
 				Sky = sky,
@@ -60,7 +76,12 @@ public sealed partial class MapBackdrop : Node3D
 				ReflectedLightSource = Godot.Environment.ReflectionSource.Sky,
 				TonemapMode = Godot.Environment.ToneMapper.Filmic,
 				FogEnabled = false,
-			},
+			};
+
+		return new WorldEnvironment
+		{
+			Name = "MapEnvironment",
+			Environment = environment,
 		};
 	}
 }

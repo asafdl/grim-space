@@ -25,6 +25,9 @@ public partial class StrategicHud : CanvasLayer
 	private SystemErrorBanner _errorBanner = null!;
 	private ReportIssueDialog _reportIssueDialog = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
+
+	/// <summary>Set on the LAST statement of _Ready; _ExitTree keys off it.</summary>
+	private bool _wired;
 	private string? _fleetReturnShipId;
 	private bool _returnToFleetAfterPilotSheet;
 
@@ -39,6 +42,17 @@ public partial class StrategicHud : CanvasLayer
 
 	public override void _Ready()
 	{
+		// No processing before the wiring below completes: when the map mounts
+		// before the session has a run, this node used to crash once per
+		// frame.  The session owns run readiness; the hud owns its gate.
+		SetProcess(false);
+		var run = Session.Instance.Run;
+		if (run is null)
+		{
+			GD.PushError("[StrategicHud] mounted before the session has a run (data not loaded); processing halted instead of running an unwired hud.");
+			return;
+		}
+
 		_objectivesHud = GetNode<ObjectivesHud>("ObjectivesHud");
 		_resourceHud = GetNode<ResourceHud>("ResourceHud");
 		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
@@ -55,7 +69,7 @@ public partial class StrategicHud : CanvasLayer
 		AddChild(_errorBanner);
 		_reportIssueDialog = new ReportIssueDialog();
 		AddChild(_reportIssueDialog);
-		_orchestrator = Session.Instance.Run.StarSystem;
+		_orchestrator = run.StarSystem;
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);
 		_contractStateSubscription =
@@ -67,7 +81,7 @@ public partial class StrategicHud : CanvasLayer
 		_pilotSheet.PilotCycleRequested += OnPilotCycleRequested;
 		SetProcess(true);
 		SyncObjectives();
-		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator);
+		_playerFleetHud.Sync(run, _orchestrator);
 	}
 
 	public override void _Process(double _)
@@ -78,6 +92,8 @@ public partial class StrategicHud : CanvasLayer
 
 	public override void _ExitTree()
 	{
+		if (!_wired)
+			return; // the boot halted early (run not ready): nothing below was wired or subscribed
 		_objectivesHud.DismissRequested -= OnObjectiveDismissRequested;
 		_playerFleetHud.FleetManagementRequested -= OnFleetManagementRequested;
 		_playerFleetHud.PilotSheetRequested -= OnPilotSheetRequested;

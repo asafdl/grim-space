@@ -1,4 +1,5 @@
 using Godot;
+using System.Linq;
 using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Core.Actions;
@@ -81,13 +82,26 @@ public partial class MapController : Node3D
 	private string? _syncedDockedPoiId;
 	private bool _hidePlayerBeacon;
 	private bool _revealAllUnits;
+	private bool _wired; // set on the LAST line of _Ready; _ExitTree keys off it
 	private ESimMode _pauseMenuPreviousSimMode;
 	private string? _settledPresentationModeId;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
 
 	public override void _Ready()
 	{
-		if (Session.Instance.Run.ActiveBattle is not null)
+		// Nothing below may run (and _Process must not run at all) until the
+		// wiring nearest the run has completed: the node used to crash once
+		// per frame when mounted before the session had a run.  The session
+		// owns run readiness; this node owns its own processing gate.
+		SetProcess(false);
+		var run = Session.Instance.Run;
+		if (run is null)
+		{
+			GD.PushError("[MapController] opened before the session has a run (data not loaded); processing halted instead of running an unwired map.");
+			return;
+		}
+
+		if (run.ActiveBattle is not null)
 		{
 			Callable.From(() => GetTree().ChangeSceneToFile("res://scenes/battle.tscn")).CallDeferred();
 			return;
@@ -191,7 +205,7 @@ public partial class MapController : Node3D
 		var atmosphere = MapAtmosphereSettings.Default;
 
 		var backdrop = new MapBackdrop();
-		backdrop.Build(atmosphere);
+		backdrop.Build(atmosphere, noSky: OS.GetCmdlineUserArgs().Any(argument => argument == "--no-sky"));
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 
@@ -337,7 +351,6 @@ public partial class MapController : Node3D
 			_strategicHud.PresentSystemError);
 		if (ShouldInitializeTutorials())
 		{
-			var run = Session.Instance.Run;
 			if (run.Tutorials is null)
 				run.ConfigureTutorials(true);
 
@@ -376,6 +389,8 @@ public partial class MapController : Node3D
 		TryAutoEnterDockedFacade();
 		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible, _hidePlayerBeacon);
 		_wreckage.Sync(_orchestrator.Map, _orchestrator.RuntimeFor, 0f);
+		_wired = true;
+		SetProcess(true); // the last statement: _Process must never see half wiring
 	}
 
 	public override void _Process(double delta)
@@ -454,6 +469,8 @@ public partial class MapController : Node3D
 	public override void _ExitTree()
 	{
 		Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
+		if (!_wired)
+			return; // the boot halted early (run not ready): nothing below was wired
 		Session.Instance.ClearAutosaveContext();
 		Session.Instance.DevMenu.ClearMapActions();
 		if (_orchestrator.PlayerAgent is not null)
