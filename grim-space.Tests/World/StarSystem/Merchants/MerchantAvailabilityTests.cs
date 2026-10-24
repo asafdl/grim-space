@@ -8,12 +8,12 @@ public sealed class MerchantAvailabilityTests
 {
 	[Theory]
 	[InlineData(0, EMerchantAvailabilityBand.T0)]
-	[InlineData(9, EMerchantAvailabilityBand.T0)]
-	[InlineData(10, EMerchantAvailabilityBand.T0_5)]
-	[InlineData(19, EMerchantAvailabilityBand.T0_5)]
-	[InlineData(20, EMerchantAvailabilityBand.T1)]
-	[InlineData(30, EMerchantAvailabilityBand.T1_5)]
-	[InlineData(40, EMerchantAvailabilityBand.T2)]
+	[InlineData(3, EMerchantAvailabilityBand.T0)]
+	[InlineData(4, EMerchantAvailabilityBand.T0_5)]
+	[InlineData(7, EMerchantAvailabilityBand.T0_5)]
+	[InlineData(8, EMerchantAvailabilityBand.T1)]
+	[InlineData(12, EMerchantAvailabilityBand.T1_5)]
+	[InlineData(16, EMerchantAvailabilityBand.T2)]
 	[InlineData(100, EMerchantAvailabilityBand.T2)]
 	public void BandForCompletedCount_UsesInclusiveCompletionBars(
 		int completed,

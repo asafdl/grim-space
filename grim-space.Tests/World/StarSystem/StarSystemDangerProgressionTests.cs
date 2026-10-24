@@ -29,38 +29,44 @@ public sealed class StarSystemDangerProgressionTests
 	}
 
 	[Fact]
-	public void WeightsFor_FiveCompletions_SpreadsAcrossVeryLowAndLow()
+	public void WeightsFor_FiveCompletions_FavorsMiddleDangerTiers()
 	{
 		var weights = StarSystemDangerProgression.WeightsFor(5);
 
-		Assert.True(weights[0] > weights[1]);
-		Assert.True(weights[1] > weights[2]);
-		Assert.Equal(0f, weights[3]);
+		Assert.Equal(0f, weights[0]);
+		Assert.True(weights[2] > weights[1]);
+		Assert.True(weights[3] > weights[1]);
 	}
 
 	[Fact]
-	public void WeightsFor_TenCompletions_ReachesModerateTier()
+	public void WeightsFor_TenCompletions_FavorsHighAndVeryHigh()
 	{
 		var weights = StarSystemDangerProgression.WeightsFor(10);
 
-		Assert.True(weights[0] > 0f);
-		Assert.True(weights[1] > weights[0]);
-		Assert.True(weights[2] > 0f);
-		Assert.Equal(0f, weights[3]);
+		Assert.Equal(0f, weights[0]);
+		Assert.Equal(0f, weights[1]);
+		Assert.True(weights[4] > 0f);
+		Assert.True(weights[3] > weights[2]);
 	}
 
 	[Fact]
-	public void WeightsFor_TwentyFiveCompletions_SpendsMostWeightInMiddleTiers()
+	public void WeightsFor_FifteenCompletions_IsMostlyVeryHigh()
+	{
+		var weights = StarSystemDangerProgression.WeightsFor(15);
+
+		Assert.Equal(0f, weights[0]);
+		Assert.True(weights[4] > weights[3]);
+		Assert.True(weights[4] > weights[2]);
+	}
+
+	[Fact]
+	public void WeightsFor_TwentyFiveCompletions_IsMostlyVeryHigh()
 	{
 		var weights = StarSystemDangerProgression.WeightsFor(25);
 
 		Assert.Equal(0f, weights[0]);
-		Assert.True(weights[1] > 0f);
-		Assert.True(weights[2] > 0f);
-		Assert.True(weights[3] > 0f);
-		Assert.Equal(0f, weights[4]);
-		Assert.True(weights[2] > weights[1]);
-		Assert.True(weights[2] > weights[3]);
+		Assert.True(weights[4] >= weights[3]);
+		Assert.True(weights[4] > weights[1]);
 	}
 
 	[Theory]

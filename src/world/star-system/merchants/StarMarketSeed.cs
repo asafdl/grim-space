@@ -5,32 +5,33 @@ namespace GrimSpace.World.StarSystem.Merchants;
 
 public static class StarMarketSeed
 {
-	public const int HullRepairCreditCost = 20;
-	public const int HullRepairScrapCost = 20;
-	public const int ShieldRechargeCreditsPerPoint = 10;
-	public const int RepurposedMinerCreditCost = 300;
-	public const int GunshipCreditCost = 800;
-	public const int GunshipIndustrialCoreCost = 2;
+	public const int HullRepairCreditCost = 10;
+	public const int HullRepairScrapCost = 10;
+	public const int ShieldRechargeCreditsPerPoint = 5;
+	public const int RepurposedMinerCreditCost = 150;
+	public const int PilotHireCreditCost = 75;
+	public const int GunshipCreditCost = 400;
+	public const int GunshipIndustrialCoreCost = 1;
 
 	private static readonly (int Credits, int Scrap, int Cores)[] WeaponDamage =
-	[
-		(120, 280, 0),
-		(660, 1540, 1),
-		(2720, 6340, 2),
-	];
-
-	private static readonly (int Credits, int Scrap, int Cores)[] WeaponRange =
 	[
 		(60, 140, 0),
 		(330, 770, 1),
 		(1360, 3170, 2),
 	];
 
-	private static readonly (int Credits, int Scrap, int Cores)[] ShieldMaxPerFace =
+	private static readonly (int Credits, int Scrap, int Cores)[] WeaponRange =
 	[
 		(30, 70, 0),
 		(165, 385, 1),
 		(680, 1590, 2),
+	];
+
+	private static readonly (int Credits, int Scrap, int Cores)[] ShieldMaxPerFace =
+	[
+		(15, 35, 0),
+		(83, 193, 1),
+		(340, 795, 2),
 	];
 
 	private static readonly SheetEntry[] TieredUpgradeInventory =

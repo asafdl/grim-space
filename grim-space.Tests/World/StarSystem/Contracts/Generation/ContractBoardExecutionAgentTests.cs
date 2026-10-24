@@ -416,7 +416,11 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		{
 			CadenceTicks = 1,
 			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
-			Leads = new LeadGenerationConfig { GenerationChance = 1 },
+			Leads = new LeadGenerationConfig
+			{
+				GenerationChance = 1,
+				MaxOccupancy = 1,
+			},
 		};
 
 		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);

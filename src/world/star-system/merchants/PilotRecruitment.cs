@@ -123,16 +123,7 @@ public static class PilotRecruitment
 	public static ResourceBundle DefaultHirePrice(StarMap map)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-
-		var tier = MerchantCatalog.Tier(map);
-		if (map.Market.TryFindRecruitmentOffer(
-			    DefaultHireChassis,
-			    DefaultHireGearTier,
-			    tier,
-			    out var offer))
-			return offer.Cost;
-
-		return ResourceBundle.Of(ResourceId.Credits, StarMarketSeed.RepurposedMinerCreditCost);
+		return ResourceBundle.Of(ResourceId.Credits, StarMarketSeed.PilotHireCreditCost);
 	}
 
 	public static IReadOnlyList<PilotHireCandidate> RollAvailableCandidates(

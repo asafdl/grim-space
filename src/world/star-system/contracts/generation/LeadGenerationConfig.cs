@@ -4,9 +4,9 @@ namespace GrimSpace.World.StarSystem.Contracts.Generation;
 
 public sealed class LeadGenerationConfig
 {
-	public const double DefaultGenerationChance = 0.05;
+	public const double DefaultGenerationChance = 0.22;
 	public const double DefaultSpaceMeetingChance = 0.2;
-	public const int DefaultMaxOccupancy = 1;
+	public const int DefaultMaxOccupancy = 2;
 	public const int DefaultSaleDurationTicks = 300;
 
 	public double GenerationChance { get; init; } = DefaultGenerationChance;

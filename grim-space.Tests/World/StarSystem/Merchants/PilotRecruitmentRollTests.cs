@@ -88,22 +88,12 @@ public sealed class PilotRecruitmentRollTests
 	}
 
 	[Fact]
-	public void DefaultHirePrice_UsesMarketListingWhenAvailable()
+	public void DefaultHirePrice_UsesPilotHireSeedCost()
 	{
 		var map = PilotRecruitmentRollTestHarness.CreateMapWithRepurposedMinerListing(42);
 
 		Assert.Equal(
-			ResourceBundle.Of(ResourceId.Credits, 300),
-			PilotRecruitment.DefaultHirePrice(map));
-	}
-
-	[Fact]
-	public void DefaultHirePrice_FallsBackToSeedCostWithoutListing()
-	{
-		var map = StarMap.Create(42);
-
-		Assert.Equal(
-			ResourceBundle.Of(ResourceId.Credits, StarMarketSeed.RepurposedMinerCreditCost),
+			ResourceBundle.Of(ResourceId.Credits, StarMarketSeed.PilotHireCreditCost),
 			PilotRecruitment.DefaultHirePrice(map));
 	}
 

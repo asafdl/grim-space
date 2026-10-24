@@ -5,9 +5,13 @@ namespace GrimSpace.World.StarSystem;
 
 public static class StarSystemDangerProgression
 {
-	/// <summary>Initial danger progression is 0.1 tiers per completion, easing near the middle and upper tiers.</summary>
-	public const double TierShiftPerCompletion = 0.1;
-	public const int CompletionsPerTier = (int)(1 / TierShiftPerCompletion);
+	/// <summary>
+	/// Danger distribution shifts toward VeryHigh; ~15 completed contracts reach endgame danger for current content.
+	/// </summary>
+	public const double TierShiftPerCompletion = 0.8;
+
+	/// <summary>Contracts per merchant availability band step (T2 unlocks at four times this).</summary>
+	public const int CompletionsPerTier = 4;
 
 	/// <summary>Triangular falloff radius: tiers within this distance of the center keep non-zero weight.</summary>
 	public const float TierSpread = 1.7f;
