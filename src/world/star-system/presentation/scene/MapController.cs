@@ -1,9 +1,11 @@
 using Godot;
+using System;
 using System.Linq;
 using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Core.Actions;
 using GrimSpace.Education;
+using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
 using GrimSpace.Presentation.Graphics;
 using GrimSpace.Run;
@@ -83,6 +85,15 @@ public partial class MapController : Node3D
 	private bool _hidePlayerBeacon;
 	private bool _revealAllUnits;
 	private bool _wired; // set on the LAST line of _Ready; _ExitTree keys off it
+
+	// Movie-capture pose (--mappose=yawDeg,pitchDeg,dist[,driftDegPerSec], like
+	// sun_test --capture): every frame the camera is snapped to the pose (plus
+	// the optional slow yaw drift) so evidence renders are exactly repeatable
+	// and the parallax response can be filmed. No argument, no effect.
+	private bool _captureActive;
+	private OrbitPose _capturePose;
+	private float _captureYawDriftDegreesPerSecond;
+	private float _captureElapsed;
 	private ESimMode _pauseMenuPreviousSimMode;
 	private string? _settledPresentationModeId;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
@@ -225,6 +236,7 @@ public partial class MapController : Node3D
 		_units.Build(world);
 		_course.Build(world);
 		_camera.Configure(Vector3.Zero, halfX, halfZ);
+		_captureActive = TryParseMovieCaptureArgs(out _capturePose, out _captureYawDriftDegreesPerSecond);
 
 		// S3 presence: the opening mode's bootstrap must face the star, so the
 		// viewer understands he is looking at the sun; and the glare overlay
@@ -393,9 +405,52 @@ public partial class MapController : Node3D
 		SetProcess(true); // the last statement: _Process must never see half wiring
 	}
 
+	private bool TryParseMovieCaptureArgs(out OrbitPose pose, out float yawDriftDegreesPerSecond)
+	{
+		pose = default;
+		yawDriftDegreesPerSecond = 0f;
+		var argument = OS.GetCmdlineUserArgs()
+			.FirstOrDefault(candidate => candidate.StartsWith("--mappose=", StringComparison.Ordinal));
+		if (argument is null)
+			return false;
+
+		var fields = argument["--mappose=".Length..].Split(',');
+		if (fields.Length < 3
+			|| !float.TryParse(fields[0], out var yawDegrees)
+			|| !float.TryParse(fields[1], out var pitchDegrees)
+			|| !float.TryParse(fields[2], out var distance))
+		{
+			GD.PushError($"[MapController] bad --mappose '{argument}': expected yawDeg,pitchDeg,dist");
+			return false;
+		}
+
+		if (fields.Length > 3)
+			_ = float.TryParse(fields[3], out yawDriftDegreesPerSecond);
+
+		pose = new OrbitPose
+		{
+			Pivot = Vector3.Zero,
+			Yaw = Mathf.DegToRad(yawDegrees),
+			Pitch = Mathf.Clamp(Mathf.DegToRad(pitchDegrees), 0.12f, 1.15f),
+			Distance = Mathf.Clamp(distance, 4f, 72f),
+		};
+		return true;
+	}
+
+	private void ApplyMovieCapturePose(double delta)
+	{
+		// Snapped every frame so opening-mode tweens cannot pull the pose.
+		_captureElapsed += (float)delta;
+		var pose = _capturePose;
+		pose.Yaw += Mathf.DegToRad(_captureYawDriftDegreesPerSecond * _captureElapsed);
+		_camera.SnapToPose(pose);
+	}
+
 	public override void _Process(double delta)
 	{
 		_view.SetCameraDistance(_camera.Distance);
+		if (_captureActive)
+			ApplyMovieCapturePose(delta);
 
 		// The sun's phenomena ride the audio clock when the rumble is playing
 		// (the timeline and the soundtrack share the period, so they stay
