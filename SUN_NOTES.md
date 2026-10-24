@@ -1103,3 +1103,46 @@ close-up pair). Measured under-limb bands at the boot pose (x 900-1020): rim 0-0
 before is an upper bound); zoomed tail 0.50-0.90R = 7.5 over a ~4 background = faint only.
 Close-up regression pair: 99.92 % identical (0.08 % differs, noise-level: time-phase pixels + the
 FPS label digits; the close-up palette is field defaults, untouched by this verdict).
+
+## Addendum 10 — RE-DISPATCH re-verification at HEAD (2026-10-24, e2ae819f)
+
+Repo-state-first re-check of the five gates AFTER verdicts #6/#8 landed on top of
+`37920953`+`5abe7939`: no gate regressed, fresh evidence rendered at current HEAD.
+
+```
+bash scripts/render-sun.sh /tmp/opencode/sunv_map.avi 360 --mapstar
+bash scripts/render-sun.sh /tmp/opencode/sunv_closeup.avi 60 --mapstar --camdist=2.8
+bash scripts/render-sun.sh /tmp/opencode/sunv_open.avi 120 --mapstar
+bash scripts/render-sun.sh /tmp/opencode/sunv_noglare.avi 60 --mapstar --no-glare
+ffmpeg -i /tmp/opencode/sunv_map.avi -af "highpass=f=2000,lowpass=f=4000,volumedetect" -f null -
+```
+
+* S1  root: map palette's private disc energy (0.70) was 2.7x the measured value —
+  `BuildStarPalette` carries the measured law (`EmissionStrength = 0.26 + 0.06*SunGlow`,
+  granulation 0.85 / plage 0.75 from the map-pose redo). Fresh frame:
+  `sunv_mapstar_disc_ray_loop.png` — disc readable, not over-burned.
+* S1b root: full corona streamer/halo balance aliased into a fake ray fan at map distance +
+  no glare overlay wired. Head: strand/halo balance knobs + verdict-8 cap
+  (`CoronaStrength 0.18`, `CoronaHaloReach 0.5`, streamer 0.34); one thin anamorphic streak,
+  no fan, no hard-edged ball off the corona tail.
+* S2  root: no limb-proximity energy envelope + fibril frequency too low for map-scale
+  threads. Head: `light_facing` term + fibril 5.0 in `sun_prominences.gdshader`; the loop's
+  limb side reads brighter than the apex (claim stays downgraded per R3).
+* S2' root: 3-5 independent shader-cycle sites (several alive at once). Head: schedule
+  from `sun_events.json` (24 turns, rolls biased to holder 1: histogram {1:11, 0:5, 2:4,
+  3:4}, repeats legal, deaths at exactly 0), minutes law kept (`GrowthSecondsAt1x = 300`
+  — live-map log: `turn 0 = 0.00..8.85 design s ... life 2143 player s (growth 300 s)`).
+  Fresh pair: `sunv_casting_gap_birth.png` — loop alive at t=2.0 s, ALL-QUIET at t=10.0 s,
+  next birth erupts at t=11.0 s; never two loops.
+* S3  root: no glare/dip overlay + travel-direction bootstrap + a units defect in the
+  squint law. Head: overlay wired (OpeningSeconds 1.1), fraction-of-frame squint,
+  `OpenTowardStar` bootstrap. Fresh numbers (60x60 patch at ~1.28R): 0 -> (6,3,1) onset
+  -> (13,7,3) swell -> (32,19,8) settled; sheet `sunv_presence_beat.png`.
+* S4  root: the pipeline's rumble never reached any audio bus. Head: `dist/sun_rumble_map.wav`
+  on the `Sun` bus at -8 dB; fresh render's track in the 2-4 kHz band: mean -32.4 dB,
+  max -15.8 dB (matches the R1 repair numbers; audio muxed in the 360-frame AVI).
+
+Harness quirk to know for audits: the headless movie writer segfaulted on ONE mapstar
+re-render (Godot 4.7 dummy-renderer variance, empty-output `select=eq(n,60)` truncation
+on 60-frame AVIs — use index <= 55); the windowed writer and the plain headless boot
+are unaffected.
