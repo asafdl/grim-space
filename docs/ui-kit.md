@@ -90,3 +90,5 @@ Production adoption is incremental. The contract HUD uses the technical containe
 4. Verify every palette and interaction state in the component gallery before using the variant in a production screen.
 
 `ModalShell` now uses `UiContainer` as its backing surface. Pass a `UiContainerVisual` to its constructor when a screen needs `Framed` or `Technical`; existing callers default to `Modal`.
+
+Battle and star-map pause menus share [`PauseMenuUi`](../src/presentation/support/PauseMenuUi.cs): a viewport-capped 640 x 660 modal, Purple Red menu actions, and a Gold Technical Report Issue button with extra separation. X/Escape resumes without a duplicate Continue button. Keep shared sizing and styling there; overlays supply their own actions (including battle-only Retire/Restart).

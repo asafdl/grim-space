@@ -30,7 +30,8 @@ public sealed partial class DevMenuOverlay : Control
 		GrowVertical = GrowDirection.Both;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		_shell = new ModalShell(UiContainerVisual.Modal, HudThemeFamily.Informative);
+		_shell = new ModalShell(UiContainerVisual.Simple, HudThemeFamily.Informative);
+		_shell.SetBodyScrollingEnabled(true);
 		AddChild(_shell);
 		_shell.SetDismissVisible(true);
 	}
@@ -39,46 +40,61 @@ public sealed partial class DevMenuOverlay : Control
 
 	public void Open()
 	{
-		_shell.Open("Dev Menu", "Debug shortcuts");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetHeaderVisible(true);
 		_shell.SetDismissVisible(true);
 		_shell.SetBackHandler(null);
 
-		var items = HudWidgets.CreateCardList();
-		items.AddThemeConstantOverride("separation", 10);
-		items.AddChild(CreateMenuItem("Start Battle", true, OnStartBattle));
+		var items = HudWidgets.CreateModalButtonColumn();
+		items.AddChild(HudWidgets.CreateModalMenuButton("Start Battle", OnStartBattle));
 
 		var canForceBattleOutcome = _canForceBattleOutcome?.Invoke() == true;
-		items.AddChild(CreateMenuItem("Win Battle", canForceBattleOutcome, OnWinBattle));
-		items.AddChild(CreateMenuItem("Lose Battle", canForceBattleOutcome, OnLoseBattle));
+		items.AddChild(HudWidgets.CreateModalMenuButton(
+			"Win Battle",
+			OnWinBattle,
+			canForceBattleOutcome));
+		items.AddChild(HudWidgets.CreateModalMenuButton(
+			"Lose Battle",
+			OnLoseBattle,
+			canForceBattleOutcome));
 
 		if (_canGrantResources is not null)
-			items.AddChild(CreateMenuItem(
+			items.AddChild(HudWidgets.CreateModalMenuButton(
 				"Add Resource Bundle",
-				_canGrantResources(),
-				OnGrantResources));
+				OnGrantResources,
+				_canGrantResources()));
 
 		if (_canBumpDanger is not null)
-			items.AddChild(CreateMenuItem(
+			items.AddChild(HudWidgets.CreateModalMenuButton(
 				"Advance Danger Progression",
-				_canBumpDanger(),
-				OnBumpDanger));
+				OnBumpDanger,
+				_canBumpDanger()));
 
 		if (_canRevealAllUnits is not null)
-			items.AddChild(CreateMenuItem(
+			items.AddChild(HudWidgets.CreateModalMenuButton(
 				"Reveal All Units",
-				_canRevealAllUnits(),
-				OnRevealAllUnits));
+				OnRevealAllUnits,
+				_canRevealAllUnits()));
 
 		if (_spawnPilotRecruitmentLead is not null)
-			items.AddChild(CreateMenuItem(
+			items.AddChild(HudWidgets.CreateModalMenuButton(
 				"Spawn Pilot Recruitment Lead",
-				_canSpawnPilotRecruitmentLead?.Invoke() == true,
-				OnSpawnPilotRecruitmentLead));
+				OnSpawnPilotRecruitmentLead,
+				_canSpawnPilotRecruitmentLead?.Invoke() == true));
+
+		foreach (var child in items.GetChildren())
+		{
+			if (child is UiButton button)
+				button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		}
 
 		_shell.SetBody(items);
+		var viewport = GetViewportRect().Size;
+		_shell.SetPanelMinimumSize(new Vector2(
+			Mathf.Min(720f, viewport.X - 40f),
+			Mathf.Min(760f, viewport.Y - 40f)));
 		_shell.SetFooter([]);
+		_shell.Open("Dev Menu");
 	}
 
 	public void Close() => _shell.Close();
@@ -171,18 +187,5 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		Close();
 		_spawnPilotRecruitmentLead?.Invoke();
-	}
-
-	private static UiListItem CreateMenuItem(string text, bool enabled, Action onPressed)
-	{
-		var item = new UiListItem(text, "", "")
-		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-		};
-		item.SetVisual(UiListItemVisual.Bracket);
-		item.SetAffordable(enabled);
-		item.SetEnabled(enabled);
-		item.Pressed += onPressed;
-		return item;
 	}
 }

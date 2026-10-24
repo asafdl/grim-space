@@ -53,7 +53,7 @@ public sealed partial class UiButton : BaseButton
 
 		_palette = palette ?? HudPalettes.BlueCyan;
 		_kind = kind;
-		CustomMinimumSize = new Vector2(140f, 44f);
+		CustomMinimumSize = new Vector2(145f, 44f);
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 
@@ -129,12 +129,12 @@ public sealed partial class UiButton : BaseButton
 		});
 		CustomMinimumSize = visual switch
 		{
-			UiButtonVisual.Back => new Vector2(142f, 46f),
-			UiButtonVisual.Compact => new Vector2(128f, 46f),
-			UiButtonVisual.Technical => new Vector2(152f, 46f),
-			UiButtonVisual.Framed => new Vector2(146f, 52f),
-			UiButtonVisual.WideBeveled => new Vector2(154f, 54f),
-			_ => new Vector2(140f, 44f),
+			UiButtonVisual.Back => new Vector2(147f, 46f),
+			UiButtonVisual.Compact => new Vector2(133f, 46f),
+			UiButtonVisual.Technical => new Vector2(157f, 46f),
+			UiButtonVisual.Framed => new Vector2(151f, 52f),
+			UiButtonVisual.WideBeveled => new Vector2(159f, 54f),
+			_ => new Vector2(145f, 44f),
 		};
 		(_label.OffsetLeft, _label.OffsetRight) = visual switch
 		{

@@ -1,7 +1,7 @@
 using Godot;
 using GrimSpace.Components;
-using GrimSpace.Presentation.Menu;
 using GrimSpace.Presentation.Support;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -14,8 +14,9 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 	public event Action? MainMenuRequested;
 
 	private Control _root = null!;
-	private Button _saveButton = null!;
-	private Button _restartButton = null!;
+	private ModalShell _shell = null!;
+	private UiButton _saveButton = null!;
+	private UiButton _restartButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
 	private readonly PauseMenuSettingsHost _settings = new();
 
@@ -30,11 +31,7 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 
 	public bool IsReportDialogOpen => _reportDialog.IsOpen;
 
-	public void ApplyTheme(Theme theme)
-	{
-		_root.Theme = theme;
-		_reportDialog.ApplyTheme(theme);
-	}
+	public void ApplyTheme(Theme theme) => _reportDialog.ApplyTheme(theme);
 
 	public void SetRestartEnabled(bool enabled) => _restartButton.Disabled = !enabled;
 
@@ -47,83 +44,42 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 			AnchorBottom = 1f,
 			GrowHorizontal = Control.GrowDirection.Both,
 			GrowVertical = Control.GrowDirection.Both,
-			MouseFilter = Control.MouseFilterEnum.Stop,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
 		AddChild(_root);
 
-		var backdrop = new ColorRect
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-			Color = MenuUi.ModalBackdropColor,
-		};
-		_root.AddChild(backdrop);
+		_shell = PauseMenuUi.CreateShell(() => ContinueRequested?.Invoke());
+		_root.AddChild(_shell);
 
-		var center = new CenterContainer
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-		};
-		_root.AddChild(center);
-
-		var panel = new PanelContainer
-		{
-			CustomMinimumSize = new Vector2(320, 0),
-		};
-		center.AddChild(panel);
-
-		var margin = new MarginContainer();
-		margin.AddThemeConstantOverride("margin_left", 28);
-		margin.AddThemeConstantOverride("margin_right", 28);
-		margin.AddThemeConstantOverride("margin_top", 24);
-		margin.AddThemeConstantOverride("margin_bottom", 24);
-		panel.AddChild(margin);
-
-		var content = new VBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.Center,
-		};
-		content.AddThemeConstantOverride("separation", 12);
-		margin.AddChild(content);
-
-		var title = new Label
-		{
-			Text = BattleHudCopy.PauseMenuTitle,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			ThemeTypeVariation = "OverlayTitle",
-		};
-		content.AddChild(title);
-
-		content.AddChild(CreateMenuButton(
-			BattleHudCopy.Continue,
-			() => ContinueRequested?.Invoke()));
-		_saveButton = CreateMenuButton(
+		var content = HudWidgets.CreateModalButtonColumn();
+		_saveButton = PauseMenuUi.AddButton(
+			content,
 			"Save",
 			() => SaveRequested?.Invoke());
-		content.AddChild(_saveButton);
-		content.AddChild(CreateMenuButton("Settings", () => _settings.Open()));
-		content.AddChild(CreateMenuButton(
+		PauseMenuUi.AddButton(
+			content,
+			"Settings",
+			() => _settings.Open());
+		PauseMenuUi.AddButton(
+			content,
 			BattleHudCopy.Retire,
-			() => RetireRequested?.Invoke()));
-		content.AddChild(CreateMenuButton(
+			() => RetireRequested?.Invoke());
+		_restartButton = PauseMenuUi.AddButton(
+			content,
 			BattleHudCopy.Restart,
-			() => RestartRequested?.Invoke(),
-			out _restartButton));
-		content.AddChild(CreateMenuButton(
+			() => RestartRequested?.Invoke());
+		PauseMenuUi.AddButton(
+			content,
 			"Save and Quit",
-			() => MainMenuRequested?.Invoke()));
+			() => MainMenuRequested?.Invoke());
+		PauseMenuUi.AddReportIssueButton(content, () => _reportDialog.Open("battle"));
+		_shell.SetBody(content);
 
 		_reportDialog = new ReportIssueDialog();
 		_root.AddChild(_reportDialog);
 		_settings.Attach(_root);
 
-		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("battle"));
+		VisibilityChanged += OnVisibilityChanged;
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -143,33 +99,24 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		if (_settings.IsOpen)
 			return;
 
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
-		{
-			ContinueRequested?.Invoke();
+		if (_shell.TryHandleInput(@event))
 			GetViewport().SetInputAsHandled();
-		}
 	}
 
 	public void ShowSaveConfirmation() => _saveButton.Text = "✓ Saved";
 
-	private static Button CreateMenuButton(string text, Action onPressed)
+	private void OnVisibilityChanged()
 	{
-		return CreateMenuButton(text, onPressed, out _);
+		if (!Visible)
+		{
+			if (_shell.IsOpen)
+				_shell.Close();
+			return;
+		}
+
+		CallDeferred(MethodName.OpenShellDeferred);
 	}
 
-	private static Button CreateMenuButton(
-		string text,
-		Action onPressed,
-		out Button button)
-	{
-		button = new Button
-		{
-			Text = text,
-			CustomMinimumSize = new Vector2(220, 44),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-		};
-		HudStyles.StyleMenuNavButton(button);
-		button.Pressed += onPressed;
-		return button;
-	}
+	private void OpenShellDeferred() =>
+		PauseMenuUi.OpenShell(_shell);
 }

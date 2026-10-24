@@ -19,13 +19,17 @@ public sealed partial class ModalShell : Control
 	private Action? _headerAction;
 	private Action? _backHandler;
 	private Action? _closeHandler;
+	private Func<bool>? _closeRequestHandler;
 	private bool _dismissVisible;
 	private bool _requiresDecision;
 	private bool _dismissOnBackdropClick = true;
 	private bool _escapeHandlingEnabled = true;
 	private IReadOnlyList<HudAction> _footerActions = [];
 	private Control _headerRow = null!;
+	private VBoxContainer _bodyLayout = null!;
 	private MarginContainer _bodyMargin = null!;
+	private bool _compactBody;
+	private bool _bodyScrollingEnabled = true;
 	private readonly HudThemeFamily? _themeFamily;
 	private readonly UiContainerVisual _containerVisual;
 	private readonly HudPalette _palette;
@@ -78,6 +82,9 @@ public sealed partial class ModalShell : Control
 
 	private void CloseWithHandler()
 	{
+		if (_closeRequestHandler is not null && !_closeRequestHandler())
+			return;
+
 		_closeHandler?.Invoke();
 		Close();
 	}
@@ -135,6 +142,9 @@ public sealed partial class ModalShell : Control
 
 	public void SetCloseHandler(Action? handler) => _closeHandler = handler;
 
+	public void SetCloseRequestHandler(Func<bool>? handler) =>
+		_closeRequestHandler = handler;
+
 	public void SetDismissOnBackdropClick(bool dismiss) =>
 		_dismissOnBackdropClick = dismiss;
 
@@ -152,15 +162,25 @@ public sealed partial class ModalShell : Control
 		foreach (var child in _bodyHost.GetChildren())
 			child.QueueFree();
 
-		content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		content.SizeFlagsHorizontal = _compactBody
+			? SizeFlags.ShrinkCenter
+			: SizeFlags.ExpandFill;
+		content.SizeFlagsVertical = _compactBody
+			? SizeFlags.ShrinkCenter
+			: SizeFlags.ShrinkBegin;
 		_bodyHost.AddChild(content);
+	}
+
+	public void SetCompactBody(bool compact)
+	{
+		_compactBody = compact;
+		ApplyBodyLayoutMode();
 	}
 
 	public void SetBodyScrollingEnabled(bool enabled)
 	{
-		_bodyScroll.VerticalScrollMode = enabled
-			? ScrollContainer.ScrollMode.Auto
-			: ScrollContainer.ScrollMode.Disabled;
+		_bodyScrollingEnabled = enabled;
+		ApplyBodyLayoutMode();
 	}
 
 	public void SetFooter(IReadOnlyList<HudAction> actions)
@@ -281,16 +301,16 @@ public sealed partial class ModalShell : Control
 		};
 		_container.AddChild(_outer);
 
-		var layout = new VBoxContainer
+		_bodyLayout = new VBoxContainer
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
-		layout.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
-		_outer.AddChild(layout);
+		_bodyLayout.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
+		_outer.AddChild(_bodyLayout);
 
 		_headerRow = BuildHeader();
-		layout.AddChild(_headerRow);
+		_bodyLayout.AddChild(_headerRow);
 
 		_bodyScroll = new ScrollContainer
 		{
@@ -305,7 +325,7 @@ public sealed partial class ModalShell : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_bodyMargin.AddChild(_bodyScroll);
-		layout.AddChild(_bodyMargin);
+		_bodyLayout.AddChild(_bodyMargin);
 
 		_bodyHost = new VBoxContainer
 		{
@@ -317,10 +337,23 @@ public sealed partial class ModalShell : Control
 		_footer = new HBoxContainer();
 		_footer.AddThemeConstantOverride("separation", 10);
 		_footer.Visible = false;
-		layout.AddChild(_footer);
+		_bodyLayout.AddChild(_footer);
 
 		ApplyContainerLayoutMetrics();
+		ApplyBodyLayoutMode();
 		Resized += OnResized;
+	}
+
+	private void ApplyBodyLayoutMode()
+	{
+		var bodyVertical = _compactBody ? SizeFlags.ShrinkCenter : SizeFlags.ExpandFill;
+		_bodyLayout.SizeFlagsVertical = SizeFlags.ExpandFill;
+		_bodyScroll.SizeFlagsVertical = bodyVertical;
+		_bodyMargin.SizeFlagsVertical = SizeFlags.ExpandFill;
+		_bodyHost.SizeFlagsVertical = bodyVertical;
+		_bodyScroll.VerticalScrollMode = _bodyScrollingEnabled && !_compactBody
+			? ScrollContainer.ScrollMode.Auto
+			: ScrollContainer.ScrollMode.Disabled;
 	}
 
 	private void ApplyScrollBarPalette(ScrollContainer scroll)

@@ -22,7 +22,7 @@ public partial class GameSettingsMenu : Control
 	private UiToggle _showActionLog = null!;
 	private KeyBindingsTab _keyBindingsTab = null!;
 	private ModalShell _shell = null!;
-	private ModalShell _unsavedChangesShell = null!;
+	private Control _unsavedChangesPopup = null!;
 	private Label _unsavedChangesStatus = null!;
 	private TabContainer _settingsTabs = null!;
 	private GameSettingsSessionSnapshot _baselineSnapshot;
@@ -65,14 +65,21 @@ public partial class GameSettingsMenu : Control
 		FitSettingsPanelToViewport();
 		LoadSettingsToUi();
 		_keyBindingsTab.LoadDraft(GameSettings.ReadKeyBindings());
+		_unsavedChangesPopup.Hide();
 		_baselineSnapshot = CaptureUiSnapshot();
 		_hasBaselineSnapshot = true;
 		_shell.SetEscapeHandlingEnabled(true);
-		_shell.SetBackHandler(OnExitRequested);
-		_shell.SetCloseHandler(OnExitRequested);
+		_shell.SetBackHandler(OnEscapeRequested);
+		_shell.SetCloseRequestHandler(OnCloseRequested);
 		_shell.SetDismissOnBackdropClick(false);
 		_shell.Open("SETTINGS");
 		Show();
+	}
+
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (TryHandleEscape(@event))
+			GetViewport().SetInputAsHandled();
 	}
 
 	public bool TryHandleEscape(InputEvent @event)
@@ -81,49 +88,94 @@ public partial class GameSettingsMenu : Control
 			|| @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return false;
 
-		if (_unsavedChangesShell.IsOpen)
-			return _unsavedChangesShell.TryHandleInput(@event);
+		if (_unsavedChangesPopup.Visible)
+		{
+			_unsavedChangesPopup.Hide();
+			_shell.SetEscapeHandlingEnabled(true);
+			return true;
+		}
 
 		return _shell.TryHandleInput(@event);
 	}
 
 	private void BuildUnsavedChangesDialog()
 	{
-		_unsavedChangesShell = new ModalShell(
-			UiContainerVisual.Modal,
-			HudThemeFamily.Tutorial,
-			HudPalettes.PurpleRed);
-		_unsavedChangesShell.SetHeader(HudHeaderMode.TitleOnly);
-		_unsavedChangesShell.SetDismissVisible(false);
-		_unsavedChangesShell.SetDismissOnBackdropClick(false);
-		_unsavedChangesShell.SetBackHandler(DiscardAndExit);
-		_unsavedChangesShell.SetCloseHandler(DiscardAndExit);
-		_unsavedChangesShell.SetPanelMinimumSize(new Vector2(600f, 340f));
-		_unsavedChangesShell.SetBody(CreateUnsavedChangesContent());
-		_unsavedChangesShell.SetFooter(
-		[
-			new HudAction("Cancel", HudActionKind.Destructive, DiscardAndExit),
-			new HudAction("Apply", HudActionKind.Primary, ApplyAndExit),
-		]);
-		AddChild(_unsavedChangesShell);
-	}
+		_unsavedChangesPopup = new Control
+		{
+			Name = "UnsavedChangesPopup",
+			AnchorsPreset = (int)LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			GrowHorizontal = GrowDirection.Both,
+			GrowVertical = GrowDirection.Both,
+			MouseFilter = MouseFilterEnum.Stop,
+			Visible = false,
+		};
+		var center = new CenterContainer
+		{
+			AnchorsPreset = (int)LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			GrowHorizontal = GrowDirection.Both,
+			GrowVertical = GrowDirection.Both,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		_unsavedChangesPopup.AddChild(center);
 
-	private Control CreateUnsavedChangesContent()
-	{
-		var content = new CenterContainer
+		var frame = new UiContainer(HudPalettes.PurpleRed)
+		{
+			CustomMinimumSize = new Vector2(600f, 300f),
+		};
+		frame.SetVisual(UiContainerVisual.Technical);
+		center.AddChild(frame);
+
+		var margin = new MarginContainer
+		{
+			AnchorsPreset = (int)LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+		};
+		margin.AddThemeConstantOverride("margin_left", frame.ContentMarginLeft);
+		margin.AddThemeConstantOverride("margin_top", frame.ContentMarginTop + 24);
+		margin.AddThemeConstantOverride("margin_right", frame.ContentMarginRight);
+		margin.AddThemeConstantOverride("margin_bottom", frame.ContentMarginBottom);
+		frame.AddChild(margin);
+
+		var content = new VBoxContainer
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
+		content.AddThemeConstantOverride("separation", 24);
+		margin.AddChild(content);
+
 		_unsavedChangesStatus = new Label
 		{
 			Text = "Apply your settings changes before exiting?",
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		content.AddChild(_unsavedChangesStatus);
-		return content;
+		content.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+
+		var actions = new HBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		actions.AddThemeConstantOverride("separation", 12);
+		var cancel = new UiButton("Cancel", HudActionKind.Secondary, HudPalettes.PurpleRed);
+		cancel.SetVisual(UiButtonVisual.WideBeveled);
+		cancel.Pressed += DiscardAndExit;
+		var apply = new UiButton("Apply", HudActionKind.Primary, HudPalettes.PurpleRed);
+		apply.SetVisual(UiButtonVisual.WideBeveled);
+		apply.Pressed += ApplyAndExit;
+		actions.AddChild(cancel);
+		actions.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+		actions.AddChild(apply);
+		content.AddChild(actions);
+		AddChild(_unsavedChangesPopup);
 	}
 
 	private void BuildSettingsContent()
@@ -267,9 +319,9 @@ public partial class GameSettingsMenu : Control
 	private void OnSettingsTabChanged(long tab) =>
 		_shell.SetBodyScrollingEnabled(tab != (int)SettingsTab.KeyBindings);
 
-	private void OnExitRequested()
+	private void OnEscapeRequested()
 	{
-		if (_unsavedChangesShell.IsOpen)
+		if (_unsavedChangesPopup.Visible)
 			return;
 
 		if (!IsDirty())
@@ -280,7 +332,24 @@ public partial class GameSettingsMenu : Control
 
 		_unsavedChangesStatus.Text = "Apply your settings changes before exiting?";
 		_shell.SetEscapeHandlingEnabled(false);
-		_unsavedChangesShell.Open("UNSAVED CHANGES");
+		_unsavedChangesPopup.Show();
+	}
+
+	private bool OnCloseRequested()
+	{
+		if (_unsavedChangesPopup.Visible)
+			return false;
+
+		if (IsDirty())
+		{
+			_unsavedChangesStatus.Text = "Apply your settings changes before exiting?";
+			_shell.SetEscapeHandlingEnabled(false);
+			_unsavedChangesPopup.Show();
+			return false;
+		}
+
+		CloseRequested?.Invoke();
+		return true;
 	}
 
 	private void ApplyAndExit()
@@ -288,24 +357,19 @@ public partial class GameSettingsMenu : Control
 		var snapshot = CaptureUiSnapshot();
 		if (!GameSettingsApplicator.TryCommit(snapshot, Host, out var error))
 		{
-			_unsavedChangesShell.Hide();
-			_shell.SetEscapeHandlingEnabled(true);
-			_settingsTabs.CurrentTab = (int)SettingsTab.KeyBindings;
-			_keyBindingsTab.ShowStatus(error ?? "Could not apply settings.");
+			_unsavedChangesStatus.Text = error ?? "Could not apply settings.";
 			return;
 		}
 
 		_baselineSnapshot = snapshot;
 		_hasBaselineSnapshot = true;
-		_unsavedChangesShell.Hide();
-		_shell.SetEscapeHandlingEnabled(true);
+		_unsavedChangesPopup.Hide();
 		CloseRequested?.Invoke();
 	}
 
 	private void DiscardAndExit()
 	{
-		_unsavedChangesShell.Hide();
-		_shell.SetEscapeHandlingEnabled(true);
+		_unsavedChangesPopup.Hide();
 		CloseRequested?.Invoke();
 	}
 

@@ -1,18 +1,18 @@
 using Godot;
 using GrimSpace.Components;
-using GrimSpace.Presentation.Menu;
 using GrimSpace.Presentation.Support;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
-public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
+public sealed partial class StarMapPauseMenuOverlay : Control
 {
 	public event Action? ContinueRequested;
 	public event Action? SaveRequested;
 	public event Action? MainMenuRequested;
 
-	private Control _root = null!;
-	private Button _saveButton = null!;
+	private ModalShell _shell = null!;
+	private UiButton _saveButton = null!;
 	private ReportIssueDialog _reportDialog = null!;
 	private readonly PauseMenuSettingsHost _settings = new();
 
@@ -20,91 +20,47 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 
 	public StarMapPauseMenuOverlay()
 	{
-		Layer = 15;
+		ZIndex = 15;
+		AnchorsPreset = (int)LayoutPreset.FullRect;
+		AnchorRight = 1f;
+		AnchorBottom = 1f;
+		GrowHorizontal = GrowDirection.Both;
+		GrowVertical = GrowDirection.Both;
+		MouseFilter = MouseFilterEnum.Ignore;
 		Build();
 		Visible = false;
 	}
 
 	public bool IsReportDialogOpen => _reportDialog.IsOpen;
 
-	public void ApplyTheme(Theme theme)
-	{
-		_root.Theme = theme;
-		_reportDialog.ApplyTheme(theme);
-	}
+	public void ApplyTheme(Theme theme) => _reportDialog.ApplyTheme(theme);
 
 	private void Build()
 	{
-		_root = new Control
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-			MouseFilter = Control.MouseFilterEnum.Stop,
-		};
-		AddChild(_root);
+		_shell = PauseMenuUi.CreateShell(() => ContinueRequested?.Invoke());
+		AddChild(_shell);
 
-		var backdrop = new ColorRect
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-			Color = MenuUi.ModalBackdropColor,
-		};
-		_root.AddChild(backdrop);
-
-		var center = new CenterContainer
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-		};
-		_root.AddChild(center);
-
-		var panel = new PanelContainer
-		{
-			CustomMinimumSize = new Vector2(320, 0),
-		};
-		center.AddChild(panel);
-
-		var margin = new MarginContainer();
-		margin.AddThemeConstantOverride("margin_left", 28);
-		margin.AddThemeConstantOverride("margin_right", 28);
-		margin.AddThemeConstantOverride("margin_top", 24);
-		margin.AddThemeConstantOverride("margin_bottom", 24);
-		panel.AddChild(margin);
-
-		var content = new VBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.Center,
-		};
-		content.AddThemeConstantOverride("separation", 12);
-		margin.AddChild(content);
-
-		content.AddChild(new Label
-		{
-			Text = "Paused",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			ThemeTypeVariation = "OverlayTitle",
-		});
-
-		content.AddChild(CreateMenuButton("Continue", () => ContinueRequested?.Invoke()));
-		_saveButton = CreateMenuButton("Save", () => SaveRequested?.Invoke());
-		content.AddChild(_saveButton);
-		content.AddChild(CreateMenuButton("Settings", () => _settings.Open()));
-		content.AddChild(CreateMenuButton("Save and Quit", () => MainMenuRequested?.Invoke()));
+		var content = HudWidgets.CreateModalButtonColumn();
+		_saveButton = PauseMenuUi.AddButton(
+			content,
+			"Save",
+			() => SaveRequested?.Invoke());
+		PauseMenuUi.AddButton(
+			content,
+			"Settings",
+			() => _settings.Open());
+		PauseMenuUi.AddButton(
+			content,
+			"Save and Quit",
+			() => MainMenuRequested?.Invoke());
+		PauseMenuUi.AddReportIssueButton(content, () => _reportDialog.Open("star-map"));
+		_shell.SetBody(content);
 
 		_reportDialog = new ReportIssueDialog();
-		_root.AddChild(_reportDialog);
-		_settings.Attach(_root);
+		AddChild(_reportDialog);
+		_settings.Attach(this);
 
-		PauseMenuReportFooter.AppendMenuItem(content, () => _reportDialog.Open("star-map"));
+		VisibilityChanged += OnVisibilityChanged;
 	}
 
 	public void ShowSaveConfirmation() => _saveButton.Text = "✓ Saved";
@@ -123,6 +79,9 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 		if (_settings.IsOpen)
 			return true;
 
+		if (_shell.TryHandleInput(@event))
+			return true;
+
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
 			ContinueRequested?.Invoke();
@@ -134,16 +93,17 @@ public sealed partial class StarMapPauseMenuOverlay : CanvasLayer
 		return true;
 	}
 
-	private static Button CreateMenuButton(string text, Action onPressed)
+	private void OnVisibilityChanged()
 	{
-		var button = new Button
+		if (!Visible)
 		{
-			Text = text,
-			CustomMinimumSize = new Vector2(220, 44),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-		};
-		HudStyles.StyleMenuNavButton(button);
-		button.Pressed += onPressed;
-		return button;
+			if (_shell.IsOpen)
+				_shell.Close();
+			return;
+		}
+
+		CallDeferred(MethodName.OpenShellDeferred);
 	}
+
+	private void OpenShellDeferred() => PauseMenuUi.OpenShell(_shell);
 }
