@@ -28,6 +28,7 @@ public partial class Session : Node
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
 	private bool _injectInputProbe;
+	private bool _zoomProbe;
 	private ulong _probeFrame;
 	private TutorialDialogHost? _tutorialDialogHost;
 	private readonly ISaveGameStorage _saveStorage;
@@ -205,6 +206,8 @@ public partial class Session : Node
 		_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
 		if (_injectInputProbe)
 			RunInputInjectionProbe();
+		if (_zoomProbe)
+			RunZoomOutProbe();
 		if (_autosaveScheduler.Advance(delta)
 			&& _autosaveGateProvider is not null
 			&& SaveLoadPolicy.CanSave(_autosaveGateProvider()) == SaveBlockReason.None)
@@ -388,6 +391,11 @@ public partial class Session : Node
 				_injectInputProbe = true;
 				break;
 			}
+			if (argument == "--zoom-probe")
+			{
+				_zoomProbe = true;
+				break;
+			}
 			if (argument == "--load-save")
 			{
 				TryLoadGame(navigate: false);
@@ -437,6 +445,29 @@ public partial class Session : Node
 		}
 		if (_probeFrame % 120 == 0)
 			GD.Print($"[Session] input-injection probe alive at frame {_probeFrame}");
+	}
+
+	/// <summary>
+	/// Evidence harness for distance-rating renders: <c>--zoom-probe</c>
+	/// wheel-zooms OUT through the camera's own wheel path from frame 90 to
+	/// frame 240, then hands the pose still, so one movie holds both the boot
+	/// pose (frames &lt; 90) and a settled mid-zoom pose (the last frames).
+	/// </summary>
+	private void RunZoomOutProbe()
+	{
+		_probeFrame++;
+		if (_probeFrame is < 90 or > 240 || _probeFrame % 15 != 0)
+			return;
+		Input.ParseInputEvent(new InputEventMouseButton
+		{
+			ButtonIndex = MouseButton.WheelDown,
+			Pressed = true,
+			Position = new Vector2(
+				DisplayServer.ScreenGetSize().X / 2f,
+				DisplayServer.ScreenGetSize().Y / 2f),
+		});
+		if (_probeFrame % 30 == 0)
+			GD.Print($"[Session] zoom-probe wheel-down at frame {_probeFrame}");
 	}
 
 	private void AdoptRun(State next)
