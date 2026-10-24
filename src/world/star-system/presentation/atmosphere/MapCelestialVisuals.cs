@@ -69,9 +69,9 @@ public static class MapCelestialVisuals
 			ProminenceStrength = 1.9f,
 			ProminenceLoopSpan = 0.42f,
 			ProminenceFilamentWidth = 0.030f,
-			CoronaStrength = 0.40f,
+			CoronaStrength = 0.18f,
 			CoronaStreamerStrength = 0.34f,
-			CoronaHaloReach = 1.0f,
+			CoronaHaloReach = 0.5f,
 			EmissionStrength = 0.26f + settings.SunGlowEnergy * 0.06f,
 			Seed = StableSeedMixer.From(seed).Add("map-star").Value % 997f,
 		};

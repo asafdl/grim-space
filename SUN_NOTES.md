@@ -1093,3 +1093,13 @@ Evidence frames: `refs/comparison/redo_map_boot_{base,final}.png`,
 `redo_closeup_{before,after}.png` (99.06 % of the close-up frame pixel-identical; the only delta is
 the seeded site). Harness fixes: `--zoom-probe` now registers when `--new-run` is also passed
 (flag collection precedes run adoption), and `--casting-fast` parses as two args.
+
+## Addendum 9 — aura cap (verdict #8, 2026-10-24, aura-only)
+Map star palette only: CoronaStrength 0.40 -> 0.18, CoronaHaloReach 1.0 -> 0.5 (the tail ends half a
+disc radius past the limb; prominence minutes law, height and every other param untouched).
+Strips: `refs/comparison/aura_boot_before_after.png`, `aura_zoom_before_after.png` (+ singles and the
+close-up pair). Measured under-limb bands at the boot pose (x 900-1020): rim 0-0.12R 123 ->
+64, tail 0.50-0.90R 119.8 -> 12.8 (before frame's nebula backdrop inflates the before side, so
+before is an upper bound); zoomed tail 0.50-0.90R = 7.5 over a ~4 background = faint only.
+Close-up regression pair: 99.92 % identical (0.08 % differs, noise-level: time-phase pixels + the
+FPS label digits; the close-up palette is field defaults, untouched by this verdict).

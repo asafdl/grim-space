@@ -1,3 +1,12 @@
+## verdict 8 - aura capped
+
+The big additive cloud around the map sun is gone. `CoronaStrength` 0.40 → 0.18
+and `CoronaHaloReach` 1.0 → 0.5, map star's palette only: the halo tail now ends
+half a disc radius past the limb and is faint. The minutes law, prominence
+height and every other sun parameter are untouched. Strips:
+`refs/comparison/aura_boot_before_after.png`, `aura_zoom_before_after.png`;
+the close-up regression pair is unchanged (99.92 % identical, noise-level).
+
 # Sun redo — what changed
 
 The map's sun was tuned against the close-up test scene, not the map; this
