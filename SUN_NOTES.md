@@ -1066,3 +1066,8 @@ AFTER  (4a6256c0 + gate) run-less + injected input, 220 frames:
 The before/after pairs the same event stream against the same handler, so
 zero is not a vacuously-quiet probe: the same number of injected events that
 produced 18 exceptions at :499 now produce none.
+
+## User verdict #6 (2026-10-24, raw: "the prominence animation is very fast, it should take minutes to grow!")
+NON-REGRESSION LAW: the prominence arc must grow on MINUTES-scale game time (~3-6 min to apex,
+configurable named constant), then die at intensity 0 per the roll law. Seconds-scale growth is
+regression. Acceptance: event-timeline timestamps or time-compressed render proof, not eyeball.
