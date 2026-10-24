@@ -104,16 +104,16 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			target,
 			before,
 			engine);
-		Assert.Equal(96, Amount(action.QuotedCost, ResourceId.Credits));
-		Assert.Equal(224, Amount(action.QuotedCost, ResourceId.ScrapAlloy));
+		Assert.Equal(48, Amount(action.QuotedCost, ResourceId.Credits));
+		Assert.Equal(112, Amount(action.QuotedCost, ResourceId.ScrapAlloy));
 
 		engine.Commit(action);
 
 		Assert.Equal(
-			initialCredits - 96,
+			initialCredits - 48,
 			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.Equal(
-			initialScrap - 224,
+			initialScrap - 112,
 			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 

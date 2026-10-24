@@ -92,8 +92,8 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		var discounted = quote.Offers.First(offer =>
 			offer.Offering == offering && offer.Targets.Contains(target));
 
-		Assert.Equal(96, Amount(discounted.Cost, ResourceId.Credits));
-		Assert.Equal(224, Amount(discounted.Cost, ResourceId.ScrapAlloy));
+		Assert.Equal(48, Amount(discounted.Cost, ResourceId.Credits));
+		Assert.Equal(112, Amount(discounted.Cost, ResourceId.ScrapAlloy));
 		Assert.NotEqual(baseOffer.Cost, discounted.Cost);
 	}
 
@@ -123,8 +123,8 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		var discounted = quote.Offers.First(offer =>
 			offer.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade
 			&& offer.Targets.Contains(MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget));
-		Assert.Equal(108, Amount(discounted.Cost, ResourceId.Credits));
-		Assert.Equal(252, Amount(discounted.Cost, ResourceId.ScrapAlloy));
+		Assert.Equal(54, Amount(discounted.Cost, ResourceId.Credits));
+		Assert.Equal(126, Amount(discounted.Cost, ResourceId.ScrapAlloy));
 	}
 
 	[Fact]

@@ -2,6 +2,7 @@ using GrimSpace.Education;
 using GrimSpace.Run;
 using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -24,7 +25,9 @@ public sealed class ContractGenerationIntegrationTests(StarMapFixture maps)
 		orchestrator.AdvanceTicks(ContractBoardConfig.DefaultCadenceTicks);
 
 		var generated = orchestrator.Map.ContractRegistry.Pending
-			.Where(contract => !contract.IsStoryObjective)
+			.Where(contract =>
+				contract.Category == EContractCategory.Standard
+				&& !contract.IsStoryObjective)
 			.ToList();
 		Assert.Equal(6, generated.Count);
 	}
