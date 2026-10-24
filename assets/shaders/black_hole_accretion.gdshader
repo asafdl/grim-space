@@ -15,6 +15,9 @@ uniform float doppler_amount : hint_range(0.0, 1.5) = 0.55;
 uniform float doppler_sign : hint_range(-1.0, 1.0) = 1.0;
 uniform float swirl_speed : hint_range(0.0, 2.0) = 0.30;
 uniform float grain_energy : hint_range(0.0, 2.0) = 0.9;
+// Alive read: the disk energy breathes on its own clock (no baked still frame).
+uniform float flicker_amount : hint_range(0.0, 1.0) = 0.65;
+uniform float flicker_speed : hint_range(0.0, 8.0) = 2.2;
 
 float hash(vec2 point) {
 	return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453);
@@ -51,7 +54,12 @@ void fragment() {
 	col += hot_color * hot_edge * 1.5;
 
 	float doppler = 1.0 + doppler_amount * doppler_sign * p.x;
-	float brightness = annulus * (0.5 + grain * grain_energy) * doppler * energy
-		+ hot_edge * annulus * 0.6;
+	// Two octaves of TIME noise: a slow swell plus a faster shimmer, so the
+	// disk never holds one still brightness (a photo would).
+	float pulse = noise(vec2(TIME * flicker_speed, 3.1)) * 0.65
+		+ noise(vec2(TIME * flicker_speed * 2.6, 8.7)) * 0.35;
+	float alive = 1.0 + flicker_amount * (pulse * 2.0 - 1.0) * 0.5;
+	float brightness = annulus * (0.5 + grain * grain_energy) * doppler * energy * alive
+		+ hot_edge * annulus * 0.6 * alive;
 	ALBEDO = col * brightness;
 }

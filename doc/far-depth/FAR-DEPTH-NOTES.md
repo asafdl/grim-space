@@ -3,6 +3,28 @@
 Task: the black hole and the far backgrounds "looked weird / paper-flat".
 Branch `graphic/far-depth`, isolated to this worktree + `doc/far-depth` evidence.
 
+## Realism kit 1 (the review round after the 3D rebuild)
+
+The geek review of the first 3D pass said: still reads like a decal because the
+disk is a frozen picture, the rotation is rigid, the rim is a fat blur, the
+bright side is painted on, depth does not interact, and there is no air/distance
+envelope at all. Six small items, one commit each, evidence under
+`evidence/kit1/` and the heavy movie files under `/d/ops-work/fardepth/`.
+
+Evidence rig for every still in this round: the already-committed `--mappose`
+capture arg, pose `62,25,42` (the pose where the hole is in frame, the star is
+not on top of it), `--load-save` so the system layout is identical between
+before/after renders (a fresh `--new-run` is randomly laid out, so a pixel
+comparison would be apples-to-oranges), frame 180 = 6.0 s settled.
+
+1. **The disk breathes (alive, not a photo).** The shader now adds a slow plus
+   a fast layer of TIME-driven noise to the disk energy, so its brightness
+   drifts instead of holding one value. Measured on the disk crop: before, the
+   mean luma moved 0.1 units over frames 60-210 (dead flat); after, it moves
+   2.7 units across the same window. Evidence:
+   `evidence/kit1/item1_alive-energy.png` (left: old shader; middle/right: new
+   shader at two times — the middle is the "swell", the right the "trough").
+
 ## What was actually wrong (found by rendering, not guessing)
 
 The "black hole" was **not an object at all**. It was a photo collage:
