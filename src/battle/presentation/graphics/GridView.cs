@@ -135,6 +135,12 @@ public partial class GridView : Node3D
 			_centralOutline.Visible = false;
 		_ghostWorld = null;
 	}
+	
+	public void ForceHideAllGrids()
+	{
+		HideMoveVisuals();
+		if (_rangeSlot != null) _rangeSlot.Instance.Visible = false;
+	}
 
 	private static ArrayMesh CreateLocalGridMesh(Vector3 viewDirection)
 		=> CellGridGeometry.CreateMesh(

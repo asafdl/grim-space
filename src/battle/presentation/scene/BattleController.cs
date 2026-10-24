@@ -648,6 +648,7 @@ public partial class BattleController : Node3D
 		_frames.AppendTurn(_battle, completedTurn, replay.History);
 		if (_replayCompletesRound)
 			_battleTutorial?.NotifyBattleTurnResolved(completedTurn);
+		try { _gridView?.ForceHideAllGrids(); } catch {}
 		RefreshPresentation();
 	}
 
