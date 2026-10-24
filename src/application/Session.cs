@@ -27,6 +27,8 @@ public partial class Session : Node
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
 	private Task<State>? _preparedRunTask;
+	private bool _injectInputProbe;
+	private ulong _probeFrame;
 	private TutorialDialogHost? _tutorialDialogHost;
 	private readonly ISaveGameStorage _saveStorage;
 	private readonly PersistenceRegistry _persistenceRegistry;
@@ -201,6 +203,8 @@ public partial class Session : Node
 	public override void _Process(double delta)
 	{
 		_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
+		if (_injectInputProbe)
+			RunInputInjectionProbe();
 		if (_autosaveScheduler.Advance(delta)
 			&& _autosaveGateProvider is not null
 			&& SaveLoadPolicy.CanSave(_autosaveGateProvider()) == SaveBlockReason.None)
@@ -379,12 +383,60 @@ public partial class Session : Node
 				StartNewRun();
 				return;
 			}
+			if (argument == "--inject-input")
+			{
+				_injectInputProbe = true;
+				break;
+			}
 			if (argument == "--load-save")
 			{
 				TryLoadGame(navigate: false);
 				return;
 			}
 		}
+	}
+
+	/// <summary>
+	/// Headless evidence harness: when <c>--inject-input</c> is passed, a
+	/// synthetic key / mouse-wheel / click event is posted through the input
+	/// dispatcher every 12 frames, so a headless boot can actually exercise
+	/// input handlers (a previous headless proof could only show that idle
+	/// frames are exception-free; this one proves dispatch is real).
+	/// </summary>
+	private void RunInputInjectionProbe()
+	{
+		_probeFrame++;
+		if (_probeFrame % 12 != 0)
+			return;
+		var position = new Vector2(
+			DisplayServer.ScreenGetSize().X * (_probeFrame % 240 / 240f),
+			DisplayServer.ScreenGetSize().Y / 2f);
+		switch (_probeFrame / 12 % 3)
+		{
+			case 0:
+				Input.ParseInputEvent(new InputEventKey { Keycode = Key.Space, Pressed = true });
+				break;
+			case 1:
+				Input.ParseInputEvent(new InputEventMouseButton
+				{
+					ButtonIndex = MouseButton.Left,
+					Pressed = true,
+					Position = position,
+					GlobalPosition = position,
+				});
+				break;
+			default:
+				Input.ParseInputEvent(new InputEventMouseButton
+				{
+					ButtonIndex = MouseButton.WheelUp,
+					Pressed = true,
+					Position = position,
+					GlobalPosition = position,
+				});
+				break;
+		}
+		if (_probeFrame % 120 == 0)
+			GD.Print($"[Session] input-injection probe alive at frame {_probeFrame}");
 	}
 
 	private void AdoptRun(State next)

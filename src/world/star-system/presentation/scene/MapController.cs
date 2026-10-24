@@ -496,6 +496,11 @@ public partial class MapController : Node3D
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		// SetProcess(false) gates _Process but NOT input callbacks: a run-less
+		// mount must be fully inert, so the same _wired law gates input too.
+		if (!_wired)
+			return;
+
 		if (_pauseMenu.TryHandleInput(@event))
 		{
 			GetViewport().SetInputAsHandled();

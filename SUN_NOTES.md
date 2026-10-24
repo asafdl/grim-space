@@ -1039,3 +1039,30 @@ identically, window closes with `--quit-after`); headless is reserved for
 plain boots of the map and for the `--mapstar` sun harness.  A `--no-sky` user arg (`MapBackdrop.Build`, honored from
 `MapController._Ready`) swaps the sky for a flat colour for headless
 renders; the windowed write above kept the full sky.
+
+### Residual (same-mount, input callbacks), closed 2026-10-24
+
+`SetProcess(false)` gates `_Process` but never input callbacks: the live
+run-less mount also spammed `MapController._UnhandledInput` (line 499,
+`_pauseMenu.TryHandleInput` — one exception per injected/real event).
+The same `_wired` law now gates input at its handler (first statement);
+the halt path leaves the node fully inert: no processing, no input.
+The sibling input overrides (MapCamera._Input,
+NavigationLandmarkShowcaseController._UnhandledInput) dereference only
+their own scene-internal wiring and need no gate.
+
+Proof via a headless injection harness (`Session--inject-input`: a
+synthetic key / click / wheel event posted through `Input.ParseInputEvent`
+every 12 frames, so headless runs CAN exercise input handlers — no live
+desktop relaunch is required):
+
+```
+BEFORE (pre-gate) run-less + injected input, 220 frames:
+    exit=0  NRE=18   <- all 18 at MapController.cs:line 499 (one per event)
+AFTER  (4a6256c0 + gate) run-less + injected input, 220 frames:
+    exit=0  NRE=0    probe alive at frame 120 (>= 18 events dispatched)
+```
+
+The before/after pairs the same event stream against the same handler, so
+zero is not a vacuously-quiet probe: the same number of injected events that
+produced 18 exceptions at :499 now produce none.
