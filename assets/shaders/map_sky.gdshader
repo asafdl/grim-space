@@ -2,17 +2,11 @@ shader_type sky;
 
 uniform sampler2D stars_panorama : filter_linear_mipmap, source_color;
 uniform sampler2D nebula_panorama : filter_linear_mipmap, source_color;
-uniform sampler2D horizon_panorama : filter_linear_mipmap, source_color;
 uniform float energy : hint_range(0.0, 2.0) = 0.26;
 uniform float nebula_strength : hint_range(0.0, 2.0) = 0.45;
 uniform vec3 nebula_center = vec3(0.764, -0.404, -0.503);
 uniform float nebula_radius : hint_range(0.05, 0.8) = 0.30;
 uniform float nebula_aspect : hint_range(0.5, 2.5) = 1.071;
-uniform float horizon_strength : hint_range(0.0, 2.0) = 0.36;
-uniform vec3 horizon_center = vec3(-0.62, -0.38, -0.52);
-uniform float horizon_radius : hint_range(0.05, 0.8) = 0.12;
-uniform float horizon_aspect : hint_range(0.5, 2.5) = 1.778;
-uniform vec2 horizon_uv_flip = vec2(-1.0, -1.0);
 
 vec2 panorama_uv(vec3 eyedir) {
 	vec2 uv = vec2(atan(eyedir.x, eyedir.z), acos(clamp(-eyedir.y, -1.0, 1.0)));
@@ -74,6 +68,5 @@ vec3 panorama_patch(
 void sky() {
 	vec3 stars = texture(stars_panorama, panorama_uv(EYEDIR)).rgb * energy;
 	vec3 nebula = panorama_patch(EYEDIR, nebula_panorama, nebula_center, nebula_radius, nebula_aspect, vec2(1.0)) * nebula_strength;
-	vec3 horizon = panorama_patch(EYEDIR, horizon_panorama, horizon_center, horizon_radius, horizon_aspect, horizon_uv_flip) * horizon_strength;
-	COLOR = stars + nebula + horizon;
+	COLOR = stars + nebula;
 }
